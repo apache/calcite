@@ -37,6 +37,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static java.lang.Float.parseFloat;
+import static java.lang.Long.parseLong;
+
 /**
  * Table function that executes the OS "ps" command
  * to list processes.
@@ -138,7 +141,7 @@ public class PsTableFunction {
       return values;
     }
 
-    private Object field(String field, String value) {
+    private static Object field(String field, String value) {
       switch (field) {
       case "pid":
       case "ppid":
@@ -148,26 +151,26 @@ public class PsTableFunction {
         return Integer.valueOf(value);
       case "pcpu":
       case "pmem":
-        return (int) (Float.parseFloat(value) * 10f);
+        return (int) (parseFloat(value) * 10f);
       case "time":
         final Matcher m1 =
             MINUTE_SECOND_MILLIS_PATTERN.matcher(value);
         if (m1.matches()) {
-          final long h = Long.parseLong(m1.group(1));
-          final long m = Long.parseLong(m1.group(2));
-          final long s = Long.parseLong(m1.group(3));
+          final long h = parseLong(m1.group(1));
+          final long m = parseLong(m1.group(2));
+          final long s = parseLong(m1.group(3));
           return h * 3600000L + m * 60000L + s * 1000L;
         }
         final Matcher m2 =
             HOUR_MINUTE_SECOND_PATTERN.matcher(value);
         if (m2.matches()) {
-          final long m = Long.parseLong(m2.group(1));
-          final long s = Long.parseLong(m2.group(2));
+          final long m = parseLong(m2.group(1));
+          final long s = parseLong(m2.group(2));
           StringBuilder g3 = new StringBuilder(m2.group(3));
           while (g3.length() < 3) {
             g3.append("0");
           }
-          final long millis = Long.parseLong(g3.toString());
+          final long millis = parseLong(g3.toString());
           return m * 60000L + s * 1000L + millis;
         }
         return 0L;

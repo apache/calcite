@@ -18,7 +18,9 @@ package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.sql.SqlAbstractDateTimeLiteral;
 import org.apache.calcite.sql.SqlBasicFunction;
 import org.apache.calcite.sql.SqlCall;
@@ -37,6 +39,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlTypeName;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -47,9 +50,22 @@ import static java.util.Objects.requireNonNull;
  * database.
  */
 public class MssqlSqlDialect extends SqlDialect {
+    /**
+     * Mssql type system.
+     */
+  public static final RelDataTypeSystem MSSQL_TYPE_SYSTEM =
+            new RelDataTypeSystemImpl() {
+      @Override public int getDefaultPrecision(SqlTypeName typeName) {
+          if (typeName == SqlTypeName.CHAR) {
+            return RelDataType.PRECISION_NOT_SPECIFIED;
+          }
+          return super.getDefaultPrecision(typeName);
+      }
+  };
   public static final Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
       .withDatabaseProduct(SqlDialect.DatabaseProduct.MSSQL)
       .withIdentifierQuoteString("[")
+      .withDataTypeSystem(MSSQL_TYPE_SYSTEM)
       .withCaseSensitive(false)
       .withNullCollation(NullCollation.LOW);
 
@@ -147,6 +163,11 @@ public class MssqlSqlDialect extends SqlDialect {
         throw new IllegalArgumentException("MSSQL SUBSTRING requires FROM and FOR arguments");
       }
       SqlUtil.unparseFunctionSyntax(MSSQL_SUBSTRING, writer, call, false);
+    } else if (call.getOperator().equals(SqlStdOperatorTable.CEIL)) {
+      // CEILING is supported but not CEIL in MS SQL
+      final SqlWriter.Frame frame = writer.startFunCall("CEILING");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(frame);
     } else {
       switch (call.getKind()) {
       case FLOOR:

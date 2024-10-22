@@ -665,7 +665,17 @@ allprojects {
                     replace("hamcrest: nullValue", "org.hamcrest.Matchers.nullValue", "org.hamcrest.CoreMatchers.nullValue")
                     replace("hamcrest: sameInstance", "org.hamcrest.core.IsSame.sameInstance", "org.hamcrest.CoreMatchers.sameInstance")
                     replace("hamcrest: startsWith", "org.hamcrest.core.StringStartsWith.startsWith", "org.hamcrest.CoreMatchers.startsWith")
+                    replaceRegex("hamcrest: hasToString", "\\.toString\\(\\), (is|equalTo)\\(", ", hasToString\\(")
+                    replaceRegex("hamcrest: length", "\\.length, (is|equalTo)\\(", ", arrayWithSize\\(")
                     replaceRegex("hamcrest: size", "\\.size\\(\\), (is|equalTo)\\(", ", hasSize\\(")
+                    replaceRegex("use static import: parseBoolean", "Boolean\\.(parseBoolean\\()", "$1")
+                    replaceRegex("use static import: parseByte", "Byte\\.(parseByte\\()", "$1")
+                    replaceRegex("use static import: parseDouble", "Double\\.(parseDouble\\()", "$1")
+                    replaceRegex("use static import: parseFloat", "Float\\.(parseFloat\\()", "$1")
+                    replaceRegex("use static import: parseInt", "Integer\\.(parseInt\\()", "$1")
+                    replaceRegex("use static import: parseLong", "Long\\.(parseLong\\()", "$1")
+                    replaceRegex("use static import: parseLong", "Short\\.(parseShort\\()", "$1")
+                    replaceRegex("use static import: requireNonNull", "Objects\\.(requireNonNull\\()", "$1")
                     replaceRegex("use static import: toImmutableList", "ImmutableList\\.(toImmutableList\\(\\))", "$1")
                     replaceRegex("use static import: checkArgument", "Preconditions\\.(checkArgument\\()", "$1")
                     replaceRegex("use static import: checkArgument", "Preconditions\\.(checkState\\()", "$1")
@@ -778,6 +788,9 @@ allprojects {
                 if (project.path == ":core") {
                     extraJavacArgs.add("-AskipDefs=^org\\.apache\\.calcite\\.sql\\.parser\\.impl\\.")
                 }
+                if (project.path == ":server") {
+                    extraJavacArgs.add("-AskipDefs=^org\\.apache\\.calcite\\.sql\\.parser\\.ddl\\.")
+                }
             }
         }
 
@@ -834,6 +847,17 @@ allprojects {
                     showStandardStreams = true
                 }
                 exclude("**/*Suite*")
+                if (JavaVersion.current() >= JavaVersion.VERSION_23) {
+                    // Subject.doAs is deprecated and does not work in JDK 23
+                    // and higher unless the (also deprecated) SecurityManager
+                    // is enabled. However, we depend on libraries Avatica and
+                    // Hadoop for our remote driver and Pig and Spark
+                    // adapters. So as a workaround we require enabling the
+                    // security manager on JDK 23 and higher. See
+                    // [CALCITE-6587], [CALCITE-6590] (Avatica), [HADOOP-19212],
+                    // https://openjdk.org/jeps/411.
+                    jvmArgs("-Djava.security.manager=allow")
+                }
                 jvmArgs("-Xmx1536m")
                 jvmArgs("-Djdk.net.URLClassPath.disableClassPathURLCheck=true")
                 // Pass the property to tests

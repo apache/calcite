@@ -55,6 +55,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -75,11 +76,12 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.hasToString;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.fail;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Unit tests for {@link RexProgram} and
@@ -247,7 +249,7 @@ class RexProgramTest extends RexProgramTestBase {
     RexLocalRef t4 =
         builder.addExpr(rexBuilder.makeCall(SqlStdOperatorTable.PLUS, i0, i1));
     RexLocalRef t5;
-    final RexLocalRef t1;
+    final @Nullable RexLocalRef t1;
     switch (variant) {
     case 0:
     case 2:
@@ -315,7 +317,7 @@ class RexProgramTest extends RexProgramTestBase {
       final RexLocalRef t9 =
           builder.addExpr(trueLiteral);
       // $t10 = $t1 is not null (i.e. y is not null)
-      assert t1 != null;
+      requireNonNull(t1, "t1");
       final RexLocalRef t10 =
           builder.addExpr(
               rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, t1));
@@ -1421,7 +1423,6 @@ class RexProgramTest extends RexProgramTestBase {
         "false");
   }
 
-  @SuppressWarnings("UnstableApiUsage")
   @Test void testRangeSetMinus() {
     final RangeSet<Integer> setNone = ImmutableRangeSet.of();
     final RangeSet<Integer> setAll = setNone.complement();
@@ -1707,6 +1708,133 @@ class RexProgramTest extends RexProgramTestBase {
         "true");
   }
 
+  /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6638">[CALCITE-6638]
+   * Optimization that simplifies expressions such as
+   * '1 > a or 1 <= a or a is null' to TRUE is incorrect
+   * when it requires casts that are not lossless</a>. */
+  @Test void testSimplifyOrTermsWithLosslessCasts() {
+    final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    final RelDataType rowType = typeFactory.builder()
+        .add("a", intType).nullable(true)
+        .build();
+
+    final RelDataType intNullType = typeFactory.createTypeWithNullability(intType, true);
+    final RexDynamicParam range = rexBuilder.makeDynamicParam(rowType, 0);
+    final RexNode aRef = rexBuilder.makeFieldAccess(range, 0);
+
+    // "OR(IS NULL(?0.a), <(1, CAST(?0.a):INTEGER), >=(1, CAST(?0.a):INTEGER))"
+    // when (?0.a) is INTEGER
+    // ==> "TRUE"
+    checkSimplifyFilter(
+        or(isNull(aRef),
+            lt(literal(1), rexBuilder.makeCast(intNullType, aRef)),
+            ge(literal(1), rexBuilder.makeCast(intNullType, aRef))),
+        "true");
+  }
+
+  @Test void testSimplifyOrTermsWithLosslessCasts1() {
+    final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    final RelDataType rowType = typeFactory.builder()
+        .add("a", intType).nullable(true)
+        .build();
+
+    final RexDynamicParam range = rexBuilder.makeDynamicParam(rowType, 0);
+    final RexNode aRef = rexBuilder.makeFieldAccess(range, 0);
+
+    // "IS NULL(?0.a), <(1, CAST(?0.a):INTEGER NOT NULL), >=(1, CAST(?0.a):INTEGER NOT NULL)"
+    // when (?0.a) is INTEGER
+    // ==> "TRUE"
+    checkSimplifyFilter(
+        or(isNull(aRef),
+            lt(literal(1), rexBuilder.makeCast(intType, aRef)),
+            ge(literal(1), rexBuilder.makeCast(intType, aRef))),
+        "true");
+  }
+
+  @Test void testSimplifyOrTermsWithLosslessCasts2() {
+    final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    final RelDataType bigIntType = typeFactory.createSqlType(SqlTypeName.BIGINT);
+    final RelDataType rowType = typeFactory.builder()
+        .add("a", bigIntType).nullable(true)
+        .build();
+
+    final RexDynamicParam range = rexBuilder.makeDynamicParam(rowType, 0);
+    final RexNode aRef = rexBuilder.makeFieldAccess(range, 0);
+
+    // "OR(IS NULL(?0.a), <(1, CAST(?0.a):INTEGER NOT NULL), >=(1, CAST(?0.a):INTEGER NOT NULL))"
+    // when (?0.a) is BIGINT
+    // ==>
+    // "OR(IS NULL(?0.a), <(1, CAST(?0.a):INTEGER NOT NULL), >=(1, CAST(?0.a):INTEGER NOT NULL))"
+    checkSimplifyFilter(
+        or(isNull(aRef),
+            lt(literal(1), rexBuilder.makeCast(intType, aRef)),
+            ge(literal(1), rexBuilder.makeCast(intType, aRef))),
+        "OR(IS NULL(?0.a), <(1, CAST(?0.a):INTEGER NOT NULL), >=(1, CAST(?0.a):INTEGER NOT NULL))");
+  }
+
+  @Test void testSimplifyOrTermsWithLosslessCasts3() {
+    final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    final RelDataType intNullType = typeFactory.createTypeWithNullability(intType, true);
+    final RelDataType bigIntType = typeFactory.createSqlType(SqlTypeName.BIGINT);
+    final RelDataType rowType = typeFactory.builder()
+        .add("a", bigIntType).nullable(true)
+        .build();
+
+    final RexDynamicParam range = rexBuilder.makeDynamicParam(rowType, 0);
+    final RexNode aRef = rexBuilder.makeFieldAccess(range, 0);
+
+    // "OR(IS NULL(?0.a), <(1, CAST(?0.a):INTEGER), >=(1, CAST(?0.a):INTEGER))"
+    // when (?0.a) is BIGINT
+    // ==> "OR(IS NULL(?0.a), <(1, CAST(?0.a):INTEGER), >=(1, CAST(?0.a):INTEGER))"
+    checkSimplifyFilter(
+        or(isNull(aRef),
+            lt(literal(1), rexBuilder.makeCast(intNullType, aRef)),
+            ge(literal(1), rexBuilder.makeCast(intNullType, aRef))),
+        "OR(IS NULL(?0.a), <(1, CAST(?0.a):INTEGER), >=(1, CAST(?0.a):INTEGER))");
+  }
+
+  @Test void testSimplifyOrTermsWithLosslessCasts4() {
+    final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    final RelDataType tinyIntType = typeFactory.createSqlType(SqlTypeName.TINYINT);
+    final RelDataType rowType = typeFactory.builder()
+        .add("a", tinyIntType).nullable(true)
+        .build();
+
+    final RexDynamicParam range = rexBuilder.makeDynamicParam(rowType, 0);
+    final RexNode aRef = rexBuilder.makeFieldAccess(range, 0);
+
+    // "OR(IS NULL(?0.a), <(1, CAST(?0.a):INTEGER NOT NULL), >=(1, CAST(?0.a):INTEGER NOT NULL))"
+    // when (?0.a) is TINYINT
+    // ==> "true"
+    checkSimplifyFilter(
+        or(isNull(aRef),
+            lt(literal(1), rexBuilder.makeCast(intType, aRef)),
+            ge(literal(1), rexBuilder.makeCast(intType, aRef))),
+        "true");
+  }
+
+  @Test void testSimplifyOrTermsWithLosslessCasts5() {
+    final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    final RelDataType intNullType = typeFactory.createTypeWithNullability(intType, true);
+    final RelDataType tinyIntType = typeFactory.createSqlType(SqlTypeName.TINYINT);
+    final RelDataType rowType = typeFactory.builder()
+        .add("a", tinyIntType).nullable(true)
+        .build();
+
+    final RexDynamicParam range = rexBuilder.makeDynamicParam(rowType, 0);
+    final RexNode aRef = rexBuilder.makeFieldAccess(range, 0);
+
+    // "OR(IS NULL(?0.a), <(1, CAST(?0.a):INTEGER), >=(1, CAST(?0.a):INTEGER))"
+    // when (?0.a) is TINYINT
+    // ==> "true"
+    checkSimplifyFilter(
+        or(isNull(aRef),
+            lt(literal(1), rexBuilder.makeCast(intNullType, aRef)),
+            ge(literal(1), rexBuilder.makeCast(intNullType, aRef))),
+        "true");
+  }
+
   @Test void testSimplifyRange() {
     final RexNode aRef = input(tInt(), 0);
     // ((0 < a and a <= 10) or a >= 15) and a <> 6 and a <> 12
@@ -1869,6 +1997,15 @@ class RexProgramTest extends RexProgramTestBase {
     final String simplified = "SEARCH($0, "
         + "Sarg[(1:DECIMAL(11, 1)..3:DECIMAL(11, 1))]:DECIMAL(11, 1))";
     checkSimplify(expr, simplified);
+  }
+
+  @Test void testSimplifySearchWithSinglePointSargToEquals() {
+    Range<BigDecimal> r100 = Range.singleton(BigDecimal.valueOf(100));
+    RangeSet<BigDecimal> rangeSet = ImmutableRangeSet.<BigDecimal>builder().add(r100).build();
+    Sarg<BigDecimal> sarg = Sarg.of(RexUnknownAs.UNKNOWN, rangeSet);
+    RexLiteral searchLiteral = rexBuilder.makeSearchArgumentLiteral(sarg, tInt());
+    RexNode searchCall = rexBuilder.makeCall(SqlStdOperatorTable.SEARCH, vInt(), searchLiteral);
+    checkSimplify(searchCall, "=(?0.int0, 100)");
   }
 
   /** Unit test for
@@ -2264,8 +2401,9 @@ class RexProgramTest extends RexProgramTestBase {
   }
 
   @Test void fieldAccessEqualsHashCode() {
-    assertEquals(vBool(), vBool(), "vBool() instances should be equal");
-    assertEquals(vBool().hashCode(), vBool().hashCode(), "vBool().hashCode()");
+    assertThat("vBool() instances should be equal", vBool(), is(vBool()));
+    assertThat("vBool().hashCode()", vBool().hashCode(),
+        is(vBool().hashCode()));
     assertNotSame(vBool(), vBool(), "vBool() is expected to produce new RexFieldAccess");
     assertNotEquals(vBool(0), vBool(1), "vBool(0) != vBool(1)");
   }
@@ -2282,8 +2420,10 @@ class RexProgramTest extends RexProgramTestBase {
     RexCall caseNode = (RexCall) case_(condition, trueLiteral, falseLiteral);
 
     final RexCall result = (RexCall) simplify.simplifyUnknownAs(caseNode, RexUnknownAs.UNKNOWN);
-    assertThat("The case should be nonNullable", caseNode.getType().isNullable(), is(false));
-    assertThat("Expected a nonNullable type", result.getType().isNullable(), is(false));
+    assertThat("The case should be nonNullable",
+        caseNode.getType().isNullable(), is(false));
+    assertThat("Expected a nonNullable type",
+        result.getType().isNullable(), is(false));
     assertThat(result.getType().getSqlTypeName(), is(SqlTypeName.BOOLEAN));
     assertThat(result.getOperator(), is(SqlStdOperatorTable.IS_TRUE));
     assertThat(result.getOperands().get(0), is(condition));
@@ -2997,10 +3137,11 @@ class RexProgramTest extends RexProgramTestBase {
 
   private void assertTypeAndToString(
       RexNode rexNode, String representation, String type) {
-    assertEquals(representation, rexNode.toString());
-    assertEquals(type, rexNode.getType().toString()
-        + (rexNode.getType().isNullable() ? "" : RelDataTypeImpl.NON_NULLABLE_SUFFIX),
-        "type of " + rexNode);
+    assertThat(rexNode, hasToString(representation));
+    final String suffix =
+        rexNode.getType().isNullable() ? ""
+            : RelDataTypeImpl.NON_NULLABLE_SUFFIX;
+    assertThat("type of " + rexNode, rexNode.getType() + suffix, is(type));
   }
 
   @Test void testIsDeterministic() {
@@ -3009,8 +3150,8 @@ class RexProgramTest extends RexProgramTestBase {
             OperandTypes.VARIADIC).withDeterministic(false);
     RexNode n = rexBuilder.makeCall(ndc);
     assertFalse(RexUtil.isDeterministic(n));
-    assertEquals(0,
-            RexUtil.retainDeterministic(RelOptUtil.conjunctions(n)).size());
+    assertThat(RexUtil.retainDeterministic(RelOptUtil.conjunctions(n)),
+        hasSize(0));
   }
 
   @Test void testConstantMap() {
@@ -3353,7 +3494,6 @@ class RexProgramTest extends RexProgramTestBase {
   }
 
   /** Tests {@link Sarg#complexity()}. */
-  @SuppressWarnings("UnstableApiUsage")
   @Test void testSargComplexity() {
     checkSarg("complexity of 'x is not null'",
         Sarg.of(RexUnknownAs.FALSE, RangeSets.<Integer>rangeSetAll()),
@@ -3418,7 +3558,6 @@ class RexProgramTest extends RexProgramTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5722">[CALCITE-5722]
    * {@code Sarg.isComplementedPoints} fails with anti-points which are equal
    * under {@code compareTo} but not {@code equals}</a>. */
-  @SuppressWarnings("UnstableApiUsage")
   @Test void testSargAntiPoint() {
     final Sarg<BigDecimal> sarg =
         Sarg.of(RexUnknownAs.UNKNOWN,

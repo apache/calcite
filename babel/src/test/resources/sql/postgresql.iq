@@ -263,17 +263,17 @@ EXPR$0
 a.d.
 !ok
 
-select to_char(timestamp '2022-06-03 12:15:48.678', 'MONTH');
+select to_char(timestamp '2022-06-03 12:15:48.678', 'FMMONTH');
 EXPR$0
 JUNE
 !ok
 
-select to_char(timestamp '2022-06-03 12:15:48.678', 'Month');
+select to_char(timestamp '2022-06-03 12:15:48.678', 'FMMonth');
 EXPR$0
 June
 !ok
 
-select to_char(timestamp '2022-06-03 12:15:48.678', 'month');
+select to_char(timestamp '2022-06-03 12:15:48.678', 'FMmonth');
 EXPR$0
 june
 !ok
@@ -293,17 +293,17 @@ EXPR$0
 jun
 !ok
 
-select to_char(timestamp '2022-06-03 12:15:48.678', 'DAY');
+select to_char(timestamp '2022-06-03 12:15:48.678', 'FMDAY');
 EXPR$0
 FRIDAY
 !ok
 
-select to_char(timestamp '2022-06-03 12:15:48.678', 'Day');
+select to_char(timestamp '2022-06-03 12:15:48.678', 'FMDay');
 EXPR$0
 Friday
 !ok
 
-select to_char(timestamp '2022-06-03 12:15:48.678', 'day');
+select to_char(timestamp '2022-06-03 12:15:48.678', 'FMday');
 EXPR$0
 friday
 !ok

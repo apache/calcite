@@ -61,12 +61,13 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import static org.apache.calcite.test.Matchers.isListOf;
+
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasToString;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
@@ -207,17 +208,17 @@ class RelOptUtilTest {
    * Tests the rules for how we name rules.
    */
   @Test void testRuleGuessDescription() {
-    assertEquals("Bar", RelOptRule.guessDescription("com.foo.Bar"));
-    assertEquals("Baz", RelOptRule.guessDescription("com.flatten.Bar$Baz"));
+    assertThat(RelOptRule.guessDescription("com.foo.Bar"), is("Bar"));
+    assertThat(RelOptRule.guessDescription("com.flatten.Bar$Baz"), is("Baz"));
 
     // yields "1" (which as an integer is an invalid
     try {
       Util.discard(RelOptRule.guessDescription("com.foo.Bar$1"));
       fail("expected exception");
     } catch (RuntimeException e) {
-      assertEquals("Derived description of rule class com.foo.Bar$1 is an "
-              + "integer, not valid. Supply a description manually.",
-          e.getMessage());
+      assertThat(e.getMessage(),
+          is("Derived description of rule class com.foo.Bar$1 is an "
+              + "integer, not valid. Supply a description manually."));
     }
   }
 
@@ -300,10 +301,9 @@ class RelOptUtilTest {
         RelOptUtil.splitJoinCondition(sysFieldList,
             Arrays.asList(empScan, deptScan), joinCondition, joinKeys, null,
             null);
-    final List<List<RexNode>> expectedJoinKeys =
-        Arrays.asList(Collections.emptyList(), Collections.emptyList());
-    assertEquals(joinKeys, expectedJoinKeys);
-    assertEquals(result, joinCondition);
+    assertThat(joinKeys,
+        isListOf(Collections.emptyList(), Collections.emptyList()));
+    assertThat(result, is(joinCondition));
   }
 
   /**
@@ -414,10 +414,10 @@ class RelOptUtilTest {
         RelOptUtil.splitJoinCondition(empScan, deptScan, joinCond, actLeftKeys,
             actRightKeys, actFilterNulls);
 
-    assertEquals(expRemaining, actRemaining);
-    assertEquals(expFilterNulls, actFilterNulls);
-    assertEquals(expLeftKeys, actLeftKeys);
-    assertEquals(expRightKeys, actRightKeys);
+    assertThat(actRemaining, is(expRemaining));
+    assertThat(actFilterNulls, is(expFilterNulls));
+    assertThat(actLeftKeys, is(expLeftKeys));
+    assertThat(actRightKeys, is(expRightKeys));
   }
 
   /**
@@ -562,9 +562,10 @@ class RelOptUtilTest {
                 .toString()));
     assertThat(newJoin.getLeft(), is(instanceOf(Project.class)));
     Project leftInput = (Project) newJoin.getLeft();
-    assertThat(leftInput.getProjects().get(empRow.getFieldCount()).toString(),
-        is(relBuilder.call(SqlStdOperatorTable.PLUS, leftKeyInputRef, relBuilder.literal(1))
-            .toString()));
+    assertThat(leftInput.getProjects().get(empRow.getFieldCount()),
+        hasToString(
+            relBuilder.call(SqlStdOperatorTable.PLUS, leftKeyInputRef,
+                    relBuilder.literal(1)).toString()));
   }
 
   /**
@@ -606,20 +607,21 @@ class RelOptUtilTest {
     RelNode transformedInput = transformed.getInput(0);
     assertThat(transformedInput, is(instanceOf(Join.class)));
     Join newJoin = (Join) transformedInput;
-    assertThat(newJoin.getCondition().toString(),
-        is(
+    assertThat(newJoin.getCondition(),
+        hasToString(
             relBuilder.call(
                 SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
                 // Computed field is added at the end (and index start at 0)
                 RexInputRef.of(empRow.getFieldCount(), join.getRowType()),
                 // Right side is shifted by 1
-                RexInputRef.of(empRow.getFieldCount() + 1 + rightJoinIndex, join.getRowType()))
-              .toString()));
+                RexInputRef.of(empRow.getFieldCount() + 1 + rightJoinIndex,
+                    join.getRowType())).toString()));
     assertThat(newJoin.getLeft(), is(instanceOf(Project.class)));
     Project leftInput = (Project) newJoin.getLeft();
-    assertThat(leftInput.getProjects().get(empRow.getFieldCount()).toString(),
-        is(relBuilder.call(SqlStdOperatorTable.PLUS, leftKeyInputRef, relBuilder.literal(1))
-            .toString()));
+    assertThat(leftInput.getProjects().get(empRow.getFieldCount()),
+        hasToString(
+            relBuilder.call(SqlStdOperatorTable.PLUS, leftKeyInputRef,
+                    relBuilder.literal(1)).toString()));
   }
 
   /**

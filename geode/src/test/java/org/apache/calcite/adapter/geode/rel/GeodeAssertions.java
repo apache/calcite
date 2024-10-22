@@ -19,7 +19,8 @@ package org.apache.calcite.adapter.geode.rel;
 import java.util.List;
 import java.util.function.Consumer;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Various validations for geode tests.
@@ -35,7 +36,7 @@ class GeodeAssertions {
               ? null
               : ((String) actual.get(0));
 
-      assertEquals(query, actualString);
+      assertThat(actualString, is(query));
     };
   }
 

@@ -92,10 +92,10 @@ public class PlannerImpl implements Planner, ViewExpander {
   private boolean open;
 
   // set in STATE_2_READY
-  private @Nullable SchemaPlus defaultSchema;
+  private final @Nullable SchemaPlus defaultSchema;
   private @Nullable JavaTypeFactory typeFactory;
   private @Nullable RelOptPlanner planner;
-  private @Nullable RexExecutor executor;
+  private final @Nullable RexExecutor executor;
 
   // set in STATE_4_VALIDATE
   private @Nullable SqlValidator validator;

@@ -196,6 +196,9 @@ the implementation ("Add handler for FileNotFound").
  * If you are fixing a bug, it is sufficient to describe the bug
  ("NullPointerException if user is unknown") and people will correctly
  surmise that the purpose of your change is to fix the bug.
+* If your Jira title refers to terminology, please capitalize the first
+  letter ("arrow -> Arrow") and properly format the names of software and
+  technologies (e.g., "Mysql -> MySQL").
 
 Then push your commit(s) to GitHub, and create a pull request from
 your branch to the calcite main branch. Update the JIRA case

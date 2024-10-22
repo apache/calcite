@@ -25,6 +25,11 @@ import org.junit.jupiter.api.Test;
 /**
  * Tests for using Calcite with Spark as an internal engine, as implemented by
  * the {@link org.apache.calcite.adapter.spark} package.
+ *
+ * <p>Under JDK 23 and higher, this test requires
+ * "{@code -Djava.security.manager=allow}" command-line arguments due to
+ * Hadoop's use of deprecated methods in {@link javax.security.auth.Subject}.
+ * These arguments are set automatically if you run via Gradle.
  */
 class SparkAdapterTest {
   private static final String VALUES0 = "(values (1, 'a'), (2, 'b'))";
@@ -215,7 +220,7 @@ class SparkAdapterTest {
         + "having count(*) > 2";
 
     final String plan = "PLAN="
-        + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[2], expr#3=[>($t1, $t2)], X=[$t0], $condition=[$t3])\n"
+        + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[2:BIGINT], expr#3=[>($t1, $t2)], X=[$t0], $condition=[$t3])\n"
         + "  EnumerableAggregate(group=[{0}], agg#0=[COUNT()])\n"
         + "    EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n\n";
 
@@ -235,9 +240,7 @@ class SparkAdapterTest {
         + "from " + VALUES2;
 
     final String plan = "PLAN="
-        + "EnumerableUnion(all=[true])\n"
-        + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])\n"
-        + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n";
+        + "EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n\n";
 
     final String[] expectedResult = {
         "X=1; Y=a",
@@ -261,9 +264,7 @@ class SparkAdapterTest {
         + "from " + VALUES2;
 
     final String plan = "PLAN="
-        + "EnumerableUnion(all=[false])\n"
-        + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])\n"
-        + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n";
+        + "EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }]])\n\n";
 
     final String[] expectedResult = {
         "X=1; Y=a",

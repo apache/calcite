@@ -53,10 +53,10 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.hasToString;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Unit test for {@link org.apache.calcite.rex.RexExecutorImpl}.
@@ -100,15 +100,15 @@ class RexExecutorTest {
           .build();
 
       final RexExecutable exec =
-          executor.getExecutable(rexBuilder, constExps, rowType);
+          RexExecutorImpl.getExecutable(rexBuilder, constExps, rowType);
       exec.setDataContext(testContext);
       values[0] = "Hello World";
       Object[] result = exec.execute();
-      assertTrue(result[0] instanceof String);
+      assertThat(result[0], instanceOf(String.class));
       assertThat((String) result[0], equalTo("llo World"));
       values[0] = "Calcite";
       result = exec.execute();
-      assertTrue(result[0] instanceof String);
+      assertThat(result[0], instanceOf(String.class));
       assertThat((String) result[0], equalTo("lcite"));
     });
   }
@@ -121,8 +121,7 @@ class RexExecutorTest {
           reducedValues);
       assertThat(reducedValues, hasSize(1));
       assertThat(reducedValues.get(0), instanceOf(RexLiteral.class));
-      assertThat(((RexLiteral) reducedValues.get(0)).getValue2(),
-          equalTo((Object) 10L));
+      assertThat(((RexLiteral) reducedValues.get(0)).getValue2(), equalTo(10L));
     });
   }
 
@@ -158,8 +157,7 @@ class RexExecutorTest {
       final Function<RexBuilder, RexNode> function) {
     check((rexBuilder, executor) -> {
       final List<RexNode> reducedValues = new ArrayList<>();
-      final RexNode expression = function.apply(rexBuilder);
-      assert expression != null;
+      final RexNode expression = requireNonNull(function.apply(rexBuilder));
       executor.reduce(rexBuilder, ImmutableList.of(expression),
           reducedValues);
       assertThat(reducedValues, hasSize(1));
@@ -247,10 +245,10 @@ class RexExecutorTest {
       assertThat(reducedValues, hasSize(2));
       assertThat(reducedValues.get(0), instanceOf(RexLiteral.class));
       assertThat(((RexLiteral) reducedValues.get(0)).getValue2(),
-          equalTo((Object) "ello")); // substring('Hello world!, 2, 4)
+          equalTo("ello")); // substring('Hello world!, 2, 4)
       assertThat(reducedValues.get(1), instanceOf(RexLiteral.class));
       assertThat(((RexLiteral) reducedValues.get(1)).getValue2(),
-          equalTo((Object) 2L));
+          equalTo(2L));
     });
   }
 
@@ -337,16 +335,14 @@ class RexExecutorTest {
     final Random random = new Random();
     for (int i = 0; i < 10; i++) {
       threads.add(
-          new Thread() {
-            public void run() {
-              for (int j = 0; j < 1000; j++) {
-                // Random numbers between 0 and ~1m, smaller values more common
-                final int index = random.nextInt(1234567)
-                    >> random.nextInt(16) >> random.nextInt(16);
-                list.get(index);
-              }
+          new Thread(() -> {
+            for (int j = 0; j < 1000; j++) {
+              // Random numbers between 0 and ~1m, smaller values more common
+              final int index = random.nextInt(1234567)
+                  >> random.nextInt(16) >> random.nextInt(16);
+              list.get(index);
             }
-          });
+          }));
     }
     for (Thread runnable : threads) {
       runnable.start();
@@ -392,9 +388,11 @@ class RexExecutorTest {
       final RexCall first =
           (RexCall) rexBuilder.makeCall(SqlStdOperatorTable.LN,
           rexBuilder.makeLiteral(3, integer, true));
+      // Division by zero causes an exception during evaluation
       final RexCall second =
-          (RexCall) rexBuilder.makeCall(SqlStdOperatorTable.LN,
-          rexBuilder.makeLiteral(-2, integer, true));
+          (RexCall) rexBuilder.makeCall(SqlStdOperatorTable.DIVIDE_INTEGER,
+              rexBuilder.makeLiteral(-2, integer, true),
+              rexBuilder.makeLiteral(0, integer, true));
       executor.reduce(rexBuilder, ImmutableList.of(first, second),
           reducedValues);
       assertThat(reducedValues, hasSize(2));

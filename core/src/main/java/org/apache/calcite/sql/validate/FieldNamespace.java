@@ -44,8 +44,7 @@ class FieldNamespace extends AbstractNamespace {
       SqlValidatorImpl validator,
       RelDataType dataType) {
     super(validator, null);
-    assert dataType != null;
-    this.rowType = dataType;
+    this.rowType = requireNonNull(dataType, "dataType");
   }
 
   //~ Methods ----------------------------------------------------------------

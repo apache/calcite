@@ -73,7 +73,7 @@ public class RelMdSelectivity
 
   public @Nullable Double getSelectivity(Union rel, RelMetadataQuery mq,
       @Nullable RexNode predicate) {
-    if ((rel.getInputs().size() == 0) || (predicate == null)) {
+    if (rel.getInputs().isEmpty() || predicate == null) {
       return 1.0;
     }
 

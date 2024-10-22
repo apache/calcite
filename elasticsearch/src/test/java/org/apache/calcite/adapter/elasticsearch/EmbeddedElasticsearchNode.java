@@ -36,11 +36,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Objects;
 
 import static com.google.common.base.Preconditions.checkState;
 
 import static java.util.Collections.emptyMap;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Represents a single elastic search node which can run embedded in a java application.
@@ -53,7 +53,7 @@ class EmbeddedElasticsearchNode implements AutoCloseable {
   private volatile boolean isStarted;
 
   private EmbeddedElasticsearchNode(Node node) {
-    this.node = Objects.requireNonNull(node, "node");
+    this.node = requireNonNull(node, "node");
   }
 
   /**

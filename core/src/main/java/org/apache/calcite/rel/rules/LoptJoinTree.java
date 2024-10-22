@@ -24,7 +24,8 @@ import org.checkerframework.checker.initialization.qual.UnderInitialization;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Utility class used to store a {@link org.apache.calcite.rel.core.Join} tree
@@ -198,8 +199,8 @@ public class LoptJoinTree {
 
     public Node(BinaryTree left, BinaryTree right, @UnderInitialization LoptJoinTree parent) {
       super(parent);
-      this.left = Objects.requireNonNull(left, "left");
-      this.right = Objects.requireNonNull(right, "right");
+      this.left = requireNonNull(left, "left");
+      this.right = requireNonNull(right, "right");
     }
 
     public BinaryTree getLeft() {

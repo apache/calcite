@@ -30,6 +30,8 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.RandomAccess;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Utility and factory methods for Linq4j.
  */
@@ -409,21 +411,6 @@ public abstract class Linq4j {
     return Objects.equals(t0, t1);
   }
 
-  /**
-   * Throws {@link NullPointerException} if argument is null, otherwise
-   * returns argument.
-   *
-   * <p>Equivalent to {@link java.util.Objects#requireNonNull} in JDK 1.7 and
-   * above.
-   */
-  @Deprecated // to be removed before 2.0
-  public static <T> T requireNonNull(T o) {
-    if (o == null) {
-      throw new NullPointerException();
-    }
-    return o;
-  }
-
   /** Closes an iterator, if it can be closed. */
   private static <T> void closeIterator(@Nullable Iterator<? extends T> iterator) {
     if (iterator instanceof AutoCloseable) {
@@ -460,7 +447,7 @@ public abstract class Linq4j {
     }
 
     @Override public boolean moveNext() {
-      if (Objects.requireNonNull(iterator, "iterator").hasNext()) {
+      if (requireNonNull(iterator, "iterator").hasNext()) {
         current = iterator.next();
         return true;
       }

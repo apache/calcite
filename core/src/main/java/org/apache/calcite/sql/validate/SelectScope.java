@@ -158,7 +158,7 @@ public class SelectScope extends ListScope {
 
     // TODO: compare fully qualified names
     final SqlNodeList orderList = getOrderList();
-    if (orderList.size() > 0) {
+    if (!orderList.isEmpty()) {
       SqlNode order0 = orderList.get(0);
       monotonicity = SqlMonotonicity.INCREASING;
       if ((order0 instanceof SqlCall)
@@ -183,7 +183,7 @@ public class SelectScope extends ListScope {
         final SqlValidatorNamespace child = children.get(0).namespace;
         final List<Pair<SqlNode, SqlMonotonicity>> monotonicExprs =
             child.getMonotonicExprs();
-        if (monotonicExprs.size() > 0) {
+        if (!monotonicExprs.isEmpty()) {
           orderList.add(monotonicExprs.get(0).left);
         }
       }

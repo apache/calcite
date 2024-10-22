@@ -69,7 +69,8 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
       SqlSyntax syntax, boolean allowsNullTreatment, boolean allowsSeparator,
       boolean percentile, boolean allowsFraming) {
     super(name, sqlIdentifier, kind,
-        requireNonNull(returnTypeInference, "returnTypeInference"), operandTypeInference,
+        requireNonNull(returnTypeInference, "returnTypeInference"),
+        operandTypeInference,
         requireNonNull(operandTypeChecker, "operandTypeChecker"),
         requireNonNull(funcType, "funcType"), requiresOrder, requiresOver,
         requiresGroupOrder);

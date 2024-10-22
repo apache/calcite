@@ -34,6 +34,7 @@ import org.apache.geode.cache.query.Struct;
 import org.apache.geode.pdx.PdxInstance;
 import org.apache.geode.pdx.ReflectionBasedAutoSerializer;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,8 +45,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Utilities for the Geode adapter.
@@ -123,8 +125,8 @@ public class GeodeUtils {
    * @return Returns a Region proxy to a remote (on the Server) regions.
    */
   public static synchronized Region createRegion(GemFireCache cache, String regionName) {
-    Objects.requireNonNull(cache, "cache");
-    Objects.requireNonNull(regionName, "regionName");
+    requireNonNull(cache, "cache");
+    requireNonNull(regionName, "regionName");
     Region region = REGION_MAP.get(regionName);
     if (region == null) {
       try {
@@ -150,7 +152,7 @@ public class GeodeUtils {
    * @param geodeResultObject Object value returned by Geode query
    * @return List of objects values corresponding to the relDataTypeFields
    */
-  public static Object convertToRowValues(
+  public static @Nullable Object convertToRowValues(
       List<RelDataTypeField> relDataTypeFields, Object geodeResultObject) {
 
     Object values;
@@ -216,7 +218,7 @@ public class GeodeUtils {
   }
 
   @SuppressWarnings("CatchAndPrintStackTrace")
-  private static Object handleJavaObjectEntry(
+  private static @Nullable Object handleJavaObjectEntry(
       List<RelDataTypeField> relDataTypeFields, Object obj) {
 
     Class<?> clazz = obj.getClass();
@@ -285,7 +287,7 @@ public class GeodeUtils {
    * @return derived data type.
    */
   public static RelDataType autodetectRelTypeFromRegion(Region<?, ?> region) {
-    Objects.requireNonNull(region, "region");
+    requireNonNull(region, "region");
 
     // try to detect type using value constraints (if they exists)
     final Class<?> constraint = region.getAttributes().getValueConstraint();

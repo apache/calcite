@@ -119,6 +119,8 @@ class ArrowTranslator {
     switch (node.getKind()) {
     case EQUALS:
       return translateBinary("equal", "=", (RexCall) node);
+    case NOT_EQUALS:
+      return translateBinary("not_equal", "<>", (RexCall) node);
     case LESS_THAN:
       return translateBinary("less_than", ">", (RexCall) node);
     case LESS_THAN_OR_EQUAL:
@@ -228,6 +230,8 @@ class ArrowTranslator {
       }
     } else if (String.class.equals(literal.getClass())) {
       return "string";
+    } else if (literal instanceof Double) {
+      return "float";
     }
     throw new UnsupportedOperationException("Unsupported literal " + literal);
   }

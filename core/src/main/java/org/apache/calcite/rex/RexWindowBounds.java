@@ -26,6 +26,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Objects;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Helpers for {@link RexWindowBound}.
  */
@@ -62,7 +64,7 @@ public final class RexWindowBounds {
     if (SqlWindow.isCurrentRow(node)) {
       return CURRENT_ROW;
     }
-    assert rexNode != null : "offset value cannot be null for bounded window";
+    requireNonNull(rexNode, "offset value cannot be null for bounded window");
     return new RexBoundedWindowBound((RexCall) rexNode);
   }
 
@@ -136,8 +138,7 @@ public final class RexWindowBounds {
     }
 
     @Override public boolean equals(@Nullable Object o) {
-      return this == o
-          || o instanceof RexCurrentRowWindowBound;
+      return o instanceof RexCurrentRowWindowBound;
     }
 
     @Override public int hashCode() {
@@ -153,13 +154,12 @@ public final class RexWindowBounds {
     private final RexNode offset;
 
     RexBoundedWindowBound(RexCall node) {
-      this.offset = Objects.requireNonNull(node.operands.get(0));
-      this.sqlKind = Objects.requireNonNull(node.getKind());
+      this(node.getKind(), node.operands.get(0));
     }
 
     private RexBoundedWindowBound(SqlKind sqlKind, RexNode offset) {
-      this.sqlKind = sqlKind;
-      this.offset = offset;
+      this.sqlKind = requireNonNull(sqlKind, "sqlKind");
+      this.offset = requireNonNull(offset, "offset");
     }
 
     @Override public boolean isPreceding() {

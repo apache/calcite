@@ -630,11 +630,11 @@ public class TimeFrameTest {
           // representation is milliseconds.
           final Pair<String, String> fromPair =
               requireNonNull(MAP.get(fromFrame.name()));
-          final String timestampString = requireNonNull(fromPair.left);
+          final String timestampString = fromPair.left;
           final Pair<String, String> toPair =
               requireNonNull(MAP.get(toFrame.name()));
-          final String floorTimestampString = requireNonNull(toPair.left);
-          final String ceilTimestampString = requireNonNull(toPair.right);
+          final String floorTimestampString = toPair.left;
+          final String ceilTimestampString = toPair.right;
           checkTimestampFloor(timestampString, toUnit, precision,
               is(floorTimestampString));
           checkTimestampCeil(timestampString, toUnit, precision,

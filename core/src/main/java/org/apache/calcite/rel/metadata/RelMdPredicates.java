@@ -57,6 +57,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.BitSets;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Sarg;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.MappingType;
@@ -64,6 +65,9 @@ import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Range;
+import com.google.common.collect.RangeSet;
+import com.google.common.collect.TreeRangeSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -77,12 +81,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import static java.util.Objects.requireNonNull;
 
@@ -562,34 +564,53 @@ public class RelMdPredicates
   /**
    * Infers predicates for a Values.
    *
-   * <p>The predicates on {@code T (x, y, z)} with rows
-   * {@code (1, 2, null), (1, 2, null), (5, 2, null)} are {@code 'y = 2'} and {@code 'z is null'}.
+   * <p>The predicates on {@code T (w, x, y, z)} with rows
+   * {@code (1, 2, 3, null), (1, 2, null, null), (5, 2, 3, null)} are
+   * {@code 'SEARCH($0, Sarg[1, 5])'},
+   * {@code '=($1, 2)'},
+   * {@code 'SEARCH($2, Sarg[3; NULL AS TRUE])'} and
+   * {@code '[IS NULL($3)'}.
    */
   public RelOptPredicateList getPredicates(Values values, RelMetadataQuery mq) {
     ImmutableList<ImmutableList<RexLiteral>> tuples = values.tuples;
-    if (tuples.size() > 0) {
-      Set<Integer> constants = new HashSet<>();
-      IntStream.range(0, tuples.size()).boxed().forEach(constants::add);
-      List<RexLiteral> firstTuple = new ArrayList<>(tuples.get(0));
-      for (ImmutableList<RexLiteral> tuple : tuples) {
-        if (constants.isEmpty()) {
-          break;
-        }
-        for (int i = 0; i < tuple.size(); i++) {
-          if (!Objects.equals(tuple.get(i), firstTuple.get(i))) {
-            constants.remove(i);
-          }
+    if (!tuples.isEmpty()) {
+      List<RexLiteral> firstTuple = tuples.get(0);
+      List<HashSet<RexLiteral>> valueList = new ArrayList<>();
+      for (int i = 0; i < firstTuple.size(); i++) {
+        valueList.add(i, new HashSet<>());
+      }
+      for (int i = 0; i < tuples.size(); i++) {
+        List<RexLiteral> tuple = tuples.get(i);
+        for (int j = 0; j < tuple.size(); j++) {
+          RexLiteral rexLiteral = tuple.get(j);
+          valueList.get(j).add(rexLiteral);
         }
       }
       RexBuilder rexBuilder = values.getCluster().getRexBuilder();
       List<RexNode> predicates = new ArrayList<>();
-      for (int i = 0; i < firstTuple.size(); i++) {
-        if (constants.contains(i)) {
-          RexLiteral literal = firstTuple.get(i);
+      for (int i = 0; i < valueList.size(); i++) {
+        HashSet<RexLiteral> rexLiteralSet = valueList.get(i);
+        if (rexLiteralSet.size() == 1) {
+          for (RexLiteral rexLiteral : rexLiteralSet) {
+            predicates.add(i,
+                eqConstant(values, rexBuilder, i, rexLiteral));
+          }
+        } else {
+          RexUnknownAs rexUnknownAs = RexUnknownAs.UNKNOWN;
+          RangeSet<Comparable> rangeSet = TreeRangeSet.create();
+          for (RexLiteral rexLiteral : rexLiteralSet) {
+            if (RexUtil.isNull(rexLiteral)) {
+              rexUnknownAs = RexUnknownAs.TRUE;
+              continue;
+            }
+            rangeSet.add(Range.singleton(requireNonNull(rexLiteral.getValueAs(Comparable.class))));
+          }
+          final Sarg sarg = Sarg.of(rexUnknownAs, rangeSet);
           predicates.add(
-              rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
-                  rexBuilder.makeInputRef(literal.getType(), i),
-                  literal));
+              i, rexBuilder.makeCall(SqlStdOperatorTable.SEARCH,
+                  rexBuilder.makeInputRef(values, i),
+                  rexBuilder.makeSearchArgumentLiteral(sarg,
+                      values.getRowType().getFieldList().get(i).getType())));
         }
       }
       return RelOptPredicateList.of(rexBuilder, predicates);
@@ -815,7 +836,7 @@ public class RelMdPredicates
                     RelOptUtil.conjunctions(joinRel.getCondition())),
                 inferredPredicates);
         return RelOptPredicateList.of(rexBuilder, pulledUpPredicates,
-          leftInferredPredicates, rightInferredPredicates);
+            leftInferredPredicates, rightInferredPredicates);
       case LEFT:
       case ANTI:
         return RelOptPredicateList.of(rexBuilder,
@@ -826,7 +847,7 @@ public class RelMdPredicates
             RelOptUtil.conjunctions(rightChildPredicates),
             inferredPredicates, EMPTY_LIST);
       default:
-        assert inferredPredicates.size() == 0;
+        assert inferredPredicates.isEmpty();
         return RelOptPredicateList.EMPTY;
       }
     }
@@ -851,7 +872,7 @@ public class RelMdPredicates
           RexNode tr =
               r.accept(
                   new RexPermuteInputsShuttle(m, joinRel.getInput(0),
-                  joinRel.getInput(1)));
+                      joinRel.getInput(1)));
           // Filter predicates can be already simplified, so we should work with
           // simplified RexNode versions as well. It also allows prevent of having
           // some duplicates in in result pulledUpPredicates

@@ -20,9 +20,9 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.TimestampString;
 
-import java.util.Objects;
-
 import static com.google.common.base.Preconditions.checkArgument;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A SQL literal representing a TIMESTAMP value, for example <code>TIMESTAMP
@@ -45,7 +45,7 @@ public class SqlTimestampLiteral extends SqlAbstractDateTimeLiteral {
 
   @Override public SqlTimestampLiteral clone(SqlParserPos pos) {
     return new SqlTimestampLiteral(
-        (TimestampString) Objects.requireNonNull(value, "value"),
+        (TimestampString) requireNonNull(value, "value"),
         precision,
         getTypeName(), pos);
   }

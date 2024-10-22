@@ -32,6 +32,8 @@ import java.util.stream.Stream;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 
+import static java.lang.Boolean.parseBoolean;
+import static java.lang.Integer.parseInt;
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -416,14 +418,31 @@ public final class CalciteSystemProperty<T> {
    * cache in Calcite. The default value is 1,000.
    */
   public static final CalciteSystemProperty<Integer> FUNCTION_LEVEL_CACHE_MAX_SIZE =
-      intProperty("calcite.function.cache.maxSize", 0, v -> v >= 0);
+      intProperty("calcite.function.cache.maxSize", 1_000, v -> v >= 0);
+
+  /**
+   * Minimum numbers of fields in a Join result that will trigger the "compact code generation".
+   * This feature reduces the risk of running into a compilation error due to the code of a
+   * dynamically generated method growing beyond the 64KB limit.
+   *
+   * <p>Note that the compact code makes use of arraycopy operations when possible,
+   * instead of using a static array initialization. For joins with a large number of fields
+   * the resulting code should be faster, but it can be slower for joins with a very small number
+   * of fields.
+   *
+   * <p>The default value is 100, a negative value disables completely the "compact code" feature.
+   *
+   * @see org.apache.calcite.adapter.enumerable.EnumUtils
+   */
+  public static final CalciteSystemProperty<Integer> JOIN_SELECTOR_COMPACT_CODE_THRESHOLD =
+      intProperty("calcite.join.selector.compact.code.threshold", 100);
 
   private static CalciteSystemProperty<Boolean> booleanProperty(String key,
       boolean defaultValue) {
     // Note that "" -> true (convenient for command-lines flags like '-Dflag')
     return new CalciteSystemProperty<>(key,
         v -> v == null ? defaultValue
-            : v.isEmpty() || Boolean.parseBoolean(v));
+            : v.isEmpty() || parseBoolean(v));
   }
 
   private static CalciteSystemProperty<Integer> intProperty(String key, int defaultValue) {
@@ -448,7 +467,7 @@ public final class CalciteSystemProperty<T> {
         return defaultValue;
       }
       try {
-        int intVal = Integer.parseInt(v);
+        int intVal = parseInt(v);
         return valueChecker.test(intVal) ? intVal : defaultValue;
       } catch (NumberFormatException nfe) {
         return defaultValue;

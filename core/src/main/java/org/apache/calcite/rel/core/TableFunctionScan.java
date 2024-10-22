@@ -194,7 +194,7 @@ public abstract class TableFunctionScan extends AbstractRelNode
     // for a no-input UDX, behave like an AbstractRelNode; for a one-input
     // UDX, behave like a SingleRel; for a multi-input UDX, behave like
     // UNION ALL.  TODO jvs 10-Sep-2007: UDX-supplied costing metadata.
-    if (inputs.size() == 0) {
+    if (inputs.isEmpty()) {
       return super.estimateRowCount(mq);
     }
     double nRows = 0.0;

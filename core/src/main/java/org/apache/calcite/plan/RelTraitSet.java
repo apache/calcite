@@ -33,6 +33,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * RelTraitSet represents an ordered set of {@link RelTrait}s.
  */
@@ -638,7 +640,7 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
       return replace(i, trait);
     }
     final RelTrait canonizedTrait = canonize(trait);
-    assert canonizedTrait != null;
+    requireNonNull(canonizedTrait, "canonizedTrait");
     RelTrait[] newTraits = new RelTrait[traits.length + 1];
     System.arraycopy(traits, 0, newTraits, 0, traits.length);
     newTraits[traits.length] = canonizedTrait;

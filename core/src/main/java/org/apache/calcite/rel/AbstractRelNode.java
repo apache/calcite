@@ -54,6 +54,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -76,7 +78,7 @@ public abstract class AbstractRelNode implements RelNode {
    * The digest that uniquely identifies the node.
    */
   @API(since = "1.24", status = API.Status.INTERNAL)
-  protected RelDigest digest;
+  protected final RelDigest digest;
 
   private final RelOptCluster cluster;
 
@@ -84,7 +86,7 @@ public abstract class AbstractRelNode implements RelNode {
   protected final int id;
 
   /** RelTraitSet that describes the traits of this RelNode. */
-  protected RelTraitSet traitSet;
+  protected final RelTraitSet traitSet;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -93,9 +95,8 @@ public abstract class AbstractRelNode implements RelNode {
    */
   protected AbstractRelNode(RelOptCluster cluster, RelTraitSet traitSet) {
     super();
-    assert cluster != null;
-    this.cluster = cluster;
-    this.traitSet = traitSet;
+    this.cluster = requireNonNull(cluster, "cluster");
+    this.traitSet = requireNonNull(traitSet, "traitSet");
     this.id = NEXT_ID.getAndIncrement();
     this.digest = new InnerRelDigest();
   }
@@ -171,8 +172,7 @@ public abstract class AbstractRelNode implements RelNode {
 
   @Override public final RelDataType getRowType() {
     if (rowType == null) {
-      rowType = deriveRowType();
-      assert rowType != null : this;
+      rowType = checkNotNull(deriveRowType(), "null row type for %s", this);
     }
     return rowType;
   }
@@ -239,11 +239,10 @@ public abstract class AbstractRelNode implements RelNode {
       RelMetadataQuery mq) {
     final MetadataFactory factory = cluster.getMetadataFactory();
     final M metadata = factory.query(this, mq, metadataClass);
-    assert metadata != null
-        : "no provider found (rel=" + this + ", m=" + metadataClass
-        + "); a backstop provider is recommended";
+    checkNotNull(metadata, "no provider found (rel=%s, m=%s); "
+        + "a backstop provider is recommended", this, metadataClass);
     // Usually the metadata belongs to the rel that created it. RelSubset and
-    // HepRelVertex are notable exceptions, so disable the assert. It's not
+    // HepRelVertex are notable exceptions, so disable the assertion. It's not
     // worth the performance hit to override this method for them.
     //   assert metadata.rel() == this : "someone else's metadata";
     return metadata;

@@ -25,6 +25,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.elasticsearch.client.Request;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestClient;
@@ -35,7 +36,6 @@ import java.io.UncheckedIOException;
 import java.util.Collections;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.Spliterator;
 import java.util.Spliterators;
@@ -43,6 +43,8 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import static com.google.common.base.Preconditions.checkArgument;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Each table in the schema is an ELASTICSEARCH index.
@@ -67,16 +69,17 @@ public class ElasticsearchSchema extends AbstractSchema {
    * @param mapper mapper for JSON (de)serialization
    * @param index name of ES index
    */
-  public ElasticsearchSchema(RestClient client, ObjectMapper mapper, String index) {
+  public ElasticsearchSchema(RestClient client, ObjectMapper mapper,
+      @Nullable String index) {
     this(client, mapper, index, ElasticsearchTransport.DEFAULT_FETCH_SIZE);
   }
 
   @VisibleForTesting
   ElasticsearchSchema(RestClient client, ObjectMapper mapper,
-                      String index, int fetchSize) {
+      @Nullable String index, int fetchSize) {
     super();
-    this.client = Objects.requireNonNull(client, "client");
-    this.mapper = Objects.requireNonNull(mapper, "mapper");
+    this.client = requireNonNull(client, "client");
+    this.mapper = requireNonNull(mapper, "mapper");
     checkArgument(fetchSize > 0,
         "invalid fetch size. Expected %s > 0", fetchSize);
     this.fetchSize = fetchSize;
@@ -118,7 +121,7 @@ public class ElasticsearchSchema extends AbstractSchema {
     final Response response = client.performRequest(new Request("GET", endpoint));
     try (InputStream is = response.getEntity().getContent()) {
       final JsonNode root = mapper.readTree(is);
-      if (!(root.isObject() && root.size() > 0)) {
+      if (!root.isObject() || root.isEmpty()) {
         final String message = String.format(Locale.ROOT, "Invalid response for %s/%s "
             + "Expected object of at least size 1 got %s (of size %d)", response.getHost(),
             response.getRequestLine(), root.getNodeType(), root.size());

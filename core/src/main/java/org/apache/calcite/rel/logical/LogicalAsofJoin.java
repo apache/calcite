@@ -124,8 +124,7 @@ public final class LogicalAsofJoin extends AsofJoin {
     if (this == obj) {
       return true;
     }
-    LogicalAsofJoin asofObj = (LogicalAsofJoin) obj;
-    assert asofObj != null;
+    LogicalAsofJoin asofObj = requireNonNull((LogicalAsofJoin) obj);
     return deepEquals0(obj)
         && matchCondition.equals(asofObj.matchCondition)
         && systemFieldList.equals(asofObj.systemFieldList);

@@ -147,6 +147,24 @@ from (select deptno, count(*) from emp group by deptno);
 
 !ok
 
+# [CALCITE-6557] AggregateMergeRule throws 'type mismatch' AssertionError
+#
+# The scenario has the same aggregate function (SUM) at multiple levels; the
+# lower level is NOT NULL (because of GROUP BY) and the upper level is nullable.
+SELECT sum(deptno) AS s
+FROM (
+    SELECT sum(deptno) AS deptno
+    FROM dept
+    GROUP BY dname);
++-----+
+| S   |
++-----+
+| 100 |
++-----+
+(1 row)
+
+!ok
+
 # [CALCITE-998] Exception when calling STDDEV_SAMP, STDDEV_POP
 # stddev_samp
 select stddev_samp(deptno) as s from emp;
@@ -1916,9 +1934,9 @@ group by deptno;
 EnumerableAggregate(group=[{0}], CF=[COUNT() FILTER $1], C=[COUNT()])
   EnumerableCalc(expr#0..1=[{inputs}], expr#2=['CLERK':VARCHAR(9)], expr#3=[=($t0, $t2)], expr#4=[IS TRUE($t3)], DEPTNO=[$t1], $f1=[$t4])
     EnumerableUnion(all=[true])
-      EnumerableCalc(expr#0..7=[{inputs}], expr#8=[20], expr#9=[<($t7, $t8)], JOB=[$t2], DEPTNO=[$t7], $condition=[$t9])
+      EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t7):INTEGER], expr#9=[20], expr#10=[<($t8, $t9)], JOB=[$t2], DEPTNO=[$t7], $condition=[$t10])
         EnumerableTableScan(table=[[scott, EMP]])
-      EnumerableCalc(expr#0..7=[{inputs}], expr#8=[20], expr#9=[>($t7, $t8)], JOB=[$t2], DEPTNO=[$t7], $condition=[$t9])
+      EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t7):INTEGER], expr#9=[20], expr#10=[>($t8, $t9)], JOB=[$t2], DEPTNO=[$t7], $condition=[$t10])
         EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
@@ -3061,7 +3079,7 @@ group by deptno;
 
 !ok
 EnumerableAggregate(group=[{0}], EMPNOS=[COLLECT($1) WITHIN GROUP ([1 DESC]) FILTER $2])
-  EnumerableCalc(expr#0..7=[{inputs}], expr#8=[7500], expr#9=[>($t0, $t8)], DEPTNO=[$t7], EMPNO=[$t0], $f2=[$t9])
+  EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t0):INTEGER NOT NULL], expr#9=[7500], expr#10=[>($t8, $t9)], DEPTNO=[$t7], EMPNO=[$t0], $f2=[$t10])
     EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
@@ -3102,7 +3120,7 @@ group by dept.deptno;
 
 !ok
 EnumerableAggregate(group=[{0}], S=[COLLECT($1) WITHIN GROUP ([1 DESC])], S1=[COLLECT($1) WITHIN GROUP ([2])], S2=[COLLECT($1) WITHIN GROUP ([1]) FILTER $3])
-  EnumerableCalc(expr#0..3=[{inputs}], expr#4=[1], expr#5=[2000], expr#6=[>($t2, $t5)], expr#7=[IS TRUE($t6)], DEPTNO=[$t0], SAL=[$t2], $f2=[$t4], $f3=[$t7])
+  EnumerableCalc(expr#0..3=[{inputs}], expr#4=[1], expr#5=[CAST($t2):DECIMAL(10, 2)], expr#6=[2000.00:DECIMAL(10, 2)], expr#7=[>($t5, $t6)], expr#8=[IS TRUE($t7)], DEPTNO=[$t0], SAL=[$t2], $f2=[$t4], $f3=[$t8])
     EnumerableHashJoin(condition=[=($0, $3)], joinType=[inner])
       EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
         EnumerableTableScan(table=[[scott, DEPT]])
@@ -3187,34 +3205,34 @@ LIMIT 500;
 !use post
 
 select gender, json_objectagg(ename: deptno absent on null) from emp group by gender;
-+--------+-------------------------------------------------------+
-| GENDER | EXPR$1                                                |
-+--------+-------------------------------------------------------+
-| F      | {"Eve":50,"Grace":60,"Susan":30,"Alice":30,"Jane":10} |
-| M      | {"Adam":50,"Bob":10,"Eric":20}                        |
-+--------+-------------------------------------------------------+
++--------+----------------------------------------------------------+
+| GENDER | EXPR$1                                                   |
++--------+----------------------------------------------------------+
+| F      | {"Jane ":10,"Grace":60,"Susan":30,"Alice":30,"Eve  ":50} |
+| M      | {"Bob  ":10,"Adam ":50,"Eric ":20}                       |
++--------+----------------------------------------------------------+
 (2 rows)
 
 !ok
 
 select gender, json_arrayagg(json_object('ename': ename, 'deptno': deptno) format json) from emp group by gender;
-+--------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| GENDER | EXPR$1                                                                                                                                                                               |
-+--------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| F      | [{"ename":"Jane","deptno":10},{"ename":"Susan","deptno":30},{"ename":"Alice","deptno":30},{"ename":"Eve","deptno":50},{"ename":"Grace","deptno":60},{"ename":"Wilma","deptno":null}] |
-| M      | [{"ename":"Bob","deptno":10},{"ename":"Eric","deptno":20},{"ename":"Adam","deptno":50}]                                                                                              |
-+--------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
++--------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| GENDER | EXPR$1                                                                                                                                                                                  |
++--------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| F      | [{"ename":"Jane ","deptno":10},{"ename":"Susan","deptno":30},{"ename":"Alice","deptno":30},{"ename":"Eve  ","deptno":50},{"ename":"Grace","deptno":60},{"ename":"Wilma","deptno":null}] |
+| M      | [{"ename":"Bob  ","deptno":10},{"ename":"Eric ","deptno":20},{"ename":"Adam ","deptno":50}]                                                                                             |
++--------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 (2 rows)
 
 !ok
 
 select gender, json_arrayagg(json_object('ename': ename, 'deptno': deptno)) from emp group by gender;
-+--------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| GENDER | EXPR$1                                                                                                                                                                               |
-+--------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| F      | [{"ename":"Jane","deptno":10},{"ename":"Susan","deptno":30},{"ename":"Alice","deptno":30},{"ename":"Eve","deptno":50},{"ename":"Grace","deptno":60},{"ename":"Wilma","deptno":null}] |
-| M      | [{"ename":"Bob","deptno":10},{"ename":"Eric","deptno":20},{"ename":"Adam","deptno":50}]                                                                                              |
-+--------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
++--------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| GENDER | EXPR$1                                                                                                                                                                                  |
++--------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| F      | [{"ename":"Jane ","deptno":10},{"ename":"Susan","deptno":30},{"ename":"Alice","deptno":30},{"ename":"Eve  ","deptno":50},{"ename":"Grace","deptno":60},{"ename":"Wilma","deptno":null}] |
+| M      | [{"ename":"Bob  ","deptno":10},{"ename":"Eric ","deptno":20},{"ename":"Adam ","deptno":50}]                                                                                             |
++--------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 (2 rows)
 
 !ok
@@ -3223,10 +3241,10 @@ select json_object('deptno': deptno, 'employees': json_arrayagg(json_object('ena
 +-------------------------------------------------------------------------------------------+
 | EXPR$0                                                                                    |
 +-------------------------------------------------------------------------------------------+
-| {"employees":[{"ename":"Adam","gender":"M"},{"ename":"Eve","gender":"F"}],"deptno":50}    |
-| {"employees":[{"ename":"Eric","gender":"M"}],"deptno":20}                                 |
+| {"employees":[{"ename":"Adam ","gender":"M"},{"ename":"Eve  ","gender":"F"}],"deptno":50} |
+| {"employees":[{"ename":"Eric ","gender":"M"}],"deptno":20}                                |
 | {"employees":[{"ename":"Grace","gender":"F"}],"deptno":60}                                |
-| {"employees":[{"ename":"Jane","gender":"F"},{"ename":"Bob","gender":"M"}],"deptno":10}    |
+| {"employees":[{"ename":"Jane ","gender":"F"},{"ename":"Bob  ","gender":"M"}],"deptno":10} |
 | {"employees":[{"ename":"Susan","gender":"F"},{"ename":"Alice","gender":"F"}],"deptno":30} |
 | {"employees":[{"ename":"Wilma","gender":"F"}],"deptno":null}                              |
 +-------------------------------------------------------------------------------------------+
@@ -3238,10 +3256,10 @@ select json_object('deptno': deptno, 'employees': json_arrayagg(json_object('ena
 +-------------------------------------------------------------------------------------------+
 | EXPR$0                                                                                    |
 +-------------------------------------------------------------------------------------------+
-| {"employees":[{"ename":"Adam","gender":"M"},{"ename":"Eve","gender":"F"}],"deptno":50}    |
-| {"employees":[{"ename":"Eric","gender":"M"}],"deptno":20}                                 |
+| {"employees":[{"ename":"Adam ","gender":"M"},{"ename":"Eve  ","gender":"F"}],"deptno":50} |
+| {"employees":[{"ename":"Eric ","gender":"M"}],"deptno":20}                                |
 | {"employees":[{"ename":"Grace","gender":"F"}],"deptno":60}                                |
-| {"employees":[{"ename":"Jane","gender":"F"},{"ename":"Bob","gender":"M"}],"deptno":10}    |
+| {"employees":[{"ename":"Jane ","gender":"F"},{"ename":"Bob  ","gender":"M"}],"deptno":10} |
 | {"employees":[{"ename":"Susan","gender":"F"},{"ename":"Alice","gender":"F"}],"deptno":30} |
 | {"employees":[{"ename":"Wilma","gender":"F"}],"deptno":null}                              |
 +-------------------------------------------------------------------------------------------+
@@ -3290,53 +3308,53 @@ select gender,
 json_objectagg(ename: deptno),
 json_objectagg(ename: deptno absent on null)
 from emp group by gender;
-+--------+--------------------------------------------------------------------+-------------------------------------------------------+
-| GENDER | EXPR$1                                                             | EXPR$2                                                |
-+--------+--------------------------------------------------------------------+-------------------------------------------------------+
-| F      | {"Eve":50,"Grace":60,"Wilma":null,"Susan":30,"Alice":30,"Jane":10} | {"Eve":50,"Grace":60,"Susan":30,"Alice":30,"Jane":10} |
-| M      | {"Adam":50,"Bob":10,"Eric":20}                                     | {"Adam":50,"Bob":10,"Eric":20}                        |
-+--------+--------------------------------------------------------------------+-------------------------------------------------------+
++--------+-----------------------------------------------------------------------+----------------------------------------------------------+
+| GENDER | EXPR$1                                                                | EXPR$2                                                   |
++--------+-----------------------------------------------------------------------+----------------------------------------------------------+
+| F      | {"Jane ":10,"Grace":60,"Wilma":null,"Susan":30,"Alice":30,"Eve  ":50} | {"Jane ":10,"Grace":60,"Susan":30,"Alice":30,"Eve  ":50} |
+| M      | {"Bob  ":10,"Adam ":50,"Eric ":20}                                    | {"Bob  ":10,"Adam ":50,"Eric ":20}                       |
++--------+-----------------------------------------------------------------------+----------------------------------------------------------+
 (2 rows)
 
 !ok
 EnumerableAggregate(group=[{2}], EXPR$1=[JSON_OBJECTAGG_NULL_ON_NULL($0, $1)], EXPR$2=[JSON_OBJECTAGG_ABSENT_ON_NULL($0, $1)])
-  EnumerableValues(tuples=[[{ 'Jane', 10, 'F' }, { 'Bob', 10, 'M' }, { 'Eric', 20, 'M' }, { 'Susan', 30, 'F' }, { 'Alice', 30, 'F' }, { 'Adam', 50, 'M' }, { 'Eve', 50, 'F' }, { 'Grace', 60, 'F' }, { 'Wilma', null, 'F' }]])
+  EnumerableValues(tuples=[[{ 'Jane ', 10, 'F' }, { 'Bob  ', 10, 'M' }, { 'Eric ', 20, 'M' }, { 'Susan', 30, 'F' }, { 'Alice', 30, 'F' }, { 'Adam ', 50, 'M' }, { 'Eve  ', 50, 'F' }, { 'Grace', 60, 'F' }, { 'Wilma', null, 'F' }]])
 !plan
 
 select listagg(ename) as combined_name from emp;
-+------------------------------------------------+
-| COMBINED_NAME                                  |
-+------------------------------------------------+
-| Jane,Bob,Eric,Susan,Alice,Adam,Eve,Grace,Wilma |
-+------------------------------------------------+
++-------------------------------------------------------+
+| COMBINED_NAME                                         |
++-------------------------------------------------------+
+| Jane ,Bob  ,Eric ,Susan,Alice,Adam ,Eve  ,Grace,Wilma |
++-------------------------------------------------------+
 (1 row)
 
 !ok
 
 select listagg(ename) within group(order by gender, ename) as combined_name from emp;
-+------------------------------------------------+
-| COMBINED_NAME                                  |
-+------------------------------------------------+
-| Alice,Eve,Grace,Jane,Susan,Wilma,Adam,Bob,Eric |
-+------------------------------------------------+
++-------------------------------------------------------+
+| COMBINED_NAME                                         |
++-------------------------------------------------------+
+| Alice,Eve  ,Grace,Jane ,Susan,Wilma,Adam ,Bob  ,Eric  |
++-------------------------------------------------------+
 (1 row)
 
 !ok
 
 EnumerableAggregate(group=[{}], COMBINED_NAME=[LISTAGG($0) WITHIN GROUP ([2, 0])])
-  EnumerableValues(tuples=[[{ 'Jane', 10, 'F' }, { 'Bob', 10, 'M' }, { 'Eric', 20, 'M' }, { 'Susan', 30, 'F' }, { 'Alice', 30, 'F' }, { 'Adam', 50, 'M' }, { 'Eve', 50, 'F' }, { 'Grace', 60, 'F' }, { 'Wilma', null, 'F' }]])
+  EnumerableValues(tuples=[[{ 'Jane ', 10, 'F' }, { 'Bob  ', 10, 'M' }, { 'Eric ', 20, 'M' }, { 'Susan', 30, 'F' }, { 'Alice', 30, 'F' }, { 'Adam ', 50, 'M' }, { 'Eve  ', 50, 'F' }, { 'Grace', 60, 'F' }, { 'Wilma', null, 'F' }]])
 !plan
 
 select
   listagg(ename) within group(order by deptno, ename) as default_listagg_sep,
   listagg(ename, '; ') within group(order by deptno, ename desc) as custom_listagg_sep
 from emp group by gender;
-+----------------------------------+---------------------------------------+
-| DEFAULT_LISTAGG_SEP              | CUSTOM_LISTAGG_SEP                    |
-+----------------------------------+---------------------------------------+
-| Bob,Eric,Adam                    | Bob; Eric; Adam                       |
-| Jane,Alice,Susan,Eve,Grace,Wilma | Jane; Susan; Alice; Eve; Grace; Wilma |
-+----------------------------------+---------------------------------------+
++-------------------------------------+------------------------------------------+
+| DEFAULT_LISTAGG_SEP                 | CUSTOM_LISTAGG_SEP                       |
++-------------------------------------+------------------------------------------+
+| Bob  ,Eric ,Adam                    | Bob  ; Eric ; Adam                       |
+| Jane ,Alice,Susan,Eve  ,Grace,Wilma | Jane ; Susan; Alice; Eve  ; Grace; Wilma |
++-------------------------------------+------------------------------------------+
 (2 rows)
 
 !ok
@@ -3350,11 +3368,11 @@ select
     group_concat(distinct ename order by ename) as combined_name,
     group_concat(ename order by ename separator ';') as separated_name
 from emp;
-+------------------------------------------------+------------------------------------------------+
-| COMBINED_NAME                                  | SEPARATED_NAME                                 |
-+------------------------------------------------+------------------------------------------------+
-| Adam,Alice,Bob,Eric,Eve,Grace,Jane,Susan,Wilma | Adam;Alice;Bob;Eric;Eve;Grace;Jane;Susan;Wilma |
-+------------------------------------------------+------------------------------------------------+
++-------------------------------------------------------+-------------------------------------------------------+
+| COMBINED_NAME                                         | SEPARATED_NAME                                        |
++-------------------------------------------------------+-------------------------------------------------------+
+| Adam ,Alice,Bob  ,Eric ,Eve  ,Grace,Jane ,Susan,Wilma | Adam ;Alice;Bob  ;Eric ;Eve  ;Grace;Jane ;Susan;Wilma |
++-------------------------------------------------------+-------------------------------------------------------+
 (1 row)
 
 !ok
@@ -3363,11 +3381,11 @@ from emp;
 select
     group_concat(deptno, ename order by ename) as combined_name
 from emp;
-+-----------------------------------------------+
-| COMBINED_NAME                                 |
-+-----------------------------------------------+
-| 50Alice30Bob10Eric20Eve50Grace60Jane10Susan30 |
-+-----------------------------------------------+
++-----------------------------------------------------+
+| COMBINED_NAME                                       |
++-----------------------------------------------------+
+| 50Alice30Bob  10Eric 20Eve  50Grace60Jane 10Susan30 |
++-----------------------------------------------------+
 (1 row)
 
 !ok
@@ -3388,12 +3406,12 @@ select
   string_agg(ename order by deptno, ename) as default_string_agg_sep,
   string_agg(ename, '; ' order by deptno, ename desc) as custom_string_agg_sep
 from emp group by gender;
-+----------------------------------+---------------------------------------+
-| DEFAULT_STRING_AGG_SEP           | CUSTOM_STRING_AGG_SEP                 |
-+----------------------------------+---------------------------------------+
-| Bob,Eric,Adam                    | Bob; Eric; Adam                       |
-| Jane,Alice,Susan,Eve,Grace,Wilma | Jane; Susan; Alice; Eve; Grace; Wilma |
-+----------------------------------+---------------------------------------+
++-------------------------------------+------------------------------------------+
+| DEFAULT_STRING_AGG_SEP              | CUSTOM_STRING_AGG_SEP                    |
++-------------------------------------+------------------------------------------+
+| Bob  ,Eric ,Adam                    | Bob  ; Eric ; Adam                       |
+| Jane ,Alice,Susan,Eve  ,Grace,Wilma | Jane ; Susan; Alice; Eve  ; Grace; Wilma |
++-------------------------------------+------------------------------------------+
 (2 rows)
 
 !ok
@@ -3778,4 +3796,5 @@ select distinct sum(deptno + '1') as deptsum from dept order by 1;
 (1 row)
 
 !ok
+
 # End agg.iq

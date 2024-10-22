@@ -89,9 +89,6 @@ public class SqlIdentifier extends SqlNode {
     this.componentPositions =
         componentPositions == null ? null
             : ImmutableList.copyOf(componentPositions);
-    for (String name : names) {
-      assert name != null;
-    }
   }
 
   public SqlIdentifier(List<String> names, SqlParserPos pos) {
@@ -378,7 +375,8 @@ public class SqlIdentifier extends SqlNode {
 
   @Override public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
     // for "star" column, whether it's static or dynamic return not_monotonic directly.
-    if (Util.last(names).equals("") || DynamicRecordType.isDynamicStarColName(Util.last(names))) {
+    if (Util.last(names).isEmpty()
+        || DynamicRecordType.isDynamicStarColName(Util.last(names))) {
       return SqlMonotonicity.NOT_MONOTONIC;
     }
 
@@ -390,7 +388,10 @@ public class SqlIdentifier extends SqlNode {
       return call.getMonotonicity(scope);
     }
     final SqlQualified qualified = scope.fullyQualify(this);
-    assert qualified.namespace != null : "namespace must not be null in " + qualified;
+    if (qualified.namespace == null) {
+      throw new IllegalArgumentException("namespace must not be null in "
+          + qualified);
+    }
     final SqlIdentifier fqId = qualified.identifier;
     return qualified.namespace.resolve().getMonotonicity(Util.last(fqId.names));
   }

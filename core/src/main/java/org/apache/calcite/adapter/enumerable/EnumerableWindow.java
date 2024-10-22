@@ -529,7 +529,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
     return implementor.result(inputPhysType, builder.toBlock());
   }
 
-  private Statement buildExcludeGuard(Group group, Expression comparator,
+  private static Statement buildExcludeGuard(Group group, Expression comparator,
       ParameterExpression currentRow,
       DeclarationStatement jDecl, Expression rows, BlockStatement forBlock) {
     if (group.exclude == RexWindowExclusion.EXCLUDE_CURRENT_ROW) {

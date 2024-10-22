@@ -37,8 +37,8 @@ import static org.apache.calcite.linq4j.Nullness.castNonNull;
 public class Filterator<E extends Object> implements Iterator<E> {
   //~ Instance fields --------------------------------------------------------
 
-  Class<E> includeFilter;
-  Iterator<?> iterator;
+  final Class<E> includeFilter;
+  final Iterator<?> iterator;
   @Nullable E lookAhead;
   boolean ready;
 

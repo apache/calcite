@@ -26,6 +26,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Optionality;
@@ -50,6 +51,14 @@ import static java.util.Objects.requireNonNull;
 public class AggregateCall {
   //~ Instance fields --------------------------------------------------------
 
+  /**
+   * Some aggregate calls may produce runtime errors.  For these
+   * we need to keep around the original source position information
+   * so that the runtime can produce error messages pointing to
+   * the offending source operation.  For "safe" aggregations
+   * this field may be ZERO.
+   */
+  private final SqlParserPos pos;
   private final SqlAggFunction aggFunction;
 
   private final boolean distinct;
@@ -84,7 +93,7 @@ public class AggregateCall {
       List<Integer> argList,
       RelDataType type,
       String name) {
-    this(aggFunction, distinct, false, false,
+    this(SqlParserPos.ZERO, aggFunction, distinct, false, false,
         ImmutableList.of(), argList, -1, null,
         RelCollations.EMPTY, type, name);
   }
@@ -92,6 +101,9 @@ public class AggregateCall {
   /**
    * Creates an AggregateCall.
    *
+   * @param pos         Source position for this aggregate.
+   *                    Ideally it should only be ZERO when the aggregate
+   *                    can never fail at runtime.
    * @param aggFunction Aggregate function
    * @param distinct    Whether distinct
    * @param approximate Whether approximate
@@ -106,11 +118,12 @@ public class AggregateCall {
    * @param type        Result type
    * @param name        Name (may be null)
    */
-  private AggregateCall(SqlAggFunction aggFunction, boolean distinct,
+  private AggregateCall(SqlParserPos pos, SqlAggFunction aggFunction, boolean distinct,
       boolean approximate, boolean ignoreNulls,
       List<RexNode> rexList, List<Integer> argList,
       int filterArg, @Nullable ImmutableBitSet distinctKeys,
       RelCollation collation, RelDataType type, @Nullable String name) {
+    this.pos = pos;
     this.type = requireNonNull(type, "type");
     this.name = name;
     this.aggFunction = requireNonNull(aggFunction, "aggFunction");
@@ -187,6 +200,17 @@ public class AggregateCall {
       @Nullable ImmutableBitSet distinctKeys, RelCollation collation,
       int groupCount,
       RelNode input, @Nullable RelDataType type, @Nullable String name) {
+    return create(SqlParserPos.ZERO, aggFunction, distinct, approximate,
+        ignoreNulls, rexList, argList, filterArg, distinctKeys, collation, groupCount,
+        input, type, name);
+  }
+
+  public static AggregateCall create(SqlParserPos pos, SqlAggFunction aggFunction,
+      boolean distinct, boolean approximate, boolean ignoreNulls,
+      List<RexNode> rexList, List<Integer> argList, int filterArg,
+      @Nullable ImmutableBitSet distinctKeys, RelCollation collation,
+      int groupCount,
+      RelNode input, @Nullable RelDataType type, @Nullable String name) {
     if (type == null) {
       final RelDataTypeFactory typeFactory =
           input.getCluster().getTypeFactory();
@@ -198,7 +222,7 @@ public class AggregateCall {
               types, groupCount, filterArg >= 0);
       type = aggFunction.inferReturnType(callBinding);
     }
-    return create(aggFunction, distinct, approximate, ignoreNulls,
+    return create(pos, aggFunction, distinct, approximate, ignoreNulls,
         rexList, argList, filterArg, distinctKeys, collation, type, name);
   }
 
@@ -245,9 +269,18 @@ public class AggregateCall {
       List<RexNode> rexList, List<Integer> argList, int filterArg,
       @Nullable ImmutableBitSet distinctKeys, RelCollation collation,
       RelDataType type, @Nullable String name) {
+    return create(SqlParserPos.ZERO, aggFunction, distinct, approximate,
+        ignoreNulls, rexList, argList, filterArg, distinctKeys, collation, type, name);
+  }
+
+  public static AggregateCall create(SqlParserPos pos, SqlAggFunction aggFunction,
+      boolean distinct, boolean approximate, boolean ignoreNulls,
+      List<RexNode> rexList, List<Integer> argList, int filterArg,
+      @Nullable ImmutableBitSet distinctKeys, RelCollation collation,
+      RelDataType type, @Nullable String name) {
     final boolean distinct2 = distinct
         && (aggFunction.getDistinctOptionality() != Optionality.IGNORED);
-    return new AggregateCall(aggFunction, distinct2, approximate, ignoreNulls,
+    return new AggregateCall(pos, aggFunction, distinct2, approximate, ignoreNulls,
         rexList, argList, filterArg, distinctKeys, collation, type, name);
   }
 
@@ -264,7 +297,7 @@ public class AggregateCall {
   /** Withs {@link #isDistinct()}. */
   public AggregateCall withDistinct(boolean distinct) {
     return distinct == this.distinct ? this
-        : new AggregateCall(aggFunction, distinct, approximate, ignoreNulls,
+        : new AggregateCall(pos, aggFunction, distinct, approximate, ignoreNulls,
             rexList, argList, filterArg, distinctKeys, collation, type, name);
   }
 
@@ -281,7 +314,7 @@ public class AggregateCall {
   /** Withs {@link #isApproximate()}. */
   public AggregateCall withApproximate(boolean approximate) {
     return approximate == this.approximate ? this
-        : new AggregateCall(aggFunction, distinct, approximate, ignoreNulls,
+        : new AggregateCall(pos, aggFunction, distinct, approximate, ignoreNulls,
             rexList, argList, filterArg, distinctKeys, collation, type, name);
   }
 
@@ -297,7 +330,7 @@ public class AggregateCall {
   /** Withs {@link #ignoreNulls()}. */
   public AggregateCall withIgnoreNulls(boolean ignoreNulls) {
     return ignoreNulls == this.ignoreNulls ? this
-        : new AggregateCall(aggFunction, distinct, approximate, ignoreNulls,
+        : new AggregateCall(pos, aggFunction, distinct, approximate, ignoreNulls,
             rexList, argList, filterArg, distinctKeys, collation, type, name);
   }
 
@@ -323,7 +356,7 @@ public class AggregateCall {
   /** Withs {@link #getCollation()}. */
   public AggregateCall withCollation(RelCollation collation) {
     return collation.equals(this.collation) ? this
-        : new AggregateCall(aggFunction, distinct, approximate, ignoreNulls,
+        : new AggregateCall(pos, aggFunction, distinct, approximate, ignoreNulls,
             rexList, argList, filterArg, distinctKeys, collation, type, name);
   }
 
@@ -341,7 +374,7 @@ public class AggregateCall {
   /** Withs {@link #getArgList()}. */
   public AggregateCall withArgList(List<Integer> argList) {
     return argList.equals(this.argList) ? this
-        : new AggregateCall(aggFunction, distinct, approximate, ignoreNulls,
+        : new AggregateCall(pos, aggFunction, distinct, approximate, ignoreNulls,
             rexList, argList, filterArg, distinctKeys, collation, type, name);
   }
 
@@ -349,7 +382,7 @@ public class AggregateCall {
   public AggregateCall withDistinctKeys(
       @Nullable ImmutableBitSet distinctKeys) {
     return Objects.equals(distinctKeys, this.distinctKeys) ? this
-        : new AggregateCall(aggFunction, distinct, approximate, ignoreNulls,
+        : new AggregateCall(pos, aggFunction, distinct, approximate, ignoreNulls,
             rexList, argList, filterArg, distinctKeys, collation, type, name);
   }
 
@@ -374,7 +407,7 @@ public class AggregateCall {
   /** Withs {@link #name}. */
   public AggregateCall withName(@Nullable String name) {
     return Objects.equals(name, this.name) ? this
-        : new AggregateCall(aggFunction, distinct, approximate, ignoreNulls,
+        : new AggregateCall(pos, aggFunction, distinct, approximate, ignoreNulls,
             rexList, argList, filterArg, distinctKeys, collation, type, name);
   }
 
@@ -390,7 +423,7 @@ public class AggregateCall {
       buf.append("APPROXIMATE ");
     }
     if (distinct) {
-      buf.append((argList.size() == 0) ? "DISTINCT" : "DISTINCT ");
+      buf.append(argList.isEmpty() ? "DISTINCT" : "DISTINCT ");
     }
     int i = -1;
     for (RexNode rexNode : rexList) {
@@ -415,7 +448,7 @@ public class AggregateCall {
       }
       buf.append(")");
     }
-    if (!collation.equals(RelCollations.EMPTY)) {
+    if (hasCollation()) {
       buf.append(" WITHIN GROUP (");
       buf.append(collation);
       buf.append(")");
@@ -432,14 +465,24 @@ public class AggregateCall {
     return filterArg >= 0;
   }
 
+  /** Returns true if this AggregateCall has a non-empty collation. Returns false otherwise. */
+  public boolean hasCollation() {
+    return !collation.equals(RelCollations.EMPTY);
+  }
+
   /** Withs {@link #filterArg}. */
   public AggregateCall withFilter(int filterArg) {
     return filterArg == this.filterArg ? this
-        : new AggregateCall(aggFunction, distinct, approximate, ignoreNulls,
+        : new AggregateCall(pos, aggFunction, distinct, approximate, ignoreNulls,
             rexList, argList, filterArg, distinctKeys, collation, type, name);
   }
 
+  public SqlParserPos getParserPosition() {
+    return this.pos;
+  }
+
   @Override public boolean equals(@Nullable Object o) {
+    // Intentionally ignore the position
     return o == this
         || o instanceof AggregateCall
         && aggFunction.equals(((AggregateCall) o).aggFunction)
@@ -453,6 +496,7 @@ public class AggregateCall {
   }
 
   @Override public int hashCode() {
+    // Ignore the position!
     return Objects.hash(aggFunction, distinct, approximate, ignoreNulls,
         rexList, argList, filterArg, distinctKeys, collation);
   }
@@ -492,7 +536,7 @@ public class AggregateCall {
   @Deprecated // to be removed before 2.0
   public AggregateCall copy(List<Integer> argList, int filterArg,
       @Nullable ImmutableBitSet distinctKeys, RelCollation collation) {
-    return new AggregateCall(aggFunction, distinct, approximate, ignoreNulls,
+    return new AggregateCall(pos, aggFunction, distinct, approximate, ignoreNulls,
         rexList, argList, filterArg, distinctKeys, collation, type, name);
   }
 
@@ -500,21 +544,21 @@ public class AggregateCall {
   public AggregateCall copy(List<Integer> argList, int filterArg,
       RelCollation collation) {
     // ignoring distinctKeys is error-prone
-    return new AggregateCall(aggFunction, distinct, approximate, ignoreNulls,
+    return new AggregateCall(pos, aggFunction, distinct, approximate, ignoreNulls,
         rexList, argList, filterArg, distinctKeys, collation, type, name);
   }
 
   @Deprecated // to be removed before 2.0
   public AggregateCall copy(List<Integer> argList, int filterArg) {
     // ignoring distinctKeys, collation is error-prone
-    return new AggregateCall(aggFunction, distinct, approximate, ignoreNulls,
+    return new AggregateCall(pos, aggFunction, distinct, approximate, ignoreNulls,
         rexList, argList, filterArg, distinctKeys, collation, type, name);
   }
 
   @Deprecated // to be removed before 2.0
   public AggregateCall copy(List<Integer> argList) {
     // ignoring filterArg, distinctKeys, collation is error-prone
-    return new AggregateCall(aggFunction, distinct, approximate, ignoreNulls,
+    return new AggregateCall(pos, aggFunction, distinct, approximate, ignoreNulls,
         rexList, argList, filterArg, distinctKeys, collation, type, name);
   }
 
@@ -539,7 +583,7 @@ public class AggregateCall {
             && filterArg == this.filterArg
             ? type
             : null;
-    return create(aggFunction, distinct, approximate, ignoreNulls,
+    return create(pos, aggFunction, distinct, approximate, ignoreNulls,
         rexList, argList, filterArg, distinctKeys, collation,
         newGroupKeyCount, input, newType, getName());
   }
@@ -547,7 +591,7 @@ public class AggregateCall {
   /** Creates a copy of this aggregate call, applying a mapping to its
    * arguments. */
   public AggregateCall transform(Mappings.TargetMapping mapping) {
-    return new AggregateCall(aggFunction, distinct, approximate, ignoreNulls,
+    return new AggregateCall(pos, aggFunction, distinct, approximate, ignoreNulls,
         rexList, Mappings.apply2((Mapping) mapping, argList),
         hasFilter() ? Mappings.apply(mapping, filterArg) : -1,
         distinctKeys == null ? null : distinctKeys.permute(mapping),

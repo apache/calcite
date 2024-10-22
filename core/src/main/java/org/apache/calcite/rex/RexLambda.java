@@ -27,6 +27,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.List;
 import java.util.Objects;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Represents a lambda expression.
  */
@@ -40,7 +42,7 @@ public class RexLambda extends RexNode {
 
   RexLambda(List<RexLambdaRef> parameters, RexNode expression) {
     this.parameters = ImmutableList.copyOf(parameters);
-    this.expression = Objects.requireNonNull(expression, "expression");
+    this.expression = requireNonNull(expression, "expression");
   }
 
   //~ Methods ----------------------------------------------------------------

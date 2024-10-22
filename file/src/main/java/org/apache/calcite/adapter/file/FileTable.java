@@ -37,6 +37,8 @@ import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
 import org.apache.calcite.util.Source;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Map;
 
@@ -46,14 +48,14 @@ import java.util.Map;
 class FileTable extends AbstractQueryableTable
     implements TranslatableTable {
 
-  private final RelProtoDataType protoRowType;
-  private FileReader reader;
-  private FileRowConverter converter;
+  private final @Nullable RelProtoDataType protoRowType;
+  private final FileReader reader;
+  private final FileRowConverter converter;
 
   /** Creates a FileTable. */
   private FileTable(Source source, String selector, Integer index,
-      RelProtoDataType protoRowType, List<Map<String, Object>> fieldConfigs)
-      throws Exception {
+      @Nullable RelProtoDataType protoRowType,
+      List<Map<String, Object>> fieldConfigs) {
     super(Object[].class);
 
     this.protoRowType = protoRowType;
@@ -62,8 +64,7 @@ class FileTable extends AbstractQueryableTable
   }
 
   /** Creates a FileTable. */
-  static FileTable create(Source source, Map<String, Object> tableDef)
-      throws Exception {
+  static FileTable create(Source source, Map<String, Object> tableDef) {
     @SuppressWarnings("unchecked") List<Map<String, Object>> fieldConfigs =
         (List<Map<String, Object>>) tableDef.get("fields");
     String selector = (String) tableDef.get("selector");

@@ -26,8 +26,6 @@ import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelRunner;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
@@ -47,8 +45,6 @@ import static org.junit.jupiter.api.Assertions.fail;
  * is correctly propagated via {@link SQLException}s.
  */
 public class ExceptionMessageTest {
-  private Connection conn;
-
   /**
    * Simple reflective schema that provides valid and invalid entries.
    */
@@ -68,8 +64,8 @@ public class ExceptionMessageTest {
    * Entries made available in the reflective TestSchema.
    */
   public static class Entry {
-    public int id;
-    public String name;
+    public final int id;
+    public final String name;
 
     public Entry(int id, String name) {
       this.id = id;
@@ -77,78 +73,79 @@ public class ExceptionMessageTest {
     }
   }
 
-  @BeforeEach
-  public void setUp() throws SQLException {
-    Connection connection = DriverManager.getConnection("jdbc:calcite:");
-    CalciteConnection calciteConnection =
-        connection.unwrap(CalciteConnection.class);
-    SchemaPlus rootSchema = calciteConnection.getRootSchema();
-    rootSchema.add("test", new ReflectiveSchema(new TestSchema()));
-    calciteConnection.setSchema("test");
-    this.conn = calciteConnection;
-  }
+  /** Fixture. */
+  private static class Fixture implements AutoCloseable {
+    private final CalciteConnection conn;
 
-  @AfterEach
-  public void tearDown() throws SQLException {
-    if (conn != null) {
-      Connection c = conn;
-      conn = null;
-      c.close();
+    Fixture() throws SQLException {
+      Connection connection = DriverManager.getConnection("jdbc:calcite:");
+      this.conn = connection.unwrap(CalciteConnection.class);
+      SchemaPlus rootSchema = conn.getRootSchema();
+      rootSchema.add("test", new ReflectiveSchema(new TestSchema()));
+      conn.setSchema("test");
     }
-  }
 
-  private void runQuery(String sql) throws SQLException {
-    Statement stmt = conn.createStatement();
-    try {
-      stmt.executeQuery(sql);
-    } finally {
+    @Override public void close() throws SQLException {
+      conn.close();
+    }
+
+    private void runQuery(String sql) throws SQLException {
+      Statement stmt = conn.createStatement();
       try {
-        stmt.close();
-      } catch (Exception e) {
-        // We catch a possible exception on close so that we know we're not
-        // masking the query exception with the close exception
-        fail("Error on close");
+        stmt.executeQuery(sql);
+      } finally {
+        try {
+          stmt.close();
+        } catch (Exception e) {
+          // We catch a possible exception on close so that we know we're not
+          // masking the query exception with the close exception
+          fail("Error on close");
+        }
       }
     }
-  }
 
-  /** Performs an action that requires a {@link RelBuilder}, and returns the
-   * result. */
-  private <T> T withRelBuilder(Function<RelBuilder, T> fn) throws SQLException {
-    final SchemaPlus rootSchema =
-        conn.unwrap(CalciteConnection.class).getRootSchema();
-    final FrameworkConfig config = Frameworks.newConfigBuilder()
-        .defaultSchema(rootSchema)
-        .build();
-    final RelBuilder relBuilder = RelBuilder.create(config);
-    return fn.apply(relBuilder);
-  }
+    /** Performs an action that requires a {@link RelBuilder}, and returns the
+     * result. */
+    private <T> T withRelBuilder(Function<RelBuilder, T> fn)
+        throws SQLException {
+      final SchemaPlus rootSchema =
+          conn.unwrap(CalciteConnection.class).getRootSchema();
+      final FrameworkConfig config = Frameworks.newConfigBuilder()
+          .defaultSchema(rootSchema)
+          .build();
+      final RelBuilder relBuilder = RelBuilder.create(config);
+      return fn.apply(relBuilder);
+    }
 
-  private void runQuery(Function<RelBuilder, RelNode> relFn) throws SQLException {
-    final RelRunner relRunner = conn.unwrap(RelRunner.class);
-    final RelNode relNode = withRelBuilder(relFn);
-    final PreparedStatement preparedStatement =
-        relRunner.prepareStatement(relNode);
-    try {
-      preparedStatement.executeQuery();
-    } finally {
+    private void runQuery(Function<RelBuilder, RelNode> relFn)
+        throws SQLException {
+      final RelRunner relRunner = conn.unwrap(RelRunner.class);
+      final RelNode relNode = withRelBuilder(relFn);
+      final PreparedStatement preparedStatement =
+          relRunner.prepareStatement(relNode);
       try {
-        preparedStatement.close();
-      } catch (Exception e) {
-        fail("Error on close");
+        preparedStatement.executeQuery();
+      } finally {
+        try {
+          preparedStatement.close();
+        } catch (Exception e) {
+          fail("Error on close");
+        }
       }
     }
   }
 
   @Test void testValidQuery() throws SQLException {
-    // Just ensure that we're actually dealing with a valid connection
-    // to be sure that the results of the other tests can be trusted
-    runQuery("select * from \"entries\"");
+    try (Fixture f = new Fixture()) {
+      // Just ensure that we're actually dealing with a valid connection
+      // to be sure that the results of the other tests can be trusted
+      f.runQuery("select * from \"entries\"");
+    }
   }
 
-  @Test void testNonSqlException() throws SQLException {
-    try {
-      runQuery("select * from \"badEntries\"");
+  @Test void testNonSqlException() {
+    try (Fixture f = new Fixture()) {
+      f.runQuery("select * from \"badEntries\"");
       fail("Query badEntries should result in an exception");
     } catch (SQLException e) {
       assertThat(e.getMessage(),
@@ -158,8 +155,8 @@ public class ExceptionMessageTest {
   }
 
   @Test void testSyntaxError() {
-    try {
-      runQuery("invalid sql");
+    try (Fixture f = new Fixture()) {
+      f.runQuery("invalid sql");
       fail("Query should fail");
     } catch (SQLException e) {
       assertThat(e.getMessage(),
@@ -169,9 +166,9 @@ public class ExceptionMessageTest {
   }
 
   @Test void testSemanticError() {
-    try {
+    try (Fixture f = new Fixture()) {
       // implicit type coercion.
-      runQuery("select \"name\" - \"id\" from \"entries\"");
+      f.runQuery("select \"name\" - \"id\" from \"entries\"");
     } catch (SQLException e) {
       assertThat(e.getMessage(),
           containsString("Cannot apply '-' to arguments"));
@@ -179,8 +176,8 @@ public class ExceptionMessageTest {
   }
 
   @Test void testNonexistentTable() {
-    try {
-      runQuery("select name from \"nonexistentTable\"");
+    try (Fixture f = new Fixture()) {
+      f.runQuery("select name from \"nonexistentTable\"");
       fail("Query should fail");
     } catch (SQLException e) {
       assertThat(e.getMessage(),
@@ -190,11 +187,13 @@ public class ExceptionMessageTest {
 
   /** Runs a query via {@link RelRunner}. */
   @Test void testValidRelNodeQuery() throws SQLException {
-    final Function<RelBuilder, RelNode> relFn = b ->
-        b.scan("test", "entries")
-            .project(b.field("name"))
-            .build();
-    runQuery(relFn);
+    try (Fixture f = new Fixture()) {
+      final Function<RelBuilder, RelNode> relFn = b ->
+          b.scan("test", "entries")
+              .project(b.field("name"))
+              .build();
+      f.runQuery(relFn);
+    }
   }
 
   /** Runs a query via {@link RelRunner} that is expected to fail,
@@ -205,12 +204,12 @@ public class ExceptionMessageTest {
    * If a query is executed via RelRunner.prepare(RelNode) and fails, the
    * exception should report the RelNode plan, not the SQL</a>. */
   @Test void testRelNodeQueryException() {
-    try {
+    try (Fixture f = new Fixture()) {
       final Function<RelBuilder, RelNode> relFn = b ->
           b.scan("test", "entries")
               .project(b.call(SqlStdOperatorTable.ABS, b.field("name")))
               .build();
-      runQuery(relFn);
+      f.runQuery(relFn);
       fail("RelNode query about entries should result in an exception");
     } catch (SQLException e) {
       String message = "Error while preparing plan ["

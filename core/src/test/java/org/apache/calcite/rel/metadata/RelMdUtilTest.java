@@ -25,10 +25,10 @@ import org.apache.calcite.tools.Frameworks;
 import org.junit.jupiter.api.Test;
 
 import static org.apache.calcite.rel.metadata.RelMdUtil.numDistinctVals;
-import static org.apache.calcite.test.Matchers.within;
 
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
@@ -50,16 +50,16 @@ public class RelMdUtilTest {
 
   @Test void testNumDistinctVals() {
     // the first element must be distinct, the second one has half chance of being distinct
-    assertThat(numDistinctVals(2.0, 2.0), within(1.5, EPSILON));
+    assertThat(numDistinctVals(2.0, 2.0), closeTo(1.5, EPSILON));
 
     // when no selection is made, we get no distinct value
     double domainSize = 100;
-    assertThat(numDistinctVals(domainSize, 0.0), within(0, EPSILON));
+    assertThat(numDistinctVals(domainSize, 0.0), closeTo(0, EPSILON));
 
     // when we perform one selection, we always have 1 distinct value,
     // regardless of the domain size
     for (double dSize = 1; dSize < 100; dSize += 1) {
-      assertThat(numDistinctVals(dSize, 1.0), within(1.0, EPSILON));
+      assertThat(numDistinctVals(dSize, 1.0), closeTo(1.0, EPSILON));
     }
 
     // when we select n objects from a set with n values
@@ -70,11 +70,12 @@ public class RelMdUtilTest {
 
     // when the number of selections is large enough
     // we get all distinct values, w.h.p.
-    assertThat(numDistinctVals(domainSize, domainSize * 100), within(domainSize, EPSILON));
+    assertThat(numDistinctVals(domainSize, domainSize * 100),
+        closeTo(domainSize, EPSILON));
 
-    assertThat(numDistinctVals(100.0, 2.0), within(1.99, EPSILON));
-    assertThat(numDistinctVals(1000.0, 2.0), within(1.999, EPSILON));
-    assertThat(numDistinctVals(10000.0, 2.0), within(1.9999, EPSILON));
+    assertThat(numDistinctVals(100.0, 2.0), closeTo(1.99, EPSILON));
+    assertThat(numDistinctVals(1000.0, 2.0), closeTo(1.999, EPSILON));
+    assertThat(numDistinctVals(10000.0, 2.0), closeTo(1.9999, EPSILON));
   }
 
   @Test void testNumDistinctValsWithLargeDomain() {
@@ -90,10 +91,10 @@ public class RelMdUtilTest {
         assertThat(res, lessThanOrEqualTo(numSel));
       }
       res = numDistinctVals(domainSize, 1.0);
-      assertThat(res, within(1.0, EPSILON));
+      assertThat(res, closeTo(1.0, EPSILON));
 
       res = numDistinctVals(domainSize, 2.0);
-      assertThat(res, within(2.0, EPSILON));
+      assertThat(res, closeTo(2.0, EPSILON));
     }
   }
 

@@ -136,7 +136,8 @@ class RelSet {
         continue;
       }
       for (RelNode child : node.getInputs()) {
-        RelSet childSet = planner.equivRoot(((RelSubset) child).getSet());
+        RelSet childSet =
+            VolcanoPlanner.equivRoot(((RelSubset) child).getSet());
         if (childSet.id != this.id) {
           childSets.add(childSet);
         }
@@ -387,7 +388,7 @@ class RelSet {
         subset = getOrCreateSubset(cluster, otherTraits, true);
       }
 
-      assert subset != null;
+      requireNonNull(subset, "subset");
       if (subset.passThroughCache == null) {
         subset.passThroughCache = otherSubset.passThroughCache;
       } else if (otherSubset.passThroughCache != null) {

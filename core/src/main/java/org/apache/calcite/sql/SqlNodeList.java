@@ -32,11 +32,12 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Objects;
 import java.util.RandomAccess;
 import java.util.function.Consumer;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A <code>SqlNodeList</code> is a list of {@link SqlNode}s. It is also a
@@ -79,7 +80,7 @@ public class SqlNodeList extends SqlNode implements List<SqlNode>, RandomAccess 
    * should allow O(1) access to elements. */
   private SqlNodeList(SqlParserPos pos, List<@Nullable SqlNode> list) {
     super(pos);
-    this.list = Objects.requireNonNull(list, "list");
+    this.list = requireNonNull(list, "list");
   }
 
   /**
@@ -123,7 +124,7 @@ public class SqlNodeList extends SqlNode implements List<SqlNode>, RandomAccess 
   }
 
   @Override public boolean isEmpty() {
-    return list.isEmpty();
+    return list.size() == 0;
   }
 
   @Override public int size() {

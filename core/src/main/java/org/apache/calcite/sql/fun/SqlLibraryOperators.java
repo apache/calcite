@@ -42,7 +42,6 @@ import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.type.SqlTypeUtil;
-import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Litmus;
@@ -71,6 +70,7 @@ import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.REDSHIFT;
 import static org.apache.calcite.sql.fun.SqlLibrary.SNOWFLAKE;
 import static org.apache.calcite.sql.fun.SqlLibrary.SPARK;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BITCOUNT;
 import static org.apache.calcite.sql.type.OperandTypes.STRING_FIRST_OBJECT_REPEAT;
 import static org.apache.calcite.sql.type.OperandTypes.STRING_FIRST_STRING_ARRAY_REPEAT;
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -133,6 +133,25 @@ public abstract class SqlLibraryOperators {
       new SqlTimestampAddFunction("DATEADD");
 
   @LibraryOperator(libraries = {ORACLE, SPARK, HIVE})
+  /** The "DATE_ADD(date, numDays)" function
+   * (Spark) Returns the date that is num_days after start_date. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction DATE_ADD_SPARK =
+      SqlBasicFunction.create(SqlKind.DATE_ADD, ReturnTypes.DATE_NULLABLE,
+              OperandTypes.DATE_ANY)
+          .withFunctionType(SqlFunctionCategory.TIMEDATE);
+
+  /** The "DATE_SUB(date, numDays)" function
+   * (Spark) Returns the date that is num_days before start_date.*/
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction DATE_SUB_SPARK =
+      SqlBasicFunction.create(SqlKind.DATE_SUB, ReturnTypes.DATE_NULLABLE,
+              OperandTypes.DATE_ANY)
+          .withFunctionType(SqlFunctionCategory.TIMEDATE);
+
+  /** The "ADD_MONTHS(start_date, num_months)" function
+   * (SPARK) Returns the date that is num_months after start_date. */
+  @LibraryOperator(libraries = {ORACLE, SPARK})
   public static final SqlFunction ADD_MONTHS =
       SqlBasicFunction.create(SqlKind.ADD_MONTHS, ReturnTypes.ARG0_NULLABLE,
               OperandTypes.DATE_ANY)
@@ -576,10 +595,8 @@ public abstract class SqlLibraryOperators {
    * {@code rep} and returns modified value. */
   @LibraryOperator(libraries = {REDSHIFT})
   public static final SqlFunction REGEXP_REPLACE_2 =
-      new SqlBasicFunction("REGEXP_REPLACE", SqlKind.OTHER_FUNCTION,
-          SqlSyntax.FUNCTION, true, ReturnTypes.VARCHAR_NULLABLE, null,
-          OperandHandlers.DEFAULT, OperandTypes.STRING_STRING, 0,
-          SqlFunctionCategory.STRING, call -> SqlMonotonicity.NOT_MONOTONIC, false) { };
+      SqlBasicFunction.create("REGEXP_REPLACE", ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.STRING_STRING, SqlFunctionCategory.STRING);
 
   /** The "REGEXP_REPLACE(value, regexp, rep)"
    * function. Replaces all substrings of value that match regexp with
@@ -595,11 +612,10 @@ public abstract class SqlLibraryOperators {
    * pos. */
   @LibraryOperator(libraries = {MYSQL, ORACLE, REDSHIFT})
   public static final SqlFunction REGEXP_REPLACE_4 =
-      new SqlBasicFunction("REGEXP_REPLACE", SqlKind.OTHER_FUNCTION,
-          SqlSyntax.FUNCTION, true, ReturnTypes.VARCHAR_NULLABLE, null,
-          OperandHandlers.DEFAULT, OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
-              SqlTypeFamily.STRING, SqlTypeFamily.INTEGER),
-          0, SqlFunctionCategory.STRING, call -> SqlMonotonicity.NOT_MONOTONIC, false) { };
+      SqlBasicFunction.create("REGEXP_REPLACE", ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.STRING,
+              SqlTypeFamily.INTEGER),
+          SqlFunctionCategory.STRING);
 
   /** The "REGEXP_REPLACE(value, regexp, rep, pos, [ occurrence | matchType ])"
    * function. Replaces all substrings of value that match regexp with
@@ -608,15 +624,13 @@ public abstract class SqlLibraryOperators {
    * is a string of flags to apply to the search. */
   @LibraryOperator(libraries = {MYSQL, REDSHIFT})
   public static final SqlFunction REGEXP_REPLACE_5 =
-      new SqlBasicFunction("REGEXP_REPLACE", SqlKind.OTHER_FUNCTION,
-          SqlSyntax.FUNCTION, true, ReturnTypes.VARCHAR_NULLABLE, null,
-          OperandHandlers.DEFAULT,
+      SqlBasicFunction.create("REGEXP_REPLACE", ReturnTypes.VARCHAR_NULLABLE,
           OperandTypes.or(
               OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
                   SqlTypeFamily.STRING, SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER),
               OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
                   SqlTypeFamily.STRING, SqlTypeFamily.INTEGER, SqlTypeFamily.STRING)),
-          0, SqlFunctionCategory.STRING, call -> SqlMonotonicity.NOT_MONOTONIC, false) { };
+          SqlFunctionCategory.STRING);
 
   /** The "REGEXP_REPLACE(value, regexp, rep, pos, matchType)"
    * function. Replaces all substrings of value that match regexp with
@@ -624,11 +638,10 @@ public abstract class SqlLibraryOperators {
    * pos. Replace only the occurrence match or all matches if occurrence is 0. */
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction REGEXP_REPLACE_5_ORACLE =
-      new SqlBasicFunction("REGEXP_REPLACE", SqlKind.OTHER_FUNCTION,
-          SqlSyntax.FUNCTION, true, ReturnTypes.VARCHAR_NULLABLE, null,
-          OperandHandlers.DEFAULT, OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
-          SqlTypeFamily.STRING, SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER),
-          0, SqlFunctionCategory.STRING, call -> SqlMonotonicity.NOT_MONOTONIC, false) { };
+      SqlBasicFunction.create("REGEXP_REPLACE", ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
+              SqlTypeFamily.STRING, SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER),
+          SqlFunctionCategory.STRING);
 
   /** The "REGEXP_REPLACE(value, regexp, rep, pos, occurrence, matchType)"
    * function. Replaces all substrings of value that match regexp with
@@ -637,41 +650,34 @@ public abstract class SqlLibraryOperators {
    * is a string of flags to apply to the search. */
   @LibraryOperator(libraries = {MYSQL, ORACLE, REDSHIFT})
   public static final SqlFunction REGEXP_REPLACE_6 =
-      new SqlBasicFunction("REGEXP_REPLACE", SqlKind.OTHER_FUNCTION,
-          SqlSyntax.FUNCTION, true, ReturnTypes.VARCHAR_NULLABLE, null,
-          OperandHandlers.DEFAULT, OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
-          SqlTypeFamily.STRING, SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER, SqlTypeFamily.STRING),
-          0, SqlFunctionCategory.STRING, call -> SqlMonotonicity.NOT_MONOTONIC, false) { };
+      SqlBasicFunction.create("REGEXP_REPLACE", ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.STRING,
+              SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER, SqlTypeFamily.STRING),
+          SqlFunctionCategory.STRING);
 
   /** The "REGEXP_REPLACE(value, regexp, rep)"
    * function. Replaces all substrings of value that match regexp with
    * {@code rep} and returns modified value. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction REGEXP_REPLACE_BIG_QUERY_3 =
-      new SqlBasicFunction("REGEXP_REPLACE", SqlKind.OTHER_FUNCTION,
-          SqlSyntax.FUNCTION, true, ReturnTypes.VARCHAR_NULLABLE, null,
-          OperandHandlers.DEFAULT, OperandTypes.STRING_STRING_STRING, 0,
-          SqlFunctionCategory.STRING, call -> SqlMonotonicity.NOT_MONOTONIC, false) { };
+      SqlBasicFunction.create("REGEXP_REPLACE", ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.STRING_STRING_STRING, SqlFunctionCategory.STRING);
 
   /** The "REGEXP_REPLACE(value, regexp, rep)"
    * function. Replaces all substrings of value that match regexp with
    * {@code rep} and returns modified value. */
   @LibraryOperator(libraries = {POSTGRESQL}, exceptLibraries = REDSHIFT)
   public static final SqlFunction REGEXP_REPLACE_PG_3 =
-      new SqlBasicFunction("REGEXP_REPLACE", SqlKind.OTHER_FUNCTION,
-          SqlSyntax.FUNCTION, true, ReturnTypes.VARCHAR_NULLABLE, null,
-          OperandHandlers.DEFAULT, OperandTypes.STRING_STRING_STRING, 0,
-          SqlFunctionCategory.STRING, call -> SqlMonotonicity.NOT_MONOTONIC, false) { };
+      SqlBasicFunction.create("REGEXP_REPLACE", ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.STRING_STRING_STRING, SqlFunctionCategory.STRING);
 
   /** The "REGEXP_REPLACE(value, regexp, rep, flags)"
    * function. Replaces all substrings of value that match regexp with
    * {@code rep} and returns modified value. flags are applied to the search. */
   @LibraryOperator(libraries = {POSTGRESQL}, exceptLibraries = REDSHIFT)
   public static final SqlFunction REGEXP_REPLACE_PG_4 =
-      new SqlBasicFunction("REGEXP_REPLACE", SqlKind.OTHER_FUNCTION,
-          SqlSyntax.FUNCTION, true, ReturnTypes.VARCHAR_NULLABLE, null,
-          OperandHandlers.DEFAULT, OperandTypes.STRING_STRING_STRING_STRING, 0,
-          SqlFunctionCategory.STRING, call -> SqlMonotonicity.NOT_MONOTONIC, false) { };
+      SqlBasicFunction.create("REGEXP_REPLACE", ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.STRING_STRING_STRING_STRING, SqlFunctionCategory.STRING);
 
   /** The "REGEXP_SUBSTR(value, regexp[, position[, occurrence]])" function.
    * Returns the substring in value that matches the regexp. Returns NULL if there is no match. */
@@ -1122,6 +1128,21 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {SPARK, HIVE, MYSQL})
   public static final SqlSpecialOperator NOT_RLIKE =
       new SqlLikeOperator("NOT RLIKE", SqlKind.RLIKE, true, true);
+
+  /** Alias for {@link SqlStdOperatorTable#BITCOUNT}. */
+  @LibraryOperator(libraries = {BIG_QUERY, SPARK})
+  public static final SqlFunction BIT_COUNT_BIG_QUERY =
+      BITCOUNT.withName("BIT_COUNT");
+
+  @LibraryOperator(libraries = {MYSQL})
+  public static final SqlFunction BIT_COUNT_MYSQL =
+      new SqlFunction(
+          "BIT_COUNT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.BIGINT_NULLABLE,
+          null,
+          OperandTypes.NUMERIC.or(OperandTypes.BINARY),
+          SqlFunctionCategory.NUMERIC);
 
   /** The "CONCAT(arg, ...)" function that concatenates strings.
    * For example, "CONCAT('a', 'bc', 'd')" returns "abcd".
@@ -1755,6 +1776,14 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.IDENTITY_TO_MAP_NULLABLE,
           OperandTypes.STRING_OPTIONAL_STRING_OPTIONAL_STRING);
 
+  /** The "SUBSTRING_INDEX(string, delimiter, count)" function. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction SUBSTRING_INDEX =
+      SqlBasicFunction.create(SqlKind.SUBSTRING_INDEX,
+          ReturnTypes.ARG0_NULLABLE_VARYING,
+          OperandTypes.STRING_STRING_INTEGER)
+          .withFunctionType(SqlFunctionCategory.STRING);
+
   @LibraryOperator(libraries = {BIG_QUERY, MYSQL})
   public static final SqlFunction REVERSE =
       SqlBasicFunction.create(SqlKind.REVERSE,
@@ -1851,10 +1880,8 @@ public abstract class SqlLibraryOperators {
    * converts {@code timestamp} to string according to the given {@code format}. */
   @LibraryOperator(libraries = {POSTGRESQL}, exceptLibraries = {REDSHIFT})
   public static final SqlFunction TO_CHAR_PG =
-      new SqlBasicFunction("TO_CHAR", SqlKind.OTHER_FUNCTION,
-      SqlSyntax.FUNCTION, true, ReturnTypes.VARCHAR_NULLABLE, null,
-      OperandHandlers.DEFAULT, OperandTypes.TIMESTAMP_STRING, 0,
-          SqlFunctionCategory.TIMEDATE, call -> SqlMonotonicity.NOT_MONOTONIC, false) { };
+      SqlBasicFunction.create("TO_CHAR", ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.TIMESTAMP_STRING, SqlFunctionCategory.TIMEDATE);
 
   /** The "TO_DATE(string1, string2)" function; casts string1
    * to a DATE using the format specified in string2. */
@@ -1869,10 +1896,8 @@ public abstract class SqlLibraryOperators {
    * to a DATE using the format specified in string2. */
   @LibraryOperator(libraries = {POSTGRESQL}, exceptLibraries = {REDSHIFT})
   public static final SqlFunction TO_DATE_PG =
-      new SqlBasicFunction("TO_DATE", SqlKind.OTHER_FUNCTION,
-          SqlSyntax.FUNCTION, true, ReturnTypes.DATE_NULLABLE, null,
-          OperandHandlers.DEFAULT, OperandTypes.STRING_STRING, 0,
-          SqlFunctionCategory.TIMEDATE, call -> SqlMonotonicity.NOT_MONOTONIC, false) { };
+      SqlBasicFunction.create("TO_DATE", ReturnTypes.DATE_NULLABLE,
+          OperandTypes.STRING_STRING, SqlFunctionCategory.TIMEDATE);
 
   /** The "TO_TIMESTAMP(string1, string2)" function; casts string1
    * to a TIMESTAMP using the format specified in string2. */
@@ -1887,10 +1912,8 @@ public abstract class SqlLibraryOperators {
    * to a TIMESTAMP using the format specified in string2. */
   @LibraryOperator(libraries = {POSTGRESQL}, exceptLibraries = {REDSHIFT})
   public static final SqlFunction TO_TIMESTAMP_PG =
-      new SqlBasicFunction("TO_TIMESTAMP", SqlKind.OTHER_FUNCTION,
-          SqlSyntax.FUNCTION, true, ReturnTypes.TIMESTAMP_TZ_NULLABLE, null,
-          OperandHandlers.DEFAULT, OperandTypes.STRING_STRING, 0,
-          SqlFunctionCategory.TIMEDATE, call -> SqlMonotonicity.NOT_MONOTONIC, false) { };
+      SqlBasicFunction.create("TO_TIMESTAMP", ReturnTypes.TIMESTAMP_TZ_NULLABLE,
+          OperandTypes.STRING_STRING, SqlFunctionCategory.TIMEDATE);
 
   /**
    * The "PARSE_TIME(string, string)" function (BigQuery);
@@ -2488,15 +2511,21 @@ public abstract class SqlLibraryOperators {
    * to base numeric1.*/
   @LibraryOperator(libraries = {POSTGRESQL}, exceptLibraries = {REDSHIFT})
   public static final SqlFunction LOG_POSTGRES =
-      new SqlBasicFunction("LOG", SqlKind.LOG,
-          SqlSyntax.FUNCTION, true, ReturnTypes.DOUBLE_NULLABLE, null,
-          OperandHandlers.DEFAULT, OperandTypes.NUMERIC_OPTIONAL_NUMERIC, 0,
-          SqlFunctionCategory.NUMERIC, call -> SqlMonotonicity.NOT_MONOTONIC, false) { };
+      SqlBasicFunction.create("LOG", ReturnTypes.DOUBLE_NULLABLE,
+          OperandTypes.NUMERIC_OPTIONAL_NUMERIC, SqlFunctionCategory.NUMERIC);
 
   /** The "LOG2(numeric)" function. Returns the base 2 logarithm of numeric. */
   @LibraryOperator(libraries = {MYSQL, SPARK})
   public static final SqlFunction LOG2 =
       SqlBasicFunction.create("LOG2",
+          ReturnTypes.DOUBLE_FORCE_NULLABLE,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+  /** The "LOG1p(numeric)" function. Returns log(1 + numeric). */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction LOG1P =
+      SqlBasicFunction.create("LOG1P",
           ReturnTypes.DOUBLE_FORCE_NULLABLE,
           OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);

@@ -74,7 +74,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -91,6 +90,8 @@ import static org.apache.calcite.runtime.SpatialTypeUtils.fromGml;
 import static org.apache.calcite.runtime.SpatialTypeUtils.fromWkb;
 import static org.apache.calcite.runtime.SpatialTypeUtils.fromWkt;
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Helper methods to implement spatial type (ST) functions in generated code.
@@ -597,7 +598,7 @@ public class SpatialTypeFunctions {
         + xMax + " " + yMax + ", "
         + xMax + " " + yMin + ", "
         + xMin + " " + yMin + "))", srid);
-    return Objects.requireNonNull(geom, "geom");
+    return requireNonNull(geom, "geom");
   }
 
   /**
@@ -1800,7 +1801,6 @@ public class SpatialTypeFunctions {
    * Used at run time by the {@link #ST_MakeGrid} and {@link #ST_MakeGridPoints} functions.
    */
   public static class GridEnumerable extends AbstractEnumerable<Object[]> {
-    private final Envelope envelope;
     private final boolean point;
     private final double deltaX;
     private final double deltaY;
@@ -1814,7 +1814,6 @@ public class SpatialTypeFunctions {
 
     public GridEnumerable(Envelope envelope, BigDecimal deltaX,
         BigDecimal deltaY, boolean point) {
-      this.envelope = envelope;
       this.deltaX = deltaX.doubleValue();
       this.deltaY = deltaY.doubleValue();
       this.point = point;

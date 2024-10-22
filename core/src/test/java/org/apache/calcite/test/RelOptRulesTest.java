@@ -151,9 +151,10 @@ import java.util.function.Predicate;
 
 import static org.apache.calcite.test.SqlToRelTestBase.NL;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -493,11 +494,11 @@ class RelOptRulesTest extends RelOptTestBase {
           filter.getTraitSet().getTrait(RelCollationTraitDef.INSTANCE);
       assertNotNull(collation);
       List<RelFieldCollation> fieldCollations = collation.getFieldCollations();
-      assertEquals(1, fieldCollations.size());
+      assertThat(fieldCollations, hasSize(1));
       RelFieldCollation fieldCollation = fieldCollations.get(0);
-      assertEquals(3, fieldCollation.getFieldIndex());
-      assertEquals(RelFieldCollation.Direction.DESCENDING,
-          fieldCollation.getDirection());
+      assertThat(fieldCollation.getFieldIndex(), is(3));
+      assertThat(fieldCollation.getDirection(),
+          is(RelFieldCollation.Direction.DESCENDING));
     }
   }
 
@@ -1885,7 +1886,7 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  @Test void testSemiJoinTrim() throws Exception {
+  @Test void testSemiJoinTrim() {
     final String sql = "select s.deptno\n"
         + "from (select *\n"
         + "  from dept\n"
@@ -2409,6 +2410,24 @@ class RelOptRulesTest extends RelOptTestBase {
         + " SUM(sal) FILTER (WHERE sal > 1000),\n"
         + " SUM(sal) WITHIN DISTINCT (job)\n"
         + "FROM emp\n"
+        + "GROUP BY deptno";
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.AGGREGATE_REDUCE_FUNCTIONS)
+        .addRuleInstance(CoreRules.AGGREGATE_EXPAND_WITHIN_DISTINCT)
+        .build();
+    sql(sql).withProgram(program).check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6595">[CALCITE-6595]
+   * Preserve collation for non-distinct aggregate calls with AggregateExpandWithinDistinctRule</a>.
+   *
+   * <p>Test that AggregateExpandWithinDistinctRule preserves collation on non-distinct aggregates
+   * with a WITHIN GROUP clause in a query that also includes a distinct aggregate. */
+  @Test void testWithinDistinctPreservesNonDistinctCollation() {
+    final String sql = "SELECT SUM(sal) WITHIN DISTINCT (job),\n"
+        + "LISTAGG(ename, '; ') WITHIN GROUP (ORDER BY sal DESC)\n"
+        + " FROM Emp\n"
         + "GROUP BY deptno";
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(CoreRules.AGGREGATE_REDUCE_FUNCTIONS)
@@ -3094,6 +3113,15 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6617">[CALCITE-6617]
+   * TypeCoercion is not applied correctly to comparisons</a>. */
+  @Test void testRand() {
+    final String sql = "SELECT * FROM (SELECT 1, ROUND(RAND()) AS A)\n"
+        + "WHERE A BETWEEN 1 AND 10 OR A IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10)";
+    sql(sql).withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS).check();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6481">[CALCITE-6481]
    * Optimize 'VALUES...UNION...VALUES' to a single 'VALUES' the IN-list contains CAST
    * and it is converted to VALUES</a>. */
@@ -3338,6 +3366,33 @@ class RelOptRulesTest extends RelOptTestBase {
         + "select * from emp where deptno = 30\n";
     sql(sql)
         .withRule(CoreRules.UNION_MERGE)
+        .check();
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-2067">
+   * [CALCITE-2067] RexLiteral cannot represent accurately floating point values,
+   * including NaN, Infinity</a>. */
+  @Test public void testDoubleReduction() {
+    // Without the fix for CALCITE-2067 the result returned below is
+    // 1008618.49.  Ironically, that result is more accurate; however
+    // it is not the result returned by the pow() function, which is
+    // 1008618.4899999999
+    final String sql = "SELECT power(1004.3, 2)";
+    sql(sql)
+        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
+        .check();
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-2067">
+   * [CALCITE-2067] RexLiteral cannot represent accurately floating point values,
+   * including NaN, Infinity</a>. */
+  @Test public void testDoubleReduction2() {
+    // Without the fix for CALCITE-2067 the following expression is not
+    // reduced to Infinity, since Infinity cannot be represented
+    // as a BigDecimal value.
+    final String sql2 = "SELECT 1.0 / 0.0e0";
+    sql(sql2)
+        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
         .check();
   }
 
@@ -6582,6 +6637,25 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6600">[CALCITE-6600]
+   * AggregateJoinTransposeRule can throw ArrayIndexOutOfBoundsException when applied
+   * on a SemiJoin</a>.*/
+  @Test void testPushAggregateThroughSemiJoin() {
+    final String sql = "select distinct sal\n"
+        + "from (select * from sales.emp e where e.job in\n"
+        + "(select d.name from sales.dept d))";
+    sql(sql)
+        .withLateDecorrelate(true)
+        .withTrim(true)
+        .withPreRule(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE)
+        .withRule(CoreRules.PROJECT_MERGE,
+            CoreRules.PROJECT_TO_SEMI_JOIN,
+            CoreRules.AGGREGATE_PROJECT_MERGE,
+            CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
+        .check();
+  }
+
   /** Push count(*) through join, no GROUP BY. */
   @Test void testPushAggregateSumNoGroup() {
     final String sql =
@@ -6858,6 +6932,25 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testAggregateMerge8() {
     final String sql = "select sum(x) x, min(y) z from (\n"
         + "  select sum(sal) x, min(sal) y from sales.emp)";
+    sql(sql)
+        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE,
+            CoreRules.PROJECT_MERGE)
+        .withRule(CoreRules.AGGREGATE_PROJECT_MERGE,
+            CoreRules.AGGREGATE_MERGE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6557">[CALCITE-6557]
+   * AggregateMergeRule throws 'type mismatch' AssertionError</a>. The scenario
+   * has the same aggregate function (SUM) at multiple levels; the lower level
+   * is NOT NULL (because of GROUP BY) and the upper level is nullable. */
+  @Test void testAggregateMerge9() {
+    final String sql = "SELECT sum(deptno)\n"
+        + "FROM (\n"
+        + "    SELECT sum(deptno) AS deptno\n"
+        + "    FROM dept\n"
+        + "    GROUP BY name)";
     sql(sql)
         .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE,
             CoreRules.PROJECT_MERGE)
@@ -8595,7 +8688,7 @@ class RelOptRulesTest extends RelOptTestBase {
     final RelCollation collationAfter =
         relAfter.getTraitSet().getTrait(RelCollationTraitDef.INSTANCE);
 
-    assertEquals(collationBefore, collationAfter);
+    assertThat(collationAfter, is(collationBefore));
   }
 
   @Test void testPushFilterWithIsNotDistinctFromPastJoin() {

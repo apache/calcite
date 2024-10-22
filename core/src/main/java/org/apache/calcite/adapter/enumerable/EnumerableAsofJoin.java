@@ -128,14 +128,14 @@ public class EnumerableAsofJoin extends AsofJoin implements EnumerableRel {
     return planner.getCostFactory().makeCost(rowCount, 0, 0);
   }
 
-  /** Generate the function that compares two rows from the right collection on their
-   * timestamp field.
+  /** Generates the function that compares two rows from the right collection on
+   * their timestamp field.
    *
    * @param rightCollectionType  Type of data in right collection.
    * @param kind                 Comparison kind.
    * @param timestampFieldIndex  Index of the field that is the timestamp field.
    */
-  private Expression generateTimestampComparator(
+  private static Expression generateTimestampComparator(
       PhysType rightCollectionType, SqlKind kind, int timestampFieldIndex) {
     RelFieldCollation.Direction direction;
     switch (kind) {
@@ -159,7 +159,7 @@ public class EnumerableAsofJoin extends AsofJoin implements EnumerableRel {
     return rightCollectionType.generateComparator(collation);
   }
 
-  /** Extract from a comparison 'call' the index of the field from
+  /** Extracts from a comparison 'call' the index of the field from
    * the inner collection that is used in the comparison. */
   private int getTimestampFieldIndex(RexCall call) {
     int timestampFieldIndex;

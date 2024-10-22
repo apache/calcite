@@ -25,7 +25,6 @@ import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Sources;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import org.junit.jupiter.api.BeforeAll;
@@ -43,9 +42,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.Map;
-import java.util.Objects;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.apache.calcite.test.Matchers.isListOf;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Tests for the Apache Arrow adapter.
@@ -57,9 +59,11 @@ class ArrowAdapterTest {
   private static File arrowDataDirectory;
 
   @BeforeAll
-  static void initializeArrowState(@TempDir Path sharedTempDir) throws IOException, SQLException {
+  static void initializeArrowState(@TempDir Path sharedTempDir)
+      throws IOException, SQLException {
     URL modelUrl =
-        Objects.requireNonNull(ArrowAdapterTest.class.getResource("/arrow-model.json"), "url");
+        requireNonNull(
+            ArrowAdapterTest.class.getResource("/arrow-model.json"), "url");
     Path sourceModelFilePath = Sources.of(modelUrl).file().toPath();
     Path modelFileTarget = sharedTempDir.resolve("arrow-model.json");
     Files.copy(sourceModelFilePath, modelFileTarget);
@@ -84,8 +88,8 @@ class ArrowAdapterTest {
         new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     RelDataType relDataType = tableMap.get("ARROWDATA").getRowType(typeFactory);
 
-    assertEquals(relDataType.getFieldNames(),
-        ImmutableList.of("intField", "stringField", "floatField", "longField"));
+    assertThat(relDataType.getFieldNames(),
+        isListOf("intField", "stringField", "floatField", "longField"));
   }
 
   @Test void testArrowProjectAllFields() {
@@ -330,6 +334,68 @@ class ArrowAdapterTest {
         .explainContains(plan);
   }
 
+  @Test void testArrowProjectFieldsWithEqualFilter() {
+    String sql = "select \"intField\", \"stringField\"\n"
+        + "from arrowdata\n"
+        + "where \"intField\" = 12";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(intField=[$0], stringField=[$1])\n"
+        + "    ArrowFilter(condition=[=($0, 12)])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+    String result = "intField=12; stringField=12\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6618">[CALCITE-6618]
+   * Support Not Equal in Arrow adapterr</a>. */
+  @Test void testArrowProjectFieldsWithNotEqualFilter() {
+    String sql = "select \"intField\", \"stringField\"\n"
+        + "from arrowdata\n"
+        + "where \"intField\" <> 12";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(intField=[$0], stringField=[$1])\n"
+        + "    ArrowFilter(condition=[<>($0, 12)])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+    String result = "intField=0; stringField=0\n"
+        + "intField=1; stringField=1\n"
+        + "intField=2; stringField=2\n"
+        + "intField=3; stringField=3\n"
+        + "intField=4; stringField=4\n"
+        + "intField=5; stringField=5\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .limit(6)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+  @Test void testArrowProjectFieldsWithBetweenFilter() {
+    String sql = "select \"intField\", \"stringField\"\n"
+        + "from arrowdata\n"
+        + "where \"intField\" between 1 and 3";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(intField=[$0], stringField=[$1])\n"
+        + "    ArrowFilter(condition=[SEARCH($0, Sarg[[1..3]])])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+    String result = "intField=1; stringField=1\n"
+        + "intField=2; stringField=2\n"
+        + "intField=3; stringField=3\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .returns(result)
+        .explainContains(plan);
+  }
+
   /** Test case for
   * <a href="https://issues.apache.org/jira/browse/CALCITE-6296">[CALCITE-6296]
   * Support IS NULL in Arrow adapter</a>. */
@@ -370,7 +436,7 @@ class ArrowAdapterTest {
     String sql = "select * from arrowdata\n"
         + " where \"floatField\"=15.0";
     String plan = "PLAN=ArrowToEnumerableConverter\n"
-        + "  ArrowFilter(condition=[=(CAST($2):DOUBLE, 15.0)])\n"
+        + "  ArrowFilter(condition=[=($2, 15.0E0)])\n"
         + "    ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
     String result = "intField=15; stringField=15; floatField=15.0; longField=15\n";
 
@@ -662,7 +728,7 @@ class ArrowAdapterTest {
   @Test void testFilteredAgg() {
     String sql = "select SUM(SAL) FILTER (WHERE COMM > 400) as SALESSUM from EMP";
     String plan = "PLAN=EnumerableAggregate(group=[{}], SALESSUM=[SUM($0) FILTER $1])\n"
-        + "  EnumerableCalc(expr#0..7=[{inputs}], expr#8=[400], expr#9=[>($t6, $t8)], "
+        + "  EnumerableCalc(expr#0..7=[{inputs}], expr#8=[400:DECIMAL(19, 0)], expr#9=[>($t6, $t8)], "
         + "expr#10=[IS TRUE($t9)], SAL=[$t5], $f1=[$t10])\n"
         + "    ArrowToEnumerableConverter\n"
         + "      ArrowTableScan(table=[[ARROW, EMP]], fields=[[0, 1, 2, 3, 4, 5, 6, 7]])\n\n";
@@ -680,7 +746,7 @@ class ArrowAdapterTest {
     String sql = "select SUM(SAL) FILTER (WHERE COMM > 400) as SALESSUM from EMP group by EMPNO";
     String plan = "PLAN=EnumerableCalc(expr#0..1=[{inputs}], SALESSUM=[$t1])\n"
         + "  EnumerableAggregate(group=[{0}], SALESSUM=[SUM($1) FILTER $2])\n"
-        + "    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[400], expr#9=[>($t6, $t8)], "
+        + "    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[400:DECIMAL(19, 0)], expr#9=[>($t6, $t8)], "
         + "expr#10=[IS TRUE($t9)], EMPNO=[$t0], SAL=[$t5], $f2=[$t10])\n"
         + "      ArrowToEnumerableConverter\n"
         + "        ArrowTableScan(table=[[ARROW, EMP]], fields=[[0, 1, 2, 3, 4, 5, 6, 7]])\n\n";
@@ -757,6 +823,24 @@ class ArrowAdapterTest {
         .with(arrow)
         .query(sql)
         .limit(2)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6637">[CALCITE-6637]
+   * Date type results should not be automatically converted to timestamp in Arrow adapters</a>. */
+  @Test void testDateProject() {
+    String sql = "select HIREDATE from EMP";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(HIREDATE=[$4])\n"
+        + "    ArrowTableScan(table=[[ARROW, EMP]], fields=[[0, 1, 2, 3, 4, 5, 6, 7]])\n\n";
+    String result = "HIREDATE=1980-12-17\nHIREDATE=1981-02-20\nHIREDATE=1981-02-22\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .limit(3)
         .returns(result)
         .explainContains(plan);
   }

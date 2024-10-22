@@ -42,7 +42,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Relational expression that imposes a particular sort order on its input
@@ -231,7 +232,7 @@ public abstract class Sort extends SingleRel implements Hintable {
 
   @Override public boolean isEnforcer() {
     return offset == null && fetch == null
-        && collation.getFieldCollations().size() > 0;
+        && !collation.getFieldCollations().isEmpty();
   }
 
   /**
@@ -255,7 +256,7 @@ public abstract class Sort extends SingleRel implements Hintable {
     //noinspection StaticPseudoFunctionalStyleMethod
     return Util.transform(collation.getFieldCollations(), field ->
         getCluster().getRexBuilder().makeInputRef(input,
-            Objects.requireNonNull(field, "field").getFieldIndex()));
+            requireNonNull(field, "field").getFieldIndex()));
   }
 
   @Override public RelWriter explainTerms(RelWriter pw) {

@@ -36,7 +36,8 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.io.UncheckedIOException;
 import java.util.Iterator;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of a {@link org.apache.calcite.rel.core.Filter}
@@ -52,7 +53,8 @@ public class ElasticsearchFilter extends Filter implements ElasticsearchRel {
 
   @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
-    return super.computeSelfCost(planner, mq).multiplyBy(0.1);
+    final RelOptCost cost = requireNonNull(super.computeSelfCost(planner, mq));
+    return cost.multiplyBy(0.1);
   }
 
   @Override public Filter copy(RelTraitSet relTraitSet, RelNode input, RexNode condition) {
@@ -80,7 +82,7 @@ public class ElasticsearchFilter extends Filter implements ElasticsearchRel {
     private final ObjectMapper mapper;
 
     PredicateAnalyzerTranslator(final ObjectMapper mapper) {
-      this.mapper = Objects.requireNonNull(mapper, "mapper");
+      this.mapper = requireNonNull(mapper, "mapper");
     }
 
     String translateMatch(RexNode condition) throws IOException,

@@ -23,9 +23,9 @@ import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.util.Objects;
-
 import static com.google.common.base.Preconditions.checkArgument;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Strategy to infer the type of an operator call from the type of the operands
@@ -48,7 +48,7 @@ public class SqlTypeTransformCascade implements SqlReturnTypeInference {
       SqlReturnTypeInference rule,
       SqlTypeTransform... transforms) {
     checkArgument(transforms.length > 0);
-    this.rule = Objects.requireNonNull(rule, "rule");
+    this.rule = requireNonNull(rule, "rule");
     this.transforms = ImmutableList.copyOf(transforms);
   }
 

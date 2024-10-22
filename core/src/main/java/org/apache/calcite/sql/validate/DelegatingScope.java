@@ -426,7 +426,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
         }
       }
       if (requireNonNull(fromPath, "fromPath").stepCount() > 1) {
-        assert fromRowType != null;
+        requireNonNull(fromRowType, "fromRowType");
         for (Step p : fromPath.steps()) {
           fromRowType = fromRowType.getFieldList().get(p.i).getType();
         }
@@ -591,6 +591,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
           }
         }
       }
+      return false;
     } else { // check if there are fields with the same name
       int count = 0;
       for (RelDataTypeField f : rowType.getFieldList()) {
@@ -598,11 +599,8 @@ public abstract class DelegatingScope implements SqlValidatorScope {
           count++;
         }
       }
-      if (count > 1) {
-        return true;
-      }
+      return count > 1;
     }
-    return false;
   }
 
   private AggregatingSelectScope.Resolved resolve() {

@@ -1191,6 +1191,43 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlAggFunction VARIANCE =
       new SqlAvgAggFunction("VARIANCE", SqlKind.VAR_SAMP);
 
+  public static final SqlBasicFunction BITCOUNT =
+      SqlBasicFunction
+          .create("BITCOUNT", ReturnTypes.BIGINT_NULLABLE,
+              OperandTypes.INTEGER.or(OperandTypes.BINARY), SqlFunctionCategory.NUMERIC);
+
+  /**
+   * <code>BITAND</code> scalar function.
+   */
+  public static final SqlFunction BITAND =
+      SqlBasicFunction.create("BITAND", SqlKind.BITAND,
+          ReturnTypes.LARGEST_INT_OR_FIRST_NON_NULL,
+          OperandTypes.INTEGER_INTEGER.or(OperandTypes.BINARY_BINARY));
+
+  /**
+   * <code>BITOR</code> scalar function.
+   */
+  public static final SqlFunction BITOR =
+      SqlBasicFunction.create("BITOR", SqlKind.BITOR,
+          ReturnTypes.LARGEST_INT_OR_FIRST_NON_NULL,
+          OperandTypes.INTEGER_INTEGER.or(OperandTypes.BINARY_BINARY));
+
+  /**
+   * <code>BITXOR</code> scalar function.
+   */
+  public static final SqlFunction BITXOR =
+      SqlBasicFunction.create("BITXOR", SqlKind.BITXOR,
+          ReturnTypes.LARGEST_INT_OR_FIRST_NON_NULL,
+          OperandTypes.INTEGER_INTEGER.or(OperandTypes.BINARY_BINARY));
+
+  /**
+   * <code>BITNOT</code> scalar function.
+   */
+  public static final SqlFunction BITNOT =
+      SqlBasicFunction.create("BITNOT", SqlKind.BITNOT,
+          ReturnTypes.ARG0_OR_INTEGER,
+          OperandTypes.INTEGER.or(OperandTypes.BINARY));
+
   /**
    * <code>BIT_AND</code> aggregate function.
    */

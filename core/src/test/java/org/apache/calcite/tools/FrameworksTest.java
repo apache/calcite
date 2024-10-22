@@ -89,7 +89,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
@@ -187,7 +186,7 @@ public class FrameworksTest {
               cluster.getRexBuilder().makeCall(SqlStdOperatorTable.PLUS,
                   literal,
                   literal);
-          assertEquals(expected, call.getType().getPrecision());
+          assertThat(call.getType().getPrecision(), is(expected));
           return null;
         });
   }
@@ -532,7 +531,16 @@ public class FrameworksTest {
 
     @Override public int getMaxNumericPrecision() {
       assert super.getMaxNumericPrecision() == 19;
-      return 25;
+      return getMaxPrecision(SqlTypeName.DECIMAL);
+    }
+
+    @Override public int getMaxPrecision(SqlTypeName typeName) {
+      switch (typeName) {
+      case DECIMAL:
+        return 25;
+      default:
+        return super.getMaxPrecision(typeName);
+      }
     }
   }
 
@@ -543,7 +551,16 @@ public class FrameworksTest {
 
     @Override public int getMaxNumericPrecision() {
       assert super.getMaxNumericPrecision() == 19;
-      return 38;
+      return getMaxPrecision(SqlTypeName.DECIMAL);
+    }
+
+    @Override public int getMaxPrecision(SqlTypeName typeName) {
+      switch (typeName) {
+      case DECIMAL:
+        return 38;
+      default:
+        return super.getMaxPrecision(typeName);
+      }
     }
   }
 }

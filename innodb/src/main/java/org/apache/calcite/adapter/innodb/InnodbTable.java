@@ -28,6 +28,7 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelProtoDataType;
@@ -58,6 +59,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Table based on an InnoDB data file.
@@ -148,8 +151,9 @@ public class InnodbTable extends AbstractQueryableTable
     final RelDataType rowType = getRowType(typeFactory);
 
     Function1<String, Void> addField = fieldName -> {
-      RelDataType relDataType =
-          rowType.getField(fieldName, true, false).getType();
+      final RelDataTypeField field =
+          requireNonNull(rowType.getField(fieldName, true, false));
+      RelDataType relDataType = field.getType();
       fieldInfo.add(fieldName, relDataType).nullable(relDataType.isNullable());
       return null;
     };
@@ -258,7 +262,9 @@ public class InnodbTable extends AbstractQueryableTable
     }
 
     private TableReaderFactory getTableReaderFactory() {
-      return schema.unwrap(InnodbSchema.class).tableReaderFactory;
+      final InnodbSchema innodbSchema =
+          requireNonNull(schema.unwrap(InnodbSchema.class));
+      return innodbSchema.tableReaderFactory;
     }
 
     /**

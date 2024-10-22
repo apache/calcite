@@ -29,12 +29,13 @@ import org.junit.jupiter.api.Test;
 import java.sql.Connection;
 import java.sql.SQLException;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Tests for a linq4j front-end and JDBC back-end.
  */
 class LinqFrontJdbcBackTest {
-  @Test void testTableWhere() throws SQLException,
-      ClassNotFoundException {
+  @Test void testTableWhere() throws SQLException {
     final Connection connection =
         CalciteAssert.that(CalciteAssert.Config.JDBC_FOODMART).connect();
     final CalciteConnection calciteConnection =
@@ -44,7 +45,7 @@ class LinqFrontJdbcBackTest {
         Expressions.parameter(JdbcTest.Customer.class, "c");
     String s =
         Schemas.queryable(DataContexts.of(calciteConnection, rootSchema),
-            rootSchema.getSubSchema("foodmart"),
+            requireNonNull(rootSchema.getSubSchema("foodmart")),
             JdbcTest.Customer.class, "customer")
             .where(
                 Expressions.lambda(

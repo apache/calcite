@@ -164,7 +164,7 @@ public class ProjectAggregateMergeRule
   private static int findSum0(RelDataTypeFactory typeFactory, AggregateCall sum,
       List<AggregateCall> aggCallList) {
     final AggregateCall sum0 =
-        AggregateCall.create(SqlStdOperatorTable.SUM0, sum.isDistinct(),
+        AggregateCall.create(sum.getParserPosition(), SqlStdOperatorTable.SUM0, sum.isDistinct(),
             sum.isApproximate(), sum.ignoreNulls(), sum.rexList,
             sum.getArgList(), sum.filterArg, sum.distinctKeys, sum.collation,
             typeFactory.createTypeWithNullability(sum.type, false), null);

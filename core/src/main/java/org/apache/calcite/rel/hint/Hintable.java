@@ -24,8 +24,9 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * {@link Hintable} is a kind of {@link RelNode} that can attach {@link RelHint}s.
@@ -60,9 +61,8 @@ public interface Hintable {
    * @return Relational expression with the hints {@code hintList} attached
    */
   default RelNode attachHints(List<RelHint> hintList) {
-    Objects.requireNonNull(hintList, "hintList");
     final Set<RelHint> hints = new LinkedHashSet<>(getHints());
-    hints.addAll(hintList);
+    hints.addAll(requireNonNull(hintList, "hintList"));
     return withHints(new ArrayList<>(hints));
   }
 

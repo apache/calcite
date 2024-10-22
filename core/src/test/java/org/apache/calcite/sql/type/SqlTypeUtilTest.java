@@ -22,12 +22,13 @@ import org.apache.calcite.sql.SqlBasicTypeNameSpec;
 import org.apache.calcite.sql.SqlCollectionTypeNameSpec;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlRowTypeNameSpec;
+import org.apache.calcite.util.TryThreadLocal;
 
 import com.google.common.collect.ImmutableList;
 
+import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
@@ -36,6 +37,7 @@ import static org.apache.calcite.sql.type.SqlTypeUtil.areSameFamily;
 import static org.apache.calcite.sql.type.SqlTypeUtil.convertTypeToSpec;
 import static org.apache.calcite.sql.type.SqlTypeUtil.equalAsCollectionSansNullability;
 import static org.apache.calcite.sql.type.SqlTypeUtil.equalAsMapSansNullability;
+import static org.apache.calcite.test.Matchers.isListOf;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -113,24 +115,29 @@ class SqlTypeUtilTest {
     final SqlTypeCoercionRule defaultRules = SqlTypeCoercionRule.instance();
     builder.addAll(defaultRules.getTypeMapping());
     // Do the tweak, for example, if we want to add a rule to allow
-    // coerce BOOLEAN to TIMESTAMP.
+    // coercion of BOOLEAN to TIMESTAMP.
     builder.add(SqlTypeName.TIMESTAMP,
         builder.copyValues(SqlTypeName.TIMESTAMP)
             .add(SqlTypeName.BOOLEAN).build());
 
-    // Initialize a SqlTypeCoercionRules with the new builder mappings.
-    SqlTypeCoercionRule typeCoercionRules = SqlTypeCoercionRule.instance(builder.map);
-    assertThat(SqlTypeUtil.canCastFrom(f.sqlTimestampPrec3, f.sqlBoolean, true),
-        is(false));
-    assertThat(SqlTypeUtil.canCastFrom(f.sqlTimestampPrec3, f.sqlBoolean, defaultRules),
-        is(false));
-    SqlTypeCoercionRule.THREAD_PROVIDERS.set(typeCoercionRules);
-    assertThat(SqlTypeUtil.canCastFrom(f.sqlTimestampPrec3, f.sqlBoolean, true),
-        is(true));
-    assertThat(SqlTypeUtil.canCastFrom(f.sqlTimestampPrec3, f.sqlBoolean, typeCoercionRules),
-        is(true));
-    // Recover the mappings to default.
-    SqlTypeCoercionRule.THREAD_PROVIDERS.set(defaultRules);
+    // Try converting with both default rules and the new rule set.
+    checkConvert(defaultRules, is(false));
+    final SqlTypeCoercionRule typeCoercionRules =
+        SqlTypeCoercionRule.instance(builder.map);
+    try (TryThreadLocal.Memo ignored =
+             SqlTypeCoercionRule.THREAD_PROVIDERS.push(typeCoercionRules)) {
+      checkConvert(typeCoercionRules, is(true));
+    }
+  }
+
+  private void checkConvert(SqlTypeCoercionRule rules,
+      Matcher<Boolean> matcher) {
+    assertThat(
+        SqlTypeUtil.canCastFrom(f.sqlTimestampPrec3, f.sqlBoolean, true),
+        matcher);
+    assertThat(
+        SqlTypeUtil.canCastFrom(f.sqlTimestampPrec3, f.sqlBoolean, rules),
+        matcher);
   }
 
   @Test void testEqualAsCollectionSansNullability() {
@@ -187,8 +194,8 @@ class SqlTypeUtilTest {
         .map(f -> f.getTypeName().getSimple())
         .collect(Collectors.toList());
     assertThat(rowSpec.getTypeName().getSimple(), is("ROW"));
-    assertThat(fieldNames, is(Arrays.asList("i", "j")));
-    assertThat(fieldTypeNames, is(Arrays.asList("INTEGER", "INTEGER")));
+    assertThat(fieldNames, isListOf("i", "j"));
+    assertThat(fieldTypeNames, isListOf("INTEGER", "INTEGER"));
   }
 
   @Test void testGetMaxPrecisionScaleDecimal() {

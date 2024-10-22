@@ -535,8 +535,8 @@ public abstract class Aggregate extends SingleRel implements Hintable {
         }
         g = bitSet;
       }
-      assert g != null : "groupSet must not be empty";
-      assert g.isEmpty();
+      requireNonNull(g, "groupSet must not be empty");
+      checkArgument(g.isEmpty());
       return true;
     }
 

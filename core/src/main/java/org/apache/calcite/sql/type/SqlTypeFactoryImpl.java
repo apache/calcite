@@ -32,6 +32,8 @@ import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -59,12 +61,12 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
   @Override public RelDataType createSqlType(
       SqlTypeName typeName,
       int precision) {
+    if (typeName.allowsScale()) {
+      return createSqlType(typeName, precision, typeSystem.getDefaultScale(typeName));
+    }
     final int maxPrecision = typeSystem.getMaxPrecision(typeName);
     if (maxPrecision >= 0 && precision > maxPrecision) {
       precision = maxPrecision;
-    }
-    if (typeName.allowsScale()) {
-      return createSqlType(typeName, precision, typeName.getDefaultScale());
     }
     assertBasic(typeName);
     assert (precision >= 0)
@@ -77,6 +79,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return canonize(newType);
   }
 
+  @SuppressWarnings("deprecation") // [CALCITE-6598]
   @Override public RelDataType createSqlType(
       SqlTypeName typeName,
       int precision,
@@ -84,9 +87,24 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     assertBasic(typeName);
     assert (precision >= 0)
         || (precision == RelDataType.PRECISION_NOT_SPECIFIED);
-    final int maxPrecision = typeSystem.getMaxPrecision(typeName);
-    if (maxPrecision >= 0 && precision > maxPrecision) {
-      precision = maxPrecision;
+    if (precision != RelDataType.PRECISION_NOT_SPECIFIED) {
+      final int minPrecision = typeSystem.getMinPrecision(typeName);
+      final int maxPrecision = typeSystem.getMaxPrecision(typeName);
+      if (maxPrecision >= 0 && precision > maxPrecision) {
+        precision = maxPrecision;
+      }
+      if (precision < minPrecision) {
+        throw RESOURCE.invalidPrecisionForDecimalType(precision, maxPrecision)
+            .ex();
+      }
+    }
+    if (scale != RelDataType.SCALE_NOT_SPECIFIED) {
+      final int minScale = typeSystem.getMinScale(typeName);
+      final int maxScale = typeSystem.getMaxNumericScale();
+      if (scale < minScale) {
+        throw RESOURCE.invalidScaleForDecimalType(scale, minScale, maxScale)
+            .ex();
+      }
     }
     RelDataType newType =
         new BasicSqlType(typeSystem, typeName, precision, scale);
@@ -249,6 +267,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
         : "use createSqlIntervalType() instead";
   }
 
+  @SuppressWarnings("deprecation") // [CALCITE-6598]
   private @Nullable RelDataType leastRestrictiveSqlType(List<RelDataType> types) {
     RelDataType resultType = null;
     int nullCount = 0;

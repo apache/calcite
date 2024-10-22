@@ -97,9 +97,8 @@ public class SqlSetOption extends SqlAlter {
       @Nullable SqlNode value) {
     super(pos, scope);
     this.scope = scope;
-    this.name = name;
+    this.name = requireNonNull(name, "name");
     this.value = value;
-    assert name != null;
   }
 
   @Override public SqlKind getKind() {

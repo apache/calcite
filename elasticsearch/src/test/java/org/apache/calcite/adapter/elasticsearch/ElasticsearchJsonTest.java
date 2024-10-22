@@ -16,8 +16,10 @@
  */
 package org.apache.calcite.adapter.elasticsearch;
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.ImmutableMap;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,7 +37,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.aMapWithSize;
 import static org.hamcrest.Matchers.anEmptyMap;
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
@@ -66,11 +67,12 @@ class ElasticsearchJsonTest {
 
     ElasticsearchJson.Aggregations a = mapper.readValue(json, ElasticsearchJson.Aggregations.class);
     assertNotNull(a);
-    assertEquals(1, a.asList().size());
-    assertEquals(1, a.asMap().size());
-    assertEquals("agg1", a.asList().get(0).getName());
-    assertEquals("agg1", a.asMap().keySet().iterator().next());
-    assertEquals("111", ((ElasticsearchJson.MultiValue) a.asList().get(0)).value());
+    assertThat(a.asList(), hasSize(1));
+    assertThat(a.asMap(), aMapWithSize(1));
+    assertThat(a.asList().get(0).getName(), is("agg1"));
+    assertThat(a.asMap().keySet().iterator().next(), is("agg1"));
+    assertThat(((ElasticsearchJson.MultiValue) a.asList().get(0)).value(),
+        is("111"));
 
     List<Map<String, Object>> rows = new ArrayList<>();
     ElasticsearchJson.visitValueNodes(a, rows::add);
@@ -82,9 +84,9 @@ class ElasticsearchJsonTest {
     String json = "{ agg1: {min: 0, max: 2, avg: 2.33}}";
     ElasticsearchJson.Aggregations a = mapper.readValue(json, ElasticsearchJson.Aggregations.class);
     assertNotNull(a);
-    assertEquals(1, a.asList().size());
-    assertEquals(1, a.asMap().size());
-    assertEquals("agg1", a.asList().get(0).getName());
+    assertThat(a.asList(), hasSize(1));
+    assertThat(a.asMap(), aMapWithSize(1));
+    assertThat(a.asList().get(0).getName(), is("agg1"));
 
     Map<String, Object> values = ((ElasticsearchJson.MultiValue) a.get("agg1")).values();
     assertThat(values.keySet(), hasItems("min", "max", "avg"));
@@ -95,8 +97,8 @@ class ElasticsearchJsonTest {
 
     ElasticsearchJson.Aggregations a = mapper.readValue(json, ElasticsearchJson.Aggregations.class);
     assertNotNull(a);
-    assertEquals(2, a.asList().size());
-    assertEquals(2, a.asMap().size());
+    assertThat(a.asList(), hasSize(2));
+    assertThat(a.asMap(), aMapWithSize(2));
     assertThat(a.asMap().keySet(), hasItems("agg1", "agg2"));
   }
 
@@ -104,10 +106,12 @@ class ElasticsearchJsonTest {
     String json = "{ groupby: {buckets: [{key:'k1', doc_count:0, myagg:{value: 1.1}},"
         + " {key:'k2', myagg:{value: 2.2}}] }}";
 
-    ElasticsearchJson.Aggregations a = mapper.readValue(json, ElasticsearchJson.Aggregations.class);
+    ElasticsearchJson.Aggregations a =
+        mapper.readValue(json, ElasticsearchJson.Aggregations.class);
 
     assertThat(a.asMap().keySet(), hasItem("groupby"));
-    assertThat(a.get("groupby"), instanceOf(ElasticsearchJson.MultiBucketsAggregation.class));
+    assertThat(a.get("groupby"),
+        instanceOf(ElasticsearchJson.MultiBucketsAggregation.class));
     ElasticsearchJson.MultiBucketsAggregation multi = a.get("groupby");
     assertThat(multi.buckets(), hasSize(2));
     assertThat(multi.getName(), is("groupby"));
@@ -157,7 +161,8 @@ class ElasticsearchJsonTest {
     assertNotNull(a);
 
     assertThat(a.asMap().keySet(), hasItem("col1"));
-    assertThat(a.get("col1"), instanceOf(ElasticsearchJson.MultiBucketsAggregation.class));
+    assertThat(a.get("col1"),
+        instanceOf(ElasticsearchJson.MultiBucketsAggregation.class));
     ElasticsearchJson.MultiBucketsAggregation m = a.get("col1");
     assertThat(m.getName(), is("col1"));
     assertThat(m.buckets(), hasSize(2));
@@ -182,7 +187,7 @@ class ElasticsearchJsonTest {
 
   /**
    * Validate that property names which are reserved keywords ES
-   * are correctly mapped (eg. {@code type} or {@code properties})
+   * are correctly mapped (e.g. {@code type} or {@code properties})
    */
   @Test void reservedKeywordMapping() throws Exception {
     // have special property names: type and properties
@@ -217,5 +222,117 @@ class ElasticsearchJsonTest {
     Map<String, String> result = new HashMap<>();
     ElasticsearchJson.visitMappingProperties(mapping, result::put);
     assertThat(result, anEmptyMap());
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6498">[CALCITE-6498]
+   * Elasticsearch multi-field mappings do not work</a>. */
+  @Test void testVisitMappingPropertiesWithMultipleSingleFieldMappings()
+      throws JsonProcessingException {
+    ObjectNode mapping =
+        mapper.readValue("{'properties':{"
+            + "'title':{'type':'text'},"
+            + "'name':{'type':'keyword'}"
+            + "}}", ObjectNode.class);
+
+    Map<String, String> result = getMappingAsMap(mapping);
+
+    assertThat(result.get("title"), is("text"));
+    assertThat(result.get("name"), is("keyword"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6498">[CALCITE-6498]
+   * Elasticsearch multi-field mappings do not work</a>. */
+  @Test void testVisitMappingPropertiesWithMultipleMultiFieldMappings()
+      throws Exception {
+    ObjectNode mapping =
+        mapper.readValue("{'properties':{"
+            + "'title':{'type':'text',"
+            +   "'fields':{'keyword':{'type': 'keyword'}}"
+            + "},"
+            + "'name':{'type':'text',"
+            +   "'fields':{'name_keyword':{'type': 'keyword'}}"
+            + "}"
+            + "}}", ObjectNode.class);
+
+    Map<String, String> result = getMappingAsMap(mapping);
+
+    assertThat(result.get("title"), is("text"));
+    assertThat(result.get("title.keyword"), is("keyword"));
+    assertThat(result.get("name"), is("text"));
+    assertThat(result.get("name.name_keyword"), is("keyword"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6498">[CALCITE-6498]
+   * Elasticsearch multi-field mappings do not work</a>. */
+  @Test void testVisitMappingPropertiesWithMultipleNestedFieldMappings()
+      throws Exception {
+    ObjectNode mapping =
+        mapper.readValue("{properties:{"
+        + "'author':{'type':'nested',"
+        +   "'properties':{"
+        +     "'name':{'type':'text'},"
+        +     "'age':{'type':'integer'}"
+        +   "}},"
+        + "'address':{'type':'nested',"
+        +   "'properties':{"
+        +     "'street':{'type':'keyword'},"
+        +     "'zip':{'type':'integer'}"
+        +   "}}"
+        + "}}", ObjectNode.class);
+
+    Map<String, String> result = getMappingAsMap(mapping);
+
+    assertThat(result.get("author"), is("nested"));
+    assertThat(result.get("author.name"), is("text"));
+    assertThat(result.get("author.age"), is("integer"));
+
+    assertThat(result.get("address"), is("nested"));
+    assertThat(result.get("address.street"), is("keyword"));
+    assertThat(result.get("address.zip"), is("integer"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6498">[CALCITE-6498]
+   * Elasticsearch multi-field mappings do not work</a>. */
+  @Test void testVisitMappingPropertiesWithNestedAndMultiFieldMappings()
+      throws Exception {
+    // 'title' is a multi-mapped field
+    // 'author' is a nested field ('author.name' is multi-mapped)
+    ObjectNode mapping =
+        mapper.readValue("{properties:{"
+            + "'title':{'type':'text',"
+            +   "'fields':{'keyword':{'type': 'keyword'}}"
+            + "},"
+            + "'author':{'type':'nested',"
+            +   "'properties':{"
+            +     "'name':{'type':'text',"
+            +       "'fields':{'keyword':{'type': 'keyword'}}},"
+            +     "'age':{'type':'integer'}"
+            +   "}"
+            + "}}}", ObjectNode.class);
+
+    Map<String, String> result = getMappingAsMap(mapping);
+
+    // Checking the multi-field mapping
+    assertThat(result.get("title"), is("text"));
+    assertThat(result.get("title.keyword"), is("keyword"));
+
+    // Checking the nested mapping
+    assertThat(result.get("author"), is("nested"));
+    assertThat(result.get("author.name"), is("text"));
+    assertThat(result.get("author.name.keyword"), is("keyword"));
+    assertThat(result.get("author.age"), is("integer"));
+  }
+
+  private static Map<String, String> getMappingAsMap(ObjectNode mapping) {
+    // ImmutableMap.Builder makes sure that we don't add the same key twice
+    // (would throw exception otherwise)
+    ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
+    ElasticsearchJson.visitMappingProperties(mapping, builder::put);
+
+    return builder.build();
   }
 }

@@ -44,7 +44,6 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.IntPredicate;
@@ -54,6 +53,8 @@ import static com.google.common.collect.ImmutableList.toImmutableList;
 
 import static org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule.groupValue;
 import static org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule.remap;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Planner rule that rewrites an {@link Aggregate} that contains
@@ -248,7 +249,7 @@ public class AggregateExpandWithinDistinctRule
       }
 
       int field(int field, int filterArg) {
-        return Objects.requireNonNull(args.get(IntPair.of(field, filterArg)));
+        return requireNonNull(args.get(IntPair.of(field, filterArg)));
       }
 
       /** Computes an aggregate call argument's values for a
@@ -311,7 +312,7 @@ public class AggregateExpandWithinDistinctRule
       }
 
       int getAgg(int i) {
-        return Objects.requireNonNull(aggs.get(i));
+        return requireNonNull(aggs.get(i));
       }
 
       /** Registers an extra {@code COUNT} aggregate call when it's needed to
@@ -338,7 +339,7 @@ public class AggregateExpandWithinDistinctRule
       }
 
       int getCount(int filterArg) {
-        return Objects.requireNonNull(counts.get(filterArg));
+        return requireNonNull(counts.get(filterArg));
       }
     }
 
@@ -346,11 +347,14 @@ public class AggregateExpandWithinDistinctRule
     Ord.forEach(aggCallList, (c, i) -> {
       if (c.distinctKeys == null) {
         RelBuilder.AggCall aggCall =
-            b.aggregateCall(c.getAggregation(), b.fields(c.getArgList()));
-        registrar.registerAgg(i,
-            c.hasFilter()
-                ? aggCall.filter(b.field(c.filterArg))
-                : aggCall);
+            b.aggregateCall(c.getParserPosition(), c.getAggregation(), b.fields(c.getArgList()));
+        if (c.hasFilter()) {
+          aggCall = aggCall.filter(b.field(c.filterArg));
+        }
+        if (c.hasCollation()) {
+          aggCall = aggCall.sort(b.fields(c.getCollation()));
+        }
+        registrar.registerAgg(i, aggCall);
       } else {
         for (int inputIdx : c.getArgList()) {
           registrar.register(inputIdx, c.filterArg);
@@ -410,7 +414,7 @@ public class AggregateExpandWithinDistinctRule
       RelBuilder.AggCall aggCall;
       if (c.distinctKeys == null) {
         aggCall =
-            b.aggregateCall(SqlStdOperatorTable.MIN,
+            b.aggregateCall(c.getParserPosition(), SqlStdOperatorTable.MIN,
                 b.field(registrar.getAgg(i)));
       } else {
         // The inputs to this aggregate are outputs from MIN() calls from the
@@ -422,7 +426,7 @@ public class AggregateExpandWithinDistinctRule
         // ignore null inputs, we add a filter based on a COUNT() in the inner
         // aggregate.
         aggCall =
-            b.aggregateCall(c.getAggregation(),
+            b.aggregateCall(c.getParserPosition(), c.getAggregation(),
                 b.fields(registrar.fields(c.getArgList(), c.filterArg)));
 
         if (mustBeCounted(c)) {
@@ -447,7 +451,7 @@ public class AggregateExpandWithinDistinctRule
           }
         }
       }
-      if (filters.size() > 0) {
+      if (!filters.isEmpty()) {
         aggCall = aggCall.filter(b.and(filters));
       }
       aggCalls.add(aggCall);

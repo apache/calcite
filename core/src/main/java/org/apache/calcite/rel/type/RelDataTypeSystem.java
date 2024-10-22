@@ -37,30 +37,115 @@ public interface RelDataTypeSystem {
   /** Default type system. */
   RelDataTypeSystem DEFAULT = new RelDataTypeSystemImpl() { };
 
-  /** Returns the maximum scale of a given type. */
+  /**
+   * Returns the maximum scale allowed for this type, or
+   * {@link RelDataType#SCALE_NOT_SPECIFIED}
+   * if scale is not applicable for this type.
+   *
+   * @return Maximum allowed scale
+   */
   int getMaxScale(SqlTypeName typeName);
 
   /**
-   * Returns default precision for this type if supported, otherwise -1 if
-   * precision is either unsupported or must be specified explicitly.
+   * Returns the minimum scale allowed for this type, or
+   * {@link RelDataType#SCALE_NOT_SPECIFIED}
+   * if scale are not applicable for this type.
+   *
+   * @return Minimum allowed scale
+   */
+  int getMinScale(SqlTypeName typeName);
+
+  /**
+   * Returns default precision for this type if supported, otherwise
+   * {@link RelDataType#PRECISION_NOT_SPECIFIED}
+   * if precision is either unsupported or must be specified explicitly.
    *
    * @return Default precision
    */
   int getDefaultPrecision(SqlTypeName typeName);
 
   /**
-   * Returns the maximum precision (or length) allowed for this type, or -1 if
-   * precision/length are not applicable for this type.
+   * Returns default scale for this type if supported, otherwise
+   * {@link RelDataType#SCALE_NOT_SPECIFIED}
+   * if scale is either unsupported or must be specified explicitly.
+   *
+   * @return Default scale
+   */
+  int getDefaultScale(SqlTypeName typeName);
+
+  /**
+   * Returns the maximum precision (or length) allowed for this type, or
+   * {@link RelDataType#PRECISION_NOT_SPECIFIED}
+   * if precision/length are not applicable for this type.
    *
    * @return Maximum allowed precision
    */
   int getMaxPrecision(SqlTypeName typeName);
 
-  /** Returns the maximum scale of a NUMERIC or DECIMAL type. */
-  int getMaxNumericScale();
+  /**
+   * Returns the minimum precision (or length) allowed for this type, or
+   * {@link RelDataType#PRECISION_NOT_SPECIFIED}
+   * if precision/length are not applicable for this type.
+   *
+   * @return Minimum allowed precision
+   */
+  int getMinPrecision(SqlTypeName typeName);
 
-  /** Returns the maximum precision of a NUMERIC or DECIMAL type. */
-  int getMaxNumericPrecision();
+  /** Returns the maximum scale of a NUMERIC or DECIMAL type.
+   * Default value is 19.
+   *
+   * @deprecated Replaced by {@link #getMaxScale}(DECIMAL).
+   *
+   * <p>From Calcite release 1.38 onwards, instead of calling this method, you
+   * should call {@code getMaxScale(DECIMAL)}.
+   *
+   * <p>In Calcite release 1.38, if you wish to change the maximum
+   * scale of {@link SqlTypeName#DECIMAL} values, you should do two things:
+   *
+   * <ul>
+   * <li>Override the {@link #getMaxScale(SqlTypeName)} method,
+   *     changing its behavior for {@code DECIMAL};
+   * <li>Make sure that the implementation of your
+   *     {@code #getMaxNumericScale} method calls
+   *     {@code getMaxScale(DECIMAL)}.
+   * </ul>
+   *
+   * <p>In Calcite release 1.39, Calcite will cease calling this method,
+   * and will remove the override of the method in
+   * {@link RelDataTypeSystemImpl}. You should remove all calls to
+   * and overrides of this method. */
+  @Deprecated // calcite will cease calling in 1.39, and removed before 2.0
+  default int getMaxNumericScale() {
+    return 19;
+  }
+
+  /** Returns the maximum precision of a NUMERIC or DECIMAL type.
+   * Default value is 19.
+   *
+   * @deprecated Replaced by {@link #getMaxScale}(DECIMAL).
+   *
+   * <p>From Calcite release 1.38 onwards, instead of calling this method, you
+   * should call {@code getMaxPrecision(DECIMAL)}.
+   *
+   * <p>In Calcite release 1.38, if you wish to change the maximum
+   * precision of {@link SqlTypeName#DECIMAL} values, you should do two things:
+   *
+   * <ul>
+   * <li>Override the {@link #getMaxPrecision(SqlTypeName)} method,
+   *     changing its behavior for {@code DECIMAL};
+   * <li>Make sure that the implementation of your
+   *     {@code #getMaxNumericPrecision} method calls
+   *     {@code getMaxPrecision(DECIMAL)}.
+   * </ul>
+   *
+   * <p>In Calcite release 1.39, Calcite will cease calling this method,
+   * and will remove the override of the method in
+   * {@link RelDataTypeSystemImpl}. You should remove all calls to
+   * and overrides of this method. */
+  @Deprecated // calcite will cease calling in 1.39, and removed before 2.0
+  default int getMaxNumericPrecision() {
+    return getMaxPrecision(SqlTypeName.DECIMAL);
+  }
 
   /** Returns the rounding behavior for numerical operations capable of discarding precision. */
   RoundingMode roundingMode();
@@ -299,10 +384,11 @@ public interface RelDataTypeSystem {
         int s1 = type1.getScale();
         int s2 = type2.getScale();
 
-        int six = Math.min(6, getMaxNumericScale());
+        final int maxScale = getMaxNumericScale();
+        int six = Math.min(6, maxScale);
         int d = p1 - s1 + s2;
         int scale = Math.max(six, s1 + p2 + 1);
-        scale = Math.min(scale, getMaxNumericScale());
+        scale = Math.min(scale, maxScale);
         int precision = d + scale;
 
   // Rules from
@@ -324,17 +410,18 @@ public interface RelDataTypeSystem {
         //   reduced and resulting type is decimal(38, 6). The result might be rounded to
         //   7 decimal places, or the overflow error is thrown if the integral part
         //   can't fit into 32 digits.
-        int bound = getMaxNumericPrecision() - six;  // This was '32' in the MS documentation
+        final int maxPrecision = getMaxNumericPrecision();
+        int bound = maxPrecision - six;  // This was '32' in the MS documentation
         if (precision <= bound) {
-          scale = Math.min(scale, getMaxNumericPrecision() - (precision - scale));
+          scale = Math.min(scale, maxPrecision - (precision - scale));
         } else {
           // precision > bound
           scale = Math.min(six, scale);
         }
 
-        precision = Math.min(precision, getMaxNumericPrecision());
+        precision = Math.min(precision, maxPrecision);
         assert precision > 0;
-        assert scale <= getMaxNumericScale();
+        assert scale <= maxScale;
 
         RelDataType ret;
         ret = typeFactory.
@@ -404,9 +491,12 @@ public interface RelDataTypeSystem {
           return type2;
         }
 
-        int scale = Math.min(Math.max(s1, s2), getMaxNumericScale());
+        final int maxScale = getMaxNumericScale();
+        final int maxPrecision = getMaxNumericPrecision();
+
+        final int scale = Math.min(Math.max(s1, s2), maxScale);
         int precision = Math.min(p1 - s1, p2 - s2) + Math.max(s1, s2);
-        precision = Math.min(precision, getMaxNumericPrecision());
+        precision = Math.min(precision, maxPrecision);
         assert precision > 0;
 
         return typeFactory.createSqlType(SqlTypeName.DECIMAL,

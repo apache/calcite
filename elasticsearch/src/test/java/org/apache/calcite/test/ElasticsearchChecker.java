@@ -25,13 +25,13 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Internal utility methods for Elasticsearch tests.
@@ -53,7 +53,7 @@ public class ElasticsearchChecker {
    * @return validation function
    */
   public static Consumer<List> elasticsearchChecker(final String... strings) {
-    Objects.requireNonNull(strings, "strings");
+    requireNonNull(strings, "strings");
     return a -> {
       ObjectNode actual =
           a == null || a.isEmpty() ? null : (ObjectNode) a.get(0);
@@ -61,13 +61,14 @@ public class ElasticsearchChecker {
       actual = expandDots(actual);
       try {
 
-        String json = "{" + Arrays.stream(strings).collect(Collectors.joining(",")) + "}";
+        String json = "{" + String.join(",", strings) + "}";
         ObjectNode expected = (ObjectNode) MAPPER.readTree(json);
         expected = expandDots(expected);
 
         if (!expected.equals(actual)) {
-          assertEquals(MAPPER.writeValueAsString(expected), MAPPER.writeValueAsString(actual),
-              "expected and actual Elasticsearch queries do not match");
+          assertThat("expected and actual Elasticsearch queries do not match",
+              MAPPER.writeValueAsString(actual),
+              is(MAPPER.writeValueAsString(expected)));
         }
       } catch (IOException e) {
         throw new UncheckedIOException(e);
@@ -91,7 +92,7 @@ public class ElasticsearchChecker {
    */
   @SuppressWarnings("unchecked")
   private static <T extends JsonNode> T expandDots(T parent) {
-    Objects.requireNonNull(parent, "parent");
+    requireNonNull(parent, "parent");
 
     if (parent.isValueNode()) {
       return parent.deepCopy();

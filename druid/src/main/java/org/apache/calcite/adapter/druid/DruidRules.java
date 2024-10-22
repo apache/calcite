@@ -60,6 +60,7 @@ import org.apache.commons.lang3.tuple.Triple;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
 import org.joda.time.Interval;
 import org.slf4j.Logger;
@@ -69,6 +70,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Rules and relational operators for {@link DruidQuery}.
@@ -226,9 +229,11 @@ public class DruidRules {
       final List<RexNode> residualPreds = new ArrayList<>(triple.getRight());
       List<Interval> intervals = null;
       if (!triple.getLeft().isEmpty()) {
-        final String timeZone = cluster.getPlanner().getContext()
-            .unwrap(CalciteConnectionConfig.class).timeZone();
-        assert timeZone != null;
+        final CalciteConnectionConfig connectionConfig =
+            requireNonNull(
+                cluster.getPlanner().getContext()
+                    .unwrap(CalciteConnectionConfig.class));
+        requireNonNull(connectionConfig.timeZone());
         intervals =
             DruidDateTimeUtils.createInterval(
                 RexUtil.composeConjunction(rexBuilder, triple.getLeft()));
@@ -264,7 +269,6 @@ public class DruidRules {
      * 2-m) condition filters that can be pushed to Druid,
      * 3-r) condition filters that cannot be pushed to Druid.
      */
-    @SuppressWarnings("BetaApi")
     private static Triple<List<RexNode>, List<RexNode>, List<RexNode>> splitFilters(
         final List<RexNode> validPreds,
         final List<RexNode> nonValidPreds, final int timestampFieldIdx) {
@@ -412,7 +416,7 @@ public class DruidRules {
       call.transformTo(newProject2);
     }
 
-    private static Pair<List<RexNode>, List<RexNode>> splitProjects(
+    private static @Nullable Pair<List<RexNode>, List<RexNode>> splitProjects(
         final RexBuilder rexBuilder, final RelNode input, List<RexNode> nodes) {
       final RelOptUtil.InputReferencedVisitor visitor =
           new RelOptUtil.InputReferencedVisitor();
@@ -613,7 +617,7 @@ public class DruidRules {
               ImmutableList.of(newProject));
       List<Integer> filterRefs = getFilterRefs(aggregate.getAggCallList());
       final DruidQuery query2;
-      if (filterRefs.size() > 0) {
+      if (!filterRefs.isEmpty()) {
         query2 =
             optimizeFilteredAggregations(call, query, (Project) newProject,
                 (Aggregate) newAggregate);
@@ -681,7 +685,7 @@ public class DruidRules {
       Set<Integer> uniqueFilterRefs = getUniqueFilterRefs(aggregate.getAggCallList());
 
       // One of the pre-conditions for this method
-      assert uniqueFilterRefs.size() > 0;
+      assert !uniqueFilterRefs.isEmpty();
 
       List<AggregateCall> newCalls = new ArrayList<>();
 

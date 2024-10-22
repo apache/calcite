@@ -73,7 +73,6 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
   /**
    * Global cache for RelDataType.
    */
-  @SuppressWarnings("BetaApi")
   private static final Interner<RelDataType> DATATYPE_CACHE =
       Interners.newWeakInterner();
 
@@ -136,10 +135,9 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     return canonize(javaType);
   }
 
-  // implement RelDataTypeFactory
   @Override public RelDataType createJoinType(RelDataType... types) {
-    assert types != null;
-    assert types.length >= 1;
+    requireNonNull(types, "types");
+    checkArgument(types.length >= 1);
     final List<RelDataType> flattenedTypes = new ArrayList<>();
     getTypeList(ImmutableList.copyOf(types), flattenedTypes);
     return canonize(
@@ -208,7 +206,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       List<RelDataType> types, SqlTypeMappingRule mappingRule) {
     requireNonNull(types, "types");
     requireNonNull(mappingRule, "mappingRule");
-    checkArgument(types.size() >= 1, "types.size >= 1");
+    checkArgument(!types.isEmpty(), "!types.isEmpty");
     RelDataType type0 = types.get(0);
     if (type0.isStruct()) {
       return leastRestrictiveStructuredType(types);
@@ -418,7 +416,6 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
    *
    * @throws NullPointerException if type is null
    */
-  @SuppressWarnings("BetaApi")
   protected RelDataType canonize(final RelDataType type) {
     return DATATYPE_CACHE.intern(type);
   }
@@ -571,8 +568,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
   /** Create decimal type equivalent with the given {@code type} while sans nullability. */
   private RelDataType decimalOf2(RelDataType type) {
     assert SqlTypeUtil.isNumeric(type) || SqlTypeUtil.isNull(type);
-    SqlTypeName typeName = type.getSqlTypeName();
-    assert typeName != null;
+    final SqlTypeName typeName = requireNonNull(type.getSqlTypeName());
     switch (typeName) {
     case DECIMAL:
       // Fix the precision when the type is JavaType.
@@ -620,8 +616,8 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
   public class JavaType extends RelDataTypeImpl {
     private final Class clazz;
     private final boolean nullable;
-    private @Nullable SqlCollation collation;
-    private @Nullable Charset charset;
+    private final @Nullable SqlCollation collation;
+    private final @Nullable Charset charset;
 
     public JavaType(Class clazz) {
       this(clazz, !clazz.isPrimitive());
@@ -642,8 +638,8 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       super(fieldsOf(clazz));
       this.clazz = clazz;
       this.nullable = nullable;
-      assert (charset != null) == SqlTypeUtil.inCharFamily(this)
-          : "Need to be a chartype";
+      checkArgument((charset != null) == SqlTypeUtil.inCharFamily(this),
+          "Need to be a chartype");
       this.charset = charset;
       this.collation = collation;
       computeDigest();

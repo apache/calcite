@@ -290,7 +290,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
    */
   @Test void testAsOfCast() {
     final String sql = "SELECT * "
-        + "FROM (SELECT deptno % 10 as m, CAST(deptno AS BIGINT) as deptno FROM dept) D\n"
+        + "FROM (SELECT CAST(deptno % 10 AS BIGINT) as m, CAST(deptno AS BIGINT) as deptno FROM dept) D\n"
         + "LEFT ASOF JOIN (SELECT CAST(empno as BIGINT) as empno, CAST(deptno AS BIGINT) AS deptno FROM emp) E\n"
         + "MATCH_CONDITION D.deptno >= E.deptno\n"
         + "ON D.m = E.empno";
@@ -3770,6 +3770,46 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).withExpand(false).withDecorrelate(false).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6554">[CALCITE-6554]
+   * Nested correlated sub-query in aggregation does not have inner correlation variable bound
+   * to inner projection</a>. */
+  @Test void testCorrelationInProjectionWith1xNestedCorrelatedProjection() {
+    final String sql = "select e1.empno,\n"
+          + "  (select sum(e2.sal +\n"
+          + "    (select sum(e3.sal) from emp e3 where e3.mgr = e2.empno)\n"
+          + "   ) from emp e2 where e2.mgr = e1.empno)\n"
+          + "from emp e1";
+    sql(sql).withExpand(false).withDecorrelate(false).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6554">[CALCITE-6554]
+   * Nested correlated sub-query in aggregation does not have inner correlation variable bound
+   * to inner projection</a>. */
+  @Test void testCorrelationInProjectionWith2xNestedCorrelatedProjection() {
+    final String sql = "select e1.empno,\n"
+        + "  (select sum(e2.sal +\n"
+        + "    (select sum(e3.sal + (select sum(e4.sal) from emp e4 where e4.mgr = e3.empno)\n"
+        + "      ) from emp e3 where e3.mgr = e2.empno)\n"
+        + "   ) from emp e2 where e2.mgr = e1.empno)\n"
+        + "from emp e1";
+    sql(sql).withExpand(false).withDecorrelate(false).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6554">[CALCITE-6554]
+   * Nested correlated sub-query in aggregation does not have inner correlation variable bound
+   * to inner projection</a>. */
+  @Test void testCorrelationInProjectionWithCorrelatedProjectionWithNestedNonCorrelatedSubquery() {
+    final String sql = "select e1.empno,\n"
+        + "  (select sum(e2.sal +\n"
+        + "    (select sum(e3.sal) from emp e3 where e3.mgr = e1.empno)\n"
+        + "   ) from emp e2 where e2.mgr = e1.empno)\n"
+        + "from emp e1";
+    sql(sql).withExpand(false).withDecorrelate(false).ok();
+  }
+
   @Test void testCustomColumnResolving() {
     final String sql = "select k0 from struct.t";
     sql(sql).ok();
@@ -4100,6 +4140,23 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   @Test void testSelectDynamicStarOrderBy() {
     final String sql = "SELECT * from SALES.NATION order by n_nationkey";
     sql(sql).withDynamicTable().ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5156">[CALCITE-5156]
+   * Support implicit integer types cast for IN Sub-query</a>. */
+  @Test void testInSubQueryWithTypeCast() {
+    final String sql = "select *\n"
+        + "from dept\n"
+        + "where cast(deptno + 20 as bigint) in (select deptno from dept)";
+    sql(sql).withExpand(false).ok();
+  }
+
+  @Test void testInSubQueryWithTypeCast2() {
+    final String sql = "select *\n"
+        + "from dept\n"
+        + "where cast(deptno as bigint) in (select deptno + 20 from dept)";
+    sql(sql).withExpand(false).ok();
   }
 
   /** Test case for
@@ -4863,10 +4920,24 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  /** Test case for:
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6343">[CALCITE-6343]
+   * Ensure that AS operator doesn't change return type of measures</a>. */
+  @Test void testMeasureRefWithAlias() {
+    final String sql = "select count_plus_100 as c\n"
+        + "from empm";
+    fixture()
+        .withFactory(c ->
+            c.withOperatorTable(t ->
+              SqlValidatorTest.operatorTableFor(SqlLibrary.CALCITE)))
+        .withCatalogReader(MockCatalogReaderExtended::create)
+        .withSql(sql)
+        .ok();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6013">[CALCITE-6013]
-   * Unnecessary measures added as projects during rel construction</a>.
-   */
+   * Unnecessary measures added as projects during rel construction</a>. */
   @Test void testAvoidUnnecessaryMeasureProject() {
     final String sql = "select deptno\n"
         + "from empm\n"
@@ -4880,11 +4951,10 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         .ok();
   }
 
-  /** Test case for:
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3310">[CALCITE-3310]
    * Approximate and exact aggregate calls are recognized as the same
-   * during sql-to-rel conversion</a>.
-   */
+   * during sql-to-rel conversion</a>. */
   @Test void testProjectApproximateAndExactAggregates() {
     final String sql = "SELECT empno, count(distinct ename),\n"
             + "approx_count_distinct(ename)\n"
@@ -4908,8 +4978,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3456">[CALCITE-3456]
    * AssertionError throws when aggregation same digest in sub-query in same
-   * scope</a>.
-   */
+   * scope</a>. */
   @Test void testAggregateWithSameDigestInSubQueries() {
     final String sql = "select\n"
         + "  CASE WHEN job IN ('810000', '820000') THEN job\n"

@@ -48,7 +48,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasToString;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -2093,7 +2092,7 @@ public class MaterializedViewSubstitutionVisitorTest {
     void checkSatisfiable(RexNode e, String s) {
       assertTrue(SubstitutionVisitor.mayBeSatisfiable(e));
       final RexNode simple = simplify.simplifyUnknownAsFalse(e);
-      assertEquals(s, simple.toString());
+      assertThat(simple, hasToString(s));
     }
   }
 

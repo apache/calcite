@@ -32,9 +32,10 @@ import org.checkerframework.dataflow.qual.Pure;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Objects;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A <code>SqlCall</code> is a call to an {@link SqlOperator operator}.
@@ -198,8 +199,7 @@ public abstract class SqlCall extends SqlNode {
     List<String> signatureList = new ArrayList<>();
     for (final SqlNode operand : getOperandList()) {
       final RelDataType argType =
-          validator.deriveType(Objects.requireNonNull(scope, "scope"),
-              operand);
+          validator.deriveType(requireNonNull(scope, "scope"), operand);
       if (null == argType) {
         continue;
       }

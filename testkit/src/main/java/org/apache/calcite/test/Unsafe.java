@@ -18,6 +18,8 @@ package org.apache.calcite.test;
 
 import org.hamcrest.Matcher;
 
+import java.util.Locale;
+
 /**
  * Contains methods that call JDK methods that the
  * <a href="https://github.com/policeman-tools/forbidden-apis">forbidden
@@ -40,5 +42,10 @@ public class Unsafe {
    */
   public static <T> boolean matches(Matcher<T> matcher, Object actual) {
     return matcher.matches(actual);
+  }
+
+  /** Sets locale. */
+  public static void setDefaultLocale(Locale locale) {
+    Locale.setDefault(locale);
   }
 }

@@ -21,6 +21,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSyntax;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Litmus;
@@ -56,6 +57,12 @@ public class RexCall extends RexNode {
 
   //~ Instance fields --------------------------------------------------------
 
+  /** In the calls which can produce runtime errors we carry
+   * the source position, so the backend can produce runtime error messages
+   * pointing to the original source position.
+   * For calls that are can never generate runtime failures, this field may
+   * be ZERO.  Note that some optimizations may "lost" position information. */
+  public final SqlParserPos pos;
   public final SqlOperator op;
   public final ImmutableList<RexNode> operands;
   public final RelDataType type;
@@ -74,16 +81,24 @@ public class RexCall extends RexNode {
   //~ Constructors -----------------------------------------------------------
 
   protected RexCall(
+      SqlParserPos pos,
       RelDataType type,
       SqlOperator operator,
       List<? extends RexNode> operands) {
+    this.pos = pos;
     this.type = requireNonNull(type, "type");
     this.op = requireNonNull(operator, "operator");
     this.operands = ImmutableList.copyOf(operands);
     this.nodeCount = RexUtil.nodeCount(1, this.operands);
-    assert operator.getKind() != null : operator;
     assert operator.validRexOperands(operands.size(), Litmus.THROW) : this;
     assert operator.kind != SqlKind.IN || this instanceof RexSubQuery;
+  }
+
+  protected RexCall(
+      RelDataType type,
+      SqlOperator operator,
+      List<? extends RexNode> operands) {
+    this(SqlParserPos.ZERO, type, operator, operands);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -158,8 +173,8 @@ public class RexCall extends RexNode {
 
   protected String computeDigest(boolean withType) {
     final StringBuilder sb = new StringBuilder(op.getName());
-    if ((operands.size() == 0)
-        && (op.getSyntax() == SqlSyntax.FUNCTION_ID)) {
+    if (operands.isEmpty()
+        && op.getSyntax() == SqlSyntax.FUNCTION_ID) {
       // Don't print params for empty arg list. For example, we want
       // "SYSTEM_USER", not "SYSTEM_USER()".
     } else {
@@ -175,6 +190,10 @@ public class RexCall extends RexNode {
       sb.append(type.getFullTypeString());
     }
     return sb.toString();
+  }
+
+  public SqlParserPos getParserPosition() {
+    return this.pos;
   }
 
   @Override public final String toString() {
@@ -212,7 +231,7 @@ public class RexCall extends RexNode {
     case CAST:
       return operands.get(0).isAlwaysTrue();
     case SEARCH:
-      final Sarg sarg = ((RexLiteral) operands.get(1)).getValueAs(Sarg.class);
+      final Sarg<?> sarg = ((RexLiteral) operands.get(1)).getValueAs(Sarg.class);
       return requireNonNull(sarg, "sarg").isAll()
           && (sarg.nullAs == RexUnknownAs.TRUE
               || !operands.get(0).getType().isNullable());
@@ -234,7 +253,7 @@ public class RexCall extends RexNode {
     case CAST:
       return operands.get(0).isAlwaysFalse();
     case SEARCH:
-      final Sarg sarg = ((RexLiteral) operands.get(1)).getValueAs(Sarg.class);
+      final Sarg<?> sarg = ((RexLiteral) operands.get(1)).getValueAs(Sarg.class);
       return requireNonNull(sarg, "sarg").isNone()
           && (sarg.nullAs == RexUnknownAs.FALSE
               || !operands.get(0).getType().isNullable());
@@ -271,7 +290,7 @@ public class RexCall extends RexNode {
    * @return New call
    */
   public RexCall clone(RelDataType type, List<RexNode> operands) {
-    return new RexCall(type, op, operands);
+    return new RexCall(pos, type, op, operands);
   }
 
   private Pair<SqlOperator, List<RexNode>> getNormalized() {

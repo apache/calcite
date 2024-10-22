@@ -55,7 +55,7 @@ public abstract class WinAggResultContextImpl extends AggResultContextImpl
       List<Expression> accumulator,
       com.google.common.base.Function<BlockBuilder, WinAggFrameResultContext> frameContextBuilder) {
     this(block, accumulator,
-        (Function<BlockBuilder, WinAggFrameResultContext>) frameContextBuilder::apply);
+        (Function<BlockBuilder, WinAggFrameResultContext>) frameContextBuilder);
   }
 
   private WinAggFrameResultContext getFrame() {

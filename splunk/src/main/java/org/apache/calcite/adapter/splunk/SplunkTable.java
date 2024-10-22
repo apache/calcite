@@ -29,7 +29,11 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Table based on Splunk.
@@ -90,9 +94,10 @@ class SplunkTable extends AbstractQueryableTable implements TranslatableTable {
       return query.enumerator();
     }
 
-    public SplunkQuery<T> createQuery(String search, String earliest,
-        String latest, List<String> fieldList) {
-      final SplunkSchema splunkSchema = schema.unwrap(SplunkSchema.class);
+    public SplunkQuery<T> createQuery(String search, @Nullable String earliest,
+        @Nullable String latest, @Nullable List<String> fieldList) {
+      final SplunkSchema splunkSchema =
+          requireNonNull(schema.unwrap(SplunkSchema.class));
       return new SplunkQuery<>(splunkSchema.splunkConnection, search,
           earliest, latest, fieldList);
     }

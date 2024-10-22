@@ -43,6 +43,7 @@ import org.apache.calcite.util.graph.DefaultEdge;
 import org.apache.calcite.util.graph.DirectedGraph;
 import org.apache.calcite.util.graph.TopologicalOrderIterator;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.Ints;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -57,6 +58,8 @@ import java.util.List;
 import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkArgument;
+
+import static org.apache.calcite.util.Util.isDistinct;
 
 /**
  * CalcRelSplitter operates on a
@@ -87,7 +90,7 @@ public abstract class CalcRelSplitter {
   protected final RexProgram program;
   private final RelDataTypeFactory typeFactory;
 
-  private final RelType[] relTypes;
+  private final List<RelType> relTypes;
   private final RelOptCluster cluster;
   private final RelTraitSet traits;
   private final RelNode child;
@@ -104,19 +107,13 @@ public abstract class CalcRelSplitter {
    */
   CalcRelSplitter(Calc calc, RelBuilder relBuilder, RelType[] relTypes) {
     this.relBuilder = relBuilder;
-    for (int i = 0; i < relTypes.length; i++) {
-      assert relTypes[i] != null;
-      for (int j = 0; j < i; j++) {
-        assert relTypes[i] != relTypes[j]
-            : "Rel types must be distinct";
-      }
-    }
     this.program = calc.getProgram();
     this.cluster = calc.getCluster();
     this.traits = calc.getTraitSet();
     this.typeFactory = calc.getCluster().getTypeFactory();
     this.child = calc.getInput();
-    this.relTypes = relTypes;
+    this.relTypes = ImmutableList.copyOf(relTypes);
+    checkArgument(isDistinct(this.relTypes));
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -201,7 +198,7 @@ public abstract class CalcRelSplitter {
         projectExprOrdinals = Ints.toArray(projectExprOrdinalList);
       }
 
-      final RelType relType = relTypes[levelTypeOrdinals[level]];
+      final RelType relType = relTypes.get(levelTypeOrdinals[level]);
 
       // Can we do the condition this level?
       int conditionExprOrdinal = -1;
@@ -275,7 +272,7 @@ public abstract class CalcRelSplitter {
 
     int levelCount = 0;
     final MaxInputFinder maxInputFinder = new MaxInputFinder(exprLevels);
-    boolean[] relTypesPossibleForTopLevel = new boolean[relTypes.length];
+    boolean[] relTypesPossibleForTopLevel = new boolean[relTypes.size()];
     Arrays.fill(relTypesPossibleForTopLevel, true);
 
     // Compute the order in which to visit expressions.
@@ -322,14 +319,12 @@ public abstract class CalcRelSplitter {
         if (level >= levelCount) {
           // This is a new level. We can use any type we like.
           for (int relTypeOrdinal = 0;
-              relTypeOrdinal < relTypes.length;
+              relTypeOrdinal < relTypes.size();
               relTypeOrdinal++) {
             if (!relTypesPossibleForTopLevel[relTypeOrdinal]) {
               continue;
             }
-            if (relTypes[relTypeOrdinal].canImplement(
-                expr,
-                condition)) {
+            if (relTypes.get(relTypeOrdinal).canImplement(expr, condition)) {
               // Success. We have found a type where we can
               // implement this expression.
               exprLevels[i] = level;
@@ -348,13 +343,11 @@ public abstract class CalcRelSplitter {
 
               // Successive reltypes may be possible.
               for (int j = relTypeOrdinal + 1;
-                  j < relTypes.length;
+                  j < relTypes.size();
                   ++j) {
                 if (relTypesPossibleForTopLevel[j]) {
                   relTypesPossibleForTopLevel[j] =
-                      relTypes[j].canImplement(
-                          expr,
-                          condition);
+                      relTypes.get(j).canImplement(expr, condition);
                 }
               }
 
@@ -370,7 +363,7 @@ public abstract class CalcRelSplitter {
           // None of the reltypes still active for this level could
           // implement expr. But maybe we could succeed with a new
           // level, with all options open?
-          if (count(relTypesPossibleForTopLevel) >= relTypes.length) {
+          if (count(relTypesPossibleForTopLevel) >= relTypes.size()) {
             // Cannot implement for any type.
             throw new AssertionError("cannot implement " + expr);
           }
@@ -380,9 +373,7 @@ public abstract class CalcRelSplitter {
           Arrays.fill(relTypesPossibleForTopLevel, true);
         } else {
           final int levelTypeOrdinal = levelTypeOrdinals[level];
-          if (!relTypes[levelTypeOrdinal].canImplement(
-              expr,
-              condition)) {
+          if (!relTypes.get(levelTypeOrdinal).canImplement(expr, condition)) {
             // Cannot implement this expression in this type;
             // continue to next level.
             continue;
@@ -395,9 +386,10 @@ public abstract class CalcRelSplitter {
     if (levelCount > 0) {
       // The latest level should be CalcRelType otherwise literals cannot be
       // implemented.
-      assert "CalcRelType".equals(relTypes[0].name)
-          : "The first RelType should be CalcRelType for proper RexLiteral"
-          + " implementation at the last level, got " + relTypes[0].name;
+      final String name = relTypes.get(0).name;
+      checkArgument(name.equals("CalcRelType"),
+          "The first RelType should be CalcRelType for proper RexLiteral"
+              + " implementation at the last level, got %s", name);
       if (levelTypeOrdinals[levelCount - 1] != 0) {
         levelCount++;
       }
@@ -598,12 +590,10 @@ public abstract class CalcRelSplitter {
       outputRowType =
           RexUtil.createStructType(typeFactory, projectRefs, fieldNames, null);
     }
-    final RexProgram program =
-        new RexProgram(
-            inputRowType, exprs, projectRefs, conditionRef, outputRowType);
     // Program is NOT normalized here (e.g. can contain literals in
     // call operands), since literals should be inlined.
-    return program;
+    return new RexProgram(inputRowType, exprs, projectRefs, conditionRef,
+        outputRowType);
   }
 
   private String deriveFieldName(RexNode expr, int ordinal) {
@@ -637,11 +627,11 @@ public abstract class CalcRelSplitter {
     StringWriter traceMsg = new StringWriter();
     PrintWriter traceWriter = new PrintWriter(traceMsg);
     traceWriter.println("FarragoAutoCalcRule result expressions for: ");
-    traceWriter.println(program.toString());
+    traceWriter.println(program);
 
     for (int level = 0; level < levelCount; level++) {
       traceWriter.println("Rel Level " + level
-          + ", type " + relTypes[levelTypeOrdinals[level]]);
+          + ", type " + relTypes.get(levelTypeOrdinals[level]));
 
       for (int i = 0; i < exprs.length; i++) {
         RexNode expr = exprs[i];

@@ -25,7 +25,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Internal object used to parse elastic search result. Similar to {@code SearchHit}.
@@ -45,8 +46,8 @@ public class ElasticsearchSearchResult {
    */
   @JsonCreator
   ElasticsearchSearchResult(@JsonProperty("hits") SearchHits hits,
-                            @JsonProperty("took") long took) {
-    this.hits = Objects.requireNonNull(hits, "hits");
+      @JsonProperty("took") long took) {
+    this.hits = requireNonNull(hits, "hits");
     this.took = took;
   }
 
@@ -71,7 +72,7 @@ public class ElasticsearchSearchResult {
     SearchHits(@JsonProperty("total")final long total,
                @JsonProperty("hits") final List<SearchHit> hits) {
       this.total = total;
-      this.hits = Objects.requireNonNull(hits, "hits");
+      this.hits = requireNonNull(hits, "hits");
     }
 
     public List<SearchHit> hits() {
@@ -97,7 +98,7 @@ public class ElasticsearchSearchResult {
     private SearchHit(@JsonProperty("_id") final String id,
                       @JsonProperty("_source") final Map<String, Object> source,
                       @JsonProperty("fields") final Map<String, Object> fields) {
-      this.id = Objects.requireNonNull(id, "id");
+      this.id = requireNonNull(id, "id");
 
       // both can't be null
       if (source == null && fields == null) {
@@ -135,7 +136,7 @@ public class ElasticsearchSearchResult {
      * @return value from result (_source or fields)
      */
     Object value(String name) {
-      Objects.requireNonNull(name, "name");
+      requireNonNull(name, "name");
 
       if (!sourceOrFields().containsKey(name)) {
         final String message =

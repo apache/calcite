@@ -26,6 +26,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.mapping.Mappings;
@@ -114,7 +115,7 @@ public interface SqlSplittableAggFunction extends SqlSingletonAggFunction {
     @Override public @Nullable AggregateCall other(RelDataTypeFactory typeFactory,
         AggregateCall e) {
       final RelDataType type = typeFactory.createSqlType(SqlTypeName.BIGINT);
-      return AggregateCall.create(SqlStdOperatorTable.COUNT, false, false,
+      return AggregateCall.create(e.getParserPosition(), SqlStdOperatorTable.COUNT, false, false,
           false, ImmutableList.of(), ImmutableIntList.of(), -1, null,
           RelCollations.EMPTY, type, null);
     }
@@ -123,6 +124,7 @@ public interface SqlSplittableAggFunction extends SqlSingletonAggFunction {
         Registry<RexNode> extra, int offset, RelDataType inputRowType,
         AggregateCall aggregateCall, int leftSubTotal, int rightSubTotal) {
       final List<RexNode> merges = new ArrayList<>();
+      final SqlParserPos pos = aggregateCall.getParserPosition();
       if (leftSubTotal >= 0) {
         merges.add(
             rexBuilder.makeInputRef(aggregateCall.type, leftSubTotal));
@@ -137,13 +139,13 @@ public interface SqlSplittableAggFunction extends SqlSingletonAggFunction {
         node = merges.get(0);
         break;
       case 2:
-        node = rexBuilder.makeCall(SqlStdOperatorTable.MULTIPLY, merges);
+        node = rexBuilder.makeCall(pos, SqlStdOperatorTable.MULTIPLY, merges);
         break;
       default:
         throw new AssertionError("unexpected count " + merges);
       }
       int ordinal = extra.register(node);
-      return AggregateCall.create(SqlStdOperatorTable.SUM0, false, false,
+      return AggregateCall.create(pos, SqlStdOperatorTable.SUM0, false, false,
           false, aggregateCall.rexList, ImmutableList.of(ordinal), -1,
           aggregateCall.distinctKeys, aggregateCall.collation,
           aggregateCall.type, aggregateCall.name);
@@ -183,7 +185,7 @@ public interface SqlSplittableAggFunction extends SqlSingletonAggFunction {
       if (bottom.getAggregation().getKind() == SqlKind.COUNT
           && (top.getAggregation().getKind() == SqlKind.SUM
               || top.getAggregation().getKind() == SqlKind.SUM0)) {
-        return AggregateCall.create(bottom.getAggregation(),
+        return AggregateCall.create(top.getParserPosition(), bottom.getAggregation(),
             bottom.isDistinct(), bottom.isApproximate(), false,
             bottom.rexList, bottom.getArgList(), bottom.filterArg,
             bottom.distinctKeys, bottom.getCollation(),
@@ -228,7 +230,7 @@ public interface SqlSplittableAggFunction extends SqlSingletonAggFunction {
 
     @Override public @Nullable AggregateCall merge(AggregateCall top, AggregateCall bottom) {
       if (top.getAggregation().getKind() == bottom.getAggregation().getKind()) {
-        return AggregateCall.create(bottom.getAggregation(),
+        return AggregateCall.create(top.getParserPosition(), bottom.getAggregation(),
             bottom.isDistinct(), bottom.isApproximate(), false,
             bottom.rexList, bottom.getArgList(), bottom.filterArg,
             bottom.distinctKeys, bottom.getCollation(),
@@ -258,7 +260,7 @@ public interface SqlSplittableAggFunction extends SqlSingletonAggFunction {
     @Override public @Nullable AggregateCall other(RelDataTypeFactory typeFactory,
         AggregateCall e) {
       final RelDataType type = typeFactory.createSqlType(SqlTypeName.BIGINT);
-      return AggregateCall.create(SqlStdOperatorTable.COUNT, false, false,
+      return AggregateCall.create(e.getParserPosition(), SqlStdOperatorTable.COUNT, false, false,
           false, ImmutableList.of(), ImmutableIntList.of(), -1, null,
           RelCollations.EMPTY, type, null);
     }
@@ -267,6 +269,7 @@ public interface SqlSplittableAggFunction extends SqlSingletonAggFunction {
         Registry<RexNode> extra, int offset, RelDataType inputRowType,
         AggregateCall aggregateCall, int leftSubTotal, int rightSubTotal) {
       final List<RexNode> merges = new ArrayList<>();
+      final SqlParserPos pos = aggregateCall.getParserPosition();
       final List<RelDataTypeField> fieldList = inputRowType.getFieldList();
       if (leftSubTotal >= 0) {
         final RelDataType type = fieldList.get(leftSubTotal).getType();
@@ -282,14 +285,14 @@ public interface SqlSplittableAggFunction extends SqlSingletonAggFunction {
         node = merges.get(0);
         break;
       case 2:
-        node = rexBuilder.makeCall(SqlStdOperatorTable.MULTIPLY, merges);
-        node = rexBuilder.makeAbstractCast(aggregateCall.type, node, false);
+        node = rexBuilder.makeCall(pos, SqlStdOperatorTable.MULTIPLY, merges);
+        node = rexBuilder.makeAbstractCast(pos, aggregateCall.type, node, false);
         break;
       default:
         throw new AssertionError("unexpected count " + merges);
       }
       int ordinal = extra.register(node);
-      return AggregateCall.create(getMergeAggFunctionOfTopSplit(), false, false,
+      return AggregateCall.create(pos, getMergeAggFunctionOfTopSplit(), false, false,
           false, aggregateCall.rexList, ImmutableList.of(ordinal), -1,
           aggregateCall.distinctKeys, aggregateCall.collation,
           aggregateCall.type, aggregateCall.name);
@@ -300,11 +303,11 @@ public interface SqlSplittableAggFunction extends SqlSingletonAggFunction {
       if (topKind == bottom.getAggregation().getKind()
           && (topKind == SqlKind.SUM
               || topKind == SqlKind.SUM0)) {
-        return AggregateCall.create(bottom.getAggregation(),
+        return AggregateCall.create(top.getParserPosition(), bottom.getAggregation(),
             bottom.isDistinct(), bottom.isApproximate(), false,
             bottom.rexList, bottom.getArgList(), bottom.filterArg,
             bottom.distinctKeys, bottom.getCollation(),
-            bottom.getType(), top.getName());
+            top.getType(), top.getName());
       } else {
         return null;
       }

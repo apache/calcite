@@ -37,11 +37,18 @@ import java.net.URL;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.Matchers.anEmptyMap;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Unit test for data models.
@@ -97,22 +104,22 @@ class ModelTest {
         + "   ]\n"
         + "}";
     JsonRoot root = mapper.readValue(json, JsonRoot.class);
-    assertEquals("1.0", root.version);
-    assertEquals(1, root.schemas.size());
+    assertThat(root.version, is("1.0"));
+    assertThat(root.schemas, hasSize(1));
     final JsonMapSchema schema = (JsonMapSchema) root.schemas.get(0);
-    assertEquals("FoodMart", schema.name);
-    assertEquals(1, schema.types.size());
+    assertThat(schema.name, is("FoodMart"));
+    assertThat(schema.types, hasSize(1));
     final List<JsonTypeAttribute> attributes = schema.types.get(0).attributes;
-    assertEquals("f1", attributes.get(0).name);
-    assertEquals("BIGINT", attributes.get(0).type);
-    assertEquals(2, schema.tables.size());
+    assertThat(attributes.get(0).name, is("f1"));
+    assertThat(attributes.get(0).type, is("BIGINT"));
+    assertThat(schema.tables, hasSize(2));
     final JsonTable table0 = schema.tables.get(0);
-    assertEquals("time_by_day", table0.name);
+    assertThat(table0.name, is("time_by_day"));
     final JsonTable table1 = schema.tables.get(1);
-    assertEquals("sales_fact_1997", table1.name);
-    assertEquals(1, table0.columns.size());
+    assertThat(table1.name, is("sales_fact_1997"));
+    assertThat(table0.columns, hasSize(1));
     final JsonColumn column = table0.columns.get(0);
-    assertEquals("time_id", column.name);
+    assertThat(column.name, is("time_id"));
   }
 
   /** Reads a simple schema containing JdbcSchema, a sub-type of Schema. */
@@ -133,10 +140,10 @@ class ModelTest {
         + "   ]\n"
         + "}";
     JsonRoot root = mapper.readValue(json, JsonRoot.class);
-    assertEquals("1.0", root.version);
-    assertEquals(1, root.schemas.size());
+    assertThat(root.version, is("1.0"));
+    assertThat(root.schemas, hasSize(1));
     final JsonJdbcSchema schema = (JsonJdbcSchema) root.schemas.get(0);
-    assertEquals("FoodMart", schema.name);
+    assertThat(schema.name, is("FoodMart"));
   }
 
   /** Reads a custom schema. */
@@ -164,28 +171,31 @@ class ModelTest {
             + "   ]\n"
             + "}",
         JsonRoot.class);
-    assertEquals("1.0", root.version);
-    assertEquals(2, root.schemas.size());
+    assertThat(root.version, is("1.0"));
+    assertThat(root.schemas, hasSize(2));
     final JsonCustomSchema schema = (JsonCustomSchema) root.schemas.get(0);
-    assertEquals("My Custom Schema", schema.name);
-    assertEquals("com.acme.MySchemaFactory", schema.factory);
-    assertEquals("foo", schema.operand.get("a"));
+    assertThat(schema.name, is("My Custom Schema"));
+    assertThat(schema.factory, is("com.acme.MySchemaFactory"));
+    assertThat(schema.operand, notNullValue());
+    assertThat(schema.operand.get("a"), is("foo"));
     assertNull(schema.operand.get("c"));
-    assertTrue(schema.operand.get("b") instanceof List);
-    final List list = (List) schema.operand.get("b");
-    assertEquals(2, list.size());
-    assertEquals(1, list.get(0));
-    assertEquals(3.5, list.get(1));
+    assertThat(schema.operand.get("b"), instanceOf(List.class));
+    final List<Object> list = (List<Object>) schema.operand.get("b");
+    assertThat(list, hasSize(2));
+    assertThat(list.get(0), is(1));
+    assertThat(list.get(1), is(3.5));
 
-    assertEquals(3, schema.tables.size());
-    assertNull(((JsonCustomTable) schema.tables.get(0)).operand);
-    assertTrue(((JsonCustomTable) schema.tables.get(1)).operand.isEmpty());
+    assertThat(schema.tables, hasSize(3));
+    final JsonCustomTable table0 = (JsonCustomTable) schema.tables.get(0);
+    assertThat(table0.operand, nullValue());
+    final JsonCustomTable table1 = (JsonCustomTable) schema.tables.get(1);
+    assertThat(table1.operand, notNullValue());
+    assertThat(table1.operand, anEmptyMap());
   }
 
   /** Tests that an immutable schema in a model cannot contain a
    * materialization. */
-  @Test void testModelImmutableSchemaCannotContainMaterialization()
-      throws Exception {
+  @Test void testModelImmutableSchemaCannotContainMaterialization() {
     CalciteAssert.model("{\n"
         + "  version: '1.0',\n"
         + "  defaultSchema: 'adhoc',\n"
@@ -223,7 +233,7 @@ class ModelTest {
    *
    * <p>Schema without name should give useful error, not
    * NullPointerException. */
-  @Test void testSchemaWithoutName() throws Exception {
+  @Test void testSchemaWithoutName() {
     final String model = "{\n"
         + "  version: '1.0',\n"
         + "  defaultSchema: 'adhoc',\n"
@@ -234,7 +244,7 @@ class ModelTest {
         .connectThrows("Missing required creator property 'name'");
   }
 
-  @Test void testCustomSchemaWithoutFactory() throws Exception {
+  @Test void testCustomSchemaWithoutFactory() {
     final String model = "{\n"
         + "  version: '1.0',\n"
         + "  defaultSchema: 'adhoc',\n"
@@ -299,25 +309,25 @@ class ModelTest {
             + "   ]\n"
             + "}",
         JsonRoot.class);
-    assertEquals("1.0", root.version);
-    assertEquals(1, root.schemas.size());
+    assertThat(root.version, is("1.0"));
+    assertThat(root.schemas, hasSize(1));
     final JsonMapSchema schema = (JsonMapSchema) root.schemas.get(0);
-    assertEquals("FoodMart", schema.name);
-    assertEquals(2, schema.lattices.size());
+    assertThat(schema.name, is("FoodMart"));
+    assertThat(schema.lattices, hasSize(2));
     final JsonLattice lattice0 = schema.lattices.get(0);
-    assertEquals("SalesStar", lattice0.name);
-    assertEquals("select * from sales_fact_1997", lattice0.getSql());
+    assertThat(lattice0.name, is("SalesStar"));
+    assertThat(lattice0.getSql(), is("select * from sales_fact_1997"));
     final JsonLattice lattice1 = schema.lattices.get(1);
-    assertEquals("SalesStar2", lattice1.name);
-    assertEquals("select *\nfrom sales_fact_1997\n", lattice1.getSql());
-    assertEquals(4, schema.tables.size());
+    assertThat(lattice1.name, is("SalesStar2"));
+    assertThat(lattice1.getSql(), is("select *\nfrom sales_fact_1997\n"));
+    assertThat(schema.tables, hasSize(4));
     final JsonTable table1 = schema.tables.get(1);
     assertTrue(!(table1 instanceof JsonView));
     final JsonTable table2 = schema.tables.get(2);
-    assertTrue(table2 instanceof JsonView);
+    assertThat(table2, instanceOf(JsonView.class));
     assertThat(((JsonView) table2).getSql(), equalTo("values (1)"));
     final JsonTable table3 = schema.tables.get(3);
-    assertTrue(table3 instanceof JsonView);
+    assertThat(table3, instanceOf(JsonView.class));
     assertThat(((JsonView) table3).getSql(), equalTo("values (1)\n(2)\n"));
   }
 
@@ -340,9 +350,9 @@ class ModelTest {
             + "   ]\n"
             + "}",
         JsonRoot.class);
-    assertEquals(1, root.schemas.size());
+    assertThat(root.schemas, hasSize(1));
     final JsonMapSchema schema = (JsonMapSchema) root.schemas.get(0);
-    assertEquals(1, schema.tables.size());
+    assertThat(schema.tables, hasSize(1));
     final JsonView table1 = (JsonView) schema.tables.get(0);
     try {
       String s = table1.getSql();
@@ -374,7 +384,8 @@ class ModelTest {
   }
 
   @Test void testYamlFileDetection() throws Exception {
-    final URL inUrl = ModelTest.class.getResource("/empty-model.yaml");
+    final URL inUrl =
+        requireNonNull(ModelTest.class.getResource("/empty-model.yaml"), "url");
     CalciteAssert.that()
         .withModel(inUrl)
         .doWithConnection(calciteConnection -> null);

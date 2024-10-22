@@ -836,6 +836,9 @@ public enum SqlKind {
   /** {@code STR_TO_MAP} function (Spark semantics). */
   STR_TO_MAP,
 
+  /** {@code SUBSTRING_INDEX} function (Spark semantics). */
+  SUBSTRING_INDEX,
+
   /** {@code REVERSE} function (SQL Server, MySQL). */
   REVERSE,
 
@@ -1103,6 +1106,18 @@ public enum SqlKind {
 
   /** The {@code AGGREGATE} aggregate function. */
   AGGREGATE_FN,
+
+  /** The {@code BITAND} scalar function. */
+  BITAND,
+
+  /** The {@code BITOR} scalar function. */
+  BITOR,
+
+  /** The {@code BITXOR} scalar function. */
+  BITXOR,
+
+  /** The {@code BITNOT} scalar function. */
+  BITNOT,
 
   /** The {@code BIT_AND} aggregate function. */
   BIT_AND,

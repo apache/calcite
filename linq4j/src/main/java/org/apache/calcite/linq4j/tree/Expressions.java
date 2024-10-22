@@ -43,6 +43,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -291,7 +293,7 @@ public abstract class Expressions {
       Iterable<? extends Statement> expressions) {
     List<Statement> list = toList(expressions);
     if (type == null) {
-      if (list.size() > 0) {
+      if (!list.isEmpty()) {
         type = list.get(list.size() - 1).getType();
       } else {
         type = Void.TYPE;
@@ -304,14 +306,15 @@ public abstract class Expressions {
    * Creates a BlockExpression that contains the given statements
    * and has a specific result type, using varargs.
    */
-  public static BlockStatement block(Type type, Statement... statements) {
+  public static BlockStatement block(@Nullable Type type,
+      Statement... statements) {
     return block(type, toList(statements));
   }
 
   /**
    * Creates a GotoExpression representing a break statement.
    */
-  public static GotoStatement break_(LabelTarget labelTarget) {
+  public static GotoStatement break_(@Nullable LabelTarget labelTarget) {
     return new GotoStatement(GotoExpressionKind.Break, null, null);
   }
 
@@ -319,7 +322,7 @@ public abstract class Expressions {
    * Creates a GotoExpression representing a break statement. The
    * value passed to the label upon jumping can be specified.
    */
-  public static GotoStatement break_(LabelTarget labelTarget,
+  public static GotoStatement break_(@Nullable LabelTarget labelTarget,
       Expression expression) {
     return new GotoStatement(GotoExpressionKind.Break, null, expression);
   }
@@ -1639,7 +1642,6 @@ public abstract class Expressions {
    */
   public static UnaryExpression makeUnary(ExpressionType expressionType,
       Expression expression, Type type, @Nullable Method method) {
-    assert type != null;
     return new UnaryExpression(expressionType, type, expression);
   }
 
@@ -2540,7 +2542,7 @@ public abstract class Expressions {
   /**
    * Creates a GotoExpression representing a return statement.
    */
-  public static GotoStatement return_(LabelTarget labelTarget) {
+  public static GotoStatement return_(@Nullable LabelTarget labelTarget) {
     return return_(labelTarget, (Expression) null);
   }
 
@@ -2758,7 +2760,7 @@ public abstract class Expressions {
    * that has a default case.
    */
   public static SwitchStatement switch_(Expression switchValue,
-      Expression defaultBody, Method method,
+      @Nullable Expression defaultBody, @Nullable Method method,
       Iterable<? extends SwitchCase> cases) {
     throw Extensions.todo();
   }
@@ -3002,9 +3004,10 @@ public abstract class Expressions {
    */
   public static DeclarationStatement declare(int modifiers, String name,
       Expression initializer) {
-    assert initializer != null
-        : "empty initializer for variable declaration with name '" + name + "', modifiers "
-        + modifiers + ". Please use declare(int, ParameterExpression, initializer) instead";
+    checkNotNull(initializer,
+        "empty initializer for variable declaration with name '%s', "
+            + "modifiers %s. Please use declare(int, ParameterExpression, "
+            + "initializer) instead", name, modifiers);
     return declare(modifiers, parameter(initializer.getType(), name),
         initializer);
   }

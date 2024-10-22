@@ -22,6 +22,8 @@ import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.test.schemata.hr.Employee;
 import org.apache.calcite.test.schemata.hr.HrSchema;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.sql.Time;
@@ -111,20 +113,20 @@ public class CatchallSchema {
     public final long primitiveLong;
     public final float primitiveFloat;
     public final double primitiveDouble;
-    public final Boolean wrapperBoolean;
-    public final Byte wrapperByte;
-    public final Character wrapperCharacter;
-    public final Short wrapperShort;
-    public final Integer wrapperInteger;
-    public final Long wrapperLong;
-    public final Float wrapperFloat;
-    public final Double wrapperDouble;
-    public final java.sql.Date sqlDate;
-    public final Time sqlTime;
-    public final Timestamp sqlTimestamp;
-    public final Date utilDate;
-    public final String string;
-    public final BigDecimal bigDecimal;
+    public final @Nullable Boolean wrapperBoolean;
+    public final @Nullable Byte wrapperByte;
+    public final @Nullable Character wrapperCharacter;
+    public final @Nullable Short wrapperShort;
+    public final @Nullable Integer wrapperInteger;
+    public final @Nullable Long wrapperLong;
+    public final @Nullable Float wrapperFloat;
+    public final @Nullable Double wrapperDouble;
+    public final java.sql.@Nullable Date sqlDate;
+    public final @Nullable Time sqlTime;
+    public final @Nullable Timestamp sqlTimestamp;
+    public final @Nullable Date utilDate;
+    public final @Nullable String string;
+    public final @Nullable BigDecimal bigDecimal;
 
     public EveryType(
         boolean primitiveBoolean,
@@ -135,20 +137,20 @@ public class CatchallSchema {
         long primitiveLong,
         float primitiveFloat,
         double primitiveDouble,
-        Boolean wrapperBoolean,
-        Byte wrapperByte,
-        Character wrapperCharacter,
-        Short wrapperShort,
-        Integer wrapperInteger,
-        Long wrapperLong,
-        Float wrapperFloat,
-        Double wrapperDouble,
-        java.sql.Date sqlDate,
-        Time sqlTime,
-        Timestamp sqlTimestamp,
-        Date utilDate,
-        String string,
-        BigDecimal bigDecimal) {
+        @Nullable Boolean wrapperBoolean,
+        @Nullable Byte wrapperByte,
+        @Nullable Character wrapperCharacter,
+        @Nullable Short wrapperShort,
+        @Nullable Integer wrapperInteger,
+        @Nullable Long wrapperLong,
+        @Nullable Float wrapperFloat,
+        @Nullable Double wrapperDouble,
+        java.sql.@Nullable Date sqlDate,
+        @Nullable Time sqlTime,
+        @Nullable Timestamp sqlTimestamp,
+        @Nullable Date utilDate,
+        @Nullable String string,
+        @Nullable BigDecimal bigDecimal) {
       this.primitiveBoolean = primitiveBoolean;
       this.primitiveByte = primitiveByte;
       this.primitiveChar = primitiveChar;
@@ -197,9 +199,9 @@ public class CatchallSchema {
   /** Table that has integer and string fields. */
   public static class IntAndString {
     public final int id;
-    public final String value;
+    public final @Nullable String value;
 
-    public IntAndString(int id, String value) {
+    public IntAndString(int id, @Nullable String value) {
       this.id = id;
       this.value = value;
     }

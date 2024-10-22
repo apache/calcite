@@ -57,6 +57,8 @@ import java.util.stream.Collectors;
 
 import static com.google.common.collect.ImmutableList.toImmutableList;
 
+import static org.apache.calcite.test.Matchers.isListOf;
+
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -599,9 +601,8 @@ class LatticeSuggesterTest {
         .map(c -> (Lattice.DerivedColumn) c)
         .collect(Collectors.toList());
     assertThat(derivedColumns, hasSize(2));
-    final List<String> tables = ImmutableList.of("customer");
-    assertThat(derivedColumns.get(0).tables, is(tables));
-    assertThat(derivedColumns.get(1).tables, is(tables));
+    assertThat(derivedColumns.get(0).tables, isListOf("customer"));
+    assertThat(derivedColumns.get(1).tables, isListOf("customer"));
   }
 
   /** Tests a number of features only available in Redshift: the {@code CONCAT}
@@ -719,6 +720,36 @@ class LatticeSuggesterTest {
   @Test void testFoodmartSimpleJoin() throws Exception {
     checkFoodmartSimpleJoin(CalciteAssert.SchemaSpec.JDBC_FOODMART);
     checkFoodmartSimpleJoin(CalciteAssert.SchemaSpec.FAKE_FOODMART);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6374">[CALCITE-6374]
+   * LatticeSuggester throw NullPointerException when agg call covered with cast </a>. */
+  @Test void testCastAggrNameExpression() throws Exception {
+    final Tester t = new Tester().foodmart().withEvolve(true);
+    final String q0 = "select\n"
+        + "  \"num_children_at_home\" + 12 as \"n12\",\n"
+        + "  sum(\"num_children_at_home\" + 10) as \"n10\",\n"
+        + "  cast(sum(\"num_children_at_home\" + 11) as double) as \"n11\",\n"
+        + "  count(*) as c\n"
+        + "from \"customer\"\n"
+        + "group by \"num_children_at_home\" + 12";
+    final String l0 = "customer:[COUNT(), SUM(n10), SUM($f2)]";
+    t.addQuery(q0);
+    assertThat(t.s.latticeMap, aMapWithSize(1));
+    assertThat(Iterables.getOnlyElement(t.s.latticeMap.keySet()),
+        is(l0));
+    final Lattice lattice = Iterables.getOnlyElement(t.s.latticeMap.values());
+    final List<Lattice.DerivedColumn> derivedColumns = lattice.columns.stream()
+        .filter(c -> c instanceof Lattice.DerivedColumn)
+        .map(c -> (Lattice.DerivedColumn) c)
+        .collect(Collectors.toList());
+    assertThat(derivedColumns, hasSize(4));
+    final List<String> tables = ImmutableList.of("customer");
+    checkDerivedColumn(lattice, tables, derivedColumns, 0, "n10", true);
+    checkDerivedColumn(lattice, tables, derivedColumns, 1, "$f2", true);
+    checkDerivedColumn(lattice, tables, derivedColumns, 2, "n12", false);
+    checkDerivedColumn(lattice, tables, derivedColumns, 3, "n11", false);
   }
 
   private void checkFoodmartSimpleJoin(CalciteAssert.SchemaSpec schemaSpec)

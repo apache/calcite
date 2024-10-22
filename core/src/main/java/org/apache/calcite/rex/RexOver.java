@@ -29,6 +29,8 @@ import java.util.Objects;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Call to an aggregate function over a window.
  */
@@ -71,7 +73,7 @@ public class RexOver extends RexCall {
       boolean ignoreNulls) {
     super(type, op, operands);
     checkArgument(op.isAggregator());
-    this.window = Objects.requireNonNull(window, "window");
+    this.window = requireNonNull(window, "window");
     this.distinct = distinct;
     this.ignoreNulls = ignoreNulls;
   }

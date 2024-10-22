@@ -1745,10 +1745,10 @@ SqlNode SqlInsert() :
     (
         LOOKAHEAD(2)
         p = ParenthesizedCompoundIdentifierList() {
-            if (p.right.size() > 0) {
+            if (!p.right.isEmpty()) {
                 tableRef = extend(tableRef, p.right);
             }
-            if (p.left.size() > 0) {
+            if (!p.left.isEmpty()) {
                 columnList = p.left;
             } else {
                 columnList = null;
@@ -1820,14 +1820,14 @@ SqlNode SqlUpdate() :
     ( tableRef = TableHints(tableName) | { tableRef = tableName; } )
     [ tableRef = ExtendTable(tableRef) ]
     ( [ <AS> ] alias = SimpleIdentifier() | { alias = null; } )
-    <SET> id = SimpleIdentifier() {
+    <SET> id = CompoundIdentifier() {
         targetColumnList.add(id);
     }
     // TODO:  support DEFAULT also
     <EQ> AddExpression(sourceExpressionList, ExprContext.ACCEPT_SUB_QUERY)
     (
         <COMMA>
-        id = SimpleIdentifier() { targetColumnList.add(id); }
+        id = CompoundIdentifier() { targetColumnList.add(id); }
         <EQ> AddExpression(sourceExpressionList, ExprContext.ACCEPT_SUB_QUERY)
     )*
     ( where = Where() | { where = null; } )
@@ -5930,8 +5930,8 @@ SqlTypeNameSpec SqlTypeName2(Span s) :
 SqlTypeNameSpec SqlTypeName3(Span s) :
 {
     final SqlTypeName sqlTypeName;
-    int precision = -1;
-    int scale = -1;
+    int precision = RelDataType.PRECISION_NOT_SPECIFIED;
+    int scale = RelDataType.SCALE_NOT_SPECIFIED;
 }
 {
     (
@@ -5944,7 +5944,7 @@ SqlTypeNameSpec SqlTypeName3(Span s) :
         precision = UnsignedIntLiteral()
         [
             <COMMA>
-            scale = UnsignedIntLiteral()
+            scale = IntLiteral()
         ]
         <RPAREN>
     ]

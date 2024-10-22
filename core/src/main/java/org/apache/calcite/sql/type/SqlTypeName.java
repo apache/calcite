@@ -394,7 +394,13 @@ public enum SqlTypeName {
   }
 
   /** Returns the default scale for this type if supported, otherwise -1 if
-   * scale is either unsupported or must be specified explicitly. */
+   * scale is either unsupported or must be specified explicitly.
+   *
+   * @deprecated
+   * Use {@link org.apache.calcite.rel.type.RelDataTypeSystem#getDefaultScale(SqlTypeName)}
+   * but return Integer.MIN_VALUE if scale is unsupported.
+   */
+  @Deprecated
   public int getDefaultScale() {
     switch (this) {
     case DECIMAL:
@@ -781,7 +787,11 @@ public enum SqlTypeName {
    * precision/length are not applicable for this type.
    *
    * @return Minimum allowed precision
+   *
+   * @deprecated
+   * Use {@link org.apache.calcite.rel.type.RelDataTypeSystem#getMinPrecision(SqlTypeName)}.
    */
+  @Deprecated
   public int getMinPrecision() {
     switch (this) {
     case DECIMAL:
@@ -817,11 +827,16 @@ public enum SqlTypeName {
 
   /**
    * Returns the minimum scale (or fractional second precision in the case of
-   * intervals) allowed for this type, or -1 if precision/length are not
+   * intervals) allowed for this type, or -1 if scale are not
    * applicable for this type.
    *
    * @return Minimum allowed scale
+   *
+   * @deprecated
+   * Use {@link org.apache.calcite.rel.type.RelDataTypeSystem#getMinScale(SqlTypeName)}
+   * but return Integer.MIN_VALUE if scale is unsupported.
    */
+  @Deprecated
   public int getMinScale() {
     switch (this) {
     // TODO: Minimum numeric scale for decimal

@@ -40,6 +40,7 @@ import org.apache.calcite.tools.ValidationException;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -54,7 +55,7 @@ import static org.hamcrest.Matchers.hasSize;
  */
 class LexEscapeTest {
 
-  private static Planner getPlanner(List<RelTraitDef> traitDefs,
+  private static Planner getPlanner(@Nullable List<RelTraitDef> traitDefs,
       Config parserConfig, Program... programs) {
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
     rootSchema.add("TMP", new AbstractTable() {

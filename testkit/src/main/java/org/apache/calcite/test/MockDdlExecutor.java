@@ -127,6 +127,7 @@ public class MockDdlExecutor extends DdlExecutorImpl {
     final CalciteSchema schema =
         Schemas.subSchema(context.getRootSchema(),
             context.getDefaultSchemaPath());
+    requireNonNull(schema, "schema");
     final JavaTypeFactory typeFactory = context.getTypeFactory();
     final RelDataType queryRowType;
     if (create.query != null) {
@@ -240,7 +241,7 @@ public class MockDdlExecutor extends DdlExecutorImpl {
   @SuppressWarnings({"unchecked", "rawtypes"})
   protected void forEachNameType(SqlCreateTable createTable,
       BiConsumer<SqlIdentifier, SqlDataTypeSpec> consumer) {
-    createTable.columnList.forEach(sqlNode -> {
+    requireNonNull(createTable.columnList).forEach(sqlNode -> {
       if (sqlNode instanceof SqlColumnDeclaration) {
         final SqlColumnDeclaration d = (SqlColumnDeclaration) sqlNode;
         consumer.accept(d.name, d.dataType);

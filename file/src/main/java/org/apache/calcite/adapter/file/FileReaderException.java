@@ -19,7 +19,7 @@ package org.apache.calcite.adapter.file;
 /**
  * Indicates that the FileReader failed.
  */
-class FileReaderException extends Exception {
+public class FileReaderException extends Exception {
   FileReaderException(String message) {
     super(message);
   }

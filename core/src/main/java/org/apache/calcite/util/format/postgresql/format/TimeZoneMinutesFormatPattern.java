@@ -14,27 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.test;
+package org.apache.calcite.util.format.postgresql.format;
 
-import org.apache.calcite.rel.type.RelDataTypeSystem;
-import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
+import org.apache.calcite.util.format.postgresql.PatternModifier;
+import org.apache.calcite.util.format.postgresql.format.compiled.CompiledPattern;
+import org.apache.calcite.util.format.postgresql.format.compiled.TimeZoneMinutesCompiledPattern;
 
-import java.math.RoundingMode;
+import java.util.Set;
 
 /**
- * Custom type system only for Quidem test.
- *
- * <p> Specify the rounding behaviour. In the default implementation,
- * the rounding mode is {@link RoundingMode#DOWN}, but here is  {@link RoundingMode#HALF_UP}
- *
- * <p>The default implementation is {@link #DEFAULT}.
+ * The date/time format component for the minutes of the timezone offset.
  */
+public class TimeZoneMinutesFormatPattern extends FormatPattern {
+  public TimeZoneMinutesFormatPattern() {
+    super("TZM");
+  }
 
-public class CustomRelDataTypeSystem extends RelDataTypeSystemImpl {
-
-  public static final RelDataTypeSystem ROUNDING_MODE_HALF_UP = new CustomRelDataTypeSystem();
-
-  @Override public RoundingMode roundingMode() {
-    return RoundingMode.HALF_UP;
+  @Override protected CompiledPattern buildCompiledPattern(Set<PatternModifier> modifiers) {
+    return new TimeZoneMinutesCompiledPattern(modifiers);
   }
 }

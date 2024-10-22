@@ -20,7 +20,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of {@link Grouping}.
@@ -35,8 +36,8 @@ class GroupingImpl<K extends Object, V> extends AbstractEnumerable<V>
   private final List<V> values;
 
   GroupingImpl(K key, List<V> values) {
-    this.key = Objects.requireNonNull(key, "key");
-    this.values = Objects.requireNonNull(values, "values");
+    this.key = requireNonNull(key, "key");
+    this.values = requireNonNull(values, "values");
   }
 
   @Override public String toString() {

@@ -18,6 +18,8 @@ package org.apache.calcite.test;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
+import org.apache.calcite.config.CalciteConnectionProperty;
+import org.apache.calcite.config.Lex;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.Convention;
@@ -97,7 +99,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -127,6 +128,7 @@ import static org.apache.calcite.test.Matchers.hasTree;
 
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -229,6 +231,20 @@ public class RelBuilderTest {
             .build();
     assertThat(root,
         hasTree("LogicalTableScan(table=[[scott, EMP]])\n"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6620">[CALCITE-6620]
+   * VALUES created by RelBuilder do not have a homogeneous type</a>. */
+  @Test void differentTypeValues() {
+    CalciteAssert.that()
+        .with(CalciteConnectionProperty.LEX, Lex.JAVA)
+        .with(CalciteConnectionProperty.FORCE_DECORRELATE, false)
+        .withSchema("s", new ReflectiveSchema(new HrSchema()))
+        .query("SELECT * FROM (VALUES (1, 2, 3), (CAST(5E0 AS REAL), 5E0, NULL))")
+        .explainContains("PLAN=EnumerableValues(tuples=[[{ 1.0E0, 2.0E0, 3 }, "
+            + "{ 5.0E0, 5.0E0, null }]])")
+        .returnsOrdered("EXPR$0=1.0; EXPR$1=2.0; EXPR$2=3", "EXPR$0=5.0; EXPR$1=5.0; EXPR$2=null");
   }
 
   @Test void testScanQualifiedTable() {
@@ -904,10 +920,10 @@ public class RelBuilderTest {
   @Test void testProjectMapping() {
     final RelBuilder builder = RelBuilder.create(config().build());
     RelNode root =
-            builder.scan("EMP")
-                    .project(builder.field(0), builder.field(0))
-                    .build();
-    assertTrue(root instanceof Project);
+        builder.scan("EMP")
+            .project(builder.field(0), builder.field(0))
+            .build();
+    assertThat(root, instanceOf(Project.class));
     Project project = (Project) root;
     Mappings.TargetMapping mapping = project.getMapping();
     assertThat(mapping, nullValue());
@@ -1243,11 +1259,12 @@ public class RelBuilderTest {
             .add("a", SqlTypeName.BIGINT)
             .add("b", SqlTypeName.VARCHAR, 10)
             .build();
-    IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
-      builder.scan("DEPT")
-          .convert(rowType, false)
-          .build();
-    }, "Convert should fail since the field counts are not equal.");
+    IllegalArgumentException ex =
+        assertThrows(IllegalArgumentException.class, () ->
+            builder.scan("DEPT")
+                .convert(rowType, false)
+                .build(),
+            "Convert should fail since the field counts are not equal.");
     assertThat(ex.getMessage(), containsString("Field counts are not equal"));
   }
 
@@ -3398,6 +3415,29 @@ public class RelBuilderTest {
     assertThat(r3.getRowType().getFullTypeString(), is(expectedRowType));
   }
 
+  /** Tests {@link RelBuilder#aggregateRex} with an aggregate call that needs to
+   * become nullable because of "GROUP BY ()". */
+  @Test void testAggregateRex4() {
+    // SELECT SUM(sal) AS s, COUNT(sal) AS c
+    // FROM emp
+    // GROUP BY ()
+    Function<RelBuilder, RelNode> f = b ->
+        b.scan("EMP")
+            .aggregateRex(b.groupKey(),
+                b.alias(b.call(SqlStdOperatorTable.SUM, b.field("EMPNO")), "s"),
+                b.alias(b.call(SqlStdOperatorTable.COUNT, b.field("SAL")), "c"))
+            .build();
+    final String expected =
+        "LogicalAggregate(group=[{}], s=[SUM($0)], c=[COUNT($5)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    // s is nullable because "GROUP BY ()" may have a group that contains 0 rows
+    final String expectedRowType =
+        "RecordType(SMALLINT s, BIGINT NOT NULL c) NOT NULL";
+    final RelNode r = f.apply(createBuilder());
+    assertThat(r, hasTree(expected));
+    assertThat(r.getRowType().getFullTypeString(), is(expectedRowType));
+  }
+
   /** Tests that a projection retains field names after a join. */
   @Test void testProjectJoin() {
     final RelBuilder builder = RelBuilder.create(config().build());
@@ -3518,12 +3558,13 @@ public class RelBuilderTest {
    * Add projectExcept method in RelBuilder for projecting out expressions</a>. */
   @Test void testProjectExceptWithDuplicateField() {
     final RelBuilder builder = RelBuilder.create(config().build());
-    IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
-      builder.scan("EMP")
-          .projectExcept(
-            builder.field("EMP", "MGR"),
-            builder.field("EMP", "MGR"));
-    }, "Project should fail since we are trying to remove the same field two times.");
+    IllegalArgumentException ex =
+        assertThrows(IllegalArgumentException.class, () ->
+            builder.scan("EMP")
+                .projectExcept(builder.field("EMP", "MGR"),
+                    builder.field("EMP", "MGR")),
+            "Project should fail since we are trying to remove the same field "
+                + "two times.");
     assertThat(ex.getMessage(), containsString("Input list contains duplicates."));
   }
 
@@ -3534,12 +3575,12 @@ public class RelBuilderTest {
     final RelBuilder builder = RelBuilder.create(config().build());
     builder.scan("EMP");
     RexNode deptnoField = builder.field("DEPTNO");
-    IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
-      builder.project(
-            builder.field("EMPNO"),
-            builder.field("ENAME"))
-          .projectExcept(deptnoField);
-    }, "Project should fail since we are trying to remove a field that does not exist.");
+    IllegalArgumentException ex =
+        assertThrows(IllegalArgumentException.class, () ->
+            builder.project(builder.field("EMPNO"), builder.field("ENAME"))
+                .projectExcept(deptnoField),
+            "Project should fail since we are trying to remove a field that "
+                + "does not exist.");
     assertThat(ex.getMessage(), allOf(containsString("Expression"), containsString("not found")));
   }
 
@@ -3566,12 +3607,13 @@ public class RelBuilderTest {
    * Improve exception when RelBuilder tries to create a field on a non-struct expression</a>. */
   @Test void testFieldOnNonStructExpression() {
     final RelBuilder builder = RelBuilder.create(config().build());
-    IllegalStateException ex = assertThrows(IllegalStateException.class, () -> {
-      builder.scan("EMP")
-          .project(
-              builder.field(builder.field("EMPNO"), "abc"))
-          .build();
-    }, "Field should fail since we are trying access a field on expression with non-struct type");
+    IllegalStateException ex =
+        assertThrows(IllegalStateException.class, () ->
+            builder.scan("EMP")
+                .project(builder.field(builder.field("EMPNO"), "abc"))
+                .build(),
+            "Field should fail since we are trying access a field on "
+                + "expression with non-struct type");
     assertThat(ex.getMessage(),
         is("Trying to access field abc in a type with no fields: SMALLINT"));
   }
@@ -4569,8 +4611,7 @@ public class RelBuilderTest {
         + "LogicalFilter(condition=[OR(SEARCH($7, Sarg[10, 11, (15..+∞)]), =($2, 'CLERK'))])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     final String expectedWithoutSimplify = ""
-        + "LogicalFilter(condition=[OR(>($7, 15), SEARCH($2, Sarg['CLERK']:CHAR(5)), SEARCH($7, "
-        + "Sarg[10, 11, 20]))])\n"
+        + "LogicalFilter(condition=[OR(>($7, 15), =($2, 'CLERK'), SEARCH($7, Sarg[10, 11, 20]))])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(f.apply(createBuilder()), hasTree(expected));
     assertThat(f.apply(createBuilder(c -> c.withSimplify(false))),
@@ -5196,8 +5237,8 @@ public class RelBuilderTest {
         .hintOption("_idx2")
         .build();
     // Attach hints on empty stack.
-    final AssertionError error =
-        assertThrows(AssertionError.class,
+    final IllegalArgumentException error =
+        assertThrows(IllegalArgumentException.class,
             () -> RelBuilder.create(config().build()).hints(indexHint),
         "hints() should fail on empty stack");
     assertThat(error.getMessage(),
@@ -5284,15 +5325,13 @@ public class RelBuilderTest {
 
     RexNode interval = builder.literal("INTERVAL '5' SECOND");
 
-    Executable executable = () -> {
-      builder
-          .match(pattern, false, false, pdBuilder.build(),
-              measuresBuilder.build(), after, ImmutableMap.of(), false,
-              partitionKeysBuilder.build(), orderKeysBuilder.build(), interval)
-          .hints(indexHint);
-    };
-    final AssertionError error1 =
-        assertThrows(AssertionError.class, executable,
+    final IllegalArgumentException error1 =
+        assertThrows(IllegalArgumentException.class, () ->
+            builder.match(pattern, false, false, pdBuilder.build(),
+                    measuresBuilder.build(), after, ImmutableMap.of(), false,
+                    partitionKeysBuilder.build(), orderKeysBuilder.build(),
+                    interval)
+                .hints(indexHint),
             "hints() should fail on non Hintable relational expression");
     assertThat(error1.getMessage(),
         containsString("The top relational expression is not a Hintable"));

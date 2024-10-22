@@ -39,6 +39,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.TimestampWithTimeZoneString;
+import org.apache.calcite.util.TryThreadLocal;
 import org.apache.calcite.util.Util;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -137,7 +138,7 @@ public abstract class DateRangeRules {
    * generate hundreds of ranges we'll later throw away. */
   static ImmutableSortedSet<TimeUnitRange> extractTimeUnits(RexNode e) {
     try (ExtractFinder finder = ExtractFinder.THREAD_INSTANCES.get()) {
-      assert requireNonNull(finder, "finder").timeUnits.isEmpty() && finder.opKinds.isEmpty()
+      assert finder.timeUnits.isEmpty() && finder.opKinds.isEmpty()
           : "previous user did not clean up";
       e.accept(finder);
       return ImmutableSortedSet.copyOf(finder.timeUnits);
@@ -146,7 +147,6 @@ public abstract class DateRangeRules {
 
   /** Replaces calls to EXTRACT, FLOOR and CEIL in an expression. */
   @VisibleForTesting
-  @SuppressWarnings("BetaApi")
   public static RexNode replaceTimeUnits(RexBuilder rexBuilder, RexNode e,
       String timeZone) {
     ImmutableSortedSet<TimeUnitRange> timeUnits = extractTimeUnits(e);
@@ -190,7 +190,7 @@ public abstract class DateRangeRules {
      * If none of these, we cannot apply the rule. */
     private static boolean containsRoundingExpression(Filter filter) {
       try (ExtractFinder finder = ExtractFinder.THREAD_INSTANCES.get()) {
-        assert requireNonNull(finder, "finder").timeUnits.isEmpty() && finder.opKinds.isEmpty()
+        assert finder.timeUnits.isEmpty() && finder.opKinds.isEmpty()
             : "previous user did not clean up";
         filter.getCondition().accept(finder);
         return finder.timeUnits.contains(TimeUnitRange.YEAR)
@@ -239,8 +239,8 @@ public abstract class DateRangeRules {
         EnumSet.noneOf(TimeUnitRange.class);
     private final Set<SqlKind> opKinds = EnumSet.noneOf(SqlKind.class);
 
-    private static final ThreadLocal<@Nullable ExtractFinder> THREAD_INSTANCES =
-        ThreadLocal.withInitial(ExtractFinder::new);
+    private static final TryThreadLocal<ExtractFinder> THREAD_INSTANCES =
+        TryThreadLocal.withInitial(ExtractFinder::new);
 
     private ExtractFinder() {
       super(true);
@@ -276,7 +276,6 @@ public abstract class DateRangeRules {
   /** Walks over an expression, replacing calls to
    * {@code EXTRACT}, {@code FLOOR} and {@code CEIL} with date ranges. */
   @VisibleForTesting
-  @SuppressWarnings("BetaApi")
   static class ExtractShuttle extends RexShuttle {
     private final RexBuilder rexBuilder;
     private final TimeUnitRange timeUnit;

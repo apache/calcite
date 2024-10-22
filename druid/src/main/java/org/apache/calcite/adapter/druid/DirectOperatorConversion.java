@@ -21,6 +21,8 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperator;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -39,8 +41,8 @@ public class DirectOperatorConversion implements DruidSqlOperatorConverter {
     return operator;
   }
 
-  @Override public String toDruidExpression(RexNode rexNode, RelDataType rowType,
-      DruidQuery druidQuery) {
+  @Override public @Nullable String toDruidExpression(RexNode rexNode,
+      RelDataType rowType, DruidQuery druidQuery) {
     final RexCall call = (RexCall) rexNode;
     final List<String> druidExpressions =
         DruidExpressions.toDruidExpressions(druidQuery, rowType,

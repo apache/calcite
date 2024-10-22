@@ -36,6 +36,7 @@ import org.hamcrest.TypeSafeMatcher;
 import org.hamcrest.core.Is;
 import org.hamcrest.core.StringContains;
 
+import java.lang.reflect.Array;
 import java.nio.charset.Charset;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -52,6 +53,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.closeTo;
 
 /**
  * Matchers for testing SQL queries.
@@ -145,7 +148,10 @@ public class Matchers {
   /**
    * Creates a matcher that matches when the examined object is within
    * {@code epsilon} of the specified {@code value}.
+   *
+   * @deprecated Use {@link org.hamcrest.Matchers#closeTo(double, double)}
    */
+  @Deprecated // to be removed before 1.39
   public static <T extends Number> Matcher<T> within(T value, double epsilon) {
     return new IsWithin<>(value, epsilon);
   }
@@ -155,7 +161,7 @@ public class Matchers {
    * {@link #EPSILON} of the specified <code>operand</code>.
    */
   public static Matcher<Double> isAlmost(double value) {
-    return within(value, EPSILON);
+    return closeTo(value, EPSILON);
   }
 
   /**
@@ -289,7 +295,7 @@ public class Matchers {
    * <p>This method is necessary because {@link RangeSet#toString()} changed
    * behavior. Guava 19 - 28 used a unicode symbol; Guava 29 onwards uses "..".
    */
-  @SuppressWarnings({"BetaApi", "rawtypes"})
+  @SuppressWarnings("rawtypes")
   public static Matcher<RangeSet> isRangeSet(final String value) {
     return compose(Is.is(value), input -> sanitizeRangeSet(input.toString()));
   }
@@ -401,6 +407,29 @@ public class Matchers {
       Collections.sort(strings);
       return strings.toString();
     });
+  }
+
+  /** Returns a matcher that tests whether an object is an array (including a
+   * primitive array) with a given size.
+   *
+   * <p>Compare to {@link org.hamcrest.Matchers#arrayWithSize(int)}, which does
+   * not allow primitive arrays. */
+  public static Matcher<Object> primitiveArrayWithSize(int i) {
+    return new CustomTypeSafeMatcher<Object>("array with size " + i) {
+      @Override protected boolean matchesSafely(Object o) {
+        return o.getClass().isArray()
+            && Array.getLength(o) == i;
+      }
+    };
+  }
+
+  /** Returns a matcher that tests whether an object is a list
+   * with the given contents.
+   *
+   * <p>If the list is empty use {@link org.hamcrest.Matchers#empty}. */
+  @SafeVarargs
+  public static <E> Matcher<Object> isListOf(E... es) {
+    return is(Arrays.asList(es));
   }
 
   /** Matcher that tests whether the numeric value is within a given difference

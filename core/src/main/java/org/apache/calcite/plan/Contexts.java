@@ -24,7 +24,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Utilities for {@link Context}.
@@ -117,7 +118,7 @@ public class Contexts {
     final Object target;
 
     WrapContext(Object target) {
-      this.target = Objects.requireNonNull(target, "target");
+      this.target = requireNonNull(target, "target");
     }
 
     @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
@@ -140,7 +141,7 @@ public class Contexts {
     final ImmutableList<Context> contexts;
 
     ChainContext(ImmutableList<Context> contexts) {
-      this.contexts = Objects.requireNonNull(contexts, "contexts");
+      this.contexts = requireNonNull(contexts, "contexts");
       for (Context context : contexts) {
         assert !(context instanceof ChainContext) : "must be flat";
       }

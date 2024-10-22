@@ -38,6 +38,7 @@ import org.junit.jupiter.api.parallel.ResourceAccessMode;
 import org.junit.jupiter.api.parallel.ResourceLock;
 
 import java.io.IOException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -85,7 +86,11 @@ class ElasticSearchAdapterTest {
 
     // load records from file
     final List<ObjectNode> bulk = new ArrayList<>();
-    Resources.readLines(ElasticSearchAdapterTest.class.getResource("/zips-mini.json"),
+    final URL url =
+        requireNonNull(
+            ElasticSearchAdapterTest.class.getResource("/zips-mini.json"),
+            "url");
+    Resources.readLines(url,
         StandardCharsets.UTF_8, new LineProcessor<Void>() {
           @Override public boolean processLine(String line) throws IOException {
             line = line.replace("_id", "id"); // _id is a reserved attribute in ES

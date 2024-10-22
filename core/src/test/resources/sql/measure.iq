@@ -84,6 +84,27 @@ group by job;
 
 !ok
 
+# Measure on primary key gives type error (casting away NOT NULL); cause was
+# [CALCITE-6555] RelBuilder.aggregateRex thinks aggregate functions of
+# "GROUP BY ()" queries are NOT NULL
+with empm as (
+  select *, min(empno) as measure avg_sal
+  from emp
+)
+select deptno, avg_sal as a
+from empm
+group by deptno;
++--------+------+
+| DEPTNO | A    |
++--------+------+
+|     10 | 7782 |
+|     20 | 7369 |
+|     30 | 7499 |
++--------+------+
+(3 rows)
+
+!ok
+
 # Equivalent using AGGREGATE
 select job, aggregate(avg_sal) as a
 from empm
@@ -157,6 +178,57 @@ from empm;
 (1 row)
 
 !ok
+
+# [CALCITE-6559] Query with measure that applies AVG to SMALLINT
+# throws AssertionError "Cannot add expression of different type to set"
+#
+# Occurs when AVG measure is applied to SMALLINT or TINYINT column.
+# A CAST is added internally to the result of SUM / COUNT, but this cast
+# prevents a cast to nullable for the null-generating side of an outer join.
+WITH empm AS (
+    SELECT *, AVG(empno) AS MEASURE avg_empno
+    FROM emp)
+SELECT job, avg_empno
+FROM empm
+GROUP BY job;
++-----------+-----------+
+| JOB       | AVG_EMPNO |
++-----------+-----------+
+| ANALYST   |      7845 |
+| CLERK     |      7769 |
+| MANAGER   |      7682 |
+| PRESIDENT |      7839 |
+| SALESMAN  |      7629 |
++-----------+-----------+
+(5 rows)
+
+!ok
+
+!if (false) {
+# [CALCITE-6564] Support queries with measures on top of a VALUES relation
+#
+# The following querey is the original test case for [CALCITE-6559]; that
+# bug is fixed, but this query now fails during planning due to VALUES.
+WITH tbl_with_null_dim AS (
+    SELECT e.deptno, e.grade, AVG(e.grade) AS MEASURE avg_grade
+    FROM (VALUES (1, 70),
+             (1, 50),
+             (NULL, 50),
+             (3, 82)) AS e (deptno, grade))
+SELECT deptno, avg_grade
+FROM tbl_with_null_dim
+GROUP BY deptno;
++--------+-----------+
+| DEPTNO | AVG_GRADE |
++--------+-----------+
+|      1 |        60 |
+|      3 |        82 |
+|        |        50 |
++--------+-----------+
+(3 rows)
+
+!ok
+!}
 
 # CTE with literal measure
 with emp2 as (

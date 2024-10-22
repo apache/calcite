@@ -2750,8 +2750,16 @@ In the following:
 | * | ASINH(numeric)                                 | Returns the inverse hyperbolic sine of *numeric*
 | p | ATAND(numeric)                                 | Returns the inverse tangent of *numeric* in degrees as a double. Returns NaN if *numeric* is NaN.
 | * | ATANH(numeric)                                 | Returns the inverse hyperbolic tangent of *numeric*
+| * | BITAND(value1, value2)                         | Returns the bitwise AND of *value1* and *value2*. *value1* and *value2* must both be integer or binary values. Binary values must be of the same length.
+| * | BITOR(value1, value2)                          | Returns the bitwise OR of *value1* and *value2*. *value1* and *value2* must both be integer or binary values. Binary values must be of the same length.
+| * | BITXOR(value1, value2)                         | Returns the bitwise XOR of *value1* and *value2*. *value1* and *value2* must both be integer or binary values. Binary values must be of the same length.
+| * | BITNOT(value)                                  | Returns the bitwise NOT of *value*. *value* must be either an integer type or a binary value.
 | f | BITAND_AGG(value)                              | Equivalent to `BIT_AND(value)`
 | f | BITOR_AGG(value)                               | Equivalent to `BIT_OR(value)`
+| * | BITCOUNT(value)                                | Returns the bitwise COUNT of *value* or NULL if *value* is NULL. *value* must be and integer or binary value.
+| b s | BIT_COUNT(integer)                           | Returns the bitwise COUNT of *integer* or NULL if *integer* is NULL
+| m | BIT_COUNT(numeric)                             | Returns the bitwise COUNT of the integer portion of *numeric* or NULL if *numeric* is NULL
+| b m s | BIT_COUNT(binary)                          | Returns the bitwise COUNT of *binary* or NULL if *binary* is NULL
 | s | BIT_LENGTH(binary)                             | Returns the bit length of *binary*
 | s | BIT_LENGTH(string)                             | Returns the bit length of *string*
 | s | BIT_GET(value, position)                       | Returns the bit (0 or 1) value at the specified *position* of numeric *value*. The positions are numbered from right to left, starting at zero. The *position* argument cannot be negative
@@ -2796,9 +2804,11 @@ In the following:
 | b | DATETIME_TRUNC(timestamp, timeUnit)            | Truncates *timestamp* to the granularity of *timeUnit*, rounding to the beginning of the unit
 | b s | DATE_FROM_UNIX_DATE(integer)                 | Returns the DATE that is *integer* days after 1970-01-01
 | p r | DATE_PART(timeUnit, datetime)                | Equivalent to `EXTRACT(timeUnit FROM  datetime)`
-| b h | DATE_ADD(date, interval)                     | Returns the DATE value that occurs *interval* after *date*
+| b h | DATE_ADD(date, interval)                       | Returns the DATE value that occurs *interval* after *date*
+| s | DATE_ADD(date, numDays)                        | Returns the DATE that is *numDays* after *date*
 | b | DATE_DIFF(date, date2, timeUnit)               | Returns the whole number of *timeUnit* between *date* and *date2*
-| b h | DATE_SUB(date, interval)                     | Returns the DATE value that occurs *interval* before *date*
+| b h | DATE_SUB(date, interval)                       | Returns the DATE value that occurs *interval* before *date*
+| s | DATE_SUB(date, numDays)                        | Returns the DATE that is *numDays* before *date*
 | b | DATE_TRUNC(date, timeUnit)                     | Truncates *date* to the granularity of *timeUnit*, rounding to the beginning of the unit
 | o r s h | DECODE(value, value1, result1 [, valueN, resultN ]* [, default ]) | Compares *value* to each *valueN* value one by one; if *value* is equal to a *valueN*, returns the corresponding *resultN*, else returns *default*, or NULL if *default* is not specified
 | p r | DIFFERENCE(string, string)                   | Returns a measure of the similarity of two strings, namely the number of character positions that their `SOUNDEX` values have in common: 4 if the `SOUNDEX` values are same and 0 if the `SOUNDEX` values are totally different
@@ -2865,6 +2875,7 @@ In the following:
 | s | MAP_FROM_ARRAYS(array1, array2)                | Returns a map created from an *array1* and *array2*. Note that the lengths of two arrays should be the same and calcite is using the LAST_WIN strategy
 | s | MAP_FROM_ENTRIES(arrayOfRows)                  | Returns a map created from an arrays of row with two fields. Note that the number of fields in a row must be 2. Note that calcite is using the LAST_WIN strategy
 | s | STR_TO_MAP(string [, stringDelimiter [, keyValueDelimiter]]) | Returns a map after splitting the *string* into key/value pairs using delimiters. Default delimiters are ',' for *stringDelimiter* and ':' for *keyValueDelimiter*. Note that calcite is using the LAST_WIN strategy
+| s | SUBSTRING_INDEX(string, delim, count)          | Returns the substring from *string* before *count* occurrences of the delimiter *delim*. If *count* is positive, everything to the left of the final delimiter (counting from the left) is returned. If *count* is negative, everything to the right of the final delimiter (counting from the right) is returned. The function substring_index performs a case-sensitive match when searching for *delim*.
 | b m p r s | MD5(string)                            | Calculates an MD5 128-bit checksum of *string* and returns it as a hex string
 | m | MONTHNAME(date)                                | Returns the name, in the connection's locale, of the month in *datetime*; for example, it returns '二月' for both DATE '2020-02-10' and TIMESTAMP '2020-02-10 10:10:10'
 | o r s h | NVL(value1, value2)                      | Returns *value1* if *value1* is not null, otherwise *value2*

@@ -79,7 +79,6 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
@@ -654,7 +653,7 @@ public class SqlValidatorUtil {
     final Table t = table == null ? null : table.unwrap(Table.class);
     if (!(t instanceof CustomColumnResolvingTable)) {
       final SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
-      return nameMatcher.field(rowType, id.getSimple());
+      return nameMatcher.field(rowType, Util.last(id.names));
     }
 
     final List<Pair<RelDataTypeField, List<String>>> entries =
@@ -679,7 +678,7 @@ public class SqlValidatorUtil {
   public static SqlValidatorNamespace lookup(
       SqlValidatorScope scope,
       List<String> names) {
-    assert names.size() > 0;
+    assert !names.isEmpty();
     final SqlNameMatcher nameMatcher =
         scope.getValidator().getCatalogReader().nameMatcher();
     final SqlValidatorScope.ResolvedImpl resolved =
@@ -688,8 +687,7 @@ public class SqlValidatorUtil {
     assert resolved.count() == 1;
     SqlValidatorNamespace namespace = resolved.only().namespace;
     for (String name : Util.skip(names)) {
-      namespace = namespace.lookupChild(name);
-      assert namespace != null;
+      namespace = requireNonNull(namespace.lookupChild(name));
     }
     return namespace;
   }
@@ -766,8 +764,11 @@ public class SqlValidatorUtil {
         new ArrayList<>(columnNameList.size());
     for (String name : columnNameList) {
       RelDataTypeField field = type.getField(name, caseSensitive, false);
-      assert field != null : "field " + name + (caseSensitive ? " (caseSensitive)" : "")
-          + " is not found in " + type;
+      if (field == null) {
+        throw new IllegalArgumentException("field " + name
+            + (caseSensitive ? " (caseSensitive)" : "") + " is not found in "
+            + type);
+      }
       fields.add(type.getFieldList().get(field.getIndex()));
     }
     return typeFactory.createStructType(fields);
@@ -899,7 +900,7 @@ public class SqlValidatorUtil {
               ((SqlCall) expandedGroupExpr).getOperandList()));
     case OTHER:
       if (expandedGroupExpr instanceof SqlNodeList
-          && ((SqlNodeList) expandedGroupExpr).size() == 0) {
+          && ((SqlNodeList) expandedGroupExpr).isEmpty()) {
         return ImmutableBitSet.of();
       }
       break;
@@ -1617,8 +1618,7 @@ public class SqlValidatorUtil {
 
     FlatAggregate(SqlCall aggregateCall, @Nullable SqlCall filterCall,
         @Nullable SqlCall distinctCall, @Nullable SqlCall orderCall) {
-      this.aggregateCall =
-          Objects.requireNonNull(aggregateCall, "aggregateCall");
+      this.aggregateCall = requireNonNull(aggregateCall, "aggregateCall");
       checkArgument(filterCall == null
           || filterCall.getKind() == SqlKind.FILTER);
       checkArgument(distinctCall == null

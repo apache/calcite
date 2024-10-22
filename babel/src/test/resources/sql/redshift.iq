@@ -921,7 +921,7 @@ EXPR$0
 select nvl2(comm, sal, sal + 10) from emp where deptno = 30;
 SELECT "NVL2"("EMP"."COMM", "EMP"."SAL", "EMP"."SAL" + 10)
 FROM "scott"."EMP" AS "EMP"
-WHERE "EMP"."DEPTNO" = 30
+WHERE CAST("EMP"."DEPTNO" AS INTEGER) = 30
 !explain-validated-on calcite
 
 # NULLIF

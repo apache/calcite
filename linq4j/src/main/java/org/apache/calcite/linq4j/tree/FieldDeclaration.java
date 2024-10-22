@@ -21,6 +21,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.lang.reflect.Modifier;
 import java.util.Objects;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Declaration of a field.
  */
@@ -31,9 +33,8 @@ public class FieldDeclaration extends MemberDeclaration {
 
   public FieldDeclaration(int modifier, ParameterExpression parameter,
       @Nullable Expression initializer) {
-    assert parameter != null : "parameter should not be null";
     this.modifier = modifier;
-    this.parameter = parameter;
+    this.parameter = requireNonNull(parameter, "parameter");
     this.initializer = initializer;
   }
 
@@ -72,19 +73,9 @@ public class FieldDeclaration extends MemberDeclaration {
     }
 
     FieldDeclaration that = (FieldDeclaration) o;
-
-    if (modifier != that.modifier) {
-      return false;
-    }
-    if (initializer != null ? !initializer.equals(that.initializer) : that
-        .initializer != null) {
-      return false;
-    }
-    if (!parameter.equals(that.parameter)) {
-      return false;
-    }
-
-    return true;
+    return modifier == that.modifier
+        && Objects.equals(initializer, that.initializer)
+        && parameter.equals(that.parameter);
   }
 
   @Override public int hashCode() {

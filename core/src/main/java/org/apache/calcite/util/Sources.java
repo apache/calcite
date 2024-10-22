@@ -33,9 +33,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.zip.GZIPInputStream;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Utilities for {@link Source}.
@@ -106,7 +107,7 @@ public abstract class Sources {
     private final CharSource charSource;
 
     private GuavaCharSource(CharSource charSource) {
-      this.charSource = Objects.requireNonNull(charSource, "charSource");
+      this.charSource = requireNonNull(charSource, "charSource");
     }
 
     private UnsupportedOperationException unsupported() {
@@ -175,19 +176,19 @@ public abstract class Sources {
     private final boolean urlGenerated;
 
     private FileSource(URL url) {
-      this.url = Objects.requireNonNull(url, "url");
+      this.url = requireNonNull(url, "url");
       this.file = urlToFile(url);
       this.urlGenerated = false;
     }
 
     private FileSource(File file) {
-      this.file = Objects.requireNonNull(file, "file");
+      this.file = requireNonNull(file, "file");
       this.url = fileToUrl(file);
       this.urlGenerated = true;
     }
 
     private File fileNonNull() {
-      return Objects.requireNonNull(file, "file");
+      return requireNonNull(file, "file");
     }
 
     private static @Nullable File urlToFile(URL url) {

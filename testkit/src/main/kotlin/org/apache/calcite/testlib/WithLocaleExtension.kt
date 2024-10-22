@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.testlib
 
+import org.apache.calcite.test.Unsafe
 import org.apache.calcite.testlib.annotations.WithLocale
 import org.junit.jupiter.api.extension.AfterAllCallback
 import org.junit.jupiter.api.extension.BeforeAllCallback
@@ -55,7 +56,7 @@ class WithLocaleExtension : BeforeAllCallback, AfterAllCallback, BeforeEachCallb
     override fun afterAll(context: ExtensionContext) {
         // Restore the original Locale
         context.store.get(DEFAULT_LOCALE, Locale::class.java)?.let {
-            Locale.setDefault(it)
+            Unsafe.setDefaultLocale(it)
         }
     }
 
@@ -66,6 +67,6 @@ class WithLocaleExtension : BeforeAllCallback, AfterAllCallback, BeforeEachCallb
             .map { Locale.Builder().setLanguageTag(it.country + '-' + it.country +
                     if (it.variant.isBlank()) "" else '-' + it.variant).build() }
             .orElseGet { context.store.get(CLASS_LOCALE, Locale::class.java) }
-            ?.let { Locale.setDefault(it) }
+            ?.let { Unsafe.setDefaultLocale(it) }
     }
 }

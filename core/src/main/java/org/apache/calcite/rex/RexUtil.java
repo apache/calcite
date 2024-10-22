@@ -193,10 +193,8 @@ public class RexUtil {
     if (allowCast) {
       if (node.isA(SqlKind.CAST)) {
         RexCall call = (RexCall) node;
-        if (isNullLiteral(call.operands.get(0), false)) {
-          // node is "CAST(NULL as type)"
-          return true;
-        }
+        // node is "CAST(NULL as type)"
+        return isNullLiteral(call.operands.get(0), false);
       }
     }
     return false;
@@ -250,17 +248,15 @@ public class RexUtil {
    * @return Whether the node is a literal
    */
   public static boolean isLiteral(RexNode node, boolean allowCast) {
-    assert node != null;
+    requireNonNull(node, "node");
     if (node.isA(SqlKind.LITERAL)) {
       return true;
     }
     if (allowCast) {
       if (node.isA(SqlKind.CAST)) {
         RexCall call = (RexCall) node;
-        if (isLiteral(call.operands.get(0), false)) {
-          // node is "CAST(literal as type)"
-          return true;
-        }
+        // node is "CAST(literal as type)"
+        return isLiteral(call.operands.get(0), false);
       }
     }
     return false;
@@ -289,7 +285,7 @@ public class RexUtil {
    * @return Whether the node is a reference or access
    */
   public static boolean isReferenceOrAccess(RexNode node, boolean allowCast) {
-    assert node != null;
+    requireNonNull(node, "node");
     if (node instanceof RexInputRef || node instanceof RexFieldAccess) {
       return true;
     }
@@ -624,7 +620,6 @@ public class RexUtil {
     return new SearchExpandingShuttle(program, rexBuilder, maxComplexity);
   }
 
-  @SuppressWarnings("BetaApi")
   public static <C extends Comparable<C>> RexNode sargRef(RexBuilder rexBuilder,
       RexNode ref, Sarg<C> sarg, RelDataType type, RexUnknownAs unknownAs) {
     if (sarg.isAll() || sarg.isNone()) {
@@ -1384,7 +1379,8 @@ public class RexUtil {
   /** Flattens a list of OR nodes. */
   public static ImmutableList<RexNode> flattenOr(
       Iterable<? extends RexNode> nodes) {
-    if (nodes instanceof Collection && ((Collection) nodes).isEmpty()) {
+    if (nodes instanceof Collection
+        && ((Collection<? extends RexNode>) nodes).isEmpty()) {
       // Optimize common case
       return ImmutableList.of();
     }
@@ -1595,7 +1591,7 @@ public class RexUtil {
       final SqlOperator op = call.getOperator();
       final List<RexNode> flattenedOperands = flatten(call.getOperands(), op);
       if (!isFlat(call.getOperands(), op)) {
-        return rexBuilder.makeCall(call.getType(), op, flattenedOperands);
+        return rexBuilder.makeCall(call.getParserPosition(), call.getType(), op, flattenedOperands);
       }
     }
     return node;
@@ -1609,7 +1605,7 @@ public class RexUtil {
       SqlOperator op) {
     if (isFlat(exprs, op)) {
       //noinspection unchecked
-      return (List) exprs;
+      return (List<RexNode>) exprs;
     }
     final List<RexNode> list = new ArrayList<>();
     flattenRecurse(list, exprs, op);
@@ -2039,8 +2035,7 @@ public class RexUtil {
   }
 
   private static RexNode addNot(RexNode e) {
-    return new RexCall(e.getType(), SqlStdOperatorTable.NOT,
-        ImmutableList.of(e));
+    return new RexCall(e.getType(), SqlStdOperatorTable.NOT, ImmutableList.of(e));
   }
 
   @API(since = "1.27.0", status = API.Status.EXPERIMENTAL)
@@ -2117,7 +2112,7 @@ public class RexUtil {
     case LESS_THAN_OR_EQUAL:
     case GREATER_THAN_OR_EQUAL:
       final SqlOperator op = op(call.getKind().negateNullSafe());
-      return rexBuilder.makeCall(op, call.getOperands());
+      return rexBuilder.makeCall(call.getParserPosition(), op, call.getOperands());
     default:
       break;
     }
@@ -2133,7 +2128,7 @@ public class RexUtil {
     case LESS_THAN_OR_EQUAL:
     case GREATER_THAN_OR_EQUAL:
       final SqlOperator op = requireNonNull(call.getOperator().reverse());
-      return rexBuilder.makeCall(op, Lists.reverse(call.getOperands()));
+      return rexBuilder.makeCall(call.getParserPosition(), op, Lists.reverse(call.getOperands()));
     default:
       return null;
     }
@@ -2863,7 +2858,7 @@ public class RexUtil {
   /** Visitor that collects all the top level SubQueries {@link RexSubQuery}
    *  in a projection list of a given {@link Project}.*/
   public static class SubQueryCollector extends RexVisitorImpl<Void> {
-    private List<RexSubQuery> subQueries;
+    private final List<RexSubQuery> subQueries;
     private SubQueryCollector() {
       super(true);
       this.subQueries = new ArrayList<>();

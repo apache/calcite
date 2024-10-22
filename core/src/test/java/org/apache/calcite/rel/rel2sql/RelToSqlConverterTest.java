@@ -319,33 +319,33 @@ class RelToSqlConverterTest {
         + "where \"product_id\" > 0\n"
         + "group by \"product_id\"";
     final String expectedDefault = "SELECT"
-        + " SUM(\"shelf_width\") FILTER (WHERE \"net_weight\" > 0 IS TRUE),"
+        + " SUM(\"shelf_width\") FILTER (WHERE \"net_weight\" > 0E0 IS TRUE),"
         + " SUM(\"shelf_width\")\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "WHERE \"product_id\" > 0\n"
         + "GROUP BY \"product_id\"";
     final String expectedBigQuery = "SELECT"
-        + " SUM(CASE WHEN net_weight > 0 IS TRUE"
+        + " SUM(CASE WHEN net_weight > 0E0 IS TRUE"
         + " THEN shelf_width ELSE NULL END), "
         + "SUM(shelf_width)\n"
         + "FROM foodmart.product\n"
         + "WHERE product_id > 0\n"
         + "GROUP BY product_id";
     final String expectedFirebolt = "SELECT"
-        + " SUM(CASE WHEN \"net_weight\" > 0 IS TRUE"
+        + " SUM(CASE WHEN \"net_weight\" > 0E0 IS TRUE"
         + " THEN \"shelf_width\" ELSE NULL END), "
         + "SUM(\"shelf_width\")\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "WHERE \"product_id\" > 0\n"
         + "GROUP BY \"product_id\"";
     final String expectedMysql = "SELECT"
-        + " SUM(CASE WHEN `net_weight` > 0 IS TRUE"
+        + " SUM(CASE WHEN `net_weight` > 0E0 IS TRUE"
         + " THEN `shelf_width` ELSE NULL END), SUM(`shelf_width`)\n"
         + "FROM `foodmart`.`product`\n"
         + "WHERE `product_id` > 0\n"
         + "GROUP BY `product_id`";
     final String expectedStarRocks = "SELECT"
-        + " SUM(CASE WHEN `net_weight` > 0 IS TRUE"
+        + " SUM(CASE WHEN `net_weight` > 0E0 IS TRUE"
         + " THEN `shelf_width` ELSE NULL END), SUM(`shelf_width`)\n"
         + "FROM `foodmart`.`product`\n"
         + "WHERE `product_id` > 0\n"
@@ -407,7 +407,7 @@ class RelToSqlConverterTest {
         + "where \"net_weight\" <> 10 or \"net_weight\" is null";
     final String expected = "SELECT \"product_id\", \"shelf_width\"\n"
         + "FROM \"foodmart\".\"product\"\n"
-        + "WHERE \"net_weight\" <> 10 OR \"net_weight\" IS NULL";
+        + "WHERE \"net_weight\" <> CAST(10 AS DOUBLE) OR \"net_weight\" IS NULL";
     sql(query).ok(expected);
   }
 
@@ -539,7 +539,7 @@ class RelToSqlConverterTest {
     final String expected = "SELECT *\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "WHERE (\"product_id\" = 10 OR \"product_id\" <= 5) "
-        + "AND (80 >= \"shelf_width\" OR \"shelf_width\" > 30)";
+        + "AND (CAST(80 AS DOUBLE) >= \"shelf_width\" OR \"shelf_width\" > CAST(30 AS DOUBLE))";
     sql(query).ok(expected);
   }
 
@@ -2097,26 +2097,26 @@ class RelToSqlConverterTest {
         + "  sum(\"gross_weight\") as \"" + alias + "\"\n"
         + "from \"product\"\n"
         + "group by \"product_id\"\n"
-        + "having sum(\"product\".\"gross_weight\") < 200";
+        + "having sum(\"product\".\"gross_weight\") < 2.000E2";
     // PostgreSQL has isHavingAlias=false, case-sensitive=true
     final String expectedPostgresql = "SELECT \"product_id\" + 1,"
         + " SUM(\"gross_weight\") AS \"" + alias + "\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY \"product_id\"\n"
-        + "HAVING SUM(\"gross_weight\") < 200";
+        + "HAVING SUM(\"gross_weight\") < 2.000E2";
     // MySQL has isHavingAlias=true, case-sensitive=true
     final String expectedMysql = "SELECT `product_id` + 1, `" + alias + "`\n"
         + "FROM (SELECT `product_id`, SUM(`gross_weight`) AS `" + alias + "`\n"
         + "FROM `foodmart`.`product`\n"
         + "GROUP BY `product_id`\n"
-        + "HAVING `" + alias + "` < 200) AS `t1`";
+        + "HAVING `" + alias + "` < 2.000E2) AS `t1`";
     // BigQuery has isHavingAlias=true, case-sensitive=false
     final String expectedBigQuery = upperAlias
         ? "SELECT product_id + 1, GROSS_WEIGHT\n"
             + "FROM (SELECT product_id, SUM(gross_weight) AS GROSS_WEIGHT\n"
             + "FROM foodmart.product\n"
             + "GROUP BY product_id\n"
-            + "HAVING GROSS_WEIGHT < 200) AS t1"
+            + "HAVING GROSS_WEIGHT < 2.000E2) AS t1"
         // Before [CALCITE-3896] was fixed, we got
         // "HAVING SUM(gross_weight) < 200) AS t1"
         // which on BigQuery gives you an error about aggregating aggregates
@@ -2124,7 +2124,7 @@ class RelToSqlConverterTest {
             + "FROM (SELECT product_id, SUM(gross_weight) AS gross_weight\n"
             + "FROM foodmart.product\n"
             + "GROUP BY product_id\n"
-            + "HAVING gross_weight < 200) AS t1";
+            + "HAVING gross_weight < 2.000E2) AS t1";
     sql(query)
         .withBigQuery().ok(expectedBigQuery)
         .withPostgresql().ok(expectedPostgresql)
@@ -2144,11 +2144,11 @@ class RelToSqlConverterTest {
     final String expected = "SELECT \"product_id\"\n"
         + "FROM (SELECT \"product_id\", AVG(\"gross_weight\") AS \"AGW\"\n"
         + "FROM \"foodmart\".\"product\"\n"
-        + "WHERE \"net_weight\" < 100\n"
+        + "WHERE \"net_weight\" < CAST(100 AS DOUBLE)\n"
         + "GROUP BY \"product_id\"\n"
-        + "HAVING AVG(\"gross_weight\") > 50) AS \"t2\"\n"
+        + "HAVING AVG(\"gross_weight\") > CAST(50 AS DOUBLE)) AS \"t2\"\n"
         + "GROUP BY \"product_id\"\n"
-        + "HAVING AVG(\"AGW\") > 60";
+        + "HAVING AVG(\"AGW\") > 6.00E1";
     sql(query).ok(expected);
   }
 
@@ -3684,12 +3684,15 @@ class RelToSqlConverterTest {
     String query = "select cast(\"product_id\" as char) from \"product\"";
     final String expectedMysql = "SELECT CAST(`product_id` AS CHAR)\n"
         + "FROM `foodmart`.`product`";
+    final String expectedMssql = "SELECT CAST([product_id] AS CHAR)\n"
+        + "FROM [foodmart].[product]";
     final String expectedHive = "SELECT CAST(`product_id` AS CHAR(1))\n"
         + "FROM `foodmart`.`product`";
     final String expectedSpark = "SELECT CAST(`product_id` AS CHAR(1))\n"
         + "FROM `foodmart`.`product`";
     sql(query)
         .withMysql().ok(expectedMysql)
+        .withMssql().ok(expectedMssql)
         .withHive().ok(expectedHive)
         .withSpark().ok(expectedSpark);
   }
@@ -3698,12 +3701,15 @@ class RelToSqlConverterTest {
     String query = "select cast(\"product_id\" as char(5)) from \"product\"";
     final String expectedMysql = "SELECT CAST(`product_id` AS CHAR(5))\n"
         + "FROM `foodmart`.`product`";
+    final String expectedMssql = "SELECT CAST([product_id] AS CHAR(5))\n"
+        + "FROM [foodmart].[product]";
     final String expectedHive = "SELECT CAST(`product_id` AS CHAR(5))\n"
         + "FROM `foodmart`.`product`";
     final String expectedSpark = "SELECT CAST(`product_id` AS CHAR(5))\n"
         + "FROM `foodmart`.`product`";
     sql(query)
         .withMysql().ok(expectedMysql)
+        .withMssql().ok(expectedMssql)
         .withHive().ok(expectedHive)
         .withSpark().ok(expectedSpark);
   }
@@ -3808,7 +3814,7 @@ class RelToSqlConverterTest {
             + "group by \"product_id\", \"units_per_case\" order by \"units_per_case\" desc";
     final String expected = "SELECT COUNT(*), \"units_per_case\"\n"
         + "FROM \"foodmart\".\"product\"\n"
-        + "WHERE \"cases_per_pallet\" > 100\n"
+        + "WHERE CAST(\"cases_per_pallet\" AS INTEGER) > 100\n"
         + "GROUP BY \"product_id\", \"units_per_case\"\n"
         + "ORDER BY \"units_per_case\" DESC";
     sql(query).ok(expected);
@@ -4154,7 +4160,7 @@ class RelToSqlConverterTest {
         + "order by \"units_per_case\" desc";
     final String expected = "SELECT COUNT(*), product.units_per_case\n"
         + "FROM foodmart.product AS product\n"
-        + "WHERE product.cases_per_pallet > 100\n"
+        + "WHERE CAST(product.cases_per_pallet AS INTEGER) > 100\n"
         + "GROUP BY product.product_id, product.units_per_case\n"
         + "ORDER BY product.units_per_case DESC";
     sql(query).withDb2().ok(expected);
@@ -4175,7 +4181,7 @@ class RelToSqlConverterTest {
         + "FROM (SELECT product.units_per_case, product.cases_per_pallet, "
         + "product.product_id, 1 AS FOO\n"
         + "FROM foodmart.product AS product) AS t\n"
-        + "WHERE t.cases_per_pallet > 100\n"
+        + "WHERE CAST(t.cases_per_pallet AS INTEGER) > 100\n"
         + "GROUP BY t.product_id, t.units_per_case\n"
         + "ORDER BY t.units_per_case DESC";
     sql(query).withDb2().ok(expected);
@@ -4199,13 +4205,13 @@ class RelToSqlConverterTest {
         + "FROM (SELECT product.units_per_case, product.cases_per_pallet, "
         + "product.product_id, 1 AS FOO\n"
         + "FROM foodmart.product AS product\n"
-        + "WHERE product.cases_per_pallet > 100\n"
+        + "WHERE CAST(product.cases_per_pallet AS INTEGER) > 100\n"
         + "UNION ALL\n"
         + "SELECT product0.units_per_case, product0.cases_per_pallet, "
         + "product0.product_id, 1 AS FOO\n"
         + "FROM foodmart.product AS product0\n"
-        + "WHERE product0.cases_per_pallet < 100) AS t3\n"
-        + "WHERE t3.cases_per_pallet > 100\n"
+        + "WHERE CAST(product0.cases_per_pallet AS INTEGER) < 100) AS t3\n"
+        + "WHERE CAST(t3.cases_per_pallet AS INTEGER) > 100\n"
         + "GROUP BY t3.product_id, t3.units_per_case\n"
         + "ORDER BY t3.units_per_case DESC";
     sql(query).withDb2().ok(expected);
@@ -4302,8 +4308,8 @@ class RelToSqlConverterTest {
         + "FROM \"SCOTT\".\"DEPT\"\n"
         + "LEFT JOIN \"SCOTT\".\"EMP\" "
         + "ON \"DEPT\".\"DEPTNO\" = \"EMP\".\"DEPTNO\" "
-        + "AND (\"DEPT\".\"DEPTNO\" > 10"
-        + " AND \"DEPT\".\"DEPTNO\" < 15)\n"
+        + "AND (CAST(\"DEPT\".\"DEPTNO\" AS INTEGER) > 10"
+        + " AND CAST(\"DEPT\".\"DEPTNO\" AS INTEGER) < 15)\n"
         + "WHERE \"EMP\".\"JOB\" LIKE 'PRESIDENT'";
     sql(sql)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
@@ -4385,7 +4391,7 @@ class RelToSqlConverterTest {
         + "  select \"product_id\", 0 as \"net_weight\"\n"
         + "  from \"sales_fact_1997\") t0";
     final String expected = "SELECT SUM(CASE WHEN \"product_id\" = 0"
-        + " THEN \"net_weight\" ELSE 0 END) AS \"NET_WEIGHT\"\n"
+        + " THEN \"net_weight\" ELSE 0E0 END) AS \"NET_WEIGHT\"\n"
         + "FROM (SELECT \"product_id\", \"net_weight\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "UNION ALL\n"
@@ -4576,6 +4582,32 @@ class RelToSqlConverterTest {
     String expected = "SELECT ROW_NUMBER() OVER (ORDER BY \"hire_date\")\n"
         + "FROM \"foodmart\".\"employee\"";
     sql(query).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6569">[CALCITE-6569]
+   * RelToSqlConverter support IGNORE NULLS for window functions</a>. */
+  @Test void testIgnoreNullsWindow() {
+    final String query0 = "SELECT LEAD(\"employee_id\", 2) IGNORE NULLS "
+        + "OVER (ORDER BY \"hire_date\") FROM \"employee\"";
+    final String expected0 = "SELECT LEAD(\"employee_id\", 2) IGNORE NULLS OVER (ORDER BY "
+        + "\"hire_date\")\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query0).ok(expected0);
+
+    final String query1 = "SELECT "
+        + "LAG(\"employee_id\", 1) IGNORE NULLS OVER (ORDER BY \"hire_date\"),"
+        + "FIRST_VALUE(\"employee_id\") IGNORE NULLS OVER (ORDER BY \"hire_date\"),"
+        + "LAST_VALUE(\"employee_id\") IGNORE NULLS OVER (ORDER BY \"hire_date\")"
+        + "FROM \"employee\"";
+    final String expected1 = "SELECT "
+        + "LAG(\"employee_id\", 1) IGNORE NULLS OVER (ORDER BY \"hire_date\"), "
+        + "FIRST_VALUE(\"employee_id\") IGNORE NULLS OVER (ORDER BY \"hire_date\""
+        + " RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW), "
+        + "LAST_VALUE(\"employee_id\") IGNORE NULLS OVER (ORDER BY \"hire_date\""
+        + " RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query1).ok(expected1);
   }
 
   /** Test case for
@@ -4845,6 +4877,41 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\") AS \"t\"";
     sql(query)
         .withPostgresql().ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6563">[CALCITE-6563]
+   * RelToSqlConverter should not merge two window functions</a>. */
+  @Test void testConvertNestWindowToSql() {
+    String query0 = " SELECT "
+        + "RANK() OVER (ORDER BY \"daily_sales\" DESC) AS \"rank1\" "
+        + "FROM ( SELECT \"product_name\", "
+        + "SUM(\"product_id\") OVER (PARTITION BY \"product_name\") AS \"daily_sales\" "
+        + "FROM \"product\" ) subquery";
+    String expected00 = "SELECT RANK() OVER (ORDER BY \"$1\" DESC) AS \"$0\"\n"
+        + "FROM (SELECT \"product_name\", SUM(\"product_id\") OVER (PARTITION BY \"product_name\" "
+        + "RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS \"$1\"\n"
+        + "FROM \"foodmart\".\"product\") AS \"t0\"";
+    String expected01 = "SELECT RANK() OVER (ORDER BY \"daily_sales\" DESC) AS \"rank1\"\n"
+        + "FROM (SELECT \"product_name\", SUM(\"product_id\") OVER (PARTITION BY \"product_name\""
+        + " RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS \"daily_sales\"\n"
+        + "FROM \"foodmart\".\"product\") AS \"t\"";
+    RuleSet rules = RuleSets.ofList(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW);
+    // PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW rule will remove alias
+    sql(query0).optimize(rules, null).ok(expected00);
+    sql(query0).ok(expected01);
+
+    String query1 = " SELECT \"product_id\","
+        + "RANK() OVER (ORDER BY \"product_name\" DESC) AS \"rank1\" "
+        + "FROM (SELECT \"product_id\", \"product_name\" FROM \"product\") a";
+    String expected10 = "SELECT \"product_id\","
+        + " RANK() OVER (ORDER BY \"product_name\" DESC) AS \"$1\"\n"
+        + "FROM \"foodmart\".\"product\"";
+    String expected11 = "SELECT \"product_id\","
+        + " RANK() OVER (ORDER BY \"product_name\" DESC) AS \"rank1\"\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query1).optimize(rules, null).ok(expected10);
+    sql(query1).ok(expected11);
   }
 
   /** Test case for
@@ -5299,21 +5366,21 @@ class RelToSqlConverterTest {
         + "UNION ALL\n"
         + "SELECT NULL) END AS `$f0`\n"
         + "FROM `foodmart`.`product`) AS `t0` ON TRUE\n"
-        + "WHERE `product`.`net_weight` > `t0`.`$f0`";
+        + "WHERE `product`.`net_weight` > CAST(`t0`.`$f0` AS DOUBLE)";
     final String expectedPostgresql = "SELECT \"product\".\"product_class_id\" AS \"C\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "LEFT JOIN (SELECT CASE COUNT(*) WHEN 0 THEN NULL WHEN 1 THEN MIN(\"product_class_id\") ELSE (SELECT CAST(NULL AS INTEGER)\n"
         + "UNION ALL\n"
         + "SELECT CAST(NULL AS INTEGER)) END AS \"$f0\"\n"
         + "FROM \"foodmart\".\"product\") AS \"t0\" ON TRUE\n"
-        + "WHERE \"product\".\"net_weight\" > \"t0\".\"$f0\"";
+        + "WHERE \"product\".\"net_weight\" > CAST(\"t0\".\"$f0\" AS DOUBLE PRECISION)";
     final String expectedHsqldb = "SELECT product.product_class_id AS C\n"
         + "FROM foodmart.product\n"
         + "LEFT JOIN (SELECT CASE COUNT(*) WHEN 0 THEN NULL WHEN 1 THEN MIN(product_class_id) ELSE ((VALUES 0E0)\n"
         + "UNION ALL\n"
         + "(VALUES 0E0)) END AS $f0\n"
         + "FROM foodmart.product) AS t0 ON TRUE\n"
-        + "WHERE product.net_weight > t0.$f0";
+        + "WHERE product.net_weight > CAST(t0.$f0 AS DOUBLE)";
     sql(query)
         .withConfig(c -> c.withExpand(true))
         .withMysql().ok(expectedMysql)
@@ -6440,7 +6507,7 @@ class RelToSqlConverterTest {
         + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
         + "DEFINE "
         + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) = "
-        + "0 OR PREV(\"DOWN\".\"net_weight\", 0) = 1, "
+        + "CAST(0 AS DOUBLE) OR PREV(\"DOWN\".\"net_weight\", 0) = CAST(1 AS DOUBLE), "
         + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
         + "PREV(\"UP\".\"net_weight\", 1))";
     sql(sql).ok(expected);
@@ -6838,7 +6905,7 @@ class RelToSqlConverterTest {
         + "within group (order by \"net_weight\" desc) filter (where \"net_weight\" > 0)"
         + "from \"product\" group by \"product_class_id\"";
     final String expected = "SELECT \"product_class_id\", COLLECT(\"net_weight\") "
-        + "FILTER (WHERE \"net_weight\" > 0 IS TRUE) "
+        + "FILTER (WHERE \"net_weight\" > 0E0 IS TRUE) "
         + "WITHIN GROUP (ORDER BY \"net_weight\" DESC)\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY \"product_class_id\"";
@@ -7698,7 +7765,7 @@ class RelToSqlConverterTest {
     final String expectedDefault = "INSERT INTO \"SCOTT\".\"DEPT\""
         + " (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
         + "VALUES (1, 'Fred', 'San Francisco'),\n"
-        + "(2, 'Eric', 'Washington')";
+        + "(2, 'Eric', 'Washington   ')";
     final String expectedDefaultX = "INSERT INTO \"SCOTT\".\"DEPT\""
         + " (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
         + "SELECT 1, 'Fred', 'San Francisco'\n"
@@ -7708,7 +7775,7 @@ class RelToSqlConverterTest {
         + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
     final String expectedHive = "INSERT INTO `SCOTT`.`DEPT` (`DEPTNO`, `DNAME`, `LOC`)\n"
         + "VALUES (1, 'Fred', 'San Francisco'),\n"
-        + "(2, 'Eric', 'Washington')";
+        + "(2, 'Eric', 'Washington   ')";
     final String expectedHiveX = "INSERT INTO `SCOTT`.`DEPT` (`DEPTNO`, `DNAME`, `LOC`)\n"
         + "SELECT 1, 'Fred', 'San Francisco'\n"
         + "UNION ALL\n"
@@ -7716,7 +7783,7 @@ class RelToSqlConverterTest {
     final String expectedMysql = "INSERT INTO `SCOTT`.`DEPT`"
         + " (`DEPTNO`, `DNAME`, `LOC`)\n"
         + "VALUES (1, 'Fred', 'San Francisco'),\n"
-        + "(2, 'Eric', 'Washington')";
+        + "(2, 'Eric', 'Washington   ')";
     final String expectedMysqlX = "INSERT INTO `SCOTT`.`DEPT`"
         + " (`DEPTNO`, `DNAME`, `LOC`)\n"
         + "SELECT 1, 'Fred', 'San Francisco'\n"
@@ -7725,7 +7792,7 @@ class RelToSqlConverterTest {
     final String expectedOracle = "INSERT INTO \"SCOTT\".\"DEPT\""
         + " (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
         + "VALUES (1, 'Fred', 'San Francisco'),\n"
-        + "(2, 'Eric', 'Washington')";
+        + "(2, 'Eric', 'Washington   ')";
     final String expectedOracleX = "INSERT INTO \"SCOTT\".\"DEPT\""
         + " (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
         + "SELECT 1, 'Fred', 'San Francisco'\n"
@@ -7736,7 +7803,7 @@ class RelToSqlConverterTest {
     final String expectedMssql = "INSERT INTO [SCOTT].[DEPT]"
         + " ([DEPTNO], [DNAME], [LOC])\n"
         + "VALUES (1, 'Fred', 'San Francisco'),\n"
-        + "(2, 'Eric', 'Washington')";
+        + "(2, 'Eric', 'Washington   ')";
     final String expectedMssqlX = "INSERT INTO [SCOTT].[DEPT]"
         + " ([DEPTNO], [DNAME], [LOC])\n"
         + "SELECT 1, 'Fred', 'San Francisco'\n"
@@ -7747,7 +7814,7 @@ class RelToSqlConverterTest {
     final String expectedCalcite = "INSERT INTO \"SCOTT\".\"DEPT\""
         + " (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
         + "VALUES (1, 'Fred', 'San Francisco'),\n"
-        + "(2, 'Eric', 'Washington')";
+        + "(2, 'Eric', 'Washington   ')";
     final String expectedCalciteX = "INSERT INTO \"SCOTT\".\"DEPT\""
         + " (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
         + "SELECT 1, 'Fred', 'San Francisco'\n"
@@ -8174,10 +8241,31 @@ class RelToSqlConverterTest {
     final String expected = "SELECT *\n"
         + "FROM TABLE(DEDUP(CURSOR ((SELECT \"product_id\", \"product_name\"\n"
         + "FROM \"foodmart\".\"product\"\n"
-        + "WHERE \"net_weight\" > 100 AND \"product_name\" = 'Hello World')), "
+        + "WHERE \"net_weight\" > CAST(100 AS DOUBLE) AND \"product_name\" = 'Hello World')), "
         + "CURSOR ((SELECT \"employee_id\", \"full_name\"\n"
         + "FROM \"foodmart\".\"employee\"\n"
         + "GROUP BY \"employee_id\", \"full_name\")), 'NAME'))";
+    sql(query).ok(expected);
+  }
+
+   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6604">[CALCITE-6604]
+   * Add support for SqlWindowTableFunction in RelToSql Converter </a>. */
+  @Test void testWindowTableFunctionScan() {
+    final String query = "SELECT *\n"
+            + "FROM TABLE(TUMBLE(TABLE \"employee\", DESCRIPTOR(\"hire_date\"), INTERVAL '1' MINUTE))";
+    final String expected = "SELECT *\n"
+            + "FROM TABLE(TUMBLE((SELECT *\n"
+            + "FROM \"foodmart\".\"employee\"), DESCRIPTOR(\"hire_date\"), INTERVAL '1' MINUTE))";
+    sql(query).ok(expected);
+  }
+
+  @Test void testWindowTableFunctionScanWithSubQuery() {
+    final String query = "SELECT * \n"
+        + "FROM TABLE(TUMBLE((SELECT \"employee_id\", \"hire_date\" FROM \"employee\"), DESCRIPTOR(\"hire_date\"), INTERVAL '1' MINUTE))";
+    final String expected = "SELECT *\n"
+        + "FROM TABLE(TUMBLE((SELECT \"employee_id\", \"hire_date\"\n"
+        + "FROM \"foodmart\".\"employee\"), DESCRIPTOR(\"hire_date\"), INTERVAL '1' MINUTE))";
     sql(query).ok(expected);
   }
 
@@ -8196,7 +8284,7 @@ class RelToSqlConverterTest {
         + "FROM (SELECT DEPTNO\n"
         + "FROM SCOTT.EMP\n"
         + "GROUP BY DEPTNO\n"
-        + "HAVING DEPTNO > 0) AS t1";
+        + "HAVING CAST(DEPTNO AS INT64) > 0) AS t1";
 
     // Parse the input SQL with PostgreSQL dialect,
     // in which "isHavingAlias" is false.
@@ -8629,6 +8717,18 @@ class RelToSqlConverterTest {
     sql(query).withPostgresql().ok(expectedQuery);
   }
 
+ /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6633">[CALCITE-6633]
+   * MSSQL Dialect does not generate CEILING function</a>.
+   */
+  @Test void testMSSQLCeiling() {
+    final String query = "select 1.24, FLOOR(1.24), CEILING(1.24)";
+    final String mssqlExpected = "SELECT 1.24, FLOOR(1.24), CEILING(1.24)\n"
+        + "FROM (VALUES (0)) AS [t] ([ZERO])";
+    sql(query)
+        .dialect(MssqlSqlDialect.DEFAULT).ok(mssqlExpected);
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final CalciteAssert.SchemaSpec schemaSpec;
@@ -8801,14 +8901,34 @@ class RelToSqlConverterTest {
     Sql withPostgresqlModifiedDecimalTypeSystem() {
       final PostgresqlSqlDialect postgresqlSqlDialect =
           new PostgresqlSqlDialect(PostgresqlSqlDialect.DEFAULT_CONTEXT
-              .withDataTypeSystem(new RelDataTypeSystemImpl() {
-                @Override public int getMaxNumericScale() {
-                  return 10;
-                }
-                @Override public int getMaxNumericPrecision() {
-                  return 39;
-                }
-              }));
+              .withDataTypeSystem(
+                  new RelDataTypeSystemImpl() {
+                    @Override public int getMaxNumericScale() {
+                      return getMaxScale(SqlTypeName.DECIMAL);
+                    }
+
+                    @Override public int getMaxScale(SqlTypeName typeName) {
+                      switch (typeName) {
+                      case DECIMAL:
+                        return 10;
+                      default:
+                        return super.getMaxScale(typeName);
+                      }
+                    }
+
+                    @Override public int getMaxNumericPrecision() {
+                      return getMaxPrecision(SqlTypeName.DECIMAL);
+                    }
+
+                    @Override public int getMaxPrecision(SqlTypeName typeName) {
+                      switch (typeName) {
+                      case DECIMAL:
+                        return 39;
+                      default:
+                        return super.getMaxPrecision(typeName);
+                      }
+                    }
+                  }));
       return dialect(postgresqlSqlDialect);
     }
 

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.test.schemata.bookstore;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Collections;
@@ -88,16 +90,15 @@ public final class BookstoreSchema {
 
   /** Place. */
   public static class Place {
-    public final Coordinate coords;
+    public final @Nullable Coordinate coords;
     public final String city;
     public final String country;
 
-    public Place(Coordinate coords, String city, String country) {
+    public Place(@Nullable Coordinate coords, String city, String country) {
       this.coords = coords;
       this.city = city;
       this.country = country;
     }
-
   }
 
   /** Coordinate. */

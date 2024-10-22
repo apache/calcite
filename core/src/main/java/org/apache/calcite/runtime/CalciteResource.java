@@ -612,6 +612,9 @@ public interface CalciteResource {
   @BaseMessage("Argument to function ''{0}'' must not be NULL")
   ExInst<SqlValidatorException> argumentMustNotBeNull(String a0);
 
+  @BaseMessage("At least one argument to function ''{0}'' must not be NULL")
+  ExInst<SqlValidatorException> atLeastOneArgumentMustNotBeNull(String a0);
+
   @BaseMessage("Illegal use of ''NULL''")
   ExInst<SqlValidatorException> nullIllegal();
 
@@ -929,6 +932,21 @@ public interface CalciteResource {
 
   @BaseMessage("Illegal arguments for 'FORMAT_NUMBER' function: negative decimal value not allowed")
   ExInst<CalciteException> illegalNegativeDecimalValue();
+
+  @BaseMessage("Illegal arguments for 'MAP_ENTRIES' function: using a map with a null key is not allowed")
+  ExInst<CalciteException> illegalMapEntriesWithNullKey();
+
+  @BaseMessage("Illegal arguments for 'MAP_KEYS' function: using a map with a null key is not allowed")
+  ExInst<CalciteException> illegalMapKeysWithNullKey();
+
+  @BaseMessage("Illegal arguments for 'MAP_VALUES' function: using a map with a null key is not allowed")
+  ExInst<CalciteException> illegalMapValuesWithNullKey();
+
+  @BaseMessage("DECIMAL precision {0,number,#} must be between 1 and {1,number,#}")
+  ExInst<CalciteException> invalidPrecisionForDecimalType(int precision, int maxPrecision);
+
+  @BaseMessage("DECIMAL scale {0,number,#} must be between {1,number,#} and {2,number,#}")
+  ExInst<CalciteException> invalidScaleForDecimalType(int scale, int minScale, int maxScale);
 
   @BaseMessage("Illegal arguments: The length of the keys array {0,number,#} is not equal to the length of the values array {1,number,#} in MAP_FROM_ARRAYS function")
   ExInst<CalciteException> illegalArgumentsInMapFromArraysFunc(int arg0, int arg1);

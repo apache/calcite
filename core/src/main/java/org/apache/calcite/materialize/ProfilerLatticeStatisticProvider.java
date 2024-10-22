@@ -32,8 +32,9 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Supplier;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of {@link LatticeStatisticProvider} that uses a
@@ -46,7 +47,7 @@ class ProfilerLatticeStatisticProvider implements LatticeStatisticProvider {
 
   /** Creates a ProfilerLatticeStatisticProvider. */
   private ProfilerLatticeStatisticProvider(Lattice lattice) {
-    Objects.requireNonNull(lattice, "lattice");
+    requireNonNull(lattice, "lattice");
     this.profile = Suppliers.memoize(() -> {
       final ProfilerImpl profiler =
           ProfilerImpl.builder()

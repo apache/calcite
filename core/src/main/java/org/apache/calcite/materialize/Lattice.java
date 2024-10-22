@@ -251,6 +251,14 @@ public class Lattice {
    * given set of columns and measures, optionally grouping. */
   public String sql(ImmutableBitSet groupSet, boolean group,
       List<Measure> aggCallList) {
+    final SqlDialect dialect = SqlDialect.DatabaseProduct.CALCITE.getDialect();
+    return sql(groupSet, group, aggCallList, dialect);
+  }
+
+  /** Generates a SQL query to populate a tile of the lattice specified by a
+   * given set of columns and measures, optionally grouping and dialect. */
+  public String sql(ImmutableBitSet groupSet, boolean group,
+      List<Measure> aggCallList, SqlDialect dialect) {
     final List<LatticeNode> usedNodes = new ArrayList<>();
     if (group) {
       final ImmutableBitSet.Builder columnSetBuilder = groupSet.rebuild();
@@ -277,7 +285,6 @@ public class Lattice {
       usedNodes.addAll(rootNode.descendants);
     }
 
-    final SqlDialect dialect = SqlDialect.DatabaseProduct.CALCITE.getDialect();
     final StringBuilder buf = new StringBuilder("SELECT ");
     final StringBuilder groupBuf = new StringBuilder("\nGROUP BY ");
     int k = 0;
@@ -811,8 +818,7 @@ public class Lattice {
 
       // Get aliases.
       List<@Nullable String> aliases = new ArrayList<>();
-      SqlNode from = ((SqlSelect) parsed.sqlNode).getFrom();
-      assert from != null : "from must not be null";
+      SqlNode from = requireNonNull(((SqlSelect) parsed.sqlNode).getFrom());
       populateAliases(from, aliases, null);
 
       // Build a graph.
@@ -864,7 +870,7 @@ public class Lattice {
         }
         map.put(vertex.table, node);
       }
-      assert root != null;
+      requireNonNull(root, "root");
       final Fixer fixer = new Fixer();
       fixer.fixUp(root);
       baseColumns = fixer.columnList.build();
@@ -978,7 +984,7 @@ public class Lattice {
      */
     private Column resolveColumnByAlias(String name) {
       final ImmutableList<Column> list = columnsByAlias.get(name);
-      if (list == null || list.size() == 0) {
+      if (list.isEmpty()) {
         throw new RuntimeException("Unknown lattice column '" + name + "'");
       } else if (list.size() == 1) {
         return list.get(0);

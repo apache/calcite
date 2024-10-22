@@ -44,11 +44,13 @@ import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.util.NumberUtil;
 import org.apache.calcite.util.TimeWithTimeZoneString;
 import org.apache.calcite.util.TimestampWithTimeZoneString;
+import org.apache.calcite.util.TryThreadLocal;
 import org.apache.calcite.util.Unsafe;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.format.FormatElement;
 import org.apache.calcite.util.format.FormatModel;
 import org.apache.calcite.util.format.FormatModels;
+import org.apache.calcite.util.format.postgresql.CompiledDateTimeFormat;
 import org.apache.calcite.util.format.postgresql.PostgresqlDateTimeFormatter;
 
 import org.apache.commons.codec.DecoderException;
@@ -134,6 +136,12 @@ import static org.apache.calcite.config.CalciteSystemProperty.FUNCTION_LEVEL_CAC
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.Static.RESOURCE;
 
+import static java.lang.Byte.parseByte;
+import static java.lang.Double.parseDouble;
+import static java.lang.Float.parseFloat;
+import static java.lang.Integer.parseInt;
+import static java.lang.Long.parseLong;
+import static java.lang.Short.parseShort;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.joining;
@@ -207,8 +215,8 @@ public class SqlFunctions {
    * <p>This is a straw man of an implementation whose main goal is to prove
    * that sequences can be parsed, validated and planned. A real application
    * will want persistent values for sequences, shared among threads. */
-  private static final ThreadLocal<@Nullable Map<String, AtomicLong>> THREAD_SEQUENCES =
-      ThreadLocal.withInitial(HashMap::new);
+  private static final TryThreadLocal<Map<String, AtomicLong>> THREAD_SEQUENCES =
+      TryThreadLocal.withInitial(HashMap::new);
 
   /** A byte string consisting of a single byte that is the ASCII space
    * character (0x20). */
@@ -969,9 +977,9 @@ public class SqlFunctions {
   * operator. */
   public static boolean containsSubstr(String jsonString, String substr,
       String jsonScope) {
-    LinkedHashMap<String, String> map =
-        (LinkedHashMap<String, String>) JsonFunctions.dejsonize(jsonString);
-    assert map != null;
+    final Object o = requireNonNull(JsonFunctions.dejsonize(jsonString));
+    @SuppressWarnings("unchecked") LinkedHashMap<String, String> map =
+        (LinkedHashMap<String, String>) o;
     Set<String> keys = map.keySet();
     Collection<String> values = map.values();
     try {
@@ -1441,7 +1449,7 @@ public class SqlFunctions {
    * SQL TO_CODE_POINTS(string) function.
    */
   public static @Nullable List<Integer> toCodePoints(String s) {
-    if (s.length() == 0) {
+    if (s.isEmpty()) {
       return null;
     }
     final ImmutableList.Builder<Integer> builder = new ImmutableList.Builder<>();
@@ -2829,13 +2837,78 @@ public class SqlFunctions {
     return b0 & b1;
   }
 
+  /** Bitwise function <code>BITAND</code> applied to a Long and int value.
+   *  Needed for handling NULL for the first argument.
+   */
+  public static long bitAnd(Long b0, int b1) {
+    return b0 & b1;
+  }
+
+  /** Bitwise function <code>BITAND</code> applied to a Long and int value.
+   *  Needed for handling NULL for the second argument.
+   */
+  public static long bitAnd(int b0, Long b1) {
+    return b0 & b1;
+  }
+
   /** Bitwise function <code>BIT_AND</code> applied to binary values. */
   public static ByteString bitAnd(ByteString b0, ByteString b1) {
     return binaryOperator(b0, b1, (x, y) -> (byte) (x & y));
   }
 
+  /** Helper function for implementing <code>BITCOUNT</code>. Counts the number
+   * of bits set in an integer value. */
+  public static long bitCount(long b) {
+    return Long.bitCount(b);
+  }
+
+  private static final BigDecimal BITCOUNT_MAX = new BigDecimal(2).pow(64)
+      .subtract(new BigDecimal(1));
+  private static final BigDecimal BITCOUNT_MIN = new BigDecimal(2).pow(63).negate();
+
+  /** Helper function for implementing <code>BITCOUNT</code>. Counts the number
+   * of bits set in the integer portion of a decimal value. */
+  public static long bitCount(BigDecimal b) {
+    final int comparison = b.compareTo(BITCOUNT_MAX);
+    if (comparison < 0) {
+      if (b.compareTo(BITCOUNT_MIN) <= 0) {
+        return 1;
+      } else {
+        return bitCount(b.setScale(0, RoundingMode.DOWN).longValue());
+      }
+    } else if (comparison == 0) {
+      return 64;
+    } else {
+      return 63;
+    }
+  }
+
+  /** Helper function for implementing <code>BITCOUNT</code>. Counts the number
+   * of bits set in a ByteString value. */
+  public static long bitCount(ByteString b) {
+    long bitsSet = 0;
+    for (int i = 0; i < b.length(); i++) {
+      bitsSet += Integer.bitCount(0xff & b.byteAt(i));
+    }
+    return bitsSet;
+  }
+
   /** Bitwise function <code>BIT_OR</code> applied to integer values. */
   public static long bitOr(long b0, long b1) {
+    return b0 | b1;
+  }
+
+  /** Bitwise function <code>BITOR</code> applied to a Long and int value.
+   *  Needed for handling NULL for the first argument.
+   */
+  public static long bitOr(Long b0, int b1) {
+    return b0 | b1;
+  }
+
+  /** Bitwise function <code>BITOR</code> applied to a Long and int value.
+   *  Needed for handling NULL for the second argument.
+   */
+  public static long bitOr(int b0, Long b1) {
     return b0 | b1;
   }
 
@@ -2849,9 +2922,38 @@ public class SqlFunctions {
     return b0 ^ b1;
   }
 
+  /** Bitwise function <code>BITXOR</code> applied to a Long and int value.
+   *  Needed for handling NULL for the first argument.
+   */
+  public static long bitXor(Long b0, int b1) {
+    return b0 ^ b1;
+  }
+
+  /** Bitwise function <code>BITXOR</code> applied to a Long and int value.
+   *  Needed for handling NULL for the second argument.
+   */
+  public static long bitXor(int b0, Long b1) {
+    return b0 ^ b1;
+  }
+
   /** Bitwise function <code>BIT_XOR</code> applied to binary values. */
   public static ByteString bitXor(ByteString b0, ByteString b1) {
     return binaryOperator(b0, b1, (x, y) -> (byte) (x ^ y));
+  }
+
+  /** Bitwise function <code>BIT_NOT</code> applied to integer values. */
+  public static long bitNot(long b) {
+    return ~b;
+  }
+
+  /** Bitwise function <code>BIT_NOT</code> applied to a binary value. */
+  public static ByteString bitNot(ByteString b) {
+    final byte[] result = new byte[b.length()];
+    for (int i = 0; i < b.length(); i++) {
+      result[i] = (byte) ~b.byteAt(i);
+    }
+
+    return new ByteString(result);
   }
 
   /**
@@ -2974,6 +3076,16 @@ public class SqlFunctions {
       throw new IllegalArgumentException("Cannot take logarithm of zero or negative number");
     }
     return Math.log(number.doubleValue()) / Math.log(base.doubleValue());
+  }
+
+  /** SQL <code>LOG1P</code> operator applied to double values. */
+  public static @Nullable Double log1p(double b0) {
+    return b0 <= -1 ? null : Math.log1p(b0);
+  }
+
+  /** SQL <code>LOG1P</code> operator applied to BigDecimal values. */
+  public static @Nullable Double log1p(BigDecimal b0) {
+    return b0.doubleValue() <= -1 ? null : Math.log1p(b0.doubleValue());
   }
 
   // MOD
@@ -3823,7 +3935,7 @@ public class SqlFunctions {
   public static byte toByte(Object o) {
     return o instanceof Byte ? (Byte) o
         : o instanceof Number ? toByte((Number) o)
-        : Byte.parseByte(o.toString());
+        : parseByte(o.toString());
   }
 
   public static byte toByte(Number number) {
@@ -3839,7 +3951,7 @@ public class SqlFunctions {
   }
 
   public static short toShort(String s) {
-    return Short.parseShort(s.trim());
+    return parseShort(s.trim());
   }
 
   public static short toShort(Number number) {
@@ -3948,7 +4060,7 @@ public class SqlFunctions {
   }
 
   public static int toInt(String s) {
-    return Integer.parseInt(s.trim());
+    return parseInt(s.trim());
   }
 
   public static int toInt(Number number) {
@@ -4052,7 +4164,7 @@ public class SqlFunctions {
     if (s.startsWith("199") && s.contains(":")) {
       return Timestamp.valueOf(s).getTime();
     }
-    return Long.parseLong(s.trim());
+    return parseLong(s.trim());
   }
 
   public static long toLong(Number number) {
@@ -4075,7 +4187,7 @@ public class SqlFunctions {
   }
 
   public static float toFloat(String s) {
-    return Float.parseFloat(s.trim());
+    return parseFloat(s.trim());
   }
 
   public static float toFloat(Number number) {
@@ -4090,7 +4202,7 @@ public class SqlFunctions {
   }
 
   public static double toDouble(String s) {
-    return Double.parseDouble(s.trim());
+    return parseDouble(s.trim());
   }
 
   public static double toDouble(Number number) {
@@ -4212,7 +4324,7 @@ public class SqlFunctions {
   public static long timeWithLocalTimeZoneToTimestamp(String date, int v, TimeZone timeZone) {
     final TimeWithTimeZoneString tTZ = TimeWithTimeZoneString.fromMillisOfDay(v)
         .withTimeZone(DateTimeUtils.UTC_ZONE);
-    return new TimestampWithTimeZoneString(date + " " + tTZ.toString())
+    return new TimestampWithTimeZoneString(date + " " + tTZ)
         .withTimeZone(timeZone)
         .getLocalTimestampString()
         .getMillisSinceEpoch();
@@ -4221,7 +4333,7 @@ public class SqlFunctions {
   public static long timeWithLocalTimeZoneToTimestampWithLocalTimeZone(String date, int v) {
     final TimeWithTimeZoneString tTZ = TimeWithTimeZoneString.fromMillisOfDay(v)
         .withTimeZone(DateTimeUtils.UTC_ZONE);
-    return new TimestampWithTimeZoneString(date + " " + tTZ.toString())
+    return new TimestampWithTimeZoneString(date + " " + tTZ)
         .getLocalTimestampString()
         .getMillisSinceEpoch();
   }
@@ -4247,20 +4359,6 @@ public class SqlFunctions {
    * {@code FORMAT_DATETIME}, {@code FORMAT_TIME}, {@code TO_CHAR} functions. */
   @Deterministic
   public static class DateFormatFunction {
-    // Timezone to use for PostgreSQL parsing of timestamps
-    private static final ZoneId LOCAL_ZONE;
-    static {
-      ZoneId zoneId;
-      try {
-        // Currently the parsed timestamps are expected to be the number of
-        // milliseconds since the epoch in UTC, with no timezone information
-        zoneId = ZoneId.of("UTC");
-      } catch (Exception e) {
-        zoneId = ZoneId.systemDefault();
-      }
-      LOCAL_ZONE = zoneId;
-    }
-
     /** Work space for various functions. Clear it before you use it. */
     final StringBuilder sb = new StringBuilder();
 
@@ -4306,50 +4404,14 @@ public class SqlFunctions {
       return sb.toString().trim();
     }
 
-    public String toCharPg(long timestamp, String pattern) {
-      final Timestamp sqlTimestamp = internalToTimestamp(timestamp);
-      final ZonedDateTime zonedDateTime =
-          ZonedDateTime.of(sqlTimestamp.toLocalDateTime(), ZoneId.systemDefault());
-      return PostgresqlDateTimeFormatter.toChar(pattern, zonedDateTime).trim();
-    }
-
     public int toDate(String dateString, String fmtString) {
       return toInt(
           new java.sql.Date(internalToDateTime(dateString, fmtString)));
     }
 
-    public int toDatePg(String dateString, String fmtString) {
-      try {
-        return (int) PostgresqlDateTimeFormatter.toTimestamp(dateString, fmtString,
-                LOCAL_ZONE)
-            .getLong(ChronoField.EPOCH_DAY);
-      } catch (Exception e) {
-        SQLException sqlEx =
-            new SQLException(
-                String.format(Locale.ROOT,
-                    "Invalid format: '%s' for datetime string: '%s'.", fmtString,
-                    dateString));
-        throw Util.toUnchecked(sqlEx);
-      }
-    }
-
     public long toTimestamp(String timestampString, String fmtString) {
       return toLong(
           new java.sql.Timestamp(internalToDateTime(timestampString, fmtString)));
-    }
-
-    public long toTimestampPg(String timestampString, String fmtString) {
-      try {
-        return PostgresqlDateTimeFormatter.toTimestamp(timestampString, fmtString, LOCAL_ZONE)
-            .toInstant().toEpochMilli();
-      } catch (Exception e) {
-        SQLException sqlEx =
-            new SQLException(
-                String.format(Locale.ROOT,
-                    "Invalid format: '%s' for timestamp string: '%s'.", fmtString,
-                    timestampString));
-        throw Util.toUnchecked(sqlEx);
-      }
     }
 
     private long internalToDateTime(String dateString, String fmtString) {
@@ -4382,6 +4444,67 @@ public class SqlFunctions {
 
     public String formatTime(String fmtString, int time) {
       return internalFormatDatetime(fmtString, internalToTime(time));
+    }
+  }
+
+  /** State for {@code FORMAT_DATE}, {@code FORMAT_TIMESTAMP},
+   * {@code FORMAT_DATETIME}, {@code FORMAT_TIME}, {@code TO_CHAR} functions. */
+  @Deterministic
+  public static class DateFormatFunctionPg {
+    // Timezone to use for PostgreSQL parsing of timestamps
+    private static final ZoneId LOCAL_ZONE = ZoneId.ofOffset("", ZoneOffset.UTC);
+
+    private final DataContext dataContext;
+    private final LoadingCache<String, CompiledDateTimeFormat> formatCachePg =
+        CacheBuilder.newBuilder()
+            .maximumSize(FUNCTION_LEVEL_CACHE_MAX_SIZE.value())
+            .build(CacheLoader.from(PostgresqlDateTimeFormatter::compilePattern));
+
+    public DateFormatFunctionPg(DataContext dataContext) {
+      this.dataContext = dataContext;
+    }
+
+    public String toChar(long timestamp, String pattern) {
+      final ZoneId zoneId = DataContext.Variable.TIME_ZONE.<TimeZone>get(dataContext).toZoneId();
+      final Locale locale = requireNonNull(DataContext.Variable.LOCALE.get(dataContext));
+      final CompiledDateTimeFormat dateTimeFormat = formatCachePg.getUnchecked(pattern);
+      final Timestamp sqlTimestamp = internalToTimestamp(timestamp);
+      final ZonedDateTime zonedDateTime =
+          ZonedDateTime.of(sqlTimestamp.toLocalDateTime(), zoneId);
+      return dateTimeFormat.formatDateTime(zonedDateTime, locale);
+    }
+
+    public int toDate(String dateString, String fmtString) {
+      try {
+        final Locale locale = requireNonNull(DataContext.Variable.LOCALE.get(dataContext));
+        final CompiledDateTimeFormat dateTimeFormat = formatCachePg.getUnchecked(fmtString);
+        return (int) dateTimeFormat.parseDateTime(dateString, LOCAL_ZONE, locale).getLong(
+            ChronoField.EPOCH_DAY);
+      } catch (Exception e) {
+        SQLException sqlEx =
+            new SQLException(
+                String.format(Locale.ROOT,
+                    "Invalid format: '%s' for datetime string: '%s'.", fmtString,
+                    dateString));
+        throw Util.toUnchecked(sqlEx);
+      }
+    }
+
+    public long toTimestamp(String timestampString, String fmtString) {
+      try {
+        final Locale locale = requireNonNull(DataContext.Variable.LOCALE.get(dataContext));
+        final CompiledDateTimeFormat dateTimeFormat = formatCachePg.getUnchecked(fmtString);
+        return dateTimeFormat.parseDateTime(timestampString, LOCAL_ZONE, locale)
+            .toInstant()
+            .toEpochMilli();
+      } catch (Exception e) {
+        SQLException sqlEx =
+            new SQLException(
+                String.format(Locale.ROOT,
+                    "Invalid format: '%s' for timestamp string: '%s'.", fmtString,
+                    timestampString));
+        throw Util.toUnchecked(sqlEx);
+      }
     }
   }
 
@@ -5502,14 +5625,8 @@ public class SqlFunctions {
   }
 
   private static AtomicLong getAtomicLong(String key) {
-    final Map<String, AtomicLong> map =
-        requireNonNull(THREAD_SEQUENCES.get(), "THREAD_SEQUENCES.get()");
-    AtomicLong atomic = map.get(key);
-    if (atomic == null) {
-      atomic = new AtomicLong();
-      map.put(key, atomic);
-    }
-    return atomic;
+    final Map<String, AtomicLong> map = THREAD_SEQUENCES.get();
+    return map.computeIfAbsent(key, key_ -> new AtomicLong());
   }
 
   /** Support the ARRAYS_OVERLAP function. */
@@ -5520,7 +5637,7 @@ public class SqlFunctions {
     final List smaller = list1;
     final List bigger = list2;
     boolean hasNull = false;
-    if (smaller.size() > 0 && bigger.size() > 0) {
+    if (!smaller.isEmpty() && !bigger.isEmpty()) {
       final Set smallestSet = new HashSet(smaller);
       hasNull = smallestSet.remove(null);
       for (Object element : bigger) {
@@ -5630,7 +5747,7 @@ public class SqlFunctions {
   public static Long arrayPosition(List list, Object element) {
     final int index = list.indexOf(element);
     if (index != -1) {
-      return Long.valueOf(index + 1L);
+      return index + 1L;
     }
     return 0L;
   }
@@ -5812,7 +5929,7 @@ public class SqlFunctions {
     final List result = new ArrayList(map.size());
     for (Map.Entry<Object, Object> entry : map.entrySet()) {
       if (entry.getKey() == null) {
-        throw new IllegalArgumentException("Cannot use null as map key");
+        throw RESOURCE.illegalMapEntriesWithNullKey().ex();
       }
       result.add(Arrays.asList(entry.getKey(), entry.getValue()));
     }
@@ -5821,11 +5938,18 @@ public class SqlFunctions {
 
   /** Support the MAP_KEYS function. */
   public static List mapKeys(Map map) {
-    return new ArrayList<>(map.keySet());
+    try {
+      return ImmutableList.copyOf(map.keySet());
+    } catch (NullPointerException e) {
+      throw RESOURCE.illegalMapKeysWithNullKey().ex();
+    }
   }
 
   /** Support the MAP_VALUES function. */
   public static List mapValues(Map map) {
+    if (map.containsKey(null)) {
+      throw RESOURCE.illegalMapValuesWithNullKey().ex();
+    }
     return new ArrayList<>(map.values());
   }
 
@@ -5885,6 +6009,55 @@ public class SqlFunctions {
       map.put(key, value);
     }
     return map;
+  }
+
+  /** Support the SUBSTRING_INDEX function. */
+  public static String substringIndex(String string, String delimiter, int count) {
+    if (string.isEmpty() || count == 0) {
+      return "";
+    }
+    if (count > 0) {
+      int idx = -1;
+      while (count > 0) {
+        idx = string.indexOf(delimiter, idx + 1);
+        if (idx >= 0) {
+          count--;
+        } else {
+          // can not find enough delim
+          return string;
+        }
+      }
+      if (idx == 0) {
+        return "";
+      }
+      return string.substring(0, idx);
+    } else {
+      int idx = string.length() - delimiter.length() + 1;
+      count = -count;
+      while (count > 0) {
+        idx = rfind(string, delimiter, idx - 1);
+        if (idx >= 0) {
+          count--;
+        } else {
+          return string;
+        }
+      }
+      if (idx + delimiter.length() == string.length()) {
+        return "";
+      }
+      return string.substring(idx + delimiter.length());
+    }
+  }
+
+  /** Find the string from right to left. */
+  private static int rfind(String string, String delim, int start) {
+    while (start >= 0) {
+      if (string.indexOf(delim, start) >= 0) {
+        return start;
+      }
+      start -= 1;
+    }
+    return -1;
   }
 
   /** Support the SLICE function. */

@@ -33,6 +33,7 @@ import org.apache.calcite.tools.Program;
 import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.ValidationException;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -49,7 +50,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  */
 class LexCaseSensitiveTest {
 
-  private static Planner getPlanner(List<RelTraitDef> traitDefs,
+  private static Planner getPlanner(@Nullable List<RelTraitDef> traitDefs,
       SqlParser.Config parserConfig, Program... programs) {
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
     final FrameworkConfig config = Frameworks.newConfigBuilder()

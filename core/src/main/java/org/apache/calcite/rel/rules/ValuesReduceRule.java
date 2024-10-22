@@ -45,6 +45,8 @@ import org.slf4j.Logger;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -132,8 +134,8 @@ public class ValuesReduceRule
    */
   protected void apply(RelOptRuleCall call, @Nullable LogicalProject project,
       @Nullable LogicalFilter filter, LogicalValues values) {
-    assert values != null;
-    assert filter != null || project != null;
+    requireNonNull(values, "values");
+    checkArgument(filter != null || project != null);
     final RexNode conditionExpr =
         (filter == null) ? null : filter.getCondition();
     final List<RexNode> projectExprs =

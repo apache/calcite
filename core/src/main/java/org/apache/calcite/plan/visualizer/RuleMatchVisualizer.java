@@ -51,12 +51,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 import static com.google.common.collect.ImmutableList.toImmutableList;
 
 import static org.apache.calcite.util.Util.transform;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * This is a tool to visualize the rule match process of a RelOptPlanner.
@@ -82,7 +83,9 @@ public class RuleMatchVisualizer implements RelOptListener {
 
   // default HTML template can be edited at
   // core/src/main/resources/org/apache/calcite/plan/visualizer/viz-template.html
-  private final String templateDirectory = "org/apache/calcite/plan/visualizer";
+  private static final String TEMPLATE_DIRECTORY =
+      "org/apache/calcite/plan/visualizer";
+
   private final @Nullable String outputDirectory;
   private final @Nullable String outputSuffix;
 
@@ -108,8 +111,8 @@ public class RuleMatchVisualizer implements RelOptListener {
   public RuleMatchVisualizer(
       String outputDirectory,
       String outputSuffix) {
-    this.outputDirectory = Objects.requireNonNull(outputDirectory, "outputDirectory");
-    this.outputSuffix = Objects.requireNonNull(outputSuffix, "outputSuffix");
+    this.outputDirectory = requireNonNull(outputDirectory, "outputDirectory");
+    this.outputSuffix = requireNonNull(outputSuffix, "outputSuffix");
   }
 
   /**
@@ -148,9 +151,8 @@ public class RuleMatchVisualizer implements RelOptListener {
   @Override public void ruleAttempted(RuleAttemptedEvent event) {
     // HepPlanner compatibility
     if (!initialized) {
-      assert planner != null;
-      RelNode root = planner.getRoot();
-      assert root != null;
+      requireNonNull(planner, "planner");
+      RelNode root = requireNonNull(planner.getRoot());
       initialized = true;
       updateInitialPlan(root);
     }
@@ -182,9 +184,8 @@ public class RuleMatchVisualizer implements RelOptListener {
 
   @Override public void relChosen(RelChosenEvent event) {
     if (event.getRel() == null) {
-      assert this.planner != null;
-      RelNode root = this.planner.getRoot();
-      assert root != null;
+      requireNonNull(planner, "planner");
+      RelNode root = requireNonNull(planner.getRoot());
       updateFinalPlan(root);
       this.addStep(FINAL, null);
       this.writeToFile();
@@ -246,8 +247,7 @@ public class RuleMatchVisualizer implements RelOptListener {
   }
 
   @Override public void relEquivalenceFound(RelEquivalenceEvent event) {
-    RelNode rel = event.getRel();
-    assert rel != null;
+    final RelNode rel = requireNonNull(event.getRel());
     Object eqClass = event.getEquivalenceClass();
     if (eqClass instanceof String) {
       String eqClassStr = (String) eqClass;
@@ -296,8 +296,7 @@ public class RuleMatchVisualizer implements RelOptListener {
   private void updateNodeInfo(final RelNode rel, final boolean isLastStep) {
     NodeUpdateHelper helper = registerRelNode(rel);
     if (this.includeIntermediateCosts || isLastStep) {
-      RelOptPlanner planner = this.planner;
-      assert planner != null;
+      final RelOptPlanner planner = requireNonNull(this.planner);
       RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
       RelOptCost cost = planner.getCost(rel, mq);
       Double rowCount = mq.getRowCount(rel);
@@ -384,11 +383,11 @@ public class RuleMatchVisualizer implements RelOptListener {
     }
 
     try {
-      String templatePath = Paths.get(templateDirectory).resolve("viz-template.html").toString();
-      ClassLoader cl = getClass().getClassLoader();
-      assert cl != null;
-      InputStream resourceAsStream = cl.getResourceAsStream(templatePath);
-      assert resourceAsStream != null;
+      final String templatePath =
+          Paths.get(TEMPLATE_DIRECTORY).resolve("viz-template.html").toString();
+      final ClassLoader cl = requireNonNull(getClass().getClassLoader());
+      final InputStream resourceAsStream =
+          requireNonNull(cl.getResourceAsStream(templatePath));
       String htmlTemplate = IOUtils.toString(resourceAsStream, StandardCharsets.UTF_8);
 
       String htmlFileName = "planner-viz" + outputSuffix + ".html";

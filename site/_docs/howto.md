@@ -31,7 +31,7 @@ adapters.
 
 ## Building from a source distribution
 
-Prerequisite is Java (JDK 8, 11, 17, 21 or 22)
+Prerequisite is Java (JDK 8, 11, 17, 21 or 23)
 and Gradle (version 8.7) on your path.
 
 Unpack the source distribution `.tar.gz` file,
@@ -39,8 +39,8 @@ Unpack the source distribution `.tar.gz` file,
 then build using Gradle:
 
 {% highlight bash %}
-$ tar xvfz apache-calcite-1.37.0-src.tar.gz
-$ cd apache-calcite-1.37.0-src
+$ tar xvfz apache-calcite-1.38.0-src.tar.gz
+$ cd apache-calcite-1.38.0-src
 $ gradle build
 {% endhighlight %}
 
@@ -51,7 +51,7 @@ tests  (but you should use the `gradle` command rather than
 ## Building from Git
 
 Prerequisites are git
-and Java (JDK 8, 11, 17, 21 or 22) on your path.
+and Java (JDK 8, 11, 17, 21 or 23) on your path.
 
 Create a local copy of the GitHub repository,
 `cd` to its root directory,
@@ -683,8 +683,8 @@ asfGitSourcePassword=
 Note:
 * Both `asfNexusUsername` and `asfSvnUsername` are your apache id with `asfNexusPassword` and
 `asfSvnPassword` are corresponding password.
-* Git source account can be configured to either Gitbox (the default) or Github. For Gitbox, `asfGitSourceUsername`
-is your apache id, and `asfGitSourcePassword` is the corresponding password. For Github, `asfGitSourceUsername`
+* Git source account can be configured to either Gitbox (the default) or GitHub. For Gitbox, `asfGitSourceUsername`
+is your apache id, and `asfGitSourcePassword` is the corresponding password. For GitHub, `asfGitSourceUsername`
 is your GitHub id while `asfGitSourcePassword` is not your GitHub password, you need to generate it in
 https://github.com/settings/tokens choosing `Personal access tokens`.
 
@@ -728,7 +728,8 @@ Before you start:
 * Send an email to [dev@calcite.apache.org](mailto:dev@calcite.apache.org) notifying that RC build process
   is starting and therefore `main` branch is in code freeze until further notice.
 * Set up signing keys as described above.
-* Make sure you are using JDK 8 (not 9 or 10).
+* Make sure you are using JDK 8. (Compiling with JDK 21 causes
+  [[CALCITE-6616](https://issues.apache.org/jira/browse/CALCITE-6616)].)
 * Check that `README` and `site/_docs/howto.md` have the correct version number.
 * Check that `site/_docs/howto.md` has the correct Gradle version.
 * Check that `NOTICE` has the current copyright year.
@@ -792,6 +793,32 @@ The release candidate process does not add commits,
 so there's no harm if it fails. It might leave `-rc` tag behind
 which can be removed if required.
 
+Define your credentials in your `~/.gradle/gradle.properties` file.
+Replace `jhyde`, `julianhyde` and `xxx` as appropriate, and be sure to
+make the file private (permission 600).
+```
+useGpgCmd=true
+signing.gnupg.executable=gpg
+signing.gnupg.useLegacyGpg=false
+signing.gnupg.keyName=0xXXXXXXXX
+signing.gnupg.passphrase=xxx
+
+asfSvnUsername=jhyde
+asfSvnPassword=xxx
+asfGitSourceUsername=julianhyde
+asfGitSourcePassword=xxx
+asfNexusUsername=jhyde
+asfNexusPassword=xxx
+asfCommitterId=jhyde
+
+asfTestSvnPassword=test
+asfTestSvnUsername=test
+asfTestGitSourceUsername=test
+asfTestGitSourcePassword=test
+asfTestNexusUsername=test
+asfTestNexusPassword=test
+```
+
 If you wish, you can perform a dry-run release with a help of
 [asflike-release-environment](https://github.com/vlsi/asflike-release-environment);
 it would perform the same steps, but it would push changes to the mock Nexus, Git, and SVN servers.
@@ -814,7 +841,7 @@ git clean -xn
 ./gradlew prepareVote -Prc=0
 
 # Push release candidate to ASF servers
-# If you prefer to use Github account, change pushRepositoryProvider to GITHUB
+# If you prefer to use GitHub account, change pushRepositoryProvider to GITHUB
 ./gradlew prepareVote -Prc=0 -Pasf -Pasf.git.pushRepositoryProvider=GITBOX
 {% endhighlight %}
 
@@ -928,7 +955,7 @@ No 0s or -1s.
 Therefore, I am delighted to announce that the proposal to release
 Apache Calcite X.Y.Z has passed.
 
-Thanks everyone. We’ll now roll the release out to the mirrors.
+Thanks everyone. We’ll now publish and announce the release.
 
 There was some feedback during voting. I shall open a separate
 thread to discuss.
@@ -951,7 +978,7 @@ Remember that UTC date changes at 4 pm Pacific time.
 ./gradlew publishDist -Prc=0
 
 # Publish the release to ASF servers
-# If you prefer to use Github account, change pushRepositoryProvider to GITHUB
+# If you prefer to use GitHub account, change pushRepositoryProvider to GITHUB
 ./gradlew publishDist -Prc=0 -Pasf -Pasf.git.pushRepositoryProvider=GITBOX
 {% endhighlight %}
 
@@ -990,15 +1017,15 @@ Make sure to add the version number and date of the latest release at the site l
 
 The release notes and the javadoc of the new version will be automatically deployed to the website
 once the release commits/tags reach the ASF remote and the respective
-[Gitub workflows](https://github.com/apache/calcite/blob/main/.github/workflows/) are triggered.
+[GitHub workflows](https://github.com/apache/calcite/blob/main/.github/workflows/) are triggered.
 
 Add a release announcement by copying
 [site/_posts/2016-10-12-release-1.10.0.md]({{ site.sourceRoot }}/site/_posts/2016-10-12-release-1.10.0.md),
 and adapt the release date in `history.md` if necessary. Preview the changes locally, by following the
 instructions in [site/README.md]({{ site.sourceRoot }}/site/README.md), and then commit and push
 the changes to the `main` branch. Please note that due to [CALCITE-5584](https://issues.apache.org/jira/browse/CALCITE-5584),
-the commit should be pushed to Github as the last commit, do not chain it with "Prepare for next development iteration"
-commit.
+the commit should be pushed to GitHub as the last commit; do not chain it with
+the "Prepare for next development iteration" commit.
 
 Ensure that all changes to the website (news, release notes, javadoc) are correctly displayed.
 

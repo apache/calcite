@@ -60,25 +60,25 @@ public class LoptMultiJoin {
   //~ Instance fields --------------------------------------------------------
 
   /** The MultiJoin being optimized. */
-  MultiJoin multiJoin;
+  final MultiJoin multiJoin;
 
   /**
    * Join filters associated with the MultiJoin, decomposed into a list.
    * Excludes left/right outer join filters.
    */
-  private List<RexNode> joinFilters;
+  private final List<RexNode> joinFilters;
 
   /**
    * All join filters associated with the MultiJoin, decomposed into a
    * list. Includes left/right outer join filters.
    */
-  private List<RexNode> allJoinFilters;
+  private final List<RexNode> allJoinFilters;
 
   /** Number of factors into the MultiJoin. */
   private final int nJoinFactors;
 
   /** Total number of fields in the MultiJoin. */
-  private int nTotalFields;
+  private final int nTotalFields;
 
   /** Original inputs into the MultiJoin. */
   private final ImmutableList<RelNode> joinFactors;
@@ -102,7 +102,7 @@ public class LoptMultiJoin {
    * row scan processing has completed. This excludes fields referenced in
    * join conditions, unless the field appears in the final projection list.
    */
-  private List<@Nullable ImmutableBitSet> projFields;
+  private final List<@Nullable ImmutableBitSet> projFields;
 
   /**
    * Map containing reference counts of the fields referenced in join
@@ -111,7 +111,7 @@ public class LoptMultiJoin {
    * for reference counts instead of simply a bitmap.) The map is indexed by
    * the factor number.
    */
-  private Map<Integer, int[]> joinFieldRefCountsMap;
+  private final Map<Integer, int[]> joinFieldRefCountsMap;
 
   /**
    * For each join filter, associates a bitmap indicating all factors
@@ -128,12 +128,12 @@ public class LoptMultiJoin {
   /**
    * Starting RexInputRef index corresponding to each join factor.
    */
-  int [] joinStart;
+  final int [] joinStart;
 
   /**
    * Number of fields in each join factor.
    */
-  int [] nFieldsInJoinFactor;
+  final int [] nFieldsInJoinFactor;
 
   /**
    * Bitmap indicating which factors each factor references in join filters
@@ -158,18 +158,18 @@ public class LoptMultiJoin {
    * semijoin that allows the factor to be removed. If the factor cannot be
    * removed, the entry corresponding to the factor is null.
    */
-  @Nullable Integer [] joinRemovalFactors;
+  final @Nullable Integer [] joinRemovalFactors;
 
   /**
    * The semijoins that allow the join of a dimension table to be removed.
    */
-  LogicalJoin[] joinRemovalSemiJoins;
+  final LogicalJoin[] joinRemovalSemiJoins;
 
   /**
    * Set of null-generating factors whose corresponding outer join can be
    * removed from the query plan.
    */
-  Set<Integer> removableOuterJoinFactors;
+  final Set<Integer> removableOuterJoinFactors;
 
   /**
    * Map consisting of all pairs of self-joins where the self-join can be
@@ -177,7 +177,7 @@ public class LoptMultiJoin {
    * join on the same set of unique keys. The map is keyed by either factor in
    * the self join.
    */
-  Map<Integer, RemovableSelfJoin> removableSelfJoinPairs;
+  final Map<Integer, RemovableSelfJoin> removableSelfJoinPairs;
 
   //~ Constructors -----------------------------------------------------------
 

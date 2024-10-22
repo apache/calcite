@@ -151,10 +151,8 @@ public class RelMdColumnOrigins
         return rel.getProgram().expandLocalRef(localRef);
       }
     };
-    final List<RexNode> projects = new ArrayList<>();
-    for (RexNode rex : rexShuttle.apply(rel.getProgram().getProjectList())) {
-      projects.add(rex);
-    }
+    final List<RexNode> projects =
+        new ArrayList<>(rexShuttle.apply(rel.getProgram().getProjectList()));
     final RexNode rexNode = projects.get(iOutputColumn);
     if (rexNode instanceof RexInputRef) {
       // Direct reference:  no derivation added.
@@ -211,7 +209,7 @@ public class RelMdColumnOrigins
     final Set<RelColumnOrigin> set = new HashSet<>();
     Set<RelColumnMapping> mappings = rel.getColumnMappings();
     if (mappings == null) {
-      if (rel.getInputs().size() > 0) {
+      if (!rel.getInputs().isEmpty()) {
         // This is a non-leaf transformation:  say we don't
         // know about origins, because there are probably
         // columns below.
@@ -248,7 +246,7 @@ public class RelMdColumnOrigins
     // it's up to the plugin writer to override with the
     // correct information.
 
-    if (rel.getInputs().size() > 0) {
+    if (!rel.getInputs().isEmpty()) {
       // No generic logic available for non-leaf rels.
       return null;
     }

@@ -52,7 +52,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 /** Test case for joining tables from two different JDBC databases. */
 class MultiJdbcSchemaJoinTest {
-  @Test void test() throws SQLException, ClassNotFoundException {
+  @Test void test() throws SQLException {
     // Create two databases
     // It's two times hsqldb, but imagine they are different rdbms's
     final String db1 = TempDb.INSTANCE.getUrl();

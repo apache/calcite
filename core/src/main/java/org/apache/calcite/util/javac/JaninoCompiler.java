@@ -40,7 +40,7 @@ import static java.util.Objects.requireNonNull;
 public class JaninoCompiler implements JavaCompiler {
   //~ Instance fields --------------------------------------------------------
 
-  public JaninoCompilerArgs args = new JaninoCompilerArgs();
+  public final JaninoCompilerArgs args = new JaninoCompilerArgs();
 
   // REVIEW jvs 28-June-2004:  pool this instance?  Is it thread-safe?
   private @Nullable AccountingClassLoader classLoader;

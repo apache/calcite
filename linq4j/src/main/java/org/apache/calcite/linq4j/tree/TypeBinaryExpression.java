@@ -21,6 +21,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.lang.reflect.Type;
 import java.util.Objects;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Represents an operation between an expression and a type.
  */
@@ -32,8 +34,7 @@ public class TypeBinaryExpression extends Expression {
   public TypeBinaryExpression(ExpressionType nodeType, Expression expression,
       Type type) {
     super(nodeType, Boolean.TYPE);
-    assert expression != null : "expression should not be null";
-    this.expression = expression;
+    this.expression = requireNonNull(expression, "expression");
     this.type = type;
   }
 
@@ -68,15 +69,8 @@ public class TypeBinaryExpression extends Expression {
     }
 
     TypeBinaryExpression that = (TypeBinaryExpression) o;
-
-    if (!expression.equals(that.expression)) {
-      return false;
-    }
-    if (type != null ? !type.equals(that.type) : that.type != null) {
-      return false;
-    }
-
-    return true;
+    return expression.equals(that.expression)
+        && type.equals(that.type);
   }
 
   @Override public int hashCode() {

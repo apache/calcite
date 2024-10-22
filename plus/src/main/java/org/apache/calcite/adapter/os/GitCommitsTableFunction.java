@@ -29,6 +29,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.NoSuchElementException;
 
+import static java.lang.Long.parseLong;
+
 /**
  * Table function that executes the OS "git log" command
  * to discover git commits.
@@ -71,7 +73,7 @@ public class GitCommitsTableFunction {
                 objects = new Object[9];
                 for (;;) {
                   final String line = e.current();
-                  if (line.length() == 0) {
+                  if (line.isEmpty()) {
                     break; // next line will be start of comments
                   }
                   if (line.startsWith("commit ")) {
@@ -89,7 +91,7 @@ public class GitCommitsTableFunction {
                         line.substring("author ".length(),
                             line.length() - TS_OFF.length() - 1);
                     objects[5] =
-                        Long.parseLong(
+                        parseLong(
                             line.substring(line.length() - TS_OFF.length(),
                             line.length() - OFF.length() - 1)) * 1000;
                   } else if (line.startsWith("committer ")) {
@@ -97,7 +99,7 @@ public class GitCommitsTableFunction {
                         line.substring("committer ".length(),
                             line.length() - TS_OFF.length() - 1);
                     objects[7] =
-                        Long.parseLong(
+                        parseLong(
                             line.substring(line.length() - TS_OFF.length(),
                             line.length() - OFF.length() - 1)) * 1000;
                   }
@@ -114,7 +116,7 @@ public class GitCommitsTableFunction {
                     return true;
                   }
                   final String line = e.current();
-                  if (line.length() == 0) {
+                  if (line.isEmpty()) {
                     // We're seeing the empty line at the end of message
                     objects[8] = b.toString();
                     b.setLength(0);

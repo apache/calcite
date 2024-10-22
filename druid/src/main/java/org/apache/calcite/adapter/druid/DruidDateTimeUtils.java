@@ -46,6 +46,8 @@ import org.slf4j.Logger;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Utilities for generating intervals from RexNode.
  */
@@ -62,7 +64,6 @@ public class DruidDateTimeUtils {
    * expression. Assumes that all the predicates in the input
    * reference a single column: the timestamp column.
    */
-  @SuppressWarnings("BetaApi")
   public static @Nullable List<Interval> createInterval(RexNode e) {
     final List<Range<Long>> ranges = extractRanges(e, false);
     if (ranges == null) {
@@ -164,7 +165,6 @@ public class DruidDateTimeUtils {
     }
   }
 
-  @SuppressWarnings("BetaApi")
   protected static @Nullable List<Range<Long>> leafToRanges(RexCall call, boolean withNot) {
     final ImmutableList.Builder<Range<Long>> ranges;
     switch (call.getKind()) {
@@ -177,10 +177,10 @@ public class DruidDateTimeUtils {
       SqlKind kind = call.getKind();
       if (call.getOperands().get(0) instanceof RexInputRef
           && literalValue(call.getOperands().get(1)) != null) {
-        value = literalValue(call.getOperands().get(1));
+        value = requireNonNull(literalValue(call.getOperands().get(1)));
       } else if (call.getOperands().get(1) instanceof RexInputRef
           && literalValue(call.getOperands().get(0)) != null) {
-        value = literalValue(call.getOperands().get(0));
+        value = requireNonNull(literalValue(call.getOperands().get(0)));
         kind = kind.reverse();
       } else {
         return null;
@@ -206,8 +206,8 @@ public class DruidDateTimeUtils {
       final Long value2;
       if (literalValue(call.getOperands().get(2)) != null
           && literalValue(call.getOperands().get(3)) != null) {
-        value1 = literalValue(call.getOperands().get(2));
-        value2 = literalValue(call.getOperands().get(3));
+        value1 = requireNonNull(literalValue(call.getOperands().get(2)));
+        value2 = requireNonNull(literalValue(call.getOperands().get(3)));
       } else {
         return null;
       }
@@ -238,7 +238,7 @@ public class DruidDateTimeUtils {
 
     case SEARCH:
       final RexLiteral right = (RexLiteral) call.operands.get(1);
-      final Sarg<?> sarg = right.getValueAs(Sarg.class);
+      final Sarg<?> sarg = requireNonNull(right.getValueAs(Sarg.class));
       ranges = ImmutableList.builder();
       for (Range range : sarg.rangeSet.asRanges()) {
         Range<Long> range2 = RangeSets.copy(range, DruidDateTimeUtils::toLong);
@@ -345,7 +345,8 @@ public class DruidDateTimeUtils {
     final RexCall call = (RexCall) node;
     final RexNode value = call.operands.get(valueIndex);
     final RexLiteral flag = (RexLiteral) call.operands.get(flagIndex);
-    final TimeUnitRange timeUnit = (TimeUnitRange) flag.getValue();
+    final TimeUnitRange timeUnit =
+        requireNonNull((TimeUnitRange) flag.getValue());
 
     final RelDataType valueType = value.getType();
     if (valueType.getSqlTypeName() == SqlTypeName.DATE

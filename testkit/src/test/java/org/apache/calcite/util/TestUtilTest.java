@@ -30,8 +30,10 @@ import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.emptyString;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.hasToString;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -96,9 +98,52 @@ class TestUtilTest {
   }
 
   private void testJavaVersion(int expectedMajorVersion, String versionString) {
-    assertEquals(expectedMajorVersion,
-        TestUtil.majorVersionFromString(versionString),
-        versionString);
+    assertThat(versionString, TestUtil.majorVersionFromString(versionString),
+        is(expectedMajorVersion));
+  }
+
+  /** Unit test for {@link Version}. */
+  @SuppressWarnings("EqualsWithItself")
+  @Test void testVersion() {
+    Version vEmpty = Version.of("");
+    assertThat(vEmpty.integers, empty());
+    assertThat(vEmpty.string, emptyString());
+
+    final Version v1 = Version.of("1");
+    assertThat(v1.integers, hasSize(1));
+    assertThat(v1.integers, hasToString("[1]"));
+
+    final Version v1_8_3 = Version.of("1.8.3-jre"); // "-jre" is ignored
+    assertThat(v1_8_3.integers, hasSize(3));
+    assertThat(v1_8_3.integers, hasToString("[1, 8, 3]"));
+    assertThat(v1_8_3.string, is("1.8.3-jre"));
+
+    final Version v1_19 = Version.of("1.19");
+    assertThat(v1_19.integers, hasSize(2));
+    assertThat(v1_19.integers, hasToString("[1, 19]"));
+
+    final Version v1_23 = Version.of("1.23");
+    assertThat(v1_23.integers, hasSize(2));
+    assertThat(v1_23.integers, hasToString("[1, 23]"));
+
+    final Version v1_23_0 = Version.of("1.23.0");
+    assertThat(v1_23_0.integers, hasSize(3));
+    assertThat(v1_23_0.integers, hasToString("[1, 23, 0]"));
+
+    final Version v1_23_1 = Version.of("1.23.1");
+    assertThat(v1_23_1.integers, hasSize(3));
+    assertThat(v1_23_1.integers, hasToString("[1, 23, 1]"));
+
+    // 1 < 1.8.3 < 1.19 < 1.23 < 1.23.0 < 1.23.1
+    assertThat(vEmpty.compareTo(v1), is(-1));
+    assertThat(v1.compareTo(v1_23), is(-1));
+    assertThat(v1_8_3.compareTo(v1_19), is(-1));
+    assertThat(v1_19.compareTo(v1_23), is(-1));
+    assertThat(v1_23.compareTo(v1_23_0), is(-1));
+    assertThat(v1_23_0.compareTo(v1_23_1), is(-1));
+    assertThat(v1_23_1.compareTo(v1), is(1));
+
+    assertThat(v1.compareTo(v1), is(0));
   }
 
   @Test void testGuavaMajorVersion() {

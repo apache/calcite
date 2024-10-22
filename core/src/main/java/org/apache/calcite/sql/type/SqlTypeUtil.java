@@ -85,7 +85,7 @@ public abstract class SqlTypeUtil {
    * comparable, i.e. of the same charset and collation of same charset
    */
   public static boolean isCharTypeComparable(List<RelDataType> argTypes) {
-    assert argTypes != null;
+    requireNonNull(argTypes, "argTypes");
     assert argTypes.size() >= 2;
 
     // Filter out ANY and NULL elements.
@@ -1101,18 +1101,19 @@ public abstract class SqlTypeUtil {
 
     // TODO jvs 28-Dec-2004:  support row types, user-defined types,
     // interval types, multiset types, etc
-    assert typeName != null;
+    requireNonNull(typeName, "typeName");
 
     final SqlTypeNameSpec typeNameSpec;
     if (isAtomic(type) || isNull(type)
         || type.getSqlTypeName() == SqlTypeName.UNKNOWN
         || type.getSqlTypeName() == SqlTypeName.GEOMETRY) {
-      int precision = typeName.allowsPrec() ? type.getPrecision() : -1;
+      int precision =
+          typeName.allowsPrec() ? type.getPrecision() : RelDataType.PRECISION_NOT_SPECIFIED;
       // fix up the precision.
       if (maxPrecision > 0 && precision > maxPrecision) {
         precision = maxPrecision;
       }
-      int scale = typeName.allowsScale() ? type.getScale() : -1;
+      int scale = typeName.allowsScale() ? type.getScale() :  RelDataType.SCALE_NOT_SPECIFIED;
       if (maxScale > 0 && scale > maxScale) {
         scale = maxScale;
       }
@@ -1166,7 +1167,8 @@ public abstract class SqlTypeUtil {
   public static SqlDataTypeSpec convertTypeToSpec(RelDataType type) {
     // TODO jvs 28-Dec-2004:  collation
     String charSetName = inCharFamily(type) ? type.getCharset().name() : null;
-    return convertTypeToSpec(type, charSetName, -1, -1);
+    return convertTypeToSpec(type, charSetName,
+        RelDataType.PRECISION_NOT_SPECIFIED, RelDataType.SCALE_NOT_SPECIFIED);
   }
 
   public static RelDataType createMultisetType(
@@ -1517,14 +1519,10 @@ public abstract class SqlTypeUtil {
     }
 
     // We can implicitly convert from character to date
-    if (family1 == SqlTypeFamily.CHARACTER
+    return family1 == SqlTypeFamily.CHARACTER
         && canConvertStringInCompare(family2)
         || family2 == SqlTypeFamily.CHARACTER
-        && canConvertStringInCompare(family1)) {
-      return true;
-    }
-
-    return false;
+        && canConvertStringInCompare(family1);
   }
 
   /** Returns the least restrictive type T, such that a value of type T can be
@@ -1807,6 +1805,7 @@ public abstract class SqlTypeUtil {
 
   /** Returns a DECIMAL type with the maximum precision for the current
    * type system. */
+  @SuppressWarnings("deprecation") // [CALCITE-6598]
   public static RelDataType getMaxPrecisionScaleDecimal(RelDataTypeFactory factory) {
     int maxPrecision = factory.getTypeSystem().getMaxNumericPrecision();
     int maxScale = factory.getTypeSystem().getMaxNumericScale();

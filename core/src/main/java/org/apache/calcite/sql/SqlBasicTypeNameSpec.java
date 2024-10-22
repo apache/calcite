@@ -29,6 +29,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.nio.charset.Charset;
 import java.util.Objects;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * A sql type name specification of basic sql type.
  *
@@ -74,10 +76,10 @@ public class SqlBasicTypeNameSpec extends SqlTypeNameSpec {
 
   private final SqlTypeName sqlTypeName;
 
-  private int precision;
-  private int scale;
+  private final int precision;
+  private final int scale;
 
-  private @Nullable String charSetName;
+  private final @Nullable String charSetName;
 
   /**
    * Create a basic sql type name specification.
@@ -103,16 +105,16 @@ public class SqlBasicTypeNameSpec extends SqlTypeNameSpec {
   }
 
   public SqlBasicTypeNameSpec(SqlTypeName typeName, SqlParserPos pos) {
-    this(typeName, -1, -1, null, pos);
+    this(typeName, RelDataType.PRECISION_NOT_SPECIFIED, RelDataType.SCALE_NOT_SPECIFIED, null, pos);
   }
 
   public SqlBasicTypeNameSpec(SqlTypeName typeName, int precision, SqlParserPos pos) {
-    this(typeName, precision, -1, null, pos);
+    this(typeName, precision, RelDataType.SCALE_NOT_SPECIFIED, null, pos);
   }
 
   public SqlBasicTypeNameSpec(SqlTypeName typeName, int precision,
       String charSetName, SqlParserPos pos) {
-    this(typeName, precision, -1, charSetName, pos);
+    this(typeName, precision, RelDataType.SCALE_NOT_SPECIFIED, charSetName, pos);
   }
 
   public SqlBasicTypeNameSpec(SqlTypeName typeName, int precision,
@@ -165,11 +167,11 @@ public class SqlBasicTypeNameSpec extends SqlTypeNameSpec {
       writer.keyword(getTypeName().getSimple());
     }
 
-    if (sqlTypeName.allowsPrec() && (precision >= 0)) {
+    if (sqlTypeName.allowsPrec() && (precision != RelDataType.PRECISION_NOT_SPECIFIED)) {
       final SqlWriter.Frame frame =
           writer.startList(SqlWriter.FrameTypeEnum.FUN_CALL, "(", ")");
       writer.print(precision);
-      if (sqlTypeName.allowsScale() && (scale >= 0)) {
+      if (sqlTypeName.allowsScale() && (scale != RelDataType.SCALE_NOT_SPECIFIED)) {
         writer.sep(",", true);
         writer.print(scale);
       }
@@ -196,10 +198,11 @@ public class SqlBasicTypeNameSpec extends SqlTypeNameSpec {
     // NOTE jvs 15-Jan-2009:  earlier validation is supposed to
     // have caught these, which is why it's OK for them
     // to be assertions rather than user-level exceptions.
-    if ((precision >= 0) && (scale >= 0)) {
+    if ((precision != RelDataType.PRECISION_NOT_SPECIFIED)
+        && (scale != RelDataType.SCALE_NOT_SPECIFIED)) {
       assert sqlTypeName.allowsPrecScale(true, true);
       type = typeFactory.createSqlType(sqlTypeName, precision, scale);
-    } else if (precision >= 0) {
+    } else if (precision != RelDataType.PRECISION_NOT_SPECIFIED) {
       assert sqlTypeName.allowsPrecNoScale();
       type = typeFactory.createSqlType(sqlTypeName, precision);
     } else {
@@ -221,14 +224,12 @@ public class SqlBasicTypeNameSpec extends SqlTypeNameSpec {
         charset = typeFactory.getDefaultCharset();
       } else {
         String javaCharSetName =
-            Objects.requireNonNull(
+            requireNonNull(
                 SqlUtil.translateCharacterSetName(charSetName), charSetName);
         charset = Charset.forName(javaCharSetName);
       }
       type =
-          typeFactory.createTypeWithCharsetAndCollation(
-              type,
-              charset,
+          typeFactory.createTypeWithCharsetAndCollation(type, charset,
               collation);
     }
     return type;

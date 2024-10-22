@@ -585,10 +585,10 @@ public abstract class ReturnTypes {
    * Type-inference strategy for NVL2 function. It returns the least restrictive type
    * between the second and third operands.
    */
-  public static final SqlReturnTypeInference NVL2_RESTRICTIVE = opBinding -> {
-    return opBinding.getTypeFactory().leastRestrictive(
-        Arrays.asList(opBinding.getOperandType(1), opBinding.getOperandType(2)));
-  };
+  public static final SqlReturnTypeInference NVL2_RESTRICTIVE = opBinding ->
+      opBinding.getTypeFactory().leastRestrictive(
+          Arrays.asList(opBinding.getOperandType(1),
+              opBinding.getOperandType(2)));
 
   /**
    * Type-inference strategy that returns the type of the first operand, unless it
@@ -612,6 +612,54 @@ public abstract class ReturnTypes {
    */
   public static final SqlReturnTypeInference ARG0_EXCEPT_INTEGER_NULLABLE =
       ARG0_EXCEPT_INTEGER.andThen(SqlTypeTransforms.TO_NULLABLE);
+
+  public static final SqlReturnTypeInference ARG0_OR_INTEGER =
+      opBinding -> {
+        final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+        if (SqlTypeName.NULL == opBinding.getOperandType(0).getSqlTypeName()) {
+          return typeFactory.createTypeWithNullability(
+              typeFactory.createSqlType(SqlTypeName.INTEGER), true);
+        }
+        return opBinding.getOperandType(0);
+      };
+
+  /**
+   * Chooses a type to return.
+   * If all arguments are null, return nullable integer type.
+   * If all arguments are integer types, choose the largest integer type. Nullable
+   * if any argument is nullable.
+   * As a fallback, choose the type of the first argument that is not of the NULL type.
+   * Nullable if at least one argument is nullable.
+   */
+  public static final SqlReturnTypeInference LARGEST_INT_OR_FIRST_NON_NULL =
+      opBinding -> {
+        final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+        RelDataType largestIntegerType = null;
+        RelDataType firstNonNullType = null;
+        boolean allArgsInteger = true;
+        boolean nullable = false;
+        for (RelDataType opType : opBinding.collectOperandTypes()) {
+          if (firstNonNullType == null && SqlTypeName.NULL != opType.getSqlTypeName()) {
+            firstNonNullType = opType;
+          }
+          if (SqlTypeName.INT_TYPES.contains(opType.getSqlTypeName())
+              && (largestIntegerType == null
+              || largestIntegerType.getPrecision() < opType.getPrecision())) {
+            largestIntegerType = opType;
+          } else {
+            allArgsInteger = false;
+          }
+          nullable |= opType.isNullable();
+        }
+        if (allArgsInteger && largestIntegerType != null) {
+          return typeFactory.createTypeWithNullability(largestIntegerType, nullable);
+        } else if (firstNonNullType != null) {
+          return typeFactory.createTypeWithNullability(firstNonNullType, nullable);
+        }
+        throw opBinding.newError(
+            RESOURCE.atLeastOneArgumentMustNotBeNull(
+                opBinding.getOperator().getName()));
+      };
 
   /**
    * Returns the same type as the multiset carries. The multiset type returned
@@ -1291,17 +1339,15 @@ public abstract class ReturnTypes {
     assert opBinding.getOperandCount() == 1;
     final RelDataType recordMultisetType =
         opBinding.getOperandType(0);
-    RelDataType multisetType =
-        recordMultisetType.getComponentType();
-    assert multisetType != null : "expected a multiset type: "
-        + recordMultisetType;
-    final List<RelDataTypeField> fields =
-        multisetType.getFieldList();
-    assert fields.size() > 0;
+    final RelDataType multisetType = recordMultisetType.getComponentType();
+    if (multisetType == null) {
+      throw new AssertionError("expected a multiset type: "
+          + recordMultisetType);
+    }
+    final List<RelDataTypeField> fields = multisetType.getFieldList();
+    assert !fields.isEmpty();
     final RelDataType firstColType = fields.get(0).getType();
-    return opBinding.getTypeFactory().createMultisetType(
-        firstColType,
-        -1);
+    return opBinding.getTypeFactory().createMultisetType(firstColType, -1);
   };
 
   /**
@@ -1313,8 +1359,10 @@ public abstract class ReturnTypes {
     assert opBinding.getOperandCount() == 1;
     final RelDataType multisetType = opBinding.getOperandType(0);
     RelDataType componentType = multisetType.getComponentType();
-    assert componentType != null : "expected a multiset type: "
-        + multisetType;
+    if (componentType == null) {
+      throw new AssertionError("expected a multiset type: "
+          + multisetType);
+    }
     final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
     final RelDataType type = typeFactory.builder()
         .add(SqlUtil.deriveAliasFromOrdinal(0), componentType).build();
@@ -1336,13 +1384,13 @@ public abstract class ReturnTypes {
     assert isStruct && (fieldCount == 1);
 
     RelDataTypeField fieldType = recordType.getFieldList().get(0);
-    assert fieldType != null
-        : "expected a record type with one field: "
-        + recordType;
+    if (fieldType == null) {
+      throw new AssertionError("expected a record type with one field: "
+          + recordType);
+    }
     final RelDataType firstColType = fieldType.getType();
-    return opBinding.getTypeFactory().createTypeWithNullability(
-        firstColType,
-        true);
+    final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+    return typeFactory.createTypeWithNullability(firstColType, true);
   };
 
   /**
