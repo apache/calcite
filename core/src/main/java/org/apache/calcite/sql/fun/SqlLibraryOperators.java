@@ -1590,6 +1590,13 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.BOOLEAN_NULLABLE,
           OperandTypes.ARRAY_ELEMENT);
 
+  /** The "ARRAY_CONTAINS(element, array)" function. */
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction ARRAY_CONTAINS_SF =
+      SqlBasicFunction.create(SqlKind.ARRAY_CONTAINS,
+          ReturnTypes.BOOLEAN_NULLABLE,
+          OperandTypes.ELEMENT_ARRAY);
+
   @LibraryOperator(libraries = {SNOWFLAKE})
   public static final SqlFunction TIME_FROM_PARTS =
       new SqlFunction("TIME_FROM_PARTS",
@@ -3760,11 +3767,27 @@ public abstract class SqlLibraryOperators {
 //          SqlFunctionCategory.NUMERIC);
 
   @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction TRY_PARSE_JSON =
+      new SqlFunction("TRY_PARSE_JSON",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARIANT, null,
+          OperandTypes.STRING,
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction PARSE_JSON_SF =
+      new SqlFunction("PARSE_JSON_SF",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARIANT, null,
+          OperandTypes.STRING,
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction PARSE_JSON =
       new SqlFunction("PARSE_JSON",
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.JSON, null,
-          OperandTypes.SAME_VARIADIC,
+          STRING_STRING,
           SqlFunctionCategory.SYSTEM);
 
   @LibraryOperator(libraries = {SNOWFLAKE})
