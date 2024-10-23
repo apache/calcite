@@ -50,6 +50,7 @@ import net.hydromatic.scott.data.hsqldb.ScottHsqldb;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -74,7 +75,7 @@ public class ArrowData {
   private long longValue;
   private double doubleValue;
   private boolean booleanValue;
-  private int decimalValue;
+  private BigDecimal decimalValue;
 
   public ArrowData() {
     this.batchSize = 20;
@@ -87,7 +88,7 @@ public class ArrowData {
     this.longValue = 0;
     this.doubleValue = 0;
     this.booleanValue = false;
-    this.decimalValue = 0;
+    this.decimalValue = BigDecimal.ZERO;
   }
 
   private Schema makeArrowDateTypeSchema() {
@@ -375,8 +376,8 @@ public class ArrowData {
     decimalVector.setInitialCapacity(rowCount);
     decimalVector.allocateNew();
     for (int i = 0; i < rowCount; i++) {
-      decimalVector.set(i, this.decimalValue);
-      this.decimalValue++;
+      decimalVector.set(i, this.decimalValue.setScale(2));
+      this.decimalValue = this.decimalValue.add(BigDecimal.ONE);
     }
     fieldVector.setValueCount(rowCount);
   }

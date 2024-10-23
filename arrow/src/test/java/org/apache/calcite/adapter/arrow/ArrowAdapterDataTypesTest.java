@@ -60,7 +60,6 @@ public class ArrowAdapterDataTypesTest {
     File dataLocationFile = arrowFilesDirectory.resolve("arrowdatatype.arrow").toFile();
     ArrowData arrowDataGenerator = new ArrowData();
     arrowDataGenerator.writeArrowDataType(dataLocationFile);
-    arrowDataGenerator.writeScottEmpData(arrowFilesDirectory);
 
     arrow = ImmutableMap.of("model", modelFileTarget.toAbsolutePath().toString());
   }
@@ -154,7 +153,22 @@ public class ArrowAdapterDataTypesTest {
     String plan = "PLAN=ArrowToEnumerableConverter\n"
         + "  ArrowProject(decimalField=[$8])\n"
         + "    ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])\n\n";
-    String result = "decimalField=0.00\ndecimalField=0.01\n";
+    String result = "decimalField=0.00\ndecimalField=1.00\n";
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .limit(2)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+  @Test void testDateProject() {
+    String sql = "select \"dateField\" from arrowdatatype";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(dateField=[$9])\n"
+        + "    ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])\n\n";
+    String result = "dateField=1970-01-01\n"
+        + "dateField=1970-01-02\n";
     CalciteAssert.that()
         .with(arrow)
         .query(sql)
