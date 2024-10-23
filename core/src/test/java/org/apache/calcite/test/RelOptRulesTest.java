@@ -3089,6 +3089,19 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6639">[CALCITE-6639]
+   * Optimization that pulls up predicates causes ASOF JOIN validation failures</a>. */
+  @Test void testAsofOpt() {
+    final String sql = "SELECT *\n"
+        + "FROM (VALUES (NULL, 0), (1, NULL), (1, 0), (1, 1), (1, 2), "
+        + "(1, 3), (1, 4), (2, 3), (3, 4)) AS t1(k, t)\n"
+        + "ASOF JOIN (VALUES (1, NULL), (1, 2), (1, 3), (2, 10), (2, 0)) AS t2(k, t)\n"
+        + "MATCH_CONDITION t2.t < t1.t\n"
+        + "ON t1.k = t2.k\n";
+    sql(sql).withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
+        .checkUnchanged();
+  }
+
   /** Tests to see if the final branch of union is missed. */
   @Test void testUnionMergeRule() {
     final String sql = "select * from (\n"
