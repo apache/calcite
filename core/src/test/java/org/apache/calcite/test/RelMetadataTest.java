@@ -1448,6 +1448,17 @@ public class RelMetadataTest {
         .withCatalogReaderFactory(factory)
         .assertThatUniqueKeysAre();
 
+    sql("select key1, key1, key2, value1 from s.composite_keys_table")
+        .withCatalogReaderFactory(factory)
+        .assertThatUniqueKeysAre(bitSetOf(0, 2), bitSetOf(1, 2));
+    sql("select key1, key2, key2, value1 from s.composite_keys_table")
+        .withCatalogReaderFactory(factory)
+        .assertThatUniqueKeysAre(bitSetOf(0, 1), bitSetOf(0, 2));
+
+    sql("select key1, key1, key2, key2, value1 from s.composite_keys_table")
+        .withCatalogReaderFactory(factory)
+        .assertThatUniqueKeysAre(bitSetOf(0, 2), bitSetOf(0, 3), bitSetOf(1, 2), bitSetOf(1, 3));
+
     // no column of composite keys
     sql("select value1 from s.composite_keys_table")
         .withCatalogReaderFactory(factory)
@@ -1640,7 +1651,7 @@ public class RelMetadataTest {
   @Test void calcMultipleColumnsAreUniqueCalc() {
     sql("select empno, empno from emp")
         .convertingProjectAsCalc()
-        .assertThatUniqueKeysAre(bitSetOf(0), bitSetOf(1), bitSetOf(0, 1));
+        .assertThatUniqueKeysAre(bitSetOf(0), bitSetOf(1));
   }
 
   @Test void calcMultipleColumnsAreUniqueCalc2() {
@@ -1655,7 +1666,7 @@ public class RelMetadataTest {
         + " from emp a1 join emp a2\n"
         + " on (a1.empno=a2.empno)")
         .convertingProjectAsCalc()
-        .assertThatUniqueKeysAre(bitSetOf(0), bitSetOf(1), bitSetOf(1, 2), bitSetOf(2));
+        .assertThatUniqueKeysAre(bitSetOf(0), bitSetOf(1), bitSetOf(2));
   }
 
   @Test void calcColumnsAreNonUniqueCalc() {
