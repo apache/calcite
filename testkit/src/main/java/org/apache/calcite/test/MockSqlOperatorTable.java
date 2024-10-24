@@ -99,6 +99,7 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
                 new TopNTableFunction(),
                 new SimilarlityTableFunction(),
                 new InvalidTableFunction(),
+                new CompareStringsOrNumericValues(),
                 HIGHER_ORDER_FUNCTION,
                 HIGHER_ORDER_FUNCTION2)));
   }
@@ -624,6 +625,27 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
       final RelDataTypeFactory typeFactory =
           opBinding.getTypeFactory();
       return typeFactory.createSqlType(SqlTypeName.BIGINT);
+    }
+  }
+
+  /**
+   * "COMPARE_STRINGS_OR_NUMERIC_VALUES" is a user-defined function whose arguments can be either
+   * two strings or two numeric values of the same type.
+   */
+  public static class CompareStringsOrNumericValues extends SqlFunction {
+    public CompareStringsOrNumericValues() {
+      super("COMPARE_STRINGS_OR_NUMERIC_VALUES",
+          new SqlIdentifier("COMPARE_STRINGS_OR_NUMERIC_VALUES", SqlParserPos.ZERO),
+          SqlKind.OTHER_FUNCTION,
+          null,
+          null,
+          OperandTypes.STRING_SAME_SAME.or(
+              OperandTypes.NUMERIC_NUMERIC.and(OperandTypes.SAME_SAME)),
+          SqlFunctionCategory.USER_DEFINED_FUNCTION);
+    }
+
+    @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+      return opBinding.getOperandType(0);
     }
   }
 
