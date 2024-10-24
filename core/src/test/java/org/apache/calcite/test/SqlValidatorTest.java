@@ -3261,12 +3261,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "on emp.ename = D.name";
     sql(sql3).type(type2);
 
-    // Longer sequence of comparisons
-    final String sql6 = "select emp.empno, dept.deptno from emp asof join dept\n"
-        + "match_condition emp.deptno <= dept.deptno\n"
-        + "on emp.ename = dept.name AND emp.deptno = dept.deptno AND emp.job = dept.name";
-    sql(sql6).type(type0);
-
     // No table specified for on condition
     final String sql4 = "select emp.empno, dept.deptno from emp asof join dept\n"
         + "match_condition emp.deptno <= dept.deptno\n"
@@ -3279,6 +3273,29 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "match_condition deptno <= dno\n"
         + "on ename = name";
     sql(sql5).type(type0);
+
+    // Longer sequence of comparisons
+    final String sql6 = "select emp.empno, dept.deptno from emp asof join dept\n"
+        + "match_condition emp.deptno <= dept.deptno\n"
+        + "on emp.ename = dept.name AND emp.deptno = dept.deptno AND emp.job = dept.name";
+    sql(sql6).type(type0);
+
+    // 2 Test cases for https://issues.apache.org/jira/browse/CALCITE-6641
+    // Compiling programs with ASOF joins can report obscure errors
+    final String type7 = "RecordType(INTEGER NOT NULL EMPNO, BIGINT NOT NULL DEPTNO) NOT NULL";
+    // ASOF involving casts
+    final String sql7 = "select emp.empno, dno as deptno from emp asof join "
+        + "(select CAST(deptno AS BIGINT) as dno, name from dept)\n"
+        + "match_condition deptno <= dno\n"
+        + "on ename = name";
+    sql(sql7).type(type7);
+
+    // ASOF involving casts
+    final String sql8 = "select emp.empno, dno as deptno from emp asof join "
+        + "(select CAST(deptno AS BIGINT) as dno, name from dept)\n"
+        + "match_condition ename <= name\n"
+        + "on deptno = dno";
+    sql(sql8).type(type7);
 
     // Failure cases
     // match condition is not an inequality test
@@ -3313,6 +3330,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "asof join (VALUES(false, false)) AS T1(b0, b1)\n"
         + "match_condition T0.b0 < T1.b0\n"
         + "on ^T0.b1 AND T1.b1^")
+        .fails("ASOF JOIN condition must be a conjunction of equality comparisons");
+    // Condition contains a cast that is not applied to a column
+    sql("select * from (VALUES(true, false)) AS T0(b0, b1)\n"
+        + "asof join (VALUES(false, 1)) AS T1(b0, b1)\n"
+        + "match_condition T0.b0 < T1.b0\n"
+        + "on ^T0.b1 = CAST(T1.b1 + 1 AS BOOLEAN)^")
         .fails("ASOF JOIN condition must be a conjunction of equality comparisons");
   }
 

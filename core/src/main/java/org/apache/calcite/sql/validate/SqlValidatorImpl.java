@@ -3855,6 +3855,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         boolean rightFound = false;
         // The two sides of the comparison must be from different tables
         for (SqlNode operand : call.getOperandList()) {
+          if (operand instanceof SqlBasicCall) {
+            SqlBasicCall basicCall = (SqlBasicCall) operand;
+            if (basicCall.getKind() == SqlKind.CAST) {
+              // Allow casts applied to identifiers
+              operand = basicCall.operand(0);
+            }
+          }
           if (!(operand instanceof SqlIdentifier)) {
             throw newValidationError(call, this.exception);
           }
@@ -3889,11 +3896,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   /**
    * Shuttle which determines whether an expression is a simple conjunction
-   * of equalities. */
+   * of equalities. Each equality may involve a cast */
   private static class ConjunctionOfEqualities extends SqlShuttle {
     boolean illegal = false;
 
-    // Check an AND node.  Children can be AND nodes or EQUAL nodes.
+    // Check an AND node. Children can be AND nodes or EQUAL nodes.
     void checkAnd(SqlCall call) {
       // This doesn't seem to use the visitor pattern,
       // because we recurse explicitly on the tree structure.
@@ -3911,13 +3918,22 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
     }
 
-    @Override public @Nullable SqlNode visit(final org.apache.calcite.sql.SqlCall call) {
+    @Override public @Nullable SqlNode visit(final SqlCall call) {
       SqlKind kind = call.getKind();
-      if (kind != SqlKind.AND && kind != SqlKind.EQUALS) {
+      if (kind != SqlKind.AND && kind != SqlKind.EQUALS && kind != SqlKind.CAST) {
         illegal = true;
+        return null;
       }
       if (kind == SqlKind.AND) {
         this.checkAnd(call);
+      }
+      if (kind == SqlKind.CAST) {
+        // Cast must be applied directly to a column
+        SqlNode operand = call.operand(0);
+        if (! (operand instanceof SqlIdentifier)) {
+          illegal = true;
+          return null;
+        }
       }
       return super.visit(call);
     }
