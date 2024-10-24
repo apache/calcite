@@ -2466,6 +2466,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       case TIMESTAMP_WITH_TIME_ZONE:
         return createSqlDataTypeSpecByName("TIMESTAMP", typeName);
       case JSON:
+      case VARIANT:
         return createSqlDataTypeSpecByName("JSON", typeName);
       default:
         break;

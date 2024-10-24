@@ -29,6 +29,7 @@ import org.apache.calcite.plan.PivotRelTrait;
 import org.apache.calcite.plan.PivotRelTraitDef;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTrait;
+import org.apache.calcite.plan.TableAliasTraitDef;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelCollation;
@@ -451,9 +452,10 @@ public abstract class SqlImplementor {
         : "must use a Map implementation that preserves order";
     final @Nullable String alias2 = SqlValidatorUtil.alias(node);
     final String alias3 = alias2 != null ? alias2 : "t";
-    final String alias4 =
+    String alias4 =
         SqlValidatorUtil.uniquify(
             alias3, aliasSet, SqlValidatorUtil.EXPR_SUGGESTER);
+    alias4 = adjustAliasForUpdateStatement(node, rel, alias4);
     String tableName = getTableName(alias4, rel);
     final RelDataType rowType = adjustedRowType(rel, node);
     isTableNameColumnNameIdentical = isTableNameColumnNameIdentical(rowType, tableName);
@@ -3025,5 +3027,22 @@ public abstract class SqlImplementor {
       }
     }
     return false;
+  }
+
+  private String adjustAliasForUpdateStatement(SqlNode node, RelNode rel, String currentAlias) {
+    if (isLogicalFilterWithSelectAndTableScan(node, rel)) {
+      return requireNonNull(((LogicalFilter) rel).getInput().getTraitSet()
+          .getTrait(TableAliasTraitDef.instance)).getTableAlias();
+    }
+    return currentAlias;
+  }
+
+  private boolean isLogicalFilterWithSelectAndTableScan(SqlNode node, RelNode rel) {
+    return node instanceof SqlSelect && rel instanceof LogicalFilter
+        && ((LogicalFilter) rel).getInput() instanceof LogicalTableScan
+        && ((LogicalFilter) rel).getInput().getTraitSet().size() > 2
+        && "sstupdate".equals(
+        requireNonNull(((LogicalFilter) rel).getInput()
+            .getTraitSet().getTrait(TableAliasTraitDef.instance)).getStatementType());
   }
 }
