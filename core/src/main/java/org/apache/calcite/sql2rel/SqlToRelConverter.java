@@ -163,7 +163,9 @@ import org.apache.calcite.sql.validate.DelegatingScope;
 import org.apache.calcite.sql.validate.ListScope;
 import org.apache.calcite.sql.validate.MatchRecognizeScope;
 import org.apache.calcite.sql.validate.MeasureScope;
+import org.apache.calcite.sql.validate.NamespaceBuilder.DmlNamespace;
 import org.apache.calcite.sql.validate.ParameterScope;
+import org.apache.calcite.sql.validate.ScopeMap;
 import org.apache.calcite.sql.validate.SelectScope;
 import org.apache.calcite.sql.validate.SqlLambdaScope;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
@@ -385,6 +387,10 @@ public class SqlToRelConverter {
     return requireNonNull(validator, "validator");
   }
 
+  private ScopeMap sqlQueryScopes() {
+    return requireNonNull(validator().getScopeMap(), "sqlQueryScopes");
+  }
+
   private <T extends SqlValidatorNamespace> T getNamespace(SqlNode node) {
     return requireNonNull(getNamespaceOrNull(node),
         () -> "Namespace is not found for " + node);
@@ -392,7 +398,7 @@ public class SqlToRelConverter {
 
   @SuppressWarnings("unchecked")
   private <T extends SqlValidatorNamespace> @Nullable T getNamespaceOrNull(SqlNode node) {
-    return (@Nullable T) validator().getNamespace(node);
+    return (@Nullable T) sqlQueryScopes().getNamespace(node);
   }
 
   /** Returns the RelOptCluster in use. */
@@ -726,9 +732,9 @@ public class SqlToRelConverter {
    * Converts a SELECT statement's parse tree into a relational expression.
    */
   public RelNode convertSelect(SqlSelect select, boolean top) {
-    final SqlValidatorScope selectScope = validator().getWhereScope(select);
+    final SqlValidatorScope selectScope = sqlQueryScopes().getWhereScope(select);
     final MeasureScope measureScope =
-        (MeasureScope) validator().getMeasureScope(select);
+        (MeasureScope) sqlQueryScopes().getMeasureScope(select);
     final Blackboard bb = createBlackboard(selectScope, null, top);
     final Blackboard measureBb = new MeasureBlackboard(measureScope, bb);
     convertSelectImpl(bb, measureBb, select);
@@ -781,7 +787,7 @@ public class SqlToRelConverter {
       // if there are other nodes, which will cause the view to be in the
       // sub-query.
       if (!bb.top
-          || validator().isAggregate(select)
+          || validator().getValidatorAggStuff().isAggregate(select)
           || select.isDistinct()
           || select.hasOrderBy()
           || select.getFetch() != null
@@ -805,7 +811,7 @@ public class SqlToRelConverter {
     final RelCollation collation =
         cluster.traitSet().canonize(RelCollations.of(collationList));
 
-    if (validator().isAggregate(select)) {
+    if (validator().getValidatorAggStuff().isAggregate(select)) {
       convertAgg(
           bb,
           select,
@@ -1361,8 +1367,8 @@ public class SqlToRelConverter {
       query = call.operand(0);
       final SqlValidatorScope seekScope =
           (query instanceof SqlSelect)
-              ? validator().getSelectScope((SqlSelect) query)
-              : validator().getEmptyScope();
+              ? sqlQueryScopes().getSelectScope((SqlSelect) query)
+              : validator().createEmptyScope();
       final Blackboard seekBb = createBlackboard(seekScope, null, false);
       final RelNode seekRel = convertQueryOrInList(seekBb, query, null);
       requireNonNull(seekRel, () -> "seekRel is null for query " + query);
@@ -1443,8 +1449,8 @@ public class SqlToRelConverter {
     query = call.operand(0);
     final SqlValidatorScope innerTableScope =
         (query instanceof SqlSelect)
-            ? validator().getSelectScope((SqlSelect) query)
-            : validator().getEmptyScope();
+            ? sqlQueryScopes().getSelectScope((SqlSelect) query)
+            : validator().createEmptyScope();
     final Blackboard setSemanticsTableBb =
         createBlackboard(innerTableScope, null, false);
     final RelNode inputOfSetSemanticsTable =
@@ -1845,8 +1851,8 @@ public class SqlToRelConverter {
       @Nullable RelDataType targetDataType) {
     final SqlValidatorScope seekScope =
         (seek instanceof SqlSelect)
-            ? validator().getSelectScope((SqlSelect) seek)
-            : validator().getEmptyScope();
+            ? sqlQueryScopes().getSelectScope((SqlSelect) seek)
+            : validator().createEmptyScope();
     final Blackboard seekBb = createBlackboard(seekScope, null, false);
     RelNode seekRel = convertQueryOrInList(seekBb, seek, targetDataType);
     requireNonNull(seekRel, () -> "seekRel is null for query " + seek);
@@ -2219,7 +2225,7 @@ public class SqlToRelConverter {
    */
   private RexNode convertLambda(Blackboard bb, SqlNode node) {
     final SqlLambda call = (SqlLambda) node;
-    final SqlLambdaScope scope = (SqlLambdaScope) validator().getLambdaScope(call);
+    final SqlLambdaScope scope = (SqlLambdaScope) sqlQueryScopes().getLambdaScope(call);
 
     final Map<String, RexNode> nameToNodeMap = new HashMap<>();
     final List<RexLambdaRef> parameters = new ArrayList<>(scope.getParameterTypes().size());
@@ -2552,7 +2558,7 @@ public class SqlToRelConverter {
   protected void convertMatchRecognize(Blackboard bb,
       SqlMatchRecognize matchRecognize) {
     final SqlValidatorNamespace ns = getNamespace(matchRecognize);
-    final SqlValidatorScope scope = validator().getMatchRecognizeScope(matchRecognize);
+    final SqlValidatorScope scope = sqlQueryScopes().getMatchRecognizeScope(matchRecognize);
 
     final Blackboard matchBb = createBlackboard(scope, null, false);
     final RelDataType rowType = ns.getRowType();
@@ -2712,7 +2718,7 @@ public class SqlToRelConverter {
   }
 
   protected void convertPivot(Blackboard bb, SqlPivot pivot) {
-    final SqlValidatorScope scope = validator().getJoinScope(pivot);
+    final SqlValidatorScope scope = sqlQueryScopes().getJoinScope(pivot);
     final Blackboard pivotBb = createBlackboard(scope, null, false);
 
     // Convert input
@@ -2794,7 +2800,7 @@ public class SqlToRelConverter {
   }
 
   protected void convertUnpivot(Blackboard bb, SqlUnpivot unpivot) {
-    final SqlValidatorScope scope = validator().getJoinScope(unpivot);
+    final SqlValidatorScope scope = sqlQueryScopes().getJoinScope(unpivot);
     final Blackboard unpivotBb = createBlackboard(scope, null, false);
 
     // Convert input
@@ -3268,17 +3274,16 @@ public class SqlToRelConverter {
   }
 
   private void convertJoin(Blackboard bb, SqlJoin join) {
-    SqlValidator validator = validator();
-    final SqlValidatorScope scope = validator.getJoinScope(join);
+    final SqlValidatorScope scope = sqlQueryScopes().getJoinScope(join);
     final Blackboard fromBlackboard = createBlackboard(scope, null, false);
 
     SqlNode left = join.getLeft();
     SqlNode right = join.getRight();
     JoinType joinType = join.getJoinType();
-    final SqlValidatorScope leftScope = validator.getJoinScope(left);
+    final SqlValidatorScope leftScope = sqlQueryScopes().getJoinScope(left);
     final Blackboard leftBlackboard =
         createBlackboard(leftScope, null, false);
-    final SqlValidatorScope rightScope = validator.getJoinScope(right);
+    final SqlValidatorScope rightScope = sqlQueryScopes().getJoinScope(right);
     final Blackboard rightBlackboard =
         createBlackboard(rightScope, null, false);
     convertFrom(leftBlackboard, left);
@@ -3492,7 +3497,7 @@ public class SqlToRelConverter {
 
     final AggConverter aggConverter =
         AggConverter.create(bb,
-            (AggregatingSelectScope) validator().getSelectScope(select));
+            (AggregatingSelectScope) sqlQueryScopes().getSelectScope(select));
     createAggImpl(bb, aggConverter, selectList, groupList, having,
         orderExprList);
   }
@@ -3832,7 +3837,7 @@ public class SqlToRelConverter {
 
     // Scan the select list and order exprs for an identical expression.
     final SelectScope selectScope =
-        requireNonNull(validator.getRawSelectScope(select),
+        requireNonNull(sqlQueryScopes().getRawSelectScope(select),
             () -> "getRawSelectScope is not found for " + select);
     int ordinal = -1;
     List<SqlNode> expandedSelectList = selectScope.getExpandedSelectList();
@@ -3927,7 +3932,7 @@ public class SqlToRelConverter {
   private RelNode createUnion(SqlCall call,
       RelNode left,
       RelNode right) {
-    SqlValidatorNamespace nameSpace = this.validator().getNamespace(call);
+    SqlValidatorNamespace nameSpace = sqlQueryScopes().getNamespace(call);
     boolean all = all(call);
     if (nameSpace != null) {
       SqlNode enclosingNode = nameSpace.getEnclosingNode();
@@ -4122,8 +4127,8 @@ public class SqlToRelConverter {
   protected RelOptTable getTargetTable(SqlNode call) {
     final SqlValidatorNamespace targetNs = getNamespace(call);
     SqlValidatorNamespace namespace;
-    if (targetNs.isWrapperFor(SqlValidatorImpl.DmlNamespace.class)) {
-      namespace = targetNs.unwrap(SqlValidatorImpl.DmlNamespace.class);
+    if (targetNs.isWrapperFor(DmlNamespace.class)) {
+      namespace = targetNs.unwrap(DmlNamespace.class);
     } else {
       namespace = targetNs.resolve();
     }
@@ -4233,7 +4238,7 @@ public class SqlToRelConverter {
             rexBuilder.makeFieldAccess(sourceRef, j++));
       }
     }
-    return createBlackboard(validator().getEmptyScope(), nameToNodeMap, false);
+    return createBlackboard(validator().createEmptyScope(), nameToNodeMap, false);
   }
 
   private static InitializerExpressionFactory getInitializerFactory(
@@ -4355,7 +4360,7 @@ public class SqlToRelConverter {
     final SqlSelect sourceSelect =
         requireNonNull(call.getSourceSelect(),
             () -> "sourceSelect for " + call);
-    final SqlValidatorScope scope = validator().getWhereScope(sourceSelect);
+    final SqlValidatorScope scope = sqlQueryScopes().getWhereScope(sourceSelect);
     Blackboard bb = createBlackboard(scope, null, false);
 
     replaceSubQueries(bb, call, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
@@ -4950,7 +4955,7 @@ public class SqlToRelConverter {
       SqlCall values,
       @Nullable RelDataType targetRowType) {
     final SqlValidatorScope scope =
-        requireNonNull(validator().getOverScope(values));
+        requireNonNull(sqlQueryScopes().getOverScope(values));
     final Blackboard bb = createBlackboard(scope, null, false);
     convertValuesImpl(bb, values, targetRowType);
     return bb.root();

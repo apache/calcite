@@ -114,7 +114,7 @@ public class SqlCallBinding extends SqlOperatorBinding {
       }
       return n;
     }
-    return validator.isAggregate(select) ? 0 : -1;
+    return validator.getValidatorAggStuff().isAggregate(select) ? 0 : -1;
   }
 
   /**
@@ -355,7 +355,7 @@ public class SqlCallBinding extends SqlOperatorBinding {
   @Override public RelDataType getOperandType(int ordinal) {
     final SqlNode operand = call.operand(ordinal);
     final RelDataType type = SqlTypeUtil.deriveType(this, operand);
-    final SqlValidatorNamespace namespace = validator.getNamespace(operand);
+    final SqlValidatorNamespace namespace = validator.getScopeMap().getNamespace(operand);
     if (namespace != null) {
       return namespace.getType();
     }
