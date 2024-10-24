@@ -59,6 +59,19 @@ public final class LogicalExchange extends Exchange {
     return new LogicalExchange(cluster, traitSet, input, distribution);
   }
 
+  /**
+   * Creates a LogicalExchange.
+   *
+   * @param cluster      RelOptCluster
+   * @param traitSet     Ordered set of traits
+   * @param input        Input relational expression
+   * @param distribution Distribution specification
+   */
+  public static LogicalExchange create(RelOptCluster cluster, RelTraitSet traitSet,
+      RelNode input, RelDistribution distribution) {
+    return new LogicalExchange(cluster, traitSet, input, distribution);
+  }
+
   //~ Methods ----------------------------------------------------------------
 
   @Override public Exchange copy(RelTraitSet traitSet, RelNode newInput,
