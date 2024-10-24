@@ -1827,9 +1827,9 @@ from (values 1, 2, 3, 4, 5) as t(i);
 !ok
 
 # PI function
-values pi;
+values pi();
 +-------------------+
-| PI                |
+| EXPR$0            |
 +-------------------+
 | 3.141592653589793 |
 +-------------------+
@@ -1838,7 +1838,7 @@ values pi;
 !ok
 
 # DEGREES function
-values (degrees(pi), degrees(-pi / 2));
+values (degrees(pi()), degrees(-pi() / 2));
 +--------+--------+
 | EXPR$0 | EXPR$1 |
 +--------+--------+
