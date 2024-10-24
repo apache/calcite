@@ -628,7 +628,7 @@ public class RelMdPredicates
   public RelOptPredicateList getPredicates(RelSubset r,
       RelMetadataQuery mq) {
     if (!Bug.CALCITE_1048_FIXED) {
-      return RelOptPredicateList.EMPTY;
+      return mq.getPulledUpPredicates(r.stripped());
     }
     final RexBuilder rexBuilder = r.getCluster().getRexBuilder();
     RelOptPredicateList list = null;

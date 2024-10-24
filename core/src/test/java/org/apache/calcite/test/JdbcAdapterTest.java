@@ -160,13 +160,18 @@ class JdbcAdapterTest {
             + "where \"product_id\" = 1")
         .runs()
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
-        .planHasSql("SELECT *\n"
+        .planHasSql("SELECT 1 AS \"product_id\", \"time_id\", \"customer_id\", "
+            + "\"promotion_id\", \"store_id\", \"store_sales\", "
+            + "\"store_cost\", \"unit_sales\"\n"
+            + "FROM (SELECT \"time_id\", \"customer_id\", \"promotion_id\", \"store_id\", "
+            + "\"store_sales\", \"store_cost\", \"unit_sales\"\n"
             + "FROM \"foodmart\".\"sales_fact_1997\"\n"
             + "WHERE \"product_id\" = 1\n"
             + "UNION ALL\n"
-            + "SELECT *\n"
+            + "SELECT \"time_id\", \"customer_id\", \"promotion_id\", \"store_id\", "
+            + "\"store_sales\", \"store_cost\", \"unit_sales\"\n"
             + "FROM \"foodmart\".\"sales_fact_1998\"\n"
-            + "WHERE \"product_id\" = 1");
+            + "WHERE \"product_id\" = 1) AS \"t3\"");
   }
 
   @Test void testInPlan() {

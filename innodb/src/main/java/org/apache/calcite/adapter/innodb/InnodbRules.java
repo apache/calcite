@@ -184,10 +184,13 @@ public class InnodbRules {
       final IndexCondition indexCondition =
           translator.translateMatch(filter.getCondition());
 
+      RexNode condition =
+          RexUtil.composeConjunction(cluster.getRexBuilder(),
+              indexCondition.getPushDownConditions());
       InnodbFilter innodbFilter =
           InnodbFilter.create(cluster, traitSet,
               convert(filter.getInput(), InnodbRel.CONVENTION),
-              filter.getCondition(), indexCondition, tableDef,
+              condition, indexCondition, tableDef,
               scan.getForceIndexName());
 
       // if some conditions can be pushed down, we left the remainder conditions
