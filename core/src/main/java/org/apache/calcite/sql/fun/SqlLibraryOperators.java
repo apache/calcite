@@ -4059,4 +4059,14 @@ public abstract class SqlLibraryOperators {
           writer.endList(parenthesisFrame);
         }
       };
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction MAKE_INTERVAL =
+      new SqlFunction("MAKE_INTERVAL",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTERVAL, null,
+          OperandTypes.family(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER,
+              SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER,
+              SqlTypeFamily.INTEGER),
+          SqlFunctionCategory.TIMEDATE);
 }
