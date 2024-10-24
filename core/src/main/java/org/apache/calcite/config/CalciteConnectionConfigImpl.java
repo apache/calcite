@@ -153,6 +153,10 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
         .getBoolean(lex().caseSensitive);
   }
 
+  @Override public String charset() {
+    return CalciteConnectionProperty.CHARSET.wrap(properties).getString();
+  }
+
   @Override public <T> @PolyNull T parserFactory(Class<T> parserFactoryClass,
       @PolyNull T defaultParserFactory) {
     return CalciteConnectionProperty.PARSER_FACTORY.wrap(properties)

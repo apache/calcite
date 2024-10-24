@@ -113,4 +113,10 @@ public class SqlOperatorUnparseTest extends CalciteSqlOperatorTest {
   void testContainsSubstrFunc() {
     super.testContainsSubstrFunc();
   }
+
+  @Override @Disabled("https://issues.apache.org/jira/browse/CALCITE-6002"
+      + "Customize handling of DateTimeTypeName based on type system")
+  void testLiteralAtLimit() {
+    super.testLiteralAtLimit();
+  }
 }

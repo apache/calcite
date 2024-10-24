@@ -309,6 +309,23 @@ public abstract class ReturnTypes {
       };
 
   /**
+   * Type-inference strategy that uses the first operand that is a member of
+   * {@link SqlTypeFamily#DATETIME} as the return type.
+   */
+  public static final SqlReturnTypeInference FIRST_DATETIME_ARG =
+      opBinding -> {
+        final int n = opBinding.getOperandCount();
+        RelDataType type1 = null;
+        for (int i = 0; i < n; i++) {
+          type1 = opBinding.getOperandType(i);
+          if (SqlTypeUtil.isDatetime(type1)) {
+            break;
+          }
+        }
+        return type1;
+      };
+
+  /**
    * Type-inference strategy whereby the result type of a call is a nullable
    * Boolean.
    */

@@ -629,6 +629,7 @@ public class RelJson {
         }
         map.put("operands", list);
         switch (node.getKind()) {
+        case TIMESTAMP_DIFF:
         case MINUS:
         case CAST:
         case SAFE_CAST:

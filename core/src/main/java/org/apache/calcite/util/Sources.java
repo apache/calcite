@@ -192,22 +192,30 @@ public abstract class Sources {
     }
 
     private static @Nullable File urlToFile(URL url) {
-      if (!"file".equals(url.getProtocol())) {
+      switch (url.getProtocol()) {
+      case "jar":
+        try {
+          return urlToFile((new URI(url.getFile())).toURL());
+        } catch (MalformedURLException | URISyntaxException e) {
+          return null;
+        }
+      case "file":
+        URI uri;
+        try {
+          uri = url.toURI();
+        } catch (URISyntaxException e) {
+          throw new IllegalArgumentException("Unable to convert URL " + url + " to URI", e);
+        }
+        if (uri.isOpaque()) {
+          // It is like file:test%20file.c++
+          // getSchemeSpecificPart would return "test file.c++"
+          return new File(uri.getSchemeSpecificPart());
+        }
+        // See https://stackoverflow.com/a/17870390/1261287
+        return Paths.get(uri).toFile();
+      default:
         return null;
       }
-      URI uri;
-      try {
-        uri = url.toURI();
-      } catch (URISyntaxException e) {
-        throw new IllegalArgumentException("Unable to convert URL " + url + " to URI", e);
-      }
-      if (uri.isOpaque()) {
-        // It is like file:test%20file.c++
-        // getSchemeSpecificPart would return "test file.c++"
-        return new File(uri.getSchemeSpecificPart());
-      }
-      // See https://stackoverflow.com/a/17870390/1261287
-      return Paths.get(uri).toFile();
     }
 
     private static URL fileToUrl(File file) {

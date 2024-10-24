@@ -871,7 +871,6 @@ public abstract class SqlLibraryOperators {
               ReturnTypes.DOUBLE,
               OperandTypes.NUMERIC_UNIT_INTERVAL_NUMERIC_LITERAL)
           .withFunctionType(SqlFunctionCategory.SYSTEM)
-          .withOver(true)
           .withPercentile(true)
           .withAllowsNullTreatment(true)
           .withAllowsFraming(false);
@@ -886,7 +885,6 @@ public abstract class SqlLibraryOperators {
               ReturnTypes.ARG0,
               OperandTypes.NUMERIC_UNIT_INTERVAL_NUMERIC_LITERAL)
           .withFunctionType(SqlFunctionCategory.SYSTEM)
-          .withOver(true)
           .withPercentile(true)
           .withAllowsNullTreatment(true)
           .withAllowsFraming(false);
@@ -948,7 +946,9 @@ public abstract class SqlLibraryOperators {
               // DATETIME(timestampLtz, timeZone)
               OperandTypes.sequence(
                   "DATETIME(TIMESTAMP WITH LOCAL TIME ZONE, VARCHAR)",
-                  OperandTypes.TIMESTAMP_LTZ, OperandTypes.CHARACTER)),
+                  OperandTypes.TIMESTAMP_LTZ, OperandTypes.CHARACTER),
+              // DATETIME(timestamp) -- This is a no-op.
+              OperandTypes.TIMESTAMP_NTZ),
           SqlFunctionCategory.TIMEDATE);
 
   /** The "TIME" function. It has the following overloads:
@@ -1003,7 +1003,9 @@ public abstract class SqlLibraryOperators {
               OperandTypes.TIMESTAMP_NTZ,
               // TIMESTAMP(timestamp, timeZone)
               OperandTypes.sequence("TIMESTAMP(TIMESTAMP, VARCHAR)",
-                  OperandTypes.TIMESTAMP_NTZ, OperandTypes.CHARACTER)),
+                  OperandTypes.TIMESTAMP_NTZ, OperandTypes.CHARACTER),
+              // TIMESTAMP(timestampLtz) -- This is a no-op.
+              OperandTypes.TIMESTAMP_LTZ),
           SqlFunctionCategory.TIMEDATE);
 
   /** The "CURRENT_DATETIME([timezone])" function. */
@@ -2050,11 +2052,13 @@ public abstract class SqlLibraryOperators {
               SqlTypeFamily.ANY));
 
   /** The "DATE_TRUNC(date, timeUnit)" function (BigQuery);
-   * truncates a DATE value to the beginning of a timeUnit. */
+   * truncates a DATE value to the beginning of a timeUnit.
+   * TODO(CALCITE-5290): Add `DATE_TRUNC` function consistent with Postgres. Currently, Postgres
+   *                     style calls can be parsed but fail validation. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction DATE_TRUNC =
       SqlBasicFunction.create("DATE_TRUNC",
-          ReturnTypes.ARG0_NULLABLE,
+          ReturnTypes.FIRST_DATETIME_ARG,
           OperandTypes.sequence("'DATE_TRUNC(<DATE>, <DATETIME_INTERVAL>)'",
               OperandTypes.DATE_OR_TIMESTAMP, OperandTypes.dateInterval()),
           SqlFunctionCategory.TIMEDATE)

@@ -46,7 +46,9 @@ public class CalciteMetaColumnFactoryImpl
       int nullable,
       Integer charOctetLength,
       int ordinalPosition,
-      String isNullable) {
+      String isNullable,
+      String isAutoincrement,
+      String isGeneratedcolumn) {
     return new MetaColumn(
         tableCat,
         tableSchem,
@@ -60,7 +62,9 @@ public class CalciteMetaColumnFactoryImpl
         nullable,
         charOctetLength,
         ordinalPosition,
-        isNullable);
+        isNullable,
+        isAutoincrement,
+        isGeneratedcolumn);
   }
 
   @Override public Class<? extends MetaColumn> getMetaColumnClass() {

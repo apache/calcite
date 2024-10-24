@@ -869,8 +869,8 @@ public class RexImpTable {
       // datetime
       define(DATETIME_PLUS, new DatetimeArithmeticImplementor());
       define(MINUS_DATE, new DatetimeArithmeticImplementor());
-      define(EXTRACT, new ExtractImplementor());
-      define(DATE_PART, new ExtractImplementor());
+      define(EXTRACT, new ExtractImplementor(true));
+      define(DATE_PART, new ExtractImplementor(false));
       define(FLOOR,
           new FloorImplementor(BuiltInMethod.FLOOR.method,
               BuiltInMethod.UNIX_TIMESTAMP_FLOOR.method,
@@ -3281,12 +3281,20 @@ public class RexImpTable {
 
   /** Implementor for the {@code EXTRACT(unit FROM datetime)} function. */
   private static class ExtractImplementor extends AbstractRexCallImplementor {
-    ExtractImplementor() {
+
+    private final boolean supportDayOfWeek;
+
+    ExtractImplementor(boolean supportDayOfWeek) {
       super("extract", NullPolicy.STRICT, false);
+      this.supportDayOfWeek = supportDayOfWeek;
     }
 
     @Override Expression implementSafe(final RexToLixTranslator translator,
         final RexCall call, final List<Expression> argValueList) {
+      if (argValueList.get(0).getType() == String.class && supportDayOfWeek) {
+        return Expressions.call(BuiltInMethod.CUSTOM_DATE_EXTRACT.method,
+            translator.getRoot(), argValueList.get(0), argValueList.get(1));
+      }
       // May need to convert the first argument from a String to a TimeUnitRange
       final Object timeUnitRangeObj = translator.getLiteralValue(argValueList.get(0));
       final TimeUnitRange timeUnitRange;

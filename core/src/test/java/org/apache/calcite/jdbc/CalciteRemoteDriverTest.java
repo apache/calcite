@@ -303,8 +303,8 @@ class CalciteRemoteDriverTest {
                 + "SQL_DATA_TYPE=null; SQL_DATETIME_SUB=null; "
                 + "CHAR_OCTET_LENGTH=-1; ORDINAL_POSITION=1; IS_NULLABLE=NO; "
                 + "SCOPE_CATALOG=null; SCOPE_SCHEMA=null; SCOPE_TABLE=null; "
-                + "SOURCE_DATA_TYPE=null; IS_AUTOINCREMENT=; "
-                + "IS_GENERATEDCOLUMN="));
+                + "SOURCE_DATA_TYPE=null; IS_AUTOINCREMENT=NO; "
+                + "IS_GENERATEDCOLUMN=NO"));
   }
 
   /** Checks that the default {@code getTables()} response contains the 10
