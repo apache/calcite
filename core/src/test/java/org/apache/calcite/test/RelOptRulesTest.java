@@ -8746,7 +8746,7 @@ class RelOptRulesTest extends RelOptTestBase {
   /**
    * Custom implementation of {@link Filter} for use
    * in test case to verify that {@link FilterMultiJoinMergeRule}
-   * can be created with any {@link Filter} and not limited to
+   Rex* can be created with any {@link Filter} and not limited to
    * {@link org.apache.calcite.rel.logical.LogicalFilter}.
    */
   private static class MyFilter extends Filter {

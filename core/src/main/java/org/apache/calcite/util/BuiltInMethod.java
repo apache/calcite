@@ -101,6 +101,10 @@ import org.apache.calcite.runtime.SqlFunctions.FlatProductInputType;
 import org.apache.calcite.runtime.UrlFunctions;
 import org.apache.calcite.runtime.Utilities;
 import org.apache.calcite.runtime.XmlFunctions;
+import org.apache.calcite.runtime.rtti.RuntimeTypeInformation;
+import org.apache.calcite.runtime.variant.VariantNull;
+import org.apache.calcite.runtime.variant.VariantSqlValue;
+import org.apache.calcite.runtime.variant.VariantValue;
 import org.apache.calcite.schema.FilterableTable;
 import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.schema.ProjectableFilterableTable;
@@ -931,7 +935,13 @@ public enum BuiltInMethod {
       long.class),
   BIG_DECIMAL_ADD(BigDecimal.class, "add", BigDecimal.class),
   BIG_DECIMAL_NEGATE(BigDecimal.class, "negate"),
-  COMPARE_TO(Comparable.class, "compareTo", Object.class);
+  COMPARE_TO(Comparable.class, "compareTo", Object.class),
+  VARIANT_CREATE(VariantSqlValue.class, "create", RoundingMode.class,
+      Object.class, RuntimeTypeInformation.class),
+  VARIANT_CAST(VariantValue.class, "cast", RuntimeTypeInformation.class),
+  TYPEOF(VariantValue.class, "getTypeString", VariantValue.class),
+  VARIANT_ITEM(SqlFunctions.class, "item", VariantValue.class, Object.class),
+  VARIANTNULL(VariantNull.class, "getInstance");
 
   @SuppressWarnings("ImmutableEnumChecker")
   public final Method method;
