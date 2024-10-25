@@ -1026,6 +1026,37 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testAggregateUnionTransposeWithOneInputNonNullable">
+    <Resource name="sql">
+      <![CDATA[select deptno, SUM(t) from (
+select deptno, 1 as t from sales.emp e1
+union all
+select deptno, nullif(sal, 0) as t from sales.emp e2)
+group by deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+  LogicalUnion(all=[true])
+    LogicalProject(DEPTNO=[$7], T=[1])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$7], T=[CASE(=($5, 0), null:INTEGER, $5)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+  LogicalUnion(all=[true])
+    LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+      LogicalProject(DEPTNO=[$7], T=[1])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+      LogicalProject(DEPTNO=[$7], T=[CASE(=($5, 0), null:INTEGER, $5)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testAggregateUnionTransposeWithOneInputUnique">
     <Resource name="sql">
       <![CDATA[select deptno, SUM(t) from (

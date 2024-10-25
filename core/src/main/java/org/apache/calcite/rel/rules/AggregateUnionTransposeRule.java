@@ -152,10 +152,32 @@ public class AggregateUnionTransposeRule
 
     // create corresponding aggregates on top of each union child
     final RelBuilder relBuilder = call.builder();
+    RelDataType origUnionType = union.getRowType();
     for (RelNode input : union.getInputs()) {
+      List<AggregateCall> childAggCalls = new ArrayList<>(aggRel.getAggCallList());
+      // if the nullability of a specific input column differs from the nullability
+      // of the union'ed column, we need to re-evaluate the nullability of the aggregate
+      RelDataType inputRowType = input.getRowType();
+      for (int i = 0; i < childAggCalls.size(); ++i) {
+        AggregateCall origCall = aggRel.getAggCallList().get(i);
+        if (origCall.getAggregation() == SqlStdOperatorTable.COUNT) {
+          continue;
+        }
+        assert origCall.getArgList().size() == 1;
+        int field = origCall.getArgList().get(0);
+        if (origUnionType.getFieldList().get(field).getType().isNullable()
+            != inputRowType.getFieldList().get(field).getType().isNullable()) {
+          AggregateCall newCall =
+              AggregateCall.create(origCall.getParserPosition(), origCall.getAggregation(),
+                  origCall.isDistinct(), origCall.isApproximate(), origCall.ignoreNulls(),
+                  origCall.rexList, origCall.getArgList(), -1, origCall.distinctKeys,
+                  origCall.collation, groupCount, input, null, origCall.getName());
+          childAggCalls.set(i, newCall);
+        }
+      }
       relBuilder.push(input);
       relBuilder.aggregate(relBuilder.groupKey(aggRel.getGroupSet()),
-          aggRel.getAggCallList());
+          childAggCalls);
     }
 
     // create a new union whose children are the aggregates created above
