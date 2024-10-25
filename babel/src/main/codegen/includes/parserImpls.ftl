@@ -180,6 +180,63 @@ SqlCreate SqlCreateTable(Span s, boolean replace) :
     }
 }
 
+/**
+ * Parses an INSERT OVERWRITE statement.
+ */
+SqlInsertOverwrite SqlInsertOverwrite() :
+{
+    final Span s;
+    final SqlNode target;
+    final SqlNodeList partitionList;
+    final boolean ifNotExists;
+    final SqlNodeList columnList;
+    final SqlNode source;
+    final boolean isLocal;
+    final SqlNode format;
+    final SqlNodeList optionList;
+}
+{
+    <INSERT> { s = span();}
+    <OVERWRITE>
+    (
+        <TABLE> target = CompoundIdentifier()
+        (
+            <PARTITION> <LPAREN> partitionList = ExpressionCommaList(s, ExprContext.ACCEPT_NON_QUERY) <RPAREN>
+            ifNotExists = IfNotExistsOpt()
+        |
+            {
+              partitionList = SqlNodeList.EMPTY;
+              ifNotExists = false;
+            }
+        )
+        (
+            columnList = ParenthesizedSimpleIdentifierList()
+        |
+            { columnList = SqlNodeList.EMPTY; }
+        )
+        source = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY)
+        {
+            return new SqlInsertOverwriteTable(s.end(source), target, partitionList, ifNotExists, columnList, source);
+        }
+    |
+        (
+            <LOCAL> { isLocal = true; }
+        |
+            { isLocal = false; }
+        )
+        <DIRECTORY> target = StringLiteral()
+        <USING> format = SimpleIdentifier()
+        (
+            <OPTIONS> <LPAREN> optionList = ExpressionCommaList(s, ExprContext.ACCEPT_NON_QUERY) <RPAREN>
+        |
+            { optionList = SqlNodeList.EMPTY; }
+        )
+        source = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY)
+        {
+            return new SqlInsertOverwriteDirectory(s.end(source), isLocal, target, format, optionList, source);
+        }
+    )
+}
 
 /* Extra operators */
 

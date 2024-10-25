@@ -159,6 +159,51 @@ class BabelTest {
         .fails("(?s).*Encountered \":\" at .*");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4455">[CALCITE-4455]
+   * Babel parser support Spark INSERT OVERWRITE TABLE/DIRECTORY statement</a>. */
+  @Test void testInsertOverwriteTable() {
+    final SqlValidatorFixture v = Fixtures.forValidator()
+        .withParserConfig(config -> config
+            .withParserFactory(SqlBabelParserImpl.FACTORY))
+        .withConformance(SqlConformanceEnum.BABEL);
+    v.withSql("INSERT OVERWRITE TABLE EMPNULLABLES "
+            + "SELECT * FROM EMP")
+        .ok();
+
+    v.withSql("INSERT OVERWRITE TABLE EMPNULLABLES "
+            + "SELECT * FROM ^EMP2^")
+        .fails("Object 'EMP2' not found");
+
+    v.withSql("INSERT OVERWRITE TABLE EMPNULLABLES "
+            + "PARTITION (DEPTNO=1) IF NOT EXISTS "
+            + "(EMPNO, ENAME, JOB)"
+            + "VALUES (0, 'b', 'c'), (1, 'B', 'C')")
+        .ok();
+
+    v.withSql("INSERT OVERWRITE TABLE ^EMPNULLABLES2^ "
+            + "PARTITION (DEPTNO=1) IF NOT EXISTS "
+            + "(EMPNO, ENAME, JOB)"
+            + "VALUES (0, 'b', 'c'), (1, 'B', 'C')")
+        .fails("Object 'EMPNULLABLES2' not found");
+  }
+
+  @Test void testInsertOverwriteDirectory() {
+    final SqlValidatorFixture v = Fixtures.forValidator()
+        .withParserConfig(config -> config
+            .withParserFactory(SqlBabelParserImpl.FACTORY))
+        .withConformance(SqlConformanceEnum.BABEL);
+    v.withSql("INSERT OVERWRITE DIRECTORY '/tmp/destination' "
+            + "USING parquet "
+            + "SELECT * FROM EMP")
+        .ok();
+
+    v.withSql("INSERT OVERWRITE DIRECTORY '/tmp/destination' "
+            + "USING parquet "
+            + "SELECT * FROM ^EMP2^")
+        .fails("Object 'EMP2' not found");
+  }
+
   /** Tests that DATEADD, DATEDIFF, DATEPART, DATE_PART allow custom time
    * frames. */
   @Test void testTimeFrames() {

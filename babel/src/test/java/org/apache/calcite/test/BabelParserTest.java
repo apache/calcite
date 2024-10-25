@@ -330,6 +330,143 @@ class BabelParserTest extends SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4455">[CALCITE-4455]
+   * Babel parser support Spark INSERT OVERWRITE TABLE/DIRECTORY statement</a>. */
+  @Test void testInsertOverwriteTable() {
+    sql("INSERT OVERWRITE TABLE target "
+        +  "^IF^ NOT EXISTS  SELECT * FROM source")
+        .fails("Non-query expression encountered in illegal context");
+
+    sql("INSERT OVERWRITE TABLE target SELECT * FROM source")
+        .ok("INSERT OVERWRITE TABLE `TARGET`\n"
+            + "SELECT *\n"
+            + "FROM `SOURCE`");
+
+    sql("INSERT OVERWRITE TABLE target PARTITION (d='', h='') SELECT * FROM source")
+        .ok("INSERT OVERWRITE TABLE `TARGET`\n"
+            + "PARTITION (`D` = ''), (`H` = '')\n"
+            + "SELECT *\n"
+            + "FROM `SOURCE`");
+
+    sql("INSERT OVERWRITE TABLE target PARTITION (d='', h='') IF NOT EXISTS SELECT * FROM source")
+        .ok("INSERT OVERWRITE TABLE `TARGET`\n"
+            + "PARTITION (`D` = ''), (`H` = '') IF NOT EXISTS\n"
+            + "SELECT *\n"
+            + "FROM `SOURCE`");
+
+    sql("INSERT OVERWRITE TABLE target "
+        + "(c1)"
+        + "SELECT * FROM source")
+        .ok("INSERT OVERWRITE TABLE `TARGET`\n"
+            + "(`C1`)\n"
+            + "SELECT *\n"
+            + "FROM `SOURCE`");
+
+    sql("INSERT OVERWRITE TABLE target "
+        + "PARTITION (d='', h='') IF NOT EXISTS "
+        + "(c1, c2, c3)"
+        + "SELECT * FROM source")
+        .ok("INSERT OVERWRITE TABLE `TARGET`\n"
+            + "PARTITION (`D` = ''), (`H` = '') IF NOT EXISTS\n"
+            + "(`C1`, `C2`, `C3`)\n"
+            + "SELECT *\n"
+            + "FROM `SOURCE`");
+
+    SqlDialect spark = SqlDialect.DatabaseProduct.SPARK.getDialect();
+
+    sql("INSERT OVERWRITE TABLE target "
+        + "(c1, c2, c3)"
+        + "VALUES ('a', 'b', 'c'), ('A', 'B', 'C')")
+        .ok("INSERT OVERWRITE TABLE `TARGET`\n"
+            + "(`C1`, `C2`, `C3`)\n"
+            + "VALUES (ROW('a', 'b', 'c')),\n"
+            + "(ROW('A', 'B', 'C'))")
+        .withDialect(spark)
+        .ok("INSERT OVERWRITE TABLE TARGET\n"
+            + "(C1, C2, C3)\n"
+            + "VALUES ('a', 'b', 'c'),\n"
+            + "('A', 'B', 'C')");
+
+    sql("INSERT OVERWRITE TABLE target "
+        + "PARTITION (d='', h='') IF NOT EXISTS "
+        + "(c1, c2, c3)"
+        + "VALUES ('a', 'b', 'c'), ('A', 'B', 'C')")
+        .ok("INSERT OVERWRITE TABLE `TARGET`\n"
+            + "PARTITION (`D` = ''), (`H` = '') IF NOT EXISTS\n"
+            + "(`C1`, `C2`, `C3`)\n"
+            + "VALUES (ROW('a', 'b', 'c')),\n"
+            + "(ROW('A', 'B', 'C'))")
+        .withDialect(spark)
+        .ok("INSERT OVERWRITE TABLE TARGET\n"
+            +  "PARTITION (D = ''), (H = '') IF NOT EXISTS\n"
+            + "(C1, C2, C3)\n"
+            + "VALUES ('a', 'b', 'c'),\n"
+            + "('A', 'B', 'C')");
+  }
+
+  @Test void testInsertOverwriteDirectory() {
+    SqlDialect spark = SqlDialect.DatabaseProduct.SPARK.getDialect();
+    sql("INSERT OVERWRITE LOCAL DIRECTORY '/tmp/destination' "
+        + "USING parquet "
+        + "SELECT * FROM test_table")
+        .ok("INSERT OVERWRITE LOCAL DIRECTORY '/tmp/destination'\n"
+            + "USING `PARQUET`\n"
+            + "SELECT *\n"
+            + "FROM `TEST_TABLE`")
+        .withDialect(spark)
+        .ok("INSERT OVERWRITE LOCAL DIRECTORY '/tmp/destination'\n"
+            + "USING PARQUET\n"
+            + "SELECT *\n"
+            + "FROM TEST_TABLE");
+
+    sql("INSERT OVERWRITE DIRECTORY '/tmp/destination' "
+        + "USING parquet "
+        + "SELECT * FROM test_table")
+        .ok("INSERT OVERWRITE DIRECTORY '/tmp/destination'\n"
+            + "USING `PARQUET`\n"
+            + "SELECT *\n"
+            + "FROM `TEST_TABLE`")
+        .withDialect(spark)
+        .ok("INSERT OVERWRITE DIRECTORY '/tmp/destination'\n"
+            + "USING PARQUET\n"
+            + "SELECT *\n"
+            + "FROM TEST_TABLE");
+
+    sql("INSERT OVERWRITE DIRECTORY '/tmp/destination' "
+        + "USING parquet "
+        + "OPTIONS (col1=1, col2=2, col3='test') "
+        + "SELECT * FROM test_table")
+        .ok("INSERT OVERWRITE DIRECTORY '/tmp/destination'\n"
+            + "USING `PARQUET`\n"
+            + "OPTIONS (`COL1` = 1), (`COL2` = 2), (`COL3` = 'test')\n"
+            + "SELECT *\n"
+            + "FROM `TEST_TABLE`")
+        .withDialect(spark)
+        .ok("INSERT OVERWRITE DIRECTORY '/tmp/destination'\n"
+            + "USING PARQUET\n"
+            + "OPTIONS (COL1 = 1), (COL2 = 2), (COL3 = 'test')\n"
+            + "SELECT *\n"
+            + "FROM TEST_TABLE");
+
+    sql("INSERT OVERWRITE DIRECTORY '/tmp/destination' "
+        + "USING parquet "
+        + "OPTIONS (col1=1, col2=2, col3='test') "
+        + "VALUES ('a', 'b', 'c'), ('A', 'B', 'C')")
+        .ok("INSERT OVERWRITE DIRECTORY '/tmp/destination'\n"
+            + "USING `PARQUET`\n"
+            + "OPTIONS (`COL1` = 1), (`COL2` = 2), (`COL3` = 'test')\n"
+            + "VALUES (ROW('a', 'b', 'c')),\n"
+            + "(ROW('A', 'B', 'C'))")
+        .withDialect(spark)
+        .ok("INSERT OVERWRITE DIRECTORY '/tmp/destination'\n"
+            + "USING PARQUET\n"
+            + "OPTIONS (COL1 = 1), (COL2 = 2), (COL3 = 'test')\n"
+            + "VALUES ('a', 'b', 'c'),\n"
+            + "('A', 'B', 'C')");
+  }
+
+
   @Test void testArrayLiteralFromString() {
     sql("select array '{1,2,3}'")
         .ok("SELECT (ARRAY[1, 2, 3])");

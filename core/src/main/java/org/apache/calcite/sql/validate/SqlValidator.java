@@ -32,6 +32,7 @@ import org.apache.calcite.sql.SqlDynamicParam;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlInsert;
+import org.apache.calcite.sql.SqlInsertOverwrite;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlLambda;
 import org.apache.calcite.sql.SqlLiteral;
@@ -235,6 +236,13 @@ public interface SqlValidator {
    * @param qualifier Interval qualifier
    */
   void validateIntervalQualifier(SqlIntervalQualifier qualifier);
+
+  /**
+   * Validates an INSERT_OVERWRITE statement.
+   *
+   * @param insertOverwrite INSERT_OVERWRITE statement
+   */
+  void validateInsertOverwrite(SqlInsertOverwrite insertOverwrite);
 
   /**
    * Validates an INSERT statement.

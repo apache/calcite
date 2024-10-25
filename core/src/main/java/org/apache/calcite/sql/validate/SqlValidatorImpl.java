@@ -60,6 +60,7 @@ import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlInsert;
+import org.apache.calcite.sql.SqlInsertOverwrite;
 import org.apache.calcite.sql.SqlIntervalLiteral;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlJoin;
@@ -3192,6 +3193,28 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
       break;
 
+    case INSERT_OVERWRITE:
+      final SqlInsertOverwrite insertOverwrite = (SqlInsertOverwrite) node;
+      if (insertOverwrite.getTarget() instanceof SqlIdentifier) {
+        final InsertOverwriteNamesapce insertOverwriteNamesapce =
+            new InsertOverwriteNamesapce(
+                this,
+                insertOverwrite,
+                enclosingNode,
+                parentScope);
+        registerNamespace(usingScope, null, insertOverwriteNamesapce, forceNullable);
+      }
+      if (insertOverwrite.getSource() != null) {
+        registerQuery(
+            parentScope,
+            usingScope,
+            insertOverwrite.getSource(),
+            enclosingNode,
+            null,
+            false);
+      }
+      break;
+
     default:
       throw Util.unexpected(node.getKind());
     }
@@ -5259,6 +5282,41 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     setValidatedNodeType(insert, targetRowTypeToValidate);
   }
 
+  @Override public void validateInsertOverwrite(SqlInsertOverwrite insertOverwrite) {
+    RelDataType targetRowType = null;
+    //  targetRowType will be null because
+    //  `INSERT OVERWRITE DIRECTORY '/path'` has no target table.
+    if (insertOverwrite.getTarget() instanceof SqlIdentifier) {
+      final SqlValidatorNamespace targetNamespace = getNamespaceOrThrow(insertOverwrite);
+      validateNamespace(targetNamespace, unknownType);
+      final RelOptTable relOptTable =
+          SqlValidatorUtil.getRelOptTable(targetNamespace,
+              catalogReader.unwrap(Prepare.CatalogReader.class),
+              null,
+              null);
+      final SqlValidatorTable table = relOptTable == null
+          ? getTable(targetNamespace)
+          : relOptTable.unwrapOrThrow(SqlValidatorTable.class);
+      targetRowType = table.getRowType();
+    }
+
+    // Validate source query and set node type.
+    final SqlNode source = insertOverwrite.getSource();
+    if (source instanceof SqlSelect) {
+      final SqlSelect sqlSelect = (SqlSelect) source;
+      validateSelect(sqlSelect, unknownType);
+    } else if (source != null) {
+      final SqlValidatorScope scope = scopes.get(source);
+      validateQuery(source,
+          requireNonNull(scope, "scope"),
+          unknownType);
+    }
+    RelDataType realTargetRowType = targetRowType != null
+        ? targetRowType
+        : getValidatedNodeType(source);
+    setValidatedNodeType(insertOverwrite, realTargetRowType);
+  }
+
   /**
    * Validates insert values against the constraint of a modifiable view.
    *
@@ -6832,6 +6890,23 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     protected DmlNamespace(SqlValidatorImpl validator, SqlNode id,
         SqlNode enclosingNode, SqlValidatorScope parentScope) {
       super(validator, id, enclosingNode, parentScope);
+    }
+  }
+
+  /**
+   * Namespace for an INSERT_OVERWRITE statement.
+   */
+  public static class InsertOverwriteNamesapce extends DmlNamespace {
+    private final SqlInsertOverwrite node;
+
+    protected InsertOverwriteNamesapce(SqlValidatorImpl validator, SqlInsertOverwrite node,
+        SqlNode enclosingNode, SqlValidatorScope parentScope) {
+      super(validator, node.getTarget(), enclosingNode, parentScope);
+      this.node = requireNonNull(node, "node");
+    }
+
+    @Override public @Nullable SqlNode getNode() {
+      return node;
     }
   }
 
