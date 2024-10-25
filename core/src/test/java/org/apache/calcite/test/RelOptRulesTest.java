@@ -7434,6 +7434,21 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6642">[CALCITE-6642]
+   * AggregateUnionTransposeRule throws an assertion error when creating children aggregates
+   * when one input only has a non-nullable column</a>. */
+  @Test void testAggregateUnionTransposeWithOneInputNonNullable() {
+    final String sql = "select deptno, SUM(t) from (\n"
+        + "select deptno, 1 as t from sales.emp e1\n"
+        + "union all\n"
+        + "select deptno, nullif(sal, 0) as t from sales.emp e2)\n"
+        + "group by deptno";
+    sql(sql)
+        .withRule(CoreRules.AGGREGATE_UNION_TRANSPOSE)
+        .check();
+  }
+
   /** If all inputs to UNION are already unique, AggregateUnionTransposeRule is
    * a no-op. */
   @Test void testAggregateUnionTransposeWithAllInputsUnique() {
