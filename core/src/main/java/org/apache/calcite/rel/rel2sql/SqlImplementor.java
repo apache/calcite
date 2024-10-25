@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.rel.rel2sql;
 
-import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.plan.RelOptUtil;
@@ -96,7 +95,6 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.ImmutableBitSet;
-import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.RangeSets;
 import org.apache.calcite.util.Sarg;
@@ -579,6 +577,8 @@ public abstract class SqlImplementor {
     case JOIN:
     case EXPLICIT_TABLE:
       return false;
+    case SELECT:
+      return node instanceof SqlSelect; // TODO workaround asIs hack
     default:
       return true;
     }
@@ -626,17 +626,9 @@ public abstract class SqlImplementor {
      */
     public SqlNode orderField(int ordinal) {
       final SqlNode node = field(ordinal);
-      if (node instanceof SqlNumericLiteral
-          && dialect.getConformance().isSortByOrdinal()) {
-        // An integer literal will be wrongly interpreted as a field ordinal.
-        // Convert it to a character literal, which will have the same effect.
-        final String strValue = ((SqlNumericLiteral) node).toValue();
-        return SqlLiteral.createCharString(strValue, node.getParserPosition());
-      }
-      if (node instanceof SqlCall
-          && dialect.getConformance().isSortByOrdinal()) {
-        // If the field is expression and sort by ordinal is set in dialect,
-        // convert it to ordinal.
+      if (!(node instanceof SqlIdentifier) && dialect.getConformance().shouldSortByOrdinal()) {
+        // If the dialect allows sorting by ordinal, and the field is anything but a named field
+        // reference, prefer to sort by ordinal instead.
         return SqlLiteral.createExactNumeric(
             Integer.toString(ordinal + 1), SqlParserPos.ZERO);
       }
@@ -1479,20 +1471,8 @@ public abstract class SqlImplementor {
             () -> "literal " + literal
                 + " has null SqlTypeFamily, and is SqlTypeName is " + typeName);
     switch (family) {
-    case CHARACTER: {
-      final NlsString value = literal.getValueAs(NlsString.class);
-      if (value != null) {
-        final String defaultCharset = CalciteSystemProperty.DEFAULT_CHARSET.value();
-        final String charsetName = value.getCharsetName();
-        if (!defaultCharset.equals(charsetName)) {
-          // Set the charset only if it is not the same as the default charset
-          return SqlLiteral.createCharString(
-              castNonNull(value).getValue(), charsetName, POS);
-        }
-      }
-      // Create a string without specifying a charset
+    case CHARACTER:
       return SqlLiteral.createCharString((String) castNonNull(literal.getValue2()), POS);
-    }
     case NUMERIC:
     case EXACT_NUMERIC: {
       if (SqlTypeName.APPROX_TYPES.contains(typeName)) {

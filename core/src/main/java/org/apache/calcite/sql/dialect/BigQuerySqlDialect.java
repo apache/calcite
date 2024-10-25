@@ -69,6 +69,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       .withLiteralEscapedQuoteString("\\'")
       .withIdentifierQuoteString("`")
       .withIdentifierEscapedQuoteString("\\`")
+      .withCharset("UTF-8")
       .withNullCollation(NullCollation.LOW)
       .withUnquotedCasing(Casing.UNCHANGED)
       .withQuotedCasing(Casing.UNCHANGED)

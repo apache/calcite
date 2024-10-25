@@ -84,7 +84,6 @@ import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
-import org.apache.calcite.util.ConversionUtil;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
@@ -289,17 +288,6 @@ class RelToSqlConverterTest {
         + "GROUP BY \"product_id\"\n"
         + "ORDER BY \"product_id\" DESC";
     sql(query).ok(expected);
-  }
-
-  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6006">[CALCITE-6006]</a>
-   * RelToSqlConverter loses charset information. */
-  @Test void testCharset() {
-    sql("select _UTF8'\u4F60\u597D'")
-        .withMysql() // produces a simpler output query
-        .ok("SELECT _UTF-8'\u4F60\u597D'");
-    sql("select _UTF16'" + ConversionUtil.TEST_UNICODE_STRING + "'")
-        .withMysql()
-        .ok("SELECT _UTF-16LE'" + ConversionUtil.TEST_UNICODE_STRING + "'");
   }
 
   /** Test case for
@@ -1386,6 +1374,30 @@ class RelToSqlConverterTest {
         .withMysql().ok(expectedMysql);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6196">[CALCITE-6196]
+   * Remove OVER requirement for BigQuery PERCENTILE_CONT/DISC</a>. */
+  @Test void testPercentileContFunctionWithoutOver() {
+    final String query = "select percentile_cont(\"product_id\", .5) "
+        + "from \"foodmart\".\"product\"";
+    final String expected = "SELECT PERCENTILE_CONT(product_id, 0.5)\n"
+        + "FROM foodmart.product";
+
+    sql(query).withBigQuery().withLibrary(SqlLibrary.BIG_QUERY).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6196">[CALCITE-6196]
+   * Remove OVER requirement for BigQuery PERCENTILE_CONT/DISC</a>. */
+  @Test void testPercentileDiscFunctionWithoutOver() {
+    final String query = "select percentile_disc(\"product_id\", .5) "
+        + "from \"foodmart\".\"product\"";
+    final String expected = "SELECT PERCENTILE_DISC(product_id, 0.5)\n"
+        + "FROM foodmart.product";
+
+    sql(query).withBigQuery().withLibrary(SqlLibrary.BIG_QUERY).ok(expected);
+  }
+
   /** As {@link #testSum0BecomesCoalesce()} but for windowed aggregates. */
   @Test void testWindowedSum0BecomesCoalesce() {
     final String query = "select\n"
@@ -1725,6 +1737,9 @@ class RelToSqlConverterTest {
         + "WHERE \"DEPT\".\"DEPTNO\" = \"EMP\".\"DEPTNO\")";
     assertThat(toSql(root), isLinux(expectedSql));
   }
+
+
+
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5394">[CALCITE-5394]
@@ -2222,8 +2237,9 @@ class RelToSqlConverterTest {
     // case4: wrap collation's info to numeric constant - rewrite it.
     relFn(relFn)
         .ok("SELECT \"JOB\", \"ENAME\"\n"
+            + "FROM (SELECT 1 AS \"$f0\", \"ENAME\", \"JOB\", '23' AS \"$f3\", 12 AS \"col1\", 34 AS \"$f5\"\n"
             + "FROM \"scott\".\"EMP\"\n"
-            + "ORDER BY '1', '23', '12', \"ENAME\", '34' DESC NULLS LAST")
+            + "ORDER BY 1, 4, 5, \"ENAME\", 6 DESC NULLS LAST) AS \"t0\"")
         .dialect(nonOrdinalDialect())
         .ok("SELECT JOB, ENAME\n"
             + "FROM scott.EMP\n"
@@ -2454,6 +2470,33 @@ class RelToSqlConverterTest {
         "SELECT PARSE_DATETIME('%a %b %e %I:%M:%S %Y', 'Thu Dec 25 07:30:00 2008')\n"
             + "FROM \"foodmart\".\"product\"";
     sql(parseDatetime).withLibrary(SqlLibrary.BIG_QUERY).ok(expectedParseDatetime);
+  }
+
+  @Test void testBigQueryDatetimeDiffFunctions() {
+    final String timeDiff = "select time_diff(time '15:30:00', time '14:35:00', minute)\n"
+        + "from \"foodmart\".\"product\"\n";
+    final String expectedTimeDiff = "SELECT TIME_DIFF(TIME '15:30:00', TIME '14:35:00', MINUTE)\n"
+        + "FROM foodmart.product";
+
+    final String dateDiff = "select date_diff(date '2010-07-07', date '2008-12-25', day)\n"
+        + "from \"foodmart\".\"product\"\n";
+    final String expectedDateDiff = "SELECT DATE_DIFF(DATE '2010-07-07', DATE '2008-12-25', DAY)\n"
+        + "FROM foodmart.product";
+
+    final String timestampDiff =
+        "select timestamp_diff(timestamp '2010-07-07 10:20:00', timestamp '2008-12-25 15:30:00', "
+            + "day)\n"
+        + "from \"foodmart\".\"product\"\n";
+    final String expectedtimestampDiff =
+        "SELECT TIMESTAMP_DIFF(TIMESTAMP '2010-07-07 10:20:00', TIMESTAMP '2008-12-25 15:30:00', "
+            + "DAY)\n"
+        + "FROM foodmart.product";
+
+
+    final Sql sql = fixture().withBigQuery().withLibrary(SqlLibrary.BIG_QUERY);
+    sql.withSql(timeDiff).ok(expectedTimeDiff);
+    sql.withSql(dateDiff).ok(expectedDateDiff);
+    sql.withSql(timestampDiff).ok(expectedtimestampDiff);
   }
 
   @Test void testBigQueryTimeTruncFunctions() {
@@ -2968,6 +3011,20 @@ class RelToSqlConverterTest {
     sql(query)
         .withPostgresql().ok(expectedPostgresql)
         .withBigQuery().ok(expectedBigQuery);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6001">[CALCITE-6001]
+   * Add withCharset to allow dialect-specific encoding</a>. */
+  @Test void testStringLiteralEncoding() {
+    final SqlParser.Config parserConfig =
+        BigQuerySqlDialect.DEFAULT.configureParser(SqlParser.config());
+    final String query = "select 'ק' from `foodmart`.`product`";
+    final String failedQuery = "select 'ק' from \"product\"";
+    final String expectedBigQuery = "SELECT 'ק'\nFROM foodmart.product";
+
+    sql(failedQuery).throws_("Failed to encode 'ק' in character set 'ISO-8859-1'");
+    sql(query).parserConfig(parserConfig).withBigQuery().ok(expectedBigQuery);
   }
 
   @Test void testIdentifier() {

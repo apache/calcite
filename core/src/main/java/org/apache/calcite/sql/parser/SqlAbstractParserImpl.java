@@ -538,6 +538,13 @@ public abstract class SqlAbstractParserImpl {
   public abstract void setUnquotedCasing(Casing unquotedCasing);
 
   /**
+   * Sets the charset.
+   *
+   * @param charset Charset to set.
+   */
+  public abstract void setCharset(String charset);
+
+  /**
    * Sets the maximum length for sql identifier.
    */
   public abstract void setIdentifierMaxLength(int identifierMaxLength);

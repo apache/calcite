@@ -65,6 +65,7 @@ import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.dialect.HiveSqlDialect;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -820,7 +821,9 @@ class PlannerTest {
 
   /** Tests that Hive dialect does not generate "AS". */
   @Test void testHiveDialect() throws SqlParseException {
-    Planner planner = getPlanner(null);
+    final SqlParser.Config parserConfig =
+        HiveSqlDialect.DEFAULT.configureParser(SqlParser.config());
+    Planner planner = getPlanner(null, parserConfig);
     final String sql = "select * from (select * from \"emps\") as t\n"
         + "where \"name\" like '%e%'";
     SqlNode parse = planner.parse(sql);
