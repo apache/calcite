@@ -34,6 +34,7 @@ import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.test.schemata.hr.HrSchema;
 import org.apache.calcite.util.Smalls;
 
@@ -119,6 +120,12 @@ class UdfTest {
         + "           name: 'MY_EXCEPTION',\n"
         + "           className: '"
         + Smalls.MyExceptionFunction.class.getName()
+        + "'\n"
+        + "         },\n"
+        + "         {\n"
+        + "           name: 'MY_NILADIC_PARENTHESES',\n"
+        + "           className: '"
+        + Smalls.MyNiladicParenthesesFunction.class.getName()
         + "'\n"
         + "         },\n"
         + "         {\n"
@@ -407,14 +414,43 @@ class UdfTest {
         .returns("P=null\n");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6645">[CALCITE-6645]
+   * User-defined function with niladic parentheses</a>. */
+  @Test void testUserDefinedFunctionWithNiladicParentheses() {
+    final CalciteAssert.AssertThat with = withUdf();
+    with.with(SqlConformanceEnum.MYSQL_5)
+        .query("select \"adhoc\".my_niladic_parentheses() as p\n"
+            + "from \"adhoc\".EMPLOYEES limit 1")
+        .returns("P=foo\n");
+    with.with(SqlConformanceEnum.ORACLE_10)
+        .query("select \"adhoc\".my_niladic_parentheses as p\n"
+            + "from \"adhoc\".EMPLOYEES limit 1")
+        .returns("P=foo\n");
+    // wrong niladic function with mysql_5 conformance
+    with.with(SqlConformanceEnum.MYSQL_5)
+        .query("select \"adhoc\".my_niladic_parentheses as p\n"
+            + "from \"adhoc\".EMPLOYEES limit 1")
+        .throws_("Table 'adhoc' not found");
+    // wrong niladic function with oracle_10 conformance
+    with.with(SqlConformanceEnum.ORACLE_10)
+        .query("select \"adhoc\".my_niladic_parentheses() as p\n"
+            + "from \"adhoc\".EMPLOYEES limit 1")
+        .throws_("No match found for function signature MY_NILADIC_PARENTHESES()");
+  }
+
   /** Tests a user-defined function that has multiple overloads. */
   @Test void testUdfOverloaded() {
     final CalciteAssert.AssertThat with = withUdf();
-    with.query("values (\"adhoc\".count_args(),\n"
+    // MYSQL_5 conformance support niladic function with parentheses
+    with.with(SqlConformanceEnum.MYSQL_5)
+        .query("values (\"adhoc\".count_args(),\n"
         + " \"adhoc\".count_args(0),\n"
         + " \"adhoc\".count_args(0, 0))")
         .returns("EXPR$0=0; EXPR$1=1; EXPR$2=2\n");
-    with.query("select max(\"adhoc\".count_args()) as p0,\n"
+    // MYSQL_5 conformance support niladic function with parentheses
+    with.with(SqlConformanceEnum.MYSQL_5)
+        .query("select max(\"adhoc\".count_args()) as p0,\n"
         + " min(\"adhoc\".count_args(0)) as p1,\n"
         + " max(\"adhoc\".count_args(0, 0)) as p2\n"
         + "from \"adhoc\".EMPLOYEES limit 1")
@@ -423,7 +459,9 @@ class UdfTest {
 
   @Test void testUdfOverloadedNullable() {
     final CalciteAssert.AssertThat with = withUdf();
-    with.query("values (\"adhoc\".count_args(),\n"
+    // MYSQL_5 conformance support niladic function with parentheses
+    with.with(SqlConformanceEnum.MYSQL_5)
+        .query("values (\"adhoc\".count_args(),\n"
         + " \"adhoc\".count_args(cast(null as smallint)),\n"
         + " \"adhoc\".count_args(0, 0))")
         .returns("EXPR$0=0; EXPR$1=-1; EXPR$2=2\n");

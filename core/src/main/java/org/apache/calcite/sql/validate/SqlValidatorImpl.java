@@ -1959,7 +1959,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   @Override public @Nullable SqlCall makeNullaryCall(SqlIdentifier id) {
-    if (id.names.size() == 1 && !id.isComponentQuoted(0)) {
+    if (!id.isComponentQuoted(id.names.size() - 1)) {
       final List<SqlOperator> list = new ArrayList<>();
       opTab.lookupOperatorOverloads(id, null, SqlSyntax.FUNCTION, list,
           catalogReader.nameMatcher());

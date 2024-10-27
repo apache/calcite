@@ -205,6 +205,10 @@ public class CalciteAssert {
           return this;
         }
 
+        @Override public AssertThat with(SqlConformanceEnum conformance) {
+          return this;
+        }
+
         @Override public AssertThat with(
             ConnectionPostProcessor postProcessor) {
           return this;
@@ -1212,6 +1216,11 @@ public class CalciteAssert {
     /** Sets the Lex property. */
     public AssertThat with(Lex lex) {
       return with(CalciteConnectionProperty.LEX, lex);
+    }
+
+    /** Sets the conformance property. */
+    public AssertThat with(SqlConformanceEnum conformance) {
+      return with(CalciteConnectionProperty.CONFORMANCE, conformance);
     }
 
     /** Sets the default schema to a given schema. */
