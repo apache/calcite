@@ -415,7 +415,7 @@ class UdfTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-937">[CALCITE-937]
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6645">[CALCITE-6645]
    * User-defined function with niladic parentheses</a>. */
   @Test void testUserDefinedFunctionWithNiladicParentheses() {
     final CalciteAssert.AssertThat with = withUdf();
