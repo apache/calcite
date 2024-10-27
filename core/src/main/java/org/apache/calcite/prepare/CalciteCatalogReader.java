@@ -283,7 +283,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
    * or classes.
    *
    * @see ModelHandler#addFunctions */
-  public static SqlOperatorTable operatorTable(String... classNames) {
+  public SqlOperatorTable operatorTable(String... classNames) {
     // Dummy schema to collect the functions
     final CalciteSchema schema =
         CalciteSchema.createRootSchema(false, false);
@@ -303,7 +303,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
   }
 
   /** Converts a function to a {@link org.apache.calcite.sql.SqlOperator}. */
-  private static SqlOperator toOp(SqlIdentifier name,
+  private SqlOperator toOp(SqlIdentifier name,
       final org.apache.calcite.schema.Function function) {
     final Function<RelDataTypeFactory, List<RelDataType>> argTypesFactory =
         typeFactory -> function.getParameters()
@@ -344,8 +344,12 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     if (function instanceof ScalarFunction) {
       final SqlReturnTypeInference returnTypeInference =
           infer((ScalarFunction) function);
+      SqlSyntax syntax = function.getParameters().isEmpty()
+          && !config.conformance().allowNiladicParentheses()
+          ? SqlSyntax.FUNCTION_ID
+          : SqlSyntax.FUNCTION;
       return new SqlUserDefinedFunction(name, kind, returnTypeInference,
-          operandTypeInference, operandMetadata, function);
+          operandTypeInference, operandMetadata, function, syntax);
     } else if (function instanceof AggregateFunction) {
       final SqlReturnTypeInference returnTypeInference =
           infer((AggregateFunction) function);

@@ -683,6 +683,13 @@ public class Smalls {
     }
   }
 
+  /** User-defined function with niladic parentheses. */
+  public static class MyNiladicParenthesesFunction {
+    public String eval() {
+      return "foo";
+    }
+  }
+
   /** Example of a UDF that has overloaded UDFs (same name, different args). */
   public abstract static class CountArgs0Function {
     private CountArgs0Function() {}
