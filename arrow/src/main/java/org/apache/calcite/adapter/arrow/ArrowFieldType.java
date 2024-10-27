@@ -25,6 +25,7 @@ import org.apache.arrow.vector.types.pojo.ArrowType;
 
 import java.math.BigDecimal;
 import java.sql.Date;
+import java.sql.Time;
 import java.util.List;
 
 import static java.util.Objects.requireNonNull;
@@ -38,6 +39,7 @@ enum ArrowFieldType {
   STRING(String.class),
   FLOAT(Primitive.FLOAT),
   DOUBLE(Primitive.DOUBLE),
+  TIME(Time.class),
   DATE(Date.class),
   LIST(List.class),
   DECIMAL(BigDecimal.class),
@@ -93,6 +95,10 @@ enum ArrowFieldType {
       }
     case Date:
       return DATE;
+    case Time:
+      return TIME;
+    case Timestamp:
+      return LONG;
     case Decimal:
       return DECIMAL;
     default:

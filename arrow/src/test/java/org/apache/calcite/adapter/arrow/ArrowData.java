@@ -31,12 +31,15 @@ import org.apache.arrow.vector.Float8Vector;
 import org.apache.arrow.vector.FloatingPointVector;
 import org.apache.arrow.vector.IntVector;
 import org.apache.arrow.vector.SmallIntVector;
+import org.apache.arrow.vector.TimeSecVector;
+import org.apache.arrow.vector.TimeStampVector;
 import org.apache.arrow.vector.TinyIntVector;
 import org.apache.arrow.vector.VarCharVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.ipc.ArrowFileWriter;
 import org.apache.arrow.vector.types.DateUnit;
 import org.apache.arrow.vector.types.FloatingPointPrecision;
+import org.apache.arrow.vector.types.TimeUnit;
 import org.apache.arrow.vector.types.pojo.ArrowType;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.FieldType;
@@ -105,6 +108,8 @@ public class ArrowData {
     FieldType booleanType = FieldType.nullable(new ArrowType.Bool());
     FieldType decimalType = FieldType.nullable(new ArrowType.Decimal(10, 2, 128));
     FieldType dateType = FieldType.nullable(new ArrowType.Date(DateUnit.DAY));
+    FieldType timestampType = FieldType.nullable(new ArrowType.Timestamp(TimeUnit.SECOND, null));
+    FieldType timeType = FieldType.nullable(new ArrowType.Time(TimeUnit.SECOND, 32));
 
     childrenBuilder.add(new Field("tinyIntField", tinyIntType, null));
     childrenBuilder.add(new Field("smallIntField", smallIntType, null));
@@ -116,6 +121,8 @@ public class ArrowData {
     childrenBuilder.add(new Field("booleanField", booleanType, null));
     childrenBuilder.add(new Field("decimalField", decimalType, null));
     childrenBuilder.add(new Field("dateField", dateType, null));
+    childrenBuilder.add(new Field("timestampField", timestampType, null));
+    childrenBuilder.add(new Field("timeField", timeType, null));
 
     return new Schema(childrenBuilder.build(), null);
   }
@@ -268,6 +275,12 @@ public class ArrowData {
         case DATEDAY:
           dateField(vector, numRows);
           break;
+        case TIMESTAMPSEC:
+          timestampField(vector, numRows);
+          break;
+        case TIMESEC:
+          timeField(vector, numRows);
+          break;
         default:
           throw new IllegalStateException("Not supported type yet: " + vector.getMinorType());
         }
@@ -388,6 +401,26 @@ public class ArrowData {
     dateDayVector.allocateNew();
     for (int i = 0; i < rowCount; i++) {
       dateDayVector.set(i, i);
+    }
+    fieldVector.setValueCount(rowCount);
+  }
+
+  private void timestampField(FieldVector fieldVector, int rowCount) {
+    TimeStampVector timestampVector = (TimeStampVector) fieldVector;
+    timestampVector.setInitialCapacity(rowCount);
+    timestampVector.allocateNew();
+    for (int i = 0; i < rowCount; i++) {
+      timestampVector.set(i, i);
+    }
+    fieldVector.setValueCount(rowCount);
+  }
+
+  private void timeField(FieldVector fieldVector, int rowCount) {
+    TimeSecVector timeVector = (TimeSecVector) fieldVector;
+    timeVector.setInitialCapacity(rowCount);
+    timeVector.allocateNew();
+    for (int i = 0; i < rowCount; i++) {
+      timeVector.set(i, i * 1000);
     }
     fieldVector.setValueCount(rowCount);
   }
