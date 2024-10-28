@@ -611,30 +611,6 @@ public abstract class OperandTypes {
         }
       };
 
-  public static final SqlOperandTypeChecker TWO_OR_MORE =
-      new SqlOperandTypeChecker() {
-        @Override public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
-          RelDataType operandType = callBinding.getOperandType(0);
-          if (!SqlTypeUtil.isString(operandType)) {
-            if (throwOnFailure) {
-              throw callBinding.newError(
-                  RESOURCE.argumentMustBeBooleanLiteral(
-                      callBinding.getOperator().getName()));
-            }
-            return false;
-          }
-          return true;
-        }
-
-        @Override public SqlOperandCountRange getOperandCountRange() {
-          return SqlOperandCountRanges.from(2);
-        }
-
-        @Override public String getAllowedSignatures(SqlOperator op, String opName) {
-          return opName + "(<STRING>, <ANY>, ....)";
-        }
-      };
-
   public static final SqlSingleOperandTypeChecker ARRAY_OF_INTEGER =
       new FamilyOperandTypeChecker(ImmutableList.of(SqlTypeFamily.ARRAY), i -> false) {
         @Override public boolean checkSingleOperandType(SqlCallBinding callBinding, SqlNode operand,

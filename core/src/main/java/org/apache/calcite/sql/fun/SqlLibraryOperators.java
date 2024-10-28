@@ -77,6 +77,7 @@ import static org.apache.calcite.sql.fun.SqlLibrary.TERADATA;
 import static org.apache.calcite.sql.type.OperandTypes.ANY_STRING_OR_STRING_STRING;
 import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTEGER;
 import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTERVAL;
+import static org.apache.calcite.sql.type.OperandTypes.ONE_OR_MORE;
 import static org.apache.calcite.sql.type.OperandTypes.STRING_INTEGER;
 import static org.apache.calcite.sql.type.OperandTypes.STRING_STRING;
 import static org.apache.calcite.sql.type.OperandTypes.STRING_STRING_BOOLEAN;
@@ -2827,11 +2828,23 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction GETBIT =
       BIT_GET.withName("GETBIT");
 
-  @LibraryOperator(libraries = {CALCITE, BIG_QUERY, SPARK, POSTGRESQL})
+  @LibraryOperator(libraries = {CALCITE, BIG_QUERY, SPARK})
   public static final SqlFunction FORMAT =
-      SqlBasicFunction.create(SqlKind.FORMAT,
-          ReturnTypes.VARCHAR_2000_NULLABLE,
-          OperandTypes.TWO_OR_MORE).withFunctionType(SqlFunctionCategory.STRING);
+      new SqlFunction(
+        "FORMAT",
+        SqlKind.FORMAT,
+        ReturnTypes.VARCHAR_2000_NULLABLE, null,
+        OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.NUMERIC),
+        SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlFunction POSTGRESQL_FORMAT =
+      new SqlFunction(
+        "FORMAT",
+        SqlKind.FORMAT,
+        ReturnTypes.VARCHAR_2000_NULLABLE, null,
+        ONE_OR_MORE,
+        SqlFunctionCategory.STRING);
 
   /** The "TO_NUMBER(string1, string2)" function; casts string1
    * as hexadecimal to a NUMBER using the format specified in string2. */

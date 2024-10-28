@@ -9050,7 +9050,7 @@ class RelToSqlConverterDMTest {
     final RelBuilder builder = relBuilder();
 
     final RexNode formatIntegerRexNode =
-        builder.call(SqlLibraryOperators.FORMAT,
+        builder.call(SqlLibraryOperators.POSTGRESQL_FORMAT,
             builder.literal("Hello, %s"), builder.literal("John"));
 
     final RelNode root = builder
