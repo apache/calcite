@@ -3744,25 +3744,6 @@ class RexProgramTest extends RexProgramTestBase {
     assertThat(s, is(falseLiteral));
   }
 
-  @Test void testSimplifyMeasure() {
-    // m2v directly applied to v2m
-    checkSimplify(m2v(v2m(literal(1))), "1");
-    // m2v's operand contains v2m; not simplified
-    checkSimplifyUnchanged(m2v(plus(literal(2), v2m(literal(1)))));
-    // expression contains m2v directly applied to v2m; simplified
-    checkSimplify(plus(literal(2), m2v(v2m(literal(1)))), "+(2, 1)");
-    // "m2v(v2m(count(*))" -> "count(*) over (rows current row)"
-    final RelDataType bigintType = typeFactory.createSqlType(SqlTypeName.BIGINT);
-    final RexCall countCall =
-        new RexCall(bigintType, SqlStdOperatorTable.COUNT, ImmutableList.of());
-    checkSimplify(m2v(v2m(countCall)), "COUNT() OVER (ROWS CURRENT ROW)");
-    // "m2v(v2m(sum($0))" -> "sum($0) over (rows current row)"
-    final RexInputRef i0 = rexBuilder.makeInputRef(bigintType, 0);
-    final RexCall sumCall =
-        new RexCall(bigintType, SqlStdOperatorTable.SUM, ImmutableList.of(i0));
-    checkSimplify(m2v(v2m(sumCall)), "SUM($0) OVER (ROWS CURRENT ROW)");
-  }
-
   @Test void testSimplifyUnaryMinus() {
     RexNode origExpr = vIntNotNull(1);
     RexNode expr = unaryMinus(unaryMinus(origExpr));

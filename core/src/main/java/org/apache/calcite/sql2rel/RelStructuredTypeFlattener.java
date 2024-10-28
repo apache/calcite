@@ -1062,9 +1062,9 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
       }
       RexNode conjunction = null;
       for (int i = 0; i < n; ++i) {
+        final List<RexNode> leftList = flattenedExps.leftList();
         RexNode comparison =
-            rexBuilder.makeCall(op, flattenedExps.left(i),
-                flattenedExps.left(i + n));
+            rexBuilder.makeCall(op, leftList.get(i), leftList.get(i + n));
         if (conjunction == null) {
           conjunction = comparison;
         } else {

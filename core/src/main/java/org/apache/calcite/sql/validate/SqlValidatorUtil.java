@@ -86,7 +86,6 @@ import java.util.TreeSet;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNullList;
-import static org.apache.calcite.sql.SqlUtil.deriveAliasFromOrdinal;
 import static org.apache.calcite.sql.type.NonNullableAccessors.getCharset;
 import static org.apache.calcite.sql.type.NonNullableAccessors.getCollation;
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -369,7 +368,7 @@ public class SqlValidatorUtil {
       if (ordinal < 0) {
         return null;
       } else {
-        return deriveAliasFromOrdinal(ordinal);
+        return SqlUtil.deriveAliasFromOrdinal(ordinal);
       }
     }
   }
@@ -1309,16 +1308,9 @@ public class SqlValidatorUtil {
    *
    * <p>For a measure, {@code selectItem} will have the form
    * {@code AS(MEASURE(exp), alias)} and this method returns {@code exp}. */
-  @SuppressWarnings({"SwitchStatementWithTooFewBranches", "MissingCasesInEnumSwitch"})
   public static @Nullable SqlNode getMeasure(SqlNode selectItem) {
-    switch (selectItem.getKind()) {
-    case AS:
-      final SqlBasicCall call = (SqlBasicCall) selectItem;
-      switch (call.operand(0).getKind()) {
-      case MEASURE:
-        return ((SqlBasicCall) call.operand(0)).operand(0);
-      }
-    }
+    // The implementation of this method will be extended when we add the
+    // 'AS MEASURE' construct in [CALCITE-4496].
     return null;
   }
 

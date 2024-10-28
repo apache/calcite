@@ -590,6 +590,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
       }
     }
 
+    assert newPos == newInputOutput.size();
+
     // This Project will be what the old input maps to,
     // replacing any previous mapping from old input).
     RelNode newProject = relBuilder.push(newInput)

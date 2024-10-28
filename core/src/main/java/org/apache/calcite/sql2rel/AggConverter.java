@@ -22,7 +22,6 @@ import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
@@ -39,13 +38,10 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.SqlUtil;
-import org.apache.calcite.sql.fun.SqlInternalOperators;
-import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.sql.validate.AggregatingSelectScope;
-import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
@@ -63,7 +59,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
-import static org.apache.calcite.sql.type.SqlTypeUtil.fromMeasure;
 
 /**
  * Converts expressions to aggregates.
@@ -242,16 +237,6 @@ class AggConverter implements SqlVisitor<Void> {
   }
 
   @Override public Void visit(SqlIdentifier id) {
-    if (isMeasureExpr(id)) {
-      final SqlCall call =
-          SqlInternalOperators.AGG_M2V.createCall(SqlParserPos.ZERO, id);
-      final SqlValidator validator = bb.getValidator();
-      final RelDataType measureType = validator.getValidatedNodeType(id);
-      final RelDataTypeFactory typeFactory = bb.getTypeFactory();
-      final RelDataType valueType = fromMeasure(typeFactory, measureType);
-      validator.setValidatedNodeType(call, valueType);
-      translateAgg(call);
-    }
     return null;
   }
 
@@ -500,9 +485,6 @@ class AggConverter implements SqlVisitor<Void> {
 
     SqlAggFunction aggFunction =
         (SqlAggFunction) call.getOperator();
-    if (aggFunction == SqlLibraryOperators.AGGREGATE) {
-      aggFunction = SqlInternalOperators.AGG_M2V;
-    }
     final RelDataType type = bb.getValidator().deriveType(bb.scope, call);
     boolean distinct = false;
     SqlLiteral quantifier = call.getFunctionQuantifier();
@@ -557,16 +539,8 @@ class AggConverter implements SqlVisitor<Void> {
             groupExprs.size(),
             aggCalls,
             aggCallMapping,
-            i -> convertedInputExprs.left(i).getType().isNullable());
+            i -> convertedInputExprs.leftList().get(i).getType().isNullable());
     aggMapping.put(outerCall, rex);
-    if (aggFunction.kind == SqlKind.AGG_M2V
-        && !distinct
-        && filterArg < 0
-        && distinctKeys == null
-        && args.size() == 1) {
-      // Allow "AGG_M2V(m)" to also be accessed via "m"
-      aggMapping.put(outerCall.operand(0), rex);
-    }
   }
 
   private RelFieldCollation sortToFieldCollation(SqlNode expr,
@@ -622,7 +596,7 @@ class AggConverter implements SqlVisitor<Void> {
         final RexBuilder rexBuilder = bb.getRexBuilder();
         final int groupOrdinal = e.getValue().i;
         return converter.convert(rexBuilder,
-            convertedInputExprs.left(groupOrdinal),
+            convertedInputExprs.leftList().get(groupOrdinal),
             rexBuilder.makeInputRef(castNonNull(bb.root), groupOrdinal));
       }
     }

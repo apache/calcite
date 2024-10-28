@@ -361,7 +361,6 @@ public class SqlParserTest {
       "MATCH_RECOGNIZE",                                           "2014", "c",
       "MAX",                           "92",               "2011", "2014", "c",
       "MAX_CARDINALITY",                                   "2011",
-      "MEASURE",                                                           "c",
       "MEASURES",                                                          "c",
       "MEMBER",                                    "2003", "2011", "2014", "c",
       "MERGE",                                     "2003", "2011", "2014", "c",
@@ -8874,17 +8873,6 @@ public class SqlParserTest {
         + " FILTER (WHERE (`COL7` < `COL8`)) AS `SUM2`\n"
         + "FROM `T`\n"
         + "GROUP BY `COL9`";
-    sql(sql).ok(expected);
-  }
-
-  @Test void testMeasure() {
-    final String sql = "select deptno,\n"
-        + "  job as myJob,\n"
-        + "  sum(comm) / sum(sal) as measure commRatio\n"
-        + "from emp";
-    final String expected = "SELECT `DEPTNO`, `JOB` AS `MYJOB`,"
-        + " (SUM(`COMM`) / SUM(`SAL`)) AS MEASURE `COMMRATIO`\n"
-        + "FROM `EMP`";
     sql(sql).ok(expected);
   }
 

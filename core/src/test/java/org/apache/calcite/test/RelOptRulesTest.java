@@ -77,7 +77,6 @@ import org.apache.calcite.rel.rules.FilterMultiJoinMergeRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
 import org.apache.calcite.rel.rules.JoinAssociateRule;
 import org.apache.calcite.rel.rules.JoinCommuteRule;
-import org.apache.calcite.rel.rules.MeasureRules;
 import org.apache.calcite.rel.rules.MultiJoin;
 import org.apache.calcite.rel.rules.ProjectCorrelateTransposeRule;
 import org.apache.calcite.rel.rules.ProjectFilterTransposeRule;
@@ -6107,75 +6106,6 @@ class RelOptRulesTest extends RelOptTestBase {
         + "from emp\n"
         + "group by deptno";
     sql(sql).withRule(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW).check();
-  }
-
-  @Test void testMeasureSort() {
-    final String sql = "select deptno, c1\n"
-        + "from (select deptno, job, count(*) + 1 as measure c1\n"
-        + "  from emp)\n"
-        + "order by deptno";
-    sql(sql)
-        .withRule(MeasureRules.PROJECT_SORT)
-        .check();
-  }
-
-  @Test void testMeasureAggregate() {
-    final String sql = "select deptno, c1\n"
-        + "from (select deptno, job, count(*) + 1 as measure c1\n"
-        + "  from emp)\n"
-        + "group by deptno";
-    sql(sql)
-        .withRule(MeasureRules.AGGREGATE,
-            CoreRules.PROJECT_MERGE,
-            MeasureRules.PROJECT)
-        .check();
-  }
-
-  /** Tests use of a measure in a non-aggregate query. Calls
-   * {@link RelOptFixture#checkUnchanged()} because Sql-to-rel has done the
-   * necessary work already. */
-  @Test void testMeasureWithoutGroupBy() {
-    final String sql = "with empm as\n"
-        + "  (select *, avg(sal) as measure avgSal from emp)\n"
-        + "select deptno, avgSal\n"
-        + "from empm";
-    sql(sql)
-        .withRule(MeasureRules.AGGREGATE2,
-            CoreRules.PROJECT_MERGE,
-            MeasureRules.PROJECT)
-        .checkUnchanged();
-  }
-
-  @Test void testMeasureWithoutGroupByWithOrderBy() {
-    final String sql = "with empm as\n"
-        + "  (select *, avg(sal) as measure avgSal from emp)\n"
-        + "select deptno, avgSal\n"
-        + "from empm\n"
-        + "order by 2 desc limit 3";
-    sql(sql)
-        .withRule(MeasureRules.PROJECT_SORT,
-            CoreRules.PROJECT_MERGE,
-            MeasureRules.PROJECT)
-        .check();
-  }
-
-  @Disabled
-  @Test void testMeasureJoin() {
-    final String sql = "with deptm as\n"
-        + "  (select deptno, name, avg(char_length(name)) as measure m\n"
-        + "   from dept)\n"
-        + "select deptno, aggregate(m) as m\n"
-        + "from deptm join emp using (deptno)\n"
-        + "group by deptno";
-    sql(sql)
-        .withFactory(t ->
-            t.withOperatorTable(opTab ->
-                SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
-                    SqlLibrary.STANDARD, SqlLibrary.CALCITE))) // for AGGREGATE
-        .withRule(MeasureRules.AGGREGATE,
-            CoreRules.PROJECT_MERGE,
-            MeasureRules.PROJECT)
-        .check();
   }
 
   @Test void testPushAggregateThroughJoin1() {

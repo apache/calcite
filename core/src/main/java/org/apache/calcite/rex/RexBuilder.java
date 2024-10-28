@@ -847,16 +847,12 @@ public class RexBuilder {
     }
   }
 
-  boolean canRemoveCastFromLiteral(RelDataType toType,
-      @SuppressWarnings("rawtypes") @Nullable Comparable value,
+  boolean canRemoveCastFromLiteral(RelDataType toType, @Nullable Comparable value,
       SqlTypeName fromTypeName) {
     if (value == null) {
       return true;
     }
     final SqlTypeName sqlType = toType.getSqlTypeName();
-    if (sqlType == SqlTypeName.MEASURE) {
-      return false;
-    }
     if (!RexLiteral.valueMatchesType(value, sqlType, false)) {
       return false;
     }

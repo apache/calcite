@@ -635,16 +635,9 @@ public class RelBuilder {
     throw new IllegalArgumentException(b.toString());
   }
 
-  /** Returns a reference to a given field (by name, case-insensitive)
-   * of a record-valued expression. */
+  /** Returns a reference to a given field of a record-valued expression. */
   public RexNode field(RexNode e, String name) {
     return getRexBuilder().makeFieldAccess(e, name, false);
-  }
-
-  /** Returns a reference to a given field (by ordinal)
-   * of a record-valued expression. */
-  public RexNode field(RexNode e, int ordinal) {
-    return getRexBuilder().makeFieldAccess(e, ordinal);
   }
 
   /** Returns references to the fields of the top input. */
@@ -2129,7 +2122,7 @@ public class RelBuilder {
         switch (pair.left.getKind()) {
         case INPUT_REF:
           final int i = ((RexInputRef) pair.left).getIndex();
-          fields.set(i, pair.right, fields.right(i));
+          fields.set(i, pair.right, fields.rightList().get(i));
           break;
         default:
           break;
@@ -2183,7 +2176,7 @@ public class RelBuilder {
       case INPUT_REF:
         // preserve rel aliases for INPUT_REF fields
         final int index = ((RexInputRef) node).getIndex();
-        fields.add(frame.fields.left(index), fieldType);
+        fields.add(frame.fields.leftList().get(index), fieldType);
         break;
       default:
         fields.add(ImmutableSet.of(), fieldType);

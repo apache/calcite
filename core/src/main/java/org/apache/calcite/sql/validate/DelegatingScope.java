@@ -31,6 +31,7 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -50,7 +51,6 @@ import java.util.function.Supplier;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getSelectList;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
@@ -637,7 +637,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
               });
         } else {
           rowType.getFieldList().forEach(field -> {
-            if (field.getType().isMeasure()) {
+            if (field.getType().getSqlTypeName() == SqlTypeName.MEASURE) {
               analyzer.measureExprs.add(
                   new SqlIdentifier(
                       Arrays.asList(child.name, field.getName()),
@@ -654,46 +654,5 @@ public abstract class DelegatingScope implements SqlValidatorScope {
    */
   public SqlValidatorScope getParent() {
     return parent;
-  }
-
-  /** Qualifies an identifier by looking for an alias in the current
-   * select-list.
-   *
-   * <p>Used when resolving ORDER BY items (when the conformance allows order by
-   * alias, such as "SELECT x - y AS z FROM t ORDER BY z") and measures
-   * (when one measure refers to another, for example
-   * "SELECT SUM(x) AS MEASURE m1, SUM(y) - m1 AS MEASURE m2 FROM t"). */
-  protected @Nullable SqlQualified qualifyUsingAlias(SqlSelect select,
-      SqlIdentifier identifier) {
-    final String name = identifier.names.get(0);
-    final SqlNameMatcher nameMatcher = validator.catalogReader.nameMatcher();
-    final int aliasCount = aliasCount(select, nameMatcher, name);
-    switch (aliasCount) {
-    case 0:
-      return null;
-    case 1:
-      final SqlValidatorNamespace selectNs =
-          validator.getNamespaceOrThrow(select);
-      return SqlQualified.create(this, 1, selectNs, identifier);
-    default:
-      // More than one column has this alias.
-      throw validator.newValidationError(identifier,
-          RESOURCE.columnAmbiguous(name));
-    }
-  }
-
-  /** Returns the number of columns in the SELECT clause that have {@code name}
-   * as their implicit (e.g. {@code t.name}) or explicit (e.g.
-   * {@code t.c as name}) alias. */
-  private static int aliasCount(SqlSelect select, SqlNameMatcher nameMatcher,
-      String name) {
-    int n = 0;
-    for (SqlNode s : getSelectList(select)) {
-      final @Nullable String alias = SqlValidatorUtil.alias(s);
-      if (alias != null && nameMatcher.matches(alias, name)) {
-        n++;
-      }
-    }
-    return n;
   }
 }

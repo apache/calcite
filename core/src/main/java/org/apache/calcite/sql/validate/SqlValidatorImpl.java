@@ -223,8 +223,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       new IdentityHashMap<>();
 
   /**
-   * Maps a {@link SqlSelect} and a {@link Clause} to the scope used by that
-   * clause.
+   * Maps a {@link SqlSelect} and a clause to the scope used by that clause.
    */
   private final Map<IdPair<SqlSelect, Clause>, SqlValidatorScope>
       clauseScopes = new HashMap<>();
@@ -398,7 +397,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlSelect select, boolean includeSystemVars) {
     final List<SqlNode> list = new ArrayList<>();
     final PairList<String, RelDataType> types = PairList.of();
-    for (final SqlNode selectItem : selectList) {
+    for (SqlNode selectItem : selectList) {
       final RelDataType originalType = getValidatedNodeTypeIfKnown(selectItem);
       expandSelectItem(selectItem, select, first(originalType, unknownType),
           list, catalogReader.nameMatcher().createSet(), types,
@@ -463,28 +462,21 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private boolean expandSelectItem(final SqlNode selectItem, SqlSelect select,
       RelDataType targetType, List<SqlNode> selectItems, Set<String> aliases,
       PairList<String, RelDataType> fields, boolean includeSystemVars) {
-    final SqlValidatorScope selectScope;
-    SqlNode expanded;
-    if (SqlValidatorUtil.isMeasure(selectItem)) {
-      selectScope = getMeasureScope(select);
-      expanded = selectItem;
-    } else {
-      final SelectScope scope = (SelectScope) getWhereScope(select);
-      if (expandStar(selectItems, aliases, fields, includeSystemVars, scope,
-          selectItem)) {
-        return true;
-      }
-
-      // Expand the select item: fully-qualify columns, and convert
-      // parentheses-free functions such as LOCALTIME into explicit function
-      // calls.
-      selectScope = getSelectScope(select);
-      expanded = expandSelectExpr(selectItem, scope, select);
+    final SelectScope scope = (SelectScope) getWhereScope(select);
+    if (expandStar(selectItems, aliases, fields, includeSystemVars, scope,
+        selectItem)) {
+      return true;
     }
+
+    // Expand the select item: fully-qualify columns, and convert
+    // parentheses-free functions such as LOCALTIME into explicit function
+    // calls.
+    SqlNode expanded = expandSelectExpr(selectItem, scope, select);
     final String alias =
         SqlValidatorUtil.alias(selectItem, aliases.size());
 
     // If expansion has altered the natural alias, supply an explicit 'AS'.
+    final SqlValidatorScope selectScope = getSelectScope(select);
     if (expanded != selectItem) {
       String newAlias =
           SqlValidatorUtil.alias(expanded, aliases.size());
@@ -1184,7 +1176,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     default:
       break;
     }
-    if (node == top && !config.embeddedQuery()) {
+    if (node == top) {
       validateModality(node);
     }
     validateAccess(
@@ -1205,9 +1197,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   protected void validateNamespace(final SqlValidatorNamespace namespace,
       RelDataType targetRowType) {
     namespace.validate(targetRowType);
-    final SqlNode node = namespace.getNode();
+    SqlNode node = namespace.getNode();
     if (node != null) {
-      RelDataType type = namespace.getType();
+      setValidatedNodeType(node, namespace.getType());
 
       if (node == top) {
         FilterRequirement filterRequirement = namespace.getFilterRequirement();
@@ -1234,12 +1226,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           throw newValidationError(node,
               RESOURCE.mustFilterFieldsMissing(fieldNameSet.toString()));
         }
-
-        if (!config.embeddedQuery()) {
-          type = SqlTypeUtil.fromMeasure(typeFactory, type);
-        }
       }
-      setValidatedNodeType(node, type);
     }
   }
 
@@ -1263,10 +1250,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   @Override public SqlValidatorScope getSelectScope(SqlSelect select) {
     return getScope(select, Clause.SELECT);
-  }
-
-  @Override public SqlValidatorScope getMeasureScope(SqlSelect select) {
-    return getScope(select, Clause.MEASURE);
   }
 
   @Override public @Nullable SelectScope getRawSelectScope(SqlSelect select) {
@@ -2190,13 +2173,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     } else if (node.getKind()  == SqlKind.AS) {
       // For AS operator, only infer the operand not the alias
       inferUnknownTypes(inferredType, scope, ((SqlCall) node).operand(0));
-    } else if (node.getKind() == SqlKind.MEASURE) {
-      // For MEASURE operator, use the measure scope (which has additional
-      // aliases available)
-      if (scope instanceof SelectScope) {
-        scope = getMeasureScope(((SelectScope) scope).getNode());
-      }
-      inferUnknownTypes(inferredType, scope, ((SqlCall) node).operand(0));
     } else if (node instanceof SqlCall) {
       final SqlCall call = (SqlCall) node;
       final SqlOperandTypeInference operandTypeInference =
@@ -2930,13 +2906,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       // If this is an aggregate query, the SELECT list and HAVING
       // clause use a different scope, where you can only reference
       // columns which are in the GROUP BY clause.
-      final SqlValidatorScope selectScope2 =
-          isAggregate(select)
-              ? new AggregatingSelectScope(selectScope, select, false)
-              : selectScope;
-      clauseScopes.put(IdPair.of(select, Clause.SELECT), selectScope2);
-      clauseScopes.put(IdPair.of(select, Clause.MEASURE),
-          new MeasureScope(selectScope, select));
+      SqlValidatorScope aggScope = selectScope;
+      if (isAggregate(select)) {
+        aggScope =
+            new AggregatingSelectScope(selectScope, select, false);
+        clauseScopes.put(IdPair.of(select, Clause.SELECT), aggScope);
+      } else {
+        clauseScopes.put(IdPair.of(select, Clause.SELECT), selectScope);
+      }
       if (select.getGroup() != null) {
         GroupByScope groupByScope =
             new GroupByScope(selectScope, select.getGroup(), select);
@@ -2944,21 +2921,20 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         registerSubQueries(groupByScope, select.getGroup());
       }
       registerOperandSubQueries(
-          selectScope2,
+          aggScope,
           select,
           SqlSelect.HAVING_OPERAND);
-      registerSubQueries(selectScope2,
-          SqlNonNullableAccessors.getSelectList(select));
+      registerSubQueries(aggScope, SqlNonNullableAccessors.getSelectList(select));
       final SqlNodeList orderList = select.getOrderList();
       if (orderList != null) {
         // If the query is 'SELECT DISTINCT', restrict the columns
         // available to the ORDER BY clause.
-        final SqlValidatorScope selectScope3 =
-            select.isDistinct()
-                ? new AggregatingSelectScope(selectScope, select, true)
-                : selectScope2;
+        if (select.isDistinct()) {
+          aggScope =
+              new AggregatingSelectScope(selectScope, select, true);
+        }
         OrderByScope orderScope =
-            new OrderByScope(selectScope3, orderList, select);
+            new OrderByScope(aggScope, orderList, select);
         clauseScopes.put(IdPair.of(select, Clause.ORDER), orderScope);
         registerSubQueries(orderScope, orderList);
 
@@ -4201,9 +4177,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private void checkRollUpInSelectList(SqlSelect select) {
     SqlValidatorScope scope = getSelectScope(select);
     for (SqlNode item : SqlNonNullableAccessors.getSelectList(select)) {
-      if (SqlValidatorUtil.isMeasure(item)) {
-        continue;
-      }
       checkRollUp(null, select, item, scope);
     }
   }
@@ -4793,11 +4766,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   @Override public Config config() {
-    return requireNonNull(this.config, "config");
+    return this.config;
   }
 
   @Override public SqlValidator transform(UnaryOperator<Config> transform) {
-    this.config = requireNonNull(transform.apply(this.config), "config");
+    this.config = transform.apply(this.config);
     return this;
   }
 
@@ -5130,12 +5103,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // something other than unknownType for targetRowType
     inferUnknownTypes(targetRowType, selectScope, newSelectList);
 
-    final boolean aggregate = isAggregate(select) || select.isDistinct();
     for (SqlNode selectItem : expandedSelectItems) {
-      if (SqlValidatorUtil.isMeasure(selectItem) && aggregate) {
-        throw newValidationError(selectItem,
-            RESOURCE.measureInAggregateQuery());
-      }
       validateNoAggs(groupFinder, selectItem, "SELECT");
       validateExpr(selectItem, selectScope);
     }
@@ -5169,10 +5137,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         && scope.isMeasureRef(expr)) {
       throw newValidationError(expr,
           RESOURCE.measureMustBeInAggregateQuery());
-    }
-
-    if (SqlValidatorUtil.isMeasure(expr) && scope instanceof SelectScope) {
-      scope = getMeasureScope(((SelectScope) scope).getNode());
     }
 
     // Call on the expression to validate itself.
@@ -7993,7 +7957,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     WHERE,
     GROUP_BY,
     SELECT,
-    MEASURE,
     ORDER,
     CURSOR,
     HAVING,

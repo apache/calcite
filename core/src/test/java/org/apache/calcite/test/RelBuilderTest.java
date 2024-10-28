@@ -3307,43 +3307,31 @@ public class RelBuilderTest {
     //   3 + SUM(4 + sal) AS s
     // FROM emp
     // GROUP BY deptno
-    BiFunction<RelBuilder, Boolean, RelNode> f = (b, projectKey) ->
+    Function<RelBuilder, RelNode> f = b ->
         b.scan("EMP")
-            .aggregateRex(b.groupKey(b.field("DEPTNO")), projectKey,
-                ImmutableList.of(
-                    b.alias(
-                        b.call(SqlStdOperatorTable.PLUS, b.field("DEPTNO"),
-                            b.literal(2)),
-                        "d2"),
-                    b.alias(
-                        b.call(SqlStdOperatorTable.PLUS, b.literal(3),
-                            b.call(SqlStdOperatorTable.SUM,
-                                b.call(SqlStdOperatorTable.PLUS, b.literal(4),
-                                    b.field("SAL")))),
-                        "s")))
+            .aggregateRex(b.groupKey(b.field("DEPTNO")),
+                b.field("DEPTNO"),
+                b.alias(
+                    b.call(SqlStdOperatorTable.PLUS, b.field("DEPTNO"),
+                        b.literal(2)),
+                    "d2"),
+                b.alias(
+                    b.call(SqlStdOperatorTable.PLUS, b.literal(3),
+                        b.call(SqlStdOperatorTable.SUM,
+                            b.call(SqlStdOperatorTable.PLUS, b.literal(4),
+                                b.field("SAL")))),
+                    "s"))
             .build();
     final String expected = ""
-        + "LogicalProject(d2=[+($0, 2)], s=[+(3, $1)])\n"
-        + "  LogicalAggregate(group=[{0}], agg#0=[SUM($1)])\n"
-        + "    LogicalProject(DEPTNO=[$7], $f8=[+(4, $5)])\n"
-        + "      LogicalTableScan(table=[[scott, EMP]])\n";
-    final String expectedRowType =
-        "RecordType(INTEGER d2, DECIMAL(19, 2) s) NOT NULL";
-    final RelNode r = f.apply(createBuilder(), false);
-    assertThat(r, hasTree(expected));
-    assertThat(r.getRowType().getFullTypeString(), is(expectedRowType));
-
-    // As above, with projectKey = true
-    final String expected2 = ""
         + "LogicalProject(DEPTNO=[$0], d2=[+($0, 2)], s=[+(3, $1)])\n"
         + "  LogicalAggregate(group=[{0}], agg#0=[SUM($1)])\n"
         + "    LogicalProject(DEPTNO=[$7], $f8=[+(4, $5)])\n"
         + "      LogicalTableScan(table=[[scott, EMP]])\n";
-    final String expectedRowType2 =
+    final String expectedRowType =
         "RecordType(TINYINT DEPTNO, INTEGER d2, DECIMAL(19, 2) s) NOT NULL";
-    final RelNode r2 = f.apply(createBuilder(), true);
-    assertThat(r2, hasTree(expected2));
-    assertThat(r2.getRowType().getFullTypeString(), is(expectedRowType2));
+    final RelNode r = f.apply(createBuilder());
+    assertThat(r, hasTree(expected));
+    assertThat(r.getRowType().getFullTypeString(), is(expectedRowType));
   }
 
   /** Tests {@link RelBuilder#aggregateRex} with an expression;

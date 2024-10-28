@@ -1876,35 +1876,4 @@ public abstract class SqlTypeUtil {
       return true;
     }
   }
-
-  /** Strips MEASURE wrappers from a type.
-   *
-   * <p>For example:
-   * <ul>
-   *   <li>"{@code INTEGER}" remains "{@code INTEGER}";
-   *   <li>"{@code MEASURE<DECIMAL>}" becomes "{@code DECIMAL}";
-   *   <li>"{@code (empno INTEGER NOT NULL, rating MEASURE<DECIMAL>)}"
-   *     becomes "{@code (empno INTEGER NOT NULL, rating DECIMAL)}".
-   * </ul>
-   */
-  public static RelDataType fromMeasure(RelDataTypeFactory typeFactory,
-      RelDataType type) {
-    if (type.isStruct()) {
-      final RelDataTypeFactory.Builder builder = typeFactory.builder();
-      int changeCount = 0;
-      for (RelDataTypeField field : type.getFieldList()) {
-        final RelDataType type2 = fromMeasure(typeFactory, field.getType());
-        if (type2 != field.getType()) {
-          ++changeCount;
-        }
-        builder.add(field.getName(), type2);
-      }
-      // Avoid the effort of re-creating the same type
-      return changeCount == 0 ? type : builder.build();
-    }
-    if (type.isMeasure()) {
-      return ((MeasureSqlType) type).types.get(0);
-    }
-    return type;
-  }
 }

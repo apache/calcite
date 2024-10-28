@@ -2116,31 +2116,6 @@ public class JdbcTest {
     }
   }
 
-  /** Tests accessing a measure via JDBC. */
-  @Test void testMeasure() throws SQLException {
-    Properties info = new Properties();
-    info.put("fun", "calcite");
-    final String sql = "SELECT x AS d, y + 1 AS MEASURE m\n"
-        + "FROM (VALUES ('a', 2), ('a', 3), ('b', 4)) AS t (x, y)\n";
-    try (Connection calciteConnection =
-        DriverManager.getConnection("jdbc:calcite:", info);
-         Statement calciteStatement = calciteConnection.createStatement();
-         ResultSet rs = calciteStatement.executeQuery(sql)) {
-      final ResultSetMetaData metaData = rs.getMetaData();
-      assertThat(metaData.getColumnCount(), is(2));
-
-      assertThat(metaData.getColumnName(1), is("D"));
-      assertThat(metaData.getColumnType(1), is(Types.CHAR));
-      assertThat(metaData.getColumnTypeName(1), is("CHAR"));
-
-      // The type name is "INTEGER", not "MEASURE<INTEGER>", because measures
-      // are automatically converted to values at the top level of a query.
-      assertThat(metaData.getColumnName(2), is("M"));
-      assertThat(metaData.getColumnType(2), is(Types.INTEGER));
-      assertThat(metaData.getColumnTypeName(2), is("INTEGER"));
-    }
-  }
-
   /** Tests accessing a column in a JDBC source whose type is ARRAY. */
   @Test void testArray() throws Exception {
     final String url = MultiJdbcSchemaJoinTest.TempDb.INSTANCE.getUrl();

@@ -24,7 +24,6 @@ import org.apache.calcite.plan.Strong;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.metadata.NullSentinel;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -322,8 +321,6 @@ public class RexSimplify {
     case TIMES:
     case DIVIDE:
       return simplifyArithmetic((RexCall) e);
-    case M2V:
-      return simplifyM2v((RexCall) e);
     default:
       if (e.getClass() == RexCall.class) {
         return simplifyGenericNode((RexCall) e);
@@ -2399,54 +2396,6 @@ public class RexSimplify {
       break;
     }
     return false;
-  }
-
-  /**
-   * Simplifies a measure being converted immediately (in the same SELECT
-   * clause) back to a value.
-   *
-   * <p>For most expressions {@code e}, simplifies "{@code m2v(v2m(e))}" to
-   * "{@code e}". For example,
-   * "{@code SELECT deptno + 1 AS MEASURE m}"
-   * is equivalent to
-   * "{@code SELECT deptno + 1 AS m}".
-   *
-   * <p>The exception is aggregate functions.
-   * "{@code SELECT COUNT(*) + 1 AS MEASURE m}"
-   * simplifies to
-   * "{@code SELECT COUNT(*) OVER (ROWS CURRENT ROW) + 1 AS MEASURE m}".
-   *
-   * @param e Call to {@code M2V} to be simplified
-   * @return Simplified call
-   */
-  private RexNode simplifyM2v(RexCall e) {
-    assert e.op.kind == SqlKind.M2V;
-    final RexNode operand = e.getOperands().get(0);
-    switch (operand.getKind()) {
-    case V2M:
-      // M2V(V2M(x))  -->  x
-      return flattenAggregate(((RexCall) operand).operands.get(0));
-    default:
-      return e;
-    }
-  }
-
-  /** Traverses over an expression, converting aggregate functions
-   * into single-row aggregate functions. */
-  private RexNode flattenAggregate(RexNode e) {
-    return e.accept(new RexShuttle() {
-      @Override public RexNode visitCall(RexCall call) {
-        if (call.op.isAggregator()) {
-          final RexWindow w =
-              rexBuilder.makeWindow(ImmutableList.of(), ImmutableList.of(),
-                  RexWindowBounds.CURRENT_ROW, RexWindowBounds.CURRENT_ROW,
-                  true);
-          return new RexOver(call.type, (SqlAggFunction) call.op, call.operands,
-              w, false, false);
-        }
-        return super.visitCall(call);
-      }
-    });
   }
 
   /** Removes any casts that change nullability but not type.

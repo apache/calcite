@@ -19,7 +19,6 @@ package org.apache.calcite.rel.type;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlIntervalQualifier;
-import org.apache.calcite.sql.type.MeasureSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 
@@ -311,14 +310,5 @@ public interface RelDataType {
     } else {
       return equals(that);
     }
-  }
-
-  /** Returns whether this type is a measure.
-   *
-   * @see SqlTypeUtil#fromMeasure(RelDataTypeFactory, RelDataType)
-   * @see MeasureSqlType
-   */
-  default boolean isMeasure() {
-    return getSqlTypeName() == SqlTypeName.MEASURE;
   }
 }

@@ -67,7 +67,6 @@ class CoreQuidemTest extends QuidemTest {
           return CalciteAssert.that()
               .with(CalciteConnectionProperty.PARSER_FACTORY,
                   ExtensionDdlExecutor.class.getName() + "#PARSER_FACTORY")
-              .with(CalciteConnectionProperty.FUN, SqlLibrary.CALCITE.fun)
               .with(CalciteAssert.Config.SCOTT)
               .connect();
         case "scott-rounding-half-up":

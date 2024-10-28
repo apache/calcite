@@ -23,7 +23,6 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
-import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
@@ -85,10 +84,6 @@ public class RexUtil {
   /** Executor for a bit of constant reduction. The user can pass in another executor. */
   public static final RexExecutor EXECUTOR =
       new RexExecutorImpl(DataContexts.EMPTY);
-
-  /** Finds calls to the
-   * {@link org.apache.calcite.sql.fun.SqlInternalOperators#M2V} function. */
-  public static final RexFinder M2V_FINDER = find(SqlKind.M2V);
 
   private RexUtil() {
   }
@@ -3032,48 +3027,15 @@ public class RexUtil {
       return anyContain(project.getProjects());
     }
 
-    /** Returns not {@link #inProject(Project)}. */
-    public boolean notInProject(Project project) {
-      return !inProject(project);
-    }
-
     /** Returns whether a {@link Filter} contains the kind of expression we
      * seek. */
     public boolean inFilter(Filter filter) {
       return contains(filter.getCondition());
     }
 
-    /** Returns not {@link #inFilter(Filter)}. */
-    public boolean notInFilter(Filter filter) {
-      return !inFilter(filter);
-    }
-
-    /** Returns whether a {@link Calc} contains the kind of expression we
-     * seek. */
-    public boolean inCalc(Calc calc) {
-      return inProgram(calc.getProgram());
-    }
-
-    /** Returns not {@link #inCalc(Calc)}. */
-    public boolean notInCalc(Calc calc) {
-      return !inCalc(calc);
-    }
-
-    /** Returns whether a {@link RexProgram} contains the kind of expression we
-     * seek. */
-    public boolean inProgram(RexProgram program) {
-      return anyContain(program.getExprList());
-    }
-
-    /** Returns whether a {@link Join} contains the kind of expression we
-     * seek. */
+    /** Returns whether a {@link Join} contains kind of expression we seek. */
     public boolean inJoin(Join join) {
       return contains(join.getCondition());
-    }
-
-    /** Returns not {@link #inJoin(Join)}. */
-    public boolean notInJoin(Join join) {
-      return !inJoin(join);
     }
 
     /** Returns whether the given expression contains what this RexFinder

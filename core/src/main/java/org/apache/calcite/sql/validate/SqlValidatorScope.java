@@ -25,6 +25,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWindow;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -139,7 +140,7 @@ public interface SqlValidatorScope {
               && SqlValidatorUtil.isMeasure(select.getSelectList().get(f.getIndex()));
         }
         return f != null
-            && f.getType().isMeasure();
+            && f.getType().getSqlTypeName() == SqlTypeName.MEASURE;
       }
     }
     return false;

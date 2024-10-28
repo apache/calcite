@@ -64,7 +64,6 @@ import org.apache.calcite.rel.metadata.BuiltInMetadata.ExplainVisibility;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.ExpressionLineage;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.LowerBoundCost;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.MaxRowCount;
-import org.apache.calcite.rel.metadata.BuiltInMetadata.Measure;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.Memory;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.MinRowCount;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.NodeTypes;
@@ -881,8 +880,6 @@ public enum BuiltInMethod {
   CUMULATIVE_MEMORY_WITHIN_PHASE(Memory.class, "cumulativeMemoryWithinPhase"),
   CUMULATIVE_MEMORY_WITHIN_PHASE_SPLIT(Memory.class,
       "cumulativeMemoryWithinPhaseSplit"),
-  IS_MEASURE(Measure.class, "isMeasure", int.class),
-  MEASURE_EXPAND(Measure.class, "expand", int.class, Measure.Context.class),
   COLUMN_UNIQUENESS(ColumnUniqueness.class, "areColumnsUnique",
       ImmutableBitSet.class, boolean.class),
   COLLATIONS(Collation.class, "collations"),
