@@ -22,6 +22,16 @@ package org.apache.calcite.plan;
 public class TableAliasTrait implements RelTrait {
   private final String tableAlias;
 
+  private String statementType;
+
+  public String getStatementType() {
+    return statementType;
+  }
+
+  public void setStatementType(String statementType) {
+    this.statementType = statementType;
+  }
+
   public TableAliasTrait(String tableAlias) {
     this.tableAlias = tableAlias;
   }

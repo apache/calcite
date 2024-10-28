@@ -80,6 +80,7 @@ import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTERVAL;
 import static org.apache.calcite.sql.type.OperandTypes.STRING_INTEGER;
 import static org.apache.calcite.sql.type.OperandTypes.STRING_STRING;
 import static org.apache.calcite.sql.type.OperandTypes.STRING_STRING_BOOLEAN;
+import static org.apache.calcite.sql.type.OperandTypes.family;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
@@ -530,6 +531,15 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction FLOOR_BIG_QUERY = new SqlFloorFunction(SqlKind.FLOOR)
       .withName("FLOOR_BIG_QUERY")
       .withReturnTypeInference(ReturnTypes.ARG0_EXCEPT_INTEGER_NULLABLE);
+
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlFunction PERIOD_CONSTRUCTOR = new SqlPeriodValueConstructor("PERIOD");
+
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlFunction PERIOD_INTERSECT =
+      SqlBasicFunction.create(SqlKind.PERIOD_INTERSECT,
+          ReturnTypes.ARG0_FORCE_NULLABLE,
+          family(SqlTypeFamily.PERIOD, SqlTypeFamily.PERIOD));
 
   /**
    * The <code>TRANSLATE(<i>string_expr</i>, <i>search_chars</i>,
@@ -997,6 +1007,9 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction CURRENT_TIMESTAMP_WITH_LOCAL_TIME_ZONE =
       new SqlCurrentTimestampFunction("CURRENT_TIMESTAMP_LTZ",
           SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction RANGE_LITERAL = new SqlRangeLiteral();
 
   /**
    * The REGEXP_EXTRACT(source_string, regex_pattern) returns the first substring in source_string
@@ -1576,6 +1589,13 @@ public abstract class SqlLibraryOperators {
       SqlBasicFunction.create(SqlKind.ARRAY_CONTAINS,
           ReturnTypes.BOOLEAN_NULLABLE,
           OperandTypes.ARRAY_ELEMENT);
+
+  /** The "ARRAY_CONTAINS(element, array)" function. */
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction ARRAY_CONTAINS_SF =
+      SqlBasicFunction.create(SqlKind.ARRAY_CONTAINS,
+          ReturnTypes.BOOLEAN_NULLABLE,
+          OperandTypes.ELEMENT_ARRAY);
 
   @LibraryOperator(libraries = {SNOWFLAKE})
   public static final SqlFunction TIME_FROM_PARTS =
@@ -3744,11 +3764,27 @@ public abstract class SqlLibraryOperators {
 //          SqlFunctionCategory.NUMERIC);
 
   @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction TRY_PARSE_JSON =
+      new SqlFunction("TRY_PARSE_JSON",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARIANT, null,
+          OperandTypes.STRING,
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction PARSE_JSON_SF =
+      new SqlFunction("PARSE_JSON_SF",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARIANT, null,
+          OperandTypes.STRING,
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction PARSE_JSON =
       new SqlFunction("PARSE_JSON",
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.JSON, null,
-          OperandTypes.SAME_VARIADIC,
+          STRING_STRING,
           SqlFunctionCategory.SYSTEM);
 
   @LibraryOperator(libraries = {SNOWFLAKE})
