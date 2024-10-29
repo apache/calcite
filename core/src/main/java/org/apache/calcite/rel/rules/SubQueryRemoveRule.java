@@ -170,6 +170,13 @@ public class SubQueryRemoveRule
    */
   private static RexNode rewriteSome(RexSubQuery e, Set<CorrelationId> variablesSet,
       RelBuilder builder, int subQueryIndex) {
+    // If the sub-query is guaranteed to return 0 row, just return
+    // FALSE.
+    final RelMetadataQuery mq = e.rel.getCluster().getMetadataQuery();
+    final Double maxRowCount = mq.getMaxRowCount(e.rel);
+    if (maxRowCount != null && maxRowCount <= 0D) {
+      return builder.getRexBuilder().makeLiteral(Boolean.FALSE, e.getType(), true);
+    }
     // Most general case, where the left and right keys might have nulls, and
     // caller requires 3-valued logic return.
     //
@@ -459,11 +466,11 @@ public class SubQueryRemoveRule
     // TRUE.
     final RelMetadataQuery mq = e.rel.getCluster().getMetadataQuery();
     final Double minRowCount = mq.getMinRowCount(e.rel);
-    if (minRowCount != null && minRowCount >= 1D) {
+    if (minRowCount != null && minRowCount > 0D) {
       return builder.literal(true);
     }
     final Double maxRowCount = mq.getMaxRowCount(e.rel);
-    if (maxRowCount != null && maxRowCount < 1D) {
+    if (maxRowCount != null && maxRowCount <= 0D) {
       return builder.literal(false);
     }
     builder.push(e.rel);
@@ -555,6 +562,13 @@ public class SubQueryRemoveRule
    */
   private static RexNode rewriteIn(RexSubQuery e, Set<CorrelationId> variablesSet,
       RelOptUtil.Logic logic, RelBuilder builder, int offset, int subQueryIndex) {
+    // If the sub-query is guaranteed to return 0 row, just return
+    // FALSE.
+    final RelMetadataQuery mq = e.rel.getCluster().getMetadataQuery();
+    final Double maxRowCount = mq.getMaxRowCount(e.rel);
+    if (maxRowCount != null && maxRowCount <= 0D) {
+      return builder.getRexBuilder().makeLiteral(Boolean.FALSE, e.getType(), true);
+    }
     // Most general case, where the left and right keys might have nulls, and
     // caller requires 3-valued logic return.
     //

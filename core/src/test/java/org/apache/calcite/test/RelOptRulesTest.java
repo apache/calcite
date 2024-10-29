@@ -5035,6 +5035,52 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6650">[CALCITE-6650]
+   * Optimize the IN sub-query and SOME sub-query
+   * by Metadata RowCount</a>. */
+  @Test void testInWithNoRowSubQuery() {
+    final String sql = "select * from dept as d\n"
+        + "where deptno in (\n"
+        + "  select deptno from emp e where false)";
+    sql(sql).withSubQueryRules().check();
+  }
+
+  @Test void testNotInWithNoRowSubQuery() {
+    final String sql = "select * from dept as d\n"
+        + "where deptno not in (\n"
+        + "  select deptno from emp e where false)";
+    sql(sql).withSubQueryRules().check();
+  }
+
+  @Test void testSomeWithGreaterThanNoRowSubQuery() {
+    final String sql = "select * from dept as d\n"
+        + "where deptno > some(\n"
+        + "  select deptno from emp e where false)";
+    sql(sql).withSubQueryRules().check();
+  }
+
+  @Test void testSomeWithLessThanOrEqualNoRowSubQuery() {
+    final String sql = "select * from dept as d\n"
+        + "where deptno <= some(\n"
+        + "  select deptno from emp e where false)";
+    sql(sql).withSubQueryRules().check();
+  }
+
+  @Test void testUniqueWithNoRowSubQuery() {
+    final String sql = "select * from dept as d\n"
+        + "where unique(\n"
+        + "  select deptno from emp e where false)";
+    sql(sql).withSubQueryRules().check();
+  }
+
+  @Test void testNotUniqueWithNoRowSubQuery() {
+    final String sql = "select * from dept as d\n"
+        + "where not unique(\n"
+        + "  select deptno from emp e where false)";
+    sql(sql).withSubQueryRules().check();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4848">[CALCITE-4848]
    * Adding a HAVING condition to a query with a dynamic parameter makes the result always empty
    </a>. */
