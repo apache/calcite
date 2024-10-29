@@ -668,6 +668,38 @@ class ImmutableBitSetTest {
     assertFalse(ImmutableBitSet.allContain(collection2, 4));
   }
 
+  @Test void testIsMinimal() {
+    ImmutableBitSet se = ImmutableBitSet.of();
+    ImmutableBitSet s0 = ImmutableBitSet.of(0);
+    ImmutableBitSet s1 = ImmutableBitSet.of(1);
+    ImmutableBitSet s01 = ImmutableBitSet.of(0, 1);
+
+    assertTrue(se.isMinimal(Collections.singletonList(se)));
+    assertTrue(se.isMinimal(Collections.singletonList(s0)));
+    assertTrue(se.isMinimal(Collections.singletonList(s1)));
+    assertTrue(se.isMinimal(Collections.singletonList(s01)));
+
+    assertFalse(s0.isMinimal(Collections.singletonList(se)));
+    assertTrue(s0.isMinimal(Collections.singletonList(s0)));
+    assertTrue(s0.isMinimal(Collections.singletonList(s1)));
+    assertTrue(s0.isMinimal(Collections.singletonList(s01)));
+
+    assertFalse(s1.isMinimal(Collections.singletonList(se)));
+    assertTrue(s1.isMinimal(Collections.singletonList(s0)));
+    assertTrue(s1.isMinimal(Collections.singletonList(s1)));
+    assertTrue(s1.isMinimal(Collections.singletonList(s01)));
+
+    assertFalse(s01.isMinimal(Collections.singletonList(se)));
+    assertFalse(s01.isMinimal(Collections.singletonList(s0)));
+    assertFalse(s01.isMinimal(Collections.singletonList(s1)));
+    assertTrue(s01.isMinimal(Collections.singletonList(s01)));
+
+    assertTrue(se.isMinimal(Arrays.asList(s0, s1)));
+    assertTrue(s0.isMinimal(Arrays.asList(s0, s1)));
+    assertTrue(s1.isMinimal(Arrays.asList(s0, s1)));
+    assertFalse(s01.isMinimal(Arrays.asList(s0, s1)));
+  }
+
   /**
    * Test case for {@link ImmutableBitSet#anyMatch(IntPredicate)}
    * and {@link ImmutableBitSet#allMatch(IntPredicate)}.
