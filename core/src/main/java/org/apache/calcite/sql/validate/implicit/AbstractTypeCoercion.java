@@ -274,9 +274,10 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
       return false;
     }
 
-    // No need to cast between char and varchar.
+    // No need to cast between char and unlimited varchar.
     if (SqlTypeUtil.isCharacter(toType)
-        && SqlTypeUtil.isCharacter(fromType)) {
+        && SqlTypeUtil.isCharacter(fromType)
+        && toType.getPrecision() == RelDataType.PRECISION_NOT_SPECIFIED) {
       return false;
     }
 

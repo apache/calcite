@@ -18,6 +18,16 @@
 !use scott
 !set outputformat mysql
 
+select * from (select 'word' i union all select 'w' i) t1 where i='w';
++------+
+| I    |
++------+
+| w    |
++------+
+(1 row)
+
+!ok
+
 # [CALCITE-1095] NOT precedence
 select * from "scott".emp where not sal > 1300;
 +-------+--------+----------+------+------------+---------+---------+--------+

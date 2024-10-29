@@ -4395,7 +4395,7 @@ class RelToSqlConverterTest {
         + "FROM (SELECT \"product_id\", \"net_weight\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "UNION ALL\n"
-        + "SELECT \"product_id\", 0 AS \"net_weight\"\n"
+        + "SELECT \"product_id\", 0E0 AS \"net_weight\"\n"
         + "FROM \"foodmart\".\"sales_fact_1997\") AS \"t1\"";
     sql(query).ok(expected);
   }
@@ -6545,7 +6545,7 @@ class RelToSqlConverterTest {
         + "UNION ALL\n"
         + "SELECT 2 `a`, 'yy' `b`) `t`";
     final String expectedBigQuery = "SELECT a\n"
-        + "FROM (SELECT 1 AS a, 'x ' AS b\n"
+        + "FROM (SELECT 1 AS a, 'x' AS b\n"
         + "UNION ALL\n"
         + "SELECT 2 AS a, 'yy' AS b)";
     final String expectedFirebolt = expectedPostgresql;
@@ -7658,9 +7658,9 @@ class RelToSqlConverterTest {
         + "SELECT \"product\".\"product_id\" AS \"account_id\", "
         + "CAST(NULL AS INTEGER) AS \"account_parent\", CAST(NULL AS VARCHAR"
         + "(30) CHARACTER SET \"ISO-8859-1\") AS \"account_description\", "
-        + "CAST(\"product\".\"product_id\" AS VARCHAR CHARACTER SET "
+        + "CAST(\"product\".\"product_id\" AS VARCHAR(30) CHARACTER SET "
         + "\"ISO-8859-1\") AS \"account_type\", "
-        + "CAST(\"sales_fact_1997\".\"store_id\" AS VARCHAR CHARACTER SET \"ISO-8859-1\") AS "
+        + "CAST(\"sales_fact_1997\".\"store_id\" AS VARCHAR(30) CHARACTER SET \"ISO-8859-1\") AS "
         + "\"account_rollup\", "
         + "CAST(NULL AS VARCHAR(255) CHARACTER SET \"ISO-8859-1\") AS \"Custom_Members\"\n"
         + "FROM \"foodmart\".\"product\"\n"
@@ -7777,7 +7777,7 @@ class RelToSqlConverterTest {
     final String expectedDefault = "INSERT INTO \"SCOTT\".\"DEPT\""
         + " (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
         + "VALUES (1, 'Fred', 'San Francisco'),\n"
-        + "(2, 'Eric', 'Washington   ')";
+        + "(2, 'Eric', 'Washington')";
     final String expectedDefaultX = "INSERT INTO \"SCOTT\".\"DEPT\""
         + " (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
         + "SELECT 1, 'Fred', 'San Francisco'\n"
@@ -7787,7 +7787,7 @@ class RelToSqlConverterTest {
         + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
     final String expectedHive = "INSERT INTO `SCOTT`.`DEPT` (`DEPTNO`, `DNAME`, `LOC`)\n"
         + "VALUES (1, 'Fred', 'San Francisco'),\n"
-        + "(2, 'Eric', 'Washington   ')";
+        + "(2, 'Eric', 'Washington')";
     final String expectedHiveX = "INSERT INTO `SCOTT`.`DEPT` (`DEPTNO`, `DNAME`, `LOC`)\n"
         + "SELECT 1, 'Fred', 'San Francisco'\n"
         + "UNION ALL\n"
@@ -7795,7 +7795,7 @@ class RelToSqlConverterTest {
     final String expectedMysql = "INSERT INTO `SCOTT`.`DEPT`"
         + " (`DEPTNO`, `DNAME`, `LOC`)\n"
         + "VALUES (1, 'Fred', 'San Francisco'),\n"
-        + "(2, 'Eric', 'Washington   ')";
+        + "(2, 'Eric', 'Washington')";
     final String expectedMysqlX = "INSERT INTO `SCOTT`.`DEPT`"
         + " (`DEPTNO`, `DNAME`, `LOC`)\n"
         + "SELECT 1, 'Fred', 'San Francisco'\n"
@@ -7804,7 +7804,7 @@ class RelToSqlConverterTest {
     final String expectedOracle = "INSERT INTO \"SCOTT\".\"DEPT\""
         + " (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
         + "VALUES (1, 'Fred', 'San Francisco'),\n"
-        + "(2, 'Eric', 'Washington   ')";
+        + "(2, 'Eric', 'Washington')";
     final String expectedOracleX = "INSERT INTO \"SCOTT\".\"DEPT\""
         + " (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
         + "SELECT 1, 'Fred', 'San Francisco'\n"
@@ -7815,7 +7815,7 @@ class RelToSqlConverterTest {
     final String expectedMssql = "INSERT INTO [SCOTT].[DEPT]"
         + " ([DEPTNO], [DNAME], [LOC])\n"
         + "VALUES (1, 'Fred', 'San Francisco'),\n"
-        + "(2, 'Eric', 'Washington   ')";
+        + "(2, 'Eric', 'Washington')";
     final String expectedMssqlX = "INSERT INTO [SCOTT].[DEPT]"
         + " ([DEPTNO], [DNAME], [LOC])\n"
         + "SELECT 1, 'Fred', 'San Francisco'\n"
@@ -7826,7 +7826,7 @@ class RelToSqlConverterTest {
     final String expectedCalcite = "INSERT INTO \"SCOTT\".\"DEPT\""
         + " (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
         + "VALUES (1, 'Fred', 'San Francisco'),\n"
-        + "(2, 'Eric', 'Washington   ')";
+        + "(2, 'Eric', 'Washington')";
     final String expectedCalciteX = "INSERT INTO \"SCOTT\".\"DEPT\""
         + " (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
         + "SELECT 1, 'Fred', 'San Francisco'\n"
@@ -8010,7 +8010,7 @@ class RelToSqlConverterTest {
         + "WHEN NOT MATCHED THEN INSERT (\"DEPTNO\", \"DNAME\", \"LOC\") "
         + "VALUES CAST(\"DEPT\".\"DEPTNO\" + 1 AS TINYINT),\n"
         + "'abc',\n"
-        + "LOWER(\"DEPT\".\"DNAME\")";
+        + "CAST(LOWER(\"DEPT\".\"DNAME\") AS VARCHAR(13) CHARACTER SET \"ISO-8859-1\")";
     sql(sql3)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .ok(expected3);
@@ -8083,8 +8083,8 @@ class RelToSqlConverterTest {
         + "WHEN MATCHED THEN UPDATE SET \"DNAME\" = 'abc'\n"
         + "WHEN NOT MATCHED THEN INSERT (\"DEPTNO\", \"DNAME\", \"LOC\") "
         + "VALUES CAST(\"t0\".\"EXPR$0\" + 1 AS TINYINT),\n"
-        + "LOWER(\"t0\".\"EXPR$1\"),\n"
-        + "UPPER(\"t0\".\"EXPR$2\")";
+        + "CAST(LOWER(\"t0\".\"EXPR$1\") AS VARCHAR(14) CHARACTER SET \"ISO-8859-1\"),\n"
+        + "CAST(UPPER(\"t0\".\"EXPR$2\") AS VARCHAR(13) CHARACTER SET \"ISO-8859-1\")";
     sql(sql7)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .ok(expected7);

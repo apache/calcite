@@ -4399,7 +4399,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("(1,2) in ((1,2), (3,4))")
         .columnType("BOOLEAN NOT NULL");
     expr("'medium' in (cast(null as varchar(10)), 'bc')")
-        .columnType("BOOLEAN");
+        .columnType("BOOLEAN NOT NULL");
 
     // nullability depends on nullability of both sides
     sql("select empno in (1, 2) from emp")
@@ -8752,7 +8752,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .withValidatorColumnReferenceExpansion(true)
         .rewritesTo("SELECT `DEPT`.`NAME`\n"
             + "FROM `CATALOG`.`SALES`.`DEPT` AS `DEPT`\n"
-            + "WHERE `DEPT`.`NAME` = 'Moonracer'\n"
+            + "WHERE `DEPT`.`NAME` = CAST('Moonracer' AS VARCHAR(10) CHARACTER SET `ISO-8859-1`)\n"
             + "GROUP BY `DEPT`.`NAME`\n"
             + "HAVING SUM(`DEPT`.`DEPTNO`) > 3\n"
             + "ORDER BY `NAME`");
@@ -8771,7 +8771,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + " `EMP`.`MGR`, `EMP`.`HIREDATE`, `EMP`.`SAL`, `EMP`.`COMM`,"
         + " `EMP`.`DEPTNO`, `EMP`.`SLACKER`\n"
         + "FROM `CATALOG`.`SALES`.`EMP` AS `EMP`) AS `E`\n"
-        + "WHERE `E`.`ENAME` = 'Moonracer'\n"
+        + "WHERE `E`.`ENAME` = CAST('Moonracer' AS VARCHAR(20) CHARACTER SET `ISO-8859-1`)\n"
         + "GROUP BY `E`.`ENAME`, `E`.`DEPTNO`, `E`.`SAL`\n"
         + "HAVING SUM(`E`.`DEPTNO`) > 3\n"
         + "ORDER BY `ENAME`, `E`.`DEPTNO`, `E`.`SAL`";
@@ -8789,7 +8789,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + " order by unexpanded.deptno";
     final String expectedSql = "SELECT `DEPT`.`DEPTNO`\n"
         + "FROM `CATALOG`.`SALES`.`DEPT` AS `DEPT`\n"
-        + "WHERE `DEPT`.`NAME` = 'Moonracer'\n"
+        + "WHERE `DEPT`.`NAME` = CAST('Moonracer' AS VARCHAR(10) CHARACTER SET `ISO-8859-1`)\n"
         + "GROUP BY `DEPT`.`DEPTNO`\n"
         + "HAVING SUM(`DEPT`.`DEPTNO`) > 0\n"
         + "ORDER BY `DEPT`.`DEPTNO`";

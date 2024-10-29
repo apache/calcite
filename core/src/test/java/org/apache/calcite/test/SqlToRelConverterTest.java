@@ -97,6 +97,13 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     return LOCAL_FIXTURE;
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6350">[CALCITE-6350]
+   * Unexpected result from UNION with literals expression</a>. */
+  @Test void testUnionLiterals() {
+    final String sql = "select * from (select 'word' i union all select 'w' i) t1 where i='w'";
+    sql(sql).ok();
+  }
+
   @Test void testDotLiteralAfterNestedRow() {
     final String sql = "select ((1,2),(3,4,5)).\"EXPR$1\".\"EXPR$2\" from emp";
     sql(sql).ok();

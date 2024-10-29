@@ -260,13 +260,13 @@ LogicalProject(F0=[null:BOOLEAN], F1=[CAST(false):BOOLEAN], F2=[null:BOOLEAN], F
 LogicalUnion(all=[false])
   LogicalUnion(all=[false])
     LogicalUnion(all=[false])
-      LogicalProject(T1_INT=[CAST($2):VARCHAR NOT NULL], T1_DECIMAL=[$6], T1_SMALLINT=[$1], T1_DOUBLE=[$5])
+      LogicalProject(T1_INT=[CAST($2):VARCHAR NOT NULL], T1_DECIMAL=[$6], T1_SMALLINT=[CAST($1):REAL NOT NULL], T1_DOUBLE=[$5])
         LogicalTableScan(table=[[CATALOG, SALES, T1]])
-      LogicalProject(T2_VARCHAR20=[$0], T2_DECIMAL=[$6], T2_REAL=[$4], T2_BIGINT=[$3])
+      LogicalProject(T2_VARCHAR20=[$0], T2_DECIMAL=[$6], T2_REAL=[$4], T2_BIGINT=[CAST($3):DOUBLE NOT NULL])
         LogicalTableScan(table=[[CATALOG, SALES, T2]])
     LogicalProject(T1_VARCHAR20=[$0], T1_DECIMAL=[$6], T1_REAL=[$4], T1_DOUBLE=[$5])
       LogicalTableScan(table=[[CATALOG, SALES, T1]])
-  LogicalProject(T2_VARCHAR20=[$0], T2_DECIMAL=[$6], T2_SMALLINT=[$1], T2_DOUBLE=[$5])
+  LogicalProject(T2_VARCHAR20=[$0], T2_DECIMAL=[$6], T2_SMALLINT=[CAST($1):REAL NOT NULL], T2_DOUBLE=[$5])
     LogicalTableScan(table=[[CATALOG, SALES, T2]])
 ]]>
     </Resource>

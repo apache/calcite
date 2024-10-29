@@ -127,7 +127,7 @@ class JdbcAdapterTest {
             + "      JdbcFilter(condition=[<($0, 10)])\n"
             + "        JdbcTableScan(table=[[foodmart, store]])\n"
             + "  JdbcToEnumerableConverter\n"
-            + "    JdbcProject(ENAME=[$1])\n"
+            + "    JdbcProject(EXPR$0=[CAST($1):VARCHAR(30)])\n"
             + "      JdbcFilter(condition=[>(CAST($0):INTEGER NOT NULL, 10)])\n"
             + "        JdbcTableScan(table=[[SCOTT, EMP]])")
         .runs()
@@ -135,7 +135,7 @@ class JdbcAdapterTest {
         .planHasSql("SELECT \"store_name\"\n"
                 + "FROM \"foodmart\".\"store\"\n"
                 + "WHERE \"store_id\" < 10")
-        .planHasSql("SELECT \"ENAME\"\n"
+        .planHasSql("SELECT CAST(\"ENAME\" AS VARCHAR(30))\n"
             + "FROM \"SCOTT\".\"EMP\"\n"
             + "WHERE CAST(\"EMPNO\" AS INTEGER) > 10");
   }
@@ -1344,7 +1344,8 @@ class JdbcAdapterTest {
         + "  JdbcTableModify(table=[[foodmart, expense_fact]], operation=[MERGE],"
         + " updateColumnList=[[amount]], flattened=[false])\n"
         + "    JdbcProject(STORE_ID=[$0], $f1=[666], $f2=[1997-01-01 00:00:00], $f3=[666],"
-        + " $f4=['666'], $f5=[666], AMOUNT=[CAST($1):DECIMAL(10, 4) NOT NULL], store_id=[$2],"
+        + " $f4=['666':VARCHAR(30)], $f5=[666], AMOUNT=[CAST($1):DECIMAL(10, 4) NOT NULL],"
+        + " store_id=[$2],"
         + " account_id=[$3], exp_date=[$4], time_id=[$5], category_id=[$6], currency_id=[$7],"
         + " amount=[$8], AMOUNT0=[$1])\n"
         + "      JdbcJoin(condition=[=($2, $0)], joinType=[left])\n"
