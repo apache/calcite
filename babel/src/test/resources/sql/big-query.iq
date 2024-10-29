@@ -1034,9 +1034,9 @@ FROM
 
 SELECT
   email,
-  REGEXP_CONTAINS(email, '^([\w.+-]+@foo\.com|[\w.+-]+@bar\.org)\s+$')
+  REGEXP_CONTAINS(email, '^([\w.+-]+@foo\.com|[\w.+-]+@bar\.org)\s*$')
     AS valid_email_address,
-  REGEXP_CONTAINS(email, '^[\w.+-]+@foo\.com|[\w.+-]+@bar\.org\s+$')
+  REGEXP_CONTAINS(email, '^[\w.+-]+@foo\.com|[\w.+-]+@bar\.org\s*$')
     AS without_parentheses
 FROM
   (SELECT
@@ -1046,11 +1046,11 @@ FROM
 +----------------+---------------------+---------------------+
 | email          | valid_email_address | without_parentheses |
 +----------------+---------------------+---------------------+
-| a@foo.com      | true                | true                |
 | a@foo.computer | false               | true                |
-| b@bar.org      | true                | true                |
-| !b@bar.org     | false               | true                |
 | c@buz.net      | false               | false               |
+| !b@bar.org     | false               | true                |
+| a@foo.com      | true                | true                |
+| b@bar.org      | true                | true                |
 +----------------+---------------------+---------------------+
 (5 rows)
 
@@ -2133,13 +2133,13 @@ WITH Recipes AS
   SELECT 'Ham scramble', 'Steak avocado salad', 'Tomato pasta' UNION ALL
   SELECT 'Avocado toast', 'Tomato soup', 'Blueberry salmon' UNION ALL
   SELECT 'Corned beef hash', 'Lentil potato soup', 'Glazed ham')
-SELECT * FROM Recipes WHERE CONTAINS_SUBSTR((Lunch, Dinner), 'potato');
-+--------------------+-------------------------+------------------+
-| Breakfast          | Lunch                   | Dinner           |
-+--------------------+-------------------------+------------------+
-| Blueberry pancakes | Egg salad sandwich      | Potato dumplings |
-| Corned beef hash   | Lentil potato soup      | Glazed ham       |
-+--------------------+-------------------------+------------------+
+SELECT *, LENGTH(lunch) AS LEN FROM Recipes WHERE CONTAINS_SUBSTR((Lunch, Dinner), 'potato');
++--------------------+--------------------+------------------+-----+
+| Breakfast          | Lunch              | Dinner           | LEN |
++--------------------+--------------------+------------------+-----+
+| Blueberry pancakes | Egg salad sandwich | Potato dumplings |  18 |
+| Corned beef hash   | Lentil potato soup | Glazed ham       |  18 |
++--------------------+--------------------+------------------+-----+
 (2 rows)
 
 !ok

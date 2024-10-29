@@ -6730,13 +6730,13 @@ public class SqlOperatorTest {
     };
     f.checkAggWithMultipleArgs("json_objectagg(x: x2)",
         values,
-        isSingle("{\"foo\":\"bar\",\"foo2\":null,\"foo3\":\"bar3\"}"));
+        isSingle("{\"foo \":\"bar\",\"foo2\":null,\"foo3\":\"bar3\"}"));
     f.checkAggWithMultipleArgs("json_objectagg(x: x2 null on null)",
         values,
-        isSingle("{\"foo\":\"bar\",\"foo2\":null,\"foo3\":\"bar3\"}"));
+        isSingle("{\"foo \":\"bar\",\"foo2\":null,\"foo3\":\"bar3\"}"));
     f.checkAggWithMultipleArgs("json_objectagg(x: x2 absent on null)",
         values,
-        isSingle("{\"foo\":\"bar\",\"foo3\":\"bar3\"}"));
+        isSingle("{\"foo \":\"bar\",\"foo3\":\"bar3\"}"));
   }
 
   @Test void testJsonValueExpressionOperator() {
@@ -11917,7 +11917,7 @@ public class SqlOperatorTest {
     f.checkAggType("listagg('test')", "CHAR(4) NOT NULL");
     f.checkAggType("listagg('test', ', ')", "CHAR(4) NOT NULL");
     final String[] values1 = {"'hello'", "CAST(null AS CHAR)", "'world'", "'!'"};
-    f.checkAgg("listagg(x)", values1, isSingle("hello,world,!"));
+    f.checkAgg("listagg(x)", values1, isSingle("hello,world,!    "));
     final String[] values2 = {"0", "1", "2", "3"};
     f.checkAgg("listagg(cast(x as CHAR))", values2, isSingle("0,1,2,3"));
   }
@@ -11931,10 +11931,10 @@ public class SqlOperatorTest {
 
   private static void checkStringAggFunc(SqlOperatorFixture f) {
     final String[] values = {"'x'", "null", "'yz'"};
-    f.checkAgg("string_agg(x)", values, isSingle("x,yz"));
-    f.checkAgg("string_agg(x,':')", values, isSingle("x:yz"));
-    f.checkAgg("string_agg(x,':' order by x)", values, isSingle("x:yz"));
-    f.checkAgg("string_agg(x order by char_length(x) desc)", values, isSingle("yz,x"));
+    f.checkAgg("string_agg(x)", values, isSingle("x ,yz"));
+    f.checkAgg("string_agg(x,':')", values, isSingle("x :yz"));
+    f.checkAgg("string_agg(x,':' order by x)", values, isSingle("x :yz"));
+    f.checkAgg("string_agg(x order by char_length(x) desc)", values, isSingle("x ,yz"));
     f.checkAggFails("^string_agg(x respect nulls order by x desc)^", values,
         "Cannot specify IGNORE NULLS or RESPECT NULLS following 'STRING_AGG'",
         false);
@@ -11967,13 +11967,13 @@ public class SqlOperatorTest {
 
   private static void checkGroupConcatFunc(SqlOperatorFixture f) {
     final String[] values = {"'x'", "null", "'yz'"};
-    f.checkAgg("group_concat(x)", values, isSingle("x,yz"));
-    f.checkAgg("group_concat(x,':')", values, isSingle("x:yz"));
-    f.checkAgg("group_concat(x,':' order by x)", values, isSingle("x:yz"));
+    f.checkAgg("group_concat(x)", values, isSingle("x ,yz"));
+    f.checkAgg("group_concat(x,':')", values, isSingle("x :yz"));
+    f.checkAgg("group_concat(x,':' order by x)", values, isSingle("x :yz"));
     f.checkAgg("group_concat(x order by x separator '|')", values,
-        isSingle("x|yz"));
+        isSingle("x |yz"));
     f.checkAgg("group_concat(x order by char_length(x) desc)", values,
-        isSingle("yz,x"));
+        isSingle("x ,yz"));
     f.checkAggFails("^group_concat(x respect nulls order by x desc)^", values,
         "Cannot specify IGNORE NULLS or RESPECT NULLS following 'GROUP_CONCAT'",
         false);
@@ -12008,16 +12008,16 @@ public class SqlOperatorTest {
     f.setFor(SqlLibraryOperators.ARRAY_AGG, VM_JAVA);
     final String[] values = {"'x'", "null", "'yz'"};
     f.checkAggType("array_agg(x)", "INTEGER NOT NULL ARRAY NOT NULL");
-    f.checkAgg("array_agg(x)", values, "CHAR(2) ARRAY", isSingle("[x, yz]"));
-    f.checkAgg("array_agg(x ignore nulls)", values, "CHAR(2) ARRAY", isSingle("[x, yz]"));
-    f.checkAgg("array_agg(x respect nulls)", values, "CHAR(2) ARRAY", isSingle("[x, yz]"));
+    f.checkAgg("array_agg(x)", values, "CHAR(2) ARRAY", isSingle("[x , yz]"));
+    f.checkAgg("array_agg(x ignore nulls)", values, "CHAR(2) ARRAY", isSingle("[x , yz]"));
+    f.checkAgg("array_agg(x respect nulls)", values, "CHAR(2) ARRAY", isSingle("[x , yz]"));
     final String expectedError = "Invalid number of arguments "
         + "to function 'ARRAY_AGG'. Was expecting 1 arguments";
     f.checkAggFails("^array_agg(x,':')^", values, expectedError, false);
     f.checkAggFails("^array_agg(x,':' order by x)^", values, expectedError,
         false);
     f.checkAgg("array_agg(x order by char_length(x) desc)", values,
-        isSingle("[yz, x]"));
+        isSingle("[x , yz]"));
   }
 
   private static void checkArrayAggFuncFails(SqlOperatorFixture t) {

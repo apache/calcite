@@ -3219,7 +3219,10 @@ class RelOptRulesTest extends RelOptTestBase {
         + "select *\n"
         + "from (values (5)) as t(y)";
     sql(sql)
-        .withRule(CoreRules.PROJECT_REMOVE, CoreRules.UNION_TO_VALUES)
+        .withRule(
+            CoreRules.PROJECT_REMOVE,
+            CoreRules.PROJECT_VALUES_MERGE,
+            CoreRules.UNION_TO_VALUES)
         .withInSubQueryThreshold(0)
         .check();
   }
@@ -3267,7 +3270,9 @@ class RelOptRulesTest extends RelOptTestBase {
         + "select *\n"
         + "from (values (5)) as t(y)";
     sql(sql)
-        .withRule(CoreRules.PROJECT_REMOVE, CoreRules.UNION_TO_VALUES)
+        .withRule(CoreRules.PROJECT_REMOVE,
+            CoreRules.PROJECT_VALUES_MERGE,
+            CoreRules.UNION_TO_VALUES)
         .withInSubQueryThreshold(0)
         .check();
   }

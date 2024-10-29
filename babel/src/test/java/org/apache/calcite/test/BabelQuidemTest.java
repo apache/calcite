@@ -24,6 +24,7 @@ import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.dialect.BigQuerySqlDialect;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.babel.SqlBabelParserImpl;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
@@ -116,6 +117,8 @@ class BabelQuidemTest extends QuidemTest {
               .with(CalciteConnectionProperty.CONFORMANCE,
                   SqlConformanceEnum.BABEL)
               .with(CalciteConnectionProperty.LENIENT_OPERATOR_LOOKUP, true)
+              .with(CalciteConnectionProperty.TYPE_SYSTEM,
+                  BigQuerySqlDialect.class.getName() + "#TYPE_SYSTEM")
               .with(
                   ConnectionFactories.addType("DATETIME", typeFactory ->
                       typeFactory.createSqlType(SqlTypeName.TIMESTAMP)))

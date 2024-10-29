@@ -553,9 +553,12 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
             <= 0) {
           truncate = false;
         }
-        // If this is a widening cast, no need to pad.
-        if (SqlTypeUtil.comparePrecision(sourcePrecision, targetPrecision)
-            >= 0) {
+        // If this is a narrowing cast, no need to pad.
+        // However, conversion from VARCHAR(N) to CHAR(N) still requires padding,
+        // because VARCHAR(N) does not represent the spaces explicitly,
+        // whereas CHAR(N) does.
+        if ((SqlTypeUtil.comparePrecision(sourcePrecision, targetPrecision) >= 0)
+            && (sourceType.getSqlTypeName() != SqlTypeName.VARCHAR)) {
           pad = false;
         }
         // fall through
