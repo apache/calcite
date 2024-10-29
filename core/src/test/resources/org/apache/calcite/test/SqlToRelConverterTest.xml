@@ -204,7 +204,7 @@ having e > 10 or count(empno) < 5]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalFilter(condition=[SEARCH($0, Sarg[(-∞..5L:BIGINT), (10L:BIGINT..+∞)]:BIGINT)])
+LogicalFilter(condition=[SEARCH($0, Sarg[(-∞..5), (10..+∞)])])
   LogicalAggregate(group=[{}], E=[COUNT()])
     LogicalProject(EMPNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -2959,12 +2959,7 @@ LogicalProject(EMPNO=[$0])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[CAST($0):BIGINT NOT NULL])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalAggregate(group=[{0}])
-      LogicalUnion(all=[true])
-        LogicalValues(tuples=[[{ 130 }]])
-        LogicalValues(tuples=[[{ 131 }]])
-        LogicalValues(tuples=[[{ 132 }]])
-        LogicalValues(tuples=[[{ 133 }]])
-        LogicalValues(tuples=[[{ 134 }]])
+      LogicalValues(tuples=[[{ 130 }, { 131 }, { 132 }, { 133 }, { 134 }]])
 ]]>
     </Resource>
   </TestCase>

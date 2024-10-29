@@ -280,6 +280,13 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
       return false;
     }
 
+    if (node.getKind() == SqlKind.LITERAL
+        && fromType.getPrecedenceList().containsType(toType)
+        && SqlTypeUtil.isIntType(fromType)
+        && SqlTypeUtil.isIntType(toType)) {
+      return false;
+    }
+
     // No casts to binary except from strings
     if (SqlTypeUtil.isBinary(fromType) && !SqlTypeUtil.isString(toType)) {
       return false;

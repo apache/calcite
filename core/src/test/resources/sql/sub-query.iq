@@ -3452,9 +3452,8 @@ EnumerableCalc(expr#0..12=[{inputs}], expr#13=[0:BIGINT], expr#14=[=($t8, $t13)]
           EnumerableAggregate(group=[{}], agg#0=[COUNT()], agg#1=[COUNT($0)])
             EnumerableValues(tuples=[[{ null }, { 7782 }]])
     EnumerableSort(sort0=[$0], dir0=[ASC])
-      EnumerableAggregate(group=[{0}], agg#0=[MIN($1)])
-        EnumerableCalc(expr#0=[{inputs}], expr#1=[true], proj#0..1=[{exprs}])
-          EnumerableValues(tuples=[[{ null }, { 7782 }]])
+      EnumerableCalc(expr#0=[{inputs}], expr#1=[true], proj#0..1=[{exprs}])
+        EnumerableValues(tuples=[[{ null }, { 7782 }]])
 !plan
 
 select * from "scott".emp where (empno, deptno) not in ((1, 2), (3, null));
@@ -3473,11 +3472,10 @@ EnumerableCalc(expr#0..14=[{inputs}], expr#15=[0:BIGINT], expr#16=[=($t8, $t15)]
         EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
           EnumerableTableScan(table=[[scott, EMP]])
           EnumerableAggregate(group=[{}], agg#0=[COUNT()], agg#1=[COUNT($1)])
-            EnumerableValues(tuples=[[{ 3, null }, { 1, 2 }]])
+            EnumerableValues(tuples=[[{ 1, 2 }, { 3, null }]])
     EnumerableSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])
-      EnumerableAggregate(group=[{0, 1}], agg#0=[MIN($2)])
-        EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], proj#0..2=[{exprs}])
-          EnumerableValues(tuples=[[{ 3, null }, { 1, 2 }]])
+      EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], proj#0..2=[{exprs}])
+        EnumerableValues(tuples=[[{ 1, 2 }, { 3, null }]])
 !plan
 
 select * from "scott".emp where (empno, deptno) not in ((7369, 20), (7499, 30));
