@@ -5084,6 +5084,30 @@ LogicalUnion(all=[true])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testInWithNoRowSubQuery">
+    <Resource name="sql">
+      <![CDATA[select * from dept as d
+where deptno in (
+  select deptno from emp e where false)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1])
+  LogicalFilter(condition=[IN($0, {
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[false])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1])
+  LogicalValues(tuples=[[]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testIncorrectInType">
     <Resource name="sql">
       <![CDATA[select ename from emp   where ename in ( 'Sebastian' ) and ename = 'Sebastian' and deptno < 100]]>
@@ -7727,6 +7751,30 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testNotInWithNoRowSubQuery">
+    <Resource name="sql">
+      <![CDATA[select * from dept as d
+where deptno not in (
+  select deptno from emp e where false)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1])
+  LogicalFilter(condition=[NOT(IN($0, {
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[false])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}))])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testNotPushExpression">
     <Resource name="sql">
       <![CDATA[select 1 from emp inner join dept
@@ -7762,6 +7810,30 @@ LogicalProject(NAME=[$1], DEPTNO=[$0], EXPR$2=[$2])
   LogicalFilter(condition=[=($0, 0)])
     LogicalWindow(window#0=[window(partition {1} aggs [COUNT()])])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testNotUniqueWithNoRowSubQuery">
+    <Resource name="sql">
+      <![CDATA[select * from dept as d
+where not unique(
+  select deptno from emp e where false)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1])
+  LogicalFilter(condition=[NOT(UNIQUE({
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[false])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}))])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1])
+  LogicalValues(tuples=[[]])
 ]]>
     </Resource>
   </TestCase>
@@ -14511,6 +14583,54 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testSomeWithGreaterThanNoRowSubQuery">
+    <Resource name="sql">
+      <![CDATA[select * from dept as d
+where deptno > some(
+  select deptno from emp e where false)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1])
+  LogicalFilter(condition=[> SOME($0, {
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[false])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1])
+  LogicalValues(tuples=[[]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSomeWithLessThanOrEqualNoRowSubQuery">
+    <Resource name="sql">
+      <![CDATA[select * from dept as d
+where deptno <= some(
+  select deptno from emp e where false)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1])
+  LogicalFilter(condition=[<= SOME($0, {
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[false])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1])
+  LogicalValues(tuples=[[]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testSomeWithNotEquality">
     <Resource name="sql">
       <![CDATA[select * from emp e1
@@ -16888,6 +17008,30 @@ LogicalUnion(all=[true])
     <Resource name="planAfter">
       <![CDATA[
 LogicalValues(tuples=[[{ 5 }, { 5 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testUniqueWithNoRowSubQuery">
+    <Resource name="sql">
+      <![CDATA[select * from dept as d
+where unique(
+  select deptno from emp e where false)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1])
+  LogicalFilter(condition=[UNIQUE({
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[false])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
   </TestCase>

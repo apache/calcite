@@ -163,7 +163,10 @@ select * from dept where deptno not in (select deptno from emp where false);
 (4 rows)
 
 !ok
-select deptno, deptno     in (select deptno from emp where false) from dept;
+EnumerableValues(tuples=[[{ 10, 'Sales      ' }, { 20, 'Marketing  ' }, { 30, 'Engineering' }, { 40, 'Empty      ' }]])
+!plan
+
+select deptno, deptno in (select deptno from emp where false) from dept;
 +--------+--------+
 | DEPTNO | EXPR$1 |
 +--------+--------+
@@ -175,6 +178,10 @@ select deptno, deptno     in (select deptno from emp where false) from dept;
 (4 rows)
 
 !ok
+EnumerableCalc(expr#0..1=[{inputs}], expr#2=[false], expr#3=[CAST($t2):BOOLEAN], DEPTNO=[$t0], EXPR$1=[$t3])
+  EnumerableValues(tuples=[[{ 10, 'Sales      ' }, { 20, 'Marketing  ' }, { 30, 'Engineering' }, { 40, 'Empty      ' }]])
+!plan
+
 select deptno, deptno not in (select deptno from emp where false) from dept;
 +--------+--------+
 | DEPTNO | EXPR$1 |
@@ -4236,6 +4243,160 @@ EnumerableCalc(expr#0..8=[{inputs}], proj#0..7=[{exprs}])
       EnumerableTableScan(table=[[scott, EMP]])
     EnumerableCalc(expr#0..7=[{inputs}], expr#8=[7349], expr#9=[+($t7, $t8)], expr#10=[CAST($t9):BIGINT], EXPR$0=[$t10])
       EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+
+# [CALCITE-6650] Optimize the IN sub-query and SOME sub-query by Metadata RowCount
+
+!use post
+
+# Test case about SOME sub-query when sub-query return 0 row
+select * from emp where deptno > some(select deptno from dept where false);
++-------+--------+--------+
+| ENAME | DEPTNO | GENDER |
++-------+--------+--------+
++-------+--------+--------+
+(0 rows)
+
+!ok
+
+EnumerableValues(tuples=[[]])
+!plan
+
+# Same as previous; but is Scalar sub-query
+select deptno, deptno > some(select deptno from dept where false) from emp;
++--------+--------+
+| DEPTNO | EXPR$1 |
++--------+--------+
+|     10 | false  |
+|     20 | false  |
+|     30 | false  |
+|     10 | false  |
+|     30 | false  |
+|     50 | false  |
+|     50 | false  |
+|     60 | false  |
+|        | false  |
++--------+--------+
+(9 rows)
+
+!ok
+
+EnumerableCalc(expr#0=[{inputs}], expr#1=[false], expr#2=[CAST($t1):BOOLEAN], DEPTNO=[$t0], EXPR$1=[$t2])
+  EnumerableValues(tuples=[[{ 10 }, { 10 }, { 20 }, { 30 }, { 30 }, { 50 }, { 50 }, { 60 }, { null }]])
+!plan
+
+# Test case about ANY sub-query when sub-query return 0 row
+select * from emp where deptno > any(select deptno from dept where false);
++-------+--------+--------+
+| ENAME | DEPTNO | GENDER |
++-------+--------+--------+
++-------+--------+--------+
+(0 rows)
+
+!ok
+
+EnumerableValues(tuples=[[]])
+!plan
+
+# Same as previous; but is Scalar sub-query
+select deptno, deptno > any(select deptno from dept where false) from emp;
++--------+--------+
+| DEPTNO | EXPR$1 |
++--------+--------+
+|     10 | false  |
+|     10 | false  |
+|     20 | false  |
+|     30 | false  |
+|     30 | false  |
+|     50 | false  |
+|     50 | false  |
+|     60 | false  |
+|        | false  |
++--------+--------+
+(9 rows)
+
+!ok
+
+EnumerableCalc(expr#0=[{inputs}], expr#1=[false], expr#2=[CAST($t1):BOOLEAN], DEPTNO=[$t0], EXPR$1=[$t2])
+  EnumerableValues(tuples=[[{ 10 }, { 10 }, { 20 }, { 30 }, { 30 }, { 50 }, { 50 }, { 60 }, { null }]])
+!plan
+
+# Test case about UNIQUE sub-query when sub-query return 0 row
+select * from emp where unique (select deptno from dept where false);
++-------+--------+--------+
+| ENAME | DEPTNO | GENDER |
++-------+--------+--------+
+| Adam  |     50 | M      |
+| Alice |     30 | F      |
+| Bob   |     10 | M      |
+| Eric  |     20 | M      |
+| Eve   |     50 | F      |
+| Grace |     60 | F      |
+| Jane  |     10 | F      |
+| Susan |     30 | F      |
+| Wilma |        | F      |
++-------+--------+--------+
+(9 rows)
+
+!ok
+
+EnumerableValues(tuples=[[{ 'Jane ', 10, 'F' }, { 'Bob  ', 10, 'M' }, { 'Eric ', 20, 'M' }, { 'Susan', 30, 'F' }, { 'Alice', 30, 'F' }, { 'Adam ', 50, 'M' }, { 'Eve  ', 50, 'F' }, { 'Grace', 60, 'F' }, { 'Wilma', null, 'F' }]])
+!plan
+
+# Same as previous; but is Scalar sub-query
+select unique (select deptno from dept where false) from emp;
++--------+
+| EXPR$0 |
++--------+
+| true   |
+| true   |
+| true   |
+| true   |
+| true   |
+| true   |
+| true   |
+| true   |
+| true   |
++--------+
+(9 rows)
+
+!ok
+
+EnumerableCalc(expr#0=[{inputs}], expr#1=[true], EXPR$0=[$t1])
+  EnumerableValues(tuples=[[{ 10 }, { 10 }, { 20 }, { 30 }, { 30 }, { 50 }, { 50 }, { 60 }, { null }]])
+!plan
+
+
+# Test case about NOT UNIQUE sub-query when sub-query return 0 row
+select * from emp where not unique (select deptno from dept where false);
++-------+--------+--------+
+| ENAME | DEPTNO | GENDER |
++-------+--------+--------+
++-------+--------+--------+
+(0 rows)
+
+!ok
+
+EnumerableValues(tuples=[[]])
+!plan
+
+# Same as previous; but is Scalar sub-query
+select not unique (select deptno from dept where false) from dept;
++--------+
+| EXPR$0 |
++--------+
+| false  |
+| false  |
+| false  |
+| false  |
++--------+
+(4 rows)
+
+!ok
+
+EnumerableCalc(expr#0..1=[{inputs}], expr#2=[false], EXPR$0=[$t2])
+  EnumerableValues(tuples=[[{ 10, 'Sales      ' }, { 20, 'Marketing  ' }, { 30, 'Engineering' }, { 40, 'Empty      ' }]])
 !plan
 
 # End sub-query.iq
