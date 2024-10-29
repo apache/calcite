@@ -9355,6 +9355,73 @@ LogicalProject(EMPNO=[10], ENAME=[$1], JOB=[$2], MGR=[null:INTEGER], HIREDATE=[$
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testPullUpPredicatesFromProject1">
+    <Resource name="sql">
+      <![CDATA[select comm <> 2, comm = 2 from emp where comm = 2]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EXPR$0=[<>($6, 2)], EXPR$1=[=($6, 2)])
+  LogicalFilter(condition=[=($6, 2)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EXPR$0=[false], EXPR$1=[true])
+  LogicalFilter(condition=[=($6, 2)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testPullUpPredicatesFromProject2">
+    <Resource name="sql">
+      <![CDATA[select comm = 2, empno <> 1 from emp where comm = 2 and empno = 1]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EXPR$0=[=($6, 2)], EXPR$1=[<>($0, 1)])
+  LogicalFilter(condition=[AND(=($6, 2), =($0, 1))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EXPR$0=[true], EXPR$1=[false])
+  LogicalFilter(condition=[AND(=($6, 2), =($0, 1))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testPullUpPredicatesFromUnionWithProject">
+    <Resource name="sql">
+      <![CDATA[select empno = null from emp where comm = 2
+union all
+select comm = 2 from emp where comm = 2]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalUnion(all=[true])
+  LogicalProject(EXPR$0=[null:BOOLEAN])
+    LogicalFilter(condition=[=($6, 2)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EXPR$0=[=($6, 2)])
+    LogicalFilter(condition=[=($6, 2)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalUnion(all=[true])
+  LogicalProject(EXPR$0=[null:BOOLEAN])
+    LogicalFilter(condition=[=($6, 2)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EXPR$0=[true])
+    LogicalFilter(condition=[=($6, 2)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testPushAboveFiltersIntoInnerJoinCondition">
     <Resource name="sql">
       <![CDATA[select * from sales.dept d inner join sales.emp e
