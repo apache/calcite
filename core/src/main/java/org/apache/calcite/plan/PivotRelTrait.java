@@ -17,14 +17,26 @@
 package org.apache.calcite.plan;
 
 /**
- * Pivot rel trait is use to identify if a given rel is a pivot rel or not.
+ * Pivot rel trait is used to identify if a given rel is a pivot rel or not.
  */
 
 public class PivotRelTrait implements RelTrait {
-  private final boolean isPivotRel;
+  private boolean isPivotRel;
+  private boolean hasSubquery;
+  private String pivotAlias;
 
-  public PivotRelTrait(boolean isPivotRel) {
+  public PivotRelTrait(boolean isPivotRel, boolean hasSubquery, String pivotAlias) {
     this.isPivotRel = isPivotRel;
+    this.hasSubquery = hasSubquery;
+    this.pivotAlias = pivotAlias;
+  }
+
+  public String getPivotAlias() {
+    return pivotAlias;
+  }
+
+  public boolean hasSubquery() {
+    return hasSubquery;
   }
 
   public final boolean isPivotRel() {
@@ -36,10 +48,10 @@ public class PivotRelTrait implements RelTrait {
   }
 
   @Override public boolean satisfies(RelTrait trait) {
-    throw new UnsupportedOperationException("Method not implemented for TableAliasTrait");
+    throw new UnsupportedOperationException("Method not implemented for PivotRelTrait");
   }
 
   @Override public void register(RelOptPlanner planner) {
-    throw new UnsupportedOperationException("Registration not supported for TableAliasTrait");
+    throw new UnsupportedOperationException("Registration not supported for PivotRelTrait");
   }
 }

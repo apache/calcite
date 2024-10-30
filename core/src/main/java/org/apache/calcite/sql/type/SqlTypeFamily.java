@@ -76,8 +76,10 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
   ANY,
   CURSOR,
   COLUMN_LIST,
+  PERIOD,
   GEO,
   FUNCTION,
+  VARIANT,
   /** Like ANY, but do not even validate the operand. It may not be an
    * expression. */
   IGNORE;
@@ -119,6 +121,7 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
 
           .put(ExtraSqlTypes.REF_CURSOR, CURSOR)
           .put(Types.ARRAY, ARRAY)
+          .put(Types.JAVA_OBJECT, VARIANT)
           .build();
 
   /**
@@ -216,8 +219,12 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
       return ImmutableList.of(SqlTypeName.CURSOR);
     case COLUMN_LIST:
       return ImmutableList.of(SqlTypeName.COLUMN_LIST);
+    case PERIOD:
+      return ImmutableList.of(SqlTypeName.PERIOD);
     case FUNCTION:
       return ImmutableList.of(SqlTypeName.FUNCTION);
+    case VARIANT:
+      return ImmutableList.of(SqlTypeName.VARIANT);
     default:
       throw new IllegalArgumentException();
     }

@@ -25,7 +25,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * Made especially to condition in Insert in Merge
  */
 public class SqlMergeInsert extends SqlInsert {
-  SqlNode condition;
+  public SqlNode condition;
 
   public SqlMergeInsert(SqlParserPos pos, SqlNodeList keywords, SqlNode targetTable,
       SqlNode source, @Nullable SqlNodeList columnList, @Nullable SqlNode condition) {

@@ -187,6 +187,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CEIL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EXTRACT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FLOOR;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_FALSE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NULL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MOD;
@@ -698,6 +699,10 @@ public class BigQuerySqlDialect extends SqlDialect {
     case ITEM:
       unparseItem(writer, call, leftPrec);
       break;
+    case IS_NOT_FALSE:
+    case IS_FALSE:
+      unparseUnaryOperators(writer, call);
+      break;
     case OVER:
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       writer.keyword("OVER");
@@ -736,6 +741,15 @@ public class BigQuerySqlDialect extends SqlDialect {
     case OTHER_FUNCTION:
     case OTHER:
       unparseOtherFunction(writer, call, leftPrec, rightPrec);
+      break;
+    case OVERLAPS:
+    case PERIOD_INTERSECT:
+    case CONTAINS:
+      unparsePeriodBinaryFunction(writer, call, leftPrec, rightPrec);
+      break;
+    case PERIOD_BEGIN:
+    case PERIOD_END:
+      unparsePeriodAccessFunction(writer, call, leftPrec, rightPrec);
       break;
     case COLLECTION_TABLE:
       if (call.operandCount() > 1) {
@@ -845,6 +859,13 @@ public class BigQuerySqlDialect extends SqlDialect {
       writer.sep(",", true);
       writer.keyword(requireNonNull(unquoteStringLiteral(String.valueOf(call.operand(1)))));
       writer.endFunCall(funcFrame);
+      break;
+    case PERIOD_CONSTRUCTOR:
+      final SqlWriter.Frame rangeFrame = writer.startFunCall("RANGE");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.sep(",", true);
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(rangeFrame);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
@@ -1054,6 +1075,22 @@ public class BigQuerySqlDialect extends SqlDialect {
       writer.literal("DAY");
       writer.endFunCall(dateDiffFrame);
       break;
+    }
+  }
+
+  private void unparseUnaryOperators(SqlWriter writer, SqlCall call) {
+    assert call.operandCount() == 1;
+    SqlOperator operator = call.getOperator();
+    SqlNode operand = call.operand(0);
+    if (operand instanceof SqlCall
+        && operator.getLeftPrec() > ((SqlCall) operand).getOperator().getLeftPrec()) {
+      SqlSyntax.POSTFIX.unparse(writer, operator, call, operator.getLeftPrec(),
+          operator.getRightPrec());
+    } else {
+      final SqlWriter.Frame falseFrame = writer.startList("(", ")");
+      operand.unparse(writer, operator.getLeftPrec(), operator.getRightPrec());
+      writer.endFunCall(falseFrame);
+      writer.keyword(operator.getName());
     }
   }
 
@@ -1885,6 +1922,30 @@ public class BigQuerySqlDialect extends SqlDialect {
     }
   }
 
+  private void unparsePeriodBinaryFunction(SqlWriter writer,
+      SqlCall call, int leftPrec, int rightPrec) {
+    String name = call.getKind().sql;
+    SqlWriter.Frame funcFrame = writer.startFunCall("RANGE_" + name);
+    for (int i = 0; i < call.operandCount(); i++) {
+      writer.sep(",");
+      call.operand(i).unparse(writer, leftPrec, rightPrec);
+    }
+    writer.endFunCall(funcFrame);
+  }
+
+  private void unparsePeriodAccessFunction(SqlWriter writer,
+      SqlCall call, int leftPrec, int rightPrec) {
+    String name;
+    if (call.getOperator().getKind() == SqlKind.PERIOD_BEGIN) {
+      name = "RANGE_START";
+    } else {
+      name = "RANGE_END";
+    }
+    SqlWriter.Frame funcFrame = writer.startFunCall(name);
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.endFunCall(funcFrame);
+  }
+
   /**
    * This method is to unparse the REGEXP_CONTAINS operands.
    */
@@ -2024,16 +2085,53 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private void unparseParseTimestampWithTimeZone(SqlWriter writer, SqlCall call, int leftPrec,
       int rightPrec) {
-    String dateFormatValue = call.operand(0) instanceof SqlCharStringLiteral
-        ? ((NlsString) requireNonNull(((SqlCharStringLiteral) call.operand(0)).getValue()))
-        .getValue()
-        : call.operand(0).toString();
-    dateFormatValue =
-        dateFormatValue.replaceAll("S\\(\\d\\)", SqlDateTimeFormat.MILLISECONDS_5.value);
-    SqlCall formatCall =
-        PARSE_TIMESTAMP.createCall(SqlParserPos.ZERO,
-                createDateTimeFormatSqlCharLiteral(dateFormatValue), call.operand(1));
-    super.unparseCall(writer, formatCall, leftPrec, rightPrec);
+    if (call.operand(0) instanceof SqlCase) {
+      super.unparseCall(writer, getSqlCallForCaseExprInParseTimestamp(call), leftPrec, rightPrec);
+    } else {
+      String dateFormatValue = call.operand(0) instanceof SqlCharStringLiteral
+          ? getStringValueForFormat(call.operand(0))
+          : call.operand(0).toString();
+      dateFormatValue =
+          dateFormatValue.replaceAll("S\\(\\d\\)", MILLISECONDS_5.value);
+      SqlCall formatCall =
+          PARSE_TIMESTAMP.createCall(SqlParserPos.ZERO,
+              createDateTimeFormatSqlCharLiteral(dateFormatValue), call.operand(1));
+      super.unparseCall(writer, formatCall, leftPrec, rightPrec);
+    }
+  }
+
+  private static SqlCall getSqlCallForCaseExprInParseTimestamp(SqlCall call) {
+    SqlCase caseExpression = call.operand(0);
+    SqlNodeList whenList = caseExpression.getWhenOperands();
+    SqlNodeList formatsList = caseExpression.getThenOperands();
+    String elseFormat = getStringValueForFormat(caseExpression.getElseOperand());
+    SqlNodeList firstOpThenList = new SqlNodeList(SqlParserPos.ZERO);
+    SqlNodeList secondOpThenList = new SqlNodeList(SqlParserPos.ZERO);
+    for (int i = 0; i < whenList.size(); i++) {
+      String stringValueForFormat = getStringValueForFormat(formatsList.get(i));
+      SqlCall formatTimestampCall =
+          SqlLibraryOperators.FORMAT_TIMESTAMP.createCall(SqlParserPos.ZERO,
+          SqlLiteral.createCharString(stringValueForFormat, SqlParserPos.ZERO),
+          ((SqlBasicCall) ((SqlCase) call.operand(1)).getElseOperand()).operand(1));
+      firstOpThenList.add(SqlLiteral.createCharString(stringValueForFormat, SqlParserPos.ZERO));
+      secondOpThenList.add(formatTimestampCall);
+    }
+    SqlNode firstOpElse = SqlLiteral.createCharString(elseFormat, SqlParserPos.ZERO);
+    SqlCall secondOpElse =
+        SqlLibraryOperators.FORMAT_TIMESTAMP.createCall(SqlParserPos.ZERO,
+            SqlLiteral.createCharString(elseFormat, SqlParserPos.ZERO),
+        ((SqlBasicCall) ((SqlCase) call.operand(1)).getElseOperand()).operand(1));
+    SqlCase firstCase =
+        (SqlCase) SqlStdOperatorTable.CASE.createCall(null, SqlParserPos.ZERO,
+            null, whenList, firstOpThenList, firstOpElse);
+    SqlCase secondCase =
+        (SqlCase) SqlStdOperatorTable.CASE.createCall(null, SqlParserPos.ZERO,
+            null, whenList, secondOpThenList, secondOpElse);
+    return PARSE_TIMESTAMP.createCall(SqlParserPos.ZERO, firstCase, secondCase);
+  }
+
+  private static String getStringValueForFormat(SqlNode sqlNode) {
+    return ((NlsString) requireNonNull(((SqlCharStringLiteral) sqlNode).getValue())).getValue();
   }
 
   private String getFunName(SqlCall call) {
@@ -2132,7 +2230,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     SqlLiteral trimFlag = call.operand(0);
     SqlNode valueToTrim = call.operand(1);
     requireNonNull(valueToTrim, "valueToTrim in unparseTrim() must not be null");
-    String value = Util.removeLeadingAndTrailingSingleQuotes(valueToTrim.toString());
+    String value = removeLeadingAndTrailingSingleQuotes(valueToTrim.toString());
     switch (trimFlag.getValueAs(SqlTrimFunction.Flag.class)) {
     case LEADING:
       operatorName = "LTRIM";
@@ -2343,13 +2441,13 @@ public class BigQuerySqlDialect extends SqlDialect {
       // BigQuery only supports FLOAT64(aka. Double) for floating point types.
       case FLOAT:
       case DOUBLE:
-        return createSqlDataTypeSpecByName("FLOAT64", typeName);
       case REAL:
-        return createSqlDataTypeSpecByName("FLOAT32", typeName);
+        return createSqlDataTypeSpecByName("FLOAT64", typeName);
       case DECIMAL:
         return createSqlDataTypeSpecBasedOnPreScale(type);
       case BOOLEAN:
         return createSqlDataTypeSpecByName("BOOL", typeName);
+      case CLOB:
       case CHAR:
       case VARCHAR:
         return createSqlDataTypeSpecByName("STRING", type);
@@ -2368,6 +2466,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       case TIMESTAMP_WITH_TIME_ZONE:
         return createSqlDataTypeSpecByName("TIMESTAMP", typeName);
       case JSON:
+      case VARIANT:
         return createSqlDataTypeSpecByName("JSON", typeName);
       default:
         break;
@@ -2425,6 +2524,7 @@ public class BigQuerySqlDialect extends SqlDialect {
           typeAlias = defaultPrecision > 29 ? "BIGNUMERIC" : "NUMERIC";
         }
         return createSqlDataTypeSpecByName(typeAlias, typeName);
+      case CLOB:
       case CHAR:
       case VARCHAR:
         if (isContainsPrecision) {
