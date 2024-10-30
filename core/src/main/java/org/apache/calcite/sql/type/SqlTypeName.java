@@ -138,8 +138,7 @@ public enum SqlTypeName {
   VARIANT(PrecScale.NO_NO, false, Types.OTHER, SqlTypeFamily.VARIANT),
   CLOB(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.CHAR,
           SqlTypeFamily.CHARACTER),
-  GEOGRAPHY(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.OTHER,
-      null);
+  GEOGRAPHY(PrecScale.NO_NO, false, Types.OTHER, null);
 
   public static final int MAX_DATETIME_PRECISION = 3;
 
