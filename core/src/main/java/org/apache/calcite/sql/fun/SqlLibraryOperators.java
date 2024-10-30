@@ -4059,4 +4059,11 @@ public abstract class SqlLibraryOperators {
           writer.endList(parenthesisFrame);
         }
       };
+
+  public static final SqlAggFunction RATIO_TO_REPORT =
+      SqlBasicAggFunction
+          .create("RATIO_TO_REPORT", SqlKind.RATIO_TO_REPORT,
+              ReturnTypes.DECIMAL,
+              OperandTypes.NUMERIC_NUMERIC)
+          .withFunctionType(SqlFunctionCategory.NUMERIC);
 }
