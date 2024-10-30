@@ -2467,6 +2467,8 @@ public class BigQuerySqlDialect extends SqlDialect {
         return createSqlDataTypeSpecByName("TIMESTAMP", typeName);
       case JSON:
         return createSqlDataTypeSpecByName("JSON", typeName);
+      case GEOGRAPHY:
+        return createSqlDataTypeSpecByName("GEOGRAPHY", typeName);
       default:
         break;
       }
