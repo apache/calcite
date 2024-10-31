@@ -93,6 +93,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -2099,8 +2100,9 @@ public abstract class SqlImplementor {
         @UnknownInitialization Result this,
         Aggregate aggregate,
         Predicate<SqlNode> operandPredicate) {
+      final boolean[] result = {false};
       if (node instanceof SqlSelect) {
-        final SqlNodeList selectList = ((SqlSelect) node).getSelectList();
+        SqlNodeList selectList = ((SqlSelect) node).getSelectList();
         if (!selectList.equals(SqlNodeList.SINGLETON_STAR)) {
           final Set<Integer> aggregatesArgs = new HashSet<>();
           for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
@@ -2108,18 +2110,20 @@ public abstract class SqlImplementor {
           }
           for (int aggregatesArg : aggregatesArgs) {
             if (selectList.get(aggregatesArg) instanceof SqlBasicCall) {
-              final SqlBasicCall call =
-                  (SqlBasicCall) selectList.get(aggregatesArg);
-              for (SqlNode operand : call.getOperandList()) {
-                if (operand != null && operandPredicate.test(operand)) {
-                  return true;
-                }
+              final SqlBasicCall call = (SqlBasicCall) selectList.get(aggregatesArg);
+              if (call != null) {
+                call.accept(new SqlShuttle() {
+                  @Override public @Nullable SqlNode visit(SqlCall call) {
+                    result[0] = result[0] || operandPredicate.test(call);
+                    return super.visit(call);
+                  }
+                });
               }
             }
           }
         }
       }
-      return false;
+      return result[0];
     }
 
     /** Returns the highest clause that is in use. */
