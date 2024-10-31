@@ -880,6 +880,12 @@ class RelWriterTest {
       assertThat(result, isLinux(expected));
     }
 
+    RexNode betweenDoubles =
+        rexBuilder.makeBetween(b.literal(45),
+            b.literal(20.0000000000000049),
+            b.literal(30.0000000000000049));
+    consumer.accept(betweenDoubles);
+
     RexNode between =
         rexBuilder.makeBetween(b.literal(45),
             b.literal(20),

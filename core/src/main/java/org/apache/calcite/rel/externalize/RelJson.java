@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.rel.externalize;
 
+import javax.naming.directory.InvalidAttributesException;
+
 import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.TimeUnit;
@@ -114,8 +116,11 @@ public class RelJson {
           .configure(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true);
 
   private static final List<Class> VALUE_CLASSES =
-      ImmutableList.of(NlsString.class, BigDecimal.class, ByteString.class,
+      ImmutableList.of(NlsString.class, ByteString.class,
       Boolean.class, TimestampString.class, DateString.class, TimeString.class);
+
+  private static final List<Class> NUMERIC_VALUE_CLASSES =
+      ImmutableList.of(Double.class, BigDecimal.class);
 
   private final Map<String, Constructor> constructorMap = new HashMap<>();
   private final @Nullable JsonBuilder jsonBuilder;
@@ -939,10 +944,21 @@ public class RelJson {
   @SuppressWarnings({"rawtypes", "unchecked"})
   private static <C extends Comparable<C>> C rangeEndPointFromJson(Object o) {
     Exception e = null;
+    for (Class clsType : NUMERIC_VALUE_CLASSES) {
+      try {
+        if (OBJECT_MAPPER.readValue((String) o, clsType).toString().equals(o.toString())){
+          return (C) OBJECT_MAPPER.readValue((String) o, clsType);
+        } else {
+          throw new InvalidAttributesException("Incorrect conversion between approximate and exact numeric ");
+        }
+      } catch (JsonProcessingException|InvalidAttributesException  ex) {
+        e = ex;
+      }
+    }
     for (Class clsType : VALUE_CLASSES) {
       try {
-        return (C) OBJECT_MAPPER.readValue((String) o, clsType);
-      } catch (JsonProcessingException ex) {
+          return (C) OBJECT_MAPPER.readValue((String) o, clsType);
+      } catch (JsonProcessingException  ex) {
         e = ex;
       }
     }
