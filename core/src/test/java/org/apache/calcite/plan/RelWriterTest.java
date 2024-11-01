@@ -886,6 +886,12 @@ class RelWriterTest {
             b.literal(30.0000000000000049));
     consumer.accept(betweenDoubles);
 
+    RexNode betweenDecimal =
+        rexBuilder.makeBetween(b.literal(45),
+            b.literal(BigDecimal.valueOf(20.0)),
+            b.literal(BigDecimal.valueOf(30.0)));
+    consumer.accept(betweenDecimal);
+
     RexNode between =
         rexBuilder.makeBetween(b.literal(45),
             b.literal(20),
