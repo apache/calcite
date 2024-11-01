@@ -576,6 +576,21 @@ public class JdbcTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4590">[CALCITE-4590]
+   * Incorrect query result with fixed-length string</a>. */
+  @Test void testTrimLiteral() {
+    CalciteAssert.that()
+        .query("with t(x, y) as (values (1, 'a'), (2, 'abc'))"
+            + "select * from t where y = 'a'")
+        .returns("X=1; Y=a  \n");
+    CalciteAssert.that()
+        .query("with t(x, y) as (values (1, 'a'), (2, 'abc'))"
+            + "select * from t where y = 'a' or y = 'abc'")
+        .returns("X=1; Y=a  \n"
+            + "X=2; Y=abc\n");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3423">[CALCITE-3423]
    * Support using CAST operation and BOOLEAN type value in table macro</a>. */
   @Test void testTableMacroWithCastOrBoolean() throws SQLException {
