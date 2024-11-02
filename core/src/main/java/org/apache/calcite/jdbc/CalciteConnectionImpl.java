@@ -427,6 +427,7 @@ abstract class CalciteConnectionImpl
               .deriveTimeFrameSet(TimeFrames.CORE);
       final long localOffset = timeZone.getOffset(time);
       final long currentOffset = localOffset;
+      final long sysOffset = TimeZone.getDefault().getOffset(time);
       final String user = "sa";
       final String systemUser = System.getProperty("user.name");
       final String localeName = connection.config().locale();
@@ -442,6 +443,7 @@ abstract class CalciteConnectionImpl
       builder.put(Variable.UTC_TIMESTAMP.camelName, time)
           .put(Variable.CURRENT_TIMESTAMP.camelName, time + currentOffset)
           .put(Variable.LOCAL_TIMESTAMP.camelName, time + localOffset)
+          .put(Variable.SYS_TIMESTAMP.camelName, time + sysOffset)
           .put(Variable.TIME_ZONE.camelName, timeZone)
           .put(Variable.TIME_FRAME_SET.camelName, timeFrameSet)
           .put(Variable.USER.camelName, user)

@@ -1015,6 +1015,24 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.TIMEDATE)
           .withSyntax(SqlSyntax.FUNCTION_ID);
 
+  /** The "SYSDATE" function. */
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction SYSDATE =
+      SqlBasicFunction.create("SYSDATE",
+              ReturnTypes.DATE,
+              OperandTypes.NILADIC,
+              SqlFunctionCategory.TIMEDATE)
+          .withSyntax(SqlSyntax.FUNCTION_ID);
+
+  /** The "SYSTIMESTAMP" function. */
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction SYSTIMESTAMP =
+      SqlBasicFunction.create("SYSTIMESTAMP",
+              ReturnTypes.TIMESTAMP_TZ,
+              OperandTypes.NILADIC,
+              SqlFunctionCategory.TIMEDATE)
+          .withSyntax(SqlSyntax.FUNCTION_ID);
+
   /** The "DATE_FROM_UNIX_DATE(integer)" function; returns a DATE value
    * a given number of seconds after 1970-01-01. */
   @LibraryOperator(libraries = {BIG_QUERY, SPARK})

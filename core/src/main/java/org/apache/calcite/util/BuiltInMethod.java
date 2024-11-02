@@ -776,6 +776,8 @@ public enum BuiltInMethod {
       String.class),
   LOCAL_TIMESTAMP(SqlFunctions.class, "localTimestamp", DataContext.class),
   LOCAL_TIME(SqlFunctions.class, "localTime", DataContext.class),
+  SYSDATE(SqlFunctions.class, "sysDate", DataContext.class),
+  SYSTIMESTAMP(SqlFunctions.class, "sysTimestamp", DataContext.class),
   TIME_ZONE(SqlFunctions.class, "timeZone", DataContext.class),
   USER(SqlFunctions.class, "user", DataContext.class),
   SYSTEM_USER(SqlFunctions.class, "systemUser", DataContext.class),
