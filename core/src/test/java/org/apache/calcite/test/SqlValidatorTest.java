@@ -1658,6 +1658,50 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .withOperatorTable(opTable).ok();
   }
 
+  @Test void testSysDateFunction() {
+    final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.ORACLE);
+    // test oracle sysdate function validate
+    expr("SYSDATE")
+        .withOperatorTable(opTable)
+        .columnType("DATE NOT NULL");
+    expr("^SYSDATE^")
+        .fails("Column 'SYSDATE' not found in any table");
+    expr("^SYSDATE()^")
+        .withOperatorTable(opTable)
+        .fails("No match found for function signature SYSDATE..");
+    // test oracle sysdate function validate within to_char function
+    expr("TO_CHAR(SYSDATE, 'MM-DD-YYYY HH24:MI:SS')")
+        .withOperatorTable(opTable)
+        .columnType("VARCHAR NOT NULL");
+    expr("TO_CHAR(^SYSDATE^, 'MM-DD-YYYY HH24:MI:SS')")
+        .fails("Column 'SYSDATE' not found in any table");
+    expr("^TO_CHAR(SYSDATE)^")
+        .withOperatorTable(opTable)
+        .fails("Invalid number of arguments to function 'TO_CHAR'. Was expecting 2 arguments");
+  }
+
+  @Test void testSysTimestampFunction() {
+    final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.ORACLE);
+    // test oracle systimestamp function validate
+    expr("SYSTIMESTAMP")
+        .withOperatorTable(opTable)
+        .columnType("TIMESTAMP_TZ(0) NOT NULL");
+    expr("^SYSTIMESTAMP^")
+        .fails("Column 'SYSTIMESTAMP' not found in any table");
+    expr("^SYSTIMESTAMP()^")
+        .withOperatorTable(opTable)
+        .fails("No match found for function signature SYSTIMESTAMP..");
+    // test oracle systimestamp function validate within to_char function
+    expr("TO_CHAR(SYSTIMESTAMP, 'SSSSS.FF')")
+        .withOperatorTable(opTable)
+        .columnType("VARCHAR NOT NULL");
+    expr("TO_CHAR(^SYSTIMESTAMP^, 'SSSSS.FF')")
+        .fails("Column 'SYSTIMESTAMP' not found in any table");
+    expr("^TO_CHAR(SYSTIMESTAMP)^")
+        .withOperatorTable(opTable)
+        .fails("Invalid number of arguments to function 'TO_CHAR'. Was expecting 2 arguments");
+  }
+
   @Test void testInvalidFunction() {
     wholeExpr("foo()")
         .fails("No match found for function signature FOO..");

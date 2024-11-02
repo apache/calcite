@@ -10434,6 +10434,32 @@ public class SqlOperatorTest {
     pair.right.close();
   }
 
+  @Tag("slow")
+  @Test void testSysTimestampFuncWithCurrentTime() {
+    testSysTimestampFunc(currentTimeString(CURRENT_TZ));
+  }
+
+  @Test void testSysTimestampFuncWithFixedTime() {
+    testSysTimestampFunc(fixedTimeString(CURRENT_TZ));
+  }
+
+  private void testSysTimestampFunc(Pair<String, Hook.Closeable> pair) {
+    final SqlOperatorFixture f = fixture()
+        .setFor(SqlLibraryOperators.SYSTIMESTAMP, VmName.EXPAND)
+        .withLibrary(SqlLibrary.ORACLE);
+
+    f.checkType("SYSTIMESTAMP", "TIMESTAMP_TZ(0) NOT NULL");
+    f.checkFails("^SYSTIMESTAMP()^",
+        "No match found for function signature SYSTIMESTAMP\\(\\)",
+        false);
+    // check systimestamp function within cast function
+    f.checkType("CAST(SYSTIMESTAMP AS VARCHAR(30))", "VARCHAR(30) NOT NULL");
+    f.checkFails("CAST(^SYSTIMESTAMP()^ AS VARCHAR(30))",
+        "No match found for function signature SYSTIMESTAMP\\(\\)",
+        false);
+    pair.right.close();
+  }
+
   /**
    * Returns a time string, in GMT, that will be valid for at least 2 minutes.
    *
@@ -10522,6 +10548,33 @@ public class SqlOperatorTest {
           dateString.substring(0, 10),
           "DATE NOT NULL");
     }
+  }
+
+  @Tag("slow")
+  @Test void testSysDateFuncWithCurrentTime() {
+    testSysDateFunc(currentTimeString(LOCAL_TZ));
+  }
+
+  @Test void testSysDateFuncWithFixedTime() {
+    testSysDateFunc(fixedTimeString(LOCAL_TZ));
+  }
+
+  private void testSysDateFunc(Pair<String, Hook.Closeable> pair) {
+    final SqlOperatorFixture f = fixture()
+        .setFor(SqlLibraryOperators.SYSDATE)
+        .withLibrary(SqlLibrary.ORACLE);
+
+    f.checkType("SYSDATE", "DATE NOT NULL");
+    f.checkType("(SYSDATE - SYSDATE) DAY", "INTERVAL DAY NOT NULL");
+    f.checkFails("^SYSDATE()^",
+        "No match found for function signature SYSDATE\\(\\)",
+        false);
+    // check sysdate function within cast function
+    f.checkType("CAST(SYSDATE AS VARCHAR(30))", "VARCHAR(30) NOT NULL");
+    f.checkFails("CAST(^SYSDATE()^ AS VARCHAR(30))",
+        "No match found for function signature SYSDATE\\(\\)",
+        false);
+    pair.right.close();
   }
 
   @Test void testLastDayFunc() {

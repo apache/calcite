@@ -299,6 +299,8 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.STARTS_WITH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.STRCMP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.STR_TO_MAP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SUBSTRING_INDEX;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.SYSDATE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.SYSTIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TAND;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TANH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIME;
@@ -1212,6 +1214,8 @@ public class RexImpTable {
       define(CURRENT_DATETIME, systemFunctionImplementor);
       define(LOCALTIME, systemFunctionImplementor);
       define(LOCALTIMESTAMP, systemFunctionImplementor);
+      define(SYSDATE, systemFunctionImplementor);
+      define(SYSTIMESTAMP, systemFunctionImplementor);
 
       defineAgg(COUNT, CountImplementor.class);
       defineAgg(REGR_COUNT, CountImplementor.class);
@@ -3804,6 +3808,10 @@ public class RexImpTable {
         return Expressions.call(BuiltInMethod.LOCAL_TIMESTAMP.method, root);
       } else if (op == LOCALTIME) {
         return Expressions.call(BuiltInMethod.LOCAL_TIME.method, root);
+      } else if (op == SYSDATE) {
+        return Expressions.call(BuiltInMethod.SYSDATE.method, root);
+      } else if (op == SYSTIMESTAMP) {
+        return Expressions.call(BuiltInMethod.SYSTIMESTAMP.method, root);
       } else {
         throw new AssertionError("unknown function " + op);
       }
