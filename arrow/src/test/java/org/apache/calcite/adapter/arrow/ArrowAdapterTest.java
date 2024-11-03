@@ -77,6 +77,10 @@ class ArrowAdapterTest {
     arrowDataGenerator.writeArrowData(dataLocationFile);
     arrowDataGenerator.writeScottEmpData(arrowFilesDirectory);
 
+    File datatypeLocationFile = arrowFilesDirectory.resolve("arrowdatatype.arrow").toFile();
+    ArrowData arrowtypeDataGenerator = new ArrowData();
+    arrowtypeDataGenerator.writeArrowDataType(datatypeLocationFile);
+
     arrow = ImmutableMap.of("model", modelFileTarget.toAbsolutePath().toString());
   }
 
@@ -841,6 +845,101 @@ class ArrowAdapterTest {
         .with(arrow)
         .query(sql)
         .limit(3)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6638">[CALCITE-6638]
+   * Arrow adapter should support IS FALSE Operator and IS TRUE Operator</a>. */
+  @Test void testArrowProjectWithIsTrueFilter() {
+    String sql = "select \"booleanField\"\n"
+        + "from arrowdatatype\n"
+        + "where \"booleanField\" is true";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(booleanField=[$7])\n"
+        + "    ArrowFilter(condition=[$7])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])\n\n";
+    String result = "booleanField=true\nbooleanField=true\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .limit(2)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+  @Test void testArrowProjectWithIsTrueFilter2() {
+    String sql = "select \"intField\"\n"
+        + "from arrowdatatype\n"
+        + "where (\"intField\" > 10) is true";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(intField=[$2])\n"
+        + "    ArrowFilter(condition=[>($2, 10)])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])\n\n";
+    String result = "intField=11\nintField=12\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .limit(2)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+  @Test void testArrowProjectFieldsWithIsFalseFilter() {
+    String sql = "select \"booleanField\"\n"
+        + "from arrowdatatype\n"
+        + "where \"booleanField\" is false";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(booleanField=[$7])\n"
+        + "    ArrowFilter(condition=[NOT($7)])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])\n\n";
+    String result = "booleanField=false\nbooleanField=false\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .limit(2)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+
+  @Test void testArrowProjectFieldsWithIsNotTrueFilter() {
+    String sql = "select \"booleanField\"\n"
+        + "from arrowdatatype\n"
+        + "where \"booleanField\" is not true";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(booleanField=[$7])\n"
+        + "    ArrowFilter(condition=[IS NOT TRUE($7)])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])\n\n";
+    String result = "booleanField=null\nbooleanField=false\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .limit(2)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+  @Test void testArrowProjectFieldsWithIsNotFalseFilter() {
+    String sql = "select \"booleanField\"\n"
+        + "from arrowdatatype\n"
+        + "where \"booleanField\" is not false";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(booleanField=[$7])\n"
+        + "    ArrowFilter(condition=[IS NOT FALSE($7)])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])\n\n";
+    String result = "booleanField=null\nbooleanField=true\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .limit(2)
         .returns(result)
         .explainContains(plan);
   }

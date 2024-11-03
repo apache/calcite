@@ -114,7 +114,13 @@ class ArrowTranslator {
     return predicates;
   }
 
-  /** Translate a binary or unary relation. */
+  /**
+   * Translates a binary or unary relation.
+   *
+   * @param node A RexNode that always evaluates to a boolean expression.
+   *             Currently, this method is only called from translateAnd.
+   * @return The translated SQL string for the relation.
+   */
   private String translateMatch2(RexNode node) {
     switch (node.getKind()) {
     case EQUALS:
@@ -133,6 +139,15 @@ class ArrowTranslator {
       return translateUnary("isnull", (RexCall) node);
     case IS_NOT_NULL:
       return translateUnary("isnotnull", (RexCall) node);
+    case IS_NOT_TRUE:
+      return translateUnary("isnottrue", (RexCall) node);
+    case IS_NOT_FALSE:
+      return translateUnary("isnotfalse", (RexCall) node);
+    case INPUT_REF:
+      final RexInputRef inputRef = (RexInputRef) node;
+      return fieldNames.get(inputRef.getIndex()) + " istrue";
+    case NOT:
+      return translateUnary("isfalse", (RexCall) node);
     default:
       throw new UnsupportedOperationException("Unsupported operator " + node);
     }

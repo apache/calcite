@@ -365,7 +365,11 @@ public class ArrowData {
     bitVector.setInitialCapacity(rowCount);
     bitVector.allocateNew();
     for (int i = 0; i < rowCount; i++) {
-      bitVector.set(i, this.booleanValue ? 1 : 0);
+      if (i % 3 == 0) {
+        bitVector.setNull(i);
+      } else {
+        bitVector.set(i, this.booleanValue ? 1 : 0);
+      }
       this.booleanValue = !this.booleanValue;
     }
     fieldVector.setValueCount(rowCount);

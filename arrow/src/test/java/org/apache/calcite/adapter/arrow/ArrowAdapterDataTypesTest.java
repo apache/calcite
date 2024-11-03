@@ -176,4 +176,19 @@ public class ArrowAdapterDataTypesTest {
         .returns(result)
         .explainContains(plan);
   }
+
+  @Test void testBooleanProject() {
+    String sql = "select \"booleanField\" from arrowdatatype";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(booleanField=[$7])\n"
+        + "    ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])\n\n";
+    String result = "booleanField=null\nbooleanField=true\nbooleanField=false\n";
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .limit(3)
+        .returns(result)
+        .explainContains(plan);
+  }
+
 }
