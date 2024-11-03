@@ -170,9 +170,47 @@ class ArrowTranslator {
     case CAST:
       // FIXME This will not work in all cases (for example, we ignore string encoding)
       return translateBinary2(op, ((RexCall) left).operands.get(0), right);
+    case PLUS:
+      right = translateArithmeticOp(left, right);
+      return translateBinary2(op, ((RexCall) left).operands.get(0), right);
+    case MINUS:
+      right = translateArithmeticOp(left, right);
+      return translateBinary2(op, ((RexCall) left).operands.get(0), right);
     default:
       return null;
     }
+  }
+
+  /**
+   * Translates a call to an arithmetic operator.
+   * This method handles arithmetic operations like addition and subtraction
+   * between literals and adjusts the right operand accordingly.
+   *
+   * @param left The left operand, which is an arithmetic operation
+   * @param right The right operand, which is a literal
+   * @return A new RexNode representing the adjusted right operand
+   */
+  private RexNode translateArithmeticOp(RexNode left, RexNode right) {
+    RexNode leftOperand = ((RexCall) left).operands.get(1);
+    switch (left.getKind()) {
+    case PLUS:
+      if (leftOperand.getKind() == SqlKind.LITERAL && right.getKind() == SqlKind.LITERAL) {
+        BigDecimal leftValue = ((RexLiteral) leftOperand).getValueAs(BigDecimal.class);
+        BigDecimal rightValue = ((RexLiteral) right).getValueAs(BigDecimal.class);
+        return rexBuilder.makeLiteral(rightValue.subtract(leftValue), left.getType(), false);
+      }
+      break;
+    case MINUS:
+      if (leftOperand.getKind() == SqlKind.LITERAL && right.getKind() == SqlKind.LITERAL) {
+        BigDecimal leftValue = ((RexLiteral) leftOperand).getValueAs(BigDecimal.class);
+        BigDecimal rightValue = ((RexLiteral) right).getValueAs(BigDecimal.class);
+        return rexBuilder.makeLiteral(rightValue.add(leftValue), left.getType(), false);
+      }
+      break;
+    default:
+      break;
+    }
+    return right;
   }
 
   /** Combines a field name, operator, and literal to produce a predicate string. */

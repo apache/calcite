@@ -243,6 +243,78 @@ class ArrowAdapterTest {
         .explainContains(plan);
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6667">[CALCITE-6667]
+   * The Filter operator supports simple addition and subtraction operations</a>.*/
+  @Test void testArrowProjectFieldsWithPlusFilter() {
+    String sql = "select \"intField\", \"stringField\"\n"
+        + "from arrowdata\n"
+        + "where \"intField\" + 1 = 12";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(intField=[$0], stringField=[$1])\n"
+        + "    ArrowFilter(condition=[=(+($0, 1), 12)])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+    String result = "intField=11; stringField=11\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+  @Test void testArrowProjectFieldsWithFloatPlusFilter() {
+    String sql = "select \"intField\", \"stringField\"\n"
+        + "from arrowdata\n"
+        + "where \"floatField\" + 1.0 = 12.0";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(intField=[$0], stringField=[$1])\n"
+        + "    ArrowFilter(condition=[=(+($2, 1.0:DECIMAL(2, 1)), 12.0E0)])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+    String result = "intField=11; stringField=11\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+  @Test void testArrowProjectFieldsWithMinusFilter() {
+    String sql = "select \"intField\", \"stringField\"\n"
+        + "from arrowdata\n"
+        + "where \"intField\" - 1 = 12";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(intField=[$0], stringField=[$1])\n"
+        + "    ArrowFilter(condition=[=(-($0, 1), 12)])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+    String result = "intField=13; stringField=13\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+  @Test void testArrowProjectFieldsWithMinusFloatFilter() {
+    String sql = "select \"intField\", \"stringField\"\n"
+        + "from arrowdata\n"
+        + "where \"floatField\" - 1 = 12";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(intField=[$0], stringField=[$1])\n"
+        + "    ArrowFilter(condition=[=(-($2, 1), 12.0E0)])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+    String result = "intField=13; stringField=13\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .returns(result)
+        .explainContains(plan);
+  }
+
   @Test void testArrowProjectFieldsWithDisjunctiveFilter() {
     String sql = "select \"intField\", \"stringField\"\n"
         + "from arrowdata\n"
