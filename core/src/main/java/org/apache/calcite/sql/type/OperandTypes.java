@@ -470,6 +470,14 @@ public abstract class OperandTypes {
   public static final FamilyOperandTypeChecker STRING_STRING_BOOLEAN =
       family(SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.BOOLEAN);
 
+  public static final SqlOperandTypeChecker ANY_STRING_OR_STRING_STRING =
+      OperandTypes.or(
+          OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.STRING),
+          OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING));
+
+  public static final SqlSingleOperandTypeChecker INTEGER_OR_STRING =
+      INTEGER.or(STRING);
+
   public static final FamilyOperandTypeChecker STRING_STRING_OPTIONAL_STRING =
       family(
           ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
@@ -571,6 +579,12 @@ public abstract class OperandTypes {
           .or(OperandTypes.family(SqlTypeFamily.MAP))
           .or(OperandTypes.family(SqlTypeFamily.ANY));
 
+  public static final SqlSingleOperandTypeChecker ARRAY_OR_MAP_OR_VARIANT =
+      OperandTypes.family(SqlTypeFamily.ARRAY)
+          .or(OperandTypes.family(SqlTypeFamily.MAP))
+          .or(OperandTypes.family(SqlTypeFamily.VARIANT))
+          .or(OperandTypes.family(SqlTypeFamily.ANY));
+
   public static final SqlOperandTypeChecker STRING_ARRAY_CHARACTER_OPTIONAL_CHARACTER =
       new FamilyOperandTypeChecker(
           ImmutableList.of(SqlTypeFamily.ARRAY, SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER),
@@ -648,6 +662,9 @@ public abstract class OperandTypes {
 
   public static final SqlOperandTypeChecker ARRAY_ELEMENT =
       new ArrayElementOperandTypeChecker();
+
+  public static final SqlOperandTypeChecker ELEMENT_ARRAY =
+      new ElementArrayOperandTypeChecker();
 
   public static final SqlOperandTypeChecker ARRAY_INSERT =
       new ArrayInsertOperandTypeChecker();

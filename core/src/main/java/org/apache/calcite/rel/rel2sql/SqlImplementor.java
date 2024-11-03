@@ -25,8 +25,11 @@ import org.apache.calcite.plan.CTEScopeTrait;
 import org.apache.calcite.plan.CTEScopeTraitDef;
 import org.apache.calcite.plan.DistinctTrait;
 import org.apache.calcite.plan.DistinctTraitDef;
+import org.apache.calcite.plan.PivotRelTrait;
+import org.apache.calcite.plan.PivotRelTraitDef;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTrait;
+import org.apache.calcite.plan.TableAliasTraitDef;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelCollation;
@@ -90,6 +93,7 @@ import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlNumericLiteral;
+import org.apache.calcite.sql.SqlObjectAccess;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOverOperator;
 import org.apache.calcite.sql.SqlSelect;
@@ -149,6 +153,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.IntFunction;
@@ -447,9 +452,10 @@ public abstract class SqlImplementor {
         : "must use a Map implementation that preserves order";
     final @Nullable String alias2 = SqlValidatorUtil.alias(node);
     final String alias3 = alias2 != null ? alias2 : "t";
-    final String alias4 =
+    String alias4 =
         SqlValidatorUtil.uniquify(
             alias3, aliasSet, SqlValidatorUtil.EXPR_SUGGESTER);
+    alias4 = adjustAliasForUpdateStatement(node, rel, alias4);
     String tableName = getTableName(alias4, rel);
     final RelDataType rowType = adjustedRowType(rel, node);
     isTableNameColumnNameIdentical = isTableNameColumnNameIdentical(rowType, tableName);
@@ -734,7 +740,7 @@ public abstract class SqlImplementor {
           accesses.offerLast((RexFieldAccess) referencedExpr);
           referencedExpr = ((RexFieldAccess) referencedExpr).getReferenceExpr();
         }
-        SqlFieldAccess sqlFieldAccess = new SqlFieldAccess(POS);
+        List<SqlNode> names = new ArrayList<>();
         switch (referencedExpr.getKind()) {
         case CORREL_VARIABLE:
           final RexCorrelVariable variable = (RexCorrelVariable) referencedExpr;
@@ -746,22 +752,26 @@ public abstract class SqlImplementor {
             SqlNode newNode = getSqlNodeByName(correlAliasContext, lastAccess);
             node = newNode != null ? newNode : node;
           }
-          sqlFieldAccess.add(node);
+          names.add(node);
           break;
         case ROW:
         case ITEM:
+        case INPUT_REF:
           final SqlNode expr = toSql(program, referencedExpr);
-          sqlFieldAccess.add(expr);
+          names.add(expr);
           break;
         default:
-          sqlFieldAccess.add(toSql(program, referencedExpr));
+          names.add(toSql(program, referencedExpr));
         }
-
         RexFieldAccess access;
         while ((access = accesses.pollLast()) != null) {
-          sqlFieldAccess.add(new SqlIdentifier(access.getField().getName(), POS));
+          names.add(new SqlIdentifier(access.getField().getName(), POS));
         }
-        return sqlFieldAccess;
+        if (referencedExpr.getType().getSqlTypeName() == SqlTypeName.STRUCTURED) {
+          return new SqlObjectAccess(names, POS);
+        }
+        return new SqlFieldAccess(names, POS);
+
       case PATTERN_INPUT_REF:
         final RexPatternFieldRef ref = (RexPatternFieldRef) rex;
         String pv = ref.getAlpha();
@@ -809,6 +819,7 @@ public abstract class SqlImplementor {
         return new SqlDynamicParam(caseParam.getIndex(), POS);
 
       case IN:
+      case SOME:
         if (rex instanceof RexSubQuery) {
           subQuery = (RexSubQuery) rex;
           sqlSubQuery = implementor().visitRoot(subQuery.rel).asQueryOrValues();
@@ -1834,7 +1845,7 @@ public abstract class SqlImplementor {
     final SqlNode node;
     final @Nullable String neededAlias;
     final @Nullable RelDataType neededType;
-    private final Map<String, RelDataType> aliases;
+    final Map<String, RelDataType> aliases;
     final List<Clause> clauses;
     private final boolean anon;
     /** Whether to treat {@link #expectedClauses} as empty for the
@@ -1845,7 +1856,6 @@ public abstract class SqlImplementor {
     private final ImmutableSet<Clause> expectedClauses;
     final @Nullable RelNode expectedRel;
     private final boolean needNew;
-    private RelToSqlUtils relToSqlUtils = new RelToSqlUtils();
 
     public Result(SqlNode node, Collection<Clause> clauses, @Nullable String neededAlias,
         @Nullable RelDataType neededType, Map<String, RelDataType> aliases) {
@@ -1929,8 +1939,11 @@ public abstract class SqlImplementor {
 
       SqlSelect select;
       Expressions.FluentList<Clause> clauseList = Expressions.list();
+      Optional<PivotRelTrait> pivotRelTrait = Optional.ofNullable(rel.getTraitSet()
+          .getTrait(PivotRelTraitDef.instance));
+      boolean isPivotPresent = pivotRelTrait.isPresent() && pivotRelTrait.get().isPivotRel();
       // Additional condition than apache calcite
-      if (needNew || isCorrelated(rel)) {
+      if (!isPivotPresent && needNew || isCorrelated(rel)) {
         select = subSelect();
       } else {
         select = asSelect();
@@ -2084,7 +2097,13 @@ public abstract class SqlImplementor {
     }
 
     private boolean hasAliasUsedInHavingClause() {
-      SqlSelect sqlNode = (SqlSelect) this.node;
+      SqlSelect sqlNode;
+      if (this.node instanceof SqlWithItem) {
+        sqlNode = (SqlSelect) ((SqlWithItem) this.node).query;
+      } else {
+        sqlNode = (SqlSelect) this.node;
+      }
+
       if (!ifSqlBasicCallAliased(sqlNode)) {
         return false;
       }
@@ -2175,7 +2194,7 @@ public abstract class SqlImplementor {
       if (node instanceof SqlSelect) {
         Project projectRel = (Project) rel.getInput(0);
         for (int i = 0; i < projectRel.getRowType().getFieldNames().size(); i++) {
-          if (relToSqlUtils.isAnalyticalRex(projectRel.getProjects().get(i))) {
+          if (RelToSqlUtils.isAnalyticalRex(projectRel.getProjects().get(i))) {
             return true;
           }
         }
@@ -2278,9 +2297,9 @@ public abstract class SqlImplementor {
       // select c1, ROW_NUMBER() OVER (PARTITION by c1 ORDER BY c2) as rnk from t1 where c3 = 'MA'
       // Here, if query contains any filter which does not have analytical function in it and
       // has any projection with Analytical function used then new SELECT wrap is not required.
-      if (dialect.supportsQualifyClause() && rel instanceof Filter
-          && rel.getInput(0) instanceof Project
-          && relToSqlUtils.isAnalyticalFunctionPresentInProjection((Project) rel.getInput(0))) {
+      if (rel instanceof Filter
+          && dialect.supportsQualifyClause()
+          && RelToSqlUtils.isQualifyFilter((Filter) rel)) {
         if (maxClause == Clause.SELECT) {
           return false;
         }
@@ -2321,15 +2340,11 @@ public abstract class SqlImplementor {
       }
 
       if (rel instanceof Project && rel.getInput(0) instanceof Aggregate) {
-        if (CTERelToSqlUtil.isCteScopeTrait(rel.getTraitSet())
-            || CTERelToSqlUtil.isCteDefinationTrait(rel.getTraitSet())) {
+        if (CTERelToSqlUtil.isCTEScopeOrDefinitionTrait(rel.getTraitSet())
+            ||
+            CTERelToSqlUtil.isCTEScopeOrDefinitionTrait(rel.getInput(0).getTraitSet())) {
           return false;
         }
-        if (CTERelToSqlUtil.isCteScopeTrait(rel.getInput(0).getTraitSet())
-            || CTERelToSqlUtil.isCteDefinationTrait(rel.getInput(0).getTraitSet())) {
-          return false;
-        }
-
         if (dialect.getConformance().isGroupByAlias()
             && hasAliasUsedInGroupByWhichIsNotPresentInFinalProjection((Project) rel)
             || !dialect.supportAggInGroupByClause() && hasAggFunctionUsedInGroupBy((Project) rel)) {
@@ -2561,6 +2576,9 @@ public abstract class SqlImplementor {
           && ((SqlBasicCall) node).getOperator() == SqlStdOperatorTable.AS) {
         newNode = ((SqlBasicCall) node).getOperandList().get(0);
       }
+      if (node instanceof SqlWithItem && ((SqlWithItem) node).query instanceof SqlSelect) {
+        newNode = ((SqlWithItem) node).query;
+      }
       final SqlNodeList selectList = ((SqlSelect) newNode).getSelectList();
       final SqlNodeList grpList = ((SqlSelect) newNode).getGroup();
       return isGrpCallNotUsedInFinalProjection(grpList, selectList, rel);
@@ -2628,7 +2646,7 @@ public abstract class SqlImplementor {
       }
       List<RexInputRef> rexInputRefsInAnalytical = new ArrayList<>();
       for (RexNode rexNode : rel.getProjects()) {
-        if (relToSqlUtils.isAnalyticalRex(rexNode)) {
+        if (RelToSqlUtils.isAnalyticalRex(rexNode)) {
           rexInputRefsInAnalytical.addAll(getIdentifiers(rexNode));
         }
       }
@@ -2950,6 +2968,9 @@ public abstract class SqlImplementor {
     } else {
       tableName = alias;
     }
+    if (tableName == null && alias != null) {
+      tableName = alias;
+    }
     return tableName;
   }
 
@@ -3006,5 +3027,22 @@ public abstract class SqlImplementor {
       }
     }
     return false;
+  }
+
+  private String adjustAliasForUpdateStatement(SqlNode node, RelNode rel, String currentAlias) {
+    if (isLogicalFilterWithSelectAndTableScan(node, rel)) {
+      return requireNonNull(((LogicalFilter) rel).getInput().getTraitSet()
+          .getTrait(TableAliasTraitDef.instance)).getTableAlias();
+    }
+    return currentAlias;
+  }
+
+  private boolean isLogicalFilterWithSelectAndTableScan(SqlNode node, RelNode rel) {
+    return node instanceof SqlSelect && rel instanceof LogicalFilter
+        && ((LogicalFilter) rel).getInput() instanceof LogicalTableScan
+        && ((LogicalFilter) rel).getInput().getTraitSet().size() > 2
+        && "sstupdate".equals(
+        requireNonNull(((LogicalFilter) rel).getInput()
+            .getTraitSet().getTrait(TableAliasTraitDef.instance)).getStatementType());
   }
 }

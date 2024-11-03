@@ -1559,11 +1559,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("TO_CHAR(CURRENT_TIMESTAMP, 'YYYY-MM-DD HH24:MI:SS.MS TZ')")
         .withOperatorTable(opTable)
         .ok();
-    expr("^TO_CHAR(1680080352, 'YYYY-MM-DD HH24:MI:SS.MS TZ')^")
+    expr("^TO_CHAR(1680080352)^")
         .withOperatorTable(opTable)
-        .fails("Cannot apply 'TO_CHAR' to arguments of type "
-            + "'TO_CHAR\\(<INTEGER>, <CHAR\\(27\\)>\\)'\\. Supported form\\(s\\): "
-            + "'TO_CHAR\\(<TIMESTAMP>, <STRING>\\)'");
+        .ok();
   }
 
   @Test void testToDateFunction() {
@@ -8066,7 +8064,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Cannot apply 'ITEM' to arguments of type 'ITEM\\(<VARCHAR\\(10\\)>, "
             +  "<INTEGER>\\)'\\. Supported form\\(s\\): <ARRAY>\\[<INTEGER>\\]\n"
             + "<MAP>\\[<ANY>\\]\n"
-            + "<ROW>\\[<CHARACTER>\\|<INTEGER>\\].*");
+            + "<ROW>\\[<CHARACTER>\\|<INTEGER>\\]\n"
+            + "<VARIANT>\\[<ANY>\\]");
   }
 
   /** Test case for

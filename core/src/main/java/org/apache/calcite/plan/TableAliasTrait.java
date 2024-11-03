@@ -17,41 +17,38 @@
 package org.apache.calcite.plan;
 
 /**
- * Pivot rel trait is used to identify if a given rel is a pivot rel or not.
+ * TableAliasTrait is used to identify if a given rel has a TableAliasTrait.
  */
+public class TableAliasTrait implements RelTrait {
+  private final String tableAlias;
 
-public class PivotRelTrait implements RelTrait {
-  private boolean isPivotRel;
-  private boolean hasSubquery;
-  private String pivotAlias;
+  private String statementType;
 
-  public PivotRelTrait(boolean isPivotRel, boolean hasSubquery, String pivotAlias) {
-    this.isPivotRel = isPivotRel;
-    this.hasSubquery = hasSubquery;
-    this.pivotAlias = pivotAlias;
+  public String getStatementType() {
+    return statementType;
   }
 
-  public String getPivotAlias() {
-    return pivotAlias;
+  public void setStatementType(String statementType) {
+    this.statementType = statementType;
   }
 
-  public boolean hasSubquery() {
-    return hasSubquery;
+  public TableAliasTrait(String tableAlias) {
+    this.tableAlias = tableAlias;
   }
 
-  public final boolean isPivotRel() {
-    return isPivotRel;
+  public final String getTableAlias() {
+    return tableAlias;
   }
 
-  @Override public RelTraitDef<PivotRelTrait> getTraitDef() {
-    return PivotRelTraitDef.instance;
+  @Override public RelTraitDef<TableAliasTrait> getTraitDef() {
+    return TableAliasTraitDef.instance;
   }
 
   @Override public boolean satisfies(RelTrait trait) {
-    throw new UnsupportedOperationException("Method not implemented for PivotRelTrait");
+    throw new UnsupportedOperationException("Method not implemented for TableAliasTrait");
   }
 
   @Override public void register(RelOptPlanner planner) {
-    throw new UnsupportedOperationException("Registration not supported for PivotRelTrait");
+    throw new UnsupportedOperationException("Registration not supported for TableAliasTrait");
   }
 }

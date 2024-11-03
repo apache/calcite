@@ -392,6 +392,9 @@ public enum SqlKind {
   /** {@code OVERLAPS} operator for periods. */
   OVERLAPS,
 
+  /** {@code INTERSECT} operator for periods. */
+  PERIOD_INTERSECT("INTERSECT"),
+
   /** {@code CONTAINS} operator for periods. */
   CONTAINS,
 
@@ -409,6 +412,15 @@ public enum SqlKind {
 
   /** {@code EQUALS} operator for periods. */
   PERIOD_EQUALS("EQUALS"),
+
+  /** {@code BEGIN} operator for periods. */
+  PERIOD_BEGIN("BEGIN"),
+
+  /** {@code END} operator for periods. */
+  PERIOD_END("END"),
+
+  /** Period constructor. e.g. {@code PERIOD(DATE '2000-01-01', DATE '2001-01-05')}*/
+  PERIOD_CONSTRUCTOR("PERIOD"),
 
   /** {@code LIKE} operator. */
   LIKE,
@@ -741,6 +753,9 @@ public enum SqlKind {
   /** {@code TRIM} function. */
   TRIM,
 
+  /** {@code SF_FLOOR} function only for SNOWFLAKE. */
+  SF_FLOOR,
+
   /** {@code LTRIM} function (Oracle). */
   LTRIM,
 
@@ -1046,6 +1061,9 @@ public enum SqlKind {
 
   /** The {@code REGR_SYY} aggregate function. */
   REGR_SYY,
+
+  /** The {@code REGR_SYY} aggregate function. */
+  REGR_INTERCEPT,
 
   /** The {@code AVG} aggregate function. */
   AVG,
@@ -1438,7 +1456,7 @@ public enum SqlKind {
                   FILTER, WITHIN_GROUP, IGNORE_NULLS, RESPECT_NULLS, SEPARATOR,
                   DESCENDING, CUBE, ROLLUP, GROUPING_SETS, EXTEND, LATERAL,
                   SELECT, JOIN, OTHER_FUNCTION, POSITION, CHAR_LENGTH,
-                      CHARACTER_LENGTH, TRUNCATE, CAST, TRIM, FLOOR, CEIL,
+                      CHARACTER_LENGTH, TRUNCATE, CAST, TRIM, FLOOR, SF_FLOOR, CEIL,
                   DATE_ADD, DATE_SUB, TIME_ADD, TIME_SUB,
                   TIMESTAMP_ADD, TIMESTAMP_DIFF, TIMESTAMP_SUB,
                   EXTRACT, INTERVAL,
