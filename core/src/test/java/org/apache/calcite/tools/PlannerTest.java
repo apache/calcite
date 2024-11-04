@@ -37,6 +37,9 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.hep.HepMatchOrder;
+import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
@@ -56,6 +59,9 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.Statistic;
+import org.apache.calcite.schema.Statistics;
+import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlCall;
@@ -78,6 +84,7 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.RelBuilderTest;
 import org.apache.calcite.test.schemata.tpch.TpchSchema;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Optionality;
 import org.apache.calcite.util.Smalls;
 import org.apache.calcite.util.Util;
@@ -1575,5 +1582,92 @@ class PlannerTest {
     @Override public boolean shouldConvertRaggedUnionTypesToVarying() {
       return true;
     }
+  }
+
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5927">[CALCITE-5927]
+   * Reorder join condition if it contains self-join</a>.
+   */
+  @Test public void testReorderForSelfJoin() throws Exception {
+    final String sql = "select * from \"depts\" as d0\n"
+        + "join \"emps\" as d1 on d0.\"deptno\" = d1.\"deptno\"\n"
+        + "join \"depts\" as d2 on d0.\"deptno\" = d2.\"deptno\"\n"
+        + "join \"emps\" as d3 on d2.\"deptno\" = d3.\"deptno\"\n";
+
+    SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+    // we add customized table into root schema instead of using HrSchema,
+    // because we need statistics
+    rootSchema.add("depts", new AbstractTable() {
+      @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+        return typeFactory.builder()
+            .add("deptno", SqlTypeName.INTEGER)
+            .add("added", SqlTypeName.INTEGER)
+            .add("name", SqlTypeName.VARCHAR)
+            .build();
+      }
+      @Override public Statistic getStatistic() {
+        return Statistics.of(245D,
+            ImmutableList.of(ImmutableBitSet.of(0)));
+      }
+    });
+    rootSchema.add("emps", new AbstractTable() {
+      @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+        return typeFactory.builder()
+            .add("empid", SqlTypeName.INTEGER)
+            .add("deptno", SqlTypeName.INTEGER)
+            .add("name", SqlTypeName.VARCHAR)
+            .build();
+      }
+      @Override public Statistic getStatistic() {
+        return Statistics.of(240D,
+            ImmutableList.of(ImmutableBitSet.of(0)));
+      }
+    });
+
+    final FrameworkConfig config = Frameworks.newConfigBuilder()
+        .parserConfig(SqlParser.Config.DEFAULT.withCaseSensitive(false))
+        .defaultSchema(rootSchema)
+        .ruleSets()
+        .build();
+
+    final Planner planner = Frameworks.getPlanner(config);
+    SqlNode sqlNode = planner.parse(sql);
+    sqlNode = planner.validate(sqlNode);
+    RelNode relNode = planner.rel(sqlNode).rel;
+
+    final HepProgram program =
+        HepProgram.builder()
+            .addMatchOrder(HepMatchOrder.BOTTOM_UP)
+            .addGroupBegin()
+            .addRuleInstance(CoreRules.PROJECT_REMOVE)
+            .addRuleInstance(CoreRules.JOIN_PROJECT_BOTH_TRANSPOSE)
+            .addRuleInstance(CoreRules.PROJECT_MERGE)
+            .addGroupEnd()
+            .addRuleInstance(CoreRules.JOIN_TO_MULTI_JOIN)
+            .addRuleInstance(CoreRules.MULTI_JOIN_OPTIMIZE)
+            .build();
+
+    final HepPlanner hepPlanner = new HepPlanner(program);
+    hepPlanner.setRoot(relNode);
+    RelNode bestNode = hepPlanner.findBestExp();
+    // The origin plan is like :
+    //  LogicalProject
+    //    LogicalJoin(condition=[=($6, $10)], joinType=[inner])
+    //      LogicalJoin(condition=[=($0, $6)], joinType=[inner])
+    //        LogicalJoin(condition=[=($0, $4)], joinType=[inner])
+    //          LogicalTableScan(table=[[depts]])
+    //          LogicalTableScan(table=[[emps]])
+    //        LogicalTableScan(table=[[depts]])
+    //      LogicalTableScan(table=[[emps]])
+    //
+    // After LoptOptimizeJoinRule, a removable self-join should be recognized
+    // by reordering join factors which are related to depts,
+    // so they should be joined directly after join-reorder.
+    // So that we can remove this self-join further.
+    final String expected = ""
+        + "LogicalJoin(condition=[=($3, $0)], joinType=[inner])\n"
+        + "        LogicalTableScan(table=[[depts]])\n"
+        + "        LogicalTableScan(table=[[depts]])";
+    assertThat(toString(bestNode), containsString(expected));
   }
 }
