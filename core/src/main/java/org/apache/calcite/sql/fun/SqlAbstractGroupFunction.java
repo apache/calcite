@@ -69,7 +69,7 @@ public class SqlAbstractGroupFunction extends SqlAggFunction {
     final SelectScope selectScope =
         requireNonNull(SqlValidatorUtil.getEnclosingSelectScope(scope));
     final SqlSelect select = selectScope.getNode();
-    if (!validator.isAggregate(select)) {
+    if (!validator.getValidatorAggStuff().isAggregate(select)) {
       throw validator.newValidationError(call,
           Static.RESOURCE.groupingInAggregate(getName()));
     }

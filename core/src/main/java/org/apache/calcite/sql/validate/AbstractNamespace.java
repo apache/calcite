@@ -235,4 +235,8 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
         .add(SqlValidatorUtil.alias(requireNonNull(unnest, "unnest"), 0), type)
         .build();
   }
+
+  protected ScopeMap getScopeMap() {
+    return getValidator().getScopeMap();
+  }
 }

@@ -58,6 +58,7 @@ import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.validate.NamespaceBuilder.DmlNamespace;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
@@ -124,9 +125,9 @@ public class SqlValidatorUtil {
       return getRelOptTable(tableNamespace,
           requireNonNull(catalogReader, "catalogReader"), datasetName, usedDataset,
           tableNamespace.extendedFields);
-    } else if (namespace.isWrapperFor(SqlValidatorImpl.DmlNamespace.class)) {
-      final SqlValidatorImpl.DmlNamespace dmlNamespace =
-          namespace.unwrap(SqlValidatorImpl.DmlNamespace.class);
+    } else if (namespace.isWrapperFor(DmlNamespace.class)) {
+      final DmlNamespace dmlNamespace =
+          namespace.unwrap(DmlNamespace.class);
       final SqlValidatorNamespace resolvedNamespace = dmlNamespace.resolve();
       if (resolvedNamespace.isWrapperFor(TableNamespace.class)) {
         final TableNamespace tableNamespace = resolvedNamespace.unwrap(TableNamespace.class);
@@ -382,7 +383,17 @@ public class SqlValidatorUtil {
       SqlValidatorCatalogReader catalogReader,
       RelDataTypeFactory typeFactory,
       SqlValidator.Config config) {
-    return new SqlValidatorImpl(opTab, catalogReader, typeFactory, config);
+    SqlCluster sqlCluster = new SqlCluster(opTab, catalogReader, typeFactory);
+    return new SqlValidatorImpl(sqlCluster, config);
+  }
+
+  /**
+   * Factory method for {@link SqlValidator}.
+   */
+  public static SqlValidatorWithHints newValidator(
+      SqlCluster sqlCluster,
+      SqlValidator.Config config) {
+    return new SqlValidatorImpl(sqlCluster, config);
   }
 
   /**
