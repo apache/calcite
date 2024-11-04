@@ -10901,6 +10901,39 @@ public class SqlOperatorTest {
             + "requires extra delimiter argument", false);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6663">[CALCITE-6663]
+   * Support SPLIT_PART function for PostgreSql  </a>.
+   */
+  @Test void testSplitPartFunction() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.SPLIT_PART);
+    f0.checkFails("^split_part('hello', ',', 1)^",
+        "No match found for function signature SPLIT_PART\\(<CHARACTER>, <CHARACTER>, <NUMERIC>\\)",
+        false);
+
+    final SqlOperatorFixture f1 = fixture().withLibrary(SqlLibrary.REDSHIFT);
+    f1.checkFails("^split_part('hello', ',', 1)^",
+        "No match found for function signature SPLIT_PART\\(<CHARACTER>, <CHARACTER>, <NUMERIC>\\)",
+        false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.POSTGRESQL);
+
+    f.checkScalar("SPLIT_PART('abc~@~def~@~ghi', '~@~', 2)", "def", "VARCHAR NOT NULL");
+    f.checkScalar("SPLIT_PART('abc,def,ghi,jkl', ',', 3)", "ghi", "VARCHAR NOT NULL");
+
+    f.checkScalar("SPLIT_PART('abc~@~def~@~ghi', '~@~', -1)", "ghi", "VARCHAR NOT NULL");
+    f.checkScalar("SPLIT_PART('abc,def,ghi,jkl', ',', -2)", "ghi", "VARCHAR NOT NULL");
+
+    f.checkScalar("SPLIT_PART('h,e,l,l,o', ',', 7)", "", "VARCHAR NOT NULL");
+    f.checkScalar("SPLIT_PART('h,e,l,l,o', ',', -7)", "", "VARCHAR NOT NULL");
+
+    f.checkScalar("SPLIT_PART('abc,,ghi', ',', 2)", "", "VARCHAR NOT NULL");
+    f.checkScalar("SPLIT_PART('', ',', 1)", "", "VARCHAR NOT NULL");
+
+    f.checkNull("SPLIT_PART(null, ',', 1)");
+    f.checkNull("SPLIT_PART('abc', null, 1)");
+    f.checkNull("SPLIT_PART('a,b,c', ',', null)");
+  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5811">[CALCITE-5811]

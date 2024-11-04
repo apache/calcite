@@ -2927,6 +2927,7 @@ In the following:
 | s | SOUNDEX(string)                                | Returns the phonetic representation of *string*; return original *string* if *string* is encoded with multi-byte encoding such as UTF-8
 | m s | SPACE(integer)                               | Returns a string of *integer* spaces; returns an empty string if *integer* is less than 1
 | b | SPLIT(string [, delimiter ])                   | Returns the string array of *string* split at *delimiter* (if omitted, default is comma).  If the *string* is empty it returns an empty array, otherwise, if the *delimiter* is empty, it returns an array containing the original *string*.
+| p | SPLIT_PART(string, delimiter, n)               | Returns the *n*th field in *string* using *delimiter*; returns empty string if *n* is less than 1 or greater than the number of fields, and the n can be negative to count from the end.
 | f s | STARTSWITH(string1, string2)                 | Returns whether *string2* is a prefix of *string1*
 | b p | STARTS_WITH(string1, string2)                | Equivalent to `STARTSWITH(string1, string2)`
 | m | STRCMP(string, string)                         | Returns 0 if both of the strings are same and returns -1 when the first argument is smaller than the second and 1 when the second one is smaller than the first one

@@ -1055,6 +1055,22 @@ class SqlFunctionsTest {
         is(list(s, racad, r, empty)));
   }
 
+  @Test void testSplitPart() {
+    assertThat(SqlFunctions.splitPart("abc~@~def~@~ghi", "~@~", 2), is("def"));
+    assertThat(SqlFunctions.splitPart("abc,def,ghi,jkl", ",", -2), is("ghi"));
+
+    assertThat(SqlFunctions.splitPart("abc,,ghi", ",", 2), is(""));
+    assertThat(SqlFunctions.splitPart("", ",", 1), is(""));
+    assertThat(SqlFunctions.splitPart("abc", "", 1), is(""));
+
+    assertThat(SqlFunctions.splitPart(null, ",", 1), is(""));
+    assertThat(SqlFunctions.splitPart("abc,def", null, 1), is(""));
+    assertThat(SqlFunctions.splitPart("abc,def", ",", 0), is(""));
+
+    assertThat(SqlFunctions.splitPart("abc,def", ",", 3), is(""));
+    assertThat(SqlFunctions.splitPart("abc,def", ",", -3), is(""));
+  }
+
   @Test void testByteString() {
     final byte[] bytes = {(byte) 0xAB, (byte) 0xFF};
     final ByteString byteString = new ByteString(bytes);

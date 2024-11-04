@@ -914,6 +914,29 @@ public class SqlFunctions {
     }
   }
 
+
+  /** SQL {@code SPLIT_PART(string, string, int)} function. */
+  public static String splitPart(String s, String delimiter, int n) {
+    if (Strings.isNullOrEmpty(s) || Strings.isNullOrEmpty(delimiter)) {
+      return "";
+    }
+
+    String[] parts = s.split(delimiter, -1);
+    int partCount = parts.length;
+
+    if (n < 0) {
+      n = partCount + n + 1;
+    }
+
+    if (n <= 0 || n > partCount) {
+      return "";
+    }
+
+    return parts[n - 1];
+  }
+
+
+
   /** SQL {@code SPLIT(string)} function. */
   public static List<String> split(String s) {
     return split(s, ",");

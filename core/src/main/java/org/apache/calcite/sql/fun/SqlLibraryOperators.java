@@ -389,6 +389,14 @@ public abstract class SqlLibraryOperators {
     return operatorBinding.getTypeFactory().createSqlType(typeName);
   }
 
+  /** The "SPLIT_PART(string, delimiter, n)" function. */
+  @LibraryOperator(libraries = {POSTGRESQL}, exceptLibraries = {REDSHIFT})
+  public static final SqlFunction SPLIT_PART =
+      SqlBasicFunction.create("SPLIT_PART",
+          ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.STRING_STRING_INTEGER,
+          SqlFunctionCategory.STRING);
+
   /** The "STRPOS(string, substring)" function. */
   @LibraryOperator(libraries = {BIG_QUERY, POSTGRESQL})
   public static final SqlFunction STRPOS = new SqlPositionFunction("STRPOS");
