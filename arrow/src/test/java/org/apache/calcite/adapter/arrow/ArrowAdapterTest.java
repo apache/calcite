@@ -246,7 +246,7 @@ class ArrowAdapterTest {
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6667">[CALCITE-6667]
-   * The Filter operator supports simple addition and subtraction operations</a>.*/
+   * Arrow adapter should push down arithmetic operations</a>.*/
   @Test void testArrowProjectFieldsWithPlusFilter() {
     String sql = "select \"intField\", \"stringField\"\n"
         + "from arrowdata\n"

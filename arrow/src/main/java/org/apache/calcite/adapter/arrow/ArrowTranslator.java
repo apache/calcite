@@ -171,8 +171,6 @@ class ArrowTranslator {
       // FIXME This will not work in all cases (for example, we ignore string encoding)
       return translateBinary2(op, ((RexCall) left).operands.get(0), right);
     case PLUS:
-      right = translateArithmeticOp(left, right);
-      return translateBinary2(op, ((RexCall) left).operands.get(0), right);
     case MINUS:
       right = translateArithmeticOp(left, right);
       return translateBinary2(op, ((RexCall) left).operands.get(0), right);
