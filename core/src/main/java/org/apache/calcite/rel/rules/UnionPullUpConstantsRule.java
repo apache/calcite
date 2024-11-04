@@ -25,9 +25,12 @@ import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -78,6 +81,12 @@ public class UnionPullUpConstantsRule
     for (Map.Entry<RexNode, RexNode> e : predicates.constantMap.entrySet()) {
       if (e.getKey() instanceof RexInputRef) {
         constants.put(((RexInputRef) e.getKey()).getIndex(), e.getValue());
+      } else if (RexUtil.isCallTo(e.getKey(), SqlStdOperatorTable.CAST)) {
+        final RexCall rexCall = (RexCall) e.getKey();
+        final List<RexNode> operands = rexCall.operands;
+        if (operands.size() == 1 && operands.get(0).isA(SqlKind.INPUT_REF)) {
+          constants.put(((RexInputRef) operands.get(0)).getIndex(), e.getValue());
+        }
       }
     }
 
