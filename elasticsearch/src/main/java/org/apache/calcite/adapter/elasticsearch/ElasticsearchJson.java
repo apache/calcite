@@ -783,7 +783,13 @@ final class ElasticsearchJson {
       } else if (keyNode.isTextual()) {
         key = keyNode.textValue();
       } else if (keyNode.isNumber()) {
-        key = keyNode.numberValue();
+        // fix date is returnd as number
+        JsonNode keyStringNode = node.get("key_as_string");
+        if (isStringValueExist(keyStringNode)) {
+          key = keyStringNode.textValue();
+        } else {
+          key = keyNode.numberValue();
+        }
       } else if (keyNode.isBoolean()) {
         key = keyNode.booleanValue();
       } else {
@@ -794,6 +800,12 @@ final class ElasticsearchJson {
       return new Bucket(key, name, parseAggregations(parser, node));
     }
 
+    private static boolean isStringValueExist(JsonNode keyStringNode) {
+      return null != keyStringNode
+              && !isMissingBucket(keyStringNode)
+              && !keyStringNode.isNull()
+              && keyStringNode.isTextual();
+    }
   }
 
 }
