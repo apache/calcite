@@ -39,6 +39,17 @@ EXPR$0
 false
 !ok
 
+#Test string function split_part
+select split_part('abc~@~def~@~ghi', '~@~', 2);
+EXPR$0
+def
+!ok
+
+select split_part('abc,def,ghi,jkl', ',', -2);
+EXPR$0
+ghi
+!ok
+
 # Test coercion string to array inside INSERT
 create table sal_emp (name varchar, pay_by_quarter int array, schedule varchar array array);
 (0 rows modified)

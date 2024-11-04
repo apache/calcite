@@ -414,6 +414,8 @@ public enum BuiltInMethod {
   REPEAT(SqlFunctions.class, "repeat", String.class, int.class),
   SPACE(SqlFunctions.class, "space", int.class),
   SPLIT(SqlFunctions.class, "split", String.class),
+  SPLIT_PART(SqlFunctions.class, "splitPart", String.class, String.class,
+      int.class),
   SOUNDEX(SqlFunctions.class, "soundex", String.class),
   SOUNDEX_SPARK(SqlFunctions.class, "soundexSpark", String.class),
   STRCMP(SqlFunctions.class, "strcmp", String.class, String.class),
