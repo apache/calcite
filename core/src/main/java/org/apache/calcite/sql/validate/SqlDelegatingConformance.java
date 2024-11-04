@@ -95,6 +95,10 @@ public class SqlDelegatingConformance implements SqlConformance {
     return delegate.isInsertSubsetColumnsAllowed();
   }
 
+  @Override public boolean isSortByLiteralAllowed() {
+    return delegate.isSortByLiteralAllowed();
+  }
+
   @Override public boolean allowAliasUnnestItems() {
     return delegate.allowAliasUnnestItems();
   }
