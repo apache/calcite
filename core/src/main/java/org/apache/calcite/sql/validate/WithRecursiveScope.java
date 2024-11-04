@@ -53,7 +53,7 @@ class WithRecursiveScope extends ListScope {
 
   @Override public @Nullable SqlValidatorNamespace getTableNamespace(List<String> names) {
     if (names.size() == 1 && names.get(0).equals(withItem.name.getSimple())) {
-      return validator.getNamespace(withItem);
+      return getScopeMap().getNamespace(withItem);
     }
     return super.getTableNamespace(names);
   }
@@ -62,7 +62,7 @@ class WithRecursiveScope extends ListScope {
       SqlNameMatcher nameMatcher, Path path, Resolved resolved) {
     if (names.size() == 1
         && names.equals(withItem.name.names)) {
-      final SqlValidatorNamespace ns = validator.getNamespaceOrThrow(withItem);
+      final SqlValidatorNamespace ns = getScopeMap().getNamespaceOrThrow(withItem);
       // create a recursive name space so that we can create a WITH_ITEM_TABLE_REFs
       final SqlValidatorNamespace recursiveNS =
           new WithItemRecursiveNamespace(this.validator, withItem, ns.getEnclosingNode());

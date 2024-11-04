@@ -314,7 +314,7 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
    */
   protected void updateInferredType(SqlNode node, RelDataType type) {
     validator.setValidatedNodeType(node, type);
-    final SqlValidatorNamespace namespace = validator.getNamespace(node);
+    final SqlValidatorNamespace namespace = validator.getScopeMap().getNamespace(node);
     if (namespace != null) {
       namespace.setType(type);
     }
