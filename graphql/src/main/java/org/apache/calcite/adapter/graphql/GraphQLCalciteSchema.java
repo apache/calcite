@@ -18,7 +18,7 @@ import java.util.List;
  * Represents a Calcite schema that generates tables based on the types defined in a GraphQL schema.
  */
 public class GraphQLCalciteSchema extends AbstractSchema {
-  private final GraphQL graphQL;
+  final GraphQL graphQL;
   private final SchemaPlus parentSchema;
   private final String name;
   private final String endpoint;
