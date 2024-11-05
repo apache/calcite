@@ -80,6 +80,7 @@ include(
 //    "pig",
 //    "piglet",
     "plus",
+    "graphql",
     "redis",
     "server",
     "spark",
