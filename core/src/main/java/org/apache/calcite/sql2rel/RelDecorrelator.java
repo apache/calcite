@@ -93,6 +93,7 @@ import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mappings;
 import org.apache.calcite.util.trace.CalciteTrace;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
@@ -119,6 +120,7 @@ import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
@@ -208,6 +210,25 @@ public class RelDecorrelator implements ReflectiveVisitor {
    */
   public static RelNode decorrelateQuery(RelNode rootRel,
       RelBuilder relBuilder) {
+    return decorrelateQuery(rootRel, relBuilder, DEFAULT_DECORRELATE_RULES);
+  }
+
+  /**
+   * Decorrelates a query specifying a collection of rules to be used in the
+   * "remove correlation via rules" pre-processing.
+   *
+   * @param rootRel           Root node of the query
+   * @param relBuilder        Builder for relational expressions
+   * @param decorrelateRules  Rules to be used in the decorrelation
+   *
+   * @return Equivalent query with all
+   * {@link org.apache.calcite.rel.core.Correlate} instances removed
+   *
+   * @see #removeCorrelationViaRule(RelNode, Collection)
+   */
+  public static RelNode decorrelateQuery(RelNode rootRel,
+      RelBuilder relBuilder,
+      Collection<BiFunction<RelDecorrelator, RelBuilderFactory, RelOptRule>> decorrelateRules) {
     final CorelMap corelMap = new CorelMapBuilder().build(rootRel);
     if (!corelMap.hasCorrelation()) {
       return rootRel;
@@ -218,7 +239,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         new RelDecorrelator(corelMap,
             cluster.getPlanner().getContext(), relBuilder);
 
-    RelNode newRootRel = decorrelator.removeCorrelationViaRule(rootRel);
+    RelNode newRootRel = decorrelator.removeCorrelationViaRule(rootRel, decorrelateRules);
 
     if (SQL2REL_LOGGER.isDebugEnabled()) {
       SQL2REL_LOGGER.debug(
@@ -362,18 +383,39 @@ public class RelDecorrelator implements ReflectiveVisitor {
         RelOptCostImpl.FACTORY);
   }
 
+  /**
+   * Default collection of rules used in {@link #removeCorrelationViaRule(RelNode)}.
+   */
+  private static final Collection<BiFunction<RelDecorrelator, RelBuilderFactory, RelOptRule>>
+      DEFAULT_DECORRELATE_RULES =
+          ImmutableList.of(
+              (d, f) -> RemoveSingleAggregateRule.config(f).toRule(),
+              (d, f) -> RemoveCorrelationForScalarProjectRule.config(d, f).toRule(),
+              (d, f) -> RemoveCorrelationForScalarAggregateRule.config(d, f).toRule());
+
+  /**
+   * Tries to remove the {@link org.apache.calcite.rel.core.Correlate} instances of a query
+   * by applying a default set of rules (only some of the
+   * {@link org.apache.calcite.rel.core.Correlate}s might be removable in such way).
+   */
   public RelNode removeCorrelationViaRule(RelNode root) {
+    return removeCorrelationViaRule(root, DEFAULT_DECORRELATE_RULES);
+  }
+
+  /**
+   * Tries to remove the {@link org.apache.calcite.rel.core.Correlate} instances of a query
+   * by applying certain rules (only some of the {@link org.apache.calcite.rel.core.Correlate}s
+   * might be removable in such way).
+   */
+  public RelNode removeCorrelationViaRule(RelNode root,
+      Collection<BiFunction<RelDecorrelator, RelBuilderFactory, RelOptRule>> rules) {
     final RelBuilderFactory f = relBuilderFactory();
-    HepProgram program = HepProgram.builder()
-        .addRuleInstance(RemoveSingleAggregateRule.config(f).toRule())
-        .addRuleInstance(
-            RemoveCorrelationForScalarProjectRule.config(this, f).toRule())
-        .addRuleInstance(
-            RemoveCorrelationForScalarAggregateRule.config(this, f).toRule())
-        .build();
-
+    HepProgramBuilder builder = HepProgram.builder();
+    for (BiFunction<RelDecorrelator, RelBuilderFactory, RelOptRule> ruleFunction : rules) {
+      builder.addRuleInstance(ruleFunction.apply(this, f));
+    }
+    HepProgram program = builder.build();
     HepPlanner planner = createPlanner(program);
-
     planner.setRoot(root);
     return planner.findBestExp();
   }
@@ -1890,7 +1932,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
    */
   public static final class RemoveSingleAggregateRule
       extends RelRule<RemoveSingleAggregateRule.RemoveSingleAggregateRuleConfig> {
-    static RemoveSingleAggregateRuleConfig config(RelBuilderFactory f) {
+
+    /** Rule config generator. */
+    public static RemoveSingleAggregateRuleConfig config(RelBuilderFactory f) {
       return ImmutableRemoveSingleAggregateRuleConfig.builder().withRelBuilderFactory(f)
           .withOperandSupplier(b0 ->
               b0.operand(Aggregate.class).oneInput(b1 ->
@@ -1951,7 +1995,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
       .RemoveCorrelationForScalarProjectRuleConfig> {
     private final RelDecorrelator d;
 
-    static RemoveCorrelationForScalarProjectRuleConfig config(RelDecorrelator decorrelator,
+    /** Rule config generator. */
+    public static RemoveCorrelationForScalarProjectRuleConfig config(RelDecorrelator decorrelator,
         RelBuilderFactory relBuilderFactory) {
       return ImmutableRemoveCorrelationForScalarProjectRuleConfig.builder()
           .withRelBuilderFactory(relBuilderFactory)
@@ -2171,7 +2216,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
       .RemoveCorrelationForScalarAggregateRuleConfig> {
     private final RelDecorrelator d;
 
-    static RemoveCorrelationForScalarAggregateRuleConfig config(RelDecorrelator d,
+    /** Rule config generator. */
+    public static RemoveCorrelationForScalarAggregateRuleConfig config(RelDecorrelator d,
         RelBuilderFactory relBuilderFactory) {
       return ImmutableRemoveCorrelationForScalarAggregateRuleConfig.builder()
           .withRelBuilderFactory(relBuilderFactory)
