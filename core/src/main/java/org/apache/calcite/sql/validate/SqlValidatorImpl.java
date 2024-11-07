@@ -92,7 +92,6 @@ import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.TableCharacteristic;
 import org.apache.calcite.sql.fun.SqlCase;
-import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.AssignableOperandTypeChecker;
@@ -4867,32 +4866,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   @Override public SqlNode expandOrderExpr(SqlSelect select, SqlNode orderExpr) {
-    final SqlNode orderExpr2 =
+    final SqlNode newSqlNode =
         new OrderExpressionExpander(select, orderExpr).go();
-    if (orderExpr2 == orderExpr) {
-      return orderExpr2;
+    if (newSqlNode != orderExpr) {
+      final SqlValidatorScope scope = getOrderScope(select);
+      inferUnknownTypes(unknownType, scope, newSqlNode);
+      final RelDataType type = deriveType(scope, newSqlNode);
+      setValidatedNodeType(newSqlNode, type);
     }
-
-    final SqlValidatorScope scope = getOrderScope(select);
-    inferUnknownTypes(unknownType, scope, orderExpr2);
-    final RelDataType type = deriveType(scope, orderExpr2);
-    setValidatedNodeType(orderExpr2, type);
-    if (!type.isMeasure()) {
-      return orderExpr2;
-    }
-
-    final SqlNode orderExpr3 = measureToValue(orderExpr2);
-    final RelDataType type3 = deriveType(scope, orderExpr3);
-    setValidatedNodeType(orderExpr3, type3);
-    return orderExpr3;
+    return newSqlNode;
   }
 
-  private static SqlNode measureToValue(SqlNode e) {
-    if (e.getKind() == SqlKind.V2M) {
-      return ((SqlCall) e).operand(0);
-    }
-    return SqlInternalOperators.M2V.createCall(e.getParserPosition(), e);
-  }
 
   /**
    * Validates the GROUP BY clause of a SELECT statement. This method is

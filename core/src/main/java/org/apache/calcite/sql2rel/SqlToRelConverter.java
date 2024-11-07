@@ -3751,6 +3751,7 @@ public class SqlToRelConverter {
       SqlNode orderItem, List<SqlNode> extraExprs,
       RelFieldCollation.Direction direction,
       RelFieldCollation.NullDirection nullDirection) {
+    assert select != null;
     // Handle DESC keyword, e.g. 'select a, b from t order by a desc'.
     switch (orderItem.getKind()) {
     case DESCENDING:
@@ -3778,10 +3779,11 @@ public class SqlToRelConverter {
       break;
     }
 
-    final SqlValidator validator = validator();
+    SqlNode converted = validator().expandOrderExpr(select, orderItem);
+
     switch (nullDirection) {
     case UNSPECIFIED:
-      nullDirection = validator.config().defaultNullCollation().last(desc(direction))
+      nullDirection = validator().config().defaultNullCollation().last(desc(direction))
           ? RelFieldCollation.NullDirection.LAST
           : RelFieldCollation.NullDirection.FIRST;
       break;
@@ -3789,11 +3791,9 @@ public class SqlToRelConverter {
       break;
     }
 
-    SqlNode converted = validator.expandOrderExpr(select, orderItem);
-
     // Scan the select list and order exprs for an identical expression.
     final SelectScope selectScope =
-        requireNonNull(validator.getRawSelectScope(select),
+        requireNonNull(validator().getRawSelectScope(select),
             () -> "getRawSelectScope is not found for " + select);
     int ordinal = -1;
     List<SqlNode> expandedSelectList = selectScope.getExpandedSelectList();
