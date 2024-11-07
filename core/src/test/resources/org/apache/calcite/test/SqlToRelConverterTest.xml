@@ -2959,12 +2959,7 @@ LogicalProject(EMPNO=[$0])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[CAST($0):BIGINT NOT NULL])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalAggregate(group=[{0}])
-      LogicalUnion(all=[true])
-        LogicalValues(tuples=[[{ 130 }]])
-        LogicalValues(tuples=[[{ 131 }]])
-        LogicalValues(tuples=[[{ 132 }]])
-        LogicalValues(tuples=[[{ 133 }]])
-        LogicalValues(tuples=[[{ 134 }]])
+      LogicalValues(tuples=[[{ 130 }, { 131 }, { 132 }, { 133 }, { 134 }]])
 ]]>
     </Resource>
   </TestCase>
@@ -3803,9 +3798,8 @@ LogicalProject(DEPTNO=[$0], NAME=[$1], EXPR$0=[$2])
       Uncollect
         LogicalProject(EXPR$0=[$SLICE($0)])
           Collect(field=[EXPR$0])
-            LogicalUnion(all=[true])
-              LogicalProject(EXPR$0=[$cor0.$f2])
-                LogicalValues(tuples=[[{ 0 }]])
+            LogicalProject(EXPR$0=[$cor0.$f2])
+              LogicalValues(tuples=[[{ 0 }]])
 ]]>
     </Resource>
   </TestCase>
@@ -3823,9 +3817,8 @@ LogicalProject(DEPTNO=[$0], NAME=[$1], EXPR$0=[$2])
       Uncollect
         LogicalProject(EXPR$0=[$SLICE($0)])
           Collect(field=[EXPR$0])
-            LogicalUnion(all=[true])
-              LogicalProject(EXPR$0=[$cor0.$f2])
-                LogicalValues(tuples=[[{ 0 }]])
+            LogicalProject(EXPR$0=[$cor0.$f2])
+              LogicalValues(tuples=[[{ 0 }]])
 ]]>
     </Resource>
   </TestCase>
@@ -8599,9 +8592,7 @@ LogicalProject(X0=[$0], X1=[$1])
       <![CDATA[
 LogicalProject(I=[$0])
   LogicalFilter(condition=[=($0, CAST('w'):CHAR(4) NOT NULL)])
-    LogicalUnion(all=[true])
-      LogicalValues(tuples=[[{ 'word' }]])
-      LogicalValues(tuples=[[{ 'w   ' }]])
+    LogicalValues(tuples=[[{ 'word' }, { 'w   ' }]])
 ]]>
     </Resource>
   </TestCase>
@@ -8833,9 +8824,8 @@ LogicalProject(EXPR$0=[$0])
       LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
         Collect(field=[EXPR$0])
-          LogicalUnion(all=[true])
-            LogicalProject(EXPR$0=[$cor0.DEPTNO])
-              LogicalValues(tuples=[[{ 0 }]])
+          LogicalProject(EXPR$0=[$cor0.DEPTNO])
+            LogicalValues(tuples=[[{ 0 }]])
 ]]>
     </Resource>
     <Resource name="sql">
@@ -8854,9 +8844,8 @@ LogicalProject(EXPR$0=[$0])
       LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
         Collect(field=[EXPR$0])
-          LogicalUnion(all=[true])
-            LogicalProject(EXPR$0=[$cor0.DEPTNO])
-              LogicalValues(tuples=[[{ 0 }]])
+          LogicalProject(EXPR$0=[$cor0.DEPTNO])
+            LogicalValues(tuples=[[{ 0 }]])
 ]]>
     </Resource>
   </TestCase>
