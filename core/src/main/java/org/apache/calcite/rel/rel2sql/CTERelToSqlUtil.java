@@ -72,13 +72,11 @@ public class CTERelToSqlUtil {
    * This Method fetches and add sqlNodes from sqlSelect node.
    */
   public static List<SqlNode> fetchSqlWithItemNodes(SqlNode sqlSelect, List<SqlNode> sqlNodes) {
-    SqlNode sqlNode = null;
     if (sqlSelect instanceof SqlBasicCall) {
       fetchFromSqlBasicCall(sqlSelect, sqlNodes);
-    } else if (sqlSelect instanceof SqlSelect) {
-      sqlNode = ((SqlSelect) sqlSelect).getFrom();
+    } else if (sqlSelect instanceof SqlSelect && ((SqlSelect) sqlSelect).getFrom() != null) {
+      fetchSqlWithItems(((SqlSelect) sqlSelect).getFrom(), sqlNodes);
     }
-    fetchSqlWithItems(sqlNode, sqlNodes);
     return sqlNodes;
   }
 
