@@ -30,7 +30,11 @@ public class GraphQLSchemaFactory implements SchemaFactory {
     String endpoint = (String) operand.get("endpoint");
     @Nullable String user = (String) operand.get("user");
     @Nullable String role = (String) operand.get("role");
-    @Nullable String auth  = (String) operand.get("auth");
+    @Nullable String auth = (String) operand.get("auth");
+
+    // Extract cache configuration from operands
+    @Nullable Map<String, Object> cacheConfig = (Map<String, Object>) operand.get("cache");
+
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug("Creating GraphQL schema for endpoint: {}", endpoint);
     }
@@ -43,7 +47,8 @@ public class GraphQLSchemaFactory implements SchemaFactory {
         endpoint,
         role,
         auth,
-        user
+        user,
+        cacheConfig  // Pass cache configuration to schema
     );
     CREATED_SCHEMAS.put(name, schema);
     return schema;
