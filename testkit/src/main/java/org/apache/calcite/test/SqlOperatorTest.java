@@ -16355,7 +16355,7 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f = fixture();
     final SqlValidatorImpl validator =
         (SqlValidatorImpl) f.getFactory().createValidator();
-    final SqlValidatorScope scope = validator.getEmptyScope();
+    final SqlValidatorScope scope = validator.createEmptyScope();
     final RelDataTypeFactory typeFactory = validator.getTypeFactory();
     final Builder builder = new Builder(typeFactory);
     builder.add0(SqlTypeName.BOOLEAN, true, false);
