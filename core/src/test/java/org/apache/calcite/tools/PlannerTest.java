@@ -453,11 +453,6 @@ class PlannerTest {
         + "  EnumerableValues(tuples=[[{ 2 }]])\n";
 
     checkUnionPruning("values(1)"
-            + " union all values(2)"
-            + " union all select * from (values(3)) where false",
-        plan, extraRules);
-
-    checkUnionPruning("values(1)"
             + " union all select * from (values(3)) where false"
             + " union all values(2)",
         plan, extraRules);

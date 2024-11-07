@@ -66,7 +66,6 @@ import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.logical.LogicalTableScan;
-import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.metadata.RelColumnMapping;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
@@ -1957,7 +1956,9 @@ public class SqlToRelConverter {
       if (!values.getTuples().isEmpty()) {
         unionInputs.add(values);
       }
-      resultRel = LogicalUnion.create(unionInputs, true);
+      resultRel = relBuilder
+          .pushAll(unionInputs)
+          .union(true, unionInputs.size()).build();
     }
     leaves.put(resultRel, resultRel.getRowType().getFieldCount());
     return resultRel;
@@ -3945,7 +3946,11 @@ public class SqlToRelConverter {
         }
       }
     }
-    return LogicalUnion.create(ImmutableList.of(left, right), all);
+    return relBuilder
+        .push(left)
+        .push(right)
+        .union(all, 2)
+        .build();
   }
 
   /**

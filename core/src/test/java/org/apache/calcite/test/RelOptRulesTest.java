@@ -3146,7 +3146,9 @@ class RelOptRulesTest extends RelOptTestBase {
         + "from t1\n"
         + "where (t1.a, t1.y) in ((1, 2), (3, null), (7369, null), (7499, 30), (null, 20), (null, 5))";
     sql(sql)
-        .withRule(CoreRules.UNION_TO_VALUES)
+        .withRelBuilderConfig(b -> b.withSimplifyValues(false))
+        .withRule(CoreRules.PROJECT_VALUES_MERGE,
+            CoreRules.UNION_TO_VALUES)
         .withInSubQueryThreshold(0)
         .check();
   }
@@ -3159,7 +3161,9 @@ class RelOptRulesTest extends RelOptTestBase {
         + "from t1\n"
         + "where (t1.a, t1.y) in ((cast(1.1 as int), 2), (3, null), (7369, null), (7499, 30), (null, cast(20.2 as int)), (null, 5))";
     sql(sql)
-        .withRule(CoreRules.UNION_TO_VALUES)
+        .withRelBuilderConfig(b -> b.withSimplifyValues(false))
+        .withRule(CoreRules.PROJECT_VALUES_MERGE,
+            CoreRules.UNION_TO_VALUES)
         .withInSubQueryThreshold(0)
         .check();
   }
@@ -3167,7 +3171,9 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testUnionToValuesByInList3() {
     final String sql = "select * from dept where deptno in (12, 34, cast(56.4 as int))";
     sql(sql)
-        .withRule(CoreRules.UNION_TO_VALUES)
+        .withRelBuilderConfig(b -> b.withSimplifyValues(false))
+        .withRule(CoreRules.PROJECT_VALUES_MERGE,
+            CoreRules.UNION_TO_VALUES)
         .withInSubQueryThreshold(0)
         .check();
   }
@@ -3175,7 +3181,9 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testUnionToValuesByInList4() {
     final String sql = "select * from dept where deptno in (12, 34, cast(56.4 as double))";
     sql(sql)
-        .withRule(CoreRules.UNION_TO_VALUES)
+        .withRelBuilderConfig(b -> b.withSimplifyValues(false))
+        .withRule(CoreRules.PROJECT_VALUES_MERGE,
+            CoreRules.UNION_TO_VALUES)
         .withInSubQueryThreshold(0)
         .check();
   }
@@ -3183,7 +3191,9 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testUnionToValuesByInList5() {
     final String sql = "select deptno in (12, 34, cast(56.4 as double)) from dept";
     sql(sql)
-        .withRule(CoreRules.UNION_TO_VALUES)
+        .withRelBuilderConfig(b -> b.withSimplifyValues(false))
+        .withRule(CoreRules.PROJECT_VALUES_MERGE,
+            CoreRules.UNION_TO_VALUES)
         .withInSubQueryThreshold(0)
         .check();
   }

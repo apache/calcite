@@ -2605,7 +2605,8 @@ public class RelMetadataTest {
     final String sql = "select cast(null as integer) as a\n"
         + "union all\n"
         + "select 5 as a";
-    final Union rel = (Union) sql(sql).toRel();
+    final Union rel =
+        (Union) sql(sql).withRelBuilderConfig(c -> c.withSimplifyValues(false)).toRel();
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     RelOptPredicateList inputSet = mq.getPulledUpPredicates(rel);
     ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
@@ -2616,7 +2617,8 @@ public class RelMetadataTest {
     final String sql = "select 6 as a\n"
         + "union all\n"
         + "select 5 as a";
-    final Union rel = (Union) sql(sql).toRel();
+    final Union rel =
+        (Union) sql(sql).withRelBuilderConfig(c -> c.withSimplifyValues(false)).toRel();
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     RelOptPredicateList inputSet = mq.getPulledUpPredicates(rel);
     ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
@@ -2627,7 +2629,8 @@ public class RelMetadataTest {
     final String sql = "select cast(null as integer) as a, 6 as b, 7 as c\n"
         + "union all\n"
         + "select 5 as a, cast(null as integer) as b, 7 as c";
-    final Union rel = (Union) sql(sql).toRel();
+    final Union rel =
+        (Union) sql(sql).withRelBuilderConfig(c -> c.withSimplifyValues(false)).toRel();
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     RelOptPredicateList inputSet = mq.getPulledUpPredicates(rel);
     ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
@@ -2641,7 +2644,8 @@ public class RelMetadataTest {
     final String sql = "select null from emp where empno = 1\n"
         + "union all\n"
         + "select null from emp where comm = 2";
-    final Union rel = (Union) sql(sql).toRel();
+    final Union rel =
+        (Union) sql(sql).withRelBuilderConfig(c -> c.withSimplifyValues(false)).toRel();
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     RelOptPredicateList inputSet = mq.getPulledUpPredicates(rel);
     ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
@@ -2653,7 +2657,8 @@ public class RelMetadataTest {
     final String sql = "select empno = null from emp where comm = 2\n"
         + "union all\n"
         + "select comm = 2 from emp where comm = 2";
-    final Union rel = (Union) sql(sql).toRel();
+    final Union rel =
+        (Union) sql(sql).withRelBuilderConfig(c -> c.withSimplifyValues(false)).toRel();
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     RelOptPredicateList inputSet = mq.getPulledUpPredicates(rel);
     ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
