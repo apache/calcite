@@ -4024,6 +4024,20 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .type("RecordType(CHAR(2) NOT NULL A, INTEGER NOT NULL B) NOT NULL");
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6677">[CALCITE-6677]
+   * HAVING clauses fail validation when type coercion is applied to GROUP BY clause</a>. */
+  @Test void testCoercionCast() {
+    SqlValidatorFixture f =
+        // Needed for the IF function
+        fixture().withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY));
+    final String sql =
+        "select if(EMP.empno <= CAST(18 AS DOUBLE), 'youth', 'adult') as adult_or_child\n"
+        + "from EMP \n"
+        + "GROUP BY if(EMP.empno <= CAST(18 AS DOUBLE), 'youth', 'adult')\n"
+        + "HAVING if(EMP.empno <= CAST(18 AS DOUBLE), 'youth', 'adult')  = 'adult'";
+    f.withSql(sql).ok();
+  }
+
   @Test void testMeasureRef() {
     // A measure can be used in the SELECT clause of a GROUP BY query even
     // though it is not a GROUP BY key.
@@ -5587,7 +5601,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testHaving() {
-    sql("select * from emp having ^sum(sal)^")
+    sql("select empno from emp group by empno having ^sum(sal)^")
         .fails("HAVING clause must be a condition");
     sql("select ^*^ from emp having sum(sal) > 10")
         .fails("Expression 'EMP\\.EMPNO' is not being grouped");
@@ -6467,7 +6481,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select emp.empno as e from emp group by empno having ^e^ > 10")
         .withConformance(strict).fails("Column 'E' not found in any table")
         .withConformance(lenient).ok();
-    sql("select e.empno from emp as e group by 1 having ^e.empno^ > 10")
+    sql("select ^e.empno^ from emp as e group by 1 having e.empno > 10")
         .withConformance(strict).fails("Expression 'E.EMPNO' is not being grouped")
         .withConformance(lenient).ok();
     // When alias is equal to one or more columns in the query then giving
@@ -6477,7 +6491,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .withConformance(strict).fails("Expression 'DEPTNO' is not being grouped")
         .withConformance(lenient).ok();
     // Alias in aggregate is not allowed.
-    sql("select empno as e from emp having max(^e^) > 10")
+    sql("select empno as e from emp group by empno having max(^e^) > 10")
         .withConformance(strict).fails("Column 'E' not found in any table")
         .withConformance(lenient).fails("Column 'E' not found in any table");
     sql("select count(empno) as e from emp having ^e^ > 10")
@@ -6995,7 +7009,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             .withConformance(lenient)
             .fails("Window expressions are not permitted in the HAVING clause;"
                     + " use the QUALIFY clause instead");
-    sql("select empno from emp having ^max(empno) OVER () > 1^")
+    sql("select empno from emp group by empno having ^max(empno) OVER () > 1^")
             .fails("Window expressions are not permitted in the HAVING clause;"
                     + " use the QUALIFY clause instead");
   }
@@ -8183,7 +8197,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("SELECT deptno FROM emp GROUP BY deptno HAVING deptno > 55").ok();
     sql("SELECT DISTINCT deptno, 33 FROM emp\n"
         + "GROUP BY deptno HAVING deptno > 55").ok();
-    sql("SELECT DISTINCT deptno, 33 FROM emp HAVING ^deptno^ > 55")
+    sql("SELECT DISTINCT ^deptno^, 33 FROM emp HAVING deptno > 55")
         .fails("Expression 'DEPTNO' is not being grouped");
     // same query under a different conformance finds a different error first
     sql("SELECT DISTINCT ^deptno^, 33 FROM emp HAVING deptno > 55")
