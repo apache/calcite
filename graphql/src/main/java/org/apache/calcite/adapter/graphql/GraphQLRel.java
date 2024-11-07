@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to you under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.calcite.adapter.graphql;
 
 import org.apache.calcite.plan.Convention;
@@ -11,6 +28,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Sarg;
 
@@ -39,6 +57,25 @@ public interface GraphQLRel extends RelNode {
    * Callback for the implementation process.
    */
   class Implementor {
+
+    public static final Map<String, String> KEYWORDS;
+    static {
+      Map<String, String> map = new HashMap<>();
+      map.put("offset", "offset");
+      map.put("limit", "limit");
+      map.put("where", "where");
+      map.put("order_by", "order_by");
+      map.put("_not", "_not");
+      map.put("_eq", "_eq");
+      map.put("_gt", "_gt");
+      map.put("_gte", "_gte");
+      map.put("_lt", "_lt");
+      map.put("_lte", "_lte");
+      map.put("_and", "_and");
+      map.put("_or", "_or");
+      map.put("_in", "_in");
+      KEYWORDS = map;
+    }
 
     private static final Logger LOGGER = LogManager.getLogger(GraphQLRel.class);
     @Nullable private GraphQLTable graphQLTable;
@@ -176,30 +213,45 @@ public interface GraphQLRel extends RelNode {
         RexCall call = (RexCall) filter;
         switch (filter.getKind()) {
         case EQUALS:
-          return String.format("{ %s: { _eq: %s } }", getFieldName(call.operands,
-              rowType), getComparator(call.operands));
+          return String.format("{ %s: { %s: %s } }",
+              getFieldName(call.operands, rowType),
+              KEYWORDS.get("_eq"),
+              getComparator(call.operands));
         case NOT_EQUALS:
-          return String.format("{ _not: { %s: { _eq: %s } } }", getFieldName(call.operands,
-              rowType), getComparator(call.operands));
+          return String.format("{ %s: { %s: { %s: %s } } }",
+              KEYWORDS.get("_not"),
+              getFieldName(call.operands, rowType),
+              KEYWORDS.get("_eq"),
+              getComparator(call.operands));
         case GREATER_THAN:
-          return String.format("{ %s: { _gt: %s } }", getFieldName(call.operands,
-              rowType), getComparator(call.operands));
+          return String.format("{ %s: { %s: %s } }",
+              getFieldName(call.operands, rowType),
+              KEYWORDS.get("_gt"),
+              getComparator(call.operands));
         case GREATER_THAN_OR_EQUAL:
-          return String.format("{ %s: { _gte: %s } }", getFieldName(call.operands,
-              rowType), getComparator(call.operands));
+          return String.format("{ %s: { %s: %s } }",
+              getFieldName(call.operands, rowType),
+              KEYWORDS.get("_gte"),
+              getComparator(call.operands));
         case LESS_THAN:
-          return String.format("{ %s: { _lt: %s } }", getFieldName(call.operands,
-              rowType), getComparator(call.operands));
+          return String.format("{ %s: { %s: %s } }",
+              getFieldName(call.operands, rowType),
+              KEYWORDS.get("_lt"),
+              getComparator(call.operands));
         case LESS_THAN_OR_EQUAL:
-          return String.format("{ %s: { _lte: %s } }", getFieldName(call.operands,
-              rowType), getComparator(call.operands));
+          return String.format("{ %s: { %s: %s } }",
+              getFieldName(call.operands, rowType),
+              KEYWORDS.get("_lte"),
+              getComparator(call.operands));
         case SEARCH:
           Object[] range = getRange(call.operands);
           if (range.length == 1 && !Objects.equals(((Range<?>) range[0]).lowerEndpoint().toString()
               , ((Range<?>) range[0]).upperEndpoint().toString())) {
-            return String.format("{ %s: { _gt: %s, _lt: %s } }",
+            return String.format("{ %s: { %s: %s, %s: %s } }",
                 getFieldName(call.operands, rowType),
+                KEYWORDS.get("_gt"),
                 ((Range<?>) range[0]).lowerEndpoint(),
+                KEYWORDS.get("_lt"),
                 ((Range<?>) range[0]).upperEndpoint()
             );
           } else {
@@ -216,27 +268,30 @@ public interface GraphQLRel extends RelNode {
             }
             String rangeString = String.join(",", ranges);
             if (!hasLowerBound) {
-              return String.format("{ _not: { %s: { _in: [%s] } } }",
+              return String.format("{ %s: { %s: { %s: [%s] } } }",
+                  KEYWORDS.get("_not"),
                   getFieldName(call.operands, rowType),
+                  KEYWORDS.get("_in"),
                   rangeString
               );
             }
-            return String.format("{ %s: { _in: [%s] } }",
+            return String.format("{ %s: { %s: [%s] } }",
                 getFieldName(call.operands, rowType),
+                KEYWORDS.get("_in"),
                 rangeString
             );
           }
         case NOT:
-          return String.format("{ _not: %s }", convertRexNodeToGraphQLFilter(call.operands.get(1), rowType));
+          return String.format("{ %s: %s }", KEYWORDS.get("_not"), convertRexNodeToGraphQLFilter(call.operands.get(1), rowType));
         case OR:
         case AND:
           StringBuilder f = new StringBuilder();
           switch (filter.getKind()) {
           case OR:
-            f.append("{ _and: [");
+            f.append(String.format("{ %s: [", KEYWORDS.get("_and")));
             break;
           case AND:
-            f.append("{ _or: [");
+            f.append(String.format("{ %s: [", KEYWORDS.get("_or")));
             break;
           }
           ArrayList<String> conditions = new ArrayList<>();
@@ -295,6 +350,14 @@ public interface GraphQLRel extends RelNode {
       if (!(opCandidate instanceof RexLiteral)) {
         throw new IllegalArgumentException("The operand in a condition must be a literal.");
       }
+      RexLiteral op = (RexLiteral) opCandidate;
+      SqlTypeFamily sqlType = op.getTypeName().getFamily();
+      if (sqlType == SqlTypeFamily.TIMESTAMP) {
+        return String.format("\"%s\"", op.toString().replace(" ", "T"));
+      }
+      if (sqlType == SqlTypeFamily.DATE) {
+        return String.format("\"%s\"", op);
+      }
       return convertQuotes(((RexLiteral) opCandidate).toString());
     }
 
@@ -322,7 +385,7 @@ public interface GraphQLRel extends RelNode {
       // Add ordering if present
       if (!orderFields.isEmpty()) {
         StringBuilder ob = new StringBuilder();
-        ob.append("order_by: {");
+        ob.append(String.format("%s: {", KEYWORDS.get("order_by")));
         for (int i = 0; i < orderFields.size(); i++) {
           OrderByField item = orderFields.get(i);
           ob.append(item.toHasuraFormat());
@@ -334,13 +397,13 @@ public interface GraphQLRel extends RelNode {
         orderBy.add(ob.toString());
       }
       if (offset != null) {
-        orderBy.add(String.format("offset: %d", offset));
+        orderBy.add(String.format("%s: %d", KEYWORDS.get("offset"), offset));
       }
       if (fetch != null) {
-        orderBy.add(String.format("limit: %d", fetch));
+        orderBy.add(String.format("%s: %d", KEYWORDS.get("limit"), fetch));
       }
       if (filter != null) {
-        orderBy.add(String.format("where: %s", convertRexNodeToGraphQLFilter(filter, fields)));
+        orderBy.add(String.format("%s: %s", KEYWORDS.get("where"), convertRexNodeToGraphQLFilter(filter, fields)));
       }
 
       if (!orderBy.isEmpty()) {

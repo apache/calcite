@@ -26,11 +26,16 @@ public class GraphQLCalciteSchema extends AbstractSchema {
   @Nullable public final String user;
   @Nullable public final String auth;
   @Nullable private Map<String, Table> tableMap;
+  @Nullable private final Map<String, Object> cacheConfig;
+
   private static final List<String> excludedNames = Arrays.asList(
       "Mutation", "Query", "__EnumValue", "__Field", "__InputValue",
       "__Schema", "__Type", "__Directive");
 
-  public GraphQLCalciteSchema(GraphQL graphQL, SchemaPlus parentSchema, String name, String endpoint, @Nullable String role, @Nullable String auth, @Nullable String user) {
+  public GraphQLCalciteSchema(GraphQL graphQL, SchemaPlus parentSchema,
+      String name, String endpoint, @Nullable String role,
+      @Nullable String auth, @Nullable String user,
+      @Nullable Map<String, Object> cacheConfig) {
     this.graphQL = graphQL;
     this.parentSchema = parentSchema;
     this.name = name;
@@ -38,6 +43,11 @@ public class GraphQLCalciteSchema extends AbstractSchema {
     this.role = role;
     this.auth = auth;
     this.user = user;
+    this.cacheConfig = cacheConfig;
+  }
+
+  public @Nullable Map<String, Object> getCacheConfig() {
+    return cacheConfig;
   }
 
   /**

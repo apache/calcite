@@ -40,6 +40,8 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-databind")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.graphql-java-kickstart:graphql-java-tools:11.0.1") // for graphql
+    // https://mvnrepository.com/artifact/io.lettuce/lettuce-core
+    implementation("io.lettuce:lettuce-core:6.1.5.RELEASE")
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.9.2")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.9.2")
