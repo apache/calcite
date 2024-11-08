@@ -103,6 +103,16 @@ public enum SqlConformanceEnum implements SqlConformance {
     }
   }
 
+  @Override public boolean isSupportedDualTable() {
+    switch (this) {
+    case MYSQL_5:
+    case ORACLE_10:
+    case ORACLE_12:
+      return true;
+    default:
+      return false;
+    }
+  }
 
   @Override public boolean isGroupByAlias() {
     switch (this) {

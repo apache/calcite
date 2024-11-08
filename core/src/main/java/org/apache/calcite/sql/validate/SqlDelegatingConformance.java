@@ -39,6 +39,10 @@ public class SqlDelegatingConformance implements SqlConformance {
     return delegate.allowCharLiteralAlias();
   }
 
+  @Override public boolean isSupportedDualTable() {
+    return delegate.isSupportedDualTable();
+  }
+
   @Override public boolean isGroupByAlias() {
     return delegate.isGroupByAlias();
   }
