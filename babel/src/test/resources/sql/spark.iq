@@ -448,4 +448,223 @@ EXPR$0
 [2.111111111111112, 2.1]
 !ok
 
+# Tests for CALCITE-6680
+# RexImpTable erroneously declares NullPolicy.NONE for IS_EMPTY
+# Added as Babel tests since they need the ARRAY() and MAP() functions
+
+CREATE OR REPLACE TABLE COMPLEX(
+   KEY INT, "list" INT ARRAY, "long" BIGINT, "map" MAP<VARCHAR, INT>, "set" INT MULTISET);
+(0 rows modified)
+
+!update
+
+INSERT INTO COMPLEX (VALUES
+ (0, NULL, 5, NULL, NULL),
+ -- Apparently there is no function of constructor to create an empty multiset
+ (1, array(), 4, NULL, multiset[1] MULTISET EXCEPT multiset[1]),
+ (2, ARRAY[0], 3, MAP(), multiset[0]),
+ (3, ARRAY[0, 1], 2, MAP['zero', 0], multiset[0, 1]),
+ (4, ARRAY[0, 1, 2], 1, MAP['zero', 0, 'one', 1], multiset[0, 1, 2]),
+ (5, ARRAY[0, 1, 2, 3], 0, MAP['zero', 0, 'one', 1, 'two', 2], multiset[0, 1, 2, 3])
+);
+(6 rows modified)
+
+!update
+!set outputformat mysql
+
+SELECT * FROM COMPLEX WHERE "list" IS EMPTY;
++-----+------+------+-----+-----+
+| KEY | list | long | map | set |
++-----+------+------+-----+-----+
+|   1 | []   |    4 |     | []  |
++-----+------+------+-----+-----+
+(1 row)
+
+!ok
+
+SELECT * FROM COMPLEX WHERE "set" IS EMPTY;
++-----+------+------+-----+-----+
+| KEY | list | long | map | set |
++-----+------+------+-----+-----+
+|   1 | []   |    4 |     | []  |
++-----+------+------+-----+-----+
+(1 row)
+
+!ok
+
+SELECT * FROM COMPLEX WHERE "map" IS EMPTY;
++-----+------+------+-----+-----+
+| KEY | list | long | map | set |
++-----+------+------+-----+-----+
+|   2 | [0]  |    3 | {}  | [0] |
++-----+------+------+-----+-----+
+(1 row)
+
+!ok
+
+SELECT ARRAY_INSERT("list", 1, 2) AS list FROM COMPLEX;
++-----------------+
+| LIST            |
++-----------------+
+| [2, 0, 1, 2, 3] |
+| [2, 0, 1, 2]    |
+| [2, 0, 1]       |
+| [2, 0]          |
+| [2]             |
+|                 |
++-----------------+
+(6 rows)
+
+!ok
+
+SELECT "set" MULTISET UNION "set" AS u FROM COMPLEX;
++--------------------------+
+| U                        |
++--------------------------+
+| [0, 0]                   |
+| [0, 1, 0, 1]             |
+| [0, 1, 2, 0, 1, 2]       |
+| [0, 1, 2, 3, 0, 1, 2, 3] |
+| []                       |
+|                          |
++--------------------------+
+(6 rows)
+
+!ok
+
+SELECT "set" MULTISET UNION DISTINCT "set" AS u FROM COMPLEX;
++--------------+
+| U            |
++--------------+
+| [0, 1, 2, 3] |
+| [0, 1, 2]    |
+| [0, 1]       |
+| [0]          |
+| []           |
+|              |
++--------------+
+(6 rows)
+
+!ok
+
+SELECT "set" MULTISET INTERSECT "set" AS u FROM COMPLEX;
++--------------+
+| U            |
++--------------+
+| [0, 1, 2, 3] |
+| [0, 1, 2]    |
+| [0, 1]       |
+| [0]          |
+| []           |
+|              |
++--------------+
+(6 rows)
+
+!ok
+
+SELECT "set" MULTISET INTERSECT DISTINCT "set" AS u FROM COMPLEX;
++--------------+
+| U            |
++--------------+
+| [0, 1, 2, 3] |
+| [0, 1, 2]    |
+| [0, 1]       |
+| [0]          |
+| []           |
+|              |
++--------------+
+(6 rows)
+
+!ok
+
+SELECT "set" IS A SET AS u FROM COMPLEX;
++-------+
+| U     |
++-------+
+| false |
+| true  |
+| true  |
+| true  |
+| true  |
+| true  |
++-------+
+(6 rows)
+
+!ok
+
+SELECT (multiset[3] SUBMULTISET OF "set") FROM COMPLEX;
++--------+
+| EXPR$0 |
++--------+
+| false  |
+| false  |
+| false  |
+| false  |
+| true   |
+|        |
++--------+
+(6 rows)
+
+!ok
+
+SELECT "set" MULTISET EXCEPT "set" AS u FROM COMPLEX;
++----+
+| U  |
++----+
+| [] |
+| [] |
+| [] |
+| [] |
+| [] |
+|    |
++----+
+(6 rows)
+
+!ok
+
+SELECT KEY, "list" IS NULL AS N FROM COMPLEX;
++-----+-------+
+| KEY | N     |
++-----+-------+
+|   0 | true  |
+|   1 | false |
+|   2 | false |
+|   3 | false |
+|   4 | false |
+|   5 | false |
++-----+-------+
+(6 rows)
+
+!ok
+
+SELECT KEY, "map" IS NULL AS N FROM COMPLEX;
++-----+-------+
+| KEY | N     |
++-----+-------+
+|   0 | true  |
+|   1 | true  |
+|   2 | false |
+|   3 | false |
+|   4 | false |
+|   5 | false |
++-----+-------+
+(6 rows)
+
+!ok
+
+SELECT KEY, "set" IS NULL AS N FROM COMPLEX;
++-----+-------+
+| KEY | N     |
++-----+-------+
+|   0 | true  |
+|   1 | false |
+|   2 | false |
+|   3 | false |
+|   4 | false |
+|   5 | false |
++-----+-------+
+(6 rows)
+
+!ok
+
 # End spark.iq

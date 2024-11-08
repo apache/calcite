@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.test.schemata.catchall;
 
+import org.apache.calcite.adapter.java.Array;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.tree.Primitive;
@@ -30,6 +31,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -54,13 +56,13 @@ public class CatchallSchema {
           false, (byte) 0, (char) 0, (short) 0, 0, 0L, 0F, 0D,
           false, (byte) 0, (char) 0, (short) 0, 0, 0L, 0F, 0D,
           new java.sql.Date(0), new Time(0), new Timestamp(0),
-          new Date(0), "1", BigDecimal.ZERO),
+          new Date(0), "1", BigDecimal.ZERO, Collections.emptyList()),
       new EveryType(
           true, Byte.MAX_VALUE, Character.MAX_VALUE, Short.MAX_VALUE,
           Integer.MAX_VALUE, Long.MAX_VALUE, Float.MAX_VALUE,
           Double.MAX_VALUE,
           null, null, null, null, null, null, null, null,
-          null, null, null, null, null, null),
+          null, null, null, null, null, null, null),
   };
 
   public final AllPrivate[] allPrivates =
@@ -127,6 +129,7 @@ public class CatchallSchema {
     public final @Nullable Date utilDate;
     public final @Nullable String string;
     public final @Nullable BigDecimal bigDecimal;
+    public final @Nullable @Array(component = String.class) List<String> list;
 
     public EveryType(
         boolean primitiveBoolean,
@@ -150,7 +153,8 @@ public class CatchallSchema {
         @Nullable Timestamp sqlTimestamp,
         @Nullable Date utilDate,
         @Nullable String string,
-        @Nullable BigDecimal bigDecimal) {
+        @Nullable BigDecimal bigDecimal,
+        @Nullable List<String> list) {
       this.primitiveBoolean = primitiveBoolean;
       this.primitiveByte = primitiveByte;
       this.primitiveChar = primitiveChar;
@@ -173,6 +177,7 @@ public class CatchallSchema {
       this.utilDate = utilDate;
       this.string = string;
       this.bigDecimal = bigDecimal;
+      this.list = list;
     }
 
     public static Enumerable<Field> fields() {

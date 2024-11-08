@@ -719,12 +719,7 @@ class SqlFunctionsTest {
   @Test void testLesser() {
     assertThat(lesser("a", "bc"), is("a"));
     assertThat(lesser("bc", "ac"), is("ac"));
-    try {
-      Object o = lesser("a", null);
-      fail("Expected NPE, got " + o);
-    } catch (NullPointerException e) {
-      // ok
-    }
+    assertThat(lesser("a", null), is("a"));
     assertThat(lesser(null, "a"), is("a"));
     assertThat(lesser((String) null, null), nullValue());
   }
@@ -732,12 +727,7 @@ class SqlFunctionsTest {
   @Test void testGreater() {
     assertThat(greater("a", "bc"), is("bc"));
     assertThat(greater("bc", "ac"), is("bc"));
-    try {
-      Object o = greater("a", null);
-      fail("Expected NPE, got " + o);
-    } catch (NullPointerException e) {
-      // ok
-    }
+    assertThat(greater("a", null), is("a"));
     assertThat(greater(null, "a"), is("a"));
     assertThat(greater((String) null, null), nullValue());
   }
