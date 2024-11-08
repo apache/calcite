@@ -34,7 +34,7 @@ function artifact_registry_release_upload {
         -Durl=https://us-maven.pkg.dev/prow-build-looker/looker-maven-private
 }
 
-./gradlew build -x :redis:test -Prelease=true && ./gradlew jar && ./gradlew generatePom && (
+./gradlew build -x :redis:test -PforRelease=true && ./gradlew jar && ./gradlew generatePom && (
     VERSION="$(sed -n 's/^calcite\.version=\([^ ]*\).*/\1/p' gradle.properties)"
     artifact_registry_release_upload core calcite-core "$VERSION"
     artifact_registry_release_upload babel calcite-babel "$VERSION"

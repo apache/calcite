@@ -133,7 +133,7 @@ tasks.validateBeforeBuildingReleaseArtifacts {
 
 val String.v: String get() = rootProject.extra["$this.version"] as String
 
-val buildVersion = if (project.gradle.startParameter.projectProperties["release"] == "true") { "calcite".v } else { "calcite".v + releaseParams.snapshotSuffix }
+val buildVersion = if (project.gradle.startParameter.projectProperties["forRelease"] == "true") { "calcite".v } else { "calcite".v + releaseParams.snapshotSuffix }
 
 println("Building Apache Calcite $buildVersion")
 
