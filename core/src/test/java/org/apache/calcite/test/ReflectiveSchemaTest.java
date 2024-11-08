@@ -311,8 +311,20 @@ public class ReflectiveSchemaTest {
             + "primitiveBoolean=true\n");
     with.query("select * from \"s\".\"everyTypes\"")
         .returns(""
-            + "primitiveBoolean=false; primitiveByte=0; primitiveChar=\u0000; primitiveShort=0; primitiveInt=0; primitiveLong=0; primitiveFloat=0.0; primitiveDouble=0.0; wrapperBoolean=false; wrapperByte=0; wrapperCharacter=\u0000; wrapperShort=0; wrapperInteger=0; wrapperLong=0; wrapperFloat=0.0; wrapperDouble=0.0; sqlDate=1970-01-01; sqlTime=00:00:00; sqlTimestamp=1970-01-01 00:00:00; utilDate=1970-01-01 00:00:00; string=1; bigDecimal=0\n"
-            + "primitiveBoolean=true; primitiveByte=127; primitiveChar=\uffff; primitiveShort=32767; primitiveInt=2147483647; primitiveLong=9223372036854775807; primitiveFloat=3.4028235E38; primitiveDouble=1.7976931348623157E308; wrapperBoolean=null; wrapperByte=null; wrapperCharacter=null; wrapperShort=null; wrapperInteger=null; wrapperLong=null; wrapperFloat=null; wrapperDouble=null; sqlDate=null; sqlTime=null; sqlTimestamp=null; utilDate=null; string=null; bigDecimal=null\n");
+            + "primitiveBoolean=false; primitiveByte=0; primitiveChar=\u0000; "
+            + "primitiveShort=0; primitiveInt=0; primitiveLong=0; primitiveFloat=0.0; "
+            + "primitiveDouble=0.0; wrapperBoolean=false; wrapperByte=0; wrapperCharacter=\u0000; "
+            + "wrapperShort=0; wrapperInteger=0; wrapperLong=0; wrapperFloat=0.0; "
+            + "wrapperDouble=0.0; sqlDate=1970-01-01; sqlTime=00:00:00; "
+            + "sqlTimestamp=1970-01-01 00:00:00; utilDate=1970-01-01 00:00:00; "
+            + "string=1; bigDecimal=0; list=[]\n"
+            + "primitiveBoolean=true; primitiveByte=127; primitiveChar=\uffff; "
+            + "primitiveShort=32767; primitiveInt=2147483647; primitiveLong=9223372036854775807; "
+            + "primitiveFloat=3.4028235E38; primitiveDouble=1.7976931348623157E308; "
+            + "wrapperBoolean=null; wrapperByte=null; wrapperCharacter=null; wrapperShort=null; "
+            + "wrapperInteger=null; wrapperLong=null; wrapperFloat=null; wrapperDouble=null; "
+            + "sqlDate=null; sqlTime=null; sqlTimestamp=null; utilDate=null; string=null; "
+            + "bigDecimal=null; list=null\n");
   }
 
   /** Tests NOT for nullable columns.
@@ -498,6 +510,8 @@ public class ReflectiveSchemaTest {
       return input.getTimestamp(1);
     case java.sql.Types.DECIMAL:
       return input.getBigDecimal(1);
+    case java.sql.Types.ARRAY:
+      return input.getArray(1);
     default:
       throw new AssertionError(type);
     }

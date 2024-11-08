@@ -1008,7 +1008,7 @@ public class RexImpTable {
       // Multisets & arrays
       defineMethod(CARDINALITY, BuiltInMethod.COLLECTION_SIZE.method,
           NullPolicy.STRICT);
-      defineMethod(SLICE, BuiltInMethod.SLICE.method, NullPolicy.NONE);
+      defineMethod(SLICE, BuiltInMethod.SLICE.method, NullPolicy.STRICT);
       defineMethod(ELEMENT, BuiltInMethod.ELEMENT.method, NullPolicy.STRICT);
       defineMethod(STRUCT_ACCESS, BuiltInMethod.STRUCT_ACCESS.method, NullPolicy.ANY);
       defineMethod(MEMBER_OF, BuiltInMethod.MEMBER_OF.method, NullPolicy.NONE);
@@ -1019,7 +1019,7 @@ public class RexImpTable {
       defineMethod(ARRAY_EXCEPT, BuiltInMethod.ARRAY_EXCEPT.method, NullPolicy.ANY);
       defineMethod(ARRAY_JOIN, BuiltInMethod.ARRAY_TO_STRING.method,
           NullPolicy.STRICT);
-      defineMethod(ARRAY_INSERT, BuiltInMethod.ARRAY_INSERT.method, NullPolicy.NONE);
+      defineMethod(ARRAY_INSERT, BuiltInMethod.ARRAY_INSERT.method, NullPolicy.ARG0);
       defineMethod(ARRAY_INTERSECT, BuiltInMethod.ARRAY_INTERSECT.method, NullPolicy.ANY);
       defineMethod(ARRAY_LENGTH, BuiltInMethod.COLLECTION_SIZE.method, NullPolicy.STRICT);
       defineMethod(ARRAY_MAX, BuiltInMethod.ARRAY_MAX.method, NullPolicy.STRICT);
@@ -1048,27 +1048,27 @@ public class RexImpTable {
       define(ARRAY_CONCAT, new ArrayConcatImplementor());
       define(SORT_ARRAY, new SortArrayImplementor());
       final MethodImplementor isEmptyImplementor =
-          new MethodImplementor(BuiltInMethod.IS_EMPTY.method, NullPolicy.NONE,
+          new MethodImplementor(BuiltInMethod.IS_EMPTY.method, NullPolicy.STRICT,
               false);
       define(IS_EMPTY, isEmptyImplementor);
       define(IS_NOT_EMPTY, NotImplementor.of(isEmptyImplementor));
       final MethodImplementor isASetImplementor =
-          new MethodImplementor(BuiltInMethod.IS_A_SET.method, NullPolicy.NONE,
+          new MethodImplementor(BuiltInMethod.IS_A_SET.method, NullPolicy.STRICT,
               false);
       define(IS_A_SET, isASetImplementor);
       define(IS_NOT_A_SET, NotImplementor.of(isASetImplementor));
       defineMethod(MULTISET_INTERSECT_DISTINCT,
-          BuiltInMethod.MULTISET_INTERSECT_DISTINCT.method, NullPolicy.NONE);
+          BuiltInMethod.MULTISET_INTERSECT_DISTINCT.method, NullPolicy.STRICT);
       defineMethod(MULTISET_INTERSECT,
-          BuiltInMethod.MULTISET_INTERSECT_ALL.method, NullPolicy.NONE);
+          BuiltInMethod.MULTISET_INTERSECT_ALL.method, NullPolicy.STRICT);
       defineMethod(MULTISET_EXCEPT_DISTINCT,
-          BuiltInMethod.MULTISET_EXCEPT_DISTINCT.method, NullPolicy.NONE);
-      defineMethod(MULTISET_EXCEPT, BuiltInMethod.MULTISET_EXCEPT_ALL.method, NullPolicy.NONE);
+          BuiltInMethod.MULTISET_EXCEPT_DISTINCT.method, NullPolicy.STRICT);
+      defineMethod(MULTISET_EXCEPT, BuiltInMethod.MULTISET_EXCEPT_ALL.method, NullPolicy.STRICT);
       defineMethod(MULTISET_UNION_DISTINCT,
-          BuiltInMethod.MULTISET_UNION_DISTINCT.method, NullPolicy.NONE);
-      defineMethod(MULTISET_UNION, BuiltInMethod.MULTISET_UNION_ALL.method, NullPolicy.NONE);
+          BuiltInMethod.MULTISET_UNION_DISTINCT.method, NullPolicy.STRICT);
+      defineMethod(MULTISET_UNION, BuiltInMethod.MULTISET_UNION_ALL.method, NullPolicy.STRICT);
       final MethodImplementor subMultisetImplementor =
-          new MethodImplementor(BuiltInMethod.SUBMULTISET_OF.method, NullPolicy.NONE, false);
+          new MethodImplementor(BuiltInMethod.SUBMULTISET_OF.method, NullPolicy.STRICT, false);
       define(SUBMULTISET_OF, subMultisetImplementor);
       define(NOT_SUBMULTISET_OF, NotImplementor.of(subMultisetImplementor));
 

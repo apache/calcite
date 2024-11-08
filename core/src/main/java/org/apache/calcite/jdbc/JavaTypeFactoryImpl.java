@@ -126,17 +126,20 @@ public class JavaTypeFactoryImpl
       final Types.ArrayType arrayType = (Types.ArrayType) type;
       final RelDataType componentRelType =
           createType(arrayType.getComponentType());
-      return createArrayType(
-          createTypeWithNullability(componentRelType,
+      RelDataType result =
+          createArrayType(
+              createTypeWithNullability(componentRelType,
               arrayType.componentIsNullable()), arrayType.maximumCardinality());
+      return createTypeWithNullability(result, true);
     }
     if (type instanceof Types.MapType) {
       final Types.MapType mapType = (Types.MapType) type;
       final RelDataType keyRelType = createType(mapType.getKeyType());
       final RelDataType valueRelType = createType(mapType.getValueType());
-      return createMapType(
-          createTypeWithNullability(keyRelType, mapType.keyIsNullable()),
-          createTypeWithNullability(valueRelType, mapType.valueIsNullable()));
+      RelDataType result =
+          createMapType(createTypeWithNullability(keyRelType, mapType.keyIsNullable()),
+              createTypeWithNullability(valueRelType, mapType.valueIsNullable()));
+      return createTypeWithNullability(result, true);
     }
     if (!(type instanceof Class)) {
       throw new UnsupportedOperationException("TODO: implement " + type);
