@@ -158,7 +158,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
       "Set operator cannot combine streaming and non-streaming inputs";
 
   private static final String ROW_RANGE_NOT_ALLOWED_WITH_RANK =
-      "ROW/RANGE not allowed with RANK, DENSE_RANK, ROW_NUMBER or PERCENTILE_CONT/DISC functions";
+      "ROW/RANGE not allowed with RANK, DENSE_RANK, ROW_NUMBER, PERCENTILE_CONT/DISC or LAG/LEAD functions";
 
   private static final String RANK_REQUIRES_ORDER_BY = "RANK or DENSE_RANK "
       + "functions require ORDER BY clause in window specification";
@@ -3080,6 +3080,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "window w as (order by empno ^rows^ 2 preceding )")
         .fails(ROW_RANGE_NOT_ALLOWED_WITH_RANK);
     winSql("select dense_rank() over w from emp\n"
+        + "window w as (order by empno ^rows^ 2 preceding)")
+        .fails(ROW_RANGE_NOT_ALLOWED_WITH_RANK);
+    winSql("select lag(deptno,1) over w from emp\n"
+        + "window w as (order by empno ^rows^ 2 preceding)")
+        .fails(ROW_RANGE_NOT_ALLOWED_WITH_RANK);
+    winSql("select lead(deptno,1) over w from emp\n"
         + "window w as (order by empno ^rows^ 2 preceding)")
         .fails(ROW_RANGE_NOT_ALLOWED_WITH_RANK);
     if (defined.contains("PERCENT_RANK")) {
