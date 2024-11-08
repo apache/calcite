@@ -34,6 +34,8 @@ import org.apache.calcite.tools.Planner;
 import org.apache.calcite.tools.Program;
 import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RuleSet;
+import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.TestUtil;
 
@@ -174,5 +176,90 @@ public class RelDecorrelatorTest {
         + "              LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
         + "                LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(after, hasTree(planAfter));
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6674">[CALCITE-6674] Make
+   * RelDecorrelator rules configurable</a>.
+   */
+  @Test void testDecorrelatorCustomizeRules() {
+    final FrameworkConfig frameworkConfig = config().build();
+    final RelBuilder builder = RelBuilder.create(frameworkConfig);
+    final RelOptCluster cluster = builder.getCluster();
+    final Planner planner = Frameworks.getPlanner(frameworkConfig);
+    final String sql = "select ROW("
+        + "(select deptno\n"
+        + "from dept\n"
+        + "where dept.deptno = emp.deptno), emp.ename)\n"
+        + "from emp";
+    final RelNode parsedRel;
+    try {
+      final SqlNode parse = planner.parse(sql);
+      final SqlNode validate = planner.validate(parse);
+      parsedRel = planner.rel(validate).rel;
+    } catch (Exception e) {
+      throw TestUtil.rethrow(e);
+    }
+
+    // Convert SubQuery into Correlate
+    final HepProgram hepProgram = HepProgram.builder()
+        .addRuleCollection(ImmutableList.of(CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE))
+        .build();
+    final Program program =
+        Programs.of(hepProgram, true,
+            requireNonNull(cluster.getMetadataProvider()));
+    final RelNode original =
+        program.run(cluster.getPlanner(), parsedRel, cluster.traitSet(),
+            Collections.emptyList(), Collections.emptyList());
+    final String planOriginal = ""
+        + "LogicalProject(EXPR$0=[ROW($8, $1)])\n"
+        + "  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n"
+        + "    LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])\n"
+        + "      LogicalProject(DEPTNO=[$0])\n"
+        + "        LogicalFilter(condition=[=($0, $cor0.DEPTNO)])\n"
+        + "          LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(original, hasTree(planOriginal));
+
+    // Default decorrelate
+    final RelNode decorrelatedDefault = RelDecorrelator.decorrelateQuery(original, builder);
+    final String planDecorrelatedDefault = ""
+        + "LogicalProject(EXPR$0=[ROW($8, $1)])\n"
+        + "  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], DEPTNO8=[$8])\n"
+        + "    LogicalJoin(condition=[=($8, $7)], joinType=[left])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n"
+        + "      LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(decorrelatedDefault, hasTree(planDecorrelatedDefault));
+
+    // Decorrelate using explicitly the same rules as the default ones: same result
+    final RuleSet defaultRules =
+        RuleSets.ofList(RelDecorrelator.RemoveSingleAggregateRule.DEFAULT.toRule(),
+            RelDecorrelator.RemoveCorrelationForScalarProjectRule.DEFAULT.toRule(),
+            RelDecorrelator.RemoveCorrelationForScalarAggregateRule.DEFAULT.toRule());
+    final RelNode decorrelatedDefault2 =
+        RelDecorrelator.decorrelateQuery(original, builder, defaultRules);
+    assertThat(decorrelatedDefault2, hasTree(planDecorrelatedDefault));
+
+    // Decorrelate using just the relevant rule for this query: same result
+    final RuleSet relevantRule =
+        RuleSets.ofList(RelDecorrelator.RemoveCorrelationForScalarProjectRule.DEFAULT.toRule());
+    final RelNode decorrelatedRelevantRule =
+        RelDecorrelator.decorrelateQuery(original, builder, relevantRule);
+    assertThat(decorrelatedRelevantRule, hasTree(planDecorrelatedDefault));
+
+    // Decorrelate without any pre-rules (just the "main" decorrelate program): decorrelated
+    // but aggregate is kept
+    final RuleSet noRules = RuleSets.ofList(Collections.emptyList());
+    final RelNode decorrelatedNoRules =
+        RelDecorrelator.decorrelateQuery(original, builder, noRules);
+    final String planDecorrelatedNoRules = ""
+        + "LogicalProject(EXPR$0=[ROW($9, $1)])\n"
+        + "  LogicalJoin(condition=[=($7, $8)], joinType=[left])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n"
+        + "    LogicalAggregate(group=[{0}], agg#0=[SINGLE_VALUE($1)])\n"
+        + "      LogicalProject(DEPTNO1=[$0], DEPTNO=[$0])\n"
+        + "        LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(decorrelatedNoRules, hasTree(planDecorrelatedNoRules));
   }
 }
