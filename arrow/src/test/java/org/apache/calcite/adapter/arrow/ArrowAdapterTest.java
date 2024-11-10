@@ -961,4 +961,58 @@ class ArrowAdapterTest {
         .returns(result)
         .explainContains(plan);
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6684">[CALCITE-6684]
+   * Arrow adapter should supports filter conditions of Decimal type</a>. */
+  @Test void testArrowProjectFieldsWithDecimalFilter() {
+    String sql = "select \"decimalField\"\n"
+        + "from arrowdatatype\n"
+        + "where \"decimalField\" = 1.00";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(decimalField=[$8])\n"
+        + "    ArrowFilter(condition=[=($8, 1)])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])\n\n";
+    String result = "decimalField=1.00\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+  @Test void testArrowProjectFieldsWithDoubleFilter() {
+    String sql = "select \"doubleField\"\n"
+        + "from arrowdatatype\n"
+        + "where \"doubleField\" = 1.00";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(doubleField=[$6])\n"
+        + "    ArrowFilter(condition=[=($6, 1.0E0)])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])\n\n";
+    String result = "doubleField=1.0\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+  @Test void testArrowProjectFieldsWithStringFilter() {
+    String sql = "select \"stringField\"\n"
+        + "from arrowdatatype\n"
+        + "where \"stringField\" = '1'";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(stringField=[$3])\n"
+        + "    ArrowFilter(condition=[=($3, '1')])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])\n\n";
+    String result = "stringField=1\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .returns(result)
+        .explainContains(plan);
+  }
 }
