@@ -461,7 +461,7 @@ public class RelMdColumnUniqueness
           || rel2 instanceof Values
           || rel2 instanceof Sort
           || rel2 instanceof TableScan
-          || simplyProjects(rel2, columns)) {
+          || rel2 instanceof Project) {
         try {
           final Boolean unique = mq.areColumnsUnique(rel2, columns, ignoreNulls);
           if (unique != null) {
@@ -478,27 +478,6 @@ public class RelMdColumnUniqueness
       }
     }
     return false;
-  }
-
-  private static boolean simplyProjects(RelNode rel, ImmutableBitSet columns) {
-    if (!(rel instanceof Project)) {
-      return false;
-    }
-    Project project = (Project) rel;
-    final List<RexNode> projects = project.getProjects();
-    for (int column : columns) {
-      if (column >= projects.size()) {
-        return false;
-      }
-      if (!(projects.get(column) instanceof RexInputRef)) {
-        return false;
-      }
-      final RexInputRef ref = (RexInputRef) projects.get(column);
-      if (ref.getIndex() != column) {
-        return false;
-      }
-    }
-    return true;
   }
 
   /** Splits a column set between left and right sets. */

@@ -278,9 +278,10 @@ public class ScannableTableTest {
     final Table table = new BeatlesProjectableFilterableTable(buf, false);
     final String explain = "PLAN="
         + "EnumerableAggregate(group=[{0}], C=[COUNT()])\n"
-        + "  EnumerableAggregate(group=[{0, 1}])\n"
-        + "    EnumerableInterpreter\n"
-        + "      BindableTableScan(table=[[s, beatles]], filters=[[=($2, 1940)]], projects=[[2, 0]])";
+        + "  EnumerableCalc(expr#0=[{inputs}], expr#1=[1940], k=[$t1], i=[$t0])\n"
+        + "    EnumerableAggregate(group=[{1}])\n"
+        + "      EnumerableInterpreter\n"
+        + "        BindableTableScan(table=[[s, beatles]], filters=[[=($2, 1940)]], projects=[[2, 0]])";
     CalciteAssert.that()
         .with(newSchema("s", PairList.of("beatles", table)))
         .query(sql)

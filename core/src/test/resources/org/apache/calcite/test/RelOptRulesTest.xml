@@ -162,6 +162,33 @@ LogicalProject(JOB=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testAggregateConstantKeyRuleInVolcano">
+    <Resource name="sql">
+      <![CDATA[select count(*) as c
+from sales.emp
+where deptno = 10
+group by deptno, sal]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(C=[$2])
+  LogicalAggregate(group=[{0, 1}], C=[COUNT()])
+    LogicalProject(DEPTNO=[$7], SAL=[$5])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableProject(C=[$2])
+  EnumerableProject(DEPTNO=[10], SAL=[$0], C=[$1])
+    EnumerableAggregate(group=[{0}], C=[COUNT()])
+      EnumerableProject(SAL=[$5])
+        EnumerableFilter(condition=[=($7, 10)])
+          EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testAggregateDynamicFunction">
     <Resource name="sql">
       <![CDATA[select hiredate
@@ -9043,6 +9070,29 @@ LogicalAggregate(group=[{0}], EXPR$1=[MAX($1)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testPullConstantThroughAggregatePermutedInVolcano">
+    <Resource name="sql">
+      <![CDATA[select deptno, max(mgr) from (
+  select *, 4 as four, 2+3 as two_plus_three, deptno+42 as deptno42 from emp
+) group by deptno, four, two_plus_three, deptno42]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], EXPR$1=[$4])
+  LogicalAggregate(group=[{0, 1, 2, 3}], EXPR$1=[MAX($4)])
+    LogicalProject(DEPTNO=[$7], FOUR=[4], TWO_PLUS_THREE=[+(2, 3)], DEPTNO42=[+($7, 42)], MGR=[$3])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableProject(DEPTNO=[$0], EXPR$1=[$2])
+  EnumerableAggregate(group=[{0, 1}], EXPR$1=[MAX($2)])
+    EnumerableProject(DEPTNO=[$7], DEPTNO42=[+($7, 42)], MGR=[$3])
+      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testPullConstantThroughAggregateSimpleNonNullable">
     <Resource name="sql">
       <![CDATA[select deptno, max(ename) from (
@@ -9152,6 +9202,32 @@ LogicalProject(EXPR$0=[2], EXPR$1=[3])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalProject(EXPR$0=[2])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testPullConstantThroughUnionInVolcano">
+    <Resource name="sql">
+      <![CDATA[select 2, deptno, job from emp as e1
+union all
+select 2, deptno, job from emp as e2]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalUnion(all=[true])
+  LogicalProject(EXPR$0=[2], DEPTNO=[$7], JOB=[$2])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EXPR$0=[2], DEPTNO=[$7], JOB=[$2])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableProject(EXPR$0=[2], DEPTNO=[$0], JOB=[$1])
+  EnumerableUnion(all=[true])
+    EnumerableProject(DEPTNO=[$7], JOB=[$2])
+      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+    EnumerableProject(DEPTNO=[$7], JOB=[$2])
+      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>

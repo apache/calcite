@@ -49,7 +49,7 @@ import java.util.Map;
 @Value.Enclosing
 public class UnionPullUpConstantsRule
     extends RelRule<UnionPullUpConstantsRule.Config>
-    implements TransformationRule {
+    implements SubstitutionRule {
 
   /** Creates a UnionPullUpConstantsRule. */
   protected UnionPullUpConstantsRule(Config config) {
@@ -140,6 +140,7 @@ public class UnionPullUpConstantsRule
     relBuilder.convert(union.getRowType(), false);
 
     call.transformTo(relBuilder.build());
+    call.getPlanner().prune(union);
   }
 
   /** Rule configuration. */

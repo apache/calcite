@@ -5370,6 +5370,21 @@ class RelOptRulesTest extends RelOptTestBase {
     basePullConstantTroughAggregate();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6586">[CALCITE-6586]
+   * Some Rules not firing due to RelMdPredicates returning null in VolcanoPlanner</a>. */
+  @Test void testPullConstantThroughAggregatePermutedInVolcano() {
+    sql("${sql}")
+        .withVolcanoPlanner(false, p -> {
+          p.addRule(CoreRules.AGGREGATE_PROJECT_PULL_UP_CONSTANTS);
+          p.addRule(CoreRules.PROJECT_MERGE);
+          p.addRule(EnumerableRules.ENUMERABLE_PROJECT_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_AGGREGATE_RULE);
+        })
+        .check();
+  }
+
   @Test void testPullConstantThroughAggregatePermutedConstFirst() {
     basePullConstantTroughAggregate();
   }
@@ -5398,6 +5413,25 @@ class RelOptRulesTest extends RelOptTestBase {
         .withTrim(true)
         .withRule(CoreRules.UNION_PULL_UP_CONSTANTS,
             CoreRules.PROJECT_MERGE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6586">[CALCITE-6586]
+   * Some Rules not firing due to RelMdPredicates returning null in VolcanoPlanner</a>. */
+  @Test void testPullConstantThroughUnionInVolcano() {
+    final String sql = "select 2, deptno, job from emp as e1\n"
+        + "union all\n"
+        + "select 2, deptno, job from emp as e2";
+    sql(sql)
+        .withTrim(true)
+        .withVolcanoPlanner(false, p -> {
+          p.addRule(CoreRules.UNION_PULL_UP_CONSTANTS);
+          p.addRule(CoreRules.PROJECT_MERGE);
+          p.addRule(EnumerableRules.ENUMERABLE_PROJECT_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_UNION_RULE);
+        })
         .check();
   }
 
@@ -7669,6 +7703,25 @@ class RelOptRulesTest extends RelOptTestBase {
         + "where deptno = 10\n"
         + "group by deptno, sal";
     sql(sql).withRule(CoreRules.AGGREGATE_ANY_PULL_UP_CONSTANTS)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6586">[CALCITE-6586]
+   * Some Rules not firing due to RelMdPredicates returning null in VolcanoPlanner</a>. */
+  @Test void testAggregateConstantKeyRuleInVolcano() {
+    final String sql = "select count(*) as c\n"
+        + "from sales.emp\n"
+        + "where deptno = 10\n"
+        + "group by deptno, sal";
+    sql(sql)
+        .withVolcanoPlanner(false, p -> {
+          p.addRule(CoreRules.AGGREGATE_ANY_PULL_UP_CONSTANTS);
+          p.addRule(EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_AGGREGATE_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_FILTER_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_PROJECT_RULE);
+        })
         .check();
   }
 
