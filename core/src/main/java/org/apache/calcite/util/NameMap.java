@@ -25,7 +25,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.Collections;
 import java.util.Map;
 import java.util.NavigableMap;
-import java.util.TreeMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 
 import static org.apache.calcite.util.CaseInsensitiveComparator.COMPARATOR;
 
@@ -44,7 +44,7 @@ public class NameMap<V> {
 
   /** Creates a NameMap, initially empty. */
   public NameMap() {
-    this(new TreeMap<String, V>(COMPARATOR));
+    this(new ConcurrentSkipListMap<String, V>(COMPARATOR));
   }
 
   @Override public String toString() {

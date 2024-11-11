@@ -80,6 +80,7 @@ import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTERVAL;
 import static org.apache.calcite.sql.type.OperandTypes.STRING_INTEGER;
 import static org.apache.calcite.sql.type.OperandTypes.STRING_STRING;
 import static org.apache.calcite.sql.type.OperandTypes.STRING_STRING_BOOLEAN;
+import static org.apache.calcite.sql.type.OperandTypes.family;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
@@ -530,6 +531,15 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction FLOOR_BIG_QUERY = new SqlFloorFunction(SqlKind.FLOOR)
       .withName("FLOOR_BIG_QUERY")
       .withReturnTypeInference(ReturnTypes.ARG0_EXCEPT_INTEGER_NULLABLE);
+
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlFunction PERIOD_CONSTRUCTOR = new SqlPeriodValueConstructor("PERIOD");
+
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlFunction PERIOD_INTERSECT =
+      SqlBasicFunction.create(SqlKind.PERIOD_INTERSECT,
+          ReturnTypes.ARG0_FORCE_NULLABLE,
+          family(SqlTypeFamily.PERIOD, SqlTypeFamily.PERIOD));
 
   /**
    * The <code>TRANSLATE(<i>string_expr</i>, <i>search_chars</i>,
@@ -998,6 +1008,9 @@ public abstract class SqlLibraryOperators {
       new SqlCurrentTimestampFunction("CURRENT_TIMESTAMP_LTZ",
           SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
 
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction RANGE_LITERAL = new SqlRangeLiteral();
+
   /**
    * The REGEXP_EXTRACT(source_string, regex_pattern) returns the first substring in source_string
    * that matches the regex_pattern. Returns NULL if there is no match.
@@ -1264,12 +1277,12 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.STRING);
 
   /** The case-insensitive variant of the LIKE operator. */
-  @LibraryOperator(libraries = {POSTGRESQL, SNOWFLAKE})
+  @LibraryOperator(libraries = {TERADATA, POSTGRESQL, SNOWFLAKE})
   public static final SqlSpecialOperator ILIKE =
       new SqlLikeOperator("ILIKE", SqlKind.LIKE, false, false);
 
   /** The case-insensitive variant of the NOT LIKE operator. */
-  @LibraryOperator(libraries = {POSTGRESQL, SNOWFLAKE})
+  @LibraryOperator(libraries = {TERADATA, POSTGRESQL, SNOWFLAKE})
   public static final SqlSpecialOperator NOT_ILIKE =
       new SqlLikeOperator("NOT ILIKE", SqlKind.LIKE, true, false);
 
@@ -1282,6 +1295,15 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {SPARK, HIVE})
   public static final SqlSpecialOperator NOT_RLIKE =
       new SqlLikeOperator("NOT RLIKE", SqlKind.RLIKE, true, true);
+
+
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlQuantifyOperator SOME_LIKE =
+      new SqlQuantifyOperator(SqlKind.SOME, (SqlLikeOperator) ILIKE);
+
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlQuantifyOperator SOME_NOT_LIKE =
+      new SqlQuantifyOperator(SqlKind.SOME, (SqlLikeOperator) NOT_ILIKE);
 
   /** The "CONCAT(arg, ...)" function that concatenates strings.
    * For example, "CONCAT('a', 'bc', 'd')" returns "abcd".
@@ -1567,6 +1589,13 @@ public abstract class SqlLibraryOperators {
       SqlBasicFunction.create(SqlKind.ARRAY_CONTAINS,
           ReturnTypes.BOOLEAN_NULLABLE,
           OperandTypes.ARRAY_ELEMENT);
+
+  /** The "ARRAY_CONTAINS(element, array)" function. */
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction ARRAY_CONTAINS_SF =
+      SqlBasicFunction.create(SqlKind.ARRAY_CONTAINS,
+          ReturnTypes.BOOLEAN_NULLABLE,
+          OperandTypes.ELEMENT_ARRAY);
 
   @LibraryOperator(libraries = {SNOWFLAKE})
   public static final SqlFunction TIME_FROM_PARTS =
@@ -3738,11 +3767,27 @@ public abstract class SqlLibraryOperators {
 //          SqlFunctionCategory.NUMERIC);
 
   @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction TRY_PARSE_JSON =
+      new SqlFunction("TRY_PARSE_JSON",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARIANT, null,
+          OperandTypes.STRING,
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction PARSE_JSON_SF =
+      new SqlFunction("PARSE_JSON_SF",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARIANT, null,
+          OperandTypes.STRING,
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction PARSE_JSON =
       new SqlFunction("PARSE_JSON",
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.JSON, null,
-          OperandTypes.SAME_VARIADIC,
+          STRING_STRING,
           SqlFunctionCategory.SYSTEM);
 
   @LibraryOperator(libraries = {SNOWFLAKE})
@@ -3873,6 +3918,15 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction EMPTY_BLOB =
+      new SqlFunction("EMPTY_BLOB",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.BINARY,
+          null,
+          OperandTypes.NILADIC,
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction XMLELEMENT =
       new SqlFunction("XMLELEMENT",
           SqlKind.OTHER_FUNCTION,
@@ -3898,6 +3952,25 @@ public abstract class SqlLibraryOperators {
       OperandTypes.STRING,
       SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION);
 
+  public static SqlFunction createUDFSqlFunction(String funcName,
+      SqlReturnTypeInference returnType) {
+    return new SqlFunction(funcName, SqlKind.OTHER_FUNCTION, returnType,
+        null,
+        OperandTypes.VARIADIC,
+        SqlFunctionCategory.USER_DEFINED_FUNCTION) {
+      @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+        SqlWriter.Frame frame = writer.startFunCall(funcName);
+        List<SqlNode> operandList = call.getOperandList();
+        for (int i = 0; i < call.operandCount(); i++) {
+          SqlNode operand = operandList.get(i);
+          writer.sep(",");
+          operand.unparse(writer, leftPrec, rightPrec);
+        }
+        writer.endFunCall(frame);
+      }
+    };
+  }
+
   @LibraryOperator(libraries = {DB2})
   public static final SqlFunction FIRST_DAY =
       new SqlFunction("FIRST_DAY",
@@ -3921,6 +3994,22 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.DECIMAL_NULLABLE, null,
           OperandTypes.INTERVALINTERVAL_INTERVALDATETIME,
           SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction CEILING =
+      new SqlFunction("CEILING",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0_OR_EXACT_NO_SCALE, null,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction FLOOR =
+      new SqlFunction("FLOOR",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0_OR_EXACT_NO_SCALE, null,
+          OperandTypes.family(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER),
+          SqlFunctionCategory.NUMERIC);
 
   @LibraryOperator(libraries = {TERADATA})
   public static final SqlAggFunction REGR_INTERCEPT =

@@ -72,6 +72,7 @@ public enum SqlDateTimeFormat {
   FRACTIONFOUR("S(4)"),
   FRACTIONFIVE("S(5)"),
   FRACTIONSIX("S(6)"),
+  FRACTIONEIGHT("S(8)"),
   FRACTIONNINE("S(9)"),
   AMPM("T"),
   TIMEZONE("Z"),

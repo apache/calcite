@@ -1102,6 +1102,7 @@ public abstract class SqlTypeUtil {
     if (isAtomic(type) || isNull(type)
         || type.getSqlTypeName() == SqlTypeName.UNKNOWN
         || type.getSqlTypeName() == SqlTypeName.GEOMETRY
+        || type.getSqlTypeName() == SqlTypeName.GEOGRAPHY
         || type.getSqlTypeName() == SqlTypeName.INTERVAL) {
       int precision = typeName.allowsPrec() ? type.getPrecision() : -1;
       // fix up the precision.

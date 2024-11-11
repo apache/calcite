@@ -72,6 +72,15 @@ public class SqlQuantifyOperator extends SqlInOperator {
   }
 
 
+  SqlQuantifyOperator(SqlKind kind, SqlLikeOperator likeOperator) {
+    super(likeOperator.getName() + " " + kind, kind);
+    this.comparisonKind =
+        Objects.requireNonNull(likeOperator.getKind(), "comparisonKind");
+    Preconditions.checkArgument(comparisonKind == SqlKind.LIKE);
+    Preconditions.checkArgument(kind == SqlKind.SOME
+        || kind == SqlKind.ALL);
+  }
+
   @Override public RelDataType deriveType(SqlValidator validator,
       SqlValidatorScope scope, SqlCall call) {
     final List<SqlNode> operands = call.getOperandList();

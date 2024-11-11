@@ -742,6 +742,15 @@ public class BigQuerySqlDialect extends SqlDialect {
     case OTHER:
       unparseOtherFunction(writer, call, leftPrec, rightPrec);
       break;
+    case OVERLAPS:
+    case PERIOD_INTERSECT:
+    case CONTAINS:
+      unparsePeriodBinaryFunction(writer, call, leftPrec, rightPrec);
+      break;
+    case PERIOD_BEGIN:
+    case PERIOD_END:
+      unparsePeriodAccessFunction(writer, call, leftPrec, rightPrec);
+      break;
     case COLLECTION_TABLE:
       if (call.operandCount() > 1) {
         throw new RuntimeException("Table function supports only one argument in Big Query");
@@ -850,6 +859,13 @@ public class BigQuerySqlDialect extends SqlDialect {
       writer.sep(",", true);
       writer.keyword(requireNonNull(unquoteStringLiteral(String.valueOf(call.operand(1)))));
       writer.endFunCall(funcFrame);
+      break;
+    case PERIOD_CONSTRUCTOR:
+      final SqlWriter.Frame rangeFrame = writer.startFunCall("RANGE");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.sep(",", true);
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(rangeFrame);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
@@ -1906,6 +1922,30 @@ public class BigQuerySqlDialect extends SqlDialect {
     }
   }
 
+  private void unparsePeriodBinaryFunction(SqlWriter writer,
+      SqlCall call, int leftPrec, int rightPrec) {
+    String name = call.getKind().sql;
+    SqlWriter.Frame funcFrame = writer.startFunCall("RANGE_" + name);
+    for (int i = 0; i < call.operandCount(); i++) {
+      writer.sep(",");
+      call.operand(i).unparse(writer, leftPrec, rightPrec);
+    }
+    writer.endFunCall(funcFrame);
+  }
+
+  private void unparsePeriodAccessFunction(SqlWriter writer,
+      SqlCall call, int leftPrec, int rightPrec) {
+    String name;
+    if (call.getOperator().getKind() == SqlKind.PERIOD_BEGIN) {
+      name = "RANGE_START";
+    } else {
+      name = "RANGE_END";
+    }
+    SqlWriter.Frame funcFrame = writer.startFunCall(name);
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.endFunCall(funcFrame);
+  }
+
   /**
    * This method is to unparse the REGEXP_CONTAINS operands.
    */
@@ -2426,7 +2466,10 @@ public class BigQuerySqlDialect extends SqlDialect {
       case TIMESTAMP_WITH_TIME_ZONE:
         return createSqlDataTypeSpecByName("TIMESTAMP", typeName);
       case JSON:
+      case VARIANT:
         return createSqlDataTypeSpecByName("JSON", typeName);
+      case GEOGRAPHY:
+        return createSqlDataTypeSpecByName("GEOGRAPHY", typeName);
       default:
         break;
       }

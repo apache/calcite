@@ -120,6 +120,7 @@ public enum SqlTypeName {
   DISTINCT(PrecScale.NO_NO, false, Types.DISTINCT, null),
   STRUCTURED(PrecScale.NO_NO, false, Types.STRUCT, null),
   ROW(PrecScale.NO_NO, false, Types.STRUCT, null),
+  PERIOD(PrecScale.NO_NO, false, Types.STRUCT, SqlTypeFamily.PERIOD),
   OTHER(PrecScale.NO_NO, false, Types.OTHER, null),
   CURSOR(PrecScale.NO_NO, false, ExtraSqlTypes.REF_CURSOR,
       SqlTypeFamily.CURSOR),
@@ -134,8 +135,10 @@ public enum SqlTypeName {
   FUNCTION(PrecScale.NO_NO, true, Types.OTHER, SqlTypeFamily.FUNCTION),
   SARG(PrecScale.NO_NO, true, Types.OTHER, SqlTypeFamily.ANY),
   JSON(PrecScale.NO_NO | PrecScale.YES_NO, true, Types.OTHER, null),
+  VARIANT(PrecScale.NO_NO, false, Types.OTHER, SqlTypeFamily.VARIANT),
   CLOB(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.CHAR,
-          SqlTypeFamily.CHARACTER);
+          SqlTypeFamily.CHARACTER),
+  GEOGRAPHY(PrecScale.NO_NO, false, Types.OTHER, null);
 
   public static final int MAX_DATETIME_PRECISION = 3;
 
@@ -168,7 +171,7 @@ public enum SqlTypeName {
           INTERVAL_HOUR_SECOND, INTERVAL_MINUTE, INTERVAL_MINUTE_SECOND,
           INTERVAL_SECOND, TIME_WITH_LOCAL_TIME_ZONE, TIMESTAMP_WITH_LOCAL_TIME_ZONE,
           TIMESTAMP_WITH_TIME_ZONE, FLOAT, MULTISET, JSON,
-          DISTINCT, STRUCTURED, ROW, CURSOR, COLUMN_LIST);
+          DISTINCT, STRUCTURED, ROW, CURSOR, COLUMN_LIST, VARIANT);
 
   public static final List<SqlTypeName> BOOLEAN_TYPES =
       ImmutableList.of(BOOLEAN);

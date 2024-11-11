@@ -26,7 +26,7 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 
 /**
- * The REGEXP_SUBSTR(source_string, regex_pattern, [, pos, occurrence, match_type]) extracts a
+ * The REGEXP_SUBSTR(source_string, regex_pattern, [, pos, occurrence, match_type, subexpr]) extracts a
  * substring from source_string that matches a regular expression specified by regex_pattern.
  */
 public class SqlRegexpSubstrFunction extends SqlFunction {
@@ -42,7 +42,7 @@ public class SqlRegexpSubstrFunction extends SqlFunction {
   }
 
   @Override public SqlOperandCountRange getOperandCountRange() {
-    return SqlOperandCountRanges.between(2, 5);
+    return SqlOperandCountRanges.between(2, 6);
   }
 
   @Override public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
@@ -63,6 +63,10 @@ public class SqlRegexpSubstrFunction extends SqlFunction {
         return false;
       }
       if (i == 4 && !OperandTypes.STRING.checkSingleOperandType(
+          callBinding, callBinding.operand(i), 0, throwOnFailure)) {
+        return false;
+      }
+      if (i == 5 && !OperandTypes.INTEGER.checkSingleOperandType(
           callBinding, callBinding.operand(i), 0, throwOnFailure)) {
         return false;
       }
