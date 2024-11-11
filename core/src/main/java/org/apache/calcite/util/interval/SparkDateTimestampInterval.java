@@ -229,14 +229,9 @@ public class SparkDateTimestampInterval {
     int sign =
         ((SqlIntervalLiteral.IntervalValue) ((SqlIntervalLiteral) call.operand(1)).getValue()).getSign();
     Queue<String> queue = generateQueueForInterval(typeName);
-    if (sign == -1) {
-      writer.print(" (INTERVAL '" + "-" + intValue(dayTimeSplit[0]) + "' " + queue.poll() + " + ");
-      writer.print("INTERVAL '" + "-" + intValue(dayTimeSplit[1]) + "' " + queue.poll());
-      writer.print(")");
-    } else {
-      writer.print(" (INTERVAL '" + intValue(dayTimeSplit[0]) + "' " + queue.poll() + " + ");
-      writer.print("INTERVAL '" + intValue(dayTimeSplit[1]) + "' " + queue.poll());
-      writer.print(")");
-    }
+    String signString = sign == -1 ? "-" : "";
+    writer.print(" (INTERVAL '" + signString + intValue(dayTimeSplit[0]) + "' " + queue.poll() + " + ");
+    writer.print("INTERVAL '" + signString + intValue(dayTimeSplit[1]) + "' " + queue.poll());
+    writer.print(")");
   }
 }
