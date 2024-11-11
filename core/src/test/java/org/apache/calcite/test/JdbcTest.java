@@ -3068,32 +3068,40 @@ public class JdbcTest {
     final String extra;
     switch (format) {
     case "text":
-      expected = "EnumerableAggregate(group=[{0, 3}])\n"
-          + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[10], expr#3=['SameName'], expr#4=[CAST($t1):INTEGER NOT NULL], expr#5=[=($t4, $t2)], proj#0..3=[{exprs}], $condition=[$t5])\n"
-          + "    EnumerableTableScan(table=[[SALES, EMPS]])\n\n";
+      expected = "EnumerableCalc(expr#0=[{inputs}], expr#1=['SameName'], proj#0..1=[{exprs}])\n"
+          + "  EnumerableAggregate(group=[{0}])\n"
+          + "    EnumerableCalc(expr#0..1=[{inputs}], expr#2=[CAST($t1):INTEGER NOT NULL], expr#3=[10], expr#4=[=($t2, $t3)], proj#0..1=[{exprs}], $condition=[$t4])\n"
+          + "      EnumerableTableScan(table=[[SALES, EMPS]])\n\n";
       extra = "";
       break;
     case "dot":
       expected = "PLAN=digraph {\n"
+          + "\"EnumerableAggregate\\n"
+          + "group = {0}\\n"
+          + "\" -> \"EnumerableCalc\\n"
+          + "expr#0 = {inputs}\\n"
+          + "expr#1 = 'SameName'\\n"
+          + "proj#0..1 = {exprs}\\n"
+          + "\" [label=\"0\"]\n"
           + "\"EnumerableCalc\\n"
           + "expr#0..1 = {inputs}\\n"
-          + "expr#2 = 10\\n"
-          + "expr#3 = 'SameName'\\n"
-          + "expr#4 = CAST($t1):I\\n"
+          + "expr#2 = CAST($t1):I\\n"
           + "NTEGER NOT NULL\\n"
+          + "expr#3 = 10\\n"
+          + "expr#4 = =($t2, $t3)\\n"
           + "...\" -> \"EnumerableAggregate\\n"
-          + "group = {0, 3}\\n"
+          + "group = {0}\\n"
           + "\" [label=\"0\"]\n"
           + "\"EnumerableTableScan\\n"
           + "table = [SALES, EMPS\\n]\\n"
           + "\" -> \"EnumerableCalc\\n"
           + "expr#0..1 = {inputs}\\n"
-          + "expr#2 = 10\\n"
-          + "expr#3 = 'SameName'\\n"
-          + "expr#4 = CAST($t1):I\\nNTEGER NOT NULL\\n"
+          + "expr#2 = CAST($t1):I\\n"
+          + "NTEGER NOT NULL\\n"
+          + "expr#3 = 10\\n"
+          + "expr#4 = =($t2, $t3)\\n"
           + "...\" [label=\"0\"]\n"
-          + "}\n"
-          + "\n";
+          + "}\n\n";
       extra = " as dot ";
       break;
     default:
@@ -3191,12 +3199,13 @@ public class JdbcTest {
         .enable(CalciteAssert.DB != CalciteAssert.DatabaseInstance.ORACLE)
         .explainContains(""
             + "EnumerableAggregate(group=[{0}], m0=[COUNT($1)])\n"
-            + "  EnumerableAggregate(group=[{1, 3}])\n"
-            + "    EnumerableHashJoin(condition=[=($0, $2)], joinType=[inner])\n"
-            + "      EnumerableCalc(expr#0..9=[{inputs}], expr#10=[CAST($t4):INTEGER], expr#11=[1997], expr#12=[=($t10, $t11)], time_id=[$t0], the_year=[$t4], $condition=[$t12])\n"
-            + "        EnumerableTableScan(table=[[foodmart2, time_by_day]])\n"
-            + "      EnumerableCalc(expr#0..7=[{inputs}], time_id=[$t1], unit_sales=[$t7])\n"
-            + "        EnumerableTableScan(table=[[foodmart2, sales_fact_1997]])")
+            + "  EnumerableCalc(expr#0=[{inputs}], expr#1=[1997:SMALLINT], expr#2=[CAST($t1):SMALLINT], c0=[$t2], unit_sales=[$t0])\n"
+            + "    EnumerableAggregate(group=[{1}])\n"
+            + "      EnumerableHashJoin(condition=[=($0, $2)], joinType=[semi])\n"
+            + "        EnumerableCalc(expr#0..7=[{inputs}], time_id=[$t1], unit_sales=[$t7])\n"
+            + "          EnumerableTableScan(table=[[foodmart2, sales_fact_1997]])\n"
+            + "        EnumerableCalc(expr#0..9=[{inputs}], expr#10=[CAST($t4):INTEGER], expr#11=[1997], expr#12=[=($t10, $t11)], time_id=[$t0], the_year=[$t4], $condition=[$t12])\n"
+            + "          EnumerableTableScan(table=[[foodmart2, time_by_day]])")
         .returns("c0=1997; m0=6\n");
   }
 
