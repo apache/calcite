@@ -36,7 +36,7 @@ public class GraphQLTable extends AbstractTable implements TranslatableTable, Qu
   @Nullable RelDataTypeFactory typeFactory;
   private final String endpoint;
   @Nullable private final String name;
-  private final String selectMany;
+  final String selectMany;
 
   private static final Logger LOGGER = LogManager.getLogger(GraphQLToEnumerableConverter.class);
 
@@ -86,7 +86,7 @@ public class GraphQLTable extends AbstractTable implements TranslatableTable, Qu
       }
     }
 
-    throw new IllegalStateException("No query found that returns an array of " + objectType.getName());
+    return null;
   }
 
   /**

@@ -66,8 +66,10 @@ public class GraphQLCalciteSchema extends AbstractSchema {
               !type.getName().endsWith("AggExp"))
           .forEach(type -> {
             GraphQLObjectType objectType = (GraphQLObjectType) type;
-            tableMap.put(objectType.getName(),
-                new GraphQLTable(this, objectType, graphQL, endpoint));
+            GraphQLTable proposedTable = new GraphQLTable(this, objectType, graphQL, endpoint);
+            if (proposedTable.selectMany != null) {
+              tableMap.put(objectType.getName(), proposedTable);
+            }
           });
     }
     return tableMap;
