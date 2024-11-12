@@ -598,4 +598,11 @@ public interface SqlConformance {
    */
   @Experimental
   boolean allowLenientCoercion();
+
+  /**
+   * Whether the implementation uses checked arithmetic.
+   * Most SQL dialects use checked arithmetic at runtime:
+   * they terminate with a fatal error on overflow.
+   */
+  boolean checkedArithmetic();
 }

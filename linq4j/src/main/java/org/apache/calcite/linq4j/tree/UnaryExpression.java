@@ -77,8 +77,10 @@ public class UnaryExpression extends Expression {
       expression.accept(writer, lprec, nodeType.rprec);
       writer.append(nodeType.op);
     } else {
+      writer.append("(");
       writer.append(nodeType.op);
       expression.accept(writer, nodeType.lprec, rprec);
+      writer.append(")");
     }
   }
 

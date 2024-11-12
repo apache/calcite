@@ -615,7 +615,7 @@ public class ExpressionTest {
             Expressions.negate(
                 Expressions.negate(
                     Expressions.constant(5)))),
-        is("- - 5"));
+        is("(- (- 5))"));
 
     assertThat(
         Expressions.toString(
@@ -739,7 +739,7 @@ public class ExpressionTest {
                 Expressions.typeIs(
                     Expressions.parameter(Object.class, "o"),
                     String.class))),
-        is("!(o instanceof String)"));
+        is("(!(o instanceof String))"));
 
     // not not
     assertThat(
@@ -749,7 +749,7 @@ public class ExpressionTest {
                     Expressions.typeIs(
                         Expressions.parameter(Object.class, "o"),
                         String.class)))),
-        is("!!(o instanceof String)"));
+        is("(!(!(o instanceof String)))"));
   }
 
   @Test void testWriteConstant() {
@@ -1025,7 +1025,7 @@ public class ExpressionTest {
                 + "  int x = 10;\n"
                 + "  int y = 0;\n"
                 + "  while (x < 5) {\n"
-                + "    ++y;\n"
+                + "    (++y);\n"
                 + "  }\n"
                 + "}\n"));
   }
@@ -1547,7 +1547,7 @@ public class ExpressionTest {
     assertThat(Expressions.toString(builder.toBlock()),
         is("{\n"
             + "  for (int i = 0, j = 10; ; ) {\n"
-            + "    if (++i < --j) {\n"
+            + "    if ((++i) < (--j)) {\n"
             + "      break;\n"
             + "    }\n"
             + "  }\n"

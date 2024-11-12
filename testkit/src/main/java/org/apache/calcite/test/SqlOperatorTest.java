@@ -38,6 +38,7 @@ import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlJdbcFunctionCall;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
@@ -129,11 +130,14 @@ import static org.apache.calcite.sql.test.ResultCheckers.isSet;
 import static org.apache.calcite.sql.test.ResultCheckers.isSingle;
 import static org.apache.calcite.sql.test.ResultCheckers.isWithin;
 import static org.apache.calcite.sql.test.SqlOperatorFixture.BAD_DATETIME_MESSAGE;
+import static org.apache.calcite.sql.test.SqlOperatorFixture.DECIMAL_OVERFLOW;
 import static org.apache.calcite.sql.test.SqlOperatorFixture.DIVISION_BY_ZERO_MESSAGE;
+import static org.apache.calcite.sql.test.SqlOperatorFixture.INTEGER_OVERFLOW;
 import static org.apache.calcite.sql.test.SqlOperatorFixture.INVALID_ARGUMENTS_NUMBER;
 import static org.apache.calcite.sql.test.SqlOperatorFixture.INVALID_ARGUMENTS_TYPE_VALIDATION_ERROR;
 import static org.apache.calcite.sql.test.SqlOperatorFixture.INVALID_CHAR_MESSAGE;
 import static org.apache.calcite.sql.test.SqlOperatorFixture.LITERAL_OUT_OF_RANGE_MESSAGE;
+import static org.apache.calcite.sql.test.SqlOperatorFixture.LONG_OVERFLOW;
 import static org.apache.calcite.sql.test.SqlOperatorFixture.OUT_OF_RANGE_MESSAGE;
 import static org.apache.calcite.sql.test.SqlOperatorFixture.WRONG_FORMAT_MESSAGE;
 import static org.apache.calcite.util.DateTimeStringUtils.getDateFormatter;
@@ -142,6 +146,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -369,12 +374,6 @@ public class SqlOperatorTest {
 
   //--- Tests -----------------------------------------------------------
 
-  /**
-   * For development. Put any old code in here.
-   */
-  @Test void testDummy() {
-  }
-
   @Test void testSqlOperatorOverloading() {
     final SqlStdOperatorTable operatorTable = SqlStdOperatorTable.instance();
     for (SqlOperator sqlOperator : operatorTable.getOperatorList()) {
@@ -387,8 +386,15 @@ public class SqlOperatorTest {
 
       routines.removeIf(operator ->
           !sqlOperator.getClass().isInstance(operator));
-      assertThat(routines, hasSize(1));
-      assertThat(sqlOperator, equalTo(routines.get(0)));
+      if (routines.size() == 2) {
+        // Some arithmetic operators looks like they are overloaded,
+        // e.g. PLUS and CHECKED_PLUS
+        assertTrue(SqlKind.CHECKED_ARITHMETIC.contains(routines.get(0).kind)
+                || SqlKind.CHECKED_ARITHMETIC.contains(routines.get(1).kind));
+      } else {
+        assertThat(routines, hasSize(1));
+        assertThat(sqlOperator, equalTo(routines.get(0)));
+      }
     }
   }
 
@@ -3258,8 +3264,10 @@ public class SqlOperatorTest {
   }
 
   @Test void testMinusOperator() {
-    final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.MINUS, VmName.EXPAND);
+    SqlOperatorFixture f = fixture()
+        .setFor(SqlStdOperatorTable.MINUS, VmName.EXPAND)
+        // BigQuery requires arithmetic overflows
+        .withConformance(SqlConformanceEnum.BIG_QUERY);
     f.checkScalarExact("-2-1", -3);
     f.checkScalarExact("-2-1-5", -8);
     f.checkScalarExact("2-1", 1);
@@ -3275,22 +3283,18 @@ public class SqlOperatorTest {
     f.checkNull("1e1-cast(null as double)");
     f.checkNull("cast(null as tinyint) - cast(null as smallint)");
 
-    // TODO: Fix bug
-    if (Bug.FNL25_FIXED) {
-      // Should throw out of range error
-      f.checkFails("cast(100 as tinyint) - cast(-100 as tinyint)",
-          OUT_OF_RANGE_MESSAGE, true);
-      f.checkFails("cast(-20000 as smallint) - cast(20000 as smallint)",
-          OUT_OF_RANGE_MESSAGE, true);
-      f.checkFails("cast(1.5e9 as integer) - cast(-1.5e9 as integer)",
-          OUT_OF_RANGE_MESSAGE, true);
-      f.checkFails("cast(-5e18 as bigint) - cast(5e18 as bigint)",
-          OUT_OF_RANGE_MESSAGE, true);
-      f.checkFails("cast(5e18 as decimal(19,0)) - cast(-5e18 as decimal(19,0))",
-          OUT_OF_RANGE_MESSAGE, true);
-      f.checkFails("cast(-5e8 as decimal(19,10)) - cast(5e8 as decimal(19,10))",
-          OUT_OF_RANGE_MESSAGE, true);
-    }
+    f.checkFails("cast(100 as tinyint) - cast(-100 as tinyint)",
+        INTEGER_OVERFLOW, true);
+    f.checkFails("cast(-20000 as smallint) - cast(20000 as smallint)",
+        INTEGER_OVERFLOW, true);
+    f.checkFails("cast(1.5e9 as integer) - cast(-1.5e9 as integer)",
+        INTEGER_OVERFLOW, true);
+    f.checkFails("cast(-5e18 as bigint) - cast(5e18 as bigint)",
+        LONG_OVERFLOW, true);
+    f.checkFails("cast(5e18 as decimal(19,0)) - cast(-5e18 as decimal(19,0))",
+        DECIMAL_OVERFLOW, true);
+    f.checkFails("cast(-6e8 as decimal(19,10)) - cast(6e8 as decimal(19,10))",
+        DECIMAL_OVERFLOW, true);
   }
 
   @Test void testMinusIntervalOperator() {
@@ -3419,8 +3423,10 @@ public class SqlOperatorTest {
   }
 
   @Test void testMultiplyOperator() {
-    final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.MULTIPLY, VmName.EXPAND);
+    final SqlOperatorFixture f = fixture()
+        .setFor(SqlStdOperatorTable.MULTIPLY, VmName.EXPAND)
+        // BigQuery requires arithmetic overflows
+        .withConformance(SqlConformanceEnum.BIG_QUERY);
     f.checkScalarExact("2*3", 6);
     f.checkScalarExact("2*-3", -6);
     f.checkScalarExact("+2*3", 6);
@@ -3439,21 +3445,19 @@ public class SqlOperatorTest {
     f.checkNull("2e-3*cast(null as integer)");
     f.checkNull("cast(null as tinyint) * cast(4 as smallint)");
 
-    if (Bug.FNL25_FIXED) {
-      // Should throw out of range error
-      f.checkFails("cast(100 as tinyint) * cast(-2 as tinyint)",
-          OUT_OF_RANGE_MESSAGE, true);
-      f.checkFails("cast(200 as smallint) * cast(200 as smallint)",
-          OUT_OF_RANGE_MESSAGE, true);
-      f.checkFails("cast(1.5e9 as integer) * cast(-2 as integer)",
-          OUT_OF_RANGE_MESSAGE, true);
-      f.checkFails("cast(5e9 as bigint) * cast(2e9 as bigint)",
-          OUT_OF_RANGE_MESSAGE, true);
-      f.checkFails("cast(2e9 as decimal(19,0)) * cast(-5e9 as decimal(19,0))",
-          OUT_OF_RANGE_MESSAGE, true);
-      f.checkFails("cast(5e4 as decimal(19,10)) * cast(2e4 as decimal(19,10))",
-          OUT_OF_RANGE_MESSAGE, true);
-    }
+    // Should throw out of range error
+    f.checkFails("cast(100 as tinyint) * cast(-2 as tinyint)",
+        INTEGER_OVERFLOW, true);
+    f.checkFails("cast(200 as smallint) * cast(200 as smallint)",
+        INTEGER_OVERFLOW, true);
+    f.checkFails("cast(1.5e9 as integer) * cast(-2 as integer)",
+        INTEGER_OVERFLOW, true);
+    f.checkFails("cast(5e9 as bigint) * cast(2e9 as bigint)",
+        LONG_OVERFLOW, true);
+    f.checkFails("cast(2e9 as decimal(19,0)) * cast(-5e9 as decimal(19,0))",
+        DECIMAL_OVERFLOW, true);
+    f.checkFails("cast(5e4 as decimal(19,10)) * cast(2e4 as decimal(19,10))",
+        DECIMAL_OVERFLOW, true);
   }
 
   @Test void testMultiplyIntervals() {
@@ -3584,8 +3588,10 @@ public class SqlOperatorTest {
   }
 
   @Test void testPlusOperator() {
-    final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.PLUS, VmName.EXPAND);
+    final SqlOperatorFixture f = fixture()
+        .setFor(SqlStdOperatorTable.PLUS, VmName.EXPAND)
+        // BigQuery requires arithmetic overflows
+        .withConformance(SqlConformanceEnum.BIG_QUERY);
     f.checkScalarExact("1+2", 3);
     f.checkScalarExact("-1+2", 1);
     f.checkScalarExact("1+2+3", 6);
@@ -3601,22 +3607,20 @@ public class SqlOperatorTest {
     f.checkNull("cast(null as tinyint)+1");
     f.checkNull("1e-2+cast(null as double)");
 
-    if (Bug.FNL25_FIXED) {
-      // Should throw out of range error
-      f.checkFails("cast(100 as tinyint) + cast(100 as tinyint)",
-          OUT_OF_RANGE_MESSAGE, true);
-      f.checkFails("cast(-20000 as smallint) + cast(-20000 as smallint)",
-          OUT_OF_RANGE_MESSAGE, true);
-      f.checkFails("cast(1.5e9 as integer) + cast(1.5e9 as integer)",
-          OUT_OF_RANGE_MESSAGE, true);
-      f.checkFails("cast(5e18 as bigint) + cast(5e18 as bigint)",
-          OUT_OF_RANGE_MESSAGE, true);
-      f.checkFails("cast(-5e18 as decimal(19,0))"
-              + " + cast(-5e18 as decimal(19,0))",
-          OUT_OF_RANGE_MESSAGE, true);
-      f.checkFails("cast(5e8 as decimal(19,10)) + cast(5e8 as decimal(19,10))",
-          OUT_OF_RANGE_MESSAGE, true);
-    }
+    // Should throw out of range error
+    f.checkFails("cast(100 as tinyint) + cast(100 as tinyint)",
+        INTEGER_OVERFLOW, true);
+    f.checkFails("cast(-20000 as smallint) + cast(-20000 as smallint)",
+        INTEGER_OVERFLOW, true);
+    f.checkFails("cast(1.5e9 as integer) + cast(1.5e9 as integer)",
+        INTEGER_OVERFLOW, true);
+    f.checkFails("cast(5e18 as bigint) + cast(5e18 as bigint)",
+        LONG_OVERFLOW, true);
+    f.checkFails("cast(-5e18 as decimal(19,0))"
+            + " + cast(-5e18 as decimal(19,0))",
+        DECIMAL_OVERFLOW, true);
+    f.checkFails("cast(5e8 as decimal(19,10)) + cast(5e8 as decimal(19,10))",
+        DECIMAL_OVERFLOW, true);
   }
 
   @Test void testPlusOperatorAny() {
@@ -13119,7 +13123,7 @@ public class SqlOperatorTest {
     f.checkScalarExact("ceil(cast(3 as bigint))", "DOUBLE NOT NULL", "3.0");
     f.checkScalarExact("ceil(cast(3.5 as double))", "DOUBLE NOT NULL", "4.0");
     f.checkScalarExact("ceil(cast(3.45 as decimal(19, 1)))",
-        "DECIMAL(19, 1) NOT NULL", "4");
+        "DECIMAL(19, 1) NOT NULL", "4.0");
     f.checkScalarExact("ceil(cast(3.45 as float))", "FLOAT NOT NULL", "4.0");
     f.checkNull("ceil(cast(null as tinyint))");
   }

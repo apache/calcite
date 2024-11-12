@@ -70,11 +70,13 @@ class CoreQuidemTest extends QuidemTest {
               .with(CalciteConnectionProperty.FUN, SqlLibrary.CALCITE.fun)
               .with(CalciteAssert.Config.SCOTT)
               .connect();
-        case "scott-rounding-half-up":
+        case "scott-checked-rounding-half-up":
           discard(CustomTypeSystems.ROUNDING_MODE_HALF_UP);
           return CalciteAssert.that()
               .with(CalciteConnectionProperty.PARSER_FACTORY,
                   ExtensionDdlExecutor.class.getName() + "#PARSER_FACTORY")
+              // Use bigquery conformance, which forces checked arithmetic
+              .with(CalciteConnectionProperty.CONFORMANCE, SqlConformanceEnum.BIG_QUERY)
               .with(CalciteConnectionProperty.FUN, SqlLibrary.CALCITE.fun)
               .with(CalciteConnectionProperty.TYPE_SYSTEM,
                   CustomTypeSystems.class.getName() + "#ROUNDING_MODE_HALF_UP")

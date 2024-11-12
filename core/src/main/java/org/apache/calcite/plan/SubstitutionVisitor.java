@@ -378,6 +378,8 @@ public class SubstitutionVisitor {
       final RexNode e = RexUtil.expandSearch(rexBuilder, null, condition);
       return canonizeNode(rexBuilder, e);
     }
+    case CHECKED_PLUS:
+    case CHECKED_TIMES:
     case PLUS:
     case TIMES: {
       RexCall call = (RexCall) condition;
