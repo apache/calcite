@@ -4065,8 +4065,6 @@ public abstract class SqlLibraryOperators {
       new SqlFunction("MAKE_INTERVAL",
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.INTERVAL, null,
-          OperandTypes.family(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER,
-              SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER,
-              SqlTypeFamily.INTEGER),
+          OperandTypes.LESS_THAN_SIX_INTEGERS,
           SqlFunctionCategory.TIMEDATE);
 }
