@@ -826,6 +826,10 @@ public class SqlDialect {
     case PLUS:
     case ROW:
     case TIMES:
+    case CHECKED_PLUS:
+    case CHECKED_TIMES:
+    case CHECKED_MINUS:
+    case CHECKED_DIVIDE:
       return true;
     default:
       return BUILT_IN_OPERATORS_LIST.contains(operator);

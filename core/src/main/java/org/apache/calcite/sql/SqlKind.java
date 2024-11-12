@@ -308,6 +308,31 @@ public enum SqlKind {
   MINUS,
 
   /**
+   * Checked version of PLUS, which produces a runtime error on overflow.
+   * Not used for date/time arithmetic.
+   */
+  CHECKED_PLUS,
+
+  /**
+   * Checked version of MINUS, which produces a runtime error on overflow.
+   * Not used for date/time arithmetic.
+   */
+  CHECKED_MINUS,
+
+  /**
+   * Checked version of TIMES, which produces a runtime error on overflow.
+   * Not used for date/time arithmetic.
+   */
+  CHECKED_TIMES,
+
+  /**
+   * Checked version of DIVIDE, which produces a runtime error on overflow.
+   * For example, INT_MIN / -1.
+   * Not used for date/time arithmetic.
+   */
+  CHECKED_DIVIDE,
+
+  /**
    * Alternation operator in a pattern expression within a
    * {@code MATCH_RECOGNIZE} clause.
    */
@@ -529,6 +554,11 @@ public enum SqlKind {
    * @see #MINUS
    */
   MINUS_PREFIX,
+
+  /**
+   * Checked version of unary minus operator.
+   */
+  CHECKED_MINUS_PREFIX,
 
   /** {@code EXISTS} operator. */
   EXISTS,
@@ -1516,10 +1546,16 @@ public enum SqlKind {
    * {@link #MINUS}
    * {@link #TIMES}
    * {@link #DIVIDE}
-   * {@link #MOD}.
+   * {@link #MOD}
+   * and the corresponding checked arithmetic operations.
    */
   public static final Set<SqlKind> BINARY_ARITHMETIC =
-      EnumSet.of(PLUS, MINUS, TIMES, DIVIDE, MOD);
+      EnumSet.of(PLUS, MINUS, TIMES, DIVIDE, MOD,
+          CHECKED_PLUS, CHECKED_MINUS, CHECKED_TIMES, CHECKED_DIVIDE);
+
+  public static final Set<SqlKind> CHECKED_ARITHMETIC =
+      EnumSet.of(CHECKED_PLUS, CHECKED_MINUS, CHECKED_TIMES, CHECKED_DIVIDE, CHECKED_MINUS_PREFIX);
+
 
   /**
    * Category of binary equality.
@@ -1574,7 +1610,7 @@ public enum SqlKind {
    */
   @API(since = "1.22", status = API.Status.EXPERIMENTAL)
   public static final Set<SqlKind> SYMMETRICAL_SAME_ARG_TYPE =
-      EnumSet.of(PLUS, TIMES);
+      EnumSet.of(PLUS, TIMES, CHECKED_PLUS, CHECKED_TIMES);
 
   /**
    * Simple binary operators are those operators which expects operands from the same Domain.

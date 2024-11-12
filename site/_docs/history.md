@@ -49,7 +49,13 @@ other software versions as specified in gradle.properties.
 #### Breaking Changes
 {: #breaking-1-39-0}
 
-None.
+*Checked arithmetic*.  [<a
+href="https://issues.apache.org/jira/browse/CALCITE-6685">CALCITE-6685</a>]
+introduces support for checked arithmetic on short integer types.  A
+new `SqlConformance.checkedArithmetic()` attribute is added to control
+this behavior.  The BIG_QUERY and SQL_SERVER_2008 conformance have
+been changed to use checked arithmetic, matching the specification of
+these dialects.
 
 #### New features
 {: #new-features-1-39-0}

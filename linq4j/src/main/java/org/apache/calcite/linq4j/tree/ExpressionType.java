@@ -141,6 +141,12 @@ public enum ExpressionType {
   Divide(" / ", false, 3, false),
 
   /**
+   * A checked division operation, such as (a / b), for numeric
+   * operands.
+   */
+  DivideChecked(" / ", false, 3, false),
+
+  /**
    * A percent remainder operation, such as (a % b), for numeric
    * operands.
    */

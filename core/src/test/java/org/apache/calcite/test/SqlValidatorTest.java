@@ -9432,6 +9432,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "$LiteralChain -\n"
         + "+ pre\n"
         + "- pre\n"
+        + "- pre\n" // checked
         + "FINAL pre\n"
         + "RUNNING pre\n"
         + "\n"
@@ -9439,13 +9440,18 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "\n"
         + "% left\n"
         + "* left\n"
+        + "* left\n" // checked
+        + "/ left\n" // checked
         + "/ left\n"
         + "/INT left\n"
+        + "/INT left\n" // checked
         + "|| left\n"
         + "\n"
         + "+ left\n"
+        + "+ left\n" // checked
         + "+ -\n"
         + "- left\n"
+        + "- left\n" // checked
         + "- -\n"
         + "EXISTS pre\n"
         + "UNIQUE pre\n"

@@ -154,4 +154,8 @@ public class SqlDelegatingConformance implements SqlConformance {
   @Override public boolean allowLenientCoercion() {
     return delegate.allowLenientCoercion();
   }
+
+  @Override public boolean checkedArithmetic() {
+    return delegate.checkedArithmetic();
+  }
 }

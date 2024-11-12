@@ -295,6 +295,19 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           OperandTypes.DIVISION_OPERATOR);
 
   /**
+   * Checked version of arithmetic division operator, '<code>/</code>'.
+   */
+  public static final SqlBinaryOperator CHECKED_DIVIDE =
+      new SqlBinaryOperator(
+          "/",
+          SqlKind.CHECKED_DIVIDE,
+          60,
+          true,
+          ReturnTypes.QUOTIENT_NULLABLE,
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.DIVISION_OPERATOR);
+
+  /**
    * Arithmetic remainder operator, '<code>%</code>',
    * an alternative to {@link #MOD} allowed if under certain conformance levels.
    *
@@ -334,6 +347,19 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlBinaryOperator(
           "/INT",
           SqlKind.DIVIDE,
+          60,
+          true,
+          ReturnTypes.INTEGER_QUOTIENT_NULLABLE,
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.DIVISION_OPERATOR);
+
+  /**
+   * Checked version of integer division.  @see DIVIDE_INTEGER.
+   */
+  public static final SqlBinaryOperator CHECKED_DIVIDE_INTEGER =
+      new SqlBinaryOperator(
+          "/INT",
+          SqlKind.CHECKED_DIVIDE,
           60,
           true,
           ReturnTypes.INTEGER_QUOTIENT_NULLABLE,
@@ -548,12 +574,40 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           OperandTypes.MINUS_OPERATOR);
 
   /**
+   * Checked version of infix arithmetic minus operator, '<code>-</code>'.
+   */
+  public static final SqlBinaryOperator CHECKED_MINUS =
+      new SqlMonotonicBinaryOperator(
+          "-",
+          SqlKind.CHECKED_MINUS,
+          40,
+          true,
+
+          // Same type inference strategy as sum
+          ReturnTypes.NULLABLE_SUM,
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.MINUS_OPERATOR);
+
+  /**
    * Arithmetic multiplication operator, '<code>*</code>'.
    */
   public static final SqlBinaryOperator MULTIPLY =
       new SqlMonotonicBinaryOperator(
           "*",
           SqlKind.TIMES,
+          60,
+          true,
+          ReturnTypes.PRODUCT_NULLABLE,
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.MULTIPLY_OPERATOR);
+
+  /**
+   * Checked version of arithmetic multiplication operator, '<code>*</code>'.
+   */
+  public static final SqlBinaryOperator CHECKED_MULTIPLY =
+      new SqlMonotonicBinaryOperator(
+          "*",
+          SqlKind.CHECKED_TIMES,
           60,
           true,
           ReturnTypes.PRODUCT_NULLABLE,
@@ -593,6 +647,19 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlMonotonicBinaryOperator(
           "+",
           SqlKind.PLUS,
+          40,
+          true,
+          ReturnTypes.NULLABLE_SUM,
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.PLUS_OPERATOR);
+
+  /**
+   * Checked version of infix arithmetic plus operator, '<code>+</code>'.
+   */
+  public static final SqlBinaryOperator CHECKED_PLUS =
+      new SqlMonotonicBinaryOperator(
+          "+",
+          SqlKind.CHECKED_PLUS,
           40,
           true,
           ReturnTypes.NULLABLE_SUM,
@@ -946,6 +1013,18 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlPrefixOperator(
           "-",
           SqlKind.MINUS_PREFIX,
+          80,
+          ReturnTypes.ARG0,
+          InferTypes.RETURN_TYPE,
+          OperandTypes.NUMERIC_OR_INTERVAL);
+
+  /**
+   * Checked version of prefix arithmetic minus operator, '<code>-</code>'.
+   */
+  public static final SqlPrefixOperator CHECKED_UNARY_MINUS =
+      new SqlPrefixOperator(
+          "-",
+          SqlKind.CHECKED_MINUS_PREFIX,
           80,
           ReturnTypes.ARG0,
           InferTypes.RETURN_TYPE,

@@ -70,12 +70,6 @@ public abstract class Bug {
   public static final boolean DT1684_FIXED = false;
 
   /**
-   * Whether <a href="http://issues.eigenbase.org/browse/FNL-25">issue
-   * FNL-25</a> is fixed. (also filed as dtbug 153)
-   */
-  public static final boolean FNL25_FIXED = false;
-
-  /**
    * Whether <a href="http://issues.eigenbase.org/browse/FRG-73">issue FRG-73:
    * miscellaneous bugs with nested comments</a> is fixed.
    */
