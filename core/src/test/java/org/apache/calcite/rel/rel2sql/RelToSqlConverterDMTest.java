@@ -12158,21 +12158,16 @@ class RelToSqlConverterDMTest {
 
   @Test public void testMakeInterval() {
     final RelBuilder builder = relBuilder();
-
     final RexNode makeIntervalRexNode =
         builder.call(SqlLibraryOperators.MAKE_INTERVAL,
             builder.literal(1), builder.literal(2), builder.literal(3),
-            builder.literal(4), builder.literal(5), builder.literal(6)
-        );
-
+            builder.literal(4), builder.literal(5), builder.literal(6));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(makeIntervalRexNode, "interval_example"))
         .build();
-
     final String expectedBigQuery = "SELECT MAKE_INTERVAL(1, 2, 3, 4, 5, 6) AS interval_example\n"
         + "FROM scott.EMP";
-
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }
 }
