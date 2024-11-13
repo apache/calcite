@@ -4035,6 +4035,14 @@ public abstract class SqlLibraryOperators {
               OperandTypes.NUMERIC_NUMERIC)
           .withFunctionType(SqlFunctionCategory.NUMERIC);
 
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlAggFunction RATIO_TO_REPORT =
+      SqlBasicAggFunction
+          .create("RATIO_TO_REPORT", SqlKind.RATIO_TO_REPORT,
+              ReturnTypes.DECIMAL_NULLABLE,
+              OperandTypes.NUMERIC)
+          .withFunctionType(SqlFunctionCategory.NUMERIC);
+
   /**
    * Creates a new instance of {@link SqlFunction} representing the "SF_FLOOR" Snowflake function.
    * This function overrides the default unparse method to print "FLOOR" instead of "SF_FLOOR".
@@ -4059,11 +4067,4 @@ public abstract class SqlLibraryOperators {
           writer.endList(parenthesisFrame);
         }
       };
-
-  public static final SqlAggFunction RATIO_TO_REPORT =
-      SqlBasicAggFunction
-          .create("RATIO_TO_REPORT", SqlKind.RATIO_TO_REPORT,
-              ReturnTypes.DECIMAL,
-              OperandTypes.NUMERIC_NUMERIC)
-          .withFunctionType(SqlFunctionCategory.NUMERIC);
 }
