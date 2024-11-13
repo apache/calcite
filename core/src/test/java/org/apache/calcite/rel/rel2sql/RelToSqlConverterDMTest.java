@@ -6155,6 +6155,15 @@ class RelToSqlConverterDMTest {
             .ok(expectedSnowFlake);
   }
 
+  @Test public void testRandFunction() {
+    String query = "select rand() from \"employee\"";
+    final String expectedSpark = "SELECT RANDOM()\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query)
+        .withPostgresql()
+        .ok(expectedSpark);
+  }
+
   @Test public void testRandomFunction() {
     String query = "select rand_integer(1,3) from \"employee\"";
     final String expectedSnowFlake = "SELECT UNIFORM(1, 3, RANDOM())\n"

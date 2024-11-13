@@ -299,6 +299,9 @@ public class PostgresqlSqlDialect extends SqlDialect {
     case "CURRENT_TIMESTAMP_LTZ":
       this.unparseCurrentTimestampWithTZ(writer, call, leftPrec, rightPrec);
       break;
+    case "RAND":
+      writer.keyword("RANDOM()");
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
