@@ -3731,6 +3731,13 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.INTEGER_NULLABLE,
           null, OperandTypes.STRING_STRING, SqlFunctionCategory.STRING);
 
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlBasicFunction REGEXP_SPLIT_TO_ARRAY =
+      SqlBasicFunction.create("REGEXP_SPLIT_TO_ARRAY", ReturnTypes.ARG0_NULLABLE
+              .andThen(SqlTypeTransforms.TO_ARRAY),
+          OperandTypes.STRING_STRING,
+          SqlFunctionCategory.STRING);
+
 //  @LibraryOperator(libraries = {SNOWFLAKE})
 //  public static final SqlFunction ARRAY_LENGTH =
 //      new SqlFunction("ARRAY_LENGTH", SqlKind.OTHER_FUNCTION,

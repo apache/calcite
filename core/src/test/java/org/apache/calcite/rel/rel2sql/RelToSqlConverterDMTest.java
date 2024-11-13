@@ -10727,6 +10727,22 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSFQuery));
   }
 
+  @Test public void testRegexpSplitToArray() {
+    final RelBuilder builder = relBuilder();
+    final RexNode regexpCountRexNode =
+        builder.call(SqlLibraryOperators.REGEXP_SPLIT_TO_ARRAY,
+            builder.literal("foo1 foo foo40 foo"),
+            builder.literal("foo"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(regexpCountRexNode, "value"))
+        .build();
+    final String expectedOracleQuery = "SELECT REGEXP_SPLIT_TO_ARRAY('foo1 foo foo40 foo', 'foo') "
+        + "AS \"value\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedOracleQuery));
+  }
+
   @Test public void testMONInUppercase() {
     final RelBuilder builder = relBuilder();
     final RexNode monthInUppercase =
