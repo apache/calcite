@@ -402,7 +402,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction STRPOS = new SqlPositionFunction("STRPOS");
 
   /** The "INSTR(string, substring [, position [, occurrence]])" function. */
-  @LibraryOperator(libraries = {BIG_QUERY, MYSQL, ORACLE})
+  @LibraryOperator(libraries = {BIG_QUERY, HIVE, MYSQL, ORACLE})
   public static final SqlFunction INSTR = new SqlPositionFunction("INSTR");
 
   /** Generic "SUBSTR(string, position [, substringLength ])" function. */

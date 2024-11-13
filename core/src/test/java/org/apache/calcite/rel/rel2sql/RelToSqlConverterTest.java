@@ -2937,24 +2937,51 @@ class RelToSqlConverterTest {
     final String query = "SELECT INSTR('ABC', 'A', 1, 1) from \"product\"";
     final String expectedBQ = "SELECT INSTR('ABC', 'A', 1, 1)\n"
         + "FROM foodmart.product";
+    final String expectedHive = "SELECT INSTR('ABC', 'A', 1, 1)\n"
+        + "FROM `foodmart`.`product`";
     final String expected_oracle = "SELECT INSTR('ABC', 'A', 1, 1)\n"
         + "FROM \"foodmart\".\"product\"";
     final Sql sqlOracle = fixture().withOracle().withLibrary(SqlLibrary.ORACLE);
     sqlOracle.withSql(query).withOracle().ok(expected_oracle);
     final Sql sqlBQ = fixture().withBigQuery().withLibrary(SqlLibrary.BIG_QUERY);
     sqlBQ.withSql(query).withBigQuery().ok(expectedBQ);
+    final Sql sqlHive = fixture().withHive().withLibrary(SqlLibrary.HIVE);
+    sqlHive.withSql(query).withHive().ok(expectedHive);
   }
 
   @Test void testInstrFunction3Operands() {
     final String query = "SELECT INSTR('ABC', 'A', 1) from \"product\"";
     final String expectedBQ = "SELECT INSTR('ABC', 'A', 1)\n"
         + "FROM foodmart.product";
+    final String expectedHive = "SELECT INSTR('ABC', 'A', 1)\n"
+        + "FROM `foodmart`.`product`";
     final String expectedOracle = "SELECT INSTR('ABC', 'A', 1)\n"
         + "FROM \"foodmart\".\"product\"";
     final Sql sqlOracle = fixture().withOracle().withLibrary(SqlLibrary.ORACLE);
     sqlOracle.withSql(query).withOracle().ok(expectedOracle);
     final Sql sqlBQ = fixture().withBigQuery().withLibrary(SqlLibrary.BIG_QUERY);
     sqlBQ.withSql(query).withBigQuery().ok(expectedBQ);
+    final Sql sqlHive = fixture().withHive().withLibrary(SqlLibrary.HIVE);
+    sqlHive.withSql(query).withHive().ok(expectedHive);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6689">[CALCITE-6689]
+   *  Add support for INSTR() in Hive SqlLibrary</a>. */
+  @Test void testInstrFunction2Operands() {
+    final String query = "SELECT INSTR('ABC', 'A') from \"product\"";
+    final String expectedBQ = "SELECT INSTR('ABC', 'A')\n"
+        + "FROM foodmart.product";
+    final String expectedHive = "SELECT INSTR('ABC', 'A')\n"
+        + "FROM `foodmart`.`product`";
+    final String expectedOracle = "SELECT INSTR('ABC', 'A')\n"
+        + "FROM \"foodmart\".\"product\"";
+    final Sql sqlOracle = fixture().withOracle().withLibrary(SqlLibrary.ORACLE);
+    sqlOracle.withSql(query).withOracle().ok(expectedOracle);
+    final Sql sqlBQ = fixture().withBigQuery().withLibrary(SqlLibrary.BIG_QUERY);
+    sqlBQ.withSql(query).withBigQuery().ok(expectedBQ);
+    final Sql sqlHive = fixture().withHive().withLibrary(SqlLibrary.HIVE);
+    sqlHive.withSql(query).withHive().ok(expectedHive);
   }
 
   /** Tests that we escape single-quotes in character literals using back-slash

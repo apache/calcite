@@ -2833,8 +2833,8 @@ In the following:
 | b s | IFNULL(value1, value2)                       | Equivalent to `NVL(value1, value2)`
 | p | string1 ILIKE string2 [ ESCAPE string3 ]       | Whether *string1* matches pattern *string2*, ignoring case (similar to `LIKE`)
 | p | string1 NOT ILIKE string2 [ ESCAPE string3 ]   | Whether *string1* does not match pattern *string2*, ignoring case (similar to `NOT LIKE`)
-| b o | INSTR(string, substring [, from [, occurrence ] ]) | Returns the position of *substring* in *string*, searching starting at *from* (default 1), and until locating the nth *occurrence* (default 1) of *substring*
-| b m o | INSTR(string, substring)                   | Equivalent to `POSITION(substring IN string)`
+| b h o | INSTR(string, substring [, from [, occurrence ] ]) | Returns the position of *substring* in *string*, searching starting at *from* (default 1), and until locating the nth *occurrence* (default 1) of *substring*
+| b h m o | INSTR(string, substring)                   | Equivalent to `POSITION(substring IN string)`
 | b | IS_INF(value)                                  | Returns whether *value* is infinite
 | b | IS_NAN(value)                                  | Returns whether *value* is NaN
 | m | JSON_TYPE(jsonValue)                           | Returns a string value indicating the type of *jsonValue*
