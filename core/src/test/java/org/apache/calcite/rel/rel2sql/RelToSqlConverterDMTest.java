@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.rel2sql;
 
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.plan.CTEDefinationTrait;
@@ -12154,5 +12155,20 @@ class RelToSqlConverterDMTest {
         + ".SSSSSSSS') AS TIMESTAMP) CT\nFROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
+
+  @Test public void testDateTruncFunction() {
+    final RelBuilder builder = relBuilder();
+    RexNode timeUnitRex = builder.literal(TimeUnit.DAY);
+    final RexNode dateTrunc =
+        builder.call(SqlLibraryOperators.DATETRUNC, timeUnitRex, builder.call(CURRENT_TIMESTAMP));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(dateTrunc, "day"))
+        .build();
+    final String expectedSql = "SELECT DATETRUNC(DAY, GETDATE()) AS [day]"
+        + "\nFROM [scott].[EMP]";
+
+    assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedSql));
   }
 }
