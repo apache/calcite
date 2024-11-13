@@ -3996,6 +3996,10 @@ public abstract class SqlLibraryOperators {
           OperandTypes.INTERVALINTERVAL_INTERVALDATETIME,
           SqlFunctionCategory.SYSTEM);
 
+  /**
+   * Custom POWER1 function to handle SQL Server's POWER behavior,
+   * which may require FLOOR or ROUND based on input type.
+   */
   @LibraryOperator(libraries = {SQL_SERVER})
   public static final SqlFunction POWER1 =
       SqlStdOperatorTable.POWER.withName("POWER1");
