@@ -12077,6 +12077,26 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedBigQuerySql));
   }
 
+  @Test public void testWithOracleRatioToReport() {
+    RelBuilder builder = relBuilder().scan("EMP");
+    RexNode ratioToReport =
+        builder.call(SqlLibraryOperators.RATIO_TO_REPORT, builder.field(0));
+    final RexNode overCall = builder.getRexBuilder()
+        .makeOver(ratioToReport.getType(), SqlLibraryOperators.RATIO_TO_REPORT,
+            ImmutableList.of(), ImmutableList.of(), ImmutableList.of(),
+            RexWindowBounds.UNBOUNDED_PRECEDING,
+            RexWindowBounds.CURRENT_ROW,
+            true, true, false, false, false);
+    RelNode root = builder
+        .project(overCall)
+        .build();
+    final String expactedOracleSql =
+        "SELECT RATIO_TO_REPORT() OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) \"$f0\"\n"
+            + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expactedOracleSql));
+  }
+
   @Test void testCaseExpressionInParseTimestamp() {
     final RelBuilder builder = relBuilder().scan("DEPT");
     final RexNode firstCondition =
