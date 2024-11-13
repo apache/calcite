@@ -2719,6 +2719,13 @@ public abstract class SqlLibraryOperators {
           OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction NANVL =
+      SqlBasicFunction.create("NANVL",
+          ReturnTypes.DOUBLE_NULLABLE,
+          OperandTypes.NUMERIC_INT32,
+          SqlFunctionCategory.NUMERIC);
+
   /** The "LOG(value [, value2])" function.
    *
    * @see SqlStdOperatorTable#LN
