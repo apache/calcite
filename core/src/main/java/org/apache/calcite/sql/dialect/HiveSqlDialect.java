@@ -98,7 +98,14 @@ public class HiveSqlDialect extends SqlDialect {
       writer.sep(",");
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       if (3 == call.operandCount()) {
-        throw new RuntimeException("3rd operand Not Supported for Function INSTR in Hive");
+        writer.sep(",");
+        call.operand(2).unparse(writer, leftPrec, rightPrec);
+      }
+      if (4 == call.operandCount()) {
+        writer.sep(",");
+        call.operand(2).unparse(writer, leftPrec, rightPrec);
+        writer.sep(",");
+        call.operand(3).unparse(writer, leftPrec, rightPrec);
       }
       writer.endFunCall(frame);
       break;

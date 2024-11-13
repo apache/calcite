@@ -10836,7 +10836,7 @@ public class SqlOperatorTest {
       f.checkNull("INSTR(x'', null, 1, 1)");
     };
     final List<SqlLibrary> libraries =
-        list(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL, SqlLibrary.ORACLE);
+        list(SqlLibrary.BIG_QUERY, SqlLibrary.HIVE, SqlLibrary.MYSQL, SqlLibrary.ORACLE);
     f0.forEachLibrary(libraries, consumer);
   }
 
