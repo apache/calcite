@@ -4059,4 +4059,9 @@ public abstract class SqlLibraryOperators {
           writer.endList(parenthesisFrame);
         }
       };
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction ROW_COUNT =
+      new SqlFunction("ROW_COUNT", SqlKind.OTHER_FUNCTION, ReturnTypes.DECIMAL, null,
+          null, SqlFunctionCategory.SYSTEM);
 }
