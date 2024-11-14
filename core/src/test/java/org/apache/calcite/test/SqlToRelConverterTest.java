@@ -523,6 +523,16 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4549">[CALCITE-4549]
+   * IndexOutOfBoundsException when group view by a sub query</a>. */
+  @Test void testGroupView() {
+    final String sql = "SELECT case when ENAME in( 'a', 'b') then 'c' else 'd' end\n"
+        + "from EMP_20\n"
+        + "group by case when ENAME in( 'a', 'b') then 'c' else 'd' end";
+    sql(sql).ok();
+  }
+
   @Test void testGroupExpressionsInsideAndOut() {
     // Expressions inside and outside aggs. Common sub-expressions should be
     // eliminated: 'sal' always translates to expression #2.

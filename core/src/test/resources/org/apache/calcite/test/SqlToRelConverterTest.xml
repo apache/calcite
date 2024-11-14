@@ -2560,6 +2560,21 @@ LogicalAggregate(group=[{0}], SUM_SAL=[SUM($1)])
       <![CDATA[select deptno, sum(sal) as sum_sal from emp group by deptno]]>
     </Resource>
   </TestCase>
+  <TestCase name="testGroupView">
+    <Resource name="sql">
+      <![CDATA[SELECT case when ENAME in( 'a', 'b') then 'c' else 'd' end
+from EMP_20
+group by case when ENAME in( 'a', 'b') then 'c' else 'd' end]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalAggregate(group=[{0}])
+  LogicalProject(EXPR$0=[CASE(SEARCH($1, Sarg['a':VARCHAR(20), 'b':VARCHAR(20)]:VARCHAR(20)), 'c', 'd')])
+    LogicalFilter(condition=[AND(=($7, 20), >($5, 1000))])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testGroupingFunction">
     <Resource name="sql">
       <![CDATA[select
