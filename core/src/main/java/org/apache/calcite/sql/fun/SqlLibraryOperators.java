@@ -2724,7 +2724,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction NANVL =
       SqlBasicFunction.create("NANVL",
           ReturnTypes.DOUBLE_NULLABLE,
-          OperandTypes.NUMERIC_INT32,
+          OperandTypes.NUMERIC_NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
   /** The "LOG(value [, value2])" function.
