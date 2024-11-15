@@ -6156,6 +6156,15 @@ class RelToSqlConverterDMTest {
             .ok(expectedSnowFlake);
   }
 
+  @Test public void testRandFunction() {
+    String query = "select rand() from \"employee\"";
+    final String expectedSpark = "SELECT RANDOM()\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query)
+        .withPostgresql()
+        .ok(expectedSpark);
+  }
+
   @Test public void testRandomFunction() {
     String query = "select rand_integer(1,3) from \"employee\"";
     final String expectedSnowFlake = "SELECT UNIFORM(1, 3, RANDOM())\n"
@@ -9047,6 +9056,23 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
 
+  @Test public void testFormatFunction() {
+    final RelBuilder builder = relBuilder();
+
+    final RexNode formatIntegerRexNode =
+        builder.call(SqlLibraryOperators.POSTGRESQL_FORMAT,
+            builder.literal("Hello, %s"), builder.literal("John"));
+
+    final RelNode root = builder
+        .scan("EMP")
+        .project(formatIntegerRexNode)
+        .build();
+
+    final String expectedPostgresQuery = "SELECT FORMAT('Hello, %s', 'John') AS \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedPostgresQuery));
+  }
+
   @Test public void testCoalesceFunctionWithDecimalAndStringArgument() {
     final RelBuilder builder = relBuilder();
 
@@ -10728,6 +10754,22 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSFQuery));
   }
 
+  @Test public void testRegexpSplitToArray() {
+    final RelBuilder builder = relBuilder();
+    final RexNode regexpCountRexNode =
+        builder.call(SqlLibraryOperators.REGEXP_SPLIT_TO_ARRAY,
+            builder.literal("foo1 foo foo40 foo"),
+            builder.literal("foo"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(regexpCountRexNode, "value"))
+        .build();
+    final String expectedOracleQuery = "SELECT REGEXP_SPLIT_TO_ARRAY('foo1 foo foo40 foo', 'foo') "
+        + "AS \"value\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedOracleQuery));
+  }
+
   @Test public void testMONInUppercase() {
     final RelBuilder builder = relBuilder();
     final RexNode monthInUppercase =
@@ -12062,6 +12104,26 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedBigQuerySql));
   }
 
+  @Test public void testWithOracleRatioToReport() {
+    RelBuilder builder = relBuilder().scan("EMP");
+    RexNode ratioToReport =
+        builder.call(SqlLibraryOperators.RATIO_TO_REPORT, builder.field(0));
+    final RexNode overCall = builder.getRexBuilder()
+        .makeOver(ratioToReport.getType(), SqlLibraryOperators.RATIO_TO_REPORT,
+            ImmutableList.of(), ImmutableList.of(), ImmutableList.of(),
+            RexWindowBounds.UNBOUNDED_PRECEDING,
+            RexWindowBounds.CURRENT_ROW,
+            true, true, false, false, false);
+    RelNode root = builder
+        .project(overCall)
+        .build();
+    final String expactedOracleSql =
+        "SELECT RATIO_TO_REPORT() OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) \"$f0\"\n"
+            + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expactedOracleSql));
+  }
+
   @Test void testCaseExpressionInParseTimestamp() {
     final RelBuilder builder = relBuilder().scan("DEPT");
     final RexNode firstCondition =
@@ -12155,6 +12217,21 @@ class RelToSqlConverterDMTest {
         + ".SSSSSSSS') AS TIMESTAMP) CT\nFROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
+
+  @Test public void testMakeInterval() {
+    final RelBuilder builder = relBuilder();
+    final RexNode makeIntervalRexNode =
+        builder.call(SqlLibraryOperators.MAKE_INTERVAL,
+            builder.literal(1), builder.literal(2), builder.literal(3),
+            builder.literal(4), builder.literal(5), builder.literal(6));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(makeIntervalRexNode, "interval_example"))
+        .build();
+    final String expectedBigQuery = "SELECT MAKE_INTERVAL(1, 2, 3, 4, 5, 6) AS interval_example\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }
 
   @Test public void testDateTruncFunction() {

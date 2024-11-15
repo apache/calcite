@@ -77,6 +77,7 @@ import static org.apache.calcite.sql.fun.SqlLibrary.TERADATA;
 import static org.apache.calcite.sql.type.OperandTypes.ANY_STRING_OR_STRING_STRING;
 import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTEGER;
 import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTERVAL;
+import static org.apache.calcite.sql.type.OperandTypes.ONE_OR_MORE;
 import static org.apache.calcite.sql.type.OperandTypes.STRING_INTEGER;
 import static org.apache.calcite.sql.type.OperandTypes.STRING_STRING;
 import static org.apache.calcite.sql.type.OperandTypes.STRING_STRING_BOOLEAN;
@@ -2488,6 +2489,13 @@ public abstract class SqlLibraryOperators {
           OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction NANVL =
+      SqlBasicFunction.create("NANVL",
+          ReturnTypes.DOUBLE_NULLABLE,
+          OperandTypes.NUMERIC_NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
   /** The "LOG(value [, value2])" function.
    *
    * @see SqlStdOperatorTable#LN
@@ -2599,6 +2607,15 @@ public abstract class SqlLibraryOperators {
         SqlKind.FORMAT,
         ReturnTypes.VARCHAR_2000_NULLABLE, null,
         OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.NUMERIC),
+        SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlFunction POSTGRESQL_FORMAT =
+      new SqlFunction(
+        "FORMAT",
+        SqlKind.FORMAT,
+        ReturnTypes.VARCHAR_2000_NULLABLE, null,
+        ONE_OR_MORE,
         SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {ORACLE})
@@ -3340,6 +3357,13 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.INTEGER_NULLABLE,
           null, OperandTypes.STRING_STRING, SqlFunctionCategory.STRING);
 
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlBasicFunction REGEXP_SPLIT_TO_ARRAY =
+      SqlBasicFunction.create("REGEXP_SPLIT_TO_ARRAY", ReturnTypes.ARG0_NULLABLE
+              .andThen(SqlTypeTransforms.TO_ARRAY),
+          OperandTypes.STRING_STRING,
+          SqlFunctionCategory.STRING);
+
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction JSON_OBJECT =
       new SqlFunction("JSON_OBJECT",
@@ -3615,6 +3639,14 @@ public abstract class SqlLibraryOperators {
               OperandTypes.NUMERIC_NUMERIC)
           .withFunctionType(SqlFunctionCategory.NUMERIC);
 
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlAggFunction RATIO_TO_REPORT =
+      SqlBasicAggFunction
+          .create("RATIO_TO_REPORT", SqlKind.RATIO_TO_REPORT,
+              ReturnTypes.DECIMAL_NULLABLE,
+              OperandTypes.NUMERIC)
+          .withFunctionType(SqlFunctionCategory.NUMERIC);
+
   /**
    * Creates a new instance of {@link SqlFunction} representing the "SF_FLOOR" Snowflake function.
    * This function overrides the default unparse method to print "FLOOR" instead of "SF_FLOOR".
@@ -3639,4 +3671,12 @@ public abstract class SqlLibraryOperators {
           writer.endList(parenthesisFrame);
         }
       };
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction MAKE_INTERVAL =
+      new SqlFunction("MAKE_INTERVAL",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTERVAL, null,
+          OperandTypes.LESS_THAN_SIX_INTEGERS,
+          SqlFunctionCategory.TIMEDATE);
 }
