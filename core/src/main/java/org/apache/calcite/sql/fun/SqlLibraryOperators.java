@@ -134,38 +134,11 @@ public abstract class SqlLibraryOperators {
               OperandTypes.STRING_STRING_STRING, OperandTypes.STRING_STRING_TIMESTAMP),
           SqlFunctionCategory.TIMEDATE);
 
-  /** THE "DATE_ADD(date, interval)" function
-   * (BigQuery) adds the interval to the date. */
-//  @LibraryOperator(libraries = {BIG_QUERY})
-//  public static final SqlFunction DATE_ADD =
-//      SqlBasicFunction.create(SqlKind.DATE_ADD, ReturnTypes.ARG0_NULLABLE,
-//              OperandTypes.DATE_INTERVAL)
-//          .withFunctionType(SqlFunctionCategory.TIMEDATE);
-
-  /** THE "DATE_DIFF(date, date2, timeUnit)" function
-   * (BigQuery) returns the number of timeUnit in (date - date2). */
-//  @LibraryOperator(libraries = {BIG_QUERY})
-//  public static final SqlFunction DATE_DIFF =
-//      new SqlTimestampDiffFunction("DATE_DIFF",
-//          OperandTypes.family(SqlTypeFamily.DATE, SqlTypeFamily.DATE, SqlTypeFamily.ANY));
-
   /** The "DATEADD(timeUnit, numeric, datetime)" function
    * (Microsoft SQL Server, Redshift, Snowflake). */
   @LibraryOperator(libraries = {MSSQL, POSTGRESQL})
   public static final SqlFunction DATEADD =
       new SqlTimestampAddFunction("DATEADD");
-
-  /** The "DATEDIFF(timeUnit, datetime, datetime2)" function
-   * (Microsoft SQL Server, Redshift, Snowflake).
-   *
-   * <p>MySQL has "DATEDIFF(date, date2)" and "TIMEDIFF(time, time2)" functions
-   * but Calcite does not implement these because they have no "timeUnit"
-   * argument. */
-//  @LibraryOperator(libraries = {MSSQL, POSTGRESQL})
-//  public static final SqlFunction DATEDIFF =
-//      new SqlTimestampDiffFunction("DATEDIFF",
-//          OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.DATE,
-//              SqlTypeFamily.DATE));
 
   /** The "CONVERT(type, expr [,style])" function (Microsoft SQL Server).
    *
@@ -221,14 +194,6 @@ public abstract class SqlLibraryOperators {
           getSyntax().unparse(writer, this, call, leftPrec, rightPrec);
         }
       };
-
-  /** The "DATE_SUB(date, interval)" function (BigQuery);
-   * subtracts interval from the date, independent of any time zone. */
-//  @LibraryOperator(libraries = {BIG_QUERY})
-//  public static final SqlFunction DATE_SUB =
-//      SqlBasicFunction.create(SqlKind.DATE_SUB, ReturnTypes.ARG0_NULLABLE,
-//           OperandTypes.DATE_INTERVAL)
-//          .withFunctionType(SqlFunctionCategory.TIMEDATE);
 
   /** The "DATEPART(timeUnit, datetime)" function
    * (Microsoft SQL Server). */
@@ -433,13 +398,6 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction SUBSTR_MYSQL =
       SUBSTR.withKind(SqlKind.SUBSTR_MYSQL);
 
-  /** The "SAFE_CAST(expr AS type)" function; identical to CAST(),
-   * except that if conversion fails, it returns NULL instead of raising an
-   * error. */
-//  @LibraryOperator(libraries = {BIG_QUERY})
-//  public static final SqlFunction SAFE_CAST =
-//      new SqlCastFunction("SAFE_CAST", SqlKind.SAFE_CAST);
-
   @LibraryOperator(libraries = {SNOWFLAKE})
   public static final SqlFunction IS_REAL =
       new SqlFunction("IS_REAL",
@@ -615,24 +573,11 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.STRING);
 
-  /** The "REGEXP_INSTR(value, regexp [, position[, occurrence, [occurrence_position]]])" function.
-   * Returns the lowest 1-based position of a regexp in value. Returns NULL if there is no match. */
-//  @LibraryOperator(libraries = {BIG_QUERY})
-//  public static final SqlBasicFunction REGEXP_INSTR =
-//      SqlBasicFunction.create("REGEXP_INSTR", ReturnTypes.INTEGER_NULLABLE,
-//          OperandTypes.STRING_STRING_OPTIONAL_INTEGER_OPTIONAL_INTEGER_OPTIONAL_INTEGER,
-//          SqlFunctionCategory.STRING);
-
   /** The "REGEXP_REPLACE(value, regexp, rep [, pos [, occurrence [, matchType]]])"
    * function. Replaces all substrings of value that match regexp with
    * {@code rep} and returns modified value. */
   @LibraryOperator(libraries = {BIG_QUERY, MYSQL, ORACLE})
   public static final SqlFunction REGEXP_REPLACE = new SqlRegexpReplaceFunction();
-
-  /** The "REGEXP_SUBSTR(value, regexp[, position[, occurrence]])" function.
-   * Returns the substring in value that matches the regexp. Returns NULL if there is no match. */
-//  @LibraryOperator(libraries = {BIG_QUERY})
-//  public static final SqlFunction REGEXP_SUBSTR = REGEXP_EXTRACT.withName("REGEXP_SUBSTR");
 
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction COMPRESS =
@@ -979,22 +924,6 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.BOOLEAN_NULLABLE, OperandTypes.ANY_STRING_OPTIONAL_STRING,
           SqlFunctionCategory.STRING);
 
-//  /** The "DATE(string)" function, equivalent to "CAST(string AS DATE). */
-//  @LibraryOperator(libraries = {BIG_QUERY})
-//  public static final SqlFunction DATE =
-//      new SqlFunction("DATE", SqlKind.OTHER_FUNCTION,
-//          ReturnTypes.DATE_NULLABLE, null,
-//          OperandTypes.or(OperandTypes.DATETIME, OperandTypes.STRING),
-//          SqlFunctionCategory.TIMEDATE);
-
-//  /** The "TIMESTAMP(string)" function, equivalent to "CAST(string AS TIMESTAMP). */
-//  @LibraryOperator(libraries = {BIG_QUERY})
-//  public static final SqlFunction TIMESTAMP =
-//      new SqlFunction("TIMESTAMP", SqlKind.OTHER_FUNCTION,
-//          ReturnTypes.TIMESTAMP_NULLABLE, null,
-//          OperandTypes.or(OperandTypes.DATETIME, OperandTypes.STRING),
-//          SqlFunctionCategory.TIMEDATE);
-
   @LibraryOperator(libraries = {BIG_QUERY, HIVE, SPARK})
   public static final SqlFunction CURRENT_TIMESTAMP =
       new SqlCurrentTimestampFunction("CURRENT_TIMESTAMP", SqlTypeName.TIMESTAMP);
@@ -1011,32 +940,6 @@ public abstract class SqlLibraryOperators {
 
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction RANGE_LITERAL = new SqlRangeLiteral();
-
-  /**
-   * The REGEXP_EXTRACT(source_string, regex_pattern) returns the first substring in source_string
-   * that matches the regex_pattern. Returns NULL if there is no match.
-   *
-   * The REGEXP_EXTRACT_ALL(source_string, regex_pattern) returns an array of all substrings of
-   * source_string that match the regex_pattern.
-   */
-
-//  @LibraryOperator(libraries = {BIG_QUERY})
-//  public static final SqlFunction REGEXP_EXTRACT = new SqlFunction("REGEXP_EXTRACT",
-//        SqlKind.OTHER_FUNCTION,
-//        ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR),
-//          SqlTypeTransforms.TO_NULLABLE),
-//      null, OperandTypes.family(
-//      ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
-//          SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC),
-//          number -> number == 2 || number == 3),
-//      SqlFunctionCategory.STRING);
-
-//  @LibraryOperator(libraries = {BIG_QUERY})
-//  public static final SqlFunction FORMAT_TIMESTAMP = new SqlFunction("FORMAT_TIMESTAMP",
-//      SqlKind.OTHER_FUNCTION,
-//      ReturnTypes.VARCHAR_2000_NULLABLE, null,
-//      OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.TIMESTAMP),
-//      SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {POSTGRESQL})
   public static final SqlFunction AGE =
@@ -1068,13 +971,6 @@ public abstract class SqlLibraryOperators {
       OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.DATE)),
       SqlFunctionCategory.TIMEDATE);
 
-//  @LibraryOperator(libraries = {STANDARD})
-//  public static final SqlFunction FORMAT_TIME = new SqlFunction("FORMAT_TIME",
-//      SqlKind.OTHER_FUNCTION,
-//      ReturnTypes.VARCHAR_2000_NULLABLE, null,
-//      OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.TIME),
-//      SqlFunctionCategory.TIMEDATE);
-
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TIME_ADD =
       new SqlFunction("TIME_ADD",
@@ -1094,15 +990,6 @@ public abstract class SqlLibraryOperators {
         new SqlFunction("INTERVAL_SECONDS", SqlKind.OTHER_FUNCTION,
         ReturnTypes.INTEGER, null,
         OperandTypes.ANY, SqlFunctionCategory.TIMEDATE);
-
-//  @LibraryOperator(libraries = {BIG_QUERY})
-//  public static final SqlFunction DATETIME =
-//      new SqlFunction("DATETIME",
-//          SqlKind.OTHER_FUNCTION,
-//          ReturnTypes.TIMESTAMP,
-//          null,
-//          OperandTypes.ANY_ANY,
-//          SqlFunctionCategory.TIMEDATE);
 
   /** The "MONTHNAME(datetime)" function; returns the name of the month,
    * in the current locale, of a TIMESTAMP or DATE argument. */
@@ -1917,23 +1804,6 @@ public abstract class SqlLibraryOperators {
           OperandTypes.ONE_OR_MORE,
           SqlFunctionCategory.STRING);
 
-  /** The "CONCAT(arg0, arg1)" function that concatenates strings.
-   * For example, "CONCAT('a', 'bc')" returns "abc".
-   *
-   * The optional boolean operand represents whether we have a concat operator (||)
-   * or concat function [CONCAT()] in the source side. This extra operand avoids the addition
-   * of an extra operator to represent oracle's concat operator (||)
-   * <p>It is assigned {@link SqlKind#CONCAT2} to make it not equal to
-   * {@link #CONCAT_FUNCTION}. */
-//  @LibraryOperator(libraries = {ORACLE})
-//  public static final SqlFunction CONCAT2 =
-//      new SqlFunction("CONCAT",
-//          SqlKind.CONCAT2,
-//          ReturnTypes.MULTIVALENT_STRING_SUM_PRECISION_NULLABLE,
-//          InferTypes.RETURN_TYPE,
-//          OperandTypes.STRING_SAME_SAME,
-//          SqlFunctionCategory.STRING);
-
   @LibraryOperator(libraries = {MYSQL, BIG_QUERY})
   public static final SqlFunction REVERSE =
       SqlBasicFunction.create(SqlKind.REVERSE,
@@ -2126,57 +1996,6 @@ public abstract class SqlLibraryOperators {
               OperandTypes.TIMESTAMP),
           SqlFunctionCategory.TIMEDATE);
 
-  /** The "TIMESTAMP_SECONDS(bigint)" function; returns a TIMESTAMP value
-   * a given number of seconds after 1970-01-01 00:00:00. */
-//  @LibraryOperator(libraries = {BIG_QUERY})
-//  public static final SqlFunction TIMESTAMP_SECONDS =
-//      new SqlFunction("TIMESTAMP_SECONDS", SqlKind.OTHER_FUNCTION,
-//          ReturnTypes.TIMESTAMP_NULLABLE, null,
-//          OperandTypes.or(OperandTypes.INTEGER_BOOLEAN, OperandTypes.INTEGER),
-//          SqlFunctionCategory.TIMEDATE);
-
-  /** The "TIMESTAMP_MILLIS(bigint)" function; returns a TIMESTAMP value
-   * a given number of milliseconds after 1970-01-01 00:00:00. */
-//  @LibraryOperator(libraries = {BIG_QUERY})
-//  public static final SqlFunction TIMESTAMP_MILLIS =
-//      new SqlFunction("TIMESTAMP_MILLIS", SqlKind.OTHER_FUNCTION,
-//          ReturnTypes.TIMESTAMP_NULLABLE, null,
-//          OperandTypes.or(OperandTypes.INTEGER_BOOLEAN, OperandTypes.INTEGER),
-//          SqlFunctionCategory.TIMEDATE);
-
-  /** The "TIMESTAMP_MICROS(bigint)" function; returns a TIMESTAMP value
-   * a given number of micro-seconds after 1970-01-01 00:00:00. */
-//  @LibraryOperator(libraries = {BIG_QUERY})
-//  public static final SqlFunction TIMESTAMP_MICROS =
-//      new SqlFunction("TIMESTAMP_MICROS", SqlKind.OTHER_FUNCTION,
-//          ReturnTypes.TIMESTAMP_NULLABLE, null,
-//          OperandTypes.or(OperandTypes.INTEGER_BOOLEAN, OperandTypes.INTEGER),
-//          SqlFunctionCategory.TIMEDATE);
-
-  /** The "UNIX_SECONDS(bigint)" function; returns the number of seconds
-   * since 1970-01-01 00:00:00. */
-//  @LibraryOperator(libraries = {BIG_QUERY})
-//  public static final SqlFunction UNIX_SECONDS =
-//      new SqlFunction("UNIX_SECONDS", SqlKind.OTHER_FUNCTION,
-//          ReturnTypes.BIGINT_NULLABLE, null, OperandTypes.TIMESTAMP,
-//          SqlFunctionCategory.TIMEDATE);
-
-  /** The "UNIX_MILLIS(bigint)" function; returns the number of milliseconds
-   * since 1970-01-01 00:00:00. */
-//  @LibraryOperator(libraries = {BIG_QUERY})
-//  public static final SqlFunction UNIX_MILLIS =
-//      new SqlFunction("UNIX_MILLIS", SqlKind.OTHER_FUNCTION,
-//          ReturnTypes.BIGINT_NULLABLE, null, OperandTypes.TIMESTAMP,
-//          SqlFunctionCategory.TIMEDATE);
-
-  /** The "UNIX_MICROS(bigint)" function; returns the number of microseconds
-   * since 1970-01-01 00:00:00. */
-//  @LibraryOperator(libraries = {BIG_QUERY})
-//  public static final SqlFunction UNIX_MICROS =
-//      new SqlFunction("UNIX_MICROS", SqlKind.OTHER_FUNCTION,
-//          ReturnTypes.BIGINT_NULLABLE, null, OperandTypes.TIMESTAMP,
-//          SqlFunctionCategory.TIMEDATE);
-
   /**
    * The "PARSE_TIME(string, string)" function (BigQuery);
    * converts a string representation of time to a TIME value.
@@ -2289,14 +2108,6 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIMESTAMP,
               SqlTypeFamily.ANY));
 
-  /** The "TIME_ADD(time, interval)" function (BigQuery);
-   * adds interval expression to the specified time expression. */
-//  @LibraryOperator(libraries = {BIG_QUERY})
-//  public static final SqlFunction TIME_ADD =
-//      SqlBasicFunction.create(SqlKind.TIME_ADD, ReturnTypes.ARG0_NULLABLE,
-//              OperandTypes.TIME_INTERVAL)
-//          .withFunctionType(SqlFunctionCategory.TIMEDATE);
-
   /** The "TIME_DIFF(time, time, timeUnit)" function (BigQuery);
    * returns the number of timeUnit between the two time expressions. */
   @LibraryOperator(libraries = {BIG_QUERY})
@@ -2319,18 +2130,6 @@ public abstract class SqlLibraryOperators {
           .withOperandHandler(OperandHandlers.OPERAND_1_MIGHT_BE_TIME_FRAME)
           .withKind(SqlKind.DATE_TRUNC);
 
-  /** The "TIME_SUB(time, interval)" function (BigQuery);
-   * subtracts an interval from a time, independent of any time zone.
-   *
-   * <p>In BigQuery, the syntax is "TIME_SUB(time, INTERVAL int64 date_part)"
-   * but in Calcite the second argument can be any interval expression, not just
-   * an interval literal. */
-//  @LibraryOperator(libraries = {BIG_QUERY})
-//  public static final SqlFunction TIME_SUB =
-//      SqlBasicFunction.create(SqlKind.TIME_SUB, ReturnTypes.ARG0_NULLABLE,
-//              OperandTypes.TIME_INTERVAL)
-//          .withFunctionType(SqlFunctionCategory.TIMEDATE);
-
   /** The "TIME_TRUNC(time, timeUnit)" function (BigQuery);
    * truncates a TIME value to the beginning of a timeUnit. */
   @LibraryOperator(libraries = {BIG_QUERY})
@@ -2340,29 +2139,6 @@ public abstract class SqlLibraryOperators {
           OperandTypes.sequence("'TIME_TRUNC(<TIME>, <DATETIME_INTERVAL>)'",
               OperandTypes.TIME, OperandTypes.timeInterval()),
           SqlFunctionCategory.TIMEDATE);
-
-  /** The "TIMESTAMP_SUB(timestamp, interval)" function (BigQuery);
-   * subtracts an interval from a timestamp, independent of any time zone.
-   *
-   * <p>In BigQuery, the syntax is "TIMESTAMP_SUB(timestamp,
-   * INTERVAL int64 date_part)" but in Calcite the second argument can be any
-   * interval expression, not just an interval literal. */
-//  @LibraryOperator(libraries = {BIG_QUERY})
-//  public static final SqlBasicFunction TIMESTAMP_SUB =
-//      SqlBasicFunction.create(SqlKind.TIMESTAMP_SUB, ReturnTypes.ARG0_NULLABLE,
-//          OperandTypes.TIMESTAMP_INTERVAL)
-//          .withFunctionType(SqlFunctionCategory.TIMEDATE);
-
-  /** The "DATETIME_SUB(timestamp, interval)" function (BigQuery).
-   *
-   * <p>Note that the {@code TIMESTAMP} type of Calcite and Standard SQL
-   * is called {@code DATETIME} in BigQuery.
-   *
-   * <p>A synonym for {@link #TIMESTAMP_SUB}, which supports both
-   * {@code TIMESTAMP} and {@code TIMESTAMP WITH LOCAL TIME ZONE} operands. */
-//  @LibraryOperator(libraries = {BIG_QUERY})
-//  public static final SqlFunction DATETIME_SUB =
-//      TIMESTAMP_SUB.withName("DATETIME_SUB");
 
   /** The "TIMESTAMP_TRUNC(timestamp, timeUnit[, timeZone])" function (BigQuery);
    * truncates a {@code TIMESTAMP WITH LOCAL TIME ZONE} value to the beginning
@@ -2449,13 +2225,6 @@ public abstract class SqlLibraryOperators {
       SqlBasicFunction.create("UNIX_MICROS",
           ReturnTypes.BIGINT_NULLABLE, OperandTypes.TIMESTAMP,
           SqlFunctionCategory.TIMEDATE);
-
-  /** The "DATETIME_ADD(timestamp, interval)" function (BigQuery).
-   * As {@code TIMESTAMP_ADD}, returns a Calcite {@code TIMESTAMP}
-   * (which BigQuery calls a {@code DATETIME}). */
-//  @LibraryOperator(libraries = {BIG_QUERY})
-//  public static final SqlFunction DATETIME_ADD =
-//      TIMESTAMP_ADD2.withName("DATETIME_ADD");
 
   /** The "DATETIME_DIFF(timestamp, timestamp2, timeUnit)" function (BigQuery).
    *
@@ -2743,10 +2512,6 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction POW =
       SqlStdOperatorTable.POWER.withName("POW");
 
-//  @LibraryOperator(libraries = {BIG_QUERY})
-//  public static final SqlFunction TRUNC =
-//      SqlStdOperatorTable.TRUNCATE.withName("TRUNC");
-
   /** Infix "::" cast operator used by PostgreSQL, for example
    * {@code '100'::INTEGER}. */
   @LibraryOperator(libraries = { POSTGRESQL })
@@ -2853,21 +2618,6 @@ public abstract class SqlLibraryOperators {
         ONE_OR_MORE,
         SqlFunctionCategory.STRING);
 
-  /** The "TO_NUMBER(string1, string2)" function; casts string1
-   * as hexadecimal to a NUMBER using the format specified in string2. */
-//  @LibraryOperator(libraries = {TERADATA, POSTGRESQL})
-//  public static final SqlFunction TO_NUMBER =
-//      new SqlFunction(
-//        "TO_NUMBER",
-//        SqlKind.TO_NUMBER,
-//        ReturnTypes.BIGINT_FORCE_NULLABLE,
-//        null, OperandTypes.or(OperandTypes.STRING, OperandTypes.STRING_STRING,
-//        OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.NULL),
-//        OperandTypes.family(SqlTypeFamily.NULL, SqlTypeFamily.STRING),
-//        OperandTypes.STRING_STRING_STRING,
-//        OperandTypes.family(SqlTypeFamily.NULL)),
-//        SqlFunctionCategory.STRING);
-
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction ORACLE_TO_NUMBER =
       new SqlFunction(
@@ -2901,19 +2651,6 @@ public abstract class SqlLibraryOperators {
                           SqlTypeFamily.NUMERIC),
                   SqlFunctionCategory.STRING);
 
-//  @LibraryOperator(libraries = {BIG_QUERY, HIVE, SPARK})
-//  public static final SqlFunction RPAD =
-//      new SqlFunction("RPAD", SqlKind.OTHER_FUNCTION,
-//        ReturnTypes.VARCHAR_2000_NULLABLE, null,
-//        OperandTypes.STRING_INTEGER_OPTIONAL_STRING,
-//        SqlFunctionCategory.STRING);
-//
-//  @LibraryOperator(libraries = {BIG_QUERY, HIVE, SPARK})
-//  public static final SqlFunction LPAD =
-//      new SqlFunction("LPAD", SqlKind.OTHER_FUNCTION,
-//        ReturnTypes.VARCHAR_2000_NULLABLE, null,
-//        OperandTypes.STRING_INTEGER_OPTIONAL_STRING,
-//        SqlFunctionCategory.STRING);
   @LibraryOperator(libraries = {CALCITE, BIG_QUERY, HIVE, SPARK, SNOWFLAKE })
   public static final SqlFunction STR_TO_DATE =
       new SqlFunction("STR_TO_DATE",
@@ -2923,33 +2660,6 @@ public abstract class SqlLibraryOperators {
       OperandTypes.STRING_STRING,
       SqlFunctionCategory.TIMEDATE);
 
-//  @LibraryOperator(libraries = {BIG_QUERY})
-//  public static final SqlFunction PARSE_DATE =
-//      new SqlFunction(
-//        "PARSE_DATE",
-//        SqlKind.OTHER_FUNCTION,
-//        ReturnTypes.DATE_NULLABLE, null,
-//        OperandTypes.STRING_STRING,
-//        SqlFunctionCategory.TIMEDATE);
-
-//  @LibraryOperator(libraries = {BIG_QUERY})
-//  public static final SqlFunction PARSE_TIME =
-//      new SqlFunction(
-//          "PARSE_TIME",
-//          SqlKind.OTHER_FUNCTION,
-//          ReturnTypes.TIME_NULLABLE, null,
-//          OperandTypes.STRING_STRING,
-//          SqlFunctionCategory.TIMEDATE);
-//
-//  @LibraryOperator(libraries = {BIG_QUERY})
-//  public static final SqlFunction PARSE_TIMESTAMP =
-//      new SqlFunction("PARSE_TIMESTAMP",
-//        SqlKind.OTHER_FUNCTION,
-//        ReturnTypes.TIMESTAMP_NULLABLE,
-//        null,
-//        OperandTypes.or(OperandTypes.STRING, OperandTypes.STRING_STRING),
-//        SqlFunctionCategory.TIMEDATE);
-
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction PARSE_TIMESTAMP_WITH_TIMEZONE =
       new SqlFunction("PARSE_TIMESTAMP_WITH_TIMEZONE",
@@ -2958,15 +2668,6 @@ public abstract class SqlLibraryOperators {
           null,
           OperandTypes.or(OperandTypes.STRING, OperandTypes.STRING_STRING),
           SqlFunctionCategory.TIMEDATE);
-
-//  @LibraryOperator(libraries = {BIG_QUERY})
-//  public static final SqlFunction PARSE_DATETIME =
-//      new SqlFunction("PARSE_DATETIME",
-//          SqlKind.OTHER_FUNCTION,
-//          ReturnTypes.TIMESTAMP,
-//          null,
-//          OperandTypes.or(OperandTypes.STRING, OperandTypes.STRING_STRING),
-//          SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {HIVE, SPARK})
   public static final SqlFunction UNIX_TIMESTAMP =
@@ -2999,16 +2700,6 @@ public abstract class SqlLibraryOperators {
       OperandTypes.STRING_STRING,
       SqlFunctionCategory.STRING);
 
-//  @LibraryOperator(libraries = {HIVE, SPARK, BIG_QUERY})
-//  public static final SqlFunction SPLIT = new SqlFunction(
-//      "SPLIT",
-//      SqlKind.OTHER_FUNCTION,
-//      ReturnTypes.ARG0
-//          .andThen(SqlTypeTransforms.TO_ARRAY),
-//      null,
-//      OperandTypes.STRING_STRING,
-//      SqlFunctionCategory.STRING);
-
   @LibraryOperator(libraries = {SNOWFLAKE})
   public static final SqlFunction SPLIT_TO_TABLE =
       new SplitToTableFunction();
@@ -3033,29 +2724,6 @@ public abstract class SqlLibraryOperators {
       OperandTypes.DATETIME,
       SqlFunctionCategory.TIMEDATE);
 
-//  @LibraryOperator(libraries = {BIG_QUERY, SPARK})
-//  public static final SqlFunction FORMAT_DATETIME = new SqlFunction(
-//      "FORMAT_DATETIME",
-//      SqlKind.OTHER_FUNCTION,
-//      ReturnTypes.VARCHAR_2000_NULLABLE,
-//      null,
-//      OperandTypes.ANY_ANY,
-//      SqlFunctionCategory.TIMEDATE);
-
-  /** Returns the index of search string in source string
-   *  0 is returned when no match is found. */
-//  @LibraryOperator(libraries = {SNOWFLAKE, BIG_QUERY})
-//  public static final SqlFunction INSTR = new SqlFunction(
-//          "INSTR",
-//          SqlKind.OTHER_FUNCTION,
-//          ReturnTypes.INTEGER_NULLABLE,
-//          null,
-//          OperandTypes.family(ImmutableList.of
-//          (SqlTypeFamily.STRING, SqlTypeFamily.STRING,
-//          SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER),
-//              number -> number == 2 || number == 3),
-//          SqlFunctionCategory.STRING);
-
   @LibraryOperator(libraries = {MSSQL})
   public static final SqlFunction CHARINDEX =
           new SqlFunction("CHARINDEX",
@@ -3067,22 +2735,6 @@ public abstract class SqlLibraryOperators {
           SqlTypeFamily.INTEGER),
               number -> number == 2),
           SqlFunctionCategory.STRING);
-
-//  @LibraryOperator(libraries = {BIG_QUERY})
-//  public static final SqlFunction TIME_DIFF = new SqlFunction(
-//          "TIME_DIFF",
-//          SqlKind.OTHER_FUNCTION,
-//          ReturnTypes.INTEGER,
-//          null,
-//          OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME),
-//          SqlFunctionCategory.TIMEDATE);
-//
-//  @LibraryOperator(libraries = {BIG_QUERY})
-//  public static final SqlFunction DATETIME_DIFF = new SqlFunction("DATETIME_DIFF",
-//      SqlKind.TIMESTAMP_DIFF,
-//      ReturnTypes.INTEGER, null,
-//      OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME),
-//      SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TIMESTAMPINTADD =
@@ -3228,14 +2880,6 @@ public abstract class SqlLibraryOperators {
               OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.STRING),
           SqlFunctionCategory.STRING);
 
-//  @LibraryOperator(libraries = {ORACLE, TERADATA})
-//  public static final SqlFunction TO_CHAR =
-//      new SqlFunction("TO_CHAR",
-//          SqlKind.OTHER_FUNCTION,
-//          ReturnTypes.VARCHAR_2000_NULLABLE, null,
-//          OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.STRING),
-//          SqlFunctionCategory.STRING);
-
   @LibraryOperator(libraries = {NETEZZA})
   public static final SqlFunction MONTHS_BETWEEN =
       new SqlFunction("MONTHS_BETWEEN",
@@ -3336,22 +2980,6 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(SqlTypeFamily.NUMERIC),
           SqlFunctionCategory.NUMERIC);
 
-//  @LibraryOperator(libraries = {NETEZZA})
-//  public static final SqlFunction OCTET_LENGTH =
-//          new SqlFunction("OCTET_LENGTH", SqlKind.OTHER_FUNCTION,
-//          ReturnTypes.INTEGER_NULLABLE, null,
-//          OperandTypes.family(SqlTypeFamily.CHARACTER),
-//          SqlFunctionCategory.NUMERIC);
-
-//  @LibraryOperator(libraries = {BIG_QUERY, SPARK})
-//  public static final SqlFunction REGEXP_CONTAINS =
-//      new SqlFunction("REGEXP_CONTAINS",
-//          SqlKind.OTHER_FUNCTION,
-//          ReturnTypes.BOOLEAN,
-//          null,
-//          OperandTypes.STRING_STRING,
-//          SqlFunctionCategory.NUMERIC);
-
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction REGEXP_INSTR =
       new SqlFunction("REGEXP_INSTR",
@@ -3396,17 +3024,6 @@ public abstract class SqlLibraryOperators {
                   // Second operand optional (operand index 0, 1)
               number -> number == 1),
           SqlFunctionCategory.SYSTEM);
-
-//  @LibraryOperator(libraries = {BIG_QUERY})
-//  public static final SqlFunction SHA256 =
-//      new SqlFunction("SHA256",
-//          SqlKind.OTHER_FUNCTION,
-//          ReturnTypes.explicit(SqlTypeName.VARCHAR)
-//              .andThen(SqlTypeTransforms.TO_NULLABLE),
-//          null,
-//          OperandTypes.or(OperandTypes.STRING_INTEGER,
-//              OperandTypes.BINARY_INTEGER),
-//          SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {TERADATA})
   public static final SqlFunction HASHROW =
@@ -3493,15 +3110,15 @@ public abstract class SqlLibraryOperators {
           null,
           OperandTypes.family(SqlTypeFamily.INTEGER), SqlFunctionCategory.SYSTEM);
 
-//  @LibraryOperator(libraries = {SPARK, BIG_QUERY})
-//  public static final SqlFunction DATE_TRUNC =
-//      new SqlFunction(
-//          "DATE_TRUNC",
-//          SqlKind.OTHER_FUNCTION,
-//          ReturnTypes.TIMESTAMP,
-//          null,
-//          OperandTypes.family(SqlTypeFamily.STRING,
-//              SqlTypeFamily.TIMESTAMP), SqlFunctionCategory.SYSTEM);
+  @LibraryOperator(libraries = {MSSQL})
+  public static final SqlFunction DATETRUNC =
+      new SqlFunction(
+          "DATETRUNC",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIMESTAMP,
+          null,
+          OperandTypes.family(SqlTypeFamily.TIME,
+              SqlTypeFamily.TIMESTAMP), SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction RAISE_ERROR =
@@ -3666,14 +3283,6 @@ public abstract class SqlLibraryOperators {
               number -> number == 2),
           SqlFunctionCategory.TIMEDATE);
 
-//  @LibraryOperator(libraries = {TERADATA, SNOWFLAKE})
-//  public static final SqlFunction GETBIT =
-//      new SqlFunction("GETBIT",
-//          SqlKind.OTHER_FUNCTION,
-//          ReturnTypes.INTEGER_NULLABLE, null,
-//          OperandTypes.family(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER),
-//          SqlFunctionCategory.NUMERIC);
-
   @LibraryOperator(libraries = {HIVE, SPARK, TERADATA})
   public static final SqlFunction SHIFTLEFT =
       new SqlFunction(
@@ -3755,12 +3364,6 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.STRING);
 
-//  @LibraryOperator(libraries = {SNOWFLAKE})
-//  public static final SqlFunction ARRAY_LENGTH =
-//      new SqlFunction("ARRAY_LENGTH", SqlKind.OTHER_FUNCTION,
-//          ReturnTypes.INTEGER,
-//          null, OperandTypes.ARRAY, SqlFunctionCategory.SYSTEM);
-
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction JSON_OBJECT =
       new SqlFunction("JSON_OBJECT",
@@ -3780,15 +3383,6 @@ public abstract class SqlLibraryOperators {
           OperandTypes.NULL_STRING_INTEGER),
       SqlFunctionCategory.STRING);
 
-//  @LibraryOperator(libraries = {SNOWFLAKE})
-//  public static final SqlFunction LOG =
-//      new SqlFunction("LOG",
-//          SqlKind.OTHER_FUNCTION,
-//          ReturnTypes.DOUBLE_NULLABLE, null,
-//          OperandTypes.family(ImmutableList.of(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC),
-//              // Second operand is optional
-//              number -> number == 1),
-//          SqlFunctionCategory.NUMERIC);
 
   @LibraryOperator(libraries = {SNOWFLAKE})
   public static final SqlFunction TRY_PARSE_JSON =
@@ -3881,20 +3475,6 @@ public abstract class SqlLibraryOperators {
           null,
           OperandTypes.NILADIC,
           SqlFunctionCategory.SYSTEM);
-
-//  @LibraryOperator(libraries = {BIG_QUERY})
-//  public static final SqlFunction DATETIME_TRUNC =
-//      new SqlFunction("DATETIME_TRUNC", SqlKind.OTHER_FUNCTION, ReturnTypes.TIMESTAMP, null,
-//          OperandTypes.ANY_ANY, SqlFunctionCategory.TIMEDATE) {
-//        @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-//          SqlWriter.Frame frame = writer.startFunCall(call.getOperator().getName());
-//          call.operand(0).unparse(writer, leftPrec, rightPrec);
-//          writer.print(",");
-//          writer.print(call.operand(call.getOperandList().size() - 1)
-//              .toString().replaceAll("'", ""));
-//          writer.endFunCall(frame);
-//        }
-//      };
 
   /** The "ISNULL(value, value)" function. */
   @LibraryOperator(libraries = {MSSQL})
