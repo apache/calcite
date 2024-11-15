@@ -3101,7 +3101,7 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.TIMESTAMP,
           null,
           OperandTypes.family(SqlTypeFamily.TIME,
-              SqlTypeFamily.TIMESTAMP), SqlFunctionCategory.SYSTEM);
+              SqlTypeFamily.TIMESTAMP), SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction RAISE_ERROR =
