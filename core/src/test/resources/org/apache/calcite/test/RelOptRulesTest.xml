@@ -15626,6 +15626,51 @@ LogicalSort(sort0=[$0], dir0=[ASC], fetch=[0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testSortWithDynamicParam">
+    <Resource name="sql">
+      <![CDATA[SELECT x.sal
+FROM (SELECT emp1.sal
+      FROM (SELECT sal
+            from emp
+            LIMIT ?) AS emp1
+      UNION ALL
+      SELECT emp2.sal
+      FROM (SELECT sal
+            from emp
+            LIMIT ?) AS emp2) AS x
+LIMIT ?]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(fetch=[?2])
+  LogicalProject(SAL=[$0])
+    LogicalUnion(all=[true])
+      LogicalProject(SAL=[$0])
+        LogicalSort(fetch=[?0])
+          LogicalProject(SAL=[$5])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(SAL=[$0])
+        LogicalSort(fetch=[?1])
+          LogicalProject(SAL=[$5])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(SAL=[$0])
+  LogicalSort(fetch=[?2])
+    LogicalUnion(all=[true])
+      LogicalProject(SAL=[$0])
+        LogicalProject(SAL=[$5])
+          LogicalSort(fetch=[?0])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(SAL=[$0])
+        LogicalProject(SAL=[$5])
+          LogicalSort(fetch=[?1])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testSpace">
     <Resource name="sql">
       <![CDATA[select SPACE(2001)]]>
