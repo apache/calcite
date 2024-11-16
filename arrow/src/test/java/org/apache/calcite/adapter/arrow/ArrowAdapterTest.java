@@ -943,4 +943,22 @@ class ArrowAdapterTest {
         .returns(result)
         .explainContains(plan);
   }
+
+  @Test void testArrowProjectFieldsWithIsUnknownFilter() {
+    String sql = "select \"booleanField\"\n"
+        + "from arrowdatatype\n"
+        + "where \"booleanField\" is unknown";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(booleanField=[$7])\n"
+        + "    ArrowFilter(condition=[IS NULL($7)])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])\n\n";
+    String result = "booleanField=null\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .limit(1)
+        .returns(result)
+        .explainContains(plan);
+  }
 }
