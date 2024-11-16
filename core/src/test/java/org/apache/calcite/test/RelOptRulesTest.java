@@ -89,6 +89,8 @@ import org.apache.calcite.rel.rules.PushProjector;
 import org.apache.calcite.rel.rules.ReduceExpressionsRule;
 import org.apache.calcite.rel.rules.ReduceExpressionsRule.ProjectReduceExpressionsRule;
 import org.apache.calcite.rel.rules.SingleValuesOptimizationRules;
+import org.apache.calcite.rel.rules.SortProjectTransposeRule;
+import org.apache.calcite.rel.rules.SortUnionTransposeRule;
 import org.apache.calcite.rel.rules.SpatialRules;
 import org.apache.calcite.rel.rules.UnionMergeRule;
 import org.apache.calcite.rel.rules.ValuesReduceRule;
@@ -5109,6 +5111,31 @@ class RelOptRulesTest extends RelOptTestBase {
         + "GROUP BY sal HAVING sal < 1000";
     sql(sql).withPlanner(hepPlanner)
         .checkUnchanged();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6647">[CALCITE-6647]
+   * SortUnionTransposeRule should not push SORT past a UNION when SORT's fetch is DynamicParam
+   </a>. */
+  @Test void testSortWithDynamicParam() {
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(SortProjectTransposeRule.class);
+    builder.addRuleClass(SortUnionTransposeRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    hepPlanner.addRule(CoreRules.SORT_PROJECT_TRANSPOSE);
+    hepPlanner.addRule(CoreRules.SORT_UNION_TRANSPOSE);
+    final String sql = "SELECT x.sal\n"
+        + "FROM (SELECT emp1.sal\n"
+        + "      FROM (SELECT sal\n"
+        + "            from emp\n"
+        + "            LIMIT ?) AS emp1\n"
+        + "      UNION ALL\n"
+        + "      SELECT emp2.sal\n"
+        + "      FROM (SELECT sal\n"
+        + "            from emp\n"
+        + "            LIMIT ?) AS emp2) AS x\n"
+        + "LIMIT ?";
+    sql(sql).withPlanner(hepPlanner).check();
   }
 
   @Test void testReduceCasts() {
