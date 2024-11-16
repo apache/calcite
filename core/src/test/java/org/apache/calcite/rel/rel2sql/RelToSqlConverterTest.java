@@ -2657,10 +2657,11 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT LTRIM('abcd', 'a')\n"
         + "FROM foodmart.reserve_employee";
-    final String expectedHS = "SELECT REGEXP_REPLACE('abcd', '^(a)*', '')\n"
+    final String expectedHsqldb = "SELECT TRIM(LEADING 'a' FROM 'abcd')\n"
         + "FROM foodmart.reserve_employee";
     sql(query)
-        .withBigQuery().ok(expected);
+        .withBigQuery().ok(expected)
+        .withHsqldb().ok(expectedHsqldb);
   }
 
   /** Test case for
