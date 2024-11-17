@@ -25,7 +25,6 @@ import org.apache.arrow.vector.types.pojo.ArrowType;
 
 import java.math.BigDecimal;
 import java.sql.Date;
-import java.util.List;
 
 import static java.util.Objects.requireNonNull;
 
@@ -39,13 +38,14 @@ enum ArrowFieldType {
   FLOAT(Primitive.FLOAT),
   DOUBLE(Primitive.DOUBLE),
   DATE(Date.class),
-  LIST(List.class),
   DECIMAL(BigDecimal.class),
   LONG(Primitive.LONG),
   BYTE(Primitive.BYTE),
   SHORT(Primitive.SHORT);
 
   private final Class<?> clazz;
+  private int precision;
+  private int scale;
 
   ArrowFieldType(Primitive primitive) {
     this(requireNonNull(primitive.boxClass, "boxClass"));
@@ -55,9 +55,25 @@ enum ArrowFieldType {
     this.clazz = clazz;
   }
 
+  ArrowFieldType(Class<?> clazz, int precision, int scale) {
+    this.clazz = clazz;
+    this.precision = precision;
+    this.scale = scale;
+  }
+
+  public void setPrecisionAndScale(int precision, int scale) {
+    this.precision = precision;
+    this.scale = scale;
+  }
+
   public RelDataType toType(JavaTypeFactory typeFactory) {
     RelDataType javaType = typeFactory.createJavaType(clazz);
-    RelDataType sqlType = typeFactory.createSqlType(javaType.getSqlTypeName());
+    RelDataType sqlType = null;
+    if (javaType.getSqlTypeName().getName().equals("DECIMAL")) {
+      sqlType = typeFactory.createSqlType(javaType.getSqlTypeName(), precision, scale);
+    } else {
+      sqlType = typeFactory.createSqlType(javaType.getSqlTypeName());
+    }
     return typeFactory.createTypeWithNullability(sqlType, true);
   }
 
@@ -94,6 +110,9 @@ enum ArrowFieldType {
     case Date:
       return DATE;
     case Decimal:
+      DECIMAL.setPrecisionAndScale(
+          ((ArrowType.Decimal) arrowType).getPrecision(),
+          ((ArrowType.Decimal) arrowType).getScale());
       return DECIMAL;
     default:
       throw new IllegalArgumentException("Unsupported type: " + arrowType);
