@@ -90,6 +90,10 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
    * in the set.
    */
   private final Node<E> topNode;
+  /**
+   * Synthetic node to hold all nodes that have no children. It does not appear
+   * in the set.
+   */
   private final Node<E> bottomNode;
 
   /**
@@ -552,7 +556,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
     // breadth-first search, to iterate over every element once, printing
     // those nearest the top element first
     final Set<E> seen = new HashSet<>();
-    final Deque<E> unseen = new ArrayDeque<>(getNonChildren());
+    final Deque<E> unseen = new ArrayDeque<>(getNonParents());
     while (!unseen.isEmpty()) {
       E e = unseen.pop();
       buf.append("  ");
@@ -681,12 +685,24 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
     }
   }
 
+  /**
+   * Returns all elements in the set that have no children. These elements are the leaf/minimal
+   * elements of the poset.
+   *
+   * @return a list of elements that have no children.
+   */
   public List<E> getNonChildren() {
-    return strip(topNode.childList);
+    return strip(bottomNode.parentList);
   }
 
+  /**
+   * Returns all elements in the set that have no parents. These elements are the roots/maximal
+   * elements of the poset.
+   *
+   * @return a list of elements that have no parents.
+   */
   public List<E> getNonParents() {
-    return strip(bottomNode.parentList);
+    return strip(topNode.childList);
   }
 
   @Override public void clear() {

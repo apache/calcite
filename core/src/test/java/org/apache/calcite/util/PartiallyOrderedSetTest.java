@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -110,8 +111,8 @@ class PartiallyOrderedSetTest {
     poset.add(abcd);
     printValidate(poset);
     assertThat(poset, hasSize(2));
-    assertThat(poset.getNonChildren(), hasToString("['abcd']"));
-    assertThat(poset.getNonParents(), hasToString("['']"));
+    assertThat(poset.getNonChildren(), hasToString("['']"));
+    assertThat(poset.getNonParents(), hasToString("['abcd']"));
 
     final String ab = "'ab'";
     poset.add(ab);
@@ -158,8 +159,8 @@ class PartiallyOrderedSetTest {
 
     poset.add(b);
     printValidate(poset);
-    assertThat(poset.getNonChildren(), hasToString("['abcd']"));
-    assertThat(poset.getNonParents(), hasToString("['']"));
+    assertThat(poset.getNonChildren(), hasToString("['']"));
+    assertThat(poset.getNonParents(), hasToString("['abcd']"));
     assertThat(poset.getChildren(b), hasToString("['']"));
     assertEqualsList("['ab', 'bcd']", poset.getParents(b));
     assertThat(poset.getChildren(b), hasToString("['']"));
@@ -180,6 +181,32 @@ class PartiallyOrderedSetTest {
     assertEqualsList("['ab', 'abcd']", poset.getAncestors("'a'"));
   }
 
+  @Test void testGetNonParentsOnLteIntPosetReturnsMaxValue() {
+    PartiallyOrderedSet<Integer> poset =
+        new PartiallyOrderedSet<>((i, j) -> i <= j, Arrays.asList(20, 30, 40));
+    assertThat(poset.getNonParents(), hasToString("[40]"));
+  }
+
+  @Test void testGetNonChildrenOnLteIntPosetReturnsMinValue() {
+    PartiallyOrderedSet<Integer> poset =
+        new PartiallyOrderedSet<>((i, j) -> i <= j, Arrays.asList(20, 30, 40));
+    assertThat(poset.getNonChildren(), hasToString("[20]"));
+  }
+
+  @Test void testGetNonParentsOnGteIntPosetReturnsMinValue() {
+    PartiallyOrderedSet<Integer> poset =
+        new PartiallyOrderedSet<>((i, j) -> i >= j, Arrays.asList(20, 30, 40));
+    assertThat(poset.getNonParents(), hasToString("[20]"));
+  }
+
+  @Test void testGetNonChildrenOnGteIntPosetReturnsMaxValue() {
+    PartiallyOrderedSet<Integer> poset =
+        new PartiallyOrderedSet<>((i, j) -> i >= j, Arrays.asList(20, 30, 40));
+    printValidate(poset);
+    System.out.println(poset.getChildren(20));
+    assertThat(poset.getNonChildren(), hasToString("[40]"));
+  }
+
   @Test void testPosetTricky() {
     final PartiallyOrderedSet<String> poset =
         new PartiallyOrderedSet<>(STRING_SUBSET_ORDERING);
@@ -195,6 +222,8 @@ class PartiallyOrderedSetTest {
     printValidate(poset);
     poset.add("'ab'");
     printValidate(poset);
+    assertThat(poset.getNonChildren(), hasToString("['a', 'b']"));
+    assertThat(poset.getNonParents(), hasToString("['ac', 'ab']"));
   }
 
   @Test void testPosetBits() {
