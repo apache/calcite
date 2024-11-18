@@ -756,6 +756,9 @@ public enum SqlKind {
   /** {@code SF_FLOOR} function only for SNOWFLAKE. */
   SF_FLOOR,
 
+  /** The {@code RATIO_TO_REPORT} aggregate function. */
+  RATIO_TO_REPORT,
+
   /** {@code LTRIM} function (Oracle). */
   LTRIM,
 
