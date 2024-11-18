@@ -12248,4 +12248,15 @@ class RelToSqlConverterDMTest {
 
     assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedSql));
   }
+
+  @Test public void testRowCountFunc() {
+    final RelBuilder builder = relBuilder();
+    final RexNode rex = builder.call(SqlLibraryOperators.ROW_COUNT);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(rex)
+        .build();
+    final String expectedQuery = "SELECT ROW_COUNT() AS \"$f0\"\nFROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedQuery));
+  }
 }

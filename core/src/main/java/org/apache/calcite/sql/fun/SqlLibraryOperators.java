@@ -3679,4 +3679,9 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.INTERVAL, null,
           OperandTypes.LESS_THAN_SIX_INTEGERS,
           SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction ROW_COUNT =
+      new SqlFunction("ROW_COUNT", SqlKind.OTHER_FUNCTION, ReturnTypes.DECIMAL, null,
+          null, SqlFunctionCategory.SYSTEM);
 }
