@@ -103,8 +103,12 @@ public class PostgresqlSqlDialect extends SqlDialect {
       break;
     // Postgres has type 'text' with no predefined maximum length,
     // stores values in a variable-length format
+    case TEXT:
     case CLOB:
       castSpec = "text";
+      break;
+    case SERIAL:
+      castSpec = "SERIAL";
       break;
     case INTERVAL_DAY_SECOND:
       castSpec = "INTERVAL DAY TO SECOND";
@@ -117,6 +121,9 @@ public class PostgresqlSqlDialect extends SqlDialect {
       return dataTypeSpecWithPrecision(type);
     case BINARY:
       castSpec = "BYTEA";
+      break;
+    case DOUBLE_PRECISION:
+      castSpec = "DOUBLE PRECISION";
       break;
     default:
       return super.getCastSpec(type);
