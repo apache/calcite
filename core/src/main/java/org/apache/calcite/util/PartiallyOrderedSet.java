@@ -556,7 +556,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
     // breadth-first search, to iterate over every element once, printing
     // those nearest the top element first
     final Set<E> seen = new HashSet<>();
-    final Deque<E> unseen = new ArrayDeque<>(getNonParents());
+    final Deque<E> unseen = new ArrayDeque<>(getNonChildren());
     while (!unseen.isEmpty()) {
       E e = unseen.pop();
       buf.append("  ");
@@ -686,23 +686,23 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
   }
 
   /**
-   * Returns all elements in the set that have no children. These elements are the leaf/minimal
-   * elements of the poset.
+   * Returns all elements in the set that are not children. These elements appear at the top of
+   * the poset, and they usually referred to as roots/maximal elements of the poset.
    *
-   * @return a list of elements that have no children.
+   * @return a list of elements that are not children.
    */
   public List<E> getNonChildren() {
-    return strip(bottomNode.parentList);
+    return strip(topNode.childList);
   }
 
   /**
-   * Returns all elements in the set that have no parents. These elements are the roots/maximal
-   * elements of the poset.
+   * Returns all elements in the set that are not parents. These elements appear at the bottom of
+   * the poset, and they usually referred to as leafs/minimal elements of the poset.
    *
-   * @return a list of elements that have no parents.
+   * @return a list of elements that are not parents.
    */
   public List<E> getNonParents() {
-    return strip(topNode.childList);
+    return strip(bottomNode.parentList);
   }
 
   @Override public void clear() {
