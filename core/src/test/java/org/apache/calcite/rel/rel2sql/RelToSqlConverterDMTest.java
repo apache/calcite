@@ -11960,6 +11960,20 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testPower1() {
+    final RelBuilder builder = relBuilder();
+    final RexNode extractIsoweekRexNode =
+        builder.call(SqlLibraryOperators.POWER1, builder.literal(10), builder.literal(2));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(extractIsoweekRexNode, "POWER_RESULT"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT POWER1(10, 2) AS POWER_RESULT\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
   @Test public void testEnDashSpecialChar() {
     RelBuilder relBuilder = relBuilder().scan("EMP");
     final RexNode endashLiteral = relBuilder.literal("–");

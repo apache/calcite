@@ -72,6 +72,7 @@ import static org.apache.calcite.sql.fun.SqlLibrary.ORACLE;
 import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.SNOWFLAKE;
 import static org.apache.calcite.sql.fun.SqlLibrary.SPARK;
+import static org.apache.calcite.sql.fun.SqlLibrary.SQL_SERVER;
 import static org.apache.calcite.sql.fun.SqlLibrary.STANDARD;
 import static org.apache.calcite.sql.fun.SqlLibrary.TERADATA;
 import static org.apache.calcite.sql.type.OperandTypes.ANY_STRING_OR_STRING_STRING;
@@ -3598,6 +3599,14 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.DECIMAL_NULLABLE, null,
           OperandTypes.INTERVALINTERVAL_INTERVALDATETIME,
           SqlFunctionCategory.SYSTEM);
+
+  /**
+   * Custom POWER1 function to handle SQL Server's POWER behavior,
+   * which may require FLOOR or ROUND based on input type.
+   */
+  @LibraryOperator(libraries = {SQL_SERVER})
+  public static final SqlFunction POWER1 =
+      SqlStdOperatorTable.POWER.withName("POWER1");
 
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction CEILING =
