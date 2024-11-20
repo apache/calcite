@@ -96,4 +96,20 @@ no rows selected
 
 !ok
 
+# [CALCITE-6691] QUALIFY on subquery that projects
+# There should be 3 rows because only 3 employees have the highest salary in
+# their department.
+WITH t0 AS (SELECT /*ename AS*/ deptno, sal FROM emp),
+t1 AS (SELECT deptno
+    FROM t0
+    QUALIFY row_number() OVER (PARTITION BY deptno
+                               ORDER BY sal DESC) = 1)
+SELECT deptno FROM t1;
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1:BIGINT], expr#4=[=($t2, $t3)], DEPTNO=[$t1], $condition=[$t4])
+  EnumerableWindow(window#0=[window(partition {0} order by [1 DESC] rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [ROW_NUMBER()])])
+    EnumerableCalc(expr#0..7=[{inputs}], proj#0..1=[{exprs}])
+      EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
 # End qualify.iq

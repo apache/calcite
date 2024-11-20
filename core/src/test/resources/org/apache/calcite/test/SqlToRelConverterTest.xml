@@ -6396,6 +6396,24 @@ LogicalProject(EMPNO=[$0], DEPTNO=[$1], DEPTNO0=[$3], NAME=[$4])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testQualify2">
+    <Resource name="sql">
+      <![CDATA[WITH t0 AS (SELECT deptno, sal FROM emp),
+t1 AS (SELECT deptno
+    FROM t0
+    QUALIFY row_number() OVER (PARTITION BY deptno
+                               ORDER BY sal DESC) = 1)
+SELECT deptno FROM t1]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[$1])
+    LogicalProject(DEPTNO=[$7], QualifyExpression=[=(ROW_NUMBER() OVER (PARTITION BY $7 ORDER BY $1 DESC), 1)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testQualifyInCorrelatedSubQuery">
     <Resource name="sql">
       <![CDATA[SELECT *
