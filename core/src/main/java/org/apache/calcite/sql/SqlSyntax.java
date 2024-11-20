@@ -148,6 +148,23 @@ public enum SqlSyntax {
   },
 
   /**
+   * Function syntax which takes no parentheses and return specific constant value, for
+   * example "PI".
+   *
+   * @see SqlConformance#allowNiladicConstantWithoutParentheses()
+   */
+  FUNCTION_ID_CONSTANT(FUNCTION) {
+    @Override public void unparse(
+        SqlWriter writer,
+        SqlOperator operator,
+        SqlCall call,
+        int leftPrec,
+        int rightPrec) {
+      SqlUtil.unparseFunctionSyntax(operator, writer, call, false);
+    }
+  },
+
+  /**
    * Syntax of an internal operator, which does not appear in the SQL.
    */
   INTERNAL {

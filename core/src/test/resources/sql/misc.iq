@@ -1837,6 +1837,16 @@ values pi;
 
 !ok
 
+values pi();
++-------------------+
+| EXPR$0            |
++-------------------+
+| 3.141592653589793 |
++-------------------+
+(1 row)
+
+!ok
+
 # DEGREES function
 values (degrees(pi), degrees(-pi / 2));
 +--------+--------+
@@ -2301,6 +2311,48 @@ GROUP BY floor(empno/2);
 |    65 |
 +-------+
 (4 rows)
+
+!ok
+
+# [CALCITE-6566] JDBC adapter should generate PI function with parentheses in most dialects
+
+!use scott-mysql
+
+# PI function
+values pi;
+No match found for function signature PI()
+!error
+
+values pi();
++-------------------+
+| EXPR$0            |
++-------------------+
+| 3.141592653589793 |
++-------------------+
+(1 row)
+
+!ok
+
+!use scott
+
+# PI function
+values pi;
++-------------------+
+| PI                |
++-------------------+
+| 3.141592653589793 |
++-------------------+
+(1 row)
+
+!ok
+
+values pi();
++-------------------+
+| EXPR$0            |
++-------------------+
+| 3.141592653589793 |
++-------------------+
+(1 row)
 
 !ok
 

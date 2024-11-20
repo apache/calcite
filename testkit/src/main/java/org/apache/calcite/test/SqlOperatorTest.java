@@ -9583,8 +9583,7 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.PI, VmName.EXPAND);
     f.checkScalarApprox("PI", "DOUBLE NOT NULL", isWithin(3.1415d, 0.0001d));
-    f.checkFails("^PI()^",
-        "No match found for function signature PI\\(\\)", false);
+    f.checkScalarApprox("PI()", "DOUBLE NOT NULL", isWithin(3.1415d, 0.0001d));
 
     // assert that PI function is not dynamic [CALCITE-2750]
     assertThat("PI operator should not be identified as dynamic function",

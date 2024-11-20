@@ -336,6 +336,7 @@ public abstract class SqlUtil {
         // when it has 0 args, not "LOCALTIME()".
         return;
       case FUNCTION_STAR: // E.g. "COUNT(*)"
+      case FUNCTION_ID_CONSTANT: // E.g. "PI()"
       case FUNCTION: // E.g. "RANK()"
       case ORDERED_FUNCTION: // E.g. "STRING_AGG(x)"
         // fall through - dealt with below
@@ -406,7 +407,8 @@ public abstract class SqlUtil {
       // with empty argument list, e.g. LOCALTIME, we should not quote
       // such identifier cause quoted `LOCALTIME` always represents a sql identifier.
       if (asFunctionID
-          || operator.getSyntax() == SqlSyntax.FUNCTION_ID) {
+          || operator.getSyntax() == SqlSyntax.FUNCTION_ID
+          || operator.getSyntax() == SqlSyntax.FUNCTION_ID_CONSTANT) {
         writer.keyword(identifier.getSimple());
         unparsedAsFunc = true;
       }
