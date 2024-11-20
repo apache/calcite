@@ -20,58 +20,5 @@ values 1;
 EXPR$0
 1
 !ok
-
-# [CALCITE-6678] Support dual table query (enabled in MySQL, Oracle libraries)
-!set outputformat mysql
-!use scott-mysql
-
-# MySQL supports users to specify the dual table, and also supports users not to specify the dual table.
-SELECT 1 + 1 FROM DUAL;
-+--------+
-| EXPR$0 |
-+--------+
-|      2 |
-+--------+
-(1 row)
-
-!ok
-
-SELECT 1 + 1;
-+--------+
-| EXPR$0 |
-+--------+
-|      2 |
-+--------+
-(1 row)
-
-!ok
-
-# Oracle supports users to specify the dual table, but not supports users not to specify the dual table.
-!use scott-oracle
-
-SELECT 1 + 1 FROM DUAL;
-+--------+
-| EXPR$0 |
-+--------+
-|      2 |
-+--------+
-(1 row)
-
-!ok
-
-SELECT 1 + 1;
-java.sql.SQLException: Error while executing SQL "SELECT 1 + 1": From line 1, column 1 to line 1, column 12: SELECT must have a FROM clause
-
-!error
-
-SELECT * FROM DUAL;
-+-------+
-| DUMMY |
-+-------+
-| X     |
-+-------+
-(1 row)
-
-!ok
-
+# do not modify this file, this is intended only for temporary debugging code
 # End dummy.iq

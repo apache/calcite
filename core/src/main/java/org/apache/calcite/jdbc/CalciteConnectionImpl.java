@@ -18,7 +18,6 @@ package org.apache.calcite.jdbc;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.DataContexts;
-import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.AvaticaConnection;
 import org.apache.calcite.avatica.AvaticaFactory;
@@ -37,7 +36,6 @@ import org.apache.calcite.jdbc.CalcitePrepare.Context;
 import org.apache.calcite.linq4j.BaseQueryable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
-import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
@@ -48,8 +46,6 @@ import org.apache.calcite.materialize.MaterializationService;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.rel.type.DelegatingTypeSystem;
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.TimeFrameSet;
 import org.apache.calcite.rel.type.TimeFrames;
@@ -59,6 +55,7 @@ import org.apache.calcite.schema.SchemaVersion;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.LongSchemaVersion;
+import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.server.CalciteServer;
 import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.advise.SqlAdvisor;
@@ -80,7 +77,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.lang.reflect.Type;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -156,7 +152,11 @@ abstract class CalciteConnectionImpl
             : CalciteSchema.createRootSchema(true));
     // Add dual table metadata when isSupportedDualTable return true
     if (cfg.conformance().isSupportedDualTable()) {
-      this.rootSchema.add("DUAL", new DualTable(String.class));
+      SchemaPlus schemaPlus = this.rootSchema.plus();
+      // Dual table contains one row with a value X
+      schemaPlus.add(
+          "DUAL", ViewTable.viewMacro(schemaPlus, "VALUES ('X')",
+          ImmutableList.of(), null, false));
     }
     checkArgument(this.rootSchema.isRoot(), "must be root schema");
     this.properties.put(InternalProperty.CASE_SENSITIVE, cfg.caseSensitive());
@@ -627,28 +627,6 @@ abstract class CalciteConnectionImpl
 
     @Override public void setResultSet(Iterator<Object> iterator) {
       this.iterator = iterator;
-    }
-  }
-
-  /** Implementation of {@link AbstractQueryableTable} for dual table. */
-  private static class DualTable extends AbstractQueryableTable {
-
-    DualTable(Class<String> clazz) {
-      super(clazz);
-    }
-
-    @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-      return typeFactory.createStructType(
-          // Dual table has one column DUMMY, and defined to be VARCHAR2(1)
-          Collections.singletonList(typeFactory.createJavaType(String.class)),
-          Collections.singletonList("DUMMY"));
-    }
-
-    @SuppressWarnings("unchecked")
-    @Override public Queryable<String> asQueryable(QueryProvider queryProvider,
-        SchemaPlus schema, String tableName) {
-      // Dual table contains one row with a value X
-      return Linq4j.asEnumerable(Collections.singletonList("X")).asQueryable();
     }
   }
 }
