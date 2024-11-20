@@ -1,0 +1,72 @@
+# dual-table-query.iq - Tests for DUAL table query
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+# [CALCITE-6678] Support dual table query (enabled in MySQL, Oracle libraries)
+!set outputformat mysql
+!use scott-mysql
+
+# MySQL supports users to specify the dual table, and also supports users not to specify the dual table.
+SELECT 1 + 1 FROM DUAL;
++--------+
+| EXPR$0 |
++--------+
+|      2 |
++--------+
+(1 row)
+
+!ok
+
+SELECT 1 + 1;
++--------+
+| EXPR$0 |
++--------+
+|      2 |
++--------+
+(1 row)
+
+!ok
+
+# Oracle supports users to specify the dual table, but not supports users not to specify the dual table.
+!use scott-oracle
+
+SELECT 1 + 1 FROM DUAL;
++--------+
+| EXPR$0 |
++--------+
+|      2 |
++--------+
+(1 row)
+
+!ok
+
+SELECT 1 + 1;
+java.sql.SQLException: Error while executing SQL "SELECT 1 + 1": From line 1, column 1 to line 1, column 12: SELECT must have a FROM clause
+
+!error
+
+SELECT * FROM DUAL;
++--------+
+| EXPR$0 |
++--------+
+| X      |
++--------+
+(1 row)
+
+!ok
+
+# End dual-table-query.iq
