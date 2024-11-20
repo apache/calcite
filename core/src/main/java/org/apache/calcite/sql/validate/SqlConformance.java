@@ -362,6 +362,30 @@ public interface SqlConformance {
   boolean allowNiladicParentheses();
 
   /**
+   * Whether to allow parentheses to be specified in calls to niladic functions of
+   * returned the specific constant value.
+   *
+   * <p>For example, {@code PI} is a niladic function and return specific constant values pi.
+   * In standard SQL it must be invoked with parentheses:
+   *
+   * <blockquote><code>VALUES PI()</code></blockquote>
+   *
+   * <p>If {@code allowNiladicConstantWithoutParentheses}, the following syntax is also valid:
+   *
+   * <blockquote><code>VALUES PI</code></blockquote>
+   *
+   * <p>The same function include E which result is Euler's constant.
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#ORACLE_10},
+   * {@link SqlConformanceEnum#ORACLE_12},
+   * {@link SqlConformanceEnum#DEFAULT};
+   * {@link SqlConformanceEnum#LENIENT};
+   * false otherwise.
+   */
+  boolean allowNiladicConstantWithoutParentheses();
+
+  /**
    * Whether to allow SQL syntax "{@code ROW(expr1, expr2, expr3)}".
    *
    * <p>The equivalent syntax in standard SQL is
