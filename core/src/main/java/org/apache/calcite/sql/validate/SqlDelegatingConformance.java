@@ -107,6 +107,9 @@ public class SqlDelegatingConformance implements SqlConformance {
     return delegate.allowNiladicParentheses();
   }
 
+  @Override public boolean allowNiladicConstantWithoutParentheses() {
+    return delegate.allowNiladicConstantWithoutParentheses();
+  }
   @Override public boolean allowExplicitRowValueConstructor() {
     return delegate.allowExplicitRowValueConstructor();
   }
