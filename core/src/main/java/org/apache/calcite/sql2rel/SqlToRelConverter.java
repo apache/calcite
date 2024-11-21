@@ -822,9 +822,8 @@ public class SqlToRelConverter {
       distinctify(bb, true);
     }
 
-    convertOrder(
-        select, bb, collation, orderExprList, select.getOffset(),
-        select.getFetch());
+    convertOrder(select, bb, collation, orderExprList, orderExprList.size(),
+        select.getOffset(), select.getFetch());
 
     if (select.hasHints()) {
       final List<RelHint> hints = SqlUtil.getRelHint(hintStrategies, select.getHints());
@@ -941,21 +940,22 @@ public class SqlToRelConverter {
    * <p>Ignores the ORDER BY clause if the query is not top-level and FETCH or
    * OFFSET are not present.
    *
-   * @param select        Query
-   * @param bb            Blackboard
-   * @param collation     Collation list
-   * @param orderExprList Method populates this list with orderBy expressions
-   *                      not present in selectList
-   * @param offset        Expression for number of rows to discard before
-   *                      returning first row
-   * @param fetch         Expression for number of rows to fetch
+   * @param select          Query
+   * @param bb              Blackboard
+   * @param collation       Collation list
+   * @param orderExprList   Method populates this list with orderBy expressions
+   *                        not present in selectList
+   * @param orderAddedCount
+   * @param offset          Expression for number of rows to discard before
+   *                        returning first row
+   * @param fetch           Expression for number of rows to fetch
    */
   protected void convertOrder(
       SqlSelect select,
       Blackboard bb,
       RelCollation collation,
       List<SqlNode> orderExprList,
-      @Nullable SqlNode offset,
+      int orderAddedCount, @Nullable SqlNode offset,
       @Nullable SqlNode fetch) {
     if (removeSortInSubQuery(bb.top)
         || select.getOrderList() == null
@@ -981,7 +981,7 @@ public class SqlToRelConverter {
     // we can't represent the real collation.
     //
     // If it is the top node, use the real collation, but don't trim fields.
-    if (!orderExprList.isEmpty() && !bb.top) {
+    if (orderAddedCount > 0 && !bb.top) {
       final List<RexNode> exprs = new ArrayList<>();
       final RelDataType rowType = bb.root().getRowType();
       final int fieldCount =
