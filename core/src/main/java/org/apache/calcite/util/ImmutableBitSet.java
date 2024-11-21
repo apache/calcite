@@ -978,18 +978,6 @@ public class ImmutableBitSet
     return true;
   }
 
-  /**
-   * Returns whether this is a minimal set with respect to the specified collection of bitSets.
-   */
-  public boolean isMinimal(Collection<ImmutableBitSet> bitSets) {
-    for (ImmutableBitSet other : bitSets) {
-      if (!this.equals(other) && this.contains(other)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
   /** Returns whether a given predicate evaluates to true for all bits in this
    * set. */
   public boolean allMatch(IntPredicate predicate) {

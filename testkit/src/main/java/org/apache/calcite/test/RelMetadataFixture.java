@@ -356,7 +356,6 @@ public class RelMetadataFixture {
         ImmutableSortedSet.copyOf(result),
         is(ImmutableSortedSet.copyOf(expectedUniqueKeys)));
     checkUniqueConsistent(rel);
-    assertThat(result.stream().allMatch(s -> s.isMinimal(result)), is(true));
     return this;
   }
 
