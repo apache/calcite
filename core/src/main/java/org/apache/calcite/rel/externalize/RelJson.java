@@ -830,8 +830,15 @@ public class RelJson {
           Sarg sarg = sargFromJson((Map) literal, type);
           return rexBuilder.makeSearchArgumentLiteral(sarg, type);
         }
-        if (type.getSqlTypeName() == SqlTypeName.SYMBOL) {
+        SqlTypeName sqlTypeName = type.getSqlTypeName();
+        if (sqlTypeName == SqlTypeName.SYMBOL) {
           literal = RelEnumTypes.toEnum((String) literal);
+        }
+        if (sqlTypeName == SqlTypeName.TIMESTAMP
+            || sqlTypeName == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
+          if (literal instanceof Integer) {
+            literal = ((Integer) literal).longValue();
+          }
         }
         return rexBuilder.makeLiteral(literal, type);
       }
