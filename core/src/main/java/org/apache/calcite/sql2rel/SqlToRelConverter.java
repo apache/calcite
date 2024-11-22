@@ -6266,7 +6266,7 @@ public class SqlToRelConverter {
         final SqlNodeList distinctList =
             (SqlNodeList) call.getOperandList().get(1);
         list.add(aggCall);
-        this.distinctList.addAll(distinctList.getList());
+        this.distinctList.addAll(distinctList);
         return null;
       }
 
