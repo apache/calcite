@@ -105,11 +105,12 @@ t1 AS (SELECT deptno
     QUALIFY row_number() OVER (PARTITION BY deptno
                                ORDER BY sal DESC) = 1)
 SELECT deptno FROM t1;
+DEPTNO
+------
+    10
+    20
+    30
+
 !ok
-EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1:BIGINT], expr#4=[=($t2, $t3)], DEPTNO=[$t1], $condition=[$t4])
-  EnumerableWindow(window#0=[window(partition {0} order by [1 DESC] rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [ROW_NUMBER()])])
-    EnumerableCalc(expr#0..7=[{inputs}], proj#0..1=[{exprs}])
-      EnumerableTableScan(table=[[scott, EMP]])
-!plan
 
 # End qualify.iq

@@ -225,6 +225,7 @@ import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.runtime.FlatLists.append;
 import static org.apache.calcite.sql.SqlUtil.containsDefault;
 import static org.apache.calcite.sql.SqlUtil.containsIn;
+import static org.apache.calcite.sql.SqlUtil.createCall;
 import static org.apache.calcite.sql.SqlUtil.stripAs;
 import static org.apache.calcite.sql.type.SqlTypeUtil.equalSansNullability;
 import static org.apache.calcite.sql.type.SqlTypeUtil.fromMeasure;
@@ -234,6 +235,8 @@ import static org.apache.calcite.sql.type.SqlTypeUtil.isExactNumeric;
 import static org.apache.calcite.sql.type.SqlTypeUtil.keepSourceTypeAndTargetNullability;
 import static org.apache.calcite.sql.type.SqlTypeUtil.promoteToRowType;
 import static org.apache.calcite.util.Static.RESOURCE;
+import static org.apache.calcite.util.Util.last;
+import static org.apache.calcite.util.Util.skipLast;
 import static org.apache.calcite.util.Util.transform;
 
 import static java.util.Objects.requireNonNull;
@@ -808,15 +811,32 @@ public class SqlToRelConverter {
           bb,
           select,
           orderExprList);
+      convertQualify(bb, select.getQualify());
+    } else if (select.getQualify() == null) {
+      convertSelectList(
+          bb,
+          measureBb,
+          select,
+          orderExprList,
+          ImmutableList.of());
     } else {
       convertSelectList(
           bb,
           measureBb,
           select,
-          orderExprList);
+          orderExprList,
+          ImmutableList.of(
+              SqlValidatorUtil.addAlias(select.getQualify(),
+                  "QualifyExpression")));
+        bb.setRoot(
+            relBuilder.push(bb.root())
+                // filter on the last column
+                .filter(last(relBuilder.fields()))
+                // remove the last column
+                .project(skipLast(relBuilder.fields()))
+                .build(),
+            false);
     }
-
-    convertQualify(bb, select.getQualify());
 
     if (select.isDistinct()) {
       distinctify(bb, true);
@@ -2912,7 +2932,7 @@ public class SqlToRelConverter {
       TableExpressionFactory expressionFunction =
           clazz -> Schemas.getTableExpression(
               requireNonNull(schema, "schema").plus(),
-              Util.last(udf.getNameAsId().names), table, clazz);
+              last(udf.getNameAsId().names), table, clazz);
       RelOptTable relOptTable =
           RelOptTableImpl.create(null, rowType,
               udf.getNameAsId().names, table, expressionFunction);
@@ -4700,12 +4720,16 @@ public class SqlToRelConverter {
       Blackboard bb,
       Blackboard measureBb,
       SqlSelect select,
-      List<SqlNode> orderList) {
+      List<SqlNode> orderList,
+      List<SqlNode> extraList) {
     SqlNodeList selectList = select.getSelectList();
     selectList = validator().expandStar(selectList, select, false);
 
+    // TODO call once
     replaceSubQueries(bb, selectList, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
     replaceSubQueries(bb, new SqlNodeList(orderList, SqlParserPos.ZERO),
+        RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
+    replaceSubQueries(bb, new SqlNodeList(extraList, SqlParserPos.ZERO),
         RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
 
     List<String> fieldNames = new ArrayList<>();
@@ -4743,11 +4767,18 @@ public class SqlToRelConverter {
       fieldNames.add(deriveAlias(expr, aliases, i));
     }
 
-    // Project extra fields for sorting.
+    // Project extra fields for ORDER BY.
     for (SqlNode expr : orderList) {
       ++i;
       SqlNode expr2 = validator().expandOrderExpr(select, expr);
       exprs.add(bb.convertExpression(expr2));
+      fieldNames.add(deriveAlias(expr, aliases, i));
+    }
+
+    // Project extra fields for QUALIFY.
+    for (SqlNode expr : extraList) {
+      ++i;
+      exprs.add(bb.convertExpression(expr));
       fieldNames.add(deriveAlias(expr, aliases, i));
     }
 
@@ -4894,7 +4925,7 @@ public class SqlToRelConverter {
     }
 
     // Filter on that extra column
-    relBuilder.filter(Util.last(relBuilder.fields()));
+    relBuilder.filter(last(relBuilder.fields()));
 
     // Remove that extra column from the projection
     relBuilder.project(
