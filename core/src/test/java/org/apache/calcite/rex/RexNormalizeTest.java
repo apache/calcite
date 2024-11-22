@@ -91,6 +91,14 @@ class RexNormalizeTest extends RexProgramTestBase {
     assertNodeEquals(
         ne(vBool(0), vBool(1)),
         ne(vBool(1), vBool(0)));
+
+    assertNodeEquals(
+        greatest(vInt(0), vInt(1)),
+        greatest(vInt(1), vInt(0)));
+
+    assertNodeEquals(
+        least(vInt(0), vInt(1)),
+        least(vInt(1), vInt(0)));
   }
 
   @Test void reversibleDifferentArgOps() {

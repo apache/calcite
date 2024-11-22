@@ -61,6 +61,8 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlLibrary;
+import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -134,6 +136,7 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasToString;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -5510,6 +5513,28 @@ public class RelBuilderTest {
             "empid=100; name=Bill",
             "empid=110; name=Theodore",
             "empid=150; name=Sebastian");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6688">[CALCITE-6688]
+   * Allow operators of SqlKind.SYMMETRICAL to be reversed</a>. */
+  @Test void testSymmetricalOperatorsCanBeReversed() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelDataType type = builder.getTypeFactory().createUnknownType();
+    final RexInputRef r1 = new RexInputRef(1, type);
+    final RexInputRef r2 = new RexInputRef(2, type);
+    final List<SqlOperator> symmetricOperators =
+        SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
+            SqlLibrary.values()).getOperatorList().stream().filter(
+                op -> op.isSymmetrical()).collect(Collectors.toList());
+
+    for (SqlOperator op : symmetricOperators) {
+      RexNode c1 = builder.call(op, r1, r2);
+      RexNode c2 = builder.call(op, r2, r1);
+
+      assertDoesNotThrow(() -> op.reverse());
+      assertTrue(c1.equals(c2));
+    }
   }
 
   /** Operand to a user-defined function. */
