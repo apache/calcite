@@ -6406,6 +6406,16 @@ t1 AS (SELECT deptno, sal, COUNT(*)
                                ORDER BY COUNT(*) DESC) = 1)
 SELECT deptno FROM t1]]>
     </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalFilter(condition=[$3])
+    LogicalProject(DEPTNO=[$0], SAL=[$1], EXPR$2=[$2], QualifyExpression=[=(ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $2 DESC), 1)])
+      LogicalAggregate(group=[{0, 1}], EXPR$2=[COUNT()])
+        LogicalProject(DEPTNO=[$7], SAL=[$5])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
   </TestCase>
   <TestCase name="testQualifyInCorrelatedSubQuery">
     <Resource name="sql">

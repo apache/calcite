@@ -84,7 +84,6 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexPatternFieldRef;
 import org.apache.calcite.rex.RexRangeRef;
 import org.apache.calcite.rex.RexShuttle;
@@ -222,10 +221,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
-import static org.apache.calcite.runtime.FlatLists.append;
 import static org.apache.calcite.sql.SqlUtil.containsDefault;
 import static org.apache.calcite.sql.SqlUtil.containsIn;
-import static org.apache.calcite.sql.SqlUtil.createCall;
 import static org.apache.calcite.sql.SqlUtil.stripAs;
 import static org.apache.calcite.sql.type.SqlTypeUtil.equalSansNullability;
 import static org.apache.calcite.sql.type.SqlTypeUtil.fromMeasure;
@@ -234,7 +231,9 @@ import static org.apache.calcite.sql.type.SqlTypeUtil.isApproximateNumeric;
 import static org.apache.calcite.sql.type.SqlTypeUtil.isExactNumeric;
 import static org.apache.calcite.sql.type.SqlTypeUtil.keepSourceTypeAndTargetNullability;
 import static org.apache.calcite.sql.type.SqlTypeUtil.promoteToRowType;
+import static org.apache.calcite.sql.validate.SqlValidatorUtil.addAlias;
 import static org.apache.calcite.util.Static.RESOURCE;
+import static org.apache.calcite.util.Util.first;
 import static org.apache.calcite.util.Util.last;
 import static org.apache.calcite.util.Util.skipLast;
 import static org.apache.calcite.util.Util.transform;
@@ -806,44 +805,16 @@ public class SqlToRelConverter {
     final RelCollation collation =
         cluster.traitSet().canonize(RelCollations.of(collationList));
 
-    if (validator().isAggregate(select)) {
-      convertAgg(
-          bb,
-          select,
-          orderExprList);
-      convertQualify(bb, select.getQualify());
-    } else if (select.getQualify() == null) {
-      convertSelectList(
-          bb,
-          measureBb,
-          select,
-          orderExprList,
-          ImmutableList.of());
-    } else {
-      convertSelectList(
-          bb,
-          measureBb,
-          select,
-          orderExprList,
-          ImmutableList.of(
-              SqlValidatorUtil.addAlias(select.getQualify(),
-                  "QualifyExpression")));
-        bb.setRoot(
-            relBuilder.push(bb.root())
-                // filter on the last column
-                .filter(last(relBuilder.fields()))
-                // remove the last column
-                .project(skipLast(relBuilder.fields()))
-                .build(),
-            false);
-    }
+    convertSelectList(bb, measureBb, select, orderExprList, ImmutableList.of(),
+        select.getQualify());
 
     if (select.isDistinct()) {
       distinctify(bb, true);
     }
 
-    convertOrder(select, bb, collation, orderExprList, orderExprList.size(),
-        select.getOffset(), select.getFetch());
+    convertOrder(
+        select, bb, collation, orderExprList, select.getOffset(),
+        select.getFetch());
 
     if (select.hasHints()) {
       final List<RelHint> hints = SqlUtil.getRelHint(hintStrategies, select.getHints());
@@ -960,22 +931,21 @@ public class SqlToRelConverter {
    * <p>Ignores the ORDER BY clause if the query is not top-level and FETCH or
    * OFFSET are not present.
    *
-   * @param select          Query
-   * @param bb              Blackboard
-   * @param collation       Collation list
-   * @param orderExprList   Method populates this list with orderBy expressions
-   *                        not present in selectList
-   * @param orderAddedCount
-   * @param offset          Expression for number of rows to discard before
-   *                        returning first row
-   * @param fetch           Expression for number of rows to fetch
+   * @param select        Query
+   * @param bb            Blackboard
+   * @param collation     Collation list
+   * @param orderExprList Method populates this list with orderBy expressions
+   *                      not present in selectList
+   * @param offset        Expression for number of rows to discard before
+   *                      returning first row
+   * @param fetch         Expression for number of rows to fetch
    */
   protected void convertOrder(
       SqlSelect select,
       Blackboard bb,
       RelCollation collation,
       List<SqlNode> orderExprList,
-      int orderAddedCount, @Nullable SqlNode offset,
+      @Nullable SqlNode offset,
       @Nullable SqlNode fetch) {
     if (removeSortInSubQuery(bb.top)
         || select.getOrderList() == null
@@ -1001,7 +971,7 @@ public class SqlToRelConverter {
     // we can't represent the real collation.
     //
     // If it is the top node, use the real collation, but don't trim fields.
-    if (orderAddedCount > 0 && !bb.top) {
+    if (!orderExprList.isEmpty() && !bb.top) {
       final List<RexNode> exprs = new ArrayList<>();
       final RelDataType rowType = bb.root().getRowType();
       final int fieldCount =
@@ -1194,8 +1164,7 @@ public class SqlToRelConverter {
   }
 
   private void substituteSubQuery(Blackboard bb, SubQuery subQuery) {
-    final RexNode expr = subQuery.expr;
-    if (expr != null) {
+    if (subQuery.expr != null) {
       // Already done.
       return;
     }
@@ -3495,53 +3464,52 @@ public class SqlToRelConverter {
    * @param bb            Scope within which to resolve identifiers
    * @param select        Query
    * @param orderExprList Additional expressions needed to implement ORDER BY
+   * @param extraList     Additional expressions needed to implement QUALIFY
    */
   protected void convertAgg(Blackboard bb, SqlSelect select,
-      List<SqlNode> orderExprList) {
+      List<SqlNode> orderExprList, List<SqlNode> extraList) {
     requireNonNull(bb.root, "bb.root");
-    SqlNodeList groupList = select.getGroup();
-    SqlNodeList selectList = select.getSelectList();
-    SqlNode having = select.getHaving();
+    List<SqlNode> groupList = first(select.getGroup(), ImmutableList.of());
+    List<SqlNode> selectList = select.getSelectList();
+    @Nullable SqlNode having = select.getHaving();
 
     final AggConverter aggConverter =
         AggConverter.create(bb,
             (AggregatingSelectScope) validator().getSelectScope(select));
     createAggImpl(bb, aggConverter, selectList, groupList, having,
-        orderExprList);
+        orderExprList, extraList);
   }
 
   private void createAggImpl(Blackboard bb,
       final AggConverter aggConverter,
-      SqlNodeList selectList,
-      @Nullable SqlNodeList groupList,
+      List<SqlNode> selectList,
+      List<SqlNode> groupList,
       @Nullable SqlNode having,
-      List<SqlNode> orderExprList) {
+      List<SqlNode> orderExprList,
+      List<SqlNode> extraList) {
     // Find aggregate functions in SELECT and HAVING clause
     final AggregateFinder aggregateFinder = new AggregateFinder();
-    selectList.accept(aggregateFinder);
+    aggregateFinder.visitAll(selectList);
     if (having != null) {
       having.accept(aggregateFinder);
     }
 
     // first replace the sub-queries inside the aggregates
     // because they will provide input rows to the aggregates.
-    replaceSubQueries(bb, aggregateFinder.list,
-        RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
+    aggregateFinder.list.forEach(e ->
+        replaceSubQueries(bb, e, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN));
 
     // also replace sub-queries inside filters in the aggregates
-    replaceSubQueries(bb, aggregateFinder.filterList,
-        RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
+    aggregateFinder.filterList.forEach(e ->
+        replaceSubQueries(bb, e, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN));
 
     // also replace sub-queries inside ordering spec in the aggregates
-    replaceSubQueries(bb, aggregateFinder.orderList,
-        RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
+    aggregateFinder.orderList.forEach(e ->
+        replaceSubQueries(bb, e, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN));
 
-    // If group-by clause is missing, pretend that it has zero elements.
-    if (groupList == null) {
-      groupList = SqlNodeList.EMPTY;
-    }
-
-    replaceSubQueries(bb, groupList, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
+    // also replace sub-queries inside GROUP BY
+    groupList.forEach(e ->
+        replaceSubQueries(bb, e, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN));
 
     // register the group exprs
 
@@ -3566,15 +3534,21 @@ public class SqlToRelConverter {
       // convert the select and having expressions, so that the
       // agg converter knows which aggregations are required
 
-      selectList.accept(aggConverter);
-      // Assert we don't have dangling items left in the stack
-      assert !aggConverter.inOver;
+      for (SqlNode expr : selectList) {
+        expr.accept(aggConverter);
+        // Assert we don't have dangling items left in the stack
+        assert !aggConverter.inOver;
+      }
       for (SqlNode expr : orderExprList) {
         expr.accept(aggConverter);
         assert !aggConverter.inOver;
       }
       if (having != null) {
         having.accept(aggConverter);
+        assert !aggConverter.inOver;
+      }
+      for (SqlNode expr : extraList) {
+        expr.accept(aggConverter);
         assert !aggConverter.inOver;
       }
 
@@ -3620,10 +3594,9 @@ public class SqlToRelConverter {
 
       // Tell bb which of group columns are sorted.
       bb.columnMonotonicities.clear();
-      for (SqlNode groupItem : groupList) {
-        bb.columnMonotonicities.add(
-            bb.scope.getMonotonicity(groupItem));
-      }
+      groupList.forEach(e ->
+          bb.columnMonotonicities.add(
+              bb.scope.getMonotonicity(e)));
 
       // Add the aggregator
       bb.setRoot(
@@ -3645,7 +3618,8 @@ public class SqlToRelConverter {
       // This needs to be done separately from the sub-query inside
       // any aggregate in the select list, and after the aggregate rel
       // is allocated.
-      replaceSubQueries(bb, selectList, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
+      selectList.forEach(e ->
+          replaceSubQueries(bb, e, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN));
 
       // Now sub-queries in the entire select list have been converted.
       // Convert the select expressions to get the final list to be
@@ -3676,6 +3650,10 @@ public class SqlToRelConverter {
         projects.add(bb.convertExpression(expr),
             SqlValidatorUtil.alias(expr, k++));
       }
+      for (SqlNode expr : extraList) {
+        projects.add(bb.convertExpression(expr),
+            SqlValidatorUtil.alias(expr, k++));
+      }
     } finally {
       bb.agg = null;
     }
@@ -3701,10 +3679,9 @@ public class SqlToRelConverter {
 
     // Tell bb which of group columns are sorted.
     bb.columnMonotonicities.clear();
-    for (SqlNode selectItem : selectList) {
-      bb.columnMonotonicities.add(
-          bb.scope.getMonotonicity(selectItem));
-    }
+    selectList.forEach(e ->
+        bb.columnMonotonicities.add(
+            bb.scope.getMonotonicity(e)));
   }
 
   /**
@@ -4716,23 +4693,49 @@ public class SqlToRelConverter {
     return ret;
   }
 
-  private void convertSelectList(
+  /** Converts a select-list for an aggregate or non-aggregate query,
+   * adding a filter for a QUALIFY clause if present. */
+  private void convertSelectList(Blackboard bb, Blackboard measureBb,
+      SqlSelect select, List<SqlNode> orderExprList, List<SqlNode> extraList,
+      @Nullable SqlNode qualify) {
+    if (qualify != null) {
+      // Add the QUALIFY expression to the select-list,
+      // convert the extended list,
+      // filter by the last field,
+      // and remove the last field.
+      convertSelectList(bb, measureBb, select, orderExprList,
+          ImmutableList.of(addAlias(qualify, "QualifyExpression")), null);
+      bb.setRoot(
+          relBuilder.push(bb.root())
+              .filter(last(relBuilder.fields()))// filter on last column
+              .project(skipLast(relBuilder.fields())) // remove last column
+              .build(),
+          false);
+      return;
+    }
+
+    if (validator().isAggregate(select)) {
+      convertAgg(bb, select, orderExprList, extraList);
+    } else {
+      convertNonAggregateSelectList(bb, measureBb, select, orderExprList,
+          extraList);
+    }
+  }
+
+  /** Converts the select-list of a non-aggregate query. */
+  private void convertNonAggregateSelectList(
       Blackboard bb,
       Blackboard measureBb,
       SqlSelect select,
       List<SqlNode> orderList,
       List<SqlNode> extraList) {
-    SqlNodeList selectList = select.getSelectList();
-    selectList = validator().expandStar(selectList, select, false);
+    final SqlNodeList selectList =
+        validator().expandStar(select.getSelectList(), select, false);
 
-    // TODO call once
-    replaceSubQueries(bb, selectList, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
-    replaceSubQueries(bb, new SqlNodeList(orderList, SqlParserPos.ZERO),
-        RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
-    replaceSubQueries(bb, new SqlNodeList(extraList, SqlParserPos.ZERO),
-        RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
+    Iterables.concat(selectList, orderList, extraList).forEach(e ->
+        replaceSubQueries(bb, e, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN));
 
-    List<String> fieldNames = new ArrayList<>();
+    final List<String> fieldNames = new ArrayList<>();
     final List<RexNode> exprs = new ArrayList<>();
     final Collection<String> aliases = new TreeSet<>();
 
@@ -4782,12 +4785,12 @@ public class SqlToRelConverter {
       fieldNames.add(deriveAlias(expr, aliases, i));
     }
 
-    fieldNames =
+    final List<String> uniqueFieldNames =
         SqlValidatorUtil.uniquify(fieldNames,
             catalogReader.nameMatcher().isCaseSensitive());
 
     relBuilder.push(bb.root())
-        .projectNamed(exprs, fieldNames, true);
+        .projectNamed(exprs, uniqueFieldNames, true);
 
     RelNode project = relBuilder.build();
 
@@ -4799,7 +4802,8 @@ public class SqlToRelConverter {
       // in p.r instead of the original exprs
       Project project1 = (Project) p.r;
       r = relBuilder.push(bb.root())
-          .projectNamed(project1.getProjects(), fieldNames, true, ImmutableSet.of(p.id))
+          .projectNamed(project1.getProjects(), uniqueFieldNames, true,
+              ImmutableSet.of(p.id))
           .build();
     } else {
       r = project;
@@ -4854,113 +4858,6 @@ public class SqlToRelConverter {
     }
     aliases.add(alias);
     return alias;
-  }
-
-  private void convertQualify(Blackboard bb, @Nullable SqlNode qualify) {
-    if (qualify == null) {
-      return;
-    }
-
-    final LogicalProject projectionFromSelect =
-        requireNonNull((LogicalProject) bb.root, "root");
-
-    // Convert qualify SqlNode to a RexNode
-    replaceSubQueries(bb, qualify, RelOptUtil.Logic.UNKNOWN_AS_FALSE);
-    final RelNode originalRoot = requireNonNull(bb.root, "root");
-    RexNode qualifyRexNode;
-    try {
-      // Set the root to the input of the project,
-      // since QUALIFY might have an expression in the OVER clause
-      // that references a column not in the SELECT.
-      bb.setRoot(projectionFromSelect.getInput(), false);
-      qualifyRexNode = bb.convertExpression(qualify);
-    } finally {
-      bb.setRoot(originalRoot, false);
-    }
-
-    // Check to see if the qualify expression has a referenced expression and
-    // do some referencing accordingly
-    final RexNode qualifyWithReferencesRexNode =
-        qualifyRexNode.accept(
-            new DuplicateEliminator(projectionFromSelect.getProjects()));
-
-    // Create a Project with the QUALIFY expression
-    if (qualifyWithReferencesRexNode.equals(qualifyRexNode)) {
-      // The QUALIFY expression does not depend on any references like so:
-      //
-      //  SELECT A, B
-      //  FROM tbl
-      //  QUALIFY WINDOW(C) = 1
-      //
-      // Meaning we should generate a plan like:
-      //  Project(A, B, WINDOW(C) = 1 as QualifyExpression)
-      //    TableScan(tbl)
-      //
-      relBuilder.push(projectionFromSelect.getInput())
-          .project(
-              append(projectionFromSelect.getProjects(), qualifyRexNode),
-              append(projectionFromSelect.getRowType().getFieldNames(),
-                  "QualifyExpression"));
-    } else {
-      // The QUALIFY expression depended on a reference meaning
-      // we need to introduce an extra project like so:
-      //
-      //  SELECT A, B, WINDOW(C) as window_val
-      //  FROM tbl
-      //  QUALIFY window_val = 1
-      //
-      // Meaning we should generate a plan like:
-      //
-      //  Project($0, $1, $2, =($2, 1) as QualifyExpression)
-      //    Project(A, B, WINDOW(C) as window_val)
-      //      TableScan(tbl)
-      //
-      // This is a very specific application of Common Subexpression Elimination
-      // (CSE), since the window value pops up twice.
-      relBuilder.push(requireNonNull(bb.root, "root"))
-          .project(
-              append(relBuilder.fields(), qualifyWithReferencesRexNode),
-              append(relBuilder.peek().getRowType().getFieldNames(),
-                  "QualifyExpression"));
-    }
-
-    // Filter on that extra column
-    relBuilder.filter(last(relBuilder.fields()));
-
-    // Remove that extra column from the projection
-    relBuilder.project(
-        Util.first(relBuilder.fields(),
-            projectionFromSelect.getProjects().size()));
-
-    // Update the root
-    bb.setRoot(relBuilder.build(), false);
-  }
-
-  /** Eliminates a common sub-expression by looking for a {@link RexNode}
-   * in the expressions of a {@link Project}; if found, returns a refIndex
-   * instead of the raw node. */
-  private static final class DuplicateEliminator extends RexShuttle {
-    private final List<RexNode> projects;
-
-    DuplicateEliminator(List<RexNode> projects) {
-      this.projects = projects;
-    }
-
-    @Override public RexNode visitCall(RexCall call) {
-      final int i = projects.indexOf(call);
-      if (i >= 0) {
-        return new RexInputRef(i, projects.get(i).getType());
-      }
-      return super.visitCall(call);
-    }
-
-    @Override public RexNode visitOver(RexOver over) {
-      final int i = projects.indexOf(over);
-      if (i >= 0) {
-        return new RexInputRef(i, projects.get(i).getType());
-      }
-      return over;
-    }
   }
 
   /**
@@ -6343,10 +6240,10 @@ public class SqlToRelConverter {
    * Visitor that collects all aggregate functions in a {@link SqlNode} tree.
    */
   private static class AggregateFinder extends SqlBasicVisitor<Void> {
-    final SqlNodeList list = new SqlNodeList(SqlParserPos.ZERO);
-    final SqlNodeList filterList = new SqlNodeList(SqlParserPos.ZERO);
-    final SqlNodeList distinctList = new SqlNodeList(SqlParserPos.ZERO);
-    final SqlNodeList orderList = new SqlNodeList(SqlParserPos.ZERO);
+    final List<SqlNode> list = new ArrayList<>();
+    final List<SqlNode> filterList = new ArrayList<>();
+    final List<SqlNode> distinctList = new ArrayList<>();
+    final List<SqlNode> orderList = new ArrayList<>();
 
     @Override public Void visit(SqlCall call) {
       // ignore window aggregates and ranking functions (associated with OVER operator)
