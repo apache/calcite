@@ -30,7 +30,6 @@ import org.apache.calcite.rel.externalize.RelWriterImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlExplainLevel;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
@@ -723,12 +722,6 @@ public class RexProgram {
     int index = project.index;
     while (true) {
       RexNode expr = exprs.get(index);
-      if (expr instanceof RexCall
-          && ((RexCall) expr).getOperator()
-          == SqlStdOperatorTable.IN_FENNEL) {
-        // drill through identity function
-        expr = ((RexCall) expr).getOperands().get(0);
-      }
       if (expr instanceof RexLocalRef) {
         index = ((RexLocalRef) expr).index;
       } else if (expr instanceof RexInputRef) {

@@ -1996,19 +1996,6 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
               SqlTypeFamily.DATETIME));
 
   /**
-   * Use of the <code>IN_FENNEL</code> operator forces the argument to be
-   * evaluated in Fennel. Otherwise acts as identity function.
-   */
-  public static final SqlFunction IN_FENNEL =
-      new SqlMonotonicUnaryFunction(
-          "$IN_FENNEL",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.ARG0,
-          null,
-          OperandTypes.ANY,
-          SqlFunctionCategory.SYSTEM);
-
-  /**
    * The SQL <code>CAST</code> operator.
    *
    * <p>The SQL syntax is
