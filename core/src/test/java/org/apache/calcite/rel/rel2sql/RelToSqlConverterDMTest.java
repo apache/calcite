@@ -11960,6 +11960,20 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testPower1() {
+    final RelBuilder builder = relBuilder();
+    final RexNode extractIsoweekRexNode =
+        builder.call(SqlLibraryOperators.POWER1, builder.literal(10), builder.literal(2));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(extractIsoweekRexNode, "POWER_RESULT"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT POWER1(10, 2) AS POWER_RESULT\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
   @Test public void testEnDashSpecialChar() {
     RelBuilder relBuilder = relBuilder().scan("EMP");
     final RexNode endashLiteral = relBuilder.literal("–");
@@ -12258,5 +12272,22 @@ class RelToSqlConverterDMTest {
         .build();
     final String expectedQuery = "SELECT ROW_COUNT() AS \"$f0\"\nFROM \"scott\".\"EMP\"";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedQuery));
+  }
+
+  @Test public void testJsonExtractArrayFunction() {
+    String jsonString = "{\"numbers\": [1, 2, 3]}";
+    String jsonPath = "$.numbers";
+    final RelBuilder builder = relBuilder();
+    final RexNode parseTSNode1 =
+        builder.call(SqlLibraryOperators.JSON_EXTRACT_ARRAY, builder.literal(jsonString), builder.literal(jsonPath));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(parseTSNode1)
+        .build();
+    final String expectedSql =
+        "SELECT JSON_EXTRACT_ARRAY('{\"numbers\": [1, 2, 3]}', '$.numbers') AS "
+            + "\"$f0\"\nFROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
   }
 }
