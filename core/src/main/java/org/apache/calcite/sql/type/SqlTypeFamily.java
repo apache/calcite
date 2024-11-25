@@ -71,6 +71,7 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
   DATETIME_INTERVAL,
   MULTISET,
   ARRAY,
+  VARRAY,
   MAP,
   NULL,
   ANY,

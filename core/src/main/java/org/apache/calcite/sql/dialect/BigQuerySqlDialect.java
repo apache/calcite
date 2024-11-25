@@ -996,7 +996,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     final SqlWriter.Frame frame = writer.startList(SqlWriter.FrameTypeEnum.AS);
     call.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.sep("AS");
-    call.operand(2).unparse(writer, leftPrec, rightPrec);
+    call.operand(1).unparse(writer, leftPrec, rightPrec);
     if (unnestOperator.withOrdinality) {
       writer.literal("WITH OFFSET");
       writer.sep("AS");
@@ -1548,6 +1548,9 @@ public class BigQuerySqlDialect extends SqlDialect {
       } else {
         call.getOperator().unparse(writer, call, leftPrec, rightPrec);
       }
+      break;
+    case "GENERATE_SQLERRM":
+      writer.literal("@@error.message");
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
