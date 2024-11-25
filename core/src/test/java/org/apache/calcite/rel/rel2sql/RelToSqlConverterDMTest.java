@@ -12320,7 +12320,8 @@ class RelToSqlConverterDMTest {
   public void testSQLERRSTFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode rex =
-       builder.call(SqlLibraryOperators.GENERATE_SQLERRST);
+        builder.literal(builder.call(SqlLibraryOperators.GENERATE_SQLERRST).toString().replace("()",
+            ""));
     final RelNode root = builder
         .scan("EMP")
         .project(rex)
