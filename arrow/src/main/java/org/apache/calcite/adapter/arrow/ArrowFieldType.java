@@ -55,12 +55,6 @@ enum ArrowFieldType {
     this.clazz = clazz;
   }
 
-  ArrowFieldType(Class<?> clazz, int precision, int scale) {
-    this.clazz = clazz;
-    this.precision = precision;
-    this.scale = scale;
-  }
-
   public void setPrecisionAndScale(int precision, int scale) {
     this.precision = precision;
     this.scale = scale;
