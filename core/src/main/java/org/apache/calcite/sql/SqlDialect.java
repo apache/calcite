@@ -478,6 +478,11 @@ public class SqlDialect {
     writer.literal(literal.toString());
   }
 
+  public void unparseNumericLiteral(SqlWriter writer,
+      String value, int leftPrec, int rightPrec) {
+    writer.literal(value);
+  }
+
   public void unparseSqlDatetimeArithmetic(SqlWriter writer,
       SqlCall call, SqlKind sqlKind, int leftPrec, int rightPrec) {
     final SqlWriter.Frame frame = writer.startList("(", ")");
