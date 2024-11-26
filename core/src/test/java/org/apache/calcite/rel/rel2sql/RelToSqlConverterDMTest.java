@@ -12263,7 +12263,7 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedSql));
   }
 
-  @Test public void testRowCountFunc() {
+  @Test public void testRowCountFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode rex = builder.call(SqlLibraryOperators.ROW_COUNT);
     final RelNode root = builder
@@ -12275,7 +12275,7 @@ class RelToSqlConverterDMTest {
   }
 
   @Test
-  public void testCURRENT_JOB_IDFunc() {
+  public void testCURRENT_JOB_IDFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode rex =
         builder.literal(builder.call(SqlLibraryOperators.CURRENT_JOB_ID).toString().replace("()",
