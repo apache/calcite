@@ -964,15 +964,15 @@ class ArrowAdapterTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6684">[CALCITE-6684]
-   * Arrow adapter should supports filter conditions of Decimal type</a>. */
+   * Support Arrow filter pushdown conditions that have subexpressions of a decimal type</a>. */
   @Test void testArrowProjectFieldsWithDecimalFilter() {
     String sql = "select \"decimalField\"\n"
         + "from arrowdatatype\n"
         + "where \"decimalField\" = 1.00";
     String plan = "PLAN=ArrowToEnumerableConverter\n"
         + "  ArrowProject(decimalField=[$8])\n"
-        + "    ArrowFilter(condition=[=($8, 1)])\n"
-        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])\n\n";
+        + "    ArrowFilter(condition=[=($8, 1.00)])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]])\n\n";
     String result = "decimalField=1.00\n";
 
     CalciteAssert.that()
@@ -989,7 +989,7 @@ class ArrowAdapterTest {
     String plan = "PLAN=ArrowToEnumerableConverter\n"
         + "  ArrowProject(doubleField=[$6])\n"
         + "    ArrowFilter(condition=[=($6, 1.0E0)])\n"
-        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])\n\n";
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]])\n\n";
     String result = "doubleField=1.0\n";
 
     CalciteAssert.that()
@@ -1006,7 +1006,7 @@ class ArrowAdapterTest {
     String plan = "PLAN=ArrowToEnumerableConverter\n"
         + "  ArrowProject(stringField=[$3])\n"
         + "    ArrowFilter(condition=[=($3, '1')])\n"
-        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])\n\n";
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]])\n\n";
     String result = "stringField=1\n";
 
     CalciteAssert.that()
