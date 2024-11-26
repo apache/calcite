@@ -12274,11 +12274,11 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedQuery));
   }
 
-  @Test
-  public void testCURRENT_JOB_IDFunction() {
+  @Test public void testCURRENT_JOB_IDFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode rex =
-        builder.literal(builder.call(SqlLibraryOperators.CURRENT_JOB_ID).toString().replace("()",
+        builder.literal(
+            builder.call(SqlLibraryOperators.CURRENT_JOB_ID).toString().replace("()",
             ""));
     final RelNode root = builder
         .scan("EMP")
@@ -12288,11 +12288,11 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedQuery));
   }
 
-  @Test
-  public void testSQLERRMFunction() {
+  @Test public void testSQLERRMFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode rex =
-        builder.literal(builder.call(SqlLibraryOperators.GENERATE_SQLERRM).toString().replace("()",
+        builder.literal(
+            builder.call(SqlLibraryOperators.GENERATE_SQLERRM).toString().replace("()",
             ""));
     final RelNode root = builder
         .scan("EMP")
@@ -12302,11 +12302,11 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedQuery));
   }
 
-  @Test
-  public void testSQLERRCFunction() {
+  @Test public void testSQLERRCFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode rex =
-        builder.literal(builder.call(SqlLibraryOperators.GENERATE_SQLERRC).toString().replace("()",
+        builder.literal(
+            builder.call(SqlLibraryOperators.GENERATE_SQLERRC).toString().replace("()",
             ""));
     final RelNode root = builder
         .scan("EMP")
@@ -12316,11 +12316,11 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedQuery));
   }
 
-  @Test
-  public void testSQLERRSTFunction() {
+  @Test public void testSQLERRSTFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode rex =
-        builder.literal(builder.call(SqlLibraryOperators.GENERATE_SQLERRST).toString().replace("()",
+        builder.literal(
+            builder.call(SqlLibraryOperators.GENERATE_SQLERRST).toString().replace("()",
             ""));
     final RelNode root = builder
         .scan("EMP")
