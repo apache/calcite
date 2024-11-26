@@ -12274,7 +12274,7 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedQuery));
   }
 
-  @Test public void testCURRENT_JOB_IDFunction() {
+  @Test public void testCurrentJobIdFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode rex =
         builder.literal(
