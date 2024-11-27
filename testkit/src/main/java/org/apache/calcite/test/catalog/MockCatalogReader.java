@@ -316,7 +316,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
     protected final double rowCount;
     protected final List<Map.Entry<String, RelDataType>> columnList =
         new ArrayList<>();
-    protected final List<Integer> keyList = new ArrayList<>();
+    protected final List<ImmutableBitSet> keyList = new ArrayList<>();
     protected final List<RelReferentialConstraint> referentialConstraints =
         new ArrayList<>();
     protected RelDataType rowType;
@@ -378,7 +378,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
      */
     protected MockTable(MockCatalogReader catalogReader, boolean stream,
         boolean temporal, double rowCount,
-        List<Map.Entry<String, RelDataType>> columnList, List<Integer> keyList,
+        List<Map.Entry<String, RelDataType>> columnList, List<ImmutableBitSet> keyList,
         RelDataType rowType, List<RelCollation> collationList, List<String> names,
         Set<String> monotonicColumnSet, StructKind kind,
         @Nullable ColumnResolver resolver,
@@ -592,15 +592,11 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
     }
 
     @Override public boolean isKey(ImmutableBitSet columns) {
-      return !keyList.isEmpty()
-          && columns.contains(ImmutableBitSet.of(keyList));
+      return keyList.stream().anyMatch(columns::contains);
     }
 
     @Override public List<ImmutableBitSet> getKeys() {
-      if (keyList.isEmpty()) {
-        return ImmutableList.of();
-      }
-      return ImmutableList.of(ImmutableBitSet.of(keyList));
+      return keyList;
     }
 
     @Override public List<RelReferentialConstraint> getReferentialConstraints() {
@@ -651,9 +647,41 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
 
     public void addColumn(String name, RelDataType type, boolean isKey) {
       if (isKey) {
-        keyList.add(columnList.size());
+        keyList.add(ImmutableBitSet.of(columnList.size()));
       }
       columnList.add(Pair.of(name, type));
+    }
+
+    public void addKey(String... columns) {
+      ImmutableBitSet.Builder keyBuilder = ImmutableBitSet.builder();
+      for (String c : columns) {
+        int i = columnIndex(c);
+        if (i < 0) {
+          throw new IllegalArgumentException("Column " + c + " not found in the table");
+        }
+        keyBuilder.set(i);
+      }
+      keyList.add(keyBuilder.build());
+    }
+
+    public void addKey(ImmutableBitSet key) {
+      for (Integer columnIndex : key) {
+        if (columnIndex >= columnList.size()) {
+          throw new IllegalArgumentException(
+              "Column index " + columnIndex + " exceeds the number of columns");
+        }
+      }
+      keyList.add(key);
+    }
+
+    private int columnIndex(String colName) {
+      for (int i = 0; i < columnList.size(); i++) {
+        Map.Entry<String, RelDataType> col = columnList.get(i);
+        if (colName.equals(col.getKey())) {
+          return i;
+        }
+      }
+      return -1;
     }
 
     public void addMonotonic(String name) {
@@ -712,7 +740,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
      */
     private MockModifiableViewRelOptTable(MockModifiableViewTable modifiableViewTable,
         MockCatalogReader catalogReader, boolean stream, double rowCount,
-        List<Map.Entry<String, RelDataType>> columnList, List<Integer> keyList,
+        List<Map.Entry<String, RelDataType>> columnList, List<ImmutableBitSet> keyList,
         RelDataType rowType, List<RelCollation> collationList, List<String> names,
         Set<String> monotonicColumnSet, StructKind kind,
         @Nullable ColumnResolver resolver,
