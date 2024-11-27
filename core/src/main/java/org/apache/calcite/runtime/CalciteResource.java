@@ -103,9 +103,6 @@ public interface CalciteResource {
   @BaseMessage("Illegal array expression ''{0}''")
   ExInst<CalciteException> illegalArrayExpression(String a0);
 
-  @BaseMessage("''FROM'' without operands preceding it is illegal")
-  ExInst<CalciteException> illegalFromEmpty();
-
   @BaseMessage("ROW expression encountered in illegal context")
   ExInst<CalciteException> illegalRowExpression();
 
