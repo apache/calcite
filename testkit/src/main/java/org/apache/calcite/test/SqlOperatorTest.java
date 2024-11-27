@@ -2213,6 +2213,9 @@ public class SqlOperatorTest {
       f.checkScalar("chr(48)", "0", "CHAR(1) NOT NULL");
       f.checkScalar("chr(0)", String.valueOf('\u0000'), "CHAR(1) NOT NULL");
       f.checkNull("chr(null)");
+      // Test case for [CALCITE-6707] Type inference for CHR function is wrong
+      // https://issues.apache.org/jira/browse/CALCITE-6707
+      f.checkType("chr(CAST(null AS INTEGER))", "CHAR(1)");
     };
     final List<SqlLibrary> libraries =
         list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.POSTGRESQL);

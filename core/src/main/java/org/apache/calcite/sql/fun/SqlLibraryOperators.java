@@ -2284,7 +2284,7 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY, ORACLE, POSTGRESQL})
   public static final SqlFunction CHR =
       SqlBasicFunction.create("CHR",
-          ReturnTypes.CHAR,
+          ReturnTypes.CHAR_NULLABLE_IF_ARGS_NULLABLE,
           OperandTypes.INTEGER,
           SqlFunctionCategory.STRING);
 
