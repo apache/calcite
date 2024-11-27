@@ -6397,59 +6397,49 @@ SqlNode BuiltinFunctionCall() :
         <TRIM> {
             SqlLiteral flag = null;
             SqlNode trimChars = null;
+            SqlParserPos fromPos = SqlParserPos.ZERO;
             s = span();
         }
         <LPAREN>
-        [
-            LOOKAHEAD(2)
-            [
-                <BOTH> {
-                    s.add(this);
-                    flag = SqlTrimFunction.Flag.BOTH.symbol(getPos());
-                }
-            |
-                <TRAILING> {
-                    s.add(this);
-                    flag = SqlTrimFunction.Flag.TRAILING.symbol(getPos());
-                }
-            |
-                <LEADING> {
-                    s.add(this);
-                    flag = SqlTrimFunction.Flag.LEADING.symbol(getPos());
-                }
-            ]
-            [ trimChars = Expression(ExprContext.ACCEPT_SUB_QUERY) ]
+        (
             (
-                <FROM> {
-                    if (null == flag && null == trimChars) {
-                        throw SqlUtil.newContextException(getPos(),
-                            RESOURCE.illegalFromEmpty());
+                (
+                    <BOTH> {
+                        s.add(this);
+                        flag = SqlTrimFunction.Flag.BOTH.symbol(getPos());
                     }
-                }
-            |
-                <RPAREN> {
-                    // This is to handle the case of TRIM(x)
-                    // (FRG-191).
-                    if (flag == null) {
-                        flag = SqlTrimFunction.Flag.BOTH.symbol(SqlParserPos.ZERO);
+                |
+                    <TRAILING> {
+                        s.add(this);
+                        flag = SqlTrimFunction.Flag.TRAILING.symbol(getPos());
                     }
-                    args.add(flag);
-                    args.add(null); // no trim chars
-                    args.add(trimChars); // reinterpret trimChars as source
-                    return SqlStdOperatorTable.TRIM.createCall(s.end(this),
-                        args);
-                }
+                |
+                    <LEADING> {
+                        s.add(this);
+                        flag = SqlTrimFunction.Flag.LEADING.symbol(getPos());
+                    }
+                )
+                [ trimChars = Expression(ExprContext.ACCEPT_SUB_QUERY) ]
+                <FROM> { fromPos = getPos(); }
+                e = Expression(ExprContext.ACCEPT_SUB_QUERY)
             )
-        ]
-        e = Expression(ExprContext.ACCEPT_SUB_QUERY) {
+            |
+            (
+                e = Expression(ExprContext.ACCEPT_SUB_QUERY)
+                [
+                    <FROM> { trimChars = e; fromPos = getPos(); }
+                    e = Expression(ExprContext.ACCEPT_SUB_QUERY)
+                ]
+            )
+        )
+        <RPAREN> {
             if (flag == null) {
                 flag = SqlTrimFunction.Flag.BOTH.symbol(SqlParserPos.ZERO);
             }
             args.add(flag);
+            // trimChars can be null
             args.add(trimChars);
             args.add(e);
-        }
-        <RPAREN> {
             return SqlStdOperatorTable.TRIM.createCall(s.end(this), args);
         }
     |

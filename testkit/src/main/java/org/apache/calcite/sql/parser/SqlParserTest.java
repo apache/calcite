@@ -5701,8 +5701,14 @@ public class SqlParserTest {
         .ok("TRIM(BOTH ' ' FROM ((COALESCE(CAST(NULL AS VARCHAR(2))) || "
             + "' ') || COALESCE('junk ', '')))");
 
-    sql("trim(^from^ 'beard')")
-        .fails("(?s).*'FROM' without operands preceding it is illegal.*");
+    expr("trim(^from^ 'beard')")
+        .fails("(?s).*Encountered \"from\" at line 1, column 6\\..*");
+    expr("trim('beard ')")
+        .ok("TRIM(BOTH ' ' FROM 'beard ')");
+    // Test case for [CALCITE-6709] https://issues.apache.org/jira/browse/CALCITE-6709
+    // Parser accepts a call to TRIM() with no arguments
+    expr("trim(^)^")
+        .fails("(?s).*Encountered \"\\)\" at line 1, column 6\\..*");
   }
 
   @Test void testConvertAndTranslate() {
