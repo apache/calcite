@@ -22,6 +22,7 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
+import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -50,11 +51,16 @@ public class ConvertToChecked extends RelHomogeneousShuttle {
    * Visitor which rewrites an expression tree such that all
    * arithmetic operations that produce numeric values use checked arithmetic.
    */
-  static class ConvertRexToChecked extends RexShuttle {
+  class ConvertRexToChecked extends RexShuttle {
     private final RexBuilder builder;
 
     ConvertRexToChecked(RexBuilder builder) {
       this.builder = builder;
+    }
+
+    @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
+      RelNode result = subQuery.rel.accept(ConvertToChecked.this);
+      return subQuery.clone(result);
     }
 
     @Override public RexNode visitCall(final RexCall call) {
@@ -92,8 +98,7 @@ public class ConvertToChecked extends RelHomogeneousShuttle {
           result = call;
         }
         return builder.makeCast(call.getType(), result);
-      } else if (!SqlTypeName.EXACT_TYPES.contains(resultType)
-          || (resultType == SqlTypeName.DECIMAL)) {
+      } else if (!SqlTypeName.EXACT_TYPES.contains(resultType)) {
         // Do not rewrite operator if the type is e.g., DOUBLE or DATE
         operator = call.getOperator();
       }

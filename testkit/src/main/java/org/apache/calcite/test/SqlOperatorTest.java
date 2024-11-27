@@ -3300,6 +3300,28 @@ public class SqlOperatorTest {
         DECIMAL_OVERFLOW, true);
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6706">[CALCITE-6706]
+   * Checked arithmetic does not take effect in subqueries</a>. */
+  @Test void testCastOverflow() {
+    final SqlOperatorFixture f = fixture().withConformance(SqlConformanceEnum.BIG_QUERY);
+    f.checkFails("SELECT -CAST(-32768 AS SMALLINT)",
+        "integer overflow: Value 32768 does not fit in a SMALLINT", true);
+    f.checkFails("SELECT CAST(32768 AS SMALLINT)",
+        "Value 32768 out of range", true);
+    f.checkFails("SELECT -CAST(32768 AS SMALLINT)",
+        "Value 32768 out of range", true);
+    final SqlOperatorFixture f0 = fixture();
+    // This query does not fail if checked arithmetic is not used
+    f0.checkScalar("SELECT -CAST(-32768 AS SMALLINT)",
+        "-32768", "SMALLINT");
+    // The last two queries should fail in any conformance level
+    // because the value "32768" cannot be represented as a SMALLINT
+    f0.checkFails("SELECT CAST(32768 AS SMALLINT)",
+        "Value 32768 out of range", true);
+    f0.checkFails("SELECT -CAST(32768 AS SMALLINT)",
+        "Value 32768 out of range", true);
+  }
+
   @Test void testMinusIntervalOperator() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.MINUS, VmName.EXPAND);
