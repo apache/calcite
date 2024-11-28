@@ -3709,4 +3709,24 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction ROW_COUNT =
       new SqlFunction("ROW_COUNT", SqlKind.OTHER_FUNCTION, ReturnTypes.DECIMAL, null,
           null, SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction CURRENT_JOB_ID =
+      new SqlFunction("CURRENT_JOB_ID", SqlKind.LITERAL, ReturnTypes.CHAR, null,
+          OperandTypes.STRING, SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction GENERATE_SQLERRST =
+      new SqlFunction("SQLERRST", SqlKind.LITERAL, ReturnTypes.CHAR, null,
+          OperandTypes.STRING, SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction GENERATE_SQLERRM =
+      new SqlFunction("SQLERRM", SqlKind.LITERAL, ReturnTypes.CHAR, null,
+          OperandTypes.STRING, SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction GENERATE_SQLERRC =
+      new SqlFunction("SQLERRC", SqlKind.LITERAL, ReturnTypes.CHAR, null,
+          OperandTypes.STRING, SqlFunctionCategory.SYSTEM);
 }
