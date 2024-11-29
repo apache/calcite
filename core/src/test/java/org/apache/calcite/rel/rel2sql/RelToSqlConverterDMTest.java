@@ -57,14 +57,7 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelRecordType;
-import org.apache.calcite.rex.RexBuilder;
-import org.apache.calcite.rex.RexCorrelVariable;
-import org.apache.calcite.rex.RexFieldCollation;
-import org.apache.calcite.rex.RexInputRef;
-import org.apache.calcite.rex.RexLiteral;
-import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexSubQuery;
-import org.apache.calcite.rex.RexWindowBounds;
+import org.apache.calcite.rex.*;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDateTimeFormat;
@@ -11790,15 +11783,22 @@ class RelToSqlConverterDMTest {
     RexNode inClauseNode =
         builder.call(SqlStdOperatorTable.IN, builder.field(0),
             builder.literal(10), builder.literal(20));
+    RexNode likeNode =
+        builder.call(SqlStdOperatorTable.LIKE, builder.field(1),
+            builder.literal("abC"));
+    RexNode conditionNode =
+        RexUtil.composeConjunction(builder.getRexBuilder(),
+            Arrays.asList(builder.call(SqlStdOperatorTable.IS_NOT_FALSE, inClauseNode),
+            builder.call(SqlStdOperatorTable.IS_NOT_FALSE, likeNode)));
     RelNode filterNode =
-        LogicalFilter.create(builder.build(), builder.call(SqlStdOperatorTable.IS_NOT_FALSE, inClauseNode));
+        LogicalFilter.create(builder.build(), conditionNode);
 
     final RelNode root = builder
         .push(filterNode)
         .build();
     final String expectedBiqQuery = "SELECT *\n"
         + "FROM scott.EMP\n"
-        + "WHERE (EMPNO IN (10, 20)) IS NOT FALSE";
+        + "WHERE (EMPNO IN (10, 20)) IS NOT FALSE AND (ENAME LIKE 'abC') IS NOT FALSE";
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedBiqQuery));
   }
 
