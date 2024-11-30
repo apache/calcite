@@ -540,6 +540,13 @@ public abstract class ReturnTypes {
       VARCHAR.andThen(SqlTypeTransforms.TO_NULLABLE);
 
   /**
+   * Type-inference strategy whereby the result type of a call is a nullable
+   * VARCHAR.
+   */
+  public static final SqlReturnTypeInference VARCHAR_FORCE_NULLABLE =
+      VARCHAR.andThen(SqlTypeTransforms.FORCE_NULLABLE);
+
+  /**
    * Type-inference strategy that always returns "VARBINARY".
    */
   public static final SqlReturnTypeInference VARBINARY =
@@ -551,6 +558,13 @@ public abstract class ReturnTypes {
    */
   public static final SqlReturnTypeInference VARBINARY_NULLABLE =
       VARBINARY.andThen(SqlTypeTransforms.TO_NULLABLE);
+
+  /**
+   * Type-inference strategy whereby the result type of a call is a nullable
+   * VARBINARY.
+   */
+  public static final SqlReturnTypeInference VARBINARY_FORCE_NULLABLE =
+      VARBINARY.andThen(SqlTypeTransforms.FORCE_NULLABLE);
 
   /**
    * Type-inference strategy for Histogram agg support.
