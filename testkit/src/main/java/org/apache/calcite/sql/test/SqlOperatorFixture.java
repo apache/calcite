@@ -345,6 +345,18 @@ public interface SqlOperatorFixture extends AutoCloseable {
   void checkNull(String expression);
 
   /**
+   * Tests that a SQL expression returns the SQL NULL value and
+   * the data type of the returned result is nullable. For example,
+   *
+   * <blockquote>
+   * <pre>checkNullValueWithNullableType("CHAR_LENGTH(CAST(NULL AS VARCHAR(3))");</pre>
+   * </blockquote>
+   *
+   * @param expression Scalar expression
+   */
+  void checkNullValueWithNullableType(String expression);
+
+  /**
    * Tests that a SQL expression has a given type. For example,
    *
    * <blockquote>

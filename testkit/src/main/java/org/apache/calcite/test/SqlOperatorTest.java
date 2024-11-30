@@ -4796,82 +4796,86 @@ public class SqlOperatorTest {
       f.checkString("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
               + " 'HOST')",
           "calcite.apache.org",
-          "VARCHAR NOT NULL");
+          "VARCHAR");
       f.checkString("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
               + " 'PATH')",
           "/path1/p.php",
-          "VARCHAR NOT NULL");
+          "VARCHAR");
       f.checkString("parse_url('http://calcite.apache.org/path1/%20p.php?k1=v1&k2=v2#Ref1',"
               + " 'PATH')",
           "/path1/%20p.php",
-          "VARCHAR NOT NULL");
+          "VARCHAR");
       f.checkString("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
               + " 'QUERY')",
           "k1=v1&k2=v2",
-          "VARCHAR NOT NULL");
+          "VARCHAR");
       f.checkString("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
               + " 'REF')",
           "Ref1",
-          "VARCHAR NOT NULL");
+          "VARCHAR");
       f.checkString("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
               + " 'QUERY', 'k2')",
           "v2",
-          "VARCHAR NOT NULL");
+          "VARCHAR");
       f.checkString("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
               + " 'QUERY', 'k1')",
           "v1",
-          "VARCHAR NOT NULL");
-      f.checkNull("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
-          + " 'QUERY', 'k3')");
+          "VARCHAR");
+      f.checkNullValueWithNullableType(
+          "parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1', 'QUERY', 'k3')");
       f.checkString("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
               + " 'FILE')",
           "/path1/p.php?k1=v1&k2=v2",
-          "VARCHAR NOT NULL");
+          "VARCHAR");
       f.checkString("parse_url('http://calcite.apache.org/path1/p.php',"
               + " 'FILE')",
           "/path1/p.php",
-          "VARCHAR NOT NULL");
+          "VARCHAR");
       f.checkString("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
               + " 'PROTOCOL')",
           "http",
-          "VARCHAR NOT NULL");
+          "VARCHAR");
       f.checkString("parse_url('https://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
               + " 'PROTOCOL')",
           "https",
-          "VARCHAR NOT NULL");
+          "VARCHAR");
       f.checkString("parse_url('http://bob@calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
               + " 'USERINFO')",
           "bob",
-          "VARCHAR NOT NULL");
-      f.checkNull("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
-          + " 'USERINFO')");
+          "VARCHAR");
+      f.checkNullValueWithNullableType(
+          "parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1', 'USERINFO')");
       f.checkString("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
               + " 'AUTHORITY')",
           "calcite.apache.org",
-          "VARCHAR NOT NULL");
+          "VARCHAR");
 
       // test with invalid partToExtract
-      f.checkNull("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
-          + " 'INVALID_PART_TO_EXTRACT')");
-      f.checkNull("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
-          + " 'HOST', 'k1')");
+      f.checkNullValueWithNullableType(
+          "parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
+              + " 'INVALID_PART_TO_EXTRACT')");
+      f.checkNullValueWithNullableType(
+          "parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1', 'HOST', 'k1')");
 
       // test with invalid urlString
-      f.checkNull("parse_url('http:calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
-          + " 'HOST')");
-      f.checkNull("parse_url('calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
-          + " 'HOST')");
-      f.checkNull("parse_url('/path1/p.php?k1=v1&k2=v2#Ref1',"
-          + " 'HOST')");
+      f.checkNullValueWithNullableType(
+          "parse_url('http:calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1', 'HOST')");
+      f.checkNullValueWithNullableType(
+          "parse_url('calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1', 'HOST')");
+      f.checkNullValueWithNullableType(
+          "parse_url('/path1/p.php?k1=v1&k2=v2#Ref1', 'HOST')");
 
       // test with operands with null values
-      f.checkNull("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
-          + " cast(null as varchar))");
-      f.checkNull("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
+      f.checkNullValueWithNullableType(
+          "parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
+              + " cast(null as varchar))");
+      f.checkNullValueWithNullableType(
+          "parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
           + " cast(null as varchar), cast(null as varchar))");
-      f.checkNull("parse_url(cast(null as varchar), cast(null as varchar))");
-      f.checkNull("parse_url(cast(null as varchar), cast(null as varchar),"
-          + " cast(null as varchar))");
+      f.checkNullValueWithNullableType(
+          "parse_url(cast(null as varchar), cast(null as varchar))");
+      f.checkNullValueWithNullableType(
+          "parse_url(cast(null as varchar), cast(null as varchar), cast(null as varchar))");
     };
     f0.forEachLibrary(list(SqlLibrary.HIVE, SqlLibrary.SPARK), consumer);
   }
@@ -5423,18 +5427,18 @@ public class SqlOperatorTest {
     final Consumer<SqlOperatorFixture> consumer = f -> {
       f.checkString("from_base64('VGhpcyBpcyBhIHRlc3QgU3RyaW5nLg==')",
           "546869732069732061207465737420537472696e672e",
-          "VARBINARY NOT NULL");
+          "VARBINARY");
       f.checkString("from_base64('VGhpcyBpcyBhIHRlc\t3QgU3RyaW5nLg==')",
           "546869732069732061207465737420537472696e672e",
-          "VARBINARY NOT NULL");
+          "VARBINARY");
       f.checkString("from_base64('VGhpcyBpcyBhIHRlc\t3QgU3\nRyaW5nLg==')",
           "546869732069732061207465737420537472696e672e",
-          "VARBINARY NOT NULL");
+          "VARBINARY");
       f.checkString("from_base64('VGhpcyB  pcyBhIHRlc3Qg\tU3Ry\naW5nLg==')",
           "546869732069732061207465737420537472696e672e",
-          "VARBINARY NOT NULL");
-      f.checkNull("from_base64('-1')");
-      f.checkNull("from_base64('-100')");
+          "VARBINARY");
+      f.checkNullValueWithNullableType("from_base64('-1')");
+      f.checkNullValueWithNullableType("from_base64('-100')");
     };
     f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL), consumer);
   }

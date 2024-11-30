@@ -468,7 +468,7 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {HIVE, SPARK})
   public static final SqlFunction PARSE_URL =
       SqlBasicFunction.create("PARSE_URL",
-              ReturnTypes.VARCHAR_NULLABLE,
+              ReturnTypes.VARCHAR_FORCE_NULLABLE,
               OperandTypes.STRING_STRING_OPTIONAL_STRING,
               SqlFunctionCategory.STRING);
 
@@ -1836,7 +1836,7 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY, MYSQL})
   public static final SqlFunction FROM_BASE64 =
       SqlBasicFunction.create("FROM_BASE64",
-          ReturnTypes.VARBINARY_NULLABLE,
+          ReturnTypes.VARBINARY_FORCE_NULLABLE,
           OperandTypes.STRING, SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {MYSQL})
