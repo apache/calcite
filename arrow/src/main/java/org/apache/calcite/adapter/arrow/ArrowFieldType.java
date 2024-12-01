@@ -48,11 +48,11 @@ enum ArrowFieldType {
   private int scale;
 
   ArrowFieldType(Primitive primitive) {
-    this(requireNonNull(primitive.boxClass, "boxClass"));
+    this(requireNonNull(primitive.boxClass, "boxClass"), 0, 0);
   }
 
   ArrowFieldType(Class<?> clazz) {
-    this.clazz = clazz;
+    this(clazz, 0, 0);
   }
 
   ArrowFieldType(Class<?> clazz, int precision, int scale) {
