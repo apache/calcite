@@ -303,8 +303,7 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {ORACLE, REDSHIFT, SPARK})
   public static final SqlBasicFunction NVL2 =
       SqlBasicFunction.create(SqlKind.NVL2,
-          ReturnTypes.NVL2_RESTRICTIVE
-              .andThen(SqlTypeTransforms.TO_NULLABLE_ALL),
+          ReturnTypes.NVL2_RESTRICTIVE,
           OperandTypes.SECOND_THIRD_SAME);
 
   /** The "IFNULL(value, value)" function. */
