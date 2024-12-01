@@ -11692,9 +11692,9 @@ public class SqlOperatorTest {
       f12.checkScalar("NVL2(NULL, 3.0, 2.111)", "2.111", "DECIMAL(4, 3) NOT NULL");
       f12.checkScalar("NVL2(3.111, 3.1415926, 2.111)", "3.1415926", "DECIMAL(8, 7) NOT NULL");
 
-      f12.checkNull("nvl2('ab', CAST(NULL AS VARCHAR(6)), 'def')");
-      f12.checkNull("nvl2(NULL, 'abc', NULL)");
-      f12.checkNull("nvl2(NULL, NULL, NULL)");
+      f12.checkNullValueWithNullableType("nvl2('ab', CAST(NULL AS VARCHAR(6)), 'def')");
+      f12.checkNullValueWithNullableType("nvl2(NULL, 'abc', NULL)");
+      f12.checkNullValueWithNullableType("nvl2(NULL, NULL, NULL)");
 
       f12.checkFails("^NVL2(2.0, 2.0, true)^", "Parameters must be of the same type", false);
       f12.checkFails("^NVL2(NULL, 2.0, true)^", "Parameters must be of the same type", false);
