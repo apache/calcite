@@ -581,7 +581,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction REGEXP_REPLACE = new SqlRegexpReplaceFunction();
 
   @LibraryOperator(libraries = {SQL_SERVER})
-  public static final SqlFunction REPLACE_SQLSERVER =
+  public static final SqlFunction CASE_INSENSTIVE_REPLACE =
       SqlBasicFunction.create("REPLACE", ReturnTypes.VARCHAR_NULLABLE,
           OperandTypes.STRING_STRING_STRING, SqlFunctionCategory.STRING);
 

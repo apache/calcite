@@ -11024,7 +11024,7 @@ class RelToSqlConverterDMTest {
   @Test public void testSqlServerReplaceFunction() {
     final RelBuilder builder = relBuilder().scan("EMP");
     final RexNode replaceCall =
-        builder.call(SqlLibraryOperators.REPLACE_SQLSERVER,
+        builder.call(SqlLibraryOperators.CASE_INSENSTIVE_REPLACE,
             builder.field("ENAME"), builder.literal("A"), builder.literal("aa"));
     final RelNode root = builder.project(replaceCall).build();
     final String expectedSql = "SELECT REPLACE(\"ENAME\", 'A', 'aa') AS \"$f0\""
