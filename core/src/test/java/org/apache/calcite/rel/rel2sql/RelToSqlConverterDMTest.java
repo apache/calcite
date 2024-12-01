@@ -11021,6 +11021,17 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
   }
 
+  @Test public void testSqlServerReplaceFunction() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode replaceCall =
+        builder.call(SqlLibraryOperators.REPLACE_SQLSERVER,
+            builder.field("ENAME"), builder.literal("A"), builder.literal("aa"));
+    final RelNode root = builder.project(replaceCall).build();
+    final String expectedSql = "SELECT REPLACE(\"ENAME\", 'A', 'aa') AS \"$f0\""
+        + "\nFROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+  }
+
   @Disabled
   @Test void testInnerAndLeftJoinWithBooleanColumnEqualityConditionInWhereClause() {
     String query = "select \"first_name\" \n"

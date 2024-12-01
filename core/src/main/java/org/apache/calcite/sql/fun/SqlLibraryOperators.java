@@ -580,6 +580,11 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY, MYSQL, ORACLE})
   public static final SqlFunction REGEXP_REPLACE = new SqlRegexpReplaceFunction();
 
+  @LibraryOperator(libraries = {SQL_SERVER})
+  public static final SqlFunction REPLACE_SQLSERVER =
+      SqlBasicFunction.create("REPLACE", ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.STRING_STRING_STRING, SqlFunctionCategory.STRING);
+
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction COMPRESS =
       SqlBasicFunction.create("COMPRESS",
