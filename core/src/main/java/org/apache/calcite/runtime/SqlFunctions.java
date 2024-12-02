@@ -2916,6 +2916,28 @@ public class SqlFunctions {
     return bitsSet;
   }
 
+  /** Helper function for implementing <code>BIT_COUNT_MYSQL</code>. Counts the number
+   * of bits set in an Object value. */
+  public static long bitCountMySQL(Object b) {
+    if (b instanceof Boolean) {
+      return Long.bitCount((Boolean) b ? 1L : 0L);
+    }
+    if (b instanceof String) {
+      try {
+        return bitCount(new BigDecimal((String) b));
+      } catch (Exception ignore) {
+        return 0;
+      }
+    }
+    if (b instanceof Number) {
+      return bitCount(new BigDecimal(b.toString()));
+    }
+    if (b instanceof ByteString) {
+      return bitCount((ByteString) b);
+    }
+    return 0;
+  }
+
   /** Bitwise function <code>BIT_OR</code> applied to integer values. */
   public static long bitOr(long b0, long b1) {
     return b0 | b1;
