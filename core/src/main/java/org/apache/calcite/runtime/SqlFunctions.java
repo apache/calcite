@@ -2916,6 +2916,46 @@ public class SqlFunctions {
     return bitsSet;
   }
 
+  /** Helper function for implementing MySQL <code>BIT_COUNT</code>. Counts the number
+   * of bits set in a boolean value. */
+  public static long bitCountMySQL(Boolean b) {
+    return Long.bitCount(b ? 1L : 0L);
+  }
+
+  /** Helper function for implementing MySQL <code>BIT_COUNT</code>. Counts the number
+   * of bits set in a string value. */
+  public static long bitCountMySQL(String b) {
+    try {
+      return bitCount(new BigDecimal(b));
+    } catch (Exception ignore) {
+      return 0;
+    }
+  }
+
+  /** Helper function for implementing MySQL <code>BIT_COUNT</code>. Counts the number
+   * of bits set in a number value. */
+  public static long bitCountMySQL(Number b) {
+    return bitCount(new BigDecimal(b.toString()));
+  }
+
+  /** Helper function for implementing MySQL <code>BIT_COUNT</code>. Counts the number
+   * of bits set in a date value. */
+  public static long bitCountMySQL(java.sql.Date b) {
+    return bitCountMySQL(new SimpleDateFormat("yyyyMMdd", Locale.ENGLISH).format(b));
+  }
+
+  /** Helper function for implementing MySQL <code>BIT_COUNT</code>. Counts the number
+   * of bits set in a time value. */
+  public static long bitCountMySQL(Time b) {
+    return bitCountMySQL(new SimpleDateFormat("HHmmss", Locale.ENGLISH).format(b));
+  }
+
+  /** Helper function for implementing MySQL <code>BIT_COUNT</code>. Counts the number
+   * of bits set in a timestamp value. */
+  public static long bitCountMySQL(Timestamp b) {
+    return bitCountMySQL(new SimpleDateFormat("yyyyMMddHHmmss", Locale.ENGLISH).format(b));
+  }
+
   /** Bitwise function <code>BIT_OR</code> applied to integer values. */
   public static long bitOr(long b0, long b1) {
     return b0 | b1;

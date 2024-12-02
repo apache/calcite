@@ -868,7 +868,7 @@ public class RexImpTable {
       // bitwise
       defineMethod(BITCOUNT, BuiltInMethod.BITCOUNT.method, NullPolicy.STRICT);
       defineMethod(BIT_COUNT_BIG_QUERY, BuiltInMethod.BITCOUNT.method, NullPolicy.STRICT);
-      defineMethod(BIT_COUNT_MYSQL, BuiltInMethod.BITCOUNT.method, NullPolicy.STRICT);
+      define(BIT_COUNT_MYSQL, new BitCountMySQLImplementor());
 
       // datetime
       define(DATETIME_PLUS, new DatetimeArithmeticImplementor());
@@ -2689,6 +2689,44 @@ public class RexImpTable {
           argValueList.get(1));
     }
   }
+
+  /** Implementor for MYSQL {@code BIT_COUNT} function. */
+  private static class BitCountMySQLImplementor extends AbstractRexCallImplementor {
+    BitCountMySQLImplementor() {
+      super("bitCount", NullPolicy.STRICT, false);
+    }
+
+    @Override Expression implementSafe(final RexToLixTranslator translator,
+        final RexCall call, final List<Expression> argValueList) {
+      Expression expr = argValueList.get(0);
+      RelDataType relDataType = call.getOperands().get(0).getType();
+      if (SqlTypeUtil.isNull(relDataType)) {
+        return argValueList.get(0);
+      }
+      // In MySQL, BIT_COUNT(TIMESTAMP '1996-08-03 16:22:34') is converted to
+      // BIT_COUNT('19960803162234') for calculation, so the internal int value
+      // needs to be converted to DATE/TIME and TIMESTAMP.
+      SqlTypeName type = relDataType.getSqlTypeName();
+      switch (type) {
+      case VARBINARY:
+      case BINARY:
+        return Expressions.call(SqlFunctions.class, "bitCount", expr);
+      case DATE:
+        expr = Expressions.call(BuiltInMethod.INTERNAL_TO_DATE.method, expr);
+        break;
+      case TIME:
+        expr = Expressions.call(BuiltInMethod.INTERNAL_TO_TIME.method, expr);
+        break;
+      case TIMESTAMP:
+        expr = Expressions.call(BuiltInMethod.INTERNAL_TO_TIMESTAMP.method, expr);
+        break;
+      default:
+        break;
+      }
+      return Expressions.call(SqlFunctions.class, "bitCountMySQL", Expressions.box(expr));
+    }
+  }
+
 
   /** Implementor for the {@code MONTHNAME} and {@code DAYNAME} functions.
    * Each takes a {@link java.util.Locale} argument. */

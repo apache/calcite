@@ -1166,7 +1166,14 @@ public abstract class SqlLibraryOperators {
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.BIGINT_NULLABLE,
           null,
-          OperandTypes.NUMERIC.or(OperandTypes.BINARY),
+          OperandTypes.or(OperandTypes.NUMERIC,
+              OperandTypes.BINARY,
+              OperandTypes.BOOLEAN,
+              OperandTypes.CHARACTER,
+              OperandTypes.DATETIME,
+              OperandTypes.DATE,
+              OperandTypes.TIME,
+              OperandTypes.TIMESTAMP),
           SqlFunctionCategory.NUMERIC);
 
   /** The "CONCAT(arg, ...)" function that concatenates strings.
