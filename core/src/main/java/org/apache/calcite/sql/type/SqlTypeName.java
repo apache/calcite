@@ -137,7 +137,12 @@ public enum SqlTypeName {
   JSON(PrecScale.NO_NO | PrecScale.YES_NO, true, Types.OTHER, null),
   VARIANT(PrecScale.NO_NO, false, Types.OTHER, SqlTypeFamily.VARIANT),
   CLOB(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.CHAR,
-          SqlTypeFamily.CHARACTER);
+          SqlTypeFamily.CHARACTER),
+  GEOGRAPHY(PrecScale.NO_NO, false, Types.OTHER, null),
+  TEXT(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.CHAR,
+      SqlTypeFamily.CHARACTER),
+  SERIAL(PrecScale.NO_NO, false, Types.INTEGER, SqlTypeFamily.NUMERIC),
+  DOUBLE_PRECISION(PrecScale.NO_NO, false, Types.FLOAT, SqlTypeFamily.NUMERIC);
 
   public static final int MAX_DATETIME_PRECISION = 3;
 
