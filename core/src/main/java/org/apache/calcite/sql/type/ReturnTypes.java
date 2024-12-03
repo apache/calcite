@@ -403,6 +403,12 @@ public abstract class ReturnTypes {
       TIME.andThen(SqlTypeTransforms.TO_NULLABLE);
 
   /**
+   * Type-inference strategy whereby the result type of a call is INTERVAL.
+   */
+  public static final SqlReturnTypeInference INTERVAL =
+      explicit(SqlTypeName.INTERVAL);
+
+  /**
    * Type-inference strategy whereby the result type of a call is TIMESTAMP.
    */
   public static final SqlReturnTypeInference TIMESTAMP =
