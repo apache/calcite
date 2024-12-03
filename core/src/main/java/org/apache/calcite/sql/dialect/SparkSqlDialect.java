@@ -68,6 +68,8 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDDAYOFWEEK;
+import static org.apache.calcite.sql.SqlDateTimeFormat.DDYYYYMM;
+import static org.apache.calcite.sql.SqlDateTimeFormat.MMYYYYDD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ADD_MONTHS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATEDIFF;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_ADD;
@@ -179,6 +181,8 @@ public class SparkSqlDialect extends SqlDialect {
         put(MMDDYY, "MMddyy");
         put(YYYYMM, "yyyyMM");
         put(YYYYMMDD, "yyyyMMdd");
+        put(DDYYYYMM, "ddyyyyMM");
+        put(MMYYYYDD, "MMyyyydd");
         put(YYMMDD, "yyMMdd");
         put(DAYOFWEEK, "EEEE");
         put(ABBREVIATED_NAME_OF_DAY, "EEE");
