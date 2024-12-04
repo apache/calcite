@@ -32,17 +32,22 @@ import org.apache.calcite.rel.hint.HintPredicates;
 import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.rules.CoreRules;
+import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.util.Holder;
 
 import com.google.common.collect.Lists;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
+import java.util.Collections;
 import java.util.List;
 
 import static org.apache.calcite.test.Matchers.hasTree;
@@ -544,4 +549,99 @@ class RelFieldTrimmerTest {
         + "        LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(trimmed, hasTree(expected));
   }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6715">[CALCITE-6715]
+   * Enhance RelFieldTrimmer to trim LogicalCorrelate nodes</a>.
+   */
+  @Test void testLogicalCorrelateFieldTrimmer() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    RelNode root = builder.scan("EMP")
+        .projectPlus(builder.call(SqlStdOperatorTable.PLUS, builder.field(0), builder.field(0)))
+        .variable(v::set)
+        .values(new String[] {"dummy"}, true)
+        .project(
+            builder.call(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+            builder.field(v.get(), "DEPTNO"), builder.field(v.get(), "DEPTNO")))
+        .uncollect(Collections.emptyList(), false)
+        .correlate(JoinRelType.LEFT, v.get().id, builder.field(2, 0, "DEPTNO"))
+        .aggregate(builder.groupKey("ENAME"), builder.max(builder.field("EMPNO")))
+        .build();
+
+    String origTree = ""
+        + "LogicalAggregate(group=[{1}], agg#0=[MAX($0)])\n"
+        + "  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])\n"
+        + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], $f8=[+($0, $0)])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n"
+        + "    Uncollect\n"
+        + "      LogicalProject($f0=[ARRAY($cor0.DEPTNO, $cor0.DEPTNO)])\n"
+        + "        LogicalValues(tuples=[[{ true }]])\n";
+    assertThat(root, hasTree(origTree));
+
+    final RelFieldTrimmer fieldTrimmer = new RelFieldTrimmer(null, builder);
+    final RelNode trimmed = fieldTrimmer.trim(root);
+    final String expected = ""
+        + "LogicalAggregate(group=[{1}], agg#0=[MAX($0)])\n"
+        + "  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{2}])\n"
+        + "    LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n"
+        + "    Uncollect\n"
+        + "      LogicalProject($f0=[ARRAY($cor0.DEPTNO, $cor0.DEPTNO)])\n"
+        + "        LogicalValues(tuples=[[{ true }]])\n";
+
+    assertThat(trimmed, hasTree(expected));
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6715">[CALCITE-6715]
+   * Enhance RelFieldTrimmer to trim LogicalCorrelate nodes</a>.
+   */
+  @Test void testLogicalCorrelateFieldTrimmer2() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    RelNode root = builder.scan("EMP")
+        .projectPlus(builder.call(SqlStdOperatorTable.PLUS, builder.field(0), builder.field(0)))
+        .variable(v::set)
+        .scan("DEPT")
+        .projectPlus(
+            builder.call(SqlStdOperatorTable.PLUS,
+            builder.field(v.get(), "DEPTNO"), builder.field(v.get(), "DEPTNO")))
+        .filter(
+            builder.equals(builder.field(0),
+                builder.call(
+                    SqlStdOperatorTable.PLUS,
+                    builder.literal(10),
+                    builder.field(v.get(), "DEPTNO"))))
+        .correlate(JoinRelType.LEFT, v.get().id, builder.field(2, 0, "DEPTNO"))
+        .aggregate(builder.groupKey("ENAME"), builder.max(builder.field("EMPNO")))
+        .build();
+
+    String origTree = ""
+        + "LogicalAggregate(group=[{1}], agg#0=[MAX($0)])\n"
+        + "  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])\n"
+        + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], $f8=[+($0, $0)])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n"
+        + "    LogicalFilter(condition=[=($0, +(10, $cor0.DEPTNO))])\n"
+        + "      LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2], $f3=[+($cor0.DEPTNO, $cor0.DEPTNO)])\n"
+        + "        LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(root, hasTree(origTree));
+
+    final RelFieldTrimmer fieldTrimmer = new RelFieldTrimmer(null, builder);
+    final RelNode trimmed = fieldTrimmer.trim(root);
+    final String expected = ""
+        + "LogicalAggregate(group=[{1}], agg#0=[MAX($0)])\n"
+        + "  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{2}])\n"
+        + "    LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n"
+        + "    LogicalFilter(condition=[=($0, +(10, $cor0.DEPTNO))])\n"
+        + "      LogicalProject(DEPTNO=[$0])\n"
+        + "        LogicalTableScan(table=[[scott, DEPT]])\n";
+
+    assertThat(trimmed, hasTree(expected));
+  }
+
+
 }
