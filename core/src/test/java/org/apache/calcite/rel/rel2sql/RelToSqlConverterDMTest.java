@@ -2712,7 +2712,7 @@ class RelToSqlConverterDMTest {
         .project(RexSubQuery.array(projectNode), builder.field(0))
         .build();
     final String expectedSnowflake = "SELECT ARRAY (SELECT element\n"
-        + "FROM UNNEST(ARRAY[0, 1, 2]) AS element WITH OFFSET AS ORDINALITY\n"
+        + "FROM UNNEST(ARRAY[0, 1, 2]) AS t0 WITH OFFSET AS ORDINALITY\n"
         + "WHERE ORDINALITY BETWEEN 0 AND 1) AS `$f0`, EMPNO\n"
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSnowflake));
@@ -11858,7 +11858,7 @@ class RelToSqlConverterDMTest {
             .makeFieldAccess(builder.field(0), "STREET", true))
         .build();
 
-    final String expectedPostgres = "SELECT (\"address\").\"STREET\" AS \"$f0\"\n"
+    final String expectedPostgres = "SELECT \"address\".\"STREET\" AS \"$f0\"\n"
         + "FROM (SELECT CAST(ROW ('street_name', 'city_name', 10, 'state') AS \"ADDRESS\") AS \"address\", \"EMPNO\"\n"
         + "FROM \"scott\".\"EMP\") AS \"t\"\nWHERE \"EMPNO\" = 1";
 

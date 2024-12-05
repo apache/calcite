@@ -210,6 +210,8 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
       return ImmutableList.of(SqlTypeName.MULTISET);
     case ARRAY:
       return ImmutableList.of(SqlTypeName.ARRAY);
+    case VARRAY:
+      return ImmutableList.of(SqlTypeName.VARRAY);
     case MAP:
       return ImmutableList.of(SqlTypeName.MAP);
     case NULL:
