@@ -580,6 +580,11 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY, MYSQL, ORACLE})
   public static final SqlFunction REGEXP_REPLACE = new SqlRegexpReplaceFunction();
 
+  @LibraryOperator(libraries = {SQL_SERVER})
+  public static final SqlFunction CASE_INSENSTIVE_REPLACE =
+      SqlBasicFunction.create("REPLACE", ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.STRING_STRING_STRING, SqlFunctionCategory.STRING);
+
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction COMPRESS =
       SqlBasicFunction.create("COMPRESS",
@@ -2309,6 +2314,13 @@ public abstract class SqlLibraryOperators {
           OperandTypes.INTEGER,
           SqlFunctionCategory.STRING);
 
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction NCHR =
+      SqlBasicFunction.create("NCHR",
+          ReturnTypes.CHAR,
+          OperandTypes.INTEGER,
+          SqlFunctionCategory.STRING);
+
   /** The "CODE_POINTS_TO_BYTES(integers)" function (BigQuery); Converts an array of extended ASCII
    * code points to bytes. */
   @LibraryOperator(libraries = {BIG_QUERY})
@@ -3702,4 +3714,24 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction ROW_COUNT =
       new SqlFunction("ROW_COUNT", SqlKind.OTHER_FUNCTION, ReturnTypes.DECIMAL, null,
           null, SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction CURRENT_JOB_ID =
+      new SqlFunction("CURRENT_JOB_ID", SqlKind.LITERAL, ReturnTypes.CHAR, null,
+          OperandTypes.STRING, SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction GENERATE_SQLERRST =
+      new SqlFunction("SQLERRST", SqlKind.LITERAL, ReturnTypes.CHAR, null,
+          OperandTypes.STRING, SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction GENERATE_SQLERRM =
+      new SqlFunction("SQLERRM", SqlKind.LITERAL, ReturnTypes.CHAR, null,
+          OperandTypes.STRING, SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction GENERATE_SQLERRC =
+      new SqlFunction("SQLERRC", SqlKind.LITERAL, ReturnTypes.CHAR, null,
+          OperandTypes.STRING, SqlFunctionCategory.SYSTEM);
 }

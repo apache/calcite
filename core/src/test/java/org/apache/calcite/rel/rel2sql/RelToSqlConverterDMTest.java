@@ -11010,6 +11010,28 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSFQuery));
   }
 
+  @Test public void testOracleNChrFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode nchrCall = builder.call(SqlLibraryOperators.NCHR, builder.literal(5));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(nchrCall)
+        .build();
+    final String expectedOracleSql = "SELECT NCHR(5) \"$f0\"\nFROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
+  }
+
+  @Test public void testSqlServerReplaceFunction() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode replaceCall =
+        builder.call(SqlLibraryOperators.CASE_INSENSTIVE_REPLACE,
+            builder.field("ENAME"), builder.literal("A"), builder.literal("aa"));
+    final RelNode root = builder.project(replaceCall).build();
+    final String expectedSql = "SELECT REPLACE(\"ENAME\", 'A', 'aa') AS \"$f0\""
+        + "\nFROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+  }
+
   @Disabled
   @Test void testInnerAndLeftJoinWithBooleanColumnEqualityConditionInWhereClause() {
     String query = "select \"first_name\" \n"
@@ -12216,6 +12238,16 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSql));
   }
 
+  @Test public void testIntervalYearMonthFunction() {
+    String query = "select \"birth_date\" - INTERVAL -'3-9' YEAR TO MONTH from \"employee\"";
+
+    final String expectedSpark = "SELECT birth_date - (INTERVAL '-3' YEAR + INTERVAL '-9' MONTH)"
+        + "\nFROM foodmart.employee";
+    sql(query)
+        .withSpark()
+        .ok(expectedSpark);
+  }
+
   @Test public void testToLocalTimestampFunction() {
     final RelBuilder builder = relBuilder();
     RelDataType relDataType =
@@ -12263,7 +12295,7 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedSql));
   }
 
-  @Test public void testRowCountFunc() {
+  @Test public void testRowCountFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode rex = builder.call(SqlLibraryOperators.ROW_COUNT);
     final RelNode root = builder
@@ -12271,6 +12303,62 @@ class RelToSqlConverterDMTest {
         .project(rex)
         .build();
     final String expectedQuery = "SELECT ROW_COUNT() AS \"$f0\"\nFROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedQuery));
+  }
+
+  @Test public void testCurrentJobIdFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode rex =
+        builder.literal(
+            builder.call(SqlLibraryOperators.CURRENT_JOB_ID).toString().replace("()",
+            ""));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(rex)
+        .build();
+    final String expectedQuery = "SELECT 'CURRENT_JOB_ID' AS \"$f0\"\nFROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedQuery));
+  }
+
+  @Test public void testSQLERRMFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode rex =
+        builder.literal(
+            builder.call(SqlLibraryOperators.GENERATE_SQLERRM).toString().replace("()",
+            ""));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(rex)
+        .build();
+    final String expectedQuery = "SELECT 'SQLERRM' AS \"$f0\"\nFROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedQuery));
+  }
+
+  @Test public void testSQLERRCFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode rex =
+        builder.literal(
+            builder.call(SqlLibraryOperators.GENERATE_SQLERRC).toString().replace("()",
+            ""));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(rex)
+        .build();
+    final String expectedQuery = "SELECT 'SQLERRC' AS \"$f0\"\nFROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedQuery));
+  }
+
+  @Test public void testSQLERRSTFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode rex =
+        builder.literal(
+            builder.call(SqlLibraryOperators.GENERATE_SQLERRST).toString().replace("()",
+            ""));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(rex)
+        .build();
+    final String expectedQuery = "SELECT 'SQLERRST' AS \"$f0\"\nFROM \"scott\".\"EMP\"";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedQuery));
   }
 
