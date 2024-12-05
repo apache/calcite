@@ -1,5 +1,8 @@
 package org.apache.calcite.adapter.graphql;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationContext;
@@ -8,20 +11,29 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import graphql.ExecutionResult;
-import graphql.ExecutionResultImpl;
-import graphql.language.*;
-import graphql.parser.Parser;
-import graphql.schema.*;
-import okhttp3.*;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
 import java.sql.Date;
 import java.sql.Timestamp;
-import java.util.*;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeParseException;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import graphql.ExecutionResult;
+import graphql.ExecutionResultImpl;
+import graphql.language.Document;
+import graphql.language.Field;
+import graphql.language.OperationDefinition;
+import graphql.parser.Parser;
+import graphql.schema.*;
+import okhttp3.*;
+
+
 
 /**
  * Executes GraphQL queries with caching support. The cache can be configured through
@@ -119,6 +131,10 @@ public class GraphQLExecutor implements AutoCloseable {
     return GraphQLTypeUtil.unwrapAll(type) instanceof GraphQLScalarType && "Timestamp".equals(type.getName());
   }
 
+  private boolean isTimestamptzType(GraphQLNamedOutputType type) {
+    return GraphQLTypeUtil.unwrapAll(type) instanceof GraphQLScalarType && "Timestamptz".equals(type.getName());
+  }
+
   private ObjectMapper configureObjectMapper() {
     ObjectMapper mapper = new ObjectMapper();
     SimpleModule module = new SimpleModule();
@@ -148,6 +164,18 @@ public class GraphQLExecutor implements AutoCloseable {
                 return Timestamp.valueOf(dateStr);
               } catch (IllegalArgumentException e) {
                 LOGGER.warn("Failed to parse timestamp value: {}", dateStr);
+              }
+            }
+          }
+          if (type != null && isTimestamptzType((GraphQLNamedOutputType) type)) {
+            String dateStr = p.getValueAsString();
+            if (dateStr != null && !dateStr.isEmpty()) {
+              try {
+                // Keep as OffsetDateTime to preserve precision
+                OffsetDateTime offsetDateTime = OffsetDateTime.parse(dateStr);
+                return Timestamp.from(offsetDateTime.toInstant());
+              } catch (DateTimeParseException e) {
+                LOGGER.warn("Failed to parse timestamptz value: {}", dateStr, e);
               }
             }
           }
