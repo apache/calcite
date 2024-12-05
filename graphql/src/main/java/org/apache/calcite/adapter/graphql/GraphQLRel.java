@@ -39,6 +39,11 @@ import com.google.common.collect.Range;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 /**
@@ -213,8 +218,31 @@ public interface GraphQLRel extends RelNode {
         RexCall call = (RexCall) filter;
         switch (filter.getKind()) {
         case EQUALS:
+          // Get field name and check if it's a timestamp field
+          String fieldName = getFieldName(call.operands, rowType);
+          RexNode valueNode = call.operands.get(1);
+          if (valueNode instanceof RexLiteral) {
+            RexLiteral literal = (RexLiteral) valueNode;
+            if (literal.getTypeName().getFamily() == SqlTypeFamily.TIMESTAMP) {
+              // For timestamp equality, create a range query
+              GregorianCalendar gc = (GregorianCalendar) literal.getValue();
+              OffsetDateTime odt = OffsetDateTime.ofInstant(gc.toInstant(), ZoneOffset.UTC);
+              OffsetDateTime nextMs = odt.plus(1, ChronoUnit.MILLIS);
+
+              return String.format("{ %s: [{ %s: { %s: \"%s\" }}, { %s: { %s: \"%s\" }}] }",
+                  KEYWORDS.get("_and"),
+                  fieldName,
+                  KEYWORDS.get("_gte"),
+                  odt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
+                  fieldName,
+                  KEYWORDS.get("_lt"),
+                  nextMs.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+              );
+            }
+          }
+          // Default equals handling for non-timestamp fields
           return String.format("{ %s: { %s: %s } }",
-              getFieldName(call.operands, rowType),
+              fieldName,
               KEYWORDS.get("_eq"),
               getComparator(call.operands));
         case NOT_EQUALS:
@@ -310,7 +338,7 @@ public interface GraphQLRel extends RelNode {
       return "";
     }
 
-    private String getFieldName (List < RexNode > operands, List<String> rowType){
+    private String getFieldName(List<RexNode> operands, List<String> rowType) {
       Object opCandidate = operands.get(0);
       if (!(opCandidate instanceof RexInputRef)) {
         if (opCandidate instanceof RexCall) {
@@ -319,11 +347,15 @@ public interface GraphQLRel extends RelNode {
             return getFieldName(call.operands, rowType);
           }
         }
-        throw new IllegalArgumentException("The first operand in a condition must be a column " +
-            "name.");
+        throw new IllegalArgumentException("The first operand in a condition must be a column name.");
       }
       RexInputRef op = (RexInputRef) opCandidate;
-      return rowType.get(op.getIndex());
+      String sqlFieldName = rowType.get(op.getIndex());
+
+      // Convert SQL field name back to GraphQL field name
+      assert graphQLTable != null;
+      String graphQLFieldName = graphQLTable.getGraphQLFieldName(sqlFieldName);
+      return graphQLFieldName != null ? graphQLFieldName : sqlFieldName;
     }
 
     private @Nullable Object[] getRange (List < RexNode > operands){
@@ -342,25 +374,6 @@ public interface GraphQLRel extends RelNode {
       return null;
     }
 
-    private String getComparator (List < RexNode > operands){
-      if (operands.size() < 1 + 1) {
-        throw new IllegalArgumentException("Incorrect number of operands in a condition.");
-      }
-      Object opCandidate = operands.get(1);
-      if (!(opCandidate instanceof RexLiteral)) {
-        throw new IllegalArgumentException("The operand in a condition must be a literal.");
-      }
-      RexLiteral op = (RexLiteral) opCandidate;
-      SqlTypeFamily sqlType = op.getTypeName().getFamily();
-      if (sqlType == SqlTypeFamily.TIMESTAMP) {
-        return String.format("\"%s\"", op.toString().replace(" ", "T"));
-      }
-      if (sqlType == SqlTypeFamily.DATE) {
-        return String.format("\"%s\"", op);
-      }
-      return convertQuotes(((RexLiteral) opCandidate).toString());
-    }
-
     private String convertQuotes (String input){
       //Replace any original double quotes to \"
       input = input.replace("\"", "\\\"");
@@ -372,6 +385,67 @@ public interface GraphQLRel extends RelNode {
       }
       return input;
     }
+
+    private String getComparator(List<RexNode> operands) {
+      if (operands.size() < 1 + 1) {
+        throw new IllegalArgumentException("Incorrect number of operands in a condition.");
+      }
+      Object opCandidate = operands.get(1);
+      if (!(opCandidate instanceof RexLiteral)) {
+        throw new IllegalArgumentException("The operand in a condition must be a literal.");
+      }
+      RexLiteral op = (RexLiteral) opCandidate;
+      SqlTypeFamily sqlType = op.getTypeName().getFamily();
+
+      switch (sqlType) {
+      case NULL:
+        return "null";
+
+      // Types that should be unquoted
+      case NUMERIC:
+      case INTEGER:
+      case DECIMAL:
+      case EXACT_NUMERIC:
+      case APPROXIMATE_NUMERIC:
+      case BOOLEAN:
+      case INTERVAL_YEAR_MONTH:
+      case INTERVAL_DAY_TIME:
+        return op.getValue2().toString();
+
+      // Types that should be quoted
+      case CHARACTER:
+      case STRING:
+      case BINARY:
+      case TIME:
+      case ARRAY:
+      case MULTISET:
+      case CURSOR:
+      case ANY:
+        return String.format("\"%s\"", op.getValue2());
+
+      case DATE:
+        Calendar calendar = (Calendar) op.getValue();
+        LocalDate date = LocalDate.of(
+            calendar.get(Calendar.YEAR),
+            calendar.get(Calendar.MONTH) + 1,  // Calendar months are 0-based
+            calendar.get(Calendar.DAY_OF_MONTH)
+        );
+        return String.format("\"%s\"", date);
+
+      case TIMESTAMP:
+      case DATETIME:
+        GregorianCalendar gc = (GregorianCalendar) op.getValue();
+        OffsetDateTime odt = OffsetDateTime.ofInstant(gc.toInstant(), ZoneOffset.UTC);
+        return String.format("\"%s\"",
+            odt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")));
+
+
+      default:
+        // For any new/unknown types, safer to quote them
+        return String.format("\"%s\"", op.getValue2());
+      }
+    }
+
     public String getQuery(RelDataType rowType) {
       assert graphQLTable != null;
       StringBuilder builder = new StringBuilder(String.format("query find%s {\n",
@@ -414,8 +488,9 @@ public interface GraphQLRel extends RelNode {
       }
 
       builder.append(" {\n");
-      for (String field : fieldNames) {
-        builder.append("    ").append(field).append("\n");
+      for (String fieldName : fieldNames) {
+        String graphQLField = graphQLTable.getGraphQLFieldName(fieldName);
+        builder.append("    ").append(graphQLField != null ? graphQLField : fieldName).append("\n");
       }
       builder.append("  }\n");
       builder.append("}");
