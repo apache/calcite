@@ -886,7 +886,7 @@ public class RexImpTable {
       // bitwise
       defineMethod(BITCOUNT, BuiltInMethod.BITCOUNT.method, NullPolicy.STRICT);
       defineMethod(BIT_COUNT_BIG_QUERY, BuiltInMethod.BITCOUNT.method, NullPolicy.STRICT);
-      defineMethod(BIT_COUNT_MYSQL, BuiltInMethod.BITCOUNT.method, NullPolicy.STRICT);
+      defineMethod(BIT_COUNT_MYSQL, BuiltInMethod.BIT_COUNT_MYSQL.method, NullPolicy.STRICT);
 
       // datetime
       define(DATETIME_PLUS, new DatetimeArithmeticImplementor());
