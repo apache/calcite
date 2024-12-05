@@ -9918,6 +9918,49 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testForToJsonFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode toJson =
+        builder.call(SqlLibraryOperators.TO_JSON, builder.scan("EMP").field(5));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(toJson, "value"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT TO_JSON(SAL) AS value\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testForJsonAggFunction() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RelBuilder.AggCall aggCall =
+        builder.aggregateCall(SqlLibraryOperators.JSON_AGG,
+            builder.field(0), builder.field(1));
+    final RelNode rel = builder
+        .aggregate(relBuilder().groupKey(), aggCall)
+        .build();
+    final String expectedTDQuery = "SELECT JSON_AGG(\"EMPNO\", \"ENAME\") AS \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(rel, DatabaseProduct.TERADATA.getDialect()), isLinux(expectedTDQuery));
+  }
+
+  @Test public void testForJsonComposeFunction() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode jsonCompose =
+        builder.call(SqlLibraryOperators.JSON_COMPOSE,
+            builder.field(0), builder.field(1));
+    final RelNode root = builder
+        .project(builder.alias(jsonCompose, "value"))
+        .build();
+
+    final String expectedTDQuery = "SELECT JSON_COMPOSE(\"EMPNO\", \"ENAME\") AS \"value\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.TERADATA.getDialect()), isLinux(expectedTDQuery));
+  }
+
   @Test void testBloatedProjects() {
     final RelBuilder builder = relBuilder();
 
