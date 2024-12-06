@@ -57,6 +57,17 @@ this behavior.  The BIG_QUERY and SQL_SERVER_2008 conformance have
 been changed to use checked arithmetic, matching the specification of
 these dialects.
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-6704">CALCITE-6704</a>]
+Limit result size of `RelMdUniqueKeys` handler. Certain query patterns can lead
+to an exponentially large number of unique keys that can cause crashes and OOM
+errors. To prevent this kind of issues the `RelMdUniqueKeys` handler is now using
+a limit to restrict the number of keys for each relational expression. The limit
+is set to `1000` by default. The value is reasonably large to ensure that
+most common use-cases will not be affected and at the same time bounds exponentially
+large results set to a manageable value. Users that need a bigger/smaller limit
+should create a new instance of `RelMdUniqueKeys` and register it using the
+metadata provider of their choice.
+
 #### New features
 {: #new-features-1-39-0}
 
