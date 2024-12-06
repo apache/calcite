@@ -354,19 +354,24 @@ public class RelMetadataFixture {
     });
   }
 
+  @SuppressWarnings({"UnusedReturnValue"})
+  public RelMetadataFixture assertThatUniqueKeysAre(ImmutableBitSet... expectedUniqueKeys) {
+    return assertThatUniqueKeysAre(false, expectedUniqueKeys);
+  }
+
   /** Checks result of getting unique keys for SQL. */
   @SuppressWarnings({"UnusedReturnValue"})
-  public RelMetadataFixture assertThatUniqueKeysAre(
+  public RelMetadataFixture assertThatUniqueKeysAre(boolean ignoreNulls,
       ImmutableBitSet... expectedUniqueKeys) {
     RelNode rel = toRel();
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
-    Set<ImmutableBitSet> result = mq.getUniqueKeys(rel);
+    Set<ImmutableBitSet> result = mq.getUniqueKeys(rel, ignoreNulls);
     assertThat(result, notNullValue());
     assertThat("unique keys, sql: " + relSupplier
             + ", rel: " + RelOptUtil.toString(rel),
         ImmutableSortedSet.copyOf(result),
         is(ImmutableSortedSet.copyOf(expectedUniqueKeys)));
-    checkUniqueConsistent(rel);
+    checkUniqueConsistent(rel, ignoreNulls);
     return this;
   }
 
@@ -375,14 +380,12 @@ public class RelMetadataFixture {
    * and {@link RelMetadataQuery#areColumnsUnique(RelNode, ImmutableBitSet)}
    * return consistent results.
    */
-  private static void checkUniqueConsistent(RelNode rel) {
+  private static void checkUniqueConsistent(RelNode rel, boolean ignoreNulls) {
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
-    final Set<ImmutableBitSet> uniqueKeys = mq.getUniqueKeys(rel);
+    final Set<ImmutableBitSet> uniqueKeys = mq.getUniqueKeys(rel, ignoreNulls);
     assertThat(uniqueKeys, notNullValue());
-    final ImmutableBitSet allCols =
-        ImmutableBitSet.range(0, rel.getRowType().getFieldCount());
-    for (ImmutableBitSet key : allCols.powerSet()) {
-      Boolean result2 = mq.areColumnsUnique(rel, key);
+    for (ImmutableBitSet key : uniqueKeys) {
+      Boolean result2 = mq.areColumnsUnique(rel, key, ignoreNulls);
       assertThat("areColumnsUnique. key: " + key
           + ", uniqueKeys: " + uniqueKeys
           + ", rel: " + RelOptUtil.toString(rel),
