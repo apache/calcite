@@ -403,6 +403,12 @@ public abstract class ReturnTypes {
       TIME.andThen(SqlTypeTransforms.TO_NULLABLE);
 
   /**
+   * Type-inference strategy whereby the result type of a call is INTERVAL.
+   */
+  public static final SqlReturnTypeInference INTERVAL =
+      explicit(SqlTypeName.INTERVAL);
+
+  /**
    * Type-inference strategy whereby the result type of a call is TIMESTAMP.
    */
   public static final SqlReturnTypeInference TIMESTAMP =
@@ -551,6 +557,12 @@ public abstract class ReturnTypes {
 
   public static final SqlReturnTypeInference JSON =
       explicit(SqlTypeName.JSON);
+
+  /**
+   * Type-inference strategy that always returns "VARIANT".
+   */
+  public static final SqlReturnTypeInference VARIANT =
+      ReturnTypes.explicit(SqlTypeName.VARIANT);
 
   /**
    * Type-inference strategy that always returns "VARCHAR(2000)" with nulls

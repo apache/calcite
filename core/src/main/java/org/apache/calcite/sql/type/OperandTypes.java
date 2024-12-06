@@ -402,6 +402,12 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker INTEGER =
       family(SqlTypeFamily.INTEGER);
 
+  public static final SqlSingleOperandTypeChecker LESS_THAN_SIX_INTEGERS =
+      family(
+          ImmutableList.of(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER,
+              SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER),
+          number -> number < 6);
+
   public static final SqlSingleOperandTypeChecker NUMERIC_OPTIONAL_NUMERIC =
       family(ImmutableList.of(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC),
           // Second operand optional (operand index 0, 1)
@@ -579,6 +585,12 @@ public abstract class OperandTypes {
           .or(OperandTypes.family(SqlTypeFamily.MAP))
           .or(OperandTypes.family(SqlTypeFamily.ANY));
 
+  public static final SqlSingleOperandTypeChecker ARRAY_OR_MAP_OR_VARIANT =
+      OperandTypes.family(SqlTypeFamily.ARRAY)
+          .or(OperandTypes.family(SqlTypeFamily.MAP))
+          .or(OperandTypes.family(SqlTypeFamily.VARIANT))
+          .or(OperandTypes.family(SqlTypeFamily.ANY));
+
   public static final SqlOperandTypeChecker STRING_ARRAY_CHARACTER_OPTIONAL_CHARACTER =
       new FamilyOperandTypeChecker(
           ImmutableList.of(SqlTypeFamily.ARRAY, SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER),
@@ -656,6 +668,9 @@ public abstract class OperandTypes {
 
   public static final SqlOperandTypeChecker ARRAY_ELEMENT =
       new ArrayElementOperandTypeChecker();
+
+  public static final SqlOperandTypeChecker ELEMENT_ARRAY =
+      new ElementArrayOperandTypeChecker();
 
   public static final SqlOperandTypeChecker ARRAY_INSERT =
       new ArrayInsertOperandTypeChecker();
