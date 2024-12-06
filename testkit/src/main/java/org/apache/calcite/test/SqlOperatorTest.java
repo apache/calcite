@@ -2305,15 +2305,15 @@ public class SqlOperatorTest {
             + "'TO_CODE_POINTS\\(<BINARY>\\)'", false);
 
     f.checkScalar("to_code_points(_UTF8'ÿþЀ\uD804\uDD70A')", "[255, 254, 1024, 70000, 65]",
-        "INTEGER NOT NULL ARRAY NOT NULL");
+        "INTEGER NOT NULL ARRAY");
     f.checkScalar("to_code_points('ABCD')", "[65, 66, 67, 68]",
-        "INTEGER NOT NULL ARRAY NOT NULL");
+        "INTEGER NOT NULL ARRAY");
     f.checkScalar("to_code_points(x'11223344')", "[17, 34, 51, 68]",
-        "INTEGER NOT NULL ARRAY NOT NULL");
+        "INTEGER NOT NULL ARRAY");
     f.checkScalar("to_code_points(code_points_to_string(array[255, 254, 1024, 70000, 65]))",
-        "[255, 254, 1024, 70000, 65]", "INTEGER NOT NULL ARRAY NOT NULL");
+        "[255, 254, 1024, 70000, 65]", "INTEGER NOT NULL ARRAY");
     f.checkScalar("to_code_points(code_points_to_bytes(array[64, 65, 66, 67]))",
-        "[64, 65, 66, 67]", "INTEGER NOT NULL ARRAY NOT NULL");
+        "[64, 65, 66, 67]", "INTEGER NOT NULL ARRAY");
 
     f.checkNull("to_code_points(null)");
     f.checkNull("to_code_points('')");
@@ -4821,8 +4821,8 @@ public class SqlOperatorTest {
               + " 'QUERY', 'k1')",
           "v1",
           "VARCHAR");
-      f.checkNullValueWithNullableType(
-          "parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1', 'QUERY', 'k3')");
+      f.checkNull("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
+          + " 'QUERY', 'k3')");
       f.checkString("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
               + " 'FILE')",
           "/path1/p.php?k1=v1&k2=v2",
@@ -4843,39 +4843,31 @@ public class SqlOperatorTest {
               + " 'USERINFO')",
           "bob",
           "VARCHAR");
-      f.checkNullValueWithNullableType(
-          "parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1', 'USERINFO')");
+      f.checkNull("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
+          + " 'USERINFO')");
       f.checkString("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
               + " 'AUTHORITY')",
           "calcite.apache.org",
           "VARCHAR");
 
       // test with invalid partToExtract
-      f.checkNullValueWithNullableType(
-          "parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
-              + " 'INVALID_PART_TO_EXTRACT')");
-      f.checkNullValueWithNullableType(
-          "parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1', 'HOST', 'k1')");
+      f.checkNull("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
+          + " 'INVALID_PART_TO_EXTRACT')");
+      f.checkNull("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
+          + " 'HOST', 'k1')");
 
       // test with invalid urlString
-      f.checkNullValueWithNullableType(
-          "parse_url('http:calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1', 'HOST')");
-      f.checkNullValueWithNullableType(
-          "parse_url('calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1', 'HOST')");
-      f.checkNullValueWithNullableType(
-          "parse_url('/path1/p.php?k1=v1&k2=v2#Ref1', 'HOST')");
+      f.checkNull("parse_url('http:calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1', 'HOST')");
+      f.checkNull("parse_url('calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1', 'HOST')");
+      f.checkNull("parse_url('/path1/p.php?k1=v1&k2=v2#Ref1', 'HOST')");
 
       // test with operands with null values
-      f.checkNullValueWithNullableType(
-          "parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
+      f.checkNull("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
               + " cast(null as varchar))");
-      f.checkNullValueWithNullableType(
-          "parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
+      f.checkNull("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
           + " cast(null as varchar), cast(null as varchar))");
-      f.checkNullValueWithNullableType(
-          "parse_url(cast(null as varchar), cast(null as varchar))");
-      f.checkNullValueWithNullableType(
-          "parse_url(cast(null as varchar), cast(null as varchar), cast(null as varchar))");
+      f.checkNull("parse_url(cast(null as varchar), cast(null as varchar))");
+      f.checkNull("parse_url(cast(null as varchar), cast(null as varchar), cast(null as varchar))");
     };
     f0.forEachLibrary(list(SqlLibrary.HIVE, SqlLibrary.SPARK), consumer);
   }
@@ -5437,8 +5429,8 @@ public class SqlOperatorTest {
       f.checkString("from_base64('VGhpcyB  pcyBhIHRlc3Qg\tU3Ry\naW5nLg==')",
           "546869732069732061207465737420537472696e672e",
           "VARBINARY");
-      f.checkNullValueWithNullableType("from_base64('-1')");
-      f.checkNullValueWithNullableType("from_base64('-100')");
+      f.checkNull("from_base64('-1')");
+      f.checkNull("from_base64('-100')");
     };
     f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL), consumer);
   }
@@ -6164,15 +6156,14 @@ public class SqlOperatorTest {
     final SqlFunction function = functionAlias.function;
     final String fn = function.getName();
     final Consumer<SqlOperatorFixture> consumer = f -> {
-      f.checkString(fn + "('abc def ghi', 'def')", "def", "VARCHAR NOT NULL");
-      f.checkString(fn + "('abcadcaecghi', 'a.c', 1, 3)", "aec", "VARCHAR NOT NULL");
-      f.checkString(fn + "('abcadcaecghi', 'abc(a.c)')", "adc", "VARCHAR NOT NULL");
-      f.checkString(fn + "('55as56664as422', '\\d{3}')", "566", "VARCHAR NOT NULL");
-      f.checkString(fn + "('abcadcabcaecghi', 'c(a.c)', 4)", "abc", "VARCHAR NOT NULL");
-      f.checkString(fn + "('abcadcabcaecghi', 'a.c(a.c)', 1, 2)", "aec", "VARCHAR NOT NULL");
-      f.checkString(fn + "('a9cadca5c4aecghi', 'a[0-9]c', 6)", "a5c", "VARCHAR NOT NULL");
-      f.checkString(fn + "('a9cadca5ca4cecghi', 'a[0-9]c', 1, 3)", "a4c", "VARCHAR NOT "
-          + "NULL");
+      f.checkString(fn + "('abc def ghi', 'def')", "def", "VARCHAR");
+      f.checkString(fn + "('abcadcaecghi', 'a.c', 1, 3)", "aec", "VARCHAR");
+      f.checkString(fn + "('abcadcaecghi', 'abc(a.c)')", "adc", "VARCHAR");
+      f.checkString(fn + "('55as56664as422', '\\d{3}')", "566", "VARCHAR");
+      f.checkString(fn + "('abcadcabcaecghi', 'c(a.c)', 4)", "abc", "VARCHAR");
+      f.checkString(fn + "('abcadcabcaecghi', 'a.c(a.c)', 1, 2)", "aec", "VARCHAR");
+      f.checkString(fn + "('a9cadca5c4aecghi', 'a[0-9]c', 6)", "a5c", "VARCHAR");
+      f.checkString(fn + "('a9cadca5ca4cecghi', 'a[0-9]c', 1, 3)", "a4c", "VARCHAR");
 
       f.checkNull(fn + "('abc def ghi', 'asd')");
       f.checkNull(fn + "('abc def ghi', 'abc', 25)");
@@ -11692,9 +11683,9 @@ public class SqlOperatorTest {
       f12.checkScalar("NVL2(NULL, 3.0, 2.111)", "2.111", "DECIMAL(4, 3) NOT NULL");
       f12.checkScalar("NVL2(3.111, 3.1415926, 2.111)", "3.1415926", "DECIMAL(8, 7) NOT NULL");
 
-      f12.checkNullValueWithNullableType("nvl2('ab', CAST(NULL AS VARCHAR(6)), 'def')");
-      f12.checkNullValueWithNullableType("nvl2(NULL, 'abc', NULL)");
-      f12.checkNullValueWithNullableType("nvl2(NULL, NULL, NULL)");
+      f12.checkNull("nvl2('ab', CAST(NULL AS VARCHAR(6)), 'def')");
+      f12.checkNull("nvl2(NULL, 'abc', NULL)");
+      f12.checkNull("nvl2(NULL, NULL, NULL)");
 
       f12.checkFails("^NVL2(2.0, 2.0, true)^", "Parameters must be of the same type", false);
       f12.checkFails("^NVL2(NULL, 2.0, true)^", "Parameters must be of the same type", false);
