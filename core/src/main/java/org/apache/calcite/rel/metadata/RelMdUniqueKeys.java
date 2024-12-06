@@ -336,7 +336,9 @@ public class RelMdUniqueKeys
       final ImmutableSet.Builder<ImmutableBitSet> keysBuilder = ImmutableSet.builder();
       if (inputUniqueKeys != null) {
         for (ImmutableBitSet inputKey : inputUniqueKeys) {
-          keysBuilder.addAll(getPassedThroughCols(inputKey, rel));
+          Iterable<List<Integer>> product =
+              Linq4j.product(Util.transform(inputKey, i -> getPassedThroughCols(i, rel)));
+          keysBuilder.addAll(Util.transform(product, ImmutableBitSet::of));
         }
       }
 
@@ -372,30 +374,6 @@ public class RelMdUniqueKeys
   }
 
   /**
-   * Given a set of columns in the input of an Aggregate rel, returns the set of mappings from the
-   * input columns to the output of the aggregations. A mapping for a particular column exists if
-   * it is part of a simple group by and/or it is "passed through" unmodified by a
-   * {@link RelMdColumnUniqueness#PASSTHROUGH_AGGREGATIONS pass-through aggregation function}.
-   */
-  private static Set<ImmutableBitSet> getPassedThroughCols(
-      ImmutableBitSet inputColumns, Aggregate rel) {
-    checkArgument(Aggregate.isSimple(rel));
-    Set<ImmutableBitSet> conbinations = new HashSet<>();
-    conbinations.add(ImmutableBitSet.of());
-    for (Integer inputColumn : inputColumns.asSet()) {
-      final ImmutableBitSet passedThroughCols = getPassedThroughCols(inputColumn, rel);
-      final Set<ImmutableBitSet> crossProduct = new HashSet<>();
-      for (ImmutableBitSet set : conbinations) {
-        for (Integer passedThroughCol : passedThroughCols) {
-          crossProduct.add(set.rebuild().set(passedThroughCol).build());
-        }
-      }
-      conbinations = crossProduct;
-    }
-    return conbinations;
-  }
-
-  /**
    * Given a column in the input of an Aggregate rel, returns the mappings from the input column to
    * the output of the aggregations. A mapping for the column exists if it is part of a simple
    * group by and/or it is "passed through" unmodified by a
@@ -403,6 +381,7 @@ public class RelMdUniqueKeys
    */
   private static ImmutableBitSet getPassedThroughCols(Integer inputColumn,
       Aggregate rel) {
+    checkArgument(Aggregate.isSimple(rel));
     final ImmutableBitSet.Builder builder = ImmutableBitSet.builder();
     if (rel.getGroupSet().get(inputColumn)) {
       builder.set(inputColumn);
