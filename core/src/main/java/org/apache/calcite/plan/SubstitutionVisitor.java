@@ -297,8 +297,11 @@ public class SubstitutionVisitor {
       RexNode condition, RexNode target) {
     final RexBuilder rexBuilder = simplify.rexBuilder;
     condition = simplify.simplify(condition);
-    target = simplify.simplify(target);
     RexNode condition2 = canonizeNode(rexBuilder, condition);
+    if (target.isAlwaysTrue()) {
+      return condition2;
+    }
+    target = simplify.simplify(target);
     RexNode target2 = canonizeNode(rexBuilder, target);
 
     // First, try splitting into ORs.
@@ -321,7 +324,7 @@ public class SubstitutionVisitor {
           RexUtil.composeConjunction(rexBuilder,
               ImmutableList.of(condition2, target2));
       RexNode r =
-          canonizeNode(rexBuilder, simplify.simplifyUnknownAsFalse(x2));
+          canonizeNode(rexBuilder, simplify.simplify(x2));
       if (!r.isAlwaysFalse() && isEquivalent(condition2, r)) {
         List<RexNode> conjs = RelOptUtil.conjunctions(r);
         for (RexNode e : RelOptUtil.conjunctions(target2)) {
