@@ -74,6 +74,10 @@ public class GenericSqlTypeRtti extends RuntimeTypeInformation {
   }
 
   public RuntimeTypeInformation getTypeArgument(int index) {
-    return this.typeArguments[index];
+    return typeArguments[index];
+  }
+
+  public int getArgumentCount() {
+    return typeArguments.length;
   }
 }

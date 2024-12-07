@@ -1293,9 +1293,7 @@ the runtime types are represented as follows:
 - `FLOAT` and `DOUBLE` are both represented by the same runtime type.
 - All "short interval" types (from days to seconds) are represented by a single type.
 - All "long interval" types (from years to months) are represented by a single type.
-- Generic types such as `INT ARRAY`, `MULTISET`, and `MAP` do carry runtime
-  information about the element types
-- The `ROW` type does have information about all field types
+- Generic types such as `INT ARRAY`, `MULTISET`, and `MAP` convert all their elements to VARIANT values
 
 The function VARIANTNULL() can be used to create an instance
 of the `VARIANT` `null` value.

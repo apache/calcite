@@ -1795,7 +1795,8 @@ public class SqlOperatorTest {
     // String variants include quotes when output
     f.checkScalar("cast('abc' as VARIANT)", "\"abc\"", "VARIANT NOT NULL");
     f.checkScalar("cast(ARRAY[1,2,3] as VARIANT)", "[1, 2, 3]", "VARIANT NOT NULL");
-    f.checkScalar("cast(MAP['a',1,'b',2] as VARIANT)", "{a=1, b=2}", "VARIANT NOT NULL");
+    f.checkScalar("cast(MULTISET[1,2,3] as VARIANT)", "[1, 2, 3]", "VARIANT NOT NULL");
+    f.checkScalar("cast(MAP['a',1,'b',2] as VARIANT)", "{\"a\"=1, \"b\"=2}", "VARIANT NOT NULL");
     f.checkScalar("cast((1, 2) as row(f0 integer, f1 bigint))", "{1, 2}",
         "RecordType(INTEGER NOT NULL F0, BIGINT NOT NULL F1) NOT NULL");
     f.checkScalar("cast(row(1, 2) AS VARIANT)", "{1, 2}", "VARIANT NOT NULL");
@@ -1844,7 +1845,7 @@ public class SqlOperatorTest {
             + "'b', CAST(ARRAY["
             + "CAST(MAP['c', CAST(2.3 AS VARIANT)] AS VARIANT), CAST(5 AS VARIANT)]"
             + " AS VARIANT)]",
-        "{a=1, b=[{c=2.3}, 5]}",
+        "{a=1, b=[{\"c\"=2.3}, 5]}",
         "(CHAR(1) NOT NULL, VARIANT NOT NULL) MAP NOT NULL");
   }
 

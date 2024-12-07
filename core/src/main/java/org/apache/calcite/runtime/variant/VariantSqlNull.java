@@ -24,7 +24,7 @@ import java.util.Objects;
 
 /** A VARIANT value that contains a NULL runtime value. */
 public class VariantSqlNull extends VariantSqlValue {
-  VariantSqlNull(RuntimeTypeInformation runtimeType) {
+  VariantSqlNull(RuntimeTypeInformation.RuntimeSqlTypeName runtimeType) {
     super(runtimeType);
   }
 
@@ -55,6 +55,6 @@ public class VariantSqlNull extends VariantSqlValue {
     }
 
     VariantSqlNull variant = (VariantSqlNull) o;
-    return runtimeType.equals(variant.runtimeType);
+    return runtimeType == variant.runtimeType;
   }
 }

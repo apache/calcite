@@ -26,15 +26,14 @@ import java.math.RoundingMode;
  * (The VARIANT type also has a null value which is different
  * from any other SQL value). */
 public abstract class VariantSqlValue extends VariantValue {
-  /** Type of the value. */
-  final RuntimeTypeInformation runtimeType;
+  final RuntimeTypeInformation.RuntimeSqlTypeName runtimeType;
 
-  protected VariantSqlValue(RuntimeTypeInformation runtimeType) {
+  protected VariantSqlValue(RuntimeTypeInformation.RuntimeSqlTypeName runtimeType) {
     this.runtimeType = runtimeType;
   }
 
   @Override public String getTypeString() {
-    return this.runtimeType.getTypeString();
+    return this.runtimeType.toString();
   }
 
   /**
@@ -52,7 +51,7 @@ public abstract class VariantSqlValue extends VariantValue {
   public static VariantValue create(
       RoundingMode roundingMode, @Nullable Object object, RuntimeTypeInformation type) {
     if (object == null) {
-      return new VariantSqlNull(type);
+      return new VariantSqlNull(type.getTypeName());
     }
     return new VariantNonNull(roundingMode, object, type);
   }

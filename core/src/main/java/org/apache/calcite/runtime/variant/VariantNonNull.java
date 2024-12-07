@@ -18,7 +18,7 @@ package org.apache.calcite.runtime.variant;
 
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.runtime.SqlFunctions;
-import org.apache.calcite.runtime.rtti.GenericSqlTypeRtti;
+import org.apache.calcite.runtime.rtti.BasicSqlTypeRtti;
 import org.apache.calcite.runtime.rtti.RowSqlTypeRtti;
 import org.apache.calcite.runtime.rtti.RuntimeTypeInformation;
 
@@ -26,7 +26,13 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+
+import static org.apache.calcite.runtime.rtti.RuntimeTypeInformation.RuntimeSqlTypeName.NAME;
 
 import static java.util.Objects.requireNonNull;
 
@@ -37,34 +43,45 @@ public class VariantNonNull extends VariantSqlValue {
   final Object value;
 
   VariantNonNull(RoundingMode roundingMode, Object value, RuntimeTypeInformation runtimeType) {
-    super(runtimeType);
+    super(runtimeType.getTypeName());
     this.roundingMode = roundingMode;
-    this.value = value;
     // sanity check
     switch (runtimeType.getTypeName()) {
+    case NAME:
+      assert value instanceof String;
+      this.value = value;
+      break;
     case BOOLEAN:
       assert value instanceof Boolean;
+      this.value = value;
       break;
     case TINYINT:
       assert value instanceof Byte;
+      this.value = value;
       break;
     case SMALLINT:
       assert value instanceof Short;
+      this.value = value;
       break;
     case INTEGER:
       assert value instanceof Integer;
+      this.value = value;
       break;
     case BIGINT:
       assert value instanceof Long;
+      this.value = value;
       break;
     case DECIMAL:
       assert value instanceof BigDecimal;
+      this.value = value;
       break;
     case REAL:
       assert value instanceof Float;
+      this.value = value;
       break;
     case DOUBLE:
       assert value instanceof Double;
+      this.value = value;
       break;
     case DATE:
     case TIME:
@@ -75,19 +92,63 @@ public class VariantNonNull extends VariantSqlValue {
     case TIMESTAMP_TZ:
     case INTERVAL_LONG:
     case INTERVAL_SHORT:
+      this.value = value;
       break;
     case VARCHAR:
+      this.value = value;
       assert value instanceof String;
       break;
-    case VARBINARY:
     case NULL:
-    case MULTISET:
-    case ARRAY:
-    case MAP:
-    case ROW:
+    default:
+      throw new RuntimeException("Unreachable");
+    case VARBINARY:
     case GEOMETRY:
     case VARIANT:
+      this.value = value;
       break;
+    case MAP: {
+      RuntimeTypeInformation keyType = runtimeType.asGeneric().getTypeArgument(0);
+      RuntimeTypeInformation valueType = runtimeType.asGeneric().getTypeArgument(1);
+      assert value instanceof Map<?, ?>;
+      Map<?, ?> map = (Map<?, ?>) value;
+      LinkedHashMap<VariantValue, VariantValue> converted = new LinkedHashMap<>(map.size());
+      for (Map.Entry<?, ?> o : map.entrySet()) {
+        VariantValue key = VariantSqlValue.create(roundingMode, o.getKey(), keyType);
+        VariantValue val = VariantSqlValue.create(roundingMode, o.getValue(), valueType);
+        converted.put(key, val);
+      }
+      this.value = converted;
+      break;
+    }
+    case ROW: {
+      assert value instanceof Object[];
+      Object[] a = (Object[]) value;
+      assert runtimeType instanceof RowSqlTypeRtti;
+      RowSqlTypeRtti rowType = (RowSqlTypeRtti) runtimeType;
+      LinkedHashMap<VariantValue, VariantValue> converted = new LinkedHashMap<>(a.length);
+      RuntimeTypeInformation name = new BasicSqlTypeRtti(NAME);
+      for (int i = 0; i < a.length; i++) {
+        Map.Entry<String, RuntimeTypeInformation> fieldType = rowType.getField(i);
+        VariantValue key = VariantSqlValue.create(roundingMode, fieldType.getKey(), name);
+        VariantValue val = VariantSqlValue.create(roundingMode, a[i], fieldType.getValue());
+        converted.put(key, val);
+      }
+      this.value = converted;
+      break;
+    }
+    case MULTISET:
+    case ARRAY: {
+      RuntimeTypeInformation elementType = runtimeType.asGeneric().getTypeArgument(0);
+      assert value instanceof List<?>;
+      List<?> list = (List<?>) value;
+      List<VariantValue> converted = new ArrayList<>(list.size());
+      for (Object o : list) {
+        VariantValue element = VariantSqlValue.create(roundingMode, o, elementType);
+        converted.add(element);
+      }
+      this.value = converted;
+      break;
+    }
     }
   }
 
@@ -101,7 +162,7 @@ public class VariantNonNull extends VariantSqlValue {
 
     VariantNonNull variant = (VariantNonNull) o;
     return Objects.equals(value, variant.value)
-        && runtimeType.equals(variant.runtimeType);
+        && runtimeType == variant.runtimeType;
   }
 
   @Override public int hashCode() {
@@ -116,12 +177,12 @@ public class VariantNonNull extends VariantSqlValue {
   // This method is invoked from {@link RexToLixTranslator} VARIANT_CAST
   @Override public @Nullable Object cast(RuntimeTypeInformation type) {
     if (this.runtimeType.isScalar()) {
-      if (this.runtimeType.equals(type)) {
+      if (this.runtimeType == type.getTypeName()) {
         return this.value;
       } else {
         // Convert numeric values
         @Nullable Primitive target = type.asPrimitive();
-        switch (this.runtimeType.getTypeName()) {
+        switch (this.runtimeType) {
         case TINYINT: {
           byte b = (byte) value;
           switch (type.getTypeName()) {
@@ -247,42 +308,91 @@ public class VariantNonNull extends VariantSqlValue {
         return null;
       }
     } else {
-      // Derived type: ARRAY, MAP, etc.
-      if (this.runtimeType.equals(type)) {
-        return this.value;
+      switch (this.runtimeType) {
+      case ARRAY:
+        if (type.getTypeName() == RuntimeTypeInformation.RuntimeSqlTypeName.ARRAY) {
+          RuntimeTypeInformation elementType = type.asGeneric().getTypeArgument(0);
+          assert value instanceof List;
+          List<VariantSqlValue> list = (List<VariantSqlValue>) value;
+          List<@Nullable Object> result = new ArrayList<>(list.size());
+          for (VariantSqlValue o : list) {
+            @Nullable Object converted = o.cast(elementType);
+            result.add(converted);
+          }
+          return result;
+        }
+        break;
+      case MAP:
+        assert value instanceof Map;
+        Map<VariantSqlValue, VariantSqlValue> map = (Map<VariantSqlValue, VariantSqlValue>) value;
+        if (type.getTypeName() == RuntimeTypeInformation.RuntimeSqlTypeName.MAP) {
+          // Convert map to map: cast keys and values recursively
+          RuntimeTypeInformation keyType = type.asGeneric().getTypeArgument(0);
+          RuntimeTypeInformation valueType = type.asGeneric().getTypeArgument(0);
+          LinkedHashMap<@Nullable Object, @Nullable Object> result =
+              new LinkedHashMap<>(map.size());
+          for (Map.Entry<VariantSqlValue, VariantSqlValue> e : map.entrySet()) {
+            @Nullable Object key = e.getKey().cast(keyType);
+            @Nullable Object value = e.getValue().cast(valueType);
+            result.put(key, value);
+          }
+          return result;
+        } else if (type.getTypeName() == RuntimeTypeInformation.RuntimeSqlTypeName.ROW) {
+          // Convert map to row: lookup the row's fields in the map
+          RowSqlTypeRtti rowType = (RowSqlTypeRtti) type;
+          @Nullable Object [] result = new Object[rowType.size()];
+          for (int i = 0; i < rowType.size(); i++) {
+            Map.Entry<String, RuntimeTypeInformation> field = rowType.getField(i);
+            Object fieldValue = null;
+            VariantValue v = this.item(field.getKey());
+            if (v != null) {
+              fieldValue = v.cast(field.getValue());
+            }
+            result[i] = fieldValue;
+          }
+          return result;
+        }
+        break;
+      default:
+        break;
       }
-      // TODO: allow casts that change some of the generic arguments only
     }
     return null;
   }
 
   // Implementation of the array index operator for VARIANT values
   @Override public @Nullable VariantValue item(Object index) {
-    @Nullable RuntimeTypeInformation fieldType;
     boolean isInteger = index instanceof Integer;
-    switch (this.runtimeType.getTypeName()) {
+    switch (this.runtimeType) {
     case ROW:
-      // The type of the field
-      fieldType = ((RowSqlTypeRtti) this.runtimeType).getFieldType(index);
+      if (index instanceof String) {
+        RuntimeTypeInformation string =
+            new BasicSqlTypeRtti(RuntimeTypeInformation.RuntimeSqlTypeName.NAME);
+        index = VariantSqlValue.create(roundingMode, index, string);
+      }
+      break;
+    case MAP:
+      if (index instanceof String) {
+        RuntimeTypeInformation string =
+            new BasicSqlTypeRtti(RuntimeTypeInformation.RuntimeSqlTypeName.VARCHAR);
+        index = VariantSqlValue.create(roundingMode, index, string);
+      } else if (isInteger) {
+        RuntimeTypeInformation i =
+            new BasicSqlTypeRtti(RuntimeTypeInformation.RuntimeSqlTypeName.INTEGER);
+        index = VariantSqlValue.create(roundingMode, index, i);
+      }
       break;
     case ARRAY:
       if (!isInteger) {
+        // Arrays only support integer indexes
         return null;
       }
-      // The type of the elements
-      fieldType = ((GenericSqlTypeRtti) this.runtimeType).getTypeArgument(0);
-      break;
-    case MAP:
-      // The type of the values
-      fieldType = ((GenericSqlTypeRtti) this.runtimeType).getTypeArgument(1);
       break;
     default:
       return null;
     }
-    if (fieldType == null) {
-      return null;
-    }
 
+    // If index is VARIANT, leave it unchanged
     Object result = SqlFunctions.itemOptional(this.value, index);
     if (result == null) {
       return null;
@@ -291,31 +401,34 @@ public class VariantNonNull extends VariantSqlValue {
     if (result instanceof VariantValue) {
       return (VariantValue) result;
     }
-    // Otherwise pack the result in a Variant
-    return VariantSqlValue.create(roundingMode, result, fieldType);
+    return null;
   }
 
   // This method is called by the testing code.
   @Override public String toString() {
-    if (this.runtimeType.getTypeName() == RuntimeTypeInformation.RuntimeSqlTypeName.ROW) {
-      if (value instanceof Object[]) {
-        Object[] array = (Object []) value;
+    if (this.runtimeType == RuntimeTypeInformation.RuntimeSqlTypeName.ROW) {
+      if (value instanceof Map<?, ?>) {
+        // Do not print field names, only their values
+        Map<?, ?> map = (Map<?, ?>) value;
         StringBuilder buf = new StringBuilder("{");
 
         boolean first = true;
-        for (Object o : array) {
+        for (Map.Entry<?, ?> o : map.entrySet()) {
           if (!first) {
             buf.append(", ");
           }
           first = false;
-          buf.append(o.toString());
+          if (o.getValue() != null) {
+            // This should always be true
+            buf.append(o.getValue());
+          }
         }
         buf.append("}");
         return buf.toString();
       }
     }
     String quote = "";
-    switch (this.runtimeType.getTypeName()) {
+    switch (this.runtimeType) {
     case TIME:
     case TIME_WITH_LOCAL_TIME_ZONE:
     case TIME_TZ:

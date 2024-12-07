@@ -56,6 +56,8 @@ public abstract class RuntimeTypeInformation {
     TIMESTAMP_TZ(false),
     INTERVAL_LONG(false),
     INTERVAL_SHORT(false),
+    // "Name" is used for structure field names
+    NAME(false),
     // CHAR is represented as VARCHAR
     VARCHAR(false),
     // BINARY is represented as VARBINARY
@@ -116,6 +118,11 @@ public abstract class RuntimeTypeInformation {
     default:
       return null;
     }
+  }
+
+  public GenericSqlTypeRtti asGeneric() {
+    assert this instanceof GenericSqlTypeRtti;
+    return (GenericSqlTypeRtti) this;
   }
 
   /**
