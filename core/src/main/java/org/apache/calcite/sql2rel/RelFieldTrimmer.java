@@ -41,6 +41,7 @@ import org.apache.calcite.rel.core.Snapshot;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.SortExchange;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.logical.LogicalValues;
@@ -56,6 +57,7 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexPermuteInputsShuttle;
 import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitor;
@@ -1334,6 +1336,111 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
         snapshot.copy(snapshot.getTraitSet(), newInput,
         snapshot.getPeriod());
     return result(newSnapshot, inputMapping, snapshot);
+  }
+
+  /**
+   * Trims {@link LogicalCorrelate} nodes.
+   */
+  public TrimResult trimFields(LogicalCorrelate correlate,
+      ImmutableBitSet fieldsUsed, Set<RelDataTypeField> extraFields) {
+    if (!extraFields.isEmpty()) {
+      // bail out with generic trim
+      return trimFields((RelNode) correlate, fieldsUsed, extraFields);
+    }
+
+    fieldsUsed = fieldsUsed.union(correlate.getRequiredColumns());
+
+    List<RelNode> newInputs = new ArrayList<>();
+    List<Mapping> inputMappings = new ArrayList<>();
+    int changeCount = 0;
+    int offset = 0;
+    for (RelNode input : correlate.getInputs()) {
+      final RelDataType inputRowType = input.getRowType();
+      final int inputFieldCount = inputRowType.getFieldCount();
+
+      ImmutableBitSet currentInputFieldsUsed = fieldsUsed
+          .intersect(ImmutableBitSet.range(offset, offset + inputFieldCount))
+          .shift(-offset);
+
+      TrimResult trimResult =
+          dispatchTrimFields(input, currentInputFieldsUsed, extraFields);
+
+      newInputs.add(trimResult.left);
+      inputMappings.add(trimResult.right);
+
+      offset += inputFieldCount;
+
+      if (trimResult.left != input) {
+        changeCount++;
+      }
+    }
+
+    if (changeCount == 0) {
+      return result(correlate,
+          Mappings.createIdentity(correlate.getRowType().getFieldCount()));
+    }
+
+    Mapping mapping = Mappings.concatenateMappings(inputMappings);
+    RexBuilder rexBuilder = relBuilder.getRexBuilder();
+
+    RelNode newLeft = newInputs.get(0);
+    RexCorrelVariableMapShuttle rexVisitor =
+        new RexCorrelVariableMapShuttle(correlate.getCorrelationId(),
+            newLeft.getRowType(), mapping, rexBuilder);
+    RelNode newRight =
+        newInputs.get(1).accept(new RexRewritingRelShuttle(rexVisitor));
+    final LogicalCorrelate newCorrelate =
+        correlate
+            .copy(correlate.getTraitSet(),
+                newLeft,
+                newRight,
+                correlate.getCorrelationId(),
+                correlate.getRequiredColumns().permute(mapping),
+                correlate.getJoinType());
+
+    return result(newCorrelate, mapping);
+  }
+
+  /**
+   * Updates correlate references in {@link RexNode} expressions.
+   */
+  static class RexCorrelVariableMapShuttle extends RexShuttle {
+    private final CorrelationId correlationId;
+    private final Mapping mapping;
+    private final RelDataType newCorrelRowType;
+    private final RexBuilder rexBuilder;
+
+
+    /**
+     * Constructs a RexCorrelVariableMapShuttle.
+     *
+     * @param correlationId The ID of the correlation variable to update.
+     * @param newCorrelRowType The new row type for the correlate reference.
+     * @param mapping Mapping to transform field indices.
+     * @param rexBuilder A builder for constructing new RexNodes.
+     */
+    RexCorrelVariableMapShuttle(final CorrelationId correlationId,
+        RelDataType newCorrelRowType, Mapping mapping, RexBuilder rexBuilder) {
+      this.correlationId = correlationId;
+      this.newCorrelRowType = newCorrelRowType;
+      this.mapping = mapping;
+      this.rexBuilder = rexBuilder;
+    }
+
+    @Override public RexNode visitFieldAccess(final RexFieldAccess fieldAccess) {
+      if (fieldAccess.getReferenceExpr() instanceof RexCorrelVariable) {
+        RexCorrelVariable referenceExpr =
+            (RexCorrelVariable) fieldAccess.getReferenceExpr();
+        if (referenceExpr.id.equals(correlationId)) {
+          int oldIndex = fieldAccess.getField().getIndex();
+          RexNode newCorrel =
+              rexBuilder.makeCorrel(newCorrelRowType, referenceExpr.id);
+          int newIndex = mapping.getTarget(oldIndex);
+          return rexBuilder.makeFieldAccess(newCorrel, newIndex);
+        }
+      }
+      return super.visitFieldAccess(fieldAccess);
+    }
   }
 
   protected Mapping createMapping(ImmutableBitSet fieldsUsed, int fieldCount) {
