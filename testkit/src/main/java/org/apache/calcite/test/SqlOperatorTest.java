@@ -11495,6 +11495,7 @@ public class SqlOperatorTest {
     f.checkString("trim(trailing 'a' from 'aAa')", "aA", "VARCHAR(3) NOT NULL");
     f.checkNull("trim(cast(null as varchar(1)) from 'a')");
     f.checkNull("trim('a' from cast(null as varchar(1)))");
+    f.checkNull("trim(null)");
 
     // SQL:2003 6.29.9: trim string must have length=1. Failure occurs
     // at runtime.
@@ -11509,6 +11510,7 @@ public class SqlOperatorTest {
     f.checkFails("trim('' from 'abcde')",
         "Trim error: trim character must be exactly 1 character",
         true);
+    f.checkFails("trim()", "Invalid number of arguments to function 'TRIM'. Was expecting at least 2 arguments", false);
 
     final SqlOperatorFixture f1 = f.withConformance(SqlConformanceEnum.MYSQL_5);
     f1.checkString("trim(leading 'eh' from 'hehe__hehe')", "__hehe",
