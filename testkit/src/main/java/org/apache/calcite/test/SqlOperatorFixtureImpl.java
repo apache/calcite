@@ -286,11 +286,6 @@ class SqlOperatorFixtureImpl implements SqlOperatorFixture {
 
   @Override public void checkNull(String expression) {
     tester.forEachQuery(factory, expression, sql ->
-        tester.check(factory, sql, SqlTests.ANY_TYPE_CHECKER, isNullValue()));
-  }
-
-  @Override public void checkNullValueWithNullableType(String expression) {
-    tester.forEachQuery(factory, expression, sql ->
         tester.check(factory, sql, SqlTests.ANY_NULLABLE_TYPE_CHECKER, isNullValue()));
   }
 }
