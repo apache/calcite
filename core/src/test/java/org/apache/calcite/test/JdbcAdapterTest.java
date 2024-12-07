@@ -1378,6 +1378,52 @@ class JdbcAdapterTest {
     });
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6221">[CALCITE-6221]</a>.*/
+  @Test void testUnknownColumn() {
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL)
+        .query("SELECT\n"
+          + "    \"content-format-owner\",\n"
+          + "    \"content-owner\"\n"
+          + "FROM\n"
+          + "    (\n"
+          + "        SELECT\n"
+          + "            d1.dname AS \"content-format-owner\",\n"
+          + "            d2.dname || ' ' AS \"content-owner\"\n"
+          + "        FROM\n"
+          + "            scott.emp e1\n"
+          + "            left outer join scott.dept d1 on e1.deptno = d1.deptno\n"
+          + "            left outer join scott.dept d2 on e1.deptno = d2.deptno\n"
+          + "            left outer join scott.emp e2 on e1.deptno = e2.deptno\n"
+          + "        GROUP BY\n"
+          + "            d1.dname,\n"
+          + "            d2.dname\n"
+          + "    )\n"
+          + "WHERE\n"
+          + "    \"content-owner\" IN (?)")
+        .planHasSql("SELECT "
+            + "\"t2\".\"DNAME\" AS \"content-format-owner\", "
+            + "\"t2\".\"DNAME0\" || ' ' AS \"content-owner\"\n"
+            + "FROM (SELECT \"t\".\"DEPTNO\" AS \"DEPTNO\", "
+            + "\"t0\".\"DEPTNO\" AS \"DEPTNO0\", "
+            + "\"t0\".\"DNAME\" AS \"DNAME\", "
+            + "\"t1\".\"DEPTNO\" AS \"DEPTNO1\", "
+            + "\"t1\".\"DNAME\" AS \"DNAME0\"\n"
+            + "FROM (SELECT \"DEPTNO\"\n"
+            + "FROM \"SCOTT\".\"EMP\") AS \"t\"\n"
+            + "LEFT JOIN (SELECT \"DEPTNO\", \"DNAME\"\n"
+            + "FROM \"SCOTT\".\"DEPT\") AS \"t0\" ON \"t\".\"DEPTNO\" = \"t0\".\"DEPTNO\"\n"
+            + "LEFT JOIN (SELECT \"DEPTNO\", \"DNAME\"\n"
+            + "FROM \"SCOTT\".\"DEPT\") AS \"t1\" "
+            + "ON \"t\".\"DEPTNO\" = \"t1\".\"DEPTNO\"\n"
+            + "WHERE \"t1\".\"DNAME\" || ' ' = ?) AS \"t2\"\n"
+            + "LEFT JOIN (SELECT \"DEPTNO\"\n"
+            + "FROM \"SCOTT\".\"EMP\") AS \"t3\" "
+            + "ON \"t2\".\"DEPTNO\" = \"t3\".\"DEPTNO\"\n"
+            + "GROUP BY \"t2\".\"DNAME\", \"t2\".\"DNAME0\"")
+        .runs();
+  }
   /** Acquires a lock, and releases it when closed. */
   static class LockWrapper implements AutoCloseable {
     private final Lock lock;
