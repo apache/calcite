@@ -162,6 +162,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -1211,17 +1212,27 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       RelDataType type = namespace.getType();
 
       if (node == top) {
-        // A top-level namespace must not return any must-filter fields.
+        FilterRequirement filterRequirement = namespace.getFilterRequirement();
+        // Either of the following two conditions result in an invalid query:
+        // 1) A top-level namespace must not return any must-filter fields.
         // A non-top-level namespace (e.g. a subquery) may return must-filter
         // fields; these are neutralized if the consuming query filters on them.
-        final ImmutableBitSet mustFilterFields =
-            namespace.getMustFilterFields();
-        if (!mustFilterFields.isEmpty()) {
+        // 2) A top-level namespace must not have any remnant-must-filter fields.
+        // Remnant must filter fields are fields that are not selected and cannot
+        // be defused unless a bypass field defuses it.
+        if (!filterRequirement.getFilterFields().isEmpty()
+            || !filterRequirement.getRemnantFilterFields().isEmpty()) {
+          Stream<String> mustFilterStream =
+              StreamSupport.stream(filterRequirement.getFilterFields().spliterator(), false)
+              .map(namespace.getRowType().getFieldNames()::get);
+          Stream<String> remnantStream =
+              filterRequirement.getRemnantFilterFields().stream()
+              .map(q -> q.suffix().get(0));
+
           // Set of field names, sorted alphabetically for determinism.
           Set<String> fieldNameSet =
-              StreamSupport.stream(mustFilterFields.spliterator(), false)
-                  .map(namespace.getRowType().getFieldNames()::get)
-                  .collect(Collectors.toCollection(TreeSet::new));
+              Stream.concat(mustFilterStream, remnantStream)
+              .collect(Collectors.toCollection(TreeSet::new));
           throw newValidationError(node,
               RESOURCE.mustFilterFieldsMissing(fieldNameSet.toString()));
         }
@@ -4114,64 +4125,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     ns.setType(rowType);
     validateHavingClause(select);
 
-    // Deduce which columns must be filtered.
-    ns.mustFilterFields = ImmutableBitSet.of();
-    if (from != null) {
-      final Set<SqlQualified> qualifieds = new LinkedHashSet<>();
-      for (ScopeChild child : fromScope.children) {
-        final List<String> fieldNames =
-            child.namespace.getRowType().getFieldNames();
-        child.namespace.getMustFilterFields()
-            .forEachInt(i ->
-                qualifieds.add(
-                    SqlQualified.create(fromScope, 1, child.namespace,
-                        new SqlIdentifier(
-                            ImmutableList.of(child.name, fieldNames.get(i)),
-                            SqlParserPos.ZERO))));
-      }
-      if (!qualifieds.isEmpty()) {
-        if (select.getWhere() != null) {
-          forEachQualified(select.getWhere(), getWhereScope(select),
-              qualifieds::remove);
-        }
-        if (select.getHaving() != null) {
-          forEachQualified(select.getHaving(), getHavingScope(select),
-              qualifieds::remove);
-        }
-
-        // Each of the must-filter fields identified must be returned as a
-        // SELECT item, which is then flagged as must-filter.
-        final BitSet mustFilterFields = new BitSet();
-        final List<SqlNode> expandedSelectItems =
-            requireNonNull(fromScope.getExpandedSelectList(),
-                "expandedSelectList");
-        forEach(expandedSelectItems, (selectItem, i) -> {
-          selectItem = stripAs(selectItem);
-          if (selectItem instanceof SqlIdentifier) {
-            SqlQualified qualified =
-                fromScope.fullyQualify((SqlIdentifier) selectItem);
-            if (qualifieds.remove(qualified)) {
-              // SELECT item #i referenced a must-filter column that was not
-              // filtered in the WHERE or HAVING. It becomes a must-filter
-              // column for our consumer.
-              mustFilterFields.set(i);
-            }
-          }
-        });
-
-        // If there are must-filter fields that are not in the SELECT clause,
-        // this is an error.
-        if (!qualifieds.isEmpty()) {
-          throw newValidationError(select,
-              RESOURCE.mustFilterFieldsMissing(
-                  qualifieds.stream()
-                      .map(q -> q.suffix().get(0))
-                      .collect(Collectors.toCollection(TreeSet::new))
-                      .toString()));
-        }
-        ns.mustFilterFields = ImmutableBitSet.fromBitSet(mustFilterFields);
-      }
-    }
+    validateMustFilterRequirements(select, ns);
 
     // Validate ORDER BY after we have set ns.rowType because in some
     // dialects you can refer to columns of the select list, e.g.
@@ -4188,8 +4142,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
   }
 
-  /** For each identifier in an expression, resolves it to a qualified name
-   * and calls the provided action. */
+  /**
+   * For each identifier in an expression, resolves it to a qualified name
+   * and calls the provided action.
+   */
   private static void forEachQualified(SqlNode node, SqlValidatorScope scope,
       Consumer<SqlQualified> consumer) {
     node.accept(new SqlBasicVisitor<Void>() {
@@ -4199,6 +4155,49 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         return null;
       }
     });
+  }
+
+  /**
+   * Removes all entries from qualifieds and remnantMustFilterFields if the supplied SqlNode
+   * is a bypassField.
+   */
+  private static void purgeForBypassFields(SqlNode node, SqlValidatorScope scope,
+      Set<SqlQualified> qualifieds, Set<SqlQualified> bypassQualifieds,
+      Set<SqlQualified> remnantMustFilterFields) {
+    node.accept(new SqlBasicVisitor<Void>() {
+      @Override public Void visit(SqlIdentifier id) {
+        final SqlQualified qualified = scope.fullyQualify(id);
+        if (bypassQualifieds.contains(qualified)) {
+          // Clear all the must-filter qualifieds from the same table identifier
+          Collection<SqlQualified> sameIdentifier = qualifieds.stream()
+              .filter(q -> qualifiedMatchesIdentifier(q, qualified))
+              .collect(Collectors.toList());
+          sameIdentifier.forEach(qualifieds::remove);
+
+          // Clear all the remnant must-filter qualifieds from the same table identifier
+          Collection<SqlQualified> sameIdentifier_ = remnantMustFilterFields.stream()
+              .filter(q -> qualifiedMatchesIdentifier(q, qualified))
+              .collect(Collectors.toList());
+          sameIdentifier_.forEach(remnantMustFilterFields::remove);
+        }
+        return null;
+      }
+    });
+  }
+
+  private static void toQualifieds(ImmutableBitSet fields, Set<SqlQualified> qualifiedSet,
+      SelectScope fromScope, ScopeChild child, List<String> fieldNames) {
+    fields.forEachInt(i ->
+        qualifiedSet.add(
+            SqlQualified.create(fromScope, 1, child.namespace,
+                new SqlIdentifier(
+                    ImmutableList.of(child.name, fieldNames.get(i)),
+                    SqlParserPos.ZERO))));
+
+  }
+
+  private static boolean qualifiedMatchesIdentifier(SqlQualified q1, SqlQualified q2) {
+    return q1.identifier.names.get(0).equals(q2.identifier.names.get(0));
   }
 
   private void checkRollUpInSelectList(SqlSelect select) {
@@ -4651,6 +4650,90 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (!qualifyContainsWindowFunction) {
       throw newValidationError(qualifyNode,
           RESOURCE.qualifyExpressionMustContainWindowFunction(qualifyNode.toString()));
+    }
+  }
+
+  protected void validateMustFilterRequirements(SqlSelect select, SelectNamespace ns) {
+    ns.filterRequirement = new FilterRequirement();
+    if (select.getFrom() != null) {
+      final SelectScope fromScope = (SelectScope) getFromScope(select);
+      final BitSet projectedNonFilteredBypassField = new BitSet();
+      final Set<SqlQualified> qualifieds = new LinkedHashSet<>();
+      final Set<SqlQualified> bypassQualifieds = new LinkedHashSet<>();
+      final Set<SqlQualified> remnantQualifieds = new LinkedHashSet<>();
+      for (ScopeChild child : fromScope.children) {
+        final List<String> fieldNames =
+            child.namespace.getRowType().getFieldNames();
+        FilterRequirement mustFilterReq = child.namespace.getFilterRequirement();
+        toQualifieds(mustFilterReq.getFilterFields(), qualifieds, fromScope, child,
+            fieldNames);
+        toQualifieds(mustFilterReq.getBypassFields(), bypassQualifieds, fromScope,
+            child, fieldNames);
+        remnantQualifieds.addAll(mustFilterReq.getRemnantFilterFields());
+      }
+      if (!qualifieds.isEmpty() || !bypassQualifieds.isEmpty()) {
+        if (select.getWhere() != null) {
+          forEachQualified(select.getWhere(), getWhereScope(select),
+              qualifieds::remove);
+          purgeForBypassFields(select.getWhere(), getWhereScope(select),
+              qualifieds, bypassQualifieds, remnantQualifieds);
+        }
+        if (select.getHaving() != null) {
+          forEachQualified(select.getHaving(), getHavingScope(select),
+              qualifieds::remove);
+          purgeForBypassFields(select.getHaving(), getHavingScope(select),
+              qualifieds, bypassQualifieds, remnantQualifieds);
+        }
+
+        // Each of the must-filter fields identified must be returned as a
+        // SELECT item, which is then flagged as must-filter.
+        final BitSet mustFilterFields = new BitSet();
+        // Each of the bypass fields identified must be returned as a
+        // SELECT item, which is then flagged as a bypass field for the consumer.
+        final BitSet mustFilterBypassFields = new BitSet();
+        final List<SqlNode> expandedSelectItems =
+            requireNonNull(fromScope.getExpandedSelectList(),
+                "expandedSelectList");
+        forEach(expandedSelectItems, (selectItem, i) -> {
+          selectItem = stripAs(selectItem);
+          if (selectItem instanceof SqlIdentifier) {
+            SqlQualified qualified =
+                fromScope.fullyQualify((SqlIdentifier) selectItem);
+            if (qualifieds.remove(qualified)) {
+              // SELECT item #i referenced a must-filter column that was not
+              // filtered in the WHERE or HAVING. It becomes a must-filter
+              // column for our consumer.
+              mustFilterFields.set(i);
+            }
+            if (bypassQualifieds.remove(qualified)) {
+              // SELECT item #i referenced a bypass column that was not filtered in the WHERE
+              // or HAVING. It becomes a bypass column for our consumer.
+              mustFilterBypassFields.set(i);
+              projectedNonFilteredBypassField.set(0);
+            }
+          }
+        });
+
+        // If there are must-filter fields that are not in the SELECT clause and there were no
+        // bypass-fields on this table, this is an error.
+        if (!qualifieds.isEmpty() && !projectedNonFilteredBypassField.get(0)) {
+          throw newValidationError(select,
+              RESOURCE.mustFilterFieldsMissing(
+                  qualifieds.stream()
+                      .map(q -> q.suffix().get(0))
+                      .collect(Collectors.toCollection(TreeSet::new))
+                      .toString()));
+        }
+        // Remaining must-filter fields can be defused by a bypass-field,
+        // so we pass this to the consumer.
+        ImmutableSet<SqlQualified> remnantMustFilterFields =
+            Stream.of(remnantQualifieds, qualifieds)
+                .flatMap(Set::stream).collect(ImmutableSet.toImmutableSet());
+        ns.filterRequirement =
+            new FilterRequirement(ImmutableBitSet.fromBitSet(mustFilterFields),
+                ImmutableBitSet.fromBitSet(mustFilterBypassFields),
+                remnantMustFilterFields);
+      }
     }
   }
 
