@@ -164,7 +164,7 @@ public interface CalciteResource {
   @BaseMessage("Values in expression list must have compatible types")
   ExInst<SqlValidatorException> incompatibleTypesInList();
 
-  @BaseMessage("Cannot apply {0} to the two different charsets {1} and {2}")
+  @BaseMessage("Cannot apply operation ''{0}'' to strings with different charsets ''{1}'' and ''{2}''")
   ExInst<SqlValidatorException> incompatibleCharset(String a0, String a1,
       String a2);
 
