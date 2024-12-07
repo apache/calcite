@@ -115,8 +115,7 @@ class ElasticsearchRules {
     return SqlValidatorUtil.uniquify(
         new AbstractList<String>() {
           @Override public String get(int index) {
-            final String name = rowType.getFieldList().get(index).getName();
-            return name.startsWith("$") ? "_" + name.substring(2) : name;
+            return rowType.getFieldList().get(index).getName();
           }
 
           @Override public int size() {
