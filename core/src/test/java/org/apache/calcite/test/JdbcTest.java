@@ -7038,6 +7038,8 @@ public class JdbcTest {
     with.query("select \"name\", \"empid\" from \"hr\".\"emps\"\n"
           + "where cast(convert(\"name\" using LATIN1) as char(5))='Eric'")
         .returns("name=Eric; empid=200\n");
+    // the result of convert(\"name\" using GBK) has GBK charset
+    // while CHAR(5) has ISO-8859-1 charset, which is not allowed to cast
     with.query("select \"name\", \"empid\" from \"hr\".\"emps\"\n"
           + "where cast(convert(\"name\" using GBK) as char(5))='Eric'")
         .throws_(

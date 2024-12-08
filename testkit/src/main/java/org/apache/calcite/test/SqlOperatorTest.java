@@ -4510,6 +4510,8 @@ public class SqlOperatorTest {
         "Cannot apply operation '=' to strings with "
             + "different charsets 'ISO-8859-1' and 'GBK'",
         false);
+    // the result of convert('col', utf8, gbk) has GBK charset
+    // while CHAR(3) has ISO-8859-1 charset, which is not allowed to cast
     f.checkFails("select 'a' as alia\n"
             + " from (values(true)) where ^cast(convert('col', utf8, gbk) as char(3))^=_GBK'col'",
         "Cast function cannot convert value of type "
@@ -4544,6 +4546,8 @@ public class SqlOperatorTest {
         "Cannot apply operation '=' to strings with "
             + "different charsets 'ISO-8859-1' and 'GBK'",
         false);
+    // the result of translate('col' using gbk) has GBK charset
+    // while CHAR(3) has ISO-8859-1 charset, which is not allowed to cast
     f.checkFails("select 'a' as alia\n"
             + " from (values(true)) where ^cast(translate('col' using gbk) as char(3))^=_GBK'col'",
         "Cast function cannot convert value of type "
