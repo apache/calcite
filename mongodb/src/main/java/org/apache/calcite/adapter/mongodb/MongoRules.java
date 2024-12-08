@@ -151,6 +151,7 @@ public class MongoRules {
       MONGO_OPERATORS.put(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, "$gte");
       MONGO_OPERATORS.put(SqlStdOperatorTable.LESS_THAN, "$lt");
       MONGO_OPERATORS.put(SqlStdOperatorTable.LESS_THAN_OR_EQUAL, "$lte");
+      MONGO_OPERATORS.put(SqlStdOperatorTable.LIKE, "$regex");
     }
 
     protected RexToMongoTranslator(JavaTypeFactory typeFactory,
@@ -175,6 +176,33 @@ public class MongoRules {
           "$" + inFields.get(inputRef.getIndex()));
     }
 
+    private String convertLikeToRegex(String likePattern) {
+      StringBuilder regex = new StringBuilder();
+      if (likePattern.charAt(0) != '%') {
+        regex.append("^");
+      }
+      for (int i = 0; i < likePattern.length(); ++i) {
+        char ch = likePattern.charAt(i);
+        switch (ch) {
+        case '%':
+          regex.append(".*");
+          break;
+        case '_':
+          regex.append(".");
+          break;
+        default:
+          if ("\\.^$|?*+()[{".indexOf(ch) >= 0) { // 정규 표현식에서 특별한 의미를 가지는 문자들
+            regex.append("\\"); // escape 처리
+          }
+          regex.append(ch);
+        }
+      }
+      if (likePattern.charAt(likePattern.length() - 1) != '%') {
+        regex.append("$");
+      }
+      return regex.toString();
+    }
+
     @Override public String visitCall(RexCall call) {
       String name = isItem(call);
       if (name != null) {
@@ -184,6 +212,18 @@ public class MongoRules {
       if (call.getKind() == SqlKind.CAST) {
         return strings.get(0);
       }
+
+//      if (call.getKind() == SqlKind.LIKE) {
+//        String pattern = (String) strings.get(0);// LIKE 연산에 사용된 패턴 추출.
+//        String regexPattern = convertLikeToRegex(pattern);// LIKE 패턴을 regex로 변환.
+//        System.out.println("우왕 인식한당");
+////        return "{" + "\"FIRST_NAME\"" + ": {\"$regex\": " + regexPattern + "}}";
+//        String regexPatter = "^10";
+//        return "{" + "\"EMP_NO\"" + ": {\"$regex\": \"" + regexPattern + "\"}}";
+//
+//      }
+
+
       String stdOperator = MONGO_OPERATORS.get(call.getOperator());
       if (stdOperator != null) {
         return "{" + stdOperator + ": [" + Util.commaList(strings) + "]}";
