@@ -661,6 +661,13 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     @Override protected void generateTypeString(StringBuilder sb, boolean withDetail) {
       sb.append("JavaType(");
       sb.append(clazz);
+      if (clazz == String.class
+          && charset != null
+          && !SqlCollation.IMPLICIT.getCharset().equals(charset)) {
+        sb.append(" CHARACTER SET \"");
+        sb.append(charset.name());
+        sb.append("\"");
+      }
       sb.append(")");
     }
 

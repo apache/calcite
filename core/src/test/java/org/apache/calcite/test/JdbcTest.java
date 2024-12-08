@@ -6998,7 +6998,53 @@ public class JdbcTest {
     with.query(
         "select * from \"employee\" where \"full_name\" = _UTF16'\u82f1\u56fd'")
         .throws_(
-            "Cannot apply = to the two different charsets ISO-8859-1 and UTF-16LE");
+            "Cannot apply operation '=' to strings with different charsets 'ISO-8859-1' and 'UTF-16LE'");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6146">[CALCITE-6146]
+   * Target charset should be used when comparing two strings through
+   * CONVERT/TRANSLATE function during validation</a>. */
+  @Test void testStringComparisonWithConvertFunc() {
+    CalciteAssert.AssertThat with = CalciteAssert.hr();
+    with.query("select \"name\", \"empid\" from \"hr\".\"emps\"\n"
+          + "where convert(\"name\" using GBK)=_GBK'Eric'")
+        .returns("name=Eric; empid=200\n");
+    with.query("select \"name\", \"empid\" from \"hr\".\"emps\"\n"
+          + "where _BIG5'Eric'=translate(\"name\" using BIG5)")
+        .returns("name=Eric; empid=200\n");
+    with.query("select \"name\", \"empid\" from \"hr\".\"emps\"\n"
+          + "where translate(null using UTF8) is null")
+        .returns("name=Bill; empid=100\n"
+                + "name=Eric; empid=200\n"
+                + "name=Sebastian; empid=150\n"
+                + "name=Theodore; empid=110\n");
+    with.query("select \"name\", \"empid\" from \"hr\".\"emps\"\n"
+          + "where _BIG5'Eric'=translate(\"name\" using LATIN1)")
+        .throws_("Cannot apply operation '=' to strings with "
+                + "different charsets 'Big5' and 'ISO-8859-1'");
+    with.query("select \"name\", \"empid\" from \"hr\".\"emps\"\n"
+          + "where convert(convert(\"name\" using GBK) using BIG5)=_BIG5'Eric'")
+        .returns("name=Eric; empid=200\n");
+
+    with.query("select \"name\", \"empid\" from \"hr\".\"emps\"\n"
+          + "where convert(\"name\", UTF8, GBK)=_GBK'Sebastian'")
+        .returns("name=Sebastian; empid=150\n");
+    with.query("select \"name\", \"empid\" from \"hr\".\"emps\"\n"
+          + "where _BIG5'Sebastian'=convert(\"name\", UTF8, BIG5)")
+        .returns("name=Sebastian; empid=150\n");
+
+    // check cast
+    with.query("select \"name\", \"empid\" from \"hr\".\"emps\"\n"
+          + "where cast(convert(\"name\" using LATIN1) as char(5))='Eric'")
+        .returns("name=Eric; empid=200\n");
+    // the result of convert(\"name\" using GBK) has GBK charset
+    // while CHAR(5) has ISO-8859-1 charset, which is not allowed to cast
+    with.query("select \"name\", \"empid\" from \"hr\".\"emps\"\n"
+          + "where cast(convert(\"name\" using GBK) as char(5))='Eric'")
+        .throws_(
+            "cannot convert value of type "
+            + "JavaType(class java.lang.String CHARACTER SET \"GBK\") to type CHAR(5) NOT NULL");
   }
 
   /** Tests metadata for the MySQL lexical scheme. */
