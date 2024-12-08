@@ -132,7 +132,7 @@ public class SqlConvertFunction extends SqlFunction {
 
   @Override public RelDataType deriveType(SqlValidator validator,
       SqlValidatorScope scope, SqlCall call) {
-    // special case for CONVERT: don't need to derive type for Charsets
+    // don't need to derive type for Charsets
     RelDataType nodeType =
         validator.deriveType(scope, call.operand(0));
     requireNonNull(nodeType, "nodeType");

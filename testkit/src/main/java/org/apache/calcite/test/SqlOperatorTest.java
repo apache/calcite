@@ -4486,31 +4486,31 @@ public class SqlOperatorTest {
   @Test void testStringComparisonWithConvertFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.CONVERT, VM_JAVA);
-    f.check("select 'a' as col\n"
+    f.check("select 'a' as alia\n"
             + " from (values(true)) where convert('col', utf8, latin1)='col'",
         SqlTests.ANY_TYPE_CHECKER, 'a');
-    f.check("select 'a' as col\n"
+    f.check("select 'a' as alia\n"
             + " from (values(true)) where convert('col', utf8, gbk)=_GBK'col'",
         SqlTests.ANY_TYPE_CHECKER, 'a');
-    f.check("select 'a' as col\n"
+    f.check("select 'a' as alia\n"
             + " from (values(true)) where convert(null, utf8, gbk) is null",
         SqlTests.ANY_TYPE_CHECKER, 'a');
-    f.checkFails("select 'a' as col\n"
+    f.checkFails("select 'a' as alia\n"
             + " from (values(true)) where ^convert('col', utf8, gbk)='col'^",
         "Cannot apply operation '=' to strings with "
             + "different charsets 'GBK' and 'ISO-8859-1'",
         false);
 
     // cast check
-    f.check("select 'a' as col\n"
+    f.check("select 'a' as alia\n"
             + " from (values(true)) where cast(convert('col', utf8, latin1) as char(3))='col'",
         SqlTests.ANY_TYPE_CHECKER, 'a');
-    f.checkFails("select 'a' as col\n"
+    f.checkFails("select 'a' as alia\n"
             + " from (values(true)) where ^cast(convert('col', utf8, latin1) as char(3))=_GBK'col'^",
         "Cannot apply operation '=' to strings with "
             + "different charsets 'ISO-8859-1' and 'GBK'",
         false);
-    f.checkFails("select 'a' as col\n"
+    f.checkFails("select 'a' as alia\n"
             + " from (values(true)) where ^cast(convert('col', utf8, gbk) as char(3))^=_GBK'col'",
         "Cast function cannot convert value of type "
             + "CHAR\\(3\\) CHARACTER SET \"GBK\" NOT NULL to type CHAR\\(3\\) NOT NULL",
@@ -4520,31 +4520,31 @@ public class SqlOperatorTest {
   @Test void testStringComparisonWithTranslateFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.TRANSLATE, VM_JAVA);
-    f.check("select 'a' as col\n"
+    f.check("select 'a' as alia\n"
             + " from (values(true)) where translate('col' using latin1)='col'",
         SqlTests.ANY_TYPE_CHECKER, 'a');
-    f.check("select 'a' as col\n"
+    f.check("select 'a' as alia\n"
             + " from (values(true)) where convert('col' using gbk)=_GBK'col'",
         SqlTests.ANY_TYPE_CHECKER, 'a');
-    f.check("select 'a' as col\n"
+    f.check("select 'a' as alia\n"
             + " from (values(true)) where convert(null using gbk) is null",
         SqlTests.ANY_TYPE_CHECKER, 'a');
-    f.checkFails("select 'a' as col\n"
+    f.checkFails("select 'a' as alia\n"
             + " from (values(true)) where ^translate('col' using gbk)='col'^",
         "Cannot apply operation '=' to strings with "
             + "different charsets 'GBK' and 'ISO-8859-1'",
         false);
 
     // cast check
-    f.check("select 'a' as col\n"
+    f.check("select 'a' as alia\n"
             + " from (values(true)) where cast(convert('col' using latin1) as char(3))='col'",
         SqlTests.ANY_TYPE_CHECKER, 'a');
-    f.checkFails("select 'a' as col\n"
+    f.checkFails("select 'a' as alia\n"
             + " from (values(true)) where ^cast(translate('col' using latin1) as char(3))=_GBK'col'^",
         "Cannot apply operation '=' to strings with "
             + "different charsets 'ISO-8859-1' and 'GBK'",
         false);
-    f.checkFails("select 'a' as col\n"
+    f.checkFails("select 'a' as alia\n"
             + " from (values(true)) where ^cast(translate('col' using gbk) as char(3))^=_GBK'col'",
         "Cast function cannot convert value of type "
             + "CHAR\\(3\\) CHARACTER SET \"GBK\" NOT NULL to type CHAR\\(3\\) NOT NULL",
