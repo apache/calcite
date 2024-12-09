@@ -2123,6 +2123,12 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIMESTAMP,
               SqlTypeFamily.ANY));
 
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction TIMESTAMPDIFF =
+      new SqlTimestampDiffFunction("TIMESTAMPDIFF",
+          OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.TIMESTAMP,
+              SqlTypeFamily.TIMESTAMP));
+
   /** The "TIME_DIFF(time, time, timeUnit)" function (BigQuery);
    * returns the number of timeUnit between the two time expressions. */
   @LibraryOperator(libraries = {BIG_QUERY})
