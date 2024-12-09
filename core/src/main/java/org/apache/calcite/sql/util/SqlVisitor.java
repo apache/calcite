@@ -26,6 +26,8 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
 
+import java.util.List;
+
 /**
  * Visitor class, follows the
  * {@link org.apache.calcite.util.Glossary#VISITOR_PATTERN visitor pattern}.
@@ -102,5 +104,10 @@ public interface SqlVisitor<R> {
   /** Asks a {@code SqlNode} to accept this visitor. */
   default R visitNode(SqlNode n) {
     return n.accept(this);
+  }
+
+  /** Visits all nodes in a list. */
+  default void visitAll(List<SqlNode> selectList) {
+    selectList.forEach(e -> e.accept(this));
   }
 }
