@@ -3489,6 +3489,18 @@ public class SqlOperatorTest {
         DECIMAL_OVERFLOW, true);
   }
 
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6721">
+   * Incorrect implementation of SqlFunction.checkedDivide</a>. */
+  @Test void testCheckedDivideOperator() {
+    final SqlOperatorFixture f = fixture()
+        .setFor(SqlStdOperatorTable.MULTIPLY, VmName.EXPAND)
+        // BigQuery requires arithmetic overflows
+        .withConformance(SqlConformanceEnum.BIG_QUERY);
+    f.checkFails("CAST(-32768 as SMALLINT) / CAST(0 AS SMALLINT)",
+        "/ by zero", true);
+  }
+
   @Test void testMultiplyIntervals() {
     final SqlOperatorFixture f = fixture();
     f.checkScalar("interval '2:2' hour to minute * 3",
