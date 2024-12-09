@@ -1560,7 +1560,7 @@ public abstract class Mappings {
 
     @Override public Mapping inverse() {
       return new OverridingTargetMapping(
-          (TargetMapping) parent.inverse(),
+          parent.inverse(),
           target,
           source);
     }
@@ -1860,5 +1860,36 @@ public abstract class Mappings {
     @Override public void set(int source, int target) {
       parent.set(target, source);
     }
+  }
+
+  /**
+   * Concatenates multiple mappings.
+   *
+   * <pre>
+   * [ 1:0, 2:1] // sourceCount:100
+   * [ 1:0, 2:1] // sourceCount:100
+   * output:
+   * [ 1:0, 2:1, 101:2, 102:3 ] ; sourceCount:200
+   * </pre>
+   */
+  public static Mapping concatenateMappings(List<Mapping> inputMappings) {
+    int fieldCount = 0;
+    int newFieldCount = 0;
+    for (Mapping inputMapping : inputMappings) {
+      fieldCount += inputMapping.getSourceCount();
+      newFieldCount += inputMapping.getTargetCount();
+    }
+    Mapping mapping =
+        create(MappingType.INVERSE_SURJECTION, fieldCount, newFieldCount);
+    int offset = 0;
+    int newOffset = 0;
+    for (Mapping inputMapping : inputMappings) {
+      for (IntPair pair : inputMapping) {
+        mapping.set(pair.source + offset, pair.target + newOffset);
+      }
+      offset += inputMapping.getSourceCount();
+      newOffset += inputMapping.getTargetCount();
+    }
+    return mapping;
   }
 }
