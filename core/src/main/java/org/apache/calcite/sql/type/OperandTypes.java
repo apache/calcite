@@ -1058,10 +1058,12 @@ public abstract class OperandTypes {
       family(ImmutableList.of(SqlTypeFamily.ANY, SqlTypeFamily.STRING, SqlTypeFamily.STRING),
           // Third operand optional (operand index 0, 1, 2)
           number -> number == 2);
+
   public static final SqlSingleOperandTypeChecker ANY_OPTIONAL_BOOLEAN =
       family(ImmutableList.of(SqlTypeFamily.ANY, SqlTypeFamily.BOOLEAN),
           // Second operand optional (operand index 0, 1)
           number -> number == 1);
+
   public static final SqlSingleOperandTypeChecker ANY_DATETIME_DATETIME_STRING =
       family(ImmutableList.of(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME, SqlTypeFamily.STRING),
           // Third operand optional (operand index 0, 1, 2)
