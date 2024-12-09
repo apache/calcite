@@ -116,6 +116,7 @@ public enum SqlTypeName {
   SYMBOL(PrecScale.NO_NO, true, Types.OTHER, null),
   MULTISET(PrecScale.NO_NO, false, Types.ARRAY, SqlTypeFamily.MULTISET),
   ARRAY(PrecScale.NO_NO, false, Types.ARRAY, SqlTypeFamily.ARRAY),
+  RESULTSET(PrecScale.NO_NO, false, Types.ARRAY, SqlTypeFamily.ARRAY),
   MAP(PrecScale.NO_NO, false, Types.OTHER, SqlTypeFamily.MAP),
   DISTINCT(PrecScale.NO_NO, false, Types.DISTINCT, null),
   STRUCTURED(PrecScale.NO_NO, false, Types.STRUCT, null),

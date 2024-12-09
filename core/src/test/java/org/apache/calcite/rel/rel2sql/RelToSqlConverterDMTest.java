@@ -1388,7 +1388,7 @@ class RelToSqlConverterDMTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT TRIM(' str ')\n"
         + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(BOTH ' ' FROM ' str ')\nFROM foodmart"
+    final String expectedSpark = "SELECT TRIM(' ' FROM ' str ')\nFROM foodmart"
         + ".reserve_employee";
     sql(query)
         .withHive()
@@ -1404,8 +1404,7 @@ class RelToSqlConverterDMTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT TRIM(' str ')\n"
         + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(BOTH ' ' FROM ' str ')\n"
-        + "FROM foodmart.reserve_employee";
+    final String expectedSpark = "SELECT TRIM(' ' FROM ' str ')\nFROM foodmart.reserve_employee";
     sql(query)
         .withHive()
         .ok(expected)
@@ -1507,7 +1506,7 @@ class RelToSqlConverterDMTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT REGEXP_REPLACE('abcda', '^(a)*|(a)*$', '')\n"
         + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(BOTH 'a' FROM 'abcda')\n"
+    final String expectedSpark = "SELECT TRIM('a' FROM 'abcda')\n"
         + "FROM foodmart.reserve_employee";
     sql(query)
         .withHive()
@@ -1533,7 +1532,7 @@ class RelToSqlConverterDMTest {
         + "FROM foodmart.reserve_employee";
     final String expectedSnowFlake = "SELECT TRIM(\"full_name\")\n"
         + "FROM \"foodmart\".\"reserve_employee\"";
-    final String expectedSpark = "SELECT TRIM(BOTH ' ' FROM full_name)\nFROM foodmart"
+    final String expectedSpark = "SELECT TRIM(' ' FROM full_name)\nFROM foodmart"
         + ".reserve_employee";
     sql(query)
         .withHive()
@@ -1551,7 +1550,7 @@ class RelToSqlConverterDMTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT TRIM(full_name)\n"
         + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(BOTH ' ' FROM full_name)\n"
+    final String expectedSpark = "SELECT TRIM(' ' FROM full_name)\n"
         + "FROM foodmart.reserve_employee";
     final String expectedSnowFlake = "SELECT TRIM(\"full_name\")\n"
         + "FROM \"foodmart\".\"reserve_employee\"";
@@ -1678,7 +1677,7 @@ class RelToSqlConverterDMTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT TRIM('AABCAADCAA', 'A')\n"
         + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(BOTH 'A' FROM 'AABCAADCAA')\nFROM foodmart"
+    final String expectedSpark = "SELECT TRIM('A' FROM 'AABCAADCAA')\nFROM foodmart"
         + ".reserve_employee";
     final String expectedHS = "SELECT REGEXP_REPLACE('AABCAADCAA', '^(A)*|(A)*$', '')\n"
         + "FROM foodmart.reserve_employee";
@@ -1751,7 +1750,7 @@ class RelToSqlConverterDMTest {
         "SELECT REGEXP_REPLACE('$@*AABC$@*AADCAA$@*A',"
             + " '^(\\$\\@\\*A)*|(\\$\\@\\*A)*$', '')\n"
             + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(BOTH '$@*A' FROM '$@*AABC$@*AADCAA$@*A')\nFROM "
+    final String expectedSpark = "SELECT TRIM('$@*A' FROM '$@*AABC$@*AADCAA$@*A')\nFROM "
         + "foodmart.reserve_employee";
     final String expectedSnowFlake = "SELECT TRIM('$@*AABC$@*AADCAA$@*A', '$@*A')\n"
               + "FROM \"foodmart\".\"reserve_employee\"";
@@ -1774,7 +1773,7 @@ class RelToSqlConverterDMTest {
     final String expectedHS =
         "SELECT TRIM(SUBSTRING(full_name, 2, 3))\n"
             + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(BOTH ' ' FROM SUBSTRING(full_name, 2, 3))\n"
+    final String expectedSpark = "SELECT TRIM(' ' FROM SUBSTRING(full_name, 2, 3))\n"
         + "FROM foodmart.reserve_employee";
     final String expectedSnowFlake = "SELECT TRIM(SUBSTR(\"full_name\", 2, 3))\n"
         + "FROM \"foodmart\".\"reserve_employee\"";
@@ -1810,7 +1809,7 @@ class RelToSqlConverterDMTest {
     final String expected = "SELECT REGEXP_REPLACE('$@*AABC$@*AADCAA$@*A',"
         + " '^(\\$\\@\\*A)*|(\\$\\@\\*A)*$', '')\n"
         + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(BOTH '$@*A' FROM '$@*AABC$@*AADCAA$@*A')\n"
+    final String expectedSpark = "SELECT TRIM('$@*A' FROM '$@*AABC$@*AADCAA$@*A')\n"
         + "FROM foodmart.reserve_employee";
     sql(query)
         .withHive()
