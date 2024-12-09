@@ -2604,7 +2604,7 @@ public class SqlFunctions {
   }
 
   public static short checkedDivide(short b0, short b1) {
-    return intToShort(b0 * b1);
+    return intToShort(b0 / b1);
   }
 
   public static int checkedDivide(int b0, int b1) {
