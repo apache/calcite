@@ -2673,7 +2673,7 @@ public class RelMetadataTest {
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     RelOptPredicateList inputSet = mq.getPulledUpPredicates(rel);
     ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
-    assertThat(pulledUpPredicates, sortsAs("[]"));
+    assertThat(pulledUpPredicates, sortsAs("[OR(IS NULL($0), $0)]"));
   }
 
   @Test void testPullUpPredicatesFromProject() {
@@ -2682,6 +2682,45 @@ public class RelMetadataTest {
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     assertThat(mq.getPulledUpPredicates(rel).pulledUpPredicates,
         sortsAs("[IS NULL($0), IS NULL($1)]"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6649">[CALCITE-6649]
+   * Enhance RelMdPredicates pull up predicate from PROJECT</a>. */
+  @Test void testPullUpPredicatesFromProject2() {
+    final String sql = "select comm <> 2, comm = 2 from emp where comm = 2";
+    final Project rel = (Project) sql(sql).toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    RelOptPredicateList inputSet = mq.getPulledUpPredicates(rel);
+    ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
+    assertThat(pulledUpPredicates, sortsAs("[=($0, false), =($1, true)]"));
+  }
+
+  @Test void testPullUpPredicatesFromProject3() {
+    final String sql = "select comm is null, comm is not null from emp where comm = 2";
+    final Project rel = (Project) sql(sql).toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    RelOptPredicateList inputSet = mq.getPulledUpPredicates(rel);
+    ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
+    assertThat(pulledUpPredicates, sortsAs("[=($0, false), =($1, true)]"));
+  }
+
+  @Test void testPullUpPredicatesFromProject4() {
+    final String sql = "select comm = 2, empno <> 1 from emp where comm = 2 and empno = 1";
+    final Project rel = (Project) sql(sql).toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    RelOptPredicateList inputSet = mq.getPulledUpPredicates(rel);
+    ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
+    assertThat(pulledUpPredicates, sortsAs("[=($0, true), =($1, false)]"));
+  }
+
+  @Test void testPullUpPredicatesFromProject5() {
+    final String sql = "select mgr=2, comm=2 from emp where mgr is null and empno = 1";
+    final Project rel = (Project) sql(sql).toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    RelOptPredicateList inputSet = mq.getPulledUpPredicates(rel);
+    ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
+    assertThat(pulledUpPredicates, sortsAs("[]"));
   }
 
   /** Test case for
