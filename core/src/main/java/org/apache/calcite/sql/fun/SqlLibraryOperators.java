@@ -1537,21 +1537,17 @@ public abstract class SqlLibraryOperators {
             ImmutableList.of(componentType, elementType2));
     requireNonNull(type, "inferred array element type");
 
-    if (elementType2.isNullable()) {
-      type = opBinding.getTypeFactory().createTypeWithNullability(type, true);
-    }
+    // The spec says that "ARRAY_INSERT may pad the array with NULL values if the
+    // position is large", it implies that in the result the element type is always nullable.
+    type = opBinding.getTypeFactory().createTypeWithNullability(type, true);
     // make explicit CAST for array elements and inserted element to the biggest type
     // if array component type not equals to inserted element type
     if (!componentType.equalsSansFieldNames(elementType2)) {
-      // 0, 2 is the operand index to be CAST
       // For array_insert, 0 is the array arg and 2 is the inserted element
-      if (componentType.equalsSansFieldNames(type)) {
-        SqlValidatorUtil.
-            adjustTypeForArrayFunctions(type, opBinding, 2);
-      } else {
-        SqlValidatorUtil.
-            adjustTypeForArrayFunctions(type, opBinding, 0);
-      }
+      SqlValidatorUtil.
+          adjustTypeForArrayFunctions(type, opBinding, 2);
+      SqlValidatorUtil.
+          adjustTypeForArrayFunctions(type, opBinding, 0);
     }
     boolean nullable = arrayType.isNullable() || elementType1.isNullable();
     return SqlTypeUtil.createArrayType(opBinding.getTypeFactory(), type, nullable);
