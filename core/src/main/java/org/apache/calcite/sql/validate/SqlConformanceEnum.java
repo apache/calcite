@@ -300,6 +300,19 @@ public enum SqlConformanceEnum implements SqlConformance {
     }
   }
 
+  @Override public boolean allowNiladicConstantWithoutParentheses() {
+    switch (this) {
+    case ORACLE_10:
+    case ORACLE_12:
+    case DEFAULT:
+    case LENIENT:
+    case BABEL:
+      return true;
+    default:
+      return false;
+    }
+  }
+
   @Override public boolean allowExplicitRowValueConstructor() {
     switch (this) {
     case DEFAULT:

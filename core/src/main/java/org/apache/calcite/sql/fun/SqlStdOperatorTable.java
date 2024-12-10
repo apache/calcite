@@ -1933,7 +1933,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlFunction PI =
       SqlBasicFunction.create("PI", ReturnTypes.DOUBLE, OperandTypes.NILADIC,
           SqlFunctionCategory.NUMERIC)
-          .withSyntax(SqlSyntax.FUNCTION_ID);
+          .withSyntax(SqlSyntax.FUNCTION_ID_CONSTANT);
 
   /** {@code FIRST} function to be used within {@code MATCH_RECOGNIZE}. */
   public static final SqlFunction FIRST =

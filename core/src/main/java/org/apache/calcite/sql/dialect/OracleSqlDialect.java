@@ -28,6 +28,7 @@ import org.apache.calcite.sql.SqlDateLiteral;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlTimeLiteral;
 import org.apache.calcite.sql.SqlTimestampLiteral;
 import org.apache.calcite.sql.SqlUtil;
@@ -170,44 +171,48 @@ public class OracleSqlDialect extends SqlDialect {
     if (call.getOperator() == SqlStdOperatorTable.SUBSTRING) {
       SqlUtil.unparseFunctionSyntax(SqlLibraryOperators.SUBSTR_ORACLE, writer,
           call, false);
-    } else {
-      switch (call.getKind()) {
-      case POSITION:
-        final SqlWriter.Frame frame = writer.startFunCall("INSTR");
+      return;
+    }
+
+    if (call.getOperator().getSyntax() == SqlSyntax.FUNCTION_ID_CONSTANT) {
+      writer.sep(call.getOperator().getName());
+      return;
+    }
+
+    switch (call.getKind()) {
+    case POSITION:
+      final SqlWriter.Frame frame = writer.startFunCall("INSTR");
+      writer.sep(",");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.sep(",");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      if (3 == call.operandCount()) {
         writer.sep(",");
-        call.operand(1).unparse(writer, leftPrec, rightPrec);
-        writer.sep(",");
-        call.operand(0).unparse(writer, leftPrec, rightPrec);
-        if (3 == call.operandCount()) {
-          writer.sep(",");
-          call.operand(2).unparse(writer, leftPrec, rightPrec);
-        }
-        if (4 == call.operandCount()) {
-          writer.sep(",");
-          call.operand(2).unparse(writer, leftPrec, rightPrec);
-          writer.sep(",");
-          call.operand(3).unparse(writer, leftPrec, rightPrec);
-        }
-        writer.endFunCall(frame);
-        break;
-      case FLOOR:
-        if (call.operandCount() != 2) {
-          super.unparseCall(writer, call, leftPrec, rightPrec);
-          return;
-        }
-
-        final SqlLiteral timeUnitNode = call.operand(1);
-        final TimeUnitRange timeUnit = timeUnitNode.getValueAs(TimeUnitRange.class);
-
-        SqlCall call2 =
-            SqlFloorFunction.replaceTimeUnitOperand(call, timeUnit.name(),
-                timeUnitNode.getParserPosition());
-        SqlFloorFunction.unparseDatetimeFunction(writer, call2, "TRUNC", true);
-        break;
-
-      default:
-        super.unparseCall(writer, call, leftPrec, rightPrec);
+        call.operand(2).unparse(writer, leftPrec, rightPrec);
       }
+      if (4 == call.operandCount()) {
+        writer.sep(",");
+        call.operand(2).unparse(writer, leftPrec, rightPrec);
+        writer.sep(",");
+        call.operand(3).unparse(writer, leftPrec, rightPrec);
+      }
+      writer.endFunCall(frame);
+      break;
+    case FLOOR:
+      if (call.operandCount() != 2) {
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+        return;
+      }
+      final SqlLiteral timeUnitNode = call.operand(1);
+      final TimeUnitRange timeUnit = timeUnitNode.getValueAs(TimeUnitRange.class);
+
+      SqlCall call2 =
+          SqlFloorFunction.replaceTimeUnitOperand(call, timeUnit.name(),
+              timeUnitNode.getParserPosition());
+      SqlFloorFunction.unparseDatetimeFunction(writer, call2, "TRUNC", true);
+      break;
+    default:
+      super.unparseCall(writer, call, leftPrec, rightPrec);
     }
   }
 
