@@ -8753,6 +8753,17 @@ class RelToSqlConverterTest {
         .dialect(MssqlSqlDialect.DEFAULT).ok(mssqlExpected);
   }
 
+ /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6726">[CALCITE-6726]
+   * Add translation for MOD operator in MSSQL</a>.
+   */
+  @Test public void testModFunctionEmulationForMSSQL() {
+    final String query = "select mod(11,3)";
+    final String mssqlExpected = "SELECT 11 % 3\nFROM (VALUES (0)) AS [t] ([ZERO])";
+    sql(query).dialect(MssqlSqlDialect.DEFAULT).ok(mssqlExpected);
+  }
+
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6655">[CALCITE-6655]
    * Aggregation of deeply nested window not detected when unparsing</a>.
