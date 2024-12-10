@@ -64,6 +64,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexSubQuery;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlCall;
@@ -1388,7 +1389,7 @@ class RelToSqlConverterDMTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT TRIM(' str ')\n"
         + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(BOTH ' ' FROM ' str ')\nFROM foodmart"
+    final String expectedSpark = "SELECT TRIM(' ' FROM ' str ')\nFROM foodmart"
         + ".reserve_employee";
     sql(query)
         .withHive()
@@ -1404,8 +1405,7 @@ class RelToSqlConverterDMTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT TRIM(' str ')\n"
         + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(BOTH ' ' FROM ' str ')\n"
-        + "FROM foodmart.reserve_employee";
+    final String expectedSpark = "SELECT TRIM(' ' FROM ' str ')\nFROM foodmart.reserve_employee";
     sql(query)
         .withHive()
         .ok(expected)
@@ -1507,7 +1507,7 @@ class RelToSqlConverterDMTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT REGEXP_REPLACE('abcda', '^(a)*|(a)*$', '')\n"
         + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(BOTH 'a' FROM 'abcda')\n"
+    final String expectedSpark = "SELECT TRIM('a' FROM 'abcda')\n"
         + "FROM foodmart.reserve_employee";
     sql(query)
         .withHive()
@@ -1533,7 +1533,7 @@ class RelToSqlConverterDMTest {
         + "FROM foodmart.reserve_employee";
     final String expectedSnowFlake = "SELECT TRIM(\"full_name\")\n"
         + "FROM \"foodmart\".\"reserve_employee\"";
-    final String expectedSpark = "SELECT TRIM(BOTH ' ' FROM full_name)\nFROM foodmart"
+    final String expectedSpark = "SELECT TRIM(' ' FROM full_name)\nFROM foodmart"
         + ".reserve_employee";
     sql(query)
         .withHive()
@@ -1551,7 +1551,7 @@ class RelToSqlConverterDMTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT TRIM(full_name)\n"
         + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(BOTH ' ' FROM full_name)\n"
+    final String expectedSpark = "SELECT TRIM(' ' FROM full_name)\n"
         + "FROM foodmart.reserve_employee";
     final String expectedSnowFlake = "SELECT TRIM(\"full_name\")\n"
         + "FROM \"foodmart\".\"reserve_employee\"";
@@ -1678,7 +1678,7 @@ class RelToSqlConverterDMTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT TRIM('AABCAADCAA', 'A')\n"
         + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(BOTH 'A' FROM 'AABCAADCAA')\nFROM foodmart"
+    final String expectedSpark = "SELECT TRIM('A' FROM 'AABCAADCAA')\nFROM foodmart"
         + ".reserve_employee";
     final String expectedHS = "SELECT REGEXP_REPLACE('AABCAADCAA', '^(A)*|(A)*$', '')\n"
         + "FROM foodmart.reserve_employee";
@@ -1751,7 +1751,7 @@ class RelToSqlConverterDMTest {
         "SELECT REGEXP_REPLACE('$@*AABC$@*AADCAA$@*A',"
             + " '^(\\$\\@\\*A)*|(\\$\\@\\*A)*$', '')\n"
             + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(BOTH '$@*A' FROM '$@*AABC$@*AADCAA$@*A')\nFROM "
+    final String expectedSpark = "SELECT TRIM('$@*A' FROM '$@*AABC$@*AADCAA$@*A')\nFROM "
         + "foodmart.reserve_employee";
     final String expectedSnowFlake = "SELECT TRIM('$@*AABC$@*AADCAA$@*A', '$@*A')\n"
               + "FROM \"foodmart\".\"reserve_employee\"";
@@ -1774,7 +1774,7 @@ class RelToSqlConverterDMTest {
     final String expectedHS =
         "SELECT TRIM(SUBSTRING(full_name, 2, 3))\n"
             + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(BOTH ' ' FROM SUBSTRING(full_name, 2, 3))\n"
+    final String expectedSpark = "SELECT TRIM(' ' FROM SUBSTRING(full_name, 2, 3))\n"
         + "FROM foodmart.reserve_employee";
     final String expectedSnowFlake = "SELECT TRIM(SUBSTR(\"full_name\", 2, 3))\n"
         + "FROM \"foodmart\".\"reserve_employee\"";
@@ -1810,7 +1810,7 @@ class RelToSqlConverterDMTest {
     final String expected = "SELECT REGEXP_REPLACE('$@*AABC$@*AADCAA$@*A',"
         + " '^(\\$\\@\\*A)*|(\\$\\@\\*A)*$', '')\n"
         + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(BOTH '$@*A' FROM '$@*AABC$@*AADCAA$@*A')\n"
+    final String expectedSpark = "SELECT TRIM('$@*A' FROM '$@*AABC$@*AADCAA$@*A')\n"
         + "FROM foodmart.reserve_employee";
     sql(query)
         .withHive()
@@ -9918,6 +9918,49 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testForToJsonFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode toJson =
+        builder.call(SqlLibraryOperators.TO_JSON, builder.scan("EMP").field(5));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(toJson, "value"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT TO_JSON(SAL) AS value\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testForJsonAggFunction() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RelBuilder.AggCall aggCall =
+        builder.aggregateCall(SqlLibraryOperators.JSON_AGG,
+            builder.field(0), builder.field(1));
+    final RelNode rel = builder
+        .aggregate(relBuilder().groupKey(), aggCall)
+        .build();
+    final String expectedTDQuery = "SELECT JSON_AGG(\"EMPNO\", \"ENAME\") AS \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(rel, DatabaseProduct.TERADATA.getDialect()), isLinux(expectedTDQuery));
+  }
+
+  @Test public void testForJsonComposeFunction() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode jsonCompose =
+        builder.call(SqlLibraryOperators.JSON_COMPOSE,
+            builder.field(0), builder.field(1));
+    final RelNode root = builder
+        .project(builder.alias(jsonCompose, "value"))
+        .build();
+
+    final String expectedTDQuery = "SELECT JSON_COMPOSE(\"EMPNO\", \"ENAME\") AS \"value\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.TERADATA.getDialect()), isLinux(expectedTDQuery));
+  }
+
   @Test void testBloatedProjects() {
     final RelBuilder builder = relBuilder();
 
@@ -11010,6 +11053,28 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSFQuery));
   }
 
+  @Test public void testOracleNChrFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode nchrCall = builder.call(SqlLibraryOperators.NCHR, builder.literal(5));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(nchrCall)
+        .build();
+    final String expectedOracleSql = "SELECT NCHR(5) \"$f0\"\nFROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
+  }
+
+  @Test public void testSqlServerReplaceFunction() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode replaceCall =
+        builder.call(SqlLibraryOperators.CASE_INSENSTIVE_REPLACE,
+            builder.field("ENAME"), builder.literal("A"), builder.literal("aa"));
+    final RelNode root = builder.project(replaceCall).build();
+    final String expectedSql = "SELECT REPLACE(\"ENAME\", 'A', 'aa') AS \"$f0\""
+        + "\nFROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+  }
+
   @Disabled
   @Test void testInnerAndLeftJoinWithBooleanColumnEqualityConditionInWhereClause() {
     String query = "select \"first_name\" \n"
@@ -11790,15 +11855,22 @@ class RelToSqlConverterDMTest {
     RexNode inClauseNode =
         builder.call(SqlStdOperatorTable.IN, builder.field(0),
             builder.literal(10), builder.literal(20));
+    RexNode likeNode =
+        builder.call(SqlStdOperatorTable.LIKE, builder.field(1),
+            builder.literal("abC"));
+    RexNode conditionNode =
+        RexUtil.composeConjunction(builder.getRexBuilder(),
+            Arrays.asList(builder.call(SqlStdOperatorTable.IS_NOT_FALSE, inClauseNode),
+            builder.call(SqlStdOperatorTable.IS_NOT_FALSE, likeNode)));
     RelNode filterNode =
-        LogicalFilter.create(builder.build(), builder.call(SqlStdOperatorTable.IS_NOT_FALSE, inClauseNode));
+        LogicalFilter.create(builder.build(), conditionNode);
 
     final RelNode root = builder
         .push(filterNode)
         .build();
     final String expectedBiqQuery = "SELECT *\n"
         + "FROM scott.EMP\n"
-        + "WHERE (EMPNO IN (10, 20)) IS NOT FALSE";
+        + "WHERE (EMPNO IN (10, 20)) IS NOT FALSE AND (ENAME LIKE 'abC') IS NOT FALSE";
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedBiqQuery));
   }
 
@@ -12216,6 +12288,16 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSql));
   }
 
+  @Test public void testIntervalYearMonthFunction() {
+    String query = "select \"birth_date\" - INTERVAL -'3-9' YEAR TO MONTH from \"employee\"";
+
+    final String expectedSpark = "SELECT birth_date - (INTERVAL '-3' YEAR + INTERVAL '-9' MONTH)"
+        + "\nFROM foodmart.employee";
+    sql(query)
+        .withSpark()
+        .ok(expectedSpark);
+  }
+
   @Test public void testToLocalTimestampFunction() {
     final RelBuilder builder = relBuilder();
     RelDataType relDataType =
@@ -12263,7 +12345,7 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedSql));
   }
 
-  @Test public void testRowCountFunc() {
+  @Test public void testRowCountFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode rex = builder.call(SqlLibraryOperators.ROW_COUNT);
     final RelNode root = builder
@@ -12271,6 +12353,62 @@ class RelToSqlConverterDMTest {
         .project(rex)
         .build();
     final String expectedQuery = "SELECT ROW_COUNT() AS \"$f0\"\nFROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedQuery));
+  }
+
+  @Test public void testCurrentJobIdFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode rex =
+        builder.literal(
+            builder.call(SqlLibraryOperators.CURRENT_JOB_ID).toString().replace("()",
+            ""));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(rex)
+        .build();
+    final String expectedQuery = "SELECT 'CURRENT_JOB_ID' AS \"$f0\"\nFROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedQuery));
+  }
+
+  @Test public void testSQLERRMFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode rex =
+        builder.literal(
+            builder.call(SqlLibraryOperators.GENERATE_SQLERRM).toString().replace("()",
+            ""));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(rex)
+        .build();
+    final String expectedQuery = "SELECT 'SQLERRM' AS \"$f0\"\nFROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedQuery));
+  }
+
+  @Test public void testSQLERRCFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode rex =
+        builder.literal(
+            builder.call(SqlLibraryOperators.GENERATE_SQLERRC).toString().replace("()",
+            ""));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(rex)
+        .build();
+    final String expectedQuery = "SELECT 'SQLERRC' AS \"$f0\"\nFROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedQuery));
+  }
+
+  @Test public void testSQLERRSTFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode rex =
+        builder.literal(
+            builder.call(SqlLibraryOperators.GENERATE_SQLERRST).toString().replace("()",
+            ""));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(rex)
+        .build();
+    final String expectedQuery = "SELECT 'SQLERRST' AS \"$f0\"\nFROM \"scott\".\"EMP\"";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedQuery));
   }
 

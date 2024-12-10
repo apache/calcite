@@ -580,6 +580,11 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY, MYSQL, ORACLE})
   public static final SqlFunction REGEXP_REPLACE = new SqlRegexpReplaceFunction();
 
+  @LibraryOperator(libraries = {SQL_SERVER})
+  public static final SqlFunction CASE_INSENSTIVE_REPLACE =
+      SqlBasicFunction.create("REPLACE", ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.STRING_STRING_STRING, SqlFunctionCategory.STRING);
+
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction COMPRESS =
       SqlBasicFunction.create("COMPRESS",
@@ -691,6 +696,19 @@ public abstract class SqlLibraryOperators {
           .withFunctionType(SqlFunctionCategory.SYSTEM)
           .withSyntax(SqlSyntax.ORDERED_FUNCTION)
           .withAllowsNullTreatment(true);
+
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlAggFunction JSON_AGG =
+      SqlBasicAggFunction
+          .create(SqlKind.JSON_AGG,
+              ReturnTypes.JSON, ONE_OR_MORE)
+          .withFunctionType(SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlFunction JSON_COMPOSE =
+      new SqlFunction("JSON_COMPOSE", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.JSON, null,
+          ONE_OR_MORE, SqlFunctionCategory.SYSTEM);
 
   /** The "ARRAY_CONCAT_AGG(value [ ORDER BY ...])" aggregate function,
    * in BigQuery and PostgreSQL, concatenates array values into arrays. */
@@ -2309,6 +2327,13 @@ public abstract class SqlLibraryOperators {
           OperandTypes.INTEGER,
           SqlFunctionCategory.STRING);
 
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction NCHR =
+      SqlBasicFunction.create("NCHR",
+          ReturnTypes.CHAR,
+          OperandTypes.INTEGER,
+          SqlFunctionCategory.STRING);
+
   /** The "CODE_POINTS_TO_BYTES(integers)" function (BigQuery); Converts an array of extended ASCII
    * code points to bytes. */
   @LibraryOperator(libraries = {BIG_QUERY})
@@ -3338,6 +3363,12 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_STRING, SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TO_JSON =
+      new SqlFunction("TO_JSON", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.JSON, null,
+          OperandTypes.ANY_OPTIONAL_BOOLEAN, SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction JSON_QUERY =
       new SqlFunction("JSON_QUERY",
           SqlKind.OTHER_FUNCTION,
@@ -3702,4 +3733,24 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction ROW_COUNT =
       new SqlFunction("ROW_COUNT", SqlKind.OTHER_FUNCTION, ReturnTypes.DECIMAL, null,
           null, SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction CURRENT_JOB_ID =
+      new SqlFunction("CURRENT_JOB_ID", SqlKind.LITERAL, ReturnTypes.CHAR, null,
+          OperandTypes.STRING, SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction GENERATE_SQLERRST =
+      new SqlFunction("SQLERRST", SqlKind.LITERAL, ReturnTypes.CHAR, null,
+          OperandTypes.STRING, SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction GENERATE_SQLERRM =
+      new SqlFunction("SQLERRM", SqlKind.LITERAL, ReturnTypes.CHAR, null,
+          OperandTypes.STRING, SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction GENERATE_SQLERRC =
+      new SqlFunction("SQLERRC", SqlKind.LITERAL, ReturnTypes.CHAR, null,
+          OperandTypes.STRING, SqlFunctionCategory.SYSTEM);
 }
