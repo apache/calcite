@@ -582,8 +582,9 @@ public class SparkSqlDialect extends SqlDialect {
     assert call.operandCount() == 1;
     SqlOperator operator = call.getOperator();
     SqlNode operand = call.operand(0);
+    List<SqlKind> sqlKinds = Lists.newArrayList(SqlKind.IN, SqlKind.LIKE, SqlKind.RLIKE);
     if (operand instanceof SqlCall
-        && ((SqlCall) operand).getOperator().kind == SqlKind.IN) {
+        && sqlKinds.contains(((SqlCall) operand).getOperator().kind)) {
       final SqlWriter.Frame falseFrame = writer.startList("(", ")");
       operand.unparse(writer, operator.getLeftPrec(), operator.getRightPrec());
       writer.endFunCall(falseFrame);

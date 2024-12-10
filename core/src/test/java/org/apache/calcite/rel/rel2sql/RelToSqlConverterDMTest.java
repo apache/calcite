@@ -64,6 +64,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexSubQuery;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlCall;
@@ -9917,6 +9918,49 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testForToJsonFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode toJson =
+        builder.call(SqlLibraryOperators.TO_JSON, builder.scan("EMP").field(5));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(toJson, "value"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT TO_JSON(SAL) AS value\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testForJsonAggFunction() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RelBuilder.AggCall aggCall =
+        builder.aggregateCall(SqlLibraryOperators.JSON_AGG,
+            builder.field(0), builder.field(1));
+    final RelNode rel = builder
+        .aggregate(relBuilder().groupKey(), aggCall)
+        .build();
+    final String expectedTDQuery = "SELECT JSON_AGG(\"EMPNO\", \"ENAME\") AS \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(rel, DatabaseProduct.TERADATA.getDialect()), isLinux(expectedTDQuery));
+  }
+
+  @Test public void testForJsonComposeFunction() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode jsonCompose =
+        builder.call(SqlLibraryOperators.JSON_COMPOSE,
+            builder.field(0), builder.field(1));
+    final RelNode root = builder
+        .project(builder.alias(jsonCompose, "value"))
+        .build();
+
+    final String expectedTDQuery = "SELECT JSON_COMPOSE(\"EMPNO\", \"ENAME\") AS \"value\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.TERADATA.getDialect()), isLinux(expectedTDQuery));
+  }
+
   @Test void testBloatedProjects() {
     final RelBuilder builder = relBuilder();
 
@@ -11811,15 +11855,22 @@ class RelToSqlConverterDMTest {
     RexNode inClauseNode =
         builder.call(SqlStdOperatorTable.IN, builder.field(0),
             builder.literal(10), builder.literal(20));
+    RexNode likeNode =
+        builder.call(SqlStdOperatorTable.LIKE, builder.field(1),
+            builder.literal("abC"));
+    RexNode conditionNode =
+        RexUtil.composeConjunction(builder.getRexBuilder(),
+            Arrays.asList(builder.call(SqlStdOperatorTable.IS_NOT_FALSE, inClauseNode),
+            builder.call(SqlStdOperatorTable.IS_NOT_FALSE, likeNode)));
     RelNode filterNode =
-        LogicalFilter.create(builder.build(), builder.call(SqlStdOperatorTable.IS_NOT_FALSE, inClauseNode));
+        LogicalFilter.create(builder.build(), conditionNode);
 
     final RelNode root = builder
         .push(filterNode)
         .build();
     final String expectedBiqQuery = "SELECT *\n"
         + "FROM scott.EMP\n"
-        + "WHERE (EMPNO IN (10, 20)) IS NOT FALSE";
+        + "WHERE (EMPNO IN (10, 20)) IS NOT FALSE AND (ENAME LIKE 'abC') IS NOT FALSE";
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedBiqQuery));
   }
 

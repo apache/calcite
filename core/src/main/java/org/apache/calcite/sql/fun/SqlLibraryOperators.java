@@ -697,6 +697,19 @@ public abstract class SqlLibraryOperators {
           .withSyntax(SqlSyntax.ORDERED_FUNCTION)
           .withAllowsNullTreatment(true);
 
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlAggFunction JSON_AGG =
+      SqlBasicAggFunction
+          .create(SqlKind.JSON_AGG,
+              ReturnTypes.JSON, ONE_OR_MORE)
+          .withFunctionType(SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlFunction JSON_COMPOSE =
+      new SqlFunction("JSON_COMPOSE", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.JSON, null,
+          ONE_OR_MORE, SqlFunctionCategory.SYSTEM);
+
   /** The "ARRAY_CONCAT_AGG(value [ ORDER BY ...])" aggregate function,
    * in BigQuery and PostgreSQL, concatenates array values into arrays. */
   @LibraryOperator(libraries = {POSTGRESQL, BIG_QUERY})
@@ -3348,6 +3361,12 @@ public abstract class SqlLibraryOperators {
       new SqlFunction("TO_JSON_STRING", SqlKind.OTHER_FUNCTION,
           ReturnTypes.VARCHAR_2000_NULLABLE, null,
           OperandTypes.STRING_STRING, SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TO_JSON =
+      new SqlFunction("TO_JSON", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.JSON, null,
+          OperandTypes.ANY_OPTIONAL_BOOLEAN, SqlFunctionCategory.SYSTEM);
 
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction JSON_QUERY =
