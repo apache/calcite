@@ -122,22 +122,22 @@ class JdbcAdapterTest {
             + "union all\n"
             + "select ename from SCOTT.emp where empno > 10")
         .explainContains("PLAN=EnumerableUnion(all=[true])\n"
-                    + "  JdbcToEnumerableConverter\n"
-                    + "    JdbcProject(store_name=[$3])\n"
-                    + "      JdbcFilter(condition=[<($0, 10)])\n"
-                    + "        JdbcTableScan(table=[[foodmart, store]])\n"
-                    + "  JdbcToEnumerableConverter\n"
-                    + "    JdbcProject(ENAME=[$1])\n"
-                    + "      JdbcFilter(condition=[>($0, 10)])\n"
-                    + "        JdbcTableScan(table=[[SCOTT, EMP]])")
+            + "  JdbcToEnumerableConverter\n"
+            + "    JdbcProject(store_name=[$3])\n"
+            + "      JdbcFilter(condition=[<($0, 10)])\n"
+            + "        JdbcTableScan(table=[[foodmart, store]])\n"
+            + "  JdbcToEnumerableConverter\n"
+            + "    JdbcProject(EXPR$0=[CAST($1):VARCHAR(30)])\n"
+            + "      JdbcFilter(condition=[>(CAST($0):INTEGER NOT NULL, 10)])\n"
+            + "        JdbcTableScan(table=[[SCOTT, EMP]])")
         .runs()
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
         .planHasSql("SELECT \"store_name\"\n"
                 + "FROM \"foodmart\".\"store\"\n"
                 + "WHERE \"store_id\" < 10")
-        .planHasSql("SELECT \"ENAME\"\n"
-                + "FROM \"SCOTT\".\"EMP\"\n"
-                + "WHERE \"EMPNO\" > 10");
+        .planHasSql("SELECT CAST(\"ENAME\" AS VARCHAR(30))\n"
+            + "FROM \"SCOTT\".\"EMP\"\n"
+            + "WHERE CAST(\"EMPNO\" AS INTEGER) > 10");
   }
 
   /** Test case for
@@ -160,13 +160,18 @@ class JdbcAdapterTest {
             + "where \"product_id\" = 1")
         .runs()
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
-        .planHasSql("SELECT *\n"
+        .planHasSql("SELECT 1 AS \"product_id\", \"time_id\", \"customer_id\", "
+            + "\"promotion_id\", \"store_id\", \"store_sales\", "
+            + "\"store_cost\", \"unit_sales\"\n"
+            + "FROM (SELECT \"time_id\", \"customer_id\", \"promotion_id\", \"store_id\", "
+            + "\"store_sales\", \"store_cost\", \"unit_sales\"\n"
             + "FROM \"foodmart\".\"sales_fact_1997\"\n"
             + "WHERE \"product_id\" = 1\n"
             + "UNION ALL\n"
-            + "SELECT *\n"
+            + "SELECT \"time_id\", \"customer_id\", \"promotion_id\", \"store_id\", "
+            + "\"store_sales\", \"store_cost\", \"unit_sales\"\n"
             + "FROM \"foodmart\".\"sales_fact_1998\"\n"
-            + "WHERE \"product_id\" = 1");
+            + "WHERE \"product_id\" = 1) AS \"t3\"");
   }
 
   @Test void testInPlan() {
@@ -1344,7 +1349,8 @@ class JdbcAdapterTest {
         + "  JdbcTableModify(table=[[foodmart, expense_fact]], operation=[MERGE],"
         + " updateColumnList=[[amount]], flattened=[false])\n"
         + "    JdbcProject(STORE_ID=[$0], $f1=[666], $f2=[1997-01-01 00:00:00], $f3=[666],"
-        + " $f4=['666'], $f5=[666], AMOUNT=[CAST($1):DECIMAL(10, 4) NOT NULL], store_id=[$2],"
+        + " $f4=['666':VARCHAR(30)], $f5=[666], AMOUNT=[CAST($1):DECIMAL(10, 4) NOT NULL],"
+        + " store_id=[$2],"
         + " account_id=[$3], exp_date=[$4], time_id=[$5], category_id=[$6], currency_id=[$7],"
         + " amount=[$8], AMOUNT0=[$1])\n"
         + "      JdbcJoin(condition=[=($2, $0)], joinType=[left])\n"

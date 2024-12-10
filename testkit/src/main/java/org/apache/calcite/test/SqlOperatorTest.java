@@ -38,6 +38,7 @@ import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlJdbcFunctionCall;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
@@ -129,11 +130,14 @@ import static org.apache.calcite.sql.test.ResultCheckers.isSet;
 import static org.apache.calcite.sql.test.ResultCheckers.isSingle;
 import static org.apache.calcite.sql.test.ResultCheckers.isWithin;
 import static org.apache.calcite.sql.test.SqlOperatorFixture.BAD_DATETIME_MESSAGE;
+import static org.apache.calcite.sql.test.SqlOperatorFixture.DECIMAL_OVERFLOW;
 import static org.apache.calcite.sql.test.SqlOperatorFixture.DIVISION_BY_ZERO_MESSAGE;
+import static org.apache.calcite.sql.test.SqlOperatorFixture.INTEGER_OVERFLOW;
 import static org.apache.calcite.sql.test.SqlOperatorFixture.INVALID_ARGUMENTS_NUMBER;
 import static org.apache.calcite.sql.test.SqlOperatorFixture.INVALID_ARGUMENTS_TYPE_VALIDATION_ERROR;
 import static org.apache.calcite.sql.test.SqlOperatorFixture.INVALID_CHAR_MESSAGE;
 import static org.apache.calcite.sql.test.SqlOperatorFixture.LITERAL_OUT_OF_RANGE_MESSAGE;
+import static org.apache.calcite.sql.test.SqlOperatorFixture.LONG_OVERFLOW;
 import static org.apache.calcite.sql.test.SqlOperatorFixture.OUT_OF_RANGE_MESSAGE;
 import static org.apache.calcite.sql.test.SqlOperatorFixture.WRONG_FORMAT_MESSAGE;
 import static org.apache.calcite.util.DateTimeStringUtils.getDateFormatter;
@@ -142,6 +146,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -369,12 +374,6 @@ public class SqlOperatorTest {
 
   //--- Tests -----------------------------------------------------------
 
-  /**
-   * For development. Put any old code in here.
-   */
-  @Test void testDummy() {
-  }
-
   @Test void testSqlOperatorOverloading() {
     final SqlStdOperatorTable operatorTable = SqlStdOperatorTable.instance();
     for (SqlOperator sqlOperator : operatorTable.getOperatorList()) {
@@ -387,8 +386,15 @@ public class SqlOperatorTest {
 
       routines.removeIf(operator ->
           !sqlOperator.getClass().isInstance(operator));
-      assertThat(routines, hasSize(1));
-      assertThat(sqlOperator, equalTo(routines.get(0)));
+      if (routines.size() == 2) {
+        // Some arithmetic operators looks like they are overloaded,
+        // e.g. PLUS and CHECKED_PLUS
+        assertTrue(SqlKind.CHECKED_ARITHMETIC.contains(routines.get(0).kind)
+                || SqlKind.CHECKED_ARITHMETIC.contains(routines.get(1).kind));
+      } else {
+        assertThat(routines, hasSize(1));
+        assertThat(sqlOperator, equalTo(routines.get(0)));
+      }
     }
   }
 
@@ -2181,20 +2187,24 @@ public class SqlOperatorTest {
 
   @Test void testChar() {
     final SqlOperatorFixture f0 = fixture()
-        .setFor(SqlLibraryOperators.CHR, VM_JAVA);
+        .setFor(SqlLibraryOperators.CHAR, VM_JAVA);
     f0.checkFails("^char(97)^",
         "No match found for function signature CHAR\\(<NUMERIC>\\)", false);
-    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.MYSQL);
-    f.checkScalar("char(null)", isNullValue(), "CHAR(1)");
-    f.checkScalar("char(-1)", isNullValue(), "CHAR(1)");
-    f.checkScalar("char(97)", "a", "CHAR(1)");
-    f.checkScalar("char(48)", "0", "CHAR(1)");
-    f.checkScalar("char(0)", String.valueOf('\u0000'), "CHAR(1)");
-    f.checkFails("^char(97.1)^",
-        "Cannot apply 'CHAR' to arguments of type 'CHAR\\(<DECIMAL\\(3, 1\\)>\\)'\\. "
-            + "Supported form\\(s\\): 'CHAR\\(<INTEGER>\\)'",
-        false);
-    f.checkNull("char(null)");
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkScalar("char(null)", isNullValue(), "CHAR(1)");
+      f.checkScalar("char(-1)", isNullValue(), "CHAR(1)");
+      f.checkScalar("char(97)", "a", "CHAR(1)");
+      f.checkScalar("char(48)", "0", "CHAR(1)");
+      f.checkScalar("char(0)", String.valueOf('\u0000'), "CHAR(1)");
+      f.checkFails("^char(97.1)^",
+          "Cannot apply 'CHAR' to arguments of type 'CHAR\\(<DECIMAL\\(3, 1\\)>\\)'\\. "
+              + "Supported form\\(s\\): 'CHAR\\(<INTEGER>\\)'",
+          false);
+      f.checkNull("char(null)");
+    };
+    final List<SqlLibrary> libraries =
+        list(SqlLibrary.MYSQL, SqlLibrary.SPARK);
+    f0.forEachLibrary(libraries, consumer);
   }
 
   @Test void testChr() {
@@ -2207,6 +2217,9 @@ public class SqlOperatorTest {
       f.checkScalar("chr(48)", "0", "CHAR(1) NOT NULL");
       f.checkScalar("chr(0)", String.valueOf('\u0000'), "CHAR(1) NOT NULL");
       f.checkNull("chr(null)");
+      // Test case for [CALCITE-6707] Type inference for CHR function is wrong
+      // https://issues.apache.org/jira/browse/CALCITE-6707
+      f.checkType("chr(CAST(null AS INTEGER))", "CHAR(1)");
     };
     final List<SqlLibrary> libraries =
         list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.POSTGRESQL);
@@ -2292,15 +2305,15 @@ public class SqlOperatorTest {
             + "'TO_CODE_POINTS\\(<BINARY>\\)'", false);
 
     f.checkScalar("to_code_points(_UTF8'ÿþЀ\uD804\uDD70A')", "[255, 254, 1024, 70000, 65]",
-        "INTEGER NOT NULL ARRAY NOT NULL");
+        "INTEGER NOT NULL ARRAY");
     f.checkScalar("to_code_points('ABCD')", "[65, 66, 67, 68]",
-        "INTEGER NOT NULL ARRAY NOT NULL");
+        "INTEGER NOT NULL ARRAY");
     f.checkScalar("to_code_points(x'11223344')", "[17, 34, 51, 68]",
-        "INTEGER NOT NULL ARRAY NOT NULL");
+        "INTEGER NOT NULL ARRAY");
     f.checkScalar("to_code_points(code_points_to_string(array[255, 254, 1024, 70000, 65]))",
-        "[255, 254, 1024, 70000, 65]", "INTEGER NOT NULL ARRAY NOT NULL");
+        "[255, 254, 1024, 70000, 65]", "INTEGER NOT NULL ARRAY");
     f.checkScalar("to_code_points(code_points_to_bytes(array[64, 65, 66, 67]))",
-        "[64, 65, 66, 67]", "INTEGER NOT NULL ARRAY NOT NULL");
+        "[64, 65, 66, 67]", "INTEGER NOT NULL ARRAY");
 
     f.checkNull("to_code_points(null)");
     f.checkNull("to_code_points('')");
@@ -3258,8 +3271,10 @@ public class SqlOperatorTest {
   }
 
   @Test void testMinusOperator() {
-    final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.MINUS, VmName.EXPAND);
+    SqlOperatorFixture f = fixture()
+        .setFor(SqlStdOperatorTable.MINUS, VmName.EXPAND)
+        // BigQuery requires arithmetic overflows
+        .withConformance(SqlConformanceEnum.BIG_QUERY);
     f.checkScalarExact("-2-1", -3);
     f.checkScalarExact("-2-1-5", -8);
     f.checkScalarExact("2-1", 1);
@@ -3275,22 +3290,40 @@ public class SqlOperatorTest {
     f.checkNull("1e1-cast(null as double)");
     f.checkNull("cast(null as tinyint) - cast(null as smallint)");
 
-    // TODO: Fix bug
-    if (Bug.FNL25_FIXED) {
-      // Should throw out of range error
-      f.checkFails("cast(100 as tinyint) - cast(-100 as tinyint)",
-          OUT_OF_RANGE_MESSAGE, true);
-      f.checkFails("cast(-20000 as smallint) - cast(20000 as smallint)",
-          OUT_OF_RANGE_MESSAGE, true);
-      f.checkFails("cast(1.5e9 as integer) - cast(-1.5e9 as integer)",
-          OUT_OF_RANGE_MESSAGE, true);
-      f.checkFails("cast(-5e18 as bigint) - cast(5e18 as bigint)",
-          OUT_OF_RANGE_MESSAGE, true);
-      f.checkFails("cast(5e18 as decimal(19,0)) - cast(-5e18 as decimal(19,0))",
-          OUT_OF_RANGE_MESSAGE, true);
-      f.checkFails("cast(-5e8 as decimal(19,10)) - cast(5e8 as decimal(19,10))",
-          OUT_OF_RANGE_MESSAGE, true);
-    }
+    f.checkFails("cast(100 as tinyint) - cast(-100 as tinyint)",
+        INTEGER_OVERFLOW, true);
+    f.checkFails("cast(-20000 as smallint) - cast(20000 as smallint)",
+        INTEGER_OVERFLOW, true);
+    f.checkFails("cast(1.5e9 as integer) - cast(-1.5e9 as integer)",
+        INTEGER_OVERFLOW, true);
+    f.checkFails("cast(-5e18 as bigint) - cast(5e18 as bigint)",
+        LONG_OVERFLOW, true);
+    f.checkFails("cast(5e18 as decimal(19,0)) - cast(-5e18 as decimal(19,0))",
+        DECIMAL_OVERFLOW, true);
+    f.checkFails("cast(-6e8 as decimal(19,10)) - cast(6e8 as decimal(19,10))",
+        DECIMAL_OVERFLOW, true);
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6706">[CALCITE-6706]
+   * Checked arithmetic does not take effect in subqueries</a>. */
+  @Test void testCastOverflow() {
+    final SqlOperatorFixture f = fixture().withConformance(SqlConformanceEnum.BIG_QUERY);
+    f.checkFails("SELECT -CAST(-32768 AS SMALLINT)",
+        "integer overflow: Value 32768 does not fit in a SMALLINT", true);
+    f.checkFails("SELECT CAST(32768 AS SMALLINT)",
+        "Value 32768 out of range", true);
+    f.checkFails("SELECT -CAST(32768 AS SMALLINT)",
+        "Value 32768 out of range", true);
+    final SqlOperatorFixture f0 = fixture();
+    // This query does not fail if checked arithmetic is not used
+    f0.checkScalar("SELECT -CAST(-32768 AS SMALLINT)",
+        "-32768", "SMALLINT");
+    // The last two queries should fail in any conformance level
+    // because the value "32768" cannot be represented as a SMALLINT
+    f0.checkFails("SELECT CAST(32768 AS SMALLINT)",
+        "Value 32768 out of range", true);
+    f0.checkFails("SELECT -CAST(32768 AS SMALLINT)",
+        "Value 32768 out of range", true);
   }
 
   @Test void testMinusIntervalOperator() {
@@ -3419,8 +3452,10 @@ public class SqlOperatorTest {
   }
 
   @Test void testMultiplyOperator() {
-    final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.MULTIPLY, VmName.EXPAND);
+    final SqlOperatorFixture f = fixture()
+        .setFor(SqlStdOperatorTable.MULTIPLY, VmName.EXPAND)
+        // BigQuery requires arithmetic overflows
+        .withConformance(SqlConformanceEnum.BIG_QUERY);
     f.checkScalarExact("2*3", 6);
     f.checkScalarExact("2*-3", -6);
     f.checkScalarExact("+2*3", 6);
@@ -3439,21 +3474,31 @@ public class SqlOperatorTest {
     f.checkNull("2e-3*cast(null as integer)");
     f.checkNull("cast(null as tinyint) * cast(4 as smallint)");
 
-    if (Bug.FNL25_FIXED) {
-      // Should throw out of range error
-      f.checkFails("cast(100 as tinyint) * cast(-2 as tinyint)",
-          OUT_OF_RANGE_MESSAGE, true);
-      f.checkFails("cast(200 as smallint) * cast(200 as smallint)",
-          OUT_OF_RANGE_MESSAGE, true);
-      f.checkFails("cast(1.5e9 as integer) * cast(-2 as integer)",
-          OUT_OF_RANGE_MESSAGE, true);
-      f.checkFails("cast(5e9 as bigint) * cast(2e9 as bigint)",
-          OUT_OF_RANGE_MESSAGE, true);
-      f.checkFails("cast(2e9 as decimal(19,0)) * cast(-5e9 as decimal(19,0))",
-          OUT_OF_RANGE_MESSAGE, true);
-      f.checkFails("cast(5e4 as decimal(19,10)) * cast(2e4 as decimal(19,10))",
-          OUT_OF_RANGE_MESSAGE, true);
-    }
+    // Should throw out of range error
+    f.checkFails("cast(100 as tinyint) * cast(-2 as tinyint)",
+        INTEGER_OVERFLOW, true);
+    f.checkFails("cast(200 as smallint) * cast(200 as smallint)",
+        INTEGER_OVERFLOW, true);
+    f.checkFails("cast(1.5e9 as integer) * cast(-2 as integer)",
+        INTEGER_OVERFLOW, true);
+    f.checkFails("cast(5e9 as bigint) * cast(2e9 as bigint)",
+        LONG_OVERFLOW, true);
+    f.checkFails("cast(2e9 as decimal(19,0)) * cast(-5e9 as decimal(19,0))",
+        DECIMAL_OVERFLOW, true);
+    f.checkFails("cast(5e4 as decimal(19,10)) * cast(2e4 as decimal(19,10))",
+        DECIMAL_OVERFLOW, true);
+  }
+
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6721">
+   * Incorrect implementation of SqlFunction.checkedDivide</a>. */
+  @Test void testCheckedDivideOperator() {
+    final SqlOperatorFixture f = fixture()
+        .setFor(SqlStdOperatorTable.MULTIPLY, VmName.EXPAND)
+        // BigQuery requires arithmetic overflows
+        .withConformance(SqlConformanceEnum.BIG_QUERY);
+    f.checkFails("CAST(-32768 as SMALLINT) / CAST(0 AS SMALLINT)",
+        "/ by zero", true);
   }
 
   @Test void testMultiplyIntervals() {
@@ -3584,8 +3629,10 @@ public class SqlOperatorTest {
   }
 
   @Test void testPlusOperator() {
-    final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.PLUS, VmName.EXPAND);
+    final SqlOperatorFixture f = fixture()
+        .setFor(SqlStdOperatorTable.PLUS, VmName.EXPAND)
+        // BigQuery requires arithmetic overflows
+        .withConformance(SqlConformanceEnum.BIG_QUERY);
     f.checkScalarExact("1+2", 3);
     f.checkScalarExact("-1+2", 1);
     f.checkScalarExact("1+2+3", 6);
@@ -3601,22 +3648,20 @@ public class SqlOperatorTest {
     f.checkNull("cast(null as tinyint)+1");
     f.checkNull("1e-2+cast(null as double)");
 
-    if (Bug.FNL25_FIXED) {
-      // Should throw out of range error
-      f.checkFails("cast(100 as tinyint) + cast(100 as tinyint)",
-          OUT_OF_RANGE_MESSAGE, true);
-      f.checkFails("cast(-20000 as smallint) + cast(-20000 as smallint)",
-          OUT_OF_RANGE_MESSAGE, true);
-      f.checkFails("cast(1.5e9 as integer) + cast(1.5e9 as integer)",
-          OUT_OF_RANGE_MESSAGE, true);
-      f.checkFails("cast(5e18 as bigint) + cast(5e18 as bigint)",
-          OUT_OF_RANGE_MESSAGE, true);
-      f.checkFails("cast(-5e18 as decimal(19,0))"
-              + " + cast(-5e18 as decimal(19,0))",
-          OUT_OF_RANGE_MESSAGE, true);
-      f.checkFails("cast(5e8 as decimal(19,10)) + cast(5e8 as decimal(19,10))",
-          OUT_OF_RANGE_MESSAGE, true);
-    }
+    // Should throw out of range error
+    f.checkFails("cast(100 as tinyint) + cast(100 as tinyint)",
+        INTEGER_OVERFLOW, true);
+    f.checkFails("cast(-20000 as smallint) + cast(-20000 as smallint)",
+        INTEGER_OVERFLOW, true);
+    f.checkFails("cast(1.5e9 as integer) + cast(1.5e9 as integer)",
+        INTEGER_OVERFLOW, true);
+    f.checkFails("cast(5e18 as bigint) + cast(5e18 as bigint)",
+        LONG_OVERFLOW, true);
+    f.checkFails("cast(-5e18 as decimal(19,0))"
+            + " + cast(-5e18 as decimal(19,0))",
+        DECIMAL_OVERFLOW, true);
+    f.checkFails("cast(5e8 as decimal(19,10)) + cast(5e8 as decimal(19,10))",
+        DECIMAL_OVERFLOW, true);
   }
 
   @Test void testPlusOperatorAny() {
@@ -4763,59 +4808,59 @@ public class SqlOperatorTest {
       f.checkString("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
               + " 'HOST')",
           "calcite.apache.org",
-          "VARCHAR NOT NULL");
+          "VARCHAR");
       f.checkString("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
               + " 'PATH')",
           "/path1/p.php",
-          "VARCHAR NOT NULL");
+          "VARCHAR");
       f.checkString("parse_url('http://calcite.apache.org/path1/%20p.php?k1=v1&k2=v2#Ref1',"
               + " 'PATH')",
           "/path1/%20p.php",
-          "VARCHAR NOT NULL");
+          "VARCHAR");
       f.checkString("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
               + " 'QUERY')",
           "k1=v1&k2=v2",
-          "VARCHAR NOT NULL");
+          "VARCHAR");
       f.checkString("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
               + " 'REF')",
           "Ref1",
-          "VARCHAR NOT NULL");
+          "VARCHAR");
       f.checkString("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
               + " 'QUERY', 'k2')",
           "v2",
-          "VARCHAR NOT NULL");
+          "VARCHAR");
       f.checkString("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
               + " 'QUERY', 'k1')",
           "v1",
-          "VARCHAR NOT NULL");
+          "VARCHAR");
       f.checkNull("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
           + " 'QUERY', 'k3')");
       f.checkString("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
               + " 'FILE')",
           "/path1/p.php?k1=v1&k2=v2",
-          "VARCHAR NOT NULL");
+          "VARCHAR");
       f.checkString("parse_url('http://calcite.apache.org/path1/p.php',"
               + " 'FILE')",
           "/path1/p.php",
-          "VARCHAR NOT NULL");
+          "VARCHAR");
       f.checkString("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
               + " 'PROTOCOL')",
           "http",
-          "VARCHAR NOT NULL");
+          "VARCHAR");
       f.checkString("parse_url('https://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
               + " 'PROTOCOL')",
           "https",
-          "VARCHAR NOT NULL");
+          "VARCHAR");
       f.checkString("parse_url('http://bob@calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
               + " 'USERINFO')",
           "bob",
-          "VARCHAR NOT NULL");
+          "VARCHAR");
       f.checkNull("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
           + " 'USERINFO')");
       f.checkString("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
               + " 'AUTHORITY')",
           "calcite.apache.org",
-          "VARCHAR NOT NULL");
+          "VARCHAR");
 
       // test with invalid partToExtract
       f.checkNull("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
@@ -4824,21 +4869,17 @@ public class SqlOperatorTest {
           + " 'HOST', 'k1')");
 
       // test with invalid urlString
-      f.checkNull("parse_url('http:calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
-          + " 'HOST')");
-      f.checkNull("parse_url('calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
-          + " 'HOST')");
-      f.checkNull("parse_url('/path1/p.php?k1=v1&k2=v2#Ref1',"
-          + " 'HOST')");
+      f.checkNull("parse_url('http:calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1', 'HOST')");
+      f.checkNull("parse_url('calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1', 'HOST')");
+      f.checkNull("parse_url('/path1/p.php?k1=v1&k2=v2#Ref1', 'HOST')");
 
       // test with operands with null values
       f.checkNull("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
-          + " cast(null as varchar))");
+              + " cast(null as varchar))");
       f.checkNull("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
           + " cast(null as varchar), cast(null as varchar))");
       f.checkNull("parse_url(cast(null as varchar), cast(null as varchar))");
-      f.checkNull("parse_url(cast(null as varchar), cast(null as varchar),"
-          + " cast(null as varchar))");
+      f.checkNull("parse_url(cast(null as varchar), cast(null as varchar), cast(null as varchar))");
     };
     f0.forEachLibrary(list(SqlLibrary.HIVE, SqlLibrary.SPARK), consumer);
   }
@@ -5390,16 +5431,16 @@ public class SqlOperatorTest {
     final Consumer<SqlOperatorFixture> consumer = f -> {
       f.checkString("from_base64('VGhpcyBpcyBhIHRlc3QgU3RyaW5nLg==')",
           "546869732069732061207465737420537472696e672e",
-          "VARBINARY NOT NULL");
+          "VARBINARY");
       f.checkString("from_base64('VGhpcyBpcyBhIHRlc\t3QgU3RyaW5nLg==')",
           "546869732069732061207465737420537472696e672e",
-          "VARBINARY NOT NULL");
+          "VARBINARY");
       f.checkString("from_base64('VGhpcyBpcyBhIHRlc\t3QgU3\nRyaW5nLg==')",
           "546869732069732061207465737420537472696e672e",
-          "VARBINARY NOT NULL");
+          "VARBINARY");
       f.checkString("from_base64('VGhpcyB  pcyBhIHRlc3Qg\tU3Ry\naW5nLg==')",
           "546869732069732061207465737420537472696e672e",
-          "VARBINARY NOT NULL");
+          "VARBINARY");
       f.checkNull("from_base64('-1')");
       f.checkNull("from_base64('-100')");
     };
@@ -6127,15 +6168,14 @@ public class SqlOperatorTest {
     final SqlFunction function = functionAlias.function;
     final String fn = function.getName();
     final Consumer<SqlOperatorFixture> consumer = f -> {
-      f.checkString(fn + "('abc def ghi', 'def')", "def", "VARCHAR NOT NULL");
-      f.checkString(fn + "('abcadcaecghi', 'a.c', 1, 3)", "aec", "VARCHAR NOT NULL");
-      f.checkString(fn + "('abcadcaecghi', 'abc(a.c)')", "adc", "VARCHAR NOT NULL");
-      f.checkString(fn + "('55as56664as422', '\\d{3}')", "566", "VARCHAR NOT NULL");
-      f.checkString(fn + "('abcadcabcaecghi', 'c(a.c)', 4)", "abc", "VARCHAR NOT NULL");
-      f.checkString(fn + "('abcadcabcaecghi', 'a.c(a.c)', 1, 2)", "aec", "VARCHAR NOT NULL");
-      f.checkString(fn + "('a9cadca5c4aecghi', 'a[0-9]c', 6)", "a5c", "VARCHAR NOT NULL");
-      f.checkString(fn + "('a9cadca5ca4cecghi', 'a[0-9]c', 1, 3)", "a4c", "VARCHAR NOT "
-          + "NULL");
+      f.checkString(fn + "('abc def ghi', 'def')", "def", "VARCHAR");
+      f.checkString(fn + "('abcadcaecghi', 'a.c', 1, 3)", "aec", "VARCHAR");
+      f.checkString(fn + "('abcadcaecghi', 'abc(a.c)')", "adc", "VARCHAR");
+      f.checkString(fn + "('55as56664as422', '\\d{3}')", "566", "VARCHAR");
+      f.checkString(fn + "('abcadcabcaecghi', 'c(a.c)', 4)", "abc", "VARCHAR");
+      f.checkString(fn + "('abcadcabcaecghi', 'a.c(a.c)', 1, 2)", "aec", "VARCHAR");
+      f.checkString(fn + "('a9cadca5c4aecghi', 'a[0-9]c', 6)", "a5c", "VARCHAR");
+      f.checkString(fn + "('a9cadca5ca4cecghi', 'a[0-9]c', 1, 3)", "a4c", "VARCHAR");
 
       f.checkNull(fn + "('abc def ghi', 'asd')");
       f.checkNull(fn + "('abc def ghi', 'abc', 25)");
@@ -6730,13 +6770,13 @@ public class SqlOperatorTest {
     };
     f.checkAggWithMultipleArgs("json_objectagg(x: x2)",
         values,
-        isSingle("{\"foo\":\"bar\",\"foo2\":null,\"foo3\":\"bar3\"}"));
+        isSingle("{\"foo \":\"bar\",\"foo2\":null,\"foo3\":\"bar3\"}"));
     f.checkAggWithMultipleArgs("json_objectagg(x: x2 null on null)",
         values,
-        isSingle("{\"foo\":\"bar\",\"foo2\":null,\"foo3\":\"bar3\"}"));
+        isSingle("{\"foo \":\"bar\",\"foo2\":null,\"foo3\":\"bar3\"}"));
     f.checkAggWithMultipleArgs("json_objectagg(x: x2 absent on null)",
         values,
-        isSingle("{\"foo\":\"bar\",\"foo3\":\"bar3\"}"));
+        isSingle("{\"foo \":\"bar\",\"foo3\":\"bar3\"}"));
   }
 
   @Test void testJsonValueExpressionOperator() {
@@ -8181,36 +8221,36 @@ public class SqlOperatorTest {
             + "and not exceeds the allowed limit.", true);
 
     f1.checkScalar("array_insert(array[1, 2, 3], 3, 4)",
-        "[1, 2, 4, 3]", "INTEGER NOT NULL ARRAY NOT NULL");
+        "[1, 2, 4, 3]", "INTEGER ARRAY NOT NULL");
     f1.checkScalar("array_insert(array[1, 2, 3], 3, cast(null as integer))",
         "[1, 2, null, 3]", "INTEGER ARRAY NOT NULL");
     f1.checkScalar("array_insert(array[2, 3, 4], 1, 1)",
-        "[1, 2, 3, 4]", "INTEGER NOT NULL ARRAY NOT NULL");
+        "[1, 2, 3, 4]", "INTEGER ARRAY NOT NULL");
     f1.checkScalar("array_insert(array[1, 3, 4], -1, 2)",
-        "[1, 3, 4, 2]", "INTEGER NOT NULL ARRAY NOT NULL");
+        "[1, 3, 4, 2]", "INTEGER ARRAY NOT NULL");
     f1.checkScalar("array_insert(array[1, 3, 4], -3, 2)",
-        "[1, 2, 3, 4]", "INTEGER NOT NULL ARRAY NOT NULL");
+        "[1, 2, 3, 4]", "INTEGER ARRAY NOT NULL");
     f1.checkScalar("array_insert(array[2, 3, null, 4], -6, 1)",
         "[1, null, 2, 3, null, 4]", "INTEGER ARRAY NOT NULL");
     // check complex type
     f1.checkScalar("array_insert(array[array[1,2]], 1, array[1])",
-        "[[1], [1, 2]]", "INTEGER NOT NULL ARRAY NOT NULL ARRAY NOT NULL");
+        "[[1], [1, 2]]", "INTEGER NOT NULL ARRAY ARRAY NOT NULL");
     f1.checkScalar("array_insert(array[array[1,2]], -1, array[1])",
-        "[[1, 2], [1]]", "INTEGER NOT NULL ARRAY NOT NULL ARRAY NOT NULL");
+        "[[1, 2], [1]]", "INTEGER NOT NULL ARRAY ARRAY NOT NULL");
     f1.checkScalar("array_insert(array[map[1, 'a']], 1, map[2, 'b'])", "[{2=b}, {1=a}]",
-        "(INTEGER NOT NULL, CHAR(1) NOT NULL) MAP NOT NULL ARRAY NOT NULL");
+        "(INTEGER NOT NULL, CHAR(1) NOT NULL) MAP ARRAY NOT NULL");
     f1.checkScalar("array_insert(array[map[1, 'a']], -1, map[2, 'b'])", "[{1=a}, {2=b}]",
-        "(INTEGER NOT NULL, CHAR(1) NOT NULL) MAP NOT NULL ARRAY NOT NULL");
+        "(INTEGER NOT NULL, CHAR(1) NOT NULL) MAP ARRAY NOT NULL");
 
     // element cast to the biggest type
     f1.checkScalar("array_insert(array(1, 2, 3), 3, cast(4 as tinyint))",
-        "[1, 2, 4, 3]", "INTEGER NOT NULL ARRAY NOT NULL");
+        "[1, 2, 4, 3]", "INTEGER ARRAY NOT NULL");
     f1.checkScalar("array_insert(array(1, 2, 3), 3, cast(4 as double))",
-        "[1.0, 2.0, 4.0, 3.0]", "DOUBLE NOT NULL ARRAY NOT NULL");
+        "[1.0, 2.0, 4.0, 3.0]", "DOUBLE ARRAY NOT NULL");
     f1.checkScalar("array_insert(array(1, 2, 3), 3, cast(4 as float))",
-        "[1.0, 2.0, 4.0, 3.0]", "FLOAT NOT NULL ARRAY NOT NULL");
+        "[1.0, 2.0, 4.0, 3.0]", "FLOAT ARRAY NOT NULL");
     f1.checkScalar("array_insert(array(1, 2, 3), 3, cast(4 as bigint))",
-        "[1, 2, 4, 3]", "BIGINT NOT NULL ARRAY NOT NULL");
+        "[1, 2, 4, 3]", "BIGINT ARRAY NOT NULL");
     f1.checkScalar("array_insert(array(1, 2, 3), 3, cast(null as bigint))",
         "[1, 2, null, 3]", "BIGINT ARRAY NOT NULL");
     f1.checkScalar("array_insert(array(1, 2, 3), 3, cast(null as float))",
@@ -10434,6 +10474,32 @@ public class SqlOperatorTest {
     pair.right.close();
   }
 
+  @Tag("slow")
+  @Test void testSysTimestampFuncWithCurrentTime() {
+    testSysTimestampFunc(currentTimeString(CURRENT_TZ));
+  }
+
+  @Test void testSysTimestampFuncWithFixedTime() {
+    testSysTimestampFunc(fixedTimeString(CURRENT_TZ));
+  }
+
+  private void testSysTimestampFunc(Pair<String, Hook.Closeable> pair) {
+    final SqlOperatorFixture f = fixture()
+        .setFor(SqlLibraryOperators.SYSTIMESTAMP, VmName.EXPAND)
+        .withLibrary(SqlLibrary.ORACLE);
+
+    f.checkType("SYSTIMESTAMP", "TIMESTAMP_TZ(0) NOT NULL");
+    f.checkFails("^SYSTIMESTAMP()^",
+        "No match found for function signature SYSTIMESTAMP\\(\\)",
+        false);
+    // check systimestamp function within cast function
+    f.checkType("CAST(SYSTIMESTAMP AS VARCHAR(30))", "VARCHAR(30) NOT NULL");
+    f.checkFails("CAST(^SYSTIMESTAMP()^ AS VARCHAR(30))",
+        "No match found for function signature SYSTIMESTAMP\\(\\)",
+        false);
+    pair.right.close();
+  }
+
   /**
    * Returns a time string, in GMT, that will be valid for at least 2 minutes.
    *
@@ -10522,6 +10588,33 @@ public class SqlOperatorTest {
           dateString.substring(0, 10),
           "DATE NOT NULL");
     }
+  }
+
+  @Tag("slow")
+  @Test void testSysDateFuncWithCurrentTime() {
+    testSysDateFunc(currentTimeString(LOCAL_TZ));
+  }
+
+  @Test void testSysDateFuncWithFixedTime() {
+    testSysDateFunc(fixedTimeString(LOCAL_TZ));
+  }
+
+  private void testSysDateFunc(Pair<String, Hook.Closeable> pair) {
+    final SqlOperatorFixture f = fixture()
+        .setFor(SqlLibraryOperators.SYSDATE)
+        .withLibrary(SqlLibrary.ORACLE);
+
+    f.checkType("SYSDATE", "DATE NOT NULL");
+    f.checkType("(SYSDATE - SYSDATE) DAY", "INTERVAL DAY NOT NULL");
+    f.checkFails("^SYSDATE()^",
+        "No match found for function signature SYSDATE\\(\\)",
+        false);
+    // check sysdate function within cast function
+    f.checkType("CAST(SYSDATE AS VARCHAR(30))", "VARCHAR(30) NOT NULL");
+    f.checkFails("CAST(^SYSDATE()^ AS VARCHAR(30))",
+        "No match found for function signature SYSDATE\\(\\)",
+        false);
+    pair.right.close();
   }
 
   @Test void testLastDayFunc() {
@@ -10756,7 +10849,7 @@ public class SqlOperatorTest {
 
   @Test void testInstrFunction() {
     final SqlOperatorFixture f0 = fixture()
-        .setFor(SqlLibraryOperators.CHR, VM_JAVA);
+        .setFor(SqlLibraryOperators.INSTR, VM_JAVA);
     f0.checkFails("^INSTR('abc', 'a', 1, 1)^",
         "No match found for function signature INSTR\\(<CHARACTER>, <CHARACTER>,"
             + " <NUMERIC>, <NUMERIC>\\)", false);
@@ -10783,7 +10876,7 @@ public class SqlOperatorTest {
       f.checkNull("INSTR(x'', null, 1, 1)");
     };
     final List<SqlLibrary> libraries =
-        list(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL, SqlLibrary.ORACLE);
+        list(SqlLibrary.BIG_QUERY, SqlLibrary.HIVE, SqlLibrary.MYSQL, SqlLibrary.ORACLE);
     f0.forEachLibrary(libraries, consumer);
   }
 
@@ -10901,6 +10994,39 @@ public class SqlOperatorTest {
             + "requires extra delimiter argument", false);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6663">[CALCITE-6663]
+   * Support SPLIT_PART function for PostgreSql  </a>.
+   */
+  @Test void testSplitPartFunction() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.SPLIT_PART);
+    f0.checkFails("^split_part('hello', ',', 1)^",
+        "No match found for function signature SPLIT_PART\\(<CHARACTER>, <CHARACTER>, <NUMERIC>\\)",
+        false);
+
+    final SqlOperatorFixture f1 = fixture().withLibrary(SqlLibrary.REDSHIFT);
+    f1.checkFails("^split_part('hello', ',', 1)^",
+        "No match found for function signature SPLIT_PART\\(<CHARACTER>, <CHARACTER>, <NUMERIC>\\)",
+        false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.POSTGRESQL);
+
+    f.checkScalar("SPLIT_PART('abc~@~def~@~ghi', '~@~', 2)", "def", "VARCHAR NOT NULL");
+    f.checkScalar("SPLIT_PART('abc,def,ghi,jkl', ',', 3)", "ghi", "VARCHAR NOT NULL");
+
+    f.checkScalar("SPLIT_PART('abc~@~def~@~ghi', '~@~', -1)", "ghi", "VARCHAR NOT NULL");
+    f.checkScalar("SPLIT_PART('abc,def,ghi,jkl', ',', -2)", "ghi", "VARCHAR NOT NULL");
+
+    f.checkScalar("SPLIT_PART('h,e,l,l,o', ',', 7)", "", "VARCHAR NOT NULL");
+    f.checkScalar("SPLIT_PART('h,e,l,l,o', ',', -7)", "", "VARCHAR NOT NULL");
+
+    f.checkScalar("SPLIT_PART('abc,,ghi', ',', 2)", "", "VARCHAR NOT NULL");
+    f.checkScalar("SPLIT_PART('', ',', 1)", "", "VARCHAR NOT NULL");
+
+    f.checkNull("SPLIT_PART(null, ',', 1)");
+    f.checkNull("SPLIT_PART('abc', null, 1)");
+    f.checkNull("SPLIT_PART('a,b,c', ',', null)");
+  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5811">[CALCITE-5811]
@@ -11831,7 +11957,7 @@ public class SqlOperatorTest {
     f.checkAggType("listagg('test')", "CHAR(4) NOT NULL");
     f.checkAggType("listagg('test', ', ')", "CHAR(4) NOT NULL");
     final String[] values1 = {"'hello'", "CAST(null AS CHAR)", "'world'", "'!'"};
-    f.checkAgg("listagg(x)", values1, isSingle("hello,world,!"));
+    f.checkAgg("listagg(x)", values1, isSingle("hello,world,!    "));
     final String[] values2 = {"0", "1", "2", "3"};
     f.checkAgg("listagg(cast(x as CHAR))", values2, isSingle("0,1,2,3"));
   }
@@ -11845,10 +11971,10 @@ public class SqlOperatorTest {
 
   private static void checkStringAggFunc(SqlOperatorFixture f) {
     final String[] values = {"'x'", "null", "'yz'"};
-    f.checkAgg("string_agg(x)", values, isSingle("x,yz"));
-    f.checkAgg("string_agg(x,':')", values, isSingle("x:yz"));
-    f.checkAgg("string_agg(x,':' order by x)", values, isSingle("x:yz"));
-    f.checkAgg("string_agg(x order by char_length(x) desc)", values, isSingle("yz,x"));
+    f.checkAgg("string_agg(x)", values, isSingle("x ,yz"));
+    f.checkAgg("string_agg(x,':')", values, isSingle("x :yz"));
+    f.checkAgg("string_agg(x,':' order by x)", values, isSingle("x :yz"));
+    f.checkAgg("string_agg(x order by char_length(x) desc)", values, isSingle("x ,yz"));
     f.checkAggFails("^string_agg(x respect nulls order by x desc)^", values,
         "Cannot specify IGNORE NULLS or RESPECT NULLS following 'STRING_AGG'",
         false);
@@ -11881,13 +12007,13 @@ public class SqlOperatorTest {
 
   private static void checkGroupConcatFunc(SqlOperatorFixture f) {
     final String[] values = {"'x'", "null", "'yz'"};
-    f.checkAgg("group_concat(x)", values, isSingle("x,yz"));
-    f.checkAgg("group_concat(x,':')", values, isSingle("x:yz"));
-    f.checkAgg("group_concat(x,':' order by x)", values, isSingle("x:yz"));
+    f.checkAgg("group_concat(x)", values, isSingle("x ,yz"));
+    f.checkAgg("group_concat(x,':')", values, isSingle("x :yz"));
+    f.checkAgg("group_concat(x,':' order by x)", values, isSingle("x :yz"));
     f.checkAgg("group_concat(x order by x separator '|')", values,
-        isSingle("x|yz"));
+        isSingle("x |yz"));
     f.checkAgg("group_concat(x order by char_length(x) desc)", values,
-        isSingle("yz,x"));
+        isSingle("x ,yz"));
     f.checkAggFails("^group_concat(x respect nulls order by x desc)^", values,
         "Cannot specify IGNORE NULLS or RESPECT NULLS following 'GROUP_CONCAT'",
         false);
@@ -11922,16 +12048,16 @@ public class SqlOperatorTest {
     f.setFor(SqlLibraryOperators.ARRAY_AGG, VM_JAVA);
     final String[] values = {"'x'", "null", "'yz'"};
     f.checkAggType("array_agg(x)", "INTEGER NOT NULL ARRAY NOT NULL");
-    f.checkAgg("array_agg(x)", values, "CHAR(2) ARRAY", isSingle("[x, yz]"));
-    f.checkAgg("array_agg(x ignore nulls)", values, "CHAR(2) ARRAY", isSingle("[x, yz]"));
-    f.checkAgg("array_agg(x respect nulls)", values, "CHAR(2) ARRAY", isSingle("[x, yz]"));
+    f.checkAgg("array_agg(x)", values, "CHAR(2) ARRAY", isSingle("[x , yz]"));
+    f.checkAgg("array_agg(x ignore nulls)", values, "CHAR(2) ARRAY", isSingle("[x , yz]"));
+    f.checkAgg("array_agg(x respect nulls)", values, "CHAR(2) ARRAY", isSingle("[x , yz]"));
     final String expectedError = "Invalid number of arguments "
         + "to function 'ARRAY_AGG'. Was expecting 1 arguments";
     f.checkAggFails("^array_agg(x,':')^", values, expectedError, false);
     f.checkAggFails("^array_agg(x,':' order by x)^", values, expectedError,
         false);
     f.checkAgg("array_agg(x order by char_length(x) desc)", values,
-        isSingle("[yz, x]"));
+        isSingle("[x , yz]"));
   }
 
   private static void checkArrayAggFuncFails(SqlOperatorFixture t) {
@@ -13033,7 +13159,7 @@ public class SqlOperatorTest {
     f.checkScalarExact("ceil(cast(3 as bigint))", "DOUBLE NOT NULL", "3.0");
     f.checkScalarExact("ceil(cast(3.5 as double))", "DOUBLE NOT NULL", "4.0");
     f.checkScalarExact("ceil(cast(3.45 as decimal(19, 1)))",
-        "DECIMAL(19, 1) NOT NULL", "4");
+        "DECIMAL(19, 1) NOT NULL", "4.0");
     f.checkScalarExact("ceil(cast(3.45 as float))", "FLOAT NOT NULL", "4.0");
     f.checkNull("ceil(cast(null as tinyint))");
   }

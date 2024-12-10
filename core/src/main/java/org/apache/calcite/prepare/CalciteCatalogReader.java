@@ -275,7 +275,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     getFunctionsFrom(opName.names)
         .stream()
         .filter(predicate)
-        .map(function -> toOp(opName, function))
+        .map(function -> toOp(opName, function, config))
         .forEachOrdered(operatorList::add);
   }
 
@@ -296,7 +296,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     for (String name : schema.getFunctionNames()) {
       schema.getFunctions(name, true).forEach(function -> {
         final SqlIdentifier id = new SqlIdentifier(name, SqlParserPos.ZERO);
-        list.add(toOp(id, function));
+        list.add(toOp(id, function, CalciteConnectionConfig.DEFAULT));
       });
     }
     return SqlOperatorTables.of(list);
@@ -304,7 +304,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
 
   /** Converts a function to a {@link org.apache.calcite.sql.SqlOperator}. */
   private static SqlOperator toOp(SqlIdentifier name,
-      final org.apache.calcite.schema.Function function) {
+      final org.apache.calcite.schema.Function function, CalciteConnectionConfig config) {
     final Function<RelDataTypeFactory, List<RelDataType>> argTypesFactory =
         typeFactory -> function.getParameters()
             .stream()
@@ -344,8 +344,12 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     if (function instanceof ScalarFunction) {
       final SqlReturnTypeInference returnTypeInference =
           infer((ScalarFunction) function);
+      SqlSyntax syntax = function.getParameters().isEmpty()
+          && !config.conformance().allowNiladicParentheses()
+          ? SqlSyntax.FUNCTION_ID
+          : SqlSyntax.FUNCTION;
       return new SqlUserDefinedFunction(name, kind, returnTypeInference,
-          operandTypeInference, operandMetadata, function);
+          operandTypeInference, operandMetadata, function, syntax);
     } else if (function instanceof AggregateFunction) {
       final SqlReturnTypeInference returnTypeInference =
           infer((AggregateFunction) function);
@@ -423,7 +427,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
       if (schema != null) {
         for (String name : schema.getFunctionNames()) {
           schema.getFunctions(name, true).forEach(f ->
-              builder.add(toOp(new SqlIdentifier(name, SqlParserPos.ZERO), f)));
+              builder.add(toOp(new SqlIdentifier(name, SqlParserPos.ZERO), f, config)));
         }
       }
     }

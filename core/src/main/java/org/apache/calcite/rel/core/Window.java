@@ -163,6 +163,9 @@ public abstract class Window extends SingleRel implements Hintable {
     for (Ord<Group> window : Ord.zip(groups)) {
       pw.item("window#" + window.i, window.e.toString());
     }
+    if (this.constants != null && this.constants.size() > 0) {
+      pw.item("constants", constants);
+    }
     return pw;
   }
 

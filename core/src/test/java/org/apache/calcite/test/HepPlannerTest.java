@@ -136,7 +136,7 @@ class HepPlannerTest {
 
     final String sql = "(select name from dept union select ename from emp)\n"
         + "intersect (select fname from customer.contact)";
-    sql(sql).withPlanner(planner).check();
+    sql(sql).withPlanner(planner).checkUnchanged();
   }
 
   @Test void testRuleDescription() {

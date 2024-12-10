@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.config.NullCollation;
+import org.apache.calcite.rel.type.DelegatingTypeSystem;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexCall;
@@ -76,6 +77,15 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   public static final SqlDialect DEFAULT = new BigQuerySqlDialect(DEFAULT_CONTEXT);
 
+  // The BigQuery type system differs from the DEFAULT type system in this respect,
+  // as evidenced by tests in big-query.iq
+  public static final RelDataTypeSystem TYPE_SYSTEM =
+      new DelegatingTypeSystem(RelDataTypeSystem.DEFAULT) {
+    @Override public boolean shouldConvertRaggedUnionTypesToVarying() {
+      return true;
+    }
+  };
+
   private static final List<String> RESERVED_KEYWORDS =
       ImmutableList.copyOf(
           Arrays.asList("ALL", "AND", "ANY", "ARRAY", "AS", "ASC",
@@ -113,6 +123,10 @@ public class BigQuerySqlDialect extends SqlDialect {
     return super.supportsImplicitTypeCoercion(call)
             && RexUtil.isLiteral(call.getOperands().get(0), false)
             && !SqlTypeUtil.isNumeric(call.type);
+  }
+
+  @Override public RelDataTypeSystem getTypeSystem() {
+    return TYPE_SYSTEM;
   }
 
   @Override public boolean supportsApproxCountDistinct() {

@@ -39,6 +39,10 @@ public class SqlDelegatingConformance implements SqlConformance {
     return delegate.allowCharLiteralAlias();
   }
 
+  @Override public boolean isSupportedDualTable() {
+    return delegate.isSupportedDualTable();
+  }
+
   @Override public boolean isGroupByAlias() {
     return delegate.isGroupByAlias();
   }
@@ -149,5 +153,9 @@ public class SqlDelegatingConformance implements SqlConformance {
 
   @Override public boolean allowLenientCoercion() {
     return delegate.allowLenientCoercion();
+  }
+
+  @Override public boolean checkedArithmetic() {
+    return delegate.checkedArithmetic();
   }
 }

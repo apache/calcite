@@ -274,18 +274,10 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
       return false;
     }
 
-    // No need to cast between char and varchar.
+    // No need to cast between char and unlimited varchar.
     if (SqlTypeUtil.isCharacter(toType)
-        && SqlTypeUtil.isCharacter(fromType)) {
-      return false;
-    }
-
-    // No need to cast if the source type precedence list
-    // contains target type. i.e. do not cast from
-    // tinyint to int or int to bigint.
-    if (fromType.getPrecedenceList().containsType(toType)
-        && SqlTypeUtil.isIntType(fromType)
-        && SqlTypeUtil.isIntType(toType)) {
+        && SqlTypeUtil.isCharacter(fromType)
+        && toType.getPrecision() == RelDataType.PRECISION_NOT_SPECIFIED) {
       return false;
     }
 
@@ -499,6 +491,13 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
   @Override public @Nullable RelDataType commonTypeForBinaryComparison(
       @Nullable RelDataType type1, @Nullable RelDataType type2) {
     if (type1 == null || type2 == null) {
+      return null;
+    }
+
+    // this prevents the conversion between JavaType and normal RelDataType,
+    // as well as between JavaType and JavaType.
+    if (type1 instanceof RelDataTypeFactoryImpl.JavaType
+        || type2 instanceof RelDataTypeFactoryImpl.JavaType) {
       return null;
     }
 

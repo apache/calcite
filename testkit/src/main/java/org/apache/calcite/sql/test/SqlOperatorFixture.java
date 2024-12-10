@@ -75,6 +75,12 @@ public interface SqlOperatorFixture extends AutoCloseable {
 
   String OUT_OF_RANGE_MESSAGE = ".* out of range.*";
 
+  String INTEGER_OVERFLOW = "integer overflow.*";
+
+  String LONG_OVERFLOW = "long overflow.*";
+
+  String DECIMAL_OVERFLOW = ".*cannot be represented as a DECIMAL.*";
+
   String WRONG_FORMAT_MESSAGE = "Number has wrong format.*";
 
   // TODO: Change message

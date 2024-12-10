@@ -46,7 +46,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -54,7 +54,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -62,8 +61,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.rel.metadata.RelMdColumnUniqueness.PASSTHROUGH_AGGREGATIONS;
 import static org.apache.calcite.rel.metadata.RelMdColumnUniqueness.getConstantColumnSet;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * RelMdUniqueKeys supplies a default implementation of
@@ -172,8 +169,7 @@ public class RelMdUniqueKeys
       return ImmutableSet.of();
     }
 
-    Map<Integer, ImmutableBitSet> mapInToOutPos =
-        Maps.transformValues(inToOutPosBuilder.build().asMap(), ImmutableBitSet::of);
+    Multimap<Integer, Integer> mapInToOutPos = inToOutPosBuilder.build();
 
     ImmutableSet.Builder<ImmutableBitSet> resultBuilder = ImmutableSet.builder();
     // Now add to the projUniqueKeySet the child keys that are fully
@@ -184,19 +180,12 @@ public class RelMdUniqueKeys
         continue;
       }
       // colMask is mapped to output project, however, the column can be mapped more than once:
-      // select id, id, id, unique2, unique2
-      // the resulting unique keys would be {{0},{3}}, {{0},{4}}, {{0},{1},{4}}, ...
+      // select key1, key1, val1, val2, key2 from ...
+      // the resulting unique keys would be {{0},{4}}, {{1},{4}}
 
-      Iterable<List<ImmutableBitSet>> product =
-          Linq4j.product(
-              Util.transform(colMask, in ->
-                  Util.filter(
-                      requireNonNull(mapInToOutPos.get(in),
-                          () -> "no entry for column " + in
-                              + " in mapInToOutPos: " + mapInToOutPos).powerSet(),
-                      bs -> !bs.isEmpty())));
+      Iterable<List<Integer>> product = Linq4j.product(Util.transform(colMask, mapInToOutPos::get));
 
-      resultBuilder.addAll(Util.transform(product, ImmutableBitSet::union));
+      resultBuilder.addAll(Util.transform(product, ImmutableBitSet::of));
     }
     return resultBuilder.build();
   }
@@ -347,7 +336,9 @@ public class RelMdUniqueKeys
       final ImmutableSet.Builder<ImmutableBitSet> keysBuilder = ImmutableSet.builder();
       if (inputUniqueKeys != null) {
         for (ImmutableBitSet inputKey : inputUniqueKeys) {
-          keysBuilder.addAll(getPassedThroughCols(inputKey, rel));
+          Iterable<List<Integer>> product =
+              Linq4j.product(Util.transform(inputKey, i -> getPassedThroughCols(i, rel)));
+          keysBuilder.addAll(Util.transform(product, ImmutableBitSet::of));
         }
       }
 
@@ -383,30 +374,6 @@ public class RelMdUniqueKeys
   }
 
   /**
-   * Given a set of columns in the input of an Aggregate rel, returns the set of mappings from the
-   * input columns to the output of the aggregations. A mapping for a particular column exists if
-   * it is part of a simple group by and/or it is "passed through" unmodified by a
-   * {@link RelMdColumnUniqueness#PASSTHROUGH_AGGREGATIONS pass-through aggregation function}.
-   */
-  private static Set<ImmutableBitSet> getPassedThroughCols(
-      ImmutableBitSet inputColumns, Aggregate rel) {
-    checkArgument(Aggregate.isSimple(rel));
-    Set<ImmutableBitSet> conbinations = new HashSet<>();
-    conbinations.add(ImmutableBitSet.of());
-    for (Integer inputColumn : inputColumns.asSet()) {
-      final ImmutableBitSet passedThroughCols = getPassedThroughCols(inputColumn, rel);
-      final Set<ImmutableBitSet> crossProduct = new HashSet<>();
-      for (ImmutableBitSet set : conbinations) {
-        for (Integer passedThroughCol : passedThroughCols) {
-          crossProduct.add(set.rebuild().set(passedThroughCol).build());
-        }
-      }
-      conbinations = crossProduct;
-    }
-    return conbinations;
-  }
-
-  /**
    * Given a column in the input of an Aggregate rel, returns the mappings from the input column to
    * the output of the aggregations. A mapping for the column exists if it is part of a simple
    * group by and/or it is "passed through" unmodified by a
@@ -414,6 +381,7 @@ public class RelMdUniqueKeys
    */
   private static ImmutableBitSet getPassedThroughCols(Integer inputColumn,
       Aggregate rel) {
+    checkArgument(Aggregate.isSimple(rel));
     final ImmutableBitSet.Builder builder = ImmutableBitSet.builder();
     if (rel.getGroupSet().get(inputColumn)) {
       builder.set(inputColumn);

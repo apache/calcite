@@ -14,23 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.sql.babel.postgresql;
+package org.apache.calcite.sql.babel.postgres;
 
 import org.apache.calcite.sql.SqlCall;
-import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlWriter;
-import org.apache.calcite.sql.Symbolizable;
+import org.apache.calcite.sql.fun.SqlBasicOperator;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.type.ReturnTypes;
 
 import com.google.common.collect.ImmutableList;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
@@ -40,15 +34,10 @@ import java.util.List;
  * @see <a href="https://www.postgresql.org/docs/current/sql-begin.html">BEGIN specification</a>
  */
 public class SqlBegin extends SqlCall {
-  public static final SqlSpecialOperator OPERATOR =
-      new SqlSpecialOperator("BEGIN", SqlKind.OTHER_FUNCTION, 32, false, ReturnTypes.BOOLEAN, null,
-          null) {
-        @Override public SqlCall createCall(@Nullable final SqlLiteral functionQualifier,
-            final SqlParserPos pos,
-            final @Nullable SqlNode... operands) {
-          return new SqlBegin(pos, (SqlNodeList) operands[0]);
-        }
-      };
+  public static final SqlBasicOperator OPERATOR =
+      SqlBasicOperator.create("BEGIN").withCallFactory(
+          (operator, functionQualifier, pos, operands) ->
+              new SqlBegin(pos, (SqlNodeList) operands[0]));
 
   private final SqlNodeList transactionModeList;
 
@@ -68,23 +57,5 @@ public class SqlBegin extends SqlCall {
   @Override public void unparse(final SqlWriter writer, final int leftPrec, final int rightPrec) {
     writer.keyword("BEGIN");
     transactionModeList.unparse(writer, -1, -1);
-  }
-
-  /**
-   * Transaction mode.
-   */
-  public enum TransactionMode implements Symbolizable {
-    READ_WRITE,
-    READ_ONLY,
-    DEFERRABLE,
-    NOT_DEFERRABLE,
-    ISOLATION_LEVEL_SERIALIZABLE,
-    ISOLATION_LEVEL_REPEATABLE_READ,
-    ISOLATION_LEVEL_READ_COMMITTED,
-    ISOLATION_LEVEL_READ_UNCOMMITTED;
-
-    @Override public String toString() {
-      return super.toString().replace("_", " ");
-    }
   }
 }

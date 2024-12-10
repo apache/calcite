@@ -145,7 +145,7 @@ class OptimizerTest {
             Expressions.condition(
                 Expressions.parameter(boolean.class, "a"),
                 Expressions.parameter(boolean.class, "b"), TRUE)),
-        is("{\n  return !a || b;\n}\n"));
+        is("{\n  return (!a) || b;\n}\n"));
   }
 
   @Test void testOptimizeTernaryAfalseB() {
@@ -155,7 +155,7 @@ class OptimizerTest {
             Expressions.condition(
                 Expressions.parameter(boolean.class, "a"),
                 FALSE, Expressions.parameter(boolean.class, "b"))),
-        is("{\n  return !a && b;\n}\n"));
+        is("{\n  return (!a) && b;\n}\n"));
   }
 
   @Test void testOptimizeTernaryABfalse() {
@@ -288,7 +288,7 @@ class OptimizerTest {
                     Expressions.parameter(Integer.class, "inp0_"),
                     NULL_INTEGER),
             NULL)),
-        is("{\n  return !v || inp0_ == null;\n}\n"));
+        is("{\n  return (!v) || inp0_ == null;\n}\n"));
   }
 
   @Test void testOptimizeTernaryAeqBBA() {
@@ -316,7 +316,7 @@ class OptimizerTest {
                     NULL_INTEGER,
                     Expressions.parameter(Integer.class, "inp0_")),
             NULL)),
-        is("{\n  return !(v || inp0_ == null);\n}\n"));
+        is("{\n  return (!(v || inp0_ == null));\n}\n"));
   }
 
   @Test void testOptimizeTernaryInEqualABCneqC() {
@@ -328,7 +328,7 @@ class OptimizerTest {
                     Expressions.parameter(Integer.class, "inp0_"),
                     NULL_INTEGER),
             NULL)),
-        is("{\n  return !(!v || inp0_ == null);\n}\n"));
+        is("{\n  return (!((!v) || inp0_ == null));\n}\n"));
   }
 
   @Test void testOptimizeTernaryAneqBBA() {
@@ -516,7 +516,7 @@ class OptimizerTest {
     // x == false
     ParameterExpression x = Expressions.parameter(boolean.class, "x");
     assertThat(optimize(Expressions.equal(x, FALSE)),
-        is("{\n  return !x;\n}\n"));
+        is("{\n  return (!x);\n}\n"));
   }
 
   @Test void testNotEqualSameConst() {
@@ -582,7 +582,7 @@ class OptimizerTest {
     // x != true
     ParameterExpression x = Expressions.parameter(boolean.class, "x");
     assertThat(optimize(Expressions.notEqual(x, TRUE)),
-        is("{\n  return !x;\n}\n"));
+        is("{\n  return (!x);\n}\n"));
   }
 
   @Test void testNotEqualBoolFalse() {

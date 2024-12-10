@@ -83,6 +83,7 @@ import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.SqlTableRef;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWindow;
+import org.apache.calcite.sql.SqlWindowTableFunction;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlCountAggFunction;
 import org.apache.calcite.sql.fun.SqlInternalOperators;
@@ -92,6 +93,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -1606,6 +1608,11 @@ public abstract class SqlImplementor {
     return new TableFunctionScanContext(dialect, inputSqlNodes);
   }
 
+  public Context windowTableFunctionScanContext(SqlNode inputTableNode,
+      List<SqlNode> inputFieldNodes) {
+    return new WindowTableFunctionScanContext(dialect, inputTableNode, inputFieldNodes);
+  }
+
   /** Context for translating MATCH_RECOGNIZE clause. */
   public class MatchRecognizeContext extends AliasContext {
     protected MatchRecognizeContext(SqlDialect dialect,
@@ -1717,6 +1724,48 @@ public abstract class SqlImplementor {
     @Override public SqlNode field(int ordinal) {
       return inputSqlNodes.get(ordinal);
     }
+  }
+
+
+  /**
+   * Context for translating call of a WindowTableFunction from {@link RexNode} to
+   * {@link SqlNode}.*/
+  class WindowTableFunctionScanContext extends BaseContext {
+    private final SqlNode inputTableNode;
+    private final List<SqlNode> inputFieldNodes;
+
+    WindowTableFunctionScanContext(SqlDialect dialect,
+            SqlNode inputTableNode,
+            List<SqlNode> inputFieldNodes) {
+      super(dialect, inputFieldNodes.size());
+      this.inputFieldNodes = inputFieldNodes;
+      this.inputTableNode = inputTableNode;
+    }
+
+    @Override public SqlNode field(int ordinal) {
+      return inputFieldNodes.get(ordinal);
+    }
+
+    private boolean isWindowTableFunctionRex(RexNode rex) {
+      return (rex instanceof RexCall)
+          && (((RexCall) rex).getOperator() instanceof SqlWindowTableFunction);
+    }
+
+    @Override public SqlNode toSql(@Nullable RexProgram program, RexNode rex) {
+      if (isWindowTableFunctionRex(rex)) {
+        // Convert SqlWindowTableFunction operator without the PARAM_DATA to sqlNode.
+        SqlNode callNode = super.toSql(null, rex);
+        // Reconstruct the callNode with inputTableNode as the PARAM_DATA.
+        List<SqlNode> operandList = new ArrayList<>();
+        operandList.add(inputTableNode);
+        operandList.addAll(((SqlBasicCall) callNode).getOperandList());
+        callNode =
+          new SqlBasicCall(((SqlBasicCall) callNode).getOperator(),
+              operandList, callNode.getParserPosition());
+        return callNode;
+      }
+      return super.toSql(program, rex);
+    };
   }
 
   /** Result of implementing a node. */
@@ -2051,8 +2100,9 @@ public abstract class SqlImplementor {
         @UnknownInitialization Result this,
         Aggregate aggregate,
         Predicate<SqlNode> operandPredicate) {
+      final boolean[] result = {false};
       if (node instanceof SqlSelect) {
-        final SqlNodeList selectList = ((SqlSelect) node).getSelectList();
+        SqlNodeList selectList = ((SqlSelect) node).getSelectList();
         if (!selectList.equals(SqlNodeList.SINGLETON_STAR)) {
           final Set<Integer> aggregatesArgs = new HashSet<>();
           for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
@@ -2060,18 +2110,20 @@ public abstract class SqlImplementor {
           }
           for (int aggregatesArg : aggregatesArgs) {
             if (selectList.get(aggregatesArg) instanceof SqlBasicCall) {
-              final SqlBasicCall call =
-                  (SqlBasicCall) selectList.get(aggregatesArg);
-              for (SqlNode operand : call.getOperandList()) {
-                if (operand != null && operandPredicate.test(operand)) {
-                  return true;
-                }
+              final SqlBasicCall call = (SqlBasicCall) selectList.get(aggregatesArg);
+              if (call != null) {
+                call.accept(new SqlShuttle() {
+                  @Override public @Nullable SqlNode visit(SqlCall call) {
+                    result[0] = result[0] || operandPredicate.test(call);
+                    return super.visit(call);
+                  }
+                });
               }
             }
           }
         }
       }
-      return false;
+      return result[0];
     }
 
     /** Returns the highest clause that is in use. */

@@ -64,7 +64,7 @@ class GeodeZipsTest extends AbstractGeodeTest {
 
     // add calcite view programmatically
     final String viewSql = "select \"_id\" AS \"id\", \"city\", \"loc\", "
-        + "cast(\"pop\" AS integer) AS \"pop\", cast(\"state\" AS varchar(2)) AS \"state\" "
+        + "cast(\"pop\" AS integer) AS \"pop\", cast(\"state\" AS char(2)) AS \"state\" "
         + "from \"geode\".\"zips\"";
 
 

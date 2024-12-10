@@ -29,6 +29,7 @@ import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlArrayValueConstructor;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlMapValueConstructor;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -144,6 +145,11 @@ public class PrestoSqlDialect extends SqlDialect {
       switch (call.getKind()) {
       case MAP_VALUE_CONSTRUCTOR:
         unparseMapValue(writer, call, leftPrec, rightPrec);
+        break;
+      case CHAR_LENGTH:
+        SqlCall lengthCall = SqlLibraryOperators.LENGTH
+            .createCall(SqlParserPos.ZERO, call.getOperandList());
+        super.unparseCall(writer, lengthCall, leftPrec, rightPrec);
         break;
       default:
         // Current impl is same with Postgresql.

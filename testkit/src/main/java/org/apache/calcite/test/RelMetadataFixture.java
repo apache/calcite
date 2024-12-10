@@ -37,6 +37,7 @@ import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.test.SqlTester;
+import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
 
@@ -119,6 +120,16 @@ public class RelMetadataFixture {
     }
     return new RelMetadataFixture(tester, factory, metadataConfig, relSupplier,
         convertAsCalc, relTransform);
+  }
+
+  public RelMetadataFixture withConfig(
+          UnaryOperator<SqlToRelConverter.Config> transform) {
+    return withFactory(f -> f.withSqlToRelConfig(transform));
+  }
+
+  public RelMetadataFixture withRelBuilderConfig(
+          UnaryOperator<RelBuilder.Config> transform) {
+    return withConfig(c -> c.addRelBuilderConfigTransform(transform));
   }
 
   /** Creates a copy of this fixture that uses a given function to create a

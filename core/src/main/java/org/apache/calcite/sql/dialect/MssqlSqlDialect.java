@@ -163,6 +163,11 @@ public class MssqlSqlDialect extends SqlDialect {
         throw new IllegalArgumentException("MSSQL SUBSTRING requires FROM and FOR arguments");
       }
       SqlUtil.unparseFunctionSyntax(MSSQL_SUBSTRING, writer, call, false);
+    } else if (call.getOperator().equals(SqlStdOperatorTable.CEIL)) {
+      // CEILING is supported but not CEIL in MS SQL
+      final SqlWriter.Frame frame = writer.startFunCall("CEILING");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(frame);
     } else {
       switch (call.getKind()) {
       case FLOOR:

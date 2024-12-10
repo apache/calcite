@@ -20,6 +20,7 @@ import org.apache.calcite.schema.Function;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlOperandMetadata;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
@@ -42,7 +43,7 @@ public class PigUserDefinedFunction extends SqlUserDefinedFunction {
       FuncSpec funcSpec) {
     super(opName, SqlKind.OTHER_FUNCTION, returnTypeInference,
         operandTypeInference, operandMetadata, function,
-        SqlFunctionCategory.USER_DEFINED_CONSTRUCTOR);
+        SqlFunctionCategory.USER_DEFINED_CONSTRUCTOR, SqlSyntax.FUNCTION);
     this.funcSpec = funcSpec;
   }
 

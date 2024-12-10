@@ -867,7 +867,7 @@ public class JdbcRules {
       if (cost == null) {
         return null;
       }
-      return cost.multiplyBy(.1);
+      return cost.multiplyBy(JdbcConvention.COST_MULTIPLIER);
     }
 
     @Override public JdbcImplementor.Result implement(JdbcImplementor implementor) {

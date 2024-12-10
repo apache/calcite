@@ -14,23 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.sql.babel.postgresql;
+package org.apache.calcite.sql.fun;
 
-import org.apache.calcite.sql.Symbolizable;
+import org.apache.calcite.sql.SqlBasicCall;
+import org.apache.calcite.util.ImmutableNullableList;
 
 /**
- * Defines the keywords that can occur immediately after the "ROLLBACK" or "COMMIT" keywords.
- *
- * @see SqlCommit
- * @see SqlRollback
- * @see <a href="https://www.postgresql.org/docs/current/sql-commit.html">COMMIT specification</a>
- * @see <a href="https://www.postgresql.org/docs/current/sql-rollback.html">ROLLBACK specification</a>
+ * Contains static factory methods for creating instances of {@link SqlCallFactory}.
  */
-public enum AndChain implements Symbolizable {
-  AND_CHAIN,
-  AND_NO_CHAIN;
-
-  @Override public String toString() {
-    return super.toString().replace("_", " ");
+public abstract class SqlCallFactories {
+  private SqlCallFactories() {
   }
+
+  /**
+   * A {@link SqlCallFactory} that creates instances of {@link SqlBasicCall}.
+   */
+  public static final SqlCallFactory SQL_BASIC_CALL_FACTORY =
+      (operator, functionQualifier, pos, operands) -> {
+        pos = pos.plusAll(operands);
+        return new SqlBasicCall(operator, ImmutableNullableList.copyOf(operands), pos,
+            functionQualifier);
+      };
 }

@@ -108,16 +108,21 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.adapter.enumerable.EnumUtils.generateCollatorExpression;
 import static org.apache.calcite.linq4j.tree.ExpressionType.Add;
+import static org.apache.calcite.linq4j.tree.ExpressionType.AddChecked;
 import static org.apache.calcite.linq4j.tree.ExpressionType.Divide;
+import static org.apache.calcite.linq4j.tree.ExpressionType.DivideChecked;
 import static org.apache.calcite.linq4j.tree.ExpressionType.Equal;
 import static org.apache.calcite.linq4j.tree.ExpressionType.GreaterThan;
 import static org.apache.calcite.linq4j.tree.ExpressionType.GreaterThanOrEqual;
 import static org.apache.calcite.linq4j.tree.ExpressionType.LessThan;
 import static org.apache.calcite.linq4j.tree.ExpressionType.LessThanOrEqual;
 import static org.apache.calcite.linq4j.tree.ExpressionType.Multiply;
+import static org.apache.calcite.linq4j.tree.ExpressionType.MultiplyChecked;
 import static org.apache.calcite.linq4j.tree.ExpressionType.Negate;
+import static org.apache.calcite.linq4j.tree.ExpressionType.NegateChecked;
 import static org.apache.calcite.linq4j.tree.ExpressionType.NotEqual;
 import static org.apache.calcite.linq4j.tree.ExpressionType.Subtract;
+import static org.apache.calcite.linq4j.tree.ExpressionType.SubtractChecked;
 import static org.apache.calcite.linq4j.tree.ExpressionType.UnaryPlus;
 import static org.apache.calcite.sql.fun.SqlInternalOperators.LITERAL_AGG;
 import static org.apache.calcite.sql.fun.SqlInternalOperators.THROW_UNLESS;
@@ -294,10 +299,13 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.SOUNDEX;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SOUNDEX_SPARK;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPACE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPLIT;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPLIT_PART;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.STARTS_WITH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.STRCMP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.STR_TO_MAP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SUBSTRING_INDEX;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.SYSDATE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.SYSTIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TAND;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TANH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIME;
@@ -358,6 +366,12 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CBRT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CEIL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHARACTER_LENGTH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHAR_LENGTH;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHECKED_DIVIDE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHECKED_DIVIDE_INTEGER;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHECKED_MINUS;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHECKED_MULTIPLY;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHECKED_PLUS;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHECKED_UNARY_MINUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CLASSIFIER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.COALESCE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.COLLECT;
@@ -746,6 +760,7 @@ public class RexImpTable {
           BuiltInMethod.ARRAY_REVERSE.method);
       defineMethod(LEVENSHTEIN, BuiltInMethod.LEVENSHTEIN.method, NullPolicy.STRICT);
       defineMethod(SPLIT, BuiltInMethod.SPLIT.method, NullPolicy.STRICT);
+      defineMethod(SPLIT_PART, BuiltInMethod.SPLIT_PART.method, NullPolicy.STRICT);
       defineReflective(PARSE_URL, BuiltInMethod.PARSE_URL2.method,
           BuiltInMethod.PARSE_URL3.method);
       defineReflective(REGEXP, BuiltInMethod.RLIKE.method);
@@ -786,6 +801,13 @@ public class RexImpTable {
       defineUnary(UNARY_MINUS, Negate, NullPolicy.STRICT,
           BuiltInMethod.BIG_DECIMAL_NEGATE.getMethodName());
       defineUnary(UNARY_PLUS, UnaryPlus, NullPolicy.STRICT, null);
+      // checked arithmetic
+      defineBinary(CHECKED_PLUS, AddChecked, NullPolicy.STRICT, "checkedPlus");
+      defineBinary(CHECKED_MINUS, SubtractChecked, NullPolicy.STRICT, "checkedMinus");
+      defineBinary(CHECKED_MULTIPLY, MultiplyChecked, NullPolicy.STRICT, "checkedMultiply");
+      defineBinary(CHECKED_DIVIDE, DivideChecked, NullPolicy.STRICT, "checkedDivide");
+      defineBinary(CHECKED_DIVIDE_INTEGER, DivideChecked, NullPolicy.STRICT, "checkedDivide");
+      defineUnary(CHECKED_UNARY_MINUS, NegateChecked, NullPolicy.STRICT, "checkedUnaryMinus");
 
       defineMethod(MOD, BuiltInMethod.MOD.method, NullPolicy.STRICT);
       defineMethod(EXP, BuiltInMethod.EXP.method, NullPolicy.STRICT);
@@ -1004,7 +1026,7 @@ public class RexImpTable {
       // Multisets & arrays
       defineMethod(CARDINALITY, BuiltInMethod.COLLECTION_SIZE.method,
           NullPolicy.STRICT);
-      defineMethod(SLICE, BuiltInMethod.SLICE.method, NullPolicy.NONE);
+      defineMethod(SLICE, BuiltInMethod.SLICE.method, NullPolicy.STRICT);
       defineMethod(ELEMENT, BuiltInMethod.ELEMENT.method, NullPolicy.STRICT);
       defineMethod(STRUCT_ACCESS, BuiltInMethod.STRUCT_ACCESS.method, NullPolicy.ANY);
       defineMethod(MEMBER_OF, BuiltInMethod.MEMBER_OF.method, NullPolicy.NONE);
@@ -1015,7 +1037,7 @@ public class RexImpTable {
       defineMethod(ARRAY_EXCEPT, BuiltInMethod.ARRAY_EXCEPT.method, NullPolicy.ANY);
       defineMethod(ARRAY_JOIN, BuiltInMethod.ARRAY_TO_STRING.method,
           NullPolicy.STRICT);
-      defineMethod(ARRAY_INSERT, BuiltInMethod.ARRAY_INSERT.method, NullPolicy.NONE);
+      defineMethod(ARRAY_INSERT, BuiltInMethod.ARRAY_INSERT.method, NullPolicy.ARG0);
       defineMethod(ARRAY_INTERSECT, BuiltInMethod.ARRAY_INTERSECT.method, NullPolicy.ANY);
       defineMethod(ARRAY_LENGTH, BuiltInMethod.COLLECTION_SIZE.method, NullPolicy.STRICT);
       defineMethod(ARRAY_MAX, BuiltInMethod.ARRAY_MAX.method, NullPolicy.STRICT);
@@ -1044,27 +1066,27 @@ public class RexImpTable {
       define(ARRAY_CONCAT, new ArrayConcatImplementor());
       define(SORT_ARRAY, new SortArrayImplementor());
       final MethodImplementor isEmptyImplementor =
-          new MethodImplementor(BuiltInMethod.IS_EMPTY.method, NullPolicy.NONE,
+          new MethodImplementor(BuiltInMethod.IS_EMPTY.method, NullPolicy.STRICT,
               false);
       define(IS_EMPTY, isEmptyImplementor);
       define(IS_NOT_EMPTY, NotImplementor.of(isEmptyImplementor));
       final MethodImplementor isASetImplementor =
-          new MethodImplementor(BuiltInMethod.IS_A_SET.method, NullPolicy.NONE,
+          new MethodImplementor(BuiltInMethod.IS_A_SET.method, NullPolicy.STRICT,
               false);
       define(IS_A_SET, isASetImplementor);
       define(IS_NOT_A_SET, NotImplementor.of(isASetImplementor));
       defineMethod(MULTISET_INTERSECT_DISTINCT,
-          BuiltInMethod.MULTISET_INTERSECT_DISTINCT.method, NullPolicy.NONE);
+          BuiltInMethod.MULTISET_INTERSECT_DISTINCT.method, NullPolicy.STRICT);
       defineMethod(MULTISET_INTERSECT,
-          BuiltInMethod.MULTISET_INTERSECT_ALL.method, NullPolicy.NONE);
+          BuiltInMethod.MULTISET_INTERSECT_ALL.method, NullPolicy.STRICT);
       defineMethod(MULTISET_EXCEPT_DISTINCT,
-          BuiltInMethod.MULTISET_EXCEPT_DISTINCT.method, NullPolicy.NONE);
-      defineMethod(MULTISET_EXCEPT, BuiltInMethod.MULTISET_EXCEPT_ALL.method, NullPolicy.NONE);
+          BuiltInMethod.MULTISET_EXCEPT_DISTINCT.method, NullPolicy.STRICT);
+      defineMethod(MULTISET_EXCEPT, BuiltInMethod.MULTISET_EXCEPT_ALL.method, NullPolicy.STRICT);
       defineMethod(MULTISET_UNION_DISTINCT,
-          BuiltInMethod.MULTISET_UNION_DISTINCT.method, NullPolicy.NONE);
-      defineMethod(MULTISET_UNION, BuiltInMethod.MULTISET_UNION_ALL.method, NullPolicy.NONE);
+          BuiltInMethod.MULTISET_UNION_DISTINCT.method, NullPolicy.STRICT);
+      defineMethod(MULTISET_UNION, BuiltInMethod.MULTISET_UNION_ALL.method, NullPolicy.STRICT);
       final MethodImplementor subMultisetImplementor =
-          new MethodImplementor(BuiltInMethod.SUBMULTISET_OF.method, NullPolicy.NONE, false);
+          new MethodImplementor(BuiltInMethod.SUBMULTISET_OF.method, NullPolicy.STRICT, false);
       define(SUBMULTISET_OF, subMultisetImplementor);
       define(NOT_SUBMULTISET_OF, NotImplementor.of(subMultisetImplementor));
 
@@ -1210,6 +1232,8 @@ public class RexImpTable {
       define(CURRENT_DATETIME, systemFunctionImplementor);
       define(LOCALTIME, systemFunctionImplementor);
       define(LOCALTIMESTAMP, systemFunctionImplementor);
+      define(SYSDATE, systemFunctionImplementor);
+      define(SYSTIMESTAMP, systemFunctionImplementor);
 
       defineAgg(COUNT, CountImplementor.class);
       defineAgg(REGR_COUNT, CountImplementor.class);
@@ -3137,6 +3161,11 @@ public class RexImpTable {
             SqlStdOperatorTable.GREATER_THAN,
             SqlStdOperatorTable.GREATER_THAN_OR_EQUAL);
 
+    private static final List<SqlOperator> CHECKED_OPERATORS =
+        ImmutableList.of(
+            CHECKED_DIVIDE, CHECKED_PLUS, CHECKED_MINUS, CHECKED_MULTIPLY,
+            CHECKED_UNARY_MINUS);
+
     private static final List<SqlBinaryOperator> EQUALS_OPERATORS =
         ImmutableList.of(
             SqlStdOperatorTable.EQUALS,
@@ -3209,6 +3238,11 @@ public class RexImpTable {
             argValueList);
       }
 
+      // For checked arithmetic call the method.
+      if (CHECKED_OPERATORS.contains(op)) {
+        return Expressions.call(SqlFunctions.class, backupMethodName, argValueList);
+      }
+
       return Expressions.makeBinary(expressionType,
           argValueList.get(0), argValueList.get(1));
     }
@@ -3266,6 +3300,8 @@ public class RexImpTable {
       if (expressionType == ExpressionType.Negate && argValue.type == BigDecimal.class
           && null != backupMethodName) {
         e = Expressions.call(argValue, backupMethodName);
+      } else if (expressionType == NegateChecked && null != backupMethodName) {
+        e = Expressions.call(SqlFunctions.class, backupMethodName, argValueList);
       } else {
         e = Expressions.makeUnary(expressionType, argValue);
       }
@@ -3523,7 +3559,9 @@ public class RexImpTable {
       }
 
       // Short-circuit if no cast is required
-      if (call.getType().equals(sourceType)) {
+      if (call.getType().equals(sourceType)
+          // However, do not elide casts to decimal types, they perform bounds checking
+          && sourceType.getSqlTypeName() != SqlTypeName.DECIMAL) {
         // No cast required, omit cast
         return argValueList.get(0);
       }
@@ -3802,6 +3840,10 @@ public class RexImpTable {
         return Expressions.call(BuiltInMethod.LOCAL_TIMESTAMP.method, root);
       } else if (op == LOCALTIME) {
         return Expressions.call(BuiltInMethod.LOCAL_TIME.method, root);
+      } else if (op == SYSDATE) {
+        return Expressions.call(BuiltInMethod.SYSDATE.method, root);
+      } else if (op == SYSTIMESTAMP) {
+        return Expressions.call(BuiltInMethod.SYSTIMESTAMP.method, root);
       } else {
         throw new AssertionError("unknown function " + op);
       }

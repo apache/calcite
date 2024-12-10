@@ -740,6 +740,61 @@ class RelWriterTest {
         .assertThatPlan(isLinux(expected));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6703">[CALCITE-6703]
+   * RelJson cannot handle timestamps prior to 1970-01-25 20:31:23.648</a>. */
+  @Test void testJsonToRexForTimestamp() {
+    // Below Integer.MAX_VALUE
+    final String timestampRepresentedAsInt = "{\n"
+          + "  \"literal\": 2129400000,\n"
+          + "  \"type\": {\n"
+          + "    \"type\": \"TIMESTAMP\",\n"
+          + "    \"nullable\": false\n"
+          + "  }\n"
+          + "}\n";
+    // Above Integer.MAX_VALUE
+    final String timestampRepresentedAsLong = "{\n"
+          + "  \"literal\": 3129400000,\n"
+          + "  \"type\": {\n"
+          + "    \"type\": \"TIMESTAMP\",\n"
+          + "    \"nullable\": false\n"
+          + "  }\n"
+          + "}\n";
+
+    // These timestamps were verified using BigQuery's UNIX_MILLIS function.
+    assertThatReadExpressionResult(timestampRepresentedAsInt, is("1970-01-25 15:30:00"));
+    assertThatReadExpressionResult(timestampRepresentedAsLong, is("1970-02-06 05:16:40"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6703">[CALCITE-6703]
+   * RelJson cannot handle timestamps prior to 1970-01-25 20:31:23.648</a>. */
+  @Test void testJsonToRexForTimestampWithLocalTimeZone() {
+    // Below Integer.MAX_VALUE
+    final String timestampWithLocalTzRepresentedAsInt = "{\n"
+          + "  \"literal\": 2129400000,\n"
+          + "  \"type\": {\n"
+          + "    \"type\": \"TIMESTAMP_WITH_LOCAL_TIME_ZONE\",\n"
+          + "    \"nullable\": false\n"
+          + "  }\n"
+          + "}\n";
+    // Above Integer.MAX_VALUE
+    final String timestampWithLocalTzRepresentedAsLong = "{\n"
+          + "  \"literal\": 3129400000,\n"
+          + "  \"type\": {\n"
+          + "    \"type\": \"TIMESTAMP_WITH_LOCAL_TIME_ZONE\",\n"
+          + "    \"nullable\": false\n"
+          + "  }\n"
+          + "}\n";
+
+    // These timestamps were verified using BigQuery's UNIX_MILLIS function.
+    assertThatReadExpressionResult(timestampWithLocalTzRepresentedAsInt,
+          is("1970-01-25 15:30:00:TIMESTAMP_WITH_LOCAL_TIME_ZONE(0)"));
+    assertThatReadExpressionResult(timestampWithLocalTzRepresentedAsLong,
+          is("1970-02-06 05:16:40:TIMESTAMP_WITH_LOCAL_TIME_ZONE(0)"));
+  }
+
+
   @Test void testJsonToRex() {
     // Test simple literal without inputs
     final String jsonString1 = "{\n"
@@ -879,6 +934,18 @@ class RelWriterTest {
       final String expected = "<TODO>";
       assertThat(result, isLinux(expected));
     }
+
+    RexNode betweenDoubles =
+        rexBuilder.makeBetween(b.literal(45),
+            b.literal(20.0000000000000049),
+            b.literal(30.0000000000000049));
+    consumer.accept(betweenDoubles);
+
+    RexNode betweenDecimal =
+        rexBuilder.makeBetween(b.literal(45),
+            b.literal(BigDecimal.valueOf(20.0)),
+            b.literal(BigDecimal.valueOf(30.0)));
+    consumer.accept(betweenDecimal);
 
     RexNode between =
         rexBuilder.makeBetween(b.literal(45),

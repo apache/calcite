@@ -83,9 +83,7 @@ LogicalProject(EXPR$0=[CAST($3):DECIMAL(19, 0) NOT NULL])
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalUnion(all=[false])
-  LogicalValues(tuples=[[{ null }]])
-  LogicalValues(tuples=[[{ '10' }]])
+LogicalValues(tuples=[[{ null }, { '10' }]])
 ]]>
     </Resource>
   </TestCase>
@@ -154,15 +152,7 @@ LogicalTableModify(table=[[CATALOG, SALES, T1]], operation=[INSERT], flattened=[
     <Resource name="plan">
       <![CDATA[
 LogicalTableModify(table=[[CATALOG, SALES, T1]], operation=[INSERT], flattened=[false])
-  LogicalUnion(all=[false])
-    LogicalUnion(all=[false])
-      LogicalUnion(all=[false])
-        LogicalUnion(all=[false])
-          LogicalValues(tuples=[[{ 'a', 1, 1, 0, 0.0E0, 0.0E0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }]])
-          LogicalValues(tuples=[[{ 'b', 2, 2, 0, 0.0E0, 0.0E0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }]])
-        LogicalValues(tuples=[[{ 'c', 3, 3, 0, 0.0E0, 0.0E0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }]])
-      LogicalValues(tuples=[[{ 'd', 4, 4, 0, 0.0E0, 0.0E0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }]])
-    LogicalValues(tuples=[[{ 'e', 5, 5, 0, 0.0E0, 0.0E0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }]])
+  LogicalValues(tuples=[[{ 'a', 1, 1, 0, 0.0E0, 0.0E0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }, { 'b', 2, 2, 0, 0.0E0, 0.0E0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }, { 'c', 3, 3, 0, 0.0E0, 0.0E0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }, { 'd', 4, 4, 0, 0.0E0, 0.0E0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }, { 'e', 5, 5, 0, 0.0E0, 0.0E0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }]])
 ]]>
     </Resource>
   </TestCase>
@@ -174,6 +164,48 @@ LogicalTableModify(table=[[CATALOG, SALES, T1]], operation=[INSERT], flattened=[
       <![CDATA[
 LogicalTableModify(table=[[CATALOG, SALES, T1]], operation=[INSERT], flattened=[false])
   LogicalValues(tuples=[[{ 'a', 1, 1, 0, 0.0E0, 0.0E0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }, { 'b', 2, 2, 0, 0.0E0, 0.0E0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }, { 'c', 3, 3, 0, 0.0E0, 0.0E0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }, { 'd', 4, 4, 0, 0.0E0, 0.0E0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }, { 'e', 5, 5, 0, 0.0E0, 0.0E0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testIntegerImplicitTypeCast1">
+    <Resource name="sql">
+      <![CDATA[with
+t1(x) as (select * from  (values (cast(1 as bigint)),(cast(2 as bigint))) as t1),
+t2(x) as (select * from  (values (3),(4)) as t2)
+select *
+from t1
+where t1.x in (select t2.x from t2)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(X=[$0])
+  LogicalJoin(condition=[=($0, $1)], joinType=[inner])
+    LogicalProject(T1=[$0])
+      LogicalValues(tuples=[[{ 1 }, { 2 }]])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(EXPR$0=[CAST($0):BIGINT NOT NULL])
+        LogicalValues(tuples=[[{ 3 }, { 4 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testIntegerImplicitTypeCast2">
+    <Resource name="sql">
+      <![CDATA[with
+t1(x) as (select * from  (values (cast(1 as tinyint)),(cast(2 as tinyint))) as t1),
+t2(x) as (select * from  (values (3),(4)) as t2)
+select *
+from t1
+where t1.x in (select t2.x from t2)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(X=[$0])
+  LogicalJoin(condition=[=($1, $2)], joinType=[inner])
+    LogicalProject(T1=[$0], EXPR$0=[CAST($0):INTEGER NOT NULL])
+      LogicalValues(tuples=[[{ 1 }, { 2 }]])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(X=[$0])
+        LogicalValues(tuples=[[{ 3 }, { 4 }]])
 ]]>
     </Resource>
   </TestCase>
@@ -218,13 +250,13 @@ LogicalProject(F0=[null:BOOLEAN], F1=[CAST(false):BOOLEAN], F2=[null:BOOLEAN], F
 LogicalUnion(all=[false])
   LogicalUnion(all=[false])
     LogicalUnion(all=[false])
-      LogicalProject(T1_INT=[CAST($2):VARCHAR NOT NULL], T1_DECIMAL=[$6], T1_SMALLINT=[$1], T1_DOUBLE=[$5])
+      LogicalProject(T1_INT=[CAST($2):VARCHAR NOT NULL], T1_DECIMAL=[$6], T1_SMALLINT=[CAST($1):REAL NOT NULL], T1_DOUBLE=[$5])
         LogicalTableScan(table=[[CATALOG, SALES, T1]])
-      LogicalProject(T2_VARCHAR20=[$0], T2_DECIMAL=[$6], T2_REAL=[$4], T2_BIGINT=[$3])
+      LogicalProject(T2_VARCHAR20=[$0], T2_DECIMAL=[$6], T2_REAL=[$4], T2_BIGINT=[CAST($3):DOUBLE NOT NULL])
         LogicalTableScan(table=[[CATALOG, SALES, T2]])
     LogicalProject(T1_VARCHAR20=[$0], T1_DECIMAL=[$6], T1_REAL=[$4], T1_DOUBLE=[$5])
       LogicalTableScan(table=[[CATALOG, SALES, T1]])
-  LogicalProject(T2_VARCHAR20=[$0], T2_DECIMAL=[$6], T2_SMALLINT=[$1], T2_DOUBLE=[$5])
+  LogicalProject(T2_VARCHAR20=[$0], T2_DECIMAL=[$6], T2_SMALLINT=[CAST($1):REAL NOT NULL], T2_DOUBLE=[$5])
     LogicalTableScan(table=[[CATALOG, SALES, T2]])
 ]]>
     </Resource>

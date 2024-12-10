@@ -914,6 +914,29 @@ public class SqlFunctions {
     }
   }
 
+
+  /** SQL {@code SPLIT_PART(string, string, int)} function. */
+  public static String splitPart(String s, String delimiter, int n) {
+    if (Strings.isNullOrEmpty(s) || Strings.isNullOrEmpty(delimiter)) {
+      return "";
+    }
+
+    String[] parts = s.split(delimiter, -1);
+    int partCount = parts.length;
+
+    if (n < 0) {
+      n = partCount + n + 1;
+    }
+
+    if (n <= 0 || n > partCount) {
+      return "";
+    }
+
+    return parts[n - 1];
+  }
+
+
+
   /** SQL {@code SPLIT(string)} function. */
   public static List<String> split(String s) {
     return split(s, ",");
@@ -2378,6 +2401,40 @@ public class SqlFunctions {
     throw notArithmetic("+", b0, b1);
   }
 
+  // checked +
+
+  static byte intToByte(int value) {
+    if (value < Byte.MIN_VALUE || value > Byte.MAX_VALUE) {
+      throw new ArithmeticException(
+          "integer overflow: Value " + value + " does not fit in a TINYINT");
+    }
+    return (byte) value;
+  }
+
+  static short intToShort(int value) {
+    if (value < Short.MIN_VALUE || value > Short.MAX_VALUE) {
+      throw new ArithmeticException(
+          "integer overflow: Value " + value + " does not fit in a SMALLINT");
+    }
+    return (short) value;
+  }
+
+  public static byte checkedPlus(byte b0, byte b1) {
+    return intToByte(b0 + b1);
+  }
+
+  public static short checkedPlus(short b0, short b1) {
+    return intToShort(b0 + b1);
+  }
+
+  public static int checkedPlus(int b0, int b1) {
+    return Math.addExact(b0, b1);
+  }
+
+  public static long checkedPlus(long b0, long b1) {
+    return Math.addExact(b0, b1);
+  }
+
   // -
 
   /** SQL <code>-</code> operator applied to int values. */
@@ -2434,6 +2491,40 @@ public class SqlFunctions {
     }
 
     throw notArithmetic("-", b0, b1);
+  }
+
+  // checked -
+
+  public static byte checkedMinus(byte b0, byte b1) {
+    return intToByte(b0 - b1);
+  }
+
+  public static short checkedMinus(short b0, short b1) {
+    return intToShort(b0 - b1);
+  }
+
+  public static int checkedMinus(int b0, int b1) {
+    return Math.subtractExact(b0, b1);
+  }
+
+  public static long checkedMinus(long b0, long b1) {
+    return Math.subtractExact(b0, b1);
+  }
+
+  public static byte checkedUnaryMinus(byte b) {
+    return intToByte(-b);
+  }
+
+  public static short checkedUnaryMinus(short b) {
+    return intToShort(-b);
+  }
+
+  public static int checkedUnaryMinus(int b) {
+    return Math.subtractExact(0, b);
+  }
+
+  public static long checkedUnaryMinus(long b) {
+    return Math.subtractExact(0, b);
   }
 
   // /
@@ -2508,6 +2599,34 @@ public class SqlFunctions {
         .divide(b1, RoundingMode.HALF_DOWN).longValue();
   }
 
+  public static byte checkedDivide(byte b0, byte b1) {
+    return intToByte(b0 / b1);
+  }
+
+  public static short checkedDivide(short b0, short b1) {
+    return intToShort(b0 / b1);
+  }
+
+  public static int checkedDivide(int b0, int b1) {
+    // Implementation taken from Java 19
+    int q = b0 / b1;
+    if ((b0 & b1 & q) >= 0) {
+      return q;
+    } else {
+      throw new ArithmeticException("integer overflow");
+    }
+  }
+
+  public static long checkedDivide(long b0, long b1) {
+    // Implementation taken from Java 19
+    long q = b0 / b1;
+    if ((b0 & b1 & q) >= 0) {
+      return q;
+    } else {
+      throw new ArithmeticException("integer overflow");
+    }
+  }
+
   // *
 
   /** SQL <code>*</code> operator applied to int values. */
@@ -2566,6 +2685,24 @@ public class SqlFunctions {
     }
 
     throw notArithmetic("*", b0, b1);
+  }
+
+  // checked *
+
+  public static byte checkedMultiply(byte b0, byte b1) {
+    return intToByte(b0 * b1);
+  }
+
+  public static short checkedMultiply(short b0, short b1) {
+    return intToShort(b0 * b1);
+  }
+
+  public static int checkedMultiply(int b0, int b1) {
+    return Math.multiplyExact(b0, b1);
+  }
+
+  public static long checkedMultiply(long b0, long b1) {
+    return Math.multiplyExact(b0, b1);
   }
 
   /** SQL <code>SAFE_ADD</code> function applied to long values. */
@@ -3781,12 +3918,18 @@ public class SqlFunctions {
   // Helpers
 
   /** Helper for implementing MIN. Somewhat similar to LEAST operator. */
-  public static <T extends Comparable<T>> T lesser(T b0, T b1) {
-    return b0 == null || b0.compareTo(b1) > 0 ? b1 : b0;
+  public static @Nullable <T extends Comparable<T>> T lesser(@Nullable T b0, @Nullable T b1) {
+    if (b0 == null) {
+      return b1;
+    }
+    if (b1 == null) {
+      return b0;
+    }
+    return b0.compareTo(b1) > 0 ? b1 : b0;
   }
 
   /** LEAST operator. */
-  public static <T extends Comparable<T>> T least(T b0, T b1) {
+  public static @Nullable <T extends Comparable<T>> T least(@Nullable T b0, @Nullable T b1) {
     return b0 == null || b1 != null && b0.compareTo(b1) > 0 ? b1 : b0;
   }
 
@@ -3854,13 +3997,41 @@ public class SqlFunctions {
     return b0 > b1 ? b1 : b0;
   }
 
+  public static @Nullable <T extends Comparable<T>> List<T> lesser(
+      @Nullable List<T> b0, @Nullable List<T> b1) {
+    if (b0 == null) {
+      return b1;
+    }
+    if (b1 == null) {
+      return b0;
+    }
+    return lt(b0, b1) ? b0 : b1;
+  }
+
+  public static @Nullable <T extends Comparable<T>> List<T> greater(
+      @Nullable List<T> b0, @Nullable List<T> b1) {
+    if (b0 == null) {
+      return b1;
+    }
+    if (b1 == null) {
+      return b0;
+    }
+    return gt(b0, b1) ? b0 : b1;
+  }
+
   /** Helper for implementing MAX. Somewhat similar to GREATEST operator. */
-  public static <T extends Comparable<T>> T greater(T b0, T b1) {
-    return b0 == null || b0.compareTo(b1) < 0 ? b1 : b0;
+  public static @Nullable <T extends Comparable<T>> T greater(@Nullable T b0, @Nullable T b1) {
+    if (b0 == null) {
+      return b1;
+    }
+    if (b1 == null) {
+      return b0;
+    }
+    return b0.compareTo(b1) < 0 ? b1 : b0;
   }
 
   /** GREATEST operator. */
-  public static <T extends Comparable<T>> T greatest(T b0, T b1) {
+  public static @Nullable <T extends Comparable<T>> T greatest(@Nullable T b0, @Nullable T b1) {
     return b0 == null || b1 != null && b0.compareTo(b1) < 0 ? b1 : b0;
   }
 
@@ -5362,6 +5533,30 @@ public class SqlFunctions {
   @NonDeterministic
   public static int localTime(DataContext root) {
     return timestampToTime(localTimestamp(root));
+  }
+
+  /** SQL {@code SYSTIMESTAMP} function. */
+  @NonDeterministic
+  public static long sysTimestamp(DataContext root) {
+    return DataContext.Variable.SYS_TIMESTAMP.get(root);
+  }
+
+  /** SQL {@code SYSDATE} function.
+   *
+   * <p> When the date is before 1970-01-01 00:00:00, for example: 1969-12-31 23:59:59,
+   * the timestamp will return a negative value, such as -1000. The date(days since epoch)
+   * returned by timestampToDate(-1000) is 0, so we need to additionally judge the result
+   * of timestampToTime(-1000). If its value is less than 0, we need to reduce date by 1
+   * to ensure the accuracy of date. */
+  @NonDeterministic
+  public static int sysDate(DataContext root) {
+    final long timestamp = sysTimestamp(root);
+    int date = timestampToDate(timestamp);
+    final int time = timestampToTime(timestamp);
+    if (time < 0) {
+      --date;
+    }
+    return date;
   }
 
   @NonDeterministic

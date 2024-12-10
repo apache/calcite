@@ -957,6 +957,89 @@ class RexBuilderTest {
     assertThat(inCall.getKind(), is(SqlKind.SEARCH));
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6608">[CALCITE-6608]
+   * RexBuilder#makeIn should create EQUALS instead of SEARCH for single point values</a>.
+   */
+  @Test void testMakeInReturnsEqualsForSingleLiteral() {
+    RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    RexBuilder rexBuilder = new RexBuilder(typeFactory);
+    RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    RexNode column = rexBuilder.makeInputRef(intType, 0);
+    RexLiteral literal = rexBuilder.makeLiteral(100, intType);
+    RexNode inCall = rexBuilder.makeIn(column, ImmutableList.of(literal));
+    assertThat(inCall, hasToString("=($0, 100)"));
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6608">[CALCITE-6608]
+   * RexBuilder#makeIn should create EQUALS instead of SEARCH for single point values</a>.
+   */
+  @Test void testMakeInReturnsEqualsForDuplicateLiterals() {
+    RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    RexBuilder rexBuilder = new RexBuilder(typeFactory);
+    RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    RexNode column = rexBuilder.makeInputRef(intType, 0);
+    RexLiteral literal = rexBuilder.makeLiteral(100, intType);
+    RexNode inCall = rexBuilder.makeIn(column, ImmutableList.of(literal, literal));
+    assertThat(inCall, hasToString("=($0, 100)"));
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6608">[CALCITE-6608]
+   * RexBuilder#makeIn should create EQUALS instead of SEARCH for single point values</a>.
+   */
+  @Test void testMakeInReturnsEqualsForSingleExpression() {
+    RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    RexBuilder rexBuilder = new RexBuilder(typeFactory);
+    RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    RexNode column0 = rexBuilder.makeInputRef(intType, 0);
+    RexNode plusCall =
+        rexBuilder.makeCall(SqlStdOperatorTable.PLUS,
+            rexBuilder.makeInputRef(intType, 1),
+            rexBuilder.makeInputRef(intType, 2));
+    RexNode inCall = rexBuilder.makeIn(column0, ImmutableList.of(plusCall));
+    assertThat(inCall, hasToString("=($0, +($1, $2))"));
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6608">[CALCITE-6608]
+   * RexBuilder#makeIn should create EQUALS instead of SEARCH for single point values</a>.
+   */
+  @Test void testMakeInReturnsEqualsForDuplicateExpressions() {
+    RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    RexBuilder rexBuilder = new RexBuilder(typeFactory);
+    RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    RexNode column0 = rexBuilder.makeInputRef(intType, 0);
+    RexNode plusCall =
+        rexBuilder.makeCall(SqlStdOperatorTable.PLUS,
+            rexBuilder.makeInputRef(intType, 1),
+            rexBuilder.makeInputRef(intType, 2));
+    RexNode inCall = rexBuilder.makeIn(column0, ImmutableList.of(plusCall, plusCall));
+    assertThat(inCall, hasToString("=($0, +($1, $2))"));
+  }
+
+  @Test void testMakeInReturnsOrForMultipleExpressions() {
+    RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    RexBuilder rexBuilder = new RexBuilder(typeFactory);
+    RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    RexNode column0 = rexBuilder.makeInputRef(intType, 0);
+    RexNode plusCall =
+        rexBuilder.makeCall(SqlStdOperatorTable.PLUS,
+            rexBuilder.makeInputRef(intType, 1),
+            rexBuilder.makeInputRef(intType, 2));
+    RexNode minusCall =
+        rexBuilder.makeCall(SqlStdOperatorTable.MINUS,
+            rexBuilder.makeInputRef(intType, 1),
+            rexBuilder.makeInputRef(intType, 2));
+    RexNode inCall = rexBuilder.makeIn(column0, ImmutableList.of(plusCall, minusCall));
+    assertThat(inCall, hasToString("OR(=($0, +($1, $2)), =($0, -($1, $2)))"));
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4555">[CALCITE-4555]
    * Invalid zero literal value is used for

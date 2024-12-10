@@ -31,7 +31,6 @@ import org.apache.calcite.util.DateString;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -114,7 +113,13 @@ class ArrowTranslator {
     return predicates;
   }
 
-  /** Translate a binary or unary relation. */
+  /**
+   * Translates a binary or unary relation.
+   *
+   * @param node A RexNode that always evaluates to a boolean expression.
+   *             Currently, this method is only called from translateAnd.
+   * @return The translated SQL string for the relation.
+   */
   private String translateMatch2(RexNode node) {
     switch (node.getKind()) {
     case EQUALS:
@@ -133,6 +138,15 @@ class ArrowTranslator {
       return translateUnary("isnull", (RexCall) node);
     case IS_NOT_NULL:
       return translateUnary("isnotnull", (RexCall) node);
+    case IS_NOT_TRUE:
+      return translateUnary("isnottrue", (RexCall) node);
+    case IS_NOT_FALSE:
+      return translateUnary("isnotfalse", (RexCall) node);
+    case INPUT_REF:
+      final RexInputRef inputRef = (RexInputRef) node;
+      return fieldNames.get(inputRef.getIndex()) + " istrue";
+    case NOT:
+      return translateUnary("isfalse", (RexCall) node);
     default:
       throw new UnsupportedOperationException("Unsupported operator " + node);
     }
@@ -179,7 +193,7 @@ class ArrowTranslator {
   private String translateOp2(String op, String name, RexLiteral right) {
     Object value = literalValue(right);
     String valueString = value.toString();
-    String valueType = getLiteralType(value);
+    String valueType = getLiteralType(right.getType());
 
     if (value instanceof String) {
       final RelDataTypeField field = requireNonNull(rowType.getField(name, true, false), "field");
@@ -219,20 +233,20 @@ class ArrowTranslator {
     return name + " " + op;
   }
 
-  private static String getLiteralType(Object literal) {
-    if (literal instanceof BigDecimal) {
-      BigDecimal bigDecimalLiteral = (BigDecimal) literal;
-      int scale = bigDecimalLiteral.scale();
-      if (scale == 0) {
-        return "integer";
-      } else if (scale > 0) {
-        return "float";
-      }
-    } else if (String.class.equals(literal.getClass())) {
-      return "string";
-    } else if (literal instanceof Double) {
+  private static String getLiteralType(RelDataType  type) {
+    if (type.getSqlTypeName() == SqlTypeName.DECIMAL) {
+      return "decimal" + "(" + type.getPrecision() + "," + type.getScale() + ")";
+    } else if (type.getSqlTypeName() == SqlTypeName.REAL) {
       return "float";
+    } else if (type.getSqlTypeName() == SqlTypeName.DOUBLE) {
+      return "double";
+    } else if (type.getSqlTypeName() == SqlTypeName.INTEGER) {
+      return "integer";
+    } else if (type.getSqlTypeName() == SqlTypeName.VARCHAR
+        || type.getSqlTypeName() == SqlTypeName.CHAR) {
+      return "string";
+    } else {
+      throw new UnsupportedOperationException("Unsupported type " + type);
     }
-    throw new UnsupportedOperationException("Unsupported literal " + literal);
   }
 }

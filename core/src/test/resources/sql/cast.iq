@@ -15,8 +15,57 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-!use scott
+
+# This connection uses checked arithmetic
+!use scott-checked-rounding-half-up
 !set outputformat mysql
+
+# Test cases for [CALCITE-6685] There is no support for checked arithmetic
+# https://issues.apache.org/jira/browse/CALCITE-6685
+
+select 2 * CAST(5e18 AS DECIMAL(19, 0));
+java.lang.ArithmeticException: Value 10000000000000000000 cannot be represented as a DECIMAL(19, 0)
+!error
+
+select - CAST(-2147483648 AS INT);
+Caused by: java.lang.ArithmeticException
+!error
+
+select CAST(1 AS SMALLINT) + CAST(2 AS SMALLINT) AS C;
++---+
+| C |
++---+
+| 3 |
++---+
+(1 row)
+
+!ok
+
+select CAST(127 AS TINYINT) + CAST(2 AS TINYINT) AS C;
+Caused by: java.lang.ArithmeticException: integer overflow: Value 129 does not fit in a TINYINT
+!error
+
+select -2147483648 - 1;
+Caused by: java.lang.ArithmeticException
+!error
+
+select -2147483648 / -1;
+Caused by: java.lang.ArithmeticException
+!error
+
+select -CAST(-32768 AS SMALLINT);
+Caused by: java.lang.ArithmeticException: integer overflow: Value 32768 does not fit in a SMALLINT
+!error
+
+select CAST(32767 AS SMALLINT) + CAST(2 AS SMALLINT);
+Caused by: java.lang.ArithmeticException: integer overflow: Value 32769 does not fit in a SMALLINT
+!error
+
+select 2147483647 * 2147483647;
+Caused by: java.lang.ArithmeticException
+!error
+
+!use scott
 
 # Cast a character literal to a timestamp; note: the plan does not contain CAST
 values cast('1969-07-21 12:34:56' as timestamp);
@@ -284,9 +333,9 @@ values cast(' -5 ' as double);
 
 !ok
 
-# [CALCITE-4838] Add RoundingMode in RelDataTypeSystem to specify the rounding behavior
-!use scott-rounding-half-up
+!use scott-checked-rounding-half-up
 
+# [CALCITE-4838] Add RoundingMode in RelDataTypeSystem to specify the rounding behavior
 # Test cast approximate numeric to int when rounding mode is HALF-UP
 select cast(5.5 as int),
        cast(3.5 as int),
@@ -712,7 +761,7 @@ from (values 0) as t(x);
 
 # [CALCITE-4806] Lossy CAST is incorrectly simplified
 
-!use scott-rounding-half-up
+!use scott-checked-rounding-half-up
 
 # rounding mode is HALF-UP
 select cast(5.5 as int) = 5 as value1,

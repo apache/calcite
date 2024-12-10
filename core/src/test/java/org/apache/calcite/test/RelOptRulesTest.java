@@ -89,6 +89,8 @@ import org.apache.calcite.rel.rules.PushProjector;
 import org.apache.calcite.rel.rules.ReduceExpressionsRule;
 import org.apache.calcite.rel.rules.ReduceExpressionsRule.ProjectReduceExpressionsRule;
 import org.apache.calcite.rel.rules.SingleValuesOptimizationRules;
+import org.apache.calcite.rel.rules.SortProjectTransposeRule;
+import org.apache.calcite.rel.rules.SortUnionTransposeRule;
 import org.apache.calcite.rel.rules.SpatialRules;
 import org.apache.calcite.rel.rules.UnionMergeRule;
 import org.apache.calcite.rel.rules.ValuesReduceRule;
@@ -3089,6 +3091,19 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6639">[CALCITE-6639]
+   * Optimization that pulls up predicates causes ASOF JOIN validation failures</a>. */
+  @Test void testAsofOpt() {
+    final String sql = "SELECT *\n"
+        + "FROM (VALUES (NULL, 0), (1, NULL), (1, 0), (1, 1), (1, 2), "
+        + "(1, 3), (1, 4), (2, 3), (3, 4)) AS t1(k, t)\n"
+        + "ASOF JOIN (VALUES (1, NULL), (1, 2), (1, 3), (2, 10), (2, 0)) AS t2(k, t)\n"
+        + "MATCH_CONDITION t2.t < t1.t\n"
+        + "ON t1.k = t2.k\n";
+    sql(sql).withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
+        .checkUnchanged();
+  }
+
   /** Tests to see if the final branch of union is missed. */
   @Test void testUnionMergeRule() {
     final String sql = "select * from (\n"
@@ -3133,7 +3148,10 @@ class RelOptRulesTest extends RelOptTestBase {
         + "from t1\n"
         + "where (t1.a, t1.y) in ((1, 2), (3, null), (7369, null), (7499, 30), (null, 20), (null, 5))";
     sql(sql)
-        .withRule(CoreRules.UNION_TO_VALUES)
+        .withExpand(true)
+        .withRelBuilderConfig(b -> b.withSimplifyValues(false))
+        .withRule(CoreRules.PROJECT_VALUES_MERGE,
+            CoreRules.UNION_TO_VALUES)
         .withInSubQueryThreshold(0)
         .check();
   }
@@ -3146,7 +3164,10 @@ class RelOptRulesTest extends RelOptTestBase {
         + "from t1\n"
         + "where (t1.a, t1.y) in ((cast(1.1 as int), 2), (3, null), (7369, null), (7499, 30), (null, cast(20.2 as int)), (null, 5))";
     sql(sql)
-        .withRule(CoreRules.UNION_TO_VALUES)
+        .withExpand(true)
+        .withRelBuilderConfig(b -> b.withSimplifyValues(false))
+        .withRule(CoreRules.PROJECT_VALUES_MERGE,
+            CoreRules.UNION_TO_VALUES)
         .withInSubQueryThreshold(0)
         .check();
   }
@@ -3154,7 +3175,10 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testUnionToValuesByInList3() {
     final String sql = "select * from dept where deptno in (12, 34, cast(56.4 as int))";
     sql(sql)
-        .withRule(CoreRules.UNION_TO_VALUES)
+        .withExpand(true)
+        .withRelBuilderConfig(b -> b.withSimplifyValues(false))
+        .withRule(CoreRules.PROJECT_VALUES_MERGE,
+            CoreRules.UNION_TO_VALUES)
         .withInSubQueryThreshold(0)
         .check();
   }
@@ -3162,7 +3186,10 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testUnionToValuesByInList4() {
     final String sql = "select * from dept where deptno in (12, 34, cast(56.4 as double))";
     sql(sql)
-        .withRule(CoreRules.UNION_TO_VALUES)
+        .withExpand(true)
+        .withRelBuilderConfig(b -> b.withSimplifyValues(false))
+        .withRule(CoreRules.PROJECT_VALUES_MERGE,
+            CoreRules.UNION_TO_VALUES)
         .withInSubQueryThreshold(0)
         .check();
   }
@@ -3170,7 +3197,10 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testUnionToValuesByInList5() {
     final String sql = "select deptno in (12, 34, cast(56.4 as double)) from dept";
     sql(sql)
-        .withRule(CoreRules.UNION_TO_VALUES)
+        .withExpand(true)
+        .withRelBuilderConfig(b -> b.withSimplifyValues(false))
+        .withRule(CoreRules.PROJECT_VALUES_MERGE,
+            CoreRules.UNION_TO_VALUES)
         .withInSubQueryThreshold(0)
         .check();
   }
@@ -3206,7 +3236,10 @@ class RelOptRulesTest extends RelOptTestBase {
         + "select *\n"
         + "from (values (5)) as t(y)";
     sql(sql)
-        .withRule(CoreRules.PROJECT_REMOVE, CoreRules.UNION_TO_VALUES)
+        .withRule(
+            CoreRules.PROJECT_REMOVE,
+            CoreRules.PROJECT_VALUES_MERGE,
+            CoreRules.UNION_TO_VALUES)
         .withInSubQueryThreshold(0)
         .check();
   }
@@ -3254,7 +3287,9 @@ class RelOptRulesTest extends RelOptTestBase {
         + "select *\n"
         + "from (values (5)) as t(y)";
     sql(sql)
-        .withRule(CoreRules.PROJECT_REMOVE, CoreRules.UNION_TO_VALUES)
+        .withRule(CoreRules.PROJECT_REMOVE,
+            CoreRules.PROJECT_VALUES_MERGE,
+            CoreRules.UNION_TO_VALUES)
         .withInSubQueryThreshold(0)
         .check();
   }
@@ -5022,6 +5057,52 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6650">[CALCITE-6650]
+   * Optimize the IN sub-query and SOME sub-query
+   * by Metadata RowCount</a>. */
+  @Test void testInWithNoRowSubQuery() {
+    final String sql = "select * from dept as d\n"
+        + "where deptno in (\n"
+        + "  select deptno from emp e where false)";
+    sql(sql).withSubQueryRules().check();
+  }
+
+  @Test void testNotInWithNoRowSubQuery() {
+    final String sql = "select * from dept as d\n"
+        + "where deptno not in (\n"
+        + "  select deptno from emp e where false)";
+    sql(sql).withSubQueryRules().check();
+  }
+
+  @Test void testSomeWithGreaterThanNoRowSubQuery() {
+    final String sql = "select * from dept as d\n"
+        + "where deptno > some(\n"
+        + "  select deptno from emp e where false)";
+    sql(sql).withSubQueryRules().check();
+  }
+
+  @Test void testSomeWithLessThanOrEqualNoRowSubQuery() {
+    final String sql = "select * from dept as d\n"
+        + "where deptno <= some(\n"
+        + "  select deptno from emp e where false)";
+    sql(sql).withSubQueryRules().check();
+  }
+
+  @Test void testUniqueWithNoRowSubQuery() {
+    final String sql = "select * from dept as d\n"
+        + "where unique(\n"
+        + "  select deptno from emp e where false)";
+    sql(sql).withSubQueryRules().check();
+  }
+
+  @Test void testNotUniqueWithNoRowSubQuery() {
+    final String sql = "select * from dept as d\n"
+        + "where not unique(\n"
+        + "  select deptno from emp e where false)";
+    sql(sql).withSubQueryRules().check();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4848">[CALCITE-4848]
    * Adding a HAVING condition to a query with a dynamic parameter makes the result always empty
    </a>. */
@@ -5035,6 +5116,31 @@ class RelOptRulesTest extends RelOptTestBase {
         + "GROUP BY sal HAVING sal < 1000";
     sql(sql).withPlanner(hepPlanner)
         .checkUnchanged();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6647">[CALCITE-6647]
+   * SortUnionTransposeRule should not push SORT past a UNION when SORT's fetch is DynamicParam
+   </a>. */
+  @Test void testSortWithDynamicParam() {
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(SortProjectTransposeRule.class);
+    builder.addRuleClass(SortUnionTransposeRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    hepPlanner.addRule(CoreRules.SORT_PROJECT_TRANSPOSE);
+    hepPlanner.addRule(CoreRules.SORT_UNION_TRANSPOSE);
+    final String sql = "SELECT x.sal\n"
+        + "FROM (SELECT emp1.sal\n"
+        + "      FROM (SELECT sal\n"
+        + "            from emp\n"
+        + "            LIMIT ?) AS emp1\n"
+        + "      UNION ALL\n"
+        + "      SELECT emp2.sal\n"
+        + "      FROM (SELECT sal\n"
+        + "            from emp\n"
+        + "            LIMIT ?) AS emp2) AS x\n"
+        + "LIMIT ?";
+    sql(sql).withPlanner(hepPlanner).check();
   }
 
   @Test void testReduceCasts() {
@@ -5296,6 +5402,21 @@ class RelOptRulesTest extends RelOptTestBase {
     basePullConstantTroughAggregate();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6586">[CALCITE-6586]
+   * Some Rules not firing due to RelMdPredicates returning null in VolcanoPlanner</a>. */
+  @Test void testPullConstantThroughAggregatePermutedInVolcano() {
+    sql("${sql}")
+        .withVolcanoPlanner(false, p -> {
+          p.addRule(CoreRules.AGGREGATE_PROJECT_PULL_UP_CONSTANTS);
+          p.addRule(CoreRules.PROJECT_MERGE);
+          p.addRule(EnumerableRules.ENUMERABLE_PROJECT_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_AGGREGATE_RULE);
+        })
+        .check();
+  }
+
   @Test void testPullConstantThroughAggregatePermutedConstFirst() {
     basePullConstantTroughAggregate();
   }
@@ -5324,6 +5445,25 @@ class RelOptRulesTest extends RelOptTestBase {
         .withTrim(true)
         .withRule(CoreRules.UNION_PULL_UP_CONSTANTS,
             CoreRules.PROJECT_MERGE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6586">[CALCITE-6586]
+   * Some Rules not firing due to RelMdPredicates returning null in VolcanoPlanner</a>. */
+  @Test void testPullConstantThroughUnionInVolcano() {
+    final String sql = "select 2, deptno, job from emp as e1\n"
+        + "union all\n"
+        + "select 2, deptno, job from emp as e2";
+    sql(sql)
+        .withTrim(true)
+        .withVolcanoPlanner(false, p -> {
+          p.addRule(CoreRules.UNION_PULL_UP_CONSTANTS);
+          p.addRule(CoreRules.PROJECT_MERGE);
+          p.addRule(EnumerableRules.ENUMERABLE_PROJECT_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_UNION_RULE);
+        })
         .check();
   }
 
@@ -5889,6 +6029,20 @@ class RelOptRulesTest extends RelOptTestBase {
         .withRule(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW,
             CoreRules.PROJECT_MERGE,
             CoreRules.PROJECT_WINDOW_TRANSPOSE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6632">[CALCITE-6632]
+   * Wrong optimization because window missing constants in digest</a>. */
+  @Test void testWindowMissingConstantInDigest() {
+    final String sql = "select sum(100) over (partition by deptno order by sal) as s\n"
+        + "from emp\n"
+        + "union all\n"
+        + "select sum(1000) over(partition by deptno order by sal) as s\n"
+        + "from emp\n";
+    sql(sql)
+        .withRule(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW)
         .check();
   }
 
@@ -7407,6 +7561,21 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6642">[CALCITE-6642]
+   * AggregateUnionTransposeRule throws an assertion error when creating children aggregates
+   * when one input only has a non-nullable column</a>. */
+  @Test void testAggregateUnionTransposeWithOneInputNonNullable() {
+    final String sql = "select deptno, SUM(t) from (\n"
+        + "select deptno, 1 as t from sales.emp e1\n"
+        + "union all\n"
+        + "select deptno, nullif(sal, 0) as t from sales.emp e2)\n"
+        + "group by deptno";
+    sql(sql)
+        .withRule(CoreRules.AGGREGATE_UNION_TRANSPOSE)
+        .check();
+  }
+
   /** If all inputs to UNION are already unique, AggregateUnionTransposeRule is
    * a no-op. */
   @Test void testAggregateUnionTransposeWithAllInputsUnique() {
@@ -7566,6 +7735,25 @@ class RelOptRulesTest extends RelOptTestBase {
         + "where deptno = 10\n"
         + "group by deptno, sal";
     sql(sql).withRule(CoreRules.AGGREGATE_ANY_PULL_UP_CONSTANTS)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6586">[CALCITE-6586]
+   * Some Rules not firing due to RelMdPredicates returning null in VolcanoPlanner</a>. */
+  @Test void testAggregateConstantKeyRuleInVolcano() {
+    final String sql = "select count(*) as c\n"
+        + "from sales.emp\n"
+        + "where deptno = 10\n"
+        + "group by deptno, sal";
+    sql(sql)
+        .withVolcanoPlanner(false, p -> {
+          p.addRule(CoreRules.AGGREGATE_ANY_PULL_UP_CONSTANTS);
+          p.addRule(EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_AGGREGATE_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_FILTER_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_PROJECT_RULE);
+        })
         .check();
   }
 

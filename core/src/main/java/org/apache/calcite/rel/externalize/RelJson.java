@@ -519,7 +519,7 @@ public class RelJson {
   }
 
   /** Serializes a {@link Range} that can be deserialized using
-   * {@link RelJson#rangeFromJson(List)}. */
+   * {@link RelJson#rangeFromJson(List, RelDataType)}. */
   public <C extends Comparable<C>> List<String> toJson(Range<C> range) {
     return RangeSets.map(range, RangeToJsonConverter.instance());
   }
@@ -827,11 +827,18 @@ public class RelJson {
         final RelDataType type = toType(typeFactory, get(map, "type"));
         if (literal instanceof Map
             && ((Map<?, ?>) literal).containsKey("rangeSet")) {
-          Sarg sarg = sargFromJson((Map) literal);
+          Sarg sarg = sargFromJson((Map) literal, type);
           return rexBuilder.makeSearchArgumentLiteral(sarg, type);
         }
-        if (type.getSqlTypeName() == SqlTypeName.SYMBOL) {
+        SqlTypeName sqlTypeName = type.getSqlTypeName();
+        if (sqlTypeName == SqlTypeName.SYMBOL) {
           literal = RelEnumTypes.toEnum((String) literal);
+        }
+        if (sqlTypeName == SqlTypeName.TIMESTAMP
+            || sqlTypeName == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
+          if (literal instanceof Integer) {
+            literal = ((Integer) literal).longValue();
+          }
         }
         return rexBuilder.makeLiteral(literal, type);
       }
@@ -842,7 +849,7 @@ public class RelJson {
           return rexBuilder.makeNullLiteral(type);
         }
         final RelDataType type = toType(typeFactory, get(map, "type"));
-        Sarg sarg = sargFromJson((Map) sargObject);
+        Sarg sarg = sargFromJson((Map) sargObject, type);
         return rexBuilder.makeSearchArgumentLiteral(sarg, type);
       }
       if (map.containsKey("dynamicParam")) {
@@ -870,6 +877,7 @@ public class RelJson {
     }
   }
 
+  @Deprecated
   /** Converts a JSON object to a {@code Sarg}.
    *
    * <p>For example,
@@ -886,6 +894,16 @@ public class RelJson {
         RelJson.<C>rangeSetFromJson(rangeSet));
   }
 
+  public static <C extends Comparable<C>> Sarg<C> sargFromJson(
+      Map<String, Object> map, RelDataType type) {
+    final String nullAs = requireNonNull((String) map.get("nullAs"), "nullAs");
+    final List<List<String>> rangeSet =
+        requireNonNull((List<List<String>>) map.get("rangeSet"), "rangeSet");
+    return Sarg.of(RelEnumTypes.toEnum(nullAs),
+        RelJson.<C>rangeSetFromJson(rangeSet, type));
+  }
+
+  @Deprecated
   /** Converts a JSON list to a {@link RangeSet}. */
   public static <C extends Comparable<C>> RangeSet<C> rangeSetFromJson(
       List<List<String>> rangeSetsJson) {
@@ -898,6 +916,19 @@ public class RelJson {
     return builder.build();
   }
 
+  /** Converts a JSON list to a {@link RangeSet} with supplied value typing. */
+  public static <C extends Comparable<C>> RangeSet<C> rangeSetFromJson(
+      List<List<String>> rangeSetsJson, RelDataType type) {
+    final ImmutableRangeSet.Builder<C> builder = ImmutableRangeSet.builder();
+    try {
+      rangeSetsJson.forEach(list -> builder.add(rangeFromJson(list, type)));
+    } catch (Exception e) {
+      throw new RuntimeException("Error creating RangeSet from JSON: ", e);
+    }
+    return builder.build();
+  }
+
+  @Deprecated
   /** Creates a {@link Range} from a JSON object.
    *
    * <p>The JSON object is as serialized using {@link RelJson#toJson(Range)},
@@ -936,7 +967,46 @@ public class RelJson {
     }
   }
 
+  /** Creates a {@link Range} from a JSON object.
+   *
+   * <p>The JSON object is as serialized using {@link RelJson#toJson(Range)},
+   * e.g. {@code ["[", ")", 10, "-"]}.
+   *
+   * @see RangeToJsonConverter */
+  public static <C extends Comparable<C>> Range<C> rangeFromJson(
+      List<String> list, RelDataType type) {
+    switch (list.get(0)) {
+    case "all":
+      return Range.all();
+    case "atLeast":
+      return Range.atLeast(rangeEndPointFromJson(list.get(1), type));
+    case "atMost":
+      return Range.atMost(rangeEndPointFromJson(list.get(1), type));
+    case "greaterThan":
+      return Range.greaterThan(rangeEndPointFromJson(list.get(1), type));
+    case "lessThan":
+      return Range.lessThan(rangeEndPointFromJson(list.get(1), type));
+    case "singleton":
+      return Range.singleton(rangeEndPointFromJson(list.get(1), type));
+    case "closed":
+      return Range.closed(rangeEndPointFromJson(list.get(1), type),
+          rangeEndPointFromJson(list.get(2), type));
+    case "closedOpen":
+      return Range.closedOpen(rangeEndPointFromJson(list.get(1)),
+          rangeEndPointFromJson(list.get(2), type));
+    case "openClosed":
+      return Range.openClosed(rangeEndPointFromJson(list.get(1)),
+          rangeEndPointFromJson(list.get(2), type));
+    case "open":
+      return Range.open(rangeEndPointFromJson(list.get(1), type),
+          rangeEndPointFromJson(list.get(2), type));
+    default:
+      throw new AssertionError("unknown range type " + list.get(0));
+    }
+  }
+
   @SuppressWarnings({"rawtypes", "unchecked"})
+  @Deprecated
   private static <C extends Comparable<C>> C rangeEndPointFromJson(Object o) {
     Exception e = null;
     for (Class clsType : VALUE_CLASSES) {
@@ -949,6 +1019,42 @@ public class RelJson {
     throw new RuntimeException(
         "Error deserializing range endpoint (did not find compatible type): ",
         e);
+  }
+
+  private static <C extends Comparable<C>> C rangeEndPointFromJson(Object o, RelDataType type) {
+    Exception e;
+    try {
+      Class clsType = determineRangeEndpointValueClass(type);
+      return (C) OBJECT_MAPPER.readValue((String) o, clsType);
+    } catch (JsonProcessingException ex) {
+      e = ex;
+    }
+    throw new RuntimeException(
+        "Error deserializing range endpoint (did not find compatible type): ",
+        e);
+  }
+
+  private static Class determineRangeEndpointValueClass(RelDataType type) {
+    SqlTypeName typeName = RexLiteral.strictTypeName(type);
+    switch (typeName) {
+    case DECIMAL:
+      return BigDecimal.class;
+    case DOUBLE:
+      return Double.class;
+    case CHAR:
+      return NlsString.class;
+    case BOOLEAN:
+      return Boolean.class;
+    case TIMESTAMP:
+      return TimestampString.class;
+    case DATE:
+      return DateString.class;
+    case TIME:
+      return TimeString.class;
+    default:
+      throw new RuntimeException(
+          "Error deserializing range endpoint (did not find compatible type)");
+    }
   }
 
   private void addRexFieldCollationList(List<RexFieldCollation> list,

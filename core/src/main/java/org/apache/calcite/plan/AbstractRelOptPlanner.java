@@ -21,6 +21,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexExecutor;
+import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.util.CancelFlag;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -85,6 +86,8 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
   protected final Context context;
 
   private @Nullable RexExecutor executor;
+
+  private @Nullable RelDecorrelator decorrelator;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -288,6 +291,17 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
 
   @Override public @Nullable RexExecutor getExecutor() {
     return executor;
+  }
+
+  @Override public void setDecorrelator(@Nullable RelDecorrelator decorrelator) {
+    this.decorrelator = decorrelator;
+  }
+
+  @Override public RelDecorrelator getDecorrelator() {
+    if (decorrelator == null) {
+      throw new IllegalStateException("RelDecorrelator has not been set");
+    }
+    return decorrelator;
   }
 
   @Override public void onCopy(RelNode rel, RelNode newRel) {

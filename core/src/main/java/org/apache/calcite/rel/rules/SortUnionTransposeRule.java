@@ -23,6 +23,7 @@ import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 import org.immutables.value.Value;
@@ -66,11 +67,13 @@ public class SortUnionTransposeRule
   @Override public boolean matches(RelOptRuleCall call) {
     final Sort sort = call.rel(0);
     final Union union = call.rel(1);
-    // We only apply this rule if Union.all is true and Sort.offset is null.
+    // We only apply this rule if Union.all is true, Sort.offset is null and Sort.fetch is not
+    // a dynamic param.
     // There is a flag indicating if this rule should be applied when
     // Sort.fetch is null.
     return union.all
         && sort.offset == null
+        && !(sort.fetch instanceof RexDynamicParam)
         && (config.matchNullFetch() || sort.fetch != null);
   }
 

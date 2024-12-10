@@ -576,6 +576,21 @@ public class JdbcTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4590">[CALCITE-4590]
+   * Incorrect query result with fixed-length string</a>. */
+  @Test void testTrimLiteral() {
+    CalciteAssert.that()
+        .query("with t(x, y) as (values (1, 'a'), (2, 'abc'))"
+            + "select * from t where y = 'a'")
+        .returns("X=1; Y=a  \n");
+    CalciteAssert.that()
+        .query("with t(x, y) as (values (1, 'a'), (2, 'abc'))"
+            + "select * from t where y = 'a' or y = 'abc'")
+        .returns("X=1; Y=a  \n"
+            + "X=2; Y=abc\n");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3423">[CALCITE-3423]
    * Support using CAST operation and BOOLEAN type value in table macro</a>. */
   @Test void testTableMacroWithCastOrBoolean() throws SQLException {
@@ -3053,32 +3068,40 @@ public class JdbcTest {
     final String extra;
     switch (format) {
     case "text":
-      expected = "EnumerableAggregate(group=[{0, 3}])\n"
-          + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[10], expr#3=['SameName'], expr#4=[CAST($t1):INTEGER NOT NULL], expr#5=[=($t4, $t2)], proj#0..3=[{exprs}], $condition=[$t5])\n"
-          + "    EnumerableTableScan(table=[[SALES, EMPS]])\n\n";
+      expected = "EnumerableCalc(expr#0=[{inputs}], expr#1=['SameName'], proj#0..1=[{exprs}])\n"
+          + "  EnumerableAggregate(group=[{0}])\n"
+          + "    EnumerableCalc(expr#0..1=[{inputs}], expr#2=[CAST($t1):INTEGER NOT NULL], expr#3=[10], expr#4=[=($t2, $t3)], proj#0..1=[{exprs}], $condition=[$t4])\n"
+          + "      EnumerableTableScan(table=[[SALES, EMPS]])\n\n";
       extra = "";
       break;
     case "dot":
       expected = "PLAN=digraph {\n"
+          + "\"EnumerableAggregate\\n"
+          + "group = {0}\\n"
+          + "\" -> \"EnumerableCalc\\n"
+          + "expr#0 = {inputs}\\n"
+          + "expr#1 = 'SameName'\\n"
+          + "proj#0..1 = {exprs}\\n"
+          + "\" [label=\"0\"]\n"
           + "\"EnumerableCalc\\n"
           + "expr#0..1 = {inputs}\\n"
-          + "expr#2 = 10\\n"
-          + "expr#3 = 'SameName'\\n"
-          + "expr#4 = CAST($t1):I\\n"
+          + "expr#2 = CAST($t1):I\\n"
           + "NTEGER NOT NULL\\n"
+          + "expr#3 = 10\\n"
+          + "expr#4 = =($t2, $t3)\\n"
           + "...\" -> \"EnumerableAggregate\\n"
-          + "group = {0, 3}\\n"
+          + "group = {0}\\n"
           + "\" [label=\"0\"]\n"
           + "\"EnumerableTableScan\\n"
           + "table = [SALES, EMPS\\n]\\n"
           + "\" -> \"EnumerableCalc\\n"
           + "expr#0..1 = {inputs}\\n"
-          + "expr#2 = 10\\n"
-          + "expr#3 = 'SameName'\\n"
-          + "expr#4 = CAST($t1):I\\nNTEGER NOT NULL\\n"
+          + "expr#2 = CAST($t1):I\\n"
+          + "NTEGER NOT NULL\\n"
+          + "expr#3 = 10\\n"
+          + "expr#4 = =($t2, $t3)\\n"
           + "...\" [label=\"0\"]\n"
-          + "}\n"
-          + "\n";
+          + "}\n\n";
       extra = " as dot ";
       break;
     default:
@@ -3176,12 +3199,13 @@ public class JdbcTest {
         .enable(CalciteAssert.DB != CalciteAssert.DatabaseInstance.ORACLE)
         .explainContains(""
             + "EnumerableAggregate(group=[{0}], m0=[COUNT($1)])\n"
-            + "  EnumerableAggregate(group=[{1, 3}])\n"
-            + "    EnumerableHashJoin(condition=[=($0, $2)], joinType=[inner])\n"
-            + "      EnumerableCalc(expr#0..9=[{inputs}], expr#10=[CAST($t4):INTEGER], expr#11=[1997], expr#12=[=($t10, $t11)], time_id=[$t0], the_year=[$t4], $condition=[$t12])\n"
-            + "        EnumerableTableScan(table=[[foodmart2, time_by_day]])\n"
-            + "      EnumerableCalc(expr#0..7=[{inputs}], time_id=[$t1], unit_sales=[$t7])\n"
-            + "        EnumerableTableScan(table=[[foodmart2, sales_fact_1997]])")
+            + "  EnumerableCalc(expr#0=[{inputs}], expr#1=[1997:SMALLINT], expr#2=[CAST($t1):SMALLINT], c0=[$t2], unit_sales=[$t0])\n"
+            + "    EnumerableAggregate(group=[{1}])\n"
+            + "      EnumerableHashJoin(condition=[=($0, $2)], joinType=[semi])\n"
+            + "        EnumerableCalc(expr#0..7=[{inputs}], time_id=[$t1], unit_sales=[$t7])\n"
+            + "          EnumerableTableScan(table=[[foodmart2, sales_fact_1997]])\n"
+            + "        EnumerableCalc(expr#0..9=[{inputs}], expr#10=[CAST($t4):INTEGER], expr#11=[1997], expr#12=[=($t10, $t11)], time_id=[$t0], the_year=[$t4], $condition=[$t12])\n"
+            + "          EnumerableTableScan(table=[[foodmart2, time_by_day]])")
         .returns("c0=1997; m0=6\n");
   }
 
@@ -4123,7 +4147,7 @@ public class JdbcTest {
             "[deptno INTEGER NOT NULL, empid INTEGER NOT NULL, S REAL, FIVE INTEGER NOT NULL, M REAL, C BIGINT NOT NULL]")
         .explainContains(""
             + "EnumerableCalc(expr#0..7=[{inputs}], expr#8=[0:BIGINT], expr#9=[>($t4, $t8)], expr#10=[null:JavaType(class java.lang.Float)], expr#11=[CASE($t9, $t5, $t10)], expr#12=[5], deptno=[$t1], empid=[$t0], S=[$t11], FIVE=[$t12], M=[$t6], C=[$t7])\n"
-            + "  EnumerableWindow(window#0=[window(partition {1} order by [0] rows between $4 PRECEDING and CURRENT ROW aggs [COUNT($3), $SUM0($3), MIN($2), COUNT()])])\n"
+            + "  EnumerableWindow(window#0=[window(partition {1} order by [0] rows between $4 PRECEDING and CURRENT ROW aggs [COUNT($3), $SUM0($3), MIN($2), COUNT()])], constants=[[1]])\n"
             + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[+($t3, $t0)], proj#0..1=[{exprs}], salary=[$t3], $3=[$t5])\n"
             + "      EnumerableTableScan(table=[[hr, emps]])\n")
         .returnsUnordered(
@@ -5017,7 +5041,7 @@ public class JdbcTest {
             + "group by grouping sets (deptno, deptno, deptno, (), ())\n"
             + "having group_id() > 0")
         .explainContains("EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1], expr#4=[+($t1, $t3)], "
-            + "expr#5=[0], expr#6=[>($t1, $t5)], DEPTNO=[$t0], G=[$t4], C=[$t2], $condition=[$t6])\n"
+            + "expr#5=[0:BIGINT], expr#6=[>($t1, $t5)], DEPTNO=[$t0], G=[$t4], C=[$t2], $condition=[$t6])\n"
             + "  EnumerableUnion(all=[true])\n"
             + "    EnumerableCalc(expr#0..1=[{inputs}], expr#2=[0:BIGINT], DEPTNO=[$t0], $f1=[$t2], C=[$t1])\n"
             + "      EnumerableAggregate(group=[{7}], groups=[[{7}, {}]], C=[COUNT()])\n"

@@ -405,7 +405,8 @@ public class RelMetadataTest {
         .assertColumnOriginIsEmpty();
   }
 
-  @Test void testColumnOriginsUnion() {
+  @Test @Disabled("Plan contains casts, which inhibit metadata propagation")
+  void testColumnOriginsUnion() {
     sql("select name from dept union all select ename from emp")
         .assertColumnOriginDouble("DEPT", "NAME", "EMP", "ENAME", false);
   }
@@ -1448,6 +1449,17 @@ public class RelMetadataTest {
         .withCatalogReaderFactory(factory)
         .assertThatUniqueKeysAre();
 
+    sql("select key1, key1, key2, value1 from s.composite_keys_table")
+        .withCatalogReaderFactory(factory)
+        .assertThatUniqueKeysAre(bitSetOf(0, 2), bitSetOf(1, 2));
+    sql("select key1, key2, key2, value1 from s.composite_keys_table")
+        .withCatalogReaderFactory(factory)
+        .assertThatUniqueKeysAre(bitSetOf(0, 1), bitSetOf(0, 2));
+
+    sql("select key1, key1, key2, key2, value1 from s.composite_keys_table")
+        .withCatalogReaderFactory(factory)
+        .assertThatUniqueKeysAre(bitSetOf(0, 2), bitSetOf(0, 3), bitSetOf(1, 2), bitSetOf(1, 3));
+
     // no column of composite keys
     sql("select value1 from s.composite_keys_table")
         .withCatalogReaderFactory(factory)
@@ -1640,7 +1652,7 @@ public class RelMetadataTest {
   @Test void calcMultipleColumnsAreUniqueCalc() {
     sql("select empno, empno from emp")
         .convertingProjectAsCalc()
-        .assertThatUniqueKeysAre(bitSetOf(0), bitSetOf(1), bitSetOf(0, 1));
+        .assertThatUniqueKeysAre(bitSetOf(0), bitSetOf(1));
   }
 
   @Test void calcMultipleColumnsAreUniqueCalc2() {
@@ -1655,7 +1667,7 @@ public class RelMetadataTest {
         + " from emp a1 join emp a2\n"
         + " on (a1.empno=a2.empno)")
         .convertingProjectAsCalc()
-        .assertThatUniqueKeysAre(bitSetOf(0), bitSetOf(1), bitSetOf(1, 2), bitSetOf(2));
+        .assertThatUniqueKeysAre(bitSetOf(0), bitSetOf(1), bitSetOf(2));
   }
 
   @Test void calcColumnsAreNonUniqueCalc() {
@@ -2594,6 +2606,82 @@ public class RelMetadataTest {
         anyOf(sortsAs("[=($0, 1), OR(AND(=($1, 2), =($2, 3)), =($1, 4))]"),
             sortsAs("[=($0, 1), OR(AND(=($2, 3), =($1, 2)), =($1, 4))]")));
 
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6592">[CALCITE-6592]
+   * Add test for RelMdPredicates pull up predicate from UNION
+   * when it's input predicates include NULL VALUE</a>. */
+  @Test void testPullUpPredicatesFromUnionWithValues1() {
+    final String sql = "select cast(null as integer) as a\n"
+        + "union all\n"
+        + "select 5 as a";
+    final Union rel =
+        (Union) sql(sql).withRelBuilderConfig(c -> c.withSimplifyValues(false)).toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    RelOptPredicateList inputSet = mq.getPulledUpPredicates(rel);
+    ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
+    assertThat(pulledUpPredicates, sortsAs("[SEARCH($0, Sarg[5; NULL AS TRUE])]"));
+  }
+
+  @Test void testPullUpPredicatesFromUnionWithValues2() {
+    final String sql = "select 6 as a\n"
+        + "union all\n"
+        + "select 5 as a";
+    final Union rel =
+        (Union) sql(sql).withRelBuilderConfig(c -> c.withSimplifyValues(false)).toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    RelOptPredicateList inputSet = mq.getPulledUpPredicates(rel);
+    ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
+    assertThat(pulledUpPredicates, sortsAs("[SEARCH($0, Sarg[5, 6])]"));
+  }
+
+  @Test void testPullUpPredicatesFromUnionWithValues3() {
+    final String sql = "select cast(null as integer) as a, 6 as b, 7 as c\n"
+        + "union all\n"
+        + "select 5 as a, cast(null as integer) as b, 7 as c";
+    final Union rel =
+        (Union) sql(sql).withRelBuilderConfig(c -> c.withSimplifyValues(false)).toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    RelOptPredicateList inputSet = mq.getPulledUpPredicates(rel);
+    ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
+    assertThat(pulledUpPredicates,
+        anyOf(sortsAs("[=($2, 7), OR(AND(IS NULL($0), IS NULL($1)), AND(=($0, 5), =($1, 6)))]"),
+            sortsAs("[=($2, 7), OR(AND(=($1, 6), IS NULL($0)), AND(=($0, 5), IS NULL($1)))]"),
+            sortsAs("[=($2, 7), OR(AND(IS NULL($0), =($1, 6)), AND(=($0, 5), IS NULL($1)))]")));
+  }
+
+  @Test void testPullUpPredicatesFromUnionWithProject() {
+    final String sql = "select null from emp where empno = 1\n"
+        + "union all\n"
+        + "select null from emp where comm = 2";
+    final Union rel =
+        (Union) sql(sql).withRelBuilderConfig(c -> c.withSimplifyValues(false)).toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    RelOptPredicateList inputSet = mq.getPulledUpPredicates(rel);
+    ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
+    assertThat(pulledUpPredicates,
+        sortsAs("[IS NULL($0)]"));
+  }
+
+  @Test void testPullUpPredicatesFromUnionWithProject2() {
+    final String sql = "select empno = null from emp where comm = 2\n"
+        + "union all\n"
+        + "select comm = 2 from emp where comm = 2";
+    final Union rel =
+        (Union) sql(sql).withRelBuilderConfig(c -> c.withSimplifyValues(false)).toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    RelOptPredicateList inputSet = mq.getPulledUpPredicates(rel);
+    ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
+    assertThat(pulledUpPredicates, sortsAs("[]"));
+  }
+
+  @Test void testPullUpPredicatesFromProject() {
+    final RelNode rel = sql(""
+        + "select null, comm = null from emp\n").toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    assertThat(mq.getPulledUpPredicates(rel).pulledUpPredicates,
+        sortsAs("[IS NULL($0), IS NULL($1)]"));
   }
 
   /** Test case for
@@ -4110,9 +4198,10 @@ public class RelMetadataTest {
       // Register "T1" table.
       final MockTable t1 =
           MockTable.create(this, tSchema, "composite_keys_table", false, 7.0, null);
-      t1.addColumn("key1", typeFactory.createSqlType(SqlTypeName.VARCHAR), true);
-      t1.addColumn("key2", typeFactory.createSqlType(SqlTypeName.VARCHAR), true);
+      t1.addColumn("key1", typeFactory.createSqlType(SqlTypeName.VARCHAR));
+      t1.addColumn("key2", typeFactory.createSqlType(SqlTypeName.VARCHAR));
       t1.addColumn("value1", typeFactory.createSqlType(SqlTypeName.INTEGER));
+      t1.addKey("key1", "key2");
       addSizeHandler(t1);
       addDistinctRowcountHandler(t1);
       addUniqueKeyHandler(t1);

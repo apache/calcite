@@ -421,14 +421,14 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       return false;
     }
 
+    final boolean isTransFormRule = rule instanceof TransformationRule;
     // Each of this rule's operands is an 'entry point' for a rule call.
     // Register each operand against all concrete sub-classes that could match
     // it.
     for (RelOptRuleOperand operand : rule.getOperands()) {
       for (Class<? extends RelNode> subClass
           : subClasses(operand.getMatchedClass())) {
-        if (PhysicalNode.class.isAssignableFrom(subClass)
-            && rule instanceof TransformationRule) {
+        if (isTransFormRule && PhysicalNode.class.isAssignableFrom(subClass)) {
           continue;
         }
         classOperands.put(subClass, operand);

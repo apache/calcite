@@ -127,10 +127,12 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
 import org.apiguardian.api.API;
+import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 import org.checkerframework.checker.nullness.qual.KeyFor;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
+import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 import org.checkerframework.dataflow.qual.Pure;
 import org.slf4j.Logger;
 
@@ -1957,7 +1959,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   @Override public @Nullable SqlCall makeNullaryCall(SqlIdentifier id) {
-    if (id.names.size() == 1 && !id.isComponentQuoted(0)) {
+    if (!id.isComponentQuoted(id.names.size() - 1)) {
       final List<SqlOperator> list = new ArrayList<>();
       opTab.lookupOperatorOverloads(id, null, SqlSyntax.FUNCTION, list,
           catalogReader.nameMatcher());
@@ -3855,6 +3857,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         boolean rightFound = false;
         // The two sides of the comparison must be from different tables
         for (SqlNode operand : call.getOperandList()) {
+          if (operand instanceof SqlBasicCall) {
+            SqlBasicCall basicCall = (SqlBasicCall) operand;
+            if (basicCall.getKind() == SqlKind.CAST) {
+              // Allow casts applied to identifiers
+              operand = basicCall.operand(0);
+            }
+          }
           if (!(operand instanceof SqlIdentifier)) {
             throw newValidationError(call, this.exception);
           }
@@ -3889,11 +3898,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   /**
    * Shuttle which determines whether an expression is a simple conjunction
-   * of equalities. */
+   * of equalities. Each equality may involve a cast */
   private static class ConjunctionOfEqualities extends SqlShuttle {
     boolean illegal = false;
 
-    // Check an AND node.  Children can be AND nodes or EQUAL nodes.
+    // Check an AND node. Children can be AND nodes or EQUAL nodes.
     void checkAnd(SqlCall call) {
       // This doesn't seem to use the visitor pattern,
       // because we recurse explicitly on the tree structure.
@@ -3911,13 +3920,22 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
     }
 
-    @Override public @Nullable SqlNode visit(final org.apache.calcite.sql.SqlCall call) {
+    @Override public @Nullable SqlNode visit(final SqlCall call) {
       SqlKind kind = call.getKind();
-      if (kind != SqlKind.AND && kind != SqlKind.EQUALS) {
+      if (kind != SqlKind.AND && kind != SqlKind.EQUALS && kind != SqlKind.CAST) {
         illegal = true;
+        return null;
       }
       if (kind == SqlKind.AND) {
         this.checkAnd(call);
+      }
+      if (kind == SqlKind.CAST) {
+        // Cast must be applied directly to a column
+        SqlNode operand = call.operand(0);
+        if (! (operand instanceof SqlIdentifier)) {
+          illegal = true;
+          return null;
+        }
       }
       return super.visit(call);
     }
@@ -4084,7 +4102,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     validateWhereClause(select);
     validateGroupClause(select);
-    validateHavingClause(select);
     validateWindowClause(select);
     validateQualifyClause(select);
     handleOffsetFetch(select.getOffset(), select.getFetch());
@@ -4095,6 +4112,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final RelDataType rowType =
         validateSelectList(selectItems, select, targetRowType);
     ns.setType(rowType);
+    validateHavingClause(select);
 
     // Deduce which columns must be filtered.
     ns.mustFilterFields = ImmutableBitSet.of();
@@ -4979,8 +4997,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (SqlUtil.containsCall(having, call -> call.getOperator() instanceof SqlOverOperator)) {
       throw newValidationError(originalHaving, RESOURCE.windowInHavingNotAllowed());
     }
-    havingScope.checkAggregateExpr(having, true);
     inferUnknownTypes(booleanType, havingScope, having);
+    havingScope.checkAggregateExpr(having, true);
     having.validate(this, havingScope);
     final RelDataType type = deriveType(havingScope, having);
     if (!SqlTypeUtil.inBooleanFamily(type)) {
@@ -7286,6 +7304,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final SqlSelect select;
     final SqlNode root;
     final Clause clause;
+    // Retain only expandable aliases or ordinals to prevent their expansion in a SQL call expr.
+    final Set<SqlNode> aliasOrdinalExpandSet = Sets.newIdentityHashSet();
 
     ExtendedExpander(SqlValidatorImpl validator, SqlValidatorScope scope,
         SqlSelect select, SqlNode root, Clause clause) {
@@ -7293,6 +7313,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       this.select = select;
       this.root = root;
       this.clause = clause;
+      if (clause == Clause.GROUP_BY) {
+        addExpandableExpressions();
+      }
     }
 
     @Override public @Nullable SqlNode visit(SqlIdentifier id) {
@@ -7301,7 +7324,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
 
       final boolean replaceAliases = clause.shouldReplaceAliases(validator.config);
-      if (!replaceAliases) {
+      if (!replaceAliases || (clause == Clause.GROUP_BY && !aliasOrdinalExpandSet.contains(id))) {
         final SelectScope scope = validator.getRawSelectScopeNonNull(select);
         SqlNode node = expandCommonColumn(select, id, scope, validator);
         if (node != id) {
@@ -7352,24 +7375,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           || !validator.config().conformance().isGroupByOrdinal()) {
         return super.visit(literal);
       }
-      boolean isOrdinalLiteral = literal == root;
-      switch (root.getKind()) {
-      case GROUPING_SETS:
-      case ROLLUP:
-      case CUBE:
-        if (root instanceof SqlBasicCall) {
-          List<SqlNode> operandList = ((SqlBasicCall) root).getOperandList();
-          for (SqlNode node : operandList) {
-            if (node.equals(literal)) {
-              isOrdinalLiteral = true;
-              break;
-            }
-          }
-        }
-        break;
-      default:
-        break;
-      }
+      boolean isOrdinalLiteral = aliasOrdinalExpandSet.contains(literal);
       if (isOrdinalLiteral) {
         switch (literal.getTypeName()) {
         case DECIMAL:
@@ -7393,6 +7399,49 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
 
       return super.visit(literal);
+    }
+
+    /**
+     * Add all possible expandable 'group by' expression to set, which is
+     * used to check whether expr could be expanded as alias or ordinal.
+     */
+    @RequiresNonNull({"root"})
+    private void addExpandableExpressions(@UnknownInitialization ExtendedExpander this) {
+      switch (root.getKind()) {
+      case IDENTIFIER:
+      case LITERAL:
+        aliasOrdinalExpandSet.add(root);
+        break;
+      case GROUPING_SETS:
+      case ROLLUP:
+      case CUBE:
+        if (root instanceof SqlBasicCall) {
+          List<SqlNode> operandList = ((SqlBasicCall) root).getOperandList();
+          for (SqlNode sqlNode : operandList) {
+            addIdentifierOrdinal2ExpandSet(sqlNode);
+          }
+        }
+        break;
+      default:
+        break;
+      }
+    }
+
+    /**
+     * Identifier or literal in grouping sets, rollup, cube will be eligible for alias.
+     *
+     * @param sqlNode expression within grouping sets, rollup, cube
+     */
+    private void addIdentifierOrdinal2ExpandSet(@UnknownInitialization ExtendedExpander this,
+        SqlNode sqlNode) {
+      if (sqlNode.getKind() == SqlKind.ROW) {
+        List<SqlNode> rowOperandList = ((SqlCall) sqlNode).getOperandList();
+        for (SqlNode node : rowOperandList) {
+          addIdentifierOrdinal2ExpandSet(node);
+        }
+      } else if (sqlNode.getKind() == SqlKind.IDENTIFIER || sqlNode.getKind() == SqlKind.LITERAL) {
+        aliasOrdinalExpandSet.add(sqlNode);
+      }
     }
 
     /**

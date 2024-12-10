@@ -478,6 +478,11 @@ public class SqlDialect {
     writer.literal(literal.toString());
   }
 
+  public void unparseNumericLiteral(SqlWriter writer,
+      String value, int leftPrec, int rightPrec) {
+    writer.literal(value);
+  }
+
   public void unparseSqlDatetimeArithmetic(SqlWriter writer,
       SqlCall call, SqlKind sqlKind, int leftPrec, int rightPrec) {
     final SqlWriter.Frame frame = writer.startList("(", ")");
@@ -821,6 +826,10 @@ public class SqlDialect {
     case PLUS:
     case ROW:
     case TIMES:
+    case CHECKED_PLUS:
+    case CHECKED_TIMES:
+    case CHECKED_MINUS:
+    case CHECKED_DIVIDE:
       return true;
     default:
       return BUILT_IN_OPERATORS_LIST.contains(operator);
@@ -1000,6 +1009,38 @@ public class SqlDialect {
    * @param fetch Number of rows to fetch, or null
    */
   public void unparseTopN(SqlWriter writer, @Nullable SqlNode offset, @Nullable SqlNode fetch) {
+  }
+
+  public void unparseSqlSetOption(SqlWriter writer,
+      int leftPrec, int rightPrec, SqlSetOption option) {
+    String scope = option.getScope();
+    if (scope != null) {
+      writer.keyword("ALTER");
+      writer.keyword(scope);
+    }
+
+    SqlNode value = option.getValue();
+    if (value != null) {
+      writer.keyword("SET");
+    } else {
+      writer.keyword("RESET");
+    }
+
+    final SqlWriter.Frame frame =
+        writer.startList(SqlWriter.FrameTypeEnum.SIMPLE);
+    SqlNode name = option.name();
+    if (name.getKind() == SqlKind.IDENTIFIER) {
+      name.unparse(writer, leftPrec, rightPrec);
+    } else {
+      new SqlIdentifier(name.toSqlString(this).getSql(), name.getParserPosition())
+          .unparse(writer, leftPrec, rightPrec);
+    }
+
+    if (value != null) {
+      writer.sep("=");
+      value.unparse(writer, leftPrec, rightPrec);
+    }
+    writer.endList(frame);
   }
 
   /** Unparses offset/fetch using ANSI standard "OFFSET offset ROWS FETCH NEXT

@@ -448,6 +448,13 @@ public abstract class ReturnTypes {
       CHAR.andThen(SqlTypeTransforms.FORCE_NULLABLE);
 
   /**
+   * Type-inference strategy whereby the result type of a call is
+   * CHAR(1), nullable if any argument is nullable.
+   */
+  public static final SqlReturnTypeInference CHAR_NULLABLE_IF_ARGS_NULLABLE =
+      CHAR.andThen(SqlTypeTransforms.TO_NULLABLE);
+
+  /**
    * Type-inference strategy whereby the result type of a call is a TINYINT.
    */
   public static final SqlReturnTypeInference TINYINT =
@@ -533,6 +540,13 @@ public abstract class ReturnTypes {
       VARCHAR.andThen(SqlTypeTransforms.TO_NULLABLE);
 
   /**
+   * Type-inference strategy whereby the result type of a call is a nullable
+   * VARCHAR.
+   */
+  public static final SqlReturnTypeInference VARCHAR_FORCE_NULLABLE =
+      VARCHAR.andThen(SqlTypeTransforms.FORCE_NULLABLE);
+
+  /**
    * Type-inference strategy that always returns "VARBINARY".
    */
   public static final SqlReturnTypeInference VARBINARY =
@@ -544,6 +558,13 @@ public abstract class ReturnTypes {
    */
   public static final SqlReturnTypeInference VARBINARY_NULLABLE =
       VARBINARY.andThen(SqlTypeTransforms.TO_NULLABLE);
+
+  /**
+   * Type-inference strategy whereby the result type of a call is a nullable
+   * VARBINARY.
+   */
+  public static final SqlReturnTypeInference VARBINARY_FORCE_NULLABLE =
+      VARBINARY.andThen(SqlTypeTransforms.FORCE_NULLABLE);
 
   /**
    * Type-inference strategy for Histogram agg support.

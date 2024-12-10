@@ -22,6 +22,7 @@ import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperatorBinding;
+import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlTableFunction;
 import org.apache.calcite.sql.type.SqlOperandMetadata;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
@@ -64,7 +65,7 @@ public class SqlUserDefinedTableFunction extends SqlUserDefinedFunction
       TableFunction function) {
     super(opName, kind, returnTypeInference, operandTypeInference,
         operandMetadata, function,
-        SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION);
+        SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION, SqlSyntax.FUNCTION);
   }
 
   /**

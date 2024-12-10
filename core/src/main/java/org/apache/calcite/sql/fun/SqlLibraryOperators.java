@@ -303,8 +303,7 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {ORACLE, REDSHIFT, SPARK})
   public static final SqlBasicFunction NVL2 =
       SqlBasicFunction.create(SqlKind.NVL2,
-          ReturnTypes.NVL2_RESTRICTIVE
-              .andThen(SqlTypeTransforms.TO_NULLABLE_ALL),
+          ReturnTypes.NVL2_RESTRICTIVE,
           OperandTypes.SECOND_THIRD_SAME);
 
   /** The "IFNULL(value, value)" function. */
@@ -389,12 +388,20 @@ public abstract class SqlLibraryOperators {
     return operatorBinding.getTypeFactory().createSqlType(typeName);
   }
 
+  /** The "SPLIT_PART(string, delimiter, n)" function. */
+  @LibraryOperator(libraries = {POSTGRESQL}, exceptLibraries = {REDSHIFT})
+  public static final SqlFunction SPLIT_PART =
+      SqlBasicFunction.create("SPLIT_PART",
+          ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.STRING_STRING_INTEGER,
+          SqlFunctionCategory.STRING);
+
   /** The "STRPOS(string, substring)" function. */
   @LibraryOperator(libraries = {BIG_QUERY, POSTGRESQL})
   public static final SqlFunction STRPOS = new SqlPositionFunction("STRPOS");
 
   /** The "INSTR(string, substring [, position [, occurrence]])" function. */
-  @LibraryOperator(libraries = {BIG_QUERY, MYSQL, ORACLE})
+  @LibraryOperator(libraries = {BIG_QUERY, HIVE, MYSQL, ORACLE})
   public static final SqlFunction INSTR = new SqlPositionFunction("INSTR");
 
   /** Generic "SUBSTR(string, position [, substringLength ])" function. */
@@ -460,7 +467,7 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {HIVE, SPARK})
   public static final SqlFunction PARSE_URL =
       SqlBasicFunction.create("PARSE_URL",
-              ReturnTypes.VARCHAR_NULLABLE,
+              ReturnTypes.VARCHAR_FORCE_NULLABLE,
               OperandTypes.STRING_STRING_OPTIONAL_STRING,
               SqlFunctionCategory.STRING);
 
@@ -568,7 +575,7 @@ public abstract class SqlLibraryOperators {
    * Returns the substring in value that matches the regexp. Returns NULL if there is no match. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlBasicFunction REGEXP_EXTRACT =
-      SqlBasicFunction.create("REGEXP_EXTRACT", ReturnTypes.VARCHAR_NULLABLE,
+      SqlBasicFunction.create("REGEXP_EXTRACT", ReturnTypes.VARCHAR_FORCE_NULLABLE,
           OperandTypes.STRING_STRING_OPTIONAL_INTEGER_OPTIONAL_INTEGER,
           SqlFunctionCategory.STRING);
 
@@ -576,8 +583,8 @@ public abstract class SqlLibraryOperators {
    * Returns the substring in value that matches the regexp. Returns NULL if there is no match. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlBasicFunction REGEXP_EXTRACT_ALL =
-      SqlBasicFunction.create("REGEXP_EXTRACT_ALL", ReturnTypes.ARG0_NULLABLE
-              .andThen(SqlTypeTransforms.TO_ARRAY),
+      SqlBasicFunction.create("REGEXP_EXTRACT_ALL", ReturnTypes.ARG0
+              .andThen(SqlTypeTransforms.TO_ARRAY).andThen(SqlTypeTransforms.TO_NULLABLE),
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.STRING);
 
@@ -1013,6 +1020,24 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.TIMESTAMP_NULLABLE,
           OperandTypes.NILADIC.or(OperandTypes.STRING),
           SqlFunctionCategory.TIMEDATE)
+          .withSyntax(SqlSyntax.FUNCTION_ID);
+
+  /** The "SYSDATE" function. */
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction SYSDATE =
+      SqlBasicFunction.create("SYSDATE",
+              ReturnTypes.DATE,
+              OperandTypes.NILADIC,
+              SqlFunctionCategory.TIMEDATE)
+          .withSyntax(SqlSyntax.FUNCTION_ID);
+
+  /** The "SYSTIMESTAMP" function. */
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction SYSTIMESTAMP =
+      SqlBasicFunction.create("SYSTIMESTAMP",
+              ReturnTypes.TIMESTAMP_TZ,
+              OperandTypes.NILADIC,
+              SqlFunctionCategory.TIMEDATE)
           .withSyntax(SqlSyntax.FUNCTION_ID);
 
   /** The "DATE_FROM_UNIX_DATE(integer)" function; returns a DATE value
@@ -1497,9 +1522,11 @@ public abstract class SqlLibraryOperators {
 
   @SuppressWarnings("argument.type.incompatible")
   private static RelDataType arrayInsertReturnType(SqlOperatorBinding opBinding) {
-    final RelDataType arrayType = opBinding.collectOperandTypes().get(0);
+    final List<RelDataType> operandTypes = opBinding.collectOperandTypes();
+    final RelDataType arrayType = operandTypes.get(0);
     final RelDataType componentType = arrayType.getComponentType();
-    final RelDataType elementType = opBinding.collectOperandTypes().get(2);
+    final RelDataType elementType1 = operandTypes.get(1);
+    final RelDataType elementType2 = operandTypes.get(2);
     requireNonNull(componentType, () -> "componentType of " + arrayType);
 
     // we don't need to do leastRestrictive on componentType and elementType,
@@ -1507,26 +1534,23 @@ public abstract class SqlLibraryOperators {
     // So we use componentType directly.
     RelDataType type =
         opBinding.getTypeFactory().leastRestrictive(
-            ImmutableList.of(componentType, elementType));
+            ImmutableList.of(componentType, elementType2));
     requireNonNull(type, "inferred array element type");
 
-    if (elementType.isNullable()) {
-      type = opBinding.getTypeFactory().createTypeWithNullability(type, true);
-    }
+    // The spec says that "ARRAY_INSERT may pad the array with NULL values if the
+    // position is large", it implies that in the result the element type is always nullable.
+    type = opBinding.getTypeFactory().createTypeWithNullability(type, true);
     // make explicit CAST for array elements and inserted element to the biggest type
     // if array component type not equals to inserted element type
-    if (!componentType.equalsSansFieldNames(elementType)) {
-      // 0, 2 is the operand index to be CAST
+    if (!componentType.equalsSansFieldNames(elementType2)) {
       // For array_insert, 0 is the array arg and 2 is the inserted element
-      if (componentType.equalsSansFieldNames(type)) {
-        SqlValidatorUtil.
-            adjustTypeForArrayFunctions(type, opBinding, 2);
-      } else {
-        SqlValidatorUtil.
-            adjustTypeForArrayFunctions(type, opBinding, 0);
-      }
+      SqlValidatorUtil.
+          adjustTypeForArrayFunctions(type, opBinding, 2);
+      SqlValidatorUtil.
+          adjustTypeForArrayFunctions(type, opBinding, 0);
     }
-    return SqlTypeUtil.createArrayType(opBinding.getTypeFactory(), type, arrayType.isNullable());
+    boolean nullable = arrayType.isNullable() || elementType1.isNullable();
+    return SqlTypeUtil.createArrayType(opBinding.getTypeFactory(), type, nullable);
   }
 
   /** The "ARRAY_INSERT(array, pos, val)" function (Spark). */
@@ -1810,7 +1834,7 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY, MYSQL})
   public static final SqlFunction FROM_BASE64 =
       SqlBasicFunction.create("FROM_BASE64",
-          ReturnTypes.VARBINARY_NULLABLE,
+          ReturnTypes.VARBINARY_FORCE_NULLABLE,
           OperandTypes.STRING, SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {MYSQL})
@@ -2258,7 +2282,7 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY, ORACLE, POSTGRESQL})
   public static final SqlFunction CHR =
       SqlBasicFunction.create("CHR",
-          ReturnTypes.CHAR,
+          ReturnTypes.CHAR_NULLABLE_IF_ARGS_NULLABLE,
           OperandTypes.INTEGER,
           SqlFunctionCategory.STRING);
 
@@ -2267,7 +2291,9 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction CODE_POINTS_TO_BYTES =
       SqlBasicFunction.create("CODE_POINTS_TO_BYTES",
-          ReturnTypes.VARBINARY_NULLABLE,
+          ReturnTypes.VARBINARY
+              .andThen(SqlTypeTransforms.TO_NULLABLE)
+              .andThen(SqlTypeTransforms.TO_NULLABLE_IF_ARRAY_CONTAINS_NULLABLE),
           OperandTypes.ARRAY_OF_INTEGER,
           SqlFunctionCategory.STRING);
 
@@ -2276,7 +2302,9 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction CODE_POINTS_TO_STRING =
       SqlBasicFunction.create("CODE_POINTS_TO_STRING",
-          ReturnTypes.VARCHAR_NULLABLE,
+          ReturnTypes.VARCHAR
+              .andThen(SqlTypeTransforms.TO_NULLABLE)
+              .andThen(SqlTypeTransforms.TO_NULLABLE_IF_ARRAY_CONTAINS_NULLABLE),
           OperandTypes.ARRAY_OF_INTEGER,
           SqlFunctionCategory.STRING);
 
@@ -2286,7 +2314,7 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TO_CODE_POINTS =
       SqlBasicFunction.create("TO_CODE_POINTS",
-          ReturnTypes.INTEGER.andThen(SqlTypeTransforms.TO_ARRAY_NULLABLE),
+          ReturnTypes.INTEGER.andThen(SqlTypeTransforms.TO_ARRAY_FORCE_NULLABLE),
           OperandTypes.STRING.or(OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
 

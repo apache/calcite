@@ -109,6 +109,8 @@ public class SqlBinaryOperator extends SqlOperator {
     case AND:
     case PLUS:
     case TIMES:
+    case CHECKED_PLUS:
+    case CHECKED_TIMES:
       return this;
 
     case GREATER_THAN:

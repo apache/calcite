@@ -84,7 +84,7 @@ public class SqlNumericLiteral extends SqlLiteral {
       SqlWriter writer,
       int leftPrec,
       int rightPrec) {
-    writer.literal(toValue());
+    writer.getDialect().unparseNumericLiteral(writer, toValue(), leftPrec, rightPrec);
   }
 
   @Override public String toValue() {

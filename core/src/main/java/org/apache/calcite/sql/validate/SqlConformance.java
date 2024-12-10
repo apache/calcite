@@ -178,6 +178,21 @@ public interface SqlConformance {
   boolean isSortByAliasObscures();
 
   /**
+   * Whether this dialect supports dual table.
+   *
+   * <p>For example,
+   *
+   * <blockquote><pre>SELECT 1 + 1 FROM DUAL</pre></blockquote>
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#MYSQL_5},
+   * {@link SqlConformanceEnum#ORACLE_10},
+   * {@link SqlConformanceEnum#ORACLE_12},
+   * false otherwise.
+   */
+  boolean isSupportedDualTable();
+
+  /**
    * Whether {@code FROM} clause is required in a {@code SELECT} statement.
    *
    * <p>Among the built-in conformance levels, true in
@@ -583,4 +598,11 @@ public interface SqlConformance {
    */
   @Experimental
   boolean allowLenientCoercion();
+
+  /**
+   * Whether the implementation uses checked arithmetic.
+   * Most SQL dialects use checked arithmetic at runtime:
+   * they terminate with a fatal error on overflow.
+   */
+  boolean checkedArithmetic();
 }
