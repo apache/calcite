@@ -45,6 +45,7 @@ import org.apache.calcite.sql.fun.SqlFloorFunction;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlMonotonicBinaryOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.CurrentTimestampHandler;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
@@ -466,8 +467,9 @@ public class SparkSqlDialect extends SqlDialect {
                 timeUnitNode.getParserPosition());
         SqlFloorFunction.unparseDatetimeFunction(writer, call2, "DATE_TRUNC", false);
         break;
-//      case TRIM:
-//        unparseHiveTrim(writer, call, leftPrec, rightPrec);
+      case TRIM:
+        unparseTrim(writer, call, leftPrec, rightPrec);
+        break;
 //        break;
 //      case POSITION:
 //        SqlUtil.unparseFunctionSyntax(SqlStdOperatorTable.POSITION, writer, call, false);
@@ -580,8 +582,9 @@ public class SparkSqlDialect extends SqlDialect {
     assert call.operandCount() == 1;
     SqlOperator operator = call.getOperator();
     SqlNode operand = call.operand(0);
+    List<SqlKind> sqlKinds = Lists.newArrayList(SqlKind.IN, SqlKind.LIKE, SqlKind.RLIKE);
     if (operand instanceof SqlCall
-        && ((SqlCall) operand).getOperator().kind == SqlKind.IN) {
+        && sqlKinds.contains(((SqlCall) operand).getOperator().kind)) {
       final SqlWriter.Frame falseFrame = writer.startList("(", ")");
       operand.unparse(writer, operator.getLeftPrec(), operator.getRightPrec());
       writer.endFunCall(falseFrame);
@@ -669,6 +672,29 @@ public class SparkSqlDialect extends SqlDialect {
     SqlNode[] sqlNodes = new SqlNode[]{identifierValue,
         intervalValue};
     return new SqlBasicCall(SqlStdOperatorTable.MULTIPLY, sqlNodes, SqlParserPos.ZERO);
+  }
+
+  /**
+   * For usage of TRIM, LTRIM and RTRIM in Hive, see
+   * <a href="https://cwiki.apache.org/confluence/display/Hive/LanguageManual+UDF">Hive UDF usage</a>.
+   */
+  private void unparseTrim(
+      SqlWriter writer,
+      SqlCall call,
+      int leftPrec,
+      int rightPrec) {
+    final SqlLiteral trimFlag = call.operand(0);
+    switch (trimFlag.getValueAs(SqlTrimFunction.Flag.class)) {
+    case BOTH:
+      final SqlWriter.Frame trimFrame = writer.startFunCall(call.getOperator().getName());
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.sep("FROM");
+      call.operand(2).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(trimFrame);
+      return;
+    }
+
+    super.unparseCall(writer, call, leftPrec, rightPrec);
   }
 
   /**
