@@ -16064,6 +16064,22 @@ public class SqlOperatorTest {
 
   @Test void testBitCountMySQLFunc() {
     checkBitCount(SqlLibraryOperators.BIT_COUNT_MYSQL, list(SqlLibrary.MYSQL), true);
+    checkBitCountMySQL();
+  }
+
+  private void checkBitCountMySQL() {
+    final SqlOperatorFixture f = fixture()
+        .setFor(SqlLibraryOperators.BIT_COUNT_MYSQL, VmName.EXPAND)
+        .withLibrary(SqlLibrary.MYSQL);
+
+    f.checkScalar("BIT_COUNT(8)", "1", "BIGINT NOT NULL");
+    f.checkScalar("BIT_COUNT('8')", "1", "BIGINT NOT NULL");
+    f.checkScalar("BIT_COUNT('10')", "2", "BIGINT NOT NULL");
+    f.checkScalar("BIT_COUNT('a')", "0", "BIGINT NOT NULL");
+    f.checkScalar("BIT_COUNT('')", "0", "BIGINT NOT NULL");
+    f.checkScalar("BIT_COUNT(1 + 1)", "1", "BIGINT NOT NULL");
+    f.checkScalar("BIT_COUNT(true)", "1", "BIGINT NOT NULL");
+    f.checkScalar("BIT_COUNT(false)", "0", "BIGINT NOT NULL");
   }
 
   void checkBitCount(SqlFunction function, @Nullable  List<SqlLibrary> libraries,
