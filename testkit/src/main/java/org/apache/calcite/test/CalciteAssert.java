@@ -1002,6 +1002,17 @@ public class CalciteAssert {
                 + " as t(SYMBOL, tstamp, price)",
             ImmutableList.of(), ImmutableList.of("POST", "TICKER"),
             null));
+      post.add("EMPS_DATE_TIME",
+          ViewTable.viewMacro(post,
+              "select * from (values\n"
+                  + "    (100, 'Fred',  10, CAST(NULL AS CHAR(1)), CAST(NULL AS VARCHAR(20)), 40,               25, TRUE,    FALSE, DATE '1996-08-03', TIME '16:22:34', TIMESTAMP '1996-08-03 16:22:34'),\n"
+                  + "    (110, 'Eric',  20, 'M',                   'San Francisco',           3,                80, UNKNOWN, FALSE, DATE '2001-01-01', TIME '12:20:00', TIMESTAMP '2001-01-01 12:20:00'),\n"
+                  + "    (110, 'John',  40, 'M',                   'Vancouver',               2, CAST(NULL AS INT), FALSE,   TRUE,  DATE '2002-05-03', TIME '13:12:14', TIMESTAMP '2002-05-03 13:12:14'),\n"
+                  + "    (120, 'Wilma', 20, 'F',                   CAST(NULL AS VARCHAR(20)), 1,                 5, UNKNOWN, TRUE,  DATE '2005-09-07', TIME '06:02:04', TIMESTAMP '2005-09-07 06:02:04'),\n"
+                  + "    (130, 'Alice', 40, 'F',                   'Vancouver',               2, CAST(NULL AS INT), FALSE,   TRUE,  DATE '2007-01-01', TIME '23:09:59', TIMESTAMP '2007-01-01 23:09:59'))\n"
+                  + " as t(empno, name, deptno, gender, city, empid, age, slacker, manager, joinedat, joinetime, joinetimestamp)",
+              emptyPath, ImmutableList.of("POST", "EMPS_DATE_TIME"),
+              null));
       return post;
     case FAKE_FOODMART:
       // Similar to FOODMART, but not based on JdbcSchema.
