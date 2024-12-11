@@ -771,4 +771,24 @@ class ElasticSearchAdapterTest {
             "state=AR; EXPR$1=3; EXPR$2=3");
   }
 
+    @Test
+    void testSortHosts() {
+      Map<String, Integer> hosts = new HashMap<>();
+      hosts.put("192.168.1.150",8080);
+      hosts.put("192.168.1.110",6080);
+      hosts.put("192.168.1.120",8080);
+
+
+      List<HttpHost> sortedHosts = hosts.entrySet()
+              .stream()
+              .sorted(Map.Entry.comparingByKey(String::compareTo))
+              .map(entry -> new HttpHost(entry.getKey(), entry.getValue()))
+              .collect(Collectors.toList());
+
+      assertEquals(3, sortedHosts.size());
+      assertEquals("192.168.1.110", sortedHosts.get(0).getHostName());
+      assertEquals("192.168.1.120", sortedHosts.get(1).getHostName());
+      assertEquals("192.168.1.150", sortedHosts.get(2).getHostName());
+    }
+
 }
