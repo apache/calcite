@@ -151,6 +151,7 @@ public class ElasticsearchSchemaFactory implements SchemaFactory {
         hosts =
             coordinates.entrySet()
                 .stream()
+                .sorted(Map.Entry.comparingByKey(String::compareTo))
                 .map(entry -> new HttpHost(entry.getKey(), entry.getValue()))
                 .collect(Collectors.toList());
 
