@@ -45,6 +45,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -159,6 +160,8 @@ public class ElasticsearchSchemaFactory implements SchemaFactory {
         throw new IllegalArgumentException
         ("Both 'coordinates' and 'hosts' is missing in configuration. Provide one of them.");
       }
+      List<HttpHost> sortedHost = getSortedHost(hosts);
+
       final String pathPrefix = (String) map.get("pathPrefix");
 
       // Enable or Disable SSL Verification
@@ -174,13 +177,22 @@ public class ElasticsearchSchemaFactory implements SchemaFactory {
       String username = (String) map.get("username");
       String password = (String) map.get("password");
       final RestClient client =
-          connect(hosts, pathPrefix, username, password, disableSSLVerification);
+          connect(sortedHost, pathPrefix, username, password, disableSSLVerification);
       final String index = (String) map.get("index");
 
       return new ElasticsearchSchema(client, new ObjectMapper(), index);
     } catch (IOException e) {
       throw new RuntimeException("Cannot parse values from json", e);
     }
+  }
+
+  protected static List<HttpHost> getSortedHost(List<HttpHost> hosts) {
+    List<HttpHost> sortedHosts =
+        hosts
+            .stream()
+            .sorted(Comparator.comparing(HttpHost::toString, String::compareTo))
+            .collect(Collectors.toList());
+    return sortedHosts;
   }
 
   /**

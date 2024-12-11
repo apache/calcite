@@ -26,6 +26,8 @@ import org.apache.calcite.test.ElasticsearchChecker;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.TestUtil;
 
+import org.apache.http.HttpHost;
+
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.LineProcessor;
@@ -53,6 +55,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import static java.util.Objects.requireNonNull;
@@ -769,6 +772,23 @@ class ElasticSearchAdapterTest {
         .returnsOrdered("state=AK; EXPR$1=3; EXPR$2=3",
             "state=AL; EXPR$1=3; EXPR$2=3",
             "state=AR; EXPR$1=3; EXPR$2=3");
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6725">[CALCITE-6725]
+   * The caching mechanism key in ElasticsearchSchemaFactory is affected by the order of hosts</a>.
+   */
+  @Test void testSortHosts() {
+    HttpHost host1 = HttpHost.create("192.168.1.200:8080");
+    HttpHost host2 = HttpHost.create("192.168.1.100:8080");
+    HttpHost host3 = HttpHost.create("192.168.1.150:8080");
+    List<HttpHost> hosts = Arrays.asList(host1, host2, host3);
+    List<HttpHost> sortedHosts = ElasticsearchSchemaFactory.getSortedHost(hosts);
+    assertEquals(3, sortedHosts.size());
+    assertEquals("http://192.168.1.100:8080", sortedHosts.get(0).toString());
+    assertEquals("http://192.168.1.150:8080", sortedHosts.get(1).toString());
+    assertEquals("http://192.168.1.200:8080", sortedHosts.get(2).toString());
   }
 
 }
