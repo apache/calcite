@@ -61,6 +61,16 @@ select bit_count('');
 
 !ok
 
+select bit_count(null);
++--------+
+| EXPR$0 |
++--------+
+|        |
++--------+
+(1 row)
+
+!ok
+
 select bit_count(1 + 1);
 +--------+
 | EXPR$0 |
@@ -78,6 +88,20 @@ select bit_count(true);
 |      1 |
 +--------+
 (1 row)
+
+!ok
+
+select bit_count(joinedat), bit_count(joinetime), bit_count(joinetimestamp) from emps_date_time ORDER BY empno;
++--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 |
++--------+--------+--------+
+|     12 |     11 |     24 |
+|     12 |      8 |     22 |
+|     14 |      5 |     22 |
+|     16 |      9 |     25 |
+|     14 |     10 |     21 |
++--------+--------+--------+
+(5 rows)
 
 !ok
 
