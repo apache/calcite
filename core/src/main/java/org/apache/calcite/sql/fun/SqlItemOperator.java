@@ -125,6 +125,7 @@ public class SqlItemOperator extends SqlSpecialOperator {
     case ROW:
     case ANY:
     case DYNAMIC_STAR:
+    case VARIANT:
       return OperandTypes.family(SqlTypeFamily.INTEGER)
           .or(OperandTypes.family(SqlTypeFamily.CHARACTER));
     default:
@@ -136,7 +137,8 @@ public class SqlItemOperator extends SqlSpecialOperator {
     if (name.equals("ITEM")) {
       return "<ARRAY>[<INTEGER>]\n"
           + "<MAP>[<ANY>]\n"
-          + "<ROW>[<CHARACTER>|<INTEGER>]";
+          + "<ROW>[<CHARACTER>|<INTEGER>]\n"
+          + "<VARIANT>[<ANY>]";
     } else {
       return "<ARRAY>[" + name + "(<INTEGER>)]";
     }
@@ -146,6 +148,10 @@ public class SqlItemOperator extends SqlSpecialOperator {
     final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
     final RelDataType operandType = opBinding.getOperandType(0);
     switch (operandType.getSqlTypeName()) {
+    case VARIANT:
+      // Return type is always nullable VARIANT
+      return typeFactory.createTypeWithNullability(
+          operandType, true);
     case ARRAY:
       return typeFactory.createTypeWithNullability(
           getComponentTypeOrThrow(operandType), true);

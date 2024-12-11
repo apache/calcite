@@ -1935,6 +1935,16 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlFunctionCategory.NUMERIC)
           .withSyntax(SqlSyntax.FUNCTION_ID_CONSTANT);
 
+  /** The {@code TYPEOF} function. */
+  public static final SqlFunction TYPEOF =
+      SqlBasicFunction.create("TYPEOF", ReturnTypes.VARCHAR, OperandTypes.VARIANT,
+              SqlFunctionCategory.STRING);
+
+  /** The {@code VARIANTNULL} function. */
+  public static final SqlFunction VARIANTNULL =
+      SqlBasicFunction.create("VARIANTNULL", ReturnTypes.VARIANT, OperandTypes.NILADIC,
+          SqlFunctionCategory.SYSTEM);
+
   /** {@code FIRST} function to be used within {@code MATCH_RECOGNIZE}. */
   public static final SqlFunction FIRST =
       SqlBasicFunction.create(SqlKind.FIRST,
@@ -2226,7 +2236,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <p>MAP is not standard SQL.
    */
   public static final SqlOperator ITEM =
-      new SqlItemOperator("ITEM", OperandTypes.ARRAY_OR_MAP, 1, true);
+      new SqlItemOperator("ITEM", OperandTypes.ARRAY_OR_MAP_OR_VARIANT, 1, true);
 
   /**
    * The ARRAY Value Constructor. e.g. "<code>ARRAY[1, 2, 3]</code>".
