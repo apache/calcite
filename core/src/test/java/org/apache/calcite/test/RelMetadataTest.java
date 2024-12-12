@@ -1207,6 +1207,48 @@ public class RelMetadataTest {
         .assertThatUniqueKeysAre(bitSetOf());
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6727">[CALCITE-6727]
+   * Column uniqueness constrain should only apply to inner join</a>. */
+  @Test void testColumnUniquenessForLeftJoinOnLimit1() {
+    final String sql = ""
+        + "select A.empno as a_empno,\n"
+        + " A.ename as a_ename,\n"
+        + " B.empno as b_empno,\n"
+        + " B.ename as b_ename\n"
+        + "from emp A\n"
+        + "left join (\n"
+        + "  select * from emp\n"
+        + "  limit 1) B\n"
+        + "on A.empno = B.empno";
+    sql(sql)
+        .assertThatAreColumnsUnique(bitSetOf(0), is(true))
+        .assertThatAreColumnsUnique(bitSetOf(1), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(2), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(3), is(false));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6727">[CALCITE-6727]
+   * Column uniqueness constrain should only apply to inner join</a>. */
+  @Test void testColumnUniquenessForRightJoinOnLimit1() {
+    final String sql = ""
+        + "select A.empno as a_empno,\n"
+        + " A.ename as a_ename,\n"
+        + " B.empno as b_empno,\n"
+        + " B.ename as b_ename\n"
+        + "from emp A\n"
+        + "right join (\n"
+        + "  select * from emp\n"
+        + "  limit 1) B\n"
+        + "on A.empno = B.empno";
+    sql(sql)
+        .assertThatAreColumnsUnique(bitSetOf(0), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(1), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(2), is(true))
+        .assertThatAreColumnsUnique(bitSetOf(3), is(true));
+  }
+
   @Test void testColumnUniquenessForJoinOnAggregation() {
     final String sql = ""
         + "select *\n"
