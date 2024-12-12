@@ -321,15 +321,16 @@ public class RelMdColumnUniqueness
     }
 
     final JoinInfo joinInfo = rel.analyzeCondition();
-
-    // Joining with a singleton constrains the keys on the other table
-    final Double rightMaxRowCount = mq.getMaxRowCount(right);
-    if (rightMaxRowCount != null && rightMaxRowCount <= 1.0) {
-      leftColumns = leftColumns.union(joinInfo.leftSet());
-    }
-    final Double leftMaxRowCount = mq.getMaxRowCount(left);
-    if (leftMaxRowCount != null && leftMaxRowCount <= 1.0) {
-      rightColumns = rightColumns.union(joinInfo.rightSet());
+    if (rel.getJoinType() == JoinRelType.INNER) {
+      // Joining with a singleton constrains the keys on the other table
+      final Double rightMaxRowCount = mq.getMaxRowCount(right);
+      if (rightMaxRowCount != null && rightMaxRowCount <= 1.0) {
+        leftColumns = leftColumns.union(joinInfo.leftSet());
+      }
+      final Double leftMaxRowCount = mq.getMaxRowCount(left);
+      if (leftMaxRowCount != null && leftMaxRowCount <= 1.0) {
+        rightColumns = rightColumns.union(joinInfo.rightSet());
+      }
     }
 
     // If the original column mask contains columns from both the left and
