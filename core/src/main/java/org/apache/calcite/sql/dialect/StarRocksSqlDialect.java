@@ -121,6 +121,10 @@ public class StarRocksSqlDialect extends MysqlSqlDialect {
       return new SqlDataTypeSpec(
           new SqlBasicTypeNameSpec(SqlTypeName.BIGINT, SqlParserPos.ZERO),
           SqlParserPos.ZERO);
+    case VARCHAR:
+      return new SqlDataTypeSpec(
+          new SqlBasicTypeNameSpec(SqlTypeName.VARCHAR, SqlParserPos.ZERO),
+          SqlParserPos.ZERO);
     case TIMESTAMP:
       return new SqlDataTypeSpec(
           new SqlAlienSystemTypeNameSpec(
