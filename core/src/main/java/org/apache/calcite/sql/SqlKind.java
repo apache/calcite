@@ -475,10 +475,10 @@ public enum SqlKind {
   /** {@code NVL2} function (Oracle, Spark). */
   NVL2,
 
-  /** {@code GREATEST} function (Oracle, Spark). */
+  /** {@code GREATEST} function (Oracle). */
   GREATEST,
 
-  /** {@code GREATEST} function (PostgreSQL). */
+  /** {@code GREATEST} function (PostgreSQL, Spark). */
   GREATEST_PG,
 
   /** The two-argument {@code CONCAT} function (Oracle). */
@@ -503,7 +503,7 @@ public enum SqlKind {
   /** {@code LEAST} function (Oracle). */
   LEAST,
 
-  /** {@code LEAST} function (PostgreSQL). */
+  /** {@code LEAST} function (PostgreSQL, Spark). */
   LEAST_PG,
 
   /** {@code LOG} function. (Mysql, Spark). */

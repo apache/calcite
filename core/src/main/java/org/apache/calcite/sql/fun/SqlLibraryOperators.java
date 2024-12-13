@@ -480,28 +480,30 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.STRING);
 
   /** The "GREATEST(value, value)" function. */
-  @LibraryOperator(libraries = {BIG_QUERY, ORACLE, SPARK})
+  @LibraryOperator(libraries = {BIG_QUERY, ORACLE})
   public static final SqlFunction GREATEST =
       SqlBasicFunction.create(SqlKind.GREATEST,
           ReturnTypes.LEAST_RESTRICTIVE.andThen(SqlTypeTransforms.TO_NULLABLE),
           OperandTypes.SAME_VARIADIC);
 
-  /** The "GREATEST(value, value)" function. */
-  @LibraryOperator(libraries = {POSTGRESQL})
+  /** The "GREATEST(value, value)" function. Identical to the standard <code>GREATEST</code>
+   * function except it skips null values and only returns null if all parameters are nulls. */
+  @LibraryOperator(libraries = {POSTGRESQL, SPARK})
   public static final SqlFunction GREATEST_PG =
       SqlBasicFunction.create("GREATEST", SqlKind.GREATEST_PG,
           ReturnTypes.LEAST_RESTRICTIVE.andThen(SqlTypeTransforms.TO_NULLABLE),
           OperandTypes.SAME_VARIADIC);
 
   /** The "LEAST(value, value)" function. */
-  @LibraryOperator(libraries = {BIG_QUERY, ORACLE, SPARK})
+  @LibraryOperator(libraries = {BIG_QUERY, ORACLE})
   public static final SqlFunction LEAST =
       SqlBasicFunction.create(SqlKind.LEAST,
           ReturnTypes.LEAST_RESTRICTIVE.andThen(SqlTypeTransforms.TO_NULLABLE),
           OperandTypes.SAME_VARIADIC);
 
-  /** The "GREATEST(value, value)" function. */
-  @LibraryOperator(libraries = {POSTGRESQL})
+  /** The "LEAST(value, value)" function. Identical to the standard <code>LEAST</code>
+   * function except it skips null values and only returns null if all parameters are nulls. */
+  @LibraryOperator(libraries = {POSTGRESQL, SPARK})
   public static final SqlFunction LEAST_PG =
       SqlBasicFunction.create("LEAST", SqlKind.LEAST_PG,
           ReturnTypes.LEAST_RESTRICTIVE.andThen(SqlTypeTransforms.TO_NULLABLE),
