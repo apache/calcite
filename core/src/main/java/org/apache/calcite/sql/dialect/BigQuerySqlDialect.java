@@ -187,8 +187,6 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CEIL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EXTRACT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FLOOR;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_FALSE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NULL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MOD;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
