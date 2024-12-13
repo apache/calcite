@@ -11664,7 +11664,7 @@ public class SqlOperatorTest {
           "VARCHAR(5) NOT NULL");
     };
     final List<SqlLibrary> libraries =
-        list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.SPARK);
+        list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE);
     f0.forEachLibrary(libraries, consumer);
   }
 
@@ -11686,7 +11686,8 @@ public class SqlOperatorTest {
       f.checkScalar("greatest(CAST(NULL AS INTEGER), CAST(NULL AS INTEGER))", isNullValue(),
           "INTEGER");
     };
-    final List<SqlLibrary> libraries = list(SqlLibrary.POSTGRESQL, SqlLibrary.REDSHIFT);
+    final List<SqlLibrary> libraries =
+        list(SqlLibrary.POSTGRESQL, SqlLibrary.REDSHIFT, SqlLibrary.SPARK);
     f0.forEachLibrary(libraries, consumer);
   }
 
@@ -11710,7 +11711,7 @@ public class SqlOperatorTest {
           "VARCHAR(5) NOT NULL");
     };
     final List<SqlLibrary> libraries =
-        list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.SPARK);
+        list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE);
     f0.forEachLibrary(libraries, consumer);
   }
 
@@ -11732,7 +11733,8 @@ public class SqlOperatorTest {
       f.checkScalar("least(CAST(NULL AS INTEGER), CAST(NULL AS INTEGER))", isNullValue(),
           "INTEGER");
     };
-    final List<SqlLibrary> libraries = list(SqlLibrary.POSTGRESQL, SqlLibrary.REDSHIFT);
+    final List<SqlLibrary> libraries =
+        list(SqlLibrary.POSTGRESQL, SqlLibrary.REDSHIFT, SqlLibrary.SPARK);
     f0.forEachLibrary(libraries, consumer);
   }
 
