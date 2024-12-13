@@ -41,6 +41,10 @@ public abstract class SqlAbstractConformance implements SqlConformance {
     return SqlConformanceEnum.DEFAULT.isGroupByOrdinal();
   }
 
+  @Override public boolean allowsOperationsOnComplexGroupByItem() {
+    return SqlConformanceEnum.DEFAULT.isGroupByOrdinal();
+  }
+
   @Override public boolean isHavingAlias() {
     return SqlConformanceEnum.DEFAULT.isHavingAlias();
   }

@@ -357,6 +357,13 @@ public class BigQuerySqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public boolean validOperationOnGroupByItem(RexNode node) {
+    if (node instanceof RexCall) {
+      return node.isA(SqlKind.CAST);
+    }
+    return true;
+  }
+
   @Override public boolean supportNestedAnalyticalFunctions() {
     return false;
   }
@@ -790,9 +797,6 @@ public class BigQuerySqlDialect extends SqlDialect {
       break;
     case MOD:
       unparseModFunction(writer, call, leftPrec, rightPrec);
-      break;
-    case GROUPING:
-      unparseGroupingFunction(writer, call, leftPrec, rightPrec);
       break;
     case CAST:
       String firstOperand = call.operand(1).toString();
@@ -2375,19 +2379,6 @@ public class BigQuerySqlDialect extends SqlDialect {
     } else {
       castNodeToTimestamp(writer, operand, leftPrec, rightPrec);
     }
-  }
-
-  private void unparseGroupingFunction(SqlWriter writer, SqlCall call,
-                                       int leftPrec, int rightPrec) {
-    SqlCall isNull = new SqlBasicCall(IS_NULL, new SqlNode[]{call.operand(0)}, SqlParserPos.ZERO);
-    SqlNumericLiteral oneLiteral = SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO);
-    SqlNumericLiteral zeroLiteral = SqlLiteral.createExactNumeric("0", SqlParserPos.ZERO);
-    SqlNodeList whenList = new SqlNodeList(SqlParserPos.ZERO);
-    whenList.add(isNull);
-    SqlNodeList thenList = new SqlNodeList(SqlParserPos.ZERO);
-    thenList.add(oneLiteral);
-    SqlCall groupingSqlCall = new SqlCase(SqlParserPos.ZERO, null, whenList, thenList, zeroLiteral);
-    unparseCall(writer, groupingSqlCall, leftPrec, rightPrec);
   }
 
   private boolean isIntervalHourAndSecond(SqlCall call) {

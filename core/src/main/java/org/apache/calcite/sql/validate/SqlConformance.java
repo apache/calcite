@@ -118,6 +118,8 @@ public interface SqlConformance {
    */
   boolean isGroupByOrdinal();
 
+  boolean allowsOperationsOnComplexGroupByItem();
+
   /**
    * Whether to allow aliases from the {@code SELECT} clause to be used as
    * column names in the {@code HAVING} clause.
