@@ -2238,7 +2238,7 @@ public class SqlOperatorTest {
       f.checkType("chr(CAST(null AS INTEGER))", "CHAR(1)");
     };
     final List<SqlLibrary> libraries =
-        list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.POSTGRESQL);
+        list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.POSTGRESQL, SqlLibrary.REDSHIFT);
     f0.forEachLibrary(libraries, consumer);
   }
 
@@ -5729,7 +5729,8 @@ public class SqlOperatorTest {
     };
     final List<SqlLibrary> libraries =
         list(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL,
-            SqlLibrary.POSTGRESQL, SqlLibrary.SPARK);
+            SqlLibrary.POSTGRESQL, SqlLibrary.SPARK,
+            SqlLibrary.REDSHIFT);
     f0.forEachLibrary(libraries, consumer);
   }
 
