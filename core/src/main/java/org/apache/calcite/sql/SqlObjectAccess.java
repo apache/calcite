@@ -43,7 +43,13 @@ public class SqlObjectAccess extends SqlNodeList {
     for (int i = 0; i < size(); i++) {
       SqlNode node = get(i);
       writer.sep(".");
-      node.unparse(writer, leftPrec, rightPrec);
+      if (size() > 1 && i == 0) {
+        writer.print("(");
+        node.unparse(writer, leftPrec, rightPrec);
+        writer.print(")");
+      } else {
+        node.unparse(writer, leftPrec, rightPrec);
+      }
       writer.setNeedWhitespace(true);
     }
     writer.endList(frame);
