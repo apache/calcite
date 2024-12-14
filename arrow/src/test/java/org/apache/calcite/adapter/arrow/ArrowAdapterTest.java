@@ -73,12 +73,12 @@ class ArrowAdapterTest {
     arrowDataDirectory = arrowFilesDirectory.toFile();
 
     File dataLocationFile = arrowFilesDirectory.resolve("arrowdata.arrow").toFile();
-    ArrowData arrowDataGenerator = new ArrowData();
+    ArrowDataTest arrowDataGenerator = new ArrowDataTest();
     arrowDataGenerator.writeArrowData(dataLocationFile);
     arrowDataGenerator.writeScottEmpData(arrowFilesDirectory);
 
     File datatypeLocationFile = arrowFilesDirectory.resolve("arrowdatatype.arrow").toFile();
-    ArrowData arrowtypeDataGenerator = new ArrowData();
+    ArrowDataTest arrowtypeDataGenerator = new ArrowDataTest();
     arrowtypeDataGenerator.writeArrowDataType(datatypeLocationFile);
 
     arrow = ImmutableMap.of("model", modelFileTarget.toAbsolutePath().toString());
@@ -732,8 +732,8 @@ class ArrowAdapterTest {
   @Test void testFilteredAgg() {
     String sql = "select SUM(SAL) FILTER (WHERE COMM > 400) as SALESSUM from EMP";
     String plan = "PLAN=EnumerableAggregate(group=[{}], SALESSUM=[SUM($0) FILTER $1])\n"
-        + "  EnumerableCalc(expr#0..7=[{inputs}], expr#8=[400:DECIMAL(19, 0)], expr#9=[>($t6, $t8)], "
-        + "expr#10=[IS TRUE($t9)], SAL=[$t5], $f1=[$t10])\n"
+        + "  EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t6):DECIMAL(12, 2)], expr#9=[400.00:DECIMAL(12, 2)], "
+        + "expr#10=[>($t8, $t9)], expr#11=[IS TRUE($t10)], SAL=[$t5], $f1=[$t11])\n"
         + "    ArrowToEnumerableConverter\n"
         + "      ArrowTableScan(table=[[ARROW, EMP]], fields=[[0, 1, 2, 3, 4, 5, 6, 7]])\n\n";
     String result = "SALESSUM=2500.00\n";
@@ -750,8 +750,8 @@ class ArrowAdapterTest {
     String sql = "select SUM(SAL) FILTER (WHERE COMM > 400) as SALESSUM from EMP group by EMPNO";
     String plan = "PLAN=EnumerableCalc(expr#0..1=[{inputs}], SALESSUM=[$t1])\n"
         + "  EnumerableAggregate(group=[{0}], SALESSUM=[SUM($1) FILTER $2])\n"
-        + "    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[400:DECIMAL(19, 0)], expr#9=[>($t6, $t8)], "
-        + "expr#10=[IS TRUE($t9)], EMPNO=[$t0], SAL=[$t5], $f2=[$t10])\n"
+        + "    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t6):DECIMAL(12, 2)], expr#9=[400.00:DECIMAL(12, 2)], "
+        + "expr#10=[>($t8, $t9)], expr#11=[IS TRUE($t10)], EMPNO=[$t0], SAL=[$t5], $f2=[$t11])\n"
         + "      ArrowToEnumerableConverter\n"
         + "        ArrowTableScan(table=[[ARROW, EMP]], fields=[[0, 1, 2, 3, 4, 5, 6, 7]])\n\n";
     String result = "SALESSUM=1250.00\nSALESSUM=null\n";
@@ -860,7 +860,7 @@ class ArrowAdapterTest {
     String plan = "PLAN=ArrowToEnumerableConverter\n"
         + "  ArrowProject(booleanField=[$7])\n"
         + "    ArrowFilter(condition=[$7])\n"
-        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])\n\n";
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]])\n\n";
     String result = "booleanField=true\nbooleanField=true\n";
 
     CalciteAssert.that()
@@ -878,7 +878,7 @@ class ArrowAdapterTest {
     String plan = "PLAN=ArrowToEnumerableConverter\n"
         + "  ArrowProject(intField=[$2])\n"
         + "    ArrowFilter(condition=[>($2, 10)])\n"
-        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])\n\n";
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]])\n\n";
     String result = "intField=11\nintField=12\n";
 
     CalciteAssert.that()
@@ -896,7 +896,7 @@ class ArrowAdapterTest {
     String plan = "PLAN=ArrowToEnumerableConverter\n"
         + "  ArrowProject(booleanField=[$7])\n"
         + "    ArrowFilter(condition=[NOT($7)])\n"
-        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])\n\n";
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]])\n\n";
     String result = "booleanField=false\nbooleanField=false\n";
 
     CalciteAssert.that()
@@ -915,7 +915,7 @@ class ArrowAdapterTest {
     String plan = "PLAN=ArrowToEnumerableConverter\n"
         + "  ArrowProject(booleanField=[$7])\n"
         + "    ArrowFilter(condition=[IS NOT TRUE($7)])\n"
-        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])\n\n";
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]])\n\n";
     String result = "booleanField=null\nbooleanField=false\n";
 
     CalciteAssert.that()
@@ -933,7 +933,7 @@ class ArrowAdapterTest {
     String plan = "PLAN=ArrowToEnumerableConverter\n"
         + "  ArrowProject(booleanField=[$7])\n"
         + "    ArrowFilter(condition=[IS NOT FALSE($7)])\n"
-        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])\n\n";
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]])\n\n";
     String result = "booleanField=null\nbooleanField=true\n";
 
     CalciteAssert.that()
@@ -951,7 +951,7 @@ class ArrowAdapterTest {
     String plan = "PLAN=ArrowToEnumerableConverter\n"
         + "  ArrowProject(booleanField=[$7])\n"
         + "    ArrowFilter(condition=[IS NULL($7)])\n"
-        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])\n\n";
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]])\n\n";
     String result = "booleanField=null\n";
 
     CalciteAssert.that()
@@ -971,8 +971,8 @@ class ArrowAdapterTest {
         + "where \"decimalField\" = 1.00";
     String plan = "PLAN=ArrowToEnumerableConverter\n"
         + "  ArrowProject(decimalField=[$8])\n"
-        + "    ArrowFilter(condition=[=($8, 1)])\n"
-        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])\n\n";
+        + "    ArrowFilter(condition=[=($8, 1.00)])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]])\n\n";
     String result = "decimalField=1.00\n";
 
     CalciteAssert.that()
@@ -989,7 +989,7 @@ class ArrowAdapterTest {
     String plan = "PLAN=ArrowToEnumerableConverter\n"
         + "  ArrowProject(doubleField=[$6])\n"
         + "    ArrowFilter(condition=[=($6, 1.0E0)])\n"
-        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])\n\n";
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]])\n\n";
     String result = "doubleField=1.0\n";
 
     CalciteAssert.that()
@@ -1006,7 +1006,7 @@ class ArrowAdapterTest {
     String plan = "PLAN=ArrowToEnumerableConverter\n"
         + "  ArrowProject(stringField=[$3])\n"
         + "    ArrowFilter(condition=[=($3, '1')])\n"
-        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])\n\n";
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATATYPE]], fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]])\n\n";
     String result = "stringField=1\n";
 
     CalciteAssert.that()
