@@ -45,10 +45,10 @@ public class SqlObjectAccess extends SqlNodeList {
       writer.sep(".");
       if (size() > 1 && i == 0) {
         writer.print("(");
-        writer.print(node.toSqlString(writer.getDialect()).toString());
+        node.unparse(writer, leftPrec, rightPrec);
         writer.print(")");
       } else {
-        writer.print(node.toSqlString(writer.getDialect()).toString());
+        node.unparse(writer, leftPrec, rightPrec);
       }
       writer.setNeedWhitespace(true);
     }

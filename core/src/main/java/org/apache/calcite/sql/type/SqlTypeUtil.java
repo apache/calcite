@@ -1736,6 +1736,7 @@ public abstract class SqlTypeUtil {
       return false;
     }
     return type.getSqlTypeName() == SqlTypeName.ARRAY
+        || type.getSqlTypeName() == SqlTypeName.VARRAY
         || type.getSqlTypeName() == SqlTypeName.MULTISET;
   }
 

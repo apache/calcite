@@ -114,6 +114,7 @@ public class SqlItemOperator extends SqlSpecialOperator {
     final RelDataType operandType = callBinding.getOperandType(0);
     switch (operandType.getSqlTypeName()) {
     case ARRAY:
+    case VARRAY:
       return OperandTypes.family(SqlTypeFamily.INTEGER);
     case MAP:
       RelDataType keyType =
@@ -152,6 +153,7 @@ public class SqlItemOperator extends SqlSpecialOperator {
       return typeFactory.createTypeWithNullability(
           operandType, true);
     case ARRAY:
+    case VARRAY:
       return typeFactory.createTypeWithNullability(
           getComponentTypeOrThrow(operandType), true);
     case MAP:

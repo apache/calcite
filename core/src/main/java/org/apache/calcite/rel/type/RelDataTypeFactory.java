@@ -140,6 +140,7 @@ public interface RelDataTypeFactory {
    * @return canonical custom array type descriptor
    */
   RelDataType createArrayTypeWithName(
+      SqlTypeName sqlTypeName,
       RelDataType elementType,
       long maxCardinality,
       List<String> typeName);
