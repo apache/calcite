@@ -384,9 +384,11 @@ class TypeCoercionTest {
         f.typeFactory.createSqlType(SqlTypeName.DECIMAL, 7, 1);
     RelDataType decimal104 =
         f.typeFactory.createSqlType(SqlTypeName.DECIMAL, 10, 4);
+    RelDataType decimal144 =
+        f.typeFactory.createSqlType(SqlTypeName.DECIMAL, 14, 4);
     f.comparisonCommonType(decimal54, decimal71, decimal104);
     f.comparisonCommonType(decimal54, f.doubleType, f.doubleType);
-    f.comparisonCommonType(decimal54, f.intType, decimal104);
+    f.comparisonCommonType(decimal54, f.intType, decimal144);
     // CHAR/VARCHAR
     f.comparisonCommonType(f.charType, f.varcharType, f.varcharType);
     f.comparisonCommonType(f.intType, f.charType, f.intType);
