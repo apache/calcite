@@ -34,6 +34,7 @@ enum ElasticsearchMethod {
       List.class, // ops  - projections and other stuff
       List.class, // fields
       List.class, // sort
+      List.class, // nulls sort
       List.class, // groupBy
       List.class, // aggregations
       Map.class, // item to expression mapping. Eg. _MAP['a.b.c'] and EXPR$1
