@@ -10302,6 +10302,19 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testMsSqlStringSplit() {
+    final RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .functionScan(SqlLibraryOperators.MSSQL_STRING_SPLIT, 0,
+            builder.literal("a-b-c"), builder.literal("-"))
+        .build();
+
+    final String expectedQuery = "SELECT *\n"
+        + "FROM TABLE(MSSQL_STRING_SPLIT('a-b-c', '-'))";
+
+    assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedQuery));
+  }
+
   @Test public void testStrtokSplitToTable() {
     final RelBuilder builder = relBuilder();
     final Map<String, RelDataType> columnDefinition = new HashMap<>();
