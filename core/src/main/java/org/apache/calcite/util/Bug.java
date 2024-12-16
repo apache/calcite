@@ -172,6 +172,12 @@ public abstract class Bug {
   public static final boolean CALCITE_4645_FIXED = false;
 
   /** Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4868">[CALCITE-4868]
+   * Elasticsearch adapter fails if GROUP BY is followed by ORDER BY</a> is
+   * fixed. */
+  public static final boolean CALCITE_4868_FIXED = false;
+
+  /** Whether
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5422">[CALCITE-5422]
    * MILLISECOND and MICROSECOND units in INTERVAL literal</a> is fixed. */
   public static final boolean CALCITE_5422_FIXED = false;

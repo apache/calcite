@@ -68,6 +68,8 @@ public class ElasticsearchSort extends Sort implements ElasticsearchRel {
     for (RelFieldCollation fieldCollation : collation.getFieldCollations()) {
       final String name = fields.get(fieldCollation.getFieldIndex()).getName();
       final String rawName = implementor.expressionItemMap.getOrDefault(name, name);
+      // if nulls order is not specified, default NULLS LAST/FIRST for ASC/DESC
+      implementor.addNullsSort(rawName, fieldCollation.nullDirection);
       implementor.addSort(rawName, fieldCollation.getDirection());
     }
 
