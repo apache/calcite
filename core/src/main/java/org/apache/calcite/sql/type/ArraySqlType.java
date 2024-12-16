@@ -39,8 +39,9 @@ public class ArraySqlType extends AbstractSqlType {
    * Creates an ArraySqlType. This constructor should only be called
    * from a factory method.
    */
-  public ArraySqlType(RelDataType elementType, boolean isNullable, long maxCardinality) {
-    super(SqlTypeName.ARRAY, isNullable, null);
+  public ArraySqlType(SqlTypeName sqlTypeName,
+      RelDataType elementType, boolean isNullable, long maxCardinality) {
+    super(sqlTypeName, isNullable, null);
     this.elementType = requireNonNull(elementType, "elementType");
     this.maxCardinality = maxCardinality;
     computeDigest();
@@ -51,7 +52,7 @@ public class ArraySqlType extends AbstractSqlType {
    * from a factory method.
    */
   public ArraySqlType(RelDataType elementType, boolean isNullable) {
-    this(elementType, isNullable, -1);
+    this(SqlTypeName.ARRAY, elementType, isNullable, -1);
   }
 
   //~ Methods ----------------------------------------------------------------

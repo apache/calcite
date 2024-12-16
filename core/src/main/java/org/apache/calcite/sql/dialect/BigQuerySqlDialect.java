@@ -817,7 +817,7 @@ public class BigQuerySqlDialect extends SqlDialect {
           && (var.toString().contains("\\")
           && !var.toString().substring(1, 3).startsWith("\\\\"))) {
         unparseAsOp(writer, call, leftPrec, rightPrec);
-      } else if (sqlNodes.size() == 4
+      } else if (sqlNodes.size() >= 3
           && sqlNodes.get(0).getKind().name().equalsIgnoreCase(SqlKind.UNNEST.name())) {
         unparseAsOpWithUnnest(writer, call, leftPrec, rightPrec);
       } else {
@@ -992,17 +992,18 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   private void unparseAsOpWithUnnest(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    assert call.operandCount() == 4;
     SqlUnnestOperator unnestOperator =
         (SqlUnnestOperator) ((SqlBasicCall) call.operand(0)).getOperator();
     final SqlWriter.Frame frame = writer.startList(SqlWriter.FrameTypeEnum.AS);
     call.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.sep("AS");
-    call.operand(2).unparse(writer, leftPrec, rightPrec);
+    int ordinalIndex =
+        unnestOperator.withOrdinality ? call.operandCount() - 1 : call.operandCount();
+    call.operand(ordinalIndex - 1).unparse(writer, leftPrec, rightPrec);
     if (unnestOperator.withOrdinality) {
       writer.literal("WITH OFFSET");
       writer.sep("AS");
-      call.operand(3).unparse(writer, leftPrec, rightPrec);
+      call.operand(ordinalIndex).unparse(writer, leftPrec, rightPrec);
     }
     writer.endList(frame);
   }
@@ -1550,6 +1551,9 @@ public class BigQuerySqlDialect extends SqlDialect {
       } else {
         call.getOperator().unparse(writer, call, leftPrec, rightPrec);
       }
+      break;
+    case "GENERATE_SQLERRM":
+      writer.literal("@@error.message");
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);

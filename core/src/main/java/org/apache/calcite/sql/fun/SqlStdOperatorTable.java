@@ -2580,6 +2580,18 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
                   OperandTypes.family(SqlTypeFamily.NULL)),
                   SqlFunctionCategory.STRING);
 
+  public static final SqlFunction MAP_FIELD_ACCESS =
+                  new SqlFunction("MAP_FIELD_ACCESS", SqlKind.OTHER_FUNCTION,
+                  ReturnTypes.DECIMAL_NULLABLE, null, OperandTypes.MAP_KEY, SqlFunctionCategory.SYSTEM);
+
+  public static final SqlFunction MAP_FIRST_ELEMENT =
+      new SqlFunction("MAP_FIRST_ELEMENT", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TO_MAP_KEYS_NULLABLE, null, OperandTypes.MAP, SqlFunctionCategory.SYSTEM);
+
+  public static final SqlFunction MAP_LAST_ELEMENT =
+      new SqlFunction("MAP_LAST_ELEMENT", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TO_MAP_KEYS_NULLABLE, null, OperandTypes.MAP, SqlFunctionCategory.SYSTEM);
+
   /** CONV function converts the given number n from one base to another base. */
 //  public static final SqlFunction CONV = SqlLibraryOperators.CONV;
 
