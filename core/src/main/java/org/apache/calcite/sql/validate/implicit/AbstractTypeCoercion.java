@@ -612,17 +612,14 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
     }
 
     if (SqlTypeUtil.isExactNumeric(type1) && SqlTypeUtil.isExactNumeric(type2)) {
-      if (SqlTypeUtil.isDecimal(type1)) {
-        // Use max precision
+      if (SqlTypeUtil.isDecimal(type1) || SqlTypeUtil.isDecimal(type2)) {
+        // Precision used must be large enough to fit either of the types
+        int maxScale = Math.max(type1.getScale(), type2.getScale());
         RelDataType result =
-            factory.createSqlType(type1.getSqlTypeName(),
-                Math.max(type1.getPrecision(), type2.getPrecision()), type1.getScale());
-        return factory.createTypeWithNullability(result, type1.isNullable() || type2.isNullable());
-      } else if (SqlTypeUtil.isDecimal(type2)) {
-        // Use max precision
-        RelDataType result =
-            factory.createSqlType(type2.getSqlTypeName(),
-                Math.max(type1.getPrecision(), type2.getPrecision()), type2.getScale());
+            factory.createSqlType(SqlTypeName.DECIMAL,
+                Math.max(type1.getPrecision() - type1.getScale(),
+                         type2.getPrecision() - type2.getScale()) + maxScale,
+                maxScale);
         return factory.createTypeWithNullability(result, type1.isNullable() || type2.isNullable());
       }
       if (type1.getPrecision() > type2.getPrecision()) {
