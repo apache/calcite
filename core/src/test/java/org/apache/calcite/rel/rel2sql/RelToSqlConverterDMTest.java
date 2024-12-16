@@ -7393,6 +7393,22 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSFSql));
   }
 
+  @Test public void testMsSqlHashBytesFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode hashByteNode =
+        builder.call(SqlLibraryOperators.HASHBYTES,
+            builder.literal("SHA2_256"),
+            builder.scan("EMP").field(1));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(hashByteNode, "HashedValue"))
+        .build();
+    final String expectedSFSql = "SELECT HASHBYTES('SHA2_256', [ENAME]) AS [HashedValue]"
+        + "\nFROM [scott].[EMP]";
+
+    assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedSFSql));
+  }
+
   @Test public void testBigQuerySha256Function() {
     final RelBuilder builder = relBuilder();
     final RexNode sha256Node =
