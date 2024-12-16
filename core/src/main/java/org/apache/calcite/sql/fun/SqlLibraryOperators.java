@@ -982,6 +982,10 @@ public abstract class SqlLibraryOperators {
       OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.STRING),
       SqlFunctionCategory.TIMEDATE);
 
+  @LibraryOperator(libraries = {SQL_SERVER, SPARK})
+  public static final SqlFunction GETDATE =
+      new SqlCurrentTimestampFunction("GETDATE", SqlTypeName.TIMESTAMP);
+
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction FORMAT_DATE =
       new SqlFunction("FORMAT_DATE", SqlKind.OTHER_FUNCTION,
