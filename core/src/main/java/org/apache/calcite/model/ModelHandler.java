@@ -40,6 +40,7 @@ import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.schema.impl.TableFunctionImpl;
 import org.apache.calcite.schema.impl.TableMacroImpl;
 import org.apache.calcite.schema.impl.ViewTable;
+import org.apache.calcite.schema.lookup.LikePattern;
 import org.apache.calcite.sql.SqlDialectFactory;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Pair;
@@ -361,7 +362,7 @@ public class ModelHandler {
       if (jsonMaterialization.view == null) {
         // If the user did not supply a view name, that means the materialized
         // view is pre-populated. Generate a synthetic view name.
-        viewName = "$" + schema.getTableNames().size();
+        viewName = "$" + schema.tables().getNames(LikePattern.any()).size();
         existing = true;
       } else {
         viewName = jsonMaterialization.view;

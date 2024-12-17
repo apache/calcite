@@ -260,7 +260,7 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
     final Pair<@Nullable CalciteSchema, String> pair =
         schema(context, true, create.name);
     requireNonNull(pair.left); // TODO: should not assume parent schema exists
-    if (pair.left.plus().getSubSchema(pair.right) != null) {
+    if (pair.left.plus().subSchemas().get(pair.right) != null) {
       if (!create.getReplace() && !create.ifNotExists) {
         throw SqlUtil.newContextException(create.name.getParserPosition(),
             RESOURCE.schemaExists(pair.right));
@@ -330,7 +330,7 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
       Table materializedView =
           schema != null
               && drop.getKind() == SqlKind.DROP_MATERIALIZED_VIEW
-              ? schema.plus().getTable(objectName)
+              ? schema.plus().tables().get(objectName)
               : null;
 
       existed = schema != null && schema.removeTable(objectName);
@@ -382,7 +382,7 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
     final Pair<@Nullable CalciteSchema, String> pair =
         schema(context, true, truncate.name);
     if (pair.left == null
-        || pair.left.plus().getTable(pair.right) == null) {
+        || pair.left.plus().tables().get(pair.right) == null) {
       throw SqlUtil.newContextException(truncate.name.getParserPosition(),
           RESOURCE.tableNotFound(pair.right));
     }
@@ -401,7 +401,7 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
     final Pair<@Nullable CalciteSchema, String> pair =
         schema(context, true, create.name);
     if (pair.left != null
-        && pair.left.plus().getTable(pair.right) != null) {
+        && pair.left.plus().tables().get(pair.right) != null) {
       // Materialized view exists.
       if (!create.ifNotExists) {
         // They did not specify IF NOT EXISTS, so give error.
@@ -436,7 +436,7 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
     final Pair<@Nullable CalciteSchema, String> pair =
         schema(context, true, create.name);
     requireNonNull(pair.left); // TODO: should not assume parent schema exists
-    if (pair.left.plus().getSubSchema(pair.right) != null) {
+    if (pair.left.plus().subSchemas().get(pair.right) != null) {
       if (create.ifNotExists) {
         return;
       }
@@ -561,7 +561,7 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
             return super.newColumnDefaultValue(table, iColumn, context);
           }
         };
-    if (pair.left.plus().getTable(pair.right) != null) {
+    if (pair.left.plus().tables().get(pair.right) != null) {
       // Table exists.
       if (create.ifNotExists) {
         return;
@@ -588,7 +588,7 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
     final Pair<@Nullable CalciteSchema, String> pair =
         schema(context, true, create.name);
     requireNonNull(pair.left); // TODO: should not assume parent schema exists
-    if (pair.left.plus().getTable(pair.right) != null) {
+    if (pair.left.plus().tables().get(pair.right) != null) {
       // Table exists.
       if (create.ifNotExists) {
         return;
