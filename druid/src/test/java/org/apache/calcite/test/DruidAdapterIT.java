@@ -3124,7 +3124,7 @@ public class DruidAdapterIT {
    * */
   @Test void testTableMapReused() {
     AbstractSchema schema = new DruidSchema("http://localhost:8082", "http://localhost:8081", true);
-    assertSame(schema.getTable("wikipedia"), schema.getTable("wikipedia"));
+    assertSame(schema.tables().get("wikipedia"), schema.tables().get("wikipedia"));
   }
 
   @Test void testPushEqualsCastDimension() {

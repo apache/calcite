@@ -306,7 +306,7 @@ class TpcdsTest {
     final Holder<@Nullable SchemaPlus> root = Holder.empty();
     CalciteAssert.model(TPCDS_MODEL)
         .doWithConnection(connection -> {
-          root.set(connection.getRootSchema().getSubSchema("TPCDS"));
+          root.set(connection.getRootSchema().subSchemas().get("TPCDS"));
         });
     return Frameworks.newConfigBuilder()
         .parserConfig(SqlParser.Config.DEFAULT)

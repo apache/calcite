@@ -957,7 +957,7 @@ public class ReflectiveSchemaTest {
    */
   @Test void testArrayFieldTableHasRowCount() {
     ReflectiveSchema schema = new ReflectiveSchema(new HrSchema());
-    Table table = schema.getTable("emps");
+    Table table = schema.tables().get("emps");
     assertNotNull(table);
     Statistic statistic = table.getStatistic();
     assertNotNull(statistic);
@@ -966,7 +966,7 @@ public class ReflectiveSchemaTest {
 
   @Test void testCollectionFieldTableHasRowCount() {
     ReflectiveSchema schema = new ReflectiveSchema(new HrSchemaPlus());
-    Table table = schema.getTable("xlocations");
+    Table table = schema.tables().get("xlocations");
     assertNotNull(table);
     Statistic statistic = table.getStatistic();
     assertNotNull(statistic);

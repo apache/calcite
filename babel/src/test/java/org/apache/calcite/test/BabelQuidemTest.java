@@ -181,7 +181,7 @@ class BabelQuidemTest extends QuidemTest {
         final String schemaName = calciteConnection.getSchema();
         final SchemaPlus schema =
             schemaName != null
-                ? calciteConnection.getRootSchema().getSubSchema(schemaName)
+                ? calciteConnection.getRootSchema().subSchemas().get(schemaName)
                 : calciteConnection.getRootSchema();
         final Frameworks.ConfigBuilder config =
             Frameworks.newConfigBuilder()

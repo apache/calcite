@@ -78,6 +78,12 @@ large results set to a manageable value. Users that need a bigger/smaller limit
 should create a new instance of `RelMdUniqueKeys` and register it using the
 metadata provider of their choice.
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-6728">CALCITE-6728</a>]
+introduces new methods to lookup tables and sub schemas inside schemas.
+The methods used before (`Schema:getTable(String name)`, `Schema:getTableNames()`,
+`Schema.getSubSchema(String name)` and `Schema.getSubSchemaNames(String name)`)
+have been marked as deprecated.
+
 #### New features
 {: #new-features-1-39-0}
 
