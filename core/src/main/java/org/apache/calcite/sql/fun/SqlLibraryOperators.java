@@ -3753,4 +3753,17 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction GENERATE_SQLERRC =
       new SqlFunction("SQLERRC", SqlKind.LITERAL, ReturnTypes.CHAR, null,
           OperandTypes.STRING, SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {MSSQL})
+  public static final SqlFunction CONVERT =
+      new SqlFunction(
+          "CONVERT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0,
+          null,
+          OperandTypes.or(
+              OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.ANY),
+              OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.ANY, SqlTypeFamily.INTEGER)),
+          SqlFunctionCategory.SYSTEM);
+
 }
