@@ -1054,16 +1054,20 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     // 1. group fields are always used
     final ImmutableBitSet.Builder inputFieldsUsed =
         aggregate.getGroupSet().rebuild();
-    // 2. agg functions
+    // 2. agg functions: consider only the ones that are needed according to fieldsUsed
+    int aggCallIndex = aggregate.getGroupCount();
     for (AggregateCall aggCall : aggregate.getAggCallList()) {
-      inputFieldsUsed.addAll(aggCall.getArgList());
-      if (aggCall.filterArg >= 0) {
-        inputFieldsUsed.set(aggCall.filterArg);
+      if (fieldsUsed.get(aggCallIndex)) {
+        inputFieldsUsed.addAll(aggCall.getArgList());
+        if (aggCall.filterArg >= 0) {
+          inputFieldsUsed.set(aggCall.filterArg);
+        }
+        if (aggCall.distinctKeys != null) {
+          inputFieldsUsed.addAll(aggCall.distinctKeys);
+        }
+        inputFieldsUsed.addAll(RelCollations.ordinals(aggCall.collation));
       }
-      if (aggCall.distinctKeys != null) {
-        inputFieldsUsed.addAll(aggCall.distinctKeys);
-      }
-      inputFieldsUsed.addAll(RelCollations.ordinals(aggCall.collation));
+      aggCallIndex++;
     }
 
     // Create input with trimmed columns.
