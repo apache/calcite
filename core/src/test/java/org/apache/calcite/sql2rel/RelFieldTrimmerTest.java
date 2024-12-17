@@ -282,6 +282,35 @@ class RelFieldTrimmerTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6734">[CALCITE-6734]
+   * RelFieldTrimmer should trim Aggregate's input fields which are arguments of
+   * unused aggregate functions</a>. */
+  @Test void testTrimUnusedAggregateInput() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelNode original =
+        builder.scan("EMP")
+            .filter(
+                builder.greaterThan(builder.field("DEPTNO"),
+                    builder.literal(100)))
+            .aggregate(
+                builder.groupKey(builder.field("DEPTNO")),
+                builder.sum(false, "SAL", builder.field("SAL")),
+                builder.count(false, "ENAME", builder.field("ENAME")))
+            .project(builder.field("DEPTNO"), builder.field("SAL"))
+            .build();
+
+    final RelFieldTrimmer fieldTrimmer = new RelFieldTrimmer(null, builder);
+    final RelNode trimmed = fieldTrimmer.trim(original);
+
+    final String expected = ""
+        + "LogicalAggregate(group=[{2}], SAL=[SUM($1)])\n"
+        + "  LogicalFilter(condition=[>($2, 100)])\n"
+        + "    LogicalProject(EMPNO=[$0], SAL=[$5], DEPTNO=[$7])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(trimmed, hasTree(expected));
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4055">[CALCITE-4055]
    * RelFieldTrimmer loses hints</a>. */
   @Test void testProjectWithHints() {
