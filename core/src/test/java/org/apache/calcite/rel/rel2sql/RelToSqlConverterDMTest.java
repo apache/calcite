@@ -12436,8 +12436,8 @@ class RelToSqlConverterDMTest {
         .scan("EMP")
         .project(uuid)
         .build();
-    final String expectedBqQuery = "SELECT UUID() AS `$f0`"
+    final String expectedSpark = "SELECT UUID() $f0"
         + "\nFROM scott.EMP";
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqQuery));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
   }
 }
