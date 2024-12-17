@@ -3508,6 +3508,15 @@ public abstract class SqlLibraryOperators {
           OperandTypes.NILADIC,
           SqlFunctionCategory.SYSTEM);
 
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction UUID =
+      new SqlFunction("UUID",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000,
+          null,
+          OperandTypes.NILADIC,
+          SqlFunctionCategory.SYSTEM);
+
   @LibraryOperator(libraries = {POSTGRESQL})
   public static final SqlFunction PG_BACKEND_PID =
       new SqlFunction("PG_BACKEND_PID",
