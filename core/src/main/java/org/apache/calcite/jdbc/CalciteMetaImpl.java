@@ -47,6 +47,7 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
 import org.apache.calcite.schema.impl.MaterializedViewTable;
+import org.apache.calcite.schema.lookup.LikePattern;
 import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.SqlJdbcFunctionCall;
 import org.apache.calcite.sql.SqlKind;
@@ -79,7 +80,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.regex.Pattern;
 
 import static java.util.Objects.requireNonNull;
 
@@ -227,52 +227,12 @@ public class CalciteMetaImpl extends MetaImpl {
   }
 
   static <T extends Named> Predicate1<T> namedMatcher(final Pat pattern) {
-    if (pattern.s == null || pattern.s.equals("%")) {
-      return Functions.truePredicate1();
-    }
-    final Pattern regex = likeToRegex(pattern);
-    return v1 -> regex.matcher(v1.getName()).matches();
+    final Predicate1<String> predicate = LikePattern.matcher(pattern.s);
+    return v1 -> predicate.apply(v1.getName());
   }
 
   static Predicate1<String> matcher(final Pat pattern) {
-    if (pattern.s == null || pattern.s.equals("%")) {
-      return Functions.truePredicate1();
-    }
-    final Pattern regex = likeToRegex(pattern);
-    return v1 -> regex.matcher(v1).matches();
-  }
-
-  /** Converts a LIKE-style pattern (where '%' represents a wild-card, escaped
-   * using '\') to a Java regex. */
-  public static Pattern likeToRegex(Pat pattern) {
-    StringBuilder buf = new StringBuilder("^");
-    char[] charArray = pattern.s.toCharArray();
-    int slash = -2;
-    for (int i = 0; i < charArray.length; i++) {
-      char c = charArray[i];
-      if (slash == i - 1) {
-        buf.append('[').append(c).append(']');
-      } else {
-        switch (c) {
-        case '\\':
-          slash = i;
-          break;
-        case '%':
-          buf.append(".*");
-          break;
-        case '[':
-          buf.append("\\[");
-          break;
-        case ']':
-          buf.append("\\]");
-          break;
-        default:
-          buf.append('[').append(c).append(']');
-        }
-      }
-    }
-    buf.append("$");
-    return Pattern.compile(buf.toString());
+    return LikePattern.matcher(pattern.s);
   }
 
   @Override public StatementHandle createStatement(ConnectionHandle ch) {
@@ -397,7 +357,7 @@ public class CalciteMetaImpl extends MetaImpl {
     final Predicate1<MetaSchema> schemaMatcher = namedMatcher(schemaPattern);
     Enumerable<MetaTable> tables = schemas(catalog)
         .where(schemaMatcher)
-        .selectMany(schema -> tables(schema, matcher(tableNamePattern)))
+        .selectMany(schema -> tables(schema, new LikePattern(tableNamePattern.s)))
         .where(typeFilter);
     return createResultSet(tables,
         metaTableFactory.getMetaTableClass(),
@@ -414,13 +374,12 @@ public class CalciteMetaImpl extends MetaImpl {
       Pat schemaPattern,
       Pat tableNamePattern,
       Pat columnNamePattern) {
-    final Predicate1<String> tableNameMatcher = matcher(tableNamePattern);
     final Predicate1<MetaSchema> schemaMatcher = namedMatcher(schemaPattern);
     final Predicate1<MetaColumn> columnMatcher =
         namedMatcher(columnNamePattern);
     return createResultSet(schemas(catalog)
             .where(schemaMatcher)
-            .selectMany(schema -> tables(schema, tableNameMatcher))
+            .selectMany(schema -> tables(schema, new LikePattern(tableNamePattern.s)))
             .selectMany(this::columns)
             .where(columnMatcher),
         metaColumnFactory.getMetaColumnClass(),
@@ -458,12 +417,12 @@ public class CalciteMetaImpl extends MetaImpl {
   Enumerable<MetaTable> tables(String catalog) {
     return schemas(catalog)
         .selectMany(schema ->
-            tables(schema, Functions.<String>truePredicate1()));
+            tables(schema, LikePattern.any()));
   }
 
-  Enumerable<MetaTable> tables(final MetaSchema schema_) {
+  Enumerable<MetaTable> tables(final MetaSchema schema_, LikePattern tableNamePattern) {
     final CalciteMetaSchema schema = (CalciteMetaSchema) schema_;
-    return Linq4j.asEnumerable(schema.calciteSchema.getTableNames())
+    return Linq4j.asEnumerable(schema.calciteSchema.getTableNames(tableNamePattern))
         .select(name -> {
           final Table table =
               requireNonNull(schema.calciteSchema.getTable(name, true),
@@ -483,13 +442,6 @@ public class CalciteMetaImpl extends MetaImpl {
                       schema.tableSchem,
                       pair.getKey());
                 }));
-  }
-
-  Enumerable<MetaTable> tables(
-      final MetaSchema schema,
-      final Predicate1<String> matcher) {
-    return tables(schema)
-        .where(v1 -> matcher.apply(v1.getName()));
   }
 
   private ImmutableList<MetaTypeInfo> getAllDefaultType() {
