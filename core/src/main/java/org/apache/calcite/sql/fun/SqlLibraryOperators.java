@@ -2575,7 +2575,7 @@ public abstract class SqlLibraryOperators {
    * starts at 1 and produces an error if the index is out of range. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlOperator ORDINAL =
-      new SqlItemOperator("ORDINAL", OperandTypes.ARRAY, 1, false);
+      new SqlItemOperator("ORDINAL", OperandTypes.ARRAY_OR_VARRAY, 1, false);
 
   /** The "SAFE_OFFSET(index)" array subscript operator used by BigQuery. The index
    * starts at 0 and returns null if the index is out of range. */

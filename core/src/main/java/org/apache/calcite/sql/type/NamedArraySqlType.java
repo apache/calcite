@@ -33,8 +33,9 @@ public class NamedArraySqlType extends ArraySqlType {
   private final List<String> typeName;
 
   public NamedArraySqlType(
-      RelDataType elementType, boolean isNullable, List<String> typeName, long maxCardinality) {
-    super(elementType, isNullable, maxCardinality);
+      SqlTypeName sqlTypeName, RelDataType elementType, boolean isNullable,
+      List<String> typeName, long maxCardinality) {
+    super(sqlTypeName, elementType, isNullable, maxCardinality);
     this.typeName = ImmutableList.copyOf(typeName);
     computeDigest();
   }
