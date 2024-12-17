@@ -45,7 +45,7 @@ class LinqFrontJdbcBackTest {
         Expressions.parameter(JdbcTest.Customer.class, "c");
     String s =
         Schemas.queryable(DataContexts.of(calciteConnection, rootSchema),
-            requireNonNull(rootSchema.getSubSchema("foodmart")),
+                requireNonNull(rootSchema.subSchemas().get("foodmart")),
             JdbcTest.Customer.class, "customer")
             .where(
                 Expressions.lambda(
