@@ -501,6 +501,19 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("^x'abcd'<>1^")
         .fails("(?s).*Cannot apply '<>' to arguments of type "
             + "'<BINARY.2.> <> <INTEGER>'.*");
+    // Test cases for [CALCITE-6736] Validator accepts comparisons between arrays, multisets, maps
+    // without regard to element types
+    expr("^array[x'a4'] = array[1]^")
+        .fails("(?s).*Cannot apply '=' to arguments of type "
+            + "'<BINARY.1. ARRAY> = <INTEGER ARRAY>'.*");
+    expr("^MAP[x'a4', 1] = MAP[1, 1]^")
+        .fails("(?s).*Cannot apply '=' to arguments of type "
+            + "'<.BINARY.1., INTEGER. MAP> = <.INTEGER, INTEGER. MAP>'.*");
+    expr("^array[x'a4'] = 1^")
+        .fails("(?s).*Cannot apply '=' to arguments of type '<BINARY.1. ARRAY> = <INTEGER>'.*");
+    expr("^multiset[x'a4'] = multiset[1]^")
+        .fails("(?s).*Cannot apply '=' to arguments of type "
+            + "'<BINARY.1. MULTISET> = <INTEGER MULTISET>'.*");
   }
 
   @Test void testBinaryString() {
