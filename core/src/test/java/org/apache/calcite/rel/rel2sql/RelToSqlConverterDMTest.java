@@ -12446,4 +12446,16 @@ class RelToSqlConverterDMTest {
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
   }
+
+  @Test public void testUUIDSpark() {
+    final RelBuilder builder = relBuilder();
+    final RexNode uuid = builder.call(SqlLibraryOperators.UUID);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(uuid)
+        .build();
+    final String expectedSpark = "SELECT UUID() $f0"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
 }
