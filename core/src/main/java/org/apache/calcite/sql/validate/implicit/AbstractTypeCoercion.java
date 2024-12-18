@@ -504,6 +504,7 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
     SqlTypeName typeName1 = type1.getSqlTypeName();
     SqlTypeName typeName2 = type2.getSqlTypeName();
 
+    // The following can never be true, but there is no harm leaving it here.
     if (typeName1 == null || typeName2 == null) {
       return null;
     }
@@ -627,6 +628,43 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
       } else {
         return factory.createTypeWithNullability(type2, type1.isNullable());
       }
+    }
+
+    if (typeName1 == SqlTypeName.ARRAY || typeName1 == SqlTypeName.MULTISET) {
+      if (typeName2 != typeName1) {
+        return null;
+      }
+      RelDataType elementType1 = type1.getComponentType();
+      RelDataType elementType2 = type2.getComponentType();
+      RelDataType type = commonTypeForBinaryComparison(elementType1, elementType2);
+      if (type == null) {
+        return null;
+      }
+      // The only maxCardinality that seems to be supported is -1, i.e., unlimited.
+      RelDataType resultType = factory.createArrayType(type, -1);
+      return factory.createTypeWithNullability(
+          resultType, type1.isNullable() || type2.isNullable());
+    }
+
+    if (typeName1 == SqlTypeName.MAP) {
+      if (typeName2 != SqlTypeName.MAP) {
+        return null;
+      }
+      RelDataType keyType1 = type1.getKeyType();
+      RelDataType keyType2 = type2.getKeyType();
+      RelDataType keyType = commonTypeForBinaryComparison(keyType1, keyType2);
+      if (keyType == null) {
+        return null;
+      }
+      RelDataType valueType1 = type1.getValueType();
+      RelDataType valueType2 = type2.getValueType();
+      RelDataType valueType = commonTypeForBinaryComparison(valueType1, valueType2);
+      if (valueType == null) {
+        return null;
+      }
+      RelDataType resultType = factory.createMapType(keyType, valueType);
+      return factory.createTypeWithNullability(
+          resultType, type1.isNullable() || type2.isNullable());
     }
 
     return null;
