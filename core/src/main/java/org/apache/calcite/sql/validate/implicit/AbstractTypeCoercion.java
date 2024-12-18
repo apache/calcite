@@ -22,6 +22,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCharStringLiteral;
@@ -665,6 +666,28 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
       RelDataType resultType = factory.createMapType(keyType, valueType);
       return factory.createTypeWithNullability(
           resultType, type1.isNullable() || type2.isNullable());
+    }
+
+    if (typeName1 == SqlTypeName.ROW) {
+      if (typeName2 != typeName1) {
+        return null;
+      }
+      if (type1.getFieldCount() != type2.getFieldCount()) {
+        return null;
+      }
+      List<RelDataTypeField> leftFields = type1.getFieldList();
+      List<RelDataTypeField> rightFields = type2.getFieldList();
+      List<RelDataTypeField> resultFields = new ArrayList<>();
+      for (int i = 0; i < leftFields.size(); i++) {
+        RelDataTypeField leftField = leftFields.get(i);
+        RelDataType type =
+            commonTypeForBinaryComparison(leftField.getType(), rightFields.get(i).getType());
+        if (type == null) {
+          return null;
+        }
+        resultFields.add(new RelDataTypeFieldImpl(leftField.getName(), i, type));
+      }
+      return factory.createStructType(resultFields);
     }
 
     return null;

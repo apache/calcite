@@ -1945,6 +1945,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select row((select deptno from dept where dept.deptno = emp.deptno), emp.ename)\n"
         + "from emp")
         .columnType("RecordType(INTEGER EXPR$0, VARCHAR(20) NOT NULL EXPR$1) NOT NULL");
+    sql("select ROW^(x'12') <> ROW(0.01)^")
+        .fails("Cannot apply '<>' to arguments of type.*");
   }
 
   @Test void testRowWithValidDot() {
