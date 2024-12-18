@@ -720,7 +720,7 @@ public class LoptMultiJoin {
     final Map<Integer, Integer> leftFactorColMapping = new HashMap<>();
     for (int i = 0; i < left.getRowType().getFieldCount(); i++) {
       final RelColumnOrigin colOrigin = mq.getColumnOrigin(left, i);
-      if (colOrigin != null && colOrigin.isDerived()) {
+      if (colOrigin != null && !colOrigin.isDerived()) {
         leftFactorColMapping.put(
             colOrigin.getOriginColumnOrdinal(),
             i);
@@ -734,7 +734,7 @@ public class LoptMultiJoin {
     RelNode right = getJoinFactor(rightFactor);
     for (int i = 0; i < right.getRowType().getFieldCount(); i++) {
       final RelColumnOrigin colOrigin = mq.getColumnOrigin(right, i);
-      if (colOrigin == null || !colOrigin.isDerived()) {
+      if (colOrigin == null || colOrigin.isDerived()) {
         continue;
       }
       Integer leftOffset =
