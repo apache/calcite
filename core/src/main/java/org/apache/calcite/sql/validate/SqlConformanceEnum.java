@@ -144,7 +144,7 @@ public enum SqlConformanceEnum implements SqlConformance {
     }
   }
 
-  @Override public boolean allowsOperationsOnComplexGroupByItem() {
+  @Override public boolean allowsOperatiosnOnComplexGroupByItems() {
     switch (this) {
     case BIG_QUERY:
       return false;

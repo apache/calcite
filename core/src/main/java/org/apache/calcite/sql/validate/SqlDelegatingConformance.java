@@ -47,8 +47,8 @@ public class SqlDelegatingConformance implements SqlConformance {
     return delegate.isGroupByOrdinal();
   }
 
-  @Override public boolean allowsOperationsOnComplexGroupByItem() {
-    return delegate.allowsOperationsOnComplexGroupByItem();
+  @Override public boolean allowsOperatiosnOnComplexGroupByItems() {
+    return delegate.allowsOperatiosnOnComplexGroupByItems();
   }
 
   @Override public boolean isHavingAlias() {

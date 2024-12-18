@@ -2342,8 +2342,8 @@ public abstract class SqlImplementor {
       if (rel instanceof Project && rel.getInput(0) instanceof Aggregate) {
         Project project = (Project) rel;
         Aggregate aggregate = (Aggregate) rel.getInput(0);
-        if (!dialect.getConformance().allowsOperationsOnComplexGroupByItem()
-            && !hasValidProjectionsForAggregate(aggregate, project.getProjects())) {
+        if (!dialect.getConformance().allowsOperatiosnOnComplexGroupByItems()
+            && !canMergeProjectAndAggregate(project.getProjects(), aggregate)) {
           return true;
         }
         if (CTERelToSqlUtil.isCTEScopeOrDefinitionTrait(rel.getTraitSet())
@@ -2358,7 +2358,6 @@ public abstract class SqlImplementor {
         }
 
         //check for distinct
-
         DistinctTrait distinctTrait = aggregate.getTraitSet().getTrait(DistinctTraitDef.instance);
         if (distinctTrait != null && distinctTrait.isDistinct()) {
           return true;
@@ -2484,11 +2483,11 @@ public abstract class SqlImplementor {
       return false;
     }
 
-    private boolean hasValidProjectionsForAggregate(
-        Aggregate aggregate, List<RexNode> nodes) {
+    private boolean canMergeProjectAndAggregate(
+        List<RexNode> nodes, Aggregate aggregate) {
       List<Integer> complexGroupByItems = getComplexGroupByItems(aggregate);
       for (RexNode node : nodes) {
-        if (RelToSqlUtils.containsInputRef(node, complexGroupByItems)
+        if (RelToSqlUtils.findInputRef(node, complexGroupByItems)
             && !dialect.validOperationOnGroupByItem(node)) {
           return false;
         }

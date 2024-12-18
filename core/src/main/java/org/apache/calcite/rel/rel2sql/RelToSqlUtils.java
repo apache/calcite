@@ -111,7 +111,7 @@ public class RelToSqlUtils {
     }
   }
 
-  public static boolean containsInputRef(RexNode node, List<Integer> refsToFind) {
+  public static boolean findInputRef(RexNode node, List<Integer> refsToFind) {
     try {
       RexVisitor<Void> visitor =
           new RexVisitorImpl<Void>(true) {
