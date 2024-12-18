@@ -18,6 +18,35 @@
 !use post
 !set outputformat mysql
 
+# Compared by casting varchar to number
+SELECT '1' > 0 AS C;
++------+
+| C    |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
+# [CALCITE-6735] Type coercion for comparisons does not coerce ROW types
+# These are compared in the same way as '1' > 0
+SELECT ROW('1') > ROW(0) AS C;
++------+
+| C    |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
+# [CALCITE-6735] Type coercion for comparisons does not coerce ROW types
+# These are compared in the same way as x'10' > 0, which throws
+SELECT ROW(x'10') > ROW(0) AS C;
+java.sql.SQLException: Error while executing SQL "SELECT ROW(x'10') > ROW(0) AS C": From line 1, column 11 to line 1, column 26: Cannot apply '>' to arguments of type '<RECORDTYPE(BINARY(1) EXPR$0)> > <RECORDTYPE(INTEGER EXPR$0)>'.
+!error
+
 # [CALCITE-6733] Type inferred by coercion for comparisons with decimal is too narrow
 SELECT ASCII('8') >= ABS(1.1806236821);
 +--------+
