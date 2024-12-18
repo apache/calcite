@@ -404,6 +404,8 @@ class TypeCoercionTest {
         null);
     f.comparisonCommonType(f.recordType("a", f.intType),
         f.recordType("a", f.intType), f.recordType("a", f.intType));
+    f.comparisonCommonType(f.recordType("a", f.intType),
+        f.recordType("a", f.charType), f.recordType("a", f.intType));
     f.comparisonCommonType(f.recordType("a", f.arrayType(f.intType)),
         f.recordType("a", f.arrayType(f.intType)),
         f.recordType("a", f.arrayType(f.intType)));
