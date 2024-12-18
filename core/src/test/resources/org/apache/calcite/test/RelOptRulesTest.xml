@@ -6797,6 +6797,31 @@ EnumerableLimitSort(sort0=[$0], dir0=[ASC], offset=[5], fetch=[10])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testLoptOptimizeJoinRulePrioritizeSelfJoin">
+    <Resource name="sql">
+      <![CDATA[select e.empno from emp e inner join dept d on d.deptno = e.deptno inner join emp e2 on e.empno = e2.empno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  MultiJoin(joinFilter=[AND(=($0, $11), =($9, $7))], isFullOuterJoin=[false], joinTypes=[[INNER, INNER, INNER]], outerJoinConditions=[[NULL, NULL, NULL]], projFields=[[ALL, ALL, ALL]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$18], NAME=[$19], EMPNO0=[$0], ENAME0=[$1], JOB0=[$2], MGR0=[$3], HIREDATE0=[$4], SAL0=[$5], COMM0=[$6], DEPTNO1=[$7], SLACKER0=[$8])
+    LogicalJoin(condition=[=($18, $7)], joinType=[inner])
+      LogicalJoin(condition=[=($9, $0)], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testLpad">
     <Resource name="sql">
       <![CDATA[select LPAD('abc', 8, 'A')]]>

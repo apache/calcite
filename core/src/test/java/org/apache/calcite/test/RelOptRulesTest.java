@@ -9480,4 +9480,17 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  @Test void testLoptOptimizeJoinRulePrioritizeSelfJoin() {
+    HepProgram program = new HepProgramBuilder()
+        .addMatchOrder(HepMatchOrder.BOTTOM_UP)
+        .addRuleInstance(CoreRules.JOIN_TO_MULTI_JOIN)
+        .build();
+
+    sql("select e.empno from emp e"
+        + " inner join dept d on d.deptno = e.deptno"
+        + " inner join emp e2 on e.empno = e2.empno")
+        .withPre(program)
+        .withRule(CoreRules.MULTI_JOIN_OPTIMIZE)
+        .check();
+  }
 }
