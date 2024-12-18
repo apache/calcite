@@ -595,17 +595,34 @@ public abstract class SqlTypeUtil {
       }
       return true;
     }
-    RelDataType comp1 = t1.getComponentType();
-    RelDataType comp2 = t2.getComponentType();
-    if ((comp1 != null) || (comp2 != null)) {
-      if ((comp1 == null) || (comp2 == null)) {
+    SqlTypeName t1Name = t1.getSqlTypeName();
+    SqlTypeName t2Name = t2.getSqlTypeName();
+    if (t1Name == SqlTypeName.ARRAY || t1Name == SqlTypeName.MULTISET) {
+      if (t1Name != t2Name) {
         return false;
       }
-      if (!sameNamedType(comp1, comp2)) {
-        return false;
-      }
+
+      RelDataType comp1 = requireNonNull(t1.getComponentType());
+      RelDataType comp2 = requireNonNull(t2.getComponentType());
+      return sameNamedType(comp1, comp2);
     }
-    return t1.getSqlTypeName() == t2.getSqlTypeName();
+
+    if (t1Name == SqlTypeName.MAP) {
+      if (t1Name != t2Name) {
+        return false;
+      }
+
+      RelDataType keyType1 = requireNonNull(t1.getKeyType());
+      RelDataType keyType2 = requireNonNull(t2.getKeyType());
+      if (!sameNamedType(keyType1, keyType2)) {
+        return false;
+      }
+      RelDataType valueType1 = requireNonNull(t1.getValueType());
+      RelDataType valueType2 = requireNonNull(t2.getValueType());
+      return sameNamedType(valueType1, valueType2);
+    }
+
+    return t1Name == t2Name;
   }
 
   /**
@@ -1502,6 +1519,28 @@ public abstract class SqlTypeUtil {
         }
       }
       return true;
+    }
+
+    SqlTypeName type1Name = type1.getSqlTypeName();
+    SqlTypeName type2Name = type2.getSqlTypeName();
+    if (type1Name == SqlTypeName.ARRAY || type1Name == SqlTypeName.MULTISET) {
+      if (type2Name != type1Name) {
+        return false;
+      }
+      RelDataType elementType1 = requireNonNull(type1.getComponentType());
+      RelDataType elementType2 = requireNonNull(type2.getComponentType());
+      return isComparable(elementType1, elementType2);
+    }
+
+    if (type1Name == SqlTypeName.MAP) {
+      if (type2Name != type1Name) {
+        return false;
+      }
+      RelDataType keyType1 = requireNonNull(type1.getKeyType());
+      RelDataType keyType2 = requireNonNull(type2.getKeyType());
+      RelDataType valueType1 = requireNonNull(type1.getValueType());
+      RelDataType valueType2 = requireNonNull(type2.getValueType());
+      return isComparable(keyType1, keyType2) && isComparable(valueType1, valueType2);
     }
 
     final RelDataTypeFamily family1 = family(type1);
