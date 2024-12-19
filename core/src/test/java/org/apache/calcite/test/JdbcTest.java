@@ -6955,7 +6955,13 @@ public class JdbcTest {
   @Test void testRowComparison() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.JDBC_SCOTT)
-        .query("SELECT empno FROM JDBC_SCOTT.emp WHERE (ename, job) < ('Blake', 'Manager')")
+        // The extra casts are necessary because HSQLDB does not support a ROW type,
+        // and in the absence of these explicit casts the code generated contains
+        // a cast of a ROW value.  The correct way to fix this would be to improve
+        // the code generation for HSQLDB to expand suc casts into constructs
+        // supported by HSQLDB.
+        .query("SELECT empno FROM JDBC_SCOTT.emp WHERE (ename, job) < "
+            + "(CAST('Blake' AS VARCHAR(10)), CAST('Manager' AS VARCHAR(9)))")
         .returnsUnordered("EMPNO=7876", "EMPNO=7499", "EMPNO=7698");
   }
 

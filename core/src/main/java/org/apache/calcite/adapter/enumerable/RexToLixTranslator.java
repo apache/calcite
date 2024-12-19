@@ -32,6 +32,7 @@ import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Statement;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCallBinding;
@@ -329,6 +330,35 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       // The cast returns an Object, so we need a convert to the expected Java type
       RelDataType nullableTarget = typeFactory.createTypeWithNullability(targetType, true);
       return Expressions.convert_(cast, typeFactory.getJavaClass(nullableTarget));
+    }
+
+    if (targetType.getSqlTypeName() == SqlTypeName.ROW) {
+      assert sourceType.getSqlTypeName() == SqlTypeName.ROW;
+      List<RelDataTypeField> targetTypes = targetType.getFieldList();
+      List<RelDataTypeField> sourceTypes = sourceType.getFieldList();
+      assert targetTypes.size() == sourceTypes.size();
+      List<Expression> fields = new ArrayList<>();
+      for (int i = 0; i < targetTypes.size(); i++) {
+        RelDataTypeField targetField = targetTypes.get(i);
+        RelDataTypeField sourceField = sourceTypes.get(i);
+        Expression field = Expressions.arrayIndex(operand, Expressions.constant(i));
+        // In the generated Java code 'field' is an Object,
+        // we need to also cast it to the correct type to enable correct method dispatch in Java.
+        // We force the type to be nullable; this way, instead of (int) we get (Integer).
+        // Casting an object ot an int is not legal.
+        RelDataType nullableSourceFieldType =
+            typeFactory.createTypeWithNullability(sourceField.getType(), true);
+        Type javaType = typeFactory.getJavaClass(nullableSourceFieldType);
+        if (!javaType.getTypeName().equals("java.lang.Void")
+            && !nullableSourceFieldType.isStruct()) {
+          // Cannot cast to Void - this is the type of NULL literals.
+          field = Expressions.convert_(field, javaType);
+        }
+        Expression convert =
+            getConvertExpression(sourceField.getType(), targetField.getType(), field, format);
+        fields.add(convert);
+      }
+      return Expressions.call(BuiltInMethod.ARRAY.method, fields);
     }
 
     switch (targetType.getSqlTypeName()) {
