@@ -210,6 +210,18 @@ public class RelMdUtil {
     return b != null && b;
   }
 
+  public static boolean isRelDefinitelyEmpty(RelMetadataQuery mq,
+      RelNode rel) {
+    Boolean b = mq.isEmpty(rel);
+    return b != null && b;
+  }
+
+  public static boolean isRelDefinitelyNotEmpty(RelMetadataQuery mq,
+      RelNode rel) {
+    Boolean b = mq.isEmpty(rel);
+    return b != null && !b;
+  }
+
   public static @Nullable Boolean areColumnsUnique(RelMetadataQuery mq, RelNode rel,
       List<RexInputRef> columnRefs) {
     ImmutableBitSet.Builder colMask = ImmutableBitSet.builder();
