@@ -104,9 +104,10 @@ public class FilterExtractInnerJoinRule
       allConditions.addAll(((RexCall) conditions).getOperands());
     }
 
-    final RelNode modifiedJoinClauseWithWhereClause = moveConditionsFromWhereClauseToJoinOnClause(
-            allConditions, stackForTableScanWithEndColumnIndex, ((RexCall) conditions).op,
-        builder, correlationIdSet);
+    final RelNode modifiedJoinClauseWithWhereClause =
+        moveConditionsFromWhereClauseToJoinOnClause(allConditions,
+            stackForTableScanWithEndColumnIndex, ((RexCall) conditions).op, builder,
+        correlationIdSet);
 
     call.transformTo(modifiedJoinClauseWithWhereClause);
   }
