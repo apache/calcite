@@ -50,7 +50,7 @@
   githubId: libenchao
   pronouns: he/him
   org: ByteDance
-  role: PMC Chair
+  role: PMC
 - name: Bertil Chapuis
   apacheId: bchapuis
   githubId: bchapuis
@@ -280,8 +280,8 @@
 - name: Ruben Quesada Lopez
   apacheId: rubenql
   githubId: rubenada
-  org: TIBCO
-  role: PMC
+  org: Voltron Data
+  role: PMC Chair
 - name: Rui Wang
   apacheId: amaliujia
   githubId: amaliujia
