@@ -68,6 +68,7 @@ import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.metadata.RelColumnMapping;
+import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.stream.Delta;
 import org.apache.calcite.rel.stream.LogicalDelta;
@@ -1366,12 +1367,11 @@ public class SqlToRelConverter {
       final Blackboard seekBb = createBlackboard(seekScope, null, false);
       final RelNode seekRel = convertQueryOrInList(seekBb, query, null);
       requireNonNull(seekRel, () -> "seekRel is null for query " + query);
-      // An EXIST sub-query whose inner child has at least 1 tuple
+      // An EXIST sub-query whose inner child guaranteed never empty
       // (e.g. an Aggregate with no grouping columns or non-empty Values
       // node) should be simplified to a Boolean constant expression.
       final RelMetadataQuery mq = seekRel.getCluster().getMetadataQuery();
-      final Double minRowCount = mq.getMinRowCount(seekRel);
-      if (minRowCount != null && minRowCount >= 1D) {
+      if (RelMdUtil.isRelDefinitelyNotEmpty(mq, seekRel)) {
         subQuery.expr = rexBuilder.makeLiteral(true);
         return;
       }
