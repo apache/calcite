@@ -35,7 +35,8 @@ class RelToSqlConverterStructsTest {
 
   private RelToSqlConverterTest.Sql sql(String sql) {
     return new RelToSqlConverterTest.Sql(CalciteAssert.SchemaSpec.MY_DB, sql,
-        CalciteSqlDialect.DEFAULT, SqlParser.Config.DEFAULT, ImmutableSet.of(),
+        CalciteSqlDialect.DEFAULT, CalciteSqlDialect.DEFAULT,
+        SqlParser.Config.DEFAULT, ImmutableSet.of(),
         UnaryOperator.identity(), null, ImmutableList.of());
   }
 

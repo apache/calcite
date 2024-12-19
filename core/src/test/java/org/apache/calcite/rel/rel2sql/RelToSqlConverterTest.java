@@ -72,6 +72,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
+import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.MockSqlOperatorTable;
@@ -123,7 +124,8 @@ class RelToSqlConverterTest {
 
   private Sql fixture() {
     return new Sql(CalciteAssert.SchemaSpec.JDBC_FOODMART, "?",
-        CalciteSqlDialect.DEFAULT, SqlParser.Config.DEFAULT, ImmutableSet.of(),
+        CalciteSqlDialect.DEFAULT, CalciteSqlDialect.DEFAULT,
+        SqlParser.Config.DEFAULT, ImmutableSet.of(),
         UnaryOperator.identity(), null, ImmutableList.of());
   }
 
@@ -140,15 +142,16 @@ class RelToSqlConverterTest {
   }
 
   private static Planner getPlanner(List<RelTraitDef> traitDefs,
-      SqlParser.Config parserConfig, SchemaPlus schema,
-      SqlToRelConverter.Config sqlToRelConf, Collection<SqlLibrary> librarySet,
-      RelDataTypeSystem typeSystem, Program... programs) {
+      SqlParser.Config parserConfig, SqlValidator.Config validatorConfig,
+      SchemaPlus schema, SqlToRelConverter.Config sqlToRelConf,
+      Collection<SqlLibrary> librarySet, RelDataTypeSystem typeSystem, Program... programs) {
     final FrameworkConfig config = Frameworks.newConfigBuilder()
         .parserConfig(parserConfig)
         .defaultSchema(schema)
         .traitDefs(traitDefs)
         .sqlToRelConverterConfig(sqlToRelConf)
         .programs(programs)
+        .sqlValidatorConfig(validatorConfig)
         .operatorTable(MockSqlOperatorTable.standard()
             .plus(librarySet)
             .extend())
@@ -632,7 +635,7 @@ class RelToSqlConverterTest {
             + "FROM `foodmart`.`product`\n"
             + "GROUP BY `product_class_id`, `product_id` WITH CUBE";
     sql(query).withHive().ok(expected);
-    SqlDialect sqlDialect = sql(query).withHive().dialect;
+    SqlDialect sqlDialect = sql(query).withHive().targetDialect;
     assertTrue(sqlDialect.supportsGroupByWithCube());
   }
 
@@ -643,7 +646,7 @@ class RelToSqlConverterTest {
             + "FROM `foodmart`.`product`\n"
             + "GROUP BY `product_class_id`, `product_id` WITH ROLLUP";
     sql(query).withHive().ok(expected);
-    SqlDialect sqlDialect = sql(query).withHive().dialect;
+    SqlDialect sqlDialect = sql(query).withHive().targetDialect;
     assertTrue(sqlDialect.supportsGroupByWithRollup());
   }
 
@@ -1365,6 +1368,7 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"";
     sql(query)
         .withRedshift()
+        .withSourceDialectEqualsTargetDialect()
         .ok(expectedRedshift);
   }
 
@@ -2297,7 +2301,7 @@ class RelToSqlConverterTest {
         .ok("SELECT \"JOB\", \"ENAME\"\n"
             + "FROM \"scott\".\"EMP\"\n"
             + "ORDER BY '1', '23', '12', \"ENAME\", '34' DESC NULLS LAST")
-        .dialect(nonOrdinalDialect())
+        .targetDialect(nonOrdinalDialect())
         .ok("SELECT JOB, ENAME\n"
             + "FROM scott.EMP\n"
             + "ORDER BY 1, '23', 12, ENAME, 34 DESC NULLS LAST");
@@ -2334,9 +2338,9 @@ class RelToSqlConverterTest {
         + "ORDER BY 2";
     sql(query)
         .ok(ordinalExpected)
-        .dialect(nonOrdinalDialect())
+        .targetDialect(nonOrdinalDialect())
         .ok(nonOrdinalExpected)
-        .dialect(PrestoSqlDialect.DEFAULT)
+        .targetDialect(PrestoSqlDialect.DEFAULT)
         .ok(prestoExpected);
   }
 
@@ -3170,8 +3174,8 @@ class RelToSqlConverterTest {
         + "FROM [foodmart].[product]\n"
         + "ORDER BY CASE WHEN [product_id] IS NULL THEN 0 ELSE 1 END, [product_id] DESC";
     sql(query)
-        .dialect(HiveSqlDialect.DEFAULT).ok(expected)
-        .dialect(MssqlSqlDialect.DEFAULT).ok(mssqlExpected);
+        .targetDialect(HiveSqlDialect.DEFAULT).ok(expected)
+        .targetDialect(MssqlSqlDialect.DEFAULT).ok(mssqlExpected);
   }
 
   @Test void testSelectOrderByAscNullsLast() {
@@ -3185,8 +3189,8 @@ class RelToSqlConverterTest {
         + "FROM [foodmart].[product]\n"
         + "ORDER BY CASE WHEN [product_id] IS NULL THEN 1 ELSE 0 END, [product_id]";
     sql(query)
-        .dialect(HiveSqlDialect.DEFAULT).ok(expected)
-        .dialect(MssqlSqlDialect.DEFAULT).ok(mssqlExpected);
+        .targetDialect(HiveSqlDialect.DEFAULT).ok(expected)
+        .targetDialect(MssqlSqlDialect.DEFAULT).ok(mssqlExpected);
   }
 
   @Test void testSelectOrderByAscNullsFirst() {
@@ -3201,8 +3205,8 @@ class RelToSqlConverterTest {
         + "FROM [foodmart].[product]\n"
         + "ORDER BY [product_id]";
     sql(query)
-        .dialect(HiveSqlDialect.DEFAULT).ok(expected)
-        .dialect(MssqlSqlDialect.DEFAULT).ok(mssqlExpected);
+        .targetDialect(HiveSqlDialect.DEFAULT).ok(expected)
+        .targetDialect(MssqlSqlDialect.DEFAULT).ok(mssqlExpected);
   }
 
   @Test void testSelectOrderByDescNullsLast() {
@@ -3217,8 +3221,8 @@ class RelToSqlConverterTest {
         + "FROM [foodmart].[product]\n"
         + "ORDER BY [product_id] DESC";
     sql(query)
-        .dialect(HiveSqlDialect.DEFAULT).ok(expectedHive)
-        .dialect(MssqlSqlDialect.DEFAULT).ok(mssqlExpected);
+        .targetDialect(HiveSqlDialect.DEFAULT).ok(expectedHive)
+        .targetDialect(MssqlSqlDialect.DEFAULT).ok(mssqlExpected);
   }
 
   @Test void testHiveSelectQueryWithOverDescAndNullsFirstShouldBeEmulated() {
@@ -3227,7 +3231,7 @@ class RelToSqlConverterTest {
     final String expected = "SELECT ROW_NUMBER() "
         + "OVER (ORDER BY `hire_date` IS NULL DESC, `hire_date` DESC)\n"
         + "FROM `foodmart`.`employee`";
-    sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
+    sql(query).targetDialect(HiveSqlDialect.DEFAULT).ok(expected);
   }
 
   @Test void testHiveSelectQueryWithOverAscAndNullsLastShouldBeEmulated() {
@@ -3235,7 +3239,7 @@ class RelToSqlConverterTest {
         + "(order by \"hire_date\" nulls last) FROM \"employee\"";
     final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY `hire_date` IS NULL, `hire_date`)\n"
         + "FROM `foodmart`.`employee`";
-    sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
+    sql(query).targetDialect(HiveSqlDialect.DEFAULT).ok(expected);
   }
 
   @Test void testHiveSelectQueryWithOverAscNullsFirstShouldNotAddNullEmulation() {
@@ -3243,7 +3247,7 @@ class RelToSqlConverterTest {
         + "(order by \"hire_date\" nulls first) FROM \"employee\"";
     final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY `hire_date`)\n"
         + "FROM `foodmart`.`employee`";
-    sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
+    sql(query).targetDialect(HiveSqlDialect.DEFAULT).ok(expected);
   }
 
   @Test void testHiveSubstring() {
@@ -3283,7 +3287,7 @@ class RelToSqlConverterTest {
             + "(order by \"hire_date\" desc nulls last) FROM \"employee\"";
     final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY `hire_date` DESC)\n"
             + "FROM `foodmart`.`employee`";
-    sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
+    sql(query).targetDialect(HiveSqlDialect.DEFAULT).ok(expected);
   }
 
   /** Test case for
@@ -3344,8 +3348,8 @@ class RelToSqlConverterTest {
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
         + "ORDER BY `product_id` DESC NULLS FIRST";
-    sql(query).dialect(hive2_1Dialect).ok(expected);
-    sql(query).dialect(hive2_2_Dialect).ok(expected);
+    sql(query).targetDialect(hive2_1Dialect).ok(expected);
+    sql(query).targetDialect(hive2_2_Dialect).ok(expected);
   }
 
   @Test void testHiveSelectQueryWithOverDescAndHighNullsWithVersionGreaterThanOrEq21() {
@@ -3365,8 +3369,8 @@ class RelToSqlConverterTest {
         + "(order by \"hire_date\" desc nulls first) FROM \"employee\"";
     final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY hire_date DESC NULLS FIRST)\n"
         + "FROM foodmart.employee";
-    sql(query).dialect(hive2_1Dialect).ok(expected);
-    sql(query).dialect(hive2_2_Dialect).ok(expected);
+    sql(query).targetDialect(hive2_1Dialect).ok(expected);
+    sql(query).targetDialect(hive2_2_Dialect).ok(expected);
   }
 
   @Test void testHiveSelectQueryWithOrderByDescAndHighNullsWithVersion20() {
@@ -3380,7 +3384,7 @@ class RelToSqlConverterTest {
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
         + "ORDER BY `product_id` IS NULL DESC, `product_id` DESC";
-    sql(query).dialect(hive2_1_0_Dialect).ok(expected);
+    sql(query).targetDialect(hive2_1_0_Dialect).ok(expected);
   }
 
   @Test void testHiveSelectQueryWithOverDescAndHighNullsWithVersion20() {
@@ -3394,7 +3398,7 @@ class RelToSqlConverterTest {
     final String expected = "SELECT ROW_NUMBER() OVER "
         + "(ORDER BY hire_date IS NULL DESC, hire_date DESC)\n"
         + "FROM foodmart.employee";
-    sql(query).dialect(hive2_1_0_Dialect).ok(expected);
+    sql(query).targetDialect(hive2_1_0_Dialect).ok(expected);
   }
 
   @Test void testJethroDataSelectQueryWithOrderByDescAndNullsFirstShouldBeEmulated() {
@@ -3404,7 +3408,7 @@ class RelToSqlConverterTest {
     final String expected = "SELECT \"product_id\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "ORDER BY \"product_id\", \"product_id\" DESC";
-    sql(query).dialect(jethroDataSqlDialect()).ok(expected);
+    sql(query).targetDialect(jethroDataSqlDialect()).ok(expected);
   }
 
   @Test void testJethroDataSelectQueryWithOverDescAndNullsFirstShouldBeEmulated() {
@@ -3414,7 +3418,7 @@ class RelToSqlConverterTest {
     final String expected = "SELECT ROW_NUMBER() OVER "
             + "(ORDER BY \"hire_date\", \"hire_date\" DESC)\n"
             + "FROM \"foodmart\".\"employee\"";
-    sql(query).dialect(jethroDataSqlDialect()).ok(expected);
+    sql(query).targetDialect(jethroDataSqlDialect()).ok(expected);
   }
 
   @Test void testMySqlSelectQueryWithOrderByDescAndNullsFirstShouldBeEmulated() {
@@ -3423,7 +3427,7 @@ class RelToSqlConverterTest {
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
         + "ORDER BY `product_id` IS NULL DESC, `product_id` DESC";
-    sql(query).dialect(MysqlSqlDialect.DEFAULT).ok(expected);
+    sql(query).targetDialect(MysqlSqlDialect.DEFAULT).ok(expected);
   }
 
   @Test void testMySqlSelectQueryWithOverDescAndNullsFirstShouldBeEmulated() {
@@ -3432,7 +3436,7 @@ class RelToSqlConverterTest {
     final String expected = "SELECT ROW_NUMBER() OVER "
             + "(ORDER BY `hire_date` IS NULL DESC, `hire_date` DESC)\n"
             + "FROM `foodmart`.`employee`";
-    sql(query).dialect(MysqlSqlDialect.DEFAULT).ok(expected);
+    sql(query).targetDialect(MysqlSqlDialect.DEFAULT).ok(expected);
   }
 
   @Test void testMySqlSelectQueryWithOrderByAscAndNullsLastShouldBeEmulated() {
@@ -3441,7 +3445,7 @@ class RelToSqlConverterTest {
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
         + "ORDER BY `product_id` IS NULL, `product_id`";
-    sql(query).dialect(MysqlSqlDialect.DEFAULT).ok(expected);
+    sql(query).targetDialect(MysqlSqlDialect.DEFAULT).ok(expected);
   }
 
   @Test void testMySqlSelectQueryWithOverAscAndNullsLastShouldBeEmulated() {
@@ -3450,7 +3454,7 @@ class RelToSqlConverterTest {
     final String expected = "SELECT ROW_NUMBER() OVER "
             + "(ORDER BY `hire_date` IS NULL, `hire_date`)\n"
             + "FROM `foodmart`.`employee`";
-    sql(query).dialect(MysqlSqlDialect.DEFAULT).ok(expected);
+    sql(query).targetDialect(MysqlSqlDialect.DEFAULT).ok(expected);
   }
 
   @Test void testMySqlSelectQueryWithOrderByAscNullsFirstShouldNotAddNullEmulation() {
@@ -3459,7 +3463,7 @@ class RelToSqlConverterTest {
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
         + "ORDER BY `product_id`";
-    sql(query).dialect(MysqlSqlDialect.DEFAULT).ok(expected);
+    sql(query).targetDialect(MysqlSqlDialect.DEFAULT).ok(expected);
   }
 
   @Test void testMySqlSelectQueryWithOverAscNullsFirstShouldNotAddNullEmulation() {
@@ -3467,7 +3471,7 @@ class RelToSqlConverterTest {
             + "over (order by \"hire_date\" nulls first) FROM \"employee\"";
     final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY `hire_date`)\n"
             + "FROM `foodmart`.`employee`";
-    sql(query).dialect(MysqlSqlDialect.DEFAULT).ok(expected);
+    sql(query).targetDialect(MysqlSqlDialect.DEFAULT).ok(expected);
   }
 
   @Test void testMySqlSelectQueryWithOrderByDescNullsLastShouldNotAddNullEmulation() {
@@ -3476,7 +3480,7 @@ class RelToSqlConverterTest {
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
         + "ORDER BY `product_id` DESC";
-    sql(query).dialect(MysqlSqlDialect.DEFAULT).ok(expected);
+    sql(query).targetDialect(MysqlSqlDialect.DEFAULT).ok(expected);
   }
 
   @Test void testMySqlSelectQueryWithOverDescNullsLastShouldNotAddNullEmulation() {
@@ -3484,7 +3488,7 @@ class RelToSqlConverterTest {
             + "over (order by \"hire_date\" desc nulls last) FROM \"employee\"";
     final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY `hire_date` DESC)\n"
             + "FROM `foodmart`.`employee`";
-    sql(query).dialect(MysqlSqlDialect.DEFAULT).ok(expected);
+    sql(query).targetDialect(MysqlSqlDialect.DEFAULT).ok(expected);
   }
 
   @Test void testMySqlCastToVarcharWithLessThanMaxPrecision() {
@@ -3543,7 +3547,7 @@ class RelToSqlConverterTest {
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
         + "ORDER BY `product_id`";
-    sql(query).dialect(mySqlDialect(NullCollation.HIGH)).ok(expected);
+    sql(query).targetDialect(mySqlDialect(NullCollation.HIGH)).ok(expected);
   }
 
   @Test void testMySqlWithHighNullsSelectWithOverAscNullsLastAndNoEmulation() {
@@ -3551,7 +3555,7 @@ class RelToSqlConverterTest {
             + "over (order by \"hire_date\" nulls last) FROM \"employee\"";
     final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY `hire_date`)\n"
             + "FROM `foodmart`.`employee`";
-    sql(query).dialect(mySqlDialect(NullCollation.HIGH)).ok(expected);
+    sql(query).targetDialect(mySqlDialect(NullCollation.HIGH)).ok(expected);
   }
 
   @Test void testMySqlWithHighNullsSelectWithOrderByAscNullsFirstAndNullEmulation() {
@@ -3560,7 +3564,7 @@ class RelToSqlConverterTest {
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
         + "ORDER BY `product_id` IS NULL DESC, `product_id`";
-    sql(query).dialect(mySqlDialect(NullCollation.HIGH)).ok(expected);
+    sql(query).targetDialect(mySqlDialect(NullCollation.HIGH)).ok(expected);
   }
 
   @Test void testMySqlWithHighNullsSelectWithOverAscNullsFirstAndNullEmulation() {
@@ -3569,7 +3573,7 @@ class RelToSqlConverterTest {
     final String expected = "SELECT ROW_NUMBER() "
             + "OVER (ORDER BY `hire_date` IS NULL DESC, `hire_date`)\n"
             + "FROM `foodmart`.`employee`";
-    sql(query).dialect(mySqlDialect(NullCollation.HIGH)).ok(expected);
+    sql(query).targetDialect(mySqlDialect(NullCollation.HIGH)).ok(expected);
   }
 
   @Test void testMySqlWithHighNullsSelectWithOrderByDescNullsFirstAndNoEmulation() {
@@ -3578,7 +3582,7 @@ class RelToSqlConverterTest {
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
         + "ORDER BY `product_id` DESC";
-    sql(query).dialect(mySqlDialect(NullCollation.HIGH)).ok(expected);
+    sql(query).targetDialect(mySqlDialect(NullCollation.HIGH)).ok(expected);
   }
 
   @Test void testMySqlWithHighNullsSelectWithOverDescNullsFirstAndNoEmulation() {
@@ -3586,7 +3590,7 @@ class RelToSqlConverterTest {
             + "over (order by \"hire_date\" desc nulls first) FROM \"employee\"";
     final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY `hire_date` DESC)\n"
             + "FROM `foodmart`.`employee`";
-    sql(query).dialect(mySqlDialect(NullCollation.HIGH)).ok(expected);
+    sql(query).targetDialect(mySqlDialect(NullCollation.HIGH)).ok(expected);
   }
 
   @Test void testMySqlWithHighNullsSelectWithOrderByDescNullsLastAndNullEmulation() {
@@ -3595,7 +3599,7 @@ class RelToSqlConverterTest {
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
         + "ORDER BY `product_id` IS NULL, `product_id` DESC";
-    sql(query).dialect(mySqlDialect(NullCollation.HIGH)).ok(expected);
+    sql(query).targetDialect(mySqlDialect(NullCollation.HIGH)).ok(expected);
   }
 
   @Test void testMySqlWithHighNullsSelectWithOverDescNullsLastAndNullEmulation() {
@@ -3604,7 +3608,7 @@ class RelToSqlConverterTest {
     final String expected = "SELECT ROW_NUMBER() "
             + "OVER (ORDER BY `hire_date` IS NULL, `hire_date` DESC)\n"
             + "FROM `foodmart`.`employee`";
-    sql(query).dialect(mySqlDialect(NullCollation.HIGH)).ok(expected);
+    sql(query).targetDialect(mySqlDialect(NullCollation.HIGH)).ok(expected);
   }
 
   @Test void testMySqlWithFirstNullsSelectWithOrderByDescAndNullsFirstShouldNotBeEmulated() {
@@ -3613,7 +3617,7 @@ class RelToSqlConverterTest {
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
         + "ORDER BY `product_id` DESC";
-    sql(query).dialect(mySqlDialect(NullCollation.FIRST)).ok(expected);
+    sql(query).targetDialect(mySqlDialect(NullCollation.FIRST)).ok(expected);
   }
 
   @Test void testMySqlWithFirstNullsSelectWithOverDescAndNullsFirstShouldNotBeEmulated() {
@@ -3621,7 +3625,7 @@ class RelToSqlConverterTest {
             + "over (order by \"hire_date\" desc nulls first) FROM \"employee\"";
     final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY `hire_date` DESC)\n"
             + "FROM `foodmart`.`employee`";
-    sql(query).dialect(mySqlDialect(NullCollation.FIRST)).ok(expected);
+    sql(query).targetDialect(mySqlDialect(NullCollation.FIRST)).ok(expected);
   }
 
   @Test void testMySqlWithFirstNullsSelectWithOrderByAscAndNullsFirstShouldNotBeEmulated() {
@@ -3630,7 +3634,7 @@ class RelToSqlConverterTest {
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
         + "ORDER BY `product_id`";
-    sql(query).dialect(mySqlDialect(NullCollation.FIRST)).ok(expected);
+    sql(query).targetDialect(mySqlDialect(NullCollation.FIRST)).ok(expected);
   }
 
   @Test void testMySqlWithFirstNullsSelectWithOverAscAndNullsFirstShouldNotBeEmulated() {
@@ -3638,7 +3642,7 @@ class RelToSqlConverterTest {
             + "over (order by \"hire_date\" nulls first) FROM \"employee\"";
     final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY `hire_date`)\n"
             + "FROM `foodmart`.`employee`";
-    sql(query).dialect(mySqlDialect(NullCollation.FIRST)).ok(expected);
+    sql(query).targetDialect(mySqlDialect(NullCollation.FIRST)).ok(expected);
   }
 
   @Test void testMySqlWithFirstNullsSelectWithOrderByDescAndNullsLastShouldBeEmulated() {
@@ -3647,7 +3651,7 @@ class RelToSqlConverterTest {
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
         + "ORDER BY `product_id` IS NULL, `product_id` DESC";
-    sql(query).dialect(mySqlDialect(NullCollation.FIRST)).ok(expected);
+    sql(query).targetDialect(mySqlDialect(NullCollation.FIRST)).ok(expected);
   }
 
   @Test void testMySqlWithFirstNullsSelectWithOverDescAndNullsLastShouldBeEmulated() {
@@ -3656,7 +3660,7 @@ class RelToSqlConverterTest {
     final String expected = "SELECT ROW_NUMBER() "
             + "OVER (ORDER BY `hire_date` IS NULL, `hire_date` DESC)\n"
             + "FROM `foodmart`.`employee`";
-    sql(query).dialect(mySqlDialect(NullCollation.FIRST)).ok(expected);
+    sql(query).targetDialect(mySqlDialect(NullCollation.FIRST)).ok(expected);
   }
 
   @Test void testMySqlWithFirstNullsSelectWithOrderByAscAndNullsLastShouldBeEmulated() {
@@ -3665,7 +3669,7 @@ class RelToSqlConverterTest {
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
         + "ORDER BY `product_id` IS NULL, `product_id`";
-    sql(query).dialect(mySqlDialect(NullCollation.FIRST)).ok(expected);
+    sql(query).targetDialect(mySqlDialect(NullCollation.FIRST)).ok(expected);
   }
 
   @Test void testMySqlWithFirstNullsSelectWithOverAscAndNullsLastShouldBeEmulated() {
@@ -3674,7 +3678,7 @@ class RelToSqlConverterTest {
     final String expected = "SELECT ROW_NUMBER() "
             + "OVER (ORDER BY `hire_date` IS NULL, `hire_date`)\n"
             + "FROM `foodmart`.`employee`";
-    sql(query).dialect(mySqlDialect(NullCollation.FIRST)).ok(expected);
+    sql(query).targetDialect(mySqlDialect(NullCollation.FIRST)).ok(expected);
   }
 
   @Test void testMySqlWithLastNullsSelectWithOrderByDescAndNullsFirstShouldBeEmulated() {
@@ -3683,7 +3687,7 @@ class RelToSqlConverterTest {
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
         + "ORDER BY `product_id` IS NULL DESC, `product_id` DESC";
-    sql(query).dialect(mySqlDialect(NullCollation.LAST)).ok(expected);
+    sql(query).targetDialect(mySqlDialect(NullCollation.LAST)).ok(expected);
   }
 
   @Test void testMySqlWithLastNullsSelectWithOverDescAndNullsFirstShouldBeEmulated() {
@@ -3692,7 +3696,7 @@ class RelToSqlConverterTest {
     final String expected = "SELECT ROW_NUMBER() "
             + "OVER (ORDER BY `hire_date` IS NULL DESC, `hire_date` DESC)\n"
             + "FROM `foodmart`.`employee`";
-    sql(query).dialect(mySqlDialect(NullCollation.LAST)).ok(expected);
+    sql(query).targetDialect(mySqlDialect(NullCollation.LAST)).ok(expected);
   }
 
   @Test void testMySqlWithLastNullsSelectWithOrderByAscAndNullsFirstShouldBeEmulated() {
@@ -3701,7 +3705,7 @@ class RelToSqlConverterTest {
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
         + "ORDER BY `product_id` IS NULL DESC, `product_id`";
-    sql(query).dialect(mySqlDialect(NullCollation.LAST)).ok(expected);
+    sql(query).targetDialect(mySqlDialect(NullCollation.LAST)).ok(expected);
   }
 
   @Test void testMySqlWithLastNullsSelectWithOverAscAndNullsFirstShouldBeEmulated() {
@@ -3710,7 +3714,7 @@ class RelToSqlConverterTest {
     final String expected = "SELECT ROW_NUMBER() "
             + "OVER (ORDER BY `hire_date` IS NULL DESC, `hire_date`)\n"
             + "FROM `foodmart`.`employee`";
-    sql(query).dialect(mySqlDialect(NullCollation.LAST)).ok(expected);
+    sql(query).targetDialect(mySqlDialect(NullCollation.LAST)).ok(expected);
   }
 
   @Test void testMySqlWithLastNullsSelectWithOrderByDescAndNullsLastShouldNotBeEmulated() {
@@ -3719,7 +3723,7 @@ class RelToSqlConverterTest {
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
         + "ORDER BY `product_id` DESC";
-    sql(query).dialect(mySqlDialect(NullCollation.LAST)).ok(expected);
+    sql(query).targetDialect(mySqlDialect(NullCollation.LAST)).ok(expected);
   }
 
   @Test void testMySqlWithLastNullsSelectWithOverDescAndNullsLastShouldNotBeEmulated() {
@@ -3727,7 +3731,7 @@ class RelToSqlConverterTest {
             + "over (order by \"hire_date\" desc nulls last) FROM \"employee\"";
     final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY `hire_date` DESC)\n"
             + "FROM `foodmart`.`employee`";
-    sql(query).dialect(mySqlDialect(NullCollation.LAST)).ok(expected);
+    sql(query).targetDialect(mySqlDialect(NullCollation.LAST)).ok(expected);
   }
 
   @Test void testMySqlWithLastNullsSelectWithOrderByAscAndNullsLastShouldNotBeEmulated() {
@@ -3736,7 +3740,7 @@ class RelToSqlConverterTest {
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
         + "ORDER BY `product_id`";
-    sql(query).dialect(mySqlDialect(NullCollation.LAST)).ok(expected);
+    sql(query).targetDialect(mySqlDialect(NullCollation.LAST)).ok(expected);
   }
 
   @Test void testMySqlWithLastNullsSelectWithOverAscAndNullsLastShouldNotBeEmulated() {
@@ -3744,7 +3748,7 @@ class RelToSqlConverterTest {
             + "(order by \"hire_date\" nulls last) FROM \"employee\"";
     final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY `hire_date`)\n"
             + "FROM `foodmart`.`employee`";
-    sql(query).dialect(mySqlDialect(NullCollation.LAST)).ok(expected);
+    sql(query).targetDialect(mySqlDialect(NullCollation.LAST)).ok(expected);
   }
 
   /** Test case for
@@ -3792,10 +3796,10 @@ class RelToSqlConverterTest {
     final String expectedSpark = "SELECT CAST(`product_id` AS CHAR(1))\n"
         + "FROM `foodmart`.`product`";
     sql(query)
-        .withMysql().ok(expectedMysql)
-        .withMssql().ok(expectedMssql)
-        .withHive().ok(expectedHive)
-        .withSpark().ok(expectedSpark);
+        .withMysql().withSourceDialectEqualsTargetDialect().ok(expectedMysql)
+        .withMssql().withSourceDialectEqualsTargetDialect().ok(expectedMssql)
+        .withHive().withSourceDialectEqualsTargetDialect().ok(expectedHive)
+        .withSpark().withSourceDialectEqualsTargetDialect().ok(expectedSpark);
   }
 
   @Test void testCastToCharWithPrecision() {
@@ -5637,6 +5641,7 @@ class RelToSqlConverterTest {
     final String expected =
         "SELECT MOD(2.00000000000000000000, 2)\nFROM (VALUES (0)) AS \"t\" (\"ZERO\")";
     sql(sql).withPostgresqlModifiedDecimalTypeSystem()
+        .withSourceDialectEqualsTargetDialect()
         .ok(expected);
   }
 
@@ -5649,7 +5654,9 @@ class RelToSqlConverterTest {
         + "DECIMAL(39, 10)) + CAST(\"t0\".\"EXPR$0\" AS "
         + "DECIMAL(39, 10))\nFROM (VALUES ('4.2')) AS "
         +  "\"t\" (\"EXPR$0\"),\n(VALUES ('4.2')) AS \"t0\" (\"EXPR$0\")";
-    sql(sql).withPostgresqlModifiedDecimalTypeSystem()
+    sql(sql)
+        .withPostgresqlModifiedDecimalTypeSystem()
+        .withSourceDialectEqualsTargetDialect()
         .ok(expected);
   }
 
@@ -6753,16 +6760,16 @@ class RelToSqlConverterTest {
         + "FROM (SELECT 1 AS \"a\", 'x ' AS \"b\"\n"
         + "UNION ALL\nSELECT 2 AS \"a\", 'yy' AS \"b\")";
     sql(sql)
-        .withClickHouse().ok(expectedClickHouse)
-        .withFirebolt().ok(expectedFirebolt)
-        .withBigQuery().ok(expectedBigQuery)
-        .withHive().ok(expectedHive)
-        .withHsqldb().ok(expectedHsqldb)
-        .withMysql().ok(expectedMysql)
-        .withOracle().ok(expectedOracle)
-        .withPostgresql().ok(expectedPostgresql)
-        .withRedshift().ok(expectedRedshift)
-        .withSnowflake().ok(expectedSnowflake);
+        .withClickHouse().withSourceDialectEqualsTargetDialect().ok(expectedClickHouse)
+        .withFirebolt().withSourceDialectEqualsTargetDialect().ok(expectedFirebolt)
+        .withBigQuery().withSourceDialectEqualsTargetDialect().ok(expectedBigQuery)
+        .withHive().withSourceDialectEqualsTargetDialect().ok(expectedHive)
+        .withHsqldb().withSourceDialectEqualsTargetDialect().ok(expectedHsqldb)
+        .withMysql().withSourceDialectEqualsTargetDialect().ok(expectedMysql)
+        .withOracle().withSourceDialectEqualsTargetDialect().ok(expectedOracle)
+        .withPostgresql().withSourceDialectEqualsTargetDialect().ok(expectedPostgresql)
+        .withRedshift().withSourceDialectEqualsTargetDialect().ok(expectedRedshift)
+        .withSnowflake().withSourceDialectEqualsTargetDialect().ok(expectedSnowflake);
   }
 
   /**
@@ -6984,7 +6991,7 @@ class RelToSqlConverterTest {
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
     };
-    sql(query).dialect(dialect).ok(expected);
+    sql(query).targetDialect(dialect).ok(expected);
 
     assertThat("Dialect must be able to customize unparseCall() for SqlSelect",
         callsUnparseCallOnSqlSelect[0], is(true));
@@ -8937,7 +8944,7 @@ class RelToSqlConverterTest {
     final String mssqlExpected = "SELECT 1.24, FLOOR(1.24), CEILING(1.24)\n"
         + "FROM (VALUES (0)) AS [t] ([ZERO])";
     sql(query)
-        .dialect(MssqlSqlDialect.DEFAULT).ok(mssqlExpected);
+        .targetDialect(MssqlSqlDialect.DEFAULT).ok(mssqlExpected);
   }
 
  /** Test case for
@@ -8997,69 +9004,83 @@ class RelToSqlConverterTest {
   static class Sql {
     private final CalciteAssert.SchemaSpec schemaSpec;
     private final String sql;
-    private final SqlDialect dialect;
+    // The dialect of the source sql
+    private final SqlDialect sourceDialect;
+
+    // The dialect of the target sql
+    private final SqlDialect targetDialect;
     private final Set<SqlLibrary> librarySet;
     private final @Nullable Function<RelBuilder, RelNode> relFn;
     private final List<Function<RelNode, RelNode>> transforms;
     private final SqlParser.Config parserConfig;
+    private final SqlValidator.Config validatorConfig;
     private final UnaryOperator<SqlToRelConverter.Config> config;
 
-    Sql(CalciteAssert.SchemaSpec schemaSpec, String sql, SqlDialect dialect,
+    Sql(CalciteAssert.SchemaSpec schemaSpec, String sql,
+        SqlDialect sourceDialect, SqlDialect targetDialect,
         SqlParser.Config parserConfig, Set<SqlLibrary> librarySet,
         UnaryOperator<SqlToRelConverter.Config> config,
         @Nullable Function<RelBuilder, RelNode> relFn,
         List<Function<RelNode, RelNode>> transforms) {
       this.schemaSpec = schemaSpec;
       this.sql = sql;
-      this.dialect = dialect;
+      this.sourceDialect = sourceDialect;
+      this.targetDialect = targetDialect;
       this.librarySet = librarySet;
       this.relFn = relFn;
       this.transforms = ImmutableList.copyOf(transforms);
       this.parserConfig = parserConfig;
+      this.validatorConfig = SqlValidator.Config.DEFAULT
+          .withDefaultNullCollation(sourceDialect.getNullCollation());
       this.config = config;
     }
 
     Sql withSql(String sql) {
-      return new Sql(schemaSpec, sql, dialect, parserConfig, librarySet, config,
+      return new Sql(schemaSpec, sql, sourceDialect, targetDialect, parserConfig, librarySet,
+          config, relFn, transforms);
+    }
+
+    Sql sourceDialect(SqlDialect dialect) {
+      return new Sql(schemaSpec, sql, dialect, targetDialect, parserConfig, librarySet, config,
           relFn, transforms);
     }
 
-    Sql dialect(SqlDialect dialect) {
-      return new Sql(schemaSpec, sql, dialect, parserConfig, librarySet, config,
+    Sql targetDialect(SqlDialect dialect) {
+      return new Sql(schemaSpec, sql, sourceDialect, dialect, parserConfig, librarySet, config,
           relFn, transforms);
     }
 
     Sql relFn(Function<RelBuilder, RelNode> relFn) {
-      return new Sql(schemaSpec, sql, dialect, parserConfig, librarySet, config,
-          relFn, transforms);
+      return new Sql(schemaSpec, sql, sourceDialect, targetDialect, parserConfig,
+          librarySet, config, relFn, transforms);
     }
 
     Sql withCalcite() {
-      return dialect(DatabaseProduct.CALCITE.getDialect());
+      return targetDialect(DatabaseProduct.CALCITE.getDialect());
     }
 
     Sql withClickHouse() {
-      return dialect(DatabaseProduct.CLICKHOUSE.getDialect());
+      return targetDialect(DatabaseProduct.CLICKHOUSE.getDialect());
     }
 
     Sql withDb2() {
-      return dialect(DatabaseProduct.DB2.getDialect());
+      return targetDialect(DatabaseProduct.DB2.getDialect());
     }
 
     Sql withExasol() {
-      return dialect(DatabaseProduct.EXASOL.getDialect());
+      return targetDialect(DatabaseProduct.EXASOL.getDialect());
     }
 
     Sql withFirebolt() {
-      return dialect(DatabaseProduct.FIREBOLT.getDialect());
+      return targetDialect(DatabaseProduct.FIREBOLT.getDialect());
     }
 
     Sql withHive() {
-      return dialect(DatabaseProduct.HIVE.getDialect());
+      return targetDialect(DatabaseProduct.HIVE.getDialect());
     }
 
     Sql withHsqldb() {
-      return dialect(DatabaseProduct.HSQLDB.getDialect());
+      return targetDialect(DatabaseProduct.HSQLDB.getDialect());
     }
 
     Sql withMssql() {
@@ -9068,7 +9089,7 @@ class RelToSqlConverterTest {
 
     Sql withMssql(int majorVersion) {
       final SqlDialect mssqlDialect = DatabaseProduct.MSSQL.getDialect();
-      return dialect(
+      return targetDialect(
           new MssqlSqlDialect(MssqlSqlDialect.DEFAULT_CONTEXT
               .withDatabaseMajorVersion(majorVersion)
               .withIdentifierQuoteString(mssqlDialect.quoteIdentifier("")
@@ -9077,12 +9098,12 @@ class RelToSqlConverterTest {
     }
 
     Sql withMysql() {
-      return dialect(DatabaseProduct.MYSQL.getDialect());
+      return targetDialect(DatabaseProduct.MYSQL.getDialect());
     }
 
     Sql withMysql8() {
       final SqlDialect mysqlDialect = DatabaseProduct.MYSQL.getDialect();
-      return dialect(
+      return targetDialect(
           new SqlDialect(MysqlSqlDialect.DEFAULT_CONTEXT
               .withDatabaseMajorVersion(8)
               .withIdentifierQuoteString(mysqlDialect.quoteIdentifier("")
@@ -9096,7 +9117,7 @@ class RelToSqlConverterTest {
 
     Sql withOracle(int majorVersion) {
       final SqlDialect oracleDialect = DatabaseProduct.ORACLE.getDialect();
-      return dialect(
+      return targetDialect(
           new OracleSqlDialect(OracleSqlDialect.DEFAULT_CONTEXT
               .withDatabaseProduct(DatabaseProduct.ORACLE)
               .withDatabaseMajorVersion(majorVersion)
@@ -9106,43 +9127,43 @@ class RelToSqlConverterTest {
     }
 
     Sql withPostgresql() {
-      return dialect(DatabaseProduct.POSTGRESQL.getDialect());
+      return targetDialect(DatabaseProduct.POSTGRESQL.getDialect());
     }
 
     Sql withPresto() {
-      return dialect(DatabaseProduct.PRESTO.getDialect());
+      return targetDialect(DatabaseProduct.PRESTO.getDialect());
     }
 
     Sql withRedshift() {
-      return dialect(DatabaseProduct.REDSHIFT.getDialect());
+      return targetDialect(DatabaseProduct.REDSHIFT.getDialect());
     }
 
     Sql withInformix() {
-      return dialect(DatabaseProduct.INFORMIX.getDialect());
+      return targetDialect(DatabaseProduct.INFORMIX.getDialect());
     }
 
     Sql withSnowflake() {
-      return dialect(DatabaseProduct.SNOWFLAKE.getDialect());
+      return targetDialect(DatabaseProduct.SNOWFLAKE.getDialect());
     }
 
     Sql withSybase() {
-      return dialect(DatabaseProduct.SYBASE.getDialect());
+      return targetDialect(DatabaseProduct.SYBASE.getDialect());
     }
 
     Sql withVertica() {
-      return dialect(DatabaseProduct.VERTICA.getDialect());
+      return targetDialect(DatabaseProduct.VERTICA.getDialect());
     }
 
     Sql withBigQuery() {
-      return dialect(DatabaseProduct.BIG_QUERY.getDialect());
+      return targetDialect(DatabaseProduct.BIG_QUERY.getDialect());
     }
 
     Sql withSpark() {
-      return dialect(DatabaseProduct.SPARK.getDialect());
+      return targetDialect(DatabaseProduct.SPARK.getDialect());
     }
 
     Sql withStarRocks() {
-      return dialect(DatabaseProduct.STARROCKS.getDialect());
+      return targetDialect(DatabaseProduct.STARROCKS.getDialect());
     }
 
     Sql withPostgresqlModifiedTypeSystem() {
@@ -9159,7 +9180,7 @@ class RelToSqlConverterTest {
                   }
                 }
               }));
-      return dialect(postgresqlSqlDialect);
+      return targetDialect(postgresqlSqlDialect);
     }
 
     Sql withPostgresqlModifiedDecimalTypeSystem() {
@@ -9193,7 +9214,11 @@ class RelToSqlConverterTest {
                       }
                     }
                   }));
-      return dialect(postgresqlSqlDialect);
+      return targetDialect(postgresqlSqlDialect);
+    }
+
+    Sql withSourceDialectEqualsTargetDialect() {
+      return sourceDialect(this.targetDialect);
     }
 
     Sql withOracleModifiedTypeSystem() {
@@ -9210,17 +9235,17 @@ class RelToSqlConverterTest {
                   }
                 }
               }));
-      return dialect(oracleSqlDialect);
+      return targetDialect(oracleSqlDialect);
     }
 
     Sql parserConfig(SqlParser.Config parserConfig) {
-      return new Sql(schemaSpec, sql, dialect, parserConfig, librarySet, config,
-          relFn, transforms);
+      return new Sql(schemaSpec, sql, sourceDialect, targetDialect, parserConfig,
+          librarySet, config, relFn, transforms);
     }
 
     Sql withConfig(UnaryOperator<SqlToRelConverter.Config> config) {
-      return new Sql(schemaSpec, sql, dialect, parserConfig, librarySet, config,
-          relFn, transforms);
+      return new Sql(schemaSpec, sql, sourceDialect, targetDialect, parserConfig,
+          librarySet, config, relFn, transforms);
     }
 
     final Sql withLibrary(SqlLibrary library) {
@@ -9228,7 +9253,7 @@ class RelToSqlConverterTest {
     }
 
     Sql withLibrarySet(Iterable<? extends SqlLibrary> librarySet) {
-      return new Sql(schemaSpec, sql, dialect, parserConfig,
+      return new Sql(schemaSpec, sql, sourceDialect, targetDialect, parserConfig,
           ImmutableSet.copyOf(librarySet), config, relFn, transforms);
     }
 
@@ -9245,8 +9270,8 @@ class RelToSqlConverterTest {
             return program.run(p, r, r.getTraitSet(),
                 ImmutableList.of(), ImmutableList.of());
           });
-      return new Sql(schemaSpec, sql, dialect, parserConfig, librarySet, config,
-          relFn, transforms);
+      return new Sql(schemaSpec, sql, sourceDialect, targetDialect, parserConfig,
+          librarySet, config, relFn, transforms);
     }
 
     Sql ok(String expectedQuery) {
@@ -9280,9 +9305,10 @@ class RelToSqlConverterTest {
         } else {
           final SqlToRelConverter.Config config = this.config.apply(SqlToRelConverter.config()
               .withTrimUnusedFields(false));
-          RelDataTypeSystem typeSystem = dialect.getTypeSystem();
+          RelDataTypeSystem typeSystem = sourceDialect.getTypeSystem();
           final Planner planner =
-              getPlanner(null, parserConfig, defaultSchema, config, librarySet, typeSystem);
+              getPlanner(null, parserConfig, validatorConfig, defaultSchema,
+                  config, librarySet, typeSystem);
           SqlNode parse = planner.parse(sql);
           SqlNode validate = planner.validate(parse);
           rel = planner.rel(validate).project();
@@ -9290,15 +9316,15 @@ class RelToSqlConverterTest {
         for (Function<RelNode, RelNode> transform : transforms) {
           rel = transform.apply(rel);
         }
-        return toSql(rel, dialect);
+        return toSql(rel, targetDialect);
       } catch (Exception e) {
         throw TestUtil.rethrow(e);
       }
     }
 
     public Sql schema(CalciteAssert.SchemaSpec schemaSpec) {
-      return new Sql(schemaSpec, sql, dialect, parserConfig, librarySet, config,
-          relFn, transforms);
+      return new Sql(schemaSpec, sql, sourceDialect, targetDialect, parserConfig,
+          librarySet, config, relFn, transforms);
     }
   }
 }

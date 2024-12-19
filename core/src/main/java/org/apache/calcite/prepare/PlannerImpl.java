@@ -46,6 +46,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.parser.SqlParser.Config;
 import org.apache.calcite.sql.util.SqlOperatorTables;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql2rel.RelDecorrelator;
@@ -117,14 +118,14 @@ public class PlannerImpl implements Planner, ViewExpander {
     this.convertletTable = config.getConvertletTable();
     this.executor = config.getExecutor();
     this.context = config.getContext();
-    this.connectionConfig = connConfig(context, parserConfig);
+    this.connectionConfig = connConfig(context, parserConfig, sqlValidatorConfig);
     this.typeSystem = config.getTypeSystem();
     reset();
   }
 
   /** Gets a user-defined config and appends default connection values. */
   private static CalciteConnectionConfig connConfig(Context context,
-      SqlParser.Config parserConfig) {
+      Config parserConfig, SqlValidator.Config sqlValidatorConfig) {
     CalciteConnectionConfigImpl config =
         context.maybeUnwrap(CalciteConnectionConfigImpl.class)
             .orElse(CalciteConnectionConfig.DEFAULT);
@@ -137,6 +138,11 @@ public class PlannerImpl implements Planner, ViewExpander {
       config =
           config.set(CalciteConnectionProperty.CONFORMANCE,
               String.valueOf(parserConfig.conformance()));
+    }
+    if (!config.isSet(CalciteConnectionProperty.DEFAULT_NULL_COLLATION)) {
+      config =
+          config.set(CalciteConnectionProperty.DEFAULT_NULL_COLLATION,
+              String.valueOf(sqlValidatorConfig.defaultNullCollation()));
     }
     return config;
   }
