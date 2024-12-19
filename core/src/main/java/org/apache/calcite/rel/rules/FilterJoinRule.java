@@ -108,6 +108,14 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
     // (t1.a = 1 OR t1.b = 3)
     // (t2.a = 2 OR t2.b = 4)
 
+    // infer filter conditions with simplified joinType
+    final List<RexNode> inferredPredicates =
+        config.enablePredicatesInference()
+            ? RelOptUtil.inferPredicatesFromJoin(join, joinType, origAboveFilters)
+            : new ArrayList<>();
+
+    aboveFilters.addAll(inferredPredicates);
+
     // Try to push down above filters. These are typically where clause
     // filters. They can be pushed down if they are not on the NULL
     // generating side.
@@ -120,6 +128,27 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
             joinFilters,
             leftFilters,
             rightFilters);
+
+    // Not all derived predicates are valuable, many of those are repeated, e.g. for query:
+    //
+    //   select * from table1 join table2
+    //     on table1.x = table2.x and table1.y = table2.y
+    //   where table1.x + table2.y < 1200
+    //
+    // based on these conditions, we can infer the following new filter conditions:
+    //   cond1: table1.x + table1.y < 1200, which can be pushed down to table1,
+    //   cond2: table2.x + table2.y < 1200, which can be pushed down to table2,
+    //   cond3: table2.x + table1.y < 1200, which is repeated and should be removed.
+    //
+    // Basically, if a derived filter cannot be pushed down, it should be removed.
+    // So here try to remove these possible repeated predicates like cond3.
+    // TODO: try to remove original but no more useful conditions like table1.x + table2.y < 1200
+    inferredPredicates.removeAll(leftFilters);
+    inferredPredicates.removeAll(rightFilters);
+    inferredPredicates.removeAll(origAboveFilters);
+    inferredPredicates.removeAll(origAboveFilters);
+    aboveFilters.removeAll(inferredPredicates);
+    joinFilters.removeAll(inferredPredicates);
 
     // Move join filters up if needed
     validateJoinFilters(aboveFilters, joinFilters, join, joinType);
@@ -449,7 +478,8 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
           .of((join, joinType, exp) -> true)
           .withOperandSupplier(b ->
               b.operand(Join.class).anyInputs())
-          .withSmart(true);
+          .withSmart(true)
+          .withEnablePredicatesInference(false);
 
       @Override default JoinConditionPushRule toRule() {
         return new JoinConditionPushRule(this);
@@ -509,7 +539,8 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
               .withOperandSupplier(b0 ->
                   b0.operand(Filter.class).oneInput(b1 ->
                       b1.operand(Join.class).anyInputs()))
-              .withSmart(true);
+              .withSmart(true)
+              .withEnablePredicatesInference(false);
 
       @Override default FilterIntoJoinRule toRule() {
         return new FilterIntoJoinRule(this);
@@ -534,8 +565,21 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
       return false;
     }
 
+    /** Whether to enable predicates inference. In some cases, this can be useful,
+     * as it can try to infer more filter conditions based on the current conditions
+     * to reduce the amount of data involved in the calculation. However, predicate
+     * inference will try to enumerate all possible combinations, which can take a lot
+     * of time and space when the cardinality is large. Please be careful when enabling
+     * this unless you know exactly what you are doing. */
+    @Value.Default default boolean enablePredicatesInference() {
+      return false;
+    }
+
     /** Sets {@link #isSmart()}. */
     Config withSmart(boolean smart);
+
+    /** Sets {@link #enablePredicatesInference()}. */
+    Config withEnablePredicatesInference(boolean enablePredicatesInference);
 
     /** Predicate that returns whether a filter is valid in the ON clause of a
      * join for this particular kind of join. If not, Calcite will push it back to
