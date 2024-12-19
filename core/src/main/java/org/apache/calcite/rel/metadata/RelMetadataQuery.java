@@ -293,7 +293,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * statistic.
    *
    * @param rel the relational expression
-   * @return max row count
+   * @return min row count
    */
   public @Nullable Double getMinRowCount(RelNode rel) {
     for (;;) {
@@ -304,6 +304,26 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
       }
     }
   }
+
+  /**
+   * Returns whether the return rows of a given relational expression are empty.
+   *
+   * @param relNode the relational expression
+   * @return true or false depending on whether the return rows are empty, or
+   * null if not enough information is available to make that determination
+   */
+  public @Nullable Boolean isEmpty(RelNode relNode) {
+    Double minRowCount = getMinRowCount(relNode);
+    if (minRowCount != null && minRowCount > 0D) {
+      return Boolean.FALSE;
+    }
+    Double maxRowCount = getMaxRowCount(relNode);
+    if (maxRowCount != null && maxRowCount <= 0D) {
+      return Boolean.TRUE;
+    }
+    return null;
+  }
+
 
   /**
    * Returns the

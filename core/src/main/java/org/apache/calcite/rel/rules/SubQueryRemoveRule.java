@@ -27,6 +27,7 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.LogicVisitor;
 import org.apache.calcite.rex.RexCorrelVariable;
@@ -170,11 +171,10 @@ public class SubQueryRemoveRule
    */
   private static RexNode rewriteSome(RexSubQuery e, Set<CorrelationId> variablesSet,
       RelBuilder builder, int subQueryIndex) {
-    // If the sub-query is guaranteed to return 0 row, just return
+    // If the sub-query is guaranteed empty, just return
     // FALSE.
     final RelMetadataQuery mq = e.rel.getCluster().getMetadataQuery();
-    final Double maxRowCount = mq.getMaxRowCount(e.rel);
-    if (maxRowCount != null && maxRowCount <= 0D) {
+    if (RelMdUtil.isRelDefinitelyEmpty(mq, e.rel)) {
       return builder.getRexBuilder().makeLiteral(Boolean.FALSE, e.getType(), true);
     }
     // Most general case, where the left and right keys might have nulls, and
@@ -462,15 +462,13 @@ public class SubQueryRemoveRule
    */
   private static RexNode rewriteExists(RexSubQuery e, Set<CorrelationId> variablesSet,
       RelOptUtil.Logic logic, RelBuilder builder) {
-    // If the sub-query is guaranteed to produce at least one row, just return
+    // If the sub-query is guaranteed never empty, just return
     // TRUE.
     final RelMetadataQuery mq = e.rel.getCluster().getMetadataQuery();
-    final Double minRowCount = mq.getMinRowCount(e.rel);
-    if (minRowCount != null && minRowCount > 0D) {
+    if (RelMdUtil.isRelDefinitelyNotEmpty(mq, e.rel)) {
       return builder.literal(true);
     }
-    final Double maxRowCount = mq.getMaxRowCount(e.rel);
-    if (maxRowCount != null && maxRowCount <= 0D) {
+    if (RelMdUtil.isRelDefinitelyEmpty(mq, e.rel)) {
       return builder.literal(false);
     }
     builder.push(e.rel);
@@ -562,11 +560,10 @@ public class SubQueryRemoveRule
    */
   private static RexNode rewriteIn(RexSubQuery e, Set<CorrelationId> variablesSet,
       RelOptUtil.Logic logic, RelBuilder builder, int offset, int subQueryIndex) {
-    // If the sub-query is guaranteed to return 0 row, just return
+    // If the sub-query is guaranteed empty, just return
     // FALSE.
     final RelMetadataQuery mq = e.rel.getCluster().getMetadataQuery();
-    final Double maxRowCount = mq.getMaxRowCount(e.rel);
-    if (maxRowCount != null && maxRowCount <= 0D) {
+    if (RelMdUtil.isRelDefinitelyEmpty(mq, e.rel)) {
       return builder.getRexBuilder().makeLiteral(Boolean.FALSE, e.getType(), true);
     }
     // Most general case, where the left and right keys might have nulls, and
