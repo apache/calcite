@@ -12046,6 +12046,19 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testDB_Name() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dbNameRexNode = builder.call(SqlLibraryOperators.DB_NAME);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(dbNameRexNode, "db_name_alias"))
+        .build();
+
+    final String expectedMsSqlQuery = "SELECT DB_NAME() AS [db_name_alias]\n"
+        + "FROM [scott].[EMP]";
+    assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedMsSqlQuery));
+  }
+
   @Test public void testEnDashSpecialChar() {
     RelBuilder relBuilder = relBuilder().scan("EMP");
     final RexNode endashLiteral = relBuilder.literal("–");
