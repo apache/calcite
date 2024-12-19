@@ -3658,12 +3658,13 @@ public abstract class SqlLibraryOperators {
       SqlStdOperatorTable.POWER.withName("POWER1");
 
   @LibraryOperator(libraries = {SQL_SERVER})
-  public static final SqlFunction DB_NAME = new SqlFunction("DB_NAME",
-      SqlKind.OTHER_FUNCTION,
-      ReturnTypes.VARCHAR,
-      null,
-      OperandTypes.NILADIC,
-      SqlFunctionCategory.STRING);
+  public static final SqlFunction DB_NAME =
+      new SqlFunction("DB_NAME",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR,
+          null,
+          OperandTypes.NILADIC,
+          SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction CEILING =
