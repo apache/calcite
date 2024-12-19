@@ -2679,6 +2679,8 @@ public class RelBuilder {
       List<RexNode> extraNodes) {
     final RelMetadataQuery mq = peek().getCluster().getMetadataQuery();
     if (aggCallList.isEmpty() && groupSet.isEmpty()) {
+      // We can't remove "GROUP BY ()" if there's a chance the rel could be
+      // empty.
       if (RelMdUtil.isRelDefinitelyEmpty(mq, peek())) {
         return false;
       }
