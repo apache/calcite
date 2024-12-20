@@ -5165,8 +5165,9 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
       <![CDATA[
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
   LogicalJoin(condition=[=($16, $7)], joinType=[inner])
-    LogicalFilter(condition=[NOT(OR(=($7, 4), =($7, 6)))])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalFilter(condition=[SEARCH($7, Sarg[(-∞..4), (4..6), (6..+∞)])])
+      LogicalFilter(condition=[NOT(OR(=($7, 4), =($7, 6)))])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalFilter(condition=[SEARCH($7, Sarg[(-∞..4), (4..6), (6..+∞)])])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -8920,7 +8921,7 @@ LogicalProject(DEPTNO=[$7], EXPR$1=[+($7, 1)], EXPR$2=[+($0, $7)])
     <Resource name="planAfter">
       <![CDATA[
 LogicalProject(DEPTNO=[10], EXPR$1=[11], EXPR$2=[+($0, 10)])
-  LogicalFilter(condition=[OR(AND(IS NULL($7), IS NULL(10)), IS TRUE(=($7, 10)))])
+  LogicalFilter(condition=[=($7, 10)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
@@ -8957,7 +8958,7 @@ LogicalProject(MGR=[$3], DEPTNO=[$7])
     <Resource name="planAfter">
       <![CDATA[
 LogicalProject(MGR=[null:INTEGER], DEPTNO=[$7])
-  LogicalFilter(condition=[OR(AND(IS NULL($3), IS NULL(null:INTEGER)), IS TRUE(=($3, null)))])
+  LogicalFilter(condition=[IS NULL($3)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
