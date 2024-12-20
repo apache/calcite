@@ -12046,7 +12046,7 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
-  @Test public void testDB_Name() {
+  @Test public void testDbName() {
     final RelBuilder builder = relBuilder();
     final RexNode dbNameRexNode = builder.call(SqlLibraryOperators.DB_NAME);
     final RelNode root = builder
