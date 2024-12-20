@@ -667,4 +667,34 @@ SELECT KEY, "set" IS NULL AS N FROM COMPLEX;
 
 !ok
 
+SELECT greatest(1, null, 3) AS x;
++---+
+| X |
++---+
+| 3 |
++---+
+(1 row)
+
+!ok
+
+SELECT least(1, 2, null, 3) AS x;
++---+
+| X |
++---+
+| 1 |
++---+
+(1 row)
+
+!ok
+
+SELECT greatest(null, null) AS x;
++---+
+| X |
++---+
+|   |
++---+
+(1 row)
+
+!ok
+
 # End spark.iq
