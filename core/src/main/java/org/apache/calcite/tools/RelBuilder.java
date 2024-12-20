@@ -63,6 +63,7 @@ import org.apache.calcite.rel.logical.LogicalAsofJoin;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.metadata.RelColumnMapping;
+import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.AggregateRemoveRule;
 import org.apache.calcite.rel.type.RelDataType;
@@ -2678,10 +2679,9 @@ public class RelBuilder {
       List<RexNode> extraNodes) {
     final RelMetadataQuery mq = peek().getCluster().getMetadataQuery();
     if (aggCallList.isEmpty() && groupSet.isEmpty()) {
-      final Double minRowCount = mq.getMinRowCount(peek());
-      if (minRowCount == null || minRowCount < 1d) {
-        // We can't remove "GROUP BY ()" if there's a chance the rel could be
-        // empty.
+      // We can't remove "GROUP BY ()" if there's a chance the rel could be
+      // empty.
+      if (RelMdUtil.isRelDefinitelyEmpty(mq, peek())) {
         return false;
       }
     }

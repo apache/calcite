@@ -38,6 +38,7 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.logical.LogicalValues;
+import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexLiteral;
@@ -645,8 +646,7 @@ public abstract class PruneEmptyRules {
       return new RemoveEmptySingleRule(this) {
         @Override public boolean matches(RelOptRuleCall call) {
           RelNode node = call.rel(0);
-          Double maxRowCount = call.getMetadataQuery().getMaxRowCount(node);
-          return maxRowCount != null && maxRowCount == 0.0;
+          return RelMdUtil.isRelDefinitelyEmpty(call.getMetadataQuery(), node);
         }
       };
     }
