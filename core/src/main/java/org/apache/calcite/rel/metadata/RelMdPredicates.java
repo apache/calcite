@@ -189,8 +189,12 @@ public class RelMdPredicates
   public RelOptPredicateList getPredicates(Project project,
       RelMetadataQuery mq) {
     final RelNode input = project.getInput();
-    final RexBuilder rexBuilder = project.getCluster().getRexBuilder();
+    final RelOptCluster relOptCluster = project.getCluster();
+    final RexBuilder rexBuilder = relOptCluster.getRexBuilder();
+    final RexExecutor executor =
+        Util.first(relOptCluster.getPlanner().getExecutor(), RexUtil.EXECUTOR);
     final RelOptPredicateList inputInfo = mq.getPulledUpPredicates(input);
+    final RexSimplify simplify = new RexSimplify(rexBuilder, inputInfo, executor);
     final List<RexNode> projectPullUpPredicates = new ArrayList<>();
 
     ImmutableBitSet.Builder columnsMappedBuilder = ImmutableBitSet.builder();
@@ -200,15 +204,17 @@ public class RelMdPredicates
             project.getRowType().getFieldCount());
 
     for (Ord<RexNode> expr : Ord.zip(project.getProjects())) {
-      if (expr.e instanceof RexInputRef) {
-        int sIdx = ((RexInputRef) expr.e).getIndex();
-        m.set(sIdx, expr.i);
+      RexNode rexNode = simplify.simplify(expr.e);
+      Ord<RexNode>  newExpr = new Ord<>(expr.i, rexNode);
+      if (newExpr.e instanceof RexInputRef) {
+        int sIdx = ((RexInputRef) newExpr.e).getIndex();
+        m.set(sIdx, newExpr.i);
         columnsMappedBuilder.set(sIdx);
-      } else if (RexUtil.isConstant(expr.e)) {
+      } else if (RexUtil.isConstant(newExpr.e)) {
         // Project can also generate constants (including NULL). We need to
         // include them.
         projectPullUpPredicates.add(
-            eqConstant(project, rexBuilder, expr.i, expr.e));
+            eqConstant(project, rexBuilder, newExpr.i, newExpr.e));
       }
     }
 
