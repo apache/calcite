@@ -131,7 +131,7 @@ public class TableScanNode implements Node {
       requireNonNull(schema, () ->
           "schema is null while resolving " + name + " for table"
               + relOptTable.getQualifiedName());
-      schema = schema.getSubSchema(name);
+      schema = schema.subSchemas().get(name);
     }
     final Enumerable<Row> rowEnumerable;
     if (elementType instanceof Class) {
