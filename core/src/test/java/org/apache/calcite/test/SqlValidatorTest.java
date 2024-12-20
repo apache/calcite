@@ -4480,7 +4480,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("(1,2) in ((1,2), (3,4))")
         .columnType("BOOLEAN NOT NULL");
     expr("'medium' in (cast(null as varchar(10)), 'bc')")
-        .columnType("BOOLEAN NOT NULL");
+        .columnType("BOOLEAN");
 
     // nullability depends on nullability of both sides
     sql("select empno in (1, 2) from emp")

@@ -409,6 +409,57 @@ class TypeCoercionTest {
     f.comparisonCommonType(f.recordType("a", f.arrayType(f.intType)),
         f.recordType("a", f.arrayType(f.intType)),
         f.recordType("a", f.arrayType(f.intType)));
+
+    // Nullable types
+    // BOOLEAN
+    f.comparisonCommonType(f.booleanType, f.nullableBooleanType, f.nullableBooleanType);
+    f.comparisonCommonType(f.nullableBooleanType, f.booleanType, f.nullableBooleanType);
+    f.comparisonCommonType(f.nullableBooleanType, f.nullableBooleanType, f.nullableBooleanType);
+    f.comparisonCommonType(f.nullableIntType, f.booleanType, null);
+    f.comparisonCommonType(f.bigintType, f.nullableBooleanType, null);
+    // INT
+    f.comparisonCommonType(f.nullableSmallintType, f.intType, f.nullableIntType);
+    f.comparisonCommonType(f.smallintType, f.nullableBigintType, f.nullableBigintType);
+    f.comparisonCommonType(f.nullableIntType, f.bigintType, f.nullableBigintType);
+    f.comparisonCommonType(f.bigintType, f.nullableBigintType, f.nullableBigintType);
+    // FLOAT/DOUBLE
+    f.comparisonCommonType(f.realType, f.nullableDoubleType, f.nullableDoubleType);
+    f.comparisonCommonType(f.nullableRealType, f.realType, f.nullableRealType);
+    f.comparisonCommonType(f.doubleType, f.nullableDoubleType, f.nullableDoubleType);
+    // EXACT + FRACTIONAL
+    f.comparisonCommonType(f.intType, f.nullableRealType, f.nullableRealType);
+    f.comparisonCommonType(f.nullableIntType, f.doubleType, f.nullableDoubleType);
+    f.comparisonCommonType(f.bigintType, f.nullableRealType, f.nullableRealType);
+    f.comparisonCommonType(f.nullableBigintType, f.doubleType, f.nullableDoubleType);
+
+    RelDataType nullableDecimal54 =
+        f.typeFactory.createTypeWithNullability(
+            f.typeFactory.createSqlType(SqlTypeName.DECIMAL, 5, 4), true);
+    RelDataType nullableDecimal144 =
+        f.typeFactory.createTypeWithNullability(
+          f.typeFactory.createSqlType(SqlTypeName.DECIMAL, 14, 4), true);
+    f.comparisonCommonType(nullableDecimal54, f.doubleType, f.nullableDoubleType);
+    f.comparisonCommonType(decimal54, f.nullableIntType, nullableDecimal144);
+    // CHAR/VARCHAR
+    f.comparisonCommonType(f.nullableCharType, f.varcharType, f.nullableVarcharType);
+    f.comparisonCommonType(f.intType, f.nullableCharType, f.nullableIntType);
+    f.comparisonCommonType(f.doubleType, f.nullableCharType, f.nullableDoubleType);
+    // TIMESTAMP
+    f.comparisonCommonType(f.timestampType, f.nullableTimestampType, f.nullableTimestampType);
+    f.comparisonCommonType(f.nullableDateType, f.timestampType, f.nullableTimestampType);
+    f.comparisonCommonType(f.nullableIntType, f.timestampType, null);
+    f.comparisonCommonType(f.varcharType, f.nullableTimestampType, f.nullableTimestampType);
+    // generic
+    f.comparisonCommonType(f.charType, f.mapType(f.intType, f.nullableCharType), null);
+    f.comparisonCommonType(f.arrayType(f.nullableIntType), f.recordType(ImmutableList.of()),
+        null);
+    f.comparisonCommonType(f.recordType("a", f.nullableIntType),
+        f.recordType("a", f.intType), f.recordType("a", f.nullableIntType));
+    f.comparisonCommonType(f.recordType("a", f.intType),
+        f.recordType("a", f.nullableCharType), f.recordType("a", f.nullableIntType));
+    f.comparisonCommonType(f.recordType("a", f.arrayType(f.nullableIntType)),
+        f.recordType("a", f.arrayType(f.intType)),
+        f.recordType("a", f.arrayType(f.nullableIntType)));
   }
 
   /**
