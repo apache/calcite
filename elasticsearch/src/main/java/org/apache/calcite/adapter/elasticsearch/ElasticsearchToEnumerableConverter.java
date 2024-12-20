@@ -94,6 +94,8 @@ public class ElasticsearchToEnumerableConverter extends ConverterImpl implements
                     ElasticsearchTable.ElasticsearchQueryable.class)));
     final Expression ops = block.append("ops", Expressions.constant(implementor.list));
     final Expression sort = block.append("sort", constantArrayList(implementor.sort, Pair.class));
+    final Expression nullsSort =
+        block.append("nullsSort", constantArrayList(implementor.nullsSort, Pair.class));
     final Expression groupBy = block.append("groupBy", Expressions.constant(implementor.groupBy));
     final Expression aggregations =
         block.append("aggregations",
@@ -110,7 +112,7 @@ public class ElasticsearchToEnumerableConverter extends ConverterImpl implements
         block.append("enumerable",
             Expressions.call(table,
                 ElasticsearchMethod.ELASTICSEARCH_QUERYABLE_FIND.method, ops,
-                fields, sort, groupBy, aggregations, mappings, offset, fetch));
+                fields, sort, nullsSort, groupBy, aggregations, mappings, offset, fetch));
     block.add(Expressions.return_(null, enumerable));
     return relImplementor.result(physType, block.toBlock());
   }

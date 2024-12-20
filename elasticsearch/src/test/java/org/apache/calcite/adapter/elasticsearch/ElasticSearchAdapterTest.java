@@ -251,7 +251,8 @@ class ElasticSearchAdapterTest {
         .queryContains(
             ElasticsearchChecker.elasticsearchChecker(
                 "'_source' : ['state', 'pop']",
-                "sort: [ {state: 'asc'}, {pop: 'asc'}]",
+                "sort: [ {state: {'missing':'_last', 'order':'asc'}}, "
+                    + "{pop: {'missing':'_last', 'order':'asc'}}]",
                 "from: 2",
                 "size: 3"));
   }
@@ -318,7 +319,7 @@ class ElasticSearchAdapterTest {
         .queryContains(
             ElasticsearchChecker.elasticsearchChecker(
             "query:{'constant_score':{filter:{term:{state:'NY'}}}}",
-            "sort:[{city:'asc'}]",
+            "sort:[{city:{'missing':'_last', 'order':'asc'}}]",
             String.format(Locale.ROOT, "size:%s", ElasticsearchTransport.DEFAULT_FETCH_SIZE)))
         .returnsOrdered(
           "_MAP={id=11226, city=BROOKLYN, loc=[-73.956985, 40.646694], pop=111396, state=NY}",
@@ -337,7 +338,7 @@ class ElasticSearchAdapterTest {
             ElasticsearchChecker.elasticsearchChecker(
                 "query:{'dis_max':{'queries':[{'bool':{'should':"
                     + "[{'term':{'state':'NY'}},{'term':"
-                    + "{'city':'BROOKLYN'}}]}}]}},'sort':[{'city':'asc'}]",
+                    + "{'city':'BROOKLYN'}}]}}]}},'sort':[{'city':{'missing':'_last', 'order':'asc'}}]",
                 String.format(Locale.ROOT, "size:%s",
                     ElasticsearchTransport.DEFAULT_FETCH_SIZE)));
 
@@ -380,12 +381,14 @@ class ElasticSearchAdapterTest {
     calciteAssert()
         .query(sql)
         .returnsOrdered("city=CHICAGO; state=IL; pop=112047",
-              "city=BROOKLYN; state=NY; pop=111396",
-              "city=NEW YORK; state=NY; pop=106564")
+             "city=BROOKLYN; state=NY; pop=111396",
+             "city=NEW YORK; state=NY; pop=106564")
         .queryContains(
             ElasticsearchChecker.elasticsearchChecker(
                 "'_source':['city','state','pop']",
-                "sort:[{pop:'desc'}, {state:'asc'}, {city:'desc'}]",
+                "sort:[{pop:{'missing':'_first', 'order':'desc'}}, "
+                    + "{state:{'missing':'_last', 'order':'asc'}}, "
+                    + "{city:{'missing':'_first', 'order':'desc'}}]",
                 "size:3"));
   }
 
@@ -457,7 +460,8 @@ class ElasticSearchAdapterTest {
                     + "pop:{script: 'params._source.pop'}, "
                     + "state:{script: 'params._source.state'}, "
                     + "id:{script: 'params._source.id'}}",
-                "sort: [ {state: 'asc'}, {pop: 'asc'}]",
+                "sort: [ {state: {'missing':'_last', 'order':'asc'}}, "
+                    + "{pop: {'missing':'_last', 'order':'asc'}}]",
                 String.format(Locale.ROOT, "size:%s", ElasticsearchTransport.DEFAULT_FETCH_SIZE)))
         .explainContains(explain);
   }
@@ -484,7 +488,8 @@ class ElasticSearchAdapterTest {
                     + "pop:{script: 'params._source.pop'}, "
                     + "state:{script: 'params._source.state'}, "
                     + "id:{script: 'params._source.id'}}",
-                "sort: [ {state: 'asc'}, {pop: 'asc'}]",
+                "sort: [ {state: {'missing':'_last', 'order':'asc'}}, "
+                    + "{pop: {'missing':'_last', 'order':'asc'}}]",
                 String.format(Locale.ROOT, "size:%s",
                     ElasticsearchTransport.DEFAULT_FETCH_SIZE)))
         .explainContains(explain);
@@ -545,7 +550,8 @@ class ElasticSearchAdapterTest {
                     + "{zero:{script:'0'},"
                     + "state:{script:'params._source.state'},"
                     + "city:{script:'params._source.city'}}",
-                "sort:[{state:'asc'},{city:'asc'}]",
+                "sort:[{state:{'missing':'_last', 'order':'asc'}},"
+                    + "{city:{'missing':'_last', 'order':'asc'}}]",
                 String.format(Locale.ROOT, "size:%d", ElasticsearchTransport.DEFAULT_FETCH_SIZE)));
   }
 
