@@ -17,84 +17,69 @@
 package org.apache.calcite.adapter.arrow;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
-import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.type.SqlTypeName;
 
 import org.apache.arrow.vector.types.FloatingPointPrecision;
 import org.apache.arrow.vector.types.pojo.ArrowType;
 
-import java.math.BigDecimal;
-import java.sql.Date;
-import java.util.List;
-
-import static java.util.Objects.requireNonNull;
-
 /**
  * Arrow field type.
  */
-enum ArrowFieldType {
-  INT(Primitive.INT),
-  BOOLEAN(Primitive.BOOLEAN),
-  STRING(String.class),
-  FLOAT(Primitive.FLOAT),
-  DOUBLE(Primitive.DOUBLE),
-  DATE(Date.class),
-  LIST(List.class),
-  DECIMAL(BigDecimal.class),
-  LONG(Primitive.LONG),
-  BYTE(Primitive.BYTE),
-  SHORT(Primitive.SHORT);
+public class ArrowFieldTypeFactory {
 
-  private final Class<?> clazz;
-
-  ArrowFieldType(Primitive primitive) {
-    this(requireNonNull(primitive.boxClass, "boxClass"));
+  private ArrowFieldTypeFactory() {
+    throw new UnsupportedOperationException("Utility class");
   }
 
-  ArrowFieldType(Class<?> clazz) {
-    this.clazz = clazz;
-  }
-
-  public RelDataType toType(JavaTypeFactory typeFactory) {
-    RelDataType javaType = typeFactory.createJavaType(clazz);
-    RelDataType sqlType = typeFactory.createSqlType(javaType.getSqlTypeName());
+  public static RelDataType toType(ArrowType arrowType, JavaTypeFactory typeFactory) {
+    RelDataType sqlType = of(arrowType, typeFactory);
     return typeFactory.createTypeWithNullability(sqlType, true);
   }
 
-  public static ArrowFieldType of(ArrowType arrowType) {
+  /**
+   * Converts an Arrow type to a Calcite RelDataType.
+   *
+   * @param arrowType the Arrow type to convert
+   * @param typeFactory the factory to create the Calcite type
+   * @return the corresponding Calcite RelDataType
+   */
+  private static RelDataType of(ArrowType arrowType, JavaTypeFactory typeFactory) {
     switch (arrowType.getTypeID()) {
     case Int:
       int bitWidth = ((ArrowType.Int) arrowType).getBitWidth();
       switch (bitWidth) {
       case 64:
-        return LONG;
+        return typeFactory.createSqlType(SqlTypeName.BIGINT);
       case 32:
-        return INT;
+        return typeFactory.createSqlType(SqlTypeName.INTEGER);
       case 16:
-        return SHORT;
+        return typeFactory.createSqlType(SqlTypeName.SMALLINT);
       case 8:
-        return BYTE;
+        return typeFactory.createSqlType(SqlTypeName.TINYINT);
       default:
         throw new IllegalArgumentException("Unsupported Int bit width: " + bitWidth);
       }
     case Bool:
-      return BOOLEAN;
+      return typeFactory.createSqlType(SqlTypeName.BOOLEAN);
     case Utf8:
-      return STRING;
+      return typeFactory.createSqlType(SqlTypeName.VARCHAR);
     case FloatingPoint:
       FloatingPointPrecision precision = ((ArrowType.FloatingPoint) arrowType).getPrecision();
       switch (precision) {
       case SINGLE:
-        return FLOAT;
+        return typeFactory.createSqlType(SqlTypeName.REAL);
       case DOUBLE:
-        return DOUBLE;
+        return typeFactory.createSqlType(SqlTypeName.DOUBLE);
       default:
         throw new IllegalArgumentException("Unsupported Floating point precision: " + precision);
       }
     case Date:
-      return DATE;
+      return typeFactory.createSqlType(SqlTypeName.DATE);
     case Decimal:
-      return DECIMAL;
+      return typeFactory.createSqlType(SqlTypeName.DECIMAL,
+          ((ArrowType.Decimal) arrowType).getPrecision(),
+          ((ArrowType.Decimal) arrowType).getScale());
     default:
       throw new IllegalArgumentException("Unsupported type: " + arrowType);
     }

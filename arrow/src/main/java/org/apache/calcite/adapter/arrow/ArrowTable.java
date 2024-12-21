@@ -179,7 +179,7 @@ public class ArrowTable extends AbstractTable
     final RelDataTypeFactory.Builder builder = typeFactory.builder();
     for (Field field : schema.getFields()) {
       builder.add(field.getName(),
-          ArrowFieldType.of(field.getType()).toType(typeFactory));
+          ArrowFieldTypeFactory.toType(field.getType(), typeFactory));
     }
     return builder.build();
   }
