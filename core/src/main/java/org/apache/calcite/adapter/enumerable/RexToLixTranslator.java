@@ -563,9 +563,14 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     case TINYINT:
     case SMALLINT: {
       if (SqlTypeName.NUMERIC_TYPES.contains(sourceType.getSqlTypeName())) {
+        Type javaClass = typeFactory.getJavaClass(targetType);
+        Primitive primitive = Primitive.of(javaClass);
+        if (primitive == null) {
+          primitive = Primitive.ofBox(javaClass);
+        }
         return Expressions.call(
             BuiltInMethod.INTEGER_CAST_ROUNDING_MODE.method,
-            Expressions.constant(Primitive.of(typeFactory.getJavaClass(targetType))),
+            Expressions.constant(primitive),
             operand, Expressions.constant(typeFactory.getTypeSystem().roundingMode()));
       }
       return defaultExpression.get();
