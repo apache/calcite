@@ -7694,6 +7694,28 @@ LogicalDelta
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testStructCast">
+    <Resource name="sql">
+      <![CDATA[select ROW(1, 'x') = ROW('x', 1)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[=(1, CAST('x'):INTEGER NOT NULL)])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testStructCast1">
+    <Resource name="sql">
+      <![CDATA[select CAST(CAST(ROW('x', 1) AS ROW(l INTEGER, r DOUBLE)) AS ROW(l BIGINT, r INTEGER)) = ROW(RAND(), RAND())]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[AND(=(CAST(CAST('x'):INTEGER NOT NULL):DOUBLE NOT NULL, RAND()), =(1.0E0, RAND()))])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testStructTypeAlias">
     <Resource name="sql">
       <![CDATA[select t.r AS myRow
