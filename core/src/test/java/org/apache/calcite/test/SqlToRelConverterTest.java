@@ -852,6 +852,23 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6742">[CALCITE-6742]
+   * StandardConvertletTable.convertCall loses casts from ROW comparisons</a>. */
+  @Test void testStructCast() {
+    final String sql = "select ROW(1, 'x') = ROW('y', 1)";
+    sql(sql).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6742">[CALCITE-6742]
+   * StandardConvertletTable.convertCall loses casts from ROW comparisons</a>. */
+  @Test void testStructCast1() {
+    final String sql = "select CAST(CAST(ROW('x', 1) AS "
+        + "ROW(l INTEGER, r DOUBLE)) AS ROW(l BIGINT, r INTEGER)) = ROW(RAND(), RAND())";
+    sql(sql).ok();
+  }
+
   /** As {@link #testSelectOverDistinct()} but for streaming queries. */
   @Test void testSelectStreamPartitionDistinct() {
     final String sql = "select stream\n"
