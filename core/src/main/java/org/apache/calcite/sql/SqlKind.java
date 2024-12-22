@@ -147,6 +147,9 @@ public enum SqlKind {
   /** {@code CONVERT} function. */
   CONVERT,
 
+  /** Oracle's {@code CONVERT} function. */
+  CONVERT_ORACLE,
+
   /** {@code TRANSLATE} function. */
   TRANSLATE,
 
@@ -1455,8 +1458,8 @@ public enum SqlKind {
   public static final Set<SqlKind> EXPRESSION =
       EnumSet.complementOf(
           concat(
-              EnumSet.of(AS, ARGUMENT_ASSIGNMENT, CONVERT, TRANSLATE, DEFAULT,
-                  RUNNING, FINAL, LAST, FIRST, PREV, NEXT,
+              EnumSet.of(AS, ARGUMENT_ASSIGNMENT, CONVERT, CONVERT_ORACLE, TRANSLATE,
+                  DEFAULT, RUNNING, FINAL, LAST, FIRST, PREV, NEXT,
                   FILTER, WITHIN_GROUP, IGNORE_NULLS, RESPECT_NULLS, SEPARATOR,
                   DESCENDING, CUBE, ROLLUP, GROUPING_SETS, EXTEND, LATERAL,
                   SELECT, JOIN, OTHER_FUNCTION, POSITION, CAST, TRIM, FLOOR, CEIL,

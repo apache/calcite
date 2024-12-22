@@ -5741,6 +5741,19 @@ public class SqlParserTest {
             + "FROM (VALUES (ROW(TRUE))))");
   }
 
+  @Test void testConvertOracle() {
+    // If there are 3 params in CONVERT_ORACLE operator, it's valid when
+    // the ORACLE function library is enabled ('fun=oracle').
+    // But the parser can always parse it.
+    expr("convert('abc', utf8, gbk)")
+        .ok("CONVERT('abc', `UTF8`, `GBK`)");
+    expr("convert('abc', utf8)")
+        .ok("CONVERT('abc', `UTF8`)");
+    sql("select convert(name, latin1) as newName from t")
+        .ok("SELECT CONVERT(`NAME`, `LATIN1`) AS `NEWNAME`\n"
+            + "FROM `T`");
+  }
+
   @Test void testTranslate3() {
     expr("translate('aaabbbccc', 'ab', '+-')")
         .ok("TRANSLATE('aaabbbccc', 'ab', '+-')");

@@ -4646,6 +4646,53 @@ public class SqlOperatorTest {
         false);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6730">[CALCITE-6730]
+   * Add CONVERT function(enabled in Oracle library)</a>. */
+  @Test void testConvertOracleFunc() {
+    final SqlOperatorFixture f = fixture()
+        .setFor(SqlLibraryOperators.CONVERT_ORACLE, VM_JAVA)
+        .withLibrary(SqlLibrary.ORACLE);
+
+    final Consumer<SqlOperatorFixture> consumer = f0 -> {
+      f0.checkFails("convert('a', utf8, utf10)", "UTF10", false);
+      f0.checkFails("convert('a', utf8, ^null^)",
+          "(?s).*Encountered \\\"null\\\" at.*", false);
+      f0.checkFails("convert('a', ^null^, utf8)",
+          "(?s).*Encountered \\\"null\\\" at.*", false);
+      f0.checkFails("^convert(1, utf8, gbk)^",
+          "Invalid type 'INTEGER NOT NULL' in 'CONVERT' function\\. "
+              + "Only 'CHARACTER' type is supported",
+          false);
+      f0.checkType("convert('a', utf16, gbk)", "CHAR(1) NOT NULL");
+      f0.checkType("convert('a', utf16)", "CHAR(1) NOT NULL");
+      f0.checkType("convert(null, utf16, gbk)", "NULL");
+      f0.checkType("convert('', utf16, gbk)", "CHAR(0) NOT NULL");
+      f0.checkType("convert(cast(1 as varchar(2)), utf8, latin1)", "VARCHAR(2) NOT NULL");
+
+      // cast check
+      f.check("select 'a' as alia\n"
+              + " from (values(true)) where cast(convert('col', latin1) as char(3))='col'",
+          SqlTests.ANY_TYPE_CHECKER, 'a');
+      f.checkFails("select 'a' as alia\n"
+              + " from (values(true)) where ^cast(convert('col', latin1) as char(3))=_GBK'col'^",
+          "Cannot apply operation '=' to strings with "
+              + "different charsets 'ISO-8859-1' and 'GBK'",
+          false);
+      // the result of convert('col', gbk) has GBK charset
+      // while CHAR(3) has ISO-8859-1 charset, which is not allowed to cast
+      f.checkFails("select 'a' as alia\n"
+              + " from (values(true)) where ^cast(convert('col', gbk) as char(3))^=_GBK'col'",
+          "Cast function cannot convert value of type "
+              + "CHAR\\(3\\) CHARACTER SET \"GBK\" NOT NULL to type CHAR\\(3\\) NOT NULL",
+          false);
+    };
+
+    final List<SqlConformanceEnum> conformances =
+        list(SqlConformanceEnum.ORACLE_10, SqlConformanceEnum.ORACLE_12);
+    f.forEachConformance(conformances, consumer);
+  }
+
   @Test void testTranslateFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.TRANSLATE, VM_JAVA);

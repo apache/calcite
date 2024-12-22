@@ -411,6 +411,7 @@ public enum BuiltInMethod {
   TO_CODE_POINTS(SqlFunctions.class, "toCodePoints", String.class),
   CONVERT(SqlFunctions.class, "convertWithCharset", String.class, String.class,
       String.class),
+  CONVERT_ORACLE(SqlFunctions.class, "convertOracle", String.class, String[].class),
   EXP(SqlFunctions.class, "exp", double.class),
   MOD(SqlFunctions.class, "mod", long.class, long.class),
   POWER(SqlFunctions.class, "power", double.class, double.class),

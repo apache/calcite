@@ -6319,10 +6319,17 @@ SqlNode BuiltinFunctionCall() :
                 }
             |
                 <COMMA> e = SimpleIdentifier() { args.add(e); }
-                <COMMA> e = SimpleIdentifier() { args.add(e); }
-                <RPAREN> {
-                    return SqlStdOperatorTable.CONVERT.createCall(s.end(this), args);
-                }
+                (
+                    <COMMA> e = SimpleIdentifier() { args.add(e); }
+                    <RPAREN> {
+                        SqlOperator op = SqlStdOperatorTable.getConvertFuncByConformance(this.conformance);
+                        return op.createCall(s.end(this), args);
+                    }
+                |
+                    <RPAREN> {
+                        return SqlLibraryOperators.CONVERT_ORACLE.createCall(s.end(this), args);
+                    }
+                )
             )
         |
             // MSSql CONVERT(type, val [,style])
