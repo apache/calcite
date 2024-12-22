@@ -540,6 +540,27 @@ from t;
 
 !ok
 
+# [CALCITE-6730] Add CONVERT function(enabled in Oracle library)
+select convert('abcd', utf8);
++--------+
+| EXPR$0 |
++--------+
+| abcd   |
++--------+
+(1 row)
+
+!ok
+
+select convert('abcd', utf8, latin1);
++--------+
+| EXPR$0 |
++--------+
+| abcd   |
++--------+
+(1 row)
+
+!ok
+
 SELECT XMLTRANSFORM(
                    '<?xml version="1.0"?>
                     <Article>

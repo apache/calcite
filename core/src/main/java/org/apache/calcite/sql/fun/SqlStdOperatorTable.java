@@ -2832,4 +2832,15 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       return floor ? SqlStdOperatorTable.FLOOR : SqlStdOperatorTable.CEIL;
     }
   }
+
+  /** Returns the operator for standard {@code CONVERT} and Oracle's {@code CONVERT}
+   * with the given library. */
+  public static SqlOperator getConvertFuncByConformance(SqlConformance conformance) {
+    if (SqlConformanceEnum.ORACLE_10 == conformance
+        || SqlConformanceEnum.ORACLE_12 == conformance) {
+      return SqlLibraryOperators.CONVERT_ORACLE;
+    } else {
+      return SqlStdOperatorTable.CONVERT;
+    }
+  }
 }

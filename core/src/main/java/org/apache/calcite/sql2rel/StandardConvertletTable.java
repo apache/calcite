@@ -296,6 +296,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         (cx, call) -> cx.convertExpression(call.operand(0)));
 
     registerOp(SqlStdOperatorTable.CONVERT, this::convertCharset);
+    registerOp(SqlLibraryOperators.CONVERT_ORACLE, this::convertCharset);
     registerOp(SqlStdOperatorTable.TRANSLATE, this::translateCharset);
     // "SQRT(x)" is equivalent to "POWER(x, .5)"
     registerOp(SqlStdOperatorTable.SQRT,
@@ -855,15 +856,38 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
   protected RexNode convertCharset(
       @UnknownInitialization StandardConvertletTable this,
       SqlRexContext cx, SqlCall call) {
+    final RexBuilder rexBuilder = cx.getRexBuilder();
     final SqlParserPos pos = call.getParserPosition();
     final SqlNode expr = call.operand(0);
-    final String srcCharset = call.operand(1).toString();
-    final String destCharset = call.operand(2).toString();
-    final RexBuilder rexBuilder = cx.getRexBuilder();
-    return rexBuilder.makeCall(pos, SqlStdOperatorTable.CONVERT,
-        cx.convertExpression(expr),
-        rexBuilder.makeLiteral(srcCharset),
-        rexBuilder.makeLiteral(destCharset));
+    final SqlOperator op = call.getOperator();
+    final String srcCharset;
+    final String destCharset;
+    switch (op.getKind()) {
+    case CONVERT:
+      srcCharset = call.operand(1).toString();
+      destCharset = call.operand(2).toString();
+      return rexBuilder.makeCall(pos, op,
+          cx.convertExpression(expr),
+          rexBuilder.makeLiteral(srcCharset),
+          rexBuilder.makeLiteral(destCharset));
+    case CONVERT_ORACLE:
+      destCharset = call.operand(1).toString();
+      switch (call.operandCount()) {
+      case 2:
+        // when srcCharsetName is not specified
+        return rexBuilder.makeCall(pos, op,
+            cx.convertExpression(expr),
+            rexBuilder.makeLiteral(destCharset));
+      default:
+        srcCharset = call.operand(2).toString();
+        return rexBuilder.makeCall(pos, op,
+            cx.convertExpression(expr),
+            rexBuilder.makeLiteral(destCharset),
+            rexBuilder.makeLiteral(srcCharset));
+      }
+    default:
+      throw Util.unexpected(op.getKind());
+    }
   }
 
   protected RexNode translateCharset(

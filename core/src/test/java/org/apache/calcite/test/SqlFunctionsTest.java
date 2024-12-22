@@ -50,6 +50,7 @@ import static org.apache.calcite.runtime.SqlFunctions.concatMultiTypeWithSeparat
 import static org.apache.calcite.runtime.SqlFunctions.concatMultiWithNull;
 import static org.apache.calcite.runtime.SqlFunctions.concatMultiWithSeparator;
 import static org.apache.calcite.runtime.SqlFunctions.concatWithNull;
+import static org.apache.calcite.runtime.SqlFunctions.convertOracle;
 import static org.apache.calcite.runtime.SqlFunctions.fromBase64;
 import static org.apache.calcite.runtime.SqlFunctions.greater;
 import static org.apache.calcite.runtime.SqlFunctions.initcap;
@@ -317,6 +318,11 @@ class SqlFunctionsTest {
     assertThat(concatMultiObjectWithSeparator(",", "a", 1, Arrays.asList("b", "c"), null),
         is("a,1,[b, c]"));
     assertThat(concatMultiObjectWithSeparator("abc", null, null), is(""));
+  }
+
+  @Test void testConvertOracle() {
+    assertThat(convertOracle("a", "UTF8", "LATIN1"), is("a"));
+    assertThat(convertOracle("a", "UTF8"), is("a"));
   }
 
   @Test void testPosixRegex() {

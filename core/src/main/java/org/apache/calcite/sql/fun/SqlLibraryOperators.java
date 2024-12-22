@@ -458,6 +458,10 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction SUBSTR_ORACLE =
       SUBSTR.withKind(SqlKind.SUBSTR_ORACLE);
 
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction CONVERT_ORACLE =
+      new SqlOracleConvertFunction("CONVERT");
+
   /** PostgreSQL's "SUBSTR(string, position [, substringLength ])" function. */
   @LibraryOperator(libraries = {POSTGRESQL})
   public static final SqlFunction SUBSTR_POSTGRESQL =

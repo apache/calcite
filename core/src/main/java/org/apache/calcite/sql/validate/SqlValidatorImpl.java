@@ -4287,8 +4287,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         // can be another SqlCall, or an SqlIdentifier.
         checkRollUp(grandParent, parent, stripDot, scope, contextClause);
       } else if (stripDot.getKind() == SqlKind.CONVERT
-          || stripDot.getKind() == SqlKind.TRANSLATE) {
-        // only need to check operand[0] for CONVERT or TRANSLATE
+          || stripDot.getKind() == SqlKind.TRANSLATE
+          || stripDot.getKind() == SqlKind.CONVERT_ORACLE) {
+        // only need to check operand[0] for
+        // CONVERT, TRANSLATE or CONVERT_ORACLE
         SqlNode child = ((SqlCall) stripDot).getOperandList().get(0);
         checkRollUp(parent, current, child, scope, contextClause);
       } else if (stripDot.getKind() == SqlKind.LAMBDA) {
