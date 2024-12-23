@@ -188,7 +188,6 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EXTRACT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FLOOR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_FALSE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NULL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MOD;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
@@ -790,9 +789,6 @@ public class BigQuerySqlDialect extends SqlDialect {
       break;
     case MOD:
       unparseModFunction(writer, call, leftPrec, rightPrec);
-      break;
-    case GROUPING:
-      unparseGroupingFunction(writer, call, leftPrec, rightPrec);
       break;
     case CAST:
       String firstOperand = call.operand(1).toString();
@@ -2379,19 +2375,6 @@ public class BigQuerySqlDialect extends SqlDialect {
     } else {
       castNodeToTimestamp(writer, operand, leftPrec, rightPrec);
     }
-  }
-
-  private void unparseGroupingFunction(SqlWriter writer, SqlCall call,
-                                       int leftPrec, int rightPrec) {
-    SqlCall isNull = new SqlBasicCall(IS_NULL, new SqlNode[]{call.operand(0)}, SqlParserPos.ZERO);
-    SqlNumericLiteral oneLiteral = SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO);
-    SqlNumericLiteral zeroLiteral = SqlLiteral.createExactNumeric("0", SqlParserPos.ZERO);
-    SqlNodeList whenList = new SqlNodeList(SqlParserPos.ZERO);
-    whenList.add(isNull);
-    SqlNodeList thenList = new SqlNodeList(SqlParserPos.ZERO);
-    thenList.add(oneLiteral);
-    SqlCall groupingSqlCall = new SqlCase(SqlParserPos.ZERO, null, whenList, thenList, zeroLiteral);
-    unparseCall(writer, groupingSqlCall, leftPrec, rightPrec);
   }
 
   private boolean isIntervalHourAndSecond(SqlCall call) {
