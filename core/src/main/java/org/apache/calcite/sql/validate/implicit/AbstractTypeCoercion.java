@@ -516,6 +516,16 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
       return factory.leastRestrictive(ImmutableList.of(type1, type2));
     }
 
+    if ((SqlTypeUtil.isCharacter(type1) || SqlTypeUtil.isBinary(type1))
+        && type2.getSqlTypeName() == SqlTypeName.UUID) {
+      return factory.createTypeWithNullability(type1, anyNullable);
+    }
+
+    if ((SqlTypeUtil.isCharacter(type2) || SqlTypeUtil.isBinary(type2))
+        && type1.getSqlTypeName() == SqlTypeName.UUID) {
+      return factory.createTypeWithNullability(type2, anyNullable);
+    }
+
     // DATETIME < CHARACTER -> DATETIME
     if (SqlTypeUtil.isCharacter(type1) && SqlTypeUtil.isDatetime(type2)) {
       return factory.createTypeWithNullability(type2, anyNullable);
@@ -887,6 +897,10 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
     }
     // CHAR -> GEOMETRY
     if (SqlTypeUtil.isCharacter(in) && expected == SqlTypeFamily.GEO) {
+      return expected.getDefaultConcreteType(factory);
+    }
+    if ((SqlTypeUtil.isCharacter(in) || SqlTypeUtil.isBinary(in))
+        && expected == SqlTypeFamily.UUID) {
       return expected.getDefaultConcreteType(factory);
     }
     return null;

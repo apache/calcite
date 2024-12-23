@@ -145,6 +145,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TimeZone;
+import java.util.UUID;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -492,6 +493,10 @@ public enum BuiltInMethod {
   IS_JSON_ARRAY(JsonFunctions.class, "isJsonArray", String.class),
   IS_JSON_SCALAR(JsonFunctions.class, "isJsonScalar", String.class),
   ST_GEOM_FROM_EWKT(SpatialTypeFunctions.class, "ST_GeomFromEWKT", String.class),
+  UUID_FROM_STRING(UUID.class, "fromString", String.class),
+  UUID_TO_STRING(SqlFunctions.class, "uuidToString", UUID.class),
+  UUID_TO_BINARY(SqlFunctions.class, "uuidToBinary", UUID.class),
+  BINARY_TO_UUID(SqlFunctions.class, "binaryToUuid", ByteString.class),
   INITCAP(SqlFunctions.class, "initcap", String.class),
   SUBSTRING(SqlFunctions.class, "substring", String.class, int.class,
       int.class),

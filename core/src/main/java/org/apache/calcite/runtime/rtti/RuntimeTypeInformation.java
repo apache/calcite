@@ -68,6 +68,7 @@ public abstract class RuntimeTypeInformation {
     MAP(true),
     ROW(true),
     GEOMETRY(false),
+    UUID(false),
     // used only for VARIANT.null value
     VARIANT(false);
 
@@ -243,6 +244,9 @@ public abstract class RuntimeTypeInformation {
     case VARIANT:
       return Expressions.new_(BasicSqlTypeRtti.class,
           Expressions.constant(RuntimeSqlTypeName.VARIANT));
+    case UUID:
+      return Expressions.new_(BasicSqlTypeRtti.class,
+          Expressions.constant(RuntimeSqlTypeName.UUID));
     default:
       throw new RuntimeException("Unexpected type " + type);
     }

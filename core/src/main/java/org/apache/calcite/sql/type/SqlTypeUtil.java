@@ -925,6 +925,11 @@ public abstract class SqlTypeUtil {
     if (toTypeName == SqlTypeName.UNKNOWN) {
       return true;
     }
+    if (toType.getSqlTypeName() == SqlTypeName.UUID) {
+      return fromType.getSqlTypeName() == SqlTypeName.UUID
+          || fromType.getFamily() == SqlTypeFamily.CHARACTER
+          || fromType.getFamily() == SqlTypeFamily.BINARY;
+    }
     if (toType.isStruct() || fromType.isStruct()) {
       if (toTypeName == SqlTypeName.DISTINCT) {
         if (fromTypeName == SqlTypeName.DISTINCT) {
