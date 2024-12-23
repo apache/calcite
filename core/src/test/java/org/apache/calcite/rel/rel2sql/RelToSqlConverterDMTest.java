@@ -12470,7 +12470,8 @@ class RelToSqlConverterDMTest {
     CorrelationId correlationId = builder.getCluster().createCorrel();
     RexNode correlVar = builder.getRexBuilder().makeCorrel(leftTable.getRowType(), correlationId);
     RelNode existsSubquery = builder.scan("product")
-        .filter(builder.equals(builder.field(1),
+        .filter(
+            builder.equals(builder.field(1),
             builder.getRexBuilder().makeFieldAccess(correlVar, 1)))
         .project(builder.alias(builder.literal("X"), "EXPR$40249"))
         .build();
@@ -12506,12 +12507,12 @@ class RelToSqlConverterDMTest {
     RelNode optimizedRel = hepPlanner.findBestExp();
     RelNode decorrelatedRel = RelDecorrelator.decorrelateQuery(optimizedRel, builder);
 
-    final String expectedSql = "SELECT \"product\".\"product_id\"\n" +
-        "FROM \"foodmart\".\"product\",\n" +
-        "\"foodmart\".\"employee\"\n" +
-        "WHERE EXISTS (SELECT 'X'\n" +
-        "FROM \"foodmart\".\"product\"\n" +
-        "WHERE \"product_id\" = \"product\".\"product_id\")";
+    final String expectedSql = "SELECT \"product\".\"product_id\"\n"
+        + "FROM \"foodmart\".\"product\",\n"
+        + "\"foodmart\".\"employee\"\n"
+        + "WHERE EXISTS (SELECT 'X'\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "WHERE \"product_id\" = \"product\".\"product_id\")";
 
     assertThat(toSql(decorrelatedRel, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
   }
