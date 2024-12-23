@@ -175,9 +175,14 @@ public class FilterExtractInnerJoinRule
           LogicalJoin.create(left, rightEntry.getLeft(), ImmutableList.of(),
                   joinPredicate, ImmutableSet.of(), rightEntry.getRight());
     }
+    if (correlationIdSet != null) {
+      return builder.push(left)
+          .filter(correlationIdSet,
+              op.kind == SqlKind.OR ? builder.or(allConditions) : builder.and(allConditions))
+          .build();
+    }
     return builder.push(left)
-        .filter(correlationIdSet,
-            op.kind == SqlKind.OR ? builder.or(allConditions) : builder.and(allConditions))
+        .filter(op.kind == SqlKind.OR ? builder.or(allConditions) : builder.and(allConditions))
         .build();
   }
 
