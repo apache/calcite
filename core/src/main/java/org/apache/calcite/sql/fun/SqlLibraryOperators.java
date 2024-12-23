@@ -2575,7 +2575,7 @@ public abstract class SqlLibraryOperators {
    * starts at 1 and produces an error if the index is out of range. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlOperator ORDINAL =
-      new SqlItemOperator("ORDINAL", OperandTypes.ARRAY, 1, false);
+      new SqlItemOperator("ORDINAL", OperandTypes.ARRAY_OR_VARRAY, 1, false);
 
   /** The "SAFE_OFFSET(index)" array subscript operator used by BigQuery. The index
    * starts at 0 and returns null if the index is out of range. */
@@ -3508,6 +3508,15 @@ public abstract class SqlLibraryOperators {
           OperandTypes.NILADIC,
           SqlFunctionCategory.SYSTEM);
 
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction UUID =
+      new SqlFunction("UUID",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000,
+          null,
+          OperandTypes.NILADIC,
+          SqlFunctionCategory.SYSTEM);
+
   @LibraryOperator(libraries = {POSTGRESQL})
   public static final SqlFunction PG_BACKEND_PID =
       new SqlFunction("PG_BACKEND_PID",
@@ -3648,6 +3657,15 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction POWER1 =
       SqlStdOperatorTable.POWER.withName("POWER1");
 
+  @LibraryOperator(libraries = {SQL_SERVER})
+  public static final SqlFunction DB_NAME =
+      new SqlFunction("DB_NAME",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR,
+          null,
+          OperandTypes.NILADIC,
+          SqlFunctionCategory.STRING);
+
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction CEILING =
       new SqlFunction("CEILING",
@@ -3753,4 +3771,17 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction GENERATE_SQLERRC =
       new SqlFunction("SQLERRC", SqlKind.LITERAL, ReturnTypes.CHAR, null,
           OperandTypes.STRING, SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {MSSQL})
+  public static final SqlFunction CONVERT =
+      new SqlFunction(
+          "CONVERT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0,
+          null,
+          OperandTypes.or(
+              OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.ANY),
+              OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.ANY, SqlTypeFamily.INTEGER)),
+          SqlFunctionCategory.SYSTEM);
+
 }

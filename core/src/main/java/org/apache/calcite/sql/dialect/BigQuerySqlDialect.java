@@ -188,7 +188,6 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EXTRACT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FLOOR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_FALSE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NULL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MOD;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
@@ -791,9 +790,6 @@ public class BigQuerySqlDialect extends SqlDialect {
     case MOD:
       unparseModFunction(writer, call, leftPrec, rightPrec);
       break;
-    case GROUPING:
-      unparseGroupingFunction(writer, call, leftPrec, rightPrec);
-      break;
     case CAST:
       String firstOperand = call.operand(1).toString();
       if (firstOperand.equals("`TIMESTAMP`")) {
@@ -815,7 +811,7 @@ public class BigQuerySqlDialect extends SqlDialect {
           && (var.toString().contains("\\")
           && !var.toString().substring(1, 3).startsWith("\\\\"))) {
         unparseAsOp(writer, call, leftPrec, rightPrec);
-      } else if (sqlNodes.size() == 4
+      } else if (sqlNodes.size() >= 3
           && sqlNodes.get(0).getKind().name().equalsIgnoreCase(SqlKind.UNNEST.name())) {
         unparseAsOpWithUnnest(writer, call, leftPrec, rightPrec);
       } else {
@@ -990,17 +986,18 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   private void unparseAsOpWithUnnest(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    assert call.operandCount() == 4;
     SqlUnnestOperator unnestOperator =
         (SqlUnnestOperator) ((SqlBasicCall) call.operand(0)).getOperator();
     final SqlWriter.Frame frame = writer.startList(SqlWriter.FrameTypeEnum.AS);
     call.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.sep("AS");
-    call.operand(2).unparse(writer, leftPrec, rightPrec);
+    int ordinalIndex =
+        unnestOperator.withOrdinality ? call.operandCount() - 1 : call.operandCount();
+    call.operand(ordinalIndex - 1).unparse(writer, leftPrec, rightPrec);
     if (unnestOperator.withOrdinality) {
       writer.literal("WITH OFFSET");
       writer.sep("AS");
-      call.operand(3).unparse(writer, leftPrec, rightPrec);
+      call.operand(ordinalIndex).unparse(writer, leftPrec, rightPrec);
     }
     writer.endList(frame);
   }
@@ -1548,6 +1545,9 @@ public class BigQuerySqlDialect extends SqlDialect {
       } else {
         call.getOperator().unparse(writer, call, leftPrec, rightPrec);
       }
+      break;
+    case "GENERATE_SQLERRM":
+      writer.literal("@@error.message");
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
@@ -2375,19 +2375,6 @@ public class BigQuerySqlDialect extends SqlDialect {
     } else {
       castNodeToTimestamp(writer, operand, leftPrec, rightPrec);
     }
-  }
-
-  private void unparseGroupingFunction(SqlWriter writer, SqlCall call,
-                                       int leftPrec, int rightPrec) {
-    SqlCall isNull = new SqlBasicCall(IS_NULL, new SqlNode[]{call.operand(0)}, SqlParserPos.ZERO);
-    SqlNumericLiteral oneLiteral = SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO);
-    SqlNumericLiteral zeroLiteral = SqlLiteral.createExactNumeric("0", SqlParserPos.ZERO);
-    SqlNodeList whenList = new SqlNodeList(SqlParserPos.ZERO);
-    whenList.add(isNull);
-    SqlNodeList thenList = new SqlNodeList(SqlParserPos.ZERO);
-    thenList.add(oneLiteral);
-    SqlCall groupingSqlCall = new SqlCase(SqlParserPos.ZERO, null, whenList, thenList, zeroLiteral);
-    unparseCall(writer, groupingSqlCall, leftPrec, rightPrec);
   }
 
   private boolean isIntervalHourAndSecond(SqlCall call) {

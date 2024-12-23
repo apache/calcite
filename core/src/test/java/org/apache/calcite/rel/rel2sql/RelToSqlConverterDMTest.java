@@ -6806,8 +6806,7 @@ class RelToSqlConverterDMTest {
     String query = "SELECT \"first_name\",\"last_name\", "
         + "grouping(\"first_name\")+ grouping(\"last_name\") "
         + "from \"foodmart\".\"employee\" group by \"first_name\",\"last_name\"";
-    final String expectedBQSql = "SELECT first_name, last_name, CASE WHEN first_name IS NULL THEN"
-        + " 1 ELSE 0 END + CASE WHEN last_name IS NULL THEN 1 ELSE 0 END\n"
+    final String expectedBQSql = "SELECT first_name, last_name, GROUPING(first_name) + GROUPING(last_name)\n"
         + "FROM foodmart.employee\n"
         + "GROUP BY first_name, last_name";
 
@@ -12046,6 +12045,19 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testDbName() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dbNameRexNode = builder.call(SqlLibraryOperators.DB_NAME);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(dbNameRexNode, "db_name_alias"))
+        .build();
+
+    final String expectedMsSqlQuery = "SELECT DB_NAME() AS [db_name_alias]\n"
+        + "FROM [scott].[EMP]";
+    assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedMsSqlQuery));
+  }
+
   @Test public void testEnDashSpecialChar() {
     RelBuilder relBuilder = relBuilder().scan("EMP");
     final RexNode endashLiteral = relBuilder.literal("–");
@@ -12427,5 +12439,17 @@ class RelToSqlConverterDMTest {
             + "\"$f0\"\nFROM \"scott\".\"EMP\"";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+  }
+
+  @Test public void testUUIDSpark() {
+    final RelBuilder builder = relBuilder();
+    final RexNode uuid = builder.call(SqlLibraryOperators.UUID);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(uuid)
+        .build();
+    final String expectedSpark = "SELECT UUID() $f0"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
   }
 }
