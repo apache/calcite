@@ -36,6 +36,7 @@ import org.apache.calcite.util.TimestampWithTimeZoneString;
 import org.apache.calcite.util.Util;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -92,6 +93,8 @@ public class SqlNodeToRexConverterImpl implements SqlNodeToRexConverter {
     }
 
     switch (literal.getTypeName()) {
+    case UUID:
+      return rexBuilder.makeUuidLiteral(literal.getValueAs(UUID.class));
     case DECIMAL:
       // exact number
       BigDecimal bd = literal.getValueAs(BigDecimal.class);

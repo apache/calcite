@@ -49,6 +49,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.UnsupportedCharsetException;
 import java.util.Calendar;
 import java.util.Objects;
+import java.util.UUID;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -236,6 +237,8 @@ public class SqlLiteral extends SqlNode {
       return value instanceof BitString;
     case CHAR:
       return value instanceof NlsString;
+    case UUID:
+      return value instanceof UUID;
     case SYMBOL:
       return (value instanceof Enum)
           || (value instanceof SqlSampleSpec);
@@ -263,7 +266,7 @@ public class SqlLiteral extends SqlNode {
    * Returns the value of this literal.
    *
    * <p>Try not to use this method! There are so many different kinds of
-   * values, it's better to to let SqlLiteral do whatever it is you want to
+   * values, it's better to let SqlLiteral do whatever it is you want to
    * do.
    *
    * @see #booleanValue()
@@ -781,6 +784,7 @@ public class SqlLiteral extends SqlNode {
     switch (typeName) {
     case NULL:
     case BOOLEAN:
+    case UUID:
       RelDataType ret = typeFactory.createSqlType(typeName);
       ret = typeFactory.createTypeWithNullability(ret, null == value);
       return ret;
@@ -930,6 +934,13 @@ public class SqlLiteral extends SqlNode {
       SqlParserPos pos) {
     return new SqlTimeTzLiteral(t, precision, pos);
   }
+
+  public static SqlUuidLiteral createUuid(
+      UUID u,
+      SqlParserPos pos) {
+    return new SqlUuidLiteral(u, pos);
+  }
+
   /**
    * Creates an interval literal.
    *

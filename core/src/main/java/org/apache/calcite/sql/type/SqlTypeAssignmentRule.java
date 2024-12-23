@@ -204,6 +204,9 @@ public class SqlTypeAssignmentRule implements SqlTypeMappingRule {
     // SYMBOL is assignable from ...
     rules.add(SqlTypeName.SYMBOL, EnumSet.of(SqlTypeName.SYMBOL));
 
+    // UUID is assignable from
+    rules.add(SqlTypeName.UUID, EnumSet.of(SqlTypeName.UUID));
+
     // ANY is assignable from ...
     rule.clear();
     rule.add(SqlTypeName.TINYINT);

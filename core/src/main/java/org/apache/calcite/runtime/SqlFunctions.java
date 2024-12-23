@@ -60,6 +60,7 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.codec.language.Soundex;
 import org.apache.commons.lang.StringEscapeUtils;
+import org.apache.commons.lang3.Conversion;
 import org.apache.commons.math3.util.CombinatoricsUtils;
 import org.apache.commons.text.similarity.LevenshteinDistance;
 
@@ -125,6 +126,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
@@ -275,6 +277,20 @@ public class SqlFunctions {
       throw new IllegalStateException(message);
     }
     return condition;
+  }
+
+  public static String uuidToString(UUID uuid) {
+    return uuid.toString();
+  }
+
+  public static UUID binaryToUuid(ByteString bytes) {
+    return Conversion.byteArrayToUuid(bytes.getBytes(), 0);
+  }
+
+  public static ByteString uuidToBinary(UUID uuid) {
+    byte[] dest = new byte[16];
+    Conversion.uuidToByteArray(uuid, dest, 0, 16);
+    return new ByteString(dest);
   }
 
   /** SQL TO_BASE64(string) function. */
