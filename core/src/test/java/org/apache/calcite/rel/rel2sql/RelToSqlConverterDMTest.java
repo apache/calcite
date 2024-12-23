@@ -11628,6 +11628,26 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(teradataPeriod));
   }
 
+  @Test public void testRangeArrayFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode date = builder.literal(new DateString("2000-01-01"));
+    final RexNode periodConstructor =
+        builder.call(PERIOD_CONSTRUCTOR, date, builder.call(CURRENT_DATE));
+    RexNode intervalDay =
+        builder.getRexBuilder().makeIntervalLiteral(BigDecimal.valueOf(2),
+            new SqlIntervalQualifier(MONTH, null, SqlParserPos.ZERO));
+    final RexNode generateRangeCall =
+        builder.call(SqlLibraryOperators.GENERATE_RANGE_ARRAY, periodConstructor, intervalDay,
+            builder.literal(false));
+    RelNode root = builder.scan("EMP").project(generateRangeCall).build();
+    final String teradataPeriod =
+        "SELECT GENERATE_RANGE_ARRAY(RANGE(DATE '2000-01-01', CURRENT_DATE), "
+            + "INTERVAL 2 MONTH, FALSE) AS `$f0`\n"
+            + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(teradataPeriod));
+  }
+
   /*NEXT VALUE is a SqlSequenceValueOperator which works on sequence generator.
   As of now, we don't have any sequence generator present in calcite, nor do we have the complete
   implementation to create one. It can be implemented later on using SqlKind.CREATE_SEQUENCE
