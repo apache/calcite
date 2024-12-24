@@ -1522,6 +1522,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
         new BlockBuilder(true, currentBlockBuilder);
     final RexToLixTranslator ifTrueTranslator =
         currentTranslator.setBlock(ifTrueBlockBuilder);
+    ifTrueTranslator.rexResultMap.putAll(currentTranslator.rexResultMap);
     final Expression ifTrueRes =
         implementCallOperand2(ifTrueNode, storageTypes.get(pos + 1),
             ifTrueTranslator);
@@ -1542,6 +1543,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
         new BlockBuilder(true, currentBlockBuilder);
     final RexToLixTranslator ifFalseTranslator =
         currentTranslator.setBlock(ifFalseBlockBuilder);
+    ifFalseTranslator.rexResultMap.putAll(currentTranslator.rexResultMap);
     implementRecursively(ifFalseTranslator, operandList, valueVariable, pos + 2);
     final BlockStatement ifFalse = ifFalseBlockBuilder.toBlock();
     currentBlockBuilder.add(
