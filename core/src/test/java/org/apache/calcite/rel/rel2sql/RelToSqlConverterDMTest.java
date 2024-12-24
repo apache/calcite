@@ -12472,4 +12472,68 @@ class RelToSqlConverterDMTest {
         + "\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
   }
+
+  /**
+   * The creation of RelNode of this test case mirrors the rel building process in the MIG
+   * side for the query below. This approach may not perfectly align with how Calcite would
+   * generate the plan for the same.
+   * Test case for - NullPointerException: variable $cor0 is not found
+   * <a href= https://datametica.atlassian.net/browse/RGS-51>[RSFB-51] </a>
+   * */
+  @Test void testCorrelateWithInnerJoin() {
+    final RelBuilder builder = foodmartRelBuilder();
+    RelNode leftTable = builder.scan("product").build();
+    RelNode rightTable = builder.scan("employee").build();
+    RelNode join = builder.push(leftTable).push(rightTable).join(JoinRelType.INNER).build();
+
+    // Create correlated EXISTS sub query
+    CorrelationId correlationId = builder.getCluster().createCorrel();
+    RexNode correlVar = builder.getRexBuilder().makeCorrel(leftTable.getRowType(), correlationId);
+    RelNode existsSubquery = builder.scan("product")
+        .filter(
+            builder.equals(builder.field(1),
+            builder.getRexBuilder().makeFieldAccess(correlVar, 1)))
+        .project(builder.alias(builder.literal("X"), "EXPR$40249"))
+        .build();
+
+    // Filter with EXISTS
+    RelNode filteredRel = builder.push(join)
+        .filter(ImmutableSet.of(correlationId), RexSubQuery.exists(existsSubquery))
+        .build();
+
+    // Projection
+    RelNode relNode = builder.push(filteredRel)
+        .project(builder.field(1))
+        .build();
+
+    /** REL BEFORE OPTIMIZATION
+     * LogicalProject(product_id=[$1])
+     *   LogicalFilter(condition=[EXISTS({
+     * LogicalProject($f0=['X'])
+     *   LogicalFilter(condition=[=($1, $cor0.product_id)])
+     *     JdbcTableScan(table=[[foodmart, product]])
+     * })], variablesSet=[[$cor0]])
+     *     LogicalJoin(condition=[true], joinType=[inner])
+     *       JdbcTableScan(table=[[foodmart, product]])
+     *       JdbcTableScan(table=[[foodmart, employee]])
+     **/
+
+    // Applying rel optimization
+    Collection<RelOptRule> rules = new ArrayList<>();
+    rules.add((FilterExtractInnerJoinRule.Config.DEFAULT).toRule());
+    HepProgram hepProgram = new HepProgramBuilder().addRuleCollection(rules).build();
+    HepPlanner hepPlanner = new HepPlanner(hepProgram);
+    hepPlanner.setRoot(relNode);
+    RelNode optimizedRel = hepPlanner.findBestExp();
+    RelNode decorrelatedRel = RelDecorrelator.decorrelateQuery(optimizedRel, builder);
+
+    final String expectedSql = "SELECT \"product\".\"product_id\"\n"
+        + "FROM \"foodmart\".\"product\",\n"
+        + "\"foodmart\".\"employee\"\n"
+        + "WHERE EXISTS (SELECT 'X'\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "WHERE \"product_id\" = \"product\".\"product_id\")";
+
+    assertThat(toSql(decorrelatedRel, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+  }
 }
