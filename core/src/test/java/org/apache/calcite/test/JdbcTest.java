@@ -47,7 +47,6 @@ import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
-import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
@@ -902,17 +901,7 @@ public class JdbcTest {
     checkMockDdl(counter, true,
         driver2.withPrepareFactory(() -> new CountingPrepare(counter)));
 
-    // MockDdlDriver2 implements commit if we override its createPrepareFactory
-    // method. The method is deprecated but override still needs to work.
-    checkMockDdl(counter, true,
-        new MockDdlDriver2(counter) {
-          @SuppressWarnings("deprecation")
-          @Override protected Function0<CalcitePrepare> createPrepareFactory() {
-            return () -> new CountingPrepare(counter);
-          }
-        });
-
-    // MockDdlDriver2 implements commit if we override its createPrepareFactory
+    // MockDdlDriver2 implements commit if we override its createPrepare
     // method.
     checkMockDdl(counter, true,
         new MockDdlDriver2(counter) {
