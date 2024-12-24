@@ -17,8 +17,11 @@
 package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.rel.core.CorrelationId;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * RelColumnOrigin is a data structure describing one of the origins of an
@@ -27,9 +30,13 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public class RelColumnOrigin {
   //~ Instance fields --------------------------------------------------------
 
-  private final RelOptTable originTable;
+  private final @Nullable RelOptTable originTable;
+
+  private final @Nullable CorrelationId correlationId;
 
   private final int iOriginColumn;
+
+  private final boolean isCorVar;
 
   private final boolean isDerived;
 
@@ -39,16 +46,38 @@ public class RelColumnOrigin {
       RelOptTable originTable,
       int iOriginColumn,
       boolean isDerived) {
+    this(originTable, null, iOriginColumn, isDerived, false);
+  }
+
+  public RelColumnOrigin(
+      CorrelationId correlationId,
+      int iOriginColumn,
+      boolean isDerived) {
+    this(null, correlationId, iOriginColumn, isDerived, true);
+  }
+
+  private RelColumnOrigin(@Nullable RelOptTable originTable,
+      @Nullable CorrelationId correlationId,
+      int iOriginColumn,
+      boolean isDerived,
+      boolean isCorVar) {
     this.originTable = originTable;
+    this.correlationId = correlationId;
     this.iOriginColumn = iOriginColumn;
     this.isDerived = isDerived;
+    this.isCorVar = isCorVar;
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  /** Returns table of origin. */
-  public RelOptTable getOriginTable() {
+  /** Returns table of origin and null only if isCorVar is true. */
+  public @Nullable RelOptTable getOriginTable() {
     return originTable;
+  }
+
+  /** Returns correlateId of origin and null only if isCorVar is true. */
+  public @Nullable CorrelationId getCorrelationId() {
+    return correlationId;
   }
 
   /** Returns the 0-based index of column in origin table; whether this ordinal
@@ -71,21 +100,48 @@ public class RelColumnOrigin {
     return isDerived;
   }
 
+  /** Returns whether this columnOrigin is from an external Correlate field. */
+  public boolean isCorVar() {
+    return isCorVar;
+  }
+
+  public RelColumnOrigin copyWith(boolean isDerived) {
+    if (isCorVar) {
+      return new RelColumnOrigin(
+          requireNonNull(correlationId, "correlationId"), iOriginColumn, isDerived);
+    }
+    return new RelColumnOrigin(
+        requireNonNull(originTable, "originTable"), iOriginColumn, isDerived);
+  }
+
   // override Object
   @Override public boolean equals(@Nullable Object obj) {
     if (!(obj instanceof RelColumnOrigin)) {
       return false;
     }
     RelColumnOrigin other = (RelColumnOrigin) obj;
-    return originTable.getQualifiedName().equals(
-        other.originTable.getQualifiedName())
-        && (iOriginColumn == other.iOriginColumn)
-        && (isDerived == other.isDerived);
+
+    if (isCorVar != other.isCorVar
+        || iOriginColumn != other.iOriginColumn
+        || isDerived != other.isDerived) {
+      return false;
+    }
+
+    if (isCorVar) {
+      return requireNonNull(correlationId, "correlationId")
+          .equals(requireNonNull(other.getCorrelationId(), "other correlationId"));
+    }
+    return requireNonNull(originTable, "originTable").getQualifiedName()
+        .equals(requireNonNull(other.getOriginTable(), "originTable").getQualifiedName());
   }
 
   // override Object
   @Override public int hashCode() {
-    return originTable.getQualifiedName().hashCode()
+    if (isCorVar) {
+      return requireNonNull(correlationId, "correlationId").hashCode()
+          + iOriginColumn + (isDerived ? 313 : 0);
+    }
+    return requireNonNull(originTable, "originTable").getQualifiedName().hashCode()
         + iOriginColumn + (isDerived ? 313 : 0);
   }
 }

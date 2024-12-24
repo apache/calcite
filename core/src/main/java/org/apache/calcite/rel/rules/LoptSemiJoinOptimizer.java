@@ -418,12 +418,12 @@ public class LoptSemiJoinOptimizer {
           mq.getColumnOrigin(factRel, keyIter.next());
 
       // can't use the rid column as a semijoin key
-      if ((colOrigin == null || !colOrigin.isDerived())
+      if ((colOrigin == null || colOrigin.isCorVar() || !colOrigin.isDerived())
           || LucidDbSpecialOperators.isLcsRidColumnId(
             colOrigin.getOriginColumnOrdinal())) {
         removeKey = true;
       } else {
-        RelOptTable table = colOrigin.getOriginTable();
+        RelOptTable table = requireNonNull(colOrigin.getOriginTable(), "originTable");
         if (theTable == null) {
           if (!(table instanceof LcsTable)) {
             // not a column store table

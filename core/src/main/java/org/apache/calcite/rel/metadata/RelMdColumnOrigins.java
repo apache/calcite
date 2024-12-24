@@ -21,6 +21,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Calc;
+import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
@@ -32,6 +33,8 @@ import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rex.RexCorrelVariable;
+import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
@@ -141,6 +144,33 @@ public class RelMdColumnOrigins
     // Anything else is a derivation, possibly from multiple columns.
     final Set<RelColumnOrigin> set = getMultipleColumns(rexNode, input, mq);
     return createDerivedColumnOrigins(set);
+  }
+
+  public @Nullable Set<RelColumnOrigin> getColumnOrigins(Correlate rel,
+      RelMetadataQuery mq, int iOutputColumn) {
+    int nLeftColumns = rel.getLeft().getRowType().getFieldList().size();
+    if (iOutputColumn < nLeftColumns) {
+      return mq.getColumnOrigins(rel.getLeft(), iOutputColumn);
+    }
+    Set<RelColumnOrigin> result = new HashSet<>();
+
+    Set<RelColumnOrigin> columnOrigins =
+        mq.getColumnOrigins(rel.getRight(), iOutputColumn - nLeftColumns);
+    if (columnOrigins != null) {
+      for (RelColumnOrigin columnOrigin : columnOrigins) {
+        // If corVar, get the origin column of the left input.
+        if (columnOrigin.isCorVar()) {
+          Set<RelColumnOrigin> corVarOrigin =
+              mq.getColumnOrigins(rel.getLeft(), columnOrigin.getOriginColumnOrdinal());
+          if (corVarOrigin != null) {
+            result.addAll(corVarOrigin);
+          }
+          continue;
+        }
+        result.add(columnOrigin);
+      }
+    }
+    return rel.getJoinType().generatesNullsOnRight() ? createDerivedColumnOrigins(result) : result;
   }
 
   public @Nullable Set<RelColumnOrigin> getColumnOrigins(Calc rel,
@@ -280,12 +310,7 @@ public class RelMdColumnOrigins
     }
     final Set<RelColumnOrigin> set = new HashSet<>();
     for (RelColumnOrigin rco : inputSet) {
-      RelColumnOrigin derived =
-          new RelColumnOrigin(
-              rco.getOriginTable(),
-              rco.getOriginColumnOrdinal(),
-              true);
-      set.add(derived);
+      set.add(rco.copyWith(true));
     }
     return set;
   }
@@ -300,6 +325,17 @@ public class RelMdColumnOrigins
                 mq.getColumnOrigins(input, inputRef.getIndex());
             if (inputSet != null) {
               set.addAll(inputSet);
+            }
+            return null;
+          }
+
+          @Override public Void visitFieldAccess(RexFieldAccess fieldAccess) {
+            final RexNode ref = fieldAccess.getReferenceExpr();
+            if (ref instanceof RexCorrelVariable) {
+              RexCorrelVariable variable = (RexCorrelVariable) ref;
+              RelColumnOrigin columnOrigin =
+                  new RelColumnOrigin(variable.id, fieldAccess.getField().getIndex(), false);
+              set.add(columnOrigin);
             }
             return null;
           }
