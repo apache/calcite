@@ -3779,6 +3779,13 @@ public abstract class SqlLibraryOperators {
       new SqlFunction("SQLERRC", SqlKind.LITERAL, ReturnTypes.CHAR, null,
           OperandTypes.STRING, SqlFunctionCategory.SYSTEM);
 
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction GENERATE_RANGE_ARRAY =
+      new SqlFunction("GENERATE_RANGE_ARRAY", SqlKind.OTHER, ReturnTypes.TO_ARRAY, null,
+          OperandTypes.family(SqlTypeFamily.PERIOD,
+              SqlTypeFamily.DATETIME_INTERVAL, SqlTypeFamily.BOOLEAN),
+          SqlFunctionCategory.SYSTEM);
+
   @LibraryOperator(libraries = {MSSQL})
   public static final SqlFunction CONVERT =
       new SqlFunction(
