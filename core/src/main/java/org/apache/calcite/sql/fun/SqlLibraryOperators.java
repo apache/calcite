@@ -457,6 +457,13 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_INTEGER_OPTIONAL_INTEGER,
           SqlFunctionCategory.STRING);
 
+  @LibraryOperator(libraries = {SQL_SERVER})
+  public static final SqlFunction REPLICATE =
+      new SqlFunction("REPLICATE", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000, null,
+          OperandTypes.family(SqlTypeFamily.INTEGER, SqlTypeFamily.STRING),
+          SqlFunctionCategory.STRING);
+
   @LibraryOperator(libraries = {ORACLE, BIG_QUERY})
   public static final SqlFunction USING =
       new SqlFunction(

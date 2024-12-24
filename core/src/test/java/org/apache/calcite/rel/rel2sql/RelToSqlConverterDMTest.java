@@ -10764,6 +10764,23 @@ class RelToSqlConverterDMTest {
         isLinux(expectedBigQuery));
   }
 
+  @Test public void testReplicateFunction() {
+    final RelBuilder builder = relBuilder();
+    RexNode replicate =
+        builder.call(SqlLibraryOperators.REPLICATE, builder.literal("b"), builder.literal(1));
+
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(replicate, "Result"))
+        .build();
+
+    final String expectedSynapseQuery = "SELECT REPLICATE('b', 1) "
+        + "AS [Result]\nFROM [scott].[EMP]";
+
+    assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()),
+        isLinux(expectedSynapseQuery));
+  }
+
   @Test public void testToCurrentTimestampFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode parseTSNode1 =
