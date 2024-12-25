@@ -226,7 +226,7 @@ public interface GraphQLRel extends RelNode {
             if (literal.getTypeName().getFamily() == SqlTypeFamily.TIMESTAMP) {
               // For timestamp equality, create a range query
               GregorianCalendar gc = (GregorianCalendar) literal.getValue();
-              OffsetDateTime odt = OffsetDateTime.ofInstant(gc.toInstant(), ZoneOffset.UTC);
+              OffsetDateTime odt = OffsetDateTime.ofInstant(Objects.requireNonNull(gc).toInstant(), ZoneOffset.UTC);
               OffsetDateTime nextMs = odt.plus(1, ChronoUnit.MILLIS);
 
               return String.format("{ %s: [{ %s: { %s: \"%s\" }}, { %s: { %s: \"%s\" }}] }",
@@ -354,11 +354,10 @@ public interface GraphQLRel extends RelNode {
 
       // Convert SQL field name back to GraphQL field name
       assert graphQLTable != null;
-      String graphQLFieldName = graphQLTable.getGraphQLFieldName(sqlFieldName);
-      return graphQLFieldName != null ? graphQLFieldName : sqlFieldName;
+      return graphQLTable.getGraphQLFieldName(sqlFieldName);
     }
 
-    private @Nullable Object[] getRange (List < RexNode > operands){
+    private @Nullable Object[] getRange(List<RexNode> operands) {
       if (operands.size() < 1 + 1) {
         throw new IllegalArgumentException("Incorrect number of operands in a condition.");
       }
@@ -374,7 +373,7 @@ public interface GraphQLRel extends RelNode {
       return null;
     }
 
-    private String convertQuotes (String input){
+    private String convertQuotes(String input) {
       //Replace any original double quotes to \"
       input = input.replace("\"", "\\\"");
 
@@ -397,7 +396,7 @@ public interface GraphQLRel extends RelNode {
       RexLiteral op = (RexLiteral) opCandidate;
       SqlTypeFamily sqlType = op.getTypeName().getFamily();
 
-      switch (sqlType) {
+      switch (Objects.requireNonNull(sqlType)) {
       case NULL:
         return "null";
 
@@ -410,7 +409,7 @@ public interface GraphQLRel extends RelNode {
       case BOOLEAN:
       case INTERVAL_YEAR_MONTH:
       case INTERVAL_DAY_TIME:
-        return op.getValue2().toString();
+        return Objects.requireNonNull(op.getValue2()).toString();
 
       // Types that should be quoted
       case CHARACTER:
@@ -426,7 +425,7 @@ public interface GraphQLRel extends RelNode {
       case DATE:
         Calendar calendar = (Calendar) op.getValue();
         LocalDate date = LocalDate.of(
-            calendar.get(Calendar.YEAR),
+            Objects.requireNonNull(calendar).get(Calendar.YEAR),
             calendar.get(Calendar.MONTH) + 1,  // Calendar months are 0-based
             calendar.get(Calendar.DAY_OF_MONTH)
         );
@@ -435,10 +434,9 @@ public interface GraphQLRel extends RelNode {
       case TIMESTAMP:
       case DATETIME:
         GregorianCalendar gc = (GregorianCalendar) op.getValue();
-        OffsetDateTime odt = OffsetDateTime.ofInstant(gc.toInstant(), ZoneOffset.UTC);
+        OffsetDateTime odt = OffsetDateTime.ofInstant(Objects.requireNonNull(gc).toInstant(), ZoneOffset.UTC);
         return String.format("\"%s\"",
             odt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")));
-
 
       default:
         // For any new/unknown types, safer to quote them
@@ -488,13 +486,48 @@ public interface GraphQLRel extends RelNode {
       }
 
       builder.append(" {\n");
-      for (String fieldName : fieldNames) {
-        String graphQLField = graphQLTable.getGraphQLFieldName(fieldName);
-        builder.append("    ").append(graphQLField != null ? graphQLField : fieldName).append("\n");
-      }
+      builder.append(NestedStringTransformer.transform(fieldNames));
       builder.append("  }\n");
       builder.append("}");
       return builder.toString();
+    }
+
+    /**
+     * Utility class for transforming nested field names into GraphQL query format.
+     */
+    private static class NestedStringTransformer {
+      private static final Map<String, Object> map = new LinkedHashMap<>();
+
+      private static String transform(List<String> list) {
+        map.clear(); // Clear the map before each transformation
+        for (String s : list) {
+          addToMap(map, s.split("\\."), 0);
+        }
+        return format(map).trim();
+      }
+
+      private static void addToMap(Map<String, Object> map, String[] parts, int index) {
+        String key = parts[index];
+        if (index < parts.length - 1) {
+          //noinspection unchecked
+          addToMap((Map<String, Object>) map.computeIfAbsent(key, k -> new LinkedHashMap<>()), parts, index + 1);
+        } else {
+          map.put(key, "");
+        }
+      }
+
+      private static String format(Map<String, Object> map) {
+        StringBuilder sb = new StringBuilder();
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+          if (entry.getValue() instanceof Map) {
+            //noinspection unchecked
+            sb.append(entry.getKey()).append(" { ").append(format((Map<String, Object>) entry.getValue())).append("} ");
+          } else {
+            sb.append(entry.getKey()).append(" ");
+          }
+        }
+        return sb.toString();
+      }
     }
   }
 }

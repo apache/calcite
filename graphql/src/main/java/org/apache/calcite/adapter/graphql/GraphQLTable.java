@@ -45,11 +45,11 @@ public class GraphQLTable extends AbstractTable implements TranslatableTable, Qu
   private static final Logger LOGGER = LogManager.getLogger(GraphQLToEnumerableConverter.class);
 
   private static final Set<String> RESERVED_WORDS = new HashSet<>(Arrays.asList(
-    "type", "timestamp", "date", "time", "interval", "group", "order",
-    "by", "desc", "asc", "select", "from", "where", "having", "join",
-    "left", "right", "inner", "outer", "cross", "natural", "union",
-    "intersect", "except", "case", "when", "then", "else", "end",
-    "cast", "as", "between", "and", "or", "not", "null", "true", "false"
+      "type", "timestamp", "date", "time", "interval", "group", "order",
+      "by", "desc", "asc", "select", "from", "where", "having", "join",
+      "left", "right", "inner", "outer", "cross", "natural", "union",
+      "intersect", "except", "case", "when", "then", "else", "end",
+      "cast", "as", "between", "and", "or", "not", "null", "true", "false"
   ));
 
   /**
@@ -71,13 +71,13 @@ public class GraphQLTable extends AbstractTable implements TranslatableTable, Qu
     this.name = objectType.getName();
   }
 
-  private void mapField(String graphQLField) {
+  private void mapField(String graphQLField, String prepend) {
     String sqlField = RESERVED_WORDS.contains(graphQLField.toLowerCase())
         ? graphQLField + "_"
         : graphQLField;
 
-    sqlToGraphQLFields.put(sqlField, graphQLField);
-    graphQLToSQLFields.put(graphQLField, sqlField);
+    sqlToGraphQLFields.put(prepend + sqlField, prepend + graphQLField);
+    graphQLToSQLFields.put(prepend + graphQLField, prepend + sqlField);
   }
 
   public String getSQLFieldName(String graphQLField) {
@@ -213,7 +213,12 @@ public class GraphQLTable extends AbstractTable implements TranslatableTable, Qu
   public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     this.typeFactory = typeFactory;
     RelDataTypeFactory.Builder builder = typeFactory.builder();
-    List<GraphQLFieldDefinition> fieldDefinitions = objectType.getFieldDefinitions();
+    return getRowType(typeFactory, builder, objectType, "", 0);
+  }
+
+  public RelDataType getRowType(RelDataTypeFactory typeFactory,
+      RelDataTypeFactory.Builder builder, GraphQLObjectType _objectType, String prepend, Integer depth) {
+    List<GraphQLFieldDefinition> fieldDefinitions = _objectType.getFieldDefinitions();
 
     for (GraphQLFieldDefinition field : fieldDefinitions) {
       GraphQLType fieldType = unwrapType(field.getType());
@@ -222,21 +227,30 @@ public class GraphQLTable extends AbstractTable implements TranslatableTable, Qu
         fieldType = ((GraphQLNonNull) fieldType).getWrappedType();
       }
 
-      if (fieldType instanceof GraphQLList) {
-        fieldType = ((GraphQLList) fieldType).getWrappedType();
+      if (depth < schema.getObjectDepth() && fieldType instanceof GraphQLObjectType) {
+        getRowType(typeFactory, builder, (GraphQLObjectType) unwrapType(field.getType()), prepend + field.getName() + ".", depth + 1);
+      } else {
+
+        if (fieldType instanceof GraphQLList) {
+          fieldType = ((GraphQLList) fieldType).getWrappedType();
+        }
+
+        if (fieldType instanceof GraphQLNonNull) {
+          fieldType = ((GraphQLNonNull) fieldType).getWrappedType();
+        }
+
+        // Skip if the field is not a scalar type
+        if (!(fieldType instanceof GraphQLScalarType || fieldType instanceof GraphQLEnumType)) {
+          continue;
+        }
+
+        String graphQLField = field.getName();
+        mapField(graphQLField, prepend);
+        String sqlField = graphQLToSQLFields.get(prepend + graphQLField);
+
+        RelDataType sqlType = convertGraphQLTypeToRelDataType(fieldType, typeFactory);
+        builder.add(sqlField, sqlType);
       }
-
-      // Skip if the field is not a scalar type
-      if (!(fieldType instanceof GraphQLScalarType || fieldType instanceof GraphQLEnumType)) {
-        continue;
-      }
-
-      String graphQLField = field.getName();
-      mapField(graphQLField);
-      String sqlField = graphQLToSQLFields.get(graphQLField);
-
-      RelDataType sqlType = convertGraphQLTypeToRelDataType(fieldType, typeFactory);
-      builder.add(sqlField, sqlType);
     }
 
     return builder.build();

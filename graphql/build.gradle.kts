@@ -36,8 +36,13 @@ dependencies {
 
     implementation("com.graphql-java:graphql-java:22.3")
     implementation("com.google.code.gson:gson:2.11.0")
-    implementation("com.fasterxml.jackson.core:jackson-core:")
-    implementation("com.fasterxml.jackson.core:jackson-databind")
+
+    // Jackson dependencies
+    implementation("com.fasterxml.jackson.core:jackson-core:2.15.2")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.15.2")
+    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.15.2")
+    implementation("com.fasterxml.jackson.core:jackson-annotations:2.15.2")
+
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.graphql-java-kickstart:graphql-java-tools:11.0.1") // for graphql
     // https://mvnrepository.com/artifact/io.lettuce/lettuce-core

@@ -3,26 +3,18 @@ package org.apache.calcite.adapter.graphql;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
-import java.sql.Date;
-import java.sql.Timestamp;
-import java.time.OffsetDateTime;
-import java.time.format.DateTimeParseException;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 import graphql.ExecutionResult;
 import graphql.ExecutionResultImpl;
@@ -32,8 +24,6 @@ import graphql.language.OperationDefinition;
 import graphql.parser.Parser;
 import graphql.schema.*;
 import okhttp3.*;
-
-
 
 /**
  * Executes GraphQL queries with caching support. The cache can be configured through
@@ -47,7 +37,6 @@ public class GraphQLExecutor implements AutoCloseable {
   private final String query;
   private final String endpoint;
   private final GraphQLCalciteSchema schema;
-  private final Map<String, GraphQLOutputType> fieldTypes;
   private static volatile @Nullable GraphQLCacheModule cacheModule = null;
   private final ObjectMapper objectMapper;
   private final OkHttpClient client;
@@ -64,7 +53,7 @@ public class GraphQLExecutor implements AutoCloseable {
     this.query = query;
     this.endpoint = endpoint;
     this.schema = schema;
-    this.fieldTypes = extractFieldTypes();
+    Map<String, GraphQLOutputType> fieldTypes = extractFieldTypes();
 
     // Initialize singleton cache if not already created
     if (cacheModule == null) {
@@ -79,8 +68,13 @@ public class GraphQLExecutor implements AutoCloseable {
       }
     }
 
-    this.objectMapper = configureObjectMapper();
-    this.client = new OkHttpClient();
+    // Initialize ObjectMapper with JsonFlatteningDeserializer
+    this.objectMapper = new ObjectMapper();
+    SimpleModule module = new SimpleModule();
+    module.addDeserializer(Object.class, new JsonFlatteningDeserializer(fieldTypes));
+    this.objectMapper.registerModule(module);
+
+    this.client = new OkHttpClient.Builder().readTimeout(30, TimeUnit.SECONDS).build();
   }
 
   private Map<String, GraphQLOutputType> extractFieldTypes() {
@@ -123,95 +117,17 @@ public class GraphQLExecutor implements AutoCloseable {
     return types;
   }
 
-  private boolean isDateType(GraphQLNamedOutputType type) {
-    return GraphQLTypeUtil.unwrapAll(type) instanceof GraphQLScalarType && "Date".equals(type.getName());
-  }
-
-  private boolean isTimestampType(GraphQLNamedOutputType type) {
-    return GraphQLTypeUtil.unwrapAll(type) instanceof GraphQLScalarType && "Timestamp".equals(type.getName());
-  }
-
-  private boolean isTimestamptzType(GraphQLNamedOutputType type) {
-    return GraphQLTypeUtil.unwrapAll(type) instanceof GraphQLScalarType && "Timestamptz".equals(type.getName());
-  }
-
-  private ObjectMapper configureObjectMapper() {
-    ObjectMapper mapper = new ObjectMapper();
-    SimpleModule module = new SimpleModule();
-
-    module.addDeserializer(Object.class, new StdDeserializer<Object>(Object.class) {
-      @Override
-      public Object deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
-        String fieldName = p.getCurrentName();
-        GraphQLOutputType type = fieldTypes.get(fieldName);
-
-        try {
-          if (type != null && isDateType((GraphQLNamedOutputType) type)) {
-            String dateStr = p.getValueAsString();
-            if (dateStr != null && !dateStr.isEmpty()) {
-              try {
-                return Date.valueOf(dateStr);
-              } catch (IllegalArgumentException e) {
-                LOGGER.warn("Failed to parse date value: {}", dateStr);
-              }
-            }
-          }
-
-          if (type != null && isTimestampType((GraphQLNamedOutputType) type)) {
-            String dateStr = p.getValueAsString();
-            if (dateStr != null && !dateStr.isEmpty()) {
-              try {
-                return Timestamp.valueOf(dateStr);
-              } catch (IllegalArgumentException e) {
-                LOGGER.warn("Failed to parse timestamp value: {}", dateStr);
-              }
-            }
-          }
-          if (type != null && isTimestamptzType((GraphQLNamedOutputType) type)) {
-            String dateStr = p.getValueAsString();
-            if (dateStr != null && !dateStr.isEmpty()) {
-              try {
-                // Keep as OffsetDateTime to preserve precision
-                OffsetDateTime offsetDateTime = OffsetDateTime.parse(dateStr);
-                return Timestamp.from(offsetDateTime.toInstant());
-              } catch (DateTimeParseException e) {
-                LOGGER.warn("Failed to parse timestamptz value: {}", dateStr, e);
-              }
-            }
-          }
-        } catch(Exception ignored) {}
-
-        JsonNode node = p.getCodec().readTree(p);
-        if (node.isTextual()) {
-          return node.asText();
-        } else if (node.isNumber()) {
-          return node.numberValue();
-        } else if (node.isBoolean()) {
-          return node.booleanValue();
-        } else if (node.isNull()) {
-          return null;
-        } else {
-          return mapper.treeToValue(node, Object.class);
-        }
-      }
-    });
-
-    mapper.registerModule(module);
-    return mapper;
-  }
-
   /**
    * Executes the GraphQL query, using cached results if available.
    *
    * @return The execution result, or null if the execution fails
    */
   public @Nullable ExecutionResult executeQuery() {
-    assert cacheModule != null;
-    String cacheKey = cacheModule.generateKey(query, schema.role);
+    @Nullable String cacheKey = Objects.requireNonNull(cacheModule).generateKey(query, schema.role);
 
     // Try to get from cache first
     assert cacheKey != null;
-    @Nullable ExecutionResult cachedResult = cacheModule.get(cacheKey);
+    @Nullable ExecutionResult cachedResult = Objects.requireNonNull(cacheModule).get(cacheKey);
     if (cachedResult != null) {
       LOGGER.debug("Returning cached result for query");
       return cachedResult;
@@ -224,7 +140,7 @@ public class GraphQLExecutor implements AutoCloseable {
     // Store successful results in cache
     if (queryResult != null) {
       LOGGER.debug("Storing query result in cache");
-      cacheModule.put(cacheKey, queryResult);
+      Objects.requireNonNull(cacheModule).put(cacheKey, queryResult);
     }
 
     return queryResult;
@@ -272,24 +188,25 @@ public class GraphQLExecutor implements AutoCloseable {
         }
 
         String responseBodyString = responseBody.string();
-        JsonNode jsonResponse = objectMapper.readTree(responseBodyString);
-        JsonNode dataNode = jsonResponse.get("data");
-        List<Map<String, ?>> dataList = null;
+        LOGGER.debug("Received response: {}", responseBodyString);
 
-        if (dataNode != null && dataNode.isObject()) {
-          Iterator<Map.Entry<String, JsonNode>> fields = dataNode.fields();
-          if (fields.hasNext()) {
-            JsonNode actualDataNode = fields.next().getValue();
-            if (actualDataNode.isArray()) {
-              dataList = objectMapper.convertValue(actualDataNode,
-                  new TypeReference<List<Map<String, ?>>>() {
-                  });
+        // Deserialize with our flattening deserializer
+        @SuppressWarnings("unchecked") Map<String, Object> result = (Map<String, Object>) objectMapper.readValue(responseBodyString, Object.class);
+
+        // After flattening, there should be one key "data.<datasetName>" with the list value
+        for (Map.Entry<String, Object> entry : result.entrySet()) {
+          if (entry.getKey().startsWith("data.")) {
+            Object value = entry.getValue();
+            if (value instanceof List) {
+              @SuppressWarnings("unchecked")
+              List<Map<String, ?>> dataList = (List<Map<String, ?>>) value;
+              return new ExecutionResultImpl(dataList, null);
             }
           }
         }
 
         LOGGER.debug("Query executed successfully");
-        return new ExecutionResultImpl(dataList, null);
+        return new ExecutionResultImpl(null, null);
       }
     } catch (IOException e) {
       LOGGER.error("An error occurred while executing the query", e);
@@ -312,7 +229,7 @@ public class GraphQLExecutor implements AutoCloseable {
   public static void shutdownCache() {
     synchronized (CACHE_LOCK) {
       if (cacheModule != null) {
-        cacheModule.close();
+        Objects.requireNonNull(cacheModule).close();
         cacheModule = null;
         LOGGER.info("Cache module shut down");
       }
