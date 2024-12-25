@@ -1,11 +1,11 @@
 package org.apache.calcite.adapter.graphql;
 
+import graphql.schema.*;
+
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.SchemaPlus;
 import graphql.GraphQL;
-import graphql.schema.GraphQLObjectType;
-import graphql.schema.GraphQLSchema;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Represents a Calcite schema that generates tables based on the types defined in a GraphQL schema.
@@ -31,7 +32,7 @@ public class GraphQLCalciteSchema extends AbstractSchema {
   private final Boolean pseudoKeys;
 
   private static final List<String> excludedNames = Arrays.asList(
-      "Mutation", "Query", "__EnumValue", "__Field", "__InputValue",
+      "Subscription", "Mutation", "Query", "__EnumValue", "__Field", "__InputValue",
       "__Schema", "__Type", "__Directive");
 
   public GraphQLCalciteSchema(GraphQL graphQL, SchemaPlus parentSchema,
@@ -70,11 +71,46 @@ public class GraphQLCalciteSchema extends AbstractSchema {
               !type.getName().endsWith("AggExp"))
           .forEach(type -> {
             GraphQLObjectType objectType = (GraphQLObjectType) type;
-            GraphQLTable proposedTable = new GraphQLTable(this, objectType, graphQL, endpoint);
+
+            // Find all types that have a list reference to this type
+            List<GraphQLObjectType> referencingTypes = schema.getTypeMap().values().stream()
+                .filter(t -> t instanceof GraphQLObjectType &&
+                    !excludedNames.contains(t.getName()) &&
+                    !t.getName().endsWith("AggExp"))
+                .map(t -> (GraphQLObjectType) t)
+                .filter(t -> hasListReferenceToType(t, objectType))
+                .collect(Collectors.toList());
+
+            GraphQLTable proposedTable = new GraphQLTable(this, objectType, graphQL, endpoint, referencingTypes);
             tableMap.put(objectType.getName(), proposedTable);
           });
     }
     return tableMap;
+  }
+
+  private boolean hasListReferenceToType(GraphQLObjectType sourceType, GraphQLObjectType targetType) {
+    return sourceType.getFieldDefinitions().stream()
+        .map(GraphQLFieldDefinition::getType)
+        .anyMatch(fieldType -> {
+          // Unwrap from GraphQLNonNull if present
+          if (fieldType instanceof GraphQLNonNull) {
+            fieldType = (GraphQLOutputType) ((GraphQLNonNull) fieldType).getWrappedType();
+          }
+
+          // Check if it's a List
+          if (fieldType instanceof GraphQLList) {
+            GraphQLType listType = ((GraphQLList) fieldType).getWrappedType();
+
+            // Unwrap the list type from GraphQLNonNull if present
+            if (listType instanceof GraphQLNonNull) {
+              listType = ((GraphQLNonNull) listType).getWrappedType();
+            }
+
+            // Compare the unwrapped type with our target type
+            return listType == targetType;
+          }
+          return false;
+        });
   }
 
   @Override

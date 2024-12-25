@@ -63,7 +63,8 @@ public class GraphQLTable extends AbstractTable implements TranslatableTable, Qu
   public GraphQLTable(GraphQLCalciteSchema schema,
       GraphQLObjectType objectType,
       GraphQL graphQL,
-      String endpoint) {
+      String endpoint,
+      List<GraphQLObjectType> referencingTypes) {
     this.schema = schema;
     this.objectType = objectType;
     this.selectMany = this.findSelectMany(graphQL, objectType);
