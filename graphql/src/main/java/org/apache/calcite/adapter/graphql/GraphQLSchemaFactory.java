@@ -31,9 +31,16 @@ public class GraphQLSchemaFactory implements SchemaFactory {
     @Nullable String user = (String) operand.get("user");
     @Nullable String role = (String) operand.get("role");
     @Nullable String auth = (String) operand.get("auth");
+    @Nullable Integer objectDepth = (Integer) operand.get("objectDepth");
+    @Nullable Boolean pseudoKeys = (Boolean) operand.get("pseudoKeys");
 
     // Extract cache configuration from operands
-    @Nullable Map<String, Object> cacheConfig = (Map<String, Object>) operand.get("cache");
+    @Nullable Map<String, Object> cacheConfig = null;
+    @Nullable Object possibleMap = operand.get("cache");
+    if (possibleMap instanceof Map) {
+      cacheConfig = (Map<String, Object>) possibleMap;
+    }
+
 
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug("Creating GraphQL schema for endpoint: {}", endpoint);
@@ -48,7 +55,9 @@ public class GraphQLSchemaFactory implements SchemaFactory {
         role,
         auth,
         user,
-        cacheConfig  // Pass cache configuration to schema
+        cacheConfig,
+        objectDepth,
+        pseudoKeys
     );
     CREATED_SCHEMAS.put(name, schema);
     return schema;

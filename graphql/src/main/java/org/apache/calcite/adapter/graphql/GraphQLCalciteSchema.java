@@ -27,6 +27,8 @@ public class GraphQLCalciteSchema extends AbstractSchema {
   @Nullable public final String auth;
   @Nullable private Map<String, Table> tableMap;
   @Nullable private final Map<String, Object> cacheConfig;
+  private final Integer objectDepth;
+  private final Boolean pseudoKeys;
 
   private static final List<String> excludedNames = Arrays.asList(
       "Mutation", "Query", "__EnumValue", "__Field", "__InputValue",
@@ -35,7 +37,7 @@ public class GraphQLCalciteSchema extends AbstractSchema {
   public GraphQLCalciteSchema(GraphQL graphQL, SchemaPlus parentSchema,
       String name, String endpoint, @Nullable String role,
       @Nullable String auth, @Nullable String user,
-      @Nullable Map<String, Object> cacheConfig) {
+      @Nullable Map<String, Object> cacheConfig, @Nullable Integer objectDepth, @Nullable Boolean pseudoKeys) {
     this.graphQL = graphQL;
     this.parentSchema = parentSchema;
     this.name = name;
@@ -44,6 +46,8 @@ public class GraphQLCalciteSchema extends AbstractSchema {
     this.auth = auth;
     this.user = user;
     this.cacheConfig = cacheConfig;
+    this.objectDepth = (objectDepth != null) ? objectDepth : 2;
+    this.pseudoKeys = (pseudoKeys != null) ? pseudoKeys : false;
   }
 
   public @Nullable Map<String, Object> getCacheConfig() {
@@ -67,9 +71,7 @@ public class GraphQLCalciteSchema extends AbstractSchema {
           .forEach(type -> {
             GraphQLObjectType objectType = (GraphQLObjectType) type;
             GraphQLTable proposedTable = new GraphQLTable(this, objectType, graphQL, endpoint);
-            if (proposedTable.selectMany != null) {
-              tableMap.put(objectType.getName(), proposedTable);
-            }
+            tableMap.put(objectType.getName(), proposedTable);
           });
     }
     return tableMap;
@@ -78,5 +80,13 @@ public class GraphQLCalciteSchema extends AbstractSchema {
   @Override
   public String toString() {
     return "CalciteGraphQLSchema {name=" + name + "}";
+  }
+
+  public Integer getObjectDepth() {
+    return objectDepth;
+  }
+
+  public Boolean getPseudoKeys() {
+    return pseudoKeys;
   }
 }
