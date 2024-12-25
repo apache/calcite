@@ -22,6 +22,7 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Correlate;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
@@ -49,6 +50,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * RelMdColumnOrigins supplies a default implementation of
@@ -160,12 +163,16 @@ public class RelMdColumnOrigins
       for (RelColumnOrigin columnOrigin : columnOrigins) {
         // If corVar, get the origin column of the left input.
         if (columnOrigin.isCorVar()) {
-          Set<RelColumnOrigin> corVarOrigin =
-              mq.getColumnOrigins(rel.getLeft(), columnOrigin.getOriginColumnOrdinal());
-          if (corVarOrigin != null) {
-            result.addAll(corVarOrigin);
+          CorrelationId correlationId =
+              requireNonNull(columnOrigin.getCorrelationId(), "correlationId");
+          if (correlationId.equals(rel.getCorrelationId())) {
+            Set<RelColumnOrigin> corVarOrigin =
+                mq.getColumnOrigins(rel.getLeft(), columnOrigin.getOriginColumnOrdinal());
+            if (corVarOrigin != null) {
+              result.addAll(corVarOrigin);
+            }
+            continue;
           }
-          continue;
         }
         result.add(columnOrigin);
       }
