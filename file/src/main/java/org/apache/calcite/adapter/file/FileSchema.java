@@ -121,16 +121,18 @@ class FileSchema extends AbstractSchema {
     File[] fileArr = dir.listFiles();
 
     for (File file : fileArr) {
-      if (file.isDirectory()) {
-        files.addAll(Arrays.asList(getFilesInDir(file)));
-      } else {
-        final String nameSansGz = trim(file.getName(), ".gz");
-        if (nameSansGz.endsWith(".csv")
-            || nameSansGz.endsWith(".json")
-            || nameSansGz.endsWith(".hml")
-            || nameSansGz.endsWith(".yaml")
-            || nameSansGz.endsWith(".yml")) {
-          files.add(file);
+      if (!file.getName().startsWith("._")) {
+        if (file.isDirectory()) {
+          files.addAll(Arrays.asList(getFilesInDir(file)));
+        } else {
+          final String nameSansGz = trim(file.getName(), ".gz");
+          if (nameSansGz.endsWith(".csv")
+              || nameSansGz.endsWith(".json")
+              || nameSansGz.endsWith(".hml")
+              || nameSansGz.endsWith(".yaml")
+              || nameSansGz.endsWith(".yml")) {
+            files.add(file);
+          }
         }
       }
     }
