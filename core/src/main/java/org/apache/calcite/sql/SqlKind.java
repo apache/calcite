@@ -735,6 +735,11 @@ public enum SqlKind {
   SAFE_CAST,
 
   /**
+   * The "CONVERT(type, expr [,style])" function (Microsoft SQL Server).
+   */
+  MSSQL_CONVERT,
+
+  /**
    * The "NEXT VALUE OF sequence" operator.
    */
   NEXT_VALUE,

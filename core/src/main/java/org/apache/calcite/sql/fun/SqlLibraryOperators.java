@@ -3774,14 +3774,15 @@ public abstract class SqlLibraryOperators {
 
   @LibraryOperator(libraries = {MSSQL})
   public static final SqlFunction CONVERT =
-      new SqlFunction(
-          "CONVERT",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.ARG0,
-          null,
-          OperandTypes.or(
-              OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.ANY),
-              OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.ANY, SqlTypeFamily.INTEGER)),
-          SqlFunctionCategory.SYSTEM);
+      SqlBasicFunction.create(SqlKind.MSSQL_CONVERT,
+              ReturnTypes.andThen(SqlLibraryOperators::transformConvert,
+                  SqlCastFunction.returnTypeInference(false)),
+              OperandTypes.repeat(SqlOperandCountRanges.between(2, 3),
+                  OperandTypes.ANY))
+          .withName("CONVERT")
+          .withFunctionType(SqlFunctionCategory.SYSTEM)
+          .withOperandTypeInference(InferTypes.FIRST_KNOWN)
+          .withOperandHandler(
+              OperandHandlers.of(SqlLibraryOperators::transformConvert));
 
 }
