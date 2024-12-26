@@ -10764,15 +10764,15 @@ class RelToSqlConverterDMTest {
         isLinux(expectedBigQuery));
   }
 
-  @Test
-  public void testIsDateFunction() {
+  @Test public void testIsDateFunction() {
     final RelBuilder builder = relBuilder();
     RexNode isDateRexNode = builder.call(SqlLibraryOperators.ISDATE, builder.literal("2024-12-09"));
 
     final RelNode root =
         builder.scan("EMP").project(builder.alias(isDateRexNode, "Result")).build();
 
-    final String expectedSynapseSql = "SELECT ISDATE('2024-12-09') AS [Result]\nFROM [scott].[EMP]";
+    final String expectedSynapseSql = "SELECT ISDATE('2024-12-09') "
+        + "AS [Result]\nFROM [scott].[EMP]";
 
     assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedSynapseSql));
   }
