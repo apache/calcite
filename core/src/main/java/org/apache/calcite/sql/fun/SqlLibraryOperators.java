@@ -460,8 +460,8 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {SQL_SERVER})
   public static final SqlFunction REPLICATE =
       new SqlFunction("REPLICATE", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.VARCHAR_2000, null,
-          OperandTypes.family(SqlTypeFamily.INTEGER, SqlTypeFamily.STRING),
+          ReturnTypes.VARCHAR, null,
+          OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.INTEGER),
           SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {ORACLE, BIG_QUERY})
