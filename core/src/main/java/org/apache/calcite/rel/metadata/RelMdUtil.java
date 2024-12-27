@@ -568,15 +568,15 @@ public class RelMdUtil {
       ImmutableBitSet groupKey,
       Aggregate aggRel,
       ImmutableBitSet.Builder childKey) {
-    List<AggregateCall> aggCalls = aggRel.getAggCallList();
+    final List<AggregateCall> aggCallList = aggRel.getAggCallList();
+    final List<Integer> groupList = aggRel.getGroupSet().asList();
     for (int bit : groupKey) {
       if (bit < aggRel.getGroupCount()) {
         // group by column
-        childKey.set(bit);
+        childKey.set(groupList.get(bit));
       } else {
-        // aggregate column -- set a bit for each argument being
-        // aggregated
-        AggregateCall agg = aggCalls.get(bit - aggRel.getGroupCount());
+        // aggregate column -- set a bit for each argument being aggregated
+        final AggregateCall agg = aggCallList.get(bit - aggRel.getGroupCount());
         for (Integer arg : agg.getArgList()) {
           childKey.set(arg);
         }

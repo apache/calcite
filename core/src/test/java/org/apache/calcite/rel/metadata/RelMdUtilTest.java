@@ -16,11 +16,17 @@
  */
 package org.apache.calcite.rel.metadata;
 
+import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgram;
+import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.test.RelMetadataFixture;
 import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.util.ImmutableBitSet;
 
 import org.junit.jupiter.api.Test;
 
@@ -30,6 +36,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /**
@@ -106,6 +113,41 @@ public class RelMdUtilTest {
       assertFalse(
           RelMdUtil.checkInputForCollationAndLimit(mq, sort.getInput(),
               RelCollations.EMPTY, sort.offset, sort.fetch));
+      return null;
+    });
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6749">[CALCITE-6749]
+   * RelMdUtil#setAggChildKeys may return an incorrect result</a>. */
+  @Test void testSetAggChildKeys() {
+    Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
+      RelNode rel = sql("select d.deptno, count(distinct e.job)\n"
+          + "from sales.emp e\n"
+          + "right outer join sales.dept d on e.deptno = d.deptno\n"
+          + "group by d.deptno")
+          .withRelTransform(relNode -> {
+            final HepProgramBuilder builder = HepProgram.builder();
+            builder.addRuleInstance(CoreRules.AGGREGATE_PROJECT_MERGE);
+            final HepPlanner prePlanner = new HepPlanner(builder.build());
+            prePlanner.setRoot(relNode);
+            return prePlanner.findBestExp();
+          }).toRel();
+      final Aggregate agg = (Aggregate) rel;
+      // We should get an Aggregate(group=[{9}], EXPR$1=[COUNT(DISTINCT $2)])
+      assertEquals(1, agg.getGroupCount());
+      assertEquals(9, agg.getGroupSet().asList().get(0));
+      assertEquals(1, agg.getAggCallList().size());
+      assertEquals(1, agg.getAggCallList().get(0).getArgList().size());
+      assertEquals(2, agg.getAggCallList().get(0).getArgList().get(0));
+      // The childKey corresponding to 0 (group key) must be 9
+      final ImmutableBitSet.Builder builder1 = ImmutableBitSet.builder();
+      RelMdUtil.setAggChildKeys(ImmutableBitSet.of(0), agg, builder1);
+      assertEquals(ImmutableBitSet.of(9), builder1.build());
+      // The childKey corresponding to 1 (count aggCall) must be 2
+      final ImmutableBitSet.Builder builder2 = ImmutableBitSet.builder();
+      RelMdUtil.setAggChildKeys(ImmutableBitSet.of(1), agg, builder2);
+      assertEquals(ImmutableBitSet.of(2), builder2.build());
       return null;
     });
   }
