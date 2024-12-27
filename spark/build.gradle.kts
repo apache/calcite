@@ -20,6 +20,8 @@ dependencies {
     api("org.apache.spark:spark-core_2.10") {
         exclude("org.slf4j", "slf4j-log4j12")
                 .because("conflicts with log4j-slf4j-impl")
+        exclude("org.slf4j", "slf4j-reload4j")
+                .because("conflicts with log4j-slf4j-impl")
     }
 
     implementation("com.google.guava:guava")
