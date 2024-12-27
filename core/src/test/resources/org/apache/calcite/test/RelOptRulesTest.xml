@@ -1647,6 +1647,21 @@ LogicalProject(T=[CASE(<(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(20))):DOUBLE, 
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testConstantWindow">
+    <Resource name="sql">
+      <![CDATA[with empsalary(dept, empno, salary, enroll_date) as (VALUES ('x', 10, 5200, DATE '2007-08-01'), (NULL, NULL, NULL, NULL))
+select sum(salary) OVER (order by enroll_date range between INTERVAL 365 DAYS preceding and INTERVAL 365 DAYS following),
+salary, enroll_date FROM empsalary]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EXPR$0=[CASE(>($3, 0), $4, null:INTEGER)], SALARY=[$0], ENROLL_DATE=[$1])
+  LogicalWindow(window#0=[window(order by [1] range between $2 PRECEDING and $2 FOLLOWING aggs [COUNT($0), SUM($0)])])
+    LogicalProject(EXPR$2=[$2], EXPR$3=[$3], $2=[*(365, 86400000:INTERVAL DAY)])
+      LogicalValues(tuples=[[{ 'x', 10, 5200, 2007-08-01 }, { null, null, null, null }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testConvertMultiJoinRule">
     <Resource name="sql">
       <![CDATA[select e1.ename from emp e1, dept d, emp e2
