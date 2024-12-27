@@ -217,6 +217,9 @@ public class ProjectWindowTransposeRule
         }
       }
 
+      group.lowerBound.accept(referenceFinder);
+      group.upperBound.accept(referenceFinder);
+
       // Reference in Order-By
       for (RelFieldCollation relFieldCollation : group.orderKeys.getFieldCollations()) {
         if (relFieldCollation.getFieldIndex() < windowInputColumn) {
