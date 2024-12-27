@@ -31,5 +31,5 @@ dependencies {
     runtimeOnly("xerces:xercesImpl")
 
     testImplementation(project(":testkit"))
-    testRuntimeOnly("org.apache.logging.log4j:log4j-slf4j-impl")
+    testRuntimeOnly("org.slf4j:slf4j-reload4j")
 }
