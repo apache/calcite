@@ -572,7 +572,7 @@ public class RelMdUtil {
     for (int bit : groupKey) {
       if (bit < aggRel.getGroupCount()) {
         // group by column
-        childKey.set(bit);
+        childKey.set(aggRel.getGroupSet().asList().get(bit));
       } else {
         // aggregate column -- set a bit for each argument being
         // aggregated
