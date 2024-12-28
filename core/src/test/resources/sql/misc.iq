@@ -18,6 +18,48 @@
 !use post
 !set outputformat mysql
 
+# [CALCITE-6751] Reduction of CAST from string to interval is incorrect
+SELECT TIME '10:00:00' + CAST('1' AS INTERVAL SECOND);
++----------+
+| EXPR$0   |
++----------+
+| 10:00:01 |
++----------+
+(1 row)
+
+!ok
+
+# Due to CALCITE-6752 the following test crashes:
+# SELECT TIME '10:00:00' + CAST('1.1' AS INTERVAL SECOND);
+# +------------+
+# | EXPR$0     |
+# +------------+
+# | 11:00:00.1 |
+# +------------+
+# (1 row)
+#
+# !ok
+
+SELECT TIME '10:00:00' + CAST('1' AS INTERVAL HOUR);
++----------+
+| EXPR$0   |
++----------+
+| 11:00:00 |
++----------+
+(1 row)
+
+!ok
+
+SELECT TIME '10:00:00' + CAST('1' AS INTERVAL MINUTE);
++----------+
+| EXPR$0   |
++----------+
+| 10:01:00 |
++----------+
+(1 row)
+
+!ok
+
 SELECT UUID '123e4567-e89b-12d3-a456-426655440000';
 +--------------------------------------+
 | EXPR$0                               |
