@@ -68,6 +68,14 @@ large results set to a manageable value. Users that need a bigger/smaller limit
 should create a new instance of `RelMdUniqueKeys` and register it using the
 metadata provider of their choice.
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-6744">CALCITE-6744</a>]
+Support getColumnOrigins for correlate in RelMdColumnOrigins.
+In RelMetadataQuery#RelMdColumnOrigin, if the source of the column is an
+external correlation variable, add the isCorVar and correlationId fields
+in RelColumnOrigin to indicate this. When isCorVar is true, the field
+comes from a table outside the input RelNode. This also causes getOriginTable
+to be nullable, so the user needs to first determine isCorVar when getting the originTable.
+
 #### New features
 {: #new-features-1-39-0}
 
