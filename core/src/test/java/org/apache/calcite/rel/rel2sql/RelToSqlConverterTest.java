@@ -8616,6 +8616,20 @@ class RelToSqlConverterTest {
         .withSpark().ok(sparkExpected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6748">[CALCITE-6748]
+   * RelToSqlConverter returns the wrong result when Aggregate is on Sort</a>. */
+  @Test void testAggregateOnSort() {
+    final String query = "select max(\"product_class_id\") "
+        + "from (select * from \"product\" order by \"brand_name\" asc limit 10) t";
+    final String expected = "SELECT MAX(\"product_class_id\")\n"
+        + "FROM (SELECT \"product_class_id\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "ORDER BY \"brand_name\"\n"
+        + "FETCH NEXT 10 ROWS ONLY) AS \"t1\"";
+    sql(query).ok(expected);
+  }
+
   @Test void testNullCollationAscNullFirst() {
     final String query = "select * from \"product\" order by \"brand_name\" asc nulls first";
     final String expected = "SELECT *\n"

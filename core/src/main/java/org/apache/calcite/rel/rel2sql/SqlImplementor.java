@@ -1965,6 +1965,13 @@ public abstract class SqlImplementor {
         return true;
       }
 
+      if (rel instanceof Aggregate
+          && (clauses.contains(Clause.ORDER_BY)
+          || clauses.contains(Clause.FETCH)
+          || clauses.contains(Clause.OFFSET))) {
+        return true;
+      }
+
       // Cannot merge two window functions
       boolean containsOver = containsOver(node);
       if (rel instanceof Project
