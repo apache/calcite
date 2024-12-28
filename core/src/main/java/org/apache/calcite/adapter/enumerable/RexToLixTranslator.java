@@ -304,8 +304,8 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       ConstantExpression format) {
     Expression convert = getConvertExpression(sourceType, targetType, operand, format);
     Expression convert2 = checkExpressionPadTruncate(convert, sourceType, targetType);
-    Expression convert3 = expressionHandlingSafe(convert2, safe, targetType);
-    return scaleValue(sourceType, targetType, convert3);
+    Expression convert3 = scaleValue(sourceType, targetType, convert2);
+    return expressionHandlingSafe(convert3, safe, targetType);
   }
 
   private Expression getConvertExpression(
@@ -1213,7 +1213,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     final SqlTypeFamily sourceFamily = sourceType.getSqlTypeName().getFamily();
     if (targetFamily == SqlTypeFamily.NUMERIC
         // multiplyDivide cannot handle DECIMALs, but for DECIMAL
-        // destination types the result is already scaled.
+        // target types the result is already scaled.
         && targetType.getSqlTypeName() != SqlTypeName.DECIMAL
         && (sourceFamily == SqlTypeFamily.INTERVAL_YEAR_MONTH
             || sourceFamily == SqlTypeFamily.INTERVAL_DAY_TIME)) {
@@ -1221,6 +1221,11 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       final BigDecimal multiplier = BigDecimal.ONE;
       final BigDecimal divider =
           sourceType.getSqlTypeName().getEndUnit().multiplier;
+      return RexImpTable.multiplyDivide(operand, multiplier, divider);
+    }
+    if (SqlTypeName.INTERVAL_TYPES.contains(targetType.getSqlTypeName())) {
+      final BigDecimal multiplier = targetType.getSqlTypeName().getEndUnit().multiplier;
+      final BigDecimal divider = BigDecimal.ONE;
       return RexImpTable.multiplyDivide(operand, multiplier, divider);
     }
     return operand;

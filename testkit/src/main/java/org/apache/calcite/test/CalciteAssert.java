@@ -569,6 +569,13 @@ public class CalciteAssert {
       try {
         if (updateChecker == null) {
           resultSet = statement.executeQuery(sql);
+          if (resultChecker == null && exceptionChecker != null) {
+            // Pull data from result set, otherwise exceptions that happen during evaluation
+            // won't be triggered
+            while (resultSet.next()) {
+              // no need to do anything with the data
+            }
+          }
         } else {
           updateCount = statement.executeUpdate(sql);
         }

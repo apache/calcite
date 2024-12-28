@@ -4310,6 +4310,10 @@ public class SqlFunctions {
     return v == null ? castNonNull(null) : toInt(v);
   }
 
+  // Method tagged as non-deterministic because it can throw.
+  // The DeterministicCodeOptimizer may otherwise try to lift it out of try-catch blocks.
+  // See https://issues.apache.org/jira/browse/CALCITE-6753
+  @NonDeterministic
   public static int toInt(String s) {
     return parseInt(s.trim());
   }
