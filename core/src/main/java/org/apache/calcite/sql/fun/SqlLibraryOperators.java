@@ -823,6 +823,32 @@ public abstract class SqlLibraryOperators {
                   OperandTypes.TIMESTAMP_LTZ, OperandTypes.CHARACTER)),
           SqlFunctionCategory.TIMEDATE);
 
+  @LibraryOperator(libraries = {MSSQL})
+  public static final SqlFunction DATEFROMPARTS =
+      new SqlFunction("DATEFROMPARTS",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DATE_NULLABLE, null,
+          OperandTypes.INTEGER_INTEGER_INTEGER,
+          SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction MAKE_DATE =
+      new SqlFunction("MAKE_DATE",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DATE_NULLABLE, null,
+          OperandTypes.INTEGER_INTEGER_INTEGER,
+          SqlFunctionCategory.TIMEDATE);
+
+  /**
+   * The SQL <code>DAY</code> operator. Returns the Month
+   * from a DATETIME  E.g.<br>
+   * <code>DAY(date '2008-9-23')</code> returns <code>
+   * 23</code>
+   */
+  @LibraryOperator(libraries = {SPARK, MSSQL})
+  public static final SqlDatePartFunction DAY =
+      new SqlDatePartFunction("DAY", TimeUnit.DAY);
+
   /** The "DATETIME" function returns a Calcite
    * {@code TIMESTAMP} (which BigQuery calls a {@code DATETIME}).
    *
