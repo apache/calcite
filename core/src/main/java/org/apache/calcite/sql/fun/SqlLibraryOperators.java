@@ -599,6 +599,12 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING,
           SqlFunctionCategory.STRING);
 
+  @LibraryOperator(libraries = {SQL_SERVER})
+  public static final SqlFunction ISDATE =
+      SqlBasicFunction.create("ISDATE",
+          ReturnTypes.INTEGER_NULLABLE, OperandTypes.STRING,
+          SqlFunctionCategory.TIMEDATE);
+
   /** The "URL_ENCODE(string)" function. */
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction URL_ENCODE =
@@ -3512,6 +3518,15 @@ public abstract class SqlLibraryOperators {
           OperandTypes.NILADIC,
           SqlFunctionCategory.SYSTEM);
 
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction UUID =
+      new SqlFunction("UUID",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000,
+          null,
+          OperandTypes.NILADIC,
+          SqlFunctionCategory.SYSTEM);
+
   @LibraryOperator(libraries = {POSTGRESQL})
   public static final SqlFunction PG_BACKEND_PID =
       new SqlFunction("PG_BACKEND_PID",
@@ -3652,6 +3667,15 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction POWER1 =
       SqlStdOperatorTable.POWER.withName("POWER1");
 
+  @LibraryOperator(libraries = {SQL_SERVER})
+  public static final SqlFunction DB_NAME =
+      new SqlFunction("DB_NAME",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR,
+          null,
+          OperandTypes.NILADIC,
+          SqlFunctionCategory.STRING);
+
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction CEILING =
       new SqlFunction("CEILING",
@@ -3757,4 +3781,24 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction GENERATE_SQLERRC =
       new SqlFunction("SQLERRC", SqlKind.LITERAL, ReturnTypes.CHAR, null,
           OperandTypes.STRING, SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction GENERATE_RANGE_ARRAY =
+      new SqlFunction("GENERATE_RANGE_ARRAY", SqlKind.OTHER, ReturnTypes.TO_ARRAY, null,
+          OperandTypes.family(SqlTypeFamily.PERIOD,
+              SqlTypeFamily.DATETIME_INTERVAL, SqlTypeFamily.BOOLEAN),
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {MSSQL})
+  public static final SqlFunction CONVERT =
+      new SqlFunction(
+          "CONVERT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0,
+          null,
+          OperandTypes.or(
+              OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.ANY),
+              OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.ANY, SqlTypeFamily.INTEGER)),
+          SqlFunctionCategory.SYSTEM);
+
 }
