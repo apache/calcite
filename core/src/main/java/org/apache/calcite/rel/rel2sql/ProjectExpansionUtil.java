@@ -186,7 +186,8 @@ class ProjectExpansionUtil {
   }
 
   private SqlNode createSqlIdentifierForColumn(SqlImplementor.Result result, String columnName) {
-    if (endsWithDigit(columnName) && result.node instanceof SqlSelect) {
+    if (endsWithDigit(columnName) && result.node instanceof SqlSelect
+        && !(((SqlSelect) result.node).getFrom() instanceof SqlIdentifier)) {
       return createAsSqlIdentifierForColumn(result, columnName);
     } else {
       if (isJoinNodeBasicCall(result)) {

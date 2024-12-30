@@ -606,6 +606,12 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING,
           SqlFunctionCategory.STRING);
 
+  @LibraryOperator(libraries = {SQL_SERVER})
+  public static final SqlFunction ISDATE =
+      SqlBasicFunction.create("ISDATE",
+          ReturnTypes.INTEGER_NULLABLE, OperandTypes.STRING,
+          SqlFunctionCategory.TIMEDATE);
+
   /** The "URL_ENCODE(string)" function. */
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction URL_ENCODE =
