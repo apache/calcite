@@ -6806,8 +6806,7 @@ class RelToSqlConverterDMTest {
     String query = "SELECT \"first_name\",\"last_name\", "
         + "grouping(\"first_name\")+ grouping(\"last_name\") "
         + "from \"foodmart\".\"employee\" group by \"first_name\",\"last_name\"";
-    final String expectedBQSql = "SELECT first_name, last_name, CASE WHEN first_name IS NULL THEN"
-        + " 1 ELSE 0 END + CASE WHEN last_name IS NULL THEN 1 ELSE 0 END\n"
+    final String expectedBQSql = "SELECT first_name, last_name, GROUPING(first_name) + GROUPING(last_name)\n"
         + "FROM foodmart.employee\n"
         + "GROUP BY first_name, last_name";
 
@@ -10778,6 +10777,19 @@ class RelToSqlConverterDMTest {
         isLinux(expectedBigQuery));
   }
 
+  @Test public void testIsDateFunction() {
+    final RelBuilder builder = relBuilder();
+    RexNode isDateRexNode = builder.call(SqlLibraryOperators.ISDATE, builder.literal("2024-12-09"));
+
+    final RelNode root =
+        builder.scan("EMP").project(builder.alias(isDateRexNode, "Result")).build();
+
+    final String expectedSynapseSql = "SELECT ISDATE('2024-12-09') "
+        + "AS [Result]\nFROM [scott].[EMP]";
+
+    assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedSynapseSql));
+  }
+
   @Test public void testToCurrentTimestampFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode parseTSNode1 =
@@ -11642,6 +11654,26 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(teradataPeriod));
   }
 
+  @Test public void testRangeArrayFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode date = builder.literal(new DateString("2000-01-01"));
+    final RexNode periodConstructor =
+        builder.call(PERIOD_CONSTRUCTOR, date, builder.call(CURRENT_DATE));
+    RexNode intervalDay =
+        builder.getRexBuilder().makeIntervalLiteral(BigDecimal.valueOf(2),
+            new SqlIntervalQualifier(MONTH, null, SqlParserPos.ZERO));
+    final RexNode generateRangeCall =
+        builder.call(SqlLibraryOperators.GENERATE_RANGE_ARRAY, periodConstructor, intervalDay,
+            builder.literal(false));
+    RelNode root = builder.scan("EMP").project(generateRangeCall).build();
+    final String teradataPeriod =
+        "SELECT GENERATE_RANGE_ARRAY(RANGE(DATE '2000-01-01', CURRENT_DATE), "
+            + "INTERVAL 2 MONTH, FALSE) AS `$f0`\n"
+            + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(teradataPeriod));
+  }
+
   /*NEXT VALUE is a SqlSequenceValueOperator which works on sequence generator.
   As of now, we don't have any sequence generator present in calcite, nor do we have the complete
   implementation to create one. It can be implemented later on using SqlKind.CREATE_SEQUENCE
@@ -12059,6 +12091,19 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testDbName() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dbNameRexNode = builder.call(SqlLibraryOperators.DB_NAME);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(dbNameRexNode, "db_name_alias"))
+        .build();
+
+    final String expectedMsSqlQuery = "SELECT DB_NAME() AS [db_name_alias]\n"
+        + "FROM [scott].[EMP]";
+    assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedMsSqlQuery));
+  }
+
   @Test public void testEnDashSpecialChar() {
     RelBuilder relBuilder = relBuilder().scan("EMP");
     final RexNode endashLiteral = relBuilder.literal("–");
@@ -12440,5 +12485,81 @@ class RelToSqlConverterDMTest {
             + "\"$f0\"\nFROM \"scott\".\"EMP\"";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+  }
+
+  @Test public void testUUIDSpark() {
+    final RelBuilder builder = relBuilder();
+    final RexNode uuid = builder.call(SqlLibraryOperators.UUID);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(uuid)
+        .build();
+    final String expectedSpark = "SELECT UUID() $f0"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
+
+  /**
+   * The creation of RelNode of this test case mirrors the rel building process in the MIG
+   * side for the query below. This approach may not perfectly align with how Calcite would
+   * generate the plan for the same.
+   * Test case for - NullPointerException: variable $cor0 is not found
+   * <a href= https://datametica.atlassian.net/browse/RGS-51>[RSFB-51] </a>
+   * */
+  @Test void testCorrelateWithInnerJoin() {
+    final RelBuilder builder = foodmartRelBuilder();
+    RelNode leftTable = builder.scan("product").build();
+    RelNode rightTable = builder.scan("employee").build();
+    RelNode join = builder.push(leftTable).push(rightTable).join(JoinRelType.INNER).build();
+
+    // Create correlated EXISTS sub query
+    CorrelationId correlationId = builder.getCluster().createCorrel();
+    RexNode correlVar = builder.getRexBuilder().makeCorrel(leftTable.getRowType(), correlationId);
+    RelNode existsSubquery = builder.scan("product")
+        .filter(
+            builder.equals(builder.field(1),
+            builder.getRexBuilder().makeFieldAccess(correlVar, 1)))
+        .project(builder.alias(builder.literal("X"), "EXPR$40249"))
+        .build();
+
+    // Filter with EXISTS
+    RelNode filteredRel = builder.push(join)
+        .filter(ImmutableSet.of(correlationId), RexSubQuery.exists(existsSubquery))
+        .build();
+
+    // Projection
+    RelNode relNode = builder.push(filteredRel)
+        .project(builder.field(1))
+        .build();
+
+    /** REL BEFORE OPTIMIZATION
+     * LogicalProject(product_id=[$1])
+     *   LogicalFilter(condition=[EXISTS({
+     * LogicalProject($f0=['X'])
+     *   LogicalFilter(condition=[=($1, $cor0.product_id)])
+     *     JdbcTableScan(table=[[foodmart, product]])
+     * })], variablesSet=[[$cor0]])
+     *     LogicalJoin(condition=[true], joinType=[inner])
+     *       JdbcTableScan(table=[[foodmart, product]])
+     *       JdbcTableScan(table=[[foodmart, employee]])
+     **/
+
+    // Applying rel optimization
+    Collection<RelOptRule> rules = new ArrayList<>();
+    rules.add((FilterExtractInnerJoinRule.Config.DEFAULT).toRule());
+    HepProgram hepProgram = new HepProgramBuilder().addRuleCollection(rules).build();
+    HepPlanner hepPlanner = new HepPlanner(hepProgram);
+    hepPlanner.setRoot(relNode);
+    RelNode optimizedRel = hepPlanner.findBestExp();
+    RelNode decorrelatedRel = RelDecorrelator.decorrelateQuery(optimizedRel, builder);
+
+    final String expectedSql = "SELECT \"product\".\"product_id\"\n"
+        + "FROM \"foodmart\".\"product\",\n"
+        + "\"foodmart\".\"employee\"\n"
+        + "WHERE EXISTS (SELECT 'X'\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "WHERE \"product_id\" = \"product\".\"product_id\")";
+
+    assertThat(toSql(decorrelatedRel, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
   }
 }
