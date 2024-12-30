@@ -3797,4 +3797,16 @@ public abstract class SqlLibraryOperators {
               OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.ANY, SqlTypeFamily.INTEGER)),
           SqlFunctionCategory.SYSTEM);
 
+  @LibraryOperator(libraries = {SQL_SERVER})
+  public static final SqlFunction OBJECT_SCHEMA_NAME =
+      new SqlFunction(
+          "OBJECT_SCHEMA_NAME",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR,
+          null,
+          OperandTypes.or(
+              OperandTypes.family(SqlTypeFamily.INTEGER),
+              OperandTypes.family(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER)),
+          SqlFunctionCategory.SYSTEM);
+
 }
