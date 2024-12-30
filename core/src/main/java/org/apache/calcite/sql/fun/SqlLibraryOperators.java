@@ -988,6 +988,10 @@ public abstract class SqlLibraryOperators {
       OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.STRING),
       SqlFunctionCategory.TIMEDATE);
 
+  @LibraryOperator(libraries = {SQL_SERVER, SPARK})
+  public static final SqlFunction GETDATE =
+      new SqlCurrentTimestampFunction("GETDATE", SqlTypeName.TIMESTAMP);
+
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction FORMAT_DATE =
       new SqlFunction("FORMAT_DATE", SqlKind.OTHER_FUNCTION,
@@ -2741,6 +2745,10 @@ public abstract class SqlLibraryOperators {
       OperandTypes.STRING_STRING,
       SqlFunctionCategory.STRING);
 
+  @LibraryOperator(libraries = {SQL_SERVER})
+  public static final SqlFunction MSSQL_STRING_SPLIT =
+      new SqlServerStringSplitFunction();
+
   @LibraryOperator(libraries = {SNOWFLAKE})
   public static final SqlFunction SPLIT_TO_TABLE =
       new SplitToTableFunction();
@@ -3783,6 +3791,15 @@ public abstract class SqlLibraryOperators {
       new SqlFunction("GENERATE_RANGE_ARRAY", SqlKind.OTHER, ReturnTypes.TO_ARRAY, null,
           OperandTypes.family(SqlTypeFamily.PERIOD,
               SqlTypeFamily.DATETIME_INTERVAL, SqlTypeFamily.BOOLEAN),
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {MSSQL})
+  public static final SqlFunction STUFF =
+      new SqlFunction("STUFF",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000_NULLABLE,
+          null,
+          OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER, SqlTypeFamily.ANY),
           SqlFunctionCategory.SYSTEM);
 
   @LibraryOperator(libraries = {MSSQL})
