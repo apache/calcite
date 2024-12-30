@@ -3794,6 +3794,15 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.SYSTEM);
 
   @LibraryOperator(libraries = {MSSQL})
+  public static final SqlFunction STUFF =
+      new SqlFunction("STUFF",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000_NULLABLE,
+          null,
+          OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER, SqlTypeFamily.ANY),
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {MSSQL})
   public static final SqlFunction CONVERT =
       new SqlFunction(
           "CONVERT",
