@@ -133,6 +133,7 @@ public enum SqlTypeName {
   MEASURE(PrecScale.NO_NO, true, Types.OTHER, SqlTypeFamily.ANY),
   FUNCTION(PrecScale.NO_NO, true, Types.OTHER, SqlTypeFamily.FUNCTION),
   SARG(PrecScale.NO_NO, true, Types.OTHER, SqlTypeFamily.ANY),
+  UUID(PrecScale.NO_NO, false, Types.OTHER, SqlTypeFamily.UUID),
   /** VARIANT data type, a dynamically-typed value that can have at runtime
    * any of the other data types in this table. */
   VARIANT(PrecScale.NO_NO, false, Types.OTHER, SqlTypeFamily.VARIANT);
@@ -174,7 +175,7 @@ public enum SqlTypeName {
       ImmutableList.of(BOOLEAN);
 
   public static final List<SqlTypeName> BINARY_TYPES =
-      ImmutableList.of(BINARY, VARBINARY);
+      ImmutableList.of(BINARY, VARBINARY, UUID);
 
   public static final List<SqlTypeName> INT_TYPES =
       ImmutableList.of(TINYINT, SMALLINT, INTEGER, BIGINT);

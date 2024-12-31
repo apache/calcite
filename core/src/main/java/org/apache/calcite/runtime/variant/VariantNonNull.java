@@ -31,6 +31,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 
 import static org.apache.calcite.runtime.rtti.RuntimeTypeInformation.RuntimeSqlTypeName.NAME;
 
@@ -47,6 +48,10 @@ public class VariantNonNull extends VariantSqlValue {
     this.roundingMode = roundingMode;
     // sanity check
     switch (runtimeType.getTypeName()) {
+    case UUID:
+      assert value instanceof UUID;
+      this.value = value;
+      break;
     case NAME:
       assert value instanceof String;
       this.value = value;

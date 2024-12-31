@@ -229,6 +229,7 @@ public abstract class TestUtil {
         .replace(")", "\\)")
         .replace("[", "\\[")
         .replace("]", "\\]")
+        .replace("\n", "\\n")
         .replace("^", "\\^");
   }
 

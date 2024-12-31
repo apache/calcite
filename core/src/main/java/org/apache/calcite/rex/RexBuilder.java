@@ -76,6 +76,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.function.IntPredicate;
 import java.util.stream.Collectors;
 
@@ -859,7 +860,9 @@ public class RexBuilder {
       return true;
     }
     final SqlTypeName sqlType = toType.getSqlTypeName();
-    if (sqlType == SqlTypeName.MEASURE || sqlType == SqlTypeName.VARIANT) {
+    if (sqlType == SqlTypeName.MEASURE
+        || sqlType == SqlTypeName.VARIANT
+        || sqlType == SqlTypeName.UUID) {
       return false;
     }
     if (!RexLiteral.valueMatchesType(value, sqlType, false)) {
@@ -1372,6 +1375,10 @@ public class RexBuilder {
    */
   public RexLiteral makeLiteral(boolean b) {
     return b ? booleanTrue : booleanFalse;
+  }
+
+  public RexLiteral makeUuidLiteral(@Nullable UUID uuid) {
+    return new RexLiteral(uuid, typeFactory.createSqlType(SqlTypeName.UUID), SqlTypeName.UUID);
   }
 
   /**

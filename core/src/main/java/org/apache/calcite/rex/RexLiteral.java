@@ -66,6 +66,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TimeZone;
+import java.util.UUID;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -316,6 +317,8 @@ public class RexLiteral extends RexNode {
       return true;
     }
     switch (typeName) {
+    case UUID:
+      return value instanceof UUID;
     case VARIANT:
       return value instanceof VariantValue;
     case BOOLEAN:
@@ -695,6 +698,10 @@ public class RexLiteral extends RexNode {
       Util.asStringBuilder(sb, sb2 ->
           printSarg(sb2, (Sarg) value, type));
       break;
+    case UUID:
+      assert value instanceof UUID;
+      sb.append(value);
+      break;
     case SYMBOL:
       assert value instanceof Enum;
       sb.append("FLAG(");
@@ -1060,6 +1067,11 @@ public class RexLiteral extends RexNode {
       return clazz.cast(value);
     }
     switch (typeName) {
+    case UUID:
+      if (clazz == String.class) {
+        return clazz.cast(((UUID) value).toString());
+      }
+      break;
     case BINARY:
       if (clazz == byte[].class) {
         return clazz.cast(((ByteString) value).getBytes());

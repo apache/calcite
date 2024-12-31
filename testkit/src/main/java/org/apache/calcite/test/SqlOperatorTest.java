@@ -11253,7 +11253,9 @@ public class SqlOperatorTest {
             + "'SUBSTRING\\(<BINARY> FROM <INTEGER>\\)'\n"
             + "'SUBSTRING\\(<BINARY> FROM <INTEGER> FOR <INTEGER>\\)'\n"
             + "'SUBSTRING\\(<VARBINARY> FROM <INTEGER>\\)'\n"
-            + "'SUBSTRING\\(<VARBINARY> FROM <INTEGER> FOR <INTEGER>\\)'", false);
+            + "'SUBSTRING\\(<VARBINARY> FROM <INTEGER> FOR <INTEGER>\\)'\n"
+            + "'SUBSTRING\\(<UUID> FROM <INTEGER>\\)'\n"
+            + "'SUBSTRING\\(<UUID> FROM <INTEGER> FOR <INTEGER>\\)'", false);
   }
 
   /** Tests the {@code SUBSTRING} operator. Many test cases that used to be
@@ -11309,11 +11311,12 @@ public class SqlOperatorTest {
           String.format(Locale.ROOT, "^substring('string', CAST(%d AS DOUBLE), "
               + "CAST(%d AS DOUBLE))^", Byte.MIN_VALUE, Byte.MAX_VALUE + 10),
           "Cannot apply 'SUBSTRING' to arguments of type "
-            + ".*\\n.*\\n.*\\n.*\\n.*\\n.*\\n.*\\n.*", false);
+            + ".*\\n.*\\n.*\\n.*\\n.*\\n.*\\n.*\\n.*\\n.*\\n.*", false);
       f.checkFails(
           String.format(Locale.ROOT, "^substring('string', CAST(%d AS DECIMAL), "
               + "CAST(%d AS DECIMAL))^", Byte.MIN_VALUE, Byte.MAX_VALUE + 10),
-          "Cannot apply 'SUBSTRING' to arguments of type .*\\n.*\\n.*\\n.*\\n.*\\n.*\\n.*\\n.*",
+          "Cannot apply 'SUBSTRING' to arguments of type "
+              + ".*\\n.*\\n.*\\n.*\\n.*\\n.*\\n.*\\n.*\\n.*\\n.*",
           false);
       f.checkFails("substring('abc' from 1 for -1)",
           "Substring error: negative substring length not allowed",
