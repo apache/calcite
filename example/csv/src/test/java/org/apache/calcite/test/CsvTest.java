@@ -734,6 +734,21 @@ class CsvTest {
     }
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3772">[CALCITE-3772]
+   * RelFieldTrimmer incorrectly trims fields when the query includes correlated-subquery</a>.
+   */
+  @Test public void testCorrelatedSubquery() throws SQLException {
+    final String sql = "SELECT a, (SELECT count(*) FROM NUMBERS AS x WHERE x.b<NUMBERS.b)\n"
+        + "FROM NUMBERS where e>100 order by a";
+    sql("bug", sql).returns("A=104; EXPR$1=0",
+        "A=107; EXPR$1=1",
+        "A=111; EXPR$1=2",
+        "A=115; EXPR$1=3",
+        "A=121; EXPR$1=4").ok();
+  }
+
   /** As {@link #testTimestampGroupBy()} but with ORDER BY. */
   @Test void testTimestampOrderBy() throws SQLException {
     Properties info = new Properties();
