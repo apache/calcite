@@ -155,6 +155,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_MOD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYNUMBER_OF_CALENDAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYOCCURRENCE_OF_MONTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FALSE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.GETDATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHNUMBER_OF_YEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PERIOD_CONSTRUCTOR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PERIOD_INTERSECT;
@@ -3376,6 +3377,18 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
     assertThat(toSql(root, DatabaseProduct.HIVE.getDialect()), isLinux(expectedHive));
+  }
+
+  @Test public void testGetDateFunctionRelToSql() {
+    final RelBuilder builder = relBuilder();
+    final RexNode getDateRexNode = builder.call(GETDATE);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(getDateRexNode, "CURRENTDATETIME"))
+        .build();
+    final String expectedSpark = "SELECT GETDATE() CURRENTDATETIME\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
   }
 
   @Test public void testConcatFunctionWithMultipleArgumentsRelToSql() {
@@ -10301,6 +10314,19 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testMsSqlStringSplit() {
+    final RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .functionScan(SqlLibraryOperators.MSSQL_STRING_SPLIT, 0,
+            builder.literal("a-b-c"), builder.literal("-"))
+        .build();
+
+    final String expectedQuery = "SELECT *\n"
+        + "FROM TABLE(MSSQL_STRING_SPLIT('a-b-c', '-'))";
+
+    assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedQuery));
+  }
+
   @Test public void testStrtokSplitToTable() {
     final RelBuilder builder = relBuilder();
     final Map<String, RelDataType> columnDefinition = new HashMap<>();
@@ -10775,6 +10801,23 @@ class RelToSqlConverterDMTest {
         + "AS [Result]\nFROM [scott].[EMP]";
 
     assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedSynapseSql));
+  }
+
+  @Test public void testReplicateFunction() {
+    final RelBuilder builder = relBuilder();
+    RexNode replicate =
+        builder.call(SqlLibraryOperators.REPLICATE, builder.literal("b"), builder.literal(1));
+
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(replicate, "Result"))
+        .build();
+
+    final String expectedSynapseQuery = "SELECT REPLICATE('b', 1) "
+        + "AS [Result]\nFROM [scott].[EMP]";
+
+    assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()),
+        isLinux(expectedSynapseQuery));
   }
 
   @Test public void testToCurrentTimestampFunction() {
