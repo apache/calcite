@@ -792,6 +792,9 @@ public class SparkSqlDialect extends SqlDialect {
           DATE_FORMAT.createCall(SqlParserPos.ZERO, call.operand(1), call.operand(0));
       unparseCall(writer, dateFormatCall, leftPrec, rightPrec);
       break;
+    case "GETDATE":
+      unparseGetDate(writer);
+      break;
     case "STR_TO_DATE":
       SqlCall toDateCall =
           TO_DATE.createCall(SqlParserPos.ZERO, call.operand(0),
@@ -959,6 +962,10 @@ public class SparkSqlDialect extends SqlDialect {
     default:
       return call.operand(1);
     }
+  }
+  public void unparseGetDate(SqlWriter writer) {
+    final SqlWriter.Frame getDateFrame = writer.startFunCall("GETDATE");
+    writer.endFunCall(getDateFrame);
   }
 
   public void unparseToDate(
