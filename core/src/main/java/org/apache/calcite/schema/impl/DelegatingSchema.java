@@ -23,6 +23,8 @@ import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.SchemaVersion;
 import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.lookup.LikePattern;
+import org.apache.calcite.schema.lookup.Lookup;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -61,12 +63,16 @@ public class DelegatingSchema implements Schema {
     return schema.getExpression(parentSchema, name);
   }
 
+  @Override public Lookup<Table> tables() {
+    return schema.tables();
+  }
+
   @Override public @Nullable Table getTable(String name) {
-    return schema.getTable(name);
+    return schema.tables().get(name);
   }
 
   @Override public Set<String> getTableNames() {
-    return schema.getTableNames();
+    return schema.tables().getNames(LikePattern.any());
   }
 
   @Override public @Nullable RelProtoDataType getType(String name) {
@@ -85,11 +91,15 @@ public class DelegatingSchema implements Schema {
     return schema.getFunctionNames();
   }
 
+  @Override public Lookup<? extends Schema> subSchemas() {
+    return schema.subSchemas();
+  }
+
   @Override public @Nullable Schema getSubSchema(String name) {
-    return schema.getSubSchema(name);
+    return subSchemas().get(name);
   }
 
   @Override public Set<String> getSubSchemaNames() {
-    return schema.getSubSchemaNames();
+    return subSchemas().getNames(LikePattern.any());
   }
 }

@@ -25,6 +25,7 @@ import org.apache.calcite.jdbc.CalciteJdbc41Factory;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.jdbc.Driver;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.lookup.LikePattern;
 import org.apache.calcite.test.schemata.hr.HrSchema;
 
 import org.apache.commons.dbcp2.BasicDataSource;
@@ -105,7 +106,7 @@ class MultiJdbcSchemaJoinTest {
     dataSource.setPassword("");
     final JdbcCatalogSchema schema =
         JdbcCatalogSchema.create(null, "", dataSource, "PUBLIC");
-    assertThat(schema.getSubSchemaNames(),
+    assertThat(schema.subSchemas().getNames(LikePattern.any()),
         is(Sets.newHashSet("INFORMATION_SCHEMA", "PUBLIC", "SYSTEM_LOBS")));
     final CalciteSchema rootSchema0 =
         CalciteSchema.createRootSchema(false, false, "", schema);
