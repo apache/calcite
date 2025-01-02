@@ -150,12 +150,14 @@ import static org.apache.calcite.avatica.util.TimeUnit.YEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BITNOT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CURRENT_TIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CURRENT_TIMESTAMP_WITH_TIME_ZONE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATEFROMPARTS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_ADD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_MOD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYNUMBER_OF_CALENDAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYOCCURRENCE_OF_MONTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FALSE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.GETDATE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.MAKE_DATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHNUMBER_OF_YEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PERIOD_CONSTRUCTOR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PERIOD_INTERSECT;
@@ -3423,6 +3425,47 @@ class RelToSqlConverterDMTest {
         + "FROM \"scott\".\"EMP\"";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedPostgresSql));
+  }
+
+  @Test public void testDateFromPartsFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dateFromPartsNode =
+        builder.call(DATEFROMPARTS, builder.literal(2024),
+            builder.literal(12), builder.literal(25));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(dateFromPartsNode, "DATEFROMPARTS"))
+        .build();
+    final String expectedMSSQL = "SELECT DATEFROMPARTS(2024, 12, 25) AS [DATEFROMPARTS]\n"
+        + "FROM [scott].[EMP]";
+    assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedMSSQL));
+  }
+
+  @Test public void testMakeDateFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode makeDateNode =
+        builder.call(MAKE_DATE, builder.literal(2024),
+            builder.literal(12), builder.literal(25));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(makeDateNode, "MAKEDATE"))
+        .build();
+    final String expectedSpark = "SELECT MAKE_DATE(2024, 12, 25) MAKEDATE\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
+
+  @Test public void testDayFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dayNode =
+        builder.call(SqlLibraryOperators.DAY, builder.call(CURRENT_TIMESTAMP));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(dayNode, "day"))
+        .build();
+    final String expectedSpark = "SELECT DAY(CURRENT_TIMESTAMP) day\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
   }
 
   @Test public void testDateTimeDiffFunctionRelToSql() {
