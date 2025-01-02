@@ -9623,6 +9623,22 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 
+  @Test public void testTryCast() {
+    RelBuilder builder = relBuilder().scan("EMP");
+    final RexBuilder rexBuilder = builder.getRexBuilder();
+    final RelDataType varcharRelType = builder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+    final RexNode castCall =
+        rexBuilder.makeCast(varcharRelType, builder.field(0), false, true);
+    final RexNode castLiteral =
+        builder.cast(builder.literal(123.456), SqlTypeName.DECIMAL, 5, 2);
+    RelNode root = builder
+        .project(castCall, castLiteral)
+        .build();
+    final String expectedSql = "SELECT TRY_CAST(EMPNO AS STRING) $f0, ROUND(CAST(123.456 AS DECIMAL(5, 2)), 2) $f1\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSql));
+  }
+
   @Test public void testOracleToTimestamp() {
     RelBuilder builder = relBuilder().scan("EMP");
     final RexNode toTimestampNode =

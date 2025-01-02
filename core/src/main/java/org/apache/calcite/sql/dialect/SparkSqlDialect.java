@@ -21,6 +21,7 @@ import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
 import org.apache.calcite.sql.SqlBasicCall;
@@ -63,11 +64,13 @@ import com.google.common.collect.Lists;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDDAYOFWEEK;
 import static org.apache.calcite.sql.SqlDateTimeFormat.DDYYYYMM;
 import static org.apache.calcite.sql.SqlDateTimeFormat.MMYYYYDD;
@@ -81,6 +84,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.RAISE_ERROR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPLIT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_CHAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_DATE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRY_CAST;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CEIL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE;
@@ -90,8 +94,11 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ROUND;
 import static org.apache.calcite.util.Util.isFormatSqlBasicCall;
 import static org.apache.calcite.util.Util.modifyRegexStringForMatchArgument;
+
+import static java.util.Objects.requireNonNull;
 
 import static  org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDMONTH;
 import static  org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATED_MONTH;
@@ -417,6 +424,9 @@ public class SparkSqlDialect extends SqlDialect {
     } else if (castTo.getSqlTypeName() == SqlTypeName.TIME) {
       return new CastCallBuilder(this)
           .makeCastCallForTimeWithTimestamp(operandToCast, castTo.getPrecision());
+    } else if (sqlKind == SqlKind.SAFE_CAST) {
+      return TRY_CAST.createCall(SqlParserPos.ZERO, operandToCast,
+          castNonNull(this.getCastSpec(castTo)));
     }
     return super.getCastCall(sqlKind, operandToCast, castFrom, castTo);
   }
@@ -426,6 +436,24 @@ public class SparkSqlDialect extends SqlDialect {
     return SqlLiteral.createTimestamp(
         new TimestampString(DEFAULT_DATE_FOR_TIME + " " + timeString),
         precision, SqlParserPos.ZERO);
+  }
+
+  @Override public SqlNode getNumericLiteral(RexLiteral literal, SqlParserPos pos) {
+    BigDecimal value = literal.getValueAs(BigDecimal.class);
+    RelDataType type = literal.getType();
+    int typeScale = type.getScale();
+    if (type.getSqlTypeName() == SqlTypeName.DECIMAL
+        && value.scale() > typeScale) {
+      SqlNode numericNode = getCastSpec(type);
+      SqlNode castNode =
+          CAST.createCall(
+              pos, SqlLiteral.createExactNumeric(
+                  value.toPlainString(), pos), numericNode);
+      return ROUND.createCall(pos, castNode,
+          SqlLiteral.createExactNumeric(
+              requireNonNull(typeScale, "typeScale").toString(), pos));
+    }
+    return super.getNumericLiteral(literal, pos);
   }
 
   @Override public void unparseCall(
