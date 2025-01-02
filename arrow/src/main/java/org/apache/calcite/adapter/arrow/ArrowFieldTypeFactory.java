@@ -80,6 +80,8 @@ public class ArrowFieldTypeFactory {
       return typeFactory.createSqlType(SqlTypeName.DECIMAL,
           ((ArrowType.Decimal) arrowType).getPrecision(),
           ((ArrowType.Decimal) arrowType).getScale());
+    case Time:
+      return typeFactory.createSqlType(SqlTypeName.TIME);
     default:
       throw new IllegalArgumentException("Unsupported type: " + arrowType);
     }
