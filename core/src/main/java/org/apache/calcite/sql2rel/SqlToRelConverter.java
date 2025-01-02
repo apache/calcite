@@ -777,6 +777,7 @@ public class SqlToRelConverter {
     // we would never remove the ORDER BY, because "ORDER BY ... LIMIT" is about
     // semantics. It is not a 'pure order'.
     if (RelOptUtil.isPureOrder(castNonNull(bb.root))
+        && !RelOptUtil.isOffset(castNonNull(bb.root))
         && config.isRemoveSortInSubQuery()) {
       // Remove the Sort if the view is at the top level. Also remove the Sort
       // if there are other nodes, which will cause the view to be in the
@@ -2881,6 +2882,7 @@ public class SqlToRelConverter {
     bb.setRoot(tableRel, true);
 
     if (RelOptUtil.isPureOrder(castNonNull(bb.root))
+        && !RelOptUtil.isOffset(castNonNull(bb.root))
         && removeSortInSubQuery(bb.top)) {
       bb.setRoot(castNonNull(bb.root).getInput(0), true);
     }
