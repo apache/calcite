@@ -12635,4 +12635,17 @@ class RelToSqlConverterDMTest {
 
     assertThat(toSql(decorrelatedRel, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
   }
+
+  @Test public void testObjectSchemaName() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dbNameRexNode = builder.call(SqlLibraryOperators.OBJECT_SCHEMA_NAME, builder.literal(12345));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(dbNameRexNode, "schema_name_alias"))
+        .build();
+
+    final String expectedMsSqlQuery = "SELECT OBJECT_SCHEMA_NAME(12345) AS [schema_name_alias]\n"
+        + "FROM [scott].[EMP]";
+    assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedMsSqlQuery));
+  }
 }
