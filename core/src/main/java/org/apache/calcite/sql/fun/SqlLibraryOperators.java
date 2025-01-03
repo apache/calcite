@@ -3859,4 +3859,14 @@ public abstract class SqlLibraryOperators {
               OperandTypes.family(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER)),
           SqlFunctionCategory.SYSTEM);
 
+  @LibraryOperator(libraries = {SQL_SERVER})
+  public static final SqlFunction HASHBYTES =
+      new SqlFunction(
+          "HASHBYTES",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARBINARY,
+          null,
+          OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.STRING),
+          SqlFunctionCategory.SYSTEM);
+
 }

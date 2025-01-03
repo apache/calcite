@@ -12648,4 +12648,18 @@ class RelToSqlConverterDMTest {
         + "FROM [scott].[EMP]";
     assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedMsSqlQuery));
   }
+
+  @Test public void testHashBytesFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode rexNode =
+        builder.call(SqlLibraryOperators.HASHBYTES, builder.literal("SHA1"), builder.literal("dfdd76d7vb"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(rexNode, "HashValue"))
+        .build();
+
+    final String expectedMsSqlQuery = "SELECT HASHBYTES('SHA1', 'dfdd76d7vb') AS [HashValue]\n"
+        + "FROM [scott].[EMP]";
+    assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedMsSqlQuery));
+  }
 }
