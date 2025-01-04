@@ -114,32 +114,29 @@ The final source json given to Elasticsearch is below:
   "query": {
     "constant_score": {
       "filter": {
-        "bool": {
-          "must": [
-            {
-              "term": {
-                "city": "springfield"
-              }
-            }
-          ]
+        "term": {
+          "city": "springfield"
         }
       }
     }
   },
-  "fields": [
+  "_source": [
     "city",
     "state"
   ],
   "script_fields": {},
   "sort": [
     {
-      "state": "asc"
+      "state": {
+        "missing": "_last",
+        "order": "asc"
+      }
     }
   ]
 }
 {% endhighlight %}
 
-You can also query elastic search index without prior view definition:
+You can also query Elasticsearch index without prior view definition:
 
 {% highlight sql %}
 sqlline> SELECT _MAP['city'], _MAP['state'] from "elasticsearch"."usa" order by _MAP['state'];
@@ -154,6 +151,6 @@ scroll is automatically cleared (removed) when all query results are consumed.
 
 ### Supported versions
 
-Currently, this adapter supports ElasticSearch versions 6.x (or newer). Generally,
+Currently, this adapter supports Elasticsearch versions 6.x (or newer, up to 7.15.2). Generally,
 we try to follow the official [support schedule](https://www.elastic.co/support/eol).
 Also, types are not supported (this adapter only supports indices).
