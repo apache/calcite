@@ -7975,6 +7975,27 @@ class RelToSqlConverterTest {
     sql(query).withClickHouse().ok(expectedSql);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6762">[CALCITE-6762]
+   * Preserving the CAST conversion for operands in Presto</a>. */
+  @Test void testImplicitTypeCoercion() {
+    final String query = "select \"employee_id\" "
+        + "from \"foodmart\".\"employee\" "
+        + "where 10 = cast('10' as int) and \"birth_date\" = cast('1914-02-02' as date) or "
+        + "\"hire_date\" = cast('1996-01-01 '||'00:00:00' as timestamp)";
+    final String expected = "SELECT \"employee_id\"\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "WHERE 10 = '10' AND \"birth_date\" = '1914-02-02' OR \"hire_date\" = '1996-01-01 ' || "
+        + "'00:00:00'";
+    final String expectedPresto = "SELECT \"employee_id\"\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "WHERE 10 = CAST('10' AS INTEGER) AND \"birth_date\" = CAST('1914-02-02' AS DATE) OR "
+        + "\"hire_date\" = CAST('1996-01-01 ' || '00:00:00' AS TIMESTAMP)";
+    sql(query)
+        .ok(expected)
+        .withPresto().ok(expectedPresto);
+  }
+
   @Test void testDialectQuoteStringLiteral() {
     dialects().forEach((dialect, databaseProduct) -> {
       assertThat(dialect.quoteStringLiteral(""), is("''"));
