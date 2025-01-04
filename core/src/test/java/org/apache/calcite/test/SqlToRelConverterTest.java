@@ -5177,6 +5177,22 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).withConfig(c -> c.withRemoveSortInSubQuery(false)).convertsTo("${planKeepSort}");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6759">[CALCITE-6759]
+   * SqlToRelConverter should not remove ORDER BY in subquery if it has an
+   * OFFSET</a>.
+   *
+   * <p>While an ORDER BY on its own can be ignored, an ORDER BY with an OFFSET
+   * or FETCH cannot be removed from the subquery without changing the
+   * semantics. */
+  @Test void testSortWithOffsetInSubQuery() {
+    final String sql = "select count(*) from (\n"
+        + "  select *\n"
+        + "  from emp\n"
+        + "  order by empno offset 10)";
+    sql(sql).ok();
+  }
+
   @Test void testTrimUnionAll() {
     final String sql = ""
         + "select deptno from\n"

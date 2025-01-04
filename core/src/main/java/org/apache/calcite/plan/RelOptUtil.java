@@ -189,10 +189,10 @@ public abstract class RelOptUtil {
   }
 
   /**
-   * Whether this node is a sort without limit specification.
+   * Whether this node is a sort with neither limit nor offset specification.
    */
   public static boolean isPureOrder(RelNode rel) {
-    return !isLimit(rel) && isOrder(rel);
+    return !isLimit(rel) && !isOffset(rel) && isOrder(rel);
   }
 
   /**
@@ -210,7 +210,7 @@ public abstract class RelOptUtil {
   }
 
   /**
-   * Whether this node contains a offset specification.
+   * Whether this node contains an offset specification.
    */
   public static boolean isOffset(RelNode rel) {
     return (rel instanceof Sort) && ((Sort) rel).offset != null;

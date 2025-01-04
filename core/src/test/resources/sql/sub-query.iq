@@ -149,6 +149,58 @@ select deptno, deptno not in (select deptno from emp where deptno is not null) f
 
 !ok
 
+# [CALCITE-6579] SqlToRelConverter should not remove ORDER BY in subquery if it has an OFFSET
+select count(*) as c from (select * from emp order by deptno offset 4);
++---+
+| C |
++---+
+| 5 |
++---+
+(1 row)
+
+!ok
+
+# Subquery with ORDER BY and LIMIT
+select count(*) as c from (select * from emp order by deptno limit 3);
++---+
+| C |
++---+
+| 3 |
++---+
+(1 row)
+
+!ok
+
+# Subquery with ORDER BY and LIMIT. (LIMIT exceeds row count so has no effect.)
+select count(*) as c from (select * from emp order by deptno limit 99);
++---+
+| C |
++---+
+| 9 |
++---+
+(1 row)
+
+!ok
+
+# Previous queries as scalar subqueries.
+select
+  (select count(*) from emp) as c,
+  (select count(*) from (select * from emp order by deptno)) as co,
+  (select count(*) from (select * from emp order by deptno offset 4)) as o4,
+  (select count(*) from (select * from emp order by deptno limit 3)) as l3,
+  (select count(*) from (select * from emp order by deptno limit 99)) as l99,
+  (select count(*) from (select * from emp order by deptno limit 99 offset 94)) as l99o94,
+  (select count(*) from (select * from emp order by deptno limit 99 offset 5)) as l99o5
+from (values 1) as t (v);
++---+----+----+----+-----+--------+-------+
+| C | CO | O4 | L3 | L99 | L99O94 | L99O5 |
++---+----+----+----+-----+--------+-------+
+| 9 |  9 |  5 |  3 |   9 |      0 |     4 |
++---+----+----+----+-----+--------+-------+
+(1 row)
+
+!ok
+
 # RHS has no rows
 # Even 'NULL NOT IN ...' is TRUE.
 select * from dept where deptno not in (select deptno from emp where false);
