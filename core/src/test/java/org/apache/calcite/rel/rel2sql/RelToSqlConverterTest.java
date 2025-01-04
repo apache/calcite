@@ -3772,6 +3772,39 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6699">[CALCITE-6699]
+   * Invalid unparse for Varchar in StarRocksDialect </a>. */
+  @Test void testStarRocksCastToVarcharWithLessThanMaxPrecision() {
+    final String query = "select cast(\"product_id\" as varchar(50)), \"product_id\" "
+        + "from \"product\" ";
+    final String expected = "SELECT CAST(`product_id` AS VARCHAR(50)), `product_id`\n"
+        + "FROM `foodmart`.`product`";
+    sql(query).withStarRocks().ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6699">[CALCITE-6699]
+   * Invalid unparse for Varchar in StarRocksDialect </a>. */
+  @Test void testStarRocksCastToVarcharWithGreaterThanMaxPrecision() {
+    final String query = "select cast(\"product_id\" as varchar(150000)), \"product_id\" "
+        + "from \"product\" ";
+    final String expected = "SELECT CAST(`product_id` AS VARCHAR(65533)), `product_id`\n"
+        + "FROM `foodmart`.`product`";
+    sql(query).withStarRocks().ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6699">[CALCITE-6699]
+   * Invalid unparse for Varchar in StarRocksDialect </a>. */
+  @Test void testStarRocksCastToVarcharWithDefaultPrecision() {
+    final String query = "select cast(\"product_id\" as varchar), \"product_id\" "
+        + "from \"product\" ";
+    final String expected = "SELECT CAST(`product_id` AS VARCHAR), `product_id`\n"
+        + "FROM `foodmart`.`product`";
+    sql(query).withStarRocks().ok(expected);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6419">[CALCITE-6419]
    * Invalid unparse for VARCHAR without precision in HiveSqlDialect And SparkSqlDialect</a>. */
   @Test void testCastToVarchar() {
