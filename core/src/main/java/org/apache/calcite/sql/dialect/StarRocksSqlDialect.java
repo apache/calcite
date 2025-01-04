@@ -55,18 +55,15 @@ public class StarRocksSqlDialect extends MysqlSqlDialect {
     super(context);
   }
 
-  @Override
-  public boolean supportsGroupByWithRollup() {
+  @Override public boolean supportsGroupByWithRollup() {
     return false;
   }
 
-  @Override
-  public boolean supportsTimestampPrecision() {
+  @Override public boolean supportsTimestampPrecision() {
     return false;
   }
 
-  @Override
-  public boolean supportsApproxCountDistinct() {
+  @Override public boolean supportsApproxCountDistinct() {
     return true;
   }
 
@@ -132,8 +129,7 @@ public class StarRocksSqlDialect extends MysqlSqlDialect {
     }
   }
 
-  @Override
-  public @Nullable SqlNode getCastSpec(RelDataType type) {
+  @Override public @Nullable SqlNode getCastSpec(RelDataType type) {
     switch (type.getSqlTypeName()) {
     case INTEGER:
       return new SqlDataTypeSpec(
@@ -158,8 +154,7 @@ public class StarRocksSqlDialect extends MysqlSqlDialect {
     }
   }
 
-  @Override
-  public void unparseDateTimeLiteral(SqlWriter writer,
+  @Override public void unparseDateTimeLiteral(SqlWriter writer,
       SqlAbstractDateTimeLiteral literal, int leftPrec, int rightPrec) {
     if (literal.getTypeName() == SqlTypeName.TIMESTAMP) {
       writer.literal("DATETIME '" + literal.toFormattedString() + "'");
