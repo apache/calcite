@@ -257,6 +257,27 @@ public class MysqlSqlDialect extends SqlDialect {
       unparseListAggCall(writer, call, null, leftPrec, rightPrec);
       break;
 
+    case EXTRACT:
+      SqlLiteral node = call.operand(0);
+      TimeUnitRange unit = node.getValueAs(TimeUnitRange.class);
+      String funName;
+      switch (unit) {
+      case DOW:
+        funName = "DAYOFWEEK";
+        break;
+      case DOY:
+        funName = "DAYOFYEAR";
+        break;
+      default:
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+        return;
+      }
+      writer.print(funName);
+      final SqlWriter.Frame extractFrame = writer.startList("(", ")");
+      call.operand(1).unparse(writer, 0, 0);
+      writer.endList(extractFrame);
+      break;
+
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
