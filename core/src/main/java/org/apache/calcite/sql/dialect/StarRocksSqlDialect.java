@@ -55,19 +55,23 @@ public class StarRocksSqlDialect extends MysqlSqlDialect {
     super(context);
   }
 
-  @Override public boolean supportsGroupByWithRollup() {
+  @Override
+  public boolean supportsGroupByWithRollup() {
     return false;
   }
 
-  @Override public boolean supportsTimestampPrecision() {
+  @Override
+  public boolean supportsTimestampPrecision() {
     return false;
   }
 
-  @Override public boolean supportsApproxCountDistinct() {
+  @Override
+  public boolean supportsApproxCountDistinct() {
     return true;
   }
 
-  @Override public void unparseCall(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+  @Override
+  public void unparseCall(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     switch (call.getKind()) {
     case ARRAY_VALUE_CONSTRUCTOR:
       final SqlWriter.Frame arrayFrame = writer.startList("[", "]");
@@ -102,13 +106,34 @@ public class StarRocksSqlDialect extends MysqlSqlDialect {
               timeUnitNode.getParserPosition());
       SqlFloorFunction.unparseDatetimeFunction(writer, newCall, "DATE_TRUNC", false);
       break;
+    case EXTRACT:
+      SqlLiteral node = call.operand(0);
+      TimeUnitRange unit = node.getValueAs(TimeUnitRange.class);
+      String funName;
+      switch (unit) {
+      case DOW:
+        funName = "DAYOFWEEK";
+        break;
+      case DOY:
+        funName = "DAYOFYEAR";
+        break;
+      default:
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+        return;
+      }
+      writer.print(funName);
+      final SqlWriter.Frame frame = writer.startList("(", ")");
+      call.operand(1).unparse(writer, 0, 0);
+      writer.endList(frame);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
       break;
     }
   }
 
-  @Override public @Nullable SqlNode getCastSpec(RelDataType type) {
+  @Override
+  public @Nullable SqlNode getCastSpec(RelDataType type) {
     switch (type.getSqlTypeName()) {
     case INTEGER:
       return new SqlDataTypeSpec(
@@ -133,7 +158,8 @@ public class StarRocksSqlDialect extends MysqlSqlDialect {
     }
   }
 
-  @Override public void unparseDateTimeLiteral(SqlWriter writer,
+  @Override
+  public void unparseDateTimeLiteral(SqlWriter writer,
       SqlAbstractDateTimeLiteral literal, int leftPrec, int rightPrec) {
     if (literal.getTypeName() == SqlTypeName.TIMESTAMP) {
       writer.literal("DATETIME '" + literal.toFormattedString() + "'");
