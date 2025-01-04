@@ -67,8 +67,7 @@ public class StarRocksSqlDialect extends MysqlSqlDialect {
     return true;
   }
 
-  @Override
-  public void unparseCall(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+  @Override public void unparseCall(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     switch (call.getKind()) {
     case ARRAY_VALUE_CONSTRUCTOR:
       final SqlWriter.Frame arrayFrame = writer.startList("[", "]");
