@@ -5177,6 +5177,16 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).withConfig(c -> c.withRemoveSortInSubQuery(false)).convertsTo("${planKeepSort}");
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6759">[CALCITE-6759]
+   * SqlToRelConverter will remove the sort with offset</a>.
+   */
+  @Test void testSortWithOffsetInSubQuery() {
+    final String sql = "select count(*) from (select * from emp order by empno offset 10)";
+    sql(sql).ok();
+  }
+
   @Test void testTrimUnionAll() {
     final String sql = ""
         + "select deptno from\n"

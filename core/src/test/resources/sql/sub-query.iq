@@ -149,6 +149,17 @@ select deptno, deptno not in (select deptno from emp where deptno is not null) f
 
 !ok
 
+# [CALCITE-6579] SqlToRelConverter will remove the sort with offset
+select count(*) from (select * from emp order by deptno offset 4);
++--------+
+| EXPR$0 |
++--------+
+|      5 |
++--------+
+(1 row)
+
+!ok
+
 # RHS has no rows
 # Even 'NULL NOT IN ...' is TRUE.
 select * from dept where deptno not in (select deptno from emp where false);
