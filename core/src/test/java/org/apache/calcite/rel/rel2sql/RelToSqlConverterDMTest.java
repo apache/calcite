@@ -2723,10 +2723,11 @@ class RelToSqlConverterDMTest {
 
   @Test public void testArrayLengthFunction() {
     final RelBuilder builder = relBuilder();
-    RexNode array = builder.call(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
-        builder.literal(0), builder.literal(1), builder.literal(2));
-    RexNode arrayLengthCall = builder.call(SqlLibraryOperators.POSTGRES_ARRAY_LENGTH, array,
-        builder.literal(1));
+    RexNode array =
+        builder.call(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+            builder.literal(0), builder.literal(1), builder.literal(2));
+    RexNode arrayLengthCall =
+        builder.call(SqlLibraryOperators.POSTGRES_ARRAY_LENGTH, array, builder.literal(1));
     RelNode root = builder
         .push(LogicalValues.createOneRow(builder.getCluster()))
         .project(arrayLengthCall)
