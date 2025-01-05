@@ -443,6 +443,9 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker EXACT_NUMERIC =
       family(SqlTypeFamily.EXACT_NUMERIC);
 
+  public static final SqlSingleOperandTypeChecker ARRAY_INTEGER =
+      family(SqlTypeFamily.ARRAY, SqlTypeFamily.INTEGER);
+
   public static final SqlSingleOperandTypeChecker ARRAY_INTEGER_INTEGER =
       family(SqlTypeFamily.ARRAY, SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER);
 
