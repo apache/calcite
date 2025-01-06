@@ -870,6 +870,9 @@ public enum SqlKind {
    */
   TO_NUMBER,
 
+  /** {@code HOST} function (Postgres). */
+  NET_HOST,
+
    /**
    * The "ASCII" function.
    */

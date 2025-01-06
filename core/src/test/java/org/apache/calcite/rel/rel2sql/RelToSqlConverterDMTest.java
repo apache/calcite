@@ -2736,6 +2736,19 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedPostgres));
   }
 
+  @Test public void testHostFunction() {
+    final RelBuilder builder = relBuilder();
+    RexNode hostCall = builder.call(SqlLibraryOperators.HOST, builder.literal("127.0.0.1"));
+    RelNode root = builder
+        .push(LogicalValues.createOneRow(builder.getCluster()))
+        .project(builder.alias(hostCall, "EXPR$0"))
+        .build();
+    final String expectedPostgres = "SELECT HOST('127.0.0.1')";
+    final String expectedBq = "SELECT NET.HOST('127.0.0.1')";
+    assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedPostgres));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBq));
+  }
+
   @Test public void testArraySlice() {
     final RelBuilder builder = relBuilder();
 

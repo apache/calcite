@@ -3876,4 +3876,14 @@ public abstract class SqlLibraryOperators {
               OperandTypes.family(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER)),
           SqlFunctionCategory.SYSTEM);
 
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlFunction HOST =
+      new SqlFunction(
+          "HOST",
+          SqlKind.NET_HOST,
+          ReturnTypes.VARCHAR,
+          null,
+          OperandTypes.STRING,
+          SqlFunctionCategory.SYSTEM);
+
 }
