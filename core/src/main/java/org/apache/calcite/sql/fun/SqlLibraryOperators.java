@@ -1640,6 +1640,23 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.INTEGER_NULLABLE,
           OperandTypes.ARRAY);
 
+  /** The "ARRAY_LENGTH(array, int)" function. */
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlFunction POSTGRES_ARRAY_LENGTH =
+      SqlBasicFunction.create(SqlKind.ARRAY_LENGTH,
+          ReturnTypes.INTEGER_NULLABLE,
+          OperandTypes.ARRAY_INTEGER);
+
+  /**
+   * The "APPROX_QUANTILES([DISTINCT] expression, number)" function.
+   */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction APPROX_QUANTILES =
+      SqlBasicAggFunction.create("APPROX_QUANTILES", SqlKind.APPROX_QUANTILES,
+              ReturnTypes.TO_ARRAY, OperandTypes.ANY_NUMERIC)
+          .withDistinct(Optionality.OPTIONAL)
+          .withFunctionType(SqlFunctionCategory.NUMERIC);
+
   /** The "ARRAY_MAX(array)" function. */
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction ARRAY_MAX =
@@ -3857,6 +3874,16 @@ public abstract class SqlLibraryOperators {
           OperandTypes.or(
               OperandTypes.family(SqlTypeFamily.INTEGER),
               OperandTypes.family(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER)),
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlFunction HOST =
+      new SqlFunction(
+          "HOST",
+          SqlKind.NET_HOST,
+          ReturnTypes.VARCHAR,
+          null,
+          OperandTypes.STRING,
           SqlFunctionCategory.SYSTEM);
 
 }
