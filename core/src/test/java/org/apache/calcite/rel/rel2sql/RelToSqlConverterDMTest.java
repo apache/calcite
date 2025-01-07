@@ -2721,6 +2721,34 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSnowflake));
   }
 
+  @Test public void testArrayLengthFunction() {
+    final RelBuilder builder = relBuilder();
+    RexNode array =
+        builder.call(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+            builder.literal(0), builder.literal(1), builder.literal(2));
+    RexNode arrayLengthCall =
+        builder.call(SqlLibraryOperators.POSTGRES_ARRAY_LENGTH, array, builder.literal(1));
+    RelNode root = builder
+        .push(LogicalValues.createOneRow(builder.getCluster()))
+        .project(arrayLengthCall)
+        .build();
+    final String expectedPostgres = "SELECT ARRAY_LENGTH(ARRAY[0, 1, 2], 1) AS \"$f0\"";
+    assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedPostgres));
+  }
+
+  @Test public void testHostFunction() {
+    final RelBuilder builder = relBuilder();
+    RexNode hostCall = builder.call(SqlLibraryOperators.HOST, builder.literal("127.0.0.1"));
+    RelNode root = builder
+        .push(LogicalValues.createOneRow(builder.getCluster()))
+        .project(builder.alias(hostCall, "EXPR$0"))
+        .build();
+    final String expectedPostgres = "SELECT HOST('127.0.0.1')";
+    final String expectedBq = "SELECT NET.HOST('127.0.0.1')";
+    assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedPostgres));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBq));
+  }
+
   @Test public void testArraySlice() {
     final RelBuilder builder = relBuilder();
 
@@ -12651,5 +12679,18 @@ class RelToSqlConverterDMTest {
         + "WHERE \"product_id\" = \"product\".\"product_id\")";
 
     assertThat(toSql(decorrelatedRel, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+  }
+
+  @Test public void testObjectSchemaName() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dbNameRexNode = builder.call(SqlLibraryOperators.OBJECT_SCHEMA_NAME, builder.literal(12345));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(dbNameRexNode, "schema_name_alias"))
+        .build();
+
+    final String expectedMsSqlQuery = "SELECT OBJECT_SCHEMA_NAME(12345) AS [schema_name_alias]\n"
+        + "FROM [scott].[EMP]";
+    assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedMsSqlQuery));
   }
 }
