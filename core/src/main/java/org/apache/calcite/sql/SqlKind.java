@@ -834,6 +834,9 @@ public enum SqlKind {
   /** {@code ARRAYS_ZIP} function (Spark semantics). */
   ARRAYS_ZIP,
 
+  /** {@code APPROX_QUANTILES} function. */
+  APPROX_QUANTILES,
+
   /** {@code SORT_ARRAY} function (Spark semantics). */
   SORT_ARRAY,
 
@@ -866,6 +869,9 @@ public enum SqlKind {
    * The "TO_NUMBER" function.
    */
   TO_NUMBER,
+
+  /** {@code HOST} function (Postgres). */
+  NET_HOST,
 
    /**
    * The "ASCII" function.
