@@ -9627,14 +9627,15 @@ class RelToSqlConverterDMTest {
     RelBuilder builder = relBuilder().scan("EMP");
     final RexBuilder rexBuilder = builder.getRexBuilder();
     final RelDataType varcharRelType = builder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+    final RelDataType decimalType = builder.getTypeFactory().createSqlType(SqlTypeName.DECIMAL, 5, 2);
     final RexNode castCall =
         rexBuilder.makeCast(varcharRelType, builder.field(0), false, true);
     final RexNode castLiteral =
-        builder.cast(builder.literal(123.456), SqlTypeName.DECIMAL, 5, 2);
+        rexBuilder.makeAbstractCast(decimalType, builder.literal(123.456), true);
     RelNode root = builder
         .project(castCall, castLiteral)
         .build();
-    final String expectedSql = "SELECT TRY_CAST(EMPNO AS STRING) $f0, ROUND(CAST(123.456 AS DECIMAL(5, 2)), 2) $f1\n"
+    final String expectedSql = "SELECT TRY_CAST(EMPNO AS STRING) $f0, CAST(123.456 AS DECIMAL(5, 2)) $f1\n"
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSql));
   }

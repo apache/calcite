@@ -94,11 +94,8 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ROUND;
 import static org.apache.calcite.util.Util.isFormatSqlBasicCall;
 import static org.apache.calcite.util.Util.modifyRegexStringForMatchArgument;
-
-import static java.util.Objects.requireNonNull;
 
 import static  org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDMONTH;
 import static  org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATED_MONTH;
@@ -449,9 +446,7 @@ public class SparkSqlDialect extends SqlDialect {
           CAST.createCall(
               pos, SqlLiteral.createExactNumeric(
                   value.toPlainString(), pos), numericNode);
-      return ROUND.createCall(pos, castNode,
-          SqlLiteral.createExactNumeric(
-              requireNonNull(typeScale, "typeScale").toString(), pos));
+      return castNode;
     }
     return super.getNumericLiteral(literal, pos);
   }
