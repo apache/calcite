@@ -49,6 +49,7 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.SqlOperatorTables;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlMoniker;
 import org.apache.calcite.sql.validate.SqlMonikerImpl;
 import org.apache.calcite.sql.validate.SqlMonikerType;
@@ -344,10 +345,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     if (function instanceof ScalarFunction) {
       final SqlReturnTypeInference returnTypeInference =
           infer((ScalarFunction) function);
-      SqlSyntax syntax = function.getParameters().isEmpty()
-          && !config.conformance().allowNiladicParentheses()
-          ? SqlSyntax.FUNCTION_ID
-          : SqlSyntax.FUNCTION;
+      SqlSyntax syntax = getSqlSyntax(function, config);
       return new SqlUserDefinedFunction(name, kind, returnTypeInference,
           operandTypeInference, operandMetadata, function, syntax);
     } else if (function instanceof AggregateFunction) {
@@ -366,6 +364,20 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     } else {
       throw new AssertionError("unknown function type " + function);
     }
+  }
+
+  private static SqlSyntax getSqlSyntax(org.apache.calcite.schema.Function function,
+      CalciteConnectionConfig config) {
+    if (!function.getParameters().isEmpty()) {
+      return SqlSyntax.FUNCTION;
+    }
+    // Keep compatible with both Foo() and Foo function syntax for Calcite's default conformance
+    if (SqlConformanceEnum.DEFAULT == config.conformance()) {
+      return SqlSyntax.FUNCTION_ID_CONSTANT;
+    }
+    return config.conformance().allowNiladicParentheses()
+        ? SqlSyntax.FUNCTION
+        : SqlSyntax.FUNCTION_ID;
   }
 
   /** Deduces the {@link org.apache.calcite.sql.SqlKind} of a user-defined

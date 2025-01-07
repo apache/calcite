@@ -427,6 +427,14 @@ class UdfTest {
         .query("select \"adhoc\".my_niladic_parentheses as p\n"
             + "from \"adhoc\".EMPLOYEES limit 1")
         .returns("P=foo\n");
+    with.with(SqlConformanceEnum.DEFAULT)
+        .query("select \"adhoc\".my_niladic_parentheses as p\n"
+            + "from \"adhoc\".EMPLOYEES limit 1")
+        .returns("P=foo\n");
+    with.with(SqlConformanceEnum.DEFAULT)
+        .query("select \"adhoc\".my_niladic_parentheses() as p\n"
+            + "from \"adhoc\".EMPLOYEES limit 1")
+        .returns("P=foo\n");
     // wrong niladic function with mysql_5 conformance
     with.with(SqlConformanceEnum.MYSQL_5)
         .query("select \"adhoc\".my_niladic_parentheses as p\n"
