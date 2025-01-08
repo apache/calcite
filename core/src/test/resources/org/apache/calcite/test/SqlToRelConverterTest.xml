@@ -618,6 +618,20 @@ LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}]])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testCastNames">
+    <Resource name="sql">
+      <![CDATA[SELECT * FROM (SELECT empno, 'x' AS X FROM emp) UNION ALL (SELECT empno, 'xx' AS X from emp)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalUnion(all=[true])
+  LogicalProject(EMPNO=[$0], X=['x '])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EMPNO=[$0], X=['xx'])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testCharLength">
     <Resource name="plan">
       <![CDATA[
@@ -2969,7 +2983,7 @@ where cast(deptno + 20 as bigint) in (select deptno from dept)]]>
       <![CDATA[
 LogicalProject(DEPTNO=[$0], NAME=[$1])
   LogicalFilter(condition=[IN(CAST(+($0, 20)):BIGINT NOT NULL, {
-LogicalProject(EXPR$0=[CAST($0):BIGINT NOT NULL])
+LogicalProject(DEPTNO=[CAST($0):BIGINT NOT NULL])
   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 })])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -6461,9 +6475,9 @@ QUALIFY RANK() OVER (PARTITION BY ename
       <![CDATA[
 LogicalTableModify(table=[[CATALOG, SALES, DEPT]], operation=[INSERT], flattened=[true])
   LogicalAggregate(group=[{0, 1}])
-    LogicalProject(EMPNO=[$0], EXPR$1=[$1])
+    LogicalProject(EMPNO=[$0], ENAME=[$1])
       LogicalFilter(condition=[$2])
-        LogicalProject(EMPNO=[$0], EXPR$1=[CAST($1):VARCHAR(10) NOT NULL], QualifyExpression=[=(RANK() OVER (PARTITION BY $1 ORDER BY $8 DESC), 1)])
+        LogicalProject(EMPNO=[$0], ENAME=[CAST($1):VARCHAR(10) NOT NULL], QualifyExpression=[=(RANK() OVER (PARTITION BY $1 ORDER BY $8 DESC), 1)])
           LogicalFilter(condition=[>($7, 5)])
             LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -8402,7 +8416,7 @@ LogicalProject(DEPTNO=[$1])
   LogicalMinus(all=[true])
     LogicalProject(ENAME=[$1], DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalProject(EXPR$0=[CAST($1):VARCHAR(20) NOT NULL], DEPTNO=[$0])
+    LogicalProject(NAME=[CAST($1):VARCHAR(20) NOT NULL], DEPTNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
@@ -8420,7 +8434,7 @@ LogicalProject(DEPTNO=[$1])
   LogicalMinus(all=[false])
     LogicalProject(ENAME=[$1], DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalProject(EXPR$0=[CAST($1):VARCHAR(20) NOT NULL], DEPTNO=[$0])
+    LogicalProject(NAME=[CAST($1):VARCHAR(20) NOT NULL], DEPTNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
@@ -8438,7 +8452,7 @@ LogicalProject(DEPTNO=[$1])
   LogicalIntersect(all=[true])
     LogicalProject(ENAME=[$1], DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalProject(EXPR$0=[CAST($1):VARCHAR(20) NOT NULL], DEPTNO=[$0])
+    LogicalProject(NAME=[CAST($1):VARCHAR(20) NOT NULL], DEPTNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
@@ -8456,7 +8470,7 @@ LogicalProject(DEPTNO=[$1])
   LogicalIntersect(all=[false])
     LogicalProject(ENAME=[$1], DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalProject(EXPR$0=[CAST($1):VARCHAR(20) NOT NULL], DEPTNO=[$0])
+    LogicalProject(NAME=[CAST($1):VARCHAR(20) NOT NULL], DEPTNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
@@ -8539,7 +8553,7 @@ LogicalProject(DEPTNO=[$1])
   LogicalUnion(all=[false])
     LogicalProject(ENAME=[$1], DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalProject(EXPR$0=[CAST($1):VARCHAR(20) NOT NULL], DEPTNO=[$0])
+    LogicalProject(NAME=[CAST($1):VARCHAR(20) NOT NULL], DEPTNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>

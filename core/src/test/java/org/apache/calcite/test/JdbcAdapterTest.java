@@ -127,7 +127,7 @@ class JdbcAdapterTest {
             + "      JdbcFilter(condition=[<($0, 10)])\n"
             + "        JdbcTableScan(table=[[foodmart, store]])\n"
             + "  JdbcToEnumerableConverter\n"
-            + "    JdbcProject(EXPR$0=[CAST($1):VARCHAR(30)])\n"
+            + "    JdbcProject(ENAME=[CAST($1):VARCHAR(30)])\n"
             + "      JdbcFilter(condition=[>(CAST($0):INTEGER NOT NULL, 10)])\n"
             + "        JdbcTableScan(table=[[SCOTT, EMP]])")
         .runs()
@@ -135,7 +135,7 @@ class JdbcAdapterTest {
         .planHasSql("SELECT \"store_name\"\n"
                 + "FROM \"foodmart\".\"store\"\n"
                 + "WHERE \"store_id\" < 10")
-        .planHasSql("SELECT CAST(\"ENAME\" AS VARCHAR(30))\n"
+        .planHasSql("SELECT CAST(\"ENAME\" AS VARCHAR(30)) AS \"ENAME\"\n"
             + "FROM \"SCOTT\".\"EMP\"\n"
             + "WHERE CAST(\"EMPNO\" AS INTEGER) > 10");
   }
