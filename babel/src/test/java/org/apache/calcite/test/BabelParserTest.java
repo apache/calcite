@@ -189,8 +189,8 @@ class BabelParserTest extends SqlParserTest {
     sql("select date(x) from t").ok(expected);
   }
 
-  /** In Redshift, PostgreSQL the DATEADD, DATEDIFF and DATE_PART functions have
-   * ordinary function syntax except that its first argument is a time unit
+  /** The DATEADD, DATEDIFF (in Redshift, Snowflake) and DATE_PART (in PostgreSQL)
+   * functions have ordinary function syntax  except that its first argument is a time unit
    * (e.g. DAY). We must not parse that first argument as an identifier. */
   @Test void testRedshiftFunctionsWithDateParts() {
     final String sql = "SELECT DATEADD(day, 1, t),\n"

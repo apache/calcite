@@ -2851,8 +2851,8 @@ In the following:
 | b | DATE(timestampLtz, timeZone)                   | Extracts the DATE from *timestampLtz* (an instant; BigQuery's TIMESTAMP type) in *timeZone*
 | b | DATE(string)                                   | Equivalent to `CAST(string AS DATE)`
 | b | DATE(year, month, day)                         | Returns a DATE value for *year*, *month*, and *day* (all of type INTEGER)
-| p q r | DATEADD(timeUnit, integer, datetime)       | Equivalent to `TIMESTAMPADD(timeUnit, integer, datetime)`
-| p q r | DATEDIFF(timeUnit, datetime, datetime2)    | Equivalent to `TIMESTAMPDIFF(timeUnit, datetime, datetime2)`
+| q r f | DATEADD(timeUnit, integer, datetime)       | Equivalent to `TIMESTAMPADD(timeUnit, integer, datetime)`
+| q r f | DATEDIFF(timeUnit, datetime, datetime2)    | Equivalent to `TIMESTAMPDIFF(timeUnit, datetime, datetime2)`
 | q | DATEPART(timeUnit, datetime)                   | Equivalent to `EXTRACT(timeUnit FROM  datetime)`
 | b | DATETIME(date, time)                           | Converts *date* and *time* to a TIMESTAMP
 | b | DATETIME(date)                                 | Converts *date* to a TIMESTAMP value (at midnight)
@@ -3035,10 +3035,6 @@ In the following:
 
 Note:
 
-* Calcite has no Redshift library, so the Postgres library
-  is used instead. The functions `DATEADD`, `DATEDIFF` are
-  implemented in Redshift and not Postgres but nevertheless
-  appear in Calcite's Postgres library
 * Functions `DATEADD`, `DATEDIFF`, `DATE_PART` require the Babel parser
 * `JSON_TYPE` / `JSON_DEPTH` / `JSON_PRETTY` / `JSON_STORAGE_SIZE` return null if the argument is null
 * `JSON_LENGTH` / `JSON_KEYS` / `JSON_REMOVE` return null if the first argument is null
