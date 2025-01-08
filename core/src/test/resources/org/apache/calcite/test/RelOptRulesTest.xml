@@ -17113,9 +17113,9 @@ from (values (5)) as t(y)]]>
     <Resource name="planBefore">
       <![CDATA[
 LogicalUnion(all=[false])
-  LogicalProject(EXPR$0=[CAST($0):DECIMAL(11, 1) NOT NULL])
+  LogicalProject(X=[CAST($0):DECIMAL(11, 1) NOT NULL])
     LogicalValues(tuples=[[{ 5.0 }]])
-  LogicalProject(EXPR$0=[CAST($0):DECIMAL(11, 1) NOT NULL])
+  LogicalProject(Y=[CAST($0):DECIMAL(11, 1) NOT NULL])
     LogicalValues(tuples=[[{ 5 }]])
 ]]>
     </Resource>
@@ -17205,9 +17205,9 @@ from (values (5)) as t(y)]]>
     <Resource name="planBefore">
       <![CDATA[
 LogicalUnion(all=[true])
-  LogicalProject(EXPR$0=[CAST($0):DECIMAL(11, 1) NOT NULL])
+  LogicalProject(X=[CAST($0):DECIMAL(11, 1) NOT NULL])
     LogicalValues(tuples=[[{ 5.0 }]])
-  LogicalProject(EXPR$0=[CAST($0):DECIMAL(11, 1) NOT NULL])
+  LogicalProject(Y=[CAST($0):DECIMAL(11, 1) NOT NULL])
     LogicalValues(tuples=[[{ 5 }]])
 ]]>
     </Resource>

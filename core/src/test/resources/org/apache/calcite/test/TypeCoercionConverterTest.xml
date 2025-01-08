@@ -183,7 +183,7 @@ LogicalProject(X=[$0])
     LogicalProject(T1=[$0])
       LogicalValues(tuples=[[{ 1 }, { 2 }]])
     LogicalAggregate(group=[{0}])
-      LogicalProject(EXPR$0=[CAST($0):BIGINT NOT NULL])
+      LogicalProject(X=[CAST($0):BIGINT NOT NULL])
         LogicalValues(tuples=[[{ 3 }, { 4 }]])
 ]]>
     </Resource>

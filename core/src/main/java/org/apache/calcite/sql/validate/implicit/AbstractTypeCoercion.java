@@ -44,6 +44,7 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorNamespace;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -212,7 +213,12 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
       return false;
     }
     RelDataType targetType3 = syncAttributes(validator.deriveType(scope, node), targetType);
-    final SqlNode node3 = castTo(node, targetType3);
+    SqlNode node3 = castTo(node, targetType3);
+    if (node.getKind() == SqlKind.IDENTIFIER) {
+      SqlIdentifier id = (SqlIdentifier) node;
+      String name = id.getComponent(id.names.size() - 1).getSimple();
+      node3 = SqlValidatorUtil.addAlias(node3, name);
+    }
     nodeList.set(index, node3);
     updateInferredType(node3, targetType3);
     return true;

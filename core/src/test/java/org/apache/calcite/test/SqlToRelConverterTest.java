@@ -258,6 +258,15 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6770">[CALCITE-6770]
+   * Preserve column names when casts are inserted in projects</a>. */
+  @Test void testCastNames() {
+    final String sql = "SELECT * FROM (SELECT empno, 'x' AS X FROM emp) "
+        + "UNION ALL (SELECT empno, 'xx' AS X from emp)";
+    sql(sql).ok();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-245">[CALCITE-245]
    * Off-by-one translation of ON clause of JOIN</a>. */
   @Test void testConditionOffByOne() {
