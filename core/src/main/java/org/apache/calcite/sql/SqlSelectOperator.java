@@ -233,7 +233,8 @@ public class SqlSelectOperator extends SqlOperator {
             if (!groupKey.toString().equalsIgnoreCase("NULL")) {
               if (groupKey.getKind() == SqlKind.LITERAL
                   || groupKey.getKind() == SqlKind.DYNAMIC_PARAM
-                  || groupKey.getKind() == SqlKind.MINUS_PREFIX) {
+                  || groupKey.getKind() == SqlKind.MINUS_PREFIX
+                  || groupKey instanceof SqlBasicCall) {
                 select.selectList.getList().
                     forEach(new Consumer<SqlNode>() {
                       @Override public void accept(SqlNode selectSqlNode) {
@@ -247,7 +248,7 @@ public class SqlSelectOperator extends SqlOperator {
                         if (SqlKind.CAST == literalNode.getKind()) {
                           literalNode = ((SqlBasicCall) literalNode).getOperandList().get(0);
                         }
-                        if (literalNode.equals(groupKey)
+                        if ((literalNode.equals(groupKey) || isCastOnGroupKey(literalNode, groupKey))
                             && !visitedLiteralNodeList.contains(literalNode)) {
                           writer.sep(",");
                           String ordinal =
@@ -291,6 +292,12 @@ public class SqlSelectOperator extends SqlOperator {
     }
     writer.fetchOffset(select.fetch, select.offset);
     writer.endList(selectFrame);
+  }
+
+  private static boolean isCastOnGroupKey(SqlNode literalNode, SqlNode groupKey) {
+    return literalNode instanceof SqlBasicCall
+        && literalNode.getKind() == SqlKind.CAST
+        && ((SqlBasicCall) literalNode).getOperandList().get(0) == groupKey;
   }
 
   @Override public boolean argumentMustBeScalar(int ordinal) {
