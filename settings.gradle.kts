@@ -103,7 +103,7 @@ fun property(name: String) =
 val isCiServer = System.getenv().containsKey("CI")
 
 develocity {
-    server = "https://ge.apache.org"
+    server = "https://develocity.apache.org"
     projectId = "calcite"
 
     buildScan {
