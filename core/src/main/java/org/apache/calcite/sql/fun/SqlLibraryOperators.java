@@ -128,7 +128,7 @@ public abstract class SqlLibraryOperators {
 
   /** The "DATEADD(timeUnit, numeric, datetime)" function
    * (Microsoft SQL Server, Redshift, Snowflake). */
-  @LibraryOperator(libraries = {MSSQL, POSTGRESQL})
+  @LibraryOperator(libraries = {MSSQL, REDSHIFT, SNOWFLAKE})
   public static final SqlFunction DATEADD =
       new SqlTimestampAddFunction("DATEADD");
 
@@ -162,7 +162,7 @@ public abstract class SqlLibraryOperators {
    * <p>MySQL has "DATEDIFF(date, date2)" and "TIMEDIFF(time, time2)" functions
    * but Calcite does not implement these because they have no "timeUnit"
    * argument. */
-  @LibraryOperator(libraries = {MSSQL, POSTGRESQL})
+  @LibraryOperator(libraries = {MSSQL, REDSHIFT, SNOWFLAKE})
   public static final SqlFunction DATEDIFF =
       new SqlTimestampDiffFunction("DATEDIFF",
           OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.DATE,
