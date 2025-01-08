@@ -4906,6 +4906,15 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6413">[CALCITE-6413]
+   * SqlValidator does not invoke TypeCoercionImpl::binaryComparisonCoercion for both NATURAL
+   * and USING join conditions</a>. */
+  @Test void testNaturalJoinCast() {
+    final String sql = "WITH t1(x) AS (VALUES('x')), t2(x) AS (VALUES(0.0))\n"
+        + "SELECT * FROM t1 NATURAL JOIN t2";
+    sql(sql).ok();
+  }
+
   /** Tests LEFT JOIN LATERAL with multiple columns from outer. */
   @Test void testLeftJoinLateral4() {
     final String sql = "select * from (values (4,5)) as t(c,d)\n"

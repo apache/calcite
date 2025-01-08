@@ -501,6 +501,10 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
       return null;
     }
 
+    if (type1.equals(type2)) {
+      return type1;
+    }
+
     boolean anyNullable = type1.isNullable() || type2.isNullable();
 
     // this prevents the conversion between JavaType and normal RelDataType,
