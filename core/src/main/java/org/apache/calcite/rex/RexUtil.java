@@ -2470,7 +2470,8 @@ public class RexUtil {
         fieldAccess =
             new RexFieldAccess(
                 normalizedExpr,
-                fieldAccess.getField());
+                fieldAccess.getField(),
+                fieldAccess.getType());
       }
       return register(fieldAccess);
     }

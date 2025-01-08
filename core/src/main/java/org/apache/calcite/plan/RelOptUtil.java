@@ -94,6 +94,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.MultisetSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -2215,6 +2216,45 @@ public abstract class RelOptUtil {
     }
 
     if (!type1.equals(type2)) {
+      return litmus.fail("type mismatch:\n{}:\n{}\n{}:\n{}",
+          desc1, type1.getFullTypeString(),
+          desc2, type2.getFullTypeString());
+    }
+    return litmus.succeed();
+  }
+
+  /**
+   * Returns whether two types are equal, perhaps ignoring nullability.
+   *
+   * @param ignoreNullability If true the types must be equal ignoring the (top-level) nullability.
+   * @param desc1 Description of first type
+   * @param type1 First type
+   * @param desc2 Description of second type
+   * @param type2 Second type
+   * @param litmus What to do if an error is detected (types are not equal)
+   * @return Whether the types are equal
+   */
+  public static boolean eqUpToNullability(
+      boolean ignoreNullability,
+      final String desc1,
+      RelDataType type1,
+      final String desc2,
+      RelDataType type2,
+      Litmus litmus) {
+    // if any one of the types is ANY return true
+    if (type1.getSqlTypeName() == SqlTypeName.ANY
+        || type2.getSqlTypeName() == SqlTypeName.ANY) {
+      return litmus.succeed();
+    }
+
+    boolean success;
+    if (ignoreNullability) {
+      success = SqlTypeUtil.equalSansNullability(type1, type2);
+    } else {
+      success = type1.equals(type2);
+    }
+
+    if (!success) {
       return litmus.fail("type mismatch:\n{}:\n{}\n{}:\n{}",
           desc1, type1.getFullTypeString(),
           desc2, type2.getFullTypeString());
