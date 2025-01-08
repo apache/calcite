@@ -7492,6 +7492,34 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedSFSql));
   }
 
+  @Test public void testCurrentDatabaseFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode currentDatabase =
+        builder.call(SqlLibraryOperators.CURRENT_DATABASE);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(currentDatabase, "currentDatabase"))
+        .build();
+    final String expectedSql = "SELECT CURRENT_DATABASE() AS \"currentDatabase\""
+        + "\nFROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedSql));
+  }
+
+  @Test public void testProjectIdFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode projectId =
+        builder.call(SqlLibraryOperators.PROJECT_ID);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(projectId, "projectId"))
+        .build();
+    final String expectedSql = "SELECT @@PROJECT_ID AS projectId"
+        + "\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSql));
+  }
+
   @Test public void testBigQuerySha256Function() {
     final RelBuilder builder = relBuilder();
     final RexNode sha256Node =
