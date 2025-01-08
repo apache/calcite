@@ -45,7 +45,7 @@ concurrency:
 # This avoids never-ending GC trashing if memory gets too low in case of a memory leak
 env:
   _JAVA_OPTIONS: '-XX:GCTimeLimit=90 -XX:GCHeapFreeLimit=35'
-  DEVELOCITY_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
+  DEVELOCITY_ACCESS_KEY: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
   GUAVA_MIN: '21.0' # oldest supported Guava version
   GUAVA_MAX: '33.3.0-jre' # latest supported Guava version
   GUAVA: '21.0' # most jobs test against oldest Guava version
