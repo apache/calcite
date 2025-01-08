@@ -991,7 +991,8 @@ public class RexProgram {
           fieldAccess.getReferenceExpr().accept(this);
       return new RexFieldAccess(
           requireNonNull(referenceExpr, "referenceExpr must not be null"),
-          fieldAccess.getField());
+          fieldAccess.getField(),
+          fieldAccess.getType());
     }
   }
 

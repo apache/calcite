@@ -210,7 +210,8 @@ public class RexShuttle implements RexVisitor<RexNode> {
     } else {
       return new RexFieldAccess(
           after,
-          fieldAccess.getField());
+          fieldAccess.getField(),
+          fieldAccess.getType());
     }
   }
 

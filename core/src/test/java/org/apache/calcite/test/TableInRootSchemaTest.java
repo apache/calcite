@@ -16,9 +16,23 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.QueryProvider;
+import org.apache.calcite.linq4j.Queryable;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
+import org.apache.calcite.rel.type.RelRecordType;
+import org.apache.calcite.rel.type.StructKind;
+import org.apache.calcite.runtime.PairList;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.impl.AbstractTableQueryable;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Smalls;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultiset;
 
 import org.junit.jupiter.api.Test;
@@ -73,4 +87,63 @@ class TableInRootSchemaTest {
     connection.close();
   }
 
+  /**
+   * Helper class for the test for [CALCITE-6764] below.
+   */
+  private static class RowTable extends AbstractQueryableTable {
+    protected RowTable() {
+      super(Object[].class);
+    }
+
+    @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      final PairList<String, RelDataType> columnDesc = PairList.withCapacity(1);
+      // Schema contains a column whose type is MAP<VARCHAR, ROW(VARCHAR)>, but
+      // the ROW type can be nullable.
+      final RelDataType colType =
+          typeFactory.createMapType(typeFactory.createSqlType(SqlTypeName.VARCHAR),
+            new RelRecordType(
+                StructKind.PEEK_FIELDS,
+                  ImmutableList.of(
+                      new RelDataTypeFieldImpl("K", 0,
+                          typeFactory.createSqlType(SqlTypeName.VARCHAR))), true));
+      columnDesc.add("P", colType);
+      return typeFactory.createStructType(columnDesc);
+    }
+
+    @Override public <T> Queryable<T> asQueryable(
+        QueryProvider queryProvider, SchemaPlus schema, String tableName) {
+      return new AbstractTableQueryable<T>(queryProvider, schema, this,
+          tableName) {
+        @Override public Enumerator<T> enumerator() {
+          return new Enumerator<T>() {
+            @Override public T current() {
+              return null;
+            }
+
+            @Override public boolean moveNext() {
+              // Table is empty
+              return false;
+            }
+
+            @Override public void reset() {}
+
+            @Override public void close() {}
+          };
+        }
+      };
+    }
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6764">[CALCITE-6764]
+   * Field access from a nullable ROW should be nullable</a>. */
+  @Test void testNullableValue() throws Exception {
+    Connection connection = DriverManager.getConnection("jdbc:calcite:");
+    CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class);
+    calciteConnection.getRootSchema().add("T", new RowTable());
+    Statement statement = calciteConnection.createStatement();
+    ResultSet resultSet = statement.executeQuery("SELECT P['a'].K FROM T");
+    resultSet.close();
+    statement.close();
+    connection.close();
+  }
 }
