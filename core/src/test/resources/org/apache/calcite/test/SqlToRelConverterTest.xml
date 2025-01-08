@@ -3655,9 +3655,9 @@ NATURAL JOIN (SELECT deptno, name AS ename FROM dept) AS d]]>
     <Resource name="plan">
       <![CDATA[
 LogicalProject(ENAME=[$1], DEPTNO=[$7], EMPNO=[$0], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], SLACKER=[$8])
-  LogicalJoin(condition=[AND(=($1, $10), =($7, $9))], joinType=[inner])
+  LogicalJoin(condition=[AND(=($1, $11), =($7, $9))], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalProject(DEPTNO=[$0], ENAME=[$1])
+    LogicalProject(DEPTNO=[$0], ENAME=[$1], NAME=[CAST($1):VARCHAR(20) NOT NULL])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
@@ -3996,11 +3996,12 @@ JOIN (values ('Calcite', 200)) as s(ename, salary) using (ename)]]>
     <Resource name="plan">
       <![CDATA[
 LogicalProject(DEPTNO=[$7], ENAME=[$1])
-  LogicalJoin(condition=[=($1, $11)], joinType=[inner])
+  LogicalJoin(condition=[=($1, $13)], joinType=[inner])
     LogicalJoin(condition=[=($7, $9)], joinType=[inner])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-    LogicalValues(tuples=[[{ 'Calcite', 200 }]])
+    LogicalProject(ENAME=[$0], SALARY=[$1], ENAME0=[CAST($0):VARCHAR(20) NOT NULL])
+      LogicalValues(tuples=[[{ 'Calcite', 200 }]])
 ]]>
     </Resource>
   </TestCase>
@@ -5074,6 +5075,22 @@ LogicalProject(EXPR$0=[$1])
     </Resource>
     <Resource name="sql">
       <![CDATA[select multiset(select deptno from dept) from (values(true))]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testNaturalJoinCast">
+    <Resource name="sql">
+      <![CDATA[WITH t1(x) AS (VALUES('x')), t2(x) AS (VALUES(0.0))
+SELECT * FROM t1 NATURAL JOIN t2]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(X=[CAST($0):DECIMAL(2, 1) NOT NULL])
+  LogicalJoin(condition=[=($1, $3)], joinType=[inner])
+    LogicalProject(EXPR$0=[$0], EXPR$00=[CAST($0):DECIMAL(19, 9) NOT NULL])
+      LogicalValues(tuples=[[{ 'x' }]])
+    LogicalProject(EXPR$0=[$0], EXPR$00=[CAST($0):DECIMAL(19, 9) NOT NULL])
+      LogicalValues(tuples=[[{ 0.0 }]])
+]]>
     </Resource>
   </TestCase>
   <TestCase name="testNestedAggregates">
