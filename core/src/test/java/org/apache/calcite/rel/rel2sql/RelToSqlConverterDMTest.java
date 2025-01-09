@@ -12747,4 +12747,31 @@ class RelToSqlConverterDMTest {
         + "FROM [scott].[EMP]";
     assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedMsSqlQuery));
   }
+
+  @Test public void testProjectWithCastAndCastOperandUsedInGroupBy() {
+    final RelBuilder builder = foodmartRelBuilder();
+    builder.scan("employee");
+    RexNode literalRex = builder.alias(builder.literal(10), "EXPR$123");
+    RexNode functionRex =
+        builder.alias(builder.call(SqlStdOperatorTable.CONCAT, builder.field("employee_id"), builder.field("department_id")), "EXPR$456");
+
+    RelNode relNode = builder
+        .project(literalRex, functionRex)
+        .aggregate(builder.groupKey(0, 1))
+        .project(
+            builder.alias(
+                builder.cast(
+                    builder.cast(builder.field(0), SqlTypeName.DECIMAL
+            , 38, 0), SqlTypeName.INTEGER), "EXPR$123"),
+            builder.alias(
+                builder.cast(builder.field(1),
+            SqlTypeName.VARCHAR, 10), "EXPR$456"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT CAST(CAST(10 AS NUMERIC) AS INT64), "
+        + "CAST(employee_id || department_id AS STRING)\n"
+        + "FROM foodmart.employee\nGROUP BY 1, 2";
+
+    assertThat(toSql(relNode, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
 }
