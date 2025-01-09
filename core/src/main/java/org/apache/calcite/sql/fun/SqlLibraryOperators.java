@@ -1953,6 +1953,37 @@ public abstract class SqlLibraryOperators {
           OperandTypes.or(OperandTypes.family(SqlTypeFamily.STRING), OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
 
+  /**
+   * The "TO_HEX(integer)" function; converts an {@code int} value into a hexadecimal string.
+   */
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlFunction POSTGRES_TO_HEX =
+      SqlBasicFunction.create("TO_HEX",
+          ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.INTEGER,
+          SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlFunction QUOTE_IDENT =
+      SqlBasicFunction.create("QUOTE_IDENT",
+          ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.STRING,
+          SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlFunction QUOTE_LITERAL =
+      SqlBasicFunction.create("QUOTE_LITERAL",
+          ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.ANY,
+          SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction TZ_OFFSET =
+      SqlBasicFunction.create("TZ_OFFSET",
+          ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.STRING,
+          SqlFunctionCategory.STRING);
+
   /** The "FORMAT_NUMBER(value, decimalOrFormat)" function. */
   @LibraryOperator(libraries = {HIVE, SPARK})
   public static final SqlFunction FORMAT_NUMBER =
@@ -3915,15 +3946,4 @@ public abstract class SqlLibraryOperators {
           null,
           OperandTypes.STRING,
           SqlFunctionCategory.SYSTEM);
-
-  @LibraryOperator(libraries = {SQL_SERVER})
-  public static final SqlFunction HASHBYTES =
-      new SqlFunction(
-          "HASHBYTES",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.VARBINARY,
-          null,
-          OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.STRING),
-          SqlFunctionCategory.SYSTEM);
-
 }

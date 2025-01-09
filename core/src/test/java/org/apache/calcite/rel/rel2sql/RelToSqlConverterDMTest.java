@@ -2749,6 +2749,19 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBq));
   }
 
+  @Test public void testPostgresQuoteFunctions() {
+    final RelBuilder builder = relBuilder();
+    RexNode quoteIdentCall = builder.call(SqlLibraryOperators.QUOTE_IDENT, builder.literal("Foo bar"));
+    RexNode quoteLiteralCall = builder.call(SqlLibraryOperators.QUOTE_LITERAL, builder.literal(42.5));
+    RelNode root = builder
+        .push(LogicalValues.createOneRow(builder.getCluster()))
+        .project(quoteIdentCall, quoteLiteralCall)
+        .build();
+    final String expectedPostgres = "SELECT QUOTE_IDENT('Foo bar') AS \"$f0\", "
+        + "QUOTE_LITERAL(42.5) AS \"$f1\"";
+    assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedPostgres));
+  }
+
   @Test public void testArraySlice() {
     final RelBuilder builder = relBuilder();
 
@@ -2763,7 +2776,7 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflake));
   }
 
-  @Test void testLagFunctionForPrintingOfFrameBoundary() {
+  @Test void testLagFunctionForPrintingitgOfFrameBoundary() {
     String query = "SELECT lag(\"employee_id\",1,'NA') over "
         + "(partition by \"hire_date\" order by \"employee_id\") FROM \"employee\"";
     String expected = "SELECT LAG(\"employee_id\", 1, 'NA') OVER "
