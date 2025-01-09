@@ -4942,7 +4942,7 @@ public class RexImpTable {
         List<Expression> argValueList) {
       final Expression target =
           Expressions.new_(BuiltInMethod.TO_CHAR_PG.method.getDeclaringClass(),
-              new ParameterExpression(0, DataContext.class, "root"));
+              translator.getRoot());
       final Expression operand0 = argValueList.get(0);
       final Expression operand1 = argValueList.get(1);
       return Expressions.call(target, BuiltInMethod.TO_CHAR_PG.method, operand0, operand1);
@@ -4961,8 +4961,7 @@ public class RexImpTable {
     @Override Expression implementSafe(RexToLixTranslator translator, RexCall call,
         List<Expression> argValueList) {
       final Expression target =
-          Expressions.new_(method.getDeclaringClass(),
-              new ParameterExpression(0, DataContext.class, "root"));
+          Expressions.new_(method.getDeclaringClass(), translator.getRoot());
       final Expression operand0 = argValueList.get(0);
       final Expression operand1 = argValueList.get(1);
       return Expressions.call(target, method, operand0, operand1);

@@ -23,6 +23,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlMonotonicBinaryOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.InferTypes;
@@ -34,9 +35,11 @@ import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.TestUtil;
+import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
@@ -44,7 +47,9 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Random;
+import java.util.TimeZone;
 import java.util.function.Function;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -65,8 +70,10 @@ class RexExecutorTest {
   protected void check(final Action action) {
     Frameworks.withPrepare((cluster, relOptSchema, rootSchema, statement) -> {
       final RexBuilder rexBuilder = cluster.getRexBuilder();
-      DataContext dataContext =
-          DataContexts.of(statement.getConnection(), rootSchema);
+      final ImmutableMap.Builder<String, Object> builder = ImmutableMap.builder();
+      builder.put(DataContext.Variable.TIME_ZONE.camelName, TimeZone.getTimeZone("GMT"));
+      builder.put(DataContext.Variable.LOCALE.camelName, Locale.US);
+      final DataContext dataContext = DataContexts.of(builder.build());
       final RexExecutorImpl executor = new RexExecutorImpl(dataContext);
       action.check(rexBuilder, executor);
       return null;
@@ -276,6 +283,26 @@ class RexExecutorTest {
       assertThat(reducedValues.get(1), instanceOf(RexLiteral.class));
       assertThat(((RexLiteral) reducedValues.get(1)).getValue2(),
           equalTo(2L));
+    });
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6775">[CALCITE-6775]
+   * ToChar and ToTimestamp PG implementors should use translator's root instead of
+   * creating a new root expression</a>. */
+  @Test void testToCharPg() {
+    check((rexBuilder, executor) -> {
+      final List<RexNode> reducedValues = new ArrayList<>();
+      // GMT: Wednesday, November 12, 1975 11:00:00 AM
+      final TimestampString timestamp = TimestampString.fromMillisSinceEpoch(185022000000L);
+      final RexNode toChar =
+          rexBuilder.makeCall(SqlLibraryOperators.TO_CHAR_PG,
+              rexBuilder.makeTimestampLiteral(timestamp, 0),
+              rexBuilder.makeLiteral("ID")); // ISO 8601 day of the week (Wednesday = 3)
+      executor.reduce(rexBuilder, ImmutableList.of(toChar), reducedValues);
+      assertThat(reducedValues, hasSize(1));
+      assertThat(reducedValues.get(0), instanceOf(RexLiteral.class));
+      assertThat(((RexLiteral) reducedValues.get(0)).getValueAs(String.class), equalTo("3"));
     });
   }
 
