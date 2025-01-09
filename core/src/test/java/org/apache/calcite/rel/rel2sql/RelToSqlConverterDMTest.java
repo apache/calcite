@@ -2749,6 +2749,19 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBq));
   }
 
+  @Test public void testPostgresQuoteFunctions() {
+    final RelBuilder builder = relBuilder();
+    RexNode quoteIdentCall = builder.call(SqlLibraryOperators.QUOTE_IDENT, builder.literal("Foo bar"));
+    RexNode quoteLiteralCall = builder.call(SqlLibraryOperators.QUOTE_LITERAL, builder.literal(42.5));
+    RelNode root = builder
+        .push(LogicalValues.createOneRow(builder.getCluster()))
+        .project(quoteIdentCall, quoteLiteralCall)
+        .build();
+    final String expectedPostgres = "SELECT QUOTE_IDENT('Foo bar') AS \"$f0\", "
+        + "QUOTE_LITERAL(42.5) AS \"$f1\"";
+    assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedPostgres));
+  }
+
   @Test public void testArraySlice() {
     final RelBuilder builder = relBuilder();
 
@@ -2763,7 +2776,7 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflake));
   }
 
-  @Test void testLagFunctionForPrintingOfFrameBoundary() {
+  @Test void testLagFunctionForPrintingitgOfFrameBoundary() {
     String query = "SELECT lag(\"employee_id\",1,'NA') over "
         + "(partition by \"hire_date\" order by \"employee_id\") FROM \"employee\"";
     String expected = "SELECT LAG(\"employee_id\", 1, 'NA') OVER "
@@ -7474,6 +7487,50 @@ class RelToSqlConverterDMTest {
         + "FROM \"scott\".\"EMP\"";
 
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSFSql));
+  }
+
+  @Test public void testMsSqlHashBytesFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode hashByteNode =
+        builder.call(SqlLibraryOperators.HASHBYTES,
+            builder.literal("SHA2_256"),
+            builder.scan("EMP").field(1));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(hashByteNode, "HashedValue"))
+        .build();
+    final String expectedSFSql = "SELECT HASHBYTES('SHA2_256', [ENAME]) AS [HashedValue]"
+        + "\nFROM [scott].[EMP]";
+
+    assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedSFSql));
+  }
+
+  @Test public void testCurrentDatabaseFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode currentDatabase =
+        builder.call(SqlLibraryOperators.CURRENT_DATABASE);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(currentDatabase, "currentDatabase"))
+        .build();
+    final String expectedSql = "SELECT CURRENT_DATABASE() AS \"currentDatabase\""
+        + "\nFROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedSql));
+  }
+
+  @Test public void testProjectIdFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode projectId =
+        builder.call(SqlLibraryOperators.PROJECT_ID);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(projectId, "projectId"))
+        .build();
+    final String expectedSql = "SELECT @@PROJECT_ID AS projectId"
+        + "\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSql));
   }
 
   @Test public void testBigQuerySha256Function() {
@@ -12690,6 +12747,20 @@ class RelToSqlConverterDMTest {
         .build();
 
     final String expectedMsSqlQuery = "SELECT OBJECT_SCHEMA_NAME(12345) AS [schema_name_alias]\n"
+        + "FROM [scott].[EMP]";
+    assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedMsSqlQuery));
+  }
+
+  @Test public void testHashBytesFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode rexNode =
+        builder.call(SqlLibraryOperators.HASHBYTES, builder.literal("SHA1"), builder.literal("dfdd76d7vb"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(rexNode, "HashValue"))
+        .build();
+
+    final String expectedMsSqlQuery = "SELECT HASHBYTES('SHA1', 'dfdd76d7vb') AS [HashValue]\n"
         + "FROM [scott].[EMP]";
     assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedMsSqlQuery));
   }
