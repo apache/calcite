@@ -1223,7 +1223,10 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
           sourceType.getSqlTypeName().getEndUnit().multiplier;
       return RexImpTable.multiplyDivide(operand, multiplier, divider);
     }
-    if (SqlTypeName.INTERVAL_TYPES.contains(targetType.getSqlTypeName())) {
+    if (SqlTypeName.INTERVAL_TYPES.contains(targetType.getSqlTypeName())
+        && !SqlTypeName.INTERVAL_TYPES.contains(sourceType.getSqlTypeName())) {
+      // Conversion between intervals is only allowed if the intervals have the same type,
+      // and then it should be a no-op.
       final BigDecimal multiplier = targetType.getSqlTypeName().getEndUnit().multiplier;
       final BigDecimal divider = BigDecimal.ONE;
       return RexImpTable.multiplyDivide(operand, multiplier, divider);
