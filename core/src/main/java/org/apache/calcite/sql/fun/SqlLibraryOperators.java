@@ -2652,7 +2652,7 @@ public abstract class SqlLibraryOperators {
       new SqlCastFunction("SAFE_CAST", SqlKind.SAFE_CAST);
 
   /** The "TRY_CAST(expr AS type)" function, equivalent to SAFE_CAST. */
-  @LibraryOperator(libraries = {MSSQL})
+  @LibraryOperator(libraries = {MSSQL, SPARK})
   public static final SqlFunction TRY_CAST =
       new SqlCastFunction("TRY_CAST", SqlKind.SAFE_CAST);
 
