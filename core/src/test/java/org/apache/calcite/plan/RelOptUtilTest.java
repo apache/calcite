@@ -34,6 +34,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.SchemaPlus;
@@ -418,6 +419,260 @@ class RelOptUtilTest {
     assertThat(actFilterNulls, is(expFilterNulls));
     assertThat(actLeftKeys, is(expLeftKeys));
     assertThat(actRightKeys, is(expRightKeys));
+  }
+
+  /**
+   * Test that {@link RelOptUtil#collapseExpandedIsNotDistinctFromExpr(RexCall, RexBuilder)}
+   * collapses an expanded version of IS NOT DISTINCT using OR.
+   */
+  @Test void testCollapseExpandedIsNotDistinctFromUsingOr() {
+    final RexBuilder rexBuilder = relBuilder.getRexBuilder();
+
+    final RexNode leftEmpNo =
+        RexInputRef.of(empScan.getRowType().getFieldNames().indexOf("EMPNO"),
+            empDeptJoinRelFields);
+    final RexNode rightEmpNo =
+        RexInputRef.of(empRow.getFieldCount() + deptRow.getFieldNames().indexOf("EMPNO"),
+            empDeptJoinRelFields);
+
+    // OR(AND(IS NULL($0), IS NULL($7)), IS TRUE(=($0, $7)))
+    RexNode expanded = relBuilder.isNotDistinctFrom(leftEmpNo, rightEmpNo);
+
+    // IS NOT DISTINCT FROM($0, $7)
+    RexNode collapsed =
+        RelOptUtil.collapseExpandedIsNotDistinctFromExpr((RexCall) expanded, rexBuilder);
+
+    RexNode expected =
+        rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM, leftEmpNo, rightEmpNo);
+
+    assertThat(collapsed, is(expected));
+  }
+
+  /**
+   * Test that {@link RelOptUtil#collapseExpandedIsNotDistinctFromExpr(RexCall, RexBuilder)}
+   * collapses an expanded version of IS NOT DISTINCT using CASE.
+   */
+  @Test void testCollapseExpandedIsNotDistinctFromUsingCase() {
+    final RexBuilder rexBuilder = relBuilder.getRexBuilder();
+
+    final RexNode leftEmpNo =
+        RexInputRef.of(empScan.getRowType().getFieldNames().indexOf("EMPNO"),
+            empDeptJoinRelFields);
+    final RexNode rightEmpNo =
+        RexInputRef.of(empRow.getFieldCount() + deptRow.getFieldNames().indexOf("EMPNO"),
+            empDeptJoinRelFields);
+
+    // CASE(IS NULL($0), IS NULL($7), IS NULL($7), IS NULL($0), =($0, $7))
+    RexNode expanded =
+        relBuilder.call(SqlStdOperatorTable.CASE, relBuilder.isNull(leftEmpNo),
+            relBuilder.isNull(rightEmpNo),
+            relBuilder.isNull(rightEmpNo),
+            relBuilder.isNull(leftEmpNo),
+            relBuilder.equals(leftEmpNo, rightEmpNo));
+
+    // IS NOT DISTINCT FROM($0, $7)
+    RexNode collapsed =
+        RelOptUtil.collapseExpandedIsNotDistinctFromExpr((RexCall) expanded, rexBuilder);
+
+    RexNode expected =
+        rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM, leftEmpNo, rightEmpNo);
+
+    assertThat(collapsed, is(expected));
+  }
+
+  /**
+   * Test that {@link RelOptUtil#collapseExpandedIsNotDistinctFromExpr(RexCall, RexBuilder)}
+   * collapses an expression with expanded versions of IS NOT DISTINCT using OR and CASE.
+   */
+  @Test void testCollapseExpandedIsNotDistinctFromUsingOrAndCase() {
+    final RexBuilder rexBuilder = relBuilder.getRexBuilder();
+
+    final RexNode leftEmpNo =
+        RexInputRef.of(empScan.getRowType().getFieldNames().indexOf("EMPNO"),
+            empDeptJoinRelFields);
+    final RexNode rightEmpNo =
+        RexInputRef.of(empRow.getFieldCount() + deptRow.getFieldNames().indexOf("EMPNO"),
+            empDeptJoinRelFields);
+
+    final RexNode leftDeptNo =
+        RexInputRef.of(empScan.getRowType().getFieldNames().indexOf("DEPTNO"),
+            empDeptJoinRelFields);
+    final RexNode rightDeptNo =
+        RexInputRef.of(empRow.getFieldCount() + deptRow.getFieldNames().indexOf("DEPTNO"),
+            empDeptJoinRelFields);
+
+    // An IS NOT DISTINCT FROM expanded in "CASE" shape
+    // CASE(IS NULL($0), IS NULL($7), IS NULL($7), IS NULL($0), =($0, $7))
+    RexNode expandedCase =
+        relBuilder.call(SqlStdOperatorTable.CASE, relBuilder.isNull(leftEmpNo),
+            relBuilder.isNull(rightEmpNo),
+            relBuilder.isNull(rightEmpNo),
+            relBuilder.isNull(leftEmpNo),
+            relBuilder.equals(leftEmpNo, rightEmpNo));
+
+    // An IS NOT DISTINCT FROM expanded in "OR" shape
+    // OR(AND(IS NULL($7), IS NULL($8)), =($7, $8))
+    RexNode expandedOr =
+        relBuilder.call(
+            SqlStdOperatorTable.OR, relBuilder.call(SqlStdOperatorTable.AND,
+                relBuilder.isNull(leftDeptNo),
+                relBuilder.isNull(rightDeptNo)),
+            relBuilder.call(SqlStdOperatorTable.EQUALS, leftDeptNo, rightDeptNo));
+
+    // AND(
+    //  OR(AND(IS NULL($7), IS NULL($8)), =($7, $8)),
+    //  CASE(IS NULL($0), IS NULL($7), IS NULL($7), IS NULL($0), =($0, $7))
+    // )
+    RexNode expanded = relBuilder.and(expandedOr, expandedCase);
+
+    // AND(IS NOT DISTINCT FROM($7, $8), IS NOT DISTINCT FROM($0, $7))
+    RexNode collapsed =
+        RelOptUtil.collapseExpandedIsNotDistinctFromExpr((RexCall) expanded, rexBuilder);
+
+    RexNode expected =
+        rexBuilder.makeCall(
+            // Expected is nullable because `expandedCase` is nullable
+            relBuilder.getTypeFactory().createTypeWithNullability(expanded.getType(), true),
+            SqlStdOperatorTable.AND,
+            ImmutableList.of(
+                rexBuilder.makeCall(
+                    SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
+                    leftEmpNo,
+                    rightEmpNo),
+                rexBuilder.makeCall(
+                    SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
+                    leftDeptNo,
+                    rightDeptNo)));
+
+    assertThat(collapsed, is(expected));
+  }
+
+  /**
+   * Test that {@link RelOptUtil#collapseExpandedIsNotDistinctFromExpr(RexCall, RexBuilder)}
+   * recursively collapses expanded versions of IS NOT DISTINCT.
+   */
+  @Test void testCollapseExpandedIsNotDistinctFromRecursively() {
+    final RexBuilder rexBuilder = relBuilder.getRexBuilder();
+
+    final RexNode leftEmpNo =
+        RexInputRef.of(empScan.getRowType().getFieldNames().indexOf("EMPNO"),
+            empDeptJoinRelFields);
+    final RexNode rightEmpNo =
+        RexInputRef.of(empRow.getFieldCount() + deptRow.getFieldNames().indexOf("EMPNO"),
+            empDeptJoinRelFields);
+
+    // OR(
+    //  AND(
+    //   IS NULL(OR(AND(IS NULL($0), IS NULL($7)), IS TRUE(=($0, $7)))),
+    //   IS NULL(OR(AND(IS NULL($0), IS NULL($7)), IS TRUE(=($0, $7))))),
+    //   IS TRUE(=(
+    //    OR(AND(IS NULL($0), IS NULL($7)), IS TRUE(=($0, $7))),
+    //    OR(AND(IS NULL($0), IS NULL($7)), IS TRUE(=($0, $7)))
+    //   )
+    //  )
+    // )
+    RexNode expanded =
+        relBuilder.isNotDistinctFrom(
+            relBuilder.isNotDistinctFrom(leftEmpNo, rightEmpNo),
+            relBuilder.isNotDistinctFrom(leftEmpNo, rightEmpNo));
+
+    // IS NOT DISTINCT FROM(IS NOT DISTINCT FROM($0, $7), IS NOT DISTINCT FROM($0, $7))
+    RexNode collapsed =
+        RelOptUtil.collapseExpandedIsNotDistinctFromExpr((RexCall) expanded, rexBuilder);
+
+    RexNode expected =
+        rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
+            rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
+                leftEmpNo,
+                rightEmpNo),
+
+            rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
+                leftEmpNo,
+                rightEmpNo));
+
+    assertThat(collapsed, is(expected));
+  }
+
+  /**
+   * Test that {@link RelOptUtil#collapseExpandedIsNotDistinctFromExpr(RexCall, RexBuilder)}
+   * will collapse IS NOT DISTINCT FROM nested within RexNodes.
+   */
+  @Test void testCollapseExpandedIsNotDistinctFromInsideRexNode() {
+    final RexBuilder rexBuilder = relBuilder.getRexBuilder();
+
+    final RexNode leftEmpNo =
+        RexInputRef.of(empScan.getRowType().getFieldNames().indexOf("EMPNO"),
+            empDeptJoinRelFields);
+    final RexNode rightEmpNo =
+        RexInputRef.of(empRow.getFieldCount() + deptRow.getFieldNames().indexOf("EMPNO"),
+            empDeptJoinRelFields);
+
+    RexNode expandedIsNotDistinctFrom = relBuilder.isNotDistinctFrom(leftEmpNo, rightEmpNo);
+    // NULLIF(
+    //  NOT(OR(AND(IS NULL($0), IS NULL($7)), IS TRUE(=($0, $7)))),
+    //  IS NOT NULL(OR(AND(IS NULL($0), IS NULL($7)), IS TRUE(=($0, $7))))
+    // )
+    RexNode expanded =
+        relBuilder.call(SqlStdOperatorTable.NULLIF,
+            relBuilder.not(expandedIsNotDistinctFrom),
+            relBuilder.isNotNull(expandedIsNotDistinctFrom));
+
+    // NULLIF(NOT(IS NOT DISTINCT FROM($0, $7)), IS NOT NULL(IS NOT DISTINCT FROM($0, $7)))
+    RexNode collapsed =
+        RelOptUtil.collapseExpandedIsNotDistinctFromExpr((RexCall) expanded, rexBuilder);
+
+    RexNode collapsedIsNotDistinctFrom =
+        rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM, leftEmpNo, rightEmpNo);
+    RexNode expected =
+        rexBuilder.makeCall(
+            SqlStdOperatorTable.NULLIF,
+            relBuilder.not(collapsedIsNotDistinctFrom),
+            relBuilder.isNotNull(collapsedIsNotDistinctFrom));
+
+    assertThat(collapsed, is(expected));
+  }
+
+  /**
+   * Test that {@link RelOptUtil#collapseExpandedIsNotDistinctFromExpr(RexCall, RexBuilder)}
+   * can handle collapsing IS NOT DISTINCT FROM composed of other RexNodes.
+   */
+  @Test void testCollapseExpandedIsNotDistinctFromOnContainingRexNodes() {
+    final RexBuilder rexBuilder = relBuilder.getRexBuilder();
+
+    final RexNode leftEmpNo =
+        RexInputRef.of(empScan.getRowType().getFieldNames().indexOf("EMPNO"),
+            empDeptJoinRelFields);
+    final RexNode rightEmpNo =
+        RexInputRef.of(empRow.getFieldCount() + deptRow.getFieldNames().indexOf("EMPNO"),
+            empDeptJoinRelFields);
+
+    final RexNode leftDeptNo =
+        RexInputRef.of(empScan.getRowType().getFieldNames().indexOf("DEPTNO"),
+            empDeptJoinRelFields);
+    final RexNode rightDeptNo =
+        RexInputRef.of(empRow.getFieldCount() + deptRow.getFieldNames().indexOf("DEPTNO"),
+            empDeptJoinRelFields);
+
+    // OR(
+    //  AND(IS NULL(NULLIF($0, $7)), IS NULL(NULLIF($7, $8))),
+    //  IS TRUE(=(NULLIF($0, $7), NULLIF($7, $8)))
+    // )
+    RexNode expanded =
+        relBuilder.isNotDistinctFrom(
+            relBuilder.call(SqlStdOperatorTable.NULLIF, leftEmpNo, rightEmpNo),
+            relBuilder.call(SqlStdOperatorTable.NULLIF, leftDeptNo, rightDeptNo));
+
+    // IS NOT DISTINCT FROM(NULLIF($0, $7), NULLIF($7, $8))
+    RexNode collapsed =
+        RelOptUtil.collapseExpandedIsNotDistinctFromExpr((RexCall) expanded, rexBuilder);
+
+    RexNode expected =
+        rexBuilder.makeCall(
+            SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
+            rexBuilder.makeCall(SqlStdOperatorTable.NULLIF, leftEmpNo, rightEmpNo),
+            rexBuilder.makeCall(SqlStdOperatorTable.NULLIF, leftDeptNo, rightDeptNo));
+
+    assertThat(collapsed, is(expected));
   }
 
   /**

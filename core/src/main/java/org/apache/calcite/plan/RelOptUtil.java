@@ -1747,32 +1747,35 @@ public abstract class RelOptUtil {
    * and
    * {@link #splitJoinCondition(List, List, RexNode, List, List, List, List)}.
    *
-   * <p>If the given expr <code>call</code> is an expanded version of
+   * <p>If the given expr <code>rexCall</code> contains an expanded version of
    * {@code IS NOT DISTINCT FROM} function call, collapses it and return a
    * {@code IS NOT DISTINCT FROM} function call.
    *
    * <p>For example: {@code t1.key IS NOT DISTINCT FROM t2.key}
-   * can rewritten in expanded form as
+   * can be rewritten in expanded form as
    * {@code t1.key = t2.key OR (t1.key IS NULL AND t2.key IS NULL)}.
    *
-   * @param call       Function expression to try collapsing
+   * @param rexCall       Function expression to try collapsing
    * @param rexBuilder {@link RexBuilder} instance to create new {@link RexCall} instances.
-   * @return If the given function is an expanded IS NOT DISTINCT FROM function call,
-   *         return a IS NOT DISTINCT FROM function call. Otherwise return the input
-   *         function call as it is.
+   * @return A function where all IS NOT DISTINCT FROM are collapsed.
    */
-  public static RexCall collapseExpandedIsNotDistinctFromExpr(final RexCall call,
+  public static RexCall collapseExpandedIsNotDistinctFromExpr(final RexCall rexCall,
       final RexBuilder rexBuilder) {
-    switch (call.getKind()) {
-    case OR:
-      return doCollapseExpandedIsNotDistinctFromOrExpr(call, rexBuilder);
+    final RexShuttle shuttle = new RexShuttle() {
+      @Override public RexNode visitCall(RexCall call) {
+        RexCall recursivelyExpanded = (RexCall) super.visitCall(call);
 
-    case CASE:
-      return doCollapseExpandedIsNotDistinctFromCaseExpr(call, rexBuilder);
-
-    default:
-      return call;
-    }
+        switch (recursivelyExpanded.getKind()) {
+        case OR:
+          return doCollapseExpandedIsNotDistinctFromOrExpr(recursivelyExpanded, rexBuilder);
+        case CASE:
+          return doCollapseExpandedIsNotDistinctFromCaseExpr(recursivelyExpanded, rexBuilder);
+        default:
+          return recursivelyExpanded;
+        }
+      }
+    };
+    return (RexCall) rexCall.accept(shuttle);
   }
 
   private static RexCall doCollapseExpandedIsNotDistinctFromOrExpr(final RexCall call,
