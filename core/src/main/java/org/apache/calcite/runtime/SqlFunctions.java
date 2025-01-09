@@ -5775,6 +5775,9 @@ public class SqlFunctions {
 
   /** SQL {@code REPLACE(string, search, replacement)} function. */
   public static String replace(String s, String search, String replacement) {
+    if (search.isEmpty()) {
+      return s;
+    }
     return s.replace(search, replacement);
   }
 

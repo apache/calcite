@@ -63,6 +63,7 @@ import static org.apache.calcite.runtime.SqlFunctions.ltrim;
 import static org.apache.calcite.runtime.SqlFunctions.md5;
 import static org.apache.calcite.runtime.SqlFunctions.overlay;
 import static org.apache.calcite.runtime.SqlFunctions.position;
+import static org.apache.calcite.runtime.SqlFunctions.replace;
 import static org.apache.calcite.runtime.SqlFunctions.rtrim;
 import static org.apache.calcite.runtime.SqlFunctions.sha1;
 import static org.apache.calcite.runtime.SqlFunctions.sha256;
@@ -556,6 +557,14 @@ class SqlFunctionsTest {
       assertThat(e.getMessage(),
           is("Invalid integer input '-4' for argument 'occurrence_position' in REGEXP_INSTR"));
     }
+  }
+
+  @Test void testReplace() {
+    assertThat(replace("", "ciao", "ci"), is(""));
+    assertThat(replace("ciao", "ciao", ""), is(""));
+    assertThat(replace("ciao", "", "ciao"), is("ciao"));
+    assertThat(replace("ci ao", " ", "ciao"), is("ciciaoao"));
+    assertThat(replace("hello world", "o", ""), is("hell wrld"));
   }
 
   @Test void testRegexpReplace() {

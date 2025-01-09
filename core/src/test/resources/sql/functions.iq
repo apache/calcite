@@ -1018,6 +1018,75 @@ select convert(null using utf8);
 
 !ok
 
+# [CALCITE-6774] REPLACE function returns wrong result when search pattern is an empty string
+select replace('ciao', '', 'ciao');
++--------+
+| EXPR$0 |
++--------+
+| ciao   |
++--------+
+(1 row)
+
+!ok
+
+select replace('ci ao', ' ', 'ciao');
++----------+
+| EXPR$0   |
++----------+
+| ciciaoao |
++----------+
+(1 row)
+
+!ok
+
+with t as (select replace(null, 'ciao', 'ci') as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | true      |
++---+-----------+
+(1 row)
+
+!ok
+
+with t as (select replace('ciao', cast(null as varchar), 'ci') as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | true      |
++---+-----------+
+(1 row)
+
+!ok
+
+with t as (select replace('ciao', 'ci', cast(null as varchar)) as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | true      |
++---+-----------+
+(1 row)
+
+!ok
+
+with t as (select replace('', 'ciao', 'ci') as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | false     |
++---+-----------+
+(1 row)
+
+!ok
+
 !use foodmart
 select convert(cast("employee_id" as varchar) using latin1) as alia
 from "employee"
