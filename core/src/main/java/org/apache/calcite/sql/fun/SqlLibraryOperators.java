@@ -3180,16 +3180,6 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(SqlTypeFamily.DATE,
           SqlTypeFamily.STRING), SqlFunctionCategory.SYSTEM);
 
-  @LibraryOperator(libraries = {MSSQL})
-  public static final SqlFunction HASHBYTES =
-      new SqlFunction(
-          "HASHBYTES",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.VARBINARY,
-          null,
-          OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.STRING),
-          SqlFunctionCategory.SYSTEM);
-
   @LibraryOperator(libraries = {POSTGRESQL})
   public static final SqlFunction CURRENT_DATABASE =
       new SqlFunction(
