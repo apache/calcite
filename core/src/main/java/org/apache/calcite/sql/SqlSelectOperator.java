@@ -228,41 +228,26 @@ public class SqlSelectOperator extends SqlOperator {
         if (writer.getDialect().getConformance().isGroupByOrdinal()) {
           final SqlWriter.Frame groupFrame =
               writer.startList(SqlWriter.FrameTypeEnum.GROUP_BY_LIST);
-          List<SqlNode> visitedLiteralNodeList = new ArrayList<>();
+          List<SqlNode> visitedSqlNodes = new ArrayList<>();
           for (SqlNode groupKey : select.groupBy.getList()) {
             if (!groupKey.toString().equalsIgnoreCase("NULL")) {
-              if (groupKey.getKind() == SqlKind.LITERAL
-                  || groupKey.getKind() == SqlKind.DYNAMIC_PARAM
-                  || groupKey.getKind() == SqlKind.MINUS_PREFIX
-                  || groupKey instanceof SqlBasicCall) {
+              if (shouldProcessGroupKey(groupKey)) {
                 select.selectList.getList().
                     forEach(new Consumer<SqlNode>() {
                       @Override public void accept(SqlNode selectSqlNode) {
-                        SqlNode literalNode = selectSqlNode;
-                        if (literalNode.getKind() == SqlKind.AS) {
-                          literalNode = ((SqlBasicCall) selectSqlNode).getOperandList().get(0);
-                          if (SqlKind.CAST == literalNode.getKind()) {
-                            literalNode = ((SqlBasicCall) literalNode).getOperandList().get(0);
-                          }
-                        }
-                        if (SqlKind.CAST == literalNode.getKind()) {
-                          literalNode = ((SqlBasicCall) literalNode).getOperandList().get(0);
-                        }
-                        if ((literalNode.equals(groupKey) || isCastOnGroupKey(literalNode, groupKey))
-                            && !visitedLiteralNodeList.contains(literalNode)) {
-                          writer.sep(",");
-                          String ordinal =
-                              String.valueOf(select.selectList.getList().
-                                      indexOf(selectSqlNode) + 1);
-                          SqlLiteral.createExactNumeric(ordinal,
-                              SqlParserPos.ZERO).unparse(writer, 2, 3);
-                          visitedLiteralNodeList.add(literalNode);
+                        SqlNode sqlNode = unwrapSqlNode(selectSqlNode);
+                        if (isLiteralOrDynamicOrMinusUsedInGroupBy(selectSqlNode, sqlNode, groupKey, visitedSqlNodes)
+                            || isCastOperandUsedInGroupBy(selectSqlNode, sqlNode, groupKey, visitedSqlNodes)) {
+                              unparseGroupByOrdinal(selectSqlNode, sqlNode, writer, select, visitedSqlNodes);
                         }
                       }
                     });
+                if (isGroupByKeyNotVisited(groupKey, visitedSqlNodes)) {
+                  unparseGroupKey(writer, groupKey);
+                  visitedSqlNodes.add(groupKey);
+                }
               } else {
-                writer.sep(",");
-                groupKey.unparse(writer, 2, 3);
+                unparseGroupKey(writer, groupKey);
               }
             }
           }
@@ -294,10 +279,71 @@ public class SqlSelectOperator extends SqlOperator {
     writer.endList(selectFrame);
   }
 
-  private static boolean isCastOnGroupKey(SqlNode literalNode, SqlNode groupKey) {
-    return literalNode instanceof SqlBasicCall
-        && literalNode.getKind() == SqlKind.CAST
-        && ((SqlBasicCall) literalNode).getOperandList().get(0) == groupKey;
+  private static void unparseGroupKey(SqlWriter writer, SqlNode groupKey) {
+    writer.sep(",");
+    groupKey.unparse(writer, 2, 3);
+  }
+
+  private static SqlNode unwrapSqlNode(SqlNode selectSqlNode) {
+    SqlNode sqlNode = selectSqlNode;
+    if (sqlNode.getKind() == SqlKind.AS) {
+      sqlNode = ((SqlBasicCall) selectSqlNode).getOperandList().get(0);
+      sqlNode = extractCastOperand(sqlNode);
+    }
+    sqlNode = extractCastOperand(sqlNode);
+    return sqlNode;
+  }
+
+  private static SqlNode extractCastOperand(SqlNode sqlNode) {
+    if (SqlKind.CAST == sqlNode.getKind()) {
+      sqlNode = ((SqlBasicCall) sqlNode).getOperandList().get(0);
+    }
+    return sqlNode;
+  }
+
+  private static boolean isGroupByKeyNotVisited(SqlNode groupKey, List<SqlNode> visitedSqlNodes) {
+    return !visitedSqlNodes.contains(groupKey) && visitedSqlNodes.stream()
+        .noneMatch(sqlNode -> isCastOnGroupKey(sqlNode, groupKey));
+  }
+
+  private static void unparseGroupByOrdinal(SqlNode selectSqlNode, SqlNode sqlNode, SqlWriter writer,
+      SqlSelect select, List<SqlNode> visitedSqlNodes) {
+    writer.sep(",");
+    String ordinal =
+        String.valueOf(select.selectList.getList().
+                indexOf(selectSqlNode) + 1);
+    SqlLiteral.createExactNumeric(ordinal,
+        SqlParserPos.ZERO).unparse(writer, 2, 3);
+    visitedSqlNodes.add(sqlNode);
+  }
+
+  private static boolean isCastOperandUsedInGroupBy(SqlNode selectSqlNode, SqlNode sqlNode,
+      SqlNode groupKey, List<SqlNode> visitedSqlNodes) {
+    return selectSqlNode.getKind() == SqlKind.CAST
+        && (sqlNode.equals(groupKey) || isCastOnGroupKey(sqlNode, groupKey))
+        && !visitedSqlNodes.contains(sqlNode);
+  }
+
+  private boolean isLiteralOrDynamicOrMinusUsedInGroupBy(SqlNode selectSqlNode, SqlNode sqlNode,
+      SqlNode groupKey, List<SqlNode> visitedSqlNodes) {
+    return sqlNode.equals(groupKey)
+        && !visitedSqlNodes.contains(sqlNode) && (!(selectSqlNode instanceof SqlBasicCall)
+        || (isLiteralOrDynamicOrMinusPrefix(groupKey) && selectSqlNode.getKind() == SqlKind.AS));
+  }
+
+  private boolean shouldProcessGroupKey(SqlNode groupKey) {
+    return isLiteralOrDynamicOrMinusPrefix(groupKey) || groupKey instanceof SqlBasicCall;
+  }
+
+  private boolean isLiteralOrDynamicOrMinusPrefix(SqlNode groupKey) {
+    return groupKey.getKind() == SqlKind.LITERAL
+        || groupKey.getKind() == SqlKind.DYNAMIC_PARAM
+        || groupKey.getKind() == SqlKind.MINUS_PREFIX;
+  }
+
+  private static boolean isCastOnGroupKey(SqlNode sqlNode, SqlNode groupKey) {
+    return sqlNode.getKind() == SqlKind.CAST
+        && ((SqlBasicCall) sqlNode).getOperandList().get(0) == groupKey;
   }
 
   @Override public boolean argumentMustBeScalar(int ordinal) {
