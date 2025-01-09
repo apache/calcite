@@ -4827,10 +4827,19 @@ public class SqlOperatorTest {
         3, "INTEGER NOT NULL");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6774">[CALCITE-6774]
+   * REPLACE function returns wrong result when search pattern is an empty string</a>. */
   @Test void testReplaceFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.REPLACE, VmName.EXPAND);
     f.checkString("REPLACE('ciao', 'ciao', '')", "",
+        "VARCHAR NOT NULL");
+    f.checkString("REPLACE('ciao', '', 'ciao')", "ciao",
+        "VARCHAR NOT NULL");
+    f.checkString("REPLACE('ci ao', ' ', 'ciao')", "ciciaoao",
+        "VARCHAR NOT NULL");
+    f.checkString("REPLACE('', 'ciao', 'ciao')", "",
         "VARCHAR NOT NULL");
     f.checkString("REPLACE('hello world', 'o', '')", "hell wrld",
         "VARCHAR NOT NULL");
