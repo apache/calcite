@@ -863,6 +863,11 @@ public class BigQuerySqlDialect extends SqlDialect {
       call.operand(1).unparse(writer, leftPrec, rightPrec);
       writer.endFunCall(rangeFrame);
       break;
+    case NET_HOST:
+      final SqlWriter.Frame host = writer.startFunCall("NET.HOST");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(host);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -2426,6 +2431,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       case INTERVAL_DAY_MINUTE:
       case INTERVAL_DAY_SECOND:
       case INTERVAL_DAY_HOUR:
+      case INTERVAL_MINUTE_SECOND:
         return createSqlDataTypeSpecByName("INTERVAL", typeName);
       // BigQuery only supports FLOAT64(aka. Double) for floating point types.
       case FLOAT:

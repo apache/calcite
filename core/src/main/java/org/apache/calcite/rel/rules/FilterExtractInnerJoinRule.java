@@ -20,9 +20,11 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexDynamicParam;
@@ -44,6 +46,7 @@ import org.immutables.value.Value;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.Stack;
 import java.util.stream.Collectors;
 
@@ -93,6 +96,8 @@ public class FilterExtractInnerJoinRule
     List<RexNode> allConditions = new ArrayList<>();
     populateStackWithEndIndexesForTables(join, stackForTableScanWithEndColumnIndex, allConditions);
     RexNode conditions = filter.getCondition();
+    Set<CorrelationId> correlationIdSet =
+        filter instanceof LogicalFilter ? filter.getVariablesSet() : null;
     if (isConditionComposedOfSingleCondition((RexCall) conditions)) {
       allConditions.add(filter.getCondition());
     } else {
@@ -100,8 +105,9 @@ public class FilterExtractInnerJoinRule
     }
 
     final RelNode modifiedJoinClauseWithWhereClause =
-        moveConditionsFromWhereClauseToJoinOnClause(
-            allConditions, stackForTableScanWithEndColumnIndex, ((RexCall) conditions).op, builder);
+        moveConditionsFromWhereClauseToJoinOnClause(allConditions,
+            stackForTableScanWithEndColumnIndex, ((RexCall) conditions).op, builder,
+        correlationIdSet);
 
     call.transformTo(modifiedJoinClauseWithWhereClause);
   }
@@ -153,7 +159,8 @@ public class FilterExtractInnerJoinRule
   /** This method identifies Join Predicates from filter conditions and put them on Joins as
    * ON conditions.*/
   private RelNode moveConditionsFromWhereClauseToJoinOnClause(List<RexNode> allConditions,
-      Stack<Triple<RelNode, Integer, JoinRelType>> stack, SqlOperator op, RelBuilder builder) {
+      Stack<Triple<RelNode, Integer, JoinRelType>> stack, SqlOperator op, RelBuilder builder,
+      Set<CorrelationId> correlationIdSet) {
     Triple<RelNode, Integer, JoinRelType> leftEntry = stack.pop();
     Triple<RelNode, Integer, JoinRelType> rightEntry;
     RelNode left = leftEntry.getLeft();
@@ -167,6 +174,12 @@ public class FilterExtractInnerJoinRule
       left =
           LogicalJoin.create(left, rightEntry.getLeft(), ImmutableList.of(),
                   joinPredicate, ImmutableSet.of(), rightEntry.getRight());
+    }
+    if (correlationIdSet != null) {
+      return builder.push(left)
+          .filter(correlationIdSet,
+              op.kind == SqlKind.OR ? builder.or(allConditions) : builder.and(allConditions))
+          .build();
     }
     return builder.push(left)
         .filter(op.kind == SqlKind.OR ? builder.or(allConditions) : builder.and(allConditions))
