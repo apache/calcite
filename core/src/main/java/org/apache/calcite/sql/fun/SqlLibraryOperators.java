@@ -3904,6 +3904,12 @@ public abstract class SqlLibraryOperators {
               SqlTypeFamily.DATETIME_INTERVAL, SqlTypeFamily.BOOLEAN),
           SqlFunctionCategory.SYSTEM);
 
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction GENERATE_ARRAY =
+      new SqlFunction("GENERATE_ARRAY", SqlKind.OTHER, ReturnTypes.TO_ARRAY, null,
+          OperandTypes.NUMERIC_NUMERIC_OPTIONAL_NUMERIC,
+          SqlFunctionCategory.SYSTEM);
+
   @LibraryOperator(libraries = {MSSQL})
   public static final SqlFunction STUFF =
       new SqlFunction("STUFF",
