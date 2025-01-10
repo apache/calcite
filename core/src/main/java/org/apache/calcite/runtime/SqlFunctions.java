@@ -60,7 +60,6 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.codec.language.Soundex;
 import org.apache.commons.lang.StringEscapeUtils;
-import org.apache.commons.lang3.Conversion;
 import org.apache.commons.math3.util.CombinatoricsUtils;
 import org.apache.commons.text.similarity.LevenshteinDistance;
 
@@ -284,12 +283,20 @@ public class SqlFunctions {
   }
 
   public static UUID binaryToUuid(ByteString bytes) {
-    return Conversion.byteArrayToUuid(bytes.getBytes(), 0);
+    if (bytes.length() < 16) {
+      throw new IllegalArgumentException("Need at least 16 bytes for UUID");
+    }
+    ByteBuffer byteBuffer = ByteBuffer.wrap(bytes.getBytes());
+    long mostSignificantBits = byteBuffer.getLong();
+    long leastSignificantBits = byteBuffer.getLong();
+    return new UUID(mostSignificantBits, leastSignificantBits);
   }
 
   public static ByteString uuidToBinary(UUID uuid) {
     byte[] dest = new byte[16];
-    Conversion.uuidToByteArray(uuid, dest, 0, 16);
+    ByteBuffer byteBuffer = ByteBuffer.wrap(dest);
+    byteBuffer.putLong(uuid.getMostSignificantBits());
+    byteBuffer.putLong(uuid.getLeastSignificantBits());
     return new ByteString(dest);
   }
 
