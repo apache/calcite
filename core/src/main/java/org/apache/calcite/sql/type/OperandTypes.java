@@ -434,6 +434,10 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker NUMERIC_NUMERIC =
       family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC);
 
+  public static final SqlSingleOperandTypeChecker NUMERIC_NUMERIC_OPTIONAL_NUMERIC =
+      family(ImmutableList.of(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC),
+          number -> number == 2);
+
   public static final SqlSingleOperandTypeChecker INTEGER_BOOLEAN =
       family(SqlTypeFamily.INTEGER, SqlTypeFamily.BOOLEAN);
 

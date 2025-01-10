@@ -156,6 +156,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_MOD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYNUMBER_OF_CALENDAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYOCCURRENCE_OF_MONTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FALSE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.GENERATE_ARRAY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.GETDATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MAKE_DATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHNUMBER_OF_YEAR;
@@ -11847,6 +11848,18 @@ class RelToSqlConverterDMTest {
             + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(teradataPeriod));
+  }
+
+  @Test public void testGenerateArrayFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode generateArrayCall =
+        builder.call(GENERATE_ARRAY, builder.literal(1), builder.literal(5));
+    RelNode root = builder.push(LogicalValues.createOneRow(builder.getCluster()))
+        .project(generateArrayCall)
+        .build();
+    final String bigqueryGenerateArray = "SELECT GENERATE_ARRAY(1, 5) AS `$f0`";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(bigqueryGenerateArray));
   }
 
   /*NEXT VALUE is a SqlSequenceValueOperator which works on sequence generator.
