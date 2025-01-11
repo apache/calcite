@@ -171,7 +171,7 @@ public class SqlTypeCoercionRule implements SqlTypeMappingRule {
             .add(SqlTypeName.UUID)
             .build());
 
-    // VARCHAR is castable from BOOLEAN, DATE, TIME, TIMESTAMP, numeric types, binary and
+    // VARCHAR is castable from BOOLEAN, DATE, TIME, TIMESTAMP, numeric types, binary, uuid, and
     // intervals
     coerceRules.add(SqlTypeName.VARCHAR,
         coerceRules.copyValues(SqlTypeName.VARCHAR)
@@ -190,7 +190,7 @@ public class SqlTypeCoercionRule implements SqlTypeMappingRule {
             .add(SqlTypeName.UUID)
             .build());
 
-    // CHAR is castable from BOOLEAN, DATE, TIME, TIMESTAMP, numeric types, binary and
+    // CHAR is castable from BOOLEAN, DATE, TIME, TIMESTAMP, numeric types, binary, uuid, and
     // intervals
     coerceRules.add(SqlTypeName.CHAR,
         coerceRules.copyValues(SqlTypeName.CHAR)
