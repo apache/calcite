@@ -7166,7 +7166,15 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           throw newValidationError(id.getComponent(i),
               RESOURCE.unknownField(name));
         }
+        boolean recordIsNullable = type.isNullable();
         type = field.getType();
+        if (recordIsNullable) {
+          // If parent record is nullable, field must also be nullable.
+          // Consider CREATE TABLE T(p ROW(k VARCHAR) NULL);
+          // Since T.p is nullable, T.p.k also has to be nullable, even if
+          // the type of k itself is not nullable.
+          type = getTypeFactory().enforceTypeWithNullability(type, true);
+        }
       }
       type =
           SqlTypeUtil.addCharsetAndCollation(

@@ -49,6 +49,16 @@ other software versions as specified in gradle.properties.
 #### Breaking Changes
 {: #breaking-1-39-0}
 
+*RelDataTypeFactory interface*.  The fix for [<a
+href="https://issues.apache.org/jira/browse/CALCITE-6764">CALCITE-6764</a>]
+introduces a new method
+`RelDataTypeFactory#enforceTypeWithNullability` in the existing
+`RelDataTypeFactory` interface.  The behavior of the new function is
+similar to the existing API `createTypeWithNullability`; however, the
+existing implementations of the `createTypeWithNullability` API cannot
+create nullable record (`ROW`) types.  Nullable record types are
+legitimate in several SQL dialects.
+
 *Checked arithmetic*.  [<a
 href="https://issues.apache.org/jira/browse/CALCITE-6685">CALCITE-6685</a>]
 introduces support for checked arithmetic on short integer types.  A

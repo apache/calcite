@@ -410,6 +410,31 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     return canonize(newType);
   }
 
+  @Override public RelDataType enforceTypeWithNullability(
+      final RelDataType type,
+      final boolean nullable) {
+    requireNonNull(type, "type");
+    RelDataType newType;
+    if (type.isNullable() == nullable) {
+      newType = type;
+    } else if (type instanceof RelRecordType) {
+      return createStructType(type.getStructKind(),
+          new AbstractList<RelDataType>() {
+            @Override public RelDataType get(int index) {
+              return type.getFieldList().get(index).getType();
+            }
+
+            @Override public int size() {
+              return type.getFieldCount();
+            }
+          },
+          type.getFieldNames(), nullable);
+    } else {
+      newType = copySimpleType(type, nullable);
+    }
+    return canonize(newType);
+  }
+
   /**
    * Registers a type, or returns the existing type if it is already
    * registered.

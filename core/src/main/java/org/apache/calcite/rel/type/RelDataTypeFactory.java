@@ -179,15 +179,34 @@ public interface RelDataTypeFactory {
    * Creates a type that is the same as another type but with possibly
    * different nullability. The output type may be identical to the input
    * type. For type systems without a concept of nullability, the return value
-   * is always the same as the input.
+   * is always the same as the input. This function never returns a nullable
+   * record type; when applied to a record type, it recursively makes all fields
+   * nullable and the record itself is non-nullable.
    *
-   * @param type     input type
-   * @param nullable true to request a nullable type; false to request a NOT
-   *                 NULL type
-   * @return output type, same as input type except with specified nullability
+   * @param type input type
+   * @param nullable true to request a nullable type; false to request a NOT NULL type.
+   * @return output type, same as input type except with specified nullability (see description
+   * for record types).
    * @throws NullPointerException if type is null
    */
   RelDataType createTypeWithNullability(
+      RelDataType type,
+      boolean nullable);
+
+  /**
+   * Creates a type that is the same as another type but with possibly
+   * different nullability. The output type may be identical to the input
+   * type. For type systems without a concept of nullability, the return value
+   * is always the same as the input. This differs from {@link
+   * #createTypeWithNullability(RelDataType, boolean)} in the handling of record
+   * types.  This function returns a nullable struct.
+   *
+   * @param type input type
+   * @param nullable true to request a nullable type; false to request a NOT NULL type.
+   * @return output type, same as input type except with specified nullability
+   * @throws NullPointerException if type is null
+   */
+  RelDataType enforceTypeWithNullability(
       RelDataType type,
       boolean nullable);
 
