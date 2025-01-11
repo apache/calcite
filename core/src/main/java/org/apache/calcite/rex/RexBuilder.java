@@ -257,7 +257,7 @@ public class RexBuilder {
     }
 
     if (expr.getType().isNullable()) {
-      fieldType = typeFactory.createTypeWithNullability(fieldType, true);
+      fieldType = typeFactory.enforceTypeWithNullability(fieldType, true);
     }
     return new RexFieldAccess(expr, field, fieldType);
   }
