@@ -54,7 +54,7 @@ dependencies {
         apiv("cn.hutool:hutool-all")
         apiv("com.alibaba.database:innodb-java-reader")
         apiv("com.beust:jcommander")
-        apiv("com.datastax.oss:java-driver-core", "cassandra-java-driver-core")
+        apiv("org.apache.cassandra:java-driver-core", "cassandra-java-driver-core")
         apiv("com.fasterxml.jackson.core:jackson-databind")
         apiv("com.github.kstyrc:embedded-redis")
         apiv("com.github.oshi:oshi-core")
