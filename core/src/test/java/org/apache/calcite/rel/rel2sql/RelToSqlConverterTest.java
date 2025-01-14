@@ -1891,11 +1891,11 @@ class RelToSqlConverterTest {
         + "FROM \"scott\".\"EMP\"\n"
         + "GROUP BY \"DEPTNO\"\n"
         + "HAVING COUNT(*) < 2";
-    final String expectedBigQuery = "SELECT D2 AS `emps.deptno`\n"
-        + "FROM (SELECT DEPTNO AS D2, COUNT(*) AS `emps.count`\n"
+    final String expectedBigQuery = "SELECT D2 AS emps_u002e_deptno\n"
+        + "FROM (SELECT DEPTNO AS D2, COUNT(*) AS emps_u002e_count\n"
         + "FROM scott.EMP\n"
         + "GROUP BY D2\n"
-        + "HAVING `emps.count` < 2) AS t1";
+        + "HAVING emps_u002e_count < 2) AS t1";
     relFn(b -> root)
         .withBigQuery().ok(expectedBigQuery)
         .withMysql().ok(expectedMysql)
@@ -2752,9 +2752,9 @@ class RelToSqlConverterTest {
         + "where \"one\" < \"tWo\" and \"THREE\" < \"fo$ur\"";
     final String expectedBigQuery = "SELECT *\n"
         + "FROM (SELECT 1 AS one, 2 AS tWo, 3 AS THREE,"
-        + " 4 AS `fo$ur`, 5 AS `ignore`, 6 AS `si\\`x`\n"
+        + " 4 AS fo_u0024_ur, 5 AS `ignore`, 6 AS si_u0060_x\n"
         + "FROM foodmart.days) AS t\n"
-        + "WHERE one < tWo AND THREE < `fo$ur`";
+        + "WHERE one < tWo AND THREE < fo_u0024_ur";
     final String expectedMysql =  "SELECT *\n"
         + "FROM (SELECT 1 AS `one`, 2 AS `tWo`, 3 AS `THREE`,"
         + " 4 AS `fo$ur`, 5 AS `ignore`, 6 AS `si``x`\n"

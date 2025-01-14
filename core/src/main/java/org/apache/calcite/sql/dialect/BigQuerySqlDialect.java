@@ -77,6 +77,7 @@ import org.apache.calcite.util.format.FormatModels;
 import org.apache.calcite.util.interval.BigQueryDateTimestampInterval;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -90,6 +91,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -187,7 +189,6 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CEIL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EXTRACT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FLOOR;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_FALSE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MOD;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
@@ -249,6 +250,11 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private static final Pattern FLOAT_REGEX =
       Pattern.compile("[\"|'][+\\-]?([0-9]*[.])[0-9]+[\"|']");
+
+  public static final Set<Character> IDENTIFIER_SPECIAL_CHARACTER =
+      ImmutableSet.of('!', '$', '(', ')', '*', ',', '.', '/', ';', '?', '@', '[', ']', '\\', '^',
+          '`', '{', '}', '~');
+
   /**
    * Creates a BigQuerySqlDialect.
    */
@@ -350,6 +356,28 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   @Override public String quoteIdentifier(String val) {
     return quoteIdentifier(new StringBuilder(), val).toString();
+  }
+
+  @Override public StringBuilder quoteIdentifier(StringBuilder buf, String val) {
+    String replacedIdentifier = val;
+    if (!val.toLowerCase(Locale.ROOT).startsWith("expr$") && !val.startsWith("$f")) {
+      replacedIdentifier = replaceUnsupportedCharactersInIdentifier(replacedIdentifier);
+    }
+    return super.quoteIdentifier(buf, replacedIdentifier);
+  }
+
+  private static String replaceUnsupportedCharactersInIdentifier(String val) {
+    StringBuilder builder = new StringBuilder();
+    for (char c : val.toCharArray()) {
+      if (IDENTIFIER_SPECIAL_CHARACTER.contains(c)) {
+        builder.append("_u")
+            .append(String.format("%04x", (int) c))
+            .append("_");
+      } else {
+        builder.append(c);
+      }
+    }
+    return builder.toString();
   }
 
   @Override public boolean supportAggInGroupByClause() {

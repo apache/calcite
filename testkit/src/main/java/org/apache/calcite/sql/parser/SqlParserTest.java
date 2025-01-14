@@ -9023,7 +9023,7 @@ public class SqlParserTest {
     sql("select unquotedColumn from `double\\`QuotedTable`")
         .withDialect(BIG_QUERY)
         .ok("SELECT unquotedColumn\n"
-            + "FROM `double\\`QuotedTable`");
+            + "FROM double_u0060_QuotedTable");
   }
 
   /** Test case for

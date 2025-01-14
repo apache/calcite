@@ -1272,11 +1272,11 @@ class RelToSqlConverterDMTest {
         + "FROM \"scott\".\"EMP\"\n"
         + "GROUP BY \"DEPTNO\"\n"
         + "HAVING COUNT(*) < 2";
-    final String expectedBigQuery = "SELECT D2 AS `emps.deptno`\n"
-        + "FROM (SELECT DEPTNO AS D2, COUNT(*) AS `emps.count`\n"
+    final String expectedBigQuery = "SELECT D2 AS emps_u002e_deptno\n"
+        + "FROM (SELECT DEPTNO AS D2, COUNT(*) AS emps_u002e_count\n"
         + "FROM scott.EMP\n"
         + "GROUP BY D2\n"
-        + "HAVING `emps.count` < 2) AS t1";
+        + "HAVING emps_u002e_count < 2) AS t1";
     relFn(b -> root)
         .withMysql().ok(expectedMysql)
         .withPostgresql().ok(expectedPostgresql)
@@ -12762,6 +12762,21 @@ class RelToSqlConverterDMTest {
     final String expectedMsSqlQuery = "SELECT OBJECT_SCHEMA_NAME(12345) AS [schema_name_alias]\n"
         + "FROM [scott].[EMP]";
     assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedMsSqlQuery));
+  }
+
+  @Test public void testNvl2Function() {
+    final RelBuilder builder = relBuilder();
+    final RexNode nvl2Call =
+        builder.call(SqlLibraryOperators.NVL2, builder.literal(null), builder.literal(0),
+            builder.literal(1));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(nvl2Call, "bool_check"))
+        .build();
+
+    final String expectedMsSqlQuery = "SELECT NVL2(NULL, 0, 1) \"bool_check\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedMsSqlQuery));
   }
 
   @Test public void testHashBytesFunction() {

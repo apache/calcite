@@ -268,6 +268,13 @@ public abstract class SqlLibraryOperators {
               .andThen(SqlTypeTransforms.TO_NULLABLE_ALL),
           OperandTypes.SAME_SAME);
 
+  /** The "NVL2(value, value, value)" function. */
+  @LibraryOperator(libraries = {ORACLE, SPARK})
+  public static final SqlBasicFunction NVL2 =
+      SqlBasicFunction.create(SqlKind.NVL2,
+          ReturnTypes.NVL2_RESTRICTIVE,
+          OperandTypes.SECOND_THIRD_SAME);
+
   /** The "IFNULL(value, value)" function. */
   @LibraryOperator(libraries = {BIG_QUERY, SPARK, SNOWFLAKE})
   public static final SqlFunction IFNULL =
@@ -275,7 +282,6 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.cascade(ReturnTypes.LEAST_RESTRICTIVE,
             SqlTypeTransforms.TO_NULLABLE_ALL),
           null, OperandTypes.SAME_SAME, SqlFunctionCategory.SYSTEM);
-
 
   /** The "LEN(string)" function. */
   @LibraryOperator(libraries = {SNOWFLAKE, SPARK})
@@ -1980,6 +1986,13 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction TZ_OFFSET =
       SqlBasicFunction.create("TZ_OFFSET",
+          ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.STRING,
+          SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlFunction GET_TIMEZONE_OFFSET =
+      SqlBasicFunction.create("GET_TIMEZONE_OFFSET",
           ReturnTypes.VARCHAR_NULLABLE,
           OperandTypes.STRING,
           SqlFunctionCategory.STRING);
@@ -3942,6 +3955,16 @@ public abstract class SqlLibraryOperators {
           OperandTypes.or(
               OperandTypes.family(SqlTypeFamily.INTEGER),
               OperandTypes.family(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER)),
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {SNOWFLAKE, BIG_QUERY})
+  public static final SqlFunction COLLATE =
+      new SqlFunction(
+          "COLLATE",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR,
+          null,
+          STRING_STRING,
           SqlFunctionCategory.SYSTEM);
 
   @LibraryOperator(libraries = {POSTGRESQL})
