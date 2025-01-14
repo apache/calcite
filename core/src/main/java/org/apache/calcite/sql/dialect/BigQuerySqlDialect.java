@@ -360,7 +360,7 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   @Override public StringBuilder quoteIdentifier(StringBuilder buf, String val) {
     String replacedIdentifier = val;
-    if (!val.toLowerCase(Locale.ROOT).startsWith("expr$") && !val.startsWith("$f")) {
+    if (!val.toLowerCase(Locale.ROOT).startsWith("expr$") && !val.startsWith("$")) {
       replacedIdentifier = replaceUnsupportedCharactersInIdentifier(replacedIdentifier);
     }
     return super.quoteIdentifier(buf, replacedIdentifier);
