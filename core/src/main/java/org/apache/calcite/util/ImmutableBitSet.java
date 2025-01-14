@@ -48,6 +48,7 @@ import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 import java.util.function.IntPredicate;
 import java.util.stream.Collector;
+import java.util.stream.IntStream;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
@@ -76,7 +77,7 @@ public class ImmutableBitSet
   public static final Ordering<ImmutableBitSet> ORDERING =
       Ordering.from(COMPARATOR);
 
-  // BitSets are packed into arrays of "words."  Currently a word is
+  // BitSets are packed into arrays of "words."  Currently, a word is
   // a long, which consists of 64 bits, requiring 6 address bits.
   // The choice of word size is determined purely by performance concerns.
   private static final int ADDRESS_BITS_PER_WORD = 6;
@@ -142,6 +143,8 @@ public class ImmutableBitSet
     return new ImmutableBitSet(words);
   }
 
+  /** Creates an ImmutableBitSet whose contents are the bits denoted by a
+   * given collection of integers. */
   public static ImmutableBitSet of(Iterable<Integer>  bits) {
     if (bits instanceof ImmutableBitSet) {
       return (ImmutableBitSet) bits;
@@ -512,6 +515,19 @@ public class ImmutableBitSet
       }
       i = n0 + 1;
     }
+  }
+
+  /**
+   * Returns a stream of indices for which this {@code ImmutableBitSet}
+   * contains a bit in the set state. The indices are returned
+   * in order, from lowest to highest. The size of the stream
+   * is the number of bits in the set state, equal to the value
+   * returned by the {@link #cardinality()} method.
+   *
+   * @return a stream of integers representing set indices
+   */
+  public IntStream stream() {
+    return toList().stream().mapToInt(i -> i);
   }
 
   /**
