@@ -12783,7 +12783,9 @@ class RelToSqlConverterDMTest {
     builder.scan("employee");
     RexNode literalRex = builder.alias(builder.literal(10), "EXPR$123");
     RexNode functionRex =
-        builder.alias(builder.call(SqlStdOperatorTable.CONCAT, builder.field("employee_id"), builder.field("department_id")), "EXPR$456");
+        builder.alias(
+            builder.call(SqlStdOperatorTable.CONCAT, builder.field("employee_id"),
+            builder.field("department_id")), "EXPR$456");
 
     RelNode relNode = builder
         .project(literalRex, functionRex)
@@ -12791,8 +12793,8 @@ class RelToSqlConverterDMTest {
         .project(
             builder.alias(
                 builder.cast(
-                    builder.cast(builder.field(0), SqlTypeName.DECIMAL
-            , 38, 0), SqlTypeName.INTEGER), "EXPR$123"),
+                    builder.cast(builder.field(0), SqlTypeName.DECIMAL,
+                        38, 0), SqlTypeName.INTEGER), "EXPR$123"),
             builder.alias(
                 builder.cast(builder.field(1),
             SqlTypeName.VARCHAR, 10), "EXPR$456"))

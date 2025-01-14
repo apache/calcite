@@ -285,20 +285,12 @@ public class SqlSelectOperator extends SqlOperator {
   }
 
   private static SqlNode unwrapSqlNode(SqlNode selectSqlNode) {
-    SqlNode sqlNode = selectSqlNode;
-    if (sqlNode.getKind() == SqlKind.AS) {
-      sqlNode = ((SqlBasicCall) selectSqlNode).getOperandList().get(0);
-      sqlNode = extractCastOperand(sqlNode);
-    }
-    sqlNode = extractCastOperand(sqlNode);
-    return sqlNode;
+    return extractCastOperand(selectSqlNode.getKind() == SqlKind.AS
+        ? ((SqlBasicCall) selectSqlNode).getOperandList().get(0) : selectSqlNode);
   }
 
   private static SqlNode extractCastOperand(SqlNode sqlNode) {
-    if (SqlKind.CAST == sqlNode.getKind()) {
-      sqlNode = ((SqlBasicCall) sqlNode).getOperandList().get(0);
-    }
-    return sqlNode;
+    return SqlKind.CAST == sqlNode.getKind() ? ((SqlBasicCall) sqlNode).getOperandList().get(0) : sqlNode;
   }
 
   private static boolean isGroupByKeyNotVisited(SqlNode groupKey, List<SqlNode> visitedSqlNodes) {
