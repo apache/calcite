@@ -252,7 +252,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       Pattern.compile("[\"|'][+\\-]?([0-9]*[.])[0-9]+[\"|']");
 
   public static final Set<Character> IDENTIFIER_SPECIAL_CHARACTER =
-      ImmutableSet.of('!', '$', '(', ')', '*', ',', '.', '/', ';', '?', '@', '[', ']', '\\', '^',
+      ImmutableSet.of('!', '$', '(', ')', '*', ',', '/', ';', '?', '@', '[', ']', '\\', '^',
           '`', '{', '}', '~');
 
   /**

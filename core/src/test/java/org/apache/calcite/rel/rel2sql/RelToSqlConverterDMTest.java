@@ -1272,11 +1272,11 @@ class RelToSqlConverterDMTest {
         + "FROM \"scott\".\"EMP\"\n"
         + "GROUP BY \"DEPTNO\"\n"
         + "HAVING COUNT(*) < 2";
-    final String expectedBigQuery = "SELECT D2 AS emps_u002e_deptno\n"
-        + "FROM (SELECT DEPTNO AS D2, COUNT(*) AS emps_u002e_count\n"
+    final String expectedBigQuery = "SELECT D2 AS `emps.deptno`\n"
+        + "FROM (SELECT DEPTNO AS D2, COUNT(*) AS `emps.count`\n"
         + "FROM scott.EMP\n"
         + "GROUP BY D2\n"
-        + "HAVING emps_u002e_count < 2) AS t1";
+        + "HAVING `emps.count` < 2) AS t1";
     relFn(b -> root)
         .withMysql().ok(expectedMysql)
         .withPostgresql().ok(expectedPostgresql)
