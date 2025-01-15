@@ -2752,9 +2752,9 @@ class RelToSqlConverterTest {
         + "where \"one\" < \"tWo\" and \"THREE\" < \"fo$ur\"";
     final String expectedBigQuery = "SELECT *\n"
         + "FROM (SELECT 1 AS one, 2 AS tWo, 3 AS THREE,"
-        + " 4 AS fo_u0024_ur, 5 AS `ignore`, 6 AS si_u0060_x\n"
+        + " 4 AS `fo$ur`, 5 AS `ignore`, 6 AS `si\\`x`\n"
         + "FROM foodmart.days) AS t\n"
-        + "WHERE one < tWo AND THREE < fo_u0024_ur";
+        + "WHERE one < tWo AND THREE < `fo$ur`";
     final String expectedMysql =  "SELECT *\n"
         + "FROM (SELECT 1 AS `one`, 2 AS `tWo`, 3 AS `THREE`,"
         + " 4 AS `fo$ur`, 5 AS `ignore`, 6 AS `si``x`\n"
