@@ -12779,6 +12779,20 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedMsSqlQuery));
   }
 
+  @Test public void testCollateFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode collateRexNode =
+        builder.call(SqlLibraryOperators.COLLATE, builder.literal("John"),
+            builder.literal("en-ci"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(collateRexNode)
+        .build();
+    final String expectedMsSqlQuery = "SELECT COLLATE('John', 'en-ci') AS \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedMsSqlQuery));
+  }
+
   @Test public void testHashBytesFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode rexNode =
