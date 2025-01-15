@@ -12764,6 +12764,35 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedMsSqlQuery));
   }
 
+  @Test public void testNvl2Function() {
+    final RelBuilder builder = relBuilder();
+    final RexNode nvl2Call =
+        builder.call(SqlLibraryOperators.NVL2, builder.literal(null), builder.literal(0),
+            builder.literal(1));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(nvl2Call, "bool_check"))
+        .build();
+
+    final String expectedMsSqlQuery = "SELECT NVL2(NULL, 0, 1) \"bool_check\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedMsSqlQuery));
+  }
+
+  @Test public void testCollateFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode collateRexNode =
+        builder.call(SqlLibraryOperators.COLLATE, builder.literal("John"),
+            builder.literal("en-ci"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(collateRexNode)
+        .build();
+    final String expectedMsSqlQuery = "SELECT COLLATE('John', 'en-ci') AS \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedMsSqlQuery));
+  }
+
   @Test public void testHashBytesFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode rexNode =
