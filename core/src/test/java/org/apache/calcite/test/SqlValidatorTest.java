@@ -4545,6 +4545,28 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Values passed to IN operator must have compatible types");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5626">[CALCITE-5626]
+   * Sub-query with fully-qualified table name throws 'table not found' during
+   * validation</a>. */
+  @Test void testInSubQueryWithFullyQualifiedName() {
+    // Minimal test case requires fully-qualified column name in WHERE clause of
+    // subquery; sub-query.iq contains further non-minimal test cases.
+    sql("select *\n"
+        + "from emp\n"
+        + "where deptno in (select deptno\n"
+        + "  from sales.dept\n"
+        + "  where sales.dept.deptno > 15)").ok();
+
+    // If we change 'sales.dept' to 'sales.dept2', query is genuinely invalid.
+    sql("select *\n"
+        + "from emp\n"
+        + "where deptno in (select deptno\n"
+        + "  from sales.dept\n"
+        + "  where ^sales.dept2^.deptno > 15)")
+        .fails("Table 'SALES.DEPT2' not found");
+  }
+
   @Test void testAnyList() {
     sql("select * from emp where empno = any (10,20)").ok();
 
