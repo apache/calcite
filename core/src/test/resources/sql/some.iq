@@ -895,6 +895,41 @@ where sal > some (4000, 2000);
 
 !ok
 
+# CALCITE-6786: ANY/SOME operator yields multiple rows in correlated queries
+
+WITH tb as (select array(SELECT * FROM (VALUES (TRUE), (NULL)) as x(a)) as a)
+SELECT TRUE IN (SELECT b FROM UNNEST(a) AS x1(b)) AS test FROM tb;
++------+
+| TEST |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
+WITH tb as (select array(SELECT * FROM (VALUES (FALSE), (NULL)) as x(a)) as a)
+SELECT TRUE IN (SELECT b FROM UNNEST(a) AS x1(b)) AS test FROM tb;
++------+
+| TEST |
++------+
+|      |
++------+
+(1 row)
+
+!ok
+
+WITH tb as (select array(SELECT * FROM (VALUES (FALSE), (TRUE)) as x(a)) as a)
+SELECT TRUE IN (SELECT b FROM UNNEST(a) AS x1(b)) AS test FROM tb;
++------+
+| TEST |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
 select sal, sal > some (4000, 2000, null) from "scott".emp;
 +---------+--------+
 | SAL     | EXPR$1 |

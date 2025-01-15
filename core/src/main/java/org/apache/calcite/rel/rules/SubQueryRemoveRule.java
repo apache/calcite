@@ -696,16 +696,15 @@ public class SubQueryRemoveRule
         if (variablesSet.isEmpty()) {
           builder.aggregate(builder.groupKey(builder.field("cs")),
               builder.count(false, "c"));
-
-          // sorts input with desc order since we are interested
-          // only in the case when one of the values is true.
-          // When true value is absent then we are interested
-          // only in false value.
-          builder.sortLimit(0, 1,
-              ImmutableList.of(builder.desc(builder.field("cs"))));
         } else {
           builder.distinct();
         }
+        // sorts input with desc order since we are interested
+        // only in the case when one of the values is true.
+        // When true value is absent then we are interested
+        // only in false value.
+        builder.sortLimit(0, 1,
+            ImmutableList.of(builder.desc(builder.field("cs"))));
       }
       // clears expressionOperands and fields lists since
       // all expressions were used in the filter
