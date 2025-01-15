@@ -117,6 +117,8 @@ public abstract class ListScope extends DelegatingScope {
           return child;
         }
       }
+      // Make sure namespace has been validated.
+      validator.validateNamespace(child.namespace, validator.getUnknownType());
 
       // Look up the 2 tables independently, in case one is qualified with
       // catalog & schema and the other is not.

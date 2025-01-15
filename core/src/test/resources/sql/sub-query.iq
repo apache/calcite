@@ -3758,6 +3758,22 @@ from emp;
 
 !ok
 
+# Test case for [CALCITE-5626]
+select ename, deptno from emp where deptno in (select dept.deptno from "scott".dept where "scott".dept.deptno > 20);
++--------+--------+
+| ENAME  | DEPTNO |
++--------+--------+
+| ALLEN  |     30 |
+| BLAKE  |     30 |
+| JAMES  |     30 |
+| MARTIN |     30 |
+| TURNER |     30 |
+| WARD   |     30 |
++--------+--------+
+(6 rows)
+
+!ok
+
 # Test case for [CALCITE-5789]
 select deptno from dept d1 where exists (
  select 1 from dept d2 where d2.deptno = d1.deptno and exists (

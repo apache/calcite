@@ -4545,6 +4545,15 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Values passed to IN operator must have compatible types");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5626">[CALCITE-5626]
+   * Sub-query with fully qualified table name throws table not found exception
+   * in validation phase</a>. */
+  @Test void testInSubQueryWithFullyQualifiedName() {
+    sql("select * from emp where deptno in "
+        + "(select dept.deptno from sales.dept where sales.dept.deptno > 15)").ok();
+  }
+
   @Test void testAnyList() {
     sql("select * from emp where empno = any (10,20)").ok();
 
