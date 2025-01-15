@@ -1871,13 +1871,15 @@ select sal from "scott".emp e
 (0 rows)
 
 !ok
-EnumerableCalc(expr#0..4=[{inputs}], expr#5=[RAND()], expr#6=[CAST($t5):INTEGER NOT NULL], expr#7=[2], expr#8=[MOD($t6, $t7)], expr#9=[3], expr#10=[=($t8, $t9)], expr#11=[OR($t10, $t4)], SAL=[$t1], $condition=[$t11])
-  EnumerableMergeJoin(condition=[=($2, $3)], joinType=[left])
-    EnumerableSort(sort0=[$2], dir0=[ASC])
-      EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
-        EnumerableTableScan(table=[[scott, EMP]])
-    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], DEPTNO=[$t0], $f1=[$t3])
-      EnumerableTableScan(table=[[scott, DEPT]])
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[RAND()], expr#4=[CAST($t3):INTEGER NOT NULL], expr#5=[2], expr#6=[MOD($t4, $t5)], expr#7=[3], expr#8=[=($t6, $t7)], expr#9=[OR($t8, $t2)], SAL=[$t0], $condition=[$t9])
+  EnumerableCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1}])
+    EnumerableCalc(expr#0..7=[{inputs}], SAL=[$t5], DEPTNO=[$t7])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableLimit(fetch=[1])
+      EnumerableSort(sort0=[$0], dir0=[DESC])
+        EnumerableAggregate(group=[{0}])
+          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], expr#4=[$cor0], expr#5=[$t4.DEPTNO], expr#6=[=($t0, $t5)], cs=[$t3], $condition=[$t6])
+            EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # Test filter null IN nullable correlated
@@ -1958,13 +1960,15 @@ select sal from "scott".emp e
 (0 rows)
 
 !ok
-EnumerableCalc(expr#0..4=[{inputs}], expr#5=[NOT($t4)], expr#6=[IS NOT NULL($t4)], expr#7=[OR($t5, $t6)], expr#8=[IS NOT TRUE($t7)], SAL=[$t1], $condition=[$t8])
-  EnumerableMergeJoin(condition=[=($2, $3)], joinType=[left])
-    EnumerableSort(sort0=[$2], dir0=[ASC])
-      EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
-        EnumerableTableScan(table=[[scott, EMP]])
-    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], DEPTNO=[$t0], $f1=[$t3])
-      EnumerableTableScan(table=[[scott, DEPT]])
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[NOT($t2)], expr#4=[IS NOT NULL($t2)], expr#5=[OR($t3, $t4)], expr#6=[IS NOT TRUE($t5)], SAL=[$t0], $condition=[$t6])
+  EnumerableCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1}])
+    EnumerableCalc(expr#0..7=[{inputs}], SAL=[$t5], DEPTNO=[$t7])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableLimit(fetch=[1])
+      EnumerableSort(sort0=[$0], dir0=[DESC])
+        EnumerableAggregate(group=[{0}])
+          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], expr#4=[$cor0], expr#5=[$t4.DEPTNO], expr#6=[=($t5, $t0)], cs=[$t3], $condition=[$t6])
+            EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # Test filter null NOT IN literal correlated
@@ -2027,13 +2031,14 @@ select sal from "scott".emp e
 (11 rows)
 
 !ok
-EnumerableCalc(expr#0..4=[{inputs}], expr#5=[NOT($t4)], expr#6=[IS NOT NULL($t4)], expr#7=[OR($t5, $t6)], expr#8=[IS NOT TRUE($t7)], SAL=[$t1], $condition=[$t8])
-  EnumerableMergeJoin(condition=[=($2, $3)], joinType=[left])
-    EnumerableSort(sort0=[$2], dir0=[ASC])
-      EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
-        EnumerableTableScan(table=[[scott, EMP]])
-    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[10], expr#5=[CAST($t0):INTEGER NOT NULL], expr#6=[=($t4, $t5)], DEPTNO1=[$t0], $f1=[$t3], $condition=[$t6])
-      EnumerableTableScan(table=[[scott, DEPT]])
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[NOT($t2)], expr#4=[IS NOT NULL($t2)], expr#5=[OR($t3, $t4)], expr#6=[IS NOT TRUE($t5)], SAL=[$t0], $condition=[$t6])
+  EnumerableCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1}])
+    EnumerableCalc(expr#0..7=[{inputs}], SAL=[$t5], DEPTNO=[$t7])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableLimit(fetch=[1])
+      EnumerableSort(sort0=[$0], dir0=[DESC])
+        EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[$cor0], expr#5=[$t4.DEPTNO], expr#6=[=($t5, $t0)], expr#7=[10], expr#8=[CAST($t0):INTEGER NOT NULL], expr#9=[=($t7, $t8)], expr#10=[AND($t6, $t9)], cs=[$t3], $condition=[$t10])
+          EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # Test filter literal NOT IN nullable correlated
@@ -2057,13 +2062,14 @@ select sal from "scott".emp e
 (11 rows)
 
 !ok
-EnumerableCalc(expr#0..4=[{inputs}], expr#5=[NOT($t3)], expr#6=[IS NOT NULL($t3)], expr#7=[OR($t5, $t6)], expr#8=[IS NOT TRUE($t7)], SAL=[$t1], $condition=[$t8])
-  EnumerableMergeJoin(condition=[=($2, $4)], joinType=[left])
-    EnumerableSort(sort0=[$2], dir0=[ASC])
-      EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
-        EnumerableTableScan(table=[[scott, EMP]])
-    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[CAST($t0):INTEGER], expr#5=[10], expr#6=[=($t4, $t5)], cs=[$t3], DEPTNO=[$t0], $condition=[$t6])
-      EnumerableTableScan(table=[[scott, DEPT]])
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[NOT($t2)], expr#4=[IS NOT NULL($t2)], expr#5=[OR($t3, $t4)], expr#6=[IS NOT TRUE($t5)], SAL=[$t0], $condition=[$t6])
+  EnumerableCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1}])
+    EnumerableCalc(expr#0..7=[{inputs}], SAL=[$t5], DEPTNO=[$t7])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableLimit(fetch=[1])
+      EnumerableSort(sort0=[$0], dir0=[DESC])
+        EnumerableCalc(expr#0..2=[{inputs}], expr#3=[IS NOT NULL($t0)], expr#4=[$cor0], expr#5=[$t4.DEPTNO], expr#6=[=($t5, $t0)], expr#7=[CAST($t0):INTEGER], expr#8=[10], expr#9=[=($t7, $t8)], expr#10=[AND($t6, $t9)], cs=[$t3], $condition=[$t10])
+          EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # Test filter null IN required is unknown correlated
@@ -2090,8 +2096,15 @@ select sal from "scott".emp e
 (14 rows)
 
 !ok
-EnumerableCalc(expr#0..7=[{inputs}], SAL=[$t5])
-  EnumerableTableScan(table=[[scott, EMP]])
+EnumerableCalc(expr#0..2=[{inputs}], SAL=[$t0])
+  EnumerableCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1}])
+    EnumerableCalc(expr#0..7=[{inputs}], SAL=[$t5], DEPTNO=[$t7])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableLimit(fetch=[1])
+      EnumerableSort(sort0=[$0], dir0=[DESC])
+        EnumerableAggregate(group=[{0}])
+          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[$cor0], expr#5=[$t4.DEPTNO], expr#6=[=($t5, $t0)], cs=[$t3], $condition=[$t6])
+            EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 
