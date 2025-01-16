@@ -385,6 +385,11 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
                 && isNull(call.operand(0))) {
               literalSet.add(call);
               return call;
+            } else if (operator == SqlStdOperatorTable.TRIM) {
+              // see https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-6780
+              // don't extract trimmed literal for TRIM function
+              call.operand(2).accept(this);
+              return call;
             } else if (ops.contains(operator)) {
               // "Argument to function 'LOCALTIME' must be a
               // literal"

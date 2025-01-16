@@ -1818,7 +1818,7 @@ public class SqlFunctions {
   public static String trim(boolean left, boolean right, String seek,
       String s, boolean strict) {
     if (strict && seek.length() != 1) {
-      throw RESOURCE.trimError().ex();
+      throw RESOURCE.trimError(seek).ex();
     }
     int j = s.length();
     if (right) {
