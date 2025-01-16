@@ -948,8 +948,8 @@ public interface CalciteResource {
   @BaseMessage("Illegal arguments: The length of the keys array {0,number,#} is not equal to the length of the values array {1,number,#} in MAP_FROM_ARRAYS function")
   ExInst<CalciteException> illegalArgumentsInMapFromArraysFunc(int arg0, int arg1);
 
-  @BaseMessage("Trim error: trim character must be exactly 1 character")
-  ExInst<CalciteException> trimError();
+  @BaseMessage("Invalid argument ''{0}'': the length of the string describing the trimmed character must be 1")
+  ExInst<CalciteException> trimError(String seek);
 
   @BaseMessage("Invalid types for arithmetic: {0} {1} {2}")
   ExInst<CalciteException> invalidTypesForArithmetic(String clazzName0, String op,

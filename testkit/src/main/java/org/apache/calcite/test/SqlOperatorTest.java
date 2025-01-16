@@ -11706,31 +11706,35 @@ public class SqlOperatorTest {
     // SQL:2003 6.29.11 Trimming a CHAR yields a VARCHAR
     f.checkString("trim('a' from 'aAa')", "A", "VARCHAR(3) NOT NULL");
     f.checkString("trim(both 'a' from 'aAa')", "A", "VARCHAR(3) NOT NULL");
+    f.checkString("trim(' aAa ')", "aAa", "VARCHAR(5) NOT NULL");
+    f.checkString("trim(both ' ' from ' aAa ')", "aAa", "VARCHAR(5) NOT NULL");
     f.checkString("trim(leading 'a' from 'aAa')", "Aa", "VARCHAR(3) NOT NULL");
     f.checkString("trim(trailing 'a' from 'aAa')", "aA", "VARCHAR(3) NOT NULL");
+    f.checkNull("trim(null)");
     f.checkNull("trim(cast(null as varchar(1)) from 'a')");
     f.checkNull("trim('a' from cast(null as varchar(1)))");
 
-    // SQL:2003 6.29.9: trim string must have length=1. Failure occurs
-    // at runtime.
-    //
-    // TODO: Change message to "Invalid argument\(s\) for
-    // 'TRIM' function".
-    // The message should come from a resource file, and should still
-    // have the SQL error code 22027.
+    // SQL:2003 6.29.9 and SQL:2016 6.30.11: trim string must have length=1.
+    // Failure occurs at runtime.
     f.checkFails("trim('xy' from 'abcde')",
-        "Trim error: trim character must be exactly 1 character",
+        "Invalid argument 'xy': the length of the string describing "
+            + "the trimmed character must be 1",
         true);
     f.checkFails("trim('' from 'abcde')",
-        "Trim error: trim character must be exactly 1 character",
+        "Invalid argument '': the length of the string describing "
+            + "the trimmed character must be 1",
         true);
 
-    final SqlOperatorFixture f1 = f.withConformance(SqlConformanceEnum.MYSQL_5);
-    f1.checkString("trim(leading 'eh' from 'hehe__hehe')", "__hehe",
-        "VARCHAR(10) NOT NULL");
-    f1.checkString("trim(trailing 'eh' from 'hehe__hehe')", "hehe__",
-        "VARCHAR(10) NOT NULL");
-    f1.checkString("trim('eh' from 'hehe__hehe')", "__", "VARCHAR(10) NOT NULL");
+    final Consumer<SqlOperatorFixture> consumer = f1 -> {
+      f1.checkString("trim(leading 'eh' from 'hehe__hehe')", "__hehe",
+          "VARCHAR(10) NOT NULL");
+      f1.checkString("trim(trailing 'eh' from 'hehe__hehe')", "hehe__",
+          "VARCHAR(10) NOT NULL");
+      f1.checkString("trim('eh' from 'hehe__hehe')", "__", "VARCHAR(10) NOT NULL");
+    };
+    final List<SqlConformanceEnum> conformanceEnums =
+        list(SqlConformanceEnum.MYSQL_5, SqlConformanceEnum.SQL_SERVER_2008);
+    f.forEachConformance(conformanceEnums, consumer);
   }
 
   @Test void testRtrimFunc() {
