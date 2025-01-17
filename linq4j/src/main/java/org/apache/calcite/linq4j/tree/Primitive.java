@@ -427,7 +427,7 @@ public enum Primitive {
   /** Called from BuiltInMethod.CHAR_DECIMAL_CAST_ROUNDING_MODE */
   public static @Nullable Object charToDecimalCast(
       @Nullable String value, int precision, int scale, RoundingMode roundingMode) {
-    if (value == null) {
+    if (value == null || value.isEmpty()) {
       return null;
     }
     BigDecimal result = new BigDecimal(value.trim());

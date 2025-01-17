@@ -16,10 +16,13 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.adapter.csv.CsvSchema;
 import org.apache.calcite.adapter.csv.CsvSchemaFactory;
 import org.apache.calcite.adapter.csv.CsvStreamTableFactory;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.Schema;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.TestUtil;
@@ -1051,6 +1054,29 @@ class CsvTest {
     }
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6789">[CALCITE-6789]
+   * A NumberFormatException was thrown when performing an aggregate query on a csv file </a>. */
+  @Test public void testNullValueWithSumAgg() throws Exception {
+    final String path = resourcePath("sales");
+    CsvSchema csvSchema =
+        new CsvSchema(new File(path), org.apache.calcite.adapter.csv.CsvTable.Flavor.SCANNABLE);
+    Properties info = new Properties();
+    info.setProperty("caseSensitive", "false");
+    info.setProperty("conformance", "MYSQL_5");
+    Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
+    CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class);
+    calciteConnection.getProperties().put("sqlConformance", SqlConformanceEnum.MYSQL_5);
+    SchemaPlus rootSchema = calciteConnection.getRootSchema();
+
+    rootSchema.add("csv", csvSchema);
+
+    String sql = "select name,sum(age)  from csv.test group by name";
+    Statement statement = calciteConnection.createStatement();
+    ResultSet resultSet = statement.executeQuery(sql);
+
+  }
+
   /** Creates a command that appends a line to the CSV file. */
   private Callable<Void> writeLine(final PrintWriter pw, final String line) {
     return () -> {
@@ -1165,4 +1191,7 @@ class CsvTest {
       return checking(expectUnordered(expectedLines));
     }
   }
+
+
+
 }
