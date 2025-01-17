@@ -143,6 +143,7 @@ import java.util.stream.IntStream;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 
 import static org.apache.calcite.test.Matchers.hasFieldNames;
+import static org.apache.calcite.test.Matchers.hasTree;
 import static org.apache.calcite.test.Matchers.isAlmost;
 import static org.apache.calcite.test.Matchers.sortsAs;
 
@@ -456,6 +457,39 @@ public class RelMetadataTest {
     assertThat(columnOrigin.getOriginColumnOrdinal(), equalTo(5));
     assertThat(columnOrigin.getOriginTable().getRowType().getFieldNames().get(5),
         equalTo("SAL"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6744">[CALCITE-6744]
+   * RelMetadataQuery.getColumnOrigins should return null when column origin
+   * includes correlation variables</a>. */
+  @Test void testColumnOriginsForCorrelate() {
+    final String sql = "select (select max(dept.name || '_' || emp.ename)"
+        + "from dept where emp.deptno = dept.deptno) from emp";
+    final RelMetadataFixture fixture = sql(sql);
+
+    final HepProgramBuilder programBuilder = HepProgram.builder();
+    programBuilder.addRuleInstance(CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE);
+    final HepPlanner planner = new HepPlanner(programBuilder.build());
+    planner.setRoot(fixture.toRel());
+    final RelNode relNode = planner.findBestExp();
+
+    String expect = "LogicalProject(EXPR$0=[$9])\n"
+        + "  LogicalCorrelate(correlation=[$cor1], joinType=[left], requiredColumns=[{1, 7}])\n"
+        + "    LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n"
+        + "    LogicalAggregate(group=[{}], EXPR$0=[MAX($0)])\n"
+        + "      LogicalProject($f0=[||(||($1, '_'), $cor1.ENAME)])\n"
+        + "        LogicalFilter(condition=[=($cor1.DEPTNO, $0)])\n"
+        + "          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])\n";
+    assertThat(relNode, hasTree(expect));
+
+    // check correlate input column origins
+    final RelMetadataFixture.MetadataConfig metadataConfig = fixture.metadataConfig;
+    final RelMetadataQuery mq =
+        new RelMetadataQuery(metadataConfig.getDefaultHandlerProvider());
+    Aggregate aggregate = (Aggregate) relNode.getInput(0).getInput(1);
+    Set<RelColumnOrigin> origins = mq.getColumnOrigins(aggregate, 0);
+    assertNull(origins);
   }
 
   // ----------------------------------------------------------------------
