@@ -21,6 +21,9 @@ import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
@@ -40,6 +43,7 @@ import org.apache.calcite.sql.fun.SqlFloorFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 
 import com.google.common.collect.ImmutableList;
 
@@ -153,6 +157,17 @@ public class PostgresqlSqlDialect extends SqlDialect {
     default:
       return super.supportsFunction(operator, type, paramTypes);
     }
+  }
+
+  @Override public boolean supportsImplicitTypeCoercion(RexCall call) {
+    final RexNode operand0 = call.getOperands().get(0);
+    RelDataType callType = call.getType();
+    boolean supportImplicit = super.supportsImplicitTypeCoercion(call);
+    boolean isNumericType = supportImplicit && SqlTypeUtil.isNumeric(callType);
+    if (isNumericType) {
+      return false;
+    }
+    return supportImplicit && RexUtil.isLiteral(operand0, false);
   }
 
   @Override public boolean requiresAliasForFromItems() {
