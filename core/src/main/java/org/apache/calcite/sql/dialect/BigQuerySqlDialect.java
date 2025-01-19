@@ -2175,9 +2175,6 @@ public class BigQuerySqlDialect extends SqlDialect {
         .replace("%E.*S", "%E*S");
   }
 
-  /**
-   * BigQuery interval syntax: INTERVAL int64 time_unit.
-   */
   @Override public void unparseSqlIntervalLiteral(
     SqlWriter writer, SqlIntervalLiteral literal, int leftPrec, int rightPrec) {
     literal = modifiedSqlIntervalLiteral(literal);
