@@ -405,13 +405,29 @@ public class RelToSqlConverter extends SqlImplementor
             .resetAlias(e.getCorrelVariable(), e.getInput(0).getRowType());
     parseCorrelTable(e, leftResult);
     final Result rightResult = visitInput(e, 1);
-    final SqlNode rightLateral =
-        SqlStdOperatorTable.LATERAL.createCall(POS, rightResult.node);
-    final SqlNode rightLateralAs =
-        SqlStdOperatorTable.AS.createCall(POS, rightLateral,
-            new SqlIdentifier(
-                requireNonNull(rightResult.neededAlias,
-                    () -> "rightResult.neededAlias is null, node is " + rightResult.node), POS));
+    final SqlNode rightResultNode = rightResult.node;
+    final SqlIdentifier id =
+        new SqlIdentifier(
+            requireNonNull(rightResult.neededAlias,
+                () -> "rightResult.neededAlias is null, node is " + rightResultNode), POS);
+    SqlNode rightLateral =
+        SqlStdOperatorTable.LATERAL.createCall(POS, rightResultNode);
+    SqlNode rightLateralAs;
+    if (rightResultNode.getKind() == SqlKind.AS) {
+      // If node already is an AS node, we need to replace the alias
+      // For example:
+      // Before: AS "t1" ("xs") AS "t10"
+      // Now：AS "t10" ("xs")
+      SqlCall sqlRightCall = (SqlCall) rightResultNode;
+      List<SqlNode> operands = new ArrayList<>(sqlRightCall.getOperandList());
+      rightLateral =
+          SqlStdOperatorTable.LATERAL.createCall(POS, operands.get(0));
+      operands.set(0, rightLateral);
+      operands.set(1, id);
+      rightLateralAs =  SqlStdOperatorTable.AS.createCall(POS, operands);
+    } else {
+      rightLateralAs =  SqlStdOperatorTable.AS.createCall(POS, rightLateral, id);
+    }
 
     final SqlNode join =
         new SqlJoin(POS,
