@@ -56,6 +56,12 @@
   githubId: bchapuis
   org: HEIG-VD
   role: Committer
+- name: Cancai Cai
+  apacheId: cancai
+  githubId: caicancai
+  pronouns: he/him
+  org:
+  role: Committer
 - name: Chris Baynes
   apacheId: cbaynes
   githubId: chris-baynes
