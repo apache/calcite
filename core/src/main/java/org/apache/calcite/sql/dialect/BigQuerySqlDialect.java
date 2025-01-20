@@ -549,7 +549,7 @@ public class BigQuerySqlDialect extends SqlDialect {
           return PLUS;
         case INTERVAL_DAY_SECOND:
           if (call.op.kind == SqlKind.MINUS) {
-            return SqlLibraryOperators.TIMESTAMP_SUB;
+            return MINUS;
           }
           return SqlLibraryOperators.DM_TIMESTAMP_ADD;
         case INTERVAL_MONTH:
@@ -2175,9 +2175,6 @@ public class BigQuerySqlDialect extends SqlDialect {
         .replace("%E.*S", "%E*S");
   }
 
-  /**
-   * BigQuery interval syntax: INTERVAL int64 time_unit.
-   */
   @Override public void unparseSqlIntervalLiteral(
     SqlWriter writer, SqlIntervalLiteral literal, int leftPrec, int rightPrec) {
     literal = modifiedSqlIntervalLiteral(literal);
@@ -2187,12 +2184,11 @@ public class BigQuerySqlDialect extends SqlDialect {
     if (interval.getSign() == -1) {
       writer.print("-");
     }
-    try {
-      Long.parseLong(interval.getIntervalLiteral());
-    } catch (NumberFormatException e) {
-      throw new RuntimeException("Only INT64 is supported as the interval value for BigQuery.");
+    if (interval.getIntervalQualifier().timeUnitRange.endUnit != null) {
+      writer.literal("'" + interval.getIntervalLiteral() + "'");
+    } else {
+      writer.literal(interval.getIntervalLiteral());
     }
-    writer.literal(interval.getIntervalLiteral());
     unparseSqlIntervalQualifier(writer, interval.getIntervalQualifier(),
             RelDataTypeSystem.DEFAULT);
   }
@@ -2220,7 +2216,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     if (qualifier.timeUnitRange.endUnit == null) {
       writer.keyword(start);
     } else {
-      throw new RuntimeException("Range time unit is not supported for BigQuery.");
+      super.unparseSqlIntervalQualifier(writer, qualifier, typeSystem);
     }
   }
 
