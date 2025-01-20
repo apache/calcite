@@ -4089,6 +4089,20 @@ class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  @Test void testLimitWithParentheses() {
+    final String retainLimitQuery = "(SELECT \"product_id\" FROM \"product\" LIMIT 10)\n"
+        + "UNION ALL\n"
+        + "(SELECT \"product_id\" FROM \"product\" LIMIT 10)\n";
+    final String retainLimitResult = "(SELECT \"product_id\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "FETCH NEXT 10 ROWS ONLY)\n"
+        + "UNION ALL\n"
+        + "(SELECT \"product_id\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "FETCH NEXT 10 ROWS ONLY)";
+    sql(retainLimitQuery).ok(retainLimitResult);
+  }
+
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5013">[CALCITE-5013]
@@ -4127,18 +4141,18 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "UNION ALL\n"
         + "SELECT *\n"
-        + "FROM (SELECT \"product_id\"\n"
+        + "FROM ((SELECT \"product_id\"\n"
         + "FROM \"foodmart\".\"product\"\n"
-        + "FETCH NEXT 10 ROWS ONLY\n"
+        + "FETCH NEXT 10 ROWS ONLY)\n"
         + "INTERSECT ALL\n"
         + "SELECT \"product_id\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "OFFSET 10 ROWS))\n"
         + "EXCEPT ALL\n"
-        + "SELECT \"product_id\"\n"
+        + "(SELECT \"product_id\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "OFFSET 5 ROWS\n"
-        + "FETCH NEXT 5 ROWS ONLY";
+        + "FETCH NEXT 5 ROWS ONLY)";
     sql(allSetOpQuery).ok(allSetOpRes);
 
     // After the config is enabled, order by will be retained, so parentheses are required.
@@ -4160,10 +4174,10 @@ class RelToSqlConverterTest {
     final String retainLimitResult = "SELECT \"product_id\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "UNION ALL\n"
-        + "SELECT \"product_id\"\n"
+        + "(SELECT \"product_id\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "ORDER BY \"product_id\"\n"
-        + "FETCH NEXT 2 ROWS ONLY";
+        + "FETCH NEXT 2 ROWS ONLY)";
     sql(retainLimitQuery).ok(retainLimitResult);
   }
 
