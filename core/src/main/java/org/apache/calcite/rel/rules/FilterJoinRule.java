@@ -84,6 +84,10 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
       return;
     }
 
+    if (!join.getVariablesSet().isEmpty()) {
+      return;
+    }
+
     final List<RexNode> aboveFilters =
         filter != null
             ? getConjunctions(filter)
