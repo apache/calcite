@@ -3667,6 +3667,15 @@ class RelToSqlConverterDMTest {
         .ok(expectedSpark);
   }
 
+  @Test public void testTimestampMinusIntervalDayToSecond() {
+    String query = "select \"hire_date\" - (10 * INTERVAL '20 10:10:10' DAY TO SECOND) from \"employee\"";
+    final String expectedBigQuery = "SELECT hire_date - 10 * INTERVAL '20 10:10:10' DAY TO SECOND\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBigQuery);
+  }
+
   @Test public void testTimestampPlusIntervalMonthFunctionWithArthOps() {
     String query = "select \"hire_date\" + -10 * INTERVAL '1' MONTH from \"employee\"";
     final String expectedBigQuery = "SELECT DATETIME_ADD(hire_date, "
