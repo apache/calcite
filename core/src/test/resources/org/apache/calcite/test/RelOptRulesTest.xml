@@ -2486,6 +2486,44 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testDecorrelationWithProject">
+    <Resource name="sql">
+      <![CDATA[select sal,
+exists (select * from emp_b where emp.deptno = emp_b.deptno)
+from sales.emp]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(variablesSet=[[$cor0]], SAL=[$5], EXPR$1=[EXISTS({
+LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+})])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planMid">
+      <![CDATA[
+LogicalProject(SAL=[$5], EXPR$1=[IS NOT NULL($9)])
+  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(i=[true])
+        LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(SAL=[$5], EXPR$1=[IS NOT NULL($10)])
+  LogicalJoin(condition=[=($7, $9)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0], $f1=[true])
+      LogicalAggregate(group=[{0}])
+        LogicalProject(DEPTNO=[$7])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testDecorrelationWithSort">
     <Resource name="sql">
       <![CDATA[SELECT e1.empno
