@@ -1082,6 +1082,20 @@ public abstract class OperandTypes {
           // Third operand optional (operand index 0, 1, 2)
         number -> number == 2);
 
+
+  /**
+   * Operand type-checking strategy where the second and third operands must be comparable.
+   * This is used when the operator has three operands and only the
+   * second and third operands need to be comparable.
+   */
+  public static final SqlSingleOperandTypeChecker SECOND_THIRD_SAME =
+      new SameOperandTypeChecker(3) {
+        @Override protected List<Integer> getOperandList(int operandCount) {
+          // Only check the second and third operands
+          return ImmutableList.of(1, 2);
+        }
+      };
+
   /**
    * Operand type-checking strategy used by {@code ARG_MIN(value, comp)} and
    * similar functions, where the first operand can have any type and the second
