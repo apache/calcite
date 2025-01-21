@@ -4832,6 +4832,30 @@ public class SqlOperatorTest {
    * REPLACE function returns wrong result when search pattern is an empty string</a>. */
   @Test void testReplaceFunc() {
     final SqlOperatorFixture f = fixture();
+    checkReplaceFunc(f);
+    // case-sensitive
+    f.checkString("REPLACE('ciAao', 'a', 'ciao')", "ciAciaoo",
+        "VARCHAR NOT NULL");
+    f.checkString("REPLACE('ciAao', 'A', 'ciao')", "ciciaoao",
+        "VARCHAR NOT NULL");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6791">[CALCITE-6791]
+   * Search pattern during matching in REPLACE function should be case insensitive
+   * in MSSQL</a>. */
+  @Test void testReplaceMSSQLFunc() {
+    final SqlOperatorFixture f = fixture();
+    checkReplaceFunc(f);
+    // case-insensitive
+    SqlOperatorFixture f1 = f.withConformance(SqlConformanceEnum.SQL_SERVER_2008);
+    f1.checkString("REPLACE('ciAao', 'a', 'ciao')", "ciciaociaoo",
+        "VARCHAR NOT NULL");
+    f1.checkString("REPLACE('ciAao', 'A', 'ciao')", "ciciaociaoo",
+        "VARCHAR NOT NULL");
+  }
+
+  private static void checkReplaceFunc(SqlOperatorFixture f) {
     f.setFor(SqlStdOperatorTable.REPLACE, VmName.EXPAND);
     f.checkString("REPLACE('ciao', 'ciao', '')", "",
         "VARCHAR NOT NULL");

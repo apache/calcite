@@ -132,6 +132,15 @@ class CoreQuidemTest extends QuidemTest {
                   SqlConformanceEnum.ORACLE_10)
               .with(CalciteAssert.Config.SCOTT)
               .connect();
+        case "scott-mssql":
+          // Same as "scott", but uses SQL_SERVER_2008 conformance.
+          return CalciteAssert.that()
+              .with(CalciteConnectionProperty.PARSER_FACTORY,
+                  ExtensionDdlExecutor.class.getName() + "#PARSER_FACTORY")
+              .with(CalciteConnectionProperty.CONFORMANCE,
+                  SqlConformanceEnum.SQL_SERVER_2008)
+              .with(CalciteAssert.Config.SCOTT)
+              .connect();
         case "steelwheels":
           return CalciteAssert.that()
               .with(CalciteConnectionProperty.PARSER_FACTORY,
