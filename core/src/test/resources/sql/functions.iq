@@ -886,6 +886,28 @@ from t;
 
 !ok
 
+# [CALCITE-6791] Search pattern during matching in REPLACE function should be case insensitive in MSSQL
+!use scott-mssql
+select replace('ciAao', 'a', 'ciao');
++-------------+
+| EXPR$0      |
++-------------+
+| ciciaociaoo |
++-------------+
+(1 row)
+
+!ok
+
+select replace('ciAao', 'A', 'ciao');
++-------------+
+| EXPR$0      |
++-------------+
+| ciciaociaoo |
++-------------+
+(1 row)
+
+!ok
+
 # concat in BigQuery
 !use post-big-query
 

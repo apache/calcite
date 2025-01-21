@@ -560,11 +560,15 @@ class SqlFunctionsTest {
   }
 
   @Test void testReplace() {
-    assertThat(replace("", "ciao", "ci"), is(""));
-    assertThat(replace("ciao", "ciao", ""), is(""));
-    assertThat(replace("ciao", "", "ciao"), is("ciao"));
-    assertThat(replace("ci ao", " ", "ciao"), is("ciciaoao"));
-    assertThat(replace("hello world", "o", ""), is("hell wrld"));
+    assertThat(replace("", "ciao", "ci", true), is(""));
+    assertThat(replace("ciao", "ciao", "", true), is(""));
+    assertThat(replace("ciao", "", "ciao", true), is("ciao"));
+    assertThat(replace("ci ao", " ", "ciao", true), is("ciciaoao"));
+    assertThat(replace("ciAao", "a", "ciao", true), is("ciAciaoo"));
+    assertThat(replace("ciAao", "A", "ciao", true), is("ciciaoao"));
+    assertThat(replace("ciAao", "a", "ciao", false), is("ciciaociaoo"));
+    assertThat(replace("ciAao", "A", "ciao", false), is("ciciaociaoo"));
+    assertThat(replace("hello world", "o", "", true), is("hell wrld"));
   }
 
   @Test void testRegexpReplace() {
