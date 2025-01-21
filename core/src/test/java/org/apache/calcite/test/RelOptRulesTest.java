@@ -9117,6 +9117,16 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2295">[CALCITE-2295]
+   * Correlated SubQuery with Project will generate error plan</a>. */
+  @Test public void testDecorrelationWithProject() throws Exception {
+    final String sql = "select sal,\n"
+        + "exists (select * from emp_b where emp.deptno = emp_b.deptno)\n"
+        + "from sales.emp";
+    sql(sql).withSubQueryRules().withLateDecorrelate(true).check();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3296">[CALCITE-3296]
    * Decorrelator gives empty result after decorrelating sort rel with
    * null offset and fetch</a>.
