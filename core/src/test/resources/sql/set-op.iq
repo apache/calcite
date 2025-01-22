@@ -245,4 +245,17 @@ select * from emp natural join dept where job = 'CLERK';
 Non-query expression encountered in illegal context
 !error
 
+# [CALCITE-6303] UNION with CTE(s) results in exception during query validation
+(SELECT 123)
+UNION
+(WITH t (col) AS (VALUES (456)) SELECT col FROM t);
++--------+
+| EXPR$0 |
++--------+
+|    123 |
+|    456 |
++--------+
+(2 rows)
+
+!ok
 # End set-op.iq
