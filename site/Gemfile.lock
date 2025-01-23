@@ -132,8 +132,8 @@ PLATFORMS
 DEPENDENCIES
   jekyll (~> 4)
   jekyll-redirect-from
-  nokogiri (~> 1.18)
-  webrick (~> 1.9)
+  nokogiri (~> 1.18.2)
+  webrick (~> 1.9.1)
 
 BUNDLED WITH
    2.6.3
