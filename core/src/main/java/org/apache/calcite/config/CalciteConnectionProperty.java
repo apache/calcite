@@ -80,7 +80,9 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
   LEX("lex", Type.ENUM, Lex.ORACLE, false),
 
   /** Collection of built-in functions and operators. Valid values include
-   * "standard", "bigquery", "mysql", "oracle", "postgresql" and "spatial",
+   * "standard", "bigquery", "calcite", "hive", "mssql", "mysql", "oracle",
+   * "postgresql", "redshift", "snowflake","spark", "spatial" and
+   * "all"(operators that could be used in all libraries except "standard" and "spatial"),
    * and also comma-separated lists, for example "oracle,spatial". */
   FUN("fun", Type.STRING, "standard", true),
 
