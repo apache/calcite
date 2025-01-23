@@ -68,7 +68,7 @@ running from within the directory:
 ### Build site
 
 1. `cd site`
-2. `docker compose run build-site`
+2. `env JEKYLL_UID=$(id -u) JEKYLL_GID=$(id -g) docker compose run build-site`
 
 ### Generate javadoc
 
