@@ -14,20 +14,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-version: '3'
 services:
   dev:
-    image: jekyll/jekyll:4
-    command: jekyll serve --watch --force_polling
+    image: ruby:3.3.7-slim-bullseye
+    working_dir: /root
+    command: sh -c "apt-get update && apt-get install -y build-essential libssl-dev zlib1g-dev ruby-dev bundler && bundle install && bundle exec jekyll serve --host=0.0.0.0 --watch --force_polling"
     ports:
       - 4000:4000
     volumes:
-      - .:/srv/jekyll
+      - .:/root
   build-site:
-    image: jekyll/jekyll:4
-    command: jekyll build
+    image: ruby:3.3.7-slim-bullseye
+    command: sh -c "groupadd -g ${JEKYLL_GID:-1000} jekyll && useradd -u ${JEKYLL_UID:-1000} -g ${JEKYLL_GID:-1000} --create-home jekyll && rm -rf /home/jekyll/.bundle /home/jekyll/Gemfile.lock /home/jekyll/.jekyll-cache && apt-get update && apt-get install -y build-essential libssl-dev zlib1g-dev ruby-dev bundler && su jekyll -c 'cd ~ && bundle install && bundle exec jekyll build'"
     volumes:
-      - .:/srv/jekyll
+      - .:/home/jekyll
+    environment:
+      - JEKYLL_UID=${JEKYLL_UID}
+      - JEKYLL_GID=${JEKYLL_GID}
   generate-javadoc:
     image: eclipse-temurin:19
     working_dir: /usr/src/calcite
