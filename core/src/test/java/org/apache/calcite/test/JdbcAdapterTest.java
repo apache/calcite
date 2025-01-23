@@ -236,6 +236,32 @@ class JdbcAdapterTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6401">[CALCITE-6401]
+   * JdbcAdapter cannot push down NOT IN sub-queries</a>. */
+  @Test void testPushDownNotIn() {
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL)
+        .query("select * from dept where deptno not in (select deptno from emp)")
+        .explainContains("PLAN=JdbcToEnumerableConverter\n"
+            + "  JdbcProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2])\n"
+            + "    JdbcFilter(condition=[OR(=($3, 0), AND(IS NULL($6), >=($4, $3)))])\n"
+            + "      JdbcJoin(condition=[=($0, $5)], joinType=[left])\n"
+            + "        JdbcJoin(condition=[true], joinType=[inner])\n"
+            + "          JdbcTableScan(table=[[SCOTT, DEPT]])\n"
+            + "          JdbcAggregate(group=[{}], c=[COUNT()], ck=[COUNT($7)])\n"
+            + "            JdbcTableScan(table=[[SCOTT, EMP]])\n"
+            + "        JdbcAggregate(group=[{7}], i=[LITERAL_AGG(true)])\n"
+            + "          JdbcTableScan(table=[[SCOTT, EMP]])\n\n")
+        .runs()
+        .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
+        .planHasSql("SELECT \"DEPT\".\"DEPTNO\", \"DEPT\".\"DNAME\", \"DEPT\".\"LOC\"\n"
+            + "FROM \"SCOTT\".\"DEPT\"\nCROSS JOIN (SELECT COUNT(*) AS \"c\", COUNT(\"DEPTNO\") AS \"ck\"\n"
+            + "FROM \"SCOTT\".\"EMP\") AS \"t\"\n"
+            + "LEFT JOIN (SELECT \"DEPTNO\", TRUE AS \"i\"\n"
+            + "FROM \"SCOTT\".\"EMP\"\nGROUP BY \"DEPTNO\") AS \"t0\" ON \"DEPT\".\"DEPTNO\" = \"t0\".\"DEPTNO\"\n"
+            + "WHERE \"t\".\"c\" = 0 OR \"t0\".\"i\" IS NULL AND \"t\".\"ck\" >= \"t\".\"c\"");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6401">[CALCITE-6401]
    * JDBC adapter cannot push down JOIN with condition
    * includes IS TRUE、IS NULL、Dynamic parameter、CAST、Literal comparison</a>. */
   @Test void testJoinConditionPushDownIsTrue() {
