@@ -754,6 +754,7 @@ public class SqlDialect {
 
   public boolean supportsAggregateFunction(SqlKind kind) {
     switch (kind) {
+    case LITERAL_AGG:
     case COUNT:
     case SUM:
     case SUM0:
