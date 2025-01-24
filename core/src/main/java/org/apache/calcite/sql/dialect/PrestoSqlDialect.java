@@ -153,6 +153,10 @@ public class PrestoSqlDialect extends SqlDialect {
     case FLOAT:
       return new SqlDataTypeSpec(
           new SqlBasicTypeNameSpec(SqlTypeName.DOUBLE, SqlParserPos.ZERO), SqlParserPos.ZERO);
+    // https://prestodb.io/docs/current/language/types.html#varbinary
+    case BINARY:
+      return new SqlDataTypeSpec(
+          new SqlBasicTypeNameSpec(SqlTypeName.VARBINARY, SqlParserPos.ZERO), SqlParserPos.ZERO);
     default:
       return super.getCastSpec(type);
     }
