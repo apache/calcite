@@ -2340,6 +2340,12 @@ public abstract class SqlImplementor {
       }
 
       if (rel instanceof Project && rel.getInput(0) instanceof Aggregate) {
+        Project project = (Project) rel;
+        Aggregate aggregate = (Aggregate) rel.getInput(0);
+        if (!dialect.getConformance().allowsOperatiosnOnComplexGroupByItems()
+            && !canMergeProjectAndAggregate(project.getProjects(), aggregate)) {
+          return true;
+        }
         if (CTERelToSqlUtil.isCTEScopeOrDefinitionTrait(rel.getTraitSet())
             ||
             CTERelToSqlUtil.isCTEScopeOrDefinitionTrait(rel.getInput(0).getTraitSet())) {
@@ -2352,7 +2358,6 @@ public abstract class SqlImplementor {
         }
 
         //check for distinct
-        Aggregate aggregate = (Aggregate) rel.getInput(0);
         DistinctTrait distinctTrait = aggregate.getTraitSet().getTrait(DistinctTraitDef.instance);
         if (distinctTrait != null && distinctTrait.isDistinct()) {
           return true;
@@ -2476,6 +2481,32 @@ public abstract class SqlImplementor {
         }
       }
       return false;
+    }
+
+    private boolean canMergeProjectAndAggregate(
+        List<RexNode> nodes, Aggregate aggregate) {
+      List<Integer> complexGroupByItems = getComplexGroupByItems(aggregate);
+      for (RexNode node : nodes) {
+        if (RelToSqlUtils.findInputRef(node, complexGroupByItems)
+            && !dialect.validOperationOnGroupByItem(node)) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    private List<Integer> getComplexGroupByItems(Aggregate aggregate) {
+      List<Integer> complexGroupItems = new ArrayList<>(aggregate.getGroupCount());
+      if (!(aggregate.getInput() instanceof Project)) {
+        return Collections.emptyList();
+      }
+      Project project = (Project) aggregate.getInput();
+      for (int i = 0; i < aggregate.getGroupCount(); i++) {
+        if (project.getChildExps().get(i) instanceof RexCall) {
+          complexGroupItems.add(i);
+        }
+      }
+      return complexGroupItems;
     }
 
     private boolean areAllNamedInputFieldsProjected(List<RexNode> projects,

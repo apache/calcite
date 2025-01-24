@@ -187,7 +187,6 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CEIL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EXTRACT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FLOOR;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_FALSE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MOD;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
@@ -354,6 +353,13 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   @Override public boolean supportAggInGroupByClause() {
     return false;
+  }
+
+  @Override public boolean validOperationOnGroupByItem(RexNode node) {
+    if (node instanceof RexCall) {
+      return node.isA(SqlKind.CAST);
+    }
+    return true;
   }
 
   @Override public boolean supportNestedAnalyticalFunctions() {
