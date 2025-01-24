@@ -114,7 +114,7 @@ import static java.util.Objects.requireNonNull;
  * select a from R1 where a &gt; 7
  *   &rarr; "a &gt; 7" is pulled up from the Projection.
  * select a + 1 from R1 where a + 1 &gt; 7
- *   &rarr; "a + 1 gt; 7" is not pulled up
+ *   &rarr; "a + 1 &gt; 7" is not pulled up
  * </pre>
  *
  * <li> There are several restrictions on Joins:
