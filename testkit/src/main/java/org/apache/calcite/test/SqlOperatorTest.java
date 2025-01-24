@@ -5555,7 +5555,7 @@ public class SqlOperatorTest {
       f.checkNull("to_date(NULL, NULL)");
     };
     final List<SqlLibrary> libraries =
-        list(SqlLibrary.ORACLE, SqlLibrary.REDSHIFT);
+        list(SqlLibrary.ORACLE, SqlLibrary.REDSHIFT, SqlLibrary.HIVE);
     f0.forEachLibrary(libraries, consumer);
   }
 
@@ -5725,7 +5725,8 @@ public class SqlOperatorTest {
         false);
     final List<SqlLibrary> libraries =
         ImmutableList.of(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL,
-            SqlLibrary.POSTGRESQL, SqlLibrary.REDSHIFT, SqlLibrary.SPARK);
+            SqlLibrary.POSTGRESQL, SqlLibrary.REDSHIFT,
+            SqlLibrary.SPARK, SqlLibrary.HIVE);
     final Consumer<SqlOperatorFixture> consumer = f -> {
       f.checkString("md5(x'')",
           "d41d8cd98f00b204e9800998ecf8427e",
@@ -5750,7 +5751,7 @@ public class SqlOperatorTest {
         false);
     final List<SqlLibrary> libraries =
         ImmutableList.of(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL,
-            SqlLibrary.POSTGRESQL, SqlLibrary.REDSHIFT, SqlLibrary.SPARK);
+            SqlLibrary.POSTGRESQL, SqlLibrary.REDSHIFT, SqlLibrary.SPARK, SqlLibrary.HIVE);
     final Consumer<SqlOperatorFixture> consumer = f -> {
       f.checkString("sha1(x'')",
           "da39a3ee5e6b4b0d3255bfef95601890afd80709",
@@ -5873,7 +5874,7 @@ public class SqlOperatorTest {
     final List<SqlLibrary> libraries =
         list(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL,
             SqlLibrary.POSTGRESQL, SqlLibrary.SPARK,
-            SqlLibrary.REDSHIFT);
+            SqlLibrary.REDSHIFT, SqlLibrary.HIVE);
     f0.forEachLibrary(libraries, consumer);
   }
 
@@ -5888,7 +5889,7 @@ public class SqlOperatorTest {
       f.checkString("SPACE(5)", "     ", "VARCHAR NOT NULL");
       f.checkNull("SPACE(cast(null as integer))");
     };
-    f0.forEachLibrary(list(SqlLibrary.MYSQL, SqlLibrary.SPARK), consumer);
+    f0.forEachLibrary(list(SqlLibrary.MYSQL, SqlLibrary.SPARK, SqlLibrary.HIVE), consumer);
   }
 
   @Test void testStrcmpFunc() {
@@ -5909,7 +5910,7 @@ public class SqlOperatorTest {
         false);
     final List<SqlLibrary> libraries =
         list(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL,
-            SqlLibrary.ORACLE, SqlLibrary.POSTGRESQL, SqlLibrary.REDSHIFT);
+            SqlLibrary.ORACLE, SqlLibrary.POSTGRESQL, SqlLibrary.REDSHIFT, SqlLibrary.HIVE);
     final Consumer<SqlOperatorFixture> consumer = f -> {
       f.checkString("SOUNDEX('TECH ON THE NET')", "T253", "VARCHAR(4) NOT NULL");
       f.checkString("SOUNDEX('Miller')", "M460", "VARCHAR(4) NOT NULL");
@@ -6252,7 +6253,8 @@ public class SqlOperatorTest {
       f.checkQuery("select regexp_replace('a b c', 'b', 'X')");
     };
     final List<SqlLibrary> libraries =
-        list(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL, SqlLibrary.ORACLE, SqlLibrary.REDSHIFT);
+        list(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL, SqlLibrary.ORACLE,
+            SqlLibrary.REDSHIFT, SqlLibrary.HIVE);
     f0.forEachLibrary(libraries, consumer);
 
     // Tests to verify double-backslashes are ignored for indexing in other dialects
@@ -7687,7 +7689,7 @@ public class SqlOperatorTest {
       f.checkNull("log(0)");
       f.checkNull("log(-1)");
     };
-    f0.forEachLibrary(list(SqlLibrary.MYSQL, SqlLibrary.SPARK), consumer);
+    f0.forEachLibrary(list(SqlLibrary.MYSQL, SqlLibrary.SPARK, SqlLibrary.HIVE), consumer);
   }
 
   /** Test case for
@@ -10957,7 +10959,7 @@ public class SqlOperatorTest {
     };
     final List<SqlLibrary> libraries =
         list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.POSTGRESQL,
-            SqlLibrary.REDSHIFT, SqlLibrary.SPARK);
+            SqlLibrary.REDSHIFT, SqlLibrary.SPARK, SqlLibrary.HIVE);
     f0.forEachLibrary(libraries, consumer);
   }
 
@@ -10989,7 +10991,7 @@ public class SqlOperatorTest {
     };
     final List<SqlLibrary> libraries =
         list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.POSTGRESQL,
-            SqlLibrary.REDSHIFT, SqlLibrary.SPARK);
+            SqlLibrary.REDSHIFT, SqlLibrary.SPARK, SqlLibrary.HIVE);
     f0.forEachLibrary(libraries, consumer);
   }
 
@@ -11773,7 +11775,7 @@ public class SqlOperatorTest {
     };
     final List<SqlLibrary> libraries =
         list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.POSTGRESQL,
-            SqlLibrary.REDSHIFT, SqlLibrary.SPARK);
+            SqlLibrary.REDSHIFT, SqlLibrary.SPARK, SqlLibrary.HIVE);
     f0.forEachLibrary(libraries, consumer);
   }
 
@@ -11789,7 +11791,7 @@ public class SqlOperatorTest {
     };
     final List<SqlLibrary> libraries =
         list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.POSTGRESQL,
-            SqlLibrary.REDSHIFT, SqlLibrary.SPARK);
+            SqlLibrary.REDSHIFT, SqlLibrary.SPARK, SqlLibrary.HIVE);
     f0.forEachLibrary(libraries, consumer);
   }
 
@@ -11813,7 +11815,7 @@ public class SqlOperatorTest {
           "VARCHAR(5) NOT NULL");
     };
     final List<SqlLibrary> libraries =
-        list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE);
+        list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.HIVE);
     f0.forEachLibrary(libraries, consumer);
   }
 
@@ -11860,7 +11862,7 @@ public class SqlOperatorTest {
           "VARCHAR(5) NOT NULL");
     };
     final List<SqlLibrary> libraries =
-        list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE);
+        list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.HIVE);
     f0.forEachLibrary(libraries, consumer);
   }
 
@@ -11896,7 +11898,7 @@ public class SqlOperatorTest {
   @Test void testNvlFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlLibraryOperators.NVL, VmName.EXPAND);
-    final SqlOperatorFixture f12 = f
+    SqlOperatorFixture f12 = f
         .withLibrary(SqlLibrary.ORACLE)
         .forOracle(SqlConformanceEnum.ORACLE_12);
     f12.checkString("nvl('abc', 'de')", "abc", "VARCHAR(3) NOT NULL");
@@ -11976,6 +11978,7 @@ public class SqlOperatorTest {
     checkDecodeFunc(fixture().withLibrary(SqlLibrary.ORACLE));
     checkDecodeFunc(fixture().withLibrary(SqlLibrary.REDSHIFT));
     checkDecodeFunc(fixture().withLibrary(SqlLibrary.SPARK));
+    checkDecodeFunc(fixture().withLibrary(SqlLibrary.HIVE));
   }
 
   private static void checkDecodeFunc(SqlOperatorFixture f) {
@@ -14380,53 +14383,56 @@ public class SqlOperatorTest {
         "No match found for function signature "
             + "DATE_ADD\\(<DATE>, <NUMERIC>\\)", false);
 
-    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
-    f.checkScalar("date_add(date '2016-02-22', 2)",
-        "2016-02-24",
-        "DATE NOT NULL");
-    f.checkScalar("date_add(date '2016-02-28', 2)",
-        "2016-03-01",
-        "DATE NOT NULL");
-    f.checkScalar("date_add(date '2016-03-01', -2)",
-        "2016-02-28",
-        "DATE NOT NULL");
-    f.checkScalar("date_add(date '2016-03-01', -2)",
-        "2016-02-28",
-        "DATE NOT NULL");
-    f.checkScalar("date_add(date '2016-03-01', -2.0)",
-        "2016-02-28",
-        "DATE NOT NULL");
-    f.checkScalar("date_add(date '2016-02-28', 2.0)",
-        "2016-03-01",
-        "DATE NOT NULL");
-    f.checkScalar("date_add(date '2016-02-28', '2.0')",
-        "2016-03-01",
-        "DATE NOT NULL");
-    f.checkScalar("date_add(timestamp '2016-02-22 13:00:01', '-2.0')",
-        "2016-02-20",
-        "DATE NOT NULL");
-    f.checkScalar("date_add(timestamp '2016-02-22 13:00:01', -2)",
-        "2016-02-20",
-        "DATE NOT NULL");
-    f.checkScalar("date_add(timestamp '2016-02-22 13:00:01', -2.0)",
-        "2016-02-20",
-        "DATE NOT NULL");
-    f.checkScalar("date_add(date '0001-01-01', '-2.0')",
-        "0000-12-30",
-        "DATE NOT NULL");
-    f.checkScalar("date_add(date '0001-01-01', '-367')",
-        "000/-12-31",
-        "DATE NOT NULL");
-    f.checkScalar("date_add(date '0001-01-01', '-3')",
-        "0000-12-29",
-        "DATE NOT NULL");
-    f.checkNull("date_add(CAST(NULL AS DATE), 5)");
-    f.checkNull("date_add(date '2016-02-22', CAST(NULL AS INTEGER))");
-    f.checkNull("date_add(CAST(NULL AS DATE), CAST(NULL AS INTEGER))");
-    f.checkFails("^date_add(time '13:00:01', -2)^", INVALID_ARGUMENTS_TYPE_VALIDATION_ERROR,
-            false);
-    f.checkFails("^date_add(1, -2)^", INVALID_ARGUMENTS_TYPE_VALIDATION_ERROR,
-        false);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkScalar("date_add(date '2016-02-22', 2)",
+          "2016-02-24",
+          "DATE NOT NULL");
+      f.checkScalar("date_add(date '2016-02-28', 2)",
+          "2016-03-01",
+          "DATE NOT NULL");
+      f.checkScalar("date_add(date '2016-03-01', -2)",
+          "2016-02-28",
+          "DATE NOT NULL");
+      f.checkScalar("date_add(date '2016-03-01', -2)",
+          "2016-02-28",
+          "DATE NOT NULL");
+      f.checkScalar("date_add(date '2016-03-01', -2.0)",
+          "2016-02-28",
+          "DATE NOT NULL");
+      f.checkScalar("date_add(date '2016-02-28', 2.0)",
+          "2016-03-01",
+          "DATE NOT NULL");
+      f.checkScalar("date_add(date '2016-02-28', '2.0')",
+          "2016-03-01",
+          "DATE NOT NULL");
+      f.checkScalar("date_add(timestamp '2016-02-22 13:00:01', '-2.0')",
+          "2016-02-20",
+          "DATE NOT NULL");
+      f.checkScalar("date_add(timestamp '2016-02-22 13:00:01', -2)",
+          "2016-02-20",
+          "DATE NOT NULL");
+      f.checkScalar("date_add(timestamp '2016-02-22 13:00:01', -2.0)",
+          "2016-02-20",
+          "DATE NOT NULL");
+      f.checkScalar("date_add(date '0001-01-01', '-2.0')",
+          "0000-12-30",
+          "DATE NOT NULL");
+      f.checkScalar("date_add(date '0001-01-01', '-367')",
+          "000/-12-31",
+          "DATE NOT NULL");
+      f.checkScalar("date_add(date '0001-01-01', '-3')",
+          "0000-12-29",
+          "DATE NOT NULL");
+      f.checkNull("date_add(CAST(NULL AS DATE), 5)");
+      f.checkNull("date_add(date '2016-02-22', CAST(NULL AS INTEGER))");
+      f.checkNull("date_add(CAST(NULL AS DATE), CAST(NULL AS INTEGER))");
+      f.checkFails("^date_add(time '13:00:01', -2)^", INVALID_ARGUMENTS_TYPE_VALIDATION_ERROR,
+          false);
+      f.checkFails("^date_add(1, -2)^", INVALID_ARGUMENTS_TYPE_VALIDATION_ERROR,
+          false);
+    };
+
+    f0.forEachLibrary(list(SqlLibrary.SPARK, SqlLibrary.HIVE), consumer);
   }
 
   /** Test case for
@@ -14436,31 +14442,33 @@ public class SqlOperatorTest {
   @Test void testDateSubSpark() {
     final SqlOperatorFixture f0 = fixture()
         .setFor(SqlLibraryOperators.DATE_SUB_SPARK);
+
     f0.checkFails("^date_sub(date '2008-12-25', "
             + "5)^",
         "No match found for function signature "
             + "DATE_SUB\\(<DATE>, <NUMERIC>\\)", false);
-
-    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
-    f.checkScalar("date_sub(date '2016-02-22', 2)",
-        "2016-02-20",
-        "DATE NOT NULL");
-    f.checkScalar("date_sub(date '2016-03-01', 2)",
-        "2016-02-28",
-        "DATE NOT NULL");
-    f.checkScalar("date_sub(timestamp '2016-02-22 13:00:01', '-2.0')",
-        "2016-02-24",
-        "DATE NOT NULL");
-    f.checkScalar("date_sub(timestamp '2016-02-22 13:00:01', -2)",
-        "2016-02-24",
-        "DATE NOT NULL");
-    f.checkNull("date_sub(CAST(NULL AS DATE), 5)");
-    f.checkNull("date_sub(date '2016-02-22', CAST(NULL AS INTEGER))");
-    f.checkNull("date_sub(CAST(NULL AS DATE), CAST(NULL AS INTEGER))");
-    f.checkFails("^date_sub(time '13:00:01', -2)^", INVALID_ARGUMENTS_TYPE_VALIDATION_ERROR,
-        false);
-    f.checkFails("^date_sub(1, -2)^", INVALID_ARGUMENTS_TYPE_VALIDATION_ERROR,
-        false);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkScalar("date_sub(date '2016-02-22', 2)",
+          "2016-02-20",
+          "DATE NOT NULL");
+      f.checkScalar("date_sub(date '2016-03-01', 2)",
+          "2016-02-28",
+          "DATE NOT NULL");
+      f.checkScalar("date_sub(timestamp '2016-02-22 13:00:01', '-2.0')",
+          "2016-02-24",
+          "DATE NOT NULL");
+      f.checkScalar("date_sub(timestamp '2016-02-22 13:00:01', -2)",
+          "2016-02-24",
+          "DATE NOT NULL");
+      f.checkNull("date_sub(CAST(NULL AS DATE), 5)");
+      f.checkNull("date_sub(date '2016-02-22', CAST(NULL AS INTEGER))");
+      f.checkNull("date_sub(CAST(NULL AS DATE), CAST(NULL AS INTEGER))");
+      f.checkFails("^date_sub(time '13:00:01', -2)^", INVALID_ARGUMENTS_TYPE_VALIDATION_ERROR,
+          false);
+      f.checkFails("^date_sub(1, -2)^", INVALID_ARGUMENTS_TYPE_VALIDATION_ERROR,
+          false);
+    };
+    f0.forEachLibrary(list(SqlLibrary.SPARK, SqlLibrary.HIVE), consumer);
   }
 
   /** Test case for
