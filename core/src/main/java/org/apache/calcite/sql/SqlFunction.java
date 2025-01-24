@@ -120,7 +120,7 @@ public class SqlFunction extends SqlOperator {
   /**
    * Internal constructor.
    */
-  protected SqlFunction(
+  public SqlFunction(
       String name,
       @Nullable SqlIdentifier sqlIdentifier,
       SqlKind kind,

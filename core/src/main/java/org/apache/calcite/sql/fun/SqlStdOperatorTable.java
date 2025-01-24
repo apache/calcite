@@ -269,11 +269,11 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.CONCAT,
           60,
           true,
-          ReturnTypes.ARG0.andThen((opBinding, typeToTransform) -> {
+          ReturnTypes.ARG0_NULLABLE.andThen((opBinding, typeToTransform) -> {
             SqlReturnTypeInference returnType =
                 typeToTransform.getSqlTypeName().getFamily() == SqlTypeFamily.ARRAY
                     ? ReturnTypes.LEAST_RESTRICTIVE
-                    : ReturnTypes.DYADIC_STRING_SUM_PRECISION_NULLABLE;
+                    : ReturnTypes.VARCHAR_NULLABLE;
 
             return requireNonNull(returnType.inferReturnType(opBinding),
                 "inferred CONCAT element type");
@@ -281,6 +281,21 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           null,
           OperandTypes.STRING_SAME_SAME_OR_ARRAY_SAME_SAME);
 
+  public static final SqlFunction CONCAT2 =
+      new SqlFunction("||",
+          SqlKind.CONCAT,
+          ReturnTypes.ARG0_NULLABLE.andThen((opBinding, typeToTransform) -> {
+            SqlReturnTypeInference returnType =
+                typeToTransform.getSqlTypeName().getFamily() == SqlTypeFamily.ARRAY
+                    ? ReturnTypes.LEAST_RESTRICTIVE
+                    : ReturnTypes.VARCHAR_NULLABLE;
+
+            return requireNonNull(returnType.inferReturnType(opBinding),
+                "inferred CONCAT element type");
+          }),
+          null,
+          OperandTypes.STRING_SAME_SAME_OR_ARRAY_SAME_SAME,
+          SqlFunctionCategory.STRING);
 
   /**
    * Arithmetic division operator, '<code>/</code>'.
