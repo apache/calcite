@@ -64,7 +64,7 @@ public interface SqlValidatorScope {
   SqlNode getNode();
 
   /**
-   * Looks up a node with a given name. Returns null if none is found.
+   * Looks up a node with a given name. Adds the match(es) to the resolved if found.
    *
    * @param names       Name of node to find, maybe partially or fully qualified
    * @param nameMatcher Name matcher
