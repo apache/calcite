@@ -412,6 +412,9 @@ class LintTest {
     if (subject2.matches("[a-z].*")) {
       consumer.accept("Message must start with upper-case letter");
     }
+    if (subject2.matches("^Chore.*\\b")) {
+      consumer.accept("Message cannot start with the Chore keyword");
+    }
 
     // Check for keywords that should be capitalized
     for (Map.Entry<String, String> entry : TERMINOLOGY_MAP.entrySet()) {
