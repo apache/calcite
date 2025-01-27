@@ -272,11 +272,11 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.CONCAT,
           60,
           true,
-          ReturnTypes.ARG0_NULLABLE.andThen((opBinding, typeToTransform) -> {
+          ReturnTypes.ARG0.andThen((opBinding, typeToTransform) -> {
             SqlReturnTypeInference returnType =
                 typeToTransform.getSqlTypeName().getFamily() == SqlTypeFamily.ARRAY
                     ? ReturnTypes.LEAST_RESTRICTIVE
-                    : ReturnTypes.VARCHAR_NULLABLE;
+                    : ReturnTypes.DYADIC_STRING_SUM_PRECISION_NULLABLE;
 
             return requireNonNull(returnType.inferReturnType(opBinding),
                 "inferred CONCAT element type");
