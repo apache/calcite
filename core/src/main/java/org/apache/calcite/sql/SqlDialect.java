@@ -1341,6 +1341,10 @@ public class SqlDialect {
     throw new UnsupportedOperationException();
   }
 
+  public boolean validOperationOnGroupByItem(RexNode node) {
+    return true;
+  }
+
   /**
    * Returns whether this dialect support the specified type of join.
    */
