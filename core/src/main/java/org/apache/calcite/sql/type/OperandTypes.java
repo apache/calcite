@@ -1020,7 +1020,7 @@ public abstract class OperandTypes {
           ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.INTEGER,
               SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER), i -> i == 2 || i == 3 || i == 4);
 
-  public static final FamilyOperandTypeChecker STRING_INTEGER =
+  public static final SqlSingleOperandTypeChecker STRING_INTEGER =
       family(SqlTypeFamily.STRING, SqlTypeFamily.INTEGER);
 
   public static final SqlSingleOperandTypeChecker STRING_INTEGER_INTEGER =
@@ -1032,14 +1032,8 @@ public abstract class OperandTypes {
           ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.INTEGER,
               SqlTypeFamily.INTEGER), i -> i == 2);
 
-  public static final FamilyOperandTypeChecker STRING_NUMERIC =
+  public static final SqlSingleOperandTypeChecker STRING_NUMERIC =
       family(SqlTypeFamily.STRING, SqlTypeFamily.NUMERIC);
-
-  public static final FamilyOperandTypeChecker CHARACTER_NUMERIC =
-      family(SqlTypeFamily.STRING, SqlTypeFamily.NUMERIC);
-
-  public static final FamilyOperandTypeChecker CHARACTER_INTEGER =
-      family(SqlTypeFamily.STRING, SqlTypeFamily.INTEGER);
 
   public static final SqlSingleOperandTypeChecker STRING_NUMERIC_NUMERIC =
       family(SqlTypeFamily.STRING, SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC);
@@ -1062,9 +1056,8 @@ public abstract class OperandTypes {
       STRING_STRING_INTEGER.and(SAME_SAME_INTEGER);
 
   public static final SqlSingleOperandTypeChecker STRING_SAME_SAME_OR_ARRAY_SAME_SAME =
-      or(STRING_NUMERIC_OPTIONAL_STRING, NUMERIC_STRING_OPTIONAL_STRING,
-          STRING_STRING_OPTIONAL_STRING, and(OperandTypes.SAME_SAME, family(SqlTypeFamily.ARRAY,
-              SqlTypeFamily.ARRAY)));
+      or(STRING_SAME_SAME,
+          and(OperandTypes.SAME_SAME, family(SqlTypeFamily.ARRAY, SqlTypeFamily.ARRAY)));
 
   public static final SqlSingleOperandTypeChecker ANY =
       family(SqlTypeFamily.ANY);
