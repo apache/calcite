@@ -89,9 +89,6 @@ import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 import static java.util.Objects.requireNonNull;
 
-import static org.apache.calcite.sql.type.OperandTypes.NUMERIC_STRING_OPTIONAL_STRING;
-import static org.apache.calcite.sql.type.OperandTypes.STRING_NUMERIC_OPTIONAL_STRING;
-
 /**
  * Implementation of {@link org.apache.calcite.sql.SqlOperatorTable} containing
  * the standard operators and functions.
@@ -286,14 +283,14 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   /**
    * concatenation operator with 3rd arg as Optional '<code>||</code>'.
-   *
    */
   public static final SqlFunction CONCAT2 =
       new SqlFunction("||",
           SqlKind.CONCAT,
           ReturnTypes.ARG0_NULLABLE,
           null,
-          OperandTypes.or(STRING_NUMERIC_OPTIONAL_STRING, NUMERIC_STRING_OPTIONAL_STRING),
+          OperandTypes.or(OperandTypes.STRING_NUMERIC_OPTIONAL_STRING,
+              OperandTypes.NUMERIC_STRING_OPTIONAL_STRING),
           SqlFunctionCategory.STRING);
 
   /**
