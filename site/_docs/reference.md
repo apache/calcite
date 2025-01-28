@@ -2922,6 +2922,7 @@ In the following:
 | b | FROM_BASE32(string)                            | Returns the decoded result of a base-32 *string* as a string
 | m | TO_BASE64(string)                              | Converts the *string* to base-64 encoded form and returns a encoded string
 | b m | FROM_BASE64(string)                          | Returns the decoded result of a base-64 *string* as a string. If the input argument is an invalid base-64 *string* the function returns `NULL`
+| h s | HEX(string)                                   | Converts *string* into a hexadecimal varchar
 | b | TO_HEX(binary)                                 | Converts *binary* into a hexadecimal varchar
 | b | FROM_HEX(varchar)                              | Converts a hexadecimal-encoded *varchar* into bytes
 | b o p r s | LTRIM(string)                          | Returns *string* with all blanks removed from the start
