@@ -25,12 +25,9 @@ services:
       - .:/root
   build-site:
     image: ruby:3.3.7-slim-bullseye
-    command: sh -c "groupadd -g ${JEKYLL_GID:-1000} jekyll && useradd -u ${JEKYLL_UID:-1000} -g ${JEKYLL_GID:-1000} --create-home jekyll && rm -rf /home/jekyll/.bundle /home/jekyll/Gemfile.lock /home/jekyll/.jekyll-cache && apt-get update && apt-get install -y build-essential libssl-dev zlib1g-dev ruby-dev bundler && su jekyll -c 'cd ~ && bundle install && bundle exec jekyll build'"
+    command: sh -c "rm -rf /home/jekyll/.bundle /home/jekyll/Gemfile.lock /home/jekyll/.jekyll-cache /home/target/ && apt-get update && apt-get install -y build-essential libssl-dev zlib1g-dev ruby-dev bundler && cd /home/jekyll && bundle install && bundle exec jekyll build && mkdir ./.git && chmod 777 ./*"
     volumes:
       - .:/home/jekyll
-    environment:
-      - JEKYLL_UID=${JEKYLL_UID}
-      - JEKYLL_GID=${JEKYLL_GID}
   generate-javadoc:
     image: eclipse-temurin:19
     working_dir: /usr/src/calcite
