@@ -503,11 +503,11 @@ class ToLogicalConverterTest {
     final RelBuilder builder = builder();
     RelNode rel = builder.scan("EMP")
         .project(
-            builder.call(SqlStdOperatorTable.CONCAT2, builder.literal("cal"),
+            builder.call(SqlLibraryOperators.CONCAT3, builder.literal("cal"),
                 builder.literal(1), builder.literal("|9(2)")),
-            builder.call(SqlStdOperatorTable.CONCAT2, builder.literal(3),
+            builder.call(SqlLibraryOperators.CONCAT3, builder.literal(3),
                 builder.literal("abc"), builder.literal("9(3)|")),
-            builder.call(SqlStdOperatorTable.CONCAT2, builder.literal(4),
+            builder.call(SqlLibraryOperators.CONCAT3, builder.literal(4),
                 builder.literal("xyz")))
         .build();
     String expectedPhysical = ""

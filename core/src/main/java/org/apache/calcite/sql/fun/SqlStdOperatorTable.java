@@ -281,17 +281,6 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           null,
           OperandTypes.STRING_SAME_SAME_OR_ARRAY_SAME_SAME);
 
-  /**
-   * concatenation operator with 3rd arg as Optional '<code>||</code>'.
-   */
-  public static final SqlFunction CONCAT2 =
-      new SqlFunction("||",
-          SqlKind.CONCAT,
-          ReturnTypes.ARG0_NULLABLE,
-          null,
-          OperandTypes.or(OperandTypes.STRING_NUMERIC_OPTIONAL_STRING,
-              OperandTypes.NUMERIC_STRING_OPTIONAL_STRING),
-          SqlFunctionCategory.STRING);
 
   /**
    * Arithmetic division operator, '<code>/</code>'.
