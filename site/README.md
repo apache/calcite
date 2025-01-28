@@ -25,6 +25,8 @@ is present in the [calcite-site](https://github.com/apache/calcite-site) reposit
 
 # Previewing the website locally
 
+Simple change to trigger the new build action
+
 ## Manually
 
 ### Setup your environment
