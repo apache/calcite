@@ -1890,6 +1890,16 @@ public abstract class SqlLibraryOperators {
           OperandTypes.BINARY,
           SqlFunctionCategory.STRING);
 
+  /**
+   * The "HEX(string)" function; converts {@code string} into a hexadecimal varchar.
+   */
+  @LibraryOperator(libraries = {HIVE, SPARK})
+  public static final SqlFunction HEX =
+      SqlBasicFunction.create("HEX",
+          ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.CHARACTER,
+          SqlFunctionCategory.STRING);
+
   /** The "FORMAT_NUMBER(value, decimalOrFormat)" function. */
   @LibraryOperator(libraries = {HIVE, SPARK})
   public static final SqlFunction FORMAT_NUMBER =

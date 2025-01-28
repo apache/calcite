@@ -5823,6 +5823,35 @@ public class SqlOperatorTest {
     f0.forEachLibrary(libraries, consumer);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6805">[CALCITE-6805]
+   * Add hex function (enabled in Hive, Spark library)</a>. */
+  @Test void testHex() {
+    SqlOperatorFixture sqlOperatorFixture = fixture();
+    final SqlOperatorFixture f0 = sqlOperatorFixture.setFor(SqlLibraryOperators.HEX);
+    f0.checkFails("^hex('')^",
+        "No match found for function signature HEX\\(<CHARACTER>\\)",
+        false);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkString("hex('abc')",
+          "616263",
+          "VARCHAR NOT NULL");
+      f.checkString("hex('1')",
+          "31",
+          "VARCHAR NOT NULL");
+      f.checkString("hex('0')",
+          "30",
+          "VARCHAR NOT NULL");
+      f.checkString("hex('-1')",
+          "2d31",
+          "VARCHAR NOT NULL");
+      f.checkString("hex('')", "", "VARCHAR NOT NULL");
+      f.checkNull("hex(null)");
+      f.checkNull("hex(cast(null as varbinary))");
+    };
+    f0.forEachLibrary(list(SqlLibrary.HIVE, SqlLibrary.SPARK), consumer);
+  }
+
   @Test void testToHex() {
     final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.TO_HEX);
     f0.checkFails("^to_hex(x'')^",

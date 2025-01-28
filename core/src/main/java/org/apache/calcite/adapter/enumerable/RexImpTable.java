@@ -215,6 +215,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.FROM_BASE32;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FROM_BASE64;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FROM_HEX;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.GETBIT;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.HEX;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ILIKE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.IS_INF;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.IS_NAN;
@@ -686,6 +687,7 @@ public class RexImpTable {
       defineMethod(FROM_BASE64, BuiltInMethod.FROM_BASE64.method, NullPolicy.STRICT);
       defineMethod(TO_BASE32, BuiltInMethod.TO_BASE32.method, NullPolicy.STRICT);
       defineMethod(FROM_BASE32, BuiltInMethod.FROM_BASE32.method, NullPolicy.STRICT);
+      defineMethod(HEX, BuiltInMethod.HEX.method, NullPolicy.STRICT);
       defineMethod(TO_HEX, BuiltInMethod.TO_HEX.method, NullPolicy.STRICT);
       defineMethod(FROM_HEX, BuiltInMethod.FROM_HEX.method, NullPolicy.STRICT);
       defineMethod(MD5, BuiltInMethod.MD5.method, NullPolicy.STRICT);

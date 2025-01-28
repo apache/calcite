@@ -364,6 +364,11 @@ public class SqlFunctions {
     return Hex.encodeHexString(byteString.getBytes());
   }
 
+  /** SQL HEX(varchar) function. */
+  public static String hex(String value) {
+    return Hex.encodeHexString(value.getBytes(UTF_8));
+  }
+
   /** SQL MD5(string) function. */
   public static String md5(String string)  {
     return DigestUtils.md5Hex(string.getBytes(UTF_8));
