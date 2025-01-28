@@ -169,11 +169,16 @@ public class FilterExtractInnerJoinRule
       rightEntry = stack.pop();
       List<RexNode> joinConditions =
           getConditionsForEndIndex(allConditions, rightEntry.getMiddle());
-      RexNode joinPredicate = builder.and(joinConditions);
+      RexNode joinPredicate =
+          op.getKind() == SqlKind.OR && !joinConditions.isEmpty() ? builder.or(joinConditions)
+              : builder.and(joinConditions);
       allConditions.removeAll(joinConditions);
       left =
           LogicalJoin.create(left, rightEntry.getLeft(), ImmutableList.of(),
                   joinPredicate, ImmutableSet.of(), rightEntry.getRight());
+    }
+    if (allConditions.isEmpty()) {
+      return builder.push(left).build();
     }
     if (correlationIdSet != null) {
       return builder.push(left)
