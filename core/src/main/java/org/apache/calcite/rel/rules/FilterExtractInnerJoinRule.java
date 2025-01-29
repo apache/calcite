@@ -161,34 +161,33 @@ public class FilterExtractInnerJoinRule
   private RelNode moveConditionsFromWhereClauseToJoinOnClause(List<RexNode> allConditions,
       Stack<Triple<RelNode, Integer, JoinRelType>> stack, SqlOperator op, RelBuilder builder,
       Set<CorrelationId> correlationIdSet) {
-    Triple<RelNode, Integer, JoinRelType> leftEntry = stack.pop();
-    Triple<RelNode, Integer, JoinRelType> rightEntry;
-    RelNode left = leftEntry.getLeft();
-
+    RelNode left = stack.pop().getLeft();
     while (!stack.isEmpty()) {
-      rightEntry = stack.pop();
+      Triple<RelNode, Integer, JoinRelType> rightEntry = stack.pop();
       List<RexNode> joinConditions =
           getConditionsForEndIndex(allConditions, rightEntry.getMiddle());
-      RexNode joinPredicate =
-          op.getKind() == SqlKind.OR && !joinConditions.isEmpty() ? builder.or(joinConditions)
-              : builder.and(joinConditions);
+
+      RexNode joinPredicate = (op.getKind() == SqlKind.OR && !joinConditions.isEmpty())
+          ? builder.or(joinConditions)
+          : builder.and(joinConditions);
+
       allConditions.removeAll(joinConditions);
       left =
           LogicalJoin.create(left, rightEntry.getLeft(), ImmutableList.of(),
-                  joinPredicate, ImmutableSet.of(), rightEntry.getRight());
+              joinPredicate, ImmutableSet.of(), rightEntry.getRight());
     }
+
     if (allConditions.isEmpty()) {
       return builder.push(left).build();
     }
-    if (correlationIdSet != null) {
-      return builder.push(left)
-          .filter(correlationIdSet,
-              op.kind == SqlKind.OR ? builder.or(allConditions) : builder.and(allConditions))
-          .build();
-    }
-    return builder.push(left)
-        .filter(op.kind == SqlKind.OR ? builder.or(allConditions) : builder.and(allConditions))
-        .build();
+
+    RexNode remainingCondition = (op.getKind() == SqlKind.OR)
+        ? builder.or(allConditions)
+        : builder.and(allConditions);
+
+    return correlationIdSet != null
+        ? builder.push(left).filter(correlationIdSet, remainingCondition).build()
+        : builder.push(left).filter(remainingCondition).build();
   }
 
   /** Gets all the conditions that are part of the current join.*/
