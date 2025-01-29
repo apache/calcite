@@ -149,6 +149,7 @@ class PredicateAnalyzer {
         case OR:
         case LIKE:
         case EQUALS:
+        case IN:
         case NOT_EQUALS:
         case GREATER_THAN:
         case GREATER_THAN_OR_EQUAL:
@@ -240,7 +241,12 @@ class PredicateAnalyzer {
 
       switch (syntax) {
       case BINARY:
-        return binary(call);
+        switch (call.getKind()) {
+        case IN:
+          return in(call);
+        default:
+          return binary(call);
+        }
       case POSTFIX:
         return postfix(call);
       case PREFIX:
@@ -328,6 +334,19 @@ class PredicateAnalyzer {
       isColumn(a, call, ElasticsearchConstants.INDEX, true);
       QueryExpression operand = QueryExpression.create((TerminalExpression) a);
       return call.getKind() == SqlKind.IS_NOT_NULL ? operand.exists() : operand.notExists();
+    }
+
+    /**
+     * Process a call which is a IN operation, transforming into an equivalent
+     * query expression. Note that the incoming call will not be a simple binary
+     * expression, such as {@code foo IN(1,2,3)}
+     *
+     * @param call existing call
+     * @return evaluated expression
+     */
+    private QueryExpression in(RexCall call) {
+      return QueryExpression.create((TerminalExpression) call.getOperands().get(0).accept(this))
+          .in(call.getOperands());
     }
 
     /**
@@ -586,6 +605,8 @@ class PredicateAnalyzer {
 
     public abstract QueryExpression like(LiteralExpression literal);
 
+    public abstract QueryExpression in(List literal);
+
     public abstract QueryExpression notLike(LiteralExpression literal);
 
     public abstract QueryExpression equals(LiteralExpression literal);
@@ -690,6 +711,11 @@ class PredicateAnalyzer {
 
     @Override public QueryExpression notExists() {
       throw new PredicateAnalyzerException("SqlOperatorImpl ['notExists'] "
+          + "cannot be applied to a compound expression");
+    }
+
+    @Override public QueryExpression in(List literal) {
+      throw new PredicateAnalyzerException("SqlOperatorImpl ['in'] "
           + "cannot be applied to a compound expression");
     }
 
@@ -818,6 +844,17 @@ class PredicateAnalyzer {
       } else {
         builder = termQuery(getFieldReference(), value);
       }
+      return this;
+    }
+
+    @Override public QueryExpression in(List literal) {
+      List values = new ArrayList();
+      //converting rest operands to list of values
+      for (RexLiteral value : (List<RexLiteral>) literal.subList(1, literal.size())) {
+        values.add(((LiteralExpression) value.accept(new Visitor())).value());
+      }
+
+      builder = termsQuery(getFieldReference(), values);
       return this;
     }
 
