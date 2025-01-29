@@ -5529,6 +5529,40 @@ public class SqlToRelConverter {
       }
     }
 
+    /** Tries to simplify case:
+     *  select t1.a FROM emps t1 JOIN emps t2 ON (SELECT t2.a) _compare opeartor_ val;
+     *  The idea is to transform such a case into equivalent:
+     *  select t1.a FROM emps t1 JOIN emps t2 ON t2.a _compare opeartor_ val;
+     */
+    private @Nullable RexNode simplifyOnWithSelectInConditions(SqlNode expr) {
+      if (!(expr instanceof SqlBasicCall)) {
+        return null;
+      }
+      // (select t2.a) _compare opeartor_ val
+      SqlBasicCall call0 = (SqlBasicCall) expr;
+      if (call0.operandCount() != 2 || !(call0.operand(0) instanceof SqlBasicCall)) {
+        return null;
+      }
+      // left side i.e. (select t2.a)
+      SqlBasicCall selectCall = call0.operand(0);
+      if (selectCall.operandCount() != 1 || !(selectCall.getOperands()[0] instanceof SqlSelect)) {
+        return null;
+      }
+      // select t2.a
+      @Nullable SqlSelect colExpr = (SqlSelect) selectCall.getOperands()[0];
+      // empty from case, only 1 operand in current case possible
+      if (colExpr == null || colExpr.getFrom() != null || colExpr.getSelectList().size() != 1) {
+        return null;
+      }
+      // a
+      SqlNode selectParam = colExpr.getSelectList().get(0);
+      SqlNode op2 = call0.operand(1);
+      RexNode exp0 = convertExpression(selectParam);
+      RexNode exp1 = convertExpression(op2);
+      RexNode rex0 = rexBuilder.makeCall(call0.getOperator(), exp0, exp1);
+      return rex0;
+    }
+
     @Override public RexNode convertExpression(SqlNode expr) {
       // If we're in aggregation mode and this is an expression in the
       // GROUP BY clause, return a reference to the field.
@@ -5569,6 +5603,16 @@ public class SqlToRelConverter {
         final SqlNode query;
         final RelRoot root;
         switch (kind) {
+        case LESS_THAN:
+        case GREATER_THAN:
+        case LESS_THAN_OR_EQUAL:
+        case GREATER_THAN_OR_EQUAL:
+        case EQUALS:
+          RexNode res = simplifyOnWithSelectInConditions(expr);
+          if (res != null) {
+            return res;
+          }
+          break;
         case IN:
         case NOT_IN:
         case SOME:
