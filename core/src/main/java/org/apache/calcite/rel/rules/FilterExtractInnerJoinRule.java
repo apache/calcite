@@ -176,18 +176,14 @@ public class FilterExtractInnerJoinRule
           LogicalJoin.create(left, rightEntry.getLeft(), ImmutableList.of(),
               joinPredicate, ImmutableSet.of(), rightEntry.getRight());
     }
+    builder.push(left);
+    RexNode remainingCondition = allConditions.isEmpty()
+        ? builder.literal(true)
+        : (op.getKind() == SqlKind.OR) ? builder.or(allConditions) : builder.and(allConditions);
 
-    if (allConditions.isEmpty()) {
-      return builder.push(left).build();
-    }
-
-    RexNode remainingCondition = (op.getKind() == SqlKind.OR)
-        ? builder.or(allConditions)
-        : builder.and(allConditions);
-
-    return correlationIdSet != null
-        ? builder.push(left).filter(correlationIdSet, remainingCondition).build()
-        : builder.push(left).filter(remainingCondition).build();
+    return builder
+        .filter(correlationIdSet != null ? correlationIdSet : ImmutableSet.of(), remainingCondition)
+        .build();
   }
 
   /** Gets all the conditions that are part of the current join.*/
