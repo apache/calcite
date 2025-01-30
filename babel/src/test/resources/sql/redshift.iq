@@ -106,9 +106,6 @@
 #
 # pluralInterval - allow INTERVAL '2' DAYS as well as INTERVAL '2' DAY; [CALCITE-3383]
 #
-# TODO:
-#  * Why does CONCAT not work?
-#
 !use scott-redshift
 !set outputformat csv
 
@@ -1748,8 +1745,9 @@ A
 
 # CONCAT (Oracle Compatibility Function)
 select concat('a', 'b');
-SELECT "CONCAT"('a', 'b')
-!explain-validated-on calcite
+EXPR$0
+ab
+!ok
 
 # CRC32
 -- returns 'f2726906'
