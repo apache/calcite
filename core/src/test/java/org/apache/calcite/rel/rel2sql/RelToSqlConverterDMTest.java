@@ -7926,6 +7926,25 @@ class RelToSqlConverterDMTest {
     RuleSet rules = RuleSets.ofList(CoreRules.FILTER_EXTRACT_INNER_JOIN_RULE);
     sql(query).withBigQuery().optimize(rules, hepPlanner).ok(expect);
   }
+
+  @Test void testConversionOfFilterWithOrConditionToFilterWithInnerJoin() {
+    String query = "select *\n"
+        + " from \"foodmart\".\"employee\" as \"e\", \"foodmart\".\"reserve_employee\" as \"re\"\n"
+        + " where (\"re\".\"department_id\" = \"e\".\"employee_id\")\n"
+        + " or \"re\".\"employee_id\" = \"e\".\"department_id\"\n";
+
+    String expect = "SELECT *\n"
+        + "FROM foodmart.employee\nINNER JOIN foodmart.reserve_employee"
+        + " ON employee.employee_id = reserve_employee.department_id"
+        + " OR employee.department_id = reserve_employee.employee_id";
+
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(FilterExtractInnerJoinRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    RuleSet rules = RuleSets.ofList(CoreRules.FILTER_EXTRACT_INNER_JOIN_RULE);
+    sql(query).withBigQuery().optimize(rules, hepPlanner).ok(expect);
+  }
+
   //WHERE t1.c1 = t2.c1 AND t2.c2 = t3.c2 AND (t1.c3 = t3.c3 OR t1.c4 = t2.c4)
   @Test void testFilterWithParenthesizedConditionsWithThreeCrossJoinToFilterWithInnerJoin() {
     String query = "select *\n"

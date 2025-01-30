@@ -125,7 +125,7 @@ public class BasicSqlType extends AbstractSqlType {
   /**
    * Constructs a type with nullablity.
    */
-  BasicSqlType createWithNullability(boolean nullable) {
+  public BasicSqlType createWithNullability(boolean nullable) {
     if (nullable == this.isNullable) {
       return this;
     }
