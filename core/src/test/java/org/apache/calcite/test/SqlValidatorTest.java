@@ -1631,7 +1631,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("No match found for function signature "
             + "CONVERT_TIMEZONE\\(<CHARACTER>, <CHARACTER>, <TIMESTAMP>\\)");
 
-    final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.POSTGRESQL);
+    final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.REDSHIFT);
     expr("CONVERT_TIMEZONE('UTC', 'America/Los_Angeles',\n"
         + "  CAST('2000-01-01' AS TIMESTAMP))")
         .withOperatorTable(opTable)

@@ -102,10 +102,8 @@ public abstract class SqlLibraryOperators {
           OperandTypes.MEASURE);
 
   /** The "CONVERT_TIMEZONE(tz1, tz2, datetime)" function;
-   * converts the timezone of {@code datetime} from {@code tz1} to {@code tz2}.
-   * This function is only on Redshift, but we list it in PostgreSQL
-   * because Redshift does not have its own library. */
-  @LibraryOperator(libraries = {POSTGRESQL})
+   * converts the timezone of {@code datetime} from {@code tz1} to {@code tz2}. */
+  @LibraryOperator(libraries = {REDSHIFT})
   public static final SqlFunction CONVERT_TIMEZONE =
       SqlBasicFunction.create("CONVERT_TIMEZONE",
           ReturnTypes.DATE_NULLABLE, OperandTypes.CHARACTER_CHARACTER_DATETIME,

@@ -2838,7 +2838,7 @@ In the following:
 | b | CONTAINS_SUBSTR(expression, string [ , json_scope =&gt; json_scope_value ]) | Returns whether *string* exists as a substring in *expression*. Optional *json_scope* argument specifies what scope to search if *expression* is in JSON format. Returns NULL if a NULL exists in *expression* that does not result in a match
 | q | CONVERT(type, expression [ , style ])          | Equivalent to `CAST(expression AS type)`; ignores the *style* operand
 | o | CONVERT(string, destCharSet[, srcCharSet])     | Converts *string* from *srcCharSet* to *destCharSet*. If the *srcCharSet* parameter is not specified, then it uses the default CharSet
-| p r | CONVERT_TIMEZONE(tz1, tz2, datetime)         | Converts the timezone of *datetime* from *tz1* to *tz2*
+| r | CONVERT_TIMEZONE(tz1, tz2, datetime)           | Converts the timezone of *datetime* from *tz1* to *tz2*
 | p | COSD(numeric)                                  | Returns the cosine of *numeric* in degrees as a double. Returns NaN if *numeric* is NaN. Fails if *numeric* is greater than the maximum double value.
 | * | COSH(numeric)                                  | Returns the hyperbolic cosine of *numeric*
 | * | COTH(numeric)                                  | Returns the hyperbolic cotangent of *numeric*

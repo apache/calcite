@@ -614,12 +614,13 @@ class LatticeSuggesterTest {
   @Test void testRedshiftDialect() throws Exception {
     final Tester t = new Tester().foodmart().withEvolve(true)
         .withDialect(SqlDialect.DatabaseProduct.REDSHIFT.getDialect())
-        .withLibrary(SqlLibrary.POSTGRESQL);
+        .withLibrary(SqlLibrary.REDSHIFT);
 
     final String q0 = "select\n"
-        + "  CONCAT(\"fname\", ' ', \"lname\") as \"full_name\",\n"
+        // CONCAT function in RedShift only accepts two arguments
+        + "  CONCAT(\"fname\", \"lname\") as \"full_name\",\n"
         + "  convert_timezone('UTC', 'America/Los_Angeles',\n"
-        + "    cast('2019-01-01 01:00:00' as timestamp)),\n"
+        + "  cast('2019-01-01 01:00:00' as timestamp)),\n"
         + "  left(\"fname\", 1) as \"initial\",\n"
         + "  to_date('2019-01-01', 'YYYY-MM-DD'),\n"
         + "  to_timestamp('2019-01-01 01:00:00', 'YYYY-MM-DD HH:MM:SS'),\n"
