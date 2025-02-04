@@ -1057,6 +1057,19 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "Was expecting 3 arguments");
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-6813">
+   * [CALCITE-6813] UNNEST infers incorrect nullability for the result when applied to
+   * an array that contains nullable ROW values</a>. */
+  @Test void testUnnestRow() {
+    sql("with orders(data) as\n"
+        + "  (values (ARRAY[ROW(1, 'Alice'), ROW(2, NULL), ROW(NULL, 'Bob'), NULL]))\n"
+        + "select e.EXPR$0\n"
+        + "from orders, UNNEST(orders.data) as e")
+        .type(actualType -> {
+          assertTrue(actualType.getFieldList().get(0).getType().isNullable());
+        });
+  }
+
   @Test void testOverlay() {
     expr("overlay('ABCdef' placing 'abc' from 1)").ok();
     expr("overlay('ABCdef' placing 'abc' from 1 for 3)").ok();

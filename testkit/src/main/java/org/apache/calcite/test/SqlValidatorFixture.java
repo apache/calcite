@@ -51,6 +51,7 @@ import org.hamcrest.Matcher;
 
 import java.nio.charset.Charset;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -230,6 +231,20 @@ public class SqlValidatorFixture {
       RelDataType actualType = validator.getValidatedNodeType(n);
       String actual = SqlTests.getTypeString(actualType);
       assertThat(actual, is(expectedType));
+    });
+    return this;
+  }
+
+  /**
+   * Passes the returned type of a query to a consumer.
+   *
+   * @param check  Consumer run on the specific data type.
+   * @return The fixture itself.
+   */
+  public SqlValidatorFixture type(Consumer<RelDataType> check) {
+    tester.validateAndThen(factory, sap, (sql, validator, n) -> {
+      RelDataType actualType = validator.getValidatedNodeType(n);
+      check.accept(actualType);
     });
     return this;
   }
