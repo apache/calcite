@@ -5529,7 +5529,6 @@ public class SqlFunctions {
    */
   public static @Nullable Integer weekOfYear(String date) {
     GregorianCalendar calendar = new GregorianCalendar(TimeZone.getTimeZone("UTC"), Locale.ROOT);
-    calendar.setGregorianChange(new Date(Long.MIN_VALUE));
     calendar.setFirstDayOfWeek(Calendar.MONDAY);
     calendar.setMinimalDaysInFirstWeek(4);
     try {
