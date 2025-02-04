@@ -18,6 +18,7 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.MapSqlType;
 import org.apache.calcite.sql.type.MultisetSqlType;
@@ -81,15 +82,33 @@ public class SqlUnnestOperator extends SqlFunctionalOperator {
 
       assert type instanceof ArraySqlType || type instanceof MultisetSqlType
           || type instanceof MapSqlType;
+      // If a type is nullable, all field accesses inside the type are also nullable
+      boolean containerIsNullable = type.isNullable();
       if (type instanceof MapSqlType) {
         MapSqlType mapType = (MapSqlType) type;
-        builder.add(MAP_KEY_COLUMN_NAME, mapType.getKeyType());
-        builder.add(MAP_VALUE_COLUMN_NAME, mapType.getValueType());
+        RelDataType keyType = mapType.getKeyType();
+        RelDataType valueType = mapType.getValueType();
+        if (containerIsNullable) {
+          keyType = typeFactory.enforceTypeWithNullability(keyType, true);
+          valueType = typeFactory.enforceTypeWithNullability(valueType, true);
+        }
+        builder.add(MAP_KEY_COLUMN_NAME, keyType);
+        builder.add(MAP_VALUE_COLUMN_NAME, valueType);
       } else {
         RelDataType componentType = requireNonNull(type.getComponentType(), "componentType");
+        boolean isNullable = componentType.isNullable();
         if (!allowAliasUnnestItems(opBinding) && componentType.isStruct()) {
-          builder.addAll(componentType.getFieldList());
+          for (RelDataTypeField field : componentType.getFieldList()) {
+            RelDataType fieldType = field.getType();
+            if (containerIsNullable || isNullable) {
+              fieldType = typeFactory.enforceTypeWithNullability(fieldType, true);
+            }
+            builder.add(field.getName(), fieldType);
+          }
         } else {
+          if (containerIsNullable) {
+            componentType = typeFactory.enforceTypeWithNullability(componentType, true);
+          }
           builder.add(SqlUtil.deriveAliasFromOrdinal(operand),
               componentType);
         }
