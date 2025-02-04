@@ -443,6 +443,7 @@ public enum BuiltInMethod {
   SHA256(SqlFunctions.class, "sha256", String.class),
   SHA512(SqlFunctions.class, "sha512", String.class),
   THROW_UNLESS(SqlFunctions.class, "throwUnless", boolean.class, String.class),
+  WEEK_OF_YEAR(SqlFunctions.class, "weekOfYear", String.class),
   COMPRESS(CompressionFunctions.class, "compress", String.class),
   URL_DECODE(UrlFunctions.class, "urlDecode", String.class),
   URL_ENCODE(UrlFunctions.class, "urlEncode", String.class),

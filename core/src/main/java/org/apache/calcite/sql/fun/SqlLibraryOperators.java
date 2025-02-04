@@ -166,6 +166,14 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.DATE,
               SqlTypeFamily.DATE));
 
+  /** The "WEEKOFYEAR(datetime)" function
+   * (HIVE) return the week of the year of the given date. */
+  @LibraryOperator(libraries = {HIVE})
+  public static final SqlFunction WEEKOFYEAR =
+      SqlBasicFunction.create("WEEKOFYEAR",
+          ReturnTypes.INTEGER_FORCE_NULLABLE,
+          OperandTypes.STRING, SqlFunctionCategory.TIMEDATE);
+
   /** The "CONVERT(type, expr [,style])" function (Microsoft SQL Server).
    *
    * <p>Syntax:

@@ -93,6 +93,7 @@ import java.text.DecimalFormat;
 import java.text.Normalizer;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
+import java.time.DateTimeException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -104,8 +105,10 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
+import java.time.format.ResolverStyle;
 import java.time.format.SignStyle;
 import java.time.temporal.ChronoField;
+import java.time.temporal.TemporalAccessor;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -114,6 +117,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -145,6 +149,9 @@ import static java.lang.Integer.parseInt;
 import static java.lang.Long.parseLong;
 import static java.lang.Short.parseShort;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.time.temporal.ChronoField.DAY_OF_MONTH;
+import static java.time.temporal.ChronoField.MONTH_OF_YEAR;
+import static java.time.temporal.ChronoField.YEAR;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.joining;
 
@@ -231,7 +238,7 @@ public class SqlFunctions {
       new DateTimeFormatterBuilder()
           // Unlike ISO 8601, BQ only supports years between 1 - 9999,
           // but can support single-digit month and day parts.
-          .appendValue(ChronoField.YEAR, 4)
+          .appendValue(YEAR, 4)
           .appendLiteral('-')
           .appendValue(ChronoField.MONTH_OF_YEAR, 1, 2, SignStyle.NOT_NEGATIVE)
           .appendLiteral('-')
@@ -5512,6 +5519,61 @@ public class SqlFunctions {
   public static String dayNameWithDate(int date, Locale locale) {
     return dateToLocalDate(date)
         .format(ROOT_DAY_FORMAT.withLocale(locale));
+  }
+
+  /**
+   * SQL {@code WEEKOFYEAR} function, applied to a String argument.
+   *
+   * @param date string of date
+   * @return The week of the year of the given date
+   */
+  public static @Nullable Integer weekOfYear(String date) {
+    GregorianCalendar calendar = new GregorianCalendar(TimeZone.getTimeZone("UTC"), Locale.ROOT);
+    calendar.setGregorianChange(new Date(Long.MIN_VALUE));
+    calendar.setFirstDayOfWeek(Calendar.MONDAY);
+    calendar.setMinimalDaysInFirstWeek(4);
+    try {
+      LocalDate localDate = valueOf(date.trim());
+      calendar.setTimeInMillis(localDate.atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli());
+      return calendar.get(Calendar.WEEK_OF_YEAR);
+    } catch (DateTimeParseException | IllegalArgumentException e) {
+      return null;
+    }
+  }
+
+  /**
+   * Obtains an instance of Date from a text string such as 2021-02-22T09:39:27.
+   * Other supported formats are "2021-02-22T09:39:27Z", "2021-02-22 09:39:27",
+   * "2021-02-22T09:39:27+00:00", "2021-02-22". Any time information is simply
+   * dropped.
+   *
+   * @param text the text to parse, not null
+   * @return The {@code LocalDate} objects parsed from the text
+   * @throws IllegalArgumentException if the text cannot be parsed into a
+   *           {@code Date}
+   * @throws NullPointerException if {@code text} is null
+   */
+  public static LocalDate valueOf(final String text) {
+    String s = requireNonNull(text, "text").trim();
+    ParsePosition pos = new ParsePosition(0);
+    try {
+      DateTimeFormatter format =
+          new DateTimeFormatterBuilder()
+              .appendValue(YEAR, 1, 10, SignStyle.NORMAL)
+              .appendLiteral('-')
+              .appendValue(MONTH_OF_YEAR, 1, 2, SignStyle.NORMAL)
+              .appendLiteral('-')
+              .appendValue(DAY_OF_MONTH, 1, 2, SignStyle.NORMAL)
+              .toFormatter(Locale.ROOT)
+              .withResolverStyle(ResolverStyle.STRICT);
+      TemporalAccessor t = format.parseUnresolved(s, pos);
+      if (pos.getErrorIndex() >= 0) {
+        throw new DateTimeParseException("Text could not parse to date", s, pos.getErrorIndex());
+      }
+      return LocalDate.of(t.get(YEAR), t.get(MONTH_OF_YEAR), t.get(DAY_OF_MONTH));
+    } catch (DateTimeException e) {
+      throw new IllegalArgumentException("Cannot create date, parsing error");
+    }
   }
 
   /**
