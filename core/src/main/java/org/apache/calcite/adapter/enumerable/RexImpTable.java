@@ -337,6 +337,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_MILLIS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_SECONDS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.URL_DECODE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.URL_ENCODE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.WEEKOFYEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.XML_TRANSFORM;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ABS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ACOS;
@@ -959,6 +960,8 @@ public class RexImpTable {
       defineMethod(DATE_FROM_UNIX_DATE,
           BuiltInMethod.DATE_FROM_UNIX_DATE.method, NullPolicy.STRICT);
       defineMethod(UNIX_DATE, BuiltInMethod.UNIX_DATE.method,
+          NullPolicy.STRICT);
+      defineMethod(WEEKOFYEAR, BuiltInMethod.WEEK_OF_YEAR.method,
           NullPolicy.STRICT);
 
       // Datetime constructors

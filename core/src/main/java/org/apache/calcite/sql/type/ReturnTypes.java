@@ -481,6 +481,13 @@ public abstract class ReturnTypes {
       INTEGER.andThen(SqlTypeTransforms.TO_NULLABLE);
 
   /**
+   * Type-inference strategy whereby the result type of a call is a nullable
+   * INT.
+   */
+  public static final SqlReturnTypeInference INTEGER_FORCE_NULLABLE =
+      INTEGER.andThen(SqlTypeTransforms.FORCE_NULLABLE);
+
+  /**
    * Type-inference strategy whereby the result type of a call is a BIGINT.
    */
   public static final SqlReturnTypeInference BIGINT =

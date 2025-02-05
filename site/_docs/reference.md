@@ -3032,6 +3032,7 @@ In the following:
 | b s | UNIX_DATE(date)                              | Returns the number of days since 1970-01-01
 | s | URL_DECODE(string)                             | Decodes a *string* in 'application/x-www-form-urlencoded' format using a specific encoding scheme, returns original *string* when decoded error
 | s | URL_ENCODE(string)                             | Translates a *string* into 'application/x-www-form-urlencoded' format using a specific encoding scheme
+| h | WEEKOFYEAR(string)                             | Returns the week of the year of the given date, from 1 to 54
 | o | XMLTRANSFORM(xml, xslt)                        | Applies XSLT transform *xslt* to XML string *xml* and returns the result
 
 Note:

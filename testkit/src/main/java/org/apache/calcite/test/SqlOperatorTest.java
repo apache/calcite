@@ -5559,6 +5559,31 @@ public class SqlOperatorTest {
     f0.forEachLibrary(libraries, consumer);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6814">[CALCITE-6814]
+   * Add base64 function (enabled in Hive library)</a>. */
+  @Test void testWeekOfYear() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.WEEKOFYEAR);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkString("weekofyear('2022-02-01')",
+          "5",
+          "INTEGER");
+      f.checkString("weekofyear('2022-02-01 22:21:23')",
+          "5",
+          "INTEGER");
+      f.checkString("weekofyear('2022-02-01T09:39:27Z')",
+          "5",
+          "INTEGER");
+      f.checkNull("weekofyear(NULL)");
+      f.checkNull("weekofyear('2022-22-01')");
+      f.checkNull("weekofyear('aawwss')");
+      f.checkNull("weekofyear('2022')");
+    };
+    final List<SqlLibrary> libraries =
+        list(SqlLibrary.HIVE);
+    f0.forEachLibrary(libraries, consumer);
+  }
+
   @Test void testToDatePg() {
     final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.POSTGRESQL)
         .setFor(SqlLibraryOperators.TO_DATE_PG);
