@@ -390,6 +390,14 @@ public enum FormatElementEnum implements FormatElement {
       sb.append(String.format(Locale.ROOT, "%d", calendar.get(Calendar.WEEK_OF_MONTH)));
     }
   },
+  WM("WM", "The day of week number in the month (Sunday as the first day of the week) as a decimal "
+      + "number (1-5)") {
+    @Override public void format(StringBuilder sb, Date date) {
+      final Calendar calendar = Work.get().calendar;
+      calendar.setTime(date);
+      sb.append(String.format(Locale.ROOT, "%d", calendar.get(Calendar.DAY_OF_WEEK_IN_MONTH)));
+    }
+  },
   WW("w", "The week number of the year (Sunday as the first day of the week) as a decimal "
       + "number (00-53)") {
     @Override public void format(StringBuilder sb, Date date) {

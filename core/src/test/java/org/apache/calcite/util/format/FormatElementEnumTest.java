@@ -164,8 +164,14 @@ class FormatElementEnumTest {
     assertFormatElement(FormatElementEnum.SS, "2014-09-30T10:00:00Z", "00");
   }
 
-  @Test void testWM() {
+  @Test void testW() {
     assertFormatElement(FormatElementEnum.W, "2014-09-30T10:00:00Z", "5");
+  }
+
+  @Test void testWM() {
+    assertFormatElement(FormatElementEnum.WM, "2014-09-30T10:00:00Z", "5");
+    assertFormatElement(FormatElementEnum.WM, "2014-09-10T10:00:00Z", "2");
+    assertFormatElement(FormatElementEnum.WM, "2014-09-02T10:00:00Z", "1");
   }
 
   @Test void testWW() {

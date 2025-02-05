@@ -68,6 +68,7 @@ import static org.apache.calcite.util.format.FormatElementEnum.SS;
 import static org.apache.calcite.util.format.FormatElementEnum.SSSSS;
 import static org.apache.calcite.util.format.FormatElementEnum.TZR;
 import static org.apache.calcite.util.format.FormatElementEnum.W;
+import static org.apache.calcite.util.format.FormatElementEnum.WM;
 import static org.apache.calcite.util.format.FormatElementEnum.WW;
 import static org.apache.calcite.util.format.FormatElementEnum.Y;
 import static org.apache.calcite.util.format.FormatElementEnum.YY;
@@ -208,6 +209,7 @@ public class FormatModels {
     map.put("D", D);
     map.put("WW", WW);
     map.put("W", W);
+    map.put("WM", WM);
     map.put("IW", IW);
     map.put("Q", Q);
     map.put("AM", AMPM);
