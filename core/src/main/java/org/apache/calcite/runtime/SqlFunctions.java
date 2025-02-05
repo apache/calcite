@@ -300,12 +300,12 @@ public class SqlFunctions {
     return new ByteString(dest);
   }
 
-  /** SQL TO_BASE64(string) function. */
+  /** SQL TO_BASE64(string)/BASE64(string) function. */
   public static String toBase64(String string) {
     return toBase64_(string.getBytes(UTF_8));
   }
 
-  /** SQL TO_BASE64(string) function for binary string. */
+  /** SQL TO_BASE64(string)/BASE64(string) function for binary string. */
   public static String toBase64(ByteString string) {
     return toBase64_(string.getBytes());
   }
@@ -320,7 +320,7 @@ public class SqlFunctions {
     return str.substring(0, str.length() - 1);
   }
 
-  /** SQL FROM_BASE64(string) function. */
+  /** SQL FROM_BASE64(string)/UNBASE64(string) function. */
   public static @Nullable ByteString fromBase64(String base64) {
     try {
       base64 = FROM_BASE64_REGEXP.matcher(base64).replaceAll("");

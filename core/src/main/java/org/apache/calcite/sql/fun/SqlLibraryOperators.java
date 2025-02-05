@@ -1855,6 +1855,19 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING.or(OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
 
+  @LibraryOperator(libraries = {HIVE})
+  public static final SqlFunction BASE64 =
+      SqlBasicFunction.create("BASE64",
+          ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.STRING.or(OperandTypes.BINARY),
+          SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {HIVE})
+  public static final SqlFunction UN_BASE64 =
+      SqlBasicFunction.create("UNBASE64",
+          ReturnTypes.VARBINARY_FORCE_NULLABLE,
+          OperandTypes.STRING, SqlFunctionCategory.STRING);
+
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction FROM_BASE32 =
       SqlBasicFunction.create("FROM_BASE32",

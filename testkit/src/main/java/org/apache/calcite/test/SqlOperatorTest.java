@@ -5173,6 +5173,44 @@ public class SqlOperatorTest {
     f.checkString("to_base64(x'61')", "YQ==", "VARCHAR NOT NULL");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6812">[CALCITE-6812]
+   * Add base64 function (enabled in Hive library)</a>. */
+  @Test void testBase64() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.HIVE);
+    f.setFor(SqlLibraryOperators.BASE64);
+    f.checkString("base64(cast('a' as binary))", "YQ==", "VARCHAR NOT NULL");
+    f.checkString("base64('')", "", "VARCHAR NOT NULL");
+    f.checkNull("base64(null)");
+    f.checkString("base64('This is a test String.')",
+        "VGhpcyBpcyBhIHRlc3QgU3RyaW5nLg==",
+        "VARCHAR NOT NULL");
+  }
+
+  @Test void testUnBase64() {
+    final SqlOperatorFixture f0 = fixture()
+        .setFor(SqlLibraryOperators.UN_BASE64);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkString("unbase64('VGhpcyBpcyBhIHRlc3QgU3RyaW5nLg==')",
+          "546869732069732061207465737420537472696e672e",
+          "VARBINARY");
+      f.checkString("unbase64('VGhpcyBpcyBhIHRlc\t3QgU3RyaW5nLg==')",
+          "546869732069732061207465737420537472696e672e",
+          "VARBINARY");
+      f.checkString("unbase64('VGhpcyBpcyBhIHRlc\t3QgU3\nRyaW5nLg==')",
+          "546869732069732061207465737420537472696e672e",
+          "VARBINARY");
+      f.checkString("unbase64('VGhpcyB  pcyBhIHRlc3Qg\tU3Ry\naW5nLg==')",
+          "546869732069732061207465737420537472696e672e",
+          "VARBINARY");
+      f.checkNull("unbase64('-1')");
+      f.checkNull("unbase64('-100')");
+      f.checkNull("unbase64(null)");
+    };
+    f0.forEachLibrary(list(SqlLibrary.HIVE), consumer);
+
+  }
+
   @Test void testToChar() {
     final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.TO_CHAR);
     final Consumer<SqlOperatorFixture> consumer = f -> {
