@@ -2504,6 +2504,13 @@ public abstract class SqlLibraryOperators {
           OperandTypes.INTEGER,
           SqlFunctionCategory.NUMERIC);
 
+  @LibraryOperator(libraries = {SPARK, HIVE})
+  public static final SqlFunction BIN =
+      SqlBasicFunction.create("BIN",
+          ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.STRING);
+
   @LibraryOperator(libraries = {BIG_QUERY, MYSQL, POSTGRESQL, SPARK, HIVE})
   public static final SqlFunction MD5 =
       SqlBasicFunction.create("MD5",

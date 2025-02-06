@@ -5756,6 +5756,47 @@ public class SqlOperatorTest {
     f.checkNull("from_base32(cast (null as varchar))");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6815">[CALCITE-6815]
+   * Add bin function (enabled in Hive and Spark library)</a>. */
+  @Test void testBin() {
+//    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.BIN);
+    final SqlOperatorFixture f0 = Fixtures.forOperators(true).setFor(SqlLibraryOperators.BIN);
+    f0.checkFails("^bin(x'')^",
+        "No match found for function signature BIN\\(<BINARY>\\)",
+        false);
+    final List<SqlLibrary> libraries =
+        ImmutableList.of(SqlLibrary.SPARK, SqlLibrary.HIVE);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkString("bin(12)",
+          "1100",
+          "VARCHAR NOT NULL");
+      f.checkString("bin(1)",
+          "1",
+          "VARCHAR NOT NULL");
+      f.checkString("bin(01)",
+          "1",
+          "VARCHAR NOT NULL");
+      f.checkString("bin(000)",
+          "0",
+          "VARCHAR NOT NULL");
+      f.checkString("bin(-000)",
+          "0",
+          "VARCHAR NOT NULL");
+      f.checkString("bin(-11)",
+          "1111111111111111111111111111111111111111111111111111111111110101",
+          "VARCHAR NOT NULL");
+      f.checkString("bin(-1)",
+          "1111111111111111111111111111111111111111111111111111111111111111",
+          "VARCHAR NOT NULL");
+      f.checkString("bin(-001)",
+          "1111111111111111111111111111111111111111111111111111111111111111",
+          "VARCHAR NOT NULL");
+      f.checkNull("bin(null)");
+    };
+    f0.forEachLibrary(libraries, consumer);
+  }
+
   @Test void testMd5() {
     final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.MD5);
     f0.checkFails("^md5(x'')^",
