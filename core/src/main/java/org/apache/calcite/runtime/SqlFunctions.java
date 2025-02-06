@@ -369,6 +369,23 @@ public class SqlFunctions {
     return Hex.encodeHexString(value.getBytes(UTF_8));
   }
 
+  /** SQL BIN(long) function. */
+  public static String bin(long value) {
+    int zeros = Long.numberOfLeadingZeros(value);
+    if (zeros == Long.SIZE) {
+      return "0";
+    } else {
+      int length = Long.SIZE - zeros;
+      byte[] bytes = new byte[length];
+      for (int index = length - 1; index >= 0; index--) {
+        bytes[index] = (byte) ((value & 0x1) == 1 ? '1' : '0');
+        value >>>= 1;
+      }
+      //CHECKSTYLE: IGNORE 1
+      return new String(bytes, UTF_8);
+    }
+  }
+
   /** SQL MD5(string) function. */
   public static String md5(String string)  {
     return DigestUtils.md5Hex(string.getBytes(UTF_8));

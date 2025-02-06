@@ -159,6 +159,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.ASINH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ATAND;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ATANH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BASE64;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.BIN;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BITAND_AGG;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BITOR_AGG;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BIT_COUNT_BIG_QUERY;
@@ -694,6 +695,7 @@ public class RexImpTable {
       defineMethod(HEX, BuiltInMethod.HEX.method, NullPolicy.STRICT);
       defineMethod(TO_HEX, BuiltInMethod.TO_HEX.method, NullPolicy.STRICT);
       defineMethod(FROM_HEX, BuiltInMethod.FROM_HEX.method, NullPolicy.STRICT);
+      defineMethod(BIN, BuiltInMethod.BIN.method, NullPolicy.STRICT);
       defineMethod(MD5, BuiltInMethod.MD5.method, NullPolicy.STRICT);
       defineMethod(SHA1, BuiltInMethod.SHA1.method, NullPolicy.STRICT);
       defineMethod(SHA256, BuiltInMethod.SHA256.method, NullPolicy.STRICT);
