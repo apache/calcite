@@ -166,34 +166,23 @@ public class Uncollect extends SingleRel {
 
     for (int i = 0; i < fields.size(); i++) {
       RelDataTypeField field = fields.get(i);
-      boolean containerIsNullable = field.getType().isNullable();
       if (field.getType() instanceof MapSqlType) {
         // This code is similar to SqlUnnestOperator::inferReturnType.
         MapSqlType mapType = (MapSqlType) field.getType();
-        RelDataType keyType = mapType.getKeyType();
-        RelDataType valueType = mapType.getValueType();
-        if (containerIsNullable) {
-          keyType = typeFactory.enforceTypeWithNullability(keyType, true);
-          valueType = typeFactory.enforceTypeWithNullability(valueType, true);
-        }
-        builder.add(SqlUnnestOperator.MAP_KEY_COLUMN_NAME, keyType);
-        builder.add(SqlUnnestOperator.MAP_VALUE_COLUMN_NAME, valueType);
+        builder.add(SqlUnnestOperator.MAP_KEY_COLUMN_NAME, mapType.getKeyType());
+        builder.add(SqlUnnestOperator.MAP_VALUE_COLUMN_NAME, mapType.getValueType());
       } else {
         RelDataType componentType = field.getType().getComponentType();
         if (null == componentType) {
           throw RESOURCE.unnestArgument().ex();
         }
         boolean isNullable = componentType.isNullable();
-        if (containerIsNullable || isNullable) {
-          componentType = typeFactory.enforceTypeWithNullability(componentType, true);
-        }
-
         if (requireAlias) {
           builder.add(itemAliases.get(i), componentType);
         } else if (componentType.isStruct()) {
           for (RelDataTypeField fieldInfo : componentType.getFieldList()) {
             RelDataType fieldType = fieldInfo.getType();
-            if (containerIsNullable || isNullable) {
+            if (isNullable) {
               fieldType = typeFactory.enforceTypeWithNullability(fieldType, true);
             }
             builder.add(fieldInfo.getName(), fieldType);

@@ -1066,7 +1066,44 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "select e.EXPR$0\n"
         + "from orders, UNNEST(orders.data) as e")
         .type(actualType -> {
+          // Unfortunately the string representation does not contain nullability information
+          assertThat(actualType, hasToString("RecordType(INTEGER EXPR$0)"));
+          assertTrue(actualType.isStruct());
+          assertThat(actualType.getFieldCount(), is(1));
+          // The field type should be nullable
           assertTrue(actualType.getFieldList().get(0).getType().isNullable());
+        });
+    sql("with orders(data) as\n"
+        + "  (values (ARRAY[ROW(1, 'Alice'), ROW(2, NULL), ROW(NULL, 'Bob'), NULL]))\n"
+        + "select e.*\n"
+        + "from orders, UNNEST(orders.data) as e")
+        .type(actualType -> {
+          assertThat(actualType, hasToString("RecordType(INTEGER EXPR$0, CHAR(5) EXPR$1)"));
+          assertTrue(actualType.isStruct());
+          assertTrue(actualType.getFieldList().get(0).getType().isNullable());
+          assertTrue(actualType.getFieldList().get(1).getType().isNullable());
+        });
+    sql("with orders(data) as\n"
+        + "  (values (ARRAY[ROW(1, 'Alice'), ROW(2, NULL)]))\n"
+        + "select e.*\n"
+        + "from orders, UNNEST(orders.data) as e")
+        .type(actualType -> {
+          // The array unnested is not nullable
+          assertThat(actualType, hasToString("RecordType(INTEGER EXPR$0, CHAR(5) EXPR$1)"));
+          assertTrue(actualType.isStruct());
+          assertThat(actualType.getFieldList().get(0).getType().isNullable(), is(false));
+          assertTrue(actualType.getFieldList().get(1).getType().isNullable());
+        });
+    sql("with orders(data) as\n"
+        + "  (values (ARRAY[ARRAY[ROW(1, 'Alice'), ROW(2, NULL)], NULL]))\n"
+        + "select e.*\n"
+        + "from orders, UNNEST(orders.data[1]) as e")
+        .type(actualType -> {
+          // The inner array that is unnested is nullable in this example
+          assertThat(actualType, hasToString("RecordType(INTEGER EXPR$0, CHAR(5) EXPR$1)"));
+          assertTrue(actualType.isStruct());
+          assertThat(actualType.getFieldList().get(0).getType().isNullable(), is(false));
+          assertTrue(actualType.getFieldList().get(1).getType().isNullable());
         });
   }
 
