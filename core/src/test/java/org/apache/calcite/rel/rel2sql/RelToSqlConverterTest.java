@@ -3012,13 +3012,18 @@ class RelToSqlConverterTest {
         + "FROM `foodmart`.`product`\n"
         + "LIMIT 100\n"
         + "OFFSET 10";
+    final String expectedSnowflake = "SELECT \"product_id\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "LIMIT 100\n"
+        + "OFFSET 10";
     final String expectedVertica = "SELECT \"product_id\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "LIMIT 100\n"
         + "OFFSET 10";
     sql(query).withHive().ok(expected)
         .withVertica().ok(expectedVertica)
-        .withStarRocks().ok(expectedStarRocks);
+        .withStarRocks().ok(expectedStarRocks)
+        .withSnowflake().ok(expectedSnowflake);
   }
 
   @Test void testPositionFunctionForHive() {
