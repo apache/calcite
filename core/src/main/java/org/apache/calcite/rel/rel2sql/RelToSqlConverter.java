@@ -221,6 +221,26 @@ public class RelToSqlConverter extends SqlImplementor
     }
   }
 
+  /**
+   * Converts a {@link RexNode} condition into a {@link SqlNode}.
+   *
+   * @param node            Join condition
+   * @param leftContext     Left context
+   * @param rightContext    Right context
+   *
+   * @return SqlNode that represents the condition
+   */
+  public SqlNode convertConditionToSqlNode(RexNode node,
+      Context leftContext,
+      Context rightContext) {
+    if (node.isAlwaysTrue() || node.isAlwaysFalse()) {
+      return dialect.emulateJoinConditionTrueFalse(node);
+    }
+    final Context joinContext =
+        leftContext.implementor().joinContext(leftContext, rightContext);
+    return joinContext.toSql(null, node);
+  }
+
   /** Visits a Join; called by {@link #dispatch} via reflection. */
   public Result visit(Join e) {
     switch (e.getJoinType()) {

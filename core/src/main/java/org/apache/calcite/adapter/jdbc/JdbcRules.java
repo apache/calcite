@@ -51,7 +51,7 @@ import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.rel.rel2sql.SqlImplementor;
+import org.apache.calcite.rel.rel2sql.RelToSqlConverter;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexLiteral;
@@ -329,7 +329,7 @@ public class JdbcRules {
      * Returns whether a condition is supported by {@link JdbcJoin}.
      *
      * <p>Corresponds to the capabilities of
-     * {@link SqlImplementor#convertConditionToSqlNode}.
+     * {@link RelToSqlConverter#convertConditionToSqlNode}.
      *
      * @param node Condition
      * @return Whether condition is supported

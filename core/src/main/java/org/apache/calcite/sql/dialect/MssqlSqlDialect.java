@@ -21,6 +21,7 @@ import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlAbstractDateTimeLiteral;
 import org.apache.calcite.sql.SqlBasicFunction;
 import org.apache.calcite.sql.SqlCall;
@@ -33,6 +34,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlUtil;
@@ -42,6 +44,8 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
+
+import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -125,6 +129,18 @@ public class MssqlSqlDialect extends SqlDialect {
       // IS NULL THEN 1 ELSE 0 END
       return SqlStdOperatorTable.CASE.createCall(null, pos,
           null, whenList, SqlNodeList.of(oneLiteral), zeroLiteral);
+    }
+  }
+
+  @Override public SqlNode emulateJoinConditionTrueFalse(RexNode node) {
+    final SqlParserPos pos = SqlParserPos.ZERO;
+    SqlNumericLiteral oneLiteral = SqlLiteral.createExactNumeric("1", pos);
+    if (node.isAlwaysTrue()) {
+      return SqlStdOperatorTable.EQUALS.createCall(pos,
+          ImmutableList.of(oneLiteral, oneLiteral));
+    } else {
+      return SqlStdOperatorTable.NOT_EQUALS.createCall(pos,
+          ImmutableList.of(oneLiteral, oneLiteral));
     }
   }
 

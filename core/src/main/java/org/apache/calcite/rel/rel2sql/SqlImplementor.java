@@ -316,29 +316,6 @@ public abstract class SqlImplementor {
     return result(node, clauses, rel, null);
   }
 
-  /**
-   * Converts a {@link RexNode} condition into a {@link SqlNode}.
-   *
-   * @param node            Join condition
-   * @param leftContext     Left context
-   * @param rightContext    Right context
-   *
-   * @return SqlNode that represents the condition
-   */
-  public static SqlNode convertConditionToSqlNode(RexNode node,
-      Context leftContext,
-      Context rightContext) {
-    if (node.isAlwaysTrue()) {
-      return SqlLiteral.createBoolean(true, POS);
-    }
-    if (node.isAlwaysFalse()) {
-      return SqlLiteral.createBoolean(false, POS);
-    }
-    final Context joinContext =
-        leftContext.implementor().joinContext(leftContext, rightContext);
-    return joinContext.toSql(null, node);
-  }
-
   /** Removes cast from string.
    *
    * <p>For example, {@code x > CAST('2015-01-07' AS DATE)}

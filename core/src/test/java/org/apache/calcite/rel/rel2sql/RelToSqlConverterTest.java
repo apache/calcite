@@ -9093,7 +9093,35 @@ class RelToSqlConverterTest {
         .dialect(MssqlSqlDialect.DEFAULT).ok(mssqlExpected);
   }
 
- /** Test case for
+  @Test void testMSSQLJoinAlwaysTrue() {
+    final String query = "SELECT \"hire_date\", \"department_description\" FROM \"employee\" "
+        + "LEFT JOIN \"department\" ON TRUE";
+    final String mssqlExpected = "SELECT [employee].[hire_date],"
+        + " [department].[department_description]\nFROM [foodmart].[employee]\nLEFT JOIN"
+        + " [foodmart].[department] ON 1 = 1";
+    final String mysqlExpected = "SELECT `employee`.`hire_date`,"
+        + " `department`.`department_description`\nFROM `foodmart`.`employee`\nLEFT JOIN"
+        + " `foodmart`.`department` ON TRUE";
+    sql(query)
+        .dialect(MssqlSqlDialect.DEFAULT).ok(mssqlExpected)
+        .dialect(MysqlSqlDialect.DEFAULT).ok(mysqlExpected);
+  }
+
+  @Test void testMSSQLJoinAlwaysFalse() {
+    final String query = "SELECT \"hire_date\", \"department_description\" FROM \"employee\" "
+        + "LEFT JOIN \"department\" ON False";
+    final String mssqlExpected = "SELECT [employee].[hire_date],"
+        + " [department].[department_description]\nFROM [foodmart].[employee]\nLEFT JOIN"
+        + " [foodmart].[department] ON 1 <> 1";
+    final String mysqlExpected = "SELECT `employee`.`hire_date`,"
+        + " `department`.`department_description`\nFROM `foodmart`.`employee`\nLEFT JOIN"
+        + " `foodmart`.`department` ON FALSE";
+    sql(query)
+        .dialect(MssqlSqlDialect.DEFAULT).ok(mssqlExpected)
+        .dialect(MysqlSqlDialect.DEFAULT).ok(mysqlExpected);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6726">[CALCITE-6726]
    * Add translation for MOD operator in MSSQL</a>.
    */

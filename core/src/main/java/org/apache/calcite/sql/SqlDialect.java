@@ -943,6 +943,18 @@ public class SqlDialect {
     return JoinType.COMMA;
   }
 
+  /**
+   * Writes TRUE/FALSE or 1 = 1/ 1 <> 1 for certain
+   * database variants (MSSQL, currently).
+   */
+  public SqlNode emulateJoinConditionTrueFalse(RexNode node) {
+    if (node.isAlwaysTrue()) {
+      return SqlLiteral.createBoolean(true, SqlParserPos.ZERO);
+    } else {
+      return SqlLiteral.createBoolean(false, SqlParserPos.ZERO);
+    }
+  }
+
   protected @Nullable SqlNode emulateNullDirectionWithIsNull(SqlNode node,
       boolean nullsFirst, boolean desc) {
     // No need for emulation if the nulls will anyways come out the way we want
