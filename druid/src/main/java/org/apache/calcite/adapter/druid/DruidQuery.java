@@ -563,7 +563,11 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         }
         for (Ord<RelFieldCollation> ord
             : Ord.zip(sort.collation.getFieldCollations())) {
-          pw.item("dir" + ord.i, ord.e.shortString());
+          if (!pw.expand()) {
+            pw.item("dir" + ord.i, ord.e.shortString());
+          } else {
+            pw.item("dir" + ord.i, ord.e.fullString());
+          }
         }
         pw.itemIf("fetch", sort.fetch, sort.fetch != null);
       } else {
