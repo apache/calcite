@@ -329,4 +329,15 @@ public class RelFieldCollation {
       return direction.shortString;
     }
   }
+
+  public String fullString() {
+    switch (nullDirection) {
+    case FIRST:
+      return direction.shortString + "-nulls-first";
+    case LAST:
+      return direction.shortString + "-nulls-last";
+    default:
+      return direction.shortString;
+    }
+  }
 }

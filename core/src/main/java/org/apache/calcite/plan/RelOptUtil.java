@@ -2443,19 +2443,31 @@ public abstract class RelOptUtil {
   }
 
   /**
+   * Converts a relational expression to a string, showing just basic
+   * attributes, and doesn't expand detail info for {@code rel}.
+   */
+  public static String toString(
+      final RelNode rel,
+      SqlExplainLevel detailLevel) {
+    return toString(rel, detailLevel, false);
+  }
+
+  /**
    * Converts a relational expression to a string;
-   * returns null if and only if {@code rel} is null.
+   * returns null if and only if {@code rel} is null,
+   * returns expanded detail info for {@code rel} if {@code expand} is true.
    */
   public static @PolyNull String toString(
       final @PolyNull RelNode rel,
-      SqlExplainLevel detailLevel) {
+      SqlExplainLevel detailLevel,
+      boolean expand) {
     if (rel == null) {
       return null;
     }
     final StringWriter sw = new StringWriter();
     final RelWriter planWriter =
         new RelWriterImpl(
-            new PrintWriter(sw), detailLevel, false);
+            new PrintWriter(sw), detailLevel, false, expand);
     rel.explain(planWriter);
     return sw.toString();
   }

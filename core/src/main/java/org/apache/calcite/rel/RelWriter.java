@@ -85,4 +85,13 @@ public interface RelWriter {
   default boolean nest() {
     return false;
   }
+
+  /**
+   * Returns whether the writer needs to expand node's detail information when printing plan.
+   * For example, LogicalSort(sort0=[$0], dir0=[ASC]) will be expanded to
+   * LogicalSort(sort0=[$0], dir0=[ASC-nulls-last]).
+   */
+  default boolean expand() {
+    return false;
+  }
 }

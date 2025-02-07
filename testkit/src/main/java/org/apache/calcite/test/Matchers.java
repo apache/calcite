@@ -21,6 +21,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelValidityChecker;
 import org.apache.calcite.rel.hint.Hintable;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
@@ -233,6 +234,17 @@ public class Matchers {
     return compose(Is.is(value), input -> {
       // Convert RelNode to a string with Linux line-endings
       return Util.toLinux(RelOptUtil.toString(input));
+    });
+  }
+
+  /**
+   * Basically similar to {@link #hasTree(String)}, except for expanding RelNode's detail info.
+   * For example, default nulls direction will be compared through this.
+   */
+  public static Matcher<RelNode> hasExpandedTree(final String value) {
+    return compose(Is.is(value), input -> {
+      // Convert RelNode to a string with Linux line-endings
+      return Util.toLinux(RelOptUtil.toString(input, SqlExplainLevel.EXPPLAN_ATTRIBUTES, true));
     });
   }
 

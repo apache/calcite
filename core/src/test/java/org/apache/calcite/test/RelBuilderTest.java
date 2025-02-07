@@ -124,6 +124,7 @@ import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
+import static org.apache.calcite.test.Matchers.hasExpandedTree;
 import static org.apache.calcite.test.Matchers.hasFieldNames;
 import static org.apache.calcite.test.Matchers.hasHints;
 import static org.apache.calcite.test.Matchers.hasTree;
@@ -4062,6 +4063,72 @@ public class RelBuilderTest {
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], $f8=[+($4, $3)])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root, hasTree(expected));
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6817">[CALCITE-6817]
+   * Add string representation of default nulls direction for RelNode</a>. */
+  @Test void testDescWithDefaultNullDirection() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   ORDER BY empno DESC
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelNode root =
+        builder.scan("EMP")
+            .sort(builder.desc(builder.field(0)))
+            .build();
+    final String expected =
+        "LogicalSort(sort0=[$0], dir0=[DESC])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    final String expectedExpanded =
+        "LogicalSort(sort0=[$0], dir0=[DESC-nulls-first])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+    assertThat(root, hasExpandedTree(expectedExpanded));
+
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   ORDER BY empno DESC NULLS FIRST
+    final RelNode root2 =
+        builder.scan("EMP")
+            .sort(builder.nullsFirst(builder.desc(builder.field(0))))
+            .build();
+    assertThat(root2, hasTree(expected));
+    assertThat(root2, hasExpandedTree(expectedExpanded));
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6817">[CALCITE-6817]
+   * Add string representation of default nulls direction for RelNode</a>. */
+  @Test void testAscWithDefaultNullDirection() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   ORDER BY empno ASC
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelNode root =
+        builder.scan("EMP")
+            .sort(builder.field(0))
+            .build();
+    final String expected =
+        "LogicalSort(sort0=[$0], dir0=[ASC])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    final String expectedExpanded =
+        "LogicalSort(sort0=[$0], dir0=[ASC-nulls-last])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+    assertThat(root, hasExpandedTree(expectedExpanded));
+
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   ORDER BY empno ASC NULLS LAST
+    final RelNode root2 =
+        builder.scan("EMP")
+            .sort(builder.nullsLast(builder.field(0)))
+            .build();
+    assertThat(root2, hasTree(expected));
+    assertThat(root2, hasExpandedTree(expectedExpanded));
   }
 
   @Test void testLimit() {

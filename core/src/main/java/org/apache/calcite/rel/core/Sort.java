@@ -269,7 +269,11 @@ public abstract class Sort extends SingleRel implements Hintable {
       }
       for (Ord<RelFieldCollation> ord
           : Ord.zip(collation.getFieldCollations())) {
-        pw.item("dir" + ord.i, ord.e.shortString());
+        if (!pw.expand()) {
+          pw.item("dir" + ord.i, ord.e.shortString());
+        } else {
+          pw.item("dir" + ord.i, ord.e.fullString());
+        }
       }
     }
     pw.itemIf("offset", offset, offset != null);
