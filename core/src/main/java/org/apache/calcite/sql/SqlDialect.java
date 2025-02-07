@@ -944,7 +944,7 @@ public class SqlDialect {
   }
 
   /**
-   * Writes TRUE/FALSE or 1 = 1/ 1 <> 1 for certain
+   * Writes TRUE/FALSE or 1 = 1/ 1 &lt; &gt; 1 for certain
    * database variants (MSSQL, currently).
    */
   public SqlNode emulateJoinConditionTrueFalse(RexNode node) {
