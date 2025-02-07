@@ -29,6 +29,8 @@ import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * A <code>SqlDialect</code> implementation for the Snowflake database.
  */
@@ -103,6 +105,11 @@ public class SnowflakeSqlDialect extends SqlDialect {
     }
     // Otherwise, just return as it arrived
     return aggCall;
+  }
+
+  @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
+      @Nullable SqlNode fetch) {
+    unparseFetchUsingLimit(writer, offset, fetch);
   }
 
   @Override public boolean supportsApproxCountDistinct() {
