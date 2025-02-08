@@ -5193,6 +5193,8 @@ class RelToSqlConverterTest {
     String expectedFirebolt = expectedPostgresql;
     String expectedStarRocks = "SELECT DATE_TRUNC('MINUTE', `hire_date`)\n"
         + "FROM `foodmart`.`employee`";
+    String expectedTrino = "SELECT DATE_TRUNC('MINUTE', \"hire_date\")\n"
+        + "FROM \"foodmart\".\"employee\"";
     sql(query)
         .withClickHouse().ok(expectedClickHouse)
         .withFirebolt().ok(expectedFirebolt)
@@ -5200,7 +5202,8 @@ class RelToSqlConverterTest {
         .withOracle().ok(expectedOracle)
         .withPostgresql().ok(expectedPostgresql)
         .withPresto().ok(expectedPresto)
-        .withStarRocks().ok(expectedStarRocks);
+        .withStarRocks().ok(expectedStarRocks)
+        .withTrino().ok(expectedTrino);
   }
 
   @Test void testFetchMssql() {
@@ -8090,9 +8093,14 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"employee\"\n"
         + "WHERE 10 = CAST('10' AS INTEGER) AND \"birth_date\" = CAST('1914-02-02' AS DATE) OR "
         + "\"hire_date\" = CAST('1996-01-01 ' || '00:00:00' AS TIMESTAMP)";
+    final String expectedTrino = "SELECT \"employee_id\"\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "WHERE 10 = CAST('10' AS INTEGER) AND \"birth_date\" = CAST('1914-02-02' AS DATE) OR "
+        + "\"hire_date\" = CAST('1996-01-01 ' || '00:00:00' AS TIMESTAMP)";
     sql(query)
         .ok(expected)
-        .withPresto().ok(expectedPresto);
+        .withPresto().ok(expectedPresto)
+        .withTrino().ok(expectedTrino);
   }
 
   @Test void testDialectQuoteStringLiteral() {
@@ -8881,11 +8889,14 @@ class RelToSqlConverterTest {
     final String expectedSpark = "SELECT MAP ('k1', 'v1', 'k2', 'v2')\n"
         + "FROM (VALUES (0)) `t` (`ZERO`)";
     final String expectedHive = "SELECT MAP ('k1', 'v1', 'k2', 'v2')";
+    final String expectedTrino = "SELECT MAP (ARRAY['k1', 'k2'], ARRAY['v1', 'v2'])\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
     sql(query)
         .withPresto().ok(expectedPresto)
         .withStarRocks().ok(expectedStarRocks)
         .withSpark().ok(expectedSpark)
-        .withHive().ok(expectedHive);
+        .withHive().ok(expectedHive)
+        .withTrino().ok(expectedTrino);
   }
 
   @Test void testMapValueConstructorWithArray() {
@@ -8894,9 +8905,12 @@ class RelToSqlConverterTest {
         + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
     final String expectedSpark = "SELECT MAP (ARRAY ('k1', 'k2'), ARRAY ('v1', 'v2'))\n"
         + "FROM (VALUES (0)) `t` (`ZERO`)";
+    final String expectedTrino = "SELECT MAP (ARRAY['k1', 'k2'], ARRAY['v1', 'v2'])\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
     sql(query)
         .withPresto().ok(expectedPresto)
-        .withSpark().ok(expectedSpark);
+        .withSpark().ok(expectedSpark)
+        .withTrino().ok(expectedTrino);
   }
 
   /** Test case for
