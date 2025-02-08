@@ -296,6 +296,8 @@ public class SqlDialect {
     case "PRESTO":
     case "AWS.ATHENA":
       return DatabaseProduct.PRESTO;
+    case "TRINO":
+      return DatabaseProduct.TRINO;
     case "MYSQL (INFOBRIGHT)":
       return DatabaseProduct.INFOBRIGHT;
     case "MYSQL":
@@ -1435,6 +1437,7 @@ public class SqlDialect {
     PHOENIX("Phoenix", "\"", NullCollation.HIGH),
     POSTGRESQL("PostgreSQL", "\"", NullCollation.HIGH),
     PRESTO("Presto", "\"", NullCollation.LAST),
+    TRINO("Trino", "\"", NullCollation.LAST),
     NETEZZA("Netezza", "\"", NullCollation.HIGH),
     INFOBRIGHT("Infobright", "`", NullCollation.HIGH),
     NEOVIEW("Neoview", null, NullCollation.HIGH),

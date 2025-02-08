@@ -191,6 +191,7 @@ class RelToSqlConverterTest {
         .put(DatabaseProduct.POSTGRESQL.getDialect(), DatabaseProduct.POSTGRESQL)
         .put(DatabaseProduct.PRESTO.getDialect(), DatabaseProduct.PRESTO)
         .put(DatabaseProduct.STARROCKS.getDialect(), DatabaseProduct.STARROCKS)
+        .put(DatabaseProduct.TRINO.getDialect(), DatabaseProduct.TRINO)
         .build();
   }
 
@@ -374,6 +375,8 @@ class RelToSqlConverterTest {
         + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
     final String expectedOracle = "SELECT PI\n"
         + "FROM \"DUAL\"";
+    final String expectedTrino = "SELECT PI()\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
     sql(query)
         .ok(expected)
         .withHive().ok(expectedHive)
@@ -382,7 +385,8 @@ class RelToSqlConverterTest {
         .withMysql().ok(expectedMysql)
         .withClickHouse().ok(expectedClickHouse)
         .withPresto().ok(expectedPresto)
-        .withOracle().ok(expectedOracle);
+        .withOracle().ok(expectedOracle)
+        .withTrino().ok(expectedTrino);
   }
 
   @Test void testPiFunctionWithoutParentheses() {
@@ -400,6 +404,8 @@ class RelToSqlConverterTest {
         + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
     final String expectedOracle = "SELECT PI \"PI\"\n"
         + "FROM \"DUAL\"";
+    final String expectedTrino = "SELECT PI() AS \"PI\"\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
     sql(query)
         .ok(expected)
         .withHive().ok(expectedHive)
@@ -408,7 +414,8 @@ class RelToSqlConverterTest {
         .withMysql().ok(expectedMysql)
         .withClickHouse().ok(expectedClickHouse)
         .withPresto().ok(expectedPresto)
-        .withOracle().ok(expectedOracle);
+        .withOracle().ok(expectedOracle)
+        .withTrino().ok(expectedTrino);
   }
 
   @Test void testNiladicCurrentDateFunction() {
@@ -658,16 +665,21 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"";
     final String expectedStarRocks = "SELECT COUNT(*)\n"
         + "FROM `foodmart`.`product`";
+    final String expectedTrino = "SELECT COUNT(*)\n"
+        + "FROM \"foodmart\".\"product\"";
+
     sql(sql0)
         .ok(expected)
         .withMysql().ok(expectedMysql)
         .withPresto().ok(expectedPresto)
-        .withStarRocks().ok(expectedStarRocks);
+        .withStarRocks().ok(expectedStarRocks)
+        .withTrino().ok(expectedTrino);
     sql(sql1)
         .ok(expected)
         .withMysql().ok(expectedMysql)
         .withPresto().ok(expectedPresto)
-        .withStarRocks().ok(expectedStarRocks);
+        .withStarRocks().ok(expectedStarRocks)
+        .withTrino().ok(expectedTrino);
   }
 
   @Test void testSelectQueryWithGroupByEmpty2() {
@@ -1122,11 +1134,16 @@ class RelToSqlConverterTest {
         + "FROM `foodmart`.`product`\n"
         + "GROUP BY ROLLUP(`product_class_id`)\n"
         + "ORDER BY `product_class_id` IS NULL, `product_class_id`, COUNT(*) IS NULL, 2";
+    final String expectedTrino = "SELECT \"product_class_id\", COUNT(*) AS \"C\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY ROLLUP(\"product_class_id\")\n"
+        + "ORDER BY \"product_class_id\", 2";
     sql(query)
         .ok(expected)
         .withMysql().ok(expectedMysql)
         .withPresto().ok(expectedPresto)
-        .withStarRocks().ok(expectedStarRocks);
+        .withStarRocks().ok(expectedStarRocks)
+        .withTrino().ok(expectedTrino);
   }
 
   /** As {@link #testSelectQueryWithSingletonCube()}, but no ORDER BY
@@ -1147,11 +1164,15 @@ class RelToSqlConverterTest {
     final String expectedStarRocks = "SELECT `product_class_id`, COUNT(*) AS `C`\n"
         + "FROM `foodmart`.`product`\n"
         + "GROUP BY ROLLUP(`product_class_id`)";
+    final String expectedTrino = "SELECT \"product_class_id\", COUNT(*) AS \"C\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY ROLLUP(\"product_class_id\")";
     sql(query)
         .ok(expected)
         .withMysql().ok(expectedMysql)
         .withPresto().ok(expectedPresto)
-        .withStarRocks().ok(expectedStarRocks);
+        .withStarRocks().ok(expectedStarRocks)
+        .withTrino().ok(expectedTrino);
   }
 
   /** Cannot rewrite if ORDER BY contains a column not in GROUP BY (in this
@@ -1209,11 +1230,16 @@ class RelToSqlConverterTest {
         + "FROM `foodmart`.`product`\n"
         + "GROUP BY ROLLUP(`product_class_id`)\n"
         + "LIMIT 5";
+    final String expectedTrino = "SELECT \"product_class_id\", COUNT(*) AS \"C\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY ROLLUP(\"product_class_id\")\n"
+        + "LIMIT 5";
     sql(query)
         .ok(expected)
         .withMysql().ok(expectedMysql)
         .withPresto().ok(expectedPresto)
-        .withStarRocks().ok(expectedStarRocks);
+        .withStarRocks().ok(expectedStarRocks)
+        .withTrino().ok(expectedTrino);
   }
 
   /**
@@ -2898,11 +2924,15 @@ class RelToSqlConverterTest {
     final String expectedHive = "SELECT *\n"
         + "FROM `foodmart`.`employee`\n"
         + "WHERE (`hire_date` - INTERVAL '19800' SECOND(5)) > CAST(`hire_date` AS TIMESTAMP)";
+    final String expectedTrino = "SELECT *\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "WHERE (\"hire_date\" - INTERVAL '19800' SECOND) > CAST(\"hire_date\" AS TIMESTAMP)";
     sql(query)
         .withSpark().ok(expectedSpark)
         .withPresto().ok(expectedPresto)
         .withStarRocks().ok(expectedStarRocks)
-        .withHive().ok(expectedHive);
+        .withHive().ok(expectedHive)
+        .withTrino().ok(expectedTrino);
   }
 
   @Test void testExasolCastToTimestamp() {
@@ -3916,11 +3946,16 @@ class RelToSqlConverterTest {
         + "FROM `foodmart`.`product`\n"
         + "LIMIT 100\n"
         + "OFFSET 10";
+    final String expectedTrino = "SELECT \"product_id\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "OFFSET 10\n"
+        + "LIMIT 100";
     sql(query)
         .ok(expected)
         .withClickHouse().ok(expectedClickHouse)
         .withPresto().ok(expectedPresto)
-        .withStarRocks().ok(expectedStarRocks);
+        .withStarRocks().ok(expectedStarRocks)
+        .withTrino().ok(expectedTrino);
   }
 
   @Test void testSelectQueryWithLimitOffsetClause() {
@@ -5191,11 +5226,16 @@ class RelToSqlConverterTest {
         + "FROM `foodmart`.`employee`\n"
         + "LIMIT 1\n"
         + "OFFSET 1";
+    final String expectedTrino = "SELECT *\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "OFFSET 1\n"
+        + "LIMIT 1";
     sql(query)
         .withMssql().ok(expectedMssql)
         .withSybase().ok(expectedSybase)
         .withPresto().ok(expectedPresto)
-        .withStarRocks().ok(expectedStarRocks);
+        .withStarRocks().ok(expectedStarRocks)
+        .withTrino().ok(expectedTrino);
   }
 
   @Test void testFloorMssqlMonth() {
@@ -5463,6 +5503,8 @@ class RelToSqlConverterTest {
         + "FROM `foodmart`.`product`";
     final String expectedStarRocks = "SELECT SUBSTRING(`brand_name`, 2)\n"
         + "FROM `foodmart`.`product`";
+    final String expectedTrino = "SELECT SUBSTR(\"brand_name\", 2)\n"
+        + "FROM \"foodmart\".\"product\"";
     sql(query)
         .withBigQuery().ok(expectedBigQuery)
         .withClickHouse().ok(expectedClickHouse)
@@ -5476,7 +5518,8 @@ class RelToSqlConverterTest {
         .withPresto().ok(expectedPresto)
         .withRedshift().ok(expectedRedshift)
         .withSnowflake().ok(expectedSnowflake)
-        .withStarRocks().ok(expectedStarRocks);
+        .withStarRocks().ok(expectedStarRocks)
+        .withTrino().ok(expectedTrino);
   }
 
   @Test void testSubstringWithFor() {
@@ -5501,6 +5544,8 @@ class RelToSqlConverterTest {
         + "FROM [foodmart].[product]";
     final String expectedStarRocks = "SELECT SUBSTRING(`brand_name`, 2, 3)\n"
         + "FROM `foodmart`.`product`";
+    final String expectedTrino = "SELECT SUBSTR(\"brand_name\", 2, 3)\n"
+        + "FROM \"foodmart\".\"product\"";
     sql(query)
         .withBigQuery().ok(expectedBigQuery)
         .withClickHouse().ok(expectedClickHouse)
@@ -5512,7 +5557,8 @@ class RelToSqlConverterTest {
         .withPresto().ok(expectedPresto)
         .withRedshift().ok(expectedRedshift)
         .withSnowflake().ok(expectedSnowflake)
-        .withStarRocks().ok(expectedStarRocks);
+        .withStarRocks().ok(expectedStarRocks)
+        .withTrino().ok(expectedTrino);
   }
 
   /** Test case for
@@ -8090,6 +8136,8 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"";
     final String expectedStarRocksSql = "SELECT APPROX_COUNT_DISTINCT(`product_id`)\n"
         + "FROM `foodmart`.`product`";
+    final String expectedTrino = "SELECT APPROX_DISTINCT(\"product_id\")\n"
+        + "FROM \"foodmart\".\"product\"";
     sql(query).ok(expectedExact)
         .withHive().ok(expectedApprox)
         .withSpark().ok(expectedApprox)
@@ -8097,7 +8145,8 @@ class RelToSqlConverterTest {
         .withOracle().ok(expectedApproxQuota)
         .withSnowflake().ok(expectedApproxQuota)
         .withPresto().ok(expectedPrestoSql)
-        .withStarRocks().ok(expectedStarRocksSql);
+        .withStarRocks().ok(expectedStarRocksSql)
+        .withTrino().ok(expectedTrino);
   }
 
   @Test void testRowValueExpression() {
@@ -9289,6 +9338,10 @@ class RelToSqlConverterTest {
 
     Sql withPresto() {
       return dialect(DatabaseProduct.PRESTO.getDialect());
+    }
+
+    Sql withTrino() {
+      return dialect(DatabaseProduct.TRINO.getDialect());
     }
 
     Sql withRedshift() {

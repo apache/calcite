@@ -50,6 +50,7 @@ import org.apache.calcite.sql.dialect.SparkSqlDialect;
 import org.apache.calcite.sql.dialect.StarRocksSqlDialect;
 import org.apache.calcite.sql.dialect.SybaseSqlDialect;
 import org.apache.calcite.sql.dialect.TeradataSqlDialect;
+import org.apache.calcite.sql.dialect.TrinoSqlDialect;
 import org.apache.calcite.sql.dialect.VerticaSqlDialect;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -225,6 +226,8 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
       return PostgresqlSqlDialect.DEFAULT;
     case PRESTO:
       return PrestoSqlDialect.DEFAULT;
+    case TRINO:
+      return TrinoSqlDialect.DEFAULT;
     case REDSHIFT:
       return RedshiftSqlDialect.DEFAULT;
     case SNOWFLAKE:
