@@ -5760,8 +5760,7 @@ public class SqlOperatorTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6815">[CALCITE-6815]
    * Add bin function (enabled in Hive and Spark library)</a>. */
   @Test void testBin() {
-//    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.BIN);
-    final SqlOperatorFixture f0 = Fixtures.forOperators(true).setFor(SqlLibraryOperators.BIN);
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.BIN);
     f0.checkFails("^bin(x'')^",
         "No match found for function signature BIN\\(<BINARY>\\)",
         false);
@@ -5793,6 +5792,31 @@ public class SqlOperatorTest {
           "1111111111111111111111111111111111111111111111111111111111111111",
           "VARCHAR NOT NULL");
       f.checkNull("bin(null)");
+    };
+    f0.forEachLibrary(libraries, consumer);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6821">[CALCITE-6821]
+   * Add crc32 function (enabled in Hive and Spark library)</a>. */
+  @Test void testCRC32() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.CRC32);
+    final List<SqlLibrary> libraries =
+        ImmutableList.of(SqlLibrary.SPARK, SqlLibrary.HIVE);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkString("crc32('ABC')",
+          "2743272264",
+          "BIGINT NOT NULL");
+      f.checkString("crc32(x'414243')",
+          "2743272264",
+          "BIGINT NOT NULL");
+      f.checkString("crc32('')",
+          "0",
+          "BIGINT NOT NULL");
+      f.checkString("crc32(x'')",
+          "0",
+          "BIGINT NOT NULL");
+      f.checkNull("crc32(null)");
     };
     f0.forEachLibrary(libraries, consumer);
   }

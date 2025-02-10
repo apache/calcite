@@ -2518,6 +2518,13 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING.or(OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
 
+  @LibraryOperator(libraries = {SPARK, HIVE})
+  public static final SqlFunction CRC32 =
+      SqlBasicFunction.create("CRC32",
+          ReturnTypes.BIGINT_NULLABLE,
+          OperandTypes.STRING.or(OperandTypes.BINARY),
+          SqlFunctionCategory.STRING);
+
   @LibraryOperator(libraries = {BIG_QUERY, MYSQL, POSTGRESQL, SPARK, HIVE})
   public static final SqlFunction SHA1 =
       SqlBasicFunction.create("SHA1",
