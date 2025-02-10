@@ -133,6 +133,7 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+import java.util.zip.CRC32;
 
 import static org.apache.calcite.config.CalciteSystemProperty.FUNCTION_LEVEL_CACHE_MAX_SIZE;
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
@@ -384,6 +385,24 @@ public class SqlFunctions {
       //CHECKSTYLE: IGNORE 1
       return new String(bytes, UTF_8);
     }
+  }
+
+  /** SQL CRC32(string) function. */
+  public static long crc32(String value)  {
+    final CRC32 crc32 = new CRC32();
+    crc32.reset();
+    byte[] bytes = value.getBytes(UTF_8);
+    crc32.update(bytes, 0, bytes.length);
+    return crc32.getValue();
+  }
+
+  /** SQL CRC32(string) function for binary string. */
+  public static long crc32(ByteString value)  {
+    final CRC32 crc32 = new CRC32();
+    crc32.reset();
+    byte[] bytes = value.getBytes();
+    crc32.update(bytes, 0, bytes.length);
+    return crc32.getValue();
   }
 
   /** SQL MD5(string) function. */

@@ -440,6 +440,7 @@ public enum BuiltInMethod {
   FROM_HEX(SqlFunctions.class, "fromHex", String.class),
   BIN(SqlFunctions.class, "bin", long.class),
   MD5(SqlFunctions.class, "md5", String.class),
+  CRC32(SqlFunctions.class, "crc32", String.class),
   SHA1(SqlFunctions.class, "sha1", String.class),
   SHA256(SqlFunctions.class, "sha256", String.class),
   SHA512(SqlFunctions.class, "sha512", String.class),

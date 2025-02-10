@@ -2842,6 +2842,7 @@ In the following:
 | p | COSD(numeric)                                  | Returns the cosine of *numeric* in degrees as a double. Returns NaN if *numeric* is NaN. Fails if *numeric* is greater than the maximum double value.
 | * | COSH(numeric)                                  | Returns the hyperbolic cosine of *numeric*
 | * | COTH(numeric)                                  | Returns the hyperbolic cotangent of *numeric*
+| s h | CRC32(string)                                | Calculates a cyclic redundancy check value for string or binary argument and returns bigint value
 | * | CSC(numeric)                                   | Returns the cosecant of *numeric* in radians
 | * | CSCH(numeric)                                  | Returns the hyperbolic cosecant of *numeric*
 | b | CURRENT_DATETIME([ timeZone ])                 | Returns the current time as a TIMESTAMP from *timezone*

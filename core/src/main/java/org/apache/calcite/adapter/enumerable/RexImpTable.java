@@ -188,6 +188,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONVERT_ORACLE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.COSD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.COSH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.COTH;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.CRC32;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CSC;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CSCH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CURRENT_DATETIME;
@@ -697,6 +698,7 @@ public class RexImpTable {
       defineMethod(FROM_HEX, BuiltInMethod.FROM_HEX.method, NullPolicy.STRICT);
       defineMethod(BIN, BuiltInMethod.BIN.method, NullPolicy.STRICT);
       defineMethod(MD5, BuiltInMethod.MD5.method, NullPolicy.STRICT);
+      defineMethod(CRC32, BuiltInMethod.CRC32.method, NullPolicy.STRICT);
       defineMethod(SHA1, BuiltInMethod.SHA1.method, NullPolicy.STRICT);
       defineMethod(SHA256, BuiltInMethod.SHA256.method, NullPolicy.STRICT);
       defineMethod(SHA512, BuiltInMethod.SHA512.method, NullPolicy.STRICT);
