@@ -208,6 +208,11 @@ public class PostgresqlSqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
+      @Nullable SqlNode fetch) {
+    unparseFetchUsingLimit(writer, offset, fetch);
+  }
+
   @Override public void unparseSqlSetOption(SqlWriter writer,
       int leftPrec, int rightPrec, SqlSetOption option) {
     String scope = option.getScope();

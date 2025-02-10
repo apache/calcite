@@ -3016,14 +3016,19 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "LIMIT 100\n"
         + "OFFSET 10";
-    final String expectedVertica = "SELECT \"product_id\"\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "LIMIT 100\n"
-        + "OFFSET 10";
+    final String expectedVertica = expectedSnowflake;
+    final String expectedPostgresql = expectedSnowflake;
+    final String expectedPhoenix = expectedSnowflake;
+    final String expectedParaccle = expectedSnowflake;
+    final String expectedTeradata = expectedSnowflake;
     sql(query).withHive().ok(expected)
         .withVertica().ok(expectedVertica)
         .withStarRocks().ok(expectedStarRocks)
-        .withSnowflake().ok(expectedSnowflake);
+        .withSnowflake().ok(expectedSnowflake)
+        .withPostgresql().ok(expectedPostgresql)
+        .withPhoenixsql().ok(expectedPhoenix)
+        .withParaccelsql().ok(expectedParaccle)
+        .withTeradatasql().ok(expectedTeradata);
   }
 
   @Test void testPositionFunctionForHive() {
@@ -9290,6 +9295,18 @@ class RelToSqlConverterTest {
 
     Sql withPostgresql() {
       return dialect(DatabaseProduct.POSTGRESQL.getDialect());
+    }
+
+    Sql withPhoenixsql() {
+      return dialect(DatabaseProduct.PHOENIX.getDialect());
+    }
+
+    Sql withParaccelsql() {
+      return dialect(DatabaseProduct.PARACCEL.getDialect());
+    }
+
+    Sql withTeradatasql() {
+      return dialect(DatabaseProduct.TERADATA.getDialect());
     }
 
     Sql withPresto() {
