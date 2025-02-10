@@ -122,6 +122,9 @@ import java.util.stream.Stream;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.rex.RexLiteral.stringValue;
+import static org.apache.calcite.sql.SqlKind.EXISTS;
+import static org.apache.calcite.sql.SqlKind.IN;
+import static org.apache.calcite.sql.SqlKind.NOT;
 import static org.apache.calcite.util.Util.last;
 
 import static java.util.Objects.requireNonNull;
@@ -456,7 +459,12 @@ public class RelToSqlConverter extends SqlImplementor
               builder.context.toSql(null, e.getCondition())));
       return builder.result();
     } else {
-      final Result x = visitInput(e, 0, Clause.WHERE);
+      Result x = visitInput(e, 0, Clause.WHERE);
+      if (e.getCondition().getKind() == NOT
+          || e.getCondition().getKind() == EXISTS
+          || e.getCondition().getKind() == IN) {
+        x = x.resetAlias();
+      }
       parseCorrelTable(e, x);
       final Builder builder = x.builder(e);
       if (input instanceof Join) {
