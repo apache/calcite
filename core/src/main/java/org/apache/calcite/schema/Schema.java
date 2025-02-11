@@ -83,6 +83,14 @@ public interface Schema {
    *
    * <p>Please use {@link Schema#tables()} and {@link Lookup#get(String)} instead.
    *
+   * <p>Using `getTable` directly does not allow to distinguish between
+   * casesensitive and caseinsensitive lookups. This method always does a
+   * casesensitive lookup. Caseinsensitive lookup can be done by loading
+   * all table names using {@link Schema#getTableNames()}. This can be
+   * quite timeconsuming for huge databases. To speed this up,
+   * all table names must be cached. This will require
+   * a huge amount of additional memory.
+   *
    * @param name Table name
    * @return Table, or null
    */
@@ -132,6 +140,9 @@ public interface Schema {
    * Returns a sub-schema with a given name, or null.
    *
    * <p>Please use {@link Schema#subSchemas()} and {@link Lookup#get(String)} instead.
+   *
+   * <p>See also comment for {@link Schema#getTable(String)} to find out why
+   * you should do so.
    *
    * @param name Sub-schema name
    * @return Sub-schema with a given name, or null

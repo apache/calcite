@@ -26,8 +26,14 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
- * This class can be used to wrap existing schemas with a pair of {@code get...}
- * and {@code get...Names} into a Lookup object.
+ * This class can be used to implement the methods {@code Schema.tables()}
+ * and {@code Schema.subSchemas()} of existing schemas.
+ *
+ * <p>Existing schema classes are implementing a pair of {@code getTable()}
+ * and {@code getTableNames()} methods. But these schemas should
+ * also provide a {@code tables()} method. This class can be used
+ * to implement this method. See {@code Schema.tables()} for
+ * an example.
  *
  * @param <T> Element type
  */
@@ -36,6 +42,12 @@ public class CompatibilityLookup<T> extends IgnoreCaseLookup<T> {
   private final Function<String, @Nullable T> get;
   private final Supplier<Set<String>> getNames;
 
+  /**
+   * Constructor.
+   *
+   * @param get a function to lookup tables or sub schemas by name
+   * @param getNames a function to list all tables or sub schemas
+   */
   public CompatibilityLookup(Function<String, @Nullable T> get, Supplier<Set<String>> getNames) {
     this.get = get;
     this.getNames = getNames;

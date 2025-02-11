@@ -28,13 +28,13 @@ import java.util.Set;
  *
  * @param <T> Element Type
  */
-public class CachedLookup<T> implements Lookup<T> {
+public class SnapshotLookup<T> implements Lookup<T> {
 
   private final Lookup<T> delegate;
   private LazyReference<Lookup<T>> cachedDelegate = new LazyReference<>();
   private boolean enabled = true;
 
-  public CachedLookup(Lookup<T> delegate) {
+  public SnapshotLookup(Lookup<T> delegate) {
     this.delegate = delegate;
   }
 

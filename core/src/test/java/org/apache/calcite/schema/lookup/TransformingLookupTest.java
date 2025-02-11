@@ -25,9 +25,9 @@ import static org.hamcrest.Matchers.equalTo;
 /**
  * Test for MappedLookup.
  */
-class MappedLookupTest {
+class TransformingLookupTest {
   private final Lookup<String> testee =
-      (new MapLookup("a", "1")).map((value, name) -> name + "_" + value);
+      (new FakeLookup("a", "1")).map((value, name) -> name + "_" + value);
 
   @Test void testNull() {
     assertThat(testee.get("c"), nullValue());

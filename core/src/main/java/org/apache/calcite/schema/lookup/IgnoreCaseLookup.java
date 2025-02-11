@@ -25,12 +25,18 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * An abstract base class for lookups. implementing case insensitive lookup
+ * An abstract base class for lookups implementing caseinsensitive lookup.
  *
  * @param <T> Element type
  */
 public abstract class IgnoreCaseLookup<T> implements Lookup<T> {
 
+  /**
+   * This member is used to lazily load the list of all names into memory.
+   *
+   * <p>A {@link NameMap} is used, which is capable to lookup names in a
+   * caseinsensitive way.
+   */
   private LazyReference<NameMap<String>> nameMap = new LazyReference<>();
 
   /**
@@ -57,6 +63,9 @@ public abstract class IgnoreCaseLookup<T> implements Lookup<T> {
         T result = get(entry.getValue());
         return result == null ? null : new Named<>(entry.getKey(), result);
       }
+      // if the name was not found in the cached list of names,
+      // we try to reload the cache once because the table/schema
+      // might have been created in the meantime.
       retryCounter++;
       if (retryCounter > 1) {
         return null;

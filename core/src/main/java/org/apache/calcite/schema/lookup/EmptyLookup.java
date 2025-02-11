@@ -25,6 +25,9 @@ import java.util.Set;
 /**
  * This class implements an empty Lookup.
  *
+ * <p>This class returns null for any call to {@code EmptyLookup.get(String)} or
+ * {@code EmptyLookup.getIgnoreCase(String)}.
+ *
  * @param <T> Element type
  */
 class EmptyLookup<T> implements Lookup<T> {

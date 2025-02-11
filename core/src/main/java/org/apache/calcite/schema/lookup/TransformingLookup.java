@@ -27,25 +27,25 @@ import java.util.function.BiFunction;
  * @param <S> Source element type
  * @param <T> Target element type
  */
-class MappedLookup<S, T> implements Lookup<T> {
+class TransformingLookup<S, T> implements Lookup<T> {
   private final Lookup<S> lookup;
-  private final BiFunction<S, String, T> mapper;
+  private final BiFunction<S, String, T> transform;
 
-  MappedLookup(Lookup<S> lookup, BiFunction<S, String, T> mapper) {
+  TransformingLookup(Lookup<S> lookup, BiFunction<S, String, T> transform) {
     this.lookup = lookup;
-    this.mapper = mapper;
+    this.transform = transform;
   }
 
   @Override public @Nullable T get(String name) {
     S entity = lookup.get(name);
-    return entity == null ? null : mapper.apply(entity, name);
+    return entity == null ? null : transform.apply(entity, name);
   }
 
   @Override public @Nullable Named<T> getIgnoreCase(String name) {
     Named<S> named = lookup.getIgnoreCase(name);
     return named == null
         ? null
-        : new Named<>(named.name(), mapper.apply(named.entity(), named.name()));
+        : new Named<>(named.name(), transform.apply(named.entity(), named.name()));
   }
 
   @Override public Set<String> getNames(LikePattern pattern) {

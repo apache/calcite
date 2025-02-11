@@ -21,7 +21,13 @@ import org.apache.calcite.linq4j.function.Predicate1;
 import java.util.regex.Pattern;
 
 /**
- * This class is used as parameter to Lookup.getNames
+ * This class is used to hold a pattern, which is typically
+ * used in SQL LIKE statements.
+ *
+ * <p>The pattern can contain wildcards (`%`) or character ranges (`[a-z]`).
+ *
+ * <p>The pattern can also be translated to a {@code Predicate1<String>} which
+ * can be used to do filtering inside java.
  */
 public class LikePattern {
   private static final String ANY = "%";
@@ -56,7 +62,7 @@ public class LikePattern {
 
   /**
    * Converts a LIKE-style pattern (where '%' represents a wild-card, escaped
-   * using '\') to a Java regex.
+   * using '\') to a Java regex. It's always casesensitive.
    */
   public static Pattern likeToRegex(String pattern) {
     StringBuilder buf = new StringBuilder("^");

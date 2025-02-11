@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.schema.lookup;
 
+import org.apache.calcite.linq4j.function.Predicate1;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.HashMap;
@@ -25,13 +27,13 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Simple test class for Lookup.
+ * Simple utility class to test other implementations of Lookup.
  */
-class MapLookup implements Lookup<String> {
+class FakeLookup implements Lookup<String> {
   private final Map<String, String> map;
   private final Map<String, Named<String>> ignoreCaseMap;
 
-  MapLookup(String... keyAndValues) {
+  FakeLookup(String... keyAndValues) {
     this.map = new HashMap<>();
     for (int i = 0; i < keyAndValues.length - 1; i += 2) {
       map.put(keyAndValues[i], keyAndValues[i + 1]);
@@ -52,6 +54,7 @@ class MapLookup implements Lookup<String> {
   }
 
   @Override public Set<String> getNames(final LikePattern pattern) {
-    return map.keySet();
+    Predicate1<String> predicate = pattern.matcher();
+    return map.keySet().stream().filter(predicate::apply).collect(Collectors.toSet());
   }
 }

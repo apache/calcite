@@ -22,8 +22,8 @@ import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaVersion;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TableMacro;
-import org.apache.calcite.schema.lookup.CachedLookup;
 import org.apache.calcite.schema.lookup.Lookup;
+import org.apache.calcite.schema.lookup.SnapshotLookup;
 import org.apache.calcite.util.NameMap;
 import org.apache.calcite.util.NameMultimap;
 import org.apache.calcite.util.NameSet;
@@ -45,7 +45,7 @@ import static org.apache.calcite.linq4j.Nullness.castNonNull;
  * functions and sub-schemas.
  */
 class CachingCalciteSchema extends CalciteSchema {
-  private final ConcurrentLinkedDeque<CachedLookup<?>> caches = new ConcurrentLinkedDeque<>();
+  private final ConcurrentLinkedDeque<SnapshotLookup<?>> caches = new ConcurrentLinkedDeque<>();
   private final Cached<NameSet> implicitFunctionCache;
   private final Cached<NameSet> implicitTypeCache;
 
@@ -104,10 +104,10 @@ class CachingCalciteSchema extends CalciteSchema {
     return new CachingCalciteSchema(this, schema, name);
   }
 
-  @Override protected <S> Lookup<S> decorateLookup(Lookup<S> lookup) {
-    CachedLookup<S> cachedLookup = new CachedLookup<>(lookup);
-    caches.add(cachedLookup);
-    return cachedLookup;
+  @Override protected <S> Lookup<S> enhanceLookup(Lookup<S> lookup) {
+    SnapshotLookup<S> snapshotLookup = new SnapshotLookup<>(lookup);
+    caches.add(snapshotLookup);
+    return snapshotLookup;
   }
 
   /** Adds a child schema of this schema. */
@@ -231,7 +231,7 @@ class CachingCalciteSchema extends CalciteSchema {
   }
 
   private void enableCaches(final boolean cache) {
-    for (CachedLookup<?> lookupCache : caches) {
+    for (SnapshotLookup<?> lookupCache : caches) {
       lookupCache.enable(cache);
     }
   }

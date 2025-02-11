@@ -23,6 +23,7 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -30,7 +31,15 @@ import java.util.concurrent.TimeUnit;
 import static java.util.Objects.requireNonNull;
 
 /**
- * This class can be used to cache lookups.
+ * This class is using a {@code LoadingCache} to speed up lookups,
+ * delegated to another {@link Lookup} instance.
+ *
+ * <p>This class is thread safe. All entries are evicted after one minute.
+ * Negative matches are never cached. If a new entry
+ * becomes available in the associated {@code Lookup}, it's immediately
+ * visible outside. If an entry is deleted in the associated {@code Lookup},
+ * it takes one minute until it disappears if it was cached in the last minute.
+ * Otherwise, it disappears immediately.
  *
  * @param <T> Element Type
  */
@@ -40,14 +49,18 @@ public class LoadingCacheLookup<T> implements Lookup<T> {
   private final LoadingCache<String, T> cache;
   private final LoadingCache<String, Named<T>> cacheIgnoreCase;
 
-  public LoadingCacheLookup(Lookup<T> delegate) {
+  public LoadingCacheLookup(Lookup<T> delegate, Duration expiration) {
     this.delegate = delegate;
     this.cache = CacheBuilder.newBuilder()
-        .expireAfterWrite(1, TimeUnit.MINUTES)
+        .expireAfterWrite(expiration.toMillis(), TimeUnit.MILLISECONDS)
         .build(CacheLoader.from(name -> requireNonNull(delegate.get(name))));
     this.cacheIgnoreCase = CacheBuilder.newBuilder()
-        .expireAfterWrite(1, TimeUnit.MINUTES)
+        .expireAfterWrite(expiration.toMillis(), TimeUnit.MILLISECONDS)
         .build(CacheLoader.from(name -> requireNonNull(delegate.getIgnoreCase(name))));
+  }
+
+  public LoadingCacheLookup(Lookup<T> delegate) {
+    this(delegate, Duration.ofMinutes(1));
   }
 
   @Override public @Nullable T get(String name) {

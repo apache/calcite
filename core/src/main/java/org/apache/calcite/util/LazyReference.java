@@ -28,6 +28,16 @@ public class LazyReference<T> {
 
   private final AtomicReference<T> value = new AtomicReference<>();
 
+  /**
+   * Atomically sets the value to {@code supplier.get()}
+   * if the current value was not set yet.
+   *
+   * <p>This method is reentrant. Different threads will
+   * get the same result.
+   *
+   * @param supplier supplier for the new value
+   * @return the current value.
+   */
   public T getOrCompute(Supplier<T> supplier) {
     while (true) {
       T result = value.get();
@@ -41,6 +51,9 @@ public class LazyReference<T> {
     }
   }
 
+  /**
+   * Resets the current value.
+   */
   public void reset() {
     value.set((T) null);
   }

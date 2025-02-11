@@ -28,7 +28,7 @@ import static org.hamcrest.Matchers.equalTo;
 public class LoadingCacheLookupTest {
 
   private final Lookup<String> testee =
-      new LoadingCacheLookup<>(new MapLookup("test", "xxxx"));
+      new LoadingCacheLookup<>(new FakeLookup("test", "xxxx"));
 
   @Test void testNull() {
     assertThat(testee.get("unknown"), nullValue());

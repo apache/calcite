@@ -27,7 +27,10 @@ import static org.hamcrest.Matchers.equalTo;
  */
 class ConcatLookupTest {
   private final Lookup<String> testee =
-      Lookup.concat(new MapLookup("a", "1"), new MapLookup("b", "2"));
+      Lookup.concat(new FakeLookup("a", "1"),
+          new FakeLookup("b", "2"),
+          new FakeLookup("d", "4"),
+          new FakeLookup("d", "5"));
 
   @Test void testNull() {
     assertThat(testee.get("c"), nullValue());
@@ -39,5 +42,9 @@ class ConcatLookupTest {
 
   @Test void testIgnoreCase() {
     assertThat(testee.getIgnoreCase("B"), equalTo(new Named<>("b", "2")));
+  }
+
+  @Test void testCommonNames() {
+    assertThat(testee.getIgnoreCase("D"), equalTo(new Named<>("d", "4")));
   }
 }

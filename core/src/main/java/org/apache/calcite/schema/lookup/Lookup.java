@@ -24,7 +24,7 @@ import java.util.Set;
 import java.util.function.BiFunction;
 
 /**
- * A casesensitive/insensitive lookup for tables, schems, functions ...
+ * A casesensitive/insensitive lookup for tables, schemas, functions, types ...
  *
  * @param <T> Element type
  */
@@ -47,13 +47,16 @@ public interface Lookup<T> {
 
   /**
    * Returns the names of the entities in matching pattern.
+   * The search is always casesensitive. This is caused by the fact that
+   * {@code DatabaseMetaData.getTables(...)} doesn't support caseinsensitive
+   * lookups.
    *
    * @return Names of the entities
    */
   Set<String> getNames(LikePattern pattern);
 
   default <S> Lookup<S> map(BiFunction<T, String, S> mapper) {
-    return new MappedLookup<>(this, mapper);
+    return new TransformingLookup<>(this, mapper);
   }
 
   /**

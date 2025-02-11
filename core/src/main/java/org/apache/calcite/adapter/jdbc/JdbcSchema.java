@@ -297,19 +297,12 @@ public class JdbcSchema extends JdbcBaseSchema implements Schema, Wrapper {
 
   private static MetaImpl.MetaTable metaDataMapper(ResultSet resultSet) {
     try {
-      return new MetaImpl.MetaTable(intern(resultSet.getString(1)), intern(resultSet.getString(2)),
-          intern(resultSet.getString(3)),
-          intern(resultSet.getString(4)));
+      return new MetaImpl.MetaTable(resultSet.getString(1), resultSet.getString(2),
+          resultSet.getString(3),
+          resultSet.getString(4));
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }
-  }
-
-  private static @Nullable String intern(@Nullable String string) {
-    if (string == null) {
-      return null;
-    }
-    return string.intern();
   }
 
   private static TableType getTableType(String tableTypeName) {

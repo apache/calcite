@@ -119,7 +119,7 @@ public abstract class CalciteSchema {
     return this.tables.getOrCompute(() ->
         Lookup.concat(
             Lookup.of(this.tableMap),
-            decorateLookup(schema.tables().map((s, n) -> tableEntry(n, s)))));
+            enhanceLookup(schema.tables().map((s, n) -> tableEntry(n, s)))));
 
   }
 
@@ -127,11 +127,11 @@ public abstract class CalciteSchema {
     return subSchemas.getOrCompute(() ->
         Lookup.concat(
             Lookup.of(this.subSchemaMap),
-            decorateLookup(schema.subSchemas().map((s, n) -> createSubSchema(s, n)))));
+            enhanceLookup(schema.subSchemas().map((s, n) -> createSubSchema(s, n)))));
   }
 
-  /** The derived class is able to decorate the lookup. */
-  protected <S> Lookup<S> decorateLookup(Lookup<S> lookup) {
+  /** The derived class is able to enhance the lookup e.g. by introducing a cache. */
+  protected <S> Lookup<S> enhanceLookup(Lookup<S> lookup) {
     return lookup;
   }
 
@@ -338,8 +338,8 @@ public abstract class CalciteSchema {
     return getTableNames(LikePattern.any());
   }
 
-  /** Returns the set of filtered table names. Includes implicit and explicit tables
-   * and functions with zero parameters. */
+  /** Returns the set of table names filtered by the given pattern.
+   * Includes implicit and explicit tables and functions with zero parameters. */
   public final Set<String> getTableNames(LikePattern pattern) {
     return tables().getNames(pattern);
   }
