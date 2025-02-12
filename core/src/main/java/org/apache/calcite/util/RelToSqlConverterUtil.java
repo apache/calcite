@@ -23,6 +23,7 @@ import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 
@@ -195,5 +196,19 @@ public abstract class RelToSqlConverterUtil {
         writer.endList(frame);
       }
     };
+  }
+
+  /**
+   * Writes TRUE/FALSE or 1 = 1/ 1 &lt; &gt; 1 for certain.
+   *
+   * @param writer current SqlWriter object
+   * @param value  boolean value to be unparsed.
+   */
+  public static void unparseBoolLiteralToCondition(SqlWriter writer, boolean value) {
+    final SqlWriter.Frame frame = writer.startList("(", ")");
+    writer.literal("1");
+    writer.sep(SqlStdOperatorTable.EQUALS.getName());
+    writer.literal(value ? "1" : "0");
+    writer.endList(frame);
   }
 }
