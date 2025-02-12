@@ -95,6 +95,7 @@ dependencies {
         apiv("net.hydromatic:sql-logic-test")
         apiv("net.hydromatic:steelwheels-data-hsqldb")
         apiv("net.hydromatic:tpcds", "hydromatic.tpcds")
+        apiv("net.minidev:json-smart")
         apiv("net.java.dev.jna:jna")
         apiv("net.java.dev.jna:jna-platform")
         apiv("net.sf.opencsv:opencsv")
