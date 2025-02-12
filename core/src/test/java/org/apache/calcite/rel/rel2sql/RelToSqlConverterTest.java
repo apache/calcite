@@ -8226,6 +8226,27 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6819">[CALCITE-6819]
+   * MSSQL doesn't support TRUE/FALSE keywords in its Join predicate</a>. */
+  @Test void testJoinBoolLiteralMSSQL() {
+    final String queryTrue = "SELECT \"hire_date\", \"department_description\" FROM \"employee\" "
+        + "LEFT JOIN \"department\" ON TRUE";
+    final String mssqlExpected1 = "SELECT [employee].[hire_date],"
+        + " [department].[department_description]\nFROM [foodmart].[employee]\nLEFT JOIN"
+        + " [foodmart].[department] ON (1 = 1)";
+    sql(queryTrue)
+        .dialect(MssqlSqlDialect.DEFAULT).ok(mssqlExpected1);
+
+    final String queryFalse = "SELECT \"hire_date\", \"department_description\" FROM \"employee\" "
+        + "LEFT JOIN \"department\" ON False";
+    final String mssqlExpected2 = "SELECT [employee].[hire_date],"
+        + " [department].[department_description]\nFROM [foodmart].[employee]\nLEFT JOIN"
+        + " [foodmart].[department] ON (1 = 0)";
+    sql(queryFalse)
+        .dialect(MssqlSqlDialect.DEFAULT).ok(mssqlExpected2);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6480">[CALCITE-6480]
    * OracleDialect does not support CASE WHEN returning boolean</a>. */
   @Test void testBooleanCaseWhenOracle() {

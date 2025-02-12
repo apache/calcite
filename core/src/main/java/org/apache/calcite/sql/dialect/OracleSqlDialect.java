@@ -45,6 +45,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
+import static org.apache.calcite.util.RelToSqlConverterUtil.unparseBoolLiteralToCondition;
+
 /**
  * A <code>SqlDialect</code> implementation for the Oracle database.
  */
@@ -139,11 +141,7 @@ public class OracleSqlDialect extends SqlDialect {
       return;
     }
     // low version oracle not support bool literal
-    final SqlWriter.Frame frame = writer.startList("(", ")");
-    writer.literal("1");
-    writer.sep(SqlStdOperatorTable.EQUALS.getName());
-    writer.literal(value ? "1" : "0");
-    writer.endList(frame);
+    unparseBoolLiteralToCondition(writer, value);
   }
 
   @Override public void unparseDateTimeLiteral(SqlWriter writer,
