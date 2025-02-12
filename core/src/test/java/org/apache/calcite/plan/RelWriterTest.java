@@ -1159,13 +1159,14 @@ class RelWriterTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6323">[CALCITE-6323]</a>
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6323">[CALCITE-6323]
+   * Serialize return type during RelJson.toJson(RexNode node) for
+   * SqlKind.SAFE_CAST</a>.
    *
    * <p>Before the fix, RelJson.toRex would throw an ArrayIndexOutOfBounds error
    * when deserializing SAFE_CAST due to type inference requiring 2 operands.
    *
-   * <p>The solution is to add in 'type' when serializing to JSON.
-   */
+   * <p>The solution is to add in 'type' when serializing to JSON. */
   @Test void testDeserializeSafeCastOperator() {
     final FrameworkConfig config = RelBuilderTest.config().build();
     final RelBuilder builder = RelBuilder.create(config);

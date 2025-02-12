@@ -310,7 +310,7 @@ class SqlFunctionsTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6450">[CALCITE-6450]
-   * Postgres CONCAT_WS function </a>. */
+   * Postgres CONCAT_WS function</a>. */
   @Test void testConcatMultiObjectWithSeparator() {
     assertThat(concatMultiObjectWithSeparator("a"), is(""));
     assertThat(concatMultiObjectWithSeparator(",", "a b", "cd"), is("a b,cd"));
@@ -693,6 +693,7 @@ class SqlFunctionsTest {
       assertThat(fromBase64(toBase64(expected)),
           is(new ByteString(expected.getBytes(UTF_8))));
     }
+    // lint:skip 2 (newline in string)
     assertThat("546869732069732061207465737420537472696e672e",
         is(fromBase64("VGhpcyB  pcyBh\rIHRlc3Qg\tU3Ry\naW5nLg==").toString()));
     assertThat(fromBase64("-1"), nullValue());

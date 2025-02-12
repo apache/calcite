@@ -380,9 +380,10 @@ public class ScannableTableTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3479">[CALCITE-3479]
-   * Stack overflow error thrown when running join query</a>
-   * Test two ProjectableFilterableTable can join and produce right plan.
-   */
+   * Stack overflow error thrown when running join query</a>.
+   *
+   * <p>Tests that two ProjectableFilterableTable can join and produce right
+   * plan. */
   @Test void testProjectableFilterableTableJoin() {
     final StringBuilder buf = new StringBuilder();
     final String explain = "PLAN="

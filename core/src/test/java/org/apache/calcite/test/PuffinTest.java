@@ -101,9 +101,14 @@ public class PuffinTest {
     final StringWriter sw = new StringWriter();
     GlobalState g =
         program.execute(
-            Stream.of(Sources.of("a\nb\n"),
+            Stream.of(
+                Sources.of("a\n"
+                    + "b\n"),
                 Sources.of("a\n"),
-                Sources.of("a\nb\nc\n\n")),
+                Sources.of("a\n"
+                        + "b\n"
+                        + "c\n"
+                        + "\n")),
             new PrintWriter(sw));
     assertThat(g.messages, hasSize(10));
     assertThat(g.messages, hasItem("4 lines"));

@@ -431,11 +431,13 @@ public abstract class SqlTests {
         || actualEndColumn != sap.pos.getEndColumnNum())) {
       fail(stage.componentName + " threw expected "
           + "exception [" + actualMessage
-          + "];\nbut at pos [line " + actualLine
+          + "];\n"
+          + "but at pos [line " + actualLine
           + " col " + actualColumn
           + " thru line " + actualEndLine
           + " col " + actualEndColumn
-          + "];\nsql [" + sqlWithCarets + "]");
+          + "];\n"
+          + "sql [" + sqlWithCarets + "]");
     }
   }
 

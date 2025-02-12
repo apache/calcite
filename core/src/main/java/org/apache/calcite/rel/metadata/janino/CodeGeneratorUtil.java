@@ -22,11 +22,12 @@ import java.lang.reflect.Method;
  * Common functions for code generation.
  */
 class CodeGeneratorUtil {
-
   private CodeGeneratorUtil() {
   }
 
-  /** Returns e.g. ",\n boolean ignoreNulls".  This ignores the first 2 arguments. */
+  // lint:skip (newline in string literal)
+  /** Returns e.g. {@code ",\n boolean ignoreNulls"}.
+   * This ignores the first 2 arguments. */
   static StringBuilder paramList(StringBuilder buff, Method method) {
     Class<?>[] parameterTypes = method.getParameterTypes();
     for (int i = 2; i < parameterTypes.length; i++) {
@@ -36,7 +37,8 @@ class CodeGeneratorUtil {
     return buff;
   }
 
-  /** Returns e.g. ", a2, a3". This ignores the first 2 arguments. */
+  /** Returns e.g. {@code ", a2, a3"}.
+   * This ignores the first 2 arguments. */
   static StringBuilder argList(StringBuilder buff, Method method) {
     Class<?>[] argTypes = method.getParameterTypes();
     for (int i = 2; i < argTypes.length; i++) {

@@ -729,7 +729,8 @@ class LatticeSuggesterTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6374">[CALCITE-6374]
-   * LatticeSuggester throw NullPointerException when agg call covered with cast </a>. */
+   * LatticeSuggester throw NullPointerException when agg call covered with
+   * cast</a>. */
   @Test void testCastAggrNameExpression() throws Exception {
     final Tester t = new Tester().foodmart().withEvolve(true);
     final String q0 = "select\n"
@@ -759,7 +760,7 @@ class LatticeSuggesterTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6605">[CALCITE-6605]
-   * Lattice SQL supports complex column expressions </a>. */
+   * Lattice SQL supports complex column expressions</a>. */
   @Test void testExpressionLatticeSql() throws Exception {
     final Tester t = new Tester().foodmart().withEvolve(true);
     final String q0 = "select\n"

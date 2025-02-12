@@ -355,8 +355,10 @@ class RelFieldTrimmerTest {
             .project(builder.field("EMPNO"), builder.field("ENAME"))
             .build();
 
-    final HepProgram hepProgram = new HepProgramBuilder().
-        addRuleInstance(CoreRules.PROJECT_TO_CALC).build();
+    final HepProgram hepProgram =
+        new HepProgramBuilder()
+            .addRuleInstance(CoreRules.PROJECT_TO_CALC)
+            .build();
 
     final HepPlanner hepPlanner = new HepPlanner(hepProgram);
     hepPlanner.setRoot(root);
@@ -697,10 +699,12 @@ class RelFieldTrimmerTest {
         .build();
 
     String origTree = ""
-        + "LogicalProject(EMPNO=[$0], $f1=[$SCALAR_QUERY({\n"
+        + "LogicalProject(EMPNO=[$0], $f1=["
+        + "$SCALAR_QUERY({\n"
         + "LogicalAggregate(group=[{}], c=[COUNT()])\n"
         + "  LogicalFilter(condition=[<($3, $cor0.MGR)])\n"
-        + "    LogicalTableScan(table=[[scott, EMP]])\n})])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n"
+        + "})])\n"
         + "  LogicalFilter(condition=[>($5, 10)])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root, hasTree(origTree));

@@ -1452,15 +1452,14 @@ public abstract class SqlLibraryOperators {
       // 0, 1 is the operand index to be CAST
       // For array_append/array_prepend, 0 is the array arg and 1 is the inserted element
       if (componentType.equalsSansFieldNames(type)) {
-        SqlValidatorUtil.
-            adjustTypeForArrayFunctions(type, opBinding, 1);
+        SqlValidatorUtil.adjustTypeForArrayFunctions(type, opBinding, 1);
       } else {
-        SqlValidatorUtil.
-            adjustTypeForArrayFunctions(type, opBinding, 0);
+        SqlValidatorUtil.adjustTypeForArrayFunctions(type, opBinding, 0);
       }
     }
 
-    return SqlTypeUtil.createArrayType(opBinding.getTypeFactory(), type, arrayType.isNullable());
+    return SqlTypeUtil.createArrayType(opBinding.getTypeFactory(), type,
+        arrayType.isNullable());
   }
 
   /** The "ARRAY_APPEND(array, element)" function. */
@@ -1555,10 +1554,8 @@ public abstract class SqlLibraryOperators {
     // if array component type not equals to inserted element type
     if (!componentType.equalsSansFieldNames(elementType2)) {
       // For array_insert, 0 is the array arg and 2 is the inserted element
-      SqlValidatorUtil.
-          adjustTypeForArrayFunctions(type, opBinding, 2);
-      SqlValidatorUtil.
-          adjustTypeForArrayFunctions(type, opBinding, 0);
+      SqlValidatorUtil.adjustTypeForArrayFunctions(type, opBinding, 2);
+      SqlValidatorUtil.adjustTypeForArrayFunctions(type, opBinding, 0);
     }
     boolean nullable = arrayType.isNullable() || elementType1.isNullable();
     return SqlTypeUtil.createArrayType(opBinding.getTypeFactory(), type, nullable);

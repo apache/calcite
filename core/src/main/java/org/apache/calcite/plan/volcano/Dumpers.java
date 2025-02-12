@@ -218,9 +218,10 @@ class Dumpers {
           }
         }
         Util.printJavaString(pw,
-            title
-                + "\nrows=" + mq.getRowCount(rel) + ", cost="
-                + planner.getCost(rel, mq), false);
+            title + "\n"
+                + "rows=" + mq.getRowCount(rel)
+                + ", cost=" + planner.getCost(rel, mq),
+            false);
         if (!(rel instanceof AbstractConverter)) {
           nonEmptySubsets.add(relSubset);
         }

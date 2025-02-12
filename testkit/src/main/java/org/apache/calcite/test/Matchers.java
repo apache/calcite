@@ -191,15 +191,19 @@ public class Matchers {
 
   /**
    * Creates a Matcher that matches when the examined string is equal to the
-   * specified {@code value} when all Windows-style line endings ("\r\n")
-   * have been converted to Unix-style line endings ("\n").
+   * specified {@code value} when all Windows-style line endings
+   * ({@code "\r\n"}) have been converted to Unix-style line endings
+   * ({@code "\n"}).
    *
-   * <p>Thus, if {@code foo()} is a function that returns "hello{newline}world"
-   * in the current operating system's line endings, then
+   * <p>Thus, if {@code foo()} is a function that returns
+   * {@code "hello{newline}world"} in the current operating system's line
+   * endings, then
    *
-   * <blockquote>
-   *   assertThat(foo(), isLinux("hello\nworld"));
-   * </blockquote>
+   * <blockquote><pre>
+   *   assertThat(foo(),
+   *       isLinux("hello\n"
+   *           + "world"));
+   * </pre></blockquote>
    *
    * <p>will succeed on all platforms.
    *
@@ -305,14 +309,14 @@ public class Matchers {
    * is equal to the given {@code value}.
    *
    * <p>This method is necessary because {@link RangeSet#toString()} changed
-   * behavior. Guava 19 - 28 used a unicode symbol; Guava 29 onwards uses "..".
+   * behavior. Guava 19 - 28 used a Unicode symbol; Guava 29 onwards uses "..".
    */
   @SuppressWarnings("rawtypes")
   public static Matcher<RangeSet> isRangeSet(final String value) {
     return compose(Is.is(value), input -> sanitizeRangeSet(input.toString()));
   }
 
-  /** Changes all '\u2025' (a unicode symbol denoting a range) to '..',
+  /** Changes all '\u2025' (a Unicode symbol denoting a range) to '..',
    * consistent with Guava 29+. */
   public static String sanitizeRangeSet(String string) {
     return string.replace("\u2025", "..");
@@ -331,16 +335,20 @@ public class Matchers {
   }
 
   /**
-   * Creates a matcher that matches when the examined string is equal to the
-   * specified <code>operand</code> when all Windows-style line endings ("\r\n")
-   * have been converted to Unix-style line endings ("\n").
+   * Creates a Matcher that matches when the examined string is equal to the
+   * specified {@code value} when all Windows-style line endings
+   * ({@code "\r\n"}) have been converted to Unix-style line endings
+   * ({@code "\n"}).
    *
-   * <p>Thus, if {@code foo()} is a function that returns "hello{newline}world"
-   * in the current operating system's line endings, then
+   * <p>Thus, if {@code foo()} is a function that returns
+   * {@code "hello{newline}world"} in the current operating system's line
+   * endings, then
    *
-   * <blockquote>
-   *   assertThat(foo(), isLinux("hello\nworld"));
-   * </blockquote>
+   * <blockquote><pre>
+   *   assertThat(foo(),
+   *       isLinux("hello\n"
+   *           + "world"));
+   * </pre></blockquote>
    *
    * <p>will succeed on all platforms.
    *

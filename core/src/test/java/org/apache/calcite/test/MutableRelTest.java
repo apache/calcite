@@ -32,7 +32,7 @@ import org.apache.calcite.tools.RelBuilder;
 
 import com.google.common.collect.ImmutableList;
 
-import org.hamcrest.MatcherAssert;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -40,12 +40,12 @@ import java.util.List;
 import static org.apache.calcite.plan.RelOptUtil.equal;
 import static org.apache.calcite.util.Litmus.IGNORE;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for {@link MutableRel} sub-classes.
@@ -193,7 +193,7 @@ class MutableRelTest {
         + "  LogicalProject(SAL=[$5])\n"
         + "    LogicalFilter(condition=[LIKE($1, 'John%')])\n"
         + "      LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n";
-    MatcherAssert.assertThat(actual, Matchers.isLinux(expected));
+    assertThat(actual, Matchers.isLinux(expected));
   }
 
   @Test void testParentInfoOfUnion() {
@@ -201,7 +201,7 @@ class MutableRelTest {
         createMutableRel("select sal from emp where deptno = 10"
             + "union select sal from emp where ename like 'John%'");
     for (MutableRel input : mutableRel.getInputs()) {
-      assertSame(input.getParent(), mutableRel);
+      assertThat(mutableRel, sameInstance(input.getParent()));
     }
   }
 
@@ -213,7 +213,7 @@ class MutableRelTest {
     final String expected = ""
         + "LogicalProject(I=[$0])\n"
         + "  LogicalTableFunctionScan(invocation=[RAMP(3)], rowType=[RecordType(INTEGER I)])\n";
-    MatcherAssert.assertThat(actual, Matchers.isLinux(expected));
+    assertThat(actual, Matchers.isLinux(expected));
     assertThat(mutableRel2, is(mutableRel1));
   }
 
@@ -249,8 +249,8 @@ class MutableRelTest {
 
   /** Verifies that after conversion to and from a MutableRel, the new
    * RelNode remains identical to the original RelNode. */
-  private static void checkConvertMutableRel(
-      String rel, String sql, boolean decorrelate, List<RelOptRule> rules) {
+  private static void checkConvertMutableRel(String rel, String sql,
+      boolean decorrelate, @Nullable List<RelOptRule> rules) {
     final SqlToRelFixture fixture =
         SqlToRelFixture.DEFAULT.withSql(sql).withDecorrelate(decorrelate);
     RelNode origRel = fixture.toRel();
@@ -269,30 +269,28 @@ class MutableRelTest {
     final String mutableRelStr = mutableRel.deep();
     final String msg1 =
         "Mutable rel: " + mutableRelStr + " does not contain target rel: " + rel;
-    assertTrue(mutableRelStr.contains(rel), msg1);
+    assertThat(msg1, mutableRelStr, containsString(rel));
 
     // Check if the mutable rel's row-type is identical to the original
     // rel's row-type.
     final RelDataType origRelType = origRel.getRowType();
     final RelDataType mutableRelType = mutableRel.rowType;
-    final String msg2 =
-        "Mutable rel's row type does not match with the original rel.\n"
-        + "Original rel type: " + origRelType
-        + ";\nMutable rel type: " + mutableRelType;
-    assertTrue(
-        equal(
-            "origRelType", origRelType,
+    final String msg2 = "Mutable rel's row type does not match original rel.\n"
+        + "Original rel type: " + origRelType + ";\n"
+        + "Mutable rel type: " + mutableRelType;
+    assertThat(msg2,
+        equal("origRelType", origRelType,
             "mutableRelType", mutableRelType,
             IGNORE),
-        msg2);
+        is(true));
 
     // Check if the new rel converted from the mutable rel is identical
     // to the original rel.
     final String origRelStr = RelOptUtil.toString(origRel);
     final String newRelStr = RelOptUtil.toString(newRel);
-    final String msg3 =
-        "The converted new rel is different from the original rel.\n"
-        + "Original rel: " + origRelStr + ";\nNew rel: " + newRelStr;
+    final String msg3 = "Converted new rel is different from original rel.\n"
+        + "Original rel: " + origRelStr + ";\n"
+        + "New rel: " + newRelStr;
     assertThat(msg3, newRelStr, is(origRelStr));
   }
 

@@ -338,8 +338,9 @@ public abstract class ReturnTypes {
   /**
    * Type-inference strategy that returns the type of the first operand,
    * unless it is a DATE, in which case the return type is TIMESTAMP. Supports
-   * cases such as <a href="https://issues.apache.org/jira/browse/CALCITE-5757">[CALCITE-5757]
-   * Incorrect return type for BigQuery TRUNC functions </a>.
+   * cases such as
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5757">[CALCITE-5757]
+   * Incorrect return type for BigQuery TRUNC functions</a>.
    */
   public static final SqlReturnTypeInference ARG0_EXCEPT_DATE = opBinding -> {
     RelDataTypeFactory typeFactory = opBinding.getTypeFactory();

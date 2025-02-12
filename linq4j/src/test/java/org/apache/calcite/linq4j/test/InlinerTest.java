@@ -57,7 +57,10 @@ class InlinerTest {
         Expressions.declare(16, "x", Expressions.add(ONE, TWO));
     b.add(decl);
     b.add(Expressions.return_(null, decl.parameter));
-    assertThat(b.toBlock(), hasToString("{\n  return 1 + 2;\n}\n"));
+    assertThat(b.toBlock(),
+        hasToString("{\n"
+            + "  return 1 + 2;\n"
+            + "}\n"));
   }
 
   @Test void testInlineConstant() {
@@ -66,7 +69,10 @@ class InlinerTest {
     b.add(
         Expressions.return_(null,
             Expressions.add(decl.parameter, decl.parameter)));
-    assertThat(b.toBlock(), hasToString("{\n  return 1 + 1;\n}\n"));
+    assertThat(b.toBlock(),
+        hasToString("{\n"
+            + "  return 1 + 1;\n"
+            + "}\n"));
   }
 
   @Test void testInlineParameter() {
@@ -76,7 +82,10 @@ class InlinerTest {
     b.add(
         Expressions.return_(null,
             Expressions.add(decl.parameter, decl.parameter)));
-    assertThat(b.toBlock(), hasToString("{\n  return p + p;\n}\n"));
+    assertThat(b.toBlock(),
+        hasToString("{\n"
+            + "  return p + p;\n"
+            + "}\n"));
   }
 
   @Test void testNoInlineMultipleUsage() {

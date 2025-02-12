@@ -717,7 +717,9 @@ public class ReflectiveSchemaTest {
           } catch (SQLException e) {
             throw TestUtil.rethrow(e);
           }
-          assertThat(buf, hasToString("0\n2147483647\n"));
+          assertThat(buf,
+              hasToString("0\n"
+                  + "2147483647\n"));
         });
   }
 
@@ -950,11 +952,13 @@ public class ReflectiveSchemaTest {
             "EXPR$0=null");
   }
 
-  /**
-   * Test that the row count statistic can be retrieved from a ReflectiveSchema.
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5649">[CALCITE-5649]
+   * Produce row count statistics from ReflectiveSchema for array-based
+   * tables</a>.
    *
-   * @see <a href="https://issues.apache.org/jira/browse/CALCITE-5649">[CALCITE-5649]</a>
-   */
+   * <p>Tests that the row count statistic can be retrieved from a
+   * ReflectiveSchema. */
   @Test void testArrayFieldTableHasRowCount() {
     ReflectiveSchema schema = new ReflectiveSchema(new HrSchema());
     Table table = schema.getTable("emps");

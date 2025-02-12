@@ -77,17 +77,21 @@ class LintTest {
             line -> line.globalState().fileCount++)
 
         // Skip directive
-        .add(line -> line.matches(".* lint:skip ([0-9]+).*"),
+        .add(line -> line.matches(".* lint:skip .*"),
             line -> {
               final Matcher matcher = line.matcher(".* lint:skip ([0-9]+).*");
+              int n;
               if (matcher.matches()) {
-                int n = parseInt(matcher.group(1));
-                line.state().skipToLine = line.fnr() + n;
+                n = parseInt(matcher.group(1));
+              } else {
+                n = 1;
               }
+              line.state().skipToLine = line.fnr() + n + 1;
             })
 
         // Trailing space
-        .add(line -> line.endsWith(" "),
+        .add(line -> line.endsWith(" ")
+                && !skipping(line),
             line -> line.state().message("Trailing space", line))
 
         // Tab
@@ -103,29 +107,63 @@ class LintTest {
                 && !line.contains("//--")
                 && !line.contains("//~")
                 && !line.contains("//noinspection")
-                && !line.contains("//CHECKSTYLE"),
+                && !line.contains("//CHECKSTYLE")
+                && !skipping(line),
             line -> line.state().message("'//' must be followed by ' '", line))
 
         // In 'for (int i : list)', colon must be surrounded by space.
         .add(line -> line.matches("^ *for \\(.*:.*")
                 && !line.matches(".*[^ ][ ][:][ ][^ ].*")
-                && isJava(line.filename()),
+                && isJava(line.filename())
+                && !skipping(line),
             line -> line.state().message("':' must be surrounded by ' '", line))
+
+        // Dot must not be last char of line.
+        .add(line -> line.matches("^.*\\.$")
+                && !line.contains("//")
+                && !line.contains("/*")
+                && !line.contains(" * ")
+                && !line.state().inJavadoc()
+                && isJava(line.filename())
+                && !isTemplate(line.filename())
+                && !skipping(line),
+            line -> line.state().message("Trailing '.'", line))
+
+        // In a string literal, '\n' can only occur at end
+        .add(line -> line.matches(".*[\"].*\\\\n[^\"].*")
+                && !line.contains("\\\\n") // e.g. ' "\\\\n not at end" '
+                // e.g. 'new StringBuilder("\nGROUP BY ")'
+                && !line.contains("StringBuilder")
+                && !line.contains("append(") // e.g. 'b.append("\nGROUP BY ")'
+                && !line.contains("replace(") // e.g. 'replace("\r", \"n")'
+                && !line.contains("compile(") // e.g. 'Pattern.compile("[\r\n]")'
+                && !line.contains("{}") // e.g. 'printf("x{}\ny{}\n", x, y)'
+                && !line.contains("{0}") // e.g. 'printf("x{0}\ny{1}\n", x, y)'
+                && !line.contains("%s") // e.g. 'printf("x%s\ny%s\n", x, y)'
+                && !line.contains("split(") // e.g. 's.split("[\\n\\r]+")'
+                && isJava(line.filename())
+                && !skipping(line),
+            line ->
+                line.state().message("'\\n' must be at end of string literal",
+                    line))
 
         // Javadoc does not require '</p>', so we do not allow '</p>'
         .add(line -> line.state().inJavadoc()
-                && line.contains("</p>"),
+                && line.contains("</p>")
+                && !skipping(line),
             line -> line.state().message("no '</p>'", line))
 
         // No "**/"
         .add(line -> line.contains(" **/")
-                && line.state().inJavadoc(),
+                && line.state().inJavadoc()
+                && !skipping(line),
             line ->
                 line.state().message("no '**/'; use '*/'",
                     line))
 
         // A Javadoc paragraph '<p>' must not be on its own line.
-        .add(line -> line.matches("^ *\\* <p>"),
+        .add(line -> line.matches("^ *\\* <p>")
+                && !skipping(line),
             line ->
                 line.state().message("<p> must not be on its own line",
                     line))
@@ -141,7 +179,8 @@ class LintTest {
               f.starLine = line.fnr();
             })
         .add(line -> line.matches("^ *\\* <p>.*")
-                && line.fnr() - 1 != line.state().starLine,
+                && line.fnr() - 1 != line.state().starLine
+                && !skipping(line),
             line ->
                 line.state().message("<p> must be preceded by blank line",
                     line))
@@ -153,7 +192,8 @@ class LintTest {
                 && line.contains("* ")
                 && line.fnr() - 1 == line.state().starLine
                 && line.matches("^ *\\* [^<@].*")
-                && isJava(line.filename()),
+                && isJava(line.filename())
+                && !skipping(line),
             line -> line.state().message("missing '<p>'", line))
 
         // The first "@param" of a javadoc block must be preceded by a blank
@@ -171,7 +211,8 @@ class LintTest {
             line -> {
               if (line.state().inJavadoc()
                   && line.state().atLine < line.state().javadocStartLine
-                  && line.fnr() - 1 != line.state().starLine) {
+                  && line.fnr() - 1 != line.state().starLine
+                  && !skipping(line)) {
                 line.state().message(
                     "First @tag must be preceded by blank line",
                     line);
@@ -205,6 +246,12 @@ class LintTest {
         || filename.equals("GuavaCharSource{memory}"); // for testing
   }
 
+  /** Returns whether we are in a template file. */
+  private static boolean isTemplate(String filename) {
+    return filename.endsWith(".fmpp")
+        || filename.endsWith(".ftl");
+  }
+
   @Test void testProgramWorks() {
     final String code = "class MyClass {\n"
         + "  /** Paragraph.\n"
@@ -230,6 +277,21 @@ class LintTest {
         + "  }\n"
         + "  for (int i : justRight) {\n"
         + "  }\n"
+        + "  // Newlines not at end of string\n"
+        + "  String sql = \"select x\\n from t\"\n"
+        + "      + \" as t2 where y < 1\\n\";\n"
+        + "  // It's OK for \\n to occur in a comment (like this one)\n"
+        + "  // Quoted newline is OK:\n"
+        + "  String sql2 = \"select x\\\\n from t\";\n"
+        // end-of-line comment allows skipping current line
+        + "  String spurious1 = \"\\n \";\n"
+        + "  String spurious2 = \"\\n \"; // lint:skip (newline in string)\n"
+        + "\n"
+        + "  // Dot at end of line"
+        + "  a.b\n"
+        + "    .c\n"
+        + "    .d.\n"
+        + "    e();"
         + "}\n";
     final String expectedMessages = "["
         + "GuavaCharSource{memory}:4:"
@@ -256,6 +318,12 @@ class LintTest {
         + "':' must be surrounded by ' '\n"
         + "GuavaCharSource{memory}:21:"
         + "':' must be surrounded by ' '\n"
+        + "GuavaCharSource{memory}:26:"
+        + "'\\n' must be at end of string literal\n"
+        + "GuavaCharSource{memory}:31:"
+        + "'\\n' must be at end of string literal\n"
+        + "GuavaCharSource{memory}:36:"
+        + "Trailing '.'\n"
         + "";
     final Puffin.Program<GlobalState> program = makeProgram();
     final StringWriter sw = new StringWriter();

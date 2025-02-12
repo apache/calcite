@@ -196,7 +196,8 @@ class PigRelOpTest extends PigRelTestBase {
         + "(k21:int, k22:float), "
         + "l1:bag{}, "
         + "l2:bag{l21:(l22:int, l23:float)}, m1:map[], m2:map[int], m3:map["
-        + "(m3:float)])\n;";
+        + "(m3:float)])\n"
+        + ";";
     final String plan = "LogicalTableScan(table=[[testSchema, testTable]])\n";
     pig(script).assertRel(hasTree(plan));
 

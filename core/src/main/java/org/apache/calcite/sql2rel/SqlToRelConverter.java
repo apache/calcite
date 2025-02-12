@@ -518,9 +518,11 @@ public class SqlToRelConverter {
           + "preserve datatypes:\n"
           + "validated type:\n"
           + validatedRowType.getFullTypeString()
-          + "\nconverted type:\n"
+          + "\n"
+          + "converted type:\n"
           + convertedRowType.getFullTypeString()
-          + "\nrel:\n"
+          + "\n"
+          + "rel:\n"
           + RelOptUtil.toString(result));
     }
   }
@@ -3971,11 +3973,11 @@ public class SqlToRelConverter {
           name = ((SqlWithItem) enclosingNode).name.getSimple();
         }
         if (RelOptUtil.findTable(right, name) != null) {
-          return this.relBuilder.
-              push(left).
-              push(right).
-              repeatUnion(name, all).
-              build();
+          return relBuilder
+              .push(left)
+              .push(right)
+              .repeatUnion(name, all)
+              .build();
         }
       }
     }

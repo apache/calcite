@@ -1060,21 +1060,21 @@ TOKEN_MGR_DECLS : {
 }
 
 /*
-Lexical states:
-
-DEFAULT: Identifiers are quoted in brackets, e.g. [My Identifier]
-DQID:    Identifiers are double-quoted, e.g. "My Identifier"
-BTID:    Identifiers are enclosed in back-ticks, e.g. `My Identifier`
-IN_SINGLE_LINE_COMMENT:
-IN_FORMAL_COMMENT:
-IN_MULTI_LINE_COMMENT:
-
-DEFAULT, DQID, BTID are the 3 'normal states'. Behavior is identical except
-for how quoted identifiers are recognized.
-
-After a comment has completed, the lexer returns to the previous state, one
-of the 'normal states'.
-*/
+ * Lexical states:
+ *
+ * DEFAULT: Identifiers are quoted in brackets, e.g. [My Identifier]
+ * DQID:    Identifiers are double-quoted, e.g. "My Identifier"
+ * BTID:    Identifiers are enclosed in back-ticks, e.g. `My Identifier`
+ * IN_SINGLE_LINE_COMMENT:
+ * IN_FORMAL_COMMENT:
+ * IN_MULTI_LINE_COMMENT:
+ *
+ * DEFAULT, DQID, BTID are the 3 'normal states'. Behavior is identical except
+ * for how quoted identifiers are recognized.
+ *
+ * After a comment has completed, the lexer returns to the previous state, one
+ * of the 'normal states'.
+ */
 
 /* WHITE SPACE */
 

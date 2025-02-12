@@ -425,14 +425,13 @@ public abstract class RelOptUtil {
       return;
     }
 
-    String s = "Cannot add expression of different type to set:\n"
-        + "set type is " + expectedRowType.getFullTypeString()
-        + "\nexpression type is " + actualRowType.getFullTypeString()
-        + "\nset is " + equivalenceClass
-        + "\nexpression is " + RelOptUtil.toString(newRel)
-        + getFullTypeDifferenceString("rowtype of original rel", expectedRowType,
-        "rowtype of new rel", actualRowType);
-    throw new AssertionError(s);
+    throw new AssertionError("Cannot add expression of different type to set:\n"
+        + "set type is " + expectedRowType.getFullTypeString() + "\n"
+        + "expression type is " + actualRowType.getFullTypeString() + "\n"
+        + "set is " + equivalenceClass + "\n"
+        + "expression is " + RelOptUtil.toString(newRel)
+        + getFullTypeDifferenceString("rowtype of original rel",
+            expectedRowType, "rowtype of new rel", actualRowType));
   }
 
   /**

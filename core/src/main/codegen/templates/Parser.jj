@@ -8981,34 +8981,34 @@ TOKEN_MGR_DECLS : {
 }
 
 /*
-Lexical states:
-
-DEFAULT: Identifiers are quoted in brackets, e.g. [My Identifier]
-DQID:    Identifiers are double-quoted, e.g. "My Identifier"
-BTID:    Identifiers are enclosed in back-ticks, escaped using back-ticks,
-         e.g. `My ``Quoted`` Identifier`
-BQID:    Identifiers are enclosed in back-ticks, escaped using backslash,
-         e.g. `My \`Quoted\` Identifier`,
-         and with the potential to shift into BQHID in contexts where table
-         names are expected, and thus allow hyphen-separated identifiers as
-         part of table names
-BQHID:   Identifiers are enclosed in back-ticks, escaped using backslash,
-         e.g. `My \`Quoted\` Identifier`
-         and unquoted identifiers may contain hyphens, e.g. foo-bar
-IN_SINGLE_LINE_COMMENT:
-IN_FORMAL_COMMENT:
-IN_MULTI_LINE_COMMENT:
-
-DEFAULT, DQID, BTID, BQID are the 4 'normal states'. Behavior is identical
-except for how quoted identifiers are recognized.
-
-The BQHID state exists only at the start of a table name (e.g. immediately after
-FROM or INSERT INTO). As soon as an identifier is seen, the state shifts back
-to BTID.
-
-After a comment has completed, the lexer returns to the previous state, one
-of the 'normal states'.
-*/
+ * Lexical states:
+ *
+ * DEFAULT: Identifiers are quoted in brackets, e.g. [My Identifier]
+ * DQID:    Identifiers are double-quoted, e.g. "My Identifier"
+ * BTID:    Identifiers are enclosed in back-ticks, escaped using back-ticks,
+ *          e.g. `My ``Quoted`` Identifier`
+ * BQID:    Identifiers are enclosed in back-ticks, escaped using backslash,
+ *          e.g. `My \`Quoted\` Identifier`,
+ *          and with the potential to shift into BQHID in contexts where table
+ *          names are expected, and thus allow hyphen-separated identifiers as
+ *          part of table names
+ * BQHID:   Identifiers are enclosed in back-ticks, escaped using backslash,
+ *          e.g. `My \`Quoted\` Identifier`
+ *          and unquoted identifiers may contain hyphens, e.g. foo-bar
+ * IN_SINGLE_LINE_COMMENT:
+ * IN_FORMAL_COMMENT:
+ * IN_MULTI_LINE_COMMENT:
+ *
+ * DEFAULT, DQID, BTID, BQID are the 4 'normal states'. Behavior is identical
+ * except for how quoted identifiers are recognized.
+ *
+ * The BQHID state exists only at the start of a table name (e.g. immediately
+ * after FROM or INSERT INTO). As soon as an identifier is seen, the state
+ * shifts back to BTID.
+ *
+ * After a comment has completed, the lexer returns to the previous state, one
+ * of the 'normal states'.
+ */
 
 /* WHITE SPACE */
 

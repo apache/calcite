@@ -3001,6 +3001,7 @@ class UtilTest {
 
   /** Unit test for {@link Matchers#isLinux}. */
   @Test void testIsLinux() {
+    // lint:skip 20 (newline in string literal)
     assertThat("xy", isLinux("xy"));
     assertThat("x\ny", isLinux("x\ny"));
     assertThat("x\r\ny", isLinux("x\ny"));

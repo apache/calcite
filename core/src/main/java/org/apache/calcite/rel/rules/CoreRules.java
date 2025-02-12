@@ -440,8 +440,8 @@ public class CoreRules {
    * and {@link LogicalWindow}. */
   public static final ProjectToWindowRule.ProjectToLogicalProjectAndWindowRule
       PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW =
-      ProjectToWindowRule.ProjectToLogicalProjectAndWindowRule.
-          ProjectToLogicalProjectAndWindowRuleConfig.DEFAULT.toRule();
+      ProjectToWindowRule.ProjectToLogicalProjectAndWindowRule
+          .ProjectToLogicalProjectAndWindowRuleConfig.DEFAULT.toRule();
 
   /** Rule that creates a {@link Join#isSemiJoin semi-join} from a
    * {@link Project} on top of a {@link Join} with an {@link Aggregate} as its

@@ -3772,8 +3772,8 @@ public class RelBuilderTest {
    * RelBuilder#empty does not keep aliases</a>. */
   @Test void testEmptyWithAlias() {
     final RelBuilder builder = RelBuilder.create(config().build());
-    final String expected =
-        "LogicalProject(DEPTNO=[$0], DNAME=[$1])\n  LogicalValues(tuples=[[]])\n";
+    final String expected = "LogicalProject(DEPTNO=[$0], DNAME=[$1])\n"
+        + "  LogicalValues(tuples=[[]])\n";
     final String expectedType =
         "RecordType(TINYINT NOT NULL DEPTNO, VARCHAR(14) DNAME) NOT NULL";
 
@@ -3781,8 +3781,7 @@ public class RelBuilderTest {
     RelNode root =
         builder.scan("DEPT")
             .empty()
-            .project(
-                builder.field("DEPTNO"),
+            .project(builder.field("DEPTNO"),
                 builder.field("DNAME"))
             .build();
     assertThat(root, hasTree(expected));
@@ -3792,8 +3791,7 @@ public class RelBuilderTest {
     root =
         builder.scan("DEPT").as("d")
             .empty()
-            .project(
-                builder.field(1, "d", "DEPTNO"),
+            .project(builder.field(1, "d", "DEPTNO"),
                 builder.field(1, "d", "DNAME"))
             .build();
     assertThat(root, hasTree(expected));
@@ -3803,8 +3801,7 @@ public class RelBuilderTest {
     root =
         builder.scan("DEPT").as("d")
             .filter(builder.literal(false))
-            .project(
-                builder.field(1, "d", "DEPTNO"),
+            .project(builder.field(1, "d", "DEPTNO"),
                 builder.field(1, "d", "DNAME"))
             .build();
     assertThat(root, hasTree(expected));

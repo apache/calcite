@@ -99,7 +99,9 @@ class SparkAdapterTest {
 
     final String plan = "PLAN="
         + "EnumerableAggregate(group=[{0, 1}])\n"
-        + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n\n";
+        + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, "
+        + "{ 2, 'c' }, { 2, 'c' }]])\n"
+        + "\n";
 
     final String[] expectedResult = {
         "X=1; Y=a",
@@ -182,7 +184,8 @@ class SparkAdapterTest {
         + "    EnumerableAggregate(group=[{0}], MIN_Y=[MIN($2) FILTER $6], MAX_Y=[MIN($3) FILTER $6], CNT_Y=[MIN($4) FILTER $6], CNT_DIST_Y=[COUNT($1) FILTER $5])\n"
         + "      EnumerableCalc(expr#0..5=[{inputs}], expr#6=[0], expr#7=[=($t5, $t6)], expr#8=[1], expr#9=[=($t5, $t8)], proj#0..4=[{exprs}], $g_0=[$t7], $g_1=[$t9])\n"
         + "        EnumerableAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}]], MIN_Y=[MIN($1)], MAX_Y=[MAX($1)], CNT_Y=[COUNT()], $g=[GROUPING($0, $1)])\n"
-        + "          EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n\n";
+        + "          EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n"
+        + "\n";
 
     final String expectedResult = "X=1; MIN_Y=a; MAX_Y=b; CNT_Y=2; CNT_DIST_Y=2\n"
         + "X=2; MIN_Y=b; MAX_Y=c; CNT_Y=3; CNT_DIST_Y=2\n";
@@ -204,7 +207,8 @@ class SparkAdapterTest {
         + "    EnumerableAggregate(group=[{0}], MIN_Y=[MIN($2) FILTER $6], MAX_Y=[MIN($3) FILTER $6], CNT_Y=[MIN($4) FILTER $6], CNT_DIST_Y=[COUNT($1) FILTER $5])\n"
         + "      EnumerableCalc(expr#0..5=[{inputs}], expr#6=[0], expr#7=[=($t5, $t6)], expr#8=[1], expr#9=[=($t5, $t8)], proj#0..4=[{exprs}], $g_0=[$t7], $g_1=[$t9])\n"
         + "        EnumerableAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}]], MIN_Y=[MIN($1)], MAX_Y=[MAX($1)], CNT_Y=[COUNT()], $g=[GROUPING($0, $1)])\n"
-        + "          EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n\n";
+        + "          EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n"
+        + "\n";
 
     final String expectedResult = "X=2; MIN_Y=b; MAX_Y=c; CNT_Y=3; CNT_DIST_Y=2\n"
         + "X=1; MIN_Y=a; MAX_Y=b; CNT_Y=2; CNT_DIST_Y=2\n";
@@ -222,7 +226,8 @@ class SparkAdapterTest {
     final String plan = "PLAN="
         + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[2:BIGINT], expr#3=[>($t1, $t2)], X=[$t0], $condition=[$t3])\n"
         + "  EnumerableAggregate(group=[{0}], agg#0=[COUNT()])\n"
-        + "    EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n\n";
+        + "    EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n"
+        + "\n";
 
     final String expectedResult = "X=2";
 
@@ -240,7 +245,8 @@ class SparkAdapterTest {
         + "from " + VALUES2;
 
     final String plan = "PLAN="
-        + "EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n\n";
+        + "EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n"
+        + "\n";
 
     final String[] expectedResult = {
         "X=1; Y=a",
@@ -264,7 +270,8 @@ class SparkAdapterTest {
         + "from " + VALUES2;
 
     final String plan = "PLAN="
-        + "EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }]])\n\n";
+        + "EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }]])\n"
+        + "\n";
 
     final String[] expectedResult = {
         "X=1; Y=a",
@@ -308,7 +315,8 @@ class SparkAdapterTest {
     final String plan = "PLAN="
         + "EnumerableSort(sort0=[$1], dir0=[ASC])\n"
         + "  EnumerableCalc(expr#0..1=[{inputs}], Y=[$t1], X=[$t0])\n"
-        + "    EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n\n";
+        + "    EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n"
+        + "\n";
 
     final String expectedResult = "Y=a\n"
         + "Y=b\n"
@@ -328,7 +336,8 @@ class SparkAdapterTest {
     final String plan = "PLAN="
         + "EnumerableSort(sort0=[$1], sort1=[$0], dir0=[DESC], dir1=[DESC])\n"
         + "  EnumerableCalc(expr#0..1=[{inputs}], Y=[$t1], X=[$t0])\n"
-        + "    EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n\n";
+        + "    EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n"
+        + "\n";
 
     final String expectedResult = "Y=c\n"
         + "Y=c\n"
@@ -348,7 +357,8 @@ class SparkAdapterTest {
     final String plan = "PLAN="
         + "EnumerableSort(sort0=[$1], sort1=[$0], dir0=[DESC], dir1=[ASC])\n"
         + "  EnumerableCalc(expr#0..1=[{inputs}], Y=[$t1], X=[$t0])\n"
-        + "    EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n\n";
+        + "    EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n"
+        + "\n";
 
     final String expectedResult = "Y=b\n"
         + "Y=c\n"
@@ -368,7 +378,8 @@ class SparkAdapterTest {
     final String plan = "PLAN="
         + "EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[DESC])\n"
         + "  EnumerableCalc(expr#0..1=[{inputs}], Y=[$t1], X=[$t0])\n"
-        + "    EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n\n";
+        + "    EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n"
+        + "\n";
 
     final String expectedResult = "Y=b\n"
         + "Y=a\n"
@@ -391,7 +402,8 @@ class SparkAdapterTest {
         + "EnumerableCalc(expr#0..3=[{inputs}], Y=[$t3], Z=[$t1])\n"
         + "  EnumerableHashJoin(condition=[=($0, $2)], joinType=[inner])\n"
         + "    EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])\n"
-        + "    EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n\n";
+        + "    EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n"
+        + "\n";
 
     final String[] expectedResult = {
         "Y=a; Z=a",
@@ -416,7 +428,8 @@ class SparkAdapterTest {
         + "EnumerableCalc(expr#0..3=[{inputs}], Z=[$t1])\n"
         + "  EnumerableHashJoin(condition=[=($0, $2)], joinType=[inner])\n"
         + "    EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])\n"
-        + "    EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n\n";
+        + "    EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n"
+        + "\n";
 
     final String[] expectedResult = {
         "Z=a",
@@ -457,7 +470,8 @@ class SparkAdapterTest {
 
     final String plan = "PLAN="
         + "EnumerableLimit(fetch=[1])\n"
-        + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n\n";
+        + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n"
+        + "\n";
 
     final String expectedResult = "X=1; Y=a\n";
 
@@ -473,7 +487,8 @@ class SparkAdapterTest {
 
     final String plan = "PLAN="
         + "EnumerableLimit(offset=[2])\n"
-        + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n\n";
+        + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n"
+        + "\n";
 
     final String expectedResult = "X=1; Y=b\n"
         + "X=2; Y=c\n"
@@ -492,7 +507,8 @@ class SparkAdapterTest {
 
     final String plan = "PLAN="
         + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[Sarg[[3..4]]], expr#3=[SEARCH($t0, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
-        + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 3, 'b' }, { 4, 'c' }, { 2, 'c' }]])\n\n";
+        + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 3, 'b' }, { 4, 'c' }, { 2, 'c' }]])\n"
+        + "\n";
 
     final String[] expectedResult = {
         "X=3; Y=b",
@@ -510,7 +526,8 @@ class SparkAdapterTest {
 
     final String plan = "PLAN="
         + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[Sarg[3, 4]], expr#3=[SEARCH($t0, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
-        + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 3, 'b' }, { 4, 'c' }, { 2, 'c' }]])\n\n";
+        + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 3, 'b' }, { 4, 'c' }, { 2, 'c' }]])\n"
+        + "\n";
 
     final String[] expectedResult = {
         "X=3; Y=b",
@@ -527,7 +544,8 @@ class SparkAdapterTest {
         + "where true";
 
     final String plan = "PLAN="
-        + "EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n\n";
+        + "EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n"
+        + "\n";
 
     final String[] expectedResult = {
         "X=1; Y=a",
@@ -547,7 +565,8 @@ class SparkAdapterTest {
         + "where false";
 
     final String plan = "PLAN="
-        + "EnumerableValues(tuples=[[]])\n\n";
+        + "EnumerableValues(tuples=[[]])\n"
+        + "\n";
 
     final String expectedResult = "";
 
@@ -562,7 +581,8 @@ class SparkAdapterTest {
 
     final String plan = "PLAN="
         + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[Sarg[1, 2]], expr#3=[SEARCH($t0, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
-        + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n\n";
+        + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n"
+        + "\n";
 
     final String[] expectedResult = {
         "X=1; Y=a",
@@ -582,7 +602,8 @@ class SparkAdapterTest {
         + "where x is not null";
 
     final String plan = "PLAN="
-        + "EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n\n";
+        + "EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n"
+        + "\n";
 
     final String[] expectedResult = {
         "X=1; Y=a",
@@ -602,7 +623,8 @@ class SparkAdapterTest {
         + "where x is null";
 
     final String plan = "PLAN="
-        + "EnumerableValues(tuples=[[]])\n\n";
+        + "EnumerableValues(tuples=[[]])\n"
+        + "\n";
 
     final String expectedResult = "";
 
@@ -653,7 +675,8 @@ class SparkAdapterTest {
         + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[>($t0, $t2)], X=[$t0], $condition=[$t3])\n"
         + "    EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])\n"
         + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[>($t0, $t2)], X=[$t0], $condition=[$t3])\n"
-        + "    EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n\n";
+        + "    EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n"
+        + "\n";
 
     final String expectedResult = "X=2";
 
@@ -670,7 +693,8 @@ class SparkAdapterTest {
 
     final String plan = "PLAN="
         + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[+($t0, $t2)], expr#4=[>($t3, $t2)], X=[$t0], $condition=[$t4])\n"
-        + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])\n\n";
+        + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])\n"
+        + "\n";
 
     final String[] expectedResult = {
         "X=1",
@@ -688,7 +712,8 @@ class SparkAdapterTest {
 
     final String plan = "PLAN="
         + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[-($t0, $t2)], expr#4=[0], expr#5=[>($t3, $t4)], X=[$t0], $condition=[$t5])\n"
-        + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])\n\n";
+        + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])\n"
+        + "\n";
 
     final String expectedResult = "X=2";
 
@@ -703,7 +728,8 @@ class SparkAdapterTest {
 
     final String plan = "PLAN="
         + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[*($t0, $t0)], expr#3=[1], expr#4=[>($t2, $t3)], X=[$t0], $condition=[$t4])\n"
-        + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])\n\n";
+        + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])\n"
+        + "\n";
 
     final String expectedResult = "X=2";
 
@@ -718,7 +744,8 @@ class SparkAdapterTest {
 
     final String plan = "PLAN="
         + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[/($t0, $t0)], expr#3=[1], expr#4=[=($t2, $t3)], X=[$t0], $condition=[$t4])\n"
-        + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])\n\n";
+        + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])\n"
+        + "\n";
 
     final String[] expectedResult = {
         "X=1",
@@ -741,7 +768,8 @@ class SparkAdapterTest {
         + "  where w < x\n"
         + ")";
 
-    final String plan = "PLAN=todo\n\n";
+    final String plan = "PLAN=todo\n"
+        + "\n";
 
     final String expectedResult = "X=2; Y=b\n"
         + "X=2; Y=c\n"
@@ -762,7 +790,8 @@ class SparkAdapterTest {
         + "  where w > x\n"
         + ")";
 
-    final String plan = "PLAN=todo\n\n";
+    final String plan = "PLAN=todo\n"
+        + "\n";
 
     final String expectedResult = "X=1; Y=a";
 
@@ -779,7 +808,8 @@ class SparkAdapterTest {
         + "  from " + VALUES2 + "\n"
         + ")";
 
-    final String plan = "PLAN=todo\n\n";
+    final String plan = "PLAN=todo\n"
+        + "\n";
 
     final String expectedResult = "X=1\n"
         + "X=2";
@@ -797,7 +827,8 @@ class SparkAdapterTest {
         + "  from " + VALUES2 + "\n"
         + ")";
 
-    final String plan = "PLAN=todo\n\n";
+    final String plan = "PLAN=todo\n"
+        + "\n";
 
     final String expectedResult = "X=2";
 

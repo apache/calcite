@@ -1301,10 +1301,8 @@ public class CalciteAssert {
       final String model2;
       if (model.contains("defaultSchema: 'foodmart'")) {
         int endIndex = model.lastIndexOf(']');
-        model2 = model.substring(0, endIndex)
-            + ",\n{ name: 'mat', "
-            + buf
-            + "}\n"
+        model2 = model.substring(0, endIndex) + ",\n"
+            + "{ name: 'mat', " + buf + "}\n"
             + "]"
             + model.substring(endIndex + 1);
       } else if (model.contains("type: ")) {
@@ -1499,7 +1497,8 @@ public class CalciteAssert {
       return returns(
           checkResult(expected,
               new ResultSetFormatter() {
-                @Override protected String adjustValue(String s) {
+                @Override protected @Nullable String adjustValue(
+                    @Nullable String s) {
                   if (s != null) {
                     if (s.contains(".")) {
                       while (s.endsWith("0")) {
@@ -2121,7 +2120,7 @@ public class CalciteAssert {
       return this;
     }
 
-    protected String adjustValue(String string) {
+    protected @Nullable String adjustValue(@Nullable String string) {
       if (string != null) {
         string = TestUtil.correctRoundedFloat(string);
       }

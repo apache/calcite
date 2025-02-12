@@ -374,13 +374,14 @@ public class FrameworksTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3228">[CALCITE-3228]
-   * Error while applying rule ProjectScanRule:interpreter</a>
+   * Error while applying rule ProjectScanRule:interpreter</a>.
    *
    * <p>This bug appears under the following conditions:
-   * 1) have an aggregate with group by and multi aggregate calls.
-   * 2) the aggregate can be removed during optimization.
-   * 3) all aggregate calls are simplified to the same reference.
-   * */
+   * <ol>
+   * <li>have an aggregate with group by and multi aggregate calls;
+   * <li>the aggregate can be removed during optimization;
+   * <li>all aggregate calls are simplified to the same reference.
+   * </ol> */
   @Test void testPushProjectToScan() throws Exception {
     Table table = new TableImpl();
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);

@@ -438,8 +438,8 @@ class RexProgramFuzzyTest extends RexProgramBuilderBase {
 
     // Print the shortest fails first
     exceptions.sort(
-        Comparator.
-            <Throwable>comparingInt(t -> t.getMessage() == null ? -1 : t.getMessage().length())
+        Comparator.<Throwable>comparingInt(t ->
+                t.getMessage() == null ? -1 : t.getMessage().length())
             .thenComparing(Throwable::getMessage));
 
     // The first exception will be thrown, so the others go to printStackTrace

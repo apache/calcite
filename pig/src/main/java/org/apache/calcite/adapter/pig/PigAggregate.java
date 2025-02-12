@@ -79,7 +79,8 @@ public class PigAggregate extends Aggregate implements PigRel {
    * </pre>
    */
   private String getPigAggregateStatement(Implementor implementor) {
-    return getPigGroupBy(implementor) + '\n' + getPigForEachGenerate(implementor);
+    return getPigGroupBy(implementor) + '\n'
+        + getPigForEachGenerate(implementor);
   }
 
   /**
@@ -98,7 +99,7 @@ public class PigAggregate extends Aggregate implements PigRel {
     final String relAlias = implementor.getPigRelationAlias(this);
     final List<RelDataTypeField> allFields = getInput().getRowType().getFieldList();
     final List<Integer> groupedFieldIndexes = groupSet.asList();
-    if (groupedFieldIndexes.size() < 1) {
+    if (groupedFieldIndexes.isEmpty()) {
       return relAlias + " = GROUP " + relAlias + " ALL;";
     } else {
       final List<String> groupedFieldNames = new ArrayList<>(groupedFieldIndexes.size());
@@ -123,7 +124,9 @@ public class PigAggregate extends Aggregate implements PigRel {
     final String generateCall = getPigGenerateCall(implementor);
     final List<String> distinctCalls = getDistinctCalls(implementor);
     return relAlias + " = FOREACH " + relAlias + " {\n"
-        + String.join(";\n", distinctCalls) + generateCall + "\n};";
+        + String.join(";\n", distinctCalls)
+        + generateCall + "\n"
+        + "};";
   }
 
   private String getPigGenerateCall(Implementor implementor) {
@@ -132,7 +135,8 @@ public class PigAggregate extends Aggregate implements PigRel {
     for (int fieldIndex : groupedFieldIndexes) {
       final String fieldName = getInputFieldName(fieldIndex);
       // Pig appends group field name if grouping by multiple fields
-      final String groupField = (groupedFieldIndexes.size() == 1 ? "group" : ("group." + fieldName))
+      final String groupField =
+          (groupedFieldIndexes.size() == 1 ? "group" : ("group." + fieldName))
           + " AS " + fieldName;
 
       groupFields.add(groupField);
@@ -162,7 +166,7 @@ public class PigAggregate extends Aggregate implements PigRel {
 
   private static PigAggFunction toPigAggFunc(AggregateCall aggCall) {
     return PigAggFunction.valueOf(aggCall.getAggregation().getKind(),
-        aggCall.getArgList().size() < 1);
+        aggCall.getArgList().isEmpty());
   }
 
   private List<String> getArgNames(String relAlias, AggregateCall aggCall) {

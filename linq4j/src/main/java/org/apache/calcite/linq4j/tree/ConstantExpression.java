@@ -258,6 +258,7 @@ public class ConstantExpression extends Expression {
     if (map.size() < 5) {
       return map(writer, map, "of(", ",\n", ")");
     }
+    // lint:skip 1 (newline in string literal)
     return map(writer, map, "builder().put(", ")\n.put(", ").build()");
   }
 
@@ -286,7 +287,8 @@ public class ConstantExpression extends Expression {
     if (set.size() < 5) {
       return set(writer, set, "of(", ",", ")");
     }
-    return set(writer, set, "builder().add(", ")\n.add(", ").build()");
+    return set(writer, set, "builder().add(", ")\n"
+        + ".add(", ").build()");
   }
 
   private static ExpressionWriter set(ExpressionWriter writer, Set set,

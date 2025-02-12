@@ -269,8 +269,15 @@ class CsvTest {
     switch (format) {
     case "dot":
       expected = "PLAN=digraph {\n"
-          + "\"CsvTableScan\\ntable = [SALES, EMPS\\n]\\nfields = [3]\\n\" -> "
-          + "\"EnumerableAggregate\\ngroup = {0}\\nEXPR$1 = COUNT()\\n\" [label=\"0\"]\n"
+          + "\"CsvTableScan\\n"
+          + "table = [SALES, EMPS\\n"
+          + "]\\n"
+          + "fields = [3]\\n"
+          + "\" -> "
+          + "\"EnumerableAggregate\\n"
+          + "group = {0}\\n"
+          + "EXPR$1 = COUNT()\\n"
+          + "\" [label=\"0\"]\n"
           + "}\n";
       extra = " as dot ";
       break;
@@ -294,12 +301,29 @@ class CsvTest {
     switch (format) {
     case "dot":
       expected = "PLAN=digraph {\n"
-          + "\"EnumerableCalc\\nexpr#0..1 = {inputs}\\nexpr#2 = 'F':VARCHAR\\nexpr#3 = =($t1, $t2)"
-          + "\\nproj#0..1 = {exprs}\\n$condition = $t3\" -> \"EnumerableAggregate\\ngroup = "
-          + "{}\\nEXPR$0 = MAX($0)\\n\" [label=\"0\"]\n"
-          + "\"CsvTableScan\\ntable = [SALES, EMPS\\n]\\nfields = [0, 3]\\n\" -> "
-          + "\"EnumerableCalc\\nexpr#0..1 = {inputs}\\nexpr#2 = 'F':VARCHAR\\nexpr#3 = =($t1, $t2)"
-          + "\\nproj#0..1 = {exprs}\\n$condition = $t3\" [label=\"0\"]\n"
+          + "\"EnumerableCalc\\n"
+          + "expr#0..1 = {inputs}\\n"
+          + "expr#2 = 'F':VARCHAR\\n"
+          + "expr#3 = =($t1, $t2)"
+          + "\\n"
+          + "proj#0..1 = {exprs}\\n"
+          + "$condition = $t3\" -> \"EnumerableAggregate\\n"
+          + "group = "
+          + "{}\\n"
+          + "EXPR$0 = MAX($0)\\n"
+          + "\" [label=\"0\"]\n"
+          + "\"CsvTableScan\\n"
+          + "table = [SALES, EMPS\\n"
+          + "]\\n"
+          + "fields = [0, 3]\\n"
+          + "\" -> "
+          + "\"EnumerableCalc\\n"
+          + "expr#0..1 = {inputs}\\n"
+          + "expr#2 = 'F':VARCHAR\\n"
+          + "expr#3 = =($t1, $t2)"
+          + "\\n"
+          + "proj#0..1 = {exprs}\\n"
+          + "$condition = $t3\" [label=\"0\"]\n"
           + "}\n";
       extra = " as dot ";
       break;
@@ -325,10 +349,23 @@ class CsvTest {
     switch (format) {
     case "dot":
       expected = "PLAN=digraph {\n"
-          + "\"EnumerableAggregate\\ngroup = {0, 1}\\nQTY = COUNT()\\n\" -> "
-          + "\"EnumerableAggregate\\ngroup = {1}\\nEXPR$1 = MAX($2)\\n\" [label=\"0\"]\n"
-          + "\"CsvTableScan\\ntable = [SALES, EMPS\\n]\\nfields = [1, 3]\\n\" -> "
-          + "\"EnumerableAggregate\\ngroup = {0, 1}\\nQTY = COUNT()\\n\" [label=\"0\"]\n"
+          + "\"EnumerableAggregate\\n"
+          + "group = {0, 1}\\n"
+          + "QTY = COUNT()\\n"
+          + "\" -> "
+          + "\"EnumerableAggregate\\n"
+          + "group = {1}\\n"
+          + "EXPR$1 = MAX($2)\\n"
+          + "\" [label=\"0\"]\n"
+          + "\"CsvTableScan\\n"
+          + "table = [SALES, EMPS\\n"
+          + "]\\n"
+          + "fields = [1, 3]\\n"
+          + "\" -> "
+          + "\"EnumerableAggregate\\n"
+          + "group = {0, 1}\\n"
+          + "QTY = COUNT()\\n"
+          + "\" [label=\"0\"]\n"
           + "}\n";
       extra = " as dot ";
       break;
@@ -739,7 +776,7 @@ class CsvTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3772">[CALCITE-3772]
    * RelFieldTrimmer incorrectly trims fields when the query includes correlated-subquery</a>.
    */
-  @Test public void testCorrelatedSubquery() throws SQLException {
+  @Test public void testCorrelatedSubquery() {
     final String sql = "SELECT a, (SELECT count(*) FROM NUMBERS AS x WHERE x.b<NUMBERS.b)\n"
         + "FROM NUMBERS where e>100 order by a";
     sql("bug", sql).returns("A=104; EXPR$1=0",

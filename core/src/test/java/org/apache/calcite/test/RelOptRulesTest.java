@@ -4568,7 +4568,8 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testEmptyIntersect() {
     final String sql = "select * from (values (30, 3))"
         + "intersect\n"
-        + "select *\nfrom (values (10, 1), (30, 3)) as t (x, y) where x > 50\n"
+        + "select *\n"
+        + "from (values (10, 1), (30, 3)) as t (x, y) where x > 50\n"
         + "intersect\n"
         + "select * from (values (30, 3))";
     sql(sql)
@@ -5120,8 +5121,8 @@ class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4848">[CALCITE-4848]
-   * Adding a HAVING condition to a query with a dynamic parameter makes the result always empty
-   </a>. */
+   * Adding a HAVING condition to a query with a dynamic parameter makes the
+   * result always empty</a>. */
   @Test void testAggregateWithDynamicParam() {
     HepProgramBuilder builder = new HepProgramBuilder();
     builder.addRuleClass(ReduceExpressionsRule.class);
@@ -5136,8 +5137,8 @@ class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6647">[CALCITE-6647]
-   * SortUnionTransposeRule should not push SORT past a UNION when SORT's fetch is DynamicParam
-   </a>. */
+   * SortUnionTransposeRule should not push SORT past a UNION when SORT's fetch
+   * is DynamicParam</a>. */
   @Test void testSortWithDynamicParam() {
     HepProgramBuilder builder = new HepProgramBuilder();
     builder.addRuleClass(SortProjectTransposeRule.class);
@@ -8359,7 +8360,7 @@ class RelOptRulesTest extends RelOptTestBase {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2028">[CALCITE-2028]
    * Un-correlated IN sub-query should be converted into a Join,
-   * rather than a Correlate without correlation variables </a>. */
+   * rather than a Correlate without correlation variables</a>. */
   @Test void testDecorrelateUncorrelatedInAndCorrelatedExists() {
     final String sql = "select * from sales.emp\n"
         + "WHERE job in (\n"

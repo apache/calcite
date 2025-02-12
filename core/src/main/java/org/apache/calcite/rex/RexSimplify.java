@@ -66,10 +66,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.rex.RexUnknownAs.FALSE;
 import static org.apache.calcite.rex.RexUnknownAs.TRUE;
 import static org.apache.calcite.rex.RexUnknownAs.UNKNOWN;
+import static org.apache.calcite.util.Util.last;
+import static org.apache.calcite.util.Util.skipLast;
 
 import static java.util.Objects.requireNonNull;
 
@@ -1160,7 +1164,7 @@ public class RexSimplify {
 
   private RexNode simplifyCase(RexCall call, RexUnknownAs unknownAs) {
     List<CaseBranch> inputBranches =
-        CaseBranch.fromCaseOperands(rexBuilder, new ArrayList<>(call.getOperands()));
+        CaseBranch.fromCaseOperands(rexBuilder, call.getOperands());
 
     // run simplification on all operands
     RexSimplify condSimplifier = this.withPredicates(RelOptPredicateList.EMPTY);
@@ -1283,7 +1287,6 @@ public class RexSimplify {
 
   /** Object to describe a CASE branch. */
   static final class CaseBranch {
-
     private final RexNode cond;
     private final RexNode value;
 
@@ -1300,25 +1303,24 @@ public class RexSimplify {
      * returns [(p1, v1), ..., (true, e)]. */
     private static List<CaseBranch> fromCaseOperands(RexBuilder rexBuilder,
         List<RexNode> operands) {
-      List<CaseBranch> ret = new ArrayList<>();
+      final List<CaseBranch> branches = new ArrayList<>();
       for (int i = 0; i < operands.size() - 1; i += 2) {
-        ret.add(new CaseBranch(operands.get(i), operands.get(i + 1)));
+        branches.add(new CaseBranch(operands.get(i), operands.get(i + 1)));
       }
-      ret.add(new CaseBranch(rexBuilder.makeLiteral(true), Util.last(operands)));
-      return ret;
+      branches.add(new CaseBranch(rexBuilder.makeLiteral(true), last(operands)));
+      return branches;
     }
 
     private static List<RexNode> toCaseOperands(List<CaseBranch> branches) {
-      List<RexNode> ret = new ArrayList<>();
-      for (int i = 0; i < branches.size() - 1; i++) {
-        CaseBranch branch = branches.get(i);
-        ret.add(branch.cond);
-        ret.add(branch.value);
+      final List<RexNode> operands = new ArrayList<>();
+      for (CaseBranch branch : skipLast(branches)) {
+        operands.add(branch.cond);
+        operands.add(branch.value);
       }
-      CaseBranch lastBranch = Util.last(branches);
-      assert lastBranch.cond.isAlwaysTrue();
-      ret.add(lastBranch.value);
-      return ret;
+      CaseBranch lastBranch = last(branches);
+      checkArgument(lastBranch.cond.isAlwaysTrue());
+      operands.add(lastBranch.value);
+      return operands;
     }
   }
 

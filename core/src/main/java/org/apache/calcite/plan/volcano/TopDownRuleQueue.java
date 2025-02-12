@@ -45,8 +45,8 @@ class TopDownRuleQueue extends RuleQueue {
 
   @Override public void addMatch(VolcanoRuleMatch match) {
     RelNode rel = match.rel(0);
-    Deque<VolcanoRuleMatch> queue = matches.
-        computeIfAbsent(rel, id -> new ArrayDeque<>());
+    Deque<VolcanoRuleMatch> queue =
+        matches.computeIfAbsent(rel, id -> new ArrayDeque<>());
     addMatch(match, queue);
   }
 

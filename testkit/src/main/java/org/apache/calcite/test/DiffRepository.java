@@ -81,7 +81,8 @@ import static java.util.Objects.requireNonNull;
  *   }
  * &nbsp;
  *   &#64;Test void testToLower() {
- *     getDiffRepos().assertEquals("Multi-line\nstring", "${string}");
+ *     getDiffRepos().assertEquals("Multi-line\n"
+ *         + "string", "${string}");
  *   }
  * }
  * </code></pre></blockquote>
@@ -260,8 +261,8 @@ public class DiffRepository {
     if (!diff.isEmpty()) {
       throw new IllegalArgumentException("Actual and reference files differ. "
           + "If you are adding new tests, replace the reference file with the "
-          + "current actual file, after checking its content."
-          + "\ndiff " + logFile.getAbsolutePath() + " " + resourceFile + "\n"
+          + "current actual file, after checking its content.\n"
+          + "diff " + logFile.getAbsolutePath() + " " + resourceFile + "\n"
           + diff);
     }
   }

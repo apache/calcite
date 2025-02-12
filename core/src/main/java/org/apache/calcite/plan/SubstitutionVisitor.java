@@ -506,15 +506,20 @@ public class SubstitutionVisitor {
     if (DEBUG) {
       System.out.println("Convert: query:\n"
           + query.deep()
-          + "\nunify.query:\n"
+          + "\n"
+          + "unify.query:\n"
           + unifyResult.call.query.deep()
-          + "\nunify.result:\n"
+          + "\n"
+          + "unify.result:\n"
           + unifyResult.result.deep()
-          + "\nunify.target:\n"
+          + "\n"
+          + "unify.target:\n"
           + unifyResult.call.target.deep()
-          + "\nnode0:\n"
+          + "\n"
+          + "node0:\n"
           + node0.deep()
-          + "\nnode:\n"
+          + "\n"
+          + "node:\n"
           + node.deep());
     }
     return MutableRels.fromMutable(node, relBuilder);
@@ -780,16 +785,19 @@ public class SubstitutionVisitor {
           final UnifyResult x = apply(rule, queryLeaf, target);
           if (x != null) {
             if (DEBUG) {
-              System.out.println("Rule: " + rule
-                  + "\nQuery:\n"
+              System.out.println("Rule: " + rule + "\n"
+                  + "Query:\n"
                   + queryParent
                   + (x.call.query != queryParent
-                     ? "\nQuery (original):\n"
+                     ? "\n"
+                     + "Query (original):\n"
                      + queryParent
                      : "")
-                  + "\nTarget:\n"
+                  + "\n"
+                  + "Target:\n"
                   + target.deep()
-                  + "\nResult:\n"
+                  + "\n"
+                  + "Result:\n"
                   + x.result.deep()
                   + "\n");
             }
@@ -803,17 +811,19 @@ public class SubstitutionVisitor {
         final UnifyResult x = apply(rule, queryParent, target);
         if (x != null) {
           if (DEBUG) {
-            System.out.println(
-                "Rule: " + rule
-                + "\nQuery:\n"
+            System.out.println("Rule: " + rule + "\n"
+                + "Query:\n"
                 + queryParent.deep()
                 + (x.call.query != queryParent
-                   ? "\nQuery (original):\n"
+                   ? "\n"
+                   + "Query (original):\n"
                    + queryParent.toString()
                    : "")
-                + "\nTarget:\n"
+                + "\n"
+                + "Target:\n"
                 + target.deep()
-                + "\nResult:\n"
+                + "\n"
+                + "Result:\n"
                 + x.result.deep()
                 + "\n");
           }
@@ -822,11 +832,11 @@ public class SubstitutionVisitor {
       }
     }
     if (DEBUG) {
-      System.out.println(
-          "Unify failed:"
-          + "\nQuery:\n"
+      System.out.println("Unify failed:\n"
+          + "Query:\n"
           + queryParent
-          + "\nTarget:\n"
+          + "\n"
+          + "Target:\n"
           + target.toString()
           + "\n");
     }

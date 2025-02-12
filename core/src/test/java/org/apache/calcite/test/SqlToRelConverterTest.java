@@ -2734,7 +2734,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
    */
   @Test void testOverNullTreatmentWindow() {
     final String sql = "select\n"
-        + "lead(deptno, 1) over w,\n "
+        + "lead(deptno, 1) over w,\n"
         + "lead(deptno, 2) ignore nulls over w,\n"
         + "lead(deptno, 3) respect nulls over w,\n"
         + "lead(deptno, 1) over w,\n"
@@ -2877,10 +2877,13 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         new RelDotWriter(pw, SqlExplainLevel.EXPPLAN_ATTRIBUTES, false);
     rel.explain(planWriter);
     pw.flush();
-    TestUtil.assertEqualsVerbose(
-        "digraph {\n"
-            + "\"LogicalValues\\ntuples = [{ true }]\\n\" -> \"LogicalProject\\nEXPR$0 = +(1, 2)"
-            + "\\nEXPR$1 = 3\\n\" [label=\"0\"]\n"
+    TestUtil.assertEqualsVerbose("digraph {\n"
+            + "\"LogicalValues\\n"
+            + "tuples = [{ true }]\\n"
+            + "\" -> \"LogicalProject\\n"
+            + "EXPR$0 = +(1, 2)\\n"
+            + "EXPR$1 = 3\\n"
+            + "\" [label=\"0\"]\n"
             + "}\n",
         Util.toLinux(sw.toString()));
   }
@@ -3490,11 +3493,9 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  /**
-   * Test case for
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-694">[CALCITE-694]
-   * Scan HAVING clause for sub-queries and IN-lists</a> relating to IN.
-   */
+   * Scan HAVING clause for sub-queries and IN-lists</a> relating to IN. */
   @Test void testHavingAggrFunctionIn() {
     final String sql = "select deptno\n"
         + "from emp\n"
@@ -3504,12 +3505,10 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  /**
-   * Test case for
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-694">[CALCITE-694]
    * Scan HAVING clause for sub-queries and IN-lists</a>, with a sub-query in
-   * the HAVING clause.
-   */
+   * the HAVING clause. */
   @Test void testHavingInSubQueryWithAggrFunction() {
     final String sql = "select sal\n"
         + "from emp\n"
@@ -3522,12 +3521,10 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  /**
-   * Test case for
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-716">[CALCITE-716]
    * Scalar sub-query and aggregate function in SELECT or HAVING clause gives
-   * AssertionError</a>; variant involving HAVING clause.
-   */
+   * AssertionError</a>; variant involving HAVING clause. */
   @Test void testAggregateAndScalarSubQueryInHaving() {
     final String sql = "select deptno\n"
         + "from emp\n"
@@ -3536,12 +3533,10 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  /**
-   * Test case for
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-716">[CALCITE-716]
    * Scalar sub-query and aggregate function in SELECT or HAVING clause gives
-   * AssertionError</a>; variant involving SELECT clause.
-   */
+   * AssertionError</a>; variant involving SELECT clause. */
   @Test void testAggregateAndScalarSubQueryInSelect() {
     final String sql = "select deptno,\n"
         + "  max(emp.empno) > (SELECT min(emp.empno) FROM emp) as b\n"

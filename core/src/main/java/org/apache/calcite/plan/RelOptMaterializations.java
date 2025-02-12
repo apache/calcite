@@ -236,10 +236,11 @@ public abstract class RelOptMaterializations {
     hepPlanner.setRoot(root);
     root = hepPlanner.findBestExp();
 
-    return new SubstitutionVisitor(target, root, ImmutableList.
-        <SubstitutionVisitor.UnifyRule>builder()
-        .addAll(materializationRules)
-        .build()).go(materialization.tableRel);
+    return new SubstitutionVisitor(target, root,
+        ImmutableList.<SubstitutionVisitor.UnifyRule>builder()
+            .addAll(materializationRules)
+            .build())
+        .go(materialization.tableRel);
   }
 
   /**
