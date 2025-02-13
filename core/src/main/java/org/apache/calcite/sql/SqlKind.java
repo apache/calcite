@@ -830,6 +830,9 @@ public enum SqlKind {
   /** {@code ARRAY_SIZE} function (Spark semantics). */
   ARRAY_SIZE,
 
+  /** {@code ARRAY_SLICE} function (Hive semantics). */
+  ARRAY_SLICE,
+
   /** {@code ARRAY_TO_STRING} function (BigQuery semantics). */
   ARRAY_TO_STRING,
 
@@ -1824,6 +1827,7 @@ public enum SqlKind {
     case ARRAY_REPEAT:
     case ARRAY_REVERSE:
     case ARRAY_SIZE:
+    case ARRAY_SLICE:
     case ARRAY_TO_STRING:
     case ARRAY_UNION:
     case ARRAYS_OVERLAP:

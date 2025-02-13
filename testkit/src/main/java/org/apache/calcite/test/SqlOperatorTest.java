@@ -8204,6 +8204,49 @@ public class SqlOperatorTest {
         "DECIMAL(19, 0)");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6831">[CALCITE-6831]
+   * Add ARRAR_SLICE function (enabled in Hive library)</a>. */
+  @Test void testArraySlice() {
+    SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.ARRAY_SLICE);
+    final List<SqlLibrary> libraries =
+        ImmutableList.of(SqlLibrary.HIVE);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkString("array_slice(array[1,2,3], 1, 2)",
+          "[2, 3]",
+          "INTEGER NOT NULL ARRAY NOT NULL");
+      f.checkString("array_slice(array[1,null,3], 1, 2)",
+          "[null, 3]",
+          "INTEGER ARRAY NOT NULL");
+      f.checkString("array_slice(array[1,2,3], 1, 10)",
+          "[]",
+          "INTEGER NOT NULL ARRAY NOT NULL");
+      f.checkString("array_slice(array['a','b','c','d'], 1, 3)",
+          "[b, c, d]",
+          "CHAR(1) NOT NULL ARRAY NOT NULL");
+      f.checkString("array_slice(array[null,null,null], 1, 2)",
+          "[null, null]",
+          "NULL ARRAY NOT NULL");
+      f.checkString("array_slice(array[1,2.2,3], 1, 2)",
+          "[2.2, 3.0]",
+          "DECIMAL(11, 1) NOT NULL ARRAY NOT NULL");
+      f.checkString("array_slice(array[1,cast(2 as double),3], 1, 2)",
+          "[2.0, 3.0]",
+          "DOUBLE NOT NULL ARRAY NOT NULL");
+      f.checkString("array_slice(array[1,2.2,3,null], 1, 3)",
+          "[2.2, 3.0, null]",
+                "DECIMAL(11, 1) ARRAY NOT NULL");
+      f.checkFails("array_slice(^array[1,2.2,'c']^, 1, 2)",
+                "Parameters must be of the same type", false);
+      f.checkFails("array_slice(array[null,null,null], -1, 2)",
+                "fromIndex = -1", true);
+      f.checkNull("array_slice(array[1,2,3], null, 2)");
+      f.checkNull("array_slice(array[1,2,3], null, null)");
+      f.checkNull("array_slice(array[1,2,3], 1, null)");
+    };
+    f0.forEachLibrary(libraries, consumer);
+  }
+
   /** Tests {@code ARRAY_POSITION} function from Spark. */
   @Test void testArrayPositionFunc() {
     final SqlOperatorFixture f0 = fixture();

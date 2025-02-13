@@ -1653,6 +1653,15 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.INTEGER_NULLABLE,
           OperandTypes.ARRAY);
 
+  /** The "ARRAY_SLICE(array, start, length)" function. */
+  @LibraryOperator(libraries = {HIVE})
+  public static final SqlFunction ARRAY_SLICE =
+      SqlBasicFunction.create(SqlKind.ARRAY_SLICE,
+          ReturnTypes.ARG0_NULLABLE,
+          OperandTypes.sequence(
+              "ARRAY_SLICE(ARRAY, INTEGER, INTEGER)",
+              OperandTypes.ARRAY, OperandTypes.INTEGER, OperandTypes.INTEGER));
+
   /** The "ARRAY_UNION(array1, array2)" function. */
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction ARRAY_UNION =

@@ -6524,6 +6524,15 @@ public class SqlFunctions {
     return list;
   }
 
+  /** SQL {@code ARRAY_SLICE(array, start, length)} function. */
+  public static List arraySlice(List list, int start, int length) {
+    // return empty list if start/length are out of range of the array
+    if (start + length > list.size()) {
+      return Collections.emptyList();
+    }
+    return list.subList(start, start + length);
+  }
+
   /** SQL {@code ARRAY_TO_STRING(array, delimiter)} function. */
   public static String arrayToString(List list, String delimiter) {
     return arrayToString(list, delimiter, null);

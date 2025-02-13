@@ -866,6 +866,7 @@ public enum BuiltInMethod {
   ARRAY_INTERSECT(SqlFunctions.class, "arrayIntersect", List.class, List.class),
   ARRAY_UNION(SqlFunctions.class, "arrayUnion", List.class, List.class),
   ARRAY_REVERSE(SqlFunctions.class, "reverse", List.class),
+  ARRAY_SLICE(SqlFunctions.class, "arraySlice", List.class, int.class, int.class),
   ARRAYS_OVERLAP(SqlFunctions.class, "arraysOverlap", List.class, List.class),
   ARRAYS_ZIP(SqlFunctions.class, "arraysZip", List.class, List.class),
   EXISTS(SqlFunctions.class, "exists", List.class, Function1.class),
