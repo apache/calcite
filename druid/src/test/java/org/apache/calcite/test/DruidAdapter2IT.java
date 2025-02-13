@@ -755,7 +755,7 @@ public class DruidAdapter2IT {
         + "order by 1";
     sql(sql)
         .limit(2)
-        .returnsUnordered("state_province=CA; A=3; S=74748; C=16347; C0=24441",
+        .returnsUnordered("state_province=CA; A=3.0583036700625996; S=74748; C=16347; C0=24441",
             "state_province=OR; A=3; S=67659; C=21610; C0=21610")
         .explainContains("PLAN=EnumerableInterpreter\n"
             + "  BindableProject(state_province=[$0], A=[/(CASE(=($2, 0), null:BIGINT, $1), $2)], "

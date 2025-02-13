@@ -147,6 +147,17 @@ from (select deptno, count(*) from emp group by deptno);
 
 !ok
 
+# [CALCITE-6830] AVG aggregation with integer argument type should return double
+SELECT avg(deptno) as a FROM emp;
++------+
+| A    |
++------+
+| 32.5 |
++------+
+(1 row)
+
+!ok
+
 # [CALCITE-6557] AggregateMergeRule throws 'type mismatch' AssertionError
 #
 # The scenario has the same aggregate function (SUM) at multiple levels; the
@@ -168,11 +179,11 @@ FROM (
 # [CALCITE-998] Exception when calling STDDEV_SAMP, STDDEV_POP
 # stddev_samp
 select stddev_samp(deptno) as s from emp;
-+----+
-| S  |
-+----+
-| 19 |
-+----+
++--------------------+
+| S                  |
++--------------------+
+| 19.086270308410555 |
++--------------------+
 (1 row)
 
 !ok
@@ -201,22 +212,22 @@ select some(deptno > 100), every(deptno > 0) from emp where deptno > 1000;
 
 # stddev_pop
 select stddev_pop(deptno) as s from emp;
-+----+
-| S  |
-+----+
-| 17 |
-+----+
++--------------------+
+| S                  |
++--------------------+
+| 17.853571071357123 |
++--------------------+
 (1 row)
 
 !ok
 
 # stddev
 select stddev(deptno) as s from emp;
-+----+
-| S  |
-+----+
-| 19 |
-+----+
++--------------------+
+| S                  |
++--------------------+
+| 19.086270308410555 |
++--------------------+
 (1 row)
 
 !ok
@@ -229,12 +240,12 @@ select gender,
   count(deptno) as c
 from emp
 group by gender;
-+--------+----+----+----+---+
-| GENDER | P  | S  | SS | C |
-+--------+----+----+----+---+
-| F      | 17 | 19 | 19 | 5 |
-| M      | 17 | 20 | 20 | 3 |
-+--------+----+----+----+---+
++--------+--------------------+--------------------+--------------------+---+
+| GENDER | P                  | S                  | SS                 | C |
++--------+--------------------+--------------------+--------------------+---+
+| F      | 17.435595774162696 | 19.493588689617926 | 19.493588689617926 | 5 |
+| M      | 16.996731711975947 | 20.816659994661325 | 20.816659994661325 | 3 |
++--------+--------------------+--------------------+--------------------+---+
 (2 rows)
 
 !ok
