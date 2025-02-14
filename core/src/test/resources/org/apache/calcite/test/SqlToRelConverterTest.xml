@@ -2058,16 +2058,14 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     <Resource name="plan">
       <![CDATA[
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f0=[$9])
-    LogicalFilter(condition=[IS NOT NULL($9)])
-      LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-        LogicalAggregate(group=[{}], agg#0=[MIN($0)])
-          LogicalProject($f0=[true])
-            LogicalSort(fetch=[1])
-              LogicalProject(EXPR$0=[1])
-                LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
-                  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[CAST($9):INTEGER], $f1=[CAST($10):BOOLEAN])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{0}], agg#0=[MIN($1)])
+        LogicalProject(DEPTNO=[$1], $f0=[true])
+          LogicalAggregate(group=[{0, 1}])
+            LogicalProject(EXPR$0=[FIRST_VALUE(1) OVER (PARTITION BY $0)], DEPTNO=[$0])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
   </TestCase>
