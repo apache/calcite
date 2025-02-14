@@ -29,6 +29,8 @@ import org.apache.calcite.plan.PivotRelTrait;
 import org.apache.calcite.plan.PivotRelTraitDef;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTrait;
+import org.apache.calcite.plan.SubQueryAliasTrait;
+import org.apache.calcite.plan.SubQueryAliasTraitDef;
 import org.apache.calcite.plan.TableAliasTraitDef;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
@@ -1942,8 +1944,11 @@ public abstract class SqlImplementor {
       Optional<PivotRelTrait> pivotRelTrait = Optional.ofNullable(rel.getTraitSet()
           .getTrait(PivotRelTraitDef.instance));
       boolean isPivotPresent = pivotRelTrait.isPresent() && pivotRelTrait.get().isPivotRel();
+      SubQueryAliasTrait subQueryAliasTrait =
+          rel.getInput(0).getTraitSet().getTrait(SubQueryAliasTraitDef.instance);
       // Additional condition than apache calcite
-      if (!isPivotPresent && needNew || isCorrelated(rel)) {
+      if ((!isPivotPresent && needNew) || (
+          isCorrelated(rel) && ((subQueryAliasTrait != null) || !(rel instanceof Project)))) {
         select = subSelect();
       } else {
         select = asSelect();
