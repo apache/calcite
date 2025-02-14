@@ -8578,6 +8578,111 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6652">[CALCITE-6652]
+   * RelDecorrelator can't decorrelate query with limit 1</a>.
+   */
+  @Test void testDecorrelateProjectWithFetchOne() {
+    final String query = "SELECT name, "
+        + "(SELECT sal FROM emp where dept.deptno = emp.deptno order by sal limit 1) "
+        + "FROM dept";
+    sql(query).withRule(CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE)
+        .withLateDecorrelate(true)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6652">[CALCITE-6652]
+   * RelDecorrelator can't decorrelate query with limit 1</a>.
+   */
+  @Test void testDecorrelateProjectWithFetchOneDesc() {
+    final String query = "SELECT name, "
+        + "(SELECT emp.sal FROM emp WHERE dept.deptno = emp.deptno "
+        + "ORDER BY emp.sal desc nulls last LIMIT 1) "
+        + "FROM dept";
+    sql(query).withRule(CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE)
+        .withLateDecorrelate(true)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6652">[CALCITE-6652]
+   * RelDecorrelator can't decorrelate query with limit 1</a>.
+   */
+  @Test void testDecorrelateFilterWithFetchOne() {
+    final String query = "SELECT name FROM dept "
+        + "WHERE 10 > (SELECT emp.sal FROM emp where dept.deptno = emp.deptno "
+        + "ORDER BY emp.sal limit 1)";
+    sql(query).withRule(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE)
+        .withLateDecorrelate(true)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6652">[CALCITE-6652]
+   * RelDecorrelator can't decorrelate query with limit 1</a>.
+   */
+  @Test void testDecorrelateFilterWithFetchOneDesc() {
+    final String query = "SELECT name FROM dept "
+        + "WHERE 10 > (SELECT emp.sal FROM emp where dept.deptno = emp.deptno "
+        + "ORDER BY emp.sal desc nulls last limit 1)";
+    sql(query).withRule(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE)
+        .withLateDecorrelate(true)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6652">[CALCITE-6652]
+   * RelDecorrelator can't decorrelate query with limit 1</a>.
+   */
+  @Test void testDecorrelateFilterWithFetchOneDesc1() {
+    final String query = "SELECT name FROM dept "
+        + "WHERE 10 > (SELECT emp.sal FROM emp where dept.deptno = emp.deptno "
+        + "ORDER BY emp.sal desc limit 1)";
+    sql(query).withRule(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE)
+        .withLateDecorrelate(true)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6652">[CALCITE-6652]
+   * RelDecorrelator can't decorrelate query with limit 1</a>.
+   */
+  @Test void testDecorrelateProjectWithMultiKeyAndFetchOne() {
+    final String query = "SELECT name, "
+        + "(SELECT sal FROM emp where dept.deptno = emp.deptno "
+        + "order by year(hiredate), emp.sal limit 1) FROM dept";
+    sql(query).withRule(CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE)
+        .withLateDecorrelate(true)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6652">[CALCITE-6652]
+   * RelDecorrelator can't decorrelate query with limit 1</a>.
+   */
+  @Test void testDecorrelateProjectWithMultiKeyAndFetchOne1() {
+    final String query = "SELECT name, "
+        + "(SELECT sal FROM emp where dept.deptno = emp.deptno and dept.name = emp.ename "
+        + "order by year(hiredate), emp.sal limit 1) FROM dept";
+    sql(query).withRule(CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE)
+        .withLateDecorrelate(true)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6652">[CALCITE-6652]
+   * RelDecorrelator can't decorrelate query with limit 1</a>.
+   */
+  @Test void testDecorrelateFilterWithMultiKeyAndFetchOne() {
+    final String query = "SELECT name FROM dept "
+        + "WHERE 10 > (SELECT emp.sal FROM emp where dept.deptno = emp.deptno "
+        + "order by year(hiredate), emp.sal desc limit 1)";
+    sql(query).withRule(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE)
+        .withLateDecorrelate(true)
+        .check();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-434">[CALCITE-434]
    * Converting predicates on date dimension columns into date ranges</a>,
    * specifically a rule that converts {@code EXTRACT(YEAR FROM ...) = constant}
