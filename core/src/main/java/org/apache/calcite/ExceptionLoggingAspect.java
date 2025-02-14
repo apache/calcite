@@ -61,4 +61,12 @@ public class ExceptionLoggingAspect extends RuntimeException {
   public List<String> getRelExpressions() {
     return details.get(REL_EXPRESSION);
   }
+
+  public void clear() {
+    details.get(REL_NODE).clear();
+    details.get(METHOD_CALL).clear();
+    details.get(SQL_EXPRESSION).clear();
+    details.get(REL_EXPRESSION).clear();
+    details.clear();
+  }
 }
