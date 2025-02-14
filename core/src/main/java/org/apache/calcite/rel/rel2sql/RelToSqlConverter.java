@@ -779,7 +779,8 @@ public class RelToSqlConverter extends SqlImplementor
     SqlBasicCall firstBasicCall = (SqlBasicCall) firstOperand;
     boolean isAsCall = firstBasicCall.getOperandList().size() > 1;
     if (!isAsCall) {
-      return true;
+      SqlBasicCall nestedCall = firstBasicCall.operand(0);
+      return nestedCall.getOperandList().size() <= 1 || !(nestedCall.getOperandList().get(1) instanceof SqlIdentifier);
     }
 
     SqlNode nestedCall = firstBasicCall.operand(1);
