@@ -80,8 +80,8 @@ class RelToSqlConverterStructsTest {
         + "unnest(\"xs\") as \"x\"";
     final String expected = "SELECT \"$cor0\".\"a\", \"t10\".\"xs\" AS \"x\"\n"
         + "FROM (SELECT \"a\", \"n1\".\"n11\".\"b\", \"n1\".\"n12\".\"c\", \"n2\".\"d\", \"xs\", \"e\"\n"
-        + "FROM \"myDb\".\"myTable\") AS \"$cor0\",\nLATERAL UNNEST (SELECT \"$cor0\".\"xs\"\n"
-        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")) AS \"t10\" (\"xs\")";
+        + "FROM \"myDb\".\"myTable\") AS \"$cor0\",\nLATERAL UNNEST((SELECT \"$cor0\".\"xs\"\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\"))) AS \"t10\" (\"xs\")";
     sql(query).schema(CalciteAssert.SchemaSpec.MY_DB).ok(expected);
   }
 }

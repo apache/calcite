@@ -1756,8 +1756,8 @@ class RelToSqlConverterTest {
         + "FROM (SELECT \"department_id\", \"department_description\", "
         + "SPLIT(\"department_description\", ',') AS \"$f2\"\n"
         + "FROM \"foodmart\".\"department\") AS \"$cor0\",\n"
-        + "LATERAL UNNEST (SELECT \"$cor0\".\"$f2\"\n"
-        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")) AS \"t10\" (\"col_0\")";
+        + "LATERAL UNNEST((SELECT \"$cor0\".\"$f2\"\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\"))) AS \"t10\" (\"col_0\")";
     sql(sql).withLibrary(SqlLibrary.BIG_QUERY).ok(expected);
   }
 
@@ -7112,8 +7112,8 @@ class RelToSqlConverterTest {
         + "            from \"department\") as t(did)";
 
     final String expected = "SELECT \"DEPTID\" + 1\n"
-        + "FROM UNNEST (SELECT COLLECT(\"department_id\") AS \"DEPTID\"\n"
-        + "FROM \"foodmart\".\"department\") AS \"t0\" (\"DEPTID\")";
+        + "FROM UNNEST((SELECT COLLECT(\"department_id\") AS \"DEPTID\"\n"
+        + "FROM \"foodmart\".\"department\")) AS \"t0\" (\"DEPTID\")";
     sql(sql).ok(expected);
   }
 
@@ -7123,8 +7123,8 @@ class RelToSqlConverterTest {
         + "            from \"department\") as t(did)";
 
     final String expected = "SELECT \"col_0\" + 1\n"
-        + "FROM UNNEST (SELECT COLLECT(\"department_id\")\n"
-        + "FROM \"foodmart\".\"department\") AS \"t0\" (\"col_0\")";
+        + "FROM UNNEST((SELECT COLLECT(\"department_id\")\n"
+        + "FROM \"foodmart\".\"department\")) AS \"t0\" (\"col_0\")";
     sql(sql).ok(expected);
   }
 
@@ -7136,22 +7136,26 @@ class RelToSqlConverterTest {
     final String sql = "select did + 1\n"
         + "from unnest(select collect(\"department_id\") as deptid \n"
         + "from \"department\") with ordinality as t(did, pos)";
-
     final String expected = "SELECT \"DEPTID\" + 1\n"
-        + "FROM UNNEST (SELECT COLLECT(\"department_id\") AS \"DEPTID\"\n"
-        + "FROM \"foodmart\".\"department\") WITH ORDINALITY AS \"t0\" (\"DEPTID\", \"ORDINALITY\")";
+        + "FROM UNNEST((SELECT COLLECT(\"department_id\") AS \"DEPTID\"\n"
+        + "FROM \"foodmart\".\"department\")) WITH ORDINALITY AS \"t0\" (\"DEPTID\", \"ORDINALITY\")";
     sql(sql).ok(expected);
   }
 
-  @Test void testUncollectImplicitAliasWithOrd() {
-    final String sql = "select did + 1\n"
-        + "from unnest(select collect(\"department_id\") \n"
-        + "from \"department\") with ordinality as t(did, pos)";
-
-    final String expected = "SELECT \"col_0\" + 1\n"
-        + "FROM UNNEST (SELECT COLLECT(\"department_id\")\n"
-        + "FROM \"foodmart\".\"department\") WITH ORDINALITY AS \"t0\" (\"col_0\", \"ORDINALITY\")";
-    sql(sql).ok(expected);
+  @Test void testUnnestArray() {
+    final String sql = "select * from UNNEST(array [1, 2, 3])";
+    final String expected = "SELECT *\n"
+        + "FROM UNNEST((SELECT ARRAY[1, 2, 3]\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\"))) AS \"t0\" (\"col_0\")";
+    final String expectedPostgresql = "SELECT *\n"
+        + "FROM UNNEST((SELECT ARRAY[1, 2, 3]\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\"))) AS \"t0\" (\"col_0\")";
+    final String expectedHsqldb = "SELECT *\n"
+        + "FROM UNNEST((SELECT ARRAY[1, 2, 3]\n"
+        + "FROM (VALUES (0)) AS t (ZERO))) AS t0 (col_0)";
+    sql(sql).ok(expected).
+        withPostgresql().ok(expectedPostgresql).
+        withHsqldb().ok(expectedHsqldb);
   }
 
   @Test void testWithinGroup1() {
