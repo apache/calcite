@@ -3815,4 +3815,38 @@ select distinct sum(deptno + '1') as deptsum from dept order by 1;
 
 !ok
 
+# [CALCITE-6839] The SUM function sometimes throws overflow exceptions due
+# to incorrect return types
+!use scott-spark
+# Test TINYINT Type
+select sum(mgr) from emp;
++--------+
+| EXPR$0 |
++--------+
+| 100611 |
++--------+
+(1 row)
+
+!ok
+
+EnumerableAggregate(group=[{}], EXPR$0=[SUM($3)])
+  EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# Test Float Type
+select sum(cast(mgr as float)) from emp;
++----------+
+| EXPR$0   |
++----------+
+| 100611.0 |
++----------+
+(1 row)
+
+!ok
+
+EnumerableAggregate(group=[{}], EXPR$0=[SUM($0)])
+  EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t3):FLOAT], $f0=[$t8])
+    EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
 # End agg.iq

@@ -17,8 +17,12 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.rel.type.DelegatingTypeSystem;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 
 import java.math.RoundingMode;
 import java.util.function.Function;
@@ -45,6 +49,34 @@ public final class CustomTypeSystems {
    * and has rounding mode {@link RoundingMode#HALF_UP}. */
   public static final RelDataTypeSystem NEGATIVE_SCALE_ROUNDING_MODE_HALF_UP =
       withMinScale(ROUNDING_MODE_HALF_UP, sqlTypeName -> -1000);
+
+  /** Type system that similar to Spark. */
+  public static final RelDataTypeSystem SPARK_TYPE_SYSTEM =
+      new DelegatingTypeSystem(RelDataTypeSystem.DEFAULT) {
+        @Override public RelDataType deriveSumType(RelDataTypeFactory typeFactory,
+            RelDataType argumentType) {
+          if (argumentType instanceof BasicSqlType) {
+            // For TINYINT, SMALLINT, INTEGER, BIGINT,
+            // using BIGINT
+            if (SqlTypeUtil.isExactNumeric(argumentType) && !SqlTypeUtil.isDecimal(argumentType)) {
+              argumentType =
+                  typeFactory.createTypeWithNullability(
+                      typeFactory.createSqlType(SqlTypeName.BIGINT),
+                      argumentType.isNullable());
+            }
+            // For FLOAT, REAL and DOUBLE,
+            // using DOUBLE
+            if (SqlTypeUtil.isApproximateNumeric(argumentType)) {
+              argumentType =
+                  typeFactory.createTypeWithNullability(
+                      typeFactory.createSqlType(SqlTypeName.DOUBLE),
+                      argumentType.isNullable());
+            }
+            return argumentType;
+          }
+          return super.deriveSumType(typeFactory, argumentType);
+        }
+    };
 
   /** Decorates a type system so that
    * {@link org.apache.calcite.rel.type.RelDataTypeSystem#roundingMode()}
