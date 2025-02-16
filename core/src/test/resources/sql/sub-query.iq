@@ -405,6 +405,78 @@ EnumerableCalc(expr#0..4=[{inputs}], EMPNO=[$t0])
       EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
+# [CALCITE-6824] Subquery in join conditions rewrite fails if referencing a column from the right-hand side table
+select empno from "scott".emp where (empno not in (select dept.deptno from dept))
+in (select deptno = 0 from dept);
++-------+
+| EMPNO |
++-------+
++-------+
+(0 rows)
+
+!ok
+EnumerableCalc(expr#0..3=[{inputs}], EMPNO=[$t0])
+  EnumerableNestedLoopJoin(condition=[=(IS NULL($2), $3)], joinType=[inner])
+    EnumerableMergeJoin(condition=[=($0, $1)], joinType=[left])
+      EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0])
+        EnumerableTableScan(table=[[scott, EMP]])
+      EnumerableSort(sort0=[$0], dir0=[ASC])
+        EnumerableAggregate(group=[{0}], i=[LITERAL_AGG(true)])
+          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):SMALLINT NOT NULL], DEPTNO=[$t3])
+            EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableAggregate(group=[{0}])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):INTEGER NOT NULL], expr#4=[0], expr#5=[=($t3, $t4)], EXPR$0=[$t5])
+        EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# [CALCITE-6824] Subquery in join conditions rewrite fails if referencing a column from the right-hand side table
+SELECT empno FROM emp JOIN dept on emp.deptno <= ALL(SELECT deptno FROM dept) and emp.deptno = dept.deptno;
++-------+
+| EMPNO |
++-------+
+|  7782 |
+|  7839 |
+|  7934 |
++-------+
+(3 rows)
+
+!ok
+EnumerableCalc(expr#0..4=[{inputs}], EMPNO=[$t0])
+  EnumerableHashJoin(condition=[=($1, $5)], joinType=[semi])
+    EnumerableNestedLoopJoin(condition=[OR(=($3, 0), AND(<=($1, $2), IS NOT TRUE(OR(>($1, $2), >($3, $4)))))], joinType=[inner])
+      EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], DEPTNO=[$t7])
+        EnumerableTableScan(table=[[scott, EMP]])
+      EnumerableCalc(expr#0..1=[{inputs}], proj#0..1=[{exprs}], d=[$t1])
+        EnumerableAggregate(group=[{}], m=[MIN($0)], c=[COUNT()])
+          EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+      EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# [CALCITE-6824] Subquery in join conditions rewrite fails if referencing a column from the right-hand side table
+SELECT empno FROM emp JOIN dept on emp.deptno = (SELECT min(deptno) FROM dept) and emp.deptno = dept.deptno;
++-------+
+| EMPNO |
++-------+
+|  7782 |
+|  7839 |
+|  7934 |
++-------+
+(3 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], EMPNO=[$t0])
+  EnumerableHashJoin(condition=[=($2, $3)], joinType=[semi])
+    EnumerableCalc(expr#0..2=[{inputs}], EMPNO=[$t1], DEPTNO=[$t2], EXPR$0=[$t0])
+      EnumerableHashJoin(condition=[=($0, $2)], joinType=[inner])
+        EnumerableAggregate(group=[{}], EXPR$0=[MIN($0)])
+          EnumerableTableScan(table=[[scott, DEPT]])
+        EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], DEPTNO=[$t7])
+          EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+      EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
 # Correlated NOT IN sub-query in WHERE clause of JOIN
 select empno from "scott".emp as e
 join "scott".dept as d using (deptno)

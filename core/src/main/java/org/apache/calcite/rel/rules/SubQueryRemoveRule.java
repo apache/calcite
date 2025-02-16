@@ -910,16 +910,56 @@ public class SubQueryRemoveRule
     final RelOptUtil.Logic logic =
         LogicVisitor.find(RelOptUtil.Logic.TRUE,
             ImmutableList.of(join.getCondition()), e);
-    builder.push(join.getLeft());
-    builder.push(join.getRight());
-    final int fieldCount = join.getRowType().getFieldCount();
-    final Set<CorrelationId>  variablesSet =
-        RelOptUtil.getVariablesUsed(e.rel);
-    final RexNode target =
-        rule.apply(e, variablesSet, logic, builder, 2, fieldCount, 0);
-    final RexShuttle shuttle = new ReplaceSubQueryShuttle(e, target);
-    builder.join(join.getJoinType(), shuttle.apply(join.getCondition()));
-    builder.project(fields(builder, join.getRowType().getFieldCount()));
+
+    ImmutableBitSet inputSet = RelOptUtil.InputFinder.bits(e.getOperands(), null);
+    int nFieldsLeft = join.getLeft().getRowType().getFieldCount();
+    int nFieldsRight = join.getRight().getRowType().getFieldCount();
+
+
+    boolean inputIntersectsLeftSide = inputSet.intersects(ImmutableBitSet.range(0, nFieldsLeft));
+    boolean inputIntersectsRightSide =
+        inputSet.intersects(ImmutableBitSet.range(nFieldsLeft, nFieldsLeft + nFieldsRight));
+    if (inputIntersectsLeftSide && inputIntersectsRightSide) {
+      // The current existential rewrite needs to make join with one side of the origin join and
+      // generate a new condition to replace the on clause. But for RexNode whose operands are
+      // on either side of the join, we can't push them into join. So this rewriting is not
+      // supported.
+      return;
+    }
+
+    final Set<CorrelationId> variablesSet = RelOptUtil.getVariablesUsed(e.rel);
+    if (inputIntersectsLeftSide) {
+      builder.push(join.getLeft());
+
+      final RexNode target =
+          rule.apply(e, variablesSet, logic, builder, 1, nFieldsLeft, 0);
+      final RexShuttle shuttle = new ReplaceSubQueryShuttle(e, target);
+
+      final RexNode newCond =
+          shuttle.apply(
+              RexUtil.shift(join.getCondition(), nFieldsLeft,
+                  builder.fields().size() - nFieldsLeft));
+      builder.push(join.getRight());
+      builder.join(join.getJoinType(), newCond);
+
+      final int nFields = builder.fields().size();
+      ImmutableList<RexNode> fields =
+          builder.fields(ImmutableBitSet.range(0, nFieldsLeft)
+              .union(ImmutableBitSet.range(nFields - nFieldsRight, nFields)));
+      builder.project(fields);
+    } else {
+      builder.push(join.getLeft());
+      builder.push(join.getRight());
+
+      final int nFields = join.getRowType().getFieldCount();
+      final RexNode target =
+          rule.apply(e, variablesSet, logic, builder, 2, nFields, 0);
+      final RexShuttle shuttle = new ReplaceSubQueryShuttle(e, target);
+
+      builder.join(join.getJoinType(), shuttle.apply(join.getCondition()));
+      builder.project(fields(builder, nFields));
+    }
+
     call.transformTo(builder.build());
   }
 

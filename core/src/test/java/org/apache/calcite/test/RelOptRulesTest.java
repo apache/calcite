@@ -9116,6 +9116,45 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6824">[CALCITE-6824]
+   * Subquery in join conditions rewrite fails if referencing a column
+   * from the right-hand side table</a>. */
+  @Test void testJoinSubQueryRemoveRuleWithNotIn() {
+    final String sql = "SELECT empno FROM emp JOIN dept on "
+        + "emp.deptno not in (SELECT deptno FROM dept)";
+    sql(sql)
+        .withRule(CoreRules.JOIN_SUB_QUERY_TO_CORRELATE)
+        .check();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6824">[CALCITE-6824]
+   * Subquery in join conditions rewrite fails if referencing a column
+   * from the right-hand side table</a>. */
+  @Test void testJoinSubQueryRemoveRuleWithQuantifierSome() {
+    final String sql = "SELECT empno FROM emp JOIN dept on "
+        + "emp.deptno >= SOME(SELECT deptno FROM dept)";
+    sql(sql)
+        .withRule(CoreRules.JOIN_SUB_QUERY_TO_CORRELATE)
+        .check();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6824">[CALCITE-6824]
+   * Subquery in join conditions rewrite fails if referencing a column
+   * from the right-hand side table</a>. */
+  @Test void testJoinSubQueryRewriteWithBothSidesColumns() {
+    final String sql = "SELECT empno FROM emp JOIN dept on "
+        + "emp.deptno + dept.deptno >= SOME(SELECT deptno FROM dept)";
+    sql(sql)
+        .withRule(CoreRules.JOIN_SUB_QUERY_TO_CORRELATE)
+        .checkUnchanged();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2295">[CALCITE-2295]
    * Correlated SubQuery with Project will generate error plan</a>. */

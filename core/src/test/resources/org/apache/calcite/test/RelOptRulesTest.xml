@@ -6285,6 +6285,84 @@ LogicalProject(SAL=[$5])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testJoinSubQueryRemoveRuleWithNotIn">
+    <Resource name="sql">
+      <![CDATA[SELECT empno FROM emp JOIN dept on emp.deptno not in (SELECT deptno FROM dept)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[NOT(IN($7, {
+LogicalProject(DEPTNO=[$0])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+}))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$13], NAME=[$14])
+    LogicalJoin(condition=[OR(=($9, 0), AND(IS NULL($12), >=($10, $9)))], joinType=[inner])
+      LogicalJoin(condition=[=($7, $11)], joinType=[left])
+        LogicalJoin(condition=[true], joinType=[inner])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalProject(c=[$0], ck=[$0])
+            LogicalAggregate(group=[{}], c=[COUNT()])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalProject(DEPTNO=[$0], i=[true])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJoinSubQueryRemoveRuleWithQuantifierSome">
+    <Resource name="sql">
+      <![CDATA[SELECT empno FROM emp JOIN dept on emp.deptno >= SOME(SELECT deptno FROM dept)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[>= SOME($7, {
+LogicalProject(DEPTNO=[$0])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$12], NAME=[$13])
+    LogicalJoin(condition=[CAST(OR(AND(IS TRUE(>=($7, $9)), <>($10, 0)), AND(>($10, $11), null, <>($10, 0), IS NOT TRUE(>=($7, $9))), AND(>=($7, $9), <>($10, 0), IS NOT TRUE(>=($7, $9)), <=($10, $11)))):BOOLEAN NOT NULL], joinType=[inner])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalProject(m=[$0], c=[$1], d=[$1])
+          LogicalAggregate(group=[{}], m=[MIN($0)], c=[COUNT()])
+            LogicalProject(DEPTNO=[$0])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJoinSubQueryRewriteWithBothSidesColumns">
+    <Resource name="sql">
+      <![CDATA[SELECT empno FROM emp JOIN dept on emp.deptno + dept.deptno >= SOME(SELECT deptno FROM dept)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[>= SOME(+($7, $9), {
+LogicalProject(DEPTNO=[$0])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testJoinToMultiJoinDoesNotMatchAntiJoin">
     <Resource name="sql">
       <![CDATA[select * from
