@@ -37,6 +37,7 @@ class ElasticsearchVersionTest {
     assertThat(ElasticsearchVersion.ES5, is(fromString("5.6.1")));
     assertThat(ElasticsearchVersion.ES6, is(fromString("6.0.1")));
     assertThat(ElasticsearchVersion.ES7, is(fromString("7.0.1")));
+    assertThat(ElasticsearchVersion.ES8, is(fromString("8.0.1")));
     assertThat(ElasticsearchVersion.UNKNOWN, is(fromString("111.0.1")));
     assertThat(ElasticsearchVersion.UNKNOWN, is(fromString("2020.12.12")));
 

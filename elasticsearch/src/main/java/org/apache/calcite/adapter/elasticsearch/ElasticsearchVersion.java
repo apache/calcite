@@ -31,6 +31,7 @@ enum ElasticsearchVersion {
   ES5(5),
   ES6(6),
   ES7(7),
+  ES8(8),
   UNKNOWN(0);
 
   private final int elasticVersionMajor;
@@ -61,6 +62,8 @@ enum ElasticsearchVersion {
       return ES6;
     } else if (major == 7) {
       return ES7;
+    } else if (major == 8) {
+      return ES8;
     } else {
       return UNKNOWN;
     }
