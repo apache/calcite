@@ -8129,6 +8129,28 @@ LogicalAggregate(group=[{}], agg#0=[$SUM0($0)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testProjectAggregateMergeSum01">
+    <Resource name="sql">
+      <![CDATA[select coalesce(sum(cast(mgr as tinyint)), 0) as ss0
+from sales.emp]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(SS0=[CASE(IS NOT NULL($0), CAST($0):INTEGER NOT NULL, 0)])
+  LogicalAggregate(group=[{}], agg#0=[SUM($0)])
+    LogicalProject($f0=[CAST($3):TINYINT])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject($f0=[CAST($0):INTEGER NOT NULL])
+  LogicalAggregate(group=[{}], agg#0=[$SUM0($0)])
+    LogicalProject($f0=[CAST($3):TINYINT])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testProjectAggregateMergeSum0AndSum">
     <Resource name="sql">
       <![CDATA[select sum_sal * 2, coalesce(sum_sal, 0) as ss0
