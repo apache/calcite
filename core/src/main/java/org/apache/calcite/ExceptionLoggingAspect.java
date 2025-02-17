@@ -63,10 +63,7 @@ public class ExceptionLoggingAspect extends RuntimeException {
   }
 
   public void clear() {
-    details.get(REL_NODE).clear();
-    details.get(METHOD_CALL).clear();
-    details.get(SQL_EXPRESSION).clear();
-    details.get(REL_EXPRESSION).clear();
+    details.forEach((key, value) -> value.clear());
     details.clear();
   }
 }
