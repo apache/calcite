@@ -2781,28 +2781,28 @@ In the following:
 | p | ACOSD(numeric)                                 | Returns the inverse cosine of *numeric* in degrees as a double. Returns NaN if *numeric* is NaN. Fails if *numeric* is less than -1.0 or greater than 1.0.
 | * | ACOSH(numeric)                                 | Returns the inverse hyperbolic cosine of *numeric*
 | o s | ADD_MONTHS(date, numMonths)                  | Returns the date that is *numMonths* after *date*
-| s | ARRAY([expr [, expr ]*])                       | Construct an array in Apache Spark. The function allows users to use `ARRAY()` to create an empty array
+| h s | ARRAY([expr [, expr ]*])                     | Construct an array in Apache Spark. The function allows users to use `ARRAY()` to create an empty array
 | s | ARRAY_APPEND(array, element)                   | Appends an *element* to the end of the *array* and returns the result. Type of *element* should be similar to type of the elements of the *array*. If the *array* is null, the function will return null. If an *element* that is null, the null *element* will be added to the end of the *array*
 | s | ARRAY_COMPACT(array)                           | Removes null values from the *array*
 | b | ARRAY_CONCAT(array [, array ]*)                | Concatenates one or more arrays. If any input argument is `NULL` the function returns `NULL`
 | s | ARRAY_CONTAINS(array, element)                 | Returns true if the *array* contains the *element*
-| s | ARRAY_DISTINCT(array)                          | Removes duplicate values from the *array* that keeps ordering of elements
-| s | ARRAY_EXCEPT(array1, array2)                   | Returns an array of the elements in *array1* but not in *array2*, without duplicates
+| h s | ARRAY_DISTINCT(array)                        | Removes duplicate values from the *array* that keeps ordering of elements
+| h s | ARRAY_EXCEPT(array1, array2)                 | Returns an array of the elements in *array1* but not in *array2*, without duplicates
 | s | ARRAY_INSERT(array, pos, element)              | Places *element* into index *pos* of *array*. Array index start at 1, or start from the end if index is negative. Index above array size appends the array, or prepends the array if index is negative, with `NULL` elements.
-| s | ARRAY_INTERSECT(array1, array2)                | Returns an array of the elements in the intersection of *array1* and *array2*, without duplicates
-| s | ARRAY_JOIN(array, delimiter [, nullText ])     | Synonym for `ARRAY_TO_STRING`
+| h s | ARRAY_INTERSECT(array1, array2)              | Returns an array of the elements in the intersection of *array1* and *array2*, without duplicates
+| h s | ARRAY_JOIN(array, delimiter [, nullText ])   | Synonym for `ARRAY_TO_STRING`
 | b | ARRAY_LENGTH(array)                            | Synonym for `CARDINALITY`
-| s | ARRAY_MAX(array)                               | Returns the maximum value in the *array*
-| s | ARRAY_MIN(array)                               | Returns the minimum value in the *array*
+| h s | ARRAY_MAX(array)                             | Returns the maximum value in the *array*
+| h s | ARRAY_MIN(array)                             | Returns the minimum value in the *array*
 | s | ARRAY_POSITION(array, element)                 | Returns the (1-based) index of the first *element* of the *array* as long
-| s | ARRAY_REMOVE(array, element)                   | Remove all elements that equal to *element* from the *array*
+| h s | ARRAY_REMOVE(array, element)                 | Remove all elements that equal to *element* from the *array*
 | s | ARRAY_PREPEND(array, element)                  | Appends an *element* to the beginning of the *array* and returns the result. Type of *element* should be similar to type of the elements of the *array*. If the *array* is null, the function will return null. If an *element* that is null, the null *element* will be added to the beginning of the *array*
 | s | ARRAY_REPEAT(element, count)                   | Returns the array containing element count times.
 | b | ARRAY_REVERSE(array)                           | Reverses elements of *array*
 | s | ARRAY_SIZE(array)                              | Synonym for `CARDINALITY`
 | h | ARRAY_SLICE(array, start, length)              | Returns the subset or range of elements.
 | b | ARRAY_TO_STRING(array, delimiter [, nullText ])| Returns a concatenation of the elements in *array* as a STRING and take *delimiter* as the delimiter. If the *nullText* parameter is used, the function replaces any `NULL` values in the array with the value of *nullText*. If the *nullText* parameter is not used, the function omits the `NULL` value and its preceding delimiter. Returns `NULL` if any argument is `NULL`
-| s | ARRAY_UNION(array1, array2)                    | Returns an array of the elements in the union of *array1* and *array2*, without duplicates
+| h s | ARRAY_UNION(array1, array2)                  | Returns an array of the elements in the union of *array1* and *array2*, without duplicates
 | s | ARRAYS_OVERLAP(array1, array2)                 | Returns true if *array1 contains at least a non-null element present also in *array2*. If the arrays have no common element and they are both non-empty and either of them contains a null element null is returned, false otherwise
 | s | ARRAYS_ZIP(array [, array ]*)                  | Returns a merged *array* of structs in which the N-th struct contains all N-th values of input arrays
 | s | SORT_ARRAY(array [, ascendingOrder])           | Sorts the *array* in ascending or descending order according to the natural ordering of the array elements. The default order is ascending if *ascendingOrder* is not specified. Null elements will be placed at the beginning of the returned array in ascending order or at the end of the returned array in descending order
