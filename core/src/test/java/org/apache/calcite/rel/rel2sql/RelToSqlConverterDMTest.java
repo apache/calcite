@@ -472,7 +472,25 @@ class RelToSqlConverterDMTest {
     final String expected = "SELECT COUNT(*)\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY \"product_class_id\", \"product_id\"";
-    sql(query).ok(expected);
+    final String expectedBigQuery = "SELECT COUNT(*)\n"
+        + "FROM foodmart.product\n"
+        + "GROUP BY product_class_id, product_id";
+    sql(query)
+        .ok(expected)
+        .withBigQuery()
+        .ok(expectedBigQuery);
+  }
+
+  @Test void testSelectQueryWithGroupByAndComplexGroupingItemInSelect() {
+    String query = "select 'abc' || case when \"product_id\" = 1 then 'a' else 'b' end,"
+        + "case when \"product_id\" = 1 then 'a' else 'b' end as grp "
+        + "from \"product\" "
+        + "group by case when \"product_id\" = 1 then 'a' else 'b' end";
+    String expected = "SELECT 'abc' || GRP, GRP\n"
+        + "FROM (SELECT CASE WHEN product_id = 1 THEN 'a' ELSE 'b' END AS GRP\n"
+        + "FROM foodmart.product\n"
+        + "GROUP BY GRP) AS t0";
+    sql(query).withBigQuery().ok(expected);
   }
 
   @Test void testSelectQueryWithHiveCube() {
@@ -3665,6 +3683,15 @@ class RelToSqlConverterDMTest {
         .ok(expectedBigQuery)
         .withSpark()
         .ok(expectedSpark);
+  }
+
+  @Test public void testTimestampMinusIntervalDayToSecond() {
+    String query = "select \"hire_date\" - (10 * INTERVAL '20 10:10:10' DAY TO SECOND) from \"employee\"";
+    final String expectedBigQuery = "SELECT hire_date - 10 * INTERVAL '20 10:10:10' DAY TO SECOND\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBigQuery);
   }
 
   @Test public void testTimestampPlusIntervalMonthFunctionWithArthOps() {
@@ -7899,6 +7926,25 @@ class RelToSqlConverterDMTest {
     RuleSet rules = RuleSets.ofList(CoreRules.FILTER_EXTRACT_INNER_JOIN_RULE);
     sql(query).withBigQuery().optimize(rules, hepPlanner).ok(expect);
   }
+
+  @Test void testConversionOfFilterWithOrConditionToFilterWithInnerJoin() {
+    String query = "select *\n"
+        + " from \"foodmart\".\"employee\" as \"e\", \"foodmart\".\"reserve_employee\" as \"re\"\n"
+        + " where (\"re\".\"department_id\" = \"e\".\"employee_id\")\n"
+        + " or \"re\".\"employee_id\" = \"e\".\"department_id\"\n";
+
+    String expect = "SELECT *\n"
+        + "FROM foodmart.employee\nINNER JOIN foodmart.reserve_employee"
+        + " ON employee.employee_id = reserve_employee.department_id"
+        + " OR employee.department_id = reserve_employee.employee_id";
+
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(FilterExtractInnerJoinRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    RuleSet rules = RuleSets.ofList(CoreRules.FILTER_EXTRACT_INNER_JOIN_RULE);
+    sql(query).withBigQuery().optimize(rules, hepPlanner).ok(expect);
+  }
+
   //WHERE t1.c1 = t2.c1 AND t2.c2 = t3.c2 AND (t1.c3 = t3.c3 OR t1.c4 = t2.c4)
   @Test void testFilterWithParenthesizedConditionsWithThreeCrossJoinToFilterWithInnerJoin() {
     String query = "select *\n"
@@ -12764,6 +12810,35 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedMsSqlQuery));
   }
 
+  @Test public void testNvl2Function() {
+    final RelBuilder builder = relBuilder();
+    final RexNode nvl2Call =
+        builder.call(SqlLibraryOperators.NVL2, builder.literal(null), builder.literal(0),
+            builder.literal(1));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(nvl2Call, "bool_check"))
+        .build();
+
+    final String expectedMsSqlQuery = "SELECT NVL2(NULL, 0, 1) \"bool_check\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedMsSqlQuery));
+  }
+
+  @Test public void testCollateFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode collateRexNode =
+        builder.call(SqlLibraryOperators.COLLATE, builder.literal("John"),
+            builder.literal("en-ci"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(collateRexNode)
+        .build();
+    final String expectedMsSqlQuery = "SELECT COLLATE('John', 'en-ci') AS \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedMsSqlQuery));
+  }
+
   @Test public void testHashBytesFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode rexNode =
@@ -12776,5 +12851,34 @@ class RelToSqlConverterDMTest {
     final String expectedMsSqlQuery = "SELECT HASHBYTES('SHA1', 'dfdd76d7vb') AS [HashValue]\n"
         + "FROM [scott].[EMP]";
     assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedMsSqlQuery));
+  }
+
+  @Test public void testProjectWithCastAndCastOperandUsedInGroupBy() {
+    final RelBuilder builder = foodmartRelBuilder();
+    builder.scan("employee");
+    RexNode literalRex = builder.alias(builder.literal(10), "EXPR$123");
+    RexNode functionRex =
+        builder.alias(
+            builder.call(SqlStdOperatorTable.CONCAT, builder.field("employee_id"),
+            builder.field("department_id")), "EXPR$456");
+
+    RelNode relNode = builder
+        .project(literalRex, functionRex)
+        .aggregate(builder.groupKey(0, 1))
+        .project(
+            builder.alias(
+                builder.cast(
+                    builder.cast(builder.field(0), SqlTypeName.DECIMAL,
+                        38, 0), SqlTypeName.INTEGER), "EXPR$123"),
+            builder.alias(
+                builder.cast(builder.field(1),
+            SqlTypeName.VARCHAR, 10), "EXPR$456"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT CAST(CAST(10 AS NUMERIC) AS INT64), "
+        + "CAST(employee_id || department_id AS STRING)\n"
+        + "FROM foodmart.employee\nGROUP BY 1, 2";
+
+    assertThat(toSql(relNode, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 }

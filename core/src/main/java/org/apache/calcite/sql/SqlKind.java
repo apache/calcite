@@ -477,6 +477,9 @@ public enum SqlKind {
   /** {@code NVL} function (Oracle). */
   NVL,
 
+  /** {@code NVL} function (Oracle, Vertica and Spark). */
+  NVL2,
+
   /** {@code GREATEST} function (Oracle). */
   GREATEST,
 
