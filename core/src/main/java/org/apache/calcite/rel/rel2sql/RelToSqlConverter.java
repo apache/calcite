@@ -791,6 +791,17 @@ public class RelToSqlConverter extends SqlImplementor
       return true;
     }
 
+    if (nestedCall instanceof SqlBasicCall && ((SqlBasicCall) nestedCall).getOperator().kind == SqlKind.AS) {
+      SqlNode asNestedCall = ((SqlBasicCall) nestedCall).getOperandList().get(0);
+      String nestedCallString = asNestedCall.toString().replaceAll("'", "").toLowerCase();
+      for (String aggName : aggNames) {
+        if (aggName.replaceAll("'", "").startsWith(nestedCallString)) {
+          aggregateInClauseFieldList.add(nestedCall);
+          return false;
+        }
+      }
+    }
+
     String nestedCallString = nestedCall.toString().replaceAll("'", "").toLowerCase();
     for (String aggName : aggNames) {
       if (aggName.replaceAll("'", "").startsWith(nestedCallString)) {
