@@ -18,14 +18,15 @@ services:
   dev:
     image: ruby:3.3.7-slim-bullseye
     working_dir: /root
-    command: sh -c "apt-get update && apt-get install -y build-essential libssl-dev zlib1g-dev ruby-dev bundler && bundle install && bundle exec jekyll serve --host=0.0.0.0 --watch --force_polling"
+    command: sh -c "apt-get update && apt-get install -y build-essential libssl-dev zlib1g-dev ruby-dev bundler wget && wget -O /usr/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 && chmod +x /usr/bin/yq && ./download-avatars.sh && bundle install && bundle exec jekyll serve --host=0.0.0.0 --watch --force_polling"
     ports:
       - 4000:4000
     volumes:
       - .:/root
   build-site:
     image: ruby:3.3.7-slim-bullseye
-    command: sh -c "rm -rf /home/jekyll/.bundle /home/jekyll/Gemfile.lock /home/jekyll/.jekyll-cache /home/target/ && apt-get update && apt-get install -y build-essential libssl-dev zlib1g-dev ruby-dev bundler && cd /home/jekyll && bundle install && bundle exec jekyll build && mkdir ./.git && chmod 777 ./*"
+    working_dir: /home/jekyll
+    command: sh -c "rm -rf /home/jekyll/.bundle /home/jekyll/Gemfile.lock /home/jekyll/.jekyll-cache /home/target/ && apt-get update && apt-get install -y build-essential libssl-dev zlib1g-dev ruby-dev bundler wget && wget -O /usr/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 && chmod +x /usr/bin/yq && ./download-avatars.sh && bundle install && bundle exec jekyll build && chmod 777 ./*"
     volumes:
       - .:/home/jekyll
   generate-javadoc:
