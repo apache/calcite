@@ -40,6 +40,7 @@ import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.util.ControlFlowException;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
@@ -2815,14 +2816,19 @@ public class RexUtil {
 
   /** Visitor that throws {@link org.apache.calcite.util.Util.FoundOne} if
    * applied to an expression that contains a {@link RexCorrelVariable}. */
-  private static class CorrelationFinder extends RexVisitorImpl<Void> {
+  private static class CorrelationFinder extends RexShuttle {
     static final CorrelationFinder INSTANCE = new CorrelationFinder();
 
     private CorrelationFinder() {
-      super(true);
+      super();
     }
 
-    @Override public Void visitCorrelVariable(RexCorrelVariable var) {
+    @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
+      subQuery.rel.accept(this);
+      return super.visitSubQuery(subQuery);
+    }
+
+    @Override public RexNode visitCorrelVariable(RexCorrelVariable var) {
       throw Util.FoundOne.NULL;
     }
   }

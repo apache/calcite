@@ -2689,6 +2689,21 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
+  @Test void testFilterProjectTransposePreventedByCorrelationWithExpandFalse() {
+    final String sql = "SELECT e.deptno\n"
+                       + "FROM emp as e\n"
+                       + "WHERE exists (\n"
+                       + "  SELECT *\n"
+                       + "  FROM dept AS d\n"
+                       + "  WHERE e.deptno = d.deptno)";
+    sql(sql)
+            .withDecorrelate(false)
+            .withTrim(true)
+            .withExpand(false)
+            .withRule(CoreRules.FILTER_PROJECT_TRANSPOSE)
+            .checkUnchanged();
+  }
+
   /** Tests a variant of {@link FilterProjectTransposeRule}
    * that pushes a Filter that contains a correlating variable. */
   @Test void testFilterProjectTranspose() {

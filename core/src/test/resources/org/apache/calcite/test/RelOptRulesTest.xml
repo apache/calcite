@@ -4735,6 +4735,26 @@ LogicalProject(EMPNO=[$0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testFilterProjectTransposePreventedByCorrelationWithExpandFalse">
+    <Resource name="sql">
+      <![CDATA[SELECT e.deptno
+FROM emp as e
+WHERE exists (
+  SELECT *
+  FROM dept AS d
+  WHERE e.deptno = d.deptno)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})], variablesSet=[[$cor0]])
+  LogicalProject(DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testFilterRemoveIsNotDistinctFromRule">
     <Resource name="planBefore">
       <![CDATA[
