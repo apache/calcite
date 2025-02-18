@@ -132,7 +132,7 @@ public class LoptOptimizeJoinRule
 
     findRemovableSelfJoins(mq, multiJoin);
 
-    findBestOrderings(mq, call.builder(), multiJoin, semiJoinOpt, call);
+    findBestOrderings(call, multiJoin, semiJoinOpt);
   }
 
   /**
@@ -443,11 +443,9 @@ public class LoptOptimizeJoinRule
    * @param call RelOptRuleCall associated with this rule
    */
   private static void findBestOrderings(
-      RelMetadataQuery mq,
-      RelBuilder relBuilder,
+      RelOptRuleCall call,
       LoptMultiJoin multiJoin,
-      LoptSemiJoinOptimizer semiJoinOpt,
-      RelOptRuleCall call) {
+      LoptSemiJoinOptimizer semiJoinOpt) {
     final List<RelNode> plans = new ArrayList<>();
 
     final List<String> fieldNames =
@@ -461,8 +459,7 @@ public class LoptOptimizeJoinRule
       }
       LoptJoinTree joinTree =
           createOrdering(
-              mq,
-              relBuilder,
+              call,
               multiJoin,
               semiJoinOpt,
               i);
@@ -680,8 +677,7 @@ public class LoptOptimizeJoinRule
    * firstFactor to appear as the first factor in the join
    */
   private static @Nullable LoptJoinTree createOrdering(
-      RelMetadataQuery mq,
-      RelBuilder relBuilder,
+      RelOptRuleCall call,
       LoptMultiJoin multiJoin,
       LoptSemiJoinOptimizer semiJoinOpt,
       int firstFactor) {
@@ -712,7 +708,7 @@ public class LoptOptimizeJoinRule
         } else {
           nextFactor =
               getBestNextFactor(
-                  mq,
+                  call.getMetadataQuery(),
                   multiJoin,
                   factorsToAdd,
                   factorsAdded,
@@ -733,8 +729,7 @@ public class LoptOptimizeJoinRule
       factorsNeeded.and(factorsAdded);
       joinTree =
           addFactorToTree(
-              mq,
-              relBuilder,
+              call,
               multiJoin,
               semiJoinOpt,
               joinTree,
@@ -879,8 +874,7 @@ public class LoptOptimizeJoinRule
    * add the factor; otherwise, null is returned
    */
   private static @Nullable LoptJoinTree addFactorToTree(
-      RelMetadataQuery mq,
-      RelBuilder relBuilder,
+      RelOptRuleCall call,
       LoptMultiJoin multiJoin,
       LoptSemiJoinOptimizer semiJoinOpt,
       @Nullable LoptJoinTree joinTree,
@@ -888,6 +882,8 @@ public class LoptOptimizeJoinRule
       BitSet factorsNeeded,
       List<RexNode> filtersToAdd,
       boolean selfJoin) {
+    RelMetadataQuery mq = call.getMetadataQuery();
+    RelBuilder relBuilder = call.builder();
 
     // if the factor corresponds to the null generating factor in an outer
     // join that can be removed, then create a replacement join
@@ -943,8 +939,7 @@ public class LoptOptimizeJoinRule
             selfJoin);
     LoptJoinTree pushDownTree =
         pushDownFactor(
-            mq,
-            relBuilder,
+            call,
             multiJoin,
             semiJoinOpt,
             joinTree,
@@ -959,10 +954,10 @@ public class LoptOptimizeJoinRule
     RelOptCost costPushDown = null;
     RelOptCost costTop = null;
     if (pushDownTree != null) {
-      costPushDown = mq.getCumulativeCost(pushDownTree.getJoinTree());
+      costPushDown = call.getPlanner().getCost(pushDownTree.getJoinTree(), mq);
     }
     if (topTree != null) {
-      costTop = mq.getCumulativeCost(topTree.getJoinTree());
+      costTop = call.getPlanner().getCost(topTree.getJoinTree(), mq);
     }
 
     if (pushDownTree == null) {
@@ -1036,8 +1031,7 @@ public class LoptOptimizeJoinRule
    * returned
    */
   private static @Nullable LoptJoinTree pushDownFactor(
-      RelMetadataQuery mq,
-      RelBuilder relBuilder,
+      RelOptRuleCall call,
       LoptMultiJoin multiJoin,
       LoptSemiJoinOptimizer semiJoinOpt,
       LoptJoinTree joinTree,
@@ -1110,8 +1104,7 @@ public class LoptOptimizeJoinRule
     LoptJoinTree subTree = (childNo == 0) ? left : right;
     subTree =
         addFactorToTree(
-            mq,
-            relBuilder,
+            call,
             multiJoin,
             semiJoinOpt,
             subTree,
@@ -1165,8 +1158,8 @@ public class LoptOptimizeJoinRule
 
     // create the new join tree with the factor pushed down
     return createJoinSubtree(
-        mq,
-        relBuilder,
+        call.getMetadataQuery(),
+        call.builder(),
         multiJoin,
         left,
         right,
