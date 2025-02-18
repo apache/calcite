@@ -86,6 +86,7 @@ import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlMerge;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlPivot;
 import org.apache.calcite.sql.SqlSampleSpec;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSpecialOperator;
@@ -632,6 +633,21 @@ public class RelToSqlConverter extends SqlImplementor
       if ((!isStar(e.getProjects(), e.getInput().getRowType(), e.getRowType())
           || style.isExpandProjection()) && !unpivotRelToSqlUtil.isStarInUnPivot(e, x)) {
         final List<SqlNode> selectList = new ArrayList<>();
+
+        List<String> aliases = new ArrayList<>();
+        if (x.node instanceof SqlSelect) {
+          SqlSelect sqlSelect = (SqlSelect) x.node;
+          if (sqlSelect.getFrom() instanceof SqlPivot) {
+            SqlPivot sqlPivot = (SqlPivot) sqlSelect.getFrom();
+            aliases = sqlPivot.inList.stream()
+                .filter(SqlBasicCall.class::isInstance)
+                .map(SqlBasicCall.class::cast)
+                .filter(basicCall -> basicCall.getOperator() == SqlStdOperatorTable.AS)
+                .filter(basicCall -> basicCall.getOperandList().size() > 1)
+                .map(basicCall -> String.valueOf(basicCall.getOperandList().get(1)))
+                .collect(Collectors.toList());
+          }
+        }
         for (RexNode ref : e.getProjects()) {
           SqlNode sqlExpr = builder.context.toSql(null, ref);
           RelDataTypeField targetField = e.getRowType().getFieldList().get(selectList.size());
@@ -643,6 +659,10 @@ public class RelToSqlConverter extends SqlImplementor
           if (SqlUtil.isNullLiteral(sqlExpr, false)
               && targetField.getType().getSqlTypeName() != SqlTypeName.NULL) {
             sqlExpr = castNullType(sqlExpr, targetField.getType());
+          }
+          if (aliases.contains(targetField.getKey())) {
+            int index = aliases.indexOf(targetField.getKey());
+            sqlExpr = new SqlIdentifier(aliases.get(index), SqlParserPos.ZERO);
           }
           addSelect(selectList, sqlExpr, e.getRowType());
         }

@@ -37,6 +37,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Class to identify Rel structure which is of UNPIVOT Type.
@@ -140,9 +141,24 @@ public class PivotRelToSqlUtil {
           .forEach(inColumnList::add);
     }
 
-    inColumnList.addAll(aggregateInClauseFieldList);
+    inColumnList.addAll(modifiedAliasOfInClause(aggregateInClauseFieldList));
 
     return inColumnList;
+  }
+
+  private List<SqlNode> modifiedAliasOfInClause(List<SqlNode> aggregateInClauseFieldList) {
+    return aggregateInClauseFieldList.stream().map(this::modifyAlias).collect(Collectors.toList());
+  }
+
+  private SqlNode modifyAlias(SqlNode sqlNode) {
+    if (sqlNode instanceof SqlBasicCall) {
+      SqlBasicCall sqlBasicCall = (SqlBasicCall) sqlNode;
+      if (sqlBasicCall.getOperator() == SqlStdOperatorTable.AS) {
+        return SqlStdOperatorTable.AS.createCall(pos, sqlBasicCall.operand(0),
+            new SqlIdentifier(sqlBasicCall.operand(1).toString().replaceAll("'", ""), pos));
+      }
+    }
+    return sqlNode;
   }
 
   private SqlNodeList getAggregateColumnNode(Aggregate e) {
