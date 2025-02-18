@@ -2689,21 +2689,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
-  @Test void testFilterProjectTransposePreventedByCorrelationWithExpandFalse() {
-    final String sql = "SELECT e.deptno\n"
-                       + "FROM emp as e\n"
-                       + "WHERE exists (\n"
-                       + "  SELECT *\n"
-                       + "  FROM dept AS d\n"
-                       + "  WHERE e.deptno = d.deptno)";
-    sql(sql)
-            .withDecorrelate(false)
-            .withTrim(true)
-            .withExpand(false)
-            .withRule(CoreRules.FILTER_PROJECT_TRANSPOSE)
-            .checkUnchanged();
-  }
-
   /** Tests a variant of {@link FilterProjectTransposeRule}
    * that pushes a Filter that contains a correlating variable. */
   @Test void testFilterProjectTranspose() {
@@ -2731,6 +2716,45 @@ class RelOptRulesTest extends RelOptTestBase {
         .withExpand(true)
         .withRule(filterProjectTransposeRule)
         .check();
+  }
+
+  @Test void testFilterProjectTransposePreventedByCorrelationWithExpandFalse() {
+    final String sql = "SELECT e.deptno\n"
+                       + "FROM emp as e\n"
+                       + "WHERE exists (\n"
+                       + "  SELECT *\n"
+                       + "  FROM dept AS d\n"
+                       + "  WHERE e.deptno = d.deptno)";
+    sql(sql)
+            .withDecorrelate(false)
+            .withTrim(true)
+            .withRule(CoreRules.FILTER_PROJECT_TRANSPOSE)
+            .checkUnchanged();
+  }
+
+  @Test void testFilterProjectTransposeExpandFalse() {
+    final String sql = "SELECT e.deptno\n"
+                       + "FROM emp as e\n"
+                       + "WHERE exists (\n"
+                       + "  SELECT *\n"
+                       + "  FROM dept AS d\n"
+                       + "  WHERE e.deptno = d.deptno)";
+    final FilterProjectTransposeRule filterProjectTransposeRule =
+            CoreRules.FILTER_PROJECT_TRANSPOSE.config
+                    .withOperandSupplier(b0 ->
+                            b0.operand(Filter.class).predicate(filter -> true)
+                                    .oneInput(b1 ->
+                                            b1.operand(Project.class).predicate(project -> true)
+                                                    .anyInputs()))
+                    .as(FilterProjectTransposeRule.Config.class)
+                    .withCopyFilter(true)
+                    .withCopyProject(true)
+                    .toRule();
+    sql(sql)
+            .withDecorrelate(false)
+            .withTrim(true)
+            .withRule(filterProjectTransposeRule)
+            .check();
   }
 
   /** Test case for
