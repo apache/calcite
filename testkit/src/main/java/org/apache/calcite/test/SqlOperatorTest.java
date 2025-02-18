@@ -11914,6 +11914,7 @@ public class SqlOperatorTest {
     f.checkNull("trim(null)");
     f.checkNull("trim(cast(null as varchar(1)) from 'a')");
     f.checkNull("trim('a' from cast(null as varchar(1)))");
+    f.checkNull("trim(null)");
 
     // SQL:2003 6.29.9 and SQL:2016 6.30.11: trim string must have length=1.
     // Failure occurs at runtime.
@@ -11925,6 +11926,7 @@ public class SqlOperatorTest {
         "Invalid argument '': the length of the string describing "
             + "the trimmed character must be 1",
         true);
+    f.checkFails("trim()", "Invalid number of arguments to function 'TRIM'. Was expecting at least 2 arguments", false);
 
     final Consumer<SqlOperatorFixture> consumer = f1 -> {
       f1.checkString("trim(leading 'eh' from 'hehe__hehe')", "__hehe",
