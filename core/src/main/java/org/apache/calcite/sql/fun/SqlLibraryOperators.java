@@ -3672,6 +3672,13 @@ public abstract class SqlLibraryOperators {
                           SqlTypeTransforms.TO_NULLABLE_ALL),
                   null, OperandTypes.SAME_SAME, SqlFunctionCategory.SYSTEM);
 
+  @LibraryOperator(libraries = {MSSQL})
+  public static final SqlFunction ISNUMERIC =
+      new SqlFunction("ISNUMERIC", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER, null,
+          OperandTypes.or(OperandTypes.NUMERIC, OperandTypes.STRING),
+          SqlFunctionCategory.SYSTEM);
+
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction TIMESTAMPADD_DATABRICKS =
       new SqlFunction(
