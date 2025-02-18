@@ -141,12 +141,12 @@ public class PivotRelToSqlUtil {
           .forEach(inColumnList::add);
     }
 
-    inColumnList.addAll(modifiedAliasOfInClause(aggregateInClauseFieldList));
+    inColumnList.addAll(modifyInClauseAliases(aggregateInClauseFieldList));
 
     return inColumnList;
   }
 
-  private List<SqlNode> modifiedAliasOfInClause(List<SqlNode> aggregateInClauseFieldList) {
+  private List<SqlNode> modifyInClauseAliases(List<SqlNode> aggregateInClauseFieldList) {
     return aggregateInClauseFieldList.stream().map(this::modifyAlias).collect(Collectors.toList());
   }
 
