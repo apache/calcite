@@ -162,11 +162,10 @@ public class ProjectAggregateMergeRule
     final ImmutableList.Builder<RexNode> selectList = ImmutableList.builder();
     final RexShuttle rexShuttle = new RexShuttle() {
       @Override public RexNode visitInputRef(RexInputRef inputRef) {
-        if (builder.fields().get(inputRef.getIndex()).getType() != inputRef.getType()) {
-          return builder.getRexBuilder().makeCast(inputRef.getType(),
-              builder.fields().get(inputRef.getIndex()));
-        }
-        return inputRef;
+        return builder.getRexBuilder().ensureType(
+            inputRef.getType(),
+            builder.fields().get(inputRef.getIndex()),
+            true);
       }
     };
     for (RexNode rexInputRef : rexInputRefs) {
