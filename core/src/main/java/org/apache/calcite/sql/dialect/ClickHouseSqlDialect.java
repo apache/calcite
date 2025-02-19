@@ -36,6 +36,8 @@ import org.apache.calcite.sql.type.SqlTypeName;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import static org.apache.calcite.util.RelToSqlConverterUtil.unparseBoolLiteralToCondition;
+
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -136,6 +138,15 @@ public class ClickHouseSqlDialect extends SqlDialect {
     }
 
     writer.literal(toFunc + "('" + literal.toFormattedString() + "')");
+  }
+
+  @Override public void unparseBoolLiteral(SqlWriter writer, SqlLiteral literal, int leftPrec,
+      int rightPrec) {
+    Boolean value = (Boolean) literal.getValue();
+    if (value == null) {
+      return;
+    }
+    unparseBoolLiteralToCondition(writer, value);
   }
 
   @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
