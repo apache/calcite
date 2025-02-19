@@ -200,9 +200,9 @@ public class PivotRelToSqlUtil {
     SqlBasicCall axisNodeList =
         ((SqlBasicCall) pivotColumnAggregation.getOperandList().get(0)).operand(0);
 
-    axisNodeList = axisNodeList.getOperator().kind == SqlKind.EQUALS ?
-        (SqlBasicCall) axisNodeList.getOperandList().get(0) :
-        axisNodeList;
+    axisNodeList = axisNodeList.getOperator().kind == SqlKind.EQUALS
+        ? (SqlBasicCall) axisNodeList.getOperandList().get(0)
+        : axisNodeList;
 
     if (axisNodeList.getOperator().kind == SqlKind.AS) {
       if (!(axisNodeList.operand(1) instanceof SqlIdentifier)) {
