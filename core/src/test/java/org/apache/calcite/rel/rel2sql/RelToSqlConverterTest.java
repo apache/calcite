@@ -57,6 +57,7 @@ import org.apache.calcite.sql.SqlWriterConfig;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.dialect.BigQuerySqlDialect;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
+import org.apache.calcite.sql.dialect.ClickHouseSqlDialect;
 import org.apache.calcite.sql.dialect.HiveSqlDialect;
 import org.apache.calcite.sql.dialect.JethroDataSqlDialect;
 import org.apache.calcite.sql.dialect.MssqlSqlDialect;
@@ -8230,24 +8231,63 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6819">[CALCITE-6819]
-   * MSSQL doesn't support TRUE/FALSE keywords in its Join predicate</a>. */
-  @Test void testJoinBoolLiteralMSSQL() {
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6847">[CALCITE-6847]
+   * ClickHouse doesn't support TRUE/FALSE keywords in its Join predicate</a>. */
+  @Test void testJoinBoolLiteral() {
     final String queryTrue = "SELECT \"hire_date\", \"department_description\" FROM \"employee\" "
         + "LEFT JOIN \"department\" ON TRUE";
+    final String queryFalse = "SELECT \"hire_date\", \"department_description\" FROM \"employee\" "
+        + "LEFT JOIN \"department\" ON False";
+
+    final String queryTrue1 = "SELECT \"hire_date\", \"department_description\" FROM \"employee\" "
+        + "LEFT JOIN \"department\" ON 1 = 1";
+    final String queryFalse1 = "SELECT \"hire_date\", \"department_description\" FROM \"employee\" "
+        + "LEFT JOIN \"department\" ON 1 = 0";
+
+    final String queryTrue2 = "select true from \"employee\"";
+    final String queryFalse2 = "select false from \"employee\"";
+
+    // mssql test
     final String mssqlExpected1 = "SELECT [employee].[hire_date],"
         + " [department].[department_description]\nFROM [foodmart].[employee]\nLEFT JOIN"
         + " [foodmart].[department] ON (1 = 1)";
     sql(queryTrue)
         .dialect(MssqlSqlDialect.DEFAULT).ok(mssqlExpected1);
+    sql(queryTrue1)
+        .dialect(MssqlSqlDialect.DEFAULT).ok(mssqlExpected1);
 
-    final String queryFalse = "SELECT \"hire_date\", \"department_description\" FROM \"employee\" "
-        + "LEFT JOIN \"department\" ON False";
+
     final String mssqlExpected2 = "SELECT [employee].[hire_date],"
         + " [department].[department_description]\nFROM [foodmart].[employee]\nLEFT JOIN"
         + " [foodmart].[department] ON (1 = 0)";
     sql(queryFalse)
         .dialect(MssqlSqlDialect.DEFAULT).ok(mssqlExpected2);
+    sql(queryFalse1)
+        .dialect(MssqlSqlDialect.DEFAULT).ok(mssqlExpected2);
+
+    // clickhouse test
+    final String clickhouseExpected1 = "SELECT `employee`.`hire_date`,"
+        + " `department`.`department_description`\nFROM `foodmart`"
+        + ".`employee`\nLEFT JOIN"
+        + " `foodmart`.`department` ON (1 = 1)";
+    sql(queryTrue)
+        .dialect(ClickHouseSqlDialect.DEFAULT).ok(clickhouseExpected1);
+    sql(queryTrue1)
+        .dialect(ClickHouseSqlDialect.DEFAULT).ok(clickhouseExpected1);
+
+    final String clickhouseExpected2 = "SELECT `employee`.`hire_date`,"
+        + " `department`.`department_description`\nFROM `foodmart`"
+        + ".`employee`\nLEFT JOIN"
+        + " `foodmart`.`department` ON (1 = 0)";
+    sql(queryFalse)
+        .dialect(ClickHouseSqlDialect.DEFAULT).ok(clickhouseExpected2);
+    sql(queryFalse1)
+        .dialect(ClickHouseSqlDialect.DEFAULT).ok(clickhouseExpected2);
+
+    sql(queryTrue2).dialect(ClickHouseSqlDialect.DEFAULT)
+        .ok("SELECT (1 = 1)\nFROM `foodmart`.`employee`");
+    sql(queryFalse2).dialect(ClickHouseSqlDialect.DEFAULT)
+        .ok("SELECT (1 = 0)\nFROM `foodmart`.`employee`");
   }
 
   /** Test case for
