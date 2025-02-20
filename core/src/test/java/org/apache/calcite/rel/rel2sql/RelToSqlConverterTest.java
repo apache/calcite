@@ -1762,8 +1762,8 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5395">[CALCITE-5395]
-   * RelToSql converter fails when SELECT * is under a semi-join node</a>. */
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6833">[CALCITE-6833]
+   * JDBC adapter generates invalid table alias for semi-join in UNION</a>. */
   @Test void testUnionUnderSemiJoinNode() {
     final RelBuilder builder = relBuilder();
     final RelNode base = builder
@@ -1782,14 +1782,13 @@ class RelToSqlConverterTest {
         .build();
     final String expectedSql = "SELECT \"DEPTNO\"\n"
         + "FROM (SELECT *\n"
-        + "FROM (SELECT *\n"
         + "FROM \"scott\".\"EMP\"\n"
         + "UNION ALL\n"
         + "SELECT *\n"
-        + "FROM \"scott\".\"EMP\")\n"
+        + "FROM \"scott\".\"EMP\") AS \"t\"\n"
         + "WHERE EXISTS (SELECT 1\n"
         + "FROM \"scott\".\"DEPT\"\n"
-        + "WHERE \"t\".\"DEPTNO\" = \"DEPT\".\"DEPTNO\")) AS \"t\"";
+        + "WHERE \"t\".\"DEPTNO\" = \"DEPT\".\"DEPTNO\")";
     assertThat(toSql(root), isLinux(expectedSql));
   }
 
