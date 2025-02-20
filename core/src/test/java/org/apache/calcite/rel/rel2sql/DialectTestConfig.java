@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.rel2sql;
 
+import org.apache.calcite.avatica.AvaticaConnection;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalciteJdbc41Factory;
 import org.apache.calcite.jdbc.CalciteSchema;
@@ -211,7 +212,8 @@ class DialectTestConfig {
     }
 
     @Override public String toString() {
-      return name;
+      return name
+           + (enabled ? " (enabled)" : " (disabled)");
     }
 
     public Dialect withEnabled(boolean enabled) {
@@ -270,9 +272,10 @@ class DialectTestConfig {
             schemaSpec.schemaName);
         info.put(CalciteConnectionProperty.CONFORMANCE.name(),
             SqlConformanceEnum.LENIENT.name());
-        try (Connection connection =
+        try (AvaticaConnection connection =
                  factory.newConnection(driver, factory, url, info,
                      rootSchema, null)) {
+          driver.handler.onConnectionInit(connection);
           consumer.accept(connection);
           return;
         } catch (SQLException e) {
