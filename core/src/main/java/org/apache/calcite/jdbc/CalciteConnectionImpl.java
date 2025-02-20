@@ -151,15 +151,6 @@ abstract class CalciteConnectionImpl
             ? rootSchema
             : CalciteSchema.createRootSchema(true));
 
-    final String schema = cfg.schema();
-    if (schema != null && !schema.isEmpty()) {
-      try {
-        setSchema(schema);
-      } catch (SQLException e) {
-        throw new AssertionError(e); // not possible
-      }
-    }
-
     // Add dual table metadata when isSupportedDualTable return true
     if (cfg.conformance().isSupportedDualTable()) {
       SchemaPlus schemaPlus = this.rootSchema.plus();
@@ -190,6 +181,16 @@ abstract class CalciteConnectionImpl
   /** Called after the constructor has completed and the model has been
    * loaded. */
   void init() {
+    final CalciteConnectionConfig cfg = new CalciteConnectionConfigImpl(info);
+    final String schema = cfg.schema();
+    if (schema != null && !schema.isEmpty()) {
+      try {
+        setSchema(schema);
+      } catch (SQLException e) {
+        throw new AssertionError(e); // not possible
+      }
+    }
+
     final MaterializationService service = MaterializationService.instance();
     for (CalciteSchema.LatticeEntry e : Schemas.getLatticeEntries(rootSchema)) {
       final Lattice lattice = e.getLattice();
