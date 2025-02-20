@@ -98,6 +98,7 @@ import static org.apache.calcite.rel.rel2sql.DialectCode.SPARK;
 import static org.apache.calcite.rel.rel2sql.DialectCode.STARROCKS;
 import static org.apache.calcite.rel.rel2sql.DialectCode.SYBASE;
 import static org.apache.calcite.rel.rel2sql.DialectCode.VERTICA;
+import static org.apache.calcite.test.Matchers.isLinux;
 import static org.apache.calcite.test.Matchers.returnsUnordered;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -527,7 +528,7 @@ class RelToSqlFixture {
         }
 
         if (dialect.expectedQuery != null) {
-          assertThat(sql, is(dialect.expectedQuery));
+          assertThat(sql, isLinux(dialect.expectedQuery));
         }
 
         if (dialect.execute) {
