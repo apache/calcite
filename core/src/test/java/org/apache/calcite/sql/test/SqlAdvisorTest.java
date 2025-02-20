@@ -523,7 +523,9 @@ class SqlAdvisorTest extends SqlValidatorTestCase {
     f.withSql(sql)
         .assertSimplify("SELECT ax _suggest_ FROM ( SELECT a.x+0 axa , b.x axb ,"
             + " ( SELECT * FROM dummy ) axbc FROM dummy a , dummy b )")
-        .assertComplete("COLUMN(AXA)\nCOLUMN(AXB)\nCOLUMN(AXBC)\n", "ax");
+        .assertComplete("COLUMN(AXA)\n"
+            + "COLUMN(AXB)\n"
+            + "COLUMN(AXBC)\n", "ax");
 
     sql = "select ^ from (select * from dummy)";
     f.withSql(sql)
@@ -863,14 +865,17 @@ class SqlAdvisorTest extends SqlValidatorTestCase {
             + "\"an id with \"\"quotes' inside\""
             + ","
             + " "
-            + "/* a comment, with 'quotes', over\nmultiple lines\nand select keyword */"
-            + "\n "
+            + "/* a comment, with 'quotes', over\n"
+            + "multiple lines\n"
+            + "and select keyword */\n"
+            + " "
             + "("
             + " "
             + "a"
             + " "
             + "different"
             + " "
+            // lint:skip 1 (newline in string literal)
             + "// comment\n\r"
             + "//and a comment /* containing comment */ and then some more\r"
             + ")"
@@ -918,9 +923,11 @@ class SqlAdvisorTest extends SqlValidatorTestCase {
 
     // Tokenizer should be lenient if input ends mid-token
     f.withSql("select /* unfinished comment")
-        .assertTokenizesTo("SELECT\nCOMMENT\n");
+        .assertTokenizesTo("SELECT\n"
+            + "COMMENT\n");
     f.withSql("select // unfinished comment")
-        .assertTokenizesTo("SELECT\nCOMMENT\n");
+        .assertTokenizesTo("SELECT\n"
+            + "COMMENT\n");
     f.withSql("'starts with string'")
         .assertTokenizesTo("SQID('starts with string')\n");
     f.withSql("'unfinished string")

@@ -198,12 +198,12 @@ class RelDataTypeSystemTest {
     assertThat(dataType.getScale(), is(6));
   }
 
-  /**
-   * Tests that the return type inference for a division with a custom type system
-   * (max precision=28, max scale=10) works correctly.
+  /** Tests that the return type inference for a division with a custom type
+   * system (max precision=28, max scale=10) works correctly.
+   *
+   * <p>Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6464">[CALCITE-6464]
-   * Type inference for DECIMAL division seems incorrect</a>
-   */
+   * Type inference for DECIMAL division seems incorrect</a>. */
   @Test void testCustomMaxPrecisionCustomMaxScaleDecimalDivideReturnTypeInference() {
     /**
      * Custom type system class that overrides the default max precision and max scale.

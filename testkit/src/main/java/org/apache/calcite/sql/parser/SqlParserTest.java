@@ -1453,30 +1453,30 @@ public class SqlParserTest {
 
   @Test void testRowValueExpression() {
     final String expected0 = "INSERT INTO \"EMPS\"\n"
-            + "VALUES (ROW(1, 'Fred')),\n"
-            + "(ROW(2, 'Eric'))";
+        + "VALUES (ROW(1, 'Fred')),\n"
+        + "(ROW(2, 'Eric'))";
     String sql = "insert into emps values (1,'Fred'),(2, 'Eric')";
     sql(sql)
         .withDialect(CALCITE)
         .ok(expected0);
 
     final String expected1 = "INSERT INTO `emps`\n"
-            + "VALUES (1, 'Fred'),\n"
-            + "(2, 'Eric')";
+        + "VALUES (1, 'Fred'),\n"
+        + "(2, 'Eric')";
     sql(sql)
         .withDialect(MYSQL)
         .ok(expected1);
 
     final String expected2 = "INSERT INTO \"EMPS\"\n"
-            + "VALUES (1, 'Fred'),\n"
-            + "(2, 'Eric')";
+        + "VALUES (1, 'Fred'),\n"
+        + "(2, 'Eric')";
     sql(sql)
         .withDialect(ORACLE)
         .ok(expected2);
 
     final String expected3 = "INSERT INTO [EMPS]\n"
-            + "VALUES (1, 'Fred'),\n"
-            + "(2, 'Eric')";
+        + "VALUES (1, 'Fred'),\n"
+        + "(2, 'Eric')";
     sql(sql)
         .withDialect(MSSQL)
         .ok(expected3);
@@ -1900,9 +1900,11 @@ public class SqlParserTest {
 
   @Test void testCastFails() {
     expr("cast(x as varchar(10) ^with^ local time zone)")
-        .fails("(?s).*Encountered \"with\" at line 1, column 23.\n.*");
+        .fails("(?s).*Encountered \"with\" at line 1, column 23.\n"
+            + ".*");
     expr("cast(x as varchar(10) ^without^ time zone)")
-        .fails("(?s).*Encountered \"without\" at line 1, column 23.\n.*");
+        .fails("(?s).*Encountered \"without\" at line 1, column 23.\n"
+            + ".*");
   }
 
   /** Test for MSSQL CONVERT parsing, with focus on iffy DATE type and
@@ -2058,7 +2060,8 @@ public class SqlParserTest {
         .ok("POWER(2, 3)");
     expr("aBs(-2.3e-2)")
         .ok("ABS(-2.3E-2)");
-    expr("MOD(5             ,\t\f\r\n2)")
+    expr("MOD(5             ,\t\f\r\n"
+        + "2)")
         .ok("MOD(5, 2)");
     expr("ln(5.43  )")
         .ok("LN(5.43)");
@@ -2126,10 +2129,12 @@ public class SqlParserTest {
         .ok("_UTF16'Apache\bCalcite'");
     expr("E'Apache\\fCalcite'")
         .ok("_UTF16'Apache\fCalcite'");
+    // lint:skip 2 (newline in string literal)
     expr("E'Apache\\nCalcite'")
         .ok("_UTF16'Apache\nCalcite'");
     expr("E'Apache\\rCalcite'")
         .ok("_UTF16'Apache\rCalcite'");
+    // lint:skip 2 (newline in string literal)
     expr("E'\\t\\n\\f'")
         .ok("_UTF16'\t\n\f'");
     expr("E'\\Apache Calcite'")
@@ -2191,7 +2196,8 @@ public class SqlParserTest {
   }
 
   @Test void testSubstring() {
-    expr("substring('a'\nFROM \t  1)")
+    expr("substring('a'\n"
+        + "FROM \t  1)")
         .ok("SUBSTRING('a', 1)");
     expr("substring('a' FROM 1 FOR 3)")
         .ok("SUBSTRING('a', 1, 3)");
@@ -3589,18 +3595,31 @@ public class SqlParserTest {
   }
 
   @Test void testContinuedLiteral() {
-    expr("'abba'\n'abba'").same();
-    expr("'abba'\n'0001'").same();
-    expr("N'yabba'\n'dabba'\n'doo'")
-        .ok("_ISO-8859-1'yabba'\n'dabba'\n'doo'");
-    expr("_iso-8859-1'yabba'\n'dabba'\n'don''t'")
-        .ok("_ISO-8859-1'yabba'\n'dabba'\n'don''t'");
+    expr("'abba'\n"
+        + "'abba'").same();
+    expr("'abba'\n"
+        + "'0001'").same();
+    expr("N'yabba'\n"
+        + "'dabba'\n"
+        + "'doo'")
+        .ok("_ISO-8859-1'yabba'\n"
+            + "'dabba'\n"
+            + "'doo'");
+    expr("_iso-8859-1'yabba'\n"
+        + "'dabba'\n"
+        + "'don''t'")
+        .ok("_ISO-8859-1'yabba'\n"
+            + "'dabba'\n"
+            + "'don''t'");
 
-    expr("x'01aa'\n'03ff'")
-        .ok("X'01AA'\n'03FF'");
+    expr("x'01aa'\n"
+        + "'03ff'")
+        .ok("X'01AA'\n"
+            + "'03FF'");
 
     // a bad hexstring
-    sql("x'01aa'\n^'vvvv'^")
+    sql("x'01aa'\n"
+        + "^'vvvv'^")
         .fails("Binary literal string must contain only characters '0' - '9', 'A' - 'F'");
   }
 
@@ -4046,7 +4065,8 @@ public class SqlParserTest {
         .ok("SELECT 1\n"
             + "FROM `T`\n"
             + "WHERE (`A` > `B`)");
-    sql("select 1 from t\n--select")
+    sql("select 1 from t\n"
+        + "--select")
         .ok("SELECT 1\n"
             + "FROM `T`");
   }
@@ -4140,7 +4160,8 @@ public class SqlParserTest {
 
     // even if comment abuts the tokens at either end, it becomes a space
     sql("values ('abc'/* a comment*/'def')")
-        .ok("VALUES (ROW('abc'\n'def'))");
+        .ok("VALUES (ROW('abc'\n"
+            + "'def'))");
 
     // comment which starts as soon as it has begun
     sql("values /**/ (1)")
@@ -4439,8 +4460,10 @@ public class SqlParserTest {
             + "    <BIG_QUERY_BACK_QUOTED_IDENTIFIER> \\.\\.\\.\n"
             + "    <BRACKET_QUOTED_IDENTIFIER> \\.\\.\\.\n"
             + "    <UNICODE_QUOTED_IDENTIFIER> \\.\\.\\.\n"
-            + "    \"\\(\" \\.\\.\\.\n.*"
-            + "    \"UNNEST\" \\.\\.\\.\n.*");
+            + "    \"\\(\" \\.\\.\\.\n"
+            + ".*"
+            + "    \"UNNEST\" \\.\\.\\.\n"
+            + ".*");
   }
 
   @Test void testEmptyValues() {
@@ -4491,7 +4514,8 @@ public class SqlParserTest {
         .ok("(TABLE `EMP`)");
 
     sql("table ^123^")
-        .fails("(?s)Encountered \"123\" at line 1, column 7\\.\n.*");
+        .fails("(?s)Encountered \"123\" at line 1, column 7\\.\n"
+            + ".*");
   }
 
   @Test void testExplicitTableOrdered() {
@@ -5274,11 +5298,15 @@ public class SqlParserTest {
     expr("x'1' \t\t\f\r\n"
         + "'2'--hi this is a comment'FF'\r\r\t\f\n"
         + "'34'")
-        .ok("X'1'\n'2'\n'34'");
+        .ok("X'1'\n"
+            + "'2'\n"
+            + "'34'");
     expr("x'1' \t\t\f\r\n"
         + "'000'--\n"
         + "'01'")
-        .ok("X'1'\n'000'\n'01'");
+        .ok("X'1'\n"
+            + "'000'\n"
+            + "'01'");
     expr("x'1234567890abcdef'=X'fFeEdDcCbBaA'")
         .ok("(X'1234567890ABCDEF' = X'FFEEDDCCBBAA')");
 
@@ -5312,21 +5340,36 @@ public class SqlParserTest {
     expr("'boring string'").same();
     expr("_iSo-8859-1'bye'")
         .ok("_ISO-8859-1'bye'");
-    expr("'three'\n' blind'\n' mice'").same();
-    expr("'three' -- comment\n' blind'\n' mice'")
-        .ok("'three'\n' blind'\n' mice'");
-    expr("N'bye' \t\r\f\f\n' bye'")
-        .ok("_ISO-8859-1'bye'\n' bye'");
-    expr("_iso-8859-1'bye'\n\n--\n-- this is a comment\n' bye'")
-        .ok("_ISO-8859-1'bye'\n' bye'");
+    expr("'three'\n"
+        + "' blind'\n"
+        + "' mice'").same();
+    expr("'three' -- comment\n"
+        + "' blind'\n"
+        + "' mice'")
+        .ok("'three'\n"
+            + "' blind'\n"
+            + "' mice'");
+    expr("N'bye' \t\r\f\f\n"
+        + "' bye'")
+        .ok("_ISO-8859-1'bye'\n"
+            + "' bye'");
+    expr("_iso-8859-1'bye'\n"
+        + "\n"
+        + "--\n"
+        + "-- this is a comment\n"
+        + "' bye'")
+        .ok("_ISO-8859-1'bye'\n"
+            + "' bye'");
     expr("_utf8'hi'")
         .ok("_UTF8'hi'");
 
     // newline in string literal
     expr("'foo\rbar'").same();
-    expr("'foo\nbar'").same();
+    expr("'foo\n"
+        + "bar'").same();
 
-    expr("'foo\r\nbar'")
+    expr("'foo\r\n"
+        + "bar'")
         // prevent test infrastructure from converting '\r\n' to '\n'
         .withConvertToLinux(false)
         .same();
@@ -5335,7 +5378,8 @@ public class SqlParserTest {
   @Test void testStringLiteralFails() {
     sql("select (N ^'space'^)")
         .fails("(?s).*Encountered .*space.* at line 1, column ...*");
-    sql("select (_latin1\n^'newline'^)")
+    sql("select (_latin1\n"
+        + "^'newline'^)")
         .fails("(?s).*Encountered.*newline.* at line 2, column ...*");
     sql("select ^_unknown-charset''^ from (values(true))")
         .fails("Unknown character set 'unknown-charset'");
@@ -5357,13 +5401,18 @@ public class SqlParserTest {
             + "'baz'";
     expr("   'foo'\r'bar'")
         .ok(fooBar);
-    expr("   'foo'\r\n'bar'")
+    expr("   'foo'\r\n"
+        + "'bar'")
         .ok(fooBar);
-    expr("   'foo'\r\n\r\n'bar'\n'baz'")
+    expr("   'foo'\r\n"
+        + "\r\n"
+        + "'bar'\n"
+        + "'baz'")
         .ok(fooBarBaz);
     expr("   'foo' /* a comment */ 'bar'")
         .ok(fooBar);
-    expr("   'foo' -- a comment\r\n 'bar'")
+    expr("   'foo' -- a comment\r\n"
+        + " 'bar'")
         .ok(fooBar);
 
     // String literals not separated by comment or newline are OK in
@@ -5429,7 +5478,8 @@ public class SqlParserTest {
         .ok("(CASE WHEN (`NBR` IS FALSE) THEN 'one' ELSE NULL END)");
 
     // multiple WHENs
-    expr("case col1 when\n1.2 then 'one' when 2 then 'two' else 'three' end")
+    expr("case col1 when\n"
+        + "1.2 then 'one' when 2 then 'two' else 'three' end")
         .ok("(CASE WHEN (`COL1` = 1.2) THEN 'one' WHEN (`COL1` = 2) THEN 'two' ELSE 'three' END)");
 
     // sub-queries as case expression operands
@@ -5467,8 +5517,7 @@ public class SqlParserTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4802">[CALCITE-4802]
-   * Babel parser doesn't parse IF(condition, then, else) statements </a>.
-   */
+   * Babel parser doesn't parse IF(condition, then, else) statements</a>. */
   @Test void testIf() {
     expr("if(true, 1, 0)")
         .ok("`IF`(TRUE, 1, 0)");
@@ -5502,7 +5551,8 @@ public class SqlParserTest {
 
     expr("'string' collate latin1$sv_SE$mega_strength")
         .ok("'string' COLLATE ISO-8859-1$sv_SE$mega_strength");
-    expr("'a long '\n'string' collate latin1$sv_SE$mega_strength")
+    expr("'a long '\n"
+        + "'string' collate latin1$sv_SE$mega_strength")
         .ok("'a long ' 'string' COLLATE ISO-8859-1$sv_SE$mega_strength");
     expr("x collate iso-8859-6$ar_LB$1")
         .ok("`X` COLLATE ISO-8859-6$ar_LB$1");
@@ -5696,7 +5746,9 @@ public class SqlParserTest {
         .ok("TRIM(BOTH 'mustache' FROM 'beard')");
     expr("trim( lEaDing       'mustache' FROM 'beard')")
         .ok("TRIM(LEADING 'mustache' FROM 'beard')");
-    expr("trim(\r\n\ttrailing\n  'mustache' FROM 'beard')")
+    expr("trim(\r\n"
+        + "\ttrailing\n"
+        + "  'mustache' FROM 'beard')")
         .ok("TRIM(TRAILING 'mustache' FROM 'beard')");
     expr("trim (coalesce(cast(null as varchar(2)))||"
         + "' '||coalesce('junk ',''))")
@@ -5731,9 +5783,12 @@ public class SqlParserTest {
     sql("select translate(name using utf8) as newName from t")
         .ok("SELECT TRANSLATE(`NAME` USING `UTF8`) AS `NEWNAME`\n"
             + "FROM `T`");
+  }
 
-    // Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5996">[CALCITE-5996]</a>
-    // TRANSLATE operator is incorrectly unparsed
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5996">[CALCITE-5996]
+   * TRANSLATE operator is incorrectly unparsed</a>. */
+  @Test void testTranslate() {
     sql("select translate(col using utf8)\n"
         + "from (select 'a' as col\n"
         + " from (values(true)))\n")
@@ -5774,7 +5829,8 @@ public class SqlParserTest {
         .ok("{fn APA((LOG10(LN(1)) + 2)) }");
     expr("{fN apa(*)}")
         .ok("{fn APA(*) }");
-    expr("{   FN\t\r\n apa()}")
+    expr("{   FN\t\r\n"
+        + " apa()}")
         .ok("{fn APA() }");
     expr("{fn insert()}")
         .ok("{fn INSERT() }");
@@ -5787,7 +5843,8 @@ public class SqlParserTest {
     expr("{fn convert(1, SQL_INTERVAL_YEAR_TO_MONTH)}")
         .ok("{fn CONVERT(1, SQL_INTERVAL_YEAR_TO_MONTH) }");
     expr("{fn convert(1, ^sql_interval_year_to_day^)}")
-        .fails("(?s)Encountered \"sql_interval_year_to_day\" at line 1, column 16\\.\n.*");
+        .fails("(?s)Encountered \"sql_interval_year_to_day\" at line 1, column 16\\.\n"
+            + ".*");
     expr("{fn convert(1, sql_interval_day)}")
         .ok("{fn CONVERT(1, SQL_INTERVAL_DAY) }");
     expr("{fn convert(1, sql_interval_day_to_minute)}")
@@ -5860,7 +5917,9 @@ public class SqlParserTest {
         + "       'baz' preceding)";
     final String expected3 = "SELECT (COUNT(*) OVER `W`)\n"
         + "FROM `EMP`\n"
-        + "WINDOW `W` AS (ROWS 'foo'\n'bar'\n'baz' PRECEDING)";
+        + "WINDOW `W` AS (ROWS 'foo'\n"
+        + "'bar'\n"
+        + "'baz' PRECEDING)";
     sql(sql3).ok(expected3);
 
     // Partition clause out of place. Found after ORDER BY
@@ -6307,9 +6366,9 @@ public class SqlParserTest {
             + "FROM (VALUES (ROW(1))) AS `X`\n"
             + "ORDER BY `X`))");
     sql("SELECT array(SELECT x FROM (VALUES(1)) x^,^ SELECT x FROM (VALUES(1)) x)")
-      .fails("(?s)Encountered \", SELECT\" at.*");
+        .fails("(?s)Encountered \", SELECT\" at.*");
     sql("SELECT array(1, ^SELECT^ x FROM (VALUES(1)) x)")
-      .fails("(?s)Incorrect syntax near the keyword 'SELECT'.*");
+        .fails("(?s)Incorrect syntax near the keyword 'SELECT'.*");
   }
 
   @Test void testCastAsCollectionType() {
@@ -6323,7 +6382,8 @@ public class SqlParserTest {
     expr("cast(a as varchar(5) array array)")
         .ok("CAST(`A` AS VARCHAR(5) ARRAY ARRAY)");
     expr("cast(a as int array^<^10>)")
-        .fails("(?s).*Encountered \"<\" at line 1, column 20.\n.*");
+        .fails("(?s).*Encountered \"<\" at line 1, column 20.\n"
+            + ".*");
     // test multiset type.
     expr("cast(a as int multiset)")
         .ok("CAST(`A` AS INTEGER MULTISET)");
@@ -7664,7 +7724,8 @@ public class SqlParserTest {
   }
 
   @Test void testTabStop() {
-    sql("SELECT *\n\tFROM mytable")
+    sql("SELECT *\n"
+        + "\tFROM mytable")
         .ok("SELECT *\n"
             + "FROM `MYTABLE`");
 
@@ -9404,7 +9465,9 @@ public class SqlParserTest {
     final String sql2 = "select "
         + "/*+ properties(k1, k2^=^'v2'), no_hash_join */ "
         + "empno, ename, deptno from emps";
-    sql(sql2).fails("(?s).*Encountered \"=\" at line 1, column 29.\n.*");
+    sql(sql2)
+        .fails("(?s).*Encountered \"=\" at line 1, column 29.\n"
+            + ".*");
     final String sql3 = "select "
         + "/*+ no_hash_join() */ "
         + "empno, ename, deptno from emps";

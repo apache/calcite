@@ -80,8 +80,8 @@ public class RelationalJdbcExample {
     String sql = "SELECT \"b\".\"author\", \"b\".\"retailCost\", \"i\".\"quantityInStock\"\n"
         + "FROM \"TEST\".\"BookMaster\" AS \"b\" "
         + " INNER JOIN \"TEST\".\"BookInventory\" AS \"i\""
-        + "  ON \"b\".\"itemNumber\" = \"i\".\"itemNumber\"\n "
-        + "WHERE  \"b\".\"retailCost\" > 0";
+        + "  ON \"b\".\"itemNumber\" = \"i\".\"itemNumber\"\n"
+        + " WHERE  \"b\".\"retailCost\" > 0";
     ResultSet resultSet = statement.executeQuery(sql);
 
     final StringBuilder buf = new StringBuilder();

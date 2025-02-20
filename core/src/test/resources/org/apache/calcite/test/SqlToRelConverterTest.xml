@@ -6154,7 +6154,7 @@ window w1 as (partition by job order by hiredate rows 2 preceding),
     <Resource name="sql">
       <![CDATA[select
 lead(deptno, 1) over w,
- lead(deptno, 2) ignore nulls over w,
+lead(deptno, 2) ignore nulls over w,
 lead(deptno, 3) respect nulls over w,
 lead(deptno, 1) over w,
 lag(deptno, 2) ignore nulls over w,

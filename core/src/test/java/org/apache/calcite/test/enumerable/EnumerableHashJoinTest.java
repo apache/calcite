@@ -155,18 +155,20 @@ class EnumerableHashJoinTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4561">[CALCITE-4561]
-   * Wrong results for plan with EnumerableHashJoin (semi) on nullable colunms</a>. */
+   * Wrong results for plan with EnumerableHashJoin (semi) on nullable
+   * columns</a>. */
   @Test void semiJoinWithNulls() {
     tester(false, new HrSchema())
-        .query(
-            "SELECT e1.name FROM emps e1 WHERE e1.commission in (SELECT e2.commission FROM emps e2)")
+        .query("SELECT e1.name\n"
+            + "FROM emps e1\n"
+            + "WHERE e1.commission in (SELECT e2.commission FROM emps e2)")
         .explainContains("EnumerableCalc(expr#0..1=[{inputs}], name=[$t0])\n"
             + "  EnumerableHashJoin(condition=[=($1, $6)], joinType=[semi])\n"
             + "    EnumerableCalc(expr#0..4=[{inputs}], name=[$t2], commission=[$t4])\n"
             + "      EnumerableTableScan(table=[[s, emps]])\n"
-            + "    EnumerableTableScan(table=[[s, emps]])\n\n")
-        .returnsUnordered(
-            "name=Bill",
+            + "    EnumerableTableScan(table=[[s, emps]])\n"
+            + "\n")
+        .returnsUnordered("name=Bill",
             "name=Eric",
             "name=Theodore");
   }

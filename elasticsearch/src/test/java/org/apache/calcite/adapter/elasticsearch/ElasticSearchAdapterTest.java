@@ -438,9 +438,14 @@ class ElasticSearchAdapterTest {
         + "order by state, pop";
     final String explain = "PLAN=ElasticsearchToEnumerableConverter\n"
         + "  ElasticsearchSort(sort0=[$4], sort1=[$3], dir0=[ASC], dir1=[ASC])\n"
-        + "    ElasticsearchProject(city=[CAST(ITEM($0, 'city')):VARCHAR(20)], longitude=[CAST(ITEM(ITEM($0, 'loc'), 0)):FLOAT], latitude=[CAST(ITEM(ITEM($0, 'loc'), 1)):FLOAT], pop=[CAST(ITEM($0, 'pop')):INTEGER], state=[CAST(ITEM($0, 'state')):VARCHAR(2)], id=[CAST(ITEM($0, 'id')):VARCHAR(5)])\n"
-        + "      ElasticsearchFilter(condition=[AND(=(CAST(CAST(ITEM($0, 'state')):VARCHAR(2)):CHAR(2), 'CA'), >=(CAST(ITEM($0, 'pop')):INTEGER, 94000))])\n"
-        + "        ElasticsearchTableScan(table=[[elastic, zips]])\n\n";
+        + "    ElasticsearchProject(city=[CAST(ITEM($0, 'city')):VARCHAR(20)], "
+        + "longitude=[CAST(ITEM(ITEM($0, 'loc'), 0)):FLOAT], "
+        + "latitude=[CAST(ITEM(ITEM($0, 'loc'), 1)):FLOAT], pop=[CAST(ITEM($0, 'pop')):INTEGER], "
+        + "state=[CAST(ITEM($0, 'state')):VARCHAR(2)], id=[CAST(ITEM($0, 'id')):VARCHAR(5)])\n"
+        + "      ElasticsearchFilter(condition=[AND(=(CAST(CAST(ITEM($0, 'state')):"
+        + "VARCHAR(2)):CHAR(2), 'CA'), >=(CAST(ITEM($0, 'pop')):INTEGER, 94000))])\n"
+        + "        ElasticsearchTableScan(table=[[elastic, zips]])\n"
+        + "\n";
     calciteAssert()
         .query(sql)
         .returnsOrdered("city=NORWALK; longitude=-118.081767; latitude=33.90564;"
@@ -472,9 +477,14 @@ class ElasticSearchAdapterTest {
         + "order by state, pop";
     final String explain = "PLAN=ElasticsearchToEnumerableConverter\n"
         + "  ElasticsearchSort(sort0=[$4], sort1=[$3], dir0=[ASC], dir1=[ASC])\n"
-        + "    ElasticsearchProject(city=[CAST(ITEM($0, 'city')):VARCHAR(20)], longitude=[CAST(ITEM(ITEM($0, 'loc'), 0)):FLOAT], latitude=[CAST(ITEM(ITEM($0, 'loc'), 1)):FLOAT], pop=[CAST(ITEM($0, 'pop')):INTEGER], state=[CAST(ITEM($0, 'state')):VARCHAR(2)], id=[CAST(ITEM($0, 'id')):VARCHAR(5)])\n"
-        + "      ElasticsearchFilter(condition=[OR(=(CAST(CAST(ITEM($0, 'state')):VARCHAR(2)):CHAR(2), 'CA'), >=(CAST(ITEM($0, 'pop')):INTEGER, 94000))])\n"
-        + "        ElasticsearchTableScan(table=[[elastic, zips]])\n\n";
+        + "    ElasticsearchProject(city=[CAST(ITEM($0, 'city')):VARCHAR(20)], "
+        + "longitude=[CAST(ITEM(ITEM($0, 'loc'), 0)):FLOAT], "
+        + "latitude=[CAST(ITEM(ITEM($0, 'loc'), 1)):FLOAT], pop=[CAST(ITEM($0, 'pop')):INTEGER], "
+        + "state=[CAST(ITEM($0, 'state')):VARCHAR(2)], id=[CAST(ITEM($0, 'id')):VARCHAR(5)])\n"
+        + "      ElasticsearchFilter(condition=[OR(=(CAST(CAST(ITEM($0, 'state')):"
+        + "VARCHAR(2)):CHAR(2), 'CA'), >=(CAST(ITEM($0, 'pop')):INTEGER, 94000))])\n"
+        + "        ElasticsearchTableScan(table=[[elastic, zips]])\n"
+        + "\n";
     calciteAssert()
         .query(sql)
         .queryContains(

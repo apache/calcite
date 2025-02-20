@@ -49,12 +49,14 @@ public abstract class TestUtil {
   //~ Static fields/initializers ---------------------------------------------
 
   private static final Pattern LINE_BREAK_PATTERN =
-      Pattern.compile("\r\n|\r|\n");
+      Pattern.compile("\r\n"
+      + "|\r|\n");
 
   private static final Pattern TAB_PATTERN = Pattern.compile("\t");
 
   private static final String LINE_BREAK =
-      "\\\\n\"" + Util.LINE_SEPARATOR + " + \"";
+      "\\\\n"
+      + "\"" + Util.LINE_SEPARATOR + " + \"";
 
   private static final String JAVA_VERSION =
       System.getProperties().getProperty("java.version");
@@ -88,10 +90,10 @@ public abstract class TestUtil {
       String actual) {
     Assertions.assertEquals(expected, actual,
         () -> "Expected:\n"
-            + expected
-            + "\nActual:\n"
-            + actual
-            + "\nActual java:\n"
+            + expected + "\n"
+            + "Actual:\n"
+            + actual + "\n"
+            + "Actual java:\n"
             + toJavaString(actual) + '\n');
   }
 
@@ -122,7 +124,7 @@ public abstract class TestUtil {
     s = LINE_BREAK_PATTERN.matcher(s).replaceAll(LINE_BREAK);
     s = TAB_PATTERN.matcher(s).replaceAll("\\\\t");
     s = "\"" + s + "\"";
-    final String spurious = " + \n\"\"";
+    final String spurious = " + \n\"\""; // lint:skip (newline in string)
     if (s.endsWith(spurious)) {
       s = s.substring(0, s.length() - spurious.length());
     }
@@ -156,7 +158,7 @@ public abstract class TestUtil {
     s = LINE_BREAK_PATTERN.matcher(s).replaceAll(LINE_BREAK);
     s = TAB_PATTERN.matcher(s).replaceAll("\\\\t");
     s = "\"" + s + "\"";
-    String spurious = "\n \\+ \"\"";
+    String spurious = "\n \\+ \"\""; // lint:skip (newline in string)
     if (s.endsWith(spurious)) {
       s = s.substring(0, s.length() - spurious.length());
     }
@@ -238,9 +240,6 @@ public abstract class TestUtil {
    * <p>{@code 12.300000006} becomes {@code 12.3};
    * {@code -12.37999999991} becomes {@code -12.38}. */
   public static String correctRoundedFloat(String s) {
-    if (s == null) {
-      return s;
-    }
     final Matcher m = TRAILING_ZERO_PATTERN.matcher(s);
     if (m.matches()) {
       s = s.substring(0, s.length() - m.group(2).length());
@@ -248,7 +247,7 @@ public abstract class TestUtil {
     final Matcher m2 = TRAILING_NINE_PATTERN.matcher(s);
     if (m2.matches()) {
       s = s.substring(0, s.length() - m2.group(2).length());
-      if (s.length() > 0) {
+      if (!s.isEmpty()) {
         final char c = s.charAt(s.length() - 1);
         switch (c) {
         case '0':

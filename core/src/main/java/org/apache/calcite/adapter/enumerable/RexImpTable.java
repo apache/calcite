@@ -4517,8 +4517,8 @@ public class RexImpTable {
 
     @Override Expression implementSafe(final RexToLixTranslator translator,
         final RexCall call, final List<Expression> argValueList) {
-      return Expressions.
-          call(BuiltInMethod.LOG.method, args(call, argValueList, library));
+      return Expressions.call(BuiltInMethod.LOG.method,
+          args(call, argValueList, library));
     }
 
     /**

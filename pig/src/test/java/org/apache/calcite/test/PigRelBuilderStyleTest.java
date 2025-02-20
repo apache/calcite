@@ -275,7 +275,8 @@ class PigRelBuilderStyleTest extends AbstractPigTest {
       String expectedScript, String[] expectedResults) {
     try {
       assertThat(script, is(expectedScript));
-      script = script + "\nSTORE " + relAliasForStore + " INTO 'myoutput';";
+      script += "\n";
+      script += "STORE " + relAliasForStore + " INTO 'myoutput';";
       PigTest pigTest = new PigTest(script.split("[\\r\\n]+"));
       pigTest.assertOutputAnyOrder(expectedResults);
     } catch (Exception e) {

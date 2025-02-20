@@ -548,9 +548,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select 'foo'\n"
         + "'bar' from (values(true))").ok();
     sql("select 'foo'\r'bar' from (values(true))").ok();
-    sql("select 'foo'\n\r'bar' from (values(true))").ok();
-    sql("select 'foo'\r\n'bar' from (values(true))").ok();
-    sql("select 'foo'\n'bar' from (values(true))").ok();
+    sql("select 'foo'\n"
+        + "\r'bar' from (values(true))").ok();
+    sql("select 'foo'\r\n"
+        + "'bar' from (values(true))").ok();
+    sql("select 'foo'\n"
+        + "'bar' from (values(true))").ok();
     sql("select 'foo' /* comment */ ^'bar'^ from (values(true))")
         .fails("String literal continued on same line");
     sql("select 'foo' -- comment\r from (values(true))").ok();
@@ -561,7 +564,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test void testArithmeticOperators() {
     expr("power(2,3)").ok();
     expr("aBs(-2.3e-2)").ok();
-    expr("MOD(5             ,\t\f\r\n2)").ok();
+    expr("MOD(5             ,\t\f\r\n"
+        + "2)").ok();
     expr("ln(5.43  )").ok();
     expr("log10(- -.2  )").ok();
 
@@ -1892,8 +1896,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select * from table(topn(table orders partition by productid order by orderId, 3))")
         .ok();
     // test partition by clause and order by clause for subquery
-    sql("select * from table(topn(select * from Orders partition by productid\n "
-        + "order by orderId, 3))")
+    sql("select *\n"
+        + "from table(\n"
+        + "  topn(\n"
+        + "    select * from Orders partition by productid\n"
+        + "    order by orderId, 3))")
         .ok();
     // test multiple input tables
     sql("select * from table(\n"
@@ -2029,11 +2036,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testRowWithValidDot() {
-    sql("select ((1,2),(3,4,5)).\"EXPR$1\".\"EXPR$2\"\n from dept")
+    sql("select ((1,2),(3,4,5)).\"EXPR$1\".\"EXPR$2\"\n"
+        + " from dept")
         .columnType("INTEGER NOT NULL");
     sql("select row(1,2).\"EXPR$1\" from dept")
         .columnType("INTEGER NOT NULL");
-    sql("select t.a.\"EXPR$1\" from (select row(1,2) as a from (values (1))) as t")
+    sql("select t.a.\"EXPR$1\"\n"
+        + "from (\n"
+        + "  select row(1,2) as a from (values (1))) as t")
         .columnType("INTEGER NOT NULL");
   }
 
@@ -4416,12 +4426,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // cyclic
     sql("select ^six^ - 5 as measure uno, 2 + uno as measure three,\n"
         + "  three * 2 as measure six\n"
-        + "from emp").
-        fails("Measure 'SIX' is cyclic; its definition depends on the "
+        + "from emp")
+        .fails("Measure 'SIX' is cyclic; its definition depends on the "
             + "following measures: 'UNO', 'THREE', 'SIX'");
     sql("select 2 as measure two, ^uno^ as measure uno\n"
-        + "from emp").
-        fails("Measure 'UNO' is cyclic; its definition depends on the "
+        + "from emp")
+        .fails("Measure 'UNO' is cyclic; its definition depends on the "
             + "following measures: 'UNO'");
 
     // A measure can be used in the SELECT clause of a GROUP BY query even
@@ -5252,12 +5262,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select 1 from (values ('x')) union\n"
         + "(values ('a'))").ok();
 
-    sql("select 1, ^2^, 3 union\n "
+    sql("select 1, ^2^, 3\n"
+        + "union\n"
         + "select deptno, name, deptno from dept")
         .withTypeCoercion(false)
         .fails("Type mismatch in column 2 of UNION");
 
-    sql("select 1, 2, 3 union\n "
+    sql("select 1, 2, 3\n"
+        + "union\n"
         + "select deptno, name, deptno from dept").ok();
   }
 

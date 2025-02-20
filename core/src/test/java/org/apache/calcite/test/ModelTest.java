@@ -44,8 +44,8 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.anEmptyMap;
 import static org.hamcrest.Matchers.hasSize;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import static java.util.Objects.requireNonNull;
@@ -319,16 +319,20 @@ class ModelTest {
     assertThat(lattice0.getSql(), is("select * from sales_fact_1997"));
     final JsonLattice lattice1 = schema.lattices.get(1);
     assertThat(lattice1.name, is("SalesStar2"));
-    assertThat(lattice1.getSql(), is("select *\nfrom sales_fact_1997\n"));
+    assertThat(lattice1.getSql(),
+        is("select *\n"
+            + "from sales_fact_1997\n"));
     assertThat(schema.tables, hasSize(4));
     final JsonTable table1 = schema.tables.get(1);
-    assertTrue(!(table1 instanceof JsonView));
+    assertFalse(table1 instanceof JsonView);
     final JsonTable table2 = schema.tables.get(2);
     assertThat(table2, instanceOf(JsonView.class));
     assertThat(((JsonView) table2).getSql(), equalTo("values (1)"));
     final JsonTable table3 = schema.tables.get(3);
     assertThat(table3, instanceOf(JsonView.class));
-    assertThat(((JsonView) table3).getSql(), equalTo("values (1)\n(2)\n"));
+    assertThat(((JsonView) table3).getSql(),
+        equalTo("values (1)\n"
+            + "(2)\n"));
   }
 
   /** Tests a model with bad multi-line SQL. */
@@ -372,7 +376,11 @@ class ModelTest {
         + "  factory: " + JdbcTest.MySchemaFactory.class.getName() + "\r\n";
     CalciteAssert.model(yamlModel).doWithConnection(calciteConnection -> null);
     // with a comment
-    CalciteAssert.model("\n  \r\n# comment\n " + yamlModel)
+    final String model = "\n"
+        + "  \r\n"
+        + "# comment\n"
+        + " " + yamlModel;
+    CalciteAssert.model(model)
         .doWithConnection(calciteConnection -> null);
     // if starts with { => treated as json
     CalciteAssert.model("  { " + yamlModel + " }")

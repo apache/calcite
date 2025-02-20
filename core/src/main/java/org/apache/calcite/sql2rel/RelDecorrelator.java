@@ -2882,10 +2882,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
 
     @Override public String toString() {
-      return "mapRefRelToCorRef=" + mapRefRelToCorRef
-          + "\nmapCorToCorRel=" + mapCorToCorRel
-          + "\nmapFieldAccessToCorRef=" + mapFieldAccessToCorRef
-          + "\n";
+      return "mapRefRelToCorRef=" + mapRefRelToCorRef + "\n"
+          + "mapCorToCorRel=" + mapCorToCorRel + "\n"
+          + "mapFieldAccessToCorRef=" + mapFieldAccessToCorRef + "\n";
     }
 
     @SuppressWarnings("UndefinedEquals")

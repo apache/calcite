@@ -1037,7 +1037,8 @@ public class HepPlanner extends AbstractRelOptPlanner {
     }
     final RelMetadataQuery mq = root.getCluster().getMetadataQuery();
     final StringBuilder sb = new StringBuilder();
-    sb.append("\nBreadth-first from root:  {\n");
+    sb.append('\n')
+        .append("Breadth-first from root:  {\n");
     for (HepRelVertex vertex : BreadthFirstIterator.of(graph, root)) {
       sb.append("    ")
           .append(vertex)

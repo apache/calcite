@@ -115,8 +115,9 @@ class RexTransformerTest {
     RexNode result = transformer.transformNullSemantics();
     String actual = result.toString();
     if (!actual.equals(expected)) {
-      String msg =
-          "\nExpected=<" + expected + ">\n  Actual=<" + actual + ">";
+      String msg = "\n"
+          + "Expected=<" + expected + ">\n"
+          + "  Actual=<" + actual + ">";
       fail(msg);
     }
   }

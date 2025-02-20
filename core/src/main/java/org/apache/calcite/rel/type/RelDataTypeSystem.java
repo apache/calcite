@@ -423,14 +423,7 @@ public interface RelDataTypeSystem {
         assert precision > 0;
         assert scale <= maxScale;
 
-        RelDataType ret;
-        ret = typeFactory.
-            createSqlType(
-            SqlTypeName.DECIMAL,
-            precision,
-            scale);
-
-        return ret;
+        return typeFactory.createSqlType(SqlTypeName.DECIMAL, precision, scale);
       }
     }
 

@@ -1312,7 +1312,8 @@ class PlannerTest {
    */
   @Test void testOldJoinStyleDeCorrelation() throws Exception {
     assertFalse(
-        checkTpchQuery("select\n p.`pPartkey`\n"
+        checkTpchQuery("select\n"
+            + " p.`pPartkey`\n"
             + "from\n"
             + "  `tpch`.`part` p,\n"
             + "  `tpch`.`partsupp` ps1\n"

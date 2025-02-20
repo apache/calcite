@@ -105,7 +105,8 @@ class PigletTest {
         + "DUMP A;";
     final String expected =
         "LogicalValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])\n";
-    final String out = "(1,a)\n(2,b)\n";
+    final String out = "(1,a)\n"
+        + "(2,b)\n";
     pig(s).explainContains(expected).returns(out);
   }
 

@@ -65,7 +65,10 @@ class SourceTest {
    * Read lines from {@link CharSource}.
    */
   @Test void charSource() throws IOException {
-    Source source = Sources.fromCharSource(CharSource.wrap("a\nb"));
+    Source source =
+        Sources.fromCharSource(
+            CharSource.wrap("a\n"
+        + "b"));
     for (Reader r : Arrays.asList(source.reader(),
         new InputStreamReader(source.openStream(), StandardCharsets.UTF_8.name()))) {
       try (BufferedReader reader = new BufferedReader(r)) {

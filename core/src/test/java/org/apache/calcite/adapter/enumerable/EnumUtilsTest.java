@@ -199,7 +199,8 @@ public final class EnumUtilsTest {
     assertThat(Expressions.toString(modMethodCall),
         is("org.apache.calcite.runtime.SqlFunctions.mod("
             + "java.math.BigDecimal.valueOf(125L, 1), "
-            + "new java.math.BigDecimal(\n  3L))"));
+            + "new java.math.BigDecimal(\n"
+            + "  3L))"));
 
     // test "ST_MakePoint(int, int)" match to "ST_MakePoint(decimal, decimal)"
     final ConstantExpression arg4 = Expressions.constant(1, int.class);
@@ -209,7 +210,9 @@ public final class EnumUtilsTest {
             Arrays.asList(arg4, arg5));
     assertThat(Expressions.toString(geoMethodCall),
         is("org.apache.calcite.runtime.SpatialTypeFunctions.ST_MakePoint("
-            + "new java.math.BigDecimal(\n  1), "
-            + "new java.math.BigDecimal(\n  2))"));
+            + "new java.math.BigDecimal(\n"
+            + "  1), "
+            + "new java.math.BigDecimal(\n"
+            + "  2))"));
   }
 }

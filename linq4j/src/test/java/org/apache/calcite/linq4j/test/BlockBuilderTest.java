@@ -82,7 +82,10 @@ class BlockBuilderTest {
       }
     };
     b.add(Expressions.return_(null, Expressions.add(ONE, TWO)));
-    assertThat(b.toBlock(), hasToString("{\n  return 4;\n}\n"));
+    assertThat(b.toBlock(),
+        hasToString("{\n"
+            + "  return 4;\n"
+            + "}\n"));
   }
 
   private BlockBuilder appendBlockWithSameVariable(

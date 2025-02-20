@@ -1402,7 +1402,9 @@ public abstract class OperandTypes {
                       && sqlTypeName != SqlTypeName.MAP) {
 
           @Override public String getAllowedSignatures(SqlOperator op, String opName) {
-            return "UNNEST(<MULTISET>)\nUNNEST(<ARRAY>)\nUNNEST(<MAP>)";
+            return "UNNEST(<MULTISET>)\n"
+                + "UNNEST(<ARRAY>)\n"
+                + "UNNEST(<MAP>)";
           }
         });
 

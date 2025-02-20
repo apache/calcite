@@ -300,8 +300,10 @@ public class RelMetadataTest {
   @Test void testCalcColumnOriginsTable() {
     final String sql = "select name,deptno from dept where deptno > 10";
     final RelNode relNode = sql(sql).toRel();
-    final HepProgram program = new HepProgramBuilder().
-        addRuleInstance(CoreRules.PROJECT_TO_CALC).build();
+    final HepProgram program =
+        new HepProgramBuilder()
+            .addRuleInstance(CoreRules.PROJECT_TO_CALC)
+            .build();
     final HepPlanner planner = new HepPlanner(program);
     planner.setRoot(relNode);
     final RelNode calc = planner.findBestExp();
@@ -320,8 +322,10 @@ public class RelMetadataTest {
         + "from emp\n"
         + "group by empno";
     final RelNode relNode = sql(sql1).toRel();
-    final HepProgram program = new HepProgramBuilder().
-        addRuleInstance(CoreRules.PROJECT_TO_CALC).build();
+    final HepProgram program =
+        new HepProgramBuilder()
+            .addRuleInstance(CoreRules.PROJECT_TO_CALC)
+            .build();
     final HepPlanner planner = new HepPlanner(program);
     planner.setRoot(relNode);
     final RelNode rel = planner.findBestExp();
@@ -719,7 +723,7 @@ public class RelMetadataTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5286">[CALCITE-5286]
-   * Join with parameterized LIMIT throws AssertionError "not a literal". </a>. */
+   * Join with parameterized LIMIT throws AssertionError "not a literal"</a>. */
   @Test void testRowCountJoinWithDynamicParameters() {
     final String sql = "select r.ename, s.sal from\n"
         + "(select * from emp limit ?) r join bonus s\n"
@@ -801,7 +805,7 @@ public class RelMetadataTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5050">[CALCITE-5050]
-   * Aggregate with no GROUP BY always returns 1 row. </a>. */
+   * Aggregate with no GROUP BY always returns 1 row</a>. */
   @Test void testRowCountAggregateEmptyGroupKey() {
     fixture()
         .withRelFn(b ->
@@ -815,7 +819,8 @@ public class RelMetadataTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5050">[CALCITE-5050]
-   * Aggregate with no GROUP BY always returns 1 row (even on empty table). </a>. */
+   * Aggregate with no GROUP BY always returns 1 row (even on empty
+   * table)</a>. */
   @Test void testRowCountAggregateEmptyGroupKeyWithEmptyTable() {
     fixture()
         .withRelFn(b ->
@@ -841,7 +846,8 @@ public class RelMetadataTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6474">[CALCITE-6474]
-   * Aggregate with constant key can get a RowCount greater than its MaxRowCount </a>. */
+   * Aggregate with constant key can get a RowCount greater than its
+   * MaxRowCount</a>. */
   @Test void testRowCountAggregateConstantKeysOnBigInput() {
     final String sql = ""
         + "select distinct deptno from ("
@@ -4248,11 +4254,13 @@ public class RelMetadataTest {
         is(mq.getPopulationSize(rel, bitSetOf(0))));
   }
 
-  /**
-   * Test that RelMdPopulationSize is calculated based on the RelMetadataQuery#getRowCount().
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5647">[CALCITE-5647]
+   * RelMdPopulationSize should use mq.getRowCount(rel) instead of
+   * rel.estimateRowCount(mq)</a>.
    *
-   * @see <a href="https://issues.apache.org/jira/browse/CALCITE-5647">[CALCITE-5647]</a>
-   */
+   * <p>Tests that RelMdPopulationSize is calculated based on the
+   * {@link RelMetadataQuery#getRowCount}. */
   @Test public void testPopulationSizeFromValues() {
     final String sql = "values(1,2,3),(1,2,3),(1,2,3),(1,2,3)";
     final RelNode rel = sql(sql).toRel();

@@ -3012,14 +3012,38 @@ public class JdbcTest {
     switch (format) {
     case "dot":
       expected = "PLAN=digraph {\n"
-          + "\"EnumerableCalc\\nexpr#0..3 = {inputs}\\ndeptno = $t0\\ndeptno0 = $t0\\n\" -> "
-          + "\"EnumerableUnion\\nall = false\\n\" [label=\"0\"]\n"
-          +  "\"EnumerableCalc\\nexpr#0..4 = {inputs}\\ndeptno = $t1\\nempid = $t0\\n\" -> "
-          + "\"EnumerableUnion\\nall = false\\n\" [label=\"1\"]\n"
-          + "\"EnumerableTableScan\\ntable = [hr, depts]\\n\" -> \"EnumerableCalc\\nexpr#0..3 = "
-          + "{inputs}\\ndeptno = $t0\\ndeptno0 = $t0\\n\" [label=\"0\"]\n"
-          + "\"EnumerableTableScan\\ntable = [hr, emps]\\n\" -> \"EnumerableCalc\\nexpr#0..4 = "
-          + "{inputs}\\ndeptno = $t1\\nempid = $t0\\n\" [label=\"0\"]\n"
+          + "\"EnumerableCalc\\n"
+          + "expr#0..3 = {inputs}\\n"
+          + "deptno = $t0\\n"
+          + "deptno0 = $t0\\n"
+          + "\" -> "
+          + "\"EnumerableUnion\\n"
+          + "all = false\\n"
+          + "\" [label=\"0\"]\n"
+          +  "\"EnumerableCalc\\n"
+          + "expr#0..4 = {inputs}\\n"
+          + "deptno = $t1\\n"
+          + "empid = $t0\\n"
+          + "\" -> "
+          + "\"EnumerableUnion\\n"
+          + "all = false\\n"
+          + "\" [label=\"1\"]\n"
+          + "\"EnumerableTableScan\\n"
+          + "table = [hr, depts]\\n"
+          + "\" -> \"EnumerableCalc\\n"
+          + "expr#0..3 = "
+          + "{inputs}\\n"
+          + "deptno = $t0\\n"
+          + "deptno0 = $t0\\n"
+          + "\" [label=\"0\"]\n"
+          + "\"EnumerableTableScan\\n"
+          + "table = [hr, emps]\\n"
+          + "\" -> \"EnumerableCalc\\n"
+          + "expr#0..4 = "
+          + "{inputs}\\n"
+          + "deptno = $t1\\n"
+          + "empid = $t0\\n"
+          + "\" [label=\"0\"]\n"
           + "}\n"
           + "\n";
       extra = " as dot ";
@@ -3054,14 +3078,18 @@ public class JdbcTest {
   @ParameterizedTest
   @MethodSource("explainFormats")
   void testInnerJoinValues(String format) {
-    String expected = null;
+    String expected;
     final String extra;
     switch (format) {
     case "text":
-      expected = "EnumerableCalc(expr#0=[{inputs}], expr#1=['SameName'], proj#0..1=[{exprs}])\n"
+      expected = "EnumerableCalc(expr#0=[{inputs}], expr#1=['SameName'], "
+          + "proj#0..1=[{exprs}])\n"
           + "  EnumerableAggregate(group=[{0}])\n"
-          + "    EnumerableCalc(expr#0..1=[{inputs}], expr#2=[CAST($t1):INTEGER NOT NULL], expr#3=[10], expr#4=[=($t2, $t3)], proj#0..1=[{exprs}], $condition=[$t4])\n"
-          + "      EnumerableTableScan(table=[[SALES, EMPS]])\n\n";
+          + "    EnumerableCalc(expr#0..1=[{inputs}], "
+          + "expr#2=[CAST($t1):INTEGER NOT NULL], expr#3=[10], "
+          + "expr#4=[=($t2, $t3)], proj#0..1=[{exprs}], $condition=[$t4])\n"
+          + "      EnumerableTableScan(table=[[SALES, EMPS]])\n"
+          + "\n";
       extra = "";
       break;
     case "dot":
@@ -3083,7 +3111,8 @@ public class JdbcTest {
           + "group = {0}\\n"
           + "\" [label=\"0\"]\n"
           + "\"EnumerableTableScan\\n"
-          + "table = [SALES, EMPS\\n]\\n"
+          + "table = [SALES, EMPS\\n"
+          + "]\\n"
           + "\" -> \"EnumerableCalc\\n"
           + "expr#0..1 = {inputs}\\n"
           + "expr#2 = CAST($t1):I\\n"
@@ -3091,7 +3120,8 @@ public class JdbcTest {
           + "expr#3 = 10\\n"
           + "expr#4 = =($t2, $t3)\\n"
           + "...\" [label=\"0\"]\n"
-          + "}\n\n";
+          + "}\n"
+          + "\n";
       extra = " as dot ";
       break;
     default:
@@ -3263,8 +3293,8 @@ public class JdbcTest {
   }
 
   /** Test cases for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5984">[CALCITE-5984]</a>
-   * Disabling trimming of unused fields via config and program. */
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5984">[CALCITE-5984]
+   * Disabling trimming of unused fields via config and program</a>. */
   @ParameterizedTest
   @MethodSource("disableTrimmingConfigsTestArguments")
   void testJoinWithTrimmingConfigs(boolean enableTrimmingByConfig,
@@ -4071,15 +4101,26 @@ public class JdbcTest {
     switch (format) {
     case "text":
       expected = ""
-          + "PLAN=EnumerableCalc(expr#0..9=[{inputs}], expr#10=[370], expr#11=[<($t0, $t10)], proj#0..1=[{exprs}], $condition=[$t11])\n"
-          + "  EnumerableTableScan(table=[[foodmart2, time_by_day]])\n\n";
+          + "PLAN=EnumerableCalc(expr#0..9=[{inputs}], expr#10=[370], "
+          + "expr#11=[<($t0, $t10)], proj#0..1=[{exprs}], $condition=[$t11])\n"
+          + "  EnumerableTableScan(table=[[foodmart2, time_by_day]])\n"
+          + "\n";
       extra = "";
       break;
     case "dot":
       expected = "PLAN=digraph {\n"
-          + "\"EnumerableTableScan\\ntable = [foodmart2, \\ntime_by_day]\\n\" -> "
-          + "\"EnumerableCalc\\nexpr#0..9 = {inputs}\\nexpr#10 = 370\\nexpr#11 = <($t0, $t1\\n0)"
-          + "\\nproj#0..1 = {exprs}\\n$condition = $t11\" [label=\"0\"]\n"
+          + "\"EnumerableTableScan\\n"
+          + "table = [foodmart2, \\n"
+          + "time_by_day]\\n"
+          + "\" -> "
+          + "\"EnumerableCalc\\n"
+          + "expr#0..9 = {inputs}\\n"
+          + "expr#10 = 370\\n"
+          + "expr#11 = <($t0, $t1\\n"
+          + "0)"
+          + "\\n"
+          + "proj#0..1 = {exprs}\\n"
+          + "$condition = $t11\" [label=\"0\"]\n"
           + "}\n"
           + "\n";
       extra = " as dot ";
@@ -6272,7 +6313,8 @@ public class JdbcTest {
                 + "  LogicalSort(sort0=[$1], dir0=[ASC])\n"
                 + "    LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], "
                 + "commission=[$4])\n"
-                + "      LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
+                + "      LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n"
+                + "\n"));
     // Remove sort, because view not is top node
     with.query("select * from \"adhoc\".V union all select * from  \"adhoc\".\"EMPLOYEES\"")
         .explainMatches(" without implementation ",
@@ -6283,7 +6325,8 @@ public class JdbcTest {
                 + "    LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n"
                 + "  LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], "
                 + "commission=[$4])\n"
-                + "    LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
+                + "    LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n"
+                + "\n"));
     with.query("select * from "
             + "(select \"empid\", \"deptno\" from  \"adhoc\".V) where \"deptno\" > 10")
         .explainMatches(" without implementation ",
@@ -6291,7 +6334,8 @@ public class JdbcTest {
                 + "LogicalProject(empid=[$0], deptno=[$1])\n"
                 + "  LogicalFilter(condition=[>($1, 10)])\n"
                 + "    LogicalProject(empid=[$0], deptno=[$1])\n"
-                + "      LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
+                + "      LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n"
+                + "\n"));
     with.query("select * from \"adhoc\".\"EMPLOYEES\" where exists (select * from \"adhoc\".V)")
         .explainMatches(" without implementation ",
             checkResult("PLAN="
@@ -6300,7 +6344,8 @@ public class JdbcTest {
                 + "  LogicalFilter(condition=[EXISTS({\n"
                 + "LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n"
                 + "})])\n"
-                + "    LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
+                + "    LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n"
+                + "\n"));
     // View is used in a query at top level，but it's not the top plan
     // Still remove sort
     with.query("select * from \"adhoc\".V order by \"empid\"")
@@ -6309,7 +6354,8 @@ public class JdbcTest {
                 + "LogicalSort(sort0=[$0], dir0=[ASC])\n"
                 + "  LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], "
                 + "commission=[$4])\n"
-                + "    LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
+                + "    LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n"
+                + "\n"));
     with.query("select * from \"adhoc\".V, \"adhoc\".\"EMPLOYEES\"")
         .explainMatches(" without implementation ",
             checkResult("PLAN="
@@ -6320,20 +6366,23 @@ public class JdbcTest {
                 + "    LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], "
                 + "commission=[$4])\n"
                 + "      LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n"
-                + "    LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
+                + "    LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n"
+                + "\n"));
     with.query("select \"empid\", count(*) from \"adhoc\".V group by \"empid\"")
         .explainMatches(" without implementation ",
             checkResult("PLAN="
                 + "LogicalAggregate(group=[{0}], EXPR$1=[COUNT()])\n"
                 + "  LogicalProject(empid=[$0])\n"
-                + "    LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
+                + "    LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n"
+                + "\n"));
     with.query("select distinct * from \"adhoc\".V")
         .explainMatches(" without implementation ",
             checkResult("PLAN="
                 + "LogicalAggregate(group=[{0, 1, 2, 3, 4}])\n"
                 + "  LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], "
                 + "commission=[$4])\n"
-                + "    LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
+                + "    LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n"
+                + "\n"));
   }
 
   @Test void testCustomRemoveSortInView() {
@@ -6349,7 +6398,8 @@ public class JdbcTest {
                 + "    LogicalSort(sort0=[$1], dir0=[ASC])\n"
                 + "      LogicalProject(empid=[$0], deptno=[$1], name=[$2], "
                 + "salary=[$3], commission=[$4])\n"
-                + "        LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
+                + "        LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n"
+                + "\n"));
     with.query("select * from \"adhoc\".V where \"deptno\" > 10")
         .withHook(Hook.SQL2REL_CONVERTER_CONFIG_BUILDER,
             (Consumer<Holder<Config>>) configHolder ->
@@ -6362,7 +6412,8 @@ public class JdbcTest {
                 + "    LogicalSort(sort0=[$1], dir0=[ASC])\n"
                 + "      LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], "
                 + "commission=[$4])\n"
-                + "        LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
+                + "        LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n"
+                + "\n"));
 
     with.query("select * from \"adhoc\".V limit 10")
         .explainMatches(" without implementation ",
@@ -6370,7 +6421,8 @@ public class JdbcTest {
                 + "LogicalSort(fetch=[10])\n"
                 + "  LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], "
                 + "commission=[$4])\n"
-                + "    LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
+                + "    LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n"
+                + "\n"));
     with.query("select * from \"adhoc\".V limit 10")
         .withHook(Hook.SQL2REL_CONVERTER_CONFIG_BUILDER,
             (Consumer<Holder<Config>>) configHolder ->
@@ -6383,7 +6435,8 @@ public class JdbcTest {
                 + "    LogicalSort(sort0=[$1], dir0=[ASC])\n"
                 + "      LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], "
                 + "commission=[$4])\n"
-                + "        LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
+                + "        LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n"
+                + "\n"));
 
     with.query("select * from \"adhoc\".V offset 10")
         .explainMatches(" without implementation ",
@@ -6391,7 +6444,8 @@ public class JdbcTest {
                 + "LogicalSort(offset=[10])\n"
                 + "  LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], "
                 + "commission=[$4])\n"
-                + "    LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
+                + "    LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n"
+                + "\n"));
     with.query("select * from \"adhoc\".V offset 10")
         .withHook(Hook.SQL2REL_CONVERTER_CONFIG_BUILDER,
             (Consumer<Holder<Config>>) configHolder ->
@@ -6404,7 +6458,8 @@ public class JdbcTest {
                 + "    LogicalSort(sort0=[$1], dir0=[ASC])\n"
                 + "      LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], "
                 + "commission=[$4])\n"
-                + "        LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
+                + "        LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n"
+                + "\n"));
 
 
     with.query("select * from \"adhoc\".V limit 5 offset 5")
@@ -6413,7 +6468,8 @@ public class JdbcTest {
                 + "LogicalSort(offset=[5], fetch=[5])\n"
                 + "  LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], "
                 + "commission=[$4])\n"
-                + "    LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
+                + "    LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n"
+                + "\n"));
     with.query("select * from \"adhoc\".V limit 5 offset 5")
         .withHook(Hook.SQL2REL_CONVERTER_CONFIG_BUILDER,
             (Consumer<Holder<Config>>) configHolder ->
@@ -6426,7 +6482,8 @@ public class JdbcTest {
                 + "    LogicalSort(sort0=[$1], dir0=[ASC])\n"
                 + "      LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], "
                 + "commission=[$4])\n"
-                + "        LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
+                + "        LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n"
+                + "\n"));
   }
 
   /** Tests a view with ORDER BY and LIMIT clauses. */
@@ -6555,7 +6612,8 @@ public class JdbcTest {
     final CalciteAssert.AssertThat with =
         CalciteAssert.that().with(CalciteAssert.Config.FOODMART_CLONE);
     with.query("explain plan for values (1, 'ab')")
-        .returns("PLAN=EnumerableValues(tuples=[[{ 1, 'ab' }]])\n\n");
+        .returns("PLAN=EnumerableValues(tuples=[[{ 1, 'ab' }]])\n"
+            + "\n");
     final String expectedXml = "PLAN=<RelNode type=\"EnumerableValues\">\n"
         + "\t<Property name=\"tuples\">\n"
         + "\t\t[{ 1, &#39;ab&#39; }]\n"
@@ -6639,9 +6697,11 @@ public class JdbcTest {
     with.query("explain plan as json for values (1, 'ab', TIMESTAMP '2013-04-02 00:00:00', 0.01)")
         .returns(expectedJson);
     with.query("explain plan with implementation for values (1, 'ab')")
-        .returns("PLAN=EnumerableValues(tuples=[[{ 1, 'ab' }]])\n\n");
+        .returns("PLAN=EnumerableValues(tuples=[[{ 1, 'ab' }]])\n"
+            + "\n");
     with.query("explain plan without implementation for values (1, 'ab')")
-        .returns("PLAN=LogicalValues(tuples=[[{ 1, 'ab' }]])\n\n");
+        .returns("PLAN=LogicalValues(tuples=[[{ 1, 'ab' }]])\n"
+            + "\n");
     with.query("explain plan with type for values (1, 'ab')")
         .returns("PLAN=EXPR$0 INTEGER NOT NULL,\n"
             + "EXPR$1 CHAR(2) NOT NULL\n");
@@ -8224,7 +8284,8 @@ public class JdbcTest {
         .query(sql)
         .convertContains(convert)
         .explainContains(plan)
-        .returns("C=1000; EMPID=100; TWO=2\nC=500; EMPID=200; TWO=2\n");
+        .returns("C=1000; EMPID=100; TWO=2\n"
+            + "C=500; EMPID=200; TWO=2\n");
   }
 
   @Test void testMatch() {
@@ -8256,7 +8317,8 @@ public class JdbcTest {
         .query(sql)
         .convertContains(convert)
         .explainContains(plan)
-        .returns("C=1000; EMPID=100\nC=500; EMPID=200\n");
+        .returns("C=1000; EMPID=100\n"
+            + "C=500; EMPID=200\n");
   }
 
   @Test void testJsonType() {
@@ -8508,7 +8570,9 @@ public class JdbcTest {
         + "select \"id\" from (VALUES(DATE '2018-02-03')) \"foo\"(\"id\")\n"
         + "union\n"
         + "select \"id\" from (VALUES(TIMESTAMP '2008-03-31 12:23:34')) \"foo\"(\"id\"))";
-    assertThat.query(query).returns("id=2008-03-31 12:23:34\nid=2018-02-03 00:00:00\n");
+    assertThat.query(query)
+        .returns("id=2008-03-31 12:23:34\n"
+            + "id=2018-02-03 00:00:00\n");
   }
 
   @Test void testNestedCastBigInt() {
@@ -8620,9 +8684,9 @@ public class JdbcTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5414">[CALCITE-5414]</a>
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5414">[CALCITE-5414]
    * Convert between standard Gregorian and proleptic Gregorian calendars for
-   * literal dates in local time zone. */
+   * literal dates in local time zone</a>. */
   @Test void testLiteralDateToSqlTimestamp() {
     CalciteAssert.that()
         .with(CalciteConnectionProperty.TIME_ZONE, TimeZone.getDefault().getID())
@@ -8640,9 +8704,9 @@ public class JdbcTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5414">[CALCITE-5414]</a>
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5414">[CALCITE-5414]
    * Convert between standard Gregorian and proleptic Gregorian calendars for
-   * literal timestamps in local time zone. */
+   * literal timestamps in local time zone</a>. */
   @Test void testLiteralTimestampToSqlTimestamp() {
     CalciteAssert.that()
         .with(CalciteConnectionProperty.TIME_ZONE, TimeZone.getDefault().getID())
@@ -8661,9 +8725,9 @@ public class JdbcTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5414">[CALCITE-5414]</a>
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5414">[CALCITE-5414]
    * Convert between standard Gregorian and proleptic Gregorian calendars for
-   * dynamic dates in local time zone. */
+   * dynamic dates in local time zone</a>. */
   @Test void testDynamicDateToSqlTimestamp() {
     final Date date = Date.valueOf("1500-04-30");
     CalciteAssert.that()
@@ -8683,9 +8747,9 @@ public class JdbcTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5414">[CALCITE-5414]</a>
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5414">[CALCITE-5414]
    * Convert between standard Gregorian and proleptic Gregorian calendars for
-   * dynamic timestamps in local time zone. */
+   * dynamic timestamps in local time zone</a>. */
   @Test void testDynamicTimestampToSqlTimestamp() {
     final Timestamp timestamp = Timestamp.valueOf("1500-04-30 12:00:00");
     CalciteAssert.that()

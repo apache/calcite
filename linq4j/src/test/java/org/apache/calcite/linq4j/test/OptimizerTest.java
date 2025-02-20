@@ -53,19 +53,25 @@ import static org.hamcrest.MatcherAssert.assertThat;
 class OptimizerTest {
   @Test void testOptimizeComparison() {
     assertThat(optimize(Expressions.equal(ONE, ONE)),
-        is("{\n  return true;\n}\n"));
+        is("{\n"
+            + "  return true;\n"
+            + "}\n"));
   }
 
   @Test void testOptimizeTernaryAlwaysTrue() {
     // true ? 1 : 2
     assertThat(optimize(Expressions.condition(TRUE, ONE, TWO)),
-        is("{\n  return 1;\n}\n"));
+        is("{\n"
+            + "  return 1;\n"
+            + "}\n"));
   }
 
   @Test void testOptimizeTernaryAlwaysFalse() {
     // false ? 1 : 2
     assertThat(optimize(Expressions.condition(FALSE, ONE, TWO)),
-        is("{\n  return 2;\n}\n"));
+        is("{\n"
+            + "  return 2;\n"
+            + "}\n"));
   }
 
   @Test void testOptimizeTernaryAlwaysSame() {
@@ -74,7 +80,9 @@ class OptimizerTest {
         optimize(
             Expressions.condition(
                 Expressions.parameter(boolean.class, "bool"), ONE, ONE)),
-        is("{\n  return 1;\n}\n"));
+        is("{\n"
+            + "  return 1;\n"
+            + "}\n"));
   }
 
   @Test void testNonOptimizableTernary() {
@@ -83,7 +91,9 @@ class OptimizerTest {
         optimize(
             Expressions.condition(
                 Expressions.parameter(boolean.class, "bool"), ONE, TWO)),
-        is("{\n  return bool ? 1 : 2;\n}\n"));
+        is("{\n"
+            + "  return bool ? 1 : 2;\n"
+            + "}\n"));
   }
 
   @Test void testOptimizeTernaryRotateNot() {
@@ -93,7 +103,9 @@ class OptimizerTest {
             Expressions.condition(
                 Expressions.not(Expressions.parameter(boolean.class, "bool")),
                 ONE, TWO)),
-        is("{\n  return bool ? 2 : 1;\n}\n"));
+        is("{\n"
+            + "  return bool ? 2 : 1;\n"
+            + "}\n"));
   }
 
   @Test void testOptimizeTernaryRotateEqualFalse() {
@@ -104,7 +116,9 @@ class OptimizerTest {
                 Expressions.equal(Expressions.parameter(boolean.class, "bool"),
                     FALSE),
                 ONE, TWO)),
-        is("{\n  return bool ? 2 : 1;\n}\n"));
+        is("{\n"
+            + "  return bool ? 2 : 1;\n"
+            + "}\n"));
   }
 
   @Test void testOptimizeTernaryAtrueB() {
@@ -114,7 +128,9 @@ class OptimizerTest {
             Expressions.condition(
                 Expressions.parameter(boolean.class, "a"),
                 TRUE, Expressions.parameter(boolean.class, "b"))),
-        is("{\n  return a || b;\n}\n"));
+        is("{\n"
+            + "  return a || b;\n"
+            + "}\n"));
   }
 
   @Test void testOptimizeTernaryAtrueNull() {
@@ -124,7 +140,9 @@ class OptimizerTest {
             Expressions.condition(
                 Expressions.parameter(boolean.class, "a"),
                 TRUE_B, Expressions.constant(null, Boolean.class))),
-        is("{\n  return a ? Boolean.TRUE : null;\n}\n"));
+        is("{\n"
+            + "  return a ? Boolean.TRUE : null;\n"
+            + "}\n"));
   }
 
   @Test void testOptimizeTernaryAtrueBoxed() {
@@ -135,7 +153,9 @@ class OptimizerTest {
                 TRUE_B,
                 Expressions.call(Boolean.class, "valueOf",
                     Expressions.parameter(boolean.class, "b")))),
-        is("{\n  return a || Boolean.valueOf(b);\n}\n"));
+        is("{\n"
+            + "  return a || Boolean.valueOf(b);\n"
+            + "}\n"));
   }
 
   @Test void testOptimizeTernaryABtrue() {
@@ -145,7 +165,9 @@ class OptimizerTest {
             Expressions.condition(
                 Expressions.parameter(boolean.class, "a"),
                 Expressions.parameter(boolean.class, "b"), TRUE)),
-        is("{\n  return (!a) || b;\n}\n"));
+        is("{\n"
+            + "  return (!a) || b;\n"
+            + "}\n"));
   }
 
   @Test void testOptimizeTernaryAfalseB() {
@@ -155,7 +177,9 @@ class OptimizerTest {
             Expressions.condition(
                 Expressions.parameter(boolean.class, "a"),
                 FALSE, Expressions.parameter(boolean.class, "b"))),
-        is("{\n  return (!a) && b;\n}\n"));
+        is("{\n"
+            + "  return (!a) && b;\n"
+            + "}\n"));
   }
 
   @Test void testOptimizeTernaryABfalse() {
@@ -164,7 +188,9 @@ class OptimizerTest {
         optimize(
             Expressions.condition(Expressions.parameter(boolean.class, "a"),
                 Expressions.parameter(boolean.class, "b"), FALSE)),
-        is("{\n  return a && b;\n}\n"));
+        is("{\n"
+            + "  return a && b;\n"
+            + "}\n"));
   }
 
   @Test void testOptimizeTernaryInEqualABCeqB() {
@@ -175,8 +201,10 @@ class OptimizerTest {
                 Expressions.condition(Expressions.parameter(boolean.class, "v"),
                     NULL_INTEGER,
                     Expressions.parameter(Integer.class, "inp0_")),
-            NULL)),
-        is("{\n  return v || inp0_ == null;\n}\n"));
+                NULL)),
+        is("{\n"
+            + "  return v || inp0_ == null;\n"
+            + "}\n"));
   }
 
   @Test void testOptimizeTernaryNullCasting1() {
@@ -187,7 +215,9 @@ class OptimizerTest {
                     new ConstantExpression(Long.class, 1L),
                     new ConstantExpression(Long.class, null)),
                 new ConstantExpression(Long.class, 2L))),
-        is("{\n  return (v ? Long.valueOf(1L) : null) == Long.valueOf(2L);\n}\n"));
+        is("{\n"
+            + "  return (v ? Long.valueOf(1L) : null) == Long.valueOf(2L);\n"
+            + "}\n"));
 
     assertThat(
         optimize(
@@ -196,7 +226,9 @@ class OptimizerTest {
                     new ConstantExpression(Long.class, null),
                     new ConstantExpression(Long.class, 1L)),
                 new ConstantExpression(Long.class, 2L))),
-        is("{\n  return (v ? null : Long.valueOf(1L)) == Long.valueOf(2L);\n}\n"));
+        is("{\n"
+            + "  return (v ? null : Long.valueOf(1L)) == Long.valueOf(2L);\n"
+            + "}\n"));
 
     assertThat(
         optimize(
@@ -205,7 +237,9 @@ class OptimizerTest {
                     new ConstantExpression(Object.class, null),
                     new ConstantExpression(Long.class, 1L)),
                 new ConstantExpression(Long.class, 2L))),
-        is("{\n  return (v ? null : Long.valueOf(1L)) == Long.valueOf(2L);\n}\n"));
+        is("{\n"
+            + "  return (v ? null : Long.valueOf(1L)) == Long.valueOf(2L);\n"
+            + "}\n"));
   }
 
   @Test void testOptimizeTernaryNullCasting2() {
@@ -216,34 +250,40 @@ class OptimizerTest {
         Expressions.block(
             Expressions.declare(0, v,
                 new ConstantExpression(Boolean.class, false)),
-        Expressions.declare(0, o,
-            Expressions.condition(v,
-                new ConstantExpression(Object.class, null),
-                new ConstantExpression(Boolean.class, true))));
+            Expressions.declare(0, o,
+                Expressions.condition(v,
+                    new ConstantExpression(Object.class, null),
+                    new ConstantExpression(Boolean.class, true))));
 
     assertThat(optimize(bl),
-        is("{\n  Boolean v = Boolean.valueOf(false);\n"
-            + "  Boolean o = v ? null : Boolean.valueOf(true);\n}\n"));
+        is("{\n"
+            + "  Boolean v = Boolean.valueOf(false);\n"
+            + "  Boolean o = v ? null : Boolean.valueOf(true);\n"
+            + "}\n"));
 
     bl =
         Expressions.block(
             Expressions.declare(0, o,
-            Expressions.orElse(
-                new ConstantExpression(Boolean.class, true),
-                new ConstantExpression(Boolean.class, null))));
+                Expressions.orElse(
+                    new ConstantExpression(Boolean.class, true),
+                    new ConstantExpression(Boolean.class, null))));
 
     assertThat(optimize(bl),
-        is("{\n  Boolean o = Boolean.valueOf(true) || (Boolean) null;\n}\n"));
+        is("{\n"
+            + "  Boolean o = Boolean.valueOf(true) || (Boolean) null;\n"
+            + "}\n"));
 
     bl =
         Expressions.block(
             Expressions.declare(0, o,
-            Expressions.orElse(
-                new ConstantExpression(Boolean.class, null),
-                new ConstantExpression(Boolean.class, true))));
+                Expressions.orElse(
+                    new ConstantExpression(Boolean.class, null),
+                    new ConstantExpression(Boolean.class, true))));
 
     assertThat(optimize(bl),
-        is("{\n  Boolean o = (Boolean) null || Boolean.valueOf(true);\n}\n"));
+        is("{\n"
+            + "  Boolean o = (Boolean) null || Boolean.valueOf(true);\n"
+            + "}\n"));
   }
 
   @Test void testOptimizeBinaryNullCasting1() {
@@ -259,11 +299,13 @@ class OptimizerTest {
             Expressions.assign(x, second));
 
     assertThat(optimize(finalExp),
-        is("{\n  if (y > Long.valueOf(2L)) {\n"
+        is("{\n"
+            + "  if (y > Long.valueOf(2L)) {\n"
             + "    return x = \"one\";\n"
             + "  } else {\n"
             + "    return x = null;\n"
-            + "  }\n}\n"));
+            + "  }\n"
+            + "}\n"));
   }
 
   @Test void testOptimizeBinaryNullCasting2() {
@@ -272,11 +314,13 @@ class OptimizerTest {
     ParameterExpression y = Expressions.variable(Boolean.class, "y");
     // Boolean y = x || (Boolean) null;
     BinaryExpression yt =
-        Expressions.assign(
-            y, Expressions.orElse(x,
-            new ConstantExpression(Boolean.class, null)));
+        Expressions.assign(y,
+            Expressions.orElse(x,
+                new ConstantExpression(Boolean.class, null)));
     assertThat(optimize(yt),
-        is("{\n  return y = x || (Boolean) null;\n}\n"));
+        is("{\n"
+            + "  return y = x || (Boolean) null;\n"
+            + "}\n"));
   }
 
   @Test void testOptimizeTernaryInEqualABCeqC() {
@@ -287,8 +331,10 @@ class OptimizerTest {
                 Expressions.condition(Expressions.parameter(boolean.class, "v"),
                     Expressions.parameter(Integer.class, "inp0_"),
                     NULL_INTEGER),
-            NULL)),
-        is("{\n  return (!v) || inp0_ == null;\n}\n"));
+                NULL)),
+        is("{\n"
+            + "  return (!v) || inp0_ == null;\n"
+            + "}\n"));
   }
 
   @Test void testOptimizeTernaryAeqBBA() {
@@ -296,7 +342,9 @@ class OptimizerTest {
     ParameterExpression a = Expressions.parameter(boolean.class, "a");
     ParameterExpression b = Expressions.parameter(boolean.class, "b");
     assertThat(optimize(Expressions.condition(Expressions.equal(a, b), b, a)),
-        is("{\n  return a;\n}\n"));
+        is("{\n"
+            + "  return a;\n"
+            + "}\n"));
   }
 
   @Test void testOptimizeTernaryAeqBAB() {
@@ -304,7 +352,9 @@ class OptimizerTest {
     ParameterExpression a = Expressions.parameter(boolean.class, "a");
     ParameterExpression b = Expressions.parameter(boolean.class, "b");
     assertThat(optimize(Expressions.condition(Expressions.equal(a, b), a, b)),
-        is("{\n  return b;\n}\n"));
+        is("{\n"
+            + "  return b;\n"
+            + "}\n"));
   }
 
   @Test void testOptimizeTernaryInEqualABCneqB() {
@@ -315,8 +365,10 @@ class OptimizerTest {
                 Expressions.condition(Expressions.parameter(boolean.class, "v"),
                     NULL_INTEGER,
                     Expressions.parameter(Integer.class, "inp0_")),
-            NULL)),
-        is("{\n  return (!(v || inp0_ == null));\n}\n"));
+                NULL)),
+        is("{\n"
+            + "  return (!(v || inp0_ == null));\n"
+            + "}\n"));
   }
 
   @Test void testOptimizeTernaryInEqualABCneqC() {
@@ -327,8 +379,10 @@ class OptimizerTest {
                 Expressions.condition(Expressions.parameter(boolean.class, "v"),
                     Expressions.parameter(Integer.class, "inp0_"),
                     NULL_INTEGER),
-            NULL)),
-        is("{\n  return (!((!v) || inp0_ == null));\n}\n"));
+                NULL)),
+        is("{\n"
+            + "  return (!((!v) || inp0_ == null));\n"
+            + "}\n"));
   }
 
   @Test void testOptimizeTernaryAneqBBA() {
@@ -337,7 +391,9 @@ class OptimizerTest {
     ParameterExpression b = Expressions.parameter(boolean.class, "b");
     assertThat(
         optimize(Expressions.condition(Expressions.notEqual(a, b), b, a)),
-        is("{\n  return b;\n}\n"));
+        is("{\n"
+            + "  return b;\n"
+            + "}\n"));
   }
 
   @Test void testOptimizeTernaryAneqBAB() {
@@ -346,7 +402,9 @@ class OptimizerTest {
     ParameterExpression b = Expressions.parameter(boolean.class, "b");
     assertThat(
         optimize(Expressions.condition(Expressions.notEqual(a, b), a, b)),
-        is("{\n  return a;\n}\n"));
+        is("{\n"
+            + "  return a;\n"
+            + "}\n"));
   }
 
   @Test void testAndAlsoTrueBool() {
@@ -355,7 +413,9 @@ class OptimizerTest {
         optimize(
             Expressions.andAlso(TRUE,
                 Expressions.parameter(boolean.class, "bool"))),
-        is("{\n  return bool;\n}\n"));
+        is("{\n"
+            + "  return bool;\n"
+            + "}\n"));
   }
 
   @Test void testAndAlsoBoolTrue() {
@@ -364,7 +424,9 @@ class OptimizerTest {
         optimize(
             Expressions.andAlso(
                 Expressions.parameter(boolean.class, "bool"), TRUE)),
-        is("{\n  return bool;\n}\n"));
+        is("{\n"
+            + "  return bool;\n"
+            + "}\n"));
   }
 
   @Test void testAndAlsoFalseBool() {
@@ -373,7 +435,9 @@ class OptimizerTest {
         optimize(
             Expressions.andAlso(FALSE,
                 Expressions.parameter(boolean.class, "bool"))),
-        is("{\n  return false;\n}\n"));
+        is("{\n"
+            + "  return false;\n"
+            + "}\n"));
   }
 
   @Test void testAndAlsoNullBool() {
@@ -382,7 +446,9 @@ class OptimizerTest {
         optimize(
             Expressions.andAlso(NULL,
                 Expressions.parameter(boolean.class, "bool"))),
-        is("{\n  return null && bool;\n}\n"));
+        is("{\n"
+            + "  return null && bool;\n"
+            + "}\n"));
   }
 
   @Test void testAndAlsoXY() {
@@ -392,14 +458,18 @@ class OptimizerTest {
             Expressions.andAlso(
                 Expressions.parameter(boolean.class, "x"),
                 Expressions.parameter(boolean.class, "y"))),
-        is("{\n  return x && y;\n}\n"));
+        is("{\n"
+            + "  return x && y;\n"
+            + "}\n"));
   }
 
   @Test void testAndAlsoXX() {
     // x && x
     ParameterExpression x = Expressions.parameter(boolean.class, "x");
     assertThat(optimize(Expressions.andAlso(x, x)),
-        is("{\n  return x;\n}\n"));
+        is("{\n"
+            + "  return x;\n"
+            + "}\n"));
   }
 
   @Test void testOrElseTrueBool() {
@@ -408,7 +478,9 @@ class OptimizerTest {
         optimize(
             Expressions.orElse(TRUE,
                 Expressions.parameter(boolean.class, "bool"))),
-        is("{\n  return true;\n}\n"));
+        is("{\n"
+            + "  return true;\n"
+            + "}\n"));
   }
 
   @Test void testOrElseFalseBool() {
@@ -417,7 +489,9 @@ class OptimizerTest {
         optimize(
             Expressions.orElse(FALSE,
                 Expressions.parameter(boolean.class, "bool"))),
-        is("{\n  return bool;\n}\n"));
+        is("{\n"
+            + "  return bool;\n"
+            + "}\n"));
   }
 
   @Test void testOrElseNullBool() {
@@ -426,7 +500,9 @@ class OptimizerTest {
         optimize(
             Expressions.orElse(NULL,
                 Expressions.parameter(boolean.class, "bool"))),
-        is("{\n  return null || bool;\n}\n"));
+        is("{\n"
+            + "  return null || bool;\n"
+            + "}\n"));
   }
 
   @Test void testOrElseXY() {
@@ -436,33 +512,43 @@ class OptimizerTest {
             Expressions.orElse(
                 Expressions.parameter(boolean.class, "x"),
                 Expressions.parameter(boolean.class, "y"))),
-        is("{\n  return x || y;\n}\n"));
+        is("{\n"
+            + "  return x || y;\n"
+            + "}\n"));
   }
 
   @Test void testOrElseXX() {
     // x || x
     ParameterExpression x = Expressions.parameter(boolean.class, "x");
     assertThat(optimize(Expressions.orElse(x, x)),
-        is("{\n  return x;\n}\n"));
+        is("{\n"
+            + "  return x;\n"
+            + "}\n"));
   }
 
   @Test void testEqualSameConst() {
     // 1 == 1
     assertThat(optimize(Expressions.equal(ONE, Expressions.constant(1))),
-        is("{\n  return true;\n}\n"));
+        is("{\n"
+            + "  return true;\n"
+            + "}\n"));
   }
 
   @Test void testEqualDifferentConst() {
     // 1 == 2
     assertThat(optimize(Expressions.equal(ONE, TWO)),
-        is("{\n  return false;\n}\n"));
+        is("{\n"
+            + "  return false;\n"
+            + "}\n"));
   }
 
   @Test void testEqualSameExpr() {
     // x == x
     ParameterExpression x = Expressions.parameter(int.class, "x");
     assertThat(optimize(Expressions.equal(x, x)),
-        is("{\n  return true;\n}\n"));
+        is("{\n"
+            + "  return true;\n"
+            + "}\n"));
   }
 
   @Test void testEqualDifferentExpr() {
@@ -470,72 +556,94 @@ class OptimizerTest {
     ParameterExpression x = Expressions.parameter(int.class, "x");
     ParameterExpression y = Expressions.parameter(int.class, "y");
     assertThat(optimize(Expressions.equal(x, y)),
-        is("{\n  return x == y;\n}\n"));
+        is("{\n"
+            + "  return x == y;\n"
+            + "}\n"));
   }
 
   @Test void testEqualPrimitiveNull() {
     // (int) x == null
     ParameterExpression x = Expressions.parameter(int.class, "x");
     assertThat(optimize(Expressions.equal(x, NULL)),
-        is("{\n  return false;\n}\n"));
+        is("{\n"
+            + "  return false;\n"
+            + "}\n"));
   }
 
   @Test void testEqualObjectNull() {
     // (Integer) x == null
     ParameterExpression x = Expressions.parameter(Integer.class, "x");
     assertThat(optimize(Expressions.equal(x, NULL)),
-        is("{\n  return x == null;\n}\n"));
+        is("{\n"
+            + "  return x == null;\n"
+            + "}\n"));
   }
 
   @Test void testEqualStringNull() {
     // "Y" == null
     assertThat(optimize(Expressions.equal(Expressions.constant("Y"), NULL)),
-        is("{\n  return false;\n}\n"));
+        is("{\n"
+            + "  return false;\n"
+            + "}\n"));
   }
 
   @Test void testEqualTypedNullUntypedNull() {
     // (Integer) null == null
     assertThat(optimize(Expressions.equal(NULL_INTEGER, NULL)),
-        is("{\n  return true;\n}\n"));
+        is("{\n"
+            + "  return true;\n"
+            + "}\n"));
   }
 
   @Test void testEqualUnypedNullTypedNull() {
     // null == (Integer) null
     assertThat(optimize(Expressions.equal(NULL, NULL_INTEGER)),
-        is("{\n  return true;\n}\n"));
+        is("{\n"
+            + "  return true;\n"
+            + "}\n"));
   }
 
   @Test void testEqualBoolTrue() {
     // x == true
     ParameterExpression x = Expressions.parameter(boolean.class, "x");
     assertThat(optimize(Expressions.equal(x, TRUE)),
-        is("{\n  return x;\n}\n"));
+        is("{\n"
+            + "  return x;\n"
+            + "}\n"));
   }
 
   @Test void testEqualBoolFalse() {
     // x == false
     ParameterExpression x = Expressions.parameter(boolean.class, "x");
     assertThat(optimize(Expressions.equal(x, FALSE)),
-        is("{\n  return (!x);\n}\n"));
+        is("{\n"
+            + "  return (!x);\n"
+            + "}\n"));
   }
 
   @Test void testNotEqualSameConst() {
     // 1 != 1
     assertThat(optimize(Expressions.notEqual(ONE, Expressions.constant(1))),
-        is("{\n  return false;\n}\n"));
+        is("{\n"
+            + "  return false;\n"
+            + "}\n"));
   }
 
   @Test void testNotEqualDifferentConst() {
     // 1 != 2
     assertThat(optimize(Expressions.notEqual(ONE, TWO)),
-        is("{\n  return true;\n}\n"));
+        is("{\n"
+            + "  return true;\n"
+            + "}\n"));
   }
 
   @Test void testNotEqualSameExpr() {
     // x != x
     ParameterExpression x = Expressions.parameter(int.class, "x");
     assertThat(optimize(Expressions.notEqual(x, x)),
-        is("{\n  return false;\n}\n"));
+        is("{\n"
+            + "  return false;\n"
+            + "}\n"));
   }
 
   @Test void testNotEqualDifferentExpr() {
@@ -543,53 +651,69 @@ class OptimizerTest {
     ParameterExpression x = Expressions.parameter(int.class, "x");
     ParameterExpression y = Expressions.parameter(int.class, "y");
     assertThat(optimize(Expressions.notEqual(x, y)),
-        is("{\n  return x != y;\n}\n"));
+        is("{\n"
+            + "  return x != y;\n"
+            + "}\n"));
   }
 
   @Test void testNotEqualPrimitiveNull() {
     // (int) x == null
     ParameterExpression x = Expressions.parameter(int.class, "x");
     assertThat(optimize(Expressions.notEqual(x, NULL)),
-        is("{\n  return true;\n}\n"));
+        is("{\n"
+            + "  return true;\n"
+            + "}\n"));
   }
 
   @Test void testNotEqualObjectNull() {
     // (Integer) x == null
     ParameterExpression x = Expressions.parameter(Integer.class, "x");
     assertThat(optimize(Expressions.notEqual(x, NULL)),
-        is("{\n  return x != null;\n}\n"));
+        is("{\n"
+            + "  return x != null;\n"
+            + "}\n"));
   }
 
   @Test void testNotEqualStringNull() {
     // "Y" != null
     assertThat(optimize(Expressions.notEqual(Expressions.constant("Y"), NULL)),
-        is("{\n  return true;\n}\n"));
+        is("{\n"
+            + "  return true;\n"
+            + "}\n"));
   }
 
   @Test void testNotEqualTypedNullUntypedNull() {
     // (Integer) null != null
     assertThat(optimize(Expressions.notEqual(NULL_INTEGER, NULL)),
-        is("{\n  return false;\n}\n"));
+        is("{\n"
+            + "  return false;\n"
+            + "}\n"));
   }
 
   @Test void testNotEqualUnypedNullTypedNull() {
     // null != (Integer) null
     assertThat(optimize(Expressions.notEqual(NULL, NULL_INTEGER)),
-        is("{\n  return false;\n}\n"));
+        is("{\n"
+            + "  return false;\n"
+            + "}\n"));
   }
 
   @Test void testNotEqualBoolTrue() {
     // x != true
     ParameterExpression x = Expressions.parameter(boolean.class, "x");
     assertThat(optimize(Expressions.notEqual(x, TRUE)),
-        is("{\n  return (!x);\n}\n"));
+        is("{\n"
+            + "  return (!x);\n"
+            + "}\n"));
   }
 
   @Test void testNotEqualBoolFalse() {
     // x != false
     ParameterExpression x = Expressions.parameter(boolean.class, "x");
     assertThat(optimize(Expressions.notEqual(x, FALSE)),
-        is("{\n  return x;\n}\n"));
+        is("{\n"
+            + "  return x;\n"
+            + "}\n"));
   }
 
   @Test void testMultipleFolding() {
@@ -606,14 +730,18 @@ class OptimizerTest {
                         Expressions.constant(4), Expressions.constant(8))),
                 Expressions.constant(9),
                 Expressions.constant(10))),
-        is("{\n  return 10;\n}\n"));
+        is("{\n"
+            + "  return 10;\n"
+            + "}\n"));
   }
 
   @Test void testConditionalIfTrue() {
     // if (true) {return 1}
     assertThat(
         optimize(Expressions.ifThen(TRUE, Expressions.return_(null, ONE))),
-        is("{\n  return 1;\n}\n"));
+        is("{\n"
+            + "  return 1;\n"
+            + "}\n"));
   }
 
   @Test void testConditionalIfTrueElse() {
@@ -623,7 +751,9 @@ class OptimizerTest {
             Expressions.ifThenElse(TRUE,
                 Expressions.return_(null, ONE),
                 Expressions.return_(null, TWO))),
-        is("{\n  return 1;\n}\n"));
+        is("{\n"
+            + "  return 1;\n"
+            + "}\n"));
   }
 
   @Test void testConditionalIfFalse() {
@@ -640,7 +770,9 @@ class OptimizerTest {
             Expressions.ifThenElse(FALSE,
                 Expressions.return_(null, ONE),
                 Expressions.return_(null, TWO))),
-        is("{\n  return 2;\n}\n"));
+        is("{\n"
+            + "  return 2;\n"
+            + "}\n"));
   }
 
   @Test void testConditionalIfBoolTrue() {
@@ -739,44 +871,58 @@ class OptimizerTest {
   @Test void testCastIntToShort() {
     // return (short) 1 --> return (short) 1
     assertThat(optimize(Expressions.convert_(ONE, short.class)),
-        is("{\n  return (short)1;\n}\n"));
+        is("{\n"
+            + "  return (short)1;\n"
+            + "}\n"));
   }
 
   @Test void testCastIntToInt() {
     // return (int) 1 --> return 1L
     assertThat(optimize(Expressions.convert_(ONE, int.class)),
-        is("{\n  return 1;\n}\n"));
+        is("{\n"
+            + "  return 1;\n"
+            + "}\n"));
   }
 
   @Test void testCastIntToLong() {
     // return (long) 1 --> return 1L
     assertThat(optimize(Expressions.convert_(ONE, long.class)),
-        is("{\n  return 1L;\n}\n"));
+        is("{\n"
+            + "  return 1L;\n"
+            + "}\n"));
   }
 
   @Test void testNotTrue() {
     // !true -> false
     assertThat(optimize(Expressions.not(TRUE)),
-        is("{\n  return false;\n}\n"));
+        is("{\n"
+            + "  return false;\n"
+            + "}\n"));
   }
 
   @Test void testNotFalse() {
     // !false -> true
     assertThat(optimize(Expressions.not(FALSE)),
-        is("{\n  return true;\n}\n"));
+        is("{\n"
+            + "  return true;\n"
+            + "}\n"));
   }
 
   @Test void testNotNotA() {
     // !!a -> a
     assertThat(optimize(Expressions.not(Expressions.not(bool("a")))),
-        is("{\n  return a;\n}\n"));
+        is("{\n"
+            + "  return a;\n"
+            + "}\n"));
   }
 
   @Test void testNotEq() {
     // !(a == b) -> a != b
     assertThat(
         optimize(Expressions.not(Expressions.equal(bool("a"), bool("b")))),
-        is("{\n  return a != b;\n}\n"));
+        is("{\n"
+            + "  return a != b;\n"
+            + "}\n"));
   }
 
   @Test void testNotNeq() {
@@ -784,7 +930,9 @@ class OptimizerTest {
     assertThat(
         optimize(
             Expressions.not(Expressions.notEqual(bool("a"), bool("b")))),
-        is("{\n  return a == b;\n}\n"));
+        is("{\n"
+            + "  return a == b;\n"
+            + "}\n"));
   }
 
   @Test void testNotGt() {
@@ -792,7 +940,9 @@ class OptimizerTest {
     assertThat(
         optimize(
             Expressions.not(Expressions.greaterThan(bool("a"), bool("b")))),
-        is("{\n  return a <= b;\n}\n"));
+        is("{\n"
+            + "  return a <= b;\n"
+            + "}\n"));
   }
 
   @Test void testNotGte() {
@@ -801,7 +951,9 @@ class OptimizerTest {
         optimize(
             Expressions.not(
                 Expressions.greaterThanOrEqual(bool("a"), bool("b")))),
-        is("{\n  return a < b;\n}\n"));
+        is("{\n"
+            + "  return a < b;\n"
+            + "}\n"));
   }
 
   @Test void testNotLt() {
@@ -809,7 +961,9 @@ class OptimizerTest {
     assertThat(
         optimize(
             Expressions.not(Expressions.lessThan(bool("a"), bool("b")))),
-        is("{\n  return a >= b;\n}\n"));
+        is("{\n"
+            + "  return a >= b;\n"
+            + "}\n"));
   }
 
   @Test void testNotLte() {
@@ -818,19 +972,25 @@ class OptimizerTest {
         optimize(
             Expressions.not(
                 Expressions.lessThanOrEqual(bool("a"), bool("b")))),
-        is("{\n  return a > b;\n}\n"));
+        is("{\n"
+            + "  return a > b;\n"
+            + "}\n"));
   }
 
   @Test void booleanValueOfTrue() {
     // Boolean.valueOf(true) -> true
     assertThat(optimize(Expressions.call(Boolean.class, "valueOf", TRUE)),
-        is("{\n  return true;\n}\n"));
+        is("{\n"
+            + "  return true;\n"
+            + "}\n"));
   }
 
   @Test void testBooleanValueOfFalse() {
     // Boolean.valueOf(false) -> false
     assertThat(optimize(Expressions.call(Boolean.class, "valueOf", FALSE)),
-        is("{\n  return false;\n}\n"));
+        is("{\n"
+            + "  return false;\n"
+            + "}\n"));
   }
 
   @Test void testAssign() {
