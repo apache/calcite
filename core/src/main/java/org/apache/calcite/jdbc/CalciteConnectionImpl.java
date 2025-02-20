@@ -62,6 +62,7 @@ import org.apache.calcite.sql.advise.SqlAdvisor;
 import org.apache.calcite.sql.advise.SqlAdvisorValidator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorWithHints;
 import org.apache.calcite.tools.RelRunner;
@@ -128,14 +129,17 @@ abstract class CalciteConnectionImpl
       String url, Properties info, @Nullable CalciteSchema rootSchema,
       @Nullable JavaTypeFactory typeFactory) {
     super(driver, factory, url, info);
-    CalciteConnectionConfig cfg = new CalciteConnectionConfigImpl(info);
     this.prepareFactory = driver::createPrepare;
+
+    final CalciteConnectionConfig cfg =
+        new CalciteConnectionConfigImpl(info);
+    final SqlConformance conformance = cfg.conformance();
     if (typeFactory != null) {
       this.typeFactory = typeFactory;
     } else {
       RelDataTypeSystem typeSystem =
           cfg.typeSystem(RelDataTypeSystem.class, RelDataTypeSystem.DEFAULT);
-      if (cfg.conformance().shouldConvertRaggedUnionTypesToVarying()) {
+      if (conformance.shouldConvertRaggedUnionTypesToVarying()) {
         typeSystem =
             new DelegatingTypeSystem(typeSystem) {
               @Override public boolean
@@ -152,12 +156,12 @@ abstract class CalciteConnectionImpl
             : CalciteSchema.createRootSchema(true));
 
     // Add dual table metadata when isSupportedDualTable return true
-    if (cfg.conformance().isSupportedDualTable()) {
+    if (conformance.isSupportedDualTable()) {
       SchemaPlus schemaPlus = this.rootSchema.plus();
       // Dual table contains one row with a value X
-      schemaPlus.add(
-          "DUAL", ViewTable.viewMacro(schemaPlus, "VALUES ('X')",
-          ImmutableList.of(), null, false));
+      schemaPlus.add("DUAL",
+          ViewTable.viewMacro(schemaPlus, "VALUES ('X')",
+              ImmutableList.of(), null, false));
     }
     checkArgument(this.rootSchema.isRoot(), "must be root schema");
     this.properties.put(InternalProperty.CASE_SENSITIVE, cfg.caseSensitive());
@@ -181,8 +185,7 @@ abstract class CalciteConnectionImpl
   /** Called after the constructor has completed and the model has been
    * loaded. */
   void init() {
-    final CalciteConnectionConfig cfg = new CalciteConnectionConfigImpl(info);
-    final String schema = cfg.schema();
+    final String schema = config().schema();
     if (schema != null && !schema.isEmpty()) {
       try {
         setSchema(schema);
