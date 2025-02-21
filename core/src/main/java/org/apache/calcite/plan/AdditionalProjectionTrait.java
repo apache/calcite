@@ -22,7 +22,7 @@ package org.apache.calcite.plan;
  */
 public class AdditionalProjectionTrait implements RelTrait {
 
-  @Override public RelTraitDef getTraitDef() {
+  @Override public RelTraitDef<AdditionalProjectionTrait> getTraitDef() {
     return AdditionalProjectionTraitDef.instance;
   }
 
