@@ -30,6 +30,7 @@ import org.apache.calcite.plan.PivotRelTraitDef;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.TableAliasTraitDef;
+import org.apache.calcite.plan.AdditionalProjectionTraitDef;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelCollation;
@@ -2288,6 +2289,9 @@ public abstract class SqlImplementor {
         Set<Clause> expectedClauses) {
       if (clauses.isEmpty()) {
         return false;
+      }
+      if (rel.getTraitSet().getTrait(AdditionalProjectionTraitDef.instance) != null) {
+        return true;
       }
       final Clause maxClause = Collections.max(clauses);
 
