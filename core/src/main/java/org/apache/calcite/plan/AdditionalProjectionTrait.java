@@ -16,7 +16,11 @@
  */
 package org.apache.calcite.plan;
 
-public class AdditionalProjectionTrait implements RelTrait{
+/**
+ * AdditionalProjectionTrait is used to identify if additional projection is needed or not
+ * if any specific case is there.
+ */
+public class AdditionalProjectionTrait implements RelTrait {
 
   @Override public RelTraitDef getTraitDef() {
     return AdditionalProjectionTraitDef.instance;

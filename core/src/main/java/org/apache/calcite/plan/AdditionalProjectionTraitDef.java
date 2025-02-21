@@ -18,6 +18,9 @@ package org.apache.calcite.plan;
 
 import org.apache.calcite.rel.RelNode;
 
+/**
+ * AdditionalProjectionTraitDef is used to identify if a given rel has a AdditionalProjectionTrait.
+ */
 public class AdditionalProjectionTraitDef extends RelTraitDef<AdditionalProjectionTrait> {
   public static AdditionalProjectionTraitDef instance = new AdditionalProjectionTraitDef();
 
