@@ -6925,6 +6925,10 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6834">[CALCITE-6834]
+   * In query that applies COALESCE to nullable SUM, EnumerableProjectToCalcRule
+   * throws AssertionError</a>. */
   @Test void testProjectAggregateMergeSum01() {
     final String sql = "select coalesce(sum(cast(mgr as tinyint)), 0) as ss0\n"
         + "from sales.emp";

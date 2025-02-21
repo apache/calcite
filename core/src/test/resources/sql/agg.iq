@@ -3815,7 +3815,7 @@ select distinct sum(deptno + '1') as deptsum from dept order by 1;
 
 !ok
 
-# [CALCITE-2192] In query that applies COALESCE to nullable SUM, EnumerableProjectToCalcRule throws AssertionError
+# [CALCITE-6834] In query that applies COALESCE to nullable SUM, EnumerableProjectToCalcRule throws AssertionError
 # sum(mgr) return TINYINT, coalesce(sum(mgr),0) return INTEGER, so need CAST
 select coalesce(sum(mgr),0) as m
 from emp;
