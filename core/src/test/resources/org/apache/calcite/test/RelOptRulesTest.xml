@@ -4823,6 +4823,36 @@ LogicalProject(X1=[$0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testFilterProjectTransposeExpandFalse">
+    <Resource name="sql">
+      <![CDATA[SELECT e.deptno
+FROM emp as e
+WHERE exists (
+  SELECT *
+  FROM dept AS d
+  WHERE e.deptno = d.deptno)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})], variablesSet=[[$cor0]])
+  LogicalProject(DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})], variablesSet=[[$cor0]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testFilterProjectTransposePreventedByCorrelation">
     <Resource name="sql">
       <![CDATA[SELECT e.empno
@@ -4845,6 +4875,26 @@ LogicalProject(EMPNO=[$0])
           LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
             LogicalProject(TWICEDEPTNO=[*($0, 2)])
               LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testFilterProjectTransposePreventedByCorrelationWithExpandFalse">
+    <Resource name="sql">
+      <![CDATA[SELECT e.deptno
+FROM emp as e
+WHERE exists (
+  SELECT *
+  FROM dept AS d
+  WHERE e.deptno = d.deptno)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})], variablesSet=[[$cor0]])
+  LogicalProject(DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
