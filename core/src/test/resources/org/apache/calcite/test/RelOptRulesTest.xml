@@ -3192,6 +3192,33 @@ LogicalProject(EXPR$0=[Infinity:DOUBLE])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testDphypJoinReorder">
+    <Resource name="sql">
+      <![CDATA[select emp.empno from emp, dept, emp_address, dept_nested where emp.deptno = dept.deptno and emp.empno = emp_address.empno and dept.deptno = dept_nested.deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  HyperGraph(edges=[{0}——INNER——{1},{0}——INNER——{2},{1}——INNER——{3}])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$9])
+  LogicalJoin(condition=[=($9, $0)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+    LogicalJoin(condition=[=($13, $4)], joinType=[inner])
+      LogicalJoin(condition=[=($4, $0)], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testDynamicStarWithUnion">
     <Resource name="sql">
       <![CDATA[(select n_nationkey from SALES.CUSTOMER)
