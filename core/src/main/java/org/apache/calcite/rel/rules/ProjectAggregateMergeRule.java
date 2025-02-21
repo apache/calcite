@@ -38,6 +38,8 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.mapping.MappingType;
 import org.apache.calcite.util.mapping.Mappings;
 
+import com.google.common.collect.ImmutableList;
+
 import org.immutables.value.Value;
 
 import java.math.BigDecimal;
@@ -154,8 +156,22 @@ public class ProjectAggregateMergeRule
     builder.push(aggregate.getInput());
     builder.aggregate(
         builder.groupKey(aggregate.getGroupSet(), aggregate.groupSets), aggCallList);
-    builder.project(
-        RexPermuteInputsShuttle.of(mapping).visitList(projects2));
+    // If the output type of Aggregate does not match the input type required by original Project,
+    // CAST needs to be added
+    List<RexNode> rexInputRefs = RexPermuteInputsShuttle.of(mapping).visitList(projects2);
+    final ImmutableList.Builder<RexNode> selectList = ImmutableList.builder();
+    final RexShuttle rexShuttle = new RexShuttle() {
+      @Override public RexNode visitInputRef(RexInputRef inputRef) {
+        return builder.getRexBuilder().ensureType(
+            inputRef.getType(),
+            builder.fields().get(inputRef.getIndex()),
+            true);
+      }
+    };
+    for (RexNode rexInputRef : rexInputRefs) {
+      selectList.add(rexInputRef.accept(rexShuttle));
+    }
+    builder.project(selectList.build());
     call.transformTo(builder.build());
   }
 
