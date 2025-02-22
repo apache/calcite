@@ -18,6 +18,9 @@ package org.apache.calcite.schema;
 
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.rel.type.RelProtoDataType;
+import org.apache.calcite.schema.lookup.CompatibilityLookup;
+import org.apache.calcite.schema.lookup.LikePattern;
+import org.apache.calcite.schema.lookup.Lookup;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -56,8 +59,37 @@ import java.util.Set;
  * {@link Schema#getSubSchema(String)}.
  */
 public interface Schema {
+
+  /**
+   * Returns a lookup object to find tables.
+   *
+   * @return Lookup
+   */
+  default Lookup<Table> tables() {
+    return new CompatibilityLookup<>(this::getTable, this::getTableNames);
+  }
+
+  /**
+   * Returns a lookup object to find sub schemas.
+   *
+   * @return Lookup
+   */
+  default Lookup<? extends Schema> subSchemas() {
+    return new CompatibilityLookup<>(this::getSubSchema, this::getSubSchemaNames);
+  }
+
   /**
    * Returns a table with a given name, or null if not found.
+   *
+   * <p>Please use {@link Schema#tables()} and {@link Lookup#get(String)} instead.
+   *
+   * <p>Using `getTable` directly does not allow to distinguish between
+   * casesensitive and caseinsensitive lookups. This method always does a
+   * casesensitive lookup. Caseinsensitive lookup can be done by loading
+   * all table names using {@link Schema#getTableNames()}. This can be
+   * quite timeconsuming for huge databases. To speed this up,
+   * all table names must be cached. This will require
+   * a huge amount of additional memory.
    *
    * @param name Table name
    * @return Table, or null
@@ -66,6 +98,8 @@ public interface Schema {
 
   /**
    * Returns the names of the tables in this schema.
+   *
+   * <p>Please use {@link Schema#tables()} and {@link Lookup#getNames(LikePattern)} instead.
    *
    * @return Names of the tables in this schema
    */
@@ -105,6 +139,11 @@ public interface Schema {
   /**
    * Returns a sub-schema with a given name, or null.
    *
+   * <p>Please use {@link Schema#subSchemas()} and {@link Lookup#get(String)} instead.
+   *
+   * <p>See also comment for {@link Schema#getTable(String)} to find out why
+   * you should do so.
+   *
    * @param name Sub-schema name
    * @return Sub-schema with a given name, or null
    */
@@ -112,6 +151,8 @@ public interface Schema {
 
   /**
    * Returns the names of this schema's child schemas.
+   *
+   * <p>Please use {@link Schema#subSchemas()} and {@link Lookup#getNames(LikePattern)} instead.
    *
    * @return Names of this schema's child schemas
    */
