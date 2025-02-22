@@ -816,4 +816,14 @@ public class CoreRules {
       WINDOW_REDUCE_EXPRESSIONS =
       ReduceExpressionsRule.WindowReduceExpressionsRule.WindowReduceExpressionsRuleConfig
           .DEFAULT.toRule();
+  /** Rule that flattens a tree of {@link LogicalJoin}s
+   * into a single {@link HyperGraph} with N inputs. */
+  public static final JoinToHyperGraphRule JOIN_TO_HYPER_GRAPH =
+      JoinToHyperGraphRule.Config.DEFAULT.toRule();
+
+  /** Rule that re-orders a {@link Join} tree using dphyp algorithm.
+   *
+   * @see #JOIN_TO_HYPER_GRAPH */
+  public static final DphypJoinReorderRule HYPER_GRAPH_OPTIMIZE =
+      DphypJoinReorderRule.Config.DEFAULT.toRule();
 }

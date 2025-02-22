@@ -9585,4 +9585,21 @@ class RelOptRulesTest extends RelOptTestBase {
         .withRule(CoreRules.MULTI_JOIN_OPTIMIZE)
         .check();
   }
+
+  @Test void testDphypJoinReorder() {
+    HepProgram program = new HepProgramBuilder()
+        .addMatchOrder(HepMatchOrder.BOTTOM_UP)
+        .addRuleInstance(CoreRules.FILTER_INTO_JOIN)
+        .addRuleInstance(CoreRules.JOIN_TO_HYPER_GRAPH)
+        .build();
+
+    sql("select emp.empno from "
+        + "emp, dept, emp_address, dept_nested "
+        + "where emp.deptno = dept.deptno "
+        + "and emp.empno = emp_address.empno "
+        + "and dept.deptno = dept_nested.deptno")
+        .withPre(program)
+        .withRule(CoreRules.HYPER_GRAPH_OPTIMIZE, CoreRules.PROJECT_REMOVE, CoreRules.PROJECT_MERGE)
+        .check();
+  }
 }
