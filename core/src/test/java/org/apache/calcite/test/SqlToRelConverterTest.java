@@ -42,9 +42,11 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.util.SqlOperatorTables;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlDelegatingConformance;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.test.catalog.MockCatalogReaderExtended;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.TestUtil;
@@ -5384,6 +5386,23 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         .withFactory(t ->
             t.withValidatorConfig(config ->
                 config.withIdentifierExpansion(false)))
+        .withTrim(false)
+        .ok();
+  }
+
+  @Test void testNestedWindowAggWithIdentifierExpansionDisabled(){
+    String sql = "select sum(sum(sal)) over() from emp";
+    sql(sql)
+        .withFactory(f ->
+            f.withValidator((opTab, catalogReader, typeFactory, config) -> {
+              if (config.conformance().allowGeometry()) {
+                opTab =
+                    SqlOperatorTables.chain(opTab,
+                        SqlOperatorTables.spatialInstance());
+              }
+              return SqlValidatorUtil.newValidator(opTab, catalogReader,
+                  typeFactory, config.withIdentifierExpansion(false));
+            }))
         .withTrim(false)
         .ok();
   }
