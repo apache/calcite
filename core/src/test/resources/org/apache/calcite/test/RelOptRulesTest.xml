@@ -5443,6 +5443,33 @@ LogicalIntersect(all=[true])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testIntersectToExistsRule">
+    <Resource name="sql">
+      <![CDATA[SELECT a.deptno FROM dept AS a
+INTERSECT
+SELECT b.empno FROM emp AS b]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalIntersect(all=[false])
+  LogicalProject(DEPTNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalProject(EMPNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[=($0, $cor0.EMPNO)])
+  LogicalProject(EMPNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})], variablesSet=[[$cor0]])
+  LogicalProject(DEPTNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testIsNullPushDown">
     <Resource name="sql">
       <![CDATA[select empno, deptno, w_count from (
