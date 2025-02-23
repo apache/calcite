@@ -9585,4 +9585,12 @@ class RelOptRulesTest extends RelOptTestBase {
         .withRule(CoreRules.MULTI_JOIN_OPTIMIZE)
         .check();
   }
+
+  @Test void testIntersectToExistsRule() {
+    String sql = "SELECT a.deptno FROM dept AS a\n"
+            + "INTERSECT\n"
+            + "SELECT b.empno FROM emp AS b";
+    sql(sql).withRule(CoreRules.INTERSECT_TO_EXISTS)
+            .check();
+  }
 }
