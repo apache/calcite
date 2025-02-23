@@ -2086,7 +2086,7 @@ public class Util {
    *
    * @throws java.lang.IndexOutOfBoundsException if the list is empty
    */
-  public <E> E first(List<E> list) {
+  public static <E> E first(List<E> list) {
     return list.get(0);
   }
 
