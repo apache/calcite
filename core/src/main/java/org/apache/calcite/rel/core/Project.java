@@ -362,7 +362,8 @@ public abstract class Project extends SingleRel implements Hintable {
 
   @API(since = "1.24", status = API.Status.INTERNAL)
   protected int deepHashCode0() {
-    return Objects.hash(traitSet, input.deepHashCode(), exps, hints);
+    return Objects.hash(traitSet, input.deepHashCode(),
+        exps, hints, getRowType().getFieldNames());
   }
 
   /**

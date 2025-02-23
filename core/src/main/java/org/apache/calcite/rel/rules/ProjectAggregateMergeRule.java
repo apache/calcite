@@ -155,7 +155,8 @@ public class ProjectAggregateMergeRule
     builder.aggregate(
         builder.groupKey(aggregate.getGroupSet(), aggregate.groupSets), aggCallList);
     builder.project(
-        RexPermuteInputsShuttle.of(mapping).visitList(projects2));
+        RexPermuteInputsShuttle.of(mapping).visitList(projects2),
+            project.getRowType().getFieldNames());
     call.transformTo(builder.build());
   }
 
