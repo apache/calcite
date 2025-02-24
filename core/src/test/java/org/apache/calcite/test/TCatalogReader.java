@@ -72,6 +72,15 @@ public class TCatalogReader extends MockCatalogReader {
     t2.addColumn("t2_binary", f.binaryType);
     t2.addColumn("t2_boolean", f.booleanType);
     registerTable(t2);
+
+    final MockTable t3 =
+        MockTable.create(this, tSchema, "T3", false, 7.0, null);
+    t3.addColumn("t3_int", f.intType, true);
+    t3.addColumn("t3_varchar20",
+        typeFactory.createTypeWithNullability(f.varchar20Type, true));
+    t3.addColumn("t3_date",
+        typeFactory.createTypeWithNullability(f.dateType, true));
+    registerTable(t3);
     return this;
   }
 
