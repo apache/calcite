@@ -75,6 +75,7 @@ import org.apache.calcite.rel.rules.FilterFlattenCorrelatedConditionRule;
 import org.apache.calcite.rel.rules.FilterJoinRule;
 import org.apache.calcite.rel.rules.FilterMultiJoinMergeRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
+import org.apache.calcite.rel.rules.FlinkSubQueryRemoveRule;
 import org.apache.calcite.rel.rules.JoinAssociateRule;
 import org.apache.calcite.rel.rules.JoinCommuteRule;
 import org.apache.calcite.rel.rules.MeasureRules;
@@ -8137,6 +8138,13 @@ class RelOptRulesTest extends RelOptTestBase {
         + "where EXISTS (\n"
         + "  select * from emp e where emp.deptno = e.deptno)";
     sql(sql).withSubQueryRules().withLateDecorrelate(true).check();
+  }
+
+  @Test void testConvertNotExistsToAntiJoin() {
+    final String sql = "select * from sales.emp\n"
+                       + "where NOT EXISTS (\n"
+                       + "  select * from emp e where emp.deptno = e.deptno)";
+    sql(sql).withExpand(false).withRule(FlinkSubQueryRemoveRule.Config.FILTER.toRule()).check();
   }
 
   /** Test case for
