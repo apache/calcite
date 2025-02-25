@@ -28,7 +28,6 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlPivot;
 import org.apache.calcite.sql.SqlSelect;
-import org.apache.calcite.sql.dialect.SparkSqlDialect;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -99,7 +98,7 @@ public class PivotRelToSqlUtil {
     SqlPivot sqlPivot =
         new SqlPivot(pos, query, pivotAggregateColumnList, axisNodeList, pivotInClauseValueNodes);
     SqlNode sqlTableAlias = sqlPivot;
-    if (pivotTableAlias != null && !(builder.context.dialect instanceof SparkSqlDialect)) {
+    if (pivotTableAlias != null && builder.context.dialect.supportsPivotTableAlias()) {
       sqlTableAlias =
           SqlStdOperatorTable.AS.createCall(pos, sqlPivot,
               new SqlIdentifier(pivotTableAlias, pos));
