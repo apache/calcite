@@ -525,7 +525,10 @@ public class RelToSqlConverter extends SqlImplementor
         }
         addSelect(selectList, sqlExpr, e.getRowType());
       }
-
+      // We generate "SELECT 1 FROM EMP" replace "SELECT FROM EMP"
+      if (selectList.isEmpty()) {
+        selectList.add(SqlLiteral.createExactNumeric("1", POS));
+      }
       final SqlNodeList selectNodeList = new SqlNodeList(selectList, POS);
       if (builder.select.getGroup() == null
           && builder.select.getHaving() == null
