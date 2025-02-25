@@ -4782,6 +4782,19 @@ public class JdbcTest {
             "deptno=20; empid=200; commission=500; R=1; RCNF=1; RCNL=1; R=1; RD=1");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6837">[CALCITE-6837]
+   * Invalid code generated for ROW_NUMBER function in Enumerable convention</a>. */
+  @Test void testWinRowNumber1() {
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.JDBC_SCOTT)
+        .query("select row_number() over () from dept")
+        .returnsUnordered("EXPR$0=1",
+            "EXPR$0=2",
+            "EXPR$0=3",
+            "EXPR$0=4");
+  }
+
   /** Tests UNBOUNDED PRECEDING clause. */
   @Test void testOverUnboundedPreceding() {
     CalciteAssert.hr()
