@@ -9585,4 +9585,46 @@ class RelOptRulesTest extends RelOptTestBase {
         .withRule(CoreRules.MULTI_JOIN_OPTIMIZE)
         .check();
   }
+
+  @Test void testIntersectToExistsRuleOneField() {
+    String sql = "SELECT a.ename FROM emp AS a\n"
+            + "INTERSECT\n"
+            + "SELECT b.name FROM dept AS b";
+    sql(sql).withRule(CoreRules.INTERSECT_TO_EXISTS)
+            .check();
+  }
+
+  @Test void testIntersectToExistsRulePrimaryKey() {
+    String sql = "SELECT a.empno FROM emp AS a\n"
+            + "INTERSECT\n"
+            + "SELECT b.empno FROM emp AS b";
+    sql(sql).withRule(CoreRules.INTERSECT_TO_EXISTS)
+            .check();
+  }
+
+  @Test void testIntersectToExistsRuleMultiFields() {
+    String sql = "SELECT a.ename, a.job FROM emp AS a\n"
+            + "INTERSECT\n"
+            + "SELECT b.ename, b.job FROM emp AS b";
+    sql(sql).withRule(CoreRules.INTERSECT_TO_EXISTS)
+            .check();
+  }
+
+  @Test void testIntersectToExistsRuleMultiIntersect() {
+    String sql = "SELECT a.ename FROM emp AS a\n"
+            + "INTERSECT\n"
+            + "SELECT b.name FROM dept AS b\n"
+            + "INTERSECT\n"
+            + "SELECT c.ename FROM emp AS c";
+    sql(sql).withRule(CoreRules.INTERSECT_TO_EXISTS)
+            .check();
+  }
+
+  @Test void testIntersectToExistsRuleWithAll() {
+    String sql = "SELECT a.ename FROM emp AS a\n"
+            + "INTERSECT ALL\n"
+            + "SELECT b.name FROM dept AS b";
+    sql(sql).withRule(CoreRules.INTERSECT_TO_EXISTS)
+            .checkUnchanged();
+  }
 }
