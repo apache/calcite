@@ -653,6 +653,18 @@ public class MaterializedViewSubstitutionVisitorTest {
         .ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5742">[CALCITE-5742]
+   * AggregateOnCalcToAggregateUnifyRule may case Infinite Loop
+   * in SubstitutionVisitor</a>. */
+  @Test void testAggregateOnProject6() {
+    sql("select count(1) from (select \"empid\", \"deptno\", \"name\", count(*) from \"emps\""
+            + "group by \"empid\", \"deptno\", \"name\" limit 10)  ",
+        "select \"empid\", \"deptno\" from (select \"empid\", \"deptno\", \"name\", count(*) from \"emps\"\n"
+            + "group by \"empid\", \"deptno\", \"name\" limit 10) group by \"empid\", \"deptno\"")
+        .noMat();
+  }
+
   @Test void testAggregateOnProjectAndFilter() {
     String mv = ""
         + "select \"deptno\", sum(\"salary\"), count(1)\n"
