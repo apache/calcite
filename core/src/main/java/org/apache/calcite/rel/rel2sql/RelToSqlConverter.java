@@ -96,6 +96,7 @@ import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
+import org.apache.calcite.sql.dialect.SparkSqlDialect;
 import org.apache.calcite.sql.fun.SqlCollectionTableOperator;
 import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
@@ -1784,16 +1785,23 @@ public class RelToSqlConverter extends SqlImplementor
     }
     final Context context = tableFunctionScanContext(inputSqlNodes);
     SqlNode callNode = context.toSql(null, e.getCall());
-    // Convert to table function call, "TABLE($function_name(xxx))"
-    SqlSpecialOperator collectionTable =
-        new SqlCollectionTableOperator("TABLE", SqlModality.RELATION,
-            e.getRowType().getFieldNames().get(0));
-    SqlNode tableCall =
-        new SqlBasicCall(collectionTable,
-            new SqlNode[]{callNode},
-            SqlParserPos.ZERO);
+
+    SqlNode tableFunctionCall;
+    if (dialect instanceof SparkSqlDialect) {
+      tableFunctionCall = callNode;
+    } else {
+      // Convert to table function call, "TABLE($function_name(xxx))"
+      SqlSpecialOperator collectionTable =
+          new SqlCollectionTableOperator("TABLE", SqlModality.RELATION,
+              e.getRowType().getFieldNames().get(0));
+      tableFunctionCall =
+          new SqlBasicCall(collectionTable,
+              new SqlNode[]{callNode},
+              SqlParserPos.ZERO);
+    }
+
     SqlNode select =
-        new SqlSelect(SqlParserPos.ZERO, null, null, tableCall,
+        new SqlSelect(SqlParserPos.ZERO, null, null, tableFunctionCall,
             null, null, null, null, null, null, null, SqlNodeList.EMPTY);
     Map<String, RelDataType> aliasesMap = new HashMap<>();
     RelDataTypeField relDataTypeField = fieldList.get(0);
