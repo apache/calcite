@@ -58,7 +58,7 @@ public class ProjectRemoveRule
   @Override public void onMatch(RelOptRuleCall call) {
     Project project = call.rel(0);
     assert isTrivial(project);
-    RelNode stripped = project.getInput();
+    RelNode stripped = call.rel(1);
     if (stripped instanceof Project) {
       // Rename columns of child projection if desired field names are given.
       Project childProject = (Project) stripped;
@@ -97,7 +97,8 @@ public class ProjectRemoveRule
                 // Use a predicate to detect non-matches early.
                 // This keeps the rule queue short.
                 .predicate(ProjectRemoveRule::isTrivial)
-                .anyInputs());
+                .oneInput(
+                    b1 -> b1.operand(RelNode.class).anyInputs()));
 
     @Override default ProjectRemoveRule toRule() {
       return new ProjectRemoveRule(this);

@@ -26,6 +26,7 @@ import org.apache.calcite.adapter.enumerable.EnumerableSort;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCostImpl;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
@@ -9689,5 +9690,30 @@ class RelOptRulesTest extends RelOptTestBase {
         .withPre(program)
         .withRule(CoreRules.MULTI_JOIN_OPTIMIZE)
         .check();
+  }
+
+  /**
+   * Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6850">[CALCITE-6850]
+   * ProjectRemoveRule with two Projects
+   * does not keep field names from the top one</a>. */
+  @Test void testProjectRemoveRule() {
+    final Function<RelBuilder, RelNode> relFn = b -> {
+      RelNode r = b.scan("DEPT")
+          .project(
+              b.call(SqlStdOperatorTable.PLUS,
+              ImmutableList.of(b.field(0), b.literal(1))))
+          .build();
+      b.push(r);
+      return LogicalProject.create(r, ImmutableList.of(),
+          ImmutableList.of(b.field(0)),
+          ImmutableList.of("newAlias"), ImmutableSet.of());
+    };
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleInstance(CoreRules.PROJECT_REMOVE);
+    HepPlanner planner =
+        new HepPlanner(builder.build(), null, true, null, RelOptCostImpl.FACTORY);
+    fixture().withRelBuilderConfig(a -> a.withBloat(-1))
+        .relFn(relFn).withPlanner(planner).check();
   }
 }

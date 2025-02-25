@@ -9122,6 +9122,21 @@ LogicalProject(EXPR$0=[CAST(/(CASE(>($2, 0), $3, null:INTEGER), $2)):INTEGER])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testProjectRemoveRule">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(newAlias=[$0])
+  LogicalProject($f0=[+($0, 1)])
+    LogicalTableScan(table=[[scott, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(newAlias=[+($0, 1)])
+  LogicalTableScan(table=[[scott, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testProjectSetOpTranspose">
     <Resource name="sql">
       <![CDATA[select job, sum(sal + 100) over (partition by deptno) from
