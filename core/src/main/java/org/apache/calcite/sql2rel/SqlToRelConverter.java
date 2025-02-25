@@ -2328,6 +2328,7 @@ public class SqlToRelConverter {
           "already in window agg mode");
       bb.window = window;
       RexNode rexAgg = exprConverter.convertCall(bb, aggCall);
+      bb.getValidator().deriveType(bb.scope, call);
       rexAgg =
           rexBuilder.ensureType(call.getParserPosition(),
               validator().getValidatedNodeType(call), rexAgg, false);
