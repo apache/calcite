@@ -635,20 +635,7 @@ public class RelToSqlConverter extends SqlImplementor
           || style.isExpandProjection()) && !unpivotRelToSqlUtil.isStarInUnPivot(e, x)) {
         final List<SqlNode> selectList = new ArrayList<>();
 
-        List<String> aliases = new ArrayList<>();
-        if (x.node instanceof SqlSelect) {
-          SqlSelect sqlSelect = (SqlSelect) x.node;
-          if (sqlSelect.getFrom() instanceof SqlPivot) {
-            SqlPivot sqlPivot = (SqlPivot) sqlSelect.getFrom();
-            aliases = sqlPivot.inList.stream()
-                .filter(SqlBasicCall.class::isInstance)
-                .map(SqlBasicCall.class::cast)
-                .filter(basicCall -> basicCall.getOperator() == SqlStdOperatorTable.AS)
-                .filter(basicCall -> basicCall.getOperandList().size() > 1)
-                .map(basicCall -> String.valueOf(basicCall.getOperandList().get(1)))
-                .collect(Collectors.toList());
-          }
-        }
+        List<String> pivotColumnAliases = extractAliasesFromPivot(x);
         for (RexNode ref : e.getProjects()) {
           SqlNode sqlExpr = builder.context.toSql(null, ref);
           RelDataTypeField targetField = e.getRowType().getFieldList().get(selectList.size());
@@ -661,9 +648,9 @@ public class RelToSqlConverter extends SqlImplementor
               && targetField.getType().getSqlTypeName() != SqlTypeName.NULL) {
             sqlExpr = castNullType(sqlExpr, targetField.getType());
           }
-          if (aliases.contains(targetField.getKey())) {
-            int index = aliases.indexOf(targetField.getKey());
-            sqlExpr = new SqlIdentifier(aliases.get(index), SqlParserPos.ZERO);
+          if (pivotColumnAliases.contains(targetField.getKey())) {
+            int index = pivotColumnAliases.indexOf(targetField.getKey());
+            sqlExpr = new SqlIdentifier(pivotColumnAliases.get(index), SqlParserPos.ZERO);
           }
           addSelect(selectList, sqlExpr, e.getRowType());
         }
@@ -676,6 +663,29 @@ public class RelToSqlConverter extends SqlImplementor
       result = updateCTEResult(e, result);
     }
     return adjustResultWithSubQueryAlias(e, result);
+  }
+
+  /**
+   * Extracts aliases from the inList of a SqlPivot node.
+   *
+   * @param x The Result node.
+   * @return A list of aliases extracted from the SqlPivot inList.
+   */
+  private static List<String> extractAliasesFromPivot(Result x) {
+    List<String> aliases = new ArrayList<>();
+    if (x.node instanceof SqlSelect) {
+      SqlSelect sqlSelect = (SqlSelect) x.node;
+      if (sqlSelect.getFrom() instanceof SqlPivot) {
+        SqlPivot sqlPivot = (SqlPivot) sqlSelect.getFrom();
+        aliases = sqlPivot.inList.stream()
+            .filter(SqlBasicCall.class::isInstance)
+            .map(SqlBasicCall.class::cast)
+            .filter(basicCall -> basicCall.getOperator() == SqlStdOperatorTable.AS)
+            .map(basicCall -> basicCall.operand(1).toString())
+            .collect(Collectors.toList());
+      }
+    }
+    return aliases;
   }
 
   /**
@@ -813,6 +823,7 @@ public class RelToSqlConverter extends SqlImplementor
       return true;
     }
 
+    // Adding Alias in InClause and remove(return false) column from selectlist
     if (nestedCall instanceof SqlBasicCall && ((SqlBasicCall) nestedCall).getOperator().kind == SqlKind.AS) {
       SqlNode asNestedCall = ((SqlBasicCall) nestedCall).getOperandList().get(0);
       String nestedCallString = asNestedCall.toString().replaceAll("'", "").toLowerCase();
