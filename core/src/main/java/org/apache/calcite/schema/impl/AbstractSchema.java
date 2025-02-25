@@ -100,12 +100,12 @@ public class AbstractSchema implements Schema {
     return ImmutableMap.of();
   }
 
-  @Override public final Set<String> getTableNames() {
+  @Deprecated @Override public final Set<String> getTableNames() {
     //noinspection RedundantCast
     return (Set<String>) getTableMap().keySet();
   }
 
-  @Override public final @Nullable Table getTable(String name) {
+  @Deprecated @Override public final @Nullable Table getTable(String name) {
     return getTableMap().get(name);
   }
 
@@ -171,12 +171,12 @@ public class AbstractSchema implements Schema {
     return ImmutableMap.of();
   }
 
-  @Override public final Set<String> getSubSchemaNames() {
+  @Deprecated @Override public final Set<String> getSubSchemaNames() {
     //noinspection RedundantCast
     return (Set<String>) getSubSchemaMap().keySet();
   }
 
-  @Override public final @Nullable Schema getSubSchema(String name) {
+  @Deprecated @Override public final @Nullable Schema getSubSchema(String name) {
     return getSubSchemaMap().get(name);
   }
 

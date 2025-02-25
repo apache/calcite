@@ -25,7 +25,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * An abstract base class for lookups implementing caseinsensitive lookup.
+ * An abstract base class for lookups implementing case insensitive lookup.
  *
  * @param <T> Element type
  */
@@ -35,23 +35,21 @@ public abstract class IgnoreCaseLookup<T> implements Lookup<T> {
    * This member is used to lazily load the list of all names into memory.
    *
    * <p>A {@link NameMap} is used, which is capable to lookup names in a
-   * caseinsensitive way.
+   * case insensitive way.
    */
   private LazyReference<NameMap<String>> nameMap = new LazyReference<>();
 
   /**
    * Returns a named entity with a given name, or null if not found.
    *
-   * @param name Name
-   * @return Entity, or null
+   * @return Entity with the specified name, or null when the entity is not found.
    */
   @Override public abstract @Nullable T get(String name);
 
   /**
    * Returns a named entity with a given name ignoring the case, or null if not found.
    *
-   * @param name Name
-   * @return Entity, or null
+   * @return Entity with the specified name, or null when the entity is not found.
    */
   @Override @Nullable public Named<T> getIgnoreCase(String name) {
     int retryCounter = 0;

@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * This class can be used to concat a list of lookups into a new lookup object.
+ * This creats a {@code Lookup} object from an ordered sequence of {@code Lookup} objects.
  *
  * <p>The lookup is done from left to right. The first match is returned
  * if a name can be found in two or more lookups.

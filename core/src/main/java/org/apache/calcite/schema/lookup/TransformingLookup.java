@@ -22,7 +22,8 @@ import java.util.Set;
 import java.util.function.BiFunction;
 
 /**
- * A Lookup class which can be used to map different element types.
+ * This class implements a {@code Lookup} on base of another {@code Lookup}
+ * transforming all entities using a given function.
  *
  * @param <S> Source element type
  * @param <T> Target element type

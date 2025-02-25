@@ -43,21 +43,21 @@ public abstract class JdbcBaseSchema implements Schema {
   @Override public abstract Lookup<Table> tables();
 
 
-  @Override public @Nullable Table getTable(String name) {
+  @Deprecated @Override public @Nullable Table getTable(String name) {
     return tables().get(name);
   }
 
-  @Override public Set<String> getTableNames() {
+  @Deprecated @Override public Set<String> getTableNames() {
     return tables().getNames(LikePattern.any());
   }
 
   @Override public abstract Lookup<? extends Schema> subSchemas();
 
-  @Override public @Nullable Schema getSubSchema(String name) {
+  @Deprecated @Override public @Nullable Schema getSubSchema(String name) {
     return subSchemas().get(name);
   }
 
-  @Override public Set<String> getSubSchemaNames() {
+  @Deprecated @Override public Set<String> getSubSchemaNames() {
     return subSchemas().getNames(LikePattern.any());
   }
 

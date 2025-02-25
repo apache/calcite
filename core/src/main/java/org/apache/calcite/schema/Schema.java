@@ -81,11 +81,9 @@ public interface Schema {
   /**
    * Returns a table with a given name, or null if not found.
    *
-   * <p>Please use {@link Schema#tables()} and {@link Lookup#get(String)} instead.
-   *
    * <p>Using `getTable` directly does not allow to distinguish between
-   * casesensitive and caseinsensitive lookups. This method always does a
-   * casesensitive lookup. Caseinsensitive lookup can be done by loading
+   * case sensitive and case insensitive lookups. This method always does a
+   * case sensitive lookup. Caseinsensitive lookup can be done by loading
    * all table names using {@link Schema#getTableNames()}. This can be
    * quite timeconsuming for huge databases. To speed this up,
    * all table names must be cached. This will require
@@ -93,16 +91,18 @@ public interface Schema {
    *
    * @param name Table name
    * @return Table, or null
+   * @deprecated Use {@link Schema#tables()} and {@link Lookup#get(String)} instead.
    */
+  @Deprecated // to be removed before 2.0
   @Nullable Table getTable(String name);
 
   /**
    * Returns the names of the tables in this schema.
    *
-   * <p>Please use {@link Schema#tables()} and {@link Lookup#getNames(LikePattern)} instead.
-   *
    * @return Names of the tables in this schema
+   * @deprecated Use {@link Schema#tables()} and {@link Lookup#getNames(LikePattern)} instead.
    */
+  @Deprecated // to be removed before 2.0
   Set<String> getTableNames();
 
   /**
@@ -139,23 +139,23 @@ public interface Schema {
   /**
    * Returns a sub-schema with a given name, or null.
    *
-   * <p>Please use {@link Schema#subSchemas()} and {@link Lookup#get(String)} instead.
-   *
    * <p>See also comment for {@link Schema#getTable(String)} to find out why
    * you should do so.
    *
    * @param name Sub-schema name
    * @return Sub-schema with a given name, or null
+   * @deprecated Use {@link Schema#subSchemas()} and {@link Lookup#get(String)} instead.
    */
+  @Deprecated // to be removed before 2.0
   @Nullable Schema getSubSchema(String name);
 
   /**
    * Returns the names of this schema's child schemas.
    *
-   * <p>Please use {@link Schema#subSchemas()} and {@link Lookup#getNames(LikePattern)} instead.
-   *
    * @return Names of this schema's child schemas
+   * @deprecated Use {@link Schema#subSchemas()} and {@link Lookup#getNames(LikePattern)} instead.
    */
+  @Deprecated // to be removed before 2.0
   Set<String> getSubSchemaNames();
 
   /**

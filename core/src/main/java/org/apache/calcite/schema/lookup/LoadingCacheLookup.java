@@ -49,6 +49,13 @@ public class LoadingCacheLookup<T> implements Lookup<T> {
   private final LoadingCache<String, T> cache;
   private final LoadingCache<String, Named<T>> cacheIgnoreCase;
 
+  /**
+   * Creates a {@code Lookup} object with a `LoadingCache`inside.
+   *
+   * @param delegate The {@code Lookup} object, which should be cached
+   * @param expiration The duration after which the entries are evicted from
+   *                   the loading cache.
+   */
   public LoadingCacheLookup(Lookup<T> delegate, Duration expiration) {
     this.delegate = delegate;
     this.cache = CacheBuilder.newBuilder()
@@ -59,6 +66,13 @@ public class LoadingCacheLookup<T> implements Lookup<T> {
         .build(CacheLoader.from(name -> requireNonNull(delegate.getIgnoreCase(name))));
   }
 
+  /**
+   * Creates a {@code Lookup} object with a `LoadingCache`inside.
+   *
+   * <p>The expiration is set to 1 minute.
+   *
+   * @param delegate The {@code Lookup} object, which should be cached
+   */
   public LoadingCacheLookup(Lookup<T> delegate) {
     this(delegate, Duration.ofMinutes(1));
   }

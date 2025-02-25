@@ -24,7 +24,7 @@ import java.util.Set;
 import java.util.function.BiFunction;
 
 /**
- * A casesensitive/insensitive lookup for tables, schemas, functions, types ...
+ * A case sensitive/insensitive lookup for tables, schemas, functions, types ...
  *
  * @param <T> Element type
  */
@@ -33,7 +33,8 @@ public interface Lookup<T> {
    * Returns a named entity with a given name, or null if not found.
    *
    * @param name Name
-   * @return Entity, or null
+   * @return Entity with the specified name, or null when the entity is
+   *         not found.
    */
   @Nullable T get(String name);
 
@@ -41,17 +42,18 @@ public interface Lookup<T> {
    * Returns a named entity with a given name ignoring the case, or null if not found.
    *
    * @param name Name
-   * @return Entity, or null
+   * @return Entity with the specified name (case insensitive),
+   *         or null when the entity is not found.
    */
   @Nullable Named<T> getIgnoreCase(String name);
 
   /**
    * Returns the names of the entities in matching pattern.
-   * The search is always casesensitive. This is caused by the fact that
-   * {@code DatabaseMetaData.getTables(...)} doesn't support caseinsensitive
+   * The search is always case sensitive. This is caused by the fact that
+   * {@code DatabaseMetaData.getTables(...)} doesn't support case insensitive
    * lookups.
    *
-   * @return Names of the entities
+   * @return The names of all entities matching the pattern.
    */
   Set<String> getNames(LikePattern pattern);
 
@@ -60,10 +62,12 @@ public interface Lookup<T> {
   }
 
   /**
-   * Helper method to call Lookup.get(String) or Lookup.getIgnoreCase(String)
-   * depending on the parameter caseSensitive.
+   * Helper method to call {@code Lookup.get(String)} or
+   * {@code Lookup.getIgnoreCase(String)} depending on the parameter
+   * caseSensitive.
    *
-   * @return Entity, or null
+   * @return Entity with the specified name, or null when the entity is
+   *         not found.
    */
   static <T> @Nullable T get(Lookup<T> lookup, String name, boolean caseSensitive) {
     if (caseSensitive) {

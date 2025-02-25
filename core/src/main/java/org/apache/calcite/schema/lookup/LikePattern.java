@@ -62,7 +62,7 @@ public class LikePattern {
 
   /**
    * Converts a LIKE-style pattern (where '%' represents a wild-card, escaped
-   * using '\') to a Java regex. It's always casesensitive.
+   * using '\') to a Java regex. It's always case sensitive.
    */
   public static Pattern likeToRegex(String pattern) {
     StringBuilder buf = new StringBuilder("^");

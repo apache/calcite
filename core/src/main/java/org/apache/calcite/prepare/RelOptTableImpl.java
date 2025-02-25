@@ -460,7 +460,7 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
       return name;
     }
 
-    @Override public @Nullable SchemaPlus getSubSchema(String name) {
+    @Deprecated @Override public @Nullable SchemaPlus getSubSchema(String name) {
       return subSchemas().get(name);
     }
 
@@ -518,11 +518,11 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
           () -> schema.subSchemas().map((s, key) -> new MySchemaPlus(this, key, s)));
     }
 
-    @Override public @Nullable Table getTable(String name) {
+    @Deprecated @Override public @Nullable Table getTable(String name) {
       return tables().get(name);
     }
 
-    @Override public Set<String> getTableNames() {
+    @Deprecated @Override public Set<String> getTableNames() {
       return schema.tables().getNames(LikePattern.any());
     }
 
@@ -543,7 +543,7 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
       return schema.getFunctionNames();
     }
 
-    @Override public Set<String> getSubSchemaNames() {
+    @Deprecated @Override public Set<String> getSubSchemaNames() {
       return schema.subSchemas().getNames(LikePattern.any());
     }
 

@@ -26,7 +26,10 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
- * This class can be used to implement the methods {@code Schema.tables()}
+ * This class warps a {@code Function} and a {@code Supplier} into a
+ * {@code Lookup} interface.
+ *
+ * <p>This class can be used to implement the methods {@code Schema.tables()}
  * and {@code Schema.subSchemas()} of existing schemas.
  *
  * <p>Existing schema classes are implementing a pair of {@code getTable()}
@@ -43,7 +46,7 @@ public class CompatibilityLookup<T> extends IgnoreCaseLookup<T> {
   private final Supplier<Set<String>> getNames;
 
   /**
-   * Constructor.
+   * Constructor to create a {@code Lookup} instance using a `Function` and a `Supplier`.
    *
    * @param get a function to lookup tables or sub schemas by name
    * @param getNames a function to list all tables or sub schemas

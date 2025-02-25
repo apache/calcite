@@ -656,12 +656,12 @@ public abstract class CalciteSchema {
       return CalciteSchema.this.subSchemas().map((schema, name) -> schema.plus());
     }
 
-    @Override public @Nullable Table getTable(String name) {
+    @Deprecated @Override public @Nullable Table getTable(String name) {
       final TableEntry entry = CalciteSchema.this.getTable(name, true);
       return entry == null ? null : entry.getTable();
     }
 
-    @Override public Set<String> getTableNames() {
+    @Deprecated @Override public Set<String> getTableNames() {
       return CalciteSchema.this.getTableNames(LikePattern.any());
     }
 
@@ -682,11 +682,11 @@ public abstract class CalciteSchema {
       return CalciteSchema.this.getFunctionNames();
     }
 
-    @Override public @Nullable SchemaPlus getSubSchema(String name) {
+    @Deprecated @Override public @Nullable SchemaPlus getSubSchema(String name) {
       return subSchemas().get(name);
     }
 
-    @Override public Set<String> getSubSchemaNames() {
+    @Deprecated @Override public Set<String> getSubSchemaNames() {
       return subSchemas().getNames(LikePattern.any());
     }
 

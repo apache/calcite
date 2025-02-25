@@ -20,7 +20,13 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 /**
- * This class can be used to lazily initialize an object.
+ * This class can is able to do a lazy initiaization
+ * of an object based on a {@code Supplier}.
+ *
+ * <p>In contrast to {@code Suppliers.memoize}, the supplier is passed
+ * at the later point in time, during the call to {@code getOrCompute}.
+ * This allows the usage in abstract base classes with a supplier
+ * method, implemented in a derived class.
  *
  * @param <T> Element Type
  */

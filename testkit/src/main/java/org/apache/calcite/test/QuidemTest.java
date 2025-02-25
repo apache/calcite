@@ -350,7 +350,7 @@ public abstract class QuidemTest {
             .withSchema("s", new AbstractSchema())
             .connect();
         connection.unwrap(CalciteConnection.class).getRootSchema()
-            .getSubSchema("s")
+            .subSchemas().get("s")
             .add("my_seq",
                 new AbstractTable() {
                   @Override public RelDataType getRowType(

@@ -65,7 +65,7 @@ public interface SchemaPlus extends Schema {
   String getName();
 
   // override with stricter return
-  @Override @Nullable SchemaPlus getSubSchema(String name);
+  @Deprecated @Override @Nullable SchemaPlus getSubSchema(String name);
 
   /** Adds a schema as a sub-schema of this schema, and returns the wrapped
    * object. */
