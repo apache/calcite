@@ -217,6 +217,17 @@ public class MongoAdapterTest implements SchemaFactory {
                 "{$project: {STATE: '$state', ID: '$_id'}}"));
   }
 
+  @Test void testJoin() {
+    assertModel(MODEL)
+        .query("select b.state, a.id from zips as a join zips as b on a.id=b.id where a.id='02401' "
+            + "fetch next 3 rows only")
+        .returnsOrdered("STATE=MA; ID=02401")
+        .queryContains(
+            mongoChecker("{$match: {_id: \"02401\"}}",
+                "{$project: {ID: '$_id'}}",
+                "{$sort: {ID: 1}}"));
+  }
+
   @Disabled
   @Test void testFilterSort() {
     // LONGITUDE and LATITUDE are null because of CALCITE-194.
