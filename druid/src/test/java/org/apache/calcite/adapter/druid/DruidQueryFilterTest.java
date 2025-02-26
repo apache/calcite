@@ -41,7 +41,7 @@ import java.util.List;
 
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.hasToString;
 
 /**
  * Tests generating Druid filters.
@@ -82,8 +82,8 @@ class DruidQueryFilterTest {
     returnValue.write(jsonGenerator);
     jsonGenerator.close();
 
-    assertThat(sw.toString(),
-        is("{\"type\":\"in\",\"dimension\":\"dimensionName\","
+    assertThat(sw,
+        hasToString("{\"type\":\"in\",\"dimension\":\"dimensionName\","
             + "\"values\":[\"1\",\"5\",\"value1\"]}"));
   }
 
@@ -95,8 +95,9 @@ class DruidQueryFilterTest {
             f.rexBuilder.makeLiteral("lower-bound"),
             f.rexBuilder.makeLiteral("upper-bound"));
     RelDataType relDataType = f.typeFactory.createSqlType(SqlTypeName.BOOLEAN);
-    RexNode betweenRexNode = f.rexBuilder.makeCall(relDataType,
-        SqlInternalOperators.DRUID_BETWEEN, listRexNodes);
+    RexNode betweenRexNode =
+        f.rexBuilder.makeCall(relDataType,
+            SqlInternalOperators.DRUID_BETWEEN, listRexNodes);
 
     DruidJsonFilter returnValue = DruidJsonFilter
         .toDruidFilters(betweenRexNode, f.varcharRowType, druidQuery, f.rexBuilder);
@@ -106,9 +107,10 @@ class DruidQueryFilterTest {
     JsonGenerator jsonGenerator = jsonFactory.createGenerator(sw);
     returnValue.write(jsonGenerator);
     jsonGenerator.close();
-    assertThat(sw.toString(),
-        is("{\"type\":\"bound\",\"dimension\":\"dimensionName\",\"lower\":\"lower-bound\","
-            + "\"lowerStrict\":false,\"upper\":\"upper-bound\",\"upperStrict\":false,"
+    assertThat(sw,
+        hasToString("{\"type\":\"bound\",\"dimension\":\"dimensionName\","
+            + "\"lower\":\"lower-bound\",\"lowerStrict\":false,"
+            + "\"upper\":\"upper-bound\",\"upperStrict\":false,"
             + "\"ordering\":\"lexicographic\"}"));
   }
 

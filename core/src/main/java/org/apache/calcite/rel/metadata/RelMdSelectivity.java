@@ -25,6 +25,7 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableModify;
+import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLocalRef;
@@ -32,7 +33,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -48,7 +48,7 @@ public class RelMdSelectivity
     implements MetadataHandler<BuiltInMetadata.Selectivity> {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          BuiltInMethod.SELECTIVITY.method, new RelMdSelectivity());
+          new RelMdSelectivity(), BuiltInMetadata.Selectivity.Handler.class);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -61,9 +61,19 @@ public class RelMdSelectivity
     return BuiltInMetadata.Selectivity.DEF;
   }
 
+  public @Nullable Double getSelectivity(TableScan scan, RelMetadataQuery mq,
+      RexNode predicate) {
+    final BuiltInMetadata.Selectivity.Handler handler =
+        scan.getTable().unwrap(BuiltInMetadata.Selectivity.Handler.class);
+    if (handler != null) {
+      return handler.getSelectivity(scan, mq, predicate);
+    }
+    return getSelectivity((RelNode) scan, mq, predicate);
+  }
+
   public @Nullable Double getSelectivity(Union rel, RelMetadataQuery mq,
       @Nullable RexNode predicate) {
-    if ((rel.getInputs().size() == 0) || (predicate == null)) {
+    if (rel.getInputs().isEmpty() || predicate == null) {
       return 1.0;
     }
 

@@ -347,6 +347,7 @@ return the `RelBuilder`.
 | `intersect(all [, n])` | Creates an [Intersect]({{ site.apiRoot }}/org/apache/calcite/rel/core/Intersect.html) of the `n` (default two) most recent relational expressions.
 | `minus(all)` | Creates a [Minus]({{ site.apiRoot }}/org/apache/calcite/rel/core/Minus.html) of the two most recent relational expressions.
 | `repeatUnion(tableName, all [, n])` | Creates a [RepeatUnion]({{ site.apiRoot }}/org/apache/calcite/rel/core/RepeatUnion.html) associated to a [TransientTable]({{ site.apiRoot }}/org/apache/calcite/schema/TransientTable.html) of the two most recent relational expressions, with `n` maximum number of iterations (default -1, i.e. no limit).
+| `sample(bernoulli, rate [, repeatableSeed])` | Creates a [sample]({{ site.apiRoot }}/org/apache/calcite/rel/core/Sample.html) of at given sampling rate.
 | `snapshot(period)` | Creates a [Snapshot]({{ site.apiRoot }}/org/apache/calcite/rel/core/Snapshot.html) of the given snapshot period.
 | `match(pattern, strictStart,` `strictEnd, patterns, measures,` `after, subsets, allRows,` `partitionKeys, orderKeys,` `interval)` | Creates a [Match]({{ site.apiRoot }}/org/apache/calcite/rel/core/Match.html).
 
@@ -443,6 +444,32 @@ added to the stack.
 | `nullsLast(expr)` | Changes sort order to nulls last (only valid as an argument to `sort` or `sortLimit`)
 | `cursor(n, input)` | Reference to `input`th (0-based) relational input of a `TableFunctionScan` with `n` inputs (see `functionScan`)
 
+#### Sub-query methods
+
+The following methods convert a sub-query into a scalar value (a `BOOLEAN` in
+the case of `in`, `exists`, `some`, `all`, `unique`;
+any scalar type for `scalarQuery`).
+an `ARRAY` for `arrayQuery`,
+a `MAP` for `mapQuery`,
+and a `MULTISET` for `multisetQuery`).
+
+In all the following, `relFn` is a function that takes a `RelBuilder` argument
+and returns a `RelNode`. You typically implement it as a lambda; the method
+calls your code with a `RelBuilder` that has the correct context, and your code
+returns the `RelNode` that is to be the sub-query.
+
+| Method              | Description
+|:------------------- |:-----------
+| `all(expr, op, relFn)` | Returns whether *expr* has a particular relation to all of the values of the sub-query
+| `arrayQuery(relFn)` | Returns the rows of a sub-query as an `ARRAY`
+| `exists(relFn)` | Tests whether sub-query is non-empty
+| `in(expr, relFn)`<br/>`in(exprList, relFn)` | Tests whether a value occurs in a sub-query
+| `mapQuery(relFn)` | Returns the rows of a sub-query as a `MAP`
+| `multisetQuery(relFn)` | Returns the rows of a sub-query as a `MULTISET`
+| `scalarQuery(relFn)` | Returns the value of the sole column of the sole row of a sub-query
+| `some(expr, op, relFn)` | Returns whether *expr* has a particular relation to one or more of the values of the sub-query
+| `unique(relFn)` | Returns whether the rows of a sub-query are unique
+
 #### Pattern methods
 
 The following methods return patterns for use in `match`.
@@ -476,9 +503,10 @@ The following methods return an
 | `aggregateCall(op, expr...)`<br/>`aggregateCall(op, exprList)` | Creates a call to a given aggregate function
 | `count([ distinct, alias, ] expr...)`<br/>`count([ distinct, alias, ] exprList)` | Creates a call to the `COUNT` aggregate function
 | `countStar(alias)` | Creates a call to the `COUNT(*)` aggregate function
-| `sum([ distinct, alias, ] expr)` | Creates a call to the `SUM` aggregate function
-| `min([ alias, ] expr)` | Creates a call to the `MIN` aggregate function
+| `literalAgg(value)` | Creates a call to an aggregate function that always evaluates to *value*
 | `max([ alias, ] expr)` | Creates a call to the `MAX` aggregate function
+| `min([ alias, ] expr)` | Creates a call to the `MIN` aggregate function
+| `sum([ distinct, alias, ] expr)` | Creates a call to the `SUM` aggregate function
 
 To further modify the `AggCall`, call its methods:
 
@@ -512,6 +540,7 @@ To further modify the `OverCall`, call its methods:
 | `rowsFrom(lower)`    | Creates a row-based window bounded below, `ROWS BETWEEN lower AND CURRENT ROW`
 | `rowsTo(upper)`      | Creates a row-based window bounded above, `ROWS BETWEEN CURRENT ROW AND upper`
 | `rowsBetween(lower, upper)` | Creates a rows-based window, `ROWS BETWEEN lower AND upper`
+| `exclude(excludeType)` | Exclude certain rows from the frame (see SQL `EXCLUDE`)
 | `partitionBy(expr...)`<br/>`partitionBy(exprList)` | Partitions the window on the given expressions (see SQL `PARTITION BY`)
 | `orderBy(expr...)`<br/>`sort(exprList)` | Sorts the rows in the window (see SQL `ORDER BY`)
 | `allowPartial(b)`    | Sets whether to allow partial width windows; default true

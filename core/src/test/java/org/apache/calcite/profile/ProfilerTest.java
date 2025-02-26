@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 package org.apache.calcite.profile;
-
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
@@ -25,7 +24,6 @@ import org.apache.calcite.test.Matchers;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.TestUtil;
-import org.apache.calcite.util.Util;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -46,15 +44,19 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import static com.google.common.collect.ImmutableList.toImmutableList;
+
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.hasToString;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Unit tests for {@link Profiler}.
@@ -325,51 +327,51 @@ class ProfilerTest {
   @Test void testSurpriseQueue() {
     ProfilerImpl.SurpriseQueue q = new ProfilerImpl.SurpriseQueue(4, 3);
     assertThat(q.offer(2), is(true));
-    assertThat(q.toString(), is("min: 2.0, contents: [2.0]"));
+    assertThat(q, hasToString("min: 2.0, contents: [2.0]"));
     assertThat(q.isValid(), is(true));
 
     assertThat(q.offer(4), is(true));
-    assertThat(q.toString(), is("min: 2.0, contents: [2.0, 4.0]"));
+    assertThat(q, hasToString("min: 2.0, contents: [2.0, 4.0]"));
     assertThat(q.isValid(), is(true));
 
     // Since we're in the warm-up period, a value lower than the minimum is
     // accepted.
     assertThat(q.offer(1), is(true));
-    assertThat(q.toString(), is("min: 1.0, contents: [2.0, 4.0, 1.0]"));
+    assertThat(q, hasToString("min: 1.0, contents: [2.0, 4.0, 1.0]"));
     assertThat(q.isValid(), is(true));
 
     assertThat(q.offer(5), is(true));
-    assertThat(q.toString(), is("min: 1.0, contents: [4.0, 1.0, 5.0]"));
+    assertThat(q, hasToString("min: 1.0, contents: [4.0, 1.0, 5.0]"));
     assertThat(q.isValid(), is(true));
 
     assertThat(q.offer(3), is(true));
-    assertThat(q.toString(), is("min: 1.0, contents: [1.0, 5.0, 3.0]"));
+    assertThat(q, hasToString("min: 1.0, contents: [1.0, 5.0, 3.0]"));
     assertThat(q.isValid(), is(true));
 
     // Duplicate entry
     assertThat(q.offer(5), is(true));
-    assertThat(q.toString(), is("min: 3.0, contents: [5.0, 3.0, 5.0]"));
+    assertThat(q, hasToString("min: 3.0, contents: [5.0, 3.0, 5.0]"));
     assertThat(q.isValid(), is(true));
 
     // Now that the list is full, a value below the minimum is refused.
     // "offer" returns false, and the value is not added to the queue.
     // Thus the median never decreases.
     assertThat(q.offer(2), is(false));
-    assertThat(q.toString(), is("min: 3.0, contents: [5.0, 3.0, 5.0]"));
+    assertThat(q, hasToString("min: 3.0, contents: [5.0, 3.0, 5.0]"));
     assertThat(q.isValid(), is(true));
 
     // Same applies for a value equal to the minimum.
     assertThat(q.offer(3), is(false));
-    assertThat(q.toString(), is("min: 3.0, contents: [5.0, 3.0, 5.0]"));
+    assertThat(q, hasToString("min: 3.0, contents: [5.0, 3.0, 5.0]"));
     assertThat(q.isValid(), is(true));
 
     // Add a value that is above the minimum.
     assertThat(q.offer(4.5), is(true));
-    assertThat(q.toString(), is("min: 3.0, contents: [3.0, 5.0, 4.5]"));
+    assertThat(q, hasToString("min: 3.0, contents: [3.0, 5.0, 4.5]"));
     assertThat(q.isValid(), is(true));
   }
 
-  private Fluid scott() throws Exception {
+  private Fluid scott() {
     final String sql = "select * from \"scott\".emp\n"
         + "join \"scott\".dept on emp.deptno = dept.deptno";
     return sql(sql)
@@ -379,7 +381,7 @@ class ProfilerTest {
         .project(Fluid.EXTENDED_COLUMNS);
   }
 
-  private Fluid foodmart() throws Exception {
+  private Fluid foodmart() {
     final String sql = "select \"s\".*, \"p\".*, \"t\".*, \"pc\".*\n"
         + "from \"foodmart\".\"sales_fact_1997\" as \"s\"\n"
         + "join \"foodmart\".\"product\" as \"p\" using (\"product_id\")\n"
@@ -468,10 +470,10 @@ class ProfilerTest {
         Predicate<Profiler.Statistic> predicate,
         Comparator<Profiler.Statistic> comparator, int limit,
         List<String> columns) {
-      this.sql = Objects.requireNonNull(sql, "sql");
-      this.factory = Objects.requireNonNull(factory, "factory");
+      this.sql = requireNonNull(sql, "sql");
+      this.factory = requireNonNull(factory, "factory");
       this.columns = ImmutableList.copyOf(columns);
-      this.predicate = Objects.requireNonNull(predicate, "predicate");
+      this.predicate = requireNonNull(predicate, "predicate");
       this.comparator = comparator; // null means sort on JSON representation
       this.limit = limit;
       this.config = config;
@@ -541,7 +543,7 @@ class ProfilerTest {
                   p.profile(rows, columns, initialGroups);
               final List<Profiler.Statistic> statistics =
                   profile.statistics().stream().filter(predicate)
-                      .collect(Util.toImmutableList());
+                      .collect(toImmutableList());
 
               // If no comparator specified, use the function that converts to
               // JSON strings

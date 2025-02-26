@@ -107,8 +107,8 @@ public class Interpreter extends AbstractEnumerable<@Nullable Object[]>
 
   @Override public Enumerator<@Nullable Object[]> enumerator() {
     start();
-    final NodeInfo nodeInfo = requireNonNull(nodes.get(rootRel),
-        () -> "nodeInfo for " + rootRel);
+    final NodeInfo nodeInfo =
+        requireNonNull(nodes.get(rootRel), () -> "nodeInfo for " + rootRel);
     final Enumerator<Row> rows;
     if (nodeInfo.rowEnumerable != null) {
       rows = nodeInfo.rowEnumerable.enumerator();
@@ -131,7 +131,10 @@ public class Interpreter extends AbstractEnumerable<@Nullable Object[]>
     for (Map.Entry<RelNode, NodeInfo> entry : nodes.entrySet()) {
       final NodeInfo nodeInfo = entry.getValue();
       try {
-        assert nodeInfo.node != null : "node must not be null for nodeInfo, rel=" + nodeInfo.rel;
+        if (nodeInfo.node == null) {
+          throw new AssertionError("node must not be null for nodeInfo, rel="
+              + nodeInfo.rel);
+        }
         nodeInfo.node.run();
       } catch (InterruptedException e) {
         e.printStackTrace();
@@ -197,11 +200,11 @@ public class Interpreter extends AbstractEnumerable<@Nullable Object[]>
       this.list = list;
     }
 
-    @Override public void send(Row row) throws InterruptedException {
+    @Override public void send(Row row) {
       list.add(row);
     }
 
-    @Override public void end() throws InterruptedException {
+    @Override public void end() {
     }
 
     @SuppressWarnings("deprecation")
@@ -244,24 +247,23 @@ public class Interpreter extends AbstractEnumerable<@Nullable Object[]>
 
   /** Implementation of {@link Sink} using a {@link java.util.ArrayDeque}. */
   private static class DuplicatingSink implements Sink {
-    private List<ArrayDeque<Row>> queues;
+    private final List<ArrayDeque<Row>> queues;
 
     private DuplicatingSink(List<ArrayDeque<Row>> queues) {
       this.queues = ImmutableList.copyOf(queues);
     }
 
-    @Override public void send(Row row) throws InterruptedException {
+    @Override public void send(Row row) {
       for (ArrayDeque<Row> queue : queues) {
         queue.add(row);
       }
     }
 
-    @Override public void end() throws InterruptedException {
+    @Override public void end() {
     }
 
     @SuppressWarnings("deprecation")
-    @Override public void setSourceEnumerable(Enumerable<Row> enumerable)
-        throws InterruptedException {
+    @Override public void setSourceEnumerable(Enumerable<Row> enumerable) {
       // just copy over the source into the local list
       final Enumerator<Row> enumerator = enumerable.enumerator();
       while (enumerator.moveNext()) {
@@ -359,17 +361,17 @@ public class Interpreter extends AbstractEnumerable<@Nullable Object[]>
       if (!found) {
         if (p instanceof InterpretableRel) {
           InterpretableRel interpretableRel = (InterpretableRel) p;
-          node = interpretableRel.implement(
-              new InterpretableRel.InterpreterImplementor(this, null,
-                  DataContexts.EMPTY));
+          node =
+              interpretableRel.implement(
+                  new InterpretableRel.InterpreterImplementor(this, null,
+                      DataContexts.EMPTY));
         } else {
           // Probably need to add a visit(XxxRel) method to CoreCompiler.
           throw new AssertionError("interpreter: no implementation for "
               + p.getClass());
         }
       }
-      final NodeInfo nodeInfo = nodes.get(p);
-      assert nodeInfo != null;
+      final NodeInfo nodeInfo = requireNonNull(nodes.get(p));
       nodeInfo.node = node;
       if (inputs != null) {
         for (int i = 0; i < inputs.size(); i++) {

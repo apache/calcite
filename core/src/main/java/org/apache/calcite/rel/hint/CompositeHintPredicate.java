@@ -20,6 +20,8 @@ import org.apache.calcite.rel.RelNode;
 
 import com.google.common.collect.ImmutableList;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 /**
  * A {@link HintPredicate} to combine multiple hint predicates into one.
  *
@@ -35,8 +37,8 @@ public class CompositeHintPredicate implements HintPredicate {
 
   //~ Instance fields --------------------------------------------------------
 
-  private ImmutableList<HintPredicate> predicates;
-  private Composition composition;
+  private final ImmutableList<HintPredicate> predicates;
+  private final Composition composition;
 
   /**
    * Creates a {@link CompositeHintPredicate} with a {@link Composition}
@@ -44,15 +46,11 @@ public class CompositeHintPredicate implements HintPredicate {
    *
    * <p>Make this constructor package-protected intentionally.
    * Use utility methods in {@link HintPredicates}
-   * to create a {@link CompositeHintPredicate}.</p>
+   * to create a {@link CompositeHintPredicate}.
    */
   CompositeHintPredicate(Composition composition, HintPredicate... predicates) {
-    assert predicates != null;
-    assert predicates.length > 1;
-    for (HintPredicate predicate : predicates) {
-      assert predicate != null;
-    }
     this.predicates = ImmutableList.copyOf(predicates);
+    checkArgument(this.predicates.size() > 1);
     this.composition = composition;
   }
 
@@ -65,7 +63,7 @@ public class CompositeHintPredicate implements HintPredicate {
   private boolean apply(Composition composition, RelHint hint, RelNode rel) {
     switch (composition) {
     case AND:
-      for (HintPredicate predicate: predicates) {
+      for (HintPredicate predicate : predicates) {
         if (!predicate.apply(hint, rel)) {
           return false;
         }
@@ -73,7 +71,7 @@ public class CompositeHintPredicate implements HintPredicate {
       return true;
     case OR:
     default:
-      for (HintPredicate predicate: predicates) {
+      for (HintPredicate predicate : predicates) {
         if (predicate.apply(hint, rel)) {
           return true;
         }

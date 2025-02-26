@@ -31,16 +31,16 @@ adapters.
 
 ## Building from a source distribution
 
-Prerequisite is Java (JDK 8, 9, 10, 11, 12, 13, 14 or 15)
-and Gradle (version 6.8.1) on your path.
+Prerequisite is Java (JDK 8, 11, 17, 21 or 23)
+and Gradle (version 8.7) on your path.
 
 Unpack the source distribution `.tar.gz` file,
 `cd` to the root directory of the unpacked source,
 then build using Gradle:
 
 {% highlight bash %}
-$ tar xvfz apache-calcite-1.27.0-src.tar.gz
-$ cd apache-calcite-1.27.0-src
+$ tar xvfz apache-calcite-1.38.0-src.tar.gz
+$ cd apache-calcite-1.38.0-src
 $ gradle build
 {% endhighlight %}
 
@@ -51,14 +51,14 @@ tests  (but you should use the `gradle` command rather than
 ## Building from Git
 
 Prerequisites are git
-and Java (JDK 8, 9, 10, 11, 12, 13, 14 or 15) on your path.
+and Java (JDK 8, 11, 17, 21 or 23) on your path.
 
 Create a local copy of the GitHub repository,
 `cd` to its root directory,
 then build using the included Gradle wrapper:
 
 {% highlight bash %}
-$ git clone git://github.com/apache/calcite.git
+$ git clone https://github.com/apache/calcite.git
 $ cd calcite
 $ ./gradlew build
 {% endhighlight %}
@@ -76,18 +76,42 @@ then you can call `./gradlew generateSources` tasks manually.
 [Running tests](#running-tests) describes how to run more or fewer
 tests.
 
-## Gradle vs Gradle wrapper
+## Gradle vs the Gradle Wrapper
 
-Calcite uses Gradle wrapper to make a consistent build environment.
+Calcite uses the Gradle Wrapper to make a consistent build environment.
 In the typical case you don't need to install Gradle manually, and
-`./gradlew` would download the proper version for you and verify the expected checksum.
+`./gradlew` downloads the proper version for you and verify the expected checksum.
 
-You can install Gradle manually, however please note that there might
-be impedance mismatch between different versions.
+If you like, you can install Gradle manually, but be aware that is might
+cause a version mismatch.
 
 For more information about Gradle, check the following links:
 [Gradle five things](https://docs.gradle.org/current/userguide/what_is_gradle.html#five_things);
 [Gradle multi-project builds](https://docs.gradle.org/current/userguide/intro_multi_project_builds.html).
+
+## Upgrade Gradle and the Gradle Wrapper
+
+Gradle's [documentation](https://docs.gradle.org/current/userguide/upgrading_version_8.html)
+provides detailed information about how to upgrade Gradle. Here is a list of steps:
+
+1. Run `./gradlew help --warning-mode=all` to find out whether you are
+   using any deprecated features.
+2. Fix the deprecations and repeat the previous step to confirm they are
+   fixed. This is a step where Gradle doc could be very helpful since it
+   contains info about deprecations and how to cope with them.
+3. Run `./gradlew wrapper --gradle-version=<new_gradle_version> --gradle-distribution-sha256-sum=<distribution-sum>`
+   to upgrade Gradle. Checksum should be taken from [Gradle release checksums](https://gradle.org/release-checksums/).
+4. Check and update Kotlin version in `gradle.properties` if required.
+   Check should be done against [Kotlin compatibility matrix](https://docs.gradle.org/current/userguide/compatibility.html#kotlin).
+5. Step 3 will have removed the header from
+   `gradle/wrapper/gradle-wrapper.properties`,
+   so now run `./gradlew autostyleApply` to add it back.
+6. Check the updated Gradle version and checksum in
+   `gradle/wrapper/gradle-wrapper.properties` against the official
+   [Gradle release checksums](https://gradle.org/release-checksums/).
+7. Try to build the project and run tests; debug any errors using the
+   [Troubleshooting Guide](https://docs.gradle.org/current/userguide/troubleshooting.html#troubleshooting).
+8. Update the Gradle version in this howto.
 
 ## Running tests
 
@@ -109,7 +133,7 @@ You can use `./gradlew assemble` to build the artifacts and skip all tests and v
 There are other options that control which tests are run, and in what
 environment, as follows.
 
-* `-Dcalcite.test.db=DB` (where db is `h2`, `hsqldb`, `mysql`, or `postgresql`) allows you
+* `-Dcalcite.test.db=DB` (where DB is `h2`, `hsqldb`, `mysql`, or `postgresql`) allows you
   to change the JDBC data source for the test suite. Calcite's test
   suite requires a JDBC data source populated with the foodmart data
   set.
@@ -303,7 +327,10 @@ See the [tutorial]({{ site.baseurl }}/docs/tutorial.html).
 First, download and install Calcite,
 and <a href="https://www.mongodb.org/downloads">install MongoDB</a>.
 
-Note: you can use MongoDB from the integration test virtual machine above.
+Note:
+* You can use MongoDB from the integration test virtual machine above.
+* The MongoDB adapter is not suited for querying nested documents.
+* The MongoDB adapter currently only supports a very limited set of filter push downs.
 
 Import MongoDB's zipcode data set into MongoDB:
 
@@ -579,7 +606,7 @@ protocol that you are using (HTTPS vs. SSH).
 ## Merging pull requests
 
 These are instructions for a Calcite committer who has reviewed a pull request
-from a contributor, found it satisfactory, and is about to merge it to master.
+from a contributor, found it satisfactory, and is about to merge it to main.
 Usually the contributor is not a committer (otherwise they would be committing
 it themselves, after you gave approval in a review).
 
@@ -605,10 +632,14 @@ must:
  * resolve the issue (do not close it as this will be done by the release
 manager);
  * select "Fixed" as resolution cause;
- * mark the appropriate version (e.g., 1.28.0) in the "Fix version" field;
+ * mark the appropriate version (e.g., 1.20.0) in the "Fix version" field;
  * add a comment (e.g., "Fixed in ...") with a hyperlink pointing to the commit
 which resolves the issue (in GitHub or GitBox), and also thank the contributor
-for their contribution.
+for their contribution ("thank you" can be omitted
+if the contributor is already a commiter).
+The hyperlink provided should be with respect to the main
+branch.  You should be able to identify the commit by browsing
+<https://github.com/apache/calcite/commits/main/>.
 
 ## Set up PGP signing keys
 
@@ -649,16 +680,18 @@ asfGitSourceUsername=
 asfGitSourcePassword=
 {% endhighlight %}
 
-Note: Both `asfNexusUsername` and `asfSvnUsername` are your apache id with `asfNexusPassword` and
+Note:
+* Both `asfNexusUsername` and `asfSvnUsername` are your apache id with `asfNexusPassword` and
 `asfSvnPassword` are corresponding password.
+* Git source account can be configured to either Gitbox (the default) or GitHub. For Gitbox, `asfGitSourceUsername`
+is your apache id, and `asfGitSourcePassword` is the corresponding password. For GitHub, `asfGitSourceUsername`
+is your GitHub id while `asfGitSourcePassword` is not your GitHub password, you need to generate it in
+https://github.com/settings/tokens choosing `Personal access tokens`.
 
 When
 [asflike-release-environment](https://github.com/vlsi/asflike-release-environment)
 is used, the credentials are taken from
 `asfTest...` (e.g. `asfTestNexusUsername=test`)
-
-Note: `asfGitSourceUsername` is your GitHub id while `asfGitSourcePassword` is not your GitHub password.
-You need to generate it in https://github.com/settings/tokens choosing `Personal access tokens`.
 
 Note: if you want to use `gpg-agent`, you need to pass some more properties:
 
@@ -689,13 +722,14 @@ Note: release artifacts (dist.apache.org and repository.apache.org) are managed 
 
 Before you start:
 
+* Consult the [release dashboard](https://issues.apache.org/jira/secure/Dashboard.jspa?selectPageId=12333950) to get a
+ quick overview about the state of the release and take appropriate actions in order to resolve pending tickets or
+ move them to another release/backlog.
 * Send an email to [dev@calcite.apache.org](mailto:dev@calcite.apache.org) notifying that RC build process
-  is starting and therefore `master` branch is in code freeze until further notice.
+  is starting and therefore `main` branch is in code freeze until further notice.
 * Set up signing keys as described above.
-* Make sure you are using JDK 8 (not 9 or 10).
-* Make sure `master` branch and `site` branch are in sync, i.e. there is no commit on `site` that has not
-  been applied also to `master`.
-  This can be achieved by doing `git switch site && git rebase --empty=drop master && git switch master && git reset --hard site`.
+* Make sure you are using JDK 8. (Compiling with JDK 21 causes
+  [[CALCITE-6616](https://issues.apache.org/jira/browse/CALCITE-6616)].)
 * Check that `README` and `site/_docs/howto.md` have the correct version number.
 * Check that `site/_docs/howto.md` has the correct Gradle version.
 * Check that `NOTICE` has the current copyright year.
@@ -718,14 +752,27 @@ Before you start:
   * `-Dcalcite.test.splunk`
 * Optional tests using tasks:
   * `./gradlew testSlow`
-* Add release notes to `site/_docs/history.md`. Include the commit history,
-  and say which versions of Java, Guava and operating systems the release is
-  tested against.
+* Add release notes to `site/_docs/history.md`. If release notes already exist for the version to be released, but
+  are commented out, remove the comments (`{% raw %}{% comment %}{% endraw %}` and `{% raw %}{% endcomment %}{% endraw %}`). Include the commit history,
+  names of people who contributed to the release, and say which versions of Java, Guava and operating systems the
+  release is tested against.
 * Make sure that
   <a href="https://issues.apache.org/jira/issues/?jql=project%20%3D%20CALCITE%20AND%20status%20%3D%20Resolved%20and%20fixVersion%20is%20null">
   every "resolved" JIRA case</a> (including duplicates) has
   a fix version assigned (most likely the version we are
   just about to release)
+
+Generate a list of contributors:
+```
+# Commits since 1.35
+range=calcite-1.35.0..HEAD
+# distinct authors
+git log --abbrev-commit --pretty=format:'%aN,' $range | sort -u
+# most prolific authors
+git log --abbrev-commit --pretty=format:'%aN' $range | sort | uniq -c | sort -nr
+# number of JIRA cases
+git log --abbrev-commit --pretty=format:'%f' $range | awk -F- '$1 == "CALCITE" {print $2}' | sort -u | wc
+```
 
 Smoke-test `sqlline` with Spatial and Oracle function tables:
 
@@ -746,8 +793,35 @@ The release candidate process does not add commits,
 so there's no harm if it fails. It might leave `-rc` tag behind
 which can be removed if required.
 
-You can perform a dry-run release with a help of https://github.com/vlsi/asflike-release-environment
-That would perform the same steps, however it would push changes to the mock Nexus, Git, and SVN servers.
+Define your credentials in your `~/.gradle/gradle.properties` file.
+Replace `jhyde`, `julianhyde` and `xxx` as appropriate, and be sure to
+make the file private (permission 600).
+```
+useGpgCmd=true
+signing.gnupg.executable=gpg
+signing.gnupg.useLegacyGpg=false
+signing.gnupg.keyName=0xXXXXXXXX
+signing.gnupg.passphrase=xxx
+
+asfSvnUsername=jhyde
+asfSvnPassword=xxx
+asfGitSourceUsername=julianhyde
+asfGitSourcePassword=xxx
+asfNexusUsername=jhyde
+asfNexusPassword=xxx
+asfCommitterId=jhyde
+
+asfTestSvnPassword=test
+asfTestSvnUsername=test
+asfTestGitSourceUsername=test
+asfTestGitSourcePassword=test
+asfTestNexusUsername=test
+asfTestNexusPassword=test
+```
+
+If you wish, you can perform a dry-run release with a help of
+[asflike-release-environment](https://github.com/vlsi/asflike-release-environment);
+it would perform the same steps, but it would push changes to the mock Nexus, Git, and SVN servers.
 
 If any of the steps fail, fix the problem, and
 start again from the top.
@@ -767,7 +841,8 @@ git clean -xn
 ./gradlew prepareVote -Prc=0
 
 # Push release candidate to ASF servers
-./gradlew prepareVote -Prc=0 -Pasf
+# If you prefer to use GitHub account, change pushRepositoryProvider to GITHUB
+./gradlew prepareVote -Prc=0 -Pasf -Pasf.git.pushRepositoryProvider=GITBOX
 {% endhighlight %}
 
 #### Troubleshooting
@@ -778,13 +853,15 @@ installed in your machine.
 Log into [Nexus UI](https://repository.apache.org/#stagingRepositories) to see the actual error. In case of
 `Failed: Signature Validation. No public key: Key with id: ... was not able to be located`, make sure you have uploaded
 your key to the keyservers used by Nexus, see above.
+* [[CALCITE-5573]](https://issues.apache.org/jira/browse/CALCITE-5573) Gradle prepareVote fails when signing artifact
+* [[VLSI-RELEASE-PLUGINS-64]](https://github.com/vlsi/vlsi-release-plugins/issues/64) Execution failed for task ':releaseRepository due to missing nexus.txt
 
 #### Checking the artifacts
 
 * In the `release/build/distributions` directory should be these 3 files, among others:
   * `apache-calcite-X.Y.Z-src.tar.gz`
   * `apache-calcite-X.Y.Z-src.tar.gz.asc`
-  * `apache-calcite-X.Y.Z-src.tar.gz.sha256`
+  * `apache-calcite-X.Y.Z-src.tar.gz.sha512`
 * Note that the file names start `apache-calcite-`.
 * In the source distro `.tar.gz` (currently there is
   no binary distro), check that all files belong to a directory called
@@ -810,11 +887,8 @@ Verify the staged artifacts in the Nexus repository:
 * Go to [https://repository.apache.org/](https://repository.apache.org/) and login
 * Under `Build Promotion`, click `Staging Repositories`
 * In the `Staging Repositories` tab there should be a line with profile `org.apache.calcite`
+  and status `closed`
 * Navigate through the artifact tree and make sure the .jar, .pom, .asc files are present
-* Check the box on in the first column of the row,
-  and press the 'Close' button to publish the repository at
-  https://repository.apache.org/content/repositories/orgapachecalcite-1000
-  (or a similar URL)
 
 ## Cleaning up after a failed release attempt
 
@@ -881,19 +955,13 @@ No 0s or -1s.
 Therefore, I am delighted to announce that the proposal to release
 Apache Calcite X.Y.Z has passed.
 
-Thanks everyone. We’ll now roll the release out to the mirrors.
+Thanks everyone. We’ll now publish and announce the release.
 
 There was some feedback during voting. I shall open a separate
 thread to discuss.
 
 Julian
 {% endhighlight %}
-
-Use the [Apache URL shortener](https://s.apache.org) to generate
-shortened URLs for the vote proposal and result emails. Examples:
-[s.apache.org/calcite-1.2-vote](https://s.apache.org/calcite-1.2-vote) and
-[s.apache.org/calcite-1.2-result](https://s.apache.org/calcite-1.2-result).
-
 
 ## Publishing a release
 
@@ -910,12 +978,28 @@ Remember that UTC date changes at 4 pm Pacific time.
 ./gradlew publishDist -Prc=0
 
 # Publish the release to ASF servers
-./gradlew publishDist -Prc=0 -Pasf
+# If you prefer to use GitHub account, change pushRepositoryProvider to GITHUB
+./gradlew publishDist -Prc=0 -Pasf -Pasf.git.pushRepositoryProvider=GITBOX
 {% endhighlight %}
+
+If for whatever reason the `publishDist` task fails
+(e.g. [failed to release nexus repository](https://github.com/vlsi/vlsi-release-plugins/issues/64),
+it is still possible to perform the publishing tasks manually. Ask for help in the dev list if
+you are not sure what needs to be done.
+
+If the `releaseRepository` task prints something like:
+{% highlight text%}
+> Task :releaseRepository
+Initialized stagingRepositoryId orgapachecalcite-1219 for repository nexus
+GET request failed. 404: Not Found, body: [errors:[[id:*, msg:No such repository: orgapachecalcite-1219]]]
+Requested operation was executed successfully in attempt 83 (maximum allowed 601)
+{% endhighlight %}
+it's most likely that the repository has been successfully released, you can check it in [ASF Nexus](https://repository.apache.org/).
 
 Svnpubsub will publish to the
 [release repo](https://dist.apache.org/repos/dist/release/calcite) and propagate to the
-[mirrors](https://www.apache.org/dyn/closer.cgi/calcite) within 24 hours.
+[mirrors](https://www.apache.org/dyn/closer.cgi/calcite) almost immediately.
+So there is no need to wait more than fifteen minutes before announcing the release.
 
 If there are now more than 2 releases, clear out the oldest ones:
 
@@ -931,13 +1015,19 @@ The old releases will remain available in the
 You should receive an email from the [Apache Reporter Service](https://reporter.apache.org/).
 Make sure to add the version number and date of the latest release at the site linked to in the email.
 
-Update the site with the release note, the release announcement, and the javadoc of the new version.
+The release notes and the javadoc of the new version will be automatically deployed to the website
+once the release commits/tags reach the ASF remote and the respective
+[GitHub workflows](https://github.com/apache/calcite/blob/main/.github/workflows/) are triggered.
+
 Add a release announcement by copying
-[site/_posts/2016-10-12-release-1.10.0.md]({{ site.sourceRoot }}/site/_posts/2016-10-12-release-1.10.0.md).
-Generate the javadoc, and [preview](http://localhost:4000/news/) the site by following the
-instructions in [site/README.md]({{ site.sourceRoot }}/site/README.md). Ensure the announcement,
-javadoc, and release note appear correctly and then publish the site following the instructions
-in the same file.
+[site/_posts/2016-10-12-release-1.10.0.md]({{ site.sourceRoot }}/site/_posts/2016-10-12-release-1.10.0.md),
+and adapt the release date in `history.md` if necessary. Preview the changes locally, by following the
+instructions in [site/README.md]({{ site.sourceRoot }}/site/README.md), and then commit and push
+the changes to the `main` branch. Please note that due to [CALCITE-5584](https://issues.apache.org/jira/browse/CALCITE-5584),
+the commit should be pushed to GitHub as the last commit; do not chain it with
+the "Prepare for next development iteration" commit.
+
+Ensure that all changes to the website (news, release notes, javadoc) are correctly displayed.
 
 In JIRA, search for
 [all issues resolved in this release](https://issues.apache.org/jira/issues/?jql=project%20%3D%20CALCITE%20and%20fixVersion%20%3D%201.5.0%20and%20status%20%3D%20Resolved%20and%20resolution%20%3D%20Fixed),
@@ -947,23 +1037,60 @@ with a change comment
 (fill in release number and date appropriately).
 Uncheck "Send mail for this update". Under the [releases tab](https://issues.apache.org/jira/projects/CALCITE?selectedItem=com.atlassian.jira.jira-projects-plugin%3Arelease-page&status=released-unreleased)
 of the Calcite project mark the release X.Y.Z as released. If it does not already exist create also
-a new version (e.g., X.Y+1.Z) for the next release.
-
-After 24 hours, announce the release by sending an email to
-[announce@apache.org](https://mail-archives.apache.org/mod_mbox/www-announce/) using an `@apache.org`
-address. You can use
-[the 1.20.0 announcement](https://mail-archives.apache.org/mod_mbox/www-announce/201906.mbox/%3CCA%2BEpF8tcJcZ41rVuwJODJmyRy-qAxZUQm9OxKsoDi07c2SKs_A%40mail.gmail.com%3E)
-as a template. Be sure to include a brief description of the project.
+a new version (e.g., X.Y+1.Z) for the next release. In order to make the [release dashboard](https://issues.apache.org/jira/secure/Dashboard.jspa?selectPageId=12333950)
+reflect state of the next release, change the fixVersion in the [JIRA filter powering the dashboard](https://issues.apache.org/jira/issues/?filter=12346388)
+and save the changes.
 
 Increase the `calcite.version` value in `/gradle.properties`, commit and push
 the change with the message "Prepare for next development iteration"
 (see [ed1470a](https://github.com/apache/calcite/commit/ed1470a3ea53a78c667354a5ec066425364eca73) as a reference)
 
-Re-open the `master` branch. Send an email to [dev@calcite.apache.org](mailto:dev@calcite.apache.org) notifying
-that `master` code freeze is over and commits can resume.
+Re-open the `main` branch. Send an email to [dev@calcite.apache.org](mailto:dev@calcite.apache.org) notifying
+that `main` code freeze is over and commits can resume.
+
+Announce the release by sending an email to
+[announce@apache.org](https://mail-archives.apache.org/mod_mbox/www-announce/) using an `@apache.org`
+address. You can use
+[the 1.20.0 announcement](https://mail-archives.apache.org/mod_mbox/www-announce/201906.mbox/%3CCA%2BEpF8tcJcZ41rVuwJODJmyRy-qAxZUQm9OxKsoDi07c2SKs_A%40mail.gmail.com%3E)
+as a template. Be sure to include a brief description of the project.
 
 ## Publishing the web site
 {: #publish-the-web-site}
 
 See instructions in
 [site/README.md]({{ site.sourceRoot }}/site/README.md).
+
+# Advanced topics for PMC members
+
+## Processing JIRA account requests
+Here are some email templates that can be used when processing requests for adding a JIRA account as a contributor.
+
+### Account added to contributor list
+{% highlight text %}
+Hello [INSERT NAME HERE],
+
+Thanks for your interest in becoming a Calcite contributor! I have added your username ([INSERT USERNAME HERE])
+to the contributors group in JIRA. Happy contributing!
+
+If you have not subscribed to our development list (dev@calcite.apache.org) yet, I encourage you to do so by
+emailing dev-subscribe@calcite.apache.org. Further information about our mailing lists is available here:
+https://calcite.apache.org/community/#mailing-lists
+
+Best regards,
+[INSERT YOUR NAME HERE]
+{% endhighlight %}
+
+### Account not found
+{% highlight text %}
+Hello [INSERT NAME HERE],
+
+Thanks for your interest in becoming a Calcite contributor! I am sorry to inform you that I was unable to
+find your account ([INSERT USERNAME HERE]) in JIRA and was not able to add you to the contributors group.
+Please let me know the correct username by return email and I will process your request again.
+
+If you do not have an ASF JIRA account, please follow the instructions here to request one:
+https://calcite.apache.org/develop/#i-do-not-have-an-asf-jira-account-want-to-request-an-account-and-be-added-as-a-contributor
+
+Best regards,
+[INSERT YOUR NAME HERE]
+{% endhighlight %}

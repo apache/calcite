@@ -45,9 +45,9 @@ import org.apache.calcite.sql.validate.CyclicDefinitionException;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.tools.RelRunner;
 import org.apache.calcite.util.ImmutableIntList;
+import org.apache.calcite.util.TryThreadLocal;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -60,6 +60,8 @@ import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 import static java.util.Objects.requireNonNull;
@@ -69,8 +71,8 @@ import static java.util.Objects.requireNonNull;
  */
 public interface CalcitePrepare {
   Function0<CalcitePrepare> DEFAULT_FACTORY = CalcitePrepareImpl::new;
-  ThreadLocal<@Nullable Deque<Context>> THREAD_CONTEXT_STACK =
-      ThreadLocal.withInitial(ArrayDeque::new);
+  TryThreadLocal<Deque<Context>> THREAD_CONTEXT_STACK =
+      TryThreadLocal.withInitial(ArrayDeque::new);
 
   ParseResult parse(Context context, String sql);
 
@@ -192,7 +194,7 @@ public interface CalcitePrepare {
     }
 
     public static void push(Context context) {
-      final Deque<Context> stack = castNonNull(THREAD_CONTEXT_STACK.get());
+      final Deque<Context> stack = THREAD_CONTEXT_STACK.get();
       final List<String> path = context.getObjectPath();
       if (path != null) {
         for (Context context1 : stack) {
@@ -206,11 +208,13 @@ public interface CalcitePrepare {
     }
 
     public static Context peek() {
-      return castNonNull(castNonNull(THREAD_CONTEXT_STACK.get()).peek());
+      final Deque<Context> stack = THREAD_CONTEXT_STACK.get();
+      return castNonNull(stack.peek());
     }
 
     public static void pop(Context context) {
-      Context x = castNonNull(THREAD_CONTEXT_STACK.get()).pop();
+      final Deque<Context> stack = THREAD_CONTEXT_STACK.get();
+      Context x = castNonNull(stack).pop();
       assert x == context;
     }
 
@@ -312,7 +316,7 @@ public interface CalcitePrepare {
       this.constraint = constraint;
       this.columnMapping = columnMapping;
       this.modifiable = modifiable;
-      Preconditions.checkArgument(modifiable == (table != null));
+      checkArgument(modifiable == (table != null));
     }
   }
 

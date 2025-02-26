@@ -25,7 +25,6 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.ReflectiveVisitor;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
@@ -34,7 +33,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.util.ArrayList;
@@ -43,10 +41,16 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+
+import static com.google.common.base.Preconditions.checkArgument;
+
+import static org.apache.calcite.util.ReflectUtil.isPublic;
+import static org.apache.calcite.util.ReflectUtil.isStatic;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of the {@link RelMetadataProvider} interface that dispatches
@@ -56,7 +60,7 @@ import java.util.concurrent.ConcurrentMap;
  * the same signature as the implemented metadata method except for an
  * additional first parameter of type {@link RelNode} or a sub-class. That
  * parameter gives this provider an indication of that relational expressions it
- * can handle.</p>
+ * can handle.
  *
  * <p>For an example, see {@link RelMdColumnOrigins#SOURCE}.
  */
@@ -68,7 +72,10 @@ public class ReflectiveRelMetadataProvider
   private final ConcurrentMap<Class<RelNode>, UnboundMetadata> map;
   @Deprecated // to be removed before 2.0
   private final Class<? extends Metadata> metadataClass0;
+  @Deprecated // to be removed before 2.0
   private final ImmutableMultimap<Method, MetadataHandler> handlerMap;
+  private final Class<? extends MetadataHandler<?>> handlerClass;
+  private final ImmutableList<MetadataHandler<?>> handlers;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -82,12 +89,15 @@ public class ReflectiveRelMetadataProvider
   protected ReflectiveRelMetadataProvider(
       ConcurrentMap<Class<RelNode>, UnboundMetadata> map,
       Class<? extends Metadata> metadataClass0,
-      Multimap<Method, MetadataHandler> handlerMap) {
-    Preconditions.checkArgument(!map.isEmpty(), "ReflectiveRelMetadataProvider "
+      Multimap<Method, MetadataHandler<?>> handlerMap,
+      Class<? extends MetadataHandler<?>> handlerClass) {
+    checkArgument(!map.isEmpty(), "ReflectiveRelMetadataProvider "
         + "methods map is empty; are your methods named wrong?");
     this.map = map;
     this.metadataClass0 = metadataClass0;
     this.handlerMap = ImmutableMultimap.copyOf(handlerMap);
+    this.handlerClass = handlerClass;
+    this.handlers = ImmutableList.copyOf(handlerMap.values());
   }
 
   /** Returns an implementation of {@link RelMetadataProvider} that scans for
@@ -95,7 +105,7 @@ public class ReflectiveRelMetadataProvider
    *
    * <p>For example, {@link BuiltInMetadata.Selectivity} has a method
    * {@link BuiltInMetadata.Selectivity#getSelectivity(RexNode)}.
-   * A class</p>
+   * A class
    *
    * <blockquote><pre><code>
    * class RelMdSelectivity {
@@ -105,22 +115,36 @@ public class ReflectiveRelMetadataProvider
    *
    * <p>provides implementations of selectivity for relational expressions
    * that extend {@link org.apache.calcite.rel.core.Union}
-   * or {@link org.apache.calcite.rel.core.Filter}.</p>
+   * or {@link org.apache.calcite.rel.core.Filter}.
    */
+  @Deprecated // to be removed before 2.0
   public static RelMetadataProvider reflectiveSource(Method method,
       MetadataHandler target) {
-    return reflectiveSource(target, ImmutableList.of(method));
+    return reflectiveSource(target, ImmutableList.of(method), target.getDef().handlerClass);
   }
 
   /** Returns a reflective metadata provider that implements several
    * methods. */
+  @Deprecated // to be removed before 2.0
   public static RelMetadataProvider reflectiveSource(MetadataHandler target,
       Method... methods) {
-    return reflectiveSource(target, ImmutableList.copyOf(methods));
+    return reflectiveSource(target, ImmutableList.copyOf(methods),
+        target.getDef().handlerClass);
   }
 
+  @SuppressWarnings("deprecation")
+  public static <M extends Metadata> RelMetadataProvider reflectiveSource(
+      MetadataHandler<? extends M> handler,
+      Class<? extends MetadataHandler<M>> handlerClass) {
+    // When deprecated code is removed, handler.getDef().methods will
+    // no longer be required
+    return reflectiveSource(handler, handler.getDef().methods, handlerClass);
+  }
+
+  @Deprecated // to be removed before 2.0
   private static RelMetadataProvider reflectiveSource(
-      final MetadataHandler target, final ImmutableList<Method> methods) {
+      final MetadataHandler target, final ImmutableList<Method> methods,
+      final Class<? extends MetadataHandler<?>> handlerClass) {
     final Space2 space = Space2.create(target, methods);
 
     // This needs to be a concurrent map since RelMetadataProvider are cached in static
@@ -199,9 +223,10 @@ public class ReflectiveRelMetadataProvider
       methodsMap.put(key, function);
     }
     return new ReflectiveRelMetadataProvider(methodsMap, space.metadataClass0,
-        space.providerMap);
+        space.providerMap, handlerClass);
   }
 
+  @Deprecated // to be removed before 2.0
   @Override public <M extends Metadata> Multimap<Method, MetadataHandler<M>> handlers(
       MetadataDef<M> def) {
     final ImmutableMultimap.Builder<Method, MetadataHandler<M>> builder =
@@ -215,10 +240,20 @@ public class ReflectiveRelMetadataProvider
     return builder.build();
   }
 
+  @Override public List<MetadataHandler<?>> handlers(
+      Class<? extends MetadataHandler<?>> handlerClass) {
+    if (this.handlerClass.isAssignableFrom(handlerClass)) {
+      return handlers;
+    } else {
+      return ImmutableList.of();
+    }
+  }
+
+  @Deprecated // to be removed before 2.0
   private static boolean couldImplement(Method handlerMethod, Method method) {
     if (!handlerMethod.getName().equals(method.getName())
-        || (handlerMethod.getModifiers() & Modifier.STATIC) != 0
-        || (handlerMethod.getModifiers() & Modifier.PUBLIC) == 0) {
+        || isStatic(handlerMethod)
+        || !isPublic(handlerMethod)) {
       return false;
     }
     final Class<?>[] parameterTypes1 = handlerMethod.getParameterTypes();
@@ -278,19 +313,20 @@ public class ReflectiveRelMetadataProvider
 
   /** Workspace for computing which methods can act as handlers for
    * given metadata methods. */
+  @Deprecated // to be removed before 2.0
   static class Space {
     final Set<Class<RelNode>> classes = new HashSet<>();
     final Map<Pair<Class<RelNode>, Method>, Method> handlerMap = new HashMap<>();
-    final ImmutableMultimap<Method, MetadataHandler> providerMap;
+    final ImmutableMultimap<Method, MetadataHandler<?>> providerMap;
 
-    Space(Multimap<Method, MetadataHandler> providerMap) {
+    Space(Multimap<Method, MetadataHandler<?>> providerMap) {
       this.providerMap = ImmutableMultimap.copyOf(providerMap);
 
       // Find the distinct set of RelNode classes handled by this provider,
       // ordered base-class first.
-      for (Map.Entry<Method, MetadataHandler> entry : providerMap.entries()) {
+      for (Map.Entry<Method, MetadataHandler<?>> entry : providerMap.entries()) {
         final Method method = entry.getKey();
-        final MetadataHandler provider = entry.getValue();
+        final MetadataHandler<?> provider = entry.getValue();
         for (final Method handlerMethod : provider.getClass().getMethods()) {
           if (couldImplement(handlerMethod, method)) {
             @SuppressWarnings("unchecked") final Class<RelNode> relNodeClass =
@@ -307,7 +343,7 @@ public class ReflectiveRelMetadataProvider
      * {@code map}. */
     @SuppressWarnings({ "unchecked", "SuspiciousMethodCalls" })
     Method find(final Class<? extends RelNode> relNodeClass, Method method) {
-      Objects.requireNonNull(relNodeClass, "relNodeClass");
+      requireNonNull(relNodeClass, "relNodeClass");
       for (Class r = relNodeClass;;) {
         Method implementingMethod = handlerMap.get(Pair.of(r, method));
         if (implementingMethod != null) {
@@ -332,18 +368,21 @@ public class ReflectiveRelMetadataProvider
   }
 
   /** Extended work space. */
+  @Deprecated // to be removed before 2.0
   static class Space2 extends Space {
-    private Class<Metadata> metadataClass0;
+    private final Class<Metadata> metadataClass0;
 
     Space2(Class<Metadata> metadataClass0,
-        ImmutableMultimap<Method, MetadataHandler> providerMap) {
+        ImmutableMultimap<Method, MetadataHandler<?>> providerMap) {
       super(providerMap);
       this.metadataClass0 = metadataClass0;
     }
 
-    public static Space2 create(MetadataHandler target,
+    @Deprecated // to be removed before 2.0
+    public static Space2 create(
+        MetadataHandler<?> target,
         ImmutableList<Method> methods) {
-      assert methods.size() > 0;
+      assert !methods.isEmpty();
       final Method method0 = methods.get(0);
       //noinspection unchecked
       Class<Metadata> metadataClass0 = (Class) method0.getDeclaringClass();
@@ -352,7 +391,7 @@ public class ReflectiveRelMetadataProvider
         assert method.getDeclaringClass() == metadataClass0;
       }
 
-      final ImmutableMultimap.Builder<Method, MetadataHandler> providerBuilder =
+      final ImmutableMultimap.Builder<Method, MetadataHandler<?>> providerBuilder =
           ImmutableMultimap.builder();
       for (final Method method : methods) {
         providerBuilder.put(method, target);

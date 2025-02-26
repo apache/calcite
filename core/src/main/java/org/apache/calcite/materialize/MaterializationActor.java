@@ -19,7 +19,6 @@ package org.apache.calcite.materialize;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.rel.type.RelDataType;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
@@ -29,6 +28,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+
+import static com.google.common.base.Preconditions.checkArgument;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Actor that manages the state of materializations in the system.
@@ -44,8 +47,8 @@ class MaterializationActor {
   final Map<TileKey, MaterializationKey> keyByTile = new HashMap<>();
 
   /** Tiles grouped by dimensionality. We use a
-   *  {@link TileKey} with no measures to represent a
-   *  dimensionality. */
+   * {@link TileKey} with no measures to represent a
+   * dimensionality. */
   final Multimap<TileKey, TileKey> tilesByDimensionality =
       HashMultimap.create();
 
@@ -54,7 +57,7 @@ class MaterializationActor {
   static class Materialization {
     final MaterializationKey key;
     final CalciteSchema rootSchema;
-    CalciteSchema.@Nullable TableEntry materializedTable;
+    final CalciteSchema.@Nullable TableEntry materializedTable;
     final String sql;
     final RelDataType rowType;
     final @Nullable List<String> viewSchemaPath;
@@ -76,12 +79,12 @@ class MaterializationActor {
         String sql,
         RelDataType rowType,
         @Nullable List<String> viewSchemaPath) {
-      this.key = key;
-      this.rootSchema = Objects.requireNonNull(rootSchema, "rootSchema");
-      Preconditions.checkArgument(rootSchema.isRoot(), "must be root schema");
+      this.key = requireNonNull(key, "key");
+      this.rootSchema = requireNonNull(rootSchema, "rootSchema");
+      checkArgument(rootSchema.isRoot(), "must be root schema");
       this.materializedTable = materializedTable; // may be null
-      this.sql = sql;
-      this.rowType = rowType;
+      this.sql = requireNonNull(sql, "sql");
+      this.rowType = requireNonNull(rowType, "rowType");
       this.viewSchemaPath = viewSchemaPath;
     }
   }

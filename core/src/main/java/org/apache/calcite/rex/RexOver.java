@@ -22,12 +22,14 @@ import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.util.ControlFlowException;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 import java.util.Objects;
+
+import static com.google.common.base.Preconditions.checkArgument;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Call to an aggregate function over a window.
@@ -70,8 +72,8 @@ public class RexOver extends RexCall {
       boolean distinct,
       boolean ignoreNulls) {
     super(type, op, operands);
-    Preconditions.checkArgument(op.isAggregator());
-    this.window = Objects.requireNonNull(window, "window");
+    checkArgument(op.isAggregator());
+    this.window = requireNonNull(window, "window");
     this.distinct = distinct;
     this.ignoreNulls = ignoreNulls;
   }
@@ -217,8 +219,9 @@ public class RexOver extends RexCall {
 
   @Override public int hashCode() {
     if (hash == 0) {
-      hash = Objects.hash(super.hashCode(), window,
-          distinct, ignoreNulls, op.allowsFraming());
+      hash =
+          Objects.hash(super.hashCode(), window, distinct, ignoreNulls,
+              op.allowsFraming());
     }
     return hash;
   }

@@ -36,22 +36,30 @@ import org.apache.calcite.sql.SqlPostfixOperator;
 import org.apache.calcite.sql.SqlPrefixOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlTimeLiteral;
+import org.apache.calcite.sql.SqlTimeTzLiteral;
 import org.apache.calcite.sql.SqlTimestampLiteral;
+import org.apache.calcite.sql.SqlTimestampTzLiteral;
 import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.SqlUuidLiteral;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.impl.SqlParserImpl;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.PrecedenceClimbingParser;
 import org.apache.calcite.util.TimeString;
+import org.apache.calcite.util.TimeWithTimeZoneString;
 import org.apache.calcite.util.TimestampString;
+import org.apache.calcite.util.TimestampWithTimeZoneString;
+import org.apache.calcite.util.TryThreadLocal;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 
+import java.io.StringReader;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
@@ -59,14 +67,20 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.IllformedLocaleException;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.StringTokenizer;
+import java.util.TimeZone;
+import java.util.UUID;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
+import static java.lang.Integer.parseInt;
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -76,6 +90,8 @@ public final class SqlParserUtil {
   //~ Static fields/initializers ---------------------------------------------
 
   static final Logger LOGGER = CalciteTrace.getParserTracer();
+
+  private static final Pattern UNDERSCORE = Pattern.compile("_+");
 
   //~ Constructors -----------------------------------------------------------
 
@@ -110,12 +126,178 @@ public final class SqlParserUtil {
     return strip(s, "'", "'", "''", Casing.UNCHANGED);
   }
 
+  /**
+   * Converts the contents of a SQL quoted character literal with C-style
+   * escapes into the corresponding Java string representation.
+   *
+   * @throws MalformedUnicodeEscape if input contains invalid unicode escapes
+   */
+  public static String parseCString(String s) throws MalformedUnicodeEscape {
+    final String s2 = parseString(s);
+    return replaceEscapedChars(s2);
+  }
+
+  /**
+   * Converts the contents of a character literal  with escapes like those used
+   * in the C programming language to the corresponding Java string
+   * representation.
+   *
+   * <p>If the literal "{@code E'a\tc'}" occurs in the SQL source text, then
+   * this method will be invoked with the string "{@code a\tc}" (4 characters)
+   * and will return a Java string with the three characters 'a', TAB, 'b'.
+   *
+   * <p>The format is the same as the Postgres; see
+   * <a href="https://www.postgresql.org/docs/14/sql-syntax-lexical.html#SQL-SYNTAX-CONSTANTS">
+   * Postgres 4.1.2.2. String Constants With C-Style Escapes</a>.
+   *
+   * @param input String that contains C-style escapes
+   * @return String with escapes converted into Java characters
+   * @throws MalformedUnicodeEscape if input contains invalid unicode escapes
+   */
+  public static String replaceEscapedChars(String input)
+      throws MalformedUnicodeEscape {
+    // The implementation of this method is based on Crate's method
+    // Literals.replaceEscapedChars.
+    final int length = input.length();
+    if (length <= 1) {
+      return input;
+    }
+    final StringBuilder builder = new StringBuilder(length);
+    int endIdx;
+    for (int i = 0; i < length; i++) {
+      char currentChar = input.charAt(i);
+      if (currentChar == '\\' && i + 1 < length) {
+        char nextChar = input.charAt(i + 1);
+        switch (nextChar) {
+        case 'b':
+          builder.append('\b');
+          i++;
+          break;
+        case 'f':
+          builder.append('\f');
+          i++;
+          break;
+        case 'n':
+          builder.append('\n');
+          i++;
+          break;
+        case 'r':
+          builder.append('\r');
+          i++;
+          break;
+        case 't':
+          builder.append('\t');
+          i++;
+          break;
+        case '\\':
+        case '\'':
+          builder.append(nextChar);
+          i++;
+          break;
+        case 'u':
+        case 'U':
+          // handle unicode case
+          final int charsToConsume = (nextChar == 'u') ? 4 : 8;
+          if (i + 1 + charsToConsume >= length) {
+            throw new MalformedUnicodeEscape(i);
+          }
+          endIdx =
+              calculateMaxCharsInSequence(input, i + 2, charsToConsume,
+                  SqlParserUtil::isHexDigit);
+          if (endIdx != i + 2 + charsToConsume) {
+            throw new MalformedUnicodeEscape(i);
+          }
+          builder.appendCodePoint(parseInt(input.substring(i + 2, endIdx), 16));
+          i = endIdx - 1; // skip already consumed chars
+          break;
+        case 'x':
+          // handle hex byte case - up to 2 chars for hex value
+          endIdx =
+              calculateMaxCharsInSequence(input, i + 2, 2,
+                  SqlParserUtil::isHexDigit);
+          if (endIdx > i + 2) {
+            builder.appendCodePoint(parseInt(input.substring(i + 2, endIdx), 16));
+            i = endIdx - 1; // skip already consumed chars
+          } else {
+            // hex sequence unmatched - output original char
+            builder.append(nextChar);
+            i++;
+          }
+          break;
+        case '0':
+        case '1':
+        case '2':
+        case '3':
+          // handle octal case - up to 3 chars
+          endIdx =
+              calculateMaxCharsInSequence(input, i + 2,
+                  2, // first char is already "consumed"
+                  SqlParserUtil::isOctalDigit);
+          builder.appendCodePoint(parseInt(input.substring(i + 1, endIdx), 8));
+          i = endIdx - 1; // skip already consumed chars
+          break;
+        default:
+          // non-valid escaped char sequence
+          builder.append(currentChar);
+        }
+      } else {
+        builder.append(currentChar);
+      }
+    }
+    return builder.toString();
+  }
+
+  /**
+   * Calculates the maximum number of consecutive characters of the
+   * {@link CharSequence} argument, starting from {@code beginIndex}, that match
+   * a given {@link Predicate}. The number of characters to match are either
+   * capped from the {@code maxCharsToMatch} parameter or the sequence length.
+   *
+   * <p>Examples:
+   * <pre>
+   * {@code
+   *    calculateMaxCharsInSequence("12345", 0, 2, Character::isDigit) -> 2
+   *    calculateMaxCharsInSequence("12345", 3, 2, Character::isDigit) -> 5
+   *    calculateMaxCharsInSequence("12345", 4, 2, Character::isDigit) -> 5
+   * }
+   * </pre>
+   *
+   * @return the index of the first non-matching character
+   */
+  private static int calculateMaxCharsInSequence(CharSequence seq,
+      int beginIndex,
+      int maxCharsToMatch,
+      Predicate<Character> predicate) {
+    int idx = beginIndex;
+    final int end = Math.min(seq.length(), beginIndex + maxCharsToMatch);
+    while (idx < end && predicate.test(seq.charAt(idx))) {
+      idx++;
+    }
+    return idx;
+  }
+
   public static BigDecimal parseDecimal(String s) {
     return new BigDecimal(s);
   }
 
   public static BigDecimal parseInteger(String s) {
     return new BigDecimal(s);
+  }
+
+  /**
+   * Returns true if the specific character is a base-8 digit.
+   */
+  public static boolean isOctalDigit(final char ch) {
+    return ch >= '0' && ch <= '7';
+  }
+
+  /**
+   * Returns true if the specified character is a base-16 digit.
+   */
+  public static boolean isHexDigit(final char ch) {
+    return (ch >= '0' && ch <= '9')
+        || (ch >= 'A' && ch <= 'F')
+        || (ch >= 'a' && ch <= 'f');
   }
 
   // CHECKSTYLE: IGNORE 1
@@ -140,9 +322,8 @@ public final class SqlParserUtil {
   }
 
   public static SqlDateLiteral parseDateLiteral(String s, SqlParserPos pos) {
-    final String dateStr = parseString(s);
     final Calendar cal =
-        DateTimeUtils.parseDateFormat(dateStr, Format.get().date,
+        DateTimeUtils.parseDateFormat(s, Format.get().date,
             DateTimeUtils.UTC_ZONE);
     if (cal == null) {
       throw SqlUtil.newContextException(pos,
@@ -153,10 +334,21 @@ public final class SqlParserUtil {
     return SqlLiteral.createDate(d, pos);
   }
 
+  public static SqlNumericLiteral parseDecimalLiteral(String s, SqlParserPos pos) {
+    try {
+      // The s maybe scientific notation string,e.g. 1.2E-3,
+      // we need to convert it to 0.0012
+      s = new BigDecimal(s).toPlainString();
+    } catch (NumberFormatException e) {
+      throw SqlUtil.newContextException(pos,
+          RESOURCE.invalidLiteral(s, "DECIMAL"));
+    }
+    return SqlLiteral.createExactNumeric(s, pos);
+  }
+
   public static SqlTimeLiteral parseTimeLiteral(String s, SqlParserPos pos) {
-    final String dateStr = parseString(s);
     final DateTimeUtils.PrecisionTime pt =
-        DateTimeUtils.parsePrecisionDateTimeLiteral(dateStr,
+        DateTimeUtils.parsePrecisionDateTimeLiteral(s,
             Format.get().time, DateTimeUtils.UTC_ZONE, -1);
     if (pt == null) {
       throw SqlUtil.newContextException(pos,
@@ -168,41 +360,117 @@ public final class SqlParserUtil {
     return SqlLiteral.createTime(t, pt.getPrecision(), pos);
   }
 
+  public static SqlTimeTzLiteral parseTimeTzLiteral(
+      String s, SqlParserPos pos) {
+    // We expect the string to end in a timezone.
+    final int lastSpace = s.lastIndexOf(" ");
+    DateTimeUtils.PrecisionTime pt = null;
+    if (lastSpace >= 0) {
+      final String timeZone = s.substring(lastSpace + 1);
+      final String time = s.substring(0, lastSpace);
+
+      final TimeZone tz = TimeZone.getTimeZone(timeZone);
+      if (tz != null) {
+        pt =
+            DateTimeUtils.parsePrecisionDateTimeLiteral(time, Format.get().time, tz, -1);
+      }
+    }
+    if (pt == null) {
+      throw SqlUtil.newContextException(pos,
+          RESOURCE.illegalLiteral("TIME WITH TIME ZONE", s,
+              RESOURCE.badFormat(DateTimeUtils.TIME_FORMAT_STRING).str()));
+    }
+    final TimeWithTimeZoneString t = TimeWithTimeZoneString.fromCalendarFields(pt.getCalendar())
+        .withFraction(pt.getFraction());
+    return SqlLiteral.createTime(t, pt.getPrecision(), pos);
+  }
+
   public static SqlTimestampLiteral parseTimestampLiteral(String s,
       SqlParserPos pos) {
-    final String dateStr = parseString(s);
+    return parseTimestampLiteral(SqlTypeName.TIMESTAMP, s, pos);
+  }
+
+  public static SqlTimestampLiteral parseTimestampWithLocalTimeZoneLiteral(
+      String s, SqlParserPos pos) {
+    return parseTimestampLiteral(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE, s,
+        pos);
+  }
+
+  public static SqlUuidLiteral parseUuidLiteral(String s, SqlParserPos pos) {
+    UUID uuid = UUID.fromString(s);
+    return SqlLiteral.createUuid(uuid, pos);
+  }
+
+  public static SqlTimestampTzLiteral parseTimestampTzLiteral(
+      String s, SqlParserPos pos) {
+    // We expect the string to end in a timezone.
+    int lastSpace = s.lastIndexOf(" ");
+    if (lastSpace >= 0) {
+      final String timeZone = s.substring(lastSpace + 1);
+      final String timestamp = s.substring(0, lastSpace);
+      TimeZone tz = TimeZone.getTimeZone(timeZone);
+      if (tz != null) {
+        SqlTimestampLiteral ts = parseTimestampLiteral(SqlTypeName.TIMESTAMP, timestamp, pos);
+        TimestampWithTimeZoneString tsz = new TimestampWithTimeZoneString(ts.getTimestamp(), tz);
+        return SqlLiteral.createTimestamp(tsz, ts.getPrec(), pos);
+      }
+    }
+    throw SqlUtil.newContextException(pos,
+        RESOURCE.illegalLiteral("TIMESTAMP WITH TIME ZONE", s,
+            RESOURCE.badFormat(DateTimeUtils.TIMESTAMP_FORMAT_STRING).str()));
+  }
+
+  private static SqlTimestampLiteral parseTimestampLiteral(SqlTypeName typeName,
+      String s, SqlParserPos pos) {
     final Format format = Format.get();
     DateTimeUtils.PrecisionTime pt = null;
     // Allow timestamp literals with and without time fields (as does
     // PostgreSQL); TODO: require time fields except in Babel's lenient mode
     final DateFormat[] dateFormats = {format.timestamp, format.date};
     for (DateFormat dateFormat : dateFormats) {
-      pt = DateTimeUtils.parsePrecisionDateTimeLiteral(dateStr,
-          dateFormat, DateTimeUtils.UTC_ZONE, -1);
+      pt =
+          DateTimeUtils.parsePrecisionDateTimeLiteral(s,
+              dateFormat, DateTimeUtils.UTC_ZONE, -1);
       if (pt != null) {
         break;
       }
     }
     if (pt == null) {
       throw SqlUtil.newContextException(pos,
-          RESOURCE.illegalLiteral("TIMESTAMP", s,
+          RESOURCE.illegalLiteral(typeName.getName().replace('_', ' '), s,
               RESOURCE.badFormat(DateTimeUtils.TIMESTAMP_FORMAT_STRING).str()));
     }
     final TimestampString ts =
         TimestampString.fromCalendarFields(pt.getCalendar())
             .withFraction(pt.getFraction());
-    return SqlLiteral.createTimestamp(ts, pt.getPrecision(), pos);
+    return SqlLiteral.createTimestamp(typeName, ts, pt.getPrecision(), pos);
   }
 
   public static SqlIntervalLiteral parseIntervalLiteral(SqlParserPos pos,
       int sign, String s, SqlIntervalQualifier intervalQualifier) {
-    final String intervalStr = parseString(s);
-    if (intervalStr.equals("")) {
+    if (s.equals("")) {
       throw SqlUtil.newContextException(pos,
           RESOURCE.illegalIntervalLiteral(s + " "
               + intervalQualifier.toString(), pos.toString()));
     }
-    return SqlLiteral.createInterval(sign, intervalStr, intervalQualifier, pos);
+    return SqlLiteral.createInterval(sign, s, intervalQualifier, pos);
+  }
+
+  /**
+   * Parses string to array literal
+   * using {@link org.apache.calcite.sql.parser.impl.SqlParserImpl} parser.
+   * String format description can be found at the
+   * <a href="https://www.postgresql.org/docs/current/arrays.html#ARRAYS-INPUT">link</a>
+   *
+   * @param s a string to parse
+   * @return a array value
+   *
+   * @throws SqlParseException if there is a parse error
+   */
+  public static SqlNode parseArrayLiteral(String s) throws SqlParseException {
+    SqlAbstractParserImpl parser =
+        SqlParserImpl.FACTORY.getParser(new StringReader(s));
+    return parser.parseArray();
   }
 
   /**
@@ -232,13 +500,13 @@ public final class SqlParserUtil {
   public static long intervalToMillis(
       String literal,
       SqlIntervalQualifier intervalQualifier) {
-    Preconditions.checkArgument(!intervalQualifier.isYearMonth(),
+    checkArgument(!intervalQualifier.isYearMonth(),
         "interval must be day time");
     int[] ret;
     try {
-      ret = intervalQualifier.evaluateIntervalLiteral(literal,
-          intervalQualifier.getParserPosition(), RelDataTypeSystem.DEFAULT);
-      assert ret != null;
+      ret =
+          intervalQualifier.evaluateIntervalLiteral(literal,
+              intervalQualifier.getParserPosition(), RelDataTypeSystem.DEFAULT);
     } catch (CalciteContextException e) {
       throw new RuntimeException("while parsing day-to-second interval "
           + literal, e);
@@ -270,16 +538,15 @@ public final class SqlParserUtil {
         interval.getIntervalQualifier());
   }
 
-  public static long intervalToMonths(
-      String literal,
+  public static long intervalToMonths(String literal,
       SqlIntervalQualifier intervalQualifier) {
-    Preconditions.checkArgument(intervalQualifier.isYearMonth(),
+    checkArgument(intervalQualifier.isYearMonth(),
         "interval must be year month");
     int[] ret;
     try {
-      ret = intervalQualifier.evaluateIntervalLiteral(literal,
-          intervalQualifier.getParserPosition(), RelDataTypeSystem.DEFAULT);
-      assert ret != null;
+      ret =
+          intervalQualifier.evaluateIntervalLiteral(literal,
+              intervalQualifier.getParserPosition(), RelDataTypeSystem.DEFAULT);
     } catch (CalciteContextException e) {
       throw new RuntimeException("Error while parsing year-to-month interval "
           + literal, e);
@@ -306,7 +573,7 @@ public final class SqlParserUtil {
     if (value.charAt(0) == '-') {
       throw new NumberFormatException(value);
     }
-    return Integer.parseInt(value);
+    return parseInt(value);
   }
 
   /**
@@ -352,9 +619,8 @@ public final class SqlParserUtil {
   public static String strip(String s, @Nullable String startQuote,
       @Nullable String endQuote, @Nullable String escape, Casing casing) {
     if (startQuote != null) {
-      return stripQuotes(s, Objects.requireNonNull(startQuote, "startQuote"),
-          Objects.requireNonNull(endQuote, "endQuote"), Objects.requireNonNull(escape, "escape"),
-          casing);
+      return stripQuotes(s, startQuote, requireNonNull(endQuote, "endQuote"),
+          requireNonNull(escape, "escape"), casing);
     } else {
       return toCase(s, casing);
     }
@@ -545,18 +811,14 @@ public final class SqlParserUtil {
     }
 
     Charset charset = SqlUtil.getCharset(charsetStr);
-    String[] localeParts = localeStr.split("_");
-    Locale locale;
-    if (1 == localeParts.length) {
-      locale = new Locale(localeParts[0]);
-    } else if (2 == localeParts.length) {
-      locale = new Locale(localeParts[0], localeParts[1]);
-    } else if (3 == localeParts.length) {
-      locale = new Locale(localeParts[0], localeParts[1], localeParts[2]);
-    } else {
+    try {
+      Locale locale =
+          new Locale.Builder().setLanguageTag(
+              UNDERSCORE.matcher(localeStr).replaceAll("-")).build();
+      return new ParsedCollation(charset, locale, strength);
+    } catch (IllformedLocaleException e) {
       throw RESOURCE.illegalLocaleFormat(localeStr).ex();
     }
-    return new ParsedCollation(charset, locale, strength);
   }
 
   @Deprecated // to be removed before 2.0
@@ -613,7 +875,7 @@ public final class SqlParserUtil {
       int end,
       T o) {
     requireNonNull(list, "list");
-    Preconditions.checkArgument(start < end);
+    checkArgument(start < end);
     for (int i = end - 1; i > start; --i) {
       list.remove(i);
     }
@@ -655,8 +917,8 @@ public final class SqlParserUtil {
    */
   public static SqlNode toTreeEx(SqlSpecialOperator.TokenSequence list,
       int start, final int minPrec, final SqlKind stopperKind) {
-    PrecedenceClimbingParser parser = list.parser(start,
-        token -> {
+    PrecedenceClimbingParser parser =
+        list.parser(start, token -> {
           if (token instanceof PrecedenceClimbingParser.Op) {
             PrecedenceClimbingParser.Op tokenOp = (PrecedenceClimbingParser.Op) token;
             final SqlOperator op = ((ToTreeListItem) tokenOp.o()).op;
@@ -835,8 +1097,9 @@ public final class SqlParserUtil {
     }
 
     @Override public SqlOperator op(int i) {
-      ToTreeListItem o = (ToTreeListItem) requireNonNull(list.get(i).o,
-          () -> "list.get(" + i + ").o is null in " + list);
+      ToTreeListItem o =
+          (ToTreeListItem) requireNonNull(list.get(i).o,
+              () -> "list.get(" + i + ").o is null in " + list);
       return o.getOperator();
     }
 
@@ -929,8 +1192,9 @@ public final class SqlParserUtil {
     }
 
     @Override public SqlOperator op(int i) {
-      ToTreeListItem item = (ToTreeListItem) requireNonNull(list.get(i),
-          () -> "list.get(" + i + ")");
+      ToTreeListItem item =
+          (ToTreeListItem) requireNonNull(list.get(i),
+              () -> "list.get(" + i + ")");
       return item.op;
     }
 
@@ -958,11 +1222,11 @@ public final class SqlParserUtil {
   /** Pre-initialized {@link DateFormat} objects, to be used within the current
    * thread, because {@code DateFormat} is not thread-safe. */
   private static class Format {
-    private static final ThreadLocal<@Nullable Format> PER_THREAD =
-        ThreadLocal.withInitial(Format::new);
+    private static final TryThreadLocal<Format> PER_THREAD =
+        TryThreadLocal.withInitial(Format::new);
 
     private static Format get() {
-      return requireNonNull(PER_THREAD.get(), "PER_THREAD.get()");
+      return PER_THREAD.get();
     }
 
     final DateFormat timestamp =
@@ -972,5 +1236,14 @@ public final class SqlParserUtil {
         new SimpleDateFormat(DateTimeUtils.TIME_FORMAT_STRING, Locale.ROOT);
     final DateFormat date =
         new SimpleDateFormat(DateTimeUtils.DATE_FORMAT_STRING, Locale.ROOT);
+  }
+
+  /** Thrown by {@link #replaceEscapedChars(String)}. */
+  public static class MalformedUnicodeEscape extends Exception {
+    public final int i;
+
+    MalformedUnicodeEscape(int i) {
+      this.i = i;
+    }
   }
 }

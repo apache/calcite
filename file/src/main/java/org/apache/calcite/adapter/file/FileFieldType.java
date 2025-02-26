@@ -22,6 +22,8 @@ import org.apache.calcite.rel.type.RelDataType;
 
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Map;
 
 /**
@@ -30,8 +32,6 @@ import java.util.Map;
  * <p>Usually, and unless specified explicitly in the header row, a field is
  * of type {@link #STRING}. But specifying the field type in the fields
  * makes it easier to write SQL.
- *
- * <p>Trivially modified from CsvFieldType.
  */
 enum FileFieldType {
   STRING(null, String.class),
@@ -47,7 +47,7 @@ enum FileFieldType {
   TIME(null, java.sql.Time.class),
   TIMESTAMP(null, java.sql.Timestamp.class);
 
-  private final Primitive primitive;
+  private final @Nullable Primitive primitive;
   private final Class clazz;
 
   private static final Map<String, FileFieldType> MAP;
@@ -59,17 +59,17 @@ enum FileFieldType {
       builder.put(value.clazz.getSimpleName(), value);
 
       if (value.primitive != null) {
-        builder.put(value.primitive.primitiveName, value);
+        builder.put(value.primitive.getPrimitiveName(), value);
       }
     }
     MAP = builder.build();
   }
 
   FileFieldType(Primitive primitive) {
-    this(primitive, primitive.boxClass);
+    this(primitive, primitive.getBoxClass());
   }
 
-  FileFieldType(Primitive primitive, Class clazz) {
+  FileFieldType(@Nullable Primitive primitive, Class clazz) {
     this.primitive = primitive;
     this.clazz = clazz;
   }

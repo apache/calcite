@@ -21,14 +21,14 @@ import org.apache.calcite.schema.impl.AbstractSchema;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientOptions;
-import com.mongodb.MongoCredential;
-import com.mongodb.ServerAddress;
+import com.mongodb.MongoClientSettings;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 
 import java.util.Map;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Schema mapped onto a directory of MONGO files. Each table in the schema
@@ -40,20 +40,17 @@ public class MongoSchema extends AbstractSchema {
   /**
    * Creates a MongoDB schema.
    *
-   * @param host Mongo host, e.g. "localhost"
-   * @param credential Optional credentials (null for none)
-   * @param options Mongo connection options
+   * @param settings Mongo connection settings, including host and credentials
    * @param database Mongo database name, e.g. "foodmart"
    */
-  MongoSchema(String host, String database,
-      MongoCredential credential, MongoClientOptions options) {
+  MongoSchema(MongoClientSettings settings, String database) {
     super();
+
+    final MongoClient mongo = MongoClients.create(settings);
     try {
-      final MongoClient mongo = credential == null
-          ? new MongoClient(new ServerAddress(host), options)
-          : new MongoClient(new ServerAddress(host), credential, options);
       this.mongoDb = mongo.getDatabase(database);
     } catch (Exception e) {
+      mongo.close();
       throw new RuntimeException(e);
     }
   }
@@ -66,7 +63,7 @@ public class MongoSchema extends AbstractSchema {
   @VisibleForTesting
   MongoSchema(MongoDatabase mongoDb) {
     super();
-    this.mongoDb = Objects.requireNonNull(mongoDb, "mongoDb");
+    this.mongoDb = requireNonNull(mongoDb, "mongoDb");
   }
 
   @Override protected Map<String, Table> getTableMap() {

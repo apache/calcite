@@ -21,9 +21,13 @@ import org.apache.calcite.adapter.splunk.util.StringUtils;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerator;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Query against Splunk.
@@ -33,24 +37,23 @@ import java.util.Map;
 public class SplunkQuery<T> extends AbstractEnumerable<T> {
   private final SplunkConnection splunkConnection;
   private final String search;
-  private final String earliest;
-  private final String latest;
-  private final List<String> fieldList;
+  private final @Nullable String earliest;
+  private final @Nullable String latest;
+  private final @Nullable List<String> fieldList;
 
   /** Creates a SplunkQuery. */
   public SplunkQuery(
       SplunkConnection splunkConnection,
       String search,
-      String earliest,
-      String latest,
-      List<String> fieldList) {
-    this.splunkConnection = splunkConnection;
-    this.search = search;
+      @Nullable String earliest,
+      @Nullable String latest,
+      @Nullable List<String> fieldList) {
+    this.splunkConnection =
+        requireNonNull(splunkConnection, "splunkConnection");
+    this.search = requireNonNull(search, "search");
     this.earliest = earliest;
     this.latest = latest;
     this.fieldList = fieldList;
-    assert splunkConnection != null;
-    assert search != null;
   }
 
   @Override public String toString() {

@@ -44,10 +44,6 @@ import static java.util.Objects.requireNonNull;
 public class SetopOperandTypeChecker implements SqlOperandTypeChecker {
   //~ Methods ----------------------------------------------------------------
 
-  @Override public boolean isOptional(int i) {
-    return false;
-  }
-
   @Override public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
@@ -114,20 +110,20 @@ public class SetopOperandTypeChecker implements SqlOperandTypeChecker {
 
       final RelDataType type =
           callBinding.getTypeFactory().leastRestrictive(columnIthTypes);
-      if (type == null) {
-        boolean coerced = false;
-        if (callBinding.isTypeCoercionEnabled()) {
-          for (int j = 0; j < callBinding.getOperandCount(); j++) {
-            TypeCoercion typeCoercion = validator.getTypeCoercion();
-            RelDataType widenType = typeCoercion.getWiderTypeFor(columnIthTypes, true);
-            if (null != widenType) {
-              coerced = typeCoercion.rowTypeCoercion(
-                  callBinding.getScope(),
-                  callBinding.operand(j), i, widenType)
-                  || coerced;
-            }
+      // If any of the types is different we need to insert a coercion.
+      boolean coerced = false;
+      if (callBinding.isTypeCoercionEnabled()) {
+        for (int j = 0; j < callBinding.getOperandCount(); j++) {
+          TypeCoercion typeCoercion = validator.getTypeCoercion();
+          RelDataType widenType = typeCoercion.getWiderTypeFor(columnIthTypes, true);
+          if (null != widenType) {
+            coerced =
+                typeCoercion.rowTypeCoercion(callBinding.getScope(),
+                    callBinding.operand(j), i, widenType) || coerced;
           }
         }
+      }
+      if (type == null) {
         if (!coerced) {
           if (throwOnFailure) {
             SqlNode field =
@@ -151,9 +147,5 @@ public class SetopOperandTypeChecker implements SqlOperandTypeChecker {
 
   @Override public String getAllowedSignatures(SqlOperator op, String opName) {
     return "{0} " + opName + " {1}";
-  }
-
-  @Override public Consistency getConsistency() {
-    return Consistency.NONE;
   }
 }

@@ -50,11 +50,13 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * A visitor for relational expressions that extracts a {@link org.apache.calcite.rel.core.Project}, with a "simple"
- * computation over the correlated variables, from the right side of a correlation
- * ({@link org.apache.calcite.rel.core.Correlate}) and places it on the left side.
+ * A visitor for relational expressions that extracts a
+ * {@link org.apache.calcite.rel.core.Project}, with a "simple" computation over
+ * the correlated variables, from the right side of a correlation
+ * ({@link org.apache.calcite.rel.core.Correlate}) and places it on the left
+ * side.
  *
- * <p>Plan before</p>
+ * <p>Plan before
  * <pre>
  * LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
  *   LogicalTableScan(table=[[scott, EMP]])
@@ -62,7 +64,7 @@ import java.util.Set;
  *     LogicalTableScan(table=[[scott, DEPT]])
  * </pre>
  *
- * <p>Plan after</p>
+ * <p>Plan after
  * <pre>
  * LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3],... DNAME=[$10], LOC=[$11])
  *   LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{8}])
@@ -72,9 +74,10 @@ import java.util.Set;
  *       LogicalTableScan(table=[[scott, DEPT]])
  * </pre>
  *
- * <p>Essentially this transformation moves the computation over a correlated expression from the
- * inner loop to the outer loop. It materializes the computation on the left side and flattens
- * expressions on correlated variables on the right side.</p>
+ * <p>Essentially this transformation moves the computation over a correlated
+ * expression from the inner loop to the outer loop. It materializes the
+ * computation on the left side and flattens expressions on correlated variables
+ * on the right side.
  */
 @API(since = "1.27", status = API.Status.EXPERIMENTAL)
 public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
@@ -201,9 +204,10 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
   /**
    * A collector of simply correlated row expressions.
    *
-   * The shuttle traverses the tree and collects all calls and field accesses that are classified
-   * as simply correlated expressions. Multiple nodes in a call hierarchy may satisfy the criteria
-   * of a simple correlation so we peek the expressions closest to the root.
+   * <p>The shuttle traverses the tree and collects all calls and field accesses
+   * that are classified as simply correlated expressions. Multiple nodes in a
+   * call hierarchy may satisfy the criteria of a simple correlation so we peek
+   * the expressions closest to the root.
    *
    * @see SimpleCorrelationDetector
    */
@@ -245,24 +249,26 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
   }
 
   /**
-   * A visitor classifying row expressions as simply correlated if they satisfy the conditions
-   * below.
+   * A visitor classifying row expressions as simply correlated if they satisfy
+   * the conditions below.
+   *
    * <ul>
    * <li>all correlated variables have the specified correlation id</li>
    * <li>all leafs are either correlated variables, dynamic parameters, or literals</li>
    * <li>intermediate nodes are either calls or field access expressions</li>
    * </ul>
    *
-   * Examples:
+   * <p>Examples:
+   *
    * <pre>{@code
    * +(10, $cor0.DEPTNO) -> TRUE
    * /(100,+(10, $cor0.DEPTNO)) -> TRUE
    * CAST(+(10, $cor0.DEPTNO)):INTEGER NOT NULL -> TRUE
    * +($0, $cor0.DEPTNO) -> FALSE
    * }</pre>
-   *
    */
-  private static class SimpleCorrelationDetector extends RexVisitorImpl<@Nullable Boolean> {
+  private static class SimpleCorrelationDetector
+      extends RexVisitorImpl<@Nullable Boolean> {
     private final CorrelationId corrId;
 
     private SimpleCorrelationDetector(CorrelationId corrId) {

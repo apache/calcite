@@ -21,6 +21,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.List;
 import java.util.Objects;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Represents an expression that has a conditional operator.
  *
@@ -31,15 +33,13 @@ import java.util.Objects;
  * {c0, e0, c1, e1, ..., c<sub>n-1</sub>, e<sub>n-1</sub>}
  * represents
  * "if (c0) e0 else if (c1) e1 ... else if (c<sub>n-1</sub>) e<sub>n-1</sub>".
- * </p>
  */
 public class ConditionalStatement extends Statement {
   public final List<Node> expressionList;
 
   public ConditionalStatement(List<Node> expressionList) {
     super(ExpressionType.Conditional, Void.TYPE);
-    assert expressionList != null : "expressionList should not be null";
-    this.expressionList = expressionList;
+    this.expressionList = requireNonNull(expressionList, "expressionList");
   }
 
   @Override public Statement accept(Shuttle shuttle) {
@@ -86,12 +86,7 @@ public class ConditionalStatement extends Statement {
     }
 
     ConditionalStatement that = (ConditionalStatement) o;
-
-    if (!expressionList.equals(that.expressionList)) {
-      return false;
-    }
-
-    return true;
+    return expressionList.equals(that.expressionList);
   }
 
   @Override public int hashCode() {

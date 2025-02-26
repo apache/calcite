@@ -36,9 +36,9 @@ import static java.util.Objects.requireNonNull;
  * <p>Some common row-expressions are: {@link RexLiteral} (constant value),
  * {@link RexVariable} (variable), {@link RexCall} (call to operator with
  * operands). Expressions are generally created using a {@link RexBuilder}
- * factory.</p>
+ * factory.
  *
- * <p>All sub-classes of RexNode are immutable.</p>
+ * <p>All sub-classes of RexNode are immutable.
  */
 public abstract class RexNode {
 

@@ -37,7 +37,7 @@ import java.util.Map;
 public class HepRuleCall extends RelOptRuleCall {
   //~ Instance fields --------------------------------------------------------
 
-  private List<RelNode> results;
+  private final List<RelNode> results = new ArrayList<>();
 
   //~ Constructors -----------------------------------------------------------
 
@@ -48,8 +48,6 @@ public class HepRuleCall extends RelOptRuleCall {
       Map<RelNode, List<RelNode>> nodeChildren,
       @Nullable List<RelNode> parents) {
     super(planner, operand, rels, nodeChildren, parents);
-
-    results = new ArrayList<>();
   }
 
   //~ Methods ----------------------------------------------------------------

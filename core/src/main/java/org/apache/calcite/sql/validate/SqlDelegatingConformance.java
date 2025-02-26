@@ -23,12 +23,24 @@ import org.apache.calcite.sql.fun.SqlLibrary;
  * another object. You can create a sub-class that overrides particular
  * methods.
  */
-public class SqlDelegatingConformance extends SqlAbstractConformance {
+public class SqlDelegatingConformance implements SqlConformance {
   private final SqlConformance delegate;
 
   /** Creates a SqlDelegatingConformance. */
   protected SqlDelegatingConformance(SqlConformance delegate) {
     this.delegate = delegate;
+  }
+
+  @Override public boolean isLiberal() {
+    return delegate.isLiberal();
+  }
+
+  @Override public boolean allowCharLiteralAlias() {
+    return delegate.allowCharLiteralAlias();
+  }
+
+  @Override public boolean isSupportedDualTable() {
+    return delegate.isSupportedDualTable();
   }
 
   @Override public boolean isGroupByAlias() {
@@ -40,7 +52,7 @@ public class SqlDelegatingConformance extends SqlAbstractConformance {
   }
 
   @Override public boolean isHavingAlias() {
-    return delegate.isGroupByAlias();
+    return delegate.isHavingAlias();
   }
 
   @Override public boolean isSortByOrdinal() {
@@ -59,28 +71,94 @@ public class SqlDelegatingConformance extends SqlAbstractConformance {
     return delegate.isFromRequired();
   }
 
+  @Override public boolean splitQuotedTableName() {
+    return delegate.splitQuotedTableName();
+  }
+
+  @Override public boolean allowHyphenInUnquotedTableName() {
+    return delegate.allowHyphenInUnquotedTableName();
+  }
+
   @Override public boolean isBangEqualAllowed() {
     return delegate.isBangEqualAllowed();
+  }
+
+  @Override public boolean isPercentRemainderAllowed() {
+    return delegate.isPercentRemainderAllowed();
   }
 
   @Override public boolean isMinusAllowed() {
     return delegate.isMinusAllowed();
   }
 
-  @Override public boolean isInsertSubsetColumnsAllowed() {
-    return delegate.isInsertSubsetColumnsAllowed();
+  @Override public boolean isApplyAllowed() {
+    return delegate.isApplyAllowed();
   }
 
-  @Override public boolean allowNiladicParentheses() {
-    return delegate.allowNiladicParentheses();
+  @Override public boolean isInsertSubsetColumnsAllowed() {
+    return delegate.isInsertSubsetColumnsAllowed();
   }
 
   @Override public boolean allowAliasUnnestItems() {
     return delegate.allowAliasUnnestItems();
   }
 
+  @Override public boolean allowNiladicParentheses() {
+    return delegate.allowNiladicParentheses();
+  }
+
+  @Override public boolean allowNiladicConstantWithoutParentheses() {
+    return delegate.allowNiladicConstantWithoutParentheses();
+  }
+  @Override public boolean allowExplicitRowValueConstructor() {
+    return delegate.allowExplicitRowValueConstructor();
+  }
+
+  @Override public boolean allowExtend() {
+    return delegate.allowExtend();
+  }
+
+  @Override public boolean isLimitStartCountAllowed() {
+    return delegate.isLimitStartCountAllowed();
+  }
+
+  @Override public boolean isOffsetLimitAllowed() {
+    return delegate.isOffsetLimitAllowed();
+  }
+
+  @Override public boolean allowGeometry() {
+    return delegate.allowGeometry();
+  }
+
+  @Override public boolean shouldConvertRaggedUnionTypesToVarying() {
+    return delegate.shouldConvertRaggedUnionTypesToVarying();
+  }
+
+  @Override public boolean allowExtendedTrim() {
+    return delegate.allowExtendedTrim();
+  }
+
+  @Override public boolean allowPluralTimeUnits() {
+    return delegate.allowPluralTimeUnits();
+  }
+
+  @Override public boolean allowQualifyingCommonColumn() {
+    return delegate.allowQualifyingCommonColumn();
+  }
+
+  @Override public boolean isValueAllowed() {
+    return delegate.isValueAllowed();
+  }
+
   @Override public SqlLibrary semantics() {
     return delegate.semantics();
   }
 
+  @Override public boolean allowLenientCoercion() {
+    return delegate.allowLenientCoercion();
+  }
+
+  @Override public boolean checkedArithmetic() {
+    return delegate.checkedArithmetic();
+  }
 }

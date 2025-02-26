@@ -28,29 +28,70 @@ import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
+import org.apache.calcite.rel.hint.Hintable;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.util.Util;
 
+import com.google.common.collect.ImmutableList;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Relational expression that imposes a particular sort order on its input
  * without otherwise changing its content.
  */
-public abstract class Sort extends SingleRel {
+public abstract class Sort extends SingleRel implements Hintable {
   //~ Instance fields --------------------------------------------------------
 
   public final RelCollation collation;
   public final @Nullable RexNode offset;
   public final @Nullable RexNode fetch;
+  protected final ImmutableList<RelHint> hints;
 
   //~ Constructors -----------------------------------------------------------
+
+  /**
+   * Creates a Sort.
+   *
+   * @param cluster   Cluster this relational expression belongs to
+   * @param traits    Traits
+   * @param hints     Hints for this node
+   * @param child     input relational expression
+   * @param collation array of sort specifications
+   * @param offset    Expression for number of rows to discard before returning
+   *                  first row
+   * @param fetch     Expression for number of rows to fetch
+   */
+  protected Sort(
+      RelOptCluster cluster,
+      RelTraitSet traits,
+      List<RelHint> hints,
+      RelNode child,
+      RelCollation collation,
+      @Nullable RexNode offset,
+      @Nullable RexNode fetch) {
+    super(cluster, traits, child);
+    this.collation = collation;
+    this.offset = offset;
+    this.fetch = fetch;
+    this.hints = ImmutableList.copyOf(hints);
+
+    assert traits.containsIfApplicable(collation)
+            : "traits=" + traits + ", collation=" + collation;
+    assert !(fetch == null
+            && offset == null
+            && collation.getFieldCollations().isEmpty())
+            : "trivial sort";
+  }
 
   /**
    * Creates a Sort.
@@ -65,7 +106,7 @@ public abstract class Sort extends SingleRel {
       RelTraitSet traits,
       RelNode child,
       RelCollation collation) {
-    this(cluster, traits, child, collation, null, null);
+    this(cluster, traits, Collections.emptyList(), child, collation, null, null);
   }
 
   /**
@@ -86,17 +127,7 @@ public abstract class Sort extends SingleRel {
       RelCollation collation,
       @Nullable RexNode offset,
       @Nullable RexNode fetch) {
-    super(cluster, traits, child);
-    this.collation = collation;
-    this.offset = offset;
-    this.fetch = fetch;
-
-    assert traits.containsIfApplicable(collation)
-        : "traits=" + traits + ", collation=" + collation;
-    assert !(fetch == null
-        && offset == null
-        && collation.getFieldCollations().isEmpty())
-        : "trivial sort";
+    this(cluster, traits, Collections.emptyList(), child, collation, offset, fetch);
   }
 
   /**
@@ -201,7 +232,7 @@ public abstract class Sort extends SingleRel {
 
   @Override public boolean isEnforcer() {
     return offset == null && fetch == null
-        && collation.getFieldCollations().size() > 0;
+        && !collation.getFieldCollations().isEmpty();
   }
 
   /**
@@ -214,7 +245,7 @@ public abstract class Sort extends SingleRel {
    * <code>the_year, the_month</code> because of a known monotonicity
    * constraint among the columns. {@code getCollation} would return
    * <code>[time_id]</code> and {@code collations} would return
-   * <code>[ [time_id], [the_year, the_month] ]</code>.</p>
+   * <code>[ [time_id], [the_year, the_month] ]</code>.
    */
   public RelCollation getCollation() {
     return collation;
@@ -225,7 +256,7 @@ public abstract class Sort extends SingleRel {
     //noinspection StaticPseudoFunctionalStyleMethod
     return Util.transform(collation.getFieldCollations(), field ->
         getCluster().getRexBuilder().makeInputRef(input,
-            Objects.requireNonNull(field, "field").getFieldIndex()));
+            requireNonNull(field, "field").getFieldIndex()));
   }
 
   @Override public RelWriter explainTerms(RelWriter pw) {
@@ -238,7 +269,11 @@ public abstract class Sort extends SingleRel {
       }
       for (Ord<RelFieldCollation> ord
           : Ord.zip(collation.getFieldCollations())) {
-        pw.item("dir" + ord.i, ord.e.shortString());
+        if (!pw.expand()) {
+          pw.item("dir" + ord.i, ord.e.shortString());
+        } else {
+          pw.item("dir" + ord.i, ord.e.fullString());
+        }
       }
     }
     pw.itemIf("offset", offset, offset != null);
@@ -251,5 +286,9 @@ public abstract class Sort extends SingleRel {
     return r instanceof RexLiteral
         ? ((RexLiteral) r).getValueAs(Double.class)
         : null;
+  }
+
+  @Override public ImmutableList<RelHint> getHints() {
+    return hints;
   }
 }

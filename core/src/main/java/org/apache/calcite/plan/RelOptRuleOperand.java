@@ -29,16 +29,20 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
+import static java.util.Objects.requireNonNull;
+
 /**
  * Operand that determines whether a {@link RelOptRule}
  * can be applied to a particular expression.
  *
  * <p>For example, the rule to pull a filter up from the left side of a join
- * takes operands: <code>Join(Filter, Any)</code>.</p>
+ * takes operands: <code>Join(Filter, Any)</code>.
  *
  * <p>Note that <code>children</code> means different things if it is empty or
  * it is <code>null</code>: <code>Join(Filter <b>()</b>, Any)</code> means
- * that, to match the rule, <code>Filter</code> must have no operands.</p>
+ * that, to match the rule, <code>Filter</code> must have no operands.
  */
 public class RelOptRuleOperand {
   //~ Instance fields --------------------------------------------------------
@@ -103,32 +107,30 @@ public class RelOptRuleOperand {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1166">[CALCITE-1166]
    * Disallow sub-classes of RelOptRuleOperand</a>. */
   @SuppressWarnings({"initialization.fields.uninitialized",
-      "initialization.invalid.field.write.initialized"})
+      "initialization.invalid.field.write.initialized", "unchecked"})
   <R extends RelNode> RelOptRuleOperand(
       Class<R> clazz,
       @Nullable RelTrait trait,
       Predicate<? super R> predicate,
       RelOptRuleOperandChildPolicy childPolicy,
       ImmutableList<RelOptRuleOperand> children) {
-    assert clazz != null;
+    this.clazz = requireNonNull(clazz, "clazz");
     switch (childPolicy) {
     case ANY:
       break;
     case LEAF:
-      assert children.size() == 0;
+      checkArgument(children.isEmpty());
       break;
     case UNORDERED:
       assert children.size() == 1;
       break;
     default:
-      assert children.size() > 0;
+      checkArgument(!children.isEmpty());
     }
-    this.childPolicy = childPolicy;
-    this.clazz = Objects.requireNonNull(clazz, "clazz");
+    this.childPolicy = requireNonNull(childPolicy, "childPolicy");
     this.trait = trait;
-    //noinspection unchecked
-    this.predicate = Objects.requireNonNull((Predicate) predicate);
-    this.children = children;
+    this.predicate = requireNonNull((Predicate<RelNode>) predicate);
+    this.children = requireNonNull(children, "children");
     for (RelOptRuleOperand child : this.children) {
       assert child.parent == null : "cannot re-use operands";
       child.parent = this;
@@ -197,10 +199,10 @@ public class RelOptRuleOperand {
    *
    * <p>To facilitate IDE shows the operand description in the debugger,
    * returns the root operand description, but highlight current
-   * operand's matched class with '*' in the description.</p>
+   * operand's matched class with '*' in the description.
    *
    * <p>e.g. The following are examples of rule operand description for
-   * the operands that match with {@code LogicalFilter}.</p>
+   * the operands that match with {@code LogicalFilter}.
    *
    * <ul>
    * <li>SemiJoinRule:project: Project(Join(*RelNode*, Aggregate))</li>
@@ -241,7 +243,7 @@ public class RelOptRuleOperand {
     if (this == that) {
       s.append('*');
     }
-    if (children != null && !children.isEmpty()) {
+    if (!children.isEmpty()) {
       s.append('(');
       boolean first = true;
       for (RelOptRuleOperand child : children) {

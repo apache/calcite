@@ -27,6 +27,8 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import org.immutables.value.Value;
+
 /**
  * Planner rule that infers predicates from on a
  * {@link org.apache.calcite.rel.core.Join} and creates
@@ -40,6 +42,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
  *
  * @see CoreRules#JOIN_PUSH_TRANSITIVE_PREDICATES
  */
+@Value.Enclosing
 public class JoinPushTransitivePredicatesRule
     extends RelRule<JoinPushTransitivePredicatesRule.Config>
     implements TransformationRule {
@@ -79,7 +82,7 @@ public class JoinPushTransitivePredicatesRule
     final RelBuilder relBuilder = call.builder();
 
     RelNode left = join.getLeft();
-    if (preds.leftInferredPredicates.size() > 0) {
+    if (!preds.leftInferredPredicates.isEmpty()) {
       RelNode curr = left;
       left = relBuilder.push(left)
           .filter(preds.leftInferredPredicates).build();
@@ -87,23 +90,25 @@ public class JoinPushTransitivePredicatesRule
     }
 
     RelNode right = join.getRight();
-    if (preds.rightInferredPredicates.size() > 0) {
+    if (!preds.rightInferredPredicates.isEmpty()) {
       RelNode curr = right;
       right = relBuilder.push(right)
           .filter(preds.rightInferredPredicates).build();
       call.getPlanner().onCopy(curr, right);
     }
 
-    RelNode newRel = join.copy(join.getTraitSet(), join.getCondition(),
-        left, right, join.getJoinType(), join.isSemiJoinDone());
+    RelNode newRel =
+        join.copy(join.getTraitSet(), join.getCondition(), left, right,
+            join.getJoinType(), join.isSemiJoinDone());
     call.getPlanner().onCopy(join, newRel);
 
     call.transformTo(newRel);
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableJoinPushTransitivePredicatesRule.Config.of()
         .withOperandFor(Join.class);
 
     @Override default JoinPushTransitivePredicatesRule toRule() {

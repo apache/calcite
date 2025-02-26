@@ -65,7 +65,7 @@ class EnumerableMergeJoinRule extends ConverterRule {
       // EnumerableMergeJoin only supports certain join types.
       return null;
     }
-    if (info.pairs().size() == 0) {
+    if (info.pairs().isEmpty()) {
       // EnumerableMergeJoin CAN support cartesian join, but disable it for now.
       return null;
     }
@@ -99,7 +99,6 @@ class EnumerableMergeJoinRule extends ConverterRule {
     final RelNode left = newInputs.get(0);
     final RelNode right = newInputs.get(1);
     final RelOptCluster cluster = join.getCluster();
-    RelNode newRel;
 
     RelTraitSet traitSet = join.getTraitSet()
         .replace(EnumerableConvention.INSTANCE);
@@ -121,13 +120,7 @@ class EnumerableMergeJoinRule extends ConverterRule {
       final RexNode nonEqui = RexUtil.composeConjunction(rexBuilder, info.nonEquiConditions);
       condition = RexUtil.composeConjunction(rexBuilder, Arrays.asList(equi, nonEqui));
     }
-    newRel = new EnumerableMergeJoin(cluster,
-        traitSet,
-        left,
-        right,
-        condition,
-        join.getVariablesSet(),
-        join.getJoinType());
-    return newRel;
+    return new EnumerableMergeJoin(cluster, traitSet, left, right, condition,
+        join.getVariablesSet(), join.getJoinType());
   }
 }

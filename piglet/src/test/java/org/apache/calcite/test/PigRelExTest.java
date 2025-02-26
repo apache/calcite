@@ -29,6 +29,7 @@ import static org.apache.calcite.test.Matchers.inTree;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasToString;
 
 /**
  * Tests for {@code PigRelExVisitor}.
@@ -59,7 +60,7 @@ class PigRelExTest extends PigRelTestBase {
     try {
       final RelNode rel =
           converter.pigQuery2Rel(pigScript, false, false, false).get(0);
-      assertThat(rel.getRowType().toString(), rowTypeMatcher);
+      assertThat(rel.getRowType(), hasToString(rowTypeMatcher));
     } catch (IOException e) {
       throw TestUtil.rethrow(e);
     }
@@ -78,7 +79,10 @@ class PigRelExTest extends PigRelTestBase {
   }
 
   @Test void testConstantFloat() {
-    checkTranslation(".1E6 == -2.3", inTree("=(1E5:DOUBLE, -2.3:DECIMAL(2, 1))"));
+    // Add a variable d in the expression to prevent it from being simplified to "false".
+    checkTranslation(".1E6 == -2.3 + d",
+        // Validator converts -2.3 from DECIMAL to DOUBLE
+        inTree("=(100000.0E0, +(-2.3E0, $3))"));
   }
 
   @Test void testConstantString() {
@@ -187,7 +191,7 @@ class PigRelExTest extends PigRelTestBase {
   @Test void testCast() {
     checkTranslation("(int) b", inTree("CAST($1):INTEGER"));
     checkTranslation("(long) a", inTree("CAST($0):BIGINT"));
-    checkTranslation("(float) b", inTree("CAST($1):FLOAT"));
+    checkTranslation("(float) b", inTree("CAST($1):REAL"));
     checkTranslation("(double) b", inTree("CAST($1):DOUBLE"));
     checkTranslation("(chararray) b", inTree("CAST($1):VARCHAR"));
     checkTranslation("(bytearray) b", inTree("CAST($1):BINARY"));
@@ -196,18 +200,18 @@ class PigRelExTest extends PigRelTestBase {
     checkTranslation("(bigdecimal) b", inTree("CAST($1):DECIMAL(19, 0)"));
     checkTranslation("(tuple()) b", inTree("CAST($1):(DynamicRecordRow[])"));
     checkTranslation("(tuple(int, float)) b",
-        inTree("CAST($1):RecordType(INTEGER $0, FLOAT $1)"));
+        inTree("CAST($1):RecordType(INTEGER $0, REAL $1)"));
     checkTranslation("(bag{}) b",
         inTree("CAST($1):(DynamicRecordRow[]) NOT NULL MULTISET"));
     checkTranslation("(bag{tuple(int)}) b",
         inTree("CAST($1):RecordType(INTEGER $0) MULTISET"));
     checkTranslation("(bag{tuple(int, float)}) b",
-        inTree("CAST($1):RecordType(INTEGER $0, FLOAT $1) MULTISET"));
+        inTree("CAST($1):RecordType(INTEGER $0, REAL $1) MULTISET"));
     checkTranslation("(map[]) b",
         inTree("CAST($1):(VARCHAR NOT NULL, BINARY(1) NOT NULL) MAP"));
     checkTranslation("(map[int]) b", inTree("CAST($1):(VARCHAR NOT NULL, INTEGER"));
     checkTranslation("(map[tuple(int, float)]) b",
-        inTree("CAST($1):(VARCHAR NOT NULL, RecordType(INTEGER val_0, FLOAT val_1)) MAP"));
+        inTree("CAST($1):(VARCHAR NOT NULL, RecordType(INTEGER val_0, REAL val_1)) MAP"));
   }
 
   @Test void testPigBuiltinFunctions() {

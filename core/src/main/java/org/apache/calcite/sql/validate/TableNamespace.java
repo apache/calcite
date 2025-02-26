@@ -26,18 +26,22 @@ import org.apache.calcite.schema.impl.ModifiableViewTable;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
+import static org.apache.calcite.util.ImmutableBitSet.toImmutableBitSet;
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /** Namespace based on a table from the catalog. */
 class TableNamespace extends AbstractNamespace {
@@ -48,7 +52,7 @@ class TableNamespace extends AbstractNamespace {
   private TableNamespace(SqlValidatorImpl validator, SqlValidatorTable table,
       List<RelDataTypeField> fields) {
     super(validator, null);
-    this.table = Objects.requireNonNull(table, "table");
+    this.table = requireNonNull(table, "table");
     this.extendedFields = ImmutableList.copyOf(fields);
   }
 
@@ -57,6 +61,20 @@ class TableNamespace extends AbstractNamespace {
   }
 
   @Override protected RelDataType validateImpl(RelDataType targetRowType) {
+    table.maybeUnwrap(SemanticTable.class)
+        .ifPresent(semanticTable -> {
+          ImmutableBitSet mustFilterFields =
+              table.getRowType().getFieldList().stream()
+                  .map(RelDataTypeField::getIndex)
+                  .filter(semanticTable::mustFilter)
+                  .collect(toImmutableBitSet());
+          // We pass in an empty set for remnantMustFilterFields here because
+          // it isn't exposed to SemanticTable and only mustFilterFields and
+          // bypassFieldList should be supplied.
+          this.filterRequirement =
+              new FilterRequirement(mustFilterFields,
+                  semanticTable.bypassFieldList(), ImmutableSet.of());
+        });
     if (extendedFields.isEmpty()) {
       return table.getRowType();
     }
@@ -106,7 +124,7 @@ class TableNamespace extends AbstractNamespace {
       final RelOptTable relOptTable =
           ((RelOptTable) table).extend(extendedFields);
       final SqlValidatorTable validatorTable =
-          Objects.requireNonNull(
+          requireNonNull(
             relOptTable.unwrap(SqlValidatorTable.class),
             () -> "cant unwrap SqlValidatorTable from " + relOptTable);
       return new TableNamespace(validator, validatorTable, ImmutableList.of());
@@ -119,13 +137,13 @@ class TableNamespace extends AbstractNamespace {
    * columns of the underlying table.
    */
   private RelDataType getBaseRowType() {
-    final Table schemaTable = Objects.requireNonNull(
-        table.unwrap(Table.class),
-        () -> "can't unwrap Table from " + table);
+    final Table schemaTable =
+        requireNonNull(table.unwrap(Table.class),
+            () -> "can't unwrap Table from " + table);
     if (schemaTable instanceof ModifiableViewTable) {
       final Table underlying =
-          ((ModifiableViewTable) schemaTable).unwrap(Table.class);
-      assert underlying != null;
+          requireNonNull(
+              ((ModifiableViewTable) schemaTable).unwrap(Table.class));
       return underlying.getRowType(validator.typeFactory);
     }
     return schemaTable.getRowType(validator.typeFactory);

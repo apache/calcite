@@ -38,6 +38,7 @@ import org.apache.calcite.rex.RexNode;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -47,6 +48,8 @@ import static org.apache.calcite.plan.volcano.PlannerTests.TestLeafRel;
 import static org.apache.calcite.plan.volcano.PlannerTests.TestSingleRel;
 import static org.apache.calcite.plan.volcano.PlannerTests.newCluster;
 
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -81,17 +84,17 @@ class CollationConversionTest {
             cluster.traitSetOf(PHYS_CALLING_CONVENTION).plus(ROOT_COLLATION));
     planner.setRoot(convertedRel);
     RelNode result = planner.chooseDelegate().findBestExp();
-    assertTrue(result instanceof RootSingleRel);
+    assertThat(result, instanceOf(RootSingleRel.class));
     assertTrue(result.getTraitSet().contains(ROOT_COLLATION));
     assertTrue(result.getTraitSet().contains(PHYS_CALLING_CONVENTION));
 
     final RelNode input = result.getInput(0);
-    assertTrue(input instanceof PhysicalSort);
+    assertThat(input, instanceOf(PhysicalSort.class));
     assertTrue(result.getTraitSet().contains(ROOT_COLLATION));
     assertTrue(input.getTraitSet().contains(PHYS_CALLING_CONVENTION));
 
     final RelNode input2 = input.getInput(0);
-    assertTrue(input2 instanceof LeafRel);
+    assertThat(input2, instanceOf(LeafRel.class));
     assertTrue(input2.getTraitSet().contains(LEAF_COLLATION));
     assertTrue(input.getTraitSet().contains(PHYS_CALLING_CONVENTION));
   }
@@ -99,9 +102,9 @@ class CollationConversionTest {
   /** Converts a NoneSingleRel to RootSingleRel. */
   public static class SingleNodeRule
       extends RelRule<SingleNodeRule.Config> {
-    static final SingleNodeRule INSTANCE = Config.EMPTY
+    static final SingleNodeRule INSTANCE = ImmutableSingleNodeRuleConfig.builder()
         .withOperandSupplier(b -> b.operand(NoneSingleRel.class).anyInputs())
-        .as(Config.class)
+        .build()
         .toRule();
 
     protected SingleNodeRule(Config config) {
@@ -127,6 +130,8 @@ class CollationConversionTest {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(init = "with*", typeImmutable = "ImmutableSingleNodeRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default SingleNodeRule toRule() {
         return new SingleNodeRule(this);
@@ -156,9 +161,9 @@ class CollationConversionTest {
    * (with physical convention). */
   public static class LeafTraitRule
       extends RelRule<LeafTraitRule.Config> {
-    static final LeafTraitRule INSTANCE = Config.EMPTY
+    static final LeafTraitRule INSTANCE = ImmutableLeafTraitRuleConfig.builder()
         .withOperandSupplier(b -> b.operand(NoneLeafRel.class).anyInputs())
-        .as(Config.class)
+        .build()
         .toRule();
 
     LeafTraitRule(Config config) {
@@ -175,6 +180,8 @@ class CollationConversionTest {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(init = "with*", typeImmutable = "ImmutableLeafTraitRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default LeafTraitRule toRule() {
         return new LeafTraitRule(this);
@@ -279,12 +286,14 @@ class CollationConversionTest {
   /** Physical sort node (not logical). */
   private static class PhysicalSort extends Sort {
     PhysicalSort(RelOptCluster cluster, RelTraitSet traits, RelNode input,
-        RelCollation collation, RexNode offset, RexNode fetch) {
+        RelCollation collation, @Nullable RexNode offset,
+        @Nullable RexNode fetch) {
       super(cluster, traits, input, collation, offset, fetch);
     }
 
     public Sort copy(RelTraitSet traitSet, RelNode newInput,
-        RelCollation newCollation, RexNode offset, RexNode fetch) {
+        RelCollation newCollation, @Nullable RexNode offset,
+        @Nullable RexNode fetch) {
       return new PhysicalSort(getCluster(), traitSet, newInput, newCollation,
           offset, fetch);
     }

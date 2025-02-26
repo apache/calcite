@@ -74,7 +74,7 @@ public class LoptSemiJoinOptimizer {
    * Semijoins corresponding to each join factor, if they are going to be
    * filtered by semijoins. Otherwise, the entry is the original join factor.
    */
-  private RelNode [] chosenSemiJoins;
+  private final RelNode [] chosenSemiJoins;
 
   /**
    * Associates potential semijoins with each fact table factor. The first
@@ -265,7 +265,7 @@ public class LoptSemiJoinOptimizer {
     RelNode factRel = multiJoin.getJoinFactor(factIdx);
     RelNode dimRel = multiJoin.getJoinFactor(dimIdx);
     final JoinInfo joinInfo = JoinInfo.of(factRel, dimRel, semiJoinCondition);
-    assert joinInfo.leftKeys.size() > 0;
+    assert !joinInfo.leftKeys.isEmpty();
 
     // mutable copies
     final List<Integer> leftKeys = Lists.newArrayList(joinInfo.leftKeys);
@@ -576,16 +576,16 @@ public class LoptSemiJoinOptimizer {
         }
       }
 
-      // if a suitable dimension table has been found, associate it
+      // If a suitable dimension table has been found, associate it
       // with the fact table in the chosenSemiJoins array; also remove
-      // the entry from possibleSemiJoins so we won't chose it again;
-      // note that we create the SemiJoin using the chosen semijoins
+      // the entry from possibleSemiJoins, so we won't choose it again;
+      // note that we create the SemiJoin using the chosen semi-joins
       // already created for each factor so any chaining of filters will
-      // be accounted for
+      // be accounted for.
       if (bestDimIdx != -1) {
-        int bestDimIdxFinal = bestDimIdx;
-        LogicalJoin semiJoin = requireNonNull(possibleDimensions.get(bestDimIdxFinal),
-            () -> "possibleDimensions.get(" + bestDimIdxFinal + ") is null");
+        LogicalJoin semiJoin =
+            requireNonNull(possibleDimensions.get(bestDimIdx),
+                "possibleDimensions.get(bestDimIdx)");
         LogicalJoin chosenSemiJoin =
             LogicalJoin.create(factRel,
                 chosenSemiJoins[bestDimIdx],

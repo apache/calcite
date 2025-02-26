@@ -34,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.fail;
  */
 class RelOptPlanReaderTest {
   @Test void testTypeToClass() {
-    RelJson relJson = new RelJson(null);
+    RelJson relJson = RelJson.create();
 
     // in org.apache.calcite.rel package
     assertThat(relJson.classToTypeName(LogicalProject.class),

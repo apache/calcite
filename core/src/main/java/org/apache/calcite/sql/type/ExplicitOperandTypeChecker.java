@@ -24,7 +24,6 @@ import org.apache.calcite.sql.SqlOperator;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 import static java.util.Objects.requireNonNull;
 
@@ -37,11 +36,7 @@ public class ExplicitOperandTypeChecker implements SqlOperandTypeChecker {
   private final RelDataType type;
 
   public ExplicitOperandTypeChecker(RelDataType type) {
-    this.type = Objects.requireNonNull(type, "type");
-  }
-
-  @Override public boolean isOptional(int i) {
-    return false;
+    this.type = requireNonNull(type, "type");
   }
 
   @Override public boolean checkOperandTypes(
@@ -72,9 +67,5 @@ public class ExplicitOperandTypeChecker implements SqlOperandTypeChecker {
 
   @Override public String getAllowedSignatures(SqlOperator op, String opName) {
     return "<TYPE> " + opName + " <TYPE>";
-  }
-
-  @Override public Consistency getConsistency() {
-    return Consistency.NONE;
   }
 }

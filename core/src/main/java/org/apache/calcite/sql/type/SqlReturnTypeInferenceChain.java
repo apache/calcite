@@ -19,10 +19,11 @@ package org.apache.calcite.sql.type;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlOperatorBinding;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Strategy to infer the type of an operator call from the type of the operands
@@ -41,10 +42,10 @@ public class SqlReturnTypeInferenceChain implements SqlReturnTypeInference {
    * Creates a SqlReturnTypeInferenceChain from an array of rules.
    *
    * <p>Package-protected.
-   * Use {@link org.apache.calcite.sql.type.ReturnTypes#chain}.</p>
+   * Use {@link org.apache.calcite.sql.type.ReturnTypes#chain}.
    */
   SqlReturnTypeInferenceChain(SqlReturnTypeInference... rules) {
-    Preconditions.checkArgument(rules.length > 1);
+    checkArgument(rules.length > 1);
     this.rules = ImmutableList.copyOf(rules);
   }
 

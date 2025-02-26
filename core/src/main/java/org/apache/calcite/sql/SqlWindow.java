@@ -39,15 +39,18 @@ import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.qual.Pure;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.Static.RESOURCE;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * SQL window specification.
  *
- * <p>For example, the query</p>
+ * <p>For example, the query
  *
  * <blockquote>
  * <pre>SELECT sum(a) OVER (w ROWS 3 PRECEDING)
@@ -57,7 +60,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * </blockquote>
  *
  * <p>declares windows w and w1, and uses a window in an OVER clause. It thus
- * contains 3 {@link SqlWindow} objects.</p>
+ * contains 3 {@link SqlWindow} objects.
  */
 public class SqlWindow extends SqlCall {
   /**
@@ -98,7 +101,10 @@ public class SqlWindow extends SqlCall {
   /** The upper bound of the window. */
   @Nullable SqlNode upperBound;
 
-  /** Whether to allow partial results. It may be null. */
+  /** Exclude rows from the frame.   */
+  SqlLiteral exclude;
+
+  /** Whether to allow partial results. It may be null.   */
   @Nullable SqlLiteral allowPartial;
 
   private @Nullable SqlCall windowCall = null;
@@ -112,25 +118,45 @@ public class SqlWindow extends SqlCall {
       @Nullable SqlIdentifier refName, SqlNodeList partitionList, SqlNodeList orderList,
       SqlLiteral isRows, @Nullable SqlNode lowerBound, @Nullable SqlNode upperBound,
       @Nullable SqlLiteral allowPartial) {
+    this(pos, declName, refName, partitionList, orderList,
+        isRows, lowerBound, upperBound, allowPartial, createExcludeNoOthers(SqlParserPos.ZERO));
+  }
+
+  /**
+   * Creates a window.
+   */
+  public SqlWindow(SqlParserPos pos, @Nullable SqlIdentifier declName,
+      @Nullable SqlIdentifier refName, SqlNodeList partitionList, SqlNodeList orderList,
+      SqlLiteral isRows, @Nullable SqlNode lowerBound, @Nullable SqlNode upperBound,
+      @Nullable SqlLiteral allowPartial, SqlLiteral exclude) {
     super(pos);
     this.declName = declName;
     this.refName = refName;
-    this.partitionList = partitionList;
-    this.orderList = orderList;
+    this.partitionList = requireNonNull(partitionList, "partitionList");
+    this.orderList = requireNonNull(orderList, "orderList");
     this.isRows = isRows;
     this.lowerBound = lowerBound;
     this.upperBound = upperBound;
     this.allowPartial = allowPartial;
+    this.exclude = exclude;
 
+    assert exclude.symbolValue(Exclusion.class) == Exclusion.EXCLUDE_NO_OTHER
+        || (lowerBound != null || upperBound != null);
     assert declName == null || declName.isSimple();
-    assert partitionList != null;
-    assert orderList != null;
   }
 
   public static SqlWindow create(@Nullable SqlIdentifier declName, @Nullable SqlIdentifier refName,
       SqlNodeList partitionList, SqlNodeList orderList, SqlLiteral isRows,
       @Nullable SqlNode lowerBound, @Nullable SqlNode upperBound, @Nullable SqlLiteral allowPartial,
       SqlParserPos pos) {
+    return create(declName, refName, partitionList, orderList, isRows, lowerBound, upperBound,
+        allowPartial, createExcludeNoOthers(SqlParserPos.ZERO), pos);
+  }
+
+  public static SqlWindow create(@Nullable SqlIdentifier declName, @Nullable SqlIdentifier refName,
+      SqlNodeList partitionList, SqlNodeList orderList, SqlLiteral isRows,
+      @Nullable SqlNode lowerBound, @Nullable SqlNode upperBound, @Nullable SqlLiteral allowPartial,
+      SqlLiteral exclude, SqlParserPos pos) {
     // If there's only one bound and it's 'FOLLOWING', make it the upper
     // bound.
     if (upperBound == null
@@ -140,7 +166,7 @@ public class SqlWindow extends SqlCall {
       lowerBound = null;
     }
     return new SqlWindow(pos, declName, refName, partitionList, orderList,
-        isRows, lowerBound, upperBound, allowPartial);
+        isRows, lowerBound, upperBound, allowPartial, exclude);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -156,7 +182,7 @@ public class SqlWindow extends SqlCall {
   @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(declName, refName, partitionList, orderList,
-        isRows, lowerBound, upperBound, allowPartial);
+        isRows, lowerBound, upperBound, allowPartial, exclude);
   }
 
   @SuppressWarnings("assignment.type.incompatible")
@@ -185,6 +211,9 @@ public class SqlWindow extends SqlCall {
       break;
     case 7:
       this.allowPartial = (SqlLiteral) operand;
+      break;
+    case 8:
+      this.exclude = (SqlLiteral) operand;
       break;
     default:
       throw new AssertionError(i);
@@ -224,6 +253,10 @@ public class SqlWindow extends SqlCall {
 
   public void setUpperBound(@Nullable SqlNode upperBound) {
     this.upperBound = upperBound;
+  }
+
+  public SqlLiteral getExclude() {
+    return exclude;
   }
 
   /**
@@ -363,6 +396,38 @@ public class SqlWindow extends SqlCall {
     }
   }
 
+  public static SqlLiteral createExcludeNoOthers(SqlParserPos pos) {
+    return Exclusion.EXCLUDE_NO_OTHER.symbol(pos);
+  }
+
+  public static SqlLiteral createExcludeCurrentRow(SqlParserPos pos) {
+    return Exclusion.EXCLUDE_CURRENT_ROW.symbol(pos);
+  }
+
+  public static SqlLiteral createExcludeTies(SqlParserPos pos) {
+    return Exclusion.EXCLUDE_TIES.symbol(pos);
+  }
+
+  public static SqlLiteral createExcludeGroup(SqlParserPos pos) {
+    return Exclusion.EXCLUDE_GROUP.symbol(pos);
+  }
+
+  public static boolean isExcludeNoOthers(SqlLiteral node) {
+    return node.symbolValue(Exclusion.class) == Exclusion.EXCLUDE_NO_OTHER;
+  }
+
+  public static boolean isExcludeCurrentRow(SqlLiteral node) {
+    return node.symbolValue(Exclusion.class) == Exclusion.EXCLUDE_CURRENT_ROW;
+  }
+
+  public static boolean isExcludeGroup(SqlLiteral node) {
+    return node.symbolValue(Exclusion.class) == Exclusion.EXCLUDE_GROUP;
+  }
+
+  public static boolean isExcludeTies(SqlLiteral node) {
+    return node.symbolValue(Exclusion.class) == Exclusion.EXCLUDE_TIES;
+  }
+
   public static SqlNode createCurrentRow(SqlParserPos pos) {
     return Bound.CURRENT_ROW.symbol(pos);
   }
@@ -431,7 +496,7 @@ public class SqlWindow extends SqlCall {
   public SqlWindow overlay(SqlWindow that, SqlValidator validator) {
     // check 7.11 rule 10c
     final SqlNodeList partitions = getPartitionList();
-    if (0 != partitions.size()) {
+    if (!partitions.isEmpty()) {
       throw validator.newValidationError(partitions.get(0),
           RESOURCE.partitionNotAllowed());
     }
@@ -439,7 +504,7 @@ public class SqlWindow extends SqlCall {
     // 7.11 rule 10d
     final SqlNodeList baseOrder = getOrderList();
     final SqlNodeList refOrder = that.getOrderList();
-    if ((0 != baseOrder.size()) && (0 != refOrder.size())) {
+    if (!baseOrder.isEmpty() && !refOrder.isEmpty()) {
       throw validator.newValidationError(baseOrder.get(0),
           RESOURCE.orderByOverlap());
     }
@@ -447,13 +512,15 @@ public class SqlWindow extends SqlCall {
     // 711 rule 10e
     final SqlNode lowerBound = that.getLowerBound();
     final SqlNode upperBound = that.getUpperBound();
-    if ((null != lowerBound) || (null != upperBound)) {
+    final SqlLiteral exclude = that.getExclude();
+    if ((null != lowerBound) || (null != upperBound)
+        || exclude.symbolValue(Exclusion.class) != Exclusion.EXCLUDE_NO_OTHER) {
       throw validator.newValidationError(that.isRows,
           RESOURCE.refWindowWithFrame());
     }
 
     SqlIdentifier declNameNew = declName;
-    SqlIdentifier refNameNew = refName;
+    SqlIdentifier refNameNew;
     SqlNodeList partitionListNew = partitionList;
     SqlNodeList orderListNew = orderList;
     SqlLiteral isRowsNew = isRows;
@@ -487,7 +554,8 @@ public class SqlWindow extends SqlCall {
         isRowsNew,
         lowerBoundNew,
         upperBoundNew,
-        allowPartialNew);
+        allowPartialNew,
+        exclude);
   }
 
   private static boolean setOperand(@Nullable SqlNode clonedOperand, @Nullable SqlNode thatOperand,
@@ -591,7 +659,7 @@ public class SqlWindow extends SqlCall {
     }
 
     // 6.10 rule 6a Function RANK & DENSE_RANK require ORDER BY clause
-    if (orderList.size() == 0
+    if (orderList.isEmpty()
         && !SqlValidatorUtil.containsMonotonic(scope)
         && windowCall != null
         && windowCall.getOperator().requiresOrder()) {
@@ -607,9 +675,11 @@ public class SqlWindow extends SqlCall {
       SqlTypeFamily orderTypeFam = null;
 
       // SQL03 7.10 Rule 11a
-      if (orderList.size() > 0) {
+      if (!orderList.isEmpty()) {
         // if order by is a compound list then range not allowed
-        if (orderList.size() > 1 && !isRows()) {
+        if (orderList.size() > 1
+            && !isRows()
+            && !onlySymbolBounds(lowerBound, upperBound)) {
           throw validator.newValidationError(isRows,
               RESOURCE.compoundOrderByProhibitsRange());
         }
@@ -624,7 +694,9 @@ public class SqlWindow extends SqlCall {
         // requires an ORDER BY clause if frame is logical(RANGE)
         // We relax this requirement if the table appears to be
         // sorted already
-        if (!isRows() && !SqlValidatorUtil.containsMonotonic(scope)) {
+        if (!onlySymbolBounds(lowerBound, upperBound)
+            && !isRows()
+            && !SqlValidatorUtil.containsMonotonic(scope)) {
           throw validator.newValidationError(this,
               RESOURCE.overMissingOrderBy());
         }
@@ -646,7 +718,7 @@ public class SqlWindow extends SqlCall {
 
       // Validate across boundaries. 7.10 Rule 8 a-d
       checkSpecialLiterals(this, validator);
-    } else if (orderList.size() == 0
+    } else if (orderList.isEmpty()
         && !SqlValidatorUtil.containsMonotonic(scope)
         && windowCall != null
         && windowCall.getOperator().requiresOrder()) {
@@ -657,6 +729,13 @@ public class SqlWindow extends SqlCall {
       throw validator.newValidationError(castNonNull(allowPartial),
           RESOURCE.cannotUseDisallowPartialWithRange());
     }
+  }
+
+  private static boolean onlySymbolBounds(@Nullable SqlNode lowerBound,
+      @Nullable SqlNode upperBound) {
+    return lowerBound != null && upperBound != null
+        && (isCurrentRow(lowerBound) || isUnboundedPreceding(lowerBound))
+        && (isCurrentRow(upperBound) || isUnboundedFollowing(upperBound));
   }
 
   private static void validateFrameBoundary(
@@ -691,7 +770,8 @@ public class SqlWindow extends SqlCall {
           final SqlNumericLiteral boundLiteral =
               (SqlNumericLiteral) boundVal;
           if (!boundLiteral.isExact()
-              || (boundLiteral.getScale() != null && boundLiteral.getScale() != 0)
+              || (boundLiteral.getScale() != null
+                && boundLiteral.getValueAs(BigDecimal.class).stripTrailingZeros().scale() > 0)
               || (0 > boundLiteral.longValue(true))) {
             // true == throw if not exact (we just tested that - right?)
             throw validator.newValidationError(boundVal,
@@ -782,6 +862,28 @@ public class SqlWindow extends SqlCall {
   }
 
   /**
+   * An enumeration of types of exclusion rows in a window: <code>EXCLUDE NO OTHERS</code>,
+   * <code>EXCLUDE CURRENT ROW</code>, <code>EXCLUDE TIES</code> and <code>EXCLUDE GROUP</code>.
+   */
+  enum Exclusion implements Symbolizable {
+    EXCLUDE_NO_OTHER("EXCLUDE NO OTHER"),
+    EXCLUDE_CURRENT_ROW("EXCLUDE CURRENT ROW"),
+    EXCLUDE_TIES("EXCLUDE TIES"),
+    EXCLUDE_GROUP("EXCLUDE GROUP");
+
+    private final String sql;
+
+    Exclusion(String sql) {
+      this.sql = sql;
+    }
+
+    @Override public String toString() {
+      return sql;
+    }
+
+  }
+
+  /**
    * An enumeration of types of bounds in a window: <code>CURRENT ROW</code>,
    * <code>UNBOUNDED PRECEDING</code>, and <code>UNBOUNDED FOLLOWING</code>.
    */
@@ -819,16 +921,17 @@ public class SqlWindow extends SqlCall {
         SqlParserPos pos,
         @Nullable SqlNode... operands) {
       assert functionQualifier == null;
-      assert operands.length == 8;
+      assert operands.length == 9;
       return create(
           (SqlIdentifier) operands[0],
           (SqlIdentifier) operands[1],
-          (SqlNodeList) operands[2],
-          (SqlNodeList) operands[3],
-          (SqlLiteral) operands[4],
+          (SqlNodeList) requireNonNull(operands[2]),
+          (SqlNodeList) requireNonNull(operands[3]),
+          (SqlLiteral) requireNonNull(operands[4]),
           operands[5],
           operands[6],
           (SqlLiteral) operands[7],
+          (SqlLiteral) requireNonNull(operands[8]),
           pos);
     }
 
@@ -867,13 +970,13 @@ public class SqlWindow extends SqlCall {
       if (window.refName != null) {
         window.refName.unparse(writer, 0, 0);
       }
-      if (window.partitionList.size() > 0) {
+      if (!window.partitionList.isEmpty()) {
         writer.sep("PARTITION BY");
         final SqlWriter.Frame partitionFrame = writer.startList("", "");
         window.partitionList.unparse(writer, 0, 0);
         writer.endList(partitionFrame);
       }
-      if (window.orderList.size() > 0) {
+      if (!window.orderList.isEmpty()) {
         writer.sep("ORDER BY");
         final SqlWriter.Frame orderFrame = writer.startList("", "");
         window.orderList.unparse(writer, 0, 0);
@@ -881,6 +984,7 @@ public class SqlWindow extends SqlCall {
       }
       SqlNode lowerBound = window.lowerBound;
       SqlNode upperBound = window.upperBound;
+      SqlLiteral exclude = window.exclude;
       if (lowerBound == null) {
         // No ROWS or RANGE clause
       } else if (upperBound == null) {
@@ -890,6 +994,9 @@ public class SqlWindow extends SqlCall {
           writer.sep("RANGE");
         }
         lowerBound.unparse(writer, 0, 0);
+        if (!isExcludeNoOthers(exclude)) {
+          exclude.unparse(writer, 0, 0);
+        }
       } else {
         if (window.isRows()) {
           writer.sep("ROWS BETWEEN");
@@ -899,6 +1006,9 @@ public class SqlWindow extends SqlCall {
         lowerBound.unparse(writer, 0, 0);
         writer.keyword("AND");
         upperBound.unparse(writer, 0, 0);
+        if (!isExcludeNoOthers(exclude)) {
+          exclude.unparse(writer, 0, 0);
+        }
       }
 
       // ALLOW PARTIAL/DISALLOW PARTIAL

@@ -37,14 +37,14 @@ select * from dept where deptno > 10;
 
 !update
 
-# Check contents
+# Check contents; "Engineering" is too long for varchar(10)
 select * from d;
-+--------+-------------+
-| DEPTNO | NAME        |
-+--------+-------------+
-|     20 | Marketing   |
-|     30 | Engineering |
-+--------+-------------+
++--------+------------+
+| DEPTNO | NAME       |
++--------+------------+
+|     20 | Marketing  |
+|     30 | Engineerin |
++--------+------------+
 (2 rows)
 
 !ok
@@ -64,12 +64,12 @@ select * from dept where deptno < 30;
 
 # Check contents are unchanged
 select * from d;
-+--------+-------------+
-| DEPTNO | NAME        |
-+--------+-------------+
-|     20 | Marketing   |
-|     30 | Engineering |
-+--------+-------------+
++--------+------------+
+| DEPTNO | NAME       |
++--------+------------+
+|     20 | Marketing  |
+|     30 | Engineerin |
++--------+------------+
 (2 rows)
 
 !ok

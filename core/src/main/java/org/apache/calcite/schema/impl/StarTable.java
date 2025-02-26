@@ -41,20 +41,21 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Virtual table that is composed of two or more tables joined together.
  *
  * <p>Star tables do not occur in end-user queries. They are introduced by the
  * optimizer to help matching queries to materializations, and used only
- * during the planning process.</p>
+ * during the planning process.
  *
  * <p>When a materialization is defined, if it involves a join, it is converted
  * to a query on top of a star table. Queries that are candidates to map onto
- * the materialization are mapped onto the same star table.</p>
+ * the materialization are mapped onto the same star table.
  */
 public class StarTable extends AbstractTable implements TranslatableTable {
   public final Lattice lattice;
@@ -68,7 +69,7 @@ public class StarTable extends AbstractTable implements TranslatableTable {
 
   /** Creates a StarTable. */
   private StarTable(Lattice lattice, ImmutableList<Table> tables) {
-    this.lattice = Objects.requireNonNull(lattice, "lattice");
+    this.lattice = requireNonNull(lattice, "lattice");
     this.tables = tables;
   }
 

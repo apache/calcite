@@ -23,7 +23,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.IntFunction;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -37,14 +38,14 @@ class FunctionTest {
   @Test void testFilter() {
     final List<String> abc = Arrays.asList("A", "B", "C", "D");
     // a miss, then a hit
-    assertEquals("[A, C, D]",
-        Functions.filter(abc, v1 -> !v1.equals("B")).toString());
+    assertThat(Functions.filter(abc, v1 -> !v1.equals("B")),
+        hasToString("[A, C, D]"));
     // a hit, then all misses
-    assertEquals("[A]",
-        Functions.filter(abc, v1 -> v1.equals("A")).toString());
+    assertThat(Functions.filter(abc, v1 -> v1.equals("A")),
+        hasToString("[A]"));
     // two hits, then a miss
-    assertEquals("[A, B, D]",
-        Functions.filter(abc, v1 -> !v1.equals("C")).toString());
+    assertThat(Functions.filter(abc, v1 -> !v1.equals("C")),
+        hasToString("[A, B, D]"));
     assertSame(Collections.emptyList(),
         Functions.filter(abc, Functions.falsePredicate1()));
     assertSame(abc,
@@ -87,12 +88,9 @@ class FunctionTest {
             return a0 == 0 ? "0" : "x" + apply(a0 - 1);
           }
         };
-    assertEquals(
-        "[]", Functions.generate(0, xx).toString());
-    assertEquals(
-        "[0]", Functions.generate(1, xx).toString());
-    assertEquals(
-        "[0, x0, xx0]", Functions.generate(3, xx).toString());
+    assertThat(Functions.generate(0, xx), hasToString("[]"));
+    assertThat(Functions.generate(1, xx), hasToString("[0]"));
+    assertThat(Functions.generate(3, xx), hasToString("[0, x0, xx0]"));
     try {
       final List<String> generate = Functions.generate(-2, xx);
       fail("expected error, got " + generate);

@@ -50,7 +50,7 @@ import java.util.Map;
  * <p>The are two abstract methods:
  * {@link #enumerator()} and {@link #iterator()}.
  * The derived class can implement each separately, or implement one in terms of
- * the other.</p>
+ * the other.
  *
  * @param <T> Element type
  */
@@ -393,11 +393,24 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
         innerKeySelector, resultSelector, comparer);
   }
 
+  @Override public <TInner, TKey, TResult> Enumerable<TResult> asofJoin(
+      Enumerable<TInner> inner,
+      Function1<T, TKey> outerKeySelector,
+      Function1<TInner, TKey> innerKeySelector,
+      Function2<T, @Nullable TInner, TResult> resultSelector,
+      Predicate2<T, TInner> matchComparator,
+      Comparator<TInner> timestampComparator,
+      boolean generateNullsOnRight) {
+    return EnumerableDefaults.asofJoin(getThis(), inner, outerKeySelector,
+        innerKeySelector, resultSelector, matchComparator,
+        timestampComparator, generateNullsOnRight);
+  }
+
   @Override public <TInner, TKey, TResult> Enumerable<TResult> hashJoin(
       Enumerable<TInner> inner, Function1<T, TKey> outerKeySelector,
       Function1<TInner, TKey> innerKeySelector,
       Function2<T, TInner, TResult> resultSelector,
-      EqualityComparer<TKey> comparer,
+      @Nullable EqualityComparer<TKey> comparer,
       boolean generateNullsOnLeft, boolean generateNullsOnRight) {
     return EnumerableDefaults.hashJoin(getThis(), inner, outerKeySelector,
         innerKeySelector, resultSelector, comparer, generateNullsOnLeft,

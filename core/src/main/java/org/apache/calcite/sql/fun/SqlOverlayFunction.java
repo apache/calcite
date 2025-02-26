@@ -32,9 +32,8 @@ public class SqlOverlayFunction extends SqlFunction {
   //~ Static fields/initializers ---------------------------------------------
 
   private static final SqlOperandTypeChecker OTC_CUSTOM =
-      OperandTypes.or(
-          OperandTypes.STRING_STRING_INTEGER,
-          OperandTypes.STRING_STRING_INTEGER_INTEGER);
+      OperandTypes.STRING_STRING_INTEGER
+          .or(OperandTypes.STRING_STRING_INTEGER_INTEGER);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -75,7 +74,7 @@ public class SqlOverlayFunction extends SqlFunction {
     case 4:
       return "{0}({1} PLACING {2} FROM {3} FOR {4})";
     default:
-      throw new IllegalArgumentException("operandsCount shuld be 3 or 4, got " + operandsCount);
+      throw new IllegalArgumentException("operandsCount should be 3 or 4, got " + operandsCount);
     }
   }
 }

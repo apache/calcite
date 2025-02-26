@@ -39,22 +39,23 @@ import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
-import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.materialize.MaterializationService;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.prepare.CalciteCatalogReader;
-import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.DelegatingTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rel.type.TimeFrameSet;
+import org.apache.calcite.rel.type.TimeFrames;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.SchemaVersion;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.LongSchemaVersion;
+import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.server.CalciteServer;
 import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.advise.SqlAdvisor;
@@ -68,14 +69,12 @@ import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Type;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -87,6 +86,9 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
@@ -104,7 +106,7 @@ abstract class CalciteConnectionImpl
   public final JavaTypeFactory typeFactory;
 
   final CalciteSchema rootSchema;
-  final Function0<CalcitePrepare> prepareFactory;
+  final Supplier<CalcitePrepare> prepareFactory;
   final CalciteServer server = new CalciteServerImpl();
 
   // must be package-protected
@@ -127,7 +129,7 @@ abstract class CalciteConnectionImpl
       @Nullable JavaTypeFactory typeFactory) {
     super(driver, factory, url, info);
     CalciteConnectionConfig cfg = new CalciteConnectionConfigImpl(info);
-    this.prepareFactory = driver.prepareFactory;
+    this.prepareFactory = driver::createPrepare;
     if (typeFactory != null) {
       this.typeFactory = typeFactory;
     } else {
@@ -148,7 +150,15 @@ abstract class CalciteConnectionImpl
         requireNonNull(rootSchema != null
             ? rootSchema
             : CalciteSchema.createRootSchema(true));
-    Preconditions.checkArgument(this.rootSchema.isRoot(), "must be root schema");
+    // Add dual table metadata when isSupportedDualTable return true
+    if (cfg.conformance().isSupportedDualTable()) {
+      SchemaPlus schemaPlus = this.rootSchema.plus();
+      // Dual table contains one row with a value X
+      schemaPlus.add(
+          "DUAL", ViewTable.viewMacro(schemaPlus, "VALUES ('X')",
+          ImmutableList.of(), null, false));
+    }
+    checkArgument(this.rootSchema.isRoot(), "must be root schema");
     this.properties.put(InternalProperty.CASE_SENSITIVE, cfg.caseSensitive());
     this.properties.put(InternalProperty.UNQUOTED_CASING, cfg.unquotedCasing());
     this.properties.put(InternalProperty.QUOTED_CASING, cfg.quotedCasing());
@@ -182,23 +192,10 @@ abstract class CalciteConnectionImpl
 
   @Override public <T> T unwrap(Class<T> iface) throws SQLException {
     if (iface == RelRunner.class) {
-      return iface.cast(new RelRunner() {
-        @Override public PreparedStatement prepareStatement(RelNode rel)
-            throws SQLException {
-            return prepareStatement_(CalcitePrepare.Query.of(rel),
-                ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
-                getHoldability());
-        }
-
-        @SuppressWarnings("deprecation")
-        @Override public PreparedStatement prepare(RelNode rel) {
-          try {
-            return prepareStatement(rel);
-          } catch (SQLException e) {
-            throw Util.throwAsRuntime(e);
-          }
-        }
-      });
+      return iface.cast((RelRunner) rel ->
+          prepareStatement_(CalcitePrepare.Query.of(rel),
+              ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
+              getHoldability()));
     }
     return super.unwrap(iface);
   }
@@ -245,7 +242,7 @@ abstract class CalciteConnectionImpl
       CalcitePrepare.Context prepareContext, long maxRowCount) {
     CalcitePrepare.Dummy.push(prepareContext);
     try {
-      final CalcitePrepare prepare = prepareFactory.apply();
+      final CalcitePrepare prepare = prepareFactory.get();
       return prepare.prepareSql(prepareContext, query, Object[].class,
           maxRowCount);
     } finally {
@@ -297,18 +294,23 @@ abstract class CalciteConnectionImpl
       CalciteStatement statement = (CalciteStatement) createStatement();
       CalcitePrepare.CalciteSignature<T> signature =
           statement.prepare(queryable);
-      return enumerable(statement.handle, signature).enumerator();
+      return enumerable(statement.handle, signature, null).enumerator();
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }
   }
 
   public <T> Enumerable<T> enumerable(Meta.StatementHandle handle,
-      CalcitePrepare.CalciteSignature<T> signature) throws SQLException {
+      CalcitePrepare.CalciteSignature<T> signature,
+      @Nullable List<TypedValue> parameterValues0) throws SQLException {
     Map<String, Object> map = new LinkedHashMap<>();
     AvaticaStatement statement = lookupStatement(handle);
-    final List<TypedValue> parameterValues =
-        TROJAN.getParameterValues(statement);
+    final List<TypedValue> parameterValues;
+    if (parameterValues0 == null || parameterValues0.isEmpty()) {
+      parameterValues = TROJAN.getParameterValues(statement);
+    } else {
+      parameterValues = parameterValues0;
+    }
 
     if (MetaImpl.checkParameterValueHasNull(parameterValues)) {
       throw new SQLException("exception while executing query: unbound parameter");
@@ -429,8 +431,12 @@ abstract class CalciteConnectionImpl
       Hook.CURRENT_TIME.run(timeHolder);
       final long time = timeHolder.get();
       final TimeZone timeZone = connection.getTimeZone();
+      final TimeFrameSet timeFrameSet =
+          connection.typeFactory.getTypeSystem()
+              .deriveTimeFrameSet(TimeFrames.CORE);
       final long localOffset = timeZone.getOffset(time);
       final long currentOffset = localOffset;
+      final long sysOffset = TimeZone.getDefault().getOffset(time);
       final String user = "sa";
       final String systemUser = System.getProperty("user.name");
       final String localeName = connection.config().locale();
@@ -446,7 +452,9 @@ abstract class CalciteConnectionImpl
       builder.put(Variable.UTC_TIMESTAMP.camelName, time)
           .put(Variable.CURRENT_TIMESTAMP.camelName, time + currentOffset)
           .put(Variable.LOCAL_TIMESTAMP.camelName, time + localOffset)
+          .put(Variable.SYS_TIMESTAMP.camelName, time + sysOffset)
           .put(Variable.TIME_ZONE.camelName, timeZone)
+          .put(Variable.TIME_FRAME_SET.camelName, timeFrameSet)
           .put(Variable.USER.camelName, user)
           .put(Variable.SYSTEM_USER.camelName, systemUser)
           .put(Variable.LOCALE.camelName, locale)
@@ -621,5 +629,4 @@ abstract class CalciteConnectionImpl
       this.iterator = iterator;
     }
   }
-
 }

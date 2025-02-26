@@ -22,6 +22,7 @@ import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
 import org.apache.calcite.adapter.enumerable.JavaRowFormat;
 import org.apache.calcite.adapter.enumerable.PhysType;
 import org.apache.calcite.adapter.enumerable.PhysTypeImpl;
+import org.apache.calcite.adapter.enumerable.RexImpTable;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
@@ -104,7 +105,9 @@ public class JdbcToEnumerableConverter
     final JdbcConvention jdbcConvention =
         (JdbcConvention) requireNonNull(child.getConvention(),
             () -> "child.getConvention() is null for " + child);
-    SqlString sqlString = generateSql(jdbcConvention.dialect);
+    JdbcCorrelationDataContextBuilderImpl dataContextBuilder =
+        new JdbcCorrelationDataContextBuilderImpl(implementor, builder0, DataContext.ROOT);
+    SqlString sqlString = generateSql(jdbcConvention.dialect, dataContextBuilder);
     String sql = sqlString.getSql();
     if (CalciteSystemProperty.DEBUG.value()) {
       System.out.println("[" + sql + "]");
@@ -178,22 +181,24 @@ public class JdbcToEnumerableConverter
               Expressions.call(BuiltInMethod.CREATE_ENRICHER.method,
                   Expressions.newArrayInit(Integer.class, 1,
                       toIndexesTableExpression(sqlString)),
-                  DataContext.ROOT));
+                  dataContextBuilder.build()));
 
-      enumerable = builder0.append("enumerable",
-          Expressions.call(
-              BuiltInMethod.RESULT_SET_ENUMERABLE_OF_PREPARED.method,
-              Schemas.unwrap(jdbcConvention.expression, DataSource.class),
-              sql_,
-              rowBuilderFactory_,
-              preparedStatementConsumer_));
+      enumerable =
+          builder0.append("enumerable",
+              Expressions.call(
+                  BuiltInMethod.RESULT_SET_ENUMERABLE_OF_PREPARED.method,
+                  Schemas.unwrap(jdbcConvention.expression, DataSource.class),
+                  sql_,
+                  rowBuilderFactory_,
+                  preparedStatementConsumer_));
     } else {
-      enumerable = builder0.append("enumerable",
-          Expressions.call(
-              BuiltInMethod.RESULT_SET_ENUMERABLE_OF.method,
-              Schemas.unwrap(jdbcConvention.expression, DataSource.class),
-              sql_,
-              rowBuilderFactory_));
+      enumerable =
+          builder0.append("enumerable",
+              Expressions.call(
+                  BuiltInMethod.RESULT_SET_ENUMERABLE_OF.method,
+                  Schemas.unwrap(jdbcConvention.expression, DataSource.class),
+                  sql_,
+                  rowBuilderFactory_));
     }
     builder0.add(
         Expressions.statement(
@@ -235,7 +240,7 @@ public class JdbcToEnumerableConverter
     boolean offset = false;
     switch (calendarPolicy) {
     case LOCAL:
-      assert calendar_ != null : "calendar must not be null";
+      requireNonNull(calendar_, "calendar_");
       dateTimeArgs.add(calendar_);
       break;
     case NULL:
@@ -263,24 +268,30 @@ public class JdbcToEnumerableConverter
     case DATE:
     case TIME:
     case TIMESTAMP:
-      source = Expressions.call(
-          getMethod(sqlTypeName, fieldType.isNullable(), offset),
-          Expressions.<Expression>list()
-              .append(
-                  Expressions.call(resultSet_,
-                      getMethod2(sqlTypeName), dateTimeArgs))
-          .appendIf(offset, getTimeZoneExpression(implementor)));
+      source =
+          Expressions.call(
+              getMethod(sqlTypeName, fieldType.isNullable(), offset),
+              Expressions.<Expression>list()
+                  .append(
+                      Expressions.call(resultSet_,
+                          getMethod2(sqlTypeName), dateTimeArgs))
+                  .appendIf(offset, getTimeZoneExpression(implementor)));
       break;
     case ARRAY:
-      final Expression x = Expressions.convert_(
-          Expressions.call(resultSet_, jdbcGetMethod(primitive),
-              Expressions.constant(i + 1)),
-          java.sql.Array.class);
+      final Expression x =
+          Expressions.convert_(
+              Expressions.call(resultSet_, jdbcGetMethod(primitive),
+                  Expressions.constant(i + 1)),
+              java.sql.Array.class);
       source = Expressions.call(BuiltInMethod.JDBC_ARRAY_TO_LIST.method, x);
       break;
+    case NULL:
+      source = RexImpTable.NULL_EXPR;
+      break;
     default:
-      source = Expressions.call(
-          resultSet_, jdbcGetMethod(primitive), Expressions.constant(i + 1));
+      source =
+          Expressions.call(resultSet_, jdbcGetMethod(primitive),
+              Expressions.constant(i + 1));
     }
     builder.add(
         Expressions.statement(
@@ -304,8 +315,12 @@ public class JdbcToEnumerableConverter
     switch (sqlTypeName) {
     case DATE:
       return (nullable
-          ? BuiltInMethod.DATE_TO_INT_OPTIONAL
-          : BuiltInMethod.DATE_TO_INT).method;
+          ? (offset
+          ? BuiltInMethod.DATE_TO_INT_OPTIONAL_OFFSET
+          : BuiltInMethod.DATE_TO_INT_OPTIONAL)
+          : (offset
+              ? BuiltInMethod.DATE_TO_INT_OFFSET
+              : BuiltInMethod.DATE_TO_INT)).method;
     case TIME:
       return (nullable
           ? BuiltInMethod.TIME_TO_INT_OPTIONAL
@@ -343,12 +358,13 @@ public class JdbcToEnumerableConverter
         : "get" + SqlFunctions.initcap(castNonNull(primitive.primitiveName));
   }
 
-  private SqlString generateSql(SqlDialect dialect) {
+  private SqlString generateSql(SqlDialect dialect,
+      JdbcCorrelationDataContextBuilder dataContextBuilder) {
     final JdbcImplementor jdbcImplementor =
         new JdbcImplementor(dialect,
-            (JavaTypeFactory) getCluster().getTypeFactory());
+            (JavaTypeFactory) getCluster().getTypeFactory(), dataContextBuilder);
     final JdbcImplementor.Result result =
-        jdbcImplementor.visitInput(this, 0);
+        jdbcImplementor.visitRoot(this.getInput());
     return result.asStatement().toSqlString(dialect);
   }
 }

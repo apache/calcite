@@ -16,10 +16,17 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.prepare.Prepare;
-import org.apache.calcite.util.TryThreadLocal;
+import org.apache.calcite.config.CalciteConnectionProperty;
+import org.apache.calcite.config.Lex;
+import org.apache.calcite.sql.fun.SqlLibrary;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 
+import net.hydromatic.quidem.Quidem;
+
+import java.sql.Connection;
 import java.util.Collection;
+
+import static org.apache.calcite.util.Util.discard;
 
 /**
  * Test that runs every Quidem file in the "core" module as a test.
@@ -39,11 +46,124 @@ class CoreQuidemTest extends QuidemTest {
   }
 
   /** For {@link QuidemTest#test(String)} parameters. */
-  public static Collection<Object[]> data() {
+  @Override public Collection<String> getPath() {
     // Start with a test file we know exists, then find the directory and list
     // its files.
     final String first = "sql/agg.iq";
     return data(first);
+  }
+
+  @Override protected Quidem.ConnectionFactory createConnectionFactory() {
+    return new QuidemConnectionFactory() {
+      @Override public Connection connect(String name, boolean reference) throws Exception {
+        switch (name) {
+        case "blank":
+          return CalciteAssert.that()
+              .with(CalciteConnectionProperty.PARSER_FACTORY,
+                  ExtensionDdlExecutor.class.getName() + "#PARSER_FACTORY")
+              .with(CalciteAssert.SchemaSpec.BLANK)
+              .connect();
+        case "scott":
+          return CalciteAssert.that()
+              .with(CalciteConnectionProperty.PARSER_FACTORY,
+                  ExtensionDdlExecutor.class.getName() + "#PARSER_FACTORY")
+              .with(CalciteConnectionProperty.FUN, SqlLibrary.CALCITE.fun)
+              .with(CalciteAssert.Config.SCOTT)
+              .connect();
+        case "scott-spark":
+          discard(CustomTypeSystems.SPARK_TYPE_SYSTEM);
+          return CalciteAssert.that()
+              .with(CalciteConnectionProperty.PARSER_FACTORY,
+                  ExtensionDdlExecutor.class.getName() + "#PARSER_FACTORY")
+              .with(CalciteConnectionProperty.FUN, SqlLibrary.CALCITE.fun)
+              .with(CalciteConnectionProperty.TYPE_SYSTEM,
+                  CustomTypeSystems.class.getName() + "#SPARK_TYPE_SYSTEM")
+              .with(CalciteAssert.Config.SCOTT)
+              .connect();
+        case "scott-checked-rounding-half-up":
+          discard(CustomTypeSystems.ROUNDING_MODE_HALF_UP);
+          return CalciteAssert.that()
+              .with(CalciteConnectionProperty.PARSER_FACTORY,
+                  ExtensionDdlExecutor.class.getName() + "#PARSER_FACTORY")
+              // Use bigquery conformance, which forces checked arithmetic
+              .with(CalciteConnectionProperty.CONFORMANCE, SqlConformanceEnum.BIG_QUERY)
+              .with(CalciteConnectionProperty.FUN, SqlLibrary.CALCITE.fun)
+              .with(CalciteConnectionProperty.TYPE_SYSTEM,
+                  CustomTypeSystems.class.getName() + "#ROUNDING_MODE_HALF_UP")
+              .with(CalciteAssert.Config.SCOTT)
+              .connect();
+        case "scott-negative-scale":
+          discard(CustomTypeSystems.NEGATIVE_SCALE);
+          return CalciteAssert.that()
+              .with(CalciteConnectionProperty.PARSER_FACTORY,
+                  ExtensionDdlExecutor.class.getName() + "#PARSER_FACTORY")
+              .with(CalciteConnectionProperty.FUN, SqlLibrary.CALCITE.fun)
+              .with(CalciteConnectionProperty.TYPE_SYSTEM,
+                  CustomTypeSystems.class.getName() + "#NEGATIVE_SCALE")
+              .with(CalciteAssert.Config.SCOTT)
+              .connect();
+        case "scott-negative-scale-rounding-half-up":
+          discard(CustomTypeSystems.NEGATIVE_SCALE_ROUNDING_MODE_HALF_UP);
+          return CalciteAssert.that()
+              .with(CalciteConnectionProperty.PARSER_FACTORY,
+                  ExtensionDdlExecutor.class.getName() + "#PARSER_FACTORY")
+              .with(CalciteConnectionProperty.FUN, SqlLibrary.CALCITE.fun)
+              .with(CalciteConnectionProperty.TYPE_SYSTEM,
+                  CustomTypeSystems.class.getName()
+                      + "#NEGATIVE_SCALE_ROUNDING_MODE_HALF_UP")
+              .with(CalciteAssert.Config.SCOTT)
+              .connect();
+        case "scott-lenient":
+          // Same as "scott", but uses LENIENT conformance.
+          // TODO: add a way to change conformance without defining a new
+          // connection
+          return CalciteAssert.that()
+              .with(CalciteConnectionProperty.PARSER_FACTORY,
+                  ExtensionDdlExecutor.class.getName() + "#PARSER_FACTORY")
+              .with(CalciteConnectionProperty.CONFORMANCE,
+                  SqlConformanceEnum.LENIENT)
+              .with(CalciteAssert.Config.SCOTT)
+              .connect();
+        case "scott-mysql":
+          // Same as "scott", but uses MySQL conformance.
+          return CalciteAssert.that()
+              .with(CalciteConnectionProperty.PARSER_FACTORY,
+                  ExtensionDdlExecutor.class.getName() + "#PARSER_FACTORY")
+              .with(CalciteConnectionProperty.CONFORMANCE,
+                  SqlConformanceEnum.MYSQL_5)
+              .with(CalciteAssert.Config.SCOTT)
+              .connect();
+        case "scott-oracle":
+          // Same as "scott", but uses Oracle conformance.
+          return CalciteAssert.that()
+              .with(CalciteConnectionProperty.PARSER_FACTORY,
+                  ExtensionDdlExecutor.class.getName() + "#PARSER_FACTORY")
+              .with(CalciteConnectionProperty.CONFORMANCE,
+                  SqlConformanceEnum.ORACLE_10)
+              .with(CalciteAssert.Config.SCOTT)
+              .connect();
+        case "scott-mssql":
+          // Same as "scott", but uses SQL_SERVER_2008 conformance.
+          return CalciteAssert.that()
+              .with(CalciteConnectionProperty.PARSER_FACTORY,
+                  ExtensionDdlExecutor.class.getName() + "#PARSER_FACTORY")
+              .with(CalciteConnectionProperty.CONFORMANCE,
+                  SqlConformanceEnum.SQL_SERVER_2008)
+              .with(CalciteAssert.Config.SCOTT)
+              .connect();
+        case "steelwheels":
+          return CalciteAssert.that()
+              .with(CalciteConnectionProperty.PARSER_FACTORY,
+                  ExtensionDdlExecutor.class.getName() + "#PARSER_FACTORY")
+              .with(CalciteConnectionProperty.FUN, SqlLibrary.CALCITE.fun)
+              .with(CalciteAssert.SchemaSpec.STEELWHEELS)
+              .with(Lex.BIG_QUERY)
+              .connect();
+        default:
+          return super.connect(name, reference);
+        }
+      }
+    };
   }
 
   /** Override settings for "sql/misc.iq". */
@@ -54,26 +174,6 @@ class CoreQuidemTest extends QuidemTest {
       // Oracle as the JDBC data source.
       return;
     }
-    try (TryThreadLocal.Memo ignored = Prepare.THREAD_EXPAND.push(true)) {
-      checkRun(path);
-    }
+    checkRun(path);
   }
-
-  /** Override settings for "sql/scalar.iq". */
-  public void testSqlScalar(String path) throws Exception {
-    try (TryThreadLocal.Memo ignored = Prepare.THREAD_EXPAND.push(true)) {
-      checkRun(path);
-    }
-  }
-
-  /** Runs the dummy script "sql/dummy.iq", which is checked in empty but
-   * which you may use as scratch space during development. */
-
-  // Do not disable this test; just remember not to commit changes to dummy.iq
-  public void testSqlDummy(String path) throws Exception {
-    try (TryThreadLocal.Memo ignored = Prepare.THREAD_EXPAND.push(true)) {
-      checkRun(path);
-    }
-  }
-
 }

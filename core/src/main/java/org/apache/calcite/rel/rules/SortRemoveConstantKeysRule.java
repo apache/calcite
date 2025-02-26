@@ -19,6 +19,7 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
@@ -26,6 +27,9 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.util.Bug;
+
+import org.immutables.value.Value;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -37,6 +41,7 @@ import java.util.stream.Collectors;
  *
  * <p>Requires {@link RelCollationTraitDef}.
  */
+@Value.Enclosing
 public class SortRemoveConstantKeysRule
     extends RelRule<SortRemoveConstantKeysRule.Config>
     implements SubstitutionRule {
@@ -47,6 +52,12 @@ public class SortRemoveConstantKeysRule
   }
 
   @Override public void onMatch(RelOptRuleCall call) {
+    if (!Bug.CALCITE_6611_FIXED) {
+      if (call.getPlanner().getRelTraitDefs()
+          .contains(RelCollationTraitDef.INSTANCE)) {
+        return;
+      }
+    }
     final Sort sort = call.rel(0);
     final RelMetadataQuery mq = call.getMetadataQuery();
     final RelNode input = sort.getInput();
@@ -74,17 +85,21 @@ public class SortRemoveConstantKeysRule
       return;
     }
 
+    final RelCollation collation = RelCollations.of(collationsList);
     final Sort result =
-        sort.copy(sort.getTraitSet(), input, RelCollations.of(collationsList));
+        sort.copy(
+            sort.getTraitSet().replaceIf(RelCollationTraitDef.INSTANCE, () -> collation),
+            input,
+            collation);
     call.transformTo(result);
     call.getPlanner().prune(sort);
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
-        .withOperandSupplier(b -> b.operand(Sort.class).anyInputs())
-        .as(Config.class);
+    Config DEFAULT = ImmutableSortRemoveConstantKeysRule.Config.of()
+        .withOperandSupplier(b -> b.operand(Sort.class).anyInputs());
 
     @Override default SortRemoveConstantKeysRule toRule() {
       return new SortRemoveConstantKeysRule(this);

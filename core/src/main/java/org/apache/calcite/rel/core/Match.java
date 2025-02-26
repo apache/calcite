@@ -35,7 +35,6 @@ import org.apache.calcite.sql.fun.SqlSumAggFunction;
 import org.apache.calcite.sql.fun.SqlSumEmptyIsZeroAggFunction;
 import org.apache.calcite.util.ImmutableBitSet;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
@@ -46,11 +45,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
-import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+
+import static com.google.common.base.Preconditions.checkArgument;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Relational expression that represent a MATCH_RECOGNIZE node.
@@ -103,18 +105,18 @@ public abstract class Match extends SingleRel {
       boolean allRows, ImmutableBitSet partitionKeys, RelCollation orderKeys,
       @Nullable RexNode interval) {
     super(cluster, traitSet, input);
-    this.rowType = Objects.requireNonNull(rowType, "rowType");
-    this.pattern = Objects.requireNonNull(pattern, "pattern");
-    Preconditions.checkArgument(patternDefinitions.size() > 0);
+    this.rowType = requireNonNull(rowType, "rowType");
+    this.pattern = requireNonNull(pattern, "pattern");
+    checkArgument(!patternDefinitions.isEmpty());
     this.strictStart = strictStart;
     this.strictEnd = strictEnd;
     this.patternDefinitions = ImmutableMap.copyOf(patternDefinitions);
     this.measures = ImmutableMap.copyOf(measures);
-    this.after = Objects.requireNonNull(after, "after");
+    this.after = requireNonNull(after, "after");
     this.subsets = copyMap(subsets);
     this.allRows = allRows;
-    this.partitionKeys = Objects.requireNonNull(partitionKeys, "partitionKeys");
-    this.orderKeys = Objects.requireNonNull(orderKeys, "orderKeys");
+    this.partitionKeys = requireNonNull(partitionKeys, "partitionKeys");
+    this.orderKeys = requireNonNull(orderKeys, "orderKeys");
     this.interval = interval;
 
     final AggregateFinder aggregateFinder = new AggregateFinder();
@@ -249,11 +251,12 @@ public abstract class Match extends SingleRel {
         visitEach(call.operands);
       }
       if (aggFunction != null) {
-        RexMRAggCall aggCall = new RexMRAggCall(aggFunction,
-            call.getType(), call.getOperands(), aggregateCalls.size());
+        RexMRAggCall aggCall =
+            new RexMRAggCall(aggFunction, call.getType(), call.getOperands(),
+                aggregateCalls.size());
         aggregateCalls.add(aggCall);
         Set<String> pv = new PatternVarFinder().go(call.getOperands());
-        if (pv.size() == 0) {
+        if (pv.isEmpty()) {
           pv.add(STAR);
         }
         for (String alpha : pv) {

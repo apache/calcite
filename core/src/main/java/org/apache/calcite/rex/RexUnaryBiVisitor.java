@@ -31,7 +31,7 @@ public class RexUnaryBiVisitor<@Nullable R> extends RexBiVisitorImpl<R, R> {
   }
 
   /** Called as the last action of, and providing the result for,
-   *  each {@code visitXxx} method; derived classes may override. */
+   * each {@code visitXxx} method; derived classes may override. */
   protected R end(RexNode e, R arg) {
     return arg;
   }

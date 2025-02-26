@@ -18,7 +18,6 @@ package org.apache.calcite.plan;
 
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
@@ -29,7 +28,9 @@ import com.google.common.collect.ImmutableMap;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Collection;
-import java.util.Objects;
+import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Predicates that are known to hold in the output of a particular relational
@@ -96,12 +97,13 @@ public class RelOptPredicateList {
       ImmutableList<RexNode> leftInferredPredicates,
       ImmutableList<RexNode> rightInferredPredicates,
       ImmutableMap<RexNode, RexNode> constantMap) {
-    this.pulledUpPredicates = Objects.requireNonNull(pulledUpPredicates, "pulledUpPredicates");
+    this.pulledUpPredicates =
+        requireNonNull(pulledUpPredicates, "pulledUpPredicates");
     this.leftInferredPredicates =
-        Objects.requireNonNull(leftInferredPredicates, "leftInferredPredicates");
+        requireNonNull(leftInferredPredicates, "leftInferredPredicates");
     this.rightInferredPredicates =
-        Objects.requireNonNull(rightInferredPredicates, "rightInferredPredicates");
-    this.constantMap = Objects.requireNonNull(constantMap, "constantMap");
+        requireNonNull(rightInferredPredicates, "rightInferredPredicates");
+    this.constantMap = requireNonNull(constantMap, "constantMap");
   }
 
   /** Creates a RelOptPredicateList with only pulled-up predicates, no inferred
@@ -124,6 +126,7 @@ public class RelOptPredicateList {
 
   /**
    * Returns true if given predicate list is empty.
+   *
    * @param value input predicate list
    * @return true if all the predicates are empty or if the argument is null
    */
@@ -228,19 +231,26 @@ public class RelOptPredicateList {
       return true;
     }
     for (RexNode p : pulledUpPredicates) {
-      if (p.getKind() == SqlKind.IS_NOT_NULL
-          && ((RexCall) p).getOperands().get(0).equals(e)) {
-        return true;
+      if (p.getKind() == SqlKind.IS_NOT_NULL) {
+        // if e IS NOT NULL and e is TINYINT then cast(e as INTEGER) IS NOT NULL
+        if (RexUtil.isLosslessCast(e)) {
+          if (isEffectivelyNotNull(((RexCall) e).getOperands().get(0))) {
+            return true;
+          }
+        }
+        if (((RexCall) p).getOperands().get(0).equals(e)) {
+          return true;
+        }
       }
     }
     if (SqlKind.COMPARISON.contains(e.getKind())) {
-      // A comparison with a (non-null) literal, such as 'ref < 10', is not null if 'ref'
-      // is not null.
-      RexCall call = (RexCall) e;
-      if (call.getOperands().get(1) instanceof RexLiteral
-          && !((RexLiteral) call.getOperands().get(1)).isNull()) {
-        return isEffectivelyNotNull(call.getOperands().get(0));
+      List<RexNode> operands = ((RexCall) e).getOperands();
+      for (RexNode operand : operands) {
+        if (!isEffectivelyNotNull(operand)) {
+          return false;
+        }
       }
+      return true;
     }
     return false;
   }

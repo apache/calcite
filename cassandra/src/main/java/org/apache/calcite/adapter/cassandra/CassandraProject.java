@@ -28,12 +28,15 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of {@link org.apache.calcite.rel.core.Project}
@@ -42,7 +45,7 @@ import java.util.Map;
 public class CassandraProject extends Project implements CassandraRel {
   public CassandraProject(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, List<? extends RexNode> projects, RelDataType rowType) {
-    super(cluster, traitSet, ImmutableList.of(), input, projects, rowType);
+    super(cluster, traitSet, ImmutableList.of(), input, projects, rowType, ImmutableSet.of());
     assert getConvention() == CassandraRel.CONVENTION;
     assert getConvention() == input.getConvention();
   }
@@ -55,7 +58,8 @@ public class CassandraProject extends Project implements CassandraRel {
 
   @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
-    return super.computeSelfCost(planner, mq).multiplyBy(0.1);
+    final RelOptCost cost = super.computeSelfCost(planner, mq);
+    return requireNonNull(cost, "cost").multiplyBy(0.1);
   }
 
   @Override public void implement(Implementor implementor) {
@@ -65,8 +69,9 @@ public class CassandraProject extends Project implements CassandraRel {
             CassandraRules.cassandraFieldNames(getInput().getRowType()));
     final Map<String, String> fields = new LinkedHashMap<>();
     for (Pair<RexNode, String> pair : getNamedProjects()) {
+      final RexNode node = pair.left;
       final String name = pair.right;
-      final String originalName = pair.left.accept(translator);
+      final String originalName = node.accept(translator);
       fields.put(originalName, name);
     }
     implementor.add(fields, null);

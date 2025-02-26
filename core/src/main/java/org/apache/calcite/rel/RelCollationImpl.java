@@ -26,7 +26,6 @@ import org.apache.calcite.runtime.Utilities;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mappings;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.UnmodifiableIterator;
 
@@ -34,6 +33,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Iterator;
 import java.util.List;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Simple implementation of {@link RelCollation}.
@@ -55,8 +56,7 @@ public class RelCollationImpl implements RelCollation {
 
   protected RelCollationImpl(ImmutableList<RelFieldCollation> fieldCollations) {
     this.fieldCollations = fieldCollations;
-    Preconditions.checkArgument(
-        Util.isDistinct(RelCollations.ordinals(fieldCollations)),
+    checkArgument(Util.isDistinct(RelCollations.ordinals(fieldCollations)),
         "fields must be distinct");
   }
 
@@ -121,8 +121,9 @@ public class RelCollationImpl implements RelCollation {
   /**
    * Applies mapping to a given collation.
    *
-   * If mapping destroys the collation prefix, this method returns an empty collation.
-   * Examples of applying mappings to collation [0, 1]:
+   * <p>If mapping destroys the collation prefix, this method returns an empty
+   * collation.  Examples of applying mappings to collation [0, 1]:
+   *
    * <ul>
    *   <li>mapping(0, 1) =&gt; [0, 1]</li>
    *   <li>mapping(1, 0) =&gt; [1, 0]</li>

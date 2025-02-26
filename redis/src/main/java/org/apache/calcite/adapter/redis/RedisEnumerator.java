@@ -27,6 +27,8 @@ import java.util.Map;
 
 import redis.clients.jedis.Jedis;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Implementation of {@link RedisEnumerator}.
  */
@@ -36,8 +38,9 @@ class RedisEnumerator implements Enumerator<Object[]> {
   RedisEnumerator(RedisConfig redisConfig, RedisSchema schema, String tableName) {
     RedisTableFieldInfo tableFieldInfo = schema.getTableFieldInfo(tableName);
 
-    RedisJedisManager redisManager = new RedisJedisManager(redisConfig.getHost(),
-        redisConfig.getPort(), redisConfig.getDatabase(), redisConfig.getPassword());
+    RedisJedisManager redisManager =
+        new RedisJedisManager(redisConfig.getHost(), redisConfig.getPort(),
+            redisConfig.getDatabase(), redisConfig.getPassword());
 
     try (Jedis jedis = redisManager.getResource()) {
       if (StringUtils.isNotEmpty(redisConfig.getPassword())) {
@@ -52,8 +55,8 @@ class RedisEnumerator implements Enumerator<Object[]> {
   static Map<String, Object> deduceRowType(RedisTableFieldInfo tableFieldInfo) {
     final Map<String, Object> fieldBuilder = new LinkedHashMap<>();
     String dataFormat = tableFieldInfo.getDataFormat();
-    RedisDataFormat redisDataFormat = RedisDataFormat.fromTypeName(dataFormat);
-    assert redisDataFormat != null;
+    RedisDataFormat redisDataFormat =
+        requireNonNull(RedisDataFormat.fromTypeName(dataFormat));
     if (redisDataFormat == RedisDataFormat.RAW) {
       fieldBuilder.put("key", "key");
     } else {

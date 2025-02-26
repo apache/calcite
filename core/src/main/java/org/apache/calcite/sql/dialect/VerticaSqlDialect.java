@@ -19,7 +19,11 @@ package org.apache.calcite.sql.dialect;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlWriter;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
@@ -52,5 +56,10 @@ public class VerticaSqlDialect extends SqlDialect {
     default:
       return super.supportsFunction(operator, type, paramTypes);
     }
+  }
+
+  @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
+      @Nullable SqlNode fetch) {
+    unparseFetchUsingLimit(writer, offset, fetch);
   }
 }

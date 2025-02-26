@@ -42,6 +42,7 @@ public interface RawQueryable<T> extends Enumerable<T> {
 
   /**
    * Gets the expression tree that is associated with this Queryable.
+   *
    * @return null if the expression is not available
    */
   @Nullable Expression getExpression();

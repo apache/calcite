@@ -160,8 +160,9 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
       // If Pig schema is provided in the load command, convert it into
       // relational row type
       final RelDataType rowType = PigTypes.convertSchema(pigSchema);
-      pigRelOptTable = PigTable.createRelOptTable(builder.getRelOptSchema(),
-          rowType, Arrays.asList(tableNames));
+      pigRelOptTable =
+          PigTable.createRelOptTable(builder.getRelOptSchema(), rowType,
+              Arrays.asList(tableNames));
     }
     builder.scan(pigRelOptTable, tableNames);
     builder.register(load);
@@ -230,8 +231,9 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
       }
       RelDataType groupDataType =
           PigTypes.TYPE_FACTORY.createStructType(fieldTypes, fieldNames);
-      groupRex = builder.getRexBuilder().makeCall(
-          groupDataType, SqlStdOperatorTable.ROW, fieldRexes);
+      groupRex =
+          builder.getRexBuilder().makeCall(groupDataType,
+              SqlStdOperatorTable.ROW, fieldRexes);
     }
     List<RexNode> outputFields = new ArrayList<>();
     List<String> outputNames = new ArrayList<>();
@@ -309,8 +311,7 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
     final ImmutableList<ImmutableBitSet> groupSets =
         (groupType == GroupType.CUBE)
             ? ImmutableList.copyOf(groupSet.powerSet()) : groupsetBuilder.build();
-    RelBuilder.GroupKey groupKey = builder.groupKey(groupSet,
-        (Iterable<ImmutableBitSet>) groupSets);
+    RelBuilder.GroupKey groupKey = builder.groupKey(groupSet, groupSets);
 
     // Finally, do COLLECT aggregate.
     builder.cogroup(ImmutableList.of(groupKey));
@@ -355,8 +356,10 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
       for (LogicalExpressionPlan pigKey : pigGroupKeys) {
         fieldRels.add(PigRelExVisitor.translatePigEx(builder, pigKey));
       }
-      final RexNode row = builder.getRexBuilder().makeCall(getGroupRowType(fieldRels, isCubeRollup),
-          SqlStdOperatorTable.ROW, getGroupRowOperands(fieldRels, isCubeRollup));
+      final RexNode row =
+          builder.getRexBuilder().makeCall(
+              getGroupRowType(fieldRels, isCubeRollup), SqlStdOperatorTable.ROW,
+              getGroupRowOperands(fieldRels, isCubeRollup));
       fieldRels.add(row);
       builder.project(fieldRels);
       builder.updateAlias(builder.getPig(originalRel), builder.getAlias(originalRel), false);
@@ -444,7 +447,7 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
     return GroupType.REGULAR;
   }
 
-  @Override public void visit(LOLimit loLimit) throws FrontendException {
+  @Override public void visit(LOLimit loLimit) {
     builder.limit(0, (int) loLimit.getLimit());
     builder.register(loLimit);
   }
@@ -598,7 +601,7 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
     builder.register(loUnion);
   }
 
-  @Override public void visit(LODistinct loDistinct) throws FrontendException {
+  @Override public void visit(LODistinct loDistinct) {
     // Straightforward, just build distinct on the top relation
     builder.distinct();
     builder.register(loDistinct);
@@ -614,7 +617,7 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
     throw new FrontendException("Not implemented", 10000);
   }
 
-  @Override public void visit(LOSplit loSplit) throws FrontendException {
+  @Override public void visit(LOSplit loSplit) {
     builder.register(loSplit);
   }
 
@@ -625,7 +628,7 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
     builder.register(loSplitOutput);
   }
 
-  @Override public void visit(LOStore store) throws FrontendException {
+  @Override public void visit(LOStore store) {
     builder.store(store.getAlias());
   }
 

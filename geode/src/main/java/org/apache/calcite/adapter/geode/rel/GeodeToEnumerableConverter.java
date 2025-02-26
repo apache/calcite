@@ -50,6 +50,8 @@ import java.util.Map;
 
 import static org.apache.calcite.adapter.geode.rel.GeodeRules.geodeFieldNames;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Relational expression representing a scan of a table in a Geode data source.
  */
@@ -67,7 +69,8 @@ public class GeodeToEnumerableConverter extends ConverterImpl implements Enumera
 
   @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
-    return super.computeSelfCost(planner, mq).multiplyBy(.1);
+    final RelOptCost cost = requireNonNull(super.computeSelfCost(planner, mq));
+    return cost.multiplyBy(.1);
   }
 
   /**
@@ -94,10 +97,9 @@ public class GeodeToEnumerableConverter extends ConverterImpl implements Enumera
 
     // PhysType is Enumerable Adapter class that maps SQL types (getRowType)
     // with physical Java types (getJavaTypes())
-    final PhysType physType = PhysTypeImpl.of(
-        implementor.getTypeFactory(),
-        rowType,
-        pref.prefer(JavaRowFormat.ARRAY));
+    final PhysType physType =
+        PhysTypeImpl.of(implementor.getTypeFactory(), rowType,
+            pref.prefer(JavaRowFormat.ARRAY));
 
     final List<Class> physFieldClasses = new AbstractList<Class>() {
       @Override public Class get(int index) {
@@ -111,7 +113,8 @@ public class GeodeToEnumerableConverter extends ConverterImpl implements Enumera
 
     // Expression meta-program for calling the GeodeTable.GeodeQueryable#query
     // method form the generated code
-    final BlockBuilder blockBuilder = new BlockBuilder().append(
+    final BlockBuilder blockBuilder = new BlockBuilder();
+    blockBuilder.append(
         Expressions.call(
             geodeImplementContext.table.getExpression(GeodeTable.GeodeQueryable.class),
             GEODE_QUERY_METHOD,

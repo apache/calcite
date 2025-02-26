@@ -67,9 +67,9 @@ import java.io.UncheckedIOException;
 import java.io.Writer;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -89,6 +89,7 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.IllformedLocaleException;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -113,6 +114,10 @@ import java.util.regex.Pattern;
 import java.util.stream.Collector;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+import static org.apache.calcite.util.ReflectUtil.isStatic;
+
+import static java.lang.Integer.parseInt;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Miscellaneous utility functions.
@@ -120,6 +125,7 @@ import static org.apache.calcite.linq4j.Nullness.castNonNull;
 public class Util {
 
   private static final int QUICK_DISTINCT = 15;
+  private static final Pattern UNDERSCORE = Pattern.compile("_+");
 
   private Util() {}
 
@@ -131,7 +137,7 @@ public class Util {
    * <p>In general, you should not use this in expected results of tests.
    * Expected results should be the expected result on Linux (or Mac OS) using
    * '\n'. Apply {@link Util#toLinux(String)} to Windows actual results, if
-   * necessary, to make them look like Linux actual.</p>
+   * necessary, to make them look like Linux actual.
    */
   public static final String LINE_SEPARATOR =
       System.getProperty("line.separator");
@@ -215,10 +221,7 @@ public class Util {
    * you are not interested in, but you don't want the compiler to warn that
    * you are not using it.
    */
-  public static void discard(@Nullable Object o) {
-    if (false) {
-      discard(o);
-    }
+  public static void discard(@Nullable Object unused) {
   }
 
   /**
@@ -226,10 +229,7 @@ public class Util {
    * you are not interested in, but you don't want the compiler to warn that
    * you are not using it.
    */
-  public static void discard(int i) {
-    if (false) {
-      discard(i);
-    }
+  public static void discard(int unused) {
   }
 
   /**
@@ -237,10 +237,7 @@ public class Util {
    * you are not interested in, but you don't want the compiler to warn that
    * you are not using it.
    */
-  public static void discard(boolean b) {
-    if (false) {
-      discard(b);
-    }
+  public static void discard(boolean unused) {
   }
 
   /**
@@ -248,10 +245,7 @@ public class Util {
    * you are not interested in, but you don't want the compiler to warn that
    * you are not using it.
    */
-  public static void discard(double d) {
-    if (false) {
-      discard(d);
-    }
+  public static void discard(double unused) {
   }
 
   /**
@@ -474,7 +468,7 @@ public class Util {
       Field[] fields = clazz.getFields();
       int printed = 0;
       for (Field field : fields) {
-        if (Modifier.isStatic(field.getModifiers())) {
+        if (isStatic(field)) {
           continue;
         }
         if (printed++ > 0) {
@@ -505,7 +499,7 @@ public class Util {
    * prints <code>"x\"y"</code>.
    *
    * <p>The appendable where the value is printed must not incur I/O operations. This method is
-   * not meant to be used for writing the values to permanent storage.</p>
+   * not meant to be used for writing the values to permanent storage.
    *
    * @throws IllegalStateException if the print to the specified appendable fails due to I/O
    */
@@ -541,6 +535,21 @@ public class Util {
   }
 
   /**
+   * Formats a double value to a String ensuring that the output
+   * is in scientific notation if the value is not "special".
+   * (Special values include infinities and NaN.)
+   */
+  public static String toScientificNotation(Double d) {
+    String repr = Double.toString(d);
+    if (!repr.toLowerCase(Locale.ENGLISH).contains("e")
+        && !d.isInfinite()
+        && !d.isNaN()) {
+      repr += "E0";
+    }
+    return repr;
+  }
+
+  /**
    * Formats a {@link BigDecimal} value to a string in scientific notation For
    * example<br>
    *
@@ -564,6 +573,10 @@ public class Util {
     int len = unscaled.length();
     int scale = bd.scale();
     int e = len - scale - 1;
+    if (bd.stripTrailingZeros().equals(BigDecimal.ZERO)) {
+      // Without this adjustment 0.0 generates 0E-1
+      e = 0;
+    }
 
     StringBuilder ret = new StringBuilder();
     if (bd.signum() < 0) {
@@ -650,7 +663,7 @@ public class Util {
       }
     }
     path = "file://" + path;
-    return new URL(path);
+    return URI.create(path).toURL();
   }
 
   /**
@@ -686,16 +699,16 @@ public class Util {
    *
    * <p>The mapping is one-to-one (that is, distinct strings will produce
    * distinct java identifiers). The mapping is also reversible, but the
-   * inverse mapping is not implemented.</p>
+   * inverse mapping is not implemented.
    *
    * <p>A valid Java identifier must start with a Unicode letter, underscore,
    * or dollar sign ($). The other characters, if any, can be a Unicode
-   * letter, underscore, dollar sign, or digit.</p>
+   * letter, underscore, dollar sign, or digit.
    *
    * <p>This method uses an algorithm similar to URL encoding. Valid
    * characters are unchanged; invalid characters are converted to an
    * underscore followed by the hex code of the character; and underscores are
-   * doubled.</p>
+   * doubled.
    *
    * <p>Examples:
    *
@@ -744,6 +757,7 @@ public class Util {
 
   /**
    * Returns true when input string is a valid Java identifier.
+   *
    * @param s input string
    * @return true when input string is a valid Java identifier
    */
@@ -789,7 +803,7 @@ public class Util {
    * Returns whether s == null or if s.length() == 0.
    */
   public static boolean isNullOrEmpty(@Nullable String s) {
-    return (null == s) || (s.length() == 0);
+    return s == null || s.isEmpty();
   }
 
   /**
@@ -857,7 +871,7 @@ public class Util {
    * rather than constructing intermediate strings.
    *
    * @see org.apache.calcite.linq4j.function.Functions#generate */
-  public static <E> StringBuilder printList(StringBuilder sb, int elementCount,
+  public static StringBuilder printList(StringBuilder sb, int elementCount,
       ObjIntConsumer<StringBuilder> consumer) {
     if (elementCount == 0) {
       return sb.append("[]");
@@ -919,40 +933,36 @@ public class Util {
     return new AssertionError("Internal error: " + s, e);
   }
 
-  /** As {@link Throwables}{@code .throwIfUnchecked(Throwable)},
-   * which was introduced in Guava 20,
-   * but we don't require Guava version 20 yet. */
+  /** As {@link Throwables#throwIfUnchecked(Throwable)}. */
+  @Deprecated // to be removed before 2.0
   public static void throwIfUnchecked(Throwable throwable) {
-    Bug.upgrade("Remove when minimum Guava version is 20");
-    Objects.requireNonNull(throwable, "throwable");
-    if (throwable instanceof RuntimeException) {
-      throw (RuntimeException) throwable;
-    }
-    if (throwable instanceof Error) {
-      throw (Error) throwable;
-    }
+    Throwables.throwIfUnchecked(throwable);
   }
 
   /**
    * This method rethrows input throwable as is (if its unchecked) or
    * wraps it with {@link RuntimeException} and throws.
-   * <p>The typical usage would be {@code throw throwAsRuntime(...)}, where {@code throw} statement
-   * is needed so Java compiler knows the execution stops at that line.</p>
+   *
+   * <p>The typical usage would be {@code throw throwAsRuntime(...)}, where
+   * {@code throw} statement is needed so Java compiler knows the execution
+   * stops at that line.
    *
    * @param throwable input throwable
    * @return the method never returns, it always throws an unchecked exception
    */
   @API(since = "1.26", status = API.Status.EXPERIMENTAL)
   public static RuntimeException throwAsRuntime(Throwable throwable) {
-    throwIfUnchecked(throwable);
+    Throwables.throwIfUnchecked(throwable);
     throw new RuntimeException(throwable);
   }
 
   /**
-   * This method rethrows input throwable as is (if its unchecked) with an extra message or
-   * wraps it with {@link RuntimeException} and throws.
-   * <p>The typical usage would be {@code throw throwAsRuntime(...)}, where {@code throw} statement
-   * is needed so Java compiler knows the execution stops at that line.</p>
+   * This method rethrows input throwable as is (if its unchecked) with an extra
+   * message or wraps it with {@link RuntimeException} and throws.
+   *
+   * <p>The typical usage would be {@code throw throwAsRuntime(...)}, where
+   * {@code throw} statement is needed so Java compiler knows the execution
+   * stops at that line.
    *
    * @param throwable input throwable
    * @return the method never returns, it always throws an unchecked exception
@@ -990,6 +1000,7 @@ public class Util {
 
   /**
    * Returns cause of the given throwable if it is non-null or the throwable itself.
+   *
    * @param throwable input throwable
    * @return cause of the given throwable if it is non-null or the throwable itself
    */
@@ -1072,7 +1083,7 @@ public class Util {
    * feature has not been implemented, but should be.
    *
    * <p>If every 'hole' in our functionality uses this method, it will be
-   * easier for us to identity the holes. Throwing a
+   * easier for us to identify the holes. Throwing a
    * {@link java.lang.UnsupportedOperationException} isn't as good, because
    * sometimes we actually want to partially implement an API.
    *
@@ -1451,21 +1462,19 @@ public class Util {
    * time
    * <li>The second offset is how many hours changed during DST. Default=1
    * <li>'start' and 'end' are the dates when DST goes into (and out of)
-   *     effect.<br>
-   *     <br>
-   *     They can each be one of three forms:
+   *     effect. They can each be one of three forms:
    *
-   *     <ol>
-   *     <li>Mm.w.d {month=1-12, week=1-5 (5 is always last), day=0-6}
-   *     <li>Jn {n=1-365 Feb29 is never counted}
-   *     <li>n {n=0-365 Feb29 is counted in leap years}
-   *     </ol>
+   * <ol>
+   * <li>Mm.w.d {month=1-12, week=1-5 (5 is always last), day=0-6}
+   * <li>Jn {n=1-365 Feb29 is never counted}
+   * <li>n {n=0-365 Feb29 is counted in leap years}
+   * </ol>
    * </li>
    *
    * <li>'time' has the same format as 'offset', and defaults to 02:00:00.</li>
    * </ul>
    *
-   * <p>For example:</p>
+   * <p>For example:
    *
    * <ul>
    * <li>"PST-8PDT01:00:00,M4.1.0/02:00:00,M10.1.0/02:00:00"; or more tersely
@@ -1560,10 +1569,10 @@ public class Util {
   }
 
   private static int groupAsInt(Matcher matcher, int index) {
-    String value = Objects.requireNonNull(
-        matcher.group(index),
-        () -> "no group for index " + index + ", matcher " + matcher);
-    return Integer.parseInt(value);
+    String value =
+        requireNonNull(matcher.group(index),
+            () -> "no group for index " + index + ", matcher " + matcher);
+    return parseInt(value);
   }
 
   /**
@@ -1707,15 +1716,13 @@ public class Util {
    * @return Java locale object
    */
   public static Locale parseLocale(String localeString) {
-    String[] strings = localeString.split("_");
-    switch (strings.length) {
-    case 1:
-      return new Locale(strings[0]);
-    case 2:
-      return new Locale(strings[0], strings[1]);
-    case 3:
-      return new Locale(strings[0], strings[1], strings[2]);
-    default:
+    if (localeString.isEmpty()) {
+      return Locale.ROOT;
+    }
+    try {
+      return new Locale.Builder().setLanguageTag(
+          UNDERSCORE.matcher(localeString).replaceAll("-")).build();
+    } catch (IllformedLocaleException e) {
       throw new AssertionError("bad locale string '" + localeString + "'");
     }
   }
@@ -1792,11 +1799,12 @@ public class Util {
    * <p>The returned object is an {@link Iterable},
    * which makes it ideal for use with the 'foreach' construct. For example,
    *
-   * <blockquote><code>List&lt;Number&gt; numbers = Arrays.asList(1, 2, 3.14,
-   * 4, null, 6E23);<br>
-   * for (int myInt : filter(numbers, Integer.class)) {<br>
-   * &nbsp;&nbsp;&nbsp;&nbsp;print(i);<br>
-   * }</code></blockquote>
+   * <blockquote><pre>{@code
+   *   List<Number> numbers = Arrays.asList(1, 2, 3.14, 4, null, 6E23);
+   *   for (int myInt : filter(numbers, Integer.class)) {
+   *     print(i);
+   *   }
+   * }</pre></blockquote>
    *
    * <p>will print 1, 2, 4.
    *
@@ -1990,28 +1998,15 @@ public class Util {
    * starting at element {@code k}.
    *
    * <p>It is OK if the list is empty or its size is not a multiple of
-   * {@code n}.</p>
+   * {@code n}.
    *
    * <p>For instance, {@code quotientList(list, 2, 0)} returns the even
    * elements of a list, and {@code quotientList(list, 2, 1)} returns the odd
-   * elements. Those lists are the same length only if list has even size.</p>
+   * elements. Those lists are the same length only if list has even size.
    */
   public static <E> List<E> quotientList(
       final List<E> list, final int n, final int k) {
-    if (n <= 0 || k < 0 || k >= n) {
-      throw new IllegalArgumentException(
-          "n must be positive; k must be between 0 and n - 1");
-    }
-    final int size = (list.size() + n - k - 1) / n;
-    return new AbstractList<E>() {
-      @Override public E get(int index) {
-        return list.get(index * n + k);
-      }
-
-      @Override public int size() {
-        return size;
-      }
-    };
+    return new QuotientList<>(list, n, k);
   }
 
   /** Given a list with N elements
@@ -2020,7 +2015,6 @@ public class Util {
    * [ (e<sub>0</sub>, e<sub>1</sub>),
    * (e<sub>2</sub>, e<sub>3</sub>), ... ]. */
   public static <E> List<Pair<E, E>> pairs(final List<E> list) {
-    //noinspection unchecked
     return Pair.zip(quotientList(list, 2, 0),
         quotientList(list, 2, 1));
   }
@@ -2206,6 +2200,49 @@ public class Util {
     return -1;
   }
 
+  /**
+   * Returns whether the elements of {@code list} are definitely distinct
+   * and not null, working quickly and sometimes giving false negatives for
+   * large lists.
+   *
+   * <p>A return of true means that the list is distinct (true positive);
+   * a return of false means either that list is not distinct (true negative)
+   * or that the list is large and distinct (false negative).
+   * (If the list is large, a hash map would be required to do an accurate
+   * job, and this method does its best quickly.)
+   */
+  public static <E> boolean isDefinitelyDistinctAndNonNull(
+      List<? extends @Nullable E> list) {
+    final int size = list.size();
+    // An empty list is distinct.
+    if (size == 0) {
+      return true;
+    }
+    // Make sure that element zero is not null.
+    if (list.get(0) == null) {
+      return false;
+    }
+    if (size < QUICK_DISTINCT) {
+      // For smaller lists, avoid the overhead of creating a set. Threshold
+      // determined empirically using UtilTest.testIsDistinctBenchmark.
+      for (int i = 1; i < size; i++) {
+        final E e = list.get(i);
+        if (e == null) {
+          return false;
+        }
+        for (int j = i - 1; j >= 0; j--) {
+          final E e1 = list.get(j);
+          if (e.equals(e1)) {
+            return false;
+          }
+        }
+      }
+      return true;
+    }
+    // Too expensive to check.
+    return false;
+  }
+
   /** Converts a list into a list with unique elements.
    *
    * <p>The order is preserved; the second and subsequent occurrences are
@@ -2214,12 +2251,16 @@ public class Util {
    * <p>If the list is already unique it is returned unchanged. */
   public static <E> List<E> distinctList(List<E> list) {
     // If the list is small, check for duplicates using pairwise comparison.
-    if (list.size() < QUICK_DISTINCT && isDistinct(list)) {
-      return list;
-    }
-    // Lists that have all the same element are common. Avoiding creating a set.
-    if (allSameElement(list)) {
-      return ImmutableList.of(list.get(0));
+    if (list.size() < QUICK_DISTINCT) {
+      if (isDistinct(list)) {
+        return list;
+      }
+    } else {
+      // Lists that have all the same element are common. Avoiding creating a
+      // set.
+      if (allSameElement(list)) {
+        return ImmutableList.of(list.get(0));
+      }
     }
     return ImmutableList.copyOf(new LinkedHashSet<>(list));
   }
@@ -2361,7 +2402,7 @@ public class Util {
   /** Converts a number into human-readable form, with 3 digits and a "K", "M"
    * or "G" multiplier for thousands, millions or billions.
    *
-   * <p>Examples: -2, 0, 1, 999, 1.00K, 1.99K, 3.45M, 4.56B.</p>
+   * <p>Examples: -2, 0, 1, 999, 1.00K, 1.99K, 3.45M, 4.56B.
    */
   public static String human(double d) {
     if (d == 0d) {
@@ -2550,8 +2591,7 @@ public class Util {
     }
   }
 
-  /** Creates a {@link Calendar} in the UTC time zone and root locale.
-   * Does not use the time zone or locale. */
+  /** Creates a {@link Calendar} in the UTC time zone and root locale. */
   public static Calendar calendar() {
     return Calendar.getInstance(DateTimeUtils.UTC_ZONE, Locale.ROOT);
   }
@@ -2564,26 +2604,22 @@ public class Util {
     return calendar;
   }
 
+  /** Creates a {@link Calendar} in the specified time zone. */
+  public static Calendar calendar(long millis, TimeZone timeZone) {
+    Calendar calendar = Calendar.getInstance(timeZone, Locale.ROOT);
+    calendar.setTimeInMillis(millis);
+    return calendar;
+  }
+
   /**
    * Returns a {@code Collector} that accumulates the input elements into a
    * Guava {@link ImmutableList} via a {@link ImmutableList.Builder}.
    *
-   * <p>It will be obsolete when we move to {@link Bug#upgrade Guava 28.0-jre}.
-   * Guava 21.0 introduced {@code ImmutableList.toImmutableList()}, but it had
-   * a {@link com.google.common.annotations.Beta} tag until 28.0-jre.
-   *
-   * <p>In {@link Bug#upgrade Guava 21.0}, change this method to call
-   * {@code ImmutableList.toImmutableList()}, ignoring the {@code @Beta} tag.
-   *
-   * @param <T> Type of the input elements
-   *
-   * @return a {@code Collector} that collects all the input elements into an
-   * {@link ImmutableList}, in encounter order
+   * @deprecated Use {@link ImmutableList#toImmutableList()}
    */
-  public static <T> Collector<T, ImmutableList.Builder<T>, ImmutableList<T>>
-      toImmutableList() {
-    return Collector.of(ImmutableList::builder, ImmutableList.Builder::add, Util::combine,
-        ImmutableList.Builder::build);
+  @Deprecated // to be removed before 2.0
+  public static <T> Collector<T, ?, ImmutableList<T>> toImmutableList() {
+    return ImmutableList./* do not simplify. */toImmutableList();
   }
 
   /** Combines a second immutable list builder into a first. */
@@ -2611,7 +2647,9 @@ public class Util {
   /** Transforms a list, applying a function to each element. */
   public static <F, T> List<T> transform(List<? extends F> list,
       java.util.function.Function<? super F, ? extends T> function) {
-    if (list instanceof RandomAccess) {
+    if (list.isEmpty() && list instanceof ImmutableList) {
+      return ImmutableList.of(); // save ourselves some effort
+    } else if (list instanceof RandomAccess) {
       return new RandomAccessTransformingList<>(list, function);
     } else {
       return new TransformingList<>(list, function);
@@ -2622,7 +2660,9 @@ public class Util {
    * the element's index in the list. */
   public static <F, T> List<T> transformIndexed(List<? extends F> list,
       BiFunction<? super F, Integer, ? extends T> function) {
-    if (list instanceof RandomAccess) {
+    if (list.isEmpty() && list instanceof ImmutableList) {
+      return ImmutableList.of(); // save ourselves some effort
+    } else if (list instanceof RandomAccess) {
       return new RandomAccessTransformingIndexedList<>(list, function);
     } else {
       return new TransformingIndexedList<>(list, function);
@@ -2914,6 +2954,38 @@ public class Util {
 
     @Override public void remove() {
       delegate.remove();
+    }
+  }
+
+  /** Implements {@link Util#quotientList(List, int, int)};
+   * an anonymous inner class would not be able to implement
+   * {@link RandomAccess}, which is essential for how this class is used.
+   *
+   * @param <E> Element type */
+  private static class QuotientList<E>
+      extends AbstractList<E> implements RandomAccess {
+    private final List<E> list;
+    private final int n;
+    private final int k;
+    private final int size;
+
+    QuotientList(List<E> list, int n, int k) {
+      if (k < 0 || n <= 0 || k >= n) {
+        throw new IllegalArgumentException(
+            "n must be positive; k must be between 0 and n - 1");
+      }
+      this.list = list;
+      this.n = n;
+      this.k = k;
+      this.size = (list.size() + n - k - 1) / n;
+    }
+
+    @Override public int size() {
+      return size;
+    }
+
+    @Override public E get(int index) {
+      return list.get(index * n + k);
     }
   }
 }

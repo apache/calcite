@@ -17,7 +17,9 @@
 package org.apache.calcite.adapter.elasticsearch;
 
 import java.util.Locale;
-import java.util.Objects;
+
+import static java.lang.Integer.parseInt;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Identifies current ES version at runtime. Some queries have different syntax
@@ -42,7 +44,7 @@ enum ElasticsearchVersion {
   }
 
   static ElasticsearchVersion fromString(String version) {
-    Objects.requireNonNull(version, "version");
+    requireNonNull(version, "version");
     if (!version.matches("\\d+\\.\\d+\\.\\d+")) {
       final String message = String.format(Locale.ROOT, "Wrong version format. "
           + "Expected ${digit}.${digit}.${digit} but got %s", version);
@@ -50,7 +52,7 @@ enum ElasticsearchVersion {
     }
 
     // version format is: major.minor.revision
-    final int major = Integer.parseInt(version.substring(0, version.indexOf(".")));
+    final int major = parseInt(version.substring(0, version.indexOf(".")));
     if (major == 2) {
       return ES2;
     } else if (major == 5) {

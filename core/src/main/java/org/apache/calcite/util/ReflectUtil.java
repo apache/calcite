@@ -25,6 +25,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.nio.ByteBuffer;
@@ -42,23 +43,23 @@ import static org.apache.calcite.linq4j.Nullness.castNonNull;
 public abstract class ReflectUtil {
   //~ Static fields/initializers ---------------------------------------------
 
-  private static Map<Class, Class> primitiveToBoxingMap;
-  private static Map<Class, Method> primitiveToByteBufferReadMethod;
-  private static Map<Class, Method> primitiveToByteBufferWriteMethod;
+  private static final Map<Class, Class> PRIMITIVE_TO_BOXING_MAP;
+  private static final Map<Class, Method> PRIMITIVE_TO_BYTE_BUFFER_READ_METHOD;
+  private static final Map<Class, Method> PRIMITIVE_TO_BYTE_BUFFER_WRITE_METHOD;
 
   static {
-    primitiveToBoxingMap = new HashMap<>();
-    primitiveToBoxingMap.put(Boolean.TYPE, Boolean.class);
-    primitiveToBoxingMap.put(Byte.TYPE, Byte.class);
-    primitiveToBoxingMap.put(Character.TYPE, Character.class);
-    primitiveToBoxingMap.put(Double.TYPE, Double.class);
-    primitiveToBoxingMap.put(Float.TYPE, Float.class);
-    primitiveToBoxingMap.put(Integer.TYPE, Integer.class);
-    primitiveToBoxingMap.put(Long.TYPE, Long.class);
-    primitiveToBoxingMap.put(Short.TYPE, Short.class);
+    PRIMITIVE_TO_BOXING_MAP = new HashMap<>();
+    PRIMITIVE_TO_BOXING_MAP.put(Boolean.TYPE, Boolean.class);
+    PRIMITIVE_TO_BOXING_MAP.put(Byte.TYPE, Byte.class);
+    PRIMITIVE_TO_BOXING_MAP.put(Character.TYPE, Character.class);
+    PRIMITIVE_TO_BOXING_MAP.put(Double.TYPE, Double.class);
+    PRIMITIVE_TO_BOXING_MAP.put(Float.TYPE, Float.class);
+    PRIMITIVE_TO_BOXING_MAP.put(Integer.TYPE, Integer.class);
+    PRIMITIVE_TO_BOXING_MAP.put(Long.TYPE, Long.class);
+    PRIMITIVE_TO_BOXING_MAP.put(Short.TYPE, Short.class);
 
-    primitiveToByteBufferReadMethod = new HashMap<>();
-    primitiveToByteBufferWriteMethod = new HashMap<>();
+    PRIMITIVE_TO_BYTE_BUFFER_READ_METHOD = new HashMap<>();
+    PRIMITIVE_TO_BYTE_BUFFER_WRITE_METHOD = new HashMap<>();
     Method[] methods = ByteBuffer.class.getDeclaredMethods();
     for (Method method : methods) {
       Class[] paramTypes = method.getParameterTypes();
@@ -69,12 +70,12 @@ public abstract class ReflectUtil {
         if (paramTypes.length != 1) {
           continue;
         }
-        primitiveToByteBufferReadMethod.put(
+        PRIMITIVE_TO_BYTE_BUFFER_READ_METHOD.put(
             method.getReturnType(), method);
 
         // special case for Boolean:  treat as byte
         if (method.getReturnType().equals(Byte.TYPE)) {
-          primitiveToByteBufferReadMethod.put(Boolean.TYPE, method);
+          PRIMITIVE_TO_BYTE_BUFFER_READ_METHOD.put(Boolean.TYPE, method);
         }
       } else if (method.getName().startsWith("put")) {
         if (paramTypes.length != 2) {
@@ -83,11 +84,11 @@ public abstract class ReflectUtil {
         if (!paramTypes[1].isPrimitive()) {
           continue;
         }
-        primitiveToByteBufferWriteMethod.put(paramTypes[1], method);
+        PRIMITIVE_TO_BYTE_BUFFER_WRITE_METHOD.put(paramTypes[1], method);
 
         // special case for Boolean:  treat as byte
         if (paramTypes[1].equals(Byte.TYPE)) {
-          primitiveToByteBufferWriteMethod.put(Boolean.TYPE, method);
+          PRIMITIVE_TO_BYTE_BUFFER_WRITE_METHOD.put(Boolean.TYPE, method);
         }
       }
     }
@@ -104,7 +105,7 @@ public abstract class ReflectUtil {
    */
   public static Method getByteBufferReadMethod(Class clazz) {
     assert clazz.isPrimitive();
-    return castNonNull(primitiveToByteBufferReadMethod.get(clazz));
+    return castNonNull(PRIMITIVE_TO_BYTE_BUFFER_READ_METHOD.get(clazz));
   }
 
   /**
@@ -116,7 +117,7 @@ public abstract class ReflectUtil {
    */
   public static Method getByteBufferWriteMethod(Class clazz) {
     assert clazz.isPrimitive();
-    return castNonNull(primitiveToByteBufferWriteMethod.get(clazz));
+    return castNonNull(PRIMITIVE_TO_BYTE_BUFFER_WRITE_METHOD.get(clazz));
   }
 
   /**
@@ -128,7 +129,7 @@ public abstract class ReflectUtil {
    */
   public static Class getBoxingClass(Class primitiveClass) {
     assert primitiveClass.isPrimitive();
-    return castNonNull(primitiveToBoxingMap.get(primitiveClass));
+    return castNonNull(PRIMITIVE_TO_BOXING_MAP.get(primitiveClass));
   }
 
   /**
@@ -375,8 +376,9 @@ public abstract class ReflectUtil {
 
     Class<?>[] interfaces = visiteeClass.getInterfaces();
     for (Class<?> anInterface : interfaces) {
-      final Method method = lookupVisitMethod(visitorClass, anInterface,
-          visitMethodName, paramTypes, cache);
+      final Method method =
+          lookupVisitMethod(visitorClass, anInterface,
+              visitMethodName, paramTypes, cache);
       if (method != null) {
         if (candidateMethod != null) {
           if (!method.equals(candidateMethod)) {
@@ -434,7 +436,7 @@ public abstract class ReflectUtil {
             Collections.emptyList());
       }
 
-      @Override public @Nullable Method lookupVisitMethod(
+      @Override public synchronized @Nullable Method lookupVisitMethod(
           Class<? extends R> visitorClass,
           Class<? extends E> visiteeClass,
           String visitMethodName,
@@ -597,7 +599,7 @@ public abstract class ReflectUtil {
    *   {@code foo(Object o, String s, int i, Number n, BigDecimal d}
    * </blockquote>
    *
-   * <p>To which which of those parameters could I pass a value that is an
+   * <p>To which of those parameters could I pass a value that is an
    * instance of {@link java.util.HashMap}? The answer:
    *
    * <ul>
@@ -641,6 +643,16 @@ public abstract class ReflectUtil {
         return true;
       }
     }
+  }
+
+  /** Returns whether a member (constructor, method or field) is public. */
+  public static boolean isPublic(Member member) {
+    return Modifier.isPublic(member.getModifiers());
+  }
+
+  /** Returns whether a member (constructor, method or field) is static. */
+  public static boolean isStatic(Member member) {
+    return Modifier.isStatic(member.getModifiers());
   }
 
   //~ Inner Classes ----------------------------------------------------------

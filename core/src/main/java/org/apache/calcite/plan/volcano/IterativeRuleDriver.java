@@ -24,7 +24,7 @@ import org.slf4j.Logger;
 import static java.util.Objects.requireNonNull;
 
 /***
- * <p>The algorithm executes repeatedly. The exact rules
+ * The algorithm executes repeatedly. The exact rules
  * that may be fired varies.
  *
  * <p>The planner iterates over the rule matches presented
@@ -48,8 +48,8 @@ class IterativeRuleDriver implements RuleDriver {
 
   @Override public void drive() {
     while (true) {
-      LOGGER.debug("PLANNER = {}; COST = {}", this,
-          requireNonNull(planner.root, "planner.root").bestCost);
+      requireNonNull(planner.root, "RelSubset must not be null at this point");
+      LOGGER.debug("Best cost before rule match: {}", planner.root.bestCost);
 
       VolcanoRuleMatch match = ruleQueue.popMatch();
       if (match == null) {

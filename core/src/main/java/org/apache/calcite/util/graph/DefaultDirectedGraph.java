@@ -184,7 +184,7 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
     }
 
     // remove all edges ref from this.edges
-    for (V v: collection) {
+    for (V v : collection) {
       edges.removeIf(e -> e.source.equals(v) || e.target.equals(v));
     }
   }

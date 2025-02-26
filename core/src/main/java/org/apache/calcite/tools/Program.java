@@ -30,8 +30,9 @@ import java.util.List;
  *
  * <p>A planner is a sequence of programs, each of which is sometimes called
  * a "phase".
- * The most typical program is an invocation of the volcano planner with a
- * particular {@link org.apache.calcite.tools.RuleSet}.</p>
+ *
+ * <p>The most typical program is an invocation of the volcano planner with a
+ * particular {@link org.apache.calcite.tools.RuleSet}.
  */
 public interface Program {
   RelNode run(RelOptPlanner planner, RelNode rel,

@@ -33,12 +33,14 @@ import com.google.common.primitives.Chars;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.TimeZone;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Expression utility class to transform Calcite expressions to Druid expressions when possible.
@@ -122,7 +124,7 @@ public class DruidExpressions {
       final DruidSqlOperatorConverter conversion = druidRel.getOperatorConversionMap()
           .get(operator);
       if (conversion == null) {
-        //unknown operator can not translate
+        // unknown operator; can not translate
         return null;
       } else {
         return conversion.toDruidExpression(rexNode, inputRowType, druidRel);
@@ -131,27 +133,33 @@ public class DruidExpressions {
     if (kind == SqlKind.LITERAL) {
       // Translate literal.
       if (RexLiteral.isNullLiteral(rexNode)) {
-        //case the filter/project might yield to unknown let Calcite deal with this for now
+        // case the filter/project might yield to unknown; let Calcite
+        // deal with this for now
         return null;
       } else if (SqlTypeName.NUMERIC_TYPES.contains(sqlTypeName)) {
-        return DruidExpressions.numberLiteral((Number) RexLiteral
-            .value(rexNode));
+        // This conversion is lossy for Double values.
+        // However, Druid does not support floating point literal values
+        // if they are formatted using scientific notation.
+        return DruidExpressions.numberLiteral(
+            requireNonNull((RexLiteral) rexNode).getValueAs(BigDecimal.class));
       } else if (SqlTypeFamily.INTERVAL_DAY_TIME == sqlTypeName.getFamily()) {
         // Calcite represents DAY-TIME intervals in milliseconds.
-        final long milliseconds = ((Number) RexLiteral.value(rexNode)).longValue();
+        final long milliseconds =
+            requireNonNull((Number) RexLiteral.value(rexNode)).longValue();
         return DruidExpressions.numberLiteral(milliseconds);
       } else if (SqlTypeFamily.INTERVAL_YEAR_MONTH == sqlTypeName.getFamily()) {
         // Calcite represents YEAR-MONTH intervals in months.
-        final long months = ((Number) RexLiteral.value(rexNode)).longValue();
+        final long months =
+            requireNonNull((Number) RexLiteral.value(rexNode)).longValue();
         return DruidExpressions.numberLiteral(months);
       } else if (SqlTypeName.STRING_TYPES.contains(sqlTypeName)) {
-        return
-            DruidExpressions.stringLiteral(RexLiteral.stringValue(rexNode));
+        return DruidExpressions.stringLiteral(
+            requireNonNull(RexLiteral.stringValue(rexNode)));
       } else if (SqlTypeName.DATE == sqlTypeName
           || SqlTypeName.TIMESTAMP == sqlTypeName
           || SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE == sqlTypeName) {
         return DruidExpressions.numberLiteral(
-            DruidDateTimeUtils.literalValue(rexNode));
+            requireNonNull(DruidDateTimeUtils.literalValue(rexNode)));
       } else if (SqlTypeName.BOOLEAN == sqlTypeName) {
         return DruidExpressions.numberLiteral(RexLiteral.booleanValue(rexNode) ? 1 : 0);
       }
@@ -168,11 +176,11 @@ public class DruidExpressions {
     return "null";
   }
 
-  public static String numberLiteral(final Number n) {
+  public static String numberLiteral(final @Nullable Number n) {
     return n == null ? nullLiteral() : n.toString();
   }
 
-  public static String stringLiteral(final String s) {
+  public static String stringLiteral(final @Nullable String s) {
     return s == null ? nullLiteral() : "'" + escape(s) + "'";
   }
 
@@ -190,15 +198,14 @@ public class DruidExpressions {
   }
 
   public static String functionCall(final String functionName, final List<String> args) {
-    Objects.requireNonNull(functionName, "druid functionName");
-    Objects.requireNonNull(args, "args");
+    requireNonNull(functionName, "druid functionName");
+    requireNonNull(args, "args");
 
     final StringBuilder builder = new StringBuilder(functionName);
     builder.append("(");
     for (int i = 0; i < args.size(); i++) {
       int finalI = i;
-      final String arg = Objects.requireNonNull(args.get(i),
-          () -> "arg #" + finalI);
+      final String arg = requireNonNull(args.get(i), () -> "arg #" + finalI);
       builder.append(arg);
       if (i < args.size() - 1) {
         builder.append(",");
@@ -209,14 +216,13 @@ public class DruidExpressions {
   }
 
   public static String nAryOperatorCall(final String druidOperator, final List<String> args) {
-    Objects.requireNonNull(druidOperator, "druid operator missing");
-    Objects.requireNonNull(args, "args");
+    requireNonNull(druidOperator, "druid operator missing");
+    requireNonNull(args, "args");
     final StringBuilder builder = new StringBuilder();
     builder.append("(");
     for (int i = 0; i < args.size(); i++) {
       int finalI = i;
-      final String arg = Objects.requireNonNull(args.get(i),
-          () -> "arg #" + finalI);
+      final String arg = requireNonNull(args.get(i), () -> "arg #" + finalI);
       builder.append(arg);
       if (i < args.size() - 1) {
         builder.append(druidOperator);
@@ -254,8 +260,8 @@ public class DruidExpressions {
       final String granularity,
       final String origin,
       final TimeZone timeZone) {
-    Objects.requireNonNull(input, "input");
-    Objects.requireNonNull(granularity, "granularity");
+    requireNonNull(input, "input");
+    requireNonNull(granularity, "granularity");
     return DruidExpressions.functionCall(
         "timestamp_floor",
         ImmutableList.of(input,
@@ -269,8 +275,8 @@ public class DruidExpressions {
       final String granularity,
       final String origin,
       final TimeZone timeZone) {
-    Objects.requireNonNull(input, "input");
-    Objects.requireNonNull(granularity, "granularity");
+    requireNonNull(input, "input");
+    requireNonNull(granularity, "granularity");
     return DruidExpressions.functionCall(
         "timestamp_ceil",
         ImmutableList.of(input,

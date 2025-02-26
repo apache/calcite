@@ -30,7 +30,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /** Visitor that can find aggregate and windowed aggregate functions.
  *
@@ -64,8 +65,8 @@ abstract class AggVisitor extends SqlBasicVisitor<Void> {
     this.over = over;
     this.aggregate = aggregate;
     this.delegate = delegate;
-    this.opTab = Objects.requireNonNull(opTab, "opTab");
-    this.nameMatcher = Objects.requireNonNull(nameMatcher, "nameMatcher");
+    this.opTab = requireNonNull(opTab, "opTab");
+    this.nameMatcher = requireNonNull(nameMatcher, "nameMatcher");
   }
 
   @Override public Void visit(SqlCall call) {
@@ -108,6 +109,12 @@ abstract class AggVisitor extends SqlBasicVisitor<Void> {
     }
     if (call.isA(SqlKind.QUERY)) {
       // don't traverse into queries
+      return null;
+    }
+    if (call.getKind() == SqlKind.MEASURE) {
+      // don't traverse into 'AS MEASURE';
+      // the presence of 'SUM(x) AS MEASURE sumX'
+      // doesn't make this an aggregate query.
       return null;
     }
     if (call.getKind() == SqlKind.WITHIN_GROUP) {

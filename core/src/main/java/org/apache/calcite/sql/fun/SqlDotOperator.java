@@ -100,8 +100,13 @@ public class SqlDotOperator extends SqlSpecialOperator {
       SqlValidatorScope scope, SqlCall call) {
     final SqlNode operand = call.getOperandList().get(0);
     final RelDataType nodeType =
-        validator.deriveType(scope, operand);
+        requireNonNull(validator.deriveType(scope, operand));
     assert nodeType != null;
+    if (nodeType.getSqlTypeName() == SqlTypeName.VARIANT) {
+      // Result is always a nullable VARIANT
+      return validator.getTypeFactory().createTypeWithNullability(nodeType, true);
+    }
+
     if (!nodeType.isStruct()) {
       throw SqlUtil.newContextException(operand.getParserPosition(),
           Static.RESOURCE.incompatibleTypes());
@@ -179,11 +184,12 @@ public class SqlDotOperator extends SqlSpecialOperator {
     final RelDataType recordType = opBinding.getOperandType(0);
     switch (recordType.getSqlTypeName()) {
     case ROW:
-      final String fieldName = getOperandLiteralValueOrThrow(opBinding, 1, String.class);
-      final RelDataType type = requireNonNull(
-          recordType.getField(fieldName, false, false),
-          () -> "field " + fieldName + " is not found in " + recordType)
-          .getType();
+      final String fieldName =
+          getOperandLiteralValueOrThrow(opBinding, 1, String.class);
+      final RelDataTypeField field =
+          requireNonNull(recordType.getField(fieldName, false, false),
+              () -> "field " + fieldName + " is not found in " + recordType);
+      final RelDataType type = field.getType();
       if (recordType.isNullable()) {
         return typeFactory.createTypeWithNullability(type, true);
       } else {

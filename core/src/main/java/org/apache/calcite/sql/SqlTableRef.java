@@ -27,10 +27,10 @@ import java.util.List;
 import static java.util.Objects.requireNonNull;
 
 /**
- *  A <code>SqlTableRef</code> is a node of a parse tree which represents
- *  a table reference.
+ * A <code>SqlTableRef</code> is a node of a parse tree which represents
+ * a table reference.
  *
- *  <p>It can be attached with a sql hint statement, see {@link SqlHint} for details.
+ * <p>It can be attached with a sql hint statement, see {@link SqlHint} for details.
  */
 public class SqlTableRef extends SqlCall {
 
@@ -72,7 +72,7 @@ public class SqlTableRef extends SqlCall {
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     tableName.unparse(writer, leftPrec, rightPrec);
-    if (this.hints != null && this.hints.size() > 0) {
+    if (!this.hints.isEmpty()) {
       writer.getDialect().unparseTableScanHints(writer, this.hints, leftPrec, rightPrec);
     }
   }

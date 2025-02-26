@@ -18,13 +18,12 @@ package org.apache.calcite.adapter.elasticsearch;
 
 import org.apache.calcite.util.TestUtil;
 
-import com.google.common.base.Preconditions;
-
 import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.http.HttpInfo;
 import org.elasticsearch.node.InternalSettingsPreparer;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.node.NodeValidationException;
@@ -37,9 +36,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Objects;
+
+import static com.google.common.base.Preconditions.checkState;
 
 import static java.util.Collections.emptyMap;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Represents a single elastic search node which can run embedded in a java application.
@@ -49,10 +50,10 @@ import static java.util.Collections.emptyMap;
 class EmbeddedElasticsearchNode implements AutoCloseable {
 
   private final Node node;
-  private volatile boolean  isStarted;
+  private volatile boolean isStarted;
 
   private EmbeddedElasticsearchNode(Node node) {
-    this.node = Objects.requireNonNull(node, "node");
+    this.node = requireNonNull(node, "node");
   }
 
   /**
@@ -70,10 +71,13 @@ class EmbeddedElasticsearchNode implements AutoCloseable {
   }
 
   /**
-   * Creates elastic node as single member of a cluster. Node will not be started
-   * unless {@link #start()} is explicitly called.
-   * <p>Need {@code synchronized} because of static caches inside ES (which are not thread safe).
-   * @return instance which needs to be explicitly started (using {@link #start()})
+   * Creates elastic node as single member of a cluster. Node will not
+   * be started unless {@link #start()} is explicitly called.
+   *
+   * <p>Need {@code synchronized} because of static caches inside ES
+   * (which are not thread safe).
+   *
+   * @return instance; needs to be explicitly started using {@link #start()}
    */
   public static synchronized EmbeddedElasticsearchNode create() {
     File data;
@@ -103,7 +107,7 @@ class EmbeddedElasticsearchNode implements AutoCloseable {
 
   /** Starts the current node. */
   public void start() {
-    Preconditions.checkState(!isStarted, "already started");
+    checkState(!isStarted, "already started");
     try {
       node.start();
       this.isStarted = true;
@@ -114,10 +118,11 @@ class EmbeddedElasticsearchNode implements AutoCloseable {
 
   /**
    * Returns current address to connect to with HTTP client.
+   *
    * @return hostname/port for HTTP connection
    */
   public TransportAddress httpAddress() {
-    Preconditions.checkState(isStarted, "node is not started");
+    checkState(isStarted, "node is not started");
 
     NodesInfoResponse response =  client().admin().cluster().prepareNodesInfo()
         .execute().actionGet();
@@ -126,7 +131,8 @@ class EmbeddedElasticsearchNode implements AutoCloseable {
           + response.getNodes().size());
     }
     NodeInfo node = response.getNodes().get(0);
-    return node.getHttp().address().boundAddresses()[0];
+    HttpInfo httpInfo = node.getInfo(HttpInfo.class);
+    return httpInfo.address().boundAddresses()[0];
   }
 
   /**
@@ -137,14 +143,14 @@ class EmbeddedElasticsearchNode implements AutoCloseable {
    * @return current elastic search client
    */
   public Client client() {
-    Preconditions.checkState(isStarted, "node is not started");
+    checkState(isStarted, "node is not started");
     return node.client();
   }
 
   @Override public void close() throws Exception {
     node.close();
     // cleanup data dirs
-    for (String name: Arrays.asList("path.data", "path.home")) {
+    for (String name : Arrays.asList("path.data", "path.home")) {
       if (node.settings().get(name) != null) {
         File file = new File(node.settings().get(name));
         if (file.exists()) {

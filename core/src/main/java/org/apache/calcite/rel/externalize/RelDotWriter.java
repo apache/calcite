@@ -16,13 +16,10 @@
  */
 package org.apache.calcite.rel.externalize;
 
-import org.apache.calcite.plan.hep.HepRelVertex;
-import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.sql.SqlExplainLevel;
-import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -30,6 +27,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -42,6 +40,7 @@ import java.util.function.Predicate;
 /**
  * Utility to dump a rel node plan in dot format.
  */
+@Value.Enclosing
 public class RelDotWriter extends RelWriterImpl {
 
   //~ Instance fields --------------------------------------------------------
@@ -51,9 +50,9 @@ public class RelDotWriter extends RelWriterImpl {
    */
   private final Map<RelNode, List<RelNode>> outArcTable = new LinkedHashMap<>();
 
-  private Map<RelNode, String> nodeLabels = new HashMap<>();
+  private final Map<RelNode, String> nodeLabels = new HashMap<>();
 
-  private Multimap<RelNode, String> nodeStyles = HashMultimap.create();
+  private final Multimap<RelNode, String> nodeStyles = HashMultimap.create();
 
   private final WriteOption option;
 
@@ -164,16 +163,7 @@ public class RelDotWriter extends RelWriterImpl {
   }
 
   private static List<RelNode> getInputs(RelNode parent) {
-    return Util.transform(parent.getInputs(), child -> {
-      if (child instanceof HepRelVertex) {
-        return ((HepRelVertex) child).getCurrentRel();
-      } else if (child instanceof RelSubset) {
-        RelSubset subset = (RelSubset) child;
-        return subset.getBestOrOriginal();
-      } else {
-        return child;
-      }
-    });
+    return Util.transform(parent.getInputs(), RelNode::stripped);
   }
 
   private void explainInputs(List<? extends @Nullable RelNode> inputs) {
@@ -222,6 +212,7 @@ public class RelDotWriter extends RelWriterImpl {
 
   /**
    * Format the label into multiple lines according to the options.
+   *
    * @param label the original label.
    * @param limit the maximal length of the formatted label.
    *              -1 means no limit.
@@ -245,10 +236,9 @@ public class RelDotWriter extends RelWriterImpl {
     }
 
     List<String> descParts = new ArrayList<>();
-    for (int idx = 0; idx < label.length(); idx += option.maxNodeLabelPerLine()) {
-      int endIdx = idx + option.maxNodeLabelPerLine() > label.length() ? label.length()
-          : idx + option.maxNodeLabelPerLine();
-      descParts.add(label.substring(idx, endIdx));
+    for (int i = 0; i < label.length(); i += option.maxNodeLabelPerLine()) {
+      int endIdx = Math.min(i + option.maxNodeLabelPerLine(), label.length());
+      descParts.add(label.substring(i, endIdx));
     }
 
     return String.join("\\n", descParts) + (trimmed ? "..." : "");
@@ -262,32 +252,32 @@ public class RelDotWriter extends RelWriterImpl {
   /**
    * Options for displaying the rel node plan in dot format.
    */
+  @Value.Immutable
   public interface WriteOption {
 
     /** Default configuration. */
-    WriteOption DEFAULT = ImmutableBeans.create(WriteOption.class);
+    WriteOption DEFAULT = ImmutableRelDotWriter.WriteOption.of();
 
     /**
      * The max length of node labels.
      * If the label is too long, the visual display would be messy.
      * -1 means no limit to the label length.
      */
-    @ImmutableBeans.Property
-    @ImmutableBeans.IntDefault(100)
-    int maxNodeLabelLength();
+    @Value.Default default int maxNodeLabelLength() {
+      return 100;
+    }
 
     /**
      * The max length of node label in a line.
      * -1 means no limitation.
      */
-    @ImmutableBeans.Property
-    @ImmutableBeans.IntDefault(20)
-    int maxNodeLabelPerLine();
+    @Value.Default default int maxNodeLabelPerLine() {
+      return 20;
+    }
 
     /**
      * Predicate for nodes that need to be highlighted.
      */
-    @ImmutableBeans.Property
     @Nullable Predicate<RelNode> nodePredicate();
   }
 }

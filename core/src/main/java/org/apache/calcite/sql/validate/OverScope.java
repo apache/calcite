@@ -28,7 +28,7 @@ import java.util.List;
  * the parameters found on the left side of the over clause, and objects
  * inherited from the parent scope.
  *
- * <p>This object is both a {@link SqlValidatorScope} only. In the query</p>
+ * <p>This object is both a {@link SqlValidatorScope} only. In the query
  *
  * <blockquote>
  * <pre>SELECT name FROM (
@@ -40,7 +40,7 @@ import java.util.List;
  * </blockquote>
  *
  * <p>We need to use the {@link OverScope} as a {@link SqlValidatorNamespace}
- * when resolving names used in the window specification.</p>
+ * when resolving names used in the window specification.
  */
 public class OverScope extends ListScope {
   //~ Instance fields --------------------------------------------------------

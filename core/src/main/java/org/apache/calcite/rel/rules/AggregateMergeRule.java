@@ -30,6 +30,8 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
+import org.immutables.value.Value;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -47,6 +49,7 @@ import java.util.Map;
  *
  * @see CoreRules#AGGREGATE_MERGE
  */
+@Value.Enclosing
 public class AggregateMergeRule
     extends RelRule<AggregateMergeRule.Config>
     implements TransformationRule {
@@ -84,7 +87,7 @@ public class AggregateMergeRule
 
     final ImmutableBitSet bottomGroupSet = bottomAgg.getGroupSet();
     final Map<Integer, Integer> map = new HashMap<>();
-    bottomGroupSet.forEach(v -> map.put(map.size(), v));
+    bottomGroupSet.forEachInt(v -> map.put(map.size(), v));
     for (int k : topAgg.getGroupSet()) {
       if (!map.containsKey(k)) {
         return;
@@ -103,7 +106,7 @@ public class AggregateMergeRule
     final List<AggregateCall> finalCalls = new ArrayList<>();
     for (AggregateCall topCall : topAgg.getAggCallList()) {
       if (!isAggregateSupported(topCall)
-          || topCall.getArgList().size() == 0) {
+          || topCall.getArgList().isEmpty()) {
         return;
       }
       // Make sure top aggregate argument refers to one of the aggregate
@@ -149,8 +152,9 @@ public class AggregateMergeRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
+    Config DEFAULT = ImmutableAggregateMergeRule.Config.of()
         .withOperandSupplier(b0 ->
             b0.operand(Aggregate.class)
                 .oneInput(b1 ->

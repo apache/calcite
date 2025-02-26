@@ -20,6 +20,8 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import org.immutables.value.Value;
+
 /**
  * Rule to convert an
  * {@link org.apache.calcite.rel.logical.LogicalJoin inner join} to a
@@ -27,8 +29,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
  * {@link org.apache.calcite.rel.logical.LogicalJoin cartesian inner join}.
  *
  * <p>One benefit of this transformation is that after it, the join condition
- * can be combined with conditions and expressions above the join. It also makes
- * the <code>FennelCartesianJoinRule</code> applicable.
+ * can be combined with conditions and expressions above the join.
  *
  * <p>Can be configured to match any sub-class of
  * {@link org.apache.calcite.rel.core.Join}, not just
@@ -36,6 +37,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
  *
  * @see CoreRules#JOIN_EXTRACT_FILTER
  */
+@Value.Enclosing
 public final class JoinExtractFilterRule extends AbstractJoinExtractFilterRule {
 
   /** Creates a JoinExtractFilterRule. */
@@ -54,10 +56,10 @@ public final class JoinExtractFilterRule extends AbstractJoinExtractFilterRule {
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends AbstractJoinExtractFilterRule.Config {
-    Config DEFAULT = EMPTY
-        .withOperandSupplier(b -> b.operand(LogicalJoin.class).anyInputs())
-        .as(Config.class);
+    Config DEFAULT = ImmutableJoinExtractFilterRule.Config.of()
+        .withOperandSupplier(b -> b.operand(LogicalJoin.class).anyInputs());
 
     @Override default JoinExtractFilterRule toRule() {
       return new JoinExtractFilterRule(this);

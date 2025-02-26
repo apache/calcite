@@ -27,7 +27,6 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.PartiallyOrderedSet;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
@@ -56,6 +55,8 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.Predicate;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.profile.ProfilerImpl.CompositeCollector.OF;
@@ -96,8 +97,8 @@ public class ProfilerImpl implements Profiler {
    */
   ProfilerImpl(int combinationsPerPass,
       int interestingCount, Predicate<Pair<Space, Column>> predicate) {
-    Preconditions.checkArgument(combinationsPerPass > 2);
-    Preconditions.checkArgument(interestingCount > 2);
+    checkArgument(combinationsPerPass > 2);
+    checkArgument(interestingCount > 2);
     this.combinationsPerPass = combinationsPerPass;
     this.interestingCount = interestingCount;
     this.predicate = predicate;
@@ -189,8 +190,9 @@ public class ProfilerImpl implements Profiler {
       }
       // The surprise queue must have enough room for all singleton groups
       // plus all initial groups.
-      surprises = new SurpriseQueue(1 + columns.size() + initialGroups.size(),
-          interestingCount);
+      surprises =
+          new SurpriseQueue(1 + columns.size() + initialGroups.size(),
+              interestingCount);
     }
 
     Profile profile(Iterable<List<Comparable>> rows) {
@@ -421,8 +423,10 @@ public class ProfilerImpl implements Profiler {
         return rowCount;
       default:
         double c = rowCount;
-        List<ImmutableBitSet> parents = requireNonNull(keyPoset.getParents(columns, true),
-            () -> "keyPoset.getParents(columns, true) is null for " + columns);
+        List<ImmutableBitSet> parents =
+            requireNonNull(keyPoset.getParents(columns, true),
+                () -> "keyPoset.getParents(columns, true) is null for "
+                    + columns);
         for (ImmutableBitSet bitSet : parents) {
           if (bitSet.isEmpty()) {
             // If the parent is the empty group (i.e. "GROUP BY ()", the grand
@@ -431,11 +435,15 @@ public class ProfilerImpl implements Profiler {
           }
           final Distribution d1 = distributions.get(bitSet);
           final double c2 = cardinality(rowCount, columns.except(bitSet));
-          final double d = Lattice.getRowCount(rowCount, requireNonNull(d1, "d1").cardinality, c2);
+          final double d =
+              Lattice.getRowCount(rowCount,
+                  requireNonNull(d1, "d1").cardinality, c2);
           c = Math.min(c, d);
         }
-        List<ImmutableBitSet> children = requireNonNull(keyPoset.getChildren(columns, true),
-            () -> "keyPoset.getChildren(columns, true) is null for " + columns);
+        List<ImmutableBitSet> children =
+            requireNonNull(keyPoset.getChildren(columns, true),
+                () -> "keyPoset.getChildren(columns, true) is null for "
+                    + columns);
         for (ImmutableBitSet bitSet : children) {
           final Distribution d1 = distributions.get(bitSet);
           c = Math.min(c, requireNonNull(d1, "d1").cardinality);
@@ -763,8 +771,8 @@ public class ProfilerImpl implements Profiler {
     SurpriseQueue(int warmUpCount, int size) {
       this.warmUpCount = warmUpCount;
       this.size = size;
-      Preconditions.checkArgument(warmUpCount > 3);
-      Preconditions.checkArgument(size > 0);
+      checkArgument(warmUpCount > 3);
+      checkArgument(size > 0);
     }
 
     @Override public String toString() {

@@ -23,6 +23,8 @@ import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.hint.Hintable;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.metadata.RelColumnMapping;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
@@ -36,6 +38,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -50,7 +53,8 @@ import static java.util.Objects.requireNonNull;
  *
  * @see org.apache.calcite.rel.logical.LogicalTableFunctionScan
  */
-public abstract class TableFunctionScan extends AbstractRelNode {
+public abstract class TableFunctionScan extends AbstractRelNode
+    implements Hintable {
   //~ Instance fields --------------------------------------------------------
 
   private final RexNode rexCall;
@@ -61,7 +65,41 @@ public abstract class TableFunctionScan extends AbstractRelNode {
 
   protected final @Nullable ImmutableSet<RelColumnMapping> columnMappings;
 
+  protected final ImmutableList<RelHint> hints;
+
   //~ Constructors -----------------------------------------------------------
+
+  /**
+   * Creates a <code>TableFunctionScan</code>.
+   *
+   * @param cluster        Cluster that this relational expression belongs to
+   * @param inputs         0 or more relational inputs
+   * @param hints          hints of this node.
+   * @param traitSet       Trait set
+   * @param rexCall        Function invocation expression
+   * @param elementType    Element type of the collection that will implement
+   *                       this table
+   * @param rowType        Row type produced by function
+   * @param columnMappings Column mappings associated with this function
+   */
+  protected TableFunctionScan(
+      RelOptCluster cluster,
+      RelTraitSet traitSet,
+      List<RelHint> hints,
+      List<RelNode> inputs,
+      RexNode rexCall,
+      @Nullable Type elementType,
+      RelDataType rowType,
+      @Nullable Set<RelColumnMapping> columnMappings) {
+    super(cluster, traitSet);
+    this.rexCall = rexCall;
+    this.elementType = elementType;
+    this.rowType = rowType;
+    this.inputs = ImmutableList.copyOf(inputs);
+    this.columnMappings =
+        columnMappings == null ? null : ImmutableSet.copyOf(columnMappings);
+    this.hints = ImmutableList.copyOf(hints);
+  }
 
   /**
    * Creates a <code>TableFunctionScan</code>.
@@ -83,13 +121,8 @@ public abstract class TableFunctionScan extends AbstractRelNode {
       @Nullable Type elementType,
       RelDataType rowType,
       @Nullable Set<RelColumnMapping> columnMappings) {
-    super(cluster, traitSet);
-    this.rexCall = rexCall;
-    this.elementType = elementType;
-    this.rowType = rowType;
-    this.inputs = ImmutableList.copyOf(inputs);
-    this.columnMappings =
-        columnMappings == null ? null : ImmutableSet.copyOf(columnMappings);
+    this(cluster, traitSet, ImmutableList.of(), inputs, rexCall,
+        elementType, rowType, columnMappings);
   }
 
   /**
@@ -97,7 +130,8 @@ public abstract class TableFunctionScan extends AbstractRelNode {
    */
   protected TableFunctionScan(RelInput input) {
     this(
-        input.getCluster(), input.getTraitSet(), input.getInputs(),
+        input.getCluster(), input.getTraitSet(),
+        Collections.emptyList(), input.getInputs(),
         requireNonNull(input.getExpression("invocation"), "invocation"),
         (Type) input.get("elementType"),
         input.getRowType("rowType"),
@@ -160,7 +194,7 @@ public abstract class TableFunctionScan extends AbstractRelNode {
     // for a no-input UDX, behave like an AbstractRelNode; for a one-input
     // UDX, behave like a SingleRel; for a multi-input UDX, behave like
     // UNION ALL.  TODO jvs 10-Sep-2007: UDX-supplied costing metadata.
-    if (inputs.size() == 0) {
+    if (inputs.isEmpty()) {
       return super.estimateRowCount(mq);
     }
     double nRows = 0.0;
@@ -217,5 +251,9 @@ public abstract class TableFunctionScan extends AbstractRelNode {
    */
   public @Nullable Type getElementType() {
     return elementType;
+  }
+
+  @Override public ImmutableList<RelHint> getHints() {
+    return hints;
   }
 }

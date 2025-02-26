@@ -17,7 +17,6 @@
 package org.apache.calcite.runtime;
 
 import org.apache.calcite.DataContext;
-import org.apache.calcite.avatica.SqlType;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
@@ -68,8 +67,8 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
   private final Function1<ResultSet, Function0<T>> rowBuilderFactory;
   private final @Nullable PreparedStatementEnricher preparedStatementEnricher;
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(
-      ResultSetEnumerable.class);
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(ResultSetEnumerable.class);
 
   private @Nullable Long queryStart;
   private long timeout;
@@ -203,8 +202,7 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
   private static void setDynamicParam(PreparedStatement preparedStatement,
       int i, @Nullable Object value) throws SQLException {
     if (value == null) {
-      // TODO: use proper type instead of ANY
-      preparedStatement.setObject(i, null, SqlType.ANY.id);
+      preparedStatement.setNull(i, Types.NULL);
     } else if (value instanceof Timestamp) {
       preparedStatement.setTimestamp(i, (Timestamp) value);
     } else if (value instanceof Time) {

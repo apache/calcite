@@ -32,6 +32,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Utilities concerning {@link org.apache.calcite.rel.RelDistribution}.
  */
@@ -96,14 +98,14 @@ public class RelDistributions {
     private final ImmutableIntList keys;
 
     private RelDistributionImpl(Type type, ImmutableIntList keys) {
-      this.type = Objects.requireNonNull(type, "type");
+      this.type = requireNonNull(type, "type");
       this.keys = ImmutableIntList.copyOf(keys);
       assert type != Type.HASH_DISTRIBUTED
           || keys.size() < 2
           || Ordering.natural().isOrdered(keys)
           : "key columns of hash distribution must be in order";
       assert type == Type.HASH_DISTRIBUTED
-          || type == Type.RANDOM_DISTRIBUTED
+          || type == Type.RANGE_DISTRIBUTED
           || keys.isEmpty();
     }
 

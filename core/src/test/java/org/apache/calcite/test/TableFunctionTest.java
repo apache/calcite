@@ -18,6 +18,7 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
@@ -122,7 +123,7 @@ class TableFunctionTest {
           + "from (values (2), (4)) as t (x)";
       ResultSet resultSet = connection.createStatement().executeQuery(sql);
       assertThat(CalciteAssert.toString(resultSet),
-          equalTo("X=2; EXPR$1=0\nX=4; EXPR$1=0\n"));
+          equalTo("X=2; EXPR$1=null\nX=4; EXPR$1=null\n"));
     }
   }
 
@@ -451,8 +452,9 @@ class TableFunctionTest {
             while (r.next() && numbers.size() < 13) {
               numbers.add(r.getLong(1));
             }
-            assertThat(numbers.toString(),
-                is("[1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233]"));
+            final long[] expectedNumbers = {1, 1, 2, 3, 5, 8, 13, 21, 34, 55,
+                89, 144, 233};
+            assertThat(numbers, is(Primitive.asList(expectedNumbers)));
           } catch (SQLException e) {
             throw TestUtil.rethrow(e);
           }
@@ -480,7 +482,9 @@ class TableFunctionTest {
     final String q = "select \"N\" + 1 as c\n"
         + "from table(\"s\".\"fibonacci2\"(3))\n"
         + "group by \"N\"";
-    with().query(q).returnsUnordered("C=2\nC=3\nC=4");
+    with().query(q).returnsUnordered("C=2",
+        "C=3",
+        "C=4");
   }
 
   @Test void testCrossApply() {
@@ -545,6 +549,28 @@ class TableFunctionTest {
           + "F0=5; N=4; C=abcd\n"
           + "F0=5; N=4; C=abcd\n";
       assertThat(CalciteAssert.toString(resultSet), equalTo(expected));
+    }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4448">[CALCITE-4448]
+   * Use TableMacro user-defined table functions with QueryableTable</a>. */
+  @Test void testQueryableTableWithTableMacro() throws SQLException {
+    try (Connection connection =
+        DriverManager.getConnection("jdbc:calcite:")) {
+      CalciteConnection calciteConnection =
+          connection.unwrap(CalciteConnection.class);
+      SchemaPlus rootSchema = calciteConnection.getRootSchema();
+      SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
+      schema.add("simple", new Smalls.SimpleTableMacro());
+
+      String sql = "select * from table(\"s\".\"simple\"())";
+      ResultSet resultSet = connection.createStatement().executeQuery(sql);
+      String expected = "A=foo; B=5\n"
+          + "A=bar; B=4\n"
+          + "A=foo; B=3\n";
+      assertThat(CalciteAssert.toString(resultSet),
+          equalTo(expected));
     }
   }
 }

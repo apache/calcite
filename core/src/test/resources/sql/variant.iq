@@ -1,0 +1,202 @@
+# variant.iq - VARIANT type examples
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+# We don't really need scott, but we need to have a connection
+!use scott
+!set outputformat csv
+
+SELECT CAST(1 AS VARIANT) as C;
+C
+1
+!ok
+
+SELECT TYPEOF(CAST(1 AS VARIANT)) AS C;
+C
+INTEGER
+!ok
+
+SELECT CAST(CAST(1 AS TINYINT) AS VARIANT) AS C;
+C
+1
+!ok
+
+# The runtime knows that this is a TINYINT
+SELECT TYPEOF(CAST(CAST(1 AS TINYINT) AS VARIANT)) AS C;
+C
+TINYINT
+!ok
+
+# Converting something to VARIANT and back works
+SELECT CAST(CAST(1 AS VARIANT) AS INT) AS C;
+C
+1
+!ok
+
+# Variant converts between numeric types
+SELECT CAST(CAST(1 AS VARIANT) AS TINYINT) AS C;
+C
+1
+!ok
+
+# Some VARIANT objects when output receive double quotes
+select CAST('string' as VARIANT) as C;
+C
+"string"
+!ok
+
+# CHAR(3) values are represented as VARCHAR in variants
+SELECT CAST(CAST('abc' AS VARIANT) AS VARCHAR) AS C;
+C
+abc
+!ok
+
+# VARCHAR and CHAR(N) have the same underlying runtime type
+SELECT CAST(CAST('abc' AS VARIANT) AS CHAR(3)) AS C;
+C
+abc
+!ok
+
+# The value representing a VARIANT null value (think of a JSON null)
+SELECT VARIANTNULL() AS C;
+C
+null
+!ok
+
+# VARIANT null is not the same as SQL NULL
+SELECT VARIANTNULL() IS NULL AS C;
+C
+false
+!ok
+
+# Two VARIANT nulls are equal, unlike SQL NULL
+SELECT VARIANTNULL() = VARIANTNULL() AS C;
+C
+true
+!ok
+
+SELECT TYPEOF(VARIANTNULL()) AS C;
+C
+VARIANT
+!ok
+
+# Variants delegate equality to the underlying values
+SELECT CAST(1 AS VARIANT) = CAST(1 AS VARIANT) AS C;
+C
+true
+!ok
+
+# To be equal two variants must have the same value and the same runtime type
+SELECT CAST(1 AS VARIANT) = CAST(CAST(1 AS TINYINT) AS VARIANT) AS C;
+C
+false
+!ok
+
+# An array of variant values can have values with any underlying type
+SELECT ARRAY[CAST(1 AS VARIANT), CAST('abc' AS VARIANT)] AS C;
+C
+[1, "abc"]
+!ok
+
+# A map with VARCHAR keys and VARIANT values
+SELECT MAP['a', CAST(1 AS VARIANT), 'b', CAST('abc' AS VARIANT), 'c', CAST(ARRAY[1,2,3] AS VARIANT)] AS C;
+C
+{a=1, b="abc", c=[1, 2, 3]}
+!ok
+
+# Variant values allow access by index, but return null if they are not arrays
+SELECT (CAST(1 AS VARIANT))[1] AS C;
+C
+null
+!ok
+
+SELECT CAST(ARRAY[1,2,3] AS VARIANT)[1] AS C;
+C
+1
+!ok
+
+# Acessing items in a VARIANT array returns VARIANT values,
+# even if the array itself does not contain VARIANT values
+# (Otherwise TYPEOF would not compile)
+SELECT TYPEOF(CAST(ARRAY[1,2,3] AS VARIANT)[1]) AS C;
+C
+INTEGER
+!ok
+
+# One can access fields by name in a VARIANT, even if the
+# variant does not have named fields
+SELECT CAST(ARRAY[1,2,3] AS VARIANT)['name'] AS C;
+C
+null
+!ok
+
+# One can access fields by name in a VARIANT, even if the
+# variant does not have named fields
+SELECT CAST(ARRAY[1,2,3] AS VARIANT)."name" AS C;
+C
+null
+!ok
+
+# One can access fields by index in a VARIANT
+SELECT CAST(Map[1,'a',2,'b',3,'c'] AS VARIANT)[1] AS C;
+C
+"a"
+!ok
+
+SELECT TYPEOF(CAST(Map[1,'a',2,'b',3,'c'] AS VARIANT)[1]) AS C;
+C
+VARCHAR
+!ok
+
+# Note that field name is quoted to match the case of the key
+SELECT CAST(Map['a',1,'b',2,'c',3] AS VARIANT)."a" AS C;
+C
+1
+!ok
+
+# Unquoted field may not match, depending on dialect
+SELECT CAST(Map['a',1,'b',2,'c',3] AS VARIANT).a AS C;
+C
+null
+!ok
+
+# The safest way is to use an index
+SELECT CAST(Map['a',1,'b',2,'c',3] AS VARIANT)['a'] AS C;
+C
+1
+!ok
+
+# Maps can have variant keys too
+# (but you have to index with a variant).
+SELECT (Map[CAST('a' AS VARIANT), 1, CAST(1 AS VARIANT), 2])[CAST(1 AS VARIANT)] as C;
+C
+2
+!ok
+
+# Navigating a JSON-like object
+SELECT CAST(MAP['a', CAST(1 AS VARIANT), 'b', CAST('abc' AS VARIANT), 'c', CAST(ARRAY[1,2,3] AS VARIANT)]
+               ['c'][1] AS INTEGER) AS C;
+C
+1
+!ok
+
+SELECT CAST(UUID '123e4567-e89b-12d3-a456-426655440000' AS VARIANT) AS C;
+C
+123e4567-e89b-12d3-a456-426655440000
+!ok
+
+# End variant.iq

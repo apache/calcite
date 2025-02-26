@@ -43,6 +43,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Implementation of
  * {@link org.apache.calcite.rel.core.Aggregate} relational expression
@@ -64,8 +66,9 @@ public class ElasticsearchAggregate extends Aggregate implements ElasticsearchRe
     super(cluster, traitSet, ImmutableList.of(), input, groupSet, groupSets, aggCalls);
 
     if (getConvention() != input.getConvention()) {
-      String message = String.format(Locale.ROOT, "%s != %s", getConvention(),
-          input.getConvention());
+      String message =
+          String.format(Locale.ROOT, "%s != %s", getConvention(),
+              input.getConvention());
       throw new AssertionError(message);
     }
 
@@ -83,8 +86,10 @@ public class ElasticsearchAggregate extends Aggregate implements ElasticsearchRe
 
       final SqlKind kind = aggCall.getAggregation().getKind();
       if (!SUPPORTED_AGGREGATIONS.contains(kind)) {
-        final String message = String.format(Locale.ROOT,
-            "Aggregation %s not supported (use one of %s)", kind, SUPPORTED_AGGREGATIONS);
+        final String message =
+            String.format(Locale.ROOT,
+                "Aggregation %s not supported (use one of %s)", kind,
+                SUPPORTED_AGGREGATIONS);
         throw new InvalidRelException(message);
       }
     }
@@ -121,7 +126,8 @@ public class ElasticsearchAggregate extends Aggregate implements ElasticsearchRe
 
   @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
-    return super.computeSelfCost(planner, mq).multiplyBy(0.1);
+    final RelOptCost cost = requireNonNull(super.computeSelfCost(planner, mq));
+    return cost.multiplyBy(0.1);
   }
 
   @Override public void implement(Implementor implementor) {
@@ -141,7 +147,7 @@ public class ElasticsearchAggregate extends Aggregate implements ElasticsearchRe
       }
 
       final ObjectNode aggregation = mapper.createObjectNode();
-      final ObjectNode field = aggregation.with(toElasticAggregate(aggCall));
+      final ObjectNode field = aggregation.withObject("/" + toElasticAggregate(aggCall));
 
       final String name = names.isEmpty() ? ElasticsearchConstants.ID : names.get(0);
       field.put("field", implementor.expressionItemMap.getOrDefault(name, name));

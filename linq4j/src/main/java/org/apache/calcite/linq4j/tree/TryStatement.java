@@ -22,6 +22,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Represents a {@code try ... catch ... finally} block.
  */
@@ -33,8 +35,8 @@ public class TryStatement extends Statement {
   public TryStatement(Statement body, List<CatchBlock> catchBlocks,
       @Nullable Statement fynally) {
     super(ExpressionType.Try, body.getType());
-    this.body = Objects.requireNonNull(body, "body");
-    this.catchBlocks = Objects.requireNonNull(catchBlocks, "catchBlocks");
+    this.body = requireNonNull(body, "body");
+    this.catchBlocks = requireNonNull(catchBlocks, "catchBlocks");
     this.fynally = fynally;
   }
 
@@ -42,7 +44,7 @@ public class TryStatement extends Statement {
     shuttle = shuttle.preVisit(this);
     Statement body1 = body.accept(shuttle);
     List<CatchBlock> catchBlocks1 = new ArrayList<>();
-    for (CatchBlock cb: catchBlocks) {
+    for (CatchBlock cb : catchBlocks) {
       Statement cbBody = cb.body.accept(shuttle);
       catchBlocks1.add(
           Expressions.catch_(cb.parameter, cbBody));

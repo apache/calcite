@@ -19,9 +19,7 @@ package org.apache.calcite.sql.validate;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSelect;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
-import java.util.Objects;
+import static java.util.Objects.requireNonNull;
 
 /**
  * The name-resolution scope of a LATERAL TABLE clause.
@@ -42,8 +40,8 @@ class TableScope extends ListScope {
    * @param parent  Parent scope
    */
   TableScope(SqlValidatorScope parent, SqlNode node) {
-    super(Objects.requireNonNull(parent, "parent"));
-    this.node = Objects.requireNonNull(node, "node");
+    super(parent);
+    this.node = requireNonNull(node, "node");
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -52,7 +50,7 @@ class TableScope extends ListScope {
     return node;
   }
 
-  @Override public boolean isWithin(@Nullable SqlValidatorScope scope2) {
+  @Override public boolean isWithin(SqlValidatorScope scope2) {
     if (this == scope2) {
       return true;
     }

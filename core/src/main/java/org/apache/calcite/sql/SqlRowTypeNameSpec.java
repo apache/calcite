@@ -25,8 +25,9 @@ import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A sql type name specification of row type.
@@ -66,11 +67,9 @@ public class SqlRowTypeNameSpec extends SqlTypeNameSpec {
       List<SqlIdentifier> fieldNames,
       List<SqlDataTypeSpec> fieldTypes) {
     super(new SqlIdentifier(SqlTypeName.ROW.getName(), pos), pos);
-    Objects.requireNonNull(fieldNames, "fieldNames");
-    Objects.requireNonNull(fieldTypes, "fieldTypes");
-    assert fieldNames.size() > 0; // there must be at least one field.
-    this.fieldNames = fieldNames;
-    this.fieldTypes = fieldTypes;
+    this.fieldNames = requireNonNull(fieldNames, "fieldNames");
+    this.fieldTypes = requireNonNull(fieldTypes, "fieldTypes");
+    assert !fieldNames.isEmpty(); // there must be at least one field.
   }
 
   public List<SqlIdentifier> getFieldNames() {
@@ -106,21 +105,13 @@ public class SqlRowTypeNameSpec extends SqlTypeNameSpec {
       return litmus.fail("{} != {}", this, node);
     }
     SqlRowTypeNameSpec that = (SqlRowTypeNameSpec) node;
-    if (this.fieldNames.size() != that.fieldNames.size()) {
+    if (!SqlNode.equalDeep(this.fieldNames, that.fieldNames,
+        litmus.withMessageArgs("{} != {}", this, node))) {
       return litmus.fail("{} != {}", this, node);
     }
-    for (int i = 0; i < fieldNames.size(); i++) {
-      if (!this.fieldNames.get(i).equalsDeep(that.fieldNames.get(i), litmus)) {
-        return litmus.fail("{} != {}", this, node);
-      }
-    }
-    if (this.fieldTypes.size() != that.fieldTypes.size()) {
+    if (!SqlNode.equalDeep(this.fieldTypes, that.fieldTypes,
+        litmus.withMessageArgs("{} != {}", this, node))) {
       return litmus.fail("{} != {}", this, node);
-    }
-    for (int i = 0; i < fieldTypes.size(); i++) {
-      if (!this.fieldTypes.get(i).equals(that.fieldTypes.get(i))) {
-        return litmus.fail("{} != {}", this, node);
-      }
     }
     return litmus.succeed();
   }

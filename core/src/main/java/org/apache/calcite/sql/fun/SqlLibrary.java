@@ -18,16 +18,25 @@ package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.config.CalciteConnectionProperty;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Set;
+
+import static com.google.common.base.Preconditions.checkArgument;
+
+import static org.apache.calcite.util.Util.filter;
+import static org.apache.calcite.util.Util.first;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A library is a collection of SQL functions and operators.
@@ -47,12 +56,20 @@ public enum SqlLibrary {
   STANDARD("", "standard"),
   /** Geospatial operators. */
   SPATIAL("s", "spatial"),
+  /** A collection of operators that could be used in all libraries;
+   * does not include STANDARD and SPATIAL. */
+  ALL("*", "all"),
   /** A collection of operators that are in Google BigQuery but not in standard
    * SQL. */
   BIG_QUERY("b", "bigquery"),
+  /** Calcite-specific extensions. */
+  CALCITE("c", "calcite"),
   /** A collection of operators that are in Apache Hive but not in standard
    * SQL. */
   HIVE("h", "hive"),
+  /** A collection of operators that are in Microsoft SQL Server (MSSql) but not
+   * in standard SQL. */
+  MSSQL("q", "mssql"),
   /** A collection of operators that are in MySQL but not in standard SQL. */
   MYSQL("m", "mysql"),
   /** A collection of operators that are in Oracle but not in standard SQL. */
@@ -60,9 +77,22 @@ public enum SqlLibrary {
   /** A collection of operators that are in PostgreSQL but not in standard
    * SQL. */
   POSTGRESQL("p", "postgresql"),
+  /** A collection of operators that are in Redshift
+   * but not in standard SQL or PostgreSQL. */
+  REDSHIFT("r", "redshift", POSTGRESQL),
+  /** A collection of operators that are in Snowflake
+   * but not in standard SQL. */
+  SNOWFLAKE("f", "snowflake"),
   /** A collection of operators that are in Apache Spark but not in standard
    * SQL. */
   SPARK("s", "spark");
+
+  /** Map from {@link Enum#name() name} and {@link #fun} to library. */
+  public static final Map<String, SqlLibrary> MAP;
+
+  /** Map of libraries to the set of libraries whose {@link SqlLibrary#parent}
+   * link points to them. */
+  private static final Map<SqlLibrary, Set<SqlLibrary>> INHERITOR_MAP;
 
   /** Abbreviation for the library used in SQL reference. */
   public final String abbrev;
@@ -71,11 +101,38 @@ public enum SqlLibrary {
    * see {@link CalciteConnectionProperty#FUN}. */
   public final String fun;
 
+  /** The current library will by default inherit functions from parent. */
+  public final @Nullable SqlLibrary parent;
+
   SqlLibrary(String abbrev, String fun) {
-    this.abbrev = Objects.requireNonNull(abbrev, "abbrev");
-    this.fun = Objects.requireNonNull(fun, "fun");
-    Preconditions.checkArgument(
-        fun.equals(name().toLowerCase(Locale.ROOT).replace("_", "")));
+    this(abbrev, fun, null);
+  }
+
+  SqlLibrary(String abbrev, String fun, @Nullable SqlLibrary parent) {
+    this.abbrev = requireNonNull(abbrev, "abbrev");
+    this.fun = requireNonNull(fun, "fun");
+    this.parent = parent;
+    checkArgument(fun.equals(name().toLowerCase(Locale.ROOT).replace("_", "")));
+  }
+
+  @SuppressWarnings("SwitchStatementWithTooFewBranches")
+  public List<SqlLibrary> children() {
+    switch (this) {
+    case ALL:
+      return ImmutableList.of(BIG_QUERY, CALCITE, HIVE, MSSQL, MYSQL, ORACLE,
+          POSTGRESQL, REDSHIFT, SNOWFLAKE, SPARK);
+    default:
+      return ImmutableList.of();
+    }
+  }
+
+  /** Returns the libraries that inherit this library's functions,
+   * because their {@link #parent} field points to this.
+   *
+   * <p>For example, {@link #REDSHIFT} inherits from {@link #POSTGRESQL}.
+   * Never returns null. */
+  public Set<SqlLibrary> inheritors() {
+    return first(INHERITOR_MAP.get(this), ImmutableSet.of());
   }
 
   /** Looks up a value.
@@ -88,23 +145,72 @@ public enum SqlLibrary {
   /** Parses a comma-separated string such as "standard,oracle". */
   public static List<SqlLibrary> parse(String libraryNameList) {
     final ImmutableList.Builder<SqlLibrary> list = ImmutableList.builder();
-    for (String libraryName : libraryNameList.split(",")) {
-      SqlLibrary library = Objects.requireNonNull(
-          SqlLibrary.of(libraryName), () -> "library does not exist: " + libraryName);
-      list.add(library);
+    if (!libraryNameList.isEmpty()) {
+      for (String libraryName : libraryNameList.split(",")) {
+        @Nullable SqlLibrary library = SqlLibrary.of(libraryName);
+        if (library == null) {
+          throw new IllegalArgumentException("unknown library '" + libraryName
+              + "'");
+        }
+        list.add(library);
+      }
     }
     return list.build();
   }
 
-  public static final Map<String, SqlLibrary> MAP;
+  /** Expands libraries in place.
+   *
+   * <p>Preserves order, and ensures that no library occurs more than once. */
+  public static List<SqlLibrary> expand(
+      Iterable<? extends SqlLibrary> libraries) {
+    // LinkedHashSet ensures that libraries are added only once, and order is
+    // preserved.
+    final Set<SqlLibrary> set = new LinkedHashSet<>();
+    libraries.forEach(library -> addExpansion(set, library));
+    return ImmutableList.copyOf(set);
+  }
+
+  private static void addExpansion(Set<SqlLibrary> set, SqlLibrary library) {
+    if (set.add(library)) {
+      library.children().forEach(subLibrary -> addExpansion(set, subLibrary));
+    }
+  }
+
+  /** Expands libraries in place. If any library is a child of 'all', ensures
+   * that 'all' is in the list. */
+  public static List<SqlLibrary> expandUp(
+      Iterable<? extends SqlLibrary> libraries) {
+    // LinkedHashSet ensures that libraries are added only once, and order is
+    // preserved.
+    final Set<SqlLibrary> set = new LinkedHashSet<>();
+    libraries.forEach(library -> addParent(set, library));
+    return ImmutableList.copyOf(set);
+  }
+
+  private static void addParent(Set<SqlLibrary> set, SqlLibrary library) {
+    if (ALL.children().contains(library)) {
+      set.add(ALL);
+    }
+    set.add(library);
+  }
 
   static {
     final ImmutableMap.Builder<String, SqlLibrary> builder =
         ImmutableMap.builder();
-    for (SqlLibrary value : values()) {
-      builder.put(value.name(), value);
-      builder.put(value.fun, value);
+    final List<SqlLibrary> libraries = Arrays.asList(values());
+    for (SqlLibrary library : libraries) {
+      builder.put(library.name(), library);
+      builder.put(library.fun, library);
     }
     MAP = builder.build();
+    final ImmutableMap.Builder<SqlLibrary, Set<SqlLibrary>> map =
+        ImmutableMap.builder();
+    for (SqlLibrary library : libraries) {
+      map.put(library,
+          ImmutableSet.copyOf(
+              filter(libraries,
+                  inheritor -> inheritor.parent == library)));
+    }
+    INHERITOR_MAP = map.build();
   }
 }

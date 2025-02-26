@@ -15,13 +15,11 @@
  * limitations under the License.
  */
 package org.apache.calcite.util.graph;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
-import org.hamcrest.CoreMatchers;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -35,10 +33,12 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.hasToString;
+import static org.hamcrest.collection.IsIterableWithSize.iterableWithSize;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -60,23 +60,25 @@ class DirectedGraphTest {
     g.addEdge("C", "D");
     g.addEdge("E", "F");
     g.addEdge("C", "C");
-    assertEquals("[A, B, C, D]", shortestPath(g, "A", "D").toString());
+    assertThat(shortestPath(g, "A", "D"), hasToString("[A, B, C, D]"));
     g.addEdge("B", "D");
-    assertEquals("[A, B, D]", shortestPath(g, "A", "D").toString());
-    assertNull(shortestPath(g, "A", "E"), "There is no path from A to E");
-    assertEquals("[D]", shortestPath(g, "D", "D").toString());
-    assertNull(shortestPath(g, "X", "A"), "Node X is not in the graph");
-    assertEquals("[[A, B, D], [A, B, C, D]]", paths(g, "A", "D").toString());
+    assertThat(shortestPath(g, "A", "D"), hasToString("[A, B, D]"));
+    assertThat("There is no path from A to E",
+        shortestPath(g, "A", "E"), nullValue());
+    assertThat(shortestPath(g, "D", "D"), hasToString("[D]"));
+    assertThat("Node X is not in the graph",
+        shortestPath(g, "X", "A"), nullValue());
+    assertThat(paths(g, "A", "D"), hasToString("[[A, B, D], [A, B, C, D]]"));
   }
 
-  private <V> List<V> shortestPath(DirectedGraph<V, DefaultEdge> g,
+  private <V> @Nullable List<V> shortestPath(DirectedGraph<V, DefaultEdge> g,
       V source, V target) {
     List<List<V>> paths = Graphs.makeImmutable(g).getPaths(source, target);
     return paths.isEmpty() ? null : paths.get(0);
   }
 
-  private <V> List<V> shortestPath(Graphs.FrozenGraph<V, DefaultEdge> g,
-                                   V source, V target) {
+  private <V> @Nullable List<V> shortestPath(
+      Graphs.FrozenGraph<V, DefaultEdge> g, V source, V target) {
     List<List<V>> paths = g.getPaths(source, target);
     return paths.isEmpty() ? null : paths.get(0);
   }
@@ -105,7 +107,7 @@ class DirectedGraphTest {
     DefaultEdge x = g.addEdge("A", "B");
     assertNotNull(x);
     DefaultEdge x2 = g.addEdge("A", "B");
-    assertNull(x2);
+    assertThat(x2, nullValue());
     try {
       DefaultEdge x3 = g.addEdge("Z", "A");
       fail("expected exception, got " + x3);
@@ -116,7 +118,7 @@ class DirectedGraphTest {
     DefaultEdge x3 = g.addEdge("Z", "A");
     assertNotNull(x3);
     DefaultEdge x4 = g.addEdge("Z", "A");
-    assertNull(x4);
+    assertThat(x4, nullValue());
 
     // Attempting to add a vertex already present does not change the graph.
     final List<DefaultEdge> in1 = g.getInwardEdges("A");
@@ -125,49 +127,49 @@ class DirectedGraphTest {
     assertFalse(b3);
     final List<DefaultEdge> in2 = g.getInwardEdges("A");
     final List<DefaultEdge> out2 = g.getOutwardEdges("A");
-    assertEquals(in1, in2);
-    assertEquals(out1, out2);
+    assertThat(in1, is(in2));
+    assertThat(out1, is(out2));
   }
 
   /** Unit test for {@link DepthFirstIterator}. */
   @Test void testDepthFirst() {
     final DefaultDirectedGraph<String, DefaultEdge> graph = createDag();
-    final List<String> list = new ArrayList<String>();
+    final List<String> list = new ArrayList<>();
     for (String s : DepthFirstIterator.of(graph, "A")) {
       list.add(s);
     }
-    assertThat(list.toString(), equalTo("[A, B, C, D, E, C, D, F]"));
+    assertThat(list, hasToString("[A, B, C, D, E, C, D, F]"));
     list.clear();
     DepthFirstIterator.reachable(list, graph, "A");
-    assertThat(list.toString(), equalTo("[A, B, C, D, E, C, D, F]"));
+    assertThat(list, hasToString("[A, B, C, D, E, C, D, F]"));
   }
 
   /** Unit test for {@link DepthFirstIterator}. */
   @Test void testPredecessorList() {
     final DefaultDirectedGraph<String, DefaultEdge> graph = createDag();
     final List<String> list = Graphs.predecessorListOf(graph, "C");
-    assertEquals("[B, E]", list.toString());
+    assertThat(list, hasToString("[B, E]"));
   }
 
   /** Unit test for
    * {@link DefaultDirectedGraph#removeAllVertices(java.util.Collection)}. */
   @Test void testRemoveAllVertices() {
     final DefaultDirectedGraph<String, DefaultEdge> graph = createDag();
-    assertEquals(6, graph.edgeSet().size());
+    assertThat(graph.edgeSet(), hasSize(6));
     graph.removeAllVertices(Arrays.asList("B", "E"));
-    assertEquals("[A, C, D, F]", graph.vertexSet().toString());
-    assertEquals(1, graph.edgeSet().size());
-    assertEquals("[C -> D]", graph.edgeSet().toString());
+    assertThat(graph.vertexSet(), hasToString("[A, C, D, F]"));
+    assertThat(graph.edgeSet(), hasSize(1));
+    assertThat(graph.edgeSet(), hasToString("[C -> D]"));
   }
 
   /** Unit test for {@link TopologicalOrderIterator}. */
   @Test void testTopologicalOrderIterator() {
     final DefaultDirectedGraph<String, DefaultEdge> graph = createDag();
-    final List<String> list = new ArrayList<String>();
+    final List<String> list = new ArrayList<>();
     for (String s : TopologicalOrderIterator.of(graph)) {
       list.add(s);
     }
-    assertEquals("[A, B, E, C, F, D]", list.toString());
+    assertThat(list, hasToString("[A, B, E, C, F, D]"));
   }
 
   private DefaultDirectedGraph<String, DefaultEdge> createDag() {
@@ -227,28 +229,28 @@ class DirectedGraphTest {
     final DefaultDirectedGraph<String, DefaultEdge> graph = createDag1();
     final Graphs.FrozenGraph<String, DefaultEdge> frozenGraph =
         Graphs.makeImmutable(graph);
-    assertEquals("[A, B]", shortestPath(frozenGraph, "A", "B").toString());
-    assertEquals("[[A, B]]", frozenGraph.getPaths("A", "B").toString());
-    assertEquals("[A, D, E]", shortestPath(frozenGraph, "A", "E").toString());
-    assertEquals("[[A, D, E], [A, B, C, E]]",
-        frozenGraph.getPaths("A", "E").toString());
-    assertNull(shortestPath(frozenGraph, "B", "A"));
+    assertThat(shortestPath(frozenGraph, "A", "B"), hasToString("[A, B]"));
+    assertThat(frozenGraph.getPaths("A", "B"), hasToString("[[A, B]]"));
+    assertThat(shortestPath(frozenGraph, "A", "E"), hasToString("[A, D, E]"));
+    assertThat(frozenGraph.getPaths("A", "E"),
+        hasToString("[[A, D, E], [A, B, C, E]]"));
+    assertThat(shortestPath(frozenGraph, "B", "A"), nullValue());
 
-    assertNull(shortestPath(frozenGraph, "D", "C"));
-    assertEquals("[[D, E]]", frozenGraph.getPaths("D", "E").toString());
-    assertEquals("[D, E]", shortestPath(frozenGraph, "D", "E").toString());
+    assertThat(shortestPath(frozenGraph, "D", "C"), nullValue());
+    assertThat(frozenGraph.getPaths("D", "E"), hasToString("[[D, E]]"));
+    assertThat(shortestPath(frozenGraph, "D", "E"), hasToString("[D, E]"));
   }
 
   @Test void testDistances() {
     final DefaultDirectedGraph<String, DefaultEdge> graph = createDag1();
     final Graphs.FrozenGraph<String, DefaultEdge> frozenGraph =
         Graphs.makeImmutable(graph);
-    assertEquals(1, frozenGraph.getShortestDistance("A", "B"));
-    assertEquals(2, frozenGraph.getShortestDistance("A", "E"));
-    assertEquals(-1, frozenGraph.getShortestDistance("B", "A"));
-    assertEquals(-1, frozenGraph.getShortestDistance("D", "C"));
-    assertEquals(1, frozenGraph.getShortestDistance("D", "E"));
-    assertEquals(0, frozenGraph.getShortestDistance("B", "B"));
+    assertThat(frozenGraph.getShortestDistance("A", "B"), is(1));
+    assertThat(frozenGraph.getShortestDistance("A", "E"), is(2));
+    assertThat(frozenGraph.getShortestDistance("B", "A"), is(-1));
+    assertThat(frozenGraph.getShortestDistance("D", "C"), is(-1));
+    assertThat(frozenGraph.getShortestDistance("D", "E"), is(1));
+    assertThat(frozenGraph.getShortestDistance("B", "B"), is(0));
   }
 
   /** Unit test for {@link org.apache.calcite.util.graph.CycleDetector}. */
@@ -257,8 +259,7 @@ class DirectedGraphTest {
     //  \     /
     //   +- E - F
     DefaultDirectedGraph<String, DefaultEdge> graph = createDag();
-    assertThat(new CycleDetector<String, DefaultEdge>(graph).findCycles(),
-        CoreMatchers.equalTo(ImmutableSet.of()));
+    assertThat(new CycleDetector<>(graph).findCycles(), empty());
 
     // Add cycle C-D-E-C
     //
@@ -268,9 +269,8 @@ class DirectedGraphTest {
     //      ^      /
     //      \_____/
     graph.addEdge("D", "E");
-    assertThat(new CycleDetector<String, DefaultEdge>(graph).findCycles(),
-        CoreMatchers.equalTo(
-            ImmutableSet.of("C", "D", "E", "F")));
+    assertThat(new CycleDetector<>(graph).findCycles(),
+        is(ImmutableSet.of("C", "D", "E", "F")));
 
     // Add another cycle, D-C-D in addition to C-D-E-C.
     //           __
@@ -281,9 +281,8 @@ class DirectedGraphTest {
     //      ^      /
     //      \_____/
     graph.addEdge("D", "C");
-    assertThat(new CycleDetector<String, DefaultEdge>(graph).findCycles(),
-        CoreMatchers.equalTo(
-            ImmutableSet.of("C", "D", "E", "F")));
+    assertThat(new CycleDetector<>(graph).findCycles(),
+        is(ImmutableSet.of("C", "D", "E", "F")));
 
     graph.removeEdge("D", "E");
     graph.removeEdge("D", "C");
@@ -298,9 +297,8 @@ class DirectedGraphTest {
     //
     // Detected cycle contains "D", which is downstream from the cycle but not
     // in the cycle. Not sure whether that is correct.
-    assertThat(new CycleDetector<String, DefaultEdge>(graph).findCycles(),
-        CoreMatchers.equalTo(
-            ImmutableSet.of("B", "C", "D")));
+    assertThat(new CycleDetector<>(graph).findCycles(),
+        is(ImmutableSet.of("B", "C", "D")));
 
     // Add single-node cycle, C-C
     //
@@ -311,14 +309,13 @@ class DirectedGraphTest {
     //   +- E - F
     graph.removeEdge("C", "B");
     graph.addEdge("C", "C");
-    assertThat(new CycleDetector<String, DefaultEdge>(graph).findCycles(),
-        CoreMatchers.equalTo(
-            ImmutableSet.of("C", "D")));
+    assertThat(new CycleDetector<>(graph).findCycles(),
+        is(ImmutableSet.of("C", "D")));
 
     // Empty graph is not cyclic.
     graph.removeAllVertices(graph.vertexSet());
-    assertThat(new CycleDetector<String, DefaultEdge>(graph).findCycles(),
-        CoreMatchers.equalTo(ImmutableSet.of()));
+    assertThat(new CycleDetector<>(graph).findCycles(),
+        is(ImmutableSet.of()));
   }
 
   /** Unit test for
@@ -333,7 +330,7 @@ class DirectedGraphTest {
 
   private List<String> getA(DefaultDirectedGraph<String, DefaultEdge> graph,
       String root) {
-    final List<String> list = new ArrayList<String>();
+    final List<String> list = new ArrayList<>();
     for (String s : BreadthFirstIterator.of(graph, root)) {
       list.add(s);
     }
@@ -342,7 +339,7 @@ class DirectedGraphTest {
 
   private Set<String> getB(DefaultDirectedGraph<String, DefaultEdge> graph,
       String root) {
-    final Set<String> list = new LinkedHashSet<String>();
+    final Set<String> list = new LinkedHashSet<>();
     BreadthFirstIterator.reachable(list, graph, root);
     return list;
   }
@@ -362,31 +359,33 @@ class DirectedGraphTest {
     g.addEdge("C", "D", 1);
     g.addEdge("E", "F", 1);
     g.addEdge("C", "C", 1);
-    assertEquals("[A, B, C, D]", shortestPath(g, "A", "D").toString());
+    assertThat(shortestPath(g, "A", "D"), hasToString("[A, B, C, D]"));
     g.addEdge("B", "D", 1);
-    assertEquals("[A, B, D]", shortestPath(g, "A", "D").toString());
-    assertNull(shortestPath(g, "A", "E"), "There is no path from A to E");
-    assertEquals("[D]", shortestPath(g, "D", "D").toString());
-    assertNull(shortestPath(g, "X", "A"), "Node X is not in the graph");
-    assertEquals("[[A, B, D], [A, B, C, D]]", paths(g, "A", "D").toString());
+    assertThat(shortestPath(g, "A", "D"), hasToString("[A, B, D]"));
+    assertThat("There is no path from A to E", shortestPath(g, "A", "E"),
+        nullValue());
+    assertThat(shortestPath(g, "D", "D"), hasToString("[D]"));
+    assertThat("Node X is not in the graph", shortestPath(g, "X", "A"),
+        nullValue());
+    assertThat(paths(g, "A", "D"), hasToString("[[A, B, D], [A, B, C, D]]"));
     assertThat(g.addVertex("B"), is(false));
 
-    assertThat(Iterables.size(g.getEdges("A", "B")), is(1));
+    assertThat(g.getEdges("A", "B"), iterableWithSize(1));
     assertThat(g.addEdge("A", "B", 1), nullValue());
-    assertThat(Iterables.size(g.getEdges("A", "B")), is(1));
+    assertThat(g.getEdges("A", "B"), iterableWithSize(1));
     assertThat(g.addEdge("A", "B", 2), notNullValue());
-    assertThat(Iterables.size(g.getEdges("A", "B")), is(2));
+    assertThat(g.getEdges("A", "B"), iterableWithSize(2));
   }
 
   @Test void testToString() {
     DefaultDirectedGraph<String, DefaultEdge> g = createDag();
-    assertThat(
-        g.toString(), is("graph(vertices: [A, B, C, D, E, F], "
+    assertThat(g,
+        hasToString("graph(vertices: [A, B, C, D, E, F], "
             + "edges: [A -> B, A -> E, B -> C, C -> D, E -> C, E -> F])"));
 
     DefaultDirectedGraph<String, DefaultEdge> g1 = createDag1();
-    assertThat(
-        g1.toString(), is("graph(vertices: [A, B, C, D, E, F], "
+    assertThat(g1,
+        hasToString("graph(vertices: [A, B, C, D, E, F], "
             + "edges: [A -> B, A -> D, B -> C, C -> E, D -> E])"));
   }
 

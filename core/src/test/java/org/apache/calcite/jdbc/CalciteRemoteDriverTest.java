@@ -28,15 +28,16 @@ import org.apache.calcite.avatica.server.Main;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.JdbcFrontLinqBackTest;
-import org.apache.calcite.test.JdbcTest;
+import org.apache.calcite.test.schemata.hr.Employee;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import org.hamcrest.CoreMatchers;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
@@ -73,7 +74,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.function.Function;
+
+import static org.apache.calcite.test.Matchers.primitiveArrayWithSize;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -83,10 +85,21 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Test for Calcite's remote JDBC driver.
- * Technically speaking, the test is thread safe, however Caclite/Avatica have thread-safety issues
- * see https://issues.apache.org/jira/browse/CALCITE-2853.
+ *
+ * <p>Technically, the test is thread-safe, however Calcite/Avatica have
+ * thread-safety issues; see
+ * <a href="https://issues.apache.org/jira/browse/CALCITE-2853">
+ * [CALCITE-2853] avatica.MetaImpl and calcite.jdbc.CalciteMetaImpl are not
+ * thread-safe</a>.
+ *
+ * <p>Under JDK 23 and higher, this test requires
+ * "{@code -Djava.security.manager=allow}" command-line arguments due to
+ * Avatica's use of deprecated methods in {@link javax.security.auth.Subject}.
+ * These arguments are set automatically if you run via Gradle.
  */
 @Execution(ExecutionMode.SAME_THREAD)
 class CalciteRemoteDriverTest {
@@ -96,71 +109,19 @@ class CalciteRemoteDriverTest {
       CalciteSystemProperty.DEBUG.value() ? Util.printWriter(System.out)
           : new PrintWriter(new StringWriter());
 
-  private static final CalciteAssert.ConnectionFactory REMOTE_CONNECTION_FACTORY =
-      new CalciteAssert.ConnectionFactory() {
-        public Connection createConnection() throws SQLException {
-          return getRemoteConnection();
-        }
-      };
-
-  private static final Function<Connection, ResultSet> GET_SCHEMAS =
-      connection -> {
-        try {
-          return connection.getMetaData().getSchemas();
-        } catch (SQLException e) {
-          throw TestUtil.rethrow(e);
-        }
-      };
-
-  private static final Function<Connection, ResultSet> GET_CATALOGS =
-      connection -> {
-        try {
-          return connection.getMetaData().getCatalogs();
-        } catch (SQLException e) {
-          throw TestUtil.rethrow(e);
-        }
-      };
-
-  private static final Function<Connection, ResultSet> GET_COLUMNS =
-      connection -> {
-        try {
-          return connection.getMetaData().getColumns(null, null, null, null);
-        } catch (SQLException e) {
-          throw TestUtil.rethrow(e);
-        }
-      };
-
-  private static final Function<Connection, ResultSet> GET_TYPEINFO =
-      connection -> {
-        try {
-          return connection.getMetaData().getTypeInfo();
-        } catch (SQLException e) {
-          throw TestUtil.rethrow(e);
-        }
-      };
-
-  private static final Function<Connection, ResultSet> GET_TABLE_TYPES =
-      connection -> {
-        try {
-          return connection.getMetaData().getTableTypes();
-        } catch (SQLException e) {
-          throw TestUtil.rethrow(e);
-        }
-      };
-
-  private static Connection localConnection;
-  private static HttpServer start;
+  private static @Nullable Connection localConnection;
+  private static @Nullable HttpServer start;
 
   @BeforeAll public static void beforeClass() throws Exception {
     localConnection = CalciteAssert.hr().connect();
 
     // Make sure we pick an ephemeral port for the server
-    start = Main.start(new String[]{Factory.class.getName()}, 0,
-        AvaticaJsonHandler::new);
+    final String[] args = {Factory.class.getName()};
+    start = Main.start(args, 0, AvaticaJsonHandler::new);
   }
 
   protected static Connection getRemoteConnection() throws SQLException {
-    final int port = start.getPort();
+    final int port = requireNonNull(start, "start").getPort();
     return DriverManager.getConnection(
         "jdbc:avatica:remote:url=http://localhost:" + port);
   }
@@ -176,9 +137,57 @@ class CalciteRemoteDriverTest {
     }
   }
 
+  private static ResultSet getSchemas(Connection connection) {
+    try {
+      return connection.getMetaData().getSchemas();
+    } catch (SQLException e) {
+      throw TestUtil.rethrow(e);
+    }
+  }
+
+  private static ResultSet getCatalogs(Connection connection) {
+    try {
+      return connection.getMetaData().getCatalogs();
+    } catch (SQLException e) {
+      throw TestUtil.rethrow(e);
+    }
+  }
+
+  private static ResultSet getColumns(Connection connection) {
+    try {
+      return connection.getMetaData().getColumns(null, null, null, null);
+    } catch (SQLException e) {
+      throw TestUtil.rethrow(e);
+    }
+  }
+
+  private static ResultSet getTables(Connection connection) {
+    try {
+      return connection.getMetaData().getTables(null, null, null, null);
+    } catch (SQLException e) {
+      throw TestUtil.rethrow(e);
+    }
+  }
+
+  private static ResultSet getTypeInfo(Connection connection) {
+    try {
+      return connection.getMetaData().getTypeInfo();
+    } catch (SQLException e) {
+      throw TestUtil.rethrow(e);
+    }
+  }
+
+  private static ResultSet getTableTypes(Connection connection) {
+    try {
+      return connection.getMetaData().getTableTypes();
+    } catch (SQLException e) {
+      throw TestUtil.rethrow(e);
+    }
+  }
+
   @Test void testCatalogsLocal() throws Exception {
-    final Connection connection = DriverManager.getConnection(
-        "jdbc:avatica:remote:factory=" + LJS);
+    final Connection connection =
+        DriverManager.getConnection("jdbc:avatica:remote:factory=" + LJS);
     assertThat(connection.isClosed(), is(false));
     final ResultSet resultSet = connection.getMetaData().getCatalogs();
     final ResultSetMetaData metaData = resultSet.getMetaData();
@@ -192,8 +201,8 @@ class CalciteRemoteDriverTest {
   }
 
   @Test void testSchemasLocal() throws Exception {
-    final Connection connection = DriverManager.getConnection(
-        "jdbc:avatica:remote:factory=" + LJS);
+    final Connection connection =
+        DriverManager.getConnection("jdbc:avatica:remote:factory=" + LJS);
     assertThat(connection.isClosed(), is(false));
     final ResultSet resultSet = connection.getMetaData().getSchemas();
     final ResultSetMetaData metaData = resultSet.getMetaData();
@@ -202,10 +211,10 @@ class CalciteRemoteDriverTest {
     assertThat(metaData.getColumnName(2), is("TABLE_CATALOG"));
     assertThat(resultSet.next(), is(true));
     assertThat(resultSet.getString(1), equalTo("POST"));
-    assertThat(resultSet.getString(2), CoreMatchers.nullValue());
+    assertThat(resultSet.getString(2), nullValue());
     assertThat(resultSet.next(), is(true));
     assertThat(resultSet.getString(1), equalTo("foodmart"));
-    assertThat(resultSet.getString(2), CoreMatchers.nullValue());
+    assertThat(resultSet.getString(2), nullValue());
     assertThat(resultSet.next(), is(true));
     assertThat(resultSet.next(), is(true));
     assertThat(resultSet.next(), is(false));
@@ -226,7 +235,7 @@ class CalciteRemoteDriverTest {
         break;
       case GET_SYSTEM_FUNCTIONS:
         assertThat(connection.getMetaData().getSystemFunctions(),
-            CoreMatchers.notNullValue());
+            notNullValue());
         break;
       case GET_TIME_DATE_FUNCTIONS:
         assertThat(connection.getMetaData().getTimeDateFunctions(),
@@ -247,43 +256,91 @@ class CalciteRemoteDriverTest {
     assertThat(connection.isClosed(), is(true));
   }
 
-  @Test void testRemoteCatalogs() throws Exception {
-    CalciteAssert.hr().with(REMOTE_CONNECTION_FACTORY)
-        .metaData(GET_CATALOGS)
+  @Test void testMeasureColumnsLocal() throws Exception {
+    final Connection connection = makeConnectionWithMeasures();
+    assertThat(connection.isClosed(), is(false));
+    final ResultSet resultSet =
+        connection.getMetaData().getColumns(null, "foo", null, "salary");
+    assertThat(resultSet.getMetaData().getColumnCount(), is(24));
+    final int typeNameIdx = resultSet.findColumn("TYPE_NAME");
+    final int dataTypeIdx = resultSet.findColumn("DATA_TYPE");
+    assertThat(resultSet.next(), is(true));
+    assertThat(resultSet.getString(typeNameIdx),
+        is("MEASURE<FLOAT NOT NULL> NOT NULL"));
+    assertThat(resultSet.getInt(dataTypeIdx), is(6));
+  }
+
+  @Test void testRemoteCatalogs() {
+    CalciteAssert.hr()
+        .with(CalciteRemoteDriverTest::getRemoteConnection)
+        .metaData(CalciteRemoteDriverTest::getCatalogs)
         .returns("TABLE_CAT=null\n");
   }
 
-  @Test void testRemoteSchemas() throws Exception {
-    CalciteAssert.hr().with(REMOTE_CONNECTION_FACTORY)
-        .metaData(GET_SCHEMAS)
+  @Test void testRemoteSchemas() {
+    CalciteAssert.hr()
+        .with(CalciteRemoteDriverTest::getRemoteConnection)
+        .metaData(CalciteRemoteDriverTest::getSchemas)
         .returns("TABLE_SCHEM=POST; TABLE_CATALOG=null\n"
             + "TABLE_SCHEM=foodmart; TABLE_CATALOG=null\n"
             + "TABLE_SCHEM=hr; TABLE_CATALOG=null\n"
             + "TABLE_SCHEM=metadata; TABLE_CATALOG=null\n");
   }
 
-  @Test void testRemoteColumns() throws Exception {
-    CalciteAssert.hr().with(REMOTE_CONNECTION_FACTORY)
-        .metaData(GET_COLUMNS)
-        .returns(CalciteAssert.checkResultContains("COLUMN_NAME=EMPNO"));
+  /** Checks that the default {@code getColumns()} response
+   * contains the 24 standard columns specified in the JDBC specification
+   * and in the correct order. */
+  @Test void testRemoteColumns() {
+    CalciteAssert.hr()
+        .with(CalciteRemoteDriverTest::getRemoteConnection)
+        .metaData(CalciteRemoteDriverTest::getColumns)
+        .returns(
+            CalciteAssert.checkResultContains("TABLE_CAT=null; "
+                + "TABLE_SCHEM=POST; TABLE_NAME=EMPS; COLUMN_NAME=EMPNO; "
+                + "DATA_TYPE=4; TYPE_NAME=INTEGER NOT NULL; COLUMN_SIZE=-1; "
+                + "BUFFER_LENGTH=null; DECIMAL_DIGITS=null; NUM_PREC_RADIX=10; "
+                + "NULLABLE=0; REMARKS=null; COLUMN_DEF=null; "
+                + "SQL_DATA_TYPE=null; SQL_DATETIME_SUB=null; "
+                + "CHAR_OCTET_LENGTH=-1; ORDINAL_POSITION=1; IS_NULLABLE=NO; "
+                + "SCOPE_CATALOG=null; SCOPE_SCHEMA=null; SCOPE_TABLE=null; "
+                + "SOURCE_DATA_TYPE=null; IS_AUTOINCREMENT=; "
+                + "IS_GENERATEDCOLUMN="));
+  }
+
+  /** Checks that the default {@code getTables()} response contains the 10
+   * standard columns specified in the JDBC specification and in the correct
+   * order. */
+  @Test void testRemoteTables() {
+    CalciteAssert.hr()
+        .with(CalciteRemoteDriverTest::getRemoteConnection)
+        .metaData(CalciteRemoteDriverTest::getTables)
+        .returns(
+            CalciteAssert.checkResultContains("TABLE_CAT=null; "
+                + "TABLE_SCHEM=POST; TABLE_NAME=DEPT; TABLE_TYPE=VIEW; "
+                + "REMARKS=null; TYPE_CAT=null; TYPE_SCHEM=null; "
+                + "TYPE_NAME=null; SELF_REFERENCING_COL_NAME=null; "
+                + "REF_GENERATION=null"));
   }
 
   @Test void testRemoteTypeInfo() {
     // TypeInfo does not include internal types (NULL, SYMBOL, ANY, etc.)
-    CalciteAssert.hr().with(REMOTE_CONNECTION_FACTORY)
-        .metaData(GET_TYPEINFO)
-        .returns(CalciteAssert.checkResultCount(is(41)));
+    CalciteAssert.hr()
+        .with(CalciteRemoteDriverTest::getRemoteConnection)
+        .metaData(CalciteRemoteDriverTest::getTypeInfo)
+        .returns(CalciteAssert.checkResultCount(is(45)));
   }
 
-  @Test void testRemoteTableTypes() throws Exception {
-    CalciteAssert.hr().with(REMOTE_CONNECTION_FACTORY)
-        .metaData(GET_TABLE_TYPES)
+  @Test void testRemoteTableTypes() {
+    CalciteAssert.hr()
+        .with(CalciteRemoteDriverTest::getRemoteConnection)
+        .metaData(CalciteRemoteDriverTest::getTableTypes)
         .returns("TABLE_TYPE=TABLE\n"
             + "TABLE_TYPE=VIEW\n");
   }
 
-  @Test void testRemoteExecuteQuery() throws Exception {
-    CalciteAssert.hr().with(REMOTE_CONNECTION_FACTORY)
+  @Test void testRemoteExecuteQuery() {
+    CalciteAssert.hr()
+        .with(CalciteRemoteDriverTest::getRemoteConnection)
         .query("values (1, 'a'), (cast(null as integer), 'b')")
         .returnsUnordered("EXPR$0=1; EXPR$1=a", "EXPR$0=null; EXPR$1=b");
   }
@@ -506,8 +563,8 @@ class CalciteRemoteDriverTest {
     try (Connection remoteConnection = getRemoteConnection()) {
       Statement statement = remoteConnection.createStatement();
       statement.setMaxRows(2);
-      ResultSet resultSet = statement.executeQuery(
-          "select * from \"hr\".\"emps\"");
+      ResultSet resultSet =
+          statement.executeQuery("select * from \"hr\".\"emps\"");
       int count = 0;
       while (resultSet.next()) {
         ++count;
@@ -532,13 +589,23 @@ class CalciteRemoteDriverTest {
     }
   }
 
-  public static Connection makeConnection() throws Exception {
-    List<JdbcTest.Employee> employees = new ArrayList<JdbcTest.Employee>();
+  public static Connection makeConnection(boolean withMeasures)
+      throws Exception {
+    List<Employee> employees = new ArrayList<>();
     for (int i = 1; i <= 101; i++) {
-      employees.add(new JdbcTest.Employee(i, 0, "first", 0f, null));
+      employees.add(new Employee(i, 0, "first", 0f, null));
     }
-    Connection conn = JdbcFrontLinqBackTest.makeConnection(employees);
-    return conn;
+    return JdbcFrontLinqBackTest.makeConnection(employees, withMeasures);
+  }
+
+  /** Creates a connection without measures. */
+  public static Connection makeConnection() throws Exception {
+    return makeConnection(false);
+  }
+
+  /** Creates a connection with measures. */
+  public static Connection makeConnectionWithMeasures() throws Exception {
+    return makeConnection(true);
   }
 
   @Test void testLocalStatementFetch() throws Exception {
@@ -553,6 +620,20 @@ class CalciteRemoteDriverTest {
       count += 1;
     }
     assertThat(count, is(101));
+  }
+
+  @Disabled("Cannot yet execute query with virtual measures")
+  @Test void testLocalStatementResultSetMeasureMetadata() throws Exception {
+    Connection conn = makeConnectionWithMeasures();
+    String sql = "select * from \"foo\".\"bar\"";
+    Statement statement = conn.createStatement();
+    boolean status = statement.execute(sql);
+    assertThat(status, is(true));
+    ResultSet resultSet = statement.getResultSet();
+    String typeName = resultSet.getMetaData().getColumnTypeName(4);
+    Integer ordinal = resultSet.getMetaData().getColumnType(4);
+    assertThat(typeName, is("MEASURE<FLOAT>"));
+    assertThat(ordinal, is(6));
   }
 
   /** Test that returns all result sets in one go. */
@@ -575,8 +656,9 @@ class CalciteRemoteDriverTest {
   }
 
   @Test void testRemoteStatementFetch() throws Exception {
-    final Connection connection = DriverManager.getConnection(
-        "jdbc:avatica:remote:factory=" + LocalServiceMoreFactory.class.getName());
+    final Connection connection =
+        DriverManager.getConnection("jdbc:avatica:remote:factory="
+            + LocalServiceMoreFactory.class.getName());
     String sql = "select * from \"foo\".\"bar\"";
     Statement statement = connection.createStatement();
     boolean status = statement.execute(sql);
@@ -590,8 +672,9 @@ class CalciteRemoteDriverTest {
   }
 
   @Test void testRemotePreparedStatementFetch() throws Exception {
-    final Connection connection = DriverManager.getConnection(
-        "jdbc:avatica:remote:factory=" + LocalServiceMoreFactory.class.getName());
+    final Connection connection =
+        DriverManager.getConnection("jdbc:avatica:remote:factory="
+            + LocalServiceMoreFactory.class.getName());
     assertThat(connection.isClosed(), is(false));
 
     String sql = "select * from \"foo\".\"bar\"";
@@ -617,7 +700,7 @@ class CalciteRemoteDriverTest {
       try {
         Connection conn = makeConnection();
         final CalciteMetaImpl meta =
-            new CalciteMetaImpl(conn.unwrap(CalciteConnectionImpl.class));
+            CalciteMetaImpl.create(conn.unwrap(CalciteConnection.class));
         return new LocalService(meta);
       } catch (Exception e) {
         throw TestUtil.rethrow(e);
@@ -650,7 +733,8 @@ class CalciteRemoteDriverTest {
           (double) Integer.MIN_VALUE, (double) Integer.MAX_VALUE,
           // BigDecimal
           BigDecimal.ZERO, BigDecimal.ONE, BigDecimal.valueOf(2.5D),
-          BigDecimal.valueOf(Double.MAX_VALUE),
+          // Next one causes problems for most types
+          // BigDecimal.valueOf(Double.MAX_VALUE),
           BigDecimal.valueOf(Long.MIN_VALUE),
           // datetime
           new Timestamp(0),
@@ -774,7 +858,7 @@ class CalciteRemoteDriverTest {
     public Meta create(List<String> args) {
       try {
         final Connection connection = CalciteAssert.hr().connect();
-        return new CalciteMetaImpl((CalciteConnectionImpl) connection);
+        return CalciteMetaImpl.create((CalciteConnection) connection);
       } catch (Exception e) {
         throw TestUtil.rethrow(e);
       }
@@ -801,8 +885,7 @@ class CalciteRemoteDriverTest {
       try {
         Connection conn = JdbcFrontLinqBackTest.makeConnection();
         final CalciteMetaImpl meta =
-            new CalciteMetaImpl(
-                conn.unwrap(CalciteConnectionImpl.class));
+            CalciteMetaImpl.create(conn.unwrap(CalciteConnection.class));
         return new LocalService(meta);
       } catch (Exception e) {
         throw TestUtil.rethrow(e);
@@ -812,8 +895,8 @@ class CalciteRemoteDriverTest {
 
   /** Test remote Statement insert. */
   @Test void testInsert() throws Exception {
-    final Connection connection = DriverManager.getConnection(
-        "jdbc:avatica:remote:factory="
+    final Connection connection =
+        DriverManager.getConnection("jdbc:avatica:remote:factory="
             + LocalServiceModifiableFactory.class.getName());
     assertThat(connection.isClosed(), is(false));
     Statement statement = connection.createStatement();
@@ -831,8 +914,8 @@ class CalciteRemoteDriverTest {
 
   /** Test remote Statement batched insert. */
   @Test void testInsertBatch() throws Exception {
-    final Connection connection = DriverManager.getConnection(
-        "jdbc:avatica:remote:factory="
+    final Connection connection =
+        DriverManager.getConnection("jdbc:avatica:remote:factory="
             + LocalServiceModifiableFactory.class.getName());
     assertThat(connection.getMetaData().supportsBatchUpdates(), is(true));
     assertThat(connection.isClosed(), is(false));
@@ -843,7 +926,7 @@ class CalciteRemoteDriverTest {
     statement.addBatch(sql);
     statement.addBatch(sql);
     int[] updateCounts = statement.executeBatch();
-    assertThat(updateCounts.length, is(2));
+    assertThat(updateCounts, primitiveArrayWithSize(2));
     assertThat(updateCounts[0], is(1));
     assertThat(updateCounts[1], is(1));
     ResultSet resultSet = statement.getResultSet();
@@ -852,7 +935,7 @@ class CalciteRemoteDriverTest {
     // Now empty batch
     statement.clearBatch();
     updateCounts = statement.executeBatch();
-    assertThat(updateCounts.length, is(0));
+    assertThat(updateCounts, primitiveArrayWithSize(0));
     resultSet = statement.getResultSet();
     assertThat(resultSet, nullValue());
 
@@ -863,8 +946,8 @@ class CalciteRemoteDriverTest {
    * Remote PreparedStatement insert WITHOUT bind variables.
    */
   @Test void testRemotePreparedStatementInsert() throws Exception {
-    final Connection connection = DriverManager.getConnection(
-        "jdbc:avatica:remote:factory="
+    final Connection connection =
+        DriverManager.getConnection("jdbc:avatica:remote:factory="
             + LocalServiceModifiableFactory.class.getName());
     assertThat(connection.isClosed(), is(false));
 
@@ -880,9 +963,38 @@ class CalciteRemoteDriverTest {
     assertThat(updateCount, is(1));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3338">[CALCITE-3338]
+   * Error with executeBatch and preparedStatement when using RemoteMeta</a>. */
+  @Test void testInsertBatchWithPreparedStatement() throws Exception {
+    final Connection connection =
+        DriverManager.getConnection("jdbc:avatica:remote:factory="
+            + LocalServiceModifiableFactory.class.getName());
+
+    PreparedStatement pst =
+        connection.prepareStatement("insert into \"foo\".\"bar\"\n"
+            + "values (?, ?, ?, ?, ?)");
+    pst.setInt(1, 1);
+    pst.setInt(2, 1);
+    pst.setString(3, "second");
+    pst.setInt(4, 1);
+    pst.setInt(5, 1);
+    pst.addBatch();
+    pst.addBatch();
+
+    int[] updateCounts = pst.executeBatch();
+    assertThat(updateCounts, primitiveArrayWithSize(2));
+    assertThat(updateCounts[0], is(1));
+    assertThat(updateCounts[1], is(1));
+    ResultSet resultSet = pst.getResultSet();
+    assertThat(resultSet, nullValue());
+
+    connection.close();
+  }
+
   /**
    * Remote PreparedStatement insert WITH bind variables.
    */
-  @Test void testRemotePreparedStatementInsert2() throws Exception {
+  @Test void testRemotePreparedStatementInsert2() {
   }
 }

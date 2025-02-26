@@ -313,7 +313,8 @@ public abstract class Mappings {
    * {@code mapping.getTarget(source)} and {@code list.size()} is
    * {@code mapping.getSourceCount()}.
    *
-   * <p>Converse of {@link #target(List, int)}</p>
+   * <p>Converse of {@link #target(List, int)}.
+   *
    * @see #asListNonNull(TargetMapping)
    */
   @CheckReturnValue
@@ -335,9 +336,10 @@ public abstract class Mappings {
    * {@code mapping.getTarget(source)} and {@code list.size()} is
    * {@code mapping.getSourceCount()}.
    *
-   * <p>The resulting list never contains null elements</p>
+   * <p>The resulting list never contains null elements.
    *
-   * <p>Converse of {@link #target(List, int)}</p>
+   * <p>Converse of {@link #target(List, int)}.
+   *
    * @see #asList(TargetMapping)
    */
   @CheckReturnValue
@@ -423,7 +425,7 @@ public abstract class Mappings {
 
   /** Creates a bijection.
    *
-   * <p>Throws if sources and targets are not one to one.</p> */
+   * <p>Throws if sources and targets are not one to one. */
   public static Mapping bijection(List<Integer> targets) {
     return new Permutation(Ints.toArray(targets));
   }
@@ -481,14 +483,14 @@ public abstract class Mappings {
   /**
    * Creates a mapping that consists of a set of contiguous ranges.
    *
-   * <p>For example,</p>
+   * <p>For example,
    *
    * <blockquote><pre>createShiftMapping(60,
    *     100, 0, 3,
    *     200, 50, 5);
    * </pre></blockquote>
    *
-   * <p>creates</p>
+   * <p>creates
    *
    * <table>
    * <caption>Example mapping</caption>
@@ -526,8 +528,8 @@ public abstract class Mappings {
     final TargetMapping mapping =
         create(
             MappingType.INVERSE_SURJECTION,
-            sourceCount, // aCount + bCount + cCount,
-            targetCount); // cCount + bCount
+            sourceCount,
+            targetCount);
 
     for (int i = 0; i < ints.length; i += 3) {
       final int target = ints[i];
@@ -545,7 +547,7 @@ public abstract class Mappings {
   /**
    * Creates a mapping by appending two mappings.
    *
-   * <p>Sources and targets of the second mapping are shifted to the right.</p>
+   * <p>Sources and targets of the second mapping are shifted to the right.
    *
    * <p>For example, <pre>append({0:0, 1:1}, {0:0, 1:1, 2:2})</pre> yields
    * <pre>{0:0, 1:1, 2:2, 3:3, 4:4}</pre>.
@@ -1348,8 +1350,7 @@ public abstract class Mappings {
       }
 
       private void advance(
-          @UnknownInitialization MappingItr this
-      ) {
+          @UnknownInitialization MappingItr this) {
         do {
           ++i;
         } while (i < targets.length && targets[i] == -1);
@@ -1559,7 +1560,7 @@ public abstract class Mappings {
 
     @Override public Mapping inverse() {
       return new OverridingTargetMapping(
-          (TargetMapping) parent.inverse(),
+          parent.inverse(),
           target,
           source);
     }
@@ -1859,5 +1860,36 @@ public abstract class Mappings {
     @Override public void set(int source, int target) {
       parent.set(target, source);
     }
+  }
+
+  /**
+   * Concatenates multiple mappings.
+   *
+   * <pre>
+   * [ 1:0, 2:1] // sourceCount:100
+   * [ 1:0, 2:1] // sourceCount:100
+   * output:
+   * [ 1:0, 2:1, 101:2, 102:3 ] ; sourceCount:200
+   * </pre>
+   */
+  public static Mapping concatenateMappings(List<Mapping> inputMappings) {
+    int fieldCount = 0;
+    int newFieldCount = 0;
+    for (Mapping inputMapping : inputMappings) {
+      fieldCount += inputMapping.getSourceCount();
+      newFieldCount += inputMapping.getTargetCount();
+    }
+    Mapping mapping =
+        create(MappingType.INVERSE_SURJECTION, fieldCount, newFieldCount);
+    int offset = 0;
+    int newOffset = 0;
+    for (Mapping inputMapping : inputMappings) {
+      for (IntPair pair : inputMapping) {
+        mapping.set(pair.source + offset, pair.target + newOffset);
+      }
+      offset += inputMapping.getSourceCount();
+      newOffset += inputMapping.getTargetCount();
+    }
+    return mapping;
   }
 }

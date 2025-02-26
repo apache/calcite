@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.config.NullCollation;
+import org.apache.calcite.rel.type.DelegatingTypeSystem;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexCall;
@@ -43,6 +44,8 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.util.format.FormatModel;
+import org.apache.calcite.util.format.FormatModels;
 
 import com.google.common.collect.ImmutableList;
 
@@ -53,6 +56,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
+import static java.lang.Long.parseLong;
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -72,6 +76,15 @@ public class BigQuerySqlDialect extends SqlDialect {
       .withCaseSensitive(false);
 
   public static final SqlDialect DEFAULT = new BigQuerySqlDialect(DEFAULT_CONTEXT);
+
+  // The BigQuery type system differs from the DEFAULT type system in this respect,
+  // as evidenced by tests in big-query.iq
+  public static final RelDataTypeSystem TYPE_SYSTEM =
+      new DelegatingTypeSystem(RelDataTypeSystem.DEFAULT) {
+    @Override public boolean shouldConvertRaggedUnionTypesToVarying() {
+      return true;
+    }
+  };
 
   private static final List<String> RESERVED_KEYWORDS =
       ImmutableList.copyOf(
@@ -106,15 +119,18 @@ public class BigQuerySqlDialect extends SqlDialect {
         || RESERVED_KEYWORDS.contains(val.toUpperCase(Locale.ROOT));
   }
 
-  @Override public @Nullable SqlNode emulateNullDirection(SqlNode node,
-      boolean nullsFirst, boolean desc) {
-    return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
-  }
-
   @Override public boolean supportsImplicitTypeCoercion(RexCall call) {
     return super.supportsImplicitTypeCoercion(call)
             && RexUtil.isLiteral(call.getOperands().get(0), false)
             && !SqlTypeUtil.isNumeric(call.type);
+  }
+
+  @Override public RelDataTypeSystem getTypeSystem() {
+    return TYPE_SYSTEM;
+  }
+
+  @Override public boolean supportsApproxCountDistinct() {
+    return true;
   }
 
   @Override public boolean supportsNestedAggregations() {
@@ -144,13 +160,35 @@ public class BigQuerySqlDialect extends SqlDialect {
       final int rightPrec) {
     switch (call.getKind()) {
     case POSITION:
-      final SqlWriter.Frame frame = writer.startFunCall("STRPOS");
-      writer.sep(",");
-      call.operand(1).unparse(writer, leftPrec, rightPrec);
-      writer.sep(",");
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      if (3 == call.operandCount()) {
-        throw new RuntimeException("3rd operand Not Supported for Function STRPOS in Big Query");
+      final SqlWriter.Frame frame = writer.startFunCall("INSTR");
+      switch (call.operandCount()) {
+      case 2:
+        writer.sep(",");
+        call.operand(1).unparse(writer, leftPrec, rightPrec);
+        writer.sep(",");
+        call.operand(0).unparse(writer, leftPrec, rightPrec);
+        break;
+      case 3:
+        writer.sep(",");
+        call.operand(1).unparse(writer, leftPrec, rightPrec);
+        writer.sep(",");
+        call.operand(0).unparse(writer, leftPrec, rightPrec);
+        writer.sep(",");
+        call.operand(2).unparse(writer, leftPrec, rightPrec);
+        break;
+      case 4:
+        writer.sep(",");
+        call.operand(1).unparse(writer, leftPrec, rightPrec);
+        writer.sep(",");
+        call.operand(0).unparse(writer, leftPrec, rightPrec);
+        writer.sep(",");
+        call.operand(2).unparse(writer, leftPrec, rightPrec);
+        writer.sep(",");
+        call.operand(3).unparse(writer, leftPrec, rightPrec);
+        break;
+      default:
+        throw new RuntimeException("BigQuery does not support " + call.operandCount()
+            + " operands in the position function");
       }
       writer.endFunCall(frame);
       break;
@@ -179,6 +217,18 @@ public class BigQuerySqlDialect extends SqlDialect {
     case TRIM:
       unparseTrim(writer, call, leftPrec, rightPrec);
       break;
+    case ITEM:
+      if (call.getOperator().getName().equals("ITEM")) {
+        throw new RuntimeException("BigQuery requires an array subscript operator"
+            + " to index an array");
+      }
+      unparseItem(writer, call, leftPrec);
+      break;
+    case OVER:
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.keyword("OVER");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -194,7 +244,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       writer.print("-");
     }
     try {
-      Long.parseLong(interval.getIntervalLiteral());
+      parseLong(interval.getIntervalLiteral());
     } catch (NumberFormatException e) {
       throw new RuntimeException("Only INT64 is supported as the interval value for BigQuery.");
     }
@@ -216,7 +266,7 @@ public class BigQuerySqlDialect extends SqlDialect {
   /**
    * For usage of TRIM, LTRIM and RTRIM in BQ see
    * <a href="https://cloud.google.com/bigquery/docs/reference/standard-sql/functions-and-operators#trim">
-   *  BQ Trim Function</a>.
+   * BQ Trim Function</a>.
    */
   private static void unparseTrim(SqlWriter writer, SqlCall call, int leftPrec,
       int rightPrec) {
@@ -248,6 +298,20 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.endFunCall(trimFrame);
   }
 
+  /** When indexing an array in BigQuery, an array subscript operator must
+   * surround the desired index. For the standard ITEM operator used by other
+   * dialects in Calcite, ITEM is not included in the unparsing. This helper
+   * ensures that the operator is preserved when being unparsed. */
+  private static void unparseItem(SqlWriter writer, SqlCall call, int leftPrec) {
+    String operatorName = call.getOperator().getName();
+    call.operand(0).unparse(writer, leftPrec, 0);
+    final SqlWriter.Frame frame = writer.startList("[", "]");
+    final SqlWriter.Frame subscriptFrame = writer.startFunCall(operatorName);
+    call.operand(1).unparse(writer, 0, 0);
+    writer.endFunCall(subscriptFrame);
+    writer.endList(frame);
+  }
+
   private static TimeUnit validate(TimeUnit timeUnit) {
     switch (timeUnit) {
     case MICROSECOND:
@@ -265,6 +329,15 @@ public class BigQuerySqlDialect extends SqlDialect {
     default:
       throw new RuntimeException("Time unit " + timeUnit + " is not supported for BigQuery.");
     }
+  }
+
+  /**
+   * {@inheritDoc}
+   *
+   * @see FormatModels#BIG_QUERY
+   */
+  @Override public FormatModel getFormatModel() {
+    return FormatModels.BIG_QUERY;
   }
 
   /** {@inheritDoc}
@@ -287,6 +360,8 @@ public class BigQuerySqlDialect extends SqlDialect {
       case FLOAT:
       case DOUBLE:
         return createSqlDataTypeSpecByName("FLOAT64", typeName);
+      case REAL:
+        return createSqlDataTypeSpecByName("FLOAT32", typeName);
       case DECIMAL:
         return createSqlDataTypeSpecByName("NUMERIC", typeName);
       case BOOLEAN:
@@ -312,16 +387,16 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private static SqlDataTypeSpec createSqlDataTypeSpecByName(String typeAlias,
       SqlTypeName typeName) {
-    SqlAlienSystemTypeNameSpec typeNameSpec = new SqlAlienSystemTypeNameSpec(
-        typeAlias, typeName, SqlParserPos.ZERO);
+    SqlAlienSystemTypeNameSpec typeNameSpec =
+        new SqlAlienSystemTypeNameSpec(typeAlias, typeName, SqlParserPos.ZERO);
     return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
   }
 
   /**
    * List of BigQuery Specific Operators needed to form Syntactically Correct SQL.
    */
-  private static final SqlOperator UNION_DISTINCT = new SqlSetOperator(
-      "UNION DISTINCT", SqlKind.UNION, 14, false);
+  private static final SqlOperator UNION_DISTINCT =
+      new SqlSetOperator("UNION DISTINCT", SqlKind.UNION, 14, false);
 
   private static final SqlSetOperator EXCEPT_DISTINCT =
       new SqlSetOperator("EXCEPT DISTINCT", SqlKind.EXCEPT, 14, false);

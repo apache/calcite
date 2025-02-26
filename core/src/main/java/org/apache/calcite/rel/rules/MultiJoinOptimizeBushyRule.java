@@ -39,16 +39,18 @@ import org.apache.calcite.util.mapping.Mappings;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Objects;
 
 import static org.apache.calcite.rel.rules.LoptMultiJoin.Edge;
 import static org.apache.calcite.util.mapping.Mappings.TargetMapping;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Planner rule that finds an approximately optimal ordering for join operators
@@ -73,6 +75,7 @@ import static org.apache.calcite.util.mapping.Mappings.TargetMapping;
  *
  * @see CoreRules#MULTI_JOIN_OPTIMIZE_BUSHY
  */
+@Value.Enclosing
 public class MultiJoinOptimizeBushyRule
     extends RelRule<MultiJoinOptimizeBushyRule.Config>
     implements TransformationRule {
@@ -105,6 +108,17 @@ public class MultiJoinOptimizeBushyRule
     final RelMetadataQuery mq = call.getMetadataQuery();
 
     final LoptMultiJoin multiJoin = new LoptMultiJoin(multiJoinRel);
+    for (int i = 0; i < multiJoin.getNumJoinFactors(); i++) {
+      ImmutableBitSet outerJoinFactors = multiJoin.getOuterJoinFactors(i);
+      if (outerJoinFactors == null) {
+        continue;
+      }
+      if (!outerJoinFactors.isEmpty()) {
+        // Refuse to apply this rule to a multijoin with outer joins,
+        // since this rule cannot handle outer joins.
+        return;
+      }
+    }
 
     final List<Vertex> vertexes = new ArrayList<>();
     int x = 0;
@@ -318,9 +332,9 @@ public class MultiJoinOptimizeBushyRule
   /** Returns the index within a list at which compares least according to a
    * comparator.
    *
-   * <p>In the case of a tie, returns the earliest such element.</p>
+   * <p>In the case of a tie, returns the earliest such element.
    *
-   * <p>If the list is empty, returns -1.</p>
+   * <p>If the list is empty, returns -1.
    */
   static <E> int minPos(List<E> list, Comparator<E> fn) {
     if (list.isEmpty()) {
@@ -385,7 +399,7 @@ public class MultiJoinOptimizeBushyRule
       super(id, factors, cost);
       this.leftFactor = leftFactor;
       this.rightFactor = rightFactor;
-      this.conditions = Objects.requireNonNull(conditions, "conditions");
+      this.conditions = requireNonNull(conditions, "conditions");
     }
 
     @Override public String toString() {
@@ -399,10 +413,10 @@ public class MultiJoinOptimizeBushyRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
-        .withOperandSupplier(b -> b.operand(MultiJoin.class).anyInputs())
-        .as(Config.class);
+    Config DEFAULT = ImmutableMultiJoinOptimizeBushyRule.Config.of()
+        .withOperandSupplier(b -> b.operand(MultiJoin.class).anyInputs());
 
     @Override default MultiJoinOptimizeBushyRule toRule() {
       return new MultiJoinOptimizeBushyRule(this);

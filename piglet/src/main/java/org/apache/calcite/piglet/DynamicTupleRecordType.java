@@ -23,6 +23,8 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static java.lang.Integer.parseInt;
+
 /**
  * Represents Pig Tuples with unknown fields. The tuple field
  * can only be accessed via name '$index', like ('$0', '$1').
@@ -62,12 +64,13 @@ public class DynamicTupleRecordType extends DynamicRecordTypeImpl {
 
   /**
    * Gets index number from field name.
+   *
    * @param fieldName Field name, format example '$1'
    */
   private static int nameToIndex(String fieldName) {
     Matcher matcher = INDEX_PATTERN.matcher(fieldName);
     if (matcher.find()) {
-      return Integer.parseInt(matcher.group(1));
+      return parseInt(matcher.group(1));
     }
     return -1;
   }

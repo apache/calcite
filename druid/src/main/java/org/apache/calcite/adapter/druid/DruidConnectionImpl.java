@@ -38,6 +38,7 @@ import com.fasterxml.jackson.databind.type.CollectionType;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.joda.time.Interval;
 
 import java.io.ByteArrayInputStream;
@@ -52,7 +53,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -62,6 +62,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static org.apache.calcite.runtime.HttpUtils.post;
 import static org.apache.calcite.util.DateTimeStringUtils.ISO_DATETIME_FRACTIONAL_SECOND_FORMAT;
 import static org.apache.calcite.util.DateTimeStringUtils.getDateFormatter;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of {@link DruidConnection}.
@@ -81,8 +83,8 @@ class DruidConnectionImpl implements DruidConnection {
   }
 
   DruidConnectionImpl(String url, String coordinatorUrl) {
-    this.url = Objects.requireNonNull(url, "url");
-    this.coordinatorUrl = Objects.requireNonNull(coordinatorUrl, "coordinatorUrl");
+    this.url = requireNonNull(url, "url");
+    this.coordinatorUrl = requireNonNull(coordinatorUrl, "coordinatorUrl");
   }
 
   /** Executes a query request.
@@ -457,7 +459,7 @@ class DruidConnectionImpl implements DruidConnection {
     expect(parser.nextToken(), token);
   }
 
-  private static void expect(JsonToken token, JsonToken expected) throws IOException {
+  private static void expect(JsonToken token, JsonToken expected) {
     if (token != expected) {
       throw new RuntimeException("expected " + expected + ", got " + token);
     }
@@ -499,7 +501,7 @@ class DruidConnectionImpl implements DruidConnection {
   }
 
   @SuppressWarnings("JavaUtilDate")
-  private static Long extractTimestampField(JsonParser parser)
+  private static @Nullable Long extractTimestampField(JsonParser parser)
       throws IOException {
     expect(parser, JsonToken.FIELD_NAME);
     if (!parser.getCurrentName().equals(DEFAULT_RESPONSE_TIMESTAMP_COLUMN)) {
@@ -715,7 +717,7 @@ class DruidConnectionImpl implements DruidConnection {
 
   /** Progress through a large fetch. */
   static class Page {
-    String pagingIdentifier = null;
+    @Nullable String pagingIdentifier;
     int offset = -1;
     int totalRowCount = 0;
 

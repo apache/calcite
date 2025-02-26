@@ -30,6 +30,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.TimeZone;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * DruidSqlOperatorConverter implementation that handles Ceil operations
  * conversions.
@@ -43,10 +45,8 @@ public class CeilOperatorConversion implements DruidSqlOperatorConverter {
       DruidQuery query) {
     final RexCall call = (RexCall) rexNode;
     final RexNode arg = call.getOperands().get(0);
-    final String druidExpression = DruidExpressions.toDruidExpression(
-        arg,
-        rowType,
-        query);
+    final String druidExpression =
+        DruidExpressions.toDruidExpression(arg, rowType, query);
     if (druidExpression == null) {
       return null;
     } else if (call.getOperands().size() == 1) {
@@ -55,7 +55,8 @@ public class CeilOperatorConversion implements DruidSqlOperatorConverter {
     } else if (call.getOperands().size() == 2) {
       // CEIL(expr TO timeUnit)
       final RexLiteral flag = (RexLiteral) call.getOperands().get(1);
-      final TimeUnitRange timeUnit = (TimeUnitRange) flag.getValue();
+      final TimeUnitRange timeUnit =
+          requireNonNull((TimeUnitRange) flag.getValue());
       final Granularity.Type type = DruidDateTimeUtils.toDruidGranularity(timeUnit);
       if (type == null) {
         // Unknown Granularity bail out

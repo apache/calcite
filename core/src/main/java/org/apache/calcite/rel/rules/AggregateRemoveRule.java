@@ -29,9 +29,13 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlSplittableAggFunction;
+import org.apache.calcite.sql.SqlSingletonAggFunction;
+import org.apache.calcite.sql.SqlStaticAggFunction;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -46,6 +50,7 @@ import java.util.List;
  *
  * @see CoreRules#AGGREGATE_REMOVE
  */
+@Value.Enclosing
 public class AggregateRemoveRule
     extends RelRule<AggregateRemoveRule.Config>
     implements SubstitutionRule {
@@ -75,17 +80,31 @@ public class AggregateRemoveRule
       return false;
     }
     // If any aggregate functions do not support splitting, bail out.
-    for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
-      if (aggregateCall.filterArg >= 0
-          || !aggregateCall.getAggregation()
-              .maybeUnwrap(SqlSplittableAggFunction.class).isPresent()) {
-        return false;
-      }
-    }
-    return true;
+    return aggregate.getAggCallList().stream()
+        .allMatch(AggregateRemoveRule::canFlatten);
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  /** Returns whether an aggregate call can be converted to a single-row
+   * expression.
+   *
+   * <p>For example, 'SUM(x)' can be converted to 'x' if we know that each
+   * group contains only one row. */
+  static boolean canFlatten(AggregateCall aggregateCall) {
+    return aggregateCall.filterArg < 0
+        && (aggregateCall.getAggregation()
+                .maybeUnwrap(SqlSingletonAggFunction.class).isPresent()
+            || aggregateCall.getAggregation()
+                .maybeUnwrap(SqlStaticAggFunction.class).isPresent());
+  }
+
+  /** As {@link #canFlatten}, but only allows static aggregate functions. */
+  public static boolean canFlattenStatic(AggregateCall aggregateCall) {
+    return aggregateCall.filterArg < 0
+        && aggregateCall.getAggregation()
+            .maybeUnwrap(SqlStaticAggFunction.class).isPresent();
+  }
 
   @Override public void onMatch(RelOptRuleCall call) {
     final Aggregate aggregate = call.rel(0);
@@ -106,16 +125,30 @@ public class AggregateRemoveRule
         // function to SUM0 and COUNT.
         return;
       }
-      final SqlSplittableAggFunction splitter =
-          aggregation.unwrapOrThrow(SqlSplittableAggFunction.class);
+      final @Nullable SqlStaticAggFunction staticAggFunction =
+          aggregation.unwrap(SqlStaticAggFunction.class);
+      if (staticAggFunction != null) {
+        final RexNode constant =
+            staticAggFunction.constant(rexBuilder,
+                aggregate.getGroupSet(), aggregate.groupSets, aggCall);
+        if (constant != null) {
+          final RexNode cast =
+              rexBuilder.ensureType(aggCall.getParserPosition(), aggCall.type, constant, false);
+          projects.add(cast);
+          continue;
+        }
+      }
+      final SqlSingletonAggFunction splitter =
+          aggregation.unwrapOrThrow(SqlSingletonAggFunction.class);
       final RexNode singleton =
           splitter.singleton(rexBuilder, input.getRowType(), aggCall);
       final RexNode cast =
-          rexBuilder.ensureType(aggCall.type, singleton, false);
+          rexBuilder.ensureType(
+              aggCall.getParserPosition(), aggCall.type, singleton, false);
       projects.add(cast);
     }
 
-    final RelNode newInput = convert(input, aggregate.getTraitSet().simplify());
+    final RelNode newInput = convert(call.getPlanner(), input, aggregate.getTraitSet().simplify());
     relBuilder.push(newInput);
     if (!projects.isEmpty()) {
       projects.addAll(0, relBuilder.fields(aggregate.getGroupSet()));
@@ -131,10 +164,10 @@ public class AggregateRemoveRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
+    Config DEFAULT = ImmutableAggregateRemoveRule.Config.of()
         .withRelBuilderFactory(RelFactories.LOGICAL_BUILDER)
-        .as(Config.class)
         .withOperandFor(LogicalAggregate.class);
 
     @Override default AggregateRemoveRule toRule() {

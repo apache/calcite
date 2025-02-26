@@ -126,6 +126,7 @@ public class VisitorDataContext implements DataContext {
       switch (type.getSqlTypeName()) {
       case INTEGER:
         return Pair.of(index, rexLiteral.getValueAs(Integer.class));
+      case FLOAT:
       case DOUBLE:
         return Pair.of(index, rexLiteral.getValueAs(Double.class));
       case REAL:

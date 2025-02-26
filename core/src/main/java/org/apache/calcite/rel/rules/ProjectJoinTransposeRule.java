@@ -24,13 +24,16 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexShuttle;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.ImmutableBeans;
+
+import org.immutables.value.Value;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -45,6 +48,7 @@ import static java.util.Objects.requireNonNull;
  *
  * @see CoreRules#PROJECT_JOIN_TRANSPOSE
  */
+@Value.Enclosing
 public class ProjectJoinTransposeRule
     extends RelRule<ProjectJoinTransposeRule.Config>
     implements TransformationRule {
@@ -152,17 +156,35 @@ public class ProjectJoinTransposeRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable(singleton = false)
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
-        .withOperandFor(LogicalProject.class, LogicalJoin.class)
-        .withPreserveExprCondition(expr -> !(expr instanceof RexOver));
+    Config DEFAULT = ImmutableProjectJoinTransposeRule.Config.builder()
+        .withPreserveExprCondition(expr -> {
+          // Do not push down over's expression by default
+          if (expr instanceof RexOver) {
+            return false;
+          }
+          if (SqlKind.CAST == expr.getKind()) {
+            final RelDataType relType = expr.getType();
+            final RexCall castCall = (RexCall) expr;
+            final RelDataType operand0Type = castCall.getOperands().get(0).getType();
+            if (relType.getSqlTypeName() == operand0Type.getSqlTypeName()
+                && operand0Type.isNullable() && !relType.isNullable()) {
+              // Do not push down not nullable cast's expression with the same type by default
+              // eg: CAST($1):VARCHAR(10) NOT NULL, and type of $1 is nullable VARCHAR(10)
+              return false;
+            }
+          }
+          return true;
+        })
+        .build()
+        .withOperandFor(LogicalProject.class, LogicalJoin.class);
 
     @Override default ProjectJoinTransposeRule toRule() {
       return new ProjectJoinTransposeRule(this);
     }
 
     /** Defines when an expression should not be pushed. */
-    @ImmutableBeans.Property
     PushProjector.ExprCondition preserveExprCondition();
 
     /** Sets {@link #preserveExprCondition()}. */

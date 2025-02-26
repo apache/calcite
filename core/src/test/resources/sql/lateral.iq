@@ -33,9 +33,15 @@ Was expecting one of:
 
 # Bad: LATERAL TABLE
 select * from "scott".emp join lateral table "scott".dept using (deptno);
-parse failed: Encountered "\"scott\"" at line 1, column 46.
-Was expecting:
-    "(" ...
+parse failed: Encountered "join lateral table \"scott\"" at line 1, column 27.
+Was expecting one of:
+    "AS" ...
+    "CROSS" ...
+    "EXTEND" ...
+    "FOR" ...
+    "MATCH_RECOGNIZE" ...
+    "OUTER" ...
+    "TABLESAMPLE" ...
 !error
 
 # Good: LATERAL (subQuery)
@@ -133,6 +139,110 @@ from "scott".dept,
 | 14 |
 +----+
 (1 row)
+
+!ok
+
+# LATERAL plus CTEs (WITH)
+with dept (deptno, dname)
+    as (values (10, 'ACCOUNTING'), (20, 'RESEARCH')),
+  emp (empno, deptno, ename)
+    as (values (7369, 20, 'SMITH'), (7782, 10, 'CLARK'), (7499, 30, 'ALLEN'))
+select *
+from dept,
+  lateral (select * from emp where emp.deptno = dept.deptno) as emp;
++--------+------------+-------+---------+-------+
+| DEPTNO | DNAME      | EMPNO | DEPTNO0 | ENAME |
++--------+------------+-------+---------+-------+
+|     10 | ACCOUNTING |  7782 |      10 | CLARK |
+|     20 | RESEARCH   |  7369 |      20 | SMITH |
++--------+------------+-------+---------+-------+
+(2 rows)
+
+!ok
+
+# [CALCITE-6266] SqlValidatorException with LATERAL TABLE and JOIN
+# The problem also occurred in ', LATERAL (SELECT ...) JOIN', because
+# ',' should had lower precedence than 'JOIN', but should have had equal
+# precedence.
+with dept (deptno, dname)
+    as (values (10, 'ACCOUNTING'), (20,'RESEARCH')),
+  emp (empno, deptno, ename)
+    as (values (7369, 20, 'SMITH'), (7782, 10, 'CLARK'), (7499, 30, 'ALLEN'))
+select *
+from dept,
+  lateral (select * from emp where emp.deptno = dept.deptno) as emp
+  cross join (values 'A', 'B') as v (v);
++--------+------------+-------+---------+-------+---+
+| DEPTNO | DNAME      | EMPNO | DEPTNO0 | ENAME | V |
++--------+------------+-------+---------+-------+---+
+|     10 | ACCOUNTING |  7782 |      10 | CLARK | A |
+|     10 | ACCOUNTING |  7782 |      10 | CLARK | B |
+|     20 | RESEARCH   |  7369 |      20 | SMITH | A |
+|     20 | RESEARCH   |  7369 |      20 | SMITH | B |
++--------+------------+-------+---------+-------+---+
+(4 rows)
+
+!ok
+
+# UNNEST applied to VALUES
+with t (x, ys)
+  as (values (1, array [2,3]), (4, array [5]))
+select *
+from t,
+  unnest(t.ys) as y;
++---+--------+---+
+| X | YS     | Y |
++---+--------+---+
+| 1 | [2, 3] | 2 |
+| 1 | [2, 3] | 3 |
+| 4 | [5]    | 5 |
++---+--------+---+
+(3 rows)
+
+!ok
+
+# LATERAL UNNEST means the same as UNNEST
+# (Have checked Postgres)
+with t (x, ys)
+  as (values (1, array [2,3]), (4, array [5]))
+select *
+from t,
+  lateral unnest(t.ys) as y;
++---+--------+---+
+| X | YS     | Y |
++---+--------+---+
+| 1 | [2, 3] | 2 |
+| 1 | [2, 3] | 3 |
+| 4 | [5]    | 5 |
++---+--------+---+
+(3 rows)
+
+!ok
+
+# LEFT JOIN LATERAL
+select ename, deptno, ename2
+from emp as o
+  left join lateral (select ename as ename2
+                     from emp
+                     where deptno = o.deptno + 10) on true
+where job = 'MANAGER';
++-------+--------+--------+
+| ENAME | DEPTNO | ENAME2 |
++-------+--------+--------+
+| BLAKE |     30 |        |
+| CLARK |     10 | ADAMS  |
+| CLARK |     10 | FORD   |
+| CLARK |     10 | JONES  |
+| CLARK |     10 | SCOTT  |
+| CLARK |     10 | SMITH  |
+| JONES |     20 | ALLEN  |
+| JONES |     20 | BLAKE  |
+| JONES |     20 | JAMES  |
+| JONES |     20 | MARTIN |
+| JONES |     20 | TURNER |
+| JONES |     20 | WARD   |
++-------+--------+--------+
+(12 rows)
 
 !ok
 

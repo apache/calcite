@@ -45,6 +45,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -52,7 +53,9 @@ import java.util.List;
 
 import static org.apache.calcite.plan.volcano.PlannerTests.newCluster;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -130,13 +133,10 @@ class VolcanoPlannerTraitTest {
     planner.setRoot(convertedRel);
     RelNode result = planner.chooseDelegate().findBestExp();
 
-    assertTrue(result instanceof IterSingleRel);
-    assertEquals(
-        EnumerableConvention.INSTANCE,
-        result.getTraitSet().getTrait(ConventionTraitDef.INSTANCE));
-    assertEquals(
-        ALT_TRAIT2,
-        result.getTraitSet().getTrait(ALT_TRAIT_DEF));
+    assertThat(result, instanceOf(IterSingleRel.class));
+    assertThat(result.getTraitSet().getTrait(ConventionTraitDef.INSTANCE),
+        is(EnumerableConvention.INSTANCE));
+    assertThat(result.getTraitSet().getTrait(ALT_TRAIT_DEF), is(ALT_TRAIT2));
 
     RelNode child = result.getInputs().get(0);
     assertTrue(
@@ -149,7 +149,7 @@ class VolcanoPlannerTraitTest {
             || (child instanceof PhysToIteratorConverter));
 
     child = child.getInputs().get(0);
-    assertTrue(child instanceof PhysLeafRel);
+    assertThat(child, instanceOf(PhysLeafRel.class));
   }
 
   @Test void testRuleMatchAfterConversion() {
@@ -181,7 +181,7 @@ class VolcanoPlannerTraitTest {
     planner.setRoot(convertedRel);
     RelNode result = planner.chooseDelegate().findBestExp();
 
-    assertTrue(result instanceof IterMergedRel);
+    assertThat(result, instanceOf(IterMergedRel.class));
   }
 
   @Disabled
@@ -216,22 +216,16 @@ class VolcanoPlannerTraitTest {
     planner.setRoot(convertedRel);
     RelNode result = planner.chooseDelegate().findBestExp();
 
-    assertTrue(result instanceof IterSingleRel);
-    assertEquals(
-        EnumerableConvention.INSTANCE,
-        result.getTraitSet().getTrait(ConventionTraitDef.INSTANCE));
-    assertEquals(
-        ALT_TRAIT2,
-        result.getTraitSet().getTrait(ALT_TRAIT_DEF));
+    assertThat(result, instanceOf(IterSingleRel.class));
+    assertThat(result.getTraitSet().getTrait(ConventionTraitDef.INSTANCE),
+        is(EnumerableConvention.INSTANCE));
+    assertThat(result.getTraitSet().getTrait(ALT_TRAIT_DEF), is(ALT_TRAIT2));
 
     RelNode child = result.getInputs().get(0);
-    assertTrue(child instanceof IterSingleRel);
-    assertEquals(
-        EnumerableConvention.INSTANCE,
-        child.getTraitSet().getTrait(ConventionTraitDef.INSTANCE));
-    assertEquals(
-        ALT_TRAIT2,
-        child.getTraitSet().getTrait(ALT_TRAIT_DEF));
+    assertThat(child, instanceOf(IterSingleRel.class));
+    assertThat(child.getTraitSet().getTrait(ConventionTraitDef.INSTANCE),
+        is(EnumerableConvention.INSTANCE));
+    assertThat(child.getTraitSet().getTrait(ALT_TRAIT_DEF), is(ALT_TRAIT2));
 
     child = child.getInputs().get(0);
     assertTrue(
@@ -538,7 +532,7 @@ class VolcanoPlannerTraitTest {
 
   /** Relational expression with zero inputs, of the PHYS convention. */
   public static class PhysLeafRule extends RelRule<PhysLeafRule.Config> {
-    static final PhysLeafRule INSTANCE = Config.EMPTY
+    static final PhysLeafRule INSTANCE = ImmutablePhysLeafRuleConfig.builder().build()
         .withOperandSupplier(b ->
             b.operand(NoneLeafRel.class).anyInputs())
         .as(Config.class)
@@ -561,6 +555,8 @@ class VolcanoPlannerTraitTest {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(init = "with*", typeImmutable = "ImmutablePhysLeafRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default PhysLeafRule toRule() {
         return new PhysLeafRule(this);
@@ -593,7 +589,8 @@ class VolcanoPlannerTraitTest {
    * convention. */
   public static class IterSingleRule
       extends RelRule<IterSingleRule.Config> {
-    static final IterSingleRule INSTANCE = Config.EMPTY
+    static final IterSingleRule INSTANCE = ImmutableIterSingleRuleConfig.builder()
+        .build()
         .withOperandSupplier(b ->
             b.operand(NoneSingleRel.class).anyInputs())
         .as(Config.class)
@@ -626,6 +623,8 @@ class VolcanoPlannerTraitTest {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(init = "with*", typeImmutable = "ImmutableIterSingleRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default IterSingleRule toRule() {
         return new IterSingleRule(this);
@@ -637,7 +636,7 @@ class VolcanoPlannerTraitTest {
    * convention. */
   public static class IterSingleRule2
       extends RelRule<IterSingleRule2.Config> {
-    static final IterSingleRule2 INSTANCE = Config.EMPTY
+    static final IterSingleRule2 INSTANCE = ImmutableIterSingleRule2Config.builder().build()
         .withOperandSupplier(b ->
             b.operand(NoneSingleRel.class).anyInputs())
         .as(Config.class)
@@ -675,6 +674,8 @@ class VolcanoPlannerTraitTest {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(init = "with*", typeImmutable = "ImmutableIterSingleRule2Config")
     public interface Config extends RelRule.Config {
       @Override default IterSingleRule2 toRule() {
         return new IterSingleRule2(this);
@@ -779,7 +780,7 @@ class VolcanoPlannerTraitTest {
   public static class IterSinglePhysMergeRule
       extends RelRule<IterSinglePhysMergeRule.Config> {
     static final IterSinglePhysMergeRule INSTANCE =
-        Config.EMPTY
+        ImmutableIterSinglePhysMergeRuleConfig.builder().build()
             .withOperandSupplier(b0 ->
                 b0.operand(IterSingleRel.class).oneInput(b1 ->
                     b1.operand(PhysToIteratorConverter.class).anyInputs()))
@@ -797,6 +798,8 @@ class VolcanoPlannerTraitTest {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(init = "with*", typeImmutable = "ImmutableIterSinglePhysMergeRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default IterSinglePhysMergeRule toRule() {
         return new IterSinglePhysMergeRule(this);

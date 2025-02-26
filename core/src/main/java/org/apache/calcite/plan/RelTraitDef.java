@@ -47,7 +47,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * </ol>
  *
  * <p>Otherwise, a new instance of RelTraitDef must be constructed and
- * registered with each new planner instantiated.</p>
+ * registered with each new planner instantiated.
  *
  * @param <T> Trait that this trait definition is based upon
  */
@@ -59,7 +59,6 @@ public abstract class RelTraitDef<T extends RelTrait> {
    *
    * <p>Uses weak interner to allow GC.
    */
-  @SuppressWarnings("BetaApi")
   private final Interner<T> interner = Interners.newWeakInterner();
 
   //~ Constructors -----------------------------------------------------------
@@ -73,7 +72,7 @@ public abstract class RelTraitDef<T extends RelTrait> {
    * Whether a relational expression may possess more than one instance of
    * this trait simultaneously.
    *
-   * <p>A subset has only one instance of a trait.</p>
+   * <p>A subset has only one instance of a trait.
    */
   public boolean multiple() {
     return false;
@@ -98,7 +97,6 @@ public abstract class RelTraitDef<T extends RelTrait> {
    * @param trait a possibly non-canonical RelTrait
    * @return a canonical RelTrait.
    */
-  @SuppressWarnings("BetaApi")
   public final T canonize(T trait) {
     if (!(trait instanceof RelCompositeTrait)) {
       assert getTraitClass().isInstance(trait)

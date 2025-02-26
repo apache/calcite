@@ -27,13 +27,14 @@ limitations under the License.
 A schema adapter allows Calcite to read particular kind of data,
 presenting the data as tables within a schema.
 
+* [Arrow adapter](arrow_adapter.html) (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/arrow/package-summary.html">calcite-arrow</a>)
 * [Cassandra adapter](cassandra_adapter.html) (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/cassandra/package-summary.html">calcite-cassandra</a>)
 * CSV adapter (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/csv/package-summary.html">example/csv</a>)
 * [Druid adapter](druid_adapter.html) (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/druid/package-summary.html">calcite-druid</a>)
 * [Elasticsearch adapter](elasticsearch_adapter.html)
   (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/elasticsearch/package-summary.html">calcite-elasticsearch</a>)
 * [File adapter](file_adapter.html) (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/file/package-summary.html">calcite-file</a>)
-* [Geode adapter](geode_adapter.html) (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/geode/package-summary.html">calcite-geode</a>)
+* [Geode adapter](geode_adapter.html) (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/geode/rel/package-summary.html">calcite-geode</a>)
 * [InnoDB adapter](innodb_adapter.html) (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/innodb/package-summary.html">calcite-innodb</a>)
 * JDBC adapter (part of <a href="{{ site.apiRoot }}/org/apache/calcite/adapter/jdbc/package-summary.html">calcite-core</a>)
 * MongoDB adapter (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/mongodb/package-summary.html">calcite-mongodb</a>)
@@ -48,7 +49,7 @@ presenting the data as tables within a schema.
 
 ### Other language interfaces
 
-* Piglet (<a href="{{ site.apiRoot }}/org/apache/calcite/piglet/package-summary.html">calcite-piglet</a>) runs queries in a subset of <a href="https://pig.apache.org/docs/r0.7.0/piglatin_ref1.html">Pig Latin</a>
+* Piglet (<a href="{{ site.apiRoot }}/org/apache/calcite/piglet/package-summary.html">calcite-piglet</a>) runs queries in a subset of <a href="https://pig.apache.org/docs/latest/basic.html">Pig Latin</a>
 
 ## Engines
 
@@ -95,7 +96,7 @@ as implemented by Avatica's
 | <a href="{{ site.apiRoot }}/org/apache/calcite/config/CalciteConnectionProperty.html#MATERIALIZATIONS_ENABLED">materializationsEnabled</a> | Whether Calcite should use materializations. Default false.
 | <a href="{{ site.apiRoot }}/org/apache/calcite/config/CalciteConnectionProperty.html#MODEL">model</a> | URI of the JSON/YAML model file or inline like `inline:{...}` for JSON and `inline:...` for YAML.
 | <a href="{{ site.apiRoot }}/org/apache/calcite/config/CalciteConnectionProperty.html#PARSER_FACTORY">parserFactory</a> | Parser factory. The name of a class that implements [<code>interface SqlParserImplFactory</code>]({{ site.apiRoot }}/org/apache/calcite/sql/parser/SqlParserImplFactory.html) and has a public default constructor or an `INSTANCE` constant.
-| <a href="{{ site.apiRoot }}/org/apache/calcite/config/CalciteConnectionProperty.html#QUOTING">quoting</a> | How identifiers are quoted. Values are DOUBLE_QUOTE, BACK_QUOTE, BRACKET. If not specified, value from `lex` is used.
+| <a href="{{ site.apiRoot }}/org/apache/calcite/config/CalciteConnectionProperty.html#QUOTING">quoting</a> | How identifiers are quoted. Values are DOUBLE_QUOTE, BACK_TICK, BACK_TICK_BACKSLASH, BRACKET. If not specified, value from `lex` is used.
 | <a href="{{ site.apiRoot }}/org/apache/calcite/config/CalciteConnectionProperty.html#QUOTED_CASING">quotedCasing</a> | How identifiers are stored if they are quoted. Values are UNCHANGED, TO_UPPER, TO_LOWER. If not specified, value from `lex` is used.
 | <a href="{{ site.apiRoot }}/org/apache/calcite/config/CalciteConnectionProperty.html#SCHEMA">schema</a> | Name of initial schema.
 | <a href="{{ site.apiRoot }}/org/apache/calcite/config/CalciteConnectionProperty.html#SCHEMA_FACTORY">schemaFactory</a> | Schema factory. The name of a class that implements [<code>interface SchemaFactory</code>]({{ site.apiRoot }}/org/apache/calcite/schema/SchemaFactory.html) and has a public default constructor or an `INSTANCE` constant. Ignored if `model` is specified.
@@ -109,14 +110,18 @@ as implemented by Avatica's
 To make a connection to a single schema based on a built-in schema type, you don't need to specify
 a model. For example,
 
-  `jdbc:calcite:schemaType=JDBC; schema.jdbcUser=SCOTT; schema.jdbcPassword=TIGER; schema.jdbcUrl=jdbc:hsqldb:res:foodmart`
+{% highlight text %}
+jdbc:calcite:schemaType=JDBC; schema.jdbcUser=SCOTT; schema.jdbcPassword=TIGER; schema.jdbcUrl=jdbc:hsqldb:res:foodmart
+{% endhighlight %}
 
 creates a connection with a schema mapped via the JDBC schema adapter to the foodmart database.
 
 Similarly, you can connect to a single schema based on a user-defined schema adapter.
 For example,
 
-  `jdbc:calcite:schemaFactory=org.apache.calcite.adapter.cassandra.CassandraSchemaFactory; schema.host=localhost; schema.keyspace=twissandra`
+{% highlight text %}
+jdbc:calcite:schemaFactory=org.apache.calcite.adapter.cassandra.CassandraSchemaFactory; schema.host=localhost; schema.keyspace=twissandra
+{% endhighlight %}
 
 makes a connection to the Cassandra adapter, equivalent to writing the following model file:
 
@@ -299,7 +304,7 @@ window functions that rely upon order (`RANK`, for example) cannot be used as
 aggregate functions.
 
 Another difference is that windows are *non-disjoint*: a particular row can
-appear in more than one window. For example, 10:37 appears in both the
+appear in more than one window. For example, 9:37 appears in both the
 9:00-10:00 hour and also the 9:15-9:45 hour.
 
 Window functions are computed incrementally: when the clock ticks from
@@ -339,7 +344,7 @@ Grouped window functions are functions that operate the `GROUP BY` clause
 to gather together records into sets. The built-in grouped window functions
 are `HOP`, `TUMBLE` and `SESSION`.
 You can define additional functions by implementing
-[<code>interface SqlGroupedWindowFunction</code>]({{ site.apiRoot }}/org/apache/calcite/sql/fun/SqlGroupedWindowFunction.html).
+[<code>interface SqlGroupedWindowFunction</code>]({{ site.apiRoot }}/org/apache/calcite/sql/SqlGroupedWindowFunction.html).
 
 ### Table functions and table macros
 
@@ -493,7 +498,7 @@ Each of these has a "pure" logical sub-class,
 [<code>LogicalProject</code>]({{ site.apiRoot }}/org/apache/calcite/rel/logical/LogicalProject.html)
 and so forth. Any given adapter will have counterparts for the operations that
 its engine can implement efficiently; for example, the Cassandra adapter has
-[<code>CassandraProject</code>]({{ site.apiRoot }}/org/apache/calcite/rel/cassandra/CassandraProject.html)
+[<code>CassandraProject</code>]({{ site.apiRoot }}/org/apache/calcite/adapter/cassandra/CassandraProject.html)
 but there is no `CassandraJoin`.
 
 You can define your own sub-class of `RelNode` to add a new operator, or
@@ -586,7 +591,7 @@ Each kind of metadata has an interface with (usually) one method.
 For example, selectivity is defined by
 [<code>class RelMdSelectivity</code>]({{ site.apiRoot }}/org/apache/calcite/rel/metadata/RelMdSelectivity.html)
 and the method
-[<code>getSelectivity(RelNode rel, RexNode predicate)</code>]({{ site.apiRoot }}/org/apache/calcite/rel/metadata/RelMetadataQuery.html#getSelectivity-org.apache.calcite.rel.RelNode-org.apache.calcite.rex.RexNode-).
+[<code>getSelectivity(RelNode rel, RexNode predicate)</code>]({{ site.apiRoot }}/org/apache/calcite/rel/metadata/RelMetadataQuery.html#getSelectivity(org.apache.calcite.rel.RelNode,org.apache.calcite.rex.RexNode)).
 
 There are many built-in kinds of metadata, including
 [collation]({{ site.apiRoot }}/org/apache/calcite/rel/metadata/RelMdCollation.html),

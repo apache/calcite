@@ -56,6 +56,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
 import org.apache.calcite.sql.validate.SqlValidatorTable;
+import org.apache.calcite.sql2rel.ConvertToChecked;
 import org.apache.calcite.sql2rel.InitializerContext;
 import org.apache.calcite.sql2rel.InitializerExpressionFactory;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
@@ -78,6 +79,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+import static org.apache.calcite.sql2rel.SqlToRelConverter.DEFAULT_IN_SUB_QUERY_THRESHOLD;
 
 import static java.util.Objects.requireNonNull;
 
@@ -99,7 +101,7 @@ public abstract class Prepare {
   protected @MonotonicNonNull RelDataType parameterRowType;
 
   // temporary. for testing.
-  public static final TryThreadLocal<@Nullable Boolean> THREAD_TRIM =
+  public static final TryThreadLocal<Boolean> THREAD_TRIM =
       TryThreadLocal.of(false);
 
   /** Temporary, until
@@ -109,13 +111,16 @@ public abstract class Prepare {
    * <p>The default is false, meaning do not expand queries during sql-to-rel,
    * but a few tests override and set it to true. After CALCITE-1045
    * is fixed, remove those overrides and use false everywhere. */
-  public static final TryThreadLocal<@Nullable Boolean> THREAD_EXPAND =
+  public static final TryThreadLocal<Boolean> THREAD_EXPAND =
       TryThreadLocal.of(false);
+
+  // temporary. for testing.
+  public static final TryThreadLocal<@Nullable Integer> THREAD_INSUBQUERY_THRESHOLD =
+      TryThreadLocal.of(DEFAULT_IN_SUB_QUERY_THRESHOLD);
 
   protected Prepare(CalcitePrepare.Context context, CatalogReader catalogReader,
       Convention resultConvention) {
-    assert context != null;
-    this.context = context;
+    this.context = requireNonNull(context, "context");
     this.catalogReader = catalogReader;
     this.resultConvention = resultConvention;
   }
@@ -169,10 +174,11 @@ public abstract class Prepare {
     final RelTraitSet desiredTraits = getDesiredRootTraitSet(root);
 
     final Program program = getProgram();
-    final RelNode rootRel4 = program.run(
-        planner, root.rel, desiredTraits, materializationList, latticeList);
+    final RelNode rootRel4 =
+        program.run(planner, root.rel, desiredTraits, materializationList,
+            latticeList);
     if (LOGGER.isDebugEnabled()) {
-      LOGGER.debug("Plan after physical tweaks: {}",
+      LOGGER.debug("Plan after physical tweaks:\n{}",
           RelOptUtil.toString(rootRel4, SqlExplainLevel.ALL_ATTRIBUTES));
     }
 
@@ -223,7 +229,7 @@ public abstract class Prepare {
   public PreparedResult prepareSql(
       SqlNode sqlQuery,
       SqlNode sqlNodeOriginal,
-      Class runtimeContextClass,
+      Class<?> runtimeContextClass,
       SqlValidator validator,
       boolean needsValidation) {
     init(runtimeContextClass);
@@ -231,7 +237,8 @@ public abstract class Prepare {
     final SqlToRelConverter.Config config =
         SqlToRelConverter.config()
             .withTrimUnusedFields(true)
-            .withExpand(castNonNull(THREAD_EXPAND.get()))
+            .withExpand(THREAD_EXPAND.get())
+            .withInSubQueryThreshold(castNonNull(THREAD_INSUBQUERY_THRESHOLD.get()))
             .withExplain(sqlQuery.getKind() == SqlKind.EXPLAIN);
     final Holder<SqlToRelConverter.Config> configHolder = Holder.of(config);
     Hook.SQL2REL_CONVERTER_CONFIG_BUILDER.run(configHolder);
@@ -249,6 +256,11 @@ public abstract class Prepare {
 
     RelRoot root =
         sqlToRelConverter.convertQuery(sqlQuery, needsValidation, true);
+    if (this.context.config().conformance().checkedArithmetic()) {
+      ConvertToChecked checkedConv = new ConvertToChecked(root.rel.getCluster().getRexBuilder());
+      RelNode rel = checkedConv.visit(root.rel);
+      root = root.withRel(rel);
+    }
     Hook.CONVERTED.run(root.rel);
 
     if (timingTracer != null) {
@@ -287,10 +299,12 @@ public abstract class Prepare {
       root = root.withRel(decorrelate(sqlToRelConverter, sqlQuery, root.rel));
     }
 
-    // Trim unused fields.
-    root = trimUnusedFields(root);
+    if (configHolder.get().isTrimUnusedFields()) {
+      // Trim unused fields.
+      root = trimUnusedFields(root);
 
-    Hook.TRIMMED.run(root.rel);
+      Hook.TRIMMED.run(root.rel);
+    }
 
     // Display physical plan after decorrelation.
     if (sqlExplain != null) {
@@ -369,7 +383,8 @@ public abstract class Prepare {
   protected RelRoot trimUnusedFields(RelRoot root) {
     final SqlToRelConverter.Config config = SqlToRelConverter.config()
         .withTrimUnusedFields(shouldTrim(root.rel))
-        .withExpand(castNonNull(THREAD_EXPAND.get()));
+        .withExpand(THREAD_EXPAND.get())
+        .withInSubQueryThreshold(castNonNull(THREAD_INSUBQUERY_THRESHOLD.get()));
     final SqlToRelConverter converter =
         getSqlToRelConverter(getSqlValidator(), catalogReader, config);
     final boolean ordered = !root.collation.getFieldCollations().isEmpty();
@@ -381,7 +396,7 @@ public abstract class Prepare {
     // For now, don't trim if there are more than 3 joins. The projects
     // near the leaves created by trim migrate past joins and seem to
     // prevent join-reordering.
-    return castNonNull(THREAD_TRIM.get()) || RelOptUtil.countJoins(rootRel) < 2;
+    return THREAD_TRIM.get() || RelOptUtil.countJoins(rootRel) < 2;
   }
 
   protected abstract void init(Class runtimeContextClass);
@@ -643,10 +658,9 @@ public abstract class Prepare {
 
     public Materialization(CalciteSchema.TableEntry materializedTable,
         String sql, List<String> viewSchemaPath) {
-      assert materializedTable != null;
-      assert sql != null;
-      this.materializedTable = materializedTable;
-      this.sql = sql;
+      this.materializedTable =
+          requireNonNull(materializedTable, "materializedTable");
+      this.sql = requireNonNull(sql, "sql");
       this.viewSchemaPath = viewSchemaPath;
     }
 

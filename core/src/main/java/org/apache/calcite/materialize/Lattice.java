@@ -39,6 +39,7 @@ import org.apache.calcite.schema.impl.MaterializedViewTable;
 import org.apache.calcite.schema.impl.StarTable;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
@@ -57,7 +58,6 @@ import org.apache.calcite.util.graph.DirectedGraph;
 import org.apache.calcite.util.graph.TopologicalOrderIterator;
 import org.apache.calcite.util.mapping.IntPair;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSortedSet;
@@ -86,7 +86,10 @@ import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.stream.Collectors;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+import static org.apache.calcite.rel.rel2sql.SqlImplementor.POS;
 
 import static java.util.Objects.requireNonNull;
 
@@ -130,7 +133,7 @@ public class Lattice {
       // [CALCITE-429] Add statistics SPI for lattice optimization algorithm
       rowCountEstimate = 1000d;
     }
-    Preconditions.checkArgument(rowCountEstimate > 0d);
+    checkArgument(rowCountEstimate > 0d);
     this.rowCountEstimate = rowCountEstimate;
     @SuppressWarnings("argument.type.incompatible")
     LatticeStatisticProvider statisticProvider =
@@ -169,10 +172,10 @@ public class Lattice {
       populateAliases(join.getRight(), aliases, null);
     } else if (from.getKind() == SqlKind.AS) {
       populateAliases(SqlUtil.stripAs(from), aliases,
-          SqlValidatorUtil.getAlias(from, -1));
+          SqlValidatorUtil.alias(from));
     } else {
       if (current == null) {
-        current = SqlValidatorUtil.getAlias(from, -1);
+        current = SqlValidatorUtil.alias(from);
       }
       aliases.add(current);
     }
@@ -250,6 +253,14 @@ public class Lattice {
    * given set of columns and measures, optionally grouping. */
   public String sql(ImmutableBitSet groupSet, boolean group,
       List<Measure> aggCallList) {
+    final SqlDialect dialect = SqlDialect.DatabaseProduct.CALCITE.getDialect();
+    return sql(groupSet, group, aggCallList, dialect);
+  }
+
+  /** Generates a SQL query to populate a tile of the lattice specified by a
+   * given set of columns and measures, optionally grouping and dialect. */
+  public String sql(ImmutableBitSet groupSet, boolean group,
+      List<Measure> aggCallList, SqlDialect dialect) {
     final List<LatticeNode> usedNodes = new ArrayList<>();
     if (group) {
       final ImmutableBitSet.Builder columnSetBuilder = groupSet.rebuild();
@@ -276,14 +287,11 @@ public class Lattice {
       usedNodes.addAll(rootNode.descendants);
     }
 
-    final SqlDialect dialect = SqlDialect.DatabaseProduct.CALCITE.getDialect();
     final StringBuilder buf = new StringBuilder("SELECT ");
     final StringBuilder groupBuf = new StringBuilder("\nGROUP BY ");
     int k = 0;
     final Set<String> columnNames = new HashSet<>();
-    final SqlWriter w = createSqlWriter(dialect, buf, f -> {
-      throw new UnsupportedOperationException();
-    });
+    final SqlWriter w = createSqlWriter(dialect, buf, resolveField(dialect));
     if (groupSet != null) {
       for (int i : groupSet) {
         if (k++ > 0) {
@@ -367,6 +375,23 @@ public class Lattice {
       buf.append(groupBuf);
     }
     return buf.toString();
+  }
+
+  /** Resolves a field index to a corresponding SqlNode based on the column type. */
+  private IntFunction<SqlNode> resolveField(SqlDialect dialect) {
+    final IntFunction<SqlNode>[] fieldFuncRef = new IntFunction[1];
+    fieldFuncRef[0] = f -> {
+      Column column = columns.get(f);
+      if (column instanceof BaseColumn) {
+        return new SqlIdentifier(ImmutableList.of(((BaseColumn) column).column), POS);
+      }
+      if (column instanceof DerivedColumn) {
+        return new SqlImplementor.SimpleContext(dialect, fieldFuncRef[0])
+            .toSql(null, ((DerivedColumn) column).e);
+      }
+      throw new UnsupportedOperationException();
+    };
+    return fieldFuncRef[0];
   }
 
   /** Creates a context to which SQL can be generated. */
@@ -798,7 +823,7 @@ public class Lattice {
 
     public Builder(LatticeSpace space, CalciteSchema schema, String sql) {
       this.rootSchema = requireNonNull(schema.root());
-      Preconditions.checkArgument(rootSchema.isRoot(), "must be root schema");
+      checkArgument(rootSchema.isRoot(), "must be root schema");
       CalcitePrepare.ConvertResult parsed =
           Schemas.convert(MaterializedViewTable.MATERIALIZATION_CONNECTION,
               schema, schema.path(null), sql);
@@ -810,8 +835,7 @@ public class Lattice {
 
       // Get aliases.
       List<@Nullable String> aliases = new ArrayList<>();
-      SqlNode from = ((SqlSelect) parsed.sqlNode).getFrom();
-      assert from != null : "from must not be null";
+      SqlNode from = requireNonNull(((SqlSelect) parsed.sqlNode).getFrom());
       populateAliases(from, aliases, null);
 
       // Build a graph.
@@ -863,7 +887,7 @@ public class Lattice {
         }
         map.put(vertex.table, node);
       }
-      assert root != null;
+      requireNonNull(root, "root");
       final Fixer fixer = new Fixer();
       fixer.fixUp(root);
       baseColumns = fixer.columnList.build();
@@ -934,7 +958,7 @@ public class Lattice {
                   LatticeStatisticProvider.Factory.class,
                   this.statisticProvider)
               : Lattices.CACHED_SQL;
-      Preconditions.checkArgument(rootSchema.isRoot(), "must be root schema");
+      checkArgument(rootSchema.isRoot(), "must be root schema");
       final ImmutableList.Builder<Column> columnBuilder =
           ImmutableList.<Column>builder()
           .addAll(baseColumns)
@@ -977,7 +1001,7 @@ public class Lattice {
      */
     private Column resolveColumnByAlias(String name) {
       final ImmutableList<Column> list = columnsByAlias.get(name);
-      if (list == null || list.size() == 0) {
+      if (list.isEmpty()) {
         throw new RuntimeException("Unknown lattice column '" + name + "'");
       } else if (list.size() == 1) {
         return list.get(0);
@@ -1117,12 +1141,14 @@ public class Lattice {
         if (node.alias == null) {
           node.alias = Util.last(node.table.t.getQualifiedName());
         }
-        node.alias = SqlValidatorUtil.uniquify(node.alias, aliases,
-            SqlValidatorUtil.ATTEMPT_SUGGESTER);
+        node.alias =
+            SqlValidatorUtil.uniquify(node.alias, aliases,
+                SqlValidatorUtil.ATTEMPT_SUGGESTER);
         node.startCol = c;
         for (String name : node.table.t.getRowType().getFieldNames()) {
-          final String alias = SqlValidatorUtil.uniquify(name,
-              columnAliases, SqlValidatorUtil.ATTEMPT_SUGGESTER);
+          final String alias =
+              SqlValidatorUtil.uniquify(name, columnAliases,
+                  SqlValidatorUtil.ATTEMPT_SUGGESTER);
           final BaseColumn column =
               new BaseColumn(c++, castNonNull(node.alias), name, alias);
           columnList.add(column);

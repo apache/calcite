@@ -25,17 +25,22 @@ import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.Sample;
 import org.apache.calcite.rel.core.SetOp;
+import org.apache.calcite.rel.core.Snapshot;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableModify;
+import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rex.RexCorrelVariable;
+import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexVisitor;
 import org.apache.calcite.rex.RexVisitorImpl;
-import org.apache.calcite.util.BuiltInMethod;
+import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
@@ -53,7 +58,7 @@ public class RelMdColumnOrigins
     implements MetadataHandler<BuiltInMetadata.ColumnOrigin> {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          BuiltInMethod.COLUMN_ORIGIN.method, new RelMdColumnOrigins());
+          new RelMdColumnOrigins(), BuiltInMetadata.ColumnOrigin.Handler.class);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -82,9 +87,10 @@ public class RelMdColumnOrigins
       Set<RelColumnOrigin> inputSet =
           mq.getColumnOrigins(rel.getInput(), iInput);
       inputSet = createDerivedColumnOrigins(inputSet);
-      if (inputSet != null) {
-        set.addAll(inputSet);
+      if (inputSet == null) {
+        return null;
       }
+      set.addAll(inputSet);
     }
     return set;
   }
@@ -149,10 +155,8 @@ public class RelMdColumnOrigins
         return rel.getProgram().expandLocalRef(localRef);
       }
     };
-    final List<RexNode> projects = new ArrayList<>();
-    for (RexNode rex: rexShuttle.apply(rel.getProgram().getProjectList())) {
-      projects.add(rex);
-    }
+    final List<RexNode> projects =
+        new ArrayList<>(rexShuttle.apply(rel.getProgram().getProjectList()));
     final RexNode rexNode = projects.get(iOutputColumn);
     if (rexNode instanceof RexInputRef) {
       // Direct reference:  no derivation added.
@@ -162,6 +166,16 @@ public class RelMdColumnOrigins
     // Anything else is a derivation, possibly from multiple columns.
     final Set<RelColumnOrigin> set = getMultipleColumns(rexNode, input, mq);
     return createDerivedColumnOrigins(set);
+  }
+
+  public @Nullable Set<RelColumnOrigin> getColumnOrigins(TableScan scan,
+      RelMetadataQuery mq, int iOutputColumn) {
+    final BuiltInMetadata.ColumnOrigin.Handler handler =
+        scan.getTable().unwrap(BuiltInMetadata.ColumnOrigin.Handler.class);
+    if (handler != null) {
+      return handler.getColumnOrigins(scan, mq, iOutputColumn);
+    }
+    return getColumnOrigins((RelNode) scan, mq, iOutputColumn);
   }
 
   public @Nullable Set<RelColumnOrigin> getColumnOrigins(Filter rel,
@@ -184,12 +198,22 @@ public class RelMdColumnOrigins
     return mq.getColumnOrigins(rel.getInput(), iOutputColumn);
   }
 
+  public @Nullable Set<RelColumnOrigin> getColumnOrigins(Sample rel,
+      RelMetadataQuery mq, int iOutputColumn) {
+    return mq.getColumnOrigins(rel.getInput(), iOutputColumn);
+  }
+
+  public @Nullable Set<RelColumnOrigin> getColumnOrigins(Snapshot rel,
+      RelMetadataQuery mq, int iOutputColumn) {
+    return mq.getColumnOrigins(rel.getInput(), iOutputColumn);
+  }
+
   public @Nullable Set<RelColumnOrigin> getColumnOrigins(TableFunctionScan rel,
       RelMetadataQuery mq, int iOutputColumn) {
     final Set<RelColumnOrigin> set = new HashSet<>();
     Set<RelColumnMapping> mappings = rel.getColumnMappings();
     if (mappings == null) {
-      if (rel.getInputs().size() > 0) {
+      if (!rel.getInputs().isEmpty()) {
         // This is a non-leaf transformation:  say we don't
         // know about origins, because there are probably
         // columns below.
@@ -226,7 +250,7 @@ public class RelMdColumnOrigins
     // it's up to the plugin writer to override with the
     // correct information.
 
-    if (rel.getInputs().size() > 0) {
+    if (!rel.getInputs().isEmpty()) {
       // No generic logic available for non-leaf rels.
       return null;
     }
@@ -270,7 +294,7 @@ public class RelMdColumnOrigins
     return set;
   }
 
-  private static Set<RelColumnOrigin> getMultipleColumns(RexNode rexNode, RelNode input,
+  private static @Nullable Set<RelColumnOrigin> getMultipleColumns(RexNode rexNode, RelNode input,
       final RelMetadataQuery mq) {
     final Set<RelColumnOrigin> set = new HashSet<>();
     final RexVisitor<Void> visitor =
@@ -283,8 +307,19 @@ public class RelMdColumnOrigins
             }
             return null;
           }
+
+          @Override public Void visitFieldAccess(RexFieldAccess fieldAccess) {
+            if (fieldAccess.getReferenceExpr() instanceof RexCorrelVariable) {
+              throw Util.FoundOne.NULL;
+            }
+            return null;
+          }
         };
-    rexNode.accept(visitor);
+    try {
+      rexNode.accept(visitor);
+    } catch (Util.FoundOne one) {
+      return null;
+    }
     return set;
   }
 }

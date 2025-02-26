@@ -18,6 +18,111 @@
 !use mysqlfunc
 !set outputformat mysql
 
+# BIT Functions
+
+# BIT_COUNT
+select bit_count(8);
++--------+
+| EXPR$0 |
++--------+
+|      1 |
++--------+
+(1 row)
+
+!ok
+
+select bit_count('8');
++--------+
+| EXPR$0 |
++--------+
+|      1 |
++--------+
+(1 row)
+
+!ok
+
+select bit_count('a');
++--------+
+| EXPR$0 |
++--------+
+|      0 |
++--------+
+(1 row)
+
+!ok
+
+select bit_count('');
++--------+
+| EXPR$0 |
++--------+
+|      0 |
++--------+
+(1 row)
+
+!ok
+
+select bit_count(null);
++--------+
+| EXPR$0 |
++--------+
+|        |
++--------+
+(1 row)
+
+!ok
+
+select bit_count(1 + 1);
++--------+
+| EXPR$0 |
++--------+
+|      1 |
++--------+
+(1 row)
+
+!ok
+
+select bit_count(true);
++--------+
+| EXPR$0 |
++--------+
+|      1 |
++--------+
+(1 row)
+
+!ok
+
+# The result of this SQL has been verified on MySQL 8.0, following are the test results for MySQL 8.0.
+
+# mysql> SELECT BIT_COUNT(DATE '1996-08-03'), BIT_COUNT(TIME '16:22:34'), BIT_COUNT(TIMESTAMP '1996-08-03 16:22:34') UNION ALL
+#     -> SELECT BIT_COUNT(DATE '2001-01-01'), BIT_COUNT(TIME '12:20:00'), BIT_COUNT(TIMESTAMP '2001-01-01 12:20:00') UNION ALL
+#     -> SELECT BIT_COUNT(DATE '2002-05-03'), BIT_COUNT(TIME '13:12:14'), BIT_COUNT(TIMESTAMP '2002-05-03 13:12:14') UNION ALL
+#     -> SELECT BIT_COUNT(DATE '2005-09-07'), BIT_COUNT(TIME '06:02:04'), BIT_COUNT(TIMESTAMP '2005-09-07 06:02:04') UNION ALL
+#     -> SELECT BIT_COUNT(DATE '2007-01-01'), BIT_COUNT(TIME '23:09:59'), BIT_COUNT(TIMESTAMP '2007-01-01 23:09:59');
+# +------------------------------+----------------------------+--------------------------------------------+
+# | BIT_COUNT(DATE '1996-08-03') | BIT_COUNT(TIME '16:22:34') | BIT_COUNT(TIMESTAMP '1996-08-03 16:22:34') |
+# +------------------------------+----------------------------+--------------------------------------------+
+# |                           12 |                         11 |                                         24 |
+# |                           12 |                          8 |                                         22 |
+# |                           14 |                          5 |                                         22 |
+# |                           16 |                          9 |                                         25 |
+# |                           14 |                         10 |                                         21 |
+# +------------------------------+----------------------------+--------------------------------------------+
+# 5 rows in set (0.02 sec)
+
+select bit_count(joinedat), bit_count(joinetime), bit_count(joinetimestamp) from emps_date_time ORDER BY empno;
++--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 |
++--------+--------+--------+
+|     12 |     11 |     24 |
+|     12 |      8 |     22 |
+|     14 |      5 |     22 |
+|     16 |      9 |     25 |
+|     14 |     10 |     21 |
++--------+--------+--------+
+(5 rows)
+
+!ok
+
 # MATH Functions
 
 # CBRT
@@ -56,13 +161,139 @@ SELECT ExtractValue('<a>c</a>', '//a');
 
 # STRING Functions
 
-#CONCAT
+# CHAR
+SELECT char(null), char(-1), char(65), char(233), char(256+66);
++--------+--------+--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 | EXPR$3 | EXPR$4 |
++--------+--------+--------+--------+--------+
+|        |        | A      | é      | B      |
++--------+--------+--------+--------+--------+
+(1 row)
+
+!ok
+
+# CONCAT
+# CONCAT function accepts at least 1 argument
+SELECT CONCAT('a');
++--------+
+| EXPR$0 |
++--------+
+| a      |
++--------+
+(1 row)
+
+!ok
+
 SELECT CONCAT('c', 'h', 'a', 'r');
 +--------+
 | EXPR$0 |
 +--------+
 | char   |
 +--------+
+(1 row)
+
+!ok
+
+# CONCAT in MySQL, BigQuery returns NULL if any argument is NULL.
+# (CONCAT in Oracle, Postgres and MSSQL ignores NULL arguments.)
+with t as (select concat('c', 'h', 'a', null, 'r') as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | true      |
++---+-----------+
+(1 row)
+
+!ok
+
+# [CALCITE-5741] Add CONCAT_WS function (enabled in MSSQL, MySQL, Postgres libraries)
+# CONCAT_WS in Postgres and MySQL returns null only when the separator arg is null.
+select concat_ws(',', 'a');
++--------+
+| EXPR$0 |
++--------+
+| a      |
++--------+
+(1 row)
+
+!ok
+
+select concat_ws(',', 'a', 'b', 'c');
++--------+
+| EXPR$0 |
++--------+
+| a,b,c  |
++--------+
+(1 row)
+
+!ok
+
+select concat_ws(',', 'a', cast(null as varchar), 'b');
++--------+
+| EXPR$0 |
++--------+
+| a,b    |
++--------+
+(1 row)
+
+!ok
+
+select concat_ws(',', '', '', '');
++--------+
+| EXPR$0 |
++--------+
+| ,,     |
++--------+
+(1 row)
+
+!ok
+
+with t as (select concat_ws(',', '') as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | false     |
++---+-----------+
+(1 row)
+
+!ok
+
+with t as (select concat_ws('', '', '') as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | false     |
++---+-----------+
+(1 row)
+
+!ok
+
+with t as (select concat_ws(',', cast(null as varchar), cast(null as varchar)) as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | false     |
++---+-----------+
+(1 row)
+
+!ok
+
+with t as (select concat_ws(cast(null as varchar), 'a', 'b') as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | true      |
++---+-----------+
 (1 row)
 
 !ok
@@ -79,6 +310,146 @@ SELECT COMPRESS('sample');
 
 !ok
 
+# -----------------------------------------------------------------------------
+# The standard CONVERT function, for changing character sets.
+# (The MSSQL CONVERT function, equivalent to CAST, appears later in this file.)
+
+select convert('abcd', latin1, utf8);
++--------+
+| EXPR$0 |
++--------+
+| abcd   |
++--------+
+(1 row)
+
+!ok
+
+select convert(null, latin1, utf8);
++--------+
+| EXPR$0 |
++--------+
+|        |
++--------+
+(1 row)
+
+!ok
+
+!use foodmart
+select convert(cast("employee_id" as varchar), utf8, latin1) as alia
+from "employee"
+limit 3;
++------+
+| ALIA |
++------+
+| 1    |
+| 2    |
+| 4    |
++------+
+(3 rows)
+
+!ok
+
+select "employee_id"
+from "employee"
+where convert(cast("employee_id" as varchar), utf8, latin1) <> 1
+limit 3;
++-------------+
+| employee_id |
++-------------+
+|           2 |
+|           4 |
+|           5 |
++-------------+
+(3 rows)
+
+!ok
+
+# -----------------------------------------------------------------------------
+# EXTRACT
+
+SELECT EXTRACT(DAY FROM DATE '2013-12-25') AS the_day;
++---------+
+| THE_DAY |
++---------+
+|      25 |
++---------+
+(1 row)
+
+!ok
+
+# [CALCITE-5698] EXTRACT from INTERVAL should return negative numbers if
+# interval is negative
+SELECT EXTRACT(MONTH FROM INTERVAL -1 MONTHS) as extr;
++------+
+| EXTR |
++------+
+|   -1 |
++------+
+(1 row)
+
+!ok
+
+SELECT EXTRACT(YEAR FROM INTERVAL -34 MONTHS) as extr;
++------+
+| EXTR |
++------+
+|   -2 |
++------+
+(1 row)
+
+!ok
+
+SELECT EXTRACT(decade FROM interval '-1400' months(4)) as extr;
++------+
+| EXTR |
++------+
+|  -11 |
++------+
+(1 row)
+
+!ok
+
+SELECT EXTRACT(MONTH FROM INTERVAL -14 MONTHS) as extr;
++------+
+| EXTR |
++------+
+|   -2 |
++------+
+(1 row)
+
+!ok
+
+SELECT EXTRACT(MINUTE FROM INTERVAL '-10:20' HOURS TO MINUTES) as extr;
++------+
+| EXTR |
++------+
+|  -20 |
++------+
+(1 row)
+
+!ok
+
+SELECT EXTRACT(SECOND FROM INTERVAL '-1 2:3:4.567' DAY TO SECOND) as extr;
++------+
+| EXTR |
++------+
+|   -4 |
++------+
+(1 row)
+
+!ok
+
+SELECT EXTRACT(MILLISECOND FROM INTERVAL '-2' SECONDS) as extr;
++-------+
+| EXTR  |
++-------+
+| -2000 |
++-------+
+(1 row)
+
+!ok
+
+# -----------------------------------------------------------------------------
 
 !use oraclefunc
 
@@ -115,12 +486,76 @@ select sinh(1);
 
 !ok
 
-#CONCAT
+# CONCAT
 select concat('a', 'b');
 +--------+
 | EXPR$0 |
 +--------+
 | ab     |
++--------+
+(1 row)
+
+!ok
+
+# [CALCITE-5745] CONCAT function (enabled in Oracle library) should only return NULL when both arguments are NULL
+select concat('a', null);
++--------+
+| EXPR$0 |
++--------+
+| a      |
++--------+
+(1 row)
+
+!ok
+
+select concat('a', cast(null as varchar));
++--------+
+| EXPR$0 |
++--------+
+| a      |
++--------+
+(1 row)
+
+!ok
+
+select concat(cast(null as varchar), 'a');
++--------+
+| EXPR$0 |
++--------+
+| a      |
++--------+
+(1 row)
+
+!ok
+
+with t as (select concat(null, null) as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | true      |
++---+-----------+
+(1 row)
+
+!ok
+
+# [CALCITE-6730] Add CONVERT function(enabled in Oracle library)
+select convert('abcd', utf8);
++--------+
+| EXPR$0 |
++--------+
+| abcd   |
++--------+
+(1 row)
+
+!ok
+
+select convert('abcd', utf8, latin1);
++--------+
+| EXPR$0 |
++--------+
+| abcd   |
 +--------+
 (1 row)
 
@@ -179,5 +614,561 @@ SELECT EXISTSNODE(
 
 !ok
 
+SELECT XMLTRANSFORM(
+               '<',
+               '<?xml version="1.0"?><xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+                </xsl:stylesheet>'
+           );
+Invalid input for XMLTRANSFORM xml: '<'
+!error
+
+# [CALCITE-4875] Preserve Operand Nullability in NVL rewrite
+# Asserting that NVL does not change a Nullable operand to NOT Nullable
+
+!use oraclefunc
+select nvl("name", 'undefined') FROM "hr"."emps";
+
+EnumerableCalc(expr#0..4=[{inputs}], expr#5=[IS NOT NULL($t2)], expr#6=[CAST($t2):VARCHAR], expr#7=['undefined':VARCHAR], expr#8=[CASE($t5, $t6, $t7)], EXPR$0=[$t8])
+  EnumerableTableScan(table=[[hr, emps]])
+!plan
++-----------+
+| EXPR$0    |
++-----------+
+| Bill      |
+| Eric      |
+| Sebastian |
+| Theodore  |
++-----------+
+(4 rows)
+
+!ok
+
+# -----------------------------------------------------------------------------
+# [CALCITE-5548] - Add support for MSSQL CONVERT function
+!use mssqlfunc
+select CONVERT(INTEGER, 45.4);
++--------+
+| EXPR$0 |
++--------+
+|     45 |
++--------+
+(1 row)
+
+!ok
+
+select CONVERT(INTEGER, 45.4, 121);
++--------+
+| EXPR$0 |
++--------+
+|     45 |
++--------+
+(1 row)
+
+!ok
+
+select CONVERT(FLOAT, '34.5');
++--------+
+| EXPR$0 |
++--------+
+|   34.5 |
++--------+
+(1 row)
+
+!ok
+
+select CONVERT(DATE, '2011-01-05');
++------------+
+| EXPR$0     |
++------------+
+| 2011-01-05 |
++------------+
+(1 row)
+
+!ok
+
+# style (3rd operand) ignored (for now)
+select CONVERT(DATE, '2011-01-05', 999);
++------------+
+| EXPR$0     |
++------------+
+| 2011-01-05 |
++------------+
+(1 row)
+
+!ok
+
+select CONVERT(INTEGER, 45.4, 121, 99999);
+parse failed: Encountered ","
+!error
+
+# since 'style' operand is ignored, usual behaviour of returning NULL with NULL style is not present
+select CONVERT(INTEGER, 5, NULL);
++--------+
+| EXPR$0 |
++--------+
+|      5 |
++--------+
+(1 row)
+
+!ok
+
+select CONVERT(INTEGER, NULL, NULL);
++--------+
+| EXPR$0 |
++--------+
+|        |
++--------+
+(1 row)
+
+!ok
+
+# below not executed due to huge stack trace quidem insists on generating
+# unsupported format test for documentation (dd/mm/yyyy) (need MSSQL "style" operand support in enumerable)
+# however CONVERT right now is simply a wrapper around CAST
+!if (false) {
+select CONVERT(DATE, '05/01/2000', 103);
+!ok
+!}
+
+# CONCAT_WS in MSSQL
+select concat_ws(',', 'a', 'b');
++--------+
+| EXPR$0 |
++--------+
+| a,b    |
++--------+
+(1 row)
+
+!ok
+
+select concat_ws(',', 'a', cast(null as varchar), 'b');
++--------+
+| EXPR$0 |
++--------+
+| a,b    |
++--------+
+(1 row)
+
+!ok
+
+select concat_ws(',', '', '', '');
++--------+
+| EXPR$0 |
++--------+
+| ,,     |
++--------+
+(1 row)
+
+!ok
+
+with t as (select concat_ws('', '', '') as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | false     |
++---+-----------+
+(1 row)
+
+!ok
+
+with t as (select concat_ws(',', cast(null as varchar), cast(null as varchar)) as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | false     |
++---+-----------+
+(1 row)
+
+!ok
+
+with t as (select concat_ws(cast(null as varchar), '', '', '') as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | false     |
++---+-----------+
+(1 row)
+
+!ok
+
+select concat_ws(cast(null as varchar), 'a', cast(null as varchar), 'b');
++--------+
+| EXPR$0 |
++--------+
+| ab     |
++--------+
+(1 row)
+
+!ok
+
+# [CALCITE-5771] Apply two different NULL semantics for CONCAT function(enabled in MySQL, Postgresql, BigQuery and MSSQL)
+with t as (select concat(null) as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | false     |
++---+-----------+
+(1 row)
+
+!ok
+
+with t as (select concat(null, '') as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | false     |
++---+-----------+
+(1 row)
+
+!ok
+
+with t as (select concat('', '') as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | false     |
++---+-----------+
+(1 row)
+
+!ok
+
+select concat('a', null, 'b');
++--------+
+| EXPR$0 |
++--------+
+| ab     |
++--------+
+(1 row)
+
+!ok
+
+select concat('a', cast(null as varchar), 'b');
++--------+
+| EXPR$0 |
++--------+
+| ab     |
++--------+
+(1 row)
+
+!ok
+
+select concat(cast(null as varchar), 'a', 'b');
++--------+
+| EXPR$0 |
++--------+
+| ab     |
++--------+
+(1 row)
+
+!ok
+
+with t as (select concat(null, null, null) as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | false     |
++---+-----------+
+(1 row)
+
+!ok
+
+# [CALCITE-6791] Search pattern during matching in REPLACE function should be case insensitive in MSSQL
+!use scott-mssql
+select replace('ciAao', 'a', 'ciao');
++-------------+
+| EXPR$0      |
++-------------+
+| ciciaociaoo |
++-------------+
+(1 row)
+
+!ok
+
+select replace('ciAao', 'A', 'ciao');
++-------------+
+| EXPR$0      |
++-------------+
+| ciciaociaoo |
++-------------+
+(1 row)
+
+!ok
+
+# concat in BigQuery
+!use post-big-query
+
+select concat('a');
++--------+
+| EXPR$0 |
++--------+
+| a      |
++--------+
+(1 row)
+
+!ok
+
+select concat('a', 'b');
++--------+
+| EXPR$0 |
++--------+
+| ab     |
++--------+
+(1 row)
+
+!ok
+
+with t as (select concat(null, '') as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | true      |
++---+-----------+
+(1 row)
+
+!ok
+
+with t as (select concat('a', cast(null as varchar), 'b') as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | true      |
++---+-----------+
+(1 row)
+
+!ok
+
+with t as (select concat(null, null, null) as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | true      |
++---+-----------+
+(1 row)
+
+!ok
+
+# -----------------------------------------------------------------------------
+# The standard TRANSLATE function, for changing character sets.
+
+select translate('abcd' using utf8);
++--------+
+| EXPR$0 |
++--------+
+| abcd   |
++--------+
+(1 row)
+
+!ok
+
+select translate(null using utf8);
++--------+
+| EXPR$0 |
++--------+
+|        |
++--------+
+(1 row)
+
+!ok
+
+!use foodmart
+select translate(cast("employee_id" as varchar) using latin1) as alia
+from "employee"
+limit 3;
++------+
+| ALIA |
++------+
+| 1    |
+| 2    |
+| 4    |
++------+
+(3 rows)
+
+!ok
+
+select "employee_id"
+from "employee"
+where translate(cast("employee_id" as varchar) using latin1) <> 1
+limit 3;
++-------------+
+| employee_id |
++-------------+
+|           2 |
+|           4 |
+|           5 |
++-------------+
+(3 rows)
+
+!ok
+
+select convert('abcd' using utf8);
++--------+
+| EXPR$0 |
++--------+
+| abcd   |
++--------+
+(1 row)
+
+!ok
+
+select convert(null using utf8);
++--------+
+| EXPR$0 |
++--------+
+|        |
++--------+
+(1 row)
+
+!ok
+
+# [CALCITE-6774] REPLACE function returns wrong result when search pattern is an empty string
+select replace('ciao', '', 'ciao');
++--------+
+| EXPR$0 |
++--------+
+| ciao   |
++--------+
+(1 row)
+
+!ok
+
+select replace('ci ao', ' ', 'ciao');
++----------+
+| EXPR$0   |
++----------+
+| ciciaoao |
++----------+
+(1 row)
+
+!ok
+
+with t as (select replace(null, 'ciao', 'ci') as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | true      |
++---+-----------+
+(1 row)
+
+!ok
+
+with t as (select replace('ciao', cast(null as varchar), 'ci') as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | true      |
++---+-----------+
+(1 row)
+
+!ok
+
+with t as (select replace('ciao', 'ci', cast(null as varchar)) as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | true      |
++---+-----------+
+(1 row)
+
+!ok
+
+with t as (select replace('', 'ciao', 'ci') as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | false     |
++---+-----------+
+(1 row)
+
+!ok
+
+!use foodmart
+select convert(cast("employee_id" as varchar) using latin1) as alia
+from "employee"
+limit 3;
++------+
+| ALIA |
++------+
+| 1    |
+| 2    |
+| 4    |
++------+
+(3 rows)
+
+!ok
+
+select "employee_id"
+from "employee"
+where convert(cast("employee_id" as varchar) using latin1) <> 1
+limit 3;
++-------------+
+| employee_id |
++-------------+
+|           2 |
+|           4 |
+|           5 |
++-------------+
+(3 rows)
+
+!ok
+
+!use aux
+# Test case for [CALCITE-5779] Implicit column alias for single-column table function should work.
+select t1, t1."i", t2, v
+from
+table(AUX.TBLFUN_IDENTITY(1)) as t1,
+table(AUX.TBLFUN_IDENTITY(2)) as t2,
+table(AUX.TBLFUN_IDENTITY(3)) as t3(v);
++----+---+----+---+
+| T1 | i | T2 | V |
++----+---+----+---+
+|  1 | 1 |  2 | 3 |
++----+---+----+---+
+(1 row)
+
+!ok
+
+# SUBSTRING
+-- returns 'null'
+select SUBSTRING(NULL FROM 1 FOR 2);
+select SUBSTRING('text' FROM 1 FOR NULL);
+select SUBSTRING('text' FROM NULL FOR 2);
+select SUBSTRING(s FROM i FOR l) FROM (VALUES ('abc', NULL, 2)) AS t (s, i, l);
+select SUBSTRING('text' FROM NULL);
++--------+
+| EXPR$0 |
++--------+
+|        |
++--------+
+(1 row)
+
+!ok
 
 # End functions.iq

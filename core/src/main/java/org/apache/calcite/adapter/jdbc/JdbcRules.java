@@ -37,7 +37,6 @@ import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
-import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Intersect;
@@ -55,9 +54,7 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rel2sql.SqlImplementor;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
-import org.apache.calcite.rex.RexMultisetUtil;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexUtil;
@@ -73,8 +70,8 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
@@ -83,6 +80,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import static java.util.Objects.requireNonNull;
 
@@ -98,7 +97,9 @@ public class JdbcRules {
   protected static final Logger LOGGER = CalciteTrace.getPlannerTracer();
 
   static final RelFactories.ProjectFactory PROJECT_FACTORY =
-      (input, hints, projects, fieldNames) -> {
+      (input, hints, projects, fieldNames, variablesSet) -> {
+        checkArgument(variablesSet.isEmpty(),
+            "JdbcProject does not allow variables");
         final RelOptCluster cluster = input.getCluster();
         final RelDataType rowType =
             RexUtil.createStructType(cluster.getTypeFactory(), projects,
@@ -109,7 +110,7 @@ public class JdbcRules {
 
   static final RelFactories.FilterFactory FILTER_FACTORY =
       (input, condition, variablesSet) -> {
-        Preconditions.checkArgument(variablesSet.isEmpty(),
+        checkArgument(variablesSet.isEmpty(),
             "JdbcFilter does not allow variables");
         return new JdbcFilter(input.getCluster(),
             input.getTraitSet(), input, condition);
@@ -118,8 +119,9 @@ public class JdbcRules {
   static final RelFactories.JoinFactory JOIN_FACTORY =
       (left, right, hints, condition, variablesSet, joinType, semiJoinDone) -> {
         final RelOptCluster cluster = left.getCluster();
-        final RelTraitSet traitSet = cluster.traitSetOf(
-            requireNonNull(left.getConvention(), "left.getConvention()"));
+        final RelTraitSet traitSet =
+            cluster.traitSetOf(
+                requireNonNull(left.getConvention(), "left.getConvention()"));
         try {
           return new JdbcJoin(cluster, traitSet, left, right, condition,
               variablesSet, joinType);
@@ -129,7 +131,7 @@ public class JdbcRules {
       };
 
   static final RelFactories.CorrelateFactory CORRELATE_FACTORY =
-      (left, right, correlationId, requiredColumns, joinType) -> {
+      (left, right, hints, correlationId, requiredColumns, joinType) -> {
         throw new UnsupportedOperationException("JdbcCorrelate");
       };
 
@@ -151,8 +153,9 @@ public class JdbcRules {
   public static final RelFactories.AggregateFactory AGGREGATE_FACTORY =
       (input, hints, groupSet, groupSets, aggCalls) -> {
         final RelOptCluster cluster = input.getCluster();
-        final RelTraitSet traitSet = cluster.traitSetOf(
-            requireNonNull(input.getConvention(), "input.getConvention()"));
+        final RelTraitSet traitSet =
+            cluster.traitSetOf(
+                requireNonNull(input.getConvention(), "input.getConvention()"));
         try {
           return new JdbcAggregate(cluster, traitSet, input, groupSet,
               groupSets, aggCalls);
@@ -172,8 +175,9 @@ public class JdbcRules {
       (kind, inputs, all) -> {
         RelNode input = inputs.get(0);
         RelOptCluster cluster = input.getCluster();
-        final RelTraitSet traitSet = cluster.traitSetOf(
-            requireNonNull(input.getConvention(), "input.getConvention()"));
+        final RelTraitSet traitSet =
+            cluster.traitSetOf(
+                requireNonNull(input.getConvention(), "input.getConvention()"));
         switch (kind) {
         case UNION:
           return new JdbcUnion(cluster, traitSet, inputs, all);
@@ -239,7 +243,6 @@ public class JdbcRules {
       Consumer<RelRule<?>> consumer) {
     consumer.accept(JdbcToEnumerableConverterRule.create(out));
     consumer.accept(JdbcJoinRule.create(out));
-    consumer.accept(JdbcCalcRule.create(out));
     consumer.accept(JdbcProjectRule.create(out));
     consumer.accept(JdbcFilterRule.create(out));
     consumer.accept(JdbcAggregateRule.create(out));
@@ -334,8 +337,27 @@ public class JdbcRules {
     private static boolean canJoinOnCondition(RexNode node) {
       final List<RexNode> operands;
       switch (node.getKind()) {
+      case DYNAMIC_PARAM:
+      case INPUT_REF:
+      case LITERAL:
+        // literal on a join condition would be TRUE or FALSE
+        return true;
       case AND:
       case OR:
+      case IS_NULL:
+      case IS_NOT_NULL:
+      case IS_TRUE:
+      case IS_NOT_TRUE:
+      case IS_FALSE:
+      case IS_NOT_FALSE:
+      case EQUALS:
+      case NOT_EQUALS:
+      case GREATER_THAN:
+      case GREATER_THAN_OR_EQUAL:
+      case LESS_THAN:
+      case LESS_THAN_OR_EQUAL:
+      case IS_NOT_DISTINCT_FROM:
+      case CAST:
         operands = ((RexCall) node).getOperands();
         for (RexNode operand : operands) {
           if (!canJoinOnCondition(operand)) {
@@ -343,21 +365,6 @@ public class JdbcRules {
           }
         }
         return true;
-
-      case EQUALS:
-      case IS_NOT_DISTINCT_FROM:
-      case NOT_EQUALS:
-      case GREATER_THAN:
-      case GREATER_THAN_OR_EQUAL:
-      case LESS_THAN:
-      case LESS_THAN_OR_EQUAL:
-        operands = ((RexCall) node).getOperands();
-        if ((operands.get(0) instanceof RexInputRef)
-            && (operands.get(1) instanceof RexInputRef)) {
-          return true;
-        }
-        // fall through
-
       default:
         return false;
       }
@@ -416,8 +423,8 @@ public class JdbcRules {
     }
 
     @Override public double estimateRowCount(RelMetadataQuery mq) {
-      final double leftRowCount = left.estimateRowCount(mq);
-      final double rightRowCount = right.estimateRowCount(mq);
+      final double leftRowCount = mq.getRowCount(left);
+      final double rightRowCount = mq.getRowCount(right);
       return Math.max(leftRowCount, rightRowCount);
     }
 
@@ -426,42 +433,11 @@ public class JdbcRules {
     }
   }
 
-  /**
-   * Rule to convert a {@link org.apache.calcite.rel.core.Calc} to an
-   * {@link org.apache.calcite.adapter.jdbc.JdbcRules.JdbcCalc}.
-   */
-  private static class JdbcCalcRule extends JdbcConverterRule {
-    /** Creates a JdbcCalcRule. */
-    public static JdbcCalcRule create(JdbcConvention out) {
-      return Config.INSTANCE
-          .withConversion(Calc.class, Convention.NONE, out, "JdbcCalcRule")
-          .withRuleFactory(JdbcCalcRule::new)
-          .toRule(JdbcCalcRule.class);
-    }
-
-    /** Called from the Config. */
-    protected JdbcCalcRule(Config config) {
-      super(config);
-    }
-
-    @Override public @Nullable RelNode convert(RelNode rel) {
-      final Calc calc = (Calc) rel;
-
-      // If there's a multiset, let FarragoMultisetSplitter work on it
-      // first.
-      if (RexMultisetUtil.containsMultiset(calc.getProgram())) {
-        return null;
-      }
-
-      return new JdbcCalc(rel.getCluster(), rel.getTraitSet().replace(out),
-          convert(calc.getInput(), calc.getTraitSet().replace(out)),
-          calc.getProgram());
-    }
-  }
-
   /** Calc operator implemented in JDBC convention.
    *
-   * @see org.apache.calcite.rel.core.Calc */
+   * @see org.apache.calcite.rel.core.Calc
+   * */
+  @Deprecated // to be removed before 2.0
   public static class JdbcCalc extends SingleRel implements JdbcRel {
     private final RexProgram program;
 
@@ -541,6 +517,11 @@ public class JdbcRules {
       return false;
     }
 
+    @Override public boolean matches(RelOptRuleCall call) {
+      Project project = call.rel(0);
+      return project.getVariablesSet().isEmpty();
+    }
+
     @Override public @Nullable RelNode convert(RelNode rel) {
       final Project project = (Project) rel;
 
@@ -566,7 +547,7 @@ public class JdbcRules {
         RelNode input,
         List<? extends RexNode> projects,
         RelDataType rowType) {
-      super(cluster, traitSet, ImmutableList.of(), input, projects, rowType);
+      super(cluster, traitSet, ImmutableList.of(), input, projects, rowType, ImmutableSet.of());
       assert getConvention() instanceof JdbcConvention;
     }
 
@@ -886,7 +867,7 @@ public class JdbcRules {
       if (cost == null) {
         return null;
       }
-      return cost.multiplyBy(.1);
+      return cost.multiplyBy(JdbcConvention.COST_MULTIPLIER);
     }
 
     @Override public JdbcImplementor.Result implement(JdbcImplementor implementor) {

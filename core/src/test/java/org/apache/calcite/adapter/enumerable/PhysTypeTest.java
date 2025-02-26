@@ -28,7 +28,8 @@ import com.google.common.collect.ImmutableList;
 
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Test for {@link org.apache.calcite.adapter.enumerable.PhysTypeImpl}.
@@ -40,34 +41,35 @@ public final class PhysTypeTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2677">[CALCITE-2677]
    * Struct types with one field are not mapped correctly to Java Classes</a>. */
   @Test void testFieldClassOnColumnOfOneFieldStructType() {
-    RelDataType columnType = TYPE_FACTORY.createStructType(
-        ImmutableList.of(TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER)),
-        ImmutableList.of("intField"));
-    RelDataType rowType = TYPE_FACTORY.createStructType(
-        ImmutableList.of(columnType),
-        ImmutableList.of("structField"));
+    RelDataType columnType =
+        TYPE_FACTORY.createStructType(
+            ImmutableList.of(TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER)),
+            ImmutableList.of("intField"));
+    RelDataType rowType =
+        TYPE_FACTORY.createStructType(ImmutableList.of(columnType),
+            ImmutableList.of("structField"));
 
-    PhysType rowPhysType = PhysTypeImpl.of(TYPE_FACTORY, rowType, JavaRowFormat.ARRAY);
-    assertEquals(Object[].class, rowPhysType.fieldClass(0));
+    PhysType rowPhysType =
+        PhysTypeImpl.of(TYPE_FACTORY, rowType, JavaRowFormat.ARRAY);
+    assertThat(rowPhysType.fieldClass(0), is(Object[].class));
   }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2677">[CALCITE-2677]
    * Struct types with one field are not mapped correctly to Java Classes</a>. */
   @Test void testFieldClassOnColumnOfTwoFieldStructType() {
-    RelDataType columnType = TYPE_FACTORY.createStructType(
-        ImmutableList.of(
-            TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER),
-            TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR)),
-        ImmutableList.of(
-            "intField",
-            "strField"));
-    RelDataType rowType = TYPE_FACTORY.createStructType(
-        ImmutableList.of(columnType),
-        ImmutableList.of("structField"));
+    RelDataType columnType =
+        TYPE_FACTORY.createStructType(
+            ImmutableList.of(TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER),
+                TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR)),
+            ImmutableList.of("intField", "strField"));
+    RelDataType rowType =
+        TYPE_FACTORY.createStructType(ImmutableList.of(columnType),
+            ImmutableList.of("structField"));
 
-    PhysType rowPhysType = PhysTypeImpl.of(TYPE_FACTORY, rowType, JavaRowFormat.ARRAY);
-    assertEquals(Object[].class, rowPhysType.fieldClass(0));
+    PhysType rowPhysType =
+        PhysTypeImpl.of(TYPE_FACTORY, rowType, JavaRowFormat.ARRAY);
+    assertThat(rowPhysType.fieldClass(0), is(Object[].class));
   }
 
   /** Test case for
@@ -75,14 +77,15 @@ public final class PhysTypeTest {
    * Can't group table function result due to a type cast error if table function
    * returns a row with a single value</a>. */
   @Test void testOneColumnJavaRowFormatConversion() {
-    RelDataType rowType = TYPE_FACTORY.createStructType(
-        ImmutableList.of(TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER)),
-        ImmutableList.of("intField"));
-    final PhysType rowPhysType = PhysTypeImpl.of(TYPE_FACTORY, rowType,
-        JavaRowFormat.ARRAY, false);
-    final Expression e = rowPhysType.convertTo(
-        Expressions.parameter(Enumerable.class, "input"),
-        JavaRowFormat.SCALAR);
+    RelDataType rowType =
+        TYPE_FACTORY.createStructType(
+            ImmutableList.of(TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER)),
+            ImmutableList.of("intField"));
+    final PhysType rowPhysType =
+        PhysTypeImpl.of(TYPE_FACTORY, rowType, JavaRowFormat.ARRAY, false);
+    final Expression e =
+        rowPhysType.convertTo(Expressions.parameter(Enumerable.class, "input"),
+            JavaRowFormat.SCALAR);
     final String expected = "input.select(new org.apache.calcite.linq4j.function.Function1() {\n"
         + "  public int apply(Object[] o) {\n"
         + "    return org.apache.calcite.runtime.SqlFunctions.toInt(o[0]);\n"
@@ -93,6 +96,6 @@ public final class PhysTypeTest {
         + "  }\n"
         + "}\n"
         + ")";
-    assertEquals(Expressions.toString(e), expected);
+    assertThat(expected, is(Expressions.toString(e)));
   }
 }

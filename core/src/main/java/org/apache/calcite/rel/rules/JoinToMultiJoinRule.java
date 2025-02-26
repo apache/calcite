@@ -37,8 +37,10 @@ import org.apache.calcite.util.Pair;
 import com.google.common.collect.ImmutableMap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -100,12 +102,13 @@ import static java.util.Objects.requireNonNull;
  *
  * <p>The constructor is parameterized to allow any sub-class of
  * {@link org.apache.calcite.rel.core.Join}, not just
- * {@link org.apache.calcite.rel.logical.LogicalJoin}.</p>
+ * {@link org.apache.calcite.rel.logical.LogicalJoin}.
  *
  * @see org.apache.calcite.rel.rules.FilterMultiJoinMergeRule
  * @see org.apache.calcite.rel.rules.ProjectMultiJoinMergeRule
  * @see CoreRules#JOIN_TO_MULTI_JOIN
  */
+@Value.Enclosing
 public class JoinToMultiJoinRule
     extends RelRule<JoinToMultiJoinRule.Config>
     implements TransformationRule {
@@ -224,7 +227,7 @@ public class JoinToMultiJoinRule
         newInputs.add(leftMultiJoin.getInput(i));
         projFieldsList.add(leftMultiJoin.getProjFields().get(i));
         joinFieldRefCountsList.add(
-            leftMultiJoin.getJoinFieldRefCountsMap().get(i).toIntArray());
+            requireNonNull(leftMultiJoin.getJoinFieldRefCountsMap().get(i)).toIntArray());
       }
     } else {
       newInputs.add(left);
@@ -240,7 +243,7 @@ public class JoinToMultiJoinRule
         projFieldsList.add(
             rightMultiJoin.getProjFields().get(i));
         joinFieldRefCountsList.add(
-            rightMultiJoin.getJoinFieldRefCountsMap().get(i).toIntArray());
+            requireNonNull(rightMultiJoin.getJoinFieldRefCountsMap().get(i)).toIntArray());
       }
     } else {
       newInputs.add(right);
@@ -287,7 +290,7 @@ public class JoinToMultiJoinRule
             null,
             null);
       } else {
-        joinSpecs.add(Pair.of(JoinRelType.INNER, (@Nullable RexNode) null));
+        joinSpecs.add(Pair.of(JoinRelType.INNER, null));
       }
       joinSpecs.add(Pair.of(joinType, joinRel.getCondition()));
       break;
@@ -301,7 +304,7 @@ public class JoinToMultiJoinRule
             right.getRowType().getFieldList(),
             joinRel.getRowType().getFieldList());
       } else {
-        joinSpecs.add(Pair.of(JoinRelType.INNER, (RexNode) null));
+        joinSpecs.add(Pair.of(JoinRelType.INNER, null));
       }
       break;
     default:
@@ -313,7 +316,7 @@ public class JoinToMultiJoinRule
             null,
             null);
       } else {
-        joinSpecs.add(Pair.of(JoinRelType.INNER, (RexNode) null));
+        joinSpecs.add(Pair.of(JoinRelType.INNER, null));
       }
       if (rightCombined) {
         copyOuterJoinInfo(
@@ -323,7 +326,7 @@ public class JoinToMultiJoinRule
             right.getRowType().getFieldList(),
             joinRel.getRowType().getFieldList());
       } else {
-        joinSpecs.add(Pair.of(JoinRelType.INNER, (RexNode) null));
+        joinSpecs.add(Pair.of(JoinRelType.INNER, null));
       }
     }
   }
@@ -356,15 +359,11 @@ public class JoinToMultiJoinRule
     if (adjustmentAmount == 0) {
       destJoinSpecs.addAll(srcJoinSpecs);
     } else {
-      assert srcFields != null;
-      assert destFields != null;
-      int nFields = srcFields.size();
-      int[] adjustments = new int[nFields];
-      for (int idx = 0; idx < nFields; idx++) {
-        adjustments[idx] = adjustmentAmount;
-      }
-      for (Pair<JoinRelType, @Nullable RexNode> src
-          : srcJoinSpecs) {
+      requireNonNull(srcFields, "srcFields");
+      requireNonNull(destFields, "destFields");
+      int[] adjustments = new int[srcFields.size()];
+      Arrays.fill(adjustments, adjustmentAmount);
+      for (Pair<JoinRelType, @Nullable RexNode> src : srcJoinSpecs) {
         destJoinSpecs.add(
             Pair.of(
                 src.left,
@@ -455,9 +454,7 @@ public class JoinToMultiJoinRule
     int nFieldsOnLeft = left.getRowType().getFieldList().size();
     int nFieldsOnRight = right.getRowType().getFieldList().size();
     int[] adjustments = new int[nFieldsOnRight];
-    for (int i = 0; i < nFieldsOnRight; i++) {
-      adjustments[i] = nFieldsOnLeft;
-    }
+    Arrays.fill(adjustments, nFieldsOnLeft);
     rightFilter =
         rightFilter.accept(
             new RelOptUtil.RexInputConverter(
@@ -516,8 +513,9 @@ public class JoinToMultiJoinRule
             multiJoinInputs.get(currInput).getRowType().getFieldCount();
       }
       final int key = currInput;
-      int[] refCounts = requireNonNull(refCountsMap.get(key),
-          () -> "refCountsMap.get(currInput) for " + key);
+      int[] refCounts =
+          requireNonNull(refCountsMap.get(key),
+              () -> "refCountsMap.get(currInput) for " + key);
       refCounts[i - startField] += joinCondRefCounts[i];
     }
 
@@ -577,8 +575,9 @@ public class JoinToMultiJoinRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableJoinToMultiJoinRule.Config.of()
         .withOperandFor(LogicalJoin.class);
 
     @Override default JoinToMultiJoinRule toRule() {

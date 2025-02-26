@@ -38,6 +38,7 @@ public interface DruidSqlOperatorConverter {
 
   /**
    * Translate rexNode to valid Druid expression.
+   *
    * @param rexNode rexNode to translate to Druid expression
    * @param rowType row type associated with rexNode
    * @param druidQuery druid query used to figure out configs/fields related like timeZone

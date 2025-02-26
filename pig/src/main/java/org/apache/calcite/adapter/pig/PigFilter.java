@@ -27,10 +27,10 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 
-import com.google.common.base.Preconditions;
-
 import java.util.ArrayList;
 import java.util.List;
+
+import static com.google.common.base.Preconditions.checkState;
 
 import static org.apache.calcite.sql.SqlKind.INPUT_REF;
 import static org.apache.calcite.sql.SqlKind.LITERAL;
@@ -70,7 +70,7 @@ public class PigFilter extends Filter implements PigRel {
    * </blockquote>
    */
   private String getPigFilterStatement(Implementor implementor) {
-    Preconditions.checkState(containsOnlyConjunctions(condition));
+    checkState(containsOnlyConjunctions(condition));
     String relationAlias = implementor.getPigRelationAlias(this);
     List<String> filterConditionsConjunction = new ArrayList<>();
     for (RexNode node : RelOptUtil.conjunctions(condition)) {

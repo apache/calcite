@@ -33,6 +33,7 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.SchemaVersion;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlDialectFactory;
 import org.apache.calcite.sql.SqlDialectFactoryImpl;
@@ -49,6 +50,8 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -64,6 +67,7 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import javax.sql.DataSource;
 
+import static java.lang.Integer.parseInt;
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -71,9 +75,11 @@ import static java.util.Objects.requireNonNull;
  *
  * <p>The tables in the JDBC data source appear to be tables in this schema;
  * queries against this schema are executed against those tables, pushing down
- * as much as possible of the query logic to SQL.</p>
+ * as much as possible of the query logic to SQL.
  */
-public class JdbcSchema implements Schema {
+public class JdbcSchema implements Schema, Wrapper {
+  private static final Logger LOGGER = LoggerFactory.getLogger(JdbcSchema.class);
+
   final DataSource dataSource;
   final @Nullable String catalog;
   final @Nullable String schema;
@@ -175,10 +181,11 @@ public class JdbcSchema implements Schema {
       return JdbcSchema.create(
           parentSchema, name, dataSource, jdbcCatalog, jdbcSchema);
     } else {
-      SqlDialectFactory factory = AvaticaUtils.instantiatePlugin(
-          SqlDialectFactory.class, sqlDialectFactory);
-      return JdbcSchema.create(
-          parentSchema, name, dataSource, factory, jdbcCatalog, jdbcSchema);
+      SqlDialectFactory factory =
+          AvaticaUtils.instantiatePlugin(SqlDialectFactory.class,
+              sqlDialectFactory);
+      return JdbcSchema.create(parentSchema, name, dataSource, factory,
+          jdbcCatalog, jdbcSchema);
     }
   }
 
@@ -290,7 +297,7 @@ public class JdbcSchema implements Schema {
         final TableType tableType =
             Util.enumVal(TableType.OTHER, tableTypeName2);
         if (tableType == TableType.OTHER  && tableTypeName2 != null) {
-          System.out.println("Unknown table type: " + tableTypeName2);
+          LOGGER.info("Unknown table type: {}", tableTypeName2);
         }
         final JdbcTable table =
             new JdbcTable(this, tableDef.tableCat, tableDef.tableSchem,
@@ -418,13 +425,14 @@ public class JdbcSchema implements Schema {
       if (typeString != null && typeString.endsWith(" ARRAY")) {
         // E.g. hsqldb gives "INTEGER ARRAY", so we deduce the component type
         // "INTEGER".
-        final String remaining = typeString.substring(0,
-            typeString.length() - " ARRAY".length());
+        final String remaining =
+            typeString.substring(0, typeString.length() - " ARRAY".length());
         component = parseTypeString(typeFactory, remaining);
       }
       if (component == null) {
-        component = typeFactory.createTypeWithNullability(
-            typeFactory.createSqlType(SqlTypeName.ANY), true);
+        component =
+            typeFactory.createTypeWithNullability(
+                typeFactory.createSqlType(SqlTypeName.ANY), true);
       }
       return typeFactory.createArrayType(component, -1);
     default:
@@ -457,10 +465,10 @@ public class JdbcSchema implements Schema {
         typeString = typeString.substring(0, open);
         int comma = rest.indexOf(",");
         if (comma >= 0) {
-          precision = Integer.parseInt(rest.substring(0, comma));
-          scale = Integer.parseInt(rest.substring(comma));
+          precision = parseInt(rest.substring(0, comma));
+          scale = parseInt(rest.substring(comma));
         } else {
-          precision = Integer.parseInt(rest);
+          precision = parseInt(rest);
         }
       }
     }
@@ -505,6 +513,17 @@ public class JdbcSchema implements Schema {
   @Override public Set<String> getSubSchemaNames() {
     return ImmutableSet.of();
   }
+
+  @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
+    if (clazz.isInstance(this)) {
+      return clazz.cast(this);
+    }
+    if (clazz == DataSource.class) {
+      return clazz.cast(getDataSource());
+    }
+    return null;
+  }
+
 
   private static void close(
       @Nullable Connection connection,

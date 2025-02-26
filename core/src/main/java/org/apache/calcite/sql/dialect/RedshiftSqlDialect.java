@@ -38,6 +38,8 @@ public class RedshiftSqlDialect extends SqlDialect {
       new RelDataTypeSystemImpl() {
         @Override public int getMaxPrecision(SqlTypeName typeName) {
           switch (typeName) {
+          case DECIMAL:
+            return 38;
           case VARCHAR:
             return 65535;
           case CHAR:
@@ -48,11 +50,20 @@ public class RedshiftSqlDialect extends SqlDialect {
         }
 
         @Override public int getMaxNumericPrecision() {
-          return 38;
+          return getMaxPrecision(SqlTypeName.DECIMAL);
+        }
+
+        @Override public int getMaxScale(SqlTypeName typeName) {
+          switch (typeName) {
+          case DECIMAL:
+            return 37;
+          default:
+            return super.getMaxScale(typeName);
+          }
         }
 
         @Override public int getMaxNumericScale() {
-          return 37;
+          return getMaxScale(SqlTypeName.DECIMAL);
         }
       };
 
@@ -105,5 +116,17 @@ public class RedshiftSqlDialect extends SqlDialect {
     return new SqlDataTypeSpec(
         new SqlUserDefinedTypeNameSpec(castSpec, SqlParserPos.ZERO),
         SqlParserPos.ZERO);
+  }
+
+  @Override public SqlNode rewriteMaxMinExpr(SqlNode aggCall, RelDataType relDataType) {
+    return rewriteMaxMin(aggCall, relDataType);
+  }
+
+  @Override public boolean supportsGroupByLiteral() {
+    return false;
+  }
+
+  @Override public boolean supportsAliasedValues() {
+    return false;
   }
 }

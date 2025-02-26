@@ -15,8 +15,13 @@
  * limitations under the License.
  */
 package org.apache.calcite.util;
-
 import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.rel.externalize.RelJson;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.test.Matchers;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableRangeSet;
@@ -27,25 +32,98 @@ import com.google.common.collect.TreeRangeSet;
 
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 import static org.apache.calcite.test.Matchers.isRangeSet;
 
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.hasToString;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import static java.util.Arrays.asList;
 
 /**
  * Unit test for {@link RangeSets} and other utilities relating to Guava
  * {@link Range} and {@link RangeSet}.
  */
-@SuppressWarnings("UnstableApiUsage")
 class RangeSetTest {
+
+  /** Tests {@link org.apache.calcite.rel.externalize.RelJson#toJson(Range)}
+   * and {@link RelJson#rangeFromJson(List, RelDataType)}. */
+  @Test void testRangeSetSerializeDeserialize() {
+    RelJson relJson = RelJson.create();
+    RelDataType integerType = new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.INTEGER);
+    RelDataType decimalType = new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.DECIMAL);
+    RelDataType doubleType = new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.DOUBLE);
+
+    final Range<Integer> integerPoint = Range.singleton(Integer.valueOf(0));
+    final Range<BigDecimal> bigDecimalPoint = Range.singleton(BigDecimal.valueOf(0));
+    final Range<Double> doublePoint = Range.singleton(Double.valueOf(0));
+    final Range<BigDecimal> closedRange1 =
+        Range.closed(BigDecimal.valueOf(0), BigDecimal.valueOf(5));
+    final Range<BigDecimal> closedRange2 =
+        Range.closed(BigDecimal.valueOf(6), BigDecimal.valueOf(10));
+
+    final Range<BigDecimal> gt1 = Range.greaterThan(BigDecimal.valueOf(7));
+    final Range<BigDecimal> al1 = Range.atLeast(BigDecimal.valueOf(8));
+    final Range<BigDecimal> lt1 = Range.lessThan(BigDecimal.valueOf(4));
+    final Range<BigDecimal> am1 = Range.atMost(BigDecimal.valueOf(3));
+
+    // Test serialize/deserialize Range
+    //    Integer Point
+    //    Deserializes as BigDecimal because Calcite uses BigDecimal for exact numerics
+    assertThat(RelJson.rangeFromJson(relJson.toJson(integerPoint), integerType),
+        is(bigDecimalPoint));
+    //    BigDecimal Point
+    assertThat(RelJson.rangeFromJson(relJson.toJson(bigDecimalPoint), decimalType),
+        is(bigDecimalPoint));
+    //    Double Point
+    assertThat(RelJson.rangeFromJson(relJson.toJson(doublePoint), doubleType),
+        is(doublePoint));
+    //    Closed Range
+    assertThat(RelJson.rangeFromJson(relJson.toJson(closedRange1), decimalType),
+        is(closedRange1));
+    //    Open Range
+    assertThat(RelJson.rangeFromJson(relJson.toJson(gt1), decimalType), is(gt1));
+    assertThat(RelJson.rangeFromJson(relJson.toJson(al1), decimalType), is(al1));
+    assertThat(RelJson.rangeFromJson(relJson.toJson(lt1), decimalType), is(lt1));
+    assertThat(RelJson.rangeFromJson(relJson.toJson(am1), decimalType), is(am1));
+    // Test closed single RangeSet
+    final RangeSet<BigDecimal> closedRangeSet = ImmutableRangeSet.of(closedRange1);
+    assertThat(RelJson.rangeSetFromJson(relJson.toJson(closedRangeSet), decimalType),
+        is(closedRangeSet));
+    // Test complex RangeSets
+    final RangeSet<BigDecimal> complexClosedRangeSet1 =
+        ImmutableRangeSet.<BigDecimal>builder()
+            .add(closedRange1)
+            .add(closedRange2)
+            .build();
+    assertThat(
+        RelJson.rangeSetFromJson(relJson.toJson(complexClosedRangeSet1), decimalType),
+        is(complexClosedRangeSet1));
+    final RangeSet<BigDecimal> complexClosedRangeSet2 =
+        ImmutableRangeSet.<BigDecimal>builder()
+            .add(gt1)
+            .add(am1)
+            .build();
+    assertThat(RelJson.rangeSetFromJson(relJson.toJson(complexClosedRangeSet2), decimalType),
+        is(complexClosedRangeSet2));
+
+    // Test None and All
+    final RangeSet<BigDecimal> setNone = ImmutableRangeSet.of();
+    final RangeSet<BigDecimal> setAll = setNone.complement();
+    assertThat(RelJson.rangeSetFromJson(relJson.toJson(setNone), decimalType), is(setNone));
+    assertThat(RelJson.rangeSetFromJson(relJson.toJson(setAll), decimalType), is(setAll));
+  }
+
   /** Tests {@link RangeSets#minus(RangeSet, Range)}. */
-  @SuppressWarnings("UnstableApiUsage")
   @Test void testRangeSetMinus() {
     final RangeSet<Integer> setNone = ImmutableRangeSet.of();
     final RangeSet<Integer> setAll = setNone.complement();
@@ -98,6 +176,106 @@ class RangeSetTest {
     assertThat(RangeSets.isPoint(Range.atMost(0)), is(false));
     assertThat(RangeSets.isPoint(Range.greaterThan(0)), is(false));
     assertThat(RangeSets.isPoint(Range.atLeast(0)), is(false));
+
+    // Test situation where endpoints of closed range are equal under
+    // Comparable.compareTo but not T.equals.
+    final BigDecimal one = new BigDecimal("1");
+    final BigDecimal onePoint = new BigDecimal("1.0");
+    assertThat(RangeSets.isPoint(Range.closed(one, onePoint)), is(true));
+  }
+
+  /** Tests ranges with a data type that implements {@link Comparable}
+   * but is not consistent with {@code equals}.
+   *
+   * <p>Per {@link Comparable}:
+   *
+   * <blockquote>
+   * Virtually all Java core classes that implement Comparable have natural
+   * orderings that are consistent with equals. One exception is
+   * {@link BigDecimal}, whose natural ordering equates {@code BigDecimal}
+   * objects with equal numerical values and different representations
+   * (such as 4.0 and 4.00). For {@link BigDecimal#equals} to return true,
+   * the representation and numerical value of the two {@code BigDecimal}
+   * objects must be the same.
+   * </blockquote>
+   */
+  @Test void testNotConsistentWithEquals() {
+    final BigDecimal one = new BigDecimal("1");
+    final BigDecimal onePoint = new BigDecimal("1.0");
+    final BigDecimal two = BigDecimal.valueOf(2);
+    assertThat(one.equals(onePoint), is(false));
+    assertThat(onePoint.equals(one), is(false));
+    assertThat(one.compareTo(onePoint), is(0));
+    assertThat(onePoint.equals(one), is(false));
+    assertThat(one.equals(BigDecimal.ONE), is(true));
+    assertThat(onePoint.equals(BigDecimal.ONE), is(false));
+    assertThat(RangeSets.isPoint(Range.closed(one, onePoint)), is(true));
+
+    // Ranges (0, 1], [1.0, 2) merges to [0, 2).
+    final Range<BigDecimal> range01 = Range.closed(BigDecimal.ZERO, one);
+    final Range<BigDecimal> range01point = Range.closed(BigDecimal.ZERO, onePoint);
+    final Range<BigDecimal> range1point2 = Range.closedOpen(onePoint, two);
+    final Range<BigDecimal> range12 = Range.closedOpen(one, two);
+    assertThrows(IllegalArgumentException.class,
+        () -> ImmutableRangeSet.<BigDecimal>builder()
+            .add(range01point)
+            .add(range12)
+            .build());
+
+    assertThat(RangeSets.compare(range01, range12), is(-1));
+    assertThat(RangeSets.compare(range12, range01), is(1));
+    assertThat(RangeSets.compare(range01, range01point), is(0));
+    assertThat(RangeSets.compare(range12, range1point2), is(0));
+
+    // Ranges are merged correctly.
+    final ImmutableRangeSet<BigDecimal> rangeSet =
+        ImmutableRangeSet.unionOf(asList(range01point, range12));
+    final ImmutableRangeSet<BigDecimal> rangeSet2 =
+        ImmutableRangeSet.unionOf(asList(range01, range12));
+    final ImmutableRangeSet<BigDecimal> rangeSet3 =
+        ImmutableRangeSet.unionOf(asList(range01, range1point2));
+    assertThat(rangeSet.asRanges(), hasSize(1));
+    assertThat(rangeSet, is(rangeSet2));
+    assertThat(rangeSet, is(rangeSet3));
+
+    // Check the Consumer mechanism; RangeSets.printer is a Consumer,
+    // and it gives the Consumer mechanism a pretty good workout.
+    final Function<RangeSet<BigDecimal>, String> f =
+        rs -> {
+          final StringBuilder buf = new StringBuilder();
+          final RangeSets.Consumer<BigDecimal> printer =
+              RangeSets.printer(buf, StringBuilder::append);
+          RangeSets.forEach(rs, printer);
+          return Matchers.sanitizeRangeSet(buf.toString());
+        };
+    final Function<Range<BigDecimal>, String> f2 =
+        r -> f.apply(ImmutableRangeSet.of(r));
+    assertThat(f.apply(rangeSet), is("[0..2)"));
+
+    // If a closed range has bounds that are equal, Consumer should treat them
+    // as singletons of the lower bound; but not if the bounds compareTo 0.
+    assertThat(f2.apply(Range.singleton(onePoint)), is("1.0"));
+    assertThat(f2.apply(Range.closed(one, one)), is("1"));
+    assertThat(f2.apply(Range.closed(one, onePoint)), is("[1..1.0]"));
+    assertThat(f2.apply(Range.closed(onePoint, one)), is("[1.0..1]"));
+    assertThat(f2.apply(Range.closed(onePoint, onePoint)), is("1.0"));
+    assertThat(f2.apply(Range.closed(onePoint, two)), is("[1.0..2]"));
+
+    // As for Consumer, now for Handler.
+    // RangeSets.copy tests Handler pretty thoroughly.
+    final Function<RangeSet<BigDecimal>, RangeSet<BigDecimal>> g =
+        rs -> RangeSets.copy(rs, v -> v.multiply(two));
+    final Function<Range<BigDecimal>, RangeSet<BigDecimal>> g2 =
+        r -> g.apply(ImmutableRangeSet.of(r));
+    assertThat(g.apply(rangeSet), isRangeSet("[[0..4)]"));
+
+    assertThat(g2.apply(Range.singleton(onePoint)), isRangeSet("[[2.0..2.0]]"));
+    assertThat(g2.apply(Range.closed(one, one)), isRangeSet("[[2..2]]"));
+    assertThat(g2.apply(Range.closed(one, onePoint)), isRangeSet("[[2..2.0]]"));
+    assertThat(g2.apply(Range.closed(onePoint, one)), isRangeSet("[[2.0..2]]"));
+    assertThat(g2.apply(Range.closed(onePoint, onePoint)),
+        isRangeSet("[[2.0..2.0]]"));
+    assertThat(g2.apply(Range.closed(onePoint, two)), isRangeSet("[[2.0..4]]"));
   }
 
   /** Tests {@link RangeSets#isOpenInterval(RangeSet)}. */
@@ -251,26 +429,26 @@ class RangeSetTest {
     for (Range<Integer> range : f.ranges) {
       RangeSets.map(range, h);
     }
-    assertThat(sb.toString(), is(f.rangesString));
+    assertThat(sb, hasToString(f.rangesString));
 
     sb.setLength(0);
     for (Range<Integer> range : f.ranges) {
       RangeSets.forEach(range, c);
     }
-    assertThat(sb.toString(), is(f.rangesString));
+    assertThat(sb, hasToString(f.rangesString));
 
     // Use a smaller set of ranges that does not overlap
     sb.setLength(0);
     for (Range<Integer> range : f.disjointRanges) {
       RangeSets.forEach(range, c);
     }
-    assertThat(sb.toString(), is(f.disjointRangesString));
+    assertThat(sb, hasToString(f.disjointRangesString));
 
     // For a RangeSet consisting of disjointRanges the effect is the same,
     // but the ranges are sorted.
     sb.setLength(0);
     RangeSets.forEach(f.rangeSet, c);
-    assertThat(sb.toString(), is(f.disjointRangesSortedString));
+    assertThat(sb, hasToString(f.disjointRangesSortedString));
   }
 
   /** Tests that {@link RangeSets#hashCode(RangeSet)} returns the same result
@@ -340,8 +518,8 @@ class RangeSetTest {
     final String expectedGuava29 = "[(-\u221e..+\u221e), (-\u221e..3], "
         + "[4..+\u221e), (-\u221e..5), (6..+\u221e), [7..7], "
         + "(8..9), (10..11], [12..13], [14..15)]";
-    assertThat(list.toString(),
-        anyOf(is(expectedGuava28), is(expectedGuava29)));
+    assertThat(list,
+        hasToString(anyOf(is(expectedGuava28), is(expectedGuava29))));
     list.clear();
 
     final StringBuilder sb = new StringBuilder();
@@ -354,7 +532,7 @@ class RangeSetTest {
     final String expected2 = "[(-\u221e..+\u221e), (-\u221e..3], "
         + "[4..+\u221e), (-\u221e..5), (6..+\u221e), 7, "
         + "(8..9), (10..11], [12..13], [14..15)]";
-    assertThat(list.toString(), is(expected2));
+    assertThat(list, hasToString(expected2));
     list.clear();
   }
 
@@ -363,7 +541,7 @@ class RangeSetTest {
     final ImmutableRangeSet<Integer> empty = ImmutableRangeSet.of();
 
     final List<Range<Integer>> ranges =
-        Arrays.asList(Range.all(),
+        asList(Range.all(),
             Range.atMost(3),
             Range.atLeast(4),
             Range.lessThan(5),
@@ -385,7 +563,7 @@ class RangeSetTest {
         + "closedOpen(14, 15)";
 
     final List<Range<Integer>> sortedRanges =
-        Arrays.asList(
+        asList(
             Range.lessThan(3),
             Range.atMost(3),
             Range.lessThan(5),
@@ -403,7 +581,7 @@ class RangeSetTest {
             Range.closedOpen(14, 15));
 
     final List<Range<Integer>> disjointRanges =
-        Arrays.asList(Range.lessThan(5),
+        asList(Range.lessThan(5),
             Range.greaterThan(16),
             Range.singleton(7),
             Range.open(8, 9),

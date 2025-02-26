@@ -17,24 +17,19 @@
 package org.apache.calcite.test.concurrent;
 
 import org.apache.calcite.jdbc.SqlTimeoutException;
+import org.apache.calcite.util.TestUnsafe;
 import org.apache.calcite.util.Unsafe;
 import org.apache.calcite.util.Util;
 
-import org.slf4j.Logger;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.PrintWriter;
-import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
-import java.io.Writer;
 import java.lang.reflect.Constructor;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -58,6 +53,10 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static java.lang.Integer.parseInt;
+import static java.lang.Long.parseLong;
+import static java.util.Objects.requireNonNull;
 
 /**
  * ConcurrentTestCommandScript creates instances of
@@ -118,7 +117,7 @@ public class ConcurrentTestCommandScript
   private static final String PLUGIN = "@plugin";
 
   private static final String SQL = "";
-  private static final String EOF = null;
+  private static final @Nullable String EOF = null;
 
   private static final StateAction[] STATE_TABLE = {
       new StateAction(
@@ -231,7 +230,7 @@ public class ConcurrentTestCommandScript
   private static final char[] DASHES = fill(new char[BUF_SIZE], '-');
 
   // Special "thread ids" for setup & cleanup sections; actually setup &
-  // cleanup SQL is executed by the main thread, and neither are in the the
+  // cleanup SQL is executed by the main thread, and neither are in the
   // thread map.
   private static final Integer SETUP_THREAD_ID = -1;
   private static final Integer CLEANUP_THREAD_ID = -2;
@@ -260,7 +259,7 @@ public class ConcurrentTestCommandScript
   private final Map<Integer, ResultsReader> threadResultsReaders =
       new HashMap<>();
 
-  public ConcurrentTestCommandScript() throws IOException {
+  public ConcurrentTestCommandScript() {
     super();
   }
 
@@ -280,72 +279,10 @@ public class ConcurrentTestCommandScript
   }
 
   /**
-   * Runs an external application process.
-   *
-   * @param pb        ProcessBuilder for the application
-   * @param logger    if not null, command and exit status will be logged here
-   * @param appInput  if not null, data will be copied to application's stdin
-   * @param appOutput if not null, data will be captured from application's
-   *                  stdout and stderr
-   * @return application process exit value
-   */
-  static int runAppProcess(
-      ProcessBuilder pb,
-      Logger logger,
-      Reader appInput,
-      Writer appOutput) throws IOException, InterruptedException {
-    pb.redirectErrorStream(true);
-    if (logger != null) {
-      logger.info("start process: " + pb.command());
-    }
-    Process p = pb.start();
-
-    // Setup the input/output streams to the subprocess.
-    // The buffering here is arbitrary. Javadocs strongly encourage
-    // buffering, but the size needed is very dependent on the
-    // specific application being run, the size of the input
-    // provided by the caller, and the amount of output expected.
-    // Since this method is currently used only by unit tests,
-    // large-ish fixed buffer sizes have been chosen. If this
-    // method becomes used for something in production, it might
-    // be better to have the caller provide them as arguments.
-    if (appInput != null) {
-      OutputStream out =
-          new BufferedOutputStream(
-              p.getOutputStream(),
-              100 * 1024);
-      int c;
-      while ((c = appInput.read()) != -1) {
-        out.write(c);
-      }
-      out.flush();
-    }
-    if (appOutput != null) {
-      InputStream in =
-          new BufferedInputStream(
-              p.getInputStream(),
-              100 * 1024);
-      int c;
-      while ((c = in.read()) != -1) {
-        appOutput.write(c);
-      }
-      appOutput.flush();
-      in.close();
-    }
-    p.waitFor();
-
-    int status = p.exitValue();
-    if (logger != null) {
-      logger.info("exit status=" + status + " from " + pb.command());
-    }
-    return status;
-  }
-
-  /**
    * Gets ready to execute: loads script FILENAME applying external variable
    * BINDINGS.
    */
-  private void prepare(String filename, List<String> bindings)
+  private void prepare(String filename, @Nullable List<String> bindings)
       throws IOException {
     vars = new VariableTable();
     CommandParser parser = new CommandParser();
@@ -418,7 +355,7 @@ public class ConcurrentTestCommandScript
 
   protected void executeCommands(int threadId, List<String> commands)
       throws Exception {
-    if (commands == null || commands.size() == 0) {
+    if (commands.isEmpty()) {
       return;
     }
 
@@ -467,8 +404,7 @@ public class ConcurrentTestCommandScript
           try (Statement stmt = connection.createStatement()) {
             int rows = stmt.executeUpdate(sql);
             if (rows != 1) {
-              storeMessage(
-                  threadId, String.valueOf(rows) + " rows affected.");
+              storeMessage(threadId, rows + " rows affected.");
             } else {
               storeMessage(threadId, "1 row affected.");
             }
@@ -606,8 +542,8 @@ public class ConcurrentTestCommandScript
     printThreadResults(out, results.get(CLEANUP_THREAD_ID));
   }
 
-  private void printThreadResults(PrintWriter out, String[] threadResult)
-      throws IOException {
+  private void printThreadResults(PrintWriter out,
+      String @Nullable[] threadResult) {
     if (threadResult == null) {
       return;
     }
@@ -729,10 +665,10 @@ public class ConcurrentTestCommandScript
 
   /** State datum. */
   private static class StateDatum {
-    final String x;
+    final @Nullable String x;
     final String y;
 
-    StateDatum(String x, String y) {
+    StateDatum(@Nullable String x, String y) {
       this.x = x;
       this.y = y;
     }
@@ -740,12 +676,12 @@ public class ConcurrentTestCommandScript
 
 
   /** Symbol table of script variables. */
-  private class VariableTable {
+  private static class VariableTable {
     private final Map<String, String> map;
 
     // matches $$, $var, ${var}
     private final Pattern symbolPattern =
-        Pattern.compile("\\$((\\$)|([A-Za-z]\\w*)|\\{([A-Za-z]\\w*)\\})");
+        Pattern.compile("\\$((\\$)|([A-Za-z]\\w*)|\\{([A-Za-z]\\w*)})");
 
     VariableTable() {
       map = new HashMap<>();
@@ -776,7 +712,7 @@ public class ConcurrentTestCommandScript
     }
 
     // returns null is SYM is not defined
-    public String get(String sym) {
+    public @Nullable String get(String sym) {
       if (isDefined(sym)) {
         return map.get(sym);
       } else {
@@ -880,7 +816,7 @@ public class ConcurrentTestCommandScript
 
     // Parses a set of VAR=VAL pairs from the command line, and saves it for
     // later application.
-    public void rememberVariableRebindings(List<String> pairs) {
+    public void rememberVariableRebindings(@Nullable List<String> pairs) {
       if (pairs == null) {
         return;
       }
@@ -897,7 +833,7 @@ public class ConcurrentTestCommandScript
     }
 
     // trace loading of a script
-    private void trace(String prefix, Object message) {
+    private void trace(@Nullable String prefix, Object message) {
       if (verbose && !quiet) {
         if (prefix != null) {
           System.out.print(prefix + ": ");
@@ -923,7 +859,7 @@ public class ConcurrentTestCommandScript
           Map<String, String> commandStateMap = lookupState(state);
           final String command;
           boolean isSql = false;
-          if (line.equals("") || line.startsWith("--")) {
+          if (line.isEmpty() || line.startsWith("--")) {
             continue;
           } else if (line.startsWith("@")) {
             command = firstWord(line);
@@ -946,7 +882,7 @@ public class ConcurrentTestCommandScript
           }
           if (changeState) {
             String nextState = commandStateMap.get(command);
-            assert nextState != null;
+            requireNonNull(nextState, "nextState");
             if (!nextState.equals(state)) {
               doEndOfState(state);
             }
@@ -967,14 +903,17 @@ public class ConcurrentTestCommandScript
     }
 
     private void loadSql(String sql) {
-      if (SETUP_STATE.equals(state)) {
+      switch (state) {
+      case SETUP_STATE:
         trace("@setup", sql);
         setupCommands.add(sql);
-      } else if (CLEANUP_STATE.equals(state)) {
+        break;
+      case CLEANUP_STATE:
         trace("@cleanup", sql);
         cleanupCommands.add(sql);
-      } else if (
-          THREAD_STATE.equals(state) || REPEAT_STATE.equals(state)) {
+        break;
+      case THREAD_STATE:
+      case REPEAT_STATE:
         boolean isSelect = isSelect(sql);
         trace(sql);
         for (int i = threadId; i < nextThreadId; i++) {
@@ -983,8 +922,9 @@ public class ConcurrentTestCommandScript
           addCommand(i, order, cmd);
         }
         order++;
-      } else {
-        assert false;
+        break;
+      default:
+        throw new AssertionError();
       }
     }
 
@@ -1047,19 +987,23 @@ public class ConcurrentTestCommandScript
 
       } else if (REPEAT.equals(command)) {
         String arg = line.substring(REPEAT_LEN).trim();
-        repeatCount = Integer.parseInt(vars.expand(arg));
+        repeatCount = parseInt(vars.expand(arg));
         trace("start @repeat block", repeatCount);
         assert repeatCount > 0 : "Repeat count must be > 0";
         in.mark(REPEAT_READ_AHEAD_LIMIT);
 
       } else if (END.equals(command)) {
-        if (SETUP_STATE.equals(state)) {
+        switch (state) {
+        case SETUP_STATE:
           trace("end @setup");
-        } else if (CLEANUP_STATE.equals(state)) {
+          break;
+        case CLEANUP_STATE:
           trace("end @cleanup");
-        } else if (THREAD_STATE.equals(state)) {
+          break;
+        case THREAD_STATE:
           threadId = nextThreadId;
-        } else if (REPEAT_STATE.equals(state)) {
+          break;
+        case REPEAT_STATE:
           trace("repeating");
           repeatCount--;
           if (repeatCount > 0) {
@@ -1068,15 +1012,16 @@ public class ConcurrentTestCommandScript
             } catch (IOException e) {
               throw new IllegalStateException(
                   "Unable to reset reader -- repeat "
-                  + "contents must be less than "
-                  + REPEAT_READ_AHEAD_LIMIT + " bytes");
+                      + "contents must be less than "
+                      + REPEAT_READ_AHEAD_LIMIT + " bytes");
             }
 
             trace("end @repeat block");
             return false;   // don't change the state
           }
-        } else {
-          assert false;
+          break;
+        default:
+          throw new AssertionError();
         }
 
       } else if (SYNC.equals(command)) {
@@ -1089,7 +1034,7 @@ public class ConcurrentTestCommandScript
       } else if (TIMEOUT.equals(command)) {
         String args = line.substring(TIMEOUT_LEN).trim();
         String millisStr = vars.expand(firstWord(args));
-        long millis = Long.parseLong(millisStr);
+        long millis = parseLong(millisStr);
         assert millis >= 0L : "Timeout must be >= 0";
 
         String sql = readSql(skipFirstWord(args).trim(), in);
@@ -1106,7 +1051,7 @@ public class ConcurrentTestCommandScript
       } else if (ROWLIMIT.equals(command)) {
         String args = line.substring(ROWLIMIT_LEN).trim();
         String limitStr = vars.expand(firstWord(args));
-        int limit = Integer.parseInt(limitStr);
+        int limit = parseInt(limitStr);
         assert limit >= 0 : "Rowlimit must be >= 0";
 
         String sql = readSql(skipFirstWord(args).trim(), in);
@@ -1204,8 +1149,8 @@ public class ConcurrentTestCommandScript
         String arg = vars.expand(line.substring(FETCH_LEN).trim());
         trace("@fetch", arg);
         long millis = 0L;
-        if (arg.length() > 0) {
-          millis = Long.parseLong(arg);
+        if (!arg.isEmpty()) {
+          millis = parseLong(arg);
           assert millis >= 0L : "Fetch timeout must be >= 0";
         }
 
@@ -1227,7 +1172,7 @@ public class ConcurrentTestCommandScript
       } else if (SLEEP.equals(command)) {
         String arg = vars.expand(line.substring(SLEEP_LEN).trim());
         trace("@sleep", arg);
-        long millis = Long.parseLong(arg);
+        long millis = parseLong(arg);
         assert millis >= 0L : "Sleep timeout must be >= 0";
 
         for (int i = threadId; i < nextThreadId; i++) {
@@ -1289,7 +1234,7 @@ public class ConcurrentTestCommandScript
     }
 
     private void addExtraCommands(Iterable<String> commands, String state) {
-      assert state != null;
+      requireNonNull(state, "state");
 
       for (int i = 0, n = STATE_TABLE.length; i < n; i++) {
         if (state.equals(STATE_TABLE[i].state)) {
@@ -1313,13 +1258,13 @@ public class ConcurrentTestCommandScript
      * seeing the command.
      */
     private Map<String, String> lookupState(String state) {
-      assert state != null;
+      requireNonNull(state, "state");
 
       for (StateAction a : STATE_TABLE) {
         if (state.equals(a.state)) {
           StateDatum[] stateData = a.stateData;
 
-          Map<String, String> result = new HashMap<String, String>();
+          Map<String, String> result = new HashMap<>();
           for (StateDatum datum : stateData) {
             result.put(datum.x, datum.y);
           }
@@ -1454,7 +1399,7 @@ public class ConcurrentTestCommandScript
             nth = 1;
             if (tokenizer.hasMoreTokens()) {
               token = tokenizer.nextToken();
-              nth = Integer.parseInt(token);
+              nth = parseInt(token);
             }
           }
         }
@@ -1465,8 +1410,7 @@ public class ConcurrentTestCommandScript
       this.total = total;
     }
 
-    protected void doExecute(ConcurrentTestCommandExecutor executor)
-        throws SQLException {
+    protected void doExecute(ConcurrentTestCommandExecutor executor) {
       Integer threadId = executor.getThreadId();
       BufferedWriter out = threadBufferedWriters.get(threadId);
       threadResultsReaders.put(
@@ -1482,8 +1426,7 @@ public class ConcurrentTestCommandScript
       this.msg = msg;
     }
 
-    protected void doExecute(ConcurrentTestCommandExecutor executor)
-        throws SQLException {
+    protected void doExecute(ConcurrentTestCommandExecutor executor) {
       storeMessage(executor.getThreadId(), msg);
     }
   }
@@ -1493,9 +1436,7 @@ public class ConcurrentTestCommandScript
 
     private final ConcurrentTestPluginCommand pluginCommand;
 
-    private PluginCommand(
-        String command,
-        String params) throws IOException {
+    private PluginCommand(String command, String params) {
       ConcurrentTestPlugin plugin = pluginForCommand.get(command);
       pluginCommand = plugin.getCommandFor(command, params);
     }
@@ -1513,7 +1454,7 @@ public class ConcurrentTestCommandScript
               return exec.getConnection();
             }
 
-            public Statement getCurrentStatement() {
+            public @Nullable Statement getCurrentStatement() {
               return exec.getStatement();
             }
           };
@@ -1529,7 +1470,7 @@ public class ConcurrentTestCommandScript
   /** Shell command. */
   private class ShellCommand extends AbstractCommand {
     private final String command;
-    private List<String> argv;      // the command, parsed and massaged
+    private final List<String> argv;      // the command, parsed and massaged
 
     private ShellCommand(String command) {
       this.command = command;
@@ -1561,17 +1502,13 @@ public class ConcurrentTestCommandScript
       Integer threadId = executor.getThreadId();
       storeMessage(threadId, command);
 
-      // argv[0] is found on $PATH. Working directory is the script's home
-      // directory.
-      //
-      // WARNING: ProcessBuilder is security-sensitive. Its use is currently
-      // safe because this code is under "core/test". Developers must not move
-      // this code into "core/main".
-      ProcessBuilder pb = new ProcessBuilder(argv);
-      pb.directory(scriptDirectory);
       try {
-        // direct stdout & stderr to the the threadWriter
-        int status = runAppProcess(pb, null, null, getThreadWriter(threadId));
+        // argv[0] is found on $PATH.
+        // Working directory is the script's home directory.
+        // direct stdout & stderr to the threadWriter
+        int status =
+            TestUnsafe.runAppProcess(argv, scriptDirectory, null, null,
+                getThreadWriter(threadId));
         if (status != 0) {
           storeMessage(threadId,
               "command " + command + ": exited with status " + status);
@@ -1586,7 +1523,7 @@ public class ConcurrentTestCommandScript
   /** Command that has a timeout. */
   // TODO: replace by super.CommmandWithTimeout
   private abstract static class CommandWithTimeout extends AbstractCommand {
-    private long timeout;
+    private final long timeout;
 
     private CommandWithTimeout(long timeout) {
       this.timeout = timeout;
@@ -1609,11 +1546,7 @@ public class ConcurrentTestCommandScript
   /** Command with timeout and row limit. */
   private abstract static class CommandWithTimeoutAndRowLimit
       extends CommandWithTimeout {
-    private int rowLimit;
-
-    private CommandWithTimeoutAndRowLimit(long timeout) {
-      this(timeout, 0);
-    }
+    private final int rowLimit;
 
     private CommandWithTimeoutAndRowLimit(long timeout, int rowLimit) {
       super(timeout);
@@ -1633,7 +1566,7 @@ public class ConcurrentTestCommandScript
    * timeout and row limit.
    */
   private class SelectCommand extends CommandWithTimeoutAndRowLimit {
-    private String sql;
+    private final String sql;
 
     private SelectCommand(String sql) {
       this(sql, 0, 0);
@@ -1690,7 +1623,7 @@ public class ConcurrentTestCommandScript
    * timeout.
    */
   private class SqlCommand extends CommandWithTimeout {
-    private String sql;
+    private final String sql;
 
     private SqlCommand(String sql) {
       super(0);
@@ -1746,9 +1679,7 @@ public class ConcurrentTestCommandScript
         } else {
           int rows = stmt.getUpdateCount();
           if (rows != 1) {
-            storeMessage(
-                executor.getThreadId(),
-                String.valueOf(rows) + " rows affected.");
+            storeMessage(executor.getThreadId(), rows + " rows affected.");
           } else {
             storeMessage(
                 executor.getThreadId(),
@@ -1781,7 +1712,7 @@ public class ConcurrentTestCommandScript
    * CloseCommand closes and discards the prepared statement.
    */
   private class PrepareCommand extends AbstractCommand {
-    private String sql;
+    private final String sql;
 
     private PrepareCommand(String sql) {
       this.sql = sql;
@@ -1841,7 +1772,7 @@ public class ConcurrentTestCommandScript
     // print final summary, rows & elapsed time.
     private final boolean totaled;
 
-    private long baseTime = 0;
+    private final long baseTime;
     private int rowCount = 0;
     private int ncols = 0;
     private int[] widths;
@@ -2058,14 +1989,12 @@ public class ConcurrentTestCommandScript
     boolean debug = false;          // -g
     String server;                  // -u
     String driver;                  // -d
-    String user;                    // -n
-    String password;                // -p
-    List<String> bindings;          // VAR=VAL
-    List<String> files;             // FILE
+    @Nullable String user;                    // -n
+    @Nullable String password;                // -p
+    final List<String> bindings = new ArrayList<>(); // VAR=VAL
+    final List<String> files = new ArrayList<>(); // FILE
 
     Tool() {
-      bindings = new ArrayList<>();
-      files = new ArrayList<>();
     }
 
     // returns 0 on success, 1 on error, 2 on bad invocation.

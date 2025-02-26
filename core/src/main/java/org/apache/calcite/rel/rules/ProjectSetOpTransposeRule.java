@@ -25,22 +25,24 @@ import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.ImmutableBeans;
+
+import org.immutables.value.Value;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Planner rule that pushes
- * a {@link org.apache.calcite.rel.logical.LogicalProject}
+ * a {@link org.apache.calcite.rel.core.Project}
  * past a {@link org.apache.calcite.rel.core.SetOp}.
  *
  * <p>The children of the {@code SetOp} will project
  * only the {@link RexInputRef}s referenced in the original
- * {@code LogicalProject}.
+ * {@code Project}.
  *
  * @see CoreRules#PROJECT_SET_OP_TRANSPOSE
  */
+@Value.Enclosing
 public class ProjectSetOpTransposeRule
     extends RelRule<ProjectSetOpTransposeRule.Config>
     implements TransformationRule {
@@ -62,7 +64,7 @@ public class ProjectSetOpTransposeRule
   //~ Methods ----------------------------------------------------------------
 
   @Override public void onMatch(RelOptRuleCall call) {
-    final LogicalProject origProject = call.rel(0);
+    final Project origProject = call.rel(0);
     final SetOp setOp = call.rel(1);
 
     // cannot push project past a distinct
@@ -111,20 +113,20 @@ public class ProjectSetOpTransposeRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable(singleton = false)
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
+    Config DEFAULT = ImmutableProjectSetOpTransposeRule.Config.builder()
+        .withPreserveExprCondition(expr -> !(expr instanceof RexOver))
+        .build()
         .withOperandSupplier(b0 ->
             b0.operand(LogicalProject.class).oneInput(b1 ->
-                b1.operand(SetOp.class).anyInputs()))
-        .as(Config.class)
-        .withPreserveExprCondition(expr -> !(expr instanceof RexOver));
+                b1.operand(SetOp.class).anyInputs()));
 
     @Override default ProjectSetOpTransposeRule toRule() {
       return new ProjectSetOpTransposeRule(this);
     }
 
     /** Defines when an expression should not be pushed. */
-    @ImmutableBeans.Property
     PushProjector.ExprCondition preserveExprCondition();
 
     /** Sets {@link #preserveExprCondition()}. */

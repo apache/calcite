@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 package org.apache.calcite.test;
-
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.materialize.Lattices;
@@ -26,6 +25,9 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.rules.materialize.MaterializedViewRules;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlDialect.DatabaseProduct;
+import org.apache.calcite.test.schemata.foodmart.FoodmartSchema;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.TestUtil;
 
@@ -49,15 +51,18 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import static org.apache.calcite.test.Matchers.containsStringLinux;
-import static org.apache.calcite.test.Matchers.within;
 
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.closeTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Unit test for lattices.
@@ -173,7 +178,7 @@ class LatticeTest {
         + "{\n"
         + "  version: '1.0',\n"
         + "   schemas: [\n"
-        + JdbcTest.FOODMART_SCHEMA
+        + FoodmartSchema.FOODMART_SCHEMA
         + ",\n"
         + "     {\n"
         + "       name: 'adhoc',\n"
@@ -200,10 +205,13 @@ class LatticeTest {
     modelWithLattice("EMPLOYEES", "select * from \"foodmart\".\"days\"")
         .doWithConnection(c -> {
           final SchemaPlus schema = c.getRootSchema();
-          final SchemaPlus adhoc = schema.getSubSchema("adhoc");
+          final SchemaPlus adhoc =
+              requireNonNull(schema.getSubSchema("adhoc"));
           assertThat(adhoc.getTableNames().contains("EMPLOYEES"), is(true));
+          final CalciteSchema adhocSchema =
+              requireNonNull(adhoc.unwrap(CalciteSchema.class));
           final Map.Entry<String, CalciteSchema.LatticeEntry> entry =
-              adhoc.unwrap(CalciteSchema.class).getLatticeMap().firstEntry();
+              adhocSchema.getLatticeMap().firstEntry();
           final Lattice lattice = entry.getValue().getLattice();
           final String sql = "SELECT \"days\".\"day\"\n"
               + "FROM \"foodmart\".\"days\" AS \"days\"\n"
@@ -221,6 +229,37 @@ class LatticeTest {
         });
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6603">[CALCITE-6603]
+   * Lattice SQL supports generation of specified dialects</a>. */
+  @Test void testLatticeSqlWithDialect() throws Exception {
+    final SqlDialect dialect = DatabaseProduct.SPARK.getDialect();
+    modelWithLattice("EMPLOYEES", "select * from \"foodmart\".\"days\"")
+        .doWithConnection(c -> {
+          final SchemaPlus schema = c.getRootSchema();
+          final SchemaPlus adhoc =
+              requireNonNull(schema.getSubSchema("adhoc"));
+          assertThat(adhoc.getTableNames().contains("EMPLOYEES"), is(true));
+          final CalciteSchema adhocSchema =
+              requireNonNull(adhoc.unwrap(CalciteSchema.class));
+          final Map.Entry<String, CalciteSchema.LatticeEntry> entry =
+              adhocSchema.getLatticeMap().firstEntry();
+          final Lattice lattice = entry.getValue().getLattice();
+          final String sql = "SELECT `days`.`day`\n"
+              + "FROM `foodmart`.`days` AS `days`\n"
+              + "GROUP BY `days`.`day`";
+          assertThat(
+              lattice.sql(ImmutableBitSet.of(0), true,
+                  ImmutableList.of(), dialect), is(sql));
+          final String sql2 = "SELECT `days`.`day`, `days`.`week_day`\n"
+              + "FROM `foodmart`.`days` AS `days`";
+          assertThat(
+              lattice.sql(ImmutableBitSet.of(0, 1), false,
+                  ImmutableList.of(), dialect),
+              is(sql2));
+        });
+  }
+
   /** Tests some of the properties of the {@link Lattice} data structure. */
   @Test void testLattice() throws Exception {
     modelWithLattice("star",
@@ -229,17 +268,20 @@ class LatticeTest {
             + "join \"foodmart\".\"time_by_day\" as t on t.\"time_id\" = s.\"time_id\"")
         .doWithConnection(c -> {
           final SchemaPlus schema = c.getRootSchema();
-          final SchemaPlus adhoc = schema.getSubSchema("adhoc");
+          final SchemaPlus adhoc =
+              requireNonNull(schema.getSubSchema("adhoc"));
           assertThat(adhoc.getTableNames().contains("EMPLOYEES"), is(true));
+          final CalciteSchema adhocSchema =
+              requireNonNull(adhoc.unwrap(CalciteSchema.class));
           final Map.Entry<String, CalciteSchema.LatticeEntry> entry =
-              adhoc.unwrap(CalciteSchema.class).getLatticeMap().firstEntry();
+              adhocSchema.getLatticeMap().firstEntry();
           final Lattice lattice = entry.getValue().getLattice();
           assertThat(lattice.firstColumn("S"), is(10));
           assertThat(lattice.firstColumn("P"), is(18));
           assertThat(lattice.firstColumn("T"), is(0));
           assertThat(lattice.firstColumn("PC"), is(-1));
-          assertThat(lattice.defaultMeasures.size(), is(1));
-          assertThat(lattice.rootNode.descendants.size(), is(3));
+          assertThat(lattice.defaultMeasures, hasSize(1));
+          assertThat(lattice.rootNode.descendants, hasSize(3));
         });
   }
 
@@ -380,7 +422,6 @@ class LatticeTest {
                   containsStringLinux(
                       "LogicalAggregate(group=[{2, 10}])\n"
                           + "  StarTableScan(table=[[adhoc, star]])\n")));
-          return null;
         });
     assertThat(counter.intValue(), equalTo(2));
     that.explainContains(""
@@ -420,7 +461,7 @@ class LatticeTest {
   }
 
   /** A query that uses a pre-defined aggregate table, at the same
-   *  granularity but fewer calls to aggregate functions. */
+   * granularity but fewer calls to aggregate functions. */
   @Test void testLatticeWithPreDefinedTilesFewerMeasures() {
     foodmartModelWithOneTile()
         .query("select t.\"the_year\", t.\"quarter\", count(*) as c\n"
@@ -622,7 +663,7 @@ class LatticeTest {
         .explainContains("EnumerableTableScan(table=[[adhoc, m{}]])")
         .enable(CalciteAssert.DB != CalciteAssert.DatabaseInstance.ORACLE)
         .returnsUnordered("S=266773.0000; C=86837");
-    assertThat(mats.toString(), mats.size(), equalTo(2));
+    assertThat(mats.toString(), mats, hasSize(2));
 
     // A similar query can use the same materialization.
     that.query("select sum(\"unit_sales\") as s\n"
@@ -631,7 +672,7 @@ class LatticeTest {
         .enableMaterializations(true)
         .enable(CalciteAssert.DB != CalciteAssert.DatabaseInstance.ORACLE)
         .returnsUnordered("S=266773.0000");
-    assertThat(mats.toString(), mats.size(), equalTo(2));
+    assertThat(mats.toString(), mats, hasSize(2));
   }
 
   /** Rolling up SUM. */
@@ -683,8 +724,9 @@ class LatticeTest {
   @Disabled
   @Test void testAllFoodmartQueries() {
     // Test ids that had bugs in them until recently. Useful for a sanity check.
-    final List<Integer> fixed = ImmutableList.of(13, 24, 28, 30, 61, 76, 79, 81,
-        85, 98, 101, 107, 128, 129, 130, 131);
+    final List<Integer> fixed =
+        ImmutableList.of(13, 24, 28, 30, 61, 76, 79, 81,
+            85, 98, 101, 107, 128, 129, 130, 131);
     // Test ids that still have bugs
     final List<Integer> bad = ImmutableList.of(382, 423);
     for (int i = 1; i < 1000; i++) {
@@ -844,7 +886,7 @@ class LatticeTest {
         + "{\n"
         + "  version: '1.0',\n"
         + "   schemas: [\n"
-        + JdbcTest.FOODMART_SCHEMA
+        + FoodmartSchema.FOODMART_SCHEMA
         + ",\n"
         + "     {\n"
         + "       name: 'adhoc',\n"
@@ -900,7 +942,7 @@ class LatticeTest {
         + "{\n"
         + "  version: '1.0',\n"
         + "   schemas: [\n"
-        + JdbcTest.FOODMART_SCHEMA
+        + FoodmartSchema.FOODMART_SCHEMA
         + ",\n"
         + "     {\n"
         + "       name: 'adhoc',\n"
@@ -964,8 +1006,9 @@ class LatticeTest {
 
   // Just for debugging.
   private static void runJdbc() throws SQLException {
-    final Connection connection = DriverManager.getConnection(
-        "jdbc:calcite:model=core/src/test/resources/mysql-foodmart-lattice-model.json");
+    final String url = "jdbc:calcite:model="
+        + "core/src/test/resources/mysql-foodmart-lattice-model.json";
+    final Connection connection = DriverManager.getConnection(url);
     final ResultSet resultSet = connection.createStatement()
         .executeQuery("select * from \"adhoc\".\"m{32, 36}\"");
     System.out.println(CalciteAssert.toString(resultSet));
@@ -974,12 +1017,12 @@ class LatticeTest {
 
   /** Unit test for {@link Lattice#getRowCount(double, List)}. */
   @Test void testColumnCount() {
-    assertThat(Lattice.getRowCount(10, 2, 3), within(5.03D, 0.01D));
-    assertThat(Lattice.getRowCount(10, 9, 8), within(9.4D, 0.01D));
-    assertThat(Lattice.getRowCount(100, 9, 8), within(54.2D, 0.1D));
-    assertThat(Lattice.getRowCount(1000, 9, 8), within(72D, 0.01D));
+    assertThat(Lattice.getRowCount(10, 2, 3), closeTo(5.03D, 0.01D));
+    assertThat(Lattice.getRowCount(10, 9, 8), closeTo(9.4D, 0.01D));
+    assertThat(Lattice.getRowCount(100, 9, 8), closeTo(54.2D, 0.1D));
+    assertThat(Lattice.getRowCount(1000, 9, 8), closeTo(72D, 0.01D));
     assertThat(Lattice.getRowCount(1000, 1, 1), is(1D));
-    assertThat(Lattice.getRowCount(1, 3, 5), within(1D, 0.01D));
-    assertThat(Lattice.getRowCount(1, 3, 5, 13, 4831), within(1D, 0.01D));
+    assertThat(Lattice.getRowCount(1, 3, 5), closeTo(1D, 0.01D));
+    assertThat(Lattice.getRowCount(1, 3, 5, 13, 4831), closeTo(1D, 0.01D));
   }
 }

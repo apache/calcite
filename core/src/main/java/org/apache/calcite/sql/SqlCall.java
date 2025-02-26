@@ -32,9 +32,10 @@ import org.checkerframework.dataflow.qual.Pure;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Objects;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A <code>SqlCall</code> is a call to an {@link SqlOperator operator}.
@@ -78,18 +79,23 @@ public abstract class SqlCall extends SqlNode {
   public abstract SqlOperator getOperator();
 
   /**
-   * Returns the list of operands. The set and order of operands is call-specific.
+   * Returns the list of operands. The set and order of operands is
+   * call-specific.
+   *
    * <p>Note: the proper type would be {@code List<@Nullable SqlNode>}, however,
-   * it would trigger too many changes to the current codebase.</p>
+   * it would trigger too many changes to the current codebase.
+   *
    * @return the list of call operands, never null, the operands can be null
    */
   public abstract List</*Nullable*/ SqlNode> getOperandList();
 
   /**
    * Returns i-th operand (0-based).
+   *
    * <p>Note: the result might be null, so the proper signature would be
-   * {@code <S extends @Nullable SqlNode>}, however, it would trigger to many changes to the current
-   * codebase.</p>
+   * {@code <S extends @Nullable SqlNode>}, however, it would trigger to many
+   * changes to the current codebase.
+   *
    * @param i operand index (0-based)
    * @param <S> type of the result
    * @return i-th operand (0-based), the result might be null
@@ -118,7 +124,8 @@ public abstract class SqlCall extends SqlNode {
     final SqlDialect dialect = writer.getDialect();
     if (leftPrec > operator.getLeftPrec()
         || (operator.getRightPrec() <= rightPrec && (rightPrec != 0))
-        || writer.isAlwaysUseParentheses() && isA(SqlKind.EXPRESSION)) {
+        || writer.isAlwaysUseParentheses() && isA(SqlKind.EXPRESSION)
+        || (operator.getRightPrec() <= rightPrec + 1 && isA(SqlKind.COMPARISON))) {
       final SqlWriter.Frame frame = writer.startList("(", ")");
       dialect.unparseCall(writer, this, 0, 0);
       writer.endList(frame);
@@ -186,14 +193,13 @@ public abstract class SqlCall extends SqlNode {
    * Returns a string describing the actual argument types of a call, e.g.
    * "SUBSTR(VARCHAR(12), NUMBER(3,2), INTEGER)".
    */
-  protected String getCallSignature(
+  public String getCallSignature(
       SqlValidator validator,
       @Nullable SqlValidatorScope scope) {
     List<String> signatureList = new ArrayList<>();
     for (final SqlNode operand : getOperandList()) {
-      final RelDataType argType = validator.deriveType(
-          Objects.requireNonNull(scope, "scope"),
-          operand);
+      final RelDataType argType =
+          validator.deriveType(requireNonNull(scope, "scope"), operand);
       if (null == argType) {
         continue;
       }
@@ -202,8 +208,7 @@ public abstract class SqlCall extends SqlNode {
     return SqlUtil.getOperatorSignature(getOperator(), signatureList);
   }
 
-  @Override public SqlMonotonicity getMonotonicity(@Nullable SqlValidatorScope scope) {
-    Objects.requireNonNull(scope, "scope");
+  @Override public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
     // Delegate to operator.
     final SqlCallBinding binding =
         new SqlCallBinding(scope.getValidator(), scope, this);

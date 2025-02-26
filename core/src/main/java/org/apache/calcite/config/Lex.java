@@ -21,8 +21,9 @@ import org.apache.calcite.avatica.util.Quoting;
 
 import com.google.common.collect.ImmutableSet;
 
-import java.util.Objects;
 import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 /** Named, built-in lexical policy. A lexical policy describes how
  * identifiers are quoted, whether they are converted to upper- or
@@ -32,10 +33,11 @@ public enum Lex {
   /** Lexical policy similar to BigQuery.
    * The case of identifiers is preserved whether or not they quoted;
    * after which, identifiers are matched case-insensitively.
-   * Back-ticks allow identifiers to contain non-alphanumeric characters.
+   * Back-ticks allow identifiers to contain non-alphanumeric characters;
+   * a back-tick is escaped using a backslash.
    * Character literals may be enclosed in single or double quotes. */
-  BIG_QUERY(Quoting.BACK_TICK, Casing.UNCHANGED, Casing.UNCHANGED, true,
-      CharLiteralStyle.BQ_SINGLE, CharLiteralStyle.BQ_DOUBLE),
+  BIG_QUERY(Quoting.BACK_TICK_BACKSLASH, Casing.UNCHANGED, Casing.UNCHANGED,
+      false, CharLiteralStyle.BQ_SINGLE, CharLiteralStyle.BQ_DOUBLE),
 
   /** Lexical policy similar to Oracle. The case of identifiers enclosed in
    * double-quotes is preserved; unquoted identifiers are converted to
@@ -47,7 +49,8 @@ public enum Lex {
    * MySQL on Linux uses case-sensitive matching, like the Linux file system.)
    * The case of identifiers is preserved whether or not they quoted;
    * after which, identifiers are matched case-insensitively.
-   * Back-ticks allow identifiers to contain non-alphanumeric characters. */
+   * Back-ticks allow identifiers to contain non-alphanumeric characters;
+   * a back-tick is escaped using a back-tick. */
   MYSQL(Quoting.BACK_TICK, Casing.UNCHANGED, Casing.UNCHANGED, false,
       CharLiteralStyle.STANDARD),
 
@@ -71,7 +74,7 @@ public enum Lex {
    * The case of identifiers is preserved whether or not they are quoted;
    * after which, identifiers are matched case-sensitively.
    * Unlike Java, back-ticks allow identifiers to contain non-alphanumeric
-   * characters. */
+   * characters; a back-tick is escaped using a back-tick. */
   JAVA(Quoting.BACK_TICK, Casing.UNCHANGED, Casing.UNCHANGED, true,
       CharLiteralStyle.STANDARD);
 
@@ -87,9 +90,9 @@ public enum Lex {
       Casing quotedCasing,
       boolean caseSensitive,
       CharLiteralStyle... charLiteralStyles) {
-    this.quoting = Objects.requireNonNull(quoting, "quoting");
-    this.unquotedCasing = Objects.requireNonNull(unquotedCasing, "unquotedCasing");
-    this.quotedCasing = Objects.requireNonNull(quotedCasing, "quotedCasing");
+    this.quoting = requireNonNull(quoting, "quoting");
+    this.unquotedCasing = requireNonNull(unquotedCasing, "unquotedCasing");
+    this.quotedCasing = requireNonNull(quotedCasing, "quotedCasing");
     this.caseSensitive = caseSensitive;
     this.charLiteralStyles = ImmutableSet.copyOf(charLiteralStyles);
   }

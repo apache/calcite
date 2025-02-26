@@ -148,8 +148,8 @@ public class SqlBetweenOperator extends SqlInfixOperator {
         new ExplicitOperatorBinding(
             opBinding,
             opBinding.collectOperandTypes());
-    RelDataType type = ReturnTypes.BOOLEAN_NULLABLE.inferReturnType(
-        newOpBinding);
+    RelDataType type =
+        ReturnTypes.BOOLEAN_NULLABLE.inferReturnType(newOpBinding);
     return requireNonNull(type, "inferred BETWEEN element type");
   }
 

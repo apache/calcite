@@ -23,11 +23,11 @@ import org.apache.calcite.sql.type.ExplicitOperandTypeChecker;
  * Type Constructor function.
  *
  * <p>Created by the parser, then it is rewritten to proper SqlFunction by
- * the validator to a function defined in a Calcite schema.</p>
+ * the validator to a function defined in a Calcite schema.
  */
 public class SqlTypeConstructorFunction extends SqlFunction {
 
-  private RelDataType type;
+  private final RelDataType type;
 
   /**
    * Creates a constructor function for types.

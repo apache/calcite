@@ -25,29 +25,51 @@ import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Source;
+import org.apache.calcite.util.trace.CalciteLogger;
 
 import org.apache.commons.lang3.time.FastDateFormat;
 
 import au.com.bytecode.opencsv.CSVReader;
 
+import com.google.common.annotations.VisibleForTesting;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Objects;
+import java.util.Locale;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.lang.Boolean.parseBoolean;
+import static java.lang.Byte.parseByte;
+import static java.lang.Double.parseDouble;
+import static java.lang.Float.parseFloat;
+import static java.lang.Integer.parseInt;
+import static java.lang.Long.parseLong;
+import static java.lang.Short.parseShort;
+import static java.util.Objects.requireNonNull;
 
 /** Enumerator that reads from a CSV file.
  *
  * @param <E> Row type
  */
 public class CsvEnumerator<E> implements Enumerator<E> {
+  private static final CalciteLogger LOGGER =
+      new CalciteLogger(LoggerFactory.getLogger(CsvEnumerator.class));
+
   private final CSVReader reader;
   private final @Nullable List<@Nullable String> filterValues;
   private final AtomicBoolean cancelFlag;
@@ -57,6 +79,8 @@ public class CsvEnumerator<E> implements Enumerator<E> {
   private static final FastDateFormat TIME_FORMAT_DATE;
   private static final FastDateFormat TIME_FORMAT_TIME;
   private static final FastDateFormat TIME_FORMAT_TIMESTAMP;
+  private static final Pattern DECIMAL_TYPE_PATTERN = Pattern
+      .compile("\"decimal\\(([0-9]+),([0-9]+)\\)");
 
   static {
     final TimeZone gmt = TimeZone.getTimeZone("GMT");
@@ -67,7 +91,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
   }
 
   public CsvEnumerator(Source source, AtomicBoolean cancelFlag,
-      List<CsvFieldType> fieldTypes, List<Integer> fields) {
+      List<RelDataType> fieldTypes, List<Integer> fields) {
     //noinspection unchecked
     this(source, cancelFlag, false, null,
         (RowConverter<E>) converter(fieldTypes, fields));
@@ -77,8 +101,9 @@ public class CsvEnumerator<E> implements Enumerator<E> {
       @Nullable String @Nullable [] filterValues, RowConverter<E> rowConverter) {
     this.cancelFlag = cancelFlag;
     this.rowConverter = rowConverter;
-    this.filterValues = filterValues == null ? null
-        : ImmutableNullableList.copyOf(filterValues);
+    this.filterValues =
+        filterValues == null ? null
+            : ImmutableNullableList.copyOf(filterValues);
     try {
       if (stream) {
         this.reader = new CsvStreamReader(source);
@@ -91,7 +116,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
     }
   }
 
-  private static RowConverter<?> converter(List<CsvFieldType> fieldTypes,
+  private static RowConverter<?> converter(List<RelDataType> fieldTypes,
       List<Integer> fields) {
     if (fields.size() == 1) {
       final int field = fields.get(0);
@@ -102,21 +127,14 @@ public class CsvEnumerator<E> implements Enumerator<E> {
   }
 
   public static RowConverter<@Nullable Object[]> arrayConverter(
-      List<CsvFieldType> fieldTypes, List<Integer> fields, boolean stream) {
+      List<RelDataType> fieldTypes, List<Integer> fields, boolean stream) {
     return new ArrayRowConverter(fieldTypes, fields, stream);
   }
 
   /** Deduces the names and types of a table's columns by reading the first line
    * of a CSV file. */
-  static RelDataType deduceRowType(JavaTypeFactory typeFactory, Source source,
-      List<CsvFieldType> fieldTypes) {
-    return deduceRowType(typeFactory, source, fieldTypes, false);
-  }
-
-  /** Deduces the names and types of a table's columns by reading the first line
-  * of a CSV file. */
   public static RelDataType deduceRowType(JavaTypeFactory typeFactory,
-      Source source, @Nullable List<CsvFieldType> fieldTypes, Boolean stream) {
+      Source source, @Nullable List<RelDataType> fieldTypes, Boolean stream) {
     final List<RelDataType> types = new ArrayList<>();
     final List<String> names = new ArrayList<>();
     if (stream) {
@@ -130,30 +148,69 @@ public class CsvEnumerator<E> implements Enumerator<E> {
       }
       for (String string : strings) {
         final String name;
-        final CsvFieldType fieldType;
+        final RelDataType fieldType;
         final int colon = string.indexOf(':');
         if (colon >= 0) {
           name = string.substring(0, colon);
           String typeString = string.substring(colon + 1);
-          fieldType = CsvFieldType.of(typeString);
-          if (fieldType == null) {
-            System.out.println("WARNING: Found unknown type: "
-                + typeString + " in file: " + source.path()
-                + " for column: " + name
-                + ". Will assume the type of column is string");
+          Matcher decimalMatcher = DECIMAL_TYPE_PATTERN.matcher(typeString);
+          if (decimalMatcher.matches()) {
+            int precision = parseInt(decimalMatcher.group(1));
+            int scale = parseInt(decimalMatcher.group(2));
+            fieldType = parseDecimalSqlType(typeFactory, precision, scale);
+          } else {
+            switch (typeString) {
+            case "string":
+              fieldType = toNullableRelDataType(typeFactory, SqlTypeName.VARCHAR);
+              break;
+            case "boolean":
+              fieldType = toNullableRelDataType(typeFactory, SqlTypeName.BOOLEAN);
+              break;
+            case "byte":
+              fieldType = toNullableRelDataType(typeFactory, SqlTypeName.TINYINT);
+              break;
+            case "char":
+              fieldType = toNullableRelDataType(typeFactory, SqlTypeName.CHAR);
+              break;
+            case "short":
+              fieldType = toNullableRelDataType(typeFactory, SqlTypeName.SMALLINT);
+              break;
+            case "int":
+              fieldType = toNullableRelDataType(typeFactory, SqlTypeName.INTEGER);
+              break;
+            case "long":
+              fieldType = toNullableRelDataType(typeFactory, SqlTypeName.BIGINT);
+              break;
+            case "float":
+              fieldType = toNullableRelDataType(typeFactory, SqlTypeName.REAL);
+              break;
+            case "double":
+              fieldType = toNullableRelDataType(typeFactory, SqlTypeName.DOUBLE);
+              break;
+            case "date":
+              fieldType = toNullableRelDataType(typeFactory, SqlTypeName.DATE);
+              break;
+            case "timestamp":
+              fieldType = toNullableRelDataType(typeFactory, SqlTypeName.TIMESTAMP);
+              break;
+            case "time":
+              fieldType = toNullableRelDataType(typeFactory, SqlTypeName.TIME);
+              break;
+            default:
+              LOGGER.warn(
+                  "Found unknown type: {} in file: {} for column: {}. Will assume the type of "
+                      + "column is string.",
+                  typeString, source.path(), name);
+              fieldType = toNullableRelDataType(typeFactory, SqlTypeName.VARCHAR);
+              break;
+            }
           }
         } else {
           name = string;
-          fieldType = null;
-        }
-        final RelDataType type;
-        if (fieldType == null) {
-          type = typeFactory.createSqlType(SqlTypeName.VARCHAR);
-        } else {
-          type = fieldType.toType(typeFactory);
+          fieldType = typeFactory.createSqlType(SqlTypeName.VARCHAR);
         }
         names.add(name);
-        types.add(type);
+        types.add(fieldType);
         if (fieldTypes != null) {
           fieldTypes.add(fieldType);
         }
@@ -169,7 +226,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
   }
 
   static CSVReader openCsv(Source source) throws IOException {
-    Objects.requireNonNull(source, "source");
+    requireNonNull(source, "source");
     return new CSVReader(source.reader());
   }
 
@@ -237,6 +294,11 @@ public class CsvEnumerator<E> implements Enumerator<E> {
     return integers;
   }
 
+  private static RelDataType toNullableRelDataType(JavaTypeFactory typeFactory,
+      SqlTypeName sqlTypeName) {
+    return typeFactory.createTypeWithNullability(typeFactory.createSqlType(sqlTypeName), true);
+  }
+
   /** Row converter.
    *
    * @param <E> element type */
@@ -244,46 +306,52 @@ public class CsvEnumerator<E> implements Enumerator<E> {
     abstract E convertRow(@Nullable String[] rows);
 
     @SuppressWarnings("JavaUtilDate")
-    protected @Nullable Object convert(@Nullable CsvFieldType fieldType, @Nullable String string) {
+    protected @Nullable Object convert(@Nullable RelDataType fieldType, @Nullable String string) {
       if (fieldType == null || string == null) {
         return string;
       }
-      switch (fieldType) {
+      switch (fieldType.getSqlTypeName()) {
       case BOOLEAN:
         if (string.length() == 0) {
           return null;
         }
-        return Boolean.parseBoolean(string);
-      case BYTE:
+        return parseBoolean(string);
+      case TINYINT:
         if (string.length() == 0) {
           return null;
         }
-        return Byte.parseByte(string);
-      case SHORT:
+        return parseByte(string);
+      case SMALLINT:
         if (string.length() == 0) {
           return null;
         }
-        return Short.parseShort(string);
-      case INT:
+        return parseShort(string);
+      case INTEGER:
         if (string.length() == 0) {
           return null;
         }
-        return Integer.parseInt(string);
-      case LONG:
+        return parseInt(string);
+      case BIGINT:
         if (string.length() == 0) {
           return null;
         }
-        return Long.parseLong(string);
+        return parseLong(string);
+      case REAL:
+        if (string.length() == 0) {
+          return null;
+        }
+        return parseFloat(string);
       case FLOAT:
-        if (string.length() == 0) {
-          return null;
-        }
-        return Float.parseFloat(string);
       case DOUBLE:
         if (string.length() == 0) {
           return null;
         }
-        return Double.parseDouble(string);
+        return parseDouble(string);
+      case DECIMAL:
+        if (string.length() == 0) {
+          return null;
+        }
+        return parseDecimal(fieldType.getPrecision(), fieldType.getScale(), string);
       case DATE:
         if (string.length() == 0) {
           return null;
@@ -314,22 +382,56 @@ public class CsvEnumerator<E> implements Enumerator<E> {
         } catch (ParseException e) {
           return null;
         }
-      case STRING:
+      case VARCHAR:
       default:
         return string;
       }
     }
   }
 
+  private static RelDataType parseDecimalSqlType(JavaTypeFactory typeFactory, int precision,
+      int scale) {
+    checkArgument(precision > 0, "DECIMAL type must have precision > 0. Found %s", precision);
+    checkArgument(scale >= 0, "DECIMAL type must have scale >= 0. Found %s", scale);
+    checkArgument(precision >= scale,
+        "DECIMAL type must have precision >= scale. Found precision (%s) and scale (%s).",
+        precision, scale);
+    return typeFactory.createTypeWithNullability(
+        typeFactory.createSqlType(SqlTypeName.DECIMAL, precision, scale), true);
+  }
+
+  @VisibleForTesting
+  protected static BigDecimal parseDecimal(int precision, int scale, String string) {
+    BigDecimal result = new BigDecimal(string);
+    // If the parsed value has more fractional digits than the specified scale, round ties away
+    // from 0.
+    if (result.scale() > scale) {
+      LOGGER.warn(
+          "Decimal value {} exceeds declared scale ({}). Performing rounding to keep the "
+              + "first {} fractional digits.",
+          result, scale, scale);
+      result = result.setScale(scale, RoundingMode.HALF_UP);
+    }
+    // Throws an exception if the parsed value has more digits to the left of the decimal point
+    // than the specified value.
+    if (result.precision() - result.scale() > precision - scale) {
+      throw new IllegalArgumentException(String
+          .format(Locale.ROOT, "Decimal value %s exceeds declared precision (%d) and scale (%d).",
+              result, precision, scale));
+    }
+    return result;
+  }
+
   /** Array row converter. */
   static class ArrayRowConverter extends RowConverter<@Nullable Object[]> {
+
     /** Field types. List must not be null, but any element may be null. */
-    private final List<CsvFieldType> fieldTypes;
+    private final List<RelDataType> fieldTypes;
     private final ImmutableIntList fields;
     /** Whether the row to convert is from a stream. */
     private final boolean stream;
 
-    ArrayRowConverter(List<CsvFieldType> fieldTypes, List<Integer> fields,
+    ArrayRowConverter(List<RelDataType> fieldTypes, List<Integer> fields,
         boolean stream) {
       this.fieldTypes = ImmutableNullableList.copyOf(fieldTypes);
       this.fields = ImmutableIntList.copyOf(fields);
@@ -366,10 +468,10 @@ public class CsvEnumerator<E> implements Enumerator<E> {
 
   /** Single column row converter. */
   private static class SingleColumnRowConverter extends RowConverter<Object> {
-    private final CsvFieldType fieldType;
+    private final RelDataType fieldType;
     private final int fieldIndex;
 
-    private SingleColumnRowConverter(CsvFieldType fieldType, int fieldIndex) {
+    private SingleColumnRowConverter(RelDataType fieldType, int fieldIndex) {
       this.fieldType = fieldType;
       this.fieldIndex = fieldIndex;
     }

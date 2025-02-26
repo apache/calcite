@@ -27,6 +27,8 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
+import org.immutables.value.Value;
+
 /**
  * Planner rule that converts a {@link Calc}
  * to a {@link org.apache.calcite.rel.core.Project}
@@ -39,6 +41,7 @@ import com.google.common.collect.ImmutableList;
  *
  * @see CoreRules#CALC_SPLIT
  */
+@Value.Enclosing
 public class CalcSplitRule extends RelRule<CalcSplitRule.Config>
     implements TransformationRule {
 
@@ -65,10 +68,10 @@ public class CalcSplitRule extends RelRule<CalcSplitRule.Config>
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
-        .withOperandSupplier(b -> b.operand(Calc.class).anyInputs())
-        .as(Config.class);
+    Config DEFAULT = ImmutableCalcSplitRule.Config.of()
+        .withOperandSupplier(b -> b.operand(Calc.class).anyInputs());
 
     @Override default CalcSplitRule toRule() {
       return new CalcSplitRule(this);

@@ -21,21 +21,38 @@ import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
+import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlSetOption;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
+
+import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
+import java.util.Objects;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /**
  * A <code>SqlDialect</code> implementation for the PostgreSQL database.
@@ -97,6 +114,40 @@ public class PostgresqlSqlDialect extends SqlDialect {
         SqlParserPos.ZERO);
   }
 
+  @Override public SqlNode rewriteSingleValueExpr(SqlNode aggCall, RelDataType relDataType) {
+    final SqlNode operand = ((SqlBasicCall) aggCall).operand(0);
+    final SqlLiteral nullLiteral = SqlLiteral.createNull(SqlParserPos.ZERO);
+    final SqlNode unionOperand =
+        new SqlSelect(SqlParserPos.ZERO, SqlNodeList.EMPTY,
+            SqlNodeList.of(
+                SqlStdOperatorTable.CAST.createCall(SqlParserPos.ZERO, SqlNodeList.of(nullLiteral),
+                    SqlNodeList.of(castNonNull(getCastSpec(relDataType))))), null, null, null, null,
+            SqlNodeList.EMPTY, null, null, null, null, SqlNodeList.EMPTY);
+    // For PostgreSQL, generate
+    //   CASE COUNT(*)
+    //   WHEN 0 THEN NULL
+    //   WHEN 1 THEN MIN(<result>)
+    //   ELSE (SELECT CAST(NULL AS resultDataType) UNION ALL SELECT CAST(NULL AS resultDataType))
+    //   END
+    final SqlNode caseExpr =
+        new SqlCase(SqlParserPos.ZERO,
+            SqlStdOperatorTable.COUNT.createCall(SqlParserPos.ZERO,
+                ImmutableList.of(SqlIdentifier.STAR)),
+            SqlNodeList.of(
+                SqlLiteral.createExactNumeric("0", SqlParserPos.ZERO),
+                SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO)),
+            SqlNodeList.of(
+                nullLiteral,
+                SqlStdOperatorTable.MIN.createCall(SqlParserPos.ZERO, operand)),
+            SqlStdOperatorTable.SCALAR_QUERY.createCall(SqlParserPos.ZERO,
+                SqlStdOperatorTable.UNION_ALL
+                    .createCall(SqlParserPos.ZERO, unionOperand, unionOperand)));
+
+    LOGGER.debug("SINGLE_VALUE rewritten into [{}]", caseExpr);
+
+    return caseExpr;
+  }
+
   @Override public boolean supportsFunction(SqlOperator operator,
       RelDataType type, final List<RelDataType> paramTypes) {
     switch (operator.kind) {
@@ -106,6 +157,17 @@ public class PostgresqlSqlDialect extends SqlDialect {
     default:
       return super.supportsFunction(operator, type, paramTypes);
     }
+  }
+
+  @Override public boolean supportsImplicitTypeCoercion(RexCall call) {
+    final RexNode operand0 = call.getOperands().get(0);
+    RelDataType callType = call.getType();
+    boolean supportImplicit = super.supportsImplicitTypeCoercion(call);
+    boolean isNumericType = supportImplicit && SqlTypeUtil.isNumeric(callType);
+    if (isNumericType) {
+      return false;
+    }
+    return supportImplicit && RexUtil.isLiteral(operand0, false);
   }
 
   @Override public boolean requiresAliasForFromItems() {
@@ -128,13 +190,57 @@ public class PostgresqlSqlDialect extends SqlDialect {
       final SqlLiteral timeUnitNode = call.operand(1);
       final TimeUnitRange timeUnit = timeUnitNode.getValueAs(TimeUnitRange.class);
 
-      SqlCall call2 = SqlFloorFunction.replaceTimeUnitOperand(call, timeUnit.name(),
-          timeUnitNode.getParserPosition());
+      SqlCall call2 =
+          SqlFloorFunction.replaceTimeUnitOperand(call, timeUnit.name(),
+              timeUnitNode.getParserPosition());
       SqlFloorFunction.unparseDatetimeFunction(writer, call2, "DATE_TRUNC", false);
       break;
-
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
+    }
+  }
+
+  @Override public SqlNode rewriteMaxMinExpr(SqlNode aggCall, RelDataType relDataType) {
+    return rewriteMaxMin(aggCall, relDataType);
+  }
+
+  @Override public boolean supportsGroupByLiteral() {
+    return false;
+  }
+
+  @Override public void unparseSqlSetOption(SqlWriter writer,
+      int leftPrec, int rightPrec, SqlSetOption option) {
+    String scope = option.getScope();
+    SqlNode value = option.getValue();
+    SqlNode name = option.name();
+
+    if (Objects.equals(scope, "SYSTEM")) {
+      writer.keyword("ALTER SYSTEM");
+    }
+    if (value != null) {
+      writer.keyword("SET");
+    } else {
+      writer.keyword("RESET");
+    }
+
+    if (Objects.equals(scope, "LOCAL")) {
+      writer.keyword("LOCAL");
+    }
+
+    if (name.getKind() == SqlKind.IDENTIFIER) {
+      name.unparse(writer, leftPrec, rightPrec);
+      final SqlWriter.Frame frame =
+          writer.startList(SqlWriter.FrameTypeEnum.SIMPLE);
+      if (value != null) {
+        writer.sep("=");
+        value.unparse(writer, leftPrec, rightPrec);
+      }
+      writer.endList(frame);
+    } else {
+      name.unparse(writer, leftPrec, rightPrec);
+      if (value != null) {
+        value.unparse(writer, leftPrec, rightPrec);
+      }
     }
   }
 }

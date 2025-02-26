@@ -18,7 +18,6 @@ package org.apache.calcite.sql2rel;
 
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
@@ -28,17 +27,18 @@ import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlTimeLiteral;
 import org.apache.calcite.sql.SqlTimestampLiteral;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.BitString;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
+import org.apache.calcite.util.TimestampWithTimeZoneString;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
-
 import java.math.BigDecimal;
+import java.util.UUID;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Standard implementation of {@link SqlNodeToRexConverter}.
@@ -78,30 +78,28 @@ public class SqlNodeToRexConverterImpl implements SqlNodeToRexConverter {
   @Override public RexNode convertLiteral(
       SqlRexContext cx,
       SqlLiteral literal) {
-    RexBuilder rexBuilder = cx.getRexBuilder();
-    RelDataTypeFactory typeFactory = cx.getTypeFactory();
-    SqlValidator validator = cx.getValidator();
+    final RexBuilder rexBuilder = cx.getRexBuilder();
     if (literal.getValue() == null) {
-      // Since there is no eq. RexLiteral of SqlLiteral.Unknown we
-      // treat it as a cast(null as boolean)
-      RelDataType type;
-      if (literal.getTypeName() == SqlTypeName.BOOLEAN) {
-        type = typeFactory.createSqlType(SqlTypeName.BOOLEAN);
-        type = typeFactory.createTypeWithNullability(type, true);
+      if (literal.getTypeName() == SqlTypeName.NULL) {
+        RelDataType type = cx.getValidator().getValidatedNodeTypeIfKnown(literal);
+        if (type == null) {
+          type = rexBuilder.getTypeFactory().createSqlType(SqlTypeName.NULL);
+        }
+        return rexBuilder.makeNullLiteral(type);
       } else {
-        type = validator.getValidatedNodeType(literal);
+        RelDataType type = cx.getValidator().getValidatedNodeType(literal);
+        return rexBuilder.makeNullLiteral(type);
       }
-      return rexBuilder.makeNullLiteral(type);
     }
 
-    final BitString bitString;
     switch (literal.getTypeName()) {
+    case UUID:
+      return rexBuilder.makeUuidLiteral(literal.getValueAs(UUID.class));
     case DECIMAL:
       // exact number
       BigDecimal bd = literal.getValueAs(BigDecimal.class);
-      return rexBuilder.makeExactLiteral(
-          bd,
-          literal.createSqlType(typeFactory));
+      RelDataType type = literal.createSqlType(cx.getTypeFactory());
+      return rexBuilder.makeExactLiteral(bd, type);
 
     case DOUBLE:
       // approximate type
@@ -113,19 +111,26 @@ public class SqlNodeToRexConverterImpl implements SqlNodeToRexConverter {
     case BOOLEAN:
       return rexBuilder.makeLiteral(literal.getValueAs(Boolean.class));
     case BINARY:
-      bitString = literal.getValueAs(BitString.class);
-      Preconditions.checkArgument((bitString.getBitCount() % 8) == 0,
-          "incomplete octet");
+      final BitString bitString = literal.getValueAs(BitString.class);
+      checkArgument((bitString.getBitCount() % 8) == 0, "incomplete octet");
 
       // An even number of hexits (e.g. X'ABCD') makes whole number
       // of bytes.
-      ByteString byteString = new ByteString(bitString.getAsByteArray());
+      final ByteString byteString = new ByteString(bitString.getAsByteArray());
       return rexBuilder.makeBinaryLiteral(byteString);
     case SYMBOL:
       return rexBuilder.makeFlag(literal.getValueAs(Enum.class));
     case TIMESTAMP:
       return rexBuilder.makeTimestampLiteral(
           literal.getValueAs(TimestampString.class),
+          ((SqlTimestampLiteral) literal).getPrec());
+    case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+      return rexBuilder.makeTimestampWithLocalTimeZoneLiteral(
+          literal.getValueAs(TimestampString.class),
+          ((SqlTimestampLiteral) literal).getPrec());
+    case TIMESTAMP_TZ:
+      return rexBuilder.makeTimestampTzLiteral(
+          literal.getValueAs(TimestampWithTimeZoneString.class),
           ((SqlTimestampLiteral) literal).getPrec());
     case TIME:
       return rexBuilder.makeTimeLiteral(
@@ -152,6 +157,10 @@ public class SqlNodeToRexConverterImpl implements SqlNodeToRexConverter {
       return rexBuilder.makeIntervalLiteral(
           literal.getValueAs(BigDecimal.class),
           sqlIntervalQualifier);
+
+    case UNKNOWN:
+      return convertLiteral(cx, cx.getValidator().resolveLiteral(literal));
+
     default:
       throw Util.unexpected(literal.getTypeName());
     }

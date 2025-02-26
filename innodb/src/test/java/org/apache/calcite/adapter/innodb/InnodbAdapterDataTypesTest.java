@@ -33,6 +33,8 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.zone.ZoneRules;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Tests for the {@code org.apache.calcite.adapter.innodb} package related to data types.
  *
@@ -40,9 +42,13 @@ import java.time.zone.ZoneRules;
  */
 public class InnodbAdapterDataTypesTest {
 
-  private static final ImmutableMap<String, String> INNODB_MODEL = ImmutableMap.of("model",
-      Sources.of(InnodbAdapterTest.class.getResource("/model.json"))
-          .file().getAbsolutePath());
+  private static final ImmutableMap<String, String> INNODB_MODEL =
+      ImmutableMap.of("model",
+          Sources.of(
+                  requireNonNull(
+                      InnodbAdapterTest.class.getResource("/model.json"),
+                      "url"))
+              .file().getAbsolutePath());
 
   @Test void testTypesRowType() {
     CalciteAssert.that()

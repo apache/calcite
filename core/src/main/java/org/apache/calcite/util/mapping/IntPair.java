@@ -127,7 +127,7 @@ public class IntPair {
    * Converts two lists into a list of {@link IntPair}s.
    *
    * <p>The length of the combined list is the lesser of the lengths of the
-   * source lists. But typically the source lists will be the same length.</p>
+   * source lists. But typically the source lists will be the same length.
    *
    * @param lefts Left list
    * @param rights Right list

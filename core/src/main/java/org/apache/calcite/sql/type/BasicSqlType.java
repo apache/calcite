@@ -20,12 +20,13 @@ import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.util.SerializableCharset;
 
-import com.google.common.base.Preconditions;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.nio.charset.Charset;
-import java.util.Objects;
+
+import static com.google.common.base.Preconditions.checkArgument;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * BasicSqlType represents a standard atomic SQL type (excluding interval
@@ -40,7 +41,7 @@ public class BasicSqlType extends AbstractSqlType {
 
   private final int precision;
   private final int scale;
-  private final RelDataTypeSystem typeSystem;
+  protected final RelDataTypeSystem typeSystem;
   private final @Nullable SqlCollation collation;
   private final @Nullable SerializableCharset wrappedCharset;
 
@@ -54,19 +55,14 @@ public class BasicSqlType extends AbstractSqlType {
    * @param typeName Type name
    */
   public BasicSqlType(RelDataTypeSystem typeSystem, SqlTypeName typeName) {
-    this(typeSystem, typeName, false, PRECISION_NOT_SPECIFIED,
-        SCALE_NOT_SPECIFIED, null, null);
-    checkPrecScale(typeName, false, false);
+    this(typeSystem, typeName, false);
   }
 
-  /** Throws if {@code typeName} does not allow the given combination of
-   * precision and scale. */
-  protected static void checkPrecScale(SqlTypeName typeName,
-      boolean precisionSpecified, boolean scaleSpecified) {
-    if (!typeName.allowsPrecScale(precisionSpecified, scaleSpecified)) {
-      throw new AssertionError("typeName.allowsPrecScale("
-          + precisionSpecified + ", " + scaleSpecified + "): " + typeName);
-    }
+  protected BasicSqlType(RelDataTypeSystem typeSystem, SqlTypeName typeName,
+      boolean nullable) {
+    this(typeSystem, typeName, nullable, PRECISION_NOT_SPECIFIED,
+        SCALE_NOT_SPECIFIED, null, null);
+    checkPrecScale(typeName, false, false);
   }
 
   /**
@@ -107,7 +103,7 @@ public class BasicSqlType extends AbstractSqlType {
       @Nullable SqlCollation collation,
       @Nullable SerializableCharset wrappedCharset) {
     super(typeName, nullable, null);
-    this.typeSystem = Objects.requireNonNull(typeSystem, "typeSystem");
+    this.typeSystem = requireNonNull(typeSystem, "typeSystem");
     this.precision = precision;
     this.scale = scale;
     this.collation = collation;
@@ -115,12 +111,22 @@ public class BasicSqlType extends AbstractSqlType {
     computeDigest();
   }
 
+  /** Throws if {@code typeName} does not allow the given combination of
+   * precision and scale. */
+  protected static void checkPrecScale(SqlTypeName typeName,
+      boolean precisionSpecified, boolean scaleSpecified) {
+    if (!typeName.allowsPrecScale(precisionSpecified, scaleSpecified)) {
+      throw new AssertionError("typeName.allowsPrecScale("
+          + precisionSpecified + ", " + scaleSpecified + "): " + typeName);
+    }
+  }
+
   //~ Methods ----------------------------------------------------------------
 
   /**
    * Constructs a type with nullablity.
    */
-  BasicSqlType createWithNullability(boolean nullable) {
+  public BasicSqlType createWithNullability(boolean nullable) {
     if (nullable == this.isNullable) {
       return this;
     }
@@ -135,7 +141,7 @@ public class BasicSqlType extends AbstractSqlType {
    */
   BasicSqlType createWithCharsetAndCollation(Charset charset,
       SqlCollation collation) {
-    Preconditions.checkArgument(SqlTypeUtil.inCharFamily(this));
+    checkArgument(SqlTypeUtil.inCharFamily(this));
     return new BasicSqlType(this.typeSystem, this.typeName, this.isNullable,
         this.precision, this.scale, collation,
         SerializableCharset.forCharset(charset));

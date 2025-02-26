@@ -18,9 +18,10 @@ package org.apache.calcite.runtime;
 
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.util.Holder;
+import org.apache.calcite.util.TryThreadLocal;
+import org.apache.calcite.util.Util;
 
 import org.apiguardian.api.API;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,13 +29,11 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
-
 /**
  * Collection of hooks that can be set by observers and are executed at various
  * parts of the query preparation process.
  *
- * <p>For testing and debugging rather than for end-users.</p>
+ * <p>For testing and debugging rather than for end-users.
  */
 public enum Hook {
   /** Called to get the current time. Use this to return a predictable time
@@ -110,13 +109,13 @@ public enum Hook {
       new CopyOnWriteArrayList<>();
 
   @SuppressWarnings("ImmutableEnumChecker")
-  private final ThreadLocal<@Nullable List<Consumer<Object>>> threadHandlers =
-      ThreadLocal.withInitial(ArrayList::new);
+  private final TryThreadLocal<List<Consumer<Object>>> threadHandlers =
+      TryThreadLocal.withInitial(ArrayList::new);
 
   /** Adds a handler for this Hook.
    *
    * <p>Returns a {@link Hook.Closeable} so that you can use the following
-   * try-finally pattern to prevent leaks:</p>
+   * try-finally pattern to prevent leaks:
    *
    * <blockquote><pre>
    *     final Hook.Closeable closeable = Hook.FOO.add(HANDLER);
@@ -126,6 +125,7 @@ public enum Hook {
    *         closeable.close();
    *     }</pre>
    * </blockquote>
+   *
    * @deprecated this installs a global hook (cross-thread), so it might have greater impact
    *     than expected. Use with caution. Prefer thread-local hooks.
    * @see #addThread(Consumer)
@@ -154,7 +154,7 @@ public enum Hook {
   /** Adds a handler for this thread. */
   public <T> Closeable addThread(final Consumer<T> handler) {
     //noinspection unchecked
-    castNonNull(threadHandlers.get()).add((Consumer<Object>) handler);
+    threadHandlers.get().add((Consumer<Object>) handler);
     return () -> removeThread(handler);
   }
 
@@ -164,12 +164,25 @@ public enum Hook {
   @Deprecated // to be removed before 2.0
   public <T, R> Closeable addThread(
       final com.google.common.base.Function<T, R> handler) {
-    return addThread((Consumer<T>) handler::apply);
+    return addThread(functionConsumer(handler));
+  }
+
+  /** Converts a Guava function into a JDK consumer. */
+  @SuppressWarnings("Guava")
+  private static <T, R> Consumer<T> functionConsumer(
+      com.google.common.base.Function<T, R> handler) {
+    return t -> {
+      // Squash ErrorProne warnings that the return of the function is not
+      // used.
+      R r = handler.apply(t);
+      Util.discard(r);
+    };
   }
 
   /** Removes a thread handler from this Hook. */
+  @SuppressWarnings({"rawtypes", "UnusedReturnValue"})
   private boolean removeThread(Consumer handler) {
-    return castNonNull(threadHandlers.get()).remove(handler);
+    return threadHandlers.get().remove(handler);
   }
 
   // CHECKSTYLE: IGNORE 1
@@ -197,7 +210,7 @@ public enum Hook {
     for (Consumer<Object> handler : handlers) {
       handler.accept(arg);
     }
-    for (Consumer<Object> handler : castNonNull(threadHandlers.get())) {
+    for (Consumer<Object> handler : threadHandlers.get()) {
       handler.accept(arg);
     }
   }

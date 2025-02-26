@@ -40,8 +40,15 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
+import com.google.common.collect.ImmutableList;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
+
 import java.util.ArrayList;
 import java.util.List;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Rules and relational operators for {@link GeodeRel#CONVENTION}
@@ -63,7 +70,7 @@ public class GeodeRules {
   /**
    * Returns 'string' if it is a call to item['string'], null otherwise.
    */
-  static String isItem(RexCall call) {
+  static @Nullable String isItem(RexCall call) {
     if (call.getOperator() != SqlStdOperatorTable.ITEM) {
       return null;
     }
@@ -143,12 +150,13 @@ public class GeodeRules {
           return false;
         }
       }
-
-      return true;
+      return project.getVariablesSet().isEmpty();
     }
 
     @Override public RelNode convert(RelNode rel) {
       final LogicalProject project = (LogicalProject) rel;
+      checkArgument(project.getVariablesSet().isEmpty(),
+          "GeodeProject does now allow variables");
       final RelTraitSet traitSet =
           project.getTraitSet().replace(getOutConvention());
       return new GeodeProject(
@@ -194,20 +202,20 @@ public class GeodeRules {
    * {@link GeodeSort}.
    */
   public static class GeodeSortLimitRule
-      extends RelRule<GeodeSortLimitRule.Config> {
+      extends RelRule<GeodeSortLimitRule.GeodeSortLimitRuleConfig> {
 
     private static final GeodeSortLimitRule INSTANCE =
-        Config.EMPTY
+        ImmutableGeodeSortLimitRuleConfig.builder()
             .withOperandSupplier(b ->
                 b.operand(Sort.class)
                     // OQL doesn't support offsets (e.g. LIMIT 10 OFFSET 500)
                     .predicate(sort -> sort.offset == null)
                     .anyInputs())
-            .as(Config.class)
+            .build()
             .toRule();
 
     /** Creates a GeodeSortLimitRule. */
-    protected GeodeSortLimitRule(Config config) {
+    protected GeodeSortLimitRule(GeodeSortLimitRuleConfig config) {
       super(config);
     }
 
@@ -218,15 +226,17 @@ public class GeodeRules {
           .replace(GeodeRel.CONVENTION)
           .replace(sort.getCollation());
 
-      GeodeSort geodeSort = new GeodeSort(sort.getCluster(), traitSet,
-          convert(sort.getInput(), traitSet.replace(RelCollations.EMPTY)),
-          sort.getCollation(), sort.fetch);
+      GeodeSort geodeSort =
+          new GeodeSort(sort.getCluster(), traitSet,
+              convert(call.getPlanner(), sort.getInput(), traitSet.replace(RelCollations.EMPTY)),
+              sort.getCollation(), sort.fetch);
 
       call.transformTo(geodeSort);
     }
 
     /** Rule configuration. */
-    public interface Config extends RelRule.Config {
+    @Value.Immutable(singleton = false)
+    public interface GeodeSortLimitRuleConfig extends RelRule.Config {
       @Override default GeodeSortLimitRule toRule() {
         return new GeodeSortLimitRule(this);
       }
@@ -238,18 +248,18 @@ public class GeodeRules {
    * {@link GeodeFilter}.
    */
   public static class GeodeFilterRule
-      extends RelRule<GeodeFilterRule.Config> {
+      extends RelRule<GeodeFilterRule.GeodeFilterRuleConfig> {
 
     private static final GeodeFilterRule INSTANCE =
-        Config.EMPTY
+        ImmutableGeodeFilterRuleConfig.builder()
             .withOperandSupplier(b0 ->
                 b0.operand(LogicalFilter.class).oneInput(b1 ->
                     b1.operand(GeodeTableScan.class).noInputs()))
-            .as(Config.class)
+            .build()
             .toRule();
 
     /** Creates a GeodeFilterRule. */
-    protected GeodeFilterRule(Config config) {
+    protected GeodeFilterRule(GeodeFilterRuleConfig config) {
       super(config);
     }
 
@@ -307,10 +317,7 @@ public class GeodeRules {
 
     private static boolean isBooleanColumnReference(RexNode node, List<String> fieldNames) {
       // FIXME Ignore casts for rel and assume they aren't really necessary
-      if (node.isA(SqlKind.CAST)) {
-        node = ((RexCall) node).getOperands().get(0);
-      }
-      if (node.isA(SqlKind.NOT)) {
+      while (node.isA(ImmutableList.of(SqlKind.NOT, SqlKind.CAST, SqlKind.IS_NOT_NULL))) {
         node = ((RexCall) node).getOperands().get(0);
       }
       if (node.isA(SqlKind.INPUT_REF)) {
@@ -380,7 +387,8 @@ public class GeodeRules {
     }
 
     /** Rule configuration. */
-    public interface Config extends RelRule.Config {
+    @Value.Immutable(singleton = false)
+    public interface GeodeFilterRuleConfig extends RelRule.Config {
       @Override default GeodeFilterRule toRule() {
         return new GeodeFilterRule(this);
       }

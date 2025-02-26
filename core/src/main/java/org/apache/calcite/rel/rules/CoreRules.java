@@ -25,6 +25,7 @@ import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.Sample;
 import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
@@ -202,7 +203,8 @@ public class CoreRules {
    * @see #FILTER_REDUCE_EXPRESSIONS */
   public static final ReduceExpressionsRule.CalcReduceExpressionsRule
       CALC_REDUCE_EXPRESSIONS =
-      ReduceExpressionsRule.CalcReduceExpressionsRule.Config.DEFAULT.toRule();
+      ReduceExpressionsRule.CalcReduceExpressionsRule.CalcReduceExpressionsRuleConfig.DEFAULT
+          .toRule();
 
   /** Rule that converts a {@link Calc} to a {@link Project} and
    * {@link Filter}. */
@@ -213,7 +215,7 @@ public class CoreRules {
    * that contains windowed aggregates to a mixture of
    * {@link LogicalWindow} and {@code Calc}. */
   public static final ProjectToWindowRule.CalcToWindowRule CALC_TO_WINDOW =
-      ProjectToWindowRule.CalcToWindowRule.Config.DEFAULT.toRule();
+      ProjectToWindowRule.CalcToWindowRule.CalcToWindowRuleConfig.DEFAULT.toRule();
 
   /** Rule that pre-casts inputs to a particular type. This can assist operator
    * implementations that impose requirements on their input types. */
@@ -231,7 +233,7 @@ public class CoreRules {
   /** Rule that tries to push filter expressions into a join
    * condition and into the inputs of the join. */
   public static final FilterJoinRule.FilterIntoJoinRule FILTER_INTO_JOIN =
-      FilterJoinRule.FilterIntoJoinRule.Config.DEFAULT.toRule();
+      FilterJoinRule.FilterIntoJoinRule.FilterIntoJoinRuleConfig.DEFAULT.toRule();
 
   /** Dumber version of {@link #FILTER_INTO_JOIN}. Not intended for production
    * use, but keeps some tests working for which {@code FILTER_INTO_JOIN} is too
@@ -239,7 +241,7 @@ public class CoreRules {
   public static final FilterJoinRule.FilterIntoJoinRule FILTER_INTO_JOIN_DUMB =
       FILTER_INTO_JOIN.config
           .withSmart(false)
-          .as(FilterJoinRule.FilterIntoJoinRule.Config.class)
+          .as(FilterJoinRule.FilterIntoJoinRule.FilterIntoJoinRuleConfig.class)
           .toRule();
 
   /** Rule that combines two {@link LogicalFilter}s. */
@@ -270,12 +272,16 @@ public class CoreRules {
    * {@link org.apache.calcite.rel.rules.FilterProjectTransposeRule}.
    *
    * <p>It does not allow a Filter to be pushed past the Project if
-   * {@link RexUtil#containsCorrelation there is a correlation condition})
+   * {@link RexUtil#containsCorrelation there is a correlation condition}
    * anywhere in the Filter, since in some cases it can prevent a
    * {@link Correlate} from being de-correlated.
    */
   public static final FilterProjectTransposeRule FILTER_PROJECT_TRANSPOSE =
       FilterProjectTransposeRule.Config.DEFAULT.toRule();
+
+  /** Rule that pushes a {@link Filter} past a {@link Sample}. */
+  public static final FilterSampleTransposeRule FILTER_SAMPLE_TRANSPOSE =
+      FilterSampleTransposeRule.Config.DEFAULT.toRule();
 
   /** Rule that pushes a {@link LogicalFilter}
    * past a {@link LogicalTableFunctionScan}. */
@@ -315,6 +321,10 @@ public class CoreRules {
   public static final FilterSetOpTransposeRule FILTER_SET_OP_TRANSPOSE =
       FilterSetOpTransposeRule.Config.DEFAULT.toRule();
 
+  /** Rule that pushes a {@link Filter} past a {@link org.apache.calcite.rel.core.Window}. */
+  public static final FilterWindowTransposeRule FILTER_WINDOW_TRANSPOSE =
+      FilterWindowTransposeRule.Config.DEFAULT.toRule();
+
   /** Rule that reduces constants inside a {@link LogicalFilter}.
    *
    * @see #JOIN_REDUCE_EXPRESSIONS
@@ -324,7 +334,8 @@ public class CoreRules {
    */
   public static final ReduceExpressionsRule.FilterReduceExpressionsRule
       FILTER_REDUCE_EXPRESSIONS =
-      ReduceExpressionsRule.FilterReduceExpressionsRule.Config.DEFAULT.toRule();
+      ReduceExpressionsRule.FilterReduceExpressionsRule.FilterReduceExpressionsRuleConfig.DEFAULT
+          .toRule();
 
   /** Rule that flattens an {@link Intersect} on an {@code Intersect}
    * into a single {@code Intersect}. */
@@ -336,6 +347,12 @@ public class CoreRules {
    * composed of {@link Union}, {@link Aggregate}, etc. */
   public static final IntersectToDistinctRule INTERSECT_TO_DISTINCT =
       IntersectToDistinctRule.Config.DEFAULT.toRule();
+
+  /** Rule that translates a distinct
+   * {@link Minus} into a group of operators
+   * composed of {@link Union}, {@link Aggregate}, etc. */
+  public static final MinusToDistinctRule MINUS_TO_DISTINCT =
+      MinusToDistinctRule.Config.DEFAULT.toRule();
 
   /** Rule that converts a {@link LogicalMatch} to the result of calling
    * {@link LogicalMatch#copy}. */
@@ -387,7 +404,8 @@ public class CoreRules {
    * @see #FILTER_REDUCE_EXPRESSIONS */
   public static final ReduceExpressionsRule.ProjectReduceExpressionsRule
       PROJECT_REDUCE_EXPRESSIONS =
-      ReduceExpressionsRule.ProjectReduceExpressionsRule.Config.DEFAULT.toRule();
+      ReduceExpressionsRule.ProjectReduceExpressionsRule.ProjectReduceExpressionsRuleConfig
+          .DEFAULT.toRule();
 
   /** Rule that converts sub-queries from project expressions into
    * {@link Correlate} instances.
@@ -413,13 +431,17 @@ public class CoreRules {
   public static final SubQueryRemoveRule JOIN_SUB_QUERY_TO_CORRELATE =
       SubQueryRemoveRule.Config.JOIN.toRule();
 
+  /** Rule that converts SUM to SUM0 in OVER clauses in a project list. */
+  public static final ProjectOverSumToSum0Rule PROJECT_OVER_SUM_TO_SUM0_RULE =
+      ProjectOverSumToSum0Rule.Config.DEFAULT.toRule();
+
   /** Rule that transforms a {@link Project}
-   *  into a mixture of {@code LogicalProject}
+   * into a mixture of {@code LogicalProject}
    * and {@link LogicalWindow}. */
   public static final ProjectToWindowRule.ProjectToLogicalProjectAndWindowRule
       PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW =
-      ProjectToWindowRule.ProjectToLogicalProjectAndWindowRule.Config.DEFAULT
-          .toRule();
+      ProjectToWindowRule.ProjectToLogicalProjectAndWindowRule.
+          ProjectToLogicalProjectAndWindowRuleConfig.DEFAULT.toRule();
 
   /** Rule that creates a {@link Join#isSemiJoin semi-join} from a
    * {@link Project} on top of a {@link Join} with an {@link Aggregate} as its
@@ -427,7 +449,7 @@ public class CoreRules {
    *
    * @see #JOIN_TO_SEMI_JOIN */
   public static final SemiJoinRule.ProjectToSemiJoinRule PROJECT_TO_SEMI_JOIN =
-      SemiJoinRule.ProjectToSemiJoinRule.Config.DEFAULT.toRule();
+      SemiJoinRule.ProjectToSemiJoinRule.ProjectToSemiJoinRuleConfig.DEFAULT.toRule();
 
   /** Rule that matches an {@link Project} on a {@link Join} and removes the
    * left input of the join provided that the left input is also a left join. */
@@ -468,7 +490,7 @@ public class CoreRules {
       ProjectMultiJoinMergeRule.Config.DEFAULT.toRule();
 
   /** Rule that, given a {@link Project} node that merely returns its input,
-   *  converts the node into its input. */
+   * converts the node into its input. */
   public static final ProjectRemoveRule PROJECT_REMOVE =
       ProjectRemoveRule.Config.DEFAULT.toRule();
 
@@ -497,7 +519,7 @@ public class CoreRules {
 
   /** Rule that pushes predicates in a Join into the inputs to the join. */
   public static final FilterJoinRule.JoinConditionPushRule JOIN_CONDITION_PUSH =
-      FilterJoinRule.JoinConditionPushRule.Config.DEFAULT.toRule();
+      FilterJoinRule.JoinConditionPushRule.JoinConditionPushRuleConfig.DEFAULT.toRule();
 
   /** Rule to add a semi-join into a {@link Join}. */
   public static final JoinAddRedundantSemiJoinRule JOIN_ADD_REDUNDANT_SEMI_JOIN =
@@ -567,13 +589,25 @@ public class CoreRules {
       JOIN_PUSH_TRANSITIVE_PREDICATES =
       JoinPushTransitivePredicatesRule.Config.DEFAULT.toRule();
 
+  /** Rule that derives IS NOT NULL predicates from a inner {@link Join} and creates
+   * {@link Filter}s with those predicates as new inputs of the {@link Join}. */
+  public static final JoinDeriveIsNotNullFilterRule JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE =
+      JoinDeriveIsNotNullFilterRule.Config.DEFAULT.toRule();
+
   /** Rule that reduces constants inside a {@link Join}.
    *
    * @see #FILTER_REDUCE_EXPRESSIONS
    * @see #PROJECT_REDUCE_EXPRESSIONS */
   public static final ReduceExpressionsRule.JoinReduceExpressionsRule
       JOIN_REDUCE_EXPRESSIONS =
-      ReduceExpressionsRule.JoinReduceExpressionsRule.Config.DEFAULT.toRule();
+      ReduceExpressionsRule.JoinReduceExpressionsRule.JoinReduceExpressionsRuleConfig
+          .DEFAULT.toRule();
+
+  /** Rule that creates a {@link Join#isSemiJoin semi-join} from a
+   * {@link Join}, and it's right keys are unique in its right input.
+   */
+  public static final SemiJoinRule.JoinOnUniqueToSemiJoinRule JOIN_ON_UNIQUE_TO_SEMI_JOIN =
+      SemiJoinRule.JoinOnUniqueToSemiJoinRule.JoinOnUniqueToSemiJoinRuleConfig.DEFAULT.toRule();
 
   /** Rule that converts a {@link LogicalJoin}
    * into a {@link LogicalCorrelate}. */
@@ -590,7 +624,7 @@ public class CoreRules {
    *
    * @see #PROJECT_TO_SEMI_JOIN */
   public static final SemiJoinRule.JoinToSemiJoinRule JOIN_TO_SEMI_JOIN =
-      SemiJoinRule.JoinToSemiJoinRule.Config.DEFAULT.toRule();
+      SemiJoinRule.JoinToSemiJoinRule.JoinToSemiJoinRuleConfig.DEFAULT.toRule();
 
   /** Rule that pushes a {@link Join}
    * past a non-distinct {@link Union} as its left input. */
@@ -694,11 +728,22 @@ public class CoreRules {
   public static final SortRemoveRule SORT_REMOVE =
       SortRemoveRule.Config.DEFAULT.toRule();
 
+  /** Rule that merge a {@link Sort} representing the Limit semantics and
+   * another {@link Sort} representing the Limit or TOPN semantics. */
+  public static final SortMergeRule LIMIT_MERGE =
+      SortMergeRule.Config.LIMIT_MERGE.toRule();
+
   /** Rule that removes keys from a {@link Sort}
    * if those keys are known to be constant, or removes the entire Sort if all
    * keys are constant. */
   public static final SortRemoveConstantKeysRule SORT_REMOVE_CONSTANT_KEYS =
       SortRemoveConstantKeysRule.Config.DEFAULT.toRule();
+
+  /** Rule that removes redundant {@code Order By} or {@code Limit} when its input RelNode's
+   * max row count is less than or equal to specified row count.All of them
+   * are represented by {@link Sort}*/
+  public static final SortRemoveRedundantRule SORT_REMOVE_REDUNDANT =
+      SortRemoveRedundantRule.Config.DEFAULT.toRule();
 
   /** Rule that pushes a {@link Sort} past a {@link Join}. */
   public static final SortJoinTransposeRule SORT_JOIN_TRANSPOSE =
@@ -730,6 +775,15 @@ public class CoreRules {
   public static final UnionToDistinctRule UNION_TO_DISTINCT =
       UnionToDistinctRule.Config.DEFAULT.toRule();
 
+  /** Rule that translates a {@link Union} to {@link Values}
+   * if it's all input are {@link Values}. */
+  public static final UnionToValuesRule UNION_TO_VALUES =
+      UnionToValuesRule.Config.DEFAULT.toRule();
+
+  /** Rule that rewrite {@link Sample} which is bernoulli to the {@link Filter}. */
+  public static final SampleToFilterRule SAMPLE_TO_FILTER =
+      SampleToFilterRule.Config.DEFAULT.toRule();
+
   /** Rule that applies an {@link Aggregate} to a {@link Values} (currently just
    * an empty {@code Values}). */
   public static final AggregateValuesRule AGGREGATE_VALUES =
@@ -760,5 +814,6 @@ public class CoreRules {
    * @see #FILTER_REDUCE_EXPRESSIONS */
   public static final ReduceExpressionsRule.WindowReduceExpressionsRule
       WINDOW_REDUCE_EXPRESSIONS =
-      ReduceExpressionsRule.WindowReduceExpressionsRule.Config.DEFAULT.toRule();
+      ReduceExpressionsRule.WindowReduceExpressionsRule.WindowReduceExpressionsRuleConfig
+          .DEFAULT.toRule();
 }

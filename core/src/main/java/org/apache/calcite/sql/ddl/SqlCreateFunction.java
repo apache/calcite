@@ -29,11 +29,12 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
-
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
+
+import static com.google.common.base.Preconditions.checkArgument;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Parse tree for {@code CREATE FUNCTION} statement.
@@ -51,10 +52,10 @@ public class SqlCreateFunction extends SqlCreate {
       boolean ifNotExists, SqlIdentifier name,
       SqlNode className, SqlNodeList usingList) {
     super(OPERATOR, pos, replace, ifNotExists);
-    this.name = Objects.requireNonNull(name, "name");
-    this.className = className;
-    this.usingList = Objects.requireNonNull(usingList, "usingList");
-    Preconditions.checkArgument(usingList.size() % 2 == 0);
+    this.name = requireNonNull(name, "name");
+    this.className = requireNonNull(className, "className");
+    this.usingList = requireNonNull(usingList, "usingList");
+    checkArgument(usingList.size() % 2 == 0);
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec,
@@ -67,7 +68,7 @@ public class SqlCreateFunction extends SqlCreate {
     name.unparse(writer, 0, 0);
     writer.keyword("AS");
     className.unparse(writer, 0, 0);
-    if (usingList.size() > 0) {
+    if (!usingList.isEmpty()) {
       writer.keyword("USING");
       final SqlWriter.Frame frame =
           writer.startList(SqlWriter.FrameTypeEnum.SIMPLE);

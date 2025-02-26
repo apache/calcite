@@ -48,7 +48,6 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
-import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.graph.DefaultDirectedGraph;
@@ -62,7 +61,6 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
@@ -248,9 +246,10 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
           // Skip it
           continue;
         }
-        final RexNode viewPred = simplify.simplifyUnknownAsFalse(
-            RexUtil.composeConjunction(rexBuilder,
-                viewPredicateList.pulledUpPredicates));
+        final RexNode viewPred =
+            simplify.simplifyUnknownAsFalse(
+                RexUtil.composeConjunction(rexBuilder,
+                    viewPredicateList.pulledUpPredicates));
         final Pair<RexNode, RexNode> viewPreds = splitPredicates(rexBuilder, viewPred);
 
         // Extract view tables
@@ -280,10 +279,10 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
             }
           } else if (queryTableRefs.containsAll(viewTableRefs)) {
             matchModality = MatchModality.VIEW_PARTIAL;
-            ViewPartialRewriting partialRewritingResult = compensateViewPartial(
-                call.builder(), rexBuilder, mq, view,
-                topProject, node, queryTableRefs, qEC,
-                topViewProject, viewNode, viewTableRefs);
+            ViewPartialRewriting partialRewritingResult =
+                compensateViewPartial(call.builder(), rexBuilder, mq, view,
+                    topProject, node, queryTableRefs, qEC,
+                    topViewProject, viewNode, viewTableRefs);
             if (partialRewritingResult == null) {
               // Cannot rewrite, skip it
               continue;
@@ -330,11 +329,13 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
             for (Map.Entry<RexTableInputRef, RexTableInputRef> e
                 : compensationEquiColumns.entries()) {
               // Copy origin
-              RelTableRef queryTableRef = queryToViewTableMapping.inverse().get(
-                  e.getKey().getTableRef());
-              RexTableInputRef queryColumnRef = RexTableInputRef.of(
-                  requireNonNull(queryTableRef,
-                      () -> "queryTableRef is null for tableRef " + e.getKey().getTableRef()),
+              RelTableRef queryTableRef =
+                  queryToViewTableMapping.inverse().get(e.getKey().getTableRef());
+              RexTableInputRef queryColumnRef =
+                  RexTableInputRef.of(
+                      requireNonNull(queryTableRef,
+                          () -> "queryTableRef is null for tableRef "
+                              + e.getKey().getTableRef()),
                   e.getKey().getIndex(), e.getKey().getType());
               // Add to query equivalence classes and table mapping
               currQEC.addEquivalenceClass(queryColumnRef, e.getValue());
@@ -348,8 +349,9 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
           // are expressed using {@link RexTableInputRef} over the query.
           // First, to establish relationship, we swap column references of the view
           // predicates to point to query tables and compute equivalence classes.
-          final RexNode viewColumnsEquiPred = RexUtil.swapTableReferences(
-              rexBuilder, viewPreds.left, queryToViewTableMapping.inverse());
+          final RexNode viewColumnsEquiPred =
+              RexUtil.swapTableReferences(rexBuilder, viewPreds.left,
+                  queryToViewTableMapping.inverse());
           final EquivalenceClasses queryBasedVEC = new EquivalenceClasses();
           for (RexNode conj : RelOptUtil.conjunctions(viewColumnsEquiPred)) {
             assert conj.isA(SqlKind.EQUALS);
@@ -363,26 +365,32 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
                   currQEC, queryPreds, queryBasedVEC, viewPreds,
                   queryToViewTableMapping);
           if (compensationPreds == null && config.generateUnionRewriting()) {
-            // Attempt partial rewriting using union operator. This rewriting
+            // a. Attempt partial rewriting using union operator. This rewriting
             // will read some data from the view and the rest of the data from
             // the query computation. The resulting predicates are expressed
             // using {@link RexTableInputRef} over the view.
-            compensationPreds = computeCompensationPredicates(rexBuilder, simplify,
-                queryBasedVEC, viewPreds, currQEC, queryPreds,
-                queryToViewTableMapping.inverse());
+            compensationPreds =
+                computeCompensationPredicates(rexBuilder, simplify,
+                    queryBasedVEC, viewPreds, currQEC, queryPreds,
+                    queryToViewTableMapping.inverse());
             if (compensationPreds == null) {
               // This was our last chance to use the view, skip it
               continue;
             }
             RexNode compensationColumnsEquiPred = compensationPreds.left;
             RexNode otherCompensationPred = compensationPreds.right;
-            assert !compensationColumnsEquiPred.isAlwaysTrue()
-                || !otherCompensationPred.isAlwaysTrue();
+            if (compensationColumnsEquiPred.isAlwaysTrue()
+                && otherCompensationPred.isAlwaysTrue()) {
+              // Skip it
+              continue;
+            }
 
             // b. Generate union branch (query).
-            final RelNode unionInputQuery = rewriteQuery(call.builder(), rexBuilder,
-                simplify, mq, compensationColumnsEquiPred, otherCompensationPred,
-                topProject, node, queryToViewTableMapping, queryBasedVEC, currQEC);
+            final RelNode unionInputQuery =
+                rewriteQuery(call.builder(), rexBuilder, simplify, mq,
+                    compensationColumnsEquiPred, otherCompensationPred,
+                    topProject, node, queryToViewTableMapping, queryBasedVEC,
+                    currQEC);
             if (unionInputQuery == null) {
               // Skip it
               continue;
@@ -392,17 +400,19 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
             // We trigger the unifying method. This method will either create a Project
             // or an Aggregate operator on top of the view. It will also compute the
             // output expressions for the query.
-            final RelNode unionInputView = rewriteView(call.builder(), rexBuilder, simplify, mq,
-                matchModality, true, view, topProject, node, topViewProject, viewNode,
-                queryToViewTableMapping, currQEC);
+            final RelNode unionInputView =
+                rewriteView(call.builder(), rexBuilder, simplify, mq,
+                    matchModality, true, view, topProject, node, topViewProject,
+                    viewNode, queryToViewTableMapping, currQEC);
             if (unionInputView == null) {
               // Skip it
               continue;
             }
 
             // d. Generate final rewriting (union).
-            final RelNode result = createUnion(call.builder(), rexBuilder,
-                topProject, unionInputQuery, unionInputView);
+            final RelNode result =
+                createUnion(call.builder(), rexBuilder, topProject,
+                    unionInputQuery, unionInputView);
             if (result == null) {
               // Skip it
               continue;
@@ -412,7 +422,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
             RexNode compensationColumnsEquiPred = compensationPreds.left;
             RexNode otherCompensationPred = compensationPreds.right;
 
-            // a. Compute final compensation predicate.
+            // A. Compute final compensation predicate.
             if (!compensationColumnsEquiPred.isAlwaysTrue()
                 || !otherCompensationPred.isAlwaysTrue()) {
               // All columns required by compensating predicates must be contained
@@ -423,9 +433,10 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
               // For compensationColumnsEquiPred, we use the view equivalence classes,
               // since we want to enforce the rest
               if (!compensationColumnsEquiPred.isAlwaysTrue()) {
-                compensationColumnsEquiPred = rewriteExpression(rexBuilder, mq,
-                    view, viewNode, viewExprs, queryToViewTableMapping.inverse(), queryBasedVEC,
-                    false, compensationColumnsEquiPred);
+                compensationColumnsEquiPred =
+                    rewriteExpression(rexBuilder, mq, view, viewNode, viewExprs,
+                        queryToViewTableMapping.inverse(), queryBasedVEC,
+                        false, compensationColumnsEquiPred);
                 if (compensationColumnsEquiPred == null) {
                   // Skip it
                   continue;
@@ -433,9 +444,10 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
               }
               // For the rest, we use the query equivalence classes
               if (!otherCompensationPred.isAlwaysTrue()) {
-                otherCompensationPred = rewriteExpression(rexBuilder, mq,
-                    view, viewNode, viewExprs, queryToViewTableMapping.inverse(), currQEC,
-                    true, otherCompensationPred);
+                otherCompensationPred =
+                    rewriteExpression(rexBuilder, mq, view, viewNode, viewExprs,
+                        queryToViewTableMapping.inverse(), currQEC,
+                        true, otherCompensationPred);
                 if (otherCompensationPred == null) {
                   // Skip it
                   continue;
@@ -447,7 +459,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
                     ImmutableList.of(compensationColumnsEquiPred,
                         otherCompensationPred));
 
-            // b. Generate final rewriting if possible.
+            // B. Generate final rewriting if possible.
             // First, we add the compensation predicate (if any) on top of the view.
             // Then, we trigger the unifying method. This method will either create a
             // Project or an Aggregate operator on top of the view. It will also compute
@@ -473,9 +485,10 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
             } else {
               viewWithFilter = builder.push(view).build();
             }
-            final RelNode result = rewriteView(builder, rexBuilder, simplify, mq, matchModality,
-                false, viewWithFilter, topProject, node, topViewProject, viewNode,
-                queryToViewTableMapping, currQEC);
+            final RelNode result =
+                rewriteView(builder, rexBuilder, simplify, mq, matchModality,
+                    false, viewWithFilter, topProject, node, topViewProject,
+                    viewNode, queryToViewTableMapping, currQEC);
             if (result == null) {
               // Skip it
               continue;
@@ -496,6 +509,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
    *
    * <p>Rules implementing the method should follow different approaches depending on the
    * operators they rewrite.
+   *
    * @return ViewPartialRewriting, or null if the rewrite can't be done
    */
   protected abstract @Nullable ViewPartialRewriting compensateViewPartial(
@@ -638,7 +652,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
       if (Join.class.isAssignableFrom(c)) {
         for (RelNode n : e.getValue()) {
           final Join join = (Join) n;
-          if (join.getJoinType() != JoinRelType.INNER && !join.isSemiJoin()) {
+          if (join.getJoinType() != JoinRelType.INNER) {
             // Skip it
             return false;
           }
@@ -828,8 +842,8 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
     // 1. Establish relationship between source and target equivalence classes.
     // If every target equivalence class is not a subset of a source
     // equivalence class, we bail out.
-    compensationColumnsEquiPred = generateEquivalenceClasses(
-        rexBuilder, sourceEC, targetEC);
+    compensationColumnsEquiPred =
+        generateEquivalenceClasses(rexBuilder, sourceEC, targetEC);
     if (compensationColumnsEquiPred == null) {
       // Cannot rewrite
       return null;
@@ -837,13 +851,15 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
 
     // 2. We check that that residual predicates of the source are satisfied within the target.
     // Compute compensating predicates.
-    final RexNode queryPred = RexUtil.swapColumnReferences(
-        rexBuilder, sourcePreds.right, sourceEC.getEquivalenceClassesMap());
-    final RexNode viewPred = RexUtil.swapTableColumnReferences(
-        rexBuilder, targetPreds.right, sourceToTargetTableMapping.inverse(),
-        sourceEC.getEquivalenceClassesMap());
-    compensationPred = SubstitutionVisitor.splitFilter(
-        simplify, queryPred, viewPred);
+    final RexNode queryPred =
+        RexUtil.swapColumnReferences(rexBuilder, sourcePreds.right,
+            sourceEC.getEquivalenceClassesMap());
+    final RexNode viewPred =
+        RexUtil.swapTableColumnReferences(rexBuilder, targetPreds.right,
+            sourceToTargetTableMapping.inverse(),
+            sourceEC.getEquivalenceClassesMap());
+    compensationPred =
+        SubstitutionVisitor.splitFilter(simplify, queryPred, viewPred);
     if (compensationPred == null) {
       // Cannot rewrite
       return null;
@@ -865,20 +881,26 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
    */
   protected @Nullable RexNode generateEquivalenceClasses(RexBuilder rexBuilder,
       EquivalenceClasses sourceEC, EquivalenceClasses targetEC) {
-    if (sourceEC.getEquivalenceClasses().isEmpty() && targetEC.getEquivalenceClasses().isEmpty()) {
+    if (sourceEC.getEquivalenceClasses().isEmpty()
+        && targetEC.getEquivalenceClasses().isEmpty()) {
       // No column equality predicates in query and view
       // Empty mapping and compensation predicate
       return rexBuilder.makeLiteral(true);
     }
-    if (sourceEC.getEquivalenceClasses().isEmpty() && !targetEC.getEquivalenceClasses().isEmpty()) {
-      // No column equality predicates in source, but column equality predicates in target
+    if (sourceEC.getEquivalenceClasses().isEmpty()
+        && !targetEC.getEquivalenceClasses().isEmpty()) {
+      // No column equality predicates in source, but column equality predicates
+      // in target
       return null;
     }
 
-    final List<Set<RexTableInputRef>> sourceEquivalenceClasses = sourceEC.getEquivalenceClasses();
-    final List<Set<RexTableInputRef>> targetEquivalenceClasses = targetEC.getEquivalenceClasses();
-    final Multimap<Integer, Integer> mapping = extractPossibleMapping(
-        sourceEquivalenceClasses, targetEquivalenceClasses);
+    final List<Set<RexTableInputRef>> sourceEquivalenceClasses =
+        sourceEC.getEquivalenceClasses();
+    final List<Set<RexTableInputRef>> targetEquivalenceClasses =
+        targetEC.getEquivalenceClasses();
+    final Multimap<Integer, Integer> mapping =
+        extractPossibleMapping(sourceEquivalenceClasses,
+            targetEquivalenceClasses);
     if (mapping == null) {
       // Did not find mapping between the equivalence classes,
       // bail out
@@ -890,25 +912,29 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
     for (int i = 0; i < sourceEquivalenceClasses.size(); i++) {
       if (!mapping.containsKey(i)) {
         // Add all predicates
-        Iterator<RexTableInputRef> it = sourceEquivalenceClasses.get(i).iterator();
+        Iterator<RexTableInputRef> it =
+            sourceEquivalenceClasses.get(i).iterator();
         RexTableInputRef e0 = it.next();
         while (it.hasNext()) {
-          RexNode equals = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
-              e0, it.next());
-          compensationPredicate = rexBuilder.makeCall(SqlStdOperatorTable.AND,
-              compensationPredicate, equals);
+          RexNode equals =
+              rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, e0, it.next());
+          compensationPredicate =
+              rexBuilder.makeCall(SqlStdOperatorTable.AND,
+                  compensationPredicate, equals);
         }
       } else {
         // Add only predicates that are not there
         for (int j : mapping.get(i)) {
-          Set<RexTableInputRef> difference = new HashSet<>(
-              sourceEquivalenceClasses.get(i));
+          Set<RexTableInputRef> difference =
+              new HashSet<>(sourceEquivalenceClasses.get(i));
           difference.removeAll(targetEquivalenceClasses.get(j));
           for (RexTableInputRef e : difference) {
-            RexNode equals = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
-                e, targetEquivalenceClasses.get(j).iterator().next());
-            compensationPredicate = rexBuilder.makeCall(SqlStdOperatorTable.AND,
-                compensationPredicate, equals);
+            RexNode equals =
+                rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, e,
+                    targetEquivalenceClasses.get(j).iterator().next());
+            compensationPredicate =
+                rexBuilder.makeCall(SqlStdOperatorTable.AND,
+                    compensationPredicate, equals);
           }
         }
       }
@@ -970,8 +996,9 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
       EquivalenceClasses ec,
       boolean swapTableColumn,
       RexNode exprToRewrite) {
-    List<RexNode> rewrittenExprs = rewriteExpressions(rexBuilder, mq, targetNode, node, nodeExprs,
-        tableMapping, ec, swapTableColumn, ImmutableList.of(exprToRewrite));
+    List<RexNode> rewrittenExprs =
+        rewriteExpressions(rexBuilder, mq, targetNode, node, nodeExprs,
+            tableMapping, ec, swapTableColumn, ImmutableList.of(exprToRewrite));
     if (rewrittenExprs == null) {
       return null;
     }
@@ -1003,17 +1030,20 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
       List<RexNode> exprsToRewrite) {
     NodeLineage nodeLineage;
     if (swapTableColumn) {
-      nodeLineage = generateSwapTableColumnReferencesLineage(rexBuilder, mq, node,
-          tableMapping, ec, nodeExprs);
+      nodeLineage =
+          generateSwapTableColumnReferencesLineage(rexBuilder, mq, node,
+              tableMapping, ec, nodeExprs);
     } else {
-      nodeLineage = generateSwapColumnTableReferencesLineage(rexBuilder, mq, node,
-          tableMapping, ec, nodeExprs);
+      nodeLineage =
+          generateSwapColumnTableReferencesLineage(rexBuilder, mq, node,
+              tableMapping, ec, nodeExprs);
     }
 
     List<RexNode> rewrittenExprs = new ArrayList<>(exprsToRewrite.size());
     for (RexNode exprToRewrite : exprsToRewrite) {
-      RexNode rewrittenExpr = replaceWithOriginalReferences(
-          rexBuilder, targetNode, nodeLineage, exprToRewrite);
+      RexNode rewrittenExpr =
+          replaceWithOriginalReferences(rexBuilder, targetNode, nodeLineage,
+              exprToRewrite);
       if (RexUtil.containsTableInputRef(rewrittenExpr) != null) {
         // Some expressions were not present in view output
         return null;
@@ -1037,18 +1067,23 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
     final Map<RexNode, Integer> exprsLineage = new HashMap<>();
     final Map<RexNode, Integer> exprsLineageLosslessCasts = new HashMap<>();
     for (int i = 0; i < nodeExprs.size(); i++) {
-      final Set<RexNode> s = mq.getExpressionLineage(node, nodeExprs.get(i));
-      if (s == null) {
+      final RexNode expr = nodeExprs.get(i);
+      final Set<RexNode> lineages = mq.getExpressionLineage(node, expr);
+      if (lineages == null) {
         // Next expression
         continue;
       }
-      // We only support project - filter - join, thus it should map to
-      // a single expression
-      assert s.size() == 1;
+      if (lineages.size() != 1) {
+        throw new IllegalStateException("We only support project - filter - join, "
+            + "thus expression lineage should map to a single expression, got: '"
+            + lineages + "' for expr '" + expr + "' in node '" + node + "'");
+      }
       // Rewrite expr. First we swap the table references following the table
       // mapping, then we take first element from the corresponding equivalence class
-      final RexNode e = RexUtil.swapTableColumnReferences(rexBuilder,
-          s.iterator().next(), tableMapping, ec.getEquivalenceClassesMap());
+      final RexNode e =
+          RexUtil.swapTableColumnReferences(rexBuilder,
+              lineages.iterator().next(), tableMapping,
+              ec.getEquivalenceClassesMap());
       exprsLineage.put(e, i);
       if (RexUtil.isLosslessCast(e)) {
         exprsLineageLosslessCasts.put(((RexCall) e).getOperands().get(0), i);
@@ -1071,18 +1106,24 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
     final Map<RexNode, Integer> exprsLineage = new HashMap<>();
     final Map<RexNode, Integer> exprsLineageLosslessCasts = new HashMap<>();
     for (int i = 0; i < nodeExprs.size(); i++) {
-      final Set<RexNode> s = mq.getExpressionLineage(node, nodeExprs.get(i));
-      if (s == null) {
+      final RexNode expr = nodeExprs.get(i);
+      final Set<RexNode> lineages = mq.getExpressionLineage(node, expr);
+      if (lineages == null) {
         // Next expression
         continue;
       }
-      // We only support project - filter - join, thus it should map to
-      // a single expression
-      final RexNode node2 = Iterables.getOnlyElement(s);
-      // Rewrite expr. First we take first element from the corresponding equivalence class,
-      // then we swap the table references following the table mapping
-      final RexNode e = RexUtil.swapColumnTableReferences(rexBuilder, node2,
-          ec.getEquivalenceClassesMap(), tableMapping);
+      if (lineages.size() != 1) {
+        throw new IllegalStateException("We only support project - filter - join, "
+            + "thus expression lineage should map to a single expression, got: '"
+            + lineages + "' for expr '" + expr + "' in node '" + node + "'");
+      }
+      // Rewrite expr. First we take first element from the corresponding
+      // equivalence class, then we swap the table references following the
+      // table mapping
+      final RexNode e =
+          RexUtil.swapColumnTableReferences(rexBuilder,
+              lineages.iterator().next(), ec.getEquivalenceClassesMap(),
+              tableMapping);
       exprsLineage.put(e, i);
       if (RexUtil.isLosslessCast(e)) {
         exprsLineageLosslessCasts.put(((RexCall) e).getOperands().get(0), i);
@@ -1393,7 +1434,6 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
   public interface Config extends RelRule.Config {
     /** Whether to generate rewritings containing union if the query results
      * are contained within the view results. */
-    @ImmutableBeans.Property
     boolean generateUnionRewriting();
 
     /** Sets {@link #generateUnionRewriting()}. */
@@ -1401,7 +1441,6 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
 
     /** If we generate union rewriting, we might want to pull up projections
      * from the query itself to maximize rewriting opportunities. */
-    @ImmutableBeans.Property
     @Nullable HepProgram unionRewritingPullProgram();
 
     /** Sets {@link #unionRewritingPullProgram()}. */
@@ -1409,7 +1448,6 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
 
     /** Whether we should create the rewriting in the minimal subtree of plan
      * operators. */
-    @ImmutableBeans.Property
     boolean fastBailOut();
 
     /** Sets {@link #fastBailOut()}. */

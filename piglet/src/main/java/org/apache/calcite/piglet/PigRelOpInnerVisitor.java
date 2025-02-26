@@ -86,7 +86,7 @@ class PigRelOpInnerVisitor extends PigRelOpVisitor {
     final List<Integer> multisetFlattens = new ArrayList<>();
     final List<String> flattenOutputAliases = new ArrayList<>();
     doGenerateWithoutMultisetFlatten(gen, multisetFlattens, flattenOutputAliases);
-    if (multisetFlattens.size() > 0) {
+    if (!multisetFlattens.isEmpty()) {
       builder.multiSetFlatten(multisetFlattens, flattenOutputAliases);
     }
   }
@@ -95,9 +95,8 @@ class PigRelOpInnerVisitor extends PigRelOpVisitor {
    * Rejoins all multiset (bag) columns that have been processed in the nested
    * foreach block.
    *
-   * @throws FrontendException Exception during processing Pig operators
    */
-  private void makeCorrelates() throws FrontendException {
+  private void makeCorrelates() {
     List<CorrelationId> corIds = new ArrayList<>();
     List<RelNode> rightRels =  new ArrayList<>();
 
@@ -111,7 +110,7 @@ class PigRelOpInnerVisitor extends PigRelOpVisitor {
         corRels.add(0, builder.build());
       }
 
-      assert corRels.size() > 0;
+      assert !corRels.isEmpty();
       builder.push(corRels.get(0));
       builder.collect();
       // Now collapse these rels to a single multiset row and join them together
@@ -160,8 +159,8 @@ class PigRelOpInnerVisitor extends PigRelOpVisitor {
       }
 
       if (outputFieldSchema.size() == 1 && !gen.getFlattenFlags()[i]) {
-        final RelDataType scriptType = PigTypes.convertSchemaField(
-            outputFieldSchema.getField(0));
+        final RelDataType scriptType =
+            PigTypes.convertSchemaField(outputFieldSchema.getField(0));
         if (dataType.getSqlTypeName() == SqlTypeName.ANY
                 || !SqlTypeUtil.isComparable(dataType, scriptType)) {
           // Script schema is different from project expression schema, need to do type cast
@@ -174,10 +173,11 @@ class PigRelOpInnerVisitor extends PigRelOpVisitor {
         if (dataType instanceof DynamicTupleRecordType) {
           ((DynamicTupleRecordType) dataType).resize(outputFieldSchema.size());
           for (int j = 0; j < outputFieldSchema.size(); j++) {
-            final RelDataType scriptType = PigTypes.convertSchemaField(
-                outputFieldSchema.getField(j));
-            RexNode exp = builder.call(
-                SqlStdOperatorTable.ITEM, rexNode, builder.literal(j + 1));
+            final RelDataType scriptType =
+                PigTypes.convertSchemaField(outputFieldSchema.getField(j));
+            RexNode exp =
+                builder.call(SqlStdOperatorTable.ITEM, rexNode,
+                    builder.literal(j + 1));
             innerCols.add(builder.getRexBuilder().makeCast(scriptType, exp));
             fieldAlias.add(outputFieldSchema.getField(j).alias);
           }
@@ -211,7 +211,7 @@ class PigRelOpInnerVisitor extends PigRelOpVisitor {
     builder.project(innerCols, fieldAlias, true);
   }
 
-  @Override public void visit(LOInnerLoad load) throws FrontendException {
+  @Override public void visit(LOInnerLoad load) {
     // Inner loads are the first operator the post order walker (@PigRelOpWalker) visits first
     // We first look at the plan structure to see if the inner load is for a simple projection,
     // which will not be processed in the nested block

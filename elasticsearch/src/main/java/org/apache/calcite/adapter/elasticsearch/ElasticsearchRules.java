@@ -21,6 +21,7 @@ import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.InvalidRelException;
 import org.apache.calcite.rel.RelCollations;
@@ -40,6 +41,8 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.AbstractList;
 import java.util.List;
@@ -61,10 +64,11 @@ class ElasticsearchRules {
 
   /**
    * Returns 'string' if it is a call to item['string'], null otherwise.
+   *
    * @param call current relational expression
    * @return literal value
    */
-  private static String isItemCall(RexCall call) {
+  private static @Nullable String isItemCall(RexCall call) {
     if (call.getOperator() != SqlStdOperatorTable.ITEM) {
       return null;
     }
@@ -260,7 +264,7 @@ class ElasticsearchRules {
       super(config);
     }
 
-    @Override public RelNode convert(RelNode rel) {
+    @Override public @Nullable RelNode convert(RelNode rel) {
       final LogicalAggregate agg = (LogicalAggregate) rel;
       final RelTraitSet traitSet = agg.getTraitSet().replace(out);
       try {
@@ -291,6 +295,11 @@ class ElasticsearchRules {
 
     protected ElasticsearchProjectRule(Config config) {
       super(config);
+    }
+
+    @Override public boolean matches(RelOptRuleCall call) {
+      final LogicalProject project = call.rel(0);
+      return project.getVariablesSet().isEmpty();
     }
 
     @Override public RelNode convert(RelNode relNode) {

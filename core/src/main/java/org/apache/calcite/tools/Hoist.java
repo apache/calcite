@@ -24,19 +24,21 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.SqlShuttle;
-import org.apache.calcite.util.ImmutableBeans;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.sql.PreparedStatement;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Function;
+
+import static com.google.common.base.Preconditions.checkArgument;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Utility that extracts constants from a SQL query.
@@ -62,13 +64,15 @@ import java.util.function.Function;
  *
  * <p>Adjust {@link Config} to use a different parser or parsing options.
  */
+@Value.Enclosing
 public class Hoist {
   private final Config config;
 
   /** Creates a Config. */
   public static Config config() {
-    return ImmutableBeans.create(Config.class)
-        .withParserConfig(SqlParser.config());
+    return ImmutableHoist.Config.builder()
+        .withParserConfig(SqlParser.config())
+        .build();
   }
 
   /** Creates a Hoist. */
@@ -77,7 +81,7 @@ public class Hoist {
   }
 
   private Hoist(Config config) {
-    this.config = Objects.requireNonNull(config, "config");
+    this.config = requireNonNull(config, "config");
   }
 
   /** Converts a {@link Variable} to a string "?N",
@@ -118,9 +122,9 @@ public class Hoist {
   }
 
   /** Configuration. */
+  @Value.Immutable(singleton = false)
   public interface Config {
     /** Returns the configuration for the SQL parser. */
-    @ImmutableBeans.Property
     SqlParser.Config parserConfig();
 
     /** Sets {@link #parserConfig()}. */
@@ -141,19 +145,21 @@ public class Hoist {
     public final int end;
 
     private Variable(String originalSql, int ordinal, SqlNode node) {
-      this.originalSql = Objects.requireNonNull(originalSql, "originalSql");
+      this.originalSql = requireNonNull(originalSql, "originalSql");
       this.ordinal = ordinal;
-      this.node = Objects.requireNonNull(node, "node");
+      this.node = requireNonNull(node, "node");
       final SqlParserPos pos = node.getParserPosition();
-      start = SqlParserUtil.lineColToIndex(originalSql,
-          pos.getLineNum(), pos.getColumnNum());
-      end = SqlParserUtil.lineColToIndex(originalSql,
-          pos.getEndLineNum(), pos.getEndColumnNum()) + 1;
+      start =
+          SqlParserUtil.lineColToIndex(originalSql,
+              pos.getLineNum(), pos.getColumnNum());
+      end =
+          SqlParserUtil.lineColToIndex(originalSql,
+              pos.getEndLineNum(), pos.getEndColumnNum()) + 1;
 
-      Preconditions.checkArgument(ordinal >= 0);
-      Preconditions.checkArgument(start >= 0);
-      Preconditions.checkArgument(start <= end);
-      Preconditions.checkArgument(end <= originalSql.length());
+      checkArgument(ordinal >= 0);
+      checkArgument(start >= 0);
+      checkArgument(start <= end);
+      checkArgument(end <= originalSql.length());
     }
 
     /** Returns SQL text of the region of the statement covered by this

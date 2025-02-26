@@ -51,6 +51,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import static java.util.Objects.requireNonNull;
+
 /** Schema that provides TPC-DS tables, populated according to a
  * particular scale factor. */
 public class TpcdsSchema extends AbstractSchema {
@@ -149,7 +151,7 @@ public class TpcdsSchema extends AbstractSchema {
     @Override public Statistic getStatistic() {
       Bug.upgrade("add row count estimate to TpcdsTable, and use it");
       Integer rowCount = TABLE_ROW_COUNTS.get(tpcdsTable.name());
-      assert rowCount != null : tpcdsTable;
+      requireNonNull(rowCount, "table has null row count: " + tpcdsTable);
       return Statistics.of(rowCount, ImmutableList.of());
     }
 

@@ -320,7 +320,6 @@ public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
    * Checks if new instance creation can be reused. For instance {@code new
    * BigInteger("42")} is effectively final and can be reused.
    *
-   *
    * @param newExpression method to test
    * @return true when the method is deterministic
    */

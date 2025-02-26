@@ -48,11 +48,12 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * An assistant which offers hints and corrections to a partially-formed SQL
@@ -224,11 +225,12 @@ public class SqlAdvisor {
    * Returns casing which is preferred for replacement.
    * For instance, {@code en => ename, EN => ENAME}.
    * When input has mixed case, {@code Casing.UNCHANGED} is returned.
+   *
    * @param word input word
    * @return preferred casing when replacing input word
    */
   private Casing getPreferredCasing(String word) {
-    if (word == prevWord) {
+    if (word.equals(prevWord)) {
       return castNonNull(prevPreferredCasing);
     }
     boolean hasLower = false;
@@ -369,11 +371,12 @@ public class SqlAdvisor {
 
   private static boolean isSelectListItem(SqlNode root,
       final SqlParserPos pos, String hintToken) {
-    List<SqlNode> nodes = SqlUtil.getAncestry(root,
-        input -> input instanceof SqlIdentifier
-            && ((SqlIdentifier) input).names.contains(hintToken),
-        input -> Objects.requireNonNull(input, "input").getParserPosition()
-            .startsAt(pos));
+    List<SqlNode> nodes =
+        SqlUtil.getAncestry(root,
+            input -> input instanceof SqlIdentifier
+                && ((SqlIdentifier) input).names.contains(hintToken),
+            input -> requireNonNull(input, "input")
+                .getParserPosition().startsAt(pos));
     assert nodes.get(0) == root;
     nodes = Lists.reverse(nodes);
     return nodes.size() > 2
@@ -618,11 +621,11 @@ public class SqlAdvisor {
 
   /** Text and position info of a validator or parser exception. */
   public static class ValidateErrorInfo {
-    private int startLineNum;
-    private int startColumnNum;
-    private int endLineNum;
-    private int endColumnNum;
-    private @Nullable String errorMsg;
+    private final int startLineNum;
+    private final int startColumnNum;
+    private final int endLineNum;
+    private final int endColumnNum;
+    private final @Nullable String errorMsg;
 
     /**
      * Creates a new ValidateErrorInfo with the position coordinates and an

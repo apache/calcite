@@ -27,10 +27,12 @@ import com.google.common.collect.ImmutableList;
 
 import org.junit.jupiter.api.Test;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -41,106 +43,72 @@ import static org.junit.jupiter.api.Assertions.fail;
 class PermutationTestCase {
   @Test void testOne() {
     final Permutation perm = new Permutation(4);
-    assertEquals(
-        "[0, 1, 2, 3]",
-        perm.toString());
-    assertEquals(
-        4,
-        perm.size());
+    assertThat(perm, hasToString("[0, 1, 2, 3]"));
+    assertThat(perm.size(), hasToString("4"));
 
     perm.set(0, 2);
-    assertEquals(
-        "[2, 1, 0, 3]",
-        perm.toString());
+    assertThat(perm, hasToString("[2, 1, 0, 3]"));
 
     perm.set(1, 0);
-    assertEquals(
-        "[2, 0, 1, 3]",
-        perm.toString());
+    assertThat(perm, hasToString("[2, 0, 1, 3]"));
 
     final Permutation invPerm = perm.inverse();
-    assertEquals(
-        "[1, 2, 0, 3]",
-        invPerm.toString());
+    assertThat(invPerm, hasToString("[1, 2, 0, 3]"));
 
     // changing perm doesn't change inverse
     perm.set(0, 0);
-    assertEquals(
-        "[0, 2, 1, 3]",
-        perm.toString());
-    assertEquals(
-        "[1, 2, 0, 3]",
-        invPerm.toString());
+    assertThat(perm, hasToString("[0, 2, 1, 3]"));
+    assertThat(invPerm, hasToString("[1, 2, 0, 3]"));
   }
 
   @Test void testTwo() {
     final Permutation perm = new Permutation(new int[]{3, 2, 0, 1});
     assertFalse(perm.isIdentity());
-    assertEquals(
-        "[3, 2, 0, 1]",
-        perm.toString());
+    assertThat(perm, hasToString("[3, 2, 0, 1]"));
 
     Permutation perm2 = (Permutation) perm.clone();
-    assertEquals(
-        "[3, 2, 0, 1]",
-        perm2.toString());
-    assertTrue(perm.equals(perm2));
-    assertTrue(perm2.equals(perm));
+    assertThat(perm2, hasToString("[3, 2, 0, 1]"));
+    assertThat(perm, is(perm2));
+    assertThat(perm2, is(perm));
 
     perm.set(2, 1);
-    assertEquals(
-        "[3, 2, 1, 0]",
-        perm.toString());
-    assertFalse(perm.equals(perm2));
+    assertThat(perm, hasToString("[3, 2, 1, 0]"));
+    assertThat(perm, not(equalTo(perm2)));
 
     // clone not affected
-    assertEquals(
-        "[3, 2, 0, 1]",
-        perm2.toString());
+    assertThat(perm2, hasToString("[3, 2, 0, 1]"));
 
     perm2.set(2, 3);
-    assertEquals(
-        "[0, 2, 3, 1]",
-        perm2.toString());
+    assertThat(perm2, hasToString("[0, 2, 3, 1]"));
   }
 
   @Test void testInsert() {
     Permutation perm = new Permutation(new int[]{3, 0, 4, 2, 1});
     perm.insertTarget(2);
-    assertEquals(
-        "[4, 0, 5, 3, 1, 2]",
-        perm.toString());
+    assertThat(perm, hasToString("[4, 0, 5, 3, 1, 2]"));
 
     // insert at start
     perm = new Permutation(new int[]{3, 0, 4, 2, 1});
     perm.insertTarget(0);
-    assertEquals(
-        "[4, 1, 5, 3, 2, 0]",
-        perm.toString());
+    assertThat(perm, hasToString("[4, 1, 5, 3, 2, 0]"));
 
     // insert at end
     perm = new Permutation(new int[]{3, 0, 4, 2, 1});
     perm.insertTarget(5);
-    assertEquals(
-        "[3, 0, 4, 2, 1, 5]",
-        perm.toString());
+    assertThat(perm, hasToString("[3, 0, 4, 2, 1, 5]"));
 
     // insert into empty
     perm = new Permutation(new int[]{});
     perm.insertTarget(0);
-    assertEquals(
-        "[0]",
-        perm.toString());
+    assertThat(perm, hasToString("[0]"));
   }
 
   @Test void testEmpty() {
     final Permutation perm = new Permutation(0);
     assertTrue(perm.isIdentity());
-    assertEquals(
-        "[]",
-        perm.toString());
-    assertTrue(perm.equals(perm));
-    assertTrue(perm.equals(perm.inverse()));
+    assertThat(perm, hasToString("[]"));
+    assertThat(perm, is(perm));
+    assertThat(perm, is(perm.inverse()));
 
     try {
       perm.set(1, 0);
@@ -164,22 +132,25 @@ class PermutationTestCase {
         typeFactory.createSqlType(SqlTypeName.DOUBLE);
 
     // A project with [1, 1] is not a permutation, so should return null
-    final Permutation perm = Project.getPermutation(2,
-        ImmutableList.of(builder.makeInputRef(doubleType, 1),
-            builder.makeInputRef(doubleType, 1)));
+    final Permutation perm =
+        Project.getPermutation(2,
+            ImmutableList.of(builder.makeInputRef(doubleType, 1),
+                builder.makeInputRef(doubleType, 1)));
     assertThat(perm, nullValue());
 
     // A project with [0, 1, 0] is not a permutation, so should return null
-    final Permutation perm1 = Project.getPermutation(2,
-        ImmutableList.of(builder.makeInputRef(doubleType, 0),
-            builder.makeInputRef(doubleType, 1),
-            builder.makeInputRef(doubleType, 0)));
+    final Permutation perm1 =
+        Project.getPermutation(2,
+            ImmutableList.of(builder.makeInputRef(doubleType, 0),
+                builder.makeInputRef(doubleType, 1),
+                builder.makeInputRef(doubleType, 0)));
     assertThat(perm1, nullValue());
 
     // A project of [1, 0] is a valid permutation!
-    final Permutation perm2 = Project.getPermutation(2,
-        ImmutableList.of(builder.makeInputRef(doubleType, 1),
-            builder.makeInputRef(doubleType, 0)));
+    final Permutation perm2 =
+        Project.getPermutation(2,
+            ImmutableList.of(builder.makeInputRef(doubleType, 1),
+                builder.makeInputRef(doubleType, 0)));
     assertThat(perm2, is(new Permutation(new int[]{1, 0})));
   }
 }

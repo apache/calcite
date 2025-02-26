@@ -25,9 +25,12 @@ import org.apache.commons.io.input.TailerListenerAdapter;
 import au.com.bytecode.opencsv.CSVParser;
 import au.com.bytecode.opencsv.CSVReader;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.StringReader;
+import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.Queue;
 
@@ -35,10 +38,10 @@ import java.util.Queue;
  * Extension to {@link CSVReader} that can read newly appended file content.
  */
 class CsvStreamReader extends CSVReader implements Closeable {
-  protected CSVParser parser;
-  protected int skipLines;
-  protected Tailer tailer;
-  protected Queue<String> contentQueue;
+  protected final CSVParser parser;
+  protected final int skipLines;
+  protected final Tailer tailer;
+  protected final Queue<String> contentQueue;
 
   /**
    * The default line to start reading.
@@ -70,7 +73,7 @@ class CsvStreamReader extends CSVReader implements Closeable {
    * @param line The line number to skip for start reading
    * @param strictQuotes Sets if characters outside the quotes are ignored
    * @param ignoreLeadingWhiteSpace If true, parser should ignore
-   *  white space before a quote in a field
+   *                                white space before a quote in a field
    */
   private CsvStreamReader(Source source, char separator, char quoteChar,
       char escape, int line, boolean strictQuotes,
@@ -78,10 +81,19 @@ class CsvStreamReader extends CSVReader implements Closeable {
     super(new StringReader("")); // dummy call to base constructor
     contentQueue = new ArrayDeque<>();
     TailerListener listener = new CsvContentListener(contentQueue);
-    tailer = Tailer.create(source.file(), listener, DEFAULT_MONITOR_DELAY,
-        false, true, 4096);
-    this.parser = new CSVParser(separator, quoteChar, escape, strictQuotes,
-        ignoreLeadingWhiteSpace);
+    tailer =
+        Tailer.builder()
+            .setFile(source.file())
+            .setTailerListener(listener)
+            .setDelayDuration(Duration.ofMillis(DEFAULT_MONITOR_DELAY))
+            .setTailFromEnd(false)
+            .setReOpen(true)
+            .setBufferSize(4096)
+            .get();
+
+    this.parser =
+        new CSVParser(separator, quoteChar, escape, strictQuotes,
+            ignoreLeadingWhiteSpace);
     this.skipLines = line;
     try {
       // wait for tailer to capture data
@@ -98,7 +110,7 @@ class CsvStreamReader extends CSVReader implements Closeable {
    *
    * @throws IOException if bad things happen during the read
    */
-  @Override public String[] readNext() throws IOException {
+  @Override public String @Nullable[] readNext() throws IOException {
     String[] result = null;
     do {
       String nextLine = getNextLine();
@@ -125,18 +137,15 @@ class CsvStreamReader extends CSVReader implements Closeable {
    *
    * @return the next line from the file without trailing newline
    *
-   * @throws IOException if bad things happen during the read
    */
-  private String getNextLine() throws IOException {
+  private @Nullable String getNextLine() {
     return contentQueue.poll();
   }
 
   /**
    * Closes the underlying reader.
-   *
-   * @throws IOException if the close fails
    */
-  @Override public void close() throws IOException {
+  @Override public void close() {
   }
 
   /** Watches for content being appended to a CSV file. */

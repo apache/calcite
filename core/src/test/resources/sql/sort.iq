@@ -138,6 +138,171 @@ EnumerableSort(sort0=[$0], sort1=[$1], dir0=[DESC], dir1=[ASC])
   EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
+# Return the 2nd and 3rd department
+select *
+from dept
+order by deptno limit 2 offset 1;
++--------+----------+---------+
+| DEPTNO | DNAME    | LOC     |
++--------+----------+---------+
+|     20 | RESEARCH | DALLAS  |
+|     30 | SALES    | CHICAGO |
++--------+----------+---------+
+(2 rows)
+
+!ok
+
+# Return the 2nd and 3rd department (using ansi FETCH syntax)
+select *
+from dept
+order by deptno offset 1 fetch next 2 rows only;
++--------+----------+---------+
+| DEPTNO | DNAME    | LOC     |
++--------+----------+---------+
+|     20 | RESEARCH | DALLAS  |
+|     30 | SALES    | CHICAGO |
++--------+----------+---------+
+(2 rows)
+
+!ok
+
+# Return the 1st and 2nd departments
+select *
+from dept
+order by deptno limit 2;
++--------+------------+----------+
+| DEPTNO | DNAME      | LOC      |
++--------+------------+----------+
+|     10 | ACCOUNTING | NEW YORK |
+|     20 | RESEARCH   | DALLAS   |
++--------+------------+----------+
+(2 rows)
+
+!ok
+
+# Return the 1st and 2nd departments (using ansi FETCH syntax)
+select *
+from dept
+order by deptno fetch next 2 rows only;
++--------+------------+----------+
+| DEPTNO | DNAME      | LOC      |
++--------+------------+----------+
+|     10 | ACCOUNTING | NEW YORK |
+|     20 | RESEARCH   | DALLAS   |
++--------+------------+----------+
+(2 rows)
+
+!ok
+
+# Return 2nd and subsequent departments
+select *
+from dept
+order by deptno offset 1;
++--------+------------+---------+
+| DEPTNO | DNAME      | LOC     |
++--------+------------+---------+
+|     20 | RESEARCH   | DALLAS  |
+|     30 | SALES      | CHICAGO |
+|     40 | OPERATIONS | BOSTON  |
++--------+------------+---------+
+(3 rows)
+
+!ok
+
+# No limit
+select *
+from dept
+order by deptno;
++--------+------------+----------+
+| DEPTNO | DNAME      | LOC      |
++--------+------------+----------+
+|     10 | ACCOUNTING | NEW YORK |
+|     20 | RESEARCH   | DALLAS   |
+|     30 | SALES      | CHICAGO  |
+|     40 | OPERATIONS | BOSTON   |
++--------+------------+----------+
+(4 rows)
+
+!ok
+
+!use scott-lenient
+
+# Return the 2nd and 3rd department, using 'offset .. limit',
+# which is only allowed in lenient conformance (and Trino)
+select *
+from dept
+order by deptno offset 1 limit 2;
++--------+----------+---------+
+| DEPTNO | DNAME    | LOC     |
++--------+----------+---------+
+|     20 | RESEARCH | DALLAS  |
+|     30 | SALES    | CHICAGO |
++--------+----------+---------+
+(2 rows)
+
+!ok
+
+!use scott-mysql
+
+# Returns 2nd and 3rd department, expressed using MySQL syntax
+select *
+from dept
+order by deptno limit 1, 2;
++--------+----------+---------+
+| DEPTNO | DNAME    | LOC     |
++--------+----------+---------+
+|     20 | RESEARCH | DALLAS  |
+|     30 | SALES    | CHICAGO |
++--------+----------+---------+
+(2 rows)
+
+!ok
+
+# Return the 1st and 2nd departments
+select *
+from dept
+order by deptno limit 2;
++--------+------------+----------+
+| DEPTNO | DNAME      | LOC      |
++--------+------------+----------+
+|     10 | ACCOUNTING | NEW YORK |
+|     20 | RESEARCH   | DALLAS   |
++--------+------------+----------+
+(2 rows)
+
+!ok
+
+# Return 2nd and subsequent departments, expressed using MySQL syntax
+select *
+from dept
+order by deptno limit 1, all;
++--------+------------+---------+
+| DEPTNO | DNAME      | LOC     |
++--------+------------+---------+
+|     20 | RESEARCH   | DALLAS  |
+|     30 | SALES      | CHICAGO |
+|     40 | OPERATIONS | BOSTON  |
++--------+------------+---------+
+(3 rows)
+
+!ok
+
+# No limit, expressed using MySQL syntax
+select *
+from dept
+order by deptno limit all;
++--------+------------+----------+
+| DEPTNO | DNAME      | LOC      |
++--------+------------+----------+
+|     10 | ACCOUNTING | NEW YORK |
+|     20 | RESEARCH   | DALLAS   |
+|     30 | SALES      | CHICAGO  |
+|     40 | OPERATIONS | BOSTON   |
++--------+------------+----------+
+(4 rows)
+
+!ok
+
 !use post
 
 # [CALCITE-603] WITH ... ORDER BY cannot find table
@@ -210,6 +375,45 @@ order by 1;
 | 1 |
 +---+
 (1 row)
+
+!ok
+
+# [CALCITE-6454] Implement array comparison operators
+select * from
+(values
+    (2, array[2, 3]),
+    (3, array[3, 4]),
+    (1, array[1, 2]),
+    (4, array[4, 5])) as t(id, arr)
+order by arr asc;
++----+--------+
+| ID | ARR    |
++----+--------+
+|  1 | [1, 2] |
+|  2 | [2, 3] |
+|  3 | [3, 4] |
+|  4 | [4, 5] |
++----+--------+
+(4 rows)
+
+!ok
+
+select * from
+(values
+    (2, array[2, 3]),
+    (3, array[3, 4]),
+    (1, array[1, 2]),
+    (4, array[4, 5])) as t(id, arr)
+order by arr desc;
++----+--------+
+| ID | ARR    |
++----+--------+
+|  4 | [4, 5] |
+|  3 | [3, 4] |
+|  2 | [2, 3] |
+|  1 | [1, 2] |
++----+--------+
+(4 rows)
 
 !ok
 

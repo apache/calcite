@@ -20,6 +20,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Objects;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -35,23 +37,24 @@ public class GotoStatement extends Statement {
       @Nullable Expression expression) {
     super(ExpressionType.Goto,
         expression == null ? Void.TYPE : expression.getType());
-    assert kind != null : "kind should not be null";
-    this.kind = kind;
+    this.kind = requireNonNull(kind, "kind");
     this.labelTarget = labelTarget;
     this.expression = expression;
 
     switch (kind) {
     case Break:
     case Continue:
-      assert expression == null;
+      checkArgument(expression == null, "for %s, expression must be null",
+          kind);
       break;
     case Goto:
       assert expression == null;
-      assert labelTarget != null;
+      requireNonNull(labelTarget, "labelTarget");
       break;
     case Return:
     case Sequence:
-      assert labelTarget == null;
+      checkArgument(labelTarget == null, "for %s, labelTarget must be null",
+          kind);
       break;
     default:
       throw new RuntimeException("unexpected: " + kind);
@@ -116,20 +119,9 @@ public class GotoStatement extends Statement {
     }
 
     GotoStatement that = (GotoStatement) o;
-
-    if (expression != null ? !expression.equals(that.expression) : that
-        .expression != null) {
-      return false;
-    }
-    if (kind != that.kind) {
-      return false;
-    }
-    if (labelTarget != null ? !labelTarget.equals(that.labelTarget) : that
-        .labelTarget != null) {
-      return false;
-    }
-
-    return true;
+    return Objects.equals(expression, that.expression)
+        && kind == that.kind
+        && Objects.equals(labelTarget, that.labelTarget);
   }
 
   @Override public int hashCode() {

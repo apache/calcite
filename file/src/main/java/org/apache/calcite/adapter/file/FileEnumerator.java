@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.file;
 
 import org.apache.calcite.linq4j.Enumerator;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jsoup.select.Elements;
 
 import java.util.Iterator;
@@ -30,7 +31,7 @@ class FileEnumerator implements Enumerator<Object> {
   private final Iterator<Elements> iterator;
   private final FileRowConverter converter;
   private final int[] fields;
-  private Object current;
+  private @Nullable Object current;
 
   FileEnumerator(Iterator<Elements> iterator, FileRowConverter converter) {
     this(iterator, converter, identityList(converter.width()));

@@ -41,8 +41,11 @@ import org.apache.calcite.util.mapping.Mappings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.immutables.value.Value;
+
 import java.util.Map;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Planner rule that pushes
@@ -51,6 +54,7 @@ import java.util.Objects;
  *
  * @see CoreRules#SORT_PROJECT_TRANSPOSE
  */
+@Value.Enclosing
 public class SortProjectTransposeRule
     extends RelRule<SortProjectTransposeRule.Config>
     implements TransformationRule {
@@ -128,7 +132,7 @@ public class SortProjectTransposeRule
       if (node.isA(SqlKind.CAST)) {
         // Check whether it is a monotonic preserving cast, otherwise we cannot push
         final RexCall cast = (RexCall) node;
-        RelFieldCollation newFc = Objects.requireNonNull(RexUtil.apply(map, fc));
+        RelFieldCollation newFc = requireNonNull(RexUtil.apply(map, fc));
         final RexCallBinding binding =
             RexCallBinding.create(cluster.getTypeFactory(), cast,
                 ImmutableList.of(RelCollations.of(newFc)));
@@ -166,8 +170,9 @@ public class SortProjectTransposeRule
     call.transformTo(newProject, equiv);
   }
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableSortProjectTransposeRule.Config.of()
         .withOperandFor(Sort.class, LogicalProject.class);
 
     @Override default SortProjectTransposeRule toRule() {

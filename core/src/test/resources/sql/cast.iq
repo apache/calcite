@@ -1,0 +1,1710 @@
+# cast.iq - Tests for CAST
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+# This connection uses checked arithmetic
+!use scott-checked-rounding-half-up
+!set outputformat mysql
+
+# Test cases for [CALCITE-6685] There is no support for checked arithmetic
+# https://issues.apache.org/jira/browse/CALCITE-6685
+
+select 2 * CAST(5e18 AS DECIMAL(19, 0));
+java.lang.ArithmeticException: Value 10000000000000000000 cannot be represented as a DECIMAL(19, 0)
+!error
+
+select - CAST(-2147483648 AS INT);
+Caused by: java.lang.ArithmeticException
+!error
+
+select CAST(1 AS SMALLINT) + CAST(2 AS SMALLINT) AS C;
++---+
+| C |
++---+
+| 3 |
++---+
+(1 row)
+
+!ok
+
+select CAST(127 AS TINYINT) + CAST(2 AS TINYINT) AS C;
+Caused by: java.lang.ArithmeticException: integer overflow: Value 129 does not fit in a TINYINT
+!error
+
+select -2147483648 - 1;
+Caused by: java.lang.ArithmeticException
+!error
+
+select -2147483648 / -1;
+Caused by: java.lang.ArithmeticException
+!error
+
+select -CAST(-32768 AS SMALLINT);
+Caused by: java.lang.ArithmeticException: integer overflow: Value 32768 does not fit in a SMALLINT
+!error
+
+select CAST(32767 AS SMALLINT) + CAST(2 AS SMALLINT);
+Caused by: java.lang.ArithmeticException: integer overflow: Value 32769 does not fit in a SMALLINT
+!error
+
+select 2147483647 * 2147483647;
+Caused by: java.lang.ArithmeticException
+!error
+
+!use scott
+
+# Cast a character literal to a timestamp; note: the plan does not contain CAST
+values cast('1969-07-21 12:34:56' as timestamp);
++---------------------+
+| EXPR$0              |
++---------------------+
+| 1969-07-21 12:34:56 |
++---------------------+
+(1 row)
+
+!ok
+EnumerableValues(tuples=[[{ 1969-07-21 12:34:56 }]])
+!plan
+
+# Cast a character literal without time to a timestamp; note: the plan does not contain CAST
+values cast('1969-07-21' as timestamp);
++---------------------+
+| EXPR$0              |
++---------------------+
+| 1969-07-21 00:00:00 |
++---------------------+
+(1 row)
+
+!ok
+EnumerableValues(tuples=[[{ 1969-07-21 00:00:00 }]])
+!plan
+
+# Cast a character literal to a date; note: the plan does not contain CAST
+values cast('1969-07-21' as date);
++------------+
+| EXPR$0     |
++------------+
+| 1969-07-21 |
++------------+
+(1 row)
+
+!ok
+EnumerableValues(tuples=[[{ 1969-07-21 }]])
+!plan
+
+# Slightly different format
+# (Incidentally, this format is not allowed in date literals, per the standard)
+values cast('1989-7-4' as date);
++------------+
+| EXPR$0     |
++------------+
+| 1989-07-04 |
++------------+
+(1 row)
+
+!ok
+
+# Cast a character literal to an integer; note: the plan does not contain CAST
+values cast('196907' as integer);
++--------+
+| EXPR$0 |
++--------+
+| 196907 |
++--------+
+(1 row)
+
+!ok
+EnumerableValues(tuples=[[{ 196907 }]])
+!plan
+
+# Cast an integer literal to a bigint; note: the plan does not contain CAST
+values cast(123 as bigint);
++--------+
+| EXPR$0 |
++--------+
+|    123 |
++--------+
+(1 row)
+
+!ok
+EnumerableValues(tuples=[[{ 123 }]])
+!plan
+
+# Cast an integer literal to a decimal; note: the plan does not contain CAST
+values cast('123.45' as decimal(5, 2));
++--------+
+| EXPR$0 |
++--------+
+| 123.45 |
++--------+
+(1 row)
+
+!ok
+EnumerableValues(tuples=[[{ 123.45 }]])
+!plan
+
+# Cast a character literal to a decimal; note: the plan does not contain CAST
+values cast('123.45' as decimal(5, 2));
++--------+
+| EXPR$0 |
++--------+
+| 123.45 |
++--------+
+(1 row)
+
+!ok
+EnumerableValues(tuples=[[{ 123.45 }]])
+!plan
+
+# Cast a character literal to a double; note: the plan does not contain CAST
+values cast('-123.45' as double);
++---------+
+| EXPR$0  |
++---------+
+| -123.45 |
++---------+
+(1 row)
+
+!ok
+EnumerableValues(tuples=[[{ -123.45E0 }]])
+!plan
+
+values cast('false' as boolean);
++--------+
+| EXPR$0 |
++--------+
+| false  |
++--------+
+(1 row)
+
+!ok
+EnumerableValues(tuples=[[{ false }]])
+!plan
+
+values cast('TRUE' as boolean);
++--------+
+| EXPR$0 |
++--------+
+| true   |
++--------+
+(1 row)
+
+!ok
+EnumerableValues(tuples=[[{ true }]])
+!plan
+
+values cast('TR' || 'UE' as boolean);
++--------+
+| EXPR$0 |
++--------+
+| true   |
++--------+
+(1 row)
+
+!ok
+EnumerableCalc(expr#0=[{inputs}], expr#1=['TR'], expr#2=['UE'], expr#3=[||($t1, $t2)], expr#4=[CAST($t3):BOOLEAN NOT NULL], EXPR$0=[$t4])
+  EnumerableValues(tuples=[[{ 0 }]])
+!plan
+
+!if (fixed.calcite2539) {
+
+# In the following, that we get an error at run time,
+# and that the plan shows that the expression has not been reduced.
+values cast('null' as boolean);
+Invalid character for cast
+!error
+EnumerableCalc(expr#0=[{inputs}], expr#1=['null'], expr#2=[CAST($t1):BOOLEAN NOT NULL], EXPR$0=[$t2])
+  EnumerableValues(tuples=[[{ 0 }]])
+!plan
+
+# The following throw give an error (good!)
+# but throw java.lang.ExceptionInInitializerError (not great).
+values cast('' as date);
+Caused by: java.lang.NumberFormatException: For input string: ""
+!error
+
+values cast('' as timestamp);
+Caused by: java.lang.NumberFormatException: For input string: ""
+!error
+
+values cast('' as integer);
+Caused by: java.lang.NumberFormatException: For input string: ""
+!error
+
+values cast('' as boolean);
+Caused by: java.lang.RuntimeException: Invalid character for cast
+!error
+
+values cast('' as double);
+Caused by: java.lang.NumberFormatException: empty String
+!error
+
+# Postgres fails:
+#  ERROR:  invalid input syntax for integer: "1.56"
+values cast('15.6' as integer);
+Caused by: java.lang.NumberFormatException: For input string: "15.6"
+!error
+
+# Postgres fails:
+#  ERROR:  invalid input syntax for integer: " - 5 "
+values cast(' - 5 ' as double);
+Caused by: java.lang.NumberFormatException: For input string: "- 5"
+!error
+
+# Out of TINYINT range (max 127)
+values cast('200' as tinyint);
+Caused by: java.lang.NumberFormatException: Value out of range. Value:"200" Radix:10
+!error
+
+# Out of SMALLINT range (max 32767)
+values cast('50000' as smallint);
+Caused by: java.lang.NumberFormatException: Value out of range. Value:"50000" Radix:10
+!error
+
+# Out of INTEGER range (max 2.1e9)
+values cast('4567891234' as integer);
+Caused by: java.lang.NumberFormatException: For input string: "4567891234"
+!error
+
+# Out of BIGINT range (max 9.2e18)
+values cast('12345678901234567890' as bigint);
+Caused by: java.lang.NumberFormatException: For input string: "12345678901234567890"
+!error
+!}
+
+# Out of REAL range
+# (Should give an error, not infinity.)
+values cast('12.34e56' as real);
++----------+
+| EXPR$0   |
++----------+
+| Infinity |
++----------+
+(1 row)
+
+!ok
+
+# Out of FLOAT range
+# (Should give an error, not infinity.)
+values cast('12.34e5678' as float);
++----------+
+| EXPR$0   |
++----------+
+| Infinity |
++----------+
+(1 row)
+
+!ok
+
+# Out of DOUBLE range
+# (Should give an error, not infinity.)
+values cast('12.34e5678' as double);
++----------+
+| EXPR$0   |
++----------+
+| Infinity |
++----------+
+(1 row)
+
+!ok
+
+# Postgres succeeds
+values cast(' -5 ' as double);
++--------+
+| EXPR$0 |
++--------+
+|   -5.0 |
++--------+
+(1 row)
+
+!ok
+
+!use scott-checked-rounding-half-up
+
+# [CALCITE-4838] Add RoundingMode in RelDataTypeSystem to specify the rounding behavior
+# Test cast approximate numeric to int when rounding mode is HALF-UP
+select cast(5.5 as int),
+       cast(3.5 as int),
+       cast(1.6 as int),
+       cast(1.1 as int),
+       cast(1.0 as int),
+       cast(-1.0 as int),
+       cast(-1.1 as int),
+       cast(-1.6 as int),
+       cast(-2.5 as int),
+       cast(15.5 as int)
+from (values 0) as t(x);
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 | EXPR$3 | EXPR$4 | EXPR$5 | EXPR$6 | EXPR$7 | EXPR$8 | EXPR$9 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+|      6 |      4 |      2 |      1 |      1 |     -1 |     -1 |     -2 |     -3 |     16 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+(1 row)
+
+!ok
+
+# Test cast approximate numeric to tinyint when rounding mode is HALF-UP
+select cast(5.5 as tinyint),
+       cast(3.5 as tinyint),
+       cast(1.6 as tinyint),
+       cast(1.1 as tinyint),
+       cast(1.0 as tinyint),
+       cast(-1.0 as tinyint),
+       cast(-1.1 as tinyint),
+       cast(-1.6 as tinyint),
+       cast(-2.5 as tinyint),
+       cast(15.5 as tinyint)
+from (values 0) as t(x);
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 | EXPR$3 | EXPR$4 | EXPR$5 | EXPR$6 | EXPR$7 | EXPR$8 | EXPR$9 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+|      6 |      4 |      2 |      1 |      1 |     -1 |     -1 |     -2 |     -3 |     16 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+(1 row)
+
+!ok
+
+# Test cast approximate numeric to smallint when rounding mode is HALF-UP
+select cast(5.5 as smallint),
+       cast(3.5 as smallint),
+       cast(1.6 as smallint),
+       cast(1.1 as smallint),
+       cast(1.0 as smallint),
+       cast(-1.0 as smallint),
+       cast(-1.1 as smallint),
+       cast(-1.6 as smallint),
+       cast(-2.5 as smallint),
+       cast(15.5 as smallint)
+from (values 0) as t(x);
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 | EXPR$3 | EXPR$4 | EXPR$5 | EXPR$6 | EXPR$7 | EXPR$8 | EXPR$9 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+|      6 |      4 |      2 |      1 |      1 |     -1 |     -1 |     -2 |     -3 |     16 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+(1 row)
+
+!ok
+
+# Test cast approximate numeric to bigint when rounding mode is HALF-UP
+select cast(5.5 as bigint),
+       cast(3.5 as bigint),
+       cast(1.6 as bigint),
+       cast(1.1 as bigint),
+       cast(1.0 as bigint),
+       cast(-1.0 as bigint),
+       cast(-1.1 as bigint),
+       cast(-1.6 as bigint),
+       cast(-2.5 as bigint),
+       cast(15.5 as bigint)
+from (values 0) as t(x);
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 | EXPR$3 | EXPR$4 | EXPR$5 | EXPR$6 | EXPR$7 | EXPR$8 | EXPR$9 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+|      6 |      4 |      2 |      1 |      1 |     -1 |     -1 |     -2 |     -3 |     16 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+(1 row)
+
+!ok
+
+# Test cast decimal to decimal when rounding mode is HALF-UP
+select cast(cast(5.55 as decimal(3,2)) as decimal(2,1)),
+       cast(cast(3.55 as decimal(3,2)) as decimal(2,1)),
+       cast(cast(1.66 as decimal(3,2)) as decimal(2,1)),
+       cast(cast(1.11 as decimal(3,2)) as decimal(2,1)),
+       cast(cast(1.00 as decimal(3,2)) as decimal(2,1)),
+       cast(cast(-1.00 as decimal(3,2)) as decimal(2,1)),
+       cast(cast(-1.11 as decimal(3,2)) as decimal(2,1)),
+       cast(cast(-1.66 as decimal(3,2)) as decimal(2,1)),
+       cast(cast(-2.55 as decimal(3,2)) as decimal(2,1)),
+       cast(cast(15.55 as decimal(4,2)) as decimal(3,1))
+from (values 0) as t(x);
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 | EXPR$3 | EXPR$4 | EXPR$5 | EXPR$6 | EXPR$7 | EXPR$8 | EXPR$9 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+|    5.6 |    3.6 |    1.7 |    1.1 |    1.0 |   -1.0 |   -1.1 |   -1.7 |   -2.6 |   15.6 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+(1 row)
+
+!ok
+
+# Test cast varchar to decimal when rounding mode is HALF-UP
+select cast('5.5' as decimal(2, 0)),
+       cast('3.5' as decimal(2, 0)),
+       cast('1.6' as decimal(2, 0)),
+       cast('1.1' as decimal(2, 0)),
+       cast('1.0' as decimal(2, 0)),
+       cast('-1.0' as decimal(2, 0)),
+       cast('-1.1' as decimal(2, 0)),
+       cast('-1.6' as decimal(2, 0)),
+       cast('-2.5' as decimal(2, 0)),
+       cast('15.5' as decimal(2, 0))
+from (values 0) as t(x);
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 | EXPR$3 | EXPR$4 | EXPR$5 | EXPR$6 | EXPR$7 | EXPR$8 | EXPR$9 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+|      6 |      4 |      2 |      1 |      1 |     -1 |     -1 |     -2 |     -3 |     16 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+(1 row)
+
+!ok
+
+# Test cast float to decimal when rounding mode is HALF-UP
+select cast(cast(5.5 as float) as decimal(2,0)),
+       cast(cast(3.5 as float) as decimal(2,0)),
+       cast(cast(1.6 as float) as decimal(2,0)),
+       cast(cast(1.1 as float) as decimal(2,0)),
+       cast(cast(1.0 as float) as decimal(2,0)),
+       cast(cast(-1.0 as float) as decimal(2,0)),
+       cast(cast(-1.1 as float) as decimal(2,0)),
+       cast(cast(-1.6 as float) as decimal(2,0)),
+       cast(cast(-2.5 as float) as decimal(2,0)),
+       cast(cast(15.5 as float) as decimal(2,0))
+from (values 0) as t(x);
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 | EXPR$3 | EXPR$4 | EXPR$5 | EXPR$6 | EXPR$7 | EXPR$8 | EXPR$9 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+|      6 |      4 |      2 |      1 |      1 |     -1 |     -1 |     -2 |     -3 |     16 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+(1 row)
+
+!ok
+
+# Test cast float to decimal but rounding behavior happens in scala when rounding mode is HALF-UP
+select cast(cast(5.55 as float) as decimal(2,1)),
+       cast(cast(3.55 as float) as decimal(2,1)),
+       cast(cast(1.66 as float) as decimal(2,1)),
+       cast(cast(1.11 as float) as decimal(2,1)),
+       cast(cast(1.00 as float) as decimal(2,1)),
+       cast(cast(-1.00 as float) as decimal(2,1)),
+       cast(cast(-1.11 as float) as decimal(2,1)),
+       cast(cast(-1.66 as float) as decimal(2,1)),
+       cast(cast(-2.55 as float) as decimal(2,1)),
+       cast(cast(15.55 as float) as decimal(3,1))
+from (values 0) as t(x);
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 | EXPR$3 | EXPR$4 | EXPR$5 | EXPR$6 | EXPR$7 | EXPR$8 | EXPR$9 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+|    5.6 |    3.6 |    1.7 |    1.1 |    1.0 |   -1.0 |   -1.1 |   -1.7 |   -2.6 |   15.6 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+(1 row)
+
+!ok
+
+# Test cast double to decimal when rounding mode is HALF-UP
+select cast(cast(5.5 as double) as decimal(2,0)),
+       cast(cast(3.5 as double) as decimal(2,0)),
+       cast(cast(1.6 as double) as decimal(2,0)),
+       cast(cast(1.1 as double) as decimal(2,0)),
+       cast(cast(1.0 as double) as decimal(2,0)),
+       cast(cast(-1.0 as double) as decimal(2,0)),
+       cast(cast(-1.1 as double) as decimal(2,0)),
+       cast(cast(-1.6 as double) as decimal(2,0)),
+       cast(cast(-2.5 as double) as decimal(2,0)),
+       cast(cast(15.5 as double) as decimal(2,0))
+from (values 0) as t(x);
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 | EXPR$3 | EXPR$4 | EXPR$5 | EXPR$6 | EXPR$7 | EXPR$8 | EXPR$9 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+|      6 |      4 |      2 |      1 |      1 |     -1 |     -1 |     -2 |     -3 |     16 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+(1 row)
+
+!ok
+
+# Test cast double to decimal but rounding behavior happens in scala  when rounding mode is HALF-UP
+select cast(cast(5.55 as double) as decimal(2,1)),
+       cast(cast(3.55 as double) as decimal(2,1)),
+       cast(cast(1.66 as double) as decimal(2,1)),
+       cast(cast(1.11 as double) as decimal(2,1)),
+       cast(cast(1.00 as double) as decimal(2,1)),
+       cast(cast(-1.00 as double) as decimal(2,1)),
+       cast(cast(-1.11 as double) as decimal(2,1)),
+       cast(cast(-1.66 as double) as decimal(2,1)),
+       cast(cast(-2.55 as double) as decimal(2,1)),
+       cast(cast(15.55 as double) as decimal(3,1))
+from (values 0) as t(x);
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 | EXPR$3 | EXPR$4 | EXPR$5 | EXPR$6 | EXPR$7 | EXPR$8 | EXPR$9 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+|    5.6 |    3.6 |    1.7 |    1.1 |    1.0 |   -1.0 |   -1.1 |   -1.7 |   -2.6 |   15.6 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+(1 row)
+
+!ok
+
+
+!use scott
+
+# Test cast approximate numeric to int when rounding mode is DOWN
+select cast(5.5 as int),
+       cast(3.5 as int),
+       cast(1.6 as int),
+       cast(1.1 as int),
+       cast(1.0 as int),
+       cast(-1.0 as int),
+       cast(-1.1 as int),
+       cast(-1.6 as int),
+       cast(-2.5 as int),
+       cast(15.5 as int)
+from (values 0) as t(x);
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 | EXPR$3 | EXPR$4 | EXPR$5 | EXPR$6 | EXPR$7 | EXPR$8 | EXPR$9 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+|      5 |      3 |      1 |      1 |      1 |     -1 |     -1 |     -1 |     -2 |     15 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+(1 row)
+
+!ok
+
+# Test cast approximate numeric to tinyint when rounding mode is DOWN
+select cast(5.5 as tinyint),
+       cast(3.5 as tinyint),
+       cast(1.6 as tinyint),
+       cast(1.1 as tinyint),
+       cast(1.0 as tinyint),
+       cast(-1.0 as tinyint),
+       cast(-1.1 as tinyint),
+       cast(-1.6 as tinyint),
+       cast(-2.5 as tinyint),
+       cast(15.5 as tinyint)
+from (values 0) as t(x);
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 | EXPR$3 | EXPR$4 | EXPR$5 | EXPR$6 | EXPR$7 | EXPR$8 | EXPR$9 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+|      5 |      3 |      1 |      1 |      1 |     -1 |     -1 |     -1 |     -2 |     15 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+(1 row)
+
+!ok
+
+# Test cast approximate numeric to smallint when rounding mode is DOWN
+select cast(5.5 as smallint),
+       cast(3.5 as smallint),
+       cast(1.6 as smallint),
+       cast(1.1 as smallint),
+       cast(1.0 as smallint),
+       cast(-1.0 as smallint),
+       cast(-1.1 as smallint),
+       cast(-1.6 as smallint),
+       cast(-2.5 as smallint),
+       cast(15.5 as smallint)
+from (values 0) as t(x);
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 | EXPR$3 | EXPR$4 | EXPR$5 | EXPR$6 | EXPR$7 | EXPR$8 | EXPR$9 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+|      5 |      3 |      1 |      1 |      1 |     -1 |     -1 |     -1 |     -2 |     15 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+(1 row)
+
+!ok
+
+# Test cast approximate numeric to bigint when rounding mode is DOWN
+select cast(5.5 as bigint),
+       cast(3.5 as bigint),
+       cast(1.6 as bigint),
+       cast(1.1 as bigint),
+       cast(1.0 as bigint),
+       cast(-1.0 as bigint),
+       cast(-1.1 as bigint),
+       cast(-1.6 as bigint),
+       cast(-2.5 as bigint),
+       cast(15.5 as bigint)
+from (values 0) as t(x);
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 | EXPR$3 | EXPR$4 | EXPR$5 | EXPR$6 | EXPR$7 | EXPR$8 | EXPR$9 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+|      5 |      3 |      1 |      1 |      1 |     -1 |     -1 |     -1 |     -2 |     15 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+(1 row)
+
+!ok
+
+# Test cast decimal to decimal when rounding mode is DOWN
+select cast(cast(5.55 as decimal(3,2)) as decimal(2,1)),
+       cast(cast(3.55 as decimal(3,2)) as decimal(2,1)),
+       cast(cast(1.66 as decimal(3,2)) as decimal(2,1)),
+       cast(cast(1.11 as decimal(3,2)) as decimal(2,1)),
+       cast(cast(1.00 as decimal(3,2)) as decimal(2,1)),
+       cast(cast(-1.00 as decimal(3,2)) as decimal(2,1)),
+       cast(cast(-1.11 as decimal(3,2)) as decimal(2,1)),
+       cast(cast(-1.66 as decimal(3,2)) as decimal(2,1)),
+       cast(cast(-2.55 as decimal(3,2)) as decimal(2,1)),
+       cast(cast(15.55 as decimal(4,2)) as decimal(3,1))
+from (values 0) as t(x);
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 | EXPR$3 | EXPR$4 | EXPR$5 | EXPR$6 | EXPR$7 | EXPR$8 | EXPR$9 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+|    5.5 |    3.5 |    1.6 |    1.1 |    1.0 |   -1.0 |   -1.1 |   -1.6 |   -2.5 |   15.5 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+(1 row)
+
+!ok
+
+# Test cast varchar to decimal when rounding mode is DOWN
+select cast('5.5' as decimal(2, 0)),
+       cast('3.5' as decimal(2, 0)),
+       cast('1.6' as decimal(2, 0)),
+       cast('1.1' as decimal(2, 0)),
+       cast('1.0' as decimal(2, 0)),
+       cast('-1.0' as decimal(2, 0)),
+       cast('-1.1' as decimal(2, 0)),
+       cast('-1.6' as decimal(2, 0)),
+       cast('-2.5' as decimal(2, 0)),
+       cast('15.5' as decimal(2, 0))
+from (values 0) as t(x);
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 | EXPR$3 | EXPR$4 | EXPR$5 | EXPR$6 | EXPR$7 | EXPR$8 | EXPR$9 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+|      5 |      3 |      1 |      1 |      1 |     -1 |     -1 |     -1 |     -2 |     15 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+(1 row)
+
+!ok
+
+# Test cast float to decimal when rounding mode is DOWN
+select cast(cast(5.5 as float) as decimal(2,0)),
+       cast(cast(3.5 as float) as decimal(2,0)),
+       cast(cast(1.6 as float) as decimal(2,0)),
+       cast(cast(1.1 as float) as decimal(2,0)),
+       cast(cast(1.0 as float) as decimal(2,0)),
+       cast(cast(-1.0 as float) as decimal(2,0)),
+       cast(cast(-1.1 as float) as decimal(2,0)),
+       cast(cast(-1.6 as float) as decimal(2,0)),
+       cast(cast(-2.5 as float) as decimal(2,0)),
+       cast(cast(15.5 as float) as decimal(2,0))
+from (values 0) as t(x);
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 | EXPR$3 | EXPR$4 | EXPR$5 | EXPR$6 | EXPR$7 | EXPR$8 | EXPR$9 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+|      5 |      3 |      1 |      1 |      1 |     -1 |     -1 |     -1 |     -2 |     15 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+(1 row)
+
+!ok
+
+# Test cast float to decimal but rounding behavior happens in scala when rounding mode is DOWN
+select cast(cast(5.55 as float) as decimal(2,1)),
+       cast(cast(3.55 as float) as decimal(2,1)),
+       cast(cast(1.66 as float) as decimal(2,1)),
+       cast(cast(1.11 as float) as decimal(2,1)),
+       cast(cast(1.00 as float) as decimal(2,1)),
+       cast(cast(-1.00 as float) as decimal(2,1)),
+       cast(cast(-1.11 as float) as decimal(2,1)),
+       cast(cast(-1.66 as float) as decimal(2,1)),
+       cast(cast(-2.55 as float) as decimal(2,1)),
+       cast(cast(15.55 as float) as decimal(3,1))
+from (values 0) as t(x);
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 | EXPR$3 | EXPR$4 | EXPR$5 | EXPR$6 | EXPR$7 | EXPR$8 | EXPR$9 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+|    5.5 |    3.5 |    1.6 |    1.1 |    1.0 |   -1.0 |   -1.1 |   -1.6 |   -2.5 |   15.5 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+(1 row)
+
+!ok
+
+# Test cast double to decimal when rounding mode is DOWN
+select cast(cast(5.5 as double) as decimal(2,0)),
+       cast(cast(3.5 as double) as decimal(2,0)),
+       cast(cast(1.6 as double) as decimal(2,0)),
+       cast(cast(1.1 as double) as decimal(2,0)),
+       cast(cast(1.0 as double) as decimal(2,0)),
+       cast(cast(-1.0 as double) as decimal(2,0)),
+       cast(cast(-1.1 as double) as decimal(2,0)),
+       cast(cast(-1.6 as double) as decimal(2,0)),
+       cast(cast(-2.5 as double) as decimal(2,0)),
+       cast(cast(15.5 as double) as decimal(2,0))
+from (values 0) as t(x);
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 | EXPR$3 | EXPR$4 | EXPR$5 | EXPR$6 | EXPR$7 | EXPR$8 | EXPR$9 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+|      5 |      3 |      1 |      1 |      1 |     -1 |     -1 |     -1 |     -2 |     15 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+(1 row)
+
+!ok
+
+# Test cast double to decimal but rounding behavior happens in scala  when rounding mode is DOWN
+select cast(cast(5.55 as double) as decimal(2,1)),
+       cast(cast(3.55 as double) as decimal(2,1)),
+       cast(cast(1.66 as double) as decimal(2,1)),
+       cast(cast(1.11 as double) as decimal(2,1)),
+       cast(cast(1.00 as double) as decimal(2,1)),
+       cast(cast(-1.00 as double) as decimal(2,1)),
+       cast(cast(-1.11 as double) as decimal(2,1)),
+       cast(cast(-1.66 as double) as decimal(2,1)),
+       cast(cast(-2.55 as double) as decimal(2,1)),
+       cast(cast(15.55 as double) as decimal(3,1))
+from (values 0) as t(x);
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 | EXPR$3 | EXPR$4 | EXPR$5 | EXPR$6 | EXPR$7 | EXPR$8 | EXPR$9 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+|    5.5 |    3.5 |    1.6 |    1.1 |    1.0 |   -1.0 |   -1.1 |   -1.6 |   -2.5 |   15.5 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+(1 row)
+
+!ok
+
+# [CALCITE-4806] Lossy CAST is incorrectly simplified
+
+!use scott-checked-rounding-half-up
+
+# rounding mode is HALF-UP
+select cast(5.5 as int) = 5 as value1,
+       cast(5.5 as int) = 6 as value2,
+       cast(3.5 as int) = 3 as value3,
+       cast(3.5 as int) = 4 as value4,
+       cast(1.6 as int) = 1 as value5,
+       cast(1.6 as int) = 2 as value6,
+       cast(1.1 as int) = 1 as value7,
+       cast(1.1 as int) = 2 as value8,
+       cast(1.0 as int) = 1 as value9,
+       cast(1.0 as int) = 2 as value10
+from (values 0) as t(x);
++--------+--------+--------+--------+--------+--------+--------+--------+--------+---------+
+| VALUE1 | VALUE2 | VALUE3 | VALUE4 | VALUE5 | VALUE6 | VALUE7 | VALUE8 | VALUE9 | VALUE10 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+---------+
+| false  | true   | false  | true   | false  | true   | true   | false  | true   | false   |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+---------+
+(1 row)
+
+!ok
+
+EnumerableValues(tuples=[[{ false, true, false, true, false, true, true, false, true, false }]])
+!plan
+
+# same as before, but is negative number
+select cast(-1.0 as int) = -1 as value1,
+       cast(-1.0 as int) = -2 as value2,
+       cast(-1.1 as int) = -1 as value3,
+       cast(-1.1 as int) = -2 as value4,
+       cast(-1.6 as int) = -1 as value5,
+       cast(-1.6 as int) = -2 as value6,
+       cast(-2.5 as int) = -2 as value7,
+       cast(-2.5 as int) = -3 as value8
+from (values 0) as t(x);
++--------+--------+--------+--------+--------+--------+--------+--------+
+| VALUE1 | VALUE2 | VALUE3 | VALUE4 | VALUE5 | VALUE6 | VALUE7 | VALUE8 |
++--------+--------+--------+--------+--------+--------+--------+--------+
+| true   | false  | true   | false  | false  | true   | false  | true   |
++--------+--------+--------+--------+--------+--------+--------+--------+
+(1 row)
+
+!ok
+
+EnumerableValues(tuples=[[{ true, false, true, false, false, true, false, true }]])
+!plan
+
+!use scott
+
+# rounding mode is DOWN
+select cast(5.5 as int) = 5 as value1,
+       cast(5.5 as int) = 6 as value2,
+       cast(3.5 as int) = 3 as value3,
+       cast(3.5 as int) = 4 as value4,
+       cast(1.6 as int) = 1 as value5,
+       cast(1.6 as int) = 2 as value6,
+       cast(1.1 as int) = 1 as value7,
+       cast(1.1 as int) = 2 as value8,
+       cast(1.0 as int) = 1 as value9,
+       cast(1.0 as int) = 2 as value10
+from (values 0) as t(x);
++--------+--------+--------+--------+--------+--------+--------+--------+--------+---------+
+| VALUE1 | VALUE2 | VALUE3 | VALUE4 | VALUE5 | VALUE6 | VALUE7 | VALUE8 | VALUE9 | VALUE10 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+---------+
+| true   | false  | true   | false  | true   | false  | true   | false  | true   | false   |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+---------+
+(1 row)
+
+!ok
+
+EnumerableValues(tuples=[[{ true, false, true, false, true, false, true, false, true, false }]])
+!plan
+
+# same as before, but is negative number
+select cast(-1.0 as int) = -1 as value1,
+       cast(-1.0 as int) = -2 as value2,
+       cast(-1.1 as int) = -1 as value3,
+       cast(-1.1 as int) = -2 as value4,
+       cast(-1.6 as int) = -1 as value5,
+       cast(-1.6 as int) = -2 as value6,
+       cast(-2.5 as int) = -2 as value7,
+       cast(-2.5 as int) = -3 as value8
+from (values 0) as t(x);
++--------+--------+--------+--------+--------+--------+--------+--------+
+| VALUE1 | VALUE2 | VALUE3 | VALUE4 | VALUE5 | VALUE6 | VALUE7 | VALUE8 |
++--------+--------+--------+--------+--------+--------+--------+--------+
+| true   | false  | true   | false  | true   | false  | true   | false  |
++--------+--------+--------+--------+--------+--------+--------+--------+
+(1 row)
+
+!ok
+
+EnumerableValues(tuples=[[{ true, false, true, false, true, false, true, false }]])
+!plan
+
+# [CALCITE-4871] CAST a literal to DECIMAL type return wrong result
+
+# when precision greater than the max precision, use the max precision replace the precision
+values cast(15.3 as decimal(1000, 4));
++---------+
+| EXPR$0  |
++---------+
+| 15.3000 |
++---------+
+(1 row)
+
+!ok
+
+# scale and precision is equal
+values cast(0 as decimal(3,3));
++--------+
+| EXPR$0 |
++--------+
+|  0.000 |
++--------+
+(1 row)
+
+!ok
+
+# Cast a decimal literal to a decimal
+
+values cast(15.3 as decimal(3,0));
++--------+
+| EXPR$0 |
++--------+
+|     15 |
++--------+
+(1 row)
+
+!ok
+
+values cast(15.3 as decimal(3,1));
++--------+
+| EXPR$0 |
++--------+
+|   15.3 |
++--------+
+(1 row)
+
+!ok
+
+values cast(15.3 as decimal(3,2));
+Value 15.3 cannot be represented as a DECIMAL(3, 2)
+!error
+
+values cast(15.6 as decimal(3,0));
++--------+
+| EXPR$0 |
++--------+
+|     15 |
++--------+
+(1 row)
+
+!ok
+
+values cast(15.6 as decimal(3,1));
++--------+
+| EXPR$0 |
++--------+
+|   15.6 |
++--------+
+(1 row)
+
+!ok
+
+values cast(15.6 as decimal(3,2));
+Value 15.6 cannot be represented as a DECIMAL(3, 2)
+!error
+
+# Cast a character literal to a decimal
+
+values cast(' 15.3 ' as decimal(3,0));
++--------+
+| EXPR$0 |
++--------+
+|     15 |
++--------+
+(1 row)
+
+!ok
+
+values cast(' 15.3 ' as decimal(3,1));
++--------+
+| EXPR$0 |
++--------+
+|   15.3 |
++--------+
+(1 row)
+
+!ok
+
+values cast(' 15.3 ' as decimal(3,2));
+Value 15.3 cannot be represented as a DECIMAL(3, 2)
+!error
+
+values cast(' 15.66 ' as decimal(3,0));
++--------+
+| EXPR$0 |
++--------+
+|     15 |
++--------+
+(1 row)
+
+!ok
+
+values cast(' 15.66 ' as decimal(3,1));
++--------+
+| EXPR$0 |
++--------+
+|   15.6 |
++--------+
+(1 row)
+
+!ok
+
+values cast(' 15.66 ' as decimal(3,2));
+Value 15.66 cannot be represented as a DECIMAL(3, 2)
+!error
+
+values cast(' 15.66 ' as decimal(4,1));
++--------+
+| EXPR$0 |
++--------+
+|   15.6 |
++--------+
+(1 row)
+
+!ok
+
+# Cast a int literal to a decimal
+values cast(15 as decimal(3,1));
++--------+
+| EXPR$0 |
++--------+
+|   15.0 |
++--------+
+(1 row)
+
+!ok
+
+values cast(15 as decimal(3,2));
+Value 15 cannot be represented as a DECIMAL(3, 2)
+!error
+
+values cast(15 as decimal(3,0));
++--------+
+| EXPR$0 |
++--------+
+|     15 |
++--------+
+(1 row)
+
+!ok
+
+# Cast a double literal to a decimal
+
+values cast(cast(15.3 as double) as decimal(3,0));
++--------+
+| EXPR$0 |
++--------+
+|     15 |
++--------+
+(1 row)
+
+!ok
+
+values cast(cast(15.3 as double) as decimal(3,1));
++--------+
+| EXPR$0 |
++--------+
+|   15.3 |
++--------+
+(1 row)
+
+!ok
+
+values cast(cast(15.3 as double) as decimal(3,2));
+Value 15.3 cannot be represented as a DECIMAL(3, 2)
+!error
+
+values cast(cast(15.6 as double) as decimal(3,0));
++--------+
+| EXPR$0 |
++--------+
+|     15 |
++--------+
+(1 row)
+
+!ok
+
+values cast(cast(15.6 as double) as decimal(3,1));
++--------+
+| EXPR$0 |
++--------+
+|   15.6 |
++--------+
+(1 row)
+
+!ok
+
+values cast(cast(15.6 as double) as decimal(3,2));
+Value 15.6 cannot be represented as a DECIMAL(3, 2)
+!error
+
+# Cast a float literal to a decimal
+
+values cast(cast(15.3 as float) as decimal(3,0));
++--------+
+| EXPR$0 |
++--------+
+|     15 |
++--------+
+(1 row)
+
+!ok
+
+values cast(cast(15.3 as float) as decimal(3,1));
++--------+
+| EXPR$0 |
++--------+
+|   15.3 |
++--------+
+(1 row)
+
+!ok
+
+values cast(cast(15.3 as float) as decimal(3,2));
+Value 15.3 cannot be represented as a DECIMAL(3, 2)
+!error
+
+values cast(cast(15.6 as float) as decimal(3,0));
++--------+
+| EXPR$0 |
++--------+
+|     15 |
++--------+
+(1 row)
+
+!ok
+
+values cast(cast(15.6 as float) as decimal(3,1));
++--------+
+| EXPR$0 |
++--------+
+|   15.6 |
++--------+
+(1 row)
+
+!ok
+
+values cast(cast(15.6 as float) as decimal(3,2));
+Value 15.6 cannot be represented as a DECIMAL(3, 2)
+!error
+
+# Cast a real literal to a decimal
+
+values cast(cast(15.3 as real) as decimal(3,0));
++--------+
+| EXPR$0 |
++--------+
+|     15 |
++--------+
+(1 row)
+
+!ok
+
+values cast(cast(15.3 as real) as decimal(3,1));
++--------+
+| EXPR$0 |
++--------+
+|   15.3 |
++--------+
+(1 row)
+
+!ok
+
+values cast(cast(15.3 as real) as decimal(3,2));
+Value 15.300000190734863 cannot be represented as a DECIMAL(3, 2)
+!error
+
+values cast(cast(15.6 as real) as decimal(3,0));
++--------+
+| EXPR$0 |
++--------+
+|     15 |
++--------+
+(1 row)
+
+!ok
+
+values cast(cast(15.6 as real) as decimal(3,1));
++--------+
+| EXPR$0 |
++--------+
+|   15.6 |
++--------+
+(1 row)
+
+!ok
+
+values cast(cast(15.6 as real) as decimal(3,2));
+Value 15.600000381469727 cannot be represented as a DECIMAL(3, 2)
+!error
+
+# [CALCITE-5769] Optimizing 'CAST(e AS t) IS NOT NULL' to 'e IS NOT NULL'
+
+# Test CAST(e as t) IS NOT NULL when CAST is lossless And e IS NOT NULL
+select cast(deptno as integer) IS NOT NULL from "scott".dept;
++--------+
+| EXPR$0 |
++--------+
+| true   |
+| true   |
+| true   |
+| true   |
++--------+
+(4 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], EXPR$0=[$t3])
+  EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# Test CAST(e as t) IS NULL when CAST is lossless And e IS NOT NULL
+select cast(deptno as integer) IS NULL from "scott".dept;
++--------+
+| EXPR$0 |
++--------+
+| false  |
+| false  |
+| false  |
+| false  |
++--------+
+(4 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], EXPR$0=[$t3])
+  EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# Test CAST(e as t) IS NOT NULL when CAST is lossless And e is nullable
+select cast(mgr as integer) IS NOT NULL from "scott".emp;
++--------+
+| EXPR$0 |
++--------+
+| false  |
+| true   |
+| true   |
+| true   |
+| true   |
+| true   |
+| true   |
+| true   |
+| true   |
+| true   |
+| true   |
+| true   |
+| true   |
+| true   |
++--------+
+(14 rows)
+
+!ok
+EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t3)], EXPR$0=[$t8])
+  EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# Test CAST(e as t) IS NULL when CAST is lossless And e is nullable
+select cast(mgr as integer) IS NULL from "scott".emp;
++--------+
+| EXPR$0 |
++--------+
+| false  |
+| true   |
+| false  |
+| false  |
+| false  |
+| false  |
+| false  |
+| false  |
+| false  |
+| false  |
+| false  |
+| false  |
+| false  |
+| false  |
++--------+
+(14 rows)
+
+!ok
+EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NULL($t3)], EXPR$0=[$t8])
+  EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# Test CAST(e as t) IS NOT NULL when CAST is not lossless And e is nullable
+select cast(comm as integer) IS NOT NULL from "scott".emp;
++--------+
+| EXPR$0 |
++--------+
+| false  |
+| false  |
+| false  |
+| false  |
+| false  |
+| false  |
+| false  |
+| false  |
+| false  |
+| false  |
+| true   |
+| true   |
+| true   |
+| true   |
++--------+
+(14 rows)
+
+!ok
+EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t6):INTEGER], expr#9=[IS NOT NULL($t8)], EXPR$0=[$t9])
+  EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# [CALCITE-6560] Add supportsNegativeScale in RelDataTypeSystem
+
+!use scott-negative-scale
+
+# supports negative scale and the rounding mode is DOWN
+
+# throw an exception when CAST target decimal type has illegal precision and scale
+
+# precision is 0
+values cast(15.3 as decimal(0, 4));
+DECIMAL precision 0 must be between 1 and 19
+!error
+
+# Same as previous; the number is 0
+values cast(0 as decimal(0,0));
+DECIMAL precision 0 must be between 1 and 19
+!error
+
+# scale greater than precision
+values cast(0 as decimal(3, 4));
++--------+
+| EXPR$0 |
++--------+
+| 0.0000 |
++--------+
+(1 row)
+
+!ok
+
+# Same as previous; the number is 1
+select cast(1 as decimal(3, 4));
+Value 1 cannot be represented as a DECIMAL(3, 4)
+!error
+
+# test the maximum value that can be stored
+select cast(99999 as decimal(2, -3));
++--------+
+| EXPR$0 |
++--------+
+|  99000 |
++--------+
+(1 row)
+
+!ok
+
+# Same as previous; the value is minimum value -99999
+select cast(-99999 as decimal(2, -3));
++--------+
+| EXPR$0 |
++--------+
+| -99000 |
++--------+
+(1 row)
+
+!ok
+
+# Same as previous; the value is 100000
+select cast(100000 as decimal(2, -3));
+Value 100000 cannot be represented as a DECIMAL(2, -3)
+!error
+
+# Same as previous; the value is -100000
+select cast(-100000 as decimal(2, -3));
+Value -100000 cannot be represented as a DECIMAL(2, -3)
+!error
+
+# Test cast integer to decimal with negative scale
+
+# The non-rounded digits greater than the precision represents the maximum value
+select cast(12340 as decimal(3, -1));
+Value 12340 cannot be represented as a DECIMAL(3, -1)
+!error
+
+# The precision represents the maximum value greater than the number
+select cast(12340 as decimal(6, -1));
++--------+
+| EXPR$0 |
++--------+
+|  12340 |
++--------+
+(1 row)
+
+!ok
+
+# Same as previous; the precision is 5
+select cast(12340 as decimal(5, -1));
++--------+
+| EXPR$0 |
++--------+
+|  12340 |
++--------+
+(1 row)
+
+!ok
+
+# Same as previous; the precision is 4
+select cast(12340 as decimal(4, -1));
++--------+
+| EXPR$0 |
++--------+
+|  12340 |
++--------+
+(1 row)
+
+!ok
+
+# Test the negative scale that can be represents
+select cast(12340 as decimal(3, -2));
++--------+
+| EXPR$0 |
++--------+
+|  12300 |
++--------+
+(1 row)
+
+!ok
+
+select cast(12340 as decimal(4, -1));
++--------+
+| EXPR$0 |
++--------+
+|  12340 |
++--------+
+(1 row)
+
+!ok
+
+select cast(12340 as decimal(5, -3));
++--------+
+| EXPR$0 |
++--------+
+|  12000 |
++--------+
+(1 row)
+
+!ok
+
+# Same as previous; the scale equal with -precision
+select cast(12340 as decimal(5, -5));
++--------+
+| EXPR$0 |
++--------+
+|      0 |
++--------+
+(1 row)
+
+!ok
+
+# Same as previous; the -scale greater than precision
+select cast(12340 as decimal(5, -6));
++--------+
+| EXPR$0 |
++--------+
+|      0 |
++--------+
+(1 row)
+
+!ok
+
+# Cast a decimal literal to a decimal with negative scale
+
+values cast(153.3 as decimal(3, -1));
++--------+
+| EXPR$0 |
++--------+
+|    150 |
++--------+
+(1 row)
+
+!ok
+
+values cast(153.3 as decimal(1, -1));
+Value 153.3 cannot be represented as a DECIMAL(1, -1)
+!error
+
+# the rounding mode is DOWN
+values cast(156.6 as decimal(3, -1));
++--------+
+| EXPR$0 |
++--------+
+|    150 |
++--------+
+(1 row)
+
+!ok
+
+# Cast a character literal to a decimal with negative scale
+
+values cast(' 153.3 ' as decimal(3, -1));
++--------+
+| EXPR$0 |
++--------+
+|    150 |
++--------+
+(1 row)
+
+!ok
+
+values cast(' 153.3 ' as decimal(1, -1));
+Value 153.3 cannot be represented as a DECIMAL(1, -1)
+!error
+
+# the rounding mode is DOWN
+values cast(' 156.6 ' as decimal(3, -1));
++--------+
+| EXPR$0 |
++--------+
+|    150 |
++--------+
+(1 row)
+
+!ok
+
+# Cast a double literal to a decimal with negative scale
+
+values cast(cast(153.3 as double) as decimal(3, -1));
++--------+
+| EXPR$0 |
++--------+
+|    150 |
++--------+
+(1 row)
+
+!ok
+
+values cast(cast(153.3 as double) as decimal(1, -1));
+Value 153.3 cannot be represented as a DECIMAL(1, -1)
+!error
+
+values cast(cast(156.3 as double) as decimal(3, -1));
++--------+
+| EXPR$0 |
++--------+
+|    150 |
++--------+
+(1 row)
+
+!ok
+
+# Cast a float literal to a decimal with negative scale
+
+values cast(cast(153.3 as float) as decimal(3, -1));
++--------+
+| EXPR$0 |
++--------+
+|    150 |
++--------+
+(1 row)
+
+!ok
+
+values cast(cast(153.3 as float) as decimal(1, -1));
+Value 153.3 cannot be represented as a DECIMAL(1, -1)
+!error
+
+values cast(cast(156.3 as float) as decimal(3, -1));
++--------+
+| EXPR$0 |
++--------+
+|    150 |
++--------+
+(1 row)
+
+!ok
+
+# Cast a real literal to a decimal
+
+values cast(cast(153.3 as real) as decimal(3, -1));
++--------+
+| EXPR$0 |
++--------+
+|    150 |
++--------+
+(1 row)
+
+!ok
+
+values cast(cast(153.3 as real) as decimal(1, -1));
+Value 153.3000030517578 cannot be represented as a DECIMAL(1, -1)
+!error
+
+values cast(cast(156.3 as real) as decimal(3, -1));
++--------+
+| EXPR$0 |
++--------+
+|    150 |
++--------+
+(1 row)
+
+!ok
+
+!use scott-negative-scale-rounding-half-up
+
+# supports negative scale and the rounding mode is HALF UP
+
+# test maximum value that can be stored, the rounding mode is HALF UP
+select cast(99999 as decimal(2, -3));
+Value 99999 cannot be represented as a DECIMAL(2, -3)
+!error
+
+select cast(99499 as decimal(2, -3));
++--------+
+| EXPR$0 |
++--------+
+|  99000 |
++--------+
+(1 row)
+
+!ok
+
+# Same as previous; the number is -99999
+select cast(-99999 as decimal(2, -3));
+Value -99999 cannot be represented as a DECIMAL(2, -3)
+!error
+
+# Same as previous; the number is -99499
+select cast(-99499 as decimal(2, -3));
++--------+
+| EXPR$0 |
++--------+
+| -99000 |
++--------+
+(1 row)
+
+!ok
+
+# Cast a double literal to a decimal with negative scale
+values cast(156.6 as decimal(3, -1));
++--------+
+| EXPR$0 |
++--------+
+|    160 |
++--------+
+(1 row)
+
+!ok
+
+# Cast a char literal to a decimal with negative scale
+values cast(' 156.6 ' as decimal(3, -1));
++--------+
+| EXPR$0 |
++--------+
+|    160 |
++--------+
+(1 row)
+
+!ok
+
+# Cast a float literal to a decimal with negative scale
+values cast(cast(156.6 as float) as decimal(3, -1));
++--------+
+| EXPR$0 |
++--------+
+|    160 |
++--------+
+(1 row)
+
+!ok
+
+# Cast a double literal to a decimal with negative scale
+values cast(cast(156.6 as double) as decimal(3, -1));
++--------+
+| EXPR$0 |
++--------+
+|    160 |
++--------+
+(1 row)
+
+!ok
+
+# Cast a real literal to a decimal with negative scale
+values cast(cast(156.6 as real) as decimal(3, -1));
++--------+
+| EXPR$0 |
++--------+
+|    160 |
++--------+
+(1 row)
+
+!ok
+
+# [CALCITE-6617] TypeCoercion is not applied correctly to comparisons
+VALUES (1, 2, 3),
+  (CAST(5E0 AS REAL), 5E0, NULL);
++--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 |
++--------+--------+--------+
+|    1.0 |    2.0 |      3 |
+|    5.0 |    5.0 |        |
++--------+--------+--------+
+(2 rows)
+
+!ok
+
+# [CALCITE-6617] TypeCoercion is not applied correctly to comparisons
+# also occurs when simplifying an expression that compares DOUBLE to INTEGER
+WITH emp2 AS (SELECT CAST(sal AS DOUBLE) as x FROM emp)
+SELECT COUNT(*) AS c
+FROM emp2
+WHERE x BETWEEN 1 AND 4
+  OR x IN (1, 2, 3, 4);
++---+
+| C |
++---+
+| 0 |
++---+
+(1 row)
+
+!ok
+
+WITH emp2 AS (SELECT CAST(sal AS DOUBLE) as x FROM emp)
+SELECT COUNT(*) AS c
+FROM emp2
+WHERE x BETWEEN 2 AND 4
+  OR x IN (1, 2, 4, 800);
++---+
+| C |
++---+
+| 1 |
++---+
+(1 row)
+
+!ok
+
+# End cast.iq

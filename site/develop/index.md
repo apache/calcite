@@ -54,7 +54,7 @@ Create a local copy of the Git repository, `cd` to its root directory,
 then build using Gradle:
 
 {% highlight bash %}
-$ git clone git://github.com/apache/calcite.git
+$ git clone https://github.com/apache/calcite.git
 $ cd calcite
 $ ./gradlew build
 {% endhighlight %}
@@ -64,6 +64,33 @@ The HOWTO describes how to
 [set up an IDE for contributing]({{ site.baseurl }}/docs/howto.html#setting-up-an-ide-for-contributing),
 [run more or fewer tests]({{ site.baseurl }}/docs/howto.html#running-tests) and
 [run integration tests]({{ site.baseurl }}/docs/howto.html#running-integration-tests).
+
+## JIRA accounts
+Calcite uses [JIRA](https://issues.apache.org/jira/browse/CALCITE) for issues/case management.
+You must have a JIRA account in order to log cases and issues.
+
+### I already have an ASF JIRA account and want to be added as a contributor
+If you already have an ASF JIRA account, you do not need to sign up for a
+new account. Please email [jira-requests@calcite.apache.org](mailto:jira-requests@calcite.apache.org)
+using the following template, so that we can add your account to the
+contributors list in JIRA:
+
+[**[Open the template in your email client]**](mailto:jira-requests@calcite.apache.org?subject=Add%20me%20as%20a%20contributor%20to%20JIRA&body=Hello,%0A%0APlease%20add%20me%20as%20a%20contributor%20to%20JIRA.%0AMy%20JIRA%20username%20is:%20[INSERT%20YOUR%20JIRA%20USERNAME%20HERE]%0A%0AThanks,%0A[INSERT%20YOUR%20NAME%20HERE])
+{% highlight text %}
+Subject: Add me as a contributor to JIRA
+
+Hello,
+
+Please add me as a contributor to JIRA.
+My JIRA username is: [INSERT YOUR JIRA USERNAME HERE]
+
+Thanks,
+[INSERT YOUR NAME HERE]
+{% endhighlight %}
+
+
+### I do not have an ASF JIRA account, want to request an account and be added as a contributor
+Please request an account using the [ASF's self-serve facility](https://selfserve.apache.org/jira-account.html).
 
 ## Contributing
 
@@ -88,7 +115,7 @@ summary line. If you remove information while clarifying, put it in
 the description of the case.
 
 Design discussions may happen in various places (email threads,
-github reviews) but the JIRA case is the canonical place for those
+Github reviews) but the JIRA case is the canonical place for those
 discussions. Link to them or summarize them in the case.
 
 When implementing a case, especially a new feature, make sure
@@ -112,8 +139,8 @@ feel free to tag the respective contributor(s) in the discussion.
 
 If you are going to take on the issue right away assign it to yourself.
 To assign issues to yourself you have to be registered in JIRA as a contributor.
-In order to do that, send an email to the developers list
-and provide your JIRA username.
+In order to do that, please follow the instructions outlined in the
+[JIRA Accounts](#jira-accounts) section.
 
 If you are committed to fixing the issue before the upcoming release set
 the fix version accordingly (e.g., 1.20.0), otherwise leave it as blank.
@@ -146,7 +173,7 @@ the JIRA case number, like this:
 [CALCITE-345] AssertionError in RexToLixTranslator comparing to date literal
 {% endhighlight %}
 
-If your change had multiple commits, use `git rebase -i master` to
+If your change had multiple commits, use `git rebase -i main` to
 squash them into a single commit, and to bring your code up to date
 with the latest on the main line.
 
@@ -169,9 +196,12 @@ the implementation ("Add handler for FileNotFound").
  * If you are fixing a bug, it is sufficient to describe the bug
  ("NullPointerException if user is unknown") and people will correctly
  surmise that the purpose of your change is to fix the bug.
+* If your Jira title refers to terminology, please capitalize the first
+  letter ("arrow -> Arrow") and properly format the names of software and
+  technologies (e.g., "Mysql -> MySQL").
 
 Then push your commit(s) to GitHub, and create a pull request from
-your branch to the calcite master branch. Update the JIRA case
+your branch to the calcite main branch. Update the JIRA case
 to reference your pull request, and a committer will review your
 changes.
 
@@ -307,12 +337,10 @@ so it is better to stick with `org.checkerframework.checker.nullness.qual.Nullab
                 String value = holder.get();
             }
 
-## Continuous Integration Testing
+## Continuous integration testing
 
-Calcite exploits [GitHub actions](https://github.com/apache/calcite/actions?query=branch%3Amaster)
-and [Travis](https://app.travis-ci.com/github/apache/calcite) for continuous integration testing.
-In the past, there were also Jenkins jobs on the [ASF-hosted](https://builds.apache.org/)
-infrastructure, but they are not maintained anymore.
+Calcite exploits [GitHub actions](https://github.com/apache/calcite/actions?query=branch%3Amain) for continuous
+integration testing.
 
 ## Getting started
 
@@ -329,9 +357,8 @@ such as a bug fix or a [Jira task that we have labeled
 "newbie"](https://issues.apache.org/jira/issues/?jql=labels%20%3D%20newbie%20%26%20project%20%3D%20Calcite%20%26%20status%20%3D%20Open).
 Follow the [contributing guidelines](#contributing) to get your change committed.
 
-After you have made several useful contributions we may
-[invite you to become a committer](https://community.apache.org/contributors/).
 We value all contributions that help to build a vibrant community, not just code.
-You can contribute by testing the code, helping verify a release,
-writing documentation or the web site,
-or just by answering questions on the list.
+You can contribute by testing the code, helping verify a release, writing documentation, improving
+the web site, or just by answering questions on the list.
+
+After you have made several useful contributions we may invite you to become a [committer](https://community.apache.org/contributors/).

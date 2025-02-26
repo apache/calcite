@@ -28,10 +28,8 @@ import org.apache.calcite.sql.Symbolizable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
-import org.apache.calcite.sql.type.SameOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlSingleOperandTypeChecker;
-import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 
@@ -40,7 +38,6 @@ import com.google.common.collect.ImmutableList;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Arrays;
-import java.util.List;
 
 /**
  * Definition of the "TRIM" builtin SQL function.
@@ -50,16 +47,8 @@ public class SqlTrimFunction extends SqlFunction {
       new SqlTrimFunction("TRIM", SqlKind.TRIM,
           ReturnTypes.ARG2.andThen(SqlTypeTransforms.TO_NULLABLE)
               .andThen(SqlTypeTransforms.TO_VARYING),
-          OperandTypes.and(
-              OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.STRING,
-                  SqlTypeFamily.STRING),
-              // Arguments 1 and 2 must have same type
-              new SameOperandTypeChecker(3) {
-                @Override protected List<Integer>
-                getOperandList(int operandCount) {
-                  return ImmutableList.of(1, 2);
-                }
-              }));
+          OperandTypes.ANY_STRING_STRING.and(
+              OperandTypes.same(3, 1, 2)));
 
   //~ Enums ------------------------------------------------------------------
 

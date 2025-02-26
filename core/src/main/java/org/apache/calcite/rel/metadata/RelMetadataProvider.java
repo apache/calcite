@@ -23,6 +23,7 @@ import com.google.common.collect.Multimap;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Method;
+import java.util.List;
 
 /**
  * RelMetadataProvider defines an interface for obtaining metadata about
@@ -31,7 +32,7 @@ import java.lang.reflect.Method;
  * such as {@link RelMetadataQuery}.
  *
  * <p>For background and motivation, see <a
- * href="http://wiki.eigenbase.org/RelationalExpressionMetadata">wiki</a>.
+ * href="http://www.hydromatic.net/wiki/RelationalExpressionMetadata">wiki</a>.
  *
  * <p>If your provider is not a singleton, we recommend that you implement
  * {@link Object#equals(Object)} and {@link Object#hashCode()} methods. This
@@ -45,9 +46,9 @@ public interface RelMetadataProvider {
    * of relational expression.
    *
    * <p>The object returned is a function. It can be applied to a relational
-   * expression of the given type to create a metadata object.</p>
+   * expression of the given type to create a metadata object.
    *
-   * <p>For example, you might call</p>
+   * <p>For example, you might call
    *
    * <blockquote><pre>
    * RelMetadataProvider provider;
@@ -70,6 +71,27 @@ public interface RelMetadataProvider {
   <@Nullable M extends @Nullable Metadata> @Nullable UnboundMetadata<M> apply(
       Class<? extends RelNode> relClass, Class<? extends M> metadataClass);
 
+  @Deprecated // to be removed before 2.0
   <M extends Metadata> Multimap<Method, MetadataHandler<M>> handlers(
       MetadataDef<M> def);
+
+  /**
+   * Retrieves a list of {@link MetadataHandler} for implements a particular
+   * {@link MetadataHandler}.class.  The resolution order is specificity of the
+   * relNode class, with preference given to handlers that occur earlier in the
+   * list.
+   *
+   * <p>For instance, given a return list of {A, B, C} where A implements
+   * RelNode and Scan, B implements Scan, and C implements LogicalScan and
+   * Filter.
+   *
+   * <p>Scan dispatches to a.method(Scan);
+   * LogicalFilter dispatches to c.method(Filter);
+   * LogicalScan dispatches to c.method(LogicalScan);
+   * Aggregate dispatches to a.method(RelNode).
+   *
+   * <p>The behavior is undefined if the class hierarchy for dispatching is not
+   * a tree.
+   */
+  List<MetadataHandler<?>> handlers(Class<? extends MetadataHandler<?>> handlerClass);
 }

@@ -260,7 +260,6 @@ public class RexFuzzer extends RexProgramBuilderBase {
     return case_(args);
   }
 
-  @SuppressWarnings("UnstableApiUsage")
   public RexNode fuzzSearch(Random r, RexNode intExpression) {
     final RangeSet<BigDecimal> rangeSet = TreeRangeSet.create();
     final Generator<BigDecimal> integerGenerator = RexFuzzer::fuzzInt;

@@ -35,6 +35,8 @@ import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 
+import org.immutables.value.Value;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -54,6 +56,7 @@ import java.util.List;
  * @see org.apache.calcite.rel.rules.FilterAggregateTransposeRule
  * @see CoreRules#AGGREGATE_FILTER_TRANSPOSE
  */
+@Value.Enclosing
 public class AggregateFilterTransposeRule
     extends RelRule<AggregateFilterTransposeRule.Config>
     implements TransformationRule {
@@ -95,14 +98,14 @@ public class AggregateFilterTransposeRule
     final Aggregate newAggregate =
         aggregate.copy(aggregate.getTraitSet(), input,
             newGroupSet, null, aggregate.getAggCallList());
-    final Mappings.TargetMapping mapping = Mappings.target(
-        newGroupSet::indexOf,
-        input.getRowType().getFieldCount(),
-        newGroupSet.cardinality());
+    final Mappings.TargetMapping mapping =
+        Mappings.target(newGroupSet::indexOf,
+            input.getRowType().getFieldCount(),
+            newGroupSet.cardinality());
     final RexNode newCondition =
         RexUtil.apply(mapping, filter.getCondition());
-    final Filter newFilter = filter.copy(filter.getTraitSet(),
-        newAggregate, newCondition);
+    final Filter newFilter =
+        filter.copy(filter.getTraitSet(), newAggregate, newCondition);
     if (allColumnsInAggregate && aggregate.getGroupType() == Group.SIMPLE) {
       // Everything needed by the filter is returned by the aggregate.
       assert newGroupSet.equals(aggregate.getGroupSet());
@@ -142,9 +145,10 @@ public class AggregateFilterTransposeRule
           return;
         }
         topAggCallList.add(
-            AggregateCall.create(rollup, aggregateCall.isDistinct(),
+            AggregateCall.create(aggregateCall.getParserPosition(),
+                rollup, aggregateCall.isDistinct(),
                 aggregateCall.isApproximate(), aggregateCall.ignoreNulls(),
-                ImmutableList.of(i++), -1,
+                aggregateCall.rexList, ImmutableList.of(i++), -1,
                 aggregateCall.distinctKeys, aggregateCall.collation,
                 aggregateCall.type, aggregateCall.name));
       }
@@ -156,8 +160,9 @@ public class AggregateFilterTransposeRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableAggregateFilterTransposeRule.Config.of()
         .withOperandFor(Aggregate.class, Filter.class);
 
     @Override default AggregateFilterTransposeRule toRule() {

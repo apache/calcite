@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.rel.metadata;
 
-import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
@@ -32,7 +31,6 @@ import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
-import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.HashMultimap;
@@ -65,7 +63,7 @@ public class RelMdTableReferences
     implements MetadataHandler<BuiltInMetadata.TableReferences> {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          BuiltInMethod.TABLE_REFERENCES.method, new RelMdTableReferences());
+          new RelMdTableReferences(), BuiltInMetadata.TableReferences.Handler.class);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -82,10 +80,6 @@ public class RelMdTableReferences
     return null;
   }
 
-  public @Nullable Set<RelTableRef> getTableReferences(HepRelVertex rel, RelMetadataQuery mq) {
-    return mq.getTableReferences(rel.getCurrentRel());
-  }
-
   public @Nullable Set<RelTableRef> getTableReferences(RelSubset rel, RelMetadataQuery mq) {
     RelNode bestOrOriginal = Util.first(rel.getBest(), rel.getOriginal());
     if (bestOrOriginal == null) {
@@ -98,6 +92,11 @@ public class RelMdTableReferences
    * TableScan table reference.
    */
   public Set<RelTableRef> getTableReferences(TableScan rel, RelMetadataQuery mq) {
+    final BuiltInMetadata.TableReferences.Handler handler =
+        rel.getTable().unwrap(BuiltInMetadata.TableReferences.Handler.class);
+    if (handler != null) {
+      return handler.getTableReferences(rel, mq);
+    }
     return ImmutableSet.of(RelTableRef.of(rel.getTable(), 0));
   }
 
@@ -138,12 +137,13 @@ public class RelMdTableReferences
     }
     for (RelTableRef rightRef : rightTableRefs) {
       int shift = 0;
-      Collection<RelTableRef> lRefs = leftQualifiedNamesToRefs.get(rightRef.getQualifiedName());
+      Collection<RelTableRef> lRefs =
+          leftQualifiedNamesToRefs.get(rightRef.getQualifiedName());
       if (lRefs != null) {
         shift = lRefs.size();
       }
-      RelTableRef shiftTableRef = RelTableRef.of(
-          rightRef.getTable(), shift + rightRef.getEntityNumber());
+      RelTableRef shiftTableRef =
+          RelTableRef.of(rightRef.getTable(), shift + rightRef.getEntityNumber());
       assert !result.contains(shiftTableRef);
       result.add(shiftTableRef);
     }
@@ -172,13 +172,13 @@ public class RelMdTableReferences
       }
       for (RelTableRef tableRef : inputTableRefs) {
         int shift = 0;
-        Collection<RelTableRef> lRefs = qualifiedNamesToRefs.get(
-            tableRef.getQualifiedName());
+        Collection<RelTableRef> lRefs =
+            qualifiedNamesToRefs.get(tableRef.getQualifiedName());
         if (lRefs != null) {
           shift = lRefs.size();
         }
-        RelTableRef shiftTableRef = RelTableRef.of(
-            tableRef.getTable(), shift + tableRef.getEntityNumber());
+        RelTableRef shiftTableRef =
+            RelTableRef.of(tableRef.getTable(), shift + tableRef.getEntityNumber());
         assert !result.contains(shiftTableRef);
         result.add(shiftTableRef);
         currentTablesMapping.put(tableRef, shiftTableRef);

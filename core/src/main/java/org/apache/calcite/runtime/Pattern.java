@@ -16,12 +16,14 @@
  */
 package org.apache.calcite.runtime;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
-import java.util.Objects;
 import java.util.Stack;
 import java.util.stream.Collectors;
+
+import static com.google.common.base.Preconditions.checkArgument;
+
+import static java.util.Objects.requireNonNull;
 
 /** Regular expression, to be compiled into an {@link Automaton}. */
 public interface Pattern {
@@ -152,7 +154,7 @@ public interface Pattern {
     final Op op;
 
     AbstractPattern(Op op) {
-      this.op = Objects.requireNonNull(op, "op");
+      this.op = requireNonNull(op, "op");
     }
 
     @Override public Automaton toAutomaton() {
@@ -166,7 +168,7 @@ public interface Pattern {
 
     SymbolPattern(String name) {
       super(Op.SYMBOL);
-      this.name = Objects.requireNonNull(name, "name");
+      this.name = requireNonNull(name, "name");
     }
 
     @Override public String toString() {
@@ -181,8 +183,8 @@ public interface Pattern {
 
     OpPattern(Op op, Pattern... patterns) {
       super(op);
-      Preconditions.checkArgument(patterns.length >= op.minArity);
-      Preconditions.checkArgument(op.maxArity == -1
+      checkArgument(patterns.length >= op.minArity);
+      checkArgument(op.maxArity == -1
           || patterns.length <= op.maxArity);
       this.patterns = ImmutableList.copyOf(patterns);
     }

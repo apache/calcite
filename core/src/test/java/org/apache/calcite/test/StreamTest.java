@@ -16,32 +16,14 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.DataContext;
-import org.apache.calcite.avatica.util.DateTimeUtils;
-import org.apache.calcite.config.CalciteConnectionConfig;
-import org.apache.calcite.linq4j.Enumerable;
-import org.apache.calcite.linq4j.Linq4j;
-import org.apache.calcite.rel.RelCollations;
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.rel.type.RelProtoDataType;
-import org.apache.calcite.schema.ScannableTable;
-import org.apache.calcite.schema.Schema;
-import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.schema.Statistic;
-import org.apache.calcite.schema.Statistics;
-import org.apache.calcite.schema.StreamableTable;
-import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TableFactory;
-import org.apache.calcite.schema.TemporalTable;
-import org.apache.calcite.sql.SqlCall;
-import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.test.schemata.orderstream.InfiniteOrdersStreamTableFactory;
+import org.apache.calcite.test.schemata.orderstream.OrdersStreamTableFactory;
+import org.apache.calcite.test.schemata.orderstream.ProductsTableFactory;
 import org.apache.calcite.util.TestUtil;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.hamcrest.comparator.ComparatorMatcherBuilder;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -50,8 +32,6 @@ import org.junit.jupiter.api.Timeout;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.util.Iterator;
-import java.util.Map;
 import java.util.function.Consumer;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -134,9 +114,10 @@ public class StreamTest {
         .query("select stream product from orders where units > 6")
         .convertContains(
             "LogicalDelta\n"
-                + "  LogicalProject(PRODUCT=[$2])\n"
-                + "    LogicalFilter(condition=[>($3, 6)])\n"
-                + "      LogicalTableScan(table=[[STREAMS, ORDERS]])\n")
+                + "  LogicalProject(PRODUCT=[$1])\n"
+                + "    LogicalFilter(condition=[>($2, 6)])\n"
+                + "      LogicalProject(ROWTIME=[$0], PRODUCT=[$2], UNITS=[$3])\n"
+                + "        LogicalTableScan(table=[[STREAMS, ORDERS]])\n")
         .explainContains(
             "EnumerableCalc(expr#0..3=[{inputs}], expr#4=[6], expr#5=[>($t3, $t4)], PRODUCT=[$t2], $condition=[$t5])\n"
                 + "  EnumerableInterpreter\n"
@@ -161,7 +142,7 @@ public class StreamTest {
                 + "      LogicalProject(ROWTIME=[FLOOR($0, FLAG(HOUR))], PRODUCT=[$2])\n"
                 + "        LogicalTableScan(table=[[STREAMS, ORDERS]])\n")
         .explainContains(
-            "EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1], expr#4=[>($t2, $t3)], proj#0..2=[{exprs}], $condition=[$t4])\n"
+            "EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1:BIGINT], expr#4=[>($t2, $t3)], proj#0..2=[{exprs}], $condition=[$t4])\n"
                 + "  EnumerableAggregate(group=[{0, 1}], C=[COUNT()])\n"
                 + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[FLAG(HOUR)], expr#5=[FLOOR($t0, $t4)], ROWTIME=[$t5], PRODUCT=[$t2])\n"
                 + "      EnumerableInterpreter\n"
@@ -280,16 +261,16 @@ public class StreamTest {
             + "orders.rowtime as rowtime, orders.id as orderId, products.supplier as supplierId "
             + "from orders join products on orders.product = products.id")
         .convertContains("LogicalDelta\n"
-            + "  LogicalProject(ROWTIME=[$0], ORDERID=[$1], SUPPLIERID=[$6])\n"
-            + "    LogicalJoin(condition=[=($4, $5)], joinType=[inner])\n"
-            + "      LogicalProject(ROWTIME=[$0], ID=[$1], PRODUCT=[$2], UNITS=[$3], PRODUCT0=[CAST($2):VARCHAR(32) NOT NULL])\n"
+            + "  LogicalProject(ROWTIME=[$0], ORDERID=[$1], SUPPLIERID=[$4])\n"
+            + "    LogicalJoin(condition=[=($2, $3)], joinType=[inner])\n"
+            + "      LogicalProject(ROWTIME=[$0], ID=[$1], PRODUCT0=[CAST($2):VARCHAR(32) NOT NULL])\n"
             + "        LogicalTableScan(table=[[STREAM_JOINS, ORDERS]])\n"
             + "      LogicalTableScan(table=[[STREAM_JOINS, PRODUCTS]])\n")
         .explainContains(""
-            + "EnumerableCalc(expr#0..6=[{inputs}], proj#0..1=[{exprs}], SUPPLIERID=[$t6])\n"
-            + "  EnumerableMergeJoin(condition=[=($4, $5)], joinType=[inner])\n"
-            + "    EnumerableSort(sort0=[$4], dir0=[ASC])\n"
-            + "      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t2):VARCHAR(32) NOT NULL], proj#0..4=[{exprs}])\n"
+            + "EnumerableCalc(expr#0..4=[{inputs}], proj#0..1=[{exprs}], SUPPLIERID=[$t4])\n"
+            + "  EnumerableMergeJoin(condition=[=($2, $3)], joinType=[inner])\n"
+            + "    EnumerableSort(sort0=[$2], dir0=[ASC])\n"
+            + "      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t2):VARCHAR(32) NOT NULL], proj#0..1=[{exprs}], PRODUCT0=[$t4])\n"
             + "        EnumerableInterpreter\n"
             + "          BindableTableScan(table=[[STREAM_JOINS, ORDERS, (STREAM)]])\n"
             + "    EnumerableSort(sort0=[$0], dir0=[ASC])\n"
@@ -348,250 +329,5 @@ public class StreamTest {
     };
   }
 
-  /**
-   * Base table for the Orders table. Manages the base schema used for the test tables and common
-   * functions.
-   */
-  private abstract static class BaseOrderStreamTable implements ScannableTable {
-    protected final RelProtoDataType protoRowType = a0 -> a0.builder()
-        .add("ROWTIME", SqlTypeName.TIMESTAMP)
-        .add("ID", SqlTypeName.INTEGER)
-        .add("PRODUCT", SqlTypeName.VARCHAR, 10)
-        .add("UNITS", SqlTypeName.INTEGER)
-        .build();
 
-    public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-      return protoRowType.apply(typeFactory);
-    }
-
-    public Statistic getStatistic() {
-      return Statistics.of(100d, ImmutableList.of(),
-        RelCollations.createSingleton(0));
-    }
-
-    public Schema.TableType getJdbcTableType() {
-      return Schema.TableType.TABLE;
-    }
-
-    @Override public boolean isRolledUp(String column) {
-      return false;
-    }
-
-    @Override public boolean rolledUpColumnValidInsideAgg(String column,
-        SqlCall call, @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
-      return false;
-    }
-  }
-
-  /** Mock table that returns a stream of orders from a fixed array. */
-  @SuppressWarnings("UnusedDeclaration")
-  public static class OrdersStreamTableFactory implements TableFactory<Table> {
-    // public constructor, per factory contract
-    public OrdersStreamTableFactory() {
-    }
-
-    public Table create(SchemaPlus schema, String name,
-        Map<String, Object> operand, @Nullable RelDataType rowType) {
-      return new OrdersTable(getRowList());
-    }
-
-    public static ImmutableList<Object[]> getRowList() {
-      final Object[][] rows = {
-          {ts(10, 15, 0), 1, "paint", 10},
-          {ts(10, 24, 15), 2, "paper", 5},
-          {ts(10, 24, 45), 3, "brush", 12},
-          {ts(10, 58, 0), 4, "paint", 3},
-          {ts(11, 10, 0), 5, "paint", 3}
-      };
-      return ImmutableList.copyOf(rows);
-    }
-
-    private static Object ts(int h, int m, int s) {
-      return DateTimeUtils.unixTimestamp(2015, 2, 15, h, m, s);
-    }
-  }
-
-  /** Table representing the ORDERS stream. */
-  public static class OrdersTable extends BaseOrderStreamTable
-      implements StreamableTable {
-    private final ImmutableList<Object[]> rows;
-
-    public OrdersTable(ImmutableList<Object[]> rows) {
-      this.rows = rows;
-    }
-
-    public Enumerable<@Nullable Object[]> scan(DataContext root) {
-      return Linq4j.asEnumerable(rows);
-    }
-
-    @Override public Table stream() {
-      return new OrdersTable(rows);
-    }
-
-    @Override public boolean isRolledUp(String column) {
-      return false;
-    }
-
-    @Override public boolean rolledUpColumnValidInsideAgg(String column,
-        SqlCall call, @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
-      return false;
-    }
-  }
-
-  /**
-   * Mock table that returns a stream of orders from a fixed array.
-   */
-  @SuppressWarnings("UnusedDeclaration")
-  public static class InfiniteOrdersStreamTableFactory implements TableFactory<Table> {
-    // public constructor, per factory contract
-    public InfiniteOrdersStreamTableFactory() {
-    }
-
-    public Table create(SchemaPlus schema, String name,
-        Map<String, Object> operand, @Nullable RelDataType rowType) {
-      return new InfiniteOrdersTable();
-    }
-  }
-
-  /**
-   * Table representing an infinitely larger ORDERS stream.
-   */
-  public static class InfiniteOrdersTable extends BaseOrderStreamTable
-      implements StreamableTable {
-    public Enumerable<@Nullable Object[]> scan(DataContext root) {
-      return Linq4j.asEnumerable(() -> new Iterator<Object[]>() {
-        private final String[] items = {"paint", "paper", "brush"};
-        private int counter = 0;
-
-        public boolean hasNext() {
-          return true;
-        }
-
-        public Object[] next() {
-          final int index = counter++;
-          return new Object[]{
-              System.currentTimeMillis(), index, items[index % items.length], 10};
-        }
-
-        public void remove() {
-          throw new UnsupportedOperationException();
-        }
-      });
-    }
-
-    public Table stream() {
-      return this;
-    }
-  }
-
-  /** Table representing the history of the ORDERS stream. */
-  public static class OrdersHistoryTable extends BaseOrderStreamTable {
-    private final ImmutableList<Object[]> rows;
-
-    public OrdersHistoryTable(ImmutableList<Object[]> rows) {
-      this.rows = rows;
-    }
-
-    public Enumerable<@Nullable Object[]> scan(DataContext root) {
-      return Linq4j.asEnumerable(rows);
-    }
-  }
-
-  /**
-   * Mocks a simple relation to use for stream joining test.
-   */
-  public static class ProductsTableFactory implements TableFactory<Table> {
-    public Table create(SchemaPlus schema, String name,
-        Map<String, Object> operand, @Nullable RelDataType rowType) {
-      final Object[][] rows = {
-          {"paint", 1},
-          {"paper", 0},
-          {"brush", 1}
-      };
-      return new ProductsTable(ImmutableList.copyOf(rows));
-    }
-  }
-
-  /**
-   * Table representing the PRODUCTS relation.
-   */
-  public static class ProductsTable implements ScannableTable {
-    private final ImmutableList<Object[]> rows;
-
-    public ProductsTable(ImmutableList<Object[]> rows) {
-      this.rows = rows;
-    }
-
-    private final RelProtoDataType protoRowType = a0 -> a0.builder()
-        .add("ID", SqlTypeName.VARCHAR, 32)
-        .add("SUPPLIER", SqlTypeName.INTEGER)
-        .build();
-
-    public Enumerable<@Nullable Object[]> scan(DataContext root) {
-      return Linq4j.asEnumerable(rows);
-    }
-
-    public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-      return protoRowType.apply(typeFactory);
-    }
-
-    public Statistic getStatistic() {
-      return Statistics.of(200d, ImmutableList.of());
-    }
-
-    public Schema.TableType getJdbcTableType() {
-      return Schema.TableType.TABLE;
-    }
-
-    @Override public boolean isRolledUp(String column) {
-      return false;
-    }
-
-    @Override public boolean rolledUpColumnValidInsideAgg(String column,
-        SqlCall call, @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
-      return false;
-    }
-  }
-
-  /**
-   * Table representing the PRODUCTS_TEMPORAL temporal table.
-   */
-  public static class ProductsTemporalTable implements TemporalTable {
-
-    private final RelProtoDataType protoRowType = a0 -> a0.builder()
-        .add("ID", SqlTypeName.VARCHAR, 32)
-        .add("SUPPLIER", SqlTypeName.INTEGER)
-        .add("SYS_START", SqlTypeName.TIMESTAMP)
-        .add("SYS_END", SqlTypeName.TIMESTAMP)
-        .build();
-
-    @Override public String getSysStartFieldName() {
-      return "SYS_START";
-    }
-
-    @Override public String getSysEndFieldName() {
-      return "SYS_END";
-    }
-
-    @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-      return protoRowType.apply(typeFactory);
-    }
-
-    @Override public Statistic getStatistic() {
-      return Statistics.of(200d, ImmutableList.of());
-    }
-
-    @Override public Schema.TableType getJdbcTableType() {
-      return Schema.TableType.TABLE;
-    }
-
-    @Override public boolean isRolledUp(String column) {
-      return false;
-    }
-
-    @Override public boolean rolledUpColumnValidInsideAgg(String column,
-        SqlCall call, @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
-      return false;
-    }
-  }
 }

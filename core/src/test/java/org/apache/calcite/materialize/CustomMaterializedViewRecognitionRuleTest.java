@@ -47,6 +47,7 @@ import org.apache.calcite.util.Pair;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -100,8 +101,8 @@ public class CustomMaterializedViewRecognitionRuleTest extends SqlToRelTestBase 
     final RelOptMaterialization relOptMaterialization =
         new RelOptMaterialization(replacement,
             target, null, Lists.newArrayList("mv0"));
-    final List<UnifyRule> rules = new ArrayList<>();
-    rules.addAll(SubstitutionVisitor.DEFAULT_RULES);
+    final List<UnifyRule> rules =
+        new ArrayList<>(SubstitutionVisitor.DEFAULT_RULES);
     rules.add(CustomizedMaterializationRule.INSTANCE);
     final List<Pair<RelNode, List<RelOptMaterialization>>> relOptimized =
         RelOptMaterializations.useMaterializedViews(query,
@@ -133,7 +134,7 @@ public class CustomMaterializedViewRecognitionRuleTest extends SqlToRelTestBase 
           operand(MutableCalc.class, target(0)), 1);
     }
 
-    @Override protected SubstitutionVisitor.UnifyResult apply(
+    @Override protected SubstitutionVisitor.@Nullable UnifyResult apply(
         SubstitutionVisitor.UnifyRuleCall call) {
       final MutableCalc query = (MutableCalc) call.query;
       final Pair<RexNode, List<RexNode>> queryExplained = SubstitutionVisitor.explainCalc(query);
@@ -141,17 +142,20 @@ public class CustomMaterializedViewRecognitionRuleTest extends SqlToRelTestBase 
       final List<RexNode> queryProjs = queryExplained.right;
 
       final MutableCalc target = (MutableCalc) call.target;
-      final Pair<RexNode, List<RexNode>> targetExplained = SubstitutionVisitor.explainCalc(target);
+      final Pair<RexNode, List<RexNode>> targetExplained =
+          SubstitutionVisitor.explainCalc(target);
       final RexNode targetCond = targetExplained.left;
       final List<RexNode> targetProjs = targetExplained.right;
-      final List parsedQ = parseLikeCondition(queryCond);
-      final List parsedT = parseLikeCondition(targetCond);
+      final @Nullable Pair<RexNode, NlsString> parsedQ =
+          parseLikeCondition(queryCond);
+      final @Nullable Pair<RexNode, NlsString> parsedT =
+          parseLikeCondition(targetCond);
       if (RexUtil.isIdentity(queryProjs, query.getInput().rowType)
           && RexUtil.isIdentity(targetProjs, target.getInput().rowType)
           && parsedQ != null && parsedT != null) {
-        if (parsedQ.get(0).equals(parsedT.get(0))) {
-          String literalQ = ((NlsString) parsedQ.get(1)).getValue();
-          String literalT = ((NlsString) parsedT.get(1)).getValue();
+        if (parsedQ.left.equals(parsedT.left)) {
+          String literalQ = parsedQ.right.getValue();
+          String literalT = parsedT.right.getValue();
           if (literalQ.endsWith("%") && literalT.endsWith("%")
               && !literalQ.equals(literalT)
               && literalQ.startsWith(literalT.substring(0, literalT.length() - 1))) {
@@ -162,14 +166,15 @@ public class CustomMaterializedViewRecognitionRuleTest extends SqlToRelTestBase 
       return null;
     }
 
-    private List parseLikeCondition(RexNode rexNode) {
+    private @Nullable Pair<RexNode, NlsString> parseLikeCondition(
+        RexNode rexNode) {
       if (rexNode instanceof RexCall) {
         RexCall rexCall = (RexCall) rexNode;
         if (rexCall.getKind() == SqlKind.LIKE
             && rexCall.operands.get(0) instanceof RexInputRef
             && rexCall.operands.get(1) instanceof RexLiteral) {
-          return ImmutableList.of(rexCall.operands.get(0),
-              ((RexLiteral) (rexCall.operands.get(1))).getValue());
+          return Pair.of(rexCall.operands.get(0),
+              (NlsString) ((RexLiteral) (rexCall.operands.get(1))).getValue());
         }
       }
       return null;

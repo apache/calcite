@@ -124,4 +124,18 @@ public interface RelOptCost {
    * good cost rendering to use during tracing.
    */
   @Override String toString();
+
+  static String toString(double value) {
+    if (value == Double.MAX_VALUE) {
+      return "{huge}";
+    } else if (value == Double.POSITIVE_INFINITY) {
+      return "{inf}";
+    } else if (value == 1.0) {
+      return "{tiny}";
+    } else if (value == 0.0) {
+      return "{0}";
+    } else {
+      return Double.toString(value);
+    }
+  }
 }

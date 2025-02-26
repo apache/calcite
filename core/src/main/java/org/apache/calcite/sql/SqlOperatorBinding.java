@@ -22,6 +22,8 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.Resources;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeTransform;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.calcite.util.NlsString;
@@ -65,9 +67,9 @@ public abstract class SqlOperatorBinding {
    * GROUP BY deptno, gender", returns 2.
    *
    * <p>Returns 0 if the query is implicitly "GROUP BY ()" because of an
-   * aggregate expression. For example, "SELECT sum(sal) FROM emp".</p>
+   * aggregate expression. For example, "SELECT sum(sal) FROM emp".
    *
-   * <p>Returns -1 if the query is not an aggregate query.</p>
+   * <p>Returns -1 if the query is not an aggregate query.
    */
   public int getGroupCount() {
     return -1;
@@ -195,8 +197,27 @@ public abstract class SqlOperatorBinding {
     throw new UnsupportedOperationException();
   }
 
-  /** Returns the number of bound operands. */
+  /**
+   * Returns whether an operand is a time frame.
+   *
+   * @param ordinal   zero-based ordinal of operand of interest
+   * @return whether operand is a time frame
+   */
+  public boolean isOperandTimeFrame(int ordinal) {
+    return getOperandCount() > 0
+        && SqlTypeName.TIME_FRAME_TYPES.contains(
+            getOperandType(ordinal).getSqlTypeName());
+  }
+
+  /** Returns the number of bound operands.
+   * Includes pre-operands and regular operands. */
   public abstract int getOperandCount();
+
+  /** Returns the number of pre-operands.
+   * Zero except for a few aggregate functions. */
+  public int getPreOperandCount() {
+    return 0;
+  }
 
   /**
    * Gets the type of a bound operand.
@@ -214,6 +235,14 @@ public abstract class SqlOperatorBinding {
    */
   public SqlMonotonicity getOperandMonotonicity(int ordinal) {
     return SqlMonotonicity.NOT_MONOTONIC;
+  }
+
+
+  /**
+   * Returns the collation type.
+   */
+  public RelDataType getCollationType() {
+    throw new UnsupportedOperationException();
   }
 
   /**
@@ -271,4 +300,25 @@ public abstract class SqlOperatorBinding {
    */
   public abstract CalciteException newError(
       Resources.ExInst<SqlValidatorException> e);
+
+  /** Returns an operator binding equivalent that is equivalent to this
+   * except that a transform has been applied to each operand type. */
+  public SqlOperatorBinding transform(SqlTypeTransform typeTransform) {
+    final SqlOperatorBinding operatorBinding = this;
+    return new SqlOperatorBinding(typeFactory, sqlOperator) {
+      @Override public int getOperandCount() {
+        return operatorBinding.getOperandCount();
+      }
+
+      @Override public RelDataType getOperandType(int ordinal) {
+        return typeTransform.transformType(operatorBinding,
+            operatorBinding.getOperandType(ordinal));
+      }
+
+      @Override public CalciteException newError(
+          Resources.ExInst<SqlValidatorException> e) {
+        return operatorBinding.newError(e);
+      }
+    };
+  }
 }

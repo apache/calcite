@@ -33,8 +33,7 @@ public class SqlJsonExistsFunction extends SqlFunction {
   public SqlJsonExistsFunction() {
     super("JSON_EXISTS", SqlKind.OTHER_FUNCTION,
         ReturnTypes.BOOLEAN.andThen(SqlTypeTransforms.FORCE_NULLABLE), null,
-        OperandTypes.or(
-            OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.CHARACTER),
+        OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.CHARACTER).or(
             OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.CHARACTER,
                 SqlTypeFamily.ANY)),
         SqlFunctionCategory.SYSTEM);

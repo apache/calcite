@@ -22,16 +22,16 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * A collection of terms.
  *
  * <p>(This is not a real class. It is here so that terms which do not map to
- * classes can be referenced in Javadoc.)</p>
+ * classes can be referenced in Javadoc.)
  */
 public interface Glossary {
   //~ Static fields/initializers ---------------------------------------------
 
   // CHECKSTYLE: OFF
   /**
-   * <p>This table shows how and where the Gang of Four patterns are applied.
+   * This table shows how and where the Gang of Four patterns are applied.
    * The table uses information from the GoF book and from a course on
-   * advanced object design taught by Craig Larman.</p>
+   * advanced object design taught by Craig Larman.
    *
    * <p>The patterns are in three groups depicting frequency of use. The
    * patterns in light green are used
@@ -40,7 +40,7 @@ public interface Glossary {
    * <i>infrequently</i> used. The GoF column gives the original Gang Of Four
    * category for the pattern. The Problem and Pattern columns are from
    * Craig's refinement of the type of problems they apply to and a refinement
-   * of the original three pattern categories.</p>
+   * of the original three pattern categories.
    *
    * <table style="border-spacing:0px;padding:3px;border:1px">
    * <caption>
@@ -122,6 +122,7 @@ public interface Glossary {
    * <td>Access Control<br>
    * &nbsp;
    * <hr>
+   *
    * <p>Structural Decomposition of Objects or Subsystems</td>
    * <td>Wrap Many</td>
    * <td><a href="#SingletonPattern">Singleton</a> with <a
@@ -146,6 +147,7 @@ public interface Glossary {
    * <td>Traversal Algorithm<br>
    * &nbsp;
    * <hr>
+   *
    * <p>Access Control</td>
    * <td>Low Coupling</td>
    * <td style="text-align:middle">-</td>
@@ -159,6 +161,7 @@ public interface Glossary {
    * <td>Event Response<br>
    * &nbsp;
    * <hr>
+   *
    * <p>Organization or Communication of Work</td>
    * <td>Low Coupling</td>
    * <td style="text-align:middle">-</td>
@@ -249,6 +252,7 @@ public interface Glossary {
    * <td>Single Algorithm<br>
    * &nbsp;
    * <hr>
+   *
    * <p>Organization or Communication of Work</td>
    * <td>Low Coupling</td>
    * <td style="text-align:middle">-</td>
@@ -271,6 +275,7 @@ public interface Glossary {
    * <td>Interaction between Objects<br>
    * &nbsp;
    * <hr>
+   *
    * <p>Organization or Communication of Work</td>
    * <td>Low Coupling</td>
    * <td style="text-align:middle">-</td>
@@ -361,7 +366,7 @@ public interface Glossary {
    * <p>Note that a common way of implementing a singleton, the so-called <a
    * href="http://www.cs.umd.edu/~pugh/java/memoryModel/DoubleCheckedLocking.html">
    * double-checked locking pattern</a>, is fatally flawed in Java. Don't use
-   * it!</p>
+   * it!
    */
   @Nullable Glossary SINGLETON_PATTERN = null;
 

@@ -31,7 +31,7 @@ import org.apache.calcite.rel.PhysicalNode;
  * <p>But in {@link VolcanoPlanner}, {@link TransformationRule} doesn't match
  * with physical operator that implements {@link PhysicalNode}. It is not
  * allowed to generate physical operators in {@link TransformationRule},
- * unless you are using it in {@link HepPlanner}.</p>
+ * unless you are using it in {@link HepPlanner}.
  *
  * @see VolcanoPlanner
  * @see SubstitutionRule

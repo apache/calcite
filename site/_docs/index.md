@@ -39,8 +39,8 @@ point it at some data.
 
 {% highlight java %}
 public static class HrSchema {
-  public final Employee[] emps = 0;
-  public final Department[] depts = 0;
+  public final Employee[] emps = new Employee[0];
+  public final Department[] depts = new Department[0];
 }
 Class.forName("org.apache.calcite.jdbc.Driver");
 Properties info = new Properties();

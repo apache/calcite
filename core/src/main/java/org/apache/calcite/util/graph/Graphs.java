@@ -77,8 +77,9 @@ public class Graphs {
           if (edge.target.equals(edge2.left)) {
             final Pair<V, V> key = Pair.of(graph1.source(edge), edge2.right);
             int[] bestDistance = shortestDistances.get(key);
-            int[] arc2Distance = requireNonNull(shortestDistances.get(edge2),
-                () -> "shortestDistances.get(edge2) for " + edge2);
+            int[] arc2Distance =
+                requireNonNull(shortestDistances.get(edge2),
+                    () -> "shortestDistances.get(edge2) for " + edge2);
             if ((bestDistance == null)
                 || (bestDistance[0] > (arc2Distance[0] + 1))) {
               shortestDistances.put(key, new int[] {arc2Distance[0] + 1});
@@ -115,7 +116,7 @@ public class Graphs {
      * Returns an iterator of all paths between two nodes,
      * in non-decreasing order of path lengths.
      *
-     * <p>The current implementation is not optimal.</p>
+     * <p>The current implementation is not optimal.
      */
     public List<List<V>> getPaths(V from, V to) {
       List<List<V>> list = new ArrayList<>();
@@ -129,6 +130,7 @@ public class Graphs {
 
     /**
      * Returns the shortest distance between two points, -1, if there is no path.
+     *
      * @param from From
      * @param to To
      * @return The shortest distance, -1, if there is no path.

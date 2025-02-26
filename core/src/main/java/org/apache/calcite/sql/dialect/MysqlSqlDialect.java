@@ -26,12 +26,13 @@ import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
 import org.apache.calcite.sql.SqlBasicCall;
+import org.apache.calcite.sql.SqlBasicFunction;
 import org.apache.calcite.sql.SqlBasicTypeNameSpec;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlFunction;
-import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
@@ -40,14 +41,19 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlCase;
+import org.apache.calcite.sql.fun.SqlInternalOperators;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import com.google.common.collect.ImmutableList;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.List;
 
 /**
  * A <code>SqlDialect</code> implementation for the MySQL database.
@@ -69,6 +75,12 @@ public class MysqlSqlDialect extends SqlDialect {
             return super.getMaxPrecision(typeName);
           }
         }
+        @Override public int getDefaultPrecision(SqlTypeName typeName) {
+          if (typeName == SqlTypeName.CHAR) {
+            return RelDataType.PRECISION_NOT_SPECIFIED;
+          }
+          return super.getDefaultPrecision(typeName);
+        }
       };
 
   public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
@@ -82,9 +94,7 @@ public class MysqlSqlDialect extends SqlDialect {
 
   /** MySQL specific function. */
   public static final SqlFunction ISNULL_FUNCTION =
-      new SqlFunction("ISNULL", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.BOOLEAN, InferTypes.FIRST_KNOWN,
-          OperandTypes.ANY, SqlFunctionCategory.SYSTEM);
+      SqlBasicFunction.create("ISNULL", ReturnTypes.BOOLEAN, OperandTypes.ANY);
 
   private final int majorVersion;
 
@@ -181,12 +191,13 @@ public class MysqlSqlDialect extends SqlDialect {
     return super.getCastSpec(type);
   }
 
-  @Override public SqlNode rewriteSingleValueExpr(SqlNode aggCall) {
+  @Override public SqlNode rewriteSingleValueExpr(SqlNode aggCall, RelDataType relDataType) {
     final SqlNode operand = ((SqlBasicCall) aggCall).operand(0);
     final SqlLiteral nullLiteral = SqlLiteral.createNull(SqlParserPos.ZERO);
-    final SqlNode unionOperand = new SqlSelect(SqlParserPos.ZERO, SqlNodeList.EMPTY,
-        SqlNodeList.of(nullLiteral), null, null, null, null,
-        SqlNodeList.EMPTY, null, null, null, SqlNodeList.EMPTY);
+    final SqlNode unionOperand =
+        new SqlSelect(SqlParserPos.ZERO, SqlNodeList.EMPTY,
+            SqlNodeList.of(nullLiteral), null, null, null, null,
+            SqlNodeList.EMPTY, null, null, null, null, SqlNodeList.EMPTY);
     // For MySQL, generate
     //   CASE COUNT(*)
     //   WHEN 0 THEN NULL
@@ -195,7 +206,8 @@ public class MysqlSqlDialect extends SqlDialect {
     //   END
     final SqlNode caseExpr =
         new SqlCase(SqlParserPos.ZERO,
-            SqlStdOperatorTable.COUNT.createCall(SqlParserPos.ZERO, operand),
+            SqlStdOperatorTable.COUNT.createCall(SqlParserPos.ZERO,
+                ImmutableList.of(SqlIdentifier.STAR)),
             SqlNodeList.of(
                 SqlLiteral.createExactNumeric("0", SqlParserPos.ZERO),
                 SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO)),
@@ -214,6 +226,14 @@ public class MysqlSqlDialect extends SqlDialect {
   @Override public void unparseCall(SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec) {
     switch (call.getKind()) {
+    case POSITION:
+      final SqlWriter.Frame frame = writer.startFunCall("INSTR");
+      writer.sep(",");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.sep(",");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(frame);
+      break;
     case FLOOR:
       if (call.operandCount() != 2) {
         super.unparseCall(writer, call, leftPrec, rightPrec);
@@ -223,9 +243,85 @@ public class MysqlSqlDialect extends SqlDialect {
       unparseFloor(writer, call);
       break;
 
+    case WITHIN_GROUP:
+      final List<SqlNode> operands = call.getOperandList();
+      if (operands.size() <= 0 || operands.get(0).getKind() != SqlKind.LISTAGG) {
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+        return;
+      }
+      unparseListAggCall(writer, (SqlCall) operands.get(0),
+          operands.size() == 2 ? operands.get(1) : null, leftPrec, rightPrec);
+      break;
+
+    case LISTAGG:
+      unparseListAggCall(writer, call, null, leftPrec, rightPrec);
+      break;
+
+    case EXTRACT:
+      SqlLiteral node = call.operand(0);
+      TimeUnitRange unit = node.getValueAs(TimeUnitRange.class);
+      String funName;
+      switch (unit) {
+      case DOW:
+        funName = "DAYOFWEEK";
+        break;
+      case DOY:
+        funName = "DAYOFYEAR";
+        break;
+      default:
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+        return;
+      }
+      writer.print(funName);
+      final SqlWriter.Frame extractFrame = writer.startList("(", ")");
+      call.operand(1).unparse(writer, 0, 0);
+      writer.endList(extractFrame);
+      break;
+
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  /**
+   * Unparses LISTAGG for MySQL. This call is translated to GROUP_CONCAT.
+   *
+   * <p>For example:
+   * <ul>
+   * <li>source:
+   *   <code>LISTAGG(DISTINCT c1, ',') WITHIN GROUP (ORDER BY c2, c3)</code>
+   * <li>target:
+   *   <code>GROUP_CONCAT(DISTINCT c1 ORDER BY c2, c3 SEPARATOR ',')</code>
+   * </ul>
+   *
+   * @param writer Writer
+   * @param call Call to LISTAGG
+   * @param orderItemNode Elements of WITHIN_GROUP; null means no elements in
+   *                     the WITHIN_GROUP
+   * @param leftPrec Left precedence
+   * @param rightPrec Right precedence
+   */
+  private static void unparseListAggCall(SqlWriter writer, SqlCall call,
+      @Nullable SqlNode orderItemNode, int leftPrec, int rightPrec) {
+    final List<SqlNode> listAggCallOperands = call.getOperandList();
+    final boolean separatorExist = listAggCallOperands.size() == 2;
+
+    final ImmutableList.Builder<SqlNode> newOperandListBuilder =
+        ImmutableList.builder();
+    newOperandListBuilder.add(listAggCallOperands.get(0));
+    if (orderItemNode != null) {
+      newOperandListBuilder.add(orderItemNode);
+    }
+    if (separatorExist) {
+      newOperandListBuilder.add(
+          SqlInternalOperators.SEPARATOR.createCall(SqlParserPos.ZERO,
+              listAggCallOperands.get(1)));
+    }
+    final SqlCall call2 =
+        SqlLibraryOperators.GROUP_CONCAT.createCall(
+            call.getFunctionQuantifier(), call.getParserPosition(),
+            newOperandListBuilder.build());
+    call2.unparse(writer, leftPrec, rightPrec);
   }
 
   /**
@@ -283,6 +379,9 @@ public class MysqlSqlDialect extends SqlDialect {
     writer.endList(frame);
   }
 
+  @Override public boolean supportsAggregateFunctionFilter() {
+    return false;
+  }
 
   @Override public void unparseSqlIntervalQualifier(SqlWriter writer,
       SqlIntervalQualifier qualifier, RelDataTypeSystem typeSystem) {

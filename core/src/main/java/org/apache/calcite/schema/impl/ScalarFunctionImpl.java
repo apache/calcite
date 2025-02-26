@@ -35,8 +35,8 @@ import com.google.common.collect.ImmutableMultimap;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 
+import static org.apache.calcite.util.ReflectUtil.isStatic;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
@@ -65,7 +65,7 @@ public class ScalarFunctionImpl extends ReflectiveFunctionBase
       if (method.getDeclaringClass() == Object.class) {
         continue;
       }
-      if (!Modifier.isStatic(method.getModifiers())
+      if (!isStatic(method)
           && !classHasPublicZeroArgsConstructor(clazz)) {
         continue;
       }
@@ -88,7 +88,7 @@ public class ScalarFunctionImpl extends ReflectiveFunctionBase
       if (method.getDeclaringClass() == Object.class) {
         continue;
       }
-      if (!Modifier.isStatic(method.getModifiers())
+      if (!isStatic(method)
           && !classHasPublicZeroArgsConstructor(clazz)) {
         continue;
       }
@@ -106,7 +106,7 @@ public class ScalarFunctionImpl extends ReflectiveFunctionBase
   /**
    * Creates {@link org.apache.calcite.schema.ScalarFunction} from given class.
    *
-   * <p>If a method of the given name is not found or it does not suit,
+   * <p>If a method of the given name is not found, or it does not suit,
    * returns {@code null}.
    *
    * @param clazz class that is used to implement the function
@@ -129,7 +129,7 @@ public class ScalarFunctionImpl extends ReflectiveFunctionBase
    * @return created {@link ScalarFunction} or null
    */
   public static ScalarFunction create(Method method) {
-    if (!Modifier.isStatic(method.getModifiers())) {
+    if (!isStatic(method)) {
       Class<?> clazz = method.getDeclaringClass();
       if (!classHasPublicZeroArgsConstructor(clazz)
           && !classHasPublicFunctionContextConstructor(clazz)) {

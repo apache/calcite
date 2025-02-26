@@ -28,6 +28,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
@@ -35,6 +36,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.TimestampString;
+import org.apache.calcite.util.TimestampWithTimeZoneString;
 import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -49,6 +51,8 @@ import java.util.Set;
 import static org.apache.calcite.util.DateTimeStringUtils.ISO_DATETIME_FRACTIONAL_SECOND_FORMAT;
 import static org.apache.calcite.util.DateTimeStringUtils.getDateFormatter;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Implementation of a {@link org.apache.calcite.rel.core.Filter}
  * relational expression in Cassandra.
@@ -57,9 +61,9 @@ public class CassandraFilter extends Filter implements CassandraRel {
   private final List<String> partitionKeys;
   private Boolean singlePartition;
   private final List<String> clusteringKeys;
-  private List<RelFieldCollation> implicitFieldCollations;
-  private RelCollation implicitCollation;
-  private String match;
+  private final List<RelFieldCollation> implicitFieldCollations;
+  private final RelCollation implicitCollation;
+  private final String match;
 
   public CassandraFilter(
       RelOptCluster cluster,
@@ -89,7 +93,8 @@ public class CassandraFilter extends Filter implements CassandraRel {
 
   @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
-    return super.computeSelfCost(planner, mq).multiplyBy(0.1);
+    final RelOptCost cost = requireNonNull(super.computeSelfCost(planner, mq));
+    return cost.multiplyBy(0.1);
   }
 
   @Override public CassandraFilter copy(RelTraitSet traitSet, RelNode input,
@@ -188,8 +193,11 @@ public class CassandraFilter extends Filter implements CassandraRel {
      * @return The value of the literal in the form of the actual type.
      */
     private static Object literalValue(RexLiteral literal) {
-      Comparable value = RexLiteral.value(literal);
+      Comparable<?> value = RexLiteral.value(literal);
       switch (literal.getTypeName()) {
+      case TIMESTAMP_TZ:
+        assert value instanceof TimestampWithTimeZoneString;
+        return value.toString();
       case TIMESTAMP:
       case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
         assert value instanceof TimestampString;
@@ -200,7 +208,8 @@ public class CassandraFilter extends Filter implements CassandraRel {
         assert value instanceof DateString;
         return value.toString();
       default:
-        return literal.getValue3();
+        Object val = literal.getValue3();
+        return val == null ? "null" : val;
       }
     }
 
@@ -255,7 +264,7 @@ public class CassandraFilter extends Filter implements CassandraRel {
     }
 
     /** Translates a call to a binary operator. Returns null on failure. */
-    private String translateBinary2(String op, RexNode left, RexNode right) {
+    private @Nullable String translateBinary2(String op, RexNode left, RexNode right) {
       switch (right.getKind()) {
       case LITERAL:
         break;
@@ -289,7 +298,9 @@ public class CassandraFilter extends Filter implements CassandraRel {
       Object value = literalValue(right);
       String valueString = value.toString();
       if (value instanceof String) {
-        SqlTypeName typeName = rowType.getField(name, true, false).getType().getSqlTypeName();
+        RelDataTypeField field =
+            requireNonNull(rowType.getField(name, true, false));
+        SqlTypeName typeName = field.getType().getSqlTypeName();
         if (typeName != SqlTypeName.CHAR) {
           valueString = "'" + valueString + "'";
         }

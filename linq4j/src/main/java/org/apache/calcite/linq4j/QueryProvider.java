@@ -24,7 +24,7 @@ import java.lang.reflect.Type;
  * Defines methods to create and execute queries that are described by a
  * {@link Queryable} object.
  *
- * <p>Analogous to LINQ's System.Linq.QueryProvider.</p>
+ * <p>Analogous to LINQ's System.Linq.QueryProvider.
  */
 public interface QueryProvider {
   /**
@@ -33,7 +33,7 @@ public interface QueryProvider {
    *
    * <p>NOTE: The {@link org.apache.calcite.linq4j.Queryable#getExpression()}
    * property of the returned {@link Queryable} object is equal to
-   * {@code expression}.</p>
+   * {@code expression}.
    *
    * @param expression Expression
    * @param rowType Row type
@@ -63,7 +63,7 @@ public interface QueryProvider {
    * (instead of an enumerable sequence of values). Expression trees that
    * represent queries that return enumerable results are executed when the
    * {@link Queryable} object that contains the expression tree is
-   * enumerated.</p>
+   * enumerated.
    *
    * <p>The Queryable standard query operator methods that return singleton
    * results call {@code execute}. They pass it a

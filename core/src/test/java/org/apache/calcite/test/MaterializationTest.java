@@ -28,12 +28,14 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.TranslatableTable;
-import org.apache.calcite.test.JdbcTest.Department;
-import org.apache.calcite.test.JdbcTest.DepartmentPlus;
-import org.apache.calcite.test.JdbcTest.Dependent;
-import org.apache.calcite.test.JdbcTest.Employee;
-import org.apache.calcite.test.JdbcTest.Event;
-import org.apache.calcite.test.JdbcTest.Location;
+import org.apache.calcite.test.schemata.hr.Department;
+import org.apache.calcite.test.schemata.hr.DepartmentPlus;
+import org.apache.calcite.test.schemata.hr.Dependent;
+import org.apache.calcite.test.schemata.hr.Employee;
+import org.apache.calcite.test.schemata.hr.Event;
+import org.apache.calcite.test.schemata.hr.HrSchema;
+import org.apache.calcite.test.schemata.hr.Location;
+import org.apache.calcite.test.schemata.hr.NullableTest;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.Smalls;
 import org.apache.calcite.util.TryThreadLocal;
@@ -220,7 +222,7 @@ public class MaterializationTest {
           + "      name: 'hr',\n"
           + "      factory: 'org.apache.calcite.adapter.java.ReflectiveSchema$Factory',\n"
           + "      operand: {\n"
-          + "        class: 'org.apache.calcite.test.JdbcTest$HrSchema'\n"
+          + "        class: '" + HrSchema.class.getName() + "'\n"
           + "      }\n"
           + "    }\n"
           + "  ]\n"
@@ -365,7 +367,7 @@ public class MaterializationTest {
    * Implementation of RelVisitor to extract substituted table names.
    */
   private static class TableNameVisitor extends RelVisitor {
-    private List<List<String>> names = new ArrayList<>();
+    private final List<List<String>> names = new ArrayList<>();
 
     List<List<String>> run(RelNode input) {
       go(input);
@@ -414,6 +416,9 @@ public class MaterializationTest {
     public final Dependent[] dependents = {
         new Dependent(10, "Michael"),
         new Dependent(10, "Jane"),
+    };
+    public final NullableTest[] nullables = {
+        new NullableTest(null, null, 1),
     };
     public final Dependent[] locations = {
         new Dependent(10, "San Francisco"),

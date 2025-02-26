@@ -25,6 +25,12 @@ class UdtTest {
   private CalciteAssert.AssertThat withUdt() {
     final String model = "{\n"
         + "  version: '1.0',\n"
+        + "  types: [\n"
+        + "     {\n"
+        + "       name: 'foo',\n"
+        + "       type: 'BIGINT'\n"
+        + "     }"
+        + "   ],\n"
         + "   schemas: [\n"
         + "     {\n"
         + "       name: 'adhoc',\n"
@@ -55,6 +61,12 @@ class UdtTest {
 
   @Test void testUdt() {
     final String sql = "select CAST(\"id\" AS \"adhoc\".mytype1) as ld "
+        + "from (VALUES ROW(1, 'SameName')) AS \"t\" (\"id\", \"desc\")";
+    withUdt().query(sql).returns("LD=1\n");
+  }
+
+  @Test void testRootUdt() {
+    final String sql = "select CAST(\"id\" AS foo) as ld "
         + "from (VALUES ROW(1, 'SameName')) AS \"t\" (\"id\", \"desc\")";
     withUdt().query(sql).returns("LD=1\n");
   }

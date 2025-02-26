@@ -36,6 +36,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
+import java.util.function.Consumer;
+import java.util.function.IntConsumer;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
@@ -68,13 +70,25 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
    * Creates an ImmutableIntList from an array of {@code int}.
    */
   public static ImmutableIntList of(int... ints) {
+    if (ints.length == 0) {
+      return EMPTY;
+    }
     return new ImmutableIntList(ints.clone());
+  }
+
+  /** Same as {@link #of(int...)}, but less ambiguous for code generators
+   * and compilers. */
+  public static ImmutableIntList copyOf(int... ints) {
+    return of(ints);
   }
 
   /**
    * Creates an ImmutableIntList from an array of {@code Number}.
    */
   public static ImmutableIntList copyOf(Number... numbers) {
+    if (numbers.length == 0) {
+      return EMPTY;
+    }
     final int[] ints = new int[numbers.length];
     for (int i = 0; i < ints.length; i++) {
       ints[i] = numbers[i].intValue();
@@ -106,6 +120,9 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
 
   private static ImmutableIntList copyFromCollection(
       Collection<? extends Number> list) {
+    if (list.isEmpty()) {
+      return EMPTY;
+    }
     final int[] ints = new int[list.size()];
     int i = 0;
     for (Number number : list) {
@@ -137,6 +154,21 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
 
   @Override public int size() {
     return ints.length;
+  }
+
+  @Override public void forEach(Consumer<? super Integer> action) {
+    requireNonNull(action, "action");
+    for (int i : ints) {
+      action.accept(i);
+    }
+  }
+
+  /** As {@link #forEach(Consumer)} but on primitive {@code int} values. */
+  public void forEachInt(IntConsumer action) {
+    requireNonNull(action, "action");
+    for (int i : ints) {
+      action.accept(i);
+    }
   }
 
   @Override public Object[] toArray() {
@@ -175,7 +207,7 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
     return ints.clone();
   }
 
-  /** Returns an List of {@code Integer}. */
+  /** Returns a List of {@code Integer}. */
   public List<Integer> toIntegerList() {
     ArrayList<Integer> arrayList = new ArrayList<>(size());
     for (int i : ints) {
@@ -266,6 +298,9 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
    * @see Mappings#isIdentity(List, int)
    */
   public static ImmutableIntList identity(int count) {
+    if (count == 0) {
+      return EMPTY;
+    }
     final int[] integers = new int[count];
     for (int i = 0; i < integers.length; i++) {
       integers[i] = i;

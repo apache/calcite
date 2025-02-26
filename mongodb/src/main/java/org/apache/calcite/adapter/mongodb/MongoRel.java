@@ -20,10 +20,9 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rex.RexBuilder;
-import org.apache.calcite.util.Pair;
+import org.apache.calcite.runtime.PairList;
 
-import java.util.ArrayList;
-import java.util.List;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Relational expression that uses Mongo calling convention.
@@ -37,17 +36,17 @@ public interface MongoRel extends RelNode {
   /** Callback for the implementation process that converts a tree of
    * {@link MongoRel} nodes into a MongoDB query. */
   class Implementor {
-    final List<Pair<String, String>> list = new ArrayList<>();
+    final PairList<@Nullable String, String> list = PairList.of();
     final RexBuilder rexBuilder;
-    RelOptTable table;
-    MongoTable mongoTable;
+    @Nullable RelOptTable table;
+    @Nullable MongoTable mongoTable;
 
     public Implementor(RexBuilder rexBuilder) {
       this.rexBuilder = rexBuilder;
     }
 
-    public void add(String findOp, String aggOp) {
-      list.add(Pair.of(findOp, aggOp));
+    public void add(@Nullable String findOp, String aggOp) {
+      list.add(findOp, aggOp);
     }
 
     public void visitChild(int ordinal, RelNode input) {

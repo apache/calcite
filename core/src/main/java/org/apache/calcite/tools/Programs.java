@@ -32,6 +32,7 @@ import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelNodes;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.metadata.ChainedRelMetadataProvider;
@@ -39,6 +40,9 @@ import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.rules.JoinPushThroughJoinRule;
+import org.apache.calcite.rel.rules.MeasureRules;
+import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.sql2rel.RelFieldTrimmer;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
@@ -48,11 +52,13 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Predicate;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Utilities for creating {@link Program}s.
@@ -89,6 +95,7 @@ public class Programs {
           EnumerableRules.ENUMERABLE_WINDOW_RULE,
           EnumerableRules.ENUMERABLE_MATCH_RULE,
           CoreRules.PROJECT_TO_SEMI_JOIN,
+          CoreRules.JOIN_ON_UNIQUE_TO_SEMI_JOIN,
           CoreRules.JOIN_TO_SEMI_JOIN,
           CoreRules.MATCH,
           CalciteSystemProperty.COMMUTE.value()
@@ -140,6 +147,12 @@ public class Programs {
     return new SequenceProgram(ImmutableList.copyOf(programs));
   }
 
+  /** Creates a program that executes if a predicate is true. */
+  public static Program conditional(Predicate<RelNode> predicate,
+      Program program) {
+    return new ConditionalProgram(predicate, program);
+  }
+
   /** Creates a program that executes a list of rules in a HEP planner. */
   public static Program hep(Iterable<? extends RelOptRule> rules,
       boolean noDag, RelMetadataProvider metadataProvider) {
@@ -154,14 +167,12 @@ public class Programs {
   @SuppressWarnings("deprecation")
   public static Program of(final HepProgram hepProgram, final boolean noDag,
       final RelMetadataProvider metadataProvider) {
+    requireNonNull(metadataProvider, "metadataProvider");
     return (planner, rel, requiredOutputTraits, materializations, lattices) -> {
-      final HepPlanner hepPlanner = new HepPlanner(hepProgram,
-          null, noDag, null, RelOptCostImpl.FACTORY);
+      final HepPlanner hepPlanner =
+          new HepPlanner(hepProgram, null, noDag, null, RelOptCostImpl.FACTORY);
 
-      List<RelMetadataProvider> list = new ArrayList<>();
-      if (metadataProvider != null) {
-        list.add(metadataProvider);
-      }
+      List<RelMetadataProvider> list = Lists.newArrayList(metadataProvider);
       hepPlanner.registerMetadataProviders(list);
       for (RelOptMaterialization materialization : materializations) {
         hepPlanner.addMaterialization(materialization);
@@ -238,8 +249,22 @@ public class Programs {
     builder.addRuleCollection(
         ImmutableList.of(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE,
             CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE,
-            CoreRules.JOIN_SUB_QUERY_TO_CORRELATE));
+            CoreRules.JOIN_SUB_QUERY_TO_CORRELATE,
+            CoreRules.PROJECT_OVER_SUM_TO_SUM0_RULE));
     return of(builder.build(), true, metadataProvider);
+  }
+
+  public static Program measure(RelMetadataProvider metadataProvider) {
+    return conditional(Programs::containsAggM2v,
+        sequence(hep(MeasureRules.rules(), true, metadataProvider),
+            subQuery(metadataProvider),
+            new DecorrelateProgram()));
+  }
+
+  private static boolean containsAggM2v(RelNode rel) {
+    return RelNodes.contains(rel,
+        aggCall -> aggCall.getAggregation().kind == SqlKind.AGG_M2V,
+        RexUtil.find(ImmutableSet.of(SqlKind.AGG_M2V, SqlKind.M2V)));
   }
 
   @Deprecated
@@ -250,11 +275,17 @@ public class Programs {
 
   /** Returns the standard program used by Prepare. */
   public static Program standard() {
-    return standard(DefaultRelMetadataProvider.INSTANCE);
+    return standard(DefaultRelMetadataProvider.INSTANCE, true);
   }
 
   /** Returns the standard program with user metadata provider. */
   public static Program standard(RelMetadataProvider metadataProvider) {
+    return standard(metadataProvider, true);
+  }
+
+  /** Returns the standard program with user metadata provider and enableFieldTrimming config. */
+  public static Program standard(RelMetadataProvider metadataProvider,
+      boolean enableFieldTrimming) {
     final Program program1 =
         (planner, rel, requiredOutputTraits, materializations, lattices) -> {
           for (RelOptMaterialization materialization : materializations) {
@@ -269,23 +300,28 @@ public class Programs {
               rel.getTraitSet().equals(requiredOutputTraits)
                   ? rel
                   : planner.changeTraits(rel, requiredOutputTraits);
-          assert rootRel2 != null;
+          requireNonNull(rootRel2, "rootRel2");
 
           planner.setRoot(rootRel2);
           final RelOptPlanner planner2 = planner.chooseDelegate();
           final RelNode rootRel3 = planner2.findBestExp();
-          assert rootRel3 != null : "could not implement exp";
-          return rootRel3;
+          return requireNonNull(rootRel3, "could not implement exp");
         };
 
-    return sequence(subQuery(metadataProvider),
+    List<Program> programs =
+        Lists.newArrayList(subQuery(metadataProvider),
         new DecorrelateProgram(),
+        measure(metadataProvider),
         new TrimFieldsProgram(),
         program1,
 
         // Second planner pass to do physical "tweaks". This the first time
         // that EnumerableCalcRel is introduced.
         calc(metadataProvider));
+
+    programs.removeIf(program -> !enableFieldTrimming && program instanceof TrimFieldsProgram);
+
+    return new SequenceProgram(ImmutableList.copyOf(programs));
   }
 
   /** Program backed by a {@link RuleSet}. */
@@ -333,8 +369,31 @@ public class Programs {
         List<RelOptMaterialization> materializations,
         List<RelOptLattice> lattices) {
       for (Program program : programs) {
-        rel = program.run(
-            planner, rel, requiredOutputTraits, materializations, lattices);
+        rel =
+            program.run(planner, rel, requiredOutputTraits, materializations,
+                lattices);
+      }
+      return rel;
+    }
+  }
+
+  /** Program that runs a sub-program only if a condition is true. */
+  private static class ConditionalProgram implements Program {
+    private final Predicate<RelNode> predicate;
+    private final Program program;
+
+    ConditionalProgram(Predicate<RelNode> predicate, Program program) {
+      this.predicate = predicate;
+      this.program = program;
+    }
+
+    @Override public RelNode run(RelOptPlanner planner, RelNode rel,
+        RelTraitSet requiredOutputTraits,
+        List<RelOptMaterialization> materializations,
+        List<RelOptLattice> lattices) {
+      if (predicate.test(rel)) {
+        return program.run(planner, rel, requiredOutputTraits, materializations,
+            lattices);
       }
       return rel;
     }

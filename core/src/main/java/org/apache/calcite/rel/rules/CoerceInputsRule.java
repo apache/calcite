@@ -23,9 +23,9 @@ import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.ImmutableBeans;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,6 +37,7 @@ import java.util.List;
  *
  * @see CoreRules#COERCE_INPUTS
  */
+@Value.Enclosing
 public class CoerceInputsRule
     extends RelRule<CoerceInputsRule.Config>
     implements TransformationRule {
@@ -109,8 +110,11 @@ public class CoerceInputsRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable(singleton = false)
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableCoerceInputsRule.Config.builder()
+        .withConsumerRelClass(RelNode.class)
+        .build()
         .withCoerceNames(false)
         .withOperandFor(RelNode.class);
 
@@ -119,15 +123,14 @@ public class CoerceInputsRule
     }
 
     /** Whether to coerce names. */
-    @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(false)
-    boolean isCoerceNames();
+    @Value.Default default boolean isCoerceNames() {
+      return false;
+    }
 
     /** Sets {@link #isCoerceNames()}. */
     Config withCoerceNames(boolean coerceNames);
 
     /** Class of {@link RelNode} to coerce to. */
-    @ImmutableBeans.Property
     Class<? extends RelNode> consumerRelClass();
 
     /** Sets {@link #consumerRelClass()}. */

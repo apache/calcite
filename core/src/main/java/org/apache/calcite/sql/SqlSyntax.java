@@ -136,7 +136,24 @@ public enum SqlSyntax {
    *
    * @see SqlConformance#allowNiladicParentheses()
    */
-  FUNCTION_ID {
+  FUNCTION_ID(FUNCTION) {
+    @Override public void unparse(
+        SqlWriter writer,
+        SqlOperator operator,
+        SqlCall call,
+        int leftPrec,
+        int rightPrec) {
+      SqlUtil.unparseFunctionSyntax(operator, writer, call, false);
+    }
+  },
+
+  /**
+   * Function syntax which takes no parentheses and return specific constant value, for
+   * example "PI".
+   *
+   * @see SqlConformance#allowNiladicConstantWithoutParentheses()
+   */
+  FUNCTION_ID_CONSTANT(FUNCTION) {
     @Override public void unparse(
         SqlWriter writer,
         SqlOperator operator,

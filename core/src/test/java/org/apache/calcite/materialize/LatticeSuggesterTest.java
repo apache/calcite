@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.materialize;
 
+import org.apache.calcite.materialize.Lattice.Measure;
 import org.apache.calcite.prepare.PlannerImpl;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.schema.SchemaPlus;
@@ -26,6 +27,7 @@ import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.statistic.MapSqlStatisticProvider;
 import org.apache.calcite.statistic.QuerySqlStatisticProvider;
 import org.apache.calcite.test.CalciteAssert;
@@ -35,6 +37,8 @@ import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
 import org.apache.calcite.tools.RelConversionException;
 import org.apache.calcite.tools.ValidationException;
+import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.ImmutableBitSet.Builder;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -55,9 +59,16 @@ import java.util.List;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
+import static com.google.common.collect.ImmutableList.toImmutableList;
+
+import static org.apache.calcite.test.Matchers.isListOf;
+
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.aMapWithSize;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.hasToString;
 
 /**
  * Unit tests for {@link LatticeSuggester}.
@@ -134,7 +145,7 @@ class LatticeSuggesterTest {
         + " [scott, EMP]], "
         + "edges: [Step([scott, EMP], [scott, DEPT], DEPTNO:DEPTNO),"
         + " Step([scott, EMP], [scott, EMP], MGR:EMPNO)])";
-    assertThat(t.s.space.g.toString(), is(expected));
+    assertThat(t.s.space.g, hasToString(expected));
   }
 
   @Test void testFoodmart() throws Exception {
@@ -174,7 +185,7 @@ class LatticeSuggesterTest {
         + " product_id:product_id), "
         + "Step([foodmart, sales_fact_1997], [foodmart, time_by_day],"
         + " time_id:time_id)])";
-    assertThat(t.s.space.g.toString(), is(expected));
+    assertThat(t.s.space.g, hasToString(expected));
   }
 
   @Test void testAggregateExpression() throws Exception {
@@ -282,7 +293,9 @@ class LatticeSuggesterTest {
   }
 
   private void checkFoodMartAll(boolean evolve) throws Exception {
-    final Tester t = new Tester().foodmart().withEvolve(evolve);
+    final Tester t = new Tester().sqlToRelConverter(config -> config.withExpand(true))
+        .foodmart()
+        .withEvolve(evolve);
     final FoodMartQuerySet set = FoodMartQuerySet.instance();
     for (FoodMartQuerySet.FoodmartQuery query : set.queries.values()) {
       if (query.sql.contains("\"agg_10_foo_fact\"")
@@ -379,17 +392,17 @@ class LatticeSuggesterTest {
         + "Step([foodmart, warehouse], [foodmart, store], stores_id:store_id), "
         + "Step([foodmart, warehouse], [foodmart, warehouse_class],"
         + " warehouse_class_id:warehouse_class_id)])";
-    assertThat(t.s.space.g.toString(), is(expected));
+    assertThat(t.s.space.g, hasToString(expected));
     if (evolve) {
       // compared to evolve=false, there are a few more nodes (137 vs 119),
       // the same number of paths, and a lot fewer lattices (27 vs 388)
-      assertThat(t.s.space.nodeMap.size(), is(137));
-      assertThat(t.s.latticeMap.size(), is(27));
-      assertThat(t.s.space.pathMap.size(), is(46));
+      assertThat(t.s.space.nodeMap, aMapWithSize(137));
+      assertThat(t.s.latticeMap, aMapWithSize(27));
+      assertThat(t.s.space.pathMap, aMapWithSize(46));
     } else {
-      assertThat(t.s.space.nodeMap.size(), is(119));
-      assertThat(t.s.latticeMap.size(), is(388));
-      assertThat(t.s.space.pathMap.size(), is(46));
+      assertThat(t.s.space.nodeMap, aMapWithSize(119));
+      assertThat(t.s.latticeMap, aMapWithSize(388));
+      assertThat(t.s.space.pathMap, aMapWithSize(46));
     }
   }
 
@@ -432,7 +445,7 @@ class LatticeSuggesterTest {
         + "from \"sales_fact_1997\"";
     final String l0 = "sales_fact_1997:[COUNT()]";
     t.addQuery(q0);
-    assertThat(t.s.latticeMap.size(), is(1));
+    assertThat(t.s.latticeMap, aMapWithSize(1));
     assertThat(Iterables.getOnlyElement(t.s.latticeMap.keySet()),
         is(l0));
 
@@ -443,7 +456,7 @@ class LatticeSuggesterTest {
     final String l1 = "sales_fact_1997 (customer:customer_id)"
         + ":[COUNT(), SUM(sales_fact_1997.unit_sales)]";
     t.addQuery(q1);
-    assertThat(t.s.latticeMap.size(), is(1));
+    assertThat(t.s.latticeMap, aMapWithSize(1));
     assertThat(Iterables.getOnlyElement(t.s.latticeMap.keySet()),
         is(l1));
 
@@ -456,7 +469,7 @@ class LatticeSuggesterTest {
         + ":[COUNT(), SUM(sales_fact_1997.unit_sales),"
         + " COUNT(DISTINCT time_by_day.the_day)]";
     t.addQuery(q2);
-    assertThat(t.s.latticeMap.size(), is(1));
+    assertThat(t.s.latticeMap, aMapWithSize(1));
     assertThat(Iterables.getOnlyElement(t.s.latticeMap.keySet()),
         is(l2));
 
@@ -465,9 +478,9 @@ class LatticeSuggesterTest {
         lattice.tables().stream().map(table ->
             table.t.getQualifiedName())
             .sorted(Comparator.comparing(Object::toString))
-            .collect(Util.toImmutableList());
-    assertThat(tableNames.toString(),
-        is("[[foodmart, customer],"
+            .collect(toImmutableList());
+    assertThat(tableNames,
+        hasToString("[[foodmart, customer],"
             + " [foodmart, product],"
             + " [foodmart, sales_fact_1997],"
             + " [foodmart, time_by_day]]"));
@@ -483,7 +496,7 @@ class LatticeSuggesterTest {
         + ":[COUNT(), SUM(sales_fact_1997.unit_sales),"
         + " MIN(product.product_id), COUNT(DISTINCT time_by_day.the_day)]";
     t.addQuery(q3);
-    assertThat(t.s.latticeMap.size(), is(1));
+    assertThat(t.s.latticeMap, aMapWithSize(1));
     assertThat(Iterables.getOnlyElement(t.s.latticeMap.keySet()),
         is(l3));
   }
@@ -499,7 +512,7 @@ class LatticeSuggesterTest {
         + "group by \"fname\", \"lname\"";
     final String l0 = "customer:[COUNT(), AVG($f2)]";
     t.addQuery(q0);
-    assertThat(t.s.latticeMap.size(), is(1));
+    assertThat(t.s.latticeMap, aMapWithSize(1));
     assertThat(Iterables.getOnlyElement(t.s.latticeMap.keySet()),
         is(l0));
     final Lattice lattice = Iterables.getOnlyElement(t.s.latticeMap.values());
@@ -507,7 +520,7 @@ class LatticeSuggesterTest {
         .filter(c -> c instanceof Lattice.DerivedColumn)
         .map(c -> (Lattice.DerivedColumn) c)
         .collect(Collectors.toList());
-    assertThat(derivedColumns.size(), is(2));
+    assertThat(derivedColumns, hasSize(2));
     final List<String> tables = ImmutableList.of("customer");
     checkDerivedColumn(lattice, tables, derivedColumns, 0, "$f2", true);
     checkDerivedColumn(lattice, tables, derivedColumns, 1, "full_name", false);
@@ -542,7 +555,7 @@ class LatticeSuggesterTest {
     // n14 = [_, dimension] -> not always measure
     t.addQuery(q0);
     t.addQuery(q1);
-    assertThat(t.s.latticeMap.size(), is(1));
+    assertThat(t.s.latticeMap, aMapWithSize(1));
     final String l0 =
         "customer:[COUNT(), SUM(n10), SUM(n11), SUM(n12), SUM(n13)]";
     assertThat(Iterables.getOnlyElement(t.s.latticeMap.keySet()),
@@ -552,7 +565,7 @@ class LatticeSuggesterTest {
         .filter(c -> c instanceof Lattice.DerivedColumn)
         .map(c -> (Lattice.DerivedColumn) c)
         .collect(Collectors.toList());
-    assertThat(derivedColumns.size(), is(5));
+    assertThat(derivedColumns, hasSize(5));
     final List<String> tables = ImmutableList.of("customer");
 
     checkDerivedColumn(lattice, tables, derivedColumns, 0, "n10", false);
@@ -583,7 +596,7 @@ class LatticeSuggesterTest {
     final String l0 = "sales_fact_1997 (customer:customer_id)"
         + ":[COUNT(), AVG($f2)]";
     t.addQuery(q0);
-    assertThat(t.s.latticeMap.size(), is(1));
+    assertThat(t.s.latticeMap, aMapWithSize(1));
     assertThat(Iterables.getOnlyElement(t.s.latticeMap.keySet()),
         is(l0));
     final Lattice lattice = Iterables.getOnlyElement(t.s.latticeMap.values());
@@ -591,10 +604,9 @@ class LatticeSuggesterTest {
         .filter(c -> c instanceof Lattice.DerivedColumn)
         .map(c -> (Lattice.DerivedColumn) c)
         .collect(Collectors.toList());
-    assertThat(derivedColumns.size(), is(2));
-    final List<String> tables = ImmutableList.of("customer");
-    assertThat(derivedColumns.get(0).tables, is(tables));
-    assertThat(derivedColumns.get(1).tables, is(tables));
+    assertThat(derivedColumns, hasSize(2));
+    assertThat(derivedColumns.get(0).tables, isListOf("customer"));
+    assertThat(derivedColumns.get(1).tables, isListOf("customer"));
   }
 
   /** Tests a number of features only available in Redshift: the {@code CONCAT}
@@ -602,12 +614,13 @@ class LatticeSuggesterTest {
   @Test void testRedshiftDialect() throws Exception {
     final Tester t = new Tester().foodmart().withEvolve(true)
         .withDialect(SqlDialect.DatabaseProduct.REDSHIFT.getDialect())
-        .withLibrary(SqlLibrary.POSTGRESQL);
+        .withLibrary(SqlLibrary.REDSHIFT);
 
     final String q0 = "select\n"
-        + "  CONCAT(\"fname\", ' ', \"lname\") as \"full_name\",\n"
+        // CONCAT function in RedShift only accepts two arguments
+        + "  CONCAT(\"fname\", \"lname\") as \"full_name\",\n"
         + "  convert_timezone('UTC', 'America/Los_Angeles',\n"
-        + "    cast('2019-01-01 01:00:00' as timestamp)),\n"
+        + "  cast('2019-01-01 01:00:00' as timestamp)),\n"
         + "  left(\"fname\", 1) as \"initial\",\n"
         + "  to_date('2019-01-01', 'YYYY-MM-DD'),\n"
         + "  to_timestamp('2019-01-01 01:00:00', 'YYYY-MM-DD HH:MM:SS'),\n"
@@ -616,7 +629,7 @@ class LatticeSuggesterTest {
         + "from \"customer\" join \"sales_fact_1997\" using (\"customer_id\")\n"
         + "group by \"fname\", \"lname\"";
     t.addQuery(q0);
-    assertThat(t.s.latticeMap.size(), is(1));
+    assertThat(t.s.latticeMap, aMapWithSize(1));
   }
 
   /** Tests a number of features only available in BigQuery: back-ticks;
@@ -634,7 +647,7 @@ class LatticeSuggesterTest {
         + "  `sales_fact_1997`"
         + "group by 1";
     t.addQuery(q0);
-    assertThat(t.s.latticeMap.size(), is(1));
+    assertThat(t.s.latticeMap, aMapWithSize(1));
   }
 
   /** A tricky case involving a CTE (WITH), a join condition that references an
@@ -672,7 +685,7 @@ class LatticeSuggesterTest {
     t.addQuery(q1);
     t.addQuery(q4);
     t.addQuery(q2);
-    assertThat(t.s.latticeMap.size(), is(3));
+    assertThat(t.s.latticeMap, aMapWithSize(3));
   }
 
   @Test void testDerivedColRef() throws Exception {
@@ -688,11 +701,11 @@ class LatticeSuggesterTest {
         + "left join \"sales_fact_1997\" as s\n"
         + "on c.\"customer_id\" + 1 = s.\"customer_id\" + 2";
     t.addQuery(q0);
-    assertThat(t.s.latticeMap.size(), is(1));
+    assertThat(t.s.latticeMap, aMapWithSize(1));
     assertThat(t.s.latticeMap.keySet().iterator().next(),
         is("sales_fact_1997 (customer:+($2, 2)):[MIN(customer.fname)]"));
-    assertThat(t.s.space.g.toString(),
-        is("graph(vertices: [[foodmart, customer],"
+    assertThat(t.s.space.g,
+        hasToString("graph(vertices: [[foodmart, customer],"
             + " [foodmart, sales_fact_1997]], "
             + "edges: [Step([foodmart, sales_fact_1997],"
             + " [foodmart, customer], +($2, 2):+($0, 1))])"));
@@ -712,6 +725,127 @@ class LatticeSuggesterTest {
   @Test void testFoodmartSimpleJoin() throws Exception {
     checkFoodmartSimpleJoin(CalciteAssert.SchemaSpec.JDBC_FOODMART);
     checkFoodmartSimpleJoin(CalciteAssert.SchemaSpec.FAKE_FOODMART);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6374">[CALCITE-6374]
+   * LatticeSuggester throw NullPointerException when agg call covered with cast </a>. */
+  @Test void testCastAggrNameExpression() throws Exception {
+    final Tester t = new Tester().foodmart().withEvolve(true);
+    final String q0 = "select\n"
+        + "  \"num_children_at_home\" + 12 as \"n12\",\n"
+        + "  sum(\"num_children_at_home\" + 10) as \"n10\",\n"
+        + "  cast(sum(\"num_children_at_home\" + 11) as double) as \"n11\",\n"
+        + "  count(*) as c\n"
+        + "from \"customer\"\n"
+        + "group by \"num_children_at_home\" + 12";
+    final String l0 = "customer:[COUNT(), SUM(n10), SUM($f2)]";
+    t.addQuery(q0);
+    assertThat(t.s.latticeMap, aMapWithSize(1));
+    assertThat(Iterables.getOnlyElement(t.s.latticeMap.keySet()),
+        is(l0));
+    final Lattice lattice = Iterables.getOnlyElement(t.s.latticeMap.values());
+    final List<Lattice.DerivedColumn> derivedColumns = lattice.columns.stream()
+        .filter(c -> c instanceof Lattice.DerivedColumn)
+        .map(c -> (Lattice.DerivedColumn) c)
+        .collect(Collectors.toList());
+    assertThat(derivedColumns, hasSize(4));
+    final List<String> tables = ImmutableList.of("customer");
+    checkDerivedColumn(lattice, tables, derivedColumns, 0, "n10", true);
+    checkDerivedColumn(lattice, tables, derivedColumns, 1, "$f2", true);
+    checkDerivedColumn(lattice, tables, derivedColumns, 2, "n12", false);
+    checkDerivedColumn(lattice, tables, derivedColumns, 3, "n11", false);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6605">[CALCITE-6605]
+   * Lattice SQL supports complex column expressions </a>. */
+  @Test void testExpressionLatticeSql() throws Exception {
+    final Tester t = new Tester().foodmart().withEvolve(true);
+    final String q0 = "select\n"
+        + "  \"num_children_at_home\" + 12 as \"n12\",\n"
+        + "  sum(\"num_children_at_home\") as \"n10\",\n"
+        + "  count(*) as c\n"
+        + "from \"customer\"\n"
+        + "group by \"num_children_at_home\" + 12";
+    t.addQuery(q0);
+    assertThat(t.s.latticeMap, aMapWithSize(1));
+    final Lattice lattice = Iterables.getOnlyElement(t.s.latticeMap.values());
+    final String l0 = "customer:[COUNT(), SUM(customer.num_children_at_home)]";
+    assertThat(Iterables.getOnlyElement(t.s.latticeMap.keySet()), is(l0));
+    ImmutableList<Measure> measures = lattice.defaultMeasures;
+    assert measures.size() == 2;
+    Builder groupSetBuilder = ImmutableBitSet.builder();
+    measures.forEach(measure -> groupSetBuilder.addAll(measure.argBitSet()));
+    ImmutableBitSet groupSet = groupSetBuilder.build();
+    String sql = "SELECT \"customer\".\"num_children_at_home\", COUNT(*) AS \"m0\", "
+        + "SUM(\"customer\".\"num_children_at_home\") AS \"m1\"\n"
+        + "FROM \"foodmart\".\"customer\" AS \"customer\"\n"
+        + "GROUP BY \"customer\".\"num_children_at_home\"";
+    assertThat(lattice.sql(groupSet, true, measures),
+        is(sql));
+  }
+
+  /** Test case for measure field involving a complex column operation,
+   * for example sum("num_children_at_home" + 10). */
+  @Test void testExpressionLatticeSql2() throws Exception {
+    final Tester t = new Tester().foodmart().withEvolve(true);
+    final String q0 = "select\n"
+        + "  \"num_children_at_home\" + 12 as \"n12\",\n"
+        + "  sum(\"num_children_at_home\" + 10) as \"n10\",\n"
+        + "  sum(\"num_children_at_home\" + 11) as \"n11\",\n"
+        + "  count(*) as c\n"
+        + "from \"customer\"\n"
+        + "group by \"num_children_at_home\" + 12";
+    t.addQuery(q0);
+    assertThat(t.s.latticeMap, aMapWithSize(1));
+    final Lattice lattice = Iterables.getOnlyElement(t.s.latticeMap.values());
+    final String l0 = "customer:[COUNT(), SUM(n10), SUM(n11)]";
+    assertThat(Iterables.getOnlyElement(t.s.latticeMap.keySet()), is(l0));
+    ImmutableList<Measure> measures = lattice.defaultMeasures;
+    assert measures.size() == 3;
+    Builder groupSetBuilder = ImmutableBitSet.builder();
+    measures.forEach(measure -> groupSetBuilder.addAll(measure.argBitSet()));
+    ImmutableBitSet groupSet = groupSetBuilder.build();
+    String sql = "SELECT \"num_children_at_home\" + 10 AS \"n10\", "
+        + "\"num_children_at_home\" + 11 AS \"n11\", COUNT(*) AS \"m0\", "
+        + "SUM(\"num_children_at_home\" + 10) AS \"m1\", "
+        + "SUM(\"num_children_at_home\" + 11) AS \"m2\"\n"
+        + "FROM \"foodmart\".\"customer\" AS \"customer\"\n"
+        + "GROUP BY \"num_children_at_home\" + 10, \"num_children_at_home\" + 11";
+    assertThat(lattice.sql(groupSet, true, measures),
+        is(sql));
+  }
+
+  /** Test case for measure field involving a complex column operation with functions,
+   * for example sum(cast("num_children_at_home" as double) + 11). */
+  @Test void testExpressionLatticeSql3() throws Exception {
+    final Tester t = new Tester().foodmart().withEvolve(true);
+    final String q0 = "select\n"
+        + "  \"num_children_at_home\" + 12 as \"n12\",\n"
+        + "  sum(\"num_children_at_home\" + 10) as \"n10\",\n"
+        + "  sum(cast(\"num_children_at_home\" as double) + 11) as \"n11\",\n"
+        + "  count(*) as c\n"
+        + "from \"customer\"\n"
+        + "group by \"num_children_at_home\" + 12";
+    t.addQuery(q0);
+    assertThat(t.s.latticeMap, aMapWithSize(1));
+    final Lattice lattice = Iterables.getOnlyElement(t.s.latticeMap.values());
+    final String l0 = "customer:[COUNT(), SUM(n10), SUM(n11)]";
+    assertThat(Iterables.getOnlyElement(t.s.latticeMap.keySet()), is(l0));
+    ImmutableList<Measure> measures = lattice.defaultMeasures;
+    assert measures.size() == 3;
+    Builder groupSetBuilder = ImmutableBitSet.builder();
+    measures.forEach(measure -> groupSetBuilder.addAll(measure.argBitSet()));
+    ImmutableBitSet groupSet = groupSetBuilder.build();
+    String sql = "SELECT \"num_children_at_home\" + 10 AS \"n10\", "
+        + "CAST(\"num_children_at_home\" AS DOUBLE) + 11 AS \"n11\", "
+        + "COUNT(*) AS \"m0\", SUM(\"num_children_at_home\" + 10) AS \"m1\", "
+        + "SUM(CAST(\"num_children_at_home\" AS DOUBLE) + 11) AS \"m2\"\n"
+        + "FROM \"foodmart\".\"customer\" AS \"customer\"\n"
+        + "GROUP BY \"num_children_at_home\" + 10, CAST(\"num_children_at_home\" AS DOUBLE) + 11";
+    assertThat(lattice.sql(groupSet, true, measures),
+        is(sql));
   }
 
   private void checkFoodmartSimpleJoin(CalciteAssert.SchemaSpec schemaSpec)
@@ -750,7 +884,7 @@ class LatticeSuggesterTest {
 
     // Adding a query generates two lattices
     final List<Lattice> latticeList = t.addQuery(q);
-    assertThat(latticeList.size(), is(2));
+    assertThat(latticeList, hasSize(2));
 
     // But because of 'evolve' flag, the lattices are merged into a single
     // lattice
@@ -815,6 +949,12 @@ class LatticeSuggesterTest {
       return new Tester(config);
     }
 
+    Tester sqlToRelConverter(UnaryOperator<SqlToRelConverter.Config> sqlToRelConverterConfig) {
+      return withConfig(
+          builder().sqlToRelConverterConfig(sqlToRelConverterConfig
+              .apply(config.getSqlToRelConverterConfig())).build());
+    }
+
     Tester foodmart() {
       return schema(CalciteAssert.SchemaSpec.JDBC_FOODMART);
     }
@@ -842,7 +982,7 @@ class LatticeSuggesterTest {
     LatticeRootNode node(String q) throws SqlParseException,
         ValidationException, RelConversionException {
       final List<Lattice> list = addQuery(q);
-      assertThat(list.size(), is(1));
+      assertThat(list, hasSize(1));
       return list.get(0).rootNode;
     }
 

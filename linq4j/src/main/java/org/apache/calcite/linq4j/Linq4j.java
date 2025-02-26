@@ -30,6 +30,8 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.RandomAccess;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Utility and factory methods for Linq4j.
  */
@@ -86,7 +88,7 @@ public abstract class Linq4j {
    *
    * <p><b>WARNING</b>: The iterator returned by this method does not call
    * {@link org.apache.calcite.linq4j.Enumerator#close()}, so it is not safe to
-   * use with an enumerator that allocates resources.</p>
+   * use with an enumerator that allocates resources.
    *
    * @param enumerator Enumerator
    * @param <T> Element type
@@ -131,7 +133,7 @@ public abstract class Linq4j {
    * Adapter that converts an {@link Collection} into an {@link Enumerable}.
    *
    * <p>It uses more efficient implementations if the iterable happens to
-   * be a {@link List}.</p>
+   * be a {@link List}.
    *
    * @param collection Collection
    * @param <T> Element type
@@ -150,7 +152,7 @@ public abstract class Linq4j {
    * Adapter that converts an {@link Iterable} into an {@link Enumerable}.
    *
    * <p>It uses more efficient implementations if the iterable happens to
-   * be a {@link Collection} or a {@link List}.</p>
+   * be a {@link Collection} or a {@link List}.
    *
    * @param iterable Iterable
    * @param <T> Element type
@@ -263,7 +265,7 @@ public abstract class Linq4j {
    * <p>The {@code ofType} method returns only those elements in source that
    * can be cast to type TResult. To instead receive an exception if an
    * element cannot be cast to type TResult, use
-   * {@link #cast(Iterable, Class)}.</p>
+   * {@link #cast(Iterable, Class)}.
    *
    * <p>Since standard Java {@link Collection} objects implement the
    * {@link Iterable} interface, the {@code cast} method enables the standard
@@ -368,13 +370,13 @@ public abstract class Linq4j {
    * enumerator B that returns {"x", "y"}, product(List(A, B)) will return
    * {List("a", "x"), List("a", "y"),
    * List("b", "x"), List("b", "y"),
-   * List("c", "x"), List("c", "y")}.</p>
+   * List("c", "x"), List("c", "y")}.
    *
    * <p>Notice that the cardinality of the result is the product of the
    * cardinality of the inputs. The enumerators A and B have 3 and 2
    * elements respectively, and the result has 3 * 2 = 6 elements.
    * This is always the case. In
-   * particular, if any of the enumerators is empty, the result is empty.</p>
+   * particular, if any of the enumerators is empty, the result is empty.
    *
    * @param enumerators List of enumerators
    * @param <T> Element type
@@ -407,21 +409,6 @@ public abstract class Linq4j {
   @Deprecated // to be removed before 2.0
   public static <T> boolean equals(T t0, T t1) {
     return Objects.equals(t0, t1);
-  }
-
-  /**
-   * Throws {@link NullPointerException} if argument is null, otherwise
-   * returns argument.
-   *
-   * <p>Equivalent to {@link java.util.Objects#requireNonNull} in JDK 1.7 and
-   * above.
-   */
-  @Deprecated // to be removed before 2.0
-  public static <T> T requireNonNull(T o) {
-    if (o == null) {
-      throw new NullPointerException();
-    }
-    return o;
   }
 
   /** Closes an iterator, if it can be closed. */
@@ -460,7 +447,7 @@ public abstract class Linq4j {
     }
 
     @Override public boolean moveNext() {
-      if (Objects.requireNonNull(iterator, "iterator").hasNext()) {
+      if (requireNonNull(iterator, "iterator").hasNext()) {
         current = iterator.next();
         return true;
       }

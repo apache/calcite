@@ -34,6 +34,7 @@ enum ElasticsearchMethod {
       List.class, // ops  - projections and other stuff
       List.class, // fields
       List.class, // sort
+      List.class, // nulls sort
       List.class, // groupBy
       List.class, // aggregations
       Map.class, // item to expression mapping. Eg. _MAP['a.b.c'] and EXPR$1
@@ -47,7 +48,7 @@ enum ElasticsearchMethod {
 
   static {
     final ImmutableMap.Builder<Method, ElasticsearchMethod> builder = ImmutableMap.builder();
-    for (ElasticsearchMethod value: ElasticsearchMethod.values()) {
+    for (ElasticsearchMethod value : ElasticsearchMethod.values()) {
       builder.put(value.method, value);
     }
     MAP = builder.build();

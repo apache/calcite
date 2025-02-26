@@ -16,15 +16,11 @@
  */
 package org.apache.calcite.sql.dialect;
 
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.sql.SqlBasicTypeNameSpec;
 import org.apache.calcite.sql.SqlCall;
-import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
-import org.apache.calcite.sql.parser.SqlParserPos;
 
 import com.google.common.collect.ImmutableList;
 
@@ -134,6 +130,10 @@ public class ExasolSqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public boolean supportsTimestampPrecision() {
+    return false;
+  }
+
   @Override public boolean supportsAggregateFunction(SqlKind kind) {
     switch (kind) {
     case AVG:
@@ -156,18 +156,6 @@ public class ExasolSqlDialect extends SqlDialect {
   @Override protected boolean identifierNeedsQuote(String val) {
     return !IDENTIFIER_REGEX.matcher(val).matches()
         || RESERVED_KEYWORDS.contains(val.toUpperCase(Locale.ROOT));
-  }
-
-  @Override public @Nullable SqlNode getCastSpec(RelDataType type) {
-    switch (type.getSqlTypeName()) {
-    case TIMESTAMP:
-      // Exasol does not support TIMESTAMP with precision.
-      return new SqlDataTypeSpec(
-        new SqlBasicTypeNameSpec(type.getSqlTypeName(), SqlParserPos.ZERO),
-        SqlParserPos.ZERO);
-    default:
-      return super.getCastSpec(type);
-    }
   }
 
   @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,

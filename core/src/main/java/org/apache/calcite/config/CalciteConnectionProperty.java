@@ -80,24 +80,26 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
   LEX("lex", Type.ENUM, Lex.ORACLE, false),
 
   /** Collection of built-in functions and operators. Valid values include
-   * "standard", "bigquery", "mysql", "oracle", "postgresql" and "spatial",
+   * "standard", "bigquery", "calcite", "hive", "mssql", "mysql", "oracle",
+   * "postgresql", "redshift", "snowflake","spark", "spatial" and
+   * "all"(operators that could be used in all libraries except "standard" and "spatial"),
    * and also comma-separated lists, for example "oracle,spatial". */
   FUN("fun", Type.STRING, "standard", true),
 
   /** How identifiers are quoted.
-   *  If not specified, value from {@link #LEX} is used. */
+   * If not specified, value from {@link #LEX} is used. */
   QUOTING("quoting", Type.ENUM, null, false, Quoting.class),
 
   /** How identifiers are stored if they are quoted.
-   *  If not specified, value from {@link #LEX} is used. */
+   * If not specified, value from {@link #LEX} is used. */
   QUOTED_CASING("quotedCasing", Type.ENUM, null, false, Casing.class),
 
   /** How identifiers are stored if they are not quoted.
-   *  If not specified, value from {@link #LEX} is used. */
+   * If not specified, value from {@link #LEX} is used. */
   UNQUOTED_CASING("unquotedCasing", Type.ENUM, null, false, Casing.class),
 
   /** Whether identifiers are matched case-sensitively.
-   *  If not specified, value from {@link #LEX} is used. */
+   * If not specified, value from {@link #LEX} is used. */
   CASE_SENSITIVE("caseSensitive", Type.BOOLEAN, null, false),
 
   /** Parser factory.
@@ -105,6 +107,12 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
    * <p>The name of a class that implements
    * {@link org.apache.calcite.sql.parser.SqlParserImplFactory}. */
   PARSER_FACTORY("parserFactory", Type.PLUGIN, null, false),
+
+  /** MetaTableFactory plugin. */
+  META_TABLE_FACTORY("metaTableFactory", Type.PLUGIN, null, false),
+
+  /** MetaColumnFactory plugin. */
+  META_COLUMN_FACTORY("metaColumnFactory", Type.PLUGIN, null, false),
 
   /** Name of initial schema. */
   SCHEMA("schema", Type.STRING, null, false),

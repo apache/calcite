@@ -33,6 +33,10 @@ public abstract class SqlAbstractConformance implements SqlConformance {
     return SqlConformanceEnum.DEFAULT.allowCharLiteralAlias();
   }
 
+  @Override public boolean isSupportedDualTable() {
+    return SqlConformanceEnum.DEFAULT.isSupportedDualTable();
+  }
+
   @Override public boolean isGroupByAlias() {
     return SqlConformanceEnum.DEFAULT.isGroupByAlias();
   }
@@ -89,6 +93,10 @@ public abstract class SqlAbstractConformance implements SqlConformance {
     return SqlConformanceEnum.DEFAULT.allowNiladicParentheses();
   }
 
+  @Override public boolean allowNiladicConstantWithoutParentheses() {
+    return SqlConformanceEnum.DEFAULT.allowNiladicConstantWithoutParentheses();
+  }
+
   @Override public boolean allowExplicitRowValueConstructor() {
     return SqlConformanceEnum.DEFAULT.allowExplicitRowValueConstructor();
   }
@@ -99,6 +107,10 @@ public abstract class SqlAbstractConformance implements SqlConformance {
 
   @Override public boolean isLimitStartCountAllowed() {
     return SqlConformanceEnum.DEFAULT.isLimitStartCountAllowed();
+  }
+
+  @Override public boolean isOffsetLimitAllowed() {
+    return SqlConformanceEnum.DEFAULT.isOffsetLimitAllowed();
   }
 
   @Override public boolean isPercentRemainderAllowed() {
@@ -129,8 +141,19 @@ public abstract class SqlAbstractConformance implements SqlConformance {
     return SqlConformanceEnum.DEFAULT.allowAliasUnnestItems();
   }
 
+  @Override public boolean isValueAllowed() {
+    return SqlConformanceEnum.DEFAULT.isValueAllowed();
+  }
+
   @Override public SqlLibrary semantics() {
     return SqlConformanceEnum.DEFAULT.semantics();
   }
 
+  @Override public boolean allowLenientCoercion() {
+    return SqlConformanceEnum.DEFAULT.allowLenientCoercion();
+  }
+
+  @Override public boolean checkedArithmetic() {
+    return SqlConformanceEnum.DEFAULT.checkedArithmetic();
+  }
 }

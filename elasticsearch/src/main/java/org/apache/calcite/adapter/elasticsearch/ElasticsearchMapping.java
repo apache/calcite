@@ -26,11 +26,12 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Stores Elasticsearch
@@ -48,8 +49,8 @@ class ElasticsearchMapping {
 
   ElasticsearchMapping(final String index,
       final Map<String, String> mapping) {
-    this.index = Objects.requireNonNull(index, "index");
-    Objects.requireNonNull(mapping, "mapping");
+    this.index = requireNonNull(index, "index");
+    requireNonNull(mapping, "mapping");
 
     final Map<String, Datatype> transformed = mapping.entrySet().stream()
         .collect(Collectors.toMap(Map.Entry::getKey, e -> new Datatype(e.getValue())));
@@ -80,8 +81,9 @@ class ElasticsearchMapping {
    */
   Optional<JsonNode> missingValueFor(String fieldName) {
     if (!mapping().containsKey(fieldName)) {
-      final String message = String.format(Locale.ROOT,
-          "Field %s not defined for %s", fieldName, index);
+      final String message =
+          String.format(Locale.ROOT,
+              "Field %s not defined for %s", fieldName, index);
       throw new IllegalArgumentException(message);
     }
 
@@ -113,7 +115,7 @@ class ElasticsearchMapping {
     private final JsonNode missingValue;
 
     private Datatype(final String name) {
-      this.name = Objects.requireNonNull(name, "name");
+      this.name = requireNonNull(name, "name");
       this.missingValue = missingValueForType(name);
     }
 

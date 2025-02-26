@@ -47,7 +47,7 @@ import java.util.List;
  * </ul>
  *
  * <p>REFERENCE: <a href="https://docs.microsoft.com/en-us/sql/t-sql/data-types/data-type-conversion-database-engine?">SQL-SERVER</a>
- * <a href="https://cwiki.apache.org/confluence/display/Hive/LanguageManual+Types">HIVE</a></p>
+ * <a href="https://cwiki.apache.org/confluence/display/Hive/LanguageManual+Types">HIVE</a>
  */
 public interface TypeCoercion {
   /**
@@ -93,8 +93,7 @@ public interface TypeCoercion {
       @Nullable RelDataType type1, @Nullable RelDataType type2);
 
   /**
-   * Determines common type for a comparison operator whose operands are STRING
-   * type and the other (non STRING) type.
+   * Determines common type for a comparison operator.
    */
   @Nullable RelDataType commonTypeForBinaryComparison(
       @Nullable RelDataType type1, @Nullable RelDataType type2);

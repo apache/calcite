@@ -45,6 +45,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Relational expression representing a scan of Splunk.
  *
@@ -52,7 +54,7 @@ import java.util.Map;
  * instance is one large table. This "table" does not have a fixed set of
  * columns (Splunk calls them "fields") but each query specifies the fields that
  * it wants. It also specifies a search expression, and optionally earliest and
- * latest dates.</p>
+ * latest dates.
  */
 public class SplunkTableScan
     extends TableScan
@@ -76,14 +78,11 @@ public class SplunkTableScan
         cluster.traitSetOf(EnumerableConvention.INSTANCE),
         ImmutableList.of(),
         table);
-    this.splunkTable = splunkTable;
-    this.search = search;
+    this.splunkTable = requireNonNull(splunkTable, "splunkTable");
+    this.search = requireNonNull(search, "search");
     this.earliest = earliest;
     this.latest = latest;
     this.fieldList = fieldList;
-
-    assert splunkTable != null;
-    assert search != null;
   }
 
   @Override public RelWriter explainTerms(RelWriter pw) {

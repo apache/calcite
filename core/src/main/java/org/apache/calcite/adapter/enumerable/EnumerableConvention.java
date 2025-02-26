@@ -28,8 +28,6 @@ import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.RelFactories;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -55,14 +53,14 @@ public enum EnumerableConvention implements Convention {
     return "ENUMERABLE";
   }
 
-  @Override public @Nullable RelNode enforce(
+  @Override public RelNode enforce(
       final RelNode input,
       final RelTraitSet required) {
     RelNode rel = input;
     if (input.getConvention() != INSTANCE) {
-      rel = ConventionTraitDef.INSTANCE.convert(
-          input.getCluster().getPlanner(),
-          input, INSTANCE, true);
+      rel =
+          ConventionTraitDef.INSTANCE.convert(input.getCluster().getPlanner(),
+              input, INSTANCE, true);
       requireNonNull(rel,
           () -> "Unable to convert input to " + INSTANCE + ", input = " + input);
     }

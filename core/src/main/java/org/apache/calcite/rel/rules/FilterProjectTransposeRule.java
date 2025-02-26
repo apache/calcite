@@ -31,7 +31,8 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.ImmutableBeans;
+
+import org.immutables.value.Value;
 
 import java.util.Collections;
 import java.util.function.Predicate;
@@ -43,6 +44,7 @@ import java.util.function.Predicate;
  *
  * @see CoreRules#FILTER_PROJECT_TRANSPOSE
  */
+@Value.Enclosing
 public class FilterProjectTransposeRule
     extends RelRule<FilterProjectTransposeRule.Config>
     implements TransformationRule {
@@ -162,7 +164,10 @@ public class FilterProjectTransposeRule
     }
     // convert the filter to one that references the child of the project
     RexNode newCondition =
-        RelOptUtil.pushPastProject(filter.getCondition(), project);
+        RelOptUtil.pushPastProjectUnlessBloat(filter.getCondition(), project, config.bloat());
+    if (newCondition == null) {
+      return;
+    }
 
     final RelBuilder relBuilder = call.builder();
     RelNode newFilterRel;
@@ -185,9 +190,10 @@ public class FilterProjectTransposeRule
     RelNode newProject =
         config.isCopyProject()
             ? project.copy(project.getTraitSet(), newFilterRel,
-                project.getProjects(), project.getRowType())
+            project.getProjects(), project.getRowType())
             : relBuilder.push(newFilterRel)
-                .project(project.getProjects(), project.getRowType().getFieldNames())
+                .project(project.getProjects(), project.getRowType().getFieldNames(), false,
+                    project.getVariablesSet())
                 .build();
 
     call.transformTo(newProject);
@@ -203,8 +209,9 @@ public class FilterProjectTransposeRule
    * <p>Defining predicates for the Filter (using {@code filterPredicate})
    * and/or the Project (using {@code projectPredicate} allows making the rule
    * more restrictive. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableFilterProjectTransposeRule.Config.of()
         .withOperandFor(Filter.class,
             f -> !RexUtil.containsCorrelation(f.getCondition()),
             Project.class, p -> true)
@@ -217,18 +224,18 @@ public class FilterProjectTransposeRule
 
     /** Whether to create a {@link Filter} of the same convention as the
      * matched Filter. */
-    @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(true)
-    boolean isCopyFilter();
+    @Value.Default default boolean isCopyFilter() {
+      return true;
+    }
 
     /** Sets {@link #isCopyFilter()}. */
     Config withCopyFilter(boolean copyFilter);
 
     /** Whether to create a {@link Project} of the same convention as the
      * matched Project. */
-    @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(true)
-    boolean isCopyProject();
+    @Value.Default default boolean isCopyProject() {
+      return true;
+    }
 
     /** Sets {@link #isCopyProject()}. */
     Config withCopyProject(boolean copyProject);
@@ -254,5 +261,14 @@ public class FilterProjectTransposeRule
                   b2.operand(relClass).anyInputs())))
           .as(Config.class);
     }
+
+    /** Limit how much complexity can increase during merging.
+     * Default is {@link RelOptUtil#DEFAULT_BLOAT}. */
+    @Value.Default default int bloat() {
+      return RelOptUtil.DEFAULT_BLOAT;
+    }
+
+    /** Sets {@link #bloat()}. */
+    Config withBloat(int bloat);
   }
 }

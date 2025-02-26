@@ -17,20 +17,16 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.config.CalciteSystemProperty;
-import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.TestUtil;
 
-import org.apache.cassandra.concurrent.StageManager;
+import org.apache.cassandra.concurrent.Stage;
 import org.apache.cassandra.config.DatabaseDescriptor;
-import org.apache.cassandra.db.WindowsFailedSnapshotTracker;
 import org.apache.cassandra.service.CassandraDaemon;
 import org.apache.cassandra.service.StorageService;
-import org.apache.cassandra.utils.FBUtilities;
-import org.apache.thrift.transport.TTransportException;
+import org.apache.commons.lang3.SystemUtils;
 
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
 import com.google.common.collect.ImmutableMap;
 
 import org.cassandraunit.utils.EmbeddedCassandraServerHelper;
@@ -45,18 +41,22 @@ import org.junit.jupiter.api.extension.ParameterResolver;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.lang.reflect.Field;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.net.URL;
 import java.time.Duration;
 import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 
+import static java.util.Objects.requireNonNull;
+
 /**
- * JUnit5 extension to start and stop embedded cassandra server.
+ * JUnit5 extension to start and stop embedded Cassandra server.
  *
- * <p>Note that tests will be skipped if running on JDK11+
- * (which is not yet supported by cassandra) see
- *  <a href="https://issues.apache.org/jira/browse/CASSANDRA-9608">CASSANDRA-9608</a>.
+ * <p>Note that tests will be skipped if running on JDK11+, Eclipse OpenJ9 JVM or Windows
+ * (the first isn't supported by cassandra-unit, the last two by Cassandra) see
+ * <a href="https://github.com/jsevellec/cassandra-unit/issues/294">cassandra-unit issue #294</a>
+ * <a href="https://issues.apache.org/jira/browse/CASSANDRA-14883">CASSANDRA-14883</a>,
+ * and <a href="https://issues.apache.org/jira/browse/CASSANDRA-16956">CASSANDRA-16956</a>,
+ * respectively.
  */
 class CassandraExtension implements ParameterResolver, ExecutionCondition {
 
@@ -68,32 +68,29 @@ class CassandraExtension implements ParameterResolver, ExecutionCondition {
   @Override public boolean supportsParameter(final ParameterContext parameterContext,
       final ExtensionContext extensionContext) throws ParameterResolutionException {
     final Class<?> type = parameterContext.getParameter().getType();
-    return Session.class.isAssignableFrom(type) || Cluster.class.isAssignableFrom(type);
+    return CqlSession.class.isAssignableFrom(type);
   }
 
   @Override public Object resolveParameter(final ParameterContext parameterContext,
       final ExtensionContext extensionContext) throws ParameterResolutionException {
 
     Class<?> type = parameterContext.getParameter().getType();
-    if (Session.class.isAssignableFrom(type)) {
+    if (CqlSession.class.isAssignableFrom(type)) {
       return getOrCreate(extensionContext).session;
-    } else if (Cluster.class.isAssignableFrom(type)) {
-      return getOrCreate(extensionContext).cluster;
     }
 
     throw new ExtensionConfigurationException(
-        String.format(Locale.ROOT, "%s supports only %s or %s but yours was %s",
-        CassandraExtension.class.getSimpleName(),
-        Session.class.getName(), Cluster.class.getName(), type.getName()));
+        String.format(Locale.ROOT, "%s supports only %s but yours was %s",
+        CassandraExtension.class.getSimpleName(), CqlSession.class.getName(), type.getName()));
   }
 
   static ImmutableMap<String, String> getDataset(String resourcePath) {
+    URL u = CassandraExtension.class.getResource(resourcePath);
     return ImmutableMap.of("model",
-        Sources.of(CassandraExtension.class.getResource(resourcePath))
-            .file().getAbsolutePath());
+        Sources.of(requireNonNull(u, "u")).file().getAbsolutePath());
   }
 
-  /** Registers a Cassandra resource in root context so it can be shared with
+  /** Registers a Cassandra resource in root context, so it can be shared with
    * other tests. */
   private static CassandraResource getOrCreate(ExtensionContext context) {
     // same cassandra instance should be shared across all extension instances
@@ -104,57 +101,82 @@ class CassandraExtension implements ParameterResolver, ExecutionCondition {
 
   /**
    * Whether to run this test.
+   *
    * <p>Enabled by default, unless explicitly disabled
    * from command line ({@code -Dcalcite.test.cassandra=false}) or running on incompatible JDK
-   * version (see below).
+   * version or JVM (see below).
    *
-   * <p>As of this wiring Cassandra 4.x is not yet released and we're using 3.x
-   * (which fails on JDK11+). All cassandra tests will be skipped if
-   * running on JDK11+.
+   * <p>cassandra-unit does not support JDK11+ yet, therefore all cassandra tests will be skipped
+   * if this JDK version is used.
    *
-   * @see <a href="https://issues.apache.org/jira/browse/CASSANDRA-9608">CASSANDRA-9608</a>
+   * @see <a href="https://github.com/jsevellec/cassandra-unit/issues/294">cassandra-unit issue #294</a>
+   *
+   * <p>Cassandra does not support Eclipse OpenJ9 JVM, therefore all cassandra tests will be
+   * skipped if this JVM version is used.
+   *
+   * @see <a href="https://issues.apache.org/jira/browse/CASSANDRA-14883">CASSANDRA-14883</a>
+   *
+   * <p>Cassandra requires method
+   * {@link com.google.common.collect.ImmutableSet#builderWithExpectedSize(int)}
+   * and therefore Guava 23 or higher.
+   *
+   * <p>Cassandra dropped support for Windows in 4.1.x
+   * @see <a href="https://issues.apache.org/jira/browse/CASSANDRA-16956">CASSANDRA-16956</a>
+   *
    * @return {@code true} if test is compatible with current environment,
    *         {@code false} otherwise
    */
   @Override public ConditionEvaluationResult evaluateExecutionCondition(
       final ExtensionContext context) {
     boolean enabled = CalciteSystemProperty.TEST_CASSANDRA.value();
-    Bug.upgrade("remove JDK version check once current adapter supports Cassandra 4.x");
+    // remove JDK version check once cassandra-unit supports JDK11+
     boolean compatibleJdk = TestUtil.getJavaMajorVersion() < 11;
-    boolean compatibleGuava = TestUtil.getGuavaMajorVersion() < 26;
-    if (enabled && compatibleJdk && compatibleGuava) {
-      return ConditionEvaluationResult.enabled("Cassandra enabled");
+    boolean compatibleGuava = TestUtil.getGuavaMajorVersion() >= 23;
+    // remove JVM check once Cassandra supports Eclipse OpenJ9 JVM
+    boolean compatibleJVM = !"Eclipse OpenJ9".equals(TestUtil.getJavaVirtualMachineVendor());
+    boolean compatibleOS = !SystemUtils.IS_OS_WINDOWS;
+    if (enabled && compatibleJdk && compatibleGuava && compatibleJVM && compatibleOS) {
+      return ConditionEvaluationResult.enabled("Cassandra tests enabled");
     }
-    return ConditionEvaluationResult.disabled("Cassandra tests disabled");
+
+    final StringBuilder sb = new StringBuilder("Cassandra tests disabled:");
+    if (!compatibleJdk) {
+      sb.append("\n - JDK11+ is not supported");
+    }
+    if (!compatibleGuava) {
+      sb.append("\n - Guava versions < 23 are not supported");
+    }
+    if (!compatibleJVM) {
+      sb.append("\n - Eclipse OpenJ9 JVM is not supported");
+    }
+    if (!compatibleOS) {
+      sb.append("\n - Cassandra doesn't support Windows");
+    }
+    return ConditionEvaluationResult.disabled(sb.toString());
   }
 
   /** Cassandra resource. */
   private static class CassandraResource
       implements ExtensionContext.Store.CloseableResource {
-    private final Session session;
-    private final Cluster cluster;
+    private final CqlSession session;
 
     private CassandraResource() {
       startCassandra();
-      this.cluster = EmbeddedCassandraServerHelper.getCluster();
       this.session = EmbeddedCassandraServerHelper.getSession();
     }
 
     /**
-     * Best effort to gracefully shutdown <strong>embedded</strong> cassandra cluster.
+     * Best effort to gracefully shutdown <strong>embedded</strong> cassandra
+     * cluster.
      *
-     * Since it uses many static variables as well as {@link System#exit(int)} during close,
-     * clean shutdown (as part of unit test) is not straightforward.
+     * <p>Since it uses many static variables as well as {@link System#exit(int)}
+     * during close, clean shutdown (as part of unit test) is not
+     * straightforward.
      */
-    @Override public void close() throws IOException {
-
+    @Override public void close() {
       session.close();
-      cluster.close();
 
       CassandraDaemon daemon = extractDaemon();
-      if (daemon.thriftServer != null) {
-        daemon.thriftServer.stop();
-      }
       daemon.stopNativeTransport();
 
       StorageService storage = StorageService.instance;
@@ -168,15 +190,7 @@ class CassandraExtension implements ParameterResolver, ExecutionCondition {
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
       }
-      StageManager.shutdownNow();
-
-      if (FBUtilities.isWindows) {
-        // for some reason .toDelete stale folder is not deleted on cassandra shutdown
-        // doing it manually here
-        WindowsFailedSnapshotTracker.resetForTests();
-        // manually delete stale file(s)
-        Files.deleteIfExists(Paths.get(WindowsFailedSnapshotTracker.TODELETEFILE));
-      }
+      Stage.shutdownNow();
     }
 
     private static void startCassandra() {
@@ -191,9 +205,7 @@ class CassandraExtension implements ParameterResolver, ExecutionCondition {
       // Apache Jenkins often fails with
       // Cassandra daemon did not start within timeout (20 sec by default)
       try {
-        EmbeddedCassandraServerHelper.startEmbeddedCassandra(Duration.ofMinutes(1).toMillis());
-      } catch (TTransportException e) {
-        throw new RuntimeException(e);
+        EmbeddedCassandraServerHelper.startEmbeddedCassandra(Duration.ofMinutes(2).toMillis());
       } catch (IOException e) {
         throw new UncheckedIOException(e);
       }
@@ -219,5 +231,4 @@ class CassandraExtension implements ParameterResolver, ExecutionCondition {
       }
     }
   }
-
 }

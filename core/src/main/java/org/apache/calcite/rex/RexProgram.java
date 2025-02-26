@@ -30,7 +30,6 @@ import org.apache.calcite.rel.externalize.RelWriterImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlExplainLevel;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
@@ -109,7 +108,7 @@ public class RexProgram {
    * Creates a program.
    *
    * <p>The expressions must be valid: they must not contain common expressions,
-   * forward references, or non-trivial aggregates.</p>
+   * forward references, or non-trivial aggregates.
    *
    * @param inputRowType  Input row type
    * @param exprs         Common expressions
@@ -245,12 +244,12 @@ public class RexProgram {
    * In this case, the input is mainly from the output json string of {@link RelJsonWriter}
    */
   public static RexProgram create(RelInput input) {
-    final List<RexNode> exprs = requireNonNull(input.getExpressionList("exprs"), "exprs");
-    final List<RexNode> projectRexNodes = requireNonNull(
-        input.getExpressionList("projects"),
-        "projects");
+    final List<RexNode> exprs =
+        requireNonNull(input.getExpressionList("exprs"), "exprs");
+    final List<RexNode> projectRexNodes =
+        requireNonNull(input.getExpressionList("projects"), "projects");
     final List<RexLocalRef> projects = new ArrayList<>(projectRexNodes.size());
-    for (RexNode rexNode: projectRexNodes) {
+    for (RexNode rexNode : projectRexNodes) {
       projects.add((RexLocalRef) rexNode);
     }
     final RelDataType inputType = input.getRowType("inputRowType");
@@ -517,7 +516,7 @@ public class RexProgram {
    *
    * <p>Like {@link RexUtil#isNull(RexNode)}, null literals are null, and
    * casts of null literals are null. But this method also regards references
-   * to null expressions as null.</p>
+   * to null expressions as null.
    *
    * @param expr Expression
    * @return Whether expression always evaluates to null
@@ -723,12 +722,6 @@ public class RexProgram {
     int index = project.index;
     while (true) {
       RexNode expr = exprs.get(index);
-      if (expr instanceof RexCall
-          && ((RexCall) expr).getOperator()
-          == SqlStdOperatorTable.IN_FENNEL) {
-        // drill through identity function
-        expr = ((RexCall) expr).getOperands().get(0);
-      }
       if (expr instanceof RexLocalRef) {
         index = ((RexLocalRef) expr).index;
       } else if (expr instanceof RexInputRef) {
@@ -998,7 +991,8 @@ public class RexProgram {
           fieldAccess.getReferenceExpr().accept(this);
       return new RexFieldAccess(
           requireNonNull(referenceExpr, "referenceExpr must not be null"),
-          fieldAccess.getField());
+          fieldAccess.getField(),
+          fieldAccess.getType());
     }
   }
 

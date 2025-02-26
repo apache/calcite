@@ -209,8 +209,8 @@ public class RelCollations {
     if (colKeys.size() < distinctKeys.size()) {
       return false;
     } else {
-      ImmutableBitSet bitset = ImmutableBitSet.of(
-          colKeys.subList(0, distinctKeys.size()));
+      ImmutableBitSet bitset =
+          ImmutableBitSet.of(colKeys.subList(0, distinctKeys.size()));
       return bitset.equals(keysBitSet);
     }
   }
@@ -270,7 +270,7 @@ public class RelCollations {
     for (RelFieldCollation fc : collation.getFieldCollations()) {
       fieldCollations.add(fc.shift(offset));
     }
-    return new RelCollationImpl(fieldCollations.build());
+    return RelCollationTraitDef.INSTANCE.canonize(new RelCollationImpl(fieldCollations.build()));
   }
 
   /** Creates a copy of this collation that changes the ordinals of input

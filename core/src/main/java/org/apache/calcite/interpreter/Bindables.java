@@ -76,20 +76,25 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
+
+import static com.google.common.base.Preconditions.checkArgument;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Utilities pertaining to {@link BindableRel} and {@link BindableConvention}.
  */
+@Value.Enclosing
 public class Bindables {
   private Bindables() {}
 
@@ -188,11 +193,11 @@ public class Bindables {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
     public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
+      Config DEFAULT = ImmutableBindables.Config.of()
           .withOperandSupplier(b ->
-              b.operand(LogicalTableScan.class).noInputs())
-          .as(Config.class);
+              b.operand(LogicalTableScan.class).noInputs());
 
       @Override default BindableTableScanRule toRule() {
         return new BindableTableScanRule(this);
@@ -214,9 +219,9 @@ public class Bindables {
         RelOptTable table, ImmutableList<RexNode> filters,
         ImmutableIntList projects) {
       super(cluster, traitSet, ImmutableList.of(), table);
-      this.filters = Objects.requireNonNull(filters, "filters");
-      this.projects = Objects.requireNonNull(projects, "projects");
-      Preconditions.checkArgument(canHandle(table));
+      this.filters = requireNonNull(filters, "filters");
+      this.projects = requireNonNull(projects, "projects");
+      checkArgument(canHandle(table));
     }
 
     /** Creates a BindableTableScan. */
@@ -262,6 +267,11 @@ public class Bindables {
       return super.explainTerms(pw)
           .itemIf("filters", filters, !filters.isEmpty())
           .itemIf("projects", projects, !projects.equals(identity()));
+    }
+
+    @Override public double estimateRowCount(RelMetadataQuery mq) {
+      double f = filters.isEmpty() ? 1d : 0.5d;
+      return super.estimateRowCount(mq) * f;
     }
 
     @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
@@ -384,6 +394,11 @@ public class Bindables {
       super(config);
     }
 
+    @Override public boolean matches(RelOptRuleCall call) {
+      final LogicalProject project = call.rel(0);
+      return project.getVariablesSet().isEmpty();
+    }
+
     @Override public RelNode convert(RelNode rel) {
       final LogicalProject project = (LogicalProject) rel;
       return new BindableProject(rel.getCluster(),
@@ -401,7 +416,7 @@ public class Bindables {
   public static class BindableProject extends Project implements BindableRel {
     public BindableProject(RelOptCluster cluster, RelTraitSet traitSet,
         RelNode input, List<? extends RexNode> projects, RelDataType rowType) {
-      super(cluster, traitSet, ImmutableList.of(), input, projects, rowType);
+      super(cluster, traitSet, ImmutableList.of(), input, projects, rowType, ImmutableSet.of());
       assert getConvention() instanceof BindableConvention;
     }
 
@@ -824,6 +839,11 @@ public class Bindables {
 
     @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
       return new BindableWindow(getCluster(), traitSet, sole(inputs),
+          constants, getRowType(), groups);
+    }
+
+    @Override public Window copy(List<RexLiteral> constants) {
+      return new BindableWindow(getCluster(), traitSet, getInput(),
           constants, getRowType(), groups);
     }
 

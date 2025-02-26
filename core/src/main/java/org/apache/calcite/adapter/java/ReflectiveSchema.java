@@ -56,11 +56,13 @@ import com.google.common.collect.Multimap;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -73,7 +75,7 @@ import static java.util.Objects.requireNonNull;
  */
 public class ReflectiveSchema
     extends AbstractSchema {
-  private final Class clazz;
+  private final Class<?> clazz;
   private final Object target;
   private @MonotonicNonNull Map<String, Table> tableMap;
   private @MonotonicNonNull Multimap<String, Function> functionMap;
@@ -132,20 +134,21 @@ public class ReflectiveSchema
               "Error while accessing field " + field, e);
         }
         requireNonNull(rc, () -> "field must not be null: " + field);
-        FieldTable table =
-            (FieldTable) tableMap.get(Util.last(rc.getSourceQualifiedName()));
-        assert table != null;
+        FieldTable<?> table =
+            (FieldTable<?>)
+                requireNonNull(
+                    tableMap.get(Util.last(rc.getSourceQualifiedName())));
         List<RelReferentialConstraint> referentialConstraints =
             table.getStatistic().getReferentialConstraints();
         if (referentialConstraints == null) {
           // This enables to keep the same Statistics.of below
           referentialConstraints = ImmutableList.of();
         }
-        table.statistic = Statistics.of(
-            ImmutableList.copyOf(
-                Iterables.concat(
-                    referentialConstraints,
-                    Collections.singleton(rc))));
+        table.statistic =
+            Statistics.of(
+                ImmutableList.copyOf(
+                    Iterables.concat(referentialConstraints,
+                        Collections.singleton(rc))));
       }
     }
     return tableMap;
@@ -205,12 +208,16 @@ public class ReflectiveSchema
     requireNonNull(o, () -> "field " + field + " is null for " + target);
     @SuppressWarnings("unchecked")
     final Enumerable<T> enumerable = toEnumerable(o);
-    return new FieldTable<>(field, elementType, enumerable);
+    final Double rows = getRowCount(o);
+    final Statistic statistic = rows == null
+        ? Statistics.UNKNOWN
+        : Statistics.of(rows, null);
+    return new FieldTable<>(field, elementType, enumerable, statistic);
   }
 
-  /** Deduces the element type of a collection;
+  /** Deduces a collection's element type;
    * same logic as {@link #toEnumerable}. */
-  private static @Nullable Type getElementType(Class clazz) {
+  private static @Nullable Type getElementType(Class<?> clazz) {
     if (clazz.isArray()) {
       return clazz.getComponentType();
     }
@@ -220,19 +227,29 @@ public class ReflectiveSchema
     return null; // not a collection/array/iterable
   }
 
-  private static Enumerable toEnumerable(final Object o) {
+  @SuppressWarnings("unchecked")
+  private static <T> Enumerable<T> toEnumerable(final Object o) {
     if (o.getClass().isArray()) {
       if (o instanceof Object[]) {
-        return Linq4j.asEnumerable((Object[]) o);
+        return Linq4j.asEnumerable((T[]) o);
       } else {
-        return Linq4j.asEnumerable(Primitive.asList(o));
+        return Linq4j.asEnumerable((List<T>) Primitive.asList(o));
       }
     }
     if (o instanceof Iterable) {
-      return Linq4j.asEnumerable((Iterable) o);
+      return Linq4j.asEnumerable((Iterable<T>) o);
     }
     throw new RuntimeException(
         "Cannot convert " + o.getClass() + " into a Enumerable");
+  }
+
+  protected @Nullable Double getRowCount(final Object o) {
+    if (o.getClass().isArray()) {
+      return (double) Array.getLength(o);
+    } else if (o instanceof Collection) {
+      return (double) ((Collection<?>) o).size();
+    }
+    return null;
   }
 
   /** Table that is implemented by reading from a Java object. */
@@ -241,7 +258,7 @@ public class ReflectiveSchema
       implements Table, ScannableTable {
     private final Enumerable enumerable;
 
-    ReflectiveTable(Type elementType, Enumerable enumerable) {
+    ReflectiveTable(Type elementType, Enumerable<?> enumerable) {
       super(elementType);
       this.enumerable = enumerable;
     }
@@ -362,8 +379,8 @@ public class ReflectiveSchema
 
     @Override public TranslatableTable apply(final List<? extends @Nullable Object> arguments) {
       try {
-        final Object o = requireNonNull(
-            method.invoke(schema.getTarget(), arguments.toArray()),
+        final Object o = method.invoke(schema.getTarget(), arguments.toArray());
+        requireNonNull(o,
             () -> "method " + method + " returned null for arguments " + arguments);
         return (TranslatableTable) o;
       } catch (IllegalAccessException | InvocationTargetException e) {
@@ -400,9 +417,9 @@ public class ReflectiveSchema
 
     @Override public Expression getExpression(SchemaPlus schema,
         String tableName, Class clazz) {
-      ReflectiveSchema reflectiveSchema = requireNonNull(
-          schema.unwrap(ReflectiveSchema.class),
-          () -> "schema.unwrap(ReflectiveSchema.class) for " + schema);
+      ReflectiveSchema reflectiveSchema =
+          requireNonNull(schema.unwrap(ReflectiveSchema.class),
+              () -> "schema.unwrap(ReflectiveSchema.class) for " + schema);
       return Expressions.field(
           reflectiveSchema.getTargetExpression(
               schema.getParentSchema(), schema.getName()), field);

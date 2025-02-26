@@ -28,6 +28,8 @@ import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Map;
 import java.util.TimeZone;
 
@@ -58,7 +60,7 @@ public class ExtractOperatorConversion implements DruidSqlOperatorConverter {
     return SqlStdOperatorTable.EXTRACT;
   }
 
-  @Override public String toDruidExpression(
+  @Override public @Nullable String toDruidExpression(
       RexNode rexNode, RelDataType rowType, DruidQuery query) {
 
     final RexCall call = (RexCall) rexNode;

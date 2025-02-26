@@ -35,12 +35,15 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import static java.util.Objects.requireNonNull;
 
@@ -290,7 +293,7 @@ public abstract class Expressions {
       Iterable<? extends Statement> expressions) {
     List<Statement> list = toList(expressions);
     if (type == null) {
-      if (list.size() > 0) {
+      if (!list.isEmpty()) {
         type = list.get(list.size() - 1).getType();
       } else {
         type = Void.TYPE;
@@ -303,14 +306,15 @@ public abstract class Expressions {
    * Creates a BlockExpression that contains the given statements
    * and has a specific result type, using varargs.
    */
-  public static BlockStatement block(Type type, Statement... statements) {
+  public static BlockStatement block(@Nullable Type type,
+      Statement... statements) {
     return block(type, toList(statements));
   }
 
   /**
    * Creates a GotoExpression representing a break statement.
    */
-  public static GotoStatement break_(LabelTarget labelTarget) {
+  public static GotoStatement break_(@Nullable LabelTarget labelTarget) {
     return new GotoStatement(GotoExpressionKind.Break, null, null);
   }
 
@@ -318,7 +322,7 @@ public abstract class Expressions {
    * Creates a GotoExpression representing a break statement. The
    * value passed to the label upon jumping can be specified.
    */
-  public static GotoStatement break_(LabelTarget labelTarget,
+  public static GotoStatement break_(@Nullable LabelTarget labelTarget,
       Expression expression) {
     return new GotoStatement(GotoExpressionKind.Break, null, expression);
   }
@@ -382,10 +386,10 @@ public abstract class Expressions {
    * method that takes arguments, with an explicit return type.
    *
    * <p>The return type must be consistent with the return type of the method,
-   * but may contain extra information, such as type parameters.</p>
+   * but may contain extra information, such as type parameters.
    *
    * <p>The {@code expression} argument may be null if and only if the method
-   * is static.</p>
+   * is static.
    */
   public static MethodCallExpression call(Type returnType,
       @Nullable Expression expression, Method method,
@@ -399,10 +403,10 @@ public abstract class Expressions {
    * method that takes arguments, with an explicit return type, with varargs.
    *
    * <p>The return type must be consistent with the return type of the method,
-   * but may contain extra information, such as type parameters.</p>
+   * but may contain extra information, such as type parameters.
    *
    * <p>The {@code expression} argument may be null if and only if the method
-   * is static.</p>
+   * is static.
    */
   public static MethodCallExpression call(Type returnType,
       @Nullable Expression expression, Method method,
@@ -445,8 +449,9 @@ public abstract class Expressions {
    */
   public static MethodCallExpression call(Type type, String methodName,
       Iterable<? extends Expression> arguments) {
-    Method method = Types.lookupMethod(Types.toClass(type), methodName,
-        Types.toClassArray(arguments));
+    Method method =
+        Types.lookupMethod(Types.toClass(type), methodName,
+            Types.toClassArray(arguments));
     return new MethodCallExpression(method, null, toList(arguments));
   }
 
@@ -518,7 +523,7 @@ public abstract class Expressions {
    * conditional expression in cases where the types of ifTrue and ifFalse
    * expressions are not equal. Types of both ifTrue and ifFalse must be
    * implicitly reference assignable to the result type. The type is allowed
-   * to be {@link Void#TYPE void}.</p>
+   * to be {@link Void#TYPE void}.
    */
   public static ConditionalExpression condition(Expression test,
       Expression ifTrue, Expression ifFalse, Type type) {
@@ -534,7 +539,7 @@ public abstract class Expressions {
    * short 12, double 3.14 and boolean false), boxed primitives
    * (e.g. Integer.valueOf(12)), enums, classes, BigDecimal, BigInteger,
    * classes that have a constructor with a parameter for each field, and
-   * arrays.</p>
+   * arrays.
    */
   public static ConstantExpression constant(@Nullable Object value) {
     if (value == null) {
@@ -549,6 +554,15 @@ public abstract class Expressions {
    * properties set to the specified values.
    */
   public static ConstantExpression constant(@Nullable Object value, Type type) {
+    return constant(value, type, RoundingMode.DOWN);
+  }
+
+  /**
+   * Creates a ConstantExpression that has the Value 、Type 、RoundingMode
+   * properties set to the specified values.
+   */
+  public static ConstantExpression constant(@Nullable Object value, Type type,
+      RoundingMode roundingMode) {
     if (value != null && type instanceof Class) {
       // Fix up value so that it matches type.
       Class<?> clazz = (Class<?>) type;
@@ -569,7 +583,15 @@ public abstract class Expressions {
           value = new BigInteger(stringValue);
         }
         if (primitive != null) {
-          value = primitive.parse(stringValue);
+          if (value instanceof Number) {
+            Number valueNumber = (Number) value;
+            value = primitive.numberValue(valueNumber, roundingMode);
+            if (value == null) {
+              value = primitive.parse(stringValue);
+            }
+          } else {
+            value = primitive.parse(stringValue);
+          }
         }
       }
     }
@@ -613,9 +635,8 @@ public abstract class Expressions {
    * operation that throws an exception if the target type is
    * overflowed.
    */
-  public static UnaryExpression convertChecked(Expression expression,
-      Type type) {
-    throw Extensions.todo();
+  public static Expression convertChecked(Expression expression, Type type) {
+    return new UnaryExpression(ExpressionType.ConvertChecked, type, expression);
   }
 
   /**
@@ -1433,6 +1454,13 @@ public abstract class Expressions {
     return box(expression, primitive);
   }
 
+  /** Returns an expression to unbox the value of a boxed-primitive expression exactly.
+   * E.g. {@code unboxExact(e, Primitive.INT)} returns {@code e.intValueExact()}.
+   * It is assumed that e is of the right box type (or {@link Number})."Value */
+  public static Expression unboxExact(Expression expression, Primitive primitive) {
+    return call(expression, requireNonNull(primitive.primitiveName) + "ValueExact");
+  }
+
   /** Returns an expression to unbox the value of a boxed-primitive expression.
    * E.g. {@code unbox(e, Primitive.INT)} returns {@code e.intValue()}.
    * It is assumed that e is of the right box type (or {@link Number})."Value */
@@ -1614,7 +1642,6 @@ public abstract class Expressions {
    */
   public static UnaryExpression makeUnary(ExpressionType expressionType,
       Expression expression, Type type, @Nullable Method method) {
-    assert type != null;
     return new UnaryExpression(expressionType, type, expression);
   }
 
@@ -1901,7 +1928,7 @@ public abstract class Expressions {
   public static UnaryExpression negateChecked(Expression expression,
       Method method) {
     throw new UnsupportedOperationException("not implemented");
-    //return makeUnary(ExpressionType.NegateChecked, expression, null, method);
+    // return makeUnary(ExpressionType.NegateChecked, expression, null, method);
   }
 
   /**
@@ -2515,7 +2542,7 @@ public abstract class Expressions {
   /**
    * Creates a GotoExpression representing a return statement.
    */
-  public static GotoStatement return_(LabelTarget labelTarget) {
+  public static GotoStatement return_(@Nullable LabelTarget labelTarget) {
     return return_(labelTarget, (Expression) null);
   }
 
@@ -2733,7 +2760,7 @@ public abstract class Expressions {
    * that has a default case.
    */
   public static SwitchStatement switch_(Expression switchValue,
-      Expression defaultBody, Method method,
+      @Nullable Expression defaultBody, @Nullable Method method,
       Iterable<? extends SwitchCase> cases) {
     throw Extensions.todo();
   }
@@ -2811,6 +2838,18 @@ public abstract class Expressions {
   public static SymbolDocumentInfo symbolDocument(String filename,
       UUID language, UUID vendor, UUID documentType) {
     throw Extensions.todo();
+  }
+
+  /**
+   * Create an expression from a statement.
+   */
+  public static Expression fromStatement(Statement statement) {
+    FunctionExpression<Function<?>> lambda =
+        Expressions.lambda(
+            Blocks.toFunctionBlock(statement),
+            Collections.emptyList());
+
+    return Expressions.call(lambda, "apply");
   }
 
   /**
@@ -2965,9 +3004,10 @@ public abstract class Expressions {
    */
   public static DeclarationStatement declare(int modifiers, String name,
       Expression initializer) {
-    assert initializer != null
-        : "empty initializer for variable declaration with name '" + name + "', modifiers "
-        + modifiers + ". Please use declare(int, ParameterExpression, initializer) instead";
+    checkNotNull(initializer,
+        "empty initializer for variable declaration with name '%s', "
+            + "modifiers %s. Please use declare(int, ParameterExpression, "
+            + "initializer) instead", name, modifiers);
     return declare(modifiers, parameter(initializer.getType(), name),
         initializer);
   }

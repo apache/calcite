@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.runtime;
 
+import org.apache.calcite.linq4j.function.Deterministic;
 import org.apache.calcite.sql.SqlJsonConstructorNullClause;
 import org.apache.calcite.sql.SqlJsonExistsErrorBehavior;
 import org.apache.calcite.sql.SqlJsonQueryEmptyOrErrorBehavior;
@@ -27,6 +28,9 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.core.PrettyPrinter;
 import com.fasterxml.jackson.core.util.DefaultIndenter;
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.InvalidPathException;
@@ -55,6 +59,7 @@ import java.util.Queue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.apache.calcite.config.CalciteSystemProperty.FUNCTION_LEVEL_CACHE_MAX_SIZE;
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -76,6 +81,8 @@ public class JsonFunctions {
   private static final PrettyPrinter JSON_PRETTY_PRINTER =
       new DefaultPrettyPrinter().withObjectIndenter(
           DefaultIndenter.SYSTEM_LINEFEED_INSTANCE.withLinefeed("\n"));
+
+  private static final String JSON_ROOT_PATH = "$";
 
   private JsonFunctions() {
   }
@@ -134,26 +141,27 @@ public class JsonFunctions {
       switch (mode) {
       case STRICT:
         if (input.hasException()) {
-          return JsonPathContext.withStrictException(pathSpec, input.exc);
+          return JsonPathContext.withStrictException(pathSpec,
+              requireNonNull(input.exc));
         }
-        ctx = JsonPath.parse(input.obj(),
-            Configuration
-                .builder()
-                .jsonProvider(JSON_PATH_JSON_PROVIDER)
-                .mappingProvider(JSON_PATH_MAPPING_PROVIDER)
-                .build());
+        ctx =
+            JsonPath.parse(input.obj(),
+                Configuration.builder()
+                    .jsonProvider(JSON_PATH_JSON_PROVIDER)
+                    .mappingProvider(JSON_PATH_MAPPING_PROVIDER)
+                    .build());
         break;
       case LAX:
         if (input.hasException()) {
           return JsonPathContext.withJavaObj(PathMode.LAX, null);
         }
-        ctx = JsonPath.parse(input.obj(),
-            Configuration
-                .builder()
-                .options(Option.SUPPRESS_EXCEPTIONS)
-                .jsonProvider(JSON_PATH_JSON_PROVIDER)
-                .mappingProvider(JSON_PATH_MAPPING_PROVIDER)
-                .build());
+        ctx =
+            JsonPath.parse(input.obj(),
+                Configuration.builder()
+                    .options(Option.SUPPRESS_EXCEPTIONS)
+                    .jsonProvider(JSON_PATH_JSON_PROVIDER)
+                    .mappingProvider(JSON_PATH_MAPPING_PROVIDER)
+                    .build());
         break;
       default:
         throw RESOURCE.illegalJsonPathModeInPathSpec(mode.toString(), pathSpec).ex();
@@ -168,210 +176,253 @@ public class JsonFunctions {
     }
   }
 
-  public static @Nullable Boolean jsonExists(String input, String pathSpec) {
-    return jsonExists(jsonApiCommonSyntax(input, pathSpec));
-  }
 
-  public static @Nullable Boolean jsonExists(String input, String pathSpec,
-      SqlJsonExistsErrorBehavior errorBehavior) {
-    return jsonExists(jsonApiCommonSyntax(input, pathSpec), errorBehavior);
-  }
+  /** State for {@code JSON_EXISTS}, {@code JSON_VALUE}, {@code JSON_QUERY}.
+   *
+   * <p>Marked deterministic so that the code generator instantiates one once
+   * per query, not once per row. */
+  @Deterministic
+  public static class StatefulFunction {
+    private final LoadingCache<String, JsonValueContext> cache =
+        CacheBuilder.newBuilder()
+            .maximumSize(FUNCTION_LEVEL_CACHE_MAX_SIZE.value())
+            .build(CacheLoader.from(JsonFunctions::jsonValueExpression));
 
-  public static @Nullable Boolean jsonExists(JsonValueContext input, String pathSpec) {
-    return jsonExists(jsonApiCommonSyntax(input, pathSpec));
-  }
+    public JsonPathContext jsonApiCommonSyntaxWithCache(String input,
+        String pathSpec) {
+      return jsonApiCommonSyntax(cache.getUnchecked(input), pathSpec);
+    }
 
-  public static @Nullable Boolean jsonExists(JsonValueContext input, String pathSpec,
-      SqlJsonExistsErrorBehavior errorBehavior) {
-    return jsonExists(jsonApiCommonSyntax(input, pathSpec), errorBehavior);
-  }
+    public @Nullable Boolean jsonExists(String input, String pathSpec) {
+      return jsonExists(jsonApiCommonSyntaxWithCache(input, pathSpec));
+    }
 
-  public static @Nullable Boolean jsonExists(JsonPathContext context) {
-    return jsonExists(context, SqlJsonExistsErrorBehavior.FALSE);
-  }
+    public @Nullable Boolean jsonExists(String input, String pathSpec,
+        SqlJsonExistsErrorBehavior errorBehavior) {
+      return jsonExists(jsonApiCommonSyntaxWithCache(input, pathSpec),
+          errorBehavior);
+    }
 
-  public static @Nullable Boolean jsonExists(JsonPathContext context,
-      SqlJsonExistsErrorBehavior errorBehavior) {
-    if (context.hasException()) {
+    public @Nullable Boolean jsonExists(JsonValueContext input,
+        String pathSpec) {
+      return jsonExists(jsonApiCommonSyntax(input, pathSpec));
+    }
+
+    public @Nullable Boolean jsonExists(JsonValueContext input, String pathSpec,
+        SqlJsonExistsErrorBehavior errorBehavior) {
+      return jsonExists(jsonApiCommonSyntax(input, pathSpec), errorBehavior);
+    }
+
+    public @Nullable Boolean jsonExists(JsonPathContext context) {
+      return jsonExists(context, SqlJsonExistsErrorBehavior.FALSE);
+    }
+
+    public @Nullable Boolean jsonExists(JsonPathContext context,
+        SqlJsonExistsErrorBehavior errorBehavior) {
+      if (context.hasException()) {
+        switch (errorBehavior) {
+        case TRUE:
+          return Boolean.TRUE;
+        case FALSE:
+          return Boolean.FALSE;
+        case ERROR:
+          throw toUnchecked(requireNonNull(context.exc));
+        case UNKNOWN:
+          return null;
+        default:
+          throw RESOURCE.illegalErrorBehaviorInJsonExistsFunc(
+              errorBehavior.toString()).ex();
+        }
+      } else {
+        return context.obj != null;
+      }
+    }
+
+    public @Nullable Object jsonValue(String input,
+        String pathSpec,
+        SqlJsonValueEmptyOrErrorBehavior emptyBehavior,
+        Object defaultValueOnEmpty,
+        SqlJsonValueEmptyOrErrorBehavior errorBehavior,
+        Object defaultValueOnError) {
+      return jsonValue(
+          jsonApiCommonSyntaxWithCache(input, pathSpec),
+          emptyBehavior,
+          defaultValueOnEmpty,
+          errorBehavior,
+          defaultValueOnError);
+    }
+
+    public @Nullable Object jsonValue(JsonValueContext input,
+        String pathSpec,
+        SqlJsonValueEmptyOrErrorBehavior emptyBehavior,
+        Object defaultValueOnEmpty,
+        SqlJsonValueEmptyOrErrorBehavior errorBehavior,
+        Object defaultValueOnError) {
+      return jsonValue(
+          jsonApiCommonSyntax(input, pathSpec),
+          emptyBehavior,
+          defaultValueOnEmpty,
+          errorBehavior,
+          defaultValueOnError);
+    }
+
+    public @Nullable Object jsonValue(JsonPathContext context,
+        SqlJsonValueEmptyOrErrorBehavior emptyBehavior,
+        Object defaultValueOnEmpty,
+        SqlJsonValueEmptyOrErrorBehavior errorBehavior,
+        Object defaultValueOnError) {
+      final Exception exc;
+      if (context.hasException()) {
+        exc = context.exc;
+      } else {
+        Object value = context.obj;
+        if (value == null || context.mode == PathMode.LAX
+            && !isScalarObject(value)) {
+          switch (emptyBehavior) {
+          case ERROR:
+            throw RESOURCE.emptyResultOfJsonValueFuncNotAllowed().ex();
+          case NULL:
+            return null;
+          case DEFAULT:
+            return defaultValueOnEmpty;
+          default:
+            throw RESOURCE.illegalEmptyBehaviorInJsonValueFunc(
+                emptyBehavior.toString()).ex();
+          }
+        } else if (context.mode == PathMode.STRICT
+            && !isScalarObject(value)) {
+          exc =
+              RESOURCE.scalarValueRequiredInStrictModeOfJsonValueFunc(
+                  value.toString()).ex();
+        } else {
+          return value;
+        }
+      }
       switch (errorBehavior) {
-      case TRUE:
-        return Boolean.TRUE;
-      case FALSE:
-        return Boolean.FALSE;
       case ERROR:
-        throw toUnchecked(context.exc);
-      case UNKNOWN:
+        throw toUnchecked(requireNonNull(exc, "exc"));
+      case NULL:
         return null;
+      case DEFAULT:
+        return defaultValueOnError;
       default:
-        throw RESOURCE.illegalErrorBehaviorInJsonExistsFunc(
+        throw RESOURCE.illegalErrorBehaviorInJsonValueFunc(
             errorBehavior.toString()).ex();
       }
-    } else {
-      return context.obj != null;
     }
-  }
 
-  public static @Nullable Object jsonValue(String input,
-      String pathSpec,
-      SqlJsonValueEmptyOrErrorBehavior emptyBehavior,
-      Object defaultValueOnEmpty,
-      SqlJsonValueEmptyOrErrorBehavior errorBehavior,
-      Object defaultValueOnError) {
-    return jsonValue(
-        jsonApiCommonSyntax(input, pathSpec),
-        emptyBehavior,
-        defaultValueOnEmpty,
-        errorBehavior,
-        defaultValueOnError);
-  }
+    public @Nullable Object jsonQuery(
+        String input,
+        String pathSpec,
+        SqlJsonQueryWrapperBehavior wrapperBehavior,
+        SqlJsonQueryEmptyOrErrorBehavior emptyBehavior,
+        SqlJsonQueryEmptyOrErrorBehavior errorBehavior,
+        boolean jsonize) {
+      return jsonQuery(
+          jsonApiCommonSyntaxWithCache(input, pathSpec),
+          wrapperBehavior, emptyBehavior, errorBehavior, jsonize);
+    }
 
-  public static @Nullable Object jsonValue(JsonValueContext input,
-      String pathSpec,
-      SqlJsonValueEmptyOrErrorBehavior emptyBehavior,
-      Object defaultValueOnEmpty,
-      SqlJsonValueEmptyOrErrorBehavior errorBehavior,
-      Object defaultValueOnError) {
-    return jsonValue(
-        jsonApiCommonSyntax(input, pathSpec),
-        emptyBehavior,
-        defaultValueOnEmpty,
-        errorBehavior,
-        defaultValueOnError);
-  }
+    public @Nullable Object jsonQuery(JsonValueContext input,
+        String pathSpec,
+        SqlJsonQueryWrapperBehavior wrapperBehavior,
+        SqlJsonQueryEmptyOrErrorBehavior emptyBehavior,
+        SqlJsonQueryEmptyOrErrorBehavior errorBehavior,
+        boolean jsonize) {
+      return jsonQuery(
+          jsonApiCommonSyntax(input, pathSpec),
+          wrapperBehavior, emptyBehavior, errorBehavior, jsonize);
+    }
 
-  public static @Nullable Object jsonValue(JsonPathContext context,
-      SqlJsonValueEmptyOrErrorBehavior emptyBehavior,
-      Object defaultValueOnEmpty,
-      SqlJsonValueEmptyOrErrorBehavior errorBehavior,
-      Object defaultValueOnError) {
-    final Exception exc;
-    if (context.hasException()) {
-      exc = context.exc;
-    } else {
-      Object value = context.obj;
-      if (value == null || context.mode == PathMode.LAX
-          && !isScalarObject(value)) {
-        switch (emptyBehavior) {
-        case ERROR:
-          throw RESOURCE.emptyResultOfJsonValueFuncNotAllowed().ex();
-        case NULL:
-          return null;
-        case DEFAULT:
-          return defaultValueOnEmpty;
-        default:
-          throw RESOURCE.illegalEmptyBehaviorInJsonValueFunc(
-              emptyBehavior.toString()).ex();
-        }
-      } else if (context.mode == PathMode.STRICT
-          && !isScalarObject(value)) {
-        exc = RESOURCE.scalarValueRequiredInStrictModeOfJsonValueFunc(
-            value.toString()).ex();
+    public @Nullable Object jsonQuery(
+        JsonPathContext context,
+        SqlJsonQueryWrapperBehavior wrapperBehavior,
+        SqlJsonQueryEmptyOrErrorBehavior emptyBehavior,
+        SqlJsonQueryEmptyOrErrorBehavior errorBehavior,
+        boolean jsonize) {
+      final Exception exc;
+      if (context.hasException()) {
+        exc = context.exc;
       } else {
-        return value;
-      }
-    }
-    switch (errorBehavior) {
-    case ERROR:
-      throw toUnchecked(exc);
-    case NULL:
-      return null;
-    case DEFAULT:
-      return defaultValueOnError;
-    default:
-      throw RESOURCE.illegalErrorBehaviorInJsonValueFunc(
-          errorBehavior.toString()).ex();
-    }
-  }
-
-  public static @Nullable String jsonQuery(String input,
-      String pathSpec,
-      SqlJsonQueryWrapperBehavior wrapperBehavior,
-      SqlJsonQueryEmptyOrErrorBehavior emptyBehavior,
-      SqlJsonQueryEmptyOrErrorBehavior errorBehavior) {
-    return jsonQuery(
-        jsonApiCommonSyntax(input, pathSpec),
-        wrapperBehavior, emptyBehavior, errorBehavior);
-  }
-
-  public static @Nullable String jsonQuery(JsonValueContext input,
-      String pathSpec,
-      SqlJsonQueryWrapperBehavior wrapperBehavior,
-      SqlJsonQueryEmptyOrErrorBehavior emptyBehavior,
-      SqlJsonQueryEmptyOrErrorBehavior errorBehavior) {
-    return jsonQuery(
-        jsonApiCommonSyntax(input, pathSpec),
-        wrapperBehavior, emptyBehavior, errorBehavior);
-  }
-
-  public static @Nullable String jsonQuery(JsonPathContext context,
-      SqlJsonQueryWrapperBehavior wrapperBehavior,
-      SqlJsonQueryEmptyOrErrorBehavior emptyBehavior,
-      SqlJsonQueryEmptyOrErrorBehavior errorBehavior) {
-    final Exception exc;
-    if (context.hasException()) {
-      exc = context.exc;
-    } else {
-      Object value;
-      if (context.obj == null) {
-        value = null;
-      } else {
-        switch (wrapperBehavior) {
-        case WITHOUT_ARRAY:
-          value = context.obj;
-          break;
-        case WITH_UNCONDITIONAL_ARRAY:
-          value = Collections.singletonList(context.obj);
-          break;
-        case WITH_CONDITIONAL_ARRAY:
-          if (context.obj instanceof Collection) {
+        Object value;
+        if (context.obj == null) {
+          value = null;
+        } else {
+          switch (wrapperBehavior) {
+          case WITHOUT_ARRAY:
             value = context.obj;
-          } else {
+            break;
+          case WITH_UNCONDITIONAL_ARRAY:
             value = Collections.singletonList(context.obj);
+            break;
+          case WITH_CONDITIONAL_ARRAY:
+            if (context.obj instanceof Collection) {
+              value = context.obj;
+            } else {
+              value = Collections.singletonList(context.obj);
+            }
+            break;
+          default:
+            throw RESOURCE.illegalWrapperBehaviorInJsonQueryFunc(
+                wrapperBehavior.toString()).ex();
           }
-          break;
-        default:
-          throw RESOURCE.illegalWrapperBehaviorInJsonQueryFunc(
-              wrapperBehavior.toString()).ex();
+        }
+        if (value == null || context.mode == PathMode.LAX
+            && isScalarObject(value)) {
+          switch (emptyBehavior) {
+          case ERROR:
+            throw RESOURCE.emptyResultOfJsonQueryFuncNotAllowed().ex();
+          case NULL:
+            return null;
+          case EMPTY_ARRAY:
+            return jsonQueryEmptyArray(jsonize);
+          case EMPTY_OBJECT:
+            return jsonQueryEmptyObject(jsonize);
+          default:
+            throw RESOURCE.illegalEmptyBehaviorInJsonQueryFunc(
+                emptyBehavior.toString()).ex();
+          }
+        } else if (context.mode == PathMode.STRICT && isScalarObject(value)) {
+          exc =
+              RESOURCE.arrayOrObjectValueRequiredInStrictModeOfJsonQueryFunc(
+                  value.toString()).ex();
+        } else {
+          if (jsonize) {
+            try {
+              return jsonize(value);
+            } catch (Exception e) {
+              exc = e;
+            }
+          } else {
+            return value;
+          }
         }
       }
-      if (value == null || context.mode == PathMode.LAX
-          && isScalarObject(value)) {
-        switch (emptyBehavior) {
-        case ERROR:
-          throw RESOURCE.emptyResultOfJsonQueryFuncNotAllowed().ex();
-        case NULL:
-          return null;
-        case EMPTY_ARRAY:
-          return "[]";
-        case EMPTY_OBJECT:
-          return "{}";
-        default:
-          throw RESOURCE.illegalEmptyBehaviorInJsonQueryFunc(
-              emptyBehavior.toString()).ex();
-        }
-      } else if (context.mode == PathMode.STRICT && isScalarObject(value)) {
-        exc = RESOURCE.arrayOrObjectValueRequiredInStrictModeOfJsonQueryFunc(
-            value.toString()).ex();
-      } else {
-        try {
-          return jsonize(value);
-        } catch (Exception e) {
-          exc = e;
-        }
+      switch (errorBehavior) {
+      case ERROR:
+        throw toUnchecked(requireNonNull(exc, "exc"));
+      case NULL:
+        return null;
+      case EMPTY_ARRAY:
+        return jsonQueryEmptyArray(jsonize);
+      case EMPTY_OBJECT:
+        return jsonQueryEmptyObject(jsonize);
+      default:
+        throw RESOURCE.illegalErrorBehaviorInJsonQueryFunc(
+            errorBehavior.toString()).ex();
       }
     }
-    switch (errorBehavior) {
-    case ERROR:
-      throw toUnchecked(exc);
-    case NULL:
-      return null;
-    case EMPTY_ARRAY:
-      return "[]";
-    case EMPTY_OBJECT:
-      return "{}";
-    default:
-      throw RESOURCE.illegalErrorBehaviorInJsonQueryFunc(
-          errorBehavior.toString()).ex();
+
+    private static Object jsonQueryEmptyArray(boolean jsonize) {
+      return jsonize ? "[]" : Collections.emptyList();
+    }
+
+    private static String jsonQueryEmptyObject(boolean jsonize) {
+      if (jsonize) {
+        return "{}";
+      } else {
+        throw RESOURCE.illegalEmptyObjectInJsonQueryFunc().ex();
+      }
     }
   }
 
@@ -521,13 +572,9 @@ public class JsonFunctions {
       for (int i = 0; i < size; ++i) {
         Object obj = q.poll();
         if (obj instanceof Map) {
-          for (Object value : ((LinkedHashMap) obj).values()) {
-            q.add(value);
-          }
+          q.addAll(((LinkedHashMap) obj).values());
         } else if (obj instanceof Collection) {
-          for (Object value : (Collection) obj) {
-            q.add(value);
-          }
+          q.addAll((Collection) obj);
         }
       }
       ++depth;
@@ -556,7 +603,7 @@ public class JsonFunctions {
     final Object value;
     try {
       if (context.hasException()) {
-        throw toUnchecked(context.exc);
+        throw toUnchecked(requireNonNull(context.exc));
       }
       value = context.obj;
 
@@ -601,7 +648,7 @@ public class JsonFunctions {
     final Object value;
     try {
       if (context.hasException()) {
-        throw toUnchecked(context.exc);
+        throw toUnchecked(requireNonNull(context.exc));
       }
       value = context.obj;
 
@@ -626,13 +673,13 @@ public class JsonFunctions {
 
   public static String jsonRemove(JsonValueContext input, String... pathSpecs) {
     try {
-      DocumentContext ctx = JsonPath.parse(input.obj(),
-          Configuration
-              .builder()
-              .options(Option.SUPPRESS_EXCEPTIONS)
-              .jsonProvider(JSON_PATH_JSON_PROVIDER)
-              .mappingProvider(JSON_PATH_MAPPING_PROVIDER)
-              .build());
+      DocumentContext ctx =
+          JsonPath.parse(input.obj(),
+              Configuration.builder()
+                  .options(Option.SUPPRESS_EXCEPTIONS)
+                  .jsonProvider(JSON_PATH_JSON_PROVIDER)
+                  .mappingProvider(JSON_PATH_MAPPING_PROVIDER)
+                  .build());
       for (String pathSpec : pathSpecs) {
         if ((pathSpec != null) && (ctx.read(pathSpec) != null)) {
           ctx.delete(pathSpec);
@@ -658,7 +705,135 @@ public class JsonFunctions {
     }
   }
 
-  public static boolean isJsonValue(String input) {
+  private static String jsonModify(JsonValueContext jsonDoc, JsonModifyMode type, Object... kvs) {
+    int step = type == JsonModifyMode.REMOVE ? 1 : 2;
+    assert kvs.length % step == 0;
+    String result = null;
+    DocumentContext ctx =
+        JsonPath.parse(jsonDoc.obj(),
+            Configuration.builder()
+                .options(Option.SUPPRESS_EXCEPTIONS)
+                .jsonProvider(JSON_PATH_JSON_PROVIDER)
+                .mappingProvider(JSON_PATH_MAPPING_PROVIDER)
+                .build());
+
+    for (int i = 0; i < kvs.length; i += step) {
+      String k = (String) kvs[i];
+      Object v = kvs[i + step - 1];
+      if (!(JsonPath.isPathDefinite(k) && k.contains(JSON_ROOT_PATH))) {
+        throw RESOURCE.validationError(k).ex();
+      }
+      switch (type) {
+      case REPLACE:
+        if (k.equals(JSON_ROOT_PATH)) {
+          result = jsonize(v);
+        } else {
+          if (ctx.read(k) != null) {
+            ctx.set(k, v);
+          }
+        }
+        break;
+      case INSERT:
+        if (!k.equals(JSON_ROOT_PATH) && ctx.read(k) == null) {
+          insertToJson(ctx, k, v);
+        }
+        break;
+      case SET:
+        if (k.equals(JSON_ROOT_PATH)) {
+          result = jsonize(v);
+        } else {
+          if (ctx.read(k) != null) {
+            ctx.set(k, v);
+          } else {
+            insertToJson(ctx, k, v);
+          }
+        }
+        break;
+      case REMOVE:
+        if (ctx.read(k) != null) {
+          ctx.delete(k);
+        }
+        break;
+      }
+    }
+
+    return result == null || result.isEmpty() ? ctx.jsonString() : result;
+  }
+
+  private static void insertToJson(DocumentContext ctx, String path, Object value) {
+    final String parentPath;
+    final String key;
+
+    // The following paragraph of logic is mainly used to obtain the
+    // parent node path of path and the key value that should be
+    // inserted when the preant Path is map.
+    // eg: path is $.a ,parentPath is $
+    // eg: path is $.a[1] ,parentPath is $.a
+    Integer dotIndex = path.lastIndexOf(".");
+    Integer leftBracketIndex = path.lastIndexOf("[");
+    if (dotIndex.equals(-1) && leftBracketIndex.equals(-1)) {
+      parentPath = path;
+      key = path;
+    } else if (!dotIndex.equals(-1) && leftBracketIndex.equals(-1)) {
+      parentPath = path.substring(0, dotIndex);
+      key = path.substring(dotIndex + 1);
+    } else if (dotIndex.equals(-1) && !leftBracketIndex.equals(-1)) {
+      parentPath = path.substring(0, leftBracketIndex);
+      key = path.substring(leftBracketIndex + 1);
+    } else {
+      int position = dotIndex > leftBracketIndex ? dotIndex : leftBracketIndex;
+      parentPath = path.substring(0, position);
+      key = path.substring(position);
+    }
+
+    Object obj = ctx.read(parentPath);
+    if (obj instanceof Map) {
+      ctx.put(parentPath, key, value.toString());
+    } else if (obj instanceof Collection) {
+      ctx.add(parentPath, value);
+    }
+  }
+
+  public static String jsonReplace(String jsonDoc, Object... kvs) {
+    return jsonReplace(jsonValueExpression(jsonDoc), kvs);
+  }
+
+  public static String jsonReplace(JsonValueContext input, Object... kvs) {
+    try {
+      return jsonModify(input, JsonModifyMode.REPLACE, kvs);
+    } catch (Exception ex) {
+      throw RESOURCE.invalidInputForJsonReplace(input.toString(), jsonize(kvs)).ex();
+    }
+  }
+
+  public static String jsonInsert(String jsonDoc, Object... kvs) {
+    return jsonInsert(jsonValueExpression(jsonDoc), kvs);
+  }
+
+  public static String jsonInsert(JsonValueContext input, Object... kvs) {
+    try {
+      return jsonModify(input, JsonModifyMode.INSERT, kvs);
+    } catch (Exception ex) {
+      throw RESOURCE.invalidInputForJsonInsert(input.toString(), jsonize(kvs)).ex();
+    }
+  }
+
+  public static String jsonSet(String jsonDoc, Object... kvs) {
+    return jsonSet(jsonValueExpression(jsonDoc), kvs);
+  }
+
+  public static String jsonSet(JsonValueContext input, Object... kvs) {
+    try {
+      return jsonModify(input, JsonModifyMode.SET, kvs);
+    } catch (Exception ex) {
+      throw RESOURCE.invalidInputForJsonSet(input.toString(), jsonize(kvs)).ex();
+    }
+  }
+
+  public static @Nullable Boolean isJsonValue(@Nullable String input) {
+    if (input == null) {
+      return null;
+    }
     try {
       dejsonize(input);
       return true;
@@ -667,7 +842,10 @@ public class JsonFunctions {
     }
   }
 
-  public static boolean isJsonObject(String input) {
+  public static @Nullable Boolean isJsonObject(@Nullable String input) {
+    if (input == null) {
+      return null;
+    }
     try {
       Object o = dejsonize(input);
       return o instanceof Map;
@@ -676,7 +854,10 @@ public class JsonFunctions {
     }
   }
 
-  public static boolean isJsonArray(String input) {
+  public static @Nullable Boolean isJsonArray(@Nullable String input) {
+    if (input == null) {
+      return null;
+    }
     try {
       Object o = dejsonize(input);
       return o instanceof Collection;
@@ -685,7 +866,10 @@ public class JsonFunctions {
     }
   }
 
-  public static boolean isJsonScalar(String input) {
+  public static @Nullable Boolean isJsonScalar(@Nullable String input) {
+    if (input == null) {
+      return null;
+    }
     try {
       Object o = dejsonize(input);
       return !(o instanceof Map) && !(o instanceof Collection);
@@ -803,7 +987,7 @@ public class JsonFunctions {
     }
 
     @Override public String toString() {
-      return Objects.toString(obj);
+      return jsonize(obj);
     }
   }
 
@@ -817,5 +1001,15 @@ public class JsonFunctions {
     STRICT,
     UNKNOWN,
     NONE
+  }
+
+  /**
+   * Used in the JsonModify function.
+   */
+  public enum JsonModifyMode {
+    REPLACE,
+    INSERT,
+    SET,
+    REMOVE
   }
 }

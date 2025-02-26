@@ -29,26 +29,26 @@ import java.lang.reflect.Method;
  * must implement all of the interfaces which this proxy implements.
  *
  * <p>It is useful in creating a wrapper class around an interface which may
- * change over time.</p>
+ * change over time.
  *
- * <p>Example:</p>
+ * <p>Example:
  *
- * <blockquote>
- * <pre>import java.sql.Connection;
- * Connection connection = ...;
- * Connection tracingConnection = (Connection) Proxy.newProxyInstance(
- *     null,
- *     new Class[] {Connection.class},
- *     new DelegatingInvocationHandler() {
- *         protected Object getTarget() {
- *             return connection;
- *         }
- *         Statement createStatement() {
- *             System.out.println("statement created");
- *             return connection.createStatement();
- *         }
- *     });</pre>
- * </blockquote>
+ * <blockquote><pre>{@code
+ *   import java.sql.Connection;
+ *   Connection connection = ...;
+ *   Connection tracingConnection =
+ *       (Connection) Proxy.newProxyInstance(null,
+ *           new Class[] {Connection.class},
+ *           new DelegatingInvocationHandler() {
+ *             protected Object getTarget() {
+ *               return connection;
+ *             }
+ *             Statement createStatement() {
+ *               System.out.println("statement created");
+ *               return connection.createStatement();
+ *             }
+ *         });
+ * }</pre></blockquote>
  */
 public abstract class DelegatingInvocationHandler implements InvocationHandler {
   //~ Methods ----------------------------------------------------------------

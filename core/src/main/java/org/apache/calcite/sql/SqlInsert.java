@@ -26,6 +26,8 @@ import org.checkerframework.dataflow.qual.Pure;
 
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * A <code>SqlInsert</code> is a node of a parse tree which represents an INSERT
  * statement.
@@ -59,11 +61,10 @@ public class SqlInsert extends SqlCall {
       SqlNode source,
       @Nullable SqlNodeList columnList) {
     super(pos);
-    this.keywords = keywords;
+    this.keywords = requireNonNull(keywords, "keywords");
     this.targetTable = targetTable;
     this.source = source;
     this.columnList = columnList;
-    assert keywords != null;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -150,7 +151,7 @@ public class SqlInsert extends SqlCall {
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
-    writer.startList(SqlWriter.FrameTypeEnum.SELECT);
+    final SqlWriter.Frame frame = writer.startList(SqlWriter.FrameTypeEnum.SELECT);
     writer.sep(isUpsert() ? "UPSERT INTO" : "INSERT INTO");
     final int opLeft = getOperator().getLeftPrec();
     final int opRight = getOperator().getRightPrec();
@@ -160,6 +161,7 @@ public class SqlInsert extends SqlCall {
     }
     writer.newlineAndIndent();
     source.unparse(writer, 0, 0);
+    writer.endList(frame);
   }
 
   @Override public void validate(SqlValidator validator, SqlValidatorScope scope) {

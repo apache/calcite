@@ -35,6 +35,8 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 
+import org.immutables.value.Value;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NavigableMap;
@@ -56,9 +58,10 @@ import java.util.TreeMap;
  * reduced aggregate. If those constants are not used, another rule will remove
  * them from the project.
  */
+@Value.Enclosing
 public class AggregateProjectPullUpConstantsRule
     extends RelRule<AggregateProjectPullUpConstantsRule.Config>
-    implements TransformationRule {
+    implements SubstitutionRule {
 
   /** Creates an AggregateProjectPullUpConstantsRule. */
   protected AggregateProjectPullUpConstantsRule(Config config) {
@@ -157,7 +160,7 @@ public class AggregateProjectPullUpConstantsRule
           RelDataType originalType =
               aggregate.getRowType().getFieldList().get(projects.size()).getType();
           if (!originalType.equals(rexNode.getType())) {
-            expr = rexBuilder.makeCast(originalType, rexNode, true);
+            expr = rexBuilder.makeCast(originalType, rexNode, true, false);
           } else {
             expr = rexNode;
           }
@@ -172,16 +175,25 @@ public class AggregateProjectPullUpConstantsRule
     }
     relBuilder.project(Pair.left(projects), Pair.right(projects)); // inverse
     call.transformTo(relBuilder.build());
+    call.getPlanner().prune(aggregate);
   }
 
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
-        .withOperandFor(LogicalAggregate.class, LogicalProject.class);
+    Config DEFAULT = ImmutableAggregateProjectPullUpConstantsRule.Config.of();
 
     @Override default AggregateProjectPullUpConstantsRule toRule() {
       return new AggregateProjectPullUpConstantsRule(this);
+    }
+
+    @Override @Value.Default default OperandTransform operandSupplier() {
+      return b0 ->
+          b0.operand(LogicalAggregate.class)
+              .predicate(Aggregate::isSimple)
+              .oneInput(b1 ->
+                  b1.operand(LogicalProject.class).anyInputs());
     }
 
     /** Defines an operand tree for the given classes.

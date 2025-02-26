@@ -33,10 +33,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * An immutable set that may contain null values.
@@ -57,7 +58,7 @@ public class ImmutableNullableSet<E> extends AbstractSet<E> {
   private final ImmutableSet<Object> elements;
 
   private ImmutableNullableSet(ImmutableSet<Object> elements) {
-    this.elements = Objects.requireNonNull(elements, "elements");
+    this.elements = requireNonNull(elements, "elements");
   }
 
   @Override public Iterator<E> iterator() {
@@ -107,14 +108,16 @@ public class ImmutableNullableSet<E> extends AbstractSet<E> {
         E element = Iterables.getOnlyElement(collection);
         return element == null ? SINGLETON_NULL : ImmutableSet.of(element);
       default:
-        set = ImmutableSet.copyOf(
-            Collections2.transform(collection, e ->
-                e == null ? NullSentinel.INSTANCE : e));
+        set =
+            ImmutableSet.copyOf(
+                Collections2.transform(collection, e ->
+                    e == null ? NullSentinel.INSTANCE : e));
       }
     } else {
-      set = ImmutableSet.copyOf(
-          Util.transform(elements, e ->
-              e == null ? NullSentinel.INSTANCE : e));
+      set =
+          ImmutableSet.copyOf(
+              Util.transform(elements, e ->
+                  e == null ? NullSentinel.INSTANCE : e));
     }
     if (set.contains(NullSentinel.INSTANCE)) {
       return new ImmutableNullableSet<>(set);

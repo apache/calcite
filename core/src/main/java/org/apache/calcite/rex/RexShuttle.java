@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.rex;
 
+import org.apache.calcite.sql.SqlAggFunction;
+
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -31,7 +33,7 @@ import java.util.List;
  * <p>Like {@link RexVisitor}, this is an instance of the
  * {@link org.apache.calcite.util.Glossary#VISITOR_PATTERN Visitor Pattern}. Use
  * <code> RexShuttle</code> if you would like your methods to return a
- * value.</p>
+ * value.
  */
 public class RexShuttle implements RexVisitor<RexNode> {
   //~ Methods ----------------------------------------------------------------
@@ -39,8 +41,9 @@ public class RexShuttle implements RexVisitor<RexNode> {
   @Override public RexNode visitOver(RexOver over) {
     boolean[] update = {false};
     List<RexNode> clonedOperands = visitList(over.operands, update);
+    SqlAggFunction overAggregator = visitOverAggFunction(over.getAggOperator());
     RexWindow window = visitWindow(over.getWindow());
-    if (update[0] || (window != over.getWindow())) {
+    if (update[0] || (window != over.getWindow()) || overAggregator != over.getAggOperator()) {
       // REVIEW jvs 8-Mar-2005:  This doesn't take into account
       // the fact that a rewrite may have changed the result type.
       // To do that, we would need to take a RexBuilder and
@@ -48,7 +51,7 @@ public class RexShuttle implements RexVisitor<RexNode> {
       // the type is embedded in the original call.
       return new RexOver(
           over.getType(),
-          over.getAggOperator(),
+          overAggregator,
           clonedOperands,
           window,
           over.isDistinct(),
@@ -56,6 +59,10 @@ public class RexShuttle implements RexVisitor<RexNode> {
     } else {
       return over;
     }
+  }
+
+  public SqlAggFunction visitOverAggFunction(SqlAggFunction op) {
+    return op;
   }
 
   public RexWindow visitWindow(RexWindow window) {
@@ -66,16 +73,14 @@ public class RexShuttle implements RexVisitor<RexNode> {
         visitList(window.partitionKeys, update);
     final RexWindowBound lowerBound = window.getLowerBound().accept(this);
     final RexWindowBound upperBound = window.getUpperBound().accept(this);
-    if (lowerBound == null
-        || upperBound == null
-        || !update[0]
+    if (!update[0]
         && lowerBound == window.getLowerBound()
         && upperBound == window.getUpperBound()) {
       return window;
     }
     boolean rows = window.isRows();
-    if (lowerBound.isUnbounded() && lowerBound.isPreceding()
-        && upperBound.isUnbounded() && upperBound.isFollowing()) {
+    if (lowerBound.isUnboundedPreceding()
+        && upperBound.isUnboundedFollowing()) {
       // RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
       //   is equivalent to
       // ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
@@ -87,7 +92,8 @@ public class RexShuttle implements RexVisitor<RexNode> {
         clonedOrderKeys,
         lowerBound,
         upperBound,
-        rows);
+        rows,
+        window.getExclude());
   }
 
   @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
@@ -184,8 +190,7 @@ public class RexShuttle implements RexVisitor<RexNode> {
       RexNode clonedOperand = collation.left.accept(this);
       if ((clonedOperand != collation.left) && (update != null)) {
         update[0] = true;
-        collation =
-            new RexFieldCollation(clonedOperand, collation.right);
+        collation = new RexFieldCollation(clonedOperand, collation.right);
       }
       clonedOperands.add(collation);
     }
@@ -205,7 +210,8 @@ public class RexShuttle implements RexVisitor<RexNode> {
     } else {
       return new RexFieldAccess(
           after,
-          fieldAccess.getField());
+          fieldAccess.getField(),
+          fieldAccess.getType());
     }
   }
 
@@ -227,6 +233,15 @@ public class RexShuttle implements RexVisitor<RexNode> {
 
   @Override public RexNode visitRangeRef(RexRangeRef rangeRef) {
     return rangeRef;
+  }
+
+  @Override public RexNode visitLambda(RexLambda lambda) {
+    lambda.getExpression().accept(this);
+    return lambda;
+  }
+
+  @Override public RexNode visitLambdaRef(RexLambdaRef lambdaRef) {
+    return lambdaRef;
   }
 
   /**

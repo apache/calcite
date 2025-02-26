@@ -124,8 +124,8 @@ public class EnumerableBatchNestedLoopJoin extends Join implements EnumerableRel
       final RelMetadataQuery mq) {
     double rowCount = mq.getRowCount(this);
 
-    final double rightRowCount = right.estimateRowCount(mq);
-    final double leftRowCount = left.estimateRowCount(mq);
+    final double rightRowCount = mq.getRowCount(right);
+    final double leftRowCount = mq.getRowCount(left);
     if (Double.isInfinite(leftRowCount) || Double.isInfinite(rightRowCount)) {
       return planner.getCostFactory().makeInfiniteCost();
     }
@@ -175,15 +175,13 @@ public class EnumerableBatchNestedLoopJoin extends Join implements EnumerableRel
         corrArg =
             Expressions.parameter(Modifier.FINAL,
                 corrVarType, corrVar.get(c));
-        final DeclarationStatement decl = Expressions.declare(
-            Modifier.FINAL,
-            corrArg,
-            Expressions.convert_(
-                Expressions.call(
-                    corrArgList,
-                    BuiltInMethod.LIST_GET.method,
-                    Expressions.constant(c)),
-                corrVarType));
+        final DeclarationStatement decl =
+            Expressions.declare(Modifier.FINAL, corrArg,
+                Expressions.convert_(
+                    Expressions.call(corrArgList,
+                        BuiltInMethod.LIST_GET.method,
+                        Expressions.constant(c)),
+                    corrVarType));
         corrBlock.add(decl);
         implementor.registerCorrelVariable(corrVar.get(c), corrArg,
             corrBlock, leftResult.physType);
@@ -193,13 +191,11 @@ public class EnumerableBatchNestedLoopJoin extends Join implements EnumerableRel
         corrArg =
             Expressions.parameter(Modifier.FINAL,
                 Primitive.box(corrVarType), "$box" + corrVar.get(c));
-        final DeclarationStatement decl = Expressions.declare(
-            Modifier.FINAL,
-            corrArg,
-            Expressions.call(
-                corrArgList,
-                BuiltInMethod.LIST_GET.method,
-                Expressions.constant(c)));
+        final DeclarationStatement decl =
+            Expressions.declare(Modifier.FINAL, corrArg,
+                Expressions.call(corrArgList,
+                    BuiltInMethod.LIST_GET.method,
+                    Expressions.constant(c)));
         corrBlock.add(decl);
         final ParameterExpression corrRef =
             (ParameterExpression) corrBlock.append(corrVar.get(c),

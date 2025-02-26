@@ -27,6 +27,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.util.Pair;
@@ -39,7 +40,6 @@ import com.google.common.collect.Sets;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -219,11 +219,9 @@ public class RexImplicationChecker {
         : firstUsageFinder.usageMap.entrySet()) {
       ImmutableSet.Builder<Pair<RexInputRef, @Nullable RexNode>> usageBuilder =
           ImmutableSet.builder();
-      if (entry.getValue().usageList.size() > 0) {
-        for (final Pair<SqlOperator, @Nullable RexNode> pair
-            : entry.getValue().usageList) {
-          usageBuilder.add(Pair.of(entry.getKey(), pair.getValue()));
-        }
+      if (!entry.getValue().usageList.isEmpty()) {
+        entry.getValue().usageList.rightList().forEach(v ->
+            usageBuilder.add(Pair.of(entry.getKey(), v)));
         usagesBuilder.add(usageBuilder.build());
       }
     }
@@ -315,8 +313,10 @@ public class RexImplicationChecker {
 
     for (Map.Entry<RexInputRef, InputRefUsage<SqlOperator, @Nullable RexNode>> entry
         : secondUsageMap.entrySet()) {
-      final InputRefUsage<SqlOperator, @Nullable RexNode> secondUsage = entry.getValue();
-      final List<Pair<SqlOperator, @Nullable RexNode>> secondUsageList = secondUsage.usageList;
+      final InputRefUsage<SqlOperator, @Nullable RexNode> secondUsage =
+          entry.getValue();
+      final PairList<SqlOperator, @Nullable RexNode> secondUsageList =
+          secondUsage.usageList;
       final int secondLen = secondUsageList.size();
 
       if (secondUsage.usageCount != secondLen || secondLen > 2) {
@@ -332,7 +332,8 @@ public class RexImplicationChecker {
         return false;
       }
 
-      final List<Pair<SqlOperator, @Nullable RexNode>> firstUsageList = firstUsage.usageList;
+      final PairList<SqlOperator, @Nullable RexNode> firstUsageList =
+          firstUsage.usageList;
       final int firstLen = firstUsageList.size();
 
       final SqlKind fKind = firstUsageList.get(0).getKey().getKind();
@@ -504,8 +505,7 @@ public class RexImplicationChecker {
         @Nullable RexNode literal) {
       final InputRefUsage<SqlOperator, @Nullable RexNode> inputRefUse =
           getUsageMap(inputRef);
-      Pair<SqlOperator, @Nullable RexNode> use = Pair.of(op, literal);
-      inputRefUse.usageList.add(use);
+      inputRefUse.usageList.add(op, literal);
     }
 
     private InputRefUsage<SqlOperator, @Nullable RexNode> getUsageMap(RexInputRef rex) {
@@ -525,7 +525,7 @@ public class RexImplicationChecker {
    * @param <T1> left type
    * @param <T2> right type */
   private static class InputRefUsage<T1, T2> {
-    private final List<Pair<T1, T2>> usageList = new ArrayList<>();
+    private final PairList<T1, T2> usageList = PairList.of();
     private int usageCount = 0;
   }
 }

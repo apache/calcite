@@ -50,8 +50,7 @@ public class SerializableCharset implements Serializable {
    * @param charset Character set; must not be null
    */
   private SerializableCharset(Charset charset) {
-    assert charset != null;
-    this.charset = charset;
+    this.charset = requireNonNull(charset, "charset");
     this.charsetName = charset.name();
   }
 
@@ -71,8 +70,9 @@ public class SerializableCharset implements Serializable {
   private void readObject(ObjectInputStream in)
       throws IOException, ClassNotFoundException {
     charsetName = (String) in.readObject();
-    charset = requireNonNull(Charset.availableCharsets().get(this.charsetName),
-        () -> "charset is not found: " + charsetName);
+    charset =
+        requireNonNull(Charset.availableCharsets().get(this.charsetName),
+            () -> "charset is not found: " + charsetName);
   }
 
   /**

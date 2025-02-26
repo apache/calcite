@@ -26,8 +26,9 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.Permutation;
+
+import org.immutables.value.Value;
 
 import java.util.List;
 
@@ -38,13 +39,17 @@ import java.util.List;
  *
  * @see CoreRules#PROJECT_MERGE
  */
+@Value.Enclosing
 public class ProjectMergeRule
     extends RelRule<ProjectMergeRule.Config>
     implements TransformationRule {
   /** Default amount by which complexity is allowed to increase.
    *
-   * @see Config#bloat() */
-  public static final int DEFAULT_BLOAT = 100;
+   * @see Config#bloat()
+   * @deprecated please use {@link RelOptUtil#DEFAULT_BLOAT}
+   */
+  @Deprecated // to be removed before 2.0
+  public static final int DEFAULT_BLOAT = RelOptUtil.DEFAULT_BLOAT;
 
   /** Creates a ProjectMergeRule. */
   protected ProjectMergeRule(Config config) {
@@ -143,8 +148,9 @@ public class ProjectMergeRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableProjectMergeRule.Config.of()
         .withOperandFor(Project.class);
 
     @Override default ProjectMergeRule toRule() {
@@ -152,18 +158,18 @@ public class ProjectMergeRule
     }
 
     /** Limit how much complexity can increase during merging.
-     * Default is {@link #DEFAULT_BLOAT} (100). */
-    @ImmutableBeans.Property
-    @ImmutableBeans.IntDefault(ProjectMergeRule.DEFAULT_BLOAT)
-    int bloat();
+     * Default is {@link RelOptUtil#DEFAULT_BLOAT} (100). */
+    @Value.Default default int bloat() {
+      return RelOptUtil.DEFAULT_BLOAT;
+    }
 
     /** Sets {@link #bloat()}. */
     Config withBloat(int bloat);
 
     /** Whether to always merge projects, default true. */
-    @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(true)
-    boolean force();
+    @Value.Default default boolean force() {
+      return true;
+    }
 
     /** Sets {@link #force()}. */
     Config withForce(boolean force);

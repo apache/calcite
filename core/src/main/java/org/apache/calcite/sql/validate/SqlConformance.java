@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.validate;
 
+import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.sql.fun.SqlLibrary;
 
 /**
@@ -155,6 +156,7 @@ public interface SqlConformance {
    * <p>Among the built-in conformance levels, true in
    * {@link SqlConformanceEnum#DEFAULT},
    * {@link SqlConformanceEnum#BABEL},
+   * {@link SqlConformanceEnum#BIG_QUERY},
    * {@link SqlConformanceEnum#LENIENT},
    * {@link SqlConformanceEnum#MYSQL_5},
    * {@link SqlConformanceEnum#ORACLE_10},
@@ -174,6 +176,21 @@ public interface SqlConformance {
    * false otherwise.
    */
   boolean isSortByAliasObscures();
+
+  /**
+   * Whether this dialect supports dual table.
+   *
+   * <p>For example,
+   *
+   * <blockquote><pre>SELECT 1 + 1 FROM DUAL</pre></blockquote>
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#MYSQL_5},
+   * {@link SqlConformanceEnum#ORACLE_10},
+   * {@link SqlConformanceEnum#ORACLE_12},
+   * false otherwise.
+   */
+  boolean isSupportedDualTable();
 
   /**
    * Whether {@code FROM} clause is required in a {@code SELECT} statement.
@@ -345,7 +362,32 @@ public interface SqlConformance {
   boolean allowNiladicParentheses();
 
   /**
+   * Whether to allow parentheses to be specified in calls to niladic functions of
+   * returned the specific constant value.
+   *
+   * <p>For example, {@code PI} is a niladic function and return specific constant values pi.
+   * In standard SQL it must be invoked with parentheses:
+   *
+   * <blockquote><code>VALUES PI()</code></blockquote>
+   *
+   * <p>If {@code allowNiladicConstantWithoutParentheses}, the following syntax is also valid:
+   *
+   * <blockquote><code>VALUES PI</code></blockquote>
+   *
+   * <p>The same function include E which result is Euler's constant.
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#ORACLE_10},
+   * {@link SqlConformanceEnum#ORACLE_12},
+   * {@link SqlConformanceEnum#DEFAULT};
+   * {@link SqlConformanceEnum#LENIENT};
+   * false otherwise.
+   */
+  boolean allowNiladicConstantWithoutParentheses();
+
+  /**
    * Whether to allow SQL syntax "{@code ROW(expr1, expr2, expr3)}".
+   *
    * <p>The equivalent syntax in standard SQL is
    * "{@code (expr1, expr2, expr3)}".
    *
@@ -400,6 +442,24 @@ public interface SqlConformance {
    * false otherwise.
    */
   boolean isLimitStartCountAllowed();
+
+  /**
+   * Whether to allow the SQL syntax "{@code OFFSET start LIMIT count}"
+   * (that is, {@code OFFSET} before {@code LIMIT},
+   * in addition to {@code LIMIT} before {@code OFFSET}
+   * and {@code OFFSET} before {@code FETCH}).
+   *
+   * <p>The equivalent syntax in standard SQL is
+   * "{@code OFFSET start ROW FETCH FIRST count ROWS ONLY}".
+   *
+   * <p>Trino allows this behavior.
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#BABEL},
+   * {@link SqlConformanceEnum#LENIENT};
+   * false otherwise.
+   */
+  boolean isOffsetLimitAllowed();
 
   /**
    * Whether to allow geo-spatial extensions, including the GEOMETRY type.
@@ -505,6 +565,18 @@ public interface SqlConformance {
   boolean allowQualifyingCommonColumn();
 
   /**
+   * Whether {@code VALUE} is allowed as an alternative to {@code VALUES} in
+   * the parser.
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#BABEL},
+   * {@link SqlConformanceEnum#LENIENT},
+   * {@link SqlConformanceEnum#MYSQL_5};
+   * false otherwise.
+   */
+  boolean isValueAllowed();
+
+  /**
    * Controls the behavior of operators that are part of Standard SQL but
    * nevertheless have different behavior in different databases.
    *
@@ -529,4 +601,32 @@ public interface SqlConformance {
    * </ul>
    */
   SqlLibrary semantics();
+
+  /**
+   * Whether to allow lenient type coercions.
+   *
+   * <p>Coercions include:
+   * <ul>
+   *
+   * <li>Coercion of string literal to array literal. For example,
+   * {@code SELECT ARRAY[0,1,2] == '{0,1,2}'}
+   *
+   * <li>Casting {@code BOOLEAN} values to one of the following numeric types:
+   * {@code TINYINT}, {@code SMALLINT}, {@code INTEGER}, {@code BIGINT}.
+   *
+   * </ul>
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#BABEL},
+   * false otherwise.
+   */
+  @Experimental
+  boolean allowLenientCoercion();
+
+  /**
+   * Whether the implementation uses checked arithmetic.
+   * Most SQL dialects use checked arithmetic at runtime:
+   * they terminate with a fatal error on overflow.
+   */
+  boolean checkedArithmetic();
 }

@@ -70,13 +70,31 @@ public class SqlSetOption extends SqlAlter {
           final SqlNode scopeNode = operands[0];
           return new SqlSetOption(pos,
               scopeNode == null ? null : scopeNode.toString(),
-              (SqlIdentifier) operands[1], operands[2]);
+              operands[1], operands[2]);
         }
       };
 
   /** Name of the option as an {@link org.apache.calcite.sql.SqlIdentifier}
    * with one or more parts.*/
+  @Deprecated // to be removed before 2.0
   SqlIdentifier name;
+
+  /**
+   * Name of the option as an {@link SqlNode}.
+   *
+   * <p>{@link org.apache.calcite.sql.SqlIdentifier} can not be used
+   * as a name parameter. For example, in PostgreSQL, these two SQL commands
+   * have different meanings:
+   * <ul>
+   *   <li><code>RESET ALL</code> resets all settable run-time parameters to default values.</li>
+   *   <li><code>RESET "ALL"</code> resets parameter "ALL".</li>
+   * </ul>
+   * Using only {@link org.apache.calcite.sql.SqlIdentifier} makes
+   * it impossible to distinguish which case is being referred to.
+   *
+   * <p>TODO: Rename to 'name' when deprecated `name` field is removed.
+   */
+  SqlNode nameAsSqlNode;
 
   /** Value of the option. May be a {@link org.apache.calcite.sql.SqlLiteral} or
    * a {@link org.apache.calcite.sql.SqlIdentifier} with one
@@ -89,17 +107,24 @@ public class SqlSetOption extends SqlAlter {
    *
    * @param pos Parser position, must not be null.
    * @param scope Scope (generally "SYSTEM" or "SESSION"), may be null.
-   * @param name Name of option, as an identifier, must not be null.
+   * @param name Name of option, must not be null.
    * @param value Value of option, as an identifier or literal, may be null.
    *              If null, assume RESET command, else assume SET command.
    */
-  public SqlSetOption(SqlParserPos pos, @Nullable String scope, SqlIdentifier name,
+  public SqlSetOption(SqlParserPos pos, @Nullable String scope, SqlNode name,
       @Nullable SqlNode value) {
     super(pos, scope);
     this.scope = scope;
-    this.name = name;
+    this.name = requireNonNull(name, "name") instanceof SqlIdentifier ? (SqlIdentifier) name
+        : new SqlIdentifier(name.toString(), name.getParserPosition());
+    this.nameAsSqlNode = name;
     this.value = value;
-    assert name != null;
+  }
+
+  @Deprecated // to be removed before 2.0
+  public SqlSetOption(SqlParserPos pos, @Nullable String scope, SqlIdentifier name,
+      @Nullable SqlNode value) {
+    this(pos, scope, (SqlNode) name, value);
   }
 
   @Override public SqlKind getKind() {
@@ -133,7 +158,7 @@ public class SqlSetOption extends SqlAlter {
       }
       break;
     case 1:
-      name = (SqlIdentifier) requireNonNull(operand, /**/ "name");
+      setName(requireNonNull(operand, "operand"));
       break;
     case 2:
       value = operand;
@@ -143,20 +168,12 @@ public class SqlSetOption extends SqlAlter {
     }
   }
 
+  @Override public void unparse(final SqlWriter writer, final int leftPrec, final int rightPrec) {
+    writer.getDialect().unparseSqlSetOption(writer, leftPrec, rightPrec, this);
+  }
+
   @Override protected void unparseAlterOperation(SqlWriter writer, int leftPrec, int rightPrec) {
-    if (value != null) {
-      writer.keyword("SET");
-    } else {
-      writer.keyword("RESET");
-    }
-    final SqlWriter.Frame frame =
-        writer.startList(SqlWriter.FrameTypeEnum.SIMPLE);
-    name.unparse(writer, leftPrec, rightPrec);
-    if (value != null) {
-      writer.sep("=");
-      value.unparse(writer, leftPrec, rightPrec);
-    }
-    writer.endList(frame);
+    throw new UnsupportedOperationException();
   }
 
   @Override public void validate(SqlValidator validator,
@@ -166,12 +183,26 @@ public class SqlSetOption extends SqlAlter {
     }
   }
 
+  @Deprecated // to be removed before 2.0
   public SqlIdentifier getName() {
     return name;
   }
 
+  // TODO: Rename to 'getName' when deprecated `getName` method is removed.
+  public SqlNode name() {
+    return nameAsSqlNode;
+  }
+
+  @Deprecated // to be removed before 2.0
   public void setName(SqlIdentifier name) {
     this.name = name;
+  }
+
+  public void setName(SqlNode name) {
+    this.name =
+        name instanceof SqlIdentifier ? (SqlIdentifier) name
+            : new SqlIdentifier(name.toString(), name.getParserPosition());
+    this.nameAsSqlNode = name;
   }
 
   public @Nullable SqlNode getValue() {

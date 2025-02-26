@@ -38,8 +38,7 @@ public class SqlAbstractTimeFunction extends SqlFunction {
   //~ Static fields/initializers ---------------------------------------------
 
   private static final SqlOperandTypeChecker OTC_CUSTOM =
-      OperandTypes.or(
-          OperandTypes.POSITIVE_INTEGER_LITERAL, OperandTypes.NILADIC);
+      OperandTypes.POSITIVE_INTEGER_LITERAL.or(OperandTypes.NILADIC);
 
   //~ Instance fields --------------------------------------------------------
 
@@ -70,11 +69,12 @@ public class SqlAbstractTimeFunction extends SqlFunction {
       }
     }
     assert precision >= 0;
-    if (precision > SqlTypeName.MAX_DATETIME_PRECISION) {
+    final int maxPrecision = opBinding.getTypeFactory().getTypeSystem().getMaxPrecision(typeName);
+    if (precision > maxPrecision) {
       throw opBinding.newError(
           RESOURCE.argumentMustBeValidPrecision(
               opBinding.getOperator().getName(), 0,
-              SqlTypeName.MAX_DATETIME_PRECISION));
+              maxPrecision));
     }
     return opBinding.getTypeFactory().createSqlType(typeName, precision);
   }

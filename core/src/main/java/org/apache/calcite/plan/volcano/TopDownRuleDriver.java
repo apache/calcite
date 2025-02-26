@@ -45,7 +45,7 @@ import static java.util.Objects.requireNonNull;
  *
  * <p>This implementation uses tasks to manage rule matches.
  * A Task is a piece of work to be executed, it may apply some rules
- * or schedule other tasks.</p>
+ * or schedule other tasks.
  */
 @SuppressWarnings("JdkObsolete")
 class TopDownRuleDriver implements RuleDriver {
@@ -264,7 +264,7 @@ class TopDownRuleDriver implements RuleDriver {
    */
   private static class TaskDescriptor {
     private boolean first = true;
-    private StringBuilder builder = new StringBuilder();
+    private final StringBuilder builder = new StringBuilder();
 
     void log(Task task) {
       if (!LOGGER.isDebugEnabled()) {
@@ -308,7 +308,7 @@ class TopDownRuleDriver implements RuleDriver {
    */
   private class OptimizeGroup implements Task {
     private final RelSubset group;
-    private RelOptCost upperBound;
+    private final RelOptCost upperBound;
 
     OptimizeGroup(RelSubset group, RelOptCost upperBound) {
       this.group = group;
@@ -541,9 +541,7 @@ class TopDownRuleDriver implements RuleDriver {
     }
   }
 
-  /**
-   *  Decides how to optimize a physical node.
-   */
+  /** Decides how to optimize a physical node. */
   private @Nullable Task getOptimizeInputTask(RelNode rel, RelSubset group) {
     // If the physical does not in current optimizing RelSubset, it firstly tries to
     // convert the physical node either by converter rule or traits pass though.
@@ -596,10 +594,11 @@ class TopDownRuleDriver implements RuleDriver {
             rel, group.upperBound);
       }
     }
-    VolcanoRuleMatch match = ruleQueue.popMatch(
-        Pair.of(rel,
-            m -> m.getRule() instanceof ConverterRule
-                && ((ConverterRule) m.getRule()).getOutTrait().satisfies(
+    VolcanoRuleMatch match =
+        ruleQueue.popMatch(
+            Pair.of(rel,
+                m -> m.getRule() instanceof ConverterRule
+                    && ((ConverterRule) m.getRule()).getOutTrait().satisfies(
                     requireNonNull(group.getTraitSet().getConvention(),
                         () -> "convention for " + group))));
     if (match != null) {

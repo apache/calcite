@@ -40,7 +40,6 @@ import org.apache.calcite.sql.SqlSplittableAggFunction;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.Bug;
-import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mapping;
@@ -49,6 +48,7 @@ import org.apache.calcite.util.mapping.Mappings;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -68,6 +68,7 @@ import static java.util.Objects.requireNonNull;
  * @see CoreRules#AGGREGATE_JOIN_TRANSPOSE
  * @see CoreRules#AGGREGATE_JOIN_TRANSPOSE_EXTENDED
  */
+@Value.Enclosing
 public class AggregateJoinTransposeRule
     extends RelRule<AggregateJoinTransposeRule.Config>
     implements TransformationRule {
@@ -170,8 +171,9 @@ public class AggregateJoinTransposeRule
     // Do the columns used by the join appear in the output of the aggregate?
     final ImmutableBitSet aggregateColumns = aggregate.getGroupSet();
     final RelMetadataQuery mq = call.getMetadataQuery();
-    final ImmutableBitSet keyColumns = keyColumns(aggregateColumns,
-        mq.getPulledUpPredicates(join).pulledUpPredicates);
+    final ImmutableBitSet keyColumns =
+        keyColumns(aggregateColumns,
+            mq.getPulledUpPredicates(join).pulledUpPredicates);
     final ImmutableBitSet joinColumns =
         RelOptUtil.InputFinder.bits(join.getCondition());
     final boolean allColumnsInAggregate =
@@ -229,7 +231,7 @@ public class AggregateJoinTransposeRule
         // metadata more robust" is fixed) places a heavy load on
         // the metadata system.
         //
-        // So we choose to imagine the the input is already unique, which is
+        // So we choose to imagine the input is already unique, which is
         // untrue but harmless.
         //
         Util.discard(Bug.CALCITE_1048_FIXED);
@@ -253,8 +255,9 @@ public class AggregateJoinTransposeRule
               aggregation.unwrapOrThrow(SqlSplittableAggFunction.class);
           if (!aggCall.e.getArgList().isEmpty()
               && fieldSet.contains(ImmutableBitSet.of(aggCall.e.getArgList()))) {
-            final RexNode singleton = splitter.singleton(rexBuilder,
-                joinInput.getRowType(), aggCall.e.transform(mapping));
+            final RexNode singleton =
+                splitter.singleton(rexBuilder, joinInput.getRowType(),
+                    aggCall.e.transform(mapping));
 
             if (singleton instanceof RexInputRef) {
               final int index = ((RexInputRef) singleton).getIndex();
@@ -286,8 +289,9 @@ public class AggregateJoinTransposeRule
           final AggregateCall call1;
           if (fieldSet.contains(ImmutableBitSet.of(aggCall.e.getArgList()))) {
             final AggregateCall splitCall = splitter.split(aggCall.e, mapping);
-            call1 = splitCall.adaptTo(joinInput, splitCall.getArgList(),
-                splitCall.filterArg, oldGroupKeyCount, newGroupKeyCount);
+            call1 =
+                splitCall.adaptTo(joinInput, splitCall.getArgList(),
+                    splitCall.filterArg, oldGroupKeyCount, newGroupKeyCount);
           } else {
             call1 = splitter.other(rexBuilder.getTypeFactory(), aggCall.e);
           }
@@ -314,10 +318,13 @@ public class AggregateJoinTransposeRule
     }
 
     // Update condition
-    final Mapping mapping = (Mapping) Mappings.target(
-        map::get,
-        join.getRowType().getFieldCount(),
-        belowOffset);
+    final Mapping mapping =
+        (Mapping) Mappings.target(map::get,
+            join.getJoinType().projectsRight()
+                ? join.getRowType().getFieldCount()
+                : join.getLeft().getRowType().getFieldCount()
+                    + join.getRight().getRowType().getFieldCount(),
+            belowOffset);
     final RexNode newCondition =
         RexUtil.apply(mapping, join.getCondition());
 
@@ -375,8 +382,7 @@ public class AggregateJoinTransposeRule
     if (!aggConvertedToProjects) {
       relBuilder.aggregate(
           relBuilder.groupKey(Mappings.apply(mapping, aggregate.getGroupSet()),
-              (Iterable<ImmutableBitSet>)
-                  Mappings.apply2(mapping, aggregate.getGroupSets())),
+              Mappings.apply2(mapping, aggregate.getGroupSets())),
           newAggCalls);
     }
 
@@ -454,12 +460,13 @@ public class AggregateJoinTransposeRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableAggregateJoinTransposeRule.Config.of()
         .withOperandFor(LogicalAggregate.class, LogicalJoin.class, false);
 
     /** Extended instance that can push down aggregate functions. */
-    Config EXTENDED = EMPTY.as(Config.class)
+    Config EXTENDED = ImmutableAggregateJoinTransposeRule.Config.of()
         .withOperandFor(LogicalAggregate.class, LogicalJoin.class, true);
 
     @Override default AggregateJoinTransposeRule toRule() {
@@ -467,9 +474,10 @@ public class AggregateJoinTransposeRule
     }
 
     /** Whether to push down aggregate functions, default false. */
-    @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(false)
-    boolean isAllowFunctions();
+    @Value.Default
+    default boolean isAllowFunctions() {
+      return false;
+    }
 
     /** Sets {@link #isAllowFunctions()}. */
     Config withAllowFunctions(boolean allowFunctions);

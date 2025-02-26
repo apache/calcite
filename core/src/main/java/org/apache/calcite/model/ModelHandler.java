@@ -119,7 +119,7 @@ public class ModelHandler {
    *
    * @param schema Schema to add to
    * @param functionName Name of function; null to derived from method name
-   * @param path Path to look for functions
+   * @param unusedPath Path to look for functions (currently ignored)
    * @param className Class to inspect for methods that may be user-defined
    *                  functions
    * @param methodName Method name;
@@ -128,8 +128,9 @@ public class ModelHandler {
    * @param upCase Whether to convert method names to upper case, so that they
    *               can be called without using quotes
    */
-  public static void addFunctions(SchemaPlus schema, @Nullable String functionName,
-      List<String> path, String className, @Nullable String methodName, boolean upCase) {
+  public static void addFunctions(SchemaPlus schema,
+      @Nullable String functionName, List<String> unusedPath,
+      String className, @Nullable String methodName, boolean upCase) {
     final Class<?> clazz;
     try {
       clazz = Class.forName(className);
@@ -196,6 +197,9 @@ public class ModelHandler {
     final Pair<@Nullable String, SchemaPlus> pair =
         Pair.of(null, connection.getRootSchema());
     schemaStack.push(pair);
+    for (JsonType rootType : jsonRoot.types) {
+      rootType.accept(this);
+    }
     for (JsonSchema schema : jsonRoot.schemas) {
       schema.accept(this);
     }
@@ -330,8 +334,9 @@ public class ModelHandler {
           JdbcSchema.create(parentSchema, jsonSchema.name, dataSource,
               jsonSchema.jdbcCatalog, jsonSchema.jdbcSchema);
     } else {
-      SqlDialectFactory factory = AvaticaUtils.instantiatePlugin(
-          SqlDialectFactory.class, jsonSchema.sqlDialectFactory);
+      SqlDialectFactory factory =
+          AvaticaUtils.instantiatePlugin(SqlDialectFactory.class,
+              jsonSchema.sqlDialectFactory);
       schema =
           JdbcSchema.create(parentSchema, jsonSchema.name, dataSource,
               factory, jsonSchema.jdbcCatalog, jsonSchema.jdbcSchema);
@@ -478,15 +483,16 @@ public class ModelHandler {
         } else {
           final RelDataTypeFactory.Builder builder = typeFactory.builder();
           for (JsonTypeAttribute jsonTypeAttribute : jsonType.attributes) {
-            final SqlTypeName typeName = requireNonNull(
-                SqlTypeName.get(jsonTypeAttribute.type),
-                () -> "SqlTypeName.get for " + jsonTypeAttribute.type);
+            final SqlTypeName typeName =
+                requireNonNull(SqlTypeName.get(jsonTypeAttribute.type),
+                    () -> "SqlTypeName.get for " + jsonTypeAttribute.type);
             RelDataType type = typeFactory.createSqlType(typeName);
             if (type == null) {
-              type = requireNonNull(currentSchema().getType(jsonTypeAttribute.type),
-                  () -> "type " + jsonTypeAttribute.type + " is not found in schema "
-                      + currentSchemaName())
-                  .apply(typeFactory);
+              type =
+                  requireNonNull(currentSchema().getType(jsonTypeAttribute.type),
+                      () -> "type " + jsonTypeAttribute.type
+                          + " is not found in schema " + currentSchemaName())
+                      .apply(typeFactory);
             }
             builder.add(jsonTypeAttribute.name, type);
           }
@@ -512,7 +518,7 @@ public class ModelHandler {
   }
 
   public void visit(JsonMeasure jsonMeasure) {
-    assert latticeBuilder != null;
+    requireNonNull(latticeBuilder, "latticeBuilder");
     final boolean distinct = false; // no distinct field in JsonMeasure.yet
     final Lattice.Measure measure =
         latticeBuilder.resolveMeasure(jsonMeasure.agg, distinct,

@@ -28,7 +28,8 @@ import java.lang.reflect.Type;
 
 import static org.apache.calcite.linq4j.tree.Types.RecordType;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -42,16 +43,18 @@ public final class JavaTypeFactoryTest {
    * Struct types with one field are not mapped correctly to Java Classes</a>. */
   @Test void testGetJavaClassWithOneFieldStructDataTypeV1() {
     RelDataType structWithOneField = TYPE_FACTORY.createStructType(OneFieldStruct.class);
-    assertEquals(OneFieldStruct.class, TYPE_FACTORY.getJavaClass(structWithOneField));
+    assertThat(TYPE_FACTORY.getJavaClass(structWithOneField),
+        is(OneFieldStruct.class));
   }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2677">[CALCITE-2677]
    * Struct types with one field are not mapped correctly to Java Classes</a>. */
   @Test void testGetJavaClassWithOneFieldStructDataTypeV2() {
-    RelDataType structWithOneField = TYPE_FACTORY.createStructType(
-        ImmutableList.of(TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER)),
-        ImmutableList.of("intField"));
+    RelDataType structWithOneField =
+        TYPE_FACTORY.createStructType(
+            ImmutableList.of(TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER)),
+            ImmutableList.of("intField"));
     assertRecordType(TYPE_FACTORY.getJavaClass(structWithOneField));
   }
 
@@ -60,17 +63,18 @@ public final class JavaTypeFactoryTest {
    * Struct types with one field are not mapped correctly to Java Classes</a>. */
   @Test void testGetJavaClassWithTwoFieldsStructDataType() {
     RelDataType structWithTwoFields = TYPE_FACTORY.createStructType(TwoFieldStruct.class);
-    assertEquals(TwoFieldStruct.class, TYPE_FACTORY.getJavaClass(structWithTwoFields));
+    assertThat(TYPE_FACTORY.getJavaClass(structWithTwoFields),
+        is(TwoFieldStruct.class));
   }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2677">[CALCITE-2677]
    * Struct types with one field are not mapped correctly to Java Classes</a>. */
   @Test void testGetJavaClassWithTwoFieldsStructDataTypeV2() {
-    RelDataType structWithTwoFields = TYPE_FACTORY.createStructType(
-        ImmutableList.of(
-            TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER),
-            TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR)),
+    RelDataType structWithTwoFields =
+        TYPE_FACTORY.createStructType(
+            ImmutableList.of(TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER),
+                TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR)),
         ImmutableList.of("intField", "strField"));
     assertRecordType(TYPE_FACTORY.getJavaClass(structWithTwoFields));
   }
@@ -80,14 +84,14 @@ public final class JavaTypeFactoryTest {
    * Java-oriented field type is wrongly forced to be NOT NULL after being converted to
    * SQL-oriented</a>. */
   @Test void testFieldNullabilityAfterConvertingToSqlStructType() {
-    RelDataType javaStructType = TYPE_FACTORY.createStructType(
-        ImmutableList.of(
-            TYPE_FACTORY.createJavaType(Integer.class),
-            TYPE_FACTORY.createJavaType(int.class)),
+    RelDataType javaStructType =
+        TYPE_FACTORY.createStructType(
+            ImmutableList.of(TYPE_FACTORY.createJavaType(Integer.class),
+                TYPE_FACTORY.createJavaType(int.class)),
         ImmutableList.of("a", "b"));
     RelDataType sqlStructType = TYPE_FACTORY.toSql(javaStructType);
-    assertEquals("RecordType(INTEGER a, INTEGER NOT NULL b) NOT NULL",
-        SqlTests.getTypeString(sqlStructType));
+    assertThat(SqlTests.getTypeString(sqlStructType),
+        is("RecordType(INTEGER a, INTEGER NOT NULL b) NOT NULL"));
   }
 
   private void assertRecordType(Type actual) {

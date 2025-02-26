@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 package org.apache.calcite.rex;
-
 import org.apache.calcite.DataContext;
 import org.apache.calcite.DataContexts;
 import org.apache.calcite.avatica.util.ByteString;
@@ -24,6 +23,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlMonotonicBinaryOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.InferTypes;
@@ -35,9 +35,11 @@ import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.TestUtil;
+import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
@@ -45,17 +47,21 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Random;
+import java.util.TimeZone;
 import java.util.function.Function;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Unit test for {@link org.apache.calcite.rex.RexExecutorImpl}.
@@ -64,8 +70,10 @@ class RexExecutorTest {
   protected void check(final Action action) {
     Frameworks.withPrepare((cluster, relOptSchema, rootSchema, statement) -> {
       final RexBuilder rexBuilder = cluster.getRexBuilder();
-      DataContext dataContext =
-          DataContexts.of(statement.getConnection(), rootSchema);
+      final ImmutableMap.Builder<String, Object> builder = ImmutableMap.builder();
+      builder.put(DataContext.Variable.TIME_ZONE.camelName, TimeZone.getTimeZone("GMT"));
+      builder.put(DataContext.Variable.LOCALE.camelName, Locale.US);
+      final DataContext dataContext = DataContexts.of(builder.build());
       final RexExecutorImpl executor = new RexExecutorImpl(dataContext);
       action.check(rexBuilder, executor);
       return null;
@@ -98,16 +106,16 @@ class RexExecutorTest {
           .add("someStr", varchar)
           .build();
 
-      final RexExecutable exec = executor.getExecutable(rexBuilder,
-          constExps, rowType);
+      final RexExecutable exec =
+          RexExecutorImpl.getExecutable(rexBuilder, constExps, rowType);
       exec.setDataContext(testContext);
       values[0] = "Hello World";
       Object[] result = exec.execute();
-      assertTrue(result[0] instanceof String);
+      assertThat(result[0], instanceOf(String.class));
       assertThat((String) result[0], equalTo("llo World"));
       values[0] = "Calcite";
       result = exec.execute();
-      assertTrue(result[0] instanceof String);
+      assertThat(result[0], instanceOf(String.class));
       assertThat((String) result[0], equalTo("lcite"));
     });
   }
@@ -118,10 +126,9 @@ class RexExecutorTest {
       final RexLiteral ten = rexBuilder.makeExactLiteral(BigDecimal.TEN);
       executor.reduce(rexBuilder, ImmutableList.of(ten),
           reducedValues);
-      assertThat(reducedValues.size(), equalTo(1));
+      assertThat(reducedValues, hasSize(1));
       assertThat(reducedValues.get(0), instanceOf(RexLiteral.class));
-      assertThat(((RexLiteral) reducedValues.get(0)).getValue2(),
-          equalTo((Object) 10L));
+      assertThat(((RexLiteral) reducedValues.get(0)).getValue2(), equalTo(10L));
     });
   }
 
@@ -157,11 +164,10 @@ class RexExecutorTest {
       final Function<RexBuilder, RexNode> function) {
     check((rexBuilder, executor) -> {
       final List<RexNode> reducedValues = new ArrayList<>();
-      final RexNode expression = function.apply(rexBuilder);
-      assert expression != null;
+      final RexNode expression = requireNonNull(function.apply(rexBuilder));
       executor.reduce(rexBuilder, ImmutableList.of(expression),
           reducedValues);
-      assertThat(reducedValues.size(), equalTo(1));
+      assertThat(reducedValues, hasSize(1));
       final RexNode reducedValue = reducedValues.get(0);
       assertThat(reducedValue, instanceOf(RexLiteral.class));
       final Matcher<Object> matcher;
@@ -243,13 +249,13 @@ class RexExecutorTest {
               hello, plus, four);
       executor.reduce(rexBuilder, ImmutableList.of(substring, plus),
           reducedValues);
-      assertThat(reducedValues.size(), equalTo(2));
+      assertThat(reducedValues, hasSize(2));
       assertThat(reducedValues.get(0), instanceOf(RexLiteral.class));
       assertThat(((RexLiteral) reducedValues.get(0)).getValue2(),
-          equalTo((Object) "ello")); // substring('Hello world!, 2, 4)
+          equalTo("ello")); // substring('Hello world!, 2, 4)
       assertThat(reducedValues.get(1), instanceOf(RexLiteral.class));
       assertThat(((RexLiteral) reducedValues.get(1)).getValue2(),
-          equalTo((Object) 2L));
+          equalTo(2L));
     });
   }
 
@@ -270,13 +276,33 @@ class RexExecutorTest {
               binaryHello, plus, four);
       executor.reduce(rexBuilder, ImmutableList.of(substring, plus),
           reducedValues);
-      assertThat(reducedValues.size(), equalTo(2));
+      assertThat(reducedValues, hasSize(2));
       assertThat(reducedValues.get(0), instanceOf(RexLiteral.class));
-      assertThat(((RexLiteral) reducedValues.get(0)).getValue2().toString(),
-          equalTo((Object) "656c6c6f")); // substring('Hello world!, 2, 4)
+      assertThat(((RexLiteral) reducedValues.get(0)).getValue2(),
+          hasToString("656c6c6f")); // substring('Hello world!, 2, 4)
       assertThat(reducedValues.get(1), instanceOf(RexLiteral.class));
       assertThat(((RexLiteral) reducedValues.get(1)).getValue2(),
-          equalTo((Object) 2L));
+          equalTo(2L));
+    });
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6775">[CALCITE-6775]
+   * ToChar and ToTimestamp PG implementors should use translator's root instead of
+   * creating a new root expression</a>. */
+  @Test void testToCharPg() {
+    check((rexBuilder, executor) -> {
+      final List<RexNode> reducedValues = new ArrayList<>();
+      // GMT: Wednesday, November 12, 1975 11:00:00 AM
+      final TimestampString timestamp = TimestampString.fromMillisSinceEpoch(185022000000L);
+      final RexNode toChar =
+          rexBuilder.makeCall(SqlLibraryOperators.TO_CHAR_PG,
+              rexBuilder.makeTimestampLiteral(timestamp, 0),
+              rexBuilder.makeLiteral("ID")); // ISO 8601 day of the week (Wednesday = 3)
+      executor.reduce(rexBuilder, ImmutableList.of(toChar), reducedValues);
+      assertThat(reducedValues, hasSize(1));
+      assertThat(reducedValues.get(0), instanceOf(RexLiteral.class));
+      assertThat(((RexLiteral) reducedValues.get(0)).getValueAs(String.class), equalTo("3"));
     });
   }
 
@@ -336,16 +362,14 @@ class RexExecutorTest {
     final Random random = new Random();
     for (int i = 0; i < 10; i++) {
       threads.add(
-          new Thread() {
-            public void run() {
-              for (int j = 0; j < 1000; j++) {
-                // Random numbers between 0 and ~1m, smaller values more common
-                final int index = random.nextInt(1234567)
-                    >> random.nextInt(16) >> random.nextInt(16);
-                list.get(index);
-              }
+          new Thread(() -> {
+            for (int j = 0; j < 1000; j++) {
+              // Random numbers between 0 and ~1m, smaller values more common
+              final int index = random.nextInt(1234567)
+                  >> random.nextInt(16) >> random.nextInt(16);
+              list.get(index);
             }
-          });
+          }));
     }
     for (Thread runnable : threads) {
       runnable.start();
@@ -376,5 +400,53 @@ class RexExecutorTest {
    * a list, then check that the results are as expected. */
   interface Action {
     void check(RexBuilder rexBuilder, RexExecutorImpl executor);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5949">[CALCITE-5949]
+   * RexExecutable should return unchanged original expressions when it fails</a>.
+   */
+  @Test void testInvalidExpressionInList() {
+    check((rexBuilder, executor) -> {
+      final List<RexNode> reducedValues = new ArrayList<>();
+      final RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
+      final RelDataType integer =
+          typeFactory.createSqlType(SqlTypeName.INTEGER);
+      final RexCall first =
+          (RexCall) rexBuilder.makeCall(SqlStdOperatorTable.LN,
+          rexBuilder.makeLiteral(3, integer, true));
+      // Division by zero causes an exception during evaluation
+      final RexCall second =
+          (RexCall) rexBuilder.makeCall(SqlStdOperatorTable.DIVIDE_INTEGER,
+              rexBuilder.makeLiteral(-2, integer, true),
+              rexBuilder.makeLiteral(0, integer, true));
+      executor.reduce(rexBuilder, ImmutableList.of(first, second),
+          reducedValues);
+      assertThat(reducedValues, hasSize(2));
+      assertThat(reducedValues.get(0), instanceOf(RexCall.class));
+      assertThat(reducedValues.get(1), instanceOf(RexCall.class));
+    });
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6168">[CALCITE-6168]
+   * RexExecutor can throw during compilation</a>. */
+  @Test void testCompileTimeException() {
+    check((rexBuilder, executor) -> {
+      final List<RexNode> reducedValues = new ArrayList<>();
+      final RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
+      // CAST(200 as TINYINT)
+      final RelDataType tinyint =
+          typeFactory.createSqlType(SqlTypeName.TINYINT);
+      final RelDataType integer  =
+          typeFactory.createSqlType(SqlTypeName.INTEGER);
+      final RexNode cast =
+          rexBuilder.makeCast(tinyint,
+              rexBuilder.makeLiteral(200, integer, true));
+      executor.reduce(rexBuilder, ImmutableList.of(cast),
+          reducedValues);
+      assertThat(reducedValues, hasSize(1));
+      assertThat(reducedValues.get(0), instanceOf(RexCall.class));
+    });
   }
 }

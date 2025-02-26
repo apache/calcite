@@ -22,19 +22,18 @@ import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.type.OperandTypes;
-import org.apache.calcite.sql.type.ReturnTypes;
-import org.apache.calcite.sql.type.SameOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlSingleOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransform;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.util.Optionality;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-
+import java.util.ArrayList;
 import java.util.List;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * <code>LEAD</code> and <code>LAG</code> aggregate functions
@@ -42,22 +41,32 @@ import java.util.List;
  */
 public class SqlLeadLagAggFunction extends SqlAggFunction {
   private static final SqlSingleOperandTypeChecker OPERAND_TYPES =
-      OperandTypes.or(
-          OperandTypes.ANY,
-          OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.NUMERIC),
-          OperandTypes.and(
-              OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.NUMERIC,
-                  SqlTypeFamily.ANY),
-              // Arguments 1 and 3 must have same type
-              new SameOperandTypeChecker(3) {
-                @Override protected List<Integer>
-                getOperandList(int operandCount) {
-                  return ImmutableList.of(0, 2);
-                }
-              }));
+      OperandTypes.ANY
+          .or(OperandTypes.ANY_NUMERIC)
+          .or(OperandTypes.ANY_NUMERIC_ANY
+              // "same" only checks if two types are comparable
+              .and(OperandTypes.same(3, 0, 2)));
+
+  // A version of least restrictive which only looks at operands 0 and 2,
+  // if the latter exists.
+  private static final SqlReturnTypeInference ARG03 = opBinding -> {
+    List<RelDataType> toCheck = new ArrayList<>();
+    toCheck.add(opBinding.getOperandType(0));
+    if (opBinding.getOperandCount() >= 3) {
+      RelDataType op2 = opBinding.getOperandType(2);
+      toCheck.add(op2);
+    }
+    // If any operand is in the CHAR type family, return VARCHAR.
+    for (RelDataType type : toCheck) {
+      if (type.getFamily() == SqlTypeFamily.CHARACTER) {
+        return opBinding.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+      }
+    }
+    return opBinding.getTypeFactory().leastRestrictive(toCheck);
+  };
 
   private static final SqlReturnTypeInference RETURN_TYPE =
-      ReturnTypes.ARG0.andThen(SqlLeadLagAggFunction::transformType);
+      ARG03.andThen(SqlLeadLagAggFunction::transformType);
 
   public SqlLeadLagAggFunction(SqlKind kind) {
     super(kind.name(),
@@ -70,8 +79,7 @@ public class SqlLeadLagAggFunction extends SqlAggFunction {
         false,
         true,
         Optionality.FORBIDDEN);
-    Preconditions.checkArgument(kind == SqlKind.LEAD
-        || kind == SqlKind.LAG);
+    checkArgument(kind == SqlKind.LEAD || kind == SqlKind.LAG);
   }
 
   @Deprecated // to be removed before 2.0

@@ -25,8 +25,8 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.runtime.FlatLists;
-import org.apache.calcite.runtime.GeoFunctions;
-import org.apache.calcite.runtime.Geometries;
+import org.apache.calcite.runtime.SpatialTypeFunctions;
+import org.apache.calcite.runtime.variant.VariantValue;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
@@ -40,10 +40,11 @@ import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Sarg;
 import org.apache.calcite.util.TimeString;
+import org.apache.calcite.util.TimeWithTimeZoneString;
 import org.apache.calcite.util.TimestampString;
+import org.apache.calcite.util.TimestampWithTimeZoneString;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
@@ -51,9 +52,11 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 import org.checkerframework.dataflow.qual.Pure;
+import org.locationtech.jts.geom.Geometry;
 
 import java.io.PrintWriter;
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
@@ -63,6 +66,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TimeZone;
+import java.util.UUID;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.rel.type.RelDataTypeImpl.NON_NULLABLE_SUFFIX;
@@ -73,16 +79,16 @@ import static java.util.Objects.requireNonNull;
  * Constant value in a row-expression.
  *
  * <p>There are several methods for creating literals in {@link RexBuilder}:
- * {@link RexBuilder#makeLiteral(boolean)} and so forth.</p>
+ * {@link RexBuilder#makeLiteral(boolean)} and so forth.
  *
  * <p>How is the value stored? In that respect, the class is somewhat of a black
  * box. There is a {@link #getValue} method which returns the value as an
  * object, but the type of that value is implementation detail, and it is best
  * that your code does not depend upon that knowledge. It is better to use
  * task-oriented methods such as {@link #getValue2} and
- * {@link #toJavaString}.</p>
+ * {@link #toJavaString}.
  *
- * <p>The allowable types and combinations are:</p>
+ * <p>The allowable types and combinations are:
  *
  * <table>
  * <caption>Allowable types for RexLiteral instances</caption>
@@ -109,9 +115,11 @@ import static java.util.Objects.requireNonNull;
  * <td>{@link BigDecimal}</td>
  * </tr>
  * <tr>
- * <td>{@link SqlTypeName#DOUBLE}</td>
+ * <td>{@link SqlTypeName#DOUBLE},
+ *     {@link SqlTypeName#REAL},
+ *     {@link SqlTypeName#FLOAT}</td>
  * <td>Approximate number, for example <code>6.023E-23</code>.</td>
- * <td>{@link BigDecimal}</td>
+ * <td>{@link Double}.</td>
  * </tr>
  * <tr>
  * <td>{@link SqlTypeName#DATE}</td>
@@ -190,7 +198,7 @@ public class RexLiteral extends RexNode {
   /**
    * The value of this literal. Must be consistent with its type, as per
    * {@link #valueMatchesType}. For example, you can't store an
-   * {@link Integer} value here just because you feel like it -- all numbers are
+   * {@link Integer} value here just because you feel like it -- all exact numbers are
    * represented by a {@link BigDecimal}. But since this field is private, it
    * doesn't really matter how the values are stored.
    */
@@ -201,12 +209,9 @@ public class RexLiteral extends RexNode {
    */
   private final RelDataType type;
 
-  // TODO jvs 26-May-2006:  Use SqlTypeFamily instead; it exists
-  // for exactly this purpose (to avoid the confusion which results
-  // from overloading SqlTypeName).
   /**
    * An indication of the broad type of this literal -- even if its type isn't
-   * a SQL type. Sometimes this will be different than the SQL type; for
+   * a SQL type. Sometimes this will be different from the SQL type; for
    * example, all exact numbers, including integers have typeName
    * {@link SqlTypeName#DECIMAL}. See {@link #valueMatchesType} for the
    * definitive story.
@@ -228,9 +233,9 @@ public class RexLiteral extends RexNode {
     this.value = value;
     this.type = requireNonNull(type, "type");
     this.typeName = requireNonNull(typeName, "typeName");
-    Preconditions.checkArgument(valueMatchesType(value, typeName, true));
-    Preconditions.checkArgument((value == null) == type.isNullable());
-    Preconditions.checkArgument(typeName != SqlTypeName.ANY);
+    checkArgument(valueMatchesType(value, typeName, true));
+    checkArgument((value == null) == type.isNullable());
+    checkArgument(typeName != SqlTypeName.ANY);
     this.digest = computeDigest(RexDigestIncludeType.OPTIONAL);
   }
 
@@ -291,15 +296,14 @@ public class RexLiteral extends RexNode {
   }
 
   /**
-   * Returns true if {@link RexDigestIncludeType#OPTIONAL} digest would include data type.
+   * Returns whether {@link RexDigestIncludeType} digest would include data type.
    *
    * @see RexCall#computeDigest(boolean)
-   * @return true if {@link RexDigestIncludeType#OPTIONAL} digest would include data type
+   * @return whether {@link RexDigestIncludeType} digest would include data type
    */
   @RequiresNonNull("type")
   RexDigestIncludeType digestIncludesType(
-      @UnknownInitialization RexLiteral this
-  ) {
+      @UnknownInitialization RexLiteral this) {
     return shouldIncludeType(value, type);
   }
 
@@ -313,6 +317,10 @@ public class RexLiteral extends RexNode {
       return true;
     }
     switch (typeName) {
+    case UUID:
+      return value instanceof UUID;
+    case VARIANT:
+      return value instanceof VariantValue;
     case BOOLEAN:
       // Unlike SqlLiteral, we do not allow boolean null.
       return value instanceof Boolean;
@@ -326,21 +334,24 @@ public class RexLiteral extends RexNode {
       }
       // fall through
     case DECIMAL:
+    case BIGINT:
+      return value instanceof BigDecimal;
     case DOUBLE:
     case FLOAT:
     case REAL:
-    case BIGINT:
-      return value instanceof BigDecimal;
+      return value instanceof Double;
     case DATE:
       return value instanceof DateString;
     case TIME:
-      return value instanceof TimeString;
     case TIME_WITH_LOCAL_TIME_ZONE:
       return value instanceof TimeString;
+    case TIME_TZ:
+      return value instanceof TimeWithTimeZoneString;
     case TIMESTAMP:
-      return value instanceof TimestampString;
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
       return value instanceof TimestampString;
+    case TIMESTAMP_TZ:
+      return value instanceof TimestampWithTimeZoneString;
     case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
     case INTERVAL_MONTH:
@@ -384,7 +395,7 @@ public class RexLiteral extends RexNode {
     case MULTISET:
       return value instanceof List;
     case GEOMETRY:
-      return value instanceof Geometries.Geom;
+      return value instanceof Geometry;
     case ANY:
       // Literal of type ANY is not legal. "CAST(2 AS ANY)" remains
       // an integer literal surrounded by a cast function.
@@ -407,6 +418,7 @@ public class RexLiteral extends RexNode {
       return SqlTypeName.DECIMAL;
     case REAL:
     case FLOAT:
+    case DOUBLE:
       return SqlTypeName.DOUBLE;
     case VARBINARY:
       return SqlTypeName.BINARY;
@@ -446,7 +458,8 @@ public class RexLiteral extends RexNode {
   }
 
   /**
-   * Computes if data type can be omitted from the digset.
+   * Computes if data type can be omitted from the digest.
+   *
    * <p>For instance, {@code 1:BIGINT} has to keep data type while {@code 1:INT}
    * should be represented as just {@code 1}.
    *
@@ -609,7 +622,7 @@ public class RexLiteral extends RexNode {
    * Appends the specified value in the provided destination as a Java string. The value must be
    * consistent with the type, as per {@link #valueMatchesType}.
    *
-   * <p>Typical return values:</p>
+   * <p>Typical return values:
    *
    * <ul>
    * <li>true</li>
@@ -646,20 +659,27 @@ public class RexLiteral extends RexNode {
       break;
     case BOOLEAN:
       assert value instanceof Boolean;
-      sb.append(value.toString());
+      sb.append(value);
       break;
     case DECIMAL:
       assert value instanceof BigDecimal;
-      sb.append(value.toString());
+      sb.append(value);
       break;
     case DOUBLE:
-      assert value instanceof BigDecimal;
-      sb.append(Util.toScientificNotation((BigDecimal) value));
+    case FLOAT:
+      if (value instanceof BigDecimal) {
+        sb.append(Util.toScientificNotation((BigDecimal) value));
+      } else {
+        assert value instanceof Double;
+        Double d = (Double) value;
+        String repr = Util.toScientificNotation(d);
+        sb.append(repr);
+      }
       break;
     case BIGINT:
       assert value instanceof BigDecimal;
       long narrowLong = ((BigDecimal) value).longValue();
-      sb.append(String.valueOf(narrowLong));
+      sb.append(narrowLong);
       sb.append('L');
       break;
     case BINARY:
@@ -678,25 +698,37 @@ public class RexLiteral extends RexNode {
       Util.asStringBuilder(sb, sb2 ->
           printSarg(sb2, (Sarg) value, type));
       break;
+    case UUID:
+      assert value instanceof UUID;
+      sb.append(value);
+      break;
     case SYMBOL:
       assert value instanceof Enum;
       sb.append("FLAG(");
-      sb.append(value.toString());
+      sb.append(value);
       sb.append(")");
       break;
     case DATE:
       assert value instanceof DateString;
-      sb.append(value.toString());
+      sb.append(value);
       break;
     case TIME:
     case TIME_WITH_LOCAL_TIME_ZONE:
       assert value instanceof TimeString;
-      sb.append(value.toString());
+      sb.append(value);
+      break;
+    case TIME_TZ:
+      assert value instanceof TimeWithTimeZoneString;
+      sb.append(value);
       break;
     case TIMESTAMP:
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
       assert value instanceof TimestampString;
-      sb.append(value.toString());
+      sb.append(value);
+      break;
+    case TIMESTAMP_TZ:
+      assert value instanceof TimestampWithTimeZoneString;
+      sb.append(value);
       break;
     case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
@@ -712,7 +744,7 @@ public class RexLiteral extends RexNode {
     case INTERVAL_MINUTE_SECOND:
     case INTERVAL_SECOND:
       assert value instanceof BigDecimal;
-      sb.append(value.toString());
+      sb.append(value);
       break;
     case MULTISET:
     case ROW:
@@ -724,7 +756,7 @@ public class RexLiteral extends RexNode {
               sb3.append(list.get(i).computeDigest(includeType))));
       break;
     case GEOMETRY:
-      final String wkt = GeoFunctions.ST_AsWKT((Geometries.Geom) castNonNull(value));
+      final String wkt = SpatialTypeFunctions.ST_AsWKT((Geometry) castNonNull(value));
       sb.append(wkt);
       break;
     default:
@@ -806,6 +838,8 @@ public class RexLiteral extends RexNode {
       return new RexLiteral(b, type, typeName);
     case DECIMAL:
     case DOUBLE:
+    case REAL:
+    case FLOAT:
       BigDecimal d = new BigDecimal(literal);
       return new RexLiteral(d, type, typeName);
     case BINARY:
@@ -844,9 +878,9 @@ public class RexLiteral extends RexNode {
       final Comparable v;
       switch (typeName) {
       case DATE:
-        final Calendar cal = DateTimeUtils.parseDateFormat(literal,
-            new SimpleDateFormat(format, Locale.ROOT),
-            tz);
+        final Calendar cal =
+            DateTimeUtils.parseDateFormat(literal,
+                new SimpleDateFormat(format, Locale.ROOT), tz);
         if (cal == null) {
           throw new AssertionError("fromJdbcString: invalid date/time value '"
               + literal + "'");
@@ -855,7 +889,7 @@ public class RexLiteral extends RexNode {
         break;
       default:
         // Allow fractional seconds for times and timestamps
-        assert format != null;
+        requireNonNull(format, "format");
         final DateTimeUtils.PrecisionTime ts =
             DateTimeUtils.parsePrecisionDateTimeLiteral(literal,
                 new SimpleDateFormat(format, Locale.ROOT), tz, -1);
@@ -953,10 +987,12 @@ public class RexLiteral extends RexNode {
     case DECIMAL:
     case TIMESTAMP:
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+    case TIMESTAMP_TZ:
       return getValueAs(Long.class);
     case DATE:
     case TIME:
     case TIME_WITH_LOCAL_TIME_ZONE:
+    case TIME_TZ:
       return getValueAs(Integer.class);
     default:
       return value;
@@ -1031,6 +1067,11 @@ public class RexLiteral extends RexNode {
       return clazz.cast(value);
     }
     switch (typeName) {
+    case UUID:
+      if (clazz == String.class) {
+        return clazz.cast(((UUID) value).toString());
+      }
+      break;
     case BINARY:
       if (clazz == byte[].class) {
         return clazz.cast(((ByteString) value).getBytes());
@@ -1056,22 +1097,48 @@ public class RexLiteral extends RexNode {
     case BIGINT:
     case INTEGER:
     case SMALLINT:
-    case TINYINT:
+    case TINYINT: {
+      BigDecimal bd = (BigDecimal) value;
+      if (clazz == Long.class) {
+        return clazz.cast(bd.longValue());
+      } else if (clazz == Integer.class) {
+        return clazz.cast(bd.intValue());
+      } else if (clazz == Short.class) {
+        return clazz.cast(bd.shortValue());
+      } else if (clazz == Byte.class) {
+        return clazz.cast(bd.byteValue());
+      } else if (clazz == Double.class) {
+        return clazz.cast(bd.doubleValue());
+      } else if (clazz == Float.class) {
+        return clazz.cast(bd.floatValue());
+      }
+      break;
+    }
     case DOUBLE:
     case REAL:
     case FLOAT:
-      if (clazz == Long.class) {
-        return clazz.cast(((BigDecimal) value).longValue());
-      } else if (clazz == Integer.class) {
-        return clazz.cast(((BigDecimal) value).intValue());
-      } else if (clazz == Short.class) {
-        return clazz.cast(((BigDecimal) value).shortValue());
-      } else if (clazz == Byte.class) {
-        return clazz.cast(((BigDecimal) value).byteValue());
-      } else if (clazz == Double.class) {
-        return clazz.cast(((BigDecimal) value).doubleValue());
-      } else if (clazz == Float.class) {
-        return clazz.cast(((BigDecimal) value).floatValue());
+      if (value instanceof Double) {
+        Double d = (Double) value;
+        if (clazz == Long.class) {
+          return clazz.cast(d.longValue());
+        } else if (clazz == Integer.class) {
+          return clazz.cast(d.intValue());
+        } else if (clazz == Short.class) {
+          return clazz.cast(d.shortValue());
+        } else if (clazz == Byte.class) {
+          return clazz.cast(d.byteValue());
+        } else if (clazz == Double.class) {
+          // Cast still needed, since the Java compiler does not understand
+          // that T is double.
+          return clazz.cast(d);
+        } else if (clazz == Float.class) {
+          return clazz.cast(d.floatValue());
+        } else if (clazz == BigDecimal.class) {
+          // This particular conversion is lossy, since in general BigDecimal cannot
+          // represent accurately FP values.  However, this is the best we can do.
+          // This conversion used to be in RexBuilder, used when creating a RexLiteral.
+          return clazz.cast(new BigDecimal(d, MathContext.DECIMAL64).stripTrailingZeros());
+        }
       }
       break;
     case DATE:
@@ -1095,6 +1162,11 @@ public class RexLiteral extends RexNode {
         return clazz.cast(((TimeString) value).getMillisOfDay());
       }
       break;
+    case TIME_TZ:
+      if (clazz == Integer.class) {
+        return clazz.cast(((TimeWithTimeZoneString) value).getLocalTimeString().getMillisOfDay());
+      }
+      break;
     case TIMESTAMP:
       if (clazz == Long.class) {
         // Milliseconds since 1970-01-01 00:00:00
@@ -1102,6 +1174,16 @@ public class RexLiteral extends RexNode {
       } else if (clazz == Calendar.class) {
         // Note: Nanos are ignored
         return clazz.cast(((TimestampString) value).toCalendar());
+      }
+      break;
+    case TIMESTAMP_TZ:
+      if (clazz == Long.class) {
+        return clazz.cast(((TimestampWithTimeZoneString) value)
+            .getLocalTimestampString()
+            .getMillisSinceEpoch());
+      } else if (clazz == Calendar.class) {
+        TimestampWithTimeZoneString ts = (TimestampWithTimeZoneString) value;
+        return clazz.cast(ts.getLocalTimestampString().toCalendar(ts.getTimeZone()));
       }
       break;
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
@@ -1179,9 +1261,18 @@ public class RexLiteral extends RexNode {
     return findValue(node);
   }
 
-  public static int intValue(RexNode node) {
+  /** Returns the value of a literal, cast, or unary minus, as a number;
+   * never null. */
+  public static Number numberValue(RexNode node) {
     final Comparable value = castNonNull(findValue(node));
-    return ((Number) value).intValue();
+    return (Number) value;
+  }
+
+  /** Returns the value of a literal, cast, or unary minus, as an int;
+   * never null. */
+  public static int intValue(RexNode node) {
+    final Number number = numberValue(node);
+    return number.intValue();
   }
 
   public static @Nullable String stringValue(RexNode node) {

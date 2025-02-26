@@ -29,13 +29,14 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlNameMatcher;
 import org.apache.calcite.sql.validate.SqlValidator;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Collections;
 import java.util.List;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -70,8 +71,8 @@ public class SqlWindowTableFunction extends SqlFunction
    * and two additional fields. The fields are as follows:
    *
    * <ol>
-   *  <li>{@code window_start}: TIMESTAMP type to indicate a window's start
-   *  <li>{@code window_end}: TIMESTAMP type to indicate a window's end
+   * <li>{@code window_start}: TIMESTAMP type to indicate a window's start
+   * <li>{@code window_end}: TIMESTAMP type to indicate a window's end
    * </ol>
    */
   public static final SqlReturnTypeInference ARG0_TABLE_FUNCTION_WINDOWING =
@@ -124,7 +125,7 @@ public class SqlWindowTableFunction extends SqlFunction
         int mandatoryParamCount) {
       this.paramNames = ImmutableList.copyOf(paramNames);
       this.mandatoryParamCount = mandatoryParamCount;
-      Preconditions.checkArgument(mandatoryParamCount >= 0
+      checkArgument(mandatoryParamCount >= 0
           && mandatoryParamCount <= paramNames.size());
     }
 
@@ -140,10 +141,6 @@ public class SqlWindowTableFunction extends SqlFunction
 
     @Override public List<String> paramNames() {
       return paramNames;
-    }
-
-    @Override public Consistency getConsistency() {
-      return Consistency.NONE;
     }
 
     @Override public boolean isOptional(int i) {

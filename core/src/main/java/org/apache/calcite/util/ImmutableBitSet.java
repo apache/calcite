@@ -44,7 +44,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.function.Consumer;
+import java.util.function.IntConsumer;
+import java.util.function.IntPredicate;
 import java.util.stream.Collector;
+import java.util.stream.IntStream;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
@@ -73,7 +77,7 @@ public class ImmutableBitSet
   public static final Ordering<ImmutableBitSet> ORDERING =
       Ordering.from(COMPARATOR);
 
-  // BitSets are packed into arrays of "words."  Currently a word is
+  // BitSets are packed into arrays of "words."  Currently, a word is
   // a long, which consists of 64 bits, requiring 6 address bits.
   // The choice of word size is determined purely by performance concerns.
   private static final int ADDRESS_BITS_PER_WORD = 6;
@@ -108,9 +112,24 @@ public class ImmutableBitSet
     return EMPTY;
   }
 
+  /** Creates an ImmutableBitSet with the given bit set. */
+  public static ImmutableBitSet of(int bit) {
+    if (bit < 0) {
+      throw new IndexOutOfBoundsException("bit < 0: " + bit);
+    }
+    long[] words = new long[wordIndex(bit) + 1];
+    int wordIndex = wordIndex(bit);
+    words[wordIndex] |= 1L << bit;
+    return new ImmutableBitSet(words);
+  }
+
+  /** Creates an ImmutableBitSet with the given bits set. */
   public static ImmutableBitSet of(int... bits) {
     int max = -1;
     for (int bit : bits) {
+      if (bit < 0) {
+        throw new IndexOutOfBoundsException("bit < 0: " + bit);
+      }
       max = Math.max(bit, max);
     }
     if (max == -1) {
@@ -124,12 +143,17 @@ public class ImmutableBitSet
     return new ImmutableBitSet(words);
   }
 
+  /** Creates an ImmutableBitSet whose contents are the bits denoted by a
+   * given collection of integers. */
   public static ImmutableBitSet of(Iterable<Integer>  bits) {
     if (bits instanceof ImmutableBitSet) {
       return (ImmutableBitSet) bits;
     }
     int max = -1;
     for (int bit : bits) {
+      if (bit < 0) {
+        throw new IndexOutOfBoundsException("bit < 0: " + bit);
+      }
       max = Math.max(bit, max);
     }
     if (max == -1) {
@@ -478,7 +502,7 @@ public class ImmutableBitSet
    * ordering.
    *
    * <p>Bit sets {@code (), (0), (0, 1), (0, 1, 3), (1), (2, 3)} are in sorted
-   * order.</p>
+   * order.
    */
   @Override public int compareTo(ImmutableBitSet o) {
     int i = 0;
@@ -494,11 +518,24 @@ public class ImmutableBitSet
   }
 
   /**
+   * Returns a stream of indices for which this {@code ImmutableBitSet}
+   * contains a bit in the set state. The indices are returned
+   * in order, from lowest to highest. The size of the stream
+   * is the number of bits in the set state, equal to the value
+   * returned by the {@link #cardinality()} method.
+   *
+   * @return a stream of integers representing set indices
+   */
+  public IntStream stream() {
+    return toList().stream().mapToInt(i -> i);
+  }
+
+  /**
    * Returns the index of the first bit that is set to {@code true}
    * that occurs on or after the specified starting index. If no such
    * bit exists then {@code -1} is returned.
    *
-   * <p>Based upon {@link BitSet#nextSetBit}.
+   * <p>Based upon {@link BitSet#nextSetBit(int)}.
    *
    * @param  fromIndex the index to start checking from (inclusive)
    * @return the index of the next set bit, or {@code -1} if there
@@ -619,6 +656,18 @@ public class ImmutableBitSet
       list.add(i);
     }
     return list;
+  }
+
+  @Override public void forEach(Consumer<? super Integer> action) {
+    forEachInt(action::accept);
+  }
+
+  /** As {@link #forEach(Consumer)} but on primitive {@code int} values. */
+  public void forEachInt(IntConsumer action) {
+    requireNonNull(action, "action");
+    for (int i = nextSetBit(0); i >= 0; i = nextSetBit(i + 1)) {
+      action.accept(i);
+    }
   }
 
   /** Creates a view onto this bit set as a list of integers.
@@ -945,6 +994,30 @@ public class ImmutableBitSet
     return true;
   }
 
+  /** Returns whether a given predicate evaluates to true for all bits in this
+   * set. */
+  public boolean allMatch(IntPredicate predicate) {
+    requireNonNull(predicate, "predicate");
+    for (int i = nextSetBit(0); i >= 0; i = nextSetBit(i + 1)) {
+      if (!predicate.test(i)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /** Returns whether a given predicate evaluates to true for any bit in this
+   * set. */
+  public boolean anyMatch(IntPredicate predicate) {
+    requireNonNull(predicate, "predicate");
+    for (int i = nextSetBit(0); i >= 0; i = nextSetBit(i + 1)) {
+      if (predicate.test(i)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /**
    * Setup equivalence Sets for each position. If i and j are equivalent then
    * they will have the same equivalence Set. The algorithm computes the
@@ -972,8 +1045,7 @@ public class ImmutableBitSet
     @RequiresNonNull("equivalence")
     private ImmutableBitSet computeClosure(
         @UnderInitialization Closure this,
-        int pos
-    ) {
+        int pos) {
       ImmutableBitSet o = closure.get(pos);
       if (o != null) {
         return o;
@@ -1149,34 +1221,25 @@ public class ImmutableBitSet
 
     /** Sets all bits in a given bit set. */
     public Builder addAll(ImmutableBitSet bitSet) {
-      for (Integer bit : bitSet) {
-        set(bit);
-      }
+      bitSet.forEachInt(this::set);
       return this;
     }
 
     /** Sets all bits in a given list of bits. */
     public Builder addAll(Iterable<Integer> integers) {
-      for (Integer integer : integers) {
-        set(integer);
-      }
+      integers.forEach(this::set);
       return this;
     }
 
     /** Sets all bits in a given list of {@code int}s. */
     public Builder addAll(ImmutableIntList integers) {
-      //noinspection ForLoopReplaceableByForEach
-      for (int i = 0; i < integers.size(); i++) {
-        set(integers.get(i));
-      }
+      integers.forEachInt(this::set);
       return this;
     }
 
     /** Clears all bits in a given bit set. */
     public Builder removeAll(ImmutableBitSet bitSet) {
-      for (Integer bit : bitSet) {
-        clear(bit);
-      }
+      bitSet.forEachInt(this::clear);
       return this;
     }
 

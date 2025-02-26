@@ -23,8 +23,10 @@ import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.ImmutableBeans;
+
+import org.immutables.value.Value;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,6 +38,7 @@ import java.util.List;
  * @see CoreRules#SORT_UNION_TRANSPOSE
  * @see CoreRules#SORT_UNION_TRANSPOSE_MATCH_NULL_FETCH
  */
+@Value.Enclosing
 public class SortUnionTransposeRule
     extends RelRule<SortUnionTransposeRule.Config>
     implements TransformationRule {
@@ -64,11 +67,13 @@ public class SortUnionTransposeRule
   @Override public boolean matches(RelOptRuleCall call) {
     final Sort sort = call.rel(0);
     final Union union = call.rel(1);
-    // We only apply this rule if Union.all is true and Sort.offset is null.
+    // We only apply this rule if Union.all is true, Sort.offset is null and Sort.fetch is not
+    // a dynamic param.
     // There is a flag indicating if this rule should be applied when
     // Sort.fetch is null.
     return union.all
         && sort.offset == null
+        && !(sort.fetch instanceof RexDynamicParam)
         && (config.matchNullFetch() || sort.fetch != null);
   }
 
@@ -84,8 +89,9 @@ public class SortUnionTransposeRule
       if (!RelMdUtil.checkInputForCollationAndLimit(mq, input,
           sort.getCollation(), sort.offset, sort.fetch)) {
         ret = false;
-        Sort branchSort = sort.copy(sort.getTraitSet(), input,
-            sort.getCollation(), sort.offset, sort.fetch);
+        Sort branchSort =
+            sort.copy(sort.getTraitSet(), input,
+                sort.getCollation(), sort.offset, sort.fetch);
         inputs.add(branchSort);
       } else {
         inputs.add(input);
@@ -98,14 +104,16 @@ public class SortUnionTransposeRule
     // create new union and sort
     Union unionCopy = (Union) union
         .copy(union.getTraitSet(), inputs, union.all);
-    Sort result = sort.copy(sort.getTraitSet(), unionCopy, sort.getCollation(),
-        sort.offset, sort.fetch);
+    Sort result =
+        sort.copy(sort.getTraitSet(), unionCopy, sort.getCollation(),
+            sort.offset, sort.fetch);
     call.transformTo(result);
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableSortUnionTransposeRule.Config.of()
         .withOperandFor(Sort.class, Union.class)
         .withMatchNullFetch(false);
 
@@ -115,9 +123,9 @@ public class SortUnionTransposeRule
 
     /** Whether to match a Sort whose {@link Sort#fetch} is null. Generally
      * this only makes sense if the Union preserves order (and merges). */
-    @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(false)
-    boolean matchNullFetch();
+    @Value.Default default boolean matchNullFetch() {
+      return false;
+    }
 
     /** Sets {@link #matchNullFetch()}. */
     Config withMatchNullFetch(boolean matchNullFetch);

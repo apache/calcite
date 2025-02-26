@@ -31,6 +31,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.List;
 import java.util.Set;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 /**
  * Contains factory interface and default implementation for creating various
  * rel nodes.
@@ -68,7 +70,10 @@ public class EnumerableRelFactories {
       implements org.apache.calcite.rel.core.RelFactories.ProjectFactory {
     @Override public RelNode createProject(RelNode input, List<RelHint> hints,
         List<? extends RexNode> childExprs,
-        @Nullable List<? extends @Nullable String> fieldNames) {
+        @Nullable List<? extends @Nullable String> fieldNames,
+        Set<CorrelationId> variablesSet) {
+      checkArgument(variablesSet.isEmpty(),
+          "EnumerableProject does not allow variables");
       final RelDataType rowType =
           RexUtil.createStructType(input.getCluster().getTypeFactory(), childExprs,
               fieldNames, SqlValidatorUtil.F_SUGGESTER);

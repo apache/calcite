@@ -28,12 +28,15 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of {@link org.apache.calcite.rel.core.Project}
@@ -42,7 +45,7 @@ import java.util.Map;
 public class InnodbProject extends Project implements InnodbRel {
   InnodbProject(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, List<? extends RexNode> projects, RelDataType rowType) {
-    super(cluster, traitSet, ImmutableList.of(), input, projects, rowType);
+    super(cluster, traitSet, ImmutableList.of(), input, projects, rowType, ImmutableSet.of());
     assert getConvention() == InnodbRel.CONVENTION;
     assert getConvention() == input.getConvention();
   }
@@ -54,7 +57,8 @@ public class InnodbProject extends Project implements InnodbRel {
 
   @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
-    return super.computeSelfCost(planner, mq).multiplyBy(0.1);
+    final RelOptCost cost = requireNonNull(super.computeSelfCost(planner, mq));
+    return cost.multiplyBy(0.1);
   }
 
   @Override public void implement(Implementor implementor) {

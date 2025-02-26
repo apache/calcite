@@ -17,17 +17,19 @@
 package org.apache.calcite.adapter.elasticsearch;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.AbstractSequentialIterator;
 import com.google.common.collect.Iterators;
 
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.Objects;
 import java.util.function.Consumer;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
+import static java.util.Objects.requireNonNull;
+
 /**
- * <p>"Iterator" which retrieves results lazily and in batches. Uses
+ * "Iterator" which retrieves results lazily and in batches. Uses
  * <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-scroll.html">Elastic Scrolling API</a>
  * to optimally consume large search results.
  *
@@ -39,15 +41,15 @@ class Scrolling {
   private final int fetchSize;
 
   Scrolling(ElasticsearchTransport transport) {
-    this.transport = Objects.requireNonNull(transport, "transport");
+    this.transport = requireNonNull(transport, "transport");
     final int fetchSize = transport.fetchSize;
-    Preconditions.checkArgument(fetchSize > 0,
+    checkArgument(fetchSize > 0,
         "invalid fetch size. Expected %s > 0", fetchSize);
     this.fetchSize = fetchSize;
   }
 
   Iterator<ElasticsearchJson.SearchHit> query(ObjectNode query) {
-    Objects.requireNonNull(query, "query");
+    requireNonNull(query, "query");
     final long limit;
     if (query.has("size")) {
       limit = query.get("size").asLong();
@@ -63,9 +65,9 @@ class Scrolling {
     final ElasticsearchJson.Result first = transport
         .search(Collections.singletonMap("scroll", "1m")).apply(query);
 
-    AutoClosingIterator iterator = new AutoClosingIterator(
-        new SequentialIterator(first, transport, limit),
-        scrollId -> transport.closeScroll(Collections.singleton(scrollId)));
+    AutoClosingIterator iterator =
+        new AutoClosingIterator(new SequentialIterator(first, transport, limit),
+            scrollId -> transport.closeScroll(Collections.singleton(scrollId)));
 
     Iterator<ElasticsearchJson.SearchHit> result = flatten(iterator);
     // apply limit
@@ -82,8 +84,9 @@ class Scrolling {
    */
   private static Iterator<ElasticsearchJson.SearchHit> flatten(
       Iterator<ElasticsearchJson.Result> results) {
-    final Iterator<Iterator<ElasticsearchJson.SearchHit>> inputs = Iterators.transform(results,
-        input -> input.searchHits().hits().iterator());
+    final Iterator<Iterator<ElasticsearchJson.SearchHit>> inputs =
+        Iterators.transform(results,
+            input -> input.searchHits().hits().iterator());
     return Iterators.concat(inputs);
   }
 
@@ -147,7 +150,7 @@ class Scrolling {
         final ElasticsearchTransport transport, final long limit) {
       super(first);
       this.transport = transport;
-      Preconditions.checkArgument(limit >= 0,
+      checkArgument(limit >= 0,
           "limit: %s >= 0", limit);
       this.limit = limit;
     }

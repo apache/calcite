@@ -18,12 +18,18 @@ package org.apache.calcite.util;
 
 import org.apache.calcite.avatica.util.DateTimeUtils;
 
-import com.google.common.base.Preconditions;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Calendar;
 import java.util.regex.Pattern;
+
+import static com.google.common.base.Preconditions.checkArgument;
+
+import static java.lang.Integer.parseInt;
 
 /**
  * Date literal.
@@ -45,13 +51,13 @@ public class DateString implements Comparable<DateString> {
   @SuppressWarnings("method.invocation.invalid")
   public DateString(String v) {
     this(v, false);
-    Preconditions.checkArgument(PATTERN.matcher(v).matches(),
+    checkArgument(PATTERN.matcher(v).matches(),
         "Invalid date format:", v);
-    Preconditions.checkArgument(getYear() >= 1 && getYear() <= 9999,
+    checkArgument(getYear() >= 1 && getYear() <= 9999,
         "Year out of range:", getYear());
-    Preconditions.checkArgument(getMonth() >= 1 && getMonth() <= 12,
+    checkArgument(getMonth() >= 1 && getMonth() <= 12,
         "Month out of range:", getMonth());
-    Preconditions.checkArgument(getDay() >= 1 && getDay() <= 31,
+    checkArgument(getDay() >= 1 && getDay() <= 31,
         "Day out of range:", getDay());
   }
 
@@ -62,11 +68,11 @@ public class DateString implements Comparable<DateString> {
 
   /** Validates a year-month-date and converts to a string. */
   private static String ymd(int year, int month, int day) {
-    Preconditions.checkArgument(year >= 1 && year <= 9999,
+    checkArgument(year >= 1 && year <= 9999,
         "Year out of range:", year);
-    Preconditions.checkArgument(month >= 1 && month <= 12,
+    checkArgument(month >= 1 && month <= 12,
         "Month out of range:", month);
-    Preconditions.checkArgument(day >= 1 && day <= 31,
+    checkArgument(day >= 1 && day <= 31,
         "Day out of range:", day);
     final StringBuilder b = new StringBuilder();
     DateTimeStringUtils.ymd(b, year, month, day);
@@ -108,24 +114,27 @@ public class DateString implements Comparable<DateString> {
   }
 
   private int getYear() {
-    return Integer.parseInt(v.substring(0, 4));
+    return parseInt(v.substring(0, 4));
   }
 
   private int getMonth() {
-    return Integer.parseInt(v.substring(5, 7));
+    return parseInt(v.substring(5, 7));
   }
 
   private int getDay() {
-    return Integer.parseInt(v.substring(8, 10));
+    return parseInt(v.substring(8, 10));
   }
 
   /** Creates a DateString that is a given number of days since the epoch. */
-  public static DateString fromDaysSinceEpoch(int days) {
+  @JsonCreator
+  public static DateString fromDaysSinceEpoch(
+      @JsonProperty("daysSinceEpoch") int days) {
     return new DateString(DateTimeUtils.unixDateToString(days));
   }
 
   /** Returns the number of milliseconds since the epoch. Always a multiple of
    * 86,400,000 (the number of milliseconds in a day). */
+  @JsonIgnore
   public long getMillisSinceEpoch() {
     return getDaysSinceEpoch() * DateTimeUtils.MILLIS_PER_DAY;
   }

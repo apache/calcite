@@ -28,6 +28,8 @@ import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.SortedSet;
 
+import static java.util.Objects.requireNonNull;
+
 /** Set of elements organized into equivalence classes.
  *
  * <p>Elements are equivalent by the rules of a mathematical equivalence
@@ -56,7 +58,7 @@ public class EquivalenceSet<E extends Comparable<E>> {
   /** Adds an element, and returns the element (which is its own parent).
    * If already present, returns the element's parent. */
   public E add(E e) {
-    final E parent = parents.get(Objects.requireNonNull(e, "e"));
+    final E parent = parents.get(requireNonNull(e, "e"));
     if (parent == null) {
       // Element is new. Add it to the map, as its own parent.
       parents.put(e, e);

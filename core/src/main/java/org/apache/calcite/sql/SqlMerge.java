@@ -211,7 +211,7 @@ public class SqlMerge extends SqlCall {
       if (targetColumnList != null) {
         targetColumnList.unparse(writer, opLeft, opRight);
       }
-      insertCall.getSource().unparse(writer, opLeft, opRight);
+      insertCall.getSource().unparse(writer, 0, 0);
 
       writer.endList(frame);
     }

@@ -30,7 +30,7 @@ import java.util.Map;
 /**
  * Factory that creates a {@link PigTable}.
  *
- * <p>Allows a Pig table to be included in a model.json file.</p>
+ * <p>Allows a Pig table to be included in a model.json file.
  */
 public class PigTableFactory implements TableFactory<PigTable> {
   // public constructor, per factory contract

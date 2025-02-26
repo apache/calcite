@@ -31,6 +31,8 @@ import org.apache.calcite.tools.RelBuilderFactory;
 
 import com.google.common.collect.ImmutableList;
 
+import org.immutables.value.Value;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,6 +42,7 @@ import java.util.List;
  *
  * @see CoreRules#FILTER_CORRELATE
  */
+@Value.Enclosing
 public class FilterCorrelateRule
     extends RelRule<FilterCorrelateRule.Config>
     implements TransformationRule {
@@ -124,8 +127,9 @@ public class FilterCorrelateRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableFilterCorrelateRule.Config.of()
         .withOperandFor(Filter.class, Correlate.class);
 
     @Override default FilterCorrelateRule toRule() {

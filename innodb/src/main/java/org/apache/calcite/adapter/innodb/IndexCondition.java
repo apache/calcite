@@ -22,16 +22,18 @@ import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.Pair;
 
-import org.apache.commons.collections.CollectionUtils;
-
 import com.alibaba.innodb.java.reader.comparator.ComparisonOperator;
 import com.google.common.collect.ImmutableList;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 import static com.google.common.base.Preconditions.checkState;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Index condition.
@@ -52,7 +54,8 @@ import static com.google.common.base.Preconditions.checkState;
 public class IndexCondition {
 
   static final IndexCondition EMPTY_CONDITION =
-      create(null, null, null, ComparisonOperator.NOP, ComparisonOperator.NOP,
+      create("", QueryType.PK_FULL_SCAN,
+          null, ComparisonOperator.NOP, ComparisonOperator.NOP,
           ImmutableList.of(), ImmutableList.of());
 
   /** Field names per row type. */
@@ -75,11 +78,11 @@ public class IndexCondition {
       List<String> fieldNames,
       String indexName,
       List<String> indexColumnNames,
-      RelCollation implicitCollation,
-      List<RexNode> pushDownConditions,
-      List<RexNode> remainderConditions,
+      @Nullable RelCollation implicitCollation,
+      @Nullable List<RexNode> pushDownConditions,
+      @Nullable List<RexNode> remainderConditions,
       QueryType queryType,
-      List<Object> pointQueryKey,
+      @Nullable List<Object> pointQueryKey,
       ComparisonOperator rangeQueryLowerOp,
       ComparisonOperator rangeQueryUpperOp,
       List<Object> rangeQueryLowerKey,
@@ -97,9 +100,11 @@ public class IndexCondition {
         remainderConditions == null ? ImmutableList.of()
             : ImmutableList.copyOf(remainderConditions);
     this.queryType = queryType;
-    this.pointQueryKey = pointQueryKey;
-    this.rangeQueryLowerOp = Objects.requireNonNull(rangeQueryLowerOp, "rangeQueryLowerOp");
-    this.rangeQueryUpperOp = Objects.requireNonNull(rangeQueryUpperOp, "rangeQueryUpperOp");
+    this.pointQueryKey =
+        pointQueryKey == null ? ImmutableList.of()
+            : ImmutableList.copyOf(pointQueryKey);
+    this.rangeQueryLowerOp = requireNonNull(rangeQueryLowerOp, "rangeQueryLowerOp");
+    this.rangeQueryUpperOp = requireNonNull(rangeQueryUpperOp, "rangeQueryUpperOp");
     this.rangeQueryLowerKey = ImmutableList.copyOf(rangeQueryLowerKey);
     this.rangeQueryUpperKey = ImmutableList.copyOf(rangeQueryUpperKey);
   }
@@ -125,7 +130,7 @@ public class IndexCondition {
       List<RexNode> pushDownConditions,
       List<RexNode> remainderConditions) {
     return new IndexCondition(fieldNames, indexName, indexColumnNames, null,
-        pushDownConditions, remainderConditions, null, null,
+        pushDownConditions, remainderConditions, QueryType.PK_FULL_SCAN, null,
         ComparisonOperator.NOP, ComparisonOperator.NOP, ImmutableList.of(),
         ImmutableList.of());
   }
@@ -137,7 +142,7 @@ public class IndexCondition {
   public static IndexCondition create(
       String indexName,
       QueryType queryType,
-      List<Object> pointQueryKey,
+      @Nullable List<Object> pointQueryKey,
       ComparisonOperator rangeQueryLowerOp,
       ComparisonOperator rangeQueryUpperOp,
       List<Object> rangeQueryLowerKey,
@@ -164,7 +169,7 @@ public class IndexCondition {
    */
   private static RelCollation deduceImplicitCollation(List<String> fieldNames,
       List<String> indexColumnNames) {
-    checkState(fieldNames != null, "field names cannot be null");
+    requireNonNull(fieldNames, "field names must not be null");
     List<RelFieldCollation> keyCollations = new ArrayList<>(indexColumnNames.size());
     for (String keyColumnName : indexColumnNames) {
       int fieldIndex = fieldNames.indexOf(keyColumnName);
@@ -332,10 +337,10 @@ public class IndexCondition {
       checkState(pointQueryKey.size() == indexColumnNames.size());
       append(builder, indexColumnNames, pointQueryKey, "=");
     } else {
-      if (CollectionUtils.isNotEmpty(rangeQueryLowerKey)) {
+      if (!rangeQueryLowerKey.isEmpty()) {
         append(builder, indexColumnNames, rangeQueryLowerKey, rangeQueryLowerOp.value());
       }
-      if (CollectionUtils.isNotEmpty(rangeQueryUpperKey)) {
+      if (!rangeQueryUpperKey.isEmpty()) {
         append(builder, indexColumnNames, rangeQueryUpperKey, rangeQueryUpperOp.value());
       }
     }

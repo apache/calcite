@@ -18,8 +18,11 @@ package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.sql.SqlAbstractDateTimeLiteral;
+import org.apache.calcite.sql.SqlBasicFunction;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlFunction;
@@ -30,13 +33,19 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlTypeName;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+
+import static org.apache.calcite.util.RelToSqlConverterUtil.unparseBoolLiteralToCondition;
 
 import static java.util.Objects.requireNonNull;
 
@@ -45,18 +54,30 @@ import static java.util.Objects.requireNonNull;
  * database.
  */
 public class MssqlSqlDialect extends SqlDialect {
+    /**
+     * Mssql type system.
+     */
+  public static final RelDataTypeSystem MSSQL_TYPE_SYSTEM =
+            new RelDataTypeSystemImpl() {
+      @Override public int getDefaultPrecision(SqlTypeName typeName) {
+          if (typeName == SqlTypeName.CHAR) {
+            return RelDataType.PRECISION_NOT_SPECIFIED;
+          }
+          return super.getDefaultPrecision(typeName);
+      }
+  };
   public static final Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
       .withDatabaseProduct(SqlDialect.DatabaseProduct.MSSQL)
       .withIdentifierQuoteString("[")
+      .withDataTypeSystem(MSSQL_TYPE_SYSTEM)
       .withCaseSensitive(false)
       .withNullCollation(NullCollation.LOW);
 
   public static final SqlDialect DEFAULT = new MssqlSqlDialect(DEFAULT_CONTEXT);
 
   private static final SqlFunction MSSQL_SUBSTRING =
-      new SqlFunction("SUBSTRING", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.ARG0_NULLABLE_VARYING, null, null,
-          SqlFunctionCategory.STRING);
+      SqlBasicFunction.create("SUBSTRING", ReturnTypes.ARG0_NULLABLE_VARYING,
+          OperandTypes.VARIADIC, SqlFunctionCategory.STRING);
 
   /** Whether to generate "SELECT TOP(fetch)" rather than
    * "SELECT ... FETCH NEXT fetch ROWS ONLY". */
@@ -90,11 +111,6 @@ public class MssqlSqlDialect extends SqlDialect {
       return null;
     }
 
-    // Grouping node should preserve grouping, no emulation needed
-    if (node.getKind() == SqlKind.GROUPING) {
-      return node;
-    }
-
     // Emulate nulls first/last with case ordering
     final SqlParserPos pos = SqlParserPos.ZERO;
     final SqlNodeList whenList =
@@ -116,21 +132,21 @@ public class MssqlSqlDialect extends SqlDialect {
 
   @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
       @Nullable SqlNode fetch) {
-    if (!top) {
+    if (!top && offset != null) {
       super.unparseOffsetFetch(writer, offset, fetch);
     }
   }
 
   @Override public void unparseTopN(SqlWriter writer, @Nullable SqlNode offset,
       @Nullable SqlNode fetch) {
-    if (top) {
+    if (top || offset == null) {
       // Per Microsoft:
       //   "For backward compatibility, the parentheses are optional in SELECT
       //   statements. We recommend that you always use parentheses for TOP in
       //   SELECT statements. Doing so provides consistency with its required
       //   use in INSERT, UPDATE, MERGE, and DELETE statements."
       //
-      // Note that "fetch" is ignored.
+      // Note that "offset" is ignored.
       writer.keyword("TOP");
       writer.keyword("(");
       requireNonNull(fetch, "fetch");
@@ -151,6 +167,11 @@ public class MssqlSqlDialect extends SqlDialect {
         throw new IllegalArgumentException("MSSQL SUBSTRING requires FROM and FOR arguments");
       }
       SqlUtil.unparseFunctionSyntax(MSSQL_SUBSTRING, writer, call, false);
+    } else if (call.getOperator().equals(SqlStdOperatorTable.CEIL)) {
+      // CEILING is supported but not CEIL in MS SQL
+      final SqlWriter.Frame frame = writer.startFunCall("CEILING");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(frame);
     } else {
       switch (call.getKind()) {
       case FLOOR:
@@ -160,11 +181,23 @@ public class MssqlSqlDialect extends SqlDialect {
         }
         unparseFloor(writer, call);
         break;
-
+      case MOD:
+        SqlOperator op = SqlStdOperatorTable.PERCENT_REMAINDER;
+        SqlSyntax.BINARY.unparse(writer, op, call, leftPrec, rightPrec);
+        break;
       default:
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
     }
+  }
+
+  @Override public void unparseBoolLiteral(SqlWriter writer,
+      SqlLiteral literal, int leftPrec, int rightPrec) {
+    Boolean value = (Boolean) literal.getValue();
+    if (value == null) {
+      return;
+    }
+    unparseBoolLiteralToCondition(writer, value);
   }
 
   @Override public boolean supportsCharSet() {
@@ -229,7 +262,7 @@ public class MssqlSqlDialect extends SqlDialect {
     final SqlWriter.Frame frame = writer.startFunCall("DATEADD");
     SqlNode operand = call.operand(1);
     if (operand instanceof SqlIntervalLiteral) {
-      //There is no DATESUB method available, so change the sign.
+      // There is no DATESUB method available, so change the sign.
       unparseSqlIntervalLiteralMssql(
           writer, (SqlIntervalLiteral) operand, sqlKind == SqlKind.MINUS ? -1 : 1);
     } else {

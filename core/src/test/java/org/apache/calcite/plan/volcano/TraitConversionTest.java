@@ -31,6 +31,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -40,6 +41,8 @@ import static org.apache.calcite.plan.volcano.PlannerTests.TestLeafRel;
 import static org.apache.calcite.plan.volcano.PlannerTests.TestSingleRel;
 import static org.apache.calcite.plan.volcano.PlannerTests.newCluster;
 
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -75,17 +78,17 @@ class TraitConversionTest {
     planner.setRoot(convertedRel);
     final RelNode result = planner.chooseDelegate().findBestExp();
 
-    assertTrue(result instanceof RandomSingleRel);
+    assertThat(result, instanceOf(RandomSingleRel.class));
     assertTrue(result.getTraitSet().contains(PHYS_CALLING_CONVENTION));
     assertTrue(result.getTraitSet().contains(SIMPLE_DISTRIBUTION_RANDOM));
 
     final RelNode input = result.getInput(0);
-    assertTrue(input instanceof BridgeRel);
+    assertThat(input, instanceOf(BridgeRel.class));
     assertTrue(input.getTraitSet().contains(PHYS_CALLING_CONVENTION));
     assertTrue(input.getTraitSet().contains(SIMPLE_DISTRIBUTION_RANDOM));
 
     final RelNode input2 = input.getInput(0);
-    assertTrue(input2 instanceof SingletonLeafRel);
+    assertThat(input2, instanceOf(SingletonLeafRel.class));
     assertTrue(input2.getTraitSet().contains(PHYS_CALLING_CONVENTION));
     assertTrue(input2.getTraitSet().contains(SIMPLE_DISTRIBUTION_SINGLETON));
   }
@@ -94,10 +97,10 @@ class TraitConversionTest {
    * to {@link RandomSingleRel} (physical convention, distribution random). */
   public static class RandomSingleTraitRule
       extends RelRule<RandomSingleTraitRule.Config> {
-    static final RandomSingleTraitRule INSTANCE = Config.EMPTY
+    static final RandomSingleTraitRule INSTANCE = ImmutableRandomSingleTraitRuleConfig.builder()
+        .build()
         .withOperandSupplier(b ->
             b.operand(NoneSingleRel.class).anyInputs())
-        .as(Config.class)
         .toRule();
 
     RandomSingleTraitRule(Config config) {
@@ -123,6 +126,8 @@ class TraitConversionTest {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(typeImmutable = "ImmutableRandomSingleTraitRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default RandomSingleTraitRule toRule() {
         return new RandomSingleTraitRule(this);
@@ -152,10 +157,10 @@ class TraitConversionTest {
    * {@link SingletonLeafRel} (physical convention, singleton distribution). */
   public static class SingleLeafTraitRule
       extends RelRule<SingleLeafTraitRule.Config> {
-    static final SingleLeafTraitRule INSTANCE = Config.EMPTY
+    static final SingleLeafTraitRule INSTANCE = ImmutableSingleLeafTraitRuleConfig.builder()
+        .build()
         .withOperandSupplier(b ->
             b.operand(NoneLeafRel.class).anyInputs())
-        .as(Config.class)
         .toRule();
 
     SingleLeafTraitRule(Config config) {
@@ -173,6 +178,8 @@ class TraitConversionTest {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(typeImmutable = "ImmutableSingleLeafTraitRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default SingleLeafTraitRule toRule() {
         return new SingleLeafTraitRule(this);

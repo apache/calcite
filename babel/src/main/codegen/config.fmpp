@@ -30,14 +30,29 @@ data: {
       "org.apache.calcite.sql.SqlCreate",
       "org.apache.calcite.sql.babel.SqlBabelCreateTable",
       "org.apache.calcite.sql.babel.TableCollectionType",
+      "org.apache.calcite.sql.babel.postgres.TransactionMode",
+      "org.apache.calcite.sql.babel.postgres.TransactionChainingMode",
+      "org.apache.calcite.sql.babel.postgres.SqlBegin",
+      "org.apache.calcite.sql.babel.postgres.SqlCommit",
+      "org.apache.calcite.sql.babel.postgres.SqlDiscard",
+      "org.apache.calcite.sql.babel.postgres.SqlRollback",
+      "org.apache.calcite.sql.babel.postgres.SqlShow",
+      "org.apache.calcite.sql.babel.postgres.SqlSetOptions",
       "org.apache.calcite.sql.ddl.SqlDdlNodes",
     ]
 
     # List of new keywords. Example: "DATABASES", "TABLES". If the keyword is
     # not a reserved keyword, add it to the 'nonReservedKeywords' section.
     keywords: [
+      "ANTI"
+      "DISCARD"
       "IF"
+      "PLANS"
+      "SEED"
       "SEMI"
+      "SEQUENCES"
+      "SNAPSHOT"
+      "TEMP"
       "VOLATILE"
     ]
 
@@ -45,7 +60,14 @@ data: {
     # items in this list become non-reserved
     nonReservedKeywordsToAdd: [
       # not in core, added in babel
+      "ANTI"
+      "DISCARD"
+      "IF"
+      "PLANS"
+      "SEED"
       "SEMI"
+      "SEQUENCES"
+      "TEMP"
 
       # The following keywords are reserved in core Calcite,
       # are reserved in some version of SQL,
@@ -129,6 +151,7 @@ data: {
       "CONSTRAINTS"
       "CONSTRUCTOR"
       "CONTAINS"
+      "CONTAINS_SUBSTR"
       "CONTINUE"
       "CONVERT"
       "CORR"
@@ -156,6 +179,7 @@ data: {
       "CYCLE"
       "DATA"
 #     "DATE"
+      "DATETIME_DIFF"
       "DAY"
       "DEALLOCATE"
       "DEC"
@@ -236,7 +260,6 @@ data: {
       "HOLD"
       "HOUR"
       "IDENTITY"
-#     "IF" # not a keyword in Calcite
       "ILIKE"
       "IMMEDIATE"
       "IMMEDIATELY"
@@ -463,7 +486,11 @@ data: {
       "TEMPORARY"
 #     "THEN"
 #     "TIME"
+      "TIME_DIFF"
+      "TIME_TRUNC"
 #     "TIMESTAMP"
+      "TIMESTAMP_DIFF"
+      "TIMESTAMP_TRUNC"
       "TIMEZONE_HOUR"
       "TIMEZONE_MINUTE"
       "TINYINT"
@@ -523,14 +550,15 @@ data: {
     # List of additional join types. Each is a method with no arguments.
     # Example: "LeftSemiJoin".
     joinTypes: [
+      "LeftAntiJoin",
       "LeftSemiJoin"
     ]
 
     # List of methods for parsing builtin function calls.
     # Return type of method implementation should be "SqlNode".
-    # Example: "DateFunctionCall()".
+    # Example: "DateaddFunctionCall()".
     builtinFunctionCallMethods: [
-       "DateFunctionCall()"
+       "DatePartFunctionCall()",
        "DateaddFunctionCall()"
     ]
 
@@ -541,16 +569,38 @@ data: {
       "SqlCreateTable"
     ]
 
+    statementParserMethods: [
+      "PostgresSqlBegin()"
+      "PostgresSqlCommit()"
+      "PostgresSqlDiscard()"
+      "PostgresSqlRollback()"
+      "PostgresSqlShow()"
+    ]
+
     # Binary operators tokens.
     # Example: "< INFIX_CAST: \"::\" >".
     binaryOperatorsTokens: [
       "< INFIX_CAST: \"::\" >"
+      "< NULL_SAFE_EQUAL: \"<=>\" >"
     ]
+
+    # Custom identifier token.
+    #
+    # PostgreSQL allows letters with diacritical marks and non-Latin letters
+    # in the beginning of identifier and additionally dollar sign in the rest of identifier.
+    # Letters with diacritical marks and non-Latin letters
+    # are represented by character codes 128 to 255 (or in octal \200 to \377).
+    # See https://learn.microsoft.com/en-gb/office/vba/language/reference/user-interface-help/character-set-128255
+    # See https://github.com/postgres/postgres/blob/master/src/backend/parser/scan.l
+    #
+    # MySQL allows digit in the beginning of identifier
+    customIdentifierToken: "< IDENTIFIER: (<LETTER>|<DIGIT>|[\"\\200\"-\"\\377\"]) (<LETTER>|<DIGIT>|<DOLLAR>|[\"\\200\"-\"\\377\"])* >"
 
     # Binary operators initialization.
     # Example: "InfixCast".
     extraBinaryExpressions: [
       "InfixCast"
+      "NullSafeEqual"
     ]
 
     # List of files in @includes directory that have parser method
@@ -560,9 +610,12 @@ data: {
     # Example: "parserImpls.ftl".
     implementationFiles: [
       "parserImpls.ftl"
+      "parserPostgresImpls.ftl"
     ]
 
+    setOptionParserMethod: "PostgresSqlSetOption"
     includePosixOperators: true
+    includeParsingStringLiteralAsArrayLiteral: true
   }
 }
 

@@ -23,12 +23,14 @@ import org.apache.calcite.rel.metadata.MetadataHandler;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.UnboundMetadata;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Method;
+import java.util.List;
 
 import static java.util.Objects.requireNonNull;
 
@@ -56,8 +58,7 @@ class HepRelMetadataProvider implements RelMetadataProvider {
       if (!(rel instanceof HepRelVertex)) {
         return null;
       }
-      HepRelVertex vertex = (HepRelVertex) rel;
-      final RelNode rel2 = vertex.getCurrentRel();
+      final RelNode rel2 = rel.stripped();
       UnboundMetadata<M> function =
           requireNonNull(rel.getCluster().getMetadataProvider(), "metadataProvider")
               .apply(rel2.getClass(), metadataClass);
@@ -68,8 +69,14 @@ class HepRelMetadataProvider implements RelMetadataProvider {
     };
   }
 
+  @Deprecated // to be removed before 2.0
   @Override public <M extends Metadata> Multimap<Method, MetadataHandler<M>> handlers(
       MetadataDef<M> def) {
     return ImmutableMultimap.of();
+  }
+
+  @Override public List<MetadataHandler<?>> handlers(
+      Class<? extends MetadataHandler<?>> handlerClass) {
+    return ImmutableList.of();
   }
 }

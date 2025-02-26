@@ -20,6 +20,7 @@ import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
+import org.apache.calcite.rel.type.TimeFrameSet;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.advise.SqlAdvisor;
 
@@ -62,7 +63,7 @@ public interface DataContext {
    * Returns a context variable.
    *
    * <p>Supported variables include: "sparkContext", "currentTimestamp",
-   * "localTimestamp".</p>
+   * "localTimestamp".
    *
    * @param name Name of variable
    */
@@ -80,6 +81,11 @@ public interface DataContext {
      * milliseconds after 1970-01-01 00:00:00, in the time zone of the current
      * statement. Required. */
     LOCAL_TIMESTAMP("localTimestamp", Long.class),
+
+    /** The time in the operating system time zone of the database server. In
+     * milliseconds after 1970-01-01 00:00:00, in the time zone of the database
+     * server. Required. */
+    SYS_TIMESTAMP("sysTimestamp", Long.class),
 
     /** The Spark engine. Available if Spark is on the class path. */
     SPARK_CONTEXT("sparkContext", Object.class),
@@ -116,6 +122,11 @@ public interface DataContext {
      * defaults to the time zone of the JVM if the connection does not specify a
      * time zone. */
     TIME_ZONE("timeZone", TimeZone.class),
+
+    /** Set of built-in and custom time frames for use in functions such as
+     * {@code FLOOR} and {@code EXTRACT}. Required; defaults to
+     * {@link org.apache.calcite.rel.type.TimeFrames#CORE}. */
+    TIME_FRAME_SET("timeFrameSet", TimeFrameSet.class),
 
     /** The query user.
      *

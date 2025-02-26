@@ -18,9 +18,7 @@ package org.apache.calcite.linq4j.tree;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-/**
- * <p>Analogous to LINQ's System.Linq.Expressions.ExpressionType.</p>
- */
+/** Analogous to LINQ's System.Linq.Expressions.ExpressionType. */
 public enum ExpressionType {
 
   // Operator precedence and associativity is as follows.
@@ -141,6 +139,12 @@ public enum ExpressionType {
    * operands.
    */
   Divide(" / ", false, 3, false),
+
+  /**
+   * A checked division operation, such as (a / b), for numeric
+   * operands.
+   */
+  DivideChecked(" / ", false, 3, false),
 
   /**
    * A percent remainder operation, such as (a % b), for numeric

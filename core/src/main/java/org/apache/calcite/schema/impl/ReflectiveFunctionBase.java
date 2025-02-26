@@ -29,9 +29,10 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
+
+import static org.apache.calcite.util.ReflectUtil.isPublic;
 
 /**
  * Implementation of a function that is based on a method.
@@ -71,8 +72,7 @@ public abstract class ReflectiveFunctionBase implements Function {
    */
   static boolean classHasPublicZeroArgsConstructor(Class<?> clazz) {
     for (Constructor<?> constructor : clazz.getConstructors()) {
-      if (constructor.getParameterTypes().length == 0
-          && Modifier.isPublic(constructor.getModifiers())) {
+      if (constructor.getParameterCount() == 0 && isPublic(constructor)) {
         return true;
       }
     }
@@ -89,9 +89,9 @@ public abstract class ReflectiveFunctionBase implements Function {
    */
   static boolean classHasPublicFunctionContextConstructor(Class<?> clazz) {
     for (Constructor<?> constructor : clazz.getConstructors()) {
-      if (constructor.getParameterTypes().length == 1
+      if (constructor.getParameterCount() == 1
           && constructor.getParameterTypes()[0] == FunctionContext.class
-          && Modifier.isPublic(constructor.getModifiers())) {
+          && isPublic(constructor)) {
         return true;
       }
     }
@@ -100,6 +100,7 @@ public abstract class ReflectiveFunctionBase implements Function {
 
   /**
    * Finds a method in a given class by name.
+   *
    * @param clazz class to search method in
    * @param name name of the method to find
    * @return the first method with matching name or null when no method found

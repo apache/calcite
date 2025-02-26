@@ -55,6 +55,8 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Compiles a scalar expression ({@link RexNode}) to an expression that
  * can be evaluated ({@link Scalar}) by generating a Java AST and compiling it
@@ -148,8 +150,7 @@ public class JaninoRexCompiler implements Interpreter.ScalarCompiler {
     declarations.add(
         Expressions.methodDecl(Modifier.PUBLIC, Object.class,
             BuiltInMethod.FUNCTION_APPLY.method.getName(),
-            ImmutableList.of(
-                objectRoot),
+            ImmutableList.of(objectRoot),
             Expressions.block(
                 Expressions.return_(null,
                     Expressions.call(
@@ -166,13 +167,13 @@ public class JaninoRexCompiler implements Interpreter.ScalarCompiler {
 
     // public Object execute(Context)
     final BlockBuilder builder = new BlockBuilder();
-    final Expression values_ = builder.append("values",
-        Expressions.newArrayBounds(Object.class, 1,
-            Expressions.constant(1)));
+    final Expression values_ =
+        builder.append("values",
+            Expressions.newArrayBounds(Object.class, 1,
+                Expressions.constant(1)));
     builder.add(
         Expressions.statement(
-            Expressions.call(
-                Expressions.parameter(Scalar.class, "this"),
+            Expressions.call(Expressions.parameter(Scalar.class, "this"),
                 BuiltInMethod.SCALAR_EXECUTE2.method, context_, values_)));
     builder.add(
         Expressions.return_(null,
@@ -199,8 +200,10 @@ public class JaninoRexCompiler implements Interpreter.ScalarCompiler {
   static Scalar.Producer getScalar(ClassDeclaration expr, String s)
       throws CompileException, IOException {
     ICompilerFactory compilerFactory;
+    ClassLoader classLoader =
+        requireNonNull(JaninoRexCompiler.class.getClassLoader(), "classLoader");
     try {
-      compilerFactory = CompilerFactoryFactory.getDefaultCompilerFactory();
+      compilerFactory = CompilerFactoryFactory.getDefaultCompilerFactory(classLoader);
     } catch (Exception e) {
       throw new IllegalStateException(
           "Unable to instantiate java compiler", e);
@@ -208,7 +211,7 @@ public class JaninoRexCompiler implements Interpreter.ScalarCompiler {
     IClassBodyEvaluator cbe = compilerFactory.newClassBodyEvaluator();
     cbe.setClassName(expr.name);
     cbe.setImplementedInterfaces(new Class[] {Scalar.Producer.class});
-    cbe.setParentClassLoader(JaninoRexCompiler.class.getClassLoader());
+    cbe.setParentClassLoader(classLoader);
     if (CalciteSystemProperty.DEBUG.value()) {
       // Add line numbers to the generated janino class
       cbe.setDebuggingInformation(true, true, true);

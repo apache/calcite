@@ -34,6 +34,8 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.mapping.Mappings;
 
+import org.immutables.value.Value;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -44,9 +46,10 @@ import java.util.Map;
  *
  * @see CoreRules#UNION_PULL_UP_CONSTANTS
  */
+@Value.Enclosing
 public class UnionPullUpConstantsRule
     extends RelRule<UnionPullUpConstantsRule.Config>
-    implements TransformationRule {
+    implements SubstitutionRule {
 
   /** Creates a UnionPullUpConstantsRule. */
   protected UnionPullUpConstantsRule(Config config) {
@@ -92,7 +95,11 @@ public class UnionPullUpConstantsRule
     for (RelDataTypeField field : fields) {
       final RexNode constant = constants.get(field.getIndex());
       if (constant != null) {
-        topChildExprs.add(constant);
+        if (constant.getType().equals(field.getType())) {
+          topChildExprs.add(constant);
+        } else {
+          topChildExprs.add(rexBuilder.makeCast(field.getType(), constant, true, false));
+        }
         topChildExprsFields.add(field.getName());
       } else {
         final RexNode expr = rexBuilder.makeInputRef(union, field.getIndex());
@@ -133,11 +140,13 @@ public class UnionPullUpConstantsRule
     relBuilder.convert(union.getRowType(), false);
 
     call.transformTo(relBuilder.build());
+    call.getPlanner().prune(union);
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableUnionPullUpConstantsRule.Config.of()
         .withOperandFor(Union.class);
 
     @Override default UnionPullUpConstantsRule toRule() {

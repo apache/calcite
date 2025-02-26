@@ -30,8 +30,6 @@ import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
 
-import org.apache.commons.collections.CollectionUtils;
-
 import com.alibaba.innodb.java.reader.comparator.ComparisonOperator;
 import com.alibaba.innodb.java.reader.schema.KeyMeta;
 import com.alibaba.innodb.java.reader.schema.TableDef;
@@ -48,6 +46,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Translates {@link RexNode} expressions into {@link IndexCondition}
@@ -112,7 +112,7 @@ class InnodbFilterTranslator {
     }
 
     // try to push down filter by secondary keys
-    if (CollectionUtils.isNotEmpty(skMetaList)) {
+    if (!skMetaList.isEmpty()) {
       for (KeyMeta skMeta : skMetaList) {
         indexConditions.add(findPushDownCondition(rexNodeList, skMeta));
       }
@@ -140,7 +140,7 @@ class InnodbFilterTranslator {
     List<InternalRexNode> matchedRexNodeList = analyzePrefixMatches(rexNodeList, keyMeta);
 
     // none of the conditions can be pushed down
-    if (CollectionUtils.isEmpty(matchedRexNodeList)) {
+    if (matchedRexNodeList.isEmpty()) {
       return IndexCondition.EMPTY_CONDITION;
     }
 
@@ -153,7 +153,7 @@ class InnodbFilterTranslator {
 
     // left-prefix index rule not match
     Collection<InternalRexNode> leftMostKeyNodes = keyOrdToNodesMap.get(0);
-    if (CollectionUtils.isEmpty(leftMostKeyNodes)) {
+    if (leftMostKeyNodes == null || leftMostKeyNodes.isEmpty()) {
       return IndexCondition.EMPTY_CONDITION;
     }
 
@@ -166,17 +166,20 @@ class InnodbFilterTranslator {
             pushDownRexNodeList, remainderRexNodeList);
 
     // handle point query if possible
-    condition = handlePointQuery(condition, keyMeta, leftMostKeyNodes,
-        keyOrdToNodesMap, pushDownRexNodeList, remainderRexNodeList);
+    condition =
+        handlePointQuery(condition, keyMeta, leftMostKeyNodes,
+            keyOrdToNodesMap, pushDownRexNodeList, remainderRexNodeList);
     if (condition.canPushDown()) {
       return condition;
     }
 
     // handle range query
-    condition = handleRangeQuery(condition, keyMeta, leftMostKeyNodes,
-        pushDownRexNodeList, remainderRexNodeList, ">=", ">");
-    condition = handleRangeQuery(condition, keyMeta, leftMostKeyNodes,
-        pushDownRexNodeList, remainderRexNodeList, "<=", "<");
+    condition =
+        handleRangeQuery(condition, keyMeta, leftMostKeyNodes,
+            pushDownRexNodeList, remainderRexNodeList, ">=", ">");
+    condition =
+        handleRangeQuery(condition, keyMeta, leftMostKeyNodes,
+            pushDownRexNodeList, remainderRexNodeList, "<=", "<");
 
     return condition;
   }
@@ -456,7 +459,7 @@ class InnodbFilterTranslator {
    */
   private static Optional<InternalRexNode> findFirstOp(Collection<InternalRexNode> nodes,
       String... opList) {
-    if (CollectionUtils.isEmpty(nodes)) {
+    if (nodes.isEmpty()) {
       return Optional.empty();
     }
     for (InternalRexNode node : nodes) {
@@ -496,8 +499,9 @@ class InnodbFilterTranslator {
     }
   }
 
-  private static boolean isSqlTypeMatch(RexCall rexCall, SqlTypeName sqlTypeName) {
-    assert rexCall != null;
-    return rexCall.type.getSqlTypeName() == sqlTypeName;
+  private static boolean isSqlTypeMatch(RexCall rexCall,
+      SqlTypeName sqlTypeName) {
+    return requireNonNull(rexCall, "rexCall").type.getSqlTypeName()
+        == requireNonNull(sqlTypeName, "sqlTypeName");
   }
 }

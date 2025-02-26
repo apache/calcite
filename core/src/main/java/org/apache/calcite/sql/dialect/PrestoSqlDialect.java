@@ -20,18 +20,36 @@ import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.SqlBasicCall;
+import org.apache.calcite.sql.SqlBasicTypeNameSpec;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlArrayValueConstructor;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
+import org.apache.calcite.sql.fun.SqlMapValueConstructor;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.RelToSqlConverterUtil;
 
-import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * A <code>SqlDialect</code> implementation for the Presto database.
@@ -41,7 +59,7 @@ public class PrestoSqlDialect extends SqlDialect {
       .withDatabaseProduct(DatabaseProduct.PRESTO)
       .withIdentifierQuoteString("\"")
       .withUnquotedCasing(Casing.UNCHANGED)
-      .withNullCollation(NullCollation.LOW);
+      .withNullCollation(NullCollation.LAST);
 
   public static final SqlDialect DEFAULT = new PrestoSqlDialect(DEFAULT_CONTEXT);
 
@@ -52,6 +70,10 @@ public class PrestoSqlDialect extends SqlDialect {
     super(context);
   }
 
+  @Override public boolean supportsApproxCountDistinct() {
+    return true;
+  }
+
   @Override public boolean supportsCharSet() {
     return false;
   }
@@ -60,15 +82,30 @@ public class PrestoSqlDialect extends SqlDialect {
     return true;
   }
 
+  @Override public boolean supportsTimestampPrecision() {
+    return false;
+  }
+
   @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
       @Nullable SqlNode fetch) {
     unparseUsingLimit(writer, offset, fetch);
   }
 
+  @Override public boolean supportsImplicitTypeCoercion(RexCall call) {
+    RexNode rexNode = call.getOperands().get(0);
+    return super.supportsImplicitTypeCoercion(call)
+        && RexUtil.isLiteral(rexNode, false)
+        && (rexNode.getType().getSqlTypeName() == SqlTypeName.VARCHAR
+        || rexNode.getType().getSqlTypeName() == SqlTypeName.CHAR)
+        && !SqlTypeUtil.isNumeric(call.type)
+        && !SqlTypeUtil.isDate(call.type)
+        && !SqlTypeUtil.isTimestamp(call.type);
+  }
+
   /** Unparses offset/fetch using "OFFSET offset LIMIT fetch " syntax. */
   private static void unparseUsingLimit(SqlWriter writer, @Nullable SqlNode offset,
       @Nullable SqlNode fetch) {
-    Preconditions.checkArgument(fetch != null || offset != null);
+    checkArgument(fetch != null || offset != null);
     unparseOffset(writer, offset);
     unparseLimit(writer, fetch);
   }
@@ -111,7 +148,18 @@ public class PrestoSqlDialect extends SqlDialect {
   }
 
   @Override public @Nullable SqlNode getCastSpec(RelDataType type) {
-    return super.getCastSpec(type);
+    switch (type.getSqlTypeName()) {
+    // PRESTO only supports REAL、DOUBLE for floating point types.
+    case FLOAT:
+      return new SqlDataTypeSpec(
+          new SqlBasicTypeNameSpec(SqlTypeName.DOUBLE, SqlParserPos.ZERO), SqlParserPos.ZERO);
+    // https://prestodb.io/docs/current/language/types.html#varbinary
+    case BINARY:
+      return new SqlDataTypeSpec(
+          new SqlBasicTypeNameSpec(SqlTypeName.VARBINARY, SqlParserPos.ZERO), SqlParserPos.ZERO);
+    default:
+      return super.getCastSpec(type);
+    }
   }
 
   @Override public void unparseCall(SqlWriter writer, SqlCall call,
@@ -119,9 +167,23 @@ public class PrestoSqlDialect extends SqlDialect {
     if (call.getOperator() == SqlStdOperatorTable.SUBSTRING) {
       RelToSqlConverterUtil.specialOperatorByName("SUBSTR")
           .unparse(writer, call, 0, 0);
+    } else if (call.getOperator() == SqlStdOperatorTable.APPROX_COUNT_DISTINCT) {
+      RelToSqlConverterUtil.specialOperatorByName("APPROX_DISTINCT")
+          .unparse(writer, call, 0, 0);
     } else {
-      // Current impl is same with Postgresql.
-      PostgresqlSqlDialect.DEFAULT.unparseCall(writer, call, leftPrec, rightPrec);
+      switch (call.getKind()) {
+      case MAP_VALUE_CONSTRUCTOR:
+        unparseMapValue(writer, call, leftPrec, rightPrec);
+        break;
+      case CHAR_LENGTH:
+        SqlCall lengthCall = SqlLibraryOperators.LENGTH
+            .createCall(SqlParserPos.ZERO, call.getOperandList());
+        super.unparseCall(writer, lengthCall, leftPrec, rightPrec);
+        break;
+      default:
+        // Current impl is same with Postgresql.
+        PostgresqlSqlDialect.DEFAULT.unparseCall(writer, call, leftPrec, rightPrec);
+      }
     }
   }
 
@@ -129,5 +191,47 @@ public class PrestoSqlDialect extends SqlDialect {
       SqlIntervalQualifier qualifier, RelDataTypeSystem typeSystem) {
     // Current impl is same with MySQL.
     MysqlSqlDialect.DEFAULT.unparseSqlIntervalQualifier(writer, qualifier, typeSystem);
+  }
+
+  /**
+   * change map open/close symbol from default [] to ().
+   */
+  private static void unparseMapValue(SqlWriter writer, SqlCall call,
+      int leftPrec, int rightPrec) {
+    call = convertMapValueCall(call);
+    writer.keyword(call.getOperator().getName());
+    final SqlWriter.Frame frame = writer.startList("(", ")");
+    for (SqlNode operand : call.getOperandList()) {
+      writer.sep(",");
+      operand.unparse(writer, leftPrec, rightPrec);
+    }
+    writer.endList(frame);
+  }
+
+  /**
+   * Converts a Presto MapValue call
+   * from {@code MAP['k1', 'v1', 'k2', 'v2']}
+   * to {@code MAP[ARRAY['k1', 'k2'], ARRAY['v1', 'v2']]}.
+   */
+  private static SqlCall convertMapValueCall(SqlCall call) {
+    boolean unnestMap = call.operandCount() > 0
+        && call.getOperandList().stream().allMatch(operand -> operand instanceof SqlLiteral);
+    if (!unnestMap) {
+      return call;
+    }
+    List<SqlNode> keys = new ArrayList<>();
+    List<SqlNode> values = new ArrayList<>();
+    for (int i = 0; i < call.operandCount(); i++) {
+      if (i % 2 == 0) {
+        keys.add(call.operand(i));
+      } else {
+        values.add(call.operand(i));
+      }
+    }
+    SqlParserPos pos = call.getParserPosition();
+    return new SqlBasicCall(
+        new SqlMapValueConstructor(), ImmutableList.of(
+        new SqlBasicCall(new SqlArrayValueConstructor(), keys, pos),
+        new SqlBasicCall(new SqlArrayValueConstructor(), values, pos)), pos);
   }
 }

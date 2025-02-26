@@ -27,20 +27,17 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
-import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getSelectList;
-import static org.apache.calcite.util.Static.RESOURCE;
-
 /**
  * Represents the name-resolution context for expressions in an ORDER BY clause.
  *
  * <p>In some dialects of SQL, the ORDER BY clause can reference column aliases
- * in the SELECT clause. For example, the query</p>
+ * in the SELECT clause. For example, the query
  *
  * <blockquote><code>SELECT empno AS x<br>
  * FROM emp<br>
  * ORDER BY x</code></blockquote>
  *
- * <p>is valid.</p>
+ * <p>is valid.
  */
 public class OrderByScope extends DelegatingScope {
   //~ Instance fields --------------------------------------------------------
@@ -73,40 +70,13 @@ public class OrderByScope extends DelegatingScope {
   @Override public SqlQualified fullyQualify(SqlIdentifier identifier) {
     // If it's a simple identifier, look for an alias.
     if (identifier.isSimple()
-        && validator.config().sqlConformance().isSortByAlias()) {
-      final String name = identifier.names.get(0);
-      final SqlValidatorNamespace selectNs =
-          validator.getNamespaceOrThrow(select);
-      final RelDataType rowType = selectNs.getRowType();
-
-      final SqlNameMatcher nameMatcher = validator.catalogReader.nameMatcher();
-      final RelDataTypeField field = nameMatcher.field(rowType, name);
-      final int aliasCount = aliasCount(nameMatcher, name);
-      if (aliasCount > 1) {
-        // More than one column has this alias.
-        throw validator.newValidationError(identifier,
-            RESOURCE.columnAmbiguous(name));
-      }
-      if (field != null && !field.isDynamicStar() && aliasCount == 1) {
-        // if identifier is resolved to a dynamic star, use super.fullyQualify() for such case.
-        return SqlQualified.create(this, 1, selectNs, identifier);
+        && validator.config().conformance().isSortByAlias()) {
+      SqlQualified qualified = qualifyUsingAlias(select, identifier);
+      if (qualified != null) {
+        return qualified;
       }
     }
     return super.fullyQualify(identifier);
-  }
-
-  /** Returns the number of columns in the SELECT clause that have {@code name}
-   * as their implicit (e.g. {@code t.name}) or explicit (e.g.
-   * {@code t.c as name}) alias. */
-  private int aliasCount(SqlNameMatcher nameMatcher, String name) {
-    int n = 0;
-    for (SqlNode s : getSelectList(select)) {
-      final String alias = SqlValidatorUtil.getAlias(s, -1);
-      if (alias != null && nameMatcher.matches(alias, name)) {
-        n++;
-      }
-    }
-    return n;
   }
 
   @Override public @Nullable RelDataType resolveColumn(String name, SqlNode ctx) {

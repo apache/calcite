@@ -23,16 +23,24 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.IndexExpression;
 import org.apache.calcite.linq4j.tree.MemberExpression;
 import org.apache.calcite.linq4j.tree.MethodCallExpression;
+import org.apache.calcite.linq4j.tree.ParameterExpression;
+import org.apache.calcite.linq4j.tree.Statement;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.Unit;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.BuiltInMethod;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.List;
+
+import static org.apache.calcite.util.BuiltInMethod.ARRAY_COPY;
+import static org.apache.calcite.util.BuiltInMethod.LIST_TO_ARRAY;
+import static org.apache.calcite.util.BuiltInMethod.ROW_COPY_VALUES;
 
 /**
  * How a row is represented as a Java value.
@@ -75,6 +83,24 @@ public enum JavaRowFormat {
         return Expressions.field(expression, Types.nthField(field, type));
       }
     }
+
+    @Override public List<Statement> copy(ParameterExpression parameter,
+        ParameterExpression outputArray, int outputStartIndex, int length) {
+      // Parameter holds an expression representing a POJO Object
+      // Results in:
+      // outputArray[outputStartIndex] = parameter.field{1};
+      // ...
+      // outputArray[outputStartIndex + length - 1] = parameter.field{length - 1};
+      final List<Statement> statements = new ArrayList<>(length);
+      for (int i = 0; i < length; i++) {
+        statements.add(
+            Expressions.statement(
+                Expressions.assign(
+            Expressions.arrayIndex(outputArray, Expressions.constant(outputStartIndex + i)),
+            field(parameter, i, null, Object.class))));
+      }
+      return statements;
+    }
   },
 
   SCALAR {
@@ -82,6 +108,11 @@ public enum JavaRowFormat {
         JavaTypeFactory typeFactory,
         RelDataType type) {
       assert type.getFieldCount() == 1;
+      RelDataType field0Type = type.getFieldList().get(0).getType();
+      // nested ROW type is always represented as array.
+      if (field0Type.getSqlTypeName() == SqlTypeName.ROW) {
+        return Object[].class;
+      }
       return typeFactory.getJavaClass(
           type.getFieldList().get(0).getType());
     }
@@ -100,6 +131,19 @@ public enum JavaRowFormat {
         Type fieldType) {
       assert field == 0;
       return expression;
+    }
+
+    @Override public List<Statement> copy(ParameterExpression parameter,
+        ParameterExpression outputArray, int outputStartIndex, int length) {
+      // Parameter holds an expression representing a scalar Object
+      // Results in:
+      // outputArray[outputStartIndex] = parameter;
+      assert length == 1;
+      return FlatLists.of(
+          Expressions.statement(
+              Expressions.assign(
+              Expressions.arrayIndex(outputArray,
+                  Expressions.constant(outputStartIndex)), parameter)));
     }
   },
 
@@ -179,14 +223,27 @@ public enum JavaRowFormat {
       }
     }
 
-    @Override public Expression field(Expression expression, int field, @Nullable Type fromType,
-        Type fieldType) {
-      final MethodCallExpression e = Expressions.call(expression,
-          BuiltInMethod.LIST_GET.method, Expressions.constant(field));
+    @Override public Expression field(Expression expression, int field,
+        @Nullable Type fromType, Type fieldType) {
+      final MethodCallExpression e =
+          Expressions.call(expression, BuiltInMethod.LIST_GET.method,
+              Expressions.constant(field));
       if (fromType == null) {
         fromType = e.getType();
       }
       return EnumUtils.convert(e, fromType, fieldType);
+    }
+
+    @Override public List<Statement> copy(ParameterExpression parameter,
+        ParameterExpression outputArray, int outputStartIndex, int length) {
+      // Parameter holds an expression representing a List
+      // Results in:
+      // System.arraycopy(parameter.toArray(), 0, outputArray, outputStartIndex, length);
+      return FlatLists.of(
+          Expressions.statement(
+              Expressions.call(ARRAY_COPY.method, Expressions.call(parameter, LIST_TO_ARRAY.method),
+              Expressions.constant(0), outputArray, Expressions.constant(outputStartIndex),
+              Expressions.constant(length))));
     }
   },
 
@@ -208,14 +265,28 @@ public enum JavaRowFormat {
       return Expressions.call(BuiltInMethod.ROW_AS_COPY.method, expressions);
     }
 
-    @Override public Expression field(Expression expression, int field, @Nullable Type fromType,
-        Type fieldType) {
-      final Expression e = Expressions.call(expression,
-          BuiltInMethod.ROW_VALUE.method, Expressions.constant(field));
+    @Override public Expression field(Expression expression, int field,
+        @Nullable Type fromType, Type fieldType) {
+      final Expression e =
+          Expressions.call(expression,
+              BuiltInMethod.ROW_VALUE.method, Expressions.constant(field));
       if (fromType == null) {
         fromType = e.getType();
       }
       return EnumUtils.convert(e, fromType, fieldType);
+    }
+
+    @Override public List<Statement> copy(ParameterExpression parameter,
+      ParameterExpression outputArray, int outputStartIndex, int length) {
+      // Parameter holds an expression representing a org.apache.calcite.interpreter.Row
+      // Results in:
+      // System.arraycopy(parameter.copyValues(), 0, outputArray, outputStartIndex, length);
+      return FlatLists.of(
+          Expressions.statement(
+          Expressions.call(ARRAY_COPY.method,
+              Expressions.call(Object[].class, parameter, ROW_COPY_VALUES.method),
+              Expressions.constant(0), outputArray, Expressions.constant(outputStartIndex),
+              Expressions.constant(length))));
     }
   },
 
@@ -239,14 +310,25 @@ public enum JavaRowFormat {
       return Expressions.call(BuiltInMethod.ARRAY_COMPARER.method);
     }
 
-    @Override public Expression field(Expression expression, int field, @Nullable Type fromType,
-        Type fieldType) {
-      final IndexExpression e = Expressions.arrayIndex(expression,
-          Expressions.constant(field));
+    @Override public Expression field(Expression expression, int field,
+        @Nullable Type fromType, Type fieldType) {
+      final IndexExpression e =
+          Expressions.arrayIndex(expression, Expressions.constant(field));
       if (fromType == null) {
         fromType = e.getType();
       }
       return EnumUtils.convert(e, fromType, fieldType);
+    }
+
+    @Override public List<Statement> copy(ParameterExpression parameter,
+        ParameterExpression outputArray, int outputStartIndex, int length) {
+      // Parameter holds an expression representing an Object[]
+      // Results in:
+      // System.arraycopy(parameter, 0, outputArray, outputStartIndex, length);
+      return FlatLists.of(
+          Expressions.statement(
+          Expressions.call(ARRAY_COPY.method, parameter, Expressions.constant(0),
+              outputArray, Expressions.constant(outputStartIndex), Expressions.constant(length))));
     }
   };
 
@@ -293,4 +375,10 @@ public enum JavaRowFormat {
    */
   public abstract Expression field(Expression expression, int field,
       @Nullable Type fromType, Type fieldType);
+
+  /**
+   * Returns an expression that copies the fields of a row of this type to the array.
+   */
+  public abstract List<Statement> copy(ParameterExpression parameter,
+      ParameterExpression outputArray, int outputStartIndex, int length);
 }

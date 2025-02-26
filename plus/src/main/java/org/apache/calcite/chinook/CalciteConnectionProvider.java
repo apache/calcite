@@ -27,6 +27,8 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Provider of calcite connections for end-to-end tests.
  */
@@ -42,12 +44,14 @@ public class CalciteConnectionProvider {
     Properties info = new Properties();
     info.setProperty("lex", "MYSQL");
     info.setProperty("model", "inline:" + provideSchema());
+    info.setProperty("conformance", "MYSQL_5");
     return info;
   }
 
   private String provideSchema() throws IOException {
     final InputStream stream =
         getClass().getResourceAsStream("/chinook/chinook.json");
+    requireNonNull(stream, "stream");
     return CharStreams.toString(new InputStreamReader(stream, Charsets.UTF_8));
   }
 

@@ -51,10 +51,8 @@ public class RexProgramBuilder {
   private final List<RexLocalRef> localRefList = new ArrayList<>();
   private final List<RexLocalRef> projectRefList = new ArrayList<>();
   private final List<@Nullable String> projectNameList = new ArrayList<>();
-  @SuppressWarnings("unused")
-  private final @Nullable RexSimplify simplify;
   private @Nullable RexLocalRef conditionRef = null;
-  private boolean validating;
+  private final boolean validating;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -70,17 +68,16 @@ public class RexProgramBuilder {
    */
   @SuppressWarnings("method.invocation.invalid")
   private RexProgramBuilder(RelDataType inputRowType, RexBuilder rexBuilder,
-      @Nullable RexSimplify simplify) {
+      @Nullable RexSimplify unusedSimplify) {
     this.inputRowType = requireNonNull(inputRowType, "inputRowType");
     this.rexBuilder = requireNonNull(rexBuilder, "rexBuilder");
-    this.simplify = simplify; // may be null
     this.validating = assertionsAreEnabled();
 
     // Pre-create an expression for each input field.
     if (inputRowType.isStruct()) {
       final List<RelDataTypeField> fields = inputRowType.getFieldList();
       for (int i = 0; i < fields.size(); i++) {
-        registerInternal(RexInputRef.of(i, fields), false);
+        registerInternal(RexInputRef.of(i, fields));
       }
     }
   }
@@ -141,9 +138,10 @@ public class RexProgramBuilder {
     // Register the condition, if there is one.
     if (condition != null) {
       if (simplify != null) {
-        condition = simplify.simplify(
-            rexBuilder.makeCall(SqlStdOperatorTable.IS_TRUE,
-                condition.accept(expander)));
+        condition =
+            simplify.simplify(
+                rexBuilder.makeCall(SqlStdOperatorTable.IS_TRUE,
+                    condition.accept(expander)));
         if (condition.isAlwaysTrue()) {
           condition = null;
         }
@@ -268,10 +266,10 @@ public class RexProgramBuilder {
    * Sets the condition of the program.
    *
    * <p>The expression must be specified in terms of the input fields. If
-   * not, call {@link #registerOutput(RexNode)} first.</p>
+   * not, call {@link #registerOutput(RexNode)} first.
    */
   public void addCondition(RexNode expr) {
-    assert expr != null;
+    requireNonNull(expr, "expr");
     RexLocalRef conditionRef = this.conditionRef;
     if (conditionRef == null) {
       this.conditionRef = conditionRef = registerInput(expr);
@@ -293,9 +291,9 @@ public class RexProgramBuilder {
   /**
    * Registers an expression in the list of common sub-expressions, and
    * returns a reference to that expression.
-
+   *
    * <p>The expression must be expressed in terms of the <em>inputs</em> of
-   * this program.</p>
+   * this program.
    */
   public RexLocalRef registerInput(RexNode expr) {
     final RexShuttle shuttle = new RegisterInputShuttle(true);
@@ -321,14 +319,9 @@ public class RexProgramBuilder {
    * Registers an expression in the list of common sub-expressions, and
    * returns a reference to that expression.
    *
-   * <p>If an equivalent sub-expression already exists, creates another
-   * expression only if <code>force</code> is true.
-   *
-   * @param expr  Expression to register
-   * @param force Whether to create a new sub-expression if an equivalent
-   *              sub-expression exists.
+   * @param expr Expression to register
    */
-  private RexLocalRef registerInternal(RexNode expr, boolean force) {
+  private RexLocalRef registerInternal(RexNode expr) {
     final RexSimplify simplify =
         new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, RexUtil.EXECUTOR);
     expr = simplify.simplifyPreservingType(expr);
@@ -352,11 +345,6 @@ public class RexProgramBuilder {
       // Add expression to list, and return a new reference to it.
       ref = addExpr(expr);
       exprMap.put(requireNonNull(key, "key"), ref);
-    } else {
-      if (force) {
-        // Add expression to list, but return the previous ref.
-        addExpr(expr);
-      }
     }
 
     for (;;) {
@@ -554,8 +542,8 @@ public class RexProgramBuilder {
       boolean simplify_) {
     RexSimplify simplify = null;
     if (simplify_) {
-      simplify = new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY,
-          RexUtil.EXECUTOR);
+      simplify =
+          new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, RexUtil.EXECUTOR);
     }
     return new RexProgramBuilder(rexBuilder, inputRowType, exprList,
         projectList, condition, outputRowType, normalize, simplify);
@@ -669,8 +657,7 @@ public class RexProgramBuilder {
       }
       ref = (RexLocalRef) ref.accept(shuttle);
       this.projectRefList.add(ref);
-      final String name = outFields.get(i).getName();
-      assert name != null;
+      final String name = requireNonNull(outFields.get(i).getName());
       projectNameList.add(name);
     }
     if (conditionRef != null) {
@@ -738,7 +725,7 @@ public class RexProgramBuilder {
    *             6: ($2 = 6)  // c = 6
    * </pre></blockquote>
    *
-   * <p>Another example:</p>
+   * <p>Another example:
    *
    * <blockquote>
    * <pre>SELECT *
@@ -825,7 +812,7 @@ public class RexProgramBuilder {
   /**
    * Removes all project items.
    *
-   * <p>After calling this method, you may need to re-normalize.</p>
+   * <p>After calling this method, you may need to re-normalize.
    */
   public void clearProjects() {
     projectRefList.clear();
@@ -835,7 +822,7 @@ public class RexProgramBuilder {
   /**
    * Clears the condition.
    *
-   * <p>After calling this method, you may need to re-normalize.</p>
+   * <p>After calling this method, you may need to re-normalize.
    */
   public void clearCondition() {
     conditionRef = null;
@@ -894,32 +881,37 @@ public class RexProgramBuilder {
   private abstract class RegisterShuttle extends RexShuttle {
     @Override public RexNode visitCall(RexCall call) {
       final RexNode expr = super.visitCall(call);
-      return registerInternal(expr, false);
+      return registerInternal(expr);
     }
 
     @Override public RexNode visitOver(RexOver over) {
       final RexNode expr = super.visitOver(over);
-      return registerInternal(expr, false);
+      return registerInternal(expr);
     }
 
     @Override public RexNode visitLiteral(RexLiteral literal) {
       final RexNode expr = super.visitLiteral(literal);
-      return registerInternal(expr, false);
+      return registerInternal(expr);
     }
 
     @Override public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
       final RexNode expr = super.visitFieldAccess(fieldAccess);
-      return registerInternal(expr, false);
+      return registerInternal(expr);
     }
 
     @Override public RexNode visitDynamicParam(RexDynamicParam dynamicParam) {
       final RexNode expr = super.visitDynamicParam(dynamicParam);
-      return registerInternal(expr, false);
+      return registerInternal(expr);
     }
 
     @Override public RexNode visitCorrelVariable(RexCorrelVariable variable) {
       final RexNode expr = super.visitCorrelVariable(variable);
-      return registerInternal(expr, false);
+      return registerInternal(expr);
+    }
+
+    @Override public RexNode visitLambda(RexLambda lambda) {
+      super.visitLambda(lambda);
+      return registerInternal(lambda);
     }
   }
 
@@ -990,7 +982,7 @@ public class RexProgramBuilder {
           // Add expression to the list, just so that subsequent
           // expressions don't get screwed up. This expression is
           // unused, so will be eliminated soon.
-          return registerInternal(local, false);
+          return registerInternal(local);
         }
       }
     }
@@ -1056,7 +1048,7 @@ public class RexProgramBuilder {
    * references.
    */
   private static class UpdateRefShuttle extends RexShuttle {
-    private List<RexLocalRef> newRefs;
+    private final List<RexLocalRef> newRefs;
 
     private UpdateRefShuttle(List<RexLocalRef> newRefs) {
       this.newRefs = newRefs;

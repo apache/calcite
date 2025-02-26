@@ -18,6 +18,7 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.jdbc.JavaRecordType;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.QueryProvider;
@@ -25,15 +26,21 @@ import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
+import org.apache.calcite.sql.type.MeasureSqlType;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.test.schemata.hr.Employee;
 import org.apache.calcite.util.TestUtil;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -48,11 +55,12 @@ import java.util.Properties;
 
 import static org.apache.calcite.test.CalciteAssert.hr;
 import static org.apache.calcite.test.CalciteAssert.that;
+import static org.apache.calcite.util.ReflectUtil.isStatic;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for a JDBC front-end (with some quite complex SQL) and Linq4j back-end
@@ -118,7 +126,7 @@ public class JdbcFrontLinqBackTest {
    * Simple UNION, plus ORDER BY.
    *
    * <p>Also tests a query that returns a single column. We optimize this case
-   * internally, using non-array representations for rows.</p>
+   * internally, using non-array representations for rows.
    */
   @Test void testUnionAllOrderBy() {
     hr()
@@ -218,7 +226,7 @@ public class JdbcFrontLinqBackTest {
   }
 
   @Test void testInsert() {
-    final List<JdbcTest.Employee> employees = new ArrayList<>();
+    final List<Employee> employees = new ArrayList<>();
     CalciteAssert.AssertThat with = mutable(employees);
     with.query("select * from \"foo\".\"bar\"")
         .returns(
@@ -241,7 +249,7 @@ public class JdbcFrontLinqBackTest {
   }
 
   @Test void testInsertBind() throws Exception {
-    final List<JdbcTest.Employee> employees = new ArrayList<>();
+    final List<Employee> employees = new ArrayList<>();
     CalciteAssert.AssertThat with = mutable(employees);
     with.query("select count(*) as c from \"foo\".\"bar\"")
         .returns("C=1\n");
@@ -267,7 +275,7 @@ public class JdbcFrontLinqBackTest {
   }
 
   @Test void testDelete() {
-    final List<JdbcTest.Employee> employees = new ArrayList<>();
+    final List<Employee> employees = new ArrayList<>();
     CalciteAssert.AssertThat with = mutable(employees);
     with.query("select * from \"foo\".\"bar\"")
         .returnsUnordered(
@@ -299,15 +307,15 @@ public class JdbcFrontLinqBackTest {
    * @return a connection post-processor
    */
   private static CalciteAssert.ConnectionPostProcessor makePostProcessor(
-      final List<JdbcTest.Employee> initialData) {
+      List<Employee> initialData, boolean withMeasures) {
     return connection -> {
       CalciteConnection calciteConnection =
           connection.unwrap(CalciteConnection.class);
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
       SchemaPlus mapSchema = rootSchema.add("foo", new AbstractSchema());
       final String tableName = "bar";
-      final JdbcTest.AbstractModifiableTable table =
-          mutable(tableName, initialData);
+      final AbstractModifiableTable table =
+          mutable(tableName, initialData, withMeasures);
       mapSchema.add(tableName, table);
       return calciteConnection;
     };
@@ -318,37 +326,55 @@ public class JdbcFrontLinqBackTest {
    *
    * @param initialData record to be presented in table
    */
-  public static Connection makeConnection(
-        final List<JdbcTest.Employee> initialData) throws Exception {
+  public static Connection makeConnection(final List<Employee> initialData,
+      final boolean withMeasures) throws Exception {
     Properties info = new Properties();
     Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
-    connection = makePostProcessor(initialData).apply(connection);
+    connection = makePostProcessor(initialData, withMeasures).apply(connection);
     return connection;
   }
 
   /**
    * Creates a connection with an empty modifiable table with
-   * {@link JdbcTest.Employee} schema.
+   * {@link Employee} schema.
    */
   public static Connection makeConnection() throws Exception {
-    return makeConnection(new ArrayList<JdbcTest.Employee>());
+    return makeConnection(new ArrayList<>(), false);
   }
 
   private CalciteAssert.AssertThat mutable(
-      final List<JdbcTest.Employee> employees) {
-    employees.add(new JdbcTest.Employee(0, 0, "first", 0f, null));
+      final List<Employee> employees) {
+    employees.add(new Employee(0, 0, "first", 0f, null));
     return that()
         .with(CalciteAssert.Config.REGULAR)
-        .with(makePostProcessor(employees));
+        .with(makePostProcessor(employees, false));
   }
 
-  static JdbcTest.AbstractModifiableTable mutable(String tableName,
-      final List<JdbcTest.Employee> employees) {
-    return new JdbcTest.AbstractModifiableTable(tableName) {
-      public RelDataType getRowType(
-          RelDataTypeFactory typeFactory) {
-        return ((JavaTypeFactory) typeFactory)
-            .createType(JdbcTest.Employee.class);
+  /** Creates an AbstractModifiableTable based on {@link Employee} class.
+   *
+   * <p>If {@code withMeasures} is true, treats {@link Employee#salary} field
+   * as a {@link MeasureSqlType} of type {@link SqlTypeName#FLOAT}. */
+  static AbstractModifiableTable mutable(String tableName,
+      List<Employee> employees, boolean withMeasures) {
+    return new AbstractModifiableTable(tableName) {
+      public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+        final JavaTypeFactory javaTypeFactory = (JavaTypeFactory) typeFactory;
+        final List<RelDataTypeField> list = new ArrayList<>();
+        for (Field field : Employee.class.getFields()) {
+          if (!isStatic(field)) {
+            // FIXME: watch out for recursion
+            final Type fieldType = field.getType();
+            final RelDataType relType =
+                withMeasures && field.getName().equals("salary")
+                    ? javaTypeFactory.createMeasureType(
+                        javaTypeFactory.createSqlType(SqlTypeName.FLOAT))
+                    : javaTypeFactory.createType(fieldType);
+            list.add(
+                new RelDataTypeFieldImpl(field.getName(), list.size(),
+                    relType));
+          }
+        }
+        return new JavaRecordType(list, Employee.class);
       }
 
       public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
@@ -363,7 +389,7 @@ public class JdbcFrontLinqBackTest {
       }
 
       public Type getElementType() {
-        return JdbcTest.Employee.class;
+        return Employee.class;
       }
 
       public Expression getExpression(SchemaPlus schema, String tableName,
@@ -379,7 +405,7 @@ public class JdbcFrontLinqBackTest {
   }
 
   @Test void testInsert2() {
-    final List<JdbcTest.Employee> employees = new ArrayList<>();
+    final List<Employee> employees = new ArrayList<>();
     CalciteAssert.AssertThat with = mutable(employees);
     with.query("insert into \"foo\".\"bar\" values (1, 1, 'second', 2, 2)")
         .updates(1);
@@ -396,21 +422,21 @@ public class JdbcFrontLinqBackTest {
 
   /** Local Statement insert. */
   @Test void testInsert3() throws Exception {
-    Connection connection = makeConnection(new ArrayList<JdbcTest.Employee>());
+    Connection connection = makeConnection();
     String sql = "insert into \"foo\".\"bar\" values (1, 1, 'second', 2, 2)";
 
     Statement statement = connection.createStatement();
     boolean status = statement.execute(sql);
     assertFalse(status);
     ResultSet resultSet = statement.getResultSet();
-    assertTrue(resultSet == null);
+    assertThat(resultSet, nullValue());
     int updateCount = statement.getUpdateCount();
-    assertTrue(updateCount == 1);
+    assertThat(updateCount, is(1));
   }
 
   /** Local PreparedStatement insert WITHOUT bind variables. */
   @Test void testPreparedStatementInsert() throws Exception {
-    Connection connection = makeConnection(new ArrayList<JdbcTest.Employee>());
+    Connection connection = makeConnection();
     assertFalse(connection.isClosed());
 
     String sql = "insert into \"foo\".\"bar\" values (1, 1, 'second', 2, 2)";
@@ -420,18 +446,18 @@ public class JdbcFrontLinqBackTest {
     boolean status = preparedStatement.execute();
     assertFalse(status);
     ResultSet resultSet = preparedStatement.getResultSet();
-    assertTrue(resultSet == null);
+    assertThat(resultSet, nullValue());
     int updateCount = preparedStatement.getUpdateCount();
-    assertTrue(updateCount == 1);
+    assertThat(updateCount, is(1));
   }
 
   /** Local PreparedStatement insert WITH bind variables. */
-  @Test void testPreparedStatementInsert2() throws Exception {
+  @Test void testPreparedStatementInsert2() {
   }
 
   /** Some of the rows have the wrong number of columns. */
   @Test void testInsertMultipleRowMismatch() {
-    final List<JdbcTest.Employee> employees = new ArrayList<>();
+    final List<Employee> employees = new ArrayList<>();
     CalciteAssert.AssertThat with = mutable(employees);
     with.query("insert into \"foo\".\"bar\" values\n"
         + " (1, 3, 'third'),\n"

@@ -26,11 +26,9 @@ import org.apache.calcite.sql.SqlWriterConfig;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.util.SqlString;
-import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteLogger;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -49,6 +47,8 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.function.Consumer;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import static java.util.Objects.requireNonNull;
 
@@ -102,7 +102,7 @@ import static java.util.Objects.requireNonNull;
  *
  * <tr>
  * <td>{@link SqlWriterConfig#alwaysUseParentheses AlwaysUseParentheses}</td>
- * <td><p>Whether to enclose all expressions in parentheses, even if the
+ * <td>Whether to enclose all expressions in parentheses, even if the
  * operator has high enough precedence that the parentheses are not required.
  *
  * <p>For example, the parentheses are required in the expression
@@ -259,7 +259,7 @@ public class SqlPrettyWriter implements SqlWriter {
    * Default SqlWriterConfig, reduce the overhead of "ImmutableBeans.create"
    */
   private static final SqlWriterConfig CONFIG =
-      ImmutableBeans.create(SqlWriterConfig.class)
+      SqlWriterConfig.of()
           .withDialect(CalciteSqlDialect.DEFAULT);
 
   /**
@@ -268,7 +268,7 @@ public class SqlPrettyWriter implements SqlWriter {
   private static final Bean DEFAULT_BEAN =
       new SqlPrettyWriter(SqlPrettyWriter.config()
           .withDialect(AnsiSqlDialect.DEFAULT)).getBean();
-  protected static final String NL = System.getProperty("line.separator");
+  protected static final String NL = System.lineSeparator();
 
   //~ Instance fields --------------------------------------------------------
 
@@ -299,9 +299,8 @@ public class SqlPrettyWriter implements SqlWriter {
 
   /** Creates a writer with the given configuration
    * and a given buffer to write to. */
-  public SqlPrettyWriter(SqlWriterConfig config,
-      StringBuilder buf) {
-    this(config, requireNonNull(buf, "buf"), false);
+  public SqlPrettyWriter(SqlWriterConfig config, StringBuilder buf) {
+    this(config, buf, false);
   }
 
   /** Creates a writer with the given configuration and dialect,
@@ -397,8 +396,9 @@ public class SqlPrettyWriter implements SqlWriter {
 
   @Override public boolean inQuery() {
     return (frame == null)
+        || (frame.frameType == FrameTypeEnum.SELECT)
         || (frame.frameType == FrameTypeEnum.ORDER_BY)
-        || (frame.frameType == FrameTypeEnum.WITH)
+        || (frame.frameType == FrameTypeEnum.WITH_BODY)
         || (frame.frameType == FrameTypeEnum.SETOP);
   }
 
@@ -854,7 +854,7 @@ public class SqlPrettyWriter implements SqlWriter {
       @Nullable String keyword,
       String open,
       String close) {
-    assert frameType != null;
+    requireNonNull(frameType, "frameType");
     FrameImpl frame = this.frame;
     if (frame != null) {
       if (frame.itemCount++ == 0 && frame.newlineAfterOpen) {
@@ -881,7 +881,7 @@ public class SqlPrettyWriter implements SqlWriter {
 
   @Override public void endList(@Nullable Frame frame) {
     FrameImpl endedFrame = (FrameImpl) frame;
-    Preconditions.checkArgument(frame == this.frame,
+    checkArgument(frame == this.frame,
         "Frame does not match current frame");
     if (endedFrame == null) {
       throw new RuntimeException("No list started");
@@ -941,7 +941,7 @@ public class SqlPrettyWriter implements SqlWriter {
         isKeywordsLowerCase()
             ? s.toLowerCase(Locale.ROOT)
             : s.toUpperCase(Locale.ROOT));
-    if (!s.equals("")) {
+    if (!s.isEmpty()) {
       setNeedWhitespace(needWhitespaceAfter(s));
     }
   }
@@ -958,7 +958,7 @@ public class SqlPrettyWriter implements SqlWriter {
         || s.equals(")")
         || s.equals("[")
         || s.equals("]")
-        || s.equals(""));
+        || s.isEmpty());
   }
 
   private static boolean needWhitespaceAfter(String s) {
@@ -1057,13 +1057,12 @@ public class SqlPrettyWriter implements SqlWriter {
   }
 
   @Override public Frame startList(FrameTypeEnum frameType) {
-    assert frameType != null;
-    return startList(frameType, null, "", "");
+    return startList(requireNonNull(frameType, "frameType"), null, "", "");
   }
 
-  @Override public Frame startList(FrameType frameType, String open, String close) {
-    assert frameType != null;
-    return startList(frameType, null, open, close);
+  @Override public Frame startList(FrameType frameType, String open,
+      String close) {
+    return startList(requireNonNull(frameType, "frameType"), null, open, close);
   }
 
   @Override public SqlWriter list(FrameTypeEnum frameType, Consumer<SqlWriter> action) {
@@ -1180,12 +1179,12 @@ public class SqlPrettyWriter implements SqlWriter {
         boolean newlineBeforeClose, boolean newlineAfterClose) {
       this.frameType = frameType;
       this.keyword = keyword;
-      this.open = open;
-      this.close = close;
+      this.open = requireNonNull(open, "open");
+      this.close = requireNonNull(close, "close");
       this.left = left;
       this.extraIndent = extraIndent;
       this.chopLimit = chopLimit;
-      this.lineFolding = lineFolding;
+      this.lineFolding = requireNonNull(lineFolding, "lineFolding");
       this.newlineAfterOpen = newlineAfterOpen;
       this.newlineBeforeSep = newlineBeforeSep;
       this.newlineAfterSep = newlineAfterSep;
@@ -1199,7 +1198,7 @@ public class SqlPrettyWriter implements SqlWriter {
     }
 
     protected void before() {
-      if ((open != null) && !open.equals("")) {
+      if (!open.isEmpty()) {
         keyword(open);
       }
     }
@@ -1298,14 +1297,12 @@ public class SqlPrettyWriter implements SqlWriter {
       final int lprec = sepOp.getRightPrec();
       final int rprec = sepOp.getLeftPrec();
       if (chopLimit < 0) {
-        for (int i = 0; i < list.size(); i++) {
-          SqlNode node = list.get(i);
+        for (SqlNode node : list) {
           sep(false, sepOp.getName());
           node.unparse(SqlPrettyWriter.this, lprec, rprec);
         }
       } else if (newlineBeforeSep) {
-        for (int i = 0; i < list.size(); i++) {
-          SqlNode node = list.get(i);
+        for (SqlNode node : list) {
           sep(false, sepOp.getName());
           final Save prevSize = new Save();
           node.unparse(SqlPrettyWriter.this, lprec, rprec);
@@ -1388,7 +1385,7 @@ public class SqlPrettyWriter implements SqlWriter {
       for (Method method : o.getClass().getMethods()) {
         if (method.getName().startsWith("set")
             && (method.getReturnType() == Void.class)
-            && (method.getParameterTypes().length == 1)) {
+            && (method.getParameterCount() == 1)) {
           String attributeName =
               stripPrefix(
                   method.getName(),
@@ -1397,7 +1394,7 @@ public class SqlPrettyWriter implements SqlWriter {
         }
         if (method.getName().startsWith("get")
             && (method.getReturnType() != Void.class)
-            && (method.getParameterTypes().length == 0)) {
+            && (method.getParameterCount() == 0)) {
           String attributeName =
               stripPrefix(
                   method.getName(),
@@ -1406,7 +1403,7 @@ public class SqlPrettyWriter implements SqlWriter {
         }
         if (method.getName().startsWith("is")
             && (method.getReturnType() == Boolean.class)
-            && (method.getParameterTypes().length == 0)) {
+            && (method.getParameterCount() == 0)) {
           String attributeName =
               stripPrefix(
                   method.getName(),
@@ -1422,10 +1419,9 @@ public class SqlPrettyWriter implements SqlWriter {
     }
 
     public void set(String name, String value) {
-      final Method method = requireNonNull(
-          setterMethods.get(name),
-          () -> "setter method " + name + " not found"
-      );
+      final Method method =
+          requireNonNull(setterMethods.get(name),
+              () -> "setter method " + name + " not found");
       try {
         method.invoke(o, value);
       } catch (IllegalAccessException | InvocationTargetException e) {
@@ -1434,10 +1430,9 @@ public class SqlPrettyWriter implements SqlWriter {
     }
 
     public @Nullable Object get(String name) {
-      final Method method = requireNonNull(
-          getterMethods.get(name),
-          () -> "getter method " + name + " not found"
-      );
+      final Method method =
+          requireNonNull(getterMethods.get(name),
+              () -> "getter method " + name + " not found");
       try {
         return method.invoke(o);
       } catch (IllegalAccessException | InvocationTargetException e) {

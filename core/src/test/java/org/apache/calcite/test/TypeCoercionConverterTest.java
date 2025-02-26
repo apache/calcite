@@ -18,29 +18,43 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 
 /**
- * Test cases for implicit type coercion converter. see {@link TypeCoercion} doc
+ * Test cases for implicit type coercion converter. See {@link TypeCoercion} doc
  * or <a href="https://docs.google.com/spreadsheets/d/1GhleX5h5W8-kJKh7NMJ4vtoE78pwfaZRJl88ULX_MgU/edit?usp=sharing">CalciteImplicitCasts</a>
  * for conversion details.
+ * See {@link RelOptRulesTest} for an explanation of how to add tests.
  */
 class TypeCoercionConverterTest extends SqlToRelTestBase {
 
-  @Override protected DiffRepository getDiffRepos() {
-    return DiffRepository.lookup(TypeCoercionConverterTest.class);
+  protected static final SqlToRelFixture FIXTURE =
+      SqlToRelFixture.DEFAULT
+          .withDiffRepos(DiffRepository.lookup(TypeCoercionConverterTest.class))
+          .withFactory(f -> f.withCatalogReader(TCatalogReader::create))
+          .withDecorrelate(false);
+
+  @Nullable
+  private static DiffRepository diffRepos = null;
+
+  @AfterAll
+  public static void checkActualAndReferenceFiles() {
+    if (diffRepos != null) {
+      diffRepos.checkActualAndReferenceFiles();
+    }
   }
 
-  @Override protected Tester createTester() {
-    return super.createTester()
-        .withCatalogReaderFactory(
-            new TypeCoercionTest().getCatalogReaderFactory());
+  @Override public SqlToRelFixture fixture() {
+    diffRepos = FIXTURE.diffRepos();
+    return FIXTURE;
   }
 
   /** Test case for {@link TypeCoercion#commonTypeForBinaryComparison}. */
   @Test void testBinaryComparison() {
     // for constant cast, there is reduce rule
-    checkPlanEquals("select\n"
+    sql("select\n"
         + "1<'1' as f0,\n"
         + "1<='1' as f1,\n"
         + "1>'1' as f2,\n"
@@ -50,31 +64,64 @@ class TypeCoercionConverterTest extends SqlToRelTestBase {
         + "'2' is not distinct from 2 as f6,\n"
         + "'2019-09-23' between t1_date and t1_timestamp as f7,\n"
         + "cast('2019-09-23' as date) between t1_date and t1_timestamp as f8\n"
-        + "from t1");
+        + "from t1").ok();
   }
 
   /** Test cases for {@link TypeCoercion#inOperationCoercion}. */
   @Test void testInOperation() {
-    checkPlanEquals("select\n"
+    sql("select\n"
         + "1 in ('1', '2', '3') as f0,\n"
         + "(1, 2) in (('1', '2')) as f1,\n"
         + "(1, 2) in (('1', '2'), ('3', '4')) as f2\n"
-        + "from (values (true, true, true))");
+        + "from (values (true, true, true))").ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6485">[CALCITE-6485]
+   * AssertionError When an IN list containing NULL
+   * has an implicit coercion type converter</a>. */
+  @Test void testInOperationWithNull() {
+    sql("select\n"
+        + "1 in (null, '2', '3') as f0,\n"
+        + "1 in ('1', null, '3') as f1,\n"
+        + "(1, 2) in ((null, '2')) as f2,\n"
+        + "(1, 2) in (('1', null)) as f3,\n"
+        + "(1, 2) in (('1', '2'), ('1', cast(null as char))) as f4,\n"
+        + "(1, 2) in (('1', '3'), ('1', cast(null as char))) as f5\n"
+        + "from (values (null, true, null, null, true, null))").ok();
   }
 
   @Test void testNotInOperation() {
-    checkPlanEquals("select\n"
+    sql("select\n"
         + "1 not in ('1', '2', '3') as f0,\n"
         + "(1, 2) not in (('1', '2')) as f1,\n"
         + "(1, 2) not in (('1', '2'), ('3', '4')) as f2\n"
-        + "from (values (false, false, false))");
+        + "from (values (false, false, false))").ok();
   }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6485">[CALCITE-6485]
+   * AssertionError When an IN list containing NULL
+   * has an implicit coercion type converter</a>. */
+  @Test void testNotInOperationWithNull() {
+    sql("select\n"
+        + "1 not in (null, '2', '3') as f0,\n"
+        + "1 not in ('1', null, '3') as f1,\n"
+        + "(1, 2) not in ((null, '2')) as f2,\n"
+        + "(1, 2) not in (('1', null)) as f3,\n"
+        + "(1, 2) not in (('1', '2'), ('1', cast(null as char))) as f4,\n"
+        + "(1, 2) not in (('2', '3'), ('1', cast(null as char))) as f5\n"
+        + "from (values (null, false, null, null, false, null))").ok();
+  }
+
 
   /** Test cases for {@link TypeCoercion#inOperationCoercion}. */
   @Test void testInDateTimestamp() {
-    checkPlanEquals("select (t1_timestamp, t1_date)\n"
+    sql("select (t1_timestamp, t1_date)\n"
         + "in ((DATE '2020-04-16', TIMESTAMP '2020-04-16 11:40:53'))\n"
-        + "from t1");
+        + "from t1").ok();
   }
 
   /** Test case for
@@ -84,26 +131,48 @@ class TypeCoercionConverterTest extends SqlToRelTestBase {
     // Calcite execution runtime, but we still add cast in the plan so other systems
     // using Calcite can rewrite Cast operator implementation.
     // for this case, we replace the boolean literal with numeric 1.
-    checkPlanEquals("select\n"
+    sql("select\n"
         + "1=true as f0,\n"
         + "1.0=true as f1,\n"
         + "0.0=true=true as f2,\n"
         + "1.23=t1_boolean as f3,\n"
         + "t1_smallint=t1_boolean as f4,\n"
         + "10000000000=true as f5\n"
-        + "from t1");
+        + "from t1").ok();
   }
 
   @Test void testCaseWhen() {
-    checkPlanEquals("select case when 1 > 0 then t2_bigint else t2_decimal end from t2");
+    sql("select case when 1 > 0 then t2_bigint else t2_decimal end from t2")
+        .ok();
   }
 
   @Test void testBuiltinFunctionCoercion() {
-    checkPlanEquals("select 1||'a' from (values true)");
+    sql("select 1||'a' from (values true)").ok();
   }
 
   @Test void testStarImplicitTypeCoercion() {
-    checkPlanEquals("select * from (values(1, '3')) union select * from (values('2', 4))");
+    sql("select * from (values(1, '3')) union select * from (values('2', 4))")
+        .ok();
+  }
+
+  @Test void testIntegerImplicitTypeCast1() {
+    sql("with\n"
+        + "t1(x) as (select * from  (values (cast(1 as bigint)),(cast(2 as bigint))) as t1),\n"
+        + "t2(x) as (select * from  (values (3),(4)) as t2)\n"
+        + "select *\n"
+        + "from t1\n"
+        + "where t1.x in (select t2.x from t2)")
+        .ok();
+  }
+
+  @Test void testIntegerImplicitTypeCast2() {
+    sql("with\n"
+        + "t1(x) as (select * from  (values (cast(1 as tinyint)),(cast(2 as tinyint))) as t1),\n"
+        + "t2(x) as (select * from  (values (3),(4)) as t2)\n"
+        + "select *\n"
+        + "from t1\n"
+        + "where t1.x in (select t2.x from t2)")
+        .ok();
   }
 
   @Test void testSetOperation() {
@@ -112,25 +181,63 @@ class TypeCoercionConverterTest extends SqlToRelTestBase {
     // char decimal float double
     // char decimal smallint double
     final String sql = "select t1_int, t1_decimal, t1_smallint, t1_double from t1 "
-        + "union select t2_varchar20, t2_decimal, t2_float, t2_bigint from t2 "
-        + "union select t1_varchar20, t1_decimal, t1_float, t1_double from t1 "
+        + "union select t2_varchar20, t2_decimal, t2_real, t2_bigint from t2 "
+        + "union select t1_varchar20, t1_decimal, t1_real, t1_double from t1 "
         + "union select t2_varchar20, t2_decimal, t2_smallint, t2_double from t2";
-    checkPlanEquals(sql);
+    sql(sql).ok();
   }
 
   @Test void testInsertQuerySourceCoercion() {
-    final String sql = "insert into t1 select t2_smallint, t2_int, t2_bigint, t2_float,\n"
+    final String sql = "insert into t1 select t2_smallint, t2_int, t2_bigint, t2_real,\n"
         + "t2_double, t2_decimal, t2_int, t2_date, t2_timestamp, t2_varchar20, t2_int from t2";
-    checkPlanEquals(sql);
+    sql(sql).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4897">[CALCITE-4897]
+   * Set operation in DML, implicit type conversion is not complete</a>. */
+  @Test void testInsertUnionQuerySourceCoercion() {
+    final String sql = "insert into t1 "
+        + "select 'a', 1, 1.0,"
+        + " 0, 0, 0, 0, TIMESTAMP '2021-11-28 00:00:00', date '2021-11-28', x'0A', false union "
+        + "select 'b', 2, 2,"
+        + " 0, 0, 0, 0, TIMESTAMP '2021-11-28 00:00:00', date '2021-11-28', x'0A', false union "
+        + "select 'c', CAST(3 AS SMALLINT), 3.0,"
+        + " 0, 0, 0, 0, TIMESTAMP '2021-11-28 00:00:00', date '2021-11-28', x'0A', false union "
+        + "select 'd', 4, 4.0,"
+        + " 0, 0, 0, 0, TIMESTAMP '2021-11-28 00:00:00', date '2021-11-28', x'0A', false union "
+        + "select 'e', 5, 5.0,"
+        + " 0, 0, 0, 0, TIMESTAMP '2021-11-28 00:00:00', date '2021-11-28', x'0A', false";
+    sql(sql).ok();
+  }
+
+  @Test void testInsertValuesQuerySourceCoercion() {
+    final String sql = "insert into t1 values "
+        + "('a', 1, 1.0,"
+        + " 0, 0, 0, 0, TIMESTAMP '2021-11-28 00:00:00', date '2021-11-28', x'0A', false), "
+        + "('b', 2,  2,"
+        + " 0, 0, 0, 0, TIMESTAMP '2021-11-28 00:00:00', date '2021-11-28', x'0A', false), "
+        + "('c', CAST(3 AS SMALLINT),  3.0,"
+        + " 0, 0, 0, 0, TIMESTAMP '2021-11-28 00:00:00', date '2021-11-28', x'0A', false), "
+        + "('d', 4, 4.0,"
+        + " 0, 0, 0, 0, TIMESTAMP '2021-11-28 00:00:00', date '2021-11-28', x'0A', false), "
+        + "('e', 5, 5.0,"
+        + " 0, 0, 0, 0, TIMESTAMP '2021-11-28 00:00:00', date '2021-11-28', x'0A', false)";
+    sql(sql).ok();
   }
 
   @Test void testUpdateQuerySourceCoercion() {
     final String sql = "update t1 set t1_varchar20=123, "
         + "t1_date=TIMESTAMP '2020-01-03 10:14:34', t1_int=12.3";
-    checkPlanEquals(sql);
+    sql(sql).ok();
   }
 
-  private void checkPlanEquals(String sql) {
-    tester.assertConvertsTo(sql, "${plan}");
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5130">[CALCITE-5130]
+   * AssertionError: "Conversion to relational algebra failed to preserve datatypes"
+   * when union VARCHAR literal and CAST(null AS INTEGER) </a>. */
+  @Test void testCastNullAsIntUnionChar() {
+    String sql = "select CAST(null AS INTEGER) union select '10'";
+    sql(sql).ok();
   }
 }

@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.spark;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;
@@ -36,7 +37,7 @@ import java.util.Collections;
 /**
  * An HTTP server for static content used to allow worker nodes to access JARs.
  *
- * <p>Based on Spark HttpServer, wraps a Jetty server.</p>
+ * <p>Based on Spark HttpServer, wraps a Jetty server.
  */
 class HttpServer {
   private static String localIpAddress;
@@ -47,7 +48,7 @@ class HttpServer {
     this.resourceBase = resourceBase;
   }
 
-  private Server server;
+  private @Nullable Server server;
   private int port = -1;
 
   void start() {

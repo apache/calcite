@@ -20,4 +20,5 @@ values 1;
 EXPR$0
 1
 !ok
+# do not modify this file, this is intended only for temporary debugging code
 # End dummy.iq

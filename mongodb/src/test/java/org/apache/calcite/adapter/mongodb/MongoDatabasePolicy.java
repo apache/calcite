@@ -19,7 +19,10 @@ package org.apache.calcite.adapter.mongodb;
 import org.apache.calcite.test.MongoAssertions;
 import org.apache.calcite.util.Closer;
 
-import com.mongodb.MongoClient;
+import com.mongodb.ConnectionString;
+import com.mongodb.MongoClientSettings;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 
 import org.junit.jupiter.api.extension.AfterAllCallback;
@@ -27,10 +30,11 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 
 import java.io.Closeable;
 import java.net.InetSocketAddress;
-import java.util.Objects;
 
 import de.bwaldvogel.mongo.MongoServer;
 import de.bwaldvogel.mongo.backend.memory.MemoryBackend;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Instantiates a new connection to a embedded (but fake) or real mongo database
@@ -48,14 +52,13 @@ class MongoDatabasePolicy implements AfterAllCallback {
   private static final String DB_NAME = "test";
 
   private final MongoDatabase database;
-  private final MongoClient client;
   private final Closer closer;
 
   private MongoDatabasePolicy(MongoClient client, Closer closer) {
-    this.client = Objects.requireNonNull(client, "client");
+    MongoClient client1 = requireNonNull(client, "client");
     this.database = client.getDatabase(DB_NAME);
-    this.closer = Objects.requireNonNull(closer, "closer");
-    closer.add(client::close);
+    this.closer = requireNonNull(closer, "closer");
+    closer.add(client);
   }
 
   @Override public void afterAll(ExtensionContext context) {
@@ -72,13 +75,19 @@ class MongoDatabasePolicy implements AfterAllCallback {
     final Closer closer = new Closer();
     if (MongoAssertions.useMongo()) {
       // use to real client (connects to default mongo instance)
-      client = new MongoClient();
+      client = MongoClients.create();
     } else if (MongoAssertions.useFake()) {
       final MongoServer server = new MongoServer(new MemoryBackend());
       final InetSocketAddress address = server.bind();
 
       closer.add((Closeable) server::shutdownNow);
-      client = new MongoClient("127.0.0.1", address.getPort());
+      client =
+              MongoClients.create(MongoClientSettings
+                      .builder()
+                      .applyConnectionString(
+                               new ConnectionString("mongodb://127.0.0.1:" + address.getPort())
+                      )
+                      .build());
     } else {
       throw new UnsupportedOperationException("I can only connect to Mongo or Fake instances");
     }

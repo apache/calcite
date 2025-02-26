@@ -20,6 +20,7 @@ import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptSamplingParameters;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
@@ -27,6 +28,7 @@ import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalAsofJoin;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalExchange;
 import org.apache.calcite.rel.logical.LogicalFilter;
@@ -84,6 +86,8 @@ public class RelFactories {
 
   public static final JoinFactory DEFAULT_JOIN_FACTORY = new JoinFactoryImpl();
 
+  public static final AsofJoinFactory DEFAULT_ASOFJOIN_FACTORY = new AsofJoinFactoryImpl();
+
   public static final CorrelateFactory DEFAULT_CORRELATE_FACTORY =
       new CorrelateFactoryImpl();
 
@@ -98,6 +102,9 @@ public class RelFactories {
 
   public static final AggregateFactory DEFAULT_AGGREGATE_FACTORY =
       new AggregateFactoryImpl();
+
+  public static final SampleFactory DEFAULT_SAMPLE_FACTORY =
+      new SampleFactoryImpl();
 
   public static final MatchFactory DEFAULT_MATCH_FACTORY =
       new MatchFactoryImpl();
@@ -132,11 +139,13 @@ public class RelFactories {
           DEFAULT_SORT_EXCHANGE_FACTORY,
           DEFAULT_SET_OP_FACTORY,
           DEFAULT_JOIN_FACTORY,
+          DEFAULT_ASOFJOIN_FACTORY,
           DEFAULT_CORRELATE_FACTORY,
           DEFAULT_VALUES_FACTORY,
           DEFAULT_TABLE_SCAN_FACTORY,
           DEFAULT_TABLE_FUNCTION_SCAN_FACTORY,
           DEFAULT_SNAPSHOT_FACTORY,
+          DEFAULT_SAMPLE_FACTORY,
           DEFAULT_MATCH_FACTORY,
           DEFAULT_SPOOL_FACTORY,
           DEFAULT_REPEAT_UNION_FACTORY);
@@ -163,9 +172,29 @@ public class RelFactories {
      * @param childExprs The projection expressions
      * @param fieldNames The projection field names
      * @return a project
+     * @deprecated Use {@link #createProject(RelNode, List, List, List, Set)} instead
+     */
+    @Deprecated // to be removed before 2.0
+    default RelNode createProject(RelNode input, List<RelHint> hints,
+        List<? extends RexNode> childExprs, @Nullable List<? extends @Nullable String> fieldNames) {
+      return createProject(input, hints, childExprs, fieldNames, ImmutableSet.of());
+    }
+
+    /**
+     * Creates a project.
+     *
+     * @param input The input
+     * @param hints The hints
+     * @param childExprs The projection expressions
+     * @param fieldNames The projection field names
+     * @param variablesSet Correlating variables that are set when reading a row
+     *                     from the input, and which may be referenced from the
+     *                     projection expressions
+     * @return a project
      */
     RelNode createProject(RelNode input, List<RelHint> hints,
-        List<? extends RexNode> childExprs, @Nullable List<? extends @Nullable String> fieldNames);
+        List<? extends RexNode> childExprs, @Nullable List<? extends @Nullable String> fieldNames,
+        Set<CorrelationId> variablesSet);
   }
 
   /**
@@ -174,8 +203,9 @@ public class RelFactories {
    */
   private static class ProjectFactoryImpl implements ProjectFactory {
     @Override public RelNode createProject(RelNode input, List<RelHint> hints,
-        List<? extends RexNode> childExprs, @Nullable List<? extends @Nullable String> fieldNames) {
-      return LogicalProject.create(input, hints, childExprs, fieldNames);
+        List<? extends RexNode> childExprs, @Nullable List<? extends @Nullable String> fieldNames,
+        Set<CorrelationId> variablesSet) {
+      return LogicalProject.create(input, hints, childExprs, fieldNames, variablesSet);
     }
   }
 
@@ -373,6 +403,24 @@ public class RelFactories {
   }
 
   /**
+   * Creates ASOF join of the appropriate type for a rule's calling convention.
+   */
+  public interface AsofJoinFactory {
+    /**
+     * Creates an ASOF join.
+     *
+     * @param left             Left input
+     * @param right            Right input
+     * @param hints            Hints
+     * @param condition        Join condition
+     * @param matchCondition   ASOF join match condition
+     * @param joinType         Type of join (ASOF or LEFT_ASOF)
+     */
+    RelNode createAsofJoin(RelNode left, RelNode right, List<RelHint> hints,
+        RexNode condition, RexNode matchCondition, JoinRelType joinType);
+  }
+
+  /**
    * Implementation of {@link JoinFactory} that returns a vanilla
    * {@link org.apache.calcite.rel.logical.LogicalJoin}.
    */
@@ -386,22 +434,36 @@ public class RelFactories {
   }
 
   /**
+   * Implementation of {@link AsofJoinFactory} that returns a vanilla
+   * {@link LogicalAsofJoin}.
+   */
+  private static class AsofJoinFactoryImpl implements AsofJoinFactory {
+    @Override public RelNode createAsofJoin(RelNode left, RelNode right, List<RelHint> hints,
+        RexNode condition, RexNode matchCondition, JoinRelType joinType) {
+      return LogicalAsofJoin.create(left, right, hints,
+          condition, matchCondition, joinType, ImmutableList.of());
+    }
+  }
+
+  /**
    * Can create a correlate of the appropriate type for a rule's calling
    * convention.
    *
    * <p>The result is typically a {@link Correlate}.
    */
   public interface CorrelateFactory {
+
     /**
      * Creates a correlate.
      *
      * @param left             Left input
      * @param right            Right input
+     * @param hints            Hints
      * @param correlationId    Variable name for the row of left input
      * @param requiredColumns  Required columns
      * @param joinType         Join type
      */
-    RelNode createCorrelate(RelNode left, RelNode right,
+    RelNode createCorrelate(RelNode left, RelNode right, List<RelHint> hints,
         CorrelationId correlationId, ImmutableBitSet requiredColumns,
         JoinRelType joinType);
   }
@@ -411,10 +473,10 @@ public class RelFactories {
    * {@link org.apache.calcite.rel.logical.LogicalCorrelate}.
    */
   private static class CorrelateFactoryImpl implements CorrelateFactory {
-    @Override public RelNode createCorrelate(RelNode left, RelNode right,
-        CorrelationId correlationId, ImmutableBitSet requiredColumns,
-        JoinRelType joinType) {
-      return LogicalCorrelate.create(left, right, correlationId,
+
+    @Override public RelNode createCorrelate(RelNode left, RelNode right, List<RelHint> hints,
+        CorrelationId correlationId, ImmutableBitSet requiredColumns, JoinRelType joinType) {
+      return LogicalCorrelate.create(left, right, hints, correlationId,
           requiredColumns, joinType);
     }
   }
@@ -579,6 +641,26 @@ public class RelFactories {
   }
 
   /**
+   * Can create a {@link Sample} of
+   * the appropriate type for a rule's calling convention.
+   */
+  public interface SampleFactory {
+    /** Creates a {@link Sample}. */
+    RelNode createSample(RelNode input, RelOptSamplingParameters parameter);
+  }
+
+  /**
+   * Implementation of {@link SampleFactory}
+   * that returns a {@link Sample}.
+   */
+  private static class SampleFactoryImpl implements SampleFactory {
+    @Override public RelNode createSample(RelNode input,
+        RelOptSamplingParameters parameter) {
+      return new Sample(input.getCluster(), input, parameter);
+    }
+  }
+
+  /**
    * Can create a {@link Spool} of
    * the appropriate type for a rule's calling convention.
    */
@@ -608,7 +690,7 @@ public class RelFactories {
   public interface RepeatUnionFactory {
     /** Creates a {@link RepeatUnion}. */
     RelNode createRepeatUnion(RelNode seed, RelNode iterative, boolean all,
-        int iterationLimit);
+        int iterationLimit, RelOptTable table);
   }
 
   /**
@@ -617,8 +699,8 @@ public class RelFactories {
    */
   private static class RepeatUnionFactoryImpl implements RepeatUnionFactory {
     @Override public RelNode createRepeatUnion(RelNode seed, RelNode iterative,
-        boolean all, int iterationLimit) {
-      return LogicalRepeatUnion.create(seed, iterative, all, iterationLimit);
+        boolean all, int iterationLimit, RelOptTable table) {
+      return LogicalRepeatUnion.create(seed, iterative, all, iterationLimit, table);
     }
   }
 
@@ -632,12 +714,14 @@ public class RelFactories {
     public final SortExchangeFactory sortExchangeFactory;
     public final SetOpFactory setOpFactory;
     public final JoinFactory joinFactory;
+    public final AsofJoinFactory asofJoinFactory;
     public final CorrelateFactory correlateFactory;
     public final ValuesFactory valuesFactory;
     public final TableScanFactory scanFactory;
     public final TableFunctionScanFactory tableFunctionScanFactory;
     public final SnapshotFactory snapshotFactory;
     public final MatchFactory matchFactory;
+    public final SampleFactory sampleFactory;
     public final SpoolFactory spoolFactory;
     public final RepeatUnionFactory repeatUnionFactory;
 
@@ -649,11 +733,13 @@ public class RelFactories {
         SortExchangeFactory sortExchangeFactory,
         SetOpFactory setOpFactory,
         JoinFactory joinFactory,
+        AsofJoinFactory asofJoinFactory,
         CorrelateFactory correlateFactory,
         ValuesFactory valuesFactory,
         TableScanFactory scanFactory,
         TableFunctionScanFactory tableFunctionScanFactory,
         SnapshotFactory snapshotFactory,
+        SampleFactory sampleFactory,
         MatchFactory matchFactory,
         SpoolFactory spoolFactory,
         RepeatUnionFactory repeatUnionFactory) {
@@ -665,12 +751,14 @@ public class RelFactories {
       this.sortExchangeFactory = requireNonNull(sortExchangeFactory, "sortExchangeFactory");
       this.setOpFactory = requireNonNull(setOpFactory, "setOpFactory");
       this.joinFactory = requireNonNull(joinFactory, "joinFactory");
+      this.asofJoinFactory = requireNonNull(asofJoinFactory, "asofJoinFactory");
       this.correlateFactory = requireNonNull(correlateFactory, "correlateFactory");
       this.valuesFactory = requireNonNull(valuesFactory, "valuesFactory");
       this.scanFactory = requireNonNull(scanFactory, "scanFactory");
       this.tableFunctionScanFactory =
           requireNonNull(tableFunctionScanFactory, "tableFunctionScanFactory");
       this.snapshotFactory = requireNonNull(snapshotFactory, "snapshotFactory");
+      this.sampleFactory = requireNonNull(sampleFactory, "sampleFactory");
       this.matchFactory = requireNonNull(matchFactory, "matchFactory");
       this.spoolFactory = requireNonNull(spoolFactory, "spoolFactory");
       this.repeatUnionFactory = requireNonNull(repeatUnionFactory, "repeatUnionFactory");
@@ -698,6 +786,8 @@ public class RelFactories {
               .orElse(DEFAULT_SET_OP_FACTORY),
           context.maybeUnwrap(JoinFactory.class)
               .orElse(DEFAULT_JOIN_FACTORY),
+          context.maybeUnwrap(AsofJoinFactory.class)
+              .orElse(DEFAULT_ASOFJOIN_FACTORY),
           context.maybeUnwrap(CorrelateFactory.class)
               .orElse(DEFAULT_CORRELATE_FACTORY),
           context.maybeUnwrap(ValuesFactory.class)
@@ -708,6 +798,8 @@ public class RelFactories {
               .orElse(DEFAULT_TABLE_FUNCTION_SCAN_FACTORY),
           context.maybeUnwrap(SnapshotFactory.class)
               .orElse(DEFAULT_SNAPSHOT_FACTORY),
+          context.maybeUnwrap(SampleFactory.class)
+              .orElse(DEFAULT_SAMPLE_FACTORY),
           context.maybeUnwrap(MatchFactory.class)
               .orElse(DEFAULT_MATCH_FACTORY),
           context.maybeUnwrap(SpoolFactory.class)

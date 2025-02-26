@@ -25,11 +25,12 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Unit tests for LookupImpl.java
- *
+ * Unit tests for {@link Lookup} and {@code LookupImpl}.
  */
 class LookupImplTest {
 
@@ -37,16 +38,17 @@ class LookupImplTest {
 
   @BeforeEach
   public void setUp() {
-    impl = Linq4j.asEnumerable(Linq4jTest.emps).toLookup(
-      Linq4jTest.EMP_DEPTNO_SELECTOR,
-      Linq4jTest.EMP_NAME_SELECTOR);
+    impl =
+        Linq4j.asEnumerable(Linq4jTest.emps)
+            .toLookup(Linq4jTest.EMP_DEPTNO_SELECTOR,
+                Linq4jTest.EMP_NAME_SELECTOR);
   }
 
   @Test void testPut() {
     int initSize = impl.size();
     impl.put(99, Linq4j.asEnumerable(new String[]{"A", "B"}));
     assertTrue(impl.containsKey(99));
-    assertTrue(impl.size() == initSize + 1);
+    assertThat(impl.size() - 1, is(initSize));
   }
 
   @Test void testContainsValue() {

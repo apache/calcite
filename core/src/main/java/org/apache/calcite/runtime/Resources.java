@@ -31,11 +31,9 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
-import java.security.PrivilegedAction;
 import java.text.DateFormat;
 import java.text.Format;
 import java.text.MessageFormat;
@@ -56,9 +54,14 @@ import java.util.ResourceBundle;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static java.lang.Boolean.parseBoolean;
+
+import static java.lang.Double.parseDouble;
+
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 import static java.util.Objects.requireNonNull;
+import static org.apache.calcite.util.ReflectUtil.isStatic;
 
 /**
  * Defining wrapper classes around resources that allow the compiler to check
@@ -125,10 +128,10 @@ public class Resources {
    * <p>Suppose that base = "com.example.MyResource" and the current locale is
    * "en_US". A method
    *
-   * <blockquote>
+   * <blockquote><pre><code>
    *     &#64;BaseMessage("Illegal binary string {0}")
    *     ExInst&lt;IllegalArgumentException&gt; illegalBinaryString(String a0);
-   * </blockquote>
+   * </code></pre></blockquote>
    *
    * <p>will look up a resource "IllegalBinaryString" from the resource file
    * "com/example/MyResource_en_US.properties", and substitute in the parameter
@@ -234,7 +237,7 @@ public class Resources {
   public static void validate(Object o, EnumSet<Validation> validations) {
     int count = 0;
     for (Method method : o.getClass().getMethods()) {
-      if (!Modifier.isStatic(method.getModifiers())
+      if (!isStatic(method)
           && Inst.class.isAssignableFrom(method.getReturnType())) {
         ++count;
         final Class<?>[] parameterTypes = method.getParameterTypes();
@@ -244,7 +247,9 @@ public class Resources {
         }
         try {
           Inst inst = (Inst) method.invoke(o, args);
-          assert inst != null : "got null from " + method;
+          if (inst == null) {
+            throw new AssertionError("got null from " + method);
+          }
           inst.validate(validations);
         } catch (IllegalAccessException e) {
           throw new RuntimeException("in " + method, e);
@@ -693,7 +698,7 @@ public class Resources {
       super(accessor, method);
       final Default resource = getDefault();
       if (resource != null) {
-        defaultValue = Boolean.parseBoolean(resource.value());
+        defaultValue = parseBoolean(resource.value());
       } else {
         defaultValue = false;
       }
@@ -724,7 +729,7 @@ public class Resources {
       super(accessor, method);
       final Default resource = getDefault();
       if (resource != null) {
-        defaultValue = Double.parseDouble(resource.value());
+        defaultValue = parseDouble(resource.value());
       } else {
         defaultValue = 0d;
       }
@@ -911,7 +916,7 @@ public class Resources {
    * the class is created, it loads a properties file with the same name as the
    * class.
    *
-   * <p> In the standard scheme (see {@link ResourceBundle}), if
+   * <p>In the standard scheme (see {@link ResourceBundle}), if
    * you call <code>{@link ResourceBundle#getBundle}("foo.MyResource")</code>,
    * it first looks for a class called <code>foo.MyResource</code>, then
    * looks for a file called <code>foo/MyResource.properties</code>. If it finds
@@ -920,15 +925,16 @@ public class Resources {
    * into a dedicated class; <code>ShadowResourceBundle</code> helps with this
    * case.
    *
-   * <p> You should create a class as follows:<blockquote>
+   * <p>You should create a class as follows:
    *
-   * <pre>package foo;
-   *class MyResource extends ShadowResourceBundle {
-   *    public MyResource() throws java.io.IOException {
-   *    }
-   *}</pre>
+   * <blockquote><pre><code>
+   * package foo;
    *
-   * </blockquote>
+   * class MyResource extends ShadowResourceBundle {
+   *   public MyResource() throws java.io.IOException {
+   *   }
+   * }
+   * </code></pre></blockquote>
    *
    * <p>Then when you call
    * {@link ResourceBundle#getBundle ResourceBundle.getBundle("foo.MyResource")},
@@ -985,11 +991,12 @@ public class Resources {
      * Opens the properties file corresponding to a given class. The code is
      * copied from {@link ResourceBundle}.
      */
+    @SuppressWarnings("removal")
     private static @Nullable InputStream openPropertiesFile(Class clazz) {
       final ClassLoader loader = clazz.getClassLoader();
       final String resName = clazz.getName().replace('.', '/') + ".properties";
       return java.security.AccessController.doPrivileged(
-          (PrivilegedAction<@Nullable InputStream>) () -> {
+          (java.security.PrivilegedAction<@Nullable InputStream>) () -> {
             if (loader != null) {
               return loader.getResourceAsStream(resName);
             } else {
@@ -1013,9 +1020,10 @@ public class Resources {
      * for the given locale.
      *
      * <p> This method should be called from a derived class, with the proper
-     * casting:<blockquote>
+     * casting:
      *
-     * <pre>class MyResource extends ShadowResourceBundle {
+     * <blockquote><pre><code>
+     * class MyResource extends ShadowResourceBundle {
      *    ...
      *
      *    /&#42;&#42;
@@ -1028,7 +1036,8 @@ public class Resources {
      *           ResourceBundle.getBundle(MyResource.class.getName(), locale));
      *    }
      *    ...
-     * }</pre></blockquote>
+     * }
+     * </code></pre></blockquote>
      *
      * @param baseName Base name
      * @param locale Locale
@@ -1144,7 +1153,7 @@ public class Resources {
     public boolean booleanValue(BooleanProp p) {
       final String s = properties.getProperty(p.key);
       if (s != null) {
-        return Boolean.parseBoolean(s);
+        return parseBoolean(s);
       }
       p.checkDefault2();
       return p.defaultValue;
@@ -1153,14 +1162,14 @@ public class Resources {
     @Override
     public boolean booleanValue(BooleanProp p, boolean defaultValue) {
       final String s = properties.getProperty(p.key);
-      return s == null ? defaultValue : Boolean.parseBoolean(s);
+      return s == null ? defaultValue : parseBoolean(s);
     }
 
     @Override
     public double doubleValue(DoubleProp p) {
       final String s = properties.getProperty(p.key);
       if (s != null) {
-        return Double.parseDouble(s);
+        return parseDouble(s);
       }
       p.checkDefault2();
       return p.defaultValue;
@@ -1169,7 +1178,7 @@ public class Resources {
     @Override
     public double doubleValue(DoubleProp p, double defaultValue) {
       final String s = properties.getProperty(p.key);
-      return s == null ? defaultValue : Double.parseDouble(s);
+      return s == null ? defaultValue : parseDouble(s);
     }
   }
 }

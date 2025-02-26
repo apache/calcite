@@ -22,6 +22,7 @@ import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -37,17 +38,23 @@ import static java.util.Objects.requireNonNull;
  * Definition of the MAP constructor,
  * <code>MAP [&lt;key&gt;, &lt;value&gt;, ...]</code>.
  *
- * <p>This is an extension to standard SQL.</p>
+ * <p>This is an extension to standard SQL.
  */
 public class SqlMapValueConstructor extends SqlMultisetValueConstructor {
   public SqlMapValueConstructor() {
-    super("MAP", SqlKind.MAP_VALUE_CONSTRUCTOR);
+    // no need to deduce NULL operand type
+    super("MAP", SqlKind.MAP_VALUE_CONSTRUCTOR, null);
   }
 
+  @SuppressWarnings("argument.type.incompatible")
   @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
     Pair<@Nullable RelDataType, @Nullable RelDataType> type =
         getComponentTypes(
             opBinding.getTypeFactory(), opBinding.collectOperandTypes());
+
+    // explicit cast elements to component type if they are not same
+    SqlValidatorUtil.adjustTypeForMapConstructor(type, opBinding);
+
     return SqlTypeUtil.createMapType(
         opBinding.getTypeFactory(),
         requireNonNull(type.left, "inferred key type"),
@@ -59,7 +66,7 @@ public class SqlMapValueConstructor extends SqlMultisetValueConstructor {
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
     final List<RelDataType> argTypes = SqlTypeUtil.deriveType(callBinding, callBinding.operands());
-    if (argTypes.size() == 0) {
+    if (argTypes.isEmpty()) {
       throw callBinding.newValidationError(RESOURCE.mapRequiresTwoOrMoreArgs());
     }
     if (argTypes.size() % 2 > 0) {

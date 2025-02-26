@@ -17,10 +17,12 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rex.RexUtil;
 
 /**
  * Rule to convert a {@link LogicalProject} to an {@link EnumerableProject}.
@@ -30,9 +32,10 @@ import org.apache.calcite.rel.logical.LogicalProject;
  */
 class EnumerableProjectRule extends ConverterRule {
   /** Default configuration. */
-  static final Config DEFAULT_CONFIG = Config.EMPTY
+  static final Config DEFAULT_CONFIG = Config.INSTANCE
       .as(Config.class)
-      .withConversion(LogicalProject.class, p -> !p.containsOver(),
+      .withConversion(LogicalProject.class,
+          p -> !p.containsOver() && !RexUtil.M2V_FINDER.inProject(p),
           Convention.NONE, EnumerableConvention.INSTANCE,
           "EnumerableProjectRule")
       .withRuleFactory(EnumerableProjectRule::new);
@@ -40,6 +43,11 @@ class EnumerableProjectRule extends ConverterRule {
   /** Creates an EnumerableProjectRule. */
   protected EnumerableProjectRule(Config config) {
     super(config);
+  }
+
+  @Override public boolean matches(RelOptRuleCall call) {
+    Project project = call.rel(0);
+    return project.getVariablesSet().isEmpty();
   }
 
   @Override public RelNode convert(RelNode rel) {

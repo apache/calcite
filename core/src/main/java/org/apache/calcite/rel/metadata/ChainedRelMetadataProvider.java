@@ -39,7 +39,7 @@ import java.util.List;
  *
  * <p>When a consumer calls the {@link #apply} method to ask for a provider
  * for a particular type of {@link RelNode} and {@link Metadata}, scans the list
- * of underlying providers.</p>
+ * of underlying providers.
  */
 public class ChainedRelMetadataProvider implements RelMetadataProvider {
   //~ Instance fields --------------------------------------------------------
@@ -105,12 +105,23 @@ public class ChainedRelMetadataProvider implements RelMetadataProvider {
     }
   }
 
+  @Deprecated // to be removed before 2.0
   @Override public <M extends Metadata> Multimap<Method, MetadataHandler<M>> handlers(
       MetadataDef<M> def) {
     final ImmutableMultimap.Builder<Method, MetadataHandler<M>> builder =
         ImmutableMultimap.builder();
     for (RelMetadataProvider provider : providers.reverse()) {
       builder.putAll(provider.handlers(def));
+    }
+    return builder.build();
+  }
+
+  @Override public List<MetadataHandler<?>> handlers(
+      Class<? extends MetadataHandler<?>> handlerClass) {
+    final ImmutableList.Builder<MetadataHandler<?>> builder =
+        ImmutableList.builder();
+    for (RelMetadataProvider provider : providers) {
+      builder.addAll(provider.handlers(handlerClass));
     }
     return builder.build();
   }

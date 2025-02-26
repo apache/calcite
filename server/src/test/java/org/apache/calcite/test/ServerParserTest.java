@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.sql.parser.SqlParserImplFactory;
+import org.apache.calcite.sql.parser.SqlParserFixture;
 import org.apache.calcite.sql.parser.SqlParserTest;
 import org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl;
 
@@ -46,13 +46,21 @@ import org.junit.jupiter.api.Test;
  */
 class ServerParserTest extends SqlParserTest {
 
-  @Override protected SqlParserImplFactory parserImplFactory() {
-    return SqlDdlParserImpl.FACTORY;
+  @Override public SqlParserFixture fixture() {
+    return super.fixture()
+        .withConfig(c -> c.withParserFactory(SqlDdlParserImpl.FACTORY));
   }
 
   @Test void testCreateSchema() {
     sql("create schema x")
         .ok("CREATE SCHEMA `X`");
+  }
+
+  @Test void testProcessCreateTableWithDefault() {
+    String sql = "create table tdef (i int not null, j int default 100)";
+    String expected = "CREATE TABLE `TDEF` (`I` INTEGER NOT NULL,"
+        + " `J` INTEGER DEFAULT 100)";
+    sql(sql).ok(expected);
   }
 
   @Test void testCreateOrReplaceSchema() {
@@ -73,7 +81,7 @@ class ServerParserTest extends SqlParserTest {
         + "OPTIONS (`ABOOLEAN` TRUE,"
         + " `ANINTEGER` -45,"
         + " `ADATE` DATE '1970-03-21',"
-        + " `quoted.id` TIMESTAMP '1970-03-21 12:04:56.78',"
+        + " `quoted.id` TIMESTAMP '1970-03-21 12:4:56.78',"
         + " `ASTRING` 'foo''bar')";
     sql(sql).ok(expected);
   }
@@ -171,6 +179,36 @@ class ServerParserTest extends SqlParserTest {
         + " `F1` `DB_NAME`.`MYTYPE1`,"
         + " `F2` `CATALOG_NAME`.`DB_NAME`.`MYTYPE2`)";
     sql(sql).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6022">[CALCITE-6022]
+   * Support "CREATE TABLE ... LIKE" DDL in server module</a>. */
+  @Test void testCreateTableLike() {
+    final String sql = "create table x like y";
+    final String expected = "CREATE TABLE `X` LIKE `Y`";
+    sql(sql).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6022">[CALCITE-6022]
+   * Support "CREATE TABLE ... LIKE" DDL in server module</a>. */
+  @Test void testCreateTableLikeWithOptions() {
+    sql("create table x like y including all")
+        .ok("CREATE TABLE `X` LIKE `Y`\n"
+            + "INCLUDING ALL");
+
+    sql("create table s.x like s.y excluding defaults including generated")
+        .ok("CREATE TABLE `S`.`X` LIKE `S`.`Y`\n"
+            + "INCLUDING GENERATED\n"
+            + "EXCLUDING DEFAULTS");
+
+    sql("create table x like y excluding defaults including all")
+        .fails("ALL cannot be used with other options");
+
+    sql("create table x like y including defaults excluding defaults")
+        .fails("Cannot include and exclude option DEFAULTS at same time");
+
   }
 
   @Test void testCreateView() {
@@ -284,6 +322,17 @@ class ServerParserTest extends SqlParserTest {
   @Test void testDropTableIfExists() {
     sql("drop table if exists x")
         .ok("DROP TABLE IF EXISTS `X`");
+  }
+
+  @Test void testTruncateTable() {
+    sql("truncate table x")
+        .ok("TRUNCATE TABLE `X` CONTINUE IDENTITY");
+
+    sql("truncate table x continue identity")
+        .ok("TRUNCATE TABLE `X` CONTINUE IDENTITY");
+
+    sql("truncate table x restart identity")
+        .ok("TRUNCATE TABLE `X` RESTART IDENTITY");
   }
 
   @Test void testDropView() {

@@ -96,6 +96,10 @@ public class SqlWith extends SqlCall {
       final SqlWith with = (SqlWith) call;
       final SqlWriter.Frame frame =
           writer.startList(SqlWriter.FrameTypeEnum.WITH, "WITH", "");
+      boolean isRecursive = ((SqlWithItem) with.withList.get(0)).recursive.booleanValue();
+      if (isRecursive) {
+        writer.keyword("RECURSIVE");
+      }
       final SqlWriter.Frame frame1 = writer.startList("", "");
       for (SqlNode node : with.withList) {
         writer.sep(",");
@@ -103,8 +107,9 @@ public class SqlWith extends SqlCall {
       }
       writer.endList(frame1);
       final SqlWriter.Frame frame2 =
-          writer.startList(SqlWriter.FrameTypeEnum.SIMPLE);
-      with.body.unparse(writer, 100, 100);
+          writer.startList(SqlWriter.FrameTypeEnum.WITH_BODY);
+      with.body.unparse(writer,
+          SqlWithOperator.INSTANCE.getLeftPrec(), SqlWithOperator.INSTANCE.getRightPrec());
       writer.endList(frame2);
       writer.endList(frame);
     }

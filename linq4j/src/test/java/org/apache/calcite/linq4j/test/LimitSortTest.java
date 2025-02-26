@@ -21,6 +21,7 @@ import org.apache.calcite.linq4j.EnumerableDefaults;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.function.Function1;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.util.Comparator;
@@ -29,7 +30,8 @@ import java.util.Random;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -39,7 +41,7 @@ class LimitSortTest {
 
   /** Row class. */
   private static class Row {
-    String key;
+    @Nullable String key;
     int index;
 
     @Override public String toString() {
@@ -54,7 +56,7 @@ class LimitSortTest {
       int a = n < 2 ? 0 : rnd.nextInt(n / 2);
       String k = Integer.toString(a, Character.MAX_RADIX);
       Row r = new Row();
-      r.key = "" + k;
+      r.key = rnd.nextBoolean() ? null : ("" + k);
       r.index = i;
       return r;
     });
@@ -82,13 +84,15 @@ class LimitSortTest {
     int tmp = rnd.nextInt(10_000);
     int offset = Math.max(0, (int) (tmp - .1 * tmp));
 
-    Comparator<String> cmp = Comparator.<String>naturalOrder()::compare;
-    Enumerable<Row> ordered = EnumerableDefaults.orderBy(
-        this.enumerable(seed),
-        s -> s.key,
-        cmp,
-        offset, fetch
-    );
+    Comparator<String> natural = Comparator.naturalOrder();
+    Comparator<String> cmp
+        = rnd.nextBoolean() ? Comparator.nullsFirst(natural) : Comparator.nullsLast(natural);
+
+    Enumerable<Row> ordered =
+        EnumerableDefaults.orderBy(this.enumerable(seed),
+            s -> s.key,
+            cmp,
+            offset, fetch);
 
     List<Row> result = ordered.toList();
     assertTrue(
@@ -101,13 +105,13 @@ class LimitSortTest {
       Row left = result.get(i - 1);
       Row right = result.get(i);
       // use left < right instead of <=, as rows might not appear twice
-      assertTrue(isSmaller(left, right),
+      assertTrue(isSmaller(left, right, cmp),
           "The following elements have not been ordered correctly: " + left + " " + right);
     }
 
     // check offset and fetch size have been respected
-    Row first;
-    Row last;
+    @Nullable Row first;
+    @Nullable Row last;
     if (result.isEmpty()) {
       // may happen if the offset is bigger than the number of items
       first = null;
@@ -122,41 +126,47 @@ class LimitSortTest {
     int actFetch = 0;
     for (Row r : (Iterable<Row>) this.rowStream(seed)::iterator) {
       totalItems++;
-      if (isSmaller(r, first)) {
+      if (isSmaller(r, first, cmp)) {
         actOffset++;
-      } else if (isSmallerEq(r, last)) {
+      } else if (isSmallerEq(r, last, cmp)) {
         actFetch++;
       }
     }
 
     // we can skip at most 'totalItems'
     int expOffset = Math.min(offset, totalItems);
-    assertEquals(expOffset, actOffset, "Offset has not been respected.");
+    assertThat("Offset has not been respected.", actOffset, is(expOffset));
     // we can only fetch items if there are enough
     int expFetch = Math.min(totalItems - expOffset, fetch);
-    assertEquals(expFetch, actFetch, "Fetch has not been respected.");
+    assertThat("Fetch has not been respected.", actFetch, is(expFetch));
   }
 
   /** A comparison function that takes the order of creation into account. */
-  private static boolean isSmaller(Row left, Row right) {
+  private static boolean isSmaller(@Nullable Row left, @Nullable Row right,
+      Comparator<String> cmp) {
     if (right == null) {
       return true;
     }
-
-    int c = left.key.compareTo(right.key);
+    if (left == null) {
+      return false;
+    }
+    int c = cmp.compare(left.key, right.key);
     if (c != 0) {
       return c < 0;
     }
     return left.index < right.index;
   }
 
-  /** See {@link #isSmaller(Row, Row)}. */
-  private static boolean isSmallerEq(Row left, Row right) {
+  /** See {@link #isSmaller(Row, Row, Comparator)}. */
+  private static boolean isSmallerEq(@Nullable Row left, @Nullable Row right,
+      Comparator<String> cmp) {
     if (right == null) {
       return true;
     }
-
-    int c = left.key.compareTo(right.key);
+    if (left == null) {
+      return false;
+    }
+    int c = cmp.compare(left.key, right.key);
     if (c != 0) {
       return c < 0;
     }

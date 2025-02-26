@@ -24,12 +24,14 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Objects;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Reference to the current row of a correlating relational expression.
  *
  * <p>Correlating variables are introduced when performing nested loop joins.
  * Each row is received from one side of the join, a correlating variable is
- * assigned a value, and the other side of the join is restarted.</p>
+ * assigned a value, and the other side of the join is restarted.
  */
 public class RexCorrelVariable extends RexVariable {
   public final CorrelationId id;
@@ -40,7 +42,7 @@ public class RexCorrelVariable extends RexVariable {
       CorrelationId id,
       RelDataType type) {
     super(id.getName(), type);
-    this.id = Objects.requireNonNull(id, "id");
+    this.id = requireNonNull(id, "id");
   }
 
   //~ Methods ----------------------------------------------------------------

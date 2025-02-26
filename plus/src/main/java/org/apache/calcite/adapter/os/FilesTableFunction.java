@@ -18,20 +18,13 @@ package org.apache.calcite.adapter.os;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
-import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.ScannableTable;
-import org.apache.calcite.schema.Schema;
-import org.apache.calcite.schema.Statistic;
-import org.apache.calcite.schema.Statistics;
-import org.apache.calcite.sql.SqlCall;
-import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -52,15 +45,17 @@ public class FilesTableFunction {
 
   private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000L);
 
-  private FilesTableFunction() {}
+  private FilesTableFunction() {
+  }
 
-  /** Evaluates the function.
+  /**
+   * Evaluates the function.
    *
    * @param path Directory in which to start the search. Typically '.'
    * @return Table that can be inspected, planned, and evaluated
    */
   public static ScannableTable eval(final String path) {
-    return new ScannableTable() {
+    return new AbstractBaseScannableTable() {
       @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
         return typeFactory.builder()
             .add("access_time", SqlTypeName.TIMESTAMP) // %A@ sec since epoch
@@ -193,7 +188,7 @@ public class FilesTableFunction {
                 switch (osName) {
                 case "Mac OS X":
                   // Strip leading "./"
-                  String path = (String) current[14];
+                  String path = requireNonNull((String) current[14]);
                   if (".".equals(path)) {
                     current[14] = path = "";
                     current[3] = 0; // depth
@@ -267,24 +262,6 @@ public class FilesTableFunction {
           }
         };
       }
-
-      @Override public Statistic getStatistic() {
-        return Statistics.of(1000d, ImmutableList.of(ImmutableBitSet.of(1)));
-      }
-
-      @Override public Schema.TableType getJdbcTableType() {
-        return Schema.TableType.TABLE;
-      }
-
-      @Override public boolean isRolledUp(String column) {
-        return false;
-      }
-
-      @Override public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
-          @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
-        return true;
-      }
     };
   }
-
 }

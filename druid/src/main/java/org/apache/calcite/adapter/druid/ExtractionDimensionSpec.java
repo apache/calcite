@@ -21,11 +21,12 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
-import java.util.Objects;
 
 import static org.apache.calcite.adapter.druid.DruidQuery.writeField;
 import static org.apache.calcite.adapter.druid.DruidQuery.writeFieldIf;
 import static org.apache.calcite.util.DateTimeStringUtils.ISO_DATETIME_FRACTIONAL_SECOND_FORMAT;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of extraction function DimensionSpec.
@@ -46,8 +47,9 @@ public class ExtractionDimensionSpec implements DimensionSpec {
 
   public ExtractionDimensionSpec(String dimension, ExtractionFunction extractionFunction,
       String outputName, DruidType outputType) {
-    this.dimension = Objects.requireNonNull(dimension, "dimension");
-    this.extractionFunction = Objects.requireNonNull(extractionFunction, "extractionFunction");
+    this.dimension = requireNonNull(dimension, "dimension");
+    this.extractionFunction =
+        requireNonNull(extractionFunction, "extractionFunction");
     this.outputName = outputName;
     this.outputType = outputType == null ? DruidType.STRING : outputType;
   }

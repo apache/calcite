@@ -25,6 +25,7 @@ import org.apache.calcite.schema.CustomColumnResolvingTable;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlLambda;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
@@ -33,17 +34,23 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
+import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getSelectList;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
@@ -65,6 +72,15 @@ public abstract class DelegatingScope implements SqlValidatorScope {
   protected final SqlValidatorScope parent;
   protected final SqlValidatorImpl validator;
 
+  /** Computes and stores information that cannot be computed on construction,
+   * but only after sub-queries have been validated. */
+  @SuppressWarnings({"methodref.receiver.bound.invalid"})
+  public final Supplier<AggregatingSelectScope.Resolved> resolved =
+      Suppliers.memoize(this::resolve);
+
+  /** Use while resolving. */
+  SqlValidatorUtil.@Nullable GroupAnalyzer groupAnalyzer;
+
   //~ Constructors -----------------------------------------------------------
 
   /**
@@ -74,9 +90,8 @@ public abstract class DelegatingScope implements SqlValidatorScope {
    */
   DelegatingScope(SqlValidatorScope parent) {
     super();
-    assert parent != null;
+    this.parent = requireNonNull(parent, "parent");
     this.validator = (SqlValidatorImpl) parent.getValidator();
-    this.parent = parent;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -94,12 +109,12 @@ public abstract class DelegatingScope implements SqlValidatorScope {
   }
 
   /** If a record type allows implicit references to fields, recursively looks
-   * into the fields. Otherwise returns immediately. */
+   * into the fields. Otherwise, returns immediately. */
   void resolveInNamespace(SqlValidatorNamespace ns, boolean nullable,
       List<String> names, SqlNameMatcher nameMatcher, Path path,
       Resolved resolved) {
     if (names.isEmpty()) {
-      resolved.found(ns, nullable, this, path, null);
+      resolved.found(ns, nullable, this, path, names);
       return;
     }
     final RelDataType rowType = ns.getRowType();
@@ -116,8 +131,9 @@ public abstract class DelegatingScope implements SqlValidatorScope {
             final List<String> remainder = entry.getValue();
             final SqlValidatorNamespace ns2 =
                 new FieldNamespace(validator, field.getType());
-            final Step path2 = path.plus(rowType, field.getIndex(),
-                field.getName(), StructKind.FULLY_QUALIFIED);
+            final Step path2 =
+                path.plus(rowType, field.getIndex(), field.getName(),
+                    StructKind.FULLY_QUALIFIED);
             resolveInNamespace(ns2, nullable, remainder, nameMatcher, path2,
                 resolved);
           }
@@ -128,11 +144,12 @@ public abstract class DelegatingScope implements SqlValidatorScope {
       final String name = names.get(0);
       final RelDataTypeField field0 = nameMatcher.field(rowType, name);
       if (field0 != null) {
-        final SqlValidatorNamespace ns2 = requireNonNull(
-            ns.lookupChild(field0.getName()),
-            () -> "field " + field0.getName() + " is not found in " + ns);
-        final Step path2 = path.plus(rowType, field0.getIndex(),
-            field0.getName(), StructKind.FULLY_QUALIFIED);
+        final SqlValidatorNamespace ns2 =
+            requireNonNull(ns.lookupChild(field0.getName()),
+                () -> "field " + field0.getName() + " is not found in " + ns);
+        final Step path2 =
+            path.plus(rowType, field0.getIndex(),
+                field0.getName(), StructKind.FULLY_QUALIFIED);
         resolveInNamespace(ns2, nullable, names.subList(1, names.size()),
             nameMatcher, path2, resolved);
       } else {
@@ -141,11 +158,12 @@ public abstract class DelegatingScope implements SqlValidatorScope {
           case PEEK_FIELDS:
           case PEEK_FIELDS_DEFAULT:
           case PEEK_FIELDS_NO_EXPAND:
-            final Step path2 = path.plus(rowType, field.getIndex(),
-                field.getName(), field.getType().getStructKind());
-            final SqlValidatorNamespace ns2 = requireNonNull(
-                ns.lookupChild(field.getName()),
-                () -> "field " + field.getName() + " is not found in " + ns);
+            final Step path2 =
+                path.plus(rowType, field.getIndex(),
+                    field.getName(), field.getType().getStructKind());
+            final SqlValidatorNamespace ns2 =
+                requireNonNull(ns.lookupChild(field.getName()),
+                    () -> "field " + field.getName() + " is not found in " + ns);
             resolveInNamespace(ns2, nullable, names, nameMatcher, path2,
                 resolved);
             break;
@@ -217,6 +235,8 @@ public abstract class DelegatingScope implements SqlValidatorScope {
   @Override public SqlValidatorScope getOperandScope(SqlCall call) {
     if (call instanceof SqlSelect) {
       return validator.getSelectScope((SqlSelect) call);
+    } else if (call instanceof SqlLambda) {
+      return validator.getLambdaScope((SqlLambda) call);
     }
     return this;
   }
@@ -397,8 +417,8 @@ public abstract class DelegatingScope implements SqlValidatorScope {
       // change "e.empno" to "E.empno".
       if (fromNs.getEnclosingNode() != null
           && !(this instanceof MatchRecognizeScope)) {
-        String alias =
-            SqlValidatorUtil.getAlias(fromNs.getEnclosingNode(), -1);
+        @Nullable String alias =
+            SqlValidatorUtil.alias(fromNs.getEnclosingNode());
         if (alias != null
             && i > 0
             && !alias.equals(identifier.names.get(i - 1))) {
@@ -406,7 +426,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
         }
       }
       if (requireNonNull(fromPath, "fromPath").stepCount() > 1) {
-        assert fromRowType != null;
+        requireNonNull(fromRowType, "fromRowType");
         for (Step p : fromPath.steps()) {
           fromRowType = fromRowType.getFieldList().get(p.i).getType();
         }
@@ -494,10 +514,8 @@ public abstract class DelegatingScope implements SqlValidatorScope {
               identifier, RESOURCE.columnNotFound(name));
         }
         final RelDataTypeField field0 =
-            requireNonNull(
-                step.rowType,
-                () -> "rowType of step " + step.name
-            ).getFieldList().get(step.i);
+            requireNonNull(step.rowType, () -> "rowType of step " + step.name)
+                .getFieldList().get(step.i);
         final String fieldName = field0.getName();
         switch (step.kind) {
         case PEEK_FIELDS:
@@ -573,6 +591,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
           }
         }
       }
+      return false;
     } else { // check if there are fields with the same name
       int count = 0;
       for (RelDataTypeField f : rowType.getFieldList()) {
@@ -580,11 +599,54 @@ public abstract class DelegatingScope implements SqlValidatorScope {
           count++;
         }
       }
-      if (count > 1) {
-        return true;
+      return count > 1;
+    }
+  }
+
+  private AggregatingSelectScope.Resolved resolve() {
+    checkArgument(groupAnalyzer == null, "resolve already in progress");
+    SqlValidatorUtil.GroupAnalyzer groupAnalyzer = new SqlValidatorUtil.GroupAnalyzer();
+    this.groupAnalyzer = groupAnalyzer;
+    try {
+      analyze(groupAnalyzer);
+      return groupAnalyzer.finish();
+    } finally {
+      this.groupAnalyzer = null;
+    }
+  }
+
+  /** Analyzes expressions in this scope and populates a
+   * {@code GroupAnalyzer}. */
+  protected void analyze(SqlValidatorUtil.GroupAnalyzer analyzer) {
+    final SelectScope selectScope = SqlValidatorUtil.getEnclosingSelectScope(this);
+    if (selectScope != null) {
+      // Find all expressions in this scope that reference measures
+      for (ScopeChild child : selectScope.children) {
+        final RelDataType rowType = child.namespace.getRowType();
+        if (child.namespace instanceof SelectNamespace) {
+          final SqlSelect select = ((SelectNamespace) child.namespace).getNode();
+          Pair.forEach(select.getSelectList(),
+              rowType.getFieldList(),
+              (selectItem, field) -> {
+                if (SqlValidatorUtil.isMeasure(selectItem)) {
+                  analyzer.measureExprs.add(
+                      new SqlIdentifier(
+                          Arrays.asList(child.name, field.getName()),
+                          SqlParserPos.ZERO));
+                }
+              });
+        } else {
+          rowType.getFieldList().forEach(field -> {
+            if (field.getType().isMeasure()) {
+              analyzer.measureExprs.add(
+                  new SqlIdentifier(
+                      Arrays.asList(child.name, field.getName()),
+                      SqlParserPos.ZERO));
+            }
+          });
+        }
       }
     }
-    return false;
   }
 
   /**
@@ -592,5 +654,46 @@ public abstract class DelegatingScope implements SqlValidatorScope {
    */
   public SqlValidatorScope getParent() {
     return parent;
+  }
+
+  /** Qualifies an identifier by looking for an alias in the current
+   * select-list.
+   *
+   * <p>Used when resolving ORDER BY items (when the conformance allows order by
+   * alias, such as "SELECT x - y AS z FROM t ORDER BY z") and measures
+   * (when one measure refers to another, for example
+   * "SELECT SUM(x) AS MEASURE m1, SUM(y) - m1 AS MEASURE m2 FROM t"). */
+  protected @Nullable SqlQualified qualifyUsingAlias(SqlSelect select,
+      SqlIdentifier identifier) {
+    final String name = identifier.names.get(0);
+    final SqlNameMatcher nameMatcher = validator.catalogReader.nameMatcher();
+    final int aliasCount = aliasCount(select, nameMatcher, name);
+    switch (aliasCount) {
+    case 0:
+      return null;
+    case 1:
+      final SqlValidatorNamespace selectNs =
+          validator.getNamespaceOrThrow(select);
+      return SqlQualified.create(this, 1, selectNs, identifier);
+    default:
+      // More than one column has this alias.
+      throw validator.newValidationError(identifier,
+          RESOURCE.columnAmbiguous(name));
+    }
+  }
+
+  /** Returns the number of columns in the SELECT clause that have {@code name}
+   * as their implicit (e.g. {@code t.name}) or explicit (e.g.
+   * {@code t.c as name}) alias. */
+  private static int aliasCount(SqlSelect select, SqlNameMatcher nameMatcher,
+      String name) {
+    int n = 0;
+    for (SqlNode s : getSelectList(select)) {
+      final @Nullable String alias = SqlValidatorUtil.alias(s);
+      if (alias != null && nameMatcher.matches(alias, name)) {
+        n++;
+      }
+    }
+    return n;
   }
 }

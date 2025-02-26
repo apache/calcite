@@ -23,7 +23,7 @@ import org.apache.calcite.config.Lex;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.test.CalciteAssert;
-import org.apache.calcite.test.JdbcTest;
+import org.apache.calcite.test.schemata.hr.HrSchemaBig;
 
 import org.junit.jupiter.api.Test;
 
@@ -37,7 +37,7 @@ class EnumerableMergeUnionTest {
 
   @Test void mergeUnionAllOrderByEmpid() {
     tester(false,
-        new JdbcTest.HrSchemaBig(),
+        new HrSchemaBig(),
         "select * from (select empid, name from emps where name like 'G%' union all select empid, name from emps where name like '%l') order by empid")
         .explainContains("EnumerableMergeUnion(all=[true])\n"
             + "  EnumerableSort(sort0=[$0], dir0=[ASC])\n"
@@ -59,7 +59,7 @@ class EnumerableMergeUnionTest {
 
   @Test void mergeUnionOrderByEmpid() {
     tester(false,
-        new JdbcTest.HrSchemaBig(),
+        new HrSchemaBig(),
         "select * from (select empid, name from emps where name like 'G%' union select empid, name from emps where name like '%l') order by empid")
         .explainContains("EnumerableMergeUnion(all=[false])\n"
             + "  EnumerableSort(sort0=[$0], dir0=[ASC])\n"
@@ -80,7 +80,7 @@ class EnumerableMergeUnionTest {
 
   @Test void mergeUnionAllOrderByName() {
     tester(false,
-        new JdbcTest.HrSchemaBig(),
+        new HrSchemaBig(),
         "select * from (select empid, name from emps where name like 'G%' union all select empid, name from emps where name like '%l') order by name")
         .explainContains("EnumerableMergeUnion(all=[true])\n"
             + "  EnumerableSort(sort0=[$1], dir0=[ASC])\n"
@@ -102,7 +102,7 @@ class EnumerableMergeUnionTest {
 
   @Test void mergeUnionOrderByName() {
     tester(false,
-        new JdbcTest.HrSchemaBig(),
+        new HrSchemaBig(),
         "select * from (select empid, name from emps where name like 'G%' union select empid, name from emps where name like '%l') order by name")
         .explainContains("EnumerableMergeUnion(all=[false])\n"
             + "  EnumerableSort(sort0=[$1], dir0=[ASC])\n"
@@ -123,7 +123,7 @@ class EnumerableMergeUnionTest {
 
   @Test void mergeUnionSingleColumnOrderByName() {
     tester(false,
-        new JdbcTest.HrSchemaBig(),
+        new HrSchemaBig(),
         "select * from (select name from emps where name like 'G%' union select name from emps where name like '%l') order by name")
         .explainContains("EnumerableMergeUnion(all=[false])\n"
             + "  EnumerableSort(sort0=[$0], dir0=[ASC])\n"
@@ -144,7 +144,7 @@ class EnumerableMergeUnionTest {
 
   @Test void mergeUnionOrderByNameWithLimit() {
     tester(false,
-        new JdbcTest.HrSchemaBig(),
+        new HrSchemaBig(),
         "select * from (select empid, name from emps where name like 'G%' union select empid, name from emps where name like '%l') order by name limit 3")
         .explainContains("EnumerableLimit(fetch=[3])\n"
             + "  EnumerableMergeUnion(all=[false])\n"
@@ -164,7 +164,7 @@ class EnumerableMergeUnionTest {
 
   @Test void mergeUnionOrderByNameWithOffset() {
     tester(false,
-        new JdbcTest.HrSchemaBig(),
+        new HrSchemaBig(),
         "select * from (select empid, name from emps where name like 'G%' union select empid, name from emps where name like '%l') order by name offset 2")
         .explainContains("EnumerableLimit(offset=[2])\n"
             + "  EnumerableMergeUnion(all=[false])\n"
@@ -184,7 +184,7 @@ class EnumerableMergeUnionTest {
 
   @Test void mergeUnionOrderByNameWithLimitAndOffset() {
     tester(false,
-        new JdbcTest.HrSchemaBig(),
+        new HrSchemaBig(),
         "select * from (select empid, name from emps where name like 'G%' union select empid, name from emps where name like '%l') order by name limit 3 offset 2")
         .explainContains("EnumerableLimit(offset=[2], fetch=[3])\n"
             + "  EnumerableMergeUnion(all=[false])\n"
@@ -204,7 +204,7 @@ class EnumerableMergeUnionTest {
 
   @Test void mergeUnionAllOrderByCommissionAscNullsFirstAndNameDesc() {
     tester(false,
-        new JdbcTest.HrSchemaBig(),
+        new HrSchemaBig(),
         "select * from (select commission, name from emps where name like 'R%' union all select commission, name from emps where name like '%y%') order by commission asc nulls first, name desc")
         .explainContains("EnumerableMergeUnion(all=[true])\n"
             + "  EnumerableSort(sort0=[$0], sort1=[$1], dir0=[ASC-nulls-first], dir1=[DESC])\n"
@@ -227,7 +227,7 @@ class EnumerableMergeUnionTest {
 
   @Test void mergeUnionOrderByCommissionAscNullsFirstAndNameDesc() {
     tester(false,
-        new JdbcTest.HrSchemaBig(),
+        new HrSchemaBig(),
         "select * from (select commission, name from emps where name like 'R%' union select commission, name from emps where name like '%y%') order by commission asc nulls first, name desc")
         .explainContains("EnumerableMergeUnion(all=[false])\n"
             + "  EnumerableSort(sort0=[$0], sort1=[$1], dir0=[ASC-nulls-first], dir1=[DESC])\n"
@@ -249,7 +249,7 @@ class EnumerableMergeUnionTest {
 
   @Test void mergeUnionAllOrderByCommissionAscNullsLastAndNameDesc() {
     tester(false,
-        new JdbcTest.HrSchemaBig(),
+        new HrSchemaBig(),
         "select * from (select commission, name from emps where name like 'R%' union all select commission, name from emps where name like '%y%') order by commission asc nulls last, name desc")
         .explainContains("EnumerableMergeUnion(all=[true])\n"
             + "  EnumerableSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[DESC])\n"
@@ -272,7 +272,7 @@ class EnumerableMergeUnionTest {
 
   @Test void mergeUnionOrderByCommissionAscNullsLastAndNameDesc() {
     tester(false,
-        new JdbcTest.HrSchemaBig(),
+        new HrSchemaBig(),
         "select * from (select commission, name from emps where name like 'R%' union select commission, name from emps where name like '%y%') order by commission asc nulls last, name desc")
         .explainContains("EnumerableMergeUnion(all=[false])\n"
             + "  EnumerableSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[DESC])\n"

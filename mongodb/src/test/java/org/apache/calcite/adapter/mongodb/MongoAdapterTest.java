@@ -32,6 +32,8 @@ import com.mongodb.client.MongoDatabase;
 
 import net.hydromatic.foodmart.data.json.FoodmartJson;
 
+import org.bson.BsonArray;
+import org.bson.BsonBinary;
 import org.bson.BsonDateTime;
 import org.bson.BsonDocument;
 import org.bson.BsonInt32;
@@ -63,12 +65,13 @@ import java.util.stream.Collectors;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import static java.util.Objects.requireNonNull;
+
 /**
- * Testing mongo adapter functionality. By default runs with
- * <a href="https://github.com/fakemongo/fongo">Fongo</a> unless {@code IT} maven profile is enabled
+ * Testing mongo adapter functionality. By default, runs with
+ * Mongo Java Server unless {@code IT} maven profile is enabled
  * (via {@code $ mvn -Pit install}).
  *
  * @see MongoDatabasePolicy
@@ -76,7 +79,9 @@ import static org.junit.jupiter.api.Assertions.fail;
 public class MongoAdapterTest implements SchemaFactory {
 
   /** Connection factory based on the "mongo-zips" model. */
-  protected static final URL MODEL = MongoAdapterTest.class.getResource("/mongo-model.json");
+  protected static final URL MODEL =
+      requireNonNull(MongoAdapterTest.class.getResource("/mongo-model.json"),
+          "url");
 
   /** Number of records in local file. */
   protected static final int ZIPS_SIZE = 149;
@@ -90,13 +95,18 @@ public class MongoAdapterTest implements SchemaFactory {
   public static void setUp() throws Exception {
     MongoDatabase database = POLICY.database();
 
-    populate(database.getCollection("zips"), MongoAdapterTest.class.getResource("/zips-mini.json"));
-    populate(database.getCollection("store"), FoodmartJson.class.getResource("/store.json"));
+    populate(database.getCollection("zips"),
+        requireNonNull(MongoAdapterTest.class.getResource("/zips-mini.json"),
+            "url"));
+    populate(database.getCollection("store"),
+        requireNonNull(FoodmartJson.class.getResource("/store.json"),
+            "url"));
     populate(database.getCollection("warehouse"),
-        FoodmartJson.class.getResource("/warehouse.json"));
+        requireNonNull(FoodmartJson.class.getResource("/warehouse.json"),
+            "url"));
 
     // Manually insert data for data-time test.
-    MongoCollection<BsonDocument> datatypes =  database.getCollection("datatypes")
+    MongoCollection<BsonDocument> datatypes = database.getCollection("datatypes")
         .withDocumentClass(BsonDocument.class);
     if (datatypes.countDocuments() > 0) {
       datatypes.deleteMany(new BsonDocument());
@@ -107,6 +117,8 @@ public class MongoAdapterTest implements SchemaFactory {
     doc.put("date", new BsonDateTime(instant.toEpochMilli()));
     doc.put("value", new BsonInt32(1231));
     doc.put("ownerId", new BsonString("531e7789e4b0853ddb861313"));
+    doc.put("arr", new BsonArray(Arrays.asList(new BsonString("a"), new BsonString("b"))));
+    doc.put("binaryData", new BsonBinary("binaryData".getBytes(StandardCharsets.UTF_8)));
     datatypes.insertOne(doc);
 
     schema = new MongoSchema(database);
@@ -114,7 +126,7 @@ public class MongoAdapterTest implements SchemaFactory {
 
   private static void populate(MongoCollection<Document> collection, URL resource)
       throws IOException {
-    Objects.requireNonNull(collection, "collection");
+    requireNonNull(collection, "collection");
 
     if (collection.countDocuments() > 0) {
       // delete any existing documents (run from a clean set)
@@ -123,7 +135,7 @@ public class MongoAdapterTest implements SchemaFactory {
 
     MongoCollection<BsonDocument> bsonCollection = collection.withDocumentClass(BsonDocument.class);
     Resources.readLines(resource, StandardCharsets.UTF_8, new LineProcessor<Void>() {
-      @Override public boolean processLine(String line) throws IOException {
+      @Override public boolean processLine(String line) {
         bsonCollection.insertOne(BsonDocument.parse(line));
         return true;
       }
@@ -134,9 +146,7 @@ public class MongoAdapterTest implements SchemaFactory {
     });
   }
 
-  /**
-   *  Returns always the same schema to avoid initialization costs.
-   */
+  /** Returns always the same schema to avoid initialization costs. */
   @Override public Schema create(SchemaPlus parentSchema, String name,
       Map<String, Object> operand) {
     return schema;
@@ -151,7 +161,7 @@ public class MongoAdapterTest implements SchemaFactory {
   }
 
   private CalciteAssert.AssertThat assertModel(URL url) {
-    Objects.requireNonNull(url, "url");
+    requireNonNull(url, "url");
     try {
       return assertModel(Resources.toString(url, StandardCharsets.UTF_8));
     } catch (IOException e) {
@@ -628,7 +638,7 @@ public class MongoAdapterTest implements SchemaFactory {
             "STATE=CA; CITY=NORWALK")
         .explainContains("PLAN=MongoToEnumerableConverter\n"
             + "  MongoProject(STATE=[CAST(ITEM($0, 'state')):VARCHAR(2)], CITY=[CAST(ITEM($0, 'city')):VARCHAR(20)])\n"
-            + "    MongoFilter(condition=[=(CAST(ITEM($0, 'state')):VARCHAR(2), 'CA')])\n"
+            + "    MongoFilter(condition=[=(CAST(CAST(ITEM($0, 'state')):VARCHAR(2)):CHAR(2), 'CA')])\n"
             + "      MongoTableScan(table=[[mongo_raw, zips]])");
   }
 
@@ -689,23 +699,27 @@ public class MongoAdapterTest implements SchemaFactory {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-286">[CALCITE-286]
    * Error casting MongoDB date</a>. */
   @Test void testDate() {
-    assertModel("{\n"
-        + "  version: '1.0',\n"
-        + "  defaultSchema: 'test',\n"
-        + "   schemas: [\n"
-        + "     {\n"
-        + "       type: 'custom',\n"
-        + "       name: 'test',\n"
-        + "       factory: 'org.apache.calcite.adapter.mongodb.MongoSchemaFactory',\n"
-        + "       operand: {\n"
-        + "         host: 'localhost',\n"
-        + "         database: 'test'\n"
-        + "       }\n"
-        + "     }\n"
-        + "   ]\n"
-        + "}")
-        .query("select cast(_MAP['date'] as DATE) from \"datatypes\"")
+    assertModel(MODEL)
+        .query("select cast(_MAP['date'] as DATE) from \"mongo_raw\".\"datatypes\"")
         .returnsUnordered("EXPR$0=2012-09-05");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5405">[CALCITE-5405]
+   * Error casting MongoDB dates to TIMESTAMP</a>. */
+  @Test void testDateConversion() {
+    assertModel(MODEL)
+        .query("select cast(_MAP['date'] as TIMESTAMP) from \"mongo_raw\".\"datatypes\"")
+        .returnsUnordered("EXPR$0=2012-09-05 00:00:00");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5407">[CALCITE-5407]
+   * Error casting MongoDB array to VARCHAR ARRAY</a>. */
+  @Test void testArrayConversion() {
+    assertModel(MODEL)
+        .query("select cast(_MAP['arr'] as VARCHAR ARRAY) from \"mongo_raw\".\"datatypes\"")
+        .returnsUnordered("EXPR$0=[a, b]");
   }
 
   /** Test case for
@@ -722,6 +736,50 @@ public class MongoAdapterTest implements SchemaFactory {
             throw TestUtil.rethrow(e);
           }
         });
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6623">[CALCITE-6623]
+   * MongoDB adapter throws a java.lang.ClassCastException when Decimal128 or Binary types are
+   * used, or when a primitive value is cast to a string</a>. */
+  @Test void testRuntimeTypes() {
+    assertModel(MODEL)
+        .query("select cast(_MAP['loc'] AS varchar) "
+            + "from \"mongo_raw\".\"zips\" where _MAP['_id']='99801'")
+        .returnsCount(1)
+        .returnsValue("[-134.529429, 58.362767]");
+
+    assertModel(MODEL)
+        .query("select cast(_MAP['warehouse_postal_code'] AS bigint) AS postal_code_as_bigint"
+            + " from \"mongo_raw\".\"warehouse\" where _MAP['warehouse_id']=1")
+        .returnsCount(1)
+        .returnsValue("55555")
+        .typeIs("[POSTAL_CODE_AS_BIGINT BIGINT]");
+
+    assertModel(MODEL)
+        .query("select cast(_MAP['warehouse_postal_code'] AS varchar) AS postal_code_as_varchar"
+            + " from \"mongo_raw\".\"warehouse\" where _MAP['warehouse_id']=1")
+        .returnsCount(1)
+        .returnsValue("55555")
+        .typeIs("[POSTAL_CODE_AS_VARCHAR VARCHAR]");
+
+    assertModel(MODEL)
+        .query("select cast(_MAP['binaryData'] AS binary) from \"mongo_raw\".\"datatypes\"")
+        .returnsCount(1)
+        .returns(resultSet -> {
+          try {
+            resultSet.next();
+            //CHECKSTYLE: IGNORE 1
+            assertThat(new String(resultSet.getBytes(1), StandardCharsets.UTF_8), is("binaryData"));
+          } catch (SQLException e) {
+            throw TestUtil.rethrow(e);
+          }
+        });
+
+    assertModel(MODEL)
+        .query("select cast(_MAP['loc'] AS bigint) "
+            + "from \"mongo_raw\".\"zips\" where _MAP['_id']='99801'")
+        .throws_("Invalid field:");
   }
 
   /**
@@ -763,13 +821,21 @@ public class MongoAdapterTest implements SchemaFactory {
             .map(b -> b.toJson(settings)).collect(Collectors.joining("\n"));
 
         // used to pretty print Assertion error
-        assertEquals(
-            prettyFn.apply(expectedBsons),
-            prettyFn.apply(actualBsons),
-            "expected and actual Mongo queries (pipelines) do not match");
+        assertThat("expected and actual Mongo queries (pipelines) do not match",
+            prettyFn.apply(actualBsons), is(prettyFn.apply(expectedBsons)));
 
         fail("Should have failed previously because expected != actual is known to be true");
       }
     };
+  }
+
+  @Test void testColumnQuoting() {
+    assertModel(MODEL)
+        .query("select state as \"STATE\", avg(pop) as \"AVG(pop)\" "
+            + "from zips "
+            + "group by \"STATE\" "
+            + "order by \"AVG(pop)\"")
+        .limit(2)
+        .returns("STATE=VT; AVG(pop)=26408\nSTATE=AK; AVG(pop)=26856\n");
   }
 }

@@ -37,7 +37,9 @@ import java.util.List;
 
 import static org.apache.calcite.plan.volcano.PlannerTests.newCluster;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -46,7 +48,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class MultipleTraitConversionTest {
   @SuppressWarnings("ConstantConditions")
-  @Test public void testMultipleTraitConversion() {
+  @Test void testMultipleTraitConversion() {
     VolcanoPlanner planner = new VolcanoPlanner();
 
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
@@ -66,14 +68,14 @@ public class MultipleTraitConversionTest {
     planner.setRoot(rel);
 
     RelNode convertedRel = planner.changeTraitsUsingConverters(rel, toTraits);
-    assertEquals(CustomTraitEnforcer.class, convertedRel.getClass());
+    assertThat(convertedRel.getClass(), is(CustomTraitEnforcer.class));
     assertTrue(convertedRel.getTraitSet().satisfies(toTraits));
 
     // Make sure that the equivalence set contains only the original and converted rels.
     // It should not contain the collation enforcer, because the "from" collation already
     // satisfies the "to" collation.
     List<RelNode> rels = planner.getSubset(rel).set.rels;
-    assertEquals(2, rels.size());
+    assertThat(rels, hasSize(2));
     assertTrue(rels.stream().anyMatch(r -> r instanceof CustomLeafRel));
     assertTrue(rels.stream().anyMatch(r -> r instanceof CustomTraitEnforcer));
   }
@@ -168,13 +170,11 @@ public class MultipleTraitConversionTest {
         RelOptPlanner planner,
         RelNode rel,
         CustomTrait toTrait,
-        boolean allowInfiniteCostConverters
-    ) {
+        boolean allowInfiniteCostConverters) {
       return new CustomTraitEnforcer(
           rel.getCluster(),
           rel.getTraitSet().replace(toTrait),
-          rel
-      );
+          rel);
     }
 
     @Override public boolean canConvert(RelOptPlanner planner, CustomTrait fromTrait,

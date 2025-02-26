@@ -19,10 +19,10 @@ package org.apache.calcite.util.javac;
 import org.apache.calcite.config.CalciteSystemProperty;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.codehaus.commons.compiler.util.resource.MapResourceFinder;
+import org.codehaus.commons.compiler.util.resource.ResourceFinder;
 import org.codehaus.janino.JavaSourceClassLoader;
 import org.codehaus.janino.util.ClassFile;
-import org.codehaus.janino.util.resource.MapResourceFinder;
-import org.codehaus.janino.util.resource.ResourceFinder;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -40,7 +40,7 @@ import static java.util.Objects.requireNonNull;
 public class JaninoCompiler implements JavaCompiler {
   //~ Instance fields --------------------------------------------------------
 
-  public JaninoCompilerArgs args = new JaninoCompilerArgs();
+  public final JaninoCompilerArgs args = new JaninoCompilerArgs();
 
   // REVIEW jvs 28-June-2004:  pool this instance?  Is it thread-safe?
   private @Nullable AccountingClassLoader classLoader;

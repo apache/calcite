@@ -30,6 +30,10 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.nio.charset.Charset;
 import java.util.List;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
+import static org.apache.calcite.util.Static.RESOURCE;
+
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -57,12 +61,12 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
   @Override public RelDataType createSqlType(
       SqlTypeName typeName,
       int precision) {
+    if (typeName.allowsScale()) {
+      return createSqlType(typeName, precision, typeSystem.getDefaultScale(typeName));
+    }
     final int maxPrecision = typeSystem.getMaxPrecision(typeName);
     if (maxPrecision >= 0 && precision > maxPrecision) {
       precision = maxPrecision;
-    }
-    if (typeName.allowsScale()) {
-      return createSqlType(typeName, precision, typeName.getDefaultScale());
     }
     assertBasic(typeName);
     assert (precision >= 0)
@@ -75,6 +79,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return canonize(newType);
   }
 
+  @SuppressWarnings("deprecation") // [CALCITE-6598]
   @Override public RelDataType createSqlType(
       SqlTypeName typeName,
       int precision,
@@ -82,9 +87,24 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     assertBasic(typeName);
     assert (precision >= 0)
         || (precision == RelDataType.PRECISION_NOT_SPECIFIED);
-    final int maxPrecision = typeSystem.getMaxPrecision(typeName);
-    if (maxPrecision >= 0 && precision > maxPrecision) {
-      precision = maxPrecision;
+    if (precision != RelDataType.PRECISION_NOT_SPECIFIED) {
+      final int minPrecision = typeSystem.getMinPrecision(typeName);
+      final int maxPrecision = typeSystem.getMaxPrecision(typeName);
+      if (maxPrecision >= 0 && precision > maxPrecision) {
+        precision = maxPrecision;
+      }
+      if (precision < minPrecision) {
+        throw RESOURCE.invalidPrecisionForDecimalType(precision, maxPrecision)
+            .ex();
+      }
+    }
+    if (scale != RelDataType.SCALE_NOT_SPECIFIED) {
+      final int minScale = typeSystem.getMinScale(typeName);
+      final int maxScale = typeSystem.getMaxNumericScale();
+      if (scale < minScale) {
+        throw RESOURCE.invalidScaleForDecimalType(scale, minScale, maxScale)
+            .ex();
+      }
     }
     RelDataType newType =
         new BasicSqlType(typeSystem, typeName, precision, scale);
@@ -93,7 +113,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
   }
 
   @Override public RelDataType createUnknownType() {
-    return canonize(new UnknownSqlType(this));
+    return createSqlType(SqlTypeName.UNKNOWN);
   }
 
   @Override public RelDataType createMultisetType(
@@ -116,6 +136,17 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
       RelDataType keyType,
       RelDataType valueType) {
     MapSqlType newType = new MapSqlType(keyType, valueType, false);
+    return canonize(newType);
+  }
+
+  @Override public RelDataType createFunctionSqlType(
+      RelDataType parameterType,
+      RelDataType returnType) {
+    return canonize(new FunctionSqlType(parameterType, returnType));
+  }
+
+  @Override public RelDataType createMeasureType(RelDataType valueType) {
+    MeasureSqlType newType = MeasureSqlType.create(valueType);
     return canonize(newType);
   }
 
@@ -151,9 +182,12 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return canonize(newType);
   }
 
-  @Override public @Nullable RelDataType leastRestrictive(List<RelDataType> types) {
-    assert types != null;
-    assert types.size() >= 1;
+  @Override public @Nullable RelDataType leastRestrictive(
+      List<RelDataType> types,
+      SqlTypeMappingRule mappingRule) {
+    requireNonNull(types, "types");
+    requireNonNull(mappingRule, "mappingRule");
+    checkArgument(types.size() >= 1, "types.size >= 1");
 
     RelDataType type0 = types.get(0);
     if (type0.getSqlTypeName() != null) {
@@ -161,13 +195,14 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
       if (resultType != null) {
         return resultType;
       }
-      return leastRestrictiveByCast(types);
+      return leastRestrictiveByCast(types, mappingRule);
     }
 
-    return super.leastRestrictive(types);
+    return super.leastRestrictive(types, mappingRule);
   }
 
-  private @Nullable RelDataType leastRestrictiveByCast(List<RelDataType> types) {
+  private @Nullable RelDataType leastRestrictiveByCast(List<RelDataType> types,
+      SqlTypeMappingRule mappingRule) {
     RelDataType resultType = types.get(0);
     boolean anyNullable = resultType.isNullable();
     for (int i = 1; i < types.size(); i++) {
@@ -181,10 +216,10 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
         anyNullable = true;
       }
 
-      if (SqlTypeUtil.canCastFrom(type, resultType, false)) {
+      if (SqlTypeUtil.canCastFrom(type, resultType, mappingRule)) {
         resultType = type;
       } else {
-        if (!SqlTypeUtil.canCastFrom(resultType, type, false)) {
+        if (!SqlTypeUtil.canCastFrom(resultType, type, mappingRule)) {
           return null;
         }
       }
@@ -218,6 +253,28 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return canonize(newType);
   }
 
+  @Override public RelDataType enforceTypeWithNullability(
+      final RelDataType type,
+      final boolean nullable) {
+    final RelDataType newType;
+    if (type instanceof BasicSqlType) {
+      newType = ((BasicSqlType) type).createWithNullability(nullable);
+    } else if (type instanceof MapSqlType) {
+      newType = copyMapType(type, nullable);
+    } else if (type instanceof ArraySqlType) {
+      newType = copyArrayType(type, nullable);
+    } else if (type instanceof MultisetSqlType) {
+      newType = copyMultisetType(type, nullable);
+    } else if (type instanceof IntervalSqlType) {
+      newType = copyIntervalType(type, nullable);
+    } else if (type instanceof ObjectSqlType) {
+      newType = copyObjectType(type, nullable);
+    } else {
+      return super.enforceTypeWithNullability(type, nullable);
+    }
+    return canonize(newType);
+  }
+
   private static void assertBasic(SqlTypeName typeName) {
     assert typeName != null;
     assert typeName != SqlTypeName.MULTISET
@@ -232,6 +289,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
         : "use createSqlIntervalType() instead";
   }
 
+  @SuppressWarnings("deprecation") // [CALCITE-6598]
   private @Nullable RelDataType leastRestrictiveSqlType(List<RelDataType> types) {
     RelDataType resultType = null;
     int nullCount = 0;
@@ -468,7 +526,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
         if (types.size() > (i + 1)) {
           RelDataType type1 = types.get(i + 1);
           if (SqlTypeUtil.isDatetime(type1)) {
-            resultType = type1;
+            resultType = leastRestrictiveIntervalDatetimeType(type1, type);
             return createTypeWithNullability(resultType,
                 nullCount > 0 || nullableCount > 0);
           }
@@ -492,16 +550,25 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
         // datetime +/- interval (or integer) = datetime
         if (types.size() > (i + 1)) {
           RelDataType type1 = types.get(i + 1);
-          if (SqlTypeUtil.isInterval(type1)
-              || SqlTypeUtil.isIntType(type1)) {
-            resultType = type;
+          final boolean isInterval1 = SqlTypeUtil.isInterval(type1);
+          final boolean isInt1 = SqlTypeUtil.isIntType(type1);
+          if (isInterval1 || isInt1) {
+            resultType = leastRestrictiveIntervalDatetimeType(type, type1);
             return createTypeWithNullability(resultType,
                 nullCount > 0 || nullableCount > 0);
           }
         }
+
+        if (type.getSqlTypeName() == resultType.getSqlTypeName()
+            && type.getSqlTypeName().allowsPrec()
+            && type.getPrecision() != resultType.getPrecision()) {
+          final int precision =
+              SqlTypeUtil.maxPrecision(resultType.getPrecision(),
+                  type.getPrecision());
+
+          resultType = createSqlType(type.getSqlTypeName(), precision);
+        }
       } else {
-        // TODO:  datetime precision details; for now we let
-        // leastRestrictiveByCast handle it
         return null;
       }
     }
@@ -550,7 +617,6 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return new MapSqlType(keyType, valueType, nullable);
   }
 
-  // override RelDataTypeFactoryImpl
   @Override protected RelDataType canonize(RelDataType type) {
     type = super.canonize(type);
     if (!(type instanceof ObjectSqlType)) {
@@ -566,18 +632,5 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
               false));
     }
     return type;
-  }
-
-  /** The unknown type. Similar to the NULL type, but is only equal to
-   * itself. */
-  private static class UnknownSqlType extends BasicSqlType {
-    UnknownSqlType(RelDataTypeFactory typeFactory) {
-      super(typeFactory.getTypeSystem(), SqlTypeName.NULL);
-    }
-
-    @Override protected void generateTypeString(StringBuilder sb,
-        boolean withDetail) {
-      sb.append("UNKNOWN");
-    }
   }
 }

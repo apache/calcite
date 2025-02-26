@@ -17,7 +17,6 @@
 package org.apache.calcite.sql;
 
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -27,6 +26,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static com.google.common.collect.ImmutableList.toImmutableList;
 
 import static java.util.Objects.requireNonNull;
 
@@ -133,7 +134,7 @@ public class SqlHint extends SqlCall {
             return requireNonNull(literal.toValue(),
                 () -> "null hint literal in " + options);
           })
-          .collect(Util.toImmutableList());
+          .collect(toImmutableList());
     } else {
       return ImmutableList.of();
     }
@@ -160,8 +161,9 @@ public class SqlHint extends SqlCall {
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     name.unparse(writer, leftPrec, rightPrec);
-    if (this.options.size() > 0) {
-      SqlWriter.Frame frame = writer.startList(SqlWriter.FrameTypeEnum.FUN_CALL, "(", ")");
+    if (!this.options.isEmpty()) {
+      SqlWriter.Frame frame =
+          writer.startList(SqlWriter.FrameTypeEnum.FUN_CALL, "(", ")");
       for (int i = 0; i < options.size(); i++) {
         SqlNode option = options.get(i);
         SqlNode nextOption = i < options.size() - 1 ? options.get(i + 1) : null;

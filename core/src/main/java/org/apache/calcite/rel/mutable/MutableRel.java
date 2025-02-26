@@ -27,7 +27,8 @@ import com.google.common.collect.Lists;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /** Mutable equivalent of {@link RelNode}.
  *
@@ -39,7 +40,7 @@ import java.util.Objects;
  * than their {@code RelNode} counterparts.
  * But, you don't need to copy a {@code MutableRel} in order to change it.
  * For this reason, you should use {@code MutableRel} for short-lived
- * operations, and transcribe back to {@code RelNode} when you are done.</p>
+ * operations, and transcribe back to {@code RelNode} when you are done.
  */
 public abstract class MutableRel {
 
@@ -71,9 +72,9 @@ public abstract class MutableRel {
 
   protected MutableRel(RelOptCluster cluster,
       RelDataType rowType, MutableRelType type) {
-    this.cluster = Objects.requireNonNull(cluster, "cluster");
-    this.rowType = Objects.requireNonNull(rowType, "rowType");
-    this.type = Objects.requireNonNull(type, "type");
+    this.cluster = requireNonNull(cluster, "cluster");
+    this.rowType = requireNonNull(rowType, "rowType");
+    this.type = requireNonNull(type, "type");
   }
 
   public @Nullable MutableRel getParent() {

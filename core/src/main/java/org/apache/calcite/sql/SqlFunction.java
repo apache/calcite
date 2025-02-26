@@ -34,10 +34,11 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.qual.Pure;
 
 import java.util.List;
-import java.util.Objects;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A <code>SqlFunction</code> is a type of operator which has conventional
@@ -132,7 +133,7 @@ public class SqlFunction extends SqlOperator {
         operandTypeChecker);
 
     this.sqlIdentifier = sqlIdentifier;
-    this.category = Objects.requireNonNull(category, "category");
+    this.category = requireNonNull(category, "category");
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -228,7 +229,7 @@ public class SqlFunction extends SqlOperator {
       SqlValidator validator,
       SqlValidatorScope scope,
       SqlCall call) {
-    return deriveType(validator, scope, call, true);
+    return deriveType(validator, scope, call, false);
   }
 
   private RelDataType deriveType(
@@ -246,14 +247,26 @@ public class SqlFunction extends SqlOperator {
 
     final List<SqlNode> args = constructOperandList(validator, call, argNames);
 
-    final List<RelDataType> argTypes = constructArgTypeList(validator, scope,
-        call, args, convertRowArgToColumnList);
+    final List<RelDataType> argTypes =
+        constructArgTypeList(validator, scope,
+            call, args, convertRowArgToColumnList);
 
     SqlFunction function =
         (SqlFunction) SqlUtil.lookupRoutine(validator.getOperatorTable(),
             validator.getTypeFactory(), getNameAsId(), argTypes, argNames,
             getFunctionType(), SqlSyntax.FUNCTION, getKind(),
             validator.getCatalogReader().nameMatcher(), false);
+
+    // If the call already has an operator and its syntax is SPECIAL, it must
+    // have been created intentionally by the parser.
+    if (function == null
+        && call.getOperator().getSyntax() == SqlSyntax.SPECIAL
+        && call.getOperator() instanceof SqlFunction
+        && validator.getOperatorTable().getOperatorList().contains(
+            call.getOperator())) {
+      function = (SqlFunction) call.getOperator();
+    }
+
     try {
       // if we have a match on function name and parameter count, but
       // couldn't find a function with  a COLUMN_LIST type, retry, but
@@ -276,8 +289,6 @@ public class SqlFunction extends SqlOperator {
             }
           }
           return deriveType(validator, scope, call, false);
-        } else if (function != null) {
-          validator.validateColumnListParams(function, argTypes, args);
         }
       }
 
@@ -300,7 +311,9 @@ public class SqlFunction extends SqlOperator {
           // if we succeed, the arguments would be wrapped with CAST operator.
           if (function != null) {
             TypeCoercion typeCoercion = validator.getTypeCoercion();
-            if (typeCoercion.userDefinedFunctionCoercion(scope, call, function)) {
+            if ((function.category == SqlFunctionCategory.USER_DEFINED_FUNCTION
+                || function.category == SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION)
+                && typeCoercion.userDefinedFunctionCoercion(scope, call, function)) {
               break validCoercionType;
             }
           }
@@ -308,8 +321,9 @@ public class SqlFunction extends SqlOperator {
 
         // check if the identifier represents type
         final SqlFunction x = (SqlFunction) call.getOperator();
-        final SqlIdentifier identifier = Util.first(x.getSqlIdentifier(),
-            new SqlIdentifier(x.getName(), SqlParserPos.ZERO));
+        final SqlIdentifier identifier =
+            Util.first(x.getSqlIdentifier(),
+                new SqlIdentifier(x.getName(), SqlParserPos.ZERO));
         RelDataType type = validator.getCatalogReader().getNamedType(identifier);
         if (type != null) {
           function = new SqlTypeConstructorFunction(identifier, type);
@@ -319,8 +333,9 @@ public class SqlFunction extends SqlOperator {
         // if function doesn't exist within operator table and known function
         // handling is turned off then create a more permissive function
         if (function == null && validator.config().lenientOperatorLookup()) {
-          function = new SqlUnresolvedFunction(identifier, null,
-              null, OperandTypes.VARIADIC, null, x.getFunctionType());
+          function =
+              new SqlUnresolvedFunction(identifier, null,
+                  null, OperandTypes.VARIADIC, null, x.getFunctionType());
           break validCoercionType;
         }
         throw validator.handleUnresolvedFunction(call, this, argTypes,

@@ -32,7 +32,6 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Sarg;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Range;
 
@@ -42,8 +41,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 
 import static org.apache.calcite.adapter.elasticsearch.QueryBuilders.boolQuery;
 import static org.apache.calcite.adapter.elasticsearch.QueryBuilders.existsQuery;
@@ -106,7 +107,7 @@ class PredicateAnalyzer {
    * @throws ExpressionNotAnalyzableException when expression can't processed by this analyzer
    */
   static QueryBuilder analyze(RexNode expression) throws ExpressionNotAnalyzableException {
-    Objects.requireNonNull(expression, "expression");
+    requireNonNull(expression, "expression");
     try {
       // visits expression tree
       QueryExpression e = (QueryExpression) expression.accept(new Visitor());
@@ -116,7 +117,7 @@ class PredicateAnalyzer {
       }
       return e != null ? e.builder() : null;
     } catch (Throwable e) {
-      Throwables.propagateIfPossible(e, UnsupportedOperationException.class);
+      Throwables.throwIfInstanceOf(e, UnsupportedOperationException.class);
       throw new ExpressionNotAnalyzableException("Can't convert " + expression, e);
     }
   }
@@ -209,6 +210,7 @@ class PredicateAnalyzer {
      * 3) Sarg is real Range( > 1 and <= 10).
      *    In this case the search call should be translated to rang Query
      * Currently only the 1) and 2) cases are supported.
+     *
      * @param search SEARCH RexCall
      * @return true if it isSearchWithPoints or isSearchWithComplementedPoints, other false
      */
@@ -216,14 +218,12 @@ class PredicateAnalyzer {
       return isSearchWithPoints(search) || isSearchWithComplementedPoints(search);
     }
 
-    @SuppressWarnings("BetaApi")
     static boolean isSearchWithPoints(RexCall search) {
       RexLiteral literal = (RexLiteral) search.getOperands().get(1);
       final Sarg<?> sarg = requireNonNull(literal.getValueAs(Sarg.class), "Sarg");
       return sarg.isPoints();
     }
 
-    @SuppressWarnings("BetaApi")
     static boolean isSearchWithComplementedPoints(RexCall search) {
       RexLiteral literal = (RexLiteral) search.getOperands().get(1);
       final Sarg<?> sarg = requireNonNull(literal.getValueAs(Sarg.class), "Sarg");
@@ -266,21 +266,23 @@ class PredicateAnalyzer {
       case FUNCTION:
         if (call.getOperator().getName().equalsIgnoreCase("CONTAINS")) {
           List<Expression> operands = visitList(call.getOperands());
-          String query = convertQueryString(operands.subList(0, operands.size() - 1),
-              operands.get(operands.size() - 1));
+          String query =
+              convertQueryString(operands.subList(0, operands.size() - 1),
+                  operands.get(operands.size() - 1));
           return QueryExpression.create(new NamedFieldExpression()).queryString(query);
         }
         // fall through
       default:
-        String message = format(Locale.ROOT, "Unsupported syntax [%s] for call: [%s]",
-            syntax, call);
+        String message =
+            format(Locale.ROOT,
+                "Unsupported syntax [%s] for call: [%s]", syntax, call);
         throw new PredicateAnalyzerException(message);
       }
     }
 
     private static String convertQueryString(List<Expression> fields, Expression query) {
       int index = 0;
-      Preconditions.checkArgument(query instanceof LiteralExpression,
+      checkArgument(query instanceof LiteralExpression,
           "Query string must be a string literal");
       String queryString = ((LiteralExpression) query).stringValue();
       @SuppressWarnings("ModifiedButNotUsed")
@@ -300,7 +302,7 @@ class PredicateAnalyzer {
     }
 
     private QueryExpression prefix(RexCall call) {
-      Preconditions.checkArgument(call.getKind() == SqlKind.NOT,
+      checkArgument(call.getKind() == SqlKind.NOT,
           "Expected %s got %s", SqlKind.NOT, call.getKind());
 
       if (call.getOperands().size() != 1) {
@@ -313,7 +315,7 @@ class PredicateAnalyzer {
     }
 
     private QueryExpression postfix(RexCall call) {
-      Preconditions.checkArgument(call.getKind() == SqlKind.IS_NULL
+      checkArgument(call.getKind() == SqlKind.IS_NULL
           || call.getKind() == SqlKind.IS_NOT_NULL);
       if (call.getOperands().size() != 1) {
         String message = String.format(Locale.ROOT, "Unsupported operator: [%s]", call);
@@ -346,7 +348,7 @@ class PredicateAnalyzer {
 
       checkForIncompatibleDateTimeOperands(call);
 
-      Preconditions.checkState(call.getOperands().size() == 2);
+      checkState(call.getOperands().size() == 2);
       final Expression a = call.getOperands().get(0).accept(this);
       final Expression b = call.getOperands().get(1).accept(this);
 
@@ -484,6 +486,7 @@ class PredicateAnalyzer {
      * cause an exception to be thrown. For example, we currently do not support
      * comparing a literal to another literal as convention {@code 5 = 5}. Nor do we support
      * comparing named fields to other named fields as convention {@code $0 = $1}.
+     *
      * @param left left expression
      * @param right right expression
      */
@@ -501,8 +504,10 @@ class PredicateAnalyzer {
       }
 
       if (literal == null || terminal == null) {
-        String message = String.format(Locale.ROOT,
-            "Unexpected combination of expressions [left: %s] [right: %s]", left, right);
+        String message =
+            String.format(Locale.ROOT,
+                "Unexpected combination of expressions [left: %s] [right: %s]",
+                left, right);
         throw new PredicateAnalyzerException(message);
       }
 
@@ -604,6 +609,9 @@ class PredicateAnalyzer {
     public abstract QueryExpression isTrue();
 
     public static QueryExpression create(TerminalExpression expression) {
+      if (expression instanceof CastExpression) {
+        expression = CastExpression.unpack(expression);
+      }
 
       if (expression instanceof NamedFieldExpression) {
         return new SimpleQueryExpression((NamedFieldExpression) expression);
@@ -654,7 +662,7 @@ class PredicateAnalyzer {
 
     private CompoundQueryExpression(boolean partial, BoolQueryBuilder builder) {
       this.partial = partial;
-      this.builder = Objects.requireNonNull(builder, "builder");
+      this.builder = requireNonNull(builder, "builder");
     }
 
     @Override public boolean isPartial() {
@@ -830,8 +838,9 @@ class PredicateAnalyzer {
 
     @Override public QueryExpression gt(LiteralExpression literal) {
       Object value = literal.value();
-      builder = addFormatIfNecessary(literal,
-          rangeQuery(getFieldReference()).gt(value));
+      builder =
+          addFormatIfNecessary(literal,
+              rangeQuery(getFieldReference()).gt(value));
       return this;
     }
 
@@ -879,6 +888,7 @@ class PredicateAnalyzer {
   /**
    * By default, range queries on date/time need use the format of the source to parse the literal.
    * So we need to specify that the literal has "date_time" format
+   *
    * @param literal literal value
    * @param rangeQueryBuilder query builder to optionally add {@code format} expression
    * @return existing builder with possible {@code format} attribute
@@ -1023,7 +1033,6 @@ class PredicateAnalyzer {
       return RexLiteral.stringValue(literal);
     }
 
-    @SuppressWarnings("BetaApi")
     List<Object> sargValue() {
       final Sarg sarg = requireNonNull(literal.getValueAs(Sarg.class), "Sarg");
       final RelDataType type = literal.getType();

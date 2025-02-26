@@ -30,7 +30,8 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /** An analyzed join condition.
  *
@@ -39,7 +40,7 @@ import java.util.Objects;
  *
  * <p>You can create one using {@link #of}, or call
  * {@link Join#analyzeCondition()}; many kinds of join cache their
- * join info, especially those that are equi-joins.</p>
+ * join info, especially those that are equi-joins.
  *
  * @see Join#analyzeCondition() */
 public class JoinInfo {
@@ -50,9 +51,10 @@ public class JoinInfo {
   /** Creates a JoinInfo. */
   protected JoinInfo(ImmutableIntList leftKeys, ImmutableIntList rightKeys,
       ImmutableList<RexNode> nonEquiConditions) {
-    this.leftKeys = Objects.requireNonNull(leftKeys, "leftKeys");
-    this.rightKeys = Objects.requireNonNull(rightKeys, "rightKeys");
-    this.nonEquiConditions = Objects.requireNonNull(nonEquiConditions, "nonEquiConditions");
+    this.leftKeys = requireNonNull(leftKeys, "leftKeys");
+    this.rightKeys = requireNonNull(rightKeys, "rightKeys");
+    this.nonEquiConditions =
+        requireNonNull(nonEquiConditions, "nonEquiConditions");
     assert leftKeys.size() == rightKeys.size();
   }
 

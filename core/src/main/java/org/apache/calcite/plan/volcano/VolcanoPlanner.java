@@ -44,7 +44,6 @@ import org.apache.calcite.rel.convert.Converter;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.externalize.RelWriterImpl;
 import org.apache.calcite.rel.metadata.CyclicMetadataException;
-import org.apache.calcite.rel.metadata.JaninoRelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
@@ -85,6 +84,8 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 import static java.util.Objects.requireNonNull;
@@ -104,7 +105,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    *
    * <p>Any operand can be an 'entry point' to a rule call, when a RelNode is
    * registered which matches the operand. This map allows us to narrow down
-   * operands based on the class of the RelNode.</p>
+   * operands based on the class of the RelNode.
    */
   private final Multimap<Class<? extends RelNode>, RelOptRuleOperand>
       classOperands = LinkedListMultimap.create();
@@ -129,7 +130,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * {@link RelSet} objects. Most {@link RelNode} objects are identified by
    * their digest, which involves the set that their child relational
    * expressions belong to. If those children belong to the same set, we have
-   * to be careful, otherwise it gets incestuous.</p>
+   * to be careful, otherwise it gets incestuous.
    */
   private final IdentityHashMap<RelNode, RelSubset> mapRel2Subset =
       new IdentityHashMap<>();
@@ -202,7 +203,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   /**
    * Extra roots for explorations.
    */
-  Set<RelSubset> explorationRoots = new HashSet<>();
+  final Set<RelSubset> explorationRoots = new HashSet<>();
 
   //~ Constructors -----------------------------------------------------------
 
@@ -235,8 +236,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     this.zeroCost = this.costFactory.makeZeroCost();
     this.infCost = this.costFactory.makeInfiniteCost();
     // If LOGGER is debug enabled, enable provenance information to be captured
-    this.provenanceMap = LOGGER.isDebugEnabled() ? new HashMap<>()
-        : Util.blackholeMap();
+    this.provenanceMap =
+        LOGGER.isDebugEnabled() ? new HashMap<>()
+            : Util.blackholeMap();
     initRuleQueue();
   }
 
@@ -255,7 +257,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * Enable or disable top-down optimization.
    *
    * <p>Note: Enabling top-down optimization will automatically enable
-   * top-down trait propagation.</p>
+   * top-down trait propagation.
    */
   public void setTopDownOpt(boolean value) {
     if (topDownOpt == value) {
@@ -271,11 +273,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   @Override public void setRoot(RelNode rel) {
-    // We've registered all the rules, and therefore RelNode classes,
-    // we're interested in, and have not yet started calling metadata providers.
-    // So now is a good time to tell the metadata layer what to expect.
-    registerMetadataRels();
-
     this.root = registerImpl(rel, null);
     if (this.originalRoot == null) {
       this.originalRoot = rel;
@@ -315,8 +312,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       return;
     }
 
-    assert root != null : "root";
-    assert originalRoot != null : "originalRoot";
+    requireNonNull(root, "root");
+    requireNonNull(originalRoot, "originalRoot");
 
     // Register rels using materialized views.
     final List<Pair<RelNode, List<RelOptMaterialization>>> materializationUses =
@@ -367,11 +364,10 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * registered
    */
   public @Nullable RelSet getSet(RelNode rel) {
-    assert rel != null : "pre: rel != null";
+    requireNonNull(rel, "rel");
     final RelSubset subset = getSubset(rel);
     if (subset != null) {
-      assert subset.set != null;
-      return subset.set;
+      return requireNonNull(subset.set, "subset.set");
     }
     return null;
   }
@@ -425,14 +421,14 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       return false;
     }
 
+    final boolean isTransFormRule = rule instanceof TransformationRule;
     // Each of this rule's operands is an 'entry point' for a rule call.
     // Register each operand against all concrete sub-classes that could match
     // it.
     for (RelOptRuleOperand operand : rule.getOperands()) {
       for (Class<? extends RelNode> subClass
           : subClasses(operand.getMatchedClass())) {
-        if (PhysicalNode.class.isAssignableFrom(subClass)
-            && rule instanceof TransformationRule) {
+        if (isTransFormRule && PhysicalNode.class.isAssignableFrom(subClass)) {
           continue;
         }
         classOperands.put(subClass, operand);
@@ -522,7 +518,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * query
    */
   @Override public RelNode findBestExp() {
-    assert root != null : "root must not be null";
+    requireNonNull(root, "root");
     ensureRootConverters();
     registerMaterializations();
 
@@ -552,13 +548,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     if (cancelFlag.get()) {
       throw new VolcanoTimeoutException();
     }
-  }
-
-  /** Informs {@link JaninoRelMetadataProvider} about the different kinds of
-   * {@link RelNode} that we will be dealing with. It will reduce the number
-   * of times that we need to re-generate the provider. */
-  private void registerMetadataRels() {
-    JaninoRelMetadataProvider.DEFAULT.register(classOperands.keySet());
   }
 
   /** Ensures that the subset that is the root relational expression contains
@@ -710,6 +699,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   /**
    * Sets whether this planner should consider rel nodes with Convention.NONE
    * to have infinite cost or not.
+   *
    * @param infinite Whether to make none convention rel nodes infinite cost
    */
   public void setNoneConventionHasInfiniteCost(boolean infinite) {
@@ -718,6 +708,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
   /**
    * Returns cost of a relation or infinite cost if the cost is not known.
+   *
    * @param rel relation t
    * @param mq metadata query
    * @return cost of the relation or infinite cost if the cost is not known
@@ -729,7 +720,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   @Override public @Nullable RelOptCost getCost(RelNode rel, RelMetadataQuery mq) {
-    assert rel != null : "pre-condition: rel != null";
+    requireNonNull(rel, "rel");
     if (rel instanceof RelSubset) {
       return ((RelSubset) rel).bestCost;
     }
@@ -762,7 +753,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * @return Subset it belongs to, or null if it is not registered
    */
   public @Nullable RelSubset getSubset(RelNode rel) {
-    assert rel != null : "pre: rel != null";
+    requireNonNull(rel, "rel");
     if (rel instanceof RelSubset) {
       return (RelSubset) rel;
     } else {
@@ -931,10 +922,10 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         // Remove rel from its subset. (This may leave the subset
         // empty, but if so, that will be dealt with when the sets
         // get merged.)
-        final RelSubset subset = mapRel2Subset.put(rel, equivRelSubset);
-        assert subset != null;
+        final RelSubset subset =
+            requireNonNull(mapRel2Subset.put(rel, equivRelSubset));
         boolean existed = subset.set.rels.remove(rel);
-        assert existed : "rel was not known to its set";
+        checkArgument(existed, "rel was not known to its set");
         final RelSubset equivSubset = getSubsetNonNull(equivRel);
         for (RelSubset s : subset.set.subsets) {
           if (s.best == rel) {
@@ -992,11 +983,25 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         if (!relNode.getTraitSet().satisfies(subset.getTraitSet())) {
           continue;
         }
-        if (!cost.isLt(subset.bestCost)) {
+
+        // Update subset best and best's cost when we find a cheaper rel
+        if (relNode != subset.best && !cost.isLt(subset.bestCost)) {
           continue;
         }
-        // Update subset best cost when we find a cheaper rel or the current
-        // best's cost is changed
+
+        // The cost of the RelNode is updated when a change is detected.
+
+        // The reason for this update is that when one of the subsets in RelSet finds a RelNode
+        // with a lower cost, it is necessary to update the parents of the subset to
+        // have the best RelNode and best cost.
+        // In theory, this cost should become smaller.
+        // However, according to the SQL added in the JdbcAdapterTest {@link testVolcanoPlannerInternalValid},
+        // it is observed that the cost of RelNode can sometimes increase.
+        // Therefore, an update is performed.
+        if (relNode == subset.best && cost.equals(subset.bestCost)) {
+          continue;
+        }
+
         subset.timestamp++;
         LOGGER.trace("Subset cost changed: subset [{}] cost was {} now {}",
             subset, subset.bestCost, cost);
@@ -1186,8 +1191,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     // Was the set we merged with the root? If so, the result is the new
     // root.
     if (set2 == getSet(root)) {
-      root = set1.getOrCreateSubset(
-          root.getCluster(), root.getTraitSet(), root.isRequired());
+      root =
+          set1.getOrCreateSubset(root.getCluster(), root.getTraitSet(),
+              root.isRequired());
       ensureRootConverters();
     }
 
@@ -1264,8 +1270,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     // Now is a good time to ensure that the relational expression
     // implements the interface required by its calling convention.
     final RelTraitSet traits = rel.getTraitSet();
-    final Convention convention = traits.getTrait(ConventionTraitDef.INSTANCE);
-    assert convention != null;
+    final Convention convention =
+        requireNonNull(traits.getTrait(ConventionTraitDef.INSTANCE));
     if (!convention.getInterface().isInstance(rel)
         && !(rel instanceof Converter)) {
       throw new AssertionError("Relational expression " + rel
@@ -1359,12 +1365,11 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
     // Place the expression in the appropriate equivalence set.
     if (set == null) {
-      set = new RelSet(
-          nextSetId++,
-          Util.minus(
-              RelOptUtil.getVariablesSet(rel),
-              rel.getVariablesSet()),
-          RelOptUtil.getVariablesUsed(rel));
+      set =
+          new RelSet(nextSetId++,
+              Util.minus(RelOptUtil.getVariablesSet(rel),
+                  rel.getVariablesSet()),
+              RelOptUtil.getVariablesUsed(rel));
       this.allSets.add(set);
     }
 
@@ -1527,6 +1532,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
   /**
    * Decide whether a rule is logical or not.
+   *
    * @param rel The specific rel node
    * @return True if the relnode is a logical node
    */

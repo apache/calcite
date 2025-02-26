@@ -24,11 +24,11 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableModify;
+import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
-import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -43,7 +43,7 @@ public class RelMdPopulationSize
     implements MetadataHandler<BuiltInMetadata.PopulationSize> {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          BuiltInMethod.POPULATION_SIZE.method, new RelMdPopulationSize());
+          new RelMdPopulationSize(), BuiltInMetadata.PopulationSize.Handler.class);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -53,6 +53,16 @@ public class RelMdPopulationSize
 
   @Override public MetadataDef<BuiltInMetadata.PopulationSize> getDef() {
     return BuiltInMetadata.PopulationSize.DEF;
+  }
+
+  public @Nullable Double getPopulationSize(TableScan scan, RelMetadataQuery mq,
+      ImmutableBitSet groupKey) {
+    final BuiltInMetadata.PopulationSize.Handler handler =
+        scan.getTable().unwrap(BuiltInMetadata.PopulationSize.Handler.class);
+    if (handler != null) {
+      return handler.getPopulationSize(scan, mq, groupKey);
+    }
+    return getPopulationSize((RelNode) scan, mq, groupKey);
   }
 
   public @Nullable Double getPopulationSize(Filter rel, RelMetadataQuery mq,
@@ -103,7 +113,7 @@ public class RelMdPopulationSize
   public Double getPopulationSize(Values rel, RelMetadataQuery mq,
       ImmutableBitSet groupKey) {
     // assume half the rows are duplicates
-    return rel.estimateRowCount(mq) / 2;
+    return mq.getRowCount(rel) / 2;
   }
 
   public @Nullable Double getPopulationSize(Project rel, RelMetadataQuery mq,

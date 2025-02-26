@@ -430,14 +430,17 @@ public abstract class SparkRules {
             .distinct().count());
     file.cache();
     String s =
-        file.groupBy((Function<String, String>) s1 -> s1.substring(0, Math.min(s1.length(), 1))
+        file.groupBy((Function<String, String>) s1 ->
+                s1.substring(0, Math.min(s1.length(), 1)))
             //CHECKSTYLE: IGNORE 1
-        ).map((Function<Tuple2<String, Iterable<String>>, Object>) pair ->
-            pair._1() + ":" + Iterables.size(pair._2())).collect().toString();
+            .map((Function<Tuple2<String, Iterable<String>>, Object>) pair ->
+                pair._1() + ":" + Iterables.size(pair._2()))
+            .collect()
+            .toString();
     System.out.print(s);
 
-    final JavaRDD<Integer> rdd = sc.parallelize(
-        new AbstractList<Integer>() {
+    final JavaRDD<Integer> rdd =
+        sc.parallelize(new AbstractList<Integer>() {
           final Random random = new Random();
           @Override public Integer get(int index) {
             System.out.println("get(" + index + ")");

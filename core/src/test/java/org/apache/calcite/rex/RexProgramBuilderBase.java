@@ -24,6 +24,8 @@ import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.sql.fun.SqlInternalOperators;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 
@@ -147,6 +149,8 @@ public abstract class RexProgramBuilderBase {
     });
   }
 
+  // Operators
+
   protected RexNode isNull(RexNode node) {
     return rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, node);
   }
@@ -234,14 +238,14 @@ public abstract class RexProgramBuilderBase {
   /**
    * Creates a call to the CAST operator.
    *
-   * <p>This method enables to create {@code CAST(42 nullable int)} expressions.</p>
+   * <p>This method enables to create {@code CAST(42 nullable int)} expressions.
    *
    * @param e input node
    * @param type type to cast to
    * @return call to CAST operator
    */
   protected RexNode abstractCast(RexNode e, RelDataType type) {
-    return rexBuilder.makeAbstractCast(type, e);
+    return rexBuilder.makeAbstractCast(type, e, false);
   }
 
   /**
@@ -250,8 +254,8 @@ public abstract class RexProgramBuilderBase {
    *
    * <p>Tries to expand the cast, and therefore the result may be something
    * other than a {@link RexCall} to the CAST operator, such as a
-   * {@link RexLiteral}.</p>
-
+   * {@link RexLiteral}.
+   *
    * @param e input node
    * @param type type to cast to
    * @return input node converted to given type
@@ -288,6 +292,10 @@ public abstract class RexProgramBuilderBase {
     return rexBuilder.makeCall(SqlStdOperatorTable.LIKE, ref, pattern);
   }
 
+  protected RexNode similar(RexNode ref, RexNode pattern) {
+    return rexBuilder.makeCall(SqlStdOperatorTable.SIMILAR_TO, ref, pattern);
+  }
+
   protected RexNode like(RexNode ref, RexNode pattern, RexNode escape) {
     return rexBuilder.makeCall(SqlStdOperatorTable.LIKE, ref, pattern, escape);
   }
@@ -319,13 +327,24 @@ public abstract class RexProgramBuilderBase {
   protected RexNode add(RexNode n1, RexNode n2) {
     return rexBuilder.makeCall(SqlStdOperatorTable.PLUS, n1, n2);
   }
+  protected RexNode greatest(RexNode... nodes) {
+    return rexBuilder.makeCall(SqlLibraryOperators.GREATEST, nodes);
+  }
+
+  protected RexNode least(RexNode... nodes) {
+    return rexBuilder.makeCall(SqlLibraryOperators.LEAST, nodes);
+  }
+
+  protected RexNode m2v(RexNode n) {
+    return rexBuilder.makeCall(SqlInternalOperators.M2V, n);
+  }
+
+  protected RexNode v2m(RexNode n) {
+    return rexBuilder.makeCall(SqlInternalOperators.V2M, n);
+  }
 
   protected RexNode item(RexNode inputRef, RexNode literal) {
-    RexNode rexNode = rexBuilder.makeCall(
-        SqlStdOperatorTable.ITEM,
-        inputRef,
-        literal);
-    return rexNode;
+    return rexBuilder.makeCall(SqlStdOperatorTable.ITEM, inputRef, literal);
   }
 
   /**
@@ -341,6 +360,7 @@ public abstract class RexProgramBuilderBase {
   }
 
   // Types
+
   protected RelDataType nullable(RelDataType type) {
     if (type.isNullable()) {
       return type;
@@ -367,7 +387,6 @@ public abstract class RexProgramBuilderBase {
     }
     return sqlType;
   }
-
 
   protected RelDataType tChar(int precision) {
     return tChar(false, precision);
@@ -437,6 +456,7 @@ public abstract class RexProgramBuilderBase {
   protected RelDataType tArray(RelDataType elemType) {
     return typeFactory.createArrayType(elemType, -1);
   }
+
   // Literals
 
   /**
@@ -514,6 +534,7 @@ public abstract class RexProgramBuilderBase {
   /**
    * Creates {@code nullable boolean variable} with index of 0.
    * If you need several distinct variables, use {@link #vBool(int)}
+   *
    * @return nullable boolean variable with index of 0
    */
   protected RexNode vBool() {
@@ -528,7 +549,7 @@ public abstract class RexProgramBuilderBase {
    * @return nullable boolean variable with given index (0-based)
    */
   protected RexNode vBool(int arg) {
-    return vParam("bool", arg, nonNullableBool);
+    return vParam("bool", arg, nullableBool);
   }
 
   /**
@@ -572,7 +593,7 @@ public abstract class RexProgramBuilderBase {
    * @return nullable int variable with given index (0-based)
    */
   protected RexNode vInt(int arg) {
-    return vParam("int", arg, nonNullableInt);
+    return vParam("int", arg, nullableInt);
   }
 
   /**
@@ -602,7 +623,7 @@ public abstract class RexProgramBuilderBase {
    * If you need several distinct variables, use {@link #vSmallInt(int)}.
    * The resulting node would look like {@code ?0.notNullSmallInt0}
    *
-   * @return nullable int variable with index of 0
+   * @return nullable smallint variable with index of 0
    */
   protected RexNode vSmallInt() {
     return vSmallInt(0);
@@ -613,10 +634,10 @@ public abstract class RexProgramBuilderBase {
    * The resulting node would look like {@code ?0.int3} if {@code arg} is {@code 3}.
    *
    * @param arg argument index (0-based)
-   * @return nullable int variable with given index (0-based)
+   * @return nullable smallint variable with given index (0-based)
    */
   protected RexNode vSmallInt(int arg) {
-    return vParam("smallint", arg, nonNullableSmallInt);
+    return vParam("smallint", arg, nullableSmallInt);
   }
 
   /**
@@ -624,7 +645,7 @@ public abstract class RexProgramBuilderBase {
    * If you need several distinct variables, use {@link #vSmallIntNotNull(int)}.
    * The resulting node would look like {@code ?0.notNullSmallInt0}
    *
-   * @return non-nullable int variable with index of 0
+   * @return non-nullable smallint variable with index of 0
    */
   protected RexNode vSmallIntNotNull() {
     return vSmallIntNotNull(0);
@@ -635,7 +656,7 @@ public abstract class RexProgramBuilderBase {
    * The resulting node would look like {@code ?0.notNullSmallInt3} if {@code arg} is {@code 3}.
    *
    * @param arg argument index (0-based)
-   * @return non-nullable int variable with given index (0-based)
+   * @return non-nullable smallint variable with given index (0-based)
    */
   protected RexNode vSmallIntNotNull(int arg) {
     return vParamNotNull("smallint", arg, nonNullableSmallInt);
@@ -660,7 +681,7 @@ public abstract class RexProgramBuilderBase {
    * @return nullable varchar variable with given index (0-based)
    */
   protected RexNode vVarchar(int arg) {
-    return vParam("varchar", arg, nonNullableVarchar);
+    return vParam("varchar", arg, nullableVarchar);
   }
 
   /**
@@ -704,7 +725,7 @@ public abstract class RexProgramBuilderBase {
    * @return nullable decimal variable with given index (0-based)
    */
   protected RexNode vDecimal(int arg) {
-    return vParam("decimal", arg, nonNullableDecimal);
+    return vParam("decimal", arg, nullableDecimal);
   }
 
   /**
@@ -768,7 +789,7 @@ public abstract class RexProgramBuilderBase {
    * {@link #vParamNotNull(String, int, RelDataType)}
    *
    * @param name variable name prefix
-   * @return nullable variable of a given type
+   * @return non-nullable variable of a given type
    */
   protected RexNode vParamNotNull(String name, RelDataType type) {
     return vParamNotNull(name, 0, type);
@@ -783,7 +804,7 @@ public abstract class RexProgramBuilderBase {
    *
    * @param name variable name prefix
    * @param arg argument index (0-based)
-   * @return nullable varchar variable with given index (0-based)
+   * @return non-nullable varchar variable with given index (0-based)
    */
   protected RexNode vParamNotNull(String name, int arg, RelDataType type) {
     assertArgValue(arg);

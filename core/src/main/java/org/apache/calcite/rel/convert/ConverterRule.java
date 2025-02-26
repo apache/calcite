@@ -24,9 +24,9 @@ import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.ImmutableBeans;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.util.Locale;
 import java.util.Objects;
@@ -35,10 +35,13 @@ import java.util.function.Predicate;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Abstract base class for a rule which converts from one calling convention to
  * another without changing semantics.
  */
+@Value.Enclosing
 public abstract class ConverterRule
     extends RelRule<ConverterRule.Config> {
   //~ Instance fields --------------------------------------------------------
@@ -52,16 +55,17 @@ public abstract class ConverterRule
   /** Creates a <code>ConverterRule</code>. */
   protected ConverterRule(Config config) {
     super(config);
-    this.inTrait = Objects.requireNonNull(config.inTrait());
-    this.outTrait = Objects.requireNonNull(config.outTrait());
+    this.inTrait = requireNonNull(config.inTrait());
+    this.outTrait = requireNonNull(config.outTrait());
 
     // Source and target traits must have same type
     assert inTrait.getTraitDef() == outTrait.getTraitDef();
 
     // Most sub-classes are concerned with converting one convention to
     // another, and for them, the "out" field is a convenient short-cut.
-    this.out = outTrait instanceof Convention ? (Convention) outTrait
-        : castNonNull(null);
+    this.out =
+        outTrait instanceof Convention ? (Convention) outTrait
+            : castNonNull(null);
   }
 
   /**
@@ -107,9 +111,9 @@ public abstract class ConverterRule
   protected <R extends RelNode> ConverterRule(Class<R> clazz,
       Predicate<? super R> predicate, RelTrait in, RelTrait out,
       RelBuilderFactory relBuilderFactory, String descriptionPrefix) {
-    this(Config.EMPTY
+    this(ImmutableConverterRule.Config.builder()
         .withRelBuilderFactory(relBuilderFactory)
-        .as(Config.class)
+        .build()
         .withConversion(clazz, predicate, in, out, descriptionPrefix));
   }
 
@@ -156,7 +160,7 @@ public abstract class ConverterRule
    * of the input convention.
    *
    * <p>The union-to-java converter, for example, is not guaranteed, because
-   * it only works on unions.</p>
+   * it only works on unions.
    *
    * @return {@code true} if this rule can convert <em>any</em> relational
    *   expression
@@ -178,22 +182,27 @@ public abstract class ConverterRule
   //~ Inner Classes ----------------------------------------------------------
 
   /** Rule configuration. */
+  @Value.Immutable(singleton = false)
   public interface Config extends RelRule.Config {
-    Config INSTANCE = EMPTY.as(Config.class);
+    Config INSTANCE = ImmutableConverterRule.Config.builder()
+        .withInTrait(Convention.NONE)
+        .withOutTrait(Convention.NONE)
+        .withRuleFactory(new Function<Config, ConverterRule>() {
+          @Override public ConverterRule apply(final Config config) {
+            throw new UnsupportedOperationException("A rule factory must be provided");
+          }
+        }).build();
 
-    @ImmutableBeans.Property
     RelTrait inTrait();
 
     /** Sets {@link #inTrait}. */
     Config withInTrait(RelTrait trait);
 
-    @ImmutableBeans.Property
     RelTrait outTrait();
 
     /** Sets {@link #outTrait}. */
     Config withOutTrait(RelTrait trait);
 
-    @ImmutableBeans.Property
     Function<Config, ConverterRule> ruleFactory();
 
     /** Sets {@link #outTrait}. */

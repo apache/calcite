@@ -106,7 +106,7 @@ public interface SqlWriter {
     /**
      * Function call or datatype declaration.
      *
-     * <p>Examples:</p>
+     * <p>Examples:
      * <ul>
      * <li><code>SUBSTRING('foobar' FROM 1 + 2 TO 4)</code></li>
      * <li><code>DECIMAL(10, 5)</code></li>
@@ -117,7 +117,7 @@ public interface SqlWriter {
     /**
      * Window specification.
      *
-     * <p>Examples:</p>
+     * <p>Examples:
      * <ul>
      * <li><code>SUM(x) OVER (ORDER BY hireDate ROWS 3 PRECEDING)</code></li>
      * <li><code>WINDOW w1 AS (ORDER BY hireDate), w2 AS (w1 PARTITION BY gender
@@ -136,7 +136,7 @@ public interface SqlWriter {
     /**
      * ORDER BY list.
      *
-     * <p>Example:</p>
+     * <p>Example:
      * <ul>
      * <li><code>ORDER BY x, y DESC, z</code></li>
      * </ul>
@@ -150,9 +150,14 @@ public interface SqlWriter {
     WITH,
 
     /**
+     * The body query of WITH.
+     */
+    WITH_BODY,
+
+    /**
      * OFFSET clause.
      *
-     * <p>Example:</p>
+     * <p>Example:
      * <ul>
      * <li><code>OFFSET 10 ROWS</code></li>
      * </ul>
@@ -162,7 +167,7 @@ public interface SqlWriter {
     /**
      * FETCH clause.
      *
-     * <p>Example:</p>
+     * <p>Example:
      * <ul>
      * <li><code>FETCH FIRST 3 ROWS ONLY</code></li>
      * </ul>
@@ -172,7 +177,7 @@ public interface SqlWriter {
     /**
      * GROUP BY list.
      *
-     * <p>Example:</p>
+     * <p>Example:
      * <ul>
      * <li><code>GROUP BY x, FLOOR(y)</code></li>
      * </ul>
@@ -183,7 +188,7 @@ public interface SqlWriter {
      * Sub-query list. Encloses a SELECT, UNION, EXCEPT, INTERSECT query
      * with optional ORDER BY.
      *
-     * <p>Example:</p>
+     * <p>Example:
      * <ul>
      * <li><code>GROUP BY x, FLOOR(y)</code></li>
      * </ul>
@@ -193,7 +198,7 @@ public interface SqlWriter {
     /**
      * Set operation.
      *
-     * <p>Example:</p>
+     * <p>Example:
      * <ul>
      * <li><code>SELECT * FROM a UNION SELECT * FROM b</code></li>
      * </ul>
@@ -228,7 +233,7 @@ public interface SqlWriter {
     /**
      * Compound identifier.
      *
-     * <p>Example:</p>
+     * <p>Example:
      * <ul>
      * <li><code>"A"."B"."C"</code></li>
      * </ul>
@@ -554,13 +559,13 @@ public interface SqlWriter {
    * consists of expressions separated by ",", and ends with a ")".
    *
    * <p>A select statement is also a kind of frame. The beginning and end are
-   * are empty strings, but it consists of a sequence of clauses. "SELECT",
+   * empty strings, but it consists of a sequence of clauses. "SELECT",
    * "FROM", "WHERE" are separators.
    *
    * <p>A frame is current between a call to one of the
    * {@link SqlWriter#startList} methods and the call to
-   * {@link SqlWriter#endList(Frame)}. If other code starts a frame in the mean
-   * time, the sub-frame is put onto a stack.
+   * {@link SqlWriter#endList(Frame)}. If other code starts a frame in the meantime,
+   * the sub-frame is put onto a stack.
    */
   interface Frame {
   }

@@ -29,6 +29,7 @@ import org.apache.calcite.rel.type.RelDataTypePrecedenceList;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.Resources;
+import org.apache.calcite.sql.fun.SqlInOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlOperandMetadata;
@@ -37,11 +38,13 @@ import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
+import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.sql.validate.SqlNameMatcher;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.BarfingInvocationHandler;
 import org.apache.calcite.util.ConversionUtil;
 import org.apache.calcite.util.Glossary;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -59,24 +62,31 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.charset.UnsupportedCharsetException;
 import java.sql.DatabaseMetaData;
-import java.sql.SQLException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Contains utility functions related to SQL parsing, all static.
  */
 public abstract class SqlUtil {
+  //~ Constants --------------------------------------------------------------
+
+  /** Prefix for generated column aliases. Ends with '$' so that human-written
+   * queries are unlikely to accidentally reference the generated name. */
+  public static final String GENERATED_EXPR_ALIAS_PREFIX = "EXPR$";
+
   //~ Methods ----------------------------------------------------------------
 
   /** Returns the AND of two expressions.
@@ -118,7 +128,9 @@ public abstract class SqlUtil {
       SqlSelect query,
       int ordinal) {
     SqlNode from = query.getFrom();
-    assert from != null : "from must not be null for " + query;
+    if (from == null) {
+      throw new AssertionError("from must not be null for " + query);
+    }
     ArrayList<SqlNode> list = flatten(from);
     return list.get(ordinal);
   }
@@ -149,10 +161,20 @@ public abstract class SqlUtil {
   /** Converts a SqlNode array to a SqlNodeList. */
   public static SqlNodeList toNodeList(SqlNode[] operands) {
     SqlNodeList ret = new SqlNodeList(SqlParserPos.ZERO);
-    for (SqlNode node : operands) {
-      ret.add(node);
-    }
+    Collections.addAll(ret, operands);
     return ret;
+  }
+
+  /** Finds the index of an expression in a list, comparing using
+   * {@link SqlNode#equalsDeep(SqlNode, Litmus)}. */
+  public static int indexOfDeep(List<? extends SqlNode> list, SqlNode e,
+      Litmus litmus) {
+    for (int i = 0; i < list.size(); i++) {
+      if (e.equalsDeep(list.get(i), litmus)) {
+        return i;
+      }
+    }
+    return -1;
   }
 
   /**
@@ -185,10 +207,8 @@ public abstract class SqlUtil {
     if (allowCast && node != null) {
       if (node.getKind() == SqlKind.CAST) {
         SqlCall call = (SqlCall) node;
-        if (isNullLiteral(call.operand(0), false)) {
-          // node is "CAST(NULL as type)"
-          return true;
-        }
+        // node is "CAST(NULL as type)"
+        return isNullLiteral(call.operand(0), false);
       }
     }
     return false;
@@ -223,7 +243,7 @@ public abstract class SqlUtil {
    * @return Whether the node is a literal
    */
   public static boolean isLiteral(SqlNode node, boolean allowCast) {
-    assert node != null;
+    requireNonNull(node, "node");
     if (node instanceof SqlLiteral) {
       return true;
     }
@@ -267,7 +287,7 @@ public abstract class SqlUtil {
    * @return Whether the node is a literal chain
    */
   public static boolean isLiteralChain(SqlNode node) {
-    assert node != null;
+    requireNonNull(node, "node");
     if (node instanceof SqlCall) {
       SqlCall call = (SqlCall) node;
       return call.getKind() == SqlKind.LITERAL_CHAIN;
@@ -316,6 +336,7 @@ public abstract class SqlUtil {
         // when it has 0 args, not "LOCALTIME()".
         return;
       case FUNCTION_STAR: // E.g. "COUNT(*)"
+      case FUNCTION_ID_CONSTANT: // E.g. "PI()"
       case FUNCTION: // E.g. "RANK()"
       case ORDERED_FUNCTION: // E.g. "STRING_AGG(x)"
         // fall through - dealt with below
@@ -386,7 +407,8 @@ public abstract class SqlUtil {
       // with empty argument list, e.g. LOCALTIME, we should not quote
       // such identifier cause quoted `LOCALTIME` always represents a sql identifier.
       if (asFunctionID
-          || operator.getSyntax() == SqlSyntax.FUNCTION_ID) {
+          || operator.getSyntax() == SqlSyntax.FUNCTION_ID
+          || operator.getSyntax() == SqlSyntax.FUNCTION_ID_CONSTANT) {
         writer.keyword(identifier.getSimple());
         unparsedAsFunc = true;
       }
@@ -397,7 +419,7 @@ public abstract class SqlUtil {
         writer.sep(".");
         final String name = identifier.names.get(i);
         final SqlParserPos pos = identifier.getComponentParserPosition(i);
-        if (name.equals("")) {
+        if (name.isEmpty()) {
           writer.print("*");
           writer.setNeedWhitespace(true);
         } else {
@@ -498,7 +520,8 @@ public abstract class SqlUtil {
   private static Iterator<SqlOperator> filterOperatorRoutinesByKind(
       Iterator<SqlOperator> routines, final SqlKind sqlKind) {
     return Iterators.filter(routines,
-        operator -> Objects.requireNonNull(operator, "operator").getKind() == sqlKind);
+        operator -> requireNonNull(operator, "operator")
+            .getKind().getFunctionKind() == sqlKind);
   }
 
   /**
@@ -608,7 +631,8 @@ public abstract class SqlUtil {
           Predicates.instanceOf(SqlFunction.class));
     default:
       return Iterators.filter(sqlOperators.iterator(),
-          operator -> Objects.requireNonNull(operator, "operator").getSyntax() == syntax);
+          operator ->
+              requireNonNull(operator, "operator").getSyntax() == syntax);
     }
   }
 
@@ -616,7 +640,7 @@ public abstract class SqlUtil {
       Iterator<SqlOperator> routines,
       final List<RelDataType> argTypes) {
     return Iterators.filter(routines,
-        operator -> Objects.requireNonNull(operator, "operator")
+        operator -> requireNonNull(operator, "operator")
             .getOperandCountRange().isValidCount(argTypes.size()));
   }
 
@@ -639,7 +663,7 @@ public abstract class SqlUtil {
         Iterators.filter(routines, SqlFunction.class),
         function -> {
           SqlOperandTypeChecker operandTypeChecker =
-              Objects.requireNonNull(function, "function").getOperandTypeChecker();
+              requireNonNull(function, "function").getOperandTypeChecker();
           if (operandTypeChecker == null
               || !operandTypeChecker.isFixedParameters()) {
             // no parameter information for builtins; keep for now,
@@ -784,15 +808,17 @@ public abstract class SqlUtil {
     switch (query.getKind()) {
     case SELECT:
       SqlSelect select = (SqlSelect) query;
-      final SqlNode from = stripAs(select.getFrom());
-      if (from != null && from.getKind() == SqlKind.VALUES) {
-        // They wrote "VALUES (x, y)", but the validator has
-        // converted this into "SELECT * FROM VALUES (x, y)".
-        return getSelectListItem(from, i);
+      SqlNode from = select.getFrom();
+      if (from != null) {
+        from = stripAs(from);
+        if (from.getKind() == SqlKind.VALUES) {
+          // They wrote "VALUES (x, y)", but the validator has
+          // converted this into "SELECT * FROM VALUES (x, y)".
+          return getSelectListItem(from, i);
+        }
       }
-      final SqlNodeList fields = select.getSelectList();
 
-      assert fields != null : "fields must not be null in " + select;
+      final SqlNodeList fields = select.getSelectList();
       // Range check the index to avoid index out of range.  This
       // could be expanded to actually check to see if the select
       // list is a "*"
@@ -816,9 +842,19 @@ public abstract class SqlUtil {
   }
 
   public static String deriveAliasFromOrdinal(int ordinal) {
-    // Use a '$' so that queries can't easily reference the
-    // generated name.
-    return "EXPR$" + ordinal;
+    return GENERATED_EXPR_ALIAS_PREFIX + ordinal;
+  }
+
+  /**
+   * Whether the alias is generated by calcite.
+   *
+   * @param alias not null
+   * @return true if alias is generated by calcite, otherwise false
+   */
+  public static boolean isGeneratedAlias(String alias) {
+    return requireNonNull(alias, "alias")
+        .toUpperCase(Locale.ROOT)
+        .startsWith(GENERATED_EXPR_ALIAS_PREFIX);
   }
 
   /**
@@ -932,7 +968,7 @@ public abstract class SqlUtil {
   /**
    * Creates the type of an {@link org.apache.calcite.util.NlsString}.
    *
-   * <p>The type inherits the The NlsString's {@link Charset} and
+   * <p>The type inherits the NlsString's {@link Charset} and
    * {@link SqlCollation}, if they are set, otherwise it gets the system
    * defaults.
    *
@@ -1002,9 +1038,10 @@ public abstract class SqlUtil {
    *     is available in this instance of the Java virtual machine
    */
   public static Charset getCharset(String charsetName) {
-    assert charsetName != null;
-    charsetName = charsetName.toUpperCase(Locale.ROOT);
-    String javaCharsetName = translateCharacterSetName(charsetName);
+    String javaCharsetName =
+        translateCharacterSetName(
+            requireNonNull(charsetName, "charsetName")
+                .toUpperCase(Locale.ROOT));
     if (javaCharsetName == null) {
       throw new UnsupportedCharsetException(charsetName);
     }
@@ -1019,7 +1056,6 @@ public abstract class SqlUtil {
    * @throws RuntimeException If the given value cannot be represented in the
    *     given charset
    */
-  @SuppressWarnings("BetaApi")
   public static void validateCharset(ByteString value, Charset charset) {
     if (charset == StandardCharsets.UTF_8) {
       final byte[] bytes = value.getBytes();
@@ -1067,7 +1103,7 @@ public abstract class SqlUtil {
       throw new AssertionError("not found: " + predicate + " in " + root);
     } catch (Util.FoundOne e) {
       //noinspection unchecked
-      return (ImmutableList<SqlNode>) Objects.requireNonNull(
+      return (ImmutableList<SqlNode>) requireNonNull(
           e.getNode(),
           "Genealogist result");
     }
@@ -1085,7 +1121,7 @@ public abstract class SqlUtil {
    */
   public static List<RelHint> getRelHint(HintStrategyTable hintStrategies,
       @Nullable SqlNodeList sqlHints) {
-    if (sqlHints == null || sqlHints.size() == 0) {
+    if (sqlHints == null || sqlHints.isEmpty()) {
       return ImmutableList.of();
     }
     final ImmutableList.Builder<RelHint> relHints = ImmutableList.builder();
@@ -1131,7 +1167,7 @@ public abstract class SqlUtil {
       List<RelHint> hints,
       Hintable rel) {
     final List<RelHint> relHints = hintStrategies.apply(hints, (RelNode) rel);
-    if (relHints.size() > 0) {
+    if (!relHints.isEmpty()) {
       return rel.attachHints(relHints);
     }
     return (RelNode) rel;
@@ -1197,6 +1233,61 @@ public abstract class SqlUtil {
     return op.createCall(pos, leftNode, rightNode);
   }
 
+  /**
+   * Returns whether a given node contains a {@link SqlInOperator}.
+   *
+   * @param node AST tree
+   */
+  public static boolean containsIn(SqlNode node) {
+    final Predicate<SqlCall> callPredicate = call ->
+        call.getOperator() instanceof SqlInOperator;
+    return containsCall(node, callPredicate);
+  }
+
+  /**
+   * Returns whether a given node contains a {@link SqlKind#DEFAULT} expression.
+   *
+   * @param node AST tree
+   */
+  public static boolean containsDefault(SqlNode node) {
+    final Predicate<SqlCall> callPredicate = call ->
+        call.getKind() == SqlKind.DEFAULT;
+    return containsCall(node, callPredicate);
+  }
+
+  /**
+   * Returns whether an AST tree contains a call to an aggregate function.
+   *
+   * @param node AST tree
+   */
+  public static boolean containsAgg(SqlNode node) {
+    final Predicate<SqlCall> callPredicate = call ->
+        call.getOperator().isAggregator();
+    return containsCall(node, callPredicate);
+  }
+
+  /** Returns whether an AST tree contains a call that matches a given
+   * predicate. */
+  public static boolean containsCall(SqlNode node,
+      Predicate<SqlCall> callPredicate) {
+    try {
+      SqlVisitor<Void> visitor =
+          new SqlBasicVisitor<Void>() {
+            @Override public Void visit(SqlCall call) {
+              if (callPredicate.test(call)) {
+                throw new Util.FoundOne(call);
+              }
+              return super.visit(call);
+            }
+          };
+      node.accept(visitor);
+      return false;
+    } catch (Util.FoundOne e) {
+      Util.swallow(e, null);
+      return true;
+    }
+  }
+
   //~ Inner Classes ----------------------------------------------------------
 
   /**
@@ -1217,11 +1308,11 @@ public abstract class SqlUtil {
       this.identifierQuoteString = identifierQuoteString;
     }
 
-    public String getDatabaseProductName() throws SQLException {
+    public String getDatabaseProductName() {
       return databaseProductName;
     }
 
-    public String getIdentifierQuoteString() throws SQLException {
+    public String getIdentifierQuoteString() {
       return identifierQuoteString;
     }
   }

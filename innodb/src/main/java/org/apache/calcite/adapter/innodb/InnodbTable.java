@@ -28,6 +28,7 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelProtoDataType;
@@ -58,6 +59,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Table based on an InnoDB data file.
@@ -148,8 +151,9 @@ public class InnodbTable extends AbstractQueryableTable
     final RelDataType rowType = getRowType(typeFactory);
 
     Function1<String, Void> addField = fieldName -> {
-      RelDataType relDataType =
-          rowType.getField(fieldName, true, false).getType();
+      final RelDataTypeField field =
+          requireNonNull(rowType.getField(fieldName, true, false));
+      RelDataType relDataType = field.getType();
       fieldInfo.add(fieldName, relDataType).nullable(relDataType.isNullable());
       return null;
     };
@@ -185,20 +189,23 @@ public class InnodbTable extends AbstractQueryableTable
                     .queryByPrimaryKey(pointQueryKey, selectedColumnNames));
             break;
           case PK_RANGE_QUERY:
-            resultIterator = tableReader.getRangeQueryIterator(
-                rangeQueryLowerKey, rangeQueryLowerOp, rangeQueryUpperKey, rangeQueryUpperOp,
-                selectedColumnNames, ascOrder);
+            resultIterator =
+                tableReader.getRangeQueryIterator(rangeQueryLowerKey,
+                    rangeQueryLowerOp, rangeQueryUpperKey, rangeQueryUpperOp,
+                    selectedColumnNames, ascOrder);
             break;
           case SK_POINT_QUERY:
-            resultIterator = tableReader.getRecordIteratorBySk(indexName,
-                pointQueryKey, ComparisonOperator.GTE, pointQueryKey, ComparisonOperator.LTE,
-                selectedColumnNames, ascOrder);
+            resultIterator =
+                tableReader.getRecordIteratorBySk(indexName, pointQueryKey,
+                    ComparisonOperator.GTE, pointQueryKey,
+                    ComparisonOperator.LTE, selectedColumnNames, ascOrder);
             break;
           case SK_RANGE_QUERY:
           case SK_FULL_SCAN:
-            resultIterator = tableReader.getRecordIteratorBySk(indexName,
-                rangeQueryLowerKey, rangeQueryLowerOp, rangeQueryUpperKey, rangeQueryUpperOp,
-                selectedColumnNames, ascOrder);
+            resultIterator =
+                tableReader.getRecordIteratorBySk(indexName, rangeQueryLowerKey,
+                    rangeQueryLowerOp, rangeQueryUpperKey, rangeQueryUpperOp,
+                    selectedColumnNames, ascOrder);
             break;
           case PK_FULL_SCAN:
             resultIterator =
@@ -255,7 +262,9 @@ public class InnodbTable extends AbstractQueryableTable
     }
 
     private TableReaderFactory getTableReaderFactory() {
-      return schema.unwrap(InnodbSchema.class).tableReaderFactory;
+      final InnodbSchema innodbSchema =
+          requireNonNull(schema.unwrap(InnodbSchema.class));
+      return innodbSchema.tableReaderFactory;
     }
 
     /**

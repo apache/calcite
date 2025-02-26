@@ -22,17 +22,18 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.parser.SqlParserPos;
 
-import com.google.common.base.Preconditions;
-
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.Map;
+
+import static com.google.common.base.Preconditions.checkArgument;
+
+import static org.apache.calcite.util.ReflectUtil.isPublic;
 
 import static java.util.Objects.requireNonNull;
 
@@ -67,7 +68,7 @@ public class ReflectiveConvertletTable implements SqlRexConvertletTable {
   private void registerNodeTypeMethod(
       @UnderInitialization ReflectiveConvertletTable this,
       final Method method) {
-    if (!Modifier.isPublic(method.getModifiers())) {
+    if (!isPublic(method)) {
       return;
     }
     if (!method.getName().startsWith("convert")) {
@@ -90,10 +91,10 @@ public class ReflectiveConvertletTable implements SqlRexConvertletTable {
     map.put(parameterType, (SqlRexConvertlet) (cx, call) -> {
       try {
         @SuppressWarnings("argument.type.incompatible")
-        RexNode result = (RexNode) method.invoke(ReflectiveConvertletTable.this,
-            cx, call);
-        return requireNonNull(result, () -> "null result from " + method
-            + " for call " + call);
+        RexNode result =
+            (RexNode) method.invoke(ReflectiveConvertletTable.this, cx, call);
+        return requireNonNull(result,
+            () -> "null result from " + method + " for call " + call);
       } catch (IllegalAccessException | InvocationTargetException e) {
         throw new RuntimeException("while converting " + call, e);
       }
@@ -110,7 +111,7 @@ public class ReflectiveConvertletTable implements SqlRexConvertletTable {
   private void registerOpTypeMethod(
       @UnderInitialization ReflectiveConvertletTable this,
       final Method method) {
-    if (!Modifier.isPublic(method.getModifiers())) {
+    if (!isPublic(method)) {
       return;
     }
     if (!method.getName().startsWith("convert")) {
@@ -137,10 +138,11 @@ public class ReflectiveConvertletTable implements SqlRexConvertletTable {
     map.put(opClass, (SqlRexConvertlet) (cx, call) -> {
       try {
         @SuppressWarnings("argument.type.incompatible")
-        RexNode result = (RexNode) method.invoke(ReflectiveConvertletTable.this,
-            cx, call.getOperator(), call);
-        return requireNonNull(result, () -> "null result from " + method
-            + " for call " + call);
+        RexNode result =
+            (RexNode) method.invoke(ReflectiveConvertletTable.this, cx,
+                call.getOperator(), call);
+        return requireNonNull(result,
+            () -> "null result from " + method + " for call " + call);
       } catch (IllegalAccessException | InvocationTargetException e) {
         throw new RuntimeException("while converting " + call, e);
       }
@@ -206,10 +208,11 @@ public class ReflectiveConvertletTable implements SqlRexConvertletTable {
       final SqlOperator alias, final SqlOperator target) {
     map.put(
         alias, (SqlRexConvertlet) (cx, call) -> {
-          Preconditions.checkArgument(call.getOperator() == alias,
-              "call to wrong operator");
+          checkArgument(call.getOperator() == alias, "call to wrong operator");
           final SqlCall newCall =
               target.createCall(SqlParserPos.ZERO, call.getOperandList());
+          cx.getValidator().setValidatedNodeType(newCall,
+              cx.getValidator().getValidatedNodeType(call));
           return cx.convertExpression(newCall);
         });
   }

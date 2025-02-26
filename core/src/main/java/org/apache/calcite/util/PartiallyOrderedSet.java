@@ -45,7 +45,7 @@ import static java.util.Objects.requireNonNull;
  *
  * <p>When you create a partially-ordered set ('poset' for short) you must
  * provide an {@link Ordering} that determines the order relation. The
- * ordering must be:</p>
+ * ordering must be:
  *
  * <ul>
  *     <li>reflexive: e.lte(e) returns true;</li>
@@ -55,18 +55,18 @@ import static java.util.Objects.requireNonNull;
  *     f.lte(g) returns true, then e.lte(g) must return true.</li>
  * </ul>
  *
- * <p>Note that not all pairs of elements are related. If is OK if e.lte(f)
- * returns false and f.lte(e) returns false also.</p>
+ * <p>Note that not all pairs of elements are related. It is OK if e.lte(f)
+ * returns false and f.lte(e) returns false also.
  *
  * <p>In addition to the usual set methods, there are methods to determine the
  * immediate parents and children of an element in the set, and method to find
  * all elements which have no parents or no children (i.e. "root" and "leaf"
- * elements).</p>
+ * elements).
  *
  * <p>A lattice is a special kind of poset where there is a unique top and
  * bottom element. You can use a PartiallyOrderedSet for a lattice also. It may
  * be helpful to add the top and bottom elements to the poset on
- * construction.</p>
+ * construction.
  *
  * @param <E> Element type
  */
@@ -90,6 +90,10 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
    * in the set.
    */
   private final Node<E> topNode;
+  /**
+   * Synthetic node to hold all nodes that have no children. It does not appear
+   * in the set.
+   */
   private final Node<E> bottomNode;
 
   /**
@@ -223,7 +227,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
    * Adds an element to this lattice.
    */
   @Override public boolean add(E e) {
-    assert e != null;
+    requireNonNull(e, "e");
     assert !CalciteSystemProperty.DEBUG.value() || isValid(true);
     Node<E> node = map.get(e);
     if (node != null) {
@@ -681,10 +685,22 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
     }
   }
 
+  /**
+   * Returns all elements in the set that are not children. These elements appear at the top of
+   * the poset, and they usually referred to as roots/maximal elements of the poset.
+   *
+   * @return a list of elements that are not children.
+   */
   public List<E> getNonChildren() {
     return strip(topNode.childList);
   }
 
+  /**
+   * Returns all elements in the set that are not parents. These elements appear at the bottom of
+   * the poset, and they usually referred to as leafs/minimal elements of the poset.
+   *
+   * @return a list of elements that are not parents.
+   */
   public List<E> getNonParents() {
     return strip(bottomNode.parentList);
   }
@@ -806,7 +822,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
    * <p>We deliberately do not override {@link #hashCode} or
    * {@link #equals(Object)}. A canonizing map ensures that within a
    * given PartiallyOrderedSet, two nodes are identical if and only if they
-   * contain the same value.</p>
+   * contain the same value.
    *
    * @param <E> Element type
    */
@@ -848,14 +864,14 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
    *
    * <p>To obey the constraints of the partially-ordered set, the function
    * must be consistent with the reflexive, anti-symmetric, and transitive
-   * properties required by a partially ordered set.</p>
+   * properties required by a partially ordered set.
    *
    * <p>For instance, if {@code ordering(foo, foo)} returned false for any
-   * not-null value of foo, it would violate the reflexive property.</p>
+   * not-null value of foo, it would violate the reflexive property.
    *
    * <p>If an ordering violates any of these required properties, the behavior
    * of a {@link PartiallyOrderedSet} is unspecified. (But mayhem is
-   * likely.)</p>
+   * likely.)
    *
    * @param <E> Element type
    */

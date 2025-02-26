@@ -37,7 +37,6 @@ import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -50,8 +49,11 @@ import org.joda.time.chrono.ISOChronology;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
+
+import static com.google.common.base.Preconditions.checkArgument;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Table mapped onto a Druid table.
@@ -65,7 +67,7 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
 
   final DruidSchema schema;
   final String dataSource;
-  final RelProtoDataType protoRowType;
+  final @Nullable RelProtoDataType protoRowType;
   final ImmutableSet<String> metricFieldNames;
   final ImmutableList<Interval> intervals;
   final String timestampFieldName;
@@ -83,19 +85,25 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
    * @param timestampFieldName Name of the column that contains the time
    */
   public DruidTable(DruidSchema schema, String dataSource,
-      RelProtoDataType protoRowType, Set<String> metricFieldNames,
-      String timestampFieldName, List<Interval> intervals,
-      Map<String, List<ComplexMetric>> complexMetrics, Map<String, SqlTypeName> allFields) {
-    this.timestampFieldName = Objects.requireNonNull(timestampFieldName, "timestampFieldName");
-    this.schema = Objects.requireNonNull(schema, "schema");
-    this.dataSource = Objects.requireNonNull(dataSource, "dataSource");
+      @Nullable RelProtoDataType protoRowType, Set<String> metricFieldNames,
+      String timestampFieldName,
+      @Nullable List<Interval> intervals,
+      @Nullable Map<String, List<ComplexMetric>> complexMetrics,
+      @Nullable Map<String, SqlTypeName> allFields) {
+    this.timestampFieldName =
+        requireNonNull(timestampFieldName, "timestampFieldName");
+    this.schema = requireNonNull(schema, "schema");
+    this.dataSource = requireNonNull(dataSource, "dataSource");
     this.protoRowType = protoRowType;
     this.metricFieldNames = ImmutableSet.copyOf(metricFieldNames);
-    this.intervals = intervals != null ? ImmutableList.copyOf(intervals)
-        : ImmutableList.of(DEFAULT_INTERVAL);
-    this.complexMetrics = complexMetrics == null ? ImmutableMap.of()
+    this.intervals =
+        intervals == null ? ImmutableList.of(DEFAULT_INTERVAL)
+            : ImmutableList.copyOf(intervals);
+    this.complexMetrics =
+        complexMetrics == null ? ImmutableMap.of()
             : ImmutableMap.copyOf(complexMetrics);
-    this.allFields = allFields == null ? ImmutableMap.of()
+    this.allFields =
+        allFields == null ? ImmutableMap.of()
             : ImmutableMap.copyOf(allFields);
   }
 
@@ -117,7 +125,7 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
       List<Interval> intervals, Map<String, SqlTypeName> fieldMap,
       Set<String> metricNameSet, String timestampColumnName,
       DruidConnectionImpl connection, Map<String, List<ComplexMetric>> complexMetrics) {
-    assert connection != null;
+    requireNonNull(connection, "connection");
 
     connection.metadata(dataSourceName, timestampColumnName, intervals,
             fieldMap, metricNameSet, complexMetrics);
@@ -139,11 +147,11 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
    * @return A table
    */
   static Table create(DruidSchema druidSchema, String dataSourceName,
-                      List<Interval> intervals, Map<String, SqlTypeName> fieldMap,
-                      Set<String> metricNameSet, String timestampColumnName,
-                      Map<String, List<ComplexMetric>> complexMetrics) {
+      @Nullable List<Interval> intervals, Map<String, SqlTypeName> fieldMap,
+      Set<String> metricNameSet, String timestampColumnName,
+      Map<String, List<ComplexMetric>> complexMetrics) {
     final ImmutableMap<String, SqlTypeName> fields =
-            ImmutableMap.copyOf(fieldMap);
+        ImmutableMap.copyOf(fieldMap);
     return new DruidTable(druidSchema,
         dataSourceName,
         new MapRelProtoDataType(fields, timestampColumnName),
@@ -157,9 +165,10 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
   /**
    * Returns the appropriate {@link ComplexMetric} that is mapped from the given <code>alias</code>
    * if it exists, and is used in the expected context with the given {@link AggregateCall}.
-   * Otherwise returns <code>null</code>.
-   * */
-  public ComplexMetric resolveComplexMetric(String alias, AggregateCall call) {
+   * Otherwise, returns <code>null</code>.
+   */
+  public @Nullable ComplexMetric resolveComplexMetric(String alias,
+      AggregateCall call) {
     List<ComplexMetric> potentialMetrics = getComplexMetricsFrom(alias);
 
     // It's possible that multiple complex metrics match the AggregateCall,
@@ -232,8 +241,8 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
   @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     final RelDataType rowType = protoRowType.apply(typeFactory);
     final List<String> fieldNames = rowType.getFieldNames();
-    Preconditions.checkArgument(fieldNames.contains(timestampFieldName));
-    Preconditions.checkArgument(fieldNames.containsAll(metricFieldNames));
+    checkArgument(fieldNames.contains(timestampFieldName));
+    checkArgument(fieldNames.containsAll(metricFieldNames));
     return rowType;
   }
 
@@ -255,11 +264,6 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
   private static class MapRelProtoDataType implements RelProtoDataType {
     private final ImmutableMap<String, SqlTypeName> fields;
     private final String timestampColumn;
-
-    MapRelProtoDataType(ImmutableMap<String, SqlTypeName> fields) {
-      this.fields = fields;
-      this.timestampColumn = DruidTable.DEFAULT_TIMESTAMP_COLUMN;
-    }
 
     MapRelProtoDataType(ImmutableMap<String, SqlTypeName> fields, String timestampColumn) {
       this.fields = fields;

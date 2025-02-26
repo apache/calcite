@@ -63,8 +63,8 @@ public class EnumerableLimitSort extends Sort implements EnumerableRel {
       @Nullable RexNode offset,
       @Nullable RexNode fetch) {
     final RelOptCluster cluster = input.getCluster();
-    final RelTraitSet traitSet = cluster.traitSetOf(EnumerableConvention.INSTANCE).replace(
-        collation);
+    final RelTraitSet traitSet =
+        cluster.traitSetOf(EnumerableConvention.INSTANCE).replace(collation);
     return new EnumerableLimitSort(cluster, traitSet, input, collation, offset, fetch);
   }
 
@@ -87,10 +87,9 @@ public class EnumerableLimitSort extends Sort implements EnumerableRel {
     final BlockBuilder builder = new BlockBuilder();
     final EnumerableRel child = (EnumerableRel) this.getInput();
     final Result result = implementor.visitChild(this, 0, child, pref);
-    final PhysType physType = PhysTypeImpl.of(
-        implementor.getTypeFactory(),
-        this.getRowType(),
-        result.format);
+    final PhysType physType =
+        PhysTypeImpl.of(implementor.getTypeFactory(), this.getRowType(),
+            result.format);
     final Expression childExp = builder.append("child", result.block);
 
     final PhysType inputPhysType = result.physType;
@@ -99,28 +98,31 @@ public class EnumerableLimitSort extends Sort implements EnumerableRel {
 
     final Expression fetchVal;
     if (this.fetch == null) {
-      fetchVal = Expressions.constant(Integer.valueOf(Integer.MAX_VALUE));
+      fetchVal = Expressions.constant(Integer.MAX_VALUE);
     } else {
       fetchVal = getExpression(this.fetch);
     }
 
-    final Expression offsetVal = this.offset == null ? Expressions.constant(Integer.valueOf(0))
-        : getExpression(this.offset);
+    final Expression offsetVal;
+    if (this.offset == null) {
+      offsetVal = Expressions.constant(0);
+    } else {
+      offsetVal = getExpression(this.offset);
+    }
 
     builder.add(
-        Expressions.return_(
-            null, Expressions.call(
-                BuiltInMethod.ORDER_BY_WITH_FETCH_AND_OFFSET.method, Expressions.list(
-                    childExp,
-                    builder.append("keySelector", pair.left))
-                    .appendIfNotNull(builder.appendIfNotNull("comparator", pair.right))
+        Expressions.return_(null,
+            Expressions.call(BuiltInMethod.ORDER_BY_WITH_FETCH_AND_OFFSET.method,
+                Expressions.list(childExp,
+                        builder.append("keySelector", pair.left))
+                    .appendIfNotNull(
+                        builder.appendIfNotNull("comparator", pair.right))
                     .appendIfNotNull(
                         builder.appendIfNotNull("offset",
                             Expressions.constant(offsetVal)))
                     .appendIfNotNull(
                         builder.appendIfNotNull("fetch",
-                            Expressions.constant(fetchVal)))
-            )));
+                            Expressions.constant(fetchVal))))));
     return implementor.result(physType, builder.toBlock());
   }
 }

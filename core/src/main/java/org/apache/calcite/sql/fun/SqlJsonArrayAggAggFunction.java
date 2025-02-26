@@ -31,13 +31,12 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.validate.SqlValidator;
-import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Optionality;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.util.Objects;
+import static java.util.Objects.requireNonNull;
 
 /**
  * The <code>JSON_OBJECTAGG</code> aggregate function.
@@ -50,7 +49,7 @@ public class SqlJsonArrayAggAggFunction extends SqlAggFunction {
     super(kind + "_" + nullClause.name(), null, kind, ReturnTypes.VARCHAR_2000,
         InferTypes.ANY_NULLABLE, OperandTypes.family(SqlTypeFamily.ANY),
         SqlFunctionCategory.SYSTEM, false, false, Optionality.OPTIONAL);
-    this.nullClause = Objects.requireNonNull(nullClause, "nullClause");
+    this.nullClause = requireNonNull(nullClause, "nullClause");
   }
 
   @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,
@@ -67,7 +66,7 @@ public class SqlJsonArrayAggAggFunction extends SqlAggFunction {
     // To prevent operator rewriting by SqlFunction#deriveType.
     for (SqlNode operand : call.getOperandList()) {
       RelDataType nodeType = validator.deriveType(scope, operand);
-      ((SqlValidatorImpl) validator).setValidatedNodeType(operand, nodeType);
+      validator.setValidatedNodeType(operand, nodeType);
     }
     return validateOperands(validator, scope, call);
   }

@@ -50,7 +50,7 @@ public class SqlSingleValueAggFunction extends SqlAggFunction {
         "SINGLE_VALUE",
         null,
         SqlKind.SINGLE_VALUE,
-        ReturnTypes.ARG0,
+        ReturnTypes.ARG0_NULLABLE_IF_EMPTY,
         null,
         OperandTypes.ANY,
         SqlFunctionCategory.SYSTEM,
@@ -82,7 +82,7 @@ public class SqlSingleValueAggFunction extends SqlAggFunction {
   }
 
   @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
-    if (clazz == SqlSplittableAggFunction.class) {
+    if (clazz.isInstance(SqlSplittableAggFunction.SelfSplitter.INSTANCE)) {
       return clazz.cast(SqlSplittableAggFunction.SelfSplitter.INSTANCE);
     }
     return super.unwrap(clazz);

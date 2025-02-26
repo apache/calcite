@@ -39,6 +39,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.TimestampWithTimeZoneString;
+import org.apache.calcite.util.TryThreadLocal;
 import org.apache.calcite.util.Util;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -52,6 +53,7 @@ import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -88,14 +90,14 @@ import static java.util.Objects.requireNonNull;
  */
 public abstract class DateRangeRules {
 
-  private DateRangeRules() {}
+  private DateRangeRules() { }
 
   /** Rule that matches a {@link Filter} and converts calls to {@code EXTRACT},
    * {@code FLOOR} and {@code CEIL} functions to date ranges (typically using
    * the {@code BETWEEN} operator). */
   public static final RelOptRule FILTER_INSTANCE =
-      FilterDateRangeRule.Config.DEFAULT
-          .as(FilterDateRangeRule.Config.class)
+      FilterDateRangeRule.FilterDateRangeRuleConfig.DEFAULT
+          .as(FilterDateRangeRule.FilterDateRangeRuleConfig.class)
           .toRule();
 
   private static final Map<TimeUnitRange, Integer> TIME_UNIT_CODES =
@@ -136,7 +138,7 @@ public abstract class DateRangeRules {
    * generate hundreds of ranges we'll later throw away. */
   static ImmutableSortedSet<TimeUnitRange> extractTimeUnits(RexNode e) {
     try (ExtractFinder finder = ExtractFinder.THREAD_INSTANCES.get()) {
-      assert requireNonNull(finder, "finder").timeUnits.isEmpty() && finder.opKinds.isEmpty()
+      assert finder.timeUnits.isEmpty() && finder.opKinds.isEmpty()
           : "previous user did not clean up";
       e.accept(finder);
       return ImmutableSortedSet.copyOf(finder.timeUnits);
@@ -145,7 +147,6 @@ public abstract class DateRangeRules {
 
   /** Replaces calls to EXTRACT, FLOOR and CEIL in an expression. */
   @VisibleForTesting
-  @SuppressWarnings("BetaApi")
   public static RexNode replaceTimeUnits(RexBuilder rexBuilder, RexNode e,
       String timeZone) {
     ImmutableSortedSet<TimeUnitRange> timeUnits = extractTimeUnits(e);
@@ -158,9 +159,10 @@ public abstract class DateRangeRules {
     }
     final Map<RexNode, RangeSet<Calendar>> operandRanges = new HashMap<>();
     for (TimeUnitRange timeUnit : timeUnits) {
-      e = e.accept(
-          new ExtractShuttle(rexBuilder, timeUnit, operandRanges, timeUnits,
-              timeZone));
+      e =
+          e.accept(
+              new ExtractShuttle(rexBuilder, timeUnit, operandRanges, timeUnits,
+                  timeZone));
     }
     return e;
   }
@@ -171,24 +173,24 @@ public abstract class DateRangeRules {
    * @see DateRangeRules#FILTER_INSTANCE */
   @SuppressWarnings("WeakerAccess")
   public static class FilterDateRangeRule
-      extends RelRule<FilterDateRangeRule.Config>
+      extends RelRule<FilterDateRangeRule.FilterDateRangeRuleConfig>
       implements TransformationRule {
     /** Creates a FilterDateRangeRule. */
-    protected FilterDateRangeRule(Config config) {
+    protected FilterDateRangeRule(FilterDateRangeRuleConfig config) {
       super(config);
     }
 
     @Deprecated // to be removed before 2.0
     public FilterDateRangeRule(RelBuilderFactory relBuilderFactory) {
-      this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
-          .as(Config.class));
+      this(FilterDateRangeRuleConfig.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+          .as(FilterDateRangeRuleConfig.class));
     }
 
     /** Whether this an EXTRACT of YEAR, or a call to FLOOR or CEIL.
      * If none of these, we cannot apply the rule. */
     private static boolean containsRoundingExpression(Filter filter) {
       try (ExtractFinder finder = ExtractFinder.THREAD_INSTANCES.get()) {
-        assert requireNonNull(finder, "finder").timeUnits.isEmpty() && finder.opKinds.isEmpty()
+        assert finder.timeUnits.isEmpty() && finder.opKinds.isEmpty()
             : "previous user did not clean up";
         filter.getCondition().accept(finder);
         return finder.timeUnits.contains(TimeUnitRange.YEAR)
@@ -215,13 +217,13 @@ public abstract class DateRangeRules {
     }
 
     /** Rule configuration. */
-    public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
+    @Value.Immutable
+    public interface FilterDateRangeRuleConfig extends RelRule.Config {
+      FilterDateRangeRuleConfig DEFAULT = ImmutableFilterDateRangeRuleConfig.of()
           .withOperandSupplier(b ->
               b.operand(Filter.class)
                   .predicate(FilterDateRangeRule::containsRoundingExpression)
-                  .anyInputs())
-          .as(Config.class);
+                  .anyInputs());
 
       @Override default FilterDateRangeRule toRule() {
         return new FilterDateRangeRule(this);
@@ -237,8 +239,8 @@ public abstract class DateRangeRules {
         EnumSet.noneOf(TimeUnitRange.class);
     private final Set<SqlKind> opKinds = EnumSet.noneOf(SqlKind.class);
 
-    private static final ThreadLocal<@Nullable ExtractFinder> THREAD_INSTANCES =
-        ThreadLocal.withInitial(ExtractFinder::new);
+    private static final TryThreadLocal<ExtractFinder> THREAD_INSTANCES =
+        TryThreadLocal.withInitial(ExtractFinder::new);
 
     private ExtractFinder() {
       super(true);
@@ -274,7 +276,6 @@ public abstract class DateRangeRules {
   /** Walks over an expression, replacing calls to
    * {@code EXTRACT}, {@code FLOOR} and {@code CEIL} with date ranges. */
   @VisibleForTesting
-  @SuppressWarnings("BetaApi")
   static class ExtractShuttle extends RexShuttle {
     private final RexBuilder rexBuilder;
     private final TimeUnitRange timeUnit;
@@ -319,8 +320,9 @@ public abstract class DateRangeRules {
             assert op1 instanceof RexCall;
             final RexCall subCall = (RexCall) op1;
             final RexLiteral flag = (RexLiteral) subCall.operands.get(1);
-            final TimeUnitRange timeUnit = (TimeUnitRange) requireNonNull(flag.getValue(),
-                () -> "timeUnit is null for " + subCall);
+            final TimeUnitRange timeUnit =
+                requireNonNull((TimeUnitRange) flag.getValue(),
+                    () -> "timeUnit is null for " + subCall);
             return compareFloorCeil(call.getKind().reverse(),
                 subCall.getOperands().get(0), (RexLiteral) op0,
                 timeUnit, op1.getKind() == SqlKind.FLOOR);
@@ -344,8 +346,9 @@ public abstract class DateRangeRules {
           if (isFloorCeilCall(op0)) {
             final RexCall subCall = (RexCall) op0;
             final RexLiteral flag = (RexLiteral) subCall.operands.get(1);
-            final TimeUnitRange timeUnit = (TimeUnitRange) requireNonNull(flag.getValue(),
-                () -> "timeUnit is null for " + subCall);
+            final TimeUnitRange timeUnit =
+                requireNonNull((TimeUnitRange) flag.getValue(),
+                    () -> "timeUnit is null for " + subCall);
             return compareFloorCeil(call.getKind(),
                 subCall.getOperands().get(0), (RexLiteral) op1,
                 timeUnit, op0.getKind() == SqlKind.FLOOR);
@@ -413,9 +416,10 @@ public abstract class DateRangeRules {
         for (RexNode operand : exprs) {
           RexNode clonedOperand = operand;
           for (TimeUnitRange timeUnit : timeUnitRanges) {
-            clonedOperand = clonedOperand.accept(
-                new ExtractShuttle(rexBuilder, timeUnit, operandRanges,
-                    timeUnitRanges, timeZone));
+            clonedOperand =
+                clonedOperand.accept(
+                    new ExtractShuttle(rexBuilder, timeUnit, operandRanges,
+                        timeUnitRanges, timeZone));
           }
           if ((clonedOperand != operand) && (update != null)) {
             update[0] = true;
@@ -570,7 +574,14 @@ public abstract class DateRangeRules {
         ts = TimestampString.fromCalendarFields(calendar);
         p = operand.getType().getPrecision();
         return rexBuilder.makeTimestampLiteral(ts, p);
-      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+      case TIMESTAMP_TZ: {
+        ts = TimestampString.fromCalendarFields(calendar);
+        final TimeZone tz = calendar.getTimeZone();
+        final TimestampWithTimeZoneString localTs = new TimestampWithTimeZoneString(ts, tz);
+        p = operand.getType().getPrecision();
+        return rexBuilder.makeTimestampTzLiteral(localTs, p);
+      }
+      case TIMESTAMP_WITH_LOCAL_TIME_ZONE: {
         ts = TimestampString.fromCalendarFields(calendar);
         final TimeZone tz = TimeZone.getTimeZone(this.timeZone);
         final TimestampString localTs =
@@ -579,6 +590,7 @@ public abstract class DateRangeRules {
                 .getLocalTimestampString();
         p = operand.getType().getPrecision();
         return rexBuilder.makeTimestampWithLocalTimeZoneLiteral(localTs, p);
+      }
       case DATE:
         final DateString d = DateString.fromCalendarFields(calendar);
         return rexBuilder.makeDateLiteral(d);
@@ -641,6 +653,12 @@ public abstract class DateRangeRules {
 
     private Calendar timestampValue(RexLiteral timeLiteral) {
       switch (timeLiteral.getTypeName()) {
+      case TIMESTAMP_TZ:
+        TimestampWithTimeZoneString value =
+            requireNonNull(timeLiteral.getValueAs(TimestampWithTimeZoneString.class));
+        return Util.calendar(
+            value.getLocalTimestampString().getMillisSinceEpoch(),
+            value.getTimeZone());
       case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
         final TimeZone tz = TimeZone.getTimeZone(this.timeZone);
         return Util.calendar(
@@ -653,8 +671,9 @@ public abstract class DateRangeRules {
                 "timeLiteral.getValueAs(Long.class)"));
       case DATE:
         // Cast date to timestamp with local time zone
-        final DateString d = requireNonNull(timeLiteral.getValueAs(DateString.class),
-            "timeLiteral.getValueAs(DateString.class)");
+        final DateString d =
+            requireNonNull(timeLiteral.getValueAs(DateString.class),
+                "timeLiteral.getValueAs(DateString.class)");
         return Util.calendar(d.getMillisSinceEpoch());
       default:
         throw Util.unexpected(timeLiteral.getTypeName());

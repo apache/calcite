@@ -30,6 +30,7 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -43,7 +44,8 @@ import static org.apache.calcite.plan.volcano.PlannerTests.PhysSingleRel;
 import static org.apache.calcite.plan.volcano.PlannerTests.TestSingleRel;
 import static org.apache.calcite.plan.volcano.PlannerTests.newCluster;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Unit test for {@link VolcanoPlanner}.
@@ -67,7 +69,7 @@ class ComboRuleTest {
             cluster.traitSetOf(PHYS_CALLING_CONVENTION));
     planner.setRoot(convertedRel);
     RelNode result = planner.chooseDelegate().findBestExp();
-    assertTrue(result instanceof IntermediateNode);
+    assertThat(result, instanceOf(IntermediateNode.class));
   }
 
   /** Intermediate node, the cost decreases as it is pushed up the tree
@@ -95,9 +97,9 @@ class ComboRuleTest {
   /** Rule that adds an intermediate node above the {@link PhysLeafRel}. */
   public static class AddIntermediateNodeRule
       extends RelRule<AddIntermediateNodeRule.Config> {
-    static final AddIntermediateNodeRule INSTANCE = Config.EMPTY
+    static final AddIntermediateNodeRule INSTANCE = ImmutableAddIntermediateNodeRuleConfig.builder()
+        .build()
         .withOperandSupplier(b -> b.operand(NoneLeafRel.class).anyInputs())
-        .as(Config.class)
         .toRule();
 
     AddIntermediateNodeRule(Config config) {
@@ -118,6 +120,8 @@ class ComboRuleTest {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(typeImmutable = "ImmutableAddIntermediateNodeRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default AddIntermediateNodeRule toRule() {
         return new AddIntermediateNodeRule(this);
@@ -128,12 +132,12 @@ class ComboRuleTest {
   /** Matches {@link PhysSingleRel}-{@link IntermediateNode}-Any
    * and converts to {@link IntermediateNode}-{@link PhysSingleRel}-Any. */
   public static class ComboRule extends RelRule<ComboRule.Config> {
-    static final ComboRule INSTANCE = Config.EMPTY
+    static final ComboRule INSTANCE = ImmutableComboRuleConfig.builder()
+        .build()
         .withOperandSupplier(b0 ->
             b0.operand(PhysSingleRel.class).oneInput(b1 ->
                 b1.operand(IntermediateNode.class).oneInput(b2 ->
                     b2.operand(RelNode.class).anyInputs())))
-        .as(Config.class)
         .toRule();
 
     ComboRule(Config config) {
@@ -161,12 +165,15 @@ class ComboRuleTest {
       List<RelNode> newInputs = ImmutableList.of(call.rel(2));
       IntermediateNode oldInter = call.rel(1);
       RelNode physRel = call.rel(0).copy(call.rel(0).getTraitSet(), newInputs);
-      RelNode converted = new IntermediateNode(physRel.getCluster(), physRel,
-          oldInter.nodesBelowCount + 1);
+      RelNode converted =
+          new IntermediateNode(physRel.getCluster(), physRel,
+              oldInter.nodesBelowCount + 1);
       call.transformTo(converted);
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(typeImmutable = "ImmutableComboRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default ComboRule toRule() {
         return new ComboRule(this);

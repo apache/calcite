@@ -34,7 +34,7 @@ import static java.util.Objects.requireNonNull;
 /**
  * Builder for {@link BlockStatement}.
  *
- * <p>Has methods that help ensure that variable names are unique.</p>
+ * <p>Has methods that help ensure that variable names are unique.
  */
 public class BlockBuilder {
   final List<Statement> statements = new ArrayList<>();
@@ -110,11 +110,11 @@ public class BlockBuilder {
    * @param block Expression
    * @param optimize Whether to try to optimize by assigning the expression to
    * a variable. Do not do this if the expression has
-   * side-effects or a time-dependent value.
+   * side effects or a time-dependent value.
    */
   public Expression append(String name, BlockStatement block,
       boolean optimize) {
-    if (statements.size() > 0) {
+    if (!statements.isEmpty()) {
       Statement lastStatement = statements.get(statements.size() - 1);
       if (lastStatement instanceof GotoStatement) {
         // convert "return expr;" into "expr;"
@@ -143,10 +143,10 @@ public class BlockBuilder {
           if (declaration.initializer != null && isSafeForReuse(declaration)) {
             x = append(newName, declaration.initializer);
           } else {
-            ParameterExpression pe = Expressions.parameter(
-                declaration.parameter.type, newName);
-            DeclarationStatement newDeclaration = Expressions.declare(
-                declaration.modifiers, pe, declaration.initializer);
+            ParameterExpression pe =
+                Expressions.parameter(declaration.parameter.type, newName);
+            DeclarationStatement newDeclaration =
+                Expressions.declare(declaration.modifiers, pe, declaration.initializer);
             x = pe;
             add(newDeclaration);
           }
@@ -166,15 +166,17 @@ public class BlockBuilder {
           result = ((DeclarationStatement) statement).parameter;
         } else if (statement instanceof GotoStatement) {
           statements.remove(statements.size() - 1);
-          result = append_(name,
-              requireNonNull(((GotoStatement) statement).expression, "expression"),
-              optimize);
+          final GotoStatement gotoStatement = (GotoStatement) statement;
+          result =
+              append_(name,
+                  requireNonNull(gotoStatement.expression, "expression"),
+                  optimize);
           if (isSimpleExpression(result)) {
             // already simple; no need to declare a variable or
             // even to evaluate the expression
           } else {
-            DeclarationStatement declare = Expressions.declare(Modifier.FINAL,
-                newName(name, optimize), result);
+            DeclarationStatement declare =
+                Expressions.declare(Modifier.FINAL, newName(name, optimize), result);
             add(declare);
             result = declare.parameter;
           }
@@ -212,7 +214,7 @@ public class BlockBuilder {
    */
   public Expression append(String name, Expression expression,
       boolean optimize) {
-    if (statements.size() > 0) {
+    if (!statements.isEmpty()) {
       Statement lastStatement = statements.get(statements.size() - 1);
       if (lastStatement instanceof GotoStatement) {
         // convert "return expr;" into "expr;"
@@ -236,8 +238,8 @@ public class BlockBuilder {
         return decl.parameter;
       }
     }
-    DeclarationStatement declare = Expressions.declare(Modifier.FINAL,
-        newName(name, optimize), expression);
+    DeclarationStatement declare =
+        Expressions.declare(Modifier.FINAL, newName(name, optimize), expression);
     add(declare);
     return declare.parameter;
   }
@@ -367,8 +369,7 @@ public class BlockBuilder {
     }
     final IdentityHashMap<ParameterExpression, Expression> subMap =
         new IdentityHashMap<>(useCounter.map.size());
-    final Shuttle visitor = new InlineVariableVisitor(
-        subMap);
+    final Shuttle visitor = new InlineVariableVisitor(subMap);
     final ArrayList<Statement> oldStatements = new ArrayList<>(statements);
     statements.clear();
 

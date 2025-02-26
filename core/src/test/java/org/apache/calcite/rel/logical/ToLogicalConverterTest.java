@@ -46,6 +46,8 @@ import com.google.common.collect.ImmutableSet;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
+import java.util.Locale;
+
 import static org.apache.calcite.test.Matchers.hasTree;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -80,8 +82,9 @@ class ToLogicalConverterTest {
 
   private static FrameworkConfig frameworkConfig() {
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
-    final SchemaPlus schema = CalciteAssert.addSchema(rootSchema,
-        CalciteAssert.SchemaSpec.JDBC_FOODMART);
+    final SchemaPlus schema =
+        CalciteAssert.addSchema(rootSchema,
+            CalciteAssert.SchemaSpec.JDBC_FOODMART);
     return Frameworks.newConfigBuilder()
         .defaultSchema(schema)
         .sqlToRelConverterConfig(DEFAULT_REL_CONFIG)
@@ -325,7 +328,7 @@ class ToLogicalConverterTest {
     final RelBuilder builder = builder();
     final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
     final RelNode rel = builder.scan("EMP")
-        .variable(v)
+        .variable(v::set)
         .scan("DEPT")
         .filter(
             builder.equals(builder.field(0), builder.field(v.get(), "DEPTNO")))
@@ -464,6 +467,31 @@ class ToLogicalConverterTest {
         + "  LogicalWindow(window#0=[window(order by [9] aggs [RANK()])])\n"
         + "    LogicalTableScan(table=[[foodmart, employee]])\n";
     verify(rel(sql), expectedPhysical, expectedLogical);
+  }
+
+  void testWindowExcludeImp(String excludeClause, String expectedExcludeString) {
+    // forbiddenApiTest requires to use Locale even though it's no needed here.
+    String sql = String.format(Locale.ROOT, "SELECT sum(\"salary\") over (order by \"hire_date\" "
+        + "rows between unbounded preceding and current row %s) FROM \"employee\"", excludeClause);
+    String expectedPhysical =
+        String.format(Locale.ROOT, "EnumerableProject($0=[$17])\n"
+            + "  EnumerableWindow(window#0=[window(order by [9] rows between"
+            + " UNBOUNDED PRECEDING and CURRENT ROW %saggs [SUM($11)])])\n"
+            + "    JdbcToEnumerableConverter\n"
+            + "      JdbcTableScan(table=[[foodmart, employee]])\n", expectedExcludeString);
+    String expectedLogical =
+        String.format(Locale.ROOT, "LogicalProject($0=[$17])\n"
+            + "  LogicalWindow(window#0=[window(order by [9] rows between"
+            + " UNBOUNDED PRECEDING and CURRENT ROW %saggs [SUM($11)])])\n"
+            + "    LogicalTableScan(table=[[foodmart, employee]])\n", expectedExcludeString);
+    verify(rel(sql), expectedPhysical, expectedLogical);
+  }
+
+  @Test void testWindowExclude() {
+    testWindowExcludeImp("exclude current row", "EXCLUDE CURRENT ROW ");
+    testWindowExcludeImp("exclude group", "EXCLUDE GROUP ");
+    testWindowExcludeImp("exclude ties", "EXCLUDE TIES ");
+    testWindowExcludeImp("exclude no others", "");
   }
 
   @Test void testTableModify() {

@@ -38,7 +38,6 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
@@ -64,8 +63,7 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
    * {@link org.apache.calcite.rel.metadata.BuiltInMetadata.Size}. */
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(new RelMdSize(),
-          BuiltInMethod.AVERAGE_COLUMN_SIZES.method,
-          BuiltInMethod.AVERAGE_ROW_SIZE.method);
+          BuiltInMetadata.Size.Handler.class);
 
   /** Bytes per character (2). */
   public static final int BYTES_PER_CHARACTER = Character.SIZE / Byte.SIZE;
@@ -173,7 +171,12 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
     return list.build();
   }
 
-  public List<@Nullable Double> averageColumnSizes(TableScan rel, RelMetadataQuery mq) {
+  public @Nullable List<@Nullable Double> averageColumnSizes(TableScan rel, RelMetadataQuery mq) {
+    final BuiltInMetadata.Size.Handler handler =
+        rel.getTable().unwrap(BuiltInMetadata.Size.Handler.class);
+    if (handler != null) {
+      return handler.averageColumnSizes(rel, mq);
+    }
     final List<RelDataTypeField> fields = rel.getRowType().getFieldList();
     final ImmutableNullableList.Builder<@Nullable Double> list = ImmutableNullableList.builder();
     for (RelDataTypeField field : fields) {
@@ -299,6 +302,7 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
     case DATE:
     case TIME:
     case TIME_WITH_LOCAL_TIME_ZONE:
+    case TIME_TZ:
     case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
     case INTERVAL_MONTH:
@@ -308,6 +312,7 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
     case FLOAT: // sic
     case TIMESTAMP:
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+    case TIMESTAMP_TZ:
     case INTERVAL_DAY:
     case INTERVAL_DAY_HOUR:
     case INTERVAL_DAY_MINUTE:
@@ -357,19 +362,21 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
     case SMALLINT:
       return 2d;
     case INTEGER:
-    case FLOAT:
     case REAL:
     case DATE:
     case TIME:
     case TIME_WITH_LOCAL_TIME_ZONE:
+    case TIME_TZ:
     case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
     case INTERVAL_MONTH:
       return 4d;
     case BIGINT:
+    case FLOAT:  // sic
     case DOUBLE:
     case TIMESTAMP:
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+    case TIMESTAMP_TZ:
     case INTERVAL_DAY:
     case INTERVAL_DAY_HOUR:
     case INTERVAL_DAY_MINUTE:

@@ -126,17 +126,33 @@ public class RexExecutorImpl implements RexExecutor {
 
   /**
    * Do constant reduction using generated code.
+   *
+   * @param rexBuilder Builder used to construct expressions
+   * @param constExps  A list of constant expressions
+   * @param reducedValues  An empty list.  The function will return
+   *                       for each expression on constExps one equivalent
+   *                       reduced expression in this list, in the same order.
    */
   @Override public void reduce(RexBuilder rexBuilder, List<RexNode> constExps,
       List<RexNode> reducedValues) {
-    final String code = compile(rexBuilder, constExps,
-        (list, index, storageType) -> {
-          throw new UnsupportedOperationException();
-        });
+    assert reducedValues.isEmpty();
+    try {
+      String code = compile(rexBuilder, constExps, (list, index, storageType) -> {
+        throw new UnsupportedOperationException();
+      });
 
-    final RexExecutable executable = new RexExecutable(code, constExps);
-    executable.setDataContext(dataContext);
-    executable.reduce(rexBuilder, constExps, reducedValues);
+      final RexExecutable executable = new RexExecutable(code, constExps);
+      executable.setDataContext(dataContext);
+      executable.reduce(rexBuilder, constExps, reducedValues);
+    } catch (RuntimeException ex) {
+      // Something went wrong during constant reduction (for example,
+      // we may have attempted a division by zero).
+      // Give up doing the reduction and return constExps unchanged.
+      // This effectively moves the error from compile time to runtime.
+      // We could give a warning here if there was a mechanism for warnings.
+      reducedValues.clear();
+      reducedValues.addAll(constExps);
+    }
   }
 
   /**
@@ -156,14 +172,14 @@ public class RexExecutorImpl implements RexExecutor {
     }
 
     @Override public Expression field(BlockBuilder list, int index, @Nullable Type storageType) {
-      MethodCallExpression recFromCtx = Expressions.call(
-          DataContext.ROOT,
-          BuiltInMethod.DATA_CONTEXT_GET.method,
-          Expressions.constant("inputRecord"));
+      MethodCallExpression recFromCtx =
+          Expressions.call(DataContext.ROOT,
+              BuiltInMethod.DATA_CONTEXT_GET.method,
+              Expressions.constant("inputRecord"));
       Expression recFromCtxCasted =
           EnumUtils.convert(recFromCtx, Object[].class);
-      IndexExpression recordAccess = Expressions.arrayIndex(recFromCtxCasted,
-          Expressions.constant(index));
+      IndexExpression recordAccess =
+          Expressions.arrayIndex(recFromCtxCasted, Expressions.constant(index));
       if (storageType == null) {
         final RelDataType fieldType =
             rowType.getFieldList().get(index).getType();

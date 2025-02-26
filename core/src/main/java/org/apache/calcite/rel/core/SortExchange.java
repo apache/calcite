@@ -26,7 +26,7 @@ import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 
-import java.util.Objects;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Relational expression that performs {@link Exchange} and {@link Sort}
@@ -57,7 +57,7 @@ public abstract class SortExchange extends Exchange {
   protected SortExchange(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, RelDistribution distribution, RelCollation collation) {
     super(cluster, traitSet, input, distribution);
-    this.collation = Objects.requireNonNull(collation, "collation");
+    this.collation = requireNonNull(collation, "collation");
 
     assert traitSet.containsIfApplicable(collation)
         : "traits=" + traitSet + ", collation=" + collation;
@@ -97,7 +97,7 @@ public abstract class SortExchange extends Exchange {
    * <code>the_year, the_month</code> because of a known monotonicity
    * constraint among the columns. {@code getCollation} would return
    * <code>[time_id]</code> and {@code collations} would return
-   * <code>[ [time_id], [the_year, the_month] ]</code>.</p>
+   * <code>[ [time_id], [the_year, the_month] ]</code>.
    */
   public RelCollation getCollation() {
     return collation;

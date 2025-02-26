@@ -27,26 +27,30 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import org.apiguardian.api.API;
+import org.immutables.value.Value;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Planner rule that matches a {@link Filter} expression with correlated variables, and rewrites the
- * condition in a simpler form that is more convenient for the decorrelation logic.
+ * Planner rule that matches a {@link Filter} expression with correlated
+ * variables, and rewrites the condition in a simpler form that is more
+ * convenient for the decorrelation logic.
  *
- * <p>Uncorrelated calls below a comparison operator are turned into input references by extracting
- * the computation in a {@link org.apache.calcite.rel.core.Project} expression. An additional
- * projection may be added on top of the new filter to retain expression equivalence.</p>
+ * <p>Uncorrelated calls below a comparison operator are turned into input
+ * references by extracting the computation in a
+ * {@link org.apache.calcite.rel.core.Project} expression. An additional
+ * projection may be added on top of the new filter to retain expression
+ * equivalence.
  *
- * <p>Sub-plan before</p>
+ * <p>Sub-plan before
  * <pre>
  * LogicalProject($f0=[true])
  *   LogicalFilter(condition=[=($cor0.DEPTNO, +($7, 30))])
  *     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
  * </pre>
  *
- * <p>Sub-plan after</p>
+ * <p>Sub-plan after
  * <pre>
  * LogicalProject($f0=[true])
  *   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2],..., COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -55,12 +59,14 @@ import java.util.List;
  *         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
  * </pre>
  *
- * <p>The rule should be used in conjunction with other rules and transformations to have a positive
- * impact on the plan. At the moment it is tightly connected with the decorrelation logic and may
- * not be useful in a broader context. Projects may implement decorrelation differently so they may
- * choose to use this rule or not.</p>
+ * <p>The rule should be used in conjunction with other rules and
+ * transformations to have a positive impact on the plan. At the moment it is
+ * tightly connected with the decorrelation logic and may not be useful in a
+ * broader context. Projects may implement decorrelation differently so they may
+ * choose to use this rule or not.
  */
 @API(since = "1.27", status = API.Status.EXPERIMENTAL)
+@Value.Enclosing
 public final class FilterFlattenCorrelatedConditionRule
     extends RelRule<FilterFlattenCorrelatedConditionRule.Config> {
 
@@ -135,9 +141,10 @@ public final class FilterFlattenCorrelatedConditionRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT =
-        EMPTY.withOperandSupplier(op -> op.operand(Filter.class).anyInputs()).as(Config.class);
+    Config DEFAULT = ImmutableFilterFlattenCorrelatedConditionRule.Config.of()
+        .withOperandSupplier(op -> op.operand(Filter.class).anyInputs());
 
     @Override default FilterFlattenCorrelatedConditionRule toRule() {
       return new FilterFlattenCorrelatedConditionRule(this);

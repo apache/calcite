@@ -74,6 +74,7 @@ public class RexCallBinding extends SqlOperatorBinding {
             : call.getOperands();
     switch (call.getKind()) {
     case CAST:
+    case SAFE_CAST:
       return new RexCastCallBinding(typeFactory, call.getOperator(),
           operands, call.getType(), inputCollations);
     default:

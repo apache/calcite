@@ -28,6 +28,8 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import org.immutables.value.Value;
+
 /**
  * Rule to add a semi-join into a join. Transformation is as follows:
  *
@@ -39,6 +41,7 @@ import com.google.common.collect.ImmutableSet;
  *
  * @see CoreRules#JOIN_ADD_REDUNDANT_SEMI_JOIN
  */
+@Value.Enclosing
 public class JoinAddRedundantSemiJoinRule
     extends RelRule<JoinAddRedundantSemiJoinRule.Config>
     implements TransformationRule {
@@ -71,7 +74,7 @@ public class JoinAddRedundantSemiJoinRule
 
     // determine if we have a valid join condition
     final JoinInfo joinInfo = origJoinRel.analyzeCondition();
-    if (joinInfo.leftKeys.size() == 0) {
+    if (joinInfo.leftKeys.isEmpty()) {
       return;
     }
 
@@ -96,8 +99,9 @@ public class JoinAddRedundantSemiJoinRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableJoinAddRedundantSemiJoinRule.Config.of()
         .withOperandFor(LogicalJoin.class);
 
     @Override default JoinAddRedundantSemiJoinRule toRule() {

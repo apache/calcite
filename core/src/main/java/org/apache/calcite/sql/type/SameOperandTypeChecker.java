@@ -37,7 +37,9 @@ import static org.apache.calcite.util.Static.RESOURCE;
 import static java.util.Objects.requireNonNull;
 
 /**
- * Parameter type-checking strategy where all operand types must be the same.
+ * Parameter type-checking strategy where the type of operand I must
+ * be <b>comparable</b> with the type of operand I-1, for all legal values of I.
+ * See {@link SqlTypeUtil#isComparable} for a definition of "comparable" types.
  */
 public class SameOperandTypeChecker implements SqlSingleOperandTypeChecker {
   //~ Instance fields --------------------------------------------------------
@@ -52,14 +54,6 @@ public class SameOperandTypeChecker implements SqlSingleOperandTypeChecker {
   }
 
   //~ Methods ----------------------------------------------------------------
-
-  @Override public Consistency getConsistency() {
-    return Consistency.NONE;
-  }
-
-  @Override public boolean isOptional(int i) {
-    return false;
-  }
 
   @Override public boolean checkOperandTypes(
       SqlCallBinding callBinding,
@@ -124,7 +118,6 @@ public class SameOperandTypeChecker implements SqlSingleOperandTypeChecker {
     return checkOperandTypesImpl(operatorBinding, false, null);
   }
 
-  // implement SqlOperandTypeChecker
   @Override public SqlOperandCountRange getOperandCountRange() {
     if (nOperands == -1) {
       return SqlOperandCountRanges.any();

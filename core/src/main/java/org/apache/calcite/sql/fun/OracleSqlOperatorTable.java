@@ -19,7 +19,9 @@ package org.apache.calcite.sql.fun;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import com.google.common.base.Suppliers;
+
+import java.util.function.Supplier;
 
 /**
  * Operator table that contains only Oracle-specific functions and operators.
@@ -33,9 +35,11 @@ public class OracleSqlOperatorTable extends ReflectiveSqlOperatorTable {
   //~ Static fields/initializers ---------------------------------------------
 
   /**
-   * The table of contains Oracle-specific operators.
+   * The table of Oracle-specific operators.
    */
-  private static @Nullable OracleSqlOperatorTable instance;
+  private static final Supplier<OracleSqlOperatorTable> INSTANCE =
+      Suppliers.memoize(() ->
+          (OracleSqlOperatorTable) new OracleSqlOperatorTable().init());
 
   @Deprecated // to be removed before 2.0
   public static final SqlFunction DECODE = SqlLibraryOperators.DECODE;
@@ -64,16 +68,7 @@ public class OracleSqlOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * Returns the Oracle operator table, creating it if necessary.
    */
-  public static synchronized OracleSqlOperatorTable instance() {
-    OracleSqlOperatorTable instance = OracleSqlOperatorTable.instance;
-    if (instance == null) {
-      // Creates and initializes the standard operator table.
-      // Uses two-phase construction, because we can't initialize the
-      // table until the constructor of the sub-class has completed.
-      instance = new OracleSqlOperatorTable();
-      instance.init();
-      OracleSqlOperatorTable.instance = instance;
-    }
-    return instance;
+  public static OracleSqlOperatorTable instance() {
+    return INSTANCE.get();
   }
 }
