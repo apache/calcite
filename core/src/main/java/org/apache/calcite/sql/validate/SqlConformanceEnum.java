@@ -415,6 +415,7 @@ public enum SqlConformanceEnum implements SqlConformance {
 
     switch (this) {
     case BIG_QUERY:
+    case SPARK:
       return false;
     default:
       return true;

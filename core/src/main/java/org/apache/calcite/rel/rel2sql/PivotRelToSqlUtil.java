@@ -87,9 +87,20 @@ public class PivotRelToSqlUtil {
     SqlNodeList pivotInClauseValueNodes =
         getPivotInClauseValueNodes(selectColumnList, aggregateInClauseFieldList);
 
+    SqlNodeList modifiedInClauseNodeList = new SqlNodeList(SqlParserPos.ZERO);
+    int valueList2size = ((PivotRelTrait) pivotRelTrait.get()).valueListFromInputRelSize;
+
+    if (valueList2size > 0 && pivotInClauseValueNodes.size() > valueList2size) {
+      modifiedInClauseNodeList.addAll(
+          pivotInClauseValueNodes.subList(0,
+          pivotInClauseValueNodes.size() - valueList2size));
+    } else {
+      modifiedInClauseNodeList = pivotInClauseValueNodes;
+    }
+
     //create Pivot Node
     return wrapSqlPivotInSqlSelectSqlNode(
-        builder, query, pivotAggregateColumnList, axisNodeList, pivotInClauseValueNodes);
+        builder, query, pivotAggregateColumnList, axisNodeList, modifiedInClauseNodeList);
   }
 
   private SqlNode wrapSqlPivotInSqlSelectSqlNode(
@@ -197,24 +208,33 @@ public class PivotRelToSqlUtil {
       return new SqlNodeList(modifiedAxisNodeList, pos);
     }
 
-    SqlBasicCall axisNodeList =
-        ((SqlBasicCall) pivotColumnAggregation.getOperandList().get(0)).operand(0);
+    SqlNode axisNodeListNode = pivotColumnAggregation.operand(0);
 
-    axisNodeList = axisNodeList.getOperator().kind == SqlKind.EQUALS
-        ? (SqlBasicCall) axisNodeList.getOperandList().get(0)
-        : axisNodeList;
+    if (axisNodeListNode instanceof SqlBasicCall) {
+      SqlBasicCall axisNodeList = (SqlBasicCall) axisNodeListNode;
 
-    if (axisNodeList.getOperator().kind == SqlKind.AS) {
-      if (!(axisNodeList.operand(1) instanceof SqlIdentifier)) {
-        modifiedAxisNodeList.add(
-            new SqlIdentifier(
-                axisNodeList.operand(1).toString().replaceAll("'", ""),
-                SqlParserPos.QUOTED_ZERO));
-      } else {
-        modifiedAxisNodeList.add(axisNodeList);
+      if (axisNodeList.getOperator().kind == SqlKind.EQUALS) {
+        SqlNode leftOperand = axisNodeList.operand(0);
+        axisNodeList =
+            (leftOperand instanceof SqlBasicCall) ? (SqlBasicCall) leftOperand : axisNodeList;
       }
-    } else {
-      modifiedAxisNodeList.add(new SqlIdentifier(axisNodeList.toString(), SqlParserPos.QUOTED_ZERO));
+
+      if (axisNodeList.getOperator().kind == SqlKind.AS) {
+        SqlNode aliasNode = axisNodeList.operand(1);
+        if (aliasNode instanceof SqlIdentifier) {
+          modifiedAxisNodeList.add(axisNodeList);
+        } else {
+          modifiedAxisNodeList.add(
+              new SqlIdentifier(aliasNode.toString().replaceAll("'", ""),
+              SqlParserPos.QUOTED_ZERO));
+        }
+      } else {
+        modifiedAxisNodeList.add(
+            new SqlIdentifier(axisNodeList.toString(),
+            SqlParserPos.QUOTED_ZERO));
+      }
+    } else if (axisNodeListNode instanceof SqlIdentifier) {
+      modifiedAxisNodeList.add(axisNodeListNode);
     }
     return new SqlNodeList(modifiedAxisNodeList, pos);
   }
