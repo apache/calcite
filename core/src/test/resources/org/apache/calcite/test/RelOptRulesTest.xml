@@ -8129,7 +8129,7 @@ LogicalProject(EXPR$0=[+($1, $3)])
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalProject($f0=[+($1, $2)])
+LogicalProject(EXPR$0=[+($1, $2)])
   LogicalAggregate(group=[{0, 1}], SS=[SUM($2)])
     LogicalProject(JOB=[$2], DEPTNO=[$7], SAL=[$5])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -8224,7 +8224,7 @@ LogicalProject(EXPR$0=[*($0, 2)], SS0=[CASE(IS NOT NULL($0), CAST($0):INTEGER NO
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalProject($f0=[*($0, 2)], $f1=[$1])
+LogicalProject(EXPR$0=[*($0, 2)], SS0=[$1])
   LogicalAggregate(group=[{}], SUM_SAL=[SUM($0)], agg#1=[$SUM0($0)])
     LogicalProject(SAL=[$5])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
