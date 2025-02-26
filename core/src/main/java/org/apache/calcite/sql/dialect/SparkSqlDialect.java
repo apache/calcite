@@ -345,6 +345,10 @@ public class SparkSqlDialect extends SqlDialect {
     return true;
   }
 
+  @Override public boolean supportsPivotTableAlias() {
+    return false;
+  }
+
   @Override public boolean supportsTimestampPrecision() {
     return false;
   }
