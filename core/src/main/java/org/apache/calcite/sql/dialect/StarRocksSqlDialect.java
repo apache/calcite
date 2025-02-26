@@ -23,6 +23,7 @@ import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.sql.SqlAbstractDateTimeLiteral;
 import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
+import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlBasicTypeNameSpec;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
@@ -31,8 +32,11 @@ import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
+
+import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -127,6 +131,52 @@ public class StarRocksSqlDialect extends MysqlSqlDialect {
           SqlFloorFunction.replaceTimeUnitOperand(call, timeUnit.name(),
               timeUnitNode.getParserPosition());
       SqlFloorFunction.unparseDatetimeFunction(writer, newCall, "DATE_TRUNC", false);
+      break;
+    case IS_TRUE:
+      // A IS TRUE -> A IS NOT NULL AND A
+      SqlCall isNotNullFunc =
+          new SqlBasicCall(SqlStdOperatorTable.IS_NOT_NULL,
+              ImmutableList.of(call.operand(0)), SqlParserPos.ZERO);
+      SqlCall andFunc =
+          new SqlBasicCall(SqlStdOperatorTable.AND,
+              ImmutableList.of(isNotNullFunc, call.operand(0)), SqlParserPos.ZERO);
+      andFunc.unparse(writer, leftPrec, rightPrec);
+      break;
+    case IS_NOT_TRUE:
+      // A IS NOT TRUE -> A IS NULL OR NOT A
+      SqlCall isNullFunc =
+          new SqlBasicCall(SqlStdOperatorTable.IS_NULL,
+              ImmutableList.of(call.operand(0)), SqlParserPos.ZERO);
+      SqlCall notFunc =
+          new SqlBasicCall(SqlStdOperatorTable.NOT,
+              ImmutableList.of(call.operand(0)), SqlParserPos.ZERO);
+      SqlCall orFunc =
+          new SqlBasicCall(SqlStdOperatorTable.OR,
+              ImmutableList.of(isNullFunc, notFunc), SqlParserPos.ZERO);
+      orFunc.unparse(writer, leftPrec, rightPrec);
+      break;
+    case IS_FALSE:
+      // A IS FALSE -> A IS NOT NULL AND NOT A
+      SqlCall isNotNullFunc1 =
+          new SqlBasicCall(SqlStdOperatorTable.IS_NOT_NULL,
+              ImmutableList.of(call.operand(0)), SqlParserPos.ZERO);
+      SqlCall notFunc1 =
+          new SqlBasicCall(SqlStdOperatorTable.NOT,
+              ImmutableList.of(call.operand(0)), SqlParserPos.ZERO);
+      SqlCall andFunc1 =
+          new SqlBasicCall(SqlStdOperatorTable.AND,
+              ImmutableList.of(isNotNullFunc1, notFunc1), SqlParserPos.ZERO);
+      andFunc1.unparse(writer, leftPrec, rightPrec);
+      break;
+    case IS_NOT_FALSE:
+      // A IS NOT FALSE -> A IS NULL OR A
+      SqlCall isNullFunc1 =
+          new SqlBasicCall(SqlStdOperatorTable.IS_NULL,
+              ImmutableList.of(call.operand(0)), SqlParserPos.ZERO);
+      SqlCall orFunc1 =
+          new SqlBasicCall(SqlStdOperatorTable.OR,
+              ImmutableList.of(isNullFunc1, call.operand(0)), SqlParserPos.ZERO);
+      orFunc1.unparse(writer, leftPrec, rightPrec);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
