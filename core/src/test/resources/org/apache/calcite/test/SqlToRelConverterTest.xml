@@ -5264,6 +5264,19 @@ LogicalProject(SKILL=[ROW($0)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testNestedWindowAggWithIdentifierExpansionDisabled">
+    <Resource name="sql">
+      <![CDATA[select sum(sum(sal)) over() from emp]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[CASE(>(COUNT($0) OVER (), 0), SUM($0) OVER (), null:INTEGER)])
+  LogicalAggregate(group=[{}], agg#0=[SUM($0)])
+    LogicalProject(SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testNoTypeCoercionForExactMatchInCompositeTypeChecker">
     <Resource name="sql">
       <![CDATA[SELECT COMPARE_STRINGS_OR_NUMERIC_VALUES(1, 1)]]>
