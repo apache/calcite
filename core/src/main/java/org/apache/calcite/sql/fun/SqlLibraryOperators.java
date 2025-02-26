@@ -3652,16 +3652,12 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(SqlTypeFamily.NUMERIC),
           SqlFunctionCategory.NUMERIC);
 
-  @LibraryOperator(libraries = {BIG_QUERY, ORACLE})
-  public static final SqlFunction EDIT_DISTANCE =
-      new SqlFunction("EDIT_DISTANCE",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.INTEGER_NULLABLE, null,
-          OperandTypes.family(
-              ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
-                  SqlTypeFamily.INTEGER),
-              number -> number == 2),
-          SqlFunctionCategory.NUMERIC);
+  /**
+   * The EDIT_DISTANCE(string1, string2 [, ci, cd, cs, ct ])
+   * measures the similarity between two strings.
+   * */
+  @LibraryOperator(libraries = {BIG_QUERY, ORACLE, TERADATA})
+  public static final SqlFunction EDIT_DISTANCE = new SqlEditDistanceFunction();
 
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction GENERATE_UUID =
