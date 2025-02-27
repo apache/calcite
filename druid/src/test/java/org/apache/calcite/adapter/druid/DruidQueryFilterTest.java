@@ -95,10 +95,10 @@ class DruidQueryFilterTest {
             f.rexBuilder.makeExactLiteral(BigDecimal.valueOf(5)),
             f.rexBuilder.makeLiteral("value1"));
 
-    RexNode inRexNode =
+    RexNode notInRexNode =
         f.rexBuilder.makeCall(SqlInternalOperators.DRUID_NOT_IN, listRexNodes);
     DruidJsonFilter returnValue = DruidJsonFilter
-        .toDruidFilters(inRexNode, f.varcharRowType, druidQuery, f.rexBuilder);
+        .toDruidFilters(notInRexNode, f.varcharRowType, druidQuery, f.rexBuilder);
     assertThat("Filter is null", returnValue, notNullValue());
     JsonFactory jsonFactory = new JsonFactory();
     final StringWriter sw = new StringWriter();
@@ -107,8 +107,8 @@ class DruidQueryFilterTest {
     jsonGenerator.close();
 
     assertThat(sw,
-        hasToString("{\"type\":\"not_in\",\"dimension\":\"dimensionName\","
-            + "\"values\":[\"1\",\"5\",\"value1\"]}"));
+        hasToString("{\"type\":\"not\",\"field\":{\"type\":\"in\",\"dimension\":" +
+            "\"dimensionName\",\"values\":[\"1\",\"5\",\"value1\"]}}"));
   }
 
   @Test void testBetweenFilterStringCase() throws IOException {
