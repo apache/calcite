@@ -764,6 +764,10 @@ public class RelToSqlConverter extends SqlImplementor
     PivotRelTrait pivotRelTrait = e.getTraitSet().getTrait(PivotRelTraitDef.instance);
     if (pivotRelTrait != null && pivotRelTrait.isPivotRel()) {
       List<SqlNode> selectList = builder.select.getSelectList();
+      int valueList2size = pivotRelTrait.getValueListFromInputRelSize();
+      if (valueList2size > 0 && selectList.size() >= valueList2size) {
+        selectList = selectList.subList(0, selectList.size() - valueList2size);
+      }
       List<SqlNode> aggregateInClauseFieldList = new ArrayList<>();
 
       if (pivotRelTrait.hasSubquery()) {
@@ -772,7 +776,7 @@ public class RelToSqlConverter extends SqlImplementor
             .collect(Collectors.toList());
 
         List<SqlNode> updatedSelectList =
-            filterSelectList(builder.select.getSelectList(), aggNames, aggregateInClauseFieldList);
+            filterSelectList(selectList, aggNames, aggregateInClauseFieldList);
         builder.setSelect(new SqlNodeList(updatedSelectList, POS));
       }
 
@@ -810,11 +814,6 @@ public class RelToSqlConverter extends SqlImplementor
     SqlBasicCall firstBasicCall = (SqlBasicCall) firstOperand;
     boolean isAsCall = firstBasicCall.getOperandList().size() > 1;
     if (!isAsCall) {
-      if (firstBasicCall.operand(0) instanceof SqlBasicCall) {
-        SqlBasicCall nestedCall = firstBasicCall.operand(0);
-        return nestedCall.getOperandList().size() <= 1
-            || !(nestedCall.getOperandList().get(1) instanceof SqlIdentifier);
-      }
       return true;
     }
 

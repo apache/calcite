@@ -24,7 +24,7 @@ public class PivotRelTrait implements RelTrait {
   private boolean isPivotRel;
   private boolean hasSubquery;
   private String pivotAlias;
-  public int valueListFromInputRelSize;
+  private int valueListFromInputRelSize;
 
   public PivotRelTrait(boolean isPivotRel, boolean hasSubquery, String pivotAlias, int valueListFromInputRelSize) {
     this.isPivotRel = isPivotRel;
@@ -43,6 +43,10 @@ public class PivotRelTrait implements RelTrait {
 
   public final boolean isPivotRel() {
     return isPivotRel;
+  }
+
+  public int getValueListFromInputRelSize() {
+    return valueListFromInputRelSize;
   }
 
   @Override public RelTraitDef<PivotRelTrait> getTraitDef() {
