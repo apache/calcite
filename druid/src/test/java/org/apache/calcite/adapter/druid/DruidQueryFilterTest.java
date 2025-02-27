@@ -107,8 +107,8 @@ class DruidQueryFilterTest {
     jsonGenerator.close();
 
     assertThat(sw,
-        hasToString("{\"type\":\"not\",\"field\":{\"type\":\"in\",\"dimension\":" +
-            "\"dimensionName\",\"values\":[\"1\",\"5\",\"value1\"]}}"));
+        hasToString("{\"type\":\"not\",\"field\":{\"type\":\"in\",\"dimension\":"
+            + "\"dimensionName\",\"values\":[\"1\",\"5\",\"value1\"]}}"));
   }
 
   @Test void testBetweenFilterStringCase() throws IOException {
