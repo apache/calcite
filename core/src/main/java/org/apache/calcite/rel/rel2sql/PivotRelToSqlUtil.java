@@ -199,7 +199,7 @@ public class PivotRelToSqlUtil {
 
     SqlNode axisSqlNodeList =  ((SqlBasicCall) pivotColumnAggregation.getOperandList().get(0)).operand(0);
 
-    if(axisSqlNodeList instanceof SqlIdentifier) {
+    if (axisSqlNodeList instanceof SqlIdentifier) {
       modifiedAxisNodeList.add(axisSqlNodeList);
       return new SqlNodeList(modifiedAxisNodeList, pos);
     }
