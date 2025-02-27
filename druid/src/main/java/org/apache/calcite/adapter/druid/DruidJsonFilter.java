@@ -276,6 +276,7 @@ abstract class DruidJsonFilter implements DruidJson {
       throw new AssertionError(
           DruidQuery.format("Expecting IN or NOT IN but got [%s]", e.getKind()));
     }
+
     ImmutableList.Builder<String> listBuilder = ImmutableList.builder();
     for (RexNode rexNode : ((RexCall) e).getOperands()) {
       if (rexNode.getKind() == SqlKind.LITERAL) {
@@ -294,7 +295,7 @@ abstract class DruidJsonFilter implements DruidJson {
     if (columnName == null) {
       return null;
     }
-    if (e.getKind() != SqlKind.NOT_IN) {
+    if (e.getKind() != SqlKind.DRUID_NOT_IN) {
       return new DruidJsonFilter.JsonInFilter(columnName, listBuilder.build(), extractionFunction);
     } else {
       return toNotDruidFilter(
