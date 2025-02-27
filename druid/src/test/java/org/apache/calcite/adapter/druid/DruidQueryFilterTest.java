@@ -87,6 +87,30 @@ class DruidQueryFilterTest {
             + "\"values\":[\"1\",\"5\",\"value1\"]}"));
   }
 
+  @Test void testNotInFilter() throws IOException {
+    final Fixture f = new Fixture();
+    final List<? extends RexNode> listRexNodes =
+        ImmutableList.of(f.rexBuilder.makeInputRef(f.varcharRowType, 0),
+            f.rexBuilder.makeExactLiteral(BigDecimal.valueOf(1)),
+            f.rexBuilder.makeExactLiteral(BigDecimal.valueOf(5)),
+            f.rexBuilder.makeLiteral("value1"));
+
+    RexNode notInRexNode =
+        f.rexBuilder.makeCall(SqlInternalOperators.DRUID_NOT_IN, listRexNodes);
+    DruidJsonFilter returnValue = DruidJsonFilter
+        .toDruidFilters(notInRexNode, f.varcharRowType, druidQuery, f.rexBuilder);
+    assertThat("Filter is null", returnValue, notNullValue());
+    JsonFactory jsonFactory = new JsonFactory();
+    final StringWriter sw = new StringWriter();
+    JsonGenerator jsonGenerator = jsonFactory.createGenerator(sw);
+    returnValue.write(jsonGenerator);
+    jsonGenerator.close();
+
+    assertThat(sw,
+        hasToString("{\"type\":\"not\",\"field\":{\"type\":\"in\",\"dimension\":"
+            + "\"dimensionName\",\"values\":[\"1\",\"5\",\"value1\"]}}"));
+  }
+
   @Test void testBetweenFilterStringCase() throws IOException {
     final Fixture f = new Fixture();
     final List<RexNode> listRexNodes =
