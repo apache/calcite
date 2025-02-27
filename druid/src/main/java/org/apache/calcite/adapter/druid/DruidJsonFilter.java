@@ -268,14 +268,11 @@ abstract class DruidJsonFilter implements DruidJson {
 
   private static @Nullable DruidJsonFilter toInKindDruidFilter(RexNode e, RelDataType rowType,
       DruidQuery druidQuery) {
-    switch (e.getKind()) {
-    case DRUID_IN:
-    case DRUID_NOT_IN:
-      break;
-    default:
+    if (e.getKind() != SqlKind.DRUID_IN && e.getKind() != SqlKind.DRUID_NOT_IN) {
       throw new AssertionError(
           DruidQuery.format("Expecting IN or NOT IN but got [%s]", e.getKind()));
     }
+
     ImmutableList.Builder<String> listBuilder = ImmutableList.builder();
     for (RexNode rexNode : ((RexCall) e).getOperands()) {
       if (rexNode.getKind() == SqlKind.LITERAL) {
@@ -294,11 +291,11 @@ abstract class DruidJsonFilter implements DruidJson {
     if (columnName == null) {
       return null;
     }
-    if (e.getKind() != SqlKind.NOT_IN) {
+    if (e.getKind() == SqlKind.DRUID_IN) {
       return new DruidJsonFilter.JsonInFilter(columnName, listBuilder.build(), extractionFunction);
     } else {
-      return toNotDruidFilter(
-          new DruidJsonFilter.JsonInFilter(columnName, listBuilder.build(), extractionFunction));
+      return new DruidJsonFilter.JsonNotInFilter(columnName,
+          listBuilder.build(), extractionFunction);
     }
   }
 
@@ -440,6 +437,7 @@ abstract class DruidJsonFilter implements DruidJson {
     NOT,
     SELECTOR,
     IN,
+    NOT_IN,
     BOUND,
     EXPRESSION;
 
@@ -612,6 +610,34 @@ abstract class DruidJsonFilter implements DruidJson {
     protected JsonInFilter(String dimension, List<String> values,
         ExtractionFunction extractionFunction) {
       super(Type.IN);
+      this.dimension = dimension;
+      this.values = values;
+      this.extractionFunction = extractionFunction;
+    }
+
+    @Override public void write(JsonGenerator generator) throws IOException {
+      generator.writeStartObject();
+      generator.writeStringField("type", type.lowercase());
+      generator.writeStringField("dimension", dimension);
+      DruidQuery.writeField(generator, "values", values);
+      DruidQuery.writeFieldIf(generator, "extractionFn", extractionFunction);
+      generator.writeEndObject();
+    }
+  }
+
+  /**
+   * NOT IN filter.
+   */
+  protected static class JsonNotInFilter extends DruidJsonFilter {
+    private final String dimension;
+
+    private final List<String> values;
+
+    private final ExtractionFunction extractionFunction;
+
+    protected JsonNotInFilter(String dimension, List<String> values,
+        ExtractionFunction extractionFunction) {
+      super(Type.NOT_IN);
       this.dimension = dimension;
       this.values = values;
       this.extractionFunction = extractionFunction;
