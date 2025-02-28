@@ -9517,6 +9517,22 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
 
+  @Test public void testIsoFormats() {
+    final RelBuilder builder = relBuilder();
+
+    final RexNode toCharNodeIsoFormat =
+        builder.call(SqlLibraryOperators.FORMAT_DATE,
+            builder.literal(SqlDateTimeFormat.FOURDIGITISOYEAR.value + "@" + SqlDateTimeFormat.ISOWEEK.value),
+            builder.call(CURRENT_DATE));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(toCharNodeIsoFormat)
+        .build();
+    final String expectedBQQuery = "SELECT FORMAT_DATE('%V%G', CURRENT_DATE) AS `$f0`\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQQuery));
+  }
+
   @Test public void testToDateforOracle() {
     RelBuilder builder = relBuilder().scan("EMP");
     final RexNode oracleToDateCall =
