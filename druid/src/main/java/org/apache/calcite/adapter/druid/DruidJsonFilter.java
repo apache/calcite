@@ -295,7 +295,7 @@ abstract class DruidJsonFilter implements DruidJson {
     if (columnName == null) {
       return null;
     }
-    if (e.getKind() != SqlKind.DRUID_NOT_IN) {
+    if (e.getKind() == SqlKind.DRUID_IN) {
       return new DruidJsonFilter.JsonInFilter(columnName, listBuilder.build(), extractionFunction);
     } else {
       return toNotDruidFilter(

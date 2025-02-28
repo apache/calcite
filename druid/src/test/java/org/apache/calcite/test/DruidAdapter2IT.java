@@ -1103,6 +1103,52 @@ public class DruidAdapter2IT {
             "state_province=WA; city=Yakima; product_name=High Top Dried Mushrooms");
   }
 
+  @Test void testNotInFilter() {
+    final String sql = "select \"state_province\", \"city\",\n"
+        + "  \"product_name\"\n"
+        + "from \"foodmart\"\n"
+        + "where \"product_name\" = 'High Top Dried Mushrooms'\n"
+        + "and \"quarter\" not in ('Q1', 'Q4')\n"
+        + "and \"state_province\" = 'WA'";
+    final String druidQuery = "{'queryType':'scan',"
+        + "'dataSource':'foodmart',"
+        + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],"
+        + "'filter':{'type':'and','fields':["
+        + "{'type':'selector','dimension':'product_name','value':'High Top Dried Mushrooms'},"
+        + "{'type':'not','field':{'type':'selector','dimension':'quarter','value':'Q1'}},"
+        + "{'type':'not','field':{'type':'selector','dimension':'quarter','value':'Q4'}},"
+        + "{'type':'selector','dimension':'state_province','value':'WA'}]},"
+        + "'columns':['state_province','city','product_name'],"
+        + "'resultFormat':'compactedList'}";
+    final String explain = "PLAN=EnumerableInterpreter\n"
+        + "  DruidQuery(table=[[foodmart, foodmart]], "
+        + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
+        + "filter=[AND("
+        + "=($3, 'High Top Dried Mushrooms'), "
+        + "SEARCH($87, Sarg[(-∞..'Q1':VARCHAR), ('Q1':VARCHAR..'Q4':VARCHAR), ('Q4':VARCHAR..+∞)]:VARCHAR), "
+        + "=($30, 'WA'))], "
+        + "projects=[[$30, $29, $3]])\n";
+    sql(sql)
+        .queryContains(new DruidChecker(druidQuery))
+        .explainContains(explain)
+        .returnsUnordered(
+            "state_province=WA; city=Bremerton; product_name=High Top Dried Mushrooms",
+            "state_province=WA; city=Everett; product_name=High Top Dried Mushrooms",
+            "state_province=WA; city=Kirkland; product_name=High Top Dried Mushrooms",
+            "state_province=WA; city=Lynnwood; product_name=High Top Dried Mushrooms",
+            "state_province=WA; city=Olympia; product_name=High Top Dried Mushrooms",
+            "state_province=WA; city=Port Orchard; product_name=High Top Dried Mushrooms",
+            "state_province=WA; city=Puyallup; product_name=High Top Dried Mushrooms",
+            "state_province=WA; city=Puyallup; product_name=High Top Dried Mushrooms",
+            "state_province=WA; city=Spokane; product_name=High Top Dried Mushrooms",
+            "state_province=WA; city=Spokane; product_name=High Top Dried Mushrooms",
+            "state_province=WA; city=Spokane; product_name=High Top Dried Mushrooms",
+            "state_province=WA; city=Tacoma; product_name=High Top Dried Mushrooms",
+            "state_province=WA; city=Yakima; product_name=High Top Dried Mushrooms",
+            "state_province=WA; city=Yakima; product_name=High Top Dried Mushrooms",
+            "state_province=WA; city=Yakima; product_name=High Top Dried Mushrooms");
+  }
+
   /** Tests that conditions applied to time units extracted via the EXTRACT
    * function become ranges on the timestamp column
    *
