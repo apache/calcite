@@ -3849,4 +3849,52 @@ EnumerableAggregate(group=[{}], EXPR$0=[SUM($0)])
     EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
+# [CALCITE-6834] In query that applies COALESCE to nullable SUM, EnumerableProjectToCalcRule throws AssertionError
+# sum(mgr) return TINYINT, coalesce(sum(mgr),0) return INTEGER, so need CAST
+!use scott
+select coalesce(sum(mgr),0) as m
+from emp;
+java.sql.SQLException: Error while executing SQL "select coalesce(sum(mgr),0) as m
+from emp": Value 38835 out of range
+!error
+EnumerableCalc(expr#0=[{inputs}], expr#1=[CAST($t0):INTEGER NOT NULL], M=[$t1])
+  EnumerableAggregate(group=[{}], agg#0=[$SUM0($3)])
+    EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# sum(cast(mgr as int)) return INTEGER, coalesce(sum(cast(mgr as int)),0) return INTEGER, so don't need CAST
+select coalesce(sum(cast(mgr as int)),0) as m
+from emp;
++--------+
+| M      |
++--------+
+| 100611 |
++--------+
+(1 row)
+
+!ok
+
+EnumerableAggregate(group=[{}], agg#0=[$SUM0($0)])
+  EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t3):INTEGER], $f0=[$t8])
+    EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# sum(mgr) return INTEGER, coalesce(sum(mgr),0) return BIGINT, so need CAST
+select coalesce(sum(cast(mgr as int)),cast(0 as bigint)) as m
+from emp;
++--------+
+| M      |
++--------+
+| 100611 |
++--------+
+(1 row)
+
+!ok
+
+EnumerableCalc(expr#0=[{inputs}], expr#1=[CAST($t0):BIGINT NOT NULL], M=[$t1])
+  EnumerableAggregate(group=[{}], agg#0=[$SUM0($0)])
+    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t3):INTEGER], $f0=[$t8])
+      EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
 # End agg.iq
