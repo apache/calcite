@@ -9528,7 +9528,7 @@ class RelToSqlConverterDMTest {
         .scan("EMP")
         .project(toCharNodeIsoFormat)
         .build();
-    final String expectedBQQuery = "SELECT FORMAT_DATE('%V%G', CURRENT_DATE) AS `$f0`\n"
+    final String expectedBQQuery = "SELECT FORMAT_DATE('%G%V', CURRENT_DATE) AS `$f0`\n"
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQQuery));
   }
