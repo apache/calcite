@@ -19,6 +19,7 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilderFactory;
@@ -29,6 +30,14 @@ import org.immutables.value.Value;
  * Planner rule that,
  * given a {@link org.apache.calcite.rel.core.Project} node that
  * merely returns its input, converts the node into its child.
+ *
+ * <p>Project does not include aliases when calculating digest that can see
+ * {@link org.apache.calcite.rel.core.Project#explainTerms(RelWriter)}}
+ * and {@link org.apache.calcite.rel.AbstractRelNode} method {@code getDigestItems()},
+ * which will cause aliases to be lost after ProjectRemoveRule is executed.
+ * But this does not matter, the top-level aliases will be recorded in RelRoot,
+ * and we can use {@link org.apache.calcite.rel.RelRoot#project(boolean)} method to get aliases.
+ * This design is to allow the optimizer to reuse Projects.
  *
  * <p>For example, <code>Project(ArrayReader(a), {$input0})</code> becomes
  * <code>ArrayReader(a)</code>.
