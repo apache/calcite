@@ -818,15 +818,17 @@ from (
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalAggregate(group=[{}], agg#0=[$SUM0($2)])
-  LogicalAggregate(group=[{3, 7}], COUNT_COMM=[COUNT()])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+LogicalProject(EXPR$0=[$0])
+  LogicalAggregate(group=[{}], agg#0=[$SUM0($2)])
+    LogicalAggregate(group=[{3, 7}], COUNT_COMM=[COUNT()])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalAggregate(group=[{}], agg#0=[COUNT()])
-  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+LogicalProject(EXPR$0=[$0])
+  LogicalAggregate(group=[{}], agg#0=[COUNT()])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
@@ -9022,9 +9024,32 @@ LogicalProject(SS0=[CASE(IS NOT NULL($0), CAST($0):INTEGER NOT NULL, 0)])
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalAggregate(group=[{}], agg#0=[$SUM0($0)])
-  LogicalProject(SAL=[$5])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+LogicalProject(SS0=[$0])
+  LogicalAggregate(group=[{}], agg#0=[$SUM0($0)])
+    LogicalProject(SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testProjectAggregateMergeSum01">
+    <Resource name="sql">
+      <![CDATA[select coalesce(sum(cast(mgr as tinyint)), 0) as ss0
+from sales.emp]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(SS0=[CASE(IS NOT NULL($0), CAST($0):INTEGER NOT NULL, 0)])
+  LogicalAggregate(group=[{}], agg#0=[SUM($0)])
+    LogicalProject($f0=[CAST($3):TINYINT])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(SS0=[CAST($0):INTEGER NOT NULL])
+  LogicalAggregate(group=[{}], agg#0=[$SUM0($0)])
+    LogicalProject($f0=[CAST($3):TINYINT])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
