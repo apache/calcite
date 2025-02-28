@@ -3976,4 +3976,22 @@ public abstract class SqlLibraryOperators {
           null,
           OperandTypes.STRING,
           SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {HIVE, SPARK})
+  public static final SqlFunction EXPLODE =
+      SqlBasicFunction.create("EXPLODE",
+          ReturnTypes.ARG0
+              .andThen(SqlTypeTransforms.TO_ARRAY_NULLABLE),
+          OperandTypes.STRING,
+          SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {SQL_SERVER})
+  public static final SqlFunction PATINDEX =
+      new SqlFunction(
+          "PATINDEX",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE,
+          null,
+          OperandTypes.STRING_STRING,
+          SqlFunctionCategory.STRING);
 }

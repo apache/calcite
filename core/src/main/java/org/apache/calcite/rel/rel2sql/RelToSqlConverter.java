@@ -86,6 +86,7 @@ import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlMerge;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlPivot;
 import org.apache.calcite.sql.SqlSampleSpec;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSpecialOperator;
@@ -95,6 +96,7 @@ import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
+import org.apache.calcite.sql.dialect.SparkSqlDialect;
 import org.apache.calcite.sql.fun.SqlCollectionTableOperator;
 import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
@@ -632,6 +634,8 @@ public class RelToSqlConverter extends SqlImplementor
       if ((!isStar(e.getProjects(), e.getInput().getRowType(), e.getRowType())
           || style.isExpandProjection()) && !unpivotRelToSqlUtil.isStarInUnPivot(e, x)) {
         final List<SqlNode> selectList = new ArrayList<>();
+
+        List<String> pivotColumnAliases = extractAliasesFromPivot(x);
         for (RexNode ref : e.getProjects()) {
           SqlNode sqlExpr = builder.context.toSql(null, ref);
           RelDataTypeField targetField = e.getRowType().getFieldList().get(selectList.size());
@@ -644,6 +648,10 @@ public class RelToSqlConverter extends SqlImplementor
               && targetField.getType().getSqlTypeName() != SqlTypeName.NULL) {
             sqlExpr = castNullType(sqlExpr, targetField.getType());
           }
+          if (pivotColumnAliases.contains(targetField.getKey())) {
+            int index = pivotColumnAliases.indexOf(targetField.getKey());
+            sqlExpr = new SqlIdentifier(pivotColumnAliases.get(index), SqlParserPos.ZERO);
+          }
           addSelect(selectList, sqlExpr, e.getRowType());
         }
 
@@ -655,6 +663,29 @@ public class RelToSqlConverter extends SqlImplementor
       result = updateCTEResult(e, result);
     }
     return adjustResultWithSubQueryAlias(e, result);
+  }
+
+  /**
+   * Extracts aliases from the inList of a SqlPivot node.
+   *
+   * @param x The Result node.
+   * @return A list of aliases extracted from the SqlPivot inList.
+   */
+  private static List<String> extractAliasesFromPivot(Result x) {
+    List<String> aliases = new ArrayList<>();
+    if (x.node instanceof SqlSelect) {
+      SqlSelect sqlSelect = (SqlSelect) x.node;
+      if (sqlSelect.getFrom() instanceof SqlPivot) {
+        SqlPivot sqlPivot = (SqlPivot) sqlSelect.getFrom();
+        aliases = sqlPivot.inList.stream()
+            .filter(SqlBasicCall.class::isInstance)
+            .map(SqlBasicCall.class::cast)
+            .filter(basicCall -> basicCall.getOperator() == SqlStdOperatorTable.AS)
+            .map(basicCall -> basicCall.operand(1).toString())
+            .collect(Collectors.toList());
+      }
+    }
+    return aliases;
   }
 
   /**
@@ -779,12 +810,29 @@ public class RelToSqlConverter extends SqlImplementor
     SqlBasicCall firstBasicCall = (SqlBasicCall) firstOperand;
     boolean isAsCall = firstBasicCall.getOperandList().size() > 1;
     if (!isAsCall) {
+      if (firstBasicCall.operand(0) instanceof SqlBasicCall) {
+        SqlBasicCall nestedCall = firstBasicCall.operand(0);
+        return nestedCall.getOperandList().size() <= 1
+            || !(nestedCall.getOperandList().get(1) instanceof SqlIdentifier);
+      }
       return true;
     }
 
     SqlNode nestedCall = firstBasicCall.operand(1);
     if (!(nestedCall instanceof SqlBasicCall) && firstBasicCall.getOperator().kind != SqlKind.EQUALS) {
       return true;
+    }
+
+    // Adding Alias in InClause and remove(return false) column from selectlist
+    if (nestedCall instanceof SqlBasicCall && ((SqlBasicCall) nestedCall).getOperator().kind == SqlKind.AS) {
+      SqlNode asNestedCall = ((SqlBasicCall) nestedCall).getOperandList().get(0);
+      String nestedCallString = asNestedCall.toString().replaceAll("'", "").toLowerCase();
+      for (String aggName : aggNames) {
+        if (aggName.replaceAll("'", "").startsWith(nestedCallString)) {
+          aggregateInClauseFieldList.add(nestedCall);
+          return false;
+        }
+      }
     }
 
     String nestedCallString = nestedCall.toString().replaceAll("'", "").toLowerCase();
@@ -1748,16 +1796,23 @@ public class RelToSqlConverter extends SqlImplementor
     }
     final Context context = tableFunctionScanContext(inputSqlNodes);
     SqlNode callNode = context.toSql(null, e.getCall());
-    // Convert to table function call, "TABLE($function_name(xxx))"
-    SqlSpecialOperator collectionTable =
-        new SqlCollectionTableOperator("TABLE", SqlModality.RELATION,
-            e.getRowType().getFieldNames().get(0));
-    SqlNode tableCall =
-        new SqlBasicCall(collectionTable,
-            new SqlNode[]{callNode},
-            SqlParserPos.ZERO);
+
+    SqlNode tableFunctionCall;
+    if (dialect instanceof SparkSqlDialect) {
+      tableFunctionCall = callNode;
+    } else {
+      // Convert to table function call, "TABLE($function_name(xxx))"
+      SqlSpecialOperator collectionTable =
+          new SqlCollectionTableOperator("TABLE", SqlModality.RELATION,
+              e.getRowType().getFieldNames().get(0));
+      tableFunctionCall =
+          new SqlBasicCall(collectionTable,
+              new SqlNode[]{callNode},
+              SqlParserPos.ZERO);
+    }
+
     SqlNode select =
-        new SqlSelect(SqlParserPos.ZERO, null, null, tableCall,
+        new SqlSelect(SqlParserPos.ZERO, null, null, tableFunctionCall,
             null, null, null, null, null, null, null, SqlNodeList.EMPTY);
     Map<String, RelDataType> aliasesMap = new HashMap<>();
     RelDataTypeField relDataTypeField = fieldList.get(0);

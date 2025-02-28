@@ -8994,6 +8994,22 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqSql));
   }
 
+  @Test public void testForPatindexFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode patindex =
+        builder.call(SqlLibraryOperators.PATINDEX, builder.literal("%abc%"), builder.literal("abcdef"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(patindex, "A"))
+        .build();
+
+    final String expectedSql = "SELECT PATINDEX('%abc%', "
+        + "'abcdef') A\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSql));
+  }
+
   @Test public void testForRegexpSimilarFunctionWithThirdArgumentAsM() {
     final RelBuilder builder = relBuilder();
     final RexNode regexpSimilar =
