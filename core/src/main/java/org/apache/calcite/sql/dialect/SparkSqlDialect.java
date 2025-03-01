@@ -224,7 +224,6 @@ public class SparkSqlDialect extends SqlDialect {
   private static final Map<String, String> UDF_MAP =
       new HashMap<String, String>() {{
         put("TO_HEX", "UDF_CHAR2HEX");
-        put("REGEXP_INSTR", "UDF_REGEXP_INSTR");
         put("REGEXP_REPLACE", "UDF_REGEXP_REPLACE");
         put("ROUND", "UDF_ROUND");
         put("STRTOK", "UDF_STRTOK");
@@ -344,6 +343,10 @@ public class SparkSqlDialect extends SqlDialect {
 
   @Override public boolean requiresColumnsInMergeInsertClause() {
     return true;
+  }
+
+  @Override public boolean supportsPivotTableAlias() {
+    return false;
   }
 
   @Override public boolean supportsTimestampPrecision() {
@@ -905,7 +908,6 @@ public class SparkSqlDialect extends SqlDialect {
       }
       break;
     case "TO_HEX":
-    case "REGEXP_INSTR":
     case "STRTOK":
       unparseUDF(writer, call, leftPrec, rightPrec, UDF_MAP.get(call.getOperator().getName()));
       return;

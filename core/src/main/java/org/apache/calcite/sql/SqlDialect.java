@@ -814,6 +814,14 @@ public class SqlDialect {
     return false;
   }
 
+  /**
+   * supportsPivotTableAlias method denote whether pivotTableAlias is supported or not
+   * SELECT * FROM query PIVOT (agg, ... FOR axis, ... IN (in, ...)) AS pivotTableAlias;
+   */
+  public boolean supportsPivotTableAlias() {
+    return true;
+  }
+
   public boolean supportsUnpivot() {
     return false;
   }

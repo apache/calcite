@@ -19,6 +19,7 @@ package org.apache.calcite.rel.rel2sql;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.plan.AdditionalProjectionTraitDef;
 import org.apache.calcite.plan.CTEDefinationTrait;
 import org.apache.calcite.plan.CTEDefinationTraitDef;
 import org.apache.calcite.plan.CTEScopeTrait;
@@ -2288,6 +2289,9 @@ public abstract class SqlImplementor {
         Set<Clause> expectedClauses) {
       if (clauses.isEmpty()) {
         return false;
+      }
+      if (rel.getTraitSet().getTrait(AdditionalProjectionTraitDef.instance) != null) {
+        return true;
       }
       final Clause maxClause = Collections.max(clauses);
 
