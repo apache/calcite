@@ -37,6 +37,7 @@ import org.apache.calcite.rel.rules.AggregateJoinTransposeRule;
 import org.apache.calcite.rel.rules.AggregateProjectMergeRule;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.rules.FilterJoinRule;
+import org.apache.calcite.rel.rules.IntersectToExistsRule;
 import org.apache.calcite.rel.rules.ProjectOverSumToSum0Rule;
 import org.apache.calcite.rel.rules.ProjectToWindowRule;
 import org.apache.calcite.rel.rules.PruneEmptyRules;
@@ -242,6 +243,33 @@ class RelToSqlConverterTest {
     String query = "SELECT CAST(0.1E0 AS DOUBLE), CAST(0.1E0 AS REAL), CAST(0.1E0 AS DOUBLE)";
     String expected = "SELECT 1E-1, 1E-1, 1E-1";
     sql(query).withMysql().ok(expected);
+  }
+
+  /**
+   * Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6836">[CALCITE-6836]
+   * Add Rule to convert INTERSECT to EXISTS</a>. */
+  @Test void testIntersectToExistsRule() {
+    String query = "SELECT \"product_name\"\n"
+            + "FROM \"foodmart\".\"product\"\n"
+            + "INTERSECT\n"
+            + "SELECT \"product_name\"\n"
+            + "FROM \"foodmart\".\"product\"";
+    String expected = "SELECT `product_name`\n"
+            + "FROM (SELECT `product_name`\n"
+            + "FROM `foodmart`.`product`) AS `t`\n"
+            + "WHERE EXISTS (SELECT *\n"
+            + "FROM (SELECT `product_name`\n"
+            + "FROM `foodmart`.`product`) AS `t0`\n"
+            + "WHERE `product_name` IS NOT DISTINCT FROM `t`.`product_name`)\n"
+            + "GROUP BY `product_name`";
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(IntersectToExistsRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    RuleSet rules =
+            RuleSets.ofList(CoreRules.INTERSECT_TO_EXISTS);
+
+    sql(query).withMysql().optimize(rules, hepPlanner).ok(expected);
   }
 
   @Test void testGroupByBooleanLiteral() {
