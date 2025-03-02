@@ -113,6 +113,7 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.DDMONYYYY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.DDYYYYMM;
 import static org.apache.calcite.sql.SqlDateTimeFormat.E3;
 import static org.apache.calcite.sql.SqlDateTimeFormat.E4;
+import static org.apache.calcite.sql.SqlDateTimeFormat.FOURDIGITISOYEAR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.FOURDIGITYEAR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONFIVE;
 import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONFOUR;
@@ -125,6 +126,7 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.HH24;
 import static org.apache.calcite.sql.SqlDateTimeFormat.HOUR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.HOURMINSEC;
 import static org.apache.calcite.sql.SqlDateTimeFormat.HOUR_OF_DAY_12;
+import static org.apache.calcite.sql.SqlDateTimeFormat.ISOWEEK;
 import static org.apache.calcite.sql.SqlDateTimeFormat.MILLISECONDS_4;
 import static org.apache.calcite.sql.SqlDateTimeFormat.MILLISECONDS_5;
 import static org.apache.calcite.sql.SqlDateTimeFormat.MINUTE;
@@ -328,6 +330,8 @@ public class BigQuerySqlDialect extends SqlDialect {
         put(HH24, "%H");
         put(DDMMYYYYHH24, "%d%m%Y%H");
         put(YYMMDDHH24MISS, "%y%m%d%H%M%S");
+        put(ISOWEEK, "%V");
+        put(FOURDIGITISOYEAR, "%G");
 
       }};
 
