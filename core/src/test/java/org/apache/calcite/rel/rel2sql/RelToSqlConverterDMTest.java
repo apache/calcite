@@ -12902,4 +12902,32 @@ class RelToSqlConverterDMTest {
 
     assertThat(toSql(relNode, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
+
+  @Test public void testErrorMessageFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode errorMessage =
+        builder.call(SqlLibraryOperators.ERROR_MESSAGE);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(errorMessage, "errorMessage"))
+        .build();
+    final String expectedSql = "SELECT ERROR_MESSAGE() AS [errorMessage]"
+        + "\nFROM [scott].[EMP]";
+
+    assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedSql));
+  }
+
+  @Test public void testErrorMessageIdFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode errorMessageId =
+        builder.call(SqlLibraryOperators.ERROR_MESSAGE_ID);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(errorMessageId, "errorMessageId"))
+        .build();
+    final String expectedSql = "SELECT @@ERROR.MESSAGE AS errorMessageId"
+        + "\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSql));
+  }
 }
