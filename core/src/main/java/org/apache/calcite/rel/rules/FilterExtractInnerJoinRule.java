@@ -149,7 +149,7 @@ public class FilterExtractInnerJoinRule
         joinConditions.addAll(((RexCall) conditions).getOperands());
       }
     }
-    if (left instanceof Join) {
+    if (left instanceof Join && !((Join) left).getJoinType().isOuterJoin()) {
       populateStackWithEndIndexesForTables((Join) left, stack, joinConditions);
     } else {
       stack.push(new ImmutableTriple<>(left, leftTableColumnSize - 1, join.getJoinType()));

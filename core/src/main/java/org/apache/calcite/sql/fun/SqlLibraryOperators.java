@@ -3757,6 +3757,26 @@ public abstract class SqlLibraryOperators {
       OperandTypes.STRING,
       SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION);
 
+  @LibraryOperator(libraries = {MSSQL})
+  public static final SqlFunction ERROR_MESSAGE =
+      new SqlFunction(
+          "ERROR_MESSAGE",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR,
+          null,
+          OperandTypes.NILADIC,
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction ERROR_MESSAGE_ID =
+      SqlBasicFunction
+          .create(
+          "@@error.message",
+          ReturnTypes.VARCHAR,
+          OperandTypes.NILADIC,
+          SqlFunctionCategory.SYSTEM)
+          .withFunctionType(SqlFunctionCategory.SYSTEM).withSyntax(SqlSyntax.FUNCTION_ID);
+
   public static SqlFunction createUDFSqlFunction(String funcName,
       SqlReturnTypeInference returnType) {
     return new SqlFunction(funcName, SqlKind.OTHER_FUNCTION, returnType,

@@ -89,7 +89,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -114,6 +113,7 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.DDMONYYYY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.DDYYYYMM;
 import static org.apache.calcite.sql.SqlDateTimeFormat.E3;
 import static org.apache.calcite.sql.SqlDateTimeFormat.E4;
+import static org.apache.calcite.sql.SqlDateTimeFormat.FOURDIGITISOYEAR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.FOURDIGITYEAR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONFIVE;
 import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONFOUR;
@@ -126,6 +126,7 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.HH24;
 import static org.apache.calcite.sql.SqlDateTimeFormat.HOUR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.HOURMINSEC;
 import static org.apache.calcite.sql.SqlDateTimeFormat.HOUR_OF_DAY_12;
+import static org.apache.calcite.sql.SqlDateTimeFormat.ISOWEEK;
 import static org.apache.calcite.sql.SqlDateTimeFormat.MILLISECONDS_4;
 import static org.apache.calcite.sql.SqlDateTimeFormat.MILLISECONDS_5;
 import static org.apache.calcite.sql.SqlDateTimeFormat.MINUTE;
@@ -329,6 +330,8 @@ public class BigQuerySqlDialect extends SqlDialect {
         put(HH24, "%H");
         put(DDMMYYYYHH24, "%d%m%Y%H");
         put(YYMMDDHH24MISS, "%y%m%d%H%M%S");
+        put(ISOWEEK, "%V");
+        put(FOURDIGITISOYEAR, "%G");
 
       }};
 
@@ -1465,6 +1468,9 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "REGEXP_EXTRACT":
       unparseRegexpExtract(writer, call, leftPrec, rightPrec);
       break;
+    case "REGEXP_REPLACE_UDF":
+      unparseRegexpReplaceUDF(writer, call, leftPrec, rightPrec);
+      break;
     case "REGEXP_REPLACE":
       unparseRegexpReplace(writer, call, leftPrec, rightPrec);
       break;
@@ -1979,21 +1985,33 @@ public class BigQuerySqlDialect extends SqlDialect {
    */
   private void unparseRegexpReplaceFunctionOperands(SqlWriter writer, int leftPrec, int rightPrec,
       List<SqlNode> operandList) {
-    int operandListSize = operandList.size();
     operandList.get(0).unparse(writer, leftPrec, rightPrec);
     writer.print(",");
-    unparseRegexOperandOfRegexpReplace(writer, leftPrec, rightPrec, operandList, operandListSize);
+    unparseRegexOperandOfRegexpReplace(writer, leftPrec, rightPrec, operandList);
     writer.print(",");
     operandList.get(2).unparse(writer, leftPrec, rightPrec);
-    handlePositionOrOccurrence(operandList, 3);
-    handlePositionOrOccurrence(operandList, 4);
+  }
+
+  private void unparseRegexpReplaceUDF(SqlWriter writer, SqlCall call,
+      int leftPrec, int rightPrec) {
+    writer.print("udf_schema.");
+    SqlWriter.Frame regexpReplaceFrame = writer.startFunCall("REGEXP_REPLACE_UDF");
+    List<SqlNode> operandList = call.getOperandList();
+    for (SqlNode operand : operandList) {
+      writer.sep(",", false);
+      if (operandList.indexOf(operand) == 1
+          && operand instanceof SqlCharStringLiteral) {
+        modifyRegexpString(writer, operand, operandList);
+      } else {
+        operand.unparse(writer, leftPrec, rightPrec);
+      }
+    }
+    writer.endFunCall(regexpReplaceFrame);
   }
 
   private void unparseRegexOperandOfRegexpReplace(SqlWriter writer, int leftPrec, int rightPrec,
-      List<SqlNode> operandList, int operandListSize) {
-    if (operandListSize == 6) {
-      modifyRegexpString(writer, operandList.get(1), operandList);
-    } else if (operandList.get(1) instanceof SqlCharStringLiteral) {
+      List<SqlNode> operandList) {
+    if (operandList.get(1) instanceof SqlCharStringLiteral) {
       unparseRegexLiteral(writer, operandList.get(1));
     } else {
       operandList.get(1).unparse(writer, leftPrec, rightPrec);
@@ -2720,32 +2738,10 @@ public class BigQuerySqlDialect extends SqlDialect {
    * last argument in regexp_replace contain i or x character.
    */
   public void modifyRegexpString(SqlWriter writer, SqlNode operand, List<SqlNode> operandList) {
-    if (operand instanceof SqlCharStringLiteral) {
-      if (operandList.get(5).toString().contains("i")) {
-        String val = quoteStringLiteral("(?i)" + ((SqlCharStringLiteral) operand).toValue());
-        writer.literal(val);
-      } else if (operandList.get(5).toString().contains("x")) {
-        String val =
-            quoteStringLiteral(((SqlCharStringLiteral) operand).toValue().replaceAll("\\s", ""));
-        writer.literal(val);
-      }
+    String val = ((SqlCharStringLiteral) operand).toValue();
+    if (operandList.get(5).toString().contains("x")) {
+      val = quoteStringLiteral(val.replaceAll("\\s", ""));
     }
-  }
-
-  /**
-   * This method is to handle position and occurrence arg
-   * if is greater than default value then it will throws
-   * an exception.
-   */
-  private void handlePositionOrOccurrence(List<SqlNode> operandList, int index) {
-    if (index < operandList.size()
-        && !Objects.isNull(((SqlLiteral) operandList.get(index)).getValue())) {
-      int value = Integer.parseInt(operandList.get(index).toString());
-      if ((index == 3 && value > 1) || (index == 4 && value > 0)) {
-        throw new RuntimeException("UnsupportedOperation : Only "
-            + (index == 3 ? "position_arg 1 or default" : "occurrence_arg 0 or default")
-            + " is handled");
-      }
-    }
+    writer.literal(quoteStringLiteral(val));
   }
 }

@@ -9517,6 +9517,22 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
 
+  @Test public void testIsoFormats() {
+    final RelBuilder builder = relBuilder();
+
+    final RexNode toCharNodeIsoFormat =
+        builder.call(SqlLibraryOperators.FORMAT_DATE,
+            builder.literal(SqlDateTimeFormat.FOURDIGITISOYEAR.value + "@" + SqlDateTimeFormat.ISOWEEK.value),
+            builder.call(CURRENT_DATE));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(toCharNodeIsoFormat)
+        .build();
+    final String expectedBQQuery = "SELECT FORMAT_DATE('%G%V', CURRENT_DATE) AS `$f0`\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQQuery));
+  }
+
   @Test public void testToDateforOracle() {
     RelBuilder builder = relBuilder().scan("EMP");
     final RexNode oracleToDateCall =
@@ -11635,35 +11651,21 @@ class RelToSqlConverterDMTest {
         isLinux(expectedSnowFlakeQuery));
   }
 
-  @Test public void testForRegexpReplaceWithReplaceStringAsNull() {
-    final RelBuilder builder = relBuilder();
-    final RexNode regexpReplaceRex =
-        builder.call(SqlLibraryOperators.REGEXP_REPLACE, builder.literal("Calcite"), builder.literal("ac"),
-                builder.literal(null), builder.literal(1), builder.literal(0), builder.literal("i"));
-    final RelNode root = builder
-        .scan("EMP")
-        .project(builder.alias(regexpReplaceRex, "regexpReplace"))
-        .build();
-
-    final String expectedBiqQuery = "SELECT "
-        + "REGEXP_REPLACE('Calcite', '(?i)ac', NULL) AS regexpReplace\n"
-        + "FROM scott.EMP";
-
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
-  }
-
   @Test public void testForRegexpReplaceWithReplaceString() {
     final RelBuilder builder = relBuilder();
     final RexNode regexpReplaceRex =
-        builder.call(SqlLibraryOperators.REGEXP_REPLACE, builder.literal("Calcite"), builder.literal("te"),
-                builder.literal("me"), builder.literal(1), builder.literal(0), builder.literal("i"));
+        builder.call(
+            SqlLibraryOperators.createUDFSqlFunction("REGEXP_REPLACE_UDF", ReturnTypes.VARCHAR_NULLABLE),
+            builder.literal("Calcite"), builder.literal("te"),
+                builder.literal("me"), builder.literal(1), builder.literal(0),
+            builder.literal("i"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(regexpReplaceRex, "regexpReplace"))
         .build();
 
     final String expectedBiqQuery = "SELECT "
-        + "REGEXP_REPLACE('Calcite', '(?i)te', 'me') AS regexpReplace\n"
+        + "udf_schema.REGEXP_REPLACE_UDF('Calcite', 'te', 'me', 1, 0, 'i') AS regexpReplace\n"
         + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
@@ -11672,15 +11674,18 @@ class RelToSqlConverterDMTest {
   @Test public void testForRegexpReplaceWithReplaceStringAsEmpty() {
     final RelBuilder builder = relBuilder();
     final RexNode regexpReplaceRex =
-        builder.call(SqlLibraryOperators.REGEXP_REPLACE, builder.literal("Calcite"), builder.literal("ac"),
-                builder.literal(""), builder.literal(1), builder.literal(0), builder.literal("i"));
+        builder.call(
+            SqlLibraryOperators.createUDFSqlFunction("REGEXP_REPLACE_UDF", ReturnTypes.VARCHAR_NULLABLE),
+            builder.literal("Calcite"), builder.literal("ac"),
+                builder.literal(""), builder.literal(1), builder.literal(0),
+            builder.literal("i"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(regexpReplaceRex, "regexpReplace"))
         .build();
 
     final String expectedBiqQuery = "SELECT "
-        + "REGEXP_REPLACE('Calcite', '(?i)ac', '') AS regexpReplace\n"
+        + "udf_schema.REGEXP_REPLACE_UDF('Calcite', 'ac', '', 1, 0, 'i') AS regexpReplace\n"
         + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
@@ -12896,5 +12901,33 @@ class RelToSqlConverterDMTest {
         + "FROM foodmart.employee\nGROUP BY 1, 2";
 
     assertThat(toSql(relNode, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testErrorMessageFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode errorMessage =
+        builder.call(SqlLibraryOperators.ERROR_MESSAGE);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(errorMessage, "errorMessage"))
+        .build();
+    final String expectedSql = "SELECT ERROR_MESSAGE() AS [errorMessage]"
+        + "\nFROM [scott].[EMP]";
+
+    assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedSql));
+  }
+
+  @Test public void testErrorMessageIdFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode errorMessageId =
+        builder.call(SqlLibraryOperators.ERROR_MESSAGE_ID);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(errorMessageId, "errorMessageId"))
+        .build();
+    final String expectedSql = "SELECT @@ERROR.MESSAGE AS errorMessageId"
+        + "\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSql));
   }
 }
