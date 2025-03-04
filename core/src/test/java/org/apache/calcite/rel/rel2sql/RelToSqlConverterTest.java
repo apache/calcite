@@ -9458,6 +9458,27 @@ class RelToSqlConverterTest {
     assertEquals(project, forceProject);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6825">[CALCITE-6825]
+   * Add support for ALL, SOME, ANY in RelToSqlConverter</a>. */
+  @Test void testSome() {
+    final String sql = "SELECT 1, \"gross_weight\" < SOME(SELECT \"gross_weight\" "
+        + "FROM \"foodmart\".\"product\") AS \"t\" "
+        + "FROM \"foodmart\".\"product\"";
+    final String expected = "SELECT 1, \"gross_weight\" < SOME (SELECT \"gross_weight\"\n"
+        + "FROM \"foodmart\".\"product\") AS \"t\"\nFROM \"foodmart\".\"product\"";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testAll() {
+    final String sql = "SELECT 1, \"gross_weight\" < ALL(SELECT \"gross_weight\" "
+        + "FROM \"foodmart\".\"product\") AS \"t\" "
+        + "FROM \"foodmart\".\"product\"";
+    final String expected = "SELECT 1, \"gross_weight\" < ALL (SELECT \"gross_weight\"\n"
+        + "FROM \"foodmart\".\"product\") AS \"t\"\nFROM \"foodmart\".\"product\"";
+    sql(sql).ok(expected);
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final CalciteAssert.SchemaSpec schemaSpec;
