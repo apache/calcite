@@ -776,6 +776,8 @@ public abstract class SqlImplementor {
         return new SqlDynamicParam(caseParam.getIndex(), POS);
 
       case IN:
+      case SOME:
+      case ALL:
         subQuery = (RexSubQuery) rex;
         sqlSubQuery = implementor().visitRoot(subQuery.rel).asQueryOrValues();
         final List<RexNode> operands = subQuery.operands;
