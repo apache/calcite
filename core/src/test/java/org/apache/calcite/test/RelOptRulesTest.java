@@ -9302,6 +9302,25 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6870">[CALCITE-6870]
+   * The FilterToCalcRule/ProjectToCalcRule should not convert a Filter/Project to Calc
+   * when it contains Subquery</a>. */
+  @Test void testFilterToCalc() {
+    final String sql = "select ename from emp where sal > all (select comm from emp)";
+    sql(sql)
+        .withRule(CoreRules.FILTER_TO_CALC)
+        .checkUnchanged();
+  }
+
+  @Test void testProjectToCalc() {
+    final String sql = "select  sal > all (select comm from emp) from emp";
+    sql(sql)
+        .withRule(CoreRules.PROJECT_TO_CALC)
+        .checkUnchanged();
+  }
+
   @Test void testEnumerableCalcRule() {
     final String sql = "select FNAME, LNAME\n"
         + "from SALES.CUSTOMER\n"
