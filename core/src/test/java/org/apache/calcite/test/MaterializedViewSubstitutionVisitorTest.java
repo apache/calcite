@@ -2073,6 +2073,441 @@ public class MaterializedViewSubstitutionVisitorTest {
     sql(mv2, query2).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5939">[CALCITE-5939]
+   * Support join derivability mv rewrite for unifyRule</a>,
+   * applying SubstitutionVisitor.JoinTrivialRule. */
+  @Test public void testInnerToLeftJoin0() {
+    String mv = ""
+        + "select \"emps\".\"empid\", \"emps\".\"deptno\", \"depts\".\"deptno\" from\n"
+        + "\"emps\" left join \"depts\"\n"
+        + "on \"emps\".\"deptno\" = \"depts\".\"deptno\"";
+    String query = ""
+        + "select \"emps\".\"empid\", \"emps\".\"deptno\", \"depts\".\"deptno\" from\n"
+        + "\"emps\" join \"depts\"\n"
+        + "on \"emps\".\"deptno\" = \"depts\".\"deptno\"";
+    sql(mv, query).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5939">[CALCITE-5939]
+   * Support join derivability mv rewrite for unifyRule</a>,
+   * applying SubstitutionVisitor.JoinOnLeftCalcToJoinUnifyRule. */
+  @Test public void testInnerToLeftJoin1() {
+    String mv = ""
+        + "select \"emps\".\"empid\", \"emps\".\"deptno\", \"depts\".\"deptno\" from\n"
+        + "\"emps\" left join \"depts\"\n"
+        + "on \"emps\".\"deptno\" = \"depts\".\"deptno\"";
+    String query = ""
+        + "select \"A\".\"empid\", \"A\".\"deptno\", \"depts\".\"deptno\" from\n"
+        + " (select \"empid\", \"deptno\" from \"emps\" where \"deptno\" > 10) A"
+        + " join \"depts\"\n"
+        + "on \"A\".\"deptno\" = \"depts\".\"deptno\"";
+    sql(mv, query).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5939">[CALCITE-5939]
+   * Support join derivability mv rewrite for unifyRule</a>,
+   * applying SubstitutionVisitor.JoinOnRightCalcToJoinUnifyRule. */
+  @Test public void testInnerToLeftJoin2() {
+    String mv = ""
+        + "select \"emps\".\"empid\", \"emps\".\"deptno\", \"depts\".\"deptno\" from\n"
+        + "\"emps\" left join \"depts\"\n"
+        + "on \"emps\".\"deptno\" = \"depts\".\"deptno\"";
+    String query = ""
+        + "select \"emps\".\"empid\", \"emps\".\"deptno\", \"B\".\"deptno\" from\n"
+        + "\"emps\" join\n"
+        + "(select \"deptno\" from \"depts\" where \"deptno\" > 10) B\n"
+        + "on \"emps\".\"deptno\" = \"B\".\"deptno\"";
+    sql(mv, query).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5939">[CALCITE-5939]
+   * Support join derivability mv rewrite for unifyRule</a>,
+   * applying SubstitutionVisitor.JoinOnCalcsToJoinUnifyRule. */
+  @Test public void testInnerToLeftJoin3() {
+    String mv = ""
+        + "select \"emps\".\"empid\", \"emps\".\"deptno\", \"depts\".\"deptno\" from\n"
+        + "\"emps\" left join \"depts\"\n"
+        + "on \"emps\".\"deptno\" = \"depts\".\"deptno\"";
+    String query = ""
+        + "select * from\n"
+        + "(select \"empid\", \"deptno\" from \"emps\" where \"empid\" > 10) A\n"
+        + "join\n"
+        + "(select \"deptno\" from \"depts\" where \"deptno\" > 10) B\n"
+        + "on \"A\".\"deptno\" = \"B\".\"deptno\"";
+    sql(mv, query).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5939">[CALCITE-5939]
+   * Support join derivability mv rewrite for unifyRule</a>,
+   * applying SubstitutionVisitor.JoinOnCalcsToJoinUnifyRule. */
+  @Test public void testInnerToLeftJoin4() {
+    String mv = ""
+        + "select \"emps\".\"empid\", \"emps\".\"deptno\", \"depts\".\"deptno\" from\n"
+        + "\"emps\" left join \"depts\"\n"
+        + "on \"emps\".\"deptno\" = \"depts\".\"deptno\"";
+    String query = ""
+        + "select * from\n"
+        + "(select \"empid\", \"deptno\", \"empid\" + 1 from \"emps\" where \"empid\" > 10) A\n"
+        + "join\n"
+        + "(select \"deptno\" , \"deptno\" + 1 from \"depts\" where \"deptno\" > 10) B\n"
+        + "on \"A\".\"deptno\" = \"B\".\"deptno\"";
+    sql(mv, query).ok();
+  }
+
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5939">[CALCITE-5939]
+   * Support join derivability mv rewrite for unifyRule</a>,
+   * applying SubstitutionVisitor.JoinTrivialRule. */
+  @Test public void testInnerToRightJoin0() {
+    String mv = ""
+        + "select \"emps\".\"empid\", \"emps\".\"deptno\", \"depts\".\"deptno\" from\n"
+        + "\"emps\" right join \"depts\"\n"
+        + "on \"emps\".\"deptno\" = \"depts\".\"deptno\"";
+    String query = ""
+        + "select \"emps\".\"empid\", \"emps\".\"deptno\", \"depts\".\"deptno\" from\n"
+        + "\"emps\" join \"depts\"\n"
+        + "on \"emps\".\"deptno\" = \"depts\".\"deptno\"";
+    sql(mv, query).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5939">[CALCITE-5939]
+   * Support join derivability mv rewrite for unifyRule</a>,
+   * applying SubstitutionVisitor.JoinOnLeftCalcToJoinUnifyRule. */
+  @Test public void testInnerToRightJoin1() {
+    String mv = ""
+        + "select \"emps\".\"empid\", \"emps\".\"deptno\", \"depts\".\"deptno\" from\n"
+        + "\"emps\" right join \"depts\"\n"
+        + "on \"emps\".\"deptno\" = \"depts\".\"deptno\"";
+    String query = ""
+        + "select \"A\".\"empid\", \"A\".\"deptno\", \"depts\".\"deptno\" from\n"
+        + " (select \"empid\", \"deptno\" from \"emps\" where \"deptno\" > 10) A"
+        + " join \"depts\"\n"
+        + "on \"A\".\"deptno\" = \"depts\".\"deptno\"";
+    sql(mv, query).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5939">[CALCITE-5939]
+   * Support join derivability mv rewrite for unifyRule</a>,
+   * applying SubstitutionVisitor.JoinOnRightCalcToJoinUnifyRule. */
+  @Test public void testInnerToRightJoin2() {
+    String mv = ""
+        + "select \"emps\".\"empid\", \"emps\".\"deptno\", \"depts\".\"deptno\" from\n"
+        + "\"emps\" right join \"depts\"\n"
+        + "on \"emps\".\"deptno\" = \"depts\".\"deptno\"";
+    String query = ""
+        + "select \"emps\".\"empid\", \"emps\".\"deptno\", \"B\".\"deptno\" from\n"
+        + "\"emps\" join\n"
+        + "(select \"deptno\" from \"depts\" where \"deptno\" > 10) B\n"
+        + "on \"emps\".\"deptno\" = \"B\".\"deptno\"";
+    sql(mv, query).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5939">[CALCITE-5939]
+   * Support join derivability mv rewrite for unifyRule</a>,
+   * applying SubstitutionVisitor.JoinOnCalcsToJoinUnifyRule. */
+  @Test public void testInnerToRightJoin3() {
+    String mv = ""
+        + "select \"emps\".\"empid\", \"emps\".\"deptno\", \"depts\".\"deptno\" from\n"
+        + "\"emps\" right join \"depts\"\n"
+        + "on \"emps\".\"deptno\" = \"depts\".\"deptno\"";
+    String query = ""
+        + "select * from\n"
+        + "(select \"empid\", \"deptno\" from \"emps\" where \"empid\" > 10) A\n"
+        + "join\n"
+        + "(select \"deptno\" from \"depts\" where \"deptno\" > 10) B\n"
+        + "on \"A\".\"deptno\" = \"B\".\"deptno\"";
+    sql(mv, query).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5939">[CALCITE-5939]
+   * Support join derivability mv rewrite for unifyRule</a>,
+   * applying SubstitutionVisitor.JoinOnCalcsToJoinUnifyRule. */
+  @Test public void testInnerToRightJoin4() {
+    String mv = ""
+        + "select \"emps\".\"empid\", \"emps\".\"deptno\", \"depts\".\"deptno\" from\n"
+        + "\"emps\" right join \"depts\"\n"
+        + "on \"emps\".\"deptno\" = \"depts\".\"deptno\"";
+    String query = ""
+        + "select * from\n"
+        + "(select \"empid\", \"deptno\" , \"deptno\" + 1 from \"emps\" where \"empid\" > 10) A\n"
+        + "join\n"
+        + "(select \"deptno\" from \"depts\" where \"deptno\" > 10) B\n"
+        + "on \"A\".\"deptno\" = \"B\".\"deptno\"";
+    sql(mv, query).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5939">[CALCITE-5939]
+   * Support join derivability mv rewrite for unifyRule</a>,
+   * applying SubstitutionVisitor.JoinTrivialRule. */
+  @Test public void testleftToFullJoin0() {
+    String mv = ""
+        + "select \"emps\".\"empid\", \"emps\".\"deptno\", \"depts\".\"deptno\" from\n"
+        + "\"emps\" full join \"depts\"\n"
+        + "on \"emps\".\"deptno\" = \"depts\".\"deptno\"";
+    String query = ""
+        + "select \"emps\".\"empid\", \"emps\".\"deptno\", \"depts\".\"deptno\" from\n"
+        + "\"emps\" left join \"depts\"\n"
+        + "on \"emps\".\"deptno\" = \"depts\".\"deptno\"";
+    sql(mv, query).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5939">[CALCITE-5939]
+   * Support join derivability mv rewrite for unifyRule</a>,
+   * applying SubstitutionVisitor.JoinOnLeftCalcToJoinUnifyRule. */
+  @Test public void testleftToFullJoin1() {
+    String mv = ""
+        + "select \"emps\".\"empid\", \"emps\".\"deptno\", \"depts\".\"deptno\" from\n"
+        + "\"emps\" full join \"depts\"\n"
+        + "on \"emps\".\"deptno\" = \"depts\".\"deptno\"";
+    String query = ""
+        + "select \"A\".\"empid\", \"A\".\"deptno\", \"depts\".\"deptno\" from\n"
+        + " (select \"empid\", \"deptno\" from \"emps\" where \"deptno\" > 10) A"
+        + " left join \"depts\"\n"
+        + "on \"A\".\"deptno\" = \"depts\".\"deptno\"";
+    sql(mv, query).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5939">[CALCITE-5939]
+   * Support join derivability mv rewrite for unifyRule</a>,
+   * applying SubstitutionVisitor.JoinOnRightCalcToJoinUnifyRule. */
+  @Test public void testleftToFullJoin2() {
+    String mv = ""
+        + "select \"emps\".\"empid\", \"emps\".\"deptno\", \"depts\".\"deptno\" from\n"
+        + "\"emps\" full join \"depts\"\n"
+        + "on \"emps\".\"deptno\" = \"depts\".\"deptno\"";
+    String query = ""
+        + "select \"emps\".\"empid\", \"emps\".\"deptno\", \"B\".\"deptno\" from\n"
+        + "\"emps\" left join \n "
+        + "(select \"deptno\" from \"depts\") B\n"
+        + "on \"emps\".\"deptno\" = \"B\".\"deptno\"";
+    sql(mv, query).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5939">[CALCITE-5939]
+   * Support join derivability mv rewrite for unifyRule</a>,
+   * applying SubstitutionVisitor.JoinOnCalcsToJoinUnifyRule. */
+  @Test public void testleftToFullJoin3() {
+    String mv = ""
+        + "select \"emps\".\"empid\", \"emps\".\"deptno\", \"depts\".\"deptno\" from\n"
+        + "\"emps\" full join \"depts\"\n"
+        + "on \"emps\".\"deptno\" = \"depts\".\"deptno\"";
+    String query = ""
+        + "select * from\n"
+        + "(select \"empid\", \"deptno\" from \"emps\" where \"empid\" > 10) A\n"
+        + "left join\n"
+        + "(select \"deptno\" from \"depts\") B\n"
+        + "on \"A\".\"deptno\" = \"B\".\"deptno\"";
+    sql(mv, query).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5939">[CALCITE-5939]
+   * Support join derivability mv rewrite for unifyRule</a>,
+   * applying SubstitutionVisitor.JoinOnCalcsToJoinUnifyRule. */
+  @Test public void testleftToFullJoin4() {
+    String mv = ""
+        + "select \"emps\".\"empid\", \"emps\".\"deptno\", \"depts\".\"deptno\" from\n"
+        + "\"emps\" full join \"depts\"\n"
+        + "on \"emps\".\"deptno\" = \"depts\".\"deptno\"";
+    String query = ""
+        + "select * from\n"
+        + "(select \"empid\", \"deptno\" , \"deptno\" + 1 from \"emps\" where \"empid\" > 10) A\n"
+        + "left join\n"
+        + "(select \"deptno\", \"deptno\" + 1 from \"depts\") B\n"
+        + "on \"A\".\"deptno\" = \"B\".\"deptno\"";
+    sql(mv, query).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5939">[CALCITE-5939]
+   * Support join derivability mv rewrite for unifyRule</a>,
+   * applying SubstitutionVisitor.JoinTrivialRule. */
+  @Test public void testRightToFullJoin0() {
+    String mv = ""
+        + "select \"emps\".\"empid\", \"emps\".\"deptno\", \"depts\".\"deptno\" from\n"
+        + "\"emps\" full join \"depts\"\n"
+        + "on \"emps\".\"deptno\" = \"depts\".\"deptno\"";
+    String query = ""
+        + "select \"emps\".\"empid\", \"emps\".\"deptno\", \"depts\".\"deptno\" from\n"
+        + "\"emps\" right join \"depts\"\n"
+        + "on \"emps\".\"deptno\" = \"depts\".\"deptno\"";
+    sql(mv, query).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5939">[CALCITE-5939]
+   * Support join derivability mv rewrite for unifyRule</a>,
+   * applying SubstitutionVisitor.JoinOnLeftCalcToJoinUnifyRule. */
+  @Test public void testRightToFullJoin1() {
+    String mv = ""
+        + "select \"emps\".\"empid\", \"emps\".\"deptno\", \"depts\".\"deptno\" from\n"
+        + "\"emps\" full join \"depts\"\n"
+        + "on \"emps\".\"deptno\" = \"depts\".\"deptno\"";
+    String query = ""
+        + "select \"A\".\"empid\", \"A\".\"deptno\", \"depts\".\"deptno\" from\n"
+        + " (select \"empid\", \"deptno\", \"deptno\" + 1 from \"emps\") A"
+        + " right join \"depts\"\n"
+        + "on \"A\".\"deptno\" = \"depts\".\"deptno\"";
+    sql(mv, query).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5939">[CALCITE-5939]
+   * Support join derivability mv rewrite for unifyRule</a>,
+   * applying SubstitutionVisitor.JoinOnRightCalcToJoinUnifyRule. */
+  @Test public void testRightToFullJoin2() {
+    String mv = ""
+        + "select \"emps\".\"empid\", \"emps\".\"deptno\", \"depts\".\"deptno\" from\n"
+        + "\"emps\" full join \"depts\"\n"
+        + "on \"emps\".\"deptno\" = \"depts\".\"deptno\"";
+    String query = ""
+        + "select \"emps\".\"empid\", \"emps\".\"deptno\", \"B\".\"deptno\" from\n"
+        + "\"emps\" right join \n "
+        + "(select \"deptno\" from \"depts\") B\n"
+        + "on \"emps\".\"deptno\" = \"B\".\"deptno\"";
+    sql(mv, query).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5939">[CALCITE-5939]
+   * Support join derivability mv rewrite for unifyRule</a>,
+   * applying SubstitutionVisitor.JoinOnCalcsToJoinUnifyRule. */
+  @Test public void testRightToFullJoin3() {
+    String mv = ""
+        + "select \"emps\".\"empid\", \"emps\".\"deptno\", \"depts\".\"deptno\" from\n"
+        + "\"emps\" full join \"depts\"\n"
+        + "on \"emps\".\"deptno\" = \"depts\".\"deptno\"";
+    String query = ""
+        + "select * from\n"
+        + "(select \"empid\", \"deptno\", \"deptno\" + 1 from \"emps\") A\n"
+        + "right join\n"
+        + "(select \"deptno\" from \"depts\" where \"deptno\" > 10) B\n"
+        + "on \"A\".\"deptno\" = \"B\".\"deptno\"";
+    sql(mv, query).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5939">[CALCITE-5939]
+   * Support join derivability mv rewrite for unifyRule</a>,
+   * applying SubstitutionVisitor.JoinOnCalcsToJoinUnifyRule. */
+  @Test public void testRightToFullJoin4() {
+    String mv = ""
+        + "select \"emps\".\"empid\", \"emps\".\"deptno\", \"depts\".\"deptno\" from\n"
+        + "\"emps\" full join \"depts\"\n"
+        + "on \"emps\".\"deptno\" = \"depts\".\"deptno\"";
+    String query = ""
+        + "select * from\n"
+        + "(select \"empid\", \"deptno\" , \"deptno\" + 1 from \"emps\") A\n"
+        + "right join\n"
+        + "(select \"deptno\", \"deptno\" + 1 from \"depts\" where \"deptno\" > 10) B\n"
+        + "on \"A\".\"deptno\" = \"B\".\"deptno\"";
+    sql(mv, query).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5939">[CALCITE-5939]
+   * Support join derivability mv rewrite for unifyRule</a>,
+   * applying SubstitutionVisitor.JoinTrivialRule. */
+  @Test public void testInnerToFullJoin0() {
+    String mv = ""
+        + "select \"emps\".\"empid\", \"emps\".\"deptno\", \"depts\".\"deptno\" from\n"
+        + "\"emps\" full join \"depts\"\n"
+        + "on \"emps\".\"deptno\" = \"depts\".\"deptno\"";
+    String query = ""
+        + "select \"emps\".\"empid\", \"emps\".\"deptno\", \"depts\".\"deptno\" from\n"
+        + "\"emps\" inner join \"depts\"\n"
+        + "on \"emps\".\"deptno\" = \"depts\".\"deptno\"";
+    sql(mv, query).checkingThatResultContains("LogicalCalc(expr#0..2=[{inputs}], "
+        + "expr#3=[CAST($t0):JavaType(int) NOT NULL], expr#4=[CAST($t1):JavaType(int) NOT NULL], "
+        + "expr#5=[CAST($t2):JavaType(int) NOT NULL], expr#6=[IS NOT NULL($t0)], "
+        + "expr#7=[IS NOT NULL($t2)], expr#8=[AND($t6, $t7)], empid=[$t3], "
+        + "deptno=[$t4], deptno0=[$t5], $condition=[$t8])").ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5939">[CALCITE-5939]
+   * Support join derivability mv rewrite for unifyRule</a>,
+   * applying SubstitutionVisitor.JoinOnLeftCalcToJoinUnifyRule. */
+  @Test public void testInnerToFullJoin1() {
+    String mv = ""
+        + "select \"emps\".\"empid\", \"emps\".\"deptno\", \"depts\".\"deptno\" from\n"
+        + "\"emps\" full join \"depts\"\n"
+        + "on \"emps\".\"deptno\" = \"depts\".\"deptno\"";
+    String query = ""
+        + "select \"A\".\"empid\", \"A\".\"deptno\", \"depts\".\"deptno\" from\n"
+        + " (select \"empid\", \"deptno\" from \"emps\" where \"deptno\" > 10) A"
+        + " inner join \"depts\"\n"
+        + "on \"A\".\"deptno\" = \"depts\".\"deptno\"";
+    sql(mv, query).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5939">[CALCITE-5939]
+   * Support join derivability mv rewrite for unifyRule</a>,
+   * applying SubstitutionVisitor.JoinOnRightCalcToJoinUnifyRule. */
+  @Test public void testInnerToFullJoin2() {
+    String mv = ""
+        + "select \"emps\".\"empid\", \"emps\".\"deptno\", \"depts\".\"deptno\" from\n"
+        + "\"emps\" full join \"depts\"\n"
+        + "on \"emps\".\"deptno\" = \"depts\".\"deptno\"";
+    String query = ""
+        + "select \"emps\".\"empid\", \"emps\".\"deptno\", \"B\".\"deptno\" from\n"
+        + "\"emps\" inner join \n "
+        + "(select \"deptno\" from \"depts\") B\n"
+        + "on \"emps\".\"deptno\" = \"B\".\"deptno\"";
+    sql(mv, query).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5939">[CALCITE-5939]
+   * Support join derivability mv rewrite for unifyRule</a>,
+   * applying SubstitutionVisitor.JoinOnCalcsToJoinUnifyRule. */
+  @Test public void testInnerToFullJoin3() {
+    String mv = ""
+        + "select \"emps\".\"empid\", \"emps\".\"deptno\", \"depts\".\"deptno\" from\n"
+        + "\"emps\" full join \"depts\"\n"
+        + "on \"emps\".\"deptno\" = \"depts\".\"deptno\"";
+    String query = ""
+        + "select * from\n"
+        + "(select \"empid\", \"deptno\" from \"emps\" where \"empid\" > 10) A\n"
+        + "inner join\n"
+        + "(select \"deptno\" from \"depts\" where \"deptno\" > 10) B\n"
+        + "on \"A\".\"deptno\" = \"B\".\"deptno\"";
+    sql(mv, query).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5939">[CALCITE-5939]
+   * Support join derivability mv rewrite for unifyRule</a>,
+   * applying SubstitutionVisitor.JoinOnCalcsToJoinUnifyRule. */
+  @Test public void testInnerToFullJoin4() {
+    String mv = ""
+        + "select \"emps\".\"empid\", \"emps\".\"deptno\", \"depts\".\"deptno\" from\n"
+        + "\"emps\" full join \"depts\"\n"
+        + "on \"emps\".\"deptno\" = \"depts\".\"deptno\"";
+    String query = ""
+        + "select * from\n"
+        + "(select \"empid\", \"deptno\" , \"deptno\" + 1 from \"emps\" where \"empid\" > 10) A\n"
+        + "inner join\n"
+        + "(select \"deptno\" from \"depts\" where \"deptno\" > 10) B\n"
+        + "on \"A\".\"deptno\" = \"B\".\"deptno\"";
+    sql(mv, query).ok();
+  }
+
   /** Fixture for tests for whether expressions are satisfiable,
    * specifically {@link SubstitutionVisitor#mayBeSatisfiable(RexNode)}. */
   private static class SatisfiabilityFixture {
