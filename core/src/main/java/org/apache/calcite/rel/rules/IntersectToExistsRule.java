@@ -19,7 +19,6 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil.Exists;
 import org.apache.calcite.plan.RelRule;
-import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Intersect;
@@ -90,7 +89,7 @@ public class IntersectToExistsRule
 
     // iterate over the inputs and apply exists subquery
     for (int i = 1; i < inputs.size(); i++) {
-      RelNode nextInput = removeHepRelVertex(inputs.get(i));
+      RelNode nextInput = inputs.get(i).stripped();
 
       // create correlation
       CorrelationId correlationId = intersect.getCluster().createCorrel();
@@ -141,23 +140,6 @@ public class IntersectToExistsRule
         .build();
 
     call.transformTo(result);
-  }
-
-  /**
-   * Will not eliminate HepRelVertex in subqueries
-   * during the optimization process.
-   * We need to eliminate it here. */
-  private RelNode removeHepRelVertex(RelNode input) {
-    if (input instanceof HepRelVertex) {
-      HepRelVertex hepRelVertex = (HepRelVertex) input;
-      RelNode currentRel = hepRelVertex.getCurrentRel();
-      return removeHepRelVertex(currentRel);
-    }
-    List<RelNode> newInputs = new ArrayList<>();
-    for (RelNode child : input.getInputs()) {
-      newInputs.add(removeHepRelVertex(child));
-    }
-    return input.copy(input.getTraitSet(), newInputs);
   }
 
   /** Rule configuration. */
