@@ -499,4 +499,28 @@ class ToLogicalConverterTest {
     verify(rel(sql), expectedPhysical, expectedLogical);
   }
 
+  @Test void testConcatOperator() {
+    final RelBuilder builder = builder();
+    RelNode rel = builder.scan("EMP")
+        .project(
+            builder.call(SqlLibraryOperators.CONCAT3, builder.literal("cal"),
+                builder.literal(1), builder.literal("|9(2)")),
+            builder.call(SqlLibraryOperators.CONCAT3, builder.literal(3),
+                builder.literal("abc"), builder.literal("9(3)|")),
+            builder.call(SqlLibraryOperators.CONCAT3, builder.literal(4),
+                builder.literal("xyz")))
+        .build();
+    String expectedPhysical = ""
+        + "EnumerableProject($f0=[||('cal', 1, '|9(2)')],"
+        + " $f1=[||(3, 'abc', '9(3)|')],"
+        + " $f2=[||(4, 'xyz')])\n"
+        + "  EnumerableTableScan(table=[[scott, EMP]])\n";
+    String expectedLogical = ""
+        + "LogicalProject($f0=[||('cal', 1, '|9(2)')],"
+        + " $f1=[||(3, 'abc', '9(3)|')],"
+        + " $f2=[||(4, 'xyz')])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verify(rel, expectedPhysical, expectedLogical);
+  }
+
 }

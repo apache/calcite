@@ -1301,6 +1301,19 @@ public abstract class SqlLibraryOperators {
           .withOperandTypeInference(InferTypes.RETURN_TYPE)
           .withKind(SqlKind.CONCAT_WITH_NULL);
 
+  /**
+   * concatenation operator with 3rd arg as Optional '<code>||</code>'.
+   */
+  @LibraryOperator(libraries = {STANDARD})
+  public static final SqlFunction CONCAT3 =
+      new SqlFunction("||",
+          SqlKind.CONCAT,
+          ReturnTypes.ARG0_NULLABLE,
+          null,
+          OperandTypes.or(OperandTypes.STRING_NUMERIC_OPTIONAL_STRING,
+              OperandTypes.NUMERIC_STRING_OPTIONAL_STRING),
+          SqlFunctionCategory.STRING);
+
   /** The "CONCAT(arg0, arg1)" function that concatenates strings.
    * For example, "CONCAT('a', 'bc')" returns "abc".
    *
