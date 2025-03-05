@@ -534,6 +534,15 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
+  @Test void testFilterProjectTransposeRule3() {
+    final String sql = "select * from (select deptno from emp) as d\n"
+        + "where NOT EXISTS (\n"
+        + "  select count(*) from emp e)";
+    sql(sql)
+        .withRule(CoreRules.FILTER_PROJECT_TRANSPOSE)
+        .check();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6031">[CALCITE-6031]
    * Add the planner rule that pushes the Filter past a Sample</a>. */

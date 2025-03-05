@@ -213,8 +213,7 @@ public class FilterProjectTransposeRule
   public interface Config extends RelRule.Config {
     Config DEFAULT = ImmutableFilterProjectTransposeRule.Config.of()
         .withOperandFor(Filter.class,
-            f -> !RexUtil.containsCorrelation(f.getCondition())
-                && !RexUtil.SubQueryFinder.containsSubQuery(f),
+            f -> !RexUtil.containsCorrelation(f.getCondition()),
             Project.class, p -> true)
         .withCopyFilter(true)
         .withCopyProject(true);
