@@ -78,8 +78,11 @@ import static org.apache.calcite.sql.fun.SqlLibrary.TERADATA;
 import static org.apache.calcite.sql.type.OperandTypes.ANY_STRING_OR_STRING_STRING;
 import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTEGER;
 import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTERVAL;
+import static org.apache.calcite.sql.type.OperandTypes.JSON_STRING;
 import static org.apache.calcite.sql.type.OperandTypes.ONE_OR_MORE;
 import static org.apache.calcite.sql.type.OperandTypes.STRING_INTEGER;
+import static org.apache.calcite.sql.type.OperandTypes.STRING_JSON;
+import static org.apache.calcite.sql.type.OperandTypes.STRING_OPTIONAL_STRING;
 import static org.apache.calcite.sql.type.OperandTypes.STRING_STRING;
 import static org.apache.calcite.sql.type.OperandTypes.STRING_STRING_BOOLEAN;
 import static org.apache.calcite.sql.type.OperandTypes.family;
@@ -1586,7 +1589,8 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction JSON_EXTRACT =
       new SqlFunction("JSON_EXTRACT", SqlKind.OTHER_FUNCTION,
           ReturnTypes.VARCHAR_2000_NULLABLE, null,
-          OperandTypes.STRING_STRING, SqlFunctionCategory.STRING);
+          OperandTypes.or(JSON_STRING, STRING_STRING),
+          SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction JSON_EXTRACT_ARRAY =
@@ -1594,7 +1598,7 @@ public abstract class SqlLibraryOperators {
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.VARCHAR.andThen(SqlTypeTransforms.TO_ARRAY),
           null,
-          OperandTypes.STRING_OPTIONAL_STRING,
+          OperandTypes.or(STRING_JSON, STRING_OPTIONAL_STRING),
           SqlFunctionCategory.SYSTEM);
 
   /** The "ARRAY_DISTINCT(array)" function. */
