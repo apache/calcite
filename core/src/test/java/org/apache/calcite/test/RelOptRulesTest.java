@@ -522,6 +522,28 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6873">[CALCITE-6873]
+   * FilterProjectTransposeRule should not push the Filter past the Project
+   * when the Filter contains a Subquery with correlation</a>. */
+  @Test void testFilterProjectTransposeRule2() {
+    final String sql = "select * from (select deptno from emp) as d\n"
+        + "where NOT EXISTS (\n"
+        + "  select count(*) from emp e where e.deptno = d.deptno)";
+    sql(sql)
+        .withRule(CoreRules.FILTER_PROJECT_TRANSPOSE)
+        .checkUnchanged();
+  }
+
+  @Test void testFilterProjectTransposeRule3() {
+    final String sql = "select * from (select deptno from emp) as d\n"
+        + "where NOT EXISTS (\n"
+        + "  select count(*) from emp e)";
+    sql(sql)
+        .withRule(CoreRules.FILTER_PROJECT_TRANSPOSE)
+        .check();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6031">[CALCITE-6031]
    * Add the planner rule that pushes the Filter past a Sample</a>. */
   @Test void testFilterSampleTransposeWithBernoulli() {
