@@ -101,7 +101,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   /**
    * Provides a standard list of supported Calcite operators that can be converted to
    * Druid Expressions. This can be used as is or re-adapted based on underline
-   * engine operator syntax.
+   * engine operator syntax. Methods can refer to https://druid.apache.org/docs/latest/querying/
    */
   public static final List<DruidSqlOperatorConverter> DEFAULT_OPERATORS_LIST =
       ImmutableList.<DruidSqlOperatorConverter>builder()
@@ -120,6 +120,11 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
           .add(new DirectOperatorConversion(SqlStdOperatorTable.SIN, "sin"))
           .add(new DirectOperatorConversion(SqlStdOperatorTable.COS, "cos"))
           .add(new DirectOperatorConversion(SqlStdOperatorTable.TAN, "tan"))
+          .add(new DirectOperatorConversion(SqlStdOperatorTable.COT, "cot"))
+          .add(new DirectOperatorConversion(SqlStdOperatorTable.ASIN, "asin"))
+          .add(new DirectOperatorConversion(SqlStdOperatorTable.ACOS, "acos"))
+          .add(new DirectOperatorConversion(SqlStdOperatorTable.ATAN, "atan"))
+          .add(new DirectOperatorConversion(SqlStdOperatorTable.ATAN2, "atan2"))
           .add(new DirectOperatorConversion(SqlStdOperatorTable.CASE, "case_searched"))
           .add(new DirectOperatorConversion(SqlStdOperatorTable.CHAR_LENGTH, "strlen"))
           .add(new DirectOperatorConversion(SqlStdOperatorTable.CHARACTER_LENGTH, "strlen"))
