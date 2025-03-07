@@ -9735,4 +9735,59 @@ class RelOptRulesTest extends RelOptTestBase {
     fixture().withRelBuilderConfig(a -> a.withBloat(-1))
         .relFn(relFn).withPlanner(planner).check();
   }
+
+  @Test void testChainJoinDphypJoinReorder() {
+    HepProgram program = new HepProgramBuilder()
+        .addMatchOrder(HepMatchOrder.BOTTOM_UP)
+        .addRuleInstance(CoreRules.FILTER_INTO_JOIN)
+        .addRuleInstance(CoreRules.JOIN_TO_HYPER_GRAPH)
+        .build();
+
+    sql("select emp.empno from "
+        + "emp, emp_address, dept, dept_nested "
+        + "where emp.deptno + emp_address.empno = dept.deptno + dept_nested.deptno "
+        + "and emp.empno = emp_address.empno "
+        + "and dept.deptno = dept_nested.deptno")
+        .withPre(program)
+        .withRule(CoreRules.HYPER_GRAPH_OPTIMIZE, CoreRules.PROJECT_REMOVE, CoreRules.PROJECT_MERGE)
+        .check();
+  }
+
+  @Test void testStarJoinDphypJoinReorder() {
+    HepProgram program = new HepProgramBuilder()
+        .addMatchOrder(HepMatchOrder.BOTTOM_UP)
+        .addRuleInstance(CoreRules.FILTER_INTO_JOIN)
+        .addRuleInstance(CoreRules.JOIN_TO_HYPER_GRAPH)
+        .build();
+
+    sql("select emp.empno from "
+        + "emp, emp_b, emp_address, dept, dept_nested "
+        + "where emp.empno = emp_b.empno "
+        + "and emp.empno = emp_address.empno "
+        + "and emp.deptno = dept.deptno "
+        + "and emp.deptno = dept_nested.deptno "
+        + "and emp_b.sal + emp_address.empno = dept.deptno + dept_nested.deptno")
+        .withPre(program)
+        .withRule(CoreRules.HYPER_GRAPH_OPTIMIZE, CoreRules.PROJECT_REMOVE, CoreRules.PROJECT_MERGE)
+        .check();
+  }
+
+  @Test void testCycleJoinDphypJoinReorder() {
+    HepProgram program = new HepProgramBuilder()
+        .addMatchOrder(HepMatchOrder.BOTTOM_UP)
+        .addRuleInstance(CoreRules.FILTER_INTO_JOIN)
+        .addRuleInstance(CoreRules.JOIN_TO_HYPER_GRAPH)
+        .build();
+
+    sql("select emp.empno from "
+        + "emp, emp_b, dept, dept_nested "
+        + "where emp.empno = emp_b.empno "
+        + "and emp_b.deptno = dept.deptno "
+        + "and dept.name = dept_nested.name "
+        + "and dept_nested.deptno = emp.deptno "
+        + "and emp.sal + emp_b.sal = dept.deptno + dept_nested.deptno")
+        .withPre(program)
+        .withRule(CoreRules.HYPER_GRAPH_OPTIMIZE, CoreRules.PROJECT_REMOVE, CoreRules.PROJECT_MERGE)
+        .check();
+  }
 }

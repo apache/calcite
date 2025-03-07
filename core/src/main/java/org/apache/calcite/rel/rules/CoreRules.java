@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.rules;
 
+import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Calc;
@@ -816,4 +817,17 @@ public class CoreRules {
       WINDOW_REDUCE_EXPRESSIONS =
       ReduceExpressionsRule.WindowReduceExpressionsRule.WindowReduceExpressionsRuleConfig
           .DEFAULT.toRule();
+
+  /** Rule that flattens a tree of {@link LogicalJoin}s
+   * into a single {@link HyperGraph} with N inputs. */
+  @Experimental
+  public static final JoinToHyperGraphRule JOIN_TO_HYPER_GRAPH =
+      JoinToHyperGraphRule.Config.DEFAULT.toRule();
+
+  /** Rule that re-orders a {@link Join} tree using dphyp algorithm.
+   *
+   * @see #JOIN_TO_HYPER_GRAPH */
+  @Experimental
+  public static final DphypJoinReorderRule HYPER_GRAPH_OPTIMIZE =
+      DphypJoinReorderRule.Config.DEFAULT.toRule();
 }
