@@ -7533,6 +7533,21 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedSFSql));
   }
 
+  @Test public void testIsNumericFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode isNumericNode =
+        builder.call(SqlLibraryOperators.ISNUMERIC,
+            builder.literal(123.45));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(isNumericNode, "isNumericValue"))
+        .build();
+    final String expectedSql = "SELECT ISNUMERIC(123.45) AS [isNumericValue]\n"
+        + "FROM [scott].[EMP]";
+
+    assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedSql));
+  }
+
   @Test public void testCurrentDatabaseFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode currentDatabase =
