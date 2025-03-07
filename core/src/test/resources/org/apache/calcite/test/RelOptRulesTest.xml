@@ -5103,6 +5103,23 @@ MultiJoin(joinFilter=[true], isFullOuterJoin=[false], joinTypes=[[INNER, LEFT]],
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testFilterCalcMergeRule">
+    <Resource name="sql">
+      <![CDATA[select deptno from sales.emp where
+exists (select deptno from sales.emp where empno < 20)
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[<($0, 20)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+  LogicalCalc(expr#0..8=[{inputs}], DEPTNO=[$t7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testFilterJoinRuleAndIsNotNull">
     <Resource name="sql">
       <![CDATA[select * from
@@ -8642,6 +8659,23 @@ LogicalProject(EXPR$0=[*($0, 2)], SS0=[CASE(IS NOT NULL($0), CAST($0):INTEGER NO
 LogicalProject(EXPR$0=[*($0, 2)], SS0=[$1])
   LogicalAggregate(group=[{}], SUM_SAL=[SUM($0)], agg#1=[$SUM0($0)])
     LogicalProject(SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testProjectCalcMergeRule">
+    <Resource name="sql">
+      <![CDATA[select exists (select deptno from sales.emp)
+from (select deptno from sales.emp where empno < 20)
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EXPR$0=[EXISTS({
+LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+  LogicalCalc(expr#0=[{inputs}], expr#1=[20], expr#2=[<($t0, $t1)], EMPNO=[$t0], $condition=[$t2])
+    LogicalProject(EMPNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>

@@ -28,6 +28,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.Pair;
 
@@ -120,8 +121,9 @@ public class ProjectCalcMergeRule
     default Config withOperandFor(Class<? extends Project> projectClass,
         Class<? extends Calc> calcClass) {
       return withOperandSupplier(b0 ->
-          b0.operand(projectClass).oneInput(b1 ->
-              b1.operand(calcClass).anyInputs()))
+          b0.operand(projectClass)
+              .predicate(project -> !RexUtil.SubQueryFinder.containsSubQuery(project))
+              .oneInput(b1 -> b1.operand(calcClass).anyInputs()))
           .as(Config.class);
     }
   }

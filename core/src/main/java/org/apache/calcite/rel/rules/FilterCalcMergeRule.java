@@ -24,6 +24,7 @@ import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 import org.immutables.value.Value;
@@ -105,8 +106,9 @@ public class FilterCalcMergeRule
     default Config withOperandFor(Class<? extends Filter> filterClass,
         Class<? extends Calc> calcClass) {
       return withOperandSupplier(b0 ->
-          b0.operand(filterClass).oneInput(b1 ->
-              b1.operand(calcClass).anyInputs()))
+          b0.operand(filterClass)
+              .predicate(filter -> !RexUtil.SubQueryFinder.containsSubQuery(filter))
+              .oneInput(b1 -> b1.operand(calcClass).anyInputs()))
           .as(Config.class);
     }
   }

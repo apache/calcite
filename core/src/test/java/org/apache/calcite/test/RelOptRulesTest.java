@@ -9712,6 +9712,37 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6874">[CALCITE-6874]
+   * FilterCalcMergeRule/ProjectCalcMergeRule should not merge a Filter/Project to Calc
+   * when it contains Subquery</a>. */
+  @Test void testFilterCalcMergeRule() {
+    final String sql = "select deptno from sales.emp where\n"
+        + "exists (select deptno from sales.emp where empno < 20)\n";
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.PROJECT_FILTER_TRANSPOSE)
+        .addRuleInstance(CoreRules.PROJECT_TO_CALC)
+        .build();
+    sql(sql)
+        .withPre(program)
+        .withRule(CoreRules.FILTER_CALC_MERGE)
+        .checkUnchanged();
+  }
+
+  @Test void testProjectCalcMergeRule() {
+    final String sql = "select exists (select deptno from sales.emp)\n"
+        + "from (select deptno from sales.emp where empno < 20)\n";
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.PROJECT_FILTER_TRANSPOSE)
+        .addRuleInstance(CoreRules.FILTER_TO_CALC)
+        .build();
+    sql(sql)
+        .withPre(program)
+        .withRule(CoreRules.PROJECT_CALC_MERGE)
+        .checkUnchanged();
+  }
+
+  /**
    * Test case of
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6850">[CALCITE-6850]
    * ProjectRemoveRule with two Projects
