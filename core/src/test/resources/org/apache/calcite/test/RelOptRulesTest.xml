@@ -1647,6 +1647,33 @@ LogicalProject(T=[CASE(<(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(20))):DOUBLE, 
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testChainJoinDphypJoinReorder">
+    <Resource name="sql">
+      <![CDATA[select emp.empno from emp, emp_address, dept, dept_nested where emp.deptno + emp_address.empno = dept.deptno + dept_nested.deptno and emp.empno = emp_address.empno and dept.deptno = dept_nested.deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  HyperGraph(edges=[{0}——[INNER, =($0, $9)]——{1},{0, 1}——[INNER, true]——{2},{0, 1, 2}——[INNER, =(+($7, $9), +($12, $14))]——{3},{2}——[INNER, =($12, $14)]——{3}])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$9])
+  LogicalJoin(condition=[=(+($16, $6), +($4, $0))], joinType=[inner])
+    LogicalJoin(condition=[=($4, $0)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalJoin(condition=[=($3, $0)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testConstantWindow">
     <Resource name="sql">
       <![CDATA[with empsalary(dept, empno, salary, enroll_date) as (VALUES ('x', 10, 5200, DATE '2007-08-01'), (NULL, NULL, NULL, NULL))
@@ -2134,6 +2161,33 @@ LogicalProject(EMPNO=[$0])
 FROM emp e1, dept d1 where e1.deptno = d1.deptno
 and e1.deptno < 10 and d1.deptno < 15
 and e1.sal > (select avg(sal) from emp e2 where e1.empno = e2.empno)]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testCycleJoinDphypJoinReorder">
+    <Resource name="sql">
+      <![CDATA[select emp.empno from emp, emp_b, dept, dept_nested where emp.empno = emp_b.empno and emp_b.deptno = dept.deptno and dept.name = dept_nested.name and dept_nested.deptno = emp.deptno and emp.sal + emp_b.sal = dept.deptno + dept_nested.deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  HyperGraph(edges=[{0}——[INNER, =($0, $9)]——{1},{1}——[INNER, =($16, $19)]——{2},{2}——[INNER, =($20, $22)]——{3},{0}——[INNER, =($21, $7)]——{3},{0, 1, 2}——[INNER, =(+($5, $14), +($19, $21))]——{3}])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$16])
+  LogicalJoin(condition=[AND(=($16, $6), =($0, $23), =(+($21, $11), +($4, $0)))], joinType=[inner])
+    LogicalJoin(condition=[=($13, $4)], joinType=[inner])
+      LogicalJoin(condition=[=($5, $1)], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
     </Resource>
   </TestCase>
   <TestCase name="testDecorrelateAggWithConstantGroupKey">
@@ -16716,6 +16770,36 @@ LogicalProject(EXPR$0=[SPLIT(null:NULL, null:NULL)])
       <![CDATA[
 LogicalProject(EXPR$0=[null:VARCHAR NOT NULL ARRAY])
   LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testStarJoinDphypJoinReorder">
+    <Resource name="sql">
+      <![CDATA[select emp.empno from emp, emp_b, emp_address, dept, dept_nested where emp.empno = emp_b.empno and emp.empno = emp_address.empno and emp.deptno = dept.deptno and emp.deptno = dept_nested.deptno and emp_b.sal + emp_address.empno = dept.deptno + dept_nested.deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  HyperGraph(edges=[{0}——[INNER, =($0, $9)]——{1},{0}——[INNER, =($0, $19)]——{2},{0}——[INNER, =($7, $22)]——{3},{0}——[INNER, =($7, $24)]——{4},{1, 2, 3}——[INNER, =(+($14, $19), +($22, $24))]——{4}])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$19])
+  LogicalJoin(condition=[AND(=($19, $0), =(+($8, $0), +($17, $13)))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+    LogicalJoin(condition=[=($16, $0)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+      LogicalJoin(condition=[=($13, $0)], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+        LogicalJoin(condition=[=($9, $0)], joinType=[inner])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
