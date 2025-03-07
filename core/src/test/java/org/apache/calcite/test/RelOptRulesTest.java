@@ -26,6 +26,7 @@ import org.apache.calcite.adapter.enumerable.EnumerableSort;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptCostImpl;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
@@ -53,6 +54,7 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.hint.HintPredicates;
 import org.apache.calcite.rel.hint.HintStrategyTable;
@@ -62,6 +64,7 @@ import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalTableModify;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.AggregateExpandWithinDistinctRule;
 import org.apache.calcite.rel.rules.AggregateExtractProjectRule;
 import org.apache.calcite.rel.rules.AggregateProjectConstantToDummyJoinRule;
@@ -78,6 +81,7 @@ import org.apache.calcite.rel.rules.FilterMultiJoinMergeRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
 import org.apache.calcite.rel.rules.JoinAssociateRule;
 import org.apache.calcite.rel.rules.JoinCommuteRule;
+import org.apache.calcite.rel.rules.LoptOptimizeJoinRule;
 import org.apache.calcite.rel.rules.MeasureRules;
 import org.apache.calcite.rel.rules.MultiJoin;
 import org.apache.calcite.rel.rules.ProjectCorrelateTransposeRule;
@@ -9730,6 +9734,68 @@ class RelOptRulesTest extends RelOptTestBase {
         + " inner join emp e2 on e.empno = e2.empno")
         .withPre(program)
         .withRule(CoreRules.MULTI_JOIN_OPTIMIZE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6788">[CALCITE-6788]
+   * LoptOptimizeJoinRule should be able to delegate costs to the planner</a>. */
+  @Test void testLoptOptimizeJoinRuleWithDefaultCost() {
+    // Use the default rule
+    checkLoptOptimizeJoinRule(CoreRules.MULTI_JOIN_OPTIMIZE);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6788">[CALCITE-6788]
+   * LoptOptimizeJoinRule should be able to delegate costs to the planner</a>. */
+  @Test void testLoptOptimizeJoinRuleWithSpecialCost() {
+    // Use an ad-hoc version of the rule that uses planner#getCost instead of mq#getCumulativeCost
+    checkLoptOptimizeJoinRule(LoptOptimizeJoinRule.Config.DEFAULT
+        .withCostFunction((c, r) -> c.getPlanner().getCost(r, c.getMetadataQuery()))
+        .toRule());
+  }
+
+  private void checkLoptOptimizeJoinRule(LoptOptimizeJoinRule rule) {
+    final HepProgram preProgram = new HepProgramBuilder()
+        .addMatchOrder(HepMatchOrder.BOTTOM_UP)
+        .addRuleInstance(CoreRules.JOIN_TO_MULTI_JOIN)
+        .build();
+
+    final HepProgram program = HepProgram.builder()
+        .addMatchOrder(HepMatchOrder.BOTTOM_UP)
+        .addRuleInstance(rule)
+        .build();
+
+    // Special planner that artificially favors joins on the same table
+    final HepPlanner planner = new HepPlanner(program) {
+      @Override public RelOptCost getCost(RelNode rel, RelMetadataQuery mq) {
+        if (rel instanceof Join
+            && rel.getInput(0).stripped() instanceof TableScan
+            && rel.getInput(1).stripped() instanceof TableScan) {
+          TableScan left = (TableScan) rel.getInput(0).stripped();
+          TableScan right = (TableScan) rel.getInput(1).stripped();
+          if (left.getTable().equals(right.getTable())) {
+            // Tiny cost for self-joins
+            return getCostFactory().makeTinyCost();
+          }
+        }
+
+        // General case: just define a kind of cumulative cost based on the rowCount (to avoid
+        // the infinite costs from the Logical operators)
+        RelOptCost cost = new RelOptCostImpl(mq.getRowCount(rel));
+        for (RelNode input : rel.getInputs()) {
+          cost = cost.plus(getCost(input, mq));
+        }
+        return cost;
+      }
+    };
+
+    sql("select e1.empno from emp e1"
+        + " inner join dept d1 on d1.deptno = e1.deptno"
+        + " inner join emp e2 on e1.ename = e2.ename"
+        + " inner join dept d2 on d2.deptno = e1.deptno")
+        .withPre(preProgram)
+        .withPlanner(planner)
         .check();
   }
 
