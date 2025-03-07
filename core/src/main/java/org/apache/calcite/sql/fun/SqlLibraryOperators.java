@@ -3676,7 +3676,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction ISNUMERIC =
       new SqlFunction("ISNUMERIC", SqlKind.OTHER_FUNCTION,
           ReturnTypes.INTEGER, null,
-          OperandTypes.or(OperandTypes.NUMERIC, OperandTypes.STRING),
+          OperandTypes.NUMERIC_OR_STRING,
           SqlFunctionCategory.SYSTEM);
 
   @LibraryOperator(libraries = {SPARK})
