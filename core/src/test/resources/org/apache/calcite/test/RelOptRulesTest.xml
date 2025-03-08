@@ -7439,6 +7439,62 @@ LogicalProject(EMPNO=[$0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testLoptOptimizeJoinRuleWithDefaultCost">
+    <Resource name="sql">
+      <![CDATA[select e1.empno from emp e1 inner join dept d1 on d1.deptno = e1.deptno inner join emp e2 on e1.ename = e2.ename inner join dept d2 on d2.deptno = e1.deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  MultiJoin(joinFilter=[AND(=($20, $7), =($1, $12), =($9, $7))], isFullOuterJoin=[false], joinTypes=[[INNER, INNER, INNER, INNER]], outerJoinConditions=[[NULL, NULL, NULL, NULL]], projFields=[[ALL, ALL, ALL, ALL]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalProject(EMPNO=[$9], ENAME=[$10], JOB=[$11], MGR=[$12], HIREDATE=[$13], SAL=[$14], COMM=[$15], DEPTNO=[$16], SLACKER=[$17], DEPTNO0=[$18], NAME=[$19], EMPNO0=[$0], ENAME0=[$1], JOB0=[$2], MGR0=[$3], HIREDATE0=[$4], SAL0=[$5], COMM0=[$6], DEPTNO1=[$7], SLACKER0=[$8], DEPTNO2=[$20], NAME0=[$21])
+    LogicalJoin(condition=[=($10, $1)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalJoin(condition=[=($11, $7)], joinType=[inner])
+        LogicalJoin(condition=[=($9, $7)], joinType=[inner])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testLoptOptimizeJoinRuleWithSpecialCost">
+    <Resource name="sql">
+      <![CDATA[select e1.empno from emp e1 inner join dept d1 on d1.deptno = e1.deptno inner join emp e2 on e1.ename = e2.ename inner join dept d2 on d2.deptno = e1.deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  MultiJoin(joinFilter=[AND(=($20, $7), =($1, $12), =($9, $7))], isFullOuterJoin=[false], joinTypes=[[INNER, INNER, INNER, INNER]], outerJoinConditions=[[NULL, NULL, NULL, NULL]], projFields=[[ALL, ALL, ALL, ALL]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$18], NAME=[$19], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO1=[$16], SLACKER0=[$17], DEPTNO2=[$20], NAME0=[$21])
+    LogicalJoin(condition=[=($20, $7)], joinType=[inner])
+      LogicalJoin(condition=[=($18, $7)], joinType=[inner])
+        LogicalJoin(condition=[=($1, $10)], joinType=[inner])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testLpad">
     <Resource name="sql">
       <![CDATA[select LPAD('abc', 8, 'A')]]>
