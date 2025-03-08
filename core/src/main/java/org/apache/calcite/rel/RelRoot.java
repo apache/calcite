@@ -164,7 +164,7 @@ public class RelRoot {
     if (isRefTrivial()
         && (SqlKind.DML.contains(kind)
             || !force
-            || rel instanceof LogicalProject)) {
+            || (rel instanceof LogicalProject && isNameTrivial()))) {
       return rel;
     }
     final List<RexNode> projects = new ArrayList<>(fields.size());
