@@ -33,6 +33,10 @@ public class PhoenixSqlDialect extends SqlDialect {
     super(context);
   }
 
+  @Override public boolean supportsApproxCountDistinct() {
+    return true;
+  }
+
   @Override public boolean supportsCharSet() {
     return false;
   }
