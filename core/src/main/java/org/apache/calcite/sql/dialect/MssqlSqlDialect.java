@@ -200,6 +200,10 @@ public class MssqlSqlDialect extends SqlDialect {
     unparseBoolLiteralToCondition(writer, value);
   }
 
+  @Override public boolean supportsApproxCountDistinct() {
+    return true;
+  }
+
   @Override public boolean supportsCharSet() {
     return false;
   }

@@ -8099,6 +8099,13 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"";
     final String expectedStarRocksSql = "SELECT APPROX_COUNT_DISTINCT(`product_id`)\n"
         + "FROM `foodmart`.`product`";
+    final String expectedMssql = "SELECT APPROX_COUNT_DISTINCT([product_id])\n"
+        + "FROM [foodmart].[product]";
+    final String expectedPhoenix = "SELECT APPROX_COUNT_DISTINCT(\"product_id\")\n"
+        + "FROM \"foodmart\".\"product\"";
+    final String expectedClickhouse = "SELECT UNIQ(`product_id`)\n"
+        + "FROM `foodmart`.`product`";
+
     sql(query).ok(expectedExact)
         .withHive().ok(expectedApprox)
         .withSpark().ok(expectedApprox)
@@ -8106,7 +8113,10 @@ class RelToSqlConverterTest {
         .withOracle().ok(expectedApproxQuota)
         .withSnowflake().ok(expectedApproxQuota)
         .withPresto().ok(expectedPrestoSql)
-        .withStarRocks().ok(expectedStarRocksSql);
+        .withStarRocks().ok(expectedStarRocksSql)
+        .withMssql().ok(expectedMssql)
+        .withPhoenix().ok(expectedPhoenix)
+        .withClickHouse().ok(expectedClickhouse);
   }
 
   @Test void testRowValueExpression() {
@@ -9417,6 +9427,10 @@ class RelToSqlConverterTest {
               .withIdentifierQuoteString(oracleDialect.quoteIdentifier("")
                   .substring(0, 1))
               .withNullCollation(oracleDialect.getNullCollation())));
+    }
+
+    Sql withPhoenix() {
+      return dialect(DatabaseProduct.PHOENIX.getDialect());
     }
 
     Sql withPostgresql() {
