@@ -30,9 +30,11 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlTimeLiteral;
 import org.apache.calcite.sql.SqlTimestampLiteral;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.RelToSqlConverterUtil;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -54,6 +56,10 @@ public class ClickHouseSqlDialect extends SqlDialect {
   /** Creates a ClickHouseSqlDialect. */
   public ClickHouseSqlDialect(Context context) {
     super(context);
+  }
+
+  @Override public boolean supportsApproxCountDistinct() {
+    return true;
   }
 
   @Override public boolean supportsCharSet() {
@@ -169,6 +175,12 @@ public class ClickHouseSqlDialect extends SqlDialect {
 
   @Override public void unparseCall(SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec) {
+    if (call.getOperator() == SqlStdOperatorTable.APPROX_COUNT_DISTINCT) {
+      RelToSqlConverterUtil.specialOperatorByName("UNIQ")
+          .unparse(writer, call, 0, 0);
+      return;
+    }
+
     switch (call.getKind()) {
     case FLOOR:
       if (call.operandCount() != 2) {
