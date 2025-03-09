@@ -39,12 +39,6 @@ public class FilterSortTransposeRule
     super(config);
   }
 
-  @Deprecated // to be removed before 2.0
-  public FilterSortTransposeRule(RelBuilderFactory relBuilderFactory) {
-    this(FilterSortTransposeRule.Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
-        .as(FilterSortTransposeRule.Config.class));
-  }
-
   @Override public void onMatch(RelOptRuleCall call) {
     final Filter filter = call.rel(0);
     final Sort sort = call.rel(1);
