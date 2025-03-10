@@ -123,6 +123,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
           .add(new DirectOperatorConversion(SqlStdOperatorTable.CASE, "case_searched"))
           .add(new DirectOperatorConversion(SqlStdOperatorTable.CHAR_LENGTH, "strlen"))
           .add(new DirectOperatorConversion(SqlStdOperatorTable.CHARACTER_LENGTH, "strlen"))
+          .add(new DirectOperatorConversion(SqlStdOperatorTable.STRLEN, "strlen"))
           .add(new BinaryOperatorConversion(SqlStdOperatorTable.EQUALS, "=="))
           .add(new BinaryOperatorConversion(SqlStdOperatorTable.NOT_EQUALS, "!="))
           .add(new NaryOperatorConverter(SqlStdOperatorTable.OR, "||"))

@@ -515,6 +515,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SOME_GT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SOME_LE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SOME_LT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SOME_NE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.STRLEN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.STRUCT_ACCESS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SUBMULTISET_OF;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SUBSTRING;
@@ -715,6 +716,8 @@ public class RexImpTable {
       defineMethod(TRANSLATE3, BuiltInMethod.TRANSLATE3.method, NullPolicy.STRICT);
       defineMethod(CHR, BuiltInMethod.CHAR_FROM_UTF8.method, NullPolicy.STRICT);
       defineMethod(CHARACTER_LENGTH, BuiltInMethod.CHAR_LENGTH.method,
+          NullPolicy.STRICT);
+      defineMethod(STRLEN, BuiltInMethod.CHAR_LENGTH.method,
           NullPolicy.STRICT);
       defineMethod(CHAR_LENGTH, BuiltInMethod.CHAR_LENGTH.method,
           NullPolicy.STRICT);

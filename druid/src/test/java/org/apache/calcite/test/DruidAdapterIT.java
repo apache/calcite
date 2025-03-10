@@ -3386,6 +3386,12 @@ public class DruidAdapterIT {
         .queryContains(
             new DruidChecker("\"expression\":\"(strlen(\\\"product_id\\\") == 2"))
         .returnsUnordered("EXPR$0=4876");
+
+    final String sql1 = "SELECT COUNT(*) FROM \"foodmart\"  where STRLEN(\"product_id\") = 2";
+    sql(sql1, FOODMART)
+        .queryContains(
+            new DruidChecker("\"expression\":\"(strlen(\\\"product_id\\\") == 2"))
+        .returnsUnordered("EXPR$0=4876");
   }
 
   @Test void testExpressionsUpperLowerFilter() {
