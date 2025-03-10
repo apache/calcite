@@ -5596,7 +5596,10 @@ class RelToSqlConverterTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5711">[CALCITE-5711]
-   * Implement the SINGLE_VALUE aggregation in PostgreSQL Dialect</a>. */
+   * Implement the SINGLE_VALUE aggregation in PostgreSQL Dialect</a>
+   * and
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6431">[CALCITE-6431]
+   * Implement the SINGLE_VALUE aggregation in HiveSqlDialect And SparkSQLDialect</a>. */
   @Test void testSubQueryWithSingleValue() {
     final String query = "select \"product_class_id\" as c\n"
         + "from \"product\" where  \"net_weight\" > (select \"product_class_id\" from \"product\")";
@@ -5622,11 +5625,23 @@ class RelToSqlConverterTest {
         + "(VALUES 0E0)) END AS $f0\n"
         + "FROM foodmart.product) AS t0 ON TRUE\n"
         + "WHERE product.net_weight > CAST(t0.$f0 AS DOUBLE)";
+    final String expectedSpark = "SELECT `product`.`product_class_id` `C`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "LEFT JOIN (SELECT CASE COUNT(*) WHEN 0 THEN NULL WHEN 1 THEN MIN(`product_class_id`) ELSE RAISE_ERROR('more than one value in agg SINGLE_VALUE') END `$f0`\n"
+        + "FROM `foodmart`.`product`) `t0` ON TRUE\n"
+        + "WHERE `product`.`net_weight` > CAST(`t0`.`$f0` AS DOUBLE)";
+    final String expectedHive = "SELECT `product`.`product_class_id` `C`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "LEFT JOIN (SELECT CASE COUNT(*) WHEN 0 THEN NULL WHEN 1 THEN MIN(`product_class_id`) ELSE ASSERT_TRUE(FALSE) END `$f0`\n"
+        + "FROM `foodmart`.`product`) `t0` ON TRUE\n"
+        + "WHERE `product`.`net_weight` > CAST(`t0`.`$f0` AS DOUBLE)";
     sql(query)
         .withConfig(c -> c.withExpand(true))
         .withMysql().ok(expectedMysql)
         .withPostgresql().ok(expectedPostgresql)
-        .withHsqldb().ok(expectedHsqldb);
+        .withHsqldb().ok(expectedHsqldb)
+        .withSpark().ok(expectedSpark)
+        .withHive().ok(expectedHive);
   }
 
   @Test void testLike() {
