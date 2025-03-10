@@ -294,6 +294,11 @@ public class CoreRules {
   public static final FilterTableScanRule FILTER_SCAN =
       FilterTableScanRule.Config.DEFAULT.toRule();
 
+  /** Rule that transforms a {@link Filter} on top of a {@link Sort}
+   * into a {@link Sort} on top of a {@link Filter}. */
+  public static final FilterSortTransposeRule FILTER_SORT_TRANSPOSE =
+          FilterSortTransposeRule.Config.DEFAULT.toRule();
+
   /** Rule that matches a {@link Filter} on an
    * {@link org.apache.calcite.adapter.enumerable.EnumerableInterpreter} on a
    * {@link TableScan}. */

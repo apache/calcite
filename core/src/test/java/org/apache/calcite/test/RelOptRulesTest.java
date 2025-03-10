@@ -578,6 +578,45 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6878">[CALCITE-6878]
+   * Implement FilterSortTransposeRule</a>. */
+  @Test void testFilterSortTranspose() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+            .scan("EMP")
+            .project(b.field(0))
+            .sort(b.field(0))
+            .filter(b.lessThan(b.field(0), b.literal(10)))
+            .build();
+    relFn(relFn).withRule(CoreRules.FILTER_SORT_TRANSPOSE).check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6878">[CALCITE-6878]
+   * Implement FilterSortTransposeRule</a>. */
+  @Test void testFilterSortTransposeFetch() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .project(b.field(0))
+        .sortLimit(0, 1, b.field(0))
+        .filter(b.lessThan(b.field(0), b.literal(10)))
+        .build();
+    relFn(relFn).withRule(CoreRules.FILTER_SORT_TRANSPOSE).checkUnchanged();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6878">[CALCITE-6878]
+   * Implement FilterSortTransposeRule</a>. */
+  @Test void testFilterSortTransposeOffset() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .project(b.field(0))
+        .sortLimit(1, 0, b.field(0))
+        .filter(b.lessThan(b.field(0), b.literal(10)))
+        .build();
+    relFn(relFn).withRule(CoreRules.FILTER_SORT_TRANSPOSE).checkUnchanged();
+  }
+
   @Test void testReduceOrCaseWhen() {
     HepProgramBuilder builder = new HepProgramBuilder();
     builder.addRuleClass(ReduceExpressionsRule.class);
