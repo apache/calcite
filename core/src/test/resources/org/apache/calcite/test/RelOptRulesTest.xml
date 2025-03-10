@@ -5394,6 +5394,44 @@ LogicalProject(DEPTNO=[$7])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testFilterSortTranspose">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalFilter(condition=[<($0, 10)])
+  LogicalSort(sort0=[$0], dir0=[ASC])
+    LogicalProject(EMPNO=[$0])
+      LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalSort(sort0=[$0], dir0=[ASC])
+  LogicalFilter(condition=[<($0, 10)])
+    LogicalProject(EMPNO=[$0])
+      LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testFilterSortTransposeFetch">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalFilter(condition=[<($0, 10)])
+  LogicalSort(sort0=[$0], dir0=[ASC], fetch=[1])
+    LogicalProject(EMPNO=[$0])
+      LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testFilterSortTransposeOffset">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalFilter(condition=[<($0, 10)])
+  LogicalSort(sort0=[$0], dir0=[ASC], offset=[1], fetch=[0])
+    LogicalProject(EMPNO=[$0])
+      LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testFilterToCalc">
     <Resource name="sql">
       <![CDATA[select ename from emp where sal > all (select comm from emp)]]>
