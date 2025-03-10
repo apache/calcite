@@ -3527,6 +3527,38 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6880">
+   * [CALCITE-6880] Implement IntersectToSemiJoinRule</a>. */
+  @Test void testIntersectToSemiJoin() {
+    final String sql = "select ename from emp where deptno = 10\n"
+        + "intersect\n"
+        + "select ename from emp where deptno = 20\n";
+    sql(sql).withRule(CoreRules.INTERSECT_TO_SEMI_JOIN)
+        .check();
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6880">
+   * [CALCITE-6880] Implement IntersectToSemiJoinRule</a>. */
+  @Test void testIntersectToSemiJoinMulti() {
+    final String sql = "select deptno, ename from emp where deptno = 10\n"
+        + "intersect\n"
+        + "select deptno, ename from emp where deptno = 20\n";
+    sql(sql).withRule(CoreRules.INTERSECT_TO_SEMI_JOIN)
+        .check();
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6880">
+   * [CALCITE-6880] Implement IntersectToSemiJoinRule</a>. */
+  @Test void testIntersectToSemiJoinAll() {
+    final String sql = "select ename from emp where deptno = 10\n"
+        + "intersect\n"
+        + "select ename from emp where deptno = 20\n"
+        + "intersect all\n"
+        + "select ename from emp where deptno = 30\n";
+    sql(sql).withRule(CoreRules.INTERSECT_TO_SEMI_JOIN)
+        .check();
+  }
+
   /** Tests {@link CoreRules#MINUS_MERGE}, which merges 2
    * {@link Minus} operators into a single {@code Minus} with 3
    * inputs. */
