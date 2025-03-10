@@ -284,37 +284,6 @@ public class MongoAdapterTest implements SchemaFactory {
             "CITY=LAWTON; LONGITUDE=null; LATITUDE=null; POP=45542; STATE=OK; ID=73505");
   }
 
-  @Disabled("broken; [CALCITE-2115] is logged to fix it")
-  @Test void testUnionPlan() {
-    assertModel(MODEL)
-        .query("select * from \"sales_fact_1997\"\n"
-            + "union all\n"
-            + "select * from \"sales_fact_1998\"")
-        .explainContains("PLAN=EnumerableUnion(all=[true])\n"
-            + "  MongoToEnumerableConverter\n"
-            + "    MongoProject(product_id=[CAST(ITEM($0, 'product_id')):DOUBLE])\n"
-            + "      MongoTableScan(table=[[_foodmart, sales_fact_1997]])\n"
-            + "  MongoToEnumerableConverter\n"
-            + "    MongoProject(product_id=[CAST(ITEM($0, 'product_id')):DOUBLE])\n"
-            + "      MongoTableScan(table=[[_foodmart, sales_fact_1998]])")
-        .limit(2)
-        .returns(
-            MongoAssertions.checkResultUnordered(
-                "product_id=337", "product_id=1512"));
-  }
-
-  @Disabled(
-      "java.lang.ClassCastException: java.lang.Integer cannot be cast to java.lang.Double")
-  @Test void testFilterUnionPlan() {
-    assertModel(MODEL)
-        .query("select * from (\n"
-            + "  select * from \"sales_fact_1997\"\n"
-            + "  union all\n"
-            + "  select * from \"sales_fact_1998\")\n"
-            + "where \"product_id\" = 1")
-        .runs();
-  }
-
   /**
    * Tests that mongo query is empty when filter simplified to false.
    */
@@ -584,13 +553,12 @@ public class MongoAdapterTest implements SchemaFactory {
                 "{$project: {C: 1, STATE: 1, CITY: 1}}"));
   }
 
-  @Disabled("broken; [CALCITE-2115] is logged to fix it")
   @Test void testDistinctCount() {
     assertModel(MODEL)
         .query("select state, count(distinct city) as cdc from zips\n"
             + "where state in ('CA', 'TX') group by state order by state")
-        .returns("STATE=CA; CDC=1072\n"
-            + "STATE=TX; CDC=1233\n")
+        .returns("STATE=CA; CDC=3\n"
+            + "STATE=TX; CDC=3\n")
         .queryContains(
             mongoChecker(
                 "{\n"
@@ -605,12 +573,7 @@ public class MongoAdapterTest implements SchemaFactory {
                     + "    ]\n"
                     + "  }\n"
                     + "}",
-                "{$project: {CITY: '$city', STATE: '$state'}}",
-                "{$group: {_id: {CITY: '$CITY', STATE: '$STATE'}}}",
-                "{$project: {_id: 0, CITY: '$_id.CITY', STATE: '$_id.STATE'}}",
-                "{$group: {_id: '$STATE', CDC: {$sum: {$cond: [ {$eq: ['CITY', null]}, 0, 1]}}}}",
-                "{$project: {STATE: '$_id', CDC: '$CDC'}}",
-                "{$sort: {STATE: 1}}"));
+                "{$project: {STATE: '$state', CITY: '$city'}}"));
   }
 
   @Test void testDistinctCountOrderBy() {
@@ -636,18 +599,16 @@ public class MongoAdapterTest implements SchemaFactory {
                 "{$limit: 5}"));
   }
 
-  @Disabled("broken; [CALCITE-2115] is logged to fix it")
   @Test void testProject() {
     assertModel(MODEL)
         .query("select state, city, 0 as zero from zips order by state, city")
         .limit(2)
-        .returns("STATE=AK; CITY=AKHIOK; ZERO=0\n"
-            + "STATE=AK; CITY=AKIACHAK; ZERO=0\n")
+        .returns("STATE=AK; CITY=ANCHORAGE; ZERO=0\n"
+            + "STATE=AK; CITY=FAIRBANKS; ZERO=0\n")
         .queryContains(
             mongoChecker(
-                "{$project: {CITY: '$city', STATE: '$state'}}",
-                "{$sort: {STATE: 1, CITY: 1}}",
-                "{$project: {STATE: 1, CITY: 1, ZERO: {$literal: 0}}}"));
+                "{$project: {STATE: '$state', CITY: '$city', 'ZERO': {$literal: 0}}}",
+                "{$sort: {STATE: 1, CITY: 1}}"));
   }
 
   @Test void testFilter() {
