@@ -5873,7 +5873,7 @@ PIVOT (SUM(sal) AS ss, COUNT(*)
     <Resource name="plan">
       <![CDATA[
 LogicalProject(MGR=[$0], C10_SS=[$1], C10=[$2], M20_SS=[$3], M20=[$4])
-  LogicalAggregate(group=[{0}], C10_SS=[SUM($3) FILTER $4], C10_null=[COUNT() FILTER $4], M20_SS=[SUM($3) FILTER $5], M20_null=[COUNT() FILTER $5])
+  LogicalAggregate(group=[{0}], C10=[SUM($3) FILTER $4], C10=[COUNT() FILTER $4], M20=[SUM($3) FILTER $5], M20=[COUNT() FILTER $5])
     LogicalProject(MGR=[$3], JOB=[$2], DEPTNO=[$7], SAL=[$5], $f4=[AND(=($2, 'CLERK'), =($7, 10))], $f5=[AND(=($2, 'MANAGER'), =($7, 20))])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -5892,7 +5892,7 @@ ORDER BY deptno]]>
       <![CDATA[
 LogicalSort(sort0=[$0], dir0=[ASC])
   LogicalProject(DEPTNO=[$0], 'CLERK'_SUM_SAL=[$1], 'CLERK'_COUNT=[$2], MGR_SUM_SAL=[$3], MGR_COUNT=[$4], a_SUM_SAL=[$5], a_COUNT=[$6])
-    LogicalAggregate(group=[{0}], 'CLERK'_SUM_SAL=[SUM($2) FILTER $3], 'CLERK'_COUNT=[COUNT() FILTER $3], MGR_SUM_SAL=[SUM($2) FILTER $4], MGR_COUNT=[COUNT() FILTER $4], a_SUM_SAL=[SUM($2) FILTER $5], a_COUNT=[COUNT() FILTER $5])
+    LogicalAggregate(group=[{0}], 'CLERK'=[SUM($2) FILTER $3], 'CLERK'=[COUNT() FILTER $3], MGR=[SUM($2) FILTER $4], MGR=[COUNT() FILTER $4], a=[SUM($2) FILTER $5], a=[COUNT() FILTER $5])
       LogicalProject(DEPTNO=[$7], JOB=[$2], SAL=[$5], $f3=[=($2, 'CLERK')], $f4=[=($2, 'MANAGER')], $f5=[=($2, 'ANALYST')])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
