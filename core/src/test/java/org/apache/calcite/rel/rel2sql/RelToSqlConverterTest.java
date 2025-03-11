@@ -27,14 +27,12 @@ import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelFieldCollation.Direction;
 import org.apache.calcite.rel.RelFieldCollation.NullDirection;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.hint.HintPredicates;
 import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalFilter;
-import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.rules.AggregateJoinTransposeRule;
 import org.apache.calcite.rel.rules.AggregateProjectMergeRule;
 import org.apache.calcite.rel.rules.CoreRules;
@@ -44,18 +42,14 @@ import org.apache.calcite.rel.rules.ProjectToWindowRule;
 import org.apache.calcite.rel.rules.PruneEmptyRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.rel.type.RelDataTypeField;
-import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
-import org.apache.calcite.rel.type.RelRecordType;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlDialect.DatabaseProduct;
-import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWriter;
@@ -106,7 +100,6 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -122,10 +115,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasToString;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -9796,84 +9786,6 @@ class RelToSqlConverterTest {
             + "WHERE \"product_id\" = \"t\".\"product_id\" AND \"product_id\" > 10)";
 
     sql(sql).ok(expected);
-  }
-
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6877">[CALCITE-6877]
-   * Generate LogicalProject in RelRoot.project() when mapping is not name trivial</a>. */
-  @Test void testRelRootProjectForceNonNameTrivial() {
-    final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
-    final SchemaPlus defaultSchema =
-        CalciteAssert.addSchema(rootSchema, CalciteAssert.SchemaSpec.HR);
-    final FrameworkConfig frameworkConfig = RelBuilderTest.config()
-        .defaultSchema(defaultSchema)
-        .build();
-    final RelBuilder relBuilder = RelBuilder.create(frameworkConfig);
-    final RelNode inputRel = relBuilder.scan("emps")
-        .project(relBuilder.fields(Collections.singletonList("empid"))).build();
-
-    final List<RelDataTypeField> fields =
-        Collections.singletonList(
-            // rename empid to empno via RelRoot
-            new RelDataTypeFieldImpl("empno",
-                inputRel.getRowType().getFieldList().get(0).getIndex(),
-                inputRel.getRowType().getFieldList().get(0).getType()));
-
-    final RelRoot root = RelRoot.of(inputRel, new RelRecordType(fields), SqlKind.SELECT);
-
-    // inner LogicalProject selects one field and RelRoot only has one field
-    assertTrue(root.isRefTrivial());
-
-    // inner LogicalProject has different field name than RelRoot
-    assertFalse(root.isNameTrivial());
-
-    final RelNode project = root.project();
-    assertEquals(inputRel, project);
-
-    // regular project() and force project() are different
-    final RelNode forceProject = root.project(true);
-    assertNotEquals(project, forceProject);
-
-    // new LogicalProject on top of inputRel
-    assertInstanceOf(LogicalProject.class, forceProject);
-    assertEquals(inputRel, forceProject.getInput(0));
-
-    // new LogicalProject renames field
-    if (forceProject instanceof LogicalProject) {
-      assertEquals("empno",
-          ((LogicalProject) forceProject).getNamedProjects().get(0).getValue());
-    }
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6877">[CALCITE-6877]
-   * Generate LogicalProject in RelRoot.project() when mapping is not name trivial</a>. */
-  @Test void testRelRootProjectForceNameTrivial() {
-    final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
-    final SchemaPlus defaultSchema =
-        CalciteAssert.addSchema(rootSchema, CalciteAssert.SchemaSpec.HR);
-    final FrameworkConfig frameworkConfig = RelBuilderTest.config()
-        .defaultSchema(defaultSchema)
-        .build();
-    final RelBuilder relBuilder = RelBuilder.create(frameworkConfig);
-    final RelNode inputRel = relBuilder.scan("emps")
-        .project(relBuilder.fields(Collections.singletonList("empid"))).build();
-
-    final RelRoot root = RelRoot.of(inputRel, SqlKind.SELECT);
-
-    // inner LogicalProject selects one field and RelRoot only has one field
-    assertTrue(root.isRefTrivial());
-
-    // inner LogicalProject has same field name as RelRoot
-    assertTrue(root.isNameTrivial());
-
-    final RelNode project = root.project();
-    assertEquals(inputRel, project);
-
-    // regular project() and force project() are the same
-    final RelNode forceProject = root.project(true);
-    assertEquals(project, forceProject);
   }
 
   /** Test case for
