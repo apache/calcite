@@ -1592,6 +1592,13 @@ public abstract class SqlLibraryOperators {
           OperandTypes.or(JSON_STRING, STRING_STRING),
           SqlFunctionCategory.STRING);
 
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlFunction JSONEXTRACT =
+      new SqlFunction("JSONEXTRACT", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000_NULLABLE, null,
+          OperandTypes.or(JSON_STRING, STRING_STRING),
+          SqlFunctionCategory.STRING);
+
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction JSON_EXTRACT_ARRAY =
       new SqlFunction("JSON_EXTRACT_ARRAY",

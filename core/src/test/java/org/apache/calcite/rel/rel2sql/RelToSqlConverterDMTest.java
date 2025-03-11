@@ -12589,13 +12589,13 @@ class RelToSqlConverterDMTest {
   @Test public void testTeradataJsonExtractFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode jsonCheckNode =
-        builder.call(SqlLibraryOperators.JSON_EXTRACT, builder.literal("{\"name\": \"Bob\",\"Jane\"}"),
+        builder.call(SqlLibraryOperators.JSONEXTRACT, builder.literal("{\"name\": \"Bob\",\"Jane\"}"),
         builder.literal("$.name"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(jsonCheckNode, "json_data"))
         .build();
-    final String expectedTeraDataQuery = "SELECT JSON_EXTRACT('{\"name\": \"Bob\",\"Jane\"}', '$"
+    final String expectedTeraDataQuery = "SELECT JSONEXTRACT('{\"name\": \"Bob\",\"Jane\"}', '$"
         + ".name') AS \"json_data\"\n"
         + "FROM \"scott\".\"EMP\"";
 
