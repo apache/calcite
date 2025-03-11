@@ -21,7 +21,6 @@ import org.apache.calcite.plan.PivotRelTraitDef;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.sql.SqlBasicCall;
-import org.apache.calcite.sql.SqlBasicFunction;
 import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
@@ -191,7 +190,7 @@ public class PivotRelToSqlUtil {
                   .getOperandList().get(0)).getOperandList().get(0);
       SqlBasicCall caseConditionCall =
           (SqlBasicCall) pivotColumnAggregationCaseCall.getWhenOperands().get(0);
-      SqlNode aggregateCol = caseConditionCall.operand(0) instanceof SqlBasicCall
+      SqlNode aggregateCol = isLowerFunction(caseConditionCall.operand(0))
           ? ((SqlBasicCall) caseConditionCall.operand(0)).operand(0)
           : caseConditionCall.operand(0);
       modifiedAxisNodeList.add(aggregateCol);
@@ -212,8 +211,7 @@ public class PivotRelToSqlUtil {
     SqlBasicCall axisNodeList = (SqlBasicCall) axisSqlNodeList;
 
     if (axisNodeList.getOperator().kind == SqlKind.AS) {
-      if (axisNodeList.operand(0) instanceof SqlBasicCall
-          && ((SqlBasicCall) axisNodeList.operand(0)).getOperator() instanceof SqlBasicFunction) {
+      if (isLowerFunction(axisNodeList.operand(0))) {
         modifiedAxisNodeList.add(axisNodeList.operand(0));
       } else if (!(axisNodeList.operand(1) instanceof SqlIdentifier)) {
         modifiedAxisNodeList.add(getSqlIdentifier(axisNodeList));
@@ -230,5 +228,10 @@ public class PivotRelToSqlUtil {
     return new SqlIdentifier(
         call.operand(1).toString().replaceAll("'", ""),
         SqlParserPos.QUOTED_ZERO);
+  }
+
+  private boolean isLowerFunction(SqlNode node) {
+    return node instanceof SqlBasicCall
+        && ((SqlBasicCall) node).getOperator() == SqlStdOperatorTable.LOWER;
   }
 }
