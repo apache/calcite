@@ -24,6 +24,7 @@ public class PivotRelTrait implements RelTrait {
   private boolean isPivotRel;
   private boolean hasSubquery;
   private String pivotAlias;
+  //Number of extra projections fields add in aggregate projection
   private int valueListFromInputRelSize;
 
   public PivotRelTrait(boolean isPivotRel, boolean hasSubquery, String pivotAlias, int valueListFromInputRelSize) {

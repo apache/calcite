@@ -764,9 +764,9 @@ public class RelToSqlConverter extends SqlImplementor
     PivotRelTrait pivotRelTrait = e.getTraitSet().getTrait(PivotRelTraitDef.instance);
     if (pivotRelTrait != null && pivotRelTrait.isPivotRel()) {
       List<SqlNode> selectList = builder.select.getSelectList();
-      int valueList2size = pivotRelTrait.getValueListFromInputRelSize();
-      if (valueList2size > 0 && selectList.size() >= valueList2size) {
-        selectList = selectList.subList(0, selectList.size() - valueList2size);
+      int valueListFromInputRelSize = pivotRelTrait.getValueListFromInputRelSize();
+      if (valueListFromInputRelSize > 0 && selectList.size() >= valueListFromInputRelSize) {
+        selectList = selectList.subList(0, selectList.size() - valueListFromInputRelSize);
       }
       List<SqlNode> aggregateInClauseFieldList = new ArrayList<>();
 
