@@ -120,14 +120,12 @@ public class PivotRelToSqlUtil {
           .filter(x -> !(x instanceof SqlIdentifier))
           .map(node -> {
             // Extract the specific node as per your expression
+            SqlBasicCall sqlBasicCall = (SqlBasicCall) ((SqlBasicCall) node).getOperandList().get(0);
+            if (sqlBasicCall.getOperator().kind == SqlKind.IS_TRUE) {
+              sqlBasicCall = sqlBasicCall.operand(0);
+            }
             SqlNode secondOperand = ((SqlBasicCall)
-                ((SqlCase)
-                    ((SqlBasicCall)
-                        ((SqlBasicCall) node)
-                            .getOperandList().get(0))
-                        .operand(0))
-                    .getWhenOperands().get(0))
-                .operand(1);
+                ((SqlCase) sqlBasicCall.operand(0)).getWhenOperands().get(0)).operand(1);
 
             if (secondOperand.getKind() == SqlKind.AS
                 && ((SqlBasicCall) secondOperand).operand(1) instanceof SqlCharStringLiteral) {
@@ -197,7 +195,11 @@ public class PivotRelToSqlUtil {
       return new SqlNodeList(modifiedAxisNodeList, pos);
     }
 
-    SqlNode axisSqlNodeList =  ((SqlBasicCall) pivotColumnAggregation.getOperandList().get(0)).operand(0);
+    SqlBasicCall sqlBasicCall = (SqlBasicCall) pivotColumnAggregation.getOperandList().get(0);
+    if (sqlBasicCall.getOperator().kind == SqlKind.IS_TRUE) {
+      sqlBasicCall = sqlBasicCall.operand(0);
+    }
+    SqlNode axisSqlNodeList = sqlBasicCall.operand(0);
 
     if (axisSqlNodeList instanceof SqlIdentifier) {
       modifiedAxisNodeList.add(axisSqlNodeList);

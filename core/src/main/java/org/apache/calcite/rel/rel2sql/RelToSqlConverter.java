@@ -807,6 +807,9 @@ public class RelToSqlConverter extends SqlImplementor
   private boolean isSqlNodeValid(SqlBasicCall sqlBasicCall, List<String> aggNames,
       List<SqlNode> aggregateInClauseFieldList) {
     SqlNode firstOperand = sqlBasicCall.getOperandList().get(0);
+    if (firstOperand instanceof SqlBasicCall && firstOperand.getKind() == SqlKind.IS_TRUE) {
+      firstOperand = ((SqlBasicCall) firstOperand).operand(0);
+    }
     if (firstOperand instanceof SqlIdentifier) {
       return true;
     }
