@@ -38,6 +38,7 @@ import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.rules.CoreRules;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.fun.SqlLibrary;
@@ -46,6 +47,7 @@ import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlDelegatingConformance;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.sql.validate.implicit.TypeCoercionImpl;
 import org.apache.calcite.test.catalog.MockCatalogReaderExtended;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.TestUtil;
@@ -4914,6 +4916,33 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     final String sql = "WITH t1(x) AS (VALUES('x')), t2(x) AS (VALUES(0.0))\n"
         + "SELECT * FROM t1 NATURAL JOIN t2";
     sql(sql).ok();
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6885">[CALCITE-6885]
+   * SqlToRelConverter#convertUsing should not fail if commonTypeForBinaryComparison
+   * returns null</a>. */
+  @Test void testNaturalJoinCastNoCoercion() {
+    final String sql = "WITH t1(x) AS (VALUES('x')), t2(x) AS (VALUES(0.0))\n"
+        + "SELECT * FROM t1 NATURAL JOIN t2";
+    sql(sql)
+        // Default factory, except for the TypeCoercion
+        .withFactory(f ->
+            f
+                .withValidator((opTab, catalogReader, typeFactory, config) ->
+                    SqlValidatorUtil.newValidator(opTab, catalogReader, typeFactory,
+                        config.withIdentifierExpansion(true)
+                            // Ad-hoc coercion that returns null for commonTypeForBinaryComparison
+                            .withTypeCoercionFactory((t, v) -> new TypeCoercionImpl(t, v) {
+                              @Override public @Nullable RelDataType commonTypeForBinaryComparison(
+                                  @Nullable RelDataType type1, @Nullable RelDataType type2) {
+                                return null;
+                              }
+                            })))
+                .withSqlToRelConfig(c ->
+                    c.withTrimUnusedFields(true).withExpand(true)
+                        .addRelBuilderConfigTransform(b ->
+                            b.withAggregateUnique(true).withPruneInputOfAggregate(false))))
+        .ok();
   }
 
   /** Tests LEFT JOIN LATERAL with multiple columns from outer. */
