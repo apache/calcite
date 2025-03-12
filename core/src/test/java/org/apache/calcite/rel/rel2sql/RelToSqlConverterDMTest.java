@@ -10525,6 +10525,22 @@ class RelToSqlConverterDMTest {
     sql(query).withBigQuery().ok(expected);
   }
 
+  @Test public void testMsSqlDateNameFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode isNumericNode =
+        builder.call(SqlLibraryOperators.DATENAME,
+            builder.literal(DAY),
+            builder.call(GETDATE));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(isNumericNode, "datename"))
+        .build();
+    final String expectedSFSql = "SELECT DATENAME(DAY, GETDATE) AS [datename]\n"
+        + "FROM [scott].[EMP]";
+
+    assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedSFSql));
+  }
+
   @Test public void testQuoteInStringLiterals() {
     final RelBuilder builder = relBuilder();
     final RexNode literal = builder.literal("Datam\"etica");
