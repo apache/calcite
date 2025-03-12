@@ -33,6 +33,7 @@ import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.logical.LogicalWindow;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
@@ -70,6 +71,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
@@ -737,6 +739,17 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
       RelOptPredicateList predicates, boolean treatDynamicCallsAsConstant) {
     // Replace predicates on CASE to CASE on predicates.
     boolean changed = new CaseShuttle().mutate(expList);
+
+    // distinct for IN rexNode
+    for (RexNode rexNode : predicates.pulledUpPredicates) {
+      if (rexNode.isA(SqlKind.IN)) {
+        RexSubQuery rexSubQuery = (RexSubQuery) rexNode;
+        List<ImmutableList<RexLiteral>> collect =
+            ((LogicalValues) rexSubQuery.rel).tuples
+                .stream().distinct().collect(Collectors.toList());
+        ((LogicalValues) rexSubQuery.rel).tuples = ImmutableList.copyOf(collect);
+      }
+    }
 
     // Find reducible expressions.
     final List<RexNode> constExps = new ArrayList<>();

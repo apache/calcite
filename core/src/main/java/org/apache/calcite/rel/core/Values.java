@@ -66,7 +66,7 @@ public abstract class Values extends AbstractRelNode implements Hintable {
 
   //~ Instance fields --------------------------------------------------------
 
-  public final ImmutableList<ImmutableList<RexLiteral>> tuples;
+  public ImmutableList<ImmutableList<RexLiteral>> tuples;
 
   //~ Constructors -----------------------------------------------------------
 

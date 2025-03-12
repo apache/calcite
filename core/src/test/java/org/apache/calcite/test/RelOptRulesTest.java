@@ -348,6 +348,18 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6887">[CALCITE-6887]
+   * In should distinct values with ReduceExpressionRule</a>. */
+  @Test void testReduceExpressionsWithIn() {
+    final String sql = "select deptno, sal "
+        + "from emp "
+        + "where deptno in (1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,1) ";
+    sql(sql).withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
+        .check();
+  }
+
+  /**
    * Test case for <a href="https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-6746">
    * [CALCITE-6746] Optimization rule ProjectWindowTranspose is unsound</a>. */
   @Test void testConstantWindow() {
