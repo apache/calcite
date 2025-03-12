@@ -5091,6 +5091,20 @@ LogicalProject(X=[CAST($0):DECIMAL(2, 1) NOT NULL])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testNaturalJoinCastNoCoercion">
+    <Resource name="sql">
+      <![CDATA[WITH t1(x) AS (VALUES('x')), t2(x) AS (VALUES(0.0))
+SELECT * FROM t1 NATURAL JOIN t2]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(X=[CAST($0):DECIMAL(2, 1) NOT NULL])
+  LogicalJoin(condition=[=($0, $1)], joinType=[inner])
+    LogicalValues(tuples=[[{ 'x' }]])
+    LogicalValues(tuples=[[{ 0.0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testNestedAggregates">
     <Resource name="sql">
       <![CDATA[SELECT
