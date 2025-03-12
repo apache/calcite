@@ -79,6 +79,7 @@ import static org.apache.calcite.sql.type.OperandTypes.ANY_STRING_OR_STRING_STRI
 import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTEGER;
 import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTERVAL;
 import static org.apache.calcite.sql.type.OperandTypes.ONE_OR_MORE;
+import static org.apache.calcite.sql.type.OperandTypes.STRING_DATETIME;
 import static org.apache.calcite.sql.type.OperandTypes.STRING_INTEGER;
 import static org.apache.calcite.sql.type.OperandTypes.STRING_STRING;
 import static org.apache.calcite.sql.type.OperandTypes.STRING_STRING_BOOLEAN;
@@ -2032,6 +2033,16 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(
               ImmutableList.of(SqlTypeFamily.ANY, SqlTypeFamily.STRING),
               number -> number == 1),
+          SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {MSSQL})
+  public static final SqlFunction DATENAME =
+      new SqlFunction(
+          "DATENAME",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_NULLABLE,
+          null,
+          STRING_DATETIME,
           SqlFunctionCategory.TIMEDATE);
 
   /** The "TO_DATE(string1, string2)" function; casts string1
