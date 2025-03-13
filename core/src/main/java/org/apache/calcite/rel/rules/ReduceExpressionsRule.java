@@ -747,7 +747,10 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
         List<ImmutableList<RexLiteral>> collect =
             ((LogicalValues) rexSubQuery.rel).tuples
                 .stream().distinct().collect(Collectors.toList());
-        ((LogicalValues) rexSubQuery.rel).tuples = ImmutableList.copyOf(collect);
+        // In would transform to RexSubQuery and rel should be LogicalValues
+        if (rexSubQuery.rel instanceof LogicalValues) {
+          ((LogicalValues) rexSubQuery.rel).tuples = ImmutableList.copyOf(collect);
+        }
       }
     }
 
