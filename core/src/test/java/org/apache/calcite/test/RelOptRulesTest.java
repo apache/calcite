@@ -9347,6 +9347,44 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6875">[CALCITE-6875]
+   * EnumerableFilterRule/EnumerableProjectRule should not convert a Logical Filter/Project
+   * to Enumerable Filter/Project when it contains Subquery</a>. */
+  @Test void testEnumerableFilterRule() {
+    final String sql = "select R_REGIONKEY from SALES.CUSTOMER\n"
+        + "where R_REGIONKEY > all (select R_REGIONKEY from SALES.CUSTOMER)";
+    sql(sql)
+        .withVolcanoPlanner(false, p -> {
+          p.addRelTraitDef(RelDistributionTraitDef.INSTANCE);
+          p.addRule(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE);
+          p.addRule(EnumerableRules.ENUMERABLE_FILTER_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_PROJECT_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_AGGREGATE_RULE);
+        })
+        .withDynamicTable()
+        .check();
+  }
+
+  @Test void testEnumerableProjectRule() {
+    final String sql = "select R_REGIONKEY > all (select R_REGIONKEY from SALES.CUSTOMER)\n"
+        + "from SALES.CUSTOMER";
+    sql(sql)
+        .withVolcanoPlanner(false, p -> {
+          p.addRelTraitDef(RelDistributionTraitDef.INSTANCE);
+          p.addRule(CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE);
+          p.addRule(EnumerableRules.ENUMERABLE_PROJECT_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_AGGREGATE_RULE);
+        })
+        .withDynamicTable()
+        .check();
+  }
+
   @Test void testEnumerableCalcRule() {
     final String sql = "select FNAME, LNAME\n"
         + "from SALES.CUSTOMER\n"
