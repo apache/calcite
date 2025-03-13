@@ -204,6 +204,7 @@ public class AggregateReduceFunctionsRule
     final SqlKind kind = call.getAggregation().getKind();
     switch (kind) {
     case AVG:
+    case SUM:
     case MAX:
     case MIN:
     case ANY_VALUE:

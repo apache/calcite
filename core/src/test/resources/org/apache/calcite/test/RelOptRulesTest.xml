@@ -13173,20 +13173,21 @@ LogicalProject(EXPR$0=[1], A=[$1])
     <Resource name="sql">
       <![CDATA[select sal, max(sal) as sal_max, min(sal) as sal_min,
 avg(sal) sal_avg, any_value(sal) as sal_val, first_value(sal) as sal_first,
+sum(sal) sal_sum,
 last_value(sal) as sal_last
 from emp group by sal, deptno]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalProject(SAL=[$0], SAL_MAX=[$2], SAL_MIN=[$3], SAL_AVG=[$4], SAL_VAL=[$5], SAL_FIRST=[$6], SAL_LAST=[$7])
-  LogicalAggregate(group=[{0, 1}], SAL_MAX=[MAX($0)], SAL_MIN=[MIN($0)], SAL_AVG=[AVG($0)], SAL_VAL=[ANY_VALUE($0)], SAL_FIRST=[FIRST_VALUE($0)], SAL_LAST=[LAST_VALUE($0)])
+LogicalProject(SAL=[$0], SAL_MAX=[$2], SAL_MIN=[$3], SAL_AVG=[$4], SAL_VAL=[$5], SAL_FIRST=[$6], SAL_SUM=[$7], SAL_LAST=[$8])
+  LogicalAggregate(group=[{0, 1}], SAL_MAX=[MAX($0)], SAL_MIN=[MIN($0)], SAL_AVG=[AVG($0)], SAL_VAL=[ANY_VALUE($0)], SAL_FIRST=[FIRST_VALUE($0)], SAL_SUM=[SUM($0)], SAL_LAST=[LAST_VALUE($0)])
     LogicalProject(SAL=[$5], DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalProject(SAL=[$0], SAL_MAX=[$0], SAL_MIN=[$0], SAL_AVG=[$0], SAL_VAL=[$0], SAL_FIRST=[$0], SAL_LAST=[$0])
+LogicalProject(SAL=[$0], SAL_MAX=[$0], SAL_MIN=[$0], SAL_AVG=[$0], SAL_VAL=[$0], SAL_FIRST=[$0], SAL_SUM=[$0], SAL_LAST=[$0])
   LogicalAggregate(group=[{0, 1}])
     LogicalProject(SAL=[$5], DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
