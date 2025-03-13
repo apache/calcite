@@ -4004,6 +4004,59 @@ EnumerableProject(FNAME=[$1], LNAME=[$2])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testEnumerableFilterRule">
+    <Resource name="sql">
+      <![CDATA[select R_REGIONKEY from SALES.CUSTOMER
+where R_REGIONKEY > all (select R_REGIONKEY from SALES.CUSTOMER)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(R_REGIONKEY=[$0])
+  LogicalFilter(condition=[NOT(<= SOME($0, {
+LogicalProject(R_REGIONKEY=[$0])
+  LogicalTableScan(table=[[CATALOG, SALES, CUSTOMER]])
+}))])
+    LogicalTableScan(table=[[CATALOG, SALES, CUSTOMER]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableProject(R_REGIONKEY=[$0])
+  EnumerableProject(R_REGIONKEY=[$0])
+    EnumerableFilter(condition=[OR(=($2, 0), AND(>($0, $1), <>($2, 0), IS NOT TRUE(OR(<=($0, $1), >($2, $3)))))])
+      EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
+        EnumerableTableScan(table=[[CATALOG, SALES, CUSTOMER]])
+        EnumerableAggregate(group=[{}], m=[MAX($0)], c=[COUNT()], d=[COUNT($0)])
+          EnumerableProject(R_REGIONKEY=[$0])
+            EnumerableTableScan(table=[[CATALOG, SALES, CUSTOMER]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testEnumerableProjectRule">
+    <Resource name="sql">
+      <![CDATA[select R_REGIONKEY > all (select R_REGIONKEY from SALES.CUSTOMER)
+from SALES.CUSTOMER]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EXPR$0=[NOT(<= SOME($0, {
+LogicalProject(R_REGIONKEY=[$0])
+  LogicalTableScan(table=[[CATALOG, SALES, CUSTOMER]])
+}))])
+  LogicalTableScan(table=[[CATALOG, SALES, CUSTOMER]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableProject(EXPR$0=[OR(=($2, 0), AND(>($2, $3), null, IS NOT TRUE(<=($0, $1))), AND(>($0, $1), IS NOT TRUE(<=($0, $1)), <=($2, $3)))])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
+    EnumerableTableScan(table=[[CATALOG, SALES, CUSTOMER]])
+    EnumerableAggregate(group=[{}], m=[MAX($0)], c=[COUNT()], d=[COUNT($0)])
+      EnumerableProject(R_REGIONKEY=[$0])
+        EnumerableTableScan(table=[[CATALOG, SALES, CUSTOMER]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testExchangeRemoveConstantKeysRule">
     <Resource name="planBefore">
       <![CDATA[
