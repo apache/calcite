@@ -744,11 +744,11 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
     for (RexNode rexNode : predicates.pulledUpPredicates) {
       if (rexNode.isA(SqlKind.IN)) {
         RexSubQuery rexSubQuery = (RexSubQuery) rexNode;
-        List<ImmutableList<RexLiteral>> collect =
-            ((LogicalValues) rexSubQuery.rel).tuples
-                .stream().distinct().collect(Collectors.toList());
         // In would transform to RexSubQuery and rel should be LogicalValues
         if (rexSubQuery.rel instanceof LogicalValues) {
+          List<ImmutableList<RexLiteral>> collect =
+              ((LogicalValues) rexSubQuery.rel).tuples
+                  .stream().distinct().collect(Collectors.toList());
           ((LogicalValues) rexSubQuery.rel).tuples = ImmutableList.copyOf(collect);
         }
       }
