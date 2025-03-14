@@ -9909,4 +9909,26 @@ class RelOptRulesTest extends RelOptTestBase {
         .withRule(CoreRules.HYPER_GRAPH_OPTIMIZE, CoreRules.PROJECT_REMOVE, CoreRules.PROJECT_MERGE)
         .check();
   }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6891">
+   * [CALCITE-6891] Implement IntersectReorderRule</a>. */
+  @Test void testIntersectReorderRule() {
+    final String sql = "select deptno from emp where deptno > 10\n"
+        + "intersect\n"
+        + "select deptno from dept where deptno > 5\n";
+    sql(sql)
+        .withRule(CoreRules.INTERSECT_REORDER)
+        .check();
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6891">
+   * [CALCITE-6891] Implement IntersectReorderRule</a>. */
+  @Test void testIntersectReorderRuleSameRowCount() {
+    final String sql = "select deptno from emp where deptno > 10\n"
+        + "intersect\n"
+        + "select deptno from emp where deptno > 5\n";
+    sql(sql)
+        .withRule(CoreRules.INTERSECT_REORDER)
+        .checkUnchanged();
+  }
 }
