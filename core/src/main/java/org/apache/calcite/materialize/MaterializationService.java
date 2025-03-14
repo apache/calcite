@@ -50,7 +50,6 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.PriorityQueue;
 import java.util.Set;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
@@ -241,8 +240,7 @@ public class MaterializationService {
     // TODO: Use a partially-ordered set data structure, so we are not scanning
     // through all tiles.
     if (!exact) {
-      final PriorityQueue<Pair<CalciteSchema.TableEntry, TileKey>> queue =
-          new PriorityQueue<>(1, C);
+      Pair<CalciteSchema.TableEntry, TileKey> bestCandidate = null;
       for (Map.Entry<TileKey, MaterializationKey> entry
           : actor.keyByTile.entrySet()) {
         final TileKey tileKey2 = entry.getKey();
@@ -254,12 +252,12 @@ public class MaterializationService {
           final CalciteSchema.TableEntry tableEntry =
               checkValid(materializationKey);
           if (tableEntry != null) {
-            queue.add(Pair.of(tableEntry, tileKey2));
+            Pair<CalciteSchema.TableEntry, TileKey> candidate = Pair.of(tableEntry, tileKey2);
+            if (bestCandidate == null || C.compare(candidate, bestCandidate) < 0) {
+              bestCandidate = candidate;
+            }
           }
         }
-      }
-      if (!queue.isEmpty()) {
-        return queue.peek();
       }
     }
 
