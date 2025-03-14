@@ -309,6 +309,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPLIT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPLIT_PART;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.STARTS_WITH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.STRCMP;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.STRLEN;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.STR_TO_MAP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SUBSTRING_INDEX;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SYSDATE;
@@ -715,6 +716,8 @@ public class RexImpTable {
       defineMethod(TRANSLATE3, BuiltInMethod.TRANSLATE3.method, NullPolicy.STRICT);
       defineMethod(CHR, BuiltInMethod.CHAR_FROM_UTF8.method, NullPolicy.STRICT);
       defineMethod(CHARACTER_LENGTH, BuiltInMethod.CHAR_LENGTH.method,
+          NullPolicy.STRICT);
+      defineMethod(STRLEN, BuiltInMethod.CHAR_LENGTH.method,
           NullPolicy.STRICT);
       defineMethod(CHAR_LENGTH, BuiltInMethod.CHAR_LENGTH.method,
           NullPolicy.STRICT);
