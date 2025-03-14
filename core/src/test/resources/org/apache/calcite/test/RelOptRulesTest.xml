@@ -5890,6 +5890,55 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], T=[$10])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testIntersectReorderRule">
+    <Resource name="sql">
+      <![CDATA[select deptno from emp where deptno > 10
+intersect
+select deptno from dept where deptno > 5
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalIntersect(all=[false])
+  LogicalProject(DEPTNO=[$7])
+    LogicalFilter(condition=[>($7, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(DEPTNO=[$0])
+    LogicalFilter(condition=[>($0, 5)])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalIntersect(all=[false])
+  LogicalProject(DEPTNO=[$0])
+    LogicalFilter(condition=[>($0, 5)])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalProject(DEPTNO=[$7])
+    LogicalFilter(condition=[>($7, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testIntersectReorderRuleSameRowCount">
+    <Resource name="sql">
+      <![CDATA[select deptno from emp where deptno > 10
+intersect
+select deptno from emp where deptno > 5
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalIntersect(all=[false])
+  LogicalProject(DEPTNO=[$7])
+    LogicalFilter(condition=[>($7, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(DEPTNO=[$7])
+    LogicalFilter(condition=[>($7, 5)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testIntersectToDistinct">
     <Resource name="sql">
       <![CDATA[select * from emp where deptno = 10
