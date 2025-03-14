@@ -1452,7 +1452,6 @@ comp:
 | string &#124;&#124; string | Concatenates two character strings
 | CHAR_LENGTH(string)        | Returns the number of characters in a character string
 | CHARACTER_LENGTH(string)   | As CHAR_LENGTH(*string*)
-| STRLEN(string)             | As CHAR_LENGTH(*string*)
 | UPPER(string)              | Returns a character string converted to upper case
 | LOWER(string)              | Returns a character string converted to lower case
 | POSITION(substring IN string) | Returns the position of the first occurrence of *substring* in *string*
@@ -2999,6 +2998,7 @@ In the following:
 | b p | STARTS_WITH(string1, string2)                | Equivalent to `STARTSWITH(string1, string2)`
 | m | STRCMP(string, string)                         | Returns 0 if both of the strings are same and returns -1 when the first argument is smaller than the second and 1 when the second one is smaller than the first one
 | b r p | STRPOS(string, substring)                  | Equivalent to `POSITION(substring IN string)`
+| d | STRLEN(string)                                 | Returns the length of a string, as CHAR_LENGTH(*string*)
 | b m o p r | SUBSTR(string, position [, substringLength ]) | Returns a portion of *string*, beginning at character *position*, *substringLength* characters long. SUBSTR calculates lengths using characters as defined by the input character set
 | o | SYSDATE                                        | Returns the current date in the operating system time zone of the database server, in a value of datatype DATE.
 | o | SYSTIMESTAMP                                   | Returns the current date and time in the operating system time zone of the database server, in a value of datatype TIMESTAMP WITH TIME ZONE.

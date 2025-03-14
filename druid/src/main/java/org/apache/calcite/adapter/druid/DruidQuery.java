@@ -56,6 +56,7 @@ import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -123,7 +124,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
           .add(new DirectOperatorConversion(SqlStdOperatorTable.CASE, "case_searched"))
           .add(new DirectOperatorConversion(SqlStdOperatorTable.CHAR_LENGTH, "strlen"))
           .add(new DirectOperatorConversion(SqlStdOperatorTable.CHARACTER_LENGTH, "strlen"))
-          .add(new DirectOperatorConversion(SqlStdOperatorTable.STRLEN, "strlen"))
+          .add(new DirectOperatorConversion(SqlLibraryOperators.STRLEN, "strlen"))
           .add(new BinaryOperatorConversion(SqlStdOperatorTable.EQUALS, "=="))
           .add(new BinaryOperatorConversion(SqlStdOperatorTable.NOT_EQUALS, "!="))
           .add(new NaryOperatorConverter(SqlStdOperatorTable.OR, "||"))
