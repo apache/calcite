@@ -192,6 +192,7 @@ class RelToSqlConverterTest {
         .put(DatabaseProduct.BIG_QUERY.getDialect(), DatabaseProduct.BIG_QUERY)
         .put(DatabaseProduct.CALCITE.getDialect(), DatabaseProduct.CALCITE)
         .put(DatabaseProduct.DB2.getDialect(), DatabaseProduct.DB2)
+        .put(DatabaseProduct.DORIS.getDialect(), DatabaseProduct.DORIS)
         .put(DatabaseProduct.EXASOL.getDialect(), DatabaseProduct.EXASOL)
         .put(DatabaseProduct.HIVE.getDialect(), DatabaseProduct.HIVE)
         .put(jethroDataSqlDialect(), DatabaseProduct.JETHRO)
@@ -361,8 +362,15 @@ class RelToSqlConverterTest {
         + "FROM `foodmart`.`product`\n"
         + "WHERE `product_id` > 0\n"
         + "GROUP BY `product_id`";
+    final String expectedDoris = "SELECT"
+        + " SUM(CASE WHEN `net_weight` > 0E0 IS TRUE"
+        + " THEN `shelf_width` ELSE NULL END), SUM(`shelf_width`)\n"
+        + "FROM `foodmart`.`product`\n"
+        + "WHERE `product_id` > 0\n"
+        + "GROUP BY `product_id`";
     sql(query).ok(expectedDefault)
         .withBigQuery().ok(expectedBigQuery)
+        .withDoris().ok(expectedDoris)
         .withFirebolt().ok(expectedFirebolt)
         .withMysql().ok(expectedMysql)
         .withStarRocks().ok(expectedStarRocks);
@@ -669,16 +677,20 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"";
     final String expectedStarRocks = "SELECT COUNT(*)\n"
         + "FROM `foodmart`.`product`";
+    final String expectedDoris = "SELECT COUNT(*)\n"
+            + "FROM `foodmart`.`product`";
     sql(sql0)
         .ok(expected)
         .withMysql().ok(expectedMysql)
         .withPresto().ok(expectedPresto)
-        .withStarRocks().ok(expectedStarRocks);
+        .withStarRocks().ok(expectedStarRocks)
+        .withDoris().ok(expectedDoris);
     sql(sql1)
         .ok(expected)
         .withMysql().ok(expectedMysql)
         .withPresto().ok(expectedPresto)
-        .withStarRocks().ok(expectedStarRocks);
+        .withStarRocks().ok(expectedStarRocks)
+        .withDoris().ok(expectedDoris);
   }
 
   @Test void testSelectQueryWithGroupByEmpty2() {
@@ -1002,11 +1014,17 @@ class RelToSqlConverterTest {
         + "GROUP BY ROLLUP(`product_class_id`, `brand_name`)\n"
         + "ORDER BY `product_class_id` IS NULL, `product_class_id`, `brand_name` IS NULL, "
         + "`brand_name`";
+    final String expectedDoris = "SELECT `product_class_id`, `brand_name`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "GROUP BY ROLLUP(`product_class_id`, `brand_name`)\n"
+        + "ORDER BY `product_class_id` IS NULL, `product_class_id`, `brand_name` IS NULL, "
+        + "`brand_name`";
     sql(query)
         .ok(expected)
         .withMysql().ok(expectedMysql)
         .withMysql8().ok(expectedMysql8)
-        .withStarRocks().ok(expectedStarRocks);
+        .withStarRocks().ok(expectedStarRocks)
+        .withDoris().ok(expectedDoris);
   }
 
   /** As {@link #testSelectQueryWithGroupByRollup()},
@@ -1030,10 +1048,16 @@ class RelToSqlConverterTest {
         + "GROUP BY ROLLUP(`product_class_id`, `brand_name`)\n"
         + "ORDER BY `brand_name` IS NULL, `brand_name`, `product_class_id` IS NULL, "
         + "`product_class_id`";
+    final String expectedDoris = "SELECT `product_class_id`, `brand_name`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "GROUP BY ROLLUP(`product_class_id`, `brand_name`)\n"
+        + "ORDER BY `brand_name` IS NULL, `brand_name`, `product_class_id` IS NULL, "
+        + "`product_class_id`";
     sql(query)
         .ok(expected)
         .withMysql().ok(expectedMysql)
-        .withStarRocks().ok(expectedStarRocks);
+        .withStarRocks().ok(expectedStarRocks)
+        .withDoris().ok(expectedDoris);
   }
 
   /** Test case for
@@ -1133,11 +1157,16 @@ class RelToSqlConverterTest {
         + "FROM `foodmart`.`product`\n"
         + "GROUP BY ROLLUP(`product_class_id`)\n"
         + "ORDER BY `product_class_id` IS NULL, `product_class_id`, COUNT(*) IS NULL, 2";
+    final String expectedDoris = "SELECT `product_class_id`, COUNT(*) AS `C`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "GROUP BY ROLLUP(`product_class_id`)\n"
+        + "ORDER BY `product_class_id` IS NULL, `product_class_id`, COUNT(*) IS NULL, 2";
     sql(query)
         .ok(expected)
         .withMysql().ok(expectedMysql)
         .withPresto().ok(expectedPresto)
-        .withStarRocks().ok(expectedStarRocks);
+        .withStarRocks().ok(expectedStarRocks)
+        .withDoris().ok(expectedDoris);
   }
 
   /** As {@link #testSelectQueryWithSingletonCube()}, but no ORDER BY
@@ -1158,11 +1187,15 @@ class RelToSqlConverterTest {
     final String expectedStarRocks = "SELECT `product_class_id`, COUNT(*) AS `C`\n"
         + "FROM `foodmart`.`product`\n"
         + "GROUP BY ROLLUP(`product_class_id`)";
+    final String expectedDoris = "SELECT `product_class_id`, COUNT(*) AS `C`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "GROUP BY ROLLUP(`product_class_id`)";
     sql(query)
         .ok(expected)
         .withMysql().ok(expectedMysql)
         .withPresto().ok(expectedPresto)
-        .withStarRocks().ok(expectedStarRocks);
+        .withStarRocks().ok(expectedStarRocks)
+        .withDoris().ok(expectedDoris);
   }
 
   /** Cannot rewrite if ORDER BY contains a column not in GROUP BY (in this
@@ -1190,10 +1223,16 @@ class RelToSqlConverterTest {
         + "GROUP BY ROLLUP(`product_class_id`, `brand_name`)\n"
         + "ORDER BY `product_class_id` IS NULL, `product_class_id`, `brand_name` IS NULL, "
         + "`brand_name`, COUNT(*) IS NULL, 3";
+    final String expectedDoris = "SELECT `product_class_id`, `brand_name`, COUNT(*) AS `C`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "GROUP BY ROLLUP(`product_class_id`, `brand_name`)\n"
+        + "ORDER BY `product_class_id` IS NULL, `product_class_id`, `brand_name` IS NULL, "
+        + "`brand_name`, COUNT(*) IS NULL, 3";
     sql(query)
         .ok(expected)
         .withMysql().ok(expectedMysql)
-        .withStarRocks().ok(expectedStarRocks);
+        .withStarRocks().ok(expectedStarRocks)
+        .withDoris().ok(expectedDoris);
   }
 
   /** As {@link #testSelectQueryWithSingletonCube()}, but with LIMIT. */
@@ -1220,11 +1259,16 @@ class RelToSqlConverterTest {
         + "FROM `foodmart`.`product`\n"
         + "GROUP BY ROLLUP(`product_class_id`)\n"
         + "LIMIT 5";
+    final String expectedDoris = "SELECT `product_class_id`, COUNT(*) AS `C`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "GROUP BY ROLLUP(`product_class_id`)\n"
+        + "LIMIT 5";
     sql(query)
         .ok(expected)
         .withMysql().ok(expectedMysql)
         .withPresto().ok(expectedPresto)
-        .withStarRocks().ok(expectedStarRocks);
+        .withStarRocks().ok(expectedStarRocks)
+        .withDoris().ok(expectedDoris);
   }
 
   /**
@@ -1987,6 +2031,10 @@ class RelToSqlConverterTest {
         + "FROM (SELECT SUM(`net_weight`) AS `net_weight1`\n"
         + "FROM `foodmart`.`product`\n"
         + "GROUP BY `product_id`) AS `t1`";
+    final String expectedDoris = "SELECT SUM(`net_weight1`) AS `net_weight_converted`\n"
+        + "FROM (SELECT SUM(`net_weight`) AS `net_weight1`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "GROUP BY `product_id`) AS `t1`";
     sql(query)
         .withBigQuery().ok(expectedBigQuery)
         .withExasol().ok(expectedExasol)
@@ -1996,7 +2044,8 @@ class RelToSqlConverterTest {
         .withPostgresql().ok(expectedPostgresql)
         .withSpark().ok(expectedSpark)
         .withVertica().ok(expectedVertica)
-        .withStarRocks().ok(expectedStarRocks);
+        .withStarRocks().ok(expectedStarRocks)
+        .withDoris().ok(expectedDoris);
   }
 
   /** Test case for
@@ -2640,78 +2689,90 @@ class RelToSqlConverterTest {
         + "EXTRACT(HOUR FROM TIMESTAMP '2023-12-01 00:00:00'),\n"
         + "EXTRACT(MINUTE FROM TIMESTAMP '2023-12-01 00:00:00'),\n"
         + "EXTRACT(SECOND FROM TIMESTAMP '2023-12-01 00:00:00')";
-    final String expectedClickHouse = "SELECT "
-        + "EXTRACT(YEAR FROM toDate('2023-12-01')), "
-        + "EXTRACT(QUARTER FROM toDate('2023-12-01')), "
-        + "EXTRACT(MONTH FROM toDate('2023-12-01')), "
-        + "toWeek(toDate('2023-12-01')), "
-        + "DAYOFYEAR(toDate('2023-12-01')), "
-        + "EXTRACT(DAY FROM toDate('2023-12-01')), "
-        + "DAYOFWEEK(toDate('2023-12-01')), "
-        + "EXTRACT(HOUR FROM toDateTime('2023-12-01 00:00:00')), "
-        + "EXTRACT(MINUTE FROM toDateTime('2023-12-01 00:00:00')), "
-        + "EXTRACT(SECOND FROM toDateTime('2023-12-01 00:00:00'))";
-    final String expectedMySQL = "SELECT "
-        + "EXTRACT(YEAR FROM DATE '2023-12-01'), "
-        + "EXTRACT(QUARTER FROM DATE '2023-12-01'), "
-        + "EXTRACT(MONTH FROM DATE '2023-12-01'), "
-        + "EXTRACT(WEEK FROM DATE '2023-12-01'), "
-        + "DAYOFYEAR(DATE '2023-12-01'), "
-        + "EXTRACT(DAY FROM DATE '2023-12-01'), "
-        + "DAYOFWEEK(DATE '2023-12-01'), "
-        + "EXTRACT(HOUR FROM TIMESTAMP '2023-12-01 00:00:00'), "
-        + "EXTRACT(MINUTE FROM TIMESTAMP '2023-12-01 00:00:00'), "
-        + "EXTRACT(SECOND FROM TIMESTAMP '2023-12-01 00:00:00')";
-    final String expectedStarRocks = "SELECT "
-        + "EXTRACT(YEAR FROM DATE '2023-12-01'), "
-        + "EXTRACT(QUARTER FROM DATE '2023-12-01'), "
-        + "EXTRACT(MONTH FROM DATE '2023-12-01'), "
-        + "EXTRACT(WEEK FROM DATE '2023-12-01'), "
-        + "DAYOFYEAR(DATE '2023-12-01'), "
-        + "EXTRACT(DAY FROM DATE '2023-12-01'), "
-        + "DAYOFWEEK(DATE '2023-12-01'), "
-        + "EXTRACT(HOUR FROM DATETIME '2023-12-01 00:00:00'), "
-        + "EXTRACT(MINUTE FROM DATETIME '2023-12-01 00:00:00'), "
-        + "EXTRACT(SECOND FROM DATETIME '2023-12-01 00:00:00')";
-    final String expectedHive = "SELECT "
-        + "EXTRACT(YEAR FROM DATE '2023-12-01'), "
-        + "EXTRACT(QUARTER FROM DATE '2023-12-01'), "
-        + "EXTRACT(MONTH FROM DATE '2023-12-01'), "
-        + "EXTRACT(WEEK FROM DATE '2023-12-01'), "
-        + "EXTRACT(DOY FROM DATE '2023-12-01'), "
-        + "EXTRACT(DAY FROM DATE '2023-12-01'), "
-        + "EXTRACT(DOW FROM DATE '2023-12-01'), "
-        + "EXTRACT(HOUR FROM TIMESTAMP '2023-12-01 00:00:00'), "
-        + "EXTRACT(MINUTE FROM TIMESTAMP '2023-12-01 00:00:00'), "
-        + "EXTRACT(SECOND FROM TIMESTAMP '2023-12-01 00:00:00')";
-    final String expectedPostgresql = "SELECT "
-        + "EXTRACT(YEAR FROM DATE '2023-12-01'), "
-        + "EXTRACT(QUARTER FROM DATE '2023-12-01'), "
-        + "EXTRACT(MONTH FROM DATE '2023-12-01'), "
-        + "EXTRACT(WEEK FROM DATE '2023-12-01'), "
-        + "EXTRACT(DOY FROM DATE '2023-12-01'), "
-        + "EXTRACT(DAY FROM DATE '2023-12-01'), "
-        + "EXTRACT(DOW FROM DATE '2023-12-01'), "
-        + "EXTRACT(HOUR FROM TIMESTAMP '2023-12-01 00:00:00'), "
-        + "EXTRACT(MINUTE FROM TIMESTAMP '2023-12-01 00:00:00'), "
-        + "EXTRACT(SECOND FROM TIMESTAMP '2023-12-01 00:00:00')\n"
+    final String expectedClickHouse = "SELECT"
+        + " EXTRACT(YEAR FROM toDate('2023-12-01')),"
+        + " EXTRACT(QUARTER FROM toDate('2023-12-01')),"
+        + " EXTRACT(MONTH FROM toDate('2023-12-01')),"
+        + " toWeek(toDate('2023-12-01')),"
+        + " DAYOFYEAR(toDate('2023-12-01')),"
+        + " EXTRACT(DAY FROM toDate('2023-12-01')),"
+        + " DAYOFWEEK(toDate('2023-12-01')),"
+        + " EXTRACT(HOUR FROM toDateTime('2023-12-01 00:00:00')),"
+        + " EXTRACT(MINUTE FROM toDateTime('2023-12-01 00:00:00')),"
+        + " EXTRACT(SECOND FROM toDateTime('2023-12-01 00:00:00'))";
+    final String expectedMySQL = "SELECT"
+        + " EXTRACT(YEAR FROM DATE '2023-12-01'),"
+        + " EXTRACT(QUARTER FROM DATE '2023-12-01'),"
+        + " EXTRACT(MONTH FROM DATE '2023-12-01'),"
+        + " EXTRACT(WEEK FROM DATE '2023-12-01'),"
+        + " DAYOFYEAR(DATE '2023-12-01'),"
+        + " EXTRACT(DAY FROM DATE '2023-12-01'),"
+        + " DAYOFWEEK(DATE '2023-12-01'),"
+        + " EXTRACT(HOUR FROM TIMESTAMP '2023-12-01 00:00:00'),"
+        + " EXTRACT(MINUTE FROM TIMESTAMP '2023-12-01 00:00:00'),"
+        + " EXTRACT(SECOND FROM TIMESTAMP '2023-12-01 00:00:00')";
+    final String expectedStarRocks = "SELECT"
+        + " EXTRACT(YEAR FROM DATE '2023-12-01'),"
+        + " EXTRACT(QUARTER FROM DATE '2023-12-01'),"
+        + " EXTRACT(MONTH FROM DATE '2023-12-01'),"
+        + " EXTRACT(WEEK FROM DATE '2023-12-01'),"
+        + " DAYOFYEAR(DATE '2023-12-01'),"
+        + " EXTRACT(DAY FROM DATE '2023-12-01'),"
+        + " DAYOFWEEK(DATE '2023-12-01'),"
+        + " EXTRACT(HOUR FROM DATETIME '2023-12-01 00:00:00'),"
+        + " EXTRACT(MINUTE FROM DATETIME '2023-12-01 00:00:00'),"
+        + " EXTRACT(SECOND FROM DATETIME '2023-12-01 00:00:00')";
+    final String expectedHive = "SELECT"
+        + " EXTRACT(YEAR FROM DATE '2023-12-01'),"
+        + " EXTRACT(QUARTER FROM DATE '2023-12-01'),"
+        + " EXTRACT(MONTH FROM DATE '2023-12-01'),"
+        + " EXTRACT(WEEK FROM DATE '2023-12-01'),"
+        + " EXTRACT(DOY FROM DATE '2023-12-01'),"
+        + " EXTRACT(DAY FROM DATE '2023-12-01'),"
+        + " EXTRACT(DOW FROM DATE '2023-12-01'),"
+        + " EXTRACT(HOUR FROM TIMESTAMP '2023-12-01 00:00:00'),"
+        + " EXTRACT(MINUTE FROM TIMESTAMP '2023-12-01 00:00:00'),"
+        + " EXTRACT(SECOND FROM TIMESTAMP '2023-12-01 00:00:00')";
+    final String expectedPostgresql = "SELECT"
+        + " EXTRACT(YEAR FROM DATE '2023-12-01'),"
+        + " EXTRACT(QUARTER FROM DATE '2023-12-01'),"
+        + " EXTRACT(MONTH FROM DATE '2023-12-01'),"
+        + " EXTRACT(WEEK FROM DATE '2023-12-01'),"
+        + " EXTRACT(DOY FROM DATE '2023-12-01'),"
+        + " EXTRACT(DAY FROM DATE '2023-12-01'),"
+        + " EXTRACT(DOW FROM DATE '2023-12-01'),"
+        + " EXTRACT(HOUR FROM TIMESTAMP '2023-12-01 00:00:00'),"
+        + " EXTRACT(MINUTE FROM TIMESTAMP '2023-12-01 00:00:00'),"
+        + " EXTRACT(SECOND FROM TIMESTAMP '2023-12-01 00:00:00')\n"
         + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
-    final String expectedHsqldb = "SELECT "
-        + "EXTRACT(YEAR FROM DATE '2023-12-01'), "
-        + "EXTRACT(QUARTER FROM DATE '2023-12-01'), "
-        + "EXTRACT(MONTH FROM DATE '2023-12-01'), "
-        + "EXTRACT(WEEK FROM DATE '2023-12-01'), "
-        + "EXTRACT(DOY FROM DATE '2023-12-01'), "
-        + "EXTRACT(DAY FROM DATE '2023-12-01'), "
-        + "EXTRACT(DOW FROM DATE '2023-12-01'), "
-        + "EXTRACT(HOUR FROM TIMESTAMP '2023-12-01 00:00:00'), "
-        + "EXTRACT(MINUTE FROM TIMESTAMP '2023-12-01 00:00:00'), "
-        + "EXTRACT(SECOND FROM TIMESTAMP '2023-12-01 00:00:00')\n"
+    final String expectedHsqldb = "SELECT"
+        + " EXTRACT(YEAR FROM DATE '2023-12-01'),"
+        + " EXTRACT(QUARTER FROM DATE '2023-12-01'),"
+        + " EXTRACT(MONTH FROM DATE '2023-12-01'),"
+        + " EXTRACT(WEEK FROM DATE '2023-12-01'),"
+        + " EXTRACT(DOY FROM DATE '2023-12-01'),"
+        + " EXTRACT(DAY FROM DATE '2023-12-01'),"
+        + " EXTRACT(DOW FROM DATE '2023-12-01'),"
+        + " EXTRACT(HOUR FROM TIMESTAMP '2023-12-01 00:00:00'),"
+        + " EXTRACT(MINUTE FROM TIMESTAMP '2023-12-01 00:00:00'),"
+        + " EXTRACT(SECOND FROM TIMESTAMP '2023-12-01 00:00:00')\n"
         + "FROM (VALUES (0)) AS t (ZERO)";
+    final String expectedDoris = "SELECT"
+            + " EXTRACT(YEAR FROM '2023-12-01'),"
+            + " EXTRACT(QUARTER FROM '2023-12-01'),"
+            + " EXTRACT(MONTH FROM '2023-12-01'),"
+            + " EXTRACT(WEEK FROM '2023-12-01'),"
+            + " EXTRACT(DOY FROM '2023-12-01'),"
+            + " EXTRACT(DAY FROM '2023-12-01'),"
+            + " EXTRACT(DOW FROM '2023-12-01'),"
+            + " EXTRACT(HOUR FROM '2023-12-01 00:00:00'),"
+            + " EXTRACT(MINUTE FROM '2023-12-01 00:00:00'),"
+            + " EXTRACT(SECOND FROM '2023-12-01 00:00:00')";
     sql(sql)
         .withClickHouse().ok(expectedClickHouse)
         .withMysql().ok(expectedMySQL)
         .withStarRocks().ok(expectedStarRocks)
+        .withDoris().ok(expectedDoris)
         .withHive().ok(expectedHive)
         .withPostgresql().ok(expectedPostgresql)
         .withHsqldb().ok(expectedHsqldb);
@@ -2908,10 +2969,14 @@ class RelToSqlConverterTest {
     final String expectedHive = "SELECT *\n"
         + "FROM `foodmart`.`employee`\n"
         + "WHERE (`hire_date` - INTERVAL '19800' SECOND(5)) > CAST(`hire_date` AS TIMESTAMP)";
+    final String expectedDoris = "SELECT *\n"
+        + "FROM `foodmart`.`employee`\n"
+        + "WHERE (`hire_date` - INTERVAL '19800' SECOND) > CAST(`hire_date` AS DATETIME)";
     sql(query)
         .withSpark().ok(expectedSpark)
         .withPresto().ok(expectedPresto)
         .withStarRocks().ok(expectedStarRocks)
+        .withDoris().ok(expectedDoris)
         .withHive().ok(expectedHive);
   }
 
@@ -3030,9 +3095,14 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "LIMIT 100\n"
         + "OFFSET 10";
+    final String expectedDoris = "SELECT `product_id`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "LIMIT 100\n"
+        + "OFFSET 10";
     sql(query).withHive().ok(expected)
         .withVertica().ok(expectedVertica)
         .withStarRocks().ok(expectedStarRocks)
+        .withDoris().ok(expectedDoris)
         .withSnowflake().ok(expectedSnowflake);
   }
 
@@ -3365,9 +3435,12 @@ class RelToSqlConverterTest {
         + "FROM `foodmart`.`product`";
     final String expectedStarRocks = "SELECT CAST(`product_id` AS BIGINT)\n"
         + "FROM `foodmart`.`product`";
+    final String expectedDoris = "SELECT CAST(`product_id` AS BIGINT)\n"
+        + "FROM `foodmart`.`product`";
     sql(query)
         .withMysql().ok(expectedMysql)
-        .withStarRocks().ok(expectedStarRocks);
+        .withStarRocks().ok(expectedStarRocks)
+        .withDoris().ok(expectedDoris);
   }
 
   /** Test case for
@@ -3387,9 +3460,13 @@ class RelToSqlConverterTest {
     final String expectedStarRocks = "SELECT `employee_id`,"
         + " CAST(`salary_paid` * 10000 AS INT)\n"
         + "FROM `foodmart`.`salary`";
+    final String expectedDoris = "SELECT `employee_id`,"
+        + " CAST(`salary_paid` * 10000 AS INT)\n"
+        + "FROM `foodmart`.`salary`";
     sql(query)
         .withMysql().ok(expectedMysql)
-        .withStarRocks().ok(expectedStarRocks);
+        .withStarRocks().ok(expectedStarRocks)
+        .withDoris().ok(expectedDoris);
   }
 
   @Test void testHiveSelectQueryWithOrderByDescAndHighNullsWithVersionGreaterThanOrEq21() {
@@ -3931,11 +4008,16 @@ class RelToSqlConverterTest {
         + "FROM `foodmart`.`product`\n"
         + "LIMIT 100\n"
         + "OFFSET 10";
+    final String expectedDoris = "SELECT `product_id`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "LIMIT 100\n"
+        + "OFFSET 10";
     sql(query)
         .ok(expected)
         .withClickHouse().ok(expectedClickHouse)
         .withPresto().ok(expectedPresto)
-        .withStarRocks().ok(expectedStarRocks);
+        .withStarRocks().ok(expectedStarRocks)
+        .withDoris().ok(expectedDoris);
   }
 
   @Test void testSelectQueryWithLimitOffsetClause() {
@@ -3957,9 +4039,15 @@ class RelToSqlConverterTest {
         + "ORDER BY `net_weight` IS NULL, `net_weight`\n"
         + "LIMIT 100\n"
         + "OFFSET 10";
+    final String expectedDoris = "SELECT `product_id`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "ORDER BY `net_weight` IS NULL, `net_weight`\n"
+        + "LIMIT 100\n"
+        + "OFFSET 10";
     sql(query).ok(expected)
         .withBigQuery().ok(expectedBigQuery)
-        .withStarRocks().ok(expectedStarRocks);
+        .withStarRocks().ok(expectedStarRocks)
+        .withDoris().ok(expectedDoris);
   }
 
   @Test void testSelectQueryWithParameters() {
@@ -5173,6 +5261,8 @@ class RelToSqlConverterTest {
     String expectedFirebolt = expectedPostgresql;
     String expectedStarRocks = "SELECT DATE_TRUNC('MINUTE', `hire_date`)\n"
         + "FROM `foodmart`.`employee`";
+    String expectedDoris = "SELECT DATE_TRUNC(`hire_date`, 'MINUTE')\n"
+        + "FROM `foodmart`.`employee`";
     sql(query)
         .withClickHouse().ok(expectedClickHouse)
         .withFirebolt().ok(expectedFirebolt)
@@ -5180,7 +5270,8 @@ class RelToSqlConverterTest {
         .withOracle().ok(expectedOracle)
         .withPostgresql().ok(expectedPostgresql)
         .withPresto().ok(expectedPresto)
-        .withStarRocks().ok(expectedStarRocks);
+        .withStarRocks().ok(expectedStarRocks)
+        .withDoris().ok(expectedDoris);
   }
 
   @Test void testFetchMssql() {
@@ -5206,11 +5297,16 @@ class RelToSqlConverterTest {
         + "FROM `foodmart`.`employee`\n"
         + "LIMIT 1\n"
         + "OFFSET 1";
+    final String expectedDoris = "SELECT *\n"
+        + "FROM `foodmart`.`employee`\n"
+        + "LIMIT 1\n"
+        + "OFFSET 1";
     sql(query)
         .withMssql().ok(expectedMssql)
         .withSybase().ok(expectedSybase)
         .withPresto().ok(expectedPresto)
-        .withStarRocks().ok(expectedStarRocks);
+        .withStarRocks().ok(expectedStarRocks)
+        .withDoris().ok(expectedDoris);
   }
 
   @Test void testFloorMssqlMonth() {
@@ -5478,6 +5574,8 @@ class RelToSqlConverterTest {
         + "FROM `foodmart`.`product`";
     final String expectedStarRocks = "SELECT SUBSTRING(`brand_name`, 2)\n"
         + "FROM `foodmart`.`product`";
+    final String expectedDoris = "SELECT SUBSTRING(`brand_name`, 2)\n"
+        + "FROM `foodmart`.`product`";
     sql(query)
         .withBigQuery().ok(expectedBigQuery)
         .withClickHouse().ok(expectedClickHouse)
@@ -5491,7 +5589,8 @@ class RelToSqlConverterTest {
         .withPresto().ok(expectedPresto)
         .withRedshift().ok(expectedRedshift)
         .withSnowflake().ok(expectedSnowflake)
-        .withStarRocks().ok(expectedStarRocks);
+        .withStarRocks().ok(expectedStarRocks)
+        .withDoris().ok(expectedDoris);
   }
 
   @Test void testSubstringWithFor() {
@@ -5516,6 +5615,8 @@ class RelToSqlConverterTest {
         + "FROM [foodmart].[product]";
     final String expectedStarRocks = "SELECT SUBSTRING(`brand_name`, 2, 3)\n"
         + "FROM `foodmart`.`product`";
+    final String expectedDoris = "SELECT SUBSTRING(`brand_name`, 2, 3)\n"
+        + "FROM `foodmart`.`product`";
     sql(query)
         .withBigQuery().ok(expectedBigQuery)
         .withClickHouse().ok(expectedClickHouse)
@@ -5527,7 +5628,8 @@ class RelToSqlConverterTest {
         .withPresto().ok(expectedPresto)
         .withRedshift().ok(expectedRedshift)
         .withSnowflake().ok(expectedSnowflake)
-        .withStarRocks().ok(expectedStarRocks);
+        .withStarRocks().ok(expectedStarRocks)
+        .withDoris().ok(expectedDoris);
   }
 
   /** Test case for
@@ -7408,10 +7510,15 @@ class RelToSqlConverterTest {
         + "FROM `foodmart`.`store`,\n"
         + "`foodmart`.`employee`,\n"
         + "`foodmart`.`department`";
+    final String expectedDoris = "SELECT *\n"
+        + "FROM `foodmart`.`store`,\n"
+        + "`foodmart`.`employee`,\n"
+        + "`foodmart`.`department`";
     sql(sql)
         .withMysql().ok(expectedMysql)
         .withSpark().ok(expectedSpark)
-        .withStarRocks().ok(expectedStarRocks);
+        .withStarRocks().ok(expectedStarRocks)
+        .withDoris().ok(expectedDoris);
   }
 
   /** As {@link #testCommaCrossJoin3way()}, but shows that if there is a
@@ -7646,11 +7753,15 @@ class RelToSqlConverterTest {
     final String expectedStarRocks = "SELECT COUNT(*)\n"
         + "FROM `foodmart`.`product`\n"
         + "GROUP BY ROLLUP(`product_id`, `product_class_id`)";
+    final String expectedDoris = "SELECT COUNT(*)\n"
+        + "FROM `foodmart`.`product`\n"
+        + "GROUP BY ROLLUP(`product_id`, `product_class_id`)";
     sql(query)
         .ok(expected)
         .withPresto().ok(expected)
         .withSpark().ok(expectedSpark)
-        .withStarRocks().ok(expectedStarRocks);
+        .withStarRocks().ok(expectedStarRocks)
+        .withDoris().ok(expectedDoris);
   }
 
   @Test void testJsonType() {
@@ -8919,9 +9030,11 @@ class RelToSqlConverterTest {
     final String expectedSpark = "SELECT MAP ('k1', 'v1', 'k2', 'v2')\n"
         + "FROM (VALUES (0)) `t` (`ZERO`)";
     final String expectedHive = "SELECT MAP ('k1', 'v1', 'k2', 'v2')";
+    final String expectedDoris = "SELECT MAP ('k1', 'v1', 'k2', 'v2')";
     sql(query)
         .withPresto().ok(expectedPresto)
         .withStarRocks().ok(expectedStarRocks)
+        .withDoris().ok(expectedDoris)
         .withSpark().ok(expectedSpark)
         .withHive().ok(expectedHive);
   }
@@ -8963,7 +9076,11 @@ class RelToSqlConverterTest {
     final String expectedStarRocks = "SELECT *\n"
         + "FROM `foodmart`.`employee`\n"
         + "WHERE (`hire_date` - INTERVAL '19800' SECOND) > CAST(`hire_date` AS DATETIME)";
-    sql(query).withStarRocks().ok(expectedStarRocks);
+    final String expectedDoris = "SELECT *\n"
+        + "FROM `foodmart`.`employee`\n"
+        + "WHERE (`hire_date` - INTERVAL '19800' SECOND) > CAST(`hire_date` AS DATETIME)";
+    sql(query).withStarRocks().ok(expectedStarRocks)
+        .withDoris().ok(expectedDoris);
   }
 
   /** Test case for
@@ -8975,7 +9092,9 @@ class RelToSqlConverterTest {
     final String expectedSpark = "SELECT ARRAY (1, 2, 3)\n"
         + "FROM (VALUES (0)) `t` (`ZERO`)";
     final String expectedHive = "SELECT ARRAY (1, 2, 3)";
+    final String expectedDoris = "SELECT[1, 2, 3]";
     sql(query).withStarRocks().ok(expectedStarRocks)
+        .withDoris().ok(expectedDoris)
         .withSpark().ok(expectedSpark)
         .withHive().ok(expectedHive);
   }
@@ -8986,7 +9105,11 @@ class RelToSqlConverterTest {
     final String expectedStarRocks = "SELECT REGEXP_REPLACE('$@*AABC$@*AADCAA$@*A',"
         + " '^(\\$\\@\\*A)*|(\\$\\@\\*A)*$', '')\n"
         + "FROM `foodmart`.`reserve_employee`";
-    sql(query).withStarRocks().ok(expectedStarRocks);
+    final String expectedDoris = "SELECT REGEXP_REPLACE('$@*AABC$@*AADCAA$@*A',"
+        + " '^(\\$\\@\\*A)*|(\\$\\@\\*A)*$', '')\n"
+        + "FROM `foodmart`.`reserve_employee`";
+    sql(query).withStarRocks().ok(expectedStarRocks)
+        .withDoris().ok(expectedDoris);
   }
 
   @Test void testUnparseSqlIntervalQualifier() {
@@ -9025,7 +9148,10 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expectedStarRocks = "SELECT TRIM(' str ')\n"
         + "FROM `foodmart`.`reserve_employee`";
-    sql(query).withStarRocks().ok(expectedStarRocks);
+    final String expectedDoris = "SELECT TRIM(' str ')\n"
+        + "FROM `foodmart`.`reserve_employee`";
+    sql(query).withStarRocks().ok(expectedStarRocks)
+        .withDoris().ok(expectedDoris);
   }
 
   @Test void testTrimWithBoth() {
@@ -9033,7 +9159,10 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expectedStarRocks = "SELECT TRIM(' str ')\n"
         + "FROM `foodmart`.`reserve_employee`";
-    sql(query).withStarRocks().ok(expectedStarRocks);
+    final String expectedDoris = "SELECT TRIM(' str ')\n"
+        + "FROM `foodmart`.`reserve_employee`";
+    sql(query).withStarRocks().ok(expectedStarRocks)
+        .withDoris().ok(expectedDoris);
   }
 
   @Test void testTrimWithLeading() {
@@ -9041,7 +9170,10 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expectedStarRocks = "SELECT LTRIM(' str ')\n"
         + "FROM `foodmart`.`reserve_employee`";
-    sql(query).withStarRocks().ok(expectedStarRocks);
+    final String expectedDoris = "SELECT LTRIM(' str ')\n"
+        + "FROM `foodmart`.`reserve_employee`";
+    sql(query).withStarRocks().ok(expectedStarRocks)
+        .withDoris().ok(expectedDoris);
   }
 
   @Test void testTrimWithTailing() {
@@ -9049,7 +9181,10 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expectedStarRocks = "SELECT RTRIM(' str ')\n"
         + "FROM `foodmart`.`reserve_employee`";
-    sql(query).withStarRocks().ok(expectedStarRocks);
+    final String expectedDoris = "SELECT RTRIM(' str ')\n"
+        + "FROM `foodmart`.`reserve_employee`";
+    sql(query).withStarRocks().ok(expectedStarRocks)
+        .withDoris().ok(expectedDoris);
   }
 
   @Test void testTrimWithBothChar() {
@@ -9057,7 +9192,10 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expectedStarRocks = "SELECT REGEXP_REPLACE('abcda', '^(a)*|(a)*$', '')\n"
         + "FROM `foodmart`.`reserve_employee`";
-    sql(query).withStarRocks().ok(expectedStarRocks);
+    final String expectedDoris = "SELECT REGEXP_REPLACE('abcda', '^(a)*|(a)*$', '')\n"
+        + "FROM `foodmart`.`reserve_employee`";
+    sql(query).withStarRocks().ok(expectedStarRocks)
+        .withDoris().ok(expectedDoris);
   }
 
   @Test void testTrimWithTailingChar() {
@@ -9065,7 +9203,10 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expectedStarRocks = "SELECT REGEXP_REPLACE('abcd', '(a)*$', '')\n"
         + "FROM `foodmart`.`reserve_employee`";
-    sql(query).withStarRocks().ok(expectedStarRocks);
+    final String expectedDoris = "SELECT REGEXP_REPLACE('abcd', '(a)*$', '')\n"
+        + "FROM `foodmart`.`reserve_employee`";
+    sql(query).withStarRocks().ok(expectedStarRocks)
+        .withDoris().ok(expectedDoris);
   }
 
   @Test void testTrimWithLeadingChar() {
@@ -9073,7 +9214,10 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expectedStarRocks = "SELECT REGEXP_REPLACE('abcd', '^(a)*', '')\n"
         + "FROM `foodmart`.`reserve_employee`";
-    sql(query).withStarRocks().ok(expectedStarRocks);
+    final String expectedDoris = "SELECT REGEXP_REPLACE('abcd', '^(a)*', '')\n"
+        + "FROM `foodmart`.`reserve_employee`";
+    sql(query).withStarRocks().ok(expectedStarRocks)
+        .withDoris().ok(expectedDoris);
   }
 
   @Test void testSelectQueryWithRollup() {
@@ -9082,7 +9226,11 @@ class RelToSqlConverterTest {
     final String expectedStarRocks = "SELECT `product_class_id`, `product_id`, COUNT(*)\n"
         + "FROM `foodmart`.`product`\n"
         + "GROUP BY ROLLUP(`product_class_id`, `product_id`)";
-    sql(query).withStarRocks().ok(expectedStarRocks);
+    final String expectedDoris = "SELECT `product_class_id`, `product_id`, COUNT(*)\n"
+        + "FROM `foodmart`.`product`\n"
+        + "GROUP BY ROLLUP(`product_class_id`, `product_id`)";
+    sql(query).withStarRocks().ok(expectedStarRocks)
+        .withDoris().ok(expectedDoris);
   }
 
   /** Test case for
@@ -9556,6 +9704,10 @@ class RelToSqlConverterTest {
 
     Sql withStarRocks() {
       return dialect(DatabaseProduct.STARROCKS.getDialect());
+    }
+
+    Sql withDoris() {
+      return dialect(DatabaseProduct.DORIS.getDialect());
     }
 
     Sql withPostgresqlModifiedTypeSystem() {
