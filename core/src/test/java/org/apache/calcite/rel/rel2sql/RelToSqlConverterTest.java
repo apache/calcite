@@ -7578,6 +7578,21 @@ class RelToSqlConverterTest {
     sql(query).withPresto().ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6892">[CALCITE-6892]
+   *  CHAR_LENGTH Function is not recognized in DerbySQL</a>. */
+  @Test void testDerbySqlLength() {
+    final String query = "select CHAR_LENGTH(\"brand_name\")\n"
+        + "from \"product\"";
+    final String expected = "SELECT LENGTH(brand_name)\n"
+        + "FROM foodmart.product";
+    sql(query).withDerby().ok(expected);
+
+    final String query1 = "select CHARACTER_LENGTH(\"brand_name\")\n"
+        + "from \"product\"";
+    sql(query1).withDerby().ok(expected);
+  }
+
   @Test void testSubstringInSpark() {
     final String query = "select substring(\"brand_name\" from 2) "
         + "from \"product\"\n";
@@ -9449,6 +9464,10 @@ class RelToSqlConverterTest {
 
     Sql withClickHouse() {
       return dialect(DatabaseProduct.CLICKHOUSE.getDialect());
+    }
+
+    Sql withDerby() {
+      return dialect(DatabaseProduct.DERBY.getDialect());
     }
 
     Sql withDb2() {
