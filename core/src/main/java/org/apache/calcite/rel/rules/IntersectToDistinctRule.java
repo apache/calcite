@@ -100,8 +100,6 @@ public class IntersectToDistinctRule
     // 1st level GB: create a GB (col0, col1, count() as c) for each branch
     for (RelNode input : intersect.getInputs()) {
       relBuilder.push(input);
-      relBuilder.aggregate(relBuilder.groupKey(relBuilder.fields()),
-          relBuilder.countStar(null));
     }
 
     // create a union above all the branches
@@ -114,13 +112,13 @@ public class IntersectToDistinctRule
     final int fieldCount = union.getRowType().getFieldCount();
 
     final ImmutableBitSet groupSet =
-        ImmutableBitSet.range(fieldCount - 1);
+        ImmutableBitSet.range(fieldCount);
     relBuilder.aggregate(relBuilder.groupKey(groupSet),
         relBuilder.countStar(null));
 
     // add a filter count(c) = #branches
     relBuilder.filter(
-        relBuilder.equals(relBuilder.field(fieldCount - 1),
+        relBuilder.equals(relBuilder.field(fieldCount),
             rexBuilder.makeBigintLiteral(new BigDecimal(branchCount))));
 
     // Project all but the last field
