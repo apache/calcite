@@ -64,7 +64,7 @@ other software versions as specified in gradle.properties.
 #### Web site and documentation
 {: #site-1-40-0}
 -->
-## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.39.0">1.39.0</a> / 2025-03-17
+## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.39.0">1.39.0</a> / 2025-03-16
 {: #v1-39-0}
 
 This release comes 5 months after [1.38.0](#v1-38-0),
