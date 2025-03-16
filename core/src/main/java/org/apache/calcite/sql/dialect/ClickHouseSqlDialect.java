@@ -25,6 +25,7 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDateLiteral;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlFilterOperator;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlTimeLiteral;
@@ -37,6 +38,8 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.RelToSqlConverterUtil;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.Locale;
 
 import static org.apache.calcite.util.RelToSqlConverterUtil.unparseBoolLiteralToCondition;
 
@@ -76,6 +79,10 @@ public class ClickHouseSqlDialect extends SqlDialect {
 
   @Override public boolean supportsAliasedValues() {
     return false;
+  }
+
+  @Override public boolean supportsAggregateFunctionFilter() {
+    return true;
   }
 
   @Override public CalendarPolicy getCalendarPolicy() {
@@ -179,6 +186,21 @@ public class ClickHouseSqlDialect extends SqlDialect {
       RelToSqlConverterUtil.specialOperatorByName("UNIQ")
           .unparse(writer, call, 0, 0);
       return;
+    }
+
+    if (call.getOperator() instanceof SqlFilterOperator) {
+      SqlCall aggCall = call.operand(0);
+      if (call.getOperandList().size() > 1 && call.operand(1) != null) {
+        SqlCall filterCondition = call.operand(1);
+        String functionName = aggCall.getOperator().getName();
+        writer.print(functionName.toLowerCase(Locale.ROOT) + "If");
+        writer.print("(");
+        aggCall.operand(0).unparse(writer, 0, 0);
+        writer.print(", ");
+        writer.print(filterCondition.getOperandList().get(0).toString());
+        writer.print(")");
+        return;
+      }
     }
 
     switch (call.getKind()) {

@@ -361,7 +361,13 @@ class RelToSqlConverterTest {
         + "FROM `foodmart`.`product`\n"
         + "WHERE `product_id` > 0\n"
         + "GROUP BY `product_id`";
+    final String expectedClickHouse = "SELECT"
+        + " sumIf(`shelf_width` , `net_weight` > 0E0), SUM(`shelf_width`)\n"
+        + "FROM `foodmart`.`product`\n"
+        + "WHERE `product_id` > 0\n"
+        + "GROUP BY `product_id`";
     sql(query).ok(expectedDefault)
+        .withClickHouse().ok(expectedClickHouse)
         .withBigQuery().ok(expectedBigQuery)
         .withFirebolt().ok(expectedFirebolt)
         .withMysql().ok(expectedMysql)
