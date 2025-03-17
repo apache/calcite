@@ -57,18 +57,7 @@ public class SqlEditDistanceFunction extends SqlFunction {
     families.add(SqlTypeFamily.STRING);
     families.add(SqlTypeFamily.STRING);
     for (int i = 2; i < operandCount; i++) {
-      if (i == 2) {
-        families.add(SqlTypeFamily.INTEGER);
-      }
-      if (i == 3) {
-        families.add(SqlTypeFamily.INTEGER);
-      }
-      if (i == 4) {
-        families.add(SqlTypeFamily.INTEGER);
-      }
-      if (i == 5) {
-        families.add(SqlTypeFamily.INTEGER);
-      }
+      families.add(SqlTypeFamily.INTEGER);
     }
     return OperandTypes.family(families.toArray(new SqlTypeFamily[0]))
         .checkOperandTypes(callBinding, throwOnFailure);
