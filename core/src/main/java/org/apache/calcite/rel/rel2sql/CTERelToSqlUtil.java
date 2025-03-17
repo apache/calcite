@@ -28,6 +28,7 @@ import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlPivot;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
@@ -135,6 +136,8 @@ public class CTERelToSqlUtil {
       fetchFromSqlBasicCall(sqlNode, sqlNodes);
     } else if (sqlNode instanceof SqlWithItem) {
       fetchFromSqlWithItemNode(sqlNode, sqlNodes);
+    } else if (sqlNode instanceof SqlPivot) {
+      fetchFromSqlWithItemNode(((SqlPivot) sqlNode).query, sqlNodes);
     }
   }
 
@@ -276,6 +279,9 @@ public class CTERelToSqlUtil {
       handleBasicCallOperand((SqlBasicCall) operand);
     } else if (operand instanceof SqlSelect) {
       updateSqlNode(operand);
+    } else if (operand instanceof SqlPivot && ((SqlPivot) operand).query instanceof SqlWithItem) {
+      ((SqlPivot) ((SqlBasicCall) parentNode).getOperandList().get(0)).setOperand(0,
+          ((SqlWithItem) ((SqlPivot) operand).query).name);
     } else if (operand instanceof SqlWithItem) {
       SqlIdentifier identifier = fetchCTEIdentifier(parentNode);
       if (identifier != null) {
