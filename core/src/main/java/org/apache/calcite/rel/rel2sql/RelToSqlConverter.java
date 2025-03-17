@@ -975,7 +975,8 @@ public class RelToSqlConverter extends SqlImplementor
 
     Optional<PivotRelTrait> pivotRelTrait =
         Optional.ofNullable(e.getTraitSet().getTrait(PivotRelTraitDef.instance));
-    if (pivotRelTrait.isPresent() && pivotRelTrait.get().hasSubquery()) {
+    if (pivotRelTrait.isPresent() && pivotRelTrait.get().hasSubquery()
+        && (e.getAggCallList().isEmpty() || pivotRelTrait.get().isPivotRel())) {
       return true;
     }
     if (!e.getAggCallList().isEmpty()) {

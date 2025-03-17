@@ -190,7 +190,7 @@ public class PivotRelToSqlUtil {
                   .getOperandList().get(0)).getOperandList().get(0);
       SqlBasicCall caseConditionCall =
           (SqlBasicCall) pivotColumnAggregationCaseCall.getWhenOperands().get(0);
-      SqlNode aggregateCol = isLowerFunction(caseConditionCall.operand(0))
+      SqlNode aggregateCol = caseConditionCall.operand(0) instanceof SqlBasicCall
           ? ((SqlBasicCall) caseConditionCall.operand(0)).operand(0)
           : caseConditionCall.operand(0);
       modifiedAxisNodeList.add(aggregateCol);
