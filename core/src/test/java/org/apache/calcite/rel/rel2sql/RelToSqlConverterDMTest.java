@@ -169,7 +169,12 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.USING;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.WEEKNUMBER_OF_CALENDAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.WEEKNUMBER_OF_YEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.YEARNUMBER_OF_CALENDAR;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.*;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.COLUMN_LIST;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_DATE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EQUALS;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IN;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REGEXP_SUBSTR;
 import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -7883,8 +7888,8 @@ class RelToSqlConverterDMTest {
       RelNode join = builder.push(leftTable).push(rightTable).join(JoinRelType.INNER).build();
       RelNode filteredRel = builder.push(join)
           .filter(builder.call(SqlLibraryOperators.BETWEEN, builder.field(11),
-              builder.call(DIVIDE, builder.field(11), builder.literal(100)),
-              builder.field(28)))
+              builder.call(SqlStdOperatorTable.DIVIDE, builder.field(11),
+                  builder.literal(100)), builder.field(28)))
           .build();
 
       // Projection
