@@ -782,7 +782,11 @@ public class RelToSqlConverter extends SqlImplementor
 
       PivotRelToSqlUtil pivotUtil = new PivotRelToSqlUtil(POS);
       SqlNode pivotSelect = pivotUtil.buildSqlPivotNode(e, builder, selectList, aggregateInClauseFieldList);
-      return result(pivotSelect, ImmutableList.of(Clause.SELECT), e, null);
+      Result pivotResult = result(pivotSelect, ImmutableList.of(Clause.SELECT), e, null);
+      if (CTERelToSqlUtil.isCTEScopeOrDefinitionTrait(e.getTraitSet())) {
+        pivotResult = updateCTEResult(e, pivotResult);
+      }
+      return pivotResult;
     }
     Result result = builder.result();
     if (CTERelToSqlUtil.isCTEScopeOrDefinitionTrait(e.getTraitSet())) {
