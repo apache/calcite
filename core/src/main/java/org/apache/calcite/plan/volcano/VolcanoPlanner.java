@@ -562,7 +562,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   void ensureRootConverters() {
     final Set<RelSubset> subsets = new HashSet<>();
     for (RelNode rel : root.getRels()) {
-      if (rel instanceof AbstractConverter) {
+      if (rel instanceof AbstractConverter && !topDownOpt) {
         subsets.add((RelSubset) ((AbstractConverter) rel).getInput());
       }
     }
