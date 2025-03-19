@@ -313,15 +313,14 @@ public abstract class CalciteSchema {
   }
 
   /** Returns a collection of sub-schemas, both explicit (defined using
-   * {@link #add(String, org.apache.calcite.schema.Schema)}) and implicit
-   * (defined using {@link org.apache.calcite.schema.Schema#getSubSchemaNames()}
-   * and {@link Schema#getSubSchema(String)}). */
+   * {@link #add(String, org.apache.calcite.schema.Schema)}) and implicit. */
   public final NavigableMap<String, CalciteSchema> getSubSchemaMap() {
-    // Build a map of implicit sub-schemas first, then explicit sub-schemas.
-    // If there are implicit and explicit with the same name, explicit wins.
     final ImmutableSortedMap.Builder<String, CalciteSchema> builder =
         new ImmutableSortedMap.Builder<>(NameSet.COMPARATOR);
-    builder.putAll(subSchemaMap.map());
+    final Lookup<CalciteSchema> schemas = subSchemas();
+    for (String name : schemas.getNames(LikePattern.any())) {
+      builder.put(name, requireNonNull(schemas.get(name)));
+    }
     return builder.build();
   }
 

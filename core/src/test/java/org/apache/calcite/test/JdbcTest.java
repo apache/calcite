@@ -7568,6 +7568,47 @@ public class JdbcTest {
     assertThat(aSchema.subSchemas().getNames(LikePattern.any()), hasSize(2));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6903">[CALCITE-6903]
+   * CalciteSchema#getSubSchemaMap must consider implicit sub-schemas</a>. */
+  @Test void testCalciteSchemaGetSubSchemaMapCache() {
+    checkCalciteSchemaGetSubSchemaMap(true);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6903">[CALCITE-6903]
+   * CalciteSchema#getSubSchemaMap must consider implicit sub-schemas</a>. */
+  @Test void testCalciteSchemaGetSubSchemaMapNoCache() {
+    checkCalciteSchemaGetSubSchemaMap(false);
+  }
+
+  void checkCalciteSchemaGetSubSchemaMap(boolean cache) {
+    final CalciteSchema calciteSchema = CalciteSchema.createRootSchema(false, cache);
+
+    // create schema "/a"
+    final Map<String, Schema> aSubSchemaMap = new HashMap<>();
+    final CalciteSchema aSchema =
+        calciteSchema.add("a", new AbstractSchema() {
+          @Override protected Map<String, Schema> getSubSchemaMap() {
+            return aSubSchemaMap;
+          }
+        });
+
+    // add explicit schema "/a/b".
+    aSchema.add("b", new AbstractSchema());
+
+    // add implicit schema "/a/c"
+    aSubSchemaMap.put("c", new AbstractSchema());
+
+    assertThat(aSchema.subSchemas().get("c"), notNullValue());
+    assertThat(aSchema.subSchemas().get("b"), notNullValue());
+
+    final Map<String, CalciteSchema> subSchemaMap = aSchema.getSubSchemaMap();
+    assertThat(subSchemaMap.values(), hasSize(2));
+    assertThat(subSchemaMap.get("c"), notNullValue());
+    assertThat(subSchemaMap.get("b"), notNullValue());
+  }
+
   @Test void testCaseSensitiveConfigurableSimpleCalciteSchema() {
     final SchemaPlus rootSchema = CalciteSchema.createRootSchema(false, false).plus();
     // create schema "/a"
