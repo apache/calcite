@@ -201,7 +201,7 @@ public class MysqlSqlDialect extends SqlDialect {
     // For MySQL, generate
     //   CASE COUNT(*)
     //   WHEN 0 THEN NULL
-    //   WHEN 1 THEN <result>
+    //   WHEN 1 THEN MIN(<result>)
     //   ELSE (SELECT NULL UNION ALL SELECT NULL)
     //   END
     final SqlNode caseExpr =
@@ -213,7 +213,7 @@ public class MysqlSqlDialect extends SqlDialect {
                 SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO)),
             SqlNodeList.of(
                 nullLiteral,
-                operand),
+                SqlStdOperatorTable.MIN.createCall(SqlParserPos.ZERO, operand)),
             SqlStdOperatorTable.SCALAR_QUERY.createCall(SqlParserPos.ZERO,
                 SqlStdOperatorTable.UNION_ALL
                     .createCall(SqlParserPos.ZERO, unionOperand, unionOperand)));
