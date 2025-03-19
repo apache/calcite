@@ -38,7 +38,8 @@ import java.util.stream.Collectors;
  * <p>Intersect(A, B, ...) where B is smallest will reorder to Intersect(B, A, ...)
  */
 @Value.Enclosing
-public class IntersectReorderRule extends RelRule<IntersectReorderRule.Config> {
+public class IntersectReorderRule extends RelRule<IntersectReorderRule.Config>
+  implements SubstitutionRule {
   /** Creates an IntersectReorderRule. */
   protected IntersectReorderRule(Config config) {
     super(config);
