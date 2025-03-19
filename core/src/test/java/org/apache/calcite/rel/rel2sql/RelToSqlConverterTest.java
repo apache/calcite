@@ -3880,6 +3880,9 @@ class RelToSqlConverterTest {
         .withSpark().ok(expectedSpark);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6900">[CALCITE-6900]
+   * Support Char type cast in ClickHouse Dialect</a>. */
   @Test void testCastToChar() {
     String query = "select cast(\"product_id\" as char) from \"product\"";
     final String expectedMysql = "SELECT CAST(`product_id` AS CHAR)\n"
@@ -3890,11 +3893,14 @@ class RelToSqlConverterTest {
         + "FROM `foodmart`.`product`";
     final String expectedSpark = "SELECT CAST(`product_id` AS CHAR(1))\n"
         + "FROM `foodmart`.`product`";
+    final String expectedClickHouse = "SELECT CAST(`product_id` AS `FixedString(1)`)\n"
+        + "FROM `foodmart`.`product`";
     sql(query)
         .withMysql().ok(expectedMysql)
         .withMssql().ok(expectedMssql)
         .withHive().ok(expectedHive)
-        .withSpark().ok(expectedSpark);
+        .withSpark().ok(expectedSpark)
+        .withClickHouse().ok(expectedClickHouse);
   }
 
   @Test void testCastToCharWithPrecision() {
@@ -3907,11 +3913,14 @@ class RelToSqlConverterTest {
         + "FROM `foodmart`.`product`";
     final String expectedSpark = "SELECT CAST(`product_id` AS CHAR(5))\n"
         + "FROM `foodmart`.`product`";
+    final String expectedClickHouse = "SELECT CAST(`product_id` AS `FixedString(5)`)\n"
+        + "FROM `foodmart`.`product`";
     sql(query)
         .withMysql().ok(expectedMysql)
         .withMssql().ok(expectedMssql)
         .withHive().ok(expectedHive)
-        .withSpark().ok(expectedSpark);
+        .withSpark().ok(expectedSpark)
+        .withClickHouse().ok(expectedClickHouse);
   }
 
   @Test void testSelectQueryWithLimitClauseWithoutOrder() {
