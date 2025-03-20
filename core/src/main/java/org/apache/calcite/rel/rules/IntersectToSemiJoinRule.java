@@ -76,27 +76,29 @@ public class IntersectToSemiJoinRule
     // AND(=(COALESCE($0, 0), COALESCE($1, 0)), =(IS NULL($0), IS NULL($0))
     // allows us to use HashJoin
     for (int i = 0; i < fieldCount; i++) {
-      conditions.add(
-          rexBuilder.makeCall(
-          SqlStdOperatorTable.EQUALS,
-          rexBuilder.makeCall(SqlStdOperatorTable.COALESCE,
-              rexBuilder.makeInputRef(
-                  left.getRowType().getFieldList().get(i).getType(), i),
-              builder.literal(0)),
-          rexBuilder.makeCall(SqlStdOperatorTable.COALESCE,
-              rexBuilder.makeInputRef(
-                  right.getRowType().getFieldList().get(i).getType(), i + fieldCount),
-              builder.literal(0))));
+      RelDataType leftFieldType = left.getRowType().getFieldList().get(i).getType();
+      RelDataType rightFieldType = right.getRowType().getFieldList().get(i).getType();
 
       conditions.add(
           rexBuilder.makeCall(
-          SqlStdOperatorTable.EQUALS,
-          rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL,
-              rexBuilder.makeInputRef(
-                  left.getRowType().getFieldList().get(i).getType(), i)),
-          rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL,
-              rexBuilder.makeInputRef(
-                  right.getRowType().getFieldList().get(i).getType(), i + fieldCount))));
+              SqlStdOperatorTable.EQUALS,
+              rexBuilder.makeCall(
+                  SqlStdOperatorTable.COALESCE,
+                  rexBuilder.makeInputRef(leftFieldType, i),
+                  rexBuilder.makeZeroLiteral(leftFieldType)),
+              rexBuilder.makeCall(SqlStdOperatorTable.COALESCE,
+                  rexBuilder.makeInputRef(rightFieldType, i + fieldCount),
+                  rexBuilder.makeZeroLiteral(rightFieldType))));
+
+      conditions.add(
+          rexBuilder.makeCall(
+              SqlStdOperatorTable.EQUALS,
+              rexBuilder.makeCall(
+                  SqlStdOperatorTable.IS_NULL,
+                  rexBuilder.makeInputRef(leftFieldType, i)),
+              rexBuilder.makeCall(
+                  SqlStdOperatorTable.IS_NULL,
+                  rexBuilder.makeInputRef(rightFieldType, i + fieldCount))));
     }
     RexNode condition = RexUtil.composeConjunction(rexBuilder, conditions);
 
