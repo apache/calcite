@@ -201,9 +201,9 @@ public class CTERelToSqlUtil {
         if (whereNode instanceof SqlBasicCall) {
           updateNode(whereNode);
         }
-        if (sqlSelect instanceof SqlSelect && ((SqlSelect) sqlNode).getSelectList() != null) {
-          ((SqlSelect) sqlNode).getSelectList().stream().filter(item -> item instanceof SqlBasicCall)
-              .forEach(item -> updateNode(item));
+        if (sqlSelect.getSelectList() != null) {
+          sqlSelect.getSelectList().stream().filter(item -> item instanceof SqlBasicCall)
+              .forEach(CTERelToSqlUtil::updateNode);
         }
       }
     }
