@@ -22,6 +22,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.logical.LogicalIntersect;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
@@ -58,6 +59,7 @@ public class IntersectToSemiJoinRule
 
     final RelBuilder builder = call.builder();
     final RexBuilder rexBuilder = builder.getRexBuilder();
+    final RelDataType oriRowType = intersect.getRowType();
 
     List<RelNode> inputs = intersect.getInputs();
     if (inputs.size() != 2) {
@@ -69,24 +71,53 @@ public class IntersectToSemiJoinRule
 
     List<RexNode> conditions = new ArrayList<>();
     int fieldCount = left.getRowType().getFieldCount();
+
+    // Converting the join condition to
+    // AND(=(COALESCE($0, 0), COALESCE($1, 0)), =(IS NULL($0), IS NULL($0))
+    // allows us to use HashJoin
     for (int i = 0; i < fieldCount; i++) {
       conditions.add(
           rexBuilder.makeCall(
           SqlStdOperatorTable.EQUALS,
-          rexBuilder.makeInputRef(
-              left.getRowType().getFieldList().get(i).getType(), i),
-          rexBuilder.makeInputRef(
-              right.getRowType().getFieldList().get(i).getType(), i + fieldCount)));
+          rexBuilder.makeCall(SqlStdOperatorTable.COALESCE,
+              rexBuilder.makeInputRef(
+                  left.getRowType().getFieldList().get(i).getType(), i),
+              builder.literal(0)),
+          rexBuilder.makeCall(SqlStdOperatorTable.COALESCE,
+              rexBuilder.makeInputRef(
+                  right.getRowType().getFieldList().get(i).getType(), i + fieldCount),
+              builder.literal(0))));
+
+      conditions.add(
+          rexBuilder.makeCall(
+          SqlStdOperatorTable.EQUALS,
+          rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL,
+              rexBuilder.makeInputRef(
+                  left.getRowType().getFieldList().get(i).getType(), i)),
+          rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL,
+              rexBuilder.makeInputRef(
+                  right.getRowType().getFieldList().get(i).getType(), i + fieldCount))));
     }
     RexNode condition = RexUtil.composeConjunction(rexBuilder, conditions);
 
-    RelNode root = builder.push(left)
+    builder.push(left)
         .push(right)
         .join(JoinRelType.SEMI, condition)
-        .distinct()
-        .build();
+        .distinct();
 
-    call.transformTo(root);
+    List<RexNode> projects = new ArrayList<>();
+    for (RexNode rexNode : builder.fields()) {
+      RelDataType originalType =
+          oriRowType.getFieldList().get(projects.size()).getType();
+      if (!originalType.equals(rexNode.getType())) {
+        projects.add(rexBuilder.makeCast(originalType, rexNode, true, false));
+      } else {
+        projects.add(rexNode);
+      }
+    }
+    builder.project(projects);
+
+    call.transformTo(builder.build());
   }
 
   /** Rule configuration. */

@@ -18,6 +18,7 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.DataContexts;
 import org.apache.calcite.adapter.clone.CloneSchema;
+import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.adapter.generate.RangeTable;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
@@ -3923,6 +3924,27 @@ public class JdbcTest {
         .explainContains(""
             + "PLAN=EnumerableIntersect(all=[false])")
         .returnsUnordered("empid=150; name=Sebastian");
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6880">
+   * [CALCITE-6880] Implement IntersectToSemiJoinRule</a>. */
+  @Test void testIntersectToSemiJoin() {
+    final String sql = ""
+        + "select \"commission\" from \"hr\".\"emps\"\n"
+        + "intersect\n"
+        + "select \"commission\" from \"hr\".\"emps\" where \"empid\">=150";
+    CalciteAssert.hr()
+        .query(sql)
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>)
+            planner -> {
+              planner.removeRule(CoreRules.INTERSECT_TO_DISTINCT);
+              planner.removeRule(EnumerableRules.ENUMERABLE_INTERSECT_RULE);
+              planner.addRule(CoreRules.INTERSECT_TO_SEMI_JOIN);
+              planner.addRule(CoreRules.JOIN_CONDITION_PUSH);
+            })
+        .explainContains("")
+        .returnsUnordered("commission=500",
+            "commission=null");
   }
 
   @Test void testExcept() {
