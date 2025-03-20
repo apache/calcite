@@ -30,6 +30,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.Pair;
 
@@ -173,6 +174,128 @@ public class MongoFilter extends Filter implements MongoRel {
       return literal.getValue2();
     }
 
+//    private Void translateLike(RexCall node) {
+//      // RexNode 객체에서 LIKE 패턴 추출
+//      String likePattern = ((RexLiteral) node.operands.get(1)).getValueAs(String.class);
+//
+//      // SQL LIKE 패턴을 MongoDB regex 패턴으로 변환
+//      String regexPattern = likePattern.replace("%", ".*").replace("_", ".");
+//
+//      // TODO: 이제 regexPattern를 사용하여 필요한 작업 수행
+//      System.out.println("translateLike 함수");
+//      return null;
+//    }
+
+//    private Void translateLike(RexCall call) {
+//      System.out.println("translateLike 안");
+//      // RexCall 객체에서 필요한 정보를 추출합니다.
+//      final RexNode left = call.operands.get(0);
+//      final RexNode right = call.operands.get(1);
+//
+//      System.out.println("피연산자 가져오기 성공");
+//
+//      // left가 INPUT_REF인지 확인합니다.
+//      if (left.getKind() != SqlKind.INPUT_REF) {
+//        System.out.println("INPUT_REF TYPE ");
+//        return null;
+//      }
+//
+//      // left를 RexInputRef 타입으로 캐스팅하고, 필드 이름을 가져옵니다.
+//      final RexInputRef left1 = (RexInputRef) left;
+//      String name = fieldNames.get(left1.getIndex());
+//
+//      // right가 LITERAL인지 확인하고, RexLiteral 타입으로 캐스팅합니다.
+//      if (right.getKind() != SqlKind.LITERAL) {
+//        return null;
+//      }
+//
+//      System.out.println("타입 변경 성공");
+//
+//      RexLiteral rightLiteral = (RexLiteral) right;
+//
+//      // LIKE 패턴을 정규 표현식으로 변환합니다.
+//      String likePattern = rightLiteral.toString();
+//      String regexPatternString = likePattern.replace("%", ".*").replace("_", ".");
+//      RexLiteral regexPattern = rexBuilder.makeLiteral(regexPatternString);
+//
+//      System.out.println("패턴 변환 성공");
+//
+//      // MongoDB의 regex 연산을 수행합니다.
+//      translateOp2("$regex", name, regexPattern);
+//
+//      System.out.println("성공");
+//
+//      throw new AssertionError("cannot translate op call " + call);
+//    }
+
+    private Void translateLike(RexCall call) {
+//      System.out.println("Inside translateLike Method");
+
+      final RexNode left = call.operands.get(0);
+      final RexNode right = call.operands.get(1);
+
+//      System.out.println("Bring Operands - Success");
+//      System.out.println("Left: " + left);
+//      System.out.println("Right: " + right);
+
+      boolean b = translateLike2(left ,right);
+//      System.out.println("b: " + b);
+
+      if (b) {
+        return null;
+      }
+
+      throw new AssertionError("cannot translate op call" + call);
+    }
+
+    private boolean translateLike2(RexNode left, RexNode right) {
+      switch (right.getKind()) {
+      case LITERAL:
+//        System.out.println("Right is LITERAL");
+        break;
+      default:
+        return false;
+      }
+//      System.out.println("After Switch-Case");
+
+      final RexLiteral rightLiteral = (RexLiteral) right;
+//      System.out.println("RexLiteral");
+
+      String likePattern = rightLiteral.getValue2().toString();
+//      System.out.println("likePattern: " + likePattern);
+
+      String regexPatternString = likePattern.replace("%", ".*").replace("_", ".");
+      RexLiteral regexPattern = rexBuilder.makeLiteral(regexPatternString);
+//      System.out.println("regexPatter: " + regexPattern);
+
+//      System.out.println("Left Kind: " + left.getKind());
+      switch (left.getKind()) {
+      case INPUT_REF:
+//        System.out.println("Left is INPUT_REF");
+        final RexInputRef left1 = (RexInputRef) left;
+        String name = fieldNames.get(left1.getIndex());
+        translateOp2("$regex", name, regexPattern);
+        return true;
+      case CAST:
+//        System.out.println("Left is CAST");
+        return translateLike2(((RexCall) left).operands.get(0), right);
+      case ITEM:
+//        System.out.println("Left is ITEM");
+        String itemName = MongoRules.isItem((RexCall) left);
+//        System.out.println("itemName: " + itemName);
+        if (itemName != null) {
+//          System.out.println("itemName is not Null");
+          translateOp2("$regex", itemName, regexPattern);
+          return true;
+        }
+      default:
+//        System.out.println("Left is default");
+        return false;
+      }
+    }
+
+
+
     private Void translateMatch2(RexNode node) {
       switch (node.getKind()) {
       case EQUALS:
@@ -187,6 +310,9 @@ public class MongoFilter extends Filter implements MongoRel {
         return translateBinary("$gt", "$lt", (RexCall) node);
       case GREATER_THAN_OR_EQUAL:
         return translateBinary("$gte", "$lte", (RexCall) node);
+      case LIKE:
+        return translateLike((RexCall) node);
+
       default:
         throw new AssertionError("cannot translate " + node);
       }
@@ -241,11 +367,13 @@ public class MongoFilter extends Filter implements MongoRel {
       if (op == null) {
         // E.g.: {deptno: 100}
         eqMap.put(name, right);
+//        System.out.println("eqMap: " + eqMap.toString());
       } else {
         // E.g. {deptno: {$lt: 100}}
         // which may later be combined with other conditions:
         // E.g. {deptno: [$lt: 100, $gt: 50]}
         multimap.put(name, Pair.of(op, right));
+//        System.out.println("multimap: " + multimap.toString());
       }
     }
   }
