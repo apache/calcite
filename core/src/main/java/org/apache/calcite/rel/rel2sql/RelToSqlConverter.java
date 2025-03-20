@@ -22,6 +22,7 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.plan.CTEDefinationTrait;
 import org.apache.calcite.plan.CTEDefinationTraitDef;
+import org.apache.calcite.plan.DistinctTrait;
 import org.apache.calcite.plan.PivotRelTrait;
 import org.apache.calcite.plan.PivotRelTraitDef;
 import org.apache.calcite.plan.RelOptSamplingParameters;
@@ -571,7 +572,7 @@ public class RelToSqlConverter extends SqlImplementor
       final Builder builder = x.builder(e);
       builder.setQualify(builder.context.toSql(null, e.getCondition()));
       result = builder.result();
-    } else if (input instanceof Aggregate) {
+    } else if (input instanceof Aggregate && !isDistinctTrait(input)) {
       final Aggregate aggregate = (Aggregate) input;
       final boolean ignoreClauses = aggregate.getInput() instanceof Project;
       final Result x =
@@ -605,6 +606,10 @@ public class RelToSqlConverter extends SqlImplementor
       result = updateCTEResult(e, result);
     }
     return adjustResultWithSubQueryAlias(e, result);
+  }
+
+  private boolean isDistinctTrait(RelNode input) {
+    return input.getTraitSet().stream().anyMatch(trait -> trait instanceof DistinctTrait);
   }
 
   SqlNode createUnpivotSqlNodeWithExcludeNulls(SqlSelect sqlNode) {
