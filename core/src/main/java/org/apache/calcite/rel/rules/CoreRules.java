@@ -17,6 +17,7 @@
 package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.linq4j.function.Experimental;
+import org.apache.calcite.plan.RelOptUtil.Exists;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Calc;
@@ -353,6 +354,11 @@ public class CoreRules {
    * composed of {@link Union}, {@link Aggregate}, etc. */
   public static final IntersectToDistinctRule INTERSECT_TO_DISTINCT =
       IntersectToDistinctRule.Config.DEFAULT.toRule();
+
+  /** Rule that translates a {@link Intersect}
+   * into a {@link Exists} subquery. */
+  public static final IntersectToExistsRule INTERSECT_TO_EXISTS =
+      IntersectToExistsRule.Config.DEFAULT.toRule();
 
   /** Rule that translates a distinct
    * {@link Minus} into a group of operators

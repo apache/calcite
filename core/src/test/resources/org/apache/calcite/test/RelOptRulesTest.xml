@@ -6071,6 +6071,143 @@ LogicalIntersect(all=[true])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testIntersectToExistsRuleMultiFields">
+    <Resource name="sql">
+      <![CDATA[SELECT a.ename, a.job FROM emp AS a
+INTERSECT
+SELECT b.ename, b.job FROM emp AS b]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalIntersect(all=[false])
+  LogicalProject(ENAME=[$1], JOB=[$2])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(ENAME=[$1], JOB=[$2])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalAggregate(group=[{0, 1}])
+  LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[AND(=($cor0.ENAME, $0), =($cor0.JOB, $1))])
+  LogicalProject(ENAME=[$1], JOB=[$2])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})], variablesSet=[[$cor0]])
+    LogicalProject(ENAME=[$1], JOB=[$2])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testIntersectToExistsRuleMultiIntersect">
+    <Resource name="sql">
+      <![CDATA[SELECT a.ename FROM emp AS a
+INTERSECT
+SELECT b.name FROM dept AS b
+INTERSECT
+SELECT c.ename FROM emp AS c]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalIntersect(all=[false])
+  LogicalIntersect(all=[false])
+    LogicalProject(ENAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(NAME=[CAST($1):VARCHAR(20) NOT NULL])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalProject(ENAME=[$1])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[=($cor0.ENAME, $0)])
+  LogicalProject(ENAME=[$1])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})], variablesSet=[[$cor0]])
+  LogicalAggregate(group=[{0}])
+    LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[=($cor1.ENAME, $0)])
+  LogicalProject(NAME=[CAST($1):VARCHAR(20) NOT NULL])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})], variablesSet=[[$cor1]])
+      LogicalProject(ENAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testIntersectToExistsRuleOneField">
+    <Resource name="sql">
+      <![CDATA[SELECT a.ename FROM emp AS a
+INTERSECT
+SELECT b.name FROM dept AS b]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalIntersect(all=[false])
+  LogicalProject(ENAME=[$1])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(NAME=[CAST($1):VARCHAR(20) NOT NULL])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalAggregate(group=[{0}])
+  LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[=($cor0.ENAME, $0)])
+  LogicalProject(NAME=[CAST($1):VARCHAR(20) NOT NULL])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})], variablesSet=[[$cor0]])
+    LogicalProject(ENAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testIntersectToExistsRulePrimaryKey">
+    <Resource name="sql">
+      <![CDATA[SELECT a.empno FROM emp AS a
+INTERSECT
+SELECT b.empno FROM emp AS b]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalIntersect(all=[false])
+  LogicalProject(EMPNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EMPNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[=($cor0.EMPNO, $0)])
+  LogicalProject(EMPNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})], variablesSet=[[$cor0]])
+  LogicalProject(EMPNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testIntersectToExistsRuleWithAll">
+    <Resource name="sql">
+      <![CDATA[SELECT a.ename FROM emp AS a
+INTERSECT ALL
+SELECT b.name FROM dept AS b]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalIntersect(all=[true])
+  LogicalProject(ENAME=[$1])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(NAME=[CAST($1):VARCHAR(20) NOT NULL])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testIsNullPushDown">
     <Resource name="sql">
       <![CDATA[select empno, deptno, w_count from (

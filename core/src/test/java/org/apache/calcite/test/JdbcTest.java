@@ -18,6 +18,7 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.DataContexts;
 import org.apache.calcite.adapter.clone.CloneSchema;
+import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.adapter.generate.RangeTable;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
@@ -3922,6 +3923,30 @@ public class JdbcTest {
             planner.removeRule(CoreRules.INTERSECT_TO_DISTINCT))
         .explainContains(""
             + "PLAN=EnumerableIntersect(all=[false])")
+        .returnsUnordered("empid=150; name=Sebastian");
+  }
+
+  /**
+   * Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6836">[CALCITE-6836]
+   * Add Rule to convert INTERSECT to EXISTS</a>. */
+  @Test void testIntersectToExist() {
+    final String sql = ""
+            + "select \"empid\", \"name\" from \"hr\".\"emps\" where \"deptno\"=10\n"
+            + "intersect\n"
+            + "select \"empid\", \"name\" from \"hr\".\"emps\" where \"empid\">=150";
+    CalciteAssert.hr()
+        .query(sql)
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>)
+            p -> {
+              p.removeRule(CoreRules.INTERSECT_TO_DISTINCT);
+              p.removeRule(EnumerableRules.ENUMERABLE_INTERSECT_RULE);
+              p.removeRule(EnumerableRules.ENUMERABLE_FILTER_RULE);
+              p.addRule(CoreRules.INTERSECT_TO_EXISTS);
+              p.addRule(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE);
+              p.addRule(CoreRules.FILTER_TO_CALC);
+            })
+        .explainContains("")
         .returnsUnordered("empid=150; name=Sebastian");
   }
 

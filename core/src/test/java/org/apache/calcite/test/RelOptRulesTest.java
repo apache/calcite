@@ -9986,4 +9986,66 @@ class RelOptRulesTest extends RelOptTestBase {
         .withRule(CoreRules.HYPER_GRAPH_OPTIMIZE, CoreRules.PROJECT_REMOVE, CoreRules.PROJECT_MERGE)
         .check();
   }
+
+  /**
+   * Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6836">[CALCITE-6836]
+   * Add Rule to convert INTERSECT to EXISTS</a>. */
+  @Test void testIntersectToExistsRuleOneField() {
+    String sql = "SELECT a.ename FROM emp AS a\n"
+        + "INTERSECT\n"
+        + "SELECT b.name FROM dept AS b";
+    sql(sql).withRule(CoreRules.INTERSECT_TO_EXISTS)
+        .check();
+  }
+
+  /**
+   * Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6836">[CALCITE-6836]
+   * Add Rule to convert INTERSECT to EXISTS</a>. */
+  @Test void testIntersectToExistsRulePrimaryKey() {
+    String sql = "SELECT a.empno FROM emp AS a\n"
+        + "INTERSECT\n"
+        + "SELECT b.empno FROM emp AS b";
+    sql(sql).withRule(CoreRules.INTERSECT_TO_EXISTS)
+        .check();
+  }
+
+  /**
+   * Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6836">[CALCITE-6836]
+   * Add Rule to convert INTERSECT to EXISTS</a>. */
+  @Test void testIntersectToExistsRuleMultiFields() {
+    String sql = "SELECT a.ename, a.job FROM emp AS a\n"
+        + "INTERSECT\n"
+        + "SELECT b.ename, b.job FROM emp AS b";
+    sql(sql).withRule(CoreRules.INTERSECT_TO_EXISTS)
+        .check();
+  }
+
+  /**
+   * Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6836">[CALCITE-6836]
+   * Add Rule to convert INTERSECT to EXISTS</a>. */
+  @Test void testIntersectToExistsRuleMultiIntersect() {
+    String sql = "SELECT a.ename FROM emp AS a\n"
+        + "INTERSECT\n"
+        + "SELECT b.name FROM dept AS b\n"
+        + "INTERSECT\n"
+        + "SELECT c.ename FROM emp AS c";
+    sql(sql).withRule(CoreRules.INTERSECT_TO_EXISTS)
+        .check();
+  }
+
+  /**
+   * Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6836">[CALCITE-6836]
+   * Add Rule to convert INTERSECT to EXISTS</a>. */
+  @Test void testIntersectToExistsRuleWithAll() {
+    String sql = "SELECT a.ename FROM emp AS a\n"
+        + "INTERSECT ALL\n"
+        + "SELECT b.name FROM dept AS b";
+    sql(sql).withRule(CoreRules.INTERSECT_TO_EXISTS)
+        .checkUnchanged();
+  }
 }
