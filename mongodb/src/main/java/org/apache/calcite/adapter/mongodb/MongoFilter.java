@@ -81,10 +81,6 @@ public class MongoFilter extends Filter implements MongoRel {
   /** Translates {@link RexNode} expressions into MongoDB expression strings. */
   static class Translator {
     final JsonBuilder builder = new JsonBuilder();
-    final Multimap<String, Pair<String, RexLiteral>> multimap =
-        HashMultimap.create();
-    final Map<String, RexLiteral> eqMap =
-        new LinkedHashMap<>();
     private final RexBuilder rexBuilder;
     private final List<String> fieldNames;
 
@@ -99,11 +95,11 @@ public class MongoFilter extends Filter implements MongoRel {
       return builder.toJsonString(map);
     }
 
-    private Object translateOr(RexNode condition) {
+    private Map<String, Object> translateOr(RexNode condition) {
       final RexNode condition2 =
           RexUtil.expandSearch(rexBuilder, null, condition);
 
-      List<Object> list = new ArrayList<>();
+      List<Map<String, Object>> list = new ArrayList<>();
       for (RexNode node : RelOptUtil.disjunctions(condition2)) {
         list.add(translateAnd(node));
       }
@@ -120,10 +116,13 @@ public class MongoFilter extends Filter implements MongoRel {
     /** Translates a condition that may be an AND of other conditions. Gathers
      * together conditions that apply to the same field. */
     private Map<String, Object> translateAnd(RexNode node0) {
-      eqMap.clear();
-      multimap.clear();
+      final Multimap<String, Pair<String, RexLiteral>> multimap =
+          HashMultimap.create();
+      final Map<String, RexLiteral> eqMap =
+          new LinkedHashMap<>();
+      final List<Map<String, Object>> orMapList = new ArrayList<>();
       for (RexNode node : RelOptUtil.conjunctions(node0)) {
-        translateMatch2(node);
+        translateMatch2(node, orMapList, multimap, eqMap);
       }
       Map<String, Object> map = builder.map();
       for (Map.Entry<String, RexLiteral> entry : eqMap.entrySet()) {
@@ -137,6 +136,14 @@ public class MongoFilter extends Filter implements MongoRel {
           addPredicate(map2, s.left, literalValue(s.right));
         }
         map.put(entry.getKey(), map2);
+      }
+      if (!orMapList.isEmpty()) {
+        Map<String, Object> andMap = builder.map();
+        if (!map.isEmpty()) {
+          orMapList.add(map);
+        }
+        andMap.put("$and", orMapList);
+        return andMap;
       }
       return map;
     }
@@ -173,35 +180,45 @@ public class MongoFilter extends Filter implements MongoRel {
       return literal.getValue2();
     }
 
-    private Void translateMatch2(RexNode node) {
+    private Void translateMatch2(RexNode node, List<Map<String, Object>> orMapList,
+        Multimap<String, Pair<String, RexLiteral>> multimap, Map<String, RexLiteral> eqMap) {
       switch (node.getKind()) {
       case EQUALS:
-        return translateBinary(null, null, (RexCall) node);
+        return translateBinary(null, null, (RexCall) node, multimap, eqMap);
       case LESS_THAN:
-        return translateBinary("$lt", "$gt", (RexCall) node);
+        return translateBinary("$lt", "$gt", (RexCall) node, multimap, eqMap);
       case LESS_THAN_OR_EQUAL:
-        return translateBinary("$lte", "$gte", (RexCall) node);
+        return translateBinary("$lte", "$gte", (RexCall) node, multimap, eqMap);
       case NOT_EQUALS:
-        return translateBinary("$ne", "$ne", (RexCall) node);
+        return translateBinary("$ne", "$ne", (RexCall) node, multimap, eqMap);
       case GREATER_THAN:
-        return translateBinary("$gt", "$lt", (RexCall) node);
+        return translateBinary("$gt", "$lt", (RexCall) node, multimap, eqMap);
       case GREATER_THAN_OR_EQUAL:
-        return translateBinary("$gte", "$lte", (RexCall) node);
+        return translateBinary("$gte", "$lte", (RexCall) node, multimap, eqMap);
+      case OR:
+        return translateOrAddToList(node, orMapList);
       default:
         throw new AssertionError("cannot translate " + node);
       }
     }
 
+    private Void translateOrAddToList(RexNode node, List<Map<String, Object>> orMapList) {
+      Map<String, Object> or = translateOr(node);
+      orMapList.add(or);
+      return null;
+    }
+
     /** Translates a call to a binary operator, reversing arguments if
      * necessary. */
-    private Void translateBinary(String op, String rop, RexCall call) {
+    private Void translateBinary(String op, String rop, RexCall call,
+        Multimap<String, Pair<String, RexLiteral>> multimap, Map<String, RexLiteral> eqMap) {
       final RexNode left = call.operands.get(0);
       final RexNode right = call.operands.get(1);
-      boolean b = translateBinary2(op, left, right);
+      boolean b = translateBinary2(op, left, right, multimap, eqMap);
       if (b) {
         return null;
       }
-      b = translateBinary2(rop, right, left);
+      b = translateBinary2(rop, right, left, multimap, eqMap);
       if (b) {
         return null;
       }
@@ -209,7 +226,8 @@ public class MongoFilter extends Filter implements MongoRel {
     }
 
     /** Translates a call to a binary operator. Returns whether successful. */
-    private boolean translateBinary2(String op, RexNode left, RexNode right) {
+    private boolean translateBinary2(String op, RexNode left, RexNode right,
+        Multimap<String, Pair<String, RexLiteral>> multimap, Map<String, RexLiteral> eqMap) {
       switch (right.getKind()) {
       case LITERAL:
         break;
@@ -221,14 +239,14 @@ public class MongoFilter extends Filter implements MongoRel {
       case INPUT_REF:
         final RexInputRef left1 = (RexInputRef) left;
         String name = fieldNames.get(left1.getIndex());
-        translateOp2(op, name, rightLiteral);
+        translateOp2(op, name, rightLiteral, multimap, eqMap);
         return true;
       case CAST:
-        return translateBinary2(op, ((RexCall) left).operands.get(0), right);
+        return translateBinary2(op, ((RexCall) left).operands.get(0), right, multimap, eqMap);
       case ITEM:
         String itemName = MongoRules.isItem((RexCall) left);
         if (itemName != null) {
-          translateOp2(op, itemName, rightLiteral);
+          translateOp2(op, itemName, rightLiteral, multimap, eqMap);
           return true;
         }
         // fall through
@@ -237,7 +255,8 @@ public class MongoFilter extends Filter implements MongoRel {
       }
     }
 
-    private void translateOp2(String op, String name, RexLiteral right) {
+    private void translateOp2(String op, String name, RexLiteral right,
+        Multimap<String, Pair<String, RexLiteral>> multimap, Map<String, RexLiteral> eqMap) {
       if (op == null) {
         // E.g.: {deptno: 100}
         eqMap.put(name, right);
