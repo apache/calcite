@@ -58,7 +58,6 @@ public class IntersectToSemiJoinRule
 
     final RelBuilder builder = call.builder();
     final RexBuilder rexBuilder = builder.getRexBuilder();
-    final RelDataType oriRowType = intersect.getRowType();
 
     List<RelNode> inputs = intersect.getInputs();
     if (inputs.size() != 2) {
@@ -89,18 +88,6 @@ public class IntersectToSemiJoinRule
         .push(right)
         .join(JoinRelType.SEMI, condition)
         .distinct();
-
-//    List<RexNode> projects = new ArrayList<>();
-//    for (RexNode rexNode : builder.fields()) {
-//      RelDataType originalType =
-//          oriRowType.getFieldList().get(projects.size()).getType();
-//      if (!originalType.equals(rexNode.getType())) {
-//        projects.add(rexBuilder.makeCast(originalType, rexNode, true, false));
-//      } else {
-//        projects.add(rexNode);
-//      }
-//    }
-//    builder.project(projects);
 
     call.transformTo(builder.build());
   }
