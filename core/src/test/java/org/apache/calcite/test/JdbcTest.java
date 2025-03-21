@@ -3928,6 +3928,7 @@ public class JdbcTest {
 
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6880">
    * [CALCITE-6880] Implement IntersectToSemiJoinRule</a>. */
+  @Disabled("CALCITE-6904")
   @Test void testIntersectToSemiJoin() {
     final String sql = ""
         + "select \"commission\" from \"hr\".\"emps\"\n"

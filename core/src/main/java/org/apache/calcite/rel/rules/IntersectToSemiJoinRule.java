@@ -26,7 +26,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 
 import org.immutables.value.Value;
@@ -80,25 +79,9 @@ public class IntersectToSemiJoinRule
       RelDataType rightFieldType = right.getRowType().getFieldList().get(i).getType();
 
       conditions.add(
-          rexBuilder.makeCall(
-              SqlStdOperatorTable.EQUALS,
-              rexBuilder.makeCall(
-                  SqlStdOperatorTable.COALESCE,
-                  rexBuilder.makeInputRef(leftFieldType, i),
-                  rexBuilder.makeZeroLiteral(leftFieldType)),
-              rexBuilder.makeCall(SqlStdOperatorTable.COALESCE,
-                  rexBuilder.makeInputRef(rightFieldType, i + fieldCount),
-                  rexBuilder.makeZeroLiteral(rightFieldType))));
-
-      conditions.add(
-          rexBuilder.makeCall(
-              SqlStdOperatorTable.EQUALS,
-              rexBuilder.makeCall(
-                  SqlStdOperatorTable.IS_NULL,
-                  rexBuilder.makeInputRef(leftFieldType, i)),
-              rexBuilder.makeCall(
-                  SqlStdOperatorTable.IS_NULL,
-                  rexBuilder.makeInputRef(rightFieldType, i + fieldCount))));
+          builder.isNotDistinctFrom(
+              rexBuilder.makeInputRef(leftFieldType, i),
+              rexBuilder.makeInputRef(rightFieldType, i + fieldCount)));
     }
     RexNode condition = RexUtil.composeConjunction(rexBuilder, conditions);
 
@@ -107,17 +90,17 @@ public class IntersectToSemiJoinRule
         .join(JoinRelType.SEMI, condition)
         .distinct();
 
-    List<RexNode> projects = new ArrayList<>();
-    for (RexNode rexNode : builder.fields()) {
-      RelDataType originalType =
-          oriRowType.getFieldList().get(projects.size()).getType();
-      if (!originalType.equals(rexNode.getType())) {
-        projects.add(rexBuilder.makeCast(originalType, rexNode, true, false));
-      } else {
-        projects.add(rexNode);
-      }
-    }
-    builder.project(projects);
+//    List<RexNode> projects = new ArrayList<>();
+//    for (RexNode rexNode : builder.fields()) {
+//      RelDataType originalType =
+//          oriRowType.getFieldList().get(projects.size()).getType();
+//      if (!originalType.equals(rexNode.getType())) {
+//        projects.add(rexBuilder.makeCast(originalType, rexNode, true, false));
+//      } else {
+//        projects.add(rexNode);
+//      }
+//    }
+//    builder.project(projects);
 
     call.transformTo(builder.build());
   }

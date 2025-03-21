@@ -5947,7 +5947,7 @@ LogicalIntersect(all=[false])
     <Resource name="planAfter">
       <![CDATA[
 LogicalAggregate(group=[{0}])
-  LogicalJoin(condition=[=($0, $1)], joinType=[semi])
+  LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[semi])
     LogicalProject(ENAME=[$1])
       LogicalFilter(condition=[=($7, 10)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -5985,7 +5985,7 @@ LogicalIntersect(all=[true])
       <![CDATA[
 LogicalIntersect(all=[true])
   LogicalAggregate(group=[{0}])
-    LogicalJoin(condition=[=($0, $1)], joinType=[semi])
+    LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[semi])
       LogicalProject(ENAME=[$1])
         LogicalFilter(condition=[=($7, 10)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -6019,7 +6019,7 @@ LogicalIntersect(all=[false])
     <Resource name="planAfter">
       <![CDATA[
 LogicalAggregate(group=[{0}])
-  LogicalJoin(condition=[=($0, $1)], joinType=[semi])
+  LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[semi])
     LogicalProject(ENAME=[$1])
       LogicalFilter(condition=[=($7, 10)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -6050,7 +6050,7 @@ LogicalIntersect(all=[false])
     <Resource name="planAfter">
       <![CDATA[
 LogicalAggregate(group=[{0, 1}])
-  LogicalJoin(condition=[AND(=($0, $2), =($1, $3))], joinType=[semi])
+  LogicalJoin(condition=[AND(IS NOT DISTINCT FROM($0, $2), IS NOT DISTINCT FROM($1, $3))], joinType=[semi])
     LogicalProject(DEPTNO=[$7], ENAME=[$1])
       LogicalFilter(condition=[=($7, 10)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
