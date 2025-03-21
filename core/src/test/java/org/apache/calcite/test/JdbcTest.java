@@ -3926,8 +3926,8 @@ public class JdbcTest {
         .returnsUnordered("empid=150; name=Sebastian");
   }
 
-  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6880">
-   * [CALCITE-6880] Implement IntersectToSemiJoinRule</a>. */
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6904">
+   * [CALCITE-6904] IS_NOT_DISTINCT_FROM is converted error in ElementerableJoinRule</a>. */
   @Disabled("CALCITE-6904")
   @Test void testIntersectToSemiJoin() {
     final String sql = ""

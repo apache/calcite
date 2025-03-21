@@ -70,9 +70,6 @@ public class IntersectToSemiJoinRule
     List<RexNode> conditions = new ArrayList<>();
     int fieldCount = left.getRowType().getFieldCount();
 
-    // Converting the join condition to
-    // AND(=(COALESCE($0, 0), COALESCE($1, 0)), =(IS NULL($0), IS NULL($0))
-    // allows us to use HashJoin
     for (int i = 0; i < fieldCount; i++) {
       RelDataType leftFieldType = left.getRowType().getFieldList().get(i).getType();
       RelDataType rightFieldType = right.getRowType().getFieldList().get(i).getType();
