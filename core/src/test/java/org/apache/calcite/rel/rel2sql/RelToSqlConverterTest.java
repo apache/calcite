@@ -636,13 +636,21 @@ class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
-  @Test void testSelectQueryWithHiveCube() {
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6906">[CALCITE-6906]
+   * Support ClickHouse Dialect with cube with syntax</a>. */
+  @Test void testSelectQueryWithCube() {
     String query = "select \"product_class_id\", \"product_id\", count(*) "
             + "from \"product\" group by cube(\"product_class_id\", \"product_id\")";
     String expected = "SELECT `product_class_id`, `product_id`, COUNT(*)\n"
             + "FROM `foodmart`.`product`\n"
             + "GROUP BY `product_class_id`, `product_id` WITH CUBE";
-    sql(query).withHive().ok(expected);
+    String expectedClickHouse = "SELECT `product_class_id`, `product_id`, COUNT(*)\n"
+        + "FROM `foodmart`.`product`\n"
+        + "GROUP BY `product_class_id`, `product_id` WITH CUBE";
+    sql(query)
+        .withHive().ok(expected)
+        .withClickHouse().ok(expectedClickHouse);
     SqlDialect sqlDialect = sql(query).withHive().dialect;
     assertTrue(sqlDialect.supportsGroupByWithCube());
   }

@@ -70,6 +70,10 @@ public class ClickHouseSqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public boolean supportsGroupByWithCube() {
+    return true;
+  }
+
   @Override public boolean supportsWindowFunctions() {
     return false;
   }
