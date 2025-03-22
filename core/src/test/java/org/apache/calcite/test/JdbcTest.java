@@ -3927,7 +3927,7 @@ public class JdbcTest {
   }
 
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6904">
-   * [CALCITE-6904] IS_NOT_DISTINCT_FROM is converted error in ElementerableJoinRule</a>. */
+   * [CALCITE-6904] IS_NOT_DISTINCT_FROM is converted error in EnumerableJoinRule</a>. */
   @Disabled("CALCITE-6904")
   @Test void testIntersectToSemiJoin() {
     final String sql = ""
@@ -3941,7 +3941,6 @@ public class JdbcTest {
               planner.removeRule(CoreRules.INTERSECT_TO_DISTINCT);
               planner.removeRule(EnumerableRules.ENUMERABLE_INTERSECT_RULE);
               planner.addRule(CoreRules.INTERSECT_TO_SEMI_JOIN);
-              planner.addRule(CoreRules.JOIN_CONDITION_PUSH);
             })
         .explainContains("")
         .returnsUnordered("commission=500",
