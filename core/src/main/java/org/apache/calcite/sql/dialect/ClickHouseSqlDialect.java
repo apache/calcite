@@ -38,6 +38,8 @@ import org.apache.calcite.util.RelToSqlConverterUtil;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.Locale;
+
 import static org.apache.calcite.util.RelToSqlConverterUtil.unparseBoolLiteralToCondition;
 
 import static java.util.Objects.requireNonNull;
@@ -86,6 +88,10 @@ public class ClickHouseSqlDialect extends SqlDialect {
     if (type instanceof BasicSqlType) {
       SqlTypeName typeName = type.getSqlTypeName();
       switch (typeName) {
+      case CHAR:
+        return createSqlDataTypeSpecByName(
+            String.format(Locale.ROOT, "FixedString(%s)",
+            type.getPrecision()), typeName, type.isNullable());
       case VARCHAR:
         return createSqlDataTypeSpecByName("String", typeName, type.isNullable());
       case TINYINT:
