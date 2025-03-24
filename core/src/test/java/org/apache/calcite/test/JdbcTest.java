@@ -3932,9 +3932,9 @@ public class JdbcTest {
    * Add Rule to convert INTERSECT to EXISTS</a>. */
   @Test void testIntersectToExist() {
     final String sql = ""
-            + "select \"empid\", \"name\" from \"hr\".\"emps\" where \"deptno\"=10\n"
-            + "intersect\n"
-            + "select \"empid\", \"name\" from \"hr\".\"emps\" where \"empid\">=150";
+        + "select \"empid\", \"name\" from \"hr\".\"emps\" where \"deptno\"=10\n"
+        + "intersect\n"
+        + "select \"empid\", \"name\" from \"hr\".\"emps\" where \"empid\">=150";
     CalciteAssert.hr()
         .query(sql)
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>)
@@ -3948,6 +3948,27 @@ public class JdbcTest {
             })
         .explainContains("")
         .returnsUnordered("empid=150; name=Sebastian");
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6904">
+   * [CALCITE-6904] IS_NOT_DISTINCT_FROM is converted error in EnumerableJoinRule</a>. */
+  @Disabled("CALCITE-6904")
+  @Test void testIntersectToSemiJoin() {
+    final String sql = ""
+        + "select \"commission\" from \"hr\".\"emps\"\n"
+        + "intersect\n"
+        + "select \"commission\" from \"hr\".\"emps\" where \"empid\">=150";
+    CalciteAssert.hr()
+        .query(sql)
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>)
+            planner -> {
+              planner.removeRule(CoreRules.INTERSECT_TO_DISTINCT);
+              planner.removeRule(EnumerableRules.ENUMERABLE_INTERSECT_RULE);
+              planner.addRule(CoreRules.INTERSECT_TO_SEMI_JOIN);
+            })
+        .explainContains("")
+        .returnsUnordered("commission=500",
+            "commission=null");
   }
 
   @Test void testExcept() {
