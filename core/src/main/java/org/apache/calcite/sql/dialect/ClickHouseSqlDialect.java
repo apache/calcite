@@ -19,6 +19,8 @@ package org.apache.calcite.sql.dialect;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.sql.SqlAbstractDateTimeLiteral;
 import org.apache.calcite.sql.SqlBasicTypeNameSpec;
 import org.apache.calcite.sql.SqlCall;
@@ -48,10 +50,36 @@ import static java.util.Objects.requireNonNull;
  * A <code>SqlDialect</code> implementation for the ClickHouse database.
  */
 public class ClickHouseSqlDialect extends SqlDialect {
+  public static final RelDataTypeSystem TYPE_SYSTEM =
+      new RelDataTypeSystemImpl() {
+        @Override public int getMaxPrecision(SqlTypeName typeName) {
+          switch (typeName) {
+          case DECIMAL:
+            return 76;
+          default:
+            return super.getMaxPrecision(typeName);
+          }
+        }
+
+        @Override public int getMaxScale(SqlTypeName typeName) {
+          switch (typeName) {
+          case DECIMAL:
+            return 76;
+          default:
+            return super.getMaxScale(typeName);
+          }
+        }
+
+        @Override public int getMaxNumericScale() {
+          return getMaxScale(SqlTypeName.DECIMAL);
+        }
+      };
+
   public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
       .withDatabaseProduct(SqlDialect.DatabaseProduct.CLICKHOUSE)
       .withIdentifierQuoteString("`")
-      .withNullCollation(NullCollation.LOW);
+      .withNullCollation(NullCollation.LOW)
+      .withDataTypeSystem(TYPE_SYSTEM);
 
   public static final SqlDialect DEFAULT = new ClickHouseSqlDialect(DEFAULT_CONTEXT);
 
