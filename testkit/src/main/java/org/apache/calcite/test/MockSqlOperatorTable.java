@@ -275,7 +275,7 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
 
       @Override public String getAllowedSignatures(SqlOperator op, String opName) {
         return "Score(TABLE table_name)";
-      };
+      }
     }
   }
 

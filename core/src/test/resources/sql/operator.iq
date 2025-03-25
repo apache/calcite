@@ -358,7 +358,7 @@ CITY VARCHAR
 !ok
 
 select au."birthPlace"[CAST(NULL AS INTEGER)] as city from "bookstore"."authors" au;
-Cannot infer type of field at position null within ROW type: RecordType(RecordType(JavaType(class java.math.BigDecimal) latitude, JavaType(class java.math.BigDecimal) longtitude) coords, JavaType(class java.lang.String) city, JavaType(class java.lang.String) country)
+Index in ROW type does not have a constant integer or string value
 !error
 
 select au."birthPlace"[2] as city from "bookstore"."authors" au;
