@@ -3874,10 +3874,12 @@ public class RelBuilder {
             + expressionList + "], [" + axisList + "]");
       }
       aggCalls.forEach(aggCall -> {
+        final String aggAlias = ((AggCallPlus) aggCall).alias();
+        final String alias2 = alias + (aggAlias != null ? "_" + aggAlias : "");
         final List<RexNode> filters = new ArrayList<>();
         Pair.forEach(axisList, expressionList, (axis, expression) ->
             filters.add(equals(axis, expression)));
-        multipliedAggCalls.add(aggCall.filter(and(filters)).as(alias));
+        multipliedAggCalls.add(aggCall.filter(and(filters)).as(alias2));
       });
     });
     return aggregate(groupKey, multipliedAggCalls);

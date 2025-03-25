@@ -3894,9 +3894,9 @@ public class RelBuilderTest {
                     .entrySet())
             .build();
     final String expected = ""
-        + "LogicalAggregate(group=[{0}], C10=[SUM($1) FILTER $2], "
-        + "C10=[COUNT() FILTER $2], M20=[SUM($1) FILTER $3], "
-        + "M20=[COUNT() FILTER $3])\n"
+        + "LogicalAggregate(group=[{0}], C10_SS=[SUM($1) FILTER $2], "
+        + "C10_C=[COUNT() FILTER $2], M20_SS=[SUM($1) FILTER $3], "
+        + "M20_C=[COUNT() FILTER $3])\n"
         + "  LogicalProject(MGR=[$3], SAL=[$5], "
         + "$f8=[IS TRUE(AND(=($2, 'CLERK'), =($7, 10)))], "
         + "$f9=[IS TRUE(AND(=($2, 'MANAGER'), =($7, 20)))])\n"
