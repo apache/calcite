@@ -13289,10 +13289,9 @@ public class SqlOperatorTest {
     f.check("select \"T\".\"X\"[2] "
             + "from (VALUES (ROW(ROW(3, CAST(NULL AS INTEGER)), ROW(4, 8)))) as T(x, y)",
         SqlTests.ANY_TYPE_CHECKER, isNullValue());
-    f.checkFails("select \"T\".\"X\"[1 + CAST(NULL AS INTEGER)] "
+    f.checkFails("select ^\"T\".\"X\"[1 + CAST(NULL AS INTEGER)]^ "
             + "from (VALUES (ROW(ROW(3, CAST(NULL AS INTEGER)), ROW(4, 8)))) as T(x, y)",
-        "Cannot infer type of field at position null within ROW type: "
-            + "RecordType\\(INTEGER EXPR\\$0, INTEGER EXPR\\$1\\)", false);
+        "Index in ROW type does not have a constant integer or string value", false);
   }
 
   @Test void testOffsetOperator() {

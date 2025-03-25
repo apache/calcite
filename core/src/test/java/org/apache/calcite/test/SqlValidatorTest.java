@@ -2026,6 +2026,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("RecordType(INTEGER EXPR$0, VARCHAR(20) NOT NULL EXPR$1) NOT NULL");
     sql("select ROW^(x'12') <> ROW(0.01)^")
         .fails("Cannot apply '<>' to arguments of type.*");
+    // Test cases for [CALCITE-6911] https://issues.apache.org/jira/browse/CALCITE-6911
+    // SqlItemOperator.inferReturnType throws AssertionError for out of bounds accesses
+    sql("select ^x[2]^ from (select ROW(1) as x)")
+        .fails("ROW type does not have a field with index 2; legal range is 1 to 1");
+    sql("select ^x[0]^ from (select ROW(1) as x)")
+        .fails("ROW type does not have a field with index 0; legal range is 1 to 1");
+    sql("select ^T.x['g']^ from (SELECT CAST(ROW(1) AS ROW(f INT)) AS x) AS T")
+        .fails("ROW type does not have a field named 'g': RecordType\\(INTEGER F\\)");
+    sql("select T.x['f'] from (SELECT CAST(ROW(1) AS ROW(f INT)) AS x) AS T")
+        .columnType("INTEGER NOT NULL");
   }
 
   @Test void testRowWithValidDot() {

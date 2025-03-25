@@ -418,21 +418,23 @@ finds at most a single row in the right table that has the "closest"
 timestamp value. The matched row on the right side is the closest
 match whose timestamp column is compared using one of the operations
 &lt;, &le;, &gt;, or &ge;, as specified by the comparison operator in
-the `MATCH_CONDITION` clause.  The comparison is performed using SQL
-semantics, which returns 'false' when comparing NULL values with any
+the MATCH_CONDITION clause.  The comparison is performed using SQL
+semantics, which returns 'false' when comparing 'NULL' values with any
 other values.  Thus a 'NULL' timestamp in the left table will not
 match any timestamps in the right table.
 
-ASOF JOIN statements can also be LEFT ASOF JOIN.  In this case, when there
-is no match for a row in the left table, the columns from the right table
-are null-padded.
+ASOF JOIN can be used in an OUTER JOIN form as LEFT ASOF JOIN.  In this case,
+when there is no match for a row in the left table, the columns from
+the right table are null-padded.  There are no RIGHT ASOF joins.
 
-There are no RIGHT ASOF joins.
+Example:
 
+```SQL
 SELECT *
-FROM left_table [ LEFT ] ASOF JOIN right_table
-MATCH_CONDITION ( left_table.timecol &leq; right_table.timecol )
+FROM left_table LEFT ASOF JOIN right_table
+MATCH_CONDITION left_table.timecol <= right_table.timecol
 ON left_table.col = right_table.col
+```
 
 ## Keywords
 
