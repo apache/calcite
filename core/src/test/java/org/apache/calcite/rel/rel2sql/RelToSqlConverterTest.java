@@ -266,6 +266,23 @@ class RelToSqlConverterTest {
         .withInformix().ok(expectedInformix);
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6910">[CALCITE-6910]
+   * RelToSql does not handle ASOF joins</a>. */
+  @Test void testAsofJoin() {
+    final String sql = "select \"employee\".\"full_name\" from \"employee\" asof join \"product\"\n"
+        + "match_condition \"employee\".\"department_id\" <= \"product\".\"product_id\"\n"
+        + "on \"employee\".\"salary\" = \"product\".\"gross_weight\"";
+    final String expected = "SELECT \"t\".\"full_name\"\nFROM "
+        + "((SELECT \"employee_id\", \"full_name\", \"first_name\", \"last_name\", \"position_id\", "
+        + "\"position_title\", \"store_id\", \"department_id\", \"birth_date\", \"hire_date\", "
+        + "\"end_date\", \"salary\", \"supervisor_id\", \"education_level\", \"marital_status\", "
+        + "\"gender\", \"management_role\", CAST(\"salary\" AS DOUBLE) AS \"salary0\"\n"
+        + "FROM \"foodmart\".\"employee\") AS \"t\" ASOF JOIN \"foodmart\".\"product\" "
+        + "MATCH_CONDITION \"t\".\"department_id\" <= \"product\".\"product_id\" ON "
+        + "\"t\".\"salary0\" = \"product\".\"gross_weight\")";
+    sql(sql).ok(expected);
+  }
+
   @Test void testGroupByDateLiteral() {
     String query = "select avg(\"salary\") from \"employee\" group by DATE '2022-01-01'";
     String expectedRedshift = "SELECT AVG(\"employee\".\"salary\")\n"
