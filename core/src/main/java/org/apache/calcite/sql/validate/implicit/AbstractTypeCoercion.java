@@ -34,7 +34,6 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
-import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.type.SqlTypeCoercionRule;
 import org.apache.calcite.sql.type.SqlTypeFamily;
@@ -313,7 +312,7 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
    * <p>Ignore constant reduction which should happen in RexSimplify.
    */
   private static SqlNode castTo(SqlNode node, RelDataType type) {
-    return SqlStdOperatorTable.CAST.createCall(SqlParserPos.ZERO, node,
+    return SqlStdOperatorTable.CAST.createCall(node.getParserPosition(), node,
         SqlTypeUtil.convertTypeToSpec(type).withNullable(type.isNullable()));
   }
 

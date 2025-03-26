@@ -26,14 +26,17 @@ import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.TimeFrameSet;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.SqlBasicFunction;
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
@@ -12481,6 +12484,27 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
       // the error does not contain the original query (using a Reader)
       assertThat(error.getOriginalStatement(), nullValue());
     }
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6913">
+   * [CALCITE-6913] Some casts inserted by type coercion do not have
+   * source position information</a>. */
+  @Test void testImplicitCastPosition() throws SqlParseException {
+    final String sql = "select -'2'";
+    final SqlParser.Config config = SqlParser.config();
+    final SqlParser sqlParserReader = SqlParser.create(sql, config);
+    final SqlNode node = sqlParserReader.parseQuery();
+    final SqlValidator validator = fixture().factory.createValidator();
+    final SqlNode x = validator.validate(node);
+    assertThat(x instanceof SqlSelect, is(true));
+    // After coercion the statement is SELECT -(CAST '2' AS DECIMAL(...))
+    SqlSelect select = (SqlSelect) x;
+    SqlNodeList selectList = select.getSelectList();
+    assertThat(selectList.isEmpty(), is(false));
+    SqlNode neg = selectList.get(0);
+    assertThat(neg instanceof SqlCall, is(true));
+    SqlNode cast = ((SqlCall) neg).getOperandList().get(0);
+    assertThat(cast.getParserPosition().getLineNum(), is(1));
   }
 
   @Test void testValidateParameterizedExpression() throws SqlParseException {
