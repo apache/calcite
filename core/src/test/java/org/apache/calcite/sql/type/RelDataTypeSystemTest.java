@@ -19,6 +19,7 @@ package org.apache.calcite.sql.type;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
+import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 
@@ -193,6 +194,12 @@ class RelDataTypeSystemTest {
     assertEquals(SqlTypeName.DECIMAL, dataType.getSqlTypeName());
     assertEquals(6, dataType.getPrecision());
     assertEquals(20, dataType.getScale());
+  }
+
+  @Test void testConcat3ReturnTypeInference() {
+    final SqlFunction sqlFunction = SqlLibraryOperators.CONCAT3;
+    assertEquals(ReturnTypes.MULTIVALENT_STRING_SUM_PRECISION_NULLABLE,
+        sqlFunction.getReturnTypeInference());
   }
 
   @Test void testCustomDecimalDivideReturnTypeInference() {
