@@ -196,8 +196,7 @@ class RelDataTypeSystemTest {
     assertEquals(20, dataType.getScale());
   }
 
-  @Test
-  void testConcat3ReturnTypeInference() {
+  @Test void testConcat3ReturnTypeInference() {
     final SqlFunction sqlFunction = SqlLibraryOperators.CONCAT3;
     assertEquals(ReturnTypes.MULTIVALENT_STRING_SUM_PRECISION_NULLABLE,
         sqlFunction.getReturnTypeInference());
