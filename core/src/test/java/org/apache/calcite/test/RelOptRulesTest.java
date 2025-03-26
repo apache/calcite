@@ -10048,4 +10048,40 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withRule(CoreRules.INTERSECT_TO_EXISTS)
         .checkUnchanged();
   }
+
+  @Test void testExpandFilterDisjuction() {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.EXPAND_FILTER_DISJUCTION)
+        .build();
+
+    sql("select e.empno from emp as e, empnullables as en " +
+        "where e.empno = en.empno " +
+        "and " +
+        "( " +
+        "  (e.mgr > 100 and en.sal < 200) " +
+        "  or " +
+        "  (e.comm < 50 and en.deptno > 10) " +
+        ") ")
+        .withPre(program)
+        .withRule(CoreRules.FILTER_INTO_JOIN)
+        .check();
+  }
+
+  @Test void testExpandJoinDisjuction() {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.EXPAND_JOIN_DISJUCTION)
+        .build();
+
+    sql("select e.empno from emp as e inner join empnullables as en " +
+        "on e.empno = en.empno " +
+        "and " +
+        "( " +
+        "  (e.mgr > 100 and en.sal < 200) " +
+        "  or " +
+        "  (e.comm < 50 and en.deptno > 10) " +
+        ") ")
+        .withPre(program)
+        .withRule(CoreRules.JOIN_CONDITION_PUSH)
+        .check();
+  }
 }
