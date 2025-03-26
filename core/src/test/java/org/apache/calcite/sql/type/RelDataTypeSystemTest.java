@@ -184,6 +184,18 @@ class RelDataTypeSystemTest {
     assertEquals(9, dataType.getScale());
   }
 
+  @Test void testCustomDecimalMultiplyReturnTypeInference() {
+    final SqlTypeFactoryImpl f = new Fixture().customTypeFactory;
+    RelDataType operand1 = f.createSqlType(SqlTypeName.DECIMAL, 2, 4);
+    RelDataType operand2 = f.createSqlType(SqlTypeName.DECIMAL, 3, 5);
+
+    RelDataType dataType = SqlStdOperatorTable.MULTIPLY.inferReturnType(f, Lists
+            .newArrayList(operand1, operand2));
+    assertEquals(SqlTypeName.DECIMAL, dataType.getSqlTypeName());
+    assertEquals(6, dataType.getPrecision());
+    assertEquals(20, dataType.getScale());
+  }
+
   @Test
   void testConcat3ReturnTypeInference() {
     final SqlFunction sqlFunction = SqlLibraryOperators.CONCAT3;
