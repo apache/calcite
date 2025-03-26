@@ -454,14 +454,12 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           OperandTypes.COMPARABLE_ORDERED_COMPARABLE_ORDERED);
 
   /**
-   * <code>IN</code> operator tests for a value's membership in a sub-query or
-   * a list of values.
+   * <code>IN</code> operator tests for a value's membership in a sub-query.
    */
   public static final SqlBinaryOperator IN = new SqlInOperator(SqlKind.IN);
 
   /**
-   * <code>NOT IN</code> operator tests for a value's membership in a sub-query
-   * or a list of values.
+   * <code>NOT IN</code> operator tests for a value's membership in a sub-query.
    */
   public static final SqlBinaryOperator NOT_IN =
       new SqlInOperator(SqlKind.NOT_IN);
