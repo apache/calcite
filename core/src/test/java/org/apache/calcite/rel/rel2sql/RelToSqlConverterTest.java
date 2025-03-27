@@ -3895,12 +3895,15 @@ class RelToSqlConverterTest {
         + "FROM `foodmart`.`product`";
     final String expectedClickHouse = "SELECT CAST(`product_id` AS `FixedString(1)`)\n"
         + "FROM `foodmart`.`product`";
+    final String expectedPostgresql = "SELECT CAST(\"product_id\" AS CHAR)\n"
+        + "FROM \"foodmart\".\"product\"";
     sql(query)
         .withMysql().ok(expectedMysql)
         .withMssql().ok(expectedMssql)
         .withHive().ok(expectedHive)
         .withSpark().ok(expectedSpark)
-        .withClickHouse().ok(expectedClickHouse);
+        .withClickHouse().ok(expectedClickHouse)
+        .withPostgresql().ok(expectedPostgresql);
   }
 
   @Test void testCastToCharWithPrecision() {

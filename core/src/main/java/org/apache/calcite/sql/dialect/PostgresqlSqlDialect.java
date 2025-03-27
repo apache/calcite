@@ -75,6 +75,13 @@ public class PostgresqlSqlDialect extends SqlDialect {
             return super.getMaxPrecision(typeName);
           }
         }
+
+        @Override public int getDefaultPrecision(SqlTypeName typeName) {
+          if (typeName == SqlTypeName.CHAR) {
+            return RelDataType.PRECISION_NOT_SPECIFIED;
+          }
+          return super.getDefaultPrecision(typeName);
+        }
       };
 
   public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
