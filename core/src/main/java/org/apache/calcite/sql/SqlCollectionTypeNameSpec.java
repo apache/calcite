@@ -81,7 +81,9 @@ public class SqlCollectionTypeNameSpec extends SqlTypeNameSpec {
   }
 
   @Override public RelDataType deriveType(SqlValidator validator) {
-    final RelDataType type = elementTypeName.deriveType(validator);
+    RelDataType type = elementTypeName.deriveType(validator);
+    // We have to assume that elements may be nullable
+    type = validator.getTypeFactory().enforceTypeWithNullability(type, true);
     return createCollectionType(type, validator.getTypeFactory());
   }
 
