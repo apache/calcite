@@ -79,7 +79,6 @@ import org.apache.calcite.rel.rules.FilterFlattenCorrelatedConditionRule;
 import org.apache.calcite.rel.rules.FilterJoinRule;
 import org.apache.calcite.rel.rules.FilterMultiJoinMergeRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
-import org.apache.calcite.rel.rules.FlinkSubQueryRemoveRule;
 import org.apache.calcite.rel.rules.JoinAssociateRule;
 import org.apache.calcite.rel.rules.JoinCommuteRule;
 import org.apache.calcite.rel.rules.LoptOptimizeJoinRule;
@@ -98,6 +97,7 @@ import org.apache.calcite.rel.rules.SingleValuesOptimizationRules;
 import org.apache.calcite.rel.rules.SortProjectTransposeRule;
 import org.apache.calcite.rel.rules.SortUnionTransposeRule;
 import org.apache.calcite.rel.rules.SpatialRules;
+import org.apache.calcite.rel.rules.SubQueryRemoveRule;
 import org.apache.calcite.rel.rules.UnionMergeRule;
 import org.apache.calcite.rel.rules.ValuesReduceRule;
 import org.apache.calcite.rel.type.RelDataType;
@@ -8375,7 +8375,7 @@ class RelOptRulesTest extends RelOptTestBase {
     final String sql = "select * from sales.emp\n"
                        + "where NOT EXISTS (\n"
                        + "  select * from emp e where emp.deptno = e.deptno)";
-    sql(sql).withExpand(false).withRule(FlinkSubQueryRemoveRule.Config.FILTER.toRule()).check();
+    sql(sql).withExpand(false).withRule(SubQueryRemoveRule.Config.FILTER_TO_SEMI.toRule()).check();
   }
 
   /** Test case for

@@ -1,6 +1,21 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to you under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.calcite.rel.rules;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelRule;
@@ -20,6 +35,9 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
+
+import com.google.common.collect.ImmutableList;
+
 import org.immutables.value.Value;
 
 import java.util.ArrayDeque;
@@ -42,12 +60,12 @@ import java.util.stream.Collectors;
 @Value.Enclosing
 public class FlinkSubQueryRemoveRule extends RelRule<FlinkSubQueryRemoveRule.Config> implements TransformationRule {
 
+    // TODO: Remove this class
     public FlinkSubQueryRemoveRule(Config config) {
         super(config);
     }
 
-    @Override
-    public void onMatch(RelOptRuleCall call) {
+    @Override public void onMatch(RelOptRuleCall call) {
         Filter filter = call.rel(0);
         RexNode condition = filter.getCondition();
 
@@ -102,8 +120,7 @@ public class FlinkSubQueryRemoveRule extends RelRule<FlinkSubQueryRemoveRule.Con
         RexCall subQueryCall,
         RexNode condition,
         RelBuilder relBuilder,
-        SubQueryDecorrelator.Result decorrelate
-    ) {
+        SubQueryDecorrelator.Result decorrelate) {
         RelOptUtil.Logic logic = LogicVisitor.find(RelOptUtil.Logic.TRUE, ImmutableList.of(condition), subQueryCall);
         if (logic != RelOptUtil.Logic.TRUE) {
             // this should not happen, none unsupported SubQuery could not reach here
@@ -151,8 +168,7 @@ public class FlinkSubQueryRemoveRule extends RelRule<FlinkSubQueryRemoveRule.Con
         RexSubQuery subQuery,
         boolean withNot,
         Pair<RelNode, RexNode> equivalent,
-        RelBuilder relBuilder
-    ) {
+        RelBuilder relBuilder) {
         // Implement the logic for IN and NOT IN subqueries
         RelNode newRight = equivalent != null ? equivalent.getKey() : subQuery.rel;
         Optional<RexNode> joinCondition = equivalent != null ? Optional.of(equivalent.getValue()) : Optional.empty();
@@ -189,8 +205,7 @@ public class FlinkSubQueryRemoveRule extends RelRule<FlinkSubQueryRemoveRule.Con
         RexSubQuery subQuery,
         boolean withNot,
         Pair<RelNode, RexNode> equivalent,
-        RelBuilder relBuilder
-    ) {
+        RelBuilder relBuilder) {
         RexNode joinCondition;
         if (equivalent != null) {
             // EXISTS has correlation variables
@@ -230,16 +245,14 @@ public class FlinkSubQueryRemoveRule extends RelRule<FlinkSubQueryRemoveRule.Con
         try {
             node.accept(new RexVisitorImpl<Void>(true) {
 
-                @Override
-                public Void visitSubQuery(RexSubQuery subQuery) {
+                @Override public Void visitSubQuery(RexSubQuery subQuery) {
                     if (!isScalarQuery(subQuery)) {
                         throw new Util.FoundOne(subQuery);
                     }
                     return null;
                 }
 
-                @Override
-                public Void visitCall(RexCall call) {
+                @Override public Void visitCall(RexCall call) {
                     if (call.getKind() == SqlKind.NOT && call.getOperands().get(0) instanceof RexSubQuery) {
                         if (!isScalarQuery(call.getOperands().get(0))) {
                             throw new Util.FoundOne(call);
@@ -257,16 +270,14 @@ public class FlinkSubQueryRemoveRule extends RelRule<FlinkSubQueryRemoveRule.Con
     private RexNode replaceSubQuery(RexNode condition, RexCall oldSubQueryCall, RexNode replacement) {
         return condition.accept(new RexShuttle() {
 
-            @Override
-            public RexNode visitSubQuery(RexSubQuery subQuery) {
+            @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
                 if (oldSubQueryCall.equals(subQuery)) {
                     return replacement;
                 }
                 return subQuery;
             }
 
-            @Override
-            public RexNode visitCall(RexCall call) {
+            @Override public RexNode visitCall(RexCall call) {
                 if (call.getKind() == SqlKind.NOT && call.getOperands().get(0) instanceof RexSubQuery) {
                     if (oldSubQueryCall.equals(call)) {
                         return replacement;
@@ -288,8 +299,7 @@ public class FlinkSubQueryRemoveRule extends RelRule<FlinkSubQueryRemoveRule.Con
     private Pair<List<RexNode>, Optional<RexNode>> handleSubQueryOperands(
         RexSubQuery subQuery,
         Optional<RexNode> joinCondition,
-        RelBuilder relBuilder
-    ) {
+        RelBuilder relBuilder) {
         List<RexNode> operands = subQuery.getOperands();
         // operands is empty or all operands are RexInputRef
         if (operands.isEmpty() || operands.stream().allMatch(o -> o instanceof RexInputRef)) {
@@ -339,16 +349,14 @@ public class FlinkSubQueryRemoveRule extends RelRule<FlinkSubQueryRemoveRule.Con
                     }
                 }
 
-                @Override
-                public Void visitSubQuery(RexSubQuery subQuery) {
+                @Override public Void visitSubQuery(RexSubQuery subQuery) {
                     if (!isScalarQuery(subQuery)) {
                         checkAndConjunctions(subQuery);
                     }
                     return null;
                 }
 
-                @Override
-                public Void visitCall(RexCall call) {
+                @Override public Void visitCall(RexCall call) {
                     switch (call.getKind()) {
                         case NOT:
                             if (call.getOperands().get(0) instanceof RexSubQuery) {
@@ -384,8 +392,7 @@ public class FlinkSubQueryRemoveRule extends RelRule<FlinkSubQueryRemoveRule.Con
         Config FILTER = ImmutableFlinkSubQueryRemoveRule.Config.of()
             .withOperandSupplier(b -> b.operand(Filter.class).predicate(RexUtil.SubQueryFinder::containsSubQuery).anyInputs());
 
-        @Override
-        default FlinkSubQueryRemoveRule toRule() {
+        @Override default FlinkSubQueryRemoveRule toRule() {
             return new FlinkSubQueryRemoveRule(this);
         }
     }

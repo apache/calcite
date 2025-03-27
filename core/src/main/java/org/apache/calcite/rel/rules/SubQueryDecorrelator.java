@@ -1,13 +1,12 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to you under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,10 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.rel.rules;
 
-import com.google.common.base.Preconditions;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptUtil;
@@ -70,7 +67,8 @@ import org.apache.calcite.util.ReflectiveVisitor;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mappings;
 
-import javax.annotation.Nonnull;
+import com.google.common.base.Preconditions;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -136,22 +134,19 @@ public class SubQueryDecorrelator extends RelShuttleImpl {
         RelBuilder relBuilder = RelBuilder.proto(Contexts.of()).create(cluster, null);
         RexBuilder rexBuilder = cluster.getRexBuilder();
 
-        final SubQueryDecorrelator decorrelator = new SubQueryDecorrelator(
-            new SubQueryRelDecorrelator(corelMap, relBuilder, rexBuilder, maxCnfNodeCount),
-            relBuilder
-        );
+        final SubQueryDecorrelator decorrelator =
+            new SubQueryDecorrelator(new SubQueryRelDecorrelator(corelMap, relBuilder, rexBuilder, maxCnfNodeCount),
+            relBuilder);
         rootRel.accept(decorrelator);
 
         return new Result(decorrelator.subQueryMap);
     }
 
-    @Override
-    protected RelNode visitChild(RelNode parent, int i, RelNode input) {
+    @Override protected RelNode visitChild(RelNode parent, int i, RelNode input) {
         return super.visitChild(parent, i, stripHep(input));
     }
 
-    @Override
-    public RelNode visit(final LogicalFilter filter) {
+    @Override public RelNode visit(final LogicalFilter filter) {
         try {
             stack.push(filter);
             filter.getCondition().accept(handleSubQuery(filter));
@@ -164,8 +159,7 @@ public class SubQueryDecorrelator extends RelShuttleImpl {
     private RexVisitorImpl<Void> handleSubQuery(final RelNode rel) {
         return new RexVisitorImpl<Void>(true) {
 
-            @Override
-            public Void visitSubQuery(RexSubQuery subQuery) {
+            @Override public Void visitSubQuery(RexSubQuery subQuery) {
                 RelNode newRel = subQuery.rel;
                 if (subQuery.getKind() == SqlKind.IN) {
                     newRel = addProjectionForIn(subQuery.rel);
@@ -178,11 +172,10 @@ public class SubQueryDecorrelator extends RelShuttleImpl {
                         target = addProjectionForExists(frame);
                     }
 
-                    final DecorrelateRexShuttle shuttle = new DecorrelateRexShuttle(
-                        rel.getRowType(),
+                    final DecorrelateRexShuttle shuttle =
+                        new DecorrelateRexShuttle(rel.getRowType(),
                         target.r.getRowType(),
-                        rel.getVariablesSet()
-                    );
+                        rel.getVariablesSet());
 
                     final RexNode newCondition = target.c.accept(shuttle);
                     Pair<RelNode, RexNode> newNodeAndCondition = new Pair<>(target.r, newCondition);
@@ -264,8 +257,7 @@ public class SubQueryDecorrelator extends RelShuttleImpl {
         final int maxCnfNodeCount,
         final List<RexNode> corConditions,
         final List<RexNode> nonCorConditions,
-        final List<RexNode> unsupportedCorConditions
-    ) {
+        final List<RexNode> unsupportedCorConditions) {
         // converts the expanded expression to conjunctive normal form,
         // like "(a AND b) OR c" will be converted to "(a OR c) AND (b OR c)"
         final RexNode cnf = RexUtil.toCnf(rexBuilder, maxCnfNodeCount, condition);
@@ -276,8 +268,7 @@ public class SubQueryDecorrelator extends RelShuttleImpl {
         // `null` for RexNode is not a correlation condition.
         final RexVisitorImpl<Boolean> visitor = new RexVisitorImpl<Boolean>(true) {
 
-            @Override
-            public Boolean visitFieldAccess(RexFieldAccess fieldAccess) {
+            @Override public Boolean visitFieldAccess(RexFieldAccess fieldAccess) {
                 final RexNode ref = fieldAccess.getReferenceExpr();
                 if (ref instanceof RexCorrelVariable) {
                     return visitCorrelVariable((RexCorrelVariable) ref);
@@ -286,13 +277,11 @@ public class SubQueryDecorrelator extends RelShuttleImpl {
                 }
             }
 
-            @Override
-            public Boolean visitCorrelVariable(RexCorrelVariable correlVariable) {
+            @Override public Boolean visitCorrelVariable(RexCorrelVariable correlVariable) {
                 return variableSet.contains(correlVariable.id);
             }
 
-            @Override
-            public Boolean visitSubQuery(RexSubQuery subQuery) {
+            @Override public Boolean visitSubQuery(RexSubQuery subQuery) {
                 final List<Boolean> result = new ArrayList<>();
                 for (RexNode operand : subQuery.operands) {
                     result.add(operand.accept(this));
@@ -307,8 +296,7 @@ public class SubQueryDecorrelator extends RelShuttleImpl {
                 }
             }
 
-            @Override
-            public Boolean visitCall(RexCall call) {
+            @Override public Boolean visitCall(RexCall call) {
                 final List<Boolean> result = new ArrayList<>();
                 for (RexNode operand : call.operands) {
                     result.add(operand.accept(this));
@@ -349,8 +337,7 @@ public class SubQueryDecorrelator extends RelShuttleImpl {
     private static RexNode adjustInputRefs(final RexNode c, final Map<Integer, Integer> mapOldToNewIndex, final RelDataType rowType) {
         return c.accept(new RexShuttle() {
 
-            @Override
-            public RexNode visitInputRef(RexInputRef inputRef) {
+            @Override public RexNode visitInputRef(RexInputRef inputRef) {
                 assert mapOldToNewIndex.containsKey(inputRef.getIndex());
                 int newIndex = mapOldToNewIndex.get(inputRef.getIndex());
                 final RexInputRef ref = RexInputRef.of(newIndex, rowType);
@@ -375,8 +362,7 @@ public class SubQueryDecorrelator extends RelShuttleImpl {
             this.variableSet = variableSet;
         }
 
-        @Override
-        public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
+        @Override public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
             final RexNode ref = fieldAccess.getReferenceExpr();
             if (ref instanceof RexCorrelVariable) {
                 final RexCorrelVariable var = (RexCorrelVariable) ref;
@@ -388,8 +374,7 @@ public class SubQueryDecorrelator extends RelShuttleImpl {
             }
         }
 
-        @Override
-        public RexNode visitInputRef(RexInputRef inputRef) {
+        @Override public RexNode visitInputRef(RexInputRef inputRef) {
             assert inputRef.getIndex() < rightRowType.getFieldCount();
             int newIndex = inputRef.getIndex() + leftRowType.getFieldCount();
             return new RexInputRef(newIndex, inputRef.getType());
@@ -409,12 +394,11 @@ public class SubQueryDecorrelator extends RelShuttleImpl {
         private final CorelMap cm;
         private final RelBuilder relBuilder;
         private final RexBuilder rexBuilder;
-        private final ReflectUtil.MethodDispatcher<Frame> dispatcher = ReflectUtil.createMethodDispatcher(
-            Frame.class,
+        private final ReflectUtil.MethodDispatcher<Frame> dispatcher =
+            ReflectUtil.createMethodDispatcher(Frame.class,
             this,
             "decorrelateRel",
-            RelNode.class
-        );
+            RelNode.class);
         private final int maxCnfNodeCount;
 
         SubQueryRelDecorrelator(CorelMap cm, RelBuilder relBuilder, RexBuilder rexBuilder, int maxCnfNodeCount) {
@@ -477,8 +461,7 @@ public class SubQueryDecorrelator extends RelShuttleImpl {
                     if (!mapInputToOutput.containsKey(inputIndex)) {
                         projects.add(
                             newPos,
-                            Pair.of(RexInputRef.of(inputIndex, inputRowType), inputRowType.getFieldNames().get(inputIndex))
-                        );
+                            Pair.of(RexInputRef.of(inputIndex, inputRowType), inputRowType.getFieldNames().get(inputIndex)));
                         mapInputToOutput.put(inputIndex, newPos);
                         newPos++;
                     }
@@ -532,19 +515,18 @@ public class SubQueryDecorrelator extends RelShuttleImpl {
                 maxCnfNodeCount,
                 corConditions,
                 nonCorConditions,
-                unsupportedCorConditions
-            );
+                unsupportedCorConditions);
             assert unsupportedCorConditions.isEmpty();
 
             final RexNode remainingCondition = RexUtil.composeConjunction(rexBuilder, nonCorConditions, false);
 
             // Using LogicalFilter.create instead of RelBuilder.filter to create Filter
             // because RelBuilder.filter method does not have VariablesSet arg.
-            final RelNode newFilter = LogicalFilter.create(
-                frame.r,
+            final RelNode newFilter =
+                LogicalFilter.create(frame.r,
                 remainingCondition,
-                com.google.common.collect.ImmutableSet.copyOf(rel.getVariablesSet())
-            ).withHints(rel.getHints());
+                com.google.common.collect.ImmutableSet.copyOf(rel.getVariablesSet()))
+            .withHints(rel.getHints());
 
             // Adds input's correlation condition
             if (frame.c != null) {
@@ -748,22 +730,20 @@ public class SubQueryDecorrelator extends RelShuttleImpl {
             final int oldRightFieldCount = oldRight.getRowType().getFieldCount();
             assert rel.getRowType().getFieldCount() == oldLeftFieldCount + oldRightFieldCount;
 
-            final RexNode newJoinCondition = adjustJoinCondition(
-                rel.getCondition(),
+            final RexNode newJoinCondition =
+                adjustJoinCondition(rel.getCondition(),
                 oldLeftFieldCount,
                 newLeftFieldCount,
                 leftFrame.oldToNewOutputs,
-                rightFrame.oldToNewOutputs
-            );
+                rightFrame.oldToNewOutputs);
 
-            final RelNode newJoin = LogicalJoin.create(
-                leftFrame.r,
+            final RelNode newJoin =
+                LogicalJoin.create(leftFrame.r,
                 rightFrame.r,
                 rel.getHints(),
                 newJoinCondition,
                 rel.getVariablesSet(),
-                rel.getJoinType()
-            );
+                rel.getJoinType());
 
             // Create the mapping between the output of the old correlation rel and the new join rel
             final Map<Integer, Integer> mapOldToNewOutputs = new HashMap<>();
@@ -798,12 +778,10 @@ public class SubQueryDecorrelator extends RelShuttleImpl {
             final int oldLeftFieldCount,
             final int newLeftFieldCount,
             final Map<Integer, Integer> leftOldToNewOutputs,
-            final Map<Integer, Integer> rightOldToNewOutputs
-        ) {
+            final Map<Integer, Integer> rightOldToNewOutputs) {
             return joinCondition.accept(new RexShuttle() {
 
-                @Override
-                public RexNode visitInputRef(RexInputRef inputRef) {
+                @Override public RexNode visitInputRef(RexInputRef inputRef) {
                     int oldIndex = inputRef.getIndex();
                     final int newIndex;
                     if (oldIndex < oldLeftFieldCount) {
@@ -845,11 +823,10 @@ public class SubQueryDecorrelator extends RelShuttleImpl {
             }
             final RelNode newInput = frame.r;
 
-            Mappings.TargetMapping mapping = Mappings.target(
-                frame.oldToNewOutputs,
+            Mappings.TargetMapping mapping =
+                Mappings.target(frame.oldToNewOutputs,
                 oldInput.getRowType().getFieldCount(),
-                newInput.getRowType().getFieldCount()
-            );
+                newInput.getRowType().getFieldCount());
 
             RelCollation oldCollation = rel.getCollation();
             RelCollation newCollation = RexUtil.apply(mapping, oldCollation);
@@ -974,13 +951,11 @@ public class SubQueryDecorrelator extends RelShuttleImpl {
             return CorelMap.of(mapRefRelToCorRef, mapCorToCorRel, mapSubQueryNodeToCorSet);
         }
 
-        @Override
-        protected RelNode visitChild(RelNode parent, int i, RelNode input) {
+        @Override protected RelNode visitChild(RelNode parent, int i, RelNode input) {
             return super.visitChild(parent, i, stripHep(input));
         }
 
-        @Override
-        public RelNode visit(LogicalCorrelate correlate) {
+        @Override public RelNode visit(LogicalCorrelate correlate) {
             // TODO does not allow correlation condition in its inputs now
             // If correlation conditions in correlate inputs reference to correlate outputs
             // variable,
@@ -989,13 +964,13 @@ public class SubQueryDecorrelator extends RelShuttleImpl {
             // SELECT f1 FROM (
             // SELECT * FROM inner_table r WHERE r.d IN (SELECT x.i FROM x WHERE x.j = l.b)) t,
             // LATERAL TABLE(table_func(t.f)) AS T(f1)
-            // ))
+            //))
             // other cases should be supported, e.g.
             // SELECT * FROM outer_table l WHERE l.c IN (
             // SELECT f1 FROM (
             // SELECT * FROM inner_table r WHERE r.d IN (SELECT x.i FROM x WHERE x.j = r.e)) t,
             // LATERAL TABLE(table_func(t.f)) AS T(f1)
-            // ))
+            //))
             checkCorConditionOfInput(correlate.getLeft());
             checkCorConditionOfInput(correlate.getRight());
 
@@ -1004,8 +979,7 @@ public class SubQueryDecorrelator extends RelShuttleImpl {
             return correlate;
         }
 
-        @Override
-        public RelNode visit(LogicalJoin join) {
+        @Override public RelNode visit(LogicalJoin join) {
             switch (join.getJoinType()) {
                 case LEFT:
                     checkCorConditionOfInput(join.getRight());
@@ -1041,8 +1015,7 @@ public class SubQueryDecorrelator extends RelShuttleImpl {
             return join;
         }
 
-        @Override
-        public RelNode visit(LogicalFilter filter) {
+        @Override public RelNode visit(LogicalFilter filter) {
             final boolean hasSubQuery = RexUtil.SubQueryFinder.find(filter.getCondition()) != null;
             try {
                 if (!corNodeStack.isEmpty()) {
@@ -1064,8 +1037,7 @@ public class SubQueryDecorrelator extends RelShuttleImpl {
             return super.visit(filter);
         }
 
-        @Override
-        public RelNode visit(LogicalProject project) {
+        @Override public RelNode visit(LogicalProject project) {
             hasOverNode = RexOver.containsOver(project.getProjects(), null);
             final boolean hasSubQuery = RexUtil.SubQueryFinder.find(project.getProjects()) != null;
             try {
@@ -1087,26 +1059,22 @@ public class SubQueryDecorrelator extends RelShuttleImpl {
             return super.visit(project);
         }
 
-        @Override
-        public RelNode visit(LogicalAggregate aggregate) {
+        @Override public RelNode visit(LogicalAggregate aggregate) {
             hasAggregateNode = true;
             return super.visit(aggregate);
         }
 
-        @Override
-        public RelNode visit(LogicalUnion union) {
+        @Override public RelNode visit(LogicalUnion union) {
             checkCorConditionOfSetOpInputs(union);
             return super.visit(union);
         }
 
-        @Override
-        public RelNode visit(LogicalMinus minus) {
+        @Override public RelNode visit(LogicalMinus minus) {
             checkCorConditionOfSetOpInputs(minus);
             return super.visit(minus);
         }
 
-        @Override
-        public RelNode visit(LogicalIntersect intersect) {
+        @Override public RelNode visit(LogicalIntersect intersect) {
             checkCorConditionOfSetOpInputs(intersect);
             return super.visit(intersect);
         }
@@ -1126,8 +1094,7 @@ public class SubQueryDecorrelator extends RelShuttleImpl {
                     maxCnfNodeCount,
                     corConditions,
                     new ArrayList<>(),
-                    unsupportedCorConditions
-                );
+                    unsupportedCorConditions);
                 if (!unsupportedCorConditions.isEmpty()) {
                     hasUnsupportedCorCondition = true;
                 } else if (!corConditions.isEmpty()) {
@@ -1154,8 +1121,7 @@ public class SubQueryDecorrelator extends RelShuttleImpl {
             if (!hasUnsupportedCorCondition) {
                 join.getCondition().accept(new RexVisitorImpl<Void>(true) {
 
-                    @Override
-                    public Void visitCorrelVariable(RexCorrelVariable correlVariable) {
+                    @Override public Void visitCorrelVariable(RexCorrelVariable correlVariable) {
                         hasUnsupportedCorCondition = true;
                         return super.visitCorrelVariable(correlVariable);
                     }
@@ -1172,8 +1138,7 @@ public class SubQueryDecorrelator extends RelShuttleImpl {
                 for (RexNode node : project.getProjects()) {
                     node.accept(new RexVisitorImpl<Void>(true) {
 
-                        @Override
-                        public Void visitCorrelVariable(RexCorrelVariable correlVariable) {
+                        @Override public Void visitCorrelVariable(RexCorrelVariable correlVariable) {
                             hasUnsupportedCorCondition = true;
                             return super.visitCorrelVariable(correlVariable);
                         }
@@ -1193,29 +1158,25 @@ public class SubQueryDecorrelator extends RelShuttleImpl {
 
                 final RexVisitor<Void> visitor = new RexVisitorImpl<Void>(true) {
 
-                    @Override
-                    public Void visitCorrelVariable(RexCorrelVariable correlVariable) {
+                    @Override public Void visitCorrelVariable(RexCorrelVariable correlVariable) {
                         hasUnsupportedCorCondition = true;
                         return super.visitCorrelVariable(correlVariable);
                     }
                 };
 
-                @Override
-                public RelNode visit(LogicalFilter filter) {
+                @Override public RelNode visit(LogicalFilter filter) {
                     filter.getCondition().accept(visitor);
                     return super.visit(filter);
                 }
 
-                @Override
-                public RelNode visit(LogicalProject project) {
+                @Override public RelNode visit(LogicalProject project) {
                     for (RexNode rex : project.getProjects()) {
                         rex.accept(visitor);
                     }
                     return super.visit(project);
                 }
 
-                @Override
-                public RelNode visit(LogicalJoin join) {
+                @Override public RelNode visit(LogicalJoin join) {
                     join.getCondition().accept(visitor);
                     return super.visit(join);
                 }
@@ -1237,16 +1198,14 @@ public class SubQueryDecorrelator extends RelShuttleImpl {
         private RexVisitorImpl<Void> rexVisitor(final RelNode rel) {
             return new RexVisitorImpl<Void>(true) {
 
-                @Override
-                public Void visitSubQuery(RexSubQuery subQuery) {
+                @Override public Void visitSubQuery(RexSubQuery subQuery) {
                     hasAggregateNode = false; // reset to default value
                     hasOverNode = false; // reset to default value
                     subQuery.rel.accept(CorelMapBuilder.this);
                     return super.visitSubQuery(subQuery);
                 }
 
-                @Override
-                public Void visitFieldAccess(RexFieldAccess fieldAccess) {
+                @Override public Void visitFieldAccess(RexFieldAccess fieldAccess) {
                     final RexNode ref = fieldAccess.getReferenceExpr();
                     if (ref instanceof RexCorrelVariable) {
                         final RexCorrelVariable var = (RexCorrelVariable) ref;
@@ -1297,18 +1256,15 @@ public class SubQueryDecorrelator extends RelShuttleImpl {
             this.uniqueKey = uniqueKey;
         }
 
-        @Override
-        public String toString() {
+        @Override public String toString() {
             return corr.getName() + '.' + field;
         }
 
-        @Override
-        public int hashCode() {
+        @Override public int hashCode() {
             return Objects.hash(uniqueKey, corr, field);
         }
 
-        @Override
-        public boolean equals(Object o) {
+        @Override public boolean equals(Object o) {
             return this == o
                 || o instanceof CorRef && uniqueKey == ((CorRef) o).uniqueKey && corr == ((CorRef) o).corr && field == ((CorRef) o).field;
         }
@@ -1352,15 +1308,13 @@ public class SubQueryDecorrelator extends RelShuttleImpl {
         private CorelMap(
             com.google.common.collect.Multimap<RelNode, CorRef> mapRefRelToCorRef,
             SortedMap<CorrelationId, RelNode> mapCorToCorRel,
-            Map<RelNode, Set<CorrelationId>> mapSubQueryNodeToCorSet
-        ) {
+            Map<RelNode, Set<CorrelationId>> mapSubQueryNodeToCorSet) {
             this.mapRefRelToCorRef = mapRefRelToCorRef;
             this.mapCorToCorRel = mapCorToCorRel;
             this.mapSubQueryNodeToCorSet = com.google.common.collect.ImmutableMap.copyOf(mapSubQueryNodeToCorSet);
         }
 
-        @Override
-        public String toString() {
+        @Override public String toString() {
             return "mapRefRelToCorRef="
                 + mapRefRelToCorRef
                 + "\nmapCorToCorRel="
@@ -1370,8 +1324,7 @@ public class SubQueryDecorrelator extends RelShuttleImpl {
                 + "\n";
         }
 
-        @Override
-        public boolean equals(Object obj) {
+        @Override public boolean equals(Object obj) {
             return obj == this
                 || obj instanceof CorelMap
                     && mapRefRelToCorRef.equals(((CorelMap) obj).mapRefRelToCorRef)
@@ -1379,8 +1332,7 @@ public class SubQueryDecorrelator extends RelShuttleImpl {
                     && mapSubQueryNodeToCorSet.equals(((CorelMap) obj).mapSubQueryNodeToCorSet);
         }
 
-        @Override
-        public int hashCode() {
+        @Override public int hashCode() {
             return Objects.hash(mapRefRelToCorRef, mapCorToCorRel, mapSubQueryNodeToCorSet);
         }
 
@@ -1388,8 +1340,7 @@ public class SubQueryDecorrelator extends RelShuttleImpl {
         public static CorelMap of(
             com.google.common.collect.SortedSetMultimap<RelNode, CorRef> mapRefRelToCorVar,
             SortedMap<CorrelationId, RelNode> mapCorToCorRel,
-            Map<RelNode, Set<CorrelationId>> mapSubQueryNodeToCorSet
-        ) {
+            Map<RelNode, Set<CorrelationId>> mapSubQueryNodeToCorSet) {
             return new CorelMap(mapRefRelToCorVar, mapCorToCorRel, mapSubQueryNodeToCorSet);
         }
 
