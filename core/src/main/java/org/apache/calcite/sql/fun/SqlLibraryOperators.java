@@ -1553,7 +1553,7 @@ public abstract class SqlLibraryOperators {
     type = opBinding.getTypeFactory().createTypeWithNullability(type, true);
     // make explicit CAST for array elements and inserted element to the biggest type
     // if array component type not equals to inserted element type
-    if (!componentType.equalsSansFieldNames(elementType2)) {
+    if (!componentType.equalsSansFieldNamesAndNullability(elementType2)) {
       // For array_insert, 0 is the array arg and 2 is the inserted element
       SqlValidatorUtil.
           adjustTypeForArrayFunctions(type, opBinding, 2);

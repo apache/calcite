@@ -150,6 +150,11 @@ public interface RelDataTypeSystem {
   /** Returns the rounding behavior for numerical operations capable of discarding precision. */
   RoundingMode roundingMode();
 
+  /** Returns whether a MAP type is allowed to have nullable keys. */
+  default boolean mapKeysCanBeNullable() {
+    return false;
+  }
+
   /** Returns the LITERAL string for the type, either PREFIX/SUFFIX. */
   @Nullable String getLiteral(SqlTypeName typeName, boolean isPrefix);
 

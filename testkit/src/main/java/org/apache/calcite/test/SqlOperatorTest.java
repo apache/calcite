@@ -1824,7 +1824,7 @@ public class SqlOperatorTest {
     f.checkScalar("cast(cast(CAST('abc' AS VARCHAR) as VARIANT) AS VARCHAR)", "abc",
         "VARCHAR");
     f.checkScalar("cast(cast(ARRAY[1,2,3] as VARIANT) AS INTEGER ARRAY)", "[1, 2, 3]",
-        "INTEGER NOT NULL ARRAY");
+        "INTEGER ARRAY");
     f.checkScalar("cast(cast('abc' as VARIANT) AS VARCHAR)", "abc", "VARCHAR");
     f.checkScalar("cast(cast('abc' as VARIANT) AS CHAR(3))", "abc", "CHAR(3)");
 
@@ -7975,7 +7975,7 @@ public class SqlOperatorTest {
     f.checkScalar("array_append(array[map[1, 'a']], map[2, 'b'])", "[{1=a}, {2=b}]",
         "(INTEGER NOT NULL, CHAR(1) NOT NULL) MAP NOT NULL ARRAY NOT NULL");
     f.checkNull("array_append(cast(null as integer array), 1)");
-    f.checkType("array_append(cast(null as integer array), 1)", "INTEGER NOT NULL ARRAY");
+    f.checkType("array_append(cast(null as integer array), 1)", "INTEGER ARRAY");
     f.checkFails("^array_append(array[1, 2], true)^",
         "INTEGER is not comparable to BOOLEAN", false);
 
@@ -8312,7 +8312,7 @@ public class SqlOperatorTest {
     f.checkScalar("array_prepend(array[map[1, 'a']], map[2, 'b'])", "[{2=b}, {1=a}]",
         "(INTEGER NOT NULL, CHAR(1) NOT NULL) MAP NOT NULL ARRAY NOT NULL");
     f.checkNull("array_prepend(cast(null as integer array), 1)");
-    f.checkType("array_prepend(cast(null as integer array), 1)", "INTEGER NOT NULL ARRAY");
+    f.checkType("array_prepend(cast(null as integer array), 1)", "INTEGER ARRAY");
     f.checkFails("^array_prepend(array[1, 2], true)^",
         "INTEGER is not comparable to BOOLEAN", false);
 
@@ -8377,7 +8377,7 @@ public class SqlOperatorTest {
       f.checkScalar("array_remove(array[map[1, 'a']], map[1, 'a'])", "[]",
           "(INTEGER NOT NULL, CHAR(1) NOT NULL) MAP NOT NULL ARRAY NOT NULL");
       f.checkNull("array_remove(cast(null as integer array), 1)");
-      f.checkType("array_remove(cast(null as integer array), 1)", "INTEGER NOT NULL ARRAY");
+      f.checkType("array_remove(cast(null as integer array), 1)", "INTEGER ARRAY");
 
       // Flink and Spark differ on the following. The expression
       //   array_remove(array[1, null], cast(null as integer))
@@ -8823,10 +8823,10 @@ public class SqlOperatorTest {
 
     f.checkNull("arrays_zip(cast(null as integer array), array[1, 2])");
     f.checkType("arrays_zip(cast(null as integer array), array[1, 2])",
-        "RecordType(INTEGER NOT NULL 0, INTEGER NOT NULL 1) NOT NULL ARRAY");
+        "RecordType(INTEGER 0, INTEGER NOT NULL 1) NOT NULL ARRAY");
     f.checkNull("arrays_zip(array[1, 2], cast(null as integer array))");
     f.checkType("arrays_zip(array[1, 2], cast(null as integer array))",
-        "RecordType(INTEGER NOT NULL 0, INTEGER NOT NULL 1) NOT NULL ARRAY");
+        "RecordType(INTEGER NOT NULL 0, INTEGER 1) NOT NULL ARRAY");
     f.checkFails("^arrays_zip(array[1, 2], true)^",
         "Parameters must be of the same type", false);
   }
@@ -9012,10 +9012,10 @@ public class SqlOperatorTest {
     // test operand is null map
     f1.checkNull("map_concat(map('foo', 1), cast(null as map<varchar, int>))");
     f1.checkType("map_concat(map('foo', 1), cast(null as map<varchar, int>))",
-        "(VARCHAR NOT NULL, INTEGER NOT NULL) MAP");
+        "(VARCHAR NOT NULL, INTEGER) MAP");
     f1.checkNull("map_concat(cast(null as map<varchar, int>), map['foo', 1])");
     f1.checkType("map_concat(cast(null as map<varchar, int>), map['foo', 1])",
-        "(VARCHAR NOT NULL, INTEGER NOT NULL) MAP");
+        "(VARCHAR NOT NULL, INTEGER) MAP");
 
     f1.checkFails("^map_concat(map('foo', 1), null)^",
         "Function 'MAP_CONCAT' should all be of type map, "
@@ -9214,7 +9214,7 @@ public class SqlOperatorTest {
     f.checkScalar("map_from_arrays(array(), array())",
         "{}", "(UNKNOWN NOT NULL, UNKNOWN NOT NULL) MAP NOT NULL");
     f.checkType("map_from_arrays(cast(null as integer array), array['foo', 'bar'])",
-        "(INTEGER NOT NULL, CHAR(3) NOT NULL) MAP");
+        "(INTEGER, CHAR(3) NOT NULL) MAP");
     f.checkNull("map_from_arrays(cast(null as integer array), array['foo', 'bar'])");
 
     f.checkFails("^map_from_arrays(array[1, 2], 2)^",
