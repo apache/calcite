@@ -22,7 +22,10 @@ import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.logical.LogicalIntersect;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -31,6 +34,8 @@ import org.apache.calcite.util.Util;
 import org.immutables.value.Value;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Planner rule that translates a distinct
@@ -97,9 +102,27 @@ public class IntersectToDistinctRule
     final RexBuilder rexBuilder = cluster.getRexBuilder();
     final RelBuilder relBuilder = call.builder();
 
+    List<RelDataTypeField> outputFields = intersect.getRowType().getFieldList();
+
     // 1st level GB: create a GB (col0, col1, count() as c) for each branch
     for (RelNode input : intersect.getInputs()) {
       relBuilder.push(input);
+
+      // if any of the input fields is non-nullable, the corresponding output field is non-nullable
+      // this is captured in the type derivation in intersect.getRowType()
+      // if we know that nulls cannot be present in the output, then we can filter them from the inputs before aggregating
+      ArrayList<RexNode> nullFilters = new ArrayList<>();
+      List<RelDataTypeField> inputFields = input.getRowType().getFieldList();
+      for (int fieldIndex = 0; fieldIndex < outputFields.size(); fieldIndex++) {
+        RelDataTypeField inputField = inputFields.get(fieldIndex);
+        if (!outputFields.get(fieldIndex).getType().isNullable() && inputField.getType().isNullable()) {
+          nullFilters.add(rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, rexBuilder.makeInputRef(input, fieldIndex)));
+        }
+      }
+
+      if (!nullFilters.isEmpty()) {
+        relBuilder.filter(nullFilters);
+      }
       relBuilder.aggregate(relBuilder.groupKey(relBuilder.fields()),
           relBuilder.countStar(null));
     }
@@ -125,6 +148,9 @@ public class IntersectToDistinctRule
 
     // Project all but the last field
     relBuilder.project(Util.skipLast(relBuilder.fields()));
+
+    // ensure the nullabilities of columns in the new relation match those of the input relation
+    relBuilder.convert(intersect.getRowType(), false);
 
     // the schema for intersect distinct is like this
     // R3 on all attributes + count(c) as cnt

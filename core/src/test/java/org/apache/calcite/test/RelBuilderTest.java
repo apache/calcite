@@ -127,6 +127,7 @@ import java.util.stream.Collectors;
 import static org.apache.calcite.test.Matchers.hasExpandedTree;
 import static org.apache.calcite.test.Matchers.hasFieldNames;
 import static org.apache.calcite.test.Matchers.hasHints;
+import static org.apache.calcite.test.Matchers.hasRelDataType;
 import static org.apache.calcite.test.Matchers.hasTree;
 
 import static org.hamcrest.CoreMatchers.allOf;
@@ -2339,6 +2340,69 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  void testUnionTypeDerivation(boolean all) {
+    final RelBuilder builder = RelBuilder.create(config().build());
+
+    RelDataType input1RowType =
+        new RelDataTypeFactory.Builder(builder.getTypeFactory())
+            .add("a", SqlTypeName.BIGINT)
+            .nullable(false)
+            .add("b", SqlTypeName.BIGINT)
+            .nullable(false)
+            .add("c", SqlTypeName.BIGINT)
+            .nullable(true)
+            .add("d", SqlTypeName.BIGINT)
+            .nullable(true)
+            .build();
+
+    RelDataType input2RowType =
+        new RelDataTypeFactory.Builder(builder.getTypeFactory())
+            .add("a", SqlTypeName.BIGINT)
+            .nullable(false)
+            .add("b", SqlTypeName.BIGINT)
+            .nullable(false)
+            .add("c", SqlTypeName.BIGINT)
+            .nullable(false)
+            .add("d", SqlTypeName.BIGINT)
+            .nullable(false)
+            .build();
+
+    RelDataType input3RowType =
+        new RelDataTypeFactory.Builder(builder.getTypeFactory())
+            .add("a", SqlTypeName.BIGINT)
+            .nullable(false)
+            .add("b", SqlTypeName.BIGINT)
+            .nullable(true)
+            .add("c", SqlTypeName.BIGINT)
+            .nullable(false)
+            .add("d", SqlTypeName.BIGINT)
+            .nullable(true)
+            .build();
+
+    RelNode root =
+        builder
+            .values(input1RowType)
+            .values(input2RowType)
+            .values(input3RowType)
+            .union(all, 3)
+            .build();
+
+    RelDataType expectedRowType =
+        new RelDataTypeFactory.Builder(builder.getTypeFactory())
+            .add("a", SqlTypeName.BIGINT)
+            .nullable(false)
+            .add("b", SqlTypeName.BIGINT)
+            .nullable(true)
+            .add("c", SqlTypeName.BIGINT)
+            .nullable(true)
+            .add("d", SqlTypeName.BIGINT)
+            .nullable(true)
+            .build();
+    assertThat(root.getRowType(), hasRelDataType(expectedRowType));
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1522">[CALCITE-1522]
    * Fix error message for SetOp with incompatible args</a>. */
@@ -2543,6 +2607,69 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  void testIntersectTypeDerivation(boolean all) {
+    final RelBuilder builder = RelBuilder.create(config().build());
+
+    RelDataType input1RowType =
+        new RelDataTypeFactory.Builder(builder.getTypeFactory())
+            .add("a", SqlTypeName.BIGINT)
+            .nullable(false)
+            .add("b", SqlTypeName.BIGINT)
+            .nullable(false)
+            .add("c", SqlTypeName.BIGINT)
+            .nullable(true)
+            .add("d", SqlTypeName.BIGINT)
+            .nullable(true)
+            .build();
+
+    RelDataType input2RowType =
+        new RelDataTypeFactory.Builder(builder.getTypeFactory())
+            .add("a", SqlTypeName.BIGINT)
+            .nullable(true)
+            .add("b", SqlTypeName.BIGINT)
+            .nullable(true)
+            .add("c", SqlTypeName.BIGINT)
+            .nullable(true)
+            .add("d", SqlTypeName.BIGINT)
+            .nullable(true)
+            .build();
+
+    RelDataType input3RowType =
+        new RelDataTypeFactory.Builder(builder.getTypeFactory())
+            .add("a", SqlTypeName.BIGINT)
+            .nullable(false)
+            .add("b", SqlTypeName.BIGINT)
+            .nullable(true)
+            .add("c", SqlTypeName.BIGINT)
+            .nullable(false)
+            .add("d", SqlTypeName.BIGINT)
+            .nullable(true)
+            .build();
+
+    RelNode root =
+        builder
+            .values(input1RowType)
+            .values(input2RowType)
+            .values(input3RowType)
+            .intersect(all, 3)
+            .build();
+
+    RelDataType expectedRowType =
+        new RelDataTypeFactory.Builder(builder.getTypeFactory())
+            .add("a", SqlTypeName.BIGINT)
+            .nullable(false)
+            .add("b", SqlTypeName.BIGINT)
+            .nullable(false)
+            .add("c", SqlTypeName.BIGINT)
+            .nullable(false)
+            .add("d", SqlTypeName.BIGINT)
+            .nullable(true)
+            .build();
+    assertThat(root.getRowType(), hasRelDataType(expectedRowType));
+  }
+
   @Test void testExcept() {
     // Equivalent SQL:
     //   SELECT empno FROM emp
@@ -2568,6 +2695,55 @@ public class RelBuilderTest {
         + "    LogicalFilter(condition=[=($7, 20)])\n"
         + "      LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root, hasTree(expected));
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  void testExceptTypeDerivation(boolean all) {
+    final RelBuilder builder = RelBuilder.create(config().build());
+
+    RelDataType primaryRowType =
+        new RelDataTypeFactory.Builder(builder.getTypeFactory())
+            .add("a", SqlTypeName.BIGINT)
+            .nullable(false)
+            .add("b", SqlTypeName.BIGINT)
+            .nullable(false)
+            .add("c", SqlTypeName.BIGINT)
+            .nullable(true)
+            .add("d", SqlTypeName.BIGINT)
+            .nullable(true)
+            .build();
+
+    RelDataType secondaryRowType =
+        new RelDataTypeFactory.Builder(builder.getTypeFactory())
+            .add("a", SqlTypeName.BIGINT)
+            .nullable(false)
+            .add("b", SqlTypeName.BIGINT)
+            .nullable(true)
+            .add("c", SqlTypeName.BIGINT)
+            .nullable(false)
+            .add("d", SqlTypeName.BIGINT)
+            .nullable(true)
+            .build();
+
+    RelNode root =
+        builder.values(primaryRowType)
+            .values(secondaryRowType)
+            .minus(all)
+            .build();
+
+    RelDataType expectedRowType =
+        new RelDataTypeFactory.Builder(builder.getTypeFactory())
+            .add("a", SqlTypeName.BIGINT)
+            .nullable(false)
+            .add("b", SqlTypeName.BIGINT)
+            .nullable(false)
+            .add("c", SqlTypeName.BIGINT)
+            .nullable(true)
+            .add("d", SqlTypeName.BIGINT)
+            .nullable(true)
+            .build();
+    assertThat(root.getRowType(), hasRelDataType(expectedRowType));
   }
 
   /** Tests building a simple join. Also checks {@link RelBuilder#size()}
