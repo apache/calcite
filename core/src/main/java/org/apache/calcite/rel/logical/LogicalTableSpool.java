@@ -22,7 +22,6 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollationTraitDef;
-import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Spool;
 import org.apache.calcite.rel.core.TableSpool;
@@ -51,9 +50,7 @@ public class LogicalTableSpool extends TableSpool {
     RelMetadataQuery mq = cluster.getMetadataQuery();
     RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE)
         .replaceIfs(RelCollationTraitDef.INSTANCE,
-            () -> mq.collations(input))
-        .replaceIf(RelDistributionTraitDef.INSTANCE,
-            () -> mq.distribution(input));
+            () -> mq.collations(input));
     return new LogicalTableSpool(cluster, traitSet, input, readType, writeType, table);
   }
 
