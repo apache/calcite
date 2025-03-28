@@ -567,6 +567,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       }
     }
     for (RelSubset subset : root.set.subsets) {
+      if (subset == root) {
+        continue;
+      }
       final ImmutableList<RelTrait> difference =
           root.getTraitSet().difference(subset.getTraitSet());
       if (difference.size() == 1 && subsets.add(subset)) {
