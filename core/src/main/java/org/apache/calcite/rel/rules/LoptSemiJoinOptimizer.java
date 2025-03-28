@@ -264,7 +264,7 @@ public class LoptSemiJoinOptimizer {
 
     RelNode factRel = multiJoin.getJoinFactor(factIdx);
     RelNode dimRel = multiJoin.getJoinFactor(dimIdx);
-    final JoinInfo joinInfo = JoinInfo.of(factRel, dimRel, semiJoinCondition);
+    final JoinInfo joinInfo = JoinInfo.createWithStrictEquality(factRel, dimRel, semiJoinCondition);
     assert !joinInfo.leftKeys.isEmpty();
 
     // mutable copies
