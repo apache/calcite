@@ -850,12 +850,13 @@ public class RelToSqlConverter extends SqlImplementor
     if (nestedCall instanceof SqlBasicCall) {
       SqlBasicCall basicCall = (SqlBasicCall) nestedCall;
       SqlNode operand = basicCall.getOperandList().get(0);
-      if (operand instanceof SqlBasicCall) {
+      if (operand instanceof SqlBasicCall
+          && ((SqlBasicCall) operand).getOperator() == SqlStdOperatorTable.LOWER) {
         operand = ((SqlBasicCall) operand).getOperandList().get(0);
       }
-      nestedCallString = operand.toString().replaceAll("'", "").toLowerCase();
+      nestedCallString = requireNonNull(((SqlLiteral) operand).toValue()).toLowerCase();
     } else {
-      nestedCallString = nestedCall.toString().replaceAll("'", "").toLowerCase();
+      nestedCallString = requireNonNull(((SqlLiteral) nestedCall).toValue()).toLowerCase();
     }
     for (String aggName : aggNames) {
       if (aggName.replaceAll("'", "").toLowerCase().startsWith(nestedCallString)) {
