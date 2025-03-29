@@ -324,6 +324,12 @@ public class CoreRules {
       FILTER_EXPAND_IS_NOT_DISTINCT_FROM =
       FilterRemoveIsNotDistinctFromRule.Config.DEFAULT.toRule();
 
+  /** Rule that replaces {@code IS NOT DISTINCT FROM}
+   * in a {@link Join} condition with logically equivalent operations. */
+  public static final JoinConditionExpandIsNotDistinctFromRule
+      JOIN_CONDITION_EXPAND_IS_NOT_DISTINCT_FROM =
+      JoinConditionExpandIsNotDistinctFromRule.Config.DEFAULT.toRule();
+
   /** Rule that pushes a {@link Filter} past a {@link SetOp}. */
   public static final FilterSetOpTransposeRule FILTER_SET_OP_TRANSPOSE =
       FilterSetOpTransposeRule.Config.DEFAULT.toRule();
