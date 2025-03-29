@@ -1391,9 +1391,13 @@ class RelToSqlConverterTest {
         + "from \"product\" ";
     final String expectedRedshift = "SELECT CAST(\"product_id\" AS DECIMAL(38, 2))\n"
         + "FROM \"foodmart\".\"product\"";
+    final String expectedClickHouse = "SELECT CAST(`product_id` AS DECIMAL(60, 2))\n"
+        + "FROM `foodmart`.`product`";
     sql(query)
         .withRedshift()
-        .ok(expectedRedshift);
+        .ok(expectedRedshift)
+        .withClickHouse()
+        .ok(expectedClickHouse);
   }
 
   /**
@@ -5780,6 +5784,16 @@ class RelToSqlConverterTest {
         .ok(expected);
   }
 
+  /** Test for <a href="https://issues.apache.org/jira/browse/CALCITE-6909">[CALCITE-6909]
+   *  ClickHouse dialect should limit the Precision and Scale of the Decimal type
+   *  to be within 76</a>. */
+  @Test void testClickHouseDecimalPrecision() {
+    final String sql = "SELECT CAST(1.23 AS DECIMAL(76, 20))";
+    final String expected = "SELECT 1.23000000000000000000";
+    sql(sql).withClickHouseModifiedDecimalTypeSystem()
+        .ok(expected);
+  }
+
   /** Test for <a href="https://issues.apache.org/jira/browse/CALCITE-5651">[CALCITE-5651]
    * Inferred scale for decimal should not exceed maximum allowed scale</a>. */
   @Test void testNumericScale() {
@@ -9688,6 +9702,40 @@ class RelToSqlConverterTest {
                     }
                   }));
       return dialect(postgresqlSqlDialect);
+    }
+
+    Sql withClickHouseModifiedDecimalTypeSystem() {
+      final ClickHouseSqlDialect clickHouseSqlDialect =
+          new ClickHouseSqlDialect(ClickHouseSqlDialect.DEFAULT_CONTEXT
+              .withDataTypeSystem(
+                  new RelDataTypeSystemImpl() {
+                    @Override public int getMaxNumericScale() {
+                      return getMaxScale(SqlTypeName.DECIMAL);
+                    }
+
+                    @Override public int getMaxScale(SqlTypeName typeName) {
+                      switch (typeName) {
+                      case DECIMAL:
+                        return 76;
+                      default:
+                        return super.getMaxScale(typeName);
+                      }
+                    }
+
+                    @Override public int getMaxNumericPrecision() {
+                      return getMaxPrecision(SqlTypeName.DECIMAL);
+                    }
+
+                    @Override public int getMaxPrecision(SqlTypeName typeName) {
+                      switch (typeName) {
+                      case DECIMAL:
+                        return 76;
+                      default:
+                        return super.getMaxPrecision(typeName);
+                      }
+                    }
+                  }));
+      return dialect(clickHouseSqlDialect);
     }
 
     Sql withOracleModifiedTypeSystem() {
