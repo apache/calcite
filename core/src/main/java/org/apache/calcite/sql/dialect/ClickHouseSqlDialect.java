@@ -103,8 +103,8 @@ public class ClickHouseSqlDialect extends SqlDialect {
       case BIGINT:
         return createSqlDataTypeSpecByName("Int64", typeName, type.isNullable());
       case REAL:
-        return createSqlDataTypeSpecByName("Float32", typeName, type.isNullable());
       case FLOAT:
+        return createSqlDataTypeSpecByName("Float32", typeName, type.isNullable());
       case DOUBLE:
         return createSqlDataTypeSpecByName("Float64", typeName, type.isNullable());
       case DATE:
