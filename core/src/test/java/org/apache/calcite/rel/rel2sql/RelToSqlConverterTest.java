@@ -9298,6 +9298,21 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6926">[CALCITE-6926]
+   * ClickHouse float should not transform to Double type</a>. */
+  @Test void testClickHouseFloatingPointTypesCast() {
+    String query = "SELECT CAST(\"department_id\" AS float), "
+        + "CAST(\"department_id\" AS double), "
+        + "CAST(\"department_id\" AS real) FROM \"employee\"";
+    String clickHouseExpected = "SELECT CAST(`department_id` AS `Float32`), "
+        + "CAST(`department_id` AS `Float64`), "
+        + "CAST(`department_id` AS `Float32`)\nFROM `foodmart`.`employee`";
+
+    sql(query)
+        .withClickHouse().ok(clickHouseExpected);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6804">[CALCITE-6804]
    * Ensures that alias for the left side of anti join is being propagated.</a>. */
   @Test void testAntiJoinWithComplexInput() {
