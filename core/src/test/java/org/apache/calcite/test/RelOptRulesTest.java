@@ -8793,6 +8793,17 @@ class RelOptRulesTest extends RelOptTestBase {
     relFn(relFn).withRule(CoreRules.FILTER_EXPAND_IS_NOT_DISTINCT_FROM).check();
   }
 
+  @Test void testJoinConditinExpandIsNotDistinctFromRule() {
+    final String sql = ""
+        + "select t1.ENAME from empnullables as t1\n"
+        + "join\n"
+        + "empnullables as t2\n"
+        + "on t1.ENAME is not distinct from t2.ENAME";
+    sql(sql)
+        .withRule(CoreRules.JOIN_CONDITION_EXPAND_IS_NOT_DISTINCT_FROM)
+        .check();
+  }
+
   /** Creates an environment for testing spatial queries. */
   private RelOptFixture spatial(String sql) {
     final HepProgram program = new HepProgramBuilder()
