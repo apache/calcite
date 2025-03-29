@@ -70,7 +70,6 @@ import org.apache.calcite.sql.dialect.MssqlSqlDialect;
 import org.apache.calcite.sql.dialect.MysqlSqlDialect;
 import org.apache.calcite.sql.dialect.OracleSqlDialect;
 import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
-import org.apache.calcite.sql.dialect.PrestoSqlDialect;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -202,6 +201,7 @@ class RelToSqlConverterTest {
         .put(DatabaseProduct.POSTGRESQL.getDialect(), DatabaseProduct.POSTGRESQL)
         .put(DatabaseProduct.PRESTO.getDialect(), DatabaseProduct.PRESTO)
         .put(DatabaseProduct.STARROCKS.getDialect(), DatabaseProduct.STARROCKS)
+        .put(DatabaseProduct.TRINO.getDialect(), DatabaseProduct.TRINO)
         .build();
   }
 
@@ -400,6 +400,7 @@ class RelToSqlConverterTest {
     final String expectedClickHouse = "SELECT PI()";
     final String expectedPresto = "SELECT PI()\n"
         + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    final String expectTrino = expectedPresto;
     final String expectedOracle = "SELECT PI\n"
         + "FROM \"DUAL\"";
     sql(query)
@@ -410,6 +411,7 @@ class RelToSqlConverterTest {
         .withMysql().ok(expectedMysql)
         .withClickHouse().ok(expectedClickHouse)
         .withPresto().ok(expectedPresto)
+        .withTrino().ok(expectedPresto)
         .withOracle().ok(expectedOracle);
   }
 
@@ -426,6 +428,7 @@ class RelToSqlConverterTest {
     final String expectedClickHouse = "SELECT PI() AS `PI`";
     final String expectedPresto = "SELECT PI() AS \"PI\"\n"
         + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    final String expectedTrino = expectedPresto;
     final String expectedOracle = "SELECT PI \"PI\"\n"
         + "FROM \"DUAL\"";
     sql(query)
@@ -436,6 +439,7 @@ class RelToSqlConverterTest {
         .withMysql().ok(expectedMysql)
         .withClickHouse().ok(expectedClickHouse)
         .withPresto().ok(expectedPresto)
+        .withTrino().ok(expectedTrino)
         .withOracle().ok(expectedOracle);
   }
 
@@ -684,17 +688,20 @@ class RelToSqlConverterTest {
         + "FROM `foodmart`.`product`";
     final String expectedPresto = "SELECT COUNT(*)\n"
         + "FROM \"foodmart\".\"product\"";
+    final String expectedTrino = expectedPresto;
     final String expectedStarRocks = "SELECT COUNT(*)\n"
         + "FROM `foodmart`.`product`";
     sql(sql0)
         .ok(expected)
         .withMysql().ok(expectedMysql)
         .withPresto().ok(expectedPresto)
+        .withTrino().ok(expectedTrino)
         .withStarRocks().ok(expectedStarRocks);
     sql(sql1)
         .ok(expected)
         .withMysql().ok(expectedMysql)
         .withPresto().ok(expectedPresto)
+        .withTrino().ok(expectedTrino)
         .withStarRocks().ok(expectedStarRocks);
   }
 
@@ -762,7 +769,8 @@ class RelToSqlConverterTest {
     relFn(relFn)
         .ok(expected)
         .withMysql().ok(expectedMysql)
-        .withPresto().ok(expected);
+        .withPresto().ok(expected)
+        .withTrino().ok(expected);
   }
 
   /** Test case for
@@ -1146,6 +1154,7 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY ROLLUP(\"product_class_id\")\n"
         + "ORDER BY \"product_class_id\", 2";
+    final String expectdTrino = expectedPresto;
     final String expectedStarRocks = "SELECT `product_class_id`, COUNT(*) AS `C`\n"
         + "FROM `foodmart`.`product`\n"
         + "GROUP BY ROLLUP(`product_class_id`)\n"
@@ -1154,6 +1163,7 @@ class RelToSqlConverterTest {
         .ok(expected)
         .withMysql().ok(expectedMysql)
         .withPresto().ok(expectedPresto)
+        .withTrino().ok(expectdTrino)
         .withStarRocks().ok(expectedStarRocks);
   }
 
@@ -1172,6 +1182,7 @@ class RelToSqlConverterTest {
     final String expectedPresto = "SELECT \"product_class_id\", COUNT(*) AS \"C\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY ROLLUP(\"product_class_id\")";
+    final String expectedTrino = expectedPresto;
     final String expectedStarRocks = "SELECT `product_class_id`, COUNT(*) AS `C`\n"
         + "FROM `foodmart`.`product`\n"
         + "GROUP BY ROLLUP(`product_class_id`)";
@@ -1179,6 +1190,7 @@ class RelToSqlConverterTest {
         .ok(expected)
         .withMysql().ok(expectedMysql)
         .withPresto().ok(expectedPresto)
+        .withTrino().ok(expectedTrino)
         .withStarRocks().ok(expectedStarRocks);
   }
 
@@ -1233,6 +1245,10 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY ROLLUP(\"product_class_id\")\n"
         + "LIMIT 5";
+    final String expectedTrino = "SELECT \"product_class_id\", COUNT(*) AS \"C\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY ROLLUP(\"product_class_id\")\n"
+        + "FETCH NEXT 5 ROWS ONLY";
     final String expectedStarRocks = "SELECT `product_class_id`, COUNT(*) AS `C`\n"
         + "FROM `foodmart`.`product`\n"
         + "GROUP BY ROLLUP(`product_class_id`)\n"
@@ -1241,6 +1257,7 @@ class RelToSqlConverterTest {
         .ok(expected)
         .withMysql().ok(expectedMysql)
         .withPresto().ok(expectedPresto)
+        .withTrino().ok(expectedTrino)
         .withStarRocks().ok(expectedStarRocks);
   }
 
@@ -2381,12 +2398,15 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY \"product_id\"\n"
         + "ORDER BY 2";
+    final String trinoExpected = prestoExpected;
     sql(query)
         .ok(ordinalExpected)
         .dialect(nonOrdinalDialect())
         .ok(nonOrdinalExpected)
-        .dialect(PrestoSqlDialect.DEFAULT)
-        .ok(prestoExpected);
+        .withPresto()
+        .ok(prestoExpected)
+        .withTrino()
+        .ok(trinoExpected);
   }
 
   /**
@@ -2919,6 +2939,7 @@ class RelToSqlConverterTest {
     final String expectedPresto = "SELECT *\n"
         + "FROM \"foodmart\".\"employee\"\n"
         + "WHERE (\"hire_date\" - INTERVAL '19800' SECOND) > CAST(\"hire_date\" AS TIMESTAMP)";
+    final String expectedTrino = expectedPresto;
     final String expectedStarRocks = "SELECT *\n"
         + "FROM `foodmart`.`employee`\n"
         + "WHERE (`hire_date` - INTERVAL '19800' SECOND) > CAST(`hire_date` AS DATETIME)";
@@ -2928,6 +2949,7 @@ class RelToSqlConverterTest {
     sql(query)
         .withSpark().ok(expectedSpark)
         .withPresto().ok(expectedPresto)
+        .withTrino().ok(expectedTrino)
         .withStarRocks().ok(expectedStarRocks)
         .withHive().ok(expectedHive);
   }
@@ -3047,10 +3069,21 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "LIMIT 100\n"
         + "OFFSET 10";
+    final String expectedPresto = "SELECT \"product_id\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "OFFSET 10\n"
+        + "LIMIT 100";
+    final String expectedTrino = "SELECT \"product_id\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "OFFSET 10 ROWS\n"
+        + "FETCH NEXT 100 ROWS ONLY";
+
     sql(query).withHive().ok(expected)
         .withVertica().ok(expectedVertica)
         .withStarRocks().ok(expectedStarRocks)
-        .withSnowflake().ok(expectedSnowflake);
+        .withSnowflake().ok(expectedSnowflake)
+        .withPresto().ok(expectedPresto)
+        .withTrino().ok(expectedTrino);
   }
 
   @Test void testPositionFunctionForHive() {
@@ -3953,6 +3986,10 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "OFFSET 10\n"
         + "LIMIT 100";
+    final String expectedTrino = "SELECT \"product_id\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "OFFSET 10 ROWS\n"
+        + "FETCH NEXT 100 ROWS ONLY";
     final String expectedStarRocks = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
         + "LIMIT 100\n"
@@ -3961,6 +3998,7 @@ class RelToSqlConverterTest {
         .ok(expected)
         .withClickHouse().ok(expectedClickHouse)
         .withPresto().ok(expectedPresto)
+        .withTrino().ok(expectedTrino)
         .withStarRocks().ok(expectedStarRocks);
   }
 
@@ -5196,6 +5234,7 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"employee\"";
     String expectedPresto = "SELECT DATE_TRUNC('MINUTE', \"hire_date\")\n"
         + "FROM \"foodmart\".\"employee\"";
+    String expectedTrino = expectedPresto;
     String expectedFirebolt = expectedPostgresql;
     String expectedStarRocks = "SELECT DATE_TRUNC('MINUTE', `hire_date`)\n"
         + "FROM `foodmart`.`employee`";
@@ -5206,6 +5245,7 @@ class RelToSqlConverterTest {
         .withOracle().ok(expectedOracle)
         .withPostgresql().ok(expectedPostgresql)
         .withPresto().ok(expectedPresto)
+        .withTrino().ok(expectedTrino)
         .withStarRocks().ok(expectedStarRocks);
   }
 
@@ -5228,6 +5268,10 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"employee\"\n"
         + "OFFSET 1\n"
         + "LIMIT 1";
+    final String expectedTrino = "SELECT *\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "OFFSET 1 ROWS\n"
+        + "FETCH NEXT 1 ROWS ONLY";
     final String expectedStarRocks = "SELECT *\n"
         + "FROM `foodmart`.`employee`\n"
         + "LIMIT 1\n"
@@ -5236,6 +5280,7 @@ class RelToSqlConverterTest {
         .withMssql().ok(expectedMssql)
         .withSybase().ok(expectedSybase)
         .withPresto().ok(expectedPresto)
+        .withTrino().ok(expectedTrino)
         .withStarRocks().ok(expectedStarRocks);
   }
 
@@ -5497,6 +5542,8 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"";
     final String expectedPresto = "SELECT SUBSTR(\"brand_name\", 2)\n"
         + "FROM \"foodmart\".\"product\"";
+    final String expectedTrino = "SELECT SUBSTRING(\"brand_name\", 2)\n"
+        + "FROM \"foodmart\".\"product\"";
     final String expectedSnowflake = expectedPostgresql;
     final String expectedRedshift = expectedPostgresql;
     final String expectedFirebolt = expectedPresto;
@@ -5515,6 +5562,7 @@ class RelToSqlConverterTest {
         .withOracle().ok(expectedOracle)
         .withPostgresql().ok(expectedPostgresql)
         .withPresto().ok(expectedPresto)
+        .withTrino().ok(expectedTrino)
         .withRedshift().ok(expectedRedshift)
         .withSnowflake().ok(expectedSnowflake)
         .withStarRocks().ok(expectedStarRocks);
@@ -5532,6 +5580,8 @@ class RelToSqlConverterTest {
     final String expectedPostgresql = "SELECT SUBSTRING(\"brand_name\", 2, 3)\n"
         + "FROM \"foodmart\".\"product\"";
     final String expectedPresto = "SELECT SUBSTR(\"brand_name\", 2, 3)\n"
+        + "FROM \"foodmart\".\"product\"";
+    final String expectedTrino = "SELECT SUBSTRING(\"brand_name\", 2, 3)\n"
         + "FROM \"foodmart\".\"product\"";
     final String expectedSnowflake = expectedPostgresql;
     final String expectedRedshift = expectedPostgresql;
@@ -5551,6 +5601,7 @@ class RelToSqlConverterTest {
         .withOracle().ok(expectedOracle)
         .withPostgresql().ok(expectedPostgresql)
         .withPresto().ok(expectedPresto)
+        .withTrino().ok(expectedTrino)
         .withRedshift().ok(expectedRedshift)
         .withSnowflake().ok(expectedSnowflake)
         .withStarRocks().ok(expectedStarRocks);
@@ -7616,7 +7667,9 @@ class RelToSqlConverterTest {
         + "from \"product\"";
     final String expected = "SELECT LENGTH(\"brand_name\")\n"
         + "FROM \"foodmart\".\"product\"";
-    sql(query).withPresto().ok(expected);
+    sql(query)
+        .withPresto().ok(expected)
+        .withTrino().ok(expected);
   }
 
   /** Test case for
@@ -7686,6 +7739,7 @@ class RelToSqlConverterTest {
     sql(query)
         .ok(expected)
         .withPresto().ok(expected)
+        .withTrino().ok(expected)
         .withSpark().ok(expectedSpark);
   }
 
@@ -7705,6 +7759,7 @@ class RelToSqlConverterTest {
     sql(query)
         .ok(expected)
         .withPresto().ok(expected)
+        .withTrino().ok(expected)
         .withSpark().ok(expectedSpark)
         .withStarRocks().ok(expectedStarRocks);
   }
@@ -8119,9 +8174,11 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"employee\"\n"
         + "WHERE 10 = CAST('10' AS INTEGER) AND \"birth_date\" = CAST('1914-02-02' AS DATE) OR "
         + "\"hire_date\" = CAST('1996-01-01 ' || '00:00:00' AS TIMESTAMP)";
+    final String expectedTrino  = expectedPresto;
     sql(query)
         .ok(expected)
-        .withPresto().ok(expectedPresto);
+        .withPresto().ok(expectedPresto)
+        .withTrino().ok(expectedTrino);
   }
 
   @Test void testDialectQuoteStringLiteral() {
@@ -8163,6 +8220,7 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"";
     final String expectedPrestoSql = "SELECT APPROX_DISTINCT(\"product_id\")\n"
         + "FROM \"foodmart\".\"product\"";
+    final String expectedTrino = expectedPrestoSql;
     final String expectedStarRocksSql = expectedApprox;
     final String expectedMssql = "SELECT APPROX_COUNT_DISTINCT([product_id])\n"
         + "FROM [foodmart].[product]";
@@ -8177,6 +8235,7 @@ class RelToSqlConverterTest {
         .withOracle().ok(expectedApproxQuota)
         .withSnowflake().ok(expectedApproxQuota)
         .withPresto().ok(expectedPrestoSql)
+        .withTrino().ok(expectedTrino)
         .withStarRocks().ok(expectedStarRocksSql)
         .withMssql().ok(expectedMssql)
         .withPhoenix().ok(expectedPhoenix)
@@ -8861,6 +8920,7 @@ class RelToSqlConverterTest {
         + "ORDER BY `brand_name` NULLS LAST";
     sql(query)
         .withPresto().ok(expected)
+        .withTrino().ok(expected)
         .withSpark().ok(sparkExpected);
   }
 
@@ -8874,6 +8934,7 @@ class RelToSqlConverterTest {
         + "ORDER BY `brand_name` NULLS LAST";
     sql(query)
         .withPresto().ok(expected)
+        .withTrino().ok(expected)
         .withSpark().ok(sparkExpected);
   }
 
@@ -8887,6 +8948,7 @@ class RelToSqlConverterTest {
         + "ORDER BY `brand_name` NULLS LAST";
     sql(query)
         .withPresto().ok(expected)
+        .withTrino().ok(expected)
         .withSpark().ok(sparkExpected);
   }
 
@@ -8922,6 +8984,7 @@ class RelToSqlConverterTest {
         + "ORDER BY `brand_name`";
     sql(query)
         .withPresto().ok(expected)
+        .withTrino().ok(expected)
         .withSpark().ok(sparkExpected);
   }
 
@@ -8935,6 +8998,7 @@ class RelToSqlConverterTest {
         + "ORDER BY `brand_name` DESC NULLS FIRST";
     sql(query)
         .withPresto().ok(expected)
+        .withTrino().ok(expected)
         .withSpark().ok(sparkExpected);
   }
 
@@ -8948,6 +9012,7 @@ class RelToSqlConverterTest {
         + "ORDER BY `brand_name` DESC";
     sql(query)
         .withPresto().ok(expected)
+        .withTrino().ok(expected)
         .withSpark().ok(sparkExpected);
   }
 
@@ -8961,6 +9026,7 @@ class RelToSqlConverterTest {
         + "ORDER BY `brand_name` DESC NULLS FIRST";
     sql(query)
         .withPresto().ok(expected)
+        .withTrino().ok(expected)
         .withSpark().ok(sparkExpected);
   }
 
@@ -8971,12 +9037,14 @@ class RelToSqlConverterTest {
     final String query = "SELECT MAP['k1', 'v1', 'k2', 'v2']";
     final String expectedPresto = "SELECT MAP (ARRAY['k1', 'k2'], ARRAY['v1', 'v2'])\n"
         + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    final String expectedTrino = expectedPresto;
     final String expectedStarRocks = "SELECT MAP { 'k1' : 'v1', 'k2' : 'v2' }";
     final String expectedSpark = "SELECT MAP ('k1', 'v1', 'k2', 'v2')\n"
         + "FROM (VALUES (0)) `t` (`ZERO`)";
     final String expectedHive = "SELECT MAP ('k1', 'v1', 'k2', 'v2')";
     sql(query)
         .withPresto().ok(expectedPresto)
+        .withTrino().ok(expectedTrino)
         .withStarRocks().ok(expectedStarRocks)
         .withSpark().ok(expectedSpark)
         .withHive().ok(expectedHive);
@@ -8986,10 +9054,12 @@ class RelToSqlConverterTest {
     final String query = "SELECT MAP[ARRAY['k1', 'k2'], ARRAY['v1', 'v2']]";
     final String expectedPresto = "SELECT MAP (ARRAY['k1', 'k2'], ARRAY['v1', 'v2'])\n"
         + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    final String expectedTrino = expectedPresto;
     final String expectedSpark = "SELECT MAP (ARRAY ('k1', 'k2'), ARRAY ('v1', 'v2'))\n"
         + "FROM (VALUES (0)) `t` (`ZERO`)";
     sql(query)
         .withPresto().ok(expectedPresto)
+        .withTrino().ok(expectedTrino)
         .withSpark().ok(expectedSpark);
   }
 
@@ -9297,7 +9367,9 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\" ";
     String expected = "SELECT CAST(CAST(\"employee_id\" AS VARCHAR) AS VARBINARY)"
         + "\nFROM \"foodmart\".\"reserve_employee\"";
-    sql(query).withPresto().ok(expected);
+    sql(query)
+        .withPresto().ok(expected)
+        .withTrino().ok(expected);
   }
 
   /** Test case for
@@ -9311,7 +9383,8 @@ class RelToSqlConverterTest {
         + "CAST(\"department_id\" AS DOUBLE), "
         + "CAST(\"department_id\" AS REAL)\nFROM \"foodmart\".\"employee\"";
     sql(query)
-        .withPresto().ok(expected);
+        .withPresto().ok(expected)
+        .withTrino().ok(expected);
   }
 
   /** Test case for
@@ -9605,6 +9678,10 @@ class RelToSqlConverterTest {
 
     Sql withPresto() {
       return dialect(DatabaseProduct.PRESTO.getDialect());
+    }
+
+    Sql withTrino() {
+      return dialect(DatabaseProduct.TRINO.getDialect());
     }
 
     Sql withRedshift() {
