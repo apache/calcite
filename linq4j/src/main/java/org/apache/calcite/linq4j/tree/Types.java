@@ -199,13 +199,13 @@ public abstract class Types {
     if (clazz.isArray()) {
       return className(clazz.getComponentType()) + "[]";
     }
-    String className = clazz.getName();
+    String className = requireNonNull(clazz.getCanonicalName());
     if (!clazz.isPrimitive()
         && clazz.getPackage() != null
         && clazz.getPackage().getName().equals("java.lang")) {
       return className.substring("java.lang.".length());
     }
-    return className.replace('$', '.');
+    return className;
   }
 
   public static boolean isAssignableFrom(Type type0, Type type) {
