@@ -18,6 +18,7 @@ package org.apache.calcite.sql.type;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlBasicTypeNameSpec;
 import org.apache.calcite.sql.SqlCollectionTypeNameSpec;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -171,9 +172,13 @@ class SqlTypeUtilTest {
         (SqlBasicTypeNameSpec) convertTypeToSpec(f.sqlUnknown).getTypeNameSpec();
     assertThat(unknownSpec.getTypeName().getSimple(), is("UNKNOWN"));
 
-    SqlBasicTypeNameSpec basicSpec =
-        (SqlBasicTypeNameSpec) convertTypeToSpec(f.sqlBigInt).getTypeNameSpec();
+    SqlDataTypeSpec basicTypeSpec = convertTypeToSpec(f.sqlBigInt);
+    assertThat(basicTypeSpec.getNullable(), is(false));
+    SqlBasicTypeNameSpec basicSpec = (SqlBasicTypeNameSpec) basicTypeSpec.getTypeNameSpec();
     assertThat(basicSpec.getTypeName().getSimple(), is("BIGINT"));
+
+    SqlDataTypeSpec basicNullableTypeSpec = convertTypeToSpec(f.sqlBigInt);
+    assertThat(basicNullableTypeSpec.getNullable(), is(false));
 
     SqlCollectionTypeNameSpec arraySpec =
         (SqlCollectionTypeNameSpec) convertTypeToSpec(f.arrayBigInt).getTypeNameSpec();
