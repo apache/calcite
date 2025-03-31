@@ -7659,8 +7659,10 @@ class RelToSqlConverterTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6156">[CALCITE-6156]
-   * Add ENDSWITH, STARTSWITH functions (enabled in Postgres, Snowflake libraries)</a>. */
-  @Test void testSnowflakeStartsWith() {
+   * Add ENDSWITH, STARTSWITH functions (enabled in Postgres, Snowflake libraries)</a>,
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6931">[CALCITE-6931]
+   * STARTSWITH/ENDSWITH in SPARK should not convert to STARTS_WITH/ENDS_WITH</a>. */
+  @Test void testStartsWith() {
     final String query = "select startswith(\"brand_name\", 'a')\n"
         + "from \"product\"";
     final String expectedBigQuery = "SELECT STARTS_WITH(brand_name, 'a')\n"
@@ -7669,15 +7671,20 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"";
     final String expectedSnowflake = "SELECT STARTSWITH(\"brand_name\", 'a')\n"
         + "FROM \"foodmart\".\"product\"";
+    final String expectedSpark = "SELECT STARTSWITH(`brand_name`, 'a')\n"
+        + "FROM `foodmart`.`product`";
     sql(query).withLibrary(SqlLibrary.SNOWFLAKE).withBigQuery().ok(expectedBigQuery);
     sql(query).withLibrary(SqlLibrary.SNOWFLAKE).withPostgresql().ok(expectedPostgres);
     sql(query).withLibrary(SqlLibrary.SNOWFLAKE).withSnowflake().ok(expectedSnowflake);
+    sql(query).withLibrary(SqlLibrary.SPARK).withSpark().ok(expectedSpark);
   }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6156">[CALCITE-6156]
-   * Add ENDSWITH, STARTSWITH functions (enabled in Postgres, Snowflake libraries)</a>. */
-  @Test void testSnowflakeEndsWith() {
+   * Add ENDSWITH, STARTSWITH functions (enabled in Postgres, Snowflake libraries)</a>,
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6931">[CALCITE-6931]
+   * STARTSWITH/ENDSWITH in SPARK should not convert to STARTS_WITH/ENDS_WITH</a>. */
+  @Test void testEndsWith() {
     final String query = "select endswith(\"brand_name\", 'a')\n"
         + "from \"product\"";
     final String expectedBigQuery = "SELECT ENDS_WITH(brand_name, 'a')\n"
@@ -7686,9 +7693,12 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"";
     final String expectedSnowflake = "SELECT ENDSWITH(\"brand_name\", 'a')\n"
         + "FROM \"foodmart\".\"product\"";
+    final String expectedSpark = "SELECT ENDSWITH(`brand_name`, 'a')\n"
+        + "FROM `foodmart`.`product`";
     sql(query).withLibrary(SqlLibrary.SNOWFLAKE).withBigQuery().ok(expectedBigQuery);
     sql(query).withLibrary(SqlLibrary.SNOWFLAKE).withPostgresql().ok(expectedPostgres);
     sql(query).withLibrary(SqlLibrary.SNOWFLAKE).withSnowflake().ok(expectedSnowflake);
+    sql(query).withLibrary(SqlLibrary.SPARK).withSpark().ok(expectedSpark);
   }
 
   /** Test case for

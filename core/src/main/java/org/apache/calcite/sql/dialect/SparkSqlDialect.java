@@ -34,6 +34,7 @@ import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
@@ -125,6 +126,16 @@ public class SparkSqlDialect extends SqlDialect {
     case ARRAY_VALUE_CONSTRUCTOR:
     case MAP_VALUE_CONSTRUCTOR:
       unparseSparkArrayAndMap(writer, call, leftPrec, rightPrec);
+      break;
+    case STARTS_WITH:
+      SqlCall starsWithCall = SqlLibraryOperators.STARTSWITH
+          .createCall(SqlParserPos.ZERO, call.getOperandList());
+      super.unparseCall(writer, starsWithCall, leftPrec, rightPrec);
+      break;
+    case ENDS_WITH:
+      SqlCall endsWithCall = SqlLibraryOperators.ENDSWITH
+          .createCall(SqlParserPos.ZERO, call.getOperandList());
+      super.unparseCall(writer, endsWithCall, leftPrec, rightPrec);
       break;
     case FLOOR:
       if (call.operandCount() != 2) {
