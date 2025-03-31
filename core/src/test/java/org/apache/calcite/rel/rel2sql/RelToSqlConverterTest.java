@@ -70,6 +70,7 @@ import org.apache.calcite.sql.dialect.MssqlSqlDialect;
 import org.apache.calcite.sql.dialect.MysqlSqlDialect;
 import org.apache.calcite.sql.dialect.OracleSqlDialect;
 import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
+import org.apache.calcite.sql.dialect.StarRocksSqlDialect;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -8508,6 +8509,16 @@ class RelToSqlConverterTest {
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .ok(expected)
         .withStarRocks().ok(expectedStarRocks);
+
+    SqlDialect starRocksSqlDialect = new StarRocksSqlDialect(StarRocksSqlDialect.DEFAULT_CONTEXT) {
+      @Override public boolean supportMacroLikeUnparse() {
+        return false;
+      }
+    };
+    sql(sql)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .dialect(starRocksSqlDialect)
+        .throws_("Unsupported unparse: IS TRUE");
   }
 
   @Test void testIsNotTrue() {
@@ -8522,6 +8533,16 @@ class RelToSqlConverterTest {
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .ok(expected)
         .withStarRocks().ok(expectedStarRocks);
+
+    SqlDialect starRocksSqlDialect = new StarRocksSqlDialect(StarRocksSqlDialect.DEFAULT_CONTEXT) {
+      @Override public boolean supportMacroLikeUnparse() {
+        return false;
+      }
+    };
+    sql(sql)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .dialect(starRocksSqlDialect)
+        .throws_("Unsupported unparse: IS NOT TRUE");
   }
 
   @Test void testIsFalse() {
@@ -8536,6 +8557,16 @@ class RelToSqlConverterTest {
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .ok(expected)
         .withStarRocks().ok(expectedStarRocks);
+
+    SqlDialect starRocksSqlDialect = new StarRocksSqlDialect(StarRocksSqlDialect.DEFAULT_CONTEXT) {
+      @Override public boolean supportMacroLikeUnparse() {
+        return false;
+      }
+    };
+    sql(sql)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .dialect(starRocksSqlDialect)
+        .throws_("Unsupported unparse: IS FALSE");
   }
 
   @Test void testIsNotFalse() {
@@ -8550,6 +8581,16 @@ class RelToSqlConverterTest {
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .ok(expected)
         .withStarRocks().ok(expectedStarRocks);
+
+    SqlDialect starRocksSqlDialect = new StarRocksSqlDialect(StarRocksSqlDialect.DEFAULT_CONTEXT) {
+      @Override public boolean supportMacroLikeUnparse() {
+        return false;
+      }
+    };
+    sql(sql)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .dialect(starRocksSqlDialect)
+        .throws_("Unsupported unparse: IS NOT FALSE");
   }
 
   @Test void testMerge() {

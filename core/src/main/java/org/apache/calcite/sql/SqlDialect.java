@@ -795,6 +795,14 @@ public class SqlDialect {
     return true;
   }
 
+  /**
+   * Returns whether to enable unparse of "macro-like" calls such as IS TRUE.
+   * "A IS TRUE" can be unparse to "A IS NOT NULL AND A" When A is deterministic.
+   * Otherwise, inconsistent results may occur. */
+  public boolean supportMacroLikeUnparse() {
+    return true;
+  }
+
   /** Returns whether this dialect supports a given function or operator.
    * It only applies to built-in scalar functions and operators, since
    * user-defined functions and procedures should be read by JdbcSchema. */
