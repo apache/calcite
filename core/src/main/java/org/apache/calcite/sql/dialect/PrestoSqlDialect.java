@@ -17,6 +17,7 @@
 package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.avatica.util.Casing;
+import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -34,6 +35,7 @@ import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlArrayValueConstructor;
+import org.apache.calcite.sql.fun.SqlFloorFunction;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlMapValueConstructor;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -180,9 +182,22 @@ public class PrestoSqlDialect extends SqlDialect {
             .createCall(SqlParserPos.ZERO, call.getOperandList());
         super.unparseCall(writer, lengthCall, leftPrec, rightPrec);
         break;
+      case FLOOR:
+        if (call.operandCount() != 2) {
+          super.unparseCall(writer, call, leftPrec, rightPrec);
+          return;
+        }
+
+        final SqlLiteral timeUnitNode = call.operand(1);
+        final TimeUnitRange timeUnit = timeUnitNode.getValueAs(TimeUnitRange.class);
+
+        SqlCall call2 =
+            SqlFloorFunction.replaceTimeUnitOperand(call, timeUnit.name(),
+                timeUnitNode.getParserPosition());
+        SqlFloorFunction.unparseDatetimeFunction(writer, call2, "DATE_TRUNC", false);
+        break;
       default:
-        // Current impl is same with Postgresql.
-        PostgresqlSqlDialect.DEFAULT.unparseCall(writer, call, leftPrec, rightPrec);
+        super.unparseCall(writer, call, leftPrec, rightPrec);
       }
     }
   }
