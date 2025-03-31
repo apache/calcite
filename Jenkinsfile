@@ -44,9 +44,9 @@ node('ubuntu') {
       withEnv(["Path+JDK=$JAVA_JDK_17/bin","JAVA_HOME=$JAVA_JDK_17"]) {
         withCredentials([string(credentialsId: 'SONARCLOUD_TOKEN', variable: 'SONAR_TOKEN')]) {
           if ( env.BRANCH_NAME.startsWith("PR-") ) {
-            sh './gradlew build --no-parallel --no-daemon jacocoAggregateTestReport sonar -PenableJacoco -Porg.sonarqube.version=4.4.1.3373 -Dsonar.pullrequest.branch=${CHANGE_BRANCH} -Dsonar.pullrequest.base=${CHANGE_TARGET} -Dsonar.pullrequest.key=${CHANGE_ID} -Dsonar.token=${SONAR_TOKEN}'
+            sh './gradlew build --no-parallel --no-daemon jacocoAggregateTestReport sonar -PenableJacoco -Porg.sonarqube.version=4.4.1.3373 -Dsonar.pullrequest.branch=${CHANGE_BRANCH} -Dsonar.pullrequest.base=${CHANGE_TARGET} -Dsonar.pullrequest.key=${CHANGE_ID} -Dsonar.token=${SONAR_TOKEN} -Dsonar.organization=apache -Dsonar.projectKey=apache_calcite'
           } else {
-            sh './gradlew build --no-parallel --no-daemon jacocoAggregateTestReport sonar -PenableJacoco -Porg.sonarqube.version=4.4.1.3373 -Dsonar.branch.name=${BRANCH_NAME} -Dsonar.token=${SONAR_TOKEN}'
+            sh './gradlew build --no-parallel --no-daemon jacocoAggregateTestReport sonar -PenableJacoco -Porg.sonarqube.version=4.4.1.3373 -Dsonar.branch.name=${BRANCH_NAME} -Dsonar.token=${SONAR_TOKEN} -Dsonar.organization=apache -Dsonar.projectKey=apache_calcite'
           }
         }
       }
@@ -54,4 +54,3 @@ node('ubuntu') {
   }
   cleanWs()
 }
-
