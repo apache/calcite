@@ -1975,6 +1975,35 @@ public class JdbcTest {
             "c0=Drink; c1=Dairy; c2=USA; c3=WA; c4=Bellingham");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6930">[CALCITE-6930]
+   * Implementing JoinConditionOrExpansionRule</a>. */
+  @Test void testJoinConditionOrExpansionRule() {
+    final String sql = ""
+        + "select \"t1\".\"deptno\" from \"hr\".\"emps\" as \"t1\"\n"
+        + "join\n"
+        + "\"hr\".\"emps\" as \"t2\"\n"
+        + "on (\"t1\".\"deptno\" = \"t2\".\"deptno\") \n"
+        + "or (\"t1\".\"empid\" = \"t2\".\"empid\")";
+    CalciteAssert.hr()
+        .query(sql)
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+          planner.addRule(CoreRules.JOIN_CONDITION_OR_EXPANSION_RULE);
+          planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
+        })
+        .explainContains("HashJoin")
+        .returnsUnordered("deptno=10",
+            "deptno=10",
+            "deptno=10",
+            "deptno=10",
+            "deptno=10",
+            "deptno=10",
+            "deptno=10",
+            "deptno=10",
+            "deptno=10",
+            "deptno=20");
+  }
+
   /** Four-way join. Used to take 80 seconds. */
   @Disabled
   @Test void testJoinFiveWay() {

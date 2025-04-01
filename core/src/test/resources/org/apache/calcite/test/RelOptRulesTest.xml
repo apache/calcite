@@ -6360,6 +6360,76 @@ LogicalJoin(condition=[true], joinType=[inner])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testJoinConditionExpansionOrRule">
+    <Resource name="sql">
+      <![CDATA[select *
+from EMP as p1
+inner join EMP as p2 on p1.empno = p2.empno or p1.sal = p2.sal]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
+  LogicalJoin(condition=[OR(=($0, $9), =($5, $14))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
+  EnumerableUnion(all=[true])
+    EnumerableHashJoin(condition=[=($0, $9)], joinType=[inner])
+      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+    EnumerableHashJoin(condition=[AND(=($5, $14), <>($0, $9))], joinType=[inner])
+      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJoinConditionOrExpansionRule">
+    <Resource name="sql">
+      <![CDATA[select *
+from EMP as p1
+inner join EMP as p2 on p1.empno = p2.empno or p1.sal = p2.sal]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
+  LogicalJoin(condition=[OR(=($0, $9), =($5, $14))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
+  EnumerableUnion(all=[true])
+    EnumerableHashJoin(condition=[=($0, $9)], joinType=[inner])
+      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+    EnumerableHashJoin(condition=[AND(=($5, $14), <>($0, $9))], joinType=[inner])
+      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJoinConditionOrExpansionRuleComplexCond">
+    <Resource name="sql">
+      <![CDATA[SELECT *
+FROM EMP AS p1
+INNER JOIN EMP AS p2 ON p1.empno = p2.empno or
+CASE WHEN p1.sal = p2.sal THEN 1 ELSE 0 END = 1]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
+  LogicalJoin(condition=[OR(=($0, $9), =(CASE(=($5, $14), 1, 0), 1))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testJoinConditionPushdown1">
     <Resource name="sql">
       <![CDATA[select *

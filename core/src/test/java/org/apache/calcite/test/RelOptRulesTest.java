@@ -8893,6 +8893,27 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6930">[CALCITE-6930]
+   * Implementing JoinConditionOrExpansionRule</a>. */
+  @Test void testJoinConditionOrExpansionRule() {
+    String sql = "select *\n"
+        + "from EMP as p1\n"
+        + "inner join EMP as p2 on p1.empno = p2.empno or p1.sal = p2.sal";
+    sql(sql)
+        .withVolcanoPlanner(false, p -> {
+          p.addRule(CoreRules.FILTER_INTO_JOIN);
+          p.addRule(CoreRules.JOIN_CONDITION_OR_EXPANSION_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_PROJECT_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_UNION_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_FILTER_RULE);
+          p.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
+        })
+        .check();
+  }
+
   @Test void testExchangeRemoveConstantKeysRule() {
     final Function<RelBuilder, RelNode> relFn = b -> b
         .scan("EMP")
