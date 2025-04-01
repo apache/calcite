@@ -855,6 +855,76 @@ public abstract class SqlImplementor {
       final RexCall call = (RexCall) stripCastFromString(call1, dialect);
       SqlOperator op = call.getOperator();
       switch (op.getKind()) {
+      case IS_FALSE:
+        if (dialect.supportsUnparseOnlyDeterministic(op)) {
+          RexNode operandIsFalse = call0.operands.get(0);
+          if (RexUtil.isDeterministic(operandIsFalse)) {
+            // A IS FALSE -> A IS NOT NULL AND NOT A
+            SqlNode sqlNode = toSql(program, operandIsFalse);
+            SqlCall isNotNullFunc =
+                SqlStdOperatorTable.IS_NOT_NULL.createCall(SqlParserPos.ZERO,
+                    ImmutableList.of(sqlNode));
+            SqlCall notFunc =
+                SqlStdOperatorTable.NOT.createCall(SqlParserPos.ZERO,
+                    ImmutableList.of(sqlNode));
+            return SqlStdOperatorTable.AND.createCall(SqlParserPos.ZERO,
+                ImmutableList.of(isNotNullFunc, notFunc));
+          } else {
+            throw new UnsupportedOperationException("Unsupported unparse: " + op.getName());
+          }
+        }
+        break;
+      case IS_NOT_FALSE:
+        if (dialect.supportsUnparseOnlyDeterministic(op)) {
+          RexNode operandIsFalse = call0.operands.get(0);
+          if (RexUtil.isDeterministic(operandIsFalse)) {
+            // A IS NOT FALSE -> A IS NULL OR A
+            SqlNode sqlNode = toSql(program, operandIsFalse);
+            SqlCall isNull =
+                SqlStdOperatorTable.IS_NULL.createCall(SqlParserPos.ZERO,
+                    ImmutableList.of(sqlNode));
+            return SqlStdOperatorTable.OR.createCall(SqlParserPos.ZERO,
+                ImmutableList.of(isNull, sqlNode));
+          } else {
+            throw new UnsupportedOperationException("Unsupported unparse: " + op.getName());
+          }
+        }
+        break;
+      case IS_TRUE:
+        if (dialect.supportsUnparseOnlyDeterministic(op)) {
+          RexNode operandIsFalse = call0.operands.get(0);
+          if (RexUtil.isDeterministic(operandIsFalse)) {
+            // A IS TRUE -> A IS NOT NULL AND A
+            SqlNode sqlNode = toSql(program, operandIsFalse);
+            SqlCall isNotNullFunc =
+                SqlStdOperatorTable.IS_NOT_NULL.createCall(SqlParserPos.ZERO,
+                    ImmutableList.of(sqlNode));
+            return SqlStdOperatorTable.AND.createCall(SqlParserPos.ZERO,
+                ImmutableList.of(isNotNullFunc, sqlNode));
+          } else {
+            throw new UnsupportedOperationException("Unsupported unparse: " + op.getName());
+          }
+        }
+        break;
+      case IS_NOT_TRUE:
+        if (dialect.supportsUnparseOnlyDeterministic(op)) {
+          RexNode operandIsFalse = call0.operands.get(0);
+          if (RexUtil.isDeterministic(operandIsFalse)) {
+            // A IS NOT TRUE -> A IS NULL OR NOT A
+            SqlNode sqlNode = toSql(program, operandIsFalse);
+            SqlCall isNullFunc =
+                SqlStdOperatorTable.IS_NULL.createCall(SqlParserPos.ZERO,
+                    ImmutableList.of(sqlNode));
+            SqlCall notFunc =
+                SqlStdOperatorTable.NOT.createCall(SqlParserPos.ZERO,
+                    ImmutableList.of(sqlNode));
+            return SqlStdOperatorTable.OR.createCall(SqlParserPos.ZERO,
+                ImmutableList.of(isNullFunc, notFunc));
+          } else {
+            throw new UnsupportedOperationException("Unsupported unparse: " + op.getName());
+          }
+        }
+        break;
       case SUM0:
         op = SqlStdOperatorTable.SUM;
         break;

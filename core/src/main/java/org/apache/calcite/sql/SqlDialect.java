@@ -796,11 +796,23 @@ public class SqlDialect {
   }
 
   /**
-   * Returns whether to enable unparse of "macro-like" calls such as IS TRUE.
-   * "A IS TRUE" can be unparse to "A IS NOT NULL AND A" When A is deterministic.
-   * Otherwise, inconsistent results may occur. */
-  public boolean supportMacroLikeUnparse() {
-    return true;
+   * Returns whether this dialect supports unparse only when the function calls are deterministic.
+   *
+   * <p>"A IS TRUE" can be unparse to "A IS NOT NULL AND A" When A is deterministic.
+   * If A is not deterministic, this could lead to inconsistent results.
+   * */
+  public boolean supportsUnparseOnlyDeterministic(SqlOperator operator) {
+    switch (operator.getKind()) {
+    case IS_FALSE:
+    case IS_TRUE:
+    case IS_NOT_FALSE:
+    case IS_NOT_TRUE:
+    case NULLIF:
+    case COALESCE:
+      return false;
+    default:
+      throw new UnsupportedOperationException();
+    }
   }
 
   /** Returns whether this dialect supports a given function or operator.

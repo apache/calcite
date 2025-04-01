@@ -70,7 +70,6 @@ import org.apache.calcite.sql.dialect.MssqlSqlDialect;
 import org.apache.calcite.sql.dialect.MysqlSqlDialect;
 import org.apache.calcite.sql.dialect.OracleSqlDialect;
 import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
-import org.apache.calcite.sql.dialect.StarRocksSqlDialect;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -8504,20 +8503,17 @@ class RelToSqlConverterTest {
         + "WHERE CAST(\"COMM\" AS DECIMAL(12, 2)) > 0.00 IS TRUE";
     String expectedStarRocks = "SELECT *\n"
         + "FROM `SCOTT`.`EMP`\n"
-        + "WHERE (CAST(`COMM` AS DECIMAL(12, 2)) > 0.00 IS NOT NULL AND CAST(`COMM` AS DECIMAL(12, 2)) > 0.00)";
+        + "WHERE CAST(`COMM` AS DECIMAL(12, 2)) > 0.00 IS NOT NULL AND CAST(`COMM` AS DECIMAL(12, 2)) > 0.00";
     sql(sql)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .ok(expected)
         .withStarRocks().ok(expectedStarRocks);
 
-    SqlDialect starRocksSqlDialect = new StarRocksSqlDialect(StarRocksSqlDialect.DEFAULT_CONTEXT) {
-      @Override public boolean supportMacroLikeUnparse() {
-        return false;
-      }
-    };
-    sql(sql)
+    final String sqlNoDeterministic =
+        "SELECT * FROM \"EMP\" WHERE \"COMM\" > RAND_INTEGER(10) IS TRUE";
+    sql(sqlNoDeterministic)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
-        .dialect(starRocksSqlDialect)
+        .withStarRocks()
         .throws_("Unsupported unparse: IS TRUE");
   }
 
@@ -8528,20 +8524,17 @@ class RelToSqlConverterTest {
         + "WHERE CAST(\"COMM\" AS DECIMAL(12, 2)) > 0.00 IS NOT TRUE";
     String expectedStarRocks = "SELECT *\n"
         + "FROM `SCOTT`.`EMP`\n"
-        + "WHERE (CAST(`COMM` AS DECIMAL(12, 2)) > 0.00 IS NULL OR NOT CAST(`COMM` AS DECIMAL(12, 2)) > 0.00)";
+        + "WHERE CAST(`COMM` AS DECIMAL(12, 2)) > 0.00 IS NULL OR NOT CAST(`COMM` AS DECIMAL(12, 2)) > 0.00";
     sql(sql)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .ok(expected)
         .withStarRocks().ok(expectedStarRocks);
 
-    SqlDialect starRocksSqlDialect = new StarRocksSqlDialect(StarRocksSqlDialect.DEFAULT_CONTEXT) {
-      @Override public boolean supportMacroLikeUnparse() {
-        return false;
-      }
-    };
-    sql(sql)
+    final String sqlNoDeterministic = "SELECT * \n"
+        + "FROM \"EMP\" WHERE \"COMM\" > RAND_INTEGER(10) IS NOT TRUE";
+    sql(sqlNoDeterministic)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
-        .dialect(starRocksSqlDialect)
+        .withStarRocks()
         .throws_("Unsupported unparse: IS NOT TRUE");
   }
 
@@ -8552,20 +8545,17 @@ class RelToSqlConverterTest {
         + "WHERE CAST(\"COMM\" AS DECIMAL(12, 2)) > 0.00 IS FALSE";
     String expectedStarRocks = "SELECT *\n"
         + "FROM `SCOTT`.`EMP`\n"
-        + "WHERE (CAST(`COMM` AS DECIMAL(12, 2)) > 0.00 IS NOT NULL AND NOT CAST(`COMM` AS DECIMAL(12, 2)) > 0.00)";
+        + "WHERE CAST(`COMM` AS DECIMAL(12, 2)) > 0.00 IS NOT NULL AND NOT CAST(`COMM` AS DECIMAL(12, 2)) > 0.00";
     sql(sql)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .ok(expected)
         .withStarRocks().ok(expectedStarRocks);
 
-    SqlDialect starRocksSqlDialect = new StarRocksSqlDialect(StarRocksSqlDialect.DEFAULT_CONTEXT) {
-      @Override public boolean supportMacroLikeUnparse() {
-        return false;
-      }
-    };
-    sql(sql)
+    final String sqlNoDeterministic = "SELECT * \n"
+        + "FROM \"EMP\" WHERE \"COMM\" > RAND_INTEGER(10) IS FALSE";
+    sql(sqlNoDeterministic)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
-        .dialect(starRocksSqlDialect)
+        .withStarRocks()
         .throws_("Unsupported unparse: IS FALSE");
   }
 
@@ -8576,20 +8566,17 @@ class RelToSqlConverterTest {
         + "WHERE CAST(\"COMM\" AS DECIMAL(12, 2)) > 0.00 IS NOT FALSE";
     String expectedStarRocks = "SELECT *\n"
         + "FROM `SCOTT`.`EMP`\n"
-        + "WHERE (CAST(`COMM` AS DECIMAL(12, 2)) > 0.00 IS NULL OR CAST(`COMM` AS DECIMAL(12, 2)) > 0.00)";
+        + "WHERE CAST(`COMM` AS DECIMAL(12, 2)) > 0.00 IS NULL OR CAST(`COMM` AS DECIMAL(12, 2)) > 0.00";
     sql(sql)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .ok(expected)
         .withStarRocks().ok(expectedStarRocks);
 
-    SqlDialect starRocksSqlDialect = new StarRocksSqlDialect(StarRocksSqlDialect.DEFAULT_CONTEXT) {
-      @Override public boolean supportMacroLikeUnparse() {
-        return false;
-      }
-    };
-    sql(sql)
+    final String sqlNoDeterministic = "SELECT * \n"
+        + "FROM \"EMP\" WHERE \"COMM\" > RAND_INTEGER(10) IS NOT FALSE";
+    sql(sqlNoDeterministic)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
-        .dialect(starRocksSqlDialect)
+        .withStarRocks()
         .throws_("Unsupported unparse: IS NOT FALSE");
   }
 
