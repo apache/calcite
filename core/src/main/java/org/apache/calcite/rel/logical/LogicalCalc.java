@@ -22,7 +22,6 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
-import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
@@ -30,7 +29,6 @@ import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.metadata.RelMdCollation;
-import org.apache.calcite.rel.metadata.RelMdDistribution;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.FilterToCalcRule;
 import org.apache.calcite.rel.rules.ProjectToCalcRule;
@@ -117,9 +115,7 @@ public final class LogicalCalc extends Calc {
     final RelTraitSet traitSet = cluster.traitSet()
         .replace(Convention.NONE)
         .replaceIfs(RelCollationTraitDef.INSTANCE,
-            () -> RelMdCollation.calc(mq, input, program))
-        .replaceIf(RelDistributionTraitDef.INSTANCE,
-            () -> RelMdDistribution.calc(mq, input, program));
+            () -> RelMdCollation.calc(mq, input, program));
     return new LogicalCalc(cluster, traitSet, ImmutableList.of(), input, program);
   }
 

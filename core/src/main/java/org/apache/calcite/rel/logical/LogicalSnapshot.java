@@ -20,13 +20,11 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollationTraitDef;
-import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Snapshot;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.metadata.RelMdCollation;
-import org.apache.calcite.rel.metadata.RelMdDistribution;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
 
@@ -94,9 +92,7 @@ public class LogicalSnapshot extends Snapshot {
     final RelTraitSet traitSet = cluster.traitSet()
         .replace(Convention.NONE)
         .replaceIfs(RelCollationTraitDef.INSTANCE,
-            () -> RelMdCollation.snapshot(mq, input))
-        .replaceIf(RelDistributionTraitDef.INSTANCE,
-            () -> RelMdDistribution.snapshot(mq, input));
+            () -> RelMdCollation.snapshot(mq, input));
     return new LogicalSnapshot(cluster, traitSet, input, period);
   }
 
