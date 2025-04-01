@@ -35,6 +35,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -120,20 +121,16 @@ public class PivotRelToSqlUtil {
           .filter(x -> !(x instanceof SqlIdentifier))
           .map(node -> {
             // Extract the specific node as per your expression
+            SqlBasicCall sqlBasicCall = (SqlBasicCall) ((SqlBasicCall) node).getOperandList().get(0);
+            if (sqlBasicCall.getOperator().kind == SqlKind.IS_TRUE) {
+              sqlBasicCall = sqlBasicCall.operand(0);
+            }
             SqlNode secondOperand = ((SqlBasicCall)
-                ((SqlCase)
-                    ((SqlBasicCall)
-                        ((SqlBasicCall) node)
-                            .getOperandList().get(0))
-                        .operand(0))
-                    .getWhenOperands().get(0))
-                .operand(1);
+                ((SqlCase) sqlBasicCall.operand(0)).getWhenOperands().get(0)).operand(1);
 
             if (secondOperand.getKind() == SqlKind.AS
                 && ((SqlBasicCall) secondOperand).operand(1) instanceof SqlCharStringLiteral) {
-              return SqlStdOperatorTable.AS.createCall(pos,
-                  ((SqlBasicCall) secondOperand).operand(0),
-                  new SqlIdentifier(((SqlBasicCall) secondOperand).operand(1).toString().replaceAll("'", ""), pos));
+              return modifyAlias(secondOperand);
             }
 
             return secondOperand;
@@ -153,9 +150,12 @@ public class PivotRelToSqlUtil {
   private SqlNode modifyAlias(SqlNode sqlNode) {
     if (sqlNode instanceof SqlBasicCall) {
       SqlBasicCall sqlBasicCall = (SqlBasicCall) sqlNode;
-      if (sqlBasicCall.getOperator() == SqlStdOperatorTable.AS) {
+      if (sqlBasicCall.getOperator() == SqlStdOperatorTable.AS
+          && (sqlBasicCall.operand(1) instanceof SqlCharStringLiteral)) {
+        String alias = ((SqlCharStringLiteral) sqlBasicCall.operand(1)).toValue();
+        assert alias != null;
         return SqlStdOperatorTable.AS.createCall(pos, sqlBasicCall.operand(0),
-            new SqlIdentifier(sqlBasicCall.operand(1).toString().replaceAll("'", ""), pos));
+            new SqlIdentifier(alias, pos));
       }
     }
     return sqlNode;
@@ -192,24 +192,31 @@ public class PivotRelToSqlUtil {
                   .getOperandList().get(0)).getOperandList().get(0);
       SqlBasicCall caseConditionCall =
           (SqlBasicCall) pivotColumnAggregationCaseCall.getWhenOperands().get(0);
-      SqlIdentifier aggregateCol = caseConditionCall.operand(0);
+      SqlNode aggregateCol = caseConditionCall.operand(0) instanceof SqlBasicCall
+          ? ((SqlBasicCall) caseConditionCall.operand(0)).operand(0)
+          : caseConditionCall.operand(0);
       modifiedAxisNodeList.add(aggregateCol);
       return new SqlNodeList(modifiedAxisNodeList, pos);
     }
 
-    SqlBasicCall axisNodeList =
-        ((SqlBasicCall) pivotColumnAggregation.getOperandList().get(0)).operand(0);
+    SqlBasicCall sqlBasicCall = (SqlBasicCall) pivotColumnAggregation.getOperandList().get(0);
+    if (sqlBasicCall.getOperator().kind == SqlKind.IS_TRUE) {
+      sqlBasicCall = sqlBasicCall.operand(0);
+    }
+    SqlNode axisSqlNodeList = sqlBasicCall.operand(0);
 
-    axisNodeList = axisNodeList.getOperator().kind == SqlKind.EQUALS
-        ? (SqlBasicCall) axisNodeList.getOperandList().get(0)
-        : axisNodeList;
+    if (axisSqlNodeList instanceof SqlIdentifier) {
+      modifiedAxisNodeList.add(axisSqlNodeList);
+      return new SqlNodeList(modifiedAxisNodeList, pos);
+    }
+    assert axisSqlNodeList instanceof SqlBasicCall;
+    SqlBasicCall axisNodeList = (SqlBasicCall) axisSqlNodeList;
 
     if (axisNodeList.getOperator().kind == SqlKind.AS) {
-      if (!(axisNodeList.operand(1) instanceof SqlIdentifier)) {
-        modifiedAxisNodeList.add(
-            new SqlIdentifier(
-                axisNodeList.operand(1).toString().replaceAll("'", ""),
-                SqlParserPos.QUOTED_ZERO));
+      if (isLowerFunction(axisNodeList.operand(0))) {
+        modifiedAxisNodeList.add(axisNodeList.operand(0));
+      } else if (axisNodeList.operand(1) instanceof SqlCharStringLiteral) {
+        modifiedAxisNodeList.add(getSqlIdentifier(axisNodeList.operand(1)));
       } else {
         modifiedAxisNodeList.add(axisNodeList);
       }
@@ -217,5 +224,14 @@ public class PivotRelToSqlUtil {
       modifiedAxisNodeList.add(new SqlIdentifier(axisNodeList.toString(), SqlParserPos.QUOTED_ZERO));
     }
     return new SqlNodeList(modifiedAxisNodeList, pos);
+  }
+
+  private SqlIdentifier getSqlIdentifier(SqlCharStringLiteral alias) {
+    return new SqlIdentifier(Objects.requireNonNull(alias.toValue()), SqlParserPos.QUOTED_ZERO);
+  }
+
+  private boolean isLowerFunction(SqlNode node) {
+    return node instanceof SqlBasicCall
+        && ((SqlBasicCall) node).getOperator() == SqlStdOperatorTable.LOWER;
   }
 }

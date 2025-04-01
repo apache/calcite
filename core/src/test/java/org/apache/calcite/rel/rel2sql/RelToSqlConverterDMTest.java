@@ -7533,6 +7533,21 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedSFSql));
   }
 
+  @Test public void testIsNumericFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode isNumericNode =
+        builder.call(SqlLibraryOperators.ISNUMERIC,
+            builder.literal(123.45));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(isNumericNode, "isNumericValue"))
+        .build();
+    final String expectedSql = "SELECT ISNUMERIC(123.45) AS [isNumericValue]\n"
+        + "FROM [scott].[EMP]";
+
+    assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedSql));
+  }
+
   @Test public void testCurrentDatabaseFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode currentDatabase =
@@ -7864,6 +7879,39 @@ class RelToSqlConverterDMTest {
     HepPlanner hepPlanner = new HepPlanner(builder.build());
     RuleSet rules = RuleSets.ofList(CoreRules.FILTER_EXTRACT_INNER_JOIN_RULE);
     sql(query).withBigQuery().optimize(rules, hepPlanner).ok(expect);
+  }
+
+  @Test void testConversionOfFilterWithCrossJoinAndFilterHasBetweenOperator() {
+    final RelBuilder builder = foodmartRelBuilder();
+    RelNode leftTable = builder.scan("employee").build();
+    RelNode rightTable = builder.scan("reserve_employee").build();
+    RelNode join = builder.push(leftTable).push(rightTable).join(JoinRelType.INNER).build();
+    RelNode filteredRel = builder.push(join)
+        .filter(
+            builder.call(SqlLibraryOperators.BETWEEN, builder.field(11),
+            builder.call(SqlStdOperatorTable.DIVIDE, builder.field(11),
+                builder.literal(100)), builder.field(28)))
+        .build();
+
+    // Projection
+    RelNode relNode = builder.push(filteredRel)
+        .project(builder.field(1))
+        .build();
+
+    // Applying rel optimization
+    Collection<RelOptRule> rules = new ArrayList<>();
+    rules.add((FilterExtractInnerJoinRule.Config.DEFAULT).toRule());
+    HepProgram hepProgram = new HepProgramBuilder().addRuleCollection(rules).build();
+    HepPlanner hepPlanner = new HepPlanner(hepProgram);
+    hepPlanner.setRoot(relNode);
+    RelNode optimizedRel = hepPlanner.findBestExp();
+
+    final String expectedSql = "SELECT employee.full_name\n"
+        + "FROM foodmart.employee\n"
+        + "INNER JOIN foodmart.reserve_employee ON TRUE\n"
+        + "WHERE employee.salary BETWEEN employee.salary / 100 AND reserve_employee.salary";
+
+    assertThat(toSql(optimizedRel, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSql));
   }
 
   @Test void testConversionOfFilterWithCrossJoinToFilterWithInnerJoinWithOneConditionInFilter() {
@@ -10510,6 +10558,22 @@ class RelToSqlConverterDMTest {
     sql(query).withBigQuery().ok(expected);
   }
 
+  @Test public void testMsSqlDateNameFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode isNumericNode =
+        builder.call(SqlLibraryOperators.DATENAME,
+            builder.literal(DAY),
+            builder.call(GETDATE));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(isNumericNode, "datename"))
+        .build();
+    final String expectedSFSql = "SELECT DATENAME(DAY, GETDATE) AS [datename]\n"
+        + "FROM [scott].[EMP]";
+
+    assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedSFSql));
+  }
+
   @Test public void testQuoteInStringLiterals() {
     final RelBuilder builder = relBuilder();
     final RexNode literal = builder.literal("Datam\"etica");
@@ -11519,6 +11583,24 @@ class RelToSqlConverterDMTest {
         .project(editDistanceRex)
         .build();
     final String expectedBQQuery = "SELECT EDIT_DISTANCE('abc', 'xyz') AS `$f0`"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQQuery));
+  }
+
+  @Test public void testEditDistanceFunctionWithSixArgs() {
+    final RelBuilder builder = relBuilder();
+    final RexNode editDistanceRex =
+        builder.call(SqlLibraryOperators.EDIT_DISTANCE, builder.literal("PHONE"),
+            builder.literal("FONE"),
+            builder.literal(1),
+            builder.literal(0),
+            builder.literal(1),
+            builder.literal(0));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(editDistanceRex)
+        .build();
+    final String expectedBQQuery = "SELECT EDIT_DISTANCE('PHONE', 'FONE', 1, 0, 1, 0) AS `$f0`"
         + "\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQQuery));
   }
@@ -12584,6 +12666,22 @@ class RelToSqlConverterDMTest {
         + " [{\"name\": \"Jane\"}]}}', '\\\\$.class') AS `$f0`\n"
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigquery));
+  }
+
+  @Test public void testTeradataJsonExtractFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode jsonCheckNode =
+        builder.call(SqlLibraryOperators.JSONEXTRACT, builder.literal("{\"name\": \"Bob\",\"Jane\"}"),
+        builder.literal("$.name"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(jsonCheckNode, "json_data"))
+        .build();
+    final String expectedTeraDataQuery = "SELECT JSONEXTRACT('{\"name\": \"Bob\",\"Jane\"}', '$"
+        + ".name') AS \"json_data\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.TERADATA.getDialect()), isLinux(expectedTeraDataQuery));
   }
 
   @Test public void testFloorFunctionForSnowflake() {

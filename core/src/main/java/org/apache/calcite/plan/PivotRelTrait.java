@@ -24,11 +24,14 @@ public class PivotRelTrait implements RelTrait {
   private boolean isPivotRel;
   private boolean hasSubquery;
   private String pivotAlias;
+  //Count of extra projections fields which added in Pivot Aggregate Builder
+  private int extraFieldCountFromInputRel;
 
-  public PivotRelTrait(boolean isPivotRel, boolean hasSubquery, String pivotAlias) {
+  public PivotRelTrait(boolean isPivotRel, boolean hasSubquery, String pivotAlias, int extraFieldCountFromInputRel) {
     this.isPivotRel = isPivotRel;
     this.hasSubquery = hasSubquery;
     this.pivotAlias = pivotAlias;
+    this.extraFieldCountFromInputRel = extraFieldCountFromInputRel;
   }
 
   public String getPivotAlias() {
@@ -41,6 +44,10 @@ public class PivotRelTrait implements RelTrait {
 
   public final boolean isPivotRel() {
     return isPivotRel;
+  }
+
+  public int getExtraFieldCountFromInputRel() {
+    return extraFieldCountFromInputRel;
   }
 
   @Override public RelTraitDef<PivotRelTrait> getTraitDef() {

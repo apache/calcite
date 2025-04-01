@@ -81,6 +81,7 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
   GEO,
   FUNCTION,
   VARIANT,
+  JSON,
   /** Like ANY, but do not even validate the operand. It may not be an
    * expression. */
   IGNORE;
@@ -228,6 +229,8 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
       return ImmutableList.of(SqlTypeName.FUNCTION);
     case VARIANT:
       return ImmutableList.of(SqlTypeName.VARIANT);
+    case JSON:
+      return ImmutableList.of(SqlTypeName.JSON);
     default:
       throw new IllegalArgumentException();
     }

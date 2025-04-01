@@ -50,6 +50,9 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.stream.Collectors;
 
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.BETWEEN;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.NOT_BETWEEN;
+
 /**
  * Planner rule that matches an {@link org.apache.calcite.rel.core.Filter}
  * on a {@link org.apache.calcite.rel.core.Join} and removes the join
@@ -179,11 +182,21 @@ public class FilterExtractInnerJoinRule
     builder.push(left);
     RexNode remainingCondition = allConditions.isEmpty()
         ? builder.literal(true)
-        : (op.getKind() == SqlKind.OR) ? builder.or(allConditions) : builder.and(allConditions);
+        : createFilterCondition(op, allConditions, builder);
 
     return builder
         .filter(correlationIdSet != null ? correlationIdSet : ImmutableSet.of(), remainingCondition)
         .build();
+  }
+
+  private RexNode createFilterCondition(
+      SqlOperator operator, List<RexNode> remainingConditions, RelBuilder builder) {
+    if (operator.kind == SqlKind.BETWEEN) {
+      operator = operator.getName().equals("NOT BETWEEN") ? NOT_BETWEEN : BETWEEN;
+      return builder.call(operator, remainingConditions);
+    }
+    return (operator.getKind() == SqlKind.OR)
+        ? builder.or(remainingConditions) : builder.and(remainingConditions);
   }
 
   /** Gets all the conditions that are part of the current join.*/

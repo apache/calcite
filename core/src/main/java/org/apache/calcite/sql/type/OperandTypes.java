@@ -527,6 +527,12 @@ public abstract class OperandTypes {
       // Third operand optional
         number -> number == 2);
 
+  public static final SqlSingleOperandTypeChecker JSON_STRING =
+      family(SqlTypeFamily.JSON, SqlTypeFamily.STRING);
+
+  public static final SqlSingleOperandTypeChecker STRING_JSON =
+      family(SqlTypeFamily.STRING, SqlTypeFamily.JSON);
+
   public static final SqlSingleOperandTypeChecker CHARACTER =
       family(SqlTypeFamily.CHARACTER);
 

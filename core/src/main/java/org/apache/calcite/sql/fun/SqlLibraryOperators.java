@@ -78,8 +78,12 @@ import static org.apache.calcite.sql.fun.SqlLibrary.TERADATA;
 import static org.apache.calcite.sql.type.OperandTypes.ANY_STRING_OR_STRING_STRING;
 import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTEGER;
 import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTERVAL;
+import static org.apache.calcite.sql.type.OperandTypes.JSON_STRING;
 import static org.apache.calcite.sql.type.OperandTypes.ONE_OR_MORE;
+import static org.apache.calcite.sql.type.OperandTypes.STRING_DATETIME;
 import static org.apache.calcite.sql.type.OperandTypes.STRING_INTEGER;
+import static org.apache.calcite.sql.type.OperandTypes.STRING_JSON;
+import static org.apache.calcite.sql.type.OperandTypes.STRING_OPTIONAL_STRING;
 import static org.apache.calcite.sql.type.OperandTypes.STRING_STRING;
 import static org.apache.calcite.sql.type.OperandTypes.STRING_STRING_BOOLEAN;
 import static org.apache.calcite.sql.type.OperandTypes.family;
@@ -1308,7 +1312,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction CONCAT3 =
       new SqlFunction("||",
           SqlKind.CONCAT,
-          ReturnTypes.ARG0_NULLABLE,
+          ReturnTypes.MULTIVALENT_STRING_SUM_PRECISION_NULLABLE,
           null,
           OperandTypes.or(OperandTypes.STRING_NUMERIC_OPTIONAL_STRING,
               OperandTypes.NUMERIC_STRING_OPTIONAL_STRING),
@@ -1586,7 +1590,15 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction JSON_EXTRACT =
       new SqlFunction("JSON_EXTRACT", SqlKind.OTHER_FUNCTION,
           ReturnTypes.VARCHAR_2000_NULLABLE, null,
-          OperandTypes.STRING_STRING, SqlFunctionCategory.STRING);
+          OperandTypes.or(JSON_STRING, STRING_STRING),
+          SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlFunction JSONEXTRACT =
+      new SqlFunction("JSONEXTRACT", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000_NULLABLE, null,
+          OperandTypes.or(JSON_STRING, STRING_STRING),
+          SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction JSON_EXTRACT_ARRAY =
@@ -1594,7 +1606,7 @@ public abstract class SqlLibraryOperators {
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.VARCHAR.andThen(SqlTypeTransforms.TO_ARRAY),
           null,
-          OperandTypes.STRING_OPTIONAL_STRING,
+          OperandTypes.or(STRING_JSON, STRING_OPTIONAL_STRING),
           SqlFunctionCategory.SYSTEM);
 
   /** The "ARRAY_DISTINCT(array)" function. */
@@ -2037,6 +2049,16 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(
               ImmutableList.of(SqlTypeFamily.ANY, SqlTypeFamily.STRING),
               number -> number == 1),
+          SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {MSSQL})
+  public static final SqlFunction DATENAME =
+      new SqlFunction(
+          "DATENAME",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_NULLABLE,
+          null,
+          STRING_DATETIME,
           SqlFunctionCategory.TIMEDATE);
 
   /** The "TO_DATE(string1, string2)" function; casts string1
@@ -3635,16 +3657,12 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(SqlTypeFamily.NUMERIC),
           SqlFunctionCategory.NUMERIC);
 
-  @LibraryOperator(libraries = {BIG_QUERY, ORACLE})
-  public static final SqlFunction EDIT_DISTANCE =
-      new SqlFunction("EDIT_DISTANCE",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.INTEGER_NULLABLE, null,
-          OperandTypes.family(
-              ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
-                  SqlTypeFamily.INTEGER),
-              number -> number == 2),
-          SqlFunctionCategory.NUMERIC);
+  /**
+   * The EDIT_DISTANCE(string1, string2 [, ci, cd, cs, ct ])
+   * measures the similarity between two strings.
+   * */
+  @LibraryOperator(libraries = {BIG_QUERY, ORACLE, TERADATA})
+  public static final SqlFunction EDIT_DISTANCE = new SqlEditDistanceFunction();
 
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction GENERATE_UUID =
@@ -3689,6 +3707,13 @@ public abstract class SqlLibraryOperators {
                   ReturnTypes.cascade(ReturnTypes.LEAST_RESTRICTIVE,
                           SqlTypeTransforms.TO_NULLABLE_ALL),
                   null, OperandTypes.SAME_SAME, SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {MSSQL})
+  public static final SqlFunction ISNUMERIC =
+      new SqlFunction("ISNUMERIC", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER, null,
+          OperandTypes.NUMERIC_OR_STRING,
+          SqlFunctionCategory.SYSTEM);
 
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction TIMESTAMPADD_DATABRICKS =

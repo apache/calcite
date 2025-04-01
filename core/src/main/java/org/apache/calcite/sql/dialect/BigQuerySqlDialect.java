@@ -1169,6 +1169,9 @@ public class BigQuerySqlDialect extends SqlDialect {
     case DIVIDE:
       unparseDivideIntervalCall(call.operand(1), writer, leftPrec, rightPrec);
       break;
+    case IDENTIFIER:
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      break;
     case OTHER_FUNCTION:
       unparseOtherFunction(writer, call.operand(1), leftPrec, rightPrec);
       break;

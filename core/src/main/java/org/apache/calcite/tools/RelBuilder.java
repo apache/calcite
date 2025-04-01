@@ -3874,7 +3874,8 @@ public class RelBuilder {
             + expressionList + "], [" + axisList + "]");
       }
       aggCalls.forEach(aggCall -> {
-        final String alias2 = alias + "_" + ((AggCallPlus) aggCall).alias();
+        final String aggAlias = ((AggCallPlus) aggCall).alias();
+        final String alias2 = alias + (aggAlias != null ? "_" + aggAlias : "");
         final List<RexNode> filters = new ArrayList<>();
         Pair.forEach(axisList, expressionList, (axis, expression) ->
             filters.add(equals(axis, expression)));
