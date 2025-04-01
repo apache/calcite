@@ -1659,6 +1659,11 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.INTEGER_NULLABLE,
           OperandTypes.ARRAY);
 
+  public static final SqlFunction ARRAY_START_INDEX =
+      SqlBasicFunction.create("ARRAY_START_INDEX",
+          ReturnTypes.INTEGER_NULLABLE,
+          OperandTypes.INTEGER);
+
   /** The "ARRAY_LENGTH(array, int)" function. */
   @LibraryOperator(libraries = {POSTGRESQL})
   public static final SqlFunction POSTGRES_ARRAY_LENGTH =
