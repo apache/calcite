@@ -109,8 +109,10 @@ public class RelMdColumnUniqueness
 
   public @Nullable Boolean areColumnsUnique(Filter rel, RelMetadataQuery mq,
       ImmutableBitSet columns, boolean ignoreNulls) {
-    columns = decorateWithConstantColumnsFromPredicates(columns, rel, mq);
-    return mq.areColumnsUnique(rel.getInput(), columns, ignoreNulls);
+    ImmutableBitSet columns2 = decorateWithConstantColumnsFromPredicates(columns, rel, mq);
+    @Nullable Boolean b1 = mq.areColumnsUnique(rel.getInput(), columns, ignoreNulls);
+    @Nullable Boolean b2 = mq.areColumnsUnique(rel.getInput(), columns2, ignoreNulls);
+    return b1;
   }
 
   /** Catch-all implementation for
