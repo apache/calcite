@@ -30,6 +30,7 @@ dependencies {
     api(project(":core"))
     api(project(":file"))
     api(project(":linq4j"))
+    api(project(":server"))
     api("org.checkerframework:checker-qual")
 
     implementation("com.fasterxml.jackson.core:jackson-core")
