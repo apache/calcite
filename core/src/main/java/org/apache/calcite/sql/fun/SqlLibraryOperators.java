@@ -1671,10 +1671,11 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.INTEGER_NULLABLE,
           OperandTypes.ARRAY);
 
+  /** The "ARRAY_START_INDEX(array)" function. */
   public static final SqlFunction ARRAY_START_INDEX =
-      SqlBasicFunction.create("ARRAY_START_INDEX",
+      SqlBasicFunction.create(SqlKind.ARRAY_START_INDEX,
           ReturnTypes.INTEGER_NULLABLE,
-          OperandTypes.INTEGER);
+          OperandTypes.ARRAY);
 
   /** The "ARRAY_LENGTH(array, int)" function. */
   @LibraryOperator(libraries = {POSTGRESQL})
