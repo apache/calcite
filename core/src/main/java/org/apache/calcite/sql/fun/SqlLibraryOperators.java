@@ -1672,6 +1672,7 @@ public abstract class SqlLibraryOperators {
           OperandTypes.ARRAY);
 
   /** The "ARRAY_START_INDEX(array)" function. */
+  @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction ARRAY_START_INDEX =
       SqlBasicFunction.create(SqlKind.ARRAY_START_INDEX,
           ReturnTypes.INTEGER_NULLABLE,

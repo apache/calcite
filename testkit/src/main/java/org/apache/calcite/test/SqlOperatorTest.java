@@ -6664,8 +6664,6 @@ public class SqlOperatorTest {
   @Test void testArrayLengthFunc() {
     final SqlOperatorFixture f0 = fixture();
     f0.setFor(SqlLibraryOperators.ARRAY_LENGTH);
-    f0.checkFails("^array_length(array[1])^",
-        "No match found for function signature ARRAY_LENGTH\\(<INTEGER ARRAY>\\)", false);
     final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
     f.checkScalar("array_length(array[1])", "1",
         "INTEGER NOT NULL");
@@ -6681,6 +6679,27 @@ public class SqlOperatorTest {
         "INTEGER NOT NULL");
   }
 
+  /** Tests {@code ARRAY_START_INDEX} function from BigQuery. */
+  @Test void testArrayStartIndexFunc() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.ARRAY_START_INDEX);
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
+
+    f.checkFails("^array_start_index(array[1])^",
+        "No match found for function signature ARRAY_START_INDEX\\(<INTEGER ARRAY>\\)", false);
+    f.checkScalar("array_start_index(array[1])", "0",
+        "INTEGER NOT NULL");
+    f.checkScalar("array_start_index(array[1, 2, null])", "0",
+        "INTEGER NOT NULL");
+    f.checkNull("array_start_index(null)");
+    // elements cast
+    f.checkScalar("array_start_index(array[cast(1 as tinyint), 2])", "0",
+        "INTEGER NOT NULL");
+    f.checkScalar("array_start_index(array[null, 1, cast(2 as tinyint)])", "0",
+        "INTEGER NOT NULL");
+    f.checkScalar("array_start_index(array[cast(1 as bigint), 2])", "0",
+        "INTEGER NOT NULL");
+  }
   @Test void testArrayToStringFunc() {
     final SqlOperatorFixture f0 = fixture();
     f0.setFor(SqlLibraryOperators.ARRAY_TO_STRING);
