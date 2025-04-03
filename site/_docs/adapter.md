@@ -169,7 +169,7 @@ adding some DDL commands:
 Commands are described in the [SQL reference](reference.html#ddl-extensions).
 
 To enable, include `calcite-server.jar` in your class path, and add
-`parserFactory=org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl#FACTORY`
+`parserFactory=org.apache.calcite.server.ServerDdlExecutor#PARSER_FACTORY`
 to the JDBC connect string (see connect string property
 [parserFactory]({{ site.apiRoot }}/org/apache/calcite/config/CalciteConnectionProperty.html#PARSER_FACTORY)).
 Here is an example using the `sqlline` shell.
@@ -177,7 +177,7 @@ Here is an example using the `sqlline` shell.
 {% highlight sql %}
 $ ./sqlline
 sqlline version 1.3.0
-> !connect jdbc:calcite:parserFactory=org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl#FACTORY sa ""
+> !connect jdbc:calcite:parserFactory=org.apache.calcite.server.ServerDdlExecutor#PARSER_FACTORY sa ""
 > CREATE TABLE t (i INTEGER, j VARCHAR(10));
 No rows affected (0.293 seconds)
 > INSERT INTO t VALUES (1, 'a'), (2, 'bc');
