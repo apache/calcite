@@ -166,8 +166,12 @@ public abstract class SqlImplementor {
 
   protected final Map<CorrelationId, Context> correlTableMap = new HashMap<>();
 
-  /** Private RexBuilder for short-lived expressions. It has its own
-   * dedicated type factory, so don't trust the types to be canonized. */
+  /**
+   * Private RexBuilder for short-lived expressions. It has its own
+   * dedicated type factory, so don't trust the types to be canonized.
+   *
+   * @deprecated Replaced by {@link RexBuilder#DEFAULT}. */
+  @Deprecated // to be removed before 2.0
   final RexBuilder rexBuilder =
       new RexBuilder(new SqlTypeFactoryImpl(RelDataTypeSystemImpl.DEFAULT));
 
@@ -652,6 +656,7 @@ public abstract class SqlImplementor {
      * @param rex Expression to convert
      */
     public SqlNode toSql(@Nullable RexProgram program, RexNode rex) {
+      rex = dialect.prepareUnparse(rex);
       final RexSubQuery subQuery;
       final SqlNode sqlSubQuery;
       final RexLiteral literal;
@@ -798,7 +803,7 @@ public abstract class SqlImplementor {
           //noinspection unchecked
           return toSql(program, search.operands.get(0), literal.getType(), sarg);
         }
-        return toSql(program, RexUtil.expandSearch(implementor().rexBuilder, program, search));
+        return toSql(program, RexUtil.expandSearch(RexBuilder.DEFAULT, program, search));
 
       case EXISTS:
       case UNIQUE:
@@ -855,76 +860,6 @@ public abstract class SqlImplementor {
       final RexCall call = (RexCall) stripCastFromString(call1, dialect);
       SqlOperator op = call.getOperator();
       switch (op.getKind()) {
-      case IS_FALSE:
-        if (dialect.supportsUnparseOnlyDeterministic(op)) {
-          RexNode operandIsFalse = call0.operands.get(0);
-          if (RexUtil.isDeterministic(operandIsFalse)) {
-            // A IS FALSE -> A IS NOT NULL AND NOT A
-            SqlNode sqlNode = toSql(program, operandIsFalse);
-            SqlCall isNotNullFunc =
-                SqlStdOperatorTable.IS_NOT_NULL.createCall(SqlParserPos.ZERO,
-                    ImmutableList.of(sqlNode));
-            SqlCall notFunc =
-                SqlStdOperatorTable.NOT.createCall(SqlParserPos.ZERO,
-                    ImmutableList.of(sqlNode));
-            return SqlStdOperatorTable.AND.createCall(SqlParserPos.ZERO,
-                ImmutableList.of(isNotNullFunc, notFunc));
-          } else {
-            throw new UnsupportedOperationException("Unsupported unparse: " + op.getName());
-          }
-        }
-        break;
-      case IS_NOT_FALSE:
-        if (dialect.supportsUnparseOnlyDeterministic(op)) {
-          RexNode operandIsFalse = call0.operands.get(0);
-          if (RexUtil.isDeterministic(operandIsFalse)) {
-            // A IS NOT FALSE -> A IS NULL OR A
-            SqlNode sqlNode = toSql(program, operandIsFalse);
-            SqlCall isNull =
-                SqlStdOperatorTable.IS_NULL.createCall(SqlParserPos.ZERO,
-                    ImmutableList.of(sqlNode));
-            return SqlStdOperatorTable.OR.createCall(SqlParserPos.ZERO,
-                ImmutableList.of(isNull, sqlNode));
-          } else {
-            throw new UnsupportedOperationException("Unsupported unparse: " + op.getName());
-          }
-        }
-        break;
-      case IS_TRUE:
-        if (dialect.supportsUnparseOnlyDeterministic(op)) {
-          RexNode operandIsFalse = call0.operands.get(0);
-          if (RexUtil.isDeterministic(operandIsFalse)) {
-            // A IS TRUE -> A IS NOT NULL AND A
-            SqlNode sqlNode = toSql(program, operandIsFalse);
-            SqlCall isNotNullFunc =
-                SqlStdOperatorTable.IS_NOT_NULL.createCall(SqlParserPos.ZERO,
-                    ImmutableList.of(sqlNode));
-            return SqlStdOperatorTable.AND.createCall(SqlParserPos.ZERO,
-                ImmutableList.of(isNotNullFunc, sqlNode));
-          } else {
-            throw new UnsupportedOperationException("Unsupported unparse: " + op.getName());
-          }
-        }
-        break;
-      case IS_NOT_TRUE:
-        if (dialect.supportsUnparseOnlyDeterministic(op)) {
-          RexNode operandIsFalse = call0.operands.get(0);
-          if (RexUtil.isDeterministic(operandIsFalse)) {
-            // A IS NOT TRUE -> A IS NULL OR NOT A
-            SqlNode sqlNode = toSql(program, operandIsFalse);
-            SqlCall isNullFunc =
-                SqlStdOperatorTable.IS_NULL.createCall(SqlParserPos.ZERO,
-                    ImmutableList.of(sqlNode));
-            SqlCall notFunc =
-                SqlStdOperatorTable.NOT.createCall(SqlParserPos.ZERO,
-                    ImmutableList.of(sqlNode));
-            return SqlStdOperatorTable.OR.createCall(SqlParserPos.ZERO,
-                ImmutableList.of(isNullFunc, notFunc));
-          } else {
-            throw new UnsupportedOperationException("Unsupported unparse: " + op.getName());
-          }
-        }
-        break;
       case SUM0:
         op = SqlStdOperatorTable.SUM;
         break;
@@ -1023,7 +958,7 @@ public abstract class SqlImplementor {
         final RangeSets.Consumer<C> consumer =
             new RangeToSql<>(operandSql, orList, v ->
                 toSql(program,
-                    implementor().rexBuilder.makeLiteral(v, type)));
+                    RexBuilder.DEFAULT.makeLiteral(v, type)));
         RangeSets.forEach(sarg.rangeSet, consumer);
       }
       return SqlUtil.createCall(SqlStdOperatorTable.OR, POS, orList);
@@ -1035,7 +970,7 @@ public abstract class SqlImplementor {
       final SqlNodeList list = rangeSet.asRanges().stream()
           .map(range ->
               toSql(program,
-                  implementor().rexBuilder.makeLiteral(range.lowerEndpoint(),
+                  RexBuilder.DEFAULT.makeLiteral(range.lowerEndpoint(),
                       type, true, true)))
           .collect(SqlNode.toList());
       switch (list.size()) {
@@ -1788,7 +1723,7 @@ public abstract class SqlImplementor {
             && ((RexInputRef) op0).getIndex() >= leftContext.fieldCount) {
           // Arguments were of form 'op1 = op0'
           final SqlOperator op2 = requireNonNull(call.getOperator().reverse());
-          return (RexCall) rexBuilder.makeCall(call.getParserPosition(), op2, op1, op0);
+          return (RexCall) RexBuilder.DEFAULT.makeCall(call.getParserPosition(), op2, op1, op0);
         }
         // fall through
       default:
