@@ -10059,4 +10059,52 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withRule(CoreRules.INTERSECT_TO_EXISTS)
         .checkUnchanged();
   }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6891">[CALCITE-6891]
+   * Implement IntersectReorderRule</a>. */
+  @Test void testIntersectReorderRule() {
+    final String sql = "select deptno from emp\n"
+        + "intersect\n"
+        + "select deptno from emp where deptno > 5\n";
+    sql(sql).withVolcanoPlanner(true, p -> {
+      p.addRule(CoreRules.INTERSECT_REORDER);
+      p.addRule(EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+      p.addRule(EnumerableRules.ENUMERABLE_INTERSECT_RULE);
+      p.addRule(EnumerableRules.ENUMERABLE_FILTER_RULE);
+      p.addRule(EnumerableRules.ENUMERABLE_PROJECT_RULE);
+    }).check();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6891">[CALCITE-6891]
+   * Implement IntersectReorderRule</a>. */
+  @Test void testIntersectReorderRuleSameRowCount() {
+    final String sql = "select deptno from emp where deptno > 10\n"
+        + "intersect\n"
+        + "select deptno from emp where deptno > 5\n";
+    sql(sql).withVolcanoPlanner(true, p -> {
+      p.addRule(CoreRules.INTERSECT_REORDER);
+      p.addRule(EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+      p.addRule(EnumerableRules.ENUMERABLE_INTERSECT_RULE);
+      p.addRule(EnumerableRules.ENUMERABLE_FILTER_RULE);
+      p.addRule(EnumerableRules.ENUMERABLE_PROJECT_RULE);
+    }).check();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6891">[CALCITE-6891]
+   * Implement IntersectReorderRule</a>. */
+  @Test void testIntersectReorderRuleAll() {
+    final String sql = "select deptno from emp\n"
+        + "intersect all\n"
+        + "select deptno from emp where deptno > 5\n";
+    sql(sql).withVolcanoPlanner(true, p -> {
+      p.addRule(CoreRules.INTERSECT_REORDER);
+      p.addRule(EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+      p.addRule(EnumerableRules.ENUMERABLE_INTERSECT_RULE);
+      p.addRule(EnumerableRules.ENUMERABLE_FILTER_RULE);
+      p.addRule(EnumerableRules.ENUMERABLE_PROJECT_RULE);
+    }).check();
+  }
 }
