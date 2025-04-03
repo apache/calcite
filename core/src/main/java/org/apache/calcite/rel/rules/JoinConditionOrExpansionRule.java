@@ -19,7 +19,9 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
 
@@ -27,33 +29,12 @@ import org.immutables.value.Value;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Planner rule that matches a
  * {@link org.apache.calcite.rel.core.Join}
  * and expands OR clauses in join conditions.
- *
- * <p>For example, for the following SQL query:
- * <pre>
- * SELECT *
- * FROM t1
- * JOIN t2
- * ON (t1.id = t2.id OR t1.name = t2.name)
- * </pre>
- *
- * <p>To
- *
- * <pre>
- * SELECT *
- * FROM t1
- * JOIN t2
- * ON t1.id = t2.id
- * UNION ALL
- * SELECT *
- * FROM t1
- * JOIN t2
- * ON t1.name = t2.name
- * </pre>
  *
  * <p>this rule would expand the OR condition into
  * two separate join conditions, allowing the optimizer
@@ -80,20 +61,221 @@ public class JoinConditionOrExpansionRule
       return;
     }
 
-    List<RexNode> extraConds  = new ArrayList<>();
+    RelNode converted;
+    switch (join.getJoinType()) {
+    case INNER:
+      converted = expandInnerJoin(join, orConds, relBuilder);
+      break;
+    case SEMI:
+      converted =
+          expandSemiOrAntiJoin(join, JoinRelType.SEMI, orConds, relBuilder);
+      break;
+    case ANTI:
+      converted =
+          expandSemiOrAntiJoin(join, JoinRelType.ANTI, orConds, relBuilder);
+      break;
+    case LEFT:
+      converted = expandLeftJoin(join, orConds, relBuilder);
+      break;
+    case RIGHT:
+      converted = expandRightJoin(join, orConds, relBuilder);
+      break;
+    case FULL:
+      converted = expandFullJoin(join, orConds, relBuilder);
+      break;
+    default:
+      return;
+    }
+    call.transformTo(converted);
+  }
+
+  /**
+   * This method will make the following conversions.
+   *
+   * <p>Project[*]
+   *    └── Join[OR(id=id0, age=age0), left]
+   *        ├── TableScan[tbl]
+   *        └── TableScan[tbl]
+   *
+   * <p>into
+   *
+   * <p>Project[*]
+   *    └── UnionAll
+   *        ├── HashJoin[id=id0, inner]
+   *        │   ├── TableScan[tbl]
+   *        │   └── TableScan[tbl]
+   *        ├── HashJoin[age=age0 AND id≠id0, inner]
+   *        │   ├── TableScan[tbl]
+   *        │   └── TableScan[tbl]
+   *        └── Project[tbl-side cols + NULLs]
+   *            └── HashJoin[id=id0, anti]
+   *                ├── HashJoin[age=age0, anti]
+   *                │   ├── TableScan[tbl]
+   *                │   └── TableScan[tbl]
+   *                └── TableScan[tbl]
+   */
+  private RelNode expandLeftJoin(Join join, List<RexNode> orConds,
+      RelBuilder relBuilder) {
+    List<RelNode> joins = expandLeftJoinToRelNodes(join, orConds, relBuilder);
+    return relBuilder.pushAll(joins)
+        .union(true, joins.size())
+        .build();
+  }
+
+  private List<RelNode> expandLeftJoinToRelNodes(Join join, List<RexNode> orConds,
+      RelBuilder relBuilder) {
+    List<RelNode> joins = new ArrayList<>();
+    joins.addAll(expandInnerJoinToRelNodes(join, orConds, relBuilder));
+    joins.add(expandSemiOrAntiJoin(join, JoinRelType.ANTI, orConds, relBuilder));
+    return joins;
+  }
+
+  private RelNode expandRightJoin(Join join, List<RexNode> orConds,
+      RelBuilder relBuilder) {
+    List<RelNode> joins = expandRightJoinToRelNodes(join, orConds, relBuilder);
+    return relBuilder.pushAll(joins)
+        .union(true, joins.size())
+        .build();
+  }
+
+  private List<RelNode> expandRightJoinToRelNodes(Join join, List<RexNode> orConds,
+      RelBuilder relBuilder) {
+    List<RelNode> joins = new ArrayList<>();
+    joins.addAll(expandInnerJoinToRelNodes(join, orConds, relBuilder));
+    joins.add(expandSemiOrAntiJoin(join, JoinRelType.SEMI, orConds, relBuilder));
+    return joins;
+  }
+
+  /**
+   * This method will make the following conversions.
+   *
+   * <p>Project[*]
+   *    └── Join[OR(id=id0, age=age0), full]
+   *        ├── TableScan[tbl]
+   *        └── TableScan[tbl]
+   *
+   * <p>into
+   *
+   * <p>Project[*]
+   *    └── UnionAll
+   *        ├── HashJoin[id=id0, inner]
+   *        │   ├── TableScan[tbl]
+   *        │   └── TableScan[tbl]
+   *        ├── HashJoin[age=age0 AND id≠id0, inner]
+   *        │   ├── TableScan[tbl]
+   *        │   └── TableScan[tbl]
+   *        ├── Project[tbl-side cols + NULLs]
+   *        │   └── HashJoin[id=id0, anti]
+   *        │       ├── HashJoin[age=age0, anti]
+   *        │       │   ├── TableScan[tbl]
+   *        │       │   └── TableScan[tbl]
+   *        │       └── TableScan[EMP]
+   *        └── Project[tbl-side cols + NULLs]
+   *            └── HashJoin[id=id0, semi]
+   *                ├── HashJoin[age=age0, semi]
+   *                │   ├── TableScan[tbl]
+   *                │   └── TableScan[tbl]
+   *                └── TableScan[tbl]
+   */
+  private RelNode expandFullJoin(Join join, List<RexNode> orConds,
+      RelBuilder relBuilder) {
+    List<RelNode> joins = new ArrayList<>();
+    joins.addAll(expandLeftJoinToRelNodes(join, orConds, relBuilder));
+    joins.add(expandSemiOrAntiJoin(join, JoinRelType.SEMI, orConds, relBuilder));
+    relBuilder.pushAll(joins)
+        .union(true, joins.size());
+
+    final List<RexNode> projects = join.getRowType().getFieldList().stream()
+        .map(field -> {
+          RexNode rexNode = relBuilder.field(field.getIndex());
+          return field.getType().equals(rexNode.getType())
+              ? rexNode
+              : relBuilder.getRexBuilder().makeCast(field.getType(), rexNode, true, false);
+        }).collect(Collectors.toList());
+
+    return relBuilder.project(projects)
+        .build();
+  }
+
+  /**
+   * This method will make the following conversions.
+   *
+   * <p>Project[*]
+   *    └── Join[OR(id=id0, age=age0), inner]
+   *        ├── TableScan[tbl]
+   *        └── TableScan[tbl]
+   *
+   * <p>into
+   *
+   * <p>Project[*]
+   *    └── UnionAll
+   *        ├── HashJoin[id=id0, inner]
+   *        │   ├── TableScan[tbl]
+   *        │   └── TableScan[tbl]
+   *        └── HashJoin[age=age0 AND id≠id0, inner]
+   *            ├── TableScan[tbl]
+   *            └── TableScan[tbl]
+   */
+  private RelNode expandInnerJoin(Join join, List<RexNode> orConds,
+      RelBuilder relBuilder) {
+    List<RelNode> joins = expandInnerJoinToRelNodes(join, orConds, relBuilder);
+    return relBuilder.pushAll(joins)
+        .union(true, joins.size())
+        .build();
+  }
+
+  private List<RelNode> expandInnerJoinToRelNodes(Join join, List<RexNode> orConds,
+      RelBuilder relBuilder) {
+    List<RelNode> joins = new ArrayList<>();
     for (int i = 0; i < orConds.size(); i++) {
       RexNode orCond = orConds.get(i);
       for (int j = 0; j < i; j++) {
-        orCond = relBuilder.and(orCond, relBuilder.not(extraConds.get(j)));
+        orCond = relBuilder.and(orCond, relBuilder.not(orConds.get(j)));
       }
-      extraConds.add(orCond);
-      relBuilder.push(join.getLeft())
+      joins.add(relBuilder.push(join.getLeft())
           .push(join.getRight())
-          .join(join.getJoinType(), orCond);
+          .join(JoinRelType.INNER, orCond)
+          .build());
+    }
+    return joins;
+  }
+
+  /**
+   * This method will make the following conversions.
+   *
+   * <p>Project[*]
+   *    └── Join[OR(id=id0, age=age0), anti]
+   *        ├── TableScan[tbl]
+   *        └── TableScan[tbl]
+   *
+   * <p>into
+   *
+   * <p>HashJoin[id=id0, anti]
+   *    ├── HashJoin[age=age0, anti]
+   *    │   ├── TableScan[tbl]
+   *    │   └── TableScan[tbl]
+   *    └── TableScan[tbl]
+   */
+  private RelNode expandSemiOrAntiJoin(Join join, JoinRelType joinType,
+      List<RexNode> orConds, RelBuilder relBuilder) {
+    RelNode left = join.getLeft();
+    for (int i = 0; i < orConds.size(); i++) {
+      RexNode orCond = orConds.get(i);
+      relBuilder.push(left)
+          .push(join.getRight())
+          .join(joinType, orCond);
+      left = relBuilder.build();
     }
 
-    relBuilder.union(true, orConds.size());
-    call.transformTo(relBuilder.build());
+    relBuilder.push(left);
+    int fieldCount = join.getRowType().getFieldCount();
+    List<RexNode> projects = new ArrayList<>(relBuilder.fields());
+    while (fieldCount > relBuilder.fields().size()) {
+      projects.add(relBuilder.literal(null));
+      fieldCount--;
+    }
+    return relBuilder.project(projects)
+        .build();
   }
 
   /** Rule configuration. */

@@ -1980,11 +1980,12 @@ public class JdbcTest {
    * Implementing JoinConditionOrExpansionRule</a>. */
   @Test void testJoinConditionOrExpansionRule() {
     final String sql = ""
-        + "select \"t1\".\"deptno\" from \"hr\".\"emps\" as \"t1\"\n"
-        + "join\n"
-        + "\"hr\".\"emps\" as \"t2\"\n"
-        + "on (\"t1\".\"deptno\" = \"t2\".\"deptno\") \n"
-        + "or (\"t1\".\"empid\" = \"t2\".\"empid\")";
+        + "SELECT \"t1\".\"deptno\", \"t1\".\"empid\", \"t2\".\"deptno\", \"t2\".\"empid\"\n"
+        + "FROM \"hr\".\"emps\" AS \"t1\"\n"
+        + "INNER JOIN (\n"
+        + "    SELECT (\"deptno\" + 10) AS \"deptno\", (\"empid\" + 100) AS \"empid\" FROM \"hr\".\"emps\"\n"
+        + ") AS \"t2\"\n"
+        + "ON (\"t1\".\"deptno\" = \"t2\".\"deptno\") OR (\"t1\".\"empid\" = \"t2\".\"empid\")";
     CalciteAssert.hr()
         .query(sql)
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
@@ -1992,16 +1993,35 @@ public class JdbcTest {
           planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
         })
         .explainContains("HashJoin")
-        .returnsUnordered("deptno=10",
-            "deptno=10",
-            "deptno=10",
-            "deptno=10",
-            "deptno=10",
-            "deptno=10",
-            "deptno=10",
-            "deptno=10",
-            "deptno=10",
-            "deptno=20");
+        .returnsUnordered("deptno=20; empid=200; deptno=20; empid=200",
+            "deptno=20; empid=200; deptno=20; empid=210",
+            "deptno=20; empid=200; deptno=20; empid=250");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6930">[CALCITE-6930]
+   * Implementing JoinConditionOrExpansionRule</a>. */
+  @Test void testJoinConditionOrExpansionRuleLeft() {
+    final String sql = ""
+        + "SELECT \"t1\".\"deptno\", \"t1\".\"empid\", \"t2\".\"deptno\", \"t2\".\"empid\"\n"
+        + "FROM \"hr\".\"emps\" AS \"t1\"\n"
+        + "LEFT JOIN (\n"
+        + "    SELECT (\"deptno\" + 10) AS \"deptno\", (\"empid\" + 100) AS \"empid\" FROM \"hr\".\"emps\"\n"
+        + ") AS \"t2\"\n"
+        + "ON (\"t1\".\"deptno\" = \"t2\".\"deptno\") OR (\"t1\".\"empid\" = \"t2\".\"empid\")";
+    CalciteAssert.hr()
+        .query(sql)
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+          planner.addRule(CoreRules.JOIN_CONDITION_OR_EXPANSION_RULE);
+          planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
+        })
+        .explainContains("HashJoin")
+        .returnsUnordered("deptno=10; empid=100; deptno=null; empid=null",
+            "deptno=10; empid=110; deptno=null; empid=null",
+            "deptno=10; empid=150; deptno=null; empid=null",
+            "deptno=20; empid=200; deptno=20; empid=200",
+            "deptno=20; empid=200; deptno=20; empid=210",
+            "deptno=20; empid=200; deptno=20; empid=250");
   }
 
   /** Four-way join. Used to take 80 seconds. */
