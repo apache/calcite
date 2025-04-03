@@ -5983,6 +5983,92 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], T=[$10])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testIntersectReorderRule">
+    <Resource name="sql">
+      <![CDATA[select deptno from emp
+intersect
+select deptno from emp where deptno > 5
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalIntersect(all=[false])
+  LogicalProject(DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(DEPTNO=[$7])
+    LogicalFilter(condition=[>($7, 5)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableIntersect(all=[false])
+  EnumerableProject(DEPTNO=[$7])
+    EnumerableFilter(condition=[>($7, 5)])
+      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+  EnumerableProject(DEPTNO=[$7])
+    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testIntersectReorderRuleAll">
+    <Resource name="sql">
+      <![CDATA[select deptno from emp
+intersect all
+select deptno from emp where deptno > 5
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalIntersect(all=[true])
+  LogicalProject(DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(DEPTNO=[$7])
+    LogicalFilter(condition=[>($7, 5)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableIntersect(all=[true])
+  EnumerableProject(DEPTNO=[$7])
+    EnumerableFilter(condition=[>($7, 5)])
+      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+  EnumerableProject(DEPTNO=[$7])
+    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testIntersectReorderRuleSameRowCount">
+    <Resource name="sql">
+      <![CDATA[select deptno from emp where deptno > 10
+intersect
+select deptno from emp where deptno > 5
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalIntersect(all=[false])
+  LogicalProject(DEPTNO=[$7])
+    LogicalFilter(condition=[>($7, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(DEPTNO=[$7])
+    LogicalFilter(condition=[>($7, 5)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableIntersect(all=[false])
+  EnumerableProject(DEPTNO=[$7])
+    EnumerableFilter(condition=[>($7, 10)])
+      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+  EnumerableProject(DEPTNO=[$7])
+    EnumerableFilter(condition=[>($7, 5)])
+      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testIntersectToDistinct">
     <Resource name="sql">
       <![CDATA[select * from emp where deptno = 10

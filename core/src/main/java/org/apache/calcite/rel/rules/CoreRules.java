@@ -349,6 +349,11 @@ public class CoreRules {
   public static final UnionMergeRule INTERSECT_MERGE =
       UnionMergeRule.Config.INTERSECT.toRule();
 
+  /** Planner rule that reorders inputs of an {@link Intersect} to put smaller inputs first.
+   * This helps reduce the size of intermediate results. */
+  public static final IntersectReorderRule INTERSECT_REORDER =
+      IntersectReorderRule.Config.DEFAULT.toRule();
+
   /** Rule that translates a distinct
    * {@link Intersect} into a group of operators
    * composed of {@link Union}, {@link Aggregate}, etc. */
