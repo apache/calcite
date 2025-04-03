@@ -2514,9 +2514,11 @@ class RelToSqlConverterTest {
    */
   @Test void testCastArrayCharset() {
     final String query = "select cast(array['a', 'b', 'c'] as varchar array)";
-    final String expected = "SELECT CAST(ARRAY ('a', 'b', 'c') AS VARCHAR ARRAY)";
+    final String expectedPostgresql = "SELECT CAST(ARRAY['a', 'b', 'c'] AS VARCHAR ARRAY)\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
     sql(query)
-        .withHive().ok(expected);
+        .withHive().throws_("Hive dialect does not support cast to ARRAY")
+        .withPostgresql().ok(expectedPostgresql);
   }
 
   /** Test case for
@@ -9640,6 +9642,45 @@ class RelToSqlConverterTest {
             + "SELECT *\nFROM \"foodmart\".\"product\"\nWHERE \"t\".\"product_id\" = \"product_id\""
             + ")";
     sql(sql).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6940">[CALCITE-6940]
+   * Hive/Phoenix Dialect should not cast to REAL type directly</a>. */
+  @Test void testRealTypesCast() {
+    String query = "SELECT CAST(\"department_id\" AS float), "
+        + "CAST(\"department_id\" AS double), "
+        + "CAST(\"department_id\" AS real) FROM \"employee\"";
+    String expectedPhoenix = "SELECT CAST(\"department_id\" AS FLOAT), "
+        + "CAST(\"department_id\" AS DOUBLE), "
+        + "CAST(\"department_id\" AS FLOAT)\nFROM \"foodmart\".\"employee\"";
+    String expectedHive = "SELECT CAST(`department_id` AS FLOAT), "
+        + "CAST(`department_id` AS DOUBLE), "
+        + "CAST(`department_id` AS FLOAT)\nFROM `foodmart`.`employee`";
+
+    sql(query)
+        .withPhoenix().ok(expectedPhoenix)
+        .withHive().ok(expectedHive);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6940">[CALCITE-6940]
+   * Hive/Phoenix Dialect should not cast to REAL type directly</a>. */
+  @Test void testRealNestedTypesCast() {
+    String query = "SELECT CAST(array[1,2,3] AS real array) FROM \"employee\"";
+    sql(query)
+        .withPhoenix().throws_("Phoenix dialect does not support cast to ARRAY")
+        .withHive().throws_("Hive dialect does not support cast to ARRAY");
+
+    String query1 = "SELECT CAST(MAP[1.0,2.0,3.0,4.0] AS MAP<FLOAT, REAL>) FROM \"employee\"";
+    sql(query1)
+        .withPhoenix().throws_("Phoenix dialect does not support cast to MAP")
+        .withHive().throws_("Hive dialect does not support cast to MAP");
+
+    String query2 = "SELECT CAST(array[1,2,3] AS real multiset) FROM \"employee\"";
+    sql(query2)
+        .withPhoenix().throws_("Phoenix dialect does not support cast to MULTISET")
+        .withHive().throws_("Hive dialect does not support cast to MULTISET");
   }
 
   @Test void testAntiJoinWithComplexInput2() {

@@ -33,6 +33,7 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.AbstractSqlType;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.util.RelToSqlConverterUtil;
 
@@ -151,6 +152,11 @@ public class HiveSqlDialect extends SqlDialect {
   @Override public @Nullable SqlNode getCastSpec(final RelDataType type) {
     if (type instanceof BasicSqlType) {
       switch (type.getSqlTypeName()) {
+      case REAL:
+        return new SqlDataTypeSpec(
+            new SqlAlienSystemTypeNameSpec("FLOAT", type.getSqlTypeName(),
+                SqlParserPos.ZERO),
+            SqlParserPos.ZERO);
       case INTEGER:
         SqlAlienSystemTypeNameSpec typeNameSpec =
             new SqlAlienSystemTypeNameSpec("INT", type.getSqlTypeName(),
@@ -167,6 +173,19 @@ public class HiveSqlDialect extends SqlDialect {
         break;
       }
     }
+
+    if (type instanceof AbstractSqlType) {
+      switch (type.getSqlTypeName()) {
+      case ARRAY:
+      case MAP:
+      case MULTISET:
+        throw new UnsupportedOperationException("Hive dialect does not support cast to "
+            + type.getSqlTypeName());
+      default:
+        break;
+      }
+    }
+
     return super.getCastSpec(type);
   }
 
