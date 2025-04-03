@@ -18,6 +18,7 @@ package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
@@ -33,7 +34,12 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.AbstractSqlType;
+import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.calcite.sql.type.MapSqlType;
+import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.RelToSqlConverterUtil;
 
 import com.google.common.collect.ImmutableList;
@@ -155,6 +161,11 @@ public class HiveSqlDialect extends SqlDialect {
   @Override public @Nullable SqlNode getCastSpec(final RelDataType type) {
     if (type instanceof BasicSqlType) {
       switch (type.getSqlTypeName()) {
+      case REAL:
+        return new SqlDataTypeSpec(
+            new SqlAlienSystemTypeNameSpec("FLOAT", type.getSqlTypeName(),
+                SqlParserPos.ZERO),
+            SqlParserPos.ZERO);
       case INTEGER:
         SqlAlienSystemTypeNameSpec typeNameSpec =
             new SqlAlienSystemTypeNameSpec("INT", type.getSqlTypeName(),
@@ -171,6 +182,34 @@ public class HiveSqlDialect extends SqlDialect {
         break;
       }
     }
+
+    SqlTypeFactoryImpl typeFactory =
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    if (type instanceof AbstractSqlType) {
+      switch (type.getSqlTypeName()) {
+      case ARRAY:
+        if (type.getComponentType().getSqlTypeName() == SqlTypeName.REAL) {
+          RelDataType convertSqlType = typeFactory.createSqlType(SqlTypeName.FLOAT);
+          ArraySqlType arraySqlType = new ArraySqlType(convertSqlType, convertSqlType.isNullable());
+          return super.getCastSpec(arraySqlType);
+        }
+        break;
+      case MAP:
+        RelDataType convertSqlKeyType;
+        convertSqlKeyType = type.getKeyType().getSqlTypeName() == SqlTypeName.REAL
+            ? typeFactory.createSqlType(SqlTypeName.FLOAT) : type.getKeyType();
+
+        RelDataType convertSqlValueType;
+        convertSqlValueType = type.getValueType().getSqlTypeName() == SqlTypeName.REAL
+            ? typeFactory.createSqlType(SqlTypeName.FLOAT) : type.getValueType();
+        MapSqlType mapSqlType =
+            new MapSqlType(convertSqlKeyType, convertSqlValueType, type.isNullable());
+        return super.getCastSpec(mapSqlType);
+      default:
+        break;
+      }
+    }
+
     return super.getCastSpec(type);
   }
 
