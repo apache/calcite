@@ -126,6 +126,10 @@ public enum SqlConformanceEnum implements SqlConformance {
     }
   }
 
+  @Override public SelectAliasLookup isSelectAlias() {
+    return SelectAliasLookup.Unsupported;
+  }
+
   @Override public boolean isGroupByOrdinal() {
     switch (this) {
     case BABEL:

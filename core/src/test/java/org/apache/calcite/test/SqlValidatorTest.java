@@ -6677,6 +6677,32 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .withConformance(lenient).fails("Column 'E' not found in any table");
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6939">
+   * [CALCITE-6939] Add support for Lateral Column Alias</a>. */
+  @Test void testAliasInSelect() {
+    final SqlConformance leftRoRight = new SqlAbstractConformance() {
+      @Override public SelectAliasLookup isSelectAlias() {
+        return SelectAliasLookup.LeftToRight;
+      }
+    };
+
+    // Standard conformance
+    sql("select 1 AS x, ^x^ as Y")
+        .fails("Column 'X' not found in any table");
+    // same query, conformance that allows select to use its own aliases
+    sql("select 1 AS x, x as Y")
+        .withConformance(leftRoRight)
+        .ok();
+    // column used before it is defined
+    sql("select ^x^ as Y, 1 AS x")
+        .withConformance(leftRoRight)
+        .fails("Column 'X' not found in any table");
+    // multiple aliases in the same select
+    sql("select 1 AS x, 2 as x, ^x^ AS y")
+        .withConformance(leftRoRight)
+        .fails("Column 'X' is ambiguous");
+  }
+
   /**
    * Tests validation of the aliases in HAVING.
    *

@@ -67,6 +67,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.util.SqlOperatorTables;
 import org.apache.calcite.sql.util.SqlString;
+import org.apache.calcite.sql.validate.SqlAbstractConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlNameMatchers;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
@@ -12059,6 +12060,20 @@ public class SqlOperatorTest {
     final List<SqlLibrary> libraries =
         list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.HIVE);
     f0.forEachLibrary(libraries, consumer);
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6939">
+   * [CALCITE-6939] Add support for Lateral Column Alias</a>. */
+  @Test void testAliasInSelect() {
+    final SqlOperatorFixture f = fixture()
+        .withConformance(new SqlAbstractConformance() {
+      @Override public SelectAliasLookup isSelectAlias() {
+        return SelectAliasLookup.LeftToRight;
+      }
+    });
+    f.check("select Y from (select 1 AS x, x as Y)",
+        "INTEGER NOT NULL",
+        "1");
   }
 
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5634">
