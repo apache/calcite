@@ -31,7 +31,10 @@ import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.calcite.sql.type.MapSqlType;
+import org.apache.calcite.sql.type.MultisetSqlType;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.CustomTypeSystems;
@@ -1102,6 +1105,103 @@ class RexBuilderTest {
             relDataType -> new TimeWithTimeZoneString(0, 0, 0, "GMT+00:00")),
         type2rexLiteral.apply(typeFactory.createSqlType(SqlTypeName.TIMESTAMP_TZ),
             relDataType -> new TimestampWithTimeZoneString(0, 1, 1, 0, 0, 0, "GMT+00:00")));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6938">[CALCITE-6938]
+   * Support zero value creation of nested data types</a>. */
+  @ParameterizedTest
+  @MethodSource("testData4testMakeZeroForNestedType")
+  void testMakeZeroForNestedType(RelDataType type, RexNode expected) {
+    final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RexBuilder rexBuilder = new RexBuilder(typeFactory);
+    assertThat(rexBuilder.makeZeroForNestedType(type), is(equalTo(expected)));
+  }
+
+  private static Stream<Arguments> testData4testMakeZeroForNestedType() {
+    RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    RexBuilder rexBuilder = new RexBuilder(typeFactory);
+
+    RelDataType integerType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    RelDataType varcharType = typeFactory.createSqlType(SqlTypeName.VARCHAR);
+
+    // ARRAY<INTEGER>
+    RelDataType arrayType = new ArraySqlType(integerType, false);
+    RexNode expectedArray =
+        rexBuilder.makeCall(arrayType, SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+        ImmutableList.of(rexBuilder.makeZeroLiteral(integerType)));
+
+    // MULTISET<INTEGER>
+    RelDataType multisetType = new MultisetSqlType(integerType, false);
+    RexNode expectedMultiset =
+        rexBuilder.makeCall(multisetType, SqlStdOperatorTable.MULTISET_VALUE,
+        ImmutableList.of(rexBuilder.makeZeroLiteral(integerType)));
+
+    // MAP<VARCHAR, INTEGER>
+    RelDataType mapType = new MapSqlType(varcharType, integerType, false);
+    RexNode expectedMap =
+        rexBuilder.makeCall(mapType, SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR,
+        ImmutableList.of(rexBuilder.makeZeroLiteral(varcharType),
+            rexBuilder.makeZeroLiteral(integerType)));
+
+    // ROW<INTEGER, VARCHAR>
+    RelDataType rowType =
+        typeFactory.createStructType(
+            ImmutableList.of(
+            new RelDataTypeFieldImpl("integer", 0, integerType),
+            new RelDataTypeFieldImpl("varchar", 1, varcharType)));
+    RexNode expectedRow =
+        rexBuilder.makeCall(rowType, SqlStdOperatorTable.ROW,
+        ImmutableList.of(rexBuilder.makeZeroLiteral(integerType),
+            rexBuilder.makeZeroLiteral(varcharType)));
+
+    // ARRAY<ARRAY<INTEGER>>
+    RelDataType arrayArrayType = new ArraySqlType(arrayType, false);
+    RexNode expectedArrayArray =
+        rexBuilder.makeCall(arrayArrayType, SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+            ImmutableList.of(rexBuilder.makeZeroForNestedType(arrayType)));
+
+    // ARRAY<MAP<VARCHAR, INTEGER>>
+    RelDataType arrayMapType = new ArraySqlType(mapType, false);
+    RexNode expectedArrayMap =
+        rexBuilder.makeCall(arrayMapType, SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+            ImmutableList.of(rexBuilder.makeZeroForNestedType(mapType)));
+
+    // MAP<ARRAY<INTEGER>, INTEGER>
+    RelDataType mapMapType = new MapSqlType(mapType, integerType, false);
+    RexNode expectedMapMap =
+        rexBuilder.makeCall(mapMapType, SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR,
+            ImmutableList.of(rexBuilder.makeZeroForNestedType(mapType),
+                rexBuilder.makeZeroLiteral(integerType)));
+
+    // MAP<ARRAY<INTEGER>, INTEGER>
+    RelDataType mapArrayType = new MapSqlType(arrayType, integerType, false);
+    RexNode expectedMapArray =
+        rexBuilder.makeCall(mapArrayType, SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR,
+            ImmutableList.of(rexBuilder.makeZeroForNestedType(arrayType),
+                rexBuilder.makeZeroLiteral(integerType)));
+
+    // ROW<ARRAY<INTEGER>, VARCHAR>
+    RelDataType rowArrayType =
+        typeFactory.createStructType(
+            ImmutableList.of(
+                new RelDataTypeFieldImpl("array", 0, arrayType),
+                new RelDataTypeFieldImpl("varchar", 1, varcharType)));
+    RexNode expectedRowArray =
+        rexBuilder.makeCall(rowArrayType, SqlStdOperatorTable.ROW,
+            ImmutableList.of(rexBuilder.makeZeroForNestedType(arrayType),
+                rexBuilder.makeZeroLiteral(varcharType)));
+
+    return Stream.of(
+        Arguments.of(arrayType, expectedArray),
+        Arguments.of(multisetType, expectedMultiset),
+        Arguments.of(mapType, expectedMap),
+        Arguments.of(rowType, expectedRow),
+        Arguments.of(arrayArrayType, expectedArrayArray),
+        Arguments.of(arrayMapType, expectedArrayMap),
+        Arguments.of(mapMapType, expectedMapMap),
+        Arguments.of(mapArrayType, expectedMapArray),
+        Arguments.of(rowArrayType, expectedRowArray));
   }
 
   /** Test case for
