@@ -12065,6 +12065,46 @@ public class SqlOperatorTest {
     f0.forEachLibrary(libraries, consumer);
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6939">
+   * [CALCITE-6939] Add support for Lateral Column Alias</a>. */
+  @Test void testAliasInSelect() {
+    final SqlOperatorFixture f = fixture()
+        // Babel sets isSelectAlias to ANY
+        .withConformance(SqlConformanceEnum.BABEL);
+    // Y uses the local X
+    f.check("select Y from (select 1 AS x, x as Y)",
+        "INTEGER NOT NULL", "1");
+    // X used twice
+    f.check("select Y from (select 1 AS x, x+x as Y)",
+        "INTEGER NOT NULL", "2");
+    // Chain of uses
+    f.check("select W from (select 1 AS x, x+x as Y, y+y as Z, z+z as W)",
+        "INTEGER NOT NULL", "8");
+    // Out of order lookup
+    f.check("SELECT W FROM (select z+z AS W, y+y AS Z, x+x AS Y, 1 AS x)",
+        "INTEGER NOT NULL", "8");
+    // Duplicate local column definition
+    f.checkFails("SELECT ^x^ FROM (select 1 AS x, 2 as x)",
+        "Column 'X' is ambiguous", false);
+    // Duplicate local column definition
+    f.checkFails("SELECT W FROM (select 1 AS x, 2 as x, ^x^ as W)",
+        "Column 'X' is ambiguous", false);
+    // Inner columns are not used if scope includes outer columns
+    f.check("SELECT W FROM (SELECT 1 AS X, X AS W FROM (SELECT 2 AS X))",
+        "INTEGER NOT NULL", "2");
+    // Circular dependency
+    f.checkFails("SELECT X FROM (SELECT ^X^ AS Y, Y AS X)",
+        "The definition of column 'X' depends on itself through "
+            + "the following columns: 'X', 'Y'", false);
+    // Circular dependency
+    f.checkFails("SELECT X FROM (SELECT ^X^ + 1 AS Y, Y + 1 AS X)",
+        "The definition of column 'X' depends on itself through "
+            + "the following columns: 'X', 'Y'", false);
+    // No circular dependency if a column is defined in an outer scope
+    f.check("SELECT X FROM (SELECT X + 1 AS Y, Y + 1 AS X FROM (SELECT 2 AS X))",
+        "INTEGER NOT NULL", "4");
+  }
+
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5634">
    * [CALCITE-5634] Enable GREATEST, LEAST functions in PostgreSQL library</a>. */
   @Test void testLeastPgFunc() {

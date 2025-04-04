@@ -6677,6 +6677,71 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .withConformance(lenient).fails("Column 'E' not found in any table");
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6939">
+   * [CALCITE-6939] Add support for Lateral Column Alias</a>. */
+  @Test void testAliasInSelect() {
+    final SqlConformance leftRoRight = new SqlAbstractConformance() {
+      @Override public SelectAliasLookup isSelectAlias() {
+        return SelectAliasLookup.LEFT_TO_RIGHT;
+      }
+      @Override public boolean isGroupByAlias() {
+        return true;
+      }
+    };
+    final SqlConformance any = new SqlAbstractConformance() {
+      @Override public SelectAliasLookup isSelectAlias() {
+        return SelectAliasLookup.ANY;
+      }
+    };
+
+    // Standard conformance: error
+    sql("select 1 AS x, ^x^ as Y")
+        .fails("Column 'X' not found in any table");
+    // same query, conformance that allows select to use its own aliases
+    sql("select 1 AS x, x as Y")
+        .withConformance(leftRoRight)
+        .ok();
+    // column used before it is defined
+    sql("select ^x^ as Y, 1 AS x")
+        .withConformance(leftRoRight)
+        .fails("Column 'X' not found in any table");
+    sql("select x as Y, 1 AS x")
+        .withConformance(any)
+        .ok();
+    // multiple aliases in the same select
+    sql("select 1 AS x, 2 as x, ^x^ AS y")
+        .withConformance(leftRoRight)
+        .fails("Column 'X' is ambiguous");
+    // multiple aliases in the same select
+    sql("select 1 AS x, 2 as x, ^x^ AS y")
+        .withConformance(any)
+        .fails("Column 'X' is ambiguous");
+    // Circular dependency
+    sql("select ^x^ as y, y + 1 AS x")
+        .withConformance(any)
+        .fails("The definition of column 'X' depends on itself through the following columns: "
+            + "'X', 'Y'");
+    // Using a FROM clause with a table
+    sql("select empno AS x, x as y FROM emp")
+        .withValidatorIdentifierExpansion(true)
+        .withConformance(leftRoRight)
+        .ok();
+    // aliases are visible in group by
+    sql("select empno AS x, x as y FROM emp GROUP BY y")
+        .withValidatorIdentifierExpansion(true)
+        .withConformance(leftRoRight)
+        .ok();
+    // the following is not legal in any conformance
+    // because 'empno' is visible in the FROM clause
+    sql("select count(empno + deptno) as empno, ^empno^ as x from emp"
+            + " group by empno + deptno")
+            .fails("Expression 'EMPNO' is not being grouped")
+            .withConformance(leftRoRight)
+            .fails("Expression 'EMPNO' is not being grouped")
+            .withConformance(any)
+            .fails("Expression 'EMPNO' is not being grouped");
+  }
+
   /**
    * Tests validation of the aliases in HAVING.
    *

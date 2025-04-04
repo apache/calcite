@@ -124,6 +124,16 @@ class CoreQuidemTest extends QuidemTest {
                   SqlConformanceEnum.LENIENT)
               .with(CalciteAssert.Config.SCOTT)
               .connect();
+        case "scott-babel":
+          // Same as "scott", but uses BABEL conformance.
+          // connection
+          return CalciteAssert.that()
+              .with(CalciteConnectionProperty.PARSER_FACTORY,
+                  ExtensionDdlExecutor.class.getName() + "#PARSER_FACTORY")
+              .with(CalciteConnectionProperty.CONFORMANCE,
+                  SqlConformanceEnum.BABEL)
+              .with(CalciteAssert.Config.SCOTT)
+              .connect();
         case "scott-mysql":
           // Same as "scott", but uses MySQL conformance.
           return CalciteAssert.that()
