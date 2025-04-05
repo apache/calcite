@@ -155,6 +155,11 @@ public class HiveSqlDialect extends SqlDialect {
   @Override public @Nullable SqlNode getCastSpec(final RelDataType type) {
     if (type instanceof BasicSqlType) {
       switch (type.getSqlTypeName()) {
+      case REAL:
+        return new SqlDataTypeSpec(
+            new SqlAlienSystemTypeNameSpec("FLOAT", type.getSqlTypeName(),
+                SqlParserPos.ZERO),
+            SqlParserPos.ZERO);
       case INTEGER:
         SqlAlienSystemTypeNameSpec typeNameSpec =
             new SqlAlienSystemTypeNameSpec("INT", type.getSqlTypeName(),

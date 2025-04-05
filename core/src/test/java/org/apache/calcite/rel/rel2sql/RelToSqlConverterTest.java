@@ -9484,6 +9484,25 @@ class RelToSqlConverterTest {
     sql(sql).ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6940">[CALCITE-6940]
+   * Hive/Phoenix Dialect should not cast to REAL type directly</a>. */
+  @Test void testRealTypesCast() {
+    String query = "SELECT CAST(\"department_id\" AS float), "
+        + "CAST(\"department_id\" AS double), "
+        + "CAST(\"department_id\" AS real) FROM \"employee\"";
+    String expectedPhoenix = "SELECT CAST(\"department_id\" AS FLOAT), "
+        + "CAST(\"department_id\" AS DOUBLE), "
+        + "CAST(\"department_id\" AS FLOAT)\nFROM \"foodmart\".\"employee\"";
+    String expectedHive = "SELECT CAST(`department_id` AS FLOAT), "
+        + "CAST(`department_id` AS DOUBLE), "
+        + "CAST(`department_id` AS FLOAT)\nFROM `foodmart`.`employee`";
+
+    sql(query)
+        .withPhoenix().ok(expectedPhoenix)
+        .withHive().ok(expectedHive);
+  }
+
   @Test void testAntiJoinWithComplexInput2() {
     final String sql = "SELECT * FROM "
         + "(select * from ("

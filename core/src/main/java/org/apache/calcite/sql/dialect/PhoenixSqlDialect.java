@@ -16,7 +16,14 @@
  */
 package org.apache.calcite.sql.dialect;
 
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
+import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.parser.SqlParserPos;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * A <code>SqlDialect</code> implementation for the Apache Phoenix database.
@@ -39,5 +46,20 @@ public class PhoenixSqlDialect extends SqlDialect {
 
   @Override public boolean supportsCharSet() {
     return false;
+  }
+
+  @Override public @Nullable SqlNode getCastSpec(RelDataType type) {
+    switch (type.getSqlTypeName()) {
+    case REAL:
+      return new SqlDataTypeSpec(
+          new SqlAlienSystemTypeNameSpec(
+              "FLOAT",
+              type.getSqlTypeName(),
+              SqlParserPos.ZERO),
+          SqlParserPos.ZERO);
+    default:
+      break;
+    }
+    return super.getCastSpec(type);
   }
 }
