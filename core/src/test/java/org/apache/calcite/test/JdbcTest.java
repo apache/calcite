@@ -3950,6 +3950,24 @@ public class JdbcTest {
         .returnsUnordered("empid=150; name=Sebastian");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6904">[CALCITE-6904]
+   * IS_NOT_DISTINCT_FROM is converted error in EnumerableJoinRule</a>. */
+  @Test void testIsNotDistinctFrom() {
+    final String sql = ""
+        + "select \"t1\".\"commission\" from \"hr\".\"emps\" as \"t1\"\n"
+        + "join\n"
+        + "\"hr\".\"emps\" as \"t2\"\n"
+        + "on \"t1\".\"commission\" is not distinct from \"t2\".\"commission\"";
+    CalciteAssert.hr()
+        .query(sql)
+        .explainContains("NestedLoopJoin(condition=[IS NOT DISTINCT FROM($0, $1)]")
+        .returnsUnordered("commission=1000",
+            "commission=250",
+            "commission=500",
+            "commission=null");
+  }
+
   @Test void testExcept() {
     final String sql = ""
         + "select \"empid\", \"name\" from \"hr\".\"emps\" where \"deptno\"=10\n"
