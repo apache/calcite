@@ -1975,6 +1975,69 @@ public class JdbcTest {
             "c0=Drink; c1=Dairy; c2=USA; c3=WA; c4=Bellingham");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6930">[CALCITE-6930]
+   * Implementing JoinConditionOrExpansionRule</a>. */
+  @Test void testJoinConditionOrExpansionRule() {
+    final String sql = ""
+        + "SELECT \"t1\".\"deptno\", \"t1\".\"empid\", \"t2\".\"deptno\", \"t2\".\"empid\"\n"
+        + "FROM \"hr\".\"emps\" AS \"t1\"\n"
+        + "INNER JOIN (\n"
+        + "    SELECT (\"deptno\" + 10) AS \"deptno\", (\"empid\" + 100) AS \"empid\" FROM \"hr\".\"emps\"\n"
+        + ") AS \"t2\"\n"
+        + "ON (\"t1\".\"deptno\" = \"t2\".\"deptno\") OR (\"t1\".\"empid\" = \"t2\".\"empid\")";
+
+    String[] returns = new String[] {
+        "deptno=20; empid=200; deptno=20; empid=200",
+        "deptno=20; empid=200; deptno=20; empid=210",
+        "deptno=20; empid=200; deptno=20; empid=250"};
+
+    CalciteAssert.hr()
+        .query(sql)
+        .returnsUnordered(returns);
+
+    CalciteAssert.hr()
+        .query(sql)
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+          planner.addRule(CoreRules.JOIN_CONDITION_OR_EXPANSION_RULE);
+          planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
+        })
+        .returnsUnordered(returns);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6930">[CALCITE-6930]
+   * Implementing JoinConditionOrExpansionRule</a>. */
+  @Test void testJoinConditionOrExpansionRuleLeft() {
+    final String sql = ""
+        + "SELECT \"t1\".\"deptno\", \"t1\".\"empid\", \"t2\".\"deptno\", \"t2\".\"empid\"\n"
+        + "FROM \"hr\".\"emps\" AS \"t1\"\n"
+        + "LEFT JOIN (\n"
+        + "    SELECT (\"deptno\" + 10) AS \"deptno\", (\"empid\" + 100) AS \"empid\" FROM \"hr\".\"emps\"\n"
+        + ") AS \"t2\"\n"
+        + "ON (\"t1\".\"deptno\" = \"t2\".\"deptno\") OR (\"t1\".\"empid\" = \"t2\".\"empid\")";
+
+    String[] returns = new String[] {
+        "deptno=10; empid=100; deptno=null; empid=null",
+        "deptno=10; empid=110; deptno=null; empid=null",
+        "deptno=10; empid=150; deptno=null; empid=null",
+        "deptno=20; empid=200; deptno=20; empid=200",
+        "deptno=20; empid=200; deptno=20; empid=210",
+        "deptno=20; empid=200; deptno=20; empid=250"};
+
+    CalciteAssert.hr()
+        .query(sql)
+        .returnsUnordered(returns);
+
+    CalciteAssert.hr()
+        .query(sql)
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+          planner.addRule(CoreRules.JOIN_CONDITION_OR_EXPANSION_RULE);
+          planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
+        })
+        .returnsUnordered(returns);
+  }
+
   /** Four-way join. Used to take 80 seconds. */
   @Disabled
   @Test void testJoinFiveWay() {
