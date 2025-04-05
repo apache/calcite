@@ -1917,6 +1917,27 @@ public class RexBuilder {
     return makeLiteral(zeroValue(type), type);
   }
 
+  public RexNode makeZeroForNestedType(RelDataType type) {
+    SqlOperator op;
+    switch (type.getSqlTypeName()) {
+    case ARRAY:
+      op = SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR;
+      break;
+    case MULTISET:
+      op = SqlStdOperatorTable.MULTISET_VALUE;
+      break;
+    case MAP:
+      op = SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR;
+      break;
+    case ROW:
+      op = SqlStdOperatorTable.ROW;
+      break;
+    default:
+      throw Util.unexpected(type.getSqlTypeName());
+    }
+    return makeCall(type, op, ImmutableList.of());
+  }
+
   private static Comparable zeroValue(RelDataType type) {
     switch (type.getSqlTypeName()) {
     case CHAR:
