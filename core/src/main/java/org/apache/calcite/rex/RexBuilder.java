@@ -1918,31 +1918,24 @@ public class RexBuilder {
   }
 
   public RexNode makeZeroForNestedType(RelDataType type) {
+    SqlOperator op;
     switch (type.getSqlTypeName()) {
     case ARRAY:
-      ArraySqlType arrayType = (ArraySqlType) type;
-      RexNode zeroElement = makeZeroForNestedType(arrayType.getComponentType());
-      return makeCall(type, SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
-          ImmutableList.of(zeroElement));
+      op = SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR;
+      break;
     case MULTISET:
-      MultisetSqlType multisetType = (MultisetSqlType) type;
-      RexNode zeroMultisetElement = makeZeroForNestedType(multisetType.getComponentType());
-      return makeCall(type, SqlStdOperatorTable.MULTISET_VALUE,
-          ImmutableList.of(zeroMultisetElement));
+      op = SqlStdOperatorTable.MULTISET_VALUE;
+      break;
     case MAP:
-      MapSqlType mapType = (MapSqlType) type;
-      RexNode zeroKey = makeZeroForNestedType(mapType.getKeyType());
-      RexNode zeroValue = makeZeroForNestedType(mapType.getValueType());
-      return makeCall(type, SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR,
-          ImmutableList.of(zeroKey, zeroValue));
+      op = SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR;
+      break;
     case ROW:
-      List<RexNode> zeroFields = type.getFieldList().stream()
-          .map(field -> makeZeroForNestedType(field.getType()))
-          .collect(Collectors.toList());
-      return makeCall(type, SqlStdOperatorTable.ROW, zeroFields);
+      op = SqlStdOperatorTable.ROW;
+      break;
     default:
-      return makeZeroLiteral(type);
+      throw Util.unexpected(type.getSqlTypeName());
     }
+    return makeCall(type, op, ImmutableList.of());
   }
 
   private static Comparable zeroValue(RelDataType type) {

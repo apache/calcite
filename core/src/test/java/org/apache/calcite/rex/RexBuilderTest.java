@@ -1118,9 +1118,41 @@ class RexBuilderTest {
     assertThat(rexBuilder.makeZeroForNestedType(type), is(equalTo(expected)));
   }
 
+  @Test void testCreateCoalesce() {
+    RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    RexBuilder b = new RexBuilder(typeFactory);
+    RelDataType varcharType = typeFactory.createSqlType(SqlTypeName.VARCHAR);
+
+    RelDataType arrayType = new ArraySqlType(varcharType, false);
+    RexNode arrayZero = b.makeZeroForNestedType(arrayType);
+
+    // COALESCE(array('1', '2', '3'), array())
+    b.makeCall(SqlStdOperatorTable.COALESCE,
+        b.makeCall(
+            arrayType, SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+            ImmutableList.of(
+                b.makeLiteral("1", varcharType),
+                b.makeLiteral("2", varcharType),
+                b.makeLiteral("3", varcharType))),
+        arrayZero);
+
+    RelDataType mapType = new MapSqlType(arrayType, arrayType, true);
+    RexNode array =
+        b.makeCall(arrayType, SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+        ImmutableList.of(b.makeLiteral("1", varcharType)));
+
+    // COALESCE(map(array('1'), array('1')), map(array(), array()))
+    b.makeCall(SqlStdOperatorTable.COALESCE,
+        b.makeCall(
+            new MapSqlType(arrayType, arrayType, true),
+            SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR,
+            ImmutableList.of(array, array)),
+        b.makeZeroForNestedType(mapType));
+  }
+
   private static Stream<Arguments> testData4testMakeZeroForNestedType() {
     RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
-    RexBuilder rexBuilder = new RexBuilder(typeFactory);
+    RexBuilder b = new RexBuilder(typeFactory);
 
     RelDataType integerType = typeFactory.createSqlType(SqlTypeName.INTEGER);
     RelDataType varcharType = typeFactory.createSqlType(SqlTypeName.VARCHAR);
@@ -1128,21 +1160,20 @@ class RexBuilderTest {
     // ARRAY<INTEGER>
     RelDataType arrayType = new ArraySqlType(integerType, false);
     RexNode expectedArray =
-        rexBuilder.makeCall(arrayType, SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
-        ImmutableList.of(rexBuilder.makeZeroLiteral(integerType)));
+        b.makeCall(arrayType, SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+        ImmutableList.of());
 
     // MULTISET<INTEGER>
     RelDataType multisetType = new MultisetSqlType(integerType, false);
     RexNode expectedMultiset =
-        rexBuilder.makeCall(multisetType, SqlStdOperatorTable.MULTISET_VALUE,
-        ImmutableList.of(rexBuilder.makeZeroLiteral(integerType)));
+        b.makeCall(multisetType, SqlStdOperatorTable.MULTISET_VALUE,
+        ImmutableList.of());
 
     // MAP<VARCHAR, INTEGER>
     RelDataType mapType = new MapSqlType(varcharType, integerType, false);
     RexNode expectedMap =
-        rexBuilder.makeCall(mapType, SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR,
-        ImmutableList.of(rexBuilder.makeZeroLiteral(varcharType),
-            rexBuilder.makeZeroLiteral(integerType)));
+        b.makeCall(mapType, SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR,
+        ImmutableList.of());
 
     // ROW<INTEGER, VARCHAR>
     RelDataType rowType =
@@ -1151,35 +1182,32 @@ class RexBuilderTest {
             new RelDataTypeFieldImpl("integer", 0, integerType),
             new RelDataTypeFieldImpl("varchar", 1, varcharType)));
     RexNode expectedRow =
-        rexBuilder.makeCall(rowType, SqlStdOperatorTable.ROW,
-        ImmutableList.of(rexBuilder.makeZeroLiteral(integerType),
-            rexBuilder.makeZeroLiteral(varcharType)));
+        b.makeCall(rowType, SqlStdOperatorTable.ROW,
+        ImmutableList.of());
 
     // ARRAY<ARRAY<INTEGER>>
     RelDataType arrayArrayType = new ArraySqlType(arrayType, false);
     RexNode expectedArrayArray =
-        rexBuilder.makeCall(arrayArrayType, SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
-            ImmutableList.of(rexBuilder.makeZeroForNestedType(arrayType)));
+        b.makeCall(arrayArrayType, SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+            ImmutableList.of());
 
     // ARRAY<MAP<VARCHAR, INTEGER>>
     RelDataType arrayMapType = new ArraySqlType(mapType, false);
     RexNode expectedArrayMap =
-        rexBuilder.makeCall(arrayMapType, SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
-            ImmutableList.of(rexBuilder.makeZeroForNestedType(mapType)));
+        b.makeCall(arrayMapType, SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+            ImmutableList.of());
 
-    // MAP<ARRAY<INTEGER>, INTEGER>
+    // MAP<MAP<INTEGER, INTEGER>
     RelDataType mapMapType = new MapSqlType(mapType, integerType, false);
     RexNode expectedMapMap =
-        rexBuilder.makeCall(mapMapType, SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR,
-            ImmutableList.of(rexBuilder.makeZeroForNestedType(mapType),
-                rexBuilder.makeZeroLiteral(integerType)));
+        b.makeCall(mapMapType, SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR,
+            ImmutableList.of());
 
     // MAP<ARRAY<INTEGER>, INTEGER>
     RelDataType mapArrayType = new MapSqlType(arrayType, integerType, false);
     RexNode expectedMapArray =
-        rexBuilder.makeCall(mapArrayType, SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR,
-            ImmutableList.of(rexBuilder.makeZeroForNestedType(arrayType),
-                rexBuilder.makeZeroLiteral(integerType)));
+        b.makeCall(mapArrayType, SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR,
+            ImmutableList.of());
 
     // ROW<ARRAY<INTEGER>, VARCHAR>
     RelDataType rowArrayType =
@@ -1188,9 +1216,8 @@ class RexBuilderTest {
                 new RelDataTypeFieldImpl("array", 0, arrayType),
                 new RelDataTypeFieldImpl("varchar", 1, varcharType)));
     RexNode expectedRowArray =
-        rexBuilder.makeCall(rowArrayType, SqlStdOperatorTable.ROW,
-            ImmutableList.of(rexBuilder.makeZeroForNestedType(arrayType),
-                rexBuilder.makeZeroLiteral(varcharType)));
+        b.makeCall(rowArrayType, SqlStdOperatorTable.ROW,
+            ImmutableList.of());
 
     return Stream.of(
         Arguments.of(arrayType, expectedArray),
