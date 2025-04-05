@@ -1986,16 +1986,23 @@ public class JdbcTest {
         + "    SELECT (\"deptno\" + 10) AS \"deptno\", (\"empid\" + 100) AS \"empid\" FROM \"hr\".\"emps\"\n"
         + ") AS \"t2\"\n"
         + "ON (\"t1\".\"deptno\" = \"t2\".\"deptno\") OR (\"t1\".\"empid\" = \"t2\".\"empid\")";
+
+    String[] returns = new String[] {
+        "deptno=20; empid=200; deptno=20; empid=200",
+        "deptno=20; empid=200; deptno=20; empid=210",
+        "deptno=20; empid=200; deptno=20; empid=250"};
+
+    CalciteAssert.hr()
+        .query(sql)
+        .returnsUnordered(returns);
+
     CalciteAssert.hr()
         .query(sql)
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
           planner.addRule(CoreRules.JOIN_CONDITION_OR_EXPANSION_RULE);
           planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
         })
-        .explainContains("HashJoin")
-        .returnsUnordered("deptno=20; empid=200; deptno=20; empid=200",
-            "deptno=20; empid=200; deptno=20; empid=210",
-            "deptno=20; empid=200; deptno=20; empid=250");
+        .returnsUnordered(returns);
   }
 
   /** Test case for
@@ -2009,19 +2016,26 @@ public class JdbcTest {
         + "    SELECT (\"deptno\" + 10) AS \"deptno\", (\"empid\" + 100) AS \"empid\" FROM \"hr\".\"emps\"\n"
         + ") AS \"t2\"\n"
         + "ON (\"t1\".\"deptno\" = \"t2\".\"deptno\") OR (\"t1\".\"empid\" = \"t2\".\"empid\")";
+
+    String[] returns = new String[] {
+        "deptno=10; empid=100; deptno=null; empid=null",
+        "deptno=10; empid=110; deptno=null; empid=null",
+        "deptno=10; empid=150; deptno=null; empid=null",
+        "deptno=20; empid=200; deptno=20; empid=200",
+        "deptno=20; empid=200; deptno=20; empid=210",
+        "deptno=20; empid=200; deptno=20; empid=250"};
+
+    CalciteAssert.hr()
+        .query(sql)
+        .returnsUnordered(returns);
+
     CalciteAssert.hr()
         .query(sql)
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
           planner.addRule(CoreRules.JOIN_CONDITION_OR_EXPANSION_RULE);
           planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
         })
-        .explainContains("HashJoin")
-        .returnsUnordered("deptno=10; empid=100; deptno=null; empid=null",
-            "deptno=10; empid=110; deptno=null; empid=null",
-            "deptno=10; empid=150; deptno=null; empid=null",
-            "deptno=20; empid=200; deptno=20; empid=200",
-            "deptno=20; empid=200; deptno=20; empid=210",
-            "deptno=20; empid=200; deptno=20; empid=250");
+        .returnsUnordered(returns);
   }
 
   /** Four-way join. Used to take 80 seconds. */

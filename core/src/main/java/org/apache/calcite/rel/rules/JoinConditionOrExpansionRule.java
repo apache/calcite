@@ -93,26 +93,26 @@ public class JoinConditionOrExpansionRule
    * This method will make the following conversions.
    *
    * <p>Project[*]
-   *    └── Join[OR(id=id0, age=age0), left]
-   *        ├── TableScan[tbl]
-   *        └── TableScan[tbl]
+   *    └── Join[OR(t1.id=t2.id, t1.age=t2.age), left]
+   *        ├── TableScan[t1]
+   *        └── TableScan[t2]
    *
    * <p>into
    *
    * <p>Project[*]
    *    └── UnionAll
-   *        ├── HashJoin[id=id0, inner]
-   *        │   ├── TableScan[tbl]
-   *        │   └── TableScan[tbl]
-   *        ├── HashJoin[age=age0 AND id≠id0, inner]
-   *        │   ├── TableScan[tbl]
-   *        │   └── TableScan[tbl]
-   *        └── Project[tbl-side cols + NULLs]
-   *            └── HashJoin[id=id0, anti]
-   *                ├── HashJoin[age=age0, anti]
-   *                │   ├── TableScan[tbl]
-   *                │   └── TableScan[tbl]
-   *                └── TableScan[tbl]
+   *        ├── Join[t1.id=t2.id, inner]
+   *        │   ├── TableScan[t1]
+   *        │   └── TableScan[t2]
+   *        ├── Join[t1.age=t2.age AND t1.id≠t2.id, inner]
+   *        │   ├── TableScan[t1]
+   *        │   └── TableScan[t2]
+   *        └── Project[t1-side cols + NULLs]
+   *            └── Join[t1.id=t2.id, anti]
+   *                ├── Join[t1.age=t2.age, anti]
+   *                │   ├── TableScan[t1]
+   *                │   └── TableScan[t2]
+   *                └── TableScan[t2]
    */
   private RelNode expandLeftJoin(Join join, List<RexNode> orConds,
       RelBuilder relBuilder) {
@@ -150,32 +150,32 @@ public class JoinConditionOrExpansionRule
    * This method will make the following conversions.
    *
    * <p>Project[*]
-   *    └── Join[OR(id=id0, age=age0), full]
-   *        ├── TableScan[tbl]
-   *        └── TableScan[tbl]
+   *    └── Join[OR(t1.id=t2.id, t1.age=t2.age), full]
+   *        ├── TableScan[t1]
+   *        └── TableScan[t2]
    *
    * <p>into
    *
    * <p>Project[*]
    *    └── UnionAll
-   *        ├── HashJoin[id=id0, inner]
-   *        │   ├── TableScan[tbl]
-   *        │   └── TableScan[tbl]
-   *        ├── HashJoin[age=age0 AND id≠id0, inner]
-   *        │   ├── TableScan[tbl]
-   *        │   └── TableScan[tbl]
-   *        ├── Project[tbl-side cols + NULLs]
-   *        │   └── HashJoin[id=id0, anti]
-   *        │       ├── HashJoin[age=age0, anti]
-   *        │       │   ├── TableScan[tbl]
-   *        │       │   └── TableScan[tbl]
-   *        │       └── TableScan[EMP]
-   *        └── Project[tbl-side cols + NULLs]
-   *            └── HashJoin[id=id0, semi]
-   *                ├── HashJoin[age=age0, semi]
-   *                │   ├── TableScan[tbl]
-   *                │   └── TableScan[tbl]
-   *                └── TableScan[tbl]
+   *        ├── Join[t1.id=t2.id, inner]
+   *        │   ├── TableScan[t1]
+   *        │   └── TableScan[t2]
+   *        ├── Join[t1.age=t2.age AND t1.id≠t2.id, inner]
+   *        │   ├── TableScan[t1]
+   *        │   └── TableScan[t2]
+   *        ├── Project[t1-side cols + NULLs]
+   *        │   └── Join[t1.id=t2.id, anti]
+   *        │       ├── Join[t1.age=t2.age, anti]
+   *        │       │   ├── TableScan[t1]
+   *        │       │   └── TableScan[t2]
+   *        │       └── TableScan[t2]
+   *        └── Project[t1-side cols + NULLs]
+   *            └── Join[t1.id=t2.id, semi]
+   *                ├── Join[t1.age=t2.age, semi]
+   *                │   ├── TableScan[t1]
+   *                │   └── TableScan[t2]
+   *                └── TableScan[t2]
    */
   private RelNode expandFullJoin(Join join, List<RexNode> orConds,
       RelBuilder relBuilder) {
@@ -200,21 +200,21 @@ public class JoinConditionOrExpansionRule
   /**
    * This method will make the following conversions.
    *
-   * <p>Project[*]
-   *    └── Join[OR(id=id0, age=age0), inner]
-   *        ├── TableScan[tbl]
-   *        └── TableScan[tbl]
+   * <p>                         Project[*]
+   *                                |
+   *                 Join[OR(t1.id=t2.id, t1.age=t2.age), inner]
+   *                             /     \
+   *                  TableScan[t1]   TableScan[t2]
    *
    * <p>into
    *
-   * <p>Project[*]
-   *    └── UnionAll
-   *        ├── HashJoin[id=id0, inner]
-   *        │   ├── TableScan[tbl]
-   *        │   └── TableScan[tbl]
-   *        └── HashJoin[age=age0 AND id≠id0, inner]
-   *            ├── TableScan[tbl]
-   *            └── TableScan[tbl]
+   * <p>                         Project[*]
+   *                                |
+   *                             UnionAll
+   *                             /     \
+   *       Join[t1.id=t2.id, inner]    Join[t1.age=t2.age AND t1.id≠t2.id, inner]
+   *           /        \                      /        \
+   *  TableScan[t1]    TableScan[t2]    TableScan[t1]    TableScan[t2]
    */
   private RelNode expandInnerJoin(Join join, List<RexNode> orConds,
       RelBuilder relBuilder) {
@@ -268,11 +268,13 @@ public class JoinConditionOrExpansionRule
     }
 
     relBuilder.push(left);
-    int fieldCount = join.getRowType().getFieldCount();
     List<RexNode> projects = new ArrayList<>(relBuilder.fields());
-    while (fieldCount > relBuilder.fields().size()) {
-      projects.add(relBuilder.literal(null));
-      fieldCount--;
+    int fieldCount = relBuilder.fields().size();
+    while (fieldCount < join.getRowType().getFieldCount()) {
+      projects.add(
+          relBuilder.getRexBuilder().makeNullLiteral(
+              join.getRowType().getFieldList().get(fieldCount).getType()));
+      fieldCount++;
     }
     return relBuilder.project(projects)
         .build();
