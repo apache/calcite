@@ -7393,11 +7393,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    */
   static class SelectExpander extends Expander {
     final SqlSelect select;
+    @Nullable SqlNode root = null;
 
     SelectExpander(SqlValidatorImpl validator, SelectScope scope,
         SqlSelect select) {
       super(validator, scope);
       this.select = select;
+    }
+
+    @Override public SqlNode go(SqlNode root) {
+      this.root = root;
+      return super.go(root);
     }
 
     @Override public @Nullable SqlNode visit(SqlIdentifier id) {
@@ -7406,7 +7412,46 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       if (node != id) {
         return node;
       } else {
-        return super.visit(id);
+        try {
+          return super.visit(id);
+        } catch (Exception ex) {
+          if (!(ex instanceof CalciteContextException)) {
+            throw ex;
+          }
+          if (validator.getConformance().isSelectAlias() && id.isSimple()) {
+            // Try to lookup the item in the select list itself
+            String name = id.getSimple();
+            @Nullable SqlNode expr = null;
+            final SqlNameMatcher nameMatcher =
+                validator.catalogReader.nameMatcher();
+            int n = 0;
+            for (SqlNode s : select.getSelectList()) {
+              if (s == this.root) {
+                // Stop lookup at the current item
+                break;
+              }
+              final String alias = SqlValidatorUtil.alias(s);
+              if (alias != null && nameMatcher.matches(alias, name)) {
+                expr = s;
+                n++;
+              }
+            }
+            if (n == 0 || expr == null) {
+              throw ex;
+            } else if (n > 1) {
+              // More than one column has this alias.
+              throw validator.newValidationError(id,
+                  RESOURCE.columnAmbiguous(name));
+            }
+            expr = stripAs(requireNonNull(expr, "expr"));
+            if (expr instanceof SqlIdentifier) {
+              expr = getScope().fullyQualify((SqlIdentifier) expr).identifier;
+            }
+            validator.setOriginal(expr, id);
+            return expr;
+          }
+          throw ex;
+        }
       }
     }
   }

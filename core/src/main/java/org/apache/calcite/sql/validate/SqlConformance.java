@@ -103,6 +103,16 @@ public interface SqlConformance {
   boolean isGroupByAlias();
 
   /**
+   * Whether to allow aliases from the {@code SELECT} clause to be used as
+   * column names in the same {@code SELECT} clause.
+   * E.g., SELECT 1 as X, X+1 as Y;
+   * Name lookup considers an identifier in the same SELECT only
+   * if other lookups failed.
+   * Supported by Spark, Snowflake, BigQuery.
+   */
+  boolean isSelectAlias();
+
+  /**
    * Whether {@code GROUP BY 2} is interpreted to mean 'group by the 2nd column
    * in the select list'.
    *
