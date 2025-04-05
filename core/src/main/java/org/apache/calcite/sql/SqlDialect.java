@@ -795,6 +795,11 @@ public class SqlDialect {
     return true;
   }
 
+  /** Converts {@link RexNode} expression to {@link RexNode} expression before unparse. */
+  public RexNode prepareUnparse(RexNode rexNode) {
+    return rexNode;
+  }
+
   /** Returns whether this dialect supports a given function or operator.
    * It only applies to built-in scalar functions and operators, since
    * user-defined functions and procedures should be read by JdbcSchema. */
