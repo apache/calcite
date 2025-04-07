@@ -597,6 +597,9 @@ class SqlFunctionsTest {
         is("X X GHI"));
     assertThat(f.regexpReplacePg("ABC def GHI", "[a-z]+", "X", "i"),
         is("X def GHI"));
+    assertThat(f.regexpReplacePg("", "[a-z]+", "X", "i"), is(""));
+    assertThat(f.regexpReplace("", "[a-z]+", "X", 1, 1, "i"), is(""));
+
 
     try {
       f.regexpReplace("abc def ghi", "[a-z]+", "X", 0);
