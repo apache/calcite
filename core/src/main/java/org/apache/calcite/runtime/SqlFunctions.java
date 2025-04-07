@@ -737,7 +737,7 @@ public class SqlFunctions {
     /** SQL {@code REGEXP_REPLACE} function with 6 arguments. */
     public String regexpReplace(String s, String regex, String replacement,
         int pos, int occurrence, @Nullable String matchType) {
-      if (pos < 1 || pos > s.length()) {
+      if (pos < 1 || pos > s.length() + 1) {
         throw RESOURCE.invalidInputForRegexpReplace(Integer.toString(pos)).ex();
       }
 
