@@ -216,6 +216,24 @@ public class ClickHouseSqlDialect extends SqlDialect {
     }
 
     switch (call.getKind()) {
+    case MAP_VALUE_CONSTRUCTOR:
+      writer.print(call.getOperator().getName().toLowerCase(Locale.ROOT));
+      final SqlWriter.Frame mapFrame = writer.startList("(", ")");
+      for (int i = 0; i < call.operandCount(); i++) {
+        writer.sep(",");
+        call.operand(i).unparse(writer, leftPrec, rightPrec);
+      }
+      writer.endList(mapFrame);
+      break;
+    case ARRAY_VALUE_CONSTRUCTOR:
+      writer.print(call.getOperator().getName().toLowerCase(Locale.ROOT));
+      final SqlWriter.Frame arrayFrame = writer.startList("(", ")");
+      for (SqlNode operand : call.getOperandList()) {
+        writer.sep(",");
+        operand.unparse(writer, leftPrec, rightPrec);
+      }
+      writer.endList(arrayFrame);
+      break;
     case FLOOR:
       if (call.operandCount() != 2) {
         super.unparseCall(writer, call, leftPrec, rightPrec);
