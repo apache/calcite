@@ -6682,12 +6682,12 @@ public class SqlOperatorTest {
   }
 
   /** Tests {@code ARRAY_START_INDEX} function from Oracle. */
-  @Test void testArrayStartIndexFunc() {
+  @Test
+  void testArrayStartIndexFunc() {
     final SqlOperatorFixture f0 = fixture();
     f0.setFor(SqlLibraryOperators.ARRAY_START_INDEX);
     final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.ORACLE);
-
-   f.checkScalar("array_start_index(array[1])", "0",
+    f.checkScalar("array_start_index(array[1])", "0",
         "INTEGER NOT NULL");
     f.checkScalar("array_start_index(array[1, 2, null])", "0",
         "INTEGER NOT NULL");
