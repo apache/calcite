@@ -1257,4 +1257,9 @@ X
 X def GHI
 !ok
 
+SELECT regexp_replace('ABC def GHI', '([a-z]+).*', '\1', 'i') AS x;
+X
+ABC
+!ok
+
 # End postgresql.iq

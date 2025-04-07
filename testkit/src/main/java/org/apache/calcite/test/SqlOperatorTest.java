@@ -6400,6 +6400,8 @@ public class SqlOperatorTest {
         "VARCHAR NOT NULL");
   }
 
+
+
   @Test void testRegexpReplace4Func() {
     final SqlOperatorFixture f0 = fixture();
     final Consumer<SqlOperatorFixture> consumer = f -> {
@@ -6501,6 +6503,8 @@ public class SqlOperatorTest {
     f.checkString("regexp_replace('abc\t\ndef\t\nghi', '\t\n', '+')", "abc+def\t\nghi",
         "VARCHAR NOT NULL");
     f.checkString("regexp_replace('abc\t\ndef\t\nghi', '\\w+', '+')", "+\t\ndef\t\nghi",
+        "VARCHAR NOT NULL");
+    f.checkString("regexp_replace('abc', 'a(.*)c', 'x\\1x')", "xbx",
         "VARCHAR NOT NULL");
 
     f.checkQuery("select regexp_replace('a b c', 'b', 'X')");
