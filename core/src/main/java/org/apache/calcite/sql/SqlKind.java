@@ -806,6 +806,12 @@ public enum SqlKind {
   /** {@code ARRAY_LENGTH} function (Spark semantics). */
   ARRAY_LENGTH,
 
+  /** {@code ARRAY_START_INDEX} function (Spark semantics). */
+  ARRAY_START_INDEX,
+
+  /** {@code LEN} function (Spark semantics). */
+  LEN,
+
   /** {@code ARRAY_MAX} function (Spark semantics). */
   ARRAY_MAX,
 

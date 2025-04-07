@@ -100,6 +100,7 @@ public enum SqlDateTimeFormat {
   WEEK_OF_MONTH("W"),
   TIMEOFDAY("TIMEOFDAY"),
   YYYYDDD("YYYYDDD"),
+  YYDDD("YYDDD"),
   YYYYDDMM("YYYYDDMM"),
   TIMEWITHTIMEZONE("%c%z"),
   TIME("%c"),
