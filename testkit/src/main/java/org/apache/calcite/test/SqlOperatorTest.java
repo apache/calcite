@@ -6681,11 +6681,11 @@ public class SqlOperatorTest {
         "INTEGER NOT NULL");
   }
 
-  /** Tests {@code ARRAY_START_INDEX} function from BigQuery. */
+  /** Tests {@code ARRAY_START_INDEX} function from Oracle. */
   @Test void testArrayStartIndexFunc() {
     final SqlOperatorFixture f0 = fixture();
     f0.setFor(SqlLibraryOperators.ARRAY_START_INDEX);
-    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.ORACLE);
 
    f.checkScalar("array_start_index(array[1])", "0",
         "INTEGER NOT NULL");
