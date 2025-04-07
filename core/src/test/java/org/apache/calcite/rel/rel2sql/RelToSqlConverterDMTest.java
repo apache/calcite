@@ -13051,4 +13051,35 @@ class RelToSqlConverterDMTest {
 
     assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedSql));
   }
+
+  @Test public void testMsSqlFormatFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode formatIntegerPaddingRexNode =
+        builder.call(SqlLibraryOperators.MSSQL_FORMAT,
+            builder.literal("1234"), builder.literal("00000"));
+
+    final RelNode root = builder
+        .scan("EMP")
+        .project(formatIntegerPaddingRexNode)
+        .build();
+
+    final String expectedPostgresQuery = "SELECT FORMAT('1234', '00000') AS [$f0]"
+        + "\nFROM [scott].[EMP]";
+    assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedPostgresQuery));
+  }
+
+  @Test public void testSTRFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode strNode =
+        builder.call(SqlLibraryOperators.STR, builder.literal(-123.45), builder.literal(8),
+            builder.literal(1));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(strNode, "Result"))
+        .build();
+
+    final String expectedMsSqlQuery = "SELECT STR(-123.45, 8, 1) AS [Result]\n"
+        + "FROM [scott].[EMP]";
+    assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedMsSqlQuery));
+  }
 }
