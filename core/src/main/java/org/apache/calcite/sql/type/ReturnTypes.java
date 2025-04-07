@@ -1437,4 +1437,11 @@ public abstract class ReturnTypes {
 
   public static final SqlReturnTypeInference PERCENTILE_DISC_CONT = opBinding ->
       opBinding.getCollationType();
+
+  /**
+   * Type-inference strategy that always returns GEOGRAPHY.
+   */
+  public static final SqlReturnTypeInference GEOGRAPHY =
+      explicit(SqlTypeName.GEOGRAPHY);
+
 }

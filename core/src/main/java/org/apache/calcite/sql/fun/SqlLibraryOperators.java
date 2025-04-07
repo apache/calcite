@@ -4059,4 +4059,35 @@ public abstract class SqlLibraryOperators {
           null,
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {BIG_QUERY, SNOWFLAKE, MYSQL, POSTGRESQL})
+  public static final SqlFunction ST_ASTEXT =
+      new SqlFunction(
+          "ST_ASTEXT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR,
+          null,
+          OperandTypes.or(OperandTypes.family(SqlTypeFamily.GEOGRAPHY),
+              OperandTypes.family(SqlTypeFamily.GEO)),
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {BIG_QUERY, SNOWFLAKE})
+  public static final SqlFunction ST_GEOGFROMTEXT =
+      new SqlFunction(
+          "ST_GEOGFROMTEXT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.GEOGRAPHY,
+          null,
+          OperandTypes.family(SqlTypeFamily.STRING),
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
+  public static final SqlFunction ST_GEOMETRY =
+      new SqlFunction(
+          "ST_GEOMETRY",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.GEOMETRY,
+          null,
+          OperandTypes.family(SqlTypeFamily.STRING),
+          SqlFunctionCategory.SYSTEM);
 }
