@@ -1671,9 +1671,7 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.INTEGER_NULLABLE,
           OperandTypes.ARRAY);
 
-  /**
-   * The "ARRAY_START_INDEX(array)" function.
-   */
+  /** The "ARRAY_START_INDEX(array)" function. */
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction ARRAY_START_INDEX =
       SqlBasicFunction.create(SqlKind.ARRAY_START_INDEX,
