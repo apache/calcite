@@ -9083,7 +9083,10 @@ class RelToSqlConverterTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6258">[CALCITE-6258]
-   * Map value constructor is unparsed incorrectly for PrestoSqlDialect</a>.*/
+   * Map value constructor is unparsed incorrectly for PrestoSqlDialect</a>,
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6941">[CALCITE-6941]
+   * Array/Map value constructor is unparsed incorrectly in ClickHouse</a>.
+   * */
   @Test void testMapValueConstructor() {
     final String query = "SELECT MAP['k1', 'v1', 'k2', 'v2']";
     final String expectedPresto = "SELECT MAP (ARRAY['k1', 'k2'], ARRAY['v1', 'v2'])\n"
@@ -9094,13 +9097,15 @@ class RelToSqlConverterTest {
         + "FROM (VALUES (0)) `t` (`ZERO`)";
     final String expectedHive = "SELECT MAP ('k1', 'v1', 'k2', 'v2')";
     final String expectedDoris = "SELECT MAP ('k1', 'v1', 'k2', 'v2')";
+    final String expectedClickHouse = "SELECT map('k1', 'v1', 'k2', 'v2')";
     sql(query)
         .withPresto().ok(expectedPresto)
         .withTrino().ok(expectedTrino)
         .withStarRocks().ok(expectedStarRocks)
         .withDoris().ok(expectedDoris)
         .withSpark().ok(expectedSpark)
-        .withHive().ok(expectedHive);
+        .withHive().ok(expectedHive)
+        .withClickHouse().ok(expectedClickHouse);
   }
 
   @Test void testMapValueConstructorWithArray() {
@@ -9110,10 +9115,12 @@ class RelToSqlConverterTest {
     final String expectedTrino = expectedPresto;
     final String expectedSpark = "SELECT MAP (ARRAY ('k1', 'k2'), ARRAY ('v1', 'v2'))\n"
         + "FROM (VALUES (0)) `t` (`ZERO`)";
+    final String expectedClickHouse = "SELECT map(array('k1', 'k2'), array('v1', 'v2'))";
     sql(query)
         .withPresto().ok(expectedPresto)
         .withTrino().ok(expectedTrino)
-        .withSpark().ok(expectedSpark);
+        .withSpark().ok(expectedSpark)
+        .withClickHouse().ok(expectedClickHouse);
   }
 
   /** Test case for
@@ -9129,7 +9136,9 @@ class RelToSqlConverterTest {
   @Test void testHiveMapValueConstructorWithArray() {
     final String query = "SELECT MAP[1, ARRAY['v1', 'v2']]";
     final String expectedHive = "SELECT MAP (1, ARRAY ('v1', 'v2'))";
-    sql(query).withHive().ok(expectedHive);
+    final String expectedClickHouse = "SELECT map(1, array('v1', 'v2'))";
+    sql(query).withHive().ok(expectedHive)
+        .withClickHouse().ok(expectedClickHouse);
   }
 
   /** Test case for
@@ -9155,10 +9164,12 @@ class RelToSqlConverterTest {
     final String expectedSpark = "SELECT ARRAY (1, 2, 3)\n"
         + "FROM (VALUES (0)) `t` (`ZERO`)";
     final String expectedHive = "SELECT ARRAY (1, 2, 3)";
+    final String expectedClickHouse = "SELECT array(1, 2, 3)";
     sql(query).withStarRocks().ok(expectedStarRocks)
         .withDoris().ok(expectedStarRocks)
         .withSpark().ok(expectedSpark)
-        .withHive().ok(expectedHive);
+        .withHive().ok(expectedHive)
+        .withClickHouse().ok(expectedClickHouse);
   }
 
   @Test void testTrimWithBothSpecialCharacter() {
