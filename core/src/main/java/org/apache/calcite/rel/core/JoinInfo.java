@@ -38,7 +38,7 @@ import static java.util.Objects.requireNonNull;
  * <p>It is useful for the many algorithms that care whether a join has an
  * equi-join condition.
  *
- * <p>You can create one using {@link #of}, or call
+ * <p>You can create one using {@link #createWithStrictEquality}, or call
  * {@link Join#analyzeCondition()}; many kinds of join cache their
  * join info, especially those that are equi-joins.
  *
@@ -66,6 +66,22 @@ public class JoinInfo {
     final List<RexNode> nonEquiList = new ArrayList<>();
     RelOptUtil.splitJoinCondition(left, right, condition, leftKeys, rightKeys,
         filterNulls, nonEquiList);
+    return new JoinInfo(ImmutableIntList.copyOf(leftKeys),
+        ImmutableIntList.copyOf(rightKeys), ImmutableList.copyOf(nonEquiList));
+  }
+
+  /** Creates a {@code JoinInfo} by analyzing a condition.
+   * A JoinInfo created using this method only considers
+   * EQUALS operations equi-conditions; in contrast
+   * IS_NOT_DISTINCT_FROM operations are NOT considered equalities;
+   * they are inserted in the nonEquiList. */
+  public static JoinInfo createWithStrictEquality(RelNode left,
+      RelNode right, RexNode condition) {
+    final List<Integer> leftKeys = new ArrayList<>();
+    final List<Integer> rightKeys = new ArrayList<>();
+    final List<RexNode> nonEquiList = new ArrayList<>();
+    RelOptUtil.splitJoinCondition(left, right, condition, leftKeys, rightKeys,
+        null, nonEquiList);
     return new JoinInfo(ImmutableIntList.copyOf(leftKeys),
         ImmutableIntList.copyOf(rightKeys), ImmutableList.copyOf(nonEquiList));
   }
