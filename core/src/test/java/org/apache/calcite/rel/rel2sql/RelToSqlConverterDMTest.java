@@ -13038,4 +13038,17 @@ class RelToSqlConverterDMTest {
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSql));
   }
+
+  @Test public void testObjectIdFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode objectId = builder.call(SqlLibraryOperators.OBJECT_ID);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(objectId, "objectId"))
+        .build();
+    final String expectedSql = "SELECT OBJECT_ID() AS [objectId]"
+        + "\nFROM [scott].[EMP]";
+
+    assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedSql));
+  }
 }

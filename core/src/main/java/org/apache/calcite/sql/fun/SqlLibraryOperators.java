@@ -3809,6 +3809,16 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.SYSTEM)
           .withFunctionType(SqlFunctionCategory.SYSTEM).withSyntax(SqlSyntax.FUNCTION_ID);
 
+  @LibraryOperator(libraries = {MSSQL})
+  public static final SqlFunction OBJECT_ID =
+      new SqlFunction(
+          "OBJECT_ID",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR,
+          null,
+          OperandTypes.NILADIC,
+          SqlFunctionCategory.SYSTEM);
+
   public static SqlFunction createUDFSqlFunction(String funcName,
       SqlReturnTypeInference returnType) {
     return new SqlFunction(funcName, SqlKind.OTHER_FUNCTION, returnType,
