@@ -365,6 +365,10 @@ public class CoreRules {
   public static final IntersectToExistsRule INTERSECT_TO_EXISTS =
       IntersectToExistsRule.Config.DEFAULT.toRule();
 
+  /** Rule to translates a {@link Intersect} to {@link Join#isSemiJoin semi-join}. */
+  public static final IntersectToSemiJoinRule INTERSECT_TO_SEMI_JOIN =
+          IntersectToSemiJoinRule.Config.DEFAULT.toRule();
+
   /** Rule that translates a distinct
    * {@link Minus} into a group of operators
    * composed of {@link Union}, {@link Aggregate}, etc. */
