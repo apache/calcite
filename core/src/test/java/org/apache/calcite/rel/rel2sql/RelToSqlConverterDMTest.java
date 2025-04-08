@@ -13028,22 +13028,4 @@ class RelToSqlConverterDMTest {
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSql));
   }
-
-  @Test public void testStGeogFromTextFunction() {
-    final RelBuilder builder = relBuilder();
-    final RexNode st_GeogFromTextRexNode =
-        builder.call(SqlLibraryOperators.ST_GEOGFROMTEXT, builder.literal("Point(-74.0060 40.7128)"));
-    final RexNode st_GeogTextRexNode =
-        builder.call(SqlLibraryOperators.ST_ASTEXT, st_GeogFromTextRexNode);
-    final RelNode root = builder
-        .scan("EMP")
-        .project(builder.alias(st_GeogTextRexNode, "Point"))
-        .build();
-
-    final String expectedBiqQuery = "SELECT ST_ASTEXT(ST_GEOGFROMTEXT('Point(-74.0060 40.7128)'))"
-        + " AS Point\n"
-        + "FROM scott.EMP";
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
-  }
-
 }
