@@ -72,22 +72,22 @@ public class PhoenixSqlDialect extends SqlDialect {
     if (type instanceof AbstractSqlType) {
       switch (type.getSqlTypeName()) {
       case ARRAY:
-        if (type.getComponentType().getSqlTypeName() == SqlTypeName.REAL) {
+        ArraySqlType arraySqlType = (ArraySqlType) type;
+        if (arraySqlType.getComponentType().getSqlTypeName() == SqlTypeName.REAL) {
           RelDataType convertSqlType = typeFactory.createSqlType(SqlTypeName.FLOAT);
-          ArraySqlType arraySqlType = new ArraySqlType(convertSqlType, convertSqlType.isNullable());
+          arraySqlType = new ArraySqlType(convertSqlType, convertSqlType.isNullable());
           return super.getCastSpec(arraySqlType);
         }
         break;
       case MAP:
-        RelDataType convertSqlKeyType;
-        convertSqlKeyType = type.getKeyType().getSqlTypeName() == SqlTypeName.REAL
-            ? typeFactory.createSqlType(SqlTypeName.FLOAT) : type.getKeyType();
+        MapSqlType mapSqlType = (MapSqlType) type;
+        RelDataType convertSqlKeyType = mapSqlType.getKeyType().getSqlTypeName() == SqlTypeName.REAL
+            ? typeFactory.createSqlType(SqlTypeName.FLOAT) : mapSqlType.getKeyType();
 
-        RelDataType convertSqlValueType;
-        convertSqlValueType = type.getValueType().getSqlTypeName() == SqlTypeName.REAL
-            ? typeFactory.createSqlType(SqlTypeName.FLOAT) : type.getValueType();
-        MapSqlType mapSqlType =
-            new MapSqlType(convertSqlKeyType, convertSqlValueType, type.isNullable());
+        RelDataType convertSqlValueType = mapSqlType.getValueType().getSqlTypeName() == SqlTypeName.REAL
+            ? typeFactory.createSqlType(SqlTypeName.FLOAT) : mapSqlType.getValueType();
+        mapSqlType =
+            new MapSqlType(convertSqlKeyType, convertSqlValueType, mapSqlType.isNullable());
         return super.getCastSpec(mapSqlType);
       default:
         break;
