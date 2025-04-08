@@ -3968,6 +3968,26 @@ public class JdbcTest {
             "commission=null");
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6880">[CALCITE-6880]
+   * Implement IntersectToSemiJoinRule</a>. */
+  @Test void testIntersectToSemiJoin() {
+    final String sql = ""
+        + "select \"commission\" from \"hr\".\"emps\"\n"
+        + "intersect\n"
+        + "select \"commission\" from \"hr\".\"emps\" where \"empid\">=150";
+    CalciteAssert.hr()
+        .query(sql)
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>)
+            planner -> {
+              planner.removeRule(CoreRules.INTERSECT_TO_DISTINCT);
+              planner.removeRule(EnumerableRules.ENUMERABLE_INTERSECT_RULE);
+              planner.addRule(CoreRules.INTERSECT_TO_SEMI_JOIN);
+            })
+        .explainContains("")
+        .returnsUnordered("commission=500",
+            "commission=null");
+  }
+
   @Test void testExcept() {
     final String sql = ""
         + "select \"empid\", \"name\" from \"hr\".\"emps\" where \"deptno\"=10\n"
