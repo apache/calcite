@@ -1011,6 +1011,9 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker NULL_STRING_INTEGER =
       family(SqlTypeFamily.NULL, SqlTypeFamily.STRING, SqlTypeFamily.INTEGER);
 
+  public static final SqlSingleOperandTypeChecker NUMERIC_INTEGER_INTEGER =
+      family(SqlTypeFamily.NUMERIC, SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER);
+
   public static final SqlSingleOperandTypeChecker STRING_STRING_INTEGER_INTEGER =
       family(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
           SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER);

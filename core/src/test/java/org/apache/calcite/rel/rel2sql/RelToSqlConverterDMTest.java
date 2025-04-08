@@ -4638,40 +4638,35 @@ class RelToSqlConverterDMTest {
         + "(ORDER BY \"department_id\" ASC) \n"
         + "from \"foodmart\".\"employee\" \n"
         + "GROUP by \"first_name\", \"department_id\"";
-    final String expected = "SELECT first_name, department_id_number, ROW_NUMBER() "
+    final String expected = "SELECT first_name, COUNT(*) department_id_number, ROW_NUMBER() "
         + "OVER (ORDER BY department_id IS NULL, department_id), SUM(department_id) "
         + "OVER (ORDER BY department_id IS NULL, department_id "
         + "RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)\n"
-        + "FROM (SELECT first_name, department_id, COUNT(*) department_id_number\n"
         + "FROM foodmart.employee\n"
-        + "GROUP BY first_name, department_id) t0";
-    final String expectedSpark = "SELECT first_name, department_id_number, ROW_NUMBER() "
+        + "GROUP BY first_name, department_id";
+    final String expectedSpark = "SELECT first_name, COUNT(*) department_id_number, ROW_NUMBER() "
         + "OVER (ORDER BY department_id NULLS LAST), SUM(department_id) "
         + "OVER (ORDER BY department_id NULLS LAST "
         + "RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)\n"
-        + "FROM (SELECT first_name, department_id, COUNT(*) department_id_number\n"
         + "FROM foodmart.employee\n"
-        + "GROUP BY first_name, department_id) t0";
-    final String expectedBQ = "SELECT first_name, department_id_number, "
-        + "ROW_NUMBER() OVER (ORDER BY department_id IS NULL, department_id), SUM(department_id) "
+        + "GROUP BY first_name, department_id";
+    final String expectedBQ = "SELECT first_name, COUNT(*) AS department_id_number, ROW_NUMBER() "
+        + "OVER (ORDER BY department_id IS NULL, department_id), SUM(department_id) "
         + "OVER (ORDER BY department_id IS NULL, department_id "
         + "RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)\n"
-        + "FROM (SELECT first_name, department_id, COUNT(*) AS department_id_number\n"
         + "FROM foodmart.employee\n"
-        + "GROUP BY first_name, department_id) AS t0";
-    final String expectedSnowFlake = "SELECT \"first_name\", \"department_id_number\", "
+        + "GROUP BY first_name, department_id";
+    final String expectedSnowFlake = "SELECT \"first_name\", COUNT(*) AS \"department_id_number\", "
         + "ROW_NUMBER() OVER (ORDER BY \"department_id\"), SUM(\"department_id\") "
         + "OVER (ORDER BY \"department_id\" RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)\n"
-        + "FROM (SELECT \"first_name\", \"department_id\", COUNT(*) AS \"department_id_number\"\n"
         + "FROM \"foodmart\".\"employee\"\n"
-        + "GROUP BY \"first_name\", \"department_id\") AS \"t0\"";
-    final String mssql = "SELECT [first_name], [department_id_number], ROW_NUMBER()"
+        + "GROUP BY \"first_name\", \"department_id\"";
+    final String mssql = "SELECT [first_name], COUNT(*) AS [department_id_number], ROW_NUMBER()"
         + " OVER (ORDER BY CASE WHEN [department_id] IS NULL THEN 1 ELSE 0 END,"
         + " [department_id]), SUM([department_id]) OVER (ORDER BY CASE WHEN [department_id] IS NULL"
         + " THEN 1 ELSE 0 END, [department_id] RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)\n"
-        + "FROM (SELECT [first_name], [department_id], COUNT(*) AS [department_id_number]\n"
         + "FROM [foodmart].[employee]\n"
-        + "GROUP BY [first_name], [department_id]) AS [t0]";
+        + "GROUP BY [first_name], [department_id]";
     sql(query)
       .withHive()
       .ok(expected)
@@ -13042,5 +13037,49 @@ class RelToSqlConverterDMTest {
         + "\nFROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSql));
+  }
+
+  @Test public void testObjectIdFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode objectId = builder.call(SqlLibraryOperators.OBJECT_ID);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(objectId, "objectId"))
+        .build();
+    final String expectedSql = "SELECT OBJECT_ID() AS [objectId]"
+        + "\nFROM [scott].[EMP]";
+
+    assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedSql));
+  }
+
+  @Test public void testMsSqlFormatFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode formatIntegerPaddingRexNode =
+        builder.call(SqlLibraryOperators.MSSQL_FORMAT,
+            builder.literal("1234"), builder.literal("00000"));
+
+    final RelNode root = builder
+        .scan("EMP")
+        .project(formatIntegerPaddingRexNode)
+        .build();
+
+    final String expectedPostgresQuery = "SELECT FORMAT('1234', '00000') AS [$f0]"
+        + "\nFROM [scott].[EMP]";
+    assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedPostgresQuery));
+  }
+
+  @Test public void testSTRFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode strNode =
+        builder.call(SqlLibraryOperators.STR, builder.literal(-123.45), builder.literal(8),
+            builder.literal(1));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(strNode, "Result"))
+        .build();
+
+    final String expectedMsSqlQuery = "SELECT STR(-123.45, 8, 1) AS [Result]\n"
+        + "FROM [scott].[EMP]";
+    assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedMsSqlQuery));
   }
 }
