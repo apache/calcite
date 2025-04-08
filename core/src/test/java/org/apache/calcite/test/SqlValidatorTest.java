@@ -11061,13 +11061,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "DESCRIPTOR\\(timecol\\), datetime interval\\[, datetime interval\\]\\)");
     sql("select rowtime, productid, orderid, 'window_start', 'window_end'\n"
         + "from table(\n"
-        + "tumble(\n"
-        + "^\"data\"^ => table orders,\n"
-        + "TIMECOL => descriptor(rowtime),\n"
-        + "SIZE => interval '2' hour))")
-        .fails("Param 'data' not found in function 'TUMBLE'; did you mean 'DATA'\\?");
-    sql("select rowtime, productid, orderid, 'window_start', 'window_end'\n"
-        + "from table(\n"
         + "^tumble(\n"
         + "data => table orders,\n"
         + "SIZE => interval '2' hour)^)")
@@ -11099,6 +11092,20 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select * from table(\n"
         + "tumble(TABLE ^tabler_not_exist^, descriptor(rowtime), interval '2' hour))")
         .fails("Object 'TABLER_NOT_EXIST' not found");
+    // Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6936">[CALCITE-6936]
+    // Table function parameter matching should always be case-insensitive</a>.
+    // We cannot use table "orders", since lookup fails with unquotedCasing.TO_LOWER,
+    // so we make up a new table o.
+    sql("with o as "
+        + "(select TIMESTAMP '2020-01-01 00:00:00' as rowtime, 2 as productid, 3 as orderid)"
+        + "select rowtime, productid, orderid, 'window_start', 'window_end'\n"
+        + "from table(\n"
+        + "tumble(\n"
+        + "data => table o,\n"
+        + "timecol => descriptor(rowtime),\n"
+        + "size => interval '2' hour))")
+        .withUnquotedCasing(Casing.TO_LOWER)
+        .ok();
   }
 
   @Test void testHopTableFunction() {
@@ -11142,13 +11149,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "<INTERVAL HOUR>, <INTERVAL HOUR>\\)'\\. Supported form\\(s\\): "
             + "HOP\\(TABLE table_name, DESCRIPTOR\\(timecol\\), "
             + "datetime interval, datetime interval\\[, datetime interval\\]\\)");
-    sql("select * from table(\n"
-        + "hop(\n"
-        + "^\"data\"^ => table orders,\n"
-        + "timecol => descriptor(rowtime),\n"
-        + "slide => interval '2' hour,\n"
-        + "size => interval '1' hour))")
-        .fails("Param 'data' not found in function 'HOP'; did you mean 'DATA'\\?");
     sql("select * from table(\n"
         + "^hop(\n"
         + "data => table orders,\n"
@@ -11218,13 +11218,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "0\\) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID\\)>, <COLUMN_LIST>, "
             + "<INTERVAL HOUR>\\)'. Supported form\\(s\\): SESSION\\(TABLE table_name, DESCRIPTOR\\("
             + "timecol\\), DESCRIPTOR\\(key\\) optional, datetime interval\\)");
-    sql("select * from table(\n"
-        + "session(\n"
-        + "^\"data\"^ => table orders,\n"
-        + "timecol => descriptor(rowtime),\n"
-        + "key => descriptor(productid),\n"
-        + "size => interval '1' hour))")
-        .fails("Param 'data' not found in function 'SESSION'; did you mean 'DATA'\\?");
     sql("select * from table(\n"
         + "^session(table orders, descriptor(rowtime), descriptor(productid), 'test')^)")
         .fails("Cannot apply 'SESSION' to arguments of type 'SESSION\\(<RECORDTYPE\\(TIMESTAMP\\("
