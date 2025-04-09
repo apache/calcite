@@ -4705,7 +4705,7 @@ public class SqlParserTest {
     // test one partition key for input table
     final String sql = "select * from table(topn(table orders partition by productid, 3))";
     final String expected = "SELECT *\n"
-        + "FROM TABLE(`TOPN`(((TABLE `ORDERS`) PARTITION BY `PRODUCTID`), 3))";
+        + "FROM TABLE(`TOPN`((TABLE `ORDERS`) PARTITION BY `PRODUCTID`, 3))";
     sql(sql).ok(expected);
   }
 
@@ -4714,7 +4714,7 @@ public class SqlParserTest {
     final String sql =
         "select * from table(topn(table orders partition by (orderId, productid), 3))";
     final String expected = "SELECT *\n"
-        + "FROM TABLE(`TOPN`(((TABLE `ORDERS`) PARTITION BY `ORDERID`, `PRODUCTID`), 3))";
+        + "FROM TABLE(`TOPN`((TABLE `ORDERS`) PARTITION BY `ORDERID`, `PRODUCTID`, 3))";
     sql(sql).ok(expected);
   }
 
@@ -4723,7 +4723,7 @@ public class SqlParserTest {
     final String sql =
         "select * from table(topn(table orders order by orderId, 3))";
     final String expected = "SELECT *\n"
-        + "FROM TABLE(`TOPN`(((TABLE `ORDERS`) ORDER BY `ORDERID`), 3))";
+        + "FROM TABLE(`TOPN`((TABLE `ORDERS`) ORDER BY `ORDERID`, 3))";
     sql(sql).ok(expected);
   }
 
@@ -4732,7 +4732,7 @@ public class SqlParserTest {
     final String sql =
         "select * from table(topn(table orders order by (orderId, productid), 3))";
     final String expected = "SELECT *\n"
-        + "FROM TABLE(`TOPN`(((TABLE `ORDERS`) ORDER BY `ORDERID`, `PRODUCTID`), 3))";
+        + "FROM TABLE(`TOPN`((TABLE `ORDERS`) ORDER BY `ORDERID`, `PRODUCTID`, 3))";
     sql(sql).ok(expected);
   }
 
@@ -4741,7 +4741,7 @@ public class SqlParserTest {
     final String sql =
         "select * from table(topn(table orders order by (orderId desc, productid asc), 3))";
     final String expected = "SELECT *\n"
-        + "FROM TABLE(`TOPN`(((TABLE `ORDERS`) ORDER BY `ORDERID` DESC, `PRODUCTID`), 3))";
+        + "FROM TABLE(`TOPN`((TABLE `ORDERS`) ORDER BY `ORDERID` DESC, `PRODUCTID`, 3))";
     sql(sql).ok(expected);
   }
 
@@ -4750,7 +4750,7 @@ public class SqlParserTest {
     final String sql =
         "select * from table(topn(table orders partition by productid order by orderId, 3))";
     final String expected = "SELECT *\n"
-        + "FROM TABLE(`TOPN`(((TABLE `ORDERS`) PARTITION BY `PRODUCTID` ORDER BY `ORDERID`), 3))";
+        + "FROM TABLE(`TOPN`((TABLE `ORDERS`) PARTITION BY `PRODUCTID` ORDER BY `ORDERID`, 3))";
     sql(sql).ok(expected);
   }
 
@@ -4760,8 +4760,8 @@ public class SqlParserTest {
         "select * from table(topn(select * from Orders partition by productid "
             + "order by orderId, 3))";
     final String expected = "SELECT *\n"
-        + "FROM TABLE(`TOPN`(((SELECT *\n"
-        + "FROM `ORDERS`) PARTITION BY `PRODUCTID` ORDER BY `ORDERID`), 3))";
+        + "FROM TABLE(`TOPN`((SELECT *\n"
+        + "FROM `ORDERS`) PARTITION BY `PRODUCTID` ORDER BY `ORDERID`, 3))";
     sql(sql).ok(expected);
   }
 
@@ -4778,8 +4778,8 @@ public class SqlParserTest {
         + "  table emp partition by deptno order by empno, "
         + "  table emp_b partition by deptno order by empno))";
     final String expected = "SELECT *\n"
-        + "FROM TABLE(`SIMILARLITY`(((TABLE `EMP`) PARTITION BY `DEPTNO` ORDER BY `EMPNO`), "
-        + "((TABLE `EMP_B`) PARTITION BY `DEPTNO` ORDER BY `EMPNO`)))";
+        + "FROM TABLE(`SIMILARLITY`((TABLE `EMP`) PARTITION BY `DEPTNO` ORDER BY `EMPNO`, "
+        + "(TABLE `EMP_B`) PARTITION BY `DEPTNO` ORDER BY `EMPNO`))";
     sql(sql).ok(expected);
   }
 
