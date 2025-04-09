@@ -144,10 +144,6 @@ public class HiveSqlDialect extends SqlDialect {
     return false;
   }
 
-  @Override public boolean supportsApproxCountDistinct() {
-    return true;
-  }
-
   @Override public boolean supportsNestedAggregations() {
     return false;
   }

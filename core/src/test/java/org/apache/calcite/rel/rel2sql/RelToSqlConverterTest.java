@@ -8259,6 +8259,9 @@ class RelToSqlConverterTest {
     sql.ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6943">[CALCITE-6943]
+   * Calcite JDBC adapter for Hive should translate APPROX_COUNT_DISTINCT to COUNT DISTINCT</a>.*/
   @Test void testSelectApproxCountDistinct() {
     final String query = "select approx_count_distinct(\"product_id\") from \"product\"";
     final String expectedExact = "SELECT COUNT(DISTINCT \"product_id\")\n"
@@ -8278,9 +8281,10 @@ class RelToSqlConverterTest {
     final String expectedPhoenix = expectedApproxQuota;
     final String expectedClickhouse = "SELECT UNIQ(`product_id`)\n"
         + "FROM `foodmart`.`product`";
+    final String expectedHive = "SELECT COUNT(DISTINCT `product_id`)\nFROM `foodmart`.`product`";
 
     sql(query).ok(expectedExact)
-        .withHive().ok(expectedApprox)
+        .withHive().ok(expectedHive)
         .withSpark().ok(expectedApprox)
         .withBigQuery().ok(expectedBigQuery)
         .withOracle().ok(expectedApproxQuota)
