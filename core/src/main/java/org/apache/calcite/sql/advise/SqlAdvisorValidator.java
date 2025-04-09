@@ -36,6 +36,7 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Util;
 
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -101,7 +102,7 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
   }
 
   @Override public SqlNode expandSelectExpr(SqlNode expr,
-      SelectScope scope, SqlSelect select) {
+      SelectScope scope, SqlSelect select, Map<String, SqlNode> expansions) {
     // Disable expansion. It doesn't help us come up with better hints.
     return expr;
   }

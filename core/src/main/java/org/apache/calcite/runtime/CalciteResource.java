@@ -350,6 +350,9 @@ public interface CalciteResource {
   @BaseMessage("Argument to function ''{0}'' must be a measure")
   ExInst<SqlValidatorException> argumentMustBeMeasure(String functionName);
 
+  @BaseMessage("The definition of column ''{0}'' depends on itself through the following columns: {1}")
+  ExInst<SqlValidatorException> columnIsCyclic(String columnName, String dependentColumns);
+
   @BaseMessage("Window ''{0}'' not found")
   ExInst<SqlValidatorException> windowNotFound(String a0);
 
