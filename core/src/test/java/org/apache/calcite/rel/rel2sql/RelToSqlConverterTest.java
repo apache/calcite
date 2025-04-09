@@ -2514,9 +2514,8 @@ class RelToSqlConverterTest {
    */
   @Test void testCastArrayCharset() {
     final String query = "select cast(array['a', 'b', 'c'] as varchar array)";
-    final String expected = "SELECT CAST(ARRAY ('a', 'b', 'c') AS VARCHAR ARRAY)";
     sql(query)
-        .withHive().ok(expected);
+        .withHive().throws_("Hive dialect can not support cast to ARRAY");
   }
 
   /** Test case for
