@@ -59,7 +59,7 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
   BOOLEAN,
   INTERVAL_YEAR_MONTH,
   INTERVAL_DAY_TIME,
-
+  GEOGRAPHY,
   // Secondary families.
 
   STRING,

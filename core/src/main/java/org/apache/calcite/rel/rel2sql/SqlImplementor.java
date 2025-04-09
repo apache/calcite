@@ -2409,6 +2409,7 @@ public abstract class SqlImplementor {
 
       if (rel instanceof Project
           && ((Project) rel).containsOver()
+          && !(relInput instanceof Aggregate)
           && maxClause == Clause.SELECT) {
         // Cannot merge a Project that contains windowed functions onto an
         // underlying Project

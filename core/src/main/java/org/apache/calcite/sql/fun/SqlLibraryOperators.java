@@ -1671,6 +1671,13 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.INTEGER_NULLABLE,
           OperandTypes.ARRAY);
 
+  /** The "ARRAY_START_INDEX(array)" function. */
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction ARRAY_START_INDEX =
+      SqlBasicFunction.create(SqlKind.ARRAY_START_INDEX,
+          ReturnTypes.INTEGER_NULLABLE,
+          OperandTypes.ARRAY);
+
   /** The "ARRAY_LENGTH(array, int)" function. */
   @LibraryOperator(libraries = {POSTGRESQL})
   public static final SqlFunction POSTGRES_ARRAY_LENGTH =
@@ -3802,6 +3809,35 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.SYSTEM)
           .withFunctionType(SqlFunctionCategory.SYSTEM).withSyntax(SqlSyntax.FUNCTION_ID);
 
+  @LibraryOperator(libraries = {MSSQL})
+  public static final SqlFunction OBJECT_ID =
+      new SqlFunction(
+          "OBJECT_ID",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR,
+          null,
+          OperandTypes.NILADIC,
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {MSSQL})
+  public static final SqlFunction MSSQL_FORMAT =
+      new SqlFunction(
+          "FORMAT",
+          SqlKind.FORMAT,
+          ReturnTypes.VARCHAR_2000_NULLABLE,
+          null,
+          OperandTypes.ANY_STRING_OPTIONAL_STRING,
+          SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {MSSQL})
+  public static final SqlFunction STR =
+      new SqlFunction("STR",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000_NULLABLE,
+          null,
+          OperandTypes.or(OperandTypes.NUMERIC, OperandTypes.NUMERIC_INTEGER,
+              OperandTypes.NUMERIC_INTEGER_INTEGER), SqlFunctionCategory.STRING);
+
   public static SqlFunction createUDFSqlFunction(String funcName,
       SqlReturnTypeInference returnType) {
     return new SqlFunction(funcName, SqlKind.OTHER_FUNCTION, returnType,
@@ -4052,4 +4088,35 @@ public abstract class SqlLibraryOperators {
           null,
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {BIG_QUERY, SNOWFLAKE, MYSQL, POSTGRESQL})
+  public static final SqlFunction ST_ASTEXT =
+      new SqlFunction(
+          "ST_ASTEXT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR,
+          null,
+          OperandTypes.or(OperandTypes.family(SqlTypeFamily.GEOGRAPHY),
+              OperandTypes.family(SqlTypeFamily.GEO)),
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {BIG_QUERY, SNOWFLAKE})
+  public static final SqlFunction ST_GEOGFROMTEXT =
+      new SqlFunction(
+          "ST_GEOGFROMTEXT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.GEOGRAPHY,
+          null,
+          OperandTypes.family(SqlTypeFamily.STRING),
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
+  public static final SqlFunction ST_GEOMETRY =
+      new SqlFunction(
+          "ST_GEOMETRY",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.GEOMETRY,
+          null,
+          OperandTypes.family(SqlTypeFamily.STRING),
+          SqlFunctionCategory.SYSTEM);
 }
