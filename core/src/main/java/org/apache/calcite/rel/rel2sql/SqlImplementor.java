@@ -470,6 +470,14 @@ public abstract class SqlImplementor {
           || aliases.size() > 1)) {
       return result(node, clauses, alias4, rowType, aliases);
     }
+
+//    if (aliases != null
+//        && aliases.size() == 1
+//        && alias2 == null
+//        && RelOptUtil.areRowTypesEqual(aliases.values().stream().findFirst().get(), rowType, true)) {
+//      return result(node, clauses, aliases.keySet().stream().findFirst().get(), rowType, aliases);
+//    }
+
     final String alias5;
     // Additional condition than apache calcite
     if (alias2 == null
