@@ -5355,6 +5355,61 @@ class RelToSqlConverterTest {
         .withMysql().ok(expectedMysql);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6949">[CALCITE-6949]
+   * ClickHouse not support floor date to SECOND/MILLISECOND/MICROSECOND/NANOSECOND</a>. */
+  @Test void testFloorClickHouse() {
+    String query = "SELECT floor(\"hire_date\" TO YEAR) FROM \"employee\"";
+    String expectedClickHouse = "SELECT toStartOfYear(`hire_date`)\n"
+        + "FROM `foodmart`.`employee`";
+    sql(query).withClickHouse().ok(expectedClickHouse);
+
+    String query1 = "SELECT floor(\"hire_date\" TO MONTH) FROM \"employee\"";
+    String expectedClickHouse1 = "SELECT toStartOfMonth(`hire_date`)\n"
+        + "FROM `foodmart`.`employee`";
+    sql(query1).withClickHouse().ok(expectedClickHouse1);
+
+    String query2 = "SELECT floor(\"hire_date\" TO WEEK) FROM \"employee\"";
+    String expectedClickHouse2 = "SELECT toMonday(`hire_date`)\n"
+        + "FROM `foodmart`.`employee`";
+    sql(query2).withClickHouse().ok(expectedClickHouse2);
+
+    String query3 = "SELECT floor(\"hire_date\" TO DAY) FROM \"employee\"";
+    String expectedClickHouse3 = "SELECT toDate(`hire_date`)\n"
+        + "FROM `foodmart`.`employee`";
+    sql(query3).withClickHouse().ok(expectedClickHouse3);
+
+    String query4 = "SELECT floor(\"hire_date\" TO HOUR) FROM \"employee\"";
+    String expectedClickHouse4 = "SELECT toStartOfHour(`hire_date`)\n"
+        + "FROM `foodmart`.`employee`";
+    sql(query4).withClickHouse().ok(expectedClickHouse4);
+
+    String query5 = "SELECT floor(\"hire_date\" TO MINUTE) FROM \"employee\"";
+    String expectedClickHouse5 = "SELECT toStartOfMinute(`hire_date`)\n"
+        + "FROM `foodmart`.`employee`";
+    sql(query5).withClickHouse().ok(expectedClickHouse5);
+
+    String query6 = "SELECT floor(\"hire_date\" TO SECOND) FROM \"employee\"";
+    String expectedClickHouse6 = "SELECT toStartOfSecond(`hire_date`)\n"
+        + "FROM `foodmart`.`employee`";
+    sql(query6).withClickHouse().ok(expectedClickHouse6);
+
+    String query7 = "SELECT floor(\"hire_date\" TO MILLISECOND) FROM \"employee\"";
+    String expectedClickHouse7 = "SELECT toStartOfMillisecond(`hire_date`)\n"
+        + "FROM `foodmart`.`employee`";
+    sql(query7).withClickHouse().ok(expectedClickHouse7);
+
+    String query8 = "SELECT floor(\"hire_date\" TO MICROSECOND) FROM \"employee\"";
+    String expectedClickHouse8 = "SELECT toStartOfMicrosecond(`hire_date`)\n"
+        + "FROM `foodmart`.`employee`";
+    sql(query8).withClickHouse().ok(expectedClickHouse8);
+
+    String query9 = "SELECT floor(\"hire_date\" TO NANOSECOND) FROM \"employee\"";
+    String expectedClickHouse9 = "SELECT toStartOfNanosecond(`hire_date`)\n"
+        + "FROM `foodmart`.`employee`";
+    sql(query9).withClickHouse().ok(expectedClickHouse9);
+  }
+
   @Test void testUnparseSqlIntervalQualifierDb2() {
     String queryDatePlus = "select  * from \"employee\" where  \"hire_date\" + "
         + "INTERVAL '19800' SECOND(5) > TIMESTAMP '2005-10-17 00:00:00' ";
