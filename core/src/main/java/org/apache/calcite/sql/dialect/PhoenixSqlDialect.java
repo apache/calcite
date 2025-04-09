@@ -67,28 +67,12 @@ public class PhoenixSqlDialect extends SqlDialect {
       break;
     }
 
-    SqlTypeFactoryImpl typeFactory =
-        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     if (type instanceof AbstractSqlType) {
       switch (type.getSqlTypeName()) {
       case ARRAY:
-        ArraySqlType arraySqlType = (ArraySqlType) type;
-        if (arraySqlType.getComponentType().getSqlTypeName() == SqlTypeName.REAL) {
-          RelDataType convertSqlType = typeFactory.createSqlType(SqlTypeName.FLOAT);
-          arraySqlType = new ArraySqlType(convertSqlType, convertSqlType.isNullable());
-          return super.getCastSpec(arraySqlType);
-        }
-        break;
       case MAP:
-        MapSqlType mapSqlType = (MapSqlType) type;
-        RelDataType convertSqlKeyType = mapSqlType.getKeyType().getSqlTypeName() == SqlTypeName.REAL
-            ? typeFactory.createSqlType(SqlTypeName.FLOAT) : mapSqlType.getKeyType();
-
-        RelDataType convertSqlValueType = mapSqlType.getValueType().getSqlTypeName() == SqlTypeName.REAL
-            ? typeFactory.createSqlType(SqlTypeName.FLOAT) : mapSqlType.getValueType();
-        mapSqlType =
-            new MapSqlType(convertSqlKeyType, convertSqlValueType, mapSqlType.isNullable());
-        return super.getCastSpec(mapSqlType);
+        throw new UnsupportedOperationException("Phoenix dialect can not support cast to "
+            + type.getSqlTypeName());
       default:
         break;
       }

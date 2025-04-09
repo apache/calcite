@@ -9496,31 +9496,16 @@ class RelToSqlConverterTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6940">[CALCITE-6940]
    * Hive/Phoenix Dialect should not cast to REAL type directly</a>. */
-  @Test void testRealArrayTypesCast() {
+  @Test void testRealArrayOrMapTypesCast() {
     String query = "SELECT CAST(array[1,2,3] AS real array) FROM \"employee\"";
-    String expectedPhoenix = "SELECT CAST(ARRAY[1, 2, 3] AS FLOAT ARRAY)\n"
-        + "FROM \"foodmart\".\"employee\"";
-    String expectedHive = "SELECT CAST(ARRAY (1, 2, 3) AS FLOAT ARRAY)\n"
-        + "FROM `foodmart`.`employee`";
-
     sql(query)
-        .withPhoenix().ok(expectedPhoenix)
-        .withHive().ok(expectedHive);
-  }
+        .withPhoenix().throws_("Phoenix dialect can not support cast to ARRAY")
+        .withHive().throws_("Hive dialect can not support cast to ARRAY");
 
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6940">[CALCITE-6940]
-   * Hive/Phoenix Dialect should not cast to REAL type directly</a>. */
-  @Test void testRealMapTypesCast() {
-    String query = "SELECT CAST(MAP[1.0,2.0,3.0,4.0] AS MAP<FLOAT, REAL>) FROM \"employee\"";
-    String expectedHive = "SELECT CAST(MAP (1.0, 2.0, 3.0, 4.0) AS MAP< FLOAT, FLOAT >)\n"
-        + "FROM `foodmart`.`employee`";
-    String expectedPhoenix = "SELECT CAST(MAP[1.0, 2.0, 3.0, 4.0] AS MAP< FLOAT, FLOAT >)\n"
-        + "FROM \"foodmart\".\"employee\"";
-
-    sql(query)
-        .withPhoenix().ok(expectedPhoenix)
-        .withHive().ok(expectedHive);
+    String query1 = "SELECT CAST(MAP[1.0,2.0,3.0,4.0] AS MAP<FLOAT, REAL>) FROM \"employee\"";
+    sql(query1)
+        .withPhoenix().throws_("Phoenix dialect can not support cast to MAP")
+        .withHive().throws_("Hive dialect can not support cast to MAP");
   }
 
   @Test void testAntiJoinWithComplexInput2() {
