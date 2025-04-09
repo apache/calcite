@@ -295,6 +295,18 @@ public class ClickHouseSqlDialect extends SqlDialect {
     case MINUTE:
       funName = "toStartOfMinute";
       break;
+    case SECOND:
+      funName = "toStartOfSecond";
+      break;
+    case MILLISECOND:
+      funName = "toStartOfMillisecond";
+      break;
+    case MICROSECOND:
+      funName = "toStartOfMicrosecond";
+      break;
+    case NANOSECOND:
+      funName = "toStartOfNanosecond";
+      break;
     default:
       throw new RuntimeException("ClickHouse does not support FLOOR for time unit: "
           + unit);
