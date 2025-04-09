@@ -106,12 +106,12 @@ public interface SqlConformance {
    * Value describing how to perform lookup for values defined in a SELECT statement.
    */
   enum SelectAliasLookup {
-    /** Values defined in a SELECT statement are not visible within the statement */
-    Unsupported,
-    /** Values defined in a SELECT statement are visible to the right of their definition */
-    LeftToRight,
-    /** All values defined in a SELECT statement can be used within the same statement */
-    Any
+    /** Values defined in a SELECT statement are not visible within the statement. */
+    UNSUPPORTED,
+    /** Values defined in a SELECT statement are visible to the right of their definition. */
+    LEFT_TO_RIGHT,
+    /** All values defined in a SELECT statement can be used within the same statement. */
+    ANY
   }
 
   /**
@@ -120,7 +120,7 @@ public interface SqlConformance {
    * E.g., SELECT 1 as X, X+1 as Y;
    * Name lookup considers an identifier in the same SELECT only
    * if other lookups failed.
-   * Supported by Spark, Snowflake, BigQuery.
+   * Supported by Spark, Snowflake, Redshift, DuckDB.
    */
   SelectAliasLookup isSelectAlias();
 

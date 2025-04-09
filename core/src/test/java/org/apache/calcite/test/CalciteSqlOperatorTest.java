@@ -18,8 +18,6 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.sql.test.SqlOperatorFixture;
 
-import org.junit.jupiter.api.Test;
-
 /**
  * Embodiment of {@link SqlOperatorTest}
  * that generates SQL statements and executes them using Calcite.
@@ -28,10 +26,5 @@ class CalciteSqlOperatorTest extends SqlOperatorTest {
   @Override protected SqlOperatorFixture fixture() {
     return super.fixture()
         .withTester(t -> TESTER);
-  }
-
-  @Test
-  void testAliasInSelect() {
-    super.testAliasInSelect();
   }
 }

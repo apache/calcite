@@ -6682,11 +6682,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test void testAliasInSelect() {
     final SqlConformance leftRoRight = new SqlAbstractConformance() {
       @Override public SelectAliasLookup isSelectAlias() {
-        return SelectAliasLookup.LeftToRight;
+        return SelectAliasLookup.LEFT_TO_RIGHT;
+      }
+    };
+    final SqlConformance any = new SqlAbstractConformance() {
+      @Override public SelectAliasLookup isSelectAlias() {
+        return SelectAliasLookup.ANY;
       }
     };
 
-    // Standard conformance
+    // Standard conformance: error
     sql("select 1 AS x, ^x^ as Y")
         .fails("Column 'X' not found in any table");
     // same query, conformance that allows select to use its own aliases
@@ -6697,10 +6702,22 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select ^x^ as Y, 1 AS x")
         .withConformance(leftRoRight)
         .fails("Column 'X' not found in any table");
+    sql("select x as Y, 1 AS x")
+        .withConformance(any)
+        .ok();
     // multiple aliases in the same select
     sql("select 1 AS x, 2 as x, ^x^ AS y")
         .withConformance(leftRoRight)
         .fails("Column 'X' is ambiguous");
+    // multiple aliases in the same select
+    sql("select 1 AS x, 2 as x, ^x^ AS y")
+        .withConformance(any)
+        .fails("Column 'X' is ambiguous");
+    // Circular dependency
+    sql("select ^x^ as y, y + 1 AS x")
+        .withConformance(any)
+        .fails("The definition of column 'X' depends on itself through the following columns: "
+            + "'X', 'Y'");
   }
 
   /**
