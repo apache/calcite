@@ -357,18 +357,21 @@ public class ExpandDisjunctionForTableRule
       Iterator<Map.Entry<RexTableInputRef.RelTableRef, RexNode>> iterator =
           baseMap.entrySet().iterator();
       while (iterator.hasNext()) {
+        int forMergeNodeCount = 0;
+
         Map.Entry<RexTableInputRef.RelTableRef, RexNode> entry = iterator.next();
         if (!forMergeMap.containsKey(entry.getKey())) {
           checkExpandCount(-entry.getValue().nodeCount());
           iterator.remove();
           continue;
+        } else {
+          forMergeNodeCount = forMergeMap.get(entry.getKey()).nodeCount();
         }
         RexNode mergedRex =
             relBuilder.or(
                 entry.getValue(),
                 forMergeMap.get(entry.getKey()));
-        int oriCount = entry.getValue().nodeCount()
-            + forMergeMap.get(entry.getKey()).nodeCount();
+        int oriCount = entry.getValue().nodeCount() + forMergeNodeCount;
         checkExpandCount(mergedRex.nodeCount() - oriCount);
         baseMap.put(entry.getKey(), mergedRex);
       }
