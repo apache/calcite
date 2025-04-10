@@ -9495,16 +9495,21 @@ class RelToSqlConverterTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6940">[CALCITE-6940]
    * Hive/Phoenix Dialect should not cast to REAL type directly</a>. */
-  @Test void testRealArrayOrMapTypesCast() {
+  @Test void testRealNestedTypesCast() {
     String query = "SELECT CAST(array[1,2,3] AS real array) FROM \"employee\"";
     sql(query)
-        .withPhoenix().throws_("Phoenix dialect can not support cast to ARRAY")
-        .withHive().throws_("Hive dialect can not support cast to ARRAY");
+        .withPhoenix().throws_("Phoenix dialect does not support cast to ARRAY")
+        .withHive().throws_("Hive dialect does not support cast to ARRAY");
 
     String query1 = "SELECT CAST(MAP[1.0,2.0,3.0,4.0] AS MAP<FLOAT, REAL>) FROM \"employee\"";
     sql(query1)
-        .withPhoenix().throws_("Phoenix dialect can not support cast to MAP")
-        .withHive().throws_("Hive dialect can not support cast to MAP");
+        .withPhoenix().throws_("Phoenix dialect does not support cast to MAP")
+        .withHive().throws_("Hive dialect does not support cast to MAP");
+
+    String query2 = "SELECT CAST(array[1,2,3] AS real multiset) FROM \"employee\"";
+    sql(query2)
+        .withPhoenix().throws_("Phoenix dialect does not support cast to MULTISET")
+        .withHive().throws_("Hive dialect does not support cast to MULTISET");
   }
 
   @Test void testAntiJoinWithComplexInput2() {

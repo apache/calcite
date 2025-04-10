@@ -66,7 +66,8 @@ public class PhoenixSqlDialect extends SqlDialect {
       switch (type.getSqlTypeName()) {
       case ARRAY:
       case MAP:
-        throw new UnsupportedOperationException("Phoenix dialect can not support cast to "
+      case MULTISET:
+        throw new UnsupportedOperationException("Phoenix dialect does not support cast to "
             + type.getSqlTypeName());
       default:
         break;

@@ -182,7 +182,8 @@ public class HiveSqlDialect extends SqlDialect {
       switch (type.getSqlTypeName()) {
       case ARRAY:
       case MAP:
-        throw new UnsupportedOperationException("Hive dialect can not support cast to "
+      case MULTISET:
+        throw new UnsupportedOperationException("Hive dialect does not support cast to "
             + type.getSqlTypeName());
       default:
         break;
