@@ -27,7 +27,6 @@ import org.apache.calcite.plan.PivotRelTrait;
 import org.apache.calcite.plan.PivotRelTraitDef;
 import org.apache.calcite.plan.RelOptSamplingParameters;
 import org.apache.calcite.plan.RelOptTable;
-import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.SubQueryAliasTrait;
 import org.apache.calcite.plan.SubQueryAliasTraitDef;
 import org.apache.calcite.plan.TableAliasTrait;
@@ -588,9 +587,9 @@ public class RelToSqlConverter extends SqlImplementor
       Result x = visitInput(e, 0, Clause.WHERE);
       final Builder builder = x.builder(e);
       Set<String> resultAliasKeySet = x.aliases.keySet();
-      Set<String> builderAliasKeySet = builder.result().aliases.keySet();
-      if (resultAliasKeySet.stream().noneMatch(builderAliasKeySet::contains)
-          && !RelOptUtil.getVariablesSet(e).isEmpty()) {
+      String builderAliasKeySet = builder.select.getFrom() != null
+          ?  SqlValidatorUtil.alias(builder.select.getFrom()) : null;
+      if (!resultAliasKeySet.contains(builderAliasKeySet)) {
         x = x.resetAlias();
       }
       parseCorrelTable(e, x);
