@@ -471,12 +471,12 @@ public abstract class SqlImplementor {
       return result(node, clauses, alias4, rowType, aliases);
     }
 
-//    if (aliases != null
-//        && aliases.size() == 1
-//        && alias2 == null
-//        && RelOptUtil.areRowTypesEqual(aliases.values().stream().findFirst().get(), rowType, true)) {
-//      return result(node, clauses, aliases.keySet().stream().findFirst().get(), rowType, aliases);
-//    }
+    if (aliases != null
+        && aliases.size() == 1
+        && alias2 == null
+        && RelOptUtil.areRowTypesEqual(aliases.values().stream().findFirst().get(), rel.getRowType(), true)) {
+      return result(node, clauses, alias4, rowType, aliases);
+    }
 
     final String alias5;
     // Additional condition than apache calcite

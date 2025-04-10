@@ -27,6 +27,7 @@ import org.apache.calcite.plan.PivotRelTrait;
 import org.apache.calcite.plan.PivotRelTraitDef;
 import org.apache.calcite.plan.RelOptSamplingParameters;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.SubQueryAliasTrait;
 import org.apache.calcite.plan.SubQueryAliasTraitDef;
 import org.apache.calcite.plan.TableAliasTrait;
@@ -584,9 +585,15 @@ public class RelToSqlConverter extends SqlImplementor
               builder.context.toSql(null, e.getCondition())));
       result = builder.result();
     } else {
-      final Result x = visitInput(e, 0, Clause.WHERE);
-      parseCorrelTable(e, x);
+      Result x = visitInput(e, 0, Clause.WHERE);
       final Builder builder = x.builder(e);
+      Set<String> resultAliasKeySet = x.aliases.keySet();
+      Set<String> builderAliasKeySet = builder.result().aliases.keySet();
+      if (resultAliasKeySet.stream().noneMatch(builderAliasKeySet::contains)
+          && !RelOptUtil.getVariablesSet(e).isEmpty()) {
+        x = x.resetAlias();
+      }
+      parseCorrelTable(e, x);
       SqlNode filterNode = builder.context.toSql(null, e.getCondition());
       UnpivotRelToSqlUtil unpivotRelToSqlUtil = new UnpivotRelToSqlUtil();
       if (dialect.supportsUnpivot()
