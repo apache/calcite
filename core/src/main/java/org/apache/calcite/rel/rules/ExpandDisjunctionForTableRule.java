@@ -45,7 +45,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Rule to expand disjuction in condition of a {@link Filter} or {@link Join},
+ * Rule to expand disjunction for single table in condition of a {@link Filter} or {@link Join},
  * It makes sense to make this optimization part of the predicate pushdown. For example:
  *
  * <blockquote><pre>{@code
@@ -61,28 +61,38 @@ import java.util.Set;
  * <p>we can expand to obtain the condition
  *
  * <blockquote><pre>{@code
- * t1.id > 20 or t1.weight < 200
- * t2.height < 50 or t2.sales > 100
+ * select t1.name from t1, t2
+ * where t1.id = t2.id
+ * and (
+ *  (t1.id > 20 and t2.height < 50)
+ *  or
+ *  (t1.weight < 200 and t2.sales > 100)
+ * )
+ * and (t1.id > 20 or t1.weight < 200)
+ * and (t2.height < 50 or t2.sales > 100)
  * }</pre></blockquote>
  *
  * <p>new generated predicates are redundant, but they could be pushed down to
  * scan operator of t1/t2 and reduce the cardinality.
  *
- * <p>This rule should only be applied once to avoid generate same redundant expression and
- * it should be used before {@link CoreRules#FILTER_INTO_JOIN} and {@link CoreRules#JOIN_CONDITION_PUSH}.
+ * <p>Note: This rule should only be applied once and it should be used before
+ * {@link CoreRules#FILTER_INTO_JOIN} and {@link CoreRules#JOIN_CONDITION_PUSH}.
+ * In order to avoid it interacting with other expression-related rules and causing
+ * an infinite loop, it is recommended to use it alone in HepPlanner first,
+ * and then do predicate pushdown.
  *
- * @see CoreRules#EXPAND_FILTER_DISJUCTION
- * @see CoreRules#EXPAND_JOIN_DISJUCTION
+ * @see CoreRules#EXPAND_FILTER_DISJUNCTION_FOR_TABLE
+ * @see CoreRules#EXPAND_JOIN_DISJUNCTION_FOR_TABLE
  */
 @Value.Enclosing
-public class ExpandDisjuctionRule
-    extends RelRule<ExpandDisjuctionRule.Config>
+public class ExpandDisjunctionForTableRule
+    extends RelRule<ExpandDisjunctionForTableRule.Config>
     implements TransformationRule {
 
   /**
-   * Creates a ExpandDisjuctionRule.
+   * Creates a ExpandDisjunctionForTableRule.
    */
-  protected ExpandDisjuctionRule(Config config) {
+  protected ExpandDisjunctionForTableRule(Config config) {
     super(config);
   }
 
@@ -96,8 +106,8 @@ public class ExpandDisjuctionRule
    * @param condition   Condition to be expanded in Filter or Join
    * @param relNode     The Filter or Join node
    * @param fieldList   The field list of the Filter or Join inputs. Build the referenced columns
-   *                    in the predicate as RexInputRef and  find out which table the RexInputRef
-   *                    comes from via {@link RelMetadataQuery#getExpressionLineage}
+   *                    in the predicate as RexInputRef and find out which table the RexInputRef
+   *                    comes from {@link RelMetadataQuery#getExpressionLineage}
    * @param relBuilder  Builder
    * @param mq          RelMetadataQuery, which is used to get the expression lineage
    *
@@ -109,11 +119,13 @@ public class ExpandDisjuctionRule
       List<RelDataTypeField> fieldList,
       RelBuilder relBuilder,
       RelMetadataQuery mq) {
-    HashMap<Integer, RexTableInputRef.RelTableRef> inputRefToTableRef = new HashMap<>();
+    final Map<Integer, RexTableInputRef.RelTableRef> inputRefToTableRef = new HashMap<>();
+
     ImmutableBitSet columnBits = RelOptUtil.InputFinder.bits(condition);
     if (columnBits.isEmpty()) {
       return condition;
     }
+
     // Trace which table does the column referenced in the condition come from
     for (int columnBit : columnBits.asList()) {
       Set<RexNode> exprLineage =
@@ -126,16 +138,17 @@ public class ExpandDisjuctionRule
       }
       Set<RexTableInputRef.RelTableRef> relTableRefs =
           RexUtil.gatherTableReferences(Lists.newArrayList(exprLineage));
-      // If the column come from multiple tables, skip it
+      // If the column comes from multiple tables, skip it
       if (relTableRefs.isEmpty() || relTableRefs.size() > 1) {
         continue;
       }
       inputRefToTableRef.put(columnBit, relTableRefs.iterator().next());
     }
 
-    ExpandDisjuctionHelper expandHelper =
-        new ExpandDisjuctionHelper(inputRefToTableRef, relBuilder, config.processLimit());
+    ExpandDisjunctionForTableHelper expandHelper =
+        new ExpandDisjunctionForTableHelper(inputRefToTableRef, relBuilder, config.bloat());
     Map<RexTableInputRef.RelTableRef, RexNode> expandResult = expandHelper.expand(condition);
+
     RexNode newCondition = condition;
     for (RexNode expandCondition : expandResult.values()) {
       newCondition = relBuilder.and(newCondition, expandCondition);
@@ -143,7 +156,7 @@ public class ExpandDisjuctionRule
     return newCondition;
   }
 
-  private static void matchFilter(ExpandDisjuctionRule rule, RelOptRuleCall call) {
+  private static void matchFilter(ExpandDisjunctionForTableRule rule, RelOptRuleCall call) {
     Filter filter = call.rel(0);
     RelMetadataQuery mq = call.getMetadataQuery();
     RelBuilder relBuilder = call.builder();
@@ -162,7 +175,7 @@ public class ExpandDisjuctionRule
     call.transformTo(newFilter);
   }
 
-  private static void matchJoin(ExpandDisjuctionRule rule, RelOptRuleCall call) {
+  private static void matchJoin(ExpandDisjunctionForTableRule rule, RelOptRuleCall call) {
     Join join = call.rel(0);
     RelMetadataQuery mq = call.getMetadataQuery();
     RelBuilder relBuilder = call.builder();
@@ -194,23 +207,24 @@ public class ExpandDisjuctionRule
   /**
    * Helper class to expand predicates.
    */
-  private static class ExpandDisjuctionHelper {
+  private static class ExpandDisjunctionForTableHelper {
 
     private final Map<Integer, RexTableInputRef.RelTableRef> inputRefToTableRef;
 
     private final RelBuilder relBuilder;
 
-    private final int maxProcessLimitNodes;
+    private final int maxNodeCount;
 
+    // Used to record the number of redundant expressions expanded.
     private int currentCount;
 
-    private ExpandDisjuctionHelper(
+    private ExpandDisjunctionForTableHelper(
         Map<Integer, RexTableInputRef.RelTableRef> inputRefToTableRef,
         RelBuilder relBuilder,
-        int maxProcessLimitNodes) {
+        int maxNodeCount) {
       this.inputRefToTableRef = inputRefToTableRef;
       this.relBuilder = relBuilder;
-      this.maxProcessLimitNodes = maxProcessLimitNodes;
+      this.maxNodeCount = maxNodeCount;
     }
 
     private Map<RexTableInputRef.RelTableRef, RexNode> expand(RexNode condition) {
@@ -229,15 +243,17 @@ public class ExpandDisjuctionRule
      * @return  Additional predicates that can be pushed down for each table
      */
     private Map<RexTableInputRef.RelTableRef, RexNode> expandDeep(RexNode condition) {
-      incrementAndCheck();
       Map<RexTableInputRef.RelTableRef, RexNode> additionalConditions = new HashMap<>();
+
       ImmutableBitSet inputRefs = RelOptUtil.InputFinder.bits(condition);
       if (inputRefs.isEmpty()) {
         return additionalConditions;
       }
-      RexTableInputRef.RelTableRef tableRef = inputRefsBelongOneTable(inputRefs);
+
+      RexTableInputRef.RelTableRef tableRef = inputRefsBelongToOneTable(inputRefs);
       // The condition already belongs to one table, return it directly
       if (tableRef != null) {
+        checkExpandCount(condition.nodeCount());
         additionalConditions.put(tableRef, condition);
         return additionalConditions;
       }
@@ -260,6 +276,10 @@ public class ExpandDisjuctionRule
           Map<RexTableInputRef.RelTableRef, RexNode> operandResult =
               expandDeep(orOperands.get(i));
           mergeOr(additionalConditions, operandResult);
+
+          if (additionalConditions.isEmpty()) {
+            break;
+          }
         }
         break;
       default:
@@ -269,7 +289,7 @@ public class ExpandDisjuctionRule
       return additionalConditions;
     }
 
-    private RexTableInputRef.@Nullable RelTableRef inputRefsBelongOneTable(
+    private RexTableInputRef.@Nullable RelTableRef inputRefsBelongToOneTable(
         ImmutableBitSet inputRefs) {
       RexTableInputRef.RelTableRef tableRef = inputRefToTableRef.get(inputRefs.nth(0));
       if (tableRef == null) {
@@ -277,7 +297,7 @@ public class ExpandDisjuctionRule
       }
       for (int inputBit : inputRefs.asList()) {
         RexTableInputRef.RelTableRef inputBitTableRef = inputRefToTableRef.get(inputBit);
-        if (inputBitTableRef == null || !inputBitTableRef.equals(tableRef)) {
+        if (!tableRef.equals(inputBitTableRef)) {
           return null;
         }
       }
@@ -285,8 +305,14 @@ public class ExpandDisjuctionRule
     }
 
     /**
-     * For additional predicates of each operand in conjuction, all of them should be retained and
-     * use 'AND' to combine expressions.
+     * For additional predicates of each operand in conjunction, all of them should be retained and
+     * use 'AND' to combine expressions. For example:
+     *
+     * <p>baseMap: {t1: p1, t2: p2}
+     *
+     * <p>forMergeMap: {t1: p11, t3: p3}
+     *
+     * <p>result: {t1: p1 AND p11, t2: p2, t3: p3}
      *
      * @param baseMap       Additional predicates that current conjunction has already saved
      * @param forMergeMap   Additional predicates that current operand has expanded
@@ -295,17 +321,28 @@ public class ExpandDisjuctionRule
         Map<RexTableInputRef.RelTableRef, RexNode> baseMap,
         Map<RexTableInputRef.RelTableRef, RexNode> forMergeMap) {
       for (Map.Entry<RexTableInputRef.RelTableRef, RexNode> entry : forMergeMap.entrySet()) {
-        RexNode mergeExpression =
+        RexNode mergedRex =
             relBuilder.and(
                 entry.getValue(),
                 baseMap.getOrDefault(entry.getKey(), relBuilder.literal(true)));
-        baseMap.put(entry.getKey(), mergeExpression);
+        int oriCount = entry.getValue().nodeCount()
+            + (baseMap.containsKey(entry.getKey())
+                ? baseMap.get(entry.getKey()).nodeCount()
+                : 0);
+        checkExpandCount(mergedRex.nodeCount() - oriCount);
+        baseMap.put(entry.getKey(), mergedRex);
       }
     }
 
     /**
      * Only if all operands in disjunction have additional predicates for table t1, we use 'OR'
      * to combine expressions and retain them as additional predicates of table t1.
+     *
+     * <p>baseMap: {t1: p1, t2: p2}
+     *
+     * <p>forMergeMap: {t1: p11, t3: p3}
+     *
+     * <p>result: {t1: p1 OR p11}
      *
      * @param baseMap       Additional predicates that current disjunction has already saved
      * @param forMergeMap   Additional predicates that current operand has expanded
@@ -322,6 +359,7 @@ public class ExpandDisjuctionRule
       while (iterator.hasNext()) {
         Map.Entry<RexTableInputRef.RelTableRef, RexNode> entry = iterator.next();
         if (!forMergeMap.containsKey(entry.getKey())) {
+          checkExpandCount(-entry.getValue().nodeCount());
           iterator.remove();
           continue;
         }
@@ -329,12 +367,20 @@ public class ExpandDisjuctionRule
             relBuilder.or(
                 entry.getValue(),
                 forMergeMap.get(entry.getKey()));
+        int oriCount = entry.getValue().nodeCount()
+            + forMergeMap.get(entry.getKey()).nodeCount();
+        checkExpandCount(mergedRex.nodeCount() - oriCount);
         baseMap.put(entry.getKey(), mergedRex);
       }
     }
 
-    private void incrementAndCheck() {
-      if (maxProcessLimitNodes > 0 && ++currentCount > maxProcessLimitNodes) {
+    /**
+     * Check whether the number of redundant expressions generated in the expansion
+     * exceeds the limit.
+     */
+    private void checkExpandCount(int changeCount) {
+      currentCount += changeCount;
+      if (maxNodeCount > 0 && currentCount > maxNodeCount) {
         throw OverLimitException.INSTANCE;
       }
     }
@@ -350,30 +396,32 @@ public class ExpandDisjuctionRule
   /** Rule configuration. */
   @Value.Immutable(singleton = false)
   public interface Config extends RelRule.Config {
-    Config FILTER = ImmutableExpandDisjuctionRule.Config.builder()
-        .withMatchHandler(ExpandDisjuctionRule::matchFilter)
+    Config FILTER = ImmutableExpandDisjunctionForTableRule.Config.builder()
+        .withMatchHandler(ExpandDisjunctionForTableRule::matchFilter)
         .build()
-        .withOperandSupplier(b ->
-            b.operand(Filter.class).anyInputs());
+        .withOperandSupplier(b -> b.operand(Filter.class).anyInputs());
 
-    Config JOIN = ImmutableExpandDisjuctionRule.Config.builder()
-        .withMatchHandler(ExpandDisjuctionRule::matchJoin)
+    Config JOIN = ImmutableExpandDisjunctionForTableRule.Config.builder()
+        .withMatchHandler(ExpandDisjunctionForTableRule::matchJoin)
         .build()
-        .withOperandSupplier(b ->
-            b.operand(Join.class).anyInputs());
+        .withOperandSupplier(b -> b.operand(Join.class).anyInputs());
 
-    @Override default ExpandDisjuctionRule toRule() {
-      return new ExpandDisjuctionRule(this);
+    @Override default ExpandDisjunctionForTableRule toRule() {
+      return new ExpandDisjunctionForTableRule(this);
     }
 
-    default int processLimit() {
-      return 10000;
+    /**
+     * Limit how much complexity can increase during expanding.
+     * Default is {@link RelOptUtil#DEFAULT_BLOAT} (100).
+     */
+    default int bloat() {
+      return RelOptUtil.DEFAULT_BLOAT;
     }
 
     /** Forwards a call to {@link #onMatch(RelOptRuleCall)}. */
-    MatchHandler<ExpandDisjuctionRule> matchHandler();
+    MatchHandler<ExpandDisjunctionForTableRule> matchHandler();
 
     /** Sets {@link #matchHandler()}. */
-    ExpandDisjuctionRule.Config withMatchHandler(MatchHandler<ExpandDisjuctionRule> matchHandler);
+    Config withMatchHandler(MatchHandler<ExpandDisjunctionForTableRule> matchHandler);
   }
 }

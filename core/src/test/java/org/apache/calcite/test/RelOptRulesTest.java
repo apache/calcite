@@ -10150,9 +10150,9 @@ class RelOptRulesTest extends RelOptTestBase {
     }).check();
   }
 
-  @Test void testExpandFilterDisjuction() {
+  @Test void testExpandFilterDisjuctionForTable() {
     HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.EXPAND_FILTER_DISJUCTION)
+        .addRuleInstance(CoreRules.EXPAND_FILTER_DISJUNCTION_FOR_TABLE)
         .build();
 
     sql("select e.empno from emp as e, empnullables as en "
@@ -10161,16 +10161,16 @@ class RelOptRulesTest extends RelOptTestBase {
         + "( "
         + "  (e.mgr > 100 and en.sal < 200) "
         + "  or "
-        + "  (e.comm < 50 and en.deptno > 10) "
+        + "  e.comm < 50 "
         + ") ")
         .withPre(program)
         .withRule(CoreRules.FILTER_INTO_JOIN)
         .check();
   }
 
-  @Test void testExpandJoinDisjuction() {
+  @Test void testExpandJoinDisjuctionForTable() {
     HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.EXPAND_JOIN_DISJUCTION)
+        .addRuleInstance(CoreRules.EXPAND_JOIN_DISJUNCTION_FOR_TABLE)
         .build();
 
     sql("select e.empno from emp as e inner join empnullables as en "

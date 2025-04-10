@@ -853,13 +853,13 @@ public class CoreRules {
 
   /** Rule that expand disjuction in condition of a {@link Filter}.
    *
-   * @see #EXPAND_JOIN_DISJUCTION */
-  public static final ExpandDisjuctionRule EXPAND_FILTER_DISJUCTION =
-      ExpandDisjuctionRule.Config.FILTER.toRule();
+   * @see #EXPAND_JOIN_DISJUNCTION_FOR_TABLE */
+  public static final ExpandDisjunctionForTableRule EXPAND_FILTER_DISJUNCTION_FOR_TABLE =
+      ExpandDisjunctionForTableRule.Config.FILTER.toRule();
 
   /** Rule that expand disjuction in condition of a {@link Join}.
    *
-   * @see #EXPAND_FILTER_DISJUCTION */
-  public static final ExpandDisjuctionRule EXPAND_JOIN_DISJUCTION =
-      ExpandDisjuctionRule.Config.JOIN.toRule();
+   * @see #EXPAND_FILTER_DISJUNCTION_FOR_TABLE */
+  public static final ExpandDisjunctionForTableRule EXPAND_JOIN_DISJUNCTION_FOR_TABLE =
+      ExpandDisjunctionForTableRule.Config.JOIN.toRule();
 }
