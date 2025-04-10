@@ -4015,6 +4015,34 @@ public class JdbcTest {
             "commission=null");
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6948">[CALCITE-6948]
+   * Implement IntersectToSemiJoinRule</a>. */
+  @Test void testMinusToAntiJoinRule() {
+    final String sql = ""
+        + "select \"commission\" from \"hr\".\"emps\"\n"
+        + "except\n"
+        + "select \"commission\" from \"hr\".\"emps\" where \"empid\">=150";
+
+    final String[] returns = new String[] {
+        "commission=1000",
+        "commission=250"};
+
+    CalciteAssert.hr()
+        .query(sql)
+        .returnsUnordered(returns);
+
+    CalciteAssert.hr()
+        .query(sql)
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>)
+            p -> {
+              p.removeRule(CoreRules.MINUS_TO_DISTINCT);
+              p.removeRule(ENUMERABLE_MINUS_RULE);
+              p.addRule(CoreRules.MINUS_TO_ANTI_JOIN_RULE);
+            })
+        .explainContains("joinType=[anti]")
+        .returnsUnordered(returns);
+  }
+
   @Test void testExcept() {
     final String sql = ""
         + "select \"empid\", \"name\" from \"hr\".\"emps\" where \"deptno\"=10\n"
