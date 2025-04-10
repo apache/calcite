@@ -1924,6 +1924,27 @@ public class RexBuilder {
     return makeLiteral(zeroValue(type), type);
   }
 
+  public RexNode makeZeroRexNode(RelDataType type) {
+    switch (type.getSqlTypeName()) {
+    case ARRAY:
+      return makeCast(type,
+          makeCall(type, SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR, ImmutableList.of()));
+    case MULTISET:
+      return makeCast(type,
+          makeCall(type, SqlStdOperatorTable.MULTISET_VALUE, ImmutableList.of()));
+    case MAP:
+      return makeCast(type,
+          makeCall(type, SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR, ImmutableList.of()));
+    case ROW:
+      List<RexNode> zeroFields = type.getFieldList().stream()
+              .map(field -> makeZeroRexNode(field.getType()))
+              .collect(Collectors.toList());
+      return makeCall(type, SqlStdOperatorTable.ROW, zeroFields);
+    default:
+      return makeZeroLiteral(type);
+    }
+  }
+
   private static Comparable zeroValue(RelDataType type) {
     switch (type.getSqlTypeName()) {
     case CHAR:
