@@ -323,7 +323,6 @@ public class SubQueryRemoveRule
       }
     } else {
       final String indicator = "trueLiteral";
-      final List<RexNode> parentQueryFields = new ArrayList<>();
       switch (op.comparisonKind) {
       case GREATER_THAN_OR_EQUAL:
       case LESS_THAN_OR_EQUAL:
@@ -348,17 +347,15 @@ public class SubQueryRemoveRule
         // from emp as e
         // left outer join (
         //   select name, max(deptno) as m, count(*) as c, count(deptno) as d,
-        //       "alwaysTrue" as indicator
+        //       LITERAL_AGG(true) as indicator
         //   from emp group by name) as q on e.name = q.name
         builder.push(e.rel)
             .aggregate(builder.groupKey(),
                 builder.aggregateCall(minMax, builder.field(0)).as("m"),
                 builder.count(false, "c"),
-                builder.count(false, "d", builder.field(0)));
-
-        parentQueryFields.addAll(builder.fields());
-        parentQueryFields.add(builder.alias(literalTrue, indicator));
-        builder.project(parentQueryFields).as(qAlias);
+                builder.count(false, "d", builder.field(0)),
+                builder.literalAgg(true, indicator));
+        builder.as(qAlias);
         builder.join(JoinRelType.LEFT, literalTrue, variablesSet);
         caseRexNode =
             builder.call(SqlStdOperatorTable.CASE,
@@ -401,7 +398,7 @@ public class SubQueryRemoveRule
         // from emp as e
         // left outer join (
         //   select name, count(*) as c, count(deptno) as d, count(distinct deptno) as dd,
-        //       max(deptno) as m, "alwaysTrue" as indicator
+        //       max(deptno) as m, LITERAL_AGG(true) as indicator
         //   from emp group by name) as q on e.name = q.name
 
         // Additional details on the `q.c <> q.d && q.dd <= 1` clause:
@@ -416,11 +413,9 @@ public class SubQueryRemoveRule
                 builder.count(false, "c"),
                 builder.count(false, "d", builder.field(0)),
                 builder.count(true, "dd", builder.field(0)),
-                builder.max(builder.field(0)).as("m"));
-
-        parentQueryFields.addAll(builder.fields());
-        parentQueryFields.add(builder.alias(literalTrue, indicator));
-        builder.project(parentQueryFields).as(qAlias); // TODO use projectPlus
+                builder.max(builder.field(0)).as("m"),
+                builder.literalAgg(true, indicator));
+        builder.as(qAlias);
         builder.join(JoinRelType.LEFT, literalTrue, variablesSet);
         caseRexNode =
             builder.call(SqlStdOperatorTable.CASE,
