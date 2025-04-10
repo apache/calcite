@@ -480,7 +480,7 @@ public class MongoAdapterTest implements SchemaFactory {
         .query(
             "select state, avg(pop) as a from zips group by state order by state")
         .limit(2)
-        .returns("STATE=AK; A=26856\nSTATE=AL; A=43383\n")
+        .returns("STATE=AK; A=26856.0\nSTATE=AL; A=43383.666666666664\n")
         .queryContains(
             mongoChecker(
                 "{$project: {STATE: '$state', POP: '$pop'}}",
@@ -494,8 +494,8 @@ public class MongoAdapterTest implements SchemaFactory {
         .query(
             "select state, avg(pop) as a, sum(pop) as s, count(pop) as c from zips group by state order by state")
         .limit(2)
-        .returns("STATE=AK; A=26856; S=80568; C=3\n"
-            + "STATE=AL; A=43383; S=130151; C=3\n")
+        .returns("STATE=AK; A=26856.0; S=80568; C=3\n"
+            + "STATE=AL; A=43383.666666666664; S=130151; C=3\n")
         .queryContains(
             mongoChecker(
                 "{$project: {STATE: '$state', POP: '$pop'}}",
@@ -857,7 +857,7 @@ public class MongoAdapterTest implements SchemaFactory {
             + "group by \"STATE\" "
             + "order by \"AVG(pop)\"")
         .limit(2)
-        .returns("STATE=VT; AVG(pop)=26408\nSTATE=AK; AVG(pop)=26856\n");
+        .returns("STATE=VT; AVG(pop)=26408.333333333332\nSTATE=AK; AVG(pop)=26856.0\n");
   }
 
   /** Test case for
