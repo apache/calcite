@@ -850,4 +850,16 @@ public class CoreRules {
   @Experimental
   public static final DphypJoinReorderRule HYPER_GRAPH_OPTIMIZE =
       DphypJoinReorderRule.Config.DEFAULT.toRule();
+
+  /** Rule that expand disjuction in condition of a {@link Filter}.
+   *
+   * @see #EXPAND_JOIN_DISJUNCTION_FOR_TABLE */
+  public static final ExpandDisjunctionForTableRule EXPAND_FILTER_DISJUNCTION_FOR_TABLE =
+      ExpandDisjunctionForTableRule.Config.FILTER.toRule();
+
+  /** Rule that expand disjuction in condition of a {@link Join}.
+   *
+   * @see #EXPAND_FILTER_DISJUNCTION_FOR_TABLE */
+  public static final ExpandDisjunctionForTableRule EXPAND_JOIN_DISJUNCTION_FOR_TABLE =
+      ExpandDisjunctionForTableRule.Config.JOIN.toRule();
 }
