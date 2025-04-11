@@ -8973,6 +8973,93 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6930">[CALCITE-6930]
+   * Implementing JoinConditionOrExpansionRule</a>. */
+  @Test void testJoinConditionOrExpansionRule() {
+    String sql = "select *\n"
+        + "from EMP as p1\n"
+        + "inner join EMP as p2 on p1.empno = p2.empno or p1.mgr = p2.mgr";
+    sql(sql).withRule(CoreRules.JOIN_CONDITION_OR_EXPANSION_RULE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6930">[CALCITE-6930]
+   * Implementing JoinConditionOrExpansionRule</a>. */
+  @Test void testJoinConditionOrExpansionRuleMultiOr() {
+    String sql = "select *\n"
+        + "from EMP as p1\n"
+        + "inner join EMP as p2 on  p1.mgr < p2.mgr or\n"
+        + "p1.empno = p2.empno or p1.sal < 0 or ln(p1.sal) < 10";
+    sql(sql).withRule(CoreRules.JOIN_CONDITION_OR_EXPANSION_RULE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6930">[CALCITE-6930]
+   * Implementing JoinConditionOrExpansionRule</a>. */
+  @Test void testJoinConditionOrExpansionRuleRight() {
+    String sql = "select *\n"
+        + "from EMP as p1\n"
+        + "right join DEPT as p2 on p1.empno = p2.deptno or p1.ename < p2.name";
+    sql(sql).withRule(CoreRules.JOIN_CONDITION_OR_EXPANSION_RULE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6930">[CALCITE-6930]
+   * Implementing JoinConditionOrExpansionRule</a>. */
+  @Test void testJoinConditionOrExpansionRuleLeft() {
+    String sql = "select *\n"
+        + "from EMP as p1\n"
+        + "left join EMP as p2 on p1.empno = p2.empno or p1.sal = p2.sal";
+    sql(sql).withRule(CoreRules.JOIN_CONDITION_OR_EXPANSION_RULE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6930">[CALCITE-6930]
+   * Implementing JoinConditionOrExpansionRule</a>. */
+  @Test void testJoinConditionOrExpansionRuleAnti() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("DEPT")
+        .scan("EMP")
+        .antiJoin(
+            b.or(
+              b.equals(
+                  b.field(2, 0, "DEPTNO"),
+                  b.field(2, 1, "DEPTNO")),
+              b.equals(
+                  b.field(2, 0, "DNAME"),
+                  b.field(2, 1, "JOB"))))
+        .build();
+    relFn(relFn)
+        .withRule(CoreRules.JOIN_CONDITION_OR_EXPANSION_RULE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6930">[CALCITE-6930]
+   * Implementing JoinConditionOrExpansionRule</a>. */
+  @Test void testJoinConditionOrExpansionRuleFull() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("DEPT")
+        .scan("EMP")
+        .join(JoinRelType.FULL,
+            b.or(
+                b.equals(
+                    b.field(2, 0, "DEPTNO"),
+                    b.field(2, 1, "DEPTNO")),
+                b.equals(
+                    b.field(2, 0, "DNAME"),
+                    b.field(2, 1, "JOB"))))
+        .build();
+    relFn(relFn)
+        .withRule(CoreRules.JOIN_CONDITION_OR_EXPANSION_RULE)
+        .check();
+  }
+
   @Test void testExchangeRemoveConstantKeysRule() {
     final Function<RelBuilder, RelNode> relFn = b -> b
         .scan("EMP")

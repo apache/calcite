@@ -552,6 +552,10 @@ public class CoreRules {
   public static final FilterJoinRule.JoinConditionPushRule JOIN_CONDITION_PUSH =
       FilterJoinRule.JoinConditionPushRule.JoinConditionPushRuleConfig.DEFAULT.toRule();
 
+  /** Rule that transforms a join with OR conditions into a UNION ALL of multiple joins. */
+  public static final JoinConditionOrExpansionRule JOIN_CONDITION_OR_EXPANSION_RULE =
+          JoinConditionOrExpansionRule.Config.DEFAULT.toRule();
+
   /** Rule to add a semi-join into a {@link Join}. */
   public static final JoinAddRedundantSemiJoinRule JOIN_ADD_REDUNDANT_SEMI_JOIN =
       JoinAddRedundantSemiJoinRule.Config.DEFAULT.toRule();

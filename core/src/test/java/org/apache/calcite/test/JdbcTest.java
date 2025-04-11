@@ -1975,6 +1975,181 @@ public class JdbcTest {
             "c0=Drink; c1=Dairy; c2=USA; c3=WA; c4=Bellingham");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6930">[CALCITE-6930]
+   * Implementing JoinConditionOrExpansionRule</a>. */
+  @Test void testJoinConditionOrExpansionRule() {
+    final String sql = ""
+        + "SELECT \"t1\".\"deptno\", \"t1\".\"empid\", \"t2\".\"deptno\", \"t2\".\"empid\"\n"
+        + "FROM \"hr\".\"emps\" AS \"t1\"\n"
+        + "INNER JOIN (\n"
+        + "    SELECT (\"deptno\" + 10) AS \"deptno\", (\"empid\" + 100) AS \"empid\" FROM \"hr\".\"emps\"\n"
+        + ") AS \"t2\"\n"
+        + "ON (\"t1\".\"deptno\" = \"t2\".\"deptno\") OR (\"t1\".\"empid\" = \"t2\".\"empid\")";
+
+    String[] returns = new String[] {
+        "deptno=20; empid=200; deptno=20; empid=200",
+        "deptno=20; empid=200; deptno=20; empid=210",
+        "deptno=20; empid=200; deptno=20; empid=250"};
+
+    CalciteAssert.hr()
+        .query(sql)
+        .returnsUnordered(returns);
+
+    CalciteAssert.hr()
+        .query(sql)
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+          planner.addRule(CoreRules.JOIN_CONDITION_OR_EXPANSION_RULE);
+          planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
+        })
+        .returnsUnordered(returns);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6930">[CALCITE-6930]
+   * Implementing JoinConditionOrExpansionRule</a>. */
+  @Test void testJoinConditionOrExpansionRuleMultiOr() {
+    final String sql = ""
+        + "SELECT \"t1\".\"deptno\", \"t1\".\"empid\", \"t2\".\"deptno\", \"t2\".\"empid\"\n"
+        + "FROM \"hr\".\"emps\" AS \"t1\"\n"
+        + "INNER JOIN (\n"
+        + "    SELECT (\"deptno\" + 10) AS \"deptno\", (\"empid\" + 100) AS \"empid\" FROM \"hr\".\"emps\"\n"
+        + ") AS \"t2\"\n"
+        + "ON (\"t1\".\"deptno\" = \"t2\".\"deptno\")"
+        + "OR (\"t1\".\"salary\" > 8000)"
+        + "OR (\"t1\".\"empid\" = \"t2\".\"empid\")";
+
+    String[] returns = new String[] {
+        "deptno=10; empid=100; deptno=20; empid=200",
+        "deptno=10; empid=100; deptno=20; empid=210",
+        "deptno=10; empid=100; deptno=20; empid=250",
+        "deptno=10; empid=100; deptno=30; empid=300",
+        "deptno=10; empid=110; deptno=20; empid=200",
+        "deptno=10; empid=110; deptno=20; empid=210",
+        "deptno=10; empid=110; deptno=20; empid=250",
+        "deptno=10; empid=110; deptno=30; empid=300",
+        "deptno=20; empid=200; deptno=20; empid=200",
+        "deptno=20; empid=200; deptno=20; empid=210",
+        "deptno=20; empid=200; deptno=20; empid=250"};
+
+    CalciteAssert.hr()
+        .query(sql)
+        .returnsUnordered(returns);
+
+    CalciteAssert.hr()
+        .query(sql)
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+          planner.addRule(CoreRules.JOIN_CONDITION_OR_EXPANSION_RULE);
+          planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
+        })
+        .returnsUnordered(returns);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6930">[CALCITE-6930]
+   * Implementing JoinConditionOrExpansionRule</a>. */
+  @Test void testJoinConditionOrExpansionRuleLeft() {
+    final String sql = ""
+        + "SELECT \"t1\".\"deptno\", \"t1\".\"empid\", \"t2\".\"deptno\", \"t2\".\"empid\"\n"
+        + "FROM \"hr\".\"emps\" AS \"t1\"\n"
+        + "LEFT JOIN (\n"
+        + "    SELECT (\"deptno\" + 10) AS \"deptno\", (\"empid\" + 100) AS \"empid\" FROM \"hr\".\"emps\"\n"
+        + ") AS \"t2\"\n"
+        + "ON (\"t1\".\"deptno\" = \"t2\".\"deptno\") OR (\"t1\".\"empid\" = \"t2\".\"empid\")";
+
+    String[] returns = new String[] {
+        "deptno=10; empid=100; deptno=null; empid=null",
+        "deptno=10; empid=110; deptno=null; empid=null",
+        "deptno=10; empid=150; deptno=null; empid=null",
+        "deptno=20; empid=200; deptno=20; empid=200",
+        "deptno=20; empid=200; deptno=20; empid=210",
+        "deptno=20; empid=200; deptno=20; empid=250"};
+
+    CalciteAssert.hr()
+        .query(sql)
+        .returnsUnordered(returns);
+
+    CalciteAssert.hr()
+        .query(sql)
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+          planner.addRule(CoreRules.JOIN_CONDITION_OR_EXPANSION_RULE);
+          planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
+        })
+        .returnsUnordered(returns);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6930">[CALCITE-6930]
+   * Implementing JoinConditionOrExpansionRule</a>. */
+  @Test void testJoinConditionOrExpansionRuleLeftUnion() {
+    final String sql = ""
+        + "SELECT \"t1\".\"deptno\", \"t1\".\"empid\", \"t2\".\"deptno\", \"t2\".\"empid\"\n"
+        + "FROM \"hr\".\"emps\" AS \"t1\"\n"
+        + "LEFT JOIN (\n"
+        + "    SELECT (\"deptno\" + 10) AS \"deptno\", (\"empid\" + 100) AS \"empid\" FROM \"hr\".\"emps\"\n"
+        + "    UNION ALL\n"
+        + "    SELECT (\"deptno\" + 10) AS \"deptno\", (\"empid\" + 100) AS \"empid\" FROM \"hr\".\"emps\"\n"
+        + ") AS \"t2\"\n"
+        + "ON (\"t1\".\"deptno\" = \"t2\".\"deptno\") OR (\"t1\".\"empid\" = \"t2\".\"empid\")";
+
+    String[] returns = new String[] {
+        "deptno=10; empid=100; deptno=null; empid=null",
+        "deptno=10; empid=110; deptno=null; empid=null",
+        "deptno=10; empid=150; deptno=null; empid=null",
+        "deptno=20; empid=200; deptno=20; empid=200",
+        "deptno=20; empid=200; deptno=20; empid=200",
+        "deptno=20; empid=200; deptno=20; empid=210",
+        "deptno=20; empid=200; deptno=20; empid=210",
+        "deptno=20; empid=200; deptno=20; empid=250",
+        "deptno=20; empid=200; deptno=20; empid=250"};
+
+    CalciteAssert.hr()
+        .query(sql)
+        .returnsUnordered(returns);
+
+    CalciteAssert.hr()
+        .query(sql)
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+          planner.addRule(CoreRules.JOIN_CONDITION_OR_EXPANSION_RULE);
+          planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
+        })
+        .returnsUnordered(returns);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6930">[CALCITE-6930]
+   * Implementing JoinConditionOrExpansionRule</a>. */
+  @Test void testJoinConditionOrExpansionRuleLeftWithNull() {
+    final String sql = ""
+        + "SELECT \"t1\".\"deptno\", \"t1\".\"commission\", \"t2\".\"deptno\", \"t2\".\"commission\"\n"
+        + "FROM \"hr\".\"emps\" AS \"t1\"\n"
+        + "LEFT JOIN (\n"
+        + "    SELECT (\"deptno\" + 10) AS \"deptno\", \"commission\" FROM \"hr\".\"emps\"\n"
+        + ") AS \"t2\"\n"
+        + "ON (\"t1\".\"deptno\" = \"t2\".\"deptno\") OR (\"t1\".\"commission\" = \"t2\".\"commission\")";
+
+    String[] returns = new String[] {
+        "deptno=10; commission=1000; deptno=20; commission=1000",
+        "deptno=10; commission=250; deptno=20; commission=250",
+        "deptno=10; commission=null; deptno=null; commission=null",
+        "deptno=20; commission=500; deptno=20; commission=1000",
+        "deptno=20; commission=500; deptno=20; commission=250",
+        "deptno=20; commission=500; deptno=20; commission=null",
+        "deptno=20; commission=500; deptno=30; commission=500"};
+
+    CalciteAssert.hr()
+        .query(sql)
+        .returnsUnordered(returns);
+
+    CalciteAssert.hr()
+        .query(sql)
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+          planner.addRule(CoreRules.JOIN_CONDITION_OR_EXPANSION_RULE);
+          planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
+        })
+        .returnsUnordered(returns);
+  }
+
   /** Four-way join. Used to take 80 seconds. */
   @Disabled
   @Test void testJoinFiveWay() {
