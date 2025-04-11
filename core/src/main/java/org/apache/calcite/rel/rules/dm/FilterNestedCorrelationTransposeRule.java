@@ -35,7 +35,7 @@ public class FilterNestedCorrelationTransposeRule
   private RuleMatchExtension extension;
 
   /**
-   * Creates an SerializeDistinctStructRule.
+   * Creates an FilterNestedCorrelationTransposeRule.
    */
   protected FilterNestedCorrelationTransposeRule(FilterNestedCorrelationTransposeRule.Config config) {
     super(config);
