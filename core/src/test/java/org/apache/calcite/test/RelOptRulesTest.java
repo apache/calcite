@@ -3612,6 +3612,16 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6948">[CALCITE-6948]
+   * Implement MinusToAntiJoinRule</a>. */
+  @Test void testMinusToAntiJoinRule() {
+    final String sql = "select ename from emp where deptno = 10\n"
+        + "except\n"
+        + "select ename from emp where deptno = 20\n";
+    sql(sql).withRule(CoreRules.MINUS_TO_ANTI_JOIN_RULE)
+        .check();
+  }
+
   /** Tests {@link CoreRules#MINUS_MERGE}, which merges 2
    * {@link Minus} operators into a single {@code Minus} with 3
    * inputs. */

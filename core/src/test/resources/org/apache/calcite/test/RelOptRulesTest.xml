@@ -8706,6 +8706,37 @@ LogicalProject(NAME=[$0], DEPTNO=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testMinusToAntiJoinRule">
+    <Resource name="sql">
+      <![CDATA[select ename from emp where deptno = 10
+except
+select ename from emp where deptno = 20
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalMinus(all=[false])
+  LogicalProject(ENAME=[$1])
+    LogicalFilter(condition=[=($7, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(ENAME=[$1])
+    LogicalFilter(condition=[=($7, 20)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalAggregate(group=[{0}])
+  LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[anti])
+    LogicalProject(ENAME=[$1])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(ENAME=[$1])
+      LogicalFilter(condition=[=($7, 20)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testMinusToDistinct">
     <Resource name="sql">
       <![CDATA[select EMPNO, ENAME, JOB from emp where deptno = 10
