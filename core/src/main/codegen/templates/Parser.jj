@@ -1040,6 +1040,9 @@ void AddArg0(List<SqlNode> list, ExprContext exprContext) :
         e = LambdaExpression()
     |
         LOOKAHEAD(3)
+        <LPAREN> e = TableParam() <RPAREN>
+    |
+        LOOKAHEAD(3)
         e = TableParam()
     |
         e = PartitionedQueryOrQueryOrExpr(firstExprContext)
