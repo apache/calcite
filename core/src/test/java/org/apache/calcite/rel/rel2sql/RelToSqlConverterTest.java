@@ -9126,13 +9126,13 @@ class RelToSqlConverterTest {
   @Test void testEmptyMapOrArrayValueConstructor() {
     final String query = "SELECT MAP[]";
     final String error = "org.apache.calcite.runtime.CalciteContextException: "
-        +"From line 1, column 8 to line 1, column 12: Map requires at least 2 arguments";
+        + "From line 1, column 8 to line 1, column 12: Map requires at least 2 arguments";
     sql(query)
         .withClickHouse().throws_(error);
 
     final String query1 = "SELECT ARRAY[]";
     final String error1 = "org.apache.calcite.runtime.CalciteContextException: "
-        +"From line 1, column 8 to line 1, column 14: Require at least 1 argument";
+        + "From line 1, column 8 to line 1, column 14: Require at least 1 argument";
     sql(query1)
         .withClickHouse().throws_(error1);
   }
