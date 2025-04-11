@@ -6582,6 +6582,180 @@ LogicalJoin(condition=[true], joinType=[inner])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testJoinConditionOrExpansionRule">
+    <Resource name="sql">
+      <![CDATA[select *
+from EMP as p1
+inner join EMP as p2 on p1.empno = p2.empno or p1.mgr = p2.mgr]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
+  LogicalJoin(condition=[OR(=($0, $9), =($3, $12))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
+  LogicalUnion(all=[true])
+    LogicalJoin(condition=[=($0, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalJoin(condition=[AND(=($3, $12), <>($0, $9))], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJoinConditionOrExpansionRuleAnti">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalJoin(condition=[OR(=($0, $10), =($1, $5))], joinType=[anti])
+  LogicalTableScan(table=[[scott, DEPT]])
+  LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalJoin(condition=[=($1, $5)], joinType=[anti])
+  LogicalJoin(condition=[=($0, $10)], joinType=[anti])
+    LogicalTableScan(table=[[scott, DEPT]])
+    LogicalTableScan(table=[[scott, EMP]])
+  LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJoinConditionOrExpansionRuleFull">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalJoin(condition=[OR(=($0, $10), =($1, $5))], joinType=[full])
+  LogicalTableScan(table=[[scott, DEPT]])
+  LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalUnion(all=[true])
+  LogicalJoin(condition=[=($0, $10)], joinType=[inner])
+    LogicalTableScan(table=[[scott, DEPT]])
+    LogicalTableScan(table=[[scott, EMP]])
+  LogicalJoin(condition=[AND(=($1, $5), <>($0, $10))], joinType=[inner])
+    LogicalTableScan(table=[[scott, DEPT]])
+    LogicalTableScan(table=[[scott, EMP]])
+  LogicalProject($f0=[null:TINYINT], $f1=[null:VARCHAR(14)], $f2=[null:VARCHAR(13)], EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7])
+    LogicalJoin(condition=[=($9, $2)], joinType=[anti])
+      LogicalJoin(condition=[=($8, $7)], joinType=[anti])
+        LogicalTableScan(table=[[scott, EMP]])
+        LogicalTableScan(table=[[scott, DEPT]])
+      LogicalTableScan(table=[[scott, DEPT]])
+  LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2], $f3=[null:SMALLINT], $f4=[null:VARCHAR(10)], $f5=[null:VARCHAR(9)], $f6=[null:SMALLINT], $f7=[null:DATE], $f8=[null:DECIMAL(7, 2)], $f9=[null:DECIMAL(7, 2)], $f10=[null:TINYINT])
+    LogicalJoin(condition=[=($1, $5)], joinType=[anti])
+      LogicalJoin(condition=[=($0, $10)], joinType=[anti])
+        LogicalTableScan(table=[[scott, DEPT]])
+        LogicalTableScan(table=[[scott, EMP]])
+      LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJoinConditionOrExpansionRuleLeft">
+    <Resource name="sql">
+      <![CDATA[select *
+from EMP as p1
+left join EMP as p2 on p1.empno = p2.empno or p1.sal = p2.sal]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
+  LogicalJoin(condition=[OR(=($0, $9), =($5, $14))], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
+  LogicalUnion(all=[true])
+    LogicalJoin(condition=[=($0, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalJoin(condition=[AND(=($5, $14), <>($0, $9))], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[null:INTEGER], $f10=[null:VARCHAR(20)], $f11=[null:VARCHAR(10)], $f12=[null:INTEGER], $f13=[null:TIMESTAMP(0)], $f14=[null:INTEGER], $f15=[null:INTEGER], $f16=[null:INTEGER], $f17=[null:BOOLEAN])
+      LogicalJoin(condition=[=($5, $14)], joinType=[anti])
+        LogicalJoin(condition=[=($0, $9)], joinType=[anti])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJoinConditionOrExpansionRuleMultiOr">
+    <Resource name="sql">
+      <![CDATA[select *
+from EMP as p1
+inner join EMP as p2 on  p1.mgr < p2.mgr or
+p1.empno = p2.empno or p1.sal < 0 or ln(p1.sal) < 10]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
+  LogicalJoin(condition=[OR(<($3, $12), =($0, $9), <($5, 0), <(LN($5), 10.0E0))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
+  LogicalUnion(all=[true])
+    LogicalJoin(condition=[<($3, $12)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalJoin(condition=[AND(=($0, $9), >=($3, $12))], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalJoin(condition=[AND(OR(<($5, 0), <(LN($5), 10.0E0)), >=($3, $12), <>($0, $9))], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJoinConditionOrExpansionRuleRight">
+    <Resource name="sql">
+      <![CDATA[select *
+from EMP as p1
+right join DEPT as p2 on p1.empno = p2.deptno or p1.ename < p2.name]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  LogicalJoin(condition=[OR(=($0, $9), <($1, CAST($10):VARCHAR(20) NOT NULL))], joinType=[right])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  LogicalUnion(all=[true])
+    LogicalJoin(condition=[=($0, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalJoin(condition=[AND(<($1, CAST($10):VARCHAR(20) NOT NULL), <>($0, $9))], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject($f0=[null:INTEGER], $f1=[null:VARCHAR(20)], $f2=[null:VARCHAR(10)], $f3=[null:INTEGER], $f4=[null:TIMESTAMP(0)], $f5=[null:INTEGER], $f6=[null:INTEGER], $f7=[null:INTEGER], $f8=[null:BOOLEAN], DEPTNO=[$0], NAME=[$1])
+      LogicalJoin(condition=[<($3, CAST($1):VARCHAR(20) NOT NULL)], joinType=[anti])
+        LogicalJoin(condition=[=($2, $0)], joinType=[anti])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testJoinConditionPushdown1">
     <Resource name="sql">
       <![CDATA[select *
