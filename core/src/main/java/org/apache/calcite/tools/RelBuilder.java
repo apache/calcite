@@ -1661,6 +1661,14 @@ public class RelBuilder {
         .preOperands(literal(value));
   }
 
+  /** Creates a call to the {@code LITERAL_AGG} aggregate function.
+   * optionally an alias. */
+  public AggCall literalAgg(@Nullable Object value, @Nullable String alias, RexNode... operands) {
+    return aggregateCall(SqlInternalOperators.LITERAL_AGG, false, false, false,
+        null, null, ImmutableList.of(), alias, ImmutableList.of(),
+        ImmutableList.copyOf(operands)).preOperands(literal(value));
+  }
+
   // Methods for patterns
 
   /**
