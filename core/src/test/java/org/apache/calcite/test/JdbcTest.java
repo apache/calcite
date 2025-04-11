@@ -2862,6 +2862,24 @@ public class JdbcTest {
             + "T=heodore\n");
   }
 
+  @Test void testJoinConditionExpandIsNotDistinctFrom() {
+    final String sql = ""
+        + "select \"t1\".\"commission\" from \"hr\".\"emps\" as \"t1\"\n"
+        + "join\n"
+        + "\"hr\".\"emps\" as \"t2\"\n"
+        + "on \"t1\".\"commission\" is not distinct from \"t2\".\"commission\"";
+    CalciteAssert.hr()
+        .query(sql)
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+          planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
+          planner.addRule(CoreRules.JOIN_CONDITION_EXPAND_IS_NOT_DISTINCT_FROM);
+        })
+        .explainContains("HashJoin")
+        .returnsUnordered("commission=1000",
+            "commission=250",
+            "commission=500",
+            "commission=null");
+  }
   @Test void testReuseExpressionWhenNullChecking5() {
     final String sql = "select substring(trim(\n"
         + "substring(\"name\",\n"
