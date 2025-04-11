@@ -6582,6 +6582,54 @@ LogicalJoin(condition=[true], joinType=[inner])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testJoinConditinExpandIsNotDistinctFromRule">
+    <Resource name="sql">
+      <![CDATA[select t1.ENAME from empnullables as t1
+join
+empnullables as t2
+on t1.ENAME is not distinct from t2.ENAME]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(ENAME=[$1])
+  LogicalJoin(condition=[IS NOT DISTINCT FROM($1, $10)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(ENAME=[$1])
+  LogicalJoin(condition=[AND(=(COALESCE($1, ''), COALESCE($10, '')), =(IS NULL($1), IS NULL($10)))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJoinConditinExpandIsNotDistinctFromRuleArray">
+    <Resource name="sql">
+      <![CDATA[select t1.ADMINS from DEPT_NESTED_EXPANDED as t1
+join
+DEPT_NESTED_EXPANDED as t2
+on t1.ADMINS is not distinct from t2.ADMINS]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(ADMINS=[$3])
+  LogicalJoin(condition=[IS NOT DISTINCT FROM($3, $8)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(ADMINS=[$3])
+  LogicalJoin(condition=[AND(=(COALESCE($3, CAST(ARRAY()):VARCHAR(5) NOT NULL ARRAY NOT NULL), COALESCE($8, CAST(ARRAY()):VARCHAR(5) NOT NULL ARRAY NOT NULL)), =(IS NULL($3), IS NULL($8)))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testJoinConditionPushdown1">
     <Resource name="sql">
       <![CDATA[select *

@@ -8835,6 +8835,34 @@ class RelOptRulesTest extends RelOptTestBase {
     relFn(relFn).withRule(CoreRules.FILTER_EXPAND_IS_NOT_DISTINCT_FROM).check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6927">[CALCITE-6927]
+   * Add rule for join condition remove IS NOT DISTINCT FROM</a>. */
+  @Test void testJoinConditinExpandIsNotDistinctFromRule() {
+    final String sql = ""
+        + "select t1.ENAME from empnullables as t1\n"
+        + "join\n"
+        + "empnullables as t2\n"
+        + "on t1.ENAME is not distinct from t2.ENAME";
+    sql(sql)
+        .withRule(CoreRules.JOIN_CONDITION_EXPAND_IS_NOT_DISTINCT_FROM)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6927">[CALCITE-6927]
+   * Add rule for join condition remove IS NOT DISTINCT FROM</a>. */
+  @Test void testJoinConditinExpandIsNotDistinctFromRuleArray() {
+    final String sql = ""
+        + "select t1.ADMINS from DEPT_NESTED_EXPANDED as t1\n"
+        + "join\n"
+        + "DEPT_NESTED_EXPANDED as t2\n"
+        + "on t1.ADMINS is not distinct from t2.ADMINS";
+    sql(sql)
+        .withRule(CoreRules.JOIN_CONDITION_EXPAND_IS_NOT_DISTINCT_FROM)
+        .check();
+  }
+
   /** Creates an environment for testing spatial queries. */
   private RelOptFixture spatial(String sql) {
     final HepProgram program = new HepProgramBuilder()
