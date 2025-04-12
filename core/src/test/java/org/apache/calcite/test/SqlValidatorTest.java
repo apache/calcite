@@ -6684,6 +6684,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
       @Override public SelectAliasLookup isSelectAlias() {
         return SelectAliasLookup.LEFT_TO_RIGHT;
       }
+      @Override public boolean isGroupByAlias() {
+        return true;
+      }
     };
     final SqlConformance any = new SqlAbstractConformance() {
       @Override public SelectAliasLookup isSelectAlias() {
@@ -6718,6 +6721,25 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .withConformance(any)
         .fails("The definition of column 'X' depends on itself through the following columns: "
             + "'X', 'Y'");
+    // Using a FROM clause with a table
+    sql("select empno AS x, x as y FROM emp")
+        .withValidatorIdentifierExpansion(true)
+        .withConformance(leftRoRight)
+        .ok();
+    // aliases are visible in group by
+    sql("select empno AS x, x as y FROM emp GROUP BY y")
+        .withValidatorIdentifierExpansion(true)
+        .withConformance(leftRoRight)
+        .ok();
+    // the following is not legal in any conformance
+    // because 'empno' is visible in the FROM clause
+    sql("select count(empno + deptno) as empno, ^empno^ as x from emp"
+            + " group by empno + deptno")
+            .fails("Expression 'EMPNO' is not being grouped")
+            .withConformance(leftRoRight)
+            .fails("Expression 'EMPNO' is not being grouped")
+            .withConformance(any)
+            .fails("Expression 'EMPNO' is not being grouped");
   }
 
   /**
