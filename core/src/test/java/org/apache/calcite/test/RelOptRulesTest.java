@@ -2371,6 +2371,15 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  @Test void testFilterTableFunctionScanTranspose() {
+    final String sql = "select * from table(test(cursor(select name from dept)))"
+        + " where name = '1'";
+
+    sql(sql)
+        .withRule(CoreRules.FILTER_TABLE_FUNCTION_TRANSPOSE)
+        .check();
+  }
+
   @Test void testDistinctWithFilterAndGroupBy() {
     final String sql = "SELECT deptno, SUM(comm), COUNT(DISTINCT sal) FILTER (WHERE sal > 1000)\n"
         + "FROM emp\n"

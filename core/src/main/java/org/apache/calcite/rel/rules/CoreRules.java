@@ -30,6 +30,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sample;
 import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
@@ -44,6 +45,7 @@ import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSortExchange;
 import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
 import org.apache.calcite.rel.logical.LogicalWindow;
+import org.apache.calcite.rel.rules.FilterTableFunctionTransposeRule.Config;
 import org.apache.calcite.rel.rules.materialize.MaterializedViewRules;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexUtil;
@@ -288,8 +290,16 @@ public class CoreRules {
   /** Rule that pushes a {@link LogicalFilter}
    * past a {@link LogicalTableFunctionScan}. */
   public static final FilterTableFunctionTransposeRule
-      FILTER_TABLE_FUNCTION_TRANSPOSE =
-      FilterTableFunctionTransposeRule.Config.DEFAULT.toRule();
+      LOGICAL_FILTER_LOGICAL_TABLE_FUNCTION_TRANSPOSE = Config.DEFAULT
+          .withOperandFor(LogicalFilter.class, LogicalTableFunctionScan.class)
+          .toRule();
+
+  /** Rule that pushes a {@link Filter}
+   * past a {@link TableFunctionScan}. */
+  public static final FilterTableFunctionTransposeRule
+      FILTER_TABLE_FUNCTION_TRANSPOSE = Config.DEFAULT
+          .withOperandFor(Filter.class, TableFunctionScan.class)
+          .toRule();
 
   /** Rule that matches a {@link Filter} on a {@link TableScan}. */
   public static final FilterTableScanRule FILTER_SCAN =
