@@ -1874,6 +1874,7 @@ public class RexBuilder {
       return literal.getValueAs(clazz);
 
     case ROW:
+    case ARRAY_VALUE_CONSTRUCTOR:
       final RexCall call = (RexCall) point;
       final ImmutableList.Builder<Comparable> b = ImmutableList.builder();
       for (RexNode operand : call.operands) {

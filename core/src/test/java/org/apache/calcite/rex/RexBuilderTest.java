@@ -962,6 +962,27 @@ class RexBuilderTest {
 
   /**
    * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6989">[CALCITE-6989]
+   * Enhance RexBuilder#makeIn to create SEARCH for ARRAY literals</a>.
+   */
+  @Test void testMakeInReturnsSearchForArrayLiterals() {
+    RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    RexBuilder rexBuilder = new RexBuilder(typeFactory);
+    RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    RelDataType arrayIntType = typeFactory.createArrayType(intType, -1);
+    RexNode column = rexBuilder.makeInputRef(arrayIntType, 0);
+    RexNode l1 = rexBuilder.makeLiteral(ImmutableList.of(100, 200), arrayIntType, false);
+    RexNode l2 = rexBuilder.makeLiteral(ImmutableList.of(300, 400), arrayIntType, false);
+    RexNode inCall = rexBuilder.makeIn(column, ImmutableList.of(l1, l2));
+    assertThat(
+        inCall, hasToString("SEARCH($0, Sarg["
+        + "[100:INTEGER, 200:INTEGER]:INTEGER NOT NULL ARRAY, "
+        + "[300:INTEGER, 400:INTEGER]:INTEGER NOT NULL ARRAY"
+        + "]:INTEGER NOT NULL ARRAY)"));
+  }
+
+  /**
+   * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6608">[CALCITE-6608]
    * RexBuilder#makeIn should create EQUALS instead of SEARCH for single point values</a>.
    */
