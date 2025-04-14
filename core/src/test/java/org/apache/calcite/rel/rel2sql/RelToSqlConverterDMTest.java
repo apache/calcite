@@ -13041,12 +13041,13 @@ class RelToSqlConverterDMTest {
 
   @Test public void testObjectIdFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode objectId = builder.call(SqlLibraryOperators.OBJECT_ID);
+    final RexNode objectId =
+        builder.call(SqlLibraryOperators.OBJECT_ID, builder.literal("#schema1.table1"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(objectId, "objectId"))
         .build();
-    final String expectedSql = "SELECT OBJECT_ID() AS [objectId]"
+    final String expectedSql = "SELECT OBJECT_ID('#schema1.table1') AS [objectId]"
         + "\nFROM [scott].[EMP]";
 
     assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedSql));
