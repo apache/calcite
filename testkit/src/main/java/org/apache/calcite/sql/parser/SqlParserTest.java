@@ -4857,12 +4857,10 @@ public class SqlParserTest {
   @Test void testDescribeSchema() {
     sql("describe schema A")
         .ok("DESCRIBE SCHEMA `A`");
-    // Currently DESCRIBE DATABASE, DESCRIBE CATALOG become DESCRIBE SCHEMA.
-    // See [CALCITE-1221] Implement DESCRIBE DATABASE, CATALOG, STATEMENT
     sql("describe database A")
-        .ok("DESCRIBE SCHEMA `A`");
+        .ok("DESCRIBE DATABASE `A`");
     sql("describe catalog A")
-        .ok("DESCRIBE SCHEMA `A`");
+        .ok("DESCRIBE CATALOG `A`");
   }
 
   @Test void testDescribeTable() {
@@ -4897,15 +4895,13 @@ public class SqlParserTest {
   }
 
   @Test void testDescribeStatement() {
-    // Currently DESCRIBE STATEMENT becomes EXPLAIN.
-    // See [CALCITE-1221] Implement DESCRIBE DATABASE, CATALOG, STATEMENT
     final String expected0 = ""
-        + "EXPLAIN PLAN INCLUDING ATTRIBUTES WITH IMPLEMENTATION FOR\n"
+        + "DESCRIBE STATEMENT\n"
         + "SELECT *\n"
         + "FROM `EMPS`";
     sql("describe statement select * from emps").ok(expected0);
     final String expected1 = ""
-        + "EXPLAIN PLAN INCLUDING ATTRIBUTES WITH IMPLEMENTATION FOR\n"
+        + "DESCRIBE STATEMENT\n"
         + "(SELECT *\n"
         + "FROM `EMPS`\n"
         + "ORDER BY 2)";
@@ -4914,7 +4910,7 @@ public class SqlParserTest {
     sql("describe (select * from emps)").ok(expected0);
     sql("describe statement (select * from emps)").ok(expected0);
     final String expected2 = ""
-        + "EXPLAIN PLAN INCLUDING ATTRIBUTES WITH IMPLEMENTATION FOR\n"
+        + "DESCRIBE STATEMENT\n"
         + "SELECT `DEPTNO`\n"
         + "FROM `EMPS`\n"
         + "UNION\n"
@@ -4922,7 +4918,7 @@ public class SqlParserTest {
         + "FROM `DEPTS`";
     sql("describe select deptno from emps union select deptno from depts").ok(expected2);
     final String expected3 = ""
-        + "EXPLAIN PLAN INCLUDING ATTRIBUTES WITH IMPLEMENTATION FOR\n"
+        + "DESCRIBE STATEMENT\n"
         + "INSERT INTO `EMPS`\n"
         + "VALUES (ROW(1, 'a'))";
     sql("describe insert into emps values (1, 'a')").ok(expected3);
