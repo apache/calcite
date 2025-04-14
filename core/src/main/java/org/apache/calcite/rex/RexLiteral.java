@@ -392,6 +392,7 @@ public class RexLiteral extends RexNode {
     case SYMBOL:
       return value instanceof Enum;
     case ROW:
+    case ARRAY:
     case MULTISET:
       return value instanceof List;
     case GEOMETRY:
@@ -748,6 +749,7 @@ public class RexLiteral extends RexNode {
       break;
     case MULTISET:
     case ROW:
+    case ARRAY:
       assert value instanceof List : "value must implement List: " + value;
       @SuppressWarnings("unchecked") final List<RexLiteral> list =
           (List<RexLiteral>) castNonNull(value);
@@ -788,6 +790,7 @@ public class RexLiteral extends RexNode {
       return new RexLiteral((Comparable) fieldLiterals, type, typeName);
 
     case MULTISET:
+    case ARRAY:
       assert value instanceof List : "value must implement List: " + value;
       final List<Comparable<?>> elementValues = (List) value;
       final List<RexLiteral> elementLiterals =
