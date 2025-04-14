@@ -1159,6 +1159,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     final SqlWriter.Frame frame = writer.startFunCall(call.getOperator().toString());
     call.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.print(",");
+    SqlNode intervalOperand = call.operand(1);
     switch (call.operand(1).getKind()) {
     case LITERAL:
       unparseSqlIntervalLiteral(writer, call.operand(1), leftPrec, rightPrec);
@@ -1174,6 +1175,13 @@ public class BigQuerySqlDialect extends SqlDialect {
       break;
     case OTHER_FUNCTION:
       unparseOtherFunction(writer, call.operand(1), leftPrec, rightPrec);
+      break;
+    case MINUS:
+      writer.keyword("INTERVAL");
+      writer.print("(");
+      intervalOperand.unparse(writer, leftPrec, rightPrec);
+      writer.print(")");
+      writer.keyword("DAY");
       break;
     default:
       throw new AssertionError(call.operand(1).getKind() + " is not valid");
