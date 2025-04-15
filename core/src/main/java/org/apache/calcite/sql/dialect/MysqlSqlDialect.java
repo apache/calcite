@@ -54,6 +54,7 @@ import com.google.common.collect.ImmutableList;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
+import java.util.Locale;
 
 /**
  * A <code>SqlDialect</code> implementation for the MySQL database.
@@ -347,6 +348,8 @@ public class MysqlSqlDialect extends SqlDialect {
     }
 
     String format;
+    boolean needSubStr = false;
+    int substringLength = 0;
     switch (unit) {
     case YEAR:
       format = "%Y-01-01";
@@ -366,9 +369,25 @@ public class MysqlSqlDialect extends SqlDialect {
     case SECOND:
       format = "%Y-%m-%d %H:%i:%s";
       break;
+    case MILLISECOND:
+      needSubStr = true;
+      format = "%Y-%m-%d %H:%i:%s.%f";
+      substringLength = 23;
+      break;
+    case MICROSECOND:
+      needSubStr = true;
+      format = "%Y-%m-%d %H:%i:%s.%f";
+      substringLength = 26;
+      break;
     default:
       throw new AssertionError("MYSQL does not support FLOOR for time unit: "
           + unit);
+    }
+
+    SqlWriter.Frame substringFrame = null;
+    if (needSubStr) {
+      writer.print("SUBSTRING");
+      substringFrame = writer.startList("(", ")");
     }
 
     writer.print("DATE_FORMAT");
@@ -377,6 +396,12 @@ public class MysqlSqlDialect extends SqlDialect {
     writer.sep(",", true);
     writer.print("'" + format + "'");
     writer.endList(frame);
+
+    if (needSubStr) {
+      String substringFormat = String.format(Locale.ROOT, ", 1, %s", substringLength);
+      writer.print(substringFormat);
+      writer.endList(substringFrame);
+    }
   }
 
   @Override public boolean supportsAggregateFunctionFilter() {
