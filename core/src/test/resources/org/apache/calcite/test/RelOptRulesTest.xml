@@ -15232,10 +15232,11 @@ where e.deptno = d.deptno]]>
     <Resource name="planBefore">
       <![CDATA[
 LogicalProject(ENAME=[$1])
-  LogicalFilter(condition=[=($7, $9)])
-    LogicalJoin(condition=[true], joinType=[inner])
+  LogicalJoin(condition=[=($7, $9)], joinType=[inner], semiJoinDone=[true])
+    LogicalJoin(condition=[=($7, $9)], joinType=[semi])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
     <Resource name="planAfter">
@@ -15255,12 +15256,15 @@ where e1.deptno = d.deptno and d.deptno = e2.deptno]]>
     <Resource name="planBefore">
       <![CDATA[
 LogicalProject(ENAME=[$1])
-  LogicalFilter(condition=[AND(=($7, $9), =($9, $18))])
-    LogicalJoin(condition=[true], joinType=[inner])
-      LogicalJoin(condition=[true], joinType=[inner])
+  LogicalJoin(condition=[=($9, $18)], joinType=[inner], semiJoinDone=[true])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner], semiJoinDone=[true])
+      LogicalJoin(condition=[=($7, $9)], joinType=[semi])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalJoin(condition=[=($0, $9)], joinType=[semi])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
     <Resource name="planAfter">
@@ -15283,12 +15287,17 @@ and d.name = 'foo']]>
     <Resource name="planBefore">
       <![CDATA[
 LogicalProject(ENAME=[$1])
-  LogicalFilter(condition=[AND(=($7, $9), =($9, $18), =($10, 'foo'))])
-    LogicalJoin(condition=[true], joinType=[inner])
-      LogicalJoin(condition=[true], joinType=[inner])
+  LogicalJoin(condition=[=($9, $18)], joinType=[inner], semiJoinDone=[true])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner], semiJoinDone=[true])
+      LogicalJoin(condition=[=($7, $9)], joinType=[semi])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalFilter(condition=[=($1, 'foo')])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalFilter(condition=[=($1, 'foo')])
+        LogicalJoin(condition=[=($0, $9)], joinType=[semi])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
     <Resource name="planAfter">
@@ -15311,10 +15320,12 @@ where e.deptno = d.deptno and e.ename = 'foo']]>
     <Resource name="planBefore">
       <![CDATA[
 LogicalProject(ENAME=[$1])
-  LogicalFilter(condition=[AND(=($7, $9), =($1, 'foo'))])
-    LogicalJoin(condition=[true], joinType=[inner])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalJoin(condition=[=($7, $9)], joinType=[inner], semiJoinDone=[true])
+    LogicalFilter(condition=[=($1, 'foo')])
+      LogicalJoin(condition=[=($7, $9)], joinType=[semi])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
     <Resource name="planAfter">
