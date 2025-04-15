@@ -2371,8 +2371,13 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5985">[CALCITE-5985]
+   * FilterTableFunctionTransposeRule should not use "Logical" RelNodes</a>. */
   @Test void testFilterTableFunctionScanTranspose() {
-    final String sql = "select * from table(test(cursor(select name from dept)))"
+    // "tfrt" table function is the one from MockSqlOperatorTable,
+    // that implement TableFunctionReturnTypeInference.
+    final String sql = "select * from table(tfrt(cursor(select name from dept)))"
         + " where name = '1'";
 
     sql(sql)

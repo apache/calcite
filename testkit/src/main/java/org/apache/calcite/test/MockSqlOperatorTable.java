@@ -92,7 +92,7 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
         SqlOperatorTables.chain(parentTable,
             SqlOperatorTables.of(new RampFunction(),
                 new DedupFunction(),
-                new TestTableFunction(),
+                new TableFunctionReturnTableFunction(),
                 new MyFunction(),
                 new MyAvgAggFunction(),
                 new RowFunction(),
@@ -213,13 +213,13 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
     }
   }
 
-  /** "TEST" user-defined table function. */
-  public static class TestTableFunction extends SqlFunction
+  /** "TFRT" user-defined table function. */
+  public static class TableFunctionReturnTableFunction extends SqlFunction
       implements SqlTableFunction {
     TableFunctionReturnTypeInference inference;
 
-    public TestTableFunction() {
-      super("TEST",
+    public TableFunctionReturnTableFunction() {
+      super("TFRT",
           SqlKind.OTHER_FUNCTION,
           null,
           null,

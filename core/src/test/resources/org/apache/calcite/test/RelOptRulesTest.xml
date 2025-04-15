@@ -5543,13 +5543,13 @@ LogicalFilter(condition=[<($0, 10)])
   </TestCase>
   <TestCase name="testFilterTableFunctionScanTranspose">
     <Resource name="sql">
-      <![CDATA[select * from table(test(cursor(select name from dept))) where name = '1']]>
+      <![CDATA[select * from table(tfrt(cursor(select name from dept))) where name = '1']]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
 LogicalProject(NAME=[$0])
   LogicalFilter(condition=[=($0, '1')])
-    LogicalTableFunctionScan(invocation=[TEST(CAST($0):CURSOR NOT NULL)], rowType=[RecordType(VARCHAR(10) NAME)])
+    LogicalTableFunctionScan(invocation=[TFRT(CAST($0):CURSOR NOT NULL)], rowType=[RecordType(VARCHAR(10) NAME)])
       LogicalProject(NAME=[$1])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
@@ -5557,7 +5557,7 @@ LogicalProject(NAME=[$0])
     <Resource name="planAfter">
       <![CDATA[
 LogicalProject(NAME=[$0])
-  LogicalTableFunctionScan(invocation=[TEST(CAST($0):CURSOR NOT NULL)], rowType=[RecordType(VARCHAR(10) NAME)])
+  LogicalTableFunctionScan(invocation=[TFRT(CAST($0):CURSOR NOT NULL)], rowType=[RecordType(VARCHAR(10) NAME)])
     LogicalFilter(condition=[=($0, '1')])
       LogicalProject(NAME=[$1])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
