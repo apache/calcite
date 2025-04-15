@@ -33,6 +33,7 @@ import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.externalize.RelDotWriter;
 import org.apache.calcite.rel.externalize.RelXmlWriter;
+import org.apache.calcite.rel.logical.LogicalAsofJoin;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalSort;
@@ -2992,6 +2993,27 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     rel.accept(visitor);
     assertThat(rels, hasSize(1));
     assertThat(rels.get(0), instanceOf(LogicalTableModify.class));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6959">[CALCITE-6959]
+   * Support LogicalAsofJoin in RelShuttle</a>. */
+  @Test void testRelShuttleForLogicalAsofJoin() {
+    final String sql = "select emp.empno from emp asof join dept\n"
+        + "match_condition emp.deptno <= dept.deptno\n"
+        + "on ename = name";
+    final RelNode rel = sql(sql).toRel();
+    final List<RelNode> rels = new ArrayList<>();
+    final RelShuttleImpl visitor = new RelShuttleImpl() {
+      @Override public RelNode visit(LogicalAsofJoin asofJoin) {
+        RelNode visitedRel = super.visit(asofJoin);
+        rels.add(visitedRel);
+        return visitedRel;
+      }
+    };
+    rel.accept(visitor);
+    assertThat(rels, hasSize(1));
+    assertThat(rels.get(0), instanceOf(LogicalAsofJoin.class));
   }
 
   @Test void testOffset0() {
