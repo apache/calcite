@@ -62,8 +62,11 @@ import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalIntersect;
+import org.apache.calcite.rel.logical.LogicalMinus;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalTableModify;
+import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.AggregateExpandWithinDistinctRule;
 import org.apache.calcite.rel.rules.AggregateExtractProjectRule;
@@ -3206,6 +3209,42 @@ class RelOptRulesTest extends RelOptTestBase {
         .withRule(CoreRules.PROJECT_SET_OP_TRANSPOSE,
             CoreRules.PROJECT_REMOVE,
             CoreRules.UNION_MERGE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6953">[CALCITE-6953]
+   * Extend UnionEliminatorRule to support Intersect and Minus</a>. */
+  @Test void testUnionEliminatorRuleUnion() {
+    final Function<RelBuilder, RelNode> relFn =
+        b -> LogicalUnion.create(ImmutableList.of(b.scan("DEPT").build()), true);
+
+    relFn(relFn)
+        .withRule(CoreRules.UNION_REMOVE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6953">[CALCITE-6953]
+   * Extend UnionEliminatorRule to support Intersect and Minus</a>. */
+  @Test void testUnionEliminatorRuleIntersect() {
+    final Function<RelBuilder, RelNode> relFn =
+        b -> LogicalIntersect.create(ImmutableList.of(b.scan("DEPT").build()), true);
+
+    relFn(relFn)
+        .withRule(CoreRules.INTERSECT_REMOVE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6953">[CALCITE-6953]
+   * Extend UnionEliminatorRule to support Intersect and Minus</a>. */
+  @Test void testUnionEliminatorRuleMinus() {
+    final Function<RelBuilder, RelNode> relFn =
+        b -> LogicalMinus.create(ImmutableList.of(b.scan("DEPT").build()), true);
+
+    relFn(relFn)
+        .withRule(CoreRules.MINUS_REMOVE)
         .check();
   }
 

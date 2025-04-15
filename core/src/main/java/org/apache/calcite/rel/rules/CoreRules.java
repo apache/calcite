@@ -355,6 +355,12 @@ public class CoreRules {
   public static final UnionMergeRule INTERSECT_MERGE =
       UnionMergeRule.Config.INTERSECT.toRule();
 
+  /** Rule that removes a {@link Intersect} if it has only one input.
+   *
+   * @see PruneEmptyRules#UNION_INSTANCE */
+  public static final UnionEliminatorRule INTERSECT_REMOVE =
+      UnionEliminatorRule.Config.INTERSECT.toRule();
+
   /** Planner rule that reorders inputs of an {@link Intersect} to put smaller inputs first.
    * This helps reduce the size of intermediate results. */
   public static final IntersectReorderRule INTERSECT_REORDER =
@@ -393,6 +399,12 @@ public class CoreRules {
    * into a single {@code Minus}. */
   public static final UnionMergeRule MINUS_MERGE =
       UnionMergeRule.Config.MINUS.toRule();
+
+  /** Rule that removes a {@link Minus} if it has only one input.
+   *
+   * @see PruneEmptyRules#UNION_INSTANCE */
+  public static final UnionEliminatorRule MINUS_REMOVE =
+      UnionEliminatorRule.Config.MINUS.toRule();
 
   /** Rule that matches a {@link Project} on an {@link Aggregate},
    * projecting away aggregate calls that are not used. */
