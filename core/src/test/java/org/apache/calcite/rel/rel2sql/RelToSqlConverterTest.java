@@ -5534,6 +5534,25 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6958">[CALCITE-6958]
+   * JDBC adapter for MySQL not support floor date to MILLISECOND/MICROSECOND</a>. */
+  @Test void testFloorMysqlMillisecond() {
+    String query = "SELECT floor(\"hire_date\" TO MILLISECOND) FROM \"employee\"";
+    String expected = "SELECT SUBSTRING(DATE_FORMAT(`hire_date`, '%Y-%m-%d %H:%i:%s.%f') , 1, 23)\n"
+        + "FROM `foodmart`.`employee`";
+    sql(query)
+        .withMysql().ok(expected);
+  }
+
+  @Test void testFloorMysqlMicrosecond() {
+    String query = "SELECT floor(\"hire_date\" TO MICROSECOND) FROM \"employee\"";
+    String expected = "SELECT SUBSTRING(DATE_FORMAT(`hire_date`, '%Y-%m-%d %H:%i:%s.%f') , 1, 26)\n"
+        + "FROM `foodmart`.`employee`";
+    sql(query)
+        .withMysql().ok(expected);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1826">[CALCITE-1826]
    * JDBC dialect-specific FLOOR fails when in GROUP BY</a>. */
   @Test void testFloorWithGroupBy() {
