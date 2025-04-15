@@ -584,9 +584,15 @@ public class RelToSqlConverter extends SqlImplementor
               builder.context.toSql(null, e.getCondition())));
       result = builder.result();
     } else {
-      final Result x = visitInput(e, 0, Clause.WHERE);
-      parseCorrelTable(e, x);
+      Result x = visitInput(e, 0, Clause.WHERE);
       final Builder builder = x.builder(e);
+      Set<String> resultAliasKeySet = x.aliases.keySet();
+      String builderAliasKeySet = builder.select.getFrom() != null
+          ?  SqlValidatorUtil.alias(builder.select.getFrom()) : null;
+      if (!resultAliasKeySet.contains(builderAliasKeySet)) {
+        x = x.resetAlias();
+      }
+      parseCorrelTable(e, x);
       SqlNode filterNode = builder.context.toSql(null, e.getCondition());
       UnpivotRelToSqlUtil unpivotRelToSqlUtil = new UnpivotRelToSqlUtil();
       if (dialect.supportsUnpivot()

@@ -3814,9 +3814,9 @@ public abstract class SqlLibraryOperators {
       new SqlFunction(
           "OBJECT_ID",
           SqlKind.OTHER_FUNCTION,
-          ReturnTypes.VARCHAR,
+          ReturnTypes.INTEGER,
           null,
-          OperandTypes.NILADIC,
+          OperandTypes.STRING,
           SqlFunctionCategory.SYSTEM);
 
   @LibraryOperator(libraries = {MSSQL})
