@@ -4257,9 +4257,9 @@ class RelOptRulesTest extends RelOptTestBase {
     final String sql = "select e.ename from emp e, dept d\n"
         + "where e.deptno = d.deptno";
     sql(sql)
-        .withRule(CoreRules.FILTER_INTO_JOIN,
-            CoreRules.JOIN_ADD_REDUNDANT_SEMI_JOIN,
-            CoreRules.SEMI_JOIN_REMOVE)
+        .withPreRule(CoreRules.FILTER_INTO_JOIN,
+            CoreRules.JOIN_ADD_REDUNDANT_SEMI_JOIN)
+        .withRule(CoreRules.SEMI_JOIN_REMOVE)
         .check();
   }
 
@@ -4267,10 +4267,10 @@ class RelOptRulesTest extends RelOptTestBase {
     final String sql = "select e.ename from emp e, dept d\n"
         + "where e.deptno = d.deptno and e.ename = 'foo'";
     sql(sql)
-        .withRule(CoreRules.FILTER_INTO_JOIN,
+        .withPreRule(CoreRules.FILTER_INTO_JOIN,
             CoreRules.JOIN_ADD_REDUNDANT_SEMI_JOIN,
-            CoreRules.SEMI_JOIN_FILTER_TRANSPOSE,
-            CoreRules.SEMI_JOIN_REMOVE)
+            CoreRules.SEMI_JOIN_FILTER_TRANSPOSE)
+        .withRule(CoreRules.SEMI_JOIN_REMOVE)
         .check();
   }
 
@@ -4278,10 +4278,10 @@ class RelOptRulesTest extends RelOptTestBase {
     final String sql = "select e1.ename from emp e1, dept d, emp e2\n"
         + "where e1.deptno = d.deptno and d.deptno = e2.deptno";
     sql(sql)
-        .withRule(CoreRules.FILTER_INTO_JOIN,
+        .withPreRule(CoreRules.FILTER_INTO_JOIN,
             CoreRules.JOIN_ADD_REDUNDANT_SEMI_JOIN,
-            CoreRules.SEMI_JOIN_JOIN_TRANSPOSE,
-            CoreRules.SEMI_JOIN_REMOVE)
+            CoreRules.SEMI_JOIN_JOIN_TRANSPOSE)
+        .withRule(CoreRules.SEMI_JOIN_REMOVE)
         .check();
   }
 
@@ -4290,11 +4290,11 @@ class RelOptRulesTest extends RelOptTestBase {
         + "where e1.deptno = d.deptno and d.deptno = e2.deptno\n"
         + "and d.name = 'foo'";
     sql(sql)
-        .withRule(CoreRules.FILTER_INTO_JOIN,
+        .withPreRule(CoreRules.FILTER_INTO_JOIN,
             CoreRules.JOIN_ADD_REDUNDANT_SEMI_JOIN,
             CoreRules.SEMI_JOIN_JOIN_TRANSPOSE,
-            CoreRules.SEMI_JOIN_FILTER_TRANSPOSE,
-            CoreRules.SEMI_JOIN_REMOVE)
+            CoreRules.SEMI_JOIN_FILTER_TRANSPOSE)
+        .withRule(CoreRules.SEMI_JOIN_REMOVE)
         .check();
   }
 
