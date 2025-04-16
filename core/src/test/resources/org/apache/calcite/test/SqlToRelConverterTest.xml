@@ -5717,19 +5717,6 @@ LogicalSort(sort0=[$1], dir0=[ASC])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testOrderByAliasDoesNotObscure">
-    <Resource name="sql">
-      <![CDATA[select empno + 1 as empno, empno - 2 as y from emp order by empno + 3]]>
-    </Resource>
-    <Resource name="plan">
-      <![CDATA[
-ProjectRel(EMPNO=[$0], Y=[$1])
-  SortRel(sort0=[$2], dir0=[Ascending])
-    ProjectRel(EMPNO=[+($0, 1)], Y=[-($0, 2)], EXPR$2=[+($0, 3)])
-      TableAccessRel(table=[[SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
   <TestCase name="testOrderByAliasDoesNotOverride">
     <Resource name="sql">
       <![CDATA[select empno + 1 as empno, empno - 2 as y
