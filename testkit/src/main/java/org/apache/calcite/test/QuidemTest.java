@@ -16,10 +16,14 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.prepare.Prepare;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.runtime.Hook;
@@ -56,7 +60,9 @@ import java.sql.DriverManager;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.fail;
@@ -70,6 +76,9 @@ import static java.util.Objects.requireNonNull;
 public abstract class QuidemTest {
 
   private static final Pattern PATTERN = Pattern.compile("\\.iq$");
+
+  // Saved original planner rules
+  private static @Nullable List<RelOptRule> originalRules;
 
   private static @Nullable Object getEnv(String varName) {
     switch (varName) {
@@ -171,6 +180,26 @@ public abstract class QuidemTest {
               int thresholdValue = ((BigDecimal) value).intValue();
               closer.add(Prepare.THREAD_INSUBQUERY_THRESHOLD.push(thresholdValue));
             }
+            // Configures query planner rules via "!set planner-rules" command.
+            // The value can be set as follows:
+            // - Add rule:       "+EnumerableRules.ENUMERABLE_INTERSECT_RULE"
+            // - Remove rule:    "-CoreRules.INTERSECT_TO_DISTINCT"
+            // - Short form:     "+INTERSECT_TO_DISTINCT" (CoreRules prefix may be omitted)
+            // - Reset defaults: "original"
+            if (propertyName.equals("planner-rules")) {
+              if (value.equals("original")) {
+                closer.add(Hook.PLANNER.addThread(this::resetPlanner));
+              } else {
+                closer.add(
+                    Hook.PLANNER.addThread((Consumer<RelOptPlanner>)
+                        planner -> {
+                          if (originalRules == null) {
+                            originalRules = planner.getRules();
+                          }
+                          updatePlanner(planner, (String) value);
+                        }));
+              }
+            }
           })
           .withEnv(QuidemTest::getEnv)
           .build();
@@ -184,6 +213,57 @@ public abstract class QuidemTest {
     if (!diff.isEmpty()) {
       fail("Files differ: " + outFile + " " + inFile + "\n"
           + diff);
+    }
+  }
+
+  private void updatePlanner(RelOptPlanner planner, String value) {
+    List<RelOptRule> rulesAdd = new ArrayList<>();
+    List<RelOptRule> rulesRemove = new ArrayList<>();
+    parseRules(value, rulesAdd, rulesRemove);
+    rulesRemove.forEach(planner::removeRule);
+    rulesAdd.forEach(planner::addRule);
+  }
+
+  private void resetPlanner(RelOptPlanner planner) {
+    if (originalRules != null) {
+      planner.getRules().forEach(planner::removeRule);
+      originalRules.forEach(planner::addRule);
+    }
+  }
+
+  private void parseRules(String value, List<RelOptRule> rulesAdd, List<RelOptRule> rulesRemove) {
+    Pattern pattern = Pattern.compile("([+-])((CoreRules|EnumerableRules)\\.)?(\\w+)");
+    Matcher matcher = pattern.matcher(value);
+
+    while (matcher.find()) {
+      char operation = matcher.group(1).charAt(0);
+      String ruleSource = matcher.group(3);
+      String ruleName = matcher.group(4);
+
+      try {
+        if (ruleSource == null || ruleSource.equals("CoreRules")) {
+          Object rule = CoreRules.class.getField(ruleName).get(null);
+          setRules(operation, (RelOptRule) rule, rulesAdd, rulesRemove);
+        } else if (ruleSource.equals("EnumerableRules")) {
+          Object rule = EnumerableRules.class.getField(ruleName).get(null);
+          setRules(operation, (RelOptRule) rule, rulesAdd, rulesRemove);
+        } else {
+          throw new RuntimeException("Unknown rule: " + ruleName);
+        }
+      } catch (NoSuchFieldException | IllegalAccessException e) {
+        throw new RuntimeException("set rules failed: " + e.getMessage(), e);
+      }
+    }
+  }
+
+  private void setRules(char operation, RelOptRule rule,
+      List<RelOptRule> rulesAdd, List<RelOptRule> rulesRemove) {
+    if (operation == '+') {
+      rulesAdd.add(rule);
+    } else if (operation == '-') {
+      rulesRemove.add(rule);
+    } else {
+      throw new RuntimeException("unknown operation '" + operation + "'");
     }
   }
 
