@@ -29,6 +29,7 @@ import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalMatch;
 import org.apache.calcite.rel.logical.LogicalMinus;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalRepeatUnion;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.logical.LogicalUnion;
@@ -71,6 +72,8 @@ public interface RelShuttle {
   RelNode visit(LogicalTableModify modify);
 
   RelNode visit(LogicalAsofJoin logicalAsofJoin);
+
+  RelNode visit(LogicalRepeatUnion logicalRepeatUnion);
 
   RelNode visit(RelNode other);
 }
