@@ -1380,7 +1380,7 @@ LogicalProject(EXPR$0=[ARRAY_CONCAT(ARRAY(1, 2), ARRAY(3, 4))])
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalProject(EXPR$0=[CAST(ARRAY(1, 2, 3, 4)):INTEGER NOT NULL ARRAY NOT NULL])
+LogicalProject(EXPR$0=[ARRAY(1, 2, 3, 4)])
   LogicalValues(tuples=[[{ 0 }]])
 ]]>
     </Resource>
