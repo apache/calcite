@@ -36,7 +36,34 @@ import java.util.List;
 /**
  * Planner rule that translates a {@link Minus}
  * to a series of {@link org.apache.calcite.rel.core.Join} that type is
- * {@link JoinRelType#ANTI}.
+ * {@link JoinRelType#ANTI}. This rule supports 2-way Minus conversion,
+ * as this rule can be repeatedly applied during query optimization to
+ * refine the plan.
+ *
+ * <h2>Example</h2>
+ *
+ * <p>Original plan:
+ * <pre>{@code
+ * LogicalMinus(all=[false])
+ *   LogicalProject(ENAME=[$1])
+ *     LogicalFilter(condition=[=($7, 10)])
+ *       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+ *   LogicalProject(ENAME=[$1])
+ *     LogicalFilter(condition=[=($7, 20)])
+ *       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+ * }</pre>
+ *
+ * <p>Plan after conversion:
+ * <pre>{@code
+ * LogicalAggregate(group=[{0}])
+ *   LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[anti])
+ *     LogicalProject(ENAME=[$1])
+ *       LogicalFilter(condition=[=($7, 10)])
+ *         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+ *     LogicalProject(ENAME=[$1])
+ *       LogicalFilter(condition=[=($7, 20)])
+ *         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+ * }</pre>
  */
 @Value.Enclosing
 public class MinusToAntiJoinRule
@@ -74,6 +101,8 @@ public class MinusToAntiJoinRule
       RelDataType leftFieldType = left.getRowType().getFieldList().get(i).getType();
       RelDataType rightFieldType = right.getRowType().getFieldList().get(i).getType();
 
+      // No further optimization will be performed based on field nullability,
+      // as this can be uniformly optimized by other rules.
       conditions.add(
           relBuilder.isNotDistinctFrom(
               rexBuilder.makeInputRef(leftFieldType, i),
