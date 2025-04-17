@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.test;
 
+import com.google.common.collect.ImmutableList;
 import org.junit.jupiter.api.Test;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -42,6 +43,15 @@ import javax.xml.parsers.DocumentBuilderFactory;
 public class JavaXmlConsistencyChecker {
   final String javaFilePrefix = "src/test/java/org/apache/calcite/test/";
   final String xmlFilePrefix = "src/test/resources/org/apache/calcite/test/";
+  final List<String> fileNames = ImmutableList.of(
+      "RelOptRulesTest",
+      "HepPlannerTest",
+      "RuleMatchVisualizerTest",
+      "SqlHintsConverterTest",
+      "SqlLimitsTest",
+      "SqlToRelConverterTest",
+      "TopDownOptTest",
+      "TypeCoercionConverterTest");
 
   private static Set<String> parseTestCaseNamesFromXml(String filePath) throws Exception {
     Set<String> testCaseNames = new HashSet<>();
@@ -93,51 +103,11 @@ public class JavaXmlConsistencyChecker {
     }
   }
 
-  @Test void validateRelOptRulesTest() throws Exception {
-    String xmlFilePath = xmlFilePrefix + "RelOptRulesTest.xml";
-    String javaFilePath = javaFilePrefix + "RelOptRulesTest.java";
-    check("RelOptRulesTest", xmlFilePath, javaFilePath);
-  }
-
-  @Test void validateHepPlannerTest() throws Exception {
-    String xmlFilePath = xmlFilePrefix + "HepPlannerTest.xml";
-    String javaFilePath = javaFilePrefix + "HepPlannerTest.java";
-    check("HepPlannerTest", xmlFilePath, javaFilePath);
-  }
-
-  @Test void validateRuleMatchVisualizerTest() throws Exception {
-    String xmlFilePath = xmlFilePrefix + "RuleMatchVisualizerTest.xml";
-    String javaFilePath = javaFilePrefix + "RuleMatchVisualizerTest.java";
-    check("RuleMatchVisualizerTest", xmlFilePath, javaFilePath);
-  }
-
-  @Test void validateSqlHintsConverterTest() throws Exception {
-    String xmlFilePath = xmlFilePrefix + "SqlHintsConverterTest.xml";
-    String javaFilePath = javaFilePrefix + "SqlHintsConverterTest.java";
-    check("SqlHintsConverterTest", xmlFilePath, javaFilePath);
-  }
-
-  @Test void validateSqlLimitsTest() throws Exception {
-    String xmlFilePath = xmlFilePrefix + "SqlLimitsTest.xml";
-    String javaFilePath = javaFilePrefix + "SqlLimitsTest.java";
-    check("SqlLimitsTest", xmlFilePath, javaFilePath);
-  }
-
-  @Test void validateSqlToRelConverterTest() throws Exception {
-    String xmlFilePath = xmlFilePrefix + "SqlToRelConverterTest.xml";
-    String javaFilePath = javaFilePrefix + "SqlToRelConverterTest.java";
-    check("SqlToRelConverterTest", xmlFilePath, javaFilePath);
-  }
-
-  @Test void validateTopDownOptTest() throws Exception {
-    String xmlFilePath = xmlFilePrefix + "TopDownOptTest.xml";
-    String javaFilePath = javaFilePrefix + "TopDownOptTest.java";
-    check("TopDownOptTest", xmlFilePath, javaFilePath);
-  }
-
-  @Test void validateTypeCoercionConverterTest() throws Exception {
-    String xmlFilePath = xmlFilePrefix + "TypeCoercionConverterTest.xml";
-    String javaFilePath = javaFilePrefix + "TypeCoercionConverterTest.java";
-    check("TypeCoercionConverterTest", xmlFilePath, javaFilePath);
+  @Test void validateFiles() throws Exception {
+    for (String fileName : fileNames) {
+      String xmlFilePath = xmlFilePrefix + fileName + ".xml";
+      String javaFilePath = javaFilePrefix + fileName + ".java";
+      check(fileName, xmlFilePath, javaFilePath);
+    }
   }
 }
