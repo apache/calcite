@@ -25,6 +25,7 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
@@ -140,31 +141,55 @@ public class JoinConditionOrExpansionRule
   }
 
   private boolean isValidCond(RexNode node, int leftFieldCount) {
-    if (!(node instanceof RexCall)) {
-      return false;
-    }
-
-    RexCall call = (RexCall) node;
-    SqlKind kind = call.getKind();
-    switch (kind) {
-    case EQUALS:
-    case IS_NOT_DISTINCT_FROM:
-      RexNode left = call.getOperands().get(0);
-      RexNode right = call.getOperands().get(1);
-
-      if (left instanceof RexInputRef && right instanceof RexInputRef) {
-        RexInputRef leftRef = (RexInputRef) left;
-        RexInputRef rightRef = (RexInputRef) right;
-        return (leftRef.getIndex() < leftFieldCount && rightRef.getIndex() >= leftFieldCount)
-            || (leftRef.getIndex() >= leftFieldCount && rightRef.getIndex() < leftFieldCount);
+    boolean hasJoinKeyCond = false;
+    List<RexNode> conds = RelOptUtil.conjunctions(node);
+    for (RexNode cond : conds) {
+      if (!(node instanceof RexCall)) {
+        return false;
       }
-      return false;
-    case AND:
-      return call.getOperands().stream()
-          .allMatch(op -> isValidCond(op, leftFieldCount));
-    default:
+
+      RexCall call = (RexCall) cond;
+      // Checks if the call is valid for use as a join key.
+      if (isJoinKeyCond(call, leftFieldCount)) {
+        hasJoinKeyCond = true;
+        continue;
+      } else if (RexUtil.SubQueryFinder.find(call) != null
+          || RexUtil.containsCorrelation(call)) {
+        // The call does not support sub-queries or correlation yet
+        return false;
+      }
+
+      // Check if call is a binary expression.
+      if (call.getOperands().size() == 2) {
+        RexNode left = call.getOperands().get(0);
+        RexNode right = call.getOperands().get(1);
+        if (!(left instanceof RexLiteral) && !(right instanceof RexLiteral)) {
+          return false;
+        }
+      } else {
+        return false;
+      }
+    }
+    return hasJoinKeyCond;
+  }
+
+  private boolean isJoinKeyCond(RexCall call, int leftFieldCount) {
+    if (call.getKind() != SqlKind.EQUALS
+        && call.getKind() != SqlKind.IS_NOT_DISTINCT_FROM) {
       return false;
     }
+
+    RexNode left = call.getOperands().get(0);
+    RexNode right = call.getOperands().get(1);
+
+    if (left instanceof RexInputRef && right instanceof RexInputRef) {
+      int leftIndex = ((RexInputRef) left).getIndex();
+      int rightIndex = ((RexInputRef) right).getIndex();
+
+      return (leftIndex < leftFieldCount && rightIndex >= leftFieldCount)
+          || (rightIndex < leftFieldCount && leftIndex >= leftFieldCount);
+    }
+    return false;
   }
 
   /**

@@ -9058,6 +9058,27 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  @Test void testJoinConditionOrExpansionRule2() {
+    String sql = "select * from empnullables as t1 inner join empnullables as t2\n"
+        + "on (t1.empno = t2.empno\n"
+        + "and t1.job = 'Job1'\n"
+        + "and t1.ename in ('a', 'bb', 'cc')\n"
+        + "and t1.sal > 120 and t1.sal < 3000)\n"
+        + "or\n"
+        + "(t1.deptno = t2.deptno\n"
+        + "and t2.job = 'Job2'\n"
+        + "and t2.ename in ('a', 'bb', 'cc')\n"
+        + "and t2.sal > 110 and t2.sal < 3000)\n"
+        + "or\n"
+        + "(t1.ename = 'Jensen'\n"
+        + "and t2.comm > 10)\n"
+        + "or\n"
+        + "t1.mgr between 10.0 and 20\n";
+
+    sql(sql).withRule(CoreRules.JOIN_CONDITION_OR_EXPANSION_RULE)
+        .check();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6930">[CALCITE-6930]
    * Implementing JoinConditionOrExpansionRule</a>. */
