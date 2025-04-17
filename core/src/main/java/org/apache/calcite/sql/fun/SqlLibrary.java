@@ -85,7 +85,10 @@ public enum SqlLibrary {
   SNOWFLAKE("f", "snowflake"),
   /** A collection of operators that are in Apache Spark but not in standard
    * SQL. */
-  SPARK("s", "spark");
+  SPARK("s", "spark"),
+  /** A collection of operators that are in ClickHouse but not in standard
+   * SQL. */
+  CLICKHOUSE("i", "clickhouse");
 
   /** Map from {@link Enum#name() name} and {@link #fun} to library. */
   public static final Map<String, SqlLibrary> MAP;
@@ -120,7 +123,7 @@ public enum SqlLibrary {
     switch (this) {
     case ALL:
       return ImmutableList.of(BIG_QUERY, CALCITE, HIVE, MSSQL, MYSQL, ORACLE,
-          POSTGRESQL, REDSHIFT, SNOWFLAKE, SPARK);
+          POSTGRESQL, REDSHIFT, SNOWFLAKE, SPARK, CLICKHOUSE);
     default:
       return ImmutableList.of();
     }
