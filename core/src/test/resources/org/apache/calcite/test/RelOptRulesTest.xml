@@ -3744,6 +3744,34 @@ LogicalProject(X=[$0], Y=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testEmptyFilterProjectUnion2">
+    <Resource name="sql">
+      <![CDATA[select * from (
+select * from (values (10, 1), (30, 3), (30, 3)) as t (x, y)
+union
+select * from (values (20, 2))
+)
+where x + y > 30]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(X=[$0], Y=[$1])
+  LogicalFilter(condition=[>(+($0, $1), 30)])
+    LogicalUnion(all=[false])
+      LogicalProject(X=[$0], Y=[$1])
+        LogicalValues(tuples=[[{ 10, 1 }, { 30, 3 }, { 30, 3 }]])
+      LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
+        LogicalValues(tuples=[[{ 20, 2 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(X=[$0], Y=[$1])
+  LogicalAggregate(group=[{0, 1}])
+    LogicalValues(tuples=[[{ 30, 3 }, { 30, 3 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testEmptyIntersect">
     <Resource name="sql">
       <![CDATA[select * from (values (30, 3))intersect
@@ -3850,6 +3878,30 @@ LogicalMinus(all=[false])
     LogicalValues(tuples=[[{ 30, 3 }]])
   LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
     LogicalValues(tuples=[[{ 40, 4 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testEmptyMinus3">
+    <Resource name="sql">
+      <![CDATA[select * from (values (30, 3), (30, 3)) as t (x, y)
+except
+select * from (values (20, 2)) as t (x, y) where x > 30]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalMinus(all=[false])
+  LogicalProject(X=[$0], Y=[$1])
+    LogicalValues(tuples=[[{ 30, 3 }, { 30, 3 }]])
+  LogicalProject(X=[$0], Y=[$1])
+    LogicalFilter(condition=[>($0, 30)])
+      LogicalValues(tuples=[[{ 20, 2 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalAggregate(group=[{0, 1}])
+  LogicalProject(X=[$0], Y=[$1])
+    LogicalValues(tuples=[[{ 30, 3 }, { 30, 3 }]])
 ]]>
     </Resource>
   </TestCase>

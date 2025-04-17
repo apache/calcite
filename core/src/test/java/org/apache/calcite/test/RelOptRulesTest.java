@@ -4656,6 +4656,26 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6955">[CALCITE-6955]
+   * PruneEmptyRules does not handle the all attribute of SetOp correctly</a>. */
+  @Test void testEmptyFilterProjectUnion2() {
+    final String sql = "select * from (\n"
+        + "select * from (values (10, 1), (30, 3), (30, 3)) as t (x, y)\n"
+        + "union\n"
+        + "select * from (values (20, 2))\n"
+        + ")\n"
+        + "where x + y > 30";
+    sql(sql)
+        .withRule(CoreRules.FILTER_SET_OP_TRANSPOSE,
+            CoreRules.FILTER_PROJECT_TRANSPOSE,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.PROJECT_FILTER_VALUES_MERGE,
+            PruneEmptyRules.PROJECT_INSTANCE,
+            PruneEmptyRules.UNION_INSTANCE)
+        .check();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1488">[CALCITE-1488]
    * ValuesReduceRule should ignore empty Values</a>. */
   @Test void testEmptyProject() {
@@ -4720,6 +4740,21 @@ class RelOptRulesTest extends RelOptTestBase {
         + "select * from (values (40, 4))\n"
         + "except\n"
         + "select * from (values (50, 5)) as t (x, y) where x > 50";
+    sql(sql)
+        .withRule(CoreRules.PROJECT_FILTER_VALUES_MERGE,
+            PruneEmptyRules.PROJECT_INSTANCE,
+            PruneEmptyRules.MINUS_INSTANCE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6955">[CALCITE-6955]
+   * PruneEmptyRules does not handle the all attribute of SetOp correctly</a>. */
+  @Test void testEmptyMinus3() {
+    // First input is empty; therefore whole expression is empty
+    final String sql = "select * from (values (30, 3), (30, 3)) as t (x, y)\n"
+        + "except\n"
+        + "select * from (values (20, 2)) as t (x, y) where x > 30";
     sql(sql)
         .withRule(CoreRules.PROJECT_FILTER_VALUES_MERGE,
             PruneEmptyRules.PROJECT_INSTANCE,
