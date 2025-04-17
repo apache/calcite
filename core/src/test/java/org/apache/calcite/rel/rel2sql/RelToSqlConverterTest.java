@@ -7718,7 +7718,9 @@ class RelToSqlConverterTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6156">[CALCITE-6156]
    * Add ENDSWITH, STARTSWITH functions (enabled in Postgres, Snowflake libraries)</a>,
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6931">[CALCITE-6931]
-   * STARTSWITH/ENDSWITH in SPARK should not convert to STARTS_WITH/ENDS_WITH</a>. */
+   * STARTSWITH/ENDSWITH in SPARK should not convert to STARTS_WITH/ENDS_WITH</a>,
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6967">[CALCITE-6967]
+   * Unparsing STARTS_WITH/ENDS_WITH/BIT functions is incorrect for the Clickhouse dialect</a>.*/
   @Test void testStartsWith() {
     final String query = "select startswith(\"brand_name\", 'a')\n"
         + "from \"product\"";
@@ -7730,17 +7732,44 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"";
     final String expectedSpark = "SELECT STARTSWITH(`brand_name`, 'a')\n"
         + "FROM `foodmart`.`product`";
+    final String expectedClickHouse = "SELECT startsWith(`brand_name`, 'a')\n"
+        + "FROM `foodmart`.`product`";
     sql(query).withLibrary(SqlLibrary.SNOWFLAKE).withBigQuery().ok(expectedBigQuery);
     sql(query).withLibrary(SqlLibrary.SNOWFLAKE).withPostgresql().ok(expectedPostgres);
     sql(query).withLibrary(SqlLibrary.SNOWFLAKE).withSnowflake().ok(expectedSnowflake);
     sql(query).withLibrary(SqlLibrary.SPARK).withSpark().ok(expectedSpark);
+    sql(query).withLibrary(SqlLibrary.SPARK).withClickHouse().ok(expectedClickHouse);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6967">[CALCITE-6967]
+   * Unparsing STARTS_WITH/ENDS_WITH/BIT functions is incorrect for the Clickhouse dialect</a>.*/
+  @Test void testClickHouseBitFunctions() {
+    final String bitQuery = "select bitand(\"product_id\", \"product_id\"),\n"
+        + "bitor(\"product_id\", \"product_id\"),\n"
+        + "bitxor(\"product_id\", \"product_id\"),\n"
+        + "bitnot(\"product_id\")\n"
+        + "from \"product\"";
+    final String clickHouseExpected = "SELECT bitAnd(`product_id`, `product_id`),"
+        + " bitOr(`product_id`, `product_id`),"
+        + " bitXor(`product_id`, `product_id`),"
+        + " bitNot(`product_id`)\n"
+        + "FROM `foodmart`.`product`";
+
+    sql(bitQuery).withClickHouse().ok(clickHouseExpected);
+  }
+
+  @Test void testClickHouseArrayFunctions() {
+
   }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6156">[CALCITE-6156]
    * Add ENDSWITH, STARTSWITH functions (enabled in Postgres, Snowflake libraries)</a>,
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6931">[CALCITE-6931]
-   * STARTSWITH/ENDSWITH in SPARK should not convert to STARTS_WITH/ENDS_WITH</a>. */
+   * STARTSWITH/ENDSWITH in SPARK should not convert to STARTS_WITH/ENDS_WITH</a>,
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6967">[CALCITE-6967]
+   * STARTSWITH/ENDSWITH can not parse correctly in ClickHouse</a>.*/
   @Test void testEndsWith() {
     final String query = "select endswith(\"brand_name\", 'a')\n"
         + "from \"product\"";
@@ -7752,10 +7781,13 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"";
     final String expectedSpark = "SELECT ENDSWITH(`brand_name`, 'a')\n"
         + "FROM `foodmart`.`product`";
+    final String expectedClickHouse = "SELECT endsWith(`brand_name`, 'a')\n"
+        + "FROM `foodmart`.`product`";
     sql(query).withLibrary(SqlLibrary.SNOWFLAKE).withBigQuery().ok(expectedBigQuery);
     sql(query).withLibrary(SqlLibrary.SNOWFLAKE).withPostgresql().ok(expectedPostgres);
     sql(query).withLibrary(SqlLibrary.SNOWFLAKE).withSnowflake().ok(expectedSnowflake);
     sql(query).withLibrary(SqlLibrary.SPARK).withSpark().ok(expectedSpark);
+    sql(query).withLibrary(SqlLibrary.SPARK).withClickHouse().ok(expectedClickHouse);
   }
 
   /** Test case for

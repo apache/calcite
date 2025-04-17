@@ -241,6 +241,52 @@ public class ClickHouseSqlDialect extends SqlDialect {
       }
       unparseFloor(writer, call);
       break;
+    case STARTS_WITH:
+      writer.print("startsWith");
+      final SqlWriter.Frame startList = writer.startList("(", ")");
+      call.operand(0).unparse(writer, 0, 0);
+      writer.sep(",");
+      call.operand(1).unparse(writer, 0, 0);
+      writer.endList(startList);
+      break;
+    case ENDS_WITH:
+      writer.print("endsWith");
+      final SqlWriter.Frame endsList = writer.startList("(", ")");
+      call.operand(0).unparse(writer, 0, 0);
+      writer.sep(",");
+      call.operand(1).unparse(writer, 0, 0);
+      writer.endList(endsList);
+      break;
+    case BITAND:
+      writer.print("bitAnd");
+      final SqlWriter.Frame bitAndList = writer.startList("(", ")");
+      call.operand(0).unparse(writer, 0, 0);
+      writer.sep(",");
+      call.operand(1).unparse(writer, 0, 0);
+      writer.endList(bitAndList);
+      break;
+    case BITOR:
+      writer.print("bitOr");
+      final SqlWriter.Frame bitOrList = writer.startList("(", ")");
+      call.operand(0).unparse(writer, 0, 0);
+      writer.sep(",");
+      call.operand(1).unparse(writer, 0, 0);
+      writer.endList(bitOrList);
+      break;
+    case BITXOR:
+      writer.print("bitXor");
+      final SqlWriter.Frame bitXorList = writer.startList("(", ")");
+      call.operand(0).unparse(writer, 0, 0);
+      writer.sep(",");
+      call.operand(1).unparse(writer, 0, 0);
+      writer.endList(bitXorList);
+      break;
+    case BITNOT:
+      writer.print("bitNot");
+      final SqlWriter.Frame bitNotList = writer.startList("(", ")");
+      call.operand(0).unparse(writer, 0, 0);
+      writer.endList(bitNotList);
+      break;
     case COUNT:
       // CH returns NULL rather than 0 for COUNT(DISTINCT) of NULL values.
       // https://github.com/yandex/ClickHouse/issues/2494
