@@ -17,6 +17,7 @@
 package org.apache.calcite.test;
 
 import com.google.common.collect.ImmutableList;
+
 import org.junit.jupiter.api.Test;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -43,8 +44,8 @@ import javax.xml.parsers.DocumentBuilderFactory;
 public class JavaXmlConsistencyChecker {
   final String javaFilePrefix = "src/test/java/org/apache/calcite/test/";
   final String xmlFilePrefix = "src/test/resources/org/apache/calcite/test/";
-  final List<String> fileNames = ImmutableList.of(
-      "RelOptRulesTest",
+  final List<String> fileNames =
+      ImmutableList.of("RelOptRulesTest",
       "HepPlannerTest",
       "RuleMatchVisualizerTest",
       "SqlHintsConverterTest",
