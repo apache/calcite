@@ -287,13 +287,6 @@ public class CoreRules {
   public static final FilterSampleTransposeRule FILTER_SAMPLE_TRANSPOSE =
       FilterSampleTransposeRule.Config.DEFAULT.toRule();
 
-  /** Rule that pushes a {@link LogicalFilter}
-   * past a {@link LogicalTableFunctionScan}. */
-  public static final FilterTableFunctionTransposeRule
-      LOGICAL_FILTER_LOGICAL_TABLE_FUNCTION_TRANSPOSE = Config.DEFAULT
-          .withOperandFor(LogicalFilter.class, LogicalTableFunctionScan.class)
-          .toRule();
-
   /** Rule that pushes a {@link Filter}
    * past a {@link TableFunctionScan}. */
   public static final FilterTableFunctionTransposeRule
