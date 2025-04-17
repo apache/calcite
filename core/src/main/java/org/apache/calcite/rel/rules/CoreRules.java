@@ -43,7 +43,6 @@ import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalMatch;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSortExchange;
-import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
 import org.apache.calcite.rel.logical.LogicalWindow;
 import org.apache.calcite.rel.rules.FilterTableFunctionTransposeRule.Config;
 import org.apache.calcite.rel.rules.materialize.MaterializedViewRules;
