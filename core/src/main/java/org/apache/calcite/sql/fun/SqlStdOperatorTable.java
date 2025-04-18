@@ -2344,6 +2344,33 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           return false;
         }
       };
+  public static final SqlInternalOperator ROW_QUERY =
+      new SqlInternalOperator(
+          "$ROW_QUERY",
+          SqlKind.ROW_QUERY,
+          0,
+          false,
+          ReturnTypes.RECORD_TO_ROW,
+          null,
+          OperandTypes.RECORD_TO_ROW) {
+        @Override public void unparse(
+            SqlWriter writer,
+            SqlCall call,
+            int leftPrec,
+            int rightPrec) {
+          final SqlWriter.Frame frame = writer.startList("(", ")");
+          for (int i = 0; i < call.operandCount(); i++) {
+            writer.sep(",");
+            call.operand(i).unparse(writer, 0, 0);
+          }
+          writer.endList(frame);
+        }
+
+        @Override public boolean argumentMustBeScalar(int ordinal) {
+          // Obvious, really.
+          return false;
+        }
+      };
 
   /**
    * The internal {@code $STRUCT_ACCESS} operator is used to access a

@@ -1386,6 +1386,7 @@ public class SqlToRelConverter {
       return;
     case UNIQUE:
       return;
+    case ROW_QUERY:
     case SCALAR_QUERY:
       // Convert the sub-query.  If it's non-correlated, convert it
       // to a constant expression.
@@ -1401,7 +1402,12 @@ public class SqlToRelConverter {
       if (convertNonCorrelatedSubQuery(subQuery, bb, converted.r, false)) {
         return;
       }
-      rel = convertToSingleValueSubq(query, converted.r);
+      if (call.getKind() == SqlKind.ROW_QUERY) {
+        // ROW_QUERY do nothing
+        rel = converted.r;
+      } else {
+        rel = convertToSingleValueSubq(query, converted.r);
+      }
       subQuery.expr = bb.register(rel, JoinRelType.LEFT);
       return;
 
@@ -2067,6 +2073,7 @@ public class SqlToRelConverter {
     case MAP_QUERY_CONSTRUCTOR:
     case CURSOR:
     case SET_SEMANTICS_TABLE:
+    case ROW_QUERY:
     case SCALAR_QUERY:
       if (!registerOnlyScalarSubQueries
           || (kind == SqlKind.SCALAR_QUERY)) {
@@ -4332,14 +4339,7 @@ public class SqlToRelConverter {
       }
     } else {
       for (SqlNode node : targetColumnList) {
-        SqlIdentifier id = (SqlIdentifier) node;
-        RelDataTypeField field =
-            SqlValidatorUtil.getTargetField(
-                tableRowType, typeFactory, id, catalogReader, targetTable);
-        if (field == null) {
-          throw new AssertionError("column " + id + " not found");
-        }
-        targetColumnNames.add(field.getName());
+        convertToTargetColumn((SqlIdentifier) node, targetTable, targetColumnNames);
       }
     }
 
@@ -4402,16 +4402,15 @@ public class SqlToRelConverter {
 
     // convert update column list from SqlIdentifier to String
     final List<String> targetColumnNameList = new ArrayList<>();
-    final RelDataType targetRowType = targetTable.getRowType();
     for (SqlNode node : call.getTargetColumnList()) {
-      SqlIdentifier id = (SqlIdentifier) node;
-      RelDataTypeField field =
-          SqlValidatorUtil.getTargetField(
-              targetRowType, typeFactory, id, catalogReader, targetTable);
-      if (field == null) {
-        throw new AssertionError("column " + id + " not found");
+      if (node instanceof SqlNodeList) {
+        // A list of identifiers in the case of a row query
+        for (SqlNode n : (SqlNodeList) node) {
+          convertToTargetColumn((SqlIdentifier) n, targetTable, targetColumnNameList);
+        }
+      } else {
+        convertToTargetColumn((SqlIdentifier) node, targetTable, targetColumnNameList);
       }
-      targetColumnNameList.add(field.getName());
     }
 
     RelNode sourceRel = convertSelect(sourceSelect, false);
@@ -4421,7 +4420,12 @@ public class SqlToRelConverter {
         ImmutableList.builder();
     for (SqlNode n : call.getSourceExpressionList()) {
       RexNode rn = bb.convertExpression(n);
-      rexNodeSourceExpressionListBuilder.add(rn);
+      // if the source expression is a row constructor, we need to add all operands
+      if (rn instanceof RexCall && ((RexCall) rn).getOperator() == SqlStdOperatorTable.ROW) {
+        rexNodeSourceExpressionListBuilder.addAll(((RexCall) rn).getOperands());
+      } else {
+        rexNodeSourceExpressionListBuilder.add(rn);
+      }
     }
 
     return LogicalTableModify.create(targetTable, catalogReader, sourceRel,
@@ -4429,23 +4433,28 @@ public class SqlToRelConverter {
         rexNodeSourceExpressionListBuilder.build(), false);
   }
 
+  private void convertToTargetColumn(SqlIdentifier id,
+      RelOptTable targetTable, List<String> targetColumnNameList) {
+    final RelDataType targetRowType = targetTable.getRowType();
+    RelDataTypeField field =
+        SqlValidatorUtil.getTargetField(
+            targetRowType, typeFactory, id, catalogReader, targetTable);
+    if (field == null) {
+      throw new AssertionError("column " + id + " not found");
+    }
+    targetColumnNameList.add(field.getName());
+  }
+
   private RelNode convertMerge(SqlMerge call) {
     RelOptTable targetTable = getTargetTable(call);
 
     // convert update column list from SqlIdentifier to String
     final List<String> targetColumnNameList = new ArrayList<>();
-    final RelDataType targetRowType = targetTable.getRowType();
     SqlUpdate updateCall = call.getUpdateCall();
     if (updateCall != null) {
       for (SqlNode node : updateCall.getTargetColumnList()) {
-        SqlIdentifier id = (SqlIdentifier) node;
-        RelDataTypeField field =
-            SqlValidatorUtil.getTargetField(
-                targetRowType, typeFactory, id, catalogReader, targetTable);
-        if (field == null) {
-          throw new AssertionError("column " + id + " not found");
-        }
-        targetColumnNameList.add(field.getName());
+        convertToTargetColumn((SqlIdentifier) node, targetTable,
+            targetColumnNameList);
       }
     }
 
@@ -5688,6 +5697,7 @@ public class SqlToRelConverter {
 
       case SELECT:
       case EXISTS:
+      case ROW_QUERY:
       case SCALAR_QUERY:
       case ARRAY_QUERY_CONSTRUCTOR:
       case MAP_QUERY_CONSTRUCTOR:
@@ -5701,6 +5711,17 @@ public class SqlToRelConverter {
           // scalar sub-query or EXISTS has been converted to a
           // constant
           return rex;
+        }
+
+        // If ROW_QUERY or the resulting RexNode has more than one field in SELECT,
+        // construct a ROW expression by creating a list of RexNodes.
+        if (kind == SqlKind.ROW_QUERY
+            || (kind == SqlKind.SELECT && rex.getType().getFieldCount() > 1)) {
+          ImmutableList.Builder<RexNode> row = ImmutableList.builder();
+          for (int i = 0; i < rex.getType().getFieldCount(); i++) {
+            row.add(rexBuilder.makeFieldAccess(rex, i));
+          }
+          return rexBuilder.makeCall(SqlStdOperatorTable.ROW, row.build());
         }
 
         // The indicator column is the last field of the sub-query.

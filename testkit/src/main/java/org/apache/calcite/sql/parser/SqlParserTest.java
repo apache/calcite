@@ -5163,6 +5163,36 @@ public class SqlParserTest {
             + "WHERE (`EMPNO` = 12)");
   }
 
+  @Test void testUpdateWithScalarQuery() {
+    final String sql = "UPDATE employees "
+        + " SET salary = (SELECT salary * 1.1 as salary"
+        + "       FROM employee_changes WHERE employees.id = employee_changes.id)"
+        + " WHERE department = 'Sales'";
+    final String expected = "UPDATE `EMPLOYEES` "
+        + "SET `SALARY` = (SELECT (`SALARY` * 1.1) AS `SALARY`\n"
+        + "FROM `EMPLOYEE_CHANGES`\n"
+        + "WHERE (`EMPLOYEES`.`ID` = `EMPLOYEE_CHANGES`.`ID`))\n"
+        + "WHERE (`DEPARTMENT` = 'Sales')";
+    sql(sql).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6970">[CALCITE-6970]
+   * In UPDATE, allow SET to assign to multiple columns</a>.
+   */
+  @Test void testUpdateWithRowQuery() {
+    final String sql = "UPDATE employees "
+        + " SET (salary, bonus) = (SELECT salary * 1.1 as salary, bonus + 1000 as bonus"
+        + "       FROM employee_changes WHERE employees.id = employee_changes.id)"
+        + " WHERE department = 'Sales'";
+    final String expected = "UPDATE `EMPLOYEES` "
+        + "SET "
+        + "(`SALARY`, `BONUS`) = (SELECT (`SALARY` * 1.1) AS `SALARY`, (`BONUS` + 1000) AS `BONUS`\n"
+        + "FROM `EMPLOYEE_CHANGES`\nWHERE (`EMPLOYEES`.`ID` = `EMPLOYEE_CHANGES`.`ID`))\n"
+        + "WHERE (`DEPARTMENT` = 'Sales')";
+    sql(sql).ok(expected);
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6576">[CALCITE-6576]
    * In SET clause of UPDATE statement, allow column identifiers to be prefixed

@@ -1420,6 +1420,27 @@ public abstract class ReturnTypes {
     return typeFactory.createTypeWithNullability(firstColType, true);
   };
 
+  public static final SqlReturnTypeInference RECORD_TO_ROW = opBinding -> {
+    checkArgument(opBinding.getOperandCount() == 1);
+
+    final RelDataType recordType = opBinding.getOperandType(0);
+    int fieldCount = recordType.getFieldCount();
+    final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+
+    RelDataTypeFactory.Builder builder = typeFactory.builder();
+    for (int i = 0; i < fieldCount; i++) {
+      RelDataTypeField fieldType = recordType.getFieldList().get(i);
+      if (fieldType == null) {
+        throw new AssertionError("expected a record type with one field: "
+            + recordType);
+      }
+      final RelDataType firstColType = fieldType.getType();
+      builder.add(fieldType.getName(),
+          typeFactory.createTypeWithNullability(firstColType, true));
+    }
+    return builder.build();
+  };
+
   /**
    * Type-inference strategy for SUM aggregate function inferred from the
    * operand type, and nullable if the call occurs within a "GROUP BY ()"

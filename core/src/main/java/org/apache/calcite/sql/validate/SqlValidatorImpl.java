@@ -3422,13 +3422,26 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
     if (operand.getKind().belongsTo(SqlKind.QUERY)
         && call.getOperator().argumentMustBeScalar(operandOrdinal)) {
-      operand =
-          SqlStdOperatorTable.SCALAR_QUERY.createCall(
-              operand.getParserPosition(),
-              operand);
+      if (isRowQuery(operand)) {
+        operand =
+            SqlStdOperatorTable.ROW_QUERY.createCall(
+                operand.getParserPosition(),
+                operand);
+      } else {
+        operand =
+            SqlStdOperatorTable.SCALAR_QUERY.createCall(
+                operand.getParserPosition(),
+                operand);
+      }
+
       call.setOperand(operandOrdinal, operand);
     }
     registerSubQueries(parentScope, operand);
+  }
+
+  private static boolean isRowQuery(SqlNode node) {
+    return node.getKind() == SqlKind.SELECT
+        && ((SqlSelect) node).getSelectList().size() > 1;
   }
 
   @Override public void validateIdentifier(SqlIdentifier id, SqlValidatorScope scope) {
@@ -5283,30 +5296,55 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final RelOptTable relOptTable = table instanceof RelOptTable
         ? ((RelOptTable) table) : null;
     for (SqlNode node : targetColumnList) {
-      SqlIdentifier id = (SqlIdentifier) node;
-      if (!id.isSimple() && targetTableAlias != null) {
-        // checks that target column identifiers are prefixed with the target
-        // table alias
-        SqlIdentifier prefixId = id.skipLast(1);
-        if (!prefixId.toString().equals(targetTableAlias.toString())) {
-          throw newValidationError(prefixId,
-              RESOURCE.unknownIdentifier(prefixId.toString()));
+      if (node instanceof SqlNodeList) {
+        SqlNodeList nodeList = (SqlNodeList) node;
+        if (nodeList.size() == 1) {
+          addTargetRowTypeFields(targetTableAlias, (SqlIdentifier) nodeList.get(0),
+              baseRowType, relOptTable,
+              assignedFields, fields);
+        } else {
+          final PairList<String, RelDataType> rowFields = PairList.of();
+          for (SqlNode n : nodeList) {
+            addTargetRowTypeFields(targetTableAlias, (SqlIdentifier) n, baseRowType, relOptTable,
+                assignedFields, rowFields);
+          }
+          RelDataTypeFactory.Builder builder = typeFactory.builder();
+          builder.addAll(rowFields);
+          RelDataType type = builder.build();
+          fields.add(SqlUtil.deriveAliasFromOrdinal(fields.size()), type);
         }
+      } else {
+        addTargetRowTypeFields(targetTableAlias, (SqlIdentifier) node, baseRowType, relOptTable,
+            assignedFields, fields);
       }
-      RelDataTypeField targetField =
-          SqlValidatorUtil.getTargetField(
-              baseRowType, typeFactory, id, catalogReader, relOptTable);
-      if (targetField == null) {
-        throw newValidationError(id,
-            RESOURCE.unknownTargetColumn(id.toString()));
-      }
-      if (!assignedFields.add(targetField.getIndex())) {
-        throw newValidationError(id,
-            RESOURCE.duplicateTargetColumn(targetField.getName()));
-      }
-      fields.add(targetField);
     }
     return typeFactory.createStructType(fields);
+  }
+
+  private void addTargetRowTypeFields(@Nullable SqlIdentifier targetTableAlias, SqlIdentifier id,
+      RelDataType baseRowType, @Nullable RelOptTable relOptTable, Set<Integer> assignedFields,
+      PairList<String, RelDataType> fields) {
+    if (!id.isSimple() && targetTableAlias != null) {
+      // checks that target column identifiers are prefixed with the target
+      // table alias
+      SqlIdentifier prefixId = id.skipLast(1);
+      if (!prefixId.toString().equals(targetTableAlias.toString())) {
+        throw newValidationError(prefixId,
+            RESOURCE.unknownIdentifier(prefixId.toString()));
+      }
+    }
+    RelDataTypeField targetField =
+        SqlValidatorUtil.getTargetField(
+            baseRowType, typeFactory, id, catalogReader, relOptTable);
+    if (targetField == null) {
+      throw newValidationError(id,
+          RESOURCE.unknownTargetColumn(id.toString()));
+    }
+    if (!assignedFields.add(targetField.getIndex())) {
+      throw newValidationError(id,
+          RESOURCE.duplicateTargetColumn(targetField.getName()));
+    }
+    fields.add(targetField);
   }
 
   @Override public void validateInsert(SqlInsert insert) {

@@ -9250,6 +9250,23 @@ LogicalTableModify(table=[[CATALOG, SALES, EMP_MODIFIABLEVIEW2]], operation=[UPD
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testUpdateRowQuery">
+    <Resource name="sql">
+      <![CDATA[update emp
+set (empno, sal) = (select min(empno) as empno, max(sal) as sal from emp as e where e.deptno = emp.deptno)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[UPDATE], updateColumnList=[[EMPNO, SAL]], sourceExpressionList=[[$0, $1]], flattened=[true])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EXPR$0$$0=[$10], EXPR$0$$1=[$11])
+    LogicalJoin(condition=[=($7, $9)], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{0}], EMPNO=[MIN($1)], SAL=[MAX($2)])
+        LogicalProject(DEPTNO=[$7], EMPNO=[$0], SAL=[$5])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testUpdateSubQuery">
     <Resource name="sql">
       <![CDATA[update emp

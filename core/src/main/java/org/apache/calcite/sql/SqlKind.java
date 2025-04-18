@@ -587,6 +587,12 @@ public enum SqlKind {
    */
   SCALAR_QUERY,
 
+  /**
+   * Row query; that is, a sub-query used in an expression context, and
+   * returning multiple row and multiple columns.
+   */
+  ROW_QUERY,
+
   /** Procedure call. */
   PROCEDURE_CALL,
 

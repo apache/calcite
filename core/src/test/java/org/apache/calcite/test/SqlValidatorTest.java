@@ -5718,10 +5718,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test void testJoinOnScalarFails() {
     final String sql = "select * from emp as e join dept d\n"
-        + "on d.deptno = ^(select 1, 2 from emp where deptno < e.deptno)^";
-    final String expected = "(?s)Cannot apply '\\$SCALAR_QUERY' to arguments "
-        + "of type '\\$SCALAR_QUERY\\(<RECORDTYPE\\(INTEGER EXPR\\$0, INTEGER "
-        + "EXPR\\$1\\)>\\)'\\. Supported form\\(s\\).*";
+        + "on ^d.deptno = (select 1, 2 from emp where deptno < e.deptno)^";
+    final String expected = "(?s)Cannot apply '=' to arguments of type '<INTEGER> = "
+        + "<RECORDTYPE\\(INTEGER EXPR\\$0, INTEGER EXPR\\$1\\)>'\\. Supported form\\(s\\).*";
     sql(sql).fails(expected);
   }
 
@@ -10120,6 +10119,33 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + " set deptno = ^19 + 1^, empno = 99"
         + " where ename = 'Lex'";
     s.withSql(sql1).fails(error);
+  }
+
+  @Test void testUpdateScalarQueryFails() {
+    final String sql = "update emp\n"
+        + "set empno = ^("
+        + "select min(empno) as empno, max(sal) as sal from emp as e where e.deptno = emp.deptno)^";
+    final String expected = "Cannot assign to target field 'EMPNO' of type INTEGER from source "
+        + "field 'EXPR\\$0' of type RecordType\\(INTEGER EMPNO, INTEGER SAL\\)";
+    sql(sql).fails(expected);
+  }
+
+  @Test void testUpdateRowQueryDupColumnFails() {
+    final String sql = "update emp\n"
+        + "set (empno, ^empno^) = ("
+        + "select min(empno) as empno, max(sal) as sal from emp as e where e.deptno = emp.deptno)";
+    final String expected = "Target column 'EMPNO' is assigned more than once";
+    sql(sql).fails(expected);
+  }
+
+  @Test void testUpdateRowQueryInvalidAssignmentFails() {
+    final String sql = "update emp\n"
+        + "set (empno, sal, deptno) = ^("
+        + "select min(empno) as empno, max(sal) as sal from emp as e where e.deptno = emp.deptno)^";
+    final String expected = "Cannot assign to target field 'EXPR\\$9' of type "
+        + "RecordType\\(INTEGER EMPNO, INTEGER SAL, INTEGER DEPTNO\\) from source "
+        + "field 'EXPR\\$0' of type RecordType\\(INTEGER EMPNO, INTEGER SAL\\)";
+    sql(sql).fails(expected);
   }
 
   @Test void testInsertTargetTableWithVirtualColumns() {

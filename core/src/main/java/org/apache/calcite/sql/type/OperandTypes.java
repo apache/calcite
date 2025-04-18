@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeComparability;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -1430,6 +1431,35 @@ public abstract class OperandTypes {
             validationError = true;
           } else if (type.getFieldList().size() != 1) {
             validationError = true;
+          }
+
+          if (validationError && throwOnFailure) {
+            throw callBinding.newValidationSignatureError();
+          }
+          return !validationError;
+        }
+
+        @Override public String getAllowedSignatures(SqlOperator op, String opName) {
+          return SqlUtil.getAliasedSignature(op, opName,
+              ImmutableList.of("RECORDTYPE(SINGLE FIELD)"));
+        }
+      };
+
+  public static final SqlOperandTypeChecker RECORD_TO_ROW =
+      new SqlSingleOperandTypeChecker() {
+        @Override public boolean checkSingleOperandType(
+            SqlCallBinding callBinding,
+            SqlNode node,
+            int iFormalOperand,
+            boolean throwOnFailure) {
+          checkArgument(0 == iFormalOperand);
+          RelDataType type = SqlTypeUtil.deriveType(callBinding, node);
+          boolean validationError = type.getFieldList().isEmpty();
+          for (RelDataTypeField field : type.getFieldList()) {
+            if (field.getType().isStruct()) {
+              validationError = true;
+              break;
+            }
           }
 
           if (validationError && throwOnFailure) {

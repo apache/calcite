@@ -1821,16 +1821,7 @@ SqlNode SqlUpdate() :
     ( tableRef = TableHints(tableName) | { tableRef = tableName; } )
     [ tableRef = ExtendTable(tableRef) ]
     ( [ <AS> ] alias = SimpleIdentifier() | { alias = null; } )
-    <SET> id = CompoundIdentifier() {
-        targetColumnList.add(id);
-    }
-    // TODO:  support DEFAULT also
-    <EQ> AddExpression(sourceExpressionList, ExprContext.ACCEPT_SUB_QUERY)
-    (
-        <COMMA>
-        id = CompoundIdentifier() { targetColumnList.add(id); }
-        <EQ> AddExpression(sourceExpressionList, ExprContext.ACCEPT_SUB_QUERY)
-    )*
+    <SET> AddSetClauseList(targetColumnList, sourceExpressionList)
     ( where = Where() | { where = null; } )
     {
         final SqlParserPos pos = s.addAll(targetColumnList)
@@ -1838,6 +1829,55 @@ SqlNode SqlUpdate() :
         return new SqlUpdate(pos, tableRef, targetColumnList,
             sourceExpressionList, where, null, alias);
     }
+}
+
+void AddSetClauseList(SqlNodeList targetColumnList, SqlNodeList sourceExpressionList) :
+{}
+{
+    AddSetClause(targetColumnList, sourceExpressionList)
+    (
+        <COMMA>
+        AddSetClause(targetColumnList, sourceExpressionList)
+    )*
+}
+
+void AddSetClause(SqlNodeList targetColumnList, SqlNodeList sourceExpressionList) :
+{
+    final SqlIdentifier id;
+}
+{
+    (
+        LOOKAHEAD(1)
+        AddMultiColumnAssignment(targetColumnList, sourceExpressionList)
+    |
+        id = CompoundIdentifier() {
+            targetColumnList.add(id);
+        }
+        // TODO:  support DEFAULT also
+        <EQ> AddExpression(sourceExpressionList, ExprContext.ACCEPT_SUB_QUERY)
+    )
+}
+
+void AddMultiColumnAssignment(SqlNodeList targetColumnList, SqlNodeList sourceExpressionList) :
+{
+    Span s;
+    SqlIdentifier id;
+    SqlNodeList currentColumnList;
+}
+{
+    <LPAREN>
+        {
+            s = span();
+            currentColumnList = new SqlNodeList(s.pos());
+        }
+        id = CompoundIdentifier() { currentColumnList.add(id); }
+        (
+            <COMMA>
+            id = CompoundIdentifier() { currentColumnList.add(id); }
+        )*
+    <RPAREN>
+    { targetColumnList.add(currentColumnList); }
+    <EQ> AddExpression(sourceExpressionList, ExprContext.ACCEPT_SUB_QUERY)
 }
 
 /**
