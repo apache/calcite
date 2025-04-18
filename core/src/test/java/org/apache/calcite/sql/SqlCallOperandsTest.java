@@ -29,6 +29,8 @@ import static org.hamcrest.Matchers.hasSize;
 
 /**
  * Tests for SqlCall operands' order and size match with set.
+ * See <a href="https://issues.apache.org/jira/browse/CALCITE-6964">[CALCITE-6964]</a>
+ *
  */
 public class SqlCallOperandsTest {
   @Test void testSqlDeleteGetOperandsMatchWithSetOperand() {
