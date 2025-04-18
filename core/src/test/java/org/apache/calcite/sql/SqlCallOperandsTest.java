@@ -14,12 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.sql;
-
 
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
+
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -32,14 +31,30 @@ import static org.hamcrest.Matchers.hasSize;
  * Tests for SqlCall operands' order and size match with set.
  */
 public class SqlCallOperandsTest {
-  @Test
-  void testSqlDeleteGetOperandsMatchWithSetOperand() {
-    SqlDelete sqlDelete = new SqlDelete(SqlParserPos.ZERO, new SqlIdentifier("table1", SqlParserPos.ZERO), null, null, null);
+  @Test void testSqlDeleteGetOperandsMatchWithSetOperand() {
+    SqlDelete sqlDelete =
+        new SqlDelete(SqlParserPos.ZERO, new SqlIdentifier("table1", SqlParserPos.ZERO),
+        null,
+        null,
+        null);
     SqlNode targetTable = new SqlIdentifier("table2", SqlParserPos.ZERO);
     final SqlIdentifier field1 = new SqlIdentifier("field1", SqlParserPos.ZERO);
-    SqlNode condition = SqlStdOperatorTable.EQUALS.createCall(SqlParserPos.ZERO, field1, SqlLiteral.createCharString("field1Value", SqlParserPos.ZERO));
-    SqlSelect sourceSelect = new SqlSelect(SqlParserPos.ZERO, null, SqlNodeList.of(field1), null, null, null, null, null,
-        null, null, null, null, null);
+    SqlNode condition =
+            SqlStdOperatorTable.EQUALS.createCall(SqlParserPos.ZERO, field1,
+            SqlLiteral.createCharString("field1Value", SqlParserPos.ZERO));
+    SqlSelect sourceSelect =
+            new SqlSelect(SqlParserPos.ZERO, null,
+            SqlNodeList.of(field1),
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null);
     SqlIdentifier alias = new SqlIdentifier("alias", SqlParserPos.ZERO);
     sqlDelete.setOperand(0, targetTable);
     sqlDelete.setOperand(1, condition);
@@ -53,4 +68,3 @@ public class SqlCallOperandsTest {
     assertThat(alias, equalTo(operandList.get(3)));
   }
 }
-
