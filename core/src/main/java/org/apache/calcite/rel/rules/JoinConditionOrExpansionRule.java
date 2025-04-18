@@ -159,7 +159,7 @@ public class JoinConditionOrExpansionRule
         return false;
       }
 
-      if (!containNonOrOneInputRef(call)) {
+      if (!doesNotReferToBothInputs(call, leftFieldCount)) {
         return false;
       }
     }
@@ -185,24 +185,35 @@ public class JoinConditionOrExpansionRule
     return false;
   }
 
-  private boolean containNonOrOneInputRef(RexNode rex) {
-    RexInputRefCounter counter = new RexInputRefCounter();
+  private boolean doesNotReferToBothInputs(RexNode rex, int leftFieldCount) {
+    RexInputRefCounter counter = new RexInputRefCounter(leftFieldCount);
     rex.accept(counter);
-    return counter.inputRefCount < 2;
+    return counter.doesNotReferToBothInputs();
   }
 
   /**
    * Counts the number of InputRefs in a RexNode expression. */
   private static class RexInputRefCounter extends RexVisitorImpl<Void> {
-    public int inputRefCount = 0;
+    private int leftFieldCount;
+    public int leftInputRefCount = 0;
+    public int rightInputRefCount = 0;
 
-    RexInputRefCounter() {
+    RexInputRefCounter(int leftFieldCount) {
       super(true);
+      this.leftFieldCount = leftFieldCount;
     }
 
     @Override public Void visitInputRef(RexInputRef inputRef) {
-      inputRefCount++;
+      if (inputRef.getIndex() < leftFieldCount) {
+        leftFieldCount++;
+      } else {
+        rightInputRefCount++;
+      }
       return null;
+    }
+
+    public boolean doesNotReferToBothInputs() {
+      return leftInputRefCount == 0 || rightInputRefCount == 0;
     }
   }
 
