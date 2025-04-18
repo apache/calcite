@@ -13083,4 +13083,50 @@ class RelToSqlConverterDMTest {
         + "FROM [scott].[EMP]";
     assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedMsSqlQuery));
   }
+
+  @Test public void testMinusInInterval() {
+    final RelBuilder builder = relBuilder();
+    RexBuilder rexBuilder = builder.getRexBuilder();
+    RelDataTypeFactory typeFactory = builder.getTypeFactory();
+
+    RexNode concatYear =
+        builder.call(SqlStdOperatorTable.CONCAT,
+        builder.literal("19"),
+        builder.literal("25"));
+
+    RexNode castYear =
+        rexBuilder.makeAbstractCast(typeFactory.createSqlType(SqlTypeName.INTEGER),
+        concatYear);
+
+    RexNode baseDate =
+        builder.call(SqlLibraryOperators.DATE,
+        castYear,
+        builder.literal(1),
+        builder.literal(1));
+
+
+    RexNode castDay =
+        rexBuilder.makeAbstractCast(typeFactory.createSqlType(SqlTypeName.INTEGER),
+        builder.literal("087"));
+
+    RexNode intervalExpr =
+        builder.call(SqlStdOperatorTable.MINUS,
+        castDay,
+        builder.literal(1));
+
+    RexNode dateAdd =
+        builder.call(SqlLibraryOperators.DATE_ADD,
+        baseDate,
+        intervalExpr);
+
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(dateAdd, "JULIANDATE"))
+        .build();
+
+    final String expectedSql = "SELECT "
+        + "DATE_ADD(DATE(CAST('19' || '25' AS INT64), 1, 1), INTERVAL (87 - 1) DAY) AS JULIANDATE\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSql));
+  }
 }
