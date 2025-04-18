@@ -25,9 +25,9 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
-import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.tools.RelBuilder;
 
@@ -150,7 +150,7 @@ public class JoinConditionOrExpansionRule
 
       RexCall call = (RexCall) cond;
       // Checks if the call is valid for use as a join key.
-      if (isJoinKeyCond(call, leftFieldCount)) {
+      if (isEquiJoinCond(call, leftFieldCount)) {
         hasJoinKeyCond = true;
         continue;
       } else if (RexUtil.SubQueryFinder.find(call) != null
@@ -159,21 +159,14 @@ public class JoinConditionOrExpansionRule
         return false;
       }
 
-      // Check if call is a binary expression.
-      if (call.getOperands().size() == 2) {
-        RexNode left = call.getOperands().get(0);
-        RexNode right = call.getOperands().get(1);
-        if (!(left instanceof RexLiteral) && !(right instanceof RexLiteral)) {
-          return false;
-        }
-      } else {
+      if (!containNonOrOneInputRef(call)) {
         return false;
       }
     }
     return hasJoinKeyCond;
   }
 
-  private boolean isJoinKeyCond(RexCall call, int leftFieldCount) {
+  private boolean isEquiJoinCond(RexCall call, int leftFieldCount) {
     if (call.getKind() != SqlKind.EQUALS
         && call.getKind() != SqlKind.IS_NOT_DISTINCT_FROM) {
       return false;
@@ -190,6 +183,27 @@ public class JoinConditionOrExpansionRule
           || (rightIndex < leftFieldCount && leftIndex >= leftFieldCount);
     }
     return false;
+  }
+
+  private boolean containNonOrOneInputRef(RexNode rex) {
+    RexInputRefCounter counter = new RexInputRefCounter();
+    rex.accept(counter);
+    return counter.inputRefCount < 2;
+  }
+
+  /**
+   * Counts the number of InputRefs in a RexNode expression. */
+  private static class RexInputRefCounter extends RexVisitorImpl<Void> {
+    public int inputRefCount = 0;
+
+    RexInputRefCounter() {
+      super(true);
+    }
+
+    @Override public Void visitInputRef(RexInputRef inputRef) {
+      inputRefCount++;
+      return null;
+    }
   }
 
   /**
