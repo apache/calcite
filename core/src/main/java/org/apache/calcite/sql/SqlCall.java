@@ -116,13 +116,15 @@ public abstract class SqlCall extends SqlNode {
         getOperandList());
   }
 
-  private boolean isParenthesesRequired(SqlWriter writer, int leftPrec, int rightPrec) {
+  private boolean needsParentheses(SqlWriter writer, int leftPrec, int rightPrec) {
+    if (getKind() == SqlKind.SET_SEMANTICS_TABLE) {
+      return false;
+    }
     final SqlOperator operator = getOperator();
-    boolean condition = leftPrec > operator.getLeftPrec()
+    return leftPrec > operator.getLeftPrec()
         || (operator.getRightPrec() <= rightPrec && (rightPrec != 0))
         || writer.isAlwaysUseParentheses() && isA(SqlKind.EXPRESSION)
         || (operator.getRightPrec() <= rightPrec + 1 && isA(SqlKind.COMPARISON));
-    return condition && !(getKind() == SqlKind.SET_SEMANTICS_TABLE);
   }
 
   @Override public void unparse(
@@ -130,7 +132,7 @@ public abstract class SqlCall extends SqlNode {
       int leftPrec,
       int rightPrec) {
     final SqlDialect dialect = writer.getDialect();
-    if (isParenthesesRequired(writer, leftPrec, rightPrec)) {
+    if (needsParentheses(writer, leftPrec, rightPrec)) {
       final SqlWriter.Frame frame = writer.startList("(", ")");
       dialect.unparseCall(writer, this, 0, 0);
       writer.endList(frame);
