@@ -1159,7 +1159,6 @@ public class BigQuerySqlDialect extends SqlDialect {
     final SqlWriter.Frame frame = writer.startFunCall(call.getOperator().toString());
     call.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.print(",");
-    SqlNode intervalOperand = call.operand(1);
     switch (call.operand(1).getKind()) {
     case LITERAL:
       unparseSqlIntervalLiteral(writer, call.operand(1), leftPrec, rightPrec);
@@ -1177,11 +1176,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       unparseOtherFunction(writer, call.operand(1), leftPrec, rightPrec);
       break;
     case MINUS:
-      writer.keyword("INTERVAL");
-      writer.print("(");
-      intervalOperand.unparse(writer, leftPrec, rightPrec);
-      writer.print(")");
-      writer.keyword("DAY");
+      unparseMinusIntervalCall(writer, call, leftPrec, rightPrec);
       break;
     default:
       throw new AssertionError(call.operand(1).getKind() + " is not valid");
@@ -1205,6 +1200,16 @@ public class BigQuerySqlDialect extends SqlDialect {
    * @param leftPrec Indicate left precision
    * @param rightPrec Indicate right precision
    */
+  private void unparseMinusIntervalCall(
+      SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlNode intervalOperand = call.operand(1);
+    writer.keyword("INTERVAL");
+    writer.print("(");
+    intervalOperand.unparse(writer, leftPrec, rightPrec);
+    writer.print(")");
+    writer.keyword("DAY");
+  }
+
   private void unparseExpressionIntervalCall(
       SqlBasicCall call, SqlWriter writer, int leftPrec, int rightPrec) {
     SqlLiteral intervalLiteral;

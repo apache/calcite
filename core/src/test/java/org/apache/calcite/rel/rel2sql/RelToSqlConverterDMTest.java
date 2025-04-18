@@ -13084,7 +13084,7 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.MSSQL.getDialect()), isLinux(expectedMsSqlQuery));
   }
 
-  @Test public void testMinusInInterval() {
+  @Test public void testDateAddWithMinusInterval() {
     final RelBuilder builder = relBuilder();
     RexBuilder rexBuilder = builder.getRexBuilder();
     RelDataTypeFactory typeFactory = builder.getTypeFactory();
