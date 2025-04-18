@@ -4709,6 +4709,14 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test void testTableFunctionWithNamedArgAndPartitionKey() {
+    final String sql = "select * "
+        + "from table(topn(data=>table orders partition by (productid), col=>3))";
+    final String expected = "SELECT *\n"
+        + "FROM TABLE(`TOPN`(`DATA` => (TABLE `ORDERS`) PARTITION BY `PRODUCTID`, `COL` => 3))";
+    sql(sql).ok(expected);
+  }
+
   @Test void testTableFunctionWithMultiplePartitionKeys() {
     // test multiple partition keys for input table
     final String sql =
