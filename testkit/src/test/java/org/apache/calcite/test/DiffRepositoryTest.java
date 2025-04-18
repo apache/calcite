@@ -44,4 +44,17 @@ public class DiffRepositoryTest {
     }
     assertThat("First assertion must always fail", assertPassed, is(false));
   }
+
+  @Test void testMethodOnlyExistsInXml() {
+    boolean assertPassed = false;
+    DiffRepository r = DiffRepository.lookup(DiffRepositoryTest.class);
+    final String actual = "testMethodOnlyExistsInXml1";
+    try {
+      r.checkActualAndReferenceFiles();
+      assertPassed = true;
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), containsString(actual));
+    }
+    assertThat("First assertion must always fail", assertPassed, is(false));
+  }
 }
