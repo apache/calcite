@@ -9054,7 +9054,7 @@ class RelOptRulesTest extends RelOptTestBase {
     String sql = "select *\n"
         + "from EMP as p1\n"
         + "inner join EMP as p2 on p1.empno = p2.empno or p1.mgr = p2.mgr";
-    sql(sql).withRule(CoreRules.JOIN_CONDITION_OR_EXPANSION_RULE)
+    sql(sql).withRule(CoreRules.JOIN_EXPAND_OR_TO_UNION_RULE)
         .check();
   }
 
@@ -9077,7 +9077,7 @@ class RelOptRulesTest extends RelOptTestBase {
         + "or\n"
         + "t1.mgr between 10.0 and 20\n";
 
-    sql(sql).withRule(CoreRules.JOIN_CONDITION_OR_EXPANSION_RULE)
+    sql(sql).withRule(CoreRules.JOIN_EXPAND_OR_TO_UNION_RULE)
         .check();
   }
 
@@ -9089,7 +9089,7 @@ class RelOptRulesTest extends RelOptTestBase {
         + "from EMP as p1\n"
         + "inner join EMP as p2 on  p1.mgr < p2.mgr or\n"
         + "p1.empno = p2.empno or p1.sal < 0 or ln(p1.sal) < 10";
-    sql(sql).withRule(CoreRules.JOIN_CONDITION_OR_EXPANSION_RULE)
+    sql(sql).withRule(CoreRules.JOIN_EXPAND_OR_TO_UNION_RULE)
         .check();
   }
 
@@ -9100,7 +9100,7 @@ class RelOptRulesTest extends RelOptTestBase {
     String sql = "select *\n"
         + "from EMP as p1\n"
         + "right join DEPT as p2 on p1.empno = p2.deptno or p1.ename < p2.name";
-    sql(sql).withRule(CoreRules.JOIN_CONDITION_OR_EXPANSION_RULE)
+    sql(sql).withRule(CoreRules.JOIN_EXPAND_OR_TO_UNION_RULE)
         .check();
   }
 
@@ -9111,7 +9111,7 @@ class RelOptRulesTest extends RelOptTestBase {
     String sql = "select *\n"
         + "from EMP as p1\n"
         + "left join EMP as p2 on p1.empno = p2.empno or p1.sal = p2.sal";
-    sql(sql).withRule(CoreRules.JOIN_CONDITION_OR_EXPANSION_RULE)
+    sql(sql).withRule(CoreRules.JOIN_EXPAND_OR_TO_UNION_RULE)
         .check();
   }
 
@@ -9132,7 +9132,7 @@ class RelOptRulesTest extends RelOptTestBase {
                   b.field(2, 1, "JOB"))))
         .build();
     relFn(relFn)
-        .withRule(CoreRules.JOIN_CONDITION_OR_EXPANSION_RULE)
+        .withRule(CoreRules.JOIN_EXPAND_OR_TO_UNION_RULE)
         .check();
   }
 
@@ -9153,7 +9153,7 @@ class RelOptRulesTest extends RelOptTestBase {
                     b.field(2, 1, "JOB"))))
         .build();
     relFn(relFn)
-        .withRule(CoreRules.JOIN_CONDITION_OR_EXPANSION_RULE)
+        .withRule(CoreRules.JOIN_EXPAND_OR_TO_UNION_RULE)
         .check();
   }
 

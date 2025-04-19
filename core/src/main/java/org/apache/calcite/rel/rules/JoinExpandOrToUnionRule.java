@@ -51,14 +51,17 @@ import java.util.stream.Stream;
  * and other examples for other kinds of joins
  * can be found in the code below.
  *
- * <p>Project[*]
+ * <pre>{@code
+ * Project[*]
  *    └── Join[OR(t1.id=t2.id, t1.age=t2.age), inner]
  *        ├── TableScan[t1]
  *        └── TableScan[t2]
+ * }</pre>
  *
  * <p>into
  *
- * <p>Project[*]
+ * <pre>{@code
+ * Project[*]
  *    └── UnionAll
  *        ├── Join[t1.id=t2.id, inner]
  *        │   ├── TableScan[t1]
@@ -66,15 +69,15 @@ import java.util.stream.Stream;
  *        └── Join[t1.age=t2.age AND t1.id≠t2.id, inner]
  *            ├─── TableScan[t1]
  *            └─── TableScan[t2]
- *
+ * }</pre>
  */
 @Value.Enclosing
-public class JoinConditionOrExpansionRule
-    extends RelRule<JoinConditionOrExpansionRule.Config>
+public class JoinExpandOrToUnionRule
+    extends RelRule<JoinExpandOrToUnionRule.Config>
     implements TransformationRule {
 
-  /** Creates an JoinConditionExpansionOrRule. */
-  protected JoinConditionOrExpansionRule(Config config) {
+  /** Creates an JoinExpandOrToUnionRule. */
+  protected JoinExpandOrToUnionRule(Config config) {
     super(config);
   }
 
@@ -149,16 +152,20 @@ public class JoinConditionOrExpansionRule
       }
 
       RexCall call = (RexCall) cond;
-      // Checks if the call is valid for use as a join key.
+      // Checks if the "call" is valid for use as a join key.
       if (isEquiJoinCond(call, leftFieldCount)) {
         hasJoinKeyCond = true;
         continue;
       } else if (RexUtil.SubQueryFinder.find(call) != null
           || RexUtil.containsCorrelation(call)) {
-        // The call does not support sub-queries or correlation yet
+        // The "call" does not support sub-queries or correlation yet
         return false;
       }
 
+      // When components of the "call" are predicates that contain
+      // equality (when the above conditions are met), that are
+      // single-side (refer to only on of the collections joined),
+      // or which are constant, they will all trigger the expansion.
       if (!doesNotReferToBothInputs(call, leftFieldCount)) {
         return false;
       }
@@ -220,14 +227,17 @@ public class JoinConditionOrExpansionRule
   /**
    * This method will make the following conversions.
    *
-   * <p>Project[*]
+   * <pre>{@code
+   * Project[*]
    *    └── Join[OR(t1.id=t2.id, t1.age=t2.age), left]
    *        ├── TableScan[t1]
    *        └── TableScan[t2]
+   *}</pre>
    *
    * <p>into
    *
-   * <p>Project[*]
+   * <pre>{@code
+   * Project[*]
    *    └── UnionAll
    *        ├── Join[t1.id=t2.id, inner]
    *        │   ├── TableScan[t1]
@@ -241,6 +251,7 @@ public class JoinConditionOrExpansionRule
    *                │   ├── TableScan[t1]
    *                │   └── TableScan[t2]
    *                └── TableScan[t2]
+   * }</pre>
    */
   private RelNode expandLeftOrRightJoin(Join join, boolean isLeftJoin,
       RelBuilder relBuilder) {
@@ -262,14 +273,17 @@ public class JoinConditionOrExpansionRule
   /**
    * This method will make the following conversions.
    *
-   * <p>Project[*]
+   * <pre>{@code
+   * Project[*]
    *    └── Join[OR(t1.id=t2.id, t1.age=t2.age), full]
    *        ├── TableScan[t1]
    *        └── TableScan[t2]
+   * }</pre>
    *
    * <p>into
    *
-   * <p>Project[*]
+   * <pre>{@code
+   * Project[*]
    *    └── UnionAll
    *        ├── Join[t1.id=t2.id, inner]
    *        │   ├── TableScan[t1]
@@ -289,6 +303,7 @@ public class JoinConditionOrExpansionRule
    *                │   ├── TableScan[t2]
    *                │   └── TableScan[t1]
    *                └── TableScan[t1]
+   * }</pre>
    */
   private RelNode expandFullJoin(Join join, RelBuilder relBuilder) {
     List<RexNode> orConds = splitCond(join);
@@ -315,14 +330,17 @@ public class JoinConditionOrExpansionRule
   /**
    * This method will make the following conversions.
    *
-   * <p>Project[*]
+   * <pre>{@code
+   * Project[*]
    *    └── Join[OR(t1.id=t2.id, t1.age=t2.age), inner]
    *        ├── TableScan[t1]
    *        └── TableScan[t2]
+   * }</pre>
    *
    * <p>into
    *
-   * <p>Project[*]
+   * <pre>{@code
+   * Project[*]
    *    └── UnionAll
    *        ├── Join[t1.id=t2.id, inner]
    *        │   ├── TableScan[t1]
@@ -330,6 +348,7 @@ public class JoinConditionOrExpansionRule
    *        └── Join[t1.age=t2.age AND t1.id≠t2.id, inner]
    *            ├─── TableScan[t1]
    *            └─── TableScan[t2]
+   * }</pre>
    */
   private RelNode expandInnerJoin(Join join, RelBuilder relBuilder) {
     List<RexNode> orConds = splitCond(join);
@@ -360,18 +379,22 @@ public class JoinConditionOrExpansionRule
   /**
    * This method will make the following conversions.
    *
-   * <p>Project[*]
+   * <pre>{@code
+   * Project[*]
    *    └── Join[OR(id=id0, age=age0), anti]
    *        ├── TableScan[tbl]
    *        └── TableScan[tbl]
+   * }</pre>
    *
    * <p>into
    *
-   * <p>HashJoin[id=id0, anti]
+   * <pre>{@code
+   * HashJoin[id=id0, anti]
    *    ├── HashJoin[age=age0, anti]
    *    │   ├── TableScan[tbl]
    *    │   └── TableScan[tbl]
    *    └── TableScan[tbl]
+   * }</pre>
    */
   private RelNode expandAntiJoin(Join join, RelBuilder relBuilder) {
     List<RexNode> orConds = splitCond(join);
@@ -419,11 +442,11 @@ public class JoinConditionOrExpansionRule
   /** Rule configuration. */
   @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = ImmutableJoinConditionOrExpansionRule.Config.of()
+    Config DEFAULT = ImmutableJoinExpandOrToUnionRule.Config.of()
         .withOperandFor(Join.class);
 
-    @Override default JoinConditionOrExpansionRule toRule() {
-      return new JoinConditionOrExpansionRule(this);
+    @Override default JoinExpandOrToUnionRule toRule() {
+      return new JoinExpandOrToUnionRule(this);
     }
 
     /** Defines an operand tree for the given classes. */

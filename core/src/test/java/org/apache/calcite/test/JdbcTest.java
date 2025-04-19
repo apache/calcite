@@ -1999,7 +1999,7 @@ public class JdbcTest {
     CalciteAssert.hr()
         .query(sql)
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
-          planner.addRule(CoreRules.JOIN_CONDITION_OR_EXPANSION_RULE);
+          planner.addRule(CoreRules.JOIN_EXPAND_OR_TO_UNION_RULE);
           planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
         })
         .returnsUnordered(returns);
@@ -2039,7 +2039,7 @@ public class JdbcTest {
     CalciteAssert.hr()
         .query(sql)
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
-          planner.addRule(CoreRules.JOIN_CONDITION_OR_EXPANSION_RULE);
+          planner.addRule(CoreRules.JOIN_EXPAND_OR_TO_UNION_RULE);
           planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
         })
         .returnsUnordered(returns);
@@ -2072,7 +2072,7 @@ public class JdbcTest {
     CalciteAssert.hr()
         .query(sql)
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
-          planner.addRule(CoreRules.JOIN_CONDITION_OR_EXPANSION_RULE);
+          planner.addRule(CoreRules.JOIN_EXPAND_OR_TO_UNION_RULE);
           planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
         })
         .returnsUnordered(returns);
@@ -2110,7 +2110,7 @@ public class JdbcTest {
     CalciteAssert.hr()
         .query(sql)
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
-          planner.addRule(CoreRules.JOIN_CONDITION_OR_EXPANSION_RULE);
+          planner.addRule(CoreRules.JOIN_EXPAND_OR_TO_UNION_RULE);
           planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
         })
         .returnsUnordered(returns);
@@ -2144,7 +2144,7 @@ public class JdbcTest {
     CalciteAssert.hr()
         .query(sql)
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
-          planner.addRule(CoreRules.JOIN_CONDITION_OR_EXPANSION_RULE);
+          planner.addRule(CoreRules.JOIN_EXPAND_OR_TO_UNION_RULE);
           planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
         })
         .returnsUnordered(returns);
