@@ -46,13 +46,18 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Writer;
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.AbstractList;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -194,6 +199,8 @@ public class DiffRepository {
   private final @Nullable DiffRepository baseRepository;
   private final int indent;
   private final ImmutableSortedSet<String> outOfOrderTests;
+  private final Boolean existsMethodOnlyInXml;
+  private final SortedMap<String, Node> xmlTestCases;
   private Document doc;
   private final Element root;
   private final URL refFile;
@@ -213,7 +220,7 @@ public class DiffRepository {
    */
   private DiffRepository(URL refFile, File logFile,
       @Nullable DiffRepository baseRepository, @Nullable Filter filter,
-      int indent) {
+      int indent, Set<String> javaTestMethods) {
     this.baseRepository = baseRepository;
     this.filter = filter;
     this.indent = indent;
@@ -237,7 +244,9 @@ public class DiffRepository {
         flushDoc();
       }
       this.root = doc.getDocumentElement();
-      outOfOrderTests = validate(this.root);
+      this.xmlTestCases = analyze(this.root);
+      existsMethodOnlyInXml = checkExists(this.root, javaTestMethods, this.xmlTestCases);
+      outOfOrderTests = validateOrder(this.root, this.xmlTestCases);
     } catch (ParserConfigurationException | SAXException e) {
       throw new RuntimeException("error while creating xml parser", e);
     }
@@ -246,6 +255,11 @@ public class DiffRepository {
   //~ Methods ----------------------------------------------------------------
 
   public void checkActualAndReferenceFiles() {
+    if (existsMethodOnlyInXml) {
+      modCount++;
+      flushDoc();
+    }
+
     if (!logFile.exists()) {
       return;
     }
@@ -617,11 +631,10 @@ public class DiffRepository {
     modCountAtLastWrite = modCount;
   }
 
-  /** Validates the root element.
+  /** Analyzes the root element.
    *
-   * <p>Returns the set of test names that are out of order in the reference
-   * file (empty if the reference file is fully sorted). */
-  private static ImmutableSortedSet<String> validate(Element root) {
+   * <p>Returns the set of test names that in the reference file. */
+  private static SortedMap<String, Node> analyze(Element root) {
     if (!root.getNodeName().equals(ROOT_TAG)) {
       throw new RuntimeException("expected root element of type '" + ROOT_TAG
           + "', but found '" + root.getNodeName() + "'");
@@ -631,8 +644,6 @@ public class DiffRepository {
     // tests are out of order.
     final SortedMap<String, Node> testCases = new TreeMap<>();
     final NodeList childNodes = root.getChildNodes();
-    final List<String> outOfOrderNames = new ArrayList<>();
-    String previousName = null;
     for (int i = 0; i < childNodes.getLength(); i++) {
       Node child = childNodes.item(i);
       if (child.getNodeName().equals(TEST_CASE_TAG)) {
@@ -641,12 +652,46 @@ public class DiffRepository {
         if (testCases.put(name, testCase) != null) {
           throw new RuntimeException("TestCase '" + name + "' is duplicate");
         }
-        if (previousName != null
-            && previousName.compareTo(name) > 0) {
-          outOfOrderNames.add(name);
-        }
-        previousName = name;
       }
+    }
+    return testCases;
+  }
+
+  /** Checks if there are methods that only exist in XML.
+   *
+   * <p>Returns true if there are methods that only exist in XML. */
+  private static Boolean checkExists(Element root, Set<String> javaTestMethods,
+      Map<String, Node> testCases) {
+    final List<String> existsOnlyInXml = new ArrayList<>();
+    for (Map.Entry<String, Node> entry : testCases.entrySet()) {
+      String name = entry.getKey();
+      if (!javaTestMethods.contains(name)) {
+        existsOnlyInXml.add(name);
+      }
+    }
+    if (!existsOnlyInXml.isEmpty()) {
+      for (String value : existsOnlyInXml) {
+        root.removeChild(testCases.get(value));
+      }
+    }
+
+    return !existsOnlyInXml.isEmpty();
+  }
+
+  /** Validates the root element order.
+   *
+   * <p>Returns the set of test names that are out of order in the reference
+   * file (empty if the reference file is fully sorted). */
+  private static ImmutableSortedSet<String> validateOrder(Element root,
+      SortedMap<String, Node> testCases) {
+    String previousName = null;
+    final List<String> outOfOrderNames = new ArrayList<>();
+    for (Map.Entry<String, Node> entry : testCases.entrySet()) {
+      String name = entry.getKey();
+      if (previousName != null && previousName.compareTo(name) > 0) {
+        outOfOrderNames.add(name);
+      }
+      previousName = name;
     }
 
     // If any nodes were out of order, rebuild the document in sorted order.
@@ -944,8 +989,11 @@ public class DiffRepository {
           .replace(".xml", "_actual.xml");
       final File logFile = new File(logFilePath);
       assert !refFilePath.equals(logFile.getAbsolutePath());
+      Set<String> javaTestMethods =
+          Arrays.stream(clazz.getDeclaredMethods()).map(Method::getName)
+              .filter(name -> name.startsWith("test")).collect(Collectors.toSet());
       return new DiffRepository(refFile, logFile, baseRepository, filter,
-          indent);
+          indent, javaTestMethods);
     }
   }
 
