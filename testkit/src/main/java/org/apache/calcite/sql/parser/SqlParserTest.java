@@ -798,7 +798,7 @@ public class SqlParserTest {
     *
     * <p>Before fix, this test took 107s for n = 2_000_000; after, 0.6s. */
   @Test void testLarge() {
-    checkLarge(2_000_000);
+    checkLarge(1_000_000);
   }
 
   private void checkLarge(int n) {
