@@ -6755,6 +6755,51 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testJoinConditionOrExpansionRule2">
+    <Resource name="sql">
+      <![CDATA[select * from empnullables as t1 inner join empnullables as t2
+on (t1.empno = t2.empno
+and t1.job = 'Job1'
+and t1.ename in ('a', 'bb', 'cc')
+and t1.sal > 120 and t1.sal < 3000
+and t1.mgr = t1.comm)
+or
+(t1.deptno = t2.deptno
+and t2.job = 'Job2'
+and t2.ename in ('a', 'bb', 'cc')
+and t2.sal > 110 and t2.sal < 3000
+and t1.mgr + 10 < ln(15))
+or
+(t1.ename = 'Jensen'
+and t2.comm > 10)
+or
+t1.mgr between 10.0 and 20
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
+  LogicalJoin(condition=[OR(AND(=($0, $9), =($2, 'Job1'), SEARCH($1, Sarg['a':VARCHAR(20), 'bb':VARCHAR(20), 'cc':VARCHAR(20)]:VARCHAR(20)), SEARCH($5, Sarg[(120..3000)]), =($3, $6)), AND(=($7, $16), =($11, 'Job2'), SEARCH($10, Sarg['a':VARCHAR(20), 'bb':VARCHAR(20), 'cc':VARCHAR(20)]:VARCHAR(20)), SEARCH($14, Sarg[(110..3000)]), <(CAST(+($3, 10)):DOUBLE, LN(15))), AND(=($1, 'Jensen'), >($15, 10)), SEARCH(CAST($3):DECIMAL(11, 1), Sarg[[10.0:DECIMAL(11, 1)..20.0:DECIMAL(11, 1)]]:DECIMAL(11, 1)))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17])
+  LogicalUnion(all=[true])
+    LogicalJoin(condition=[AND(=($0, $9), =($2, 'Job1'), SEARCH($1, Sarg['a':VARCHAR(20), 'bb':VARCHAR(20), 'cc':VARCHAR(20)]:VARCHAR(20)), SEARCH($5, Sarg[(120..3000)]), =($3, $6))], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+    LogicalJoin(condition=[AND(=($7, $16), =($11, 'Job2'), SEARCH($10, Sarg['a':VARCHAR(20), 'bb':VARCHAR(20), 'cc':VARCHAR(20)]:VARCHAR(20)), SEARCH($14, Sarg[(110..3000)]), <(CAST(+($3, 10)):DOUBLE, LN(15)), OR(<>($0, $9), <>($2, 'Job1'), SEARCH($1, Sarg[(-∞..'a':VARCHAR(20)), ('a':VARCHAR(20)..'bb':VARCHAR(20)), ('bb':VARCHAR(20)..'cc':VARCHAR(20)), ('cc':VARCHAR(20)..+∞)]:VARCHAR(20)), SEARCH($5, Sarg[(-∞..120], [3000..+∞)]), <>($3, $6)))], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+    LogicalJoin(condition=[AND(OR(AND(=($1, 'Jensen'), >($15, 10)), SEARCH(CAST($3):DECIMAL(11, 1), Sarg[[10.0:DECIMAL(11, 1)..20.0:DECIMAL(11, 1)]]:DECIMAL(11, 1))), OR(<>($0, $9), <>($2, 'Job1'), SEARCH($1, Sarg[(-∞..'a':VARCHAR(20)), ('a':VARCHAR(20)..'bb':VARCHAR(20)), ('bb':VARCHAR(20)..'cc':VARCHAR(20)), ('cc':VARCHAR(20)..+∞)]:VARCHAR(20)), SEARCH($5, Sarg[(-∞..120], [3000..+∞)]), <>($3, $6)), OR(<>($7, $16), <>($11, 'Job2'), SEARCH($10, Sarg[(-∞..'a':VARCHAR(20)), ('a':VARCHAR(20)..'bb':VARCHAR(20)), ('bb':VARCHAR(20)..'cc':VARCHAR(20)), ('cc':VARCHAR(20)..+∞)]:VARCHAR(20)), SEARCH($14, Sarg[(-∞..110], [3000..+∞)]), >=(CAST(+($3, 10)):DOUBLE, LN(15))))], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testJoinConditionOrExpansionRuleAnti">
     <Resource name="planBefore">
       <![CDATA[
