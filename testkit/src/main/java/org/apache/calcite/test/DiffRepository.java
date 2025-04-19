@@ -245,7 +245,7 @@ public class DiffRepository {
       }
       this.root = doc.getDocumentElement();
       this.xmlTestCases = analyze(this.root);
-      existsMethodOnlyInXml = validateExists(this.root, javaTestMethods, this.xmlTestCases);
+      existsMethodOnlyInXml = checkExists(this.root, javaTestMethods, this.xmlTestCases);
       outOfOrderTests = validateOrder(this.root, this.xmlTestCases);
     } catch (ParserConfigurationException | SAXException e) {
       throw new RuntimeException("error while creating xml parser", e);
@@ -657,10 +657,10 @@ public class DiffRepository {
     return testCases;
   }
 
-  /** Validates if there is methods that only exists in XML.
+  /** Checks if there are methods that only exist in XML.
    *
-   * <p>Returns true if there is methods that only exists in XML. */
-  private static Boolean validateExists(Element root, Set<String> javaTestMethods,
+   * <p>Returns true if there are methods that only exist in XML. */
+  private static Boolean checkExists(Element root, Set<String> javaTestMethods,
       Map<String, Node> testCases) {
     final List<String> existsOnlyInXml = new ArrayList<>();
     for (Map.Entry<String, Node> entry : testCases.entrySet()) {
