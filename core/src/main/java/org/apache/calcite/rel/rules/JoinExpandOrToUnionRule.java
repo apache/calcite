@@ -113,6 +113,10 @@ public class JoinExpandOrToUnionRule
     default:
       return;
     }
+    if (expanded instanceof Join
+        && ((Join) expanded).getCondition().equals(join.getCondition())) {
+      return;
+    }
     call.transformTo(expanded);
   }
 
@@ -147,27 +151,26 @@ public class JoinExpandOrToUnionRule
     boolean hasJoinKeyCond = false;
     List<RexNode> conds = RelOptUtil.conjunctions(node);
     for (RexNode cond : conds) {
-      if (!(node instanceof RexCall)) {
-        return false;
-      }
-
-      RexCall call = (RexCall) cond;
-      // Checks if the "call" is valid for use as a join key.
-      if (isEquiJoinCond(call, leftFieldCount)) {
-        hasJoinKeyCond = true;
-        continue;
-      } else if (RexUtil.SubQueryFinder.find(call) != null
-          || RexUtil.containsCorrelation(call)) {
-        // The "call" does not support sub-queries or correlation yet
-        return false;
-      }
-
       // When components of the "call" are predicates that contain
       // equality (when the above conditions are met), that are
       // single-side (refer to only on of the collections joined),
       // or which are constant, they will all trigger the expansion.
-      if (!doesNotReferToBothInputs(call, leftFieldCount)) {
+      if (!doesNotReferToBothInputs(cond, leftFieldCount)) {
         return false;
+      }
+
+      if (RexUtil.SubQueryFinder.find(cond) != null
+              || RexUtil.containsCorrelation(cond)) {
+        // The "call" does not support sub-queries or correlation yet
+        return false;
+      }
+
+      if (cond instanceof RexCall) {
+        RexCall call = (RexCall) cond;
+        // Checks if the "call" is valid for use as a join key.
+        if (isEquiJoinCond(call, leftFieldCount)) {
+          hasJoinKeyCond = true;
+        }
       }
     }
     return hasJoinKeyCond;
