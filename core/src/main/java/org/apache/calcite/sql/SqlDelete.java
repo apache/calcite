@@ -66,7 +66,7 @@ public class SqlDelete extends SqlCall {
 
   @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
-    return ImmutableNullableList.of(targetTable, condition, alias);
+    return ImmutableNullableList.of(targetTable, condition, sourceSelect, alias);
   }
 
   @SuppressWarnings("assignment.type.incompatible")
