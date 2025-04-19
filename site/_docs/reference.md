@@ -2758,6 +2758,7 @@ The 'C' (compatibility) column contains value:
 * 'p' for PostgreSQL ('fun=postgresql' in the connect string),
 * 'r' for Amazon RedShift ('fun=redshift' in the connect string),
 * 's' for Apache Spark ('fun=spark' in the connect string).
+* 'i' for ClickHouse('fun=clickhouse' in the connect string).
 
 One operator name may correspond to multiple SQL dialects, but with different
 semantics.
