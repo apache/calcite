@@ -63,10 +63,11 @@ public class SqlCallOperandsTest {
     sqlDelete.setOperand(2, sourceSelect);
     sqlDelete.setOperand(3, alias);
     final List<SqlNode> operandList = sqlDelete.getOperandList();
+    // Verify if the operands are in the correct position in the operandList
     assertThat(operandList, hasSize(4));
-    assertThat(targetTable, equalTo(operandList.get(0)));
-    assertThat(condition, equalTo(operandList.get(1)));
-    assertThat(sourceSelect, equalTo(operandList.get(2)));
-    assertThat(alias, equalTo(operandList.get(3)));
+    assertThat(sqlDelete.getTargetTable(), equalTo(operandList.get(0)));
+    assertThat(sqlDelete.getCondition(), equalTo(operandList.get(1)));
+    assertThat(sqlDelete.getSourceSelect(), equalTo(operandList.get(2)));
+    assertThat(sqlDelete.getAlias(), equalTo(operandList.get(3)));
   }
 }
