@@ -404,8 +404,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
   private static RexNode convertQuantifyOperator(SqlRexContext cx, SqlCall call) {
     final RexBuilder rexBuilder = cx.getRexBuilder();
     final RexNode left = cx.convertExpression(call.getOperandList().get(0));
-    assert call.getOperandList().get(1) instanceof SqlNodeList;
-    final RexNode right = cx.convertExpression(((SqlNodeList) call.getOperandList().get(1)).get(0));
+    final RexNode right = cx.convertExpression(call.getOperandList().get(1));
     final RelDataType rightComponentType = requireNonNull(right.getType().getComponentType());
     final RelDataType returnType =
         cx.getTypeFactory().createTypeWithNullability(

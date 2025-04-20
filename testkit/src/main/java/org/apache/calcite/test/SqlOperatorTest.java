@@ -16009,7 +16009,7 @@ public class SqlOperatorTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5160">[CALCITE-5160]
    * ANY/SOME, ALL operators should support collection expressions</a>. */
   @Test void testQuantifyCollectionOperators() {
-    final SqlOperatorFixture f = fixture();
+    final SqlOperatorFixture f = fixture().withTester(t -> TESTER);
     QUANTIFY_OPERATORS.forEach(operator -> f.setFor(operator, SqlOperatorFixture.VmName.EXPAND));
 
     Function2<String, Boolean, Void> checkBoolean = (sql, result) -> {
@@ -16097,6 +16097,28 @@ public class SqlOperatorTest {
     f.check("SELECT (SELECT * FROM UNNEST(ARRAY[3]) LIMIT 1) = "
             + "all(x.t) FROM (SELECT ARRAY[3,3] as t) as x",
         "BOOLEAN", true);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6950">[CALCITE-6950]
+   * Use ANY operator to check if an element exists in an array throws exception</a>. */
+  @Test void testQuantifyCollectionOperators2() {
+    final SqlOperatorFixture f = fixture();
+    QUANTIFY_OPERATORS.forEach(operator -> f.setFor(operator, SqlOperatorFixture.VmName.EXPAND));
+
+    f.checkNull("1.0 = some (ARRAY[2,3,null])");
+    f.checkBoolean("1.0 = some (ARRAY[1,2,null])", true);
+    f.checkBoolean("3.0 = some (ARRAY[1,2])", false);
+
+    f.checkBoolean(
+        "'1970-01-01 01:23:45' = any (array[timestamp '1970-01-01 01:23:45',"
+            + "timestamp '1970-01-01 01:23:46'])", true);
+    f.checkBoolean(
+        "'1970-01-01 01:23:47' = any (array[timestamp '1970-01-01 01:23:45',"
+            + "timestamp '1970-01-01 01:23:46'])", false);
+
+    f.checkBoolean("'value' = any(array['value1', 'value2', 'value34'])", false);
+    f.checkBoolean("'value' = any(array['value', 'value2', 'value34'])", true);
   }
 
   @Test void testAnyValueFunc() {

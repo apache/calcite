@@ -5575,7 +5575,7 @@ public class SqlToRelConverter {
         case ALL:
           call = (SqlCall) expr;
           query = call.operand(1);
-          if (!(query instanceof SqlNodeList)) {
+          if (query.isA(SqlKind.QUERY)) {
             root = convertQueryRecursive(query, false, null);
             final SqlNode operand = call.operand(0);
             List<SqlNode> nodes;

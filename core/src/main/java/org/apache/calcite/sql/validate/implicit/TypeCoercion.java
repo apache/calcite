@@ -120,6 +120,9 @@ public interface TypeCoercion {
    */
   boolean inOperationCoercion(SqlCallBinding binding);
 
+  /** Handles type coercion for Quantify operation. */
+  boolean quantifyOperationCoercion(SqlCallBinding binding);
+
   /** Coerces operand of binary arithmetic expressions to Numeric type.*/
   boolean binaryArithmeticCoercion(SqlCallBinding binding);
 

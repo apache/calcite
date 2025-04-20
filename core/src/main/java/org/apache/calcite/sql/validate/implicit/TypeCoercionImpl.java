@@ -38,6 +38,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlOperandMetadata;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeMappingRule;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
@@ -561,6 +562,43 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
       return coerced;
     }
     return false;
+  }
+
+  @Override public boolean quantifyOperationCoercion(SqlCallBinding binding) {
+    final RelDataType type1 = binding.getOperandType(0);
+    final RelDataType collectionType = binding.getOperandType(1);
+    final RelDataType type2 = collectionType.getComponentType();
+    assert type2 != null;
+    if (type2.getSqlTypeName() == SqlTypeName.NULL || type1.getSqlTypeName() == SqlTypeName.NULL) {
+      return false;
+    }
+    final SqlNode node1 = binding.operand(0);
+    final SqlNode node2 = binding.operand(1);
+    RelDataType widenType = commonTypeForBinaryComparison(type1, type2);
+    if (widenType == null) {
+      widenType = getTightestCommonType(type1, type2);
+    }
+    final RelDataType leftWidenType =
+        binding.getTypeFactory().enforceTypeWithNullability(widenType, type1.isNullable());
+    boolean coercedLeft =
+        coerceOperandType(getScope(binding), binding.getCall(), 0, leftWidenType);
+    if (coercedLeft) {
+      updateInferredType(node1, leftWidenType);
+    }
+    final RelDataType rightWidenType =
+        binding.getTypeFactory().enforceTypeWithNullability(widenType, type2.isNullable());
+    RelDataType collectionWidenType =
+        binding.getTypeFactory().createArrayType(rightWidenType, -1);
+    collectionWidenType =
+        binding
+            .getTypeFactory()
+            .enforceTypeWithNullability(collectionWidenType, collectionType.isNullable());
+    boolean coercedRight =
+        coerceOperandType(getScope(binding), binding.getCall(), 1, collectionWidenType);
+    if (coercedRight) {
+      updateInferredType(node2, collectionWidenType);
+    }
+    return coercedLeft || coercedRight;
   }
 
   @Override public boolean builtinFunctionCoercion(

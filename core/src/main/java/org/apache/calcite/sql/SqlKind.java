@@ -1418,6 +1418,8 @@ public enum SqlKind {
           CREATE_TYPE, DROP_TYPE,
           SET_OPTION, OTHER_DDL);
 
+  public static final EnumSet<SqlKind> COLLECTION_EXPRESSION =
+      EnumSet.of(ARRAY_VALUE_CONSTRUCTOR, MULTISET_VALUE_CONSTRUCTOR);
   /**
    * Category consisting of query node types.
    *

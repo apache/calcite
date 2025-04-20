@@ -106,6 +106,7 @@ import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
+import org.apache.calcite.sql.fun.SqlQuantifyOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.Span;
@@ -3734,7 +3735,7 @@ List<Object> Expression2(ExprContext exprContext) :
                     // special case for stuff like IN (s1 UNION s2)
                     if (nodeList.size() == 1) {
                         SqlNode item = nodeList.get(0);
-                        if (item.isA(SqlKind.QUERY)) {
+                        if (item.isA(SqlKind.QUERY) || op instanceof SqlQuantifyOperator) {
                             list.add(item);
                         } else {
                             list.add(nodeList);
