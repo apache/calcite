@@ -27,6 +27,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.tools.RelBuilder;
 
@@ -50,14 +51,17 @@ import java.util.stream.Stream;
  * and other examples for other kinds of joins
  * can be found in the code below.
  *
- * <p>Project[*]
+ * <pre>{@code
+ * Project[*]
  *    └── Join[OR(t1.id=t2.id, t1.age=t2.age), inner]
  *        ├── TableScan[t1]
  *        └── TableScan[t2]
+ * }</pre>
  *
  * <p>into
  *
- * <p>Project[*]
+ * <pre>{@code
+ * Project[*]
  *    └── UnionAll
  *        ├── Join[t1.id=t2.id, inner]
  *        │   ├── TableScan[t1]
@@ -65,15 +69,15 @@ import java.util.stream.Stream;
  *        └── Join[t1.age=t2.age AND t1.id≠t2.id, inner]
  *            ├─── TableScan[t1]
  *            └─── TableScan[t2]
- *
+ * }</pre>
  */
 @Value.Enclosing
-public class JoinConditionOrExpansionRule
-    extends RelRule<JoinConditionOrExpansionRule.Config>
+public class JoinExpandOrToUnionRule
+    extends RelRule<JoinExpandOrToUnionRule.Config>
     implements TransformationRule {
 
-  /** Creates an JoinConditionExpansionOrRule. */
-  protected JoinConditionOrExpansionRule(Config config) {
+  /** Creates an JoinExpandOrToUnionRule. */
+  protected JoinExpandOrToUnionRule(Config config) {
     super(config);
   }
 
@@ -109,6 +113,10 @@ public class JoinConditionOrExpansionRule
     default:
       return;
     }
+    if (expanded instanceof Join
+        && ((Join) expanded).getCondition().equals(join.getCondition())) {
+      return;
+    }
     call.transformTo(expanded);
   }
 
@@ -140,44 +148,99 @@ public class JoinConditionOrExpansionRule
   }
 
   private boolean isValidCond(RexNode node, int leftFieldCount) {
-    if (!(node instanceof RexCall)) {
+    boolean hasJoinKeyCond = false;
+    List<RexNode> conds = RelOptUtil.conjunctions(node);
+    for (RexNode cond : conds) {
+      // When components of the "call" are predicates that contain
+      // equality (when the above conditions are met), that are
+      // single-side (refer to only on of the collections joined),
+      // or which are constant, they will all trigger the expansion.
+      if (!doesNotReferToBothInputs(cond, leftFieldCount)) {
+        return false;
+      }
+
+      if (RexUtil.SubQueryFinder.find(cond) != null
+              || RexUtil.containsCorrelation(cond)) {
+        // The "call" does not support sub-queries or correlation yet
+        return false;
+      }
+
+      if (cond instanceof RexCall) {
+        RexCall call = (RexCall) cond;
+        // Checks if the "call" is valid for use as a join key.
+        if (isEquiJoinCond(call, leftFieldCount)) {
+          hasJoinKeyCond = true;
+        }
+      }
+    }
+    return hasJoinKeyCond;
+  }
+
+  private boolean isEquiJoinCond(RexCall call, int leftFieldCount) {
+    if (call.getKind() != SqlKind.EQUALS
+        && call.getKind() != SqlKind.IS_NOT_DISTINCT_FROM) {
       return false;
     }
 
-    RexCall call = (RexCall) node;
-    SqlKind kind = call.getKind();
-    switch (kind) {
-    case EQUALS:
-    case IS_NOT_DISTINCT_FROM:
-      RexNode left = call.getOperands().get(0);
-      RexNode right = call.getOperands().get(1);
+    RexNode left = call.getOperands().get(0);
+    RexNode right = call.getOperands().get(1);
 
-      if (left instanceof RexInputRef && right instanceof RexInputRef) {
-        RexInputRef leftRef = (RexInputRef) left;
-        RexInputRef rightRef = (RexInputRef) right;
-        return (leftRef.getIndex() < leftFieldCount && rightRef.getIndex() >= leftFieldCount)
-            || (leftRef.getIndex() >= leftFieldCount && rightRef.getIndex() < leftFieldCount);
+    if (left instanceof RexInputRef && right instanceof RexInputRef) {
+      int leftIndex = ((RexInputRef) left).getIndex();
+      int rightIndex = ((RexInputRef) right).getIndex();
+
+      return (leftIndex < leftFieldCount && rightIndex >= leftFieldCount)
+          || (rightIndex < leftFieldCount && leftIndex >= leftFieldCount);
+    }
+    return false;
+  }
+
+  private boolean doesNotReferToBothInputs(RexNode rex, int leftFieldCount) {
+    RexInputRefCounter counter = new RexInputRefCounter(leftFieldCount);
+    rex.accept(counter);
+    return counter.doesNotReferToBothInputs();
+  }
+
+  /**
+   * Counts the number of InputRefs in a RexNode expression. */
+  private static class RexInputRefCounter extends RexVisitorImpl<Void> {
+    private int leftFieldCount;
+    public int leftInputRefCount = 0;
+    public int rightInputRefCount = 0;
+
+    RexInputRefCounter(int leftFieldCount) {
+      super(true);
+      this.leftFieldCount = leftFieldCount;
+    }
+
+    @Override public Void visitInputRef(RexInputRef inputRef) {
+      if (inputRef.getIndex() < leftFieldCount) {
+        leftFieldCount++;
+      } else {
+        rightInputRefCount++;
       }
-      return false;
-    case AND:
-      return call.getOperands().stream()
-          .allMatch(op -> isValidCond(op, leftFieldCount));
-    default:
-      return false;
+      return null;
+    }
+
+    public boolean doesNotReferToBothInputs() {
+      return leftInputRefCount == 0 || rightInputRefCount == 0;
     }
   }
 
   /**
    * This method will make the following conversions.
    *
-   * <p>Project[*]
+   * <pre>{@code
+   * Project[*]
    *    └── Join[OR(t1.id=t2.id, t1.age=t2.age), left]
    *        ├── TableScan[t1]
    *        └── TableScan[t2]
+   *}</pre>
    *
    * <p>into
    *
-   * <p>Project[*]
+   * <pre>{@code
+   * Project[*]
    *    └── UnionAll
    *        ├── Join[t1.id=t2.id, inner]
    *        │   ├── TableScan[t1]
@@ -191,6 +254,7 @@ public class JoinConditionOrExpansionRule
    *                │   ├── TableScan[t1]
    *                │   └── TableScan[t2]
    *                └── TableScan[t2]
+   * }</pre>
    */
   private RelNode expandLeftOrRightJoin(Join join, boolean isLeftJoin,
       RelBuilder relBuilder) {
@@ -212,14 +276,17 @@ public class JoinConditionOrExpansionRule
   /**
    * This method will make the following conversions.
    *
-   * <p>Project[*]
+   * <pre>{@code
+   * Project[*]
    *    └── Join[OR(t1.id=t2.id, t1.age=t2.age), full]
    *        ├── TableScan[t1]
    *        └── TableScan[t2]
+   * }</pre>
    *
    * <p>into
    *
-   * <p>Project[*]
+   * <pre>{@code
+   * Project[*]
    *    └── UnionAll
    *        ├── Join[t1.id=t2.id, inner]
    *        │   ├── TableScan[t1]
@@ -239,6 +306,7 @@ public class JoinConditionOrExpansionRule
    *                │   ├── TableScan[t2]
    *                │   └── TableScan[t1]
    *                └── TableScan[t1]
+   * }</pre>
    */
   private RelNode expandFullJoin(Join join, RelBuilder relBuilder) {
     List<RexNode> orConds = splitCond(join);
@@ -265,14 +333,17 @@ public class JoinConditionOrExpansionRule
   /**
    * This method will make the following conversions.
    *
-   * <p>Project[*]
+   * <pre>{@code
+   * Project[*]
    *    └── Join[OR(t1.id=t2.id, t1.age=t2.age), inner]
    *        ├── TableScan[t1]
    *        └── TableScan[t2]
+   * }</pre>
    *
    * <p>into
    *
-   * <p>Project[*]
+   * <pre>{@code
+   * Project[*]
    *    └── UnionAll
    *        ├── Join[t1.id=t2.id, inner]
    *        │   ├── TableScan[t1]
@@ -280,6 +351,7 @@ public class JoinConditionOrExpansionRule
    *        └── Join[t1.age=t2.age AND t1.id≠t2.id, inner]
    *            ├─── TableScan[t1]
    *            └─── TableScan[t2]
+   * }</pre>
    */
   private RelNode expandInnerJoin(Join join, RelBuilder relBuilder) {
     List<RexNode> orConds = splitCond(join);
@@ -310,18 +382,22 @@ public class JoinConditionOrExpansionRule
   /**
    * This method will make the following conversions.
    *
-   * <p>Project[*]
+   * <pre>{@code
+   * Project[*]
    *    └── Join[OR(id=id0, age=age0), anti]
    *        ├── TableScan[tbl]
    *        └── TableScan[tbl]
+   * }</pre>
    *
    * <p>into
    *
-   * <p>HashJoin[id=id0, anti]
+   * <pre>{@code
+   * HashJoin[id=id0, anti]
    *    ├── HashJoin[age=age0, anti]
    *    │   ├── TableScan[tbl]
    *    │   └── TableScan[tbl]
    *    └── TableScan[tbl]
+   * }</pre>
    */
   private RelNode expandAntiJoin(Join join, RelBuilder relBuilder) {
     List<RexNode> orConds = splitCond(join);
@@ -369,11 +445,11 @@ public class JoinConditionOrExpansionRule
   /** Rule configuration. */
   @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = ImmutableJoinConditionOrExpansionRule.Config.of()
+    Config DEFAULT = ImmutableJoinExpandOrToUnionRule.Config.of()
         .withOperandFor(Join.class);
 
-    @Override default JoinConditionOrExpansionRule toRule() {
-      return new JoinConditionOrExpansionRule(this);
+    @Override default JoinExpandOrToUnionRule toRule() {
+      return new JoinExpandOrToUnionRule(this);
     }
 
     /** Defines an operand tree for the given classes. */
