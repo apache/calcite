@@ -72,10 +72,25 @@ public class MysqlSqlDialect extends SqlDialect {
             return 65535;
           case TIMESTAMP:
             return 6;
+          case DECIMAL:
+            return 65;
           default:
             return super.getMaxPrecision(typeName);
           }
         }
+
+        // We can refer to document of MySQL 5.x and 8.x:
+        // https://dev.mysql.com/doc/refman/8.4/en/precision-math-decimal-characteristics.html
+        // https://dev.mysql.com/doc/refman/5.7/en/precision-math-decimal-characteristics.html
+        @Override public int getMaxScale(SqlTypeName typeName) {
+          switch (typeName) {
+          case DECIMAL:
+            return 30;
+          default:
+            return super.getMaxScale(typeName);
+          }
+        }
+
         @Override public int getDefaultPrecision(SqlTypeName typeName) {
           if (typeName == SqlTypeName.CHAR) {
             return RelDataType.PRECISION_NOT_SPECIFIED;
