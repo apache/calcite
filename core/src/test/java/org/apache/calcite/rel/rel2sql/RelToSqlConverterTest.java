@@ -69,7 +69,9 @@ import org.apache.calcite.sql.dialect.JethroDataSqlDialect;
 import org.apache.calcite.sql.dialect.MssqlSqlDialect;
 import org.apache.calcite.sql.dialect.MysqlSqlDialect;
 import org.apache.calcite.sql.dialect.OracleSqlDialect;
+import org.apache.calcite.sql.dialect.PhoenixSqlDialect;
 import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
+import org.apache.calcite.sql.dialect.PrestoSqlDialect;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -5937,6 +5939,25 @@ class RelToSqlConverterTest {
         .ok(expected);
   }
 
+  /** Test for <a href="https://issues.apache.org/jira/browse/CALCITE-6974">[CALCITE-6974]
+   *  Default typesystem has incorrect limits for DECIMAL for Presto/MySQL/Phoenix</a>. */
+  @Test void testDecimalPrecision() {
+    final String sql = "SELECT CAST(1.23 AS DECIMAL(38, 20))";
+    String prestoExpect = "SELECT *\nFROM (VALUES (1.23000000000000000000)) AS \"t\" (\"EXPR$0\")";
+    sql(sql).withPrestoModifiedDecimalTypeSystem()
+        .ok(prestoExpect);
+
+    final String sql1 = "SELECT CAST(1.23 AS DECIMAL(65, 30))";
+    final String mysqlExpect = "SELECT 1.230000000000000000000000000000";
+    sql(sql1).withMySqlModifiedDecimalTypeSystem()
+        .ok(mysqlExpect);
+
+    final String sql2 = "SELECT CAST(1.23 AS DECIMAL(38, 20))";
+    String phoenixExpect = "SELECT *\nFROM (VALUES (1.23000000000000000000)) AS \"t\" (\"EXPR$0\")";
+    sql(sql2).withPhoenixModifiedDecimalTypeSystem()
+        .ok(phoenixExpect);
+  }
+
   /** Test for <a href="https://issues.apache.org/jira/browse/CALCITE-5651">[CALCITE-5651]
    * Inferred scale for decimal should not exceed maximum allowed scale</a>. */
   @Test void testNumericScale() {
@@ -10048,6 +10069,24 @@ class RelToSqlConverterTest {
       final ClickHouseSqlDialect clickHouseSqlDialect =
           new ClickHouseSqlDialect(ClickHouseSqlDialect.DEFAULT_CONTEXT);
       return dialect(clickHouseSqlDialect);
+    }
+
+    Sql withPrestoModifiedDecimalTypeSystem() {
+      final PrestoSqlDialect prestoSqlDialect =
+          new PrestoSqlDialect(PrestoSqlDialect.DEFAULT_CONTEXT);
+      return dialect(prestoSqlDialect);
+    }
+
+    Sql withMySqlModifiedDecimalTypeSystem() {
+      final MysqlSqlDialect mysqlSqlDialect =
+          new MysqlSqlDialect(MysqlSqlDialect.DEFAULT_CONTEXT);
+      return dialect(mysqlSqlDialect);
+    }
+
+    Sql withPhoenixModifiedDecimalTypeSystem() {
+      final PhoenixSqlDialect phoenixSqlDialect =
+          new PhoenixSqlDialect(PhoenixSqlDialect.DEFAULT_CONTEXT);
+      return dialect(phoenixSqlDialect);
     }
 
     Sql withOracleModifiedTypeSystem() {
