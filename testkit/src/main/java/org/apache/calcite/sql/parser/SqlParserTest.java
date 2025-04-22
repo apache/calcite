@@ -17,6 +17,7 @@
 package org.apache.calcite.sql.parser;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDelete;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlExplain;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -32,6 +33,7 @@ import org.apache.calcite.sql.SqlUnknownLiteral;
 import org.apache.calcite.sql.SqlWriterConfig;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.dialect.SparkSqlDialect;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser.Config;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.test.SqlTestFactory;
@@ -9531,6 +9533,27 @@ public class SqlParserTest {
 
     sql("select 1 || (a, b) ^->^ a + b")
         .fails(errorMessage2);
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6977">[CALCITE-6977]
+   * Unparse DELETE SQL throws unsupported exception</a>.
+   */
+  @Test void testSqlDeleteSqlBasicCallToString() {
+    final SqlParserPos parserPos = SqlParserPos.ZERO;
+    final SqlIdentifier employees = new SqlIdentifier("employee", parserPos);
+    final SqlCall where =
+        SqlStdOperatorTable.EQUALS.createCall(parserPos,
+            new SqlIdentifier("id", parserPos),
+            SqlLiteral.createExactNumeric("1", parserPos));
+    SqlDelete sqlDelete = new SqlDelete(parserPos, employees, where, null, null);
+    // Create a new SqlDelete with the same operands as the original by SqlDelete.OPERATOR
+    final SqlCall call =
+        SqlDelete.OPERATOR.createCall(sqlDelete.getFunctionQuantifier(),
+            sqlDelete.getParserPosition(),
+            sqlDelete.getOperandList());
+    assertThat(call, hasToString(sqlDelete.toString()));
   }
 
   protected static String varToStr(Hoist.Variable v) {
