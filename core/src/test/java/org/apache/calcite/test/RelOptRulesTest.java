@@ -10495,4 +10495,41 @@ class RelOptRulesTest extends RelOptTestBase {
         .withRule(CoreRules.MINUS_TO_FILTER)
         .check();
   }
+
+  @Test void testExpandFilterDisjunctionForJoinInput() {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.EXPAND_FILTER_DISJUNCTION_LOCAL)
+        .build();
+
+    sql("select e.empno from emp as e, empnullables as en, emp_b as eb\n"
+        + "where e.empno = en.empno and e.empno = eb.empno\n"
+        + "and\n"
+        + "(\n"
+        + "  (e.mgr > 100 and eb.sal < 200)\n"
+        + "  or\n"
+        + "  (en.comm < 50 and eb.deptno > 10)\n"
+        + ")")
+        .withPre(program)
+        .withRule(CoreRules.JOIN_CONDITION_PUSH, CoreRules.FILTER_INTO_JOIN)
+        .check();
+  }
+
+  @Test void testExpandJoinDisjunctionForJoinInput() {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.EXPAND_JOIN_DISJUNCTION_LOCAL)
+        .build();
+
+    sql("select e.empno from emp as e inner join empnullables as en\n"
+        + " on e.empno = en.empno\n"
+        + " inner join emp_b as eb\n"
+        + " on e.empno = eb.empno and\n"
+        + "(\n"
+        + "  (e.mgr > 100 and eb.sal < 200)\n"
+        + "  or\n"
+        + "  (en.comm < 50 and eb.deptno > 10)\n"
+        + ")")
+        .withPre(program)
+        .withRule(CoreRules.JOIN_CONDITION_PUSH, CoreRules.FILTER_INTO_JOIN)
+        .check();
+  }
 }

@@ -894,4 +894,16 @@ public class CoreRules {
    * @see #EXPAND_FILTER_DISJUNCTION_GLOBAL */
   public static final ExpandDisjunctionForTableRule EXPAND_JOIN_DISJUNCTION_GLOBAL =
       ExpandDisjunctionForTableRule.Config.JOIN.toRule();
+
+  /** Rule that expands disjunction in the condition of a {@link Filter} for join inputs.
+   *
+   * @see #EXPAND_JOIN_DISJUNCTION_LOCAL */
+  public static final ExpandDisjunctionForJoinInputsRule EXPAND_FILTER_DISJUNCTION_LOCAL =
+      ExpandDisjunctionForJoinInputsRule.Config.FILTER.toRule();
+
+  /** Rule that expands disjunction in the condition of a {@link Join} for join inputs.
+   *
+   * @see #EXPAND_FILTER_DISJUNCTION_LOCAL */
+  public static final ExpandDisjunctionForJoinInputsRule EXPAND_JOIN_DISJUNCTION_LOCAL =
+      ExpandDisjunctionForJoinInputsRule.Config.JOIN.toRule();
 }
