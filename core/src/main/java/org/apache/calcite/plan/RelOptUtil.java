@@ -4552,6 +4552,37 @@ public abstract class RelOptUtil {
     }
   }
 
+  /** Extension of {@link RelOptUtil.InputFinder} with optional subquery lookup. */
+  public static class SubQueryAwareInputFinder extends RelOptUtil.InputFinder {
+    boolean visitSubQuery;
+
+    public SubQueryAwareInputFinder(@Nullable Set<RelDataTypeField> extraFields,
+        boolean visitSubQuery) {
+      super(extraFields, ImmutableBitSet.builder());
+      this.visitSubQuery = visitSubQuery;
+    }
+
+    @Override public Void visitSubQuery(RexSubQuery subQuery) {
+      if (visitSubQuery && subQuery.getKind() == SqlKind.SCALAR_QUERY) {
+        subQuery.rel.accept(new RelHomogeneousShuttle() {
+          @Override public RelNode visit(LogicalProject project) {
+            project.getProjects().forEach(r -> r.accept(SubQueryAwareInputFinder.this));
+            return super.visit(project);
+          }
+
+          @Override public RelNode visit(LogicalFilter filter) {
+            filter.getCondition().accept(SubQueryAwareInputFinder.this);
+            return super.visit(filter);
+          }
+        });
+
+        return null;
+      } else {
+        return super.visitSubQuery(subQuery);
+      }
+    }
+  }
+
   /**
    * Visitor which builds a bitmap of the inputs used by an expression.
    */

@@ -63,6 +63,32 @@ select * from dept where deptno not in (select deptno from emp);
 (0 rows)
 
 !ok
+
+# [CALCITE-5638] Assertion Failure during planning correlated query
+SELECT "hr"."emps"."empid", "hr"."emps"."deptno",
+ (SELECT count(*) FROM "hr"."emps" AS x WHERE x."salary">"hr"."emps"."salary" AND x."deptno"<"hr"."emps"."deptno")
+FROM "hr"."emps"
+ WHERE "hr"."emps"."empid"<"hr"."emps"."salary"
+ ORDER BY 1,2,3;
+ empid | deptno | EXPR$2
+-------+--------+--------
+   100 |     10 |      0
+   110 |     10 |      0
+   150 |     10 |      0
+   200 |     20 |      2
+(4 rows)
+
+!ok
+
+# [CALCITE-5638] Assertion Failure during planning correlated query
+SELECT t1.deptno FROM dept AS t0 JOIN emp AS t1 ON
+(t1.deptno = (SELECT inner_t1.deptno FROM emp AS inner_t1 WHERE inner_t1.ENAME = t0.DNAME));
+ DEPTNO
+--------
+(0 rows)
+
+!ok
+
 select deptno, deptno     in (select deptno from emp) from dept;
  DEPTNO | EXPR$1
 --------+--------
@@ -873,7 +899,7 @@ EnumerableCalc(expr#0..2=[{inputs}], proj#0..1=[{exprs}])
   EnumerableCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
     EnumerableValues(tuples=[[{ 1, 2 }]])
     EnumerableAggregate(group=[{0}])
-      EnumerableCalc(expr#0..7=[{inputs}], expr#8=[true], expr#9=[CAST($t7):INTEGER], expr#10=[$cor0], expr#11=[$t10.EXPR$0], expr#12=[=($t9, $t11)], i=[$t8], $condition=[$t12])
+      EnumerableCalc(expr#0..7=[{inputs}], expr#8=[true], expr#9=[CAST($t7):INTEGER], expr#10=[$cor0], expr#11=[$t10.A], expr#12=[=($t9, $t11)], i=[$t8], $condition=[$t12])
         EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
