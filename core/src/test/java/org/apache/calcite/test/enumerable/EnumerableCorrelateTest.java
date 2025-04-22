@@ -169,6 +169,24 @@ class EnumerableCorrelateTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5638">[CALCITE-5638]
+   * Columns trimmer need to consider sub queries</a>.
+   */
+  @Test void complexNestedCorrelatedSubquery() {
+    String sql = "SELECT empid, deptno, (SELECT count(*) FROM emps AS x "
+        + "WHERE x.salary>emps.salary and x.deptno<emps.deptno) FROM emps "
+        + "WHERE empid<salary ORDER BY 1,2,3";
+
+    tester(false, new HrSchema())
+        .query(sql)
+        .returnsOrdered(
+            "empid=100; deptno=10; EXPR$2=0",
+            "empid=110; deptno=10; EXPR$2=0",
+            "empid=150; deptno=10; EXPR$2=0",
+            "empid=200; deptno=20; EXPR$2=2");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2920">[CALCITE-2920]
    * RelBuilder: new method to create an anti-join</a>. */
   @Test void antiJoinCorrelate() {
