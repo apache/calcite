@@ -24,13 +24,11 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataTypeField;
-import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexTableInputRef;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilder;
-import org.apache.calcite.util.ControlFlowException;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.Lists;
@@ -39,7 +37,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
 
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -207,47 +204,24 @@ public class ExpandDisjunctionForTableRule
   /**
    * Helper class to expand predicates.
    */
-  private static class ExpandDisjunctionForTableHelper {
+  private static class ExpandDisjunctionForTableHelper
+      extends RexUtil.ExpandDisjunctionHelper<RexTableInputRef.RelTableRef> {
     private final Map<Integer, RexTableInputRef.RelTableRef> inputRefToTableRef;
-
-    private final RelBuilder relBuilder;
-
-    private final int maxNodeCount;
-
-    // Used to record the number of redundant expressions expanded.
-    private int currentCount;
 
     private ExpandDisjunctionForTableHelper(
         Map<Integer, RexTableInputRef.RelTableRef> inputRefToTableRef,
         RelBuilder relBuilder,
         int maxNodeCount) {
+      super(relBuilder, maxNodeCount);
       this.inputRefToTableRef = inputRefToTableRef;
-      this.relBuilder = relBuilder;
-      this.maxNodeCount = maxNodeCount;
     }
 
-    private Map<RexTableInputRef.RelTableRef, RexNode> expand(RexNode condition) {
-      try {
-        this.currentCount = 0;
-        return expandDeep(condition);
-      } catch (OverLimitException e) {
-        return new HashMap<>();
-      }
-    }
-
-    /**
-     * Expand predicates recursively that can be pushed down to single table.
-     *
-     * @param condition   Predicate to be expanded
-     * @return  A map from a table to a (combined) predicate that can be pushed down
-     * and only depends on columns of the table
-     */
-    private Map<RexTableInputRef.RelTableRef, RexNode> expandDeep(RexNode condition) {
-      Map<RexTableInputRef.RelTableRef, RexNode> additionalConditions = new HashMap<>();
-
+    @Override protected boolean canReturnEarly(
+        RexNode condition,
+        Map<RexTableInputRef.RelTableRef, RexNode> additionalConditions) {
       ImmutableBitSet inputRefs = RelOptUtil.InputFinder.bits(condition);
       if (inputRefs.isEmpty()) {
-        return additionalConditions;
+        return true;
       }
 
       RexTableInputRef.RelTableRef tableRef = inputRefsBelongToOneTable(inputRefs);
@@ -255,38 +229,10 @@ public class ExpandDisjunctionForTableRule
         // The condition already belongs to one table, return it directly
         checkExpandCount(condition.nodeCount());
         additionalConditions.put(tableRef, condition);
-        return additionalConditions;
+        return true;
       }
 
-      // Recursively expand the expression according to whether it is a conjunction
-      // or a disjunction. If it is neither a disjunction nor a conjunction, it cannot
-      // be expanded further and an empty Map is returned.
-      switch (condition.getKind()) {
-      case AND:
-        List<RexNode> andOperands = RexUtil.flattenAnd(((RexCall) condition).getOperands());
-        for (RexNode andOperand : andOperands) {
-          Map<RexTableInputRef.RelTableRef, RexNode> operandResult = expandDeep(andOperand);
-          combinePredicatesUsingAnd(additionalConditions, operandResult);
-        }
-        break;
-      case OR:
-        List<RexNode> orOperands = RexUtil.flattenOr(((RexCall) condition).getOperands());
-        additionalConditions.putAll(expandDeep(orOperands.get(0)));
-        for (int i = 1; i < orOperands.size(); i++) {
-          Map<RexTableInputRef.RelTableRef, RexNode> operandResult =
-              expandDeep(orOperands.get(i));
-          combinePredicatesUsingOr(additionalConditions, operandResult);
-
-          if (additionalConditions.isEmpty()) {
-            break;
-          }
-        }
-        break;
-      default:
-        break;
-      }
-
-      return additionalConditions;
+      return false;
     }
 
     private RexTableInputRef.@Nullable RelTableRef inputRefsBelongToOneTable(
@@ -302,97 +248,6 @@ public class ExpandDisjunctionForTableRule
         }
       }
       return tableRef;
-    }
-
-    /**
-     * Combine predicates that depend on the same table using conjunctions.
-     * The result is returned by modifying baseMap. For example:
-     *
-     * <p>baseMap: {t1: p1, t2: p2}
-     *
-     * <p>forMergeMap: {t1: p11, t3: p3}
-     *
-     * <p>result: {t1: p1 AND p11, t2: p2, t3: p3}
-     *
-     * @param baseMap       Additional predicates that current conjunction has already saved
-     * @param forMergeMap   Additional predicates that current operand has expanded
-     */
-    private void combinePredicatesUsingAnd(
-        Map<RexTableInputRef.RelTableRef, RexNode> baseMap,
-        Map<RexTableInputRef.RelTableRef, RexNode> forMergeMap) {
-      for (Map.Entry<RexTableInputRef.RelTableRef, RexNode> entry : forMergeMap.entrySet()) {
-        RexNode mergedRex =
-            relBuilder.and(
-                entry.getValue(),
-                baseMap.getOrDefault(entry.getKey(), relBuilder.literal(true)));
-        int oriCount = entry.getValue().nodeCount()
-            + (baseMap.containsKey(entry.getKey())
-                ? baseMap.get(entry.getKey()).nodeCount()
-                : 0);
-        checkExpandCount(mergedRex.nodeCount() - oriCount);
-        baseMap.put(entry.getKey(), mergedRex);
-      }
-    }
-
-    /**
-     * Combine predicates that depend on the same table using disjunctions.
-     * The result is returned by modifying baseMap. For example:
-     *
-     * <p>baseMap: {t1: p1, t2: p2}
-     *
-     * <p>forMergeMap: {t1: p11, t3: p3}
-     *
-     * <p>result: {t1: p1 OR p11}
-     *
-     * @param baseMap       Additional predicates that current disjunction has already saved
-     * @param forMergeMap   Additional predicates that current operand has expanded
-     */
-    private void combinePredicatesUsingOr(
-        Map<RexTableInputRef.RelTableRef, RexNode> baseMap,
-        Map<RexTableInputRef.RelTableRef, RexNode> forMergeMap) {
-      if (baseMap.isEmpty()) {
-        return;
-      }
-
-      Iterator<Map.Entry<RexTableInputRef.RelTableRef, RexNode>> iterator =
-          baseMap.entrySet().iterator();
-      while (iterator.hasNext()) {
-        int forMergeNodeCount = 0;
-
-        Map.Entry<RexTableInputRef.RelTableRef, RexNode> entry = iterator.next();
-        if (!forMergeMap.containsKey(entry.getKey())) {
-          checkExpandCount(-entry.getValue().nodeCount());
-          iterator.remove();
-          continue;
-        } else {
-          forMergeNodeCount = forMergeMap.get(entry.getKey()).nodeCount();
-        }
-        RexNode mergedRex =
-            relBuilder.or(
-                entry.getValue(),
-                forMergeMap.get(entry.getKey()));
-        int oriCount = entry.getValue().nodeCount() + forMergeNodeCount;
-        checkExpandCount(mergedRex.nodeCount() - oriCount);
-        baseMap.put(entry.getKey(), mergedRex);
-      }
-    }
-
-    /**
-     * Check whether the number of redundant expressions generated in the expansion
-     * exceeds the limit.
-     */
-    private void checkExpandCount(int changeCount) {
-      currentCount += changeCount;
-      if (maxNodeCount > 0 && currentCount > maxNodeCount) {
-        throw OverLimitException.INSTANCE;
-      }
-    }
-
-    /** Exception to catch when we pass the limit. */
-    private static class OverLimitException extends ControlFlowException {
-      protected static final OverLimitException INSTANCE = new OverLimitException();
-
-      private OverLimitException() {}
     }
   }
 

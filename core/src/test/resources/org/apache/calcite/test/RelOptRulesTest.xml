@@ -4141,6 +4141,40 @@ LogicalProject(EMPNO=[$0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testExpandFilterDisjunctionForJoinInput">
+    <Resource name="sql">
+      <![CDATA[select e.empno from emp as e, empnullables as en, emp_b as eb
+where e.empno = en.empno and e.empno = eb.empno
+and
+(
+  (e.mgr > 100 and eb.sal < 200)
+  or
+  (en.comm < 50 and eb.deptno > 10)
+)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[AND(=($0, $9), =($0, $18), OR(AND(>($3, 100), <($23, 200)), AND(<($15, 50), >($25, 10))), OR(>($3, 100), <($15, 50)), OR(<($23, 200), >($25, 10)))])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[AND(=($0, $18), OR(AND(>($3, 100), <($23, 200)), AND(<($15, 50), >($25, 10))))], joinType=[inner])
+    LogicalJoin(condition=[AND(=($0, $9), OR(>($3, 100), <($15, 50)))], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+    LogicalFilter(condition=[OR(<($5, 200), >($7, 10))])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testExpandFilterDisjunctionForTable">
     <Resource name="sql">
       <![CDATA[select e.empno from emp as e, empnullables as en where e.empno = en.empno and (   (e.mgr > 100 and en.sal < 200)   or   e.comm < 50 ) ]]>
@@ -4510,6 +4544,40 @@ LogicalProject(EMPNO=[$0])
           LogicalProject(DEPTNO=[$7])
             LogicalFilter(condition=[>($0, 100)])
               LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testExpandJoinDisjunctionForJoinInput">
+    <Resource name="sql">
+      <![CDATA[select e.empno from emp as e inner join empnullables as en
+ on e.empno = en.empno
+ inner join emp_b as eb
+ on e.empno = eb.empno and
+(
+  (e.mgr > 100 and eb.sal < 200)
+  or
+  (en.comm < 50 and eb.deptno > 10)
+)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[AND(=($0, $18), OR(AND(>($3, 100), <($23, 200)), AND(<($15, 50), >($25, 10))), OR(>($3, 100), <($15, 50)), OR(<($23, 200), >($25, 10)))], joinType=[inner])
+    LogicalJoin(condition=[=($0, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[AND(=($0, $18), OR(AND(>($3, 100), <($23, 200)), AND(<($15, 50), >($25, 10))))], joinType=[inner])
+    LogicalJoin(condition=[AND(=($0, $9), OR(>($3, 100), <($15, 50)))], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+    LogicalFilter(condition=[OR(<($5, 200), >($7, 10))])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
 ]]>
     </Resource>
   </TestCase>
