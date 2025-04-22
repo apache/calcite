@@ -5449,6 +5449,29 @@ LogicalFilter(condition=[<($0, 10)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testFilterTableFunctionScanTranspose">
+    <Resource name="sql">
+      <![CDATA[select * from table(tfrt(cursor(select name from dept))) where name = '1']]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(NAME=[$0])
+  LogicalFilter(condition=[=($0, '1')])
+    LogicalTableFunctionScan(invocation=[TFRT(CAST($0):CURSOR NOT NULL)], rowType=[RecordType(VARCHAR(10) NAME)])
+      LogicalProject(NAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(NAME=[$0])
+  LogicalTableFunctionScan(invocation=[TFRT(CAST($0):CURSOR NOT NULL)], rowType=[RecordType(VARCHAR(10) NAME)])
+    LogicalFilter(condition=[=($0, '1')])
+      LogicalProject(NAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testFilterToCalc">
     <Resource name="sql">
       <![CDATA[select ename from emp where sal > all (select comm from emp)]]>
