@@ -493,8 +493,10 @@ public class RelJson {
     } else if (value instanceof Range) {
       //noinspection rawtypes,unchecked
       return toJson((Range) value);
+    } else if (value instanceof ByteString) {
+      return toJson(((ByteString) value).toString(16));
     } else {
-      throw new UnsupportedOperationException("type not serializable: "
+      throw new UnsupportedOperationException("type not serializable as JSON: "
           + value + " (type " + value.getClass().getCanonicalName() + ")");
     }
   }
@@ -825,12 +827,13 @@ public class RelJson {
         SqlTypeName sqlTypeName = type.getSqlTypeName();
         if (sqlTypeName == SqlTypeName.SYMBOL) {
           literal = RelEnumTypes.toEnum((String) literal);
-        }
-        if (sqlTypeName == SqlTypeName.TIMESTAMP
+        } else if (sqlTypeName == SqlTypeName.TIMESTAMP
             || sqlTypeName == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
           if (literal instanceof Integer) {
             literal = ((Integer) literal).longValue();
           }
+        } else if (sqlTypeName == SqlTypeName.BINARY || sqlTypeName == SqlTypeName.VARBINARY) {
+          literal = ByteString.of((String) literal, 16);
         }
         return rexBuilder.makeLiteral(literal, type);
       }

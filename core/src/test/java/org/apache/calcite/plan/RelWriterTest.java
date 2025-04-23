@@ -17,6 +17,7 @@
 package org.apache.calcite.plan;
 
 import org.apache.calcite.adapter.java.ReflectiveSchema;
+import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.prepare.Prepare;
@@ -557,6 +558,51 @@ class RelWriterTest {
     assertThat(s, is(XX));
   }
 
+  static final String BINARY_LITERAL = "{\n"
+      + "  \"rels\": [\n"
+      + "    {\n"
+      + "      \"id\": \"0\",\n"
+      + "      \"relOp\": \"LogicalValues\",\n"
+      + "      \"type\": [\n"
+      + "        {\n"
+      + "          \"type\": \"BINARY\",\n"
+      + "          \"nullable\": false,\n"
+      + "          \"precision\": 2,\n"
+      + "          \"name\": \"$f0\"\n"
+      + "        }\n"
+      + "      ],\n"
+      + "      \"tuples\": [\n"
+      + "        [\n"
+      + "          {\n"
+      + "            \"literal\": \"0a4b\",\n"
+      + "            \"type\": {\n"
+      + "              \"type\": \"BINARY\",\n"
+      + "              \"nullable\": false,\n"
+      + "              \"precision\": 2\n"
+      + "            }\n"
+      + "          }\n"
+      + "        ]\n"
+      + "      ],\n"
+      + "      \"inputs\": []\n"
+      + "    }\n"
+      + "  ]\n"
+      + "}";
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6980">
+   * [CALCITE 6980] RelJson cannot serialize binary literals</a>. */
+  @Test void testVarbinary() {
+    final Function<RelBuilder, RelNode> relFn = b -> {
+      RelDataType rowType = b.getTypeFactory().builder()
+          .add("a", SqlTypeName.INTEGER)
+          .build();
+      return b.values(rowType, 0)
+          .project(b.getRexBuilder().makeBinaryLiteral(new ByteString(new byte[]{0xA, 0x4B})))
+          .build();
+    };
+    relFn(relFn)
+        .assertThatJson(isLinux(BINARY_LITERAL));
+  }
+
   /**
    * Unit test for {@link org.apache.calcite.rel.externalize.RelJsonWriter} on
    * a simple tree of relational expressions, consisting of a table, a filter
@@ -660,6 +706,28 @@ class RelWriterTest {
         isLinux("LogicalAggregate(group=[{0}], c=[COUNT(DISTINCT $1)], d=[COUNT()])\n"
             + "  LogicalFilter(condition=[=($1, 10)])\n"
             + "    LogicalTableScan(table=[[hr, emps]])\n"));
+  }
+
+  @Test void testReader1() {
+    String s =
+        Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
+          SchemaPlus schema =
+              rootSchema.add("hr",
+                  new ReflectiveSchema(new HrSchema()));
+          final RelJsonReader reader =
+              new RelJsonReader(cluster, relOptSchema, schema);
+          RelNode node;
+          try {
+            node = reader.read(BINARY_LITERAL);
+          } catch (IOException e) {
+            throw TestUtil.rethrow(e);
+          }
+          return RelOptUtil.dumpPlan("", node, SqlExplainFormat.TEXT,
+              SqlExplainLevel.EXPPLAN_ATTRIBUTES);
+        });
+
+    assertThat(s,
+        isLinux("LogicalValues(tuples=[[{ X'0a4b' }]])\n"));
   }
 
   /**
