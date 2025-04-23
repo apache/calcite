@@ -8679,7 +8679,10 @@ class RelToSqlConverterTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6835">[CALCITE-6835]
    * Invalid unparse for IS TRUE,IS FALSE,IS NOT TRUE and IS NOT FALSE
-   * in StarRocksDialect</a>. */
+   * in StarRocksDialect</a>,
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6979">[CALCITE-6979]
+   * Invalid unparse for IS TRUE,IS FALSE,IS NOT TRUE and IS NOT FALSE
+   * in ClickHouseDialect</a>.*/
   @Test void testIsTrue() {
     final String sql = "SELECT * FROM \"EMP\" WHERE \"COMM\" > 0 IS TRUE";
     final String expected = "SELECT *\n"
@@ -8688,16 +8691,22 @@ class RelToSqlConverterTest {
     String expectedStarRocks = "SELECT *\n"
         + "FROM `SCOTT`.`EMP`\n"
         + "WHERE CAST(`COMM` AS DECIMAL(12, 2)) > 0.00 IS NOT NULL AND CAST(`COMM` AS DECIMAL(12, 2)) > 0.00";
+    String expectedClickHouse = "SELECT *\n"
+        + "FROM `SCOTT`.`EMP`\n"
+        + "WHERE CAST(`COMM` AS DECIMAL(12, 2)) > 0.00 IS NOT NULL AND CAST(`COMM` AS DECIMAL(12, 2)) > 0.00";
     sql(sql)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .ok(expected)
-        .withStarRocks().ok(expectedStarRocks);
+        .withStarRocks().ok(expectedStarRocks)
+        .withClickHouse().ok(expectedClickHouse);
 
     final String sqlNoDeterministic =
         "SELECT * FROM \"EMP\" WHERE \"COMM\" > RAND_INTEGER(10) IS TRUE";
     sql(sqlNoDeterministic)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .withStarRocks()
+        .throws_("Unsupported unparse: IS TRUE")
+        .withClickHouse()
         .throws_("Unsupported unparse: IS TRUE");
   }
 
@@ -8709,16 +8718,22 @@ class RelToSqlConverterTest {
     String expectedStarRocks = "SELECT *\n"
         + "FROM `SCOTT`.`EMP`\n"
         + "WHERE CAST(`COMM` AS DECIMAL(12, 2)) > 0.00 IS NULL OR NOT CAST(`COMM` AS DECIMAL(12, 2)) > 0.00";
+    String expectedClickHouse = "SELECT *\n"
+        + "FROM `SCOTT`.`EMP`\n"
+        + "WHERE CAST(`COMM` AS DECIMAL(12, 2)) > 0.00 IS NULL OR NOT CAST(`COMM` AS DECIMAL(12, 2)) > 0.00";
     sql(sql)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .ok(expected)
-        .withStarRocks().ok(expectedStarRocks);
+        .withStarRocks().ok(expectedStarRocks)
+        .withClickHouse().ok(expectedClickHouse);
 
     final String sqlNoDeterministic = "SELECT * \n"
         + "FROM \"EMP\" WHERE \"COMM\" > RAND_INTEGER(10) IS NOT TRUE";
     sql(sqlNoDeterministic)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .withStarRocks()
+        .throws_("Unsupported unparse: IS NOT TRUE")
+        .withClickHouse()
         .throws_("Unsupported unparse: IS NOT TRUE");
   }
 
@@ -8730,16 +8745,22 @@ class RelToSqlConverterTest {
     String expectedStarRocks = "SELECT *\n"
         + "FROM `SCOTT`.`EMP`\n"
         + "WHERE CAST(`COMM` AS DECIMAL(12, 2)) > 0.00 IS NOT NULL AND NOT CAST(`COMM` AS DECIMAL(12, 2)) > 0.00";
+    String expectedClickHouse = "SELECT *\n"
+        + "FROM `SCOTT`.`EMP`\n"
+        + "WHERE CAST(`COMM` AS DECIMAL(12, 2)) > 0.00 IS NOT NULL AND NOT CAST(`COMM` AS DECIMAL(12, 2)) > 0.00";
     sql(sql)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .ok(expected)
-        .withStarRocks().ok(expectedStarRocks);
+        .withStarRocks().ok(expectedStarRocks)
+        .withClickHouse().ok(expectedClickHouse);
 
     final String sqlNoDeterministic = "SELECT * \n"
         + "FROM \"EMP\" WHERE \"COMM\" > RAND_INTEGER(10) IS FALSE";
     sql(sqlNoDeterministic)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .withStarRocks()
+        .throws_("Unsupported unparse: IS FALSE")
+        .withClickHouse()
         .throws_("Unsupported unparse: IS FALSE");
   }
 
@@ -8751,16 +8772,22 @@ class RelToSqlConverterTest {
     String expectedStarRocks = "SELECT *\n"
         + "FROM `SCOTT`.`EMP`\n"
         + "WHERE CAST(`COMM` AS DECIMAL(12, 2)) > 0.00 IS NULL OR CAST(`COMM` AS DECIMAL(12, 2)) > 0.00";
+    String expectedClickHouse = "SELECT *\n"
+        + "FROM `SCOTT`.`EMP`\n"
+        + "WHERE CAST(`COMM` AS DECIMAL(12, 2)) > 0.00 IS NULL OR CAST(`COMM` AS DECIMAL(12, 2)) > 0.00";
     sql(sql)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .ok(expected)
-        .withStarRocks().ok(expectedStarRocks);
+        .withStarRocks().ok(expectedStarRocks)
+        .withClickHouse().ok(expectedClickHouse);
 
     final String sqlNoDeterministic = "SELECT * \n"
         + "FROM \"EMP\" WHERE \"COMM\" > RAND_INTEGER(10) IS NOT FALSE";
     sql(sqlNoDeterministic)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .withStarRocks()
+        .throws_("Unsupported unparse: IS NOT FALSE")
+        .withClickHouse()
         .throws_("Unsupported unparse: IS NOT FALSE");
   }
 
