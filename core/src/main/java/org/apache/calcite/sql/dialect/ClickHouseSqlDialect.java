@@ -21,6 +21,7 @@ import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlAbstractDateTimeLiteral;
 import org.apache.calcite.sql.SqlBasicTypeNameSpec;
 import org.apache.calcite.sql.SqlCall;
@@ -110,6 +111,10 @@ public class ClickHouseSqlDialect extends SqlDialect {
 
   @Override public CalendarPolicy getCalendarPolicy() {
     return CalendarPolicy.SHIFT;
+  }
+
+  @Override public RexNode prepareUnparse(RexNode arg) {
+    return RelToSqlConverterUtil.unparseIsTrueOrFalse(arg);
   }
 
   @Override public @Nullable SqlNode getCastSpec(RelDataType type) {
