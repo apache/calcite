@@ -11573,6 +11573,14 @@ public class SqlOperatorTest {
     f.checkNull("substring('abc' FROM 2 FOR cast(null as integer))");
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6976">[CALCITE-6976]
+   * Assertion failure while typechecking SUBSTR(TIMESTAMP, ...)</a>. */
+  @Test void testSubstrTimestamp() {
+    final SqlOperatorFixture f = fixture()
+        .withLibrary(SqlLibrary.BIG_QUERY);
+    f.checkScalar("SUBSTR(TIMESTAMP '2020-01-01 10:00:00', 10)", "1 10:00:00", "VARCHAR NOT NULL");
+  }
+
   /** Tests the non-standard SUBSTR function, that has syntax
    * "SUBSTR(value, start [, length ])", as used in BigQuery. */
   @Test void testBigQuerySubstrFunction() {
