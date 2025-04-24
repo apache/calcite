@@ -25,6 +25,9 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.SchemaVersion;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.lookup.CompatibilityLookup;
+import org.apache.calcite.schema.lookup.Lookup;
+import org.apache.calcite.util.LazyReference;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
@@ -56,7 +59,18 @@ import static java.util.Objects.requireNonNull;
  * </ul>
  */
 public class AbstractSchema implements Schema {
-  public AbstractSchema() {
+
+  private LazyReference<Lookup<Table>> tables = new LazyReference<>();
+  private LazyReference<Lookup<Schema>> subSchemas = new LazyReference<>();
+
+  @Override public Lookup<Table> tables() {
+    return tables.getOrCompute(
+        () -> new CompatibilityLookup<>(this::getTable, this::getTableNames));
+  }
+
+  @Override public Lookup<? extends Schema> subSchemas() {
+    return subSchemas.getOrCompute(
+        () -> new CompatibilityLookup<>(this::getSubSchema, this::getSubSchemaNames));
   }
 
   @Override public boolean isMutable() {
@@ -86,12 +100,12 @@ public class AbstractSchema implements Schema {
     return ImmutableMap.of();
   }
 
-  @Override public final Set<String> getTableNames() {
+  @Deprecated @Override public final Set<String> getTableNames() {
     //noinspection RedundantCast
     return (Set<String>) getTableMap().keySet();
   }
 
-  @Override public final @Nullable Table getTable(String name) {
+  @Deprecated @Override public final @Nullable Table getTable(String name) {
     return getTableMap().get(name);
   }
 
@@ -157,12 +171,12 @@ public class AbstractSchema implements Schema {
     return ImmutableMap.of();
   }
 
-  @Override public final Set<String> getSubSchemaNames() {
+  @Deprecated @Override public final Set<String> getSubSchemaNames() {
     //noinspection RedundantCast
     return (Set<String>) getSubSchemaMap().keySet();
   }
 
-  @Override public final @Nullable Schema getSubSchema(String name) {
+  @Deprecated @Override public final @Nullable Schema getSubSchema(String name) {
     return getSubSchemaMap().get(name);
   }
 

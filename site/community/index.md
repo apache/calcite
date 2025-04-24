@@ -87,6 +87,29 @@ Want to learn more about Calcite?
 Watch some presentations and read through some slide decks about
 Calcite, or attend one of the [upcoming talks](#upcoming-talks).
 
+## Federated Query Planning w/ Calcite & Substrait
+
+At [Calcite Hybrid Meetup](https://www.meetup.com/apache-calcite/events/305627349), February 2025;
+[[video](https://www.youtube.com/watch?v=PHm5vZ1A43I&t=231s)].
+
+## Streaming, Incremental, Finite-Memory Computations in SQL Over Unbounded Streams
+
+At [Calcite Hybrid Meetup](https://www.meetup.com/apache-calcite/events/305627349), February 2025;
+[[video](https://www.youtube.com/watch?v=PHm5vZ1A43I&t=2212s)].
+
+## Revolutionizing Data Lakes: A Dive into Coral, the SQL Translation, Analysis, and Rewrite Engine
+
+At [Calcite Hybrid Meetup](https://www.meetup.com/apache-calcite/events/305627349), February 2025;
+[[video](https://www.youtube.com/watch?v=PHm5vZ1A43I&t=4226s)].
+
+## Optimizing Common Table Expressions in Apache Hive with Calcite
+
+At [Calcite Hybrid Meetup](https://www.meetup.com/apache-calcite/events/305627349), February 2025;
+[[sumary](https://github.com/zabetak/slides/blob/master/2025/calcite-meetup-feb/optimizing-common-table-expressions-in-apache-hive-with-calcite.md)],
+[[slides](https://www.slideshare.net/slideshow/optimizing-common-table-expressions-in-apache-hive-with-calcite/276219213)],
+[[pdf](https://github.com/zabetak/slides/blob/master/2025/calcite-meetup-feb/optimizing-common-table-expressions-in-apache-hive-with-calcite.pdf)],
+[[video](https://www.youtube.com/watch?v=PHm5vZ1A43I&t=6317s)].
+
 ## Adding measures to Calcite SQL
 
 At [Calcite Virtual Meetup](https://www.meetup.com/apache-calcite/events/291489488/), March 2023;

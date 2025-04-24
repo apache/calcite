@@ -26,14 +26,17 @@ import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.TimeFrameSet;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.SqlBasicFunction;
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
@@ -1466,7 +1469,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("cast(ARRAY[1,2,3] AS VARIANT ARRAY)")
         .columnType("VARIANT NOT NULL ARRAY NOT NULL");
     expr("cast(MAP['a','b','c','d'] AS MAP<VARCHAR, VARIANT>)")
-        .columnType("(VARCHAR NOT NULL, VARIANT NOT NULL) MAP NOT NULL");
+        .columnType("(VARCHAR NOT NULL, VARIANT) MAP NOT NULL");
   }
 
   @Test void testAccessVariant() {
@@ -2026,6 +2029,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("RecordType(INTEGER EXPR$0, VARCHAR(20) NOT NULL EXPR$1) NOT NULL");
     sql("select ROW^(x'12') <> ROW(0.01)^")
         .fails("Cannot apply '<>' to arguments of type.*");
+    // Test cases for [CALCITE-6911] https://issues.apache.org/jira/browse/CALCITE-6911
+    // SqlItemOperator.inferReturnType throws AssertionError for out of bounds accesses
+    sql("select ^x[2]^ from (select ROW(1) as x)")
+        .fails("ROW type does not have a field with index 2; legal range is 1 to 1");
+    sql("select ^x[0]^ from (select ROW(1) as x)")
+        .fails("ROW type does not have a field with index 0; legal range is 1 to 1");
+    sql("select ^T.x['g']^ from (SELECT CAST(ROW(1) AS ROW(f INT)) AS x) AS T")
+        .fails("ROW type does not have a field named 'g': RecordType\\(INTEGER F\\)");
+    sql("select T.x['f'] from (SELECT CAST(ROW(1) AS ROW(f INT)) AS x) AS T")
+        .columnType("INTEGER NOT NULL");
   }
 
   @Test void testRowWithValidDot() {
@@ -7964,6 +7977,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select cast(a as ^MyUDT^ array multiset) from COMPLEXTYPES.CTC_T1")
         .withExtendedCatalog()
         .fails("Unknown identifier 'MYUDT'");
+    // Test case for [CALCITE-6920]
+    // https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-6920
+    // The type derived for a cast to INT ARRAY always has non-nullable elements
+    expr("cast(CAST (ARRAY[1,null] AS VARIANT) AS INT ARRAY)")
+        .columnType("INTEGER ARRAY");
   }
 
   /**
@@ -7974,16 +7992,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test void testCastMapType() {
     sql("select cast(\"int2IntMapType\" as map<int,int>) from COMPLEXTYPES.CTC_T1")
         .withExtendedCatalog()
-        .columnType("(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
+        .columnType("(INTEGER NOT NULL, INTEGER) MAP NOT NULL");
     sql("select cast(\"int2varcharArrayMapType\" as map<int,varchar array>) "
         + "from COMPLEXTYPES.CTC_T1")
         .withExtendedCatalog()
-        .columnType("(INTEGER NOT NULL, VARCHAR NOT NULL ARRAY NOT NULL) MAP NOT NULL");
+        .columnType("(INTEGER NOT NULL, VARCHAR ARRAY) MAP NOT NULL");
     sql("select cast(\"varcharMultiset2IntIntMapType\" as map<varchar(5) multiset, map<int, int>>)"
         + " from COMPLEXTYPES.CTC_T1")
         .withExtendedCatalog()
-        .columnType("(VARCHAR(5) NOT NULL MULTISET NOT NULL, "
-            + "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL) MAP NOT NULL");
+        .columnType("(VARCHAR(5) MULTISET NOT NULL, "
+            + "(INTEGER NOT NULL, INTEGER) MAP) MAP NOT NULL");
   }
 
   @Test void testCastAsRowType() {
@@ -11043,13 +11061,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "DESCRIPTOR\\(timecol\\), datetime interval\\[, datetime interval\\]\\)");
     sql("select rowtime, productid, orderid, 'window_start', 'window_end'\n"
         + "from table(\n"
-        + "tumble(\n"
-        + "^\"data\"^ => table orders,\n"
-        + "TIMECOL => descriptor(rowtime),\n"
-        + "SIZE => interval '2' hour))")
-        .fails("Param 'data' not found in function 'TUMBLE'; did you mean 'DATA'\\?");
-    sql("select rowtime, productid, orderid, 'window_start', 'window_end'\n"
-        + "from table(\n"
         + "^tumble(\n"
         + "data => table orders,\n"
         + "SIZE => interval '2' hour)^)")
@@ -11081,6 +11092,20 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select * from table(\n"
         + "tumble(TABLE ^tabler_not_exist^, descriptor(rowtime), interval '2' hour))")
         .fails("Object 'TABLER_NOT_EXIST' not found");
+    // Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6936">[CALCITE-6936]
+    // Table function parameter matching should always be case-insensitive</a>.
+    // We cannot use table "orders", since lookup fails with unquotedCasing.TO_LOWER,
+    // so we make up a new table o.
+    sql("with o as "
+        + "(select TIMESTAMP '2020-01-01 00:00:00' as rowtime, 2 as productid, 3 as orderid)"
+        + "select rowtime, productid, orderid, 'window_start', 'window_end'\n"
+        + "from table(\n"
+        + "tumble(\n"
+        + "data => table o,\n"
+        + "timecol => descriptor(rowtime),\n"
+        + "size => interval '2' hour))")
+        .withUnquotedCasing(Casing.TO_LOWER)
+        .ok();
   }
 
   @Test void testHopTableFunction() {
@@ -11124,13 +11149,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "<INTERVAL HOUR>, <INTERVAL HOUR>\\)'\\. Supported form\\(s\\): "
             + "HOP\\(TABLE table_name, DESCRIPTOR\\(timecol\\), "
             + "datetime interval, datetime interval\\[, datetime interval\\]\\)");
-    sql("select * from table(\n"
-        + "hop(\n"
-        + "^\"data\"^ => table orders,\n"
-        + "timecol => descriptor(rowtime),\n"
-        + "slide => interval '2' hour,\n"
-        + "size => interval '1' hour))")
-        .fails("Param 'data' not found in function 'HOP'; did you mean 'DATA'\\?");
     sql("select * from table(\n"
         + "^hop(\n"
         + "data => table orders,\n"
@@ -11200,13 +11218,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "0\\) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID\\)>, <COLUMN_LIST>, "
             + "<INTERVAL HOUR>\\)'. Supported form\\(s\\): SESSION\\(TABLE table_name, DESCRIPTOR\\("
             + "timecol\\), DESCRIPTOR\\(key\\) optional, datetime interval\\)");
-    sql("select * from table(\n"
-        + "session(\n"
-        + "^\"data\"^ => table orders,\n"
-        + "timecol => descriptor(rowtime),\n"
-        + "key => descriptor(productid),\n"
-        + "size => interval '1' hour))")
-        .fails("Param 'data' not found in function 'SESSION'; did you mean 'DATA'\\?");
     sql("select * from table(\n"
         + "^session(table orders, descriptor(rowtime), descriptor(productid), 'test')^)")
         .fails("Cannot apply 'SESSION' to arguments of type 'SESSION\\(<RECORDTYPE\\(TIMESTAMP\\("
@@ -12481,6 +12492,27 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
       // the error does not contain the original query (using a Reader)
       assertThat(error.getOriginalStatement(), nullValue());
     }
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6913">
+   * [CALCITE-6913] Some casts inserted by type coercion do not have
+   * source position information</a>. */
+  @Test void testImplicitCastPosition() throws SqlParseException {
+    final String sql = "select -'2'";
+    final SqlParser.Config config = SqlParser.config();
+    final SqlParser sqlParserReader = SqlParser.create(sql, config);
+    final SqlNode node = sqlParserReader.parseQuery();
+    final SqlValidator validator = fixture().factory.createValidator();
+    final SqlNode x = validator.validate(node);
+    assertThat(x instanceof SqlSelect, is(true));
+    // After coercion the statement is SELECT -(CAST '2' AS DECIMAL(...))
+    SqlSelect select = (SqlSelect) x;
+    SqlNodeList selectList = select.getSelectList();
+    assertThat(selectList.isEmpty(), is(false));
+    SqlNode neg = selectList.get(0);
+    assertThat(neg instanceof SqlCall, is(true));
+    SqlNode cast = ((SqlCall) neg).getOperandList().get(0);
+    assertThat(cast.getParserPosition().getLineNum(), is(1));
   }
 
   @Test void testValidateParameterizedExpression() throws SqlParseException {

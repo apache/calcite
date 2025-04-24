@@ -98,6 +98,11 @@
   githubId: ebegoli
   org: Oak Ridge National Laboratory
   role: Committer
+- name: Fanyuan Qiu
+  apacheId: suibianwanwan
+  githubId: suibianwanwank
+  org:
+  role: Committer
 - name: Feng Zhu
   apacheId: fengzhu
   githubId: DonnyZone
@@ -373,7 +378,7 @@
   githubId: NobiGo
   pronouns: he/him
   org: Hikvision
-  role: Committer
+  role: PMC
 - name: Yong Liu
   apacheId: jackylau
   githubId: liuyongvs

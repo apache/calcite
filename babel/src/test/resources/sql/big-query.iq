@@ -1458,6 +1458,16 @@ SELECT REGEXP_REPLACE("1=00--20=0", "(-)", "#");
 
 !ok
 
+SELECT REGEXP_REPLACE("# Heading", "^# ([a-zA-Z0-9\\s]+$)", "<h1>\\1</h1>");
++------------------+
+| EXPR$0           |
++------------------+
+| <h1>Heading</h1> |
++------------------+
+(1 row)
+
+!ok
+
 #####################################################################
 # REGEXP_SUBSTR(value, regexp[, position[, occurrence]])
 #

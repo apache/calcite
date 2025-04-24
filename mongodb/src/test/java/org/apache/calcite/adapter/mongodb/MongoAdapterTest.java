@@ -217,6 +217,27 @@ public class MongoAdapterTest implements SchemaFactory {
                 "{$project: {STATE: '$state', ID: '$_id'}}"));
   }
 
+  @Test void testJoin() {
+    assertModel(MODEL)
+        .query("select b.state, a.id from zips as a join zips as b on a.id=b.id where a.id='02401' "
+            + "fetch next 3 rows only")
+        .returnsOrdered("STATE=MA; ID=02401")
+        .queryContains(
+            mongoChecker("{$match: {_id: \"02401\"}}",
+                "{$project: {ID: '$_id'}}",
+                "{$sort: {ID: 1}}"));
+
+    assertModel(MODEL)
+        .query("select b.state, a.id from zips as a join zips as b on a.id=b.id "
+            + "fetch next 3 rows only")
+        .returnsOrdered("STATE=MA; ID=01701",
+            "STATE=MA; ID=02154",
+            "STATE=MA; ID=02401")
+        .queryContains(
+            mongoChecker("{$project: {ID: '$_id'}}",
+                "{$sort: {ID: 1}}"));
+  }
+
   @Disabled
   @Test void testFilterSort() {
     // LONGITUDE and LATITUDE are null because of CALCITE-194.
@@ -837,5 +858,65 @@ public class MongoAdapterTest implements SchemaFactory {
             + "order by \"AVG(pop)\"")
         .limit(2)
         .returns("STATE=VT; AVG(pop)=26408\nSTATE=AK; AVG(pop)=26856\n");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2109">[CALCITE-2109]
+   * Mongo adapter: unable to translate (A AND B) conditional case</a>. */
+  @Test void testTranslateAndInCondition() {
+    assertModel(MODEL)
+        .query("select state, city from zips "
+            + "where city='LEWISTON' and state in ('ME', 'VT') "
+            + "order by state")
+        .queryContains(
+            mongoChecker(
+            "{$match: {$and: [{$or: [{state: \"ME\"}, {state: \"VT\"}]}, {city: \"LEWISTON\"}]}}",
+            "{$project: {STATE: '$state', CITY: '$city'}}",
+            "{$sort: {STATE: 1}}"))
+        .returns("STATE=ME; CITY=LEWISTON\n");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2109">[CALCITE-2109]
+   * Mongo adapter: unable to translate (A AND B) conditional case</a>. */
+  @Test void testTranslateOrAndCondition() {
+    assertModel(MODEL)
+        .query("select state, city from zips "
+            + "where (state = 'MI' or state = 'VT') and city='TAYLOR' "
+            + "order by state")
+        .queryContains(
+            mongoChecker(
+                "{$match: {$and: [{$or: [{state: \"MI\"}, {state: \"VT\"}]}, {city: \"TAYLOR\"}]}}",
+                "{$project: {STATE: '$state', CITY: '$city'}}",
+                "{$sort: {STATE: 1}}"))
+        .returns("STATE=MI; CITY=TAYLOR\n");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2109">[CALCITE-2109]
+   * Mongo adapter: unable to translate (A AND B) conditional case</a>. */
+  @Test void testAndAlwaysFalseCondition() {
+    assertModel(MODEL)
+        .query("select state, city from zips "
+            + "where city='LEWISTON' and 1=0 "
+            + "order by state")
+        .explainContains("PLAN=EnumerableValues(tuples=[[]])")
+        .returns("");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2109">[CALCITE-2109]
+   * Mongo adapter: unable to translate (A AND B) conditional case</a>. */
+  @Test void testCNFCondition() {
+    assertModel(MODEL)
+        .query("select state, city from zips "
+            + "where (state='ME' OR state='VT') AND (city='LEWISTON' OR city='BRATTLEBORO') "
+            + "order by state")
+        .queryContains(
+            mongoChecker(
+                "{$match: {$and: [{$or: [{state: \"ME\"}, {state: \"VT\"}]}, {$or: [{city: \"BRATTLEBORO\"}, {city: \"LEWISTON\"}]}]}}",
+                "{$project: {STATE: '$state', CITY: '$city'}}",
+                "{$sort: {STATE: 1}}"))
+        .returns("STATE=ME; CITY=LEWISTON\nSTATE=VT; CITY=BRATTLEBORO\n");
   }
 }

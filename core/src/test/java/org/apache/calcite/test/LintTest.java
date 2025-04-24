@@ -28,6 +28,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
@@ -41,9 +43,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.Locale;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
@@ -55,20 +58,24 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import static java.lang.Integer.parseInt;
+import static java.util.regex.Pattern.compile;
 
 /** Various automated checks on the code and git history. */
 class LintTest {
   /** Pattern that matches "[CALCITE-12]" or "[CALCITE-1234]" followed by a
    * space. */
   private static final Pattern CALCITE_PATTERN =
-      Pattern.compile("^(\\[CALCITE-[0-9]{1,4}][ ]).*");
+      compile("^(\\[CALCITE-[0-9]{1,4}][ ]).*");
   private static final Path ROOT_PATH = Paths.get(System.getProperty("gradle.rootDir"));
 
-  private static final Map<String, String> TERMINOLOGY_MAP = new HashMap<>();
+  private static final String TERMINOLOGY_ERROR_MSG =
+      "Message contains '%s' word; use one of the following instead: %s";
+  private static final List<TermRule> TERM_RULES = initTerminologyRules();
 
   @SuppressWarnings("Convert2MethodRef") // JDK 8 requires lambdas
   private Puffin.Program<GlobalState> makeProgram() {
@@ -363,19 +370,45 @@ class LintTest {
         empty());
   }
 
-  static {
-    TERMINOLOGY_MAP.put("mysql", "MySQL");
-    TERMINOLOGY_MAP.put("mssql", "MSSQL");
-    TERMINOLOGY_MAP.put("Mysql", "MySQL");
-    TERMINOLOGY_MAP.put("postgresql", "PostgreSQL");
-    TERMINOLOGY_MAP.put("hive", "Hive");
-    TERMINOLOGY_MAP.put("spark", "Spark");
-    TERMINOLOGY_MAP.put("arrow", "Arrow");
-    TERMINOLOGY_MAP.put("presto", "Presto");
-    TERMINOLOGY_MAP.put("oracle", "Oracle");
-    TERMINOLOGY_MAP.put("bigquery", "BigQuery");
-    TERMINOLOGY_MAP.put("redshift", "Redshift");
-    TERMINOLOGY_MAP.put("snowflake", "Snowflake");
+  private static List<TermRule> initTerminologyRules() {
+    ImmutableList.Builder<TermRule> rules = ImmutableList.builder();
+    rules.add(new TermRule("\\bmysql\\b", "MySQL"));
+    rules.add(new TermRule("\\bmssql\\b", "MSSQL"));
+    rules.add(new TermRule("\\bpostgresql\\b", "PostgreSQL"));
+    rules.add(new TermRule("\\bhive\\b", "Hive"));
+    rules.add(new TermRule("\\bspark\\b", "Spark"));
+    rules.add(new TermRule("\\barrow\\b", "Arrow"));
+    rules.add(new TermRule("\\bpresto\\b", "Presto"));
+    rules.add(new TermRule("\\boracle\\b", "Oracle"));
+    rules.add(new TermRule("\\bbigquery\\b", "BigQuery"));
+    rules.add(new TermRule("\\bredshift\\b", "Redshift"));
+    rules.add(new TermRule("\\bsnowflake\\b", "Snowflake"));
+    return rules.build();
+  }
+
+  /**
+   * A rule for defining valid patterns for terms.
+   */
+  private static final class TermRule {
+    private final Pattern termPattern;
+    private final Set<String> validTerms;
+
+    TermRule(String regex, String... validTerms) {
+      this.termPattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
+      this.validTerms = ImmutableSet.copyOf(validTerms);
+    }
+
+    /**
+     * Checks whether the input satisfies the rule.
+     * Returns an error message if the check fails and empty string if the input is valid.
+     */
+    String check(String input) {
+      final Matcher m = termPattern.matcher(input);
+      if (m.find() && !validTerms.contains(m.group(0))) {
+        return String.format(Locale.ROOT, TERMINOLOGY_ERROR_MSG, m.group(0), validTerms);
+      }
+      return "";
+    }
   }
 
   private static void checkMessage(String subject, String body,
@@ -417,12 +450,49 @@ class LintTest {
     }
 
     // Check for keywords that should be capitalized
-    for (Map.Entry<String, String> entry : TERMINOLOGY_MAP.entrySet()) {
-      String keyword = entry.getKey();
-      String correctCapitalization = entry.getValue();
-      if (subject2.matches(".*\\b" + keyword + "\\b.*")) {
-        consumer.accept("Message must be capitalized as '" + correctCapitalization + "'");
+    for (TermRule tRule : TERM_RULES) {
+      String error = tRule.check(subject2);
+      if (!error.isEmpty()) {
+        consumer.accept(error);
       }
+    }
+  }
+
+  @Test void testCheckMessageWithInvalidDBMSTerms() {
+    Set<String> invalidTerms = new HashSet<>();
+    invalidTerms.add("mysql");
+    invalidTerms.add("Mysql");
+    invalidTerms.add("MYSQL");
+    invalidTerms.add("postgresql");
+    invalidTerms.add("POSTGRESQL");
+    invalidTerms.add("Mssql");
+    invalidTerms.add("RedShift");
+    invalidTerms.add("SnowFlake");
+    invalidTerms.add("hiVe");
+    invalidTerms.add("HiVe");
+    for (String iTerm : invalidTerms) {
+      String msg = "Add support for " + iTerm + " dialect";
+      List<String> errors = new ArrayList<>();
+      checkMessage(msg, "", errors::add);
+      assertThat("Failed to find error in:" + msg, errors, hasSize(1));
+      assertThat(errors.get(0),
+          startsWith(String.format(Locale.ROOT, TERMINOLOGY_ERROR_MSG, iTerm, "")));
+    }
+  }
+
+  @Test void testCheckMessageWithValidDBMSTerms() {
+    Set<String> validTerms = new HashSet<>();
+    validTerms.add("MySQL");
+    validTerms.add("PostgreSQL");
+    validTerms.add("MSSQL");
+    validTerms.add("Redshift");
+    validTerms.add("Snowflake");
+    validTerms.add("Hive");
+    for (String vTerm : validTerms) {
+      String msg = "Add support for " + vTerm + " dialect";
+      List<String> errors = new ArrayList<>();
+      checkMessage(msg, "", errors::add);
+      assertThat(errors, empty());
     }
   }
 

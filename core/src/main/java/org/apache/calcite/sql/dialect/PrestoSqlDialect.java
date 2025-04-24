@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
@@ -55,11 +56,40 @@ import static com.google.common.base.Preconditions.checkArgument;
  * A <code>SqlDialect</code> implementation for the Presto database.
  */
 public class PrestoSqlDialect extends SqlDialect {
+  public static final RelDataTypeSystem TYPE_SYSTEM =
+      new RelDataTypeSystemImpl() {
+
+        // We can refer to document of Presto 0.29:
+        // https://prestodb.io/docs/current/language/types.html#fixed-precision
+        @Override public int getMaxPrecision(SqlTypeName typeName) {
+          switch (typeName) {
+          case DECIMAL:
+            return 38;
+          default:
+            return super.getMaxPrecision(typeName);
+          }
+        }
+
+        @Override public int getMaxScale(SqlTypeName typeName) {
+          switch (typeName) {
+          case DECIMAL:
+            return 38;
+          default:
+            return super.getMaxScale(typeName);
+          }
+        }
+
+        @Override public int getMaxNumericScale() {
+          return getMaxScale(SqlTypeName.DECIMAL);
+        }
+      };
+
   public static final Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
       .withDatabaseProduct(DatabaseProduct.PRESTO)
       .withIdentifierQuoteString("\"")
       .withUnquotedCasing(Casing.UNCHANGED)
-      .withNullCollation(NullCollation.LAST);
+      .withNullCollation(NullCollation.LAST)
+      .withDataTypeSystem(TYPE_SYSTEM);
 
   public static final SqlDialect DEFAULT = new PrestoSqlDialect(DEFAULT_CONTEXT);
 
@@ -196,7 +226,7 @@ public class PrestoSqlDialect extends SqlDialect {
   /**
    * change map open/close symbol from default [] to ().
    */
-  private static void unparseMapValue(SqlWriter writer, SqlCall call,
+  public static void unparseMapValue(SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec) {
     call = convertMapValueCall(call);
     writer.keyword(call.getOperator().getName());
@@ -213,7 +243,7 @@ public class PrestoSqlDialect extends SqlDialect {
    * from {@code MAP['k1', 'v1', 'k2', 'v2']}
    * to {@code MAP[ARRAY['k1', 'k2'], ARRAY['v1', 'v2']]}.
    */
-  private static SqlCall convertMapValueCall(SqlCall call) {
+  public static SqlCall convertMapValueCall(SqlCall call) {
     boolean unnestMap = call.operandCount() > 0
         && call.getOperandList().stream().allMatch(operand -> operand instanceof SqlLiteral);
     if (!unnestMap) {

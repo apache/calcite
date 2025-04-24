@@ -597,6 +597,9 @@ class SqlFunctionsTest {
         is("X X GHI"));
     assertThat(f.regexpReplacePg("ABC def GHI", "[a-z]+", "X", "i"),
         is("X def GHI"));
+    assertThat(f.regexpReplacePg("", "[a-z]+", "X", "i"), is(""));
+    assertThat(f.regexpReplace("", "[a-z]+", "X", 1, 1, "i"), is(""));
+
 
     try {
       f.regexpReplace("abc def ghi", "[a-z]+", "X", 0);
@@ -613,6 +616,13 @@ class SqlFunctionsTest {
       assertThat(e.getMessage(),
           is("Invalid input for REGEXP_REPLACE: 'WWW'"));
     }
+
+    assertThat(f.regexpReplacePg("abc", "a(.*)c", "x\\1x", "i"),
+        is("xbx"));
+    assertThat(f.regexpReplace("abc", "a(.*)c", "x$1x"),
+        is("xbx"));
+    assertThat(f.regexpReplace("abc", "a(.*)c", "x\\1x"),
+        is("x1x"));
   }
 
   @Test void testReplaceNonDollarIndexedString() {

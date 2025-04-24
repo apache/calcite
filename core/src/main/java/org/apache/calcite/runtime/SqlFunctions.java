@@ -737,7 +737,7 @@ public class SqlFunctions {
     /** SQL {@code REGEXP_REPLACE} function with 6 arguments. */
     public String regexpReplace(String s, String regex, String replacement,
         int pos, int occurrence, @Nullable String matchType) {
-      if (pos < 1 || pos > s.length()) {
+      if (pos < 1 || pos > s.length() + 1) {
         throw RESOURCE.invalidInputForRegexpReplace(Integer.toString(pos)).ex();
       }
 
@@ -749,20 +749,25 @@ public class SqlFunctions {
 
     /** SQL {@code REGEXP_REPLACE} function for PostgreSQL with 3 arguments. */
     public String regexpReplacePg(String s, String regex, String replacement) {
-      return regexpReplace(s, regex, replacement, 1, 1, null);
+      return regexpReplaceNonDollarIndexed(s, regex, replacement, 1, 1, null);
     }
 
     /** SQL {@code REGEXP_REPLACE} function for PostgreSQL with 4 arguments. */
     public String regexpReplacePg(String s, String regex, String replacement, String matchType) {
       // Translate g flag to occurrence
       final int occurrence = matchType.contains("g") ? 0 : 1;
-      return regexpReplace(s, regex, replacement, 1, occurrence, matchType);
+      return regexpReplaceNonDollarIndexed(s, regex, replacement, 1, occurrence, matchType);
     }
 
     /** SQL {@code REGEXP_REPLACE} function with 3 arguments with
      * {@code \\} based indexing for capturing groups. */
     public String regexpReplaceNonDollarIndexed(String s, String regex,
         String replacement) {
+      return regexpReplaceNonDollarIndexed(s, regex, replacement, 1, 0, null);
+    }
+
+    private String regexpReplaceNonDollarIndexed(String s, String regex,
+        String replacement, int pos, int occurrence, @Nullable String matchType) {
       // Modify double-backslash capturing group indices in replacement argument,
       // retrieved from cache when available.
       String indexedReplacement;
@@ -776,8 +781,9 @@ public class SqlFunctions {
       }
 
       // Call generic regexp replace method with modified replacement pattern
-      return regexpReplace(s, regex, indexedReplacement, 1, 0, null);
+      return regexpReplace(s, regex, indexedReplacement, pos, occurrence, matchType);
     }
+
 
     private static int makeRegexpFlags(String stringFlags) {
       int flags = 0;

@@ -833,4 +833,25 @@ JOIN (VALUES (3, 7), (6, 14), (9, 21), (12, 28), (9, 35)) AS t3(b, d) USING (b);
 
 !ok
 
+SELECT t1.a
+FROM (VALUES (1), (2)) AS t1(a)
+JOIN (VALUES (1), (null)) AS t2(a)
+ON t1.a IS DISTINCT FROM t2.a;
++---+
+| A |
++---+
+| 1 |
+| 2 |
+| 2 |
++---+
+(3 rows)
+
+!ok
+
+EnumerableCalc(expr#0..1=[{inputs}], A=[$t0])
+  EnumerableNestedLoopJoin(condition=[IS NOT TRUE(=($0, $1))], joinType=[inner])
+    EnumerableValues(tuples=[[{ 1 }, { 2 }]])
+    EnumerableValues(tuples=[[{ 1 }, { null }]])
+!plan
+
 # End join.iq

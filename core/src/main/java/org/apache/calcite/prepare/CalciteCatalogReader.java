@@ -33,6 +33,7 @@ import org.apache.calcite.schema.TableFunction;
 import org.apache.calcite.schema.TableMacro;
 import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
+import org.apache.calcite.schema.lookup.LikePattern;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
@@ -206,7 +207,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
       result.add(moniker(schema, subSchema, SqlMonikerType.SCHEMA));
     }
 
-    for (String table : schema.getTableNames()) {
+    for (String table : schema.getTableNames(LikePattern.any())) {
       result.add(moniker(schema, table, SqlMonikerType.TABLE));
     }
 

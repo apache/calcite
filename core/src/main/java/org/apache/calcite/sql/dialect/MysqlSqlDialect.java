@@ -54,6 +54,7 @@ import com.google.common.collect.ImmutableList;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
+import java.util.Locale;
 
 /**
  * A <code>SqlDialect</code> implementation for the MySQL database.
@@ -71,10 +72,25 @@ public class MysqlSqlDialect extends SqlDialect {
             return 65535;
           case TIMESTAMP:
             return 6;
+          case DECIMAL:
+            return 65;
           default:
             return super.getMaxPrecision(typeName);
           }
         }
+
+        // We can refer to document of MySQL 5.x and 8.x:
+        // https://dev.mysql.com/doc/refman/8.4/en/precision-math-decimal-characteristics.html
+        // https://dev.mysql.com/doc/refman/5.7/en/precision-math-decimal-characteristics.html
+        @Override public int getMaxScale(SqlTypeName typeName) {
+          switch (typeName) {
+          case DECIMAL:
+            return 30;
+          default:
+            return super.getMaxScale(typeName);
+          }
+        }
+
         @Override public int getDefaultPrecision(SqlTypeName typeName) {
           if (typeName == SqlTypeName.CHAR) {
             return RelDataType.PRECISION_NOT_SPECIFIED;
@@ -201,7 +217,7 @@ public class MysqlSqlDialect extends SqlDialect {
     // For MySQL, generate
     //   CASE COUNT(*)
     //   WHEN 0 THEN NULL
-    //   WHEN 1 THEN <result>
+    //   WHEN 1 THEN MIN(<result>)
     //   ELSE (SELECT NULL UNION ALL SELECT NULL)
     //   END
     final SqlNode caseExpr =
@@ -213,7 +229,7 @@ public class MysqlSqlDialect extends SqlDialect {
                 SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO)),
             SqlNodeList.of(
                 nullLiteral,
-                operand),
+                SqlStdOperatorTable.MIN.createCall(SqlParserPos.ZERO, operand)),
             SqlStdOperatorTable.SCALAR_QUERY.createCall(SqlParserPos.ZERO,
                 SqlStdOperatorTable.UNION_ALL
                     .createCall(SqlParserPos.ZERO, unionOperand, unionOperand)));
@@ -347,6 +363,8 @@ public class MysqlSqlDialect extends SqlDialect {
     }
 
     String format;
+    boolean needSubStr = false;
+    int substringLength = 0;
     switch (unit) {
     case YEAR:
       format = "%Y-01-01";
@@ -366,9 +384,25 @@ public class MysqlSqlDialect extends SqlDialect {
     case SECOND:
       format = "%Y-%m-%d %H:%i:%s";
       break;
+    case MILLISECOND:
+      needSubStr = true;
+      format = "%Y-%m-%d %H:%i:%s.%f";
+      substringLength = 23;
+      break;
+    case MICROSECOND:
+      needSubStr = true;
+      format = "%Y-%m-%d %H:%i:%s.%f";
+      substringLength = 26;
+      break;
     default:
       throw new AssertionError("MYSQL does not support FLOOR for time unit: "
           + unit);
+    }
+
+    SqlWriter.Frame substringFrame = null;
+    if (needSubStr) {
+      writer.print("SUBSTRING");
+      substringFrame = writer.startList("(", ")");
     }
 
     writer.print("DATE_FORMAT");
@@ -377,6 +411,12 @@ public class MysqlSqlDialect extends SqlDialect {
     writer.sep(",", true);
     writer.print("'" + format + "'");
     writer.endList(frame);
+
+    if (needSubStr) {
+      String substringFormat = String.format(Locale.ROOT, ", 1, %s", substringLength);
+      writer.print(substringFormat);
+      writer.endList(substringFrame);
+    }
   }
 
   @Override public boolean supportsAggregateFunctionFilter() {

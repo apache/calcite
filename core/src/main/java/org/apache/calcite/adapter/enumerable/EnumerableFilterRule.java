@@ -21,6 +21,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rex.RexUtil;
 
 /**
  * Rule to convert a {@link LogicalFilter} to an {@link EnumerableFilter}.
@@ -31,7 +32,8 @@ import org.apache.calcite.rel.logical.LogicalFilter;
 class EnumerableFilterRule extends ConverterRule {
   /** Default configuration. */
   public static final Config DEFAULT_CONFIG = Config.INSTANCE
-      .withConversion(LogicalFilter.class, f -> !f.containsOver(),
+      .withConversion(LogicalFilter.class, f ->
+              !f.containsOver() && !RexUtil.SubQueryFinder.containsSubQuery(f),
           Convention.NONE, EnumerableConvention.INSTANCE,
           "EnumerableFilterRule")
       .withRuleFactory(EnumerableFilterRule::new);

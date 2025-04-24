@@ -207,4 +207,17 @@ class TestUtilTest {
     return map.entrySet().stream()
         .collect(Collectors.summarizingInt(e -> e.getValue().target)).getSum();
   }
+
+  /** Tests {@link TestUtil#repeat(String, int)}. */
+  @Test void testRepeat() {
+    final CharSequence a3 = TestUtil.repeat("a", 3);
+    assertThat(a3, hasToString("aaa"));
+    final CharSequence ab0 = TestUtil.repeat("ab", 0);
+    assertThat(ab0, hasToString(""));
+    final CharSequence ab3 = TestUtil.repeat("ab", 3);
+    assertThat(ab3.length(), is(6));
+    assertThat(ab3.subSequence(2, 4), hasToString("ab"));
+    assertThat(ab3.subSequence(3, 5), hasToString("ba"));
+    assertThat(ab3.subSequence(3, 6), hasToString("bab"));
+  }
 }

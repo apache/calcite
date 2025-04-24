@@ -22,4 +22,6 @@
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testMethodOnlyExistsInXml"/>
+  <TestCase name="testMethodOnlyExistsInXml1"/>
 </Root>

@@ -34,8 +34,10 @@ class EnumerableProjectRule extends ConverterRule {
   /** Default configuration. */
   static final Config DEFAULT_CONFIG = Config.INSTANCE
       .as(Config.class)
-      .withConversion(LogicalProject.class,
-          p -> !p.containsOver() && !RexUtil.M2V_FINDER.inProject(p),
+      .withConversion(LogicalProject.class, p ->
+              !p.containsOver()
+                  && !RexUtil.M2V_FINDER.inProject(p)
+                  && !RexUtil.SubQueryFinder.containsSubQuery(p),
           Convention.NONE, EnumerableConvention.INSTANCE,
           "EnumerableProjectRule")
       .withRuleFactory(EnumerableProjectRule::new);

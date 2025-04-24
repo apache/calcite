@@ -19,6 +19,8 @@ package org.apache.calcite.sql.dialect;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.sql.SqlAbstractDateTimeLiteral;
 import org.apache.calcite.sql.SqlBasicTypeNameSpec;
 import org.apache.calcite.sql.SqlCall;
@@ -30,11 +32,15 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlTimeLiteral;
 import org.apache.calcite.sql.SqlTimestampLiteral;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.RelToSqlConverterUtil;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.Locale;
 
 import static org.apache.calcite.util.RelToSqlConverterUtil.unparseBoolLiteralToCondition;
 
@@ -44,16 +50,46 @@ import static java.util.Objects.requireNonNull;
  * A <code>SqlDialect</code> implementation for the ClickHouse database.
  */
 public class ClickHouseSqlDialect extends SqlDialect {
+  public static final RelDataTypeSystem TYPE_SYSTEM =
+      new RelDataTypeSystemImpl() {
+        @Override public int getMaxPrecision(SqlTypeName typeName) {
+          switch (typeName) {
+          case DECIMAL:
+            return 76;
+          default:
+            return super.getMaxPrecision(typeName);
+          }
+        }
+
+        @Override public int getMaxScale(SqlTypeName typeName) {
+          switch (typeName) {
+          case DECIMAL:
+            return 76;
+          default:
+            return super.getMaxScale(typeName);
+          }
+        }
+
+        @Override public int getMaxNumericScale() {
+          return getMaxScale(SqlTypeName.DECIMAL);
+        }
+      };
+
   public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
       .withDatabaseProduct(SqlDialect.DatabaseProduct.CLICKHOUSE)
       .withIdentifierQuoteString("`")
-      .withNullCollation(NullCollation.LOW);
+      .withNullCollation(NullCollation.LOW)
+      .withDataTypeSystem(TYPE_SYSTEM);
 
   public static final SqlDialect DEFAULT = new ClickHouseSqlDialect(DEFAULT_CONTEXT);
 
   /** Creates a ClickHouseSqlDialect. */
   public ClickHouseSqlDialect(Context context) {
     super(context);
+  }
+
+  @Override public boolean supportsApproxCountDistinct() {
+    return true;
   }
 
   @Override public boolean supportsCharSet() {
@@ -80,6 +116,10 @@ public class ClickHouseSqlDialect extends SqlDialect {
     if (type instanceof BasicSqlType) {
       SqlTypeName typeName = type.getSqlTypeName();
       switch (typeName) {
+      case CHAR:
+        return createSqlDataTypeSpecByName(
+            String.format(Locale.ROOT, "FixedString(%s)",
+            type.getPrecision()), typeName, type.isNullable());
       case VARCHAR:
         return createSqlDataTypeSpecByName("String", typeName, type.isNullable());
       case TINYINT:
@@ -169,13 +209,83 @@ public class ClickHouseSqlDialect extends SqlDialect {
 
   @Override public void unparseCall(SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec) {
+    if (call.getOperator() == SqlStdOperatorTable.APPROX_COUNT_DISTINCT) {
+      RelToSqlConverterUtil.specialOperatorByName("UNIQ")
+          .unparse(writer, call, 0, 0);
+      return;
+    }
+
     switch (call.getKind()) {
+    case MAP_VALUE_CONSTRUCTOR:
+      writer.print(call.getOperator().getName().toLowerCase(Locale.ROOT));
+      final SqlWriter.Frame mapFrame = writer.startList("(", ")");
+      for (int i = 0; i < call.operandCount(); i++) {
+        writer.sep(",");
+        call.operand(i).unparse(writer, leftPrec, rightPrec);
+      }
+      writer.endList(mapFrame);
+      break;
+    case ARRAY_VALUE_CONSTRUCTOR:
+      writer.print(call.getOperator().getName().toLowerCase(Locale.ROOT));
+      final SqlWriter.Frame arrayFrame = writer.startList("(", ")");
+      for (SqlNode operand : call.getOperandList()) {
+        writer.sep(",");
+        operand.unparse(writer, leftPrec, rightPrec);
+      }
+      writer.endList(arrayFrame);
+      break;
     case FLOOR:
       if (call.operandCount() != 2) {
         super.unparseCall(writer, call, leftPrec, rightPrec);
         return;
       }
       unparseFloor(writer, call);
+      break;
+    case STARTS_WITH:
+      writer.print("startsWith");
+      final SqlWriter.Frame startList = writer.startList("(", ")");
+      call.operand(0).unparse(writer, 0, 0);
+      writer.sep(",");
+      call.operand(1).unparse(writer, 0, 0);
+      writer.endList(startList);
+      break;
+    case ENDS_WITH:
+      writer.print("endsWith");
+      final SqlWriter.Frame endsList = writer.startList("(", ")");
+      call.operand(0).unparse(writer, 0, 0);
+      writer.sep(",");
+      call.operand(1).unparse(writer, 0, 0);
+      writer.endList(endsList);
+      break;
+    case BITAND:
+      writer.print("bitAnd");
+      final SqlWriter.Frame bitAndList = writer.startList("(", ")");
+      call.operand(0).unparse(writer, 0, 0);
+      writer.sep(",");
+      call.operand(1).unparse(writer, 0, 0);
+      writer.endList(bitAndList);
+      break;
+    case BITOR:
+      writer.print("bitOr");
+      final SqlWriter.Frame bitOrList = writer.startList("(", ")");
+      call.operand(0).unparse(writer, 0, 0);
+      writer.sep(",");
+      call.operand(1).unparse(writer, 0, 0);
+      writer.endList(bitOrList);
+      break;
+    case BITXOR:
+      writer.print("bitXor");
+      final SqlWriter.Frame bitXorList = writer.startList("(", ")");
+      call.operand(0).unparse(writer, 0, 0);
+      writer.sep(",");
+      call.operand(1).unparse(writer, 0, 0);
+      writer.endList(bitXorList);
+      break;
+    case BITNOT:
+      writer.print("bitNot");
+      final SqlWriter.Frame bitNotList = writer.startList("(", ")");
+      call.operand(0).unparse(writer, 0, 0);
+      writer.endList(bitNotList);
       break;
     case COUNT:
       // CH returns NULL rather than 0 for COUNT(DISTINCT) of NULL values.
@@ -248,6 +358,18 @@ public class ClickHouseSqlDialect extends SqlDialect {
       break;
     case MINUTE:
       funName = "toStartOfMinute";
+      break;
+    case SECOND:
+      funName = "toStartOfSecond";
+      break;
+    case MILLISECOND:
+      funName = "toStartOfMillisecond";
+      break;
+    case MICROSECOND:
+      funName = "toStartOfMicrosecond";
+      break;
+    case NANOSECOND:
+      funName = "toStartOfNanosecond";
       break;
     default:
       throw new RuntimeException("ClickHouse does not support FLOOR for time unit: "

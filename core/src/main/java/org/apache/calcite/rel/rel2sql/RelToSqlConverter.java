@@ -27,6 +27,7 @@ import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.AsofJoin;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
@@ -60,6 +61,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
+import org.apache.calcite.sql.SqlAsofJoin;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDelete;
@@ -255,6 +257,21 @@ public class RelToSqlConverter extends SqlImplementor
               rightContext);
       condType = JoinConditionType.ON;
     }
+    if (joinType == JoinType.ASOF || joinType == JoinType.LEFT_ASOF) {
+      final RexNode match = ((AsofJoin) e).getMatchCondition();
+      final SqlNode matchCondition = convertConditionToSqlNode(match, leftContext, rightContext);
+      SqlNode join =
+          new SqlAsofJoin(POS,
+              leftResult.asFrom(),
+              SqlLiteral.createBoolean(false, POS),
+              joinType.symbol(POS),
+              rightResult.asFrom(),
+              condType.symbol(POS),
+              sqlCondition,
+              matchCondition);
+      return result(join, leftResult, rightResult);
+    }
+
     SqlNode join =
         new SqlJoin(POS,
             leftResult.asFrom(),
@@ -525,7 +542,10 @@ public class RelToSqlConverter extends SqlImplementor
         }
         addSelect(selectList, sqlExpr, e.getRowType());
       }
-
+      // We generate "SELECT 1 FROM EMP" replace "SELECT FROM EMP"
+      if (selectList.isEmpty()) {
+        selectList.add(SqlLiteral.createExactNumeric("1", POS));
+      }
       final SqlNodeList selectNodeList = new SqlNodeList(selectList, POS);
       if (builder.select.getGroup() == null
           && builder.select.getHaving() == null

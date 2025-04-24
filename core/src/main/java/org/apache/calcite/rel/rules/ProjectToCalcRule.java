@@ -79,7 +79,8 @@ public class ProjectToCalcRule extends RelRule<ProjectToCalcRule.Config>
     Config DEFAULT = ImmutableProjectToCalcRule.Config.of()
         .withOperandSupplier(b ->
             b.operand(LogicalProject.class)
-                .predicate(RexUtil.M2V_FINDER::notInProject)
+                .predicate(project -> RexUtil.M2V_FINDER.notInProject(project)
+                    && !RexUtil.SubQueryFinder.containsSubQuery(project))
                 .anyInputs());
 
     @Override default ProjectToCalcRule toRule() {

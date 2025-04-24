@@ -164,7 +164,7 @@ class MatchTest {
    */
   @Test void testMatchQuery() throws Exception {
     CalciteConnection con = createConnection();
-    SchemaPlus postSchema = con.getRootSchema().getSubSchema("elastic");
+    SchemaPlus postSchema = con.getRootSchema().subSchemas().get("elastic");
 
     FrameworkConfig postConfig = Frameworks.newConfigBuilder()
         .parserConfig(SqlParser.Config.DEFAULT)

@@ -795,6 +795,11 @@ public class SqlDialect {
     return true;
   }
 
+  /** Converts {@link RexNode} expression to {@link RexNode} expression before unparse. */
+  public RexNode prepareUnparse(RexNode rexNode) {
+    return rexNode;
+  }
+
   /** Returns whether this dialect supports a given function or operator.
    * It only applies to built-in scalar functions and operators, since
    * user-defined functions and procedures should be read by JdbcSchema. */
@@ -1422,6 +1427,7 @@ public class SqlDialect {
     ORACLE("Oracle", "\"", NullCollation.HIGH),
     DERBY("Apache Derby", null, NullCollation.HIGH),
     DB2("IBM DB2", null, NullCollation.HIGH),
+    DORIS("Doris", "`", NullCollation.LOW),
     EXASOL("Exasol", "\"", NullCollation.LOW),
     FIREBIRD("Firebird", null, NullCollation.HIGH),
     FIREBOLT("Firebolt", "\"", NullCollation.LOW),
@@ -1435,6 +1441,7 @@ public class SqlDialect {
     PHOENIX("Phoenix", "\"", NullCollation.HIGH),
     POSTGRESQL("PostgreSQL", "\"", NullCollation.HIGH),
     PRESTO("Presto", "\"", NullCollation.LAST),
+    TRINO("Trino", "\"", NullCollation.LAST),
     NETEZZA("Netezza", "\"", NullCollation.HIGH),
     INFOBRIGHT("Infobright", "`", NullCollation.HIGH),
     NEOVIEW("Neoview", null, NullCollation.HIGH),

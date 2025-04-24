@@ -2058,16 +2058,14 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     <Resource name="plan">
       <![CDATA[
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f0=[$9])
-    LogicalFilter(condition=[IS NOT NULL($9)])
-      LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-        LogicalAggregate(group=[{}], agg#0=[MIN($0)])
-          LogicalProject($f0=[true])
-            LogicalSort(fetch=[1])
-              LogicalProject(EXPR$0=[1])
-                LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
-                  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[CAST($9):INTEGER], $f1=[CAST($10):BOOLEAN])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{0}], agg#0=[MIN($1)])
+        LogicalProject(DEPTNO=[$1], $f0=[true])
+          LogicalAggregate(group=[{0, 1}])
+            LogicalProject(EXPR$0=[FIRST_VALUE(1) OVER (PARTITION BY $0)], DEPTNO=[$0])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
   </TestCase>
@@ -5093,6 +5091,20 @@ LogicalProject(X=[CAST($0):DECIMAL(2, 1) NOT NULL])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testNaturalJoinCastNoCoercion">
+    <Resource name="sql">
+      <![CDATA[WITH t1(x) AS (VALUES('x')), t2(x) AS (VALUES(0.0))
+SELECT * FROM t1 NATURAL JOIN t2]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(X=[CAST($0):DECIMAL(2, 1) NOT NULL])
+  LogicalJoin(condition=[=($0, $1)], joinType=[inner])
+    LogicalValues(tuples=[[{ 'x' }]])
+    LogicalValues(tuples=[[{ 0.0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testNestedAggregates">
     <Resource name="sql">
       <![CDATA[SELECT
@@ -5261,6 +5273,19 @@ LogicalProject(SKILL=[ROW($0)])
   LogicalFilter(condition=[=($0, '')])
     LogicalProject(TYPE=[$0.TYPE])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT_SINGLE]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testNestedWindowAggWithIdentifierExpansionDisabled">
+    <Resource name="sql">
+      <![CDATA[select sum(sum(sal)) over() from emp]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[CASE(>(COUNT($0) OVER (), 0), SUM($0) OVER (), null:INTEGER)])
+  LogicalAggregate(group=[{}], agg#0=[SUM($0)])
+    LogicalProject(SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
@@ -5689,19 +5714,6 @@ LogicalSort(sort0=[$0], dir0=[DESC])
 LogicalSort(sort0=[$1], dir0=[ASC])
   LogicalProject(X=[+($0, 1)], Y=[-($0, 2)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testOrderByAliasDoesNotObscure">
-    <Resource name="sql">
-      <![CDATA[select empno + 1 as empno, empno - 2 as y from emp order by empno + 3]]>
-    </Resource>
-    <Resource name="plan">
-      <![CDATA[
-ProjectRel(EMPNO=[$0], Y=[$1])
-  SortRel(sort0=[$2], dir0=[Ascending])
-    ProjectRel(EMPNO=[+($0, 1)], Y=[-($0, 2)], EXPR$2=[+($0, 3)])
-      TableAccessRel(table=[[SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>

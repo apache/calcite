@@ -1138,4 +1138,13 @@ public interface CalciteResource {
 
   @BaseMessage("ASOF JOIN does not support correlated subqueries")
   ExInst<CalciteException> asofCannotBeCorrelated();
+
+  @BaseMessage("ROW type does not have a field named ''{0}'': {1}")
+  ExInst<SqlValidatorException> unknownRowField(String field, String type);
+
+  @BaseMessage("ROW type does not have a field with index {0,number}; legal range is 1 to {1,number}")
+  ExInst<SqlValidatorException> illegalRowIndexValue(int field, int max);
+
+  @BaseMessage("Index in ROW type does not have a constant integer or string value")
+  ExInst<SqlValidatorException> illegalRowIndex();
 }

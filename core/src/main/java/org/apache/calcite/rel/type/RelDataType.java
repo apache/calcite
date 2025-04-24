@@ -309,7 +309,7 @@ public interface RelDataType {
       }
       return true;
     } else {
-      return equals(that);
+      return SqlTypeUtil.equalSansNullability(this, that);
     }
   }
 

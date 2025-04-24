@@ -29,6 +29,7 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.MaterializedViewTable;
+import org.apache.calcite.schema.lookup.LikePattern;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.SqlWriterConfig;
@@ -325,8 +326,8 @@ public class CassandraSchema extends AbstractSchema {
       query = buf.toString();
 
       // Add the view for this query
-      String viewName = "$" + getTableNames().size();
-      SchemaPlus schema = parentSchema.getSubSchema(name);
+      String viewName = "$" + tables().getNames(LikePattern.any()).size();
+      SchemaPlus schema = parentSchema.subSchemas().get(name);
       if (schema == null) {
         throw new IllegalStateException("Cannot find schema " + name
             + " in parent schema " + parentSchema.getName());

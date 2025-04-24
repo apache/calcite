@@ -118,7 +118,7 @@ public class ProjectAggregateMergeRule
             final RexLiteral literal = (RexLiteral) operands.get(2);
             if (Objects.equals(literal.getValueAs(BigDecimal.class), BigDecimal.ZERO)) {
               int j = findSum0(cluster.getTypeFactory(), aggCall, aggCallList);
-              return cluster.getRexBuilder().makeInputRef(call.type, j);
+              return cluster.getRexBuilder().makeInputRef(aggCallList.get(j).getType(), j);
             }
           }
           break;
@@ -155,7 +155,9 @@ public class ProjectAggregateMergeRule
     builder.aggregate(
         builder.groupKey(aggregate.getGroupSet(), aggregate.groupSets), aggCallList);
     builder.project(
-        RexPermuteInputsShuttle.of(mapping).visitList(projects2));
+        RexPermuteInputsShuttle.of(mapping).visitList(projects2),
+            project.getRowType().getFieldNames());
+    builder.convert(project.getRowType(), true);
     call.transformTo(builder.build());
   }
 

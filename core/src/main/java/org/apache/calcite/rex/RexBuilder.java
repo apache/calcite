@@ -26,6 +26,7 @@ import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlCollation;
@@ -42,6 +43,7 @@ import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.IntervalSqlType;
 import org.apache.calcite.sql.type.MapSqlType;
 import org.apache.calcite.sql.type.MultisetSqlType;
+import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
@@ -94,6 +96,11 @@ import static java.util.Objects.requireNonNull;
  * <p>Some common literal values (NULL, TRUE, FALSE, 0, 1, '') are cached.
  */
 public class RexBuilder {
+
+  /** Default RexBuilder. */
+  public static final RexBuilder DEFAULT =
+      new RexBuilder(new SqlTypeFactoryImpl(RelDataTypeSystemImpl.DEFAULT));
+
   /**
    * Special operator that accesses an unadvertised field of an input record.
    * This operator cannot be used in SQL queries; it is introduced temporarily
@@ -1915,6 +1922,27 @@ public class RexBuilder {
    */
   public RexLiteral makeZeroLiteral(RelDataType type) {
     return makeLiteral(zeroValue(type), type);
+  }
+
+  public RexNode makeZeroRexNode(RelDataType type) {
+    switch (type.getSqlTypeName()) {
+    case ARRAY:
+      return makeCast(type,
+          makeCall(type, SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR, ImmutableList.of()));
+    case MULTISET:
+      return makeCast(type,
+          makeCall(type, SqlStdOperatorTable.MULTISET_VALUE, ImmutableList.of()));
+    case MAP:
+      return makeCast(type,
+          makeCall(type, SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR, ImmutableList.of()));
+    case ROW:
+      List<RexNode> zeroFields = type.getFieldList().stream()
+              .map(field -> makeZeroRexNode(field.getType()))
+              .collect(Collectors.toList());
+      return makeCall(type, SqlStdOperatorTable.ROW, zeroFields);
+    default:
+      return makeZeroLiteral(type);
+    }
   }
 
   private static Comparable zeroValue(RelDataType type) {

@@ -1381,7 +1381,7 @@ public abstract class SqlLibraryOperators {
 
   /** The "ARRAY(exp, ...)" function (Spark);
    * compare with the standard array value constructor, "ARRAY [exp, ...]". */
-  @LibraryOperator(libraries = {SPARK})
+  @LibraryOperator(libraries = {SPARK, HIVE})
   public static final SqlFunction ARRAY =
       SqlBasicFunction.create("ARRAY",
           SqlLibraryOperators::arrayReturnType,
@@ -1515,14 +1515,14 @@ public abstract class SqlLibraryOperators {
           OperandTypes.ARRAY_ELEMENT_NONNULL);
 
   /** The "ARRAY_DISTINCT(array)" function. */
-  @LibraryOperator(libraries = {SPARK})
+  @LibraryOperator(libraries = {SPARK, HIVE})
   public static final SqlFunction ARRAY_DISTINCT =
       SqlBasicFunction.create(SqlKind.ARRAY_DISTINCT,
           ReturnTypes.ARG0_NULLABLE,
           OperandTypes.ARRAY);
 
   /** The "ARRAY_EXCEPT(array1, array2)" function. */
-  @LibraryOperator(libraries = {SPARK})
+  @LibraryOperator(libraries = {SPARK, HIVE})
   public static final SqlFunction ARRAY_EXCEPT =
       SqlBasicFunction.create(SqlKind.ARRAY_EXCEPT,
           ReturnTypes.LEAST_RESTRICTIVE,
@@ -1553,7 +1553,7 @@ public abstract class SqlLibraryOperators {
     type = opBinding.getTypeFactory().createTypeWithNullability(type, true);
     // make explicit CAST for array elements and inserted element to the biggest type
     // if array component type not equals to inserted element type
-    if (!componentType.equalsSansFieldNames(elementType2)) {
+    if (!componentType.equalsSansFieldNamesAndNullability(elementType2)) {
       // For array_insert, 0 is the array arg and 2 is the inserted element
       SqlValidatorUtil.
           adjustTypeForArrayFunctions(type, opBinding, 2);
@@ -1572,7 +1572,7 @@ public abstract class SqlLibraryOperators {
           OperandTypes.ARRAY_INSERT);
 
   /** The "ARRAY_INTERSECT(array1, array2)" function. */
-  @LibraryOperator(libraries = {SPARK})
+  @LibraryOperator(libraries = {SPARK, HIVE})
   public static final SqlFunction ARRAY_INTERSECT =
       SqlBasicFunction.create(SqlKind.ARRAY_INTERSECT,
           ReturnTypes.LEAST_RESTRICTIVE,
@@ -1582,7 +1582,7 @@ public abstract class SqlLibraryOperators {
               OperandTypes.family(SqlTypeFamily.ARRAY, SqlTypeFamily.ARRAY)));
 
   /** The "ARRAY_JOIN(array, delimiter [, nullText ])" function. */
-  @LibraryOperator(libraries = {SPARK})
+  @LibraryOperator(libraries = {SPARK, HIVE})
   public static final SqlFunction ARRAY_JOIN =
       SqlBasicFunction.create(SqlKind.ARRAY_JOIN,
           ReturnTypes.VARCHAR_NULLABLE,
@@ -1596,14 +1596,14 @@ public abstract class SqlLibraryOperators {
           OperandTypes.ARRAY);
 
   /** The "ARRAY_MAX(array)" function. */
-  @LibraryOperator(libraries = {SPARK})
+  @LibraryOperator(libraries = {SPARK, HIVE})
   public static final SqlFunction ARRAY_MAX =
       SqlBasicFunction.create(SqlKind.ARRAY_MAX,
           ReturnTypes.TO_COLLECTION_ELEMENT_FORCE_NULLABLE,
           OperandTypes.ARRAY_NONNULL);
 
-  /** The "ARRAY_MAX(array)" function. */
-  @LibraryOperator(libraries = {SPARK})
+  /** The "ARRAY_MIN(array)" function. */
+  @LibraryOperator(libraries = {SPARK, HIVE})
   public static final SqlFunction ARRAY_MIN =
       SqlBasicFunction.create(SqlKind.ARRAY_MIN,
           ReturnTypes.TO_COLLECTION_ELEMENT_FORCE_NULLABLE,
@@ -1624,7 +1624,7 @@ public abstract class SqlLibraryOperators {
           OperandTypes.ARRAY_ELEMENT_NONNULL);
 
   /** The "ARRAY_REMOVE(array, element)" function. */
-  @LibraryOperator(libraries = {SPARK})
+  @LibraryOperator(libraries = {SPARK, HIVE})
   public static final SqlFunction ARRAY_REMOVE =
       SqlBasicFunction.create(SqlKind.ARRAY_REMOVE,
           ReturnTypes.ARG0_NULLABLE,
@@ -1663,7 +1663,7 @@ public abstract class SqlLibraryOperators {
               OperandTypes.ARRAY, OperandTypes.INTEGER, OperandTypes.INTEGER));
 
   /** The "ARRAY_UNION(array1, array2)" function. */
-  @LibraryOperator(libraries = {SPARK})
+  @LibraryOperator(libraries = {SPARK, HIVE})
   public static final SqlFunction ARRAY_UNION =
       SqlBasicFunction.create(SqlKind.ARRAY_UNION,
           ReturnTypes.LEAST_RESTRICTIVE,

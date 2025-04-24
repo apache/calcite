@@ -20,6 +20,7 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalAsofJoin;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalExchange;
@@ -29,6 +30,7 @@ import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalMatch;
 import org.apache.calcite.rel.logical.LogicalMinus;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalRepeatUnion;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.logical.LogicalUnion;
@@ -135,6 +137,14 @@ public class RelShuttleImpl implements RelShuttle {
 
   @Override public RelNode visit(LogicalTableModify modify) {
     return visitChildren(modify);
+  }
+
+  @Override public RelNode visit(LogicalAsofJoin logicalAsofJoin) {
+    return visitChildren(logicalAsofJoin);
+  }
+
+  @Override public RelNode visit(LogicalRepeatUnion logicalRepeatUnion) {
+    return visitChildren(logicalRepeatUnion);
   }
 
   @Override public RelNode visit(RelNode other) {

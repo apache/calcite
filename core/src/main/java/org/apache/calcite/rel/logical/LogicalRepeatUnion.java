@@ -22,6 +22,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.RepeatUnion;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -69,4 +70,9 @@ public class LogicalRepeatUnion extends RepeatUnion {
     return new LogicalRepeatUnion(getCluster(), traitSet,
         inputs.get(0), inputs.get(1), all, iterationLimit, transientTable);
   }
+
+  @Override public RelNode accept(RelShuttle shuttle) {
+    return shuttle.visit(this);
+  }
+
 }

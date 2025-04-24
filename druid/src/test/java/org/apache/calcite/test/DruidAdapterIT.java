@@ -3124,7 +3124,7 @@ public class DruidAdapterIT {
    * */
   @Test void testTableMapReused() {
     AbstractSchema schema = new DruidSchema("http://localhost:8082", "http://localhost:8081", true);
-    assertSame(schema.getTable("wikipedia"), schema.getTable("wikipedia"));
+    assertSame(schema.tables().get("wikipedia"), schema.tables().get("wikipedia"));
   }
 
   @Test void testPushEqualsCastDimension() {
@@ -3969,6 +3969,30 @@ public class DruidAdapterIT {
             + "filter=[AND(>(SIN($91), 0.9129452507276277E0), >(COS($90), 0.40808206181339196E0), =(FLOOR(TAN($91)), 2.0E0), "
             + "<(ABS(-(TAN($91), /(SIN($91), COS($91)))), 1.0E-6))], "
             + "groups=[{}], aggs=[[COUNT()]])");
+
+    final String sql1 = "SELECT COUNT(*) FROM " + FOODMART_TABLE + " WHERE "
+        + "COT(\"store_cost\") > COT(20) AND ASIN(\"store_sales\") > ASIN(1) "
+        + "AND FLOOR(ACOS(\"store_cost\")) = 2 "
+        + "AND ABS(ATAN(\"store_cost\") - ATAN(\"store_cost\") / ATAN(\"store_cost\")) < 10e-7";
+    sql(sql1, FOODMART)
+        .returnsOrdered("EXPR$0=0")
+        .explainContains("PLAN=EnumerableInterpreter\n"
+            + "  DruidQuery(table=[[foodmart, foodmart]], "
+            + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
+            + "filter=[AND(>(COT($91), 0.4469951089489167E0), >(ASIN($90), 1.5707963267948966E0), =(FLOOR(ACOS($91)), 2.0E0), "
+            + "<(ABS(-(ATAN($91), /(ATAN($91), ATAN($91)))), 1.0E-6))], "
+            + "groups=[{}], aggs=[[COUNT()]])");
+
+    final String sql2 = "SELECT COUNT(*) FROM " + FOODMART_TABLE + " WHERE "
+        + "FLOOR(ATAN2(\"store_cost\", \"store_cost\")) = 2 ";
+    sql(sql2, FOODMART)
+        .returnsOrdered("EXPR$0=0")
+        .explainContains("PLAN=EnumerableInterpreter\n"
+            + "  DruidQuery(table=[[foodmart, foodmart]], "
+            + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
+            + "filter=[=(FLOOR(ATAN2($91, $91)), 2.0E0)], "
+            + "groups=[{}], aggs=[[COUNT()]])");
+
   }
 
   @Test void testCastLiteralToTimestamp() {
