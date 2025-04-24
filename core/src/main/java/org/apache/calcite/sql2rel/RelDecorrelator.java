@@ -1520,6 +1520,12 @@ public class RelDecorrelator implements ReflectiveVisitor {
               pair.left,
               projectPulledAboveLeftCorrelator,
               isCount);
+
+      newProjExpr = newProjExpr.accept(new RexShuttle() {
+        @Override public RexNode visitCall(final RexCall call) {
+          return call.clone(pair.left.getType(), call.operands);
+        }
+      });
       newProjects.add(newProjExpr, pair.right);
     }
 
