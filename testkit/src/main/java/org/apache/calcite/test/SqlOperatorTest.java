@@ -7721,6 +7721,11 @@ public class SqlOperatorTest {
     f0.checkFails("^log(100, 10)^",
         "No match found for function signature LOG\\(<NUMERIC>, <NUMERIC>\\)", false);
     final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
+    // Test case for https://issues.apache.org/jira/browse/CALCITE-6984
+    // FamilyOperandTypeChecker with a Predicate describing optional arguments does not
+    // reject mistyped expressions
+    f.checkFails("^log(x'')^",
+        "Cannot apply 'LOG' to arguments of type 'LOG\\(<BINARY\\(0\\)>\\)'.*\\n.*", false);
     f.checkScalarApprox("log(10, 10)", "DOUBLE NOT NULL",
         isWithin(1.0, 0.000001));
     f.checkScalarApprox("log(64, 8)", "DOUBLE NOT NULL",

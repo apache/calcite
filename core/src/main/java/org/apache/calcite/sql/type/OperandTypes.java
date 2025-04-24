@@ -97,6 +97,10 @@ public abstract class OperandTypes {
   /**
    * Creates a checker that passes if each operand is a member of a
    * corresponding family, and allows specified parameters to be optional.
+   *
+   * <P>WARNING: This operand checker does not work correctly when optional parameters are
+   * specified: see <a href="https://issues.apache.org/jira/browse/CALCITE-6984">[CALCITE-6984]</a>
+   * and <a href="https://issues.apache.org/jira/browse/CALCITE-6976">[CALCITE-6976]</a>.
    */
   public static FamilyOperandTypeChecker family(List<SqlTypeFamily> families,
       Predicate<Integer> optional) {
@@ -404,15 +408,17 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker VARIANT =
       family(SqlTypeFamily.VARIANT);
 
+  public static final SqlSingleOperandTypeChecker NUMERIC_NUMERIC =
+      family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC);
+
   public static final SqlSingleOperandTypeChecker NUMERIC_OPTIONAL_NUMERIC =
-      family(ImmutableList.of(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC),
-          // Second operand optional (operand index 0, 1)
-          number -> number == 1);
+      NUMERIC.or(NUMERIC_NUMERIC);
+
+  public static final SqlSingleOperandTypeChecker NUMERIC_INTEGER =
+      family(SqlTypeFamily.NUMERIC, SqlTypeFamily.INTEGER);
 
   public static final SqlSingleOperandTypeChecker NUMERIC_OPTIONAL_INTEGER =
-      family(ImmutableList.of(SqlTypeFamily.NUMERIC, SqlTypeFamily.INTEGER),
-          // Second operand optional (operand index 0, 1)
-          number -> number == 1);
+      NUMERIC.or(NUMERIC_INTEGER);
 
   public static final SqlOperandTypeChecker NUMERIC_INT32 =
       sequence(
@@ -423,12 +429,6 @@ public abstract class OperandTypes {
 
   public static final SqlSingleOperandTypeChecker NUMERIC_CHARACTER =
       family(SqlTypeFamily.NUMERIC, SqlTypeFamily.CHARACTER);
-
-  public static final SqlSingleOperandTypeChecker NUMERIC_INTEGER =
-      family(SqlTypeFamily.NUMERIC, SqlTypeFamily.INTEGER);
-
-  public static final SqlSingleOperandTypeChecker NUMERIC_NUMERIC =
-      family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC);
 
   public static final SqlSingleOperandTypeChecker EXACT_NUMERIC =
       family(SqlTypeFamily.EXACT_NUMERIC);
@@ -448,39 +448,33 @@ public abstract class OperandTypes {
   public static final FamilyOperandTypeChecker STRING_STRING =
       family(SqlTypeFamily.STRING, SqlTypeFamily.STRING);
 
-  public static final FamilyOperandTypeChecker STRING_OPTIONAL_STRING =
-      family(
-          ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING),
-          // Second operand optional (operand index 0, 1)
-          number -> number == 1);
+  public static final SqlSingleOperandTypeChecker STRING_OPTIONAL_STRING =
+      STRING.or(STRING_STRING);
 
   public static final FamilyOperandTypeChecker STRING_STRING_STRING =
       family(SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.STRING);
 
-  public static final FamilyOperandTypeChecker STRING_STRING_OPTIONAL_STRING =
-      family(
-          ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
-              SqlTypeFamily.STRING),
-          // Third operand optional (operand index 0, 1, 2)
-          number -> number == 2);
+  public static final SqlSingleOperandTypeChecker STRING_STRING_OPTIONAL_STRING =
+      STRING_STRING.or(STRING_STRING_STRING);
 
-  public static final FamilyOperandTypeChecker STRING_OPTIONAL_STRING_OPTIONAL_STRING =
-      family(
-          ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
-              SqlTypeFamily.STRING),
-          // Second and Third operand both are optional (operand index 0, 1, 2)
-          number -> number == 1 || number == 2);
+  public static final SqlSingleOperandTypeChecker STRING_OPTIONAL_STRING_OPTIONAL_STRING =
+      // operands 1 and 2 are optional
+      STRING
+          .or(STRING_STRING)
+          .or(STRING_STRING_STRING);
 
   public static final FamilyOperandTypeChecker STRING_STRING_STRING_STRING =
       family(SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.STRING,
           SqlTypeFamily.STRING);
 
-  public static final FamilyOperandTypeChecker STRING_NUMERIC_OPTIONAL_STRING =
-      family(
-          ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.NUMERIC,
-              SqlTypeFamily.STRING),
-          // Third operand optional (operand index 0, 1, 2)
-          number -> number == 2);
+  public static final SqlSingleOperandTypeChecker STRING_NUMERIC =
+      family(SqlTypeFamily.STRING, SqlTypeFamily.NUMERIC);
+
+  static final SqlSingleOperandTypeChecker STRING_NUMERIC_STRING =
+      family(SqlTypeFamily.STRING, SqlTypeFamily.NUMERIC, SqlTypeFamily.STRING);
+
+  public static final SqlSingleOperandTypeChecker STRING_NUMERIC_OPTIONAL_STRING =
+      STRING_NUMERIC.or(STRING_NUMERIC_STRING);
 
   public static final SqlSingleOperandTypeChecker CHARACTER =
       family(SqlTypeFamily.CHARACTER);
@@ -1059,15 +1053,21 @@ public abstract class OperandTypes {
           SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER);
 
   public static final SqlSingleOperandTypeChecker STRING_STRING_OPTIONAL_INTEGER_OPTIONAL_INTEGER =
+      STRING_STRING
+          .or(STRING_STRING_INTEGER)
+          .or(STRING_STRING_INTEGER_INTEGER);
+
+  public static final SqlSingleOperandTypeChecker STRING_STRING_INTEGER_INTEGER_INTEGER =
       family(
-          ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.INTEGER,
-              SqlTypeFamily.INTEGER), i -> i == 2 || i == 3);
+          ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
+              SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER));
 
   public static final SqlSingleOperandTypeChecker
       STRING_STRING_OPTIONAL_INTEGER_OPTIONAL_INTEGER_OPTIONAL_INTEGER =
-      family(
-          ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.INTEGER,
-              SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER), i -> i == 2 || i == 3 || i == 4);
+      STRING_STRING
+          .or(STRING_STRING_INTEGER)
+          .or(STRING_STRING_INTEGER_INTEGER)
+          .or(STRING_STRING_INTEGER_INTEGER_INTEGER);
 
   public static final SqlSingleOperandTypeChecker STRING_INTEGER =
       family(SqlTypeFamily.STRING, SqlTypeFamily.INTEGER);
@@ -1077,12 +1077,7 @@ public abstract class OperandTypes {
           SqlTypeFamily.INTEGER);
 
   public static final SqlSingleOperandTypeChecker STRING_INTEGER_OPTIONAL_INTEGER =
-      family(
-          ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.INTEGER,
-              SqlTypeFamily.INTEGER), i -> i == 2);
-
-  public static final SqlSingleOperandTypeChecker STRING_NUMERIC =
-      family(SqlTypeFamily.STRING, SqlTypeFamily.NUMERIC);
+      STRING_INTEGER.or(STRING_INTEGER_INTEGER);
 
   public static final SqlSingleOperandTypeChecker STRING_NUMERIC_NUMERIC =
       family(SqlTypeFamily.STRING, SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC);
@@ -1134,9 +1129,8 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker ANY_STRING_STRING =
       family(SqlTypeFamily.ANY, SqlTypeFamily.STRING, SqlTypeFamily.STRING);
   public static final SqlSingleOperandTypeChecker ANY_STRING_OPTIONAL_STRING =
-      family(ImmutableList.of(SqlTypeFamily.ANY, SqlTypeFamily.STRING, SqlTypeFamily.STRING),
-          // Third operand optional (operand index 0, 1, 2)
-          number -> number == 2);
+      family(ImmutableList.of(SqlTypeFamily.ANY, SqlTypeFamily.STRING))
+          .or(ANY_STRING_STRING);
 
   /**
    * Operand type-checking strategy used by {@code ARG_MIN(value, comp)} and
