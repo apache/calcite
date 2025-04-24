@@ -350,6 +350,15 @@ public abstract class SqlImplementor {
    */
   private static RexNode stripCastFromString(RexNode node, SqlDialect dialect) {
     switch (node.getKind()) {
+    case IS_NULL:
+    case IS_NOT_NULL:
+      final RexCall call0 = (RexCall) node;
+      final RexNode o = call0.operands.get(0);
+      if (o.getKind() == SqlKind.CAST) {
+        return call0.clone(call0.getType(),
+            ImmutableList.of(((RexCall) o).operands.get(0)));
+      }
+      break;
     case EQUALS:
     case IS_NOT_DISTINCT_FROM:
     case NOT_EQUALS:

@@ -8268,22 +8268,27 @@ class RelToSqlConverterTest {
     sql(query2).ok(expected2);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6982">[CALCITE-6982]
+   * Removes cast from string also support with IS_NULL/IS_NOT_NULL</a>. */
   @Test void testCastInStringIntegerComparison() {
     final String query = "select \"employee_id\" "
         + "from \"foodmart\".\"employee\" "
-        + "where 10 = cast('10' as int) and \"birth_date\" = cast('1914-02-02' as date) or "
+        + "where 10 is distinct from cast('10' as int) and 10 = cast('10' as int) and \"birth_date\" = cast('1914-02-02' as date) or "
         + "\"hire_date\" = cast('1996-01-01 '||'00:00:00' as timestamp)";
     final String expected = "SELECT \"employee_id\"\n"
         + "FROM \"foodmart\".\"employee\"\n"
-        + "WHERE 10 = '10' AND \"birth_date\" = '1914-02-02' OR \"hire_date\" = '1996-01-01 ' || "
+        + "WHERE (10 IS NOT NULL OR '10' IS NOT NULL) AND 10 = '10' IS NOT TRUE AND "
+        + "10 = '10' AND \"birth_date\" = '1914-02-02' OR \"hire_date\" = '1996-01-01 ' || "
         + "'00:00:00'";
-    final String expectedBiqquery = "SELECT employee_id\n"
+    final String expectedBigquery = "SELECT employee_id\n"
         + "FROM foodmart.employee\n"
-        + "WHERE 10 = CAST('10' AS INT64) AND birth_date = '1914-02-02' OR hire_date = "
+        + "WHERE (10 IS NOT NULL OR '10' IS NOT NULL) AND 10 = CAST('10' AS INT64) IS NOT TRUE AND "
+        + "10 = CAST('10' AS INT64) AND birth_date = '1914-02-02' OR hire_date = "
         + "CAST('1996-01-01 ' || '00:00:00' AS TIMESTAMP)";
     sql(query)
         .ok(expected)
-        .withBigQuery().ok(expectedBiqquery);
+        .withBigQuery().ok(expectedBigquery);
   }
 
   /** Test case for
