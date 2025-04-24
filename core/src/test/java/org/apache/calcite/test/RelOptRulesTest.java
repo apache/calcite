@@ -10421,4 +10421,30 @@ class RelOptRulesTest extends RelOptTestBase {
         .withRule(CoreRules.JOIN_CONDITION_PUSH)
         .check();
   }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6973">[CALCITE-6973]
+   * Add rule for convert Minus to Filter</a>. */
+  @Test void testMinusToFilterRule() {
+    final String sql = "SELECT mgr, comm FROM emp WHERE mgr = 12\n"
+        + "EXCEPT\n"
+        + "SELECT mgr, comm FROM emp WHERE comm = 5\n";
+    sql(sql)
+        .withPreRule(CoreRules.PROJECT_FILTER_TRANSPOSE)
+        .withRule(CoreRules.MINUS_TO_FILTER)
+        .check();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6973">[CALCITE-6973]
+   * Add rule for convert Minus to Filter</a>. */
+  @Test void testMinusToFilterRule2() {
+    final String sql = "SELECT mgr, comm FROM emp\n"
+        + "EXCEPT\n"
+        + "SELECT mgr, comm FROM emp WHERE comm = 5\n";
+    sql(sql)
+        .withPreRule(CoreRules.PROJECT_FILTER_TRANSPOSE)
+        .withRule(CoreRules.MINUS_TO_FILTER)
+        .check();
+  }
 }

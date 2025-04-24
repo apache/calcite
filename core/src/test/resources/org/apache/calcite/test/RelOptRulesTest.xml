@@ -9015,6 +9015,59 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testMinusToFilterRule">
+    <Resource name="sql">
+      <![CDATA[SELECT mgr, comm FROM emp WHERE mgr = 12
+EXCEPT
+SELECT mgr, comm FROM emp WHERE comm = 5
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalMinus(all=[false])
+  LogicalFilter(condition=[=($0, 12)])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[=($1, 5)])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalAggregate(group=[{0, 1}])
+  LogicalFilter(condition=[AND(=($0, 12), <>($1, 5))])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testMinusToFilterRule2">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalMinus(all=[false])
+  LogicalProject(MGR=[$3], COMM=[$6])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[=($1, 5)])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalAggregate(group=[{0, 1}])
+  LogicalFilter(condition=[<>($1, 5)])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[SELECT mgr, comm FROM emp
+EXCEPT
+SELECT mgr, comm FROM emp WHERE comm = 5
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testMultipleDistinctWithGrouping">
     <Resource name="sql">
       <![CDATA[SELECT sal, SUM(comm), AVG(DISTINCT comm), SUM(DISTINCT sal)
