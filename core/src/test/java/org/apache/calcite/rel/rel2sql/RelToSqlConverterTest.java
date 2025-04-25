@@ -8302,10 +8302,9 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"employee\"\n"
         + "WHERE 10 = '10' AND \"birth_date\" = '1914-02-02' OR \"hire_date\" = '1996-01-01 ' || "
         + "'00:00:00'";
-    final String expectedBiqquery   = "SELECT employee_id\n"
+    final String expectedBiqquery = "SELECT employee_id\n"
         + "FROM foodmart.employee\n"
-        + "WHERE (10 IS NOT NULL OR '10' IS NOT NULL) AND 10 = CAST('10' AS INT64) IS NOT TRUE AND "
-        + "10 = CAST('10' AS INT64) AND birth_date = '1914-02-02' OR hire_date = "
+        + "WHERE 10 = CAST('10' AS INT64) AND birth_date = '1914-02-02' OR hire_date = "
         + "CAST('1996-01-01 ' || '00:00:00' AS TIMESTAMP)";
     sql(query)
         .ok(expected)
