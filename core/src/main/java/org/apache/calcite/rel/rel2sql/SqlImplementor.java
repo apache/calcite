@@ -354,7 +354,8 @@ public abstract class SqlImplementor {
     case IS_NOT_NULL:
       final RexCall call0 = (RexCall) node;
       final RexNode o = call0.operands.get(0);
-      if (o.getKind() == SqlKind.CAST) {
+      if (o.getKind() == SqlKind.CAST
+          && dialect.supportsImplicitTypeCoercion((RexCall) o)) {
         return call0.clone(call0.getType(),
             ImmutableList.of(((RexCall) o).operands.get(0)));
       }
