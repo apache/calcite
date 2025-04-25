@@ -3659,6 +3659,14 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(SqlTypeFamily.NUMERIC),
           SqlFunctionCategory.NUMERIC);
 
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlFunction WIDTH_BUCKET =
+      new SqlFunction("WIDTH_BUCKET",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE, null,
+          OperandTypes.family(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER,
+              SqlTypeFamily.INTEGER),
+          SqlFunctionCategory.NUMERIC);
   /**
    * The EDIT_DISTANCE(string1, string2 [, ci, cd, cs, ct ])
    * measures the similarity between two strings.
