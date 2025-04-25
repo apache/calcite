@@ -13129,4 +13129,16 @@ class RelToSqlConverterDMTest {
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSql));
   }
+
+  @Test public void testHashamp() {
+    final RelBuilder builder = relBuilder();
+    final RexNode formatDateRexNode = builder.call(SqlLibraryOperators.HASHAMP, builder.scan("EMP").field(0));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(formatDateRexNode, "FD"))
+        .build();
+    final String expectedSql = "SELECT HASHAMP(\"EMPNO\") AS \"FD\"\nFROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+  }
 }

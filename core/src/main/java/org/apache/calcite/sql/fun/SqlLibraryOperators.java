@@ -4011,6 +4011,18 @@ public abstract class SqlLibraryOperators {
               SqlTypeFamily.DATETIME_INTERVAL, SqlTypeFamily.BOOLEAN),
           SqlFunctionCategory.SYSTEM);
 
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlFunction HASHAMP =
+      new SqlFunction(
+          "HASHAMP",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE,
+          null,
+          OperandTypes.or(
+              OperandTypes.INTEGER, OperandTypes.family(SqlTypeFamily.DECIMAL,
+                  SqlTypeFamily.NULL)),
+          SqlFunctionCategory.SYSTEM);
+
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction GENERATE_ARRAY =
       new SqlFunction("GENERATE_ARRAY", SqlKind.OTHER, ReturnTypes.TO_ARRAY, null,

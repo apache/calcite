@@ -2309,6 +2309,16 @@ public abstract class SqlImplementor {
       final Clause maxClause = Collections.max(clauses);
 
       final RelNode relInput = rel.getInput(0);
+
+      @Nullable SubQueryAliasTrait subQueryAliasTraitDef =
+          rel.getTraitSet().getTrait(SubQueryAliasTraitDef.instance);
+
+      if (rel instanceof Project && relInput instanceof Filter
+          && relInput.getTraitSet().contains(subQueryAliasTraitDef)
+          && clauses.contains(Clause.QUALIFY)) {
+        return true;
+      }
+
       // Previously, below query is getting translated with SubQuery logic (Queries like -
       // Analytical Function with WHERE clause). Now, it will remain as it is after translation.
       // select c1, ROW_NUMBER() OVER (PARTITION by c1 ORDER BY c2) as rnk from t1 where c3 = 'MA'
