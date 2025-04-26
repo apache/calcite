@@ -64,6 +64,7 @@ plugins {
 repositories {
     // At least for RAT
     mavenCentral()
+    maven("https://jitpack.io")
 }
 
 tasks.wrapper {
@@ -351,6 +352,7 @@ allprojects {
     repositories {
         // RAT and Autostyle dependencies
         mavenCentral()
+        maven("https://jitpack.io")
     }
 
     val javaUsed = file("src/main/java").isDirectory
