@@ -1300,6 +1300,33 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           OperandTypes.INTEGER_INTEGER.or(OperandTypes.BINARY_BINARY));
 
   /**
+   * <code>^</code> operator.
+   */
+  public static final SqlBinaryOperator BITXOR_OPERATOR =
+      new SqlMonotonicBinaryOperator(
+          "^",
+          SqlKind.BITXOR,
+          50,        // Precedence between addition (40) and multiplication (60)
+          true,
+          ReturnTypes.LARGEST_INT_OR_FIRST_NON_NULL,  // Returns same type as inputs when nullable
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.INTEGER_INTEGER.or(OperandTypes.BINARY_BINARY));
+  // Both operands should support bitwise operations
+
+  /**
+   * <code><<</code> operator.
+   */
+  public static final SqlBinaryOperator LEFTSHIFT_OPERATOR =
+      new SqlBinaryOperator("<<",                           // Operator name
+          SqlKind.OTHER_FUNCTION,             // SqlKind
+          32,
+          true,
+          ReturnTypes.LARGEST_INT_OR_FIRST_NON_NULL,
+          null,
+          OperandTypes.family(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER));
+
+
+  /**
    * <code>BITNOT</code> scalar function.
    */
   public static final SqlFunction BITNOT =
