@@ -229,7 +229,7 @@ public class SqlParserPos implements Serializable {
             ? (List<SqlParserPos>) poses
             : Lists.newArrayList(poses);
     if (list.isEmpty()) {
-      throw new AssertionError();
+      return SqlParserPos.ZERO;
     }
     final SqlParserPos pos0 = list.get(0);
     if (list.size() == 1) {
