@@ -2111,6 +2111,14 @@ public class SqlParserTest {
             + "FROM `DEPT`))) AND (3 = 4))");
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6986">[CALCITE-6986]
+   * Parser rejects SQL sources that produce an empty statement list</a>. */
+  @Test public void testEmpty() {
+    sql("").list().ok();
+    sql(" ").list().ok();
+    sql("-- comment").list().ok();
+  }
+
   @Test void testUnique() {
     sql("select * from dept where unique (select 1 from emp where emp.deptno = dept.deptno)")
         .ok("SELECT *\n"
