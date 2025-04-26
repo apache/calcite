@@ -9979,6 +9979,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "/INT left\n" // checked
         + "|| left\n"
         + "\n"
+        + "^ left\n"
+        + "\n"
         + "+ left\n"
         + "+ left\n" // checked
         + "+ -\n"
@@ -9990,6 +9992,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "\n"
         + "< ALL left\n"
         + "< SOME left\n"
+        + "<< left\n"
         + "<= ALL left\n"
         + "<= SOME left\n"
         + "<> ALL left\n"
