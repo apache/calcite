@@ -156,15 +156,16 @@ class SqlOperatorFixtureImpl implements SqlOperatorFixture {
 
   @Override public void checkFails(StringAndPos sap, String expectedError,
       boolean runtime) {
-    final String sql = "values (" + sap.addCarets() + ")";
     if (runtime) {
       // We need to test that the expression fails at runtime.
       // Ironically, that means that it must succeed at prepare time.
+      final String sql = "values (" + sap.sql + ")";
       SqlValidator validator = factory.createValidator();
       SqlNode n = parseAndValidate(validator, sql);
       assertNotNull(n);
       tester.checkFails(factory, sap, expectedError, runtime);
     } else {
+      final String sql = "values (" + sap.addCarets() + ")";
       checkQueryFails(StringAndPos.of(sql),
           expectedError);
     }

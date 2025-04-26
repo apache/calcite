@@ -154,4 +154,22 @@ EXPR$0
 1
 !ok
 
+-- BITXOR with large unsigned values
+SELECT CAST(4294967295 AS INTEGER UNSIGNED) ^ CAST(255 AS INTEGER UNSIGNED);
+EXPR$0
+4294967040
+!ok
+
+-- BITXOR with NULL and unsigned value
+SELECT CAST(NULL AS INTEGER UNSIGNED) ^ CAST(1 AS INTEGER UNSIGNED);
+EXPR$0
+null
+!ok
+
+-- BITXOR with unsigned and NULL (opposite order)
+SELECT CAST(1 AS INTEGER UNSIGNED) ^ CAST(NULL AS INTEGER UNSIGNED);
+EXPR$0
+null
+!ok
+
 # End unsigned.iq
