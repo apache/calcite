@@ -18,6 +18,7 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
@@ -30,6 +31,7 @@ import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 import org.immutables.value.Value;
@@ -101,6 +103,9 @@ public class SortJoinTransposeRule
               mq, join.getRight(), joinInfo.rightSet())) {
         return false;
       }
+      if (alreadyPushedThrough(join.getLeft())) {
+        return false;
+      }
     } else if (join.getJoinType() == JoinRelType.RIGHT) {
       if (sort.getCollation() != RelCollations.EMPTY) {
         for (RelFieldCollation relFieldCollation
@@ -116,11 +121,24 @@ public class SortJoinTransposeRule
               mq, join.getLeft(), joinInfo.leftSet())) {
         return false;
       }
+      if (alreadyPushedThrough(join.getRight())) {
+        return false;
+      }
     } else {
       return false;
     }
 
     return true;
+  }
+
+  // Returns true if the sort has already been pushed through
+  private boolean alreadyPushedThrough(RelNode rel) {
+    if (!(rel instanceof HepRelVertex)) {
+      return false;
+    }
+    RelNode currentRel = ((HepRelVertex) rel).getCurrentRel();
+    return currentRel instanceof Sort
+        && ((Sort) currentRel).fetch instanceof RexDynamicParam;
   }
 
   @Override public void onMatch(RelOptRuleCall call) {

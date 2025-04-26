@@ -16662,6 +16662,116 @@ LogicalProject(DEPTNO=[$0], EMPNO=[$2])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testSortJoinTranspose8">
+    <Resource name="sql">
+      <![CDATA[SELECT t5.fn1, t8.m_fn
+FROM (
+     SELECT empno AS fn1 FROM emp WHERE job = ?
+     UNION SELECT empno FROM emp WHERE mgr = ?
+     UNION SELECT empno  FROM emp WHERE empno = ?
+) AS t5
+LEFT JOIN (
+    SELECT empno AS m_fn FROM (
+      SELECT empno, ename FROM emp WHERE EXISTS (
+        SELECT 1 FROM (
+          SELECT ename AS fn2 FROM emp
+        ) AS t7 WHERE ename = t7.fn2
+      )
+    ) AS t
+) AS t8 ON t5.fn1 = t8.m_fn
+FETCH NEXT ? ROWS ONLY]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(fetch=[?3])
+  LogicalProject(FN1=[$0], M_FN=[$1])
+    LogicalJoin(condition=[=($0, $1)], joinType=[left])
+      LogicalUnion(all=[false])
+        LogicalUnion(all=[false])
+          LogicalProject(FN1=[$0])
+            LogicalFilter(condition=[=($2, ?0)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalProject(EMPNO=[$0])
+            LogicalFilter(condition=[=($3, ?1)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalProject(EMPNO=[$0])
+          LogicalFilter(condition=[=($0, ?2)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(M_FN=[$0])
+        LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[=($cor0.ENAME, $0)])
+  LogicalProject(FN2=[$1])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})], variablesSet=[[$cor0]])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(FN1=[$0], M_FN=[$1])
+  LogicalSort(fetch=[?3])
+    LogicalJoin(condition=[=($0, $1)], joinType=[left])
+      LogicalSort(fetch=[?3])
+        LogicalUnion(all=[false])
+          LogicalUnion(all=[false])
+            LogicalProject(FN1=[$0])
+              LogicalFilter(condition=[=($2, ?0)])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+            LogicalProject(EMPNO=[$0])
+              LogicalFilter(condition=[=($3, ?1)])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalProject(EMPNO=[$0])
+            LogicalFilter(condition=[=($0, ?2)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(M_FN=[$0])
+        LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[=($cor0.ENAME, $0)])
+  LogicalProject(FN2=[$1])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})], variablesSet=[[$cor0]])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSortJoinTranspose9">
+    <Resource name="sql">
+      <![CDATA[SELECT x.empno1, y.empno2
+ FROM (
+  SELECT empno as empno1 from emp where job = ?
+ ) AS x
+ right join (
+  SELECT empno as empno2 from emp where mgr = ?
+ ) AS y on x.empno1 = y.empno2
+ FETCH NEXT ? ROWS ONLY]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(fetch=[?2])
+  LogicalProject(EMPNO1=[$0], EMPNO2=[$1])
+    LogicalJoin(condition=[=($0, $1)], joinType=[right])
+      LogicalProject(EMPNO1=[$0])
+        LogicalFilter(condition=[=($2, ?0)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(EMPNO2=[$0])
+        LogicalFilter(condition=[=($3, ?1)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO1=[$0], EMPNO2=[$1])
+  LogicalSort(fetch=[?2])
+    LogicalJoin(condition=[=($0, $1)], joinType=[right])
+      LogicalProject(EMPNO1=[$0])
+        LogicalFilter(condition=[=($2, ?0)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalSort(fetch=[?2])
+        LogicalProject(EMPNO2=[$0])
+          LogicalFilter(condition=[=($3, ?1)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testSortNotRemoveWhenIsOrderAndLimit">
     <Resource name="sql">
       <![CDATA[select * from

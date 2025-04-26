@@ -97,6 +97,7 @@ import org.apache.calcite.rel.rules.PushProjector;
 import org.apache.calcite.rel.rules.ReduceExpressionsRule;
 import org.apache.calcite.rel.rules.ReduceExpressionsRule.ProjectReduceExpressionsRule;
 import org.apache.calcite.rel.rules.SingleValuesOptimizationRules;
+import org.apache.calcite.rel.rules.SortJoinTransposeRule;
 import org.apache.calcite.rel.rules.SortProjectTransposeRule;
 import org.apache.calcite.rel.rules.SortUnionTransposeRule;
 import org.apache.calcite.rel.rules.SpatialRules;
@@ -7960,6 +7961,60 @@ class RelOptRulesTest extends RelOptTestBase {
         .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE)
         .withRule(CoreRules.SORT_JOIN_TRANSPOSE)
         .checkUnchanged();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6983">[CALCITE-6983]
+   * SortJoinTransposeRule should not push SORT past a UNION when SORT's fetch is DynamicParam
+   * </a>. */
+  @Test void testSortJoinTranspose8() {
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(SortProjectTransposeRule.class);
+    builder.addRuleClass(SortJoinTransposeRule.class);
+    builder.addRuleClass(SortUnionTransposeRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    hepPlanner.addRule(CoreRules.SORT_PROJECT_TRANSPOSE);
+    hepPlanner.addRule(CoreRules.SORT_JOIN_TRANSPOSE);
+    hepPlanner.addRule(CoreRules.SORT_UNION_TRANSPOSE);
+    final String sql = "SELECT t5.fn1, t8.m_fn\n"
+        + "FROM (\n"
+        + "     SELECT empno AS fn1 FROM emp WHERE job = ?\n"
+        + "     UNION SELECT empno FROM emp WHERE mgr = ?\n"
+        + "     UNION SELECT empno  FROM emp WHERE empno = ?\n"
+        + ") AS t5\n"
+        + "LEFT JOIN (\n"
+        + "    SELECT empno AS m_fn FROM (\n"
+        + "      SELECT empno, ename FROM emp WHERE EXISTS (\n"
+        + "        SELECT 1 FROM (\n"
+        + "          SELECT ename AS fn2 FROM emp\n"
+        + "        ) AS t7 WHERE ename = t7.fn2\n"
+        + "      )\n"
+        + "    ) AS t\n"
+        + ") AS t8 ON t5.fn1 = t8.m_fn\n"
+        + "FETCH NEXT ? ROWS ONLY";
+    sql(sql).withPlanner(hepPlanner).check();
+  }
+
+  /** Simplified the test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6983">[CALCITE-6983]
+   * SortJoinTransposeRule should not push SORT past a UNION when SORT's fetch is DynamicParam
+   * </a>, verifies SortJoinTransposeRule correctly handles a `RIGHT JOIN` scenario. */
+  @Test void testSortJoinTranspose9() {
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(SortProjectTransposeRule.class);
+    builder.addRuleClass(SortJoinTransposeRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    hepPlanner.addRule(CoreRules.SORT_PROJECT_TRANSPOSE);
+    hepPlanner.addRule(CoreRules.SORT_JOIN_TRANSPOSE);
+    final String sql = "SELECT x.empno1, y.empno2\n"
+        + " FROM (\n"
+        + "  SELECT empno as empno1 from emp where job = ?\n"
+        + " ) AS x\n"
+        + " right join (\n"
+        + "  SELECT empno as empno2 from emp where mgr = ?\n"
+        + " ) AS y on x.empno1 = y.empno2\n"
+        + " FETCH NEXT ? ROWS ONLY";
+    sql(sql).withPlanner(hepPlanner).check();
   }
 
   @Test void testSortProjectTranspose1() {
