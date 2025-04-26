@@ -76,6 +76,36 @@ select * from "scott".emp where not sal > 1300 and not sal < 1200;
 
 !ok
 
+# [CALCITE-6731] Add support for ^ operator in Calcite
+SELECT CAST(empno AS BIGINT) ^ CAST(deptno AS BIGINT) AS foo FROM "scott".emp LIMIT 5;
++------+
+| FOO  |
++------+
+| 7389 |
+| 7509 |
+| 7551 |
+| 7578 |
+| 7672 |
++------+
+(5 rows)
+
+!ok
+
+# [CALCITE-6731] Add support for ^ operator in Calcite
+SELECT CAST(empno AS BIGINT) ^ CAST(mgr AS INTEGER) AS foo FROM "scott".emp WHERE mgr IS NOT NULL LIMIT 5;
++------+
+| FOO  |
++------+
+| 1012 |
+|  535 |
+|  785 |
+|  857 |
+|  883 |
++------+
+(5 rows)
+
+!ok
+
 # [CALCITE-5531] COALESCE throws ClassCastException
 SELECT COALESCE(DATE '2021-07-08', DATE '2020-01-01') as d;
 +------------+
@@ -698,6 +728,56 @@ FOO BOOLEAN(1) NOT NULL
 +------+
 | true |
 +------+
+(1 row)
+
+!ok
+
+SELECT 2 ^ 3 AS foo;
++-----+
+| FOO |
++-----+
+|   1 |
++-----+
+(1 row)
+
+!ok
+
+SELECT 0 ^ 0 AS foo;
++-----+
+| FOO |
++-----+
+|   0 |
++-----+
+(1 row)
+
+!ok
+
+SELECT 1 ^ 1 AS foo;
++-----+
+| FOO |
++-----+
+|   0 |
++-----+
+(1 row)
+
+!ok
+
+SELECT 5 ^ 2 AS foo;
++-----+
+| FOO |
++-----+
+|   7 |
++-----+
+(1 row)
+
+!ok
+
+SELECT 255 ^ 128 AS foo;
++-----+
+| FOO |
++-----+
+| 127 |
++-----+
 (1 row)
 
 !ok

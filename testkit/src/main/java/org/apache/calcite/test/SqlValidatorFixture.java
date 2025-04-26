@@ -134,7 +134,7 @@ public class SqlValidatorFixture {
 
   public StringAndPos toSql(boolean withCaret) {
     return expression
-        ? StringAndPos.of(AbstractSqlTester.buildQuery(sap.addCarets()))
+        ? AbstractSqlTester.buildQueryWithPos(sap)
         : sap;
   }
 

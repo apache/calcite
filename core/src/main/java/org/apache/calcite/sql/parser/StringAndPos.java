@@ -105,8 +105,8 @@ public class StringAndPos {
   }
 
   public String addCarets() {
-    return pos == null ? sql
+    return pos == null ? SqlParserUtil.escapeCarets(sql)
         : SqlParserUtil.addCarets(sql, pos.getLineNum(), pos.getColumnNum(),
-        pos.getEndLineNum(), pos.getEndColumnNum() + 1);
+            pos.getEndLineNum(), pos.getEndColumnNum() + 1);
   }
 }
