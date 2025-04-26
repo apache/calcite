@@ -90,7 +90,7 @@ dependencies {
         apiv("net.hydromatic:foodmart-data-hsqldb")
         apiv("net.hydromatic:foodmart-data-json")
         apiv("net.hydromatic:foodmart-queries")
-        apiv("net.hydromatic:quidem")
+        apiv("com.github.xiedeyantu:quidem")
         apiv("net.hydromatic:scott-data-hsqldb")
         apiv("net.hydromatic:sql-logic-test")
         apiv("net.hydromatic:steelwheels-data-hsqldb")

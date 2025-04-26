@@ -547,6 +547,7 @@ allprojects {
                 mavenLocal()
             }
             mavenCentral()
+            maven("https://jitpack.io")
         }
         val sourceSets: SourceSetContainer by project
 

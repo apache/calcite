@@ -91,7 +91,7 @@ dependencies {
     testImplementation("commons-lang:commons-lang")
     testImplementation("net.bytebuddy:byte-buddy")
     testImplementation("net.hydromatic:foodmart-queries")
-    testImplementation("net.hydromatic:quidem")
+    testImplementation("com.github.xiedeyantu:quidem")
     testImplementation("org.apache.calcite.avatica:avatica-server")
     testImplementation("org.apache.commons:commons-pool2")
     testImplementation("org.hsqldb:hsqldb::jdk8")

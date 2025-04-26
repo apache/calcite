@@ -34,7 +34,7 @@ dependencies {
     compileOnly("org.immutables:value-annotations")
 
     testImplementation(project(":testkit"))
-    testImplementation("net.hydromatic:quidem")
+    testImplementation("com.github.xiedeyantu:quidem")
     testImplementation("net.hydromatic:scott-data-hsqldb")
     testImplementation("org.hsqldb:hsqldb::jdk8")
     testImplementation("org.incava:java-diff")

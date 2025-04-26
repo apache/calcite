@@ -24,7 +24,7 @@ dependencies {
 
     implementation(platform("org.junit:junit-bom"))
     implementation(kotlin("stdlib-jdk8"))
-    implementation("net.hydromatic:quidem")
+    implementation("com.github.xiedeyantu:quidem")
     implementation("net.hydromatic:foodmart-data-hsqldb")
     implementation("net.hydromatic:foodmart-queries")
     implementation("net.hydromatic:scott-data-hsqldb")

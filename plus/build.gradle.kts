@@ -17,7 +17,7 @@
 dependencies {
     api(project(":core"))
     api(project(":linq4j"))
-    api("net.hydromatic:quidem")
+    api("com.github.xiedeyantu:quidem")
     api("org.apache.calcite.avatica:avatica-core")
     api("org.checkerframework:checker-qual")
 
