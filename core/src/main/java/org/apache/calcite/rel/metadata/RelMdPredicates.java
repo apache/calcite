@@ -78,6 +78,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -194,15 +195,32 @@ public class RelMdPredicates
     final List<RexNode> projectPullUpPredicates = new ArrayList<>();
 
     ImmutableBitSet.Builder columnsMappedBuilder = ImmutableBitSet.builder();
+
+    LinkedList<Mapping> ms = new LinkedList<>();
     Mapping m =
         Mappings.create(MappingType.PARTIAL_FUNCTION,
             input.getRowType().getFieldCount(),
             project.getRowType().getFieldCount());
+    ms.add(m);
 
     for (Ord<RexNode> expr : Ord.zip(project.getProjects())) {
       if (expr.e instanceof RexInputRef) {
         int sIdx = ((RexInputRef) expr.e).getIndex();
-        m.set(sIdx, expr.i);
+        Mapping current = ms.getLast();
+        // When encountering identical source keys with different target values,
+        // the Mapping would normally overwrite the original target. To preserve
+        // all mapping relationships, a separate Mapping instance is created to
+        // handle such one-to-many correspondence cases.
+        if (current.getTargetOpt(sIdx) >= 0 && current.getTarget(sIdx) != expr.i) {
+            Mapping newM =
+                Mappings.create(MappingType.PARTIAL_FUNCTION,
+                input.getRowType().getFieldCount(),
+                project.getRowType().getFieldCount());
+          newM.set(sIdx, expr.i);
+          ms.add(newM);
+        } else {
+          current.set(sIdx, expr.i);
+        }
         columnsMappedBuilder.set(sIdx);
       } else if (RexUtil.isConstant(expr.e)) {
         // Project can also generate constants (including NULL). We need to
@@ -218,8 +236,10 @@ public class RelMdPredicates
     for (RexNode r : inputInfo.pulledUpPredicates) {
       RexNode r2 = projectPredicate(rexBuilder, input, r, columnsMapped);
       if (!r2.isAlwaysTrue()) {
-        r2 = r2.accept(new RexPermuteInputsShuttle(m, input));
-        projectPullUpPredicates.add(r2);
+        for (Mapping e : ms) {
+          r2 = r2.accept(new RexPermuteInputsShuttle(e, input));
+          projectPullUpPredicates.add(r2);
+        }
       }
     }
     return RelOptPredicateList.of(rexBuilder, projectPullUpPredicates);

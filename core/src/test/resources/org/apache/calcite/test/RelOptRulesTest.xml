@@ -10037,6 +10037,37 @@ LogicalProject(EXPR$0=[CAST(/(CASE(>($2, 0), $3, null:INTEGER), $2)):INTEGER])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testProjectPredicatePull">
+    <Resource name="sql">
+      <![CDATA[select e.ename, d.dname
+from (select ename, deptno from emp where deptno = 10) e
+join (select name dname, deptno, * from dept) d
+on e.deptno = d.deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(ENAME=[$0], DNAME=[$2])
+  LogicalJoin(condition=[=($1, $3)], joinType=[inner])
+    LogicalProject(ENAME=[$1], DEPTNO=[$7])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DNAME=[$1], DEPTNO=[$0], DEPTNO0=[$0], NAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(ENAME=[$0], DNAME=[$2])
+  LogicalJoin(condition=[=($1, $3)], joinType=[inner])
+    LogicalProject(ENAME=[$1], DEPTNO=[$7])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalFilter(condition=[=($1, 10)])
+      LogicalProject(DNAME=[$1], DEPTNO=[$0], DEPTNO0=[$0], NAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testProjectRemoveRule">
     <Resource name="planBefore">
       <![CDATA[

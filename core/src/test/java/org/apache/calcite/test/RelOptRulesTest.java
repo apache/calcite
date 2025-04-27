@@ -10447,4 +10447,17 @@ class RelOptRulesTest extends RelOptTestBase {
         .withRule(CoreRules.MINUS_TO_FILTER)
         .check();
   }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6432">[CALCITE-6432]
+   * Infinite loop for JoinPushTransitivePredicatesRule</a>. */
+  @Test void testProjectPredicatePull() {
+    final String sql = "select e.ename, d.dname\n"
+        + "from (select ename, deptno from emp where deptno = 10) e\n"
+        + "join (select name dname, deptno, * from dept) d\n"
+        + "on e.deptno = d.deptno";
+    sql(sql).withPreRule(CoreRules.FILTER_PROJECT_TRANSPOSE)
+        .withRule(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES)
+        .check();
+  }
 }
