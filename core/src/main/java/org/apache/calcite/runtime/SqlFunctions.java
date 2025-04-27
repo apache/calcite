@@ -3238,6 +3238,10 @@ public class SqlFunctions {
     return a << b;
   }
 
+  public static long leftShift(Long a, Long b) {
+    return a << b;
+  }
+
   /**
    * Utility for bitwise function applied to two byteString values.
    *
