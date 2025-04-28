@@ -20,7 +20,9 @@
 
 # The following line is used to update the default planner rules.
 # "+" means add a rule, "-" means remove a rule. Only the "CoreRules." can be omitted.
-!set planner-rules "-INTERSECT_TO_DISTINCT,-EnumerableRules.ENUMERABLE_INTERSECT_RULE,+CoreRules.INTERSECT_TO_SEMI_JOIN"
+!set planner-rules "-INTERSECT_TO_DISTINCT,
+  -EnumerableRules.ENUMERABLE_INTERSECT_RULE,
+  +CoreRules.INTERSECT_TO_SEMI_JOIN"
 
 # Test INTERSECT_TO_SEMI_JOIN
 with t (i) as (values (0), (1))
