@@ -1300,7 +1300,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           OperandTypes.INTEGER_INTEGER.or(OperandTypes.BINARY_BINARY));
 
   /**
-   * <code>^</code> operator.
+   * <code>{@code ^}</code> operator.
    */
   public static final SqlBinaryOperator BITXOR_OPERATOR =
       new SqlMonotonicBinaryOperator(
@@ -1314,7 +1314,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   // Both operands should support bitwise operations
 
   /**
-   * <code><<</code> operator.
+   * <code>{@code <<}</code> operator.
    */
   public static final SqlBinaryOperator LEFTSHIFT_OPERATOR =
       new SqlBinaryOperator("<<",                           // Operator name
