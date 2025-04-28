@@ -7962,6 +7962,38 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6983">[CALCITE-6983]
+   * SortJoinTransposeRule should not push SORT past a JOIN when SORT's fetch is DynamicParam
+   * </a>. */
+  @Test void testSortJoinTranspose8() {
+    final String sql = "select * from sales.emp e right join (\n"
+        + "  select * from sales.dept d) d on e.deptno = d.deptno\n"
+        + "FETCH NEXT ? ROWS ONLY";
+    sql(sql)
+        .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE,
+            CoreRules.SORT_JOIN_TRANSPOSE,
+            CoreRules.SORT_PROJECT_TRANSPOSE)
+        .withRule(CoreRules.SORT_JOIN_TRANSPOSE)
+        .checkUnchanged();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6983">[CALCITE-6983]
+   * SortJoinTransposeRule should not push SORT past a JOIN when SORT's fetch is DynamicParam
+   * </a>. */
+  @Test void testSortJoinTranspose9() {
+    final String sql = "select * from sales.emp e left join (\n"
+        + "  select * from sales.dept d) d on e.deptno = d.deptno\n"
+        + "OFFSET ? ROWS";
+    sql(sql)
+        .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE,
+            CoreRules.SORT_JOIN_TRANSPOSE,
+            CoreRules.SORT_PROJECT_TRANSPOSE)
+        .withRule(CoreRules.SORT_JOIN_TRANSPOSE)
+        .checkUnchanged();
+  }
+
   @Test void testSortProjectTranspose1() {
     // This one can be pushed down
     final String sql = "select d.deptno from sales.dept d\n"

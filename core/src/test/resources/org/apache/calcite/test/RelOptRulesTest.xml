@@ -16662,6 +16662,40 @@ LogicalProject(DEPTNO=[$0], EMPNO=[$2])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testSortJoinTranspose8">
+    <Resource name="sql">
+      <![CDATA[select * from sales.emp e right join (
+  select * from sales.dept d) d on e.deptno = d.deptno
+FETCH NEXT ? ROWS ONLY]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  LogicalSort(fetch=[?0])
+    LogicalJoin(condition=[=($7, $9)], joinType=[right])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(DEPTNO=[$0], NAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSortJoinTranspose9">
+    <Resource name="sql">
+      <![CDATA[select * from sales.emp e left join (
+  select * from sales.dept d) d on e.deptno = d.deptno
+OFFSET ? ROWS]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  LogicalSort(offset=[?0])
+    LogicalJoin(condition=[=($7, $9)], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(DEPTNO=[$0], NAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testSortNotRemoveWhenIsOrderAndLimit">
     <Resource name="sql">
       <![CDATA[select * from
