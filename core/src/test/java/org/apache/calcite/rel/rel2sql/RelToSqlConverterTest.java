@@ -64,6 +64,7 @@ import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.dialect.BigQuerySqlDialect;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.dialect.ClickHouseSqlDialect;
+import org.apache.calcite.sql.dialect.DuckDBSqlDialect;
 import org.apache.calcite.sql.dialect.HiveSqlDialect;
 import org.apache.calcite.sql.dialect.JethroDataSqlDialect;
 import org.apache.calcite.sql.dialect.MssqlSqlDialect;
@@ -5361,52 +5362,92 @@ class RelToSqlConverterTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6949">[CALCITE-6949]
-   * ClickHouse not support floor date to SECOND/MILLISECOND/MICROSECOND/NANOSECOND</a>. */
-  @Test void testFloorClickHouse() {
+   * ClickHouse not support floor date to SECOND/MILLISECOND/MICROSECOND/NANOSECOND</a>,
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6988">[CALCITE-6988]
+   * DuckDB dialect implementation</a>.
+   * */
+  @Test void testFloorFunction() {
     String query = "SELECT floor(\"hire_date\" TO YEAR) FROM \"employee\"";
     String expectedClickHouse = "SELECT toStartOfYear(`hire_date`)\n"
         + "FROM `foodmart`.`employee`";
-    sql(query).withClickHouse().ok(expectedClickHouse);
+    String expectedDuckDB = "SELECT DATETRUNC('year', \"hire_date\")\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query)
+        .withClickHouse().ok(expectedClickHouse)
+        .withDuckDB().ok(expectedDuckDB);
+
 
     String query1 = "SELECT floor(\"hire_date\" TO MONTH) FROM \"employee\"";
     String expectedClickHouse1 = "SELECT toStartOfMonth(`hire_date`)\n"
         + "FROM `foodmart`.`employee`";
-    sql(query1).withClickHouse().ok(expectedClickHouse1);
+    String expectedDuckDB1 = "SELECT DATETRUNC('month', \"hire_date\")\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query1)
+        .withClickHouse().ok(expectedClickHouse1)
+        .withDuckDB().ok(expectedDuckDB1);
 
     String query2 = "SELECT floor(\"hire_date\" TO WEEK) FROM \"employee\"";
     String expectedClickHouse2 = "SELECT toMonday(`hire_date`)\n"
         + "FROM `foodmart`.`employee`";
-    sql(query2).withClickHouse().ok(expectedClickHouse2);
+    String expectedDuckDB2 = "SELECT DATETRUNC('week', \"hire_date\")\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query2)
+        .withClickHouse().ok(expectedClickHouse2)
+        .withDuckDB().ok(expectedDuckDB2);
 
     String query3 = "SELECT floor(\"hire_date\" TO DAY) FROM \"employee\"";
     String expectedClickHouse3 = "SELECT toDate(`hire_date`)\n"
         + "FROM `foodmart`.`employee`";
-    sql(query3).withClickHouse().ok(expectedClickHouse3);
+    String expectedDuckDB3 = "SELECT DATETRUNC('day', \"hire_date\")\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query3)
+        .withClickHouse().ok(expectedClickHouse3)
+        .withDuckDB().ok(expectedDuckDB3);
 
     String query4 = "SELECT floor(\"hire_date\" TO HOUR) FROM \"employee\"";
     String expectedClickHouse4 = "SELECT toStartOfHour(`hire_date`)\n"
         + "FROM `foodmart`.`employee`";
-    sql(query4).withClickHouse().ok(expectedClickHouse4);
+    String expectedDuckDB4 = "SELECT DATETRUNC('hour', \"hire_date\")\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query4)
+        .withClickHouse().ok(expectedClickHouse4)
+        .withDuckDB().ok(expectedDuckDB4);
 
     String query5 = "SELECT floor(\"hire_date\" TO MINUTE) FROM \"employee\"";
     String expectedClickHouse5 = "SELECT toStartOfMinute(`hire_date`)\n"
         + "FROM `foodmart`.`employee`";
-    sql(query5).withClickHouse().ok(expectedClickHouse5);
+    String expectedDuckDB5 = "SELECT DATETRUNC('minute', \"hire_date\")\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query5)
+        .withClickHouse().ok(expectedClickHouse5)
+        .withDuckDB().ok(expectedDuckDB5);
 
     String query6 = "SELECT floor(\"hire_date\" TO SECOND) FROM \"employee\"";
     String expectedClickHouse6 = "SELECT toStartOfSecond(`hire_date`)\n"
         + "FROM `foodmart`.`employee`";
-    sql(query6).withClickHouse().ok(expectedClickHouse6);
+    String expectedDuckDB6 = "SELECT DATETRUNC('second', \"hire_date\")\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query6)
+        .withClickHouse().ok(expectedClickHouse6)
+        .withDuckDB().ok(expectedDuckDB6);
 
     String query7 = "SELECT floor(\"hire_date\" TO MILLISECOND) FROM \"employee\"";
     String expectedClickHouse7 = "SELECT toStartOfMillisecond(`hire_date`)\n"
         + "FROM `foodmart`.`employee`";
-    sql(query7).withClickHouse().ok(expectedClickHouse7);
+    String expectedDuckDB7 = "SELECT DATETRUNC('milliseconds', \"hire_date\")\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query7)
+        .withClickHouse().ok(expectedClickHouse7)
+        .withDuckDB().ok(expectedDuckDB7);
 
     String query8 = "SELECT floor(\"hire_date\" TO MICROSECOND) FROM \"employee\"";
     String expectedClickHouse8 = "SELECT toStartOfMicrosecond(`hire_date`)\n"
         + "FROM `foodmart`.`employee`";
-    sql(query8).withClickHouse().ok(expectedClickHouse8);
+    String expectedDuckDB8 = "SELECT DATETRUNC('microseconds', \"hire_date\")\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query8)
+        .withClickHouse().ok(expectedClickHouse8)
+        .withDuckDB().ok(expectedDuckDB8);
 
     String query9 = "SELECT floor(\"hire_date\" TO NANOSECOND) FROM \"employee\"";
     String expectedClickHouse9 = "SELECT toStartOfNanosecond(`hire_date`)\n"
@@ -5956,6 +5997,18 @@ class RelToSqlConverterTest {
     final String expected = "SELECT 1.23000000000000000000";
     sql(sql).withClickHouseModifiedDecimalTypeSystem()
         .ok(expected);
+  }
+
+  @Test void testDuckDBDecimalPrecision() {
+    final String sql = "SELECT CAST(1.23 AS DECIMAL(38, 37))";
+    final String expected = "SELECT 1.2300000000000000000000000000000000000";
+    sql(sql).withDuckDBModifiedDecimalTypeSystem()
+        .ok(expected);
+
+    final String sql1 = "SELECT CAST('1.23000000000000000123' AS DECIMAL(38, 20))";
+    final String expected1 = "SELECT 1.23000000000000000123";
+    sql(sql1).withDuckDBModifiedDecimalTypeSystem()
+        .ok(expected1);
   }
 
   /** Test for <a href="https://issues.apache.org/jira/browse/CALCITE-6974">[CALCITE-6974]
@@ -7842,9 +7895,11 @@ class RelToSqlConverterTest {
     // since it seems to be used across more dialects.
     final String expectedSnowflake = "SELECT LENGTH(\"brand_name\")\n"
         + "FROM \"foodmart\".\"product\"";
+    final String expectedDuckDB = expectedSnowflake;
     Sql sql = sql(query).withLibrary(SqlLibrary.BIG_QUERY);
     sql.withBigQuery().ok(expectedBigQuery);
     sql.withSnowflake().ok(expectedSnowflake);
+    sql.withDuckDB().ok(expectedDuckDB);
   }
 
   /** Test case for
@@ -8421,6 +8476,8 @@ class RelToSqlConverterTest {
     final String expectedClickhouse = "SELECT UNIQ(`product_id`)\n"
         + "FROM `foodmart`.`product`";
     final String expectedHive = "SELECT COUNT(DISTINCT `product_id`)\nFROM `foodmart`.`product`";
+    final String expectedDuckDB = "SELECT APPROX_COUNT_DISTINCT(\"product_id\")\n"
+        + "FROM \"foodmart\".\"product\"";
 
     sql(query).ok(expectedExact)
         .withHive().ok(expectedHive)
@@ -8433,7 +8490,8 @@ class RelToSqlConverterTest {
         .withStarRocks().ok(expectedStarRocksSql)
         .withMssql().ok(expectedMssql)
         .withPhoenix().ok(expectedPhoenix)
-        .withClickHouse().ok(expectedClickhouse);
+        .withClickHouse().ok(expectedClickhouse)
+        .withDuckDB().ok(expectedDuckDB);
   }
 
   @Test void testRowValueExpression() {
@@ -9329,6 +9387,7 @@ class RelToSqlConverterTest {
     final String expectedHive = "SELECT MAP ('k1', 'v1', 'k2', 'v2')";
     final String expectedDoris = "SELECT MAP ('k1', 'v1', 'k2', 'v2')";
     final String expectedClickHouse = "SELECT map('k1', 'v1', 'k2', 'v2')";
+    final String expectedDuckDB = "SELECT MAP { 'k1' : 'v1', 'k2' : 'v2' }";
     sql(query)
         .withPresto().ok(expectedPresto)
         .withTrino().ok(expectedTrino)
@@ -9336,7 +9395,8 @@ class RelToSqlConverterTest {
         .withDoris().ok(expectedDoris)
         .withSpark().ok(expectedSpark)
         .withHive().ok(expectedHive)
-        .withClickHouse().ok(expectedClickHouse);
+        .withClickHouse().ok(expectedClickHouse)
+        .withDuckDB().ok(expectedDuckDB);
   }
 
   @Test void testMapValueConstructorWithArray() {
@@ -9946,6 +10006,10 @@ class RelToSqlConverterTest {
       return dialect(DatabaseProduct.CLICKHOUSE.getDialect());
     }
 
+    Sql withDuckDB() {
+      return dialect(DatabaseProduct.DUCKDB.getDialect());
+    }
+
     Sql withDerby() {
       return dialect(DatabaseProduct.DERBY.getDialect());
     }
@@ -10120,6 +10184,12 @@ class RelToSqlConverterTest {
       final ClickHouseSqlDialect clickHouseSqlDialect =
           new ClickHouseSqlDialect(ClickHouseSqlDialect.DEFAULT_CONTEXT);
       return dialect(clickHouseSqlDialect);
+    }
+
+    Sql withDuckDBModifiedDecimalTypeSystem() {
+      final DuckDBSqlDialect duckDBSqlDialect =
+          new DuckDBSqlDialect(DuckDBSqlDialect.DEFAULT_CONTEXT);
+      return dialect(duckDBSqlDialect);
     }
 
     Sql withPrestoModifiedDecimalTypeSystem() {
