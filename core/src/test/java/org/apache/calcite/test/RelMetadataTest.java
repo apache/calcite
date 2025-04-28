@@ -160,6 +160,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.hasToString;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -2704,6 +2705,24 @@ public class RelMetadataTest {
         nullValue());
     assertThat(mq.isPhaseTransition(aggregate), is(false));
     assertThat(mq.splitCount(aggregate), is(1));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6594">[CALCITE-6594]
+   * RelMdSize does not handle ARRAY constructor calls</a>. */
+  @Test void testSizeArrayConstructor() {
+    checkSizeArrayConstructor("SELECT ARRAY[1, 2, 3, 4]", 16d);
+    checkSizeArrayConstructor("SELECT ARRAY[true, false]", 2d);
+    checkSizeArrayConstructor("SELECT ARRAY[CAST(3.14 AS DOUBLE)]", 8d);
+  }
+
+  private void checkSizeArrayConstructor(String query, double expected) {
+    final RelNode rel = sql(query).toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    final List<@Nullable Double> averageColumnSizes = mq.getAverageColumnSizes(rel);
+    assertNotNull(averageColumnSizes);
+    assertThat(averageColumnSizes, hasSize(1));
+    assertThat(averageColumnSizes.get(0), is(expected));
   }
 
   /** Unit test for
