@@ -249,6 +249,9 @@ public enum SqlKind {
   /** {@code WITHIN DISTINCT} operator. */
   WITHIN_DISTINCT,
 
+  /** {@code RANGE_SESSIONIZE} operator. */
+  RANGE_SESSIONIZE,
+
   /** Window specification. */
   WINDOW,
 

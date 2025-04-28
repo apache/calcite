@@ -83,12 +83,7 @@ import org.apache.calcite.sql.dialect.HiveSqlDialect;
 import org.apache.calcite.sql.dialect.JethroDataSqlDialect;
 import org.apache.calcite.sql.dialect.MssqlSqlDialect;
 import org.apache.calcite.sql.dialect.MysqlSqlDialect;
-import org.apache.calcite.sql.fun.SqlAddMonths;
-import org.apache.calcite.sql.fun.SqlLibrary;
-import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
-import org.apache.calcite.sql.fun.SqlLibraryOperators;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.fun.TeradataStrtokSplitToTableFunction;
+import org.apache.calcite.sql.fun.*;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
@@ -10646,6 +10641,33 @@ class RelToSqlConverterDMTest {
         + "RETURNS(OUTKEY INTEGER, TOKENNUM INTEGER, TOKEN VARCHAR))";
 
     assertThat(toSql(root, DatabaseProduct.TERADATA.getDialect()), isLinux(expectedTDQuery));
+  }
+
+  @Test public void testBQSessionizeTableFunction() {
+    final RelBuilder builder = foodmartRelBuilder();
+    final RelNode subQueryNode = builder
+        .scan("employee")
+        .project(builder.field("department_id"),
+            builder.alias(builder.call(PERIOD_CONSTRUCTOR, builder.field("hire_date"),
+                builder.field("end_date")), "period_col"))
+        .build();
+    final Map<String, RelDataType> columnDefinition = new HashMap<>();
+    subQueryNode.getRowType().getFieldList().forEach(col ->
+        columnDefinition.put(col.getName(), col.getType())
+    );
+    final RelNode root = builder
+        .push(subQueryNode)
+        .functionScan(new BQRangeSessionizeTableFunction(columnDefinition), 1,
+            builder.literal("period_col"),
+            builder.call(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+                builder.literal("department_id")))
+        .build();
+
+    final String expectedTDQuery = "SELECT *\n"
+        + "FROM RANGE_SESSIONIZE((SELECT department_id, RANGE(hire_date, end_date) AS period_col\n"
+        + "FROM foodmart.employee), 'period_col', ARRAY['department_id'])";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedTDQuery));
   }
 
   @Test public void testSimpleStrtokFunction() {

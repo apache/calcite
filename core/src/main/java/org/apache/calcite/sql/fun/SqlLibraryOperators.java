@@ -591,6 +591,14 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.STRING);
 
+  /** The "REGEXP_EXTRACT_ALL(value, regexp)" function.
+   * Returns the substring in value that matches the regexp. Returns NULL if there is no match. */
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlBasicFunction NORMALIZE =
+      SqlBasicFunction.create("NORMALIZE", ReturnTypes.CURSOR,
+          OperandTypes.VARIADIC,
+          SqlFunctionCategory.SYSTEM);
+
   /** The "REGEXP_REPLACE(value, regexp, rep [, pos [, occurrence [, matchType]]])"
    * function. Replaces all substrings of value that match regexp with
    * {@code rep} and returns modified value. */
