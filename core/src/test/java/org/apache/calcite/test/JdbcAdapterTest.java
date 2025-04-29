@@ -1357,6 +1357,27 @@ class JdbcAdapterTest {
 
   /**
    * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6995">[CALCITE-6995]
+   * Support FULL JOIN in StarRocks/Doris Dialect</a>. */
+  @Test void testFullJoinSupportedDialect() {
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL)
+        .enable(CalciteAssert.DB != CalciteAssert.DatabaseInstance.H2
+            && CalciteAssert.DB != CalciteAssert.DatabaseInstance.MYSQL)
+        .query("select empno, ename, e.deptno, dname\n"
+            + "from scott.emp e full join scott.dept d\n"
+            + "on e.deptno = d.deptno")
+        .explainContains("PLAN=JdbcToEnumerableConverter\n"
+            + "  JdbcProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$2], DNAME=[$4])\n"
+            + "    JdbcJoin(condition=[=($2, $3)], joinType=[full])\n"
+            + "      JdbcProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7])\n"
+            + "        JdbcTableScan(table=[[SCOTT, EMP]])\n"
+            + "      JdbcProject(DEPTNO=[$0], DNAME=[$1])\n"
+            + "        JdbcTableScan(table=[[SCOTT, DEPT]])\n\n")
+        .runs();
+  }
+
+  /**
+   * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5243">[CALCITE-5243]
    * "SELECT NULL AS C causes NoSuchMethodException: java.sql.ResultSet.getVoid(int)</a>. */
   @Test void testNullSelect() {
