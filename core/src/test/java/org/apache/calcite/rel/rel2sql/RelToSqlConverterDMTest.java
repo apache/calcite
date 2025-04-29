@@ -2770,6 +2770,21 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedPostgres));
   }
 
+  @Test public void testArrayLastIndexFunction() {
+    final RelBuilder builder = relBuilder();
+    RexNode array =
+        builder.call(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+            builder.literal(0), builder.literal(1), builder.literal(2));
+    RexNode arrayStartIndexCall =
+        builder.call(SqlLibraryOperators.ARRAY_LAST_INDEX, array);
+    RelNode root = builder
+        .push(LogicalValues.createOneRow(builder.getCluster()))
+        .project(arrayStartIndexCall)
+        .build();
+    final String expectedPostgres = "SELECT ARRAY_LAST_INDEX(ARRAY[0, 1, 2]) AS \"$f0\"";
+    assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedPostgres));
+  }
+
   @Test public void testHostFunction() {
     final RelBuilder builder = relBuilder();
     RexNode hostCall = builder.call(SqlLibraryOperators.HOST, builder.literal("127.0.0.1"));
