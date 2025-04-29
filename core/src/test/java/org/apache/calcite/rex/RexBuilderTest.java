@@ -960,7 +960,12 @@ class RexBuilderTest {
     assertThat(inCall.getKind(), is(SqlKind.SEARCH));
   }
 
-  @Test void testMakeInWithArrayLiterals() {
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6989">[CALCITE-6989]
+   * Enhance RexBuilder#makeIn to create SEARCH for ARRAY literals</a>.
+   */
+  @Test void testMakeInReturnsSearchForArrayLiterals() {
     RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     RexBuilder rexBuilder = new RexBuilder(typeFactory);
     RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
