@@ -8270,7 +8270,7 @@ class RelToSqlConverterTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6982">[CALCITE-6982]
-   * Removes cast from string also support with IS_NULL/IS_NOT_NULL</a>. */
+   * Removes cast from string support with IS_NULL/IS_NOT_NULL</a>. */
   @Test void testRemoveCastStringInForceConversion() {
     final String query = "select \"employee_id\" "
         + "from \"foodmart\".\"employee\" "
