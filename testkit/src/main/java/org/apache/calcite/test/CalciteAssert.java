@@ -160,6 +160,10 @@ public class CalciteAssert {
   public static final DatabaseInstance DB =
       DatabaseInstance.valueOf(CalciteSystemProperty.TEST_DB.value());
 
+  private static String testMysqlUrl = "jdbc:mysql://localhost/foodmart";
+
+  private static String testMysqlDriver = "com.mysql.jdbc.Driver";
+
   /** Implementation of {@link AssertThat} that does nothing. */
   private static final AssertThat DISABLED =
       new AssertThat(ConnectionFactories.empty(), ImmutableList.of()) {
@@ -2035,8 +2039,14 @@ public class CalciteAssert {
             + "/h2/target/foodmart;user=foodmart;password=foodmart",
             "foodmart", "foodmart", "org.h2.Driver", "foodmart"), null, null),
     MYSQL(
-        new ConnectionSpec("jdbc:mysql://localhost/foodmart", "foodmart",
-            "foodmart", "com.mysql.jdbc.Driver", "foodmart"), null, null),
+        new ConnectionSpec(testMysqlUrl, "foodmart",
+            "foodmart", testMysqlDriver, "foodmart"), null, null),
+    STARROCKS(
+        new ConnectionSpec(testMysqlUrl, "foodmart",
+            "foodmart", testMysqlDriver, "foodmart"), null, null),
+    DORIS(
+        new ConnectionSpec(testMysqlUrl, "foodmart",
+            "foodmart", testMysqlDriver, "foodmart"), null, null),
     ORACLE(
         new ConnectionSpec("jdbc:oracle:thin:@localhost:1521:XE", "foodmart",
             "foodmart", "oracle.jdbc.OracleDriver", "FOODMART"), null, null),

@@ -18,6 +18,7 @@ package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
@@ -41,10 +42,6 @@ import org.apache.calcite.sql.type.SqlTypeName;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_FALSE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_FALSE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_TRUE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_TRUE;
 import static org.apache.calcite.util.RelToSqlConverterUtil.unparseHiveTrim;
 
 /**
@@ -99,6 +96,10 @@ public class StarRocksSqlDialect extends MysqlSqlDialect {
   }
 
   @Override public boolean supportsApproxCountDistinct() {
+    return true;
+  }
+
+  @Override public boolean supportsJoinType(JoinRelType joinType) {
     return true;
   }
 
