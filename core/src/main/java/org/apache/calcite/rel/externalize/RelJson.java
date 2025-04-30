@@ -98,6 +98,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import static org.apache.calcite.rel.RelDistributions.EMPTY;
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -495,6 +496,8 @@ public class RelJson {
       return toJson((Range) value);
     } else if (value instanceof ByteString) {
       return toJson(((ByteString) value).toString(16));
+    } else if (value instanceof UUID) {
+      return toJson(value.toString());
     } else {
       throw new UnsupportedOperationException("type not serializable as JSON: "
           + value + " (type " + value.getClass().getCanonicalName() + ")");
@@ -834,6 +837,8 @@ public class RelJson {
           }
         } else if (sqlTypeName == SqlTypeName.BINARY || sqlTypeName == SqlTypeName.VARBINARY) {
           literal = ByteString.of((String) literal, 16);
+        } else if (sqlTypeName == SqlTypeName.UUID) {
+          literal = UUID.fromString((String) literal);
         }
         return rexBuilder.makeLiteral(literal, type);
       }
