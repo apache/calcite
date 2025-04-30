@@ -362,6 +362,18 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     }
 
     switch (targetType.getSqlTypeName()) {
+    case ARRAY:
+      final RelDataType sourceDataType = sourceType.getComponentType();
+      final RelDataType targetDataType = targetType.getComponentType();
+      assert sourceDataType != null;
+      assert targetDataType != null;
+      final ParameterExpression parameter =
+          Expressions.parameter(typeFactory.getJavaClass(sourceDataType), "root");
+      Expression convert =
+          getConvertExpression(sourceDataType, targetDataType, parameter, format);
+      return Expressions.call(BuiltInMethod.LIST_TRANSFORM.method, operand,
+          Expressions.lambda(Function1.class, convert, parameter));
+
     case VARIANT:
       // Converting any type to a VARIANT invokes the Variant constructor
       Expression rtti = RuntimeTypeInformation.createExpression(sourceType);

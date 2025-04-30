@@ -375,6 +375,7 @@ public enum BuiltInMethod {
   LIST_CONTAINS(List.class, "contains", Object.class),
   LIST_GET(List.class, "get", int.class),
   LIST_TO_ARRAY(List.class, "toArray"),
+  LIST_TRANSFORM(SqlFunctions.class, "transform", List.class, Function1.class),
   ITERATOR_HAS_NEXT(Iterator.class, "hasNext"),
   ITERATOR_NEXT(Iterator.class, "next"),
   MATH_MAX(Math.class, "max", int.class, int.class),
