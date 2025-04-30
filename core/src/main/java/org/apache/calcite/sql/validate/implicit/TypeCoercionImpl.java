@@ -383,11 +383,12 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
   }
 
   /**
-   * CASE and COALESCE type coercion, collect all the branches types including then
+   * CASE WHEN type coercion, collect all the branches types including then
    * operands and else operands to find a common type, then cast the operands to the common type
    * when needed.
    */
-  @Override public boolean caseWhenCoercion(SqlCallBinding callBinding) {
+  @SuppressWarnings("deprecation")
+  public boolean caseWhenCoercion(SqlCallBinding callBinding) {
     // For sql statement like:
     // `case when ... then (a, b, c) when ... then (d, e, f) else (g, h, i)`
     // an exception throws when entering this method.
@@ -418,6 +419,40 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
             || coerced;
       }
       return coerced;
+    }
+    return false;
+  }
+
+  /**
+   * Coerces CASE WHEN and COALESCE statement branches to a unified type.
+   * NULLIF returns the same type as the first operand without return type coercion.
+   */
+  @Override public boolean caseOrEquivalentCoercion(SqlCallBinding callBinding) {
+    if (callBinding.getCall().getKind() == SqlKind.COALESCE) {
+      // For sql statement like: `coalesce(a, b, c)`
+      return coalesceCoercion(callBinding);
+    } else if (callBinding.getCall().getKind() == SqlKind.NULLIF) {
+      // For sql statement like: `nullif(a, b)`
+      return false;
+    } else {
+      assert callBinding.getCall() instanceof SqlCase;
+      return caseWhenCoercion(callBinding);
+    }
+  }
+
+  /**
+   * COALESCE type coercion, collect all the branches types to find a common type,
+   * then cast the operands to the common type when needed.
+   */
+  private boolean coalesceCoercion(SqlCallBinding callBinding) {
+    List<RelDataType> argTypes = new ArrayList<>();
+    SqlValidatorScope scope = getScope(callBinding);
+    for (SqlNode node : callBinding.operands()) {
+      argTypes.add(validator.deriveType(scope, node));
+    }
+    RelDataType widerType = getWiderTypeFor(argTypes, true);
+    if (null != widerType) {
+      return coerceOperandsType(scope, callBinding.getCall(), widerType);
     }
     return false;
   }

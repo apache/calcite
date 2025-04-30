@@ -704,6 +704,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("DECIMAL(5, 2)");
     expr("nullif(345.21, 2e0)")
         .columnType("DECIMAL(5, 2)");
+    expr("nullif(DATE '2020-01-01', '2020-01-01')")
+        .columnType("DATE");
+    expr("nullif('2020-01-01', DATE '2020-01-01')")
+        .columnType("CHAR(10)");
+    expr("nullif(DATE '2020-01-01', '2020-01-01')")
+        .withValidatorConfig(c -> c.withCallRewrite(false))
+        .columnType("DATE");
+    expr("nullif('2020-01-01', DATE '2020-01-01')")
+        .withValidatorConfig(c -> c.withCallRewrite(false))
+        .columnType("CHAR(10)");
     wholeExpr("nullif(1,2,3)")
         .fails("Invalid number of arguments to function 'NULLIF'. Was "
             + "expecting 2 arguments");
@@ -713,7 +723,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("coalesce('a','b')").ok();
     expr("coalesce('a','b','c')")
         .columnType("CHAR(1) NOT NULL");
-
+    expr("COALESCE(DATE '2020-01-01', '2020-01-02')")
+        .columnType("VARCHAR NOT NULL");
+    expr("COALESCE(DATE '2020-01-01', '2020-01-02')")
+        .withValidatorConfig(c -> c.withCallRewrite(false))
+        .columnType("VARCHAR NOT NULL");
     sql("select COALESCE(mgr, 12) as m from EMP")
         .columnType("INTEGER NOT NULL");
   }
