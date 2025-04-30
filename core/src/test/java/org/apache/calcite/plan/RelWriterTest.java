@@ -99,6 +99,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -603,6 +604,50 @@ class RelWriterTest {
         .assertThatJson(isLinux(BINARY_LITERAL));
   }
 
+  static final String UUID_LITERAL = "{\n"
+      + "  \"rels\": [\n"
+      + "    {\n"
+      + "      \"id\": \"0\",\n"
+      + "      \"relOp\": \"LogicalValues\",\n"
+      + "      \"type\": [\n"
+      + "        {\n"
+      + "          \"type\": \"UUID\",\n"
+      + "          \"nullable\": false,\n"
+      + "          \"name\": \"$f0\"\n"
+      + "        }\n"
+      + "      ],\n"
+      + "      \"tuples\": [\n"
+      + "        [\n"
+      + "          {\n"
+      + "            \"literal\": \"123e4567-e89b-12d3-a456-426655440000\",\n"
+      + "            \"type\": {\n"
+      + "              \"type\": \"UUID\",\n"
+      + "              \"nullable\": false\n"
+      + "            }\n"
+      + "          }\n"
+      + "        ]\n"
+      + "      ],\n"
+      + "      \"inputs\": []\n"
+      + "    }\n"
+      + "  ]\n"
+      + "}";
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6992">
+   * [CALCITE 6992] RelJson cannot serialize UUID literals</a>. */
+  @Test void testUuid() {
+    final Function<RelBuilder, RelNode> relFn = b -> {
+      RelDataType rowType = b.getTypeFactory().builder()
+          .add("a", SqlTypeName.INTEGER)
+          .build();
+      return b.values(rowType, 0).project(
+          b.getRexBuilder().makeUuidLiteral(
+              UUID.fromString("123e4567-e89b-12d3-a456-426655440000")))
+          .build();
+    };
+    relFn(relFn)
+        .assertThatJson(isLinux(UUID_LITERAL));
+  }
+
   /**
    * Unit test for {@link org.apache.calcite.rel.externalize.RelJsonWriter} on
    * a simple tree of relational expressions, consisting of a table, a filter
@@ -728,6 +773,28 @@ class RelWriterTest {
 
     assertThat(s,
         isLinux("LogicalValues(tuples=[[{ X'0a4b' }]])\n"));
+  }
+
+  @Test void testReaderUuid() {
+    String s =
+        Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
+          SchemaPlus schema =
+              rootSchema.add("hr",
+                  new ReflectiveSchema(new HrSchema()));
+          final RelJsonReader reader =
+              new RelJsonReader(cluster, relOptSchema, schema);
+          RelNode node;
+          try {
+            node = reader.read(UUID_LITERAL);
+          } catch (IOException e) {
+            throw TestUtil.rethrow(e);
+          }
+          return RelOptUtil.dumpPlan("", node, SqlExplainFormat.TEXT,
+              SqlExplainLevel.EXPPLAN_ATTRIBUTES);
+        });
+
+    assertThat(s,
+        isLinux("LogicalValues(tuples=[[{ 123e4567-e89b-12d3-a456-426655440000 }]])\n"));
   }
 
   /**

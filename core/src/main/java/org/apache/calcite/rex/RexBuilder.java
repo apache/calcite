@@ -2179,6 +2179,8 @@ public class RexBuilder {
           SqlTypeName.GEOMETRY);
     case ANY:
       return makeLiteral(value, guessType(value), allowCast);
+    case UUID:
+      return makeUuidLiteral((UUID) value);
     default:
       throw new IllegalArgumentException(
           "Cannot create literal for type '" + sqlTypeName + "'");
