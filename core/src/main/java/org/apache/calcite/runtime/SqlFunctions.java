@@ -106,6 +106,7 @@ import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
 import java.time.format.SignStyle;
 import java.time.temporal.ChronoField;
+import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -116,6 +117,7 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -6234,6 +6236,40 @@ public class SqlFunctions {
     result.addAll(list1);
     result.addAll(list2);
     return new ArrayList<>(result);
+  }
+
+  /** Transforms a list, applying a function to each element. */
+  public static <F, T> List<T> transform(List<? extends F> list,
+      Function1<? super F, ? extends T> function) {
+    return new TransformingList<>(list, function);
+  }
+
+  /** List that returns the same number of elements as a backing list,
+   * applying a transformation function to each one.
+   *
+   * @param <F> Element type of backing list
+   * @param <T> Element type of this list
+   */
+  private static class TransformingList<F, T> extends AbstractList<T> {
+    private final Function1<? super F, ? extends T> function;
+    private final List<? extends F> list;
+
+    TransformingList(List<? extends F> list, Function1<? super F, ? extends T> function) {
+      this.function = function;
+      this.list = list;
+    }
+
+    @Override public T get(int i) {
+      return function.apply(list.get(i));
+    }
+
+    @Override public int size() {
+      return list.size();
+    }
+
+    @Override public Iterator<T> iterator() {
+      return listIterator();
+    }
   }
 
   /** Support the SORT_ARRAY function. */
