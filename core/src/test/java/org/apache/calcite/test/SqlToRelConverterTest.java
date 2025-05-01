@@ -1678,6 +1678,18 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6978">[CALCITE-6978]
+   * Translation to relational algebra of correlated query with COALESCE causes an
+   * assertion failure</a>. */
+  @Test void testCoalesceSubquery() {
+    final String sql = "SELECT"
+        + "  deptno, "
+        + "  coalesce((select sum(empno) from emp "
+        + "  where deptno = emp.deptno limit 1), 0) as w "
+        + "FROM dept";
+    sql(sql).ok();
+  }
+
   @Test void testSampleBernoulliQuery() {
     final String sql = "select * from (\n"
         + " select * from emp as e tablesample bernoulli(10) repeatable(1)\n"
