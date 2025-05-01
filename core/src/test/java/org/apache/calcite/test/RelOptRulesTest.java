@@ -6896,6 +6896,25 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5387">[CALCITE-5387]
+   * Type-mismatch on nullability in JoinPushTransitivePredicatesRule RelRule</a>. */
+  @Test void testJoinPushTransitivePredicatesNullabilityIssue() {
+    final String sql = "WITH\n"
+        + "non_null_table AS (\n"
+        + "  SELECT DATE '2023-08-07' AS date_col_non_null FROM dept\n"
+        + "),\n"
+        + "null_table AS (\n"
+        + "  SELECT CAST(null as DATE) AS date_col_null FROM dept\n"
+        + ")\n"
+        + "SELECT *\n"
+        + "FROM non_null_table\n"
+        + "JOIN null_table\n"
+        + "ON null_table.date_col_null = non_null_table.date_col_non_null";
+
+    sql(sql).withRule(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES).check();
+  }
+
   /** Test case of
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6432">[CALCITE-6432]
    * Infinite loop for JoinPushTransitivePredicatesRule</a>. */

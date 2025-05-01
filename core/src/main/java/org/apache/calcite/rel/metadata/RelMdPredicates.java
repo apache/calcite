@@ -803,12 +803,12 @@ public class RelMdPredicates
           Mappings.createShiftMapping(nSysFields + nFieldsLeft + nFieldsRight,
               0, nSysFields + nFieldsLeft, nFieldsRight);
       final RexPermuteInputsShuttle rightPermute =
-          new RexPermuteInputsShuttle(rightMapping, joinRel);
+          new RexPermuteInputsShuttle(rightMapping, true, joinRel.getRight());
       Mappings.TargetMapping leftMapping =
           Mappings.createShiftMapping(nSysFields + nFieldsLeft, 0, nSysFields,
               nFieldsLeft);
       final RexPermuteInputsShuttle leftPermute =
-          new RexPermuteInputsShuttle(leftMapping, joinRel);
+          new RexPermuteInputsShuttle(leftMapping, true, joinRel.getLeft());
       final List<RexNode> leftInferredPredicates = new ArrayList<>();
       final List<RexNode> rightInferredPredicates = new ArrayList<>();
 

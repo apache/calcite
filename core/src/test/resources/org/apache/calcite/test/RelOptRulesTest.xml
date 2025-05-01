@@ -7471,6 +7471,41 @@ LogicalProject(DEPTNO=[$0], NAME=[$1], R=[$3], EXPR$1=[$4])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testJoinPushTransitivePredicatesNullabilityIssue">
+    <Resource name="sql">
+      <![CDATA[WITH
+non_null_table AS (
+  SELECT DATE '2023-08-07' AS date_col_non_null FROM dept
+),
+null_table AS (
+  SELECT CAST(null as DATE) AS date_col_null FROM dept
+)
+SELECT *
+FROM non_null_table
+JOIN null_table
+ON null_table.date_col_null = non_null_table.date_col_non_null]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DATE_COL_NON_NULL=[$0], DATE_COL_NULL=[$1])
+  LogicalJoin(condition=[=($1, $0)], joinType=[inner])
+    LogicalProject(DATE_COL_NON_NULL=[2023-08-07])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(DATE_COL_NULL=[null:DATE])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DATE_COL_NON_NULL=[$0], DATE_COL_NULL=[$1])
+  LogicalJoin(condition=[=($1, $0)], joinType=[inner])
+    LogicalValues(tuples=[[]])
+    LogicalFilter(condition=[=($0, 2023-08-07)])
+      LogicalProject(DATE_COL_NULL=[null:DATE])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testJoinPushTransitivePredicatesRule">
     <Resource name="sql">
       <![CDATA[select d.deptno from sales.emp d where d.deptno
