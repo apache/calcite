@@ -1484,6 +1484,259 @@ public class MaterializedViewSubstitutionVisitorTest {
     sql(mv, query).ok();
   }
 
+  /**
+   * It need be matched, info of offset and fetch.
+   * eg: mv[null, null], query[null, 3].
+   */
+  @Test void testSortToSort1() {
+    final String mv = ""
+        + "select \"name\", \"deptno\"\n"
+        + "from \"emps\"\n"
+        + "order by \"deptno\"";
+    final String query = ""
+        + "select \"name\", \"deptno\"\n"
+        + "from \"emps\"\n"
+        + "order by \"deptno\"\n"
+        + "fetch next 3 rows only";
+    sql(mv, query)
+        .checkingThatResultContains(""
+            + "LogicalSort(fetch=[3])\n"
+            + "  EnumerableTableScan(table=[[hr, MV0]])")
+        .ok();
+  }
+
+  /**
+   * It need be matched, info of offset and fetch.
+   * eg: mv[null, null], query[2, 3].
+   */
+  @Test void testSortToSort2() {
+    final String mv = ""
+        + "select \"name\", \"deptno\"\n"
+        + "from \"emps\"\n"
+        + "order by \"deptno\"";
+    final String query = ""
+        + "select \"name\", \"deptno\"\n"
+        + "from \"emps\"\n"
+        + "order by \"deptno\"\n"
+        + "offset 2 rows\n"
+        + "fetch next 3 rows only";
+    sql(mv, query)
+        .checkingThatResultContains(""
+            + "LogicalSort(offset=[2], fetch=[3])\n"
+            + "  EnumerableTableScan(table=[[hr, MV0]])")
+        .ok();
+  }
+
+  /**
+   * It need be matched, info of offset and fetch.
+   * eg: mv[2, null], query[3, null]
+   */
+  @Test void testSortToSort3() {
+    final String mv = ""
+        + "select \"name\", \"deptno\"\n"
+        + "from \"emps\"\n"
+        + "order by \"deptno\"\n"
+        + "offset 2 rows";
+    final String query = ""
+        + "select \"name\", \"deptno\"\n"
+        + "from \"emps\"\n"
+        + "order by \"deptno\"\n"
+        + "offset 3 rows";
+    sql(mv, query)
+        .checkingThatResultContains(""
+            + "LogicalSort(offset=[1])\n"
+            + "  EnumerableTableScan(table=[[hr, MV0]])")
+        .ok();
+  }
+
+  /**
+   * It need be matched, info of offset and fetch.
+   * eg: mv[null, 2], query[null, 2]
+   */
+  @Test void testSortToSort4() {
+    final String mv = ""
+        + "select \"name\", \"deptno\"\n"
+        + "from \"emps\"\n"
+        + "order by \"deptno\"\n"
+        + "fetch next 3 rows only";
+    final String query = ""
+        + "select \"name\", \"deptno\"\n"
+        + "from \"emps\"\n"
+        + "order by \"deptno\"\n"
+        + "offset 0 rows\n"
+        + "fetch next 3 rows only";
+    sql(mv, query)
+        .checkingThatResultContains(""
+            + "EnumerableTableScan(table=[[hr, MV0]])")
+        .ok();
+  }
+
+  /**
+   * It needn't be matched, info of offset and fetch.
+   * eg: mv[6, null], query[3, null].
+   */
+  @Test void testSortToSort5() {
+    final String mv = ""
+        + "select \"name\", \"deptno\"\n"
+        + "from \"emps\"\n"
+        + "order by \"deptno\"\n"
+        + "offset 6 rows";
+    final String query = ""
+        + "select \"name\", \"deptno\"\n"
+        + "from \"emps\"\n"
+        + "order by \"deptno\"\n"
+        + "offset 3 rows";
+    sql(mv, query).noMat();
+  }
+
+  /**
+   * It need be matched, info of offset and fetch.
+   * eg: mv[2, null], query[3, 3].
+   */
+  @Test void testSortToSort6() {
+    final String mv = ""
+        + "select \"name\", \"deptno\"\n"
+        + "from \"emps\"\n"
+        + "order by \"deptno\"\n"
+        + "offset 2 rows";
+    final String query = ""
+        + "select \"name\", \"deptno\"\n"
+        + "from \"emps\"\n"
+        + "order by \"deptno\"\n"
+        + "offset 3 rows\n"
+        + "fetch next 3 rows only";
+    sql(mv, query)
+        .checkingThatResultContains(""
+            + "LogicalSort(offset=[1], fetch=[3])\n"
+            + "  EnumerableTableScan(table=[[hr, MV0]])")
+        .ok();
+  }
+
+  /**
+   * It need be matched, info of offset and fetch.
+   * eg: mv[2, 10], query[3, 3]
+   */
+  @Test void testSortToSort7() {
+    final String mv = ""
+        + "select \"name\", \"deptno\"\n"
+        + "from \"emps\"\n"
+        + "order by \"deptno\"\n"
+        + "offset 2 rows\n"
+        + "fetch next 10 rows only";
+    final String query = ""
+        + "select \"name\", \"deptno\"\n"
+        + "from \"emps\"\n"
+        + "order by \"deptno\"\n"
+        + "offset 3 rows\n"
+        + "fetch next 3 rows only";
+    sql(mv, query)
+        .checkingThatResultContains(""
+            + "LogicalSort(offset=[1], fetch=[3])\n"
+            + "  EnumerableTableScan(table=[[hr, MV0]])")
+        .ok();
+  }
+
+  /**
+   * It needn't be matched, info of offset and fetch.
+   * eg: mv[5, 10], query[3, 3]
+   */
+  @Test void testSortToSort8() {
+    final String mv = ""
+        + "select \"name\", \"deptno\"\n"
+        + "from \"emps\"\n"
+        + "order by \"deptno\"\n"
+        + "offset 5 rows\n"
+        + "fetch next 10 rows only";
+    final String query = ""
+        + "select \"name\", \"deptno\"\n"
+        + "from \"emps\"\n"
+        + "order by \"deptno\"\n"
+        + "offset 3 rows\n"
+        + "fetch next 3 rows only";
+    sql(mv, query).noMat();
+  }
+
+  /**
+   * It need be matched, query has direction's info, which cloud rebuild by mv.
+   */
+  @Test void testSortToSort9() {
+    final String mv = ""
+        + "select \"name\", \"deptno\"\n"
+        + "from \"emps\"\n"
+        + "order by \"deptno\"";
+    final String query = ""
+        + "select \"name\", \"deptno\"\n"
+        + "from \"emps\"\n"
+        + "order by \"deptno\" desc";
+    sql(mv, query)
+        .checkingThatResultContains(""
+            + "LogicalSort(sort0=[$1], dir0=[DESC])\n"
+            + "  EnumerableTableScan(table=[[hr, MV0]])")
+        .ok();
+  }
+
+  /**
+   * It need be matched, query has direction's info, which cloud rebuild by mv.
+   * And query also has the info of offset and fetch.
+   */
+  @Test void testSortToSort10() {
+    final String mv = ""
+        + "select \"name\", \"deptno\"\n"
+        + "from \"emps\"\n"
+        + "order by \"deptno\" asc";
+    final String query = ""
+        + "select \"name\", \"deptno\"\n"
+        + "from \"emps\"\n"
+        + "order by \"deptno\" desc";
+    sql(mv, query)
+        .checkingThatResultContains(""
+            + "LogicalSort(sort0=[$1], dir0=[DESC])\n"
+            + "  EnumerableTableScan(table=[[hr, MV0]])")
+        .ok();
+  }
+
+  /**
+   * It need be matched, query has direction's info, which cloud rebuild by mv.
+   * And query also has the info of offset and fetch, but mv hasn't it.
+   */
+  @Test void testSortToSort11() {
+    final String mv = ""
+        + "select \"name\", \"deptno\"\n"
+        + "from \"emps\"\n"
+        + "order by \"deptno\" asc";
+    final String query = ""
+        + "select \"name\", \"deptno\"\n"
+        + "from \"emps\"\n"
+        + "order by \"deptno\" desc\n"
+        + "offset 3 rows\n"
+        + "fetch next 3 rows only";
+    sql(mv, query)
+        .checkingThatResultContains(""
+            + "LogicalSort(sort0=[$1], dir0=[DESC], offset=[3], fetch=[3])\n"
+            + "  EnumerableTableScan(table=[[hr, MV0]])")
+        .ok();
+  }
+
+  /**
+   * It needn't be matched, query has direction's info, which cloud rebuild by mv.
+   * And query also has the info of offset and fetch, but mv has it.
+   */
+  @Test void testSortToSort12() {
+    final String mv = ""
+        + "select \"name\", \"deptno\"\n"
+        + "from \"emps\"\n"
+        + "order by \"deptno\" asc\n"
+        + "offset 3 rows\n"
+        + "fetch next 3 rows only";
+    final String query = ""
+        + "select \"name\", \"deptno\"\n"
+        + "from \"emps\"\n"
+        + "order by \"deptno\" desc\n"
+        + "offset 3 rows\n"
+        + "fetch next 3 rows only";
+    sql(mv, query).noMat();
+  }
+
   /** Unit test for logic functions
    * {@link org.apache.calcite.plan.SubstitutionVisitor#mayBeSatisfiable} and
    * {@link RexUtil#simplify}. */
