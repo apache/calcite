@@ -10654,13 +10654,13 @@ class RelToSqlConverterDMTest {
     final RelNode subQueryNode = builder
         .scan("employee")
         .project(builder.field("department_id"),
-            builder.alias(builder.call(PERIOD_CONSTRUCTOR, builder.field("hire_date"),
+            builder.alias(
+                builder.call(PERIOD_CONSTRUCTOR, builder.field("hire_date"),
                 builder.field("end_date")), "period_col"))
         .build();
     final Map<String, RelDataType> columnDefinition = new HashMap<>();
     subQueryNode.getRowType().getFieldList().forEach(col ->
-        columnDefinition.put(col.getName(), col.getType())
-    );
+        columnDefinition.put(col.getName(), col.getType()));
     final RelNode root = builder
         .push(subQueryNode)
         .functionScan(new BQRangeSessionizeTableFunction(columnDefinition), 1,
