@@ -776,6 +776,32 @@ LogicalProject(EXPR$0=[$0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testAggregateMinMaxToLimitRule">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[MIN($0)], EXPR$1=[MAX($0)])
+  LogicalProject(DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject($f0=[$SCALAR_QUERY({
+LogicalSort(sort0=[$0], dir0=[ASC], fetch=[1])
+  LogicalProject(DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})], $f1=[$SCALAR_QUERY({
+LogicalSort(sort0=[$0], dir0=[DESC], fetch=[1])
+  LogicalProject(DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+  LogicalValues(tuples=[[{ 1 }]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[select min(deptno), max(deptno) from emp]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testAggregateProjectMerge">
     <Resource name="sql">
       <![CDATA[select x, sum(z), y from (

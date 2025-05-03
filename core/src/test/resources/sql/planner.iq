@@ -88,8 +88,50 @@ EnumerableIntersect(all=[false])
     EnumerableValues(tuples=[[{ 0 }, { 1 }]])
 !plan
 
-# Test predicate push down with/without expand disjunction.
+# [CALCITE-6985] Add rule to transform MIN/MAX with ORDER BY and LIMIT 1
+select min(deptno), max(deptno) from emp;
++--------+--------+
+| EXPR$0 | EXPR$1 |
++--------+--------+
+|     10 |     60 |
++--------+--------+
+(1 row)
+
+!ok
+
+EnumerableAggregate(group=[{}], EXPR$0=[MIN($0)], EXPR$1=[MAX($0)])
+  EnumerableValues(tuples=[[{ 10 }, { 10 }, { 20 }, { 30 }, { 30 }, { 50 }, { 50 }, { 60 }, { null }]])
+!plan
+
+!set planner-rules "+AGGREGATE_MIN_MAX_TO_LIMIT,
+  -EnumerableRules.ENUMERABLE_AGGREGATE_RULE,
+  +PROJECT_SUB_QUERY_TO_CORRELATE"
+select min(deptno), max(deptno) from emp;
++--------+--------+
+| EXPR$0 | EXPR$1 |
++--------+--------+
+|     10 |     60 |
++--------+--------+
+(1 row)
+
+!ok
+
+EnumerableCalc(expr#0..2=[{inputs}], $f0=[$t1], $f1=[$t2])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[left])
+    EnumerableNestedLoopJoin(condition=[true], joinType=[left])
+      EnumerableValues(tuples=[[{ 1 }]])
+      EnumerableLimit(fetch=[1])
+        EnumerableCalc(expr#0=[{inputs}], expr#1=[IS NOT NULL($t0)], DEPTNO=[$t0], $condition=[$t1])
+          EnumerableValues(tuples=[[{ 10 }, { 10 }, { 20 }, { 30 }, { 30 }, { 50 }, { 50 }, { 60 }, { null }]])
+    EnumerableLimit(fetch=[1])
+      EnumerableSort(sort0=[$0], dir0=[DESC])
+        EnumerableCalc(expr#0=[{inputs}], expr#1=[IS NOT NULL($t0)], DEPTNO=[$t0], $condition=[$t1])
+          EnumerableValues(tuples=[[{ 10 }, { 10 }, { 20 }, { 30 }, { 30 }, { 50 }, { 50 }, { 60 }, { null }]])
+!plan
+
 !set planner-rules original
+
+# Test predicate push down with/without expand disjunction.
 with t1 (id1, col11, col12) as (values (1, 11, 111), (2, 12, 122), (3, 13, 133), (4, 14, 144), (5, 15, 155)),
 t2 (id2, col21, col22) as (values (1, 21, 211), (2, 22, 222), (3, 23, 233), (4, 24, 244), (5, 25, 255)),
 t3 (id3, col31, col32) as (values (1, 31, 311), (2, 32, 322), (3, 33, 333), (4, 34, 344), (5, 35, 355))
