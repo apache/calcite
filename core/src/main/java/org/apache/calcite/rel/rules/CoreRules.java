@@ -107,6 +107,11 @@ public class CoreRules {
   public static final AggregateRemoveRule AGGREGATE_REMOVE =
       AggregateRemoveRule.Config.DEFAULT.toRule();
 
+  /** Rule that transforms an MIN/MAX {@link Aggregate} functions
+   * into equivalent subqueries with ORDER BY and LIMIT 1. */
+  public static final AggregateMinMaxToLimitRule AGGREGATE_MIN_MAX_TO_LIMIT =
+      AggregateMinMaxToLimitRule.Config.DEFAULT.toRule();
+
   /** Rule that expands distinct aggregates
    * (such as {@code COUNT(DISTINCT x)}) from a
    * {@link Aggregate}.

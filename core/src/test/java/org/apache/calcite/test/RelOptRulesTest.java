@@ -10551,4 +10551,10 @@ class RelOptRulesTest extends RelOptTestBase {
         .withRule(CoreRules.JOIN_CONDITION_PUSH, CoreRules.FILTER_INTO_JOIN)
         .check();
   }
+
+  @Test void testAggregateMinMaxToLimitRule() {
+    final String sql = "select min(deptno), max(deptno) from emp";
+    sql(sql).withRule(CoreRules.AGGREGATE_MIN_MAX_TO_LIMIT)
+        .check();
+  }
 }
