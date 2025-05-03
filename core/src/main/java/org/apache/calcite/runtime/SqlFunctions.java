@@ -3425,7 +3425,7 @@ public class SqlFunctions {
   }
 
   public static long leftShift(int a, long b) {
-    return a << b;
+    return (long) a << b;
   }
 
   public static long leftShift(Long a, Long b) {
