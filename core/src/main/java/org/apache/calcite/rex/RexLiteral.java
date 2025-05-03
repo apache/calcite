@@ -393,6 +393,7 @@ public class RexLiteral extends RexNode {
       return value instanceof Geometry;
     case ANY:
     case VARIANT:
+    case JSON:
       // Literal of type ANY is not legal. "CAST(2 AS ANY)" remains
       // an integer literal surrounded by a cast function.
       return false;
