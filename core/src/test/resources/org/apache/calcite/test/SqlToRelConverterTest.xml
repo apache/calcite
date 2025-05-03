@@ -3689,6 +3689,24 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testJoinOnConditionWithSubquery">
+    <Resource name="sql">
+      <![CDATA[select t1.* from emp t1
+left join dept t2 on t1.deptno = t2.deptno
+and t1.ename in (select t3.ename from emp t3)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalJoin(condition=[AND(=($7, $9), IN($1, {
+LogicalProject(ENAME=[$1])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}))], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testJoinOnExists">
     <Resource name="sql">
       <![CDATA[select * from emp left join dept

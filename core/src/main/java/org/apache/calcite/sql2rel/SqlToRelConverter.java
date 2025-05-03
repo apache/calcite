@@ -158,6 +158,7 @@ import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.sql.validate.AggregatingSelectScope;
 import org.apache.calcite.sql.validate.CollectNamespace;
 import org.apache.calcite.sql.validate.DelegatingScope;
+import org.apache.calcite.sql.validate.JoinScope;
 import org.apache.calcite.sql.validate.ListScope;
 import org.apache.calcite.sql.validate.MatchRecognizeScope;
 import org.apache.calcite.sql.validate.MeasureScope;
@@ -1227,6 +1228,21 @@ public class SqlToRelConverter {
         // Otherwise, let convertExists translate
         // values list into an inline table for the
         // reference to Q below.
+      } else if (query instanceof SqlSelect) {
+        // If there is a subquery in the Join on condition,
+        // it will not be expanded. If you need to expand it,
+        // please refer to SubQueryRemoveRule.
+        if (bb.scope instanceof JoinScope) {
+          RelNode relNode = convertSelect((SqlSelect) query, false);
+          final ImmutableList.Builder<RexNode> builder =
+              ImmutableList.builder();
+          for (SqlNode node : leftSqlKeys) {
+            builder.add(bb.convertExpression(node));
+          }
+          final ImmutableList<RexNode> list = builder.build();
+          subQuery.expr = createSubquery(subQuery.node.getKind(), relNode, list, call);
+          return;
+        }
       }
 
       final RelDataType targetRowType =

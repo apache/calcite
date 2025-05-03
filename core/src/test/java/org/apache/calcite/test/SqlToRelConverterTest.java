@@ -5679,4 +5679,11 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     String sql = "SELECT CAST(CAST(? AS INTEGER) AS CHAR)";
     sql(sql).ok();
   }
+
+  @Test void testJoinOnConditionWithSubquery() {
+    final String sql = "select t1.* from emp t1\n"
+        + "left join dept t2 on t1.deptno = t2.deptno\n"
+        + "and t1.ename in (select t3.ename from emp t3)";
+    sql(sql).ok();
+  }
 }
