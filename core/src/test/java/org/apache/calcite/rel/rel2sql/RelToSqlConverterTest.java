@@ -2782,6 +2782,8 @@ class RelToSqlConverterTest {
    * LTRIM or RTRIM</a>,
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3663">[CALCITE-3663]
    * Support for TRIM function in BigQuery dialect</a>, and
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6999">[CALCITE-6999]
+   * Invalid unparse for TRIM in PrestoDialect</a>, and
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3771">[CALCITE-3771]
    * Support of TRIM function for SPARK dialect and improvement in HIVE
    * Dialect</a>. */
@@ -2792,10 +2794,13 @@ class RelToSqlConverterTest {
         + "FROM `foodmart`.`reserve_employee`";
     final String expectedBigQuery = "SELECT TRIM(' str ')\n"
         + "FROM foodmart.reserve_employee";
+    final String exptectedPresto = "SELECT TRIM(' str ')\n"
+        + "FROM \"foodmart\".\"reserve_employee\"";
     sql(query)
         .withBigQuery().ok(expectedBigQuery)
         .withHive().ok(expected)
-        .withSpark().ok(expected);
+        .withSpark().ok(expected)
+        .withPresto().ok(exptectedPresto);
   }
 
   @Test void testHiveSparkAndBqTrimWithBoth() {
@@ -2890,8 +2895,11 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT RTRIM('abcd', 'a')\n"
         + "FROM foodmart.reserve_employee";
+    final String expectedPresto = "SELECT RTRIM('abcd', 'a')\n"
+        + "FROM \"foodmart\".\"reserve_employee\"";
     sql(query)
-        .withBigQuery().ok(expected);
+        .withBigQuery().ok(expected)
+        .withPresto().ok(expectedPresto);
   }
 
   @Test void testHiveAndSparkTrimWithTailingChar() {
@@ -9526,8 +9534,11 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expectedStarRocks = "SELECT TRIM(' str ')\n"
         + "FROM `foodmart`.`reserve_employee`";
+    final String expectedPresto = "SELECT TRIM(' str ')\n"
+        + "FROM \"foodmart\".\"reserve_employee\"";
     sql(query).withStarRocks().ok(expectedStarRocks)
-        .withDoris().ok(expectedStarRocks);
+        .withDoris().ok(expectedStarRocks)
+        .withPresto().ok(expectedPresto);
   }
 
   @Test void testTrimWithBoth() {
@@ -9535,8 +9546,11 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expectedStarRocks = "SELECT TRIM(' str ')\n"
         + "FROM `foodmart`.`reserve_employee`";
+    final String expectedPresto = "SELECT TRIM(' str ')\n"
+        + "FROM \"foodmart\".\"reserve_employee\"";
     sql(query).withStarRocks().ok(expectedStarRocks)
-        .withDoris().ok(expectedStarRocks);
+        .withDoris().ok(expectedStarRocks)
+        .withPresto().ok(expectedPresto);
   }
 
   @Test void testTrimWithLeading() {
@@ -9544,8 +9558,11 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expectedStarRocks = "SELECT LTRIM(' str ')\n"
         + "FROM `foodmart`.`reserve_employee`";
+    final String expectedPresto = "SELECT LTRIM(' str ')\n"
+        + "FROM \"foodmart\".\"reserve_employee\"";
     sql(query).withStarRocks().ok(expectedStarRocks)
-        .withDoris().ok(expectedStarRocks);
+        .withDoris().ok(expectedStarRocks)
+        .withPresto().ok(expectedPresto);
   }
 
   @Test void testTrimWithTailing() {
@@ -9553,8 +9570,11 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expectedStarRocks = "SELECT RTRIM(' str ')\n"
         + "FROM `foodmart`.`reserve_employee`";
+    final String expectedPresto = "SELECT RTRIM(' str ')\n"
+        + "FROM \"foodmart\".\"reserve_employee\"";
     sql(query).withStarRocks().ok(expectedStarRocks)
-        .withDoris().ok(expectedStarRocks);
+        .withDoris().ok(expectedStarRocks)
+        .withPresto().ok(expectedPresto);
   }
 
   @Test void testTrimWithBothChar() {
@@ -9562,8 +9582,11 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expectedStarRocks = "SELECT REGEXP_REPLACE('abcda', '^(a)*|(a)*$', '')\n"
         + "FROM `foodmart`.`reserve_employee`";
+    final String expectedPresto = "SELECT TRIM('abcda', 'a')\n"
+        + "FROM \"foodmart\".\"reserve_employee\"";
     sql(query).withStarRocks().ok(expectedStarRocks)
-        .withDoris().ok(expectedStarRocks);
+        .withDoris().ok(expectedStarRocks)
+        .withPresto().ok(expectedPresto);
   }
 
   @Test void testTrimWithTailingChar() {
@@ -9580,8 +9603,11 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expectedStarRocks = "SELECT REGEXP_REPLACE('abcd', '^(a)*', '')\n"
         + "FROM `foodmart`.`reserve_employee`";
+    final String expectedPresto = "SELECT LTRIM('abcd', 'a')\n"
+        + "FROM \"foodmart\".\"reserve_employee\"";
     sql(query).withStarRocks().ok(expectedStarRocks)
-        .withDoris().ok(expectedStarRocks);
+        .withDoris().ok(expectedStarRocks)
+        .withPresto().ok(expectedPresto);
   }
 
   @Test void testSelectQueryWithRollup() {

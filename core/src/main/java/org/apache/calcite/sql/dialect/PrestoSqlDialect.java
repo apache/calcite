@@ -210,6 +210,9 @@ public class PrestoSqlDialect extends SqlDialect {
             .createCall(SqlParserPos.ZERO, call.getOperandList());
         super.unparseCall(writer, lengthCall, leftPrec, rightPrec);
         break;
+      case TRIM:
+        RelToSqlConverterUtil.unparseTrimLR(writer, call, leftPrec, rightPrec);
+        break;
       default:
         // Current impl is same with Postgresql.
         PostgresqlSqlDialect.DEFAULT.unparseCall(writer, call, leftPrec, rightPrec);
