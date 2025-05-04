@@ -69,6 +69,44 @@ public abstract class RelToSqlConverterUtil {
   }
 
   /**
+   * For usage of TRIM(LEADING 'A' FROM 'ABCA') convert to TRIM, LTRIM and RTRIM,
+   * can refer to BigQuery and Presto documents:
+   * <a href="https://cloud.google.com/bigquery/docs/reference/standard-sql/functions-and-operators#trim">
+   * BigQuery Trim Function</a>,
+   * <a href="https://prestodb.io/docs/current/functions/string.html#trim-string-varchar">
+   * Presto Trim Function</a>.
+   */
+  public static void unparseTrimLR(SqlWriter writer, SqlCall call, int leftPrec,
+      int rightPrec) {
+    final String operatorName;
+    SqlLiteral trimFlag = call.operand(0);
+    SqlLiteral valueToTrim = call.operand(1);
+    switch (trimFlag.getValueAs(SqlTrimFunction.Flag.class)) {
+    case LEADING:
+      operatorName = "LTRIM";
+      break;
+    case TRAILING:
+      operatorName = "RTRIM";
+      break;
+    default:
+      operatorName = call.getOperator().getName();
+      break;
+    }
+    final SqlWriter.Frame trimFrame = writer.startFunCall(operatorName);
+    call.operand(2).unparse(writer, leftPrec, rightPrec);
+
+    // If the trimmed character is a non-space character, add it to the target SQL.
+    // eg: TRIM(BOTH 'A' from 'ABCD')
+    // Output Query: TRIM('ABC', 'A')
+    String value = requireNonNull(valueToTrim.toValue(), "valueToTrim.toValue()");
+    if (!value.equals(" ")) {
+      writer.literal(",");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+    }
+    writer.endFunCall(trimFrame);
+  }
+
+  /**
    * Unparses IS TRUE,IS FALSE,IS NOT TRUE and IS NOT FALSE.
    *
    * <p>For example :
