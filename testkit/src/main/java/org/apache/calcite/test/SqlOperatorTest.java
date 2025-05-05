@@ -16313,6 +16313,7 @@ public class SqlOperatorTest {
     assertEquals(2, call.getOperandList().size());
   }
 
+
   @Test void testLeftShiftScalarFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.LEFTSHIFT_OPERATOR, VmName.EXPAND);
@@ -16328,7 +16329,6 @@ public class SqlOperatorTest {
     f.checkScalar("-5 << 2", "-20", "INTEGER NOT NULL");
     f.checkScalar("-5 << 3", "-40", "INTEGER NOT NULL");
     f.checkScalar("CAST(-5 AS TINYINT) << CAST(2 AS TINYINT)", "-20", "TINYINT NOT NULL");
-
     // Verify return types
     f.checkType("CAST(2 AS TINYINT) << CAST(3 AS TINYINT)", "TINYINT NOT NULL");
     f.checkType("CAST(2 AS SMALLINT) << CAST(3 AS SMALLINT)", "SMALLINT NOT NULL");
@@ -16342,6 +16342,11 @@ public class SqlOperatorTest {
     f.checkNull("CAST(NULL AS INTEGER) << 5");
     f.checkNull("10 << CAST(NULL AS INTEGER)");
     f.checkNull("CAST(NULL AS INTEGER) << CAST(NULL AS INTEGER)");
+    f.checkScalar("1 << 64", "1", "INTEGER NOT NULL"); // INTEGER << shift: effective shift is shift % 32. 64 % 32 = 0.
+    f.checkScalar("CAST(1 AS BIGINT) << 64", "1", "BIGINT NOT NULL"); // BIGINT << shift: effective shift is shift % 64. 64 % 64 = 0.
+    f.checkScalar("CAST(1 AS BIGINT) << 65", "2", "BIGINT NOT NULL"); // BIGINT << shift: effective shift is shift % 64. 65 % 64 = 1.
+    f.checkFails("1 << -2 ",
+        "Shift count must be non-negative", true);
   }
 
   @Test void testBitAndScalarFunc() {

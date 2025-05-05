@@ -3227,18 +3227,30 @@ public class SqlFunctions {
     return new ByteString(result);
   }
   public static int leftShift(int a, int b) {
+    if (b < 0) {
+      throw new IllegalArgumentException("Shift count must be non-negative");
+    }
     return a << b;
   }
 
   public static long leftShift(long a, int b) {
+    if (b < 0) {
+      throw new IllegalArgumentException("Shift count must be non-negative");
+    }
     return a << b;
   }
 
   public static long leftShift(int a, long b) {
+    if (b < 0) {
+      throw new IllegalArgumentException("Shift count must be non-negative");
+    }
     return (long) a << b;
   }
 
   public static long leftShift(Long a, Long b) {
+    if (b < 0) {
+      throw new IllegalArgumentException("Shift count must be non-negative");
+    }
     return a << b;
   }
 
