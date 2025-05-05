@@ -2261,7 +2261,10 @@ public class BigQuerySqlDialect extends SqlDialect {
        final String end = qualifier.timeUnitRange.endUnit.name();
        writer.keyword(end);
     } else {
-      super.unparseSqlIntervalQualifier(writer, qualifier, typeSystem);
+      writer.keyword(start);
+      writer.keyword("TO");
+      final String end = validate(qualifier.timeUnitRange.endUnit).name();
+      writer.keyword(end);
     }
   }
 
