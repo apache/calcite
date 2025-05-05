@@ -98,6 +98,7 @@ import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.dialect.SparkSqlDialect;
+import org.apache.calcite.sql.fun.BQRangeSessionizeTableFunction;
 import org.apache.calcite.sql.fun.SqlCollectionTableOperator;
 import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
@@ -1822,6 +1823,9 @@ public class RelToSqlConverter extends SqlImplementor
     for (int i = 0; i < inputSize; i++) {
       final Result x = visitInput(e, i);
       inputSqlNodes.add(x.asStatement());
+      if (e.getCall().isA(SqlKind.RANGE_SESSIONIZE)) {
+        return createRangeSessionizeResult(e, x.node, tableFunctionScanContext(inputSqlNodes));
+      }
     }
     final Context context = tableFunctionScanContext(inputSqlNodes);
     SqlNode callNode = context.toSql(null, e.getCall());
@@ -1868,6 +1872,29 @@ public class RelToSqlConverter extends SqlImplementor
       result.add(new SqlIdentifier(fieldName, POS));
     });
     return result;
+  }
+
+  public Result createRangeSessionizeResult(TableFunctionScan tableFunctionScan,
+      SqlNode inputNode, Context tableFunContext) {
+    List<RelDataTypeField> fieldList = tableFunctionScan.getRowType().getFieldList();
+    final List<SqlNode> operandList = new ArrayList<>();
+    operandList.add(inputNode);
+    List<RexNode> operands = ((RexCall) tableFunctionScan.getCall()).operands;
+    for (RexNode operand : operands) {
+      operandList.add(tableFunContext.toSql(null, operand));
+    }
+    Map<String, RelDataType> tableFunctionRowType = new LinkedHashMap<>();
+    for (RelDataTypeField relDataTypeField : fieldList) {
+      tableFunctionRowType.put(relDataTypeField.getName(), relDataTypeField.getType());
+    }
+    SqlNode tableRef = new BQRangeSessionizeTableFunction(tableFunctionRowType)
+            .createCall(null, POS, operandList);
+    SqlNode select =
+        new SqlSelect(SqlParserPos.ZERO, null, null, tableRef,
+            null, null, null, null, null, null,
+            null, SqlNodeList.EMPTY);
+
+    return result(select, ImmutableList.of(Clause.SELECT), tableFunctionScan, tableFunctionRowType);
   }
 
   @Override public void addSelect(List<SqlNode> selectList, SqlNode node,
