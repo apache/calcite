@@ -16009,7 +16009,7 @@ public class SqlOperatorTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5160">[CALCITE-5160]
    * ANY/SOME, ALL operators should support collection expressions</a>. */
   @Test void testQuantifyCollectionOperators() {
-    final SqlOperatorFixture f = fixture().withTester(t -> TESTER);
+    final SqlOperatorFixture f = fixture();
     QUANTIFY_OPERATORS.forEach(operator -> f.setFor(operator, SqlOperatorFixture.VmName.EXPAND));
 
     Function2<String, Boolean, Void> checkBoolean = (sql, result) -> {

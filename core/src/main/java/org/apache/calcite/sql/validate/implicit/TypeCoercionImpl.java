@@ -578,6 +578,9 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
     if (widenType == null) {
       widenType = getTightestCommonType(type1, type2);
     }
+    if (widenType == null) {
+      return false;
+    }
     final RelDataType leftWidenType =
         binding.getTypeFactory().enforceTypeWithNullability(widenType, type1.isNullable());
     boolean coercedLeft =
