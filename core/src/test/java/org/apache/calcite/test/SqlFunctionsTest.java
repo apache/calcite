@@ -74,10 +74,12 @@ import static org.apache.calcite.runtime.SqlFunctions.toInt;
 import static org.apache.calcite.runtime.SqlFunctions.toIntOptional;
 import static org.apache.calcite.runtime.SqlFunctions.toLong;
 import static org.apache.calcite.runtime.SqlFunctions.toLongOptional;
+import static org.apache.calcite.runtime.SqlFunctions.toTimestampWithLocalTimeZone;
 import static org.apache.calcite.runtime.SqlFunctions.trim;
 import static org.apache.calcite.runtime.SqlFunctions.upper;
 import static org.apache.calcite.test.Matchers.isListOf;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -1834,6 +1836,44 @@ class SqlFunctionsTest {
   @Test void testToLongOptionalWithLocalTimeZone() {
     assertThat(toLongOptional(Timestamp.valueOf("1970-01-01 00:00:00")), is(0L));
     assertThat(toLongOptional(null), is(nullValue()));
+  }
+
+  /**
+   * Test date after 0001-01-01 required by ANSI SQL - is passed.
+   * Test date before 0001-01-01 and malformed date time literal - is failed.
+   */
+  @Test void testToTimestampWithLocalTimeZone() {
+    Long ret = toTimestampWithLocalTimeZone("1970-01-01 00:00:01", TimeZone.getTimeZone("UTC"));
+    assertThat(ret, is(1000L));
+
+    ret = toTimestampWithLocalTimeZone("1970-01-01 00:00:01.010", TimeZone.getTimeZone("UTC"));
+    assertThat(ret, is(1010L));
+
+    ret = toTimestampWithLocalTimeZone("1970-01-01 00:00:01 "
+        + TimeZone.getTimeZone("UTC").getID());
+    assertThat(ret, is(1000L));
+
+    // exceptional scenarios
+    try {
+      ret = toTimestampWithLocalTimeZone("malformed", TimeZone.getDefault());
+      fail("expected error, got " + ret);
+    } catch (CalciteException e) {
+      assertThat(e.getMessage(), containsString("Illegal TIMESTAMP WITH LOCAL TIME ZONE literal"));
+    }
+
+    try {
+      ret = toTimestampWithLocalTimeZone("0000-01-01 00:00:01", TimeZone.getDefault());
+      fail("expected error, got " + ret);
+    } catch (CalciteException e) {
+      assertThat(e.getMessage(), containsString("Illegal TIMESTAMP WITH LOCAL TIME ZONE literal"));
+    }
+
+    try {
+      ret = toTimestampWithLocalTimeZone("malformed " + TimeZone.getDefault().getID());
+      fail("expected error, got " + ret);
+    } catch (CalciteException e) {
+      assertThat(e.getMessage(), containsString("Illegal TIMESTAMP WITH LOCAL TIME ZONE literal"));
+    }
   }
 
   /**
