@@ -1976,9 +1976,9 @@ public class RexBuilder {
     case TIME_TZ:
       return new TimeWithTimeZoneString(0, 0, 0, "GMT+00");
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-      return new TimestampString(0, 1, 1, 0, 0, 0);
+      return new TimestampString(1, 1, 1, 0, 0, 0);
     case TIMESTAMP_TZ:
-      return new TimestampWithTimeZoneString(0, 1, 1, 0, 0, 0, "GMT+00");
+      return new TimestampWithTimeZoneString(1, 1, 1, 0, 0, 0, "GMT+00");
     default:
       throw Util.unexpected(type.getSqlTypeName());
     }

@@ -22,12 +22,17 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import java.util.Locale;
 import java.util.TimeZone;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import static org.apache.calcite.avatica.util.DateTimeUtils.DATE_FORMAT_STRING;
+import static org.apache.calcite.avatica.util.DateTimeUtils.TIMESTAMP_FORMAT_STRING;
+import static org.apache.calcite.util.DateTimeStringUtils.getDateFormatter;
+import static org.apache.calcite.util.Static.RESOURCE;
+
 import static java.lang.Math.floorMod;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Timestamp with time-zone literal.
@@ -41,21 +46,39 @@ public class TimestampWithTimeZoneString
   final TimestampString localDateTime;
   final TimeZone timeZone;
   final String v;
+  private final DateTimeUtils.PrecisionTime pt;
+
+  private static final ThreadLocal<@Nullable SimpleDateFormat> TIMESTAMP_FORMAT =
+      ThreadLocal.withInitial(() ->
+          getDateFormatter(TIMESTAMP_FORMAT_STRING));
 
   /** Creates a TimestampWithTimeZoneString. */
   public TimestampWithTimeZoneString(TimestampString localDateTime, TimeZone timeZone) {
     this.localDateTime = localDateTime;
     this.timeZone = timeZone;
     this.v = localDateTime.toString() + " " + timeZone.getID();
+
+    this.pt = parseDateTime(localDateTime.toString(), this.timeZone);
   }
 
   /** Creates a TimestampWithTimeZoneString. */
   public TimestampWithTimeZoneString(String v) {
-    this.localDateTime = new TimestampString(v.substring(0, v.indexOf(' ', 11)));
-    String timeZoneString = v.substring(v.indexOf(' ', 11) + 1);
+    // search next space after "yyyy-MM-dd "
+    int pos = v.indexOf(' ', DATE_FORMAT_STRING.length() + 1);
+
+    if (pos == -1) {
+      throw RESOURCE.illegalLiteral("TIMESTAMP WITH LOCAL TIME ZONE", v,
+              RESOURCE.badFormat(TIMESTAMP_FORMAT_STRING).str()).ex();
+    }
+
+    String tsStr = v.substring(0, pos);
+    this.localDateTime = new TimestampString(tsStr);
+
+    String timeZoneString = v.substring(v.indexOf(' ', DATE_FORMAT_STRING.length() + 1) + 1);
     checkArgument(DateTimeStringUtils.isValidTimeZone(timeZoneString));
     this.timeZone = TimeZone.getTimeZone(timeZoneString);
     this.v = v;
+    this.pt = parseDateTime(tsStr, this.timeZone);
   }
 
   /** Creates a TimestampWithTimeZoneString for year, month, day, hour, minute,
@@ -110,23 +133,10 @@ public class TimestampWithTimeZoneString
     if (this.timeZone.equals(timeZone)) {
       return this;
     }
-    String localDateTimeString = localDateTime.toString();
-    String v;
-    String fraction;
-    int i = localDateTimeString.indexOf('.');
-    if (i >= 0) {
-      v = localDateTimeString.substring(0, i);
-      fraction = localDateTimeString.substring(i + 1);
-    } else {
-      v = localDateTimeString;
-      fraction = null;
-    }
-    final DateTimeUtils.PrecisionTime pt =
-        DateTimeUtils.parsePrecisionDateTimeLiteral(v,
-            new SimpleDateFormat(DateTimeUtils.TIMESTAMP_FORMAT_STRING, Locale.ROOT),
-            this.timeZone, -1);
+    String fraction = pt.getFraction();
+
     pt.getCalendar().setTimeZone(timeZone);
-    if (fraction != null) {
+    if (!fraction.isEmpty()) {
       return new TimestampWithTimeZoneString(
           pt.getCalendar().get(Calendar.YEAR),
           pt.getCalendar().get(Calendar.MONTH) + 1,
@@ -201,5 +211,18 @@ public class TimestampWithTimeZoneString
 
   public TimeZone getTimeZone() {
     return timeZone;
+  }
+
+  private static DateTimeUtils.PrecisionTime parseDateTime(String tsStr, TimeZone timeZone) {
+    DateTimeUtils.PrecisionTime pt =
+        DateTimeUtils.parsePrecisionDateTimeLiteral(tsStr, requireNonNull(TIMESTAMP_FORMAT.get()),
+            timeZone, -1);
+
+    if (pt == null) {
+      throw RESOURCE.illegalLiteral("TIMESTAMP WITH LOCAL TIME ZONE", tsStr,
+          RESOURCE.badFormat(TIMESTAMP_FORMAT_STRING).str()).ex();
+    }
+
+    return pt;
   }
 }

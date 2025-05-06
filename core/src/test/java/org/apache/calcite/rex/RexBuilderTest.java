@@ -1121,11 +1121,11 @@ class RexBuilderTest {
         type2rexLiteral.apply(typeFactory.createSqlType(SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE),
             relDataType -> new TimeString(0, 0, 0)),
         type2rexLiteral.apply(typeFactory.createSqlType(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE),
-            relDataType -> new TimestampString(0, 1, 1, 0, 0, 0)),
+            relDataType -> new TimestampString(1, 1, 1, 0, 0, 0)),
         type2rexLiteral.apply(typeFactory.createSqlType(SqlTypeName.TIME_TZ),
             relDataType -> new TimeWithTimeZoneString(0, 0, 0, "GMT+00:00")),
         type2rexLiteral.apply(typeFactory.createSqlType(SqlTypeName.TIMESTAMP_TZ),
-            relDataType -> new TimestampWithTimeZoneString(0, 1, 1, 0, 0, 0, "GMT+00:00")));
+            relDataType -> new TimestampWithTimeZoneString(1, 1, 1, 0, 0, 0, "GMT+00:00")));
   }
 
   /** Test case for

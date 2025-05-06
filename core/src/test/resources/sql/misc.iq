@@ -2665,4 +2665,22 @@ group by z;
 
 !ok
 
+# [CALCITE-7001] Cast of malformed literal to TIMESTAMP WITH LOCAL TIME ZONE
+select cast ('malformed' AS TIMESTAMP WITH LOCAL TIME ZONE);
+Illegal TIMESTAMP WITH LOCAL TIME ZONE literal 'malformed'
+!error
+
+# [CALCITE-7001] Cast of malformed literal to TIMESTAMP WITH LOCAL TIME ZONE
+select cast ('0000-01-01 00:00:00' AS TIMESTAMP WITH LOCAL TIME ZONE);
+Illegal TIMESTAMP WITH LOCAL TIME ZONE literal '0000-01-01 00:00:00'
+!error
+
+select TIMESTAMP WITH LOCAL TIME ZONE 'malformed';
+From line 1, column 8 to line 1, column 49: Illegal TIMESTAMP WITH LOCAL TIME ZONE literal 'malformed'
+!error
+
+select TIMESTAMP WITH LOCAL TIME ZONE '0000-01-01 00:00:00';
+From line 1, column 8 to line 1, column 59: Illegal TIMESTAMP WITH LOCAL TIME ZONE literal '0000-01-01 00:00:00'
+!error
+
 # End misc.iq
