@@ -10701,7 +10701,7 @@ class RelToSqlConverterDMTest {
         .project(builder.alias(parseTSNode1, "timestamp_value"))
         .build();
     final String expectedBiqQuery =
-        "SELECT PARSE_DATETIME('%F %H:%M:%S', '2009-03-20 12:25:50') AS timestamp_value\n"
+        "SELECT STR_TO_TIMESTAMP('2009-03-20 12:25:50', 'yyyy-MM-dd HH24:MI:SS') AS timestamp_value\n"
             + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }

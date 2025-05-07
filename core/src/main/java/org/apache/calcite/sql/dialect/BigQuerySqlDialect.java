@@ -2251,15 +2251,15 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   @Override public void unparseSqlIntervalQualifier(
-          SqlWriter writer, SqlIntervalQualifier qualifier, RelDataTypeSystem typeSystem) {
+      SqlWriter writer, SqlIntervalQualifier qualifier, RelDataTypeSystem typeSystem) {
     final String start = validate(qualifier.timeUnitRange.startUnit).name();
     if (qualifier.timeUnitRange.endUnit == null) {
       writer.keyword(start);
     } else if (qualifier.timeUnitRange.startUnit == TimeUnit.YEAR) {
-       writer.keyword(start);
-       writer.keyword("TO");
-       final String end = qualifier.timeUnitRange.endUnit.name();
-       writer.keyword(end);
+      writer.keyword(start);
+      writer.keyword("TO");
+      final String end = qualifier.timeUnitRange.endUnit.name();
+      writer.keyword(end);
     } else {
       writer.keyword(start);
       writer.keyword("TO");
