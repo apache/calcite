@@ -3633,6 +3633,19 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7000">[CALCITE-7000]
+   * Extend IntersectToSemiJoinRule to support n-way inputs</a>. */
+  @Test void testIntersectToSemiJoin2() {
+    final String sql = "select ename from emp where deptno = 10\n"
+        + "intersect\n"
+        + "select deptno from emp where ename in ('a', 'b')\n"
+        + "intersect\n"
+        + "select ename from empnullables\n";
+    sql(sql).withPreRule(CoreRules.INTERSECT_MERGE)
+        .withRule(CoreRules.INTERSECT_TO_SEMI_JOIN)
+        .check();
+  }
+
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6880">
    * [CALCITE-6880] Implement IntersectToSemiJoinRule</a>. */
   @Test void testIntersectToSemiJoinMultiCol() {

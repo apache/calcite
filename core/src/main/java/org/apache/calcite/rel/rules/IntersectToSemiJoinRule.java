@@ -34,9 +34,51 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Planner rule that translates a {@link org.apache.calcite.rel.core.Intersect}
+ * Planner rule that translates a {@link Intersect}
  * to a series of {@link org.apache.calcite.rel.core.Join} that type is
- * {@link org.apache.calcite.rel.core.JoinRelType#SEMI}.
+ * {@link JoinRelType#SEMI}. This rule supports n-way Intersect conversion,
+ * as this rule can be repeatedly applied during query optimization to
+ * refine the plan.
+ *
+ * <h2>Example</h2>
+ *
+ <p>Original sql:
+ * <pre>{@code
+ * select ename from emp where deptno = 10
+ * intersect
+ * select deptno from emp where ename in ('a', 'b')
+ * intersect
+ * select ename from empnullables
+ * }</pre>
+ *
+ * <p>Original plan:
+ * <pre>{@code
+ * LogicalIntersect(all=[false])
+ *   LogicalProject(ENAME=[$1])
+ *     LogicalFilter(condition=[=($7, 10)])
+ *       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+ *   LogicalProject(DEPTNO=[CAST($7):VARCHAR NOT NULL])
+ *     LogicalFilter(condition=[OR(=($1, 'a'), =($1, 'b'))])
+ *       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+ *   LogicalProject(ENAME=[$1])
+ *     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+ * }</pre>
+ *
+ * <p>Plan after conversion:
+ * <pre>{@code
+ * LogicalProject(ENAME=[CAST($0):VARCHAR])
+ *   LogicalAggregate(group=[{0}])
+ *     LogicalJoin(condition=[<=>(CAST($0):VARCHAR, CAST($1):VARCHAR)], joinType=[semi])
+ *       LogicalJoin(condition=[=(CAST($0):VARCHAR, $1)], joinType=[semi])
+ *         LogicalProject(ENAME=[$1])
+ *           LogicalFilter(condition=[=($7, 10)])
+ *             LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+ *         LogicalProject(DEPTNO=[CAST($7):VARCHAR NOT NULL])
+ *           LogicalFilter(condition=[OR(=($1, 'a'), =($1, 'b'))])
+ *             LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+ *       LogicalProject(ENAME=[$1])
+ *         LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+ * }</pre>
  */
 @Value.Enclosing
 public class IntersectToSemiJoinRule
@@ -60,32 +102,40 @@ public class IntersectToSemiJoinRule
     final RexBuilder rexBuilder = builder.getRexBuilder();
 
     List<RelNode> inputs = intersect.getInputs();
-    if (inputs.size() != 2) {
+    if (inputs.size() < 2) {
       return;
     }
 
-    RelNode left = inputs.get(0);
-    RelNode right = inputs.get(1);
+    final RelDataType leastRowType = intersect.getRowType();
+    RelNode current = inputs.get(0);
+    builder.push(current);
 
-    List<RexNode> conditions = new ArrayList<>();
-    int fieldCount = left.getRowType().getFieldCount();
+    for (int i = 1; i < inputs.size(); i++) {
+      RelNode next = inputs.get(i);
+      List<RexNode> conditions = new ArrayList<>();
+      int fieldCount = current.getRowType().getFieldCount();
 
-    for (int i = 0; i < fieldCount; i++) {
-      RelDataType leftFieldType = left.getRowType().getFieldList().get(i).getType();
-      RelDataType rightFieldType = right.getRowType().getFieldList().get(i).getType();
+      for (int j = 0; j < fieldCount; j++) {
+        RelDataType leftFieldType = current.getRowType().getFieldList().get(j).getType();
+        RelDataType rightFieldType = next.getRowType().getFieldList().get(j).getType();
+        RelDataType leastFieldType = leastRowType.getFieldList().get(j).getType();
 
-      conditions.add(
-          builder.isNotDistinctFrom(
-              rexBuilder.makeInputRef(leftFieldType, i),
-              rexBuilder.makeInputRef(rightFieldType, i + fieldCount)));
+        conditions.add(
+            builder.isNotDistinctFrom(
+                rexBuilder.makeCast(leastFieldType,
+                    rexBuilder.makeInputRef(leftFieldType, j)),
+                rexBuilder.makeCast(leastFieldType,
+                    rexBuilder.makeInputRef(rightFieldType, j + fieldCount))));
+      }
+      RexNode condition = RexUtil.composeConjunction(rexBuilder, conditions);
+
+      builder.push(next)
+          .join(JoinRelType.SEMI, condition);
+      current = builder.peek();
     }
-    RexNode condition = RexUtil.composeConjunction(rexBuilder, conditions);
 
-    builder.push(left)
-        .push(right)
-        .join(JoinRelType.SEMI, condition)
-        .distinct();
-
+    builder.distinct()
+        .convert(leastRowType, true);
     call.transformTo(builder.build());
   }
 
