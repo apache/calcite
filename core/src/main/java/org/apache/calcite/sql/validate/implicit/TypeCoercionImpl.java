@@ -564,12 +564,40 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
     return false;
   }
 
+  /**
+   * {@inheritDoc}
+   *
+   * <p>STRATEGIES
+   *
+   * <p>To determine the common type:
+   *
+   * <li>When the LHS has a Simple type and RHS has a Collection type determined by {@link SqlTypeUtil#isCollection},
+   * to find the common type of LHS's type and RHS's component type.
+   * <li>If the common type differs from the LHS type, then coerced LHS type,
+   * and nullable remains unchanged.
+   * <li>Create a new Collection type that matches the common type,
+   * and nullable keep same as RHS's component type and RHS's collection type.
+   * <li>If this new Collection type differs from the RHS type, adjust the RHS type as needed.
+   *
+   *<pre>
+   * field1       ARRAY(field2, field3, field4)
+   *    |                |       |        |
+   *    |               +-------+---------+
+   *    |                       |
+   *    |                 component type
+   *    |                      |
+   *    +-----common type------+
+   *</pre>
+   *
+   * <li>Notice: If either LHS or RHS has a {@link SqlTypeName#NULL} type, it will directly return without any adjusting.
+   *
+   */
   @Override public boolean quantifyOperationCoercion(SqlCallBinding binding) {
     final RelDataType type1 = binding.getOperandType(0);
     final RelDataType collectionType = binding.getOperandType(1);
     final RelDataType type2 = collectionType.getComponentType();
     assert type2 != null;
-    if (type2.getSqlTypeName() == SqlTypeName.NULL || type1.getSqlTypeName() == SqlTypeName.NULL) {
+    if (type1.getSqlTypeName() == SqlTypeName.NULL || type2.getSqlTypeName() == SqlTypeName.NULL) {
       return false;
     }
     final SqlNode node1 = binding.operand(0);
