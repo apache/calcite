@@ -6344,13 +6344,52 @@ LogicalIntersect(all=[false])
     <Resource name="planAfter">
       <![CDATA[
 LogicalAggregate(group=[{0}])
-  LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[semi])
+  LogicalJoin(condition=[=($0, $1)], joinType=[semi])
     LogicalProject(ENAME=[$1])
       LogicalFilter(condition=[=($7, 10)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalProject(ENAME=[$1])
       LogicalFilter(condition=[=($7, 20)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testIntersectToSemiJoin2">
+    <Resource name="sql">
+      <![CDATA[select ename from emp where deptno = 10
+intersect
+select deptno from emp where ename in ('a', 'b')
+intersect
+select ename from empnullables
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalIntersect(all=[false])
+  LogicalProject(ENAME=[$1])
+    LogicalFilter(condition=[=($7, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(DEPTNO=[CAST($7):VARCHAR NOT NULL])
+    LogicalFilter(condition=[OR(=($1, 'a'), =($1, 'b'))])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(ENAME=[$1])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(ENAME=[CAST($0):VARCHAR])
+  LogicalAggregate(group=[{0}])
+    LogicalJoin(condition=[IS NOT DISTINCT FROM(CAST($0):VARCHAR, CAST($1):VARCHAR)], joinType=[semi])
+      LogicalJoin(condition=[=(CAST($0):VARCHAR, $1)], joinType=[semi])
+        LogicalProject(ENAME=[$1])
+          LogicalFilter(condition=[=($7, 10)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalProject(DEPTNO=[CAST($7):VARCHAR NOT NULL])
+          LogicalFilter(condition=[OR(=($1, 'a'), =($1, 'b'))])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(ENAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
 ]]>
     </Resource>
   </TestCase>
@@ -6382,7 +6421,7 @@ LogicalIntersect(all=[true])
       <![CDATA[
 LogicalIntersect(all=[true])
   LogicalAggregate(group=[{0}])
-    LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[semi])
+    LogicalJoin(condition=[=($0, $1)], joinType=[semi])
       LogicalProject(ENAME=[$1])
         LogicalFilter(condition=[=($7, 10)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -6416,7 +6455,7 @@ LogicalIntersect(all=[false])
     <Resource name="planAfter">
       <![CDATA[
 LogicalAggregate(group=[{0}])
-  LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[semi])
+  LogicalJoin(condition=[=($0, $1)], joinType=[semi])
     LogicalProject(ENAME=[$1])
       LogicalFilter(condition=[=($7, 10)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -6447,7 +6486,7 @@ LogicalIntersect(all=[false])
     <Resource name="planAfter">
       <![CDATA[
 LogicalAggregate(group=[{0, 1}])
-  LogicalJoin(condition=[AND(IS NOT DISTINCT FROM($0, $2), IS NOT DISTINCT FROM($1, $3))], joinType=[semi])
+  LogicalJoin(condition=[AND(=($0, $2), =($1, $3))], joinType=[semi])
     LogicalProject(DEPTNO=[$7], ENAME=[$1])
       LogicalFilter(condition=[=($7, 10)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
