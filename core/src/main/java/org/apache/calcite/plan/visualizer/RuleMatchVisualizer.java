@@ -30,14 +30,12 @@ import org.apache.commons.io.IOUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Charsets;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -57,6 +55,7 @@ import static com.google.common.collect.ImmutableList.toImmutableList;
 
 import static org.apache.calcite.util.Util.transform;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -388,7 +387,7 @@ public class RuleMatchVisualizer implements RelOptListener {
       final ClassLoader cl = requireNonNull(getClass().getClassLoader());
       final InputStream resourceAsStream =
           requireNonNull(cl.getResourceAsStream(templatePath));
-      String htmlTemplate = IOUtils.toString(resourceAsStream, StandardCharsets.UTF_8);
+      String htmlTemplate = IOUtils.toString(resourceAsStream, UTF_8);
 
       String htmlFileName = "planner-viz" + outputSuffix + ".html";
       String dataFileName = "planner-viz-data" + outputSuffix + ".js";
@@ -409,9 +408,9 @@ public class RuleMatchVisualizer implements RelOptListener {
         Files.createDirectories(outputDirPath);
       }
 
-      Files.write(htmlOutput, htmlContent.getBytes(Charsets.UTF_8), StandardOpenOption.CREATE,
+      Files.write(htmlOutput, htmlContent.getBytes(UTF_8), StandardOpenOption.CREATE,
           StandardOpenOption.TRUNCATE_EXISTING);
-      Files.write(dataOutput, dataJsContent.getBytes(Charsets.UTF_8), StandardOpenOption.CREATE,
+      Files.write(dataOutput, dataJsContent.getBytes(UTF_8), StandardOpenOption.CREATE,
           StandardOpenOption.TRUNCATE_EXISTING);
     } catch (IOException e) {
       throw new UncheckedIOException(e);
