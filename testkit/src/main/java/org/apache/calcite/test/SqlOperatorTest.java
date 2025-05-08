@@ -16461,10 +16461,71 @@ public class SqlOperatorTest {
   }
 
 
+  @Test void testBitANDOperatorParserFunc() throws SqlParseException {
+    String sql = "SELECT 5 & 3 ";
+    SqlNode sqlNode = SqlParser.create(sql,  SqlParser.Config.DEFAULT).parseStmt();
+
+    assertInstanceOf(SqlSelect.class, sqlNode);
+    SqlSelect select = (SqlSelect) sqlNode;
+
+    SqlNode selectItem = select.getSelectList().get(0);
+    assertInstanceOf(SqlBasicCall.class, selectItem);
+    SqlBasicCall call = (SqlBasicCall) selectItem;
+    assertEquals(SqlStdOperatorTable.BITAND_OPERATOR, call.getOperator());
+    assertEquals(2, call.getOperandList().size());
+  }
+  @Test void testBitAndOperatorScalarFunc() {
+    final SqlOperatorFixture f = fixture();
+    // Set the test fixture for the BITAND_OPERATOR
+    f.setFor(SqlStdOperatorTable.BITAND_OPERATOR, VmName.EXPAND);
+
+    // Basic test cases
+    f.checkScalar("2 & 3", "2", "INTEGER NOT NULL");
+    f.checkScalar("5 & 3", "1", "INTEGER NOT NULL");
+    f.checkScalar("8 & 7", "0", "INTEGER NOT NULL");
+    f.checkScalar("-1 & 255", "255", "INTEGER NOT NULL");
+
+    // Tests with different integer types and type coercion
+    f.checkScalar("CAST(2 AS INTEGER) & CAST(3 AS BIGINT)", "2", "BIGINT NOT NULL");
+    f.checkScalar("-5 & 7", "3", "INTEGER NOT NULL");
+    f.checkScalar("-5 & -31", "-31", "INTEGER NOT NULL");
+    f.checkScalar("CAST(-5 AS TINYINT) & CAST(7 AS TINYINT)", "3", "TINYINT NOT NULL");
+
+    // Verify return types
+    f.checkType("CAST(2 AS TINYINT) & CAST(3 AS TINYINT)", "TINYINT NOT NULL");
+    f.checkType("CAST(2 AS SMALLINT) & CAST(6 AS SMALLINT)", "SMALLINT NOT NULL");
+    f.checkType("CAST(2 AS BIGINT) & CAST(6 AS BIGINT)", "BIGINT NOT NULL");
+
+    // Binary type tests
+    f.checkScalar("CAST(x'0201' AS BINARY(2)) & CAST(x'07f9' AS BINARY(2))", "0201",
+        "BINARY(2) NOT NULL");
+    f.checkScalar("CAST(x'0201' AS VARBINARY(2)) & CAST(x'07f9' AS VARBINARY(2))", "0201",
+        "VARBINARY(2) NOT NULL");
+
+    // Test invalid argument types
+    f.checkFails("^1.2 & 2^",
+        "Cannot apply '&' to arguments of type '<DECIMAL\\(2, 1\\)> & <INTEGER>'\\. Supported form\\(s\\): '<INTEGER> & <INTEGER>'\\n'<BINARY> & <BINARY>'",
+        false);
+
+    // NULL value tests
+    f.checkNull("CAST(NULL AS INTEGER) & 5");
+    f.checkNull("10 & CAST(NULL AS INTEGER)");
+    f.checkNull("CAST(NULL AS INTEGER) & CAST(NULL AS INTEGER)");
+
+    // Test binary operands with different lengths
+    f.checkFails("CAST(x'0201' AS VARBINARY) & CAST(x'02' AS VARBINARY)",
+        "Different length for bitwise operands: the first: 2, the second: 1",
+        true);
+
+    // Boundary cases for bitwise operations
+    f.checkScalar("0 & 0", "0", "INTEGER NOT NULL");
+    f.checkScalar("-1 & -1", "-1", "INTEGER NOT NULL");
+    f.checkScalar("2147483647 & 0", "0", "INTEGER NOT NULL");  // MAX_INT & 0
+    f.checkScalar("-2147483648 & -1", "-2147483648", "INTEGER NOT NULL");  // MIN_INT & -1
+  }
   @Test void testLeftShiftScalarFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.LEFTSHIFT_OPERATOR, VmName.EXPAND);
-
 
     // Basic test cases
     f.checkScalar("2 << 2", "8", "INTEGER NOT NULL");
@@ -16489,9 +16550,12 @@ public class SqlOperatorTest {
     f.checkNull("CAST(NULL AS INTEGER) << 5");
     f.checkNull("10 << CAST(NULL AS INTEGER)");
     f.checkNull("CAST(NULL AS INTEGER) << CAST(NULL AS INTEGER)");
-    f.checkScalar("1 << 64", "1", "INTEGER NOT NULL"); // INTEGER << shift: effective shift is shift % 32. 64 % 32 = 0.
-    f.checkScalar("CAST(1 AS BIGINT) << 64", "1", "BIGINT NOT NULL"); // BIGINT << shift: effective shift is shift % 64. 64 % 64 = 0.
-    f.checkScalar("CAST(1 AS BIGINT) << 65", "2", "BIGINT NOT NULL"); // BIGINT << shift: effective shift is shift % 64. 65 % 64 = 1.
+    // INTEGER << shift: effective shift is shift % 32. 64 % 32 = 0.
+    f.checkScalar("1 << 64", "1", "INTEGER NOT NULL");
+    // BIGINT << shift: effective shift is shift % 64. 64 % 64 = 0.
+    f.checkScalar("CAST(1 AS BIGINT) << 64", "1", "BIGINT NOT NULL");
+    // BIGINT << shift: effective shift is shift % 64. 65 % 64 = 1.
+    f.checkScalar("CAST(1 AS BIGINT) << 65", "2", "BIGINT NOT NULL");
     f.checkFails("1 << -2 ",
         "Shift count must be non-negative", true);
   }

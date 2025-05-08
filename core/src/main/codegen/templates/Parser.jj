@@ -8002,6 +8002,7 @@ SqlBinaryOperator BinaryRowOperator() :
 |   <OVERLAPS> { return SqlStdOperatorTable.OVERLAPS; }
 |   <EQUALS> { return SqlStdOperatorTable.PERIOD_EQUALS; }
 |   <CARET> { return SqlStdOperatorTable.BITXOR_OPERATOR; }
+|   <AMPERSAND> { return SqlStdOperatorTable.BITAND_OPERATOR; }
 |   <PRECEDES> { return SqlStdOperatorTable.PRECEDES; }
 |   <SUCCEEDS> { return SqlStdOperatorTable.SUCCEEDS; }
 |   LOOKAHEAD(2) <IMMEDIATELY> <PRECEDES> { return SqlStdOperatorTable.IMMEDIATELY_PRECEDES; }
@@ -8993,6 +8994,7 @@ void NonReservedKeyWord2of3() :
 |   < VERTICAL_BAR: "|" >
 |   < CARET: "^" >
 |   < LEFTSHIFT: "<<" >
+|   < AMPERSAND: "&" >
 |   < DOLLAR: "$" >
 <#list (parser.binaryOperatorsTokens!default.parser.binaryOperatorsTokens) as operator>
 |   ${operator}
