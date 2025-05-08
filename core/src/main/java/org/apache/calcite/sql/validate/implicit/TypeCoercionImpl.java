@@ -571,6 +571,8 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
    *
    * <p>To determine the common type:
    *
+   * <ul>
+   *
    * <li>When the LHS has a Simple type and RHS has a Collection type determined by {@link SqlTypeUtil#isCollection},
    * to find the common type of LHS's type and RHS's component type.
    * <li>If the common type differs from the LHS type, then coerced LHS type,
@@ -590,7 +592,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
    *</pre>
    *
    * <li>Notice: If either LHS or RHS has a {@link SqlTypeName#NULL} type, it will directly return without any adjusting.
-   *
+   * </ul>
    */
   @Override public boolean quantifyOperationCoercion(SqlCallBinding binding) {
     final RelDataType type1 = binding.getOperandType(0);
