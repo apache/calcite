@@ -1300,13 +1300,26 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           OperandTypes.INTEGER_INTEGER.or(OperandTypes.BINARY_BINARY));
 
   /**
+   * <code>{@code &}</code> operator.
+   */
+  public static final SqlBinaryOperator BITAND_OPERATOR =
+      new SqlBinaryOperator(
+          "&",
+          SqlKind.BITAND,
+          50,        // Higher precedence than XOR but lower than multiplication
+          true,
+          ReturnTypes.LARGEST_INT_OR_FIRST_NON_NULL,
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.INTEGER_INTEGER.or(OperandTypes.BINARY_BINARY));
+
+  /**
    * <code>{@code ^}</code> operator.
    */
   public static final SqlBinaryOperator BITXOR_OPERATOR =
       new SqlMonotonicBinaryOperator(
           "^",
           SqlKind.BITXOR,
-          50,        // Precedence between addition (40) and multiplication (60)
+          40,        // Precedence between addition (40) and multiplication (60)
           true,
           ReturnTypes.LARGEST_INT_OR_FIRST_NON_NULL,  // Returns same type as inputs when nullable
           InferTypes.FIRST_KNOWN,

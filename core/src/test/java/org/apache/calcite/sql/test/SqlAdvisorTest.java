@@ -299,6 +299,7 @@ class SqlAdvisorTest extends SqlValidatorTestCase {
 
   protected static final List<String> PREDICATE_KEYWORDS =
       Arrays.asList(
+          "KEYWORD(&)",
           "KEYWORD(()",
           "KEYWORD(*)",
           "KEYWORD(+)",
