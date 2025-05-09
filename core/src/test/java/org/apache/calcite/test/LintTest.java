@@ -383,6 +383,7 @@ class LintTest {
     rules.add(new TermRule("\\bbigquery\\b", "BigQuery"));
     rules.add(new TermRule("\\bredshift\\b", "Redshift"));
     rules.add(new TermRule("\\bsnowflake\\b", "Snowflake"));
+    rules.add(new TermRule("\\bsqlite\\b", "SQLite"));
     return rules.build();
   }
 
