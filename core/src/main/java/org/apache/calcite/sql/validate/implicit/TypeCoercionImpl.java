@@ -583,12 +583,12 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
    *
    *<pre>
    * field1       ARRAY(field2, field3, field4)
-   *    |                |       |        |
-   *    |               +-------+---------+
-   *    |                       |
-   *    |                 component type
-   *    |                      |
-   *    +-----common type------+
+   *    |                |       |       |
+   *    |                +-------+-------+
+   *    |                        |
+   *    |                  component type
+   *    |                        |
+   *    +------common type-------+
    *</pre>
    *
    * <li>Notice: If either LHS or RHS has a {@link SqlTypeName#NULL} type, it will directly return without any adjusting.
@@ -602,6 +602,8 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
     if (type1.getSqlTypeName() == SqlTypeName.NULL || type2.getSqlTypeName() == SqlTypeName.NULL) {
       return false;
     }
+    final SqlCall sqlCall = binding.getCall();
+    final SqlValidatorScope scope = binding.getScope();
     final SqlNode node1 = binding.operand(0);
     final SqlNode node2 = binding.operand(1);
     RelDataType widenType = commonTypeForBinaryComparison(type1, type2);
@@ -614,7 +616,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
     final RelDataType leftWidenType =
         binding.getTypeFactory().enforceTypeWithNullability(widenType, type1.isNullable());
     boolean coercedLeft =
-        coerceOperandType(getScope(binding), binding.getCall(), 0, leftWidenType);
+        coerceOperandType(scope, sqlCall, 0, leftWidenType);
     if (coercedLeft) {
       updateInferredType(node1, leftWidenType);
     }
@@ -627,7 +629,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
             .getTypeFactory()
             .enforceTypeWithNullability(collectionWidenType, collectionType.isNullable());
     boolean coercedRight =
-        coerceOperandType(getScope(binding), binding.getCall(), 1, collectionWidenType);
+        coerceOperandType(scope, sqlCall, 1, collectionWidenType);
     if (coercedRight) {
       updateInferredType(node2, collectionWidenType);
     }

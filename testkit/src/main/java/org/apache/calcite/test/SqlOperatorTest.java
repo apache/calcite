@@ -16107,6 +16107,7 @@ public class SqlOperatorTest {
     QUANTIFY_OPERATORS.forEach(operator -> f.setFor(operator, SqlOperatorFixture.VmName.EXPAND));
 
     f.checkNull("1.0 = some (ARRAY[2,3,null])");
+    f.checkNull("1.0 = some (ARRAY[2,null,3])");
     f.checkBoolean("1.0 = some (ARRAY[1,2,null])", true);
     f.checkBoolean("3.0 = some (ARRAY[1,2])", false);
 
