@@ -16560,6 +16560,46 @@ public class SqlOperatorTest {
         "Shift count must be non-negative", true);
   }
 
+  @Test void testRightShiftScalarFunc() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlStdOperatorTable.RIGHTSHIFT, VmName.EXPAND);
+
+    // Basic test cases
+    f.checkScalar("RIGHTSHIFT(8, 2)", "2", "INTEGER NOT NULL");
+    f.checkScalar("RIGHTSHIFT(1024, 10)", "1", "INTEGER NOT NULL");
+    f.checkScalar("RIGHTSHIFT(0, 5)", "0", "INTEGER NOT NULL");
+
+    // Test with different integer types and type coercion
+    f.checkScalar("RIGHTSHIFT(CAST(16 AS INTEGER), CAST(2 AS BIGINT))", "4", "BIGINT NOT NULL");
+    f.checkScalar("RIGHTSHIFT(-20, 2)", "-5", "INTEGER NOT NULL");
+    f.checkScalar("RIGHTSHIFT(-40, 3)", "-5", "INTEGER NOT NULL");
+    f.checkScalar("RIGHTSHIFT(CAST(-20 AS TINYINT), CAST(2 AS TINYINT))", "-5", "TINYINT NOT NULL");
+
+    // Verify return types
+    f.checkType("RIGHTSHIFT(CAST(16 AS TINYINT), CAST(2 AS TINYINT))", "TINYINT NOT NULL");
+    f.checkType("RIGHTSHIFT(CAST(16 AS SMALLINT), CAST(2 AS SMALLINT))", "SMALLINT NOT NULL");
+    f.checkType("RIGHTSHIFT(CAST(16 AS BIGINT), CAST(2 AS BIGINT))", "BIGINT NOT NULL");
+
+    // Invalid argument types
+    f.checkFails("^RIGHTSHIFT(1.2, 2)^",
+        "Cannot apply 'RIGHTSHIFT' to arguments of type 'RIGHTSHIFT\\(<DECIMAL\\(2, 1\\)>, <INTEGER>\\)'\\. Supported form\\(s\\): 'RIGHTSHIFT\\(<INTEGER>, <INTEGER>\\)'\\n'RIGHTSHIFT\\(<BINARY>, <BINARY>\\)'",
+        false);
+
+    // Null arguments
+    f.checkNull("RIGHTSHIFT(CAST(NULL AS INTEGER), 5)");
+    f.checkNull("RIGHTSHIFT(10, CAST(NULL AS INTEGER))");
+    f.checkNull("RIGHTSHIFT(CAST(NULL AS INTEGER), CAST(NULL AS INTEGER))");
+
+    // Edge behavior with shift > width
+    f.checkScalar("RIGHTSHIFT(1, 64)", "1", "INTEGER NOT NULL"); // 64 % 32 = 0
+    f.checkScalar("RIGHTSHIFT(CAST(1 AS BIGINT), 64)", "1", "BIGINT NOT NULL");
+    f.checkScalar("RIGHTSHIFT(CAST(2 AS BIGINT), 65)", "1", "BIGINT NOT NULL"); // 65 % 64 = 1
+
+    // Negative shift
+    f.checkFails("RIGHTSHIFT(1, -2)",
+        "Shift count must be non-negative", true);
+  }
+
   @Test void testBitAndScalarFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.BITAND, VmName.EXPAND);

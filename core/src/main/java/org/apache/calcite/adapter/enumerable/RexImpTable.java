@@ -508,6 +508,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RANK;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REGR_COUNT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REINTERPRET;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REPLACE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RIGHTSHIFT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ROUND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ROW;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ROW_NUMBER;
@@ -545,6 +546,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.UPPER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.USER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.VARIANTNULL;
 import static org.apache.calcite.util.BuiltInMethod.LEFT_SHIFT;
+import static org.apache.calcite.util.BuiltInMethod.RIGHT_SHIFT;
 import static org.apache.calcite.util.ReflectUtil.isStatic;
 
 import static java.util.Objects.requireNonNull;
@@ -744,6 +746,8 @@ public class RexImpTable {
       defineMethod(BITXOR, BuiltInMethod.BIT_XOR.method,
           NullPolicy.STRICT);
       defineMethod(LEFTSHIFT_OPERATOR, LEFT_SHIFT.method,
+          NullPolicy.STRICT);
+      defineMethod(RIGHTSHIFT, RIGHT_SHIFT.method,
           NullPolicy.STRICT);
       defineMethod(BITXOR_OPERATOR, BuiltInMethod.BIT_XOR.method,
           NullPolicy.STRICT);
