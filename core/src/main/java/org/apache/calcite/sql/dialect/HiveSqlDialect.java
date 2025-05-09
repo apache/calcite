@@ -18,6 +18,7 @@ package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
@@ -90,6 +91,10 @@ public class HiveSqlDialect extends SqlDialect {
     }
 
     return null;
+  }
+
+  @Override public RexNode prepareUnparse(RexNode rexNode) {
+    return RelToSqlConverterUtil.unparseIsTrueOrFalse(rexNode);
   }
 
   @Override public void unparseCall(final SqlWriter writer, final SqlCall call,

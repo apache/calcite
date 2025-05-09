@@ -192,6 +192,10 @@ public class PrestoSqlDialect extends SqlDialect {
     }
   }
 
+  @Override public RexNode prepareUnparse(RexNode rexNode) {
+    return RelToSqlConverterUtil.unparseIsTrueOrFalse(rexNode);
+  }
+
   @Override public void unparseCall(SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec) {
     if (call.getOperator() == SqlStdOperatorTable.SUBSTRING) {
@@ -204,6 +208,17 @@ public class PrestoSqlDialect extends SqlDialect {
       switch (call.getKind()) {
       case MAP_VALUE_CONSTRUCTOR:
         unparseMapValue(writer, call, leftPrec, rightPrec);
+        break;
+      case IS_NULL:
+      case IS_NOT_NULL:
+        if (call.operand(0) instanceof SqlBasicCall) {
+          final SqlWriter.Frame frame = writer.startList("(", ")");
+          call.operand(0).unparse(writer, leftPrec, rightPrec);
+          writer.endList(frame);
+          writer.print(call.getOperator().getName() + " ");
+        } else {
+          super.unparseCall(writer, call, leftPrec, rightPrec);
+        }
         break;
       case CHAR_LENGTH:
         SqlCall lengthCall = SqlLibraryOperators.LENGTH
