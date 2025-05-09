@@ -1316,7 +1316,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <code>{@code ^}</code> operator.
    */
   public static final SqlBinaryOperator BITXOR_OPERATOR =
-      new SqlMonotonicBinaryOperator(
+      new SqlBinaryOperator(
           "^",
           SqlKind.BITXOR,
           40,        // Precedence between addition (40) and multiplication (60)
