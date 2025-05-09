@@ -1327,6 +1327,14 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   // Both operands should support bitwise operations
 
   /**
+   * <code>RIGHTSHIFT</code> scalar function.
+   */
+  public static final SqlFunction RIGHTSHIFT =
+      SqlBasicFunction.create("RIGHTSHIFT", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.LARGEST_INT_OR_FIRST_NON_NULL,
+          OperandTypes.INTEGER_INTEGER.or(OperandTypes.BINARY_BINARY));
+
+  /**
    * <code>{@code <<}</code> operator.
    */
   public static final SqlBinaryOperator LEFTSHIFT_OPERATOR =
