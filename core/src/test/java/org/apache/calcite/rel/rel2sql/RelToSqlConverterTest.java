@@ -8748,7 +8748,10 @@ class RelToSqlConverterTest {
    * in StarRocksDialect</a>,
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6979">[CALCITE-6979]
    * Invalid unparse for IS TRUE,IS FALSE,IS NOT TRUE and IS NOT FALSE
-   * in ClickHouseDialect</a>.*/
+   * in ClickHouseDialect</a>,
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7005">[CALCITE-7005]
+   * Invalid unparse for IS TRUE,IS FALSE,IS NOT TRUE and IS NOT FALSE
+   * in Hive/Presto Dialect</a>. */
   @Test void testIsTrue() {
     final String sql = "SELECT * FROM \"EMP\" WHERE \"COMM\" > 0 IS TRUE";
     final String expected = "SELECT *\n"
@@ -8760,9 +8763,16 @@ class RelToSqlConverterTest {
     String expectedClickHouse = "SELECT *\n"
         + "FROM `SCOTT`.`EMP`\n"
         + "WHERE CAST(`COMM` AS DECIMAL(12, 2)) > 0.00 IS NOT NULL AND CAST(`COMM` AS DECIMAL(12, 2)) > 0.00";
+    String expectedHive = expectedClickHouse;
+    String expectedPresto = "SELECT *\n"
+        + "FROM \"SCOTT\".\"EMP\"\n"
+        + "WHERE (CAST(\"COMM\" AS DECIMAL(12, 2)) > 0.00) IS NOT NULL AND CAST(\"COMM\" AS DECIMAL(12, 2)) > 0.00";
+
     sql(sql)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .ok(expected)
+        .withHive().ok(expectedHive)
+        .withPresto().ok(expectedPresto)
         .withStarRocks().ok(expectedStarRocks)
         .withClickHouse().ok(expectedClickHouse);
 
@@ -8770,6 +8780,10 @@ class RelToSqlConverterTest {
         "SELECT * FROM \"EMP\" WHERE \"COMM\" > RAND_INTEGER(10) IS TRUE";
     sql(sqlNoDeterministic)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withHive()
+        .throws_("Unsupported unparse: IS TRUE")
+        .withPresto()
+        .throws_("Unsupported unparse: IS TRUE")
         .withStarRocks()
         .throws_("Unsupported unparse: IS TRUE")
         .withClickHouse()
@@ -8787,9 +8801,16 @@ class RelToSqlConverterTest {
     String expectedClickHouse = "SELECT *\n"
         + "FROM `SCOTT`.`EMP`\n"
         + "WHERE CAST(`COMM` AS DECIMAL(12, 2)) > 0.00 IS NULL OR NOT CAST(`COMM` AS DECIMAL(12, 2)) > 0.00";
+    String expectedHive = expectedClickHouse;
+    String expectedPresto = "SELECT *\n"
+        + "FROM \"SCOTT\".\"EMP\"\n"
+        + "WHERE (CAST(\"COMM\" AS DECIMAL(12, 2)) > 0.00) IS NULL OR NOT CAST(\"COMM\" AS DECIMAL(12, 2)) > 0.00";
+
     sql(sql)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .ok(expected)
+        .withHive().ok(expectedHive)
+        .withPresto().ok(expectedPresto)
         .withStarRocks().ok(expectedStarRocks)
         .withClickHouse().ok(expectedClickHouse);
 
@@ -8797,6 +8818,10 @@ class RelToSqlConverterTest {
         + "FROM \"EMP\" WHERE \"COMM\" > RAND_INTEGER(10) IS NOT TRUE";
     sql(sqlNoDeterministic)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withHive()
+        .throws_("Unsupported unparse: IS NOT TRUE")
+        .withPresto()
+        .throws_("Unsupported unparse: IS NOT TRUE")
         .withStarRocks()
         .throws_("Unsupported unparse: IS NOT TRUE")
         .withClickHouse()
@@ -8814,9 +8839,16 @@ class RelToSqlConverterTest {
     String expectedClickHouse = "SELECT *\n"
         + "FROM `SCOTT`.`EMP`\n"
         + "WHERE CAST(`COMM` AS DECIMAL(12, 2)) > 0.00 IS NOT NULL AND NOT CAST(`COMM` AS DECIMAL(12, 2)) > 0.00";
+    String expectedHive = expectedClickHouse;
+    String expectedPresto = "SELECT *\n"
+        + "FROM \"SCOTT\".\"EMP\"\n"
+        + "WHERE (CAST(\"COMM\" AS DECIMAL(12, 2)) > 0.00) IS NOT NULL AND NOT CAST(\"COMM\" AS DECIMAL(12, 2)) > 0.00";
+
     sql(sql)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .ok(expected)
+        .withHive().ok(expectedHive)
+        .withPresto().ok(expectedPresto)
         .withStarRocks().ok(expectedStarRocks)
         .withClickHouse().ok(expectedClickHouse);
 
@@ -8824,6 +8856,10 @@ class RelToSqlConverterTest {
         + "FROM \"EMP\" WHERE \"COMM\" > RAND_INTEGER(10) IS FALSE";
     sql(sqlNoDeterministic)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withHive()
+        .throws_("Unsupported unparse: IS FALSE")
+        .withPresto()
+        .throws_("Unsupported unparse: IS FALSE")
         .withStarRocks()
         .throws_("Unsupported unparse: IS FALSE")
         .withClickHouse()
@@ -8841,9 +8877,16 @@ class RelToSqlConverterTest {
     String expectedClickHouse = "SELECT *\n"
         + "FROM `SCOTT`.`EMP`\n"
         + "WHERE CAST(`COMM` AS DECIMAL(12, 2)) > 0.00 IS NULL OR CAST(`COMM` AS DECIMAL(12, 2)) > 0.00";
+    String expectedHive = expectedClickHouse;
+    String expectedPresto = "SELECT *\n"
+        + "FROM \"SCOTT\".\"EMP\"\n"
+        + "WHERE (CAST(\"COMM\" AS DECIMAL(12, 2)) > 0.00) IS NULL OR CAST(\"COMM\" AS DECIMAL(12, 2)) > 0.00";
+
     sql(sql)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .ok(expected)
+        .withHive().ok(expectedHive)
+        .withPresto().ok(expectedPresto)
         .withStarRocks().ok(expectedStarRocks)
         .withClickHouse().ok(expectedClickHouse);
 
@@ -8851,6 +8894,10 @@ class RelToSqlConverterTest {
         + "FROM \"EMP\" WHERE \"COMM\" > RAND_INTEGER(10) IS NOT FALSE";
     sql(sqlNoDeterministic)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withHive()
+        .throws_("Unsupported unparse: IS NOT FALSE")
+        .withPresto()
+        .throws_("Unsupported unparse: IS NOT FALSE")
         .withStarRocks()
         .throws_("Unsupported unparse: IS NOT FALSE")
         .withClickHouse()
