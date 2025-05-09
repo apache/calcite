@@ -67,6 +67,7 @@ import org.apache.calcite.sql.dialect.OracleSqlDialect;
 import org.apache.calcite.sql.dialect.PhoenixSqlDialect;
 import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
 import org.apache.calcite.sql.dialect.PrestoSqlDialect;
+import org.apache.calcite.sql.dialect.SqliteSqlDialect;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -2816,30 +2817,39 @@ class RelToSqlConverterTest {
         .withSpark().ok(expected);
   }
 
-  @Test void testHiveSparkAndBqTrimWithLeading() {
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6997">[CALCITE-6997]
+   * SQLite dialect implementation</a>. */
+  @Test void testLeadingTrim() {
     final String query = "SELECT TRIM(LEADING ' ' from ' str ')\n"
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT LTRIM(' str ')\n"
         + "FROM `foodmart`.`reserve_employee`";
     final String expectedBigQuery = "SELECT LTRIM(' str ')\n"
         + "FROM foodmart.reserve_employee";
+    final String expectedSqlite = "SELECT LTRIM(' str ')\n"
+        + "FROM \"foodmart\".\"reserve_employee\"";
     sql(query)
         .withBigQuery().ok(expectedBigQuery)
         .withHive().ok(expected)
-        .withSpark().ok(expected);
+        .withSpark().ok(expected)
+        .withSQLite().ok(expectedSqlite);
   }
 
-  @Test void testHiveSparkAndBqTrimWithTailing() {
+  @Test void testTailingTrim() {
     final String query = "SELECT TRIM(TRAILING ' ' from ' str ')\n"
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT RTRIM(' str ')\n"
         + "FROM `foodmart`.`reserve_employee`";
     final String expectedBigQuery = "SELECT RTRIM(' str ')\n"
         + "FROM foodmart.reserve_employee";
+    final String expectedSqlite = "SELECT RTRIM(' str ')\n"
+        + "FROM \"foodmart\".\"reserve_employee\"";
     sql(query)
         .withBigQuery().ok(expectedBigQuery)
         .withHive().ok(expected)
-        .withSpark().ok(expected);
+        .withSpark().ok(expected)
+        .withSQLite().ok(expectedSqlite);
   }
 
   /** Test case for
@@ -2876,11 +2886,14 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT TRIM('abcda', 'a')\n"
         + "FROM foodmart.reserve_employee";
+    final String expectedSqlite = "SELECT TRIM('abcda', 'a')\n"
+        + "FROM \"foodmart\".\"reserve_employee\"";
     sql(query)
-        .withBigQuery().ok(expected);
+        .withBigQuery().ok(expected)
+        .withSQLite().ok(expectedSqlite);
   }
 
-  @Test void testHiveAndSparkTrimWithBothChar() {
+  @Test void testBothTrim() {
     final String query = "SELECT TRIM(both 'a' from 'abcda')\n"
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT REGEXP_REPLACE('abcda', '^(a)*|(a)*$', '')\n"
@@ -2897,9 +2910,13 @@ class RelToSqlConverterTest {
         + "FROM foodmart.reserve_employee";
     final String expectedPresto = "SELECT RTRIM('abcd', 'a')\n"
         + "FROM \"foodmart\".\"reserve_employee\"";
+    final String expectedSqlite = "SELECT RTRIM('abcd', 'a')\n"
+        + "FROM \"foodmart\".\"reserve_employee\"";
+
     sql(query)
         .withBigQuery().ok(expected)
-        .withPresto().ok(expectedPresto);
+        .withPresto().ok(expectedPresto)
+        .withSQLite().ok(expectedSqlite);
   }
 
   @Test void testHiveAndSparkTrimWithTailingChar() {
@@ -2917,9 +2934,11 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT TRIM('$@*AABC$@*AADCAA$@*A', '$@*A')\n"
         + "FROM foodmart.reserve_employee";
+    final String expectedSqlite = "SELECT TRIM('$@*AABC$@*AADCAA$@*A', '$@*A')\n"
+        + "FROM \"foodmart\".\"reserve_employee\"";
     sql(query)
-      .withBigQuery()
-      .ok(expected);
+      .withBigQuery().ok(expected)
+      .withSQLite().ok(expectedSqlite);
   }
 
   @Test void testHiveAndSparkTrimWithBothSpecialCharacter() {
@@ -3116,6 +3135,13 @@ class RelToSqlConverterTest {
         .withPresto().ok(expectedPresto)
         .withTrino().ok(expectedTrino)
         .withDoris().ok(expectedStarRocks);
+  }
+
+  @Test void testPositionFunctionForSqlite() {
+    final String query = "select position('A' IN 'ABC') from \"product\"";
+    final String expected = "SELECT INSTR('ABC', 'A')\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).withSQLite().ok(expected);
   }
 
   @Test void testPositionFunctionForHive() {
@@ -5315,13 +5341,18 @@ class RelToSqlConverterTest {
         + "FROM `foodmart`.`employee`\n"
         + "LIMIT 1\n"
         + "OFFSET 1";
+    final String expectedSqlite = "SELECT *\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "LIMIT 1\n"
+        + "OFFSET 1";
     sql(query)
         .withMssql().ok(expectedMssql)
         .withSybase().ok(expectedSybase)
         .withPresto().ok(expectedPresto)
         .withTrino().ok(expectedTrino)
         .withStarRocks().ok(expectedStarRocks)
-        .withDoris().ok(expectedStarRocks);
+        .withDoris().ok(expectedStarRocks)
+        .withSQLite().ok(expectedSqlite);
   }
 
   @Test void testFloorMssqlMonth() {
@@ -7894,10 +7925,12 @@ class RelToSqlConverterTest {
     final String expectedSnowflake = "SELECT LENGTH(\"brand_name\")\n"
         + "FROM \"foodmart\".\"product\"";
     final String expectedDuckDB = expectedSnowflake;
+    final String expectedSqlite = expectedDuckDB;
     Sql sql = sql(query).withLibrary(SqlLibrary.BIG_QUERY);
     sql.withBigQuery().ok(expectedBigQuery);
     sql.withSnowflake().ok(expectedSnowflake);
     sql.withDuckDB().ok(expectedDuckDB);
+    sql.withSQLite().ok(expectedSqlite);
   }
 
   /** Test case for
@@ -9583,7 +9616,11 @@ class RelToSqlConverterTest {
         + "FROM `foodmart`.`reserve_employee`";
     final String expectedPresto = "SELECT TRIM(' str ')\n"
         + "FROM \"foodmart\".\"reserve_employee\"";
+    final String expectedSqlite = "SELECT TRIM(' str ')\n"
+        + "FROM \"foodmart\".\"reserve_employee\"";
+
     sql(query).withStarRocks().ok(expectedStarRocks)
+        .withSQLite().ok(expectedSqlite)
         .withDoris().ok(expectedStarRocks)
         .withPresto().ok(expectedPresto);
   }
@@ -10117,6 +10154,10 @@ class RelToSqlConverterTest {
       return dialect(DatabaseProduct.SNOWFLAKE.getDialect());
     }
 
+    Sql withSQLite() {
+      return dialect(DatabaseProduct.SQLITE.getDialect());
+    }
+
     Sql withSybase() {
       return dialect(DatabaseProduct.SYBASE.getDialect());
     }
@@ -10202,6 +10243,12 @@ class RelToSqlConverterTest {
       final DuckDBSqlDialect duckDBSqlDialect =
           new DuckDBSqlDialect(DuckDBSqlDialect.DEFAULT_CONTEXT);
       return dialect(duckDBSqlDialect);
+    }
+
+    Sql withSqliteModifiedDecimalTypeSystem() {
+      final SqliteSqlDialect sqliteSqlDialect =
+          new SqliteSqlDialect(SqliteSqlDialect.DEFAULT_CONTEXT);
+      return dialect(sqliteSqlDialect);
     }
 
     Sql withPrestoModifiedDecimalTypeSystem() {
