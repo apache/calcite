@@ -4763,7 +4763,8 @@ public class RexImpTable {
           Expressions.condition(left.isNullVariable,
           Expressions.condition(right.isNullVariable, BOXED_TRUE_EXPR, BOXED_FALSE_EXPR),
           Expressions.condition(right.isNullVariable, BOXED_FALSE_EXPR,
-              Expressions.equal(left.valueVariable, right.valueVariable)));
+              Expressions.call(BuiltInMethod.OBJECTS_EQUAL.method,
+                  left.valueVariable, right.valueVariable)));
 
       BlockBuilder builder = translator.getBlockBuilder();
       final ParameterExpression valueVariable =
