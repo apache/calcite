@@ -989,24 +989,30 @@ class RexBuilderTest {
   @Test void testMakeInReturnsSearchForMultisetLiterals() {
     RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     RexBuilder rexBuilder = new RexBuilder(typeFactory);
+
     RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
     RelDataType multisetType = typeFactory.createMultisetType(intType, -1);
     RexNode column = rexBuilder.makeInputRef(multisetType, 0);
 
-    String expected = "SEARCH($0, Sarg["
-            + "[100:INTEGER, 200:INTEGER]:INTEGER NOT NULL MULTISET, "
-            + "[300:INTEGER, 400:INTEGER]:INTEGER NOT NULL MULTISET"
-            + "]:INTEGER NOT NULL MULTISET)";
-
-    RexNode m1 = rexBuilder.makeLiteral(ImmutableList.of(100, 200), multisetType, true);
-    RexNode m2 = rexBuilder.makeLiteral(ImmutableList.of(300, 400), multisetType, true);
+    RexNode m1 = rexBuilder.makeLiteral(ImmutableList.of(100, 200), multisetType, false);
+    RexNode m2 = rexBuilder.makeLiteral(ImmutableList.of(300, 400), multisetType, false);
     RexNode inCall1 = rexBuilder.makeIn(column, ImmutableList.of(m1, m2));
-    assertThat(inCall1, hasToString(expected));
+    assertThat(inCall1, hasToString("SEARCH($0, Sarg["
+        + "[100:INTEGER, 200:INTEGER]:INTEGER NOT NULL MULTISET, "
+        + "[300:INTEGER, 400:INTEGER]:INTEGER NOT NULL MULTISET"
+        + "]:INTEGER NOT NULL MULTISET)"));
 
-    RexNode m3 = rexBuilder.makeLiteral(ImmutableList.of(100, 200), multisetType, false);
-    RexNode m4 = rexBuilder.makeLiteral(ImmutableList.of(300, 400), multisetType, false);
-    RexNode inCall2 = rexBuilder.makeIn(column, ImmutableList.of(m3, m4));
-    assertThat(inCall2, hasToString(expected));
+    RelDataType doubleType = typeFactory.createSqlType(SqlTypeName.DOUBLE);
+    RelDataType multisetType2 = typeFactory.createMultisetType(doubleType, -1);
+    RexNode column2 = rexBuilder.makeInputRef(multisetType2, 0);
+
+    RexNode m3 = rexBuilder.makeLiteral(ImmutableList.of(100.21, 200), multisetType2, true);
+    RexNode m4 = rexBuilder.makeLiteral(ImmutableList.of(300, 400), multisetType2, true);
+    RexNode inCall2 = rexBuilder.makeIn(column2, ImmutableList.of(m3, m4));
+    assertThat(inCall2, hasToString("SEARCH($0, Sarg["
+        + "[100.21E0:DOUBLE, 200.0E0:DOUBLE]:DOUBLE NOT NULL MULTISET, "
+        + "[300.0E0:DOUBLE, 400.0E0:DOUBLE]:DOUBLE NOT NULL MULTISET"
+        + "]:DOUBLE NOT NULL MULTISET)"));
   }
 
   /**
