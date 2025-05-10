@@ -854,4 +854,154 @@ EnumerableCalc(expr#0..1=[{inputs}], A=[$t0])
     EnumerableValues(tuples=[[{ 1 }, { null }]])
 !plan
 
+# Test for Double
+SELECT t1.a
+FROM (VALUES (1.0e0), (2.0e0), (null)) AS t1(a)
+JOIN (VALUES (1.0e0), (null)) AS t2(a)
+ON t1.a IS NOT DISTINCT FROM t2.a;
++-----+
+| A   |
++-----+
+| 1.0 |
+|     |
++-----+
+(2 rows)
+
+!ok
+
+# Test for Int
+SELECT t1.a
+FROM (VALUES (1), (2), (null)) AS t1(a)
+JOIN (VALUES (1), (null)) AS t2(a)
+ON t1.a IS NOT DISTINCT FROM t2.a;
++---+
+| A |
++---+
+| 1 |
+|   |
++---+
+(2 rows)
+
+!ok
+
+# Test for Varchar/Char
+SELECT t1.a
+FROM (VALUES ('x'), ('y'), (null)) AS t1(a)
+JOIN (VALUES ('x'), (null)) AS t2(a)
+ON t1.a IS NOT DISTINCT FROM t2.a;
++---+
+| A |
++---+
+| x |
+|   |
++---+
+(2 rows)
+
+!ok
+
+# Test for Boolean
+SELECT t1.a
+FROM (VALUES (true), (false), (null)) AS t1(a)
+JOIN (VALUES (true), (null)) AS t2(a)
+ON t1.a IS NOT DISTINCT FROM t2.a;
++------+
+| A    |
++------+
+| true |
+|      |
++------+
+(2 rows)
+
+!ok
+
+# Test for Date
+SELECT t1.a
+FROM (VALUES (DATE '2025-05-10'), (DATE '2025-05-11'), (null)) AS t1(a)
+JOIN (VALUES (DATE '2025-05-10'), (null)) AS t2(a)
+ON t1.a IS NOT DISTINCT FROM t2.a;
++------------+
+| A          |
++------------+
+| 2025-05-10 |
+|            |
++------------+
+(2 rows)
+
+!ok
+
+# Test for Timestamp
+SELECT t1.a
+FROM (VALUES (TIMESTAMP '2025-05-10 10:22:34'), (TIMESTAMP '2025-05-11 10:22:34'), (null)) AS t1(a)
+JOIN (VALUES (TIMESTAMP '2025-05-10 10:22:34'), (null)) AS t2(a)
+ON t1.a IS NOT DISTINCT FROM t2.a;
++---------------------+
+| A                   |
++---------------------+
+| 2025-05-10 10:22:34 |
+|                     |
++---------------------+
+(2 rows)
+
+!ok
+
+# Test for Decimal
+SELECT t1.a
+FROM (VALUES (CAST(1.0 AS DECIMAL(10, 2))), (CAST(2.0 AS DECIMAL(10, 2))), (null)) AS t1(a)
+JOIN (VALUES (CAST(1.0 AS DECIMAL(10, 2))), (null)) AS t2(a)
+ON t1.a IS NOT DISTINCT FROM t2.a;
++------+
+| A    |
++------+
+| 1.00 |
+|      |
++------+
+(2 rows)
+
+!ok
+
+# Test for Array
+SELECT t1.a
+FROM (VALUES (ARRAY[1.0, 1.0]), (ARRAY[2.0, 2.0]), (CAST(NULL AS DOUBLE ARRAY))) AS t1(a)
+JOIN (VALUES (ARRAY[1.0, 1.0]), (CAST(NULL AS DOUBLE ARRAY))) AS t2(a)
+ON t1.a IS NOT DISTINCT FROM t2.a;
++------------+
+| A          |
++------------+
+| [1.0, 1.0] |
+|            |
++------------+
+(2 rows)
+
+!ok
+
+# Test for Map
+SELECT t1.a
+FROM (VALUES (MAP['k1', 1.0]), (MAP['k2', 2.0]), (CAST(NULL AS MAP<VARCHAR, DOUBLE>)) ) AS t1(a)
+JOIN (VALUES (MAP['k1', 1.0]), (CAST(NULL AS MAP<VARCHAR, DOUBLE>)) ) AS t2(a)
+ON t1.a IS NOT DISTINCT FROM t2.a;
++----------+
+| A        |
++----------+
+| {k1=1.0} |
+|          |
++----------+
+(2 rows)
+
+!ok
+
+# Test for Row
+SELECT t1.a, t1.b
+FROM (VALUES (ROW('k1', 1.0)), (ROW('k2', 2.0)), (ROW(NULL, NULL)) ) AS t1(a, b)
+JOIN (VALUES (ROW('k1', 1.0)), (ROW(NULL, NULL)) ) AS t2(a, b)
+ON t1.a IS NOT DISTINCT FROM t2.a;
++----+-----+
+| A  | B   |
++----+-----+
+| k1 | 1.0 |
+|    |     |
++----+-----+
+(2 rows)
+
+!ok
+
 # End join.iq
