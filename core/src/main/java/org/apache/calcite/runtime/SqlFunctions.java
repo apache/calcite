@@ -3227,10 +3227,10 @@ public class SqlFunctions {
     return new ByteString(result);
   }
   /**
-   * Bitwise left shift operator {@code &lt;&lt;} applied to integer values.
+   * Bitwise left shift operator {@code <<}  applied to integer values.
    * Checks that the shift count is non-negative before performing the shift.
    *
-   * <p>This method is typically used for the SQL {@code &lt;&lt;} operator
+   * <p>This method is typically used for the SQL {@code <<}  operator
    * when applied to INTEGER operands.
    *
    * @param a The integer value to shift.
@@ -3246,10 +3246,10 @@ public class SqlFunctions {
   }
 
   /**
-   * Bitwise left shift operator {@code &lt;&lt;} applied to integer values.
+   * Bitwise left shift operator {@code <<} applied to integer values.
    * Checks that the shift count is non-negative before performing the shift.
    *
-   * <p>This method is typically used for the SQL {@code &lt;&lt;} operator
+   * <p>This method is typically used for the SQL {@code <<}  operator
    * when applied to INTEGER operands.
    *
    * @param a The long value to shift.
@@ -3265,10 +3265,10 @@ public class SqlFunctions {
   }
 
   /**
-   * Bitwise left shift operator {@code &lt;&lt;} applied to integer values.
+   * Bitwise left shift operator {@code <<}  applied to integer values.
    * Checks that the shift count is non-negative before performing the shift.
    *
-   * <p>This method is typically used for the SQL {@code &lt;&lt;} operator
+   * <p>This method is typically used for the SQL {@code <<}  operator
    * when applied to INTEGER operands.
    *
    * @param a The integer value to shift.
@@ -3283,10 +3283,10 @@ public class SqlFunctions {
     return (long) a << b;
   }
   /**
-   * Bitwise left shift operator {@code &lt;&lt;} applied to integer values.
+   * * Bitwise left shift operator {@code <<} applied to integer values.
    * Checks that the shift count is non-negative before performing the shift.
    *
-   * <p>This method is typically used for the SQL {@code &lt;&lt;} operator
+   * <p>This method is typically used for the SQL {@code <<}  operator
    * when applied to INTEGER operands.
    *
    * @param a The long value to shift.
@@ -3342,7 +3342,7 @@ public class SqlFunctions {
     return a >> b;
   }
   /**
-   * Bitwise signed RIGHTSHIFT FUNCTION applied to a int value and an long shift count.
+   * Bitwise signed RIGHTSHIFT FUNCTION applied to an int value and a long shift count.
    * Checks that the shift count is non-negative before performing the shift.
    *
    * <p>This method is typically used for the RIGHTSHIFT FUNCTION
@@ -3376,7 +3376,7 @@ public class SqlFunctions {
    */
   public static @Nullable Integer rightShift(@Nullable Integer a, @Nullable Integer b) {
     if (a == null || b == null) {
-      return null; // Handle nulls first according to SQL standard
+      return null; // Handle nulls first, according to SQL standard
     }
     if (b < 0) { // Check negative only if non-null
       throw new IllegalArgumentException("Shift count must be non-negative");
@@ -3401,7 +3401,7 @@ public class SqlFunctions {
    */
   public static @Nullable Long rightShift(@Nullable Long a, @Nullable Integer b) {
     if (a == null || b == null) {
-      return null; // Handle nulls first according to SQL standard
+      return null; // Handle nulls first, according to SQL standard
     }
     if (b < 0) { // Check negative only if non-null
       throw new IllegalArgumentException("Shift count must be non-negative");
