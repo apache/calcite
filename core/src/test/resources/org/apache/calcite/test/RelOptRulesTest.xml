@@ -1931,7 +1931,7 @@ LogicalProject(NAME=[$1], EXPR$1=[+($0, $2)])
     <Resource name="planAfter">
       <![CDATA[
 LogicalProject(NAME=[$1], EXPR$1=[+($0, $3)])
-  LogicalJoin(condition=[=($0, $2)], joinType=[left])
+  LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $2)], joinType=[left])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalAggregate(group=[{0}], agg#0=[SINGLE_VALUE($1)])
       LogicalProject(DEPTNO00=[$11], EMPNO=[$0])
@@ -7601,7 +7601,7 @@ where n1.SAL IN (
     <Resource name="planBefore">
       <![CDATA[
 LogicalProject(SAL=[$5])
-  LogicalJoin(condition=[AND(=($5, $11), =($9, $12))], joinType=[inner])
+  LogicalJoin(condition=[AND(=($5, $11), IS NOT DISTINCT FROM($9, $12))], joinType=[inner])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], SLACKER=[$8], SAL0=[$5], $f9=[=($5, 4)])
       LogicalFilter(condition=[AND(=($7, 20), >($5, 1000))])
         LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
