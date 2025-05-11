@@ -51,7 +51,10 @@ public class MinusToFilterRule
     extends RelRule<MinusToFilterRule.Config>
     implements TransformationRule {
 
-  /** Creates an MinusToFilterRule. */
+  /**
+   * This rule is replaced by {@link SetOpToFilterRule}.
+   * Please see {@link CoreRules#MINUS_FILTER_TO_FILTER} */
+  @Deprecated
   protected MinusToFilterRule(Config config) {
     super(config);
   }
