@@ -25,6 +25,7 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.plan.Strong;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
@@ -1424,11 +1425,21 @@ public class RelDecorrelator implements ReflectiveVisitor {
       }
       final int newLeftPos = requireNonNull(leftFrame.oldToNewOutputs.get(corDef.field));
       final int newRightPos = rightOutput.getValue();
-      conditions.add(
-          relBuilder.equals(RexInputRef.of(newLeftPos, newLeftOutput),
-              new RexInputRef(newLeftFieldCount + newRightPos,
-                  newRightOutput.get(newRightPos).getType())));
 
+      // Using `equals` instead of `IS NOT DISTINCT FROM` is an optimization
+      // for non-nullable fields. However, `IS NOT DISTINCT FROM` is always
+      // the correct choice in all cases.
+      if (isFieldNotNull(rightFrame.r, newRightPos)) {
+        conditions.add(
+            relBuilder.equals(RexInputRef.of(newLeftPos, newLeftOutput),
+                new RexInputRef(newLeftFieldCount + newRightPos,
+                    newRightOutput.get(newRightPos).getType())));
+      } else {
+        conditions.add(
+            relBuilder.isNotDistinctFrom(RexInputRef.of(newLeftPos, newLeftOutput),
+                new RexInputRef(newLeftFieldCount + newRightPos,
+                    newRightOutput.get(newRightPos).getType())));
+      }
       // remove this corVar from output position mapping
       corDefOutputs.remove(corDef);
     }
@@ -3198,6 +3209,61 @@ public class RelDecorrelator implements ReflectiveVisitor {
           oldRel.getRowType().getFieldCount(), Litmus.THROW);
       assert allLessThan(this.oldToNewOutputs.values(),
           r.getRowType().getFieldCount(), Litmus.THROW);
+    }
+  }
+
+  /**
+   * Check if the field at the given index is non-nullable.
+   *
+   * <p>This method performs a basic check for `null` values in the field. However, a
+   * `false` result does not necessarily mean that the field contains `null` values.
+   * It only guarantees that if the result is `true`, the field contains no `null` values.
+   */
+  private static boolean isFieldNotNull(RelNode rel, int index) {
+    RelDataType type = rel.getRowType().getFieldList().get(index).getType();
+    return !type.isNullable() || isFieldNotNullRecursive(rel, index);
+  }
+
+  private static boolean isFieldNotNullRecursive(RelNode rel, int index) {
+    if (rel instanceof Project) {
+      Project project = (Project) rel;
+
+      RexNode expr = project.getProjects().get(index);
+      if (!(expr instanceof RexInputRef)) {
+        return false;
+      }
+      return isFieldNotNullRecursive(project.getInput(), ((RexInputRef) expr).getIndex());
+    } else if (rel instanceof Aggregate) {
+      Aggregate agg = (Aggregate) rel;
+      ImmutableBitSet groupSet = agg.getGroupSet();
+
+      if (index >= groupSet.size()) {
+        return false;
+      }
+      return isFieldNotNullRecursive(agg.getInput(), groupSet.asList().get(index));
+    } else if (rel instanceof Filter) {
+      Filter filter = (Filter) rel;
+      if (Strong.isNotTrue(filter.getCondition(), ImmutableBitSet.of(index))) {
+        return true;
+      }
+      return isFieldNotNullRecursive(filter.getInput(), index);
+    } else if (rel instanceof Join) {
+      Join join = (Join) rel;
+      int leftFieldCnt = join.getLeft().getRowType().getFieldCount();
+      if (index < join.getLeft().getRowType().getFieldCount()) {
+        if (!join.getJoinType().generatesNullsOnLeft()) {
+          return Strong.isNotTrue(join.getCondition(), ImmutableBitSet.of(index))
+              || isFieldNotNullRecursive(join.getLeft(), index);
+        }
+      } else {
+        if (!join.getJoinType().generatesNullsOnRight()) {
+          return Strong.isNotTrue(join.getCondition(), ImmutableBitSet.of(index))
+              || isFieldNotNullRecursive(join.getRight(), index - leftFieldCnt);
+        }
+      }
+      return false;
+    } else {
+      return false;
     }
   }
 
