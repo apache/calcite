@@ -29,7 +29,6 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Pair;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
 
 import java.util.ArrayList;
@@ -55,6 +54,23 @@ import java.util.Map;
  *
  * SELECT DISTINCT mgr, comm FROM emp
  * WHERE mgr = 12 OR comm = 5
+ * </pre></blockquote>
+ *
+ * <p>UNION with multiple inputs
+ * <blockquote><pre>
+ * SELECT deptno FROM emp WHERE deptno = 12
+ * UNION
+ * SELECT deptno FROM dept WHERE deptno = 5
+ * UNION
+ * SELECT deptno FROM emp WHERE deptno = 6
+ * UNION
+ * SELECT deptno FROM dept WHERE deptno = 10
+ *
+ * is rewritten to
+ *
+ * SELECT deptno FROM emp WHERE deptno = 12 OR deptno = 5
+ * UNION
+ * SELECT deptno FROM emp WHERE deptno = 5 OR deptno = 10
  * </pre></blockquote>
  *
  * <p>INTERSECT
@@ -106,10 +122,17 @@ public class SetOpToFilterRule
 
     final RelBuilder builder = call.builder();
     Pair<RelNode, RexNode> first = extractSourceAndCond(inputs.get(0).stripped());
-    // Map to store conditions grouped by <sourceRelNode, inputPosition>.
-    // Valid cond positions are set to null and others are tagged with
-    // input indices for map-based grouping.
-    Map<Pair<RelNode, Integer>, List<@Nullable RexNode>> sourceToConds =
+
+    // Groups conditions by their source relational node and input position.
+    // - Key: Pair of (sourceRelNode, inputPosition)
+    //   - inputPosition is null for mergeable conditions
+    //   - inputPosition contains original index for non-mergeable inputs
+    // - Value: List of nullable conditions
+    //
+    // For invalid conditions (non-deterministic expressions or containing subqueries),
+    // positions are tagged with their input indices to skip unmergeable inputs
+    // during map-based grouping. Other positions are set to null.
+    Map<Pair<RelNode, Integer>, List<RexNode>> sourceToConds =
         new LinkedHashMap<>();
 
     RelNode firstSource = first.left;
@@ -118,7 +141,7 @@ public class SetOpToFilterRule
 
     for (int i = 1; i < inputs.size(); i++) {
       final RelNode input = inputs.get(i).stripped();
-      final Pair<RelNode, @Nullable RexNode> pair = extractSourceAndCond(input);
+      final Pair<RelNode, RexNode> pair = extractSourceAndCond(input);
       sourceToConds.computeIfAbsent(Pair.of(pair.left, pair.right != null ? null : i),
           k -> new ArrayList<>()).add(pair.right);
     }
@@ -128,11 +151,11 @@ public class SetOpToFilterRule
     }
 
     int branchCount = 0;
-    for (Map.Entry<Pair<RelNode, Integer>, List<@Nullable RexNode>> entry
+    for (Map.Entry<Pair<RelNode, Integer>, List<RexNode>> entry
         : sourceToConds.entrySet()) {
       Pair<RelNode, Integer> left = entry.getKey();
-      List<@Nullable RexNode> conds = entry.getValue();
-      // If the condition is met (refer to extractSourceAndCond method),
+      List<RexNode> conds = entry.getValue();
+      // Single null condition indicates pass-through branch,
       // directly add its corresponding input to the new inputs list.
       if (conds.size() == 1 && conds.get(0) == null) {
         builder.push(left.left);
@@ -165,21 +188,29 @@ public class SetOpToFilterRule
     throw new IllegalStateException("unreachable code");
   }
 
-  private static Pair<RelNode, @Nullable RexNode> extractSourceAndCond(RelNode input) {
+  private static Pair<RelNode, RexNode> extractSourceAndCond(RelNode input) {
     if (input instanceof Filter) {
       Filter filter = (Filter) input;
       if (!RexUtil.isDeterministic(filter.getCondition())
           || RexUtil.SubQueryFinder.containsSubQuery(filter)) {
-        // If filter has non-deterministic expressions or subqueries,
-        // just return current input and null cond.
+        // Skip non-deterministic conditions or those containing subqueries
         return Pair.of(input, null);
       }
       return Pair.of(filter.getInput().stripped(), filter.getCondition());
     }
+    // For non-filter inputs, use TRUE literal as default condition.
     return Pair.of(input.stripped(),
         input.getCluster().getRexBuilder().makeLiteral(true));
   }
 
+  /**
+   * Creates a combined condition where the first condition
+   * is kept as-is and all subsequent conditions are negated,
+   * then joined with AND operators.
+   *
+   * <p>For example, given conditions [cond1, cond2, cond3],
+   * this constructs (cond1 AND NOT(cond2) AND NOT(cond3)).
+   */
   private static RexNode andFirstNotRest(RelBuilder builder, List<RexNode> conds) {
     List<RexNode> allConds = new ArrayList<>();
     allConds.add(conds.get(0));
@@ -189,6 +220,12 @@ public class SetOpToFilterRule
     return builder.and(allConds);
   }
 
+  /**
+   * Combines conditions according to set operation:
+   * UNION: OR combination
+   * INTERSECT: AND combination
+   * MINUS: Special handling where first source uses AND-NOT combination
+   */
   private RexNode combineConditions(RelBuilder builder, List<RexNode> conds,
       SetOp setOp, boolean isFirstSource) {
     if (setOp instanceof Union) {
