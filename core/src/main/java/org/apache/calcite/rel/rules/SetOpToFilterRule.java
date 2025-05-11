@@ -27,8 +27,15 @@ import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.util.Pair;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Rule that replaces {@link SetOp} operator with {@link Filter}
@@ -92,60 +99,109 @@ public class SetOpToFilterRule
 
   private void match(RelOptRuleCall call) {
     final SetOp setOp = call.rel(0);
-    if (setOp.all || setOp.getInputs().size() != 2) {
+    final List<RelNode> inputs = setOp.getInputs();
+    if (setOp.all || inputs.size() < 2) {
       return;
     }
+
     final RelBuilder builder = call.builder();
-    final RelNode leftInput = call.rel(1);
-    final Filter rightFilter = call.rel(2);
+    Pair<RelNode, RexNode> first = extractSourceAndCond(inputs.get(0).stripped());
+    // Map to store conditions grouped by <sourceRelNode, inputPosition>.
+    // Valid cond positions are set to null and others are tagged with
+    // input indices for map-based grouping.
+    Map<Pair<RelNode, Integer>, List<@Nullable RexNode>> sourceToConds =
+        new LinkedHashMap<>();
 
-    if (!RexUtil.isDeterministic(rightFilter.getCondition())
-        || RexUtil.SubQueryFinder.containsSubQuery(rightFilter)) {
+    RelNode firstSource = first.left;
+    sourceToConds.computeIfAbsent(Pair.of(firstSource, null),
+        k -> new ArrayList<>()).add(first.right);
+
+    for (int i = 1; i < inputs.size(); i++) {
+      final RelNode input = inputs.get(i).stripped();
+      final Pair<RelNode, @Nullable RexNode> pair = extractSourceAndCond(input);
+      sourceToConds.computeIfAbsent(Pair.of(pair.left, pair.right != null ? null : i),
+          k -> new ArrayList<>()).add(pair.right);
+    }
+
+    if (sourceToConds.size() == inputs.size()) {
       return;
     }
 
-    RelNode leftBase;
-    RexNode leftCond = null;
-    if (leftInput instanceof Filter) {
-      Filter leftFilter = (Filter) leftInput;
-      if (RexUtil.SubQueryFinder.containsSubQuery(leftFilter)) {
-        return;
+    int branchCount = 0;
+    for (Map.Entry<Pair<RelNode, Integer>, List<@Nullable RexNode>> entry
+        : sourceToConds.entrySet()) {
+      Pair<RelNode, Integer> left = entry.getKey();
+      List<@Nullable RexNode> conds = entry.getValue();
+      // If the condition is met (refer to extractSourceAndCond method),
+      // directly add its corresponding input to the new inputs list.
+      if (conds.size() == 1 && conds.get(0) == null) {
+        builder.push(left.left);
+        branchCount++;
+        continue;
       }
-      leftBase = leftFilter.getInput().stripped();
-      leftCond = leftFilter.getCondition();
-    } else {
-      leftBase = leftInput.stripped();
+
+      RexNode combinedCond =
+          combineConditions(builder, conds, setOp, left.left == firstSource);
+
+      builder.push(left.left)
+          .filter(combinedCond);
+      branchCount++;
     }
 
-    final RelNode rightBase = rightFilter.getInput().stripped();
-    if (!leftBase.equals(rightBase)) {
-      return;
-    }
-
-    RexNode finalCond = null;
-    // Right input is Filter, right cond should be not null
-    if (setOp instanceof Union) {
-      finalCond = leftCond != null
-          ? builder.or(leftCond, rightFilter.getCondition())
-          : builder.literal(true);
-    } else if (setOp instanceof Intersect) {
-      finalCond = leftCond != null
-          ? builder.and(leftCond, rightFilter.getCondition())
-          : rightFilter.getCondition();
-    } else if (setOp instanceof Minus) {
-      finalCond = leftCond != null
-          ? builder.and(leftCond, builder.not(rightFilter.getCondition()))
-          : builder.not(rightFilter.getCondition());
-    } else {
-      // unreachable
-      throw new IllegalStateException("unreachable code");
-    }
-
-    builder.push(leftBase)
-        .filter(finalCond)
+    buildSetOp(builder, branchCount, setOp)
         .distinct();
-
     call.transformTo(builder.build());
+  }
+
+  private static RelBuilder buildSetOp(RelBuilder builder, int count, RelNode setOp) {
+    if (setOp instanceof Union) {
+      return builder.union(false, count);
+    } else if (setOp instanceof Intersect) {
+      return builder.intersect(false, count);
+    } else if (setOp instanceof Minus) {
+      return builder.minus(false, count);
+    }
+    // unreachable
+    throw new IllegalStateException("unreachable code");
+  }
+
+  private static Pair<RelNode, @Nullable RexNode> extractSourceAndCond(RelNode input) {
+    if (input instanceof Filter) {
+      Filter filter = (Filter) input;
+      if (!RexUtil.isDeterministic(filter.getCondition())
+          || RexUtil.SubQueryFinder.containsSubQuery(filter)) {
+        // If filter has non-deterministic expressions or subqueries,
+        // just return current input and null cond.
+        return Pair.of(input, null);
+      }
+      return Pair.of(filter.getInput().stripped(), filter.getCondition());
+    }
+    return Pair.of(input.stripped(),
+        input.getCluster().getRexBuilder().makeLiteral(true));
+  }
+
+  private static RexNode andFirstNotRest(RelBuilder builder, List<RexNode> conds) {
+    List<RexNode> allConds = new ArrayList<>();
+    allConds.add(conds.get(0));
+    for (int i = 1; i < conds.size(); i++) {
+      allConds.add(builder.not(conds.get(i)));
+    }
+    return builder.and(allConds);
+  }
+
+  private RexNode combineConditions(RelBuilder builder, List<RexNode> conds,
+      SetOp setOp, boolean isFirstSource) {
+    if (setOp instanceof Union) {
+      return builder.or(conds);
+    } else if (setOp instanceof Intersect) {
+      return builder.and(conds);
+    } else if (setOp instanceof Minus) {
+      return isFirstSource
+          ? andFirstNotRest(builder, conds)
+          : builder.or(conds);
+    }
+    // unreachable
+    throw new IllegalStateException("unreachable code");
   }
 
   /** Rule configuration. */
@@ -155,27 +211,21 @@ public class SetOpToFilterRule
         .withMatchHandler(SetOpToFilterRule::match)
         .build()
         .withOperandSupplier(
-            b0 -> b0.operand(Union.class).inputs(
-                b1 -> b1.operand(RelNode.class).anyInputs(),
-                b2 -> b2.operand(Filter.class).anyInputs()))
+            b0 -> b0.operand(Union.class).anyInputs())
         .as(Config.class);
 
     Config INTERSECT = ImmutableSetOpToFilterRule.Config.builder()
         .withMatchHandler(SetOpToFilterRule::match)
         .build()
         .withOperandSupplier(
-            b0 -> b0.operand(Intersect.class).inputs(
-                b1 -> b1.operand(RelNode.class).anyInputs(),
-                b2 -> b2.operand(Filter.class).anyInputs()))
+            b0 -> b0.operand(Intersect.class).anyInputs())
         .as(Config.class);
 
     Config MINUS = ImmutableSetOpToFilterRule.Config.builder()
         .withMatchHandler(SetOpToFilterRule::match)
         .build()
         .withOperandSupplier(
-            b0 -> b0.operand(Minus.class).inputs(
-                b1 -> b1.operand(RelNode.class).anyInputs(),
-                b2 -> b2.operand(Filter.class).anyInputs()))
+            b0 -> b0.operand(Minus.class).anyInputs())
         .as(Config.class);
 
     @Override default SetOpToFilterRule toRule() {

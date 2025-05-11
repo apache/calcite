@@ -6376,6 +6376,46 @@ LogicalAggregate(group=[{0, 1}])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testIntersectToFilterRule3">
+    <Resource name="sql">
+      <![CDATA[SELECT deptno FROM emp WHERE deptno < 12
+INTERSECT
+SELECT deptno FROM dept WHERE deptno > 5
+INTERSECT
+SELECT deptno FROM emp WHERE deptno > 6
+INTERSECT
+SELECT deptno FROM dept WHERE deptno < 10
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalIntersect(all=[false])
+  LogicalFilter(condition=[<($0, 12)])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[>($0, 5)])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalFilter(condition=[>($0, 6)])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[<($0, 10)])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalIntersect(all=[false])
+  LogicalFilter(condition=[SEARCH($0, Sarg[(6..12)])])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[SEARCH($0, Sarg[(5..10)])])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testIntersectToSemiJoin">
     <Resource name="sql">
       <![CDATA[select ename from emp where deptno = 10
@@ -9226,6 +9266,131 @@ LogicalAggregate(group=[{0, 1}])
       <![CDATA[SELECT mgr, comm FROM emp
 EXCEPT
 SELECT mgr, comm FROM emp WHERE comm = 5
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testMinusToFilterRule3">
+    <Resource name="sql">
+      <![CDATA[SELECT deptno FROM emp WHERE deptno > 6
+EXCEPT
+SELECT deptno FROM dept WHERE deptno > 8
+EXCEPT
+SELECT deptno FROM emp WHERE deptno > 12
+EXCEPT
+SELECT deptno FROM dept WHERE deptno > 10
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalMinus(all=[false])
+  LogicalFilter(condition=[>($0, 6)])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[>($0, 8)])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalFilter(condition=[>($0, 12)])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[>($0, 10)])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalMinus(all=[false])
+  LogicalFilter(condition=[SEARCH($0, Sarg[(6..12]])])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[>($0, 8)])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testMinusToFilterRule4">
+    <Resource name="sql">
+      <![CDATA[SELECT deptno FROM emp WHERE deptno = 12
+EXCEPT
+SELECT deptno FROM dept WHERE deptno = 5
+EXCEPT
+SELECT deptno FROM empnullables WHERE deptno = 6
+EXCEPT
+SELECT deptno FROM deptnullables WHERE deptno = 10
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalMinus(all=[false])
+  LogicalFilter(condition=[=($0, 12)])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[=($0, 5)])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalFilter(condition=[=($0, 6)])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+  LogicalFilter(condition=[=($0, 10)])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testMinusToFilterRule5">
+    <Resource name="sql">
+      <![CDATA[SELECT deptno FROM emp WHERE deptno > 12
+EXCEPT
+SELECT deptno FROM dept WHERE deptno = 5
+EXCEPT
+SELECT deptno FROM emp e1 WHERE EXISTS (
+    SELECT 1 FROM emp e2
+    WHERE e2.comm = e1.comm)
+EXCEPT
+SELECT deptno FROM dept WHERE deptno = 10
+EXCEPT
+SELECT deptno FROM emp WHERE deptno > 20
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalMinus(all=[false])
+  LogicalFilter(condition=[>($0, 12)])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[=($0, 5)])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[=($6, $cor0.COMM)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[=($0, 10)])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalFilter(condition=[>($0, 20)])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalMinus(all=[false])
+  LogicalFilter(condition=[SEARCH($0, Sarg[(12..20]])])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[SEARCH($0, Sarg[5, 10])])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[=($6, $cor0.COMM)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
@@ -18560,6 +18725,46 @@ LogicalUnion(all=[false])
 LogicalAggregate(group=[{0, 1}])
   LogicalProject(MGR=[$3], COMM=[$6])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testUnionToFilterRule3">
+    <Resource name="sql">
+      <![CDATA[SELECT deptno FROM emp WHERE deptno = 12
+UNION
+SELECT deptno FROM dept WHERE deptno = 5
+UNION
+SELECT deptno FROM emp WHERE deptno = 6
+UNION
+SELECT deptno FROM dept WHERE deptno = 10
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalUnion(all=[false])
+  LogicalFilter(condition=[=($0, 12)])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[=($0, 5)])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalFilter(condition=[=($0, 6)])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[=($0, 10)])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalUnion(all=[false])
+  LogicalFilter(condition=[SEARCH($0, Sarg[6, 12])])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalFilter(condition=[SEARCH($0, Sarg[5, 10])])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
   </TestCase>
