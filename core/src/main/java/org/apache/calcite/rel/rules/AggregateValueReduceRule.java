@@ -61,7 +61,7 @@ public class AggregateValueReduceRule
   protected AggregateValueReduceRule(Config config) {
     super(config);
   }
-  
+
   public AggregateValueReduceRule(RelBuilderFactory relBuilderFactory) {
     this(Config.DEFAULT
         .withRelBuilderFactory(relBuilderFactory)
