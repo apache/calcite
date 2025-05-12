@@ -2485,6 +2485,7 @@ public abstract class SqlImplementor {
       if (rel instanceof LogicalProject
           && relInput instanceof LogicalFilter
           && clauses.contains(Clause.QUALIFY)
+          && dialect.supportsQualifyClause()
           && hasFieldsUsedInFilterWhichIsNotUsedInFinalProjection((Project) rel)) {
         return true;
       }
@@ -2640,7 +2641,7 @@ public abstract class SqlImplementor {
       }
       final SqlNodeList selectList = ((SqlSelect) newNode).getSelectList();
       final SqlNodeList grpList = ((SqlSelect) newNode).getGroup();
-      return isGrpCallNotUsedInFinalProjection(grpList, selectList, rel);
+      return isGrpCallNotUsedInFinalProjection(grpList, selectList, rel, false);
     }
 
     boolean hasFieldsUsedInFilterWhichIsNotUsedInFinalProjection(Project project) {
@@ -2654,7 +2655,7 @@ public abstract class SqlImplementor {
             return id;
           }
         });
-        return isGrpCallNotUsedInFinalProjection(qualifyColumnList, selectList, project);
+        return isGrpCallNotUsedInFinalProjection(qualifyColumnList, selectList, project, true);
       } catch (Exception e) {
         return false;
       }
@@ -2663,6 +2664,11 @@ public abstract class SqlImplementor {
     boolean grpCallIsAlias(String grpCall, SqlBasicCall selectCall) {
       return selectCall.getOperator() instanceof SqlAsOperator
         && grpCall.equals(selectCall.operand(1).toString());
+    }
+
+    boolean grpCallIsAlias(SqlIdentifier grpCall, SqlBasicCall selectCall) {
+      return selectCall.getOperator() instanceof SqlAsOperator
+          && grpCall.equals(selectCall.operand(1));
     }
 
     boolean grpCallPresentInFinalProjection(String grpCall, Project rel) {
@@ -2676,14 +2682,17 @@ public abstract class SqlImplementor {
     }
 
     private boolean isGrpCallNotUsedInFinalProjection(List<SqlNode> columnList,
-        SqlNodeList selectList, Project project) {
+        SqlNodeList selectList, Project project, boolean isQualifyClause) {
       if (selectList != null && columnList != null) {
         for (SqlNode grpNode : columnList) {
           if (grpNode instanceof SqlIdentifier) {
             String grpCall = ((SqlIdentifier) grpNode).names.get(0);
             for (SqlNode selectNode : selectList.getList()) {
               if (selectNode instanceof SqlBasicCall) {
-                if (grpCallIsAlias(grpCall, (SqlBasicCall) selectNode)
+                if (isQualifyClause) {
+                  return grpCallIsAlias((SqlIdentifier) grpNode, (SqlBasicCall) selectNode)
+                      && !grpCallPresentInFinalProjection(grpCall, project);
+                } else if (grpCallIsAlias(grpCall, (SqlBasicCall) selectNode)
                     && !grpCallPresentInFinalProjection(grpCall, project)) {
                   return true;
                 }
