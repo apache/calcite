@@ -224,7 +224,7 @@ public class SetOpToFilterRule
    * Combines conditions according to set operation:
    * UNION: OR combination
    * INTERSECT: AND combination
-   * MINUS: Special handling where first source uses AND-NOT combination
+   * MINUS: Special handling where first source uses AND-NOT combination.
    */
   private RexNode combineConditions(RelBuilder builder, List<RexNode> conds,
       SetOp setOp, boolean isFirstSource) {
