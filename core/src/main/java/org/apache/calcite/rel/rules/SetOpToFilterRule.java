@@ -29,12 +29,14 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Pair;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Rule that replaces {@link SetOp} operator with {@link Filter}
@@ -121,7 +123,7 @@ public class SetOpToFilterRule
     }
 
     final RelBuilder builder = call.builder();
-    Pair<RelNode, RexNode> first = extractSourceAndCond(inputs.get(0).stripped());
+    Pair<RelNode, @Nullable RexNode> first = extractSourceAndCond(inputs.get(0).stripped());
 
     // Groups conditions by their source relational node and input position.
     // - Key: Pair of (sourceRelNode, inputPosition)
@@ -132,7 +134,7 @@ public class SetOpToFilterRule
     // For invalid conditions (non-deterministic expressions or containing subqueries),
     // positions are tagged with their input indices to skip unmergeable inputs
     // during map-based grouping. Other positions are set to null.
-    Map<Pair<RelNode, Integer>, List<RexNode>> sourceToConds =
+    Map<Pair<RelNode, @Nullable Integer>, List<@Nullable RexNode>> sourceToConds =
         new LinkedHashMap<>();
 
     RelNode firstSource = first.left;
@@ -141,7 +143,7 @@ public class SetOpToFilterRule
 
     for (int i = 1; i < inputs.size(); i++) {
       final RelNode input = inputs.get(i).stripped();
-      final Pair<RelNode, RexNode> pair = extractSourceAndCond(input);
+      final Pair<RelNode, @Nullable RexNode> pair = extractSourceAndCond(input);
       sourceToConds.computeIfAbsent(Pair.of(pair.left, pair.right != null ? null : i),
           k -> new ArrayList<>()).add(pair.right);
     }
@@ -151,10 +153,10 @@ public class SetOpToFilterRule
     }
 
     int branchCount = 0;
-    for (Map.Entry<Pair<RelNode, Integer>, List<RexNode>> entry
+    for (Map.Entry<Pair<RelNode, @Nullable Integer>, List<@Nullable RexNode>> entry
         : sourceToConds.entrySet()) {
-      Pair<RelNode, Integer> left = entry.getKey();
-      List<RexNode> conds = entry.getValue();
+      Pair<RelNode, @Nullable Integer> left = entry.getKey();
+      List<@Nullable RexNode> conds = entry.getValue();
       // Single null condition indicates pass-through branch,
       // directly add its corresponding input to the new inputs list.
       if (conds.size() == 1 && conds.get(0) == null) {
@@ -163,8 +165,13 @@ public class SetOpToFilterRule
         continue;
       }
 
+      List<RexNode> condsNonNull = conds.stream().map(e -> {
+        assert e != null;
+        return e;
+      }).collect(Collectors.toList());
+
       RexNode combinedCond =
-          combineConditions(builder, conds, setOp, left.left == firstSource);
+          combineConditions(builder, condsNonNull, setOp, left.left == firstSource);
 
       builder.push(left.left)
           .filter(combinedCond);
@@ -188,7 +195,7 @@ public class SetOpToFilterRule
     throw new IllegalStateException("unreachable code");
   }
 
-  private static Pair<RelNode, RexNode> extractSourceAndCond(RelNode input) {
+  private static Pair<RelNode, @Nullable RexNode> extractSourceAndCond(RelNode input) {
     if (input instanceof Filter) {
       Filter filter = (Filter) input;
       if (!RexUtil.isDeterministic(filter.getCondition())
