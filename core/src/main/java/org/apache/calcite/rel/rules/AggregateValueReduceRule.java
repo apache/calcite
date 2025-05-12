@@ -61,8 +61,7 @@ public class AggregateValueReduceRule
   protected AggregateValueReduceRule(Config config) {
     super(config);
   }
-
-  @Deprecated // to be removed before 2.0
+  
   public AggregateValueReduceRule(RelBuilderFactory relBuilderFactory) {
     this(Config.DEFAULT
         .withRelBuilderFactory(relBuilderFactory)
