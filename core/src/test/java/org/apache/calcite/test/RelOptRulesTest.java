@@ -8980,6 +8980,21 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6887">[CALCITE-6887]
+   * ReduceExpressionsRule applied to 'IN subquery' should make the values distinct
+   * if the subquery is a constant Values</a>. */
+  @Test void testReduceInValues() {
+    final String sql = "SELECT deptno, sal "
+        + "FROM EMP "
+        + "WHERE deptno IN (1,1,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)";
+
+    sql(sql)
+        .withPreRule(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE)
+        .withRule(CoreRules.AGGREGATE_VALUES_REDUCE)
+        .check();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-434">[CALCITE-434]
    * Converting predicates on date dimension columns into date ranges</a>,
    * specifically a rule that converts {@code EXTRACT(YEAR FROM ...) = constant}
