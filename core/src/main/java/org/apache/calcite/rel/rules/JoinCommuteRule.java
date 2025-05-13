@@ -239,6 +239,8 @@ public class JoinCommuteRule
         .withOperandFor(LogicalJoin.class)
         .withSwapOuter(false);
 
+    Config SWAP_OUTER = DEFAULT.withSwapOuter(true);
+
     @Override default JoinCommuteRule toRule() {
       return new JoinCommuteRule(this);
     }

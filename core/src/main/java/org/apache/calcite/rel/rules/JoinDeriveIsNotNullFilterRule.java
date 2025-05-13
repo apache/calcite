@@ -104,7 +104,7 @@ public class JoinDeriveIsNotNullFilterRule
    * Rule configuration.
    */
   @Value.Immutable public interface Config extends RelRule.Config {
-    ImmutableJoinDeriveIsNotNullFilterRule.Config DEFAULT =
+    Config DEFAULT =
         ImmutableJoinDeriveIsNotNullFilterRule.Config
         .of().withOperandSupplier(
             b -> b.operand(LogicalJoin.class).predicate(

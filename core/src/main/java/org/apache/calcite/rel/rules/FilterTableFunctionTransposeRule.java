@@ -123,7 +123,8 @@ public class FilterTableFunctionTransposeRule
   /** Rule configuration. */
   @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = ImmutableFilterTableFunctionTransposeRule.Config.of();
+    Config DEFAULT = ImmutableFilterTableFunctionTransposeRule.Config.of()
+        .withOperandFor(Filter.class, TableFunctionScan.class);
 
     @Override default FilterTableFunctionTransposeRule toRule() {
       return new FilterTableFunctionTransposeRule(this);

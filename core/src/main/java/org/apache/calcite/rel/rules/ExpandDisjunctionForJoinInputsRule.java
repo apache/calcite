@@ -210,6 +210,7 @@ public class ExpandDisjunctionForJoinInputsRule
   @Value.Immutable(singleton = false)
   public interface Config extends RelRule.Config {
     Config FILTER = ImmutableExpandDisjunctionForJoinInputsRule.Config.builder()
+        .withDescription("ExpandDisjunctionForJoinInputsRule(Filter)")
         .withMatchHandler(ExpandDisjunctionForJoinInputsRule::matchFilter)
         .build()
         .withOperandSupplier(b0 ->
@@ -217,6 +218,7 @@ public class ExpandDisjunctionForJoinInputsRule
                 b1.operand(Join.class).anyInputs()));
 
     Config JOIN = ImmutableExpandDisjunctionForJoinInputsRule.Config.builder()
+        .withDescription("ExpandDisjunctionForJoinInputsRule(Join)")
         .withMatchHandler(ExpandDisjunctionForJoinInputsRule::matchJoin)
         .build()
         .withOperandSupplier(b -> b.operand(Join.class).anyInputs());
