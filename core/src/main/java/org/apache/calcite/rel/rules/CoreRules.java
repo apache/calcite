@@ -847,7 +847,7 @@ public class CoreRules {
   public static final AggregateValuesRule AGGREGATE_VALUES =
       AggregateValuesRule.Config.DEFAULT.toRule();
 
-  /** Rule that applies an {@link Aggregate} to a distinct {@link Values}. */
+  /** Rule that applies {@link Aggregate} and {@link Values} to a distinct {@link Values}. */
   public static final AggregateValueReduceRule AGGREGATE_VALUES_REDUCE =
       AggregateValueReduceRule.Config.DEFAULT.toRule();
 

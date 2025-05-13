@@ -41,13 +41,15 @@ import java.util.stream.Collectors;
  * <p>Sample query where this matters:
  *
  * <blockquote><code>
- * SELECT deptno, sal FROM EMP WHERE deptno IN (1,1,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)
+ * LogicalAggregate(group=[{0}])
+ * LogicalValues(tuples=[[{ 1 }, { 1 }, { 3 }, { 1 }, { 1 }, { 1 }, { 1 }, { 1 }, { 1 }, { 1 },
+ * { 1 }, { 1 }, { 1 }, { 1 }, { 1 }, { 1 }, { 1 }, { 1 }, { 1 }, { 1 }, { 1 }]])
  * </code></blockquote>
  *
  * <p>should be converted to:
  *
  * <blockquote><code>
- * SELECT deptno, sal FROM EMP WHERE deptno IN (1,3)
+ * LogicalValues(tuples=[[{ 1 }, { 3 }]])
  * </code></blockquote>
  *
  * @see CoreRules#AGGREGATE_VALUES_REDUCE
@@ -70,7 +72,6 @@ public class AggregateValueReduceRule
 
   @Override public void onMatch(RelOptRuleCall call) {
     final Values values = call.rel(1);
-    Util.discard(values);
     final RelBuilder relBuilder = call.builder();
 
     List<ImmutableList<RexLiteral>> distinctValues =

@@ -8994,6 +8994,16 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  @Test void testReduceInValuesWithAggregateValueReduceRule() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .values(new String[]{"v"}, 1,1,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)
+        .distinct()
+        .build();
+    relFn(relFn)
+        .withRule(CoreRules.AGGREGATE_VALUES_REDUCE)
+        .check();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-434">[CALCITE-434]
    * Converting predicates on date dimension columns into date ranges</a>,
