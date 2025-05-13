@@ -19613,4 +19613,82 @@ LogicalProject(DEPTNO=[$0], EXPR$1=[$1], EXPR$2=[CAST(/($2, $3)):INTEGER NOT NUL
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testAggregateValuesRuleWithAggregation">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{0, 1}], V1_COUNT=[COUNT()])
+  LogicalValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'a' }, { 1, 'b' }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testAggregateValuesRuleWithDifferentRowTypes">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{0}])
+  LogicalValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'a' }, { 1, 'b' }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testReduceInValuesNonOrdered">
+    <Resource name="sql">
+      <![CDATA[SELECT deptno, sal FROM EMP WHERE deptno IN (1,1,3,1,2)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7], SAL=[$5])
+  LogicalFilter(condition=[OR(=($7, 1), =($7, 3), =($7, 2))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testAggregateValuesRuleWithInRepeatingValues">
+    <Resource name="sql">
+      <![CDATA[SELECT deptno, sal FROM EMP WHERE deptno IN (1,1,3,1,2,1,1,1,1,1,1,1,null,null,1,1,1,1,1,1,1)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7], SAL=[$5])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{0}])
+        LogicalValues(tuples=[[{ 1 }, { 1 }, { 3 }, { 1 }, { 2 }, { 1 }, { 1 }, { 1 }, { 1 }, { 1 }, { 1 }, { 1 }, { null }, { null }, { 1 }, { 1 }, { 1 }, { 1 }, { 1 }, { 1 }, { 1 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7], SAL=[$5])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalValues(tuples=[[{ 1 }, { 3 }, { 2 }, { null }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testAggregateValuesRuleWithRepeatingValues">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{0}])
+  LogicalValues(tuples=[[{ 1 }, { 1 }, { 3 }, { null }, { null }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalValues(tuples=[[{ 1 }, { 3 }, { null }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testAggregateValuesRuleWithSameRowType">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{0, 1}])
+  LogicalValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'a' }, { 1, 'b' }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }]])
+]]>
+    </Resource>
+  </TestCase>
 </Root>
