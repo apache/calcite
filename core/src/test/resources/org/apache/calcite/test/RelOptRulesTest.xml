@@ -6323,7 +6323,7 @@ LogicalIntersect(all=[true])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testIntersectToFilterRule">
+  <TestCase name="testIntersectToFilterRuleWithTwoFilter">
     <Resource name="sql">
       <![CDATA[SELECT mgr, comm FROM emp WHERE mgr = 12
 INTERSECT
@@ -6350,7 +6350,7 @@ LogicalAggregate(group=[{0, 1}])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testIntersectToFilterRule2">
+  <TestCase name="testIntersectToFilterRuleWithOneFilter">
     <Resource name="sql">
       <![CDATA[SELECT mgr, comm FROM emp
 INTERSECT
@@ -6376,7 +6376,7 @@ LogicalAggregate(group=[{0, 1}])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testIntersectToFilterRule3">
+  <TestCase name="testIntersectToFilterRuleNWayWithMultiSources">
     <Resource name="sql">
       <![CDATA[SELECT deptno FROM emp WHERE deptno < 12
 INTERSECT
@@ -9216,7 +9216,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testMinusToFilterRule">
+  <TestCase name="testMinusToFilterRuleWithTwoFilter">
     <Resource name="sql">
       <![CDATA[SELECT mgr, comm FROM emp WHERE mgr = 12
 EXCEPT
@@ -9243,7 +9243,7 @@ LogicalAggregate(group=[{0, 1}])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testMinusToFilterRule2">
+  <TestCase name="testMinusToFilterRuleWithOneFilter">
     <Resource name="planBefore">
       <![CDATA[
 LogicalMinus(all=[false])
@@ -9269,7 +9269,7 @@ SELECT mgr, comm FROM emp WHERE comm = 5
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testMinusToFilterRule3">
+  <TestCase name="testMinusToFilterRuleNWayWithMultiSources">
     <Resource name="sql">
       <![CDATA[SELECT deptno FROM emp WHERE deptno > 6
 EXCEPT
@@ -9309,7 +9309,7 @@ LogicalMinus(all=[false])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testMinusToFilterRule4">
+  <TestCase name="testMinusToFilterRuleFourWayWithForSources">
     <Resource name="sql">
       <![CDATA[SELECT deptno FROM emp WHERE deptno = 12
 EXCEPT
@@ -9338,7 +9338,7 @@ LogicalMinus(all=[false])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testMinusToFilterRule5">
+  <TestCase name="testMinusToFilterNWayWithSubquery">
     <Resource name="sql">
       <![CDATA[SELECT deptno FROM emp WHERE deptno > 12
 EXCEPT
@@ -18676,7 +18676,7 @@ LogicalUnion(all=[false])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testUnionToFilterRule">
+  <TestCase name="testUnionToFilterRuleWithTwoFilter">
     <Resource name="sql">
       <![CDATA[SELECT mgr, comm FROM emp WHERE mgr = 12
 UNION
@@ -18703,7 +18703,7 @@ LogicalAggregate(group=[{0, 1}])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testUnionToFilterRule2">
+  <TestCase name="testUnionToFilterRuleWithOneFilter">
     <Resource name="sql">
       <![CDATA[SELECT mgr, comm FROM emp
 UNION
@@ -18728,7 +18728,7 @@ LogicalAggregate(group=[{0, 1}])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testUnionToFilterRule3">
+  <TestCase name="testUnionToFilterRuleNWayWithMultiSources">
     <Resource name="sql">
       <![CDATA[SELECT deptno FROM emp WHERE deptno = 12
 UNION
