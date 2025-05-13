@@ -354,6 +354,32 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6887">[CALCITE-6887]
+   * ReduceExpressionsRule applied to 'IN subquery' should make the values distinct
+   * if the subquery is a constant Values</a>. */
+  @Test void testReduceInValues() {
+    final String sql = "SELECT deptno, sal "
+        + "FROM EMP "
+        + "WHERE deptno IN (1,1,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)";
+
+    sql(sql)
+        .withPreRule(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE)
+        .withRule(CoreRules.AGGREGATE_VALUES)
+        .check();
+  }
+
+  @Test void testReduceInValuesWithAggregateValueReduceRule() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .values(new String[]{"v"}, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1)
+        .distinct()
+        .build();
+    relFn(relFn)
+        .withRule(CoreRules.AGGREGATE_VALUES)
+        .check();
+  }
+
   /**
    * Test case for <a href="https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-6746">
    * [CALCITE-6746] Optimization rule ProjectWindowTranspose is unsound</a>. */
