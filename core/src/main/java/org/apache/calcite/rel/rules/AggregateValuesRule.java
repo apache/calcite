@@ -39,7 +39,6 @@ import java.util.stream.Collectors;
  * Rule that
  * 1. applies {@link Aggregate} to a {@link Values} (currently just an
  * empty {@code Value}s).
- *
  * 2. {@link Aggregate} and {@link Values} to a distinct {@link Values}.
  *
  * <p>This is still useful because {@link PruneEmptyRules#AGGREGATE_INSTANCE}
@@ -61,8 +60,7 @@ import java.util.stream.Collectors;
  *
  * <blockquote><code>
  * LogicalAggregate(group=[{0}])
- * LogicalValues(tuples=[[{ 1 }, { 1 }, { 3 }, { 1 }, { 1 }, { 1 }, { 1 }, { 1 }, { 1 }, { 1 },
- * { 1 }, { 1 }, { 1 }, { 1 }, { 1 }, { 1 }, { 1 }, { 1 }, { 1 }, { 1 }, { 1 }]])
+ * LogicalValues(tuples=[[{ 1 }, { 1 }, { 3 }]])
  * </code></blockquote>
  *
  * <p>should be converted to:
@@ -96,7 +94,9 @@ public class AggregateValuesRule
     final RelBuilder relBuilder = call.builder();
     final RexBuilder rexBuilder = relBuilder.getRexBuilder();
 
-    if (aggregate.getGroupCount() != 0 || !values.getTuples().isEmpty()) {
+    if (aggregate.getGroupCount() != 0
+        || !values.getTuples().isEmpty()
+        || aggregate.groupSets.size() == 1) {
       List<ImmutableList<RexLiteral>> distinctValues =
           values.getTuples().stream().distinct().collect(Collectors.toList());
       relBuilder.values(distinctValues, values.getRowType());

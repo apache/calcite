@@ -371,13 +371,32 @@ class RelOptRulesTest extends RelOptTestBase {
 
   @Test void testReduceInValuesWithAggregateValueReduceRule() {
     final Function<RelBuilder, RelNode> relFn = b -> b
-        .values(new String[]{"v"}, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1, 1, 1)
+        .values(new String[]{"v"}, 1, 1, 3, 1)
         .distinct()
         .build();
     relFn(relFn)
         .withRule(CoreRules.AGGREGATE_VALUES)
         .check();
+  }
+
+  @Test void testReduceInValuesWithAggregateValueReduceRuleWithNulls() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .values(new String[]{"v"}, 1, 1, 3, null, null)
+        .distinct()
+        .build();
+    relFn(relFn)
+        .withRule(CoreRules.AGGREGATE_VALUES)
+        .check();
+  }
+
+  @Test void testReduceInValuesWithAggregateValueReduceRuleWithDistinct() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .values(new String[]{"v"},  1, 2, 3, null)
+        .distinct()
+        .build();
+    relFn(relFn)
+        .withRule(CoreRules.AGGREGATE_VALUES)
+        .checkUnchanged();
   }
 
   /**
