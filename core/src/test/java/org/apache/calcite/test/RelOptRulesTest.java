@@ -354,6 +354,73 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6887">[CALCITE-6887]
+   * ReduceExpressionsRule applied to 'IN subquery' should make the values distinct
+   * if the subquery is a Values composed of literals</a>. */
+  @Test void testAggregateValuesRuleWithInRepeatingValues() {
+    final String sql = "SELECT deptno, sal "
+        + "FROM EMP "
+        + "WHERE deptno IN (1,1,3,1,2,1,1,1,1,1,1,1,null,null,1,1,1,1,1,1,1)";
+
+    sql(sql)
+        .withPreRule(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE)
+        .withRule(CoreRules.AGGREGATE_VALUES)
+        .check();
+  }
+
+  @Test void testReduceInValuesNonOrdered() {
+    final String sql = "SELECT deptno, sal "
+        + "FROM EMP "
+        + "WHERE deptno IN (1,1,3,1,2)";
+
+    sql(sql)
+        .withPreRule(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE)
+        .withRule(CoreRules.AGGREGATE_VALUES)
+        .checkUnchanged();
+  }
+
+  @Test void testAggregateValuesRuleWithRepeatingValues() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .values(new String[]{"v"}, 1, 1, 3, null, null)
+        .distinct()
+        .build();
+    relFn(relFn)
+        .withRule(CoreRules.AGGREGATE_VALUES)
+        .check();
+  }
+
+  @Test void testAggregateValuesRuleWithAggregation() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .values(new String[]{"v1", "v2"}, 1, "a", 2, "b", 1, "a", 1, "b")
+        .aggregate(b.groupKey(ImmutableBitSet.of(0, 1)),
+            b.count(b.field(0)).as("V1_COUNT"))
+        .build();
+    relFn(relFn)
+        .withRule(CoreRules.AGGREGATE_VALUES)
+        .checkUnchanged();
+  }
+
+  @Test void testAggregateValuesRuleWithSameRowType() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .values(new String[]{"v1", "v2"}, 1, "a", 2, "b", 1, "a", 1, "b")
+        .aggregate(b.groupKey(ImmutableBitSet.of(0, 1)))
+        .build();
+    relFn(relFn)
+        .withRule(CoreRules.AGGREGATE_VALUES)
+        .check();
+  }
+
+  @Test void testAggregateValuesRuleWithDifferentRowTypes() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .values(new String[]{"v1", "v2"}, 1, "a", 2, "b", 1, "a", 1, "b")
+        .aggregate(b.groupKey(ImmutableBitSet.of(0)))
+        .build();
+    relFn(relFn)
+        .withRule(CoreRules.AGGREGATE_VALUES)
+        .checkUnchanged();
+  }
+
   /**
    * Test case for <a href="https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-6746">
    * [CALCITE-6746] Optimization rule ProjectWindowTranspose is unsound</a>. */
