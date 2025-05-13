@@ -19562,6 +19562,25 @@ LogicalProject(EXPR$0=[$1], EXPR$1=[$2])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testFilterDistinctRule">
+    <Resource name="sql">
+      <![CDATA[select deptno from emp where deptno=1 or deptno in (1,2)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[OR(=($7, 1), =($7, 1), =($7, 2))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[SEARCH($7, Sarg[1, 2])])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testWithinDistinctUniformDistinctKeys">
     <Resource name="sql">
       <![CDATA[SELECT deptno,

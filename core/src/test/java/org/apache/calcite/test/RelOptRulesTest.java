@@ -355,6 +355,16 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /**
+   * Test case for <a href="https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-7011">
+   * Filter conditions should be distinct avoid duplicate condition</a>. */
+  @Test void testFilterDistinctRule() {
+    final String sql = "select deptno from emp where deptno=1 or deptno in (1,2)";
+    sql(sql)
+        .withRule(CoreRules.FILTER_DISTINCT_RULE)
+        .check();
+  }
+
+  /**
    * Test case for <a href="https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-6746">
    * [CALCITE-6746] Optimization rule ProjectWindowTranspose is unsound</a>. */
   @Test void testConstantWindow() {

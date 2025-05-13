@@ -497,6 +497,10 @@ public class CoreRules {
       ProjectToWindowRule.ProjectToLogicalProjectAndWindowRule.
           ProjectToLogicalProjectAndWindowRuleConfig.DEFAULT.toRule();
 
+  /** Rule that distinct {@link Filter} all conditions. */
+  public static final FilterDistinctRule FILTER_DISTINCT_RULE =
+      FilterDistinctRule.Config.DEFAULT.toRule();
+
   /** Rule that creates a {@link Join#isSemiJoin semi-join} from a
    * {@link Project} on top of a {@link Join} with an {@link Aggregate} as its
    * right input.
