@@ -2266,6 +2266,9 @@ public class RexBuilder {
       if (charset == null) {
         throw new AssertionError(type + ".getCharset() must not be null");
       }
+      if (o instanceof Character) {
+        return new NlsString(o.toString(), charset.name(), type.getCollation());
+      }
       return new NlsString((String) o, charset.name(), type.getCollation());
     case TIME:
       if (o instanceof TimeString) {
