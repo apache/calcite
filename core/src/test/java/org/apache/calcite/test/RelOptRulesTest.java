@@ -1781,7 +1781,7 @@ class RelOptRulesTest extends RelOptTestBase {
             CoreRules.FILTER_INTO_JOIN,
             CoreRules.PROJECT_MERGE)
         .withRule(CoreRules.PROJECT_TO_SEMI_JOIN)
-        .check();
+        .checkUnchanged();
   }
 
   @Test void testIncorrectInType() {
@@ -1828,7 +1828,7 @@ class RelOptRulesTest extends RelOptTestBase {
         .withDecorrelate(true)
         .withTrim(true)
         .withRule(CoreRules.JOIN_ON_UNIQUE_TO_SEMI_JOIN)
-        .check();
+        .checkUnchanged();
   }
 
   /**
@@ -1844,7 +1844,7 @@ class RelOptRulesTest extends RelOptTestBase {
         .withDecorrelate(true)
         .withTrim(true)
         .withRule(CoreRules.JOIN_ON_UNIQUE_TO_SEMI_JOIN)
-        .check();
+        .checkUnchanged();
   }
 
   /** Test case for

@@ -113,9 +113,11 @@ import org.immutables.value.Value;
 import org.slf4j.Logger;
 
 import java.math.BigDecimal;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -159,6 +161,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
   // map built during translation
   protected CorelMap cm;
+
+  protected final Deque<Pair<CorrelationId, Frame>> frameStack = new ArrayDeque<>();
 
   @SuppressWarnings("method.invocation.invalid")
   protected final ReflectUtil.MethodDispatcher<@Nullable Frame> dispatcher =
@@ -559,11 +563,6 @@ public class RelDecorrelator implements ReflectiveVisitor {
     return register(rel, newSort, frame.oldToNewOutputs, frame.corDefOutputs);
   }
 
-  public @Nullable Frame decorrelateRel(Values rel, boolean isCorVarDefined) {
-    // There are no inputs, so rel does not need to be changed.
-    return null;
-  }
-
   public @Nullable Frame decorrelateRel(LogicalAggregate rel, boolean isCorVarDefined) {
     return decorrelateRel((Aggregate) rel, isCorVarDefined);
   }
@@ -759,6 +758,68 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
 
     RelNode newRel = relBuilder.build();
+    // Special case where the group by is static (i.e., a select clause with aggregation functions
+    // but without group by).
+    if (rel.getGroupType() == Aggregate.Group.SIMPLE
+        && rel.getGroupSet().isEmpty()
+        && !frame.corDefOutputs.isEmpty()) {
+      final Pair<CorrelationId, Frame> outerFramePair = requireNonNull(this.frameStack.peek());
+      final Frame outFrame = outerFramePair.right;
+      RexBuilder rexBuilder = relBuilder.getRexBuilder();
+
+      int groupSize = (int) corDefOutputs.keySet().stream()
+          .filter(a -> a.corr.equals(outerFramePair.left))
+          .count();
+      List<RelDataTypeField> newRelFields = newRel.getRowType().getFieldList();
+      ImmutableBitSet.Builder corFieldBuilder = ImmutableBitSet.builder();
+      final Map<Integer, RexNode> specificRexNodeMap = new HashMap<>();
+      final List<RexNode> conditions = new ArrayList<>();
+      for (Map.Entry<CorDef, Integer> corDefOutput : corDefOutputs.entrySet()) {
+        if (corDefOutput.getKey().corr.equals(outerFramePair.left)) {
+          int newIdx = requireNonNull(outFrame.oldToNewOutputs.get(corDefOutput.getKey().field));
+          corFieldBuilder.set(newIdx);
+
+          RelDataType type = outFrame.r.getRowType().getFieldList().get(newIdx).getType();
+          RexNode left = new RexInputRef(corFieldBuilder.cardinality() - 1, type);
+          specificRexNodeMap.put(corDefOutput.getValue() + groupSize, left);
+          conditions.add(
+              relBuilder.isNotDistinctFrom(left,
+                  new RexInputRef(corDefOutput.getValue() + groupSize,
+                      newRelFields.get(corDefOutput.getValue()).getType())));
+        }
+      }
+
+      ImmutableBitSet groupSet = corFieldBuilder.build();
+      final RelNode join = relBuilder.push(outFrame.r)
+          .aggregate(relBuilder.groupKey(groupSet))
+          .push(newRel)
+          .join(JoinRelType.LEFT, conditions).build();
+
+      for (int i1 = 0; i1 < rel.getAggCallList().size(); i1++) {
+        AggregateCall aggCall = rel.getAggCallList().get(i1);
+        if (aggCall.getAggregation() instanceof SqlCountAggFunction) {
+          int index = requireNonNull(outputMap.get(i1 + rel.getGroupSet().size()));
+          final RexInputRef ref = RexInputRef.of(index + groupSize, join.getRowType());
+          RexNode specificCountValue =
+              rexBuilder.makeCall(SqlStdOperatorTable.CASE,
+                  ImmutableList.of(relBuilder.isNotNull(ref), ref, relBuilder.literal(0)));
+          specificRexNodeMap.put(ref.getIndex(), specificCountValue);
+        }
+      }
+
+      final List<RexNode> newProjects = new ArrayList<>();
+      for (int index : ImmutableBitSet.range(groupSize, join.getRowType().getFieldCount())) {
+        if (specificRexNodeMap.containsKey(index)) {
+          newProjects.add(specificRexNodeMap.get(index));
+        } else {
+          newProjects.add(RexInputRef.of(index, join.getRowType()));
+        }
+      }
+
+      newRel = relBuilder.push(join)
+          .project(newProjects)
+          .build();
+    }
 
     // Aggregate does not change input ordering so corVars will be
     // located at the same position as the input newProject.
@@ -1390,14 +1451,16 @@ public class RelDecorrelator implements ReflectiveVisitor {
     final RelNode oldRight = rel.getInput(1);
 
     final Frame leftFrame = getInvoke(oldLeft, isCorVarDefined, rel);
-    final Frame rightFrame = getInvoke(oldRight, true, rel);
-
-    if (leftFrame == null || rightFrame == null) {
-      // If any input has not been rewritten, do not rewrite this rel.
+    if (leftFrame == null) {
+      // If input has not been rewritten, do not rewrite this rel.
       return null;
     }
 
-    if (rightFrame.corDefOutputs.isEmpty()) {
+    frameStack.push(Pair.of(rel.getCorrelationId(), leftFrame));
+    final Frame rightFrame = getInvoke(oldRight, true, rel);
+    frameStack.pop();
+
+    if (rightFrame == null || rightFrame.corDefOutputs.isEmpty()) {
       return null;
     }
 
