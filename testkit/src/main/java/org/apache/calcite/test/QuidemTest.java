@@ -22,8 +22,10 @@ import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelRule.Config;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.rules.CoreRules;
+import org.apache.calcite.rel.rules.RuleConfig;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.runtime.Hook;
@@ -51,8 +53,10 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.io.Reader;
 import java.io.Writer;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.Connection;
@@ -242,8 +246,7 @@ public abstract class QuidemTest {
 
       try {
         if (ruleSource == null || ruleSource.equals("CoreRules")) {
-          Object rule = CoreRules.class.getField(ruleName).get(null);
-          setRules(operation, (RelOptRule) rule, rulesAdd, rulesRemove);
+          setRules(operation, getCoreRule(ruleName), rulesAdd, rulesRemove);
         } else if (ruleSource.equals("EnumerableRules")) {
           Object rule = EnumerableRules.class.getField(ruleName).get(null);
           setRules(operation, (RelOptRule) rule, rulesAdd, rulesRemove);
@@ -254,6 +257,55 @@ public abstract class QuidemTest {
         throw new RuntimeException("set rules failed: " + e.getMessage(), e);
       }
     }
+  }
+
+  public static RelOptRule getCoreRule(String ruleName) {
+    RelOptRule rule = null;
+    try {
+      // Get rule class and config annotation
+      Field ruleField = CoreRules.class.getField(ruleName);
+      Class<?> ruleClass = ruleField.getType();
+
+      // Find Config inner class
+      Class<?> configClass = null;
+      for (Class<?> innerClass : ruleClass.getDeclaredClasses()) {
+        if (innerClass.getSimpleName().endsWith("Config")) {
+          configClass = innerClass;
+          break;
+        }
+      }
+      if (configClass == null) {
+        // Should not enter
+        throw new RuntimeException("Config not found in " + ruleClass.getName());
+      }
+
+      // Determine config field name
+      RuleConfig ruleConfig = ruleField.getAnnotation(RuleConfig.class);
+      String configValue = (ruleConfig == null || ruleConfig.value().isEmpty())
+          ? "DEFAULT"
+          : ruleConfig.value();
+
+      // Find and process the target config field
+      for (Field field : configClass.getDeclaredFields()) {
+        if (field.getType() == configClass
+            && Modifier.isStatic(field.getModifiers())
+            && field.getName().equals(configValue)) {
+          field.setAccessible(true);
+          Config config = (Config) field.get(null);
+          rule = config.toRule();
+          break;
+        }
+      }
+
+      if (rule == null) {
+        throw new RuntimeException("No matching config value '" + configValue
+            + "' found in " + configClass.getName());
+      }
+    } catch (NoSuchFieldException | IllegalAccessException
+         | RuntimeException e) {
+      throw new RuntimeException("Failed to get rule '" + ruleName + "': " + e.getMessage());
+    }
+    return rule;
   }
 
   private void setRules(char operation, RelOptRule rule,
