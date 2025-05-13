@@ -1704,6 +1704,13 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.INTEGER_NULLABLE,
           OperandTypes.ARRAY);
 
+  /** The "ARRAY_LAST_INDEX(array)" function. */
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction ARRAY_LAST_INDEX =
+      SqlBasicFunction.create(SqlKind.ARRAY_LAST_INDEX,
+          ReturnTypes.INTEGER_NULLABLE,
+          OperandTypes.ARRAY);
+
   /** The "ARRAY_LENGTH(array, int)" function. */
   @LibraryOperator(libraries = {POSTGRESQL})
   public static final SqlFunction POSTGRES_ARRAY_LENGTH =
