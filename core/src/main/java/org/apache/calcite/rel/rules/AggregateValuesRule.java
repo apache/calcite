@@ -94,9 +94,8 @@ public class AggregateValuesRule
     final RelBuilder relBuilder = call.builder();
     final RexBuilder rexBuilder = relBuilder.getRexBuilder();
 
-    if (aggregate.getGroupCount() != 0
-        || !values.getTuples().isEmpty()
-        || aggregate.groupSets.size() == 1) {
+    if ((aggregate.getGroupCount() != 0 || !values.getTuples().isEmpty())
+        && aggregate.groupSets.size() == 1) {
       List<ImmutableList<RexLiteral>> distinctValues =
           values.getTuples().stream().distinct().collect(Collectors.toList());
       relBuilder.values(distinctValues, values.getRowType());
