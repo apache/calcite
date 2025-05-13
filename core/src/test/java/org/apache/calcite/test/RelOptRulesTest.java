@@ -10492,26 +10492,176 @@ class RelOptRulesTest extends RelOptTestBase {
   /** Test case of
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6973">[CALCITE-6973]
    * Add rule for convert Minus to Filter</a>. */
-  @Test void testMinusToFilterRule() {
+  @Test void testMinusToFilterRuleWithTwoFilters() {
     final String sql = "SELECT mgr, comm FROM emp WHERE mgr = 12\n"
         + "EXCEPT\n"
         + "SELECT mgr, comm FROM emp WHERE comm = 5\n";
     sql(sql)
         .withPreRule(CoreRules.PROJECT_FILTER_TRANSPOSE)
-        .withRule(CoreRules.MINUS_TO_FILTER)
+        .withRule(CoreRules.MINUS_FILTER_TO_FILTER)
         .check();
   }
 
   /** Test case of
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6973">[CALCITE-6973]
    * Add rule for convert Minus to Filter</a>. */
-  @Test void testMinusToFilterRule2() {
+  @Test void testMinusToFilterRuleWithOneFilter() {
     final String sql = "SELECT mgr, comm FROM emp\n"
         + "EXCEPT\n"
         + "SELECT mgr, comm FROM emp WHERE comm = 5\n";
     sql(sql)
         .withPreRule(CoreRules.PROJECT_FILTER_TRANSPOSE)
-        .withRule(CoreRules.MINUS_TO_FILTER)
+        .withRule(CoreRules.MINUS_FILTER_TO_FILTER)
+        .check();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7002">[CALCITE-7002]
+   * Create an optimization rule to eliminate UNION
+   * from the same source with different filters</a>. */
+  @Test void testMinusToFilterRuleNWayWithMultiSources() {
+    final String sql = "SELECT deptno FROM emp WHERE deptno > 6\n"
+        + "EXCEPT\n"
+        + "SELECT deptno FROM dept WHERE deptno > 8\n"
+        + "EXCEPT\n"
+        + "SELECT deptno FROM emp WHERE deptno > 12\n"
+        + "EXCEPT\n"
+        + "SELECT deptno FROM dept WHERE deptno > 10\n";
+    sql(sql)
+        .withPreRule(CoreRules.MINUS_MERGE, CoreRules.PROJECT_FILTER_TRANSPOSE)
+        .withRule(CoreRules.MINUS_FILTER_TO_FILTER)
+        .check();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7002">[CALCITE-7002]
+   * Create an optimization rule to eliminate UNION
+   * from the same source with different filters</a>. */
+  @Test void testMinusToFilterRuleFourWayWithForSources() {
+    final String sql = "SELECT deptno FROM emp WHERE deptno = 12\n"
+        + "EXCEPT\n"
+        + "SELECT deptno FROM dept WHERE deptno = 5\n"
+        + "EXCEPT\n"
+        + "SELECT deptno FROM empnullables WHERE deptno = 6\n"
+        + "EXCEPT\n"
+        + "SELECT deptno FROM deptnullables WHERE deptno = 10\n";
+    sql(sql)
+        .withPreRule(CoreRules.MINUS_MERGE, CoreRules.PROJECT_FILTER_TRANSPOSE)
+        .withRule(CoreRules.MINUS_FILTER_TO_FILTER)
+        .checkUnchanged();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7002">[CALCITE-7002]
+   * Create an optimization rule to eliminate UNION
+   * from the same source with different filters</a>. */
+  @Test void testMinusToFilterNWayWithSubquery() {
+    final String sql = "SELECT deptno FROM emp WHERE deptno > 12\n"
+        + "EXCEPT\n"
+        + "SELECT deptno FROM dept WHERE deptno = 5\n"
+        + "EXCEPT\n"
+        + "SELECT deptno FROM emp e1 WHERE EXISTS (\n"
+        + "    SELECT 1 FROM emp e2\n"
+        + "    WHERE e2.comm = e1.comm)\n"
+        + "EXCEPT\n"
+        + "SELECT deptno FROM dept WHERE deptno = 10\n"
+        + "EXCEPT\n"
+        + "SELECT deptno FROM emp WHERE deptno > 20\n";
+    sql(sql)
+        .withPreRule(CoreRules.MINUS_MERGE, CoreRules.PROJECT_FILTER_TRANSPOSE)
+        .withRule(CoreRules.MINUS_FILTER_TO_FILTER)
+        .check();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7002">[CALCITE-7002]
+   * Create an optimization rule to eliminate UNION
+   * from the same source with different filters</a>. */
+  @Test void testUnionToFilterRuleWithTwoFilters() {
+    final String sql = "SELECT mgr, comm FROM emp WHERE mgr = 12\n"
+        + "UNION\n"
+        + "SELECT mgr, comm FROM emp WHERE comm = 5\n";
+    sql(sql)
+        .withPreRule(CoreRules.PROJECT_FILTER_TRANSPOSE)
+        .withRule(CoreRules.UNION_FILTER_TO_FILTER)
+        .check();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7002">[CALCITE-7002]
+   * Create an optimization rule to eliminate UNION
+   * from the same source with different filters</a>. */
+  @Test void testUnionToFilterRuleWithOneFilter() {
+    final String sql = "SELECT mgr, comm FROM emp\n"
+        + "UNION\n"
+        + "SELECT mgr, comm FROM emp WHERE comm = 5\n";
+    sql(sql)
+        .withPreRule(CoreRules.PROJECT_FILTER_TRANSPOSE)
+        .withRule(CoreRules.UNION_FILTER_TO_FILTER)
+        .check();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7002">[CALCITE-7002]
+   * Create an optimization rule to eliminate UNION
+   * from the same source with different filters</a>. */
+  @Test void testUnionToFilterRuleNWayWithMultiSources() {
+    final String sql = "SELECT deptno FROM emp WHERE deptno = 12\n"
+        + "UNION\n"
+        + "SELECT deptno FROM dept WHERE deptno = 5\n"
+        + "UNION\n"
+        + "SELECT deptno FROM emp WHERE deptno = 6\n"
+        + "UNION\n"
+        + "SELECT deptno FROM dept WHERE deptno = 10\n";
+    sql(sql)
+        .withPreRule(CoreRules.UNION_MERGE, CoreRules.PROJECT_FILTER_TRANSPOSE)
+        .withRule(CoreRules.UNION_FILTER_TO_FILTER)
+        .check();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7002">[CALCITE-7002]
+   * Create an optimization rule to eliminate UNION
+   * from the same source with different filters</a>. */
+  @Test void testIntersectToFilterRuleWithTwoFilters() {
+    final String sql = "SELECT mgr, comm FROM emp WHERE mgr = 12\n"
+        + "INTERSECT\n"
+        + "SELECT mgr, comm FROM emp WHERE comm = 5\n";
+    sql(sql)
+        .withPreRule(CoreRules.PROJECT_FILTER_TRANSPOSE)
+        .withRule(CoreRules.INTERSECT_FILTER_TO_FILTER)
+        .check();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7002">[CALCITE-7002]
+   * Create an optimization rule to eliminate UNION
+   * from the same source with different filters</a>. */
+  @Test void testIntersectToFilterRuleWithOneFilter() {
+    final String sql = "SELECT mgr, comm FROM emp\n"
+        + "INTERSECT\n"
+        + "SELECT mgr, comm FROM emp WHERE comm = 5\n";
+    sql(sql)
+        .withPreRule(CoreRules.PROJECT_FILTER_TRANSPOSE)
+        .withRule(CoreRules.INTERSECT_FILTER_TO_FILTER)
+        .check();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7002">[CALCITE-7002]
+   * Create an optimization rule to eliminate UNION
+   * from the same source with different filters</a>. */
+  @Test void testIntersectToFilterRuleNWayWithMultiSources() {
+    final String sql = "SELECT deptno FROM emp WHERE deptno < 12\n"
+        + "INTERSECT\n"
+        + "SELECT deptno FROM dept WHERE deptno > 5\n"
+        + "INTERSECT\n"
+        + "SELECT deptno FROM emp WHERE deptno > 6\n"
+        + "INTERSECT\n"
+        + "SELECT deptno FROM dept WHERE deptno < 10\n";
+    sql(sql)
+        .withPreRule(CoreRules.INTERSECT_MERGE, CoreRules.PROJECT_FILTER_TRANSPOSE)
+        .withRule(CoreRules.INTERSECT_FILTER_TO_FILTER)
         .check();
   }
 
