@@ -10492,7 +10492,7 @@ class RelOptRulesTest extends RelOptTestBase {
   /** Test case of
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6973">[CALCITE-6973]
    * Add rule for convert Minus to Filter</a>. */
-  @Test void testMinusToFilterRuleWithTwoFilter() {
+  @Test void testMinusToFilterRuleWithTwoFilters() {
     final String sql = "SELECT mgr, comm FROM emp WHERE mgr = 12\n"
         + "EXCEPT\n"
         + "SELECT mgr, comm FROM emp WHERE comm = 5\n";
@@ -10577,7 +10577,7 @@ class RelOptRulesTest extends RelOptTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7002">[CALCITE-7002]
    * Create an optimization rule to eliminate UNION
    * from the same source with different filters</a>. */
-  @Test void testUnionToFilterRuleWithTwoFilter() {
+  @Test void testUnionToFilterRuleWithTwoFilters() {
     final String sql = "SELECT mgr, comm FROM emp WHERE mgr = 12\n"
         + "UNION\n"
         + "SELECT mgr, comm FROM emp WHERE comm = 5\n";
@@ -10623,7 +10623,7 @@ class RelOptRulesTest extends RelOptTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7002">[CALCITE-7002]
    * Create an optimization rule to eliminate UNION
    * from the same source with different filters</a>. */
-  @Test void testIntersectToFilterRuleWithTwoFilter() {
+  @Test void testIntersectToFilterRuleWithTwoFilters() {
     final String sql = "SELECT mgr, comm FROM emp WHERE mgr = 12\n"
         + "INTERSECT\n"
         + "SELECT mgr, comm FROM emp WHERE comm = 5\n";

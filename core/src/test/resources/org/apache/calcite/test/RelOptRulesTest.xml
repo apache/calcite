@@ -6323,7 +6323,7 @@ LogicalIntersect(all=[true])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testIntersectToFilterRuleWithTwoFilter">
+  <TestCase name="testIntersectToFilterRuleWithTwoFilters">
     <Resource name="sql">
       <![CDATA[SELECT mgr, comm FROM emp WHERE mgr = 12
 INTERSECT
@@ -9216,7 +9216,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testMinusToFilterRuleWithTwoFilter">
+  <TestCase name="testMinusToFilterRuleWithTwoFilters">
     <Resource name="sql">
       <![CDATA[SELECT mgr, comm FROM emp WHERE mgr = 12
 EXCEPT
@@ -18676,7 +18676,7 @@ LogicalUnion(all=[false])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testUnionToFilterRuleWithTwoFilter">
+  <TestCase name="testUnionToFilterRuleWithTwoFilters">
     <Resource name="sql">
       <![CDATA[SELECT mgr, comm FROM emp WHERE mgr = 12
 UNION
