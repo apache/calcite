@@ -8996,7 +8996,8 @@ class RelOptRulesTest extends RelOptTestBase {
 
   @Test void testReduceInValuesWithAggregateValueReduceRule() {
     final Function<RelBuilder, RelNode> relFn = b -> b
-        .values(new String[]{"v"}, 1,1,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)
+        .values(new String[]{"v"}, 1, 1 ,3 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1
+            ,1 ,1 ,1 ,1 ,1 ,1 ,1)
         .distinct()
         .build();
     relFn(relFn)
