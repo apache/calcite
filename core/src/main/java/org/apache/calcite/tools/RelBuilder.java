@@ -477,6 +477,9 @@ public class RelBuilder {
       return rexBuilder.makeNullLiteral(type);
     } else if (value instanceof Boolean) {
       return rexBuilder.makeLiteral((Boolean) value);
+    } else if (value instanceof Character) {
+      return rexBuilder.makeLiteral(value,
+          getTypeFactory().createSqlType(SqlTypeName.CHAR));
     } else if (value instanceof BigDecimal) {
       return rexBuilder.makeExactLiteral((BigDecimal) value);
     } else if (value instanceof Float || value instanceof Double) {

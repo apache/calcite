@@ -405,6 +405,15 @@ class RelOptUtilTest {
         relBuilder.literal(true));
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7013">[CALCITE-7013]
+   * Support building RexLiterals from Character values</a>. */
+  @Test void testCharacterLiteral() {
+    char c = 'c';
+    relBuilder.literal(c);
+  }
+
   private void splitJoinConditionHelper(RexNode joinCond, List<Integer> expLeftKeys,
       List<Integer> expRightKeys, List<Boolean> expFilterNulls, RexNode expRemaining) {
     List<Integer> actLeftKeys = new ArrayList<>();
