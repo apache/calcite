@@ -22,7 +22,6 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.tools.RelBuilder;
-import org.apache.calcite.tools.RelBuilderFactory;
 
 import com.google.common.collect.ImmutableList;
 
@@ -32,7 +31,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Rule that applies an {@link Aggregate} to a distinct {@link Values}.
+ * Rule that applies {@link Aggregate} and {@link Values} to a distinct {@link Values}.
  *
  * <p>This is useful because such as {@link SubQueryRemoveRule}
  * doesn't distinct values for IN filter values.
@@ -61,12 +60,6 @@ public class AggregateValueReduceRule
   /** Creates an AggregateValuesRule. */
   protected AggregateValueReduceRule(Config config) {
     super(config);
-  }
-
-  public AggregateValueReduceRule(RelBuilderFactory relBuilderFactory) {
-    this(Config.DEFAULT
-        .withRelBuilderFactory(relBuilderFactory)
-        .as(Config.class));
   }
 
   @Override public void onMatch(RelOptRuleCall call) {
