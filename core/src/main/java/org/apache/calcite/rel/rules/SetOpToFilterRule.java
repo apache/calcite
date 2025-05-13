@@ -70,9 +70,9 @@ import java.util.stream.Collectors;
  *
  * is rewritten to
  *
- * SELECT deptno FROM emp WHERE deptno = 12 OR deptno = 5
+ * SELECT deptno FROM emp WHERE deptno = 12 OR deptno = 6
  * UNION
- * SELECT deptno FROM emp WHERE deptno = 5 OR deptno = 10
+ * SELECT deptno FROM dept WHERE deptno = 5 OR deptno = 10
  * </pre></blockquote>
  *
  * <p>INTERSECT
