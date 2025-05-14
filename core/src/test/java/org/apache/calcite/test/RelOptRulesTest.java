@@ -10678,6 +10678,29 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7015">[CALCITE-7015]
+   * MinusToFilterRule should return empty Values when minus Non-Filter RelNode</a>. */
+  @Test void testMinusToFilterRuleWithRightNonFilter() {
+    final String sql = "SELECT mgr, comm FROM emp WHERE mgr = 12\n"
+        + "EXCEPT\n"
+        + "SELECT mgr, comm FROM emp\n";
+    sql(sql)
+        .withPreRule(CoreRules.PROJECT_FILTER_TRANSPOSE)
+        .withRule(CoreRules.MINUS_TO_FILTER)
+        .check();
+  }
+
+  @Test void testMinusToFilterRuleWithoutFilters() {
+    final String sql = "SELECT mgr, comm FROM emp\n"
+        + "EXCEPT\n"
+        + "SELECT mgr, comm FROM emp\n";
+    sql(sql)
+        .withPreRule(CoreRules.PROJECT_FILTER_TRANSPOSE)
+        .withRule(CoreRules.MINUS_TO_FILTER)
+        .check();
+  }
+
   @Test void testExpandFilterDisjunctionForJoinInput() {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(CoreRules.EXPAND_FILTER_DISJUNCTION_LOCAL)

@@ -9433,6 +9433,51 @@ LogicalFilter(condition=[=($6, $cor0.COMM)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testMinusToFilterRuleWithNonFilter">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalMinus(all=[false])
+  LogicalFilter(condition=[=($0, 12)])
+    LogicalProject(MGR=[$3], COMM=[$6])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(MGR=[$3], COMM=[$6])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalValues(tuples=[[]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[SELECT mgr, comm FROM emp WHERE mgr = 12
+EXCEPT
+SELECT mgr, comm FROM emp
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testMinusToFilterRuleWithoutFilter">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalMinus(all=[false])
+  LogicalProject(MGR=[$3], COMM=[$6])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(MGR=[$3], COMM=[$6])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalValues(tuples=[[]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[SELECT mgr, comm FROM emp
+EXCEPT
+SELECT mgr, comm FROM emp
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testMultipleDistinctWithGrouping">
     <Resource name="sql">
       <![CDATA[SELECT sal, SUM(comm), AVG(DISTINCT comm), SUM(DISTINCT sal)

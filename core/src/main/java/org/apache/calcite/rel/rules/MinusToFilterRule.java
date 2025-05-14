@@ -21,6 +21,7 @@ import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Minus;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilder;
@@ -68,11 +69,9 @@ public class MinusToFilterRule
     }
     final RelBuilder builder = call.builder();
     final RelNode leftInput = call.rel(1);
-    final Filter rightInput = call.rel(2);
+    final RelNode rightInput = call.rel(2);
 
-    if (!RexUtil.isDeterministic(rightInput.getCondition())) {
-      return;
-    }
+    RexBuilder rexBuilder = builder.getRexBuilder();
 
     RelNode leftBase;
     RexNode leftCond = null;
@@ -84,15 +83,23 @@ public class MinusToFilterRule
       leftBase = leftInput.stripped();
     }
 
-    final RelNode rightBase = rightInput.getInput().stripped();
-    if (!leftBase.equals(rightBase)) {
-      return;
-    }
-
+    RexNode finalCond;
     // Right input is Filter, right cond should be not null
-    final RexNode finalCond = leftCond != null
-        ? builder.and(leftCond, builder.not(rightInput.getCondition()))
-        : builder.not(rightInput.getCondition());
+    if (rightInput instanceof Filter) {
+      Filter rightFilter = (Filter) rightInput;
+      if (!RexUtil.isDeterministic(rightFilter.getCondition())
+          || !leftBase.equals(rightFilter.getInput().stripped())) {
+        return;
+      }
+
+      finalCond = leftCond != null
+          ? builder.and(leftCond, builder.not(rightFilter.getCondition()))
+          : builder.not(rightFilter.getCondition());
+    } else {
+      finalCond = leftCond != null
+          ? builder.and(leftCond, builder.not(rexBuilder.makeLiteral(true)))
+          : builder.not(rexBuilder.makeLiteral(true));
+    }
 
     builder.push(leftBase)
         .filter(finalCond)
@@ -105,7 +112,7 @@ public class MinusToFilterRule
   @Value.Immutable
   public interface Config extends RelRule.Config {
     Config DEFAULT = ImmutableMinusToFilterRule.Config.of()
-        .withOperandFor(Minus.class, RelNode.class, Filter.class);
+        .withOperandFor(Minus.class, RelNode.class, RelNode.class);
 
     @Override default MinusToFilterRule toRule() {
       return new MinusToFilterRule(this);
@@ -113,11 +120,11 @@ public class MinusToFilterRule
 
     /** Defines an operand tree for the given classes. */
     default Config withOperandFor(Class<? extends Minus> minusClass,
-        Class<? extends RelNode> relNodeClass, Class<? extends Filter> filterClass) {
+        Class<? extends RelNode> firstRelNodeClass, Class<? extends RelNode> secondRelNodeClass) {
       return withOperandSupplier(
           b0 -> b0.operand(minusClass).inputs(
-              b1 -> b1.operand(relNodeClass).anyInputs(),
-              b2 -> b2.operand(filterClass).anyInputs()))
+              b1 -> b1.operand(firstRelNodeClass).anyInputs(),
+              b2 -> b2.operand(secondRelNodeClass).anyInputs()))
           .as(Config.class);
     }
   }
