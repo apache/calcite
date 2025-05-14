@@ -5411,7 +5411,7 @@ class RelToSqlConverterDMTest {
     final String expectedSpark = "SELECT CAST(DATE_FORMAT(CAST(birth_date AS TIMESTAMP), "
         + "'yyyy-MM-dd HH:mm:ss.SSS') AS TIMESTAMP)\nFROM foodmart.employee";
     final String expectedBigQuery = "SELECT CAST(FORMAT_TIMESTAMP('%F %H:%M:%E3S', CAST"
-        + "(birth_date AS DATETIME)) AS DATETIME)\n"
+        + "(birth_date AS TIMESTAMP)) AS DATETIME)\n"
         + "FROM foodmart.employee";
     sql(query)
         .withHive()

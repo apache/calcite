@@ -23,6 +23,7 @@ import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.dialect.BigQuerySqlDialect;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -51,8 +52,11 @@ public class CastCallBuilder {
   public SqlNode makCastCallForTimestampWithPrecision(SqlNode operandToCast, int precision) {
     SqlNode timestampWithoutPrecision =
         dialect.getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.TIMESTAMP));
+    SqlNode timestampWithTimeZone =
+        dialect.getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.TIMESTAMP_WITH_TIME_ZONE));
     SqlCall castedTimestampNode =
-        CAST.createCall(POS, operandToCast, timestampWithoutPrecision);
+        CAST.createCall(POS, operandToCast,
+            dialect instanceof BigQuerySqlDialect ? timestampWithTimeZone : timestampWithoutPrecision);
     if (((SqlDataTypeSpec) timestampWithoutPrecision).getTypeName().toString()
         .equalsIgnoreCase("DATETIME")) {
       return castedTimestampNode;
