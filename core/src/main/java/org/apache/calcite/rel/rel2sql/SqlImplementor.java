@@ -2689,11 +2689,11 @@ public abstract class SqlImplementor {
             String grpCall = ((SqlIdentifier) grpNode).names.get(0);
             for (SqlNode selectNode : selectList.getList()) {
               if (selectNode instanceof SqlBasicCall) {
-                if (isQualifyClause) {
-                  return grpCallIsAlias((SqlIdentifier) grpNode, (SqlBasicCall) selectNode)
-                      && !grpCallPresentInFinalProjection(grpCall, project);
-                } else if (grpCallIsAlias(grpCall, (SqlBasicCall) selectNode)
-                    && !grpCallPresentInFinalProjection(grpCall, project)) {
+                SqlBasicCall basicCall = (SqlBasicCall) selectNode;
+                boolean isAliasMatch = isQualifyClause
+                    ? grpCallIsAlias((SqlIdentifier) grpNode, basicCall)
+                    : grpCallIsAlias(grpCall, basicCall);
+                if (isAliasMatch && !grpCallPresentInFinalProjection(grpCall, project)) {
                   return true;
                 }
               }
