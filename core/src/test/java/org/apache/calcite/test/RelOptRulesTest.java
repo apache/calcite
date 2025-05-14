@@ -399,6 +399,16 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
+  @Test void testReduceInValuesWithAggregateValueReduceRuleWithRow() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .values(new String[]{"v1", "v2"},  1, "a", 2, "b", 1, "a", 1, "b")
+        .aggregate(b.groupKey(ImmutableBitSet.of(0)))
+        .build();
+    relFn(relFn)
+        .withRule(CoreRules.AGGREGATE_VALUES)
+        .check();
+  }
+
   /**
    * Test case for <a href="https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-6746">
    * [CALCITE-6746] Optimization rule ProjectWindowTranspose is unsound</a>. */
