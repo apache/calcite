@@ -94,7 +94,7 @@ public class AggregateValuesRule
     final RelBuilder relBuilder = call.builder();
     final RexBuilder rexBuilder = relBuilder.getRexBuilder();
 
-    if ((aggregate.getGroupCount() == 0 && values.getTuples().isEmpty())) {
+    if (aggregate.getGroupCount() == 0 && values.getTuples().isEmpty()) {
       final List<RexLiteral> literals = new ArrayList<>();
       for (final AggregateCall aggregateCall : aggregate.getAggCallList()) {
         switch (aggregateCall.getAggregation().getKind()) {
