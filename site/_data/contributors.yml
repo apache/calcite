@@ -28,8 +28,8 @@
 - name: Alessandro Solimando
   apacheId: asolimando
   githubId: asolimando
-  org: Cloudera
-  role: Committer
+  org:
+  role: PMC
 - name: Aman Sinha
   apacheId: amansinha
   githubId: amansinha100
