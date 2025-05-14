@@ -1582,9 +1582,44 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "GENERATE_SQLERRM":
       writer.literal("@@error.message");
       break;
+    case "ST_DISTANCE":
+      unparseStDistance(writer, call);
+      break;
+    case "ST_POINT":
+      unparseStPoint(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unparseStPoint(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlWriter.Frame frame = writer.startFunCall("ST_GEOGPOINT");
+    for (SqlNode operand : call.getOperandList()) {
+      writer.sep(",");
+      operand.unparse(writer, leftPrec, rightPrec);
+    }
+    writer.endFunCall(frame);
+  }
+
+  private void unparseStDistance(SqlWriter writer, SqlCall call) {
+    final SqlWriter.Frame frame = writer.startFunCall("foodmart.calculatedistancegeography");
+
+    writeCoordinate(writer, "ST_X", call.operand(0));
+    writer.print(",");
+    writeCoordinate(writer, "ST_Y", call.operand(0));
+    writer.print(",");
+    writeCoordinate(writer, "ST_X", call.operand(1));
+    writer.print(",");
+    writeCoordinate(writer, "ST_Y", call.operand(1));
+
+    writer.endFunCall(frame);
+  }
+
+  private void writeCoordinate(SqlWriter writer, String function, SqlNode operand) {
+    SqlWriter.Frame f = writer.startFunCall(function);
+    operand.unparse(writer, 0, 0);
+    writer.endFunCall(f);
   }
 
   private void unparseSafeDivde(SqlWriter writer, SqlCall call,
