@@ -401,8 +401,8 @@ class RelOptRulesTest extends RelOptTestBase {
 
   @Test void testReduceInValuesWithAggregateValueReduceRuleWithRow() {
     final Function<RelBuilder, RelNode> relFn = b -> b
-        .values(new String[]{"v1", "v2"},  1, "a", 2, "b", 1, "a", 1, "b")
-        .aggregate(b.groupKey(ImmutableBitSet.of(0)))
+        .values(new String[]{"v1", "v2"},  1, "a", 2, "b", 1, "a", 1, "b", 1, "a")
+        .distinct()
         .build();
     relFn(relFn)
         .withRule(CoreRules.AGGREGATE_VALUES)

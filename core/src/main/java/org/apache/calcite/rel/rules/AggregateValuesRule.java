@@ -94,42 +94,41 @@ public class AggregateValuesRule
     final RelBuilder relBuilder = call.builder();
     final RexBuilder rexBuilder = relBuilder.getRexBuilder();
 
-    if ((aggregate.getGroupCount() != 0 || !values.getTuples().isEmpty())
-        && aggregate.groupSets.size() == 1) {
+    if ((aggregate.getGroupCount() == 0 && values.getTuples().isEmpty())) {
+      final List<RexLiteral> literals = new ArrayList<>();
+      for (final AggregateCall aggregateCall : aggregate.getAggCallList()) {
+        switch (aggregateCall.getAggregation().getKind()) {
+        case COUNT:
+        case SUM0:
+          literals.add(
+              rexBuilder.makeLiteral(BigDecimal.ZERO, aggregateCall.getType()));
+          break;
+
+        case MIN:
+        case MAX:
+        case SUM:
+          literals.add(rexBuilder.makeNullLiteral(aggregateCall.getType()));
+          break;
+
+        default:
+          // Unknown what this aggregate call should do on empty Values. Bail out to be safe.
+          return;
+        }
+      }
+
+      call.transformTo(
+          relBuilder.values(ImmutableList.of(literals), aggregate.getRowType())
+              .build());
+
+      // New plan is absolutely better than old plan.
+      call.getPlanner().prune(aggregate);
+    } else if (aggregate.groupSets.size() == 1) {
       List<ImmutableList<RexLiteral>> distinctValues =
           values.getTuples().stream().distinct().collect(Collectors.toList());
       relBuilder.values(distinctValues, values.getRowType());
       call.transformTo(relBuilder.build());
-      return;
     }
-
-    final List<RexLiteral> literals = new ArrayList<>();
-    for (final AggregateCall aggregateCall : aggregate.getAggCallList()) {
-      switch (aggregateCall.getAggregation().getKind()) {
-      case COUNT:
-      case SUM0:
-        literals.add(
-            rexBuilder.makeLiteral(BigDecimal.ZERO, aggregateCall.getType()));
-        break;
-
-      case MIN:
-      case MAX:
-      case SUM:
-        literals.add(rexBuilder.makeNullLiteral(aggregateCall.getType()));
-        break;
-
-      default:
-        // Unknown what this aggregate call should do on empty Values. Bail out to be safe.
-        return;
-      }
-    }
-
-    call.transformTo(
-        relBuilder.values(ImmutableList.of(literals), aggregate.getRowType())
-            .build());
-
-    // New plan is absolutely better than old plan.
-    call.getPlanner().prune(aggregate);
+    
   }
 
   /** Rule configuration. */

@@ -19666,13 +19666,13 @@ LogicalValues(tuples=[[{ 1 }, { 3 }, { null }]])
   <TestCase name="testReduceInValuesWithAggregateValueReduceRuleWithRow">
     <Resource name="planBefore">
       <![CDATA[
-LogicalAggregate(group=[{0}])
-  LogicalValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'a' }, { 1, 'b' }]])
+LogicalAggregate(group=[{0, 1}])
+  LogicalValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'a' }, { 1, 'b' }, { 1, 'a' }]])
 ]]>
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalValues(tuples=[[{ 1 }, { 3 }, { null }]])
+LogicalValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }]])
 ]]>
     </Resource>
   </TestCase>
