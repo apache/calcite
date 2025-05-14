@@ -1896,6 +1896,14 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).withExpand(false).ok();
   }
 
+  @Test void testMultipleCorrelatedSubQueriesInSelectReferencingDifferentTablesInFrom() {
+    final String sql = "select\n"
+        + "(select ename from emp where empno = empnos.empno) as emp_name,\n"
+        + "(select name from dept where deptno = deptnos.deptno) as dept_name\n"
+        + " from (values (1), (2)) as empnos(empno), (values (1), (2)) as deptnos(deptno)";
+    sql(sql).withExpand(false).ok();
+  }
+
   @Test void testExists() {
     final String sql = "select*from emp\n"
         + "where exists (select 1 from dept where deptno=55)";
