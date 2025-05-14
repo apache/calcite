@@ -9433,7 +9433,13 @@ LogicalFilter(condition=[=($6, $cor0.COMM)])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testMinusToFilterRuleWithNonFilter">
+  <TestCase name="testMinusToFilterRuleWithRightNonFilter">
+    <Resource name="sql">
+      <![CDATA[SELECT mgr, comm FROM emp WHERE mgr = 12
+EXCEPT
+SELECT mgr, comm FROM emp
+]]>
+    </Resource>
     <Resource name="planBefore">
       <![CDATA[
 LogicalMinus(all=[false])
@@ -9449,14 +9455,14 @@ LogicalMinus(all=[false])
 LogicalValues(tuples=[[]])
 ]]>
     </Resource>
+  </TestCase>
+  <TestCase name="testMinusToFilterRuleWithoutFilters">
     <Resource name="sql">
-      <![CDATA[SELECT mgr, comm FROM emp WHERE mgr = 12
+      <![CDATA[SELECT mgr, comm FROM emp
 EXCEPT
 SELECT mgr, comm FROM emp
 ]]>
     </Resource>
-  </TestCase>
-  <TestCase name="testMinusToFilterRuleWithoutFilter">
     <Resource name="planBefore">
       <![CDATA[
 LogicalMinus(all=[false])
@@ -9469,12 +9475,6 @@ LogicalMinus(all=[false])
     <Resource name="planAfter">
       <![CDATA[
 LogicalValues(tuples=[[]])
-]]>
-    </Resource>
-    <Resource name="sql">
-      <![CDATA[SELECT mgr, comm FROM emp
-EXCEPT
-SELECT mgr, comm FROM emp
 ]]>
     </Resource>
   </TestCase>
