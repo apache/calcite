@@ -128,7 +128,7 @@ public class AggregateValuesRule
       relBuilder.values(distinctValues, values.getRowType());
       call.transformTo(relBuilder.build());
     }
-    
+
   }
 
   /** Rule configuration. */
