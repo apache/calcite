@@ -54,9 +54,11 @@ public class CastCallBuilder {
         dialect.getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.TIMESTAMP));
     SqlNode timestampWithTimeZone =
         dialect.getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.TIMESTAMP_WITH_TIME_ZONE));
+    boolean isDatetime = ((SqlDataTypeSpec) timestampWithoutPrecision).getTypeName().toString()
+        .equalsIgnoreCase("DATETIME");
     SqlCall castedTimestampNode =
         CAST.createCall(POS, operandToCast,
-            dialect instanceof BigQuerySqlDialect ? timestampWithTimeZone : timestampWithoutPrecision);
+            dialect instanceof BigQuerySqlDialect && !isDatetime ? timestampWithTimeZone : timestampWithoutPrecision);
     if (((SqlDataTypeSpec) timestampWithoutPrecision).getTypeName().toString()
         .equalsIgnoreCase("DATETIME")) {
       return castedTimestampNode;
