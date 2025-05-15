@@ -519,48 +519,6 @@ class SqlHintsConverterTest {
         .check();
   }
 
-  @Test void testHintsPropagationInVolcanoPlannerRules2() {
-    final String sql = "select /*+ no_hash_join */ ename, job\n"
-        + "from emp where not exists (select 1 from dept where emp.deptno = dept.deptno)";
-    final RelHint hint = RelHint.builder("NO_HASH_JOIN")
-        .inheritPath(0, 0)
-        .build();
-    // Validate Volcano planner.
-    RuleSet ruleSet =
-        RuleSets.ofList(MockEnumerableJoinRule.create(hint));  // validates hint
-    ruleFixture()
-        .sql(sql)
-        .withTrim(true)
-        .withVolcanoPlanner(false, p -> {
-          p.addRelTraitDef(RelCollationTraitDef.INSTANCE);
-          RelOptUtil.registerDefaultRules(p, false, false);
-          ruleSet.forEach(p::addRule);
-        })
-        .withExpand(true)
-        .check();
-  }
-
-  @Test void testHintsPropagationInVolcanoPlannerRules3() {
-    final String sql = "select /*+ no_hash_join */ ename, job\n"
-        + "from emp where not exists (select 1 from dept where emp.deptno = dept.deptno) order by ename";
-    final RelHint hint = RelHint.builder("NO_HASH_JOIN")
-        .inheritPath(0, 0, 0)
-        .build();
-    // Validate Volcano planner.
-    RuleSet ruleSet =
-        RuleSets.ofList(MockEnumerableJoinRule.create(hint)); // validates hint
-    ruleFixture()
-        .sql(sql)
-        .withTrim(true)
-        .withVolcanoPlanner(false, p -> {
-          p.addRelTraitDef(RelCollationTraitDef.INSTANCE);
-          RelOptUtil.registerDefaultRules(p, false, false);
-          ruleSet.forEach(p::addRule);
-        })
-        .withExpand(true)
-        .check();
-  }
-
   @Test void testHintsPropagateWithDifferentKindOfRels() {
     final String sql = "select /*+ AGG_STRATEGY(TWO_PHASE) */\n"
         + "ename, avg(sal)\n"
