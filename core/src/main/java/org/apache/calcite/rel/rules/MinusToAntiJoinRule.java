@@ -36,11 +36,18 @@ import java.util.List;
 /**
  * Planner rule that translates a {@link Minus}
  * to a series of {@link org.apache.calcite.rel.core.Join} that type is
- * {@link JoinRelType#ANTI}. This rule supports 2-way Minus conversion,
+ * {@link JoinRelType#ANTI}. This rule supports n-way Minus conversion,
  * as this rule can be repeatedly applied during query optimization to
  * refine the plan.
  *
- * <h2>Example</h2>
+ * <p>Example for 2-way
+ *
+ * <p>Original sql:
+ * <pre>{@code
+ * select ename from emp where deptno = 10
+ * except
+ * select ename from emp where deptno = 20
+ * }</pre>
  *
  * <p>Original plan:
  * <pre>{@code
@@ -50,7 +57,6 @@ import java.util.List;
  *       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
  *   LogicalProject(ENAME=[$1])
  *     LogicalFilter(condition=[=($7, 20)])
- *       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
  * }</pre>
  *
  * <p>Plan after conversion:
@@ -63,6 +69,46 @@ import java.util.List;
  *     LogicalProject(ENAME=[$1])
  *       LogicalFilter(condition=[=($7, 20)])
  *         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+ * }</pre>
+ *
+ * <p>Example for n-way
+ *
+ * <p>Original sql:
+ * <pre>{@code
+ * select ename from emp where deptno = 10
+ * except
+ * select deptno from emp where ename in ('a', 'b')
+ * except
+ * select ename from empnullables
+ * }</pre>
+ *
+ * <p>Original plan:
+ * <pre>{@code
+ * LogicalMinus(all=[false])
+ *   LogicalProject(ENAME=[$1])
+ *     LogicalFilter(condition=[=($7, 10)])
+ *       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+ *   LogicalProject(DEPTNO=[CAST($7):VARCHAR NOT NULL])
+ *     LogicalFilter(condition=[OR(=($1, 'a'), =($1, 'b'))])
+ *       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+ *   LogicalProject(ENAME=[$1])
+ *     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+ * }</pre>
+ *
+ * <p>Plan after conversion:
+ * <pre>{@code
+ * LogicalProject(ENAME=[CAST($0):VARCHAR])
+ *   LogicalAggregate(group=[{0}])
+ *     LogicalJoin(condition=[<=>(CAST($0):VARCHAR, CAST($1):VARCHAR)], joinType=[anti])
+ *       LogicalJoin(condition=[=(CAST($0):VARCHAR, $1)], joinType=[anti])
+ *         LogicalProject(ENAME=[$1])
+ *           LogicalFilter(condition=[=($7, 10)])
+ *             LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+ *         LogicalProject(DEPTNO=[CAST($7):VARCHAR NOT NULL])
+ *           LogicalFilter(condition=[OR(=($1, 'a'), =($1, 'b'))])
+ *             LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+ *       LogicalProject(ENAME=[$1])
+ *         LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
  * }</pre>
  */
 @Value.Enclosing
@@ -84,37 +130,44 @@ public class MinusToAntiJoinRule
     }
 
     List<RelNode> inputs = minus.getInputs();
-    if (inputs.size() != 2) {
+    if (inputs.size() < 2) {
       return;
     }
 
     final RelBuilder relBuilder = call.builder();
     final RexBuilder rexBuilder = relBuilder.getRexBuilder();
 
-    RelNode left = inputs.get(0);
-    RelNode right = inputs.get(1);
+    final RelDataType leastRowType = minus.getRowType();
+    RelNode current = inputs.get(0);
+    relBuilder.push(current);
 
-    List<RexNode> conditions = new ArrayList<>();
-    int fieldCount = left.getRowType().getFieldCount();
+    for (int i = 1; i < inputs.size(); i++) {
+      RelNode next = inputs.get(i);
+      int fieldCount = current.getRowType().getFieldCount();
 
-    for (int i = 0; i < fieldCount; i++) {
-      RelDataType leftFieldType = left.getRowType().getFieldList().get(i).getType();
-      RelDataType rightFieldType = right.getRowType().getFieldList().get(i).getType();
+      List<RexNode> conditions = new ArrayList<>();
+      for (int j = 0; j < fieldCount; j++) {
+        RelDataType leftFieldType = current.getRowType().getFieldList().get(j).getType();
+        RelDataType rightFieldType = next.getRowType().getFieldList().get(j).getType();
+        RelDataType leastFieldType = leastRowType.getFieldList().get(j).getType();
 
-      // No further optimization will be performed based on field nullability,
-      // as this can be uniformly optimized by other rules.
-      conditions.add(
-          relBuilder.isNotDistinctFrom(
-              rexBuilder.makeInputRef(leftFieldType, i),
-              rexBuilder.makeInputRef(rightFieldType, i + fieldCount)));
+        conditions.add(
+            relBuilder.isNotDistinctFrom(
+                rexBuilder.makeCast(leastFieldType,
+                    rexBuilder.makeInputRef(leftFieldType, j)),
+                rexBuilder.makeCast(leastFieldType,
+                    rexBuilder.makeInputRef(rightFieldType, j + fieldCount))));
+      }
+      RexNode condition = RexUtil.composeConjunction(rexBuilder, conditions);
+
+      relBuilder.push(next)
+          .join(JoinRelType.ANTI, condition);
+
+      current = relBuilder.peek();
     }
-    RexNode condition = RexUtil.composeConjunction(rexBuilder, conditions);
 
-    relBuilder.push(left)
-        .push(right)
-        .join(JoinRelType.ANTI, condition)
-        .distinct();
-
+    relBuilder.distinct()
+        .convert(leastRowType, true);
     call.transformTo(relBuilder.build());
   }
 

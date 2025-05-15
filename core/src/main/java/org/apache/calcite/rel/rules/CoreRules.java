@@ -418,7 +418,7 @@ public class CoreRules {
       MinusToDistinctRule.Config.DEFAULT.toRule();
 
   /** Rule to translates a {@link Minus} to {@link Join} anti-join}. */
-  public static final MinusToAntiJoinRule MINUS_TO_ANTI_JOIN_RULE =
+  public static final MinusToAntiJoinRule MINUS_TO_ANTI_JOIN =
       MinusToAntiJoinRule.Config.DEFAULT.toRule();
 
   /** Rule that converts a {@link LogicalMatch} to the result of calling

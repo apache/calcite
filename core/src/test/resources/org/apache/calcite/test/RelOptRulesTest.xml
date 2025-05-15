@@ -9113,13 +9113,52 @@ LogicalMinus(all=[false])
     <Resource name="planAfter">
       <![CDATA[
 LogicalAggregate(group=[{0}])
-  LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[anti])
+  LogicalJoin(condition=[=($0, $1)], joinType=[anti])
     LogicalProject(ENAME=[$1])
       LogicalFilter(condition=[=($7, 10)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalProject(ENAME=[$1])
       LogicalFilter(condition=[=($7, 20)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testMinusToAntiJoinRuleMultiInputs">
+    <Resource name="sql">
+      <![CDATA[select ename from emp where deptno = 10
+except
+select deptno from emp where ename in ('a', 'b')
+except
+select ename from empnullables
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalMinus(all=[false])
+  LogicalProject(ENAME=[$1])
+    LogicalFilter(condition=[=($7, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(DEPTNO=[CAST($7):VARCHAR NOT NULL])
+    LogicalFilter(condition=[OR(=($1, 'a'), =($1, 'b'))])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(ENAME=[$1])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(ENAME=[CAST($0):VARCHAR])
+  LogicalAggregate(group=[{0}])
+    LogicalJoin(condition=[IS NOT DISTINCT FROM(CAST($0):VARCHAR, CAST($1):VARCHAR)], joinType=[anti])
+      LogicalJoin(condition=[=(CAST($0):VARCHAR, $1)], joinType=[anti])
+        LogicalProject(ENAME=[$1])
+          LogicalFilter(condition=[=($7, 10)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalProject(DEPTNO=[CAST($7):VARCHAR NOT NULL])
+          LogicalFilter(condition=[OR(=($1, 'a'), =($1, 'b'))])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(ENAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
 ]]>
     </Resource>
   </TestCase>
