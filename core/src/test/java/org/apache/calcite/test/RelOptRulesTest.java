@@ -3684,7 +3684,18 @@ class RelOptRulesTest extends RelOptTestBase {
     final String sql = "select ename from emp where deptno = 10\n"
         + "except\n"
         + "select ename from emp where deptno = 20\n";
-    sql(sql).withRule(CoreRules.MINUS_TO_ANTI_JOIN_RULE)
+    sql(sql).withRule(CoreRules.MINUS_TO_ANTI_JOIN)
+        .check();
+  }
+
+  @Test void testMinusToAntiJoinRuleMultiInputs() {
+    final String sql = "select ename from emp where deptno = 10\n"
+        + "except\n"
+        + "select deptno from emp where ename in ('a', 'b')\n"
+        + "except\n"
+        + "select ename from empnullables\n";
+    sql(sql).withPreRule(CoreRules.MINUS_MERGE)
+        .withRule(CoreRules.MINUS_TO_ANTI_JOIN)
         .check();
   }
 

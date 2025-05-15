@@ -4230,7 +4230,7 @@ public class JdbcTest {
             p -> {
               p.removeRule(CoreRules.MINUS_TO_DISTINCT);
               p.removeRule(ENUMERABLE_MINUS_RULE);
-              p.addRule(CoreRules.MINUS_TO_ANTI_JOIN_RULE);
+              p.addRule(CoreRules.MINUS_TO_ANTI_JOIN);
             })
         .explainContains("joinType=[anti]")
         .returnsUnordered(returns);
