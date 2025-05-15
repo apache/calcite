@@ -25,7 +25,6 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
@@ -34,10 +33,13 @@ import org.immutables.value.Value;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
- * Rule that applies {@link Aggregate} to a {@link Values} (currently just an
+ * Rule that
+ * 1. applies {@link Aggregate} to a {@link Values} (currently just an
  * empty {@code Value}s).
+ * 2. {@link Aggregate} and {@link Values} to a distinct {@link Values}.
  *
  * <p>This is still useful because {@link PruneEmptyRules#AGGREGATE_INSTANCE}
  * doesn't handle {@code Aggregate}, which is in turn because {@code Aggregate}
@@ -52,6 +54,20 @@ import java.util.List;
  * <p>This rule only applies to "grand totals", that is, {@code GROUP BY ()}.
  * Any non-empty {@code GROUP BY} clause will return one row per group key
  * value, and each group will consist of at least one row.
+ *
+ * <p>This is useful because such as {@link SubQueryRemoveRule}
+ * doesn't distinct values for IN filter values.
+ *
+ * <blockquote><code>
+ * LogicalAggregate(group=[{0}])
+ * LogicalValues(tuples=[[{ 1 }, { 1 }, { 3 }]])
+ * </code></blockquote>
+ *
+ * <p>should be converted to:
+ *
+ * <blockquote><code>
+ * LogicalValues(tuples=[[{ 1 }, { 3 }]])
+ * </code></blockquote>
  *
  * @see CoreRules#AGGREGATE_VALUES
  */
@@ -75,37 +91,44 @@ public class AggregateValuesRule
   @Override public void onMatch(RelOptRuleCall call) {
     final Aggregate aggregate = call.rel(0);
     final Values values = call.rel(1);
-    Util.discard(values);
     final RelBuilder relBuilder = call.builder();
     final RexBuilder rexBuilder = relBuilder.getRexBuilder();
 
-    final List<RexLiteral> literals = new ArrayList<>();
-    for (final AggregateCall aggregateCall : aggregate.getAggCallList()) {
-      switch (aggregateCall.getAggregation().getKind()) {
-      case COUNT:
-      case SUM0:
-        literals.add(
-            rexBuilder.makeLiteral(BigDecimal.ZERO, aggregateCall.getType()));
-        break;
+    if (aggregate.getGroupCount() == 0 && values.getTuples().isEmpty()) {
+      final List<RexLiteral> literals = new ArrayList<>();
+      for (final AggregateCall aggregateCall : aggregate.getAggCallList()) {
+        switch (aggregateCall.getAggregation().getKind()) {
+        case COUNT:
+        case SUM0:
+          literals.add(
+              rexBuilder.makeLiteral(BigDecimal.ZERO, aggregateCall.getType()));
+          break;
 
-      case MIN:
-      case MAX:
-      case SUM:
-        literals.add(rexBuilder.makeNullLiteral(aggregateCall.getType()));
-        break;
+        case MIN:
+        case MAX:
+        case SUM:
+          literals.add(rexBuilder.makeNullLiteral(aggregateCall.getType()));
+          break;
 
-      default:
-        // Unknown what this aggregate call should do on empty Values. Bail out to be safe.
-        return;
+        default:
+          // Unknown what this aggregate call should do on empty Values. Bail out to be safe.
+          return;
+        }
       }
+
+      call.transformTo(
+          relBuilder.values(ImmutableList.of(literals), aggregate.getRowType())
+              .build());
+
+      // New plan is absolutely better than old plan.
+      call.getPlanner().prune(aggregate);
+    } else if (aggregate.groupSets.size() == 1) {
+      List<ImmutableList<RexLiteral>> distinctValues =
+          values.getTuples().stream().distinct().collect(Collectors.toList());
+      relBuilder.values(distinctValues, values.getRowType());
+      call.transformTo(relBuilder.build());
     }
 
-    call.transformTo(
-        relBuilder.values(ImmutableList.of(literals), aggregate.getRowType())
-            .build());
-
-    // New plan is absolutely better than old plan.
-    call.getPlanner().prune(aggregate);
   }
 
   /** Rule configuration. */
@@ -123,10 +146,8 @@ public class AggregateValuesRule
         Class<? extends Values> valuesClass) {
       return withOperandSupplier(b0 ->
           b0.operand(aggregateClass)
-              .predicate(aggregate -> aggregate.getGroupCount() == 0)
               .oneInput(b1 ->
                   b1.operand(valuesClass)
-                      .predicate(values -> values.getTuples().isEmpty())
                       .noInputs()))
           .as(Config.class);
     }
