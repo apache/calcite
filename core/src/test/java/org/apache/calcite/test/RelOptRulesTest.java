@@ -10720,4 +10720,14 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withRule(CoreRules.AGGREGATE_MIN_MAX_TO_LIMIT)
         .check();
   }
+
+  @Test void testUsingRelFnWithRedundantSql() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .project(b.field(0))
+        .sort(b.field(0))
+        .filter(b.lessThan(b.field(0), b.literal(10)))
+        .build();
+    relFn(relFn).withRule(CoreRules.FILTER_SORT_TRANSPOSE).check();
+  }
 }

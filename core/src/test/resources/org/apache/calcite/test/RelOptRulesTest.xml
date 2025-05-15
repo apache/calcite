@@ -19143,6 +19143,28 @@ LogicalProject(DEPTNO=[$0], NAME=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testUsingRelFnWithRedundantSql">
+    <Resource name="sql">
+      <![CDATA[xxxxxxxx
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalFilter(condition=[<($0, 10)])
+  LogicalSort(sort0=[$0], dir0=[ASC])
+    LogicalProject(EMPNO=[$0])
+      LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalSort(sort0=[$0], dir0=[ASC])
+  LogicalFilter(condition=[<($0, 10)])
+    LogicalProject(EMPNO=[$0])
+      LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testWhereAnyCorrelatedInSelect">
     <Resource name="sql">
       <![CDATA[select * from emp where empno > ANY (
