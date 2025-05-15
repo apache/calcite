@@ -21,11 +21,13 @@ import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Sarg;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -237,6 +239,15 @@ public class Strong {
         }
       }
       return allNull(caseValues);
+    case SEARCH:
+      final RexCall searchCall = (RexCall) node;
+      boolean isNull = isNull(searchCall.getOperands().get(0));
+      if (isNull) {
+        final Sarg<?> sarg = ((RexLiteral) searchCall.getOperands().get(1)).getValueAs(Sarg.class);
+        assert sarg != null;
+        return sarg.nullAs == RexUnknownAs.UNKNOWN;
+      }
+      return false;
     default:
       return false;
     }
