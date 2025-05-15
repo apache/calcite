@@ -3022,6 +3022,15 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test void testAllListWithOneElement() {
+    final String sql = "select * from emp\n"
+        + "where sal <= all (12)";
+    final String expected = "SELECT *\n"
+        + "FROM `EMP`\n"
+        + "WHERE (`SAL` <= ALL (12))";
+    sql(sql).ok(expected);
+  }
+
   @Test void testUnion() {
     sql("select * from a union select * from a")
         .ok("SELECT *\n"

@@ -237,6 +237,10 @@ public class Strong {
         }
       }
       return allNull(caseValues);
+    case ALL:
+    case SOME:
+      final RexCall rexCall = (RexCall) node;
+      return anyNull(rexCall.getOperands());
     default:
       return false;
     }

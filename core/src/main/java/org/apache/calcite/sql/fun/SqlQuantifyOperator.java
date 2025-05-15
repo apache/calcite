@@ -18,10 +18,12 @@ package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
@@ -99,22 +101,32 @@ public class SqlQuantifyOperator extends SqlInOperator {
       SqlValidatorScope scope, SqlCall call) {
     final SqlNode left = call.operand(0);
     final SqlNode right = call.operand(1);
-    if (right instanceof SqlNodeList && ((SqlNodeList) right).size() == 1) {
-      final RelDataType rightType =
-          validator.deriveType(scope, ((SqlNodeList) right).get(0));
-      if (SqlTypeUtil.isCollection(rightType)) {
-        final RelDataType componentRightType =
-            requireNonNull(rightType.getComponentType());
-        final RelDataType leftType = validator.deriveType(scope, left);
-        if (SqlTypeUtil.sameNamedType(componentRightType, leftType)
-            || SqlTypeUtil.isNull(leftType)
-            || SqlTypeUtil.isNull(componentRightType)) {
-          return validator.getTypeFactory().createTypeWithNullability(
-              validator.getTypeFactory().createSqlType(SqlTypeName.BOOLEAN),
-              rightType.isNullable()
-                  || componentRightType.isNullable()
-                  || leftType.isNullable());
+    if (right instanceof SqlNodeList || right.isA(SqlKind.QUERY)) {
+      return null;
+    }
+    RelDataType rightType = validator.deriveType(scope, right);
+    if (SqlTypeUtil.isCollection(rightType)) {
+      RelDataType componentRightType = requireNonNull(rightType.getComponentType());
+      RelDataType leftType = validator.deriveType(scope, left);
+      SqlCallBinding callBinding = new SqlCallBinding(validator, scope, call);
+      if (callBinding.isTypeCoercionEnabled()) {
+        boolean coerced = callBinding.getValidator().getTypeCoercion()
+            .quantifyOperationCoercion(callBinding);
+        if (coerced) {
+          // Update the node data type if we coerced any type.
+          leftType = validator.deriveType(scope, call.operand(0));
+          rightType = validator.deriveType(scope, call.operand(1));
+          componentRightType = rightType.getComponentType();
         }
+      }
+      assert componentRightType != null;
+      if (SqlTypeUtil.sameNamedType(componentRightType, leftType)
+          || SqlTypeUtil.isNull(leftType) || SqlTypeUtil.isNull(componentRightType)) {
+        return validator.getTypeFactory().createTypeWithNullability(
+            validator.getTypeFactory().createSqlType(SqlTypeName.BOOLEAN),
+            rightType.isNullable()
+                || componentRightType.isNullable()
+                || leftType.isNullable());
       }
     }
     return null;
@@ -158,6 +170,25 @@ public class SqlQuantifyOperator extends SqlInOperator {
       }
     default:
       throw new AssertionError("unexpected " + kind);
+    }
+  }
+
+  @Override public void unparse(
+      SqlWriter writer,
+      SqlCall call,
+      int leftPrec,
+      int rightPrec) {
+    assert call.operandCount() == 2;
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.setNeedWhitespace(true);
+    writer.sep(getName());
+    writer.setNeedWhitespace(true);
+    if (call.operand(1).isA(SqlKind.QUERY)) {
+      call.operand(1).unparse(writer, 0, 0);
+    } else {
+      final SqlWriter.Frame frame = writer.startList("(", ")");
+      call.operand(1).unparse(writer, 0, 0);
+      writer.endList(frame);
     }
   }
 }
