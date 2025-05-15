@@ -402,6 +402,7 @@ public class CoreRules {
 
   /** Rule that sames as {@link CoreRules#MINUS_FILTER_TO_FILTER},
    * But it is deprecated. */
+  @Deprecated
   public static final MinusToFilterRule MINUS_TO_FILTER =
       MinusToFilterRule.Config.DEFAULT.toRule();
 
