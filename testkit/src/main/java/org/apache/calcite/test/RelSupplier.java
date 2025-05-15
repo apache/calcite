@@ -128,6 +128,11 @@ interface RelSupplier {
     }
 
     @Override public RelNode apply(RelOptFixture fixture) {
+      String sql = fixture.diffRepos().expand("sql", "${sql}");
+      if (!sql.equals("${sql}")) {
+        throw new AssertionError(
+            "relFn test case should not contain sql resource in XML file");
+      }
       return relFn.apply(RelBuilder.create(FRAMEWORK_CONFIG));
     }
 
