@@ -3177,6 +3177,97 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  private static RelOptRule getPredicatesInferenceEnabledFilterIntoJoinRule() {
+    return CoreRules.FILTER_INTO_JOIN.config
+        .withSmart(true)
+        .withEnablePredicatesInference(true)
+        .as(FilterJoinRule.FilterIntoJoinRule.FilterIntoJoinRuleConfig.class)
+        .toRule();
+  }
+
+  private static RelOptRule getPredicatesInferenceEnabledJoinConditionPushRule() {
+    return CoreRules.JOIN_CONDITION_PUSH.config
+        .withSmart(true)
+        .withEnablePredicatesInference(true)
+        .as(FilterJoinRule.JoinConditionPushRule.JoinConditionPushRuleConfig.class)
+        .toRule();
+  }
+
+  /** Test case for predicates inference for Inner Join */
+  @Test void testJoinPredicatesInference1() {
+    // test simple inference
+    final String sql = "SELECT *\n"
+        + "FROM sales.dept d INNER JOIN sales.emp e\n"
+        + "ON d.deptno = e.deptno\n"
+        + "WHERE e.deptno < 20 AND d.deptno > 10";
+
+    sql(sql)
+        .withRule(
+            getPredicatesInferenceEnabledFilterIntoJoinRule(),
+            getPredicatesInferenceEnabledJoinConditionPushRule())
+        .check();
+  }
+
+  /** Test case for predicates inference for Inner Join */
+  @Test void testJoinPredicatesInference2() {
+    // test range merging
+    final String sql = "SELECT *\n"
+        + "FROM sales.dept d INNER JOIN sales.emp e\n"
+        + "ON d.deptno = e.deptno\n"
+        + "WHERE e.deptno < 40 AND e.deptno > 20 AND d.deptno > 10 AND d.deptno < 30";
+
+    sql(sql)
+        .withRule(
+            getPredicatesInferenceEnabledFilterIntoJoinRule(),
+            getPredicatesInferenceEnabledJoinConditionPushRule())
+        .check();
+  }
+
+  /** Test case for predicates inference for Inner Join */
+  @Test void testJoinPredicatesInference3() {
+    // test 'in' predicates
+    final String sql = "SELECT *\n"
+        + "FROM sales.dept d INNER JOIN sales.emp e\n"
+        + "ON d.deptno = e.deptno\n"
+        + "WHERE e.deptno in (20, 30, 40)";
+
+    sql(sql)
+        .withRule(
+            getPredicatesInferenceEnabledFilterIntoJoinRule(),
+            getPredicatesInferenceEnabledJoinConditionPushRule())
+        .check();
+  }
+
+  /** Test case for predicates inference for Inner Join */
+  @Test void testJoinPredicatesInference4() {
+    // test expression
+    final String sql = "SELECT *\n"
+        + "FROM sales.emp e INNER JOIN sales.bonus b\n"
+        + "ON e.deptno = b.sal AND e.empno = b.comm\n"
+        + "WHERE e.deptno + b.comm < 100";
+
+    sql(sql)
+        .withRule(
+            getPredicatesInferenceEnabledFilterIntoJoinRule(),
+            getPredicatesInferenceEnabledJoinConditionPushRule())
+        .check();
+  }
+
+  /** Test case for predicates inference for Left Outer Join */
+  @Test void testJoinPredicatesInference5() {
+    // test simple inference
+    final String sql = "SELECT *\n"
+        + "FROM sales.dept d LEFT JOIN sales.emp e\n"
+        + "ON d.deptno = e.deptno\n"
+        + "WHERE e.deptno < 20 AND d.deptno > 10";
+
+    sql(sql)
+        .withRule(
+            getPredicatesInferenceEnabledFilterIntoJoinRule(),
+            getPredicatesInferenceEnabledJoinConditionPushRule())
+        .check();
+  }
+
   /** Tests that filters are combined if they are identical. */
   @Test void testMergeFilter() {
     final String sql = "select name from (\n"
