@@ -1327,10 +1327,16 @@ public class CalcitePrepareImpl implements CalcitePrepare {
             toRex(targetExpression),
             field.getName(),
             true);
+      case Equal:
+        return binary(expression, SqlStdOperatorTable.EQUALS);
       case GreaterThan:
         return binary(expression, SqlStdOperatorTable.GREATER_THAN);
+      case GreaterThanOrEqual:
+        return binary(expression, SqlStdOperatorTable.GREATER_THAN_OR_EQUAL);
       case LessThan:
         return binary(expression, SqlStdOperatorTable.LESS_THAN);
+      case LessThanOrEqual:
+        return binary(expression, SqlStdOperatorTable.LESS_THAN_OR_EQUAL);
       case Parameter:
         return parameter((ParameterExpression) expression);
       case Call:
