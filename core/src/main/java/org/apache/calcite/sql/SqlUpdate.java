@@ -175,8 +175,7 @@ public class SqlUpdate extends SqlCall {
     for (Pair<SqlNode, SqlNode> pair
         : Pair.zip(getTargetColumnList(), getSourceExpressionList())) {
       writer.sep(",");
-      SqlIdentifier id = (SqlIdentifier) pair.left;
-      id.unparse(writer, opLeft, opRight);
+      unparseSetTarget(writer, pair.left);
       writer.keyword("=");
       SqlNode sourceExp = pair.right;
       sourceExp.unparse(writer, opLeft, opRight);
@@ -186,6 +185,29 @@ public class SqlUpdate extends SqlCall {
     if (condition != null) {
       writer.sep("WHERE");
       condition.unparse(writer, opLeft, opRight);
+    }
+    writer.endList(frame);
+  }
+
+  private void unparseSetTarget(SqlWriter writer, SqlNode setTarget) {
+    final int opLeft = getOperator().getLeftPrec();
+    final int opRight = getOperator().getRightPrec();
+    if (setTarget instanceof SqlNodeList) {
+      unparseMultiColSetTargetList(writer, (SqlNodeList) setTarget);
+    } else {
+      SqlIdentifier id = (SqlIdentifier) setTarget;
+      id.unparse(writer, opLeft, opRight);
+    }
+  }
+
+  private void unparseMultiColSetTargetList(SqlWriter writer, SqlNodeList setTargetList) {
+    final int opLeft = getOperator().getLeftPrec();
+    final int opRight = getOperator().getRightPrec();
+    final SqlWriter.Frame frame = writer.startList("(", ")");
+    for (SqlNode sqlNode : setTargetList) {
+      writer.sep(",");
+      SqlIdentifier id = (SqlIdentifier) sqlNode;
+      id.unparse(writer, opLeft, opRight);
     }
     writer.endList(frame);
   }
