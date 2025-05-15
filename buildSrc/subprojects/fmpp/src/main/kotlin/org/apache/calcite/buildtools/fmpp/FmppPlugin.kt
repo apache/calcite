@@ -34,7 +34,7 @@ open class FmppPlugin : Plugin<Project> {
             isCanBeConsumed = false
         }.defaultDependencies {
             // TODO: use properties for versions
-            add(dependencies.create("org.freemarker:freemarker:2.3.29"))
+            add(dependencies.create("org.freemarker:freemarker:2.3.34"))
             add(dependencies.create("net.sourceforge.fmpp:fmpp:0.9.16"))
         }
     }
