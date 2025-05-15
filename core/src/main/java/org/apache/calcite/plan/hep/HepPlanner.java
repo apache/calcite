@@ -67,6 +67,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.Stack;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -527,7 +528,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
       }
     }
 
-    final List<RelNode> bindings = new ArrayList<>();
+    final Stack<RelNode> bindings = new Stack<>();
     final Map<RelNode, List<RelNode>> nodeChildren = new HashMap<>();
     boolean match =
         matchOperands(
@@ -614,7 +615,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
   private static boolean matchOperands(
       RelOptRuleOperand operand,
       RelNode rel,
-      List<RelNode> bindings,
+      Stack<RelNode> bindings,
       Map<RelNode, List<RelNode>> nodeChildren) {
     if (!operand.matches(rel)) {
       return false;
@@ -649,6 +650,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
           }
         }
         if (!match) {
+          bindings.pop();
           return false;
         }
       }
@@ -661,6 +663,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     default:
       int n = operand.getChildOperands().size();
       if (childRels.size() < n) {
+        bindings.pop();
         return false;
       }
       for (Pair<HepRelVertex, RelOptRuleOperand> pair
@@ -672,6 +675,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
                 bindings,
                 nodeChildren);
         if (!match) {
+          bindings.pop();
           return false;
         }
       }
