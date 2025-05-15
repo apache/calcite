@@ -902,9 +902,6 @@ public class SubQueryRemoveRule
     final RelBuilder builder = call.builder();
     final RexSubQuery e =
         requireNonNull(RexUtil.SubQueryFinder.find(join.getCondition()));
-    final RelOptUtil.Logic logic =
-        LogicVisitor.find(RelOptUtil.Logic.TRUE,
-            ImmutableList.of(join.getCondition()), e);
 
     ImmutableBitSet inputSet = RelOptUtil.InputFinder.bits(e.getOperands(), null);
     int nFieldsLeft = join.getLeft().getRowType().getFieldCount();
@@ -926,6 +923,11 @@ public class SubQueryRemoveRule
     if (inputIntersectsLeftSide) {
       builder.push(join.getLeft());
 
+      final RelOptUtil.Logic logic =
+          LogicVisitor.find(join.getJoinType().generatesNullsOnRight()
+                  ? RelOptUtil.Logic.TRUE_FALSE_UNKNOWN : RelOptUtil.Logic.TRUE,
+              ImmutableList.of(join.getCondition()), e);
+
       final RexNode target =
           rule.apply(e, variablesSet, logic, builder, 1, nFieldsLeft, 0);
       final RexShuttle shuttle = new ReplaceSubQueryShuttle(e, target);
@@ -945,6 +947,11 @@ public class SubQueryRemoveRule
     } else {
       builder.push(join.getLeft());
       builder.push(join.getRight());
+
+      final RelOptUtil.Logic logic =
+          LogicVisitor.find(join.getJoinType().generatesNullsOnLeft()
+                  ? RelOptUtil.Logic.TRUE_FALSE_UNKNOWN : RelOptUtil.Logic.TRUE,
+              ImmutableList.of(join.getCondition()), e);
 
       final int nFields = join.getRowType().getFieldCount();
       final RexNode target =
