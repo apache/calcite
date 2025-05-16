@@ -15,14 +15,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
+# This documents the required format for .iq files containing planner rule configurations
+#
+# CORRECT SYNTAX:
+# ---------------
+# !set planner-rules "
+# -Rule1,
+# -Rule2,
+# +Rule3"
+#
+# FORMAT RULES:
+# -------------
+# 1. Must begin with: !set planner-rules " (double quote)
+# 2. Each rule must be on its own line. All lines except last must end with comma.
+#    Final rule line must close with " (double quote) on final line
+# 3. Rules must start with - (remove) or + (add)
+
 !use post
 !set outputformat mysql
 
-# The following line is used to update the default planner rules.
-# "+" means add a rule, "-" means remove a rule. Only the "CoreRules." can be omitted.
-!set planner-rules "-INTERSECT_TO_DISTINCT,
-  -EnumerableRules.ENUMERABLE_INTERSECT_RULE,
-  +CoreRules.INTERSECT_TO_SEMI_JOIN"
+!set planner-rules "
+-INTERSECT_TO_DISTINCT,
+-EnumerableRules.ENUMERABLE_INTERSECT_RULE,
++CoreRules.INTERSECT_TO_SEMI_JOIN"
 
 # Test INTERSECT_TO_SEMI_JOIN
 with t (i) as (values (0), (1))
@@ -103,9 +119,10 @@ EnumerableAggregate(group=[{}], EXPR$0=[MIN($0)], EXPR$1=[MAX($0)])
   EnumerableValues(tuples=[[{ 10 }, { 10 }, { 20 }, { 30 }, { 30 }, { 50 }, { 50 }, { 60 }, { null }]])
 !plan
 
-!set planner-rules "+AGGREGATE_MIN_MAX_TO_LIMIT,
-  -EnumerableRules.ENUMERABLE_AGGREGATE_RULE,
-  +PROJECT_SUB_QUERY_TO_CORRELATE"
+!set planner-rules "
++AGGREGATE_MIN_MAX_TO_LIMIT,
+-EnumerableRules.ENUMERABLE_AGGREGATE_RULE,
++PROJECT_SUB_QUERY_TO_CORRELATE"
 select min(deptno), max(deptno) from emp;
 +--------+--------+
 | EXPR$0 | EXPR$1 |
@@ -213,7 +230,8 @@ EnumerableMergeJoin(condition=[AND(=($0, $6), OR(AND(>($1, 11), <=($7, 32)), AND
   EnumerableValues(tuples=[[{ 1, 31, 311 }, { 2, 32, 322 }, { 3, 33, 333 }, { 4, 34, 344 }, { 5, 35, 355 }]])
 !plan
 
-!set planner-rules "+CoreRules.EXPAND_FILTER_DISJUNCTION_LOCAL, +CoreRules.EXPAND_JOIN_DISJUNCTION_LOCAL"
+!set planner-rules "
++CoreRules.EXPAND_FILTER_DISJUNCTION_LOCAL"
 
 with t1 (id1, col11, col12) as (values (1, 11, 111), (2, 12, 122), (3, 13, 133), (4, 14, 144), (5, 15, 155)),
 t2 (id2, col21, col22) as (values (1, 21, 211), (2, 22, 222), (3, 23, 233), (4, 24, 244), (5, 25, 255)),
@@ -241,7 +259,6 @@ EnumerableHashJoin(condition=[AND(=($0, $6), OR(AND(>($1, 11), <=($7, 32)), AND(
   EnumerableCalc(expr#0..2=[{inputs}], expr#3=[32], expr#4=[<=($t1, $t3)], expr#5=[344], expr#6=[>=($t2, $t5)], expr#7=[OR($t4, $t6)], proj#0..2=[{exprs}], $condition=[$t7])
     EnumerableValues(tuples=[[{ 1, 31, 311 }, { 2, 32, 322 }, { 3, 33, 333 }, { 4, 34, 344 }, { 5, 35, 355 }]])
 !plan
-
 !set planner-rules original
 
 # End planner.iq

@@ -117,6 +117,8 @@ public class SortUnionTransposeRule
         .withOperandFor(Sort.class, Union.class)
         .withMatchNullFetch(false);
 
+    Config MATCH_NULL_FETCH = DEFAULT.withMatchNullFetch(true);
+
     @Override default SortUnionTransposeRule toRule() {
       return new SortUnionTransposeRule(this);
     }

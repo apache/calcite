@@ -183,6 +183,7 @@ public class AggregateProjectPullUpConstantsRule
   @Value.Immutable
   public interface Config extends RelRule.Config {
     Config DEFAULT = ImmutableAggregateProjectPullUpConstantsRule.Config.of();
+    Config ANY = DEFAULT.withOperandFor(LogicalAggregate.class, RelNode.class);
 
     @Override default AggregateProjectPullUpConstantsRule toRule() {
       return new AggregateProjectPullUpConstantsRule(this);

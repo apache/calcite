@@ -510,6 +510,12 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
                   b0.operand(Filter.class).oneInput(b1 ->
                       b1.operand(Join.class).anyInputs()))
               .withSmart(true);
+      FilterIntoJoinRuleConfig SMART_FALSE =
+          ImmutableFilterIntoJoinRuleConfig.of((join, joinType, exp) -> true)
+              .withOperandSupplier(b0 ->
+                  b0.operand(Filter.class).oneInput(b1 ->
+                      b1.operand(Join.class).anyInputs()))
+              .withSmart(false);
 
       @Override default FilterIntoJoinRule toRule() {
         return new FilterIntoJoinRule(this);
