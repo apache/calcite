@@ -309,6 +309,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPLIT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPLIT_PART;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.STARTS_WITH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.STRCMP;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.STRING_TO_ARRAY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.STR_TO_MAP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SUBSTRING_INDEX;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SYSDATE;
@@ -1071,6 +1072,7 @@ public class RexImpTable {
       defineMethod(ARRAY_SLICE, BuiltInMethod.ARRAY_SLICE.method, NullPolicy.STRICT);
       defineMethod(ARRAY_TO_STRING, BuiltInMethod.ARRAY_TO_STRING.method,
           NullPolicy.STRICT);
+      defineMethod(STRING_TO_ARRAY, BuiltInMethod.STRING_TO_ARRAY.method, NullPolicy.ARG0);
       defineMethod(ARRAY_UNION, BuiltInMethod.ARRAY_UNION.method, NullPolicy.ANY);
       defineMethod(ARRAYS_OVERLAP, BuiltInMethod.ARRAYS_OVERLAP.method, NullPolicy.ANY);
       defineMethod(ARRAYS_ZIP, BuiltInMethod.ARRAYS_ZIP.method, NullPolicy.ANY);

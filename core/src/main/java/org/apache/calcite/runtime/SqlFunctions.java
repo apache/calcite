@@ -6616,6 +6616,41 @@ public class SqlFunctions {
   }
 
   /**
+   * SQL {@code STRING_TO_ARRAY(string, delimiter)} function.
+   * Returns a one-dimensional text[] array by splitting the
+   * input text value into subvalues using the specified text value as the "delimiter".
+   * Optionally, allows a specified text value to be interpreted as NULL.
+   */
+  public static List<@Nullable String> stringToArray(
+      String string, @Nullable String delimiter) {
+    return stringToArray(string, delimiter, null);
+  }
+
+  /** SQL {@code STRING_TO_ARRAY(string, delimiter, nullText)} function. */
+  public static List<@Nullable String> stringToArray(
+      String string, @Nullable String delimiter, @Nullable String nullText) {
+    String[] parts;
+    if (delimiter == null) {
+      parts = string.chars()
+          .mapToObj(c -> Character.toString((char) c))
+          .toArray(String[]::new);
+    } else if (delimiter.isEmpty()) {
+      parts = new String[]{string};
+    } else {
+      parts = string.split(delimiter);
+    }
+    List<@Nullable String> result = new ArrayList<>(parts.length);
+    for (String part : parts) {
+      if (nullText != null && nullText.equals(part)) {
+        result.add(null);
+      } else {
+        result.add(part);
+      }
+    }
+    return result;
+  }
+
+  /**
    * Function that, given a certain List containing single-item structs (i.e. arrays / lists with
    * a single item), builds an Enumerable that returns those single items inside the structs.
    */
