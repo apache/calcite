@@ -654,6 +654,23 @@ LogicalProject(EXPR$0=[CASE(IS NOT NULL($3), CAST($3):INTEGER NOT NULL, 0)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testCoalesceSubquery">
+    <Resource name="sql">
+      <![CDATA[SELECT  deptno,   coalesce((select sum(empno) from emp   where deptno = emp.deptno limit 1), 0) as w FROM dept]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], W=[COALESCE($2, 0)])
+  LogicalJoin(condition=[true], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalSort(fetch=[1])
+      LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+        LogicalProject(EMPNO=[$0])
+          LogicalFilter(condition=[=($7, $7)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testCollectionTable">
     <Resource name="sql">
       <![CDATA[select * from table(ramp(3))]]>
