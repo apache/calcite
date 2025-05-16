@@ -61,6 +61,11 @@ EXPR$0
 [a, b, , null]
 !ok
 
+select string_to_array('a,b,,d', ',', null);
+EXPR$0
+[a, b, , d]
+!ok
+
 select string_to_array('abc', '');
 EXPR$0
 [abc]
