@@ -68,8 +68,9 @@ public class MinusToFilterRule
       return;
     }
     final RelBuilder builder = call.builder();
-    final RelNode leftInput = call.rel(1);
-    final RelNode rightInput = call.rel(2);
+
+    final RelNode leftInput = minus.getInput(0);//call.rel(1);
+    final RelNode rightInput = minus.getInput(1);//call.rel(2);
 
     RexBuilder rexBuilder = builder.getRexBuilder();
 
@@ -112,19 +113,16 @@ public class MinusToFilterRule
   @Value.Immutable
   public interface Config extends RelRule.Config {
     Config DEFAULT = ImmutableMinusToFilterRule.Config.of()
-        .withOperandFor(Minus.class, RelNode.class, RelNode.class);
+        .withOperandFor(Minus.class);
 
     @Override default MinusToFilterRule toRule() {
       return new MinusToFilterRule(this);
     }
 
     /** Defines an operand tree for the given classes. */
-    default Config withOperandFor(Class<? extends Minus> minusClass,
-        Class<? extends RelNode> firstRelNodeClass, Class<? extends RelNode> secondRelNodeClass) {
+    default Config withOperandFor(Class<? extends Minus> minusClass) {
       return withOperandSupplier(
-          b0 -> b0.operand(minusClass).inputs(
-              b1 -> b1.operand(firstRelNodeClass).anyInputs(),
-              b2 -> b2.operand(secondRelNodeClass).anyInputs()))
+          b0 -> b0.operand(minusClass).anyInputs())
           .as(Config.class);
     }
   }
