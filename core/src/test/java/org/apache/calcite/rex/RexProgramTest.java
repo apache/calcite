@@ -2217,6 +2217,71 @@ class RexProgramTest extends RexProgramTestBase {
     checkSimplify(e, "=(?0.int0, 10)");
   }
 
+  /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7019">[CALCITE-7019]
+   * Simplify 'NULL IN (20, 10)' to 'NULL'</a>. */
+  @Test void testSimplifyIn() {
+    // NULL in (20, 10) ==> SEARCH(null:Integer, Sarg[10, 20])
+    //   ==>
+    // NULL
+    checkSimplify3_(in(nullInt, literal(20), literal(10)),
+        "null:BOOLEAN", "false", "true");
+
+    // NULL in (NULL, 10) ==> NULL = NULL or NULL = 10
+    //   ==>
+    // NULL
+    checkSimplify3_(in(nullInt, nullInt, literal(10)),
+        "null:BOOLEAN", "false", "true");
+
+    // 10 in (NULL, 10) ==> 10 = NULL or 10 = 10
+    //   ==>
+    // TRUE
+    checkSimplify(in(literal(10), nullInt, literal(10)), "true");
+
+    // 20 in (NULL, 10) ==> 20 = NULL or 20 = 10
+    //   ==>
+    // NULL
+    checkSimplify3_(in(literal(20), nullInt, literal(10)),
+        "null:BOOLEAN", "false", "true");
+
+    // 10 in (NULL, NULL) ==> 10 = null
+    //   ==>
+    // NULL
+    checkSimplify3_(in(literal(10), nullInt, nullInt),
+        "null:BOOLEAN", "false", "true");
+  }
+
+  @Test void testSimplifyNotIn() {
+    // NULL not in (20, 10) ==> not(SEARCH(null:Integer, Sarg[10, 20]))
+    //   ==>
+    // NULL
+    checkSimplify3_(not(in(nullInt, literal(20), literal(10))),
+        "null:BOOLEAN", "false", "true");
+
+    // NULL not in (NULL, 10) ==> not(null = null or null = 10)
+    //   ==>
+    // NULL
+    checkSimplify3_(not(in(nullInt, nullInt, literal(10))),
+        "null:BOOLEAN", "false", "true");
+
+    // 10 not in (NULL, 10) ==> not(10 = null or 10 = 10)
+    //   ==>
+    // FALSE
+    checkSimplify(not(in(literal(10), nullInt, literal(10))), "false");
+
+    // 20 not in (NULL, 10) ==> not(20 = null or 20 = 10)
+    //   ==>
+    // NULL
+    checkSimplify3_(not(in(literal(20), nullInt, literal(10))),
+        "null:BOOLEAN", "false", "true");
+
+    // 10 not in (NULL, NULL) ==> not(10 = null)
+    //   ==>
+    // NULL
+    checkSimplify3_(not(in(literal(10), nullInt, nullInt)),
+        "null:BOOLEAN", "false", "true");
+  }
+
   @Test void testSimplifyInAnd() {
     // deptno in (20, 10) and deptno = 10
     //   ==>
