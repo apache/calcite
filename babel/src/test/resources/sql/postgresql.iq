@@ -50,6 +50,57 @@ EXPR$0
 ghi
 !ok
 
+# Test string_to_array function
+select string_to_array('a,b,c', ',', 'd');
+EXPR$0
+[a, b, c]
+!ok
+
+select string_to_array('a,b,,d', ',', 'd');
+EXPR$0
+[a, b, , null]
+!ok
+
+select string_to_array('a,b,,d', ',', null);
+EXPR$0
+[a, b, , d]
+!ok
+
+select string_to_array('abc', '');
+EXPR$0
+[abc]
+!ok
+
+select string_to_array('abc', ',', 'abc');
+EXPR$0
+[null]
+!ok
+
+select string_to_array('calcite apache org', ' ', 'apache');
+EXPR$0
+[calcite, null, org]
+!ok
+
+select string_to_array('calcite apache org', ' ');
+EXPR$0
+[calcite, apache, org]
+!ok
+
+select string_to_array('a*c', NULL, '*');
+EXPR$0
+[a, null, c]
+!ok
+
+select string_to_array(NULL, ' ');
+EXPR$0
+null
+!ok
+
+select string_to_array('', '');
+EXPR$0
+[]
+!ok
+
 # Test coercion string to array inside INSERT
 create table sal_emp (name varchar, pay_by_quarter int array, schedule varchar array array);
 (0 rows modified)

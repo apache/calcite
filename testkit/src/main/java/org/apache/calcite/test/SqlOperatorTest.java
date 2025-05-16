@@ -12487,6 +12487,28 @@ public class SqlOperatorTest {
         false);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6951">[CALCITE-6951]
+   * Add STRING_TO_ARRAY function(enabled in PostgreSQL Library)</a>. */
+  @Test void testStringToArrayFunc() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.STRING_TO_ARRAY);
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.POSTGRESQL);
+    f.checkNull("string_to_array(NULL, ' ')");
+    f.checkScalar("string_to_array('', '')", "[]",
+        "CHAR(0) NOT NULL ARRAY NOT NULL");
+    f.checkScalar("string_to_array('ab', NULL)",
+        "[a, b]", "CHAR(2) NOT NULL ARRAY");
+    f.checkScalar("string_to_array('www apache org', ' ')",
+        "[www, apache, org]", "CHAR(14) NOT NULL ARRAY NOT NULL");
+    f.checkScalar("string_to_array('www apache org', ' ', 'apache')",
+        "[www, null, org]", "CHAR(14) NOT NULL ARRAY NOT NULL");
+    f.checkFails("^string_to_array(NULL)^",
+        "Invalid number of arguments to function 'STRING_TO_ARRAY'.*", false);
+    f.checkFails("^string_to_array(NULL, NULL, NULL, NULL)^",
+        "Invalid number of arguments to function 'STRING_TO_ARRAY'.*", false);
+  }
+
   @Test void testGroupConcatFunc() {
     final SqlOperatorFixture f = fixture();
     checkGroupConcatFunc(f.withLibrary(SqlLibrary.MYSQL));

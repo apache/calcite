@@ -408,6 +408,13 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_INTEGER_OPTIONAL_INTEGER,
           SqlFunctionCategory.STRING);
 
+  /** The "STRING_TO_ARRAY(string, delimiter [, null_string ])" function (PostgreSQL). */
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlFunction STRING_TO_ARRAY =
+      SqlBasicFunction.create(SqlKind.STRING_TO_ARRAY,
+          ReturnTypes.TO_ARRAY_NULLABLE,
+          OperandTypes.STRING_STRING_OPTIONAL_STRING);
+
   /** The "ENDS_WITH(value1, value2)" function (BigQuery). */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlBasicFunction ENDS_WITH =
