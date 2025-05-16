@@ -905,6 +905,9 @@ public enum SqlKind {
   /** {@code STARTS_WITH} function. */
   STARTS_WITH,
 
+  /** {@code STRING_TO_ARRAY} function (PostgreSQL semantics). */
+  STRING_TO_ARRAY,
+
   /** Call to a function using JDBC function syntax. */
   JDBC_FN,
 
@@ -1844,6 +1847,7 @@ public enum SqlKind {
     case REVERSE:
     case REVERSE_SPARK:
     case SOUNDEX_SPARK:
+    case STRING_TO_ARRAY:
     case SUBSTR_BIG_QUERY:
     case SUBSTR_MYSQL:
     case SUBSTR_ORACLE:

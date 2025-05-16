@@ -403,6 +403,8 @@ public enum BuiltInMethod {
   LOWER(SqlFunctions.class, "lower", String.class),
   ARRAY_TO_STRING(SqlFunctions.class, "arrayToString", List.class,
       String.class),
+  STRING_TO_ARRAY(SqlFunctions.class, "stringToArray", String.class, String.class,
+      String.class),
   SROUND(SqlFunctions.class, "sround", long.class),
   STRUNCATE(SqlFunctions.class, "struncate", long.class),
   ASCII(SqlFunctions.class, "ascii", String.class),
