@@ -39,8 +39,8 @@ Unpack the source distribution `.tar.gz` file,
 then build using Gradle:
 
 {% highlight bash %}
-$ tar xvfz apache-calcite-1.39.0-src.tar.gz
-$ cd apache-calcite-1.39.0-src
+$ tar xvfz apache-calcite-1.40.0-src.tar.gz
+$ cd apache-calcite-1.40.0-src
 $ gradle build
 {% endhighlight %}
 
@@ -874,7 +874,6 @@ your key to the keyservers used by Nexus, see above.
 * Make sure that the following files do not occur in the source
   distros: `KEYS`, `gradlew`, `gradlew.bat`, `gradle-wrapper.jar`,
   `gradle-wrapper.properties`
-* Make sure that there is no `KEYS` file in the source distros
 * In each .jar (for example
   `core/build/libs/calcite-core-X.Y.Z.jar` and
   `mongodb/build/libs/calcite-mongodb-X.Y.Z-sources.jar`), check
