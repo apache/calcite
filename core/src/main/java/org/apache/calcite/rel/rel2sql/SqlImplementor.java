@@ -2485,7 +2485,6 @@ public abstract class SqlImplementor {
       if (rel instanceof LogicalProject
           && relInput instanceof LogicalFilter
           && clauses.contains(Clause.QUALIFY)
-          && dialect.supportsQualifyClause()
           && hasFieldsUsedInFilterWhichIsNotUsedInFinalProjection((Project) rel)) {
         return true;
       }
@@ -2655,7 +2654,8 @@ public abstract class SqlImplementor {
             return id;
           }
         });
-        return isGrpCallNotUsedInFinalProjection(qualifyColumnList, selectList, project, true);
+        return isGrpCallNotUsedInFinalProjection(qualifyColumnList, selectList,
+            project, true);
       } catch (Exception e) {
         return false;
       }
