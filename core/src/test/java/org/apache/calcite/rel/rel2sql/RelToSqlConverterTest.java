@@ -3663,6 +3663,19 @@ class RelToSqlConverterTest {
     sql(query).withMysql().ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6866">[CALCITE-6866]
+   * PostgreSQLDialect support to unparse LISTAGG aggregate function</a>. */
+  @Test void testPostgresqlLISTAGG() {
+    final String query = "SELECT \"product_class_id\","
+        + "LISTAGG(CAST(\"brand_name\" AS VARCHAR), ',') "
+        + "FROM \"foodmart\".\"product\" group by \"product_class_id\"";
+
+    sql(query).withPostgresql().ok("SELECT \"product_class_id\", "
+        + "STRING_AGG(CAST(\"brand_name\" AS VARCHAR), ',')\n"
+        + "FROM \"foodmart\".\"product\"\nGROUP BY \"product_class_id\"");
+  }
+
   @Test void testMySqlUnparseListAggCall() {
     final String query = "select\n"
         + "listagg(distinct \"product_name\", ',') within group(order by \"cases_per_pallet\"),\n"
