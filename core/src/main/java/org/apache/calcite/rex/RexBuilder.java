@@ -28,6 +28,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.runtime.FlatLists;
+import org.apache.calcite.runtime.FlatLists.AbstractFlatList;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlIntervalQualifier;
@@ -1871,10 +1872,28 @@ public class RexBuilder {
     switch (point.getKind()) {
     case LITERAL:
       final RexLiteral literal = (RexLiteral) point;
+      if (literal.getValue() instanceof AbstractFlatList) {
+        AbstractFlatList list = (AbstractFlatList) literal.getValue();
+        final ImmutableList.Builder<Comparable> b = ImmutableList.builder();
+        // With allowCast=false, MULTISET becomes
+        // RexLiteral and needs recursive handling.
+        for (Object o : list) {
+          if (!(o instanceof RexNode)) {
+            return null;
+          }
+          Comparable comparable = toComparable(Comparable.class, (RexNode) o);
+          if (comparable == null) {
+            return null;
+          }
+          b.add(comparable);
+        }
+        return clazz.cast(FlatLists.ofComparable(b.build()));
+      }
       return literal.getValueAs(clazz);
 
     case ROW:
     case ARRAY_VALUE_CONSTRUCTOR:
+    case MULTISET_VALUE_CONSTRUCTOR:
       final RexCall call = (RexCall) point;
       final ImmutableList.Builder<Comparable> b = ImmutableList.builder();
       for (RexNode operand : call.operands) {
