@@ -120,6 +120,12 @@ public interface TypeCoercion {
    */
   boolean inOperationCoercion(SqlCallBinding binding);
 
+  /** Handles type coercion for Quantify operation {@link org.apache.calcite.sql.fun.SqlQuantifyOperator}.
+   *
+   * <p>See {@link TypeCoercionImpl} for default strategies.
+   * */
+  boolean quantifyOperationCoercion(SqlCallBinding binding);
+
   /** Coerces operand of binary arithmetic expressions to Numeric type.*/
   boolean binaryArithmeticCoercion(SqlCallBinding binding);
 
