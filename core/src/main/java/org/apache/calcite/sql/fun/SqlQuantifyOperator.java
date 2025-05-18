@@ -33,6 +33,8 @@ import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -115,6 +117,8 @@ public class SqlQuantifyOperator extends SqlInOperator {
                   || componentRightType.isNullable()
                   || leftType.isNullable());
         }
+        throw validator.newValidationError(call,
+            RESOURCE.incompatibleValueType(call.getOperator().getName()));
       }
     }
     return null;
