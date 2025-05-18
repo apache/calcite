@@ -4967,4 +4967,9 @@ select deptno from emp where deptno not in (50, 20);
 
 !ok
 
+# [CALCITE-7025] Verifying the Quantify operator without compatible types, should throw an exception about the Quantify Operator
+select * from emp where false > some(select deptno from dept);
+Values passed to > SOME operator must have compatible types
+!error
+
 # End sub-query.iq

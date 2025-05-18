@@ -4691,9 +4691,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails(ERR_IN_VALUES_INCOMPATIBLE);
     expr("false and 1 = any ('b', 'c')").ok();
     expr("false and ^1 = any (date '2012-01-02', date '2012-01-04')^")
-        .fails(ERR_IN_OPERANDS_INCOMPATIBLE);
+        .fails("Values passed to = SOME operator must have compatible types");
     expr("1 > 5 or ^(1, 2) < any (3, 4)^")
-        .fails(ERR_IN_OPERANDS_INCOMPATIBLE);
+        .fails("Values passed to < SOME operator must have compatible types");
   }
 
   @Test void testDoubleNoAlias() {

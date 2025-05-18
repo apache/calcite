@@ -16099,6 +16099,30 @@ public class SqlOperatorTest {
         "BOOLEAN", true);
   }
 
+  @Test void testQuantifyOperatorsWithTypeException() {
+    final SqlOperatorFixture f = fixture();
+    QUANTIFY_OPERATORS.forEach(operator -> f.setFor(operator, SqlOperatorFixture.VmName.EXPAND));
+    // some(List value)
+    f.checkFails("SELECT ^cast(true as boolean) = some(1, 2, 3)^",
+        "Values passed to = SOME operator must have compatible types", false);
+    // some(Collection value)
+    f.checkFails("^cast(true as boolean) = some (ARRAY[2,3,null])^",
+        "Values passed to = SOME operator must have compatible types", false);
+    f.checkFails("^cast(true as boolean) <> some (ARRAY[1,2,null])^",
+        "Values passed to <> SOME operator must have compatible types", false);
+    f.checkFails("^cast(true as boolean) < some (ARRAY[1,2,null])^",
+        "Values passed to < SOME operator must have compatible types", false);
+    f.checkFails("^cast(true as boolean) <= some (ARRAY[1,2,null])^",
+        "Values passed to <= SOME operator must have compatible types", false);
+    f.checkFails("^cast(true as boolean) > some (ARRAY[1,2,null])^",
+        "Values passed to > SOME operator must have compatible types", false);
+    f.checkFails("^cast(true as boolean) >= some (ARRAY[1,2,null])^",
+        "Values passed to >= SOME operator must have compatible types", false);
+    f.checkFails(
+        "SELECT ^cast(true as boolean) = some(x.t)^ FROM (SELECT ARRAY[1,2,3,null] as t) as x",
+        "Values passed to = SOME operator must have compatible types", false);
+  }
+
   @Test void testAnyValueFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.ANY_VALUE, VM_EXPAND);
