@@ -8782,6 +8782,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select stream * from orders left join products_temporal\n"
         + "for system_time as of CURRENT_TIMESTAMP\n"
         + "on orders.productid = products_temporal.productid").ok();
+
+    // verify left join of CTEs
+    sql("with t1 as (select stream * from orders), t2 as (select * from products_temporal)\n"
+        + "select * from t1 left join t2\n"
+        + "for system_time as of CURRENT_TIMESTAMP\n"
+        + "on t1.productid = t2.productid").ok();
   }
 
   @Test void testScalarSubQuery() {
