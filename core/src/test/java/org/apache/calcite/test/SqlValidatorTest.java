@@ -5238,6 +5238,35 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Type mismatch in column 1 of UNION");
 
     sql("select ^slacker^ from emp union select name from dept").ok();
+
+    sql("select ^name^ from dept union select name from dept union select slacker from emp")
+        .withTypeCoercion(false)
+        .fails("Type mismatch in column 1 of UNION");
+
+    sql("select ^name^ from dept except select name from dept except select slacker from emp")
+        .withTypeCoercion(false)
+        .fails("Type mismatch in column 1 of EXCEPT");
+
+    sql("select ^name^ from dept intersect select name from dept intersect select slacker from emp")
+        .withTypeCoercion(false)
+        .fails("Type mismatch in column 1 of INTERSECT");
+
+    sql("select ^name^ from dept minus select name from dept minus select slacker from emp")
+        .withTypeCoercion(false)
+        .withConformance(SqlConformanceEnum.ORACLE_12) // in order to enable isMinusAllowed()
+        .fails("Type mismatch in column 1 of EXCEPT");
+
+    sql("select name from dept union select name from dept union select ename from emp")
+        .withTypeCoercion(false)
+        .ok();
+
+    sql("select name from dept except select name from dept except select ename from emp")
+        .withTypeCoercion(false)
+        .ok();
+
+    sql("select name from dept intersect select name from dept intersect select ename from emp")
+        .withTypeCoercion(false)
+        .ok();
   }
 
   @Test void testUnionTypeMismatchWithStarFails() {
