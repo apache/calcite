@@ -144,7 +144,11 @@ public class Driver extends UnregisteredDriver {
         final String model = model(connection);
         if (model != null) {
           try {
-            new ModelHandler(connection, model);
+            ModelHandler h = new ModelHandler(connection.getRootSchema(), model);
+            String defaultName = h.defaultSchemaName();
+            if (defaultName != null) {
+              connection.setSchema(defaultName);
+            }
           } catch (IOException e) {
             throw new SQLException(e);
           }

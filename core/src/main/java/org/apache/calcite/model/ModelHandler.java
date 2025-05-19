@@ -77,7 +77,8 @@ public class ModelHandler {
       .configure(JsonParser.Feature.ALLOW_COMMENTS, true);
   private static final ObjectMapper YAML_MAPPER = new YAMLMapper();
 
-  private final CalciteConnection connection;
+  private final SchemaPlus rootSchema;
+  private final @Nullable String defaultSchemaName;
   private final Deque<Pair<? extends @Nullable String, SchemaPlus>> schemaStack =
       new ArrayDeque<>();
   private final String modelUri;
@@ -85,12 +86,10 @@ public class ModelHandler {
   Lattice.@Nullable TileBuilder tileBuilder;
 
   @SuppressWarnings("method.invocation.invalid")
-  public ModelHandler(CalciteConnection connection, String uri)
-      throws IOException {
+  public ModelHandler(SchemaPlus rootSchema, String uri) throws IOException {
     super();
-    this.connection = connection;
     this.modelUri = uri;
-
+    this.rootSchema = rootSchema;
     JsonRoot root;
     ObjectMapper mapper;
     if (uri.startsWith("inline:")) {
@@ -105,6 +104,19 @@ public class ModelHandler {
       root = mapper.readValue(new File(uri), JsonRoot.class);
     }
     visit(root);
+    this.defaultSchemaName = root.defaultSchema;
+  }
+
+  @Deprecated // to be removed before 2.0
+  public ModelHandler(CalciteConnection connection, String uri) throws IOException {
+    this(connection.getRootSchema(), uri);
+    if (defaultSchemaName != null) {
+      try {
+        connection.setSchema(defaultSchemaName);
+      } catch (SQLException e) {
+        throw new RuntimeException(e);
+      }
+    }
   }
 
   // CHECKSTYLE: IGNORE 1
@@ -196,7 +208,7 @@ public class ModelHandler {
 
   public void visit(JsonRoot jsonRoot) {
     final Pair<@Nullable String, SchemaPlus> pair =
-        Pair.of(null, connection.getRootSchema());
+        Pair.of(null, rootSchema);
     schemaStack.push(pair);
     for (JsonType rootType : jsonRoot.types) {
       rootType.accept(this);
@@ -206,13 +218,6 @@ public class ModelHandler {
     }
     final Pair<? extends @Nullable String, SchemaPlus> p = schemaStack.pop();
     assert p == pair;
-    if (jsonRoot.defaultSchema != null) {
-      try {
-        connection.setSchema(jsonRoot.defaultSchema);
-      } catch (SQLException e) {
-        throw new RuntimeException(e);
-      }
-    }
   }
 
   public void visit(JsonMapSchema jsonSchema) {
@@ -471,6 +476,10 @@ public class ModelHandler {
           + "; parent schema '" + schema.getName() + "' is not mutable");
     }
     return schema;
+  }
+
+  public @Nullable String defaultSchemaName() {
+    return this.defaultSchemaName;
   }
 
   public void visit(final JsonType jsonType) {
