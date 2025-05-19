@@ -100,9 +100,7 @@ public class MinusToFilterRule
           ? builder.and(leftCond, builder.not(rightFilter.getCondition()))
           : builder.not(rightFilter.getCondition());
     } else {
-      finalCond = leftCond != null
-          ? builder.and(leftCond, rexBuilder.makeLiteral(false))
-          : rexBuilder.makeLiteral(false);
+      finalCond = rexBuilder.makeLiteral(false);
     }
 
     builder.push(leftBase)
