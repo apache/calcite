@@ -69,8 +69,8 @@ public class MinusToFilterRule
     }
     final RelBuilder builder = call.builder();
 
-    final RelNode leftInput = minus.getInput(0);//call.rel(1);
-    final RelNode rightInput = minus.getInput(1);//call.rel(2);
+    final RelNode leftInput = minus.getInputs().get(0).stripped();
+    final RelNode rightInput = minus.getInputs().get(1).stripped();
 
     RexBuilder rexBuilder = builder.getRexBuilder();
 
@@ -80,6 +80,9 @@ public class MinusToFilterRule
       Filter leftFilter = (Filter) leftInput;
       leftBase = leftFilter.getInput().stripped();
       leftCond = leftFilter.getCondition();
+      if (!RexUtil.isDeterministic(leftFilter.getCondition())) {
+        return;
+      }
     } else {
       leftBase = leftInput.stripped();
     }
@@ -98,8 +101,8 @@ public class MinusToFilterRule
           : builder.not(rightFilter.getCondition());
     } else {
       finalCond = leftCond != null
-          ? builder.and(leftCond, builder.not(rexBuilder.makeLiteral(true)))
-          : builder.not(rexBuilder.makeLiteral(true));
+          ? builder.and(leftCond, rexBuilder.makeLiteral(false))
+          : rexBuilder.makeLiteral(false);
     }
 
     builder.push(leftBase)
