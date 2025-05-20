@@ -235,6 +235,7 @@ public class SparkSqlDialect extends SqlDialect {
   private static final String AND = "&";
   private static final String OR = "|";
   private static final String XOR = "^";
+  private static final String BITNOT = "~";
 
   /**
    * Creates a SparkSqlDialect.
@@ -883,6 +884,9 @@ public class SparkSqlDialect extends SqlDialect {
     case "BITWISE_XOR":
       unparseBitwiseOperand(writer, call, leftPrec, rightPrec, XOR);
       break;
+    case "BITNOT":
+      unparseBitNotFunction(writer, call);
+      break;
     case "PI":
       SqlWriter.Frame piFrame = writer.startFunCall("PI");
       writer.endFunCall(piFrame);
@@ -937,6 +941,12 @@ public class SparkSqlDialect extends SqlDialect {
     writer.print(",");
     writer.literal("0");
     writer.endFunCall(ifFrame);
+  }
+
+  private void unparseBitNotFunction(SqlWriter writer, SqlCall call) {
+    SqlWriter.Frame frame = writer.startFunCall(BITNOT);
+    call.operand(0).unparse(writer, 0, 0);
+    writer.endFunCall(frame);
   }
 
   private void unparseRegexpReplace(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {

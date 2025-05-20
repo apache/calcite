@@ -10052,7 +10052,9 @@ class RelToSqlConverterDMTest {
             .project(builder.alias(bitNotRexNode, "bit_not"))
             .build();
     final String expectedBigQuery = "SELECT ~ (10) AS bit_not";
+    final String expectedSparkQuery = "SELECT ~(10) bit_not";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
 
   @Test public void testBitNotForDb2() {
