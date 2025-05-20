@@ -10515,10 +10515,11 @@ class RelToSqlConverterDMTest {
         + "from \"foodmart\".\"employee\"  emp\n"
         + "GROUP BY emp.\"department_id\" ) a\n"
         + "where a.\"brand_rank\" <= 50 ";
-    final String expected = "SELECT department_id AS id, SUM(salary) AS flag\n"
+    final String expected = "SELECT department_id AS id, salary AS flag\n"
+        + "FROM (SELECT department_id, SUM(salary) AS salary, ROW_NUMBER() OVER (PARTITION BY department_id ORDER BY SUM(salary) IS NULL DESC, SUM(salary) DESC) AS brand_rank\n"
         + "FROM foodmart.employee\n"
         + "GROUP BY department_id\n"
-        + "QUALIFY (ROW_NUMBER() OVER (PARTITION BY department_id ORDER BY SUM(salary) IS NULL DESC, SUM(salary) DESC)) <= 50";
+        + "QUALIFY (ROW_NUMBER() OVER (PARTITION BY department_id ORDER BY SUM(salary) IS NULL DESC, SUM(salary) DESC)) <= 50) AS t2";
 
     sql(query)
         .schema(CalciteAssert.SchemaSpec.JDBC_FOODMART)
