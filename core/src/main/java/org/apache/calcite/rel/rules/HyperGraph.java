@@ -526,7 +526,7 @@ public class HyperGraph extends AbstractRelNode {
       return this == obj
           || obj instanceof RexNodeAndFieldIndex
           && nodeIndex == ((RexNodeAndFieldIndex) obj).nodeIndex
-          && fieldIndex == (((RexNodeAndFieldIndex) obj).fieldIndex);
+          && fieldIndex == ((RexNodeAndFieldIndex) obj).fieldIndex;
     }
 
     @Override public int hashCode() {
