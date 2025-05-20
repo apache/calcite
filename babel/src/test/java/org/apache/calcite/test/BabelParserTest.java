@@ -52,6 +52,14 @@ class BabelParserTest extends SqlParserTest {
         .withConfig(c -> c.withParserFactory(SqlBabelParserImpl.FACTORY));
   }
 
+  /** Tests that the Babel parser correctly parses a CAST to INTERVAL type
+   * in PostgreSQL dialect. */
+  @Test void testCastToInterval() {
+    SqlParserFixture postgreF = fixture().withDialect(PostgresqlSqlDialect.DEFAULT);
+    postgreF.sql("select cast(x as interval)")
+        .ok("SELECT CAST(\"x\" AS INTERVAL SECOND)");
+  }
+
   @Test void testReservedWords() {
     assertThat(isReserved("escape"), is(false));
   }

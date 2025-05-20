@@ -7250,6 +7250,8 @@ public class SqlParserTest {
         .ok("CAST(`X` AS INTERVAL MINUTE TO SECOND)");
     expr("cast(interval '3-2' year to month as CHAR(5))")
         .ok("CAST(INTERVAL '3-2' YEAR TO MONTH AS CHAR(5))");
+    expr("cast(x as ^interval^)")
+        .fails("(?s)Encountered \"interval \\)\".*");
   }
 
   @Test void testCastToVarchar() {
