@@ -187,22 +187,35 @@ order by d.name]]>
       <![CDATA[
 LogicalSort(sort0=[$1], dir0=[ASC])
   LogicalProject(DEPTNO=[$0], NAME=[$1])
-    LogicalProject(DEPTNO=[$0], NAME=[$1], DEPTNO0=[CAST($2):INTEGER], $f1=[CAST($3):BOOLEAN])
+    LogicalProject(DEPTNO=[$0], NAME=[$1], DEPTNO0=[CAST($2):INTEGER], $f1=[$3])
       LogicalJoin(condition=[=($0, $2)], joinType=[inner])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-        LogicalAggregate(group=[{0}], agg#0=[MIN($1)])
-          LogicalProject(DEPTNO=[$7], $f0=[true])
-            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalFilter(condition=[IS NOT NULL($1)])
+          LogicalProject(DEPTNO=[$0], $f1=[$2])
+            LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])
+              LogicalProject(DEPTNO=[$0])
+                LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+              LogicalAggregate(group=[{0}], agg#0=[MIN($1)])
+                LogicalProject(DEPTNO=[$7], $f0=[true])
+                  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-EnumerableCorrelate(correlation=[$cor2], joinType=[semi], requiredColumns=[{0}])
-  EnumerableSort(sort0=[$1], dir0=[ASC])
-    EnumerableTableScan(table=[[CATALOG, SALES, DEPT]])
-  EnumerableFilter(condition=[=($cor2.DEPTNO, $0)])
-    EnumerableProject(DEPTNO=[$7], $f0=[true])
-      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+EnumerableProject(DEPTNO=[$0], NAME=[$1])
+  EnumerableCorrelate(correlation=[$cor3], joinType=[inner], requiredColumns=[{0}])
+    EnumerableSort(sort0=[$1], dir0=[ASC])
+      EnumerableTableScan(table=[[CATALOG, SALES, DEPT]])
+    EnumerableFilter(condition=[AND(=($cor3.DEPTNO, $0), IS NOT NULL($1))])
+      EnumerableProject(DEPTNO=[$0], $f1=[$2])
+        EnumerableCorrelate(correlation=[$cor1], joinType=[left], requiredColumns=[{0}])
+          EnumerableProject(DEPTNO=[$0])
+            EnumerableTableScan(table=[[CATALOG, SALES, DEPT]])
+          EnumerableSortedAggregate(group=[{0}], agg#0=[MIN($1)])
+            EnumerableSort(sort0=[$0], dir0=[ASC])
+              EnumerableFilter(condition=[IS NOT DISTINCT FROM($cor1.DEPTNO, $0)])
+                EnumerableProject(DEPTNO=[$7], $f0=[true])
+                  EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
