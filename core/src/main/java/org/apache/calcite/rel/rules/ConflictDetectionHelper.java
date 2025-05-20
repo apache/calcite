@@ -140,8 +140,8 @@ public class ConflictDetectionHelper {
   }
 
   /**
-   * For conflict rule T1 -> T2, if T1 and tes have intersection, we can add T2 into tes and remove
-   * this rule. See section 5.5 in paper.
+   * For conflict rule <code>T1 -&gt; T2</code>, if T1 and tes have intersection, we can add T2
+   * into tes and remove this rule. See section 5.5 in paper.
    *
    * @param tes                       tes
    * @param conflictRulesAfterAbsorb  conflict rules after absorbing
