@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.util.graph;
 
+import org.apache.calcite.plan.hep.HepMatchOrder;
+
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 
@@ -38,16 +40,28 @@ public class TopologicalOrderIterator<V, E extends DefaultEdge>
     implements Iterator<V> {
   final Map<V, int[]> countMap = new HashMap<>();
   final List<V> empties = new ArrayList<>();
+  final HepMatchOrder hepMatchOrder;
   private final DefaultDirectedGraph<V, E> graph;
 
   public TopologicalOrderIterator(DirectedGraph<V, E> graph) {
+    this(graph, HepMatchOrder.TOP_DOWN);
+  }
+
+  public TopologicalOrderIterator(DirectedGraph<V, E> graph, HepMatchOrder hepMatchOrder) {
+    assert hepMatchOrder == HepMatchOrder.TOP_DOWN || hepMatchOrder == HepMatchOrder.BOTTOM_UP;
     this.graph = (DefaultDirectedGraph<V, E>) graph;
+    this.hepMatchOrder = hepMatchOrder;
     populate(countMap, empties);
   }
 
   public static <V, E extends DefaultEdge> Iterable<V> of(
       final DirectedGraph<V, E> graph) {
     return () -> new TopologicalOrderIterator<>(graph);
+  }
+
+  public static <V, E extends DefaultEdge> Iterable<V> of(
+      final DirectedGraph<V, E> graph, HepMatchOrder hepMatchOrder) {
+    return () -> new TopologicalOrderIterator<>(graph, hepMatchOrder);
   }
 
   @RequiresNonNull("graph")
@@ -57,14 +71,28 @@ public class TopologicalOrderIterator<V, E extends DefaultEdge>
     for (V v : graph.vertexMap.keySet()) {
       countMap.put(v, new int[] {0});
     }
-    for (DefaultDirectedGraph.VertexInfo<V, E> info
-        : graph.vertexMap.values()) {
-      for (E edge : info.outEdges) {
-        //noinspection SuspiciousMethodCalls
-        final int[] ints =
-            requireNonNull(countMap.get(edge.target),
-                () -> "no value for " + edge.target);
-        ++ints[0];
+    if (hepMatchOrder == HepMatchOrder.TOP_DOWN) {
+      for (DefaultDirectedGraph.VertexInfo<V, E> info
+          : graph.vertexMap.values()) {
+        for (E edge : info.outEdges) {
+          //noinspection SuspiciousMethodCalls
+          final int[] ints =
+              requireNonNull(countMap.get(edge.target),
+                  () -> "no value for " + edge.target);
+          ++ints[0];
+        }
+      }
+    }
+    if (hepMatchOrder == HepMatchOrder.BOTTOM_UP) {
+      for (DefaultDirectedGraph.VertexInfo<V, E> info
+          : graph.vertexMap.values()) {
+        for (E edge : info.outEdges) {
+          //noinspection SuspiciousMethodCalls
+          final int[] ints =
+              requireNonNull(countMap.get(edge.source),
+                  () -> "no value for " + edge.source);
+          ++ints[0];
+        }
       }
     }
     for (Map.Entry<V, int[]> entry : countMap.entrySet()) {
@@ -84,15 +112,30 @@ public class TopologicalOrderIterator<V, E extends DefaultEdge>
     DefaultDirectedGraph.VertexInfo<V, E> vertexInfo =
         requireNonNull(graph.vertexMap.get(v),
             () -> "no vertex " + v);
-    for (E o : vertexInfo.outEdges) {
-      //noinspection unchecked
-      final V target = (V) o.target;
-      int[] ints =
-          requireNonNull(countMap.get(target),
-              () -> "no counts found for target " + target);
-      if (--ints[0] == 0) {
-        countMap.remove(target);
-        empties.add(target);
+    if (hepMatchOrder == HepMatchOrder.TOP_DOWN) {
+      for (E o : vertexInfo.outEdges) {
+        //noinspection unchecked
+        final V target = (V) o.target;
+        int[] ints =
+            requireNonNull(countMap.get(target),
+                () -> "no counts found for target " + target);
+        if (--ints[0] == 0) {
+          countMap.remove(target);
+          empties.add(target);
+        }
+      }
+    }
+    if (hepMatchOrder == HepMatchOrder.BOTTOM_UP) {
+      for (E o : vertexInfo.inEdges) {
+        //noinspection unchecked
+        final V source = (V) o.source;
+        int[] ints =
+            requireNonNull(countMap.get(source),
+                () -> "no counts found for source " + source);
+        if (--ints[0] == 0) {
+          countMap.remove(source);
+          empties.add(source);
+        }
       }
     }
     return v;

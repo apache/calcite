@@ -58,7 +58,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -467,30 +466,16 @@ public class HepPlanner extends AbstractRelOptPlanner {
       return DepthFirstIterator.of(graph, start).iterator();
 
     case TOP_DOWN:
-      assert start == root;
-      // see above
-/*
-        collectGarbage();
-*/
-      return TopologicalOrderIterator.of(graph).iterator();
-
     case BOTTOM_UP:
-    default:
       assert start == root;
-
       // see above
 /*
         collectGarbage();
 */
-
-      // TODO jvs 4-Apr-2006:  enhance TopologicalOrderIterator
-      // to support reverse walk.
-      final List<HepRelVertex> list = new ArrayList<>();
-      for (HepRelVertex vertex : TopologicalOrderIterator.of(graph)) {
-        list.add(vertex);
-      }
-      Collections.reverse(list);
-      return list.iterator();
+      return TopologicalOrderIterator.of(graph, programState.matchOrder).iterator();
+    default:
+      throw new
+          UnsupportedOperationException("Unsupported match order: " + programState.matchOrder);
     }
   }
 
