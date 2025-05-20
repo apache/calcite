@@ -396,6 +396,11 @@
   pronouns: he/him
   org: Hikvision
   role: Committer
+- name: Zhen Chen
+  apacheId: zhenchen
+  githubId: xiedeyantu
+  org:
+  role: Committer
 - name: Zhen Wang
   apacheId: zhenw
   githubId: zinking
