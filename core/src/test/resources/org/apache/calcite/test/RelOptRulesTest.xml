@@ -1529,6 +1529,33 @@ LogicalJoin(condition=[=($1, $12)], joinType=[semi])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testCartesianProductForDphyp">
+    <Resource name="sql">
+      <![CDATA[select emp.empno from emp_address, emp, emp_b, dept where emp_address.empno = emp.empno and dept.deptno = emp.deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$3])
+  HyperGraph(edges=[{0}——[INNER, =(vertex(0)_field(0), vertex(1)_field(0))]——{1},{0, 1}——[INNER, true]——{2},{1}——[INNER, =(vertex(3)_field(0), vertex(1)_field(7))]——{3}])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$12])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+    LogicalJoin(condition=[=($11, $2)], joinType=[inner])
+      LogicalJoin(condition=[=($0, $9)], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testCasePushIsAlwaysWorking">
     <Resource name="sql">
       <![CDATA[select empno from emp where case when sal > 1000 then empno else sal end = 1]]>
@@ -1626,7 +1653,7 @@ LogicalProject(T=[CASE(<(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(20))):DOUBLE, 
     <Resource name="planBefore">
       <![CDATA[
 LogicalProject(EMPNO=[$0])
-  HyperGraph(edges=[{0}——[INNER, =($0, $9)]——{1},{0, 1}——[INNER, true]——{2},{0, 1, 2}——[INNER, =(+($7, $9), +($12, $14))]——{3},{2}——[INNER, =($12, $14)]——{3}])
+  HyperGraph(edges=[{0}——[INNER, =(vertex(0)_field(0), vertex(1)_field(0))]——{1},{0, 1}——[INNER, true]——{2},{0, 1, 2}——[INNER, =(+(vertex(0)_field(7), vertex(1)_field(0)), +(vertex(2)_field(0), vertex(3)_field(0)))]——{3},{2}——[INNER, =(vertex(2)_field(0), vertex(3)_field(0))]——{3}])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -2142,7 +2169,7 @@ and e1.sal > (select avg(sal) from emp e2 where e1.empno = e2.empno)]]>
     <Resource name="planBefore">
       <![CDATA[
 LogicalProject(EMPNO=[$0])
-  HyperGraph(edges=[{0}——[INNER, =($0, $9)]——{1},{1}——[INNER, =($16, $19)]——{2},{2}——[INNER, =($20, $22)]——{3},{0}——[INNER, =($21, $7)]——{3},{0, 1, 2}——[INNER, =(+($5, $14), +($19, $21))]——{3}])
+  HyperGraph(edges=[{0}——[INNER, =(vertex(0)_field(0), vertex(1)_field(0))]——{1},{1}——[INNER, =(vertex(1)_field(7), vertex(2)_field(0))]——{2},{2}——[INNER, =(vertex(2)_field(1), vertex(3)_field(1))]——{3},{0}——[INNER, =(vertex(3)_field(0), vertex(0)_field(7))]——{3},{0, 1, 2}——[INNER, =(+(vertex(0)_field(5), vertex(1)_field(5)), +(vertex(2)_field(0), vertex(3)_field(0)))]——{3}])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -2152,12 +2179,12 @@ LogicalProject(EMPNO=[$0])
     <Resource name="planAfter">
       <![CDATA[
 LogicalProject(EMPNO=[$16])
-  LogicalJoin(condition=[AND(=($16, $6), =($0, $23), =(+($21, $11), +($4, $0)))], joinType=[inner])
-    LogicalJoin(condition=[=($13, $4)], joinType=[inner])
+  LogicalJoin(condition=[AND(=($16, $0), =($10, $23), =(+($21, $5), +($14, $10)))], joinType=[inner])
+    LogicalJoin(condition=[=($7, $14)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
       LogicalJoin(condition=[=($5, $1)], joinType=[inner])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
@@ -9709,6 +9736,33 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testOuterJoinForDphyp">
+    <Resource name="sql">
+      <![CDATA[select emp.empno from emp_address inner join emp on emp_address.empno = emp.empno left join dept on emp.deptno = dept.deptno inner join dept_nested on dept.deptno = dept_nested.deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$3])
+  HyperGraph(edges=[{0}——[INNER, =(vertex(0)_field(0), vertex(1)_field(0))]——{1},{1}——[LEFT, =(vertex(1)_field(7), vertex(2)_field(0))]——{2},{1, 2}——[INNER, =(vertex(2)_field(0), vertex(3)_field(0))]——{3}])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$4])
+  LogicalJoin(condition=[=($15, $4)], joinType=[inner])
+    LogicalJoin(condition=[=($13, $0)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+      LogicalJoin(condition=[=($7, $9)], joinType=[left])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testOversimplifiedCaseStatement">
     <Resource name="planBefore">
       <![CDATA[
@@ -16033,6 +16087,37 @@ LogicalValues(tuples=[[]])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testSemiJoinForDphyp">
+    <Resource name="sql">
+      <![CDATA[select emp.empno from emp, emp_address, salgrade where emp_address.empno = emp.empno and emp.sal = salgrade.hisal and exists(select * from emp_b where emp_address.empno = emp_b.empno)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  HyperGraph(edges=[{0}——[INNER, =(vertex(1)_field(0), vertex(0)_field(0))]——{1},{0}——[INNER, =(vertex(0)_field(5), vertex(2)_field(2))]——{2},{1}——[SEMI, =(vertex(1)_field(0), vertex(3)_field(0))]——{3}])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EMPNO=[$0], STREET=[$1.STREET], CITY=[$1.CITY], ZIP=[$1.ZIP], STATE=[$1.STATE], STREET5=[$2.STREET], CITY6=[$2.CITY], ZIP7=[$2.ZIP], STATE8=[$2.STATE])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+    LogicalTableScan(table=[[CATALOG, SALES, SALGRADE]])
+    LogicalProject(EMPNO=[$0], $f0=[true])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$12])
+  LogicalJoin(condition=[=($0, $12)], joinType=[inner])
+    LogicalJoin(condition=[=($0, $9)], joinType=[semi])
+      LogicalProject(EMPNO=[$0], STREET=[$1.STREET], CITY=[$1.CITY], ZIP=[$1.ZIP], STATE=[$1.STATE], STREET5=[$2.STREET], CITY6=[$2.CITY], ZIP7=[$2.ZIP], STATE8=[$2.STATE])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+      LogicalProject(EMPNO=[$0], $f0=[true])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
+    LogicalJoin(condition=[=($8, $2)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, SALGRADE]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testSemiJoinProjectTranspose">
     <Resource name="sql">
       <![CDATA[select a.name from dept a
@@ -17816,7 +17901,7 @@ LogicalProject(EXPR$0=[null:VARCHAR NOT NULL ARRAY])
     <Resource name="planBefore">
       <![CDATA[
 LogicalProject(EMPNO=[$0])
-  HyperGraph(edges=[{0}——[INNER, =($0, $9)]——{1},{0}——[INNER, =($0, $19)]——{2},{0}——[INNER, =($7, $22)]——{3},{0}——[INNER, =($7, $24)]——{4},{1, 2, 3}——[INNER, =(+($14, $19), +($22, $24))]——{4}])
+  HyperGraph(edges=[{0}——[INNER, =(vertex(0)_field(0), vertex(1)_field(0))]——{1},{0}——[INNER, =(vertex(0)_field(0), vertex(2)_field(0))]——{2},{0}——[INNER, =(vertex(0)_field(7), vertex(3)_field(0))]——{3},{0}——[INNER, =(vertex(0)_field(7), vertex(4)_field(0))]——{4},{1, 2, 3}——[INNER, =(+(vertex(1)_field(5), vertex(2)_field(0)), +(vertex(3)_field(0), vertex(4)_field(0)))]——{4}])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
@@ -17826,9 +17911,8 @@ LogicalProject(EMPNO=[$0])
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalProject(EMPNO=[$19])
-  LogicalJoin(condition=[AND(=($19, $0), =(+($8, $0), +($17, $13)))], joinType=[inner])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+LogicalProject(EMPNO=[$16])
+  LogicalJoin(condition=[AND(=($16, $25), =(+($5, $25), +($14, $10)))], joinType=[inner])
     LogicalJoin(condition=[=($16, $0)], joinType=[inner])
       LogicalTableScan(table=[[CATALOG, SALES, EMP_B]])
       LogicalJoin(condition=[=($13, $0)], joinType=[inner])
@@ -17836,6 +17920,7 @@ LogicalProject(EMPNO=[$19])
         LogicalJoin(condition=[=($9, $0)], joinType=[inner])
           LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
 ]]>
     </Resource>
   </TestCase>
