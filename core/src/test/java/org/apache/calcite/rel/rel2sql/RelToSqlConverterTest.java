@@ -9821,7 +9821,9 @@ class RelToSqlConverterTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6940">[CALCITE-6940]
-   * Hive/Phoenix Dialect should not cast to REAL type directly</a>. */
+   * Hive/Phoenix Dialect should not cast to REAL type directly</a>,
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6952">[CALCITE-6952]
+   * JDBC adapter for StarRocks generates incorrect SQL for REAL datatype</a>. */
   @Test void testRealTypesCast() {
     String query = "SELECT CAST(\"department_id\" AS float), "
         + "CAST(\"department_id\" AS double), "
@@ -9835,16 +9837,20 @@ class RelToSqlConverterTest {
 
     sql(query)
         .withPhoenix().ok(expectedPhoenix)
+        .withStarRocks().ok(expectedHive)
         .withHive().ok(expectedHive);
   }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6940">[CALCITE-6940]
-   * Hive/Phoenix Dialect should not cast to REAL type directly</a>. */
+   * Hive/Phoenix Dialect should not cast to REAL type directly</a>,
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6952">[CALCITE-6952]
+   * JDBC adapter for StarRocks generates incorrect SQL for REAL datatype</a>. */
   @Test void testRealNestedTypesCast() {
     String query = "SELECT CAST(array[1,2,3] AS real array) FROM \"employee\"";
     sql(query)
         .withPhoenix().throws_("Phoenix dialect does not support cast to ARRAY")
+        .withStarRocks().throws_("StarRocks dialect does not support cast to ARRAY")
         .withHive().throws_("Hive dialect does not support cast to ARRAY");
 
     String query1 = "SELECT CAST(MAP[1.0,2.0,3.0,4.0] AS MAP<FLOAT, REAL>) FROM \"employee\"";
@@ -9855,7 +9861,35 @@ class RelToSqlConverterTest {
     String query2 = "SELECT CAST(array[1,2,3] AS real multiset) FROM \"employee\"";
     sql(query2)
         .withPhoenix().throws_("Phoenix dialect does not support cast to MULTISET")
+        .withStarRocks().throws_("StarRocks dialect does not support cast to MULTISET")
         .withHive().throws_("Hive dialect does not support cast to MULTISET");
+
+    String query3 = "SELECT CAST(MAP[1.0,2.0,3.0,4.0] AS MAP<FLOAT, REAL>) FROM \"employee\"";
+    String expectedStarRocks = "SELECT CAST(MAP { 1.0 : 2.0, 3.0 : 4.0 } AS MAP< FLOAT, FLOAT >)\n"
+        + "FROM `foodmart`.`employee`";
+    sql(query3)
+        .withStarRocks()
+        .ok(expectedStarRocks);
+
+    String query4 = "SELECT CAST(MAP[1.0,MAP[3.0,4.0]]"
+        + " AS MAP<FLOAT, MAP<REAL, REAL>>)"
+        + " FROM \"employee\"";
+    String expectedStarRocks1 = "SELECT CAST(MAP { 1.0 : MAP { 3.0 : 4.0 } }"
+        + " AS MAP< FLOAT, MAP< FLOAT, FLOAT > >)\n"
+        + "FROM `foodmart`.`employee`";
+    sql(query4)
+        .withStarRocks()
+        .ok(expectedStarRocks1);
+
+    String query5 = "SELECT CAST(\"department_id\" AS float), "
+        + "CAST(\"department_id\" AS double), "
+        + "CAST(\"department_id\" AS real) FROM \"employee\"";
+    String expectedStarRocks2 = "SELECT CAST(`department_id` AS FLOAT), "
+        + "CAST(`department_id` AS DOUBLE), "
+        + "CAST(`department_id` AS FLOAT)\nFROM `foodmart`.`employee`";
+    sql(query5)
+        .withStarRocks()
+        .ok(expectedStarRocks2);
   }
 
   @Test void testAntiJoinWithComplexInput2() {
