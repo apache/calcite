@@ -2640,7 +2640,7 @@ public abstract class SqlImplementor {
       }
       final SqlNodeList selectList = ((SqlSelect) newNode).getSelectList();
       final SqlNodeList grpList = ((SqlSelect) newNode).getGroup();
-      return isGrpCallNotUsedInFinalProjection(grpList, selectList, rel, false);
+      return isGrpCallNotUsedInFinalProjection(grpList, selectList, rel);
     }
 
     boolean hasFieldsUsedInFilterWhichIsNotUsedInFinalProjection(Project project) {
@@ -2654,8 +2654,7 @@ public abstract class SqlImplementor {
             return id;
           }
         });
-        return isGrpCallNotUsedInFinalProjection(qualifyColumnList, selectList,
-            project, true);
+        return isGrpCallNotUsedInFinalProjection(qualifyColumnList, selectList, project);
       } catch (Exception e) {
         return false;
       }
@@ -2664,11 +2663,6 @@ public abstract class SqlImplementor {
     boolean grpCallIsAlias(String grpCall, SqlBasicCall selectCall) {
       return selectCall.getOperator() instanceof SqlAsOperator
         && grpCall.equals(selectCall.operand(1).toString());
-    }
-
-    boolean grpCallIsAlias(SqlIdentifier grpCall, SqlBasicCall selectCall) {
-      return selectCall.getOperator() instanceof SqlAsOperator
-          && grpCall.equals(selectCall.operand(1));
     }
 
     boolean grpCallPresentInFinalProjection(String grpCall, Project rel) {
@@ -2682,18 +2676,15 @@ public abstract class SqlImplementor {
     }
 
     private boolean isGrpCallNotUsedInFinalProjection(List<SqlNode> columnList,
-        SqlNodeList selectList, Project project, boolean isQualifyClause) {
+        SqlNodeList selectList, Project project) {
       if (selectList != null && columnList != null) {
         for (SqlNode grpNode : columnList) {
           if (grpNode instanceof SqlIdentifier) {
             String grpCall = ((SqlIdentifier) grpNode).names.get(0);
             for (SqlNode selectNode : selectList.getList()) {
               if (selectNode instanceof SqlBasicCall) {
-                SqlBasicCall basicCall = (SqlBasicCall) selectNode;
-                boolean isAliasMatch = isQualifyClause
-                    ? grpCallIsAlias((SqlIdentifier) grpNode, basicCall)
-                    : grpCallIsAlias(grpCall, basicCall);
-                if (isAliasMatch && !grpCallPresentInFinalProjection(grpCall, project)) {
+                if (grpCallIsAlias(grpCall, (SqlBasicCall) selectNode)
+                    && !grpCallPresentInFinalProjection(grpCall, project)) {
                   return true;
                 }
               }
