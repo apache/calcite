@@ -24,10 +24,13 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
 
+import com.google.common.collect.ImmutableList;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * The core process of dphyp enumeration algorithm.
@@ -37,7 +40,12 @@ public class DpHyp {
 
   private final HyperGraph hyperGraph;
 
-  private final HashMap<Long, RelNode> dpTable;
+  private final Map<Long, RelNode> dpTable;
+
+  // record the node order corresponding to the best subgraph, which is used to convert
+  // the RexNodeAndFieldIndex in hyperedge to the RexInputRef in join condition, and permute
+  // final result
+  private final Map<Long, ImmutableList<Integer>> resultInputOrder;
 
   private final RelBuilder builder;
 
@@ -49,11 +57,9 @@ public class DpHyp {
             hyperGraph.getTraitSet(),
             hyperGraph.getInputs());
     this.dpTable = new HashMap<>();
+    this.resultInputOrder = new HashMap<>();
     this.builder = builder;
     this.mq = relMetadataQuery;
-    // make all field name unique and convert the
-    // HyperEdge condition from RexInputRef to RexInputFieldName
-    this.hyperGraph.convertHyperEdgeCond(builder);
   }
 
   /**
@@ -68,6 +74,7 @@ public class DpHyp {
     for (int i = 0; i < size; i++) {
       long singleNode = LongBitmap.newBitmap(i);
       dpTable.put(singleNode, hyperGraph.getInput(i));
+      resultInputOrder.put(singleNode, ImmutableList.of(i));
       hyperGraph.initEdgeBitMap(singleNode);
     }
 
@@ -173,42 +180,86 @@ public class DpHyp {
   private void emitCsgCmp(long csg, long cmp, List<HyperEdge> edges) {
     RelNode child1 = dpTable.get(csg);
     RelNode child2 = dpTable.get(cmp);
+    ImmutableList csgOrder = resultInputOrder.get(csg);
+    ImmutableList cmpOrder = resultInputOrder.get(cmp);
     if (child1 == null || child2 == null) {
-      throw new IllegalArgumentException(
+      throw new DphypOrHyperGraphException(
           "csg and cmp were not enumerated in the previous dp process");
+    }
+    if (csgOrder == null || cmpOrder == null) {
+      throw new DphypOrHyperGraphException("Lost the vertex order of csg or cmp");
     }
 
     JoinRelType joinType = hyperGraph.extractJoinType(edges);
     if (joinType == null) {
       return;
     }
-    RexNode joinCond1 = hyperGraph.extractJoinCond(child1, child2, edges);
+    if (!ConflictDetectionHelper.applicable(csg | cmp, edges)) {
+      return;
+    }
+
+    ImmutableList<Integer> unionOrder = ImmutableList.<Integer>builder()
+        .addAll(csgOrder)
+        .addAll(cmpOrder)
+        .build();
+    RexNode joinCond1 = hyperGraph.extractJoinCond(unionOrder, csgOrder.size(), edges);
     RelNode newPlan1 = builder
         .push(child1)
         .push(child2)
         .join(joinType, joinCond1)
         .build();
+    RelNode winPlan = newPlan1;
+    ImmutableList<Integer> winOrder = ImmutableList.copyOf(unionOrder);
 
-    // swap left and right
-    RexNode joinCond2 = hyperGraph.extractJoinCond(child2, child1, edges);
-    RelNode newPlan2 = builder
-        .push(child2)
-        .push(child1)
-        .join(joinType, joinCond2)
-        .build();
-    RelNode winPlan = chooseBetterPlan(newPlan1, newPlan2);
+    if (ConflictDetectionHelper.isCommutative(joinType)) {
+      // swap left and right
+      unionOrder = ImmutableList.<Integer>builder()
+          .addAll(cmpOrder)
+          .addAll(csgOrder)
+          .build();
+      RexNode joinCond2 = hyperGraph.extractJoinCond(unionOrder, cmpOrder.size(), edges);
+      RelNode newPlan2 = builder
+          .push(child2)
+          .push(child1)
+          .join(joinType, joinCond2)
+          .build();
+      winPlan = chooseBetterPlan(winPlan, newPlan2);
+      if (winPlan.equals(newPlan2)) {
+        winOrder = ImmutableList.copyOf(unionOrder);
+      }
+    }
 
     RelNode oriPlan = dpTable.get(csg | cmp);
     if (oriPlan != null) {
       winPlan = chooseBetterPlan(winPlan, oriPlan);
+      if (winPlan.equals(oriPlan)) {
+        winOrder = resultInputOrder.get(csg | cmp);
+      }
     }
+    assert winOrder != null;
     dpTable.put(csg | cmp, winPlan);
+    resultInputOrder.put(csg | cmp, winOrder);
   }
 
   public @Nullable RelNode getBestPlan() {
     int size = hyperGraph.getInputs().size();
     long wholeGraph = LongBitmap.newBitmapBetween(0, size);
-    return dpTable.get(wholeGraph);
+    RelNode orderedJoin = dpTable.get(wholeGraph);
+    if (orderedJoin == null) {
+      return null;
+    }
+    ImmutableList<Integer> resultOrder = resultInputOrder.get(wholeGraph);
+    if (resultOrder == null) {
+      throw new DphypOrHyperGraphException("Lost the vertex order of final result");
+    }
+
+    List<RexNode> projects =
+        hyperGraph.restoreProjectionOrder(resultOrder,
+        orderedJoin.getRowType().getFieldList());
+    return builder
+        .push(orderedJoin)
+        .project(projects)
+        .build();
   }
 
   private RelNode chooseBetterPlan(RelNode plan1, RelNode plan2) {
@@ -220,6 +271,15 @@ public class DpHyp {
       return plan1;
     } else {
       return plan2;
+    }
+  }
+
+  /**
+   * Exception that indicates an error occurred while building a hyper graph or enumerating.
+   */
+  static class DphypOrHyperGraphException extends RuntimeException {
+    DphypOrHyperGraphException(String message) {
+      super(message);
     }
   }
 
