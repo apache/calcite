@@ -21,11 +21,13 @@ import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlQuantifyOperator;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Sarg;
 
@@ -248,6 +250,19 @@ public class Strong {
         final Sarg<?> sarg =
             requireNonNull(((RexLiteral) searchCall.getOperands().get(1)).getValueAs(Sarg.class));
         return sarg.nullAs == RexUnknownAs.UNKNOWN;
+      }
+      return false;
+    case SOME:
+    case ALL:
+      final RexCall rexCall = (RexCall) node;
+      // For example:
+      // select NULL > all (select comm from emp where 1 = 0) from emp
+      // return FALSE when the sub-query returns 0 row
+      if (rexCall instanceof RexSubQuery) {
+        return false;
+      }
+      if (rexCall.getOperator() instanceof SqlQuantifyOperator) {
+        return anyNull(rexCall.getOperands());
       }
       return false;
     default:

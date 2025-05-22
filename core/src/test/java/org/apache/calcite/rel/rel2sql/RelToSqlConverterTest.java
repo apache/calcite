@@ -4720,12 +4720,10 @@ class RelToSqlConverterTest {
         + "FROM dept AS d LEFT JOIN emp AS e\n"
         + " ON CASE WHEN e.job = 'PRESIDENT' THEN true ELSE d.deptno = 10 END\n"
         + "WHERE e.job LIKE 'PRESIDENT'";
-    final String expected = "SELECT \"DEPT\".\"DEPTNO\","
-        + " \"EMP\".\"DEPTNO\" AS \"DEPTNO0\"\n"
+    final String expected = "SELECT \"DEPT\".\"DEPTNO\", \"EMP\".\"DEPTNO\" AS \"DEPTNO0\"\n"
         + "FROM \"SCOTT\".\"DEPT\"\n"
-        + "LEFT JOIN \"SCOTT\".\"EMP\""
-        + " ON CASE WHEN \"EMP\".\"JOB\" = 'PRESIDENT' THEN TRUE"
-        + " ELSE CAST(\"DEPT\".\"DEPTNO\" AS INTEGER) = 10 END\n"
+        + "LEFT JOIN \"SCOTT\".\"EMP\" ON \"EMP\".\"JOB\" = 'PRESIDENT' OR "
+        + "CAST(\"DEPT\".\"DEPTNO\" AS INTEGER) = 10 AND \"EMP\".\"JOB\" = 'PRESIDENT' IS NOT TRUE\n"
         + "WHERE \"EMP\".\"JOB\" LIKE 'PRESIDENT'";
     sql(sql)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
