@@ -1037,6 +1037,27 @@ public abstract class SqlOperator {
   }
 
   /**
+   * Returns whether this is a safe operator.
+   *
+   * <p>If an operator is safe, then it never causes a run-time exception.
+   *
+   * <p>For example, the {@code a/b} is not safe. Because the
+   * {@code SqlStdOperatorTable.DIVIDE} may throw the exception when dividing by zero.
+   *
+   * <p>By default, returns {@code false}, which means the operator is not safe.
+   *
+   * <p>If an operator is safe, then some optimizations can be performed in
+   * {@code org.apache.calcite.rex.RexSimplify}.
+   *
+   * <p>For example:
+   * {@code NULL + a} can be optimized to {@code NULL}.
+   *
+   */
+  public Boolean isSafeOperator() {
+    return false;
+  }
+
+  /**
    * Returns whether this operator is monotonic.
    *
    * <p>Default implementation returns {@link SqlMonotonicity#NOT_MONOTONIC}.
