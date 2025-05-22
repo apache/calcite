@@ -9560,6 +9560,58 @@ LogicalProject(EXPR$0=[CAST(/($2, $3)):INTEGER NOT NULL])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testNestedCorrelate">
+    <Resource name="sql">
+      <![CDATA[SELECT * FROM emp
+WHERE NOT EXISTS (SELECT true
+  FROM dept
+  WHERE EXISTS (
+    SELECT true FROM salgrade
+    WHERE salgrade.losal < dept.deptno
+  )
+ AND emp.deptno = dept.deptno
+)
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[NOT(IS NOT NULL($9))])
+    LogicalCorrelate(correlation=[$cor1], joinType=[left], requiredColumns=[{7}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{}], agg#0=[MIN($0)])
+        LogicalProject($f0=[true])
+          LogicalFilter(condition=[AND(IS NOT NULL($2), =($cor1.DEPTNO, $0))])
+            LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+              LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+              LogicalAggregate(group=[{}], agg#0=[MIN($0)])
+                LogicalProject($f0=[true])
+                  LogicalFilter(condition=[<($1, $cor0.DEPTNO)])
+                    LogicalTableScan(table=[[CATALOG, SALES, SALGRADE]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[NOT(IS NOT NULL($9))])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f0=[$10])
+      LogicalJoin(condition=[=($7, $9)], joinType=[left])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalAggregate(group=[{0}], agg#0=[MIN($1)])
+          LogicalProject(DEPTNO=[$0], $f0=[true])
+            LogicalFilter(condition=[IS NOT NULL($2)])
+              LogicalProject(DEPTNO=[$0], NAME=[$1], $f0=[$3])
+                LogicalJoin(condition=[=($0, $2)], joinType=[left])
+                  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+                  LogicalAggregate(group=[{0}], agg#0=[MIN($1)])
+                    LogicalProject(DEPTNO=[$3], $f0=[true])
+                      LogicalJoin(condition=[<($1, $3)], joinType=[inner])
+                        LogicalTableScan(table=[[CATALOG, SALES, SALGRADE]])
+                        LogicalProject(DEPTNO=[$0])
+                          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testNoOversimplificationBelowIsNull">
     <Resource name="sql">
       <![CDATA[select *
