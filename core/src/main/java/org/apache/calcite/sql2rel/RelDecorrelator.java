@@ -253,10 +253,12 @@ public class RelDecorrelator implements ReflectiveVisitor {
     if (!decorrelator.cm.mapCorToCorRel.isEmpty()) {
       newRootRel = decorrelator.decorrelate(newRootRel);
     }
+    Litmus.THROW.check(rootRel.getRowType().equals(newRootRel.getRowType()),
+        "Decorrelation produced a relation with a different type; before: "
+            + rootRel.getRowType() + " after: " + newRootRel.getRowType());
 
     // Re-propagate the hints.
     newRootRel = RelOptUtil.propagateRelHints(newRootRel, true);
-
     return newRootRel;
   }
 
@@ -331,6 +333,25 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     final Frame frame = getInvoke(root, false, null);
     if (frame != null) {
+      // Check if the frame has more fields than the original and discard the extra ones
+      RelNode result = frame.r;
+      int fields = frame.r.getRowType().getFieldCount();
+      if (fields > frame.oldToNewOutputs.size()) {
+        relBuilder.push(result);
+        final List<RexNode> exprList = new ArrayList<>();
+        List<Map.Entry<Integer, Integer>> entries =
+            new ArrayList<>(frame.oldToNewOutputs.entrySet());
+        entries.sort(Map.Entry.comparingByKey());
+        for (Map.Entry<Integer, Integer> entry : entries) {
+          exprList.add(relBuilder.field(entry.getValue()));
+        }
+        relBuilder.project(exprList);
+        result = relBuilder.build();
+      } else {
+        Litmus.THROW.check(fields == frame.oldToNewOutputs.size(),
+            "Produced relation has fewer columns than the original relation");
+      }
+
       // has been rewritten; apply rules post-decorrelation
       final HepProgramBuilder builder = HepProgram.builder()
           .addRuleInstance(
@@ -347,7 +368,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
       final HepProgram program2 = builder.build();
 
       final HepPlanner planner2 = createPlanner(program2);
-      final RelNode newRoot = frame.r;
+      final RelNode newRoot = result;
       planner2.setRoot(newRoot);
       return planner2.findBestExp();
     }
@@ -618,7 +639,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
       }
 
       // add mapping of group keys.
-      outputMap.put(idx, newPos);
+      outputMap.put(i, newPos);
       int newInputPos = requireNonNull(frame.oldToNewOutputs.get(idx));
       RexInputRef.add2(projects, newInputPos, newInputOutput);
       mapNewInputToProjOutputs.put(newInputPos, newPos);
@@ -3209,6 +3230,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
           oldRel.getRowType().getFieldCount(), Litmus.THROW);
       assert allLessThan(this.oldToNewOutputs.values(),
           r.getRowType().getFieldCount(), Litmus.THROW);
+      RelDataType rowType = oldRel.getRowType();
+      assert this.oldToNewOutputs.size() >= rowType.getFieldCount();
     }
   }
 

@@ -16,17 +16,29 @@
  */
 package org.apache.calcite.sql2rel;
 
+import org.apache.calcite.config.CalciteConnectionConfig;
+import org.apache.calcite.config.CalciteConnectionConfigImpl;
+import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.hep.HepProgram;
+import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.SqlExplainFormat;
+import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
@@ -46,6 +58,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Properties;
 
 import static org.apache.calcite.test.Matchers.hasTree;
 
@@ -64,6 +77,49 @@ public class RelDecorrelatorTest {
         .defaultSchema(
             CalciteAssert.addSchema(rootSchema, CalciteAssert.SchemaSpec.SCOTT_WITH_TEMPORAL))
         .traitDefs((List<RelTraitDef>) null);
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7024">[CALCITE-7024]
+   * Decorrelator does not always produce a query with the same type signature</a>. */
+  @Test void testTypeEquivalence() {
+    final String sql = "SELECT dname FROM \"scott\".DEPT WHERE 2000 > "
+        + "(SELECT EMP.sal FROM \"scott\".EMP where\n"
+        + "DEPT.deptno = EMP.deptno ORDER BY year(hiredate), EMP.sal limit 1)";
+    try {
+      SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+      CalciteAssert.addSchema(rootSchema, CalciteAssert.SchemaSpec.SCOTT);
+      CalciteConnectionConfig config = new CalciteConnectionConfigImpl(new Properties());
+      SqlTestFactory factory = SqlTestFactory.INSTANCE
+          .withCatalogReader((typeFactory, caseSensitive) ->
+              new CalciteCatalogReader(
+                  CalciteSchema.from(rootSchema),
+                  ImmutableList.of("SCOTT"),
+                  typeFactory,
+                  config))
+          .withSqlToRelConfig(c -> c.withExpand(true));
+      SqlParser parser = factory.createParser(sql);
+      SqlNode parsed = parser.parseQuery();
+      final SqlToRelConverter sqlToRelConverter = factory.createSqlToRelConverter();
+      final SqlNode validated = sqlToRelConverter.validator.validate(parsed);
+      RelRoot root = sqlToRelConverter.convertQuery(validated, false, true);
+      System.out.println(
+          RelOptUtil.dumpPlan("[Logical plan]", root.rel,
+              SqlExplainFormat.TEXT, SqlExplainLevel.NON_COST_ATTRIBUTES));
+
+      // The plan starts has this shape:
+      // LogicalProject(DNAME=[$1])
+      //  LogicalFilter(condition=[>(2000.00, CAST($3):DECIMAL(12, 2))])
+      //    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+      // we invoke decorrelate on the LogicalCorrelate node directly
+      RelNode filter = ((Project) root.rel).getInput();
+      RelNode correlate = ((Filter) filter).getInput();
+
+      final RelBuilder relBuilder =
+          RelFactories.LOGICAL_BUILDER.create(filter.getCluster(), null);
+      RelDecorrelator.decorrelateQuery(correlate, relBuilder);
+    } catch (Exception e) {
+      throw TestUtil.rethrow(e);
+    }
   }
 
   @Test void testGroupKeyNotInFrontWhenDecorrelate() {
