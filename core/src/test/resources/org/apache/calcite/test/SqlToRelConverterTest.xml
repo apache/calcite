@@ -5637,6 +5637,25 @@ LogicalProject(EXPR$0=[1])
   select 1 from dept where emp.deptno=dept.deptno)]]>
     </Resource>
   </TestCase>
+  <TestCase name="testNullIfSubquery">
+    <Resource name="sql">
+      <![CDATA[select nullif((select max(empno) from emp), 0)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[CASE(=($1, 0), null:INTEGER, $2)])
+  LogicalJoin(condition=[true], joinType=[left])
+    LogicalJoin(condition=[true], joinType=[left])
+      LogicalValues(tuples=[[{ 0 }]])
+      LogicalAggregate(group=[{}], EXPR$0=[MAX($0)])
+        LogicalProject(EMPNO=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{}], EXPR$0=[MAX($0)])
+      LogicalProject(EMPNO=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testOffset">
     <Resource name="sql">
       <![CDATA[select empno from emp offset 10 rows]]>
@@ -9874,6 +9893,20 @@ group by deptno]]>
 LogicalAggregate(group=[{0}], EXPR$1=[COLLECT($1) WITHIN GROUP ([2])], EXPR$2=[COUNT()])
   LogicalProject(DEPTNO=[$7], EMPNO=[$0], $f2=[SEARCH($0, Sarg[(-∞..1), (1..2), (2..+∞)])])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testYearSubquery">
+    <Resource name="sql">
+      <![CDATA[select year(select max(t) from (SELECT DATE '2007-12-31' as t))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[EXTRACT(FLAG(YEAR), $1)])
+  LogicalJoin(condition=[true], joinType=[left])
+    LogicalValues(tuples=[[{ 0 }]])
+    LogicalAggregate(group=[{}], EXPR$0=[MAX($0)])
+      LogicalValues(tuples=[[{ 2007-12-31 }]])
 ]]>
     </Resource>
   </TestCase>

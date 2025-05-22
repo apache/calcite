@@ -1528,9 +1528,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           ((SqlBasicCall) call).setOperator(overloads.get(0));
         }
       }
-      if (config.callRewrite()
-          // Do not rewrite calls that contain subqueries
-          && !SqlUtil.containsCall(call, c -> c.getKind() == SqlKind.SELECT)) {
+      if (config.callRewrite()) {
         node = call.getOperator().rewriteCall(this, call);
       }
     } else if (node instanceof SqlNodeList) {

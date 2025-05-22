@@ -25,6 +25,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperatorBinding;
+import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
@@ -68,6 +69,10 @@ public class SqlCoalesceFunction extends SqlFunction {
 
   // override SqlOperator
   @Override public SqlNode rewriteCall(SqlValidator validator, SqlCall call) {
+    // Do not rewrite subquery
+    if (SqlUtil.containsCall(call, c -> c.getKind() == SqlKind.SELECT)) {
+      return call;
+    }
     validateQuantifier(validator, call); // check DISTINCT/ALL
 
     List<SqlNode> operands = call.getOperandList();

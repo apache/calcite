@@ -1690,6 +1690,22 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7035">[CALCITE-7035]
+   * SQL calls without an implementor or convertLet (NULLIF, YEAR, ...)
+   * throw an error when having a subquery as parameter</a>. */
+  @Test void testNullIfSubquery() {
+    final String sql = "select nullif((select max(empno) from emp), 0)";
+    sql(sql).ok();
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7035">[CALCITE-7035]
+   * SQL calls without an implementor or convertLet (NULLIF, YEAR, ...)
+   * throw an error when having a subquery as parameter</a>. */
+  @Test void testYearSubquery() {
+    final String sql = "select year(select max(t) from (SELECT DATE '2007-12-31' as t))";
+    sql(sql).ok();
+  }
+
   @Test void testSampleBernoulliQuery() {
     final String sql = "select * from (\n"
         + " select * from emp as e tablesample bernoulli(10) repeatable(1)\n"
