@@ -4837,6 +4837,29 @@ EnumerableCalc(expr#0=[{inputs}], expr#1=[false], expr#2=[CAST($t1):BOOLEAN], DE
   EnumerableValues(tuples=[[{ 10 }, { 10 }, { 20 }, { 30 }, { 30 }, { 50 }, { 50 }, { 60 }, { null }]])
 !plan
 
+# Same as previous; but LHS is NULL
+select deptno, null > some(select deptno from dept where false) from emp;
++--------+--------+
+| DEPTNO | EXPR$1 |
++--------+--------+
+|     10 | false  |
+|     20 | false  |
+|     30 | false  |
+|     10 | false  |
+|     30 | false  |
+|     50 | false  |
+|     50 | false  |
+|     60 | false  |
+|        | false  |
++--------+--------+
+(9 rows)
+
+!ok
+
+EnumerableCalc(expr#0=[{inputs}], expr#1=[false], expr#2=[CAST($t1):BOOLEAN], DEPTNO=[$t0], EXPR$1=[$t2])
+  EnumerableValues(tuples=[[{ 10 }, { 10 }, { 20 }, { 30 }, { 30 }, { 50 }, { 50 }, { 60 }, { null }]])
+!plan
+
 # Test case about ANY sub-query when sub-query return 0 row
 select * from emp where deptno > any(select deptno from dept where false);
 +-------+--------+--------+

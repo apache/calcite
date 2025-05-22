@@ -218,6 +218,17 @@ public class RexUtil {
     }
   }
 
+  public static boolean isCollectionValueConstructorWithoutAnyCast(
+      RexNode rexNode) {
+    requireNonNull(rexNode, "rexNode");
+    if (rexNode instanceof RexCall
+        && rexNode.getKind().belongsTo(SqlKind.COLLECTIONS_VALUE_CONSTRUCTOR)) {
+      return ((RexCall) rexNode).getOperands().stream().allMatch(
+          operand -> RexUtil.isLiteral(operand, false));
+    }
+    return false;
+  }
+
   /**
    * Returns whether a node represents a {@link SqlTypeName#SYMBOL} literal.
    */
