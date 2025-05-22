@@ -74,6 +74,7 @@ import org.apache.calcite.rel.rules.AggregateProjectConstantToDummyJoinRule;
 import org.apache.calcite.rel.rules.AggregateProjectMergeRule;
 import org.apache.calcite.rel.rules.AggregateProjectPullUpConstantsRule;
 import org.apache.calcite.rel.rules.AggregateReduceFunctionsRule;
+import org.apache.calcite.rel.rules.BottomDecorrelateRule;
 import org.apache.calcite.rel.rules.CoerceInputsRule;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.rules.DateRangeRules;
@@ -4326,6 +4327,28 @@ class RelOptRulesTest extends RelOptTestBase {
 
     sql(sql)
         .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
+        .check();
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7023">[CALCITE-7023]
+   * Create an optimization pass which can decorrelate subplans</a>. */
+  @Test void testNestedCorrelate() {
+    HepProgram program = new HepProgramBuilder()
+        .addMatchOrder(HepMatchOrder.BOTTOM_UP)
+        .addRuleInstance(BottomDecorrelateRule.Config.DEFAULT.toRule())
+        .build();
+    final String sql = "SELECT * FROM emp\n"
+        + "WHERE NOT EXISTS (SELECT true\n"
+        + "  FROM dept\n"
+        + "  WHERE EXISTS (\n"
+        + "    SELECT true FROM salgrade\n"
+        + "    WHERE salgrade.losal < dept.deptno\n"
+        + "  )\n"
+        + " AND emp.deptno = dept.deptno\n"
+        + ")\n";
+    sql(sql)
+        .withExpand(true)
+        .withProgram(program)
         .check();
   }
 
