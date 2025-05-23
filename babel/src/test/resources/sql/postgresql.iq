@@ -18,6 +18,27 @@
 !use scott-postgresql
 !set outputformat csv
 
+# Test CAST INTERVAL
+select CAST('3723' AS INTERVAL HOUR TO SECOND);
+EXPR$0
++1:02:03.000000
+!ok
+
+select CAST('3721' AS INTERVAL SECOND);
+EXPR$0
++3721.000000
+!ok
+
+select CAST('2' AS INTERVAL);
+EXPR$0
++2.000000
+!ok
+
+select CAST('-3723' AS INTERVAL);
+EXPR$0
+-3723.000000
+!ok
+
 # Test string and array comparison
 select array[0,1,2] = '{0,1,2}';
 EXPR$0

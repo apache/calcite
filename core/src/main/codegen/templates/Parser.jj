@@ -5218,6 +5218,19 @@ TimeUnit Second() :
     <SECONDS> { return warn(TimeUnit.SECOND); }
 }
 
+SqlIntervalQualifier IntervalWithoutQualifier() :
+{
+    final Span s;
+    int secondFracPrec = RelDataType.PRECISION_NOT_SPECIFIED;
+}
+{
+    {
+        s = span();
+        return new SqlIntervalQualifier(TimeUnit.SECOND, -1, null, secondFracPrec,
+            s.end(this));
+    }
+}
+
 SqlIntervalQualifier IntervalQualifier() :
 {
     final Span s;
@@ -6282,7 +6295,12 @@ SqlNode BuiltinFunctionCall() :
         (
             dt = DataType() { args.add(dt); }
         |
+            LOOKAHEAD(2)
             <INTERVAL> e = IntervalQualifier() { args.add(e); }
+<#if (parser.includeIntervalWithoutQualifier!default.parser.includeIntervalWithoutQualifier) >
+        |
+            <INTERVAL> e = IntervalWithoutQualifier() { args.add(e); }
+</#if>
         )
         [ <FORMAT> format = StringLiteral() { args.add(format); } ]
         <RPAREN> {

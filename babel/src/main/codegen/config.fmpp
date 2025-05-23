@@ -616,6 +616,7 @@ data: {
     setOptionParserMethod: "PostgresSqlSetOption"
     includePosixOperators: true
     includeParsingStringLiteralAsArrayLiteral: true
+    includeIntervalWithoutQualifier: true
   }
 }
 
