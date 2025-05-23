@@ -1292,7 +1292,21 @@ public abstract class SqlTypeUtil {
       RelDataType type1,
       RelDataType type2) {
     if (type1.isNullable() == type2.isNullable()) {
-      return type1.equals(type2);
+      if (type1 instanceof RelRecordType) {
+        if (!(type2 instanceof RelRecordType) || type1.getFieldCount() != type2.getFieldCount()) {
+          return false;
+        }
+        for (int i = 0; i < type1.getFieldCount(); i++) {
+          RelDataTypeField field1 = type1.getFieldList().get(i);
+          RelDataTypeField field2 = type2.getFieldList().get(i);
+          if (!equalSansNullability(factory, field1.getType(), field2.getType())) {
+            return false;
+          }
+        }
+        return true;
+      } else {
+        return type1.equals(type2);
+      }
     }
     return type1.equals(
         factory.createTypeWithNullability(type2, type1.isNullable()));
