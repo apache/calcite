@@ -10943,12 +10943,6 @@ class RelToSqlConverterTest {
       return dialect(DatabaseProduct.TRINO.getDialect());
     }
 
-    Sql withPostgis() {
-      return dialect(DatabaseProduct.POSTGIS.getDialect())
-          .withLibrary(SqlLibrary.SPATIAL)
-          .schema(SchemaSpec.GEO);
-    }
-
     Sql withRedshift() {
       return dialect(DatabaseProduct.REDSHIFT.getDialect());
     }
