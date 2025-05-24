@@ -9728,7 +9728,6 @@ class RelToSqlConverterTest {
         .withSpark().ok(sparkExpected);
   }
 
-<<<<<<< HEAD
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6258">[CALCITE-6258]
    * Map value constructor is unparsed incorrectly for PrestoSqlDialect</a>,
@@ -10654,12 +10653,6 @@ class RelToSqlConverterTest {
 
     Sql withTrino() {
       return dialect(DatabaseProduct.TRINO.getDialect());
-    }
-
-    Sql withPostgis() {
-      return dialect(DatabaseProduct.POSTGIS.getDialect())
-          .withLibrary(SqlLibrary.SPATIAL)
-          .schema(SchemaSpec.GEO);
     }
 
     Sql withRedshift() {

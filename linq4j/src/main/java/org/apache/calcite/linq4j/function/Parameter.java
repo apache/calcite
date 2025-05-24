@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.linq4j.function;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

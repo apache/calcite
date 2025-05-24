@@ -2279,8 +2279,8 @@ public enum SqlKind {
     case CONTAINS_SUBSTR:
     case ST_DWITHIN:
     case ST_POINT:
-    case ST_POINT3:
-    case ST_MAKE_LINE:
+    case ST_POINTN:
+    case ST_MAKELINE:
     case ST_CONTAINS:
     case HILBERT:
       return OTHER_FUNCTION;
