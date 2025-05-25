@@ -243,7 +243,14 @@ public class SpatialTypeUtils {
    * @return an WKB
    */
   public static ByteString asWkb(Geometry geometry) {
-    return new ByteString(asWkbArray(geometry));
+    if (geometry == null) {
+      return null;
+    }
+    byte[] wkbBytes = asWkbArray(geometry);
+    if (wkbBytes == null) {
+      return null;
+    }
+    return new ByteString(wkbBytes);
   }
 
   /**
@@ -253,9 +260,14 @@ public class SpatialTypeUtils {
    * @return an WKB
    */
   public static byte[] asWkbArray(Geometry geometry) {
-    int outputDimension = dimension(geometry);
-    WKBWriter wkbWriter = new WKBWriter(outputDimension);
-    return wkbWriter.write(geometry);
+    if (geometry == null) {
+      return null;
+    }
+
+    final int dimension = dimension(geometry);
+    final boolean includeSRID = geometry.getSRID() != NO_SRID;
+    final WKBWriter writer = new WKBWriter(dimension, includeSRID);
+    return writer.write(geometry);
   }
 
   /**

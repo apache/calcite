@@ -42,7 +42,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Field;
 import java.nio.charset.Charset;
-import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.AbstractList;
@@ -90,26 +89,26 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
 
   private static final Map<Class, RelDataTypeFamily> CLASS_FAMILIES =
       ImmutableMap.<Class, RelDataTypeFamily>builder()
-        .put(String.class, SqlTypeFamily.CHARACTER)
-        .put(byte[].class, SqlTypeFamily.BINARY)
-        .put(boolean.class, SqlTypeFamily.BOOLEAN)
-        .put(Boolean.class, SqlTypeFamily.BOOLEAN)
-        .put(char.class, SqlTypeFamily.NUMERIC)
-        .put(Character.class, SqlTypeFamily.NUMERIC)
-        .put(short.class, SqlTypeFamily.NUMERIC)
-        .put(Short.class, SqlTypeFamily.NUMERIC)
-        .put(int.class, SqlTypeFamily.NUMERIC)
-        .put(Integer.class, SqlTypeFamily.NUMERIC)
-        .put(long.class, SqlTypeFamily.NUMERIC)
-        .put(Long.class, SqlTypeFamily.NUMERIC)
-        .put(float.class, SqlTypeFamily.APPROXIMATE_NUMERIC)
-        .put(Float.class, SqlTypeFamily.APPROXIMATE_NUMERIC)
-        .put(double.class, SqlTypeFamily.APPROXIMATE_NUMERIC)
-        .put(Double.class, SqlTypeFamily.APPROXIMATE_NUMERIC)
-        .put(Date.class, SqlTypeFamily.DATE)
-        .put(Time.class, SqlTypeFamily.TIME)
-        .put(Timestamp.class, SqlTypeFamily.TIMESTAMP)
-        .build();
+          .put(String.class, SqlTypeFamily.CHARACTER)
+          .put(byte[].class, SqlTypeFamily.BINARY)
+          .put(boolean.class, SqlTypeFamily.BOOLEAN)
+          .put(Boolean.class, SqlTypeFamily.BOOLEAN)
+          .put(char.class, SqlTypeFamily.NUMERIC)
+          .put(Character.class, SqlTypeFamily.NUMERIC)
+          .put(short.class, SqlTypeFamily.NUMERIC)
+          .put(Short.class, SqlTypeFamily.NUMERIC)
+          .put(int.class, SqlTypeFamily.NUMERIC)
+          .put(Integer.class, SqlTypeFamily.NUMERIC)
+          .put(long.class, SqlTypeFamily.NUMERIC)
+          .put(Long.class, SqlTypeFamily.NUMERIC)
+          .put(float.class, SqlTypeFamily.APPROXIMATE_NUMERIC)
+          .put(Float.class, SqlTypeFamily.APPROXIMATE_NUMERIC)
+          .put(double.class, SqlTypeFamily.APPROXIMATE_NUMERIC)
+          .put(Double.class, SqlTypeFamily.APPROXIMATE_NUMERIC)
+          .put(java.sql.Date.class, SqlTypeFamily.DATE)
+          .put(Time.class, SqlTypeFamily.TIME)
+          .put(Timestamp.class, SqlTypeFamily.TIMESTAMP)
+          .build();
 
   protected final RelDataTypeSystem typeSystem;
 
@@ -128,11 +127,26 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
 
   // implement RelDataTypeFactory
   @Override public RelDataType createJavaType(Class clazz) {
-    final JavaType javaType =
-        clazz == String.class
-            ? new JavaType(clazz, true, getDefaultCharset(),
-                SqlCollation.IMPLICIT)
-            : new JavaType(clazz);
+    return createJavaType(clazz, null);
+  }
+
+  @Override public RelDataType createJavaType(
+      Class clazz,
+      @Nullable RelDataTypeFamily family) {
+    final JavaType javaType;
+    if (family == null) {
+      // Infer family if not provided
+      javaType = clazz == String.class
+          ? new JavaType(clazz, true, getDefaultCharset(),
+              SqlCollation.IMPLICIT, CLASS_FAMILIES.get(clazz))
+          : new JavaType(clazz, CLASS_FAMILIES.get(clazz));
+    } else {
+      // Use provided family
+      javaType = clazz == String.class
+          ? new JavaType(clazz, true, getDefaultCharset(),
+              SqlCollation.IMPLICIT, family)
+          : new JavaType(clazz, family);
+    }
     return canonize(javaType);
   }
 
@@ -645,15 +659,27 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     private final boolean nullable;
     private final @Nullable SqlCollation collation;
     private final @Nullable Charset charset;
+    private final @Nullable RelDataTypeFamily family;
 
     public JavaType(Class clazz) {
-      this(clazz, !clazz.isPrimitive());
+      this(clazz, !clazz.isPrimitive(), null, null, CLASS_FAMILIES.get(clazz));
+    }
+
+    public JavaType(Class clazz, @Nullable RelDataTypeFamily family) {
+      this(clazz, !clazz.isPrimitive(), null, null, family);
     }
 
     public JavaType(
         Class clazz,
         boolean nullable) {
-      this(clazz, nullable, null, null);
+      this(clazz, nullable, null, null, CLASS_FAMILIES.get(clazz));
+    }
+
+    public JavaType(
+        Class clazz,
+        boolean nullable,
+        @Nullable RelDataTypeFamily family) {
+      this(clazz, nullable, null, null, family);
     }
 
     @SuppressWarnings("argument.type.incompatible")
@@ -662,13 +688,24 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
         boolean nullable,
         @Nullable Charset charset,
         @Nullable SqlCollation collation) {
-      super(fieldsOf(clazz));
-      this.clazz = clazz;
+      this(clazz, nullable, charset, collation, CLASS_FAMILIES.get(clazz));
+    }
+
+    public JavaType(
+        Class clazz,
+        boolean nullable,
+        @Nullable Charset charset,
+        @Nullable SqlCollation collation,
+        @Nullable RelDataTypeFamily family) {
+      super(null);
+      this.clazz = requireNonNull(clazz, "clazz");
       this.nullable = nullable;
-      checkArgument((charset != null) == SqlTypeUtil.inCharFamily(this),
-          "Need to be a chartype");
       this.charset = charset;
       this.collation = collation;
+      this.family = family;
+      assert (clazz.isPrimitive() && !nullable)
+        || (!clazz.isPrimitive())
+        || (clazz == Void.class && nullable);
       computeDigest();
     }
 
@@ -681,8 +718,20 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     }
 
     @Override public RelDataTypeFamily getFamily() {
+      if (this.family != null) {
+        return this.family;
+      }
       RelDataTypeFamily family = CLASS_FAMILIES.get(clazz);
-      return family != null ? family : this;
+      if (family != null) {
+        return family;
+      }
+      if (clazz.isArray()) {
+        return SqlTypeFamily.ARRAY;
+      }
+      // TODO: what about Map?
+      // Causes an infinite loop:
+      // return createJavaType(clazz).getFamily();
+      return SqlTypeFamily.ANY; // Default or infer based on class name if truly unknown
     }
 
     @Override protected void generateTypeString(StringBuilder sb, boolean withDetail) {
