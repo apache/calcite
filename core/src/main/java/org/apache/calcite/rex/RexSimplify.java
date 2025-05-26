@@ -294,6 +294,8 @@ public class RexSimplify {
     case CEIL:
     case FLOOR:
       return simplifyCeilFloor((RexCall) e);
+    case TRIM:
+      return simplifyTrim((RexCall) e);
     case IS_NULL:
     case IS_NOT_NULL:
     case IS_TRUE:
@@ -2362,6 +2364,45 @@ public class RexSimplify {
     }
     return e.clone(e.getType(),
         ImmutableList.of(operand, e.getOperands().get(1)));
+  }
+
+  /** Simplify TRIM function by eliminating nested duplication.
+   *
+   * <p>Examples:
+   * <ul>
+   *
+   * <li>{@code trim(trim(' aa '))} returns {@code trim(' aa ')}
+   *
+   * <li>{@code trim(BOTH ' ' from trim(BOTH ' ' from ' aa '))}
+   * returns {@code trim(BOTH ' ' from ' aa ')}
+   *
+   * <li>{@code trim(LEADING 'a' from trim(BOTH ' ' from ' aa '))} does not change
+   *
+   * </ul>
+   */
+  private RexNode simplifyTrim(RexCall e) {
+    if (e.getOperands().size() != 3) {
+      return e;
+    }
+
+    RexNode trimType = simplify(e.operands.get(0));
+    RexNode trimed = simplify(e.operands.get(1));
+    if (e.getOperands().get(2) instanceof RexCall) {
+      RexCall childNode = (RexCall) e.getOperands().get(2);
+      // only strings with the same trim method and deduplication will be eliminated.
+      if (childNode.getKind() == SqlKind.TRIM
+          && trimType.equals(simplify(childNode.operands.get(0)))
+          && trimed.equals(simplify(childNode.operands.get(1)))) {
+        return simplifyTrim(childNode);
+      }
+    }
+
+    ArrayList<RexNode> rexNodes = new ArrayList<>();
+    rexNodes.add(trimType);
+    rexNodes.add(trimed);
+    rexNodes.add(simplify(e.operands.get(2)));
+    RexNode rexNode = rexBuilder.makeCall(e.getType(), e.getOperator(), rexNodes);
+    return rexNode;
   }
 
   /** Method that returns whether we can rollup from inner time unit
