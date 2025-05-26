@@ -19,6 +19,7 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Collect;
 import org.apache.calcite.rel.core.Correlate;
@@ -29,8 +30,11 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.LogicVisitor;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCorrelVariable;
+import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
@@ -47,6 +51,8 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 
 import org.immutables.value.Value;
 
@@ -725,10 +731,21 @@ public class SubQueryRemoveRule
         builder.aggregate(builder.groupKey(),
             builder.count(false, "c"),
             builder.count(builder.fields()).as("ck"));
-        builder.as(ctAlias);
+
         if (!variablesSet.isEmpty()) {
-          builder.join(JoinRelType.LEFT, trueLiteral, variablesSet);
+          // The same variablesSet will generate a Correlate with the corresponding CorrelationId,
+          // The join here would result in two Correlates with the same CorrelationId in one
+          // RelNode tree, so we must create a new id and replace it here.
+          CorrelationId newCorId = builder.getCluster().createCorrel();
+          CorrelationId originCorId = Iterables.getOnlyElement(variablesSet);
+          RelNode newRel =
+              replaceCorrelationId(builder.getRexBuilder(), builder.build(),
+                  originCorId, newCorId, builder.peek().getRowType());
+          builder.push(newRel);
+          builder.as(ctAlias);
+          builder.join(JoinRelType.LEFT, trueLiteral, ImmutableSet.of(newCorId));
         } else {
+          builder.as(ctAlias);
           builder.join(JoinRelType.INNER, trueLiteral, variablesSet);
         }
         offset += 2;
@@ -840,6 +857,29 @@ public class SubQueryRemoveRule
     return projects;
   }
 
+  /**
+   * Replace every {@link RexFieldAccess} in the given {@link RelNode}
+   * that reference the specified {@link CorrelationId} with another {@link CorrelationId}.
+   */
+  public static RelNode replaceCorrelationId(RexBuilder rexBuilder, RelNode node,
+      final CorrelationId from, final CorrelationId to, RelDataType type) {
+    return node.accept(new RelHomogeneousShuttle() {
+      @Override public RelNode visit(RelNode other) {
+        other = other.accept(new RexShuttle() {
+          @Override public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
+            if (fieldAccess.getReferenceExpr() instanceof RexCorrelVariable
+                && ((RexCorrelVariable) fieldAccess.getReferenceExpr()).id.equals(from)) {
+              RexNode correl = rexBuilder.makeCorrel(type, to);
+              return rexBuilder.makeFieldAccess(correl, fieldAccess.getField().getIndex());
+            }
+            return fieldAccess;
+          }
+        });
+        return super.visit(other);
+      }
+    });
+  }
+
   private static void matchProject(SubQueryRemoveRule rule,
       RelOptRuleCall call) {
     final Project project = call.rel(0);
@@ -878,8 +918,7 @@ public class SubQueryRemoveRule
       ++count;
       final RelOptUtil.Logic logic =
           LogicVisitor.find(RelOptUtil.Logic.TRUE, ImmutableList.of(c), e);
-      final Set<CorrelationId>  variablesSet =
-          RelOptUtil.getVariablesUsed(e.rel);
+      final Set<CorrelationId> variablesSet = RelOptUtil.getVariablesUsed(e.rel);
       // Filter without variables could be handled before this change, we do not want
       // to break it yet for compatibility reason.
       if (!filterVariablesSet.isEmpty()) {
@@ -902,9 +941,6 @@ public class SubQueryRemoveRule
     final RelBuilder builder = call.builder();
     final RexSubQuery e =
         requireNonNull(RexUtil.SubQueryFinder.find(join.getCondition()));
-    final RelOptUtil.Logic logic =
-        LogicVisitor.find(RelOptUtil.Logic.TRUE,
-            ImmutableList.of(join.getCondition()), e);
 
     ImmutableBitSet inputSet = RelOptUtil.InputFinder.bits(e.getOperands(), null);
     int nFieldsLeft = join.getLeft().getRowType().getFieldCount();
@@ -943,6 +979,11 @@ public class SubQueryRemoveRule
     if (inputIntersectsLeftSide) {
       builder.push(join.getLeft());
 
+      final RelOptUtil.Logic logic =
+          LogicVisitor.find(join.getJoinType().generatesNullsOnRight()
+                  ? RelOptUtil.Logic.TRUE_FALSE_UNKNOWN : RelOptUtil.Logic.TRUE,
+              ImmutableList.of(join.getCondition()), e);
+
       final RexNode target =
           rule.apply(e, variablesSet, logic, builder, 1, nFieldsLeft, 0);
       final RexShuttle shuttle = new ReplaceSubQueryShuttle(e, target);
@@ -960,13 +1001,45 @@ public class SubQueryRemoveRule
               .union(ImmutableBitSet.range(nFields - nFieldsRight, nFields)));
       builder.project(fields);
     } else {
-      builder.push(join.getLeft());
       builder.push(join.getRight());
+
+      final RelOptUtil.Logic logic =
+          LogicVisitor.find(join.getJoinType().generatesNullsOnLeft()
+                  ? RelOptUtil.Logic.TRUE_FALSE_UNKNOWN : RelOptUtil.Logic.TRUE,
+              ImmutableList.of(join.getCondition()), e);
+
+      RexSubQuery subQuery = e;
+
+      if (!variablesSet.isEmpty()) {
+        // Original correlates reference joint row type, but we are about to create
+        // new join of original right side and correlated sub-query. Therefore we have
+        // to adjust correlated variables int following way:
+        //      1) new correlation variable must reference row type of right side only
+        //      2) field index must be shifted on the size of the left side
+        CorrelationId id = Iterables.getOnlyElement(variablesSet);
+        RexBuilder rexBuilder = builder.getRexBuilder();
+
+        RelNode newSubQueryRel = e.rel.accept(new RelHomogeneousShuttle() {
+          @Override public RelNode visit(RelNode other) {
+            RelNode node =
+                RexUtil.shiftFieldAccess(rexBuilder, other, id, join.getRight(), nFieldsLeft);
+            return super.visit(node);
+          }
+        });
+        subQuery = e.clone(newSubQueryRel);
+      }
+
+      subQuery =
+          subQuery.clone(subQuery.getType(), RexUtil.shift(subQuery.getOperands(), -nFieldsLeft));
 
       final int nFields = join.getRowType().getFieldCount();
       final RexNode target =
-          rule.apply(e, variablesSet, logic, builder, 2, nFields, 0);
-      final RexShuttle shuttle = new ReplaceSubQueryShuttle(e, target);
+          rule.apply(subQuery, variablesSet, logic, builder, 1, nFieldsRight, 0);
+      final RexShuttle shuttle = new ReplaceSubQueryShuttle(e, RexUtil.shift(target, nFieldsLeft));
+
+      RelNode newRight = builder.build();
+      builder.push(join.getLeft());
+      builder.push(newRight);
 
       builder.join(join.getJoinType(), shuttle.apply(join.getCondition()));
       builder.project(fields(builder, nFields));
