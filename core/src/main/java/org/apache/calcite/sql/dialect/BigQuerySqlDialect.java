@@ -520,17 +520,21 @@ public class BigQuerySqlDialect extends SqlDialect {
           return super.getTargetFunc(call);
         }
       case TIMESTAMP:
-        switch (call.getOperands().get(1).getType().getSqlTypeName()) {
+        RexNode secondOperand = call.getOperands().get(1);
+        switch (secondOperand.getType().getSqlTypeName()) {
         case INTERVAL_DAY:
         case INTERVAL_MINUTE:
         case INTERVAL_SECOND:
         case INTERVAL_HOUR:
         case INTERVAL_MONTH:
         case INTERVAL_YEAR:
-          if (call.op.kind == SqlKind.MINUS) {
-            return SqlLibraryOperators.DATETIME_SUB;
+          if (secondOperand.getKind() == SqlKind.SCALAR_QUERY) {
+            return call.op.kind == SqlKind.MINUS ? MINUS : PLUS;
           }
-          return SqlLibraryOperators.DATETIME_ADD;
+          return call.op.kind == SqlKind.MINUS
+              ? SqlLibraryOperators.DATETIME_SUB : SqlLibraryOperators.DATETIME_ADD;
+        case INTERVAL_DAY_SECOND:
+          return call.op.kind == SqlKind.MINUS ? MINUS : PLUS;
         }
       case TIMESTAMP_WITH_TIME_ZONE:
       case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
@@ -1170,6 +1174,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       unparseDivideIntervalCall(call.operand(1), writer, leftPrec, rightPrec);
       break;
     case IDENTIFIER:
+    case SCALAR_QUERY:
       call.operand(1).unparse(writer, leftPrec, rightPrec);
       break;
     case OTHER_FUNCTION:
