@@ -2804,6 +2804,143 @@ class RelToSqlConverterTest {
         .withPresto().ok(exptectedPresto);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7042">[CALCITE-7042]
+   * Trim function does not have idempotency simplification</a>. */
+  @Test void testTrimEliminated() {
+    // eliminate trim test cases:
+    final String query = "SELECT TRIM(both 'a' from TRIM(both 'a' from \"brand_name\"))\n"
+        + "from \"foodmart\".\"product\"";
+    final String exptectedPresto = "SELECT TRIM(\"brand_name\", 'a')\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query)
+        .withPresto().ok(exptectedPresto);
+
+    final String query1 = "SELECT TRIM(TRAILING cast('a' as char(1)) from"
+        + " TRIM(TRAILING 'a' from \"brand_name\"))\n"
+        + "from \"foodmart\".\"product\"";
+    final String exptectedPresto1 = "SELECT RTRIM(\"brand_name\", 'a')\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query1)
+        .withPresto().ok(exptectedPresto1);
+
+    final String query2 = "SELECT TRIM(TRAILING cast('a' as char(1)) from"
+        + " TRIM(TRAILING cast('a' as char(1)) from \"brand_name\"))\n"
+        + "from \"foodmart\".\"product\"";
+    final String exptectedPresto2 = "SELECT RTRIM(\"brand_name\", 'a')\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query2)
+        .withPresto().ok(exptectedPresto2);
+
+    final String query3 = "SELECT TRIM(TRIM(\"brand_name\"))\n"
+        + "from \"foodmart\".\"product\"";
+    final String exptectedPresto3 = "SELECT TRIM(\"brand_name\")\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query3)
+        .withPresto().ok(exptectedPresto3);
+
+    final String query4 = "SELECT TRIM(LEADING 'a' from TRIM(LEADING 'a' from \"brand_name\"))\n"
+        + "from \"foodmart\".\"product\"";
+    final String exptectedPresto4 = "SELECT LTRIM(\"brand_name\", 'a')\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query4)
+        .withPresto().ok(exptectedPresto4);
+
+    final String query5 = "SELECT TRIM(TRAILING 'a' from TRIM(TRAILING 'a' from \"brand_name\"))\n"
+        + "from \"foodmart\".\"product\"";
+    final String exptectedPresto5 = "SELECT RTRIM(\"brand_name\", 'a')\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query5)
+        .withPresto().ok(exptectedPresto5);
+
+    // not eliminate trim test cases:
+    final String query6 = "SELECT TRIM(LEADING 'a' from TRIM(\"brand_name\"))\n"
+        + "from \"foodmart\".\"product\"";
+    final String exptectedPresto6 = "SELECT LTRIM(TRIM(\"brand_name\"), 'a')\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query6)
+        .withPresto().ok(exptectedPresto6);
+
+    final String query7 = "SELECT TRIM(LEADING 'b' from TRIM(LEADING 'a' from \"brand_name\"))\n"
+        + "from \"foodmart\".\"product\"";
+    final String exptectedPresto7 = "SELECT LTRIM(LTRIM(\"brand_name\", 'a'), 'b')\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query7)
+        .withPresto().ok(exptectedPresto7);
+
+    final String query8 = "SELECT TRIM(LEADING 'a' from TRIM(BOTH 'a' from \"brand_name\"))\n"
+        + "from \"foodmart\".\"product\"";
+    final String exptectedPresto8 = "SELECT LTRIM(TRIM(\"brand_name\", 'a'), 'a')\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query8)
+        .withPresto().ok(exptectedPresto8);
+
+    final String query9 = "SELECT TRIM(TRIM(BOTH 'a' from \"brand_name\"))\n"
+        + "from \"foodmart\".\"product\"";
+    final String exptectedPresto9 = "SELECT TRIM(TRIM(\"brand_name\", 'a'))\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query9)
+        .withPresto().ok(exptectedPresto9);
+
+    // NULL argument cases:
+    final String query10 = "SELECT TRIM(TRIM(BOTH NULL from \"brand_name\"))\n"
+        + "from \"foodmart\".\"product\"";
+    final String exptectedPresto10 = "SELECT CAST(NULL AS VARCHAR(60))\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query10)
+        .withPresto().ok(exptectedPresto10);
+
+    final String query11 = "SELECT TRIM(TRIM(BOTH ' ' from NULL))\n"
+        + "from \"foodmart\".\"product\"";
+    final String exptectedPresto11 = "SELECT CAST(NULL AS VARCHAR)\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query11)
+        .withPresto().ok(exptectedPresto11);
+
+    final String query12 = "SELECT TRIM(TRAILING NULL from"
+        + " TRIM(TRAILING NULL from \"brand_name\"))\n"
+        + "from \"foodmart\".\"product\"";
+    final String exptectedPresto12 = "SELECT CAST(NULL AS VARCHAR(60))\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query12)
+        .withPresto().ok(exptectedPresto12);
+
+    final String query13 = "SELECT TRIM(TRAILING ' ' from TRIM(TRAILING ' ' from NULL))\n"
+        + "from \"foodmart\".\"product\"";
+    final String exptectedPresto13 = "SELECT CAST(NULL AS VARCHAR)\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query13)
+        .withPresto().ok(exptectedPresto13);
+
+    final String query14 = "SELECT TRIM(TRAILING NULL from TRIM(TRAILING NULL from NULL))\n"
+        + "from \"foodmart\".\"product\"";
+    final String exptectedPresto14 = "SELECT CAST(NULL AS VARCHAR)\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query14)
+        .withPresto().ok(exptectedPresto14);
+
+    final String query15 = "SELECT TRIM(BOTH 'ab' from TRIM(BOTH 'ab' from \"brand_name\"))\n"
+        + "from \"foodmart\".\"product\"";
+    final String exptectedPresto15 = "SELECT TRIM(\"brand_name\", 'ab')\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query15)
+        .withPresto().ok(exptectedPresto15);
+
+    final String query16 = "SELECT TRIM(BOTH \"brand_name\" from "
+        + "TRIM(BOTH \"brand_name\" from \"brand_name\"))\n"
+        + "from \"foodmart\".\"product\"";
+    final String exptectedPresto16 = "SELECT TRIM(BOTH \"brand_name\" FROM \"brand_name\")\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query16).ok(exptectedPresto16);
+
+    final String query17 = "SELECT TRIM(BOTH SUBSTRING(\"brand_name\",2)"
+        + " from TRIM(BOTH SUBSTRING(\"brand_name\",2) from \"brand_name\"))\n"
+        + "from \"foodmart\".\"product\"";
+    final String exptectedPresto17 = "SELECT TRIM(BOTH SUBSTRING(\"brand_name\", 2)"
+        + " FROM \"brand_name\")\nFROM \"foodmart\".\"product\"";
+    sql(query17).ok(exptectedPresto17);
+  }
+
   @Test void testHiveSparkAndBqTrimWithBoth() {
     final String query = "SELECT TRIM(both ' ' from ' str ')\n"
         + "from \"foodmart\".\"reserve_employee\"";
