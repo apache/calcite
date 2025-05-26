@@ -143,7 +143,13 @@ public class SnowflakeSqlDialect extends SqlDialect {
         return SqlLibraryOperators.DATE_SUB;
       }
       return SqlLibraryOperators.DATE_ADD;
-
+    case INTERVAL_DAY_SECOND:
+      if (call.op.kind == SqlKind.MINUS) {
+        return call.type.getSqlTypeName() == SqlTypeName.TIMESTAMP
+            ? SqlLibraryOperators.TIMESTAMP_SUB : SqlLibraryOperators.DATE_SUB;
+      }
+      return call.type.getSqlTypeName() == SqlTypeName.TIMESTAMP
+          ? SqlLibraryOperators.DM_TIMESTAMP_ADD : SqlLibraryOperators.DATE_ADD;
     case INTERVAL_MONTH:
       return SqlLibraryOperators.ADD_MONTHS;
     }
