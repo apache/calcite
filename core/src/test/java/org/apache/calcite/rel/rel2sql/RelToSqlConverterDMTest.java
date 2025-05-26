@@ -13227,4 +13227,40 @@ class RelToSqlConverterDMTest {
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
   }
+
+  @Test public void testStPoint() {
+    final RelBuilder builder = relBuilder();
+    final RexNode formatIntegerPaddingRexNode =
+        builder.call(SqlLibraryOperators.ST_POINT,
+            builder.literal(45.3214), builder.literal(45.2144));
+
+    final RelNode root = builder
+        .scan("EMP")
+        .project(formatIntegerPaddingRexNode)
+        .build();
+
+    final String expectedRedShiftQuery = "SELECT ST_POINT(45.3214, 45.2144) AS \"$f0\"\nFROM "
+        + "\"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.REDSHIFT.getDialect()), isLinux(expectedRedShiftQuery));
+  }
+
+  @Test public void testStDistance() {
+    final RelBuilder builder = relBuilder();
+    RexNode point1 =
+        builder.call(SqlLibraryOperators.ST_POINT, builder.literal(45.3214), builder.literal(45.2144));
+    RexNode point2 =
+        builder.call(SqlLibraryOperators.ST_POINT, builder.literal(46.3214), builder.literal(46.2144));
+
+    final RexNode distanceCall = builder.call(SqlLibraryOperators.ST_DISTANCE, point1, point2);
+
+    final RelNode root = builder
+        .scan("EMP")
+        .project(distanceCall)
+        .build();
+
+    final String expectedRedshiftSql = "SELECT ST_DISTANCE(ST_POINT(45.3214, 45.2144), ST_POINT"
+        + "(46.3214, 46.2144)) AS \"$f0\"\nFROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.REDSHIFT.getDialect()), isLinux(expectedRedshiftSql));
+  }
 }
