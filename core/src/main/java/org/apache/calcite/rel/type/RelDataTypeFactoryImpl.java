@@ -39,9 +39,9 @@ import com.google.common.collect.Interner;
 import com.google.common.collect.Interners;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.locationtech.jts.geom.Geometry;
 
 import java.lang.reflect.Field;
-import java.math.BigDecimal;
 import java.nio.charset.Charset;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -106,10 +106,10 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
           .put(Float.class, SqlTypeFamily.APPROXIMATE_NUMERIC)
           .put(double.class, SqlTypeFamily.APPROXIMATE_NUMERIC)
           .put(Double.class, SqlTypeFamily.APPROXIMATE_NUMERIC)
-          .put(BigDecimal.class, SqlTypeFamily.APPROXIMATE_NUMERIC)
           .put(java.sql.Date.class, SqlTypeFamily.DATE)
           .put(Time.class, SqlTypeFamily.TIME)
           .put(Timestamp.class, SqlTypeFamily.TIMESTAMP)
+          .put(Geometry.class, SqlTypeFamily.GEOMETRY)
           .build();
 
   protected final RelDataTypeSystem typeSystem;
@@ -693,6 +693,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       this(clazz, nullable, charset, collation, CLASS_FAMILIES.get(clazz));
     }
 
+    @SuppressWarnings("argument.type.incompatible")
     public JavaType(
         Class clazz,
         boolean nullable,

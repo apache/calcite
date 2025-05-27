@@ -23,7 +23,6 @@ import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -451,23 +450,6 @@ public class JavaTypeFactoryImpl
 
     @Override public Type getDeclaringClass() {
       return syntheticType;
-    }
-  }
-
-  @Override public RelDataType createJavaType(Class clazz) {
-    return createJavaType(clazz, null);
-  }
-
-  @Override public RelDataType createJavaType(Class clazz, @Nullable RelDataTypeFamily family) {
-    final JavaToSqlTypeConversionRules rules = JavaToSqlTypeConversionRules.instance();
-    if (Primitive.is(clazz)
-        || rules.lookup(clazz) != null
-        || clazz.isArray()
-        || List.class.isAssignableFrom(clazz)
-        || Map.class.isAssignableFrom(clazz)) {
-      return super.createJavaType(clazz, family);
-    } else {
-      return createStructType(clazz);
     }
   }
 }

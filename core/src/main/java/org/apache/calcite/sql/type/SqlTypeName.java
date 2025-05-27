@@ -134,7 +134,7 @@ public enum SqlTypeName {
       Types.JAVA_OBJECT, SqlTypeFamily.ANY),
   /** Spatial type. Though not standard, it is common to several DBs, so we
    * do not flag it 'special' (internal). */
-  GEOMETRY(PrecScale.NO_NO, false, ExtraSqlTypes.GEOMETRY, SqlTypeFamily.GEO),
+  GEOMETRY(PrecScale.NO_NO, false, ExtraSqlTypes.GEOMETRY, SqlTypeFamily.GEOMETRY),
   MEASURE(PrecScale.NO_NO, true, Types.OTHER, SqlTypeFamily.ANY),
   FUNCTION(PrecScale.NO_NO, true, Types.OTHER, SqlTypeFamily.FUNCTION),
   SARG(PrecScale.NO_NO, true, Types.OTHER, SqlTypeFamily.ANY),

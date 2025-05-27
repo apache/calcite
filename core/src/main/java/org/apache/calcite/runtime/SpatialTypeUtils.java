@@ -230,10 +230,9 @@ public class SpatialTypeUtils {
   public static String asGml(Geometry geometry) {
     GMLWriter gmlWriter = new GMLWriter();
     // remove line breaks and indentation
-    String minified = gmlWriter.write(geometry)
+    return gmlWriter.write(geometry)
         .replace("\n", "")
         .replace("  ", "");
-    return minified;
   }
 
   /**
@@ -243,13 +242,7 @@ public class SpatialTypeUtils {
    * @return an WKB
    */
   public static ByteString asWkb(Geometry geometry) {
-    if (geometry == null) {
-      return null;
-    }
     byte[] wkbBytes = asWkbArray(geometry);
-    if (wkbBytes == null) {
-      return null;
-    }
     return new ByteString(wkbBytes);
   }
 
@@ -260,10 +253,6 @@ public class SpatialTypeUtils {
    * @return an WKB
    */
   public static byte[] asWkbArray(Geometry geometry) {
-    if (geometry == null) {
-      return null;
-    }
-
     final int dimension = dimension(geometry);
     final boolean includeSRID = geometry.getSRID() != NO_SRID;
     final WKBWriter writer = new WKBWriter(dimension, includeSRID);

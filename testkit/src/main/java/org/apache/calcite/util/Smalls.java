@@ -609,7 +609,7 @@ public class Smalls {
       if (o == null) {
         return "<null>";
       }
-      return "<" + o + ">";
+      return "<" + o.toString() + ">";
     }
   }
 

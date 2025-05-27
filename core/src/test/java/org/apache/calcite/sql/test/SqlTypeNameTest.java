@@ -23,7 +23,25 @@ import org.junit.jupiter.api.Test;
 
 import java.sql.Types;
 
-import static org.apache.calcite.sql.type.SqlTypeName.*;
+import static org.apache.calcite.sql.type.SqlTypeName.ARRAY;
+import static org.apache.calcite.sql.type.SqlTypeName.BIGINT;
+import static org.apache.calcite.sql.type.SqlTypeName.BINARY;
+import static org.apache.calcite.sql.type.SqlTypeName.BOOLEAN;
+import static org.apache.calcite.sql.type.SqlTypeName.CHAR;
+import static org.apache.calcite.sql.type.SqlTypeName.DATE;
+import static org.apache.calcite.sql.type.SqlTypeName.DECIMAL;
+import static org.apache.calcite.sql.type.SqlTypeName.DISTINCT;
+import static org.apache.calcite.sql.type.SqlTypeName.DOUBLE;
+import static org.apache.calcite.sql.type.SqlTypeName.FLOAT;
+import static org.apache.calcite.sql.type.SqlTypeName.INTEGER;
+import static org.apache.calcite.sql.type.SqlTypeName.REAL;
+import static org.apache.calcite.sql.type.SqlTypeName.SMALLINT;
+import static org.apache.calcite.sql.type.SqlTypeName.STRUCTURED;
+import static org.apache.calcite.sql.type.SqlTypeName.TIME;
+import static org.apache.calcite.sql.type.SqlTypeName.TIMESTAMP;
+import static org.apache.calcite.sql.type.SqlTypeName.TINYINT;
+import static org.apache.calcite.sql.type.SqlTypeName.VARBINARY;
+import static org.apache.calcite.sql.type.SqlTypeName.VARCHAR;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -156,7 +174,7 @@ class SqlTypeNameTest {
   @Test void testOther() {
     SqlTypeName tn =
         SqlTypeName.getNameForJdbcType(Types.OTHER);
-    assertThat("OTHER did not map to OTHER", tn, nullValue());
+    assertThat("OTHER did not map to null", tn, nullValue());
   }
 
   @Test void testJavaobject() {
