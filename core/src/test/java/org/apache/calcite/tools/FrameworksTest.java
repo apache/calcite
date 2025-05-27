@@ -30,6 +30,7 @@ import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptAbstractTable;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptPlanner.CannotPlanException;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitDef;
@@ -90,6 +91,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
@@ -437,6 +439,36 @@ public class FrameworksTest {
         .build();
     executeQuery(config, " UPDATE MYTABLE set id=7 where id=1",
         CalciteSystemProperty.DEBUG.value());
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7039">[CALCITE-7039]
+   * PlannerImpl supports custom Volcano RuleSet</a>. */
+  @Test void testAddCustomRules() throws Exception {
+    Table table = new TableImpl();
+    final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+    SchemaPlus schema = rootSchema.add("x", new AbstractSchema());
+    schema.add("MYTABLE", table);
+    List<RelTraitDef> traitDefs = new ArrayList<>();
+    traitDefs.add(ConventionTraitDef.INSTANCE);
+    traitDefs.add(RelDistributionTraitDef.INSTANCE);
+    SqlParser.Config parserConfig =
+            SqlParser.Config.DEFAULT
+                    .withCaseSensitive(false);
+
+    final FrameworkConfig config = Frameworks.newConfigBuilder()
+            .parserConfig(parserConfig)
+            .defaultSchema(schema)
+            .traitDefs(traitDefs)
+            // define the rules you want to apply to volcano planner
+            .volcanoRuleSet(ImmutableList.of())
+            .build();
+    try {
+      executeQuery(config, " UPDATE MYTABLE set id=7 where id=1",
+              CalciteSystemProperty.DEBUG.value());
+    } catch (CannotPlanException e) {
+      assertTrue(e.getMessage().contains("[convention: NONE -> ENUMERABLE]"));
+    }
   }
 
   private void executeQuery(FrameworkConfig config,

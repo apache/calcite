@@ -28,6 +28,7 @@ import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCostFactory;
 import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptTable.ViewExpander;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitDef;
@@ -100,6 +101,7 @@ public class PlannerImpl implements Planner, ViewExpander {
   // set in STATE_4_VALIDATE
   private @Nullable SqlValidator validator;
   private @Nullable SqlNode validatedSqlNode;
+  private @Nullable ImmutableList<RelOptRule> volcanoRuleSet;
 
   /** Creates a planner. Not a public API; call
    * {@link org.apache.calcite.tools.Frameworks#getPlanner} instead. */
@@ -119,6 +121,7 @@ public class PlannerImpl implements Planner, ViewExpander {
     this.context = config.getContext();
     this.connectionConfig = connConfig(context, parserConfig);
     this.typeSystem = config.getTypeSystem();
+    this.volcanoRuleSet = config.getVolcanoRuleSet();
     reset();
   }
 
@@ -181,9 +184,13 @@ public class PlannerImpl implements Planner, ViewExpander {
 
     typeFactory = new JavaTypeFactoryImpl(typeSystem);
     RelOptPlanner planner = this.planner = new VolcanoPlanner(costFactory, context);
-    RelOptUtil.registerDefaultRules(planner,
-        connectionConfig.materializationsEnabled(),
-        Hook.ENABLE_BINDABLE.get(false));
+    if (volcanoRuleSet != null) {
+      volcanoRuleSet.forEach(planner::addRule);
+    } else {
+      RelOptUtil.registerDefaultRules(planner,
+              connectionConfig.materializationsEnabled(),
+              Hook.ENABLE_BINDABLE.get(false));
+    }
     planner.setExecutor(executor);
 
     state = State.STATE_2_READY;

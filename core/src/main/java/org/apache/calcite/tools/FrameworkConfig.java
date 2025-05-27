@@ -19,6 +19,7 @@ package org.apache.calcite.tools;
 import org.apache.calcite.materialize.SqlStatisticProvider;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.RelOptCostFactory;
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -147,4 +148,10 @@ public interface FrameworkConfig {
    * Returns a view expander.
    */
   RelOptTable.@Nullable ViewExpander getViewExpander();
+
+  /**
+   * Returns a list of custom rules to be added to the volcano planner.
+   * These rules will replace the default rules.
+   */
+  @Nullable ImmutableList<RelOptRule> getVolcanoRuleSet();
 }

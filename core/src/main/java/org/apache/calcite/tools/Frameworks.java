@@ -24,6 +24,7 @@ import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCostFactory;
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitDef;
@@ -240,6 +241,7 @@ public class Frameworks {
     private boolean evolveLattice;
     private SqlStatisticProvider statisticProvider;
     private RelOptTable.@Nullable ViewExpander viewExpander;
+    private @Nullable ImmutableList<RelOptRule> volcanoRuleSet;
 
     /** Creates a ConfigBuilder, initializing to defaults. */
     private ConfigBuilder() {
@@ -271,13 +273,14 @@ public class Frameworks {
       typeSystem = config.getTypeSystem();
       evolveLattice = config.isEvolveLattice();
       statisticProvider = config.getStatisticProvider();
+      volcanoRuleSet = config.getVolcanoRuleSet();
     }
 
     public FrameworkConfig build() {
       return new StdFrameworkConfig(context, convertletTable, operatorTable,
           programs, traitDefs, parserConfig, sqlValidatorConfig, sqlToRelConverterConfig,
           defaultSchema, costFactory, typeSystem, executor, evolveLattice,
-          statisticProvider, viewExpander);
+          statisticProvider, viewExpander, volcanoRuleSet);
     }
 
     public ConfigBuilder context(Context c) {
@@ -382,6 +385,11 @@ public class Frameworks {
       this.viewExpander = viewExpander;
       return this;
     }
+
+    public ConfigBuilder volcanoRuleSet(@Nullable ImmutableList<RelOptRule> volcanoRuleSet) {
+      this.volcanoRuleSet = volcanoRuleSet;
+      return this;
+    }
   }
 
   /**
@@ -404,6 +412,7 @@ public class Frameworks {
     private final boolean evolveLattice;
     private final SqlStatisticProvider statisticProvider;
     private final RelOptTable.@Nullable ViewExpander viewExpander;
+    private final @Nullable ImmutableList<RelOptRule> volcanoRuleSet;
 
     StdFrameworkConfig(Context context,
         SqlRexConvertletTable convertletTable,
@@ -419,7 +428,8 @@ public class Frameworks {
         @Nullable RexExecutor executor,
         boolean evolveLattice,
         SqlStatisticProvider statisticProvider,
-        RelOptTable.@Nullable ViewExpander viewExpander) {
+        RelOptTable.@Nullable ViewExpander viewExpander,
+        @Nullable ImmutableList<RelOptRule> volcanoRuleSet) {
       this.context = context;
       this.convertletTable = convertletTable;
       this.operatorTable = operatorTable;
@@ -435,6 +445,7 @@ public class Frameworks {
       this.evolveLattice = evolveLattice;
       this.statisticProvider = statisticProvider;
       this.viewExpander = viewExpander;
+      this.volcanoRuleSet = volcanoRuleSet;
     }
 
     @Override public SqlParser.Config getParserConfig() {
@@ -495,6 +506,10 @@ public class Frameworks {
 
     @Override public RelOptTable.@Nullable ViewExpander getViewExpander() {
       return viewExpander;
+    }
+
+    @Override public @Nullable ImmutableList<RelOptRule> getVolcanoRuleSet() {
+      return volcanoRuleSet;
     }
   }
 }
