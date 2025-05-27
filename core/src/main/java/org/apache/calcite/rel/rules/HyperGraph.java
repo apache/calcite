@@ -504,8 +504,10 @@ public class HyperGraph extends AbstractRelNode {
    * When connect csgcmp to Join, convert RexNodeAndFieldIndex to RexInputRef.
    */
   static class RexNodeAndFieldIndex extends RexVariable {
+    // the index of the node in HyperGraph inputs
     final int nodeIndex;
 
+    // the index of the field in the rowType of the node
     final int fieldIndex;
 
     protected RexNodeAndFieldIndex(int nodeIndex, int fieldIndex, String name, RelDataType type) {

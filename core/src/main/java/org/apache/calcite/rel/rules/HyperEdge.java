@@ -53,6 +53,7 @@ public class HyperEdge {
 
   private final boolean isSimple;
 
+  // converted from join condition, using RexNodeAndFieldIndex instead of RexInputRef
   private final RexNode condition;
 
   public HyperEdge(

@@ -26,7 +26,8 @@ import java.util.Map;
 
 /**
  * Conflict detection algorithm based on CD-C. More details are in paper:
- * On the correct and complete enumeration of the core search space.
+ * <a href="https://15721.courses.cs.cmu.edu/spring2019/papers/23-optimizer2/p493-moerkotte.pdf">
+ *   On the correct and complete enumeration of the core search space</a>.
  */
 public class ConflictDetectionHelper {
 
