@@ -41,6 +41,7 @@ import com.google.common.collect.Interners;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Field;
+import java.math.BigDecimal;
 import java.nio.charset.Charset;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -728,10 +729,10 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       if (clazz.isArray()) {
         return SqlTypeFamily.ARRAY;
       }
-      // TODO: what about Map?
-      // Causes an infinite loop:
-      // return createJavaType(clazz).getFamily();
-      return SqlTypeFamily.ANY; // Default or infer based on class name if truly unknown
+      if (Number.class.isAssignableFrom(clazz)) {
+        return SqlTypeFamily.NUMERIC;
+      }
+      return this;  // Preserve original behavior
     }
 
     @Override protected void generateTypeString(StringBuilder sb, boolean withDetail) {

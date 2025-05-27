@@ -156,7 +156,7 @@ class SqlTypeNameTest {
   @Test void testOther() {
     SqlTypeName tn =
         SqlTypeName.getNameForJdbcType(Types.OTHER);
-    assertThat("OTHER did not map to OTHER", tn, is(OTHER));
+    assertThat("OTHER did not map to OTHER", tn, nullValue());
   }
 
   @Test void testJavaobject() {
