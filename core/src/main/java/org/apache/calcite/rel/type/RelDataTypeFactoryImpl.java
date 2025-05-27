@@ -106,6 +106,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
           .put(Float.class, SqlTypeFamily.APPROXIMATE_NUMERIC)
           .put(double.class, SqlTypeFamily.APPROXIMATE_NUMERIC)
           .put(Double.class, SqlTypeFamily.APPROXIMATE_NUMERIC)
+          .put(BigDecimal.class, SqlTypeFamily.APPROXIMATE_NUMERIC)
           .put(java.sql.Date.class, SqlTypeFamily.DATE)
           .put(Time.class, SqlTypeFamily.TIME)
           .put(Timestamp.class, SqlTypeFamily.TIMESTAMP)
@@ -698,15 +699,14 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
         @Nullable Charset charset,
         @Nullable SqlCollation collation,
         @Nullable RelDataTypeFamily family) {
-      super(null);
-      this.clazz = requireNonNull(clazz, "clazz");
+      super(fieldsOf(clazz));
+      this.clazz = clazz;
       this.nullable = nullable;
+      checkArgument((charset != null) == SqlTypeUtil.inCharFamily(this),
+          "Need to be a chartype");
       this.charset = charset;
       this.collation = collation;
       this.family = family;
-      assert (clazz.isPrimitive() && !nullable)
-        || (!clazz.isPrimitive())
-        || (clazz == Void.class && nullable);
       computeDigest();
     }
 
@@ -723,16 +723,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
         return this.family;
       }
       RelDataTypeFamily family = CLASS_FAMILIES.get(clazz);
-      if (family != null) {
-        return family;
-      }
-      if (clazz.isArray()) {
-        return SqlTypeFamily.ARRAY;
-      }
-      if (Number.class.isAssignableFrom(clazz)) {
-        return SqlTypeFamily.NUMERIC;
-      }
-      return this;  // Preserve original behavior
+      return family != null ? family : this;
     }
 
     @Override protected void generateTypeString(StringBuilder sb, boolean withDetail) {
