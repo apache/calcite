@@ -227,7 +227,7 @@ public class SqlItemOperator extends SqlSpecialOperator {
             + indexType + "'");
       }
       if (operandType.isNullable()) {
-        fieldType = typeFactory.createTypeWithNullability(fieldType, true);
+        fieldType = typeFactory.enforceTypeWithNullability(fieldType, true);
       }
       return fieldType;
     case ANY:
