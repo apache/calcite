@@ -70,6 +70,7 @@ import static org.apache.calcite.sql.fun.SqlLibrary.MYSQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.NETEZZA;
 import static org.apache.calcite.sql.fun.SqlLibrary.ORACLE;
 import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
+import static org.apache.calcite.sql.fun.SqlLibrary.REDSHIFT;
 import static org.apache.calcite.sql.fun.SqlLibrary.SNOWFLAKE;
 import static org.apache.calcite.sql.fun.SqlLibrary.SPARK;
 import static org.apache.calcite.sql.fun.SqlLibrary.SQL_SERVER;
@@ -4171,5 +4172,23 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.GEOMETRY,
           null,
           OperandTypes.family(SqlTypeFamily.STRING),
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {REDSHIFT})
+  public static final SqlFunction ST_POINT =
+      new SqlFunction("ST_POINT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.GEOMETRY,
+          null,
+          OperandTypes.or(OperandTypes.NUMERIC_NUMERIC, STRING_STRING),
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {REDSHIFT})
+  public static final SqlFunction ST_DISTANCE =
+      new SqlFunction("ST_DISTANCE",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DECIMAL_NULLABLE,
+          null,
+          OperandTypes.GEOMETRY_GEOMETRY,
           SqlFunctionCategory.SYSTEM);
 }

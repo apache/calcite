@@ -453,6 +453,9 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker ARRAY_INTEGER_INTEGER =
       family(SqlTypeFamily.ARRAY, SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER);
 
+  public static final SqlSingleOperandTypeChecker GEOMETRY_GEOMETRY =
+      family(SqlTypeFamily.GEO, SqlTypeFamily.GEO);
+
   public static final SqlSingleOperandTypeChecker INTEGER_INTEGER_INTEGER =
       family(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER);
 

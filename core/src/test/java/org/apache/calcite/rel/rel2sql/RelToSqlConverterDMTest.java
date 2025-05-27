@@ -2960,7 +2960,10 @@ class RelToSqlConverterDMTest {
 
     final String sql2 = "select  * from \"employee\" where  \"hire_date\" + "
         + "INTERVAL '1 2:34:56.78' DAY TO SECOND > TIMESTAMP '2005-10-17 00:00:00' ";
-    sql(sql2).withBigQuery().throws_("For input string: \"56.78\"");
+    final String expect2 = "SELECT *\n"
+        + "FROM foodmart.employee\n"
+        + "WHERE hire_date + INTERVAL '1 02:34:56.78' DAY TO SECOND > CAST('2005-10-17 00:00:00' AS DATETIME)";
+    sql(sql2).withBigQuery().ok(expect2);
   }
 
   /** Test case for
@@ -10052,7 +10055,9 @@ class RelToSqlConverterDMTest {
             .project(builder.alias(bitNotRexNode, "bit_not"))
             .build();
     final String expectedBigQuery = "SELECT ~ (10) AS bit_not";
+    final String expectedSparkQuery = "SELECT ~(10) bit_not";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
 
   @Test public void testBitNotForDb2() {
@@ -13224,5 +13229,41 @@ class RelToSqlConverterDMTest {
     final String expectedSql = "SELECT HASHAMP(\"EMPNO\") AS \"FD\"\nFROM \"scott\".\"EMP\"";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+  }
+
+  @Test public void testStPoint() {
+    final RelBuilder builder = relBuilder();
+    final RexNode formatIntegerPaddingRexNode =
+        builder.call(SqlLibraryOperators.ST_POINT,
+            builder.literal(45.3214), builder.literal(45.2144));
+
+    final RelNode root = builder
+        .scan("EMP")
+        .project(formatIntegerPaddingRexNode)
+        .build();
+
+    final String expectedRedShiftQuery = "SELECT ST_POINT(45.3214, 45.2144) AS \"$f0\"\nFROM "
+        + "\"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.REDSHIFT.getDialect()), isLinux(expectedRedShiftQuery));
+  }
+
+  @Test public void testStDistance() {
+    final RelBuilder builder = relBuilder();
+    RexNode point1 =
+        builder.call(SqlLibraryOperators.ST_POINT, builder.literal(45.3214), builder.literal(45.2144));
+    RexNode point2 =
+        builder.call(SqlLibraryOperators.ST_POINT, builder.literal(46.3214), builder.literal(46.2144));
+
+    final RexNode distanceCall = builder.call(SqlLibraryOperators.ST_DISTANCE, point1, point2);
+
+    final RelNode root = builder
+        .scan("EMP")
+        .project(distanceCall)
+        .build();
+
+    final String expectedRedshiftSql = "SELECT ST_DISTANCE(ST_POINT(45.3214, 45.2144), ST_POINT"
+        + "(46.3214, 46.2144)) AS \"$f0\"\nFROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.REDSHIFT.getDialect()), isLinux(expectedRedshiftSql));
   }
 }

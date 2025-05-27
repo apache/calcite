@@ -4706,7 +4706,10 @@ class RelToSqlConverterTest {
 
     final String sql2 = "select  * from \"employee\" where  \"hire_date\" + "
             + "INTERVAL '1 2:34:56.78' DAY TO SECOND > TIMESTAMP '2005-10-17 00:00:00' ";
-    sql(sql2).withBigQuery().throws_("For input string: \"56.78\"");
+    final String expect2 = "SELECT *\n"
+        + "FROM foodmart.employee\n"
+        + "WHERE hire_date + INTERVAL '1 02:34:56.78' DAY TO SECOND > CAST('2005-10-17 00:00:00' AS DATETIME)";
+    sql(sql2).withBigQuery().ok(expect2);
   }
 
   @Test void testUnparseSqlIntervalQualifierFirebolt() {
