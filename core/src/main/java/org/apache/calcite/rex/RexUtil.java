@@ -1885,7 +1885,7 @@ public class RexUtil {
         if (fieldAccess.getReferenceExpr() instanceof RexCorrelVariable
             && ((RexCorrelVariable) fieldAccess.getReferenceExpr()).id.equals(id)) {
           return rexBuilder.makeFieldAccess(correl,
-              fieldAccess.getField().getIndex() - offset);
+              fieldAccess.getField().getIndex() + offset);
         }
         return fieldAccess;
       }

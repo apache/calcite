@@ -30,7 +30,6 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.LogicVisitor;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCorrelVariable;
@@ -739,8 +738,7 @@ public class SubQueryRemoveRule
           CorrelationId newCorId = builder.getCluster().createCorrel();
           CorrelationId originCorId = Iterables.getOnlyElement(variablesSet);
           RelNode newRel =
-              replaceCorrelationId(builder.getRexBuilder(), builder.build(),
-                  originCorId, newCorId, builder.peek().getRowType());
+              replaceCorrelationId(builder.getRexBuilder(), builder.build(), originCorId, newCorId);
           builder.push(newRel);
           builder.as(ctAlias);
           builder.join(JoinRelType.LEFT, trueLiteral, ImmutableSet.of(newCorId));
@@ -859,17 +857,17 @@ public class SubQueryRemoveRule
 
   /**
    * Replace every {@link RexFieldAccess} in the given {@link RelNode}
-   * that reference the specified {@link CorrelationId} with another {@link CorrelationId}.
+   * that references the specified {@link CorrelationId} with another {@link CorrelationId}.
    */
   public static RelNode replaceCorrelationId(RexBuilder rexBuilder, RelNode node,
-      final CorrelationId from, final CorrelationId to, RelDataType type) {
+      final CorrelationId from, final CorrelationId to) {
     return node.accept(new RelHomogeneousShuttle() {
       @Override public RelNode visit(RelNode other) {
         other = other.accept(new RexShuttle() {
           @Override public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
             if (fieldAccess.getReferenceExpr() instanceof RexCorrelVariable
                 && ((RexCorrelVariable) fieldAccess.getReferenceExpr()).id.equals(from)) {
-              RexNode correl = rexBuilder.makeCorrel(type, to);
+              RexNode correl = rexBuilder.makeCorrel(fieldAccess.getReferenceExpr().getType(), to);
               return rexBuilder.makeFieldAccess(correl, fieldAccess.getField().getIndex());
             }
             return fieldAccess;
@@ -1013,16 +1011,33 @@ public class SubQueryRemoveRule
       if (!variablesSet.isEmpty()) {
         // Original correlates reference joint row type, but we are about to create
         // new join of original right side and correlated sub-query. Therefore we have
-        // to adjust correlated variables int following way:
+        // to adjust correlated variables in following way:
         //      1) new correlation variable must reference row type of right side only
         //      2) field index must be shifted on the size of the left side
+        // Example:
+        //  LogicalJoin(condition=[AND(=($7, $8), IN($8, {
+        //  LogicalProject(DEPTNO=[$7])
+        //    LogicalFilter(condition=[>($cor0.DEPTNO0), $6)])
+        //      LogicalTableScan(table=[[A]])
+        //  }))], joinType=[left])
+        //    LogicalTableScan(table=[[B]])
+        //    LogicalTableScan(table=[[C]])
+        // Rewrite to:
+        //   LogicalJoin(condition=[=($7, $8)], joinType=[left])
+        //     LogicalTableScan(table=[[B]])
+        //     LogicalFilter(condition=[=($0, $1)])
+        //       LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+        //         LogicalTableScan(table=[[C]])
+        //         LogicalAggregate(group=[{0}])
+        //             LogicalFilter(condition=[>($cor0.DEPTNO), $6)])
+        //               LogicalTableScan(table=[[A]])
         CorrelationId id = Iterables.getOnlyElement(variablesSet);
         RexBuilder rexBuilder = builder.getRexBuilder();
 
         RelNode newSubQueryRel = e.rel.accept(new RelHomogeneousShuttle() {
           @Override public RelNode visit(RelNode other) {
             RelNode node =
-                RexUtil.shiftFieldAccess(rexBuilder, other, id, join.getRight(), nFieldsLeft);
+                RexUtil.shiftFieldAccess(rexBuilder, other, id, join.getRight(), -nFieldsLeft);
             return super.visit(node);
           }
         });
