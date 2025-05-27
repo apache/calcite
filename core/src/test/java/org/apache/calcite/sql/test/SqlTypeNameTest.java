@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 
 import java.sql.Types;
 
+<<<<<<< HEAD
 import static org.apache.calcite.sql.type.SqlTypeName.ARRAY;
 import static org.apache.calcite.sql.type.SqlTypeName.BIGINT;
 import static org.apache.calcite.sql.type.SqlTypeName.BINARY;
@@ -46,6 +47,7 @@ import static org.apache.calcite.sql.type.SqlTypeName.USMALLINT;
 import static org.apache.calcite.sql.type.SqlTypeName.UTINYINT;
 import static org.apache.calcite.sql.type.SqlTypeName.VARBINARY;
 import static org.apache.calcite.sql.type.SqlTypeName.VARCHAR;
+import static org.apache.calcite.sql.type.SqlTypeName.OTHER;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -202,7 +204,7 @@ class SqlTypeNameTest {
   @Test void testOther() {
     SqlTypeName tn =
         SqlTypeName.getNameForJdbcType(Types.OTHER);
-    assertThat("OTHER did not map to null", tn, nullValue());
+    assertThat("OTHER did not map to OTHER", tn, is(OTHER));
   }
 
   @Test void testJavaobject() {
