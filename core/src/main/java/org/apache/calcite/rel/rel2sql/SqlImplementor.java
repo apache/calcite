@@ -1276,6 +1276,10 @@ public abstract class SqlImplementor {
         return preOperandList.get(0);
       }
 
+      if (op == SqlInternalOperators.CAST_NOT_NULL) {
+        return preOperandList.get(0);
+      }
+
       if (op instanceof SqlSumEmptyIsZeroAggFunction) {
         final SqlNode node =
             toSql(SqlStdOperatorTable.SUM, distinct, preOperandList,
