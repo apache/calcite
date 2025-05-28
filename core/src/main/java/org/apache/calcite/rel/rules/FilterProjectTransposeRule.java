@@ -20,12 +20,14 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.plan.SubQueryAliasTrait;
 import org.apache.calcite.plan.SubQueryAliasTraitDef;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
@@ -39,10 +41,12 @@ import org.immutables.value.Value;
 import java.util.Collections;
 import java.util.function.Predicate;
 
+import static org.apache.calcite.plan.RelTraitSet.createEmpty;
+
 /**
  * Planner rule that pushes
- * a {@link org.apache.calcite.rel.core.Filter}
- * past a {@link org.apache.calcite.rel.core.Project}.
+ * a {@link Filter}
+ * past a {@link Project}.
  *
  * @see CoreRules#FILTER_PROJECT_TRANSPOSE
  */
@@ -64,7 +68,7 @@ public class FilterProjectTransposeRule
    * with some default predicates that do not allow a filter to be pushed
    * past the project if there is a correlation condition anywhere in the
    * filter (since in some cases it can prevent a
-   * {@link org.apache.calcite.rel.core.Correlate} from being de-correlated).
+   * {@link Correlate} from being de-correlated).
    */
   @Deprecated // to be removed before 2.0
   public FilterProjectTransposeRule(
@@ -173,10 +177,12 @@ public class FilterProjectTransposeRule
     RelNode newFilterRel;
     if (config.isCopyFilter()) {
       final RelNode input = project.getInput();
-      RelTraitSet filterTraitSet = filter.getTraitSet();
-      // If the filter has a SubQueryAliasTrait, we need to keep project traits
-      if (filterSubQueryAliasTrait != null) {
-        filterTraitSet = project.getTraitSet();
+      RelTraitSet filterTraitSet = createEmpty();
+      // Creating the filter trait set without SubQueryAliasTrait
+      for (RelTrait trait : filter.getTraitSet()) {
+        if (!(trait instanceof SubQueryAliasTrait)) {
+          filterTraitSet = filterTraitSet.plus(trait);
+        }
       }
       final RelTraitSet traitSet = filterTraitSet
           .replaceIfs(RelCollationTraitDef.INSTANCE,
@@ -192,10 +198,10 @@ public class FilterProjectTransposeRule
           relBuilder.push(project.getInput()).filter(newCondition).build();
     }
 
-    // If the filter has a SubQueryAliasTrait, we need to keep filter traits
+    // If the filter has a SubQueryAliasTrait and project trait set no alias trait, add it to project trait set
     RelTraitSet projectTraitSet = project.getTraitSet();
-    if (filterSubQueryAliasTrait != null) {
-      projectTraitSet = filter.getTraitSet();
+    if (filterSubQueryAliasTrait != null && projectTraitSet.getTrait(SubQueryAliasTraitDef.instance) == null) {
+      projectTraitSet = projectTraitSet.plus(filterSubQueryAliasTrait);
     }
     RelNode newProject =
         config.isCopyProject()
