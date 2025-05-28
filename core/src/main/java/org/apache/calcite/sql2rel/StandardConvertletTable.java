@@ -295,6 +295,14 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     registerOp(SqlInternalOperators.MEASURE,
         (cx, call) -> cx.convertExpression(call.operand(0)));
 
+    // Expand "CAST NOT NULL(x)" into "CAST(x AS INTEGER NOT NULL)"
+    registerOp(SqlInternalOperators.CAST_NOT_NULL,
+        (cx, call) ->
+            cx.getRexBuilder().makeCast(
+                cx.getTypeFactory().createTypeWithNullability(
+                    cx.getValidator().getValidatedNodeType(call), false),
+                cx.convertExpression(call.operand(0))));
+
     registerOp(SqlStdOperatorTable.CONVERT, this::convertCharset);
     registerOp(SqlLibraryOperators.CONVERT_ORACLE, this::convertCharset);
     registerOp(SqlStdOperatorTable.TRANSLATE, this::translateCharset);

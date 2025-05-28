@@ -5227,6 +5227,18 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7044">[CALCITE-7044]
+   * Add internal operator CAST NOT NULL to enhance rewrite COALESCE operator</a>. */
+  @Test void testCoalesceSubquery() {
+    final String sql = "SELECT"
+        + "  deptno, "
+        + "  coalesce((select sum(empno) from emp "
+        + "  where deptno = emp.deptno limit 1), 0) as w "
+        + "FROM dept";
+    sql(sql).ok();
+  }
+
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4145">[CALCITE-4145]

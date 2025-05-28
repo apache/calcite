@@ -224,6 +224,40 @@ public abstract class SqlInternalOperators {
   public static final SqlAggFunction LITERAL_AGG =
       SqlLiteralAggFunction.INSTANCE;
 
+  /** CAST NOT NULL operator used for cast expression to make it non-nullable in SqlNode.
+   *
+   * <p>For example:
+   * <pre>{@code COALESCE(a,b)
+   * }</pre>
+   *
+   * <p>is converted to
+   *
+   * <pre>{@code CASE WHEN a is not null THEN a ELSE b
+   * }</pre>
+   * by {@code SqlCoalesceFunction#rewriteCall}.
+   *
+   * <p>When a is nullable and b is non-nullable, the {@code COALESCE(a,b)} data type will be
+   * non-nullable and {@code CASE WHEN a is not null THEN a ELSE b} data type will be nullable.
+   * The validator will throw an exception about failing to preserve the data type.
+   *
+   * <p>Add CAST NOT NULL operator to {@code CASE WHEN a is not null THEN a ELSE b},
+   * making it becomes
+   * <pre>{@code CASE WHEN a is not null THEN CAST NOT NULL(a) ELSE b}
+   * </pre>
+   *
+   * <p>Then the validator knows this data type is non-nullable.
+   * So we can keep the types consistent before and after conversion.
+   * */
+  public static final SqlOperator CAST_NOT_NULL =
+      new SqlInternalOperator("CAST NOT NULL", SqlKind.CAST_NOT_NULL, 2, true,
+          ReturnTypes.ARG0.andThen(SqlTypeTransforms.TO_NOT_NULLABLE), null,
+          OperandTypes.ANY) {
+        // This is an internal operator, which should not be unparsed to sql.
+        @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+          call.operand(0).unparse(writer, leftPrec, rightPrec);
+        }
+      };
+
   /** Subject to change. */
   private static class SqlBasicOperator extends SqlOperator {
     @Override public SqlSyntax getSyntax() {
