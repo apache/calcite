@@ -21,6 +21,8 @@ import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.SubQueryAliasTrait;
+import org.apache.calcite.plan.SubQueryAliasTraitDef;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelNode;
@@ -151,6 +153,7 @@ public class FilterProjectTransposeRule
 
   @Override public void onMatch(RelOptRuleCall call) {
     final Filter filter = call.rel(0);
+    SubQueryAliasTrait filterSubQueryAliasTrait = filter.getTraitSet().getTrait(SubQueryAliasTraitDef.instance);
     final Project project = call.rel(1);
 
     if (project.containsOver()) {
@@ -170,7 +173,12 @@ public class FilterProjectTransposeRule
     RelNode newFilterRel;
     if (config.isCopyFilter()) {
       final RelNode input = project.getInput();
-      final RelTraitSet traitSet = filter.getTraitSet()
+      RelTraitSet filterTraitSet = filter.getTraitSet();
+      // If the filter has a SubQueryAliasTrait, we need to keep project traits
+      if (filterSubQueryAliasTrait != null) {
+        filterTraitSet = project.getTraitSet();
+      }
+      final RelTraitSet traitSet = filterTraitSet
           .replaceIfs(RelCollationTraitDef.INSTANCE,
               () -> Collections.singletonList(
                       input.getTraitSet().getTrait(RelCollationTraitDef.INSTANCE)))
@@ -184,9 +192,14 @@ public class FilterProjectTransposeRule
           relBuilder.push(project.getInput()).filter(newCondition).build();
     }
 
+    // If the filter has a SubQueryAliasTrait, we need to keep filter traits
+    RelTraitSet projectTraitSet = project.getTraitSet();
+    if (filterSubQueryAliasTrait != null) {
+      projectTraitSet = filter.getTraitSet();
+    }
     RelNode newProject =
         config.isCopyProject()
-            ? project.copy(project.getTraitSet(), newFilterRel,
+            ? project.copy(projectTraitSet, newFilterRel,
             project.getProjects(), project.getRowType())
             : relBuilder.push(newFilterRel)
                 .project(project.getProjects(), project.getRowType().getFieldNames(), false,
