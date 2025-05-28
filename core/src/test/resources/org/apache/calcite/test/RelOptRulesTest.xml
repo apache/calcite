@@ -7225,7 +7225,7 @@ empnullables t2 on coalesce(t1.ename, t2.ename) = 'abc']]>
     <Resource name="planBefore">
       <![CDATA[
 LogicalProject(DEPTNO=[$7])
-  LogicalJoin(condition=[=(CASE(IS NOT NULL($1), $1, $10), 'abc')], joinType=[inner])
+  LogicalJoin(condition=[=(CASE(IS NOT NULL($1), CAST($1):VARCHAR(20) NOT NULL, $10), 'abc')], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
 ]]>
