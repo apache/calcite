@@ -39,7 +39,6 @@ import com.google.common.collect.Interner;
 import com.google.common.collect.Interners;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.locationtech.jts.geom.Geometry;
 
 import java.lang.reflect.Field;
 import java.nio.charset.Charset;
@@ -109,7 +108,6 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
           .put(java.sql.Date.class, SqlTypeFamily.DATE)
           .put(Time.class, SqlTypeFamily.TIME)
           .put(Timestamp.class, SqlTypeFamily.TIMESTAMP)
-          .put(Geometry.class, SqlTypeFamily.GEOMETRY)
           .build();
 
   protected final RelDataTypeSystem typeSystem;
@@ -127,7 +125,6 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     return typeSystem;
   }
 
-  // implement RelDataTypeFactory
   @Override public RelDataType createJavaType(Class clazz) {
     return createJavaType(clazz, null);
   }
