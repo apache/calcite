@@ -100,7 +100,7 @@ Wei Zhou,
 Xiong Duan,
 Yu Xu,
 Zhen Chen,
-zhuyufeng,
+zhuyufeng
 
 Compatibility: This release is tested on Linux, macOS, Microsoft Windows;
 using JDK/OpenJDK versions 8 to 23;
@@ -131,6 +131,10 @@ After: `F(A => TABLE T PARTITION BY F1 ORDER BY F2, B => 1)`
 Taking `RexBuilder#makeIn($0, ARRAY [100, 200], ARRAY [300, 400])` as an example you have:
 Before: `OR(=($0, ARRAY(100, 200)), =($0, ARRAY(300, 400)))`
 After: `SEARCH($0, Sarg[[100:INTEGER, 200:INTEGER]:INTEGER NOT NULL ARRAY, [300:INTEGER, 400:INTEGER]:INTEGER NOT NULL ARRAY]:INTEGER NOT NULL ARRAY)`
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-6959">CALCITE-6959</a>]
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-6961">CALCITE-6961</a>]
+Addition of non-default methods for `LogicalAsofJoin` and `LogicalRepeatUnion`, respectively, to `RelShuttle`.
 
 #### New features
 {: #new-features-1-40-0}
