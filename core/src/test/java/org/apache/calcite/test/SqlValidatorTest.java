@@ -8785,9 +8785,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     // verify left join of CTEs
     sql("with t1 as (select stream * from orders), t2 as (select * from products_temporal)\n"
-        + "select * from t1 left join t2\n"
+        + "select * from t1 left join ^t2^\n"
         + "for system_time as of CURRENT_TIMESTAMP\n"
-        + "on t1.productid = t2.productid").ok();
+        + "on t1.productid = t2.productid")
+        .fails("Table 'T2' is not a temporal table, "
+            + "can not be queried in system time period specification");
   }
 
   @Test void testScalarSubQuery() {
