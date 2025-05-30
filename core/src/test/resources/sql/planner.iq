@@ -147,7 +147,7 @@ EnumerableCalc(expr#0..2=[{inputs}], $f0=[$t1], $f1=[$t2])
 !plan
 !set planner-rules original
 
-# [CALCITE-7042] Trim function does not have idempotency simplification
+# [CALCITE-7042] Eliminate nested TRIM calls, exploiting the fact that TRIM id idempotent
 # this would eliminate trim calls to only one, because trim way and trimed string is the same.
 select trim(trim(' aa '));
 +--------+
