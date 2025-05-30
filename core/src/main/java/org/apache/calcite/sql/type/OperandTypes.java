@@ -597,6 +597,9 @@ public abstract class OperandTypes {
   public static final FamilyOperandTypeChecker INTERVAL_INTERVAL =
       family(SqlTypeFamily.DATETIME_INTERVAL, SqlTypeFamily.DATETIME_INTERVAL);
 
+  public static final FamilyOperandTypeChecker TIME_TIME =
+      family(SqlTypeFamily.TIME, SqlTypeFamily.TIME);
+
   public static final SqlSingleOperandTypeChecker MULTISET =
       family(SqlTypeFamily.MULTISET);
 
@@ -1243,7 +1246,7 @@ public abstract class OperandTypes {
 
   public static final SqlSingleOperandTypeChecker MINUS_OPERATOR =
       // TODO:  compatibility check
-      NUMERIC_NUMERIC.or(INTERVAL_SAME_SAME).or(DATETIME_INTERVAL).or(DATE_DATE);
+      NUMERIC_NUMERIC.or(INTERVAL_SAME_SAME).or(DATETIME_INTERVAL).or(DATE_DATE).or(TIME_TIME);
 
   public static final FamilyOperandTypeChecker MINUS_DATE_OPERATOR =
       new FamilyOperandTypeChecker(
