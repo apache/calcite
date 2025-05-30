@@ -229,6 +229,42 @@ public class NlsString implements Comparable<NlsString>, Cloneable {
 
   /**
    * Returns a string the same as this but with spaces trimmed from the
+   * left and right.
+   */
+  public NlsString trim(String trimed) {
+    String trimmed = SqlFunctions.trim(true, true, trimed, getValue());
+    if (!trimmed.equals(getValue())) {
+      return new NlsString(trimmed, charsetName, collation);
+    }
+    return this;
+  }
+
+  /**
+   * Returns a string the same as this but with spaces trimmed from the
+   * left.
+   */
+  public NlsString ltrim(String trimed) {
+    String trimmed = SqlFunctions.trim(true, false, trimed, getValue());
+    if (!trimmed.equals(getValue())) {
+      return new NlsString(trimmed, charsetName, collation);
+    }
+    return this;
+  }
+
+  /**
+   * Returns a string the same as this but with spaces trimmed from the
+   * right.
+   */
+  public NlsString rtrim(String trimed) {
+    String trimmed = SqlFunctions.trim(false, true, trimed, getValue());
+    if (!trimmed.equals(getValue())) {
+      return new NlsString(trimmed, charsetName, collation);
+    }
+    return this;
+  }
+
+  /**
+   * Returns a string the same as this but with spaces trimmed from the
    * right.  The result is never shorter than minResultSize.
    *
    * @param minResultSize Expected size for result string.  If negative, it indicates

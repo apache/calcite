@@ -25,6 +25,7 @@ import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
@@ -358,6 +359,97 @@ public class RexImplicationCheckerTest {
     assertThat(
         f.simplify.simplifyPreservingType(e2, RexUnknownAs.UNKNOWN, false),
         hasToString("2014"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7042">[CALCITE-7042]
+   * Trim function does not have idempotency simplification</a>. */
+  @Test void testSimplifyIdempotentFunctions() {
+    final Fixture f = new Fixture();
+    RexLiteral trimBoth = f.rexBuilder.makeLiteral("BOTH");
+    RexLiteral trimed = f.rexBuilder.makeLiteral("a");
+    RexLiteral trimString = f.rexBuilder.makeLiteral("bb");
+
+    // trim way and string are the same
+    RexCall innerTrimCall =
+        (RexCall) f.rexBuilder.makeCall(SqlStdOperatorTable.TRIM, trimBoth, trimed, trimString);
+    RexCall outerTrimCall =
+        (RexCall) f.rexBuilder.makeCall(SqlStdOperatorTable.TRIM, trimBoth, trimed, innerTrimCall);
+    RexCall trimSimplifiedCall =
+        (RexCall) f.simplify.simplifyPreservingType(outerTrimCall,
+            RexUnknownAs.UNKNOWN, true);
+
+    // after simplify trimSimplifiedCall is equal to innerTrimCall
+    assertThat(trimSimplifiedCall.getKind(), is(SqlKind.TRIM));
+    assertThat(((RexLiteral) trimSimplifiedCall.getOperands().get(1))
+            .getValue(),
+        is(((RexLiteral) innerTrimCall.getOperands().get(1)).getValue()));
+    assertThat(((RexLiteral) trimSimplifiedCall.getOperands().get(2))
+            .getValue(),
+        is(((RexLiteral) innerTrimCall.getOperands().get(2)).getValue()));
+
+    // trim string are expression
+    final RelDataType integer =
+        f.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
+    final RexNode lengthArg = f.rexBuilder.makeLiteral(1, integer, true);
+    RexNode expressionTrim =
+        f.rexBuilder.makeCall(SqlStdOperatorTable.SUBSTRING, trimed, lengthArg);
+    innerTrimCall =
+        (RexCall) f.rexBuilder.makeCall(SqlStdOperatorTable.TRIM, trimBoth,
+            expressionTrim, trimString);
+    outerTrimCall =
+        (RexCall) f.rexBuilder.makeCall(SqlStdOperatorTable.TRIM, trimBoth,
+            expressionTrim, innerTrimCall);
+    trimSimplifiedCall =
+        (RexCall) f.simplify.simplifyPreservingType(outerTrimCall,
+            RexUnknownAs.UNKNOWN, true);
+    // after simplify trimSimplifiedCall is equal to innerTrimCall
+    assertThat((trimSimplifiedCall.getOperands().get(1)),
+        is(innerTrimCall.getOperands().get(1)));
+    assertThat((trimSimplifiedCall.getOperands().get(2)),
+        is(innerTrimCall.getOperands().get(2)));
+
+    // Negative test of trim way is not the same
+    RexLiteral trimLeft = f.rexBuilder.makeLiteral("LEADING");
+    innerTrimCall =
+        (RexCall) f.rexBuilder.makeCall(SqlStdOperatorTable.TRIM, trimBoth, trimed, trimString);
+    RexCall outerLeftTrimCall =
+        (RexCall) f.rexBuilder.makeCall(SqlStdOperatorTable.TRIM, trimLeft, trimed, innerTrimCall);
+    trimSimplifiedCall =
+        (RexCall) f.simplify.simplifyPreservingType(outerLeftTrimCall,
+            RexUnknownAs.UNKNOWN, true);
+
+    // after simplify trimSimplifiedCall is not equal to innerTrimCall
+    assertThat(trimSimplifiedCall.getKind(), is(SqlKind.TRIM));
+    assertThat(((RexLiteral) trimSimplifiedCall.getOperands().get(1))
+            .getValue(),
+        is(((RexLiteral) innerTrimCall.getOperands().get(1)).getValue()));
+    assertThat(trimSimplifiedCall.getOperands().get(2),
+        is(innerTrimCall));
+
+    // Negative test of trimed string is null
+    RexLiteral trimNull = f.rexBuilder.makeNullLiteral(trimString.getType());
+    innerTrimCall =
+        (RexCall) f.rexBuilder.makeCall(SqlStdOperatorTable.TRIM, trimBoth, trimNull, trimString);
+    RexCall outerNullTrimCall =
+        (RexCall) f.rexBuilder.makeCall(SqlStdOperatorTable.TRIM, trimLeft, trimed, innerTrimCall);
+    RexNode trimSimplifiedNullCall =
+        f.simplify.simplifyPreservingType(outerNullTrimCall,
+            RexUnknownAs.UNKNOWN, true);
+    // after simplify trimSimplifiedCall is equal to null
+    assertThat(trimSimplifiedNullCall, hasToString("null:VARCHAR(2)"));
+
+    // Negative test of string is null
+    trimNull = f.rexBuilder.makeNullLiteral(trimString.getType());
+    innerTrimCall =
+        (RexCall) f.rexBuilder.makeCall(SqlStdOperatorTable.TRIM, trimBoth, trimed, trimNull);
+    outerNullTrimCall =
+        (RexCall) f.rexBuilder.makeCall(SqlStdOperatorTable.TRIM, trimLeft, trimed, innerTrimCall);
+    trimSimplifiedNullCall =
+        f.simplify.simplifyPreservingType(outerNullTrimCall,
+            RexUnknownAs.UNKNOWN, true);
+    // after simplify trimSimplifiedCall is equal to null
+    assertThat(trimSimplifiedNullCall, hasToString("null:VARCHAR(2)"));
   }
 
   /** Test case for simplifier of ceil/floor. */

@@ -148,6 +148,7 @@ EnumerableCalc(expr#0..2=[{inputs}], $f0=[$t1], $f1=[$t2])
 !set planner-rules original
 
 # [CALCITE-7042] Trim function does not have idempotency simplification
+# this would eliminate trim calls to only one, because trim way and trimed string is the same.
 select trim(trim(' aa '));
 +--------+
 | EXPR$0 |
@@ -162,6 +163,7 @@ EnumerableCalc(expr#0=[{inputs}], expr#1=[FLAG(BOTH)], expr#2=[' '], expr#3=[' a
   EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
+# this would not eliminate trim calls to only one, because trimed string is not the same.
 select trim(trim(both 'c' from ' aa '));
 +--------+
 | EXPR$0 |
@@ -176,6 +178,7 @@ EnumerableCalc(expr#0=[{inputs}], expr#1=[FLAG(BOTH)], expr#2=[' '], expr#3=['c'
   EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
+# this would eliminate trim calls to only one, because trim way and trimed string is the same.
 select trim(both 'c' from trim(both 'c' from ' aa '));
 +--------+
 | EXPR$0 |
@@ -190,6 +193,7 @@ EnumerableCalc(expr#0=[{inputs}], expr#1=[FLAG(BOTH)], expr#2=['c'], expr#3=[' a
   EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
+# this would not eliminate trim calls to only one, because trim way is not the same.
 select trim(leading 'c' from trim(both 'c' from ' aa '));
 +--------+
 | EXPR$0 |
