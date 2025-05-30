@@ -363,7 +363,7 @@ public class RexImplicationCheckerTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7042">[CALCITE-7042]
-   * Eliminate nested TRIM calls, exploiting the fact that TRIM id idempotent</a>. */
+   * Eliminate nested TRIM calls, exploiting the fact that TRIM is idempotent</a>. */
   @Test void testSimplifyIdempotentFunctions() {
     final Fixture f = new Fixture();
     RexLiteral trimBoth = f.rexBuilder.makeLiteral("BOTH");

@@ -147,7 +147,7 @@ EnumerableCalc(expr#0..2=[{inputs}], $f0=[$t1], $f1=[$t2])
 !plan
 !set planner-rules original
 
-# [CALCITE-7042] Eliminate nested TRIM calls, exploiting the fact that TRIM id idempotent
+# [CALCITE-7042] Eliminate nested TRIM calls, exploiting the fact that TRIM is idempotent
 # this would eliminate trim calls to only one, because trim way and trimed string is the same.
 select trim(trim(' aa '));
 +--------+
@@ -190,6 +190,20 @@ select trim(both 'c' from trim(both 'c' from ' aa '));
 !ok
 
 EnumerableCalc(expr#0=[{inputs}], expr#1=[FLAG(BOTH)], expr#2=['c'], expr#3=[' aa '], expr#4=[TRIM($t1, $t2, $t3)], EXPR$0=[$t4])
+  EnumerableValues(tuples=[[{ 0 }]])
+!plan
+
+select trim(both 'c' from trim(both 'c' from 'caac'));
++--------+
+| EXPR$0 |
++--------+
+| aa     |
++--------+
+(1 row)
+
+!ok
+
+EnumerableCalc(expr#0=[{inputs}], expr#1=[FLAG(BOTH)], expr#2=['c'], expr#3=['caac'], expr#4=[TRIM($t1, $t2, $t3)], EXPR$0=[$t4])
   EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
