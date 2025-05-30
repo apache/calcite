@@ -389,7 +389,26 @@ public class HyperGraph extends AbstractRelNode {
   }
 
   /**
-   * Restore join condition from hyper edges.
+   * Check whether the csg-cmp pair is applicable through the conflict rule.
+   *
+   * @param csgcmp  csg-cmp pair
+   * @param edges   hyper edges with conflict rules
+   * @return  true if the csg-cmp pair is applicable
+   */
+  public boolean applicable(long csgcmp, List<HyperEdge> edges) {
+    for (HyperEdge edge : edges) {
+      for (Map.Entry<Long, Long> rule : edge.getConflictRules().entrySet()) {
+        if (LongBitmap.isOverlap(csgcmp, rule.getKey())
+            && !LongBitmap.isSubSet(rule.getValue(), csgcmp)) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Build an RexNode expression for the predicate corresponding to a set of hyperedges.
    *
    * @param inputOrder  node order from left to right for current csg-cmp
    * @param leftCount   number of tables in left child
@@ -435,7 +454,7 @@ public class HyperGraph extends AbstractRelNode {
             Integer fieldOffset =
                 relativePositionInNode.get(((RexNodeAndFieldIndex) operand).nodeIndex);
             if (fieldOffset == null) {
-              throw new DpHyp.DphypOrHyperGraphException(
+              throw new AssertionError(
                   "The condition of edge and inputOrder do not match");
             }
             int inputRef = ((RexNodeAndFieldIndex) operand).fieldIndex + fieldOffset;
@@ -460,7 +479,8 @@ public class HyperGraph extends AbstractRelNode {
   }
 
   /**
-   * Restore the projection order of the final result to the original plan.
+   * Ensure that the fields produced by the reordered join are in the same order as in the original
+   * plan.
    *
    * @param resultOrder the node order of the final result
    * @param rowTypeList rowType of the final result
@@ -486,8 +506,8 @@ public class HyperGraph extends AbstractRelNode {
       for (int i = 0; i < inputs.get(inputIndex).getRowType().getFieldCount(); i++) {
         Integer fieldOffset = relativePositionInNode.get(inputIndex);
         if (fieldOffset == null) {
-          throw new DpHyp.DphypOrHyperGraphException(
-              "The result order loses the " + inputIndex + "-th input");
+          throw new AssertionError(
+              "The result order looses the " + inputIndex + "-th input");
         }
         int inputRef = i + fieldOffset;
         projects.add(

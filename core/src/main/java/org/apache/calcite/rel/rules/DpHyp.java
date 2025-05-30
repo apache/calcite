@@ -183,18 +183,18 @@ public class DpHyp {
     ImmutableList csgOrder = resultInputOrder.get(csg);
     ImmutableList cmpOrder = resultInputOrder.get(cmp);
     if (child1 == null || child2 == null) {
-      throw new DphypOrHyperGraphException(
+      throw new AssertionError(
           "csg and cmp were not enumerated in the previous dp process");
     }
     if (csgOrder == null || cmpOrder == null) {
-      throw new DphypOrHyperGraphException("Lost the vertex order of csg or cmp");
+      throw new AssertionError("Lost the vertex order of csg or cmp");
     }
 
     JoinRelType joinType = hyperGraph.extractJoinType(edges);
     if (joinType == null) {
       return;
     }
-    if (!ConflictDetectionHelper.applicable(csg | cmp, edges)) {
+    if (!hyperGraph.applicable(csg | cmp, edges)) {
       return;
     }
 
@@ -250,7 +250,7 @@ public class DpHyp {
     }
     ImmutableList<Integer> resultOrder = resultInputOrder.get(wholeGraph);
     if (resultOrder == null) {
-      throw new DphypOrHyperGraphException("Lost the vertex order of final result");
+      throw new AssertionError("Lost the vertex order of final result");
     }
 
     List<RexNode> projects =
@@ -271,15 +271,6 @@ public class DpHyp {
       return plan1;
     } else {
       return plan2;
-    }
-  }
-
-  /**
-   * Exception that indicates an error occurred while building a hyper graph or enumerating.
-   */
-  static class DphypOrHyperGraphException extends RuntimeException {
-    DphypOrHyperGraphException(String message) {
-      super(message);
     }
   }
 
