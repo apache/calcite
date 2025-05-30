@@ -10519,7 +10519,7 @@ class RelToSqlConverterDMTest {
     final String expected = "SELECT EXTRACT(DAY FROM birth_date)\n"
         + "FROM foodmart.employee\n"
         + "GROUP BY EXTRACT(DAY FROM birth_date)\n"
-        + "ORDER BY 1 NULLS LAST";
+        + "ORDER BY EXTRACT(DAY FROM birth_date) NULLS LAST";
 
     sql(query)
         .schema(CalciteAssert.SchemaSpec.JDBC_FOODMART)
