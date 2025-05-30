@@ -88,7 +88,7 @@ public class JoinToHyperGraphRule
       leftSubEdges.addAll(((HyperGraph) left).getEdges());
       rightSubEdges.addAll(
           ((HyperGraph) right).getEdges().stream()
-              .map(hyperEdge -> adjustNodeBit(hyperEdge, leftNodeCount))
+              .map(hyperEdge -> hyperEdge.adjustNodeBit(leftNodeCount))
               .collect(Collectors.toList()));
     } else if (left instanceof HyperGraph) {
       leftNodeCount = left.getInputs().size();
@@ -107,7 +107,7 @@ public class JoinToHyperGraphRule
 
       rightSubEdges.addAll(
           ((HyperGraph) right).getEdges().stream()
-              .map(hyperEdge -> adjustNodeBit(hyperEdge, leftNodeCount))
+              .map(hyperEdge -> hyperEdge.adjustNodeBit(leftNodeCount))
               .collect(Collectors.toList()));
     } else {
       leftNodeCount = 1;
@@ -152,7 +152,7 @@ public class JoinToHyperGraphRule
         @Override public RexNode visitInputRef(RexInputRef inputRef) {
           Integer nodeIndex = fieldIndexToNodeIndexMap.get(inputRef.getIndex());
           if (nodeIndex == null) {
-            throw new DpHyp.DphypOrHyperGraphException("When build hyper graph, RexInputRef refers "
+            throw new AssertionError("When build hyper graph, RexInputRef refers "
                 + "a dummy field: " + inputRef + ", rowType is: " + origJoin.getRowType());
           }
           if (nodeIndex < leftNodeCount) {
@@ -162,12 +162,12 @@ public class JoinToHyperGraphRule
           }
           Integer fieldOffset = relativePositionInNode.get(nodeIndex);
           if (fieldOffset == null) {
-            throw new DpHyp.DphypOrHyperGraphException("When build hyper graph, failed to map "
+            throw new AssertionError("When build hyper graph, failed to map "
                 + "input index to field count before it");
           }
           int fieldIndex = inputRef.getIndex() - fieldOffset;
           if (fieldIndex < 0) {
-            throw new DpHyp.DphypOrHyperGraphException("When build hyper graph, failed to convert "
+            throw new AssertionError("When build hyper graph, failed to convert "
                 + "the input ref to the relative position of the field in the input");
           }
           return new HyperGraph.RexNodeAndFieldIndex(
@@ -185,8 +185,8 @@ public class JoinToHyperGraphRule
       if (leftRefs.isEmpty() || rightRefs.isEmpty()) {
         // when cartesian product or degenerate predicate, a complex hyperedge is generated to fix
         // current join operator without exploring more possibilities. See section 6.2 in CD-C paper
-        leftEndpoint = LongBitmap.newBitmapBetween(0, leftNodeCount);
-        rightEndpoint = LongBitmap.newBitmapBetween(leftNodeCount, inputs.size());
+        leftEndpoint = initialLeftNodeBits;
+        rightEndpoint = initialRightNodeBits;
       } else {
         // simplify conflict rules. See section 5.5 in CD-C paper
         long tes =
@@ -223,49 +223,6 @@ public class JoinToHyperGraphRule
             origJoin.getRowType());
 
     call.transformTo(result);
-  }
-
-  private static HyperEdge adjustNodeBit(HyperEdge hyperEdge, int nodeOffset) {
-    RexShuttle shiftNodeIndexShuttle = new RexShuttle() {
-      @Override protected List<RexNode> visitList(
-          List<? extends RexNode> exprs,
-          boolean @Nullable [] update) {
-        ImmutableList.Builder<RexNode> clonedOperands = ImmutableList.builder();
-        for (RexNode operand : exprs) {
-          RexNode clonedOperand;
-          if (operand instanceof HyperGraph.RexNodeAndFieldIndex) {
-            clonedOperand =
-                new HyperGraph.RexNodeAndFieldIndex(
-                    ((HyperGraph.RexNodeAndFieldIndex) operand).nodeIndex + nodeOffset,
-                    ((HyperGraph.RexNodeAndFieldIndex) operand).fieldIndex,
-                    ((HyperGraph.RexNodeAndFieldIndex) operand).getName(),
-                    operand.getType());
-          } else {
-            clonedOperand = operand.accept(this);
-          }
-          if ((clonedOperand != operand) && (update != null)) {
-            update[0] = true;
-          }
-          clonedOperands.add(clonedOperand);
-        }
-        return clonedOperands.build();
-      }
-    };
-    RexNode newCondition = hyperEdge.getCondition().accept(shiftNodeIndexShuttle);
-    Map<Long, Long> newConflictRules = new HashMap<>();
-    for (Map.Entry<Long, Long> entry : hyperEdge.getConflictRules().entrySet()) {
-      newConflictRules.put(entry.getKey() << nodeOffset, entry.getValue() << nodeOffset);
-    }
-    return new HyperEdge(
-        hyperEdge.getLeftEndpoint() << nodeOffset,
-        hyperEdge.getRightEndpoint() << nodeOffset,
-        hyperEdge.getLeftNodeUsedInPredicate() << nodeOffset,
-        hyperEdge.getRightNodeUsedInPredicate() << nodeOffset,
-        newConflictRules,
-        hyperEdge.getInitialLeftNodeBits() << nodeOffset,
-        hyperEdge.getInitialRightNodeBits() << nodeOffset,
-        hyperEdge.getJoinType(),
-        newCondition);
   }
 
   private static boolean unSupportedJoinType(JoinRelType joinType) {

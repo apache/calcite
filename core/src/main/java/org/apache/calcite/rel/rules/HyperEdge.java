@@ -16,11 +16,17 @@
  */
 package org.apache.calcite.rel.rules;
 
+import com.google.common.collect.ImmutableList;
+
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexShuttle;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -131,6 +137,51 @@ public class HyperEdge {
         .append("——[").append(joinType).append(", ").append(condition).append("]——")
         .append(LongBitmap.printBitmap(rightEndponit));
     return sb.toString();
+  }
+
+  public HyperEdge adjustNodeBit(int nodeOffset) {
+    RexShuttle shiftNodeIndexShuttle = new RexShuttle() {
+      @Override protected List<RexNode> visitList(
+          List<? extends RexNode> exprs,
+          boolean @Nullable [] update) {
+        ImmutableList.Builder<RexNode> clonedOperands = ImmutableList.builder();
+        for (RexNode operand : exprs) {
+          RexNode clonedOperand;
+          if (operand instanceof HyperGraph.RexNodeAndFieldIndex) {
+            HyperGraph.RexNodeAndFieldIndex nodeAndFieldIndex =
+                (HyperGraph.RexNodeAndFieldIndex) operand;
+            clonedOperand =
+                new HyperGraph.RexNodeAndFieldIndex(
+                    nodeAndFieldIndex.nodeIndex + nodeOffset,
+                    nodeAndFieldIndex.fieldIndex,
+                    nodeAndFieldIndex.getName(),
+                    nodeAndFieldIndex.getType());
+          } else {
+            clonedOperand = operand.accept(this);
+          }
+          if ((clonedOperand != operand) && (update != null)) {
+            update[0] = true;
+          }
+          clonedOperands.add(clonedOperand);
+        }
+        return clonedOperands.build();
+      }
+    };
+    RexNode newCondition = condition.accept(shiftNodeIndexShuttle);
+    Map<Long, Long> newConflictRules = new HashMap<>();
+    for (Map.Entry<Long, Long> entry : conflictRules.entrySet()) {
+      newConflictRules.put(entry.getKey() << nodeOffset, entry.getValue() << nodeOffset);
+    }
+    return new HyperEdge(
+        leftEndpoint << nodeOffset,
+        rightEndponit << nodeOffset,
+        leftNodeUsedInPredicate << nodeOffset,
+        rightNodeUsedInPredicate << nodeOffset,
+        newConflictRules,
+        initialLeftNodeBits << nodeOffset,
+        initialRightNodeBits << nodeOffset,
+        joinType,
+        newCondition);
   }
 
 }

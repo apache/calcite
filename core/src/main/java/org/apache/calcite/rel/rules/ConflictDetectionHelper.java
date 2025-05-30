@@ -26,7 +26,7 @@ import java.util.Map;
 
 /**
  * Conflict detection algorithm based on CD-C. More details are in paper:
- * <a href="https://15721.courses.cs.cmu.edu/spring2019/papers/23-optimizer2/p493-moerkotte.pdf">
+ * <a href="https://dl.acm.org/doi/pdf/10.1145/2463676.2465314">
  *   On the correct and complete enumeration of the core search space</a>.
  */
 public class ConflictDetectionHelper {
@@ -34,13 +34,24 @@ public class ConflictDetectionHelper {
   private ConflictDetectionHelper() {
   }
 
+  /**
+   * Tables in the paper involve 7 types of join: cross product, inner join, semi join, anti join,
+   * left join, full join, group join. Cross product and inner join have the same result in the
+   * associative/left_asscom/right_asscom tables. The inner join with true condition is equivalent
+   * to the cross product, and there is no group join in Calcite, so cross product and group join
+   * do not appear in the following table.
+   */
   private static final ImmutableMap<JoinRelType, Integer> INDEX_OF_TABLE =
       ImmutableMap.<JoinRelType, Integer>builder()
           .put(JoinRelType.INNER, 0).put(JoinRelType.SEMI, 1).put(JoinRelType.ANTI, 2)
           .put(JoinRelType.LEFT, 3).put(JoinRelType.FULL, 4).build();
 
-  // TODO: when special attribute is null rejecting, left/full join is
-  //  associative/left_asscom/right_asscom. See table2/3 in paper
+  /**
+   * For {@code e1 joinA e2 joinB e3}, whether joinA and joinB are associative is shown in the
+   * following table. In particular, for left/full-A and left-B, we assume that the predicates of
+   * left-B are not null-rejecting on e2; for full-A and full-B, we assume that the predicates of
+   * full-A and full-B are not null-rejecting on e2. See table.2 in paper.
+   */
   private static final boolean[][] ASSOCIATIVE_TABLE = {
       //            inner-B  semi-B  anti-B  left-B  full-B
       /* inner-A */ {true,   true,   true,   true,   false},
@@ -49,6 +60,13 @@ public class ConflictDetectionHelper {
       /* left-A  */ {false,  false,  false,  false,  false},
       /* full-A  */ {false,  false,  false,  false,  false}};
 
+  /**
+   * For {@code e1 joinA e2 joinB e3}, whether joinA and joinB are left asscom is shown in the
+   * following table. In particular, for left-A and full-B, we assume that the predicates of left-A
+   * are not null-rejecting on e1; for full-A and left-B, we assume that the predicates of left-B
+   * are not null-rejecting on e3; for full-A and full-B, we assume that the predicates of full-A
+   * and full-B are not null-rejecting on e1. See table.3 in paper.
+   */
   private static final boolean[][] LEFT_ASSCOM_TABLE = {
       //            inner-B  semi-B  anti-B  left-B  full-B
       /* inner-A */ {true,   true,   true,   true,   false},
@@ -57,6 +75,11 @@ public class ConflictDetectionHelper {
       /* left-A  */ {true,   true,   true,   true,   false},
       /* full-A  */ {false,  false,  false,  false,  false}};
 
+  /**
+   * For {@code e1 joinA e2 joinB e3}, whether joinA and joinB are right asscom is shown in the
+   * following table. In particular, for full-A and full-B, we assume that the predicates of full-A
+   * and full-B are not null-rejecting on e3. See table.3 in paper.
+   */
   private static final boolean[][] RIGHT_ASSCOM_TABLE = {
       //            inner-B  semi-B  anti-B  left-B  full-B
       /* inner-A */ {true,   false,  false,  false,  false},
@@ -141,7 +164,7 @@ public class ConflictDetectionHelper {
   }
 
   /**
-   * For conflict rule <code>T1 -&gt; T2</code>, if T1 and tes have intersection, we can add T2
+   * For conflict rule T1 → T2, if T1 and tes have intersection, we can add T2
    * into tes and remove this rule. See section 5.5 in paper.
    *
    * @param tes                       tes
@@ -161,25 +184,6 @@ public class ConflictDetectionHelper {
       conflictRulesAfterAbsorb.put(rule.getKey(), rule.getValue());
     }
     return tes;
-  }
-
-  /**
-   * Check whether the operator is applicable through the conflict rule.
-   *
-   * @param subGraph  table set of the current join operator
-   * @param edges     hyper edges with conflict rules
-   * @return  true if the operator is applicable
-   */
-  public static boolean applicable(long subGraph, List<HyperEdge> edges) {
-    for (HyperEdge edge : edges) {
-      for (Map.Entry<Long, Long> rule : edge.getConflictRules().entrySet()) {
-        if (LongBitmap.isOverlap(subGraph, rule.getKey())
-            && !LongBitmap.isSubSet(rule.getValue(), subGraph)) {
-          return false;
-        }
-      }
-    }
-    return true;
   }
 
   public static boolean isCommutative(JoinRelType operator) {
