@@ -404,10 +404,10 @@ public class RexImplicationCheckerTest {
         (RexCall) f.simplify.simplifyPreservingType(outerTrimCall,
             RexUnknownAs.UNKNOWN, true);
     // after simplify trimSimplifiedCall is equal to innerTrimCall
-    assertThat((trimSimplifiedCall.getOperands().get(1)),
+    assertThat(trimSimplifiedCall.getOperands().get(1),
         is(innerTrimCall.getOperands().get(1)));
-    assertThat((trimSimplifiedCall.getOperands().get(2)),
-        is(innerTrimCall.getOperands().get(2)));
+    assertThat(trimSimplifiedCall.getOperands().get(2),
+        is(innerTrimCall.getOperands().get(2));
 
     // Negative test of trim way is not the same
     RexLiteral trimLeft = f.rexBuilder.makeLiteral("LEADING");
