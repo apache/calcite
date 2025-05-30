@@ -16,9 +16,18 @@
  */
 package org.apache.calcite.rel.rules;
 
+import com.google.common.collect.ImmutableList;
+
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexShuttle;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Edge in HyperGraph, that represents a join predicate.
@@ -26,36 +35,87 @@ import org.apache.calcite.rex.RexNode;
 @Experimental
 public class HyperEdge {
 
-  private final long leftNodeBits;
+  // equivalent to the l-tes in CD-C paper
+  private final long leftEndpoint;
 
-  private final long rightNodeBits;
+  // equivalent to the r-tes in CD-C paper
+  private final long rightEndponit;
+
+  // equivalent to the T(left(o)) ∩ F_T(o) in CD-C paper
+  private final long leftNodeUsedInPredicate;
+
+  // equivalent to the T(right(o)) ∩ F_T(o) in CD-C paper
+  private final long rightNodeUsedInPredicate;
+
+  private final Map<Long, Long> conflictRules;
+
+  // equivalent to the T(left(o)) in CD-C paper
+  private final long initialLeftNodeBits;
+
+  // equivalent to the T(right(o)) in CD-C paper
+  private final long initialRightNodeBits;
 
   private final JoinRelType joinType;
 
   private final boolean isSimple;
 
+  // converted from join condition, using RexNodeAndFieldIndex instead of RexInputRef
   private final RexNode condition;
 
-  public HyperEdge(long leftNodeBits, long rightNodeBits, JoinRelType joinType, RexNode condition) {
-    this.leftNodeBits = leftNodeBits;
-    this.rightNodeBits = rightNodeBits;
+  public HyperEdge(
+      long leftEndpoint,
+      long rightEndponit,
+      long leftNodeUsedInPredicate,
+      long rightNodeUsedInPredicate,
+      Map<Long, Long> conflictRules,
+      long initialLeftNodeBits,
+      long initialRightNodeBits,
+      JoinRelType joinType,
+      RexNode condition) {
+    this.leftEndpoint = leftEndpoint;
+    this.rightEndponit = rightEndponit;
+    this.leftNodeUsedInPredicate = leftNodeUsedInPredicate;
+    this.rightNodeUsedInPredicate = rightNodeUsedInPredicate;
+    this.conflictRules = new HashMap<>(conflictRules);
+    this.initialLeftNodeBits = initialLeftNodeBits;
+    this.initialRightNodeBits = initialRightNodeBits;
     this.joinType = joinType;
     this.condition = condition;
-    boolean leftSimple = (leftNodeBits & (leftNodeBits - 1)) == 0;
-    boolean rightSimple = (rightNodeBits & (rightNodeBits - 1)) == 0;
+    boolean leftSimple = (leftEndpoint & (leftEndpoint - 1)) == 0;
+    boolean rightSimple = (rightEndponit & (rightEndponit - 1)) == 0;
     this.isSimple = leftSimple && rightSimple;
   }
 
-  public long getNodeBitmap() {
-    return leftNodeBits | rightNodeBits;
+  public long getEndpoint() {
+    return leftEndpoint | rightEndponit;
   }
 
-  public long getLeftNodeBitmap() {
-    return leftNodeBits;
+  public long getLeftEndpoint() {
+    return leftEndpoint;
   }
 
-  public long getRightNodeBitmap() {
-    return rightNodeBits;
+  public long getRightEndpoint() {
+    return rightEndponit;
+  }
+
+  public long getLeftNodeUsedInPredicate() {
+    return leftNodeUsedInPredicate;
+  }
+
+  public long getRightNodeUsedInPredicate() {
+    return rightNodeUsedInPredicate;
+  }
+
+  public Map<Long, Long> getConflictRules() {
+    return conflictRules;
+  }
+
+  public long getInitialLeftNodeBits() {
+    return initialLeftNodeBits;
+  }
+
+  public long getInitialRightNodeBits() {
+    return initialRightNodeBits;
   }
 
   // hyperedge (u, v) is simple if |u| = |v| = 1
@@ -73,10 +133,55 @@ public class HyperEdge {
 
   @Override public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append(LongBitmap.printBitmap(leftNodeBits))
+    sb.append(LongBitmap.printBitmap(leftEndpoint))
         .append("——[").append(joinType).append(", ").append(condition).append("]——")
-        .append(LongBitmap.printBitmap(rightNodeBits));
+        .append(LongBitmap.printBitmap(rightEndponit));
     return sb.toString();
+  }
+
+  public HyperEdge adjustNodeBit(int nodeOffset) {
+    RexShuttle shiftNodeIndexShuttle = new RexShuttle() {
+      @Override protected List<RexNode> visitList(
+          List<? extends RexNode> exprs,
+          boolean @Nullable [] update) {
+        ImmutableList.Builder<RexNode> clonedOperands = ImmutableList.builder();
+        for (RexNode operand : exprs) {
+          RexNode clonedOperand;
+          if (operand instanceof HyperGraph.RexNodeAndFieldIndex) {
+            HyperGraph.RexNodeAndFieldIndex nodeAndFieldIndex =
+                (HyperGraph.RexNodeAndFieldIndex) operand;
+            clonedOperand =
+                new HyperGraph.RexNodeAndFieldIndex(
+                    nodeAndFieldIndex.nodeIndex + nodeOffset,
+                    nodeAndFieldIndex.fieldIndex,
+                    nodeAndFieldIndex.getName(),
+                    nodeAndFieldIndex.getType());
+          } else {
+            clonedOperand = operand.accept(this);
+          }
+          if ((clonedOperand != operand) && (update != null)) {
+            update[0] = true;
+          }
+          clonedOperands.add(clonedOperand);
+        }
+        return clonedOperands.build();
+      }
+    };
+    RexNode newCondition = condition.accept(shiftNodeIndexShuttle);
+    Map<Long, Long> newConflictRules = new HashMap<>();
+    for (Map.Entry<Long, Long> entry : conflictRules.entrySet()) {
+      newConflictRules.put(entry.getKey() << nodeOffset, entry.getValue() << nodeOffset);
+    }
+    return new HyperEdge(
+        leftEndpoint << nodeOffset,
+        rightEndponit << nodeOffset,
+        leftNodeUsedInPredicate << nodeOffset,
+        rightNodeUsedInPredicate << nodeOffset,
+        newConflictRules,
+        initialLeftNodeBits << nodeOffset,
+        initialRightNodeBits << nodeOffset,
+        joinType,
+        newCondition);
   }
 
 }
