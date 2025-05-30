@@ -407,7 +407,7 @@ public class RexImplicationCheckerTest {
     assertThat(trimSimplifiedCall.getOperands().get(1),
         is(innerTrimCall.getOperands().get(1)));
     assertThat(trimSimplifiedCall.getOperands().get(2),
-        is(innerTrimCall.getOperands().get(2));
+        is(innerTrimCall.getOperands().get(2)));
 
     // Negative test of trim way is not the same
     RexLiteral trimLeft = f.rexBuilder.makeLiteral("LEADING");
