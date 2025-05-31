@@ -3254,6 +3254,12 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testUpdateRowQuery() {
+    final String sql = "update emp\n"
+        + "set (empno, sal) = (select min(empno) as empno, max(sal) as sal from emp as e where e.deptno = emp.deptno)";
+    sql(sql).ok();
+  }
+
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3229">[CALCITE-3229]
