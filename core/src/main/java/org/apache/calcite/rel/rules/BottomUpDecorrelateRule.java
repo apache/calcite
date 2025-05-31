@@ -37,11 +37,11 @@ import java.util.List;
  * unchanged.  This strategy may still simplify some plans by decorrelating parts of them).
  */
 @Value.Enclosing
-public class BottomDecorrelateRule
-    extends RelRule<BottomDecorrelateRule.Config>
+public class BottomUpDecorrelateRule
+    extends RelRule<BottomUpDecorrelateRule.Config>
     implements TransformationRule {
 
-  protected BottomDecorrelateRule(Config config) {
+  protected BottomUpDecorrelateRule(Config config) {
     super(config);
   }
 
@@ -58,11 +58,7 @@ public class BottomDecorrelateRule
 
     RelNode stripped = stripRecursively(cor);
     RelNode rel = RelDecorrelator.decorrelateQuery(stripped, call.builder());
-    if (rel != stripped
-        && !containsCorrelate(rel)
-        // This is necessary due to https://issues.apache.org/jira/browse/CALCITE-7024,
-        // but should be removed if that issue is resolved.
-        && cor.getRowType().equals(rel.getRowType())) {
+    if (rel != stripped) {
       call.transformTo(rel);
     }
   }
@@ -87,7 +83,7 @@ public class BottomDecorrelateRule
       return true;
     }
     for (RelNode input : node.getInputs()) {
-      if (containsCorrelate(input)) {
+      if (containsCorrelate(input.stripped())) {
         return true;
       }
     }
@@ -97,13 +93,13 @@ public class BottomDecorrelateRule
   /** Rule configuration. */
   @Value.Immutable
   public interface Config extends RelRule.Config {
-    BottomDecorrelateRule.Config DEFAULT = ImmutableBottomDecorrelateRule.Config.of()
+    BottomUpDecorrelateRule.Config DEFAULT = ImmutableBottomUpDecorrelateRule.Config.of()
         .withOperandSupplier(b0 -> b0.operand(Correlate.class)
             .anyInputs())
         .as(Config.class);
 
-    @Override default BottomDecorrelateRule toRule() {
-      return new BottomDecorrelateRule(this);
+    @Override default BottomUpDecorrelateRule toRule() {
+      return new BottomUpDecorrelateRule(this);
     }
   }
 }

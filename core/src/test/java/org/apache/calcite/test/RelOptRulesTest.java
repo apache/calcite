@@ -74,7 +74,7 @@ import org.apache.calcite.rel.rules.AggregateProjectConstantToDummyJoinRule;
 import org.apache.calcite.rel.rules.AggregateProjectMergeRule;
 import org.apache.calcite.rel.rules.AggregateProjectPullUpConstantsRule;
 import org.apache.calcite.rel.rules.AggregateReduceFunctionsRule;
-import org.apache.calcite.rel.rules.BottomDecorrelateRule;
+import org.apache.calcite.rel.rules.BottomUpDecorrelateRule;
 import org.apache.calcite.rel.rules.CoerceInputsRule;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.rules.DateRangeRules;
@@ -4335,7 +4335,7 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testNestedCorrelate() {
     HepProgram program = new HepProgramBuilder()
         .addMatchOrder(HepMatchOrder.BOTTOM_UP)
-        .addRuleInstance(BottomDecorrelateRule.Config.DEFAULT.toRule())
+        .addRuleInstance(BottomUpDecorrelateRule.Config.DEFAULT.toRule())
         .build();
     final String sql = "SELECT * FROM emp\n"
         + "WHERE NOT EXISTS (SELECT true\n"
