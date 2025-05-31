@@ -38,6 +38,10 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.joou.UByte;
+import org.joou.UInteger;
+import org.joou.ULong;
+import org.joou.UShort;
 import org.locationtech.jts.geom.Geometry;
 
 import java.lang.reflect.Field;
@@ -228,6 +232,14 @@ public class JavaTypeFactoryImpl
         return Object.class;
       case NULL:
         return Void.class;
+      case UTINYINT:
+        return UByte.class;
+      case USMALLINT:
+        return UShort.class;
+      case UINTEGER:
+        return UInteger.class;
+      case UBIGINT:
+        return ULong.class;
       default:
         break;
       }

@@ -17,14 +17,20 @@
 package org.apache.calcite.runtime.variant;
 
 import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.linq4j.tree.UnsignedType;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.runtime.rtti.BasicSqlTypeRtti;
 import org.apache.calcite.runtime.rtti.RowSqlTypeRtti;
 import org.apache.calcite.runtime.rtti.RuntimeTypeInformation;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.joou.UByte;
+import org.joou.UInteger;
+import org.joou.ULong;
+import org.joou.UShort;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -64,16 +70,32 @@ public class VariantNonNull extends VariantSqlValue {
       assert value instanceof Byte;
       this.value = value;
       break;
+    case UTINYINT:
+      assert value instanceof UByte;
+      this.value = value;
+      break;
     case SMALLINT:
       assert value instanceof Short;
+      this.value = value;
+      break;
+    case USMALLINT:
+      assert value instanceof UShort;
       this.value = value;
       break;
     case INTEGER:
       assert value instanceof Integer;
       this.value = value;
       break;
+    case UINTEGER:
+      assert value instanceof UInteger;
+      this.value = value;
+      break;
     case BIGINT:
       assert value instanceof Long;
+      this.value = value;
+      break;
+    case UBIGINT:
+      assert value instanceof ULong;
       this.value = value;
       break;
     case DECIMAL:
@@ -200,6 +222,14 @@ public class VariantNonNull extends VariantSqlValue {
             return requireNonNull(target, "target").numberValue(b, roundingMode);
           case DECIMAL:
             return BigDecimal.valueOf(b);
+          case UTINYINT:
+            return UnsignedType.toUByte(b);
+          case USMALLINT:
+            return UnsignedType.toUShort(b);
+          case UINTEGER:
+            return UnsignedType.toUInteger(b);
+          case UBIGINT:
+            return UnsignedType.toULong(b);
           default:
             break;
           }
@@ -217,6 +247,14 @@ public class VariantNonNull extends VariantSqlValue {
             return requireNonNull(target, "target").numberValue(s, roundingMode);
           case DECIMAL:
             return BigDecimal.valueOf(s);
+          case UTINYINT:
+            return UnsignedType.toUByte(s);
+          case USMALLINT:
+            return UnsignedType.toUShort(s);
+          case UINTEGER:
+            return UnsignedType.toUInteger(s);
+          case UBIGINT:
+            return UnsignedType.toULong(s);
           default:
             break;
           }
@@ -234,6 +272,14 @@ public class VariantNonNull extends VariantSqlValue {
             return requireNonNull(target, "target").numberValue(i, roundingMode);
           case DECIMAL:
             return BigDecimal.valueOf(i);
+          case UTINYINT:
+            return UnsignedType.toUByte(i);
+          case USMALLINT:
+            return UnsignedType.toUShort(i);
+          case UINTEGER:
+            return UnsignedType.toUInteger(i);
+          case UBIGINT:
+            return UnsignedType.toULong(i);
           default:
             break;
           }
@@ -251,6 +297,14 @@ public class VariantNonNull extends VariantSqlValue {
             return requireNonNull(target, "target").numberValue(l, roundingMode);
           case DECIMAL:
             return BigDecimal.valueOf(l);
+          case UTINYINT:
+            return UnsignedType.toUByte(l);
+          case USMALLINT:
+            return UnsignedType.toUShort(l);
+          case UINTEGER:
+            return UnsignedType.toUInteger(l);
+          case UBIGINT:
+            return UnsignedType.toULong(l);
           default:
             break;
           }
@@ -268,6 +322,14 @@ public class VariantNonNull extends VariantSqlValue {
             return requireNonNull(target, "target").numberValue(d, roundingMode);
           case DECIMAL:
             return d;
+          case UTINYINT:
+            return UnsignedType.toUByte(d.longValueExact());
+          case USMALLINT:
+            return UnsignedType.toUShort(d.longValueExact());
+          case UINTEGER:
+            return UnsignedType.toUInteger(d.longValueExact());
+          case UBIGINT:
+            return UnsignedType.toULong(d.longValueExact());
           default:
             break;
           }
@@ -285,6 +347,14 @@ public class VariantNonNull extends VariantSqlValue {
             return requireNonNull(target, "target").numberValue(f, roundingMode);
           case DECIMAL:
             return BigDecimal.valueOf(f);
+          case UTINYINT:
+            return UnsignedType.toUByte(f);
+          case USMALLINT:
+            return UnsignedType.toUShort(f);
+          case UINTEGER:
+            return UnsignedType.toUInteger(f);
+          case UBIGINT:
+            return UnsignedType.toULong(f);
           default:
             break;
           }
@@ -302,6 +372,114 @@ public class VariantNonNull extends VariantSqlValue {
             return requireNonNull(target, "target").numberValue(d, roundingMode);
           case DECIMAL:
             return BigDecimal.valueOf(d);
+          case UTINYINT:
+            return UnsignedType.toUByte(d);
+          case USMALLINT:
+            return UnsignedType.toUShort(d);
+          case UINTEGER:
+            return UnsignedType.toUInteger(d);
+          case UBIGINT:
+            return UnsignedType.toULong(d);
+          default:
+            break;
+          }
+          break;
+        }
+        case UTINYINT: {
+          UByte b = (UByte) value;
+          switch (type.getTypeName()) {
+          case TINYINT:
+          case SMALLINT:
+          case INTEGER:
+          case BIGINT:
+          case REAL:
+          case DOUBLE:
+            return requireNonNull(target, "target").numberValue(b, roundingMode);
+          case DECIMAL:
+            return BigDecimal.valueOf(b.intValue());
+          case UTINYINT:
+            return UnsignedType.toUByte(b.intValue());
+          case USMALLINT:
+            return UnsignedType.toUShort(b.intValue());
+          case UINTEGER:
+            return UnsignedType.toUInteger(b.intValue());
+          case UBIGINT:
+            return UnsignedType.toULong(b.intValue());
+          default:
+            break;
+          }
+          break;
+        }
+        case USMALLINT: {
+          UShort s = (UShort) value;
+          switch (type.getTypeName()) {
+          case TINYINT:
+          case SMALLINT:
+          case INTEGER:
+          case BIGINT:
+          case REAL:
+          case DOUBLE:
+            return requireNonNull(target, "target").numberValue(s, roundingMode);
+          case DECIMAL:
+            return BigDecimal.valueOf(s.intValue());
+          case UTINYINT:
+            return UnsignedType.toUByte(s.intValue());
+          case USMALLINT:
+            return UnsignedType.toUShort(s.intValue());
+          case UINTEGER:
+            return UnsignedType.toUInteger(s.intValue());
+          case UBIGINT:
+            return UnsignedType.toULong(s.intValue());
+          default:
+            break;
+          }
+          break;
+        }
+        case UINTEGER: {
+          UInteger b = (UInteger) value;
+          switch (type.getTypeName()) {
+          case TINYINT:
+          case SMALLINT:
+          case INTEGER:
+          case BIGINT:
+          case REAL:
+          case DOUBLE:
+            return requireNonNull(target, "target").numberValue(b, roundingMode);
+          case DECIMAL:
+            return BigDecimal.valueOf(b.longValue());
+          case UTINYINT:
+            return UnsignedType.toUByte(b.longValue());
+          case USMALLINT:
+            return UnsignedType.toUShort(b.longValue());
+          case UINTEGER:
+            return UnsignedType.toUInteger(b.longValue());
+          case UBIGINT:
+            return UnsignedType.toULong(b.longValue());
+          default:
+            break;
+          }
+          break;
+        }
+        case UBIGINT: {
+          BigInteger i = UnsignedType.toBigInteger((ULong) value);
+          switch (type.getTypeName()) {
+          case TINYINT:
+          case SMALLINT:
+          case INTEGER:
+          case BIGINT:
+          case REAL:
+          case DOUBLE:
+            return requireNonNull(target, "target").numberValue(i, roundingMode);
+          case DECIMAL:
+            return new BigDecimal(i);
+          case UTINYINT:
+            return UnsignedType.toUByte(i.longValueExact());
+          case USMALLINT:
+            return UnsignedType.toUShort(i.longValueExact());
+          case UINTEGER:
+            return UnsignedType.toUInteger(i.longValueExact());
+          case UBIGINT:
+            return value;
           default:
             break;
           }

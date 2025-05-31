@@ -506,4 +506,8 @@ public enum SqlConformanceEnum implements SqlConformance {
       return true;
     }
   }
+
+  @Override public boolean supportsUnsignedTypes() {
+    return true;
+  }
 }

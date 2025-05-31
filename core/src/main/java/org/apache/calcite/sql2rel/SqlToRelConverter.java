@@ -4984,6 +4984,7 @@ public class SqlToRelConverter {
       mapping = null;
     }
 
+    List<RelDataTypeField> fields = targetRowType.getFieldList();
     for (SqlNode rowConstructor : values.getOperandList()) {
       SqlCall newRowConst = (SqlCall) rowConstructor;
       Blackboard tmpBb = createBlackboard(bb.scope, null, false);
@@ -4991,6 +4992,7 @@ public class SqlToRelConverter {
           RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
       final PairList<RexNode, String> exps = PairList.of();
       Ord.forEach(newRowConst.getOperandList(), (operand, i) -> {
+        RelDataType fieldType = fields.get(i).getType();
         RexNode def;
         if (processDefaults
             && operand.getKind() == SqlKind.DEFAULT
@@ -5003,6 +5005,9 @@ public class SqlToRelConverter {
                   mapping[i], bb);
         } else {
           def = tmpBb.convertExpression(operand);
+        }
+        if (!(def instanceof RexDynamicParam) && !def.getType().equals(fieldType)) {
+          def = rexBuilder.makeCast(operand.getParserPosition(), fieldType, def);
         }
         exps.add(def, SqlValidatorUtil.alias(operand, i));
       });

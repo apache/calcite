@@ -126,12 +126,16 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
     case BOOLEAN:
       return 1;
     case TINYINT:
+    case UTINYINT:
       return 3;
     case SMALLINT:
+    case USMALLINT:
       return 5;
     case INTEGER:
+    case UINTEGER:
       return 10;
     case BIGINT:
+    case UBIGINT:
       return 19;
     case REAL:
       return 7;

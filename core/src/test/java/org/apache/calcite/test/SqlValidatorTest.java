@@ -799,7 +799,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6779">[CALCITE-6779]
    * Casts from UUID to DATE should be invalid</a>. */
   @Test void testUuidCasts() {
-    final String error = "Cast function cannot convert value of type UUID to type.*";
+    final String error = "Cast function cannot convert value of type UUID NOT NULL to type.*";
     expr("^CAST(UUID '123e4567-e89b-12d3-a456-426655440000' AS TIME)^").fails(error);
     expr("^CAST(UUID '123e4567-e89b-12d3-a456-426655440000' AS DATE)^").fails(error);
     expr("^CAST(UUID '123e4567-e89b-12d3-a456-426655440000' AS TIMESTAMP)^").fails(error);
@@ -1414,8 +1414,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("cast(1.0e1 as boolean)")
         .columnType("BOOLEAN NOT NULL");
     expr("^cast(true as numeric)^")
-        .fails("Cast function cannot convert value of type BOOLEAN "
-        + "to type DECIMAL\\(19, 0\\)");
+        .fails("Cast function cannot convert value of type BOOLEAN NOT NULL "
+        + "to type DECIMAL\\(19, 0\\) NOT NULL");
     // It's a runtime error that 'TRUE' cannot fit into CHAR(3), but at
     // validate time this expression is OK.
     expr("cast(true as char(3))")
@@ -1509,16 +1509,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Unknown identifier 'BAR'");
     wholeExpr("cast(multiset[1] as integer)")
         .fails("(?s).*Cast function cannot convert value of type "
-            + "INTEGER MULTISET to type INTEGER");
+            + "INTEGER NOT NULL MULTISET NOT NULL to type INTEGER NOT NULL");
     wholeExpr("cast(x'ff' as decimal(5,2))")
         .fails("(?s).*Cast function cannot convert value of type "
-            + "BINARY\\(1\\) to type DECIMAL\\(5, 2\\)");
+            + "BINARY\\(1\\) NOT NULL to type DECIMAL\\(5, 2\\) NOT NULL");
     wholeExpr("cast(DATE '1243-12-01' as TIME)")
         .fails("(?s).*Cast function cannot convert value of type "
-            + "DATE to type TIME.*");
+            + "DATE NOT NULL to type TIME.*");
     wholeExpr("cast(TIME '12:34:01' as DATE)")
         .fails("(?s).*Cast function cannot convert value of type "
-            + "TIME\\(0\\) to type DATE.*");
+            + "TIME\\(0\\) NOT NULL to type DATE.*");
   }
 
   @Test void testCastBinaryLiteral() {
@@ -1683,7 +1683,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
    */
   @Test void testDateTimeCast() {
     wholeExpr("CAST(1 as DATE)")
-        .fails("Cast function cannot convert value of type INTEGER to type DATE");
+        .fails("Cast function cannot convert value of type INTEGER NOT NULL to type DATE NOT NULL");
     expr("CAST(DATE '2001-12-21' AS VARCHAR(10))").ok();
     expr("CAST( '2001-12-21' AS DATE)").ok();
     expr("CAST( TIMESTAMP '2001-12-21 10:12:21' AS VARCHAR(20))").ok();
@@ -7866,10 +7866,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     wholeExpr("cast(interval '1:1' hour to minute as interval month)")
         .fails("Cast function cannot convert value of type "
-            + "INTERVAL HOUR TO MINUTE to type INTERVAL MONTH");
+            + "INTERVAL HOUR TO MINUTE NOT NULL to type INTERVAL MONTH NOT NULL");
     wholeExpr("cast(interval '1-1' year to month as interval second)")
         .fails("Cast function cannot convert value of type "
-            + "INTERVAL YEAR TO MONTH to type INTERVAL SECOND");
+            + "INTERVAL YEAR TO MONTH NOT NULL to type INTERVAL SECOND NOT NULL");
   }
 
   @Test void testMinusDateOperator() {

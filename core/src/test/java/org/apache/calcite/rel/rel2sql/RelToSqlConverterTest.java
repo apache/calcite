@@ -653,6 +653,13 @@ class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  @Test void testUnparseUnsigned() {
+    String query = "select CAST(1 AS UNSIGNED)";
+    String expected = "SELECT CAST(1 AS INTEGER UNSIGNED)\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    sql(query).ok(expected);
+  }
+
   @Test void testSelectQueryWithHiveCube() {
     String query = "select \"product_class_id\", \"product_id\", count(*) "
             + "from \"product\" group by cube(\"product_class_id\", \"product_id\")";

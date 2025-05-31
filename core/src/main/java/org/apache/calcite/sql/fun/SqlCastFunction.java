@@ -241,8 +241,8 @@ public class SqlCastFunction extends SqlFunction {
     if (!SqlTypeUtil.canCastFrom(returnType, validatedNodeType, mappingRule)) {
       if (throwOnFailure) {
         throw callBinding.newError(
-            RESOURCE.cannotCastValue(validatedNodeType.toString(),
-                returnType.toString()));
+            RESOURCE.cannotCastValue(validatedNodeType.getFullTypeString(),
+                returnType.getFullTypeString()));
       }
       return false;
     }
