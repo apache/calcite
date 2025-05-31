@@ -16446,7 +16446,7 @@ public class SqlOperatorTest {
     f.checkAgg("logical_or(x)", values4, isNullValue());
   }
 
-  @Test void testBitXorOperatorScalarFunc() throws SqlParseException {
+  @Test void testBitXorOperatorParserFunc() throws SqlParseException {
     String sql = "SELECT 5 ^ 3 ";
     SqlNode sqlNode = SqlParser.create(sql,  SqlParser.Config.DEFAULT).parseStmt();
 
@@ -16458,6 +16458,37 @@ public class SqlOperatorTest {
     SqlBasicCall call = (SqlBasicCall) selectItem;
     assertEquals(SqlStdOperatorTable.BITXOR_OPERATOR, call.getOperator());
     assertEquals(2, call.getOperandList().size());
+  }
+
+  @Test void testBitXorOperatorScalarFunc() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlStdOperatorTable.BITXOR_OPERATOR, VmName.EXPAND);
+
+
+    // Basic XOR between two integer literals
+    f.checkScalar("5 ^ 3", "6", "INTEGER NOT NULL");
+    f.checkScalar("-5 ^ 7", "-4", "INTEGER NOT NULL");
+    f.checkScalar("-5 ^ -31", "26", "INTEGER NOT NULL");
+
+    // Mixed integer types: INTEGER ^ BIGINT → result type should be BIGINT
+    f.checkScalar("CAST(2 AS INTEGER) ^ CAST(3 AS BIGINT)", "1", "BIGINT NOT NULL");
+
+    // TINYINT XOR cases
+    f.checkScalar("CAST(-5 AS TINYINT) ^ CAST(7 AS TINYINT)", "-4", "TINYINT NOT NULL");
+    f.checkScalar("CAST(-5 AS TINYINT) ^ CAST(-31 AS TINYINT)", "26", "TINYINT NOT NULL");
+
+    // Type inference tests: result type should match the wider of the operands
+    f.checkType("CAST(2 AS TINYINT) ^ CAST(6 AS TINYINT)", "TINYINT NOT NULL");
+    f.checkType("CAST(2 AS SMALLINT) ^ CAST(6 AS SMALLINT)", "SMALLINT NOT NULL");
+    f.checkType("CAST(2 AS BIGINT) ^ CAST(6 AS BIGINT)", "BIGINT NOT NULL");
+
+    // XOR on fixed-length binary operands
+    f.checkScalar("CAST(x'0201' AS BINARY(2)) ^ CAST(x'07f9' AS BINARY(2))",
+        "05f8", "BINARY(2) NOT NULL");
+
+    // XOR on variable-length binary operands
+    f.checkScalar("CAST(x'0201' AS VARBINARY(2)) ^ CAST(x'07f9' AS VARBINARY(2))",
+        "05f8", "VARBINARY(2) NOT NULL");
   }
 
 
@@ -16523,6 +16554,7 @@ public class SqlOperatorTest {
     f.checkScalar("2147483647 & 0", "0", "INTEGER NOT NULL");  // MAX_INT & 0
     f.checkScalar("-2147483648 & -1", "-2147483648", "INTEGER NOT NULL");  // MIN_INT & -1
   }
+
   @Test void testLeftShiftScalarFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.LEFTSHIFT_OPERATOR, VmName.EXPAND);
