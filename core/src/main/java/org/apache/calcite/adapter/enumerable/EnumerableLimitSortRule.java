@@ -40,6 +40,9 @@ public class EnumerableLimitSortRule extends RelRule<EnumerableLimitSortRule.Con
 
   @Override public void onMatch(RelOptRuleCall call) {
     final Sort sort = call.rel(0);
+    if (sort.fetch == null || sort.getSortExps().isEmpty()) {
+      return;
+    }
     RelNode input = sort.getInput();
     final Sort o =
         EnumerableLimitSort.create(
