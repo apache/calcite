@@ -440,6 +440,17 @@ public class JdbcSchema extends JdbcBaseSchema implements Schema, Wrapper {
                 typeFactory.createSqlType(SqlTypeName.ANY), true);
       }
       return typeFactory.createArrayType(component, -1);
+    case GEOMETRY:
+      return typeFactory.createTypeWithNullability(
+          typeFactory.createSqlType(SqlTypeName.GEOMETRY), true);
+    case OTHER:
+      // In most databases, the type name is upper case. In PostGIS it is
+      // lower case. Therefore, we ignore the case.
+      if (typeString != null && typeString.equalsIgnoreCase("GEOMETRY")) {
+        return typeFactory.createTypeWithNullability(
+            typeFactory.createSqlType(SqlTypeName.GEOMETRY), true);
+      }
+      break;
     default:
       break;
     }
