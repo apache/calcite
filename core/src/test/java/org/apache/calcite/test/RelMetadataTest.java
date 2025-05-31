@@ -732,7 +732,7 @@ public class RelMetadataTest {
           planner.addRule(EnumerableRules.ENUMERABLE_PROJECT_RULE);
           planner.addRule(EnumerableRules.ENUMERABLE_FILTER_RULE);
           planner.addRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
-          planner.addRule(EnumerableRules.ENUMERABLE_LIMIT_SORT_RULE);
+          planner.addRule(EnumerableRules.ENUMERABLE_LIMIT_RULE);
           planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
           return RelOptCluster.create(planner, cluster.getRexBuilder());
         })
