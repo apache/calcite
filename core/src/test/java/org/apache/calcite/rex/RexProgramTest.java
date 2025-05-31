@@ -1835,6 +1835,37 @@ class RexProgramTest extends RexProgramTestBase {
         "true");
   }
 
+  /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7032">[CALCITE-7032]
+   * Simplify 'NULL >ALL (ARRAY[1,2,NULL])' to 'NULL'</a>. */
+  @Test void testSimplifyQuantifyOperatorsWithArray() {
+    RexNode operand1 = nullInt;
+    RelDataType arrayType = tArray(tInt(true));
+    RelDataType arrayType2 = tArray(tSmallInt(true));
+    RexNode operand2 =
+        rexBuilder.makeCall(arrayType, SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+            ImmutableList.of(literal(1), literal(2), nullInt));
+    // "NULL >SOME (ARRAY[1,2,NULL])"
+    // ==> "NULL"
+    checkSimplify3(rexBuilder.makeCall(SqlStdOperatorTable.SOME_GT, operand1, operand2),
+        "null:BOOLEAN", "false", "true");
+
+    // "NULL >SOME (ARRAY[CAST(100000 AS SMALLINT),2,NULL])"
+    // ==> "NULL >SOME (ARRAY[CAST(100000 AS SMALLINT),2,NULL])"
+    operand2 =
+        rexBuilder.makeCall(arrayType, SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+            ImmutableList.of(cast(literal(100000), tSmallInt()), literal(2), nullInt));
+    checkSimplifyUnchanged(rexBuilder.makeCall(SqlStdOperatorTable.SOME_GT, operand1, operand2));
+
+    // "NULL >SOME (CAST(ARRAY[100000,2,NULL]) AS SMALLINT ARRAY)"
+    // ==> "NULL >SOME (CAST(ARRAY[100000,2,NULL]) AS SMALLINT ARRAY)"
+    operand2 =
+        cast(
+            rexBuilder.makeCall(arrayType, SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+            ImmutableList.of(literal(100000), literal(2), nullInt)), arrayType2);
+    checkSimplifyUnchanged(rexBuilder.makeCall(SqlStdOperatorTable.SOME_GT, operand1, operand2));
+  }
+
   @Test void testSimplifyRange() {
     final RexNode aRef = input(tInt(), 0);
     // ((0 < a and a <= 10) or a >= 15) and a <> 6 and a <> 12
