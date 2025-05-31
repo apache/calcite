@@ -662,6 +662,9 @@ public enum SqlKind {
   /** {@code IS NOT NULL} operator. */
   IS_NOT_NULL,
 
+  /** {@code CAST NOT NULL} operator. */
+  CAST_NOT_NULL,
+
   /** {@code PRECEDING} qualifier of an interval end-point in a window
    * specification. */
   PRECEDING,

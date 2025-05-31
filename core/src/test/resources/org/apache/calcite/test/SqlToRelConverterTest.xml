@@ -654,6 +654,29 @@ LogicalProject(EXPR$0=[CASE(IS NOT NULL($3), CAST($3):INTEGER NOT NULL, 0)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testCoalesceSubquery">
+    <Resource name="sql">
+      <![CDATA[SELECT  deptno,   coalesce((select sum(empno) from emp   where deptno = emp.deptno limit 1), 0) as w FROM dept]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], W=[CASE(IS NOT NULL($2), CAST($3):INTEGER NOT NULL, 0)])
+  LogicalJoin(condition=[true], joinType=[left])
+    LogicalJoin(condition=[true], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalSort(fetch=[1])
+        LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+          LogicalProject(EMPNO=[$0])
+            LogicalFilter(condition=[=($7, $7)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalSort(fetch=[1])
+      LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+        LogicalProject(EMPNO=[$0])
+          LogicalFilter(condition=[=($7, $7)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testCollectionTable">
     <Resource name="sql">
       <![CDATA[select * from table(ramp(3))]]>
@@ -2098,7 +2121,7 @@ LogicalProject(EMPNO=[$0])
   LogicalFilter(condition=[IS NOT NULL($9)])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f0=[$11])
       LogicalJoin(condition=[=($9, $10)], joinType=[left])
-        LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[CASE(IS NOT NULL($1), $1, 'M':VARCHAR(20))])
+        LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[CASE(IS NOT NULL($1), CAST($1):VARCHAR(20) NOT NULL, 'M':VARCHAR(20))])
           LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
         LogicalAggregate(group=[{0}], agg#0=[MIN($1)])
           LogicalProject($f9=[CASE(IS NOT NULL($1), CAST($1):VARCHAR(20) NOT NULL, 'M':VARCHAR(20))], $f0=[true])
