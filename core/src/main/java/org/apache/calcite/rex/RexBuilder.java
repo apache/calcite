@@ -874,7 +874,8 @@ public class RexBuilder {
     final SqlTypeName sqlType = toType.getSqlTypeName();
     if (sqlType == SqlTypeName.MEASURE
         || sqlType == SqlTypeName.VARIANT
-        || sqlType == SqlTypeName.UUID) {
+        || sqlType == SqlTypeName.UUID
+        || SqlTypeName.UNSIGNED_TYPES.contains(sqlType)) {
       return false;
     }
     if (!RexLiteral.valueMatchesType(value, sqlType, false)) {

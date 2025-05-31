@@ -44,6 +44,7 @@ import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Statement;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.linq4j.tree.UnaryExpression;
+import org.apache.calcite.linq4j.tree.UnsignedType;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataType;
@@ -443,6 +444,7 @@ public class EnumUtils {
     final Primitive toBox = Primitive.ofBox(toType);
     final Primitive fromBox = Primitive.ofBox(fromType);
     final Primitive fromPrimitive = Primitive.of(fromType);
+    final UnsignedType unsignedType = UnsignedType.of(toType);
     final boolean fromNumber = fromType instanceof Class
         && Number.class.isAssignableFrom((Class) fromType);
     if (fromType == String.class) {
@@ -598,6 +600,26 @@ public class EnumUtils {
               SqlFunctions.class,
               "toBigDecimal",
               operand));
+    } else if (unsignedType != null) {
+      // E.e. toULong
+      String functionName = unsignedType.getConvertFunctionName();
+      if (fromPrimitive != null) {
+        // E.g. from "int" to "ULong".
+        // Generate "UnsignedType.toULong(x)"
+        return Expressions.call(
+            UnsignedType.class,
+            functionName,
+            operand);
+      } else {
+        // Generate "x == null ? null : UnsignedType.toULong(x)"
+        return Expressions.condition(
+            Expressions.equal(operand, RexImpTable.NULL_EXPR),
+            RexImpTable.NULL_EXPR,
+            Expressions.call(
+                UnsignedType.class,
+                functionName,
+                operand));
+      }
     } else if (toType == String.class) {
       if (fromPrimitive != null) {
         switch (fromPrimitive) {
@@ -752,8 +774,8 @@ public class EnumUtils {
    * @throws RuntimeException if no suitable method found
    */
   public static MethodCallExpression call(@Nullable Expression targetExpression,
-      Class clazz, String methodName, List<? extends Expression> arguments) {
-    Class[] argumentTypes = Types.toClassArray(arguments);
+      Class<?> clazz, String methodName, List<? extends Expression> arguments) {
+    Class<?>[] argumentTypes = Types.toClassArray(arguments);
     try {
       Method candidate = clazz.getMethod(methodName, argumentTypes);
       return Expressions.call(targetExpression, candidate, arguments);

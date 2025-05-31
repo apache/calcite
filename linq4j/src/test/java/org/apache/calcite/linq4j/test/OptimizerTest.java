@@ -739,7 +739,7 @@ class OptimizerTest {
   @Test void testCastIntToShort() {
     // return (short) 1 --> return (short) 1
     assertThat(optimize(Expressions.convert_(ONE, short.class)),
-        is("{\n  return (short)1;\n}\n"));
+        is("{\n  return (short) 1;\n}\n"));
   }
 
   @Test void testCastIntToInt() {
@@ -751,7 +751,7 @@ class OptimizerTest {
   @Test void testCastIntToLong() {
     // return (long) 1 --> return 1L
     assertThat(optimize(Expressions.convert_(ONE, long.class)),
-        is("{\n  return 1L;\n}\n"));
+        is("{\n  return (long) 1;\n}\n"));
   }
 
   @Test void testNotTrue() {

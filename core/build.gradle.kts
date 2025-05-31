@@ -72,6 +72,7 @@ dependencies {
     implementation("org.apache.commons:commons-lang3")
     implementation("org.apache.commons:commons-math3")
     implementation("org.apache.commons:commons-text")
+    implementation("org.jooq:joou-java-6")
     implementation("commons-io:commons-io")
     implementation("org.codehaus.janino:commons-compiler")
     implementation("org.codehaus.janino:janino")

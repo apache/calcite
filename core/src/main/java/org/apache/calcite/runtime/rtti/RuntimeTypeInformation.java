@@ -43,6 +43,10 @@ public abstract class RuntimeTypeInformation {
     SMALLINT(false),
     INTEGER(false),
     BIGINT(false),
+    UTINYINT(false),
+    USMALLINT(false),
+    UINTEGER(false),
+    UBIGINT(false),
     DECIMAL(false),
     REAL(false),
     // FLOAT is represented as DOUBLE
@@ -149,6 +153,18 @@ public abstract class RuntimeTypeInformation {
     case BIGINT:
       return Expressions.new_(BasicSqlTypeRtti.class,
           Expressions.constant(RuntimeSqlTypeName.BIGINT));
+    case UTINYINT:
+      return Expressions.new_(BasicSqlTypeRtti.class,
+          Expressions.constant(RuntimeSqlTypeName.UTINYINT));
+    case USMALLINT:
+      return Expressions.new_(BasicSqlTypeRtti.class,
+          Expressions.constant(RuntimeSqlTypeName.USMALLINT));
+    case UINTEGER:
+      return Expressions.new_(BasicSqlTypeRtti.class,
+          Expressions.constant(RuntimeSqlTypeName.UINTEGER));
+    case UBIGINT:
+      return Expressions.new_(BasicSqlTypeRtti.class,
+          Expressions.constant(RuntimeSqlTypeName.UBIGINT));
     case DECIMAL:
       return Expressions.new_(BasicSqlTypeRtti.class,
           Expressions.constant(RuntimeSqlTypeName.DECIMAL));

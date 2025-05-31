@@ -150,6 +150,7 @@ dependencies {
         apiv("org.hsqldb:hsqldb")
         apiv("org.incava:java-diff")
         apiv("org.jboss:jandex")
+        apiv("org.jooq:joou-java-6", "joou")
         apiv("org.jsoup:jsoup")
         apiv("org.junit:junit-bom", "junit5")
         apiv("org.mockito:mockito-core", "mockito")

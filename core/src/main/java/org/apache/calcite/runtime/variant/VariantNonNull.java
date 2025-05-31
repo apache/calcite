@@ -23,6 +23,10 @@ import org.apache.calcite.runtime.rtti.RowSqlTypeRtti;
 import org.apache.calcite.runtime.rtti.RuntimeTypeInformation;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.joou.UByte;
+import org.joou.UInteger;
+import org.joou.ULong;
+import org.joou.UShort;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -64,16 +68,32 @@ public class VariantNonNull extends VariantSqlValue {
       assert value instanceof Byte;
       this.value = value;
       break;
+    case UTINYINT:
+      assert value instanceof UByte;
+      this.value = value;
+      break;
     case SMALLINT:
       assert value instanceof Short;
+      this.value = value;
+      break;
+    case USMALLINT:
+      assert value instanceof UShort;
       this.value = value;
       break;
     case INTEGER:
       assert value instanceof Integer;
       this.value = value;
       break;
+    case UINTEGER:
+      assert value instanceof UInteger;
+      this.value = value;
+      break;
     case BIGINT:
       assert value instanceof Long;
+      this.value = value;
+      break;
+    case UBIGINT:
+      assert value instanceof ULong;
       this.value = value;
       break;
     case DECIMAL:
