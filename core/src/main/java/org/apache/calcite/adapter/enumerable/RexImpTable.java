@@ -36,6 +36,7 @@ import org.apache.calcite.linq4j.tree.NewExpression;
 import org.apache.calcite.linq4j.tree.OptimizeShuttle;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.linq4j.tree.UnsignedType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
@@ -87,6 +88,10 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.joou.UByte;
+import org.joou.UInteger;
+import org.joou.ULong;
+import org.joou.UShort;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -1725,9 +1730,31 @@ public class RexImpTable {
   static class SumImplementor extends StrictAggImplementor {
     @Override protected void implementNotNullReset(AggContext info,
         AggResetContext reset) {
-      Expression start = info.returnType() == BigDecimal.class
-          ? Expressions.constant(BigDecimal.ZERO)
-          : Expressions.constant(0);
+      Expression zero = Expressions.constant(0);
+      Expression start;
+      if (info.returnType() == BigDecimal.class) {
+        start = Expressions.constant(BigDecimal.ZERO);
+      } else if (UnsignedType.of(info.returnType()) != null) {
+        UnsignedType kind = UnsignedType.of(info.returnType());
+        switch (requireNonNull(kind, "kind")) {
+        case UBYTE:
+          start = Expressions.call(UByte.class, "valueOf", zero);
+          break;
+        case USHORT:
+          start = Expressions.call(UShort.class, "valueOf", zero);
+          break;
+        case UINT:
+          start = Expressions.call(UInteger.class, "valueOf", zero);
+          break;
+        case ULONG:
+          start = Expressions.call(ULong.class, "valueOf", zero);
+          break;
+        default:
+          throw new IllegalArgumentException("Unexpected type " + info.returnType());
+        }
+      } else {
+        start = zero;
+      }
 
       reset.currentBlock().add(
           Expressions.statement(
@@ -1738,7 +1765,8 @@ public class RexImpTable {
         AggAddContext add) {
       Expression acc = add.accumulator().get(0);
       Expression next;
-      if (info.returnType() == BigDecimal.class) {
+      if (info.returnType() == BigDecimal.class
+          || UnsignedType.of(info.returnType()) != null) {
         next = Expressions.call(acc, "add", add.arguments().get(0));
       } else {
         final Expression arg = EnumUtils.convert(add.arguments().get(0), acc.type);

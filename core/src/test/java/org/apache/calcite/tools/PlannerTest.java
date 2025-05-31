@@ -732,7 +732,7 @@ class PlannerTest {
     String typeString = SqlTests.getTypeString(insertSourceType);
     assertThat(typeString,
         is("RecordType(INTEGER NOT NULL empid, INTEGER NOT NULL deptno, "
-            + "JavaType(class java.lang.String) name, REAL NOT NULL salary, "
+            + "VARCHAR name, REAL NOT NULL salary, "
             + "INTEGER NOT NULL commission) NOT NULL"));
   }
 

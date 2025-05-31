@@ -35,6 +35,7 @@ import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.linq4j.function.NonDeterministic;
 import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.linq4j.tree.UnsignedType;
 import org.apache.calcite.rel.type.TimeFrame;
 import org.apache.calcite.rel.type.TimeFrameSet;
 import org.apache.calcite.runtime.FlatLists.ComparableList;
@@ -73,6 +74,11 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
+import org.joou.UByte;
+import org.joou.UInteger;
+import org.joou.ULong;
+import org.joou.UShort;
+import org.joou.Unsigned;
 
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
@@ -2497,6 +2503,30 @@ public class SqlFunctions {
     throw notArithmetic("+", b0, b1);
   }
 
+  public static @PolyNull UByte plus(@PolyNull UByte b0, @PolyNull UByte b1) {
+    return (b0 == null || b1 == null)
+        ? castNonNull(null)
+        : b0.add(b1);
+  }
+
+  public static @PolyNull UShort plus(@PolyNull UShort b0, @PolyNull UShort b1) {
+    return (b0 == null || b1 == null)
+        ? castNonNull(null)
+        : b0.add(b1);
+  }
+
+  public static @PolyNull UInteger plus(@PolyNull UInteger b0, @PolyNull UInteger b1) {
+    return (b0 == null || b1 == null)
+        ? castNonNull(null)
+        : b0.add(b1);
+  }
+
+  public static @PolyNull ULong plus(@PolyNull ULong b0, @PolyNull ULong b1) {
+    return (b0 == null || b1 == null)
+        ? castNonNull(null)
+        : b0.add(b1);
+  }
+
   // checked +
 
   static byte intToByte(int value) {
@@ -2529,6 +2559,22 @@ public class SqlFunctions {
 
   public static long checkedPlus(long b0, long b1) {
     return Math.addExact(b0, b1);
+  }
+
+  public static UByte checkedPlus(UByte b0, UByte b1) {
+    return b0.add(b1);
+  }
+
+  public static UShort checkedPlus(UShort b0, UShort b1) {
+    return b0.add(b1);
+  }
+
+  public static UInteger checkedPlus(UInteger b0, UInteger b1) {
+    return b0.add(b1);
+  }
+
+  public static ULong checkedPlus(ULong b0, ULong b1) {
+    return b0.add(b1);
   }
 
   // -
@@ -2569,6 +2615,13 @@ public class SqlFunctions {
         : (b0.longValue() - b1.longValue());
   }
 
+  /** SQL <code>-</code> operator applied to nullable long and long values. */
+  public static @PolyNull Long minus(@PolyNull Long b0, @PolyNull Long b1) {
+    return (b0 == null || b1 == null)
+        ? castNonNull(null)
+        : b0.longValue() - b1.longValue();
+  }
+
   /** SQL <code>-</code> operator applied to nullable BigDecimal values. */
   public static @PolyNull BigDecimal minus(@PolyNull BigDecimal b0,
       @PolyNull BigDecimal b1) {
@@ -2587,6 +2640,25 @@ public class SqlFunctions {
     }
 
     throw notArithmetic("-", b0, b1);
+  }
+
+  public static @PolyNull UByte minus(@PolyNull UByte b0, @PolyNull UByte b1) {
+    return (b0 == null || b1 == null) ? castNonNull(null) : b0.subtract(b1);
+  }
+
+  public static @PolyNull UShort minus(@PolyNull UShort b0, @PolyNull UShort b1) {
+    return (b0 == null || b1 == null) ? castNonNull(null) : b0.subtract(b1);
+  }
+
+  public static @PolyNull UInteger minus(@PolyNull UInteger b0, @PolyNull UInteger b1) {
+    return (b0 == null || b1 == null) ? castNonNull(null) : b0.subtract(b1);
+  }
+
+  /** SQL <code>-</code> operator applied to nullable unsigned long and long values. */
+  public static @PolyNull ULong minus(@PolyNull ULong b0, @PolyNull ULong b1) {
+    return (b0 == null || b1 == null)
+        ? castNonNull(null)
+        : b0.subtract(b1);
   }
 
   // checked -
@@ -2621,6 +2693,38 @@ public class SqlFunctions {
 
   public static long checkedUnaryMinus(long b) {
     return Math.subtractExact(0, b);
+  }
+
+  public static UByte checkedMinus(UByte b0, UByte b1) {
+    return b0.subtract(b1);
+  }
+
+  public static UShort checkedMinus(UShort b0, UShort b1) {
+    return b0.subtract(b1);
+  }
+
+  public static UInteger checkedMinus(UInteger b0, UInteger b1) {
+    return b0.subtract(b1);
+  }
+
+  public static ULong checkedMinus(ULong b0, ULong b1) {
+    return b0.subtract(b1);
+  }
+
+  public static UByte checkedUnaryMinus(UByte b) {
+    return Unsigned.ubyte(0).subtract(b);
+  }
+
+  public static UShort checkedUnaryMinus(UShort b) {
+    return Unsigned.ushort(0).subtract(b);
+  }
+
+  public static UInteger checkedUnaryMinus(UInteger b) {
+    return Unsigned.uint(0).subtract(b);
+  }
+
+  public static ULong checkedUnaryMinus(ULong b) {
+    return Unsigned.ulong(0).subtract(b);
   }
 
   // /
@@ -2695,6 +2799,30 @@ public class SqlFunctions {
         .divide(b1, RoundingMode.HALF_DOWN).longValue();
   }
 
+  public static @PolyNull UByte divide(@PolyNull UByte b0,
+      @PolyNull UByte b1) {
+    return (b0 == null || b1 == null) ? castNonNull(null)
+        : UByte.valueOf(b0.intValue() / b1.intValue());
+  }
+
+  public static @PolyNull UShort divide(@PolyNull UShort b0,
+      @PolyNull UShort b1) {
+    return (b0 == null || b1 == null) ? castNonNull(null)
+        : UShort.valueOf(b0.intValue() / b1.intValue());
+  }
+
+  public static @PolyNull UInteger divide(@PolyNull UInteger b0,
+      @PolyNull UInteger b1) {
+    return (b0 == null || b1 == null) ? castNonNull(null)
+        : UInteger.valueOf(b0.longValue() / b1.longValue());
+  }
+
+  public static @PolyNull ULong divide(@PolyNull ULong b0,
+      @PolyNull ULong b1) {
+    return (b0 == null || b1 == null) ? castNonNull(null)
+        : ULong.valueOf(UnsignedType.toBigInteger(b0).divide(UnsignedType.toBigInteger(b1)));
+  }
+
   public static byte checkedDivide(byte b0, byte b1) {
     return intToByte(b0 / b1);
   }
@@ -2723,6 +2851,22 @@ public class SqlFunctions {
     }
   }
 
+  public static UByte checkedDivide(UByte b0, UByte b1) {
+    return UByte.valueOf(b0.intValue() / b1.intValue());
+  }
+
+  public static UShort checkedDivide(UShort b0, UShort b1) {
+    return UShort.valueOf(b0.intValue() / b1.intValue());
+  }
+
+  public static UInteger checkedDivide(UInteger b0, UInteger b1) {
+    return UInteger.valueOf(b0.longValue() / b1.longValue());
+  }
+
+  public static ULong checkedDivide(ULong b0, ULong b1) {
+    return ULong.valueOf(UnsignedType.toBigInteger(b0).divide(UnsignedType.toBigInteger(b1)));
+  }
+
   // *
 
   /** SQL <code>*</code> operator applied to int values. */
@@ -2746,6 +2890,33 @@ public class SqlFunctions {
   public static @PolyNull Integer multiply(@PolyNull Integer b0,
       @PolyNull Integer b1) {
     return (b0 == null || b1 == null) ? castNonNull(null) : (b0 * b1);
+  }
+
+  public static @PolyNull UByte multiply(@PolyNull UByte b0,
+      @PolyNull UByte b1) {
+    return (b0 == null || b1 == null) ? castNonNull(null)
+        : UByte.valueOf(b0.longValue() * b1.longValue());
+  }
+
+  public static @PolyNull UShort multiply(@PolyNull UShort b0,
+      @PolyNull UShort b1) {
+    return (b0 == null || b1 == null) ? castNonNull(null)
+        : UShort.valueOf(b0.intValue() * b1.intValue());
+  }
+
+  public static @PolyNull UInteger multiply(@PolyNull UInteger b0,
+      @PolyNull UInteger b1) {
+    return (b0 == null || b1 == null) ? castNonNull(null)
+        : UInteger.valueOf(b0.longValue() * b1.longValue());
+  }
+
+  public static @PolyNull ULong multiply(@PolyNull ULong b0,
+      @PolyNull ULong b1) {
+    if (b0 == null || b1 == null) {
+      return castNonNull(null);
+    }
+    BigInteger result = UnsignedType.toBigInteger(b0).multiply(UnsignedType.toBigInteger(b1));
+    return ULong.valueOf(result);
   }
 
   /** SQL <code>*</code> operator applied to nullable long and int values. */
@@ -2799,6 +2970,23 @@ public class SqlFunctions {
 
   public static long checkedMultiply(long b0, long b1) {
     return Math.multiplyExact(b0, b1);
+  }
+
+  public static UByte checkedMultiply(UByte b0, UByte b1) {
+    return UByte.valueOf(b0.intValue() * b1.intValue());
+  }
+
+  public static UShort checkedMultiply(UShort b0, UShort b1) {
+    return UShort.valueOf(b0.intValue() * b1.intValue());
+  }
+
+  public static UInteger checkedMultiply(UInteger b0, UInteger b1) {
+    return
+        UInteger.valueOf(b0.longValue() * b1.longValue());
+  }
+
+  public static ULong checkedMultiply(ULong b0, ULong b1) {
+    return ULong.valueOf(UnsignedType.toBigInteger(b0).multiply(UnsignedType.toBigInteger(b1)));
   }
 
   /** SQL <code>SAFE_ADD</code> function applied to long values. */

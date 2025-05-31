@@ -40,6 +40,7 @@ import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.test.SqlTests;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.SqlShuttle;
+import org.apache.calcite.sql.validate.SqlAbstractConformance;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.test.IntervalTest;
@@ -566,6 +567,7 @@ public class SqlParserTest {
       "UNIQUE",                        "92", "99", "2003", "2011", "2014", "c",
       "UNKNOWN",                       "92", "99", "2003", "2011", "2014", "c",
       "UNNEST",                              "99", "2003", "2011", "2014", "c",
+      "UNSIGNED",                                                          "c",
       "UNTIL",                         "92", "99", "2003",
       "UPDATE",                        "92", "99", "2003", "2011", "2014", "c",
       "UPPER",                         "92",               "2011", "2014", "c",
@@ -1411,6 +1413,25 @@ public class SqlParserTest {
     sql("select c1*1,c2  + 2,c3/3,c4-4,c5*c4  from t")
         .ok("SELECT (`C1` * 1), (`C2` + 2), (`C3` / 3), (`C4` - 4), (`C5` * `C4`)\n"
             + "FROM `T`");
+  }
+
+  @Test void testUnsigned() {
+    sql("SELECT CAST(1 AS UNSIGNED)")
+        .ok("SELECT CAST(1 AS INTEGER UNSIGNED)");
+    sql("SELECT CAST(1 AS INTEGER UNSIGNED)")
+        .same();
+    sql("SELECT CAST(1 AS TINYINT UNSIGNED)")
+        .same();
+    sql("SELECT CAST(1 AS SMALLINT UNSIGNED)")
+        .same();
+    sql("SELECT CAST(1 AS BIGINT UNSIGNED)")
+        .same();
+    sql("SELECT CAST(1 AS ^UNSIGNED^)")
+        .withConformance(new SqlAbstractConformance() {
+          @Override public boolean supportsUnsignedTypes() {
+            return false;
+          }
+        }).fails("Support for UNSIGNED data types is not enabled");
   }
 
   @Test void testRow() {

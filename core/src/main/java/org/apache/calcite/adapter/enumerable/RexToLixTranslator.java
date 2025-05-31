@@ -586,6 +586,32 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       }
       return defaultExpression.get();
     }
+    case UBIGINT:
+    case UINTEGER:
+    case UTINYINT:
+    case USMALLINT: {
+      Method method;
+      switch (targetType.getSqlTypeName()) {
+      case UBIGINT:
+        method = BuiltInMethod.CAST_TO_ULONG.method;
+        break;
+      case UINTEGER:
+        method = BuiltInMethod.CAST_TO_UINTEGER.method;
+        break;
+      case USMALLINT:
+        method = BuiltInMethod.CAST_TO_USHORT.method;
+        break;
+      case UTINYINT:
+        method = BuiltInMethod.CAST_TO_UBYTE.method;
+        break;
+      default:
+        throw new RuntimeException("Unexpected unsigned type " + targetType.getSqlTypeName());
+      }
+      return Expressions.call(
+          method,
+          operand,
+          Expressions.constant(typeFactory.getTypeSystem().roundingMode()));
+    }
     case BIGINT:
     case INTEGER:
     case TINYINT:

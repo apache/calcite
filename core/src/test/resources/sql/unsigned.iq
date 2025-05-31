@@ -1,0 +1,157 @@
+# unsigned.iq - Tests for unsigned types
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+!use post
+!set outputformat csv
+
+WITH consts(v) AS (VALUES(CAST(1 AS UNSIGNED)), (2), (3))
+SELECT SUM(v) FROM consts;
+EXPR$0
+6
+!ok
+
+SELECT CAST(200 AS INT UNSIGNED) - 100;
+EXPR$0
+100
+!ok
+
+SELECT CAST(1 AS INT UNSIGNED);
+EXPR$0
+1
+!ok
+
+SELECT CAST(-1 AS INT UNSIGNED);
+java.lang.NumberFormatException: Value is out of range : -1
+!error
+
+SELECT CAST(255 AS TINYINT UNSIGNED);
+EXPR$0
+255
+!ok
+
+SELECT CAST(255 AS TINYINT);
+java.lang.ArithmeticException: Value 255 out of range
+!error
+
+SELECT CAST(200 AS INT UNSIGNED) - CAST(100 AS INT UNSIGNED);
+EXPR$0
+100
+!ok
+
+SELECT CAST(100 AS INT UNSIGNED) - CAST(200 AS INT UNSIGNED);
+java.lang.NumberFormatException: Value is out of range : -100
+!error
+
+SELECT CAST(CAST(100 AS INT UNSIGNED) AS INT) - 200;
+EXPR$0
+-100
+!ok
+
+SELECT CAST(100 AS INT UNSIGNED) - 200;
+java.lang.NumberFormatException: Value is out of range : -100
+!error
+
+SELECT CAST(100 AS INT UNSIGNED) + 200;
+EXPR$0
+300
+!ok
+
+SELECT CAST(100 AS INT UNSIGNED) * 10;
+EXPR$0
+1000
+!ok
+
+SELECT CAST(CAST(10 AS TINYINT) AS INT UNSIGNED);
+EXPR$0
+10
+!ok
+
+SELECT CAST('10' AS INT UNSIGNED);
+EXPR$0
+10
+!ok
+
+SELECT CAST(10.2 AS INT UNSIGNED);
+EXPR$0
+10
+!ok
+
+SELECT CAST(10.2e0 AS INT UNSIGNED);
+EXPR$0
+10
+!ok
+
+SELECT CAST(10 AS INT UNSIGNED) < 20;
+EXPR$0
+true
+!ok
+
+SELECT CAST(65536 AS INT UNSIGNED) * 65536;
+java.lang.NumberFormatException: Value is out of range : 4294967296
+!error
+
+SELECT CAST(65536 AS INT UNSIGNED) * 65535;
+EXPR$0
+4294901760
+!ok
+
+SELECT CAST(65536 AS BIGINT UNSIGNED) * 65536;
+EXPR$0
+4294967296
+!ok
+
+SELECT CAST(255 AS TINYINT UNSIGNED) * 255;
+EXPR$0
+65025
+!ok
+
+SELECT TYPEOF(CAST(CAST(255 AS TINYINT UNSIGNED) * 255 AS VARIANT));
+EXPR$0
+INTEGER
+!ok
+
+SELECT TYPEOF(CAST(CAST(255 AS TINYINT UNSIGNED) AS VARIANT));
+EXPR$0
+TINYINT UNSIGNED
+!ok
+
+SELECT CAST(CAST(CAST(255 AS TINYINT UNSIGNED) AS VARIANT) AS INTEGER);
+EXPR$0
+255
+!ok
+
+SELECT CAST(1000 AS INT UNSIGNED) / 30;
+EXPR$0
+33
+!ok
+
+SELECT CAST(CAST(1 AS UNSIGNED) AS BOOLEAN);
+EXPR$0
+true
+!ok
+
+# Check error message to display type properly
+SELECT CAST(CAST(1 AS UNSIGNED) AS TIME);
+Cast function cannot convert value of type INTEGER UNSIGNED NOT NULL to type TIME(0) NOT NULL
+!error
+
+SELECT CAST(1 AS UNSIGNED) * 1.0;
+EXPR$0
+1
+!ok
+
+# End unsigned.iq

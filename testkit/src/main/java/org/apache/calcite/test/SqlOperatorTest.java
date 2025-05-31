@@ -643,18 +643,22 @@ public class SqlOperatorTest {
     f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
     SqlOperatorFixture f0 = f.withConformance(SqlConformanceEnum.DEFAULT);
     f0.checkFails("^" + castType.name() + "(true as integer)^",
-        "Cast function cannot convert value of type BOOLEAN to type INTEGER", false);
+        "Cast function cannot convert value of type BOOLEAN NOT NULL to "
+            + "type INTEGER NOT NULL", false);
     f0.checkFails("^" + castType.name() + "(true as decimal)^",
-        "Cast function cannot convert value of type BOOLEAN to type DECIMAL\\(19, 0\\)", false);
+        "Cast function cannot convert value of type BOOLEAN NOT NULL to "
+            + "type DECIMAL\\(19, 0\\) NOT NULL", false);
 
     SqlOperatorFixture f1 = f.withConformance(SqlConformanceEnum.BIG_QUERY);
     f1.checkString("cast(true as integer)", "1", "INTEGER NOT NULL");
     f1.checkString("cast(false as integer)", "0", "INTEGER NOT NULL");
     f1.checkString("cast(true as bigint)", "1", "BIGINT NOT NULL");
     f1.checkFails("^" + castType.name() + "(true as float)^",
-        "Cast function cannot convert value of type BOOLEAN to type FLOAT", false);
+        "Cast function cannot convert value of type BOOLEAN NOT NULL to "
+            + "type FLOAT NOT NULL", false);
     f1.checkFails("^" + castType.name() + "(true as decimal)^",
-        "Cast function cannot convert value of type BOOLEAN to type DECIMAL\\(19, 0\\)", false);
+        "Cast function cannot convert value of type BOOLEAN NOT NULL to "
+            + "type DECIMAL\\(19, 0\\) NOT NULL", false);
   }
 
   @ParameterizedTest

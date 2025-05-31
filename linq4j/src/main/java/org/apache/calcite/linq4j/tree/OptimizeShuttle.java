@@ -301,9 +301,14 @@ public class OptimizeShuttle extends Shuttle {
       if (expression.getType() == unaryExpression.getType()) {
         return expression;
       }
-      if (expression instanceof ConstantExpression) {
-        return Expressions.constant(((ConstantExpression) expression).value,
-            unaryExpression.getType());
+      // Removing the cast from a constant may be unsafe
+      // if the value cannot be represented by the target type, e.g., (byte) 1000
+      if (expression instanceof ConstantExpression
+          // but it's always safe for Booleans
+          && (unaryExpression.getType().equals(boolean.class)
+          || expression instanceof ConstantUntypedNull)) {
+        return Expressions.constant(
+            ((ConstantExpression) expression).value, unaryExpression.getType());
       }
       break;
     case Not:
