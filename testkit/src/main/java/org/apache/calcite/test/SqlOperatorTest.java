@@ -15671,7 +15671,7 @@ public class SqlOperatorTest {
         "DECIMAL(19, 9)");
     f.checkType("covar_pop(CAST(NULL AS INTEGER),CAST(NULL AS INTEGER))",
         "INTEGER");
-    f.checkAggType("covar_pop(1.5, 2.5)", "DECIMAL(2, 1) NOT NULL");
+    f.checkAggType("covar_pop(1.5, 2.5)", "DECIMAL(2, 1)");
     if (!f.brokenTestsEnabled()) {
       return;
     }
@@ -15695,7 +15695,7 @@ public class SqlOperatorTest {
         "DECIMAL(19, 9)");
     f.checkType("covar_samp(CAST(NULL AS INTEGER),CAST(NULL AS INTEGER))",
         "INTEGER");
-    f.checkAggType("covar_samp(1.5, 2.5)", "DECIMAL(2, 1) NOT NULL");
+    f.checkAggType("covar_samp(1.5, 2.5)", "DECIMAL(2, 1)");
     if (!f.brokenTestsEnabled()) {
       return;
     }
@@ -15873,7 +15873,7 @@ public class SqlOperatorTest {
             false);
     f.checkType("var_samp(cast(null as varchar(2)))", "DECIMAL(19, 9)");
     f.checkType("var_samp(CAST(NULL AS INTEGER))", "INTEGER");
-    f.checkAggType("var_samp(DISTINCT 1.5)", "DECIMAL(2, 1) NOT NULL");
+    f.checkAggType("var_samp(DISTINCT 1.5)", "DECIMAL(2, 1)");
     final String[] values = {"0", "CAST(null AS FLOAT)", "3", "3"};
     if (!f.brokenTestsEnabled()) {
       return;
@@ -15901,7 +15901,7 @@ public class SqlOperatorTest {
             false);
     f.checkType("variance(cast(null as varchar(2)))", "DECIMAL(19, 9)");
     f.checkType("variance(CAST(NULL AS INTEGER))", "INTEGER");
-    f.checkAggType("variance(DISTINCT 1.5)", "DECIMAL(2, 1) NOT NULL");
+    f.checkAggType("variance(DISTINCT 1.5)", "DECIMAL(2, 1)");
     final String[] values = {"0", "CAST(null AS FLOAT)", "3", "3"};
     if (!f.brokenTestsEnabled()) {
       return;
