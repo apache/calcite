@@ -262,10 +262,7 @@ public class Strong {
         return false;
       }
       if (rexCall.getOperator() instanceof SqlQuantifyOperator) {
-        boolean isNullOperand1 = isNull(rexCall.getOperands().get(0));
-        boolean isCollectionValueConstructor =
-            RexUtil.isCollectionValueConstructorWithoutAnyCast(rexCall.getOperands().get(1));
-        return isNullOperand1 && isCollectionValueConstructor;
+        return anyNull(rexCall.getOperands());
       }
       return false;
     default:

@@ -1534,18 +1534,6 @@ public enum SqlKind {
           GREATER_THAN_OR_EQUAL, LESS_THAN_OR_EQUAL);
 
   /**
-   * Category of collection value constructors.
-   *
-   * <p>Consists of:
-   * {@link #ARRAY_VALUE_CONSTRUCTOR},
-   * {@link #MAP_VALUE_CONSTRUCTOR},
-   * {@link #MULTISET_VALUE_CONSTRUCTOR}.
-   */
-  public static final Set<SqlKind> COLLECTIONS_VALUE_CONSTRUCTOR =
-      EnumSet.of(
-          ARRAY_VALUE_CONSTRUCTOR, MAP_VALUE_CONSTRUCTOR, MULTISET_VALUE_CONSTRUCTOR);
-
-  /**
    * Comparison operators that order values.
    *
    * <p>Consists of:

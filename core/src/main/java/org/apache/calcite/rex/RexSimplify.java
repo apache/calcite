@@ -54,6 +54,7 @@ import com.google.common.collect.TreeRangeSet;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
@@ -263,7 +264,7 @@ public class RexSimplify {
    * Verify adds an overhead that is only acceptable for a top-level call.
    */
   RexNode simplify(RexNode e, RexUnknownAs unknownAs) {
-    if (STRONG.isNull(e)) {
+    if (isSafeExpression(e) && STRONG.isNull(e)) {
       // Only boolean NULL (aka UNKNOWN) can be converted to FALSE. Even in
       // unknownAs=FALSE mode, we must not convert a NULL integer (say) to FALSE
       if (e.getType().getSqlTypeName() == SqlTypeName.BOOLEAN) {
@@ -1330,11 +1331,17 @@ public class RexSimplify {
 
     @SuppressWarnings("ImmutableEnumChecker")
     private final Set<SqlKind> safeOps;
+    @SuppressWarnings("ImmutableEnumChecker")
+    private final ImmutableSet<SqlOperator> safeOperators;
 
     SafeRexVisitor() {
-      Set<SqlKind> safeOps = EnumSet.noneOf(SqlKind.class);
+      ImmutableSet.Builder<SqlOperator> builder = ImmutableSet.builder();
+      builder.addAll(SqlStdOperatorTable.QUANTIFY_OPERATORS);
+      safeOperators = builder.build();
 
+      Set<SqlKind> safeOps = EnumSet.noneOf(SqlKind.class);
       safeOps.addAll(SqlKind.COMPARISON);
+      safeOps.add(SqlKind.ARRAY_VALUE_CONSTRUCTOR);
       safeOps.add(SqlKind.PLUS_PREFIX);
       safeOps.add(SqlKind.MINUS_PREFIX);
       safeOps.add(SqlKind.CHECKED_MINUS_PREFIX);
@@ -1358,6 +1365,7 @@ public class RexSimplify {
       safeOps.add(SqlKind.AND);
       safeOps.add(SqlKind.NOT);
       safeOps.add(SqlKind.CASE);
+      safeOps.add(SqlKind.SAFE_CAST);
       safeOps.add(SqlKind.LIKE);
       safeOps.add(SqlKind.COALESCE);
       safeOps.add(SqlKind.TRIM);
@@ -1385,10 +1393,64 @@ public class RexSimplify {
     }
 
     @Override public Boolean visitCall(RexCall call) {
-      if (!safeOps.contains(call.getKind())) {
+      SqlKind sqlKind = call.getKind();
+      switch (sqlKind) {
+      case DIVIDE:
+      case MOD:
+        List<RexNode> operands = call.getOperands();
+        // For example:
+        // a/b ==>
+        // if a is not safe then a/b is not safe
+        // else if b is null then a/b is safe
+        // else if b is literal and is 0 then a/b is not safe
+        // else if b is literal and isn't 0 then a/b is safe
+        // else a/b is not safe
+        boolean isSafe = RexVisitorImpl.visitArrayAnd(this, ImmutableList.of(operands.get(0)));
+        if (!isSafe) {
+          return false;
+        }
+        if (operands.get(1) instanceof RexLiteral) {
+          RexLiteral literal = (RexLiteral) operands.get(1);
+          if (RexUtil.isNullLiteral(literal, true)) {
+            return isSafe;
+          }
+          Comparable comparable = literal.getValueAs(Comparable.class);
+          if (comparable instanceof Number) {
+            return number(comparable).compareTo(BigDecimal.ZERO) != 0;
+          }
+        }
+        return false;
+      case CAST:
+        boolean isLosslessCast =  RexUtil.isLosslessCast(call);
+        if (isLosslessCast) {
+          return call.getOperands().get(0).accept(this);
+        }
+        return false;
+      default:
+        break;
+      }
+
+      SqlOperator sqlOperator = call.getOperator();
+      if (sqlOperator.isSafeOperator()) {
+        return RexVisitorImpl.visitArrayAnd(this, call.operands);
+      }
+
+      if (!(safeOps.contains(sqlKind) || safeOperators.contains(sqlOperator))) {
         return false;
       }
       return RexVisitorImpl.visitArrayAnd(this, call.operands);
+    }
+
+    private static BigDecimal number(Comparable comparable) {
+      return comparable instanceof BigDecimal
+          ? (BigDecimal) comparable
+          : comparable instanceof BigInteger
+              ? new BigDecimal((BigInteger) comparable)
+              : comparable instanceof Long
+                  || comparable instanceof Integer
+                  || comparable instanceof Short
+                  ? new BigDecimal(((Number) comparable).longValue())
+                  : new BigDecimal(((Number) comparable).doubleValue());
     }
 
     @Override public Boolean visitOver(RexOver over) {

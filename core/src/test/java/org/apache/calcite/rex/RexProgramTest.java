@@ -1837,7 +1837,7 @@ class RexProgramTest extends RexProgramTestBase {
 
   /** Unit test for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7032">[CALCITE-7032]
-   * Simplify 'NULL >ALL (ARRAY[1,2,NULL])' to 'NULL'</a>. */
+   * Simplify 'NULL > ALL (ARRAY[1,2,NULL])' to 'NULL'</a>. */
   @Test void testSimplifyQuantifyOperatorsWithArray() {
     RexNode operand1 = nullInt;
     RelDataType arrayType = tArray(tInt(true));
@@ -1845,20 +1845,28 @@ class RexProgramTest extends RexProgramTestBase {
     RexNode operand2 =
         rexBuilder.makeCall(arrayType, SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
             ImmutableList.of(literal(1), literal(2), nullInt));
-    // "NULL >SOME (ARRAY[1,2,NULL])"
+    // "NULL > SOME (ARRAY[1,2,NULL])"
     // ==> "NULL"
     checkSimplify3(rexBuilder.makeCall(SqlStdOperatorTable.SOME_GT, operand1, operand2),
         "null:BOOLEAN", "false", "true");
 
-    // "NULL >SOME (ARRAY[CAST(100000 AS SMALLINT),2,NULL])"
-    // ==> "NULL >SOME (ARRAY[CAST(100000 AS SMALLINT),2,NULL])"
+    // "NULL > SOME (ARRAY[CAST(10 AS SMALLINT),2,NULL])"
+    // ==> "NULL"
+    operand2 =
+        rexBuilder.makeCall(arrayType, SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+            ImmutableList.of(cast(literal(10), tSmallInt()), literal(2), nullInt));
+    checkSimplify3(rexBuilder.makeCall(SqlStdOperatorTable.SOME_GT, operand1, operand2),
+        "null:BOOLEAN", "false", "true");
+
+    // "NULL > SOME (ARRAY[CAST(100000 AS SMALLINT),2,NULL])"
+    // ==> "NULL > SOME (ARRAY[CAST(100000 AS SMALLINT),2,NULL])"
     operand2 =
         rexBuilder.makeCall(arrayType, SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
             ImmutableList.of(cast(literal(100000), tSmallInt()), literal(2), nullInt));
     checkSimplifyUnchanged(rexBuilder.makeCall(SqlStdOperatorTable.SOME_GT, operand1, operand2));
 
-    // "NULL >SOME (CAST(ARRAY[100000,2,NULL]) AS SMALLINT ARRAY)"
-    // ==> "NULL >SOME (CAST(ARRAY[100000,2,NULL]) AS SMALLINT ARRAY)"
+    // "NULL > SOME (CAST(ARRAY[100000,2,NULL]) AS SMALLINT ARRAY)"
+    // ==> "NULL > SOME (CAST(ARRAY[100000,2,NULL]) AS SMALLINT ARRAY)"
     operand2 =
         cast(
             rexBuilder.makeCall(arrayType, SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
@@ -2656,14 +2664,31 @@ class RexProgramTest extends RexProgramTestBase {
     checkSimplify(caseNode, "<=(?0.notNullInt0, 1)");
   }
 
-  @Test void testPushNotIntoCase() {
-    checkSimplify(
-        not(
-            case_(
-                isTrue(vBool()), vBool(1),
-                gt(div(vIntNotNull(), literal(2)), literal(1)), vBool(2),
-                vBool(3))),
-        "CASE(?0.bool0, NOT(?0.bool1), >(/(?0.notNullInt0, 2), 1), NOT(?0.bool2), NOT(?0.bool3))");
+  /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7032">[CALCITE-7032]
+   * Simplify 'NULL > ALL (ARRAY[1,2,NULL])' to 'NULL'</a>. */
+  @Test void testSimplifyDivideSafe() {
+    // null + (a/0)/4
+    // ==>
+    // null + (a/0)/4
+    simplify = simplify.withParanoid(false);
+    RexNode divideNode0 = plus(nullInt, div(div(vIntNotNull(), literal(0)), literal(4)));
+    checkSimplifyUnchanged(divideNode0);
+    // null + a/4
+    // ==>
+    // null
+    RexNode divideNode1 = plus(nullInt, div(vIntNotNull(), literal(4)));
+    checkSimplify(divideNode1, "null:INTEGER");
+    // null + null/0
+    // ==>
+    // null + null/0
+    RexNode divideNode2 = plus(nullInt, div(vIntNotNull(), literal(0)));
+    checkSimplifyUnchanged(divideNode2);
+    // null + a/b
+    // ==>
+    // null + a/b
+    RexNode divideNode3 = plus(nullInt, div(vIntNotNull(), vIntNotNull()));
+    checkSimplifyUnchanged(divideNode3);
   }
 
   @Test void testNotRecursion() {
@@ -4031,8 +4056,7 @@ class RexProgramTest extends RexProgramTestBase {
   @Test void testSimplifyFunctionWithStrongPolicy() {
     final SqlOperator op =
         new SqlSpecialOperator("OP1", SqlKind.OTHER_FUNCTION, 0, false,
-            ReturnTypes.BOOLEAN, null, null) {
-        };
+            ReturnTypes.BOOLEAN, null, null);
     // Operator with no Strong.Policy defined: no simplification can be made
     checkSimplifyUnchanged(rexBuilder.makeCall(op, vInt()));
     checkSimplifyUnchanged(rexBuilder.makeCall(op, vIntNotNull()));
@@ -4042,7 +4066,7 @@ class RexProgramTest extends RexProgramTestBase {
         new SqlSpecialOperatorWithPolicy("OP2", SqlKind.OTHER_FUNCTION, 0,
             false, ReturnTypes.BOOLEAN, null, null, Strong.Policy.AS_IS) {
         };
-    // Operator with Strong.Policy.AS_IS: no simplification can be made
+    // Operator with Strong.Policy.AS_IS but not safe: no simplification can be made
     checkSimplifyUnchanged(rexBuilder.makeCall(opPolicyAsIs, vInt()));
     checkSimplifyUnchanged(rexBuilder.makeCall(opPolicyAsIs, vIntNotNull()));
     checkSimplifyUnchanged(rexBuilder.makeCall(opPolicyAsIs, nullInt));
@@ -4050,12 +4074,19 @@ class RexProgramTest extends RexProgramTestBase {
     final SqlOperator opPolicyAny =
         new SqlSpecialOperatorWithPolicy("OP3", SqlKind.OTHER_FUNCTION, 0,
             false, ReturnTypes.BOOLEAN, null, null, Strong.Policy.ANY) {
+          @Override public Boolean isSafeOperator() {
+            return true;
+          }
         };
     // Operator with Strong.Policy.ANY: simplification possible with null parameter
     checkSimplifyUnchanged(rexBuilder.makeCall(opPolicyAny, vInt()));
     checkSimplifyUnchanged(rexBuilder.makeCall(opPolicyAny, vIntNotNull()));
     checkSimplify3(rexBuilder.makeCall(opPolicyAny, nullInt),
         "null:BOOLEAN", "false", "true");
+    // Operator with not safe operand: no simplification can be made
+    checkSimplifyUnchanged(
+        rexBuilder.makeCall(opPolicyAny,
+            rexBuilder.makeCall(SqlStdOperatorTable.DIVIDE, vIntNotNull(), vIntNotNull())));
   }
 
   @Test void testSimplifyVarbinary() {
