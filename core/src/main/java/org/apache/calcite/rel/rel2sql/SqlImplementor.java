@@ -2034,12 +2034,6 @@ public abstract class SqlImplementor {
                   }
                 }
               }
-            } else if (node instanceof SqlCall
-                && !SqlUtil.containsAgg(node)
-                && clauseList.contains(Clause.GROUP_BY)
-                && dialect.getConformance().isSortByOrdinal()) {
-              return SqlLiteral.createExactNumeric(
-                  Integer.toString(ordinal + 1), SqlParserPos.ZERO);
             }
             return node;
           }

@@ -3648,11 +3648,24 @@ public class RelBuilder {
       return collation(((RexCall) node).getOperands().get(0), direction,
           RelFieldCollation.NullDirection.LAST, extraNodes);
     default:
-      final int fieldIndex = extraNodes.size();
-      extraNodes.add(node);
+      final int fieldIndex = (node instanceof RexCall
+          && !extraNodes.isEmpty() && hasSortNode((RexCall) node, extraNodes))
+          ? extraNodes.indexOf(node) : extraNodes.size();
+
+      if (!(node instanceof RexCall) || extraNodes.isEmpty()
+          || !hasSortNode((RexCall) node, extraNodes)) {
+        extraNodes.add(node);
+      }
+
       return new RelFieldCollation(fieldIndex, direction,
           first(nullDirection, direction.defaultNullDirection()));
     }
+  }
+
+  private static boolean hasSortNode(RexCall rexCall, List<RexNode> extraNodes) {
+    return extraNodes.stream().filter(i -> i instanceof RexCall)
+        .map(i -> (RexCall) i)
+        .anyMatch(rexCall::equals);
   }
 
   private static RexFieldCollation rexCollation(RexNode node,
@@ -4356,7 +4369,7 @@ public class RelBuilder {
               .stream()
               .map(orderKey ->
                   collation(orderKey, RelFieldCollation.Direction.ASCENDING,
-                      null, Collections.emptyList()))
+                      null, registrar.extraNodes))
               .collect(Collectors.toList()));
 //      if (aggFunction instanceof SqlCountAggFunction && !distinct) {
 //        args = args.stream()
