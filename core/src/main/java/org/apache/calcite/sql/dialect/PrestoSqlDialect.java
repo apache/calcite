@@ -27,11 +27,13 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlBasicTypeNameSpec;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCollectionTypeNameSpec;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlMapTypeNameSpec;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlArrayValueConstructor;
@@ -39,6 +41,10 @@ import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlMapValueConstructor;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.AbstractSqlType;
+import org.apache.calcite.sql.type.ArraySqlType;
+import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.calcite.sql.type.MapSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.RelToSqlConverterUtil;
@@ -178,18 +184,53 @@ public class PrestoSqlDialect extends SqlDialect {
   }
 
   @Override public @Nullable SqlNode getCastSpec(RelDataType type) {
-    switch (type.getSqlTypeName()) {
-    // PRESTO only supports REAL、DOUBLE for floating point types.
-    case FLOAT:
-      return new SqlDataTypeSpec(
-          new SqlBasicTypeNameSpec(SqlTypeName.DOUBLE, SqlParserPos.ZERO), SqlParserPos.ZERO);
-    // https://prestodb.io/docs/current/language/types.html#varbinary
-    case BINARY:
-      return new SqlDataTypeSpec(
-          new SqlBasicTypeNameSpec(SqlTypeName.VARBINARY, SqlParserPos.ZERO), SqlParserPos.ZERO);
-    default:
-      return super.getCastSpec(type);
+    if (type instanceof BasicSqlType) {
+      switch (type.getSqlTypeName()) {
+      // PRESTO only supports REAL、DOUBLE for floating point types.
+      case FLOAT:
+        return new SqlDataTypeSpec(
+            new SqlBasicTypeNameSpec(SqlTypeName.DOUBLE, SqlParserPos.ZERO), SqlParserPos.ZERO);
+      // https://prestodb.io/docs/current/language/types.html#varbinary
+      case BINARY:
+        return new SqlDataTypeSpec(
+            new SqlBasicTypeNameSpec(SqlTypeName.VARBINARY, SqlParserPos.ZERO), SqlParserPos.ZERO);
+      default:
+        break;
+      }
     }
+
+    if (type instanceof AbstractSqlType) {
+      switch (type.getSqlTypeName()) {
+      case MAP:
+        MapSqlType mapSqlType = (MapSqlType) type;
+        SqlDataTypeSpec keySpec = (SqlDataTypeSpec) getCastSpec(mapSqlType.getKeyType());
+        SqlDataTypeSpec valueSpec =
+            (SqlDataTypeSpec) getCastSpec(mapSqlType.getValueType());
+        @SuppressWarnings("argument.type.incompatible")
+        SqlMapTypeNameSpec sqlMapTypeNameSpec =
+            new SqlMapTypeNameSpec(keySpec, valueSpec, SqlParserPos.ZERO);
+        return new SqlDataTypeSpec(sqlMapTypeNameSpec,
+            SqlParserPos.ZERO);
+      case ARRAY:
+        ArraySqlType arraySqlType = (ArraySqlType) type;
+        SqlDataTypeSpec arrayValueSpec =
+            (SqlDataTypeSpec) getCastSpec(arraySqlType.getComponentType());
+        @SuppressWarnings("all")
+        SqlCollectionTypeNameSpec sqlArrayTypeNameSpec =
+            new SqlCollectionTypeNameSpec(arrayValueSpec.getTypeNameSpec(),
+                SqlTypeName.ARRAY, SqlParserPos.ZERO);
+        return new SqlDataTypeSpec(sqlArrayTypeNameSpec,
+            SqlParserPos.ZERO);
+      case MULTISET:
+        throw new UnsupportedOperationException("Presto dialect does not support cast to "
+            + type.getSqlTypeName());
+      default:
+        break;
+      }
+    }
+
+    return super.getCastSpec(type);
+
   }
 
   @Override public void unparseCall(SqlWriter writer, SqlCall call,
@@ -248,7 +289,7 @@ public class PrestoSqlDialect extends SqlDialect {
    */
   public static SqlCall convertMapValueCall(SqlCall call) {
     boolean unnestMap = call.operandCount() > 0
-        && call.getOperandList().stream().allMatch(operand -> operand instanceof SqlLiteral);
+        && call.getOperandList().get(0) instanceof SqlLiteral;
     if (!unnestMap) {
       return call;
     }
