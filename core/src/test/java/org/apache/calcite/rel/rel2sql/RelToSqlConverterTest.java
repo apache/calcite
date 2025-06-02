@@ -9797,6 +9797,82 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7048">[CALCITE-7048]
+   * Derived types with FLOAT type arguments are handled incorrectly in Presto</a>. */
+  @Test void testPrestoFloatingPointNestedTypesCast() {
+    // Map test
+    String query = "SELECT CAST(MAP[1.0,MAP[3.0,4.0]]"
+        + " AS MAP<FLOAT, MAP<FLOAT, FLOAT>>)"
+        + " FROM \"employee\"";
+    String expectedPresto = "SELECT CAST(MAP (ARRAY[1.0], ARRAY[MAP (ARRAY[3.0], ARRAY[4.0])])"
+        + " AS MAP< DOUBLE, MAP< DOUBLE, DOUBLE > >)\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query)
+        .withPresto()
+        .ok(expectedPresto);
+
+    String query1 = "SELECT CAST(MAP[1.0,2.0]"
+        + " AS MAP<FLOAT, FLOAT>)"
+        + " FROM \"employee\"";
+    String expectedPresto1 = "SELECT CAST(MAP (ARRAY[1.0], ARRAY[2.0])"
+        + " AS MAP< DOUBLE, DOUBLE >)\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query1)
+        .withPresto()
+        .ok(expectedPresto1);
+
+    String query2 = "SELECT CAST(MAP[1.0,\"department_id\"]"
+        + " AS MAP<FLOAT, BINARY>)"
+        + " FROM \"employee\"";
+    String expectedPresto2 = "SELECT CAST(MAP (ARRAY[1.0], ARRAY[\"department_id\"])"
+        + " AS MAP< DOUBLE, VARBINARY >)\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query2)
+        .withPresto()
+        .ok(expectedPresto2);
+
+    String query3 = "SELECT CAST(MAP[MAP[3.0,4.0],1.0]"
+        + " AS MAP<MAP<FLOAT, FLOAT>, FLOAT>)"
+        + " FROM \"employee\"";
+    String expectedPresto3 = "SELECT CAST(MAP (ARRAY[MAP (ARRAY[3.0], ARRAY[4.0])], ARRAY[1.0])"
+        + " AS MAP< MAP< DOUBLE, DOUBLE >, DOUBLE >)\nFROM \"foodmart\".\"employee\"";
+    sql(query3)
+        .withPresto()
+        .ok(expectedPresto3);
+
+    // Array test
+    String query4 = "SELECT CAST(ARRAY[1.0,2.0,3.0]"
+        + " AS FLOAT ARRAY)"
+        + " FROM \"employee\"";
+    String expectedPresto4 = "SELECT CAST(ARRAY[1.0, 2.0, 3.0] AS DOUBLE ARRAY)\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query4)
+        .withPresto()
+        .ok(expectedPresto4);
+
+    String query5 = "SELECT CAST(ARRAY[ARRAY[1.0],ARRAY[2.0],ARRAY[3.0]]"
+        + " AS FLOAT ARRAY ARRAY)"
+        + " FROM \"employee\"";
+    String expectedPresto5 = "SELECT CAST(ARRAY[ARRAY[1.0], ARRAY[2.0], ARRAY[3.0]]"
+        + " AS DOUBLE ARRAY ARRAY)\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query5)
+        .withPresto()
+        .ok(expectedPresto5);
+
+    String query6 = "SELECT CAST(ARRAY[MAP[1.0,2.0],MAP[2.0,2.0],MAP[3.0,3.0]]"
+        + " AS MAP<REAL,FLOAT> ARRAY)"
+        + " FROM \"employee\"";
+    String expectedPresto6 = "SELECT CAST(ARRAY["
+        + "MAP (ARRAY[1.0], ARRAY[2.0]), MAP (ARRAY[2.0], ARRAY[2.0]), MAP (ARRAY[3.0], ARRAY[3.0])"
+        + "] AS MAP< REAL, DOUBLE > ARRAY)\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query6)
+        .withPresto()
+        .ok(expectedPresto6);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6804">[CALCITE-6804]
    * Ensures that alias for the left side of anti join is being propagated.</a>. */
   @Test void testAntiJoinWithComplexInput() {
