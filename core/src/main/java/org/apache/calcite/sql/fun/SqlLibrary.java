@@ -82,7 +82,9 @@ public enum SqlLibrary {
   /** A collection of operators that are in NETEZZA but not in standard SQL. */
   NETEZZA("NETEZZA", "netezza"),
   /** A collection of operators that are in SQL_SERVER but not in standard SQL. */
-  SQL_SERVER("SQL_SERVER", "sqlserver");
+  SQL_SERVER("SQL_SERVER", "sqlserver"),
+  /** A collection of operators that are in REDSHIFT but not in standard SQL. */
+  REDSHIFT("REDSHIFT", "redshift");
 
   /** Map from {@link Enum#name() name} and {@link #fun} to library. */
   public static final Map<String, SqlLibrary> MAP;
