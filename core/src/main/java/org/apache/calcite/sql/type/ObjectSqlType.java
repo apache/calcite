@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.type;
 
+import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rel.type.RelDataTypeComparability;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -25,6 +26,8 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * ObjectSqlType represents an SQL structured user-defined type.
@@ -99,6 +102,20 @@ public class ObjectSqlType extends AbstractSqlType {
     // TODO jvs 10-Feb-2005:  proper quoting; dump attributes withDetail?
     sb.append("ObjectSqlType(");
     sb.append(sqlIdentifier);
-    sb.append(")");
+    sb.append("(");
+    for (Ord<RelDataTypeField> ord : Ord.zip(requireNonNull(fieldList, "fieldList"))) {
+      if (ord.i > 0) {
+        sb.append(", ");
+      }
+      RelDataTypeField field = ord.e;
+      if (withDetail) {
+        sb.append(field.getType().getFullTypeString());
+      } else {
+        sb.append(field.getType());
+      }
+      sb.append(" ");
+      sb.append(field.getName());
+    }
+    sb.append("))");
   }
 }
