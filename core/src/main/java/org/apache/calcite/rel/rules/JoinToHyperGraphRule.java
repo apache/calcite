@@ -28,9 +28,6 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 
-import com.google.common.collect.ImmutableList;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
 
 import java.util.ArrayList;
@@ -113,6 +110,10 @@ public class JoinToHyperGraphRule
       leftNodeCount = 1;
       inputs.add(left);
       inputs.add(right);
+    }
+    // the number of inputs cannot exceed 64 with long type as the bitmap of hypergraph inputs.
+    if (inputs.size() > 64) {
+      return;
     }
 
     // calculate conflict rules

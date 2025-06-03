@@ -17,6 +17,7 @@
 package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.linq4j.function.Experimental;
+import org.apache.calcite.plan.PlanTooComplexError;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
@@ -51,7 +52,10 @@ public class DpHyp {
 
   private final RelMetadataQuery mq;
 
-  public DpHyp(HyperGraph hyperGraph, RelBuilder builder, RelMetadataQuery relMetadataQuery) {
+  private final int bloat;
+
+  public DpHyp(HyperGraph hyperGraph, RelBuilder builder, RelMetadataQuery relMetadataQuery,
+      int bloat) {
     this.hyperGraph =
         hyperGraph.copy(
             hyperGraph.getTraitSet(),
@@ -60,6 +64,7 @@ public class DpHyp {
     this.resultInputOrder = new HashMap<>();
     this.builder = builder;
     this.mq = relMetadataQuery;
+    this.bloat = bloat;
   }
 
   /**
@@ -78,12 +83,16 @@ public class DpHyp {
       hyperGraph.initEdgeBitMap(singleNode);
     }
 
-    // start enumerating from the second to last
-    for (int i = size - 2; i >= 0; i--) {
-      long csg = LongBitmap.newBitmap(i);
-      long forbidden = csg - 1;
-      emitCsg(csg);
-      enumerateCsgRec(csg, forbidden);
+    try {
+      // start enumerating from the second to last
+      for (int i = size - 2; i >= 0; i--) {
+        long csg = LongBitmap.newBitmap(i);
+        long forbidden = csg - 1;
+        emitCsg(csg);
+        enumerateCsgRec(csg, forbidden);
+      }
+    } catch (PlanTooComplexError e) {
+      return;
     }
   }
 
@@ -234,6 +243,11 @@ public class DpHyp {
       winPlan = chooseBetterPlan(winPlan, oriPlan);
       if (winPlan.equals(oriPlan)) {
         winOrder = resultInputOrder.get(csg | cmp);
+      }
+    } else {
+      // when enumerating a new connected subgraph, check whether the dpTable size is too large
+      if (dpTable.size() > bloat) {
+        throw new PlanTooComplexError();
       }
     }
     assert winOrder != null;

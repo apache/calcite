@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.rel.rules;
 
-import com.google.common.collect.ImmutableList;
-
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
+
+import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 

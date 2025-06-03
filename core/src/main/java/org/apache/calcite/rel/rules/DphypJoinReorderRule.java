@@ -43,7 +43,7 @@ public class DphypJoinReorderRule
     RelBuilder relBuilder = call.builder();
 
     // enumerate by Dphyp
-    DpHyp dpHyp = new DpHyp(hyperGraph, relBuilder, call.getMetadataQuery());
+    DpHyp dpHyp = new DpHyp(hyperGraph, relBuilder, call.getMetadataQuery(), config.bloat());
     dpHyp.startEnumerateJoin();
     RelNode orderedJoin = dpHyp.getBestPlan();
     if (orderedJoin == null) {
@@ -61,6 +61,15 @@ public class DphypJoinReorderRule
 
     @Override default DphypJoinReorderRule toRule() {
       return new DphypJoinReorderRule(this);
+    }
+
+    /**
+     * Limit to the size growth of the dpTable allowed during enumerating.
+     * If the graph with n inputs is fully connected and any combination is legal, the size of
+     * dpTable is 2^n-1. The default value assumes n=7.
+     */
+    default int bloat() {
+      return 127;
     }
   }
 }
