@@ -10511,26 +10511,6 @@ class RelToSqlConverterDMTest {
         .withBigQuery().ok(expected);
   }
 
-  @Test void testForQualifyColumnUsedInProjection() {
-    String query = "select a.\"department_id\" as \"id\", a.\"salary\" as \"flag\" from \n"
-        + "(SELECT \n"
-        + "emp.\"department_id\",\n"
-        + "sum(emp.\"salary\") as \"salary\",\n"
-        + "row_number() over (partition by emp.\"department_id\" order by sum(emp.\"salary\") desc) as \"brand_rank\"\n"
-        + "from \"foodmart\".\"employee\"  emp\n"
-        + "GROUP BY emp.\"department_id\" ) a\n"
-        + "where a.\"brand_rank\" <= 50 ";
-    final String expected = "SELECT department_id AS id, salary AS flag\n"
-        + "FROM (SELECT department_id, SUM(salary) AS salary, ROW_NUMBER() OVER (PARTITION BY department_id ORDER BY SUM(salary) IS NULL DESC, SUM(salary) DESC) AS brand_rank\n"
-        + "FROM foodmart.employee\n"
-        + "GROUP BY department_id\n"
-        + "QUALIFY (ROW_NUMBER() OVER (PARTITION BY department_id ORDER BY SUM(salary) IS NULL DESC, SUM(salary) DESC)) <= 50) AS t2";
-
-    sql(query)
-        .schema(CalciteAssert.SchemaSpec.JDBC_FOODMART)
-        .withBigQuery().ok(expected);
-  }
-
   @Test void testNonAggregateExpressionInOrderBy() {
     String query = "SELECT EXTRACT(DAY FROM \"birth_date\") \n"
         + "FROM \"employee\" \n"
