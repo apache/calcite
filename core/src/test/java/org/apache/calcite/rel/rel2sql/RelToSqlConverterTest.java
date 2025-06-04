@@ -8958,12 +8958,6 @@ class RelToSqlConverterTest {
             ImmutableList.of("c0", "c00"),
             true)
         .build();
-    // LogicalProject(c0=[$0], c00=[$1])
-    //   LogicalJoin(condition=[=($0, $1)], joinType=[inner])
-    //     LogicalProject(c0=[$0])
-    //       LogicalTableScan(table=[[scott, EMP]])
-    //     LogicalProject(c0=[$0])
-    //       LogicalTableScan(table=[[scott, EMP]])
 
     final String expected = "SELECT \"t\".\"c0\", \"t0\".\"c0\" AS \"c00\"\n"
         + "FROM (SELECT \"EMPNO\" AS \"c0\"\nFROM \"scott\".\"EMP\") AS \"t\"\n"
