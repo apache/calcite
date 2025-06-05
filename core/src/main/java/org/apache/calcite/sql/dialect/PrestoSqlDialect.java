@@ -53,6 +53,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -196,7 +197,8 @@ public class PrestoSqlDialect extends SqlDialect {
       SqlDataTypeSpec keySpec = (SqlDataTypeSpec) getCastSpec(mapSqlType.getKeyType());
       SqlDataTypeSpec valueSpec =
           (SqlDataTypeSpec) getCastSpec(mapSqlType.getValueType());
-      @SuppressWarnings("argument.type.incompatible")
+      keySpec = Objects.requireNonNull(keySpec, "keySpec");
+      valueSpec = Objects.requireNonNull(valueSpec, "valueSpec");
       SqlMapTypeNameSpec sqlMapTypeNameSpec =
           new SqlMapTypeNameSpec(keySpec, valueSpec, SqlParserPos.ZERO);
       return new SqlDataTypeSpec(sqlMapTypeNameSpec,
@@ -205,7 +207,7 @@ public class PrestoSqlDialect extends SqlDialect {
       ArraySqlType arraySqlType = (ArraySqlType) type;
       SqlDataTypeSpec arrayValueSpec =
           (SqlDataTypeSpec) getCastSpec(arraySqlType.getComponentType());
-      @SuppressWarnings("all")
+      arrayValueSpec = Objects.requireNonNull(arrayValueSpec, "arrayValueSpec");
       SqlCollectionTypeNameSpec sqlArrayTypeNameSpec =
           new SqlCollectionTypeNameSpec(arrayValueSpec.getTypeNameSpec(),
               SqlTypeName.ARRAY, SqlParserPos.ZERO);
