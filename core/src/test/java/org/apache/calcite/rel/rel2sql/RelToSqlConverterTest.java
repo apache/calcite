@@ -9800,6 +9800,16 @@ class RelToSqlConverterTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7048">[CALCITE-7048]
    * The specified type conversion does not support complex types in Presto</a>. */
   @Test void testPrestoFloatingPointNestedTypesCast() {
+
+    String query1 = "SELECT CAST(MAP[MAP[3.0,4.0],1.0]"
+        + " AS MAP<MAP<FLOAT, FLOAT>, FLOAT>)"
+        + " FROM \"employee\"";
+    String expectedPresto1 = "SELECT CAST(MAP (ARRAY[MAP (ARRAY[3.0], ARRAY[4.0])], ARRAY[1.0])"
+        + " AS MAP< MAP< DOUBLE, DOUBLE >, DOUBLE >)\nFROM \"foodmart\".\"employee\"";
+    sql(query1)
+        .withPresto()
+        .ok(expectedPresto1);
+
     // Map test
     String query = "SELECT CAST(MAP[1.0,MAP[3.0,4.0]]"
         + " AS MAP<FLOAT, MAP<FLOAT, FLOAT>>)"
@@ -9810,15 +9820,6 @@ class RelToSqlConverterTest {
     sql(query)
         .withPresto()
         .ok(expectedPresto);
-
-    String query1 = "SELECT CAST(MAP[MAP[3.0,4.0],1.0]"
-        + " AS MAP<MAP<FLOAT, FLOAT>, FLOAT>)"
-        + " FROM \"employee\"";
-    String expectedPresto1 = "SELECT CAST(MAP (ARRAY[MAP (ARRAY[3.0], ARRAY[4.0])], ARRAY[1.0])"
-        + " AS MAP< MAP< DOUBLE, DOUBLE >, DOUBLE >)\nFROM \"foodmart\".\"employee\"";
-    sql(query1)
-        .withPresto()
-        .ok(expectedPresto1);
 
     String query2 = "SELECT CAST(MAP[1.0,2.0]"
         + " AS MAP<FLOAT, FLOAT>)"
