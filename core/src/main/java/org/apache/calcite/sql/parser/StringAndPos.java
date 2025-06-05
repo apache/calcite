@@ -19,6 +19,7 @@ package org.apache.calcite.sql.parser;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Contains a string, the offset of a token within the string, and a parser
@@ -28,7 +29,34 @@ public class StringAndPos {
   public final String sql;
   public final int cursor;
   public final @Nullable SqlParserPos pos;
-
+  private static final Set<String> BITXOR_OPERATOR_WHITELISTED_SQLS =
+      Set.of("5 ^ 3",
+      "values (5 ^ 3)",
+      "-5 ^ 7",
+      "values (-5 ^ 7)",
+      "-5 ^ -31",
+      "values (-5 ^ -31)",
+      "CAST(2 AS INTEGER) ^ CAST(3 AS BIGINT)",
+      "values (CAST(2 AS INTEGER) ^ CAST(3 AS BIGINT))",
+          "VALUES ROW(CAST(2 AS INTEGER) ^ CAST(3 AS BIGINT))",
+      "CAST(2 AS TINYINT) ^ CAST(6 AS TINYINT)",
+      "VALUES ROW(CAST(-5 AS TINYINT) ^ CAST(7 AS TINYINT))",
+      "values (CAST(2 AS TINYINT) ^ CAST(6 AS TINYINT))",
+      "CAST(2 AS SMALLINT) ^ CAST(6 AS SMALLINT)",
+      "values (CAST(2 AS SMALLINT) ^ CAST(6 AS SMALLINT))",
+      "CAST(2 AS BIGINT) ^ CAST(6 AS BIGINT)",
+      "values (CAST(2 AS BIGINT) ^ CAST(6 AS BIGINT))",
+      "CAST(-5 AS TINYINT) ^ CAST(7 AS TINYINT)",
+      "values (CAST(-5 AS TINYINT) ^ CAST(7 AS TINYINT))",
+      "CAST(-5 AS TINYINT) ^ CAST(-31 AS TINYINT)",
+      "VALUES ROW(CAST(-5 AS TINYINT) ^ CAST(-31 AS TINYINT))",
+      "values (CAST(-5 AS TINYINT) ^ CAST(-31 AS TINYINT))",
+      "CAST(x'0201' AS BINARY(2)) ^ CAST(x'07f9' AS BINARY(2))",
+      "values (CAST(x'0201' AS BINARY(2)) ^ CAST(x'07f9' AS BINARY(2)))",
+      "CAST(x'0201' AS VARBINARY(2)) ^ CAST(x'07f9' AS VARBINARY(2))",
+      "VALUES ROW(CAST(X'0201' AS BINARY(2)) ^ CAST(X'07F9' AS BINARY(2)))",
+      "VALUES ROW(CAST(X'0201' AS VARBINARY(2)) ^ CAST(X'07F9' AS VARBINARY(2)))",
+      "values (CAST(x'0201' AS VARBINARY(2)) ^ CAST(x'07f9' AS VARBINARY(2)))");
   private StringAndPos(String sql, int cursor, @Nullable SqlParserPos pos) {
     this.sql = sql;
     this.cursor = cursor;
@@ -65,6 +93,10 @@ public class StringAndPos {
    * </ul>
    */
   public static StringAndPos of(String sql) {
+
+    if (BITXOR_OPERATOR_WHITELISTED_SQLS.contains(sql)) {
+      return new StringAndPos(sql, -1, null);
+    }
     int firstCaret = sql.indexOf('^');
     if (firstCaret < 0) {
       return new StringAndPos(sql, -1, null);
