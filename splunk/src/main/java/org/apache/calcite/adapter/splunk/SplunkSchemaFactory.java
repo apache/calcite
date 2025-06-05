@@ -37,7 +37,7 @@ import java.util.Map;
 /**
  * Factory for creating Splunk schemas.
  * Supports multiple modes:
- * 1. Single CIM model: {"cim_model": "authentication"} -> creates "events" table
+ * 1. Single CIM model: {"cim_model": "authentication"} -> creates table named after the model
  * 2. Multiple CIM models: {"cim_models": ["auth", "network"]} -> creates multiple named tables
  * 3. Custom tables: Uses standard Calcite table definitions
  */
@@ -88,14 +88,16 @@ public class SplunkSchemaFactory implements SchemaFactory {
   }
 
   /**
-   * Creates a schema with a single table named "events" for the specified CIM model.
+   * Creates a schema with a single table named after the CIM model.
    */
   private Schema createSingleCimSchema(RelDataTypeFactory typeFactory,
       String cimModel, Map<String, Object> operand) {
     RelDataType tableSchema = CimModelBuilder.buildCimSchema(typeFactory, cimModel);
     SplunkTable table = new SplunkTable(tableSchema);
 
-    Map<String, Table> tables = Collections.singletonMap("events", table);
+    // Use the normalized CIM model name as the table name (consistent with multi-model behavior)
+    String tableName = normalizeTableName(cimModel);
+    Map<String, Table> tables = Collections.singletonMap(tableName, table);
     SplunkConnection connection = createConnection(operand);
     return new SplunkSchema(connection, tables);
   }
