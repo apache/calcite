@@ -9800,16 +9800,6 @@ class RelToSqlConverterTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7048">[CALCITE-7048]
    * The specified type conversion does not support complex types in Presto</a>. */
   @Test void testPrestoFloatingPointNestedTypesCast() {
-
-    String query1 = "SELECT CAST(MAP[MAP[3.0,4.0],1.0]"
-        + " AS MAP<MAP<FLOAT, FLOAT>, FLOAT>)"
-        + " FROM \"employee\"";
-    String expectedPresto1 = "SELECT CAST(MAP (ARRAY[MAP (ARRAY[3.0], ARRAY[4.0])], ARRAY[1.0])"
-        + " AS MAP< MAP< DOUBLE, DOUBLE >, DOUBLE >)\nFROM \"foodmart\".\"employee\"";
-    sql(query1)
-        .withPresto()
-        .ok(expectedPresto1);
-
     // Map test
     String query = "SELECT CAST(MAP[1.0,MAP[3.0,4.0]]"
         + " AS MAP<FLOAT, MAP<FLOAT, FLOAT>>)"
@@ -9821,22 +9811,31 @@ class RelToSqlConverterTest {
         .withPresto()
         .ok(expectedPresto);
 
-    String query2 = "SELECT CAST(MAP[1.0,2.0]"
+    String query1 = "SELECT CAST(MAP[1.0,2.0]"
         + " AS MAP<FLOAT, FLOAT>)"
         + " FROM \"employee\"";
-    String expectedPresto2 = "SELECT CAST(MAP (ARRAY[1.0], ARRAY[2.0])"
+    String expectedPresto1 = "SELECT CAST(MAP (ARRAY[1.0], ARRAY[2.0])"
         + " AS MAP< DOUBLE, DOUBLE >)\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query1)
+        .withPresto()
+        .ok(expectedPresto1);
+
+    String query2 = "SELECT CAST(MAP[1.0,\"department_id\"]"
+        + " AS MAP<FLOAT, BINARY>)"
+        + " FROM \"employee\"";
+    String expectedPresto2 = "SELECT CAST(MAP (ARRAY[1.0], ARRAY[\"department_id\"])"
+        + " AS MAP< DOUBLE, VARBINARY >)\n"
         + "FROM \"foodmart\".\"employee\"";
     sql(query2)
         .withPresto()
         .ok(expectedPresto2);
 
-    String query3 = "SELECT CAST(MAP[1.0,\"department_id\"]"
-        + " AS MAP<FLOAT, BINARY>)"
+    String query3 = "SELECT CAST(MAP[MAP[3.0,4.0],1.0]"
+        + " AS MAP<MAP<FLOAT, FLOAT>, FLOAT>)"
         + " FROM \"employee\"";
-    String expectedPresto3 = "SELECT CAST(MAP (ARRAY[1.0], ARRAY[\"department_id\"])"
-        + " AS MAP< DOUBLE, VARBINARY >)\n"
-        + "FROM \"foodmart\".\"employee\"";
+    String expectedPresto3 = "SELECT CAST(MAP (ARRAY[MAP (ARRAY[3.0], ARRAY[4.0])], ARRAY[1.0])"
+        + " AS MAP< MAP< DOUBLE, DOUBLE >, DOUBLE >)\nFROM \"foodmart\".\"employee\"";
     sql(query3)
         .withPresto()
         .ok(expectedPresto3);
