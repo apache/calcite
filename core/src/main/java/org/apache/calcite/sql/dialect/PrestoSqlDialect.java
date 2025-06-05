@@ -277,10 +277,9 @@ public class PrestoSqlDialect extends SqlDialect {
    * to {@code MAP[ARRAY['k1', 'k2'], ARRAY['v1', 'v2']]}.
    */
   public static SqlCall convertMapValueCall(SqlCall call) {
-    boolean isNestKey = !(call.getOperandList().get(0) instanceof SqlLiteral)
-        && call.getOperandList().get(1) instanceof SqlLiteral;
     boolean unnestMap = call.operandCount() > 0
-        && (call.getOperandList().get(0) instanceof SqlLiteral || isNestKey);
+        && (call.getOperandList().get(0) instanceof SqlLiteral
+        || call.getOperandList().get(1) instanceof SqlLiteral);
     if (!unnestMap) {
       return call;
     }
