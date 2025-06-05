@@ -44,6 +44,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -52,6 +54,7 @@ import static org.apache.calcite.runtime.HttpUtils.post;
 
 /**
  * Implementation of {@link SplunkConnection} based on Splunk's REST API.
+ * Enhanced to support "_extra" field collection for CIM models.
  */
 public class SplunkConnectionImpl implements SplunkConnection {
   private static final Logger LOGGER =
@@ -64,7 +67,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
   final URL url;
   final String username;
   final String password;
-  String sessionKey;
+  String sessionKey = "";
   final Map<String, String> requestHeaders = new HashMap<>();
 
   public SplunkConnectionImpl(String url, String username, String password)
@@ -73,9 +76,9 @@ public class SplunkConnectionImpl implements SplunkConnection {
   }
 
   public SplunkConnectionImpl(URL url, String username, String password) {
-    this.url      = url;
-    this.username = username;
-    this.password = password;
+    this.url      = Objects.requireNonNull(url, "url cannot be null");
+    this.username = Objects.requireNonNull(username, "username cannot be null");
+    this.password = Objects.requireNonNull(password, "password cannot be null");
     connect();
   }
 
@@ -120,26 +123,26 @@ public class SplunkConnectionImpl implements SplunkConnection {
     } catch (Exception e) {
       e.printStackTrace();
     } finally {
-      close(rd);
+      if (rd != null) {
+        close(rd);
+      }
     }
   }
 
   @Override public void getSearchResults(String search, Map<String, String> otherArgs,
       List<String> fieldList, SearchResultListener srl) {
-    assert srl != null;
-    Enumerator<Object> x = getSearchResults_(search, otherArgs, fieldList, srl);
-    assert x == null;
+    Objects.requireNonNull(srl, "SearchResultListener cannot be null");
+    performSearch(search, otherArgs, srl);
   }
 
   @Override public Enumerator<Object> getSearchResultEnumerator(String search,
-      Map<String, String> otherArgs, List<String> fieldList) {
-    return getSearchResults_(search, otherArgs, fieldList, null);
+      Map<String, String> otherArgs, List<String> fieldList, Set<String> explicitFields) {
+    return performSearchForEnumerator(search, otherArgs, fieldList, explicitFields);
   }
 
-  private Enumerator<Object> getSearchResults_(
+  private void performSearch(
       String search,
       Map<String, String> otherArgs,
-      List<String> wantedFields,
       SearchResultListener srl) {
     String searchUrl =
         String.format(Locale.ROOT,
@@ -149,10 +152,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
             url.getPort());
 
     StringBuilder data = new StringBuilder();
-    Map<String, String> args = new LinkedHashMap<>();
-    if (otherArgs != null) {
-      args.putAll(otherArgs);
-    }
+    Map<String, String> args = new LinkedHashMap<>(otherArgs);
     args.put("search", search);
     // override these args
     args.put("output_mode", "csv");
@@ -166,19 +166,47 @@ public class SplunkConnectionImpl implements SplunkConnection {
       // wait at most 30 minutes for first result
       InputStream in =
           post(searchUrl, data, requestHeaders, 10000, 1800000);
-      if (srl == null) {
-        return new SplunkResultEnumerator(in, wantedFields);
-      } else {
-        parseResults(
-            in,
-            srl);
-        return null;
-      }
+      parseResults(in, srl);
     } catch (Exception e) {
       StringWriter sw = new StringWriter();
       e.printStackTrace(new PrintWriter(sw));
       LOGGER.warn("{}\n{}", e.getMessage(), sw);
-      return srl == null ? Linq4j.emptyEnumerator() : null;
+    }
+  }
+
+  private Enumerator<Object> performSearchForEnumerator(
+      String search,
+      Map<String, String> otherArgs,
+      List<String> wantedFields,
+      Set<String> explicitFields) {
+    String searchUrl =
+        String.format(Locale.ROOT,
+            "%s://%s:%d/services/search/jobs/export",
+            url.getProtocol(),
+            url.getHost(),
+            url.getPort());
+
+    StringBuilder data = new StringBuilder();
+    Map<String, String> args = new LinkedHashMap<>(otherArgs);
+    args.put("search", search);
+    // override these args
+    args.put("output_mode", "csv");
+    args.put("preview", "0");
+
+    // TODO: remove this once the csv parser can handle leading spaces
+    args.put("check_connection", "0");
+
+    appendURLEncodedArgs(data, args);
+    try {
+      // wait at most 30 minutes for first result
+      InputStream in =
+          post(searchUrl, data, requestHeaders, 10000, 1800000);
+        return new SplunkResultEnumerator(in, wantedFields, explicitFields);
+    } catch (Exception e) {
+      StringWriter sw = new StringWriter();
+      e.printStackTrace(new PrintWriter(sw));
+      LOGGER.warn("{}\n{}", e.getMessage(), sw);
+      return Linq4j.emptyEnumerator();
     }
   }
 
@@ -200,10 +228,10 @@ public class SplunkConnectionImpl implements SplunkConnection {
           }
         }
       }
-    } catch (IOException ignore) {
+    } catch (IOException e) {
       StringWriter sw = new StringWriter();
-      ignore.printStackTrace(new PrintWriter(sw));
-      LOGGER.warn("{}\n{}", ignore.getMessage(), sw);
+      e.printStackTrace(new PrintWriter(sw));
+      LOGGER.warn("{}\n{}", e.getMessage(), sw);
     }
   }
 
@@ -258,11 +286,13 @@ public class SplunkConnectionImpl implements SplunkConnection {
     String search = argsMap.get("search");
     String field_list = argsMap.get("field_list");
 
-    if (search == null) {
+    if (search == null || search.trim().isEmpty()) {
       printUsage("Missing required argument: search");
+      return;
     }
-    if (field_list == null) {
+    if (field_list == null || field_list.trim().isEmpty()) {
       printUsage("Missing required argument: field_list");
+      return;
     }
 
     List<String> fieldList = StringUtils.decodeList(field_list, ',');
@@ -280,12 +310,12 @@ public class SplunkConnectionImpl implements SplunkConnection {
         "field_list",
         StringUtils.encodeList(fieldList, ',').toString());
 
+    String printArg = argsMap.get("-print");
+    boolean shouldPrint = Boolean.parseBoolean(printArg);
 
-    CountingSearchResultListener dummy =
-        new CountingSearchResultListener(
-            Boolean.valueOf(argsMap.get("-print")));
+    CountingSearchResultListener dummy = new CountingSearchResultListener(shouldPrint);
     long start = System.currentTimeMillis();
-    c.getSearchResults(search, searchArgs, null, dummy);
+    c.getSearchResults(search, searchArgs, fieldList, dummy);
 
     System.out.printf(Locale.ROOT, "received %d results in %dms\n",
         dummy.getResultCount(),
@@ -297,7 +327,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
    * interface that just counts the results. */
   public static class CountingSearchResultListener
       implements SearchResultListener {
-    String[] fieldNames = null;
+    String[] fieldNames = new String[0];
     int resultCount = 0;
     final boolean print;
 
@@ -312,7 +342,8 @@ public class SplunkConnectionImpl implements SplunkConnection {
     @Override public boolean processSearchResult(String[] values) {
       resultCount++;
       if (print) {
-        for (int i = 0; i < this.fieldNames.length; ++i) {
+        int maxIndex = Math.min(fieldNames.length, values.length);
+        for (int i = 0; i < maxIndex; ++i) {
           System.out.printf(Locale.ROOT, "%s=%s\n", this.fieldNames[i],
               values[i]);
         }
@@ -326,16 +357,22 @@ public class SplunkConnectionImpl implements SplunkConnection {
     }
   }
 
-  /** Implementation of {@link org.apache.calcite.linq4j.Enumerator} that parses
+  /** Implementation of {@link Enumerator} that parses
    * results from a Splunk REST call.
    *
    * <p>The element type is either {@code String} or {@code String[]}, depending
-   * on the value of {@code source}. */
+   * on the value of {@code source}.
+   *
+   * <p>Enhanced to support "_extra" field collection for CIM models.
+   */
   public static class SplunkResultEnumerator implements Enumerator<Object> {
     private final CSVReader csvReader;
-    private String[] fieldNames;
-    private int[] sources;
-    private Object current;
+    private String[] fieldNames = new String[0];
+    private int[] sources = new int[0];
+    private Object current = "";
+    private boolean hasExtraField = false;
+    private int extraFieldIndex = -1;
+    private final Set<String> explicitFields;
 
     /**
      * Where to find the singleton field, or whether to map. Values:
@@ -347,27 +384,29 @@ public class SplunkConnectionImpl implements SplunkConnection {
      * <li>-3 Use sources to re-map</li>
      * </ul>
      */
-    private int source;
+    private int source = -1;
 
-    public SplunkResultEnumerator(InputStream in, List<String> wantedFields) {
+    public SplunkResultEnumerator(InputStream in, List<String> wantedFields, Set<String> explicitFields) {
+      this.explicitFields = explicitFields;
       csvReader =
           new CSVReader(
               new BufferedReader(
                   new InputStreamReader(in, StandardCharsets.UTF_8)));
       try {
-        fieldNames = csvReader.readNext();
-        if (fieldNames == null
-            || fieldNames.length == 0
-            || fieldNames.length == 1 && fieldNames[0].isEmpty()) {
-          // do nothing
-        } else {
+        String[] headerRow = csvReader.readNext();
+        if (headerRow != null && headerRow.length > 0
+            && !(headerRow.length == 1 && headerRow[0].isEmpty())) {
+          this.fieldNames = headerRow;
           final List<String> headerList = Arrays.asList(fieldNames);
+
+          // Check if "_extra" field is requested
+          hasExtraField = wantedFields.contains("_extra");
+          extraFieldIndex = hasExtraField ? wantedFields.indexOf("_extra") : -1;
+
           if (wantedFields.size() == 1) {
             // Yields 0 or higher if wanted field exists.
             // Yields -1 if wanted field does not exist.
             source = headerList.indexOf(wantedFields.get(0));
-            assert source >= -1;
-            sources = null;
           } else if (wantedFields.equals(headerList)) {
             source = -2;
           } else {
@@ -379,10 +418,10 @@ public class SplunkConnectionImpl implements SplunkConnection {
             }
           }
         }
-      } catch (IOException ignore) {
+      } catch (IOException e) {
         StringWriter sw = new StringWriter();
-        ignore.printStackTrace(new PrintWriter(sw));
-        LOGGER.warn("{}\n{}", ignore.getMessage(), sw);
+        e.printStackTrace(new PrintWriter(sw));
+        LOGGER.warn("{}\n{}", e.getMessage(), sw);
       }
     }
 
@@ -401,8 +440,14 @@ public class SplunkConnectionImpl implements SplunkConnection {
               String[] mapped = new String[sources.length];
               for (int i = 0; i < sources.length; i++) {
                 int source1 = sources[i];
-                mapped[i] = source1 < 0 ? null : line[source1];
+                mapped[i] = source1 < 0 ? "" : line[source1];
               }
+
+              // Handle "_extra" field if present
+              if (hasExtraField && extraFieldIndex >= 0) {
+                mapped[extraFieldIndex] = collectExtraFields(line);
+              }
+
               this.current = mapped;
               break;
             case -2:
@@ -410,8 +455,8 @@ public class SplunkConnectionImpl implements SplunkConnection {
               current = line;
               break;
             case -1:
-              // Singleton null
-              this.current = null;
+              // Singleton empty string instead of null
+              this.current = "";
               break;
             default:
               this.current = line[source];
@@ -420,12 +465,74 @@ public class SplunkConnectionImpl implements SplunkConnection {
             return true;
           }
         }
-      } catch (IOException ignore) {
+      } catch (IOException e) {
         StringWriter sw = new StringWriter();
-        ignore.printStackTrace(new PrintWriter(sw));
-        LOGGER.warn("{}\n{}", ignore.getMessage(), sw);
+        e.printStackTrace(new PrintWriter(sw));
+        LOGGER.warn("{}\n{}", e.getMessage(), sw);
       }
       return false;
+    }
+
+    /**
+     * Collect fields that are in Splunk results but not defined in the table schema.
+     * Serialize them as JSON for the "_extra" field.
+     */
+    private String collectExtraFields(String[] line) {
+      Map<String, String> extraFields = new HashMap<>();
+
+      // Find fields that exist in Splunk but aren't defined in the table schema
+      for (int i = 0; i < fieldNames.length && i < line.length; i++) {
+        String fieldName = fieldNames[i];
+
+        // If field is not explicitly defined in the table schema and isn't "_extra" itself, collect it
+        if (!explicitFields.contains(fieldName) && !"_extra".equals(fieldName)) {
+          extraFields.put(fieldName, line[i]);
+        }
+      }
+
+      return serializeToJson(extraFields);
+    }
+
+    /**
+     * Simple JSON serialization for extra fields.
+     */
+    private String serializeToJson(Map<String, String> extraFields) {
+      if (extraFields.isEmpty()) {
+        return "{}";
+      }
+
+      StringBuilder json = new StringBuilder("{");
+      boolean first = true;
+
+      for (Map.Entry<String, String> entry : extraFields.entrySet()) {
+        if (!first) {
+          json.append(",");
+        }
+        first = false;
+
+        json.append("\"").append(escapeJson(entry.getKey())).append("\":");
+
+        String value = entry.getValue();
+        if (value == null || value.isEmpty()) {
+          json.append("null");
+        } else {
+          json.append("\"").append(escapeJson(value)).append("\"");
+        }
+      }
+
+      json.append("}");
+      return json.toString();
+    }
+
+    /**
+     * Simple JSON string escaping.
+     */
+    private String escapeJson(String str) {
+      return str.replace("\\", "\\\\")
+          .replace("\"", "\\\"")
+          .replace("\n", "\\n")
+          .replace("\r", "\\r")
+          .replace("\t", "\\t");
     }
 
     @Override public void reset() {

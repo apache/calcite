@@ -17,7 +17,6 @@
 package org.apache.calcite.adapter.splunk;
 
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
-import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
@@ -29,16 +28,25 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Table based on Splunk.
  */
-class SplunkTable extends AbstractQueryableTable implements TranslatableTable {
-  public static final SplunkTable INSTANCE = new SplunkTable();
+public class SplunkTable extends AbstractQueryableTable implements TranslatableTable {
+  private final RelDataType rowType;
+  private final Set<String> explicitFields;
 
-  private SplunkTable() {
+  public SplunkTable(RelDataType rowType) {
     super(Object[].class);
+    this.rowType = rowType;
+    // Extract the explicit field names, excluding "_extra" which is our catch-all field
+    this.explicitFields = rowType.getFieldNames().stream()
+        .filter(name -> !name.equals("_extra"))
+        .collect(Collectors.toSet());
   }
 
   @Override public String toString() {
@@ -46,13 +54,16 @@ class SplunkTable extends AbstractQueryableTable implements TranslatableTable {
   }
 
   @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-    RelDataType stringType =
-        ((JavaTypeFactory) typeFactory).createType(String.class);
-    return typeFactory.builder()
-        .add("source", stringType)
-        .add("sourcetype", stringType)
-        .add("_extra", stringType)
-        .build();
+    return rowType;
+  }
+
+  /**
+   * Returns the set of explicitly defined field names (excluding "_extra").
+   * This is used by the query processor to distinguish between fields that should
+   * be extracted normally and fields that should be collected into the "_extra" JSON field.
+   */
+  public Set<String> getExplicitFields() {
+    return explicitFields;
   }
 
   @Override public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
@@ -68,8 +79,8 @@ class SplunkTable extends AbstractQueryableTable implements TranslatableTable {
         relOptTable,
         this,
         "search",
-        null,
-        null,
+        "", // Use empty string instead of null for earliest
+        "", // Use empty string instead of null for latest
         relOptTable.getRowType().getFieldNames());
   }
 
@@ -80,21 +91,32 @@ class SplunkTable extends AbstractQueryableTable implements TranslatableTable {
    * @param <T> element type */
   public static class SplunkTableQueryable<T>
       extends AbstractTableQueryable<T> {
+
     SplunkTableQueryable(QueryProvider queryProvider, SchemaPlus schema,
         SplunkTable table, String tableName) {
       super(queryProvider, schema, table, tableName);
     }
 
     @Override public Enumerator<T> enumerator() {
-      final SplunkQuery<T> query = createQuery("search", null, null, null);
+      final SplunkQuery<T> query = createQuery("search", "", "", new ArrayList<>());
       return query.enumerator();
     }
 
     public SplunkQuery<T> createQuery(String search, String earliest,
         String latest, List<String> fieldList) {
       final SplunkSchema splunkSchema = schema.unwrap(SplunkSchema.class);
-      return new SplunkQuery<>(splunkSchema.splunkConnection, search,
-          earliest, latest, fieldList);
+      if (splunkSchema == null) {
+        throw new IllegalStateException("Schema is not a SplunkSchema");
+      }
+      final SplunkTable splunkTable = (SplunkTable) table;
+
+      return new SplunkQuery<>(
+          splunkSchema.splunkConnection,
+          search,
+          earliest,
+          latest,
+          fieldList,
+          splunkTable.getExplicitFields());
     }
   }
 }

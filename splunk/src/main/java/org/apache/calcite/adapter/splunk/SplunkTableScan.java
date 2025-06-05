@@ -33,6 +33,7 @@ import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.util.Util;
 
@@ -81,9 +82,6 @@ public class SplunkTableScan
     this.earliest = earliest;
     this.latest = latest;
     this.fieldList = fieldList;
-
-    assert splunkTable != null;
-    assert search != null;
   }
 
   @Override public RelWriter explainTerms(RelWriter pw) {
@@ -106,9 +104,35 @@ public class SplunkTableScan
         getCluster().getTypeFactory().builder();
     for (String field : fieldList) {
       // REVIEW: is case-sensitive match what we want here?
-      builder.add(table.getRowType().getField(field, true, false));
+      RelDataTypeField dataTypeField = table.getRowType().getField(field, true, false);
+      if (dataTypeField != null) {
+        builder.add(dataTypeField);
+      } else {
+        // Handle missing field - add as VARCHAR type
+        builder.add(field, getCluster().getTypeFactory().createJavaType(String.class));
+      }
     }
     return builder.build();
+  }
+
+  public SplunkTable getSplunkTable() {
+    return splunkTable;
+  }
+
+  public String getSearch() {
+    return search;
+  }
+
+  public String getEarliest() {
+    return earliest;
+  }
+
+  public String getLatest() {
+    return latest;
+  }
+
+  public List<String> getFieldNames() {
+    return fieldList;
   }
 
   private static final Method METHOD =
@@ -121,7 +145,7 @@ public class SplunkTableScan
           List.class);
 
   @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
-    Map map = ImmutableMap.builder()
+    Map<String, Object> map = ImmutableMap.<String, Object>builder()
         .put("search", search)
         .put("earliest", Util.first(earliest, ""))
         .put("latest", Util.first(latest, ""))
@@ -147,9 +171,7 @@ public class SplunkTableScan
                 Expressions.constant(search),
                 Expressions.constant(earliest),
                 Expressions.constant(latest),
-                fieldList == null
-                    ? Expressions.constant(null)
-                    : constantStringList(fieldList))).toBlock());
+                constantStringList(fieldList))).toBlock());
   }
 
   private static Expression constantStringList(final List<String> strings) {
