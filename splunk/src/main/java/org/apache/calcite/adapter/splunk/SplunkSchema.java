@@ -20,29 +20,41 @@ import org.apache.calcite.adapter.splunk.search.SplunkConnection;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 
-import com.google.common.collect.ImmutableMap;
-
+import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Splunk schema.
+ * Schema for Splunk.
+ * Supports both predefined CIM tables and custom table definitions.
  */
 public class SplunkSchema extends AbstractSchema {
-  /** The name of the one and only table. */
-  public static final String SPLUNK_TABLE_NAME = "splunk";
-
-  public static final ImmutableMap<String, Table> TABLE_MAP =
-      ImmutableMap.of(SPLUNK_TABLE_NAME, SplunkTable.INSTANCE);
-
   public final SplunkConnection splunkConnection;
+  private final Map<String, Table> predefinedTables;
 
-  /** Creates a SplunkSchema. */
-  public SplunkSchema(SplunkConnection splunkConnection) {
-    super();
-    this.splunkConnection = splunkConnection;
+  /**
+   * Constructor for CIM model mode with predefined tables.
+   *
+   * @param connection Splunk connection
+   * @param tables Map of table name to Table instances
+   */
+  public SplunkSchema(SplunkConnection connection, Map<String, Table> tables) {
+    this.splunkConnection = connection;
+    this.predefinedTables = tables;
+  }
+
+  /**
+   * Constructor for custom table mode.
+   * Tables will be defined via JSON table definitions.
+   *
+   * @param connection Splunk connection
+   */
+  public SplunkSchema(SplunkConnection connection) {
+    this.splunkConnection = connection;
+    this.predefinedTables = new HashMap<>();
   }
 
   @Override protected Map<String, Table> getTableMap() {
-    return TABLE_MAP;
+    // CIM model mode - return predefined tables
+    return predefinedTables;
   }
 }
