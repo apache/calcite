@@ -198,19 +198,20 @@ public class PrestoSqlDialect extends SqlDialect {
       SqlDataTypeSpec keySpec = (SqlDataTypeSpec) getCastSpec(mapSqlType.getKeyType());
       SqlDataTypeSpec valueSpec =
           (SqlDataTypeSpec) getCastSpec(mapSqlType.getValueType());
-      keySpec = requireNonNull(keySpec, "keySpec");
-      valueSpec = requireNonNull(valueSpec, "valueSpec");
+      SqlDataTypeSpec nonNullkeySpec = requireNonNull(keySpec, "keySpec");
+      SqlDataTypeSpec nonNullvalueSpec = requireNonNull(valueSpec, "valueSpec");
       SqlMapTypeNameSpec sqlMapTypeNameSpec =
-          new SqlMapTypeNameSpec(keySpec, valueSpec, SqlParserPos.ZERO);
+          new SqlMapTypeNameSpec(nonNullkeySpec, nonNullvalueSpec, SqlParserPos.ZERO);
       return new SqlDataTypeSpec(sqlMapTypeNameSpec,
           SqlParserPos.ZERO);
     case ARRAY:
       ArraySqlType arraySqlType = (ArraySqlType) type;
       SqlDataTypeSpec arrayValueSpec =
           (SqlDataTypeSpec) getCastSpec(arraySqlType.getComponentType());
-      arrayValueSpec = requireNonNull(arrayValueSpec, "arrayValueSpec");
+      SqlDataTypeSpec nonNullarrayValueSpec =
+          requireNonNull(arrayValueSpec, "arrayValueSpec");
       SqlCollectionTypeNameSpec sqlArrayTypeNameSpec =
-          new SqlCollectionTypeNameSpec(arrayValueSpec.getTypeNameSpec(),
+          new SqlCollectionTypeNameSpec(nonNullarrayValueSpec.getTypeNameSpec(),
               SqlTypeName.ARRAY, SqlParserPos.ZERO);
       return new SqlDataTypeSpec(sqlArrayTypeNameSpec,
           SqlParserPos.ZERO);
