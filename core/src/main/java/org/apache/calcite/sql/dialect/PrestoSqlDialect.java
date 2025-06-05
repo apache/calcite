@@ -215,11 +215,8 @@ public class PrestoSqlDialect extends SqlDialect {
       throw new UnsupportedOperationException("Presto dialect does not support cast to "
           + type.getSqlTypeName());
     default:
-      break;
+      return super.getCastSpec(type);
     }
-
-    return super.getCastSpec(type);
-
   }
 
   @Override public void unparseCall(SqlWriter writer, SqlCall call,
@@ -283,7 +280,6 @@ public class PrestoSqlDialect extends SqlDialect {
     if (!unnestMap) {
       return call;
     }
-
     List<SqlNode> keys = new ArrayList<>();
     List<SqlNode> values = new ArrayList<>();
     for (int i = 0; i < call.operandCount(); i++) {
