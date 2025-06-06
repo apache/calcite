@@ -143,7 +143,7 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
 //      enhancedFieldList.add("_sourcetype");
 //      enhancedFieldList.add("splunk_server");
 //      enhancedFieldList.add("punct");
-      enhancedFieldList.add("*");
+      mappedFieldList.add("*");
       // Don't add "*" as it might interfere with CIM field extraction
     }
 
