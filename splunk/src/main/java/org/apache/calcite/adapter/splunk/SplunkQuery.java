@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.ArrayList;
 
 /**
  * Query against Splunk.
@@ -124,12 +125,23 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
   private Map<String, String> getArgs() {
     Map<String, String> args = new HashMap<>();
 
-    // Only restrict fields if _extra is not requested
-    if (!fieldList.contains("_extra")) {
-      List<String> mappedFieldList = mapFieldList(fieldList);
-      String fields = StringUtils.encodeList(mappedFieldList, ',').toString();
-      args.put("field_list", fields);
+    // Map the field list to Splunk field names for the field_list parameter
+    List<String> mappedFieldList = mapFieldList(fieldList);
+
+    // If _extra is requested, we need both the mapped fields AND additional fields
+    if (fieldList.contains("_extra")) {
+      // Keep the mapped fields for CIM extraction, but add additional raw fields
+      mappedFieldList = new ArrayList<>(mappedFieldList);
+      mappedFieldList.remove("_extra"); // Remove _extra from the field list
+      // Add common extra fields that aren't in CIM
+      mappedFieldList.add("_raw");
+      mappedFieldList.add("_serial");
+      mappedFieldList.add("_time");
+      // Don't add "*" as it might interfere with CIM field extraction
     }
+
+    String fields = StringUtils.encodeList(mappedFieldList, ',').toString();
+    args.put("field_list", fields);
 
     args.put("earliest_time", earliest);
     args.put("latest_time", latest);
