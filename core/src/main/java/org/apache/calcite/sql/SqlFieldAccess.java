@@ -18,6 +18,10 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.sql.parser.SqlParserPos;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.Collection;
+
 /**
  * A <code>SqlFieldAccess</code> is a list of {@link SqlNode}s
  * occurring in a Field Access operation. It is also a
@@ -31,12 +35,18 @@ public class SqlFieldAccess extends SqlNodeList {
     super(pos);
   }
 
+  public SqlFieldAccess(
+      Collection<? extends @Nullable SqlNode> collection,
+      SqlParserPos pos) {
+    super(collection, pos);
+  }
+
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     final SqlWriter.Frame frame =
         writer.startList(SqlWriter.FrameTypeEnum.SIMPLE);
     for (SqlNode node : getList()) {
       writer.sep(".");
-      writer.print(node.toSqlString(writer.getDialect()).toString());
+      node.unparse(writer, leftPrec, rightPrec);
       writer.setNeedWhitespace(true);
     }
     writer.endList(frame);

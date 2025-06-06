@@ -93,6 +93,14 @@ public interface RelDataTypeFactory {
       List<String> fieldNameList);
 
   /**
+   * Creates a user defined type that represents a structured collection of fields with a name.
+   **/
+  RelDataType createStructuredTypeWithName(
+      List<RelDataType> typeList,
+      List<String> fieldNameList,
+      List<String> typeName);
+
+  /**
    * Creates a type that represents a structured collection of fields,
    * obtaining the field information via a callback.
    *
@@ -122,6 +130,20 @@ public interface RelDataTypeFactory {
   RelDataType createArrayType(
       RelDataType elementType,
       long maxCardinality);
+
+  /**
+   * Creates an array type. Arrays are ordered collections of elements.
+   *
+   * @param elementType    type of the elements of the array
+   * @param maxCardinality maximum array size, or -1 for unlimited
+   * @param typeName custom type name
+   * @return canonical custom array type descriptor
+   */
+  RelDataType createArrayTypeWithName(
+      SqlTypeName sqlTypeName,
+      RelDataType elementType,
+      long maxCardinality,
+      List<String> typeName);
 
   /**
    * Creates a map type. Maps are unordered collections of key/value pairs.
@@ -163,6 +185,18 @@ public interface RelDataTypeFactory {
   RelDataType createMultisetType(
       RelDataType elementType,
       long maxCardinality);
+
+  /**
+   * Creates a period type.
+   *
+   * @param beginType    type of the element of the begin of period
+   * @param endType      type of the element of the end of period
+   * @return canonical Period type descriptor
+   */
+  RelDataType createPeriodType(
+      RelDataType beginType,
+      RelDataType endType,
+      boolean isNullable);
 
   /**
    * Duplicates a type, making a deep copy. Normally, this is a no-op, since

@@ -143,6 +143,11 @@ releaseArtifacts {
     fromProject(":release")
 }
 
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
+
 // Configures URLs to SVN and Nexus
 releaseParams {
     tlp.set("Calcite")

@@ -1411,6 +1411,12 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlOverlapsOperator PERIOD_EQUALS =
       new SqlOverlapsOperator(SqlKind.PERIOD_EQUALS);
 
+  public static final SqlFunction BEGIN =
+      new SqlPeriodAccessOperator("BEGIN", true);
+
+  public static final SqlFunction END =
+      new SqlPeriodAccessOperator("END", false);
+
   public static final SqlSpecialOperator VALUES =
       new SqlValuesOperator();
 
@@ -2137,7 +2143,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <p>MAP is not standard SQL.
    */
   public static final SqlOperator ITEM =
-      new SqlItemOperator("ITEM", OperandTypes.ARRAY_OR_MAP, 1, true);
+      new SqlItemOperator("ITEM", OperandTypes.ARRAY_OR_MAP_OR_VARIANT, 1, true);
 
   /**
    * The ARRAY Value Constructor. e.g. "<code>ARRAY[1, 2, 3]</code>".
@@ -2326,7 +2332,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlSequenceValueOperator(
           SqlKind.NEXT_VALUE,
           ReturnTypes.DOUBLE_NULLABLE,
-          OperandTypes.NILADIC);
+          OperandTypes.VARIADIC);
 
   /** The sequence current value function: <code>CURRENT VALUE FOR
    * sequence</code>. */
@@ -2334,7 +2340,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlSequenceValueOperator(
           SqlKind.CURRENT_VALUE,
           ReturnTypes.DOUBLE_NULLABLE,
-          OperandTypes.NILADIC);
+          OperandTypes.VARIADIC);
 
   /**
    * The <code>TABLESAMPLE</code> operator.
@@ -2574,6 +2580,18 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
                   OperandTypes.family(SqlTypeFamily.NULL)),
                   SqlFunctionCategory.STRING);
 
+  public static final SqlFunction MAP_FIELD_ACCESS =
+                  new SqlFunction("MAP_FIELD_ACCESS", SqlKind.OTHER_FUNCTION,
+                  ReturnTypes.DECIMAL_NULLABLE, null, OperandTypes.MAP_KEY, SqlFunctionCategory.SYSTEM);
+
+  public static final SqlFunction MAP_FIRST_ELEMENT =
+      new SqlFunction("MAP_FIRST_ELEMENT", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TO_MAP_KEYS_NULLABLE, null, OperandTypes.MAP, SqlFunctionCategory.SYSTEM);
+
+  public static final SqlFunction MAP_LAST_ELEMENT =
+      new SqlFunction("MAP_LAST_ELEMENT", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TO_MAP_KEYS_NULLABLE, null, OperandTypes.MAP, SqlFunctionCategory.SYSTEM);
+
   /** CONV function converts the given number n from one base to another base. */
 //  public static final SqlFunction CONV = SqlLibraryOperators.CONV;
 
@@ -2679,6 +2697,18 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       return SOME_GE;
     default:
       throw new AssertionError(comparisonKind);
+    }
+  }
+
+  /** Returns the quantify operator that corresponds to this operator name. */
+  public static SqlQuantifyOperator some(SqlLikeOperator comparisonOperator) {
+    switch (comparisonOperator.not().getName()) {
+    case "LIKE":
+      return SqlLibraryOperators.SOME_LIKE;
+    case "NOT_LIKE":
+      return SqlLibraryOperators.SOME_NOT_LIKE;
+    default:
+      throw new AssertionError(comparisonOperator.kind);
     }
   }
 

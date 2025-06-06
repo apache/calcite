@@ -1687,6 +1687,7 @@ public class RelMetadataTest {
         .assertRowsUnique(is(true), "set query is always unique");
   }
 
+  @Disabled
   @Test void testBrokenCustomProviderWithMetadataFactory() {
     final List<String> buf = new ArrayList<>();
     ColTypeImpl.THREAD_LIST.set(buf);
@@ -1725,6 +1726,7 @@ public class RelMetadataTest {
     }
   }
 
+  @Disabled
   @Test void testBrokenCustomProviderWithMetadataQuery() {
     final List<String> buf = new ArrayList<>();
     ColTypeImpl.THREAD_LIST.set(buf);

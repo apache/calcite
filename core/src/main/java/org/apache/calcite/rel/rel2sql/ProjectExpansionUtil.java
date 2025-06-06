@@ -144,11 +144,50 @@ class ProjectExpansionUtil {
     String backTick = "`";
     return result.neededAlias != null
         && sqlCondition.toString().contains(backTick + result.neededAlias + backTick)
-        && result.asSelect().getSelectList() == null;
+        && result.asSelect().getSelectList() == null && !hasAmbiguousAlias(result);
+  }
+
+  private boolean hasAmbiguousAlias(SqlImplementor.Result result) {
+    if (result.node instanceof SqlSelect) {
+      SqlSelect sqlSelect = (SqlSelect) result.node;
+      List<SqlNode> fromElements = getFromElements(sqlSelect);
+      return doesAliasMatchNeededAlias(fromElements, result.neededAlias);
+    }
+    return false;
+  }
+
+  private List<SqlNode> getFromElements(SqlSelect sqlSelect) {
+    List<SqlNode> fromElements = new ArrayList<>();
+    if (sqlSelect.getFrom() instanceof SqlJoin) {
+      SqlJoin sqlJoin = (SqlJoin) sqlSelect.getFrom();
+      fromElements.add(sqlJoin.getLeft());
+      fromElements.add(sqlJoin.getRight());
+    } else {
+      fromElements.add(sqlSelect.getFrom());
+    }
+    return fromElements;
+  }
+
+  private boolean doesAliasMatchNeededAlias(List<SqlNode> fromElements, String neededAlias) {
+    for (SqlNode fromElement : fromElements) {
+      if (fromElement instanceof SqlBasicCall) {
+        SqlBasicCall sqlBasicCall = (SqlBasicCall) fromElement;
+        if (sqlBasicCall.getOperator() == SqlStdOperatorTable.AS) {
+          if (sqlBasicCall.operand(1) instanceof SqlIdentifier) {
+            SqlIdentifier alias = sqlBasicCall.operand(1);
+            if (alias.names.get(0).equalsIgnoreCase(neededAlias)) {
+              return true;
+            }
+          }
+        }
+      }
+    }
+    return false;
   }
 
   private SqlNode createSqlIdentifierForColumn(SqlImplementor.Result result, String columnName) {
-    if (endsWithDigit(columnName) && result.node instanceof SqlSelect) {
+    if (endsWithDigit(columnName) && result.node instanceof SqlSelect
+        && !(((SqlSelect) result.node).getFrom() instanceof SqlIdentifier)) {
       return createAsSqlIdentifierForColumn(result, columnName);
     } else {
       if (isJoinNodeBasicCall(result)) {

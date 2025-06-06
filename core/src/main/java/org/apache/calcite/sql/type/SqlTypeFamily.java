@@ -59,7 +59,7 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
   BOOLEAN,
   INTERVAL_YEAR_MONTH,
   INTERVAL_DAY_TIME,
-
+  GEOGRAPHY,
   // Secondary families.
 
   STRING,
@@ -71,13 +71,17 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
   DATETIME_INTERVAL,
   MULTISET,
   ARRAY,
+  VARRAY,
   MAP,
   NULL,
   ANY,
   CURSOR,
   COLUMN_LIST,
+  PERIOD,
   GEO,
   FUNCTION,
+  VARIANT,
+  JSON,
   /** Like ANY, but do not even validate the operand. It may not be an
    * expression. */
   IGNORE;
@@ -119,6 +123,7 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
 
           .put(ExtraSqlTypes.REF_CURSOR, CURSOR)
           .put(Types.ARRAY, ARRAY)
+          .put(Types.JAVA_OBJECT, VARIANT)
           .build();
 
   /**
@@ -206,6 +211,8 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
       return ImmutableList.of(SqlTypeName.MULTISET);
     case ARRAY:
       return ImmutableList.of(SqlTypeName.ARRAY);
+    case VARRAY:
+      return ImmutableList.of(SqlTypeName.VARRAY);
     case MAP:
       return ImmutableList.of(SqlTypeName.MAP);
     case NULL:
@@ -216,8 +223,14 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
       return ImmutableList.of(SqlTypeName.CURSOR);
     case COLUMN_LIST:
       return ImmutableList.of(SqlTypeName.COLUMN_LIST);
+    case PERIOD:
+      return ImmutableList.of(SqlTypeName.PERIOD);
     case FUNCTION:
       return ImmutableList.of(SqlTypeName.FUNCTION);
+    case VARIANT:
+      return ImmutableList.of(SqlTypeName.VARIANT);
+    case JSON:
+      return ImmutableList.of(SqlTypeName.JSON);
     default:
       throw new IllegalArgumentException();
     }

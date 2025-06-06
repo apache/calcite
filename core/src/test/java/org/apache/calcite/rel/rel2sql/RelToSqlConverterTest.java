@@ -4089,6 +4089,20 @@ class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  @Test void testLimitWithParentheses() {
+    final String retainLimitQuery = "(SELECT \"product_id\" FROM \"product\" LIMIT 10)\n"
+        + "UNION ALL\n"
+        + "(SELECT \"product_id\" FROM \"product\" LIMIT 10)\n";
+    final String retainLimitResult = "(SELECT \"product_id\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "FETCH NEXT 10 ROWS ONLY)\n"
+        + "UNION ALL\n"
+        + "(SELECT \"product_id\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "FETCH NEXT 10 ROWS ONLY)";
+    sql(retainLimitQuery).ok(retainLimitResult);
+  }
+
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5013">[CALCITE-5013]
@@ -4127,18 +4141,18 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "UNION ALL\n"
         + "SELECT *\n"
-        + "FROM (SELECT \"product_id\"\n"
+        + "FROM ((SELECT \"product_id\"\n"
         + "FROM \"foodmart\".\"product\"\n"
-        + "FETCH NEXT 10 ROWS ONLY\n"
+        + "FETCH NEXT 10 ROWS ONLY)\n"
         + "INTERSECT ALL\n"
         + "SELECT \"product_id\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "OFFSET 10 ROWS))\n"
         + "EXCEPT ALL\n"
-        + "SELECT \"product_id\"\n"
+        + "(SELECT \"product_id\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "OFFSET 5 ROWS\n"
-        + "FETCH NEXT 5 ROWS ONLY";
+        + "FETCH NEXT 5 ROWS ONLY)";
     sql(allSetOpQuery).ok(allSetOpRes);
 
     // After the config is enabled, order by will be retained, so parentheses are required.
@@ -4160,10 +4174,10 @@ class RelToSqlConverterTest {
     final String retainLimitResult = "SELECT \"product_id\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "UNION ALL\n"
-        + "SELECT \"product_id\"\n"
+        + "(SELECT \"product_id\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "ORDER BY \"product_id\"\n"
-        + "FETCH NEXT 2 ROWS ONLY";
+        + "FETCH NEXT 2 ROWS ONLY)";
     sql(retainLimitQuery).ok(retainLimitResult);
   }
 
@@ -4692,7 +4706,10 @@ class RelToSqlConverterTest {
 
     final String sql2 = "select  * from \"employee\" where  \"hire_date\" + "
             + "INTERVAL '1 2:34:56.78' DAY TO SECOND > TIMESTAMP '2005-10-17 00:00:00' ";
-    sql(sql2).withBigQuery().throws_("For input string: \"56.78\"");
+    final String expect2 = "SELECT *\n"
+        + "FROM foodmart.employee\n"
+        + "WHERE hire_date + INTERVAL '1 02:34:56.78' DAY TO SECOND > CAST('2005-10-17 00:00:00' AS DATETIME)";
+    sql(sql2).withBigQuery().ok(expect2);
   }
 
   @Test void testUnparseSqlIntervalQualifierFirebolt() {

@@ -95,14 +95,35 @@ public class PostgresqlSqlDialect extends SqlDialect {
       // Postgres has no tinyint (1 byte), so instead cast to smallint (2 bytes)
       castSpec = "smallint";
       break;
+    case DECIMAL:
+      return dataTypeSpecWithPrecision(type);
     case DOUBLE:
       // Postgres has a double type but it is named differently
       castSpec = "double precision";
       break;
     // Postgres has type 'text' with no predefined maximum length,
     // stores values in a variable-length format
+    case TEXT:
     case CLOB:
       castSpec = "text";
+      break;
+    case SERIAL:
+      castSpec = "SERIAL";
+      break;
+    case INTERVAL_DAY_SECOND:
+      castSpec = "INTERVAL DAY TO SECOND";
+      break;
+    case INTERVAL_YEAR_MONTH:
+      castSpec = "INTERVAL YEAR TO MONTH";
+      break;
+    case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+    case TIMESTAMP_WITH_TIME_ZONE:
+      return dataTypeSpecWithPrecision(type);
+    case BINARY:
+      castSpec = "BYTEA";
+      break;
+    case DOUBLE_PRECISION:
+      castSpec = "DOUBLE PRECISION";
       break;
     default:
       return super.getCastSpec(type);
@@ -111,6 +132,64 @@ public class PostgresqlSqlDialect extends SqlDialect {
     return new SqlDataTypeSpec(
         new SqlAlienSystemTypeNameSpec(castSpec, type.getSqlTypeName(), SqlParserPos.ZERO),
         SqlParserPos.ZERO);
+  }
+
+  public @Nullable SqlNode getCastSpecWithPrecisionAndScale(RelDataType type) {
+    String castSpec;
+    switch (type.getSqlTypeName()) {
+    case DECIMAL:
+      boolean hasPrecision = type.getFullTypeString().matches("DECIMAL\\(.*\\).*");
+      if (!hasPrecision) {
+        castSpec = "DECIMAL";
+        break;
+      }
+      return getCastSpec(type);
+    default:
+      return getCastSpec(type);
+    }
+    return new SqlDataTypeSpec(
+        new SqlAlienSystemTypeNameSpec(castSpec, type.getSqlTypeName(), SqlParserPos.ZERO),
+        SqlParserPos.ZERO);
+  }
+
+  private @Nullable SqlNode dataTypeSpecWithPrecision(RelDataType type) {
+    String castSpec;
+    int precision =
+        Math.min(type.getPrecision(), getTypeSystem().getMaxPrecision(type.getSqlTypeName()));
+    int scale = type.getScale();
+    switch (type.getSqlTypeName()) {
+    case DECIMAL:
+      castSpec = "DECIMAL";
+      break;
+    case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+    case TIMESTAMP_WITH_TIME_ZONE:
+      castSpec = "TIMESTAMPTZ";
+      break;
+    default:
+      return super.getCastSpec(type);
+    }
+    if (type.getSqlTypeName().allowsPrec() && precision >= 0) {
+      castSpec += "(" + precision;
+      if (type.getSqlTypeName().allowsScale() && scale >= 0) {
+        castSpec += ", " + scale;
+      }
+      castSpec += ")";
+    }
+
+    return new SqlDataTypeSpec(
+        new SqlAlienSystemTypeNameSpec(castSpec, type.getSqlTypeName(), SqlParserPos.ZERO),
+        SqlParserPos.ZERO);
+  }
+
+  @Override public void quoteStringLiteral(StringBuilder buf, @Nullable String charsetName,
+      String val) {
+    if (charsetName != null) {
+      buf.append("_");
+      buf.append(charsetName);
+    }
+    buf.append(literalQuoteString);
+    buf.append(val.replace(literalEndQuoteString, literalEscapedQuote));
+    buf.append(literalEndQuoteString);
   }
 
   @Override public SqlNode rewriteSingleValueExpr(SqlNode aggCall, RelDataType relDataType) {
@@ -186,9 +265,30 @@ public class PostgresqlSqlDialect extends SqlDialect {
               timeUnitNode.getParserPosition());
       SqlFloorFunction.unparseDatetimeFunction(writer, call2, "DATE_TRUNC", false);
       break;
+    case TRUNCATE:
+      final SqlWriter.Frame truncateFrame = writer.startFunCall("TRUNC");
+      for (SqlNode operand : call.getOperandList()) {
+        writer.sep(",");
+        operand.unparse(writer, leftPrec, rightPrec);
+      }
+      writer.endFunCall(truncateFrame);
+      break;
+    case NEXT_VALUE:
+      unparseSequenceOperators(writer, call, leftPrec, rightPrec, "NEXTVAL");
+      break;
+    case CURRENT_VALUE:
+      unparseSequenceOperators(writer, call, leftPrec, rightPrec, "CURRVAL");
+      break;
     case OTHER_FUNCTION:
     case OTHER:
       this.unparseOtherFunction(writer, call, leftPrec, rightPrec);
+      break;
+    case CONCAT2:
+      SqlWriter.Frame concat = writer.startFunCall("CONCAT");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.print(",");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(concat);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
@@ -206,6 +306,9 @@ public class PostgresqlSqlDialect extends SqlDialect {
     case "CURRENT_TIMESTAMP_LTZ":
       this.unparseCurrentTimestampWithTZ(writer, call, leftPrec, rightPrec);
       break;
+    case "RAND":
+      writer.keyword("RANDOM()");
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -216,6 +319,13 @@ public class PostgresqlSqlDialect extends SqlDialect {
     call.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.sep("&");
     call.operand(1).unparse(writer, leftPrec, rightPrec);
+  }
+
+  private void unparseSequenceOperators(SqlWriter writer, SqlCall call,
+      int leftPrec, int rightPrec, String functionName) {
+    final SqlWriter.Frame seqCallFrame = writer.startFunCall(functionName);
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.endFunCall(seqCallFrame);
   }
 
   private void unparseCurrentTimestampWithTZ(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {

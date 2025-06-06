@@ -99,6 +99,8 @@ public enum SqlTypeName {
       false, Types.OTHER, SqlTypeFamily.INTERVAL_DAY_TIME),
   INTERVAL_SECOND(PrecScale.NO_NO | PrecScale.YES_NO | PrecScale.YES_YES,
       false, Types.OTHER, SqlTypeFamily.INTERVAL_DAY_TIME),
+  INTERVAL(PrecScale.NO_NO | PrecScale.YES_NO | PrecScale.YES_YES,
+      false, Types.OTHER, SqlTypeFamily.INTERVAL_DAY_TIME),
   CHAR(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.CHAR,
       SqlTypeFamily.CHARACTER),
   VARCHAR(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.VARCHAR,
@@ -114,10 +116,13 @@ public enum SqlTypeName {
   SYMBOL(PrecScale.NO_NO, true, Types.OTHER, null),
   MULTISET(PrecScale.NO_NO, false, Types.ARRAY, SqlTypeFamily.MULTISET),
   ARRAY(PrecScale.NO_NO, false, Types.ARRAY, SqlTypeFamily.ARRAY),
+  VARRAY(PrecScale.NO_NO, false, Types.ARRAY, SqlTypeFamily.ARRAY),
+  RESULTSET(PrecScale.NO_NO, false, Types.ARRAY, SqlTypeFamily.ARRAY),
   MAP(PrecScale.NO_NO, false, Types.OTHER, SqlTypeFamily.MAP),
   DISTINCT(PrecScale.NO_NO, false, Types.DISTINCT, null),
   STRUCTURED(PrecScale.NO_NO, false, Types.STRUCT, null),
   ROW(PrecScale.NO_NO, false, Types.STRUCT, null),
+  PERIOD(PrecScale.NO_NO, false, Types.STRUCT, SqlTypeFamily.PERIOD),
   OTHER(PrecScale.NO_NO, false, Types.OTHER, null),
   CURSOR(PrecScale.NO_NO, false, ExtraSqlTypes.REF_CURSOR,
       SqlTypeFamily.CURSOR),
@@ -132,8 +137,14 @@ public enum SqlTypeName {
   FUNCTION(PrecScale.NO_NO, true, Types.OTHER, SqlTypeFamily.FUNCTION),
   SARG(PrecScale.NO_NO, true, Types.OTHER, SqlTypeFamily.ANY),
   JSON(PrecScale.NO_NO | PrecScale.YES_NO, true, Types.OTHER, null),
+  VARIANT(PrecScale.NO_NO, false, Types.OTHER, SqlTypeFamily.VARIANT),
   CLOB(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.CHAR,
-          SqlTypeFamily.CHARACTER);
+          SqlTypeFamily.CHARACTER),
+  GEOGRAPHY(PrecScale.NO_NO, false, Types.OTHER, null),
+  TEXT(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.CHAR,
+      SqlTypeFamily.CHARACTER),
+  SERIAL(PrecScale.NO_NO, false, Types.INTEGER, SqlTypeFamily.NUMERIC),
+  DOUBLE_PRECISION(PrecScale.NO_NO, false, Types.FLOAT, SqlTypeFamily.NUMERIC);
 
   public static final int MAX_DATETIME_PRECISION = 3;
 
@@ -165,14 +176,17 @@ public enum SqlTypeName {
           INTERVAL_DAY_SECOND, INTERVAL_HOUR, INTERVAL_HOUR_MINUTE,
           INTERVAL_HOUR_SECOND, INTERVAL_MINUTE, INTERVAL_MINUTE_SECOND,
           INTERVAL_SECOND, TIME_WITH_LOCAL_TIME_ZONE, TIMESTAMP_WITH_LOCAL_TIME_ZONE,
-          TIMESTAMP_WITH_TIME_ZONE, FLOAT, MULTISET,
-          DISTINCT, STRUCTURED, ROW, CURSOR, COLUMN_LIST);
+          TIMESTAMP_WITH_TIME_ZONE, FLOAT, MULTISET, JSON,
+          DISTINCT, STRUCTURED, ROW, CURSOR, COLUMN_LIST, VARIANT, VARRAY, ARRAY);
 
   public static final List<SqlTypeName> BOOLEAN_TYPES =
       ImmutableList.of(BOOLEAN);
 
   public static final List<SqlTypeName> BINARY_TYPES =
       ImmutableList.of(BINARY, VARBINARY);
+
+  public static final List<SqlTypeName> ARRAY_TYPES =
+      ImmutableList.of(ARRAY, VARRAY);
 
   public static final List<SqlTypeName> INT_TYPES =
       ImmutableList.of(TINYINT, SMALLINT, INTEGER, BIGINT);

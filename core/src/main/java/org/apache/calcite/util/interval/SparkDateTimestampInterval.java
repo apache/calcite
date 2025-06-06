@@ -89,16 +89,26 @@ public class SparkDateTimestampInterval {
         || "DATE_SUB".equals(call.getOperator().getName())) {
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       writer.sep(sign);
-      String valueSign =
-          String.valueOf(
-              ((SqlIntervalLiteral.IntervalValue)
-          ((SqlIntervalLiteral) call.operand(1)).
-              getValue()).getSign()).replace("1", "");
-      writer.print(valueSign);
-      writer.print(intValue(((SqlIntervalLiteral) call.operand(1)).getValue().toString()));
+      writeIntervalLiteral(writer, call);
     } else {
       handleTimeUnitInterval(writer, call, leftPrec, rightPrec, sign);
     }
+  }
+
+  private void writeIntervalLiteral(SqlWriter writer, SqlCall call) {
+    SqlIntervalLiteral.IntervalValue intervalValue = getIntervalValueFromCall(call);
+    if (isNegativeInterval(intervalValue)) {
+      writer.print("-");
+    }
+    writer.literal(intervalValue.getIntervalLiteral());
+  }
+
+  private SqlIntervalLiteral.IntervalValue getIntervalValueFromCall(SqlCall call) {
+    return ((SqlIntervalLiteral) call.operand(1)).getValueAs(SqlIntervalLiteral.IntervalValue.class);
+  }
+
+  private boolean isNegativeInterval(SqlIntervalLiteral.IntervalValue intervalValue) {
+    return intervalValue.getSign() == -1;
   }
 
   private void handleIntervalMonth(SqlWriter writer, SqlCall call,
@@ -216,9 +226,12 @@ public class SparkDateTimestampInterval {
       String typeName, String separator) {
     String value = ((SqlIntervalLiteral) call.operand(1)).getValue().toString();
     String[] dayTimeSplit = value.split(separator);
+    int sign =
+        ((SqlIntervalLiteral.IntervalValue) ((SqlIntervalLiteral) call.operand(1)).getValue()).getSign();
     Queue<String> queue = generateQueueForInterval(typeName);
-    writer.print(" (INTERVAL '" + intValue(dayTimeSplit[0]) + "' " + queue.poll() + " + ");
-    writer.print("INTERVAL '" + intValue(dayTimeSplit[1]) + "' " + queue.poll());
+    String signString = sign == -1 ? "-" : "";
+    writer.print(" (INTERVAL '" + signString + intValue(dayTimeSplit[0]) + "' " + queue.poll() + " + ");
+    writer.print("INTERVAL '" + signString + intValue(dayTimeSplit[1]) + "' " + queue.poll());
     writer.print(")");
   }
 }

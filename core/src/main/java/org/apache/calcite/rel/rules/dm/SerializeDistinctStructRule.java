@@ -20,6 +20,8 @@ import org.apache.calcite.plan.DistinctTrait;
 import org.apache.calcite.plan.DistinctTraitDef;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.plan.SubQueryAliasTrait;
+import org.apache.calcite.plan.SubQueryAliasTraitDef;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.rules.TransformationRule;
 
@@ -28,7 +30,8 @@ import org.immutables.value.Value;
 /**
  * Rule to convert struct used in min/max function as deserialize(min(serialize(struct))).
  *
- * Here serialize method will change the struct into a comparable string
+ *
+ * <p>Here serialize method will change the struct into a comparable string
  * while deserialize method will covert this string back into Struct.
  */
 @Value.Enclosing
@@ -38,7 +41,9 @@ public class SerializeDistinctStructRule
 
   private RuleMatchExtension extension;
 
-  /** Creates an SerializeDistinctStructRule. */
+  /**
+   * Creates an SerializeDistinctStructRule.
+   */
   protected SerializeDistinctStructRule(Config config) {
     super(config);
   }
@@ -51,32 +56,36 @@ public class SerializeDistinctStructRule
     extension.execute(call);
   }
 
-  /** Rule configuration. */
+  /**
+   * Rule configuration.
+   */
   @Value.Immutable
   public interface Config extends RelRule.Config {
     Config DEFAULT = ImmutableSerializeDistinctStructRule.Config.of()
-            .withOperandFor(Aggregate.class);
+        .withOperandFor(Aggregate.class);
 
     @Override default SerializeDistinctStructRule toRule() {
       return new SerializeDistinctStructRule(this);
     }
 
 
-    /** Defines an operand tree for the given classes. */
+    /**
+     * Defines an operand tree for the given classes.
+     */
     default Config withOperandFor(Class<? extends Aggregate> distinctProject) {
       return withOperandSupplier(b0 ->
-                b0.operand(distinctProject)
-                  .predicate(r -> r != null && isDistinctStructExists(r))
-                  .anyInputs())
-              .as(Config.class);
+          b0.operand(distinctProject)
+              .predicate(r -> r != null && isDistinctStructExists(r))
+              .anyInputs())
+          .as(Config.class);
     }
 
     static boolean isDistinctStructExists(Aggregate e) {
       DistinctTrait distinctTrait = e.getTraitSet().getTrait(DistinctTraitDef.instance);
-      if (distinctTrait != null && distinctTrait.isDistinct() && !distinctTrait.isEvaluated()) {
-        return true;
-      }
-      return false;
+      SubQueryAliasTrait subQueryAliasTrait =
+          e.getTraitSet().getTrait(SubQueryAliasTraitDef.instance);
+      return subQueryAliasTrait == null && distinctTrait != null
+          && distinctTrait.isDistinct() && !distinctTrait.isEvaluated();
     }
   }
 }

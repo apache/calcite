@@ -193,7 +193,11 @@ public class Frameworks {
       }
       return new CalcitePrepareImpl().perform(statement, config, action);
     } catch (Exception e) {
-      throw new RuntimeException(e);
+      RuntimeException ex = new RuntimeException(e);
+      for (Throwable throwable : e.getSuppressed()) {
+        ex.addSuppressed(throwable);
+      }
+      throw ex;
     }
   }
 

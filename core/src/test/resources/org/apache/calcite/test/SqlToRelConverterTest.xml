@@ -5873,7 +5873,7 @@ PIVOT (SUM(sal) AS ss, COUNT(*)
     <Resource name="plan">
       <![CDATA[
 LogicalProject(MGR=[$0], C10_SS=[$1], C10=[$2], M20_SS=[$3], M20=[$4])
-  LogicalAggregate(group=[{0}], C10_SS=[SUM($3) FILTER $4], C10_null=[COUNT() FILTER $4], M20_SS=[SUM($3) FILTER $5], M20_null=[COUNT() FILTER $5])
+  LogicalAggregate(group=[{0}], C10_SS=[SUM($3) FILTER $4], C10=[COUNT() FILTER $4], M20_SS=[SUM($3) FILTER $5], M20=[COUNT() FILTER $5])
     LogicalProject(MGR=[$3], JOB=[$2], DEPTNO=[$7], SAL=[$5], $f4=[AND(=($2, 'CLERK'), =($7, 10))], $f5=[AND(=($2, 'MANAGER'), =($7, 20))])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>

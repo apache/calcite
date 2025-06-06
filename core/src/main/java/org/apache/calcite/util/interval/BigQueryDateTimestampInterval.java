@@ -20,7 +20,6 @@ import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIntervalLiteral;
-import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.dialect.BigQuerySqlDialect;
@@ -40,8 +39,6 @@ public class BigQueryDateTimestampInterval {
     String operator = call.getOperator().getName();
     if (checkValidOperator(operator)) {
       return handleInterval(writer, call, leftPrec, rightPrec, sign, operator);
-    } else if (SqlKind.MINUS == call.getOperator().getKind()) {
-      return handleMinusDateInterval(writer, call, leftPrec, rightPrec, operator);
     }
     return handleViaIntervalUtil(writer, call, leftPrec, rightPrec, operator);
   }
@@ -108,22 +105,6 @@ public class BigQueryDateTimestampInterval {
       return false;
     }
     return true;
-  }
-
-  private boolean handleMinusDateInterval(SqlWriter writer, SqlCall call,
-      int leftPrec, int rightPrec, String operator) {
-    if (call.operand(1) instanceof SqlIntervalLiteral) {
-      operator = "-".equals(operator) ? "DATE_SUB" : "DATE_ADD";
-      writer.print(operator  + "(");
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.sep(",");
-      writer.print("INTERVAL ");
-      writer.print(((SqlIntervalLiteral) call.operand(1)).getValue().toString());
-      writer.print(" " + getTypeName(call, 1).replace("INTERVAL_", ""));
-      writer.print(")");
-      return true;
-    }
-    return false;
   }
 
   private boolean handleIntervalCombination(SqlWriter writer, SqlCall call,

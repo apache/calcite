@@ -34,6 +34,7 @@ import org.apache.calcite.sql.SqlMapTypeNameSpec;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlRowTypeNameSpec;
 import org.apache.calcite.sql.SqlTypeNameSpec;
+import org.apache.calcite.sql.SqlUserDefinedTypeNameSpec;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SqlNameMatcher;
 import org.apache.calcite.sql.validate.SqlValidator;
@@ -1100,7 +1101,9 @@ public abstract class SqlTypeUtil {
     final SqlTypeNameSpec typeNameSpec;
     if (isAtomic(type) || isNull(type)
         || type.getSqlTypeName() == SqlTypeName.UNKNOWN
-        || type.getSqlTypeName() == SqlTypeName.GEOMETRY) {
+        || type.getSqlTypeName() == SqlTypeName.GEOMETRY
+        || type.getSqlTypeName() == SqlTypeName.GEOGRAPHY
+        || type.getSqlTypeName() == SqlTypeName.INTERVAL) {
       int precision = typeName.allowsPrec() ? type.getPrecision() : -1;
       // fix up the precision.
       if (maxPrecision > 0 && precision > maxPrecision) {
@@ -1137,6 +1140,11 @@ public abstract class SqlTypeUtil {
       final SqlDataTypeSpec keyTypeSpec = convertTypeToSpec(keyType);
       final SqlDataTypeSpec valueTypeSpec = convertTypeToSpec(valueType);
       typeNameSpec = new SqlMapTypeNameSpec(keyTypeSpec, valueTypeSpec, SqlParserPos.ZERO);
+    } else if (type.getSqlTypeName() == SqlTypeName.STRUCTURED) {
+      ObjectSqlType objectType = (ObjectSqlType) type;
+      assert objectType.getSqlIdentifier() != null;
+      typeNameSpec =
+          new SqlUserDefinedTypeNameSpec(objectType.getSqlIdentifier(), SqlParserPos.ZERO);
     } else {
       throw new UnsupportedOperationException(
           "Unsupported type when convertTypeToSpec: " + typeName);
@@ -1728,6 +1736,7 @@ public abstract class SqlTypeUtil {
       return false;
     }
     return type.getSqlTypeName() == SqlTypeName.ARRAY
+        || type.getSqlTypeName() == SqlTypeName.VARRAY
         || type.getSqlTypeName() == SqlTypeName.MULTISET;
   }
 

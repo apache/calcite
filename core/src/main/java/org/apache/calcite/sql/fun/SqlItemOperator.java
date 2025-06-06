@@ -114,6 +114,7 @@ public class SqlItemOperator extends SqlSpecialOperator {
     final RelDataType operandType = callBinding.getOperandType(0);
     switch (operandType.getSqlTypeName()) {
     case ARRAY:
+    case VARRAY:
       return OperandTypes.family(SqlTypeFamily.INTEGER);
     case MAP:
       RelDataType keyType =
@@ -136,7 +137,8 @@ public class SqlItemOperator extends SqlSpecialOperator {
     if (name.equals("ITEM")) {
       return "<ARRAY>[<INTEGER>]\n"
           + "<MAP>[<ANY>]\n"
-          + "<ROW>[<CHARACTER>|<INTEGER>]";
+          + "<ROW>[<CHARACTER>|<INTEGER>]\n"
+          + "<VARIANT>[<ANY>]";
     } else {
       return "<ARRAY>[" + name + "(<INTEGER>)]";
     }
@@ -146,7 +148,12 @@ public class SqlItemOperator extends SqlSpecialOperator {
     final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
     final RelDataType operandType = opBinding.getOperandType(0);
     switch (operandType.getSqlTypeName()) {
+    case VARIANT:
+      // Return type is always nullable VARIANT
+      return typeFactory.createTypeWithNullability(
+          operandType, true);
     case ARRAY:
+    case VARRAY:
       return typeFactory.createTypeWithNullability(
           getComponentTypeOrThrow(operandType), true);
     case MAP:

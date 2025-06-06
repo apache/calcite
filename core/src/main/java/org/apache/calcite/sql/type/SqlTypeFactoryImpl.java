@@ -20,6 +20,8 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlIntervalQualifier;
@@ -28,6 +30,7 @@ import org.apache.calcite.util.Util;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -106,11 +109,33 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return canonize(newType);
   }
 
+  @Override public RelDataType createPeriodType(
+      RelDataType beginType,
+      RelDataType endType,
+      boolean isNullable) {
+    List<RelDataTypeField> fields = new ArrayList<>();
+    // names for internal computations.
+    // period type doesn't have named/ordinal fields.
+    fields.add(new RelDataTypeFieldImpl("_begin", 0, beginType));
+    fields.add(new RelDataTypeFieldImpl("_end", 1, endType));
+    return canonize(new PeriodSqlType(isNullable, fields));
+  }
+
   @Override public RelDataType createArrayType(
       RelDataType elementType,
       long maxCardinality) {
     assert maxCardinality == -1;
     ArraySqlType newType = new ArraySqlType(elementType, false);
+    return canonize(newType);
+  }
+
+  @Override public RelDataType createArrayTypeWithName(
+      SqlTypeName sqlTypeName,
+      RelDataType elementType,
+      long maxCardinality,
+      List<String> typeName) {
+    NamedArraySqlType newType =
+        new NamedArraySqlType(sqlTypeName, elementType, false, typeName, maxCardinality);
     return canonize(newType);
   }
 

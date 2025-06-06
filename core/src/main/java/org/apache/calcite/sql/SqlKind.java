@@ -249,6 +249,9 @@ public enum SqlKind {
   /** {@code WITHIN DISTINCT} operator. */
   WITHIN_DISTINCT,
 
+  /** {@code RANGE_SESSIONIZE} operator. */
+  RANGE_SESSIONIZE,
+
   /** Window specification. */
   WINDOW,
 
@@ -392,6 +395,9 @@ public enum SqlKind {
   /** {@code OVERLAPS} operator for periods. */
   OVERLAPS,
 
+  /** {@code INTERSECT} operator for periods. */
+  PERIOD_INTERSECT("INTERSECT"),
+
   /** {@code CONTAINS} operator for periods. */
   CONTAINS,
 
@@ -409,6 +415,15 @@ public enum SqlKind {
 
   /** {@code EQUALS} operator for periods. */
   PERIOD_EQUALS("EQUALS"),
+
+  /** {@code BEGIN} operator for periods. */
+  PERIOD_BEGIN("BEGIN"),
+
+  /** {@code END} operator for periods. */
+  PERIOD_END("END"),
+
+  /** Period constructor. e.g. {@code PERIOD(DATE '2000-01-01', DATE '2001-01-05')}*/
+  PERIOD_CONSTRUCTOR("PERIOD"),
 
   /** {@code LIKE} operator. */
   LIKE,
@@ -464,6 +479,9 @@ public enum SqlKind {
 
   /** {@code NVL} function (Oracle). */
   NVL,
+
+  /** {@code NVL} function (Oracle, Vertica and Spark). */
+  NVL2,
 
   /** {@code GREATEST} function (Oracle). */
   GREATEST,
@@ -723,6 +741,11 @@ public enum SqlKind {
   SAFE_CAST,
 
   /**
+   * The "CONVERT(type, expr [,style])" function (Microsoft SQL Server).
+   */
+  MSSQL_CONVERT,
+
+  /**
    * The "NEXT VALUE OF sequence" operator.
    */
   NEXT_VALUE,
@@ -740,6 +763,12 @@ public enum SqlKind {
 
   /** {@code TRIM} function. */
   TRIM,
+
+  /** {@code SF_FLOOR} function only for SNOWFLAKE. */
+  SF_FLOOR,
+
+  /** The {@code RATIO_TO_REPORT} aggregate function. */
+  RATIO_TO_REPORT,
 
   /** {@code LTRIM} function (Oracle). */
   LTRIM,
@@ -780,6 +809,15 @@ public enum SqlKind {
   /** {@code ARRAY_LENGTH} function (Spark semantics). */
   ARRAY_LENGTH,
 
+  /** {@code ARRAY_START_INDEX} function (Spark semantics). */
+  ARRAY_START_INDEX,
+
+  /** {@code ARRAY_LAST_INDEX} function (Spark semantics). */
+  ARRAY_LAST_INDEX,
+
+  /** {@code LEN} function (Spark semantics). */
+  LEN,
+
   /** {@code ARRAY_MAX} function (Spark semantics). */
   ARRAY_MAX,
 
@@ -816,6 +854,9 @@ public enum SqlKind {
   /** {@code ARRAYS_ZIP} function (Spark semantics). */
   ARRAYS_ZIP,
 
+  /** {@code APPROX_QUANTILES} function. */
+  APPROX_QUANTILES,
+
   /** {@code SORT_ARRAY} function (Spark semantics). */
   SORT_ARRAY,
 
@@ -848,6 +889,9 @@ public enum SqlKind {
    * The "TO_NUMBER" function.
    */
   TO_NUMBER,
+
+  /** {@code HOST} function (Postgres). */
+  NET_HOST,
 
    /**
    * The "ASCII" function.
@@ -1047,6 +1091,9 @@ public enum SqlKind {
   /** The {@code REGR_SYY} aggregate function. */
   REGR_SYY,
 
+  /** The {@code REGR_SYY} aggregate function. */
+  REGR_INTERCEPT,
+
   /** The {@code AVG} aggregate function. */
   AVG,
 
@@ -1079,6 +1126,9 @@ public enum SqlKind {
 
   /** The {@code ARRAY_AGG} aggregate function. */
   ARRAY_AGG,
+
+  /** The {@code JSON_AGG} aggregate function. */
+  JSON_AGG,
 
   /** The {@code ARRAY_CONCAT_AGG} aggregate function. */
   ARRAY_CONCAT_AGG,
@@ -1438,7 +1488,7 @@ public enum SqlKind {
                   FILTER, WITHIN_GROUP, IGNORE_NULLS, RESPECT_NULLS, SEPARATOR,
                   DESCENDING, CUBE, ROLLUP, GROUPING_SETS, EXTEND, LATERAL,
                   SELECT, JOIN, OTHER_FUNCTION, POSITION, CHAR_LENGTH,
-                      CHARACTER_LENGTH, TRUNCATE, CAST, TRIM, FLOOR, CEIL,
+                      CHARACTER_LENGTH, TRUNCATE, CAST, TRIM, FLOOR, SF_FLOOR, CEIL,
                   DATE_ADD, DATE_SUB, TIME_ADD, TIME_SUB,
                   TIMESTAMP_ADD, TIMESTAMP_DIFF, TIMESTAMP_SUB,
                   EXTRACT, INTERVAL,

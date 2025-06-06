@@ -23,6 +23,7 @@ import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.JavaToSqlTypeConversionRules;
 import org.apache.calcite.sql.type.MapSqlType;
 import org.apache.calcite.sql.type.MultisetSqlType;
+import org.apache.calcite.sql.type.ObjectSqlType;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeMappingRule;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -134,6 +135,19 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
                 SqlCollation.IMPLICIT)
             : new JavaType(clazz);
     return canonize(javaType);
+  }
+
+  @Override public RelDataType createStructuredTypeWithName(List<RelDataType> fieldTypes,
+      List<String> fieldNames,
+      final List<String> typeName) {
+    final ImmutableList.Builder<RelDataTypeField> list =
+        ImmutableList.builder();
+    for (int i = 0; i < fieldNames.size(); i++) {
+      list.add(
+          new RelDataTypeFieldImpl(
+              fieldNames.get(i), i, fieldTypes.get(i)));
+    }
+    return canonize(new ObjectSqlType(typeName, false, list.build()));
   }
 
   // implement RelDataTypeFactory

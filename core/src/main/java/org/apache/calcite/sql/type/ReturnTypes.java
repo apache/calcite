@@ -37,6 +37,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.base.Preconditions;
 
 import java.util.AbstractList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
@@ -256,6 +257,19 @@ public abstract class ReturnTypes {
       explicit(SqlTypeName.BOOLEAN);
 
   /**
+   * Type-inference strategy whereby the result type of a call is Period.
+   */
+  public static final SqlReturnTypeInference PERIOD =
+      explicit(SqlTypeName.PERIOD);
+
+  /**
+   * Type-inference strategy whereby the result type of a call is Period.
+   * with nulls allowed if any of the operands allow nulls.
+   */
+  public static final SqlReturnTypeInference PERIOD_NULLABLE =
+      PERIOD.andThen(SqlTypeTransforms.FORCE_NULLABLE);
+
+  /**
    * Type-inference strategy whereby the result type of a call is Boolean,
    * with nulls allowed if any of the operands allow nulls.
    */
@@ -342,12 +356,39 @@ public abstract class ReturnTypes {
   };
 
   /**
+   * Type-inference strategy that returns the type of the first operand,
+   * unless it is a STRING, in which case the return type is second operand type.
+   * Incorrect return type for Postgres DATE_TRUNC functions.
+   */
+  public static final SqlReturnTypeInference ARG0_EXCEPT_STRING = opBinding -> {
+    RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+    SqlTypeName op = opBinding.getOperandType(0).getSqlTypeName();
+    switch (op) {
+    case VARCHAR:
+    case CHAR:
+    case SYMBOL:
+      return typeFactory.createSqlType(opBinding.getOperandType(1).getSqlTypeName());
+    default:
+      return typeFactory.createSqlType(op);
+    }
+  };
+
+
+  /**
    * Same as {@link #ARG0_EXCEPT_DATE} but returns with nullability if any of
    * the operands is nullable by using
    * {@link org.apache.calcite.sql.type.SqlTypeTransforms#TO_NULLABLE}.
    */
   public static final SqlReturnTypeInference ARG0_EXCEPT_DATE_NULLABLE =
       ARG0_EXCEPT_DATE.andThen(SqlTypeTransforms.TO_NULLABLE);
+
+  /**
+   * Same as {@link #ARG0_EXCEPT_STRING} but returns with nullability if any of
+   * the operands is nullable by using
+   * {@link org.apache.calcite.sql.type.SqlTypeTransforms#TO_NULLABLE}.
+   */
+  public static final SqlReturnTypeInference ARG0_EXCEPT_STRING_NULLABLE =
+      ARG0_EXCEPT_STRING.andThen(SqlTypeTransforms.TO_NULLABLE);
 
   /**
    * Type-inference strategy whereby the result type of a call is TIME(0).
@@ -361,6 +402,12 @@ public abstract class ReturnTypes {
    */
   public static final SqlReturnTypeInference TIME_NULLABLE =
       TIME.andThen(SqlTypeTransforms.TO_NULLABLE);
+
+  /**
+   * Type-inference strategy whereby the result type of a call is INTERVAL.
+   */
+  public static final SqlReturnTypeInference INTERVAL =
+      explicit(SqlTypeName.INTERVAL);
 
   /**
    * Type-inference strategy whereby the result type of a call is TIMESTAMP.
@@ -509,6 +556,15 @@ public abstract class ReturnTypes {
   public static final SqlReturnTypeInference VARCHAR_2000 =
       explicit(SqlTypeName.VARCHAR, 2000);
 
+  public static final SqlReturnTypeInference JSON =
+      explicit(SqlTypeName.JSON);
+
+  /**
+   * Type-inference strategy that always returns "VARIANT".
+   */
+  public static final SqlReturnTypeInference VARIANT =
+      ReturnTypes.explicit(SqlTypeName.VARIANT);
+
   /**
    * Type-inference strategy that always returns "VARCHAR(2000)" with nulls
    * allowed if any of the operands allow nulls.
@@ -571,6 +627,15 @@ public abstract class ReturnTypes {
   public static final SqlReturnTypeInference LEAST_RESTRICTIVE =
       opBinding -> opBinding.getTypeFactory().leastRestrictive(
           opBinding.collectOperandTypes());
+
+  /**
+   * Type-inference strategy for NVL2 function. It returns the least restrictive type
+   * between the second and third operands.
+   */
+  public static final SqlReturnTypeInference NVL2_RESTRICTIVE = opBinding ->
+      opBinding.getTypeFactory().leastRestrictive(
+          Arrays.asList(opBinding.getOperandType(1),
+              opBinding.getOperandType(2)));
 
   /**
    * Type-inference strategy that returns the type of the first operand, unless it
@@ -1372,4 +1437,11 @@ public abstract class ReturnTypes {
 
   public static final SqlReturnTypeInference PERCENTILE_DISC_CONT = opBinding ->
       opBinding.getCollationType();
+
+  /**
+   * Type-inference strategy that always returns GEOGRAPHY.
+   */
+  public static final SqlReturnTypeInference GEOGRAPHY =
+      explicit(SqlTypeName.GEOGRAPHY);
+
 }

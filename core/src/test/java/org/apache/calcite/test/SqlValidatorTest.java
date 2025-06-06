@@ -1559,11 +1559,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("TO_CHAR(CURRENT_TIMESTAMP, 'YYYY-MM-DD HH24:MI:SS.MS TZ')")
         .withOperatorTable(opTable)
         .ok();
-    expr("^TO_CHAR(1680080352, 'YYYY-MM-DD HH24:MI:SS.MS TZ')^")
+    expr("^TO_CHAR(1680080352)^")
         .withOperatorTable(opTable)
-        .fails("Cannot apply 'TO_CHAR' to arguments of type "
-            + "'TO_CHAR\\(<INTEGER>, <CHAR\\(27\\)>\\)'\\. Supported form\\(s\\): "
-            + "'TO_CHAR\\(<TIMESTAMP>, <STRING>\\)'");
+        .ok();
   }
 
   @Test void testToDateFunction() {
@@ -7552,9 +7550,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test void testStructuredTypes() {
     sql("values new address()")
-        .columnType("ObjectSqlType(ADDRESS) NOT NULL");
+        .columnType("ObjectSqlType(ADDRESS(VARCHAR(20) NOT NULL STREET, VARCHAR(20) "
+            + "NOT NULL CITY, INTEGER NOT NULL ZIP, VARCHAR(20) NOT NULL STATE)) NOT NULL");
     sql("select home_address from emp_address")
-        .columnType("ObjectSqlType(ADDRESS) NOT NULL");
+        .columnType("ObjectSqlType(ADDRESS(VARCHAR(20) NOT NULL STREET, VARCHAR(20) "
+            + "NOT NULL CITY, INTEGER NOT NULL ZIP, VARCHAR(20) NOT NULL STATE)) NOT NULL");
     sql("select ea.home_address.zip from emp_address ea")
         .columnType("INTEGER NOT NULL");
     sql("select ea.mailing_address.city from emp_address ea")
@@ -8066,7 +8066,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Cannot apply 'ITEM' to arguments of type 'ITEM\\(<VARCHAR\\(10\\)>, "
             +  "<INTEGER>\\)'\\. Supported form\\(s\\): <ARRAY>\\[<INTEGER>\\]\n"
             + "<MAP>\\[<ANY>\\]\n"
-            + "<ROW>\\[<CHARACTER>\\|<INTEGER>\\].*");
+            + "<ROW>\\[<CHARACTER>\\|<INTEGER>\\]\n"
+            + "<VARIANT>\\[<ANY>\\]");
   }
 
   /** Test case for

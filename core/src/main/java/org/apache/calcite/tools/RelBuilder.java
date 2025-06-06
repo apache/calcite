@@ -21,12 +21,15 @@ import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.PivotRelTrait;
+import org.apache.calcite.plan.PivotRelTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptSamplingParameters;
 import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.prepare.RelOptTableImpl;
 import org.apache.calcite.rel.RelCollation;
@@ -147,6 +150,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -155,6 +159,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static com.google.common.collect.ImmutableList.toImmutableList;
 
@@ -874,6 +879,12 @@ public class RelBuilder {
   @Experimental
   public RexSubQuery some(RexNode node, SqlOperator op,
       Function<RelBuilder, RelNode> f) {
+    if (op.kind == SqlKind.LIKE) {
+      final RelNode rel = f.apply(this);
+      final SqlQuantifyOperator quantifyOperator =
+          SqlStdOperatorTable.some((SqlLikeOperator) op);
+      return RexSubQuery.some(rel, ImmutableList.of(node), quantifyOperator);
+    }
     return some_(node, op.kind, f);
   }
 
@@ -2466,6 +2477,7 @@ public class RelBuilder {
     }
 
     ImmutableList<ImmutableBitSet> groupSets;
+    boolean hasSubquery = false;
     if (groupKey.nodeLists != null) {
       final int sizeBefore = registrar.extraNodes.size();
       final List<ImmutableBitSet> groupSetList = new ArrayList<>();
@@ -2485,6 +2497,12 @@ public class RelBuilder {
           /*|| !ImmutableBitSet.ORDERING.isStrictlyOrdered(groupSetMultiset)*/) {
         return rewriteAggregateWithDuplicateGroupSets(groupSet, groupSetMultiset,
             aggCalls);
+      }
+      Optional<RelTrait> pivotRelTrait =
+          Optional.ofNullable(stack.getFirst()
+              .rel.getTraitSet().getTrait(PivotRelTraitDef.instance));
+      if (pivotRelTrait.isPresent()) {
+        hasSubquery = ((PivotRelTrait) pivotRelTrait.get()).hasSubquery();
       }
       groupSets = ImmutableList.copyOf(groupSetMultiset.elementSet());
       if (registrar.extraNodes.size() > sizeBefore) {
@@ -2521,7 +2539,7 @@ public class RelBuilder {
     if (config.pruneInputOfAggregate()
         && r instanceof Project) {
       final Set<Integer> fieldsUsed =
-          RelOptUtil.getAllFields2(groupSet, aggregateCalls);
+          getAllUsedProjectionFields(groupSet, aggregateCalls, hasSubquery, inFields.size());
       // Some parts of the system can't handle rows with zero fields, so
       // pretend that one field is used.
       if (fieldsUsed.isEmpty()) {
@@ -2563,7 +2581,7 @@ public class RelBuilder {
           builder.add(project.getRowType().getFieldList().get(i));
         }
         r =
-            project.copy(cluster.traitSet(), project.getInput(), newProjects,
+            project.copy(project.getTraitSet(), project.getInput(), newProjects,
                 builder.build());
       } else {
         groupSet2 = groupSet;
@@ -2600,6 +2618,28 @@ public class RelBuilder {
     aggregate_(groupSet2, groupSets2, r, distinctAggregateCalls,
         registrar.extraNodes, inFields);
     return project(projects.transform((i, name) -> aliasMaybe(field(i), name)));
+  }
+
+  public static Set<Integer> getAllUsedProjectionFields(ImmutableBitSet groupSet,
+      List<AggregateCall> aggCallList, boolean subqueryPresent, int expectedSelectListCount) {
+    final Set<Integer> allFields = new TreeSet<>(groupSet.asList());
+    if (subqueryPresent) {
+      //In case of pivot with subquery we need all columns of subquery and in-clause fields both
+      //hence we are adding all the fields to allFields.
+      IntStream.range(0, expectedSelectListCount).forEach(allFields::add);
+      return allFields;
+    }
+    for (AggregateCall aggregateCall : aggCallList) {
+      allFields.addAll(aggregateCall.getArgList());
+      if (aggregateCall.filterArg >= 0) {
+        allFields.add(aggregateCall.filterArg);
+      }
+      if (aggregateCall.distinctKeys != null) {
+        allFields.addAll(aggregateCall.distinctKeys.asList());
+      }
+      allFields.addAll(RelCollations.ordinals(aggregateCall.collation));
+    }
+    return allFields;
   }
 
   /**
@@ -3608,11 +3648,24 @@ public class RelBuilder {
       return collation(((RexCall) node).getOperands().get(0), direction,
           RelFieldCollation.NullDirection.LAST, extraNodes);
     default:
-      final int fieldIndex = extraNodes.size();
-      extraNodes.add(node);
+      final int fieldIndex = (node instanceof RexCall
+          && !extraNodes.isEmpty() && hasSortNode((RexCall) node, extraNodes))
+          ? extraNodes.indexOf(node) : extraNodes.size();
+
+      if (!(node instanceof RexCall) || extraNodes.isEmpty()
+          || !hasSortNode((RexCall) node, extraNodes)) {
+        extraNodes.add(node);
+      }
+
       return new RelFieldCollation(fieldIndex, direction,
           first(nullDirection, direction.defaultNullDirection()));
     }
+  }
+
+  private static boolean hasSortNode(RexCall rexCall, List<RexNode> extraNodes) {
+    return extraNodes.stream().filter(i -> i instanceof RexCall)
+        .map(i -> (RexCall) i)
+        .anyMatch(rexCall::equals);
   }
 
   private static RexFieldCollation rexCollation(RexNode node,
@@ -3834,7 +3887,8 @@ public class RelBuilder {
             + expressionList + "], [" + axisList + "]");
       }
       aggCalls.forEach(aggCall -> {
-        final String alias2 = alias + "_" + ((AggCallPlus) aggCall).alias();
+        final String aggAlias = ((AggCallPlus) aggCall).alias();
+        final String alias2 = alias + (aggAlias != null ? "_" + aggAlias : "");
         final List<RexNode> filters = new ArrayList<>();
         Pair.forEach(axisList, expressionList, (axis, expression) ->
             filters.add(equals(axis, expression)));
@@ -4315,7 +4369,7 @@ public class RelBuilder {
               .stream()
               .map(orderKey ->
                   collation(orderKey, RelFieldCollation.Direction.ASCENDING,
-                      null, Collections.emptyList()))
+                      null, registrar.extraNodes))
               .collect(Collectors.toList()));
 //      if (aggFunction instanceof SqlCountAggFunction && !distinct) {
 //        args = args.stream()

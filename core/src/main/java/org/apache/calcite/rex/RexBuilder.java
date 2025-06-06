@@ -67,6 +67,7 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -1152,7 +1153,10 @@ public class RexBuilder {
     if (s.equals("")) {
       return charEmpty;
     }
-    return makeCharLiteral(new NlsString(s, null, null));
+    boolean canEncodeInUtf16le = !typeFactory.getDefaultCharset().newEncoder().canEncode(s)
+        && StandardCharsets.UTF_16LE.newEncoder().canEncode(s);
+    String charSetName = canEncodeInUtf16le ? StandardCharsets.UTF_16LE.name() : null;
+    return makeCharLiteral(new NlsString(s, charSetName, null));
   }
 
   /**
@@ -1741,6 +1745,8 @@ public class RexBuilder {
           SqlTypeName.GEOMETRY);
     case ANY:
       return makeLiteral(value, guessType(value), allowCast);
+    case JSON:
+      return makeLiteral(value, guessType(value));
     default:
       throw new IllegalArgumentException(
           "Cannot create literal for type '" + sqlTypeName + "'");

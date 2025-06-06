@@ -20,9 +20,11 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexDynamicParam;
@@ -31,6 +33,7 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.tools.RelBuilder;
 
 import org.apache.commons.lang3.tuple.ImmutableTriple;
@@ -43,8 +46,12 @@ import org.immutables.value.Value;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.Stack;
 import java.util.stream.Collectors;
+
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.BETWEEN;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.NOT_BETWEEN;
 
 /**
  * Planner rule that matches an {@link org.apache.calcite.rel.core.Filter}
@@ -83,8 +90,7 @@ public class FilterExtractInnerJoinRule
     final Join join = call.rel(1);
     RelBuilder builder = call.builder();
 
-    if (!isCrossJoin(join, builder)
-        || isFilterWithCompositeLogicalConditions(filter.getCondition())) {
+    if (!isCrossJoin(join, builder)) {
       return;
     }
 
@@ -93,6 +99,8 @@ public class FilterExtractInnerJoinRule
     List<RexNode> allConditions = new ArrayList<>();
     populateStackWithEndIndexesForTables(join, stackForTableScanWithEndColumnIndex, allConditions);
     RexNode conditions = filter.getCondition();
+    Set<CorrelationId> correlationIdSet =
+        filter instanceof LogicalFilter ? filter.getVariablesSet() : null;
     if (isConditionComposedOfSingleCondition((RexCall) conditions)) {
       allConditions.add(filter.getCondition());
     } else {
@@ -100,8 +108,9 @@ public class FilterExtractInnerJoinRule
     }
 
     final RelNode modifiedJoinClauseWithWhereClause =
-        moveConditionsFromWhereClauseToJoinOnClause(
-            allConditions, stackForTableScanWithEndColumnIndex, builder);
+        moveConditionsFromWhereClauseToJoinOnClause(allConditions,
+            stackForTableScanWithEndColumnIndex, ((RexCall) conditions).op, builder,
+        correlationIdSet);
 
     call.transformTo(modifiedJoinClauseWithWhereClause);
   }
@@ -123,18 +132,6 @@ public class FilterExtractInnerJoinRule
     return false;
   }
 
-  /** This method checks whether filter conditions have both AND & OR in it.*/
-  private static boolean isFilterWithCompositeLogicalConditions(RexNode condition) {
-    RexCall cond = (RexCall) condition;
-    if (cond.op.kind == SqlKind.OR) {
-      return true;
-    }
-    if (cond.operands.stream().allMatch(operand -> operand instanceof RexCall)) {
-      return cond.operands.stream().anyMatch(
-          FilterExtractInnerJoinRule::isFilterWithCompositeLogicalConditions);
-    }
-    return false;
-  }
 
   /** This method populates the stack, Stack< Triple< RelNode, Integer, JoinRelType > >, with
    * TableScan of a table along with its column's end index and JoinType.*/
@@ -155,7 +152,7 @@ public class FilterExtractInnerJoinRule
         joinConditions.addAll(((RexCall) conditions).getOperands());
       }
     }
-    if (left instanceof Join) {
+    if (left instanceof Join && !((Join) left).getJoinType().isOuterJoin()) {
       populateStackWithEndIndexesForTables((Join) left, stack, joinConditions);
     } else {
       stack.push(new ImmutableTriple<>(left, leftTableColumnSize - 1, join.getJoinType()));
@@ -165,24 +162,41 @@ public class FilterExtractInnerJoinRule
   /** This method identifies Join Predicates from filter conditions and put them on Joins as
    * ON conditions.*/
   private RelNode moveConditionsFromWhereClauseToJoinOnClause(List<RexNode> allConditions,
-      Stack<Triple<RelNode, Integer, JoinRelType>> stack, RelBuilder builder) {
-    Triple<RelNode, Integer, JoinRelType> leftEntry = stack.pop();
-    Triple<RelNode, Integer, JoinRelType> rightEntry;
-    RelNode left = leftEntry.getLeft();
-
+      Stack<Triple<RelNode, Integer, JoinRelType>> stack, SqlOperator op, RelBuilder builder,
+      Set<CorrelationId> correlationIdSet) {
+    RelNode left = stack.pop().getLeft();
     while (!stack.isEmpty()) {
-      rightEntry = stack.pop();
+      Triple<RelNode, Integer, JoinRelType> rightEntry = stack.pop();
       List<RexNode> joinConditions =
           getConditionsForEndIndex(allConditions, rightEntry.getMiddle());
-      RexNode joinPredicate = builder.and(joinConditions);
+
+      RexNode joinPredicate = (op.getKind() == SqlKind.OR && !joinConditions.isEmpty())
+          ? builder.or(joinConditions)
+          : builder.and(joinConditions);
+
       allConditions.removeAll(joinConditions);
       left =
           LogicalJoin.create(left, rightEntry.getLeft(), ImmutableList.of(),
-                  joinPredicate, ImmutableSet.of(), rightEntry.getRight());
+              joinPredicate, ImmutableSet.of(), rightEntry.getRight());
     }
-    return builder.push(left)
-        .filter(builder.and(allConditions))
+    builder.push(left);
+    RexNode remainingCondition = allConditions.isEmpty()
+        ? builder.literal(true)
+        : createFilterCondition(op, allConditions, builder);
+
+    return builder
+        .filter(correlationIdSet != null ? correlationIdSet : ImmutableSet.of(), remainingCondition)
         .build();
+  }
+
+  private RexNode createFilterCondition(
+      SqlOperator operator, List<RexNode> remainingConditions, RelBuilder builder) {
+    if (operator.kind == SqlKind.BETWEEN) {
+      operator = operator.getName().equals("NOT BETWEEN") ? NOT_BETWEEN : BETWEEN;
+      return builder.call(operator, remainingConditions);
+    }
+    return (operator.getKind() == SqlKind.OR)
+        ? builder.or(remainingConditions) : builder.and(remainingConditions);
   }
 
   /** Gets all the conditions that are part of the current join.*/

@@ -16,62 +16,53 @@
  */
 package org.apache.calcite.rel.rel2sql;
 
-import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.plan.InnerJoinTrait;
+import org.apache.calcite.plan.InnerJoinTraitDef;
+import org.apache.calcite.plan.RelTrait;
+import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
+import org.apache.calcite.rex.RexVisitor;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.util.Util;
+
+import com.google.common.collect.ImmutableSet;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Utility class for rel2sql package.
  */
 public class RelToSqlUtils {
 
-  /**
-   * Returns whether an operand is Analytical Function by traversing till next project rel
-   * For ex, FilterRel e1 -> FilterRel e2 -> ProjectRel p -> TableScan ts
-   * Here, we are traversing till ProjectRel p to check whether an operand of FilterRel e1
-   * is Analytical function or not.
-   */
-  private static boolean isOperandAnalyticalInFollowingProject(RelNode rel,
-      Integer rexOperandIndex) {
-    if (rel instanceof Project) {
-      return (((Project) rel).getProjects().size() - 1) >= rexOperandIndex
-          && isAnalyticalRex(((Project) rel).getProjects().get(rexOperandIndex));
-    } else if (rel.getInputs().size() > 0) {
-      return isOperandAnalyticalInFollowingProject(rel.getInput(0), rexOperandIndex);
-    }
-    return false;
+  private RelToSqlUtils() {
   }
 
-  /** Returns whether an Analytical Function is present in filter condition. */
-  protected boolean hasAnalyticalFunctionInFilter(Filter rel, RelNode input) {
-    AnalyticalFunctionFinder finder = new AnalyticalFunctionFinder(true, input);
-    try {
-      rel.getCondition().accept(finder);
-      return false;
-    } catch (Util.FoundOne e) {
+  /**
+   * Checks whether the filter can be a QUALIFY clause.
+   * @param filter can be WHERE/HAVING/QUALIFY
+   * @return true when filter contains a window function or an alias of an window function
+   */
+  public static boolean isQualifyFilter(Filter filter) {
+    if (filter.containsOver()) {
       return true;
     }
-  }
-
-  /** Returns whether an Analytical Function is present in joins.*/
-  protected boolean hasAnalyticalFunctionInJoin(RelNode input) {
-    if (input instanceof LogicalJoin && input.getInput(0) instanceof Project) {
-      return isAnalyticalFunctionPresentInProjection((Project) input.getInput(0));
+    if (!(filter.getInput(0) instanceof Project)) {
+      return false;
     }
-    return false;
-  }
-
-  /* Returns whether any Analytical Function (RexOver) is present in projection.*/
-  protected boolean isAnalyticalFunctionPresentInProjection(Project projectRel) {
-    for (RexNode currentRex : projectRel.getProjects()) {
-      if (isAnalyticalRex(currentRex)) {
+    InputRefCollector finder = new InputRefCollector();
+    filter.getCondition().accept(finder);
+    Set<Integer> fieldsUsedInFilter = finder.getRefs();
+    Project inputProject = (Project) filter.getInput();
+    for (Integer ref : fieldsUsedInFilter) {
+      RexNode referencedNode = inputProject.getProjects().get(ref);
+      if (RexOver.containsOver(referencedNode)) {
         return true;
       }
     }
@@ -91,36 +82,51 @@ public class RelToSqlUtils {
     return false;
   }
 
-  /** Walks over an expression and determines whether it is RexOver.
+  /**
+   * This function checks whether InnerJoinTrait having preserveInnerJoin status as true exist in RelTraitSet or not.
    */
-  private static class AnalyticalFunctionFinder extends RexVisitorImpl<Void> {
+  public static boolean preserveInnerJoin(RelTraitSet relTraitSet) {
+    RelTrait relTrait = relTraitSet.getTrait(InnerJoinTraitDef.instance);
+    return relTrait != null && relTrait instanceof InnerJoinTrait
+        && ((InnerJoinTrait) relTrait).isPreserveInnerJoin();
+  }
 
-    private RelNode inputRel;
+  /**
+   * RexVisitor to collect all the fields used in a Rex Expression.
+   */
+  private static class InputRefCollector extends RexVisitorImpl<Void> {
+    Set<Integer> refs = new HashSet<>();
 
-    protected AnalyticalFunctionFinder(boolean deep, RelNode input) {
-      super(deep);
-      this.inputRel = input;
+    protected InputRefCollector() {
+      super(true);
     }
 
     @Override public Void visitInputRef(RexInputRef inputRef) {
-      int index = inputRef.getIndex();
-      if (isOperandAnalyticalInFollowingProject(inputRel, index)) {
-        throw Util.FoundOne.NULL;
-      }
+      refs.add(inputRef.getIndex());
       return null;
     }
 
-    @Override public Void visitOver(RexOver over) {
-      throw Util.FoundOne.NULL;
+    public Set<Integer> getRefs() {
+      return ImmutableSet.copyOf(refs);
     }
-
-    @Override public Void visitCall(RexCall rexCall) {
-      for (RexNode node : rexCall.getOperands()) {
-        node.accept(this);
-      }
-      return null;
-    }
-
   }
 
+  public static boolean findInputRef(RexNode node, List<Integer> refsToFind) {
+    try {
+      RexVisitor<Void> visitor =
+          new RexVisitorImpl<Void>(true) {
+            @Override public Void visitInputRef(RexInputRef inputRef) {
+              if (refsToFind.contains(inputRef.getIndex())) {
+                throw new Util.FoundOne(inputRef);
+              }
+              return null;
+            }
+          };
+      node.accept(visitor);
+      return false;
+    } catch (Util.FoundOne e) {
+      Util.swallow(e, null);
+      return true;
+    }
+  }
 }
