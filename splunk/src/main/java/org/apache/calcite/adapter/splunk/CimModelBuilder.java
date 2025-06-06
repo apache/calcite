@@ -244,7 +244,35 @@ public class CimModelBuilder {
     fieldMapping.put("is_Privileged_Authentication", "Authentication.is_Privileged_Authentication");
     fieldMapping.put("is_not_Privileged_Authentication", "Authentication.is_not_Privileged_Authentication");
 
-    String searchString = "| datamodel Authentication Authentication search";
+    // Enhanced search string that extracts CIM fields and makes them available alongside raw data
+    String searchString = "| datamodel Authentication Authentication search " +
+        "| eval reason=Authentication.reason, action=Authentication.action, app=Authentication.app, " +
+        "authentication_method=Authentication.authentication_method, authentication_service=Authentication.authentication_service, " +
+        "dest=Authentication.dest, dest_bunit=Authentication.dest_bunit, dest_category=Authentication.dest_category, " +
+        "dest_nt_domain=Authentication.dest_nt_domain, dest_priority=Authentication.dest_priority, " +
+        "duration=Authentication.duration, response_time=Authentication.response_time, " +
+        "session_id=Authentication.session_id, signature=Authentication.signature, signature_id=Authentication.signature_id, " +
+        "src=Authentication.src, src_bunit=Authentication.src_bunit, src_category=Authentication.src_category, " +
+        "src_nt_domain=Authentication.src_nt_domain, src_priority=Authentication.src_priority, " +
+        "src_user=Authentication.src_user, src_user_bunit=Authentication.src_user_bunit, " +
+        "src_user_category=Authentication.src_user_category, src_user_id=Authentication.src_user_id, " +
+        "src_user_priority=Authentication.src_user_priority, src_user_role=Authentication.src_user_role, " +
+        "src_user_type=Authentication.src_user_type, tag=Authentication.tag, user=Authentication.user, " +
+        "user_agent=Authentication.user_agent, user_bunit=Authentication.user_bunit, " +
+        "user_category=Authentication.user_category, user_id=Authentication.user_id, " +
+        "user_priority=Authentication.user_priority, user_role=Authentication.user_role, " +
+        "user_type=Authentication.user_type, vendor_account=Authentication.vendor_account, " +
+        "is_Failed_Authentication=Authentication.is_Failed_Authentication, " +
+        "is_not_Failed_Authentication=Authentication.is_not_Failed_Authentication, " +
+        "is_Successful_Authentication=Authentication.is_Successful_Authentication, " +
+        "is_not_Successful_Authentication=Authentication.is_not_Successful_Authentication, " +
+        "is_Default_Authentication=Authentication.is_Default_Authentication, " +
+        "is_not_Default_Authentication=Authentication.is_not_Default_Authentication, " +
+        "is_Insecure_Authentication=Authentication.is_Insecure_Authentication, " +
+        "is_not_Insecure_Authentication=Authentication.is_not_Insecure_Authentication, " +
+        "is_Privileged_Authentication=Authentication.is_Privileged_Authentication, " +
+        "is_not_Privileged_Authentication=Authentication.is_not_Privileged_Authentication " +
+        "| fields *";
 
     return new CimSchemaResult(schema, fieldMapping, searchString);
   }
@@ -309,7 +337,15 @@ public class CimModelBuilder {
     fieldMapping.put("transport", "NetworkTraffic.transport");
     fieldMapping.put("vlan", "NetworkTraffic.vlan");
 
-    String searchString = "| datamodel Network_Traffic All_Traffic search";
+    String searchString = "| datamodel Network_Traffic All_Traffic search " +
+        "| eval action=NetworkTraffic.action, bytes=NetworkTraffic.bytes, bytes_in=NetworkTraffic.bytes_in, " +
+        "bytes_out=NetworkTraffic.bytes_out, dest=NetworkTraffic.dest, dest_ip=NetworkTraffic.dest_ip, " +
+        "dest_mac=NetworkTraffic.dest_mac, dest_port=NetworkTraffic.dest_port, direction=NetworkTraffic.direction, " +
+        "duration=NetworkTraffic.duration, packets=NetworkTraffic.packets, packets_in=NetworkTraffic.packets_in, " +
+        "packets_out=NetworkTraffic.packets_out, protocol=NetworkTraffic.protocol, src=NetworkTraffic.src, " +
+        "src_ip=NetworkTraffic.src_ip, src_mac=NetworkTraffic.src_mac, src_port=NetworkTraffic.src_port, " +
+        "transport=NetworkTraffic.transport, vlan=NetworkTraffic.vlan " +
+        "| fields *";
 
     return new CimSchemaResult(schema, fieldMapping, searchString);
   }
@@ -380,7 +416,15 @@ public class CimModelBuilder {
     fieldMapping.put("url_domain", "Web.url_domain");
     fieldMapping.put("user", "Web.user");
 
-    String searchString = "| datamodel Web Web search";
+    String searchString = "| datamodel Web Web search " +
+        "| eval action=Web.action, app=Web.app, bytes=Web.bytes, bytes_in=Web.bytes_in, " +
+        "bytes_out=Web.bytes_out, cookie=Web.cookie, dest=Web.dest, dest_ip=Web.dest_ip, " +
+        "dest_port=Web.dest_port, http_content_type=Web.http_content_type, http_method=Web.http_method, " +
+        "http_referrer=Web.http_referrer, http_user_agent=Web.http_user_agent, src=Web.src, " +
+        "src_ip=Web.src_ip, src_port=Web.src_port, status=Web.status, uri=Web.uri, " +
+        "uri_path=Web.uri_path, uri_query=Web.uri_query, url=Web.url, url_domain=Web.url_domain, " +
+        "user=Web.user " +
+        "| fields *";
 
     return new CimSchemaResult(schema, fieldMapping, searchString);
   }
