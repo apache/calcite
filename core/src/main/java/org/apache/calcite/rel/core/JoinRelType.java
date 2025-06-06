@@ -91,21 +91,7 @@ public enum JoinRelType {
   /**
    * The left version of an ASOF join, where each row from the left table is part of the output.
    */
-  LEFT_ASOF,
-
-  /**
-   * Left semi join.
-   *
-   * <p>Not used by Calcite; only in Babel's Hive dialect.
-   */
-  LEFT_SEMI_JOIN,
-
-  /**
-   * Left anti join.
-   *
-   * <p>Not used by Calcite; only in Babel's Spark dialect.
-   */
-  LEFT_ANTI_JOIN;
+  LEFT_ASOF;
 
   /** Lower-case name. */
   public final String lowerName = name().toLowerCase(Locale.ROOT);
