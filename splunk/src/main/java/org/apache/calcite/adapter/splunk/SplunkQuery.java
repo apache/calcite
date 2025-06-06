@@ -133,23 +133,11 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
       // Keep the mapped fields for CIM extraction, but add additional raw fields
       mappedFieldList = new ArrayList<>(mappedFieldList);
       mappedFieldList.remove("_extra"); // Remove _extra from the field list
-      // Add common extra fields that aren't in CIM
-//      mappedFieldList.add("_raw");
-//      mappedFieldList.add("_serial");
-//      mappedFieldList.add("_time");
-//      enhancedFieldList.add("_indextime");
-//      enhancedFieldList.add("_kv");
-//      enhancedFieldList.add("_meta");
-//      enhancedFieldList.add("_sourcetype");
-//      enhancedFieldList.add("splunk_server");
-//      enhancedFieldList.add("punct");
       mappedFieldList.add("*");
-      // Don't add "*" as it might interfere with CIM field extraction
     }
 
     String fields = StringUtils.encodeList(mappedFieldList, ',').toString();
     args.put("field_list", fields);
-
     args.put("earliest_time", earliest);
     args.put("latest_time", latest);
     return args;
