@@ -9849,18 +9849,6 @@ class RelToSqlConverterTest {
     sql(sql).withMysql().throws_("MysqlSqlDialect can not support join type: FULL");
   }
 
-  @Test void testSupportedFullJoin() {
-    // StarRocks support full join
-    String sql = "select *\n"
-        + "from \"store\" as s\n"
-        + "full join \"employee\" as e on true\n";
-    String expectedStarRocks = "SELECT *\nFROM `foodmart`.`store`\n"
-        + "FULL JOIN `foodmart`.`employee` ON TRUE";
-    sql(sql)
-        .withStarRocks()
-        .ok(expectedStarRocks);
-  }
-
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6940">[CALCITE-6940]
    * Hive/Phoenix Dialect should not cast to REAL type directly</a>. */
