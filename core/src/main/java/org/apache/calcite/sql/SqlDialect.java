@@ -451,10 +451,14 @@ public class SqlDialect {
     switch (call.getKind()) {
     case JOIN:
       SqlJoin join = (SqlJoin) call;
-      JoinRelType joinRelType = SqlToRelConverter.convertJoinType(join.getJoinType());
-      if (!supportsJoinType(joinRelType)) {
-        throw new RuntimeException(this.getClass().getSimpleName()
-            + " can not support join type: " + join.getJoinType());
+      try {
+        JoinRelType joinRelType = SqlToRelConverter.convertJoinType(join.getJoinType());
+        if (!supportsJoinType(joinRelType)) {
+          throw new RuntimeException(this.getClass().getSimpleName()
+              + " can not support join type: " + join.getJoinType());
+        }
+      } catch (AssertionError ae) {
+        // Do nothing
       }
       operator.unparse(writer, call, leftPrec, rightPrec);
       break;

@@ -9841,14 +9841,19 @@ class RelToSqlConverterTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7050">[CALCITE-7050]
    * Invalid unparse for FULL JOIN in MySQLDialect</a>. */
-  @Test void testFullJoin() {
+  @Test void testUnsupportedFullJoin() {
     // MySQL not support full join
     String sql = "select *\n"
         + "from \"store\" as s\n"
         + "full join \"employee\" as e on true\n";
     sql(sql).withMysql().throws_("MysqlSqlDialect can not support join type: FULL");
+  }
 
+  @Test void testSupportedFullJoin() {
     // StarRocks support full join
+    String sql = "select *\n"
+        + "from \"store\" as s\n"
+        + "full join \"employee\" as e on true\n";
     String expectedStarRocks = "SELECT *\nFROM `foodmart`.`store`\n"
         + "FULL JOIN `foodmart`.`employee` ON TRUE";
     sql(sql)
