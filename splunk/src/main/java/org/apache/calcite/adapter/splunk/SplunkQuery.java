@@ -21,6 +21,7 @@ import org.apache.calcite.adapter.splunk.util.StringUtils;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -191,7 +192,7 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
       // Print schema info once
       System.out.println("=== Schema Info ===");
       for (int i = 0; i < schema.getFieldList().size(); i++) {
-        var field = schema.getFieldList().get(i);
+        RelDataTypeField field = schema.getFieldList().get(i);
         System.out.println("Field[" + i + "]: " + field.getName() + " -> " + field.getType().getSqlTypeName());
       }
       System.out.println("===================");
