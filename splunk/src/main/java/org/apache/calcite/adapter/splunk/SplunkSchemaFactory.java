@@ -30,6 +30,8 @@ import org.apache.calcite.schema.Table;
 import com.google.common.collect.ImmutableMap;
 
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +42,10 @@ import java.util.Map;
  * 1. Single CIM model: {"cim_model": "authentication"} -> creates table named after the model
  * 2. Multiple CIM models: {"cim_models": ["auth", "network"]} -> creates multiple named tables
  * 3. Custom tables: Uses standard Calcite table definitions
+ *
+ * Connection parameters can be specified in two ways:
+ * 1. Complete URL: {"url": "https://host:port"}
+ * 2. Individual components: {"host": "hostname", "port": 8089, "protocol": "https"}
  */
 public class SplunkSchemaFactory implements SchemaFactory {
 
@@ -115,14 +121,10 @@ public class SplunkSchemaFactory implements SchemaFactory {
 
   /**
    * Creates a Splunk connection from the operand parameters.
+   * Supports both complete URL and individual component specification.
    */
   private SplunkConnection createConnection(Map<String, Object> operand) {
-    String host = (String) operand.get("host");
-    Integer port = (Integer) operand.getOrDefault("port", 8089);
-    String protocol = (String) operand.getOrDefault("protocol", "https");
-
-    // Build the URL for SplunkConnectionImpl
-    String url = String.format("%s://%s:%d", protocol, host, port);
+    String url = buildSplunkUrl(operand);
 
     try {
       // Check for token authentication first
@@ -139,5 +141,36 @@ public class SplunkSchemaFactory implements SchemaFactory {
     } catch (MalformedURLException e) {
       throw new RuntimeException("Invalid Splunk URL: " + url, e);
     }
+  }
+
+  /**
+   * Builds the Splunk URL from operand parameters.
+   * Supports two approaches:
+   * 1. Direct URL: {"url": "https://host:port"}
+   * 2. Components: {"host": "hostname", "port": 8089, "protocol": "https"}
+   */
+  private String buildSplunkUrl(Map<String, Object> operand) {
+    // Check if a complete URL is provided
+    String url = (String) operand.get("url");
+    if (url != null && !url.trim().isEmpty()) {
+      // Validate the URL format using URI (modern approach)
+      try {
+        URI.create(url).toURL(); // Validates URI format and converts to URL
+        return url;
+      } catch (IllegalArgumentException | MalformedURLException e) {
+        throw new RuntimeException("Invalid URL format: " + url, e);
+      }
+    }
+
+    // Build URL from individual components
+    String host = (String) operand.get("host");
+    if (host == null || host.trim().isEmpty()) {
+      throw new RuntimeException("Either 'url' or 'host' parameter must be provided");
+}
+
+    Integer port = (Integer) operand.getOrDefault("port", 8089);
+    String protocol = (String) operand.getOrDefault("protocol", "https");
+
+    return String.format("%s://%s:%d", protocol, host, port);
   }
 }
