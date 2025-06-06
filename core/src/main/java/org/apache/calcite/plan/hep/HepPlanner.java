@@ -993,6 +993,9 @@ public class HepPlanner extends AbstractRelOptPlanner {
         digestIter.remove();
       }
     }
+
+    // Clean up metadata cache too.
+    sweepSet.forEach(this::clearCache);
   }
 
   private void assertNoCycles() {
