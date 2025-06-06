@@ -14507,7 +14507,7 @@ LogicalProject(QX=[CAST(CASE(=($0, 1), 1, 2)):INTEGER])
   <TestCase name="testReduceCaseWhenWithCast">
     <Resource name="planBefore">
       <![CDATA[
-LogicalProject($f0=[CAST(CASE(=(MOD($0, 2:BIGINT), 1), <($0, 2:BIGINT), =(MOD($0, 3:BIGINT), 2), <($0, 1:BIGINT), <($0, 3:BIGINT))):BOOLEAN])
+LogicalProject($f0=[CAST(OR(AND(=(MOD($0, 2:BIGINT), 1), <($0, 2:BIGINT)), AND(=(MOD($0, 3:BIGINT), 2), <($0, 1:BIGINT), <>(MOD($0, 2:BIGINT), 1)), AND(<($0, 3:BIGINT), <>(MOD($0, 2:BIGINT), 1), <>(MOD($0, 3:BIGINT), 2)))):BOOLEAN])
   LogicalValues(tuples=[[{ 1, 2 }, { 2, 1 }]])
 ]]>
     </Resource>

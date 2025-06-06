@@ -1037,6 +1037,19 @@ public abstract class SqlOperator {
   }
 
   /**
+   * Returns whether this is a safe operator that doesn't throw any exception.
+   *
+   * <p> If an operator is a safe operator, we will check its parameters to determine
+   * if the entire expression is safe.
+   *
+   * <p>For example, {@code 1/0 + null} is not safe. Because even though the
+   * {@code SqlStdOperatorTable.PLUS} is safe operator but its operands is not safe.
+   */
+  public Boolean isSafeOperator() {
+    return false;
+  }
+
+  /**
    * Returns whether this operator is monotonic.
    *
    * <p>Default implementation returns {@link SqlMonotonicity#NOT_MONOTONIC}.

@@ -3651,7 +3651,7 @@ select * from "scott".emp where comm in (300, 500, null);
 
 !ok
 
-EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t6):DECIMAL(12, 2)], expr#9=[Sarg[300.00:DECIMAL(12, 2), 500.00:DECIMAL(12, 2)]:DECIMAL(12, 2)], expr#10=[SEARCH($t8, $t9)], proj#0..7=[{exprs}], $condition=[$t10])
+EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t6):DECIMAL(12, 2)], expr#9=[Sarg[300.00:DECIMAL(12, 2), 500.00:DECIMAL(12, 2)]:DECIMAL(12, 2)], expr#10=[SEARCH($t8, $t9)], expr#11=[null:DECIMAL(12, 2)], expr#12=[=($t8, $t11)], expr#13=[OR($t10, $t12)], proj#0..7=[{exprs}], $condition=[$t13])
   EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
@@ -3679,7 +3679,7 @@ select *, comm in (300, 500, null) as i from "scott".emp;
 
 !ok
 
-EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t6):DECIMAL(12, 2)], expr#9=[Sarg[300.00:DECIMAL(12, 2), 500.00:DECIMAL(12, 2)]:DECIMAL(12, 2)], expr#10=[SEARCH($t8, $t9)], expr#11=[null:BOOLEAN], expr#12=[OR($t10, $t11)], proj#0..7=[{exprs}], I=[$t12])
+EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t6):DECIMAL(12, 2)], expr#9=[Sarg[300.00:DECIMAL(12, 2), 500.00:DECIMAL(12, 2)]:DECIMAL(12, 2)], expr#10=[SEARCH($t8, $t9)], expr#11=[null:DECIMAL(12, 2)], expr#12=[=($t8, $t11)], expr#13=[OR($t10, $t12)], proj#0..7=[{exprs}], I=[$t13])
   EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
@@ -3720,7 +3720,7 @@ select *, comm not in (300, 500, null) as i from "scott".emp;
 
 !ok
 
-EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t6):DECIMAL(12, 2)], expr#9=[Sarg[(-∞..300.00:DECIMAL(12, 2)), (300.00:DECIMAL(12, 2)..500.00:DECIMAL(12, 2)), (500.00:DECIMAL(12, 2)..+∞)]:DECIMAL(12, 2)], expr#10=[SEARCH($t8, $t9)], expr#11=[null:BOOLEAN], expr#12=[AND($t10, $t11)], proj#0..7=[{exprs}], I=[$t12])
+EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t6):DECIMAL(12, 2)], expr#9=[Sarg[(-∞..300.00:DECIMAL(12, 2)), (300.00:DECIMAL(12, 2)..500.00:DECIMAL(12, 2)), (500.00:DECIMAL(12, 2)..+∞)]:DECIMAL(12, 2)], expr#10=[SEARCH($t8, $t9)], expr#11=[null:DECIMAL(12, 2)], expr#12=[<>($t8, $t11)], expr#13=[AND($t10, $t12)], proj#0..7=[{exprs}], I=[$t13])
   EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
@@ -4842,6 +4842,29 @@ EnumerableValues(tuples=[[]])
 
 # Same as previous; but is Scalar sub-query
 select deptno, deptno > some(select deptno from dept where false) from emp;
++--------+--------+
+| DEPTNO | EXPR$1 |
++--------+--------+
+|     10 | false  |
+|     20 | false  |
+|     30 | false  |
+|     10 | false  |
+|     30 | false  |
+|     50 | false  |
+|     50 | false  |
+|     60 | false  |
+|        | false  |
++--------+--------+
+(9 rows)
+
+!ok
+
+EnumerableCalc(expr#0=[{inputs}], expr#1=[false], expr#2=[CAST($t1):BOOLEAN], DEPTNO=[$t0], EXPR$1=[$t2])
+  EnumerableValues(tuples=[[{ 10 }, { 10 }, { 20 }, { 30 }, { 30 }, { 50 }, { 50 }, { 60 }, { null }]])
+!plan
+
+# Same as previous; but LHS is NULL
+select deptno, null > some(select deptno from dept where false) from emp;
 +--------+--------+
 | DEPTNO | EXPR$1 |
 +--------+--------+
