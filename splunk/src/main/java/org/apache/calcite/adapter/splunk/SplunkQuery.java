@@ -190,12 +190,12 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
       this.schema = schema;
 
       // Print schema info once
-      System.out.println("=== Schema Info ===");
-      for (int i = 0; i < schema.getFieldList().size(); i++) {
-        RelDataTypeField field = schema.getFieldList().get(i);
-        System.out.println("Field[" + i + "]: " + field.getName() + " -> " + field.getType().getSqlTypeName());
-      }
-      System.out.println("===================");
+//      System.out.println("=== Schema Info ===");
+//      for (int i = 0; i < schema.getFieldList().size(); i++) {
+//        RelDataTypeField field = schema.getFieldList().get(i);
+//        System.out.println("Field[" + i + "]: " + field.getName() + " -> " + field.getType().getSqlTypeName());
+//      }
+//      System.out.println("===================");
     }
 
     @Override
@@ -207,23 +207,23 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
         Object[] inputRow = (Object[]) current;
 
         // Only debug first row to avoid spam
-        if (rowCount == 1) {
-          System.out.println("=== First Row Debug ===");
-          for (int i = 0; i < Math.min(inputRow.length, 3); i++) { // Only first 3 fields
-            Object value = inputRow[i];
-            System.out.println("Input[" + i + "]: " + value + " (" + (value != null ? value.getClass().getSimpleName() : "null") + ")");
-          }
-        }
+//        if (rowCount == 1) {
+//          System.out.println("=== First Row Debug ===");
+//          for (int i = 0; i < Math.min(inputRow.length, 3); i++) { // Only first 3 fields
+//            Object value = inputRow[i];
+//            System.out.println("Input[" + i + "]: " + value + " (" + (value != null ? value.getClass().getSimpleName() : "null") + ")");
+//          }
+//        }
 
         Object[] convertedRow = SplunkDataConverter.convertRow(inputRow, schema);
 
-        if (rowCount == 1) {
-          for (int i = 0; i < Math.min(convertedRow.length, 3); i++) { // Only first 3 fields
-            Object value = convertedRow[i];
-            System.out.println("Output[" + i + "]: " + value + " (" + (value != null ? value.getClass().getSimpleName() : "null") + ")");
-          }
-          System.out.println("====================");
-        }
+//        if (rowCount == 1) {
+//          for (int i = 0; i < Math.min(convertedRow.length, 3); i++) { // Only first 3 fields
+//            Object value = convertedRow[i];
+//            System.out.println("Output[" + i + "]: " + value + " (" + (value != null ? value.getClass().getSimpleName() : "null") + ")");
+//          }
+//          System.out.println("====================");
+//        }
 
         return convertedRow;
       }
