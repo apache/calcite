@@ -67,6 +67,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
   final URL url;
   final String username;
   final String password;
+  final String token;
   String sessionKey = "";
   final Map<String, String> requestHeaders = new HashMap<>();
 
@@ -79,7 +80,27 @@ public class SplunkConnectionImpl implements SplunkConnection {
     this.url      = Objects.requireNonNull(url, "url cannot be null");
     this.username = Objects.requireNonNull(username, "username cannot be null");
     this.password = Objects.requireNonNull(password, "password cannot be null");
+    this.token    = null;
     connect();
+  }
+
+  /**
+   * Constructor for token-based authentication.
+   */
+  public SplunkConnectionImpl(String url, String token) throws MalformedURLException {
+    this(URI.create(url).toURL(), token);
+  }
+
+  /**
+   * Constructor for token-based authentication.
+   */
+  public SplunkConnectionImpl(URL url, String token) {
+    this.url      = Objects.requireNonNull(url, "url cannot be null");
+    this.token    = Objects.requireNonNull(token, "token cannot be null");
+    this.username = null;
+    this.password = null;
+    // For token auth, set authorization header directly and skip connect()
+    requestHeaders.put("Authorization", "Bearer " + token);
   }
 
   private static void close(Closeable c) {
@@ -201,7 +222,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
       // wait at most 30 minutes for first result
       InputStream in =
           post(searchUrl, data, requestHeaders, 10000, 1800000);
-        return new SplunkResultEnumerator(in, wantedFields, explicitFields);
+      return new SplunkResultEnumerator(in, wantedFields, explicitFields);
     } catch (Exception e) {
       StringWriter sw = new StringWriter();
       e.printStackTrace(new PrintWriter(sw));
@@ -254,13 +275,13 @@ public class SplunkConnectionImpl implements SplunkConnection {
         "The following <arg-name> are valid",
         "search        - required, search string to execute",
         "field_list    - "
-          + "required, list of fields to request, comma delimited",
+            + "required, list of fields to request, comma delimited",
         "uri           - "
-          + "uri to splunk's mgmt port, default: https://localhost:8089",
+            + "uri to splunk's mgmt port, default: https://localhost:8089",
         "username      - "
-          + "username to use for authentication, default: admin",
+            + "username to use for authentication, default: admin",
         "password      - "
-          + "password to use for authentication, default: changeme",
+            + "password to use for authentication, default: changeme",
         "earliest_time - earliest time for the search, default: -24h",
         "latest_time   - latest time for the search, default: now",
         "-print        - whether to print results or just the summary"

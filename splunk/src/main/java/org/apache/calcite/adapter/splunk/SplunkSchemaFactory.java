@@ -119,15 +119,23 @@ public class SplunkSchemaFactory implements SchemaFactory {
   private SplunkConnection createConnection(Map<String, Object> operand) {
     String host = (String) operand.get("host");
     Integer port = (Integer) operand.getOrDefault("port", 8089);
-    String username = (String) operand.get("username");
-    String password = (String) operand.get("password");
     String protocol = (String) operand.getOrDefault("protocol", "https");
 
     // Build the URL for SplunkConnectionImpl
     String url = String.format("%s://%s:%d", protocol, host, port);
 
     try {
+      // Check for token authentication first
+      String token = (String) operand.get("token");
+      if (token != null && !token.trim().isEmpty()) {
+        return new SplunkConnectionImpl(url, token);
+      }
+
+      // Fall back to username/password authentication
+      String username = (String) operand.get("username");
+      String password = (String) operand.get("password");
       return new SplunkConnectionImpl(url, username, password);
+
     } catch (MalformedURLException e) {
       throw new RuntimeException("Invalid Splunk URL: " + url, e);
     }
