@@ -87,9 +87,11 @@ public class SplunkTableScan
   @Override public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
         .item("table", table.getQualifiedName())
+        .item("search", search)
         .item("earliest", earliest)
         .item("latest", latest)
-        .item("fieldList", fieldList);
+        .item("fieldList", fieldList)
+        .item("fieldMapping", splunkTable.getFieldMapping());
   }
 
   @Override public void register(RelOptPlanner planner) {
@@ -135,6 +137,20 @@ public class SplunkTableScan
     return fieldList;
   }
 
+  /**
+   * Creates a new SplunkTableScan with updated search parameters.
+   * This is used by push-down rules to modify the search.
+   */
+  public SplunkTableScan withSearchParameters(String newSearch, String newEarliest,
+      String newLatest, List<String> newFieldList) {
+    if (search.equals(newSearch) && earliest.equals(newEarliest) &&
+        latest.equals(newLatest) && fieldList.equals(newFieldList)) {
+      return this;
+    }
+    return new SplunkTableScan(getCluster(), table, splunkTable,
+        newSearch, newEarliest, newLatest, newFieldList);
+  }
+
   private static final Method METHOD =
       Types.lookupMethod(
           SplunkTable.SplunkTableQueryable.class,
@@ -145,11 +161,16 @@ public class SplunkTableScan
           List.class);
 
   @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+    // Map field list to Splunk field names for the query
+    List<String> mappedFieldList = splunkTable.mapSchemaFieldsToSplunkFields(fieldList);
+
     Map<String, Object> map = ImmutableMap.<String, Object>builder()
         .put("search", search)
         .put("earliest", Util.first(earliest, ""))
         .put("latest", Util.first(latest, ""))
-        .put("fieldList", fieldList)
+        .put("fieldList", mappedFieldList)
+        .put("schemaFieldList", fieldList)
+        .put("fieldMapping", splunkTable.getFieldMapping())
         .build();
     if (CalciteSystemProperty.DEBUG.value()) {
       System.out.println("Splunk: " + map);
@@ -171,7 +192,7 @@ public class SplunkTableScan
                 Expressions.constant(search),
                 Expressions.constant(earliest),
                 Expressions.constant(latest),
-                constantStringList(fieldList))).toBlock());
+                constantStringList(mappedFieldList))).toBlock());
   }
 
   private static Expression constantStringList(final List<String> strings) {

@@ -20,54 +20,96 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Builder for Splunk Common Information Model (CIM) schemas.
  * Provides predefined field schemas for common Splunk CIM data models,
  * including all standard fields plus an "_extra" field for unmapped data.
+ * Also generates field mappings between schema field names and Splunk CIM field names.
  */
 public class CimModelBuilder {
+
+  /**
+   * Result of building a CIM schema, containing both the schema and field mapping.
+   */
+  public static class CimSchemaResult {
+    private final RelDataType schema;
+    private final Map<String, String> fieldMapping;
+    private final String searchString;
+
+    public CimSchemaResult(RelDataType schema, Map<String, String> fieldMapping, String searchString) {
+      this.schema = schema;
+      this.fieldMapping = fieldMapping;
+      this.searchString = searchString;
+    }
+
+    public RelDataType getSchema() {
+      return schema;
+    }
+
+    public Map<String, String> getFieldMapping() {
+      return fieldMapping;
+    }
+
+    public String getSearchString() {
+      return searchString;
+    }
+  }
 
   /**
    * Builds a CIM schema for the specified model type.
    *
    * @param typeFactory RelDataTypeFactory for creating field types
    * @param cimModel CIM model name (e.g., "authentication", "network_traffic")
+   * @return CimSchemaResult containing the complete schema, field mapping, and search string
+   */
+  public static CimSchemaResult buildCimSchemaWithMapping(RelDataTypeFactory typeFactory, String cimModel) {
+    switch (cimModel.toLowerCase()) {
+    case "authentication":
+      return buildAuthenticationSchemaWithMapping(typeFactory);
+    case "network_traffic":
+    case "network":
+      return buildNetworkTrafficSchemaWithMapping(typeFactory);
+    case "web":
+      return buildWebSchemaWithMapping(typeFactory);
+    case "malware":
+      return buildMalwareSchemaWithMapping(typeFactory);
+    case "email":
+      return buildEmailSchemaWithMapping(typeFactory);
+    case "vulnerability":
+      return buildVulnerabilitySchemaWithMapping(typeFactory);
+    case "intrusion_detection":
+    case "ids":
+      return buildIntrusionDetectionSchemaWithMapping(typeFactory);
+    case "change":
+      return buildChangeSchemaWithMapping(typeFactory);
+    case "inventory":
+      return buildInventorySchemaWithMapping(typeFactory);
+    case "performance":
+      return buildPerformanceSchemaWithMapping(typeFactory);
+    default:
+      return buildBaseSchemaWithMapping(typeFactory);
+    }
+  }
+
+  /**
+   * Builds a CIM schema for the specified model type (backward compatibility).
+   *
+   * @param typeFactory RelDataTypeFactory for creating field types
+   * @param cimModel CIM model name (e.g., "authentication", "network_traffic")
    * @return RelDataType representing the complete schema
    */
   public static RelDataType buildCimSchema(RelDataTypeFactory typeFactory, String cimModel) {
-    switch (cimModel.toLowerCase()) {
-    case "authentication":
-      return buildAuthenticationSchema(typeFactory);
-    case "network_traffic":
-    case "network":
-      return buildNetworkTrafficSchema(typeFactory);
-    case "web":
-      return buildWebSchema(typeFactory);
-    case "malware":
-      return buildMalwareSchema(typeFactory);
-    case "email":
-      return buildEmailSchema(typeFactory);
-    case "vulnerability":
-      return buildVulnerabilitySchema(typeFactory);
-    case "intrusion_detection":
-    case "ids":
-      return buildIntrusionDetectionSchema(typeFactory);
-    case "change":
-      return buildChangeSchema(typeFactory);
-    case "inventory":
-      return buildInventorySchema(typeFactory);
-    case "performance":
-      return buildPerformanceSchema(typeFactory);
-    default:
-      return buildBaseSchema(typeFactory);
-    }
+    return buildCimSchemaWithMapping(typeFactory, cimModel).getSchema();
   }
 
   /**
    * Base schema with common fields present in most CIM models.
    */
-  private static RelDataType buildBaseSchema(RelDataTypeFactory typeFactory) {
-    return typeFactory.builder()
+  private static CimSchemaResult buildBaseSchemaWithMapping(RelDataTypeFactory typeFactory) {
+    RelDataType schema = typeFactory.builder()
         .add("_time", typeFactory.createSqlType(SqlTypeName.TIMESTAMP))
         .add("host", typeFactory.createSqlType(SqlTypeName.VARCHAR))
         .add("source", typeFactory.createSqlType(SqlTypeName.VARCHAR))
@@ -76,13 +118,18 @@ public class CimModelBuilder {
         .add("_raw", typeFactory.createSqlType(SqlTypeName.VARCHAR))
         .add("_extra", typeFactory.createSqlType(SqlTypeName.VARCHAR))
         .build();
+
+    Map<String, String> fieldMapping = new HashMap<>();
+    // Base fields typically don't need mapping as they're standard Splunk fields
+
+    return new CimSchemaResult(schema, fieldMapping, "search");
   }
 
   /**
-   * Authentication CIM model schema.
+   * Authentication CIM model schema with field mapping.
    */
-  private static RelDataType buildAuthenticationSchema(RelDataTypeFactory typeFactory) {
-    return typeFactory.builder()
+  private static CimSchemaResult buildAuthenticationSchemaWithMapping(RelDataTypeFactory typeFactory) {
+    RelDataType schema = typeFactory.builder()
         // Base fields
         .add("_time", typeFactory.createSqlType(SqlTypeName.TIMESTAMP))
         .add("host", typeFactory.createSqlType(SqlTypeName.VARCHAR))
@@ -90,32 +137,123 @@ public class CimModelBuilder {
         .add("sourcetype", typeFactory.createSqlType(SqlTypeName.VARCHAR))
         .add("index", typeFactory.createSqlType(SqlTypeName.VARCHAR))
 
-        // Authentication-specific fields
+        // Authentication-specific fields (schema names without prefix)
         .add("action", typeFactory.createSqlType(SqlTypeName.VARCHAR))
         .add("app", typeFactory.createSqlType(SqlTypeName.VARCHAR))
         .add("authentication_method", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("authentication_service", typeFactory.createSqlType(SqlTypeName.VARCHAR))
         .add("dest", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("dest_bunit", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("dest_category", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("dest_nt_domain", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("dest_priority", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("duration", typeFactory.createSqlType(SqlTypeName.INTEGER))
+        .add("reason", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("response_time", typeFactory.createSqlType(SqlTypeName.INTEGER))
+        .add("session_id", typeFactory.createSqlType(SqlTypeName.VARCHAR))
         .add("signature", typeFactory.createSqlType(SqlTypeName.VARCHAR))
         .add("signature_id", typeFactory.createSqlType(SqlTypeName.VARCHAR))
         .add("src", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("src_bunit", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("src_category", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("src_nt_domain", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("src_priority", typeFactory.createSqlType(SqlTypeName.VARCHAR))
         .add("src_user", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("src_user_bunit", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("src_user_category", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("src_user_id", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("src_user_priority", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("src_user_role", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("src_user_type", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("tag", typeFactory.createSqlType(SqlTypeName.VARCHAR))
         .add("user", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("user_agent", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("user_bunit", typeFactory.createSqlType(SqlTypeName.VARCHAR))
         .add("user_category", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("user_id", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("user_priority", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("user_role", typeFactory.createSqlType(SqlTypeName.VARCHAR))
         .add("user_type", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("result", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("reason", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("duration", typeFactory.createSqlType(SqlTypeName.INTEGER))
+        .add("vendor_account", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+
+        // Status indicators
+        .add("is_Failed_Authentication", typeFactory.createSqlType(SqlTypeName.INTEGER))
+        .add("is_not_Failed_Authentication", typeFactory.createSqlType(SqlTypeName.INTEGER))
+        .add("is_Successful_Authentication", typeFactory.createSqlType(SqlTypeName.INTEGER))
+        .add("is_not_Successful_Authentication", typeFactory.createSqlType(SqlTypeName.INTEGER))
+        .add("is_Default_Authentication", typeFactory.createSqlType(SqlTypeName.INTEGER))
+        .add("is_not_Default_Authentication", typeFactory.createSqlType(SqlTypeName.INTEGER))
+        .add("is_Insecure_Authentication", typeFactory.createSqlType(SqlTypeName.INTEGER))
+        .add("is_not_Insecure_Authentication", typeFactory.createSqlType(SqlTypeName.INTEGER))
+        .add("is_Privileged_Authentication", typeFactory.createSqlType(SqlTypeName.INTEGER))
+        .add("is_not_Privileged_Authentication", typeFactory.createSqlType(SqlTypeName.INTEGER))
 
         // Catch-all field
         .add("_extra", typeFactory.createSqlType(SqlTypeName.VARCHAR))
         .build();
+
+    // Create field mapping from schema names to Splunk CIM field names
+    Map<String, String> fieldMapping = new HashMap<>();
+    fieldMapping.put("action", "Authentication.action");
+    fieldMapping.put("app", "Authentication.app");
+    fieldMapping.put("authentication_method", "Authentication.authentication_method");
+    fieldMapping.put("authentication_service", "Authentication.authentication_service");
+    fieldMapping.put("dest", "Authentication.dest");
+    fieldMapping.put("dest_bunit", "Authentication.dest_bunit");
+    fieldMapping.put("dest_category", "Authentication.dest_category");
+    fieldMapping.put("dest_nt_domain", "Authentication.dest_nt_domain");
+    fieldMapping.put("dest_priority", "Authentication.dest_priority");
+    fieldMapping.put("duration", "Authentication.duration");
+    fieldMapping.put("reason", "Authentication.reason");
+    fieldMapping.put("response_time", "Authentication.response_time");
+    fieldMapping.put("session_id", "Authentication.session_id");
+    fieldMapping.put("signature", "Authentication.signature");
+    fieldMapping.put("signature_id", "Authentication.signature_id");
+    fieldMapping.put("src", "Authentication.src");
+    fieldMapping.put("src_bunit", "Authentication.src_bunit");
+    fieldMapping.put("src_category", "Authentication.src_category");
+    fieldMapping.put("src_nt_domain", "Authentication.src_nt_domain");
+    fieldMapping.put("src_priority", "Authentication.src_priority");
+    fieldMapping.put("src_user", "Authentication.src_user");
+    fieldMapping.put("src_user_bunit", "Authentication.src_user_bunit");
+    fieldMapping.put("src_user_category", "Authentication.src_user_category");
+    fieldMapping.put("src_user_id", "Authentication.src_user_id");
+    fieldMapping.put("src_user_priority", "Authentication.src_user_priority");
+    fieldMapping.put("src_user_role", "Authentication.src_user_role");
+    fieldMapping.put("src_user_type", "Authentication.src_user_type");
+    fieldMapping.put("tag", "Authentication.tag");
+    fieldMapping.put("user", "Authentication.user");
+    fieldMapping.put("user_agent", "Authentication.user_agent");
+    fieldMapping.put("user_bunit", "Authentication.user_bunit");
+    fieldMapping.put("user_category", "Authentication.user_category");
+    fieldMapping.put("user_id", "Authentication.user_id");
+    fieldMapping.put("user_priority", "Authentication.user_priority");
+    fieldMapping.put("user_role", "Authentication.user_role");
+    fieldMapping.put("user_type", "Authentication.user_type");
+    fieldMapping.put("vendor_account", "Authentication.vendor_account");
+
+    // Map status indicators
+    fieldMapping.put("is_Failed_Authentication", "Authentication.is_Failed_Authentication");
+    fieldMapping.put("is_not_Failed_Authentication", "Authentication.is_not_Failed_Authentication");
+    fieldMapping.put("is_Successful_Authentication", "Authentication.is_Successful_Authentication");
+    fieldMapping.put("is_not_Successful_Authentication", "Authentication.is_not_Successful_Authentication");
+    fieldMapping.put("is_Default_Authentication", "Authentication.is_Default_Authentication");
+    fieldMapping.put("is_not_Default_Authentication", "Authentication.is_not_Default_Authentication");
+    fieldMapping.put("is_Insecure_Authentication", "Authentication.is_Insecure_Authentication");
+    fieldMapping.put("is_not_Insecure_Authentication", "Authentication.is_not_Insecure_Authentication");
+    fieldMapping.put("is_Privileged_Authentication", "Authentication.is_Privileged_Authentication");
+    fieldMapping.put("is_not_Privileged_Authentication", "Authentication.is_not_Privileged_Authentication");
+
+    String searchString = "| datamodel Authentication Authentication search";
+
+    return new CimSchemaResult(schema, fieldMapping, searchString);
   }
 
   /**
-   * Network Traffic CIM model schema.
+   * Network Traffic CIM model schema with field mapping.
    */
-  private static RelDataType buildNetworkTrafficSchema(RelDataTypeFactory typeFactory) {
-    return typeFactory.builder()
+  private static CimSchemaResult buildNetworkTrafficSchemaWithMapping(RelDataTypeFactory typeFactory) {
+    RelDataType schema = typeFactory.builder()
         // Base fields
         .add("_time", typeFactory.createSqlType(SqlTypeName.TIMESTAMP))
         .add("host", typeFactory.createSqlType(SqlTypeName.VARCHAR))
@@ -148,13 +286,39 @@ public class CimModelBuilder {
         // Catch-all field
         .add("_extra", typeFactory.createSqlType(SqlTypeName.VARCHAR))
         .build();
+
+    Map<String, String> fieldMapping = new HashMap<>();
+    fieldMapping.put("action", "NetworkTraffic.action");
+    fieldMapping.put("bytes", "NetworkTraffic.bytes");
+    fieldMapping.put("bytes_in", "NetworkTraffic.bytes_in");
+    fieldMapping.put("bytes_out", "NetworkTraffic.bytes_out");
+    fieldMapping.put("dest", "NetworkTraffic.dest");
+    fieldMapping.put("dest_ip", "NetworkTraffic.dest_ip");
+    fieldMapping.put("dest_mac", "NetworkTraffic.dest_mac");
+    fieldMapping.put("dest_port", "NetworkTraffic.dest_port");
+    fieldMapping.put("direction", "NetworkTraffic.direction");
+    fieldMapping.put("duration", "NetworkTraffic.duration");
+    fieldMapping.put("packets", "NetworkTraffic.packets");
+    fieldMapping.put("packets_in", "NetworkTraffic.packets_in");
+    fieldMapping.put("packets_out", "NetworkTraffic.packets_out");
+    fieldMapping.put("protocol", "NetworkTraffic.protocol");
+    fieldMapping.put("src", "NetworkTraffic.src");
+    fieldMapping.put("src_ip", "NetworkTraffic.src_ip");
+    fieldMapping.put("src_mac", "NetworkTraffic.src_mac");
+    fieldMapping.put("src_port", "NetworkTraffic.src_port");
+    fieldMapping.put("transport", "NetworkTraffic.transport");
+    fieldMapping.put("vlan", "NetworkTraffic.vlan");
+
+    String searchString = "| datamodel Network_Traffic All_Traffic search";
+
+    return new CimSchemaResult(schema, fieldMapping, searchString);
   }
 
   /**
-   * Web CIM model schema.
+   * Web CIM model schema with field mapping.
    */
-  private static RelDataType buildWebSchema(RelDataTypeFactory typeFactory) {
-    return typeFactory.builder()
+  private static CimSchemaResult buildWebSchemaWithMapping(RelDataTypeFactory typeFactory) {
+    RelDataType schema = typeFactory.builder()
         // Base fields
         .add("_time", typeFactory.createSqlType(SqlTypeName.TIMESTAMP))
         .add("host", typeFactory.createSqlType(SqlTypeName.VARCHAR))
@@ -190,223 +354,63 @@ public class CimModelBuilder {
         // Catch-all field
         .add("_extra", typeFactory.createSqlType(SqlTypeName.VARCHAR))
         .build();
+
+    Map<String, String> fieldMapping = new HashMap<>();
+    fieldMapping.put("action", "Web.action");
+    fieldMapping.put("app", "Web.app");
+    fieldMapping.put("bytes", "Web.bytes");
+    fieldMapping.put("bytes_in", "Web.bytes_in");
+    fieldMapping.put("bytes_out", "Web.bytes_out");
+    fieldMapping.put("cookie", "Web.cookie");
+    fieldMapping.put("dest", "Web.dest");
+    fieldMapping.put("dest_ip", "Web.dest_ip");
+    fieldMapping.put("dest_port", "Web.dest_port");
+    fieldMapping.put("http_content_type", "Web.http_content_type");
+    fieldMapping.put("http_method", "Web.http_method");
+    fieldMapping.put("http_referrer", "Web.http_referrer");
+    fieldMapping.put("http_user_agent", "Web.http_user_agent");
+    fieldMapping.put("src", "Web.src");
+    fieldMapping.put("src_ip", "Web.src_ip");
+    fieldMapping.put("src_port", "Web.src_port");
+    fieldMapping.put("status", "Web.status");
+    fieldMapping.put("uri", "Web.uri");
+    fieldMapping.put("uri_path", "Web.uri_path");
+    fieldMapping.put("uri_query", "Web.uri_query");
+    fieldMapping.put("url", "Web.url");
+    fieldMapping.put("url_domain", "Web.url_domain");
+    fieldMapping.put("user", "Web.user");
+
+    String searchString = "| datamodel Web Web search";
+
+    return new CimSchemaResult(schema, fieldMapping, searchString);
   }
 
-  /**
-   * Malware CIM model schema.
-   */
-  private static RelDataType buildMalwareSchema(RelDataTypeFactory typeFactory) {
-    return typeFactory.builder()
-        // Base fields
-        .add("_time", typeFactory.createSqlType(SqlTypeName.TIMESTAMP))
-        .add("host", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("source", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("sourcetype", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("index", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-
-        // Malware-specific fields
-        .add("action", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("dest", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("file_create_time", typeFactory.createSqlType(SqlTypeName.TIMESTAMP))
-        .add("file_hash", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("file_modify_time", typeFactory.createSqlType(SqlTypeName.TIMESTAMP))
-        .add("file_name", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("file_path", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("file_size", typeFactory.createSqlType(SqlTypeName.BIGINT))
-        .add("signature", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("signature_id", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("src", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("user", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("vendor_product", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-
-        // Catch-all field
-        .add("_extra", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .build();
+  // Stub implementations for other CIM models - expand as needed
+  private static CimSchemaResult buildMalwareSchemaWithMapping(RelDataTypeFactory typeFactory) {
+    return buildBaseSchemaWithMapping(typeFactory);
   }
 
-  /**
-   * Email CIM model schema.
-   */
-  private static RelDataType buildEmailSchema(RelDataTypeFactory typeFactory) {
-    return typeFactory.builder()
-        // Base fields
-        .add("_time", typeFactory.createSqlType(SqlTypeName.TIMESTAMP))
-        .add("host", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("source", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("sourcetype", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("index", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-
-        // Email-specific fields
-        .add("action", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("delay", typeFactory.createSqlType(SqlTypeName.INTEGER))
-        .add("dest", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("duration", typeFactory.createSqlType(SqlTypeName.INTEGER))
-        .add("message_id", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("recipient", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("recipient_count", typeFactory.createSqlType(SqlTypeName.INTEGER))
-        .add("sender", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("size", typeFactory.createSqlType(SqlTypeName.BIGINT))
-        .add("src", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("src_user", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("subject", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("user", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-
-        // Catch-all field
-        .add("_extra", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .build();
+  private static CimSchemaResult buildEmailSchemaWithMapping(RelDataTypeFactory typeFactory) {
+    return buildBaseSchemaWithMapping(typeFactory);
   }
 
-  /**
-   * Vulnerability CIM model schema.
-   */
-  private static RelDataType buildVulnerabilitySchema(RelDataTypeFactory typeFactory) {
-    return typeFactory.builder()
-        // Base fields
-        .add("_time", typeFactory.createSqlType(SqlTypeName.TIMESTAMP))
-        .add("host", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("source", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("sourcetype", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("index", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-
-        // Vulnerability-specific fields
-        .add("category", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("cve", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("cvss", typeFactory.createSqlType(SqlTypeName.DOUBLE))
-        .add("dest", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("dest_ip", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("severity", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("signature", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("signature_id", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("src", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("user", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("vendor_product", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-
-        // Catch-all field
-        .add("_extra", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .build();
+  private static CimSchemaResult buildVulnerabilitySchemaWithMapping(RelDataTypeFactory typeFactory) {
+    return buildBaseSchemaWithMapping(typeFactory);
   }
 
-  /**
-   * Intrusion Detection CIM model schema.
-   */
-  private static RelDataType buildIntrusionDetectionSchema(RelDataTypeFactory typeFactory) {
-    return typeFactory.builder()
-        // Base fields
-        .add("_time", typeFactory.createSqlType(SqlTypeName.TIMESTAMP))
-        .add("host", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("source", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("sourcetype", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("index", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-
-        // IDS-specific fields
-        .add("action", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("category", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("dest", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("dest_ip", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("dest_port", typeFactory.createSqlType(SqlTypeName.INTEGER))
-        .add("dvc", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("ids_type", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("product", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("severity", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("signature", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("signature_id", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("src", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("src_ip", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("src_port", typeFactory.createSqlType(SqlTypeName.INTEGER))
-        .add("transport", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("user", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("vendor", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-
-        // Catch-all field
-        .add("_extra", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .build();
+  private static CimSchemaResult buildIntrusionDetectionSchemaWithMapping(RelDataTypeFactory typeFactory) {
+    return buildBaseSchemaWithMapping(typeFactory);
   }
 
-  /**
-   * Change CIM model schema.
-   */
-  private static RelDataType buildChangeSchema(RelDataTypeFactory typeFactory) {
-    return typeFactory.builder()
-        // Base fields
-        .add("_time", typeFactory.createSqlType(SqlTypeName.TIMESTAMP))
-        .add("host", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("source", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("sourcetype", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("index", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-
-        // Change-specific fields
-        .add("action", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("change_type", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("command", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("dest", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("object", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("object_category", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("result", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("src", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("status", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("user", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("vendor_product", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-
-        // Catch-all field
-        .add("_extra", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .build();
+  private static CimSchemaResult buildChangeSchemaWithMapping(RelDataTypeFactory typeFactory) {
+    return buildBaseSchemaWithMapping(typeFactory);
   }
 
-  /**
-   * Inventory CIM model schema.
-   */
-  private static RelDataType buildInventorySchema(RelDataTypeFactory typeFactory) {
-    return typeFactory.builder()
-        // Base fields
-        .add("_time", typeFactory.createSqlType(SqlTypeName.TIMESTAMP))
-        .add("host", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("source", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("sourcetype", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("index", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-
-        // Inventory-specific fields
-        .add("category", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("cpu_cores", typeFactory.createSqlType(SqlTypeName.INTEGER))
-        .add("cpu_count", typeFactory.createSqlType(SqlTypeName.INTEGER))
-        .add("cpu_mhz", typeFactory.createSqlType(SqlTypeName.INTEGER))
-        .add("cpu_type", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("dest", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("dest_ip", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("dns", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("ip", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("mac", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("mem", typeFactory.createSqlType(SqlTypeName.BIGINT))
-        .add("nt_host", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("os", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("version", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-
-        // Catch-all field
-        .add("_extra", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .build();
+  private static CimSchemaResult buildInventorySchemaWithMapping(RelDataTypeFactory typeFactory) {
+    return buildBaseSchemaWithMapping(typeFactory);
   }
 
-  /**
-   * Performance CIM model schema.
-   */
-  private static RelDataType buildPerformanceSchema(RelDataTypeFactory typeFactory) {
-    return typeFactory.builder()
-        // Base fields
-        .add("_time", typeFactory.createSqlType(SqlTypeName.TIMESTAMP))
-        .add("host", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("source", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("sourcetype", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("index", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-
-        // Performance-specific fields
-        .add("cpu_load_percent", typeFactory.createSqlType(SqlTypeName.DOUBLE))
-        .add("mem_free", typeFactory.createSqlType(SqlTypeName.BIGINT))
-        .add("mem_used", typeFactory.createSqlType(SqlTypeName.BIGINT))
-        .add("storage_free", typeFactory.createSqlType(SqlTypeName.BIGINT))
-        .add("storage_used", typeFactory.createSqlType(SqlTypeName.BIGINT))
-        .add("thruput", typeFactory.createSqlType(SqlTypeName.BIGINT))
-
-        // Catch-all field
-        .add("_extra", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .build();
+  private static CimSchemaResult buildPerformanceSchemaWithMapping(RelDataTypeFactory typeFactory) {
+    return buildBaseSchemaWithMapping(typeFactory);
   }
 }

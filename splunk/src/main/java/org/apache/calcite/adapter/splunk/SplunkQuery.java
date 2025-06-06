@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Query against Splunk.
@@ -39,6 +40,7 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
   private final String latest;
   private final List<String> fieldList;
   private final Set<String> explicitFields;
+  private final Map<String, String> fieldMapping;
 
   /** Creates a SplunkQuery. */
   public SplunkQuery(
@@ -47,7 +49,8 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
       String earliest,
       String latest,
       List<String> fieldList) {
-    this(splunkConnection, search, earliest, latest, fieldList, Collections.emptySet());
+    this(splunkConnection, search, earliest, latest, fieldList,
+        Collections.emptySet(), Collections.emptyMap());
   }
 
   /** Creates a SplunkQuery with explicit field information. */
@@ -58,12 +61,26 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
       String latest,
       List<String> fieldList,
       Set<String> explicitFields) {
+    this(splunkConnection, search, earliest, latest, fieldList,
+        explicitFields, Collections.emptyMap());
+  }
+
+  /** Creates a SplunkQuery with explicit field information and field mapping. */
+  public SplunkQuery(
+      SplunkConnection splunkConnection,
+      String search,
+      String earliest,
+      String latest,
+      List<String> fieldList,
+      Set<String> explicitFields,
+      Map<String, String> fieldMapping) {
     this.splunkConnection = splunkConnection;
     this.search = search;
     this.earliest = earliest;
     this.latest = latest;
     this.fieldList = fieldList;
     this.explicitFields = explicitFields;
+    this.fieldMapping = fieldMapping != null ? fieldMapping : Collections.emptyMap();
   }
 
   @Override public String toString() {
@@ -72,20 +89,55 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
 
   @SuppressWarnings("unchecked")
   @Override public Enumerator<T> enumerator() {
-    // Always use the 4-parameter method - explicitFields determines _extra field behavior:
-    // - Empty explicitFields: All Splunk fields go to _extra
-    // - Populated explicitFields: Only non-explicit fields go to _extra
+    // Map schema field names to Splunk field names for the query
+    List<String> mappedFieldList = mapFieldList(fieldList);
+
+    // Create a reverse mapping for result processing (Splunk field -> schema field)
+    Map<String, String> reverseMapping = createReverseMapping();
+
+    // Use the 5-parameter method with field mapping support
     return (Enumerator<T>) splunkConnection.getSearchResultEnumerator(
-        search, getArgs(), fieldList, explicitFields);
+        search, getArgs(), mappedFieldList, explicitFields, reverseMapping);
+  }
+
+  /**
+   * Maps schema field names to Splunk field names using the field mapping.
+   */
+  private List<String> mapFieldList(List<String> schemaFieldList) {
+    return schemaFieldList.stream()
+        .map(field -> fieldMapping.getOrDefault(field, field))
+        .collect(Collectors.toList());
+  }
+
+  /**
+   * Creates a reverse mapping from Splunk field names to schema field names.
+   * This is used when processing results to map back to schema field names.
+   */
+  private Map<String, String> createReverseMapping() {
+    Map<String, String> reverse = new HashMap<>();
+    for (Map.Entry<String, String> entry : fieldMapping.entrySet()) {
+      reverse.put(entry.getValue(), entry.getKey());
+    }
+    return reverse;
   }
 
   private Map<String, String> getArgs() {
     Map<String, String> args = new HashMap<>();
-    String fields =
-        StringUtils.encodeList(fieldList, ',').toString();
+
+    // Map the field list to Splunk field names for the field_list parameter
+    List<String> mappedFieldList = mapFieldList(fieldList);
+    String fields = StringUtils.encodeList(mappedFieldList, ',').toString();
+
     args.put("field_list", fields);
     args.put("earliest_time", earliest);
     args.put("latest_time", latest);
     return args;
+  }
+
+  /**
+   * Returns the field mapping for external use.
+   */
+  public Map<String, String> getFieldMapping() {
+    return fieldMapping;
   }
 }
