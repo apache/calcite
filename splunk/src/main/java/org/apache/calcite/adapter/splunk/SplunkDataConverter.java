@@ -21,9 +21,6 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 import java.math.BigDecimal;
-import java.sql.Date;
-import java.sql.Time;
-import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
@@ -118,13 +115,13 @@ public class SplunkDataConverter {
 
     switch (targetType) {
     case TIMESTAMP:
-      return convertToTimestamp(stringValue);
+        return convertToTimestampMillis(stringValue);
 
     case DATE:
-      return convertToDate(stringValue);
+        return convertToDateDays(stringValue);
 
     case TIME:
-      return convertToTime(stringValue);
+        return convertToTimeMillis(stringValue);
 
     case INTEGER:
       return convertToInteger(stringValue);
@@ -133,7 +130,6 @@ public class SplunkDataConverter {
       return convertToBigInt(stringValue);
 
     case DECIMAL:
-//    case NUMERIC:
       return convertToDecimal(stringValue);
 
     case DOUBLE:
@@ -159,17 +155,16 @@ public class SplunkDataConverter {
   private static boolean isCorrectType(Object value, SqlTypeName targetType) {
     switch (targetType) {
     case TIMESTAMP:
-      return value instanceof Timestamp || value instanceof java.util.Date;
+        return value instanceof Long;
     case DATE:
-      return value instanceof Date;
+        return value instanceof Integer;
     case TIME:
-      return value instanceof Time;
+        return value instanceof Integer;
     case INTEGER:
       return value instanceof Integer;
     case BIGINT:
       return value instanceof Long;
     case DECIMAL:
-//    case NUMERIC:
       return value instanceof BigDecimal;
     case DOUBLE:
       return value instanceof Double;
@@ -184,10 +179,10 @@ public class SplunkDataConverter {
   }
 
   /**
-   * Converts string to Timestamp.
-   * Handles epoch seconds, epoch milliseconds, and various string formats.
+   * Converts string to epoch milliseconds for TIMESTAMP fields.
+   * Avatica expects TIMESTAMP fields to be Long values representing epoch milliseconds.
    */
-  private static Timestamp convertToTimestamp(String value) {
+  private static Long convertToTimestampMillis(String value) {
     // Try parsing as epoch timestamp first
     if (EPOCH_PATTERN.matcher(value).matches()) {
       try {
@@ -201,7 +196,7 @@ public class SplunkDataConverter {
           millis = (long) epochValue;
         }
 
-        return new Timestamp(millis);
+        return millis;
       } catch (NumberFormatException e) {
         // Fall through to string parsing
       }
@@ -210,7 +205,7 @@ public class SplunkDataConverter {
     // Try parsing as formatted date string
     for (SimpleDateFormat format : TIMESTAMP_FORMATS) {
       try {
-        return new Timestamp(format.parse(value).getTime());
+        return format.parse(value).getTime();
       } catch (ParseException e) {
         // Try next format
       }
@@ -220,25 +215,30 @@ public class SplunkDataConverter {
   }
 
   /**
-   * Converts string to Date.
+   * Converts string to days since epoch for DATE fields.
+   * Avatica expects DATE fields to be Integer values representing days since 1970-01-01.
    */
-  private static Date convertToDate(String value) {
-    Timestamp ts = convertToTimestamp(value);
-    return new Date(ts.getTime());
+  private static Integer convertToDateDays(String value) {
+    long millis = convertToTimestampMillis(value);
+    // Convert milliseconds to days since epoch
+    return (int) (millis / (24 * 60 * 60 * 1000L));
   }
 
   /**
-   * Converts string to Time.
+   * Converts string to milliseconds since midnight for TIME fields.
+   * Avatica expects TIME fields to be Integer values representing milliseconds since midnight.
    */
-  private static Time convertToTime(String value) {
+  private static Integer convertToTimeMillis(String value) {
     try {
       // Try parsing as HH:mm:ss format
       SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm:ss");
-      return new Time(timeFormat.parse(value).getTime());
+      java.util.Date parsed = timeFormat.parse(value);
+      // Get milliseconds since midnight
+      return (int) (parsed.getTime() % (24 * 60 * 60 * 1000L));
     } catch (ParseException e) {
-      // Try parsing as full timestamp and extract time
-      Timestamp ts = convertToTimestamp(value);
-      return new Time(ts.getTime());
+      // Try parsing as full timestamp and extract time portion
+      long millis = convertToTimestampMillis(value);
+      return (int) (millis % (24 * 60 * 60 * 1000L));
     }
   }
 
@@ -325,15 +325,16 @@ public class SplunkDataConverter {
   private static Object getDefaultValue(SqlTypeName targetType) {
     switch (targetType) {
     case TIMESTAMP:
+        return 0L; // Epoch start
     case DATE:
+        return 0; // Days since epoch start
     case TIME:
-      return null; // Don't provide defaults for temporal types
+        return 0; // Milliseconds since midnight start
     case INTEGER:
       return 0;
     case BIGINT:
       return 0L;
     case DECIMAL:
-//    case NUMERIC:
       return BigDecimal.ZERO;
     case DOUBLE:
       return 0.0;
