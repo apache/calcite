@@ -20,6 +20,7 @@ import org.apache.calcite.adapter.splunk.search.SplunkConnection;
 import org.apache.calcite.adapter.splunk.util.StringUtils;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.rel.type.RelDataType;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -42,6 +43,7 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
   private final List<String> fieldList;
   private final Set<String> explicitFields;
   private final Map<String, String> fieldMapping;
+  private final RelDataType schema;
 
   /** Creates a SplunkQuery. */
   public SplunkQuery(
@@ -51,7 +53,7 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
       String latest,
       List<String> fieldList) {
     this(splunkConnection, search, earliest, latest, fieldList,
-        Collections.emptySet(), Collections.emptyMap());
+        Collections.emptySet(), Collections.emptyMap(), null);
   }
 
   /** Creates a SplunkQuery with explicit field information. */
@@ -63,7 +65,7 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
       List<String> fieldList,
       Set<String> explicitFields) {
     this(splunkConnection, search, earliest, latest, fieldList,
-        explicitFields, Collections.emptyMap());
+        explicitFields, Collections.emptyMap(), null);
   }
 
   /** Creates a SplunkQuery with explicit field information and field mapping. */
@@ -75,6 +77,20 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
       List<String> fieldList,
       Set<String> explicitFields,
       Map<String, String> fieldMapping) {
+    this(splunkConnection, search, earliest, latest, fieldList,
+        explicitFields, fieldMapping, null);
+  }
+
+  /** Creates a SplunkQuery with explicit field information, field mapping, and schema. */
+  public SplunkQuery(
+      SplunkConnection splunkConnection,
+      String search,
+      String earliest,
+      String latest,
+      List<String> fieldList,
+      Set<String> explicitFields,
+      Map<String, String> fieldMapping,
+      RelDataType schema) {
     this.splunkConnection = splunkConnection;
     this.search = search;
     this.earliest = earliest;
@@ -82,6 +98,7 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
     this.fieldList = fieldList;
     this.explicitFields = explicitFields;
     this.fieldMapping = fieldMapping != null ? fieldMapping : Collections.emptyMap();
+    this.schema = schema;
   }
 
   @Override public String toString() {
@@ -96,9 +113,16 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
     // Create a reverse mapping for result processing (Splunk field -> schema field)
     Map<String, String> reverseMapping = createReverseMapping();
 
-    // Use the 5-parameter method with field mapping support
-    return (Enumerator<T>) splunkConnection.getSearchResultEnumerator(
+    // Get the raw enumerator from the connection
+    Enumerator<T> rawEnumerator = (Enumerator<T>) splunkConnection.getSearchResultEnumerator(
         search, getArgs(), mappedFieldList, explicitFields, reverseMapping);
+
+    // If we have schema information, wrap with type converter
+    if (schema != null) {
+      return (Enumerator<T>) new TypeConvertingEnumerator((Enumerator<Object>) rawEnumerator, schema);
+    }
+
+    return rawEnumerator;
   }
 
   /**
@@ -148,5 +172,77 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
    */
   public Map<String, String> getFieldMapping() {
     return fieldMapping;
+  }
+
+  /**
+   * Wrapper enumerator that applies type conversion to each row based on the expected schema.
+   * This ensures that string values from Splunk are converted to the appropriate Java types
+   * before being processed by Calcite.
+   */
+  private static class TypeConvertingEnumerator implements Enumerator<Object> {
+    private final Enumerator<Object> underlying;
+    private final RelDataType schema;
+    private int rowCount = 0;
+
+    public TypeConvertingEnumerator(Enumerator<Object> underlying, RelDataType schema) {
+      this.underlying = underlying;
+      this.schema = schema;
+
+      // Print schema info once
+      System.out.println("=== Schema Info ===");
+      for (int i = 0; i < schema.getFieldList().size(); i++) {
+        var field = schema.getFieldList().get(i);
+        System.out.println("Field[" + i + "]: " + field.getName() + " -> " + field.getType().getSqlTypeName());
+      }
+      System.out.println("===================");
+    }
+
+    @Override
+    public Object current() {
+      Object current = underlying.current();
+      rowCount++;
+
+      if (current instanceof Object[]) {
+        Object[] inputRow = (Object[]) current;
+
+        // Only debug first row to avoid spam
+        if (rowCount == 1) {
+          System.out.println("=== First Row Debug ===");
+          for (int i = 0; i < Math.min(inputRow.length, 3); i++) { // Only first 3 fields
+            Object value = inputRow[i];
+            System.out.println("Input[" + i + "]: " + value + " (" + (value != null ? value.getClass().getSimpleName() : "null") + ")");
+          }
+        }
+
+        Object[] convertedRow = SplunkDataConverter.convertRow(inputRow, schema);
+
+        if (rowCount == 1) {
+          for (int i = 0; i < Math.min(convertedRow.length, 3); i++) { // Only first 3 fields
+            Object value = convertedRow[i];
+            System.out.println("Output[" + i + "]: " + value + " (" + (value != null ? value.getClass().getSimpleName() : "null") + ")");
+          }
+          System.out.println("====================");
+        }
+
+        return convertedRow;
+      }
+
+      return current;
+    }
+
+    @Override
+    public boolean moveNext() {
+      return underlying.moveNext();
+    }
+
+    @Override
+    public void reset() {
+      underlying.reset();
+    }
+
+    @Override
+    public void close() {
+      underlying.close();
+    }
   }
 }

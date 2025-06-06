@@ -153,8 +153,9 @@ public class SplunkTable extends AbstractQueryableTable implements TranslatableT
     }
 
     @Override public Enumerator<T> enumerator() {
+      final SplunkTable splunkTable = (SplunkTable) table;
       final SplunkQuery<T> query = createQuery(
-          ((SplunkTable) table).getSearchString(), "", "", new ArrayList<>());
+          splunkTable.getSearchString(), "", "", new ArrayList<>());
       return query.enumerator();
     }
 
@@ -173,7 +174,8 @@ public class SplunkTable extends AbstractQueryableTable implements TranslatableT
           latest,
           fieldList,
           splunkTable.getExplicitFields(),
-          splunkTable.getFieldMapping());
+          splunkTable.getFieldMapping(),
+          splunkTable.rowType);  // Pass the table's row type as schema
     }
   }
 }

@@ -155,17 +155,17 @@ public class SplunkConnectionImpl implements SplunkConnection {
     try {
       // Create a trust manager that accepts all certificates
       TrustManager[] trustAllCerts = new TrustManager[] {
-        new X509TrustManager() {
-          public X509Certificate[] getAcceptedIssuers() {
-            return null;
+          new X509TrustManager() {
+            public X509Certificate[] getAcceptedIssuers() {
+              return null;
+            }
+            public void checkClientTrusted(X509Certificate[] certs, String authType) {
+              // Trust all client certificates
+            }
+            public void checkServerTrusted(X509Certificate[] certs, String authType) {
+              // Trust all server certificates
+            }
           }
-          public void checkClientTrusted(X509Certificate[] certs, String authType) {
-            // Trust all client certificates
-          }
-          public void checkServerTrusted(X509Certificate[] certs, String authType) {
-            // Trust all server certificates
-          }
-        }
       };
 
       // Install the all-trusting trust manager
