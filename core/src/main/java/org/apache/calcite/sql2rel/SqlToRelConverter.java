@@ -3477,7 +3477,7 @@ public class SqlToRelConverter {
     return RexUtil.composeConjunction(rexBuilder, list);
   }
 
-  private static JoinRelType convertJoinType(JoinType joinType) {
+  public static JoinRelType convertJoinType(JoinType joinType) {
     switch (joinType) {
     case COMMA:
     case INNER:

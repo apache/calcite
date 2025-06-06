@@ -40,6 +40,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
+import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.util.format.FormatModel;
 import org.apache.calcite.util.format.FormatModels;
 
@@ -450,8 +451,8 @@ public class SqlDialect {
     switch (call.getKind()) {
     case JOIN:
       SqlJoin join = (SqlJoin) call;
-      JoinRelType joinRelType = JoinRelType.convertToRelType(join.getJoinType());
-      if (joinRelType != null && !supportsJoinType(joinRelType)) {
+      JoinRelType joinRelType = SqlToRelConverter.convertJoinType(join.getJoinType());
+      if (!supportsJoinType(joinRelType)) {
         throw new RuntimeException(this.getClass().getSimpleName()
             + " can not support join type: " + join.getJoinType());
       }
