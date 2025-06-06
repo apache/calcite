@@ -116,7 +116,7 @@ public class CimModelBuilder {
         .add("sourcetype", typeFactory.createSqlType(SqlTypeName.VARCHAR))
         .add("index", typeFactory.createSqlType(SqlTypeName.VARCHAR))
         .add("_raw", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("_extra", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("_extra", typeFactory.createSqlType(SqlTypeName.ANY))
         .build();
 
     Map<String, String> fieldMapping = new HashMap<>();
@@ -189,7 +189,7 @@ public class CimModelBuilder {
         .add("is_not_Privileged_Authentication", typeFactory.createSqlType(SqlTypeName.INTEGER))
 
         // Catch-all field
-        .add("_extra", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("_extra", typeFactory.createSqlType(SqlTypeName.ANY))
         .build();
 
     // Create field mapping from schema names to Splunk CIM field names
@@ -284,7 +284,7 @@ public class CimModelBuilder {
         .add("vlan", typeFactory.createSqlType(SqlTypeName.VARCHAR))
 
         // Catch-all field
-        .add("_extra", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("_extra", typeFactory.createSqlType(SqlTypeName.ANY))
         .build();
 
     Map<String, String> fieldMapping = new HashMap<>();
@@ -352,7 +352,7 @@ public class CimModelBuilder {
         .add("user", typeFactory.createSqlType(SqlTypeName.VARCHAR))
 
         // Catch-all field
-        .add("_extra", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("_extra", typeFactory.createSqlType(SqlTypeName.ANY))
         .build();
 
     Map<String, String> fieldMapping = new HashMap<>();
