@@ -23,21 +23,35 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Connection to Splunk.
+ * Interface for connections to Splunk that can execute searches and return results.
+ * Supports both streaming result processing via SearchResultListener and
+ * enumerable result processing via Enumerator.
  */
 public interface SplunkConnection {
-  void getSearchResults(String search, Map<String, String> otherArgs,
-      List<String> fieldList, SearchResultListener srl);
 
   /**
-   * Gets search result enumerator with explicit field information for _extra field collection.
-   * @param search the search query
-   * @param otherArgs additional search arguments
-   * @param fieldList list of fields to retrieve
-   * @param explicitFields set of fields explicitly defined in the table schema.
-   *                      If empty, all Splunk fields will be collected into _extra.
-   *                      If populated, only non-explicit fields will go to _extra.
-   * @return enumerator for search results
+   * Executes a Splunk search and streams results to a listener.
+   * This method is suitable for processing large result sets without
+   * loading everything into memory at once.
+   *
+   * @param search the Splunk search query
+   * @param otherArgs additional search parameters (earliest, latest, etc.)
+   * @param fieldList list of fields to include in results (null for all)
+   * @param listener callback interface to receive results
+   */
+  void getSearchResults(String search, Map<String, String> otherArgs,
+                       List<String> fieldList, SearchResultListener listener);
+
+  /**
+   * Executes a Splunk search and returns an Enumerator for result processing.
+   * This method provides Calcite-compatible result iteration with support
+   * for explicit field mapping and overflow data handling.
+   *
+   * @param search the Splunk search query
+   * @param otherArgs additional search parameters (earliest, latest, etc.)
+   * @param fieldList list of fields to include in results (null for all)
+   * @param explicitFields set of explicitly defined fields for schema mapping
+   * @return Enumerator for iterating over search results
    */
   Enumerator<Object> getSearchResultEnumerator(String search,
       Map<String, String> otherArgs, List<String> fieldList, Set<String> explicitFields);
