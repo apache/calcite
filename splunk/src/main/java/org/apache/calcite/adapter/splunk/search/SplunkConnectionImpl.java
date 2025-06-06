@@ -425,9 +425,9 @@ public class SplunkConnectionImpl implements SplunkConnection {
     long start = System.currentTimeMillis();
     c.getSearchResults(search, searchArgs, fieldList, dummy);
 
-    System.out.printf(Locale.ROOT, "received %d results in %dms\n",
-        dummy.getResultCount(),
-        System.currentTimeMillis() - start);
+//    System.out.printf(Locale.ROOT, "received %d results in %dms\n",
+//        dummy.getResultCount(),
+//        System.currentTimeMillis() - start);
   }
 
   /** Implementation of

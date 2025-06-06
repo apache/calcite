@@ -92,9 +92,9 @@ public class SplunkDataConverter {
    * @return Converted value
    */
   public static Object convertValue(Object value, SqlTypeName targetType) {
-    System.out.println("SplunkDataConverter.convertValue: input=" + value +
-        " (type=" + (value != null ? value.getClass().getName() : "null") +
-        "), targetType=" + targetType);
+//    System.out.println("SplunkDataConverter.convertValue: input=" + value +
+//        " (type=" + (value != null ? value.getClass().getName() : "null") +
+//        "), targetType=" + targetType);
 
     if (value == null) {
       return null;
@@ -102,7 +102,7 @@ public class SplunkDataConverter {
 
     // If already the correct type, return as-is
     if (isCorrectType(value, targetType)) {
-      System.out.println("  -> Already correct type, returning as-is");
+//      System.out.println("  -> Already correct type, returning as-is");
       return value;
     }
 
@@ -111,7 +111,7 @@ public class SplunkDataConverter {
     // Handle empty strings
     if (stringValue.isEmpty()) {
       Object defaultValue = getDefaultValue(targetType);
-      System.out.println("  -> Empty string, returning default: " + defaultValue);
+//      System.out.println("  -> Empty string, returning default: " + defaultValue);
       return defaultValue;
     }
 
@@ -162,8 +162,8 @@ public class SplunkDataConverter {
         break;
       }
 
-      System.out.println("  -> Converted to: " + result +
-          " (type=" + (result != null ? result.getClass().getName() : "null") + ")");
+//      System.out.println("  -> Converted to: " + result +
+//          " (type=" + (result != null ? result.getClass().getName() : "null") + ")");
       return result;
 
     } catch (Exception e) {
