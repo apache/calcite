@@ -124,11 +124,13 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
   private Map<String, String> getArgs() {
     Map<String, String> args = new HashMap<>();
 
-    // Map the field list to Splunk field names for the field_list parameter
-    List<String> mappedFieldList = mapFieldList(fieldList);
-    String fields = StringUtils.encodeList(mappedFieldList, ',').toString();
+    // Only restrict fields if _extra is not requested
+    if (!fieldList.contains("_extra")) {
+      List<String> mappedFieldList = mapFieldList(fieldList);
+      String fields = StringUtils.encodeList(mappedFieldList, ',').toString();
+      args.put("field_list", fields);
+    }
 
-    args.put("field_list", fields);
     args.put("earliest_time", earliest);
     args.put("latest_time", latest);
     return args;
