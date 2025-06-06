@@ -46,6 +46,10 @@ import java.util.Map;
  * Connection parameters can be specified in two ways:
  * 1. Complete URL: {"url": "https://host:port"}
  * 2. Individual components: {"host": "hostname", "port": 8089, "protocol": "https"}
+ *
+ * SSL Configuration:
+ * - "disable_ssl_validation": true (WARNING: Only use in development/testing)
+ *   This setting is passed to SplunkConnectionImpl for per-connection SSL configuration.
  */
 public class SplunkSchemaFactory implements SchemaFactory {
 
@@ -125,18 +129,20 @@ public class SplunkSchemaFactory implements SchemaFactory {
    */
   private SplunkConnection createConnection(Map<String, Object> operand) {
     String url = buildSplunkUrl(operand);
+    Boolean disableSslValidation = (Boolean) operand.get("disable_ssl_validation");
+    boolean disableSsl = Boolean.TRUE.equals(disableSslValidation);
 
     try {
       // Check for token authentication first
       String token = (String) operand.get("token");
       if (token != null && !token.trim().isEmpty()) {
-        return new SplunkConnectionImpl(url, token);
+        return new SplunkConnectionImpl(url, token, disableSsl);
       }
 
       // Fall back to username/password authentication
       String username = (String) operand.get("username");
       String password = (String) operand.get("password");
-      return new SplunkConnectionImpl(url, username, password);
+      return new SplunkConnectionImpl(url, username, password, disableSsl);
 
     } catch (MalformedURLException e) {
       throw new RuntimeException("Invalid Splunk URL: " + url, e);
@@ -173,4 +179,4 @@ public class SplunkSchemaFactory implements SchemaFactory {
 
     return String.format("%s://%s:%d", protocol, host, port);
   }
-}
+    }

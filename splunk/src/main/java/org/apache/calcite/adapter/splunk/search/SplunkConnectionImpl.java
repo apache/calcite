@@ -48,13 +48,18 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import java.security.cert.X509Certificate;
 
 import static org.apache.calcite.runtime.HttpUtils.appendURLEncodedArgs;
 import static org.apache.calcite.runtime.HttpUtils.post;
 
 /**
  * Implementation of {@link SplunkConnection} based on Splunk's REST API.
- * Enhanced to support "_extra" field collection for CIM models.
+ * Enhanced to support "_extra" field collection for CIM models and configurable SSL validation.
  */
 public class SplunkConnectionImpl implements SplunkConnection {
   private static final Logger LOGGER =
@@ -68,19 +73,34 @@ public class SplunkConnectionImpl implements SplunkConnection {
   final String username;
   final String password;
   final String token;
+  final boolean disableSslValidation;
   String sessionKey = "";
   final Map<String, String> requestHeaders = new HashMap<>();
 
   public SplunkConnectionImpl(String url, String username, String password)
       throws MalformedURLException {
-    this(URI.create(url).toURL(), username, password);
+    this(url, username, password, false);
+  }
+
+  public SplunkConnectionImpl(String url, String username, String password, boolean disableSslValidation)
+      throws MalformedURLException {
+    this(URI.create(url).toURL(), username, password, disableSslValidation);
   }
 
   public SplunkConnectionImpl(URL url, String username, String password) {
+    this(url, username, password, false);
+  }
+
+  public SplunkConnectionImpl(URL url, String username, String password, boolean disableSslValidation) {
     this.url      = Objects.requireNonNull(url, "url cannot be null");
     this.username = Objects.requireNonNull(username, "username cannot be null");
     this.password = Objects.requireNonNull(password, "password cannot be null");
     this.token    = null;
+    this.disableSslValidation = disableSslValidation;
+
+    if (disableSslValidation) {
+      configureSSL();
+    }
     connect();
   }
 
@@ -88,19 +108,79 @@ public class SplunkConnectionImpl implements SplunkConnection {
    * Constructor for token-based authentication.
    */
   public SplunkConnectionImpl(String url, String token) throws MalformedURLException {
-    this(URI.create(url).toURL(), token);
+    this(url, token, false);
+  }
+
+  /**
+   * Constructor for token-based authentication with SSL configuration.
+   */
+  public SplunkConnectionImpl(String url, String token, boolean disableSslValidation) throws MalformedURLException {
+    this(URI.create(url).toURL(), token, disableSslValidation);
   }
 
   /**
    * Constructor for token-based authentication.
    */
   public SplunkConnectionImpl(URL url, String token) {
+    this(url, token, false);
+  }
+
+  /**
+   * Constructor for token-based authentication with SSL configuration.
+   */
+  public SplunkConnectionImpl(URL url, String token, boolean disableSslValidation) {
     this.url      = Objects.requireNonNull(url, "url cannot be null");
     this.token    = Objects.requireNonNull(token, "token cannot be null");
     this.username = null;
     this.password = null;
+    this.disableSslValidation = disableSslValidation;
+
+    if (disableSslValidation) {
+      configureSSL();
+    }
+
     // For token auth, set authorization header directly and skip connect()
     requestHeaders.put("Authorization", "Bearer " + token);
+  }
+
+  /**
+   * Configure SSL settings for this connection.
+   * WARNING: disableSslValidation should only be used in development/testing.
+   */
+  private void configureSSL() {
+    if (!disableSslValidation) {
+      return;
+    }
+
+    try {
+      // Create a trust manager that accepts all certificates
+      TrustManager[] trustAllCerts = new TrustManager[] {
+        new X509TrustManager() {
+          public X509Certificate[] getAcceptedIssuers() {
+            return null;
+          }
+          public void checkClientTrusted(X509Certificate[] certs, String authType) {
+            // Trust all client certificates
+          }
+          public void checkServerTrusted(X509Certificate[] certs, String authType) {
+            // Trust all server certificates
+          }
+        }
+      };
+
+      // Install the all-trusting trust manager
+      SSLContext sc = SSLContext.getInstance("SSL");
+      sc.init(null, trustAllCerts, new java.security.SecureRandom());
+      HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+
+      // Disable hostname verification
+      HttpsURLConnection.setDefaultHostnameVerifier((hostname, session) -> true);
+
+      LOGGER.warn("SSL certificate validation has been disabled. This should only be used in development/testing environments.");
+
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to configure SSL settings", e);
+    }
   }
 
   private static void close(Closeable c) {
