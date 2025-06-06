@@ -55,4 +55,20 @@ public interface SplunkConnection {
    */
   Enumerator<Object> getSearchResultEnumerator(String search,
       Map<String, String> otherArgs, List<String> fieldList, Set<String> explicitFields);
+
+  /**
+   * Executes a Splunk search and returns an Enumerator for result processing with field mapping.
+   * This method provides Calcite-compatible result iteration with support for bidirectional
+   * field mapping between schema field names and Splunk field names.
+   *
+   * @param search the Splunk search query
+   * @param otherArgs additional search parameters (earliest, latest, etc.)
+   * @param fieldList list of Splunk field names to include in results
+   * @param explicitFields set of explicitly defined schema fields for overflow mapping
+   * @param reverseFieldMapping map from Splunk field names to schema field names
+   * @return Enumerator for iterating over search results with schema field names
+   */
+  Enumerator<Object> getSearchResultEnumerator(String search,
+      Map<String, String> otherArgs, List<String> fieldList, Set<String> explicitFields,
+      Map<String, String> reverseFieldMapping);
 }

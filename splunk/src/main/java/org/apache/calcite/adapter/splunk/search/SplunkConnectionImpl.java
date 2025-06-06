@@ -238,7 +238,13 @@ public class SplunkConnectionImpl implements SplunkConnection {
 
   @Override public Enumerator<Object> getSearchResultEnumerator(String search,
       Map<String, String> otherArgs, List<String> fieldList, Set<String> explicitFields) {
-    return performSearchForEnumerator(search, otherArgs, fieldList, explicitFields);
+    return getSearchResultEnumerator(search, otherArgs, fieldList, explicitFields, new HashMap<>());
+  }
+
+  @Override public Enumerator<Object> getSearchResultEnumerator(String search,
+      Map<String, String> otherArgs, List<String> fieldList, Set<String> explicitFields,
+      Map<String, String> reverseFieldMapping) {
+    return performSearchForEnumerator(search, otherArgs, fieldList, explicitFields, reverseFieldMapping);
   }
 
   private void performSearch(
@@ -279,7 +285,8 @@ public class SplunkConnectionImpl implements SplunkConnection {
       String search,
       Map<String, String> otherArgs,
       List<String> wantedFields,
-      Set<String> explicitFields) {
+      Set<String> explicitFields,
+      Map<String, String> reverseFieldMapping) {
     String searchUrl =
         String.format(Locale.ROOT,
             "%s://%s:%d/services/search/jobs/export",
@@ -302,7 +309,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
       // wait at most 30 minutes for first result
       InputStream in =
           post(searchUrl, data, requestHeaders, 10000, 1800000);
-      return new SplunkResultEnumerator(in, wantedFields, explicitFields);
+      return new SplunkResultEnumerator(in, wantedFields, explicitFields, reverseFieldMapping);
     } catch (Exception e) {
       StringWriter sw = new StringWriter();
       e.printStackTrace(new PrintWriter(sw));
@@ -464,7 +471,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
    * <p>The element type is either {@code String} or {@code String[]}, depending
    * on the value of {@code source}.
    *
-   * <p>Enhanced to support "_extra" field collection for CIM models.
+   * <p>Enhanced to support "_extra" field collection for CIM models and field mapping.
    */
   public static class SplunkResultEnumerator implements Enumerator<Object> {
     private final CSVReader csvReader;
@@ -474,6 +481,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
     private boolean hasExtraField = false;
     private int extraFieldIndex = -1;
     private final Set<String> explicitFields;
+    private final Map<String, String> reverseFieldMapping;
 
     /**
      * Where to find the singleton field, or whether to map. Values:
@@ -488,7 +496,13 @@ public class SplunkConnectionImpl implements SplunkConnection {
     private int source = -1;
 
     public SplunkResultEnumerator(InputStream in, List<String> wantedFields, Set<String> explicitFields) {
+      this(in, wantedFields, explicitFields, new HashMap<>());
+    }
+
+    public SplunkResultEnumerator(InputStream in, List<String> wantedFields, Set<String> explicitFields,
+        Map<String, String> reverseFieldMapping) {
       this.explicitFields = explicitFields;
+      this.reverseFieldMapping = reverseFieldMapping != null ? reverseFieldMapping : new HashMap<>();
       csvReader =
           new CSVReader(
               new BufferedReader(
@@ -549,11 +563,12 @@ public class SplunkConnectionImpl implements SplunkConnection {
                 mapped[extraFieldIndex] = collectExtraFields(line);
               }
 
-              this.current = mapped;
+              // Apply field name mapping if present
+              this.current = applyFieldMapping(mapped);
               break;
             case -2:
               // Return line as is. No need to re-map.
-              current = line;
+              current = applyFieldMapping(line);
               break;
             case -1:
               // Singleton empty string instead of null
@@ -572,6 +587,33 @@ public class SplunkConnectionImpl implements SplunkConnection {
         LOGGER.warn("{}\n{}", e.getMessage(), sw);
       }
       return false;
+    }
+
+    /**
+     * Apply reverse field mapping to transform Splunk field names back to schema field names.
+     */
+    private Object applyFieldMapping(String[] row) {
+      if (reverseFieldMapping.isEmpty()) {
+        return row;
+      }
+
+      // For arrays, we need to create a map structure to apply field name mapping
+      Map<String, String> rowMap = new HashMap<>();
+      for (int i = 0; i < Math.min(fieldNames.length, row.length); i++) {
+        String splunkFieldName = fieldNames[i];
+        String schemaFieldName = reverseFieldMapping.getOrDefault(splunkFieldName, splunkFieldName);
+        rowMap.put(schemaFieldName, row[i]);
+      }
+
+      // Convert back to array format expected by Calcite
+      String[] mappedRow = new String[row.length];
+      for (int i = 0; i < row.length && i < fieldNames.length; i++) {
+        String splunkFieldName = fieldNames[i];
+        String schemaFieldName = reverseFieldMapping.getOrDefault(splunkFieldName, splunkFieldName);
+        mappedRow[i] = rowMap.get(schemaFieldName);
+      }
+
+      return mappedRow;
     }
 
     /**

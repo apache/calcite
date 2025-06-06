@@ -41,7 +41,7 @@ import java.util.Map;
  * Supports multiple modes:
  * 1. Single CIM model: {"cim_model": "authentication"} -> creates table named after the model
  * 2. Multiple CIM models: {"cim_models": ["auth", "network"]} -> creates multiple named tables
- * 3. Custom tables: Uses standard Calcite table definitions
+ * 3. Custom tables: Uses standard Calcite table definitions with optional search strings
  *
  * Connection parameters can be specified in two ways:
  * 1. Complete URL: {"url": "https://host:port"}
@@ -49,7 +49,7 @@ import java.util.Map;
  *
  * SSL Configuration:
  * - "disable_ssl_validation": true (WARNING: Only use in development/testing)
- *   This setting is passed to SplunkConnectionImpl for per-connection SSL configuration.
+ * This setting is passed to SplunkConnectionImpl for per-connection SSL configuration.
  */
 public class SplunkSchemaFactory implements SchemaFactory {
 
@@ -85,8 +85,13 @@ public class SplunkSchemaFactory implements SchemaFactory {
     ImmutableMap.Builder<String, Table> builder = ImmutableMap.builder();
 
     for (String cimModel : cimModels) {
-      RelDataType tableSchema = CimModelBuilder.buildCimSchema(typeFactory, cimModel);
-      SplunkTable table = new SplunkTable(tableSchema);
+      CimModelBuilder.CimSchemaResult result = CimModelBuilder.buildCimSchemaWithMapping(
+          typeFactory, cimModel);
+
+      SplunkTable table = new SplunkTable(
+          result.getSchema(),
+          result.getFieldMapping(),
+          result.getSearchString());
 
       // Use the CIM model name as the table name
       String tableName = normalizeTableName(cimModel);
@@ -102,8 +107,13 @@ public class SplunkSchemaFactory implements SchemaFactory {
    */
   private Schema createSingleCimSchema(RelDataTypeFactory typeFactory,
       String cimModel, Map<String, Object> operand) {
-    RelDataType tableSchema = CimModelBuilder.buildCimSchema(typeFactory, cimModel);
-    SplunkTable table = new SplunkTable(tableSchema);
+    CimModelBuilder.CimSchemaResult result = CimModelBuilder.buildCimSchemaWithMapping(
+        typeFactory, cimModel);
+
+    SplunkTable table = new SplunkTable(
+        result.getSchema(),
+        result.getFieldMapping(),
+        result.getSearchString());
 
     // Use the normalized CIM model name as the table name (consistent with multi-model behavior)
     String tableName = normalizeTableName(cimModel);
@@ -172,11 +182,11 @@ public class SplunkSchemaFactory implements SchemaFactory {
     String host = (String) operand.get("host");
     if (host == null || host.trim().isEmpty()) {
       throw new RuntimeException("Either 'url' or 'host' parameter must be provided");
-}
+    }
 
     Integer port = (Integer) operand.getOrDefault("port", 8089);
     String protocol = (String) operand.getOrDefault("protocol", "https");
 
     return String.format("%s://%s:%d", protocol, host, port);
   }
-    }
+}

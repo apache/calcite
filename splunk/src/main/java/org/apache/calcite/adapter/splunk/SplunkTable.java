@@ -29,7 +29,10 @@ import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -39,10 +42,18 @@ import java.util.stream.Collectors;
 public class SplunkTable extends AbstractQueryableTable implements TranslatableTable {
   private final RelDataType rowType;
   private final Set<String> explicitFields;
+  private final Map<String, String> fieldMapping;
+  private final String searchString;
 
   public SplunkTable(RelDataType rowType) {
+    this(rowType, Collections.emptyMap(), "search");
+  }
+
+  public SplunkTable(RelDataType rowType, Map<String, String> fieldMapping, String searchString) {
     super(Object[].class);
     this.rowType = rowType;
+    this.fieldMapping = fieldMapping != null ? fieldMapping : Collections.emptyMap();
+    this.searchString = searchString != null ? searchString : "search";
     // Extract the explicit field names, excluding "_extra" which is our catch-all field
     this.explicitFields = rowType.getFieldNames().stream()
         .filter(name -> !name.equals("_extra"))
@@ -66,6 +77,50 @@ public class SplunkTable extends AbstractQueryableTable implements TranslatableT
     return explicitFields;
   }
 
+  /**
+   * Returns the field mapping from schema field names to Splunk field names.
+   * For example: "reason" -> "Authentication.reason"
+   */
+  public Map<String, String> getFieldMapping() {
+    return fieldMapping;
+  }
+
+  /**
+   * Returns the search string for this table.
+   */
+  public String getSearchString() {
+    return searchString;
+  }
+
+  /**
+   * Maps a schema field name to the corresponding Splunk field name.
+   * Returns the original name if no mapping exists.
+   */
+  public String mapSchemaFieldToSplunkField(String schemaFieldName) {
+    return fieldMapping.getOrDefault(schemaFieldName, schemaFieldName);
+  }
+
+  /**
+   * Maps a list of schema field names to Splunk field names.
+   */
+  public List<String> mapSchemaFieldsToSplunkFields(List<String> schemaFieldNames) {
+    return schemaFieldNames.stream()
+        .map(this::mapSchemaFieldToSplunkField)
+        .collect(Collectors.toList());
+  }
+
+  /**
+   * Creates a reverse mapping from Splunk field names to schema field names.
+   * This is used when processing results to map back to schema field names.
+   */
+  public Map<String, String> createReverseFieldMapping() {
+    Map<String, String> reverse = new HashMap<>();
+    for (Map.Entry<String, String> entry : fieldMapping.entrySet()) {
+      reverse.put(entry.getValue(), entry.getKey());
+    }
+    return reverse;
+  }
+
   @Override public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
       SchemaPlus schema, String tableName) {
     return new SplunkTableQueryable<>(queryProvider, schema, this, tableName);
@@ -78,7 +133,7 @@ public class SplunkTable extends AbstractQueryableTable implements TranslatableT
         context.getCluster(),
         relOptTable,
         this,
-        "search",
+        searchString,
         "", // Use empty string instead of null for earliest
         "", // Use empty string instead of null for latest
         relOptTable.getRowType().getFieldNames());
@@ -98,7 +153,8 @@ public class SplunkTable extends AbstractQueryableTable implements TranslatableT
     }
 
     @Override public Enumerator<T> enumerator() {
-      final SplunkQuery<T> query = createQuery("search", "", "", new ArrayList<>());
+      final SplunkQuery<T> query = createQuery(
+          ((SplunkTable) table).getSearchString(), "", "", new ArrayList<>());
       return query.enumerator();
     }
 
@@ -116,7 +172,8 @@ public class SplunkTable extends AbstractQueryableTable implements TranslatableT
           earliest,
           latest,
           fieldList,
-          splunkTable.getExplicitFields());
+          splunkTable.getExplicitFields(),
+          splunkTable.getFieldMapping());
     }
   }
 }
