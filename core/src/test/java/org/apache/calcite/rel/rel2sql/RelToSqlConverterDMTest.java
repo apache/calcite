@@ -13266,4 +13266,18 @@ class RelToSqlConverterDMTest {
 
     assertThat(toSql(root, DatabaseProduct.REDSHIFT.getDialect()), isLinux(expectedRedshiftSql));
   }
+
+  @Test public void testLocalTime() {
+    final RelBuilder builder = relBuilder();
+    final RexNode localTimeNode =
+        builder.call(SqlLibraryOperators.LOCALTIME);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(localTimeNode, "LocalTime"))
+        .build();
+    final String expectedBq =
+        "SELECT LOCALTIME() AS \"LocalTime\"\nFROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.VERTICA.getDialect()), isLinux(expectedBq));
+  }
 }

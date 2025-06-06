@@ -76,6 +76,7 @@ import static org.apache.calcite.sql.fun.SqlLibrary.SPARK;
 import static org.apache.calcite.sql.fun.SqlLibrary.SQL_SERVER;
 import static org.apache.calcite.sql.fun.SqlLibrary.STANDARD;
 import static org.apache.calcite.sql.fun.SqlLibrary.TERADATA;
+import static org.apache.calcite.sql.fun.SqlLibrary.VERTICA;
 import static org.apache.calcite.sql.type.OperandTypes.ANY_STRING_OR_STRING_STRING;
 import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTEGER;
 import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTERVAL;
@@ -1057,6 +1058,14 @@ public abstract class SqlLibraryOperators {
       ReturnTypes.VARCHAR_2000_NULLABLE, null,
       OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.STRING),
       SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {VERTICA})
+  public static final SqlFunction LOCALTIME =
+      new SqlFunction("LOCALTIME",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DATE_NULLABLE, null,
+          OperandTypes.VARIADIC,
+          SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {SQL_SERVER, SPARK})
   public static final SqlFunction GETDATE =
