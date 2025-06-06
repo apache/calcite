@@ -468,14 +468,6 @@ public class SplunkConnectionImpl implements SplunkConnection {
   /** Implementation of {@link Enumerator} that parses
    * results from a Splunk REST call.
    *
-   * <p>The element type is either {@code String} or {@code String[]}, depending
-   * on the value of {@code source}.
-   *
-   * <p>Enhanced to support "_extra" field collection for CIM models and field mapping.
-   */
-  /** Implementation of {@link Enumerator} that parses
-   * results from a Splunk REST call.
-   *
    * <p>The element type is either {@code Object} or {@code Object[]}, depending
    * on the value of {@code source}.
    *
