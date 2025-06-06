@@ -23,11 +23,6 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import java.math.BigDecimal;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -97,12 +92,17 @@ public class SplunkDataConverter {
    * @return Converted value
    */
   public static Object convertValue(Object value, SqlTypeName targetType) {
+    System.out.println("SplunkDataConverter.convertValue: input=" + value +
+        " (type=" + (value != null ? value.getClass().getName() : "null") +
+        "), targetType=" + targetType);
+
     if (value == null) {
       return null;
     }
 
     // If already the correct type, return as-is
     if (isCorrectType(value, targetType)) {
+      System.out.println("  -> Already correct type, returning as-is");
       return value;
     }
 
@@ -110,42 +110,65 @@ public class SplunkDataConverter {
 
     // Handle empty strings
     if (stringValue.isEmpty()) {
-      return getDefaultValue(targetType);
+      Object defaultValue = getDefaultValue(targetType);
+      System.out.println("  -> Empty string, returning default: " + defaultValue);
+      return defaultValue;
     }
 
-    switch (targetType) {
-    case TIMESTAMP:
-        return convertToTimestampMillis(stringValue);
+    Object result;
+    try {
+      switch (targetType) {
+      case TIMESTAMP:
+        result = convertToTimestampMillis(stringValue);
+        break;
 
-    case DATE:
-        return convertToDateDays(stringValue);
+      case DATE:
+        result = convertToDateDays(stringValue);
+        break;
 
-    case TIME:
-        return convertToTimeMillis(stringValue);
+      case TIME:
+        result = convertToTimeMillis(stringValue);
+        break;
 
-    case INTEGER:
-      return convertToInteger(stringValue);
+      case INTEGER:
+        result = convertToInteger(stringValue);
+        break;
 
-    case BIGINT:
-      return convertToBigInt(stringValue);
+      case BIGINT:
+        result = convertToBigInt(stringValue);
+        break;
 
-    case DECIMAL:
-      return convertToDecimal(stringValue);
+      case DECIMAL:
+        result = convertToDecimal(stringValue);
+        break;
 
-    case DOUBLE:
-      return convertToDouble(stringValue);
+      case DOUBLE:
+        result = convertToDouble(stringValue);
+        break;
 
-    case FLOAT:
-    case REAL:
-      return convertToFloat(stringValue);
+      case FLOAT:
+      case REAL:
+        result = convertToFloat(stringValue);
+        break;
 
-    case BOOLEAN:
-      return convertToBoolean(stringValue);
+      case BOOLEAN:
+        result = convertToBoolean(stringValue);
+        break;
 
-    case VARCHAR:
-    case CHAR:
-    default:
-      return stringValue; // Keep as string
+      case VARCHAR:
+      case CHAR:
+      default:
+        result = stringValue; // Keep as string
+        break;
+      }
+
+      System.out.println("  -> Converted to: " + result +
+          " (type=" + (result != null ? result.getClass().getName() : "null") + ")");
+      return result;
+
+    } catch (Exception e) {
+      System.err.println("  -> Conversion failed: " + e.getMessage());
+      throw e;
     }
   }
 
@@ -155,11 +178,11 @@ public class SplunkDataConverter {
   private static boolean isCorrectType(Object value, SqlTypeName targetType) {
     switch (targetType) {
     case TIMESTAMP:
-        return value instanceof Long;
+      return value instanceof Long;
     case DATE:
-        return value instanceof Integer;
+      return value instanceof Integer;
     case TIME:
-        return value instanceof Integer;
+      return value instanceof Integer;
     case INTEGER:
       return value instanceof Integer;
     case BIGINT:
@@ -325,11 +348,11 @@ public class SplunkDataConverter {
   private static Object getDefaultValue(SqlTypeName targetType) {
     switch (targetType) {
     case TIMESTAMP:
-        return 0L; // Epoch start
+      return 0L; // Epoch start
     case DATE:
-        return 0; // Days since epoch start
+      return 0; // Days since epoch start
     case TIME:
-        return 0; // Milliseconds since midnight start
+      return 0; // Milliseconds since midnight start
     case INTEGER:
       return 0;
     case BIGINT:
