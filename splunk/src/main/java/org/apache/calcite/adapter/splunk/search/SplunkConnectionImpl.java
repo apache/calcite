@@ -593,29 +593,31 @@ public class SplunkConnectionImpl implements SplunkConnection {
 
     /**
      * Apply reverse field mapping to transform Splunk field names back to schema field names.
+     * IMPORTANT: This method should preserve the array order (schema order) and only rename fields.
      */
     private Object applyFieldMapping(Object[] row) {
       if (reverseFieldMapping.isEmpty()) {
         return row;
       }
 
-      // For arrays, we need to create a map structure to apply field name mapping
-      Map<String, Object> rowMap = new HashMap<>();
-      for (int i = 0; i < Math.min(fieldNames.length, row.length); i++) {
-        String splunkFieldName = fieldNames[i];
-        String schemaFieldName = reverseFieldMapping.getOrDefault(splunkFieldName, splunkFieldName);
-        rowMap.put(schemaFieldName, row[i]);
+      // The input row is already in the correct order (schema order from case -3 processing).
+      // We just need to apply field name mapping if needed for any metadata/logging purposes.
+      // The actual data array should be returned as-is to preserve the schema field order.
+
+      // For debugging: log the field mapping that would be applied
+      if (LOGGER.isDebugEnabled()) {
+        Map<String, Object> fieldMap = new HashMap<>();
+        for (int i = 0; i < Math.min(fieldNames.length, row.length); i++) {
+          String splunkFieldName = fieldNames[i];
+          String schemaFieldName = reverseFieldMapping.getOrDefault(splunkFieldName, splunkFieldName);
+          fieldMap.put(schemaFieldName, row[i]);
+          LOGGER.debug("Field mapping: {} -> {} = {}", splunkFieldName, schemaFieldName, row[i]);
+        }
       }
 
-      // Convert back to array format expected by Calcite
-      Object[] mappedRow = new Object[row.length];
-      for (int i = 0; i < row.length && i < fieldNames.length; i++) {
-        String splunkFieldName = fieldNames[i];
-        String schemaFieldName = reverseFieldMapping.getOrDefault(splunkFieldName, splunkFieldName);
-        mappedRow[i] = rowMap.get(schemaFieldName);
-      }
-
-      return mappedRow;
+      // Return the row as-is since it's already in the correct schema order
+      // The field name mapping is just for internal tracking/debugging
+      return row;
     }
 
     /**
