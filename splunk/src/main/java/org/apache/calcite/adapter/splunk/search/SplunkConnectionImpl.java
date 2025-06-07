@@ -521,7 +521,8 @@ public class SplunkConnectionImpl implements SplunkConnection {
           if (wantedFields.size() == 1) {
             // Yields 0 or higher if wanted field exists.
             // Yields -1 if wanted field does not exist.
-            source = headerList.indexOf(wantedFields.get(0));
+            String splunkFieldName = findSplunkFieldName(wantedFields.get(0), this.reverseFieldMapping);
+            source = headerList.indexOf(splunkFieldName);
           } else if (wantedFields.equals(headerList)) {
             source = -2;
           } else {
@@ -529,7 +530,9 @@ public class SplunkConnectionImpl implements SplunkConnection {
             sources = new int[wantedFields.size()];
             int i = 0;
             for (String wantedField : wantedFields) {
-              sources[i++] = headerList.indexOf(wantedField);
+              // Find the Splunk field name that maps to this schema field name
+              String splunkFieldName = findSplunkFieldName(wantedField, this.reverseFieldMapping);
+              sources[i++] = headerList.indexOf(splunkFieldName);
             }
           }
         }
@@ -538,6 +541,21 @@ public class SplunkConnectionImpl implements SplunkConnection {
         e.printStackTrace(new PrintWriter(sw));
         LOGGER.warn("{}\n{}", e.getMessage(), sw);
       }
+    }
+
+    /**
+     * Find the Splunk field name that corresponds to the given schema field name.
+     */
+    private String findSplunkFieldName(String schemaFieldName, Map<String, String> reverseFieldMapping) {
+      // reverseFieldMapping maps from Splunk field names to schema field names
+      // We need to find the Splunk field name that maps to the given schema field name
+      for (Map.Entry<String, String> entry : reverseFieldMapping.entrySet()) {
+        if (entry.getValue().equals(schemaFieldName)) {
+          return entry.getKey(); // Return the Splunk field name
+        }
+      }
+      // If no mapping found, assume the names are the same
+      return schemaFieldName;
     }
 
     @Override public Object current() {
@@ -563,14 +581,13 @@ public class SplunkConnectionImpl implements SplunkConnection {
                 mapped[extraFieldIndex] = collectExtraFields(line);
               }
 
-              // Apply field name mapping if present
-              this.current = applyFieldMapping(mapped);
+              this.current = mapped;
               break;
             case -2:
               // Return line as Object[] for type conversion
               Object[] objectLine = new Object[line.length];
               System.arraycopy(line, 0, objectLine, 0, line.length);
-              current = applyFieldMapping(objectLine);
+              current = objectLine;
               break;
             case -1:
               // Singleton empty string instead of null
@@ -591,34 +608,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
       return false;
     }
 
-    /**
-     * Apply reverse field mapping to transform Splunk field names back to schema field names.
-     * IMPORTANT: This method should preserve the array order (schema order) and only rename fields.
-     */
-    private Object applyFieldMapping(Object[] row) {
-      if (reverseFieldMapping.isEmpty()) {
-        return row;
-      }
 
-      // The input row is already in the correct order (schema order from case -3 processing).
-      // We just need to apply field name mapping if needed for any metadata/logging purposes.
-      // The actual data array should be returned as-is to preserve the schema field order.
-
-      // For debugging: log the field mapping that would be applied
-      if (LOGGER.isDebugEnabled()) {
-        Map<String, Object> fieldMap = new HashMap<>();
-        for (int i = 0; i < Math.min(fieldNames.length, row.length); i++) {
-          String splunkFieldName = fieldNames[i];
-          String schemaFieldName = reverseFieldMapping.getOrDefault(splunkFieldName, splunkFieldName);
-          fieldMap.put(schemaFieldName, row[i]);
-          LOGGER.debug("Field mapping: {} -> {} = {}", splunkFieldName, schemaFieldName, row[i]);
-        }
-      }
-
-      // Return the row as-is since it's already in the correct schema order
-      // The field name mapping is just for internal tracking/debugging
-      return row;
-    }
 
     /**
      * Collect fields that are in Splunk results but not defined in the table schema.
