@@ -519,16 +519,19 @@ public class SplunkConnectionImpl implements SplunkConnection {
           if (line.trim().isEmpty()) continue;
 
           // Parse JSON line using Jackson
-          Map<String, Object> jsonRecord = parseJsonLine(line);
-          if (jsonRecord == null) continue;
+          Map<String, Object> rawJsonRecord = parseJsonLine(line);
+          if (rawJsonRecord == null) continue;
+
+          // CRITICAL FIX: Extract event data from Splunk's wrapper structure
+          Map<String, Object> jsonRecord = extractEventData(rawJsonRecord);
 
           rowCount++;
 
           // Debug first few rows
           if (rowCount <= 3) {
             System.out.println("=== JSON ROW " + rowCount + " ===");
-//            System.out.println("Raw JSON structure: " + rawJsonRecord.keySet());
-            System.out.println("Extracted event data: " + jsonRecord.keySet());
+            System.out.println("Raw JSON keys: " + rawJsonRecord.keySet());
+            System.out.println("Extracted event data keys: " + jsonRecord.keySet());
 
             // Show first few fields to avoid clutter
             int fieldCount = 0;
@@ -557,12 +560,12 @@ public class SplunkConnectionImpl implements SplunkConnection {
               // DEBUG: Show the lookup process
               if (rowCount <= 3) {
                 System.out.printf("  Looking up: schema='%s' -> splunk='%s'\n", schemaField, splunkField);
-                System.out.printf("    JSON contains key '%s'? %s\n", splunkField, jsonRecord.containsKey(splunkField));
+                System.out.printf("    Event data contains key '%s'? %s\n", splunkField, jsonRecord.containsKey(splunkField));
                 System.out.printf("    Value: %s\n", value);
 
                 // If lookup failed, show what keys ARE available
                 if (value == null && !jsonRecord.containsKey(splunkField)) {
-                  System.out.println("    Available JSON keys: " + jsonRecord.keySet());
+                  System.out.println("    Available event keys: " + jsonRecord.keySet());
                 }
               }
 
