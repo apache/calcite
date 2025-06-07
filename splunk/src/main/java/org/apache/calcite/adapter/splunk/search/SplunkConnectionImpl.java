@@ -43,6 +43,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -307,6 +308,12 @@ public class SplunkConnectionImpl implements SplunkConnection {
     args.put("preview", "0");
     args.put("check_connection", "0");
 
+    System.out.println("=== SPLUNK SEARCH DEBUG ===");
+    System.out.println("Search URL: " + searchUrl);
+    System.out.println("Search query: " + search);
+    System.out.println("All search args: " + args);
+    System.out.println("=== END SPLUNK SEARCH DEBUG ===");
+
     appendURLEncodedArgs(data, args);
     try {
       // wait at most 30 minutes for first result
@@ -542,13 +549,34 @@ public class SplunkConnectionImpl implements SplunkConnection {
             System.out.println("=== JSON ROW " + rowCount + " ===");
             System.out.println("Raw JSON keys: " + rawJsonRecord.keySet());
             System.out.println("Extracted event data keys: " + eventData.keySet());
+            System.out.println("Event data field count: " + eventData.size());
 
             // Show ALL event data fields so we can see what we're working with
-            System.out.println("ALL EVENT DATA:");
+            System.out.println("ALL EVENT DATA (showing first 30 fields):");
+            int fieldCount = 0;
             for (Map.Entry<String, Object> entry : eventData.entrySet()) {
+              if (fieldCount >= 30) {
+                System.out.println("  ... (" + (eventData.size() - 30) + " more fields)");
+                break;
+              }
               Object value = entry.getValue();
               System.out.printf("  '%s': '%s' (%s)\n", entry.getKey(), value,
                   value != null ? value.getClass().getSimpleName() : "null");
+              fieldCount++;
+            }
+
+            // Show some key analysis
+            System.out.println("FIELD ANALYSIS:");
+            long authFields = eventData.keySet().stream().filter(k -> k.startsWith("Authentication.")).count();
+            long basicFields = eventData.keySet().stream().filter(k -> !k.startsWith("Authentication.")).count();
+            System.out.println("  Authentication.* fields: " + authFields);
+            System.out.println("  Other fields: " + basicFields);
+            System.out.println("  Total fields returned by Splunk: " + eventData.size());
+            System.out.println("  Expected fields in schema: 53");
+
+            if (eventData.size() < 40) {
+              System.out.println("  *** WARNING: Splunk returned fewer fields than expected! ***");
+              System.out.println("  *** This suggests the field_list='*' may not be working as expected ***");
             }
             System.out.println();
           }
@@ -670,26 +698,39 @@ public class SplunkConnectionImpl implements SplunkConnection {
     private String buildExtraFields(Map<String, Object> eventData) {
       Map<String, Object> extra = new HashMap<>();
 
+      // Create set of Splunk fields that correspond to requested schema fields
+      Set<String> requestedSplunkFields = new HashSet<>();
+      for (String schemaField : schemaFieldList) {
+        if (!"_extra".equals(schemaField)) {
+          String splunkField = fieldMapping.getOrDefault(schemaField, schemaField);
+          requestedSplunkFields.add(splunkField);
+        }
+      }
+
+      if (rowCount <= 3) {
+        System.out.println("    REQUESTED schema fields: " + schemaFieldList);
+        System.out.println("    REQUESTED Splunk fields: " + requestedSplunkFields);
+        System.out.println("    AVAILABLE Splunk fields: " + eventData.keySet());
+      }
+
       for (Map.Entry<String, Object> entry : eventData.entrySet()) {
         String fieldName = entry.getKey();
 
-        // Only include fields that aren't explicitly mapped to schema fields
-        boolean isExplicitField = explicitFields.contains(fieldName);
-        boolean isMappedField = fieldMapping.values().contains(fieldName);
+        // Include in _extra if this Splunk field was NOT explicitly requested
+        boolean wasRequested = requestedSplunkFields.contains(fieldName);
 
         if (rowCount <= 3) {
-          System.out.printf("    Evaluating field '%s': explicit=%s, mapped=%s\n",
-              fieldName, isExplicitField, isMappedField);
+          System.out.printf("    Evaluating field '%s': wasRequested=%s\n",
+              fieldName, wasRequested);
         }
 
-        // Include field in _extra if it's not mapped to any schema field
-        if (!isMappedField && !"_extra".equals(fieldName)) {
+        if (!wasRequested) {
           extra.put(fieldName, entry.getValue());
           if (rowCount <= 3) {
             System.out.printf("    -> Including '%s' in _extra\n", fieldName);
           }
         } else if (rowCount <= 3) {
-          System.out.printf("    -> Excluding '%s' from _extra\n", fieldName);
+          System.out.printf("    -> Excluding '%s' from _extra (was requested)\n", fieldName);
         }
       }
 
