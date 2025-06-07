@@ -22,6 +22,7 @@ import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.sql.type.SqlTypeName;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -206,29 +207,122 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
       if (current instanceof Object[]) {
         Object[] inputRow = (Object[]) current;
 
-        // Only debug first row to avoid spam
-//        if (rowCount == 1) {
-//          System.out.println("=== First Row Debug ===");
-//          for (int i = 0; i < Math.min(inputRow.length, 3); i++) { // Only first 3 fields
-//            Object value = inputRow[i];
-//            System.out.println("Input[" + i + "]: " + value + " (" + (value != null ? value.getClass().getSimpleName() : "null") + ")");
-//          }
-//        }
+        // Enhanced debug logging for first few rows
+        if (rowCount <= 3) { // Debug first 3 rows to see patterns
+          System.out.println("=== Row " + rowCount + " Field Mapping Debug ===");
+          System.out.println("Schema field count: " + schema.getFieldCount());
+          System.out.println("Data field count: " + inputRow.length);
+          System.out.println();
 
+          // Show schema vs actual data alignment
+          int maxFields = Math.max(inputRow.length, schema.getFieldList().size());
+          for (int i = 0; i < maxFields; i++) {
+            String schemaInfo = "N/A";
+            String dataInfo = "N/A";
+
+            // Get schema field info
+            if (i < schema.getFieldList().size()) {
+              RelDataTypeField schemaField = schema.getFieldList().get(i);
+              schemaInfo = schemaField.getName() + " (" + schemaField.getType().getSqlTypeName() + ")";
+            }
+
+            // Get actual data info
+            if (i < inputRow.length) {
+              Object dataValue = inputRow[i];
+              String valueStr = (dataValue != null) ? dataValue.toString() : "null";
+              String typeStr = (dataValue != null) ? dataValue.getClass().getSimpleName() : "null";
+
+              // Truncate long values for readability
+              if (valueStr.length() > 50) {
+                valueStr = valueStr.substring(0, 47) + "...";
+              }
+
+              dataInfo = "'" + valueStr + "' (" + typeStr + ")";
+            }
+
+            // Mark mismatches
+            String status = "";
+            if (i < schema.getFieldList().size() && i < inputRow.length) {
+              RelDataTypeField schemaField = schema.getFieldList().get(i);
+              Object dataValue = inputRow[i];
+
+              // Check for obvious type mismatches
+              if (schemaField.getType().getSqlTypeName() == SqlTypeName.TIMESTAMP &&
+                  dataValue != null && !isTimestampLike(dataValue.toString())) {
+                status = " *** MISMATCH ***";
+              } else if (schemaField.getType().getSqlTypeName() == SqlTypeName.INTEGER &&
+                  dataValue != null && !isIntegerLike(dataValue.toString())) {
+                status = " *** MISMATCH ***";
+              }
+            }
+
+            System.out.println(String.format("Field[%2d] Schema: %-30s | Data: %-30s%s",
+                i, schemaInfo, dataInfo, status));
+          }
+          System.out.println();
+        }
+
+        // Perform conversion
         Object[] convertedRow = SplunkDataConverter.convertRow(inputRow, schema);
 
-//        if (rowCount == 1) {
-//          for (int i = 0; i < Math.min(convertedRow.length, 3); i++) { // Only first 3 fields
-//            Object value = convertedRow[i];
-//            System.out.println("Output[" + i + "]: " + value + " (" + (value != null ? value.getClass().getSimpleName() : "null") + ")");
-//          }
-//          System.out.println("====================");
-//        }
+        // Show conversion results for first row
+        if (rowCount == 1) {
+          System.out.println("=== Conversion Results ===");
+          for (int i = 0; i < Math.min(convertedRow.length, 10); i++) { // First 10 fields
+            Object originalValue = (i < inputRow.length) ? inputRow[i] : null;
+            Object convertedValue = convertedRow[i];
+
+            String originalStr = (originalValue != null) ? originalValue.toString() : "null";
+            String convertedStr = (convertedValue != null) ? convertedValue.toString() : "null";
+            String originalType = (originalValue != null) ? originalValue.getClass().getSimpleName() : "null";
+            String convertedType = (convertedValue != null) ? convertedValue.getClass().getSimpleName() : "null";
+
+            // Truncate for readability
+            if (originalStr.length() > 30) originalStr = originalStr.substring(0, 27) + "...";
+            if (convertedStr.length() > 30) convertedStr = convertedStr.substring(0, 27) + "...";
+
+            System.out.println(String.format("  [%d] '%s' (%s) -> '%s' (%s)",
+                i, originalStr, originalType, convertedStr, convertedType));
+          }
+          System.out.println("==========================");
+        }
 
         return convertedRow;
       }
 
       return current;
+    }
+
+    /**
+     * Helper method to check if a string looks like a timestamp
+     */
+    private boolean isTimestampLike(String value) {
+      if (value == null || value.trim().isEmpty()) {
+        return false;
+      }
+
+      // Check for common timestamp patterns
+      return value.matches("\\d{4}-\\d{2}-\\d{2}.*") ||           // 2025-06-07...
+          value.matches("\\d{2}/\\d{2}/\\d{4}.*") ||           // 06/07/2025...
+          value.matches("\\d{10}(\\.\\d+)?") ||                // Unix timestamp
+          value.matches("\\d{13}") ||                          // Unix timestamp in millis
+          value.contains("timestamp=");                        // Splunk audit format
+    }
+
+    /**
+     * Helper method to check if a string looks like an integer
+     */
+    private boolean isIntegerLike(String value) {
+      if (value == null || value.trim().isEmpty()) {
+        return false;
+      }
+
+      try {
+        Integer.parseInt(value.trim());
+        return true;
+      } catch (NumberFormatException e) {
+        return false;
+      }
     }
 
     @Override
