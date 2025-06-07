@@ -495,8 +495,15 @@ public class SplunkConnectionImpl implements SplunkConnection {
 
       System.out.println("=== JSON ENUMERATOR INITIALIZED ===");
       System.out.println("Schema field list: " + schemaFieldList);
+      System.out.println("Reverse field mapping received: " + reverseFieldMapping);
       System.out.println("Field mapping (Schema -> Splunk): " + fieldMapping);
       System.out.println("Explicit fields: " + explicitFields);
+
+      // DEBUG: Show what each schema field maps to
+      for (String schemaField : schemaFieldList) {
+        String splunkField = fieldMapping.getOrDefault(schemaField, schemaField);
+        System.out.println("  '" + schemaField + "' -> '" + splunkField + "'");
+      }
     }
 
     @Override
@@ -520,7 +527,8 @@ public class SplunkConnectionImpl implements SplunkConnection {
           // Debug first few rows
           if (rowCount <= 3) {
             System.out.println("=== JSON ROW " + rowCount + " ===");
-            System.out.println("Available JSON fields: " + jsonRecord.keySet());
+//            System.out.println("Raw JSON structure: " + rawJsonRecord.keySet());
+            System.out.println("Extracted event data: " + jsonRecord.keySet());
 
             // Show first few fields to avoid clutter
             int fieldCount = 0;
@@ -546,6 +554,18 @@ public class SplunkConnectionImpl implements SplunkConnection {
               String splunkField = fieldMapping.getOrDefault(schemaField, schemaField);
               Object value = jsonRecord.get(splunkField);
 
+              // DEBUG: Show the lookup process
+              if (rowCount <= 3) {
+                System.out.printf("  Looking up: schema='%s' -> splunk='%s'\n", schemaField, splunkField);
+                System.out.printf("    JSON contains key '%s'? %s\n", splunkField, jsonRecord.containsKey(splunkField));
+                System.out.printf("    Value: %s\n", value);
+
+                // If lookup failed, show what keys ARE available
+                if (value == null && !jsonRecord.containsKey(splunkField)) {
+                  System.out.println("    Available JSON keys: " + jsonRecord.keySet());
+                }
+              }
+
               // Jackson preserves types well: Integer, Double, Boolean, null, String
               result[i] = value;
 
@@ -565,6 +585,31 @@ public class SplunkConnectionImpl implements SplunkConnection {
         e.printStackTrace();
       }
       return false;
+    }
+
+    /**
+     * Extract event data from Splunk's JSON wrapper structure.
+     * Splunk returns: {"preview":false,"result":{...event data...},"offset":0}
+     * We need the content of the "result" field.
+     */
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> extractEventData(Map<String, Object> rawJson) {
+      try {
+        // Check if this is a wrapped Splunk result
+        if (rawJson.containsKey("result")) {
+          Object resultObj = rawJson.get("result");
+          if (resultObj instanceof Map) {
+            return (Map<String, Object>) resultObj;
+          }
+        }
+
+        // If no "result" wrapper, assume it's already unwrapped event data
+        return rawJson;
+
+      } catch (Exception e) {
+        System.err.println("Failed to extract event data from JSON: " + e.getMessage());
+        return rawJson; // Fallback to original
+      }
     }
 
     /**
@@ -588,12 +633,17 @@ public class SplunkConnectionImpl implements SplunkConnection {
      * Build _extra field containing all unmapped fields as JSON.
      * Uses Jackson for reliable serialization.
      */
-    private String buildExtraFields(Map<String, Object> jsonRecord) {
+    private String buildExtraFields(Map<String, Object> eventData) {
       Map<String, Object> extra = new HashMap<>();
 
-      for (Map.Entry<String, Object> entry : jsonRecord.entrySet()) {
+      for (Map.Entry<String, Object> entry : eventData.entrySet()) {
         String fieldName = entry.getKey();
-        if (!explicitFields.contains(fieldName) && !"_extra".equals(fieldName)) {
+
+        // Only include fields that aren't explicitly mapped to schema fields
+        boolean isExplicitField = explicitFields.contains(fieldName);
+        boolean isMappedField = fieldMapping.values().contains(fieldName);
+
+        if (!isExplicitField && !isMappedField && !"_extra".equals(fieldName)) {
           extra.put(fieldName, entry.getValue());
         }
       }
