@@ -117,14 +117,15 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
         search, getArgs(), fieldList, explicitFields, reverseMapping);
 
     System.out.println("DEBUG: SplunkQuery.enumerator() - JSON Mode");
-    System.out.println("  Schema field list: " + fieldList);
+    System.out.println("  Query field list: " + fieldList);
     System.out.println("  Field mapping: " + fieldMapping);
     System.out.println("  Schema is null? " + (schema == null));
 
     // Type conversion is simpler with JSON since types are better preserved
     if (schema != null) {
       System.out.println("  Creating SimpleTypeConverter...");
-      return (Enumerator<T>) new SimpleTypeConverter((Enumerator<Object>) rawEnumerator, schema);
+      // CRITICAL FIX: Pass the actual query field list so SimpleTypeConverter knows the array order
+      return (Enumerator<T>) new SimpleTypeConverter((Enumerator<Object>) rawEnumerator, schema, fieldList);
     }
 
     System.out.println("  Using raw enumerator (no schema conversion)");
@@ -172,18 +173,36 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
   /**
    * Simple type converter for JSON data.
    * Much simpler than the CSV version since JSON preserves types better.
+   *
+   * FIXED: Now accepts the actual query field list so it knows the array order.
    */
   private static class SimpleTypeConverter implements Enumerator<Object> {
     private final Enumerator<Object> underlying;
     private final RelDataType schema;
+    private final List<String> queryFieldList; // ADDED: The actual field order in the array
     private int rowCount = 0;
 
-    public SimpleTypeConverter(Enumerator<Object> underlying, RelDataType schema) {
+    public SimpleTypeConverter(Enumerator<Object> underlying, RelDataType schema, List<String> queryFieldList) {
       this.underlying = underlying;
       this.schema = schema;
+      this.queryFieldList = queryFieldList;
 
       System.out.println("DEBUG: SimpleTypeConverter created for JSON mode");
-      System.out.println("  Schema field count: " + schema.getFieldCount());
+      System.out.println("  Full schema field count: " + schema.getFieldCount());
+      System.out.println("  Query field count: " + queryFieldList.size());
+      System.out.println("  Query field list: " + queryFieldList);
+
+      // Show the mapping between array indices and field names
+      System.out.println("  Array index mapping:");
+      for (int i = 0; i < queryFieldList.size(); i++) {
+        String fieldName = queryFieldList.get(i);
+        RelDataTypeField schemaField = schema.getField(fieldName, false, false);
+        if (schemaField != null) {
+          System.out.printf("    [%d] = %s (%s)\n", i, fieldName, schemaField.getType().getSqlTypeName());
+        } else {
+          System.out.printf("    [%d] = %s (field not found in schema)\n", i, fieldName);
+        }
+      }
     }
 
     @Override
@@ -197,35 +216,41 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
         if (rowCount <= 3) {
           System.out.println("DEBUG: SimpleTypeConverter - Row " + rowCount);
           System.out.println("  Input row length: " + inputRow.length);
-          System.out.println("  Schema field count: " + schema.getFieldCount());
+          System.out.println("  Query field count: " + queryFieldList.size());
 
-          // Show what we got from JSON
-          for (int i = 0; i < Math.min(inputRow.length, schema.getFieldList().size()); i++) {
-            RelDataTypeField field = schema.getFieldList().get(i);
+          // Show what we got from JSON using the CORRECT field mapping
+          for (int i = 0; i < Math.min(inputRow.length, queryFieldList.size()); i++) {
+            String fieldName = queryFieldList.get(i);
+            RelDataTypeField field = schema.getField(fieldName, false, false);
             Object value = inputRow[i];
             String valueType = value != null ? value.getClass().getSimpleName() : "null";
-            String expectedType = field.getType().getSqlTypeName().toString();
 
-            System.out.printf("  [%d] %s: '%s' (%s) -> expected %s\n",
-                i, field.getName(), value, valueType, expectedType);
+            if (field != null) {
+              String expectedType = field.getType().getSqlTypeName().toString();
+              System.out.printf("  [%d] %s: '%s' (%s) -> expected %s\n",
+                  i, fieldName, value, valueType, expectedType);
+            } else {
+              System.out.printf("  [%d] %s: '%s' (%s) -> field not in schema\n",
+                  i, fieldName, value, valueType);
+            }
           }
         }
 
         // Convert types as needed - most should already be correct from JSON
-        Object[] convertedRow = SplunkDataConverter.convertRow(inputRow, schema);
+        Object[] convertedRow = convertRowWithFieldMapping(inputRow, schema, queryFieldList);
 
         if (rowCount <= 3) {
           System.out.println("  Post-conversion:");
-          for (int i = 0; i < Math.min(convertedRow.length, schema.getFieldList().size()); i++) {
-            RelDataTypeField field = schema.getFieldList().get(i);
+          for (int i = 0; i < Math.min(convertedRow.length, queryFieldList.size()); i++) {
+            String fieldName = queryFieldList.get(i);
+            RelDataTypeField field = schema.getField(fieldName, false, false);
             Object value = convertedRow[i];
             String valueType = value != null ? value.getClass().getSimpleName() : "null";
 
-            System.out.printf("  [%d] %s: '%s' (%s)\n",
-                i, field.getName(), value, valueType);
+            System.out.printf("  [%d] %s: '%s' (%s)\n", i, fieldName, value, valueType);
 
             // Flag any type mismatches
-            if (field.getType().getSqlTypeName() == SqlTypeName.INTEGER && value instanceof String) {
+            if (field != null && field.getType().getSqlTypeName() == SqlTypeName.INTEGER && value instanceof String) {
               System.out.println("    *** WARNING: INTEGER field has String value ***");
             }
           }
@@ -236,6 +261,29 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
       }
 
       return current;
+    }
+
+    /**
+     * Convert a row using the query field mapping instead of assuming schema order.
+     */
+    private Object[] convertRowWithFieldMapping(Object[] inputRow, RelDataType schema, List<String> queryFieldList) {
+      Object[] result = new Object[inputRow.length];
+
+      for (int i = 0; i < Math.min(inputRow.length, queryFieldList.size()); i++) {
+        String fieldName = queryFieldList.get(i);
+        RelDataTypeField field = schema.getField(fieldName, false, false);
+        Object value = inputRow[i];
+
+        if (field != null) {
+          // Convert using the actual field type
+          result[i] = SplunkDataConverter.convertValue(value, field.getType().getSqlTypeName());
+        } else {
+          // Field not in schema, pass through as-is
+          result[i] = value;
+        }
+      }
+
+      return result;
     }
 
     @Override

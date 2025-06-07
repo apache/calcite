@@ -467,10 +467,16 @@ public class SplunkConnectionImpl implements SplunkConnection {
   /**
    * Production JSON-based result enumerator using Jackson for robust JSON parsing.
    * Much simpler and more reliable than the CSV approach.
+   *
+   * NOTE: The challenge is that schemaFieldList contains only the REQUESTED fields
+   * in query order, but SimpleTypeConverter expects ALL schema fields in schema order.
+   * We need to either:
+   * 1. Build full schema array (53 fields) with nulls for unrequested fields, OR
+   * 2. Build compact array (N requested fields) and ensure SimpleTypeConverter knows the mapping
    */
   public static class SplunkJsonResultEnumerator implements Enumerator<Object> {
     private final BufferedReader reader;
-    private final List<String> schemaFieldList;
+    private final List<String> schemaFieldList; // REQUESTED fields in query order
     private final Set<String> explicitFields;
     private final Map<String, String> fieldMapping; // Schema field -> Splunk field
     private Object current;
@@ -494,19 +500,20 @@ public class SplunkConnectionImpl implements SplunkConnection {
       }
 
       System.out.println("=== JSON ENUMERATOR INITIALIZED ===");
-      System.out.println("Schema field list: " + schemaFieldList);
-      System.out.println("Reverse field mapping received: " + reverseFieldMapping);
+      System.out.println("REQUESTED fields (schemaFieldList) SIZE: " + schemaFieldList.size());
+      System.out.println("REQUESTED fields: " + schemaFieldList);
       System.out.println("Field mapping (Schema -> Splunk): " + fieldMapping);
       System.out.println("Explicit fields: " + explicitFields);
 
-      // DEBUG: Show what each schema field maps to
-      for (String schemaField : schemaFieldList) {
+      // CRITICAL DEBUG: Show the exact order of REQUESTED schema fields
+      System.out.println("=== REQUESTED FIELD ORDER ===");
+      for (int i = 0; i < schemaFieldList.size(); i++) {
+        String schemaField = schemaFieldList.get(i);
         String splunkField = fieldMapping.getOrDefault(schemaField, schemaField);
-        System.out.println("  '" + schemaField + "' -> '" + splunkField + "'");
+        System.out.printf("  [%d] REQUESTED: '%s' -> '%s'\n", i, schemaField, splunkField);
       }
 
-      System.out.println("DEBUG: Explicit fields that will be excluded from _extra: " + explicitFields);
-      System.out.println("DEBUG: Mapped fields that will be excluded from _extra: " + fieldMapping.values());
+      System.out.println("*** CRITICAL: SimpleTypeConverter expects these " + schemaFieldList.size() + " fields to be in schema order, not query order! ***");
     }
 
     @Override
@@ -525,8 +532,8 @@ public class SplunkConnectionImpl implements SplunkConnection {
           Map<String, Object> rawJsonRecord = parseJsonLine(line);
           if (rawJsonRecord == null) continue;
 
-          // CRITICAL FIX: Extract event data from Splunk's wrapper structure
-          Map<String, Object> jsonRecord = extractEventData(rawJsonRecord);
+          // Extract event data from Splunk's wrapper structure
+          Map<String, Object> eventData = extractEventData(rawJsonRecord);
 
           rowCount++;
 
@@ -534,11 +541,11 @@ public class SplunkConnectionImpl implements SplunkConnection {
           if (rowCount <= 3) {
             System.out.println("=== JSON ROW " + rowCount + " ===");
             System.out.println("Raw JSON keys: " + rawJsonRecord.keySet());
-            System.out.println("Extracted event data keys: " + jsonRecord.keySet());
+            System.out.println("Extracted event data keys: " + eventData.keySet());
 
             // Show ALL event data fields so we can see what we're working with
             System.out.println("ALL EVENT DATA:");
-            for (Map.Entry<String, Object> entry : jsonRecord.entrySet()) {
+            for (Map.Entry<String, Object> entry : eventData.entrySet()) {
               Object value = entry.getValue();
               System.out.printf("  '%s': '%s' (%s)\n", entry.getKey(), value,
                   value != null ? value.getClass().getSimpleName() : "null");
@@ -546,34 +553,51 @@ public class SplunkConnectionImpl implements SplunkConnection {
             System.out.println();
           }
 
-          // Map to schema fields
+          System.out.println("=== CRITICAL DIAGNOSIS ===");
+          System.out.println("Problem: SimpleTypeConverter expects field indices to match schema order");
+          System.out.println("But we're building array in QUERY order, not SCHEMA order");
+          System.out.println();
+          System.out.println("Query requested these fields in this order:");
+          for (int i = 0; i < schemaFieldList.size(); i++) {
+            System.out.printf("  [%d] %s\n", i, schemaFieldList.get(i));
+          }
+          System.out.println();
+          System.out.println("But SimpleTypeConverter thinks:");
+          System.out.println("  [0] = _time, [1] = host, [2] = source, [3] = sourcetype, [4] = index...");
+          System.out.println();
+          System.out.println("SOLUTION: Need to determine if we should:");
+          System.out.println("  A) Build compact array (current) - requires SimpleTypeConverter to know field mapping");
+          System.out.println("  B) Build full 53-field schema array with nulls - requires knowing full schema order");
+          System.out.println("=== END DIAGNOSIS ===");
+
+          // Map to schema fields - build array in the exact order schemaFieldList specifies
           Object[] result = new Object[schemaFieldList.size()];
+
           for (int i = 0; i < schemaFieldList.size(); i++) {
             String schemaField = schemaFieldList.get(i);
 
             if ("_extra".equals(schemaField)) {
               // Collect unmapped fields as JSON
               if (rowCount <= 3) {
-                System.out.printf("  Processing _extra field...\n");
+                System.out.printf("  [%d] Processing _extra field...\n", i);
               }
-              result[i] = buildExtraFields(jsonRecord);
+              result[i] = buildExtraFields(eventData);
             } else {
               // Map schema field name to Splunk field name
               String splunkField = fieldMapping.getOrDefault(schemaField, schemaField);
-              Object value = jsonRecord.get(splunkField);
+              Object value = eventData.get(splunkField);
 
               // DEBUG: Show the lookup process
               if (rowCount <= 3) {
-                System.out.printf("  Looking up: schema='%s' -> splunk='%s'\n", schemaField, splunkField);
-                System.out.printf("    Event data contains key '%s'? %s\n", splunkField, jsonRecord.containsKey(splunkField));
-                System.out.printf("    RAW VALUE: '%s' (%s)\n", value, value != null ? value.getClass().getSimpleName() : "null");
+                System.out.printf("  [%d] Looking up: schema='%s' -> splunk='%s'\n", i, schemaField, splunkField);
+                System.out.printf("      Event data contains key '%s'? %s\n", splunkField, eventData.containsKey(splunkField));
+                System.out.printf("      RAW VALUE: '%s' (%s)\n", value, value != null ? value.getClass().getSimpleName() : "null");
               }
 
-              // Jackson preserves types well: Integer, Double, Boolean, null, String
               result[i] = value;
 
               if (rowCount <= 3) {
-                System.out.printf("  result[%d]: schema='%s' -> splunk='%s' -> value='%s' (%s)\n",
+                System.out.printf("  [%d] FINAL: schema='%s' -> splunk='%s' -> value='%s' (%s)\n",
                     i, schemaField, splunkField, value,
                     value != null ? value.getClass().getSimpleName() : "null");
               }
