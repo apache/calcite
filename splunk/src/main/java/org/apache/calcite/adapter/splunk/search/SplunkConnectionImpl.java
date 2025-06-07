@@ -27,6 +27,9 @@ import au.com.bytecode.opencsv.CSVReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.io.BufferedReader;
 import java.io.Closeable;
 import java.io.IOException;
@@ -60,6 +63,7 @@ import static org.apache.calcite.runtime.HttpUtils.post;
 /**
  * Implementation of {@link SplunkConnection} based on Splunk's REST API.
  * Enhanced to support "_extra" field collection for CIM models and configurable SSL validation.
+ * Uses JSON output for simpler and more reliable data processing.
  */
 public class SplunkConnectionImpl implements SplunkConnection {
   private static final Logger LOGGER =
@@ -284,7 +288,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
   private Enumerator<Object> performSearchForEnumerator(
       String search,
       Map<String, String> otherArgs,
-      List<String> wantedFields,
+      List<String> schemaFieldList,
       Set<String> explicitFields,
       Map<String, String> reverseFieldMapping) {
     String searchUrl =
@@ -297,11 +301,10 @@ public class SplunkConnectionImpl implements SplunkConnection {
     StringBuilder data = new StringBuilder();
     Map<String, String> args = new LinkedHashMap<>(otherArgs);
     args.put("search", search);
-    // override these args
-    args.put("output_mode", "csv");
-    args.put("preview", "0");
 
-    // TODO: remove this once the csv parser can handle leading spaces
+    // THE KEY CHANGE: Use JSON instead of CSV
+    args.put("output_mode", "json");
+    args.put("preview", "0");
     args.put("check_connection", "0");
 
     appendURLEncodedArgs(data, args);
@@ -309,7 +312,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
       // wait at most 30 minutes for first result
       InputStream in =
           post(searchUrl, data, requestHeaders, 10000, 1800000);
-      return new SplunkResultEnumerator(in, wantedFields, explicitFields, reverseFieldMapping);
+      return new SplunkJsonResultEnumerator(in, schemaFieldList, explicitFields, reverseFieldMapping);
     } catch (Exception e) {
       StringWriter sw = new StringWriter();
       e.printStackTrace(new PrintWriter(sw));
@@ -424,10 +427,6 @@ public class SplunkConnectionImpl implements SplunkConnection {
     CountingSearchResultListener dummy = new CountingSearchResultListener(shouldPrint);
     long start = System.currentTimeMillis();
     c.getSearchResults(search, searchArgs, fieldList, dummy);
-
-//    System.out.printf(Locale.ROOT, "received %d results in %dms\n",
-//        dummy.getResultCount(),
-//        System.currentTimeMillis() - start);
   }
 
   /** Implementation of
@@ -465,247 +464,165 @@ public class SplunkConnectionImpl implements SplunkConnection {
     }
   }
 
-  /** Implementation of {@link Enumerator} that parses
-   * results from a Splunk REST call.
-   *
-   * <p>The element type is either {@code Object} or {@code Object[]}, depending
-   * on the value of {@code source}.
-   *
-   * <p>Enhanced to support "_extra" field collection for CIM models and field mapping.
+  /**
+   * Production JSON-based result enumerator using Jackson for robust JSON parsing.
+   * Much simpler and more reliable than the CSV approach.
    */
-  public static class SplunkResultEnumerator implements Enumerator<Object> {
-    private final CSVReader csvReader;
-    private String[] fieldNames = new String[0];
-    private int[] sources = new int[0];
-    private Object current = "";
-    private boolean hasExtraField = false;
-    private int extraFieldIndex = -1;
+  public static class SplunkJsonResultEnumerator implements Enumerator<Object> {
+    private final BufferedReader reader;
+    private final List<String> schemaFieldList;
     private final Set<String> explicitFields;
-    private final Map<String, String> reverseFieldMapping;
+    private final Map<String, String> fieldMapping; // Schema field -> Splunk field
+    private Object current;
+    private int rowCount = 0;
 
-    /**
-     * Where to find the singleton field, or whether to map. Values:
-     *
-     * <ul>
-     * <li>Non-negative The index of the sole field</li>
-     * <li>-1 Generate a singleton null field for every record</li>
-     * <li>-2 Return line intact</li>
-     * <li>-3 Use sources to re-map</li>
-     * </ul>
-     */
-    private int source = -1;
+    // Jackson ObjectMapper for robust JSON parsing
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final TypeReference<Map<String, Object>> MAP_TYPE_REF =
+        new TypeReference<Map<String, Object>>() {};
 
-    public SplunkResultEnumerator(InputStream in, List<String> wantedFields, Set<String> explicitFields) {
-      this(in, wantedFields, explicitFields, new HashMap<>());
-    }
-
-    public SplunkResultEnumerator(InputStream in, List<String> wantedFields, Set<String> explicitFields,
-        Map<String, String> reverseFieldMapping) {
+    public SplunkJsonResultEnumerator(InputStream in, List<String> schemaFieldList,
+        Set<String> explicitFields, Map<String, String> reverseFieldMapping) {
+      this.reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+      this.schemaFieldList = schemaFieldList;
       this.explicitFields = explicitFields;
-      this.reverseFieldMapping = reverseFieldMapping != null ? reverseFieldMapping : new HashMap<>();
-      csvReader =
-          new CSVReader(
-              new BufferedReader(
-                  new InputStreamReader(in, StandardCharsets.UTF_8)));
-      try {
-        String[] headerRow = csvReader.readNext();
-        if (headerRow != null && headerRow.length > 0
-            && !(headerRow.length == 1 && headerRow[0].isEmpty())) {
-          this.fieldNames = headerRow;
 
-          // DEBUG: Print actual Splunk CSV headers
-          System.out.println("=== SPLUNK CSV HEADERS ===");
-          for (int i = 0; i < fieldNames.length; i++) {
-            System.out.printf("Header[%d]: '%s'\n", i, fieldNames[i]);
-          }
-
-          // DEBUG: Print reverse field mapping
-          System.out.println("=== REVERSE FIELD MAPPING ===");
-          if (this.reverseFieldMapping.isEmpty()) {
-            System.out.println("Reverse field mapping is EMPTY");
-          } else {
-            for (Map.Entry<String, String> entry : this.reverseFieldMapping.entrySet()) {
-              System.out.printf("'%s' -> '%s'\n", entry.getKey(), entry.getValue());
-            }
-          }
-
-          // DEBUG: Print wanted fields and their lookups
-          System.out.println("=== FIELD LOOKUP RESULTS ===");
-          for (int i = 0; i < wantedFields.size(); i++) {
-            String wantedField = wantedFields.get(i);
-            String splunkFieldName = findSplunkFieldName(wantedField, this.reverseFieldMapping);
-            int index = Arrays.asList(fieldNames).indexOf(splunkFieldName);
-            System.out.printf("WantedField[%d]: '%s' -> SplunkField: '%s' -> Index: %d\n",
-                i, wantedField, splunkFieldName, index);
-          }
-
-          final List<String> headerList = Arrays.asList(fieldNames);
-
-          // Check if "_extra" field is requested
-          hasExtraField = wantedFields.contains("_extra");
-          extraFieldIndex = hasExtraField ? wantedFields.indexOf("_extra") : -1;
-
-          if (wantedFields.size() == 1) {
-            // Yields 0 or higher if wanted field exists.
-            // Yields -1 if wanted field does not exist.
-            String splunkFieldName = findSplunkFieldName(wantedFields.get(0), this.reverseFieldMapping);
-            source = headerList.indexOf(splunkFieldName);
-          } else if (wantedFields.equals(headerList)) {
-            source = -2;
-          } else {
-            source = -3;
-            sources = new int[wantedFields.size()];
-            int i = 0;
-            for (String wantedField : wantedFields) {
-              // Find the Splunk field name that maps to this schema field name
-              String splunkFieldName = findSplunkFieldName(wantedField, this.reverseFieldMapping);
-              sources[i++] = headerList.indexOf(splunkFieldName);
-            }
-          }
-        }
-      } catch (IOException e) {
-        StringWriter sw = new StringWriter();
-        e.printStackTrace(new PrintWriter(sw));
-        LOGGER.warn("{}\n{}", e.getMessage(), sw);
-      }
-    }
-
-    /**
-     * Find the Splunk field name that corresponds to the given schema field name.
-     */
-    private String findSplunkFieldName(String schemaFieldName, Map<String, String> reverseFieldMapping) {
-      // reverseFieldMapping maps from Splunk field names to schema field names
-      // We need to find the Splunk field name that maps to the given schema field name
+      // Convert reverse mapping (Splunk -> Schema) to forward mapping (Schema -> Splunk)
+      this.fieldMapping = new HashMap<>();
       for (Map.Entry<String, String> entry : reverseFieldMapping.entrySet()) {
-        if (entry.getValue().equals(schemaFieldName)) {
-          return entry.getKey(); // Return the Splunk field name
-        }
+        this.fieldMapping.put(entry.getValue(), entry.getKey());
       }
-      // If no mapping found, assume the names are the same
-      return schemaFieldName;
+
+      System.out.println("=== JSON ENUMERATOR INITIALIZED ===");
+      System.out.println("Schema field list: " + schemaFieldList);
+      System.out.println("Field mapping (Schema -> Splunk): " + fieldMapping);
+      System.out.println("Explicit fields: " + explicitFields);
     }
 
-    @Override public Object current() {
+    @Override
+    public Object current() {
       return current;
     }
 
-    @Override public boolean moveNext() {
+    @Override
+    public boolean moveNext() {
       try {
-        String[] line;
-        while ((line = csvReader.readNext()) != null) {
-          if (line.length == fieldNames.length) {
-            switch (source) {
-            case -3:
-              // Re-map using sources - return as Object[] for type conversion
-              Object[] mapped = new Object[sources.length];
-              for (int i = 0; i < sources.length; i++) {
-                int source1 = sources[i];
-                mapped[i] = source1 < 0 ? "" : line[source1];
-              }
+        String line;
+        while ((line = reader.readLine()) != null) {
+          if (line.trim().isEmpty()) continue;
 
-              // Handle "_extra" field if present
-              if (hasExtraField && extraFieldIndex >= 0) {
-                mapped[extraFieldIndex] = collectExtraFields(line);
-              }
+          // Parse JSON line using Jackson
+          Map<String, Object> jsonRecord = parseJsonLine(line);
+          if (jsonRecord == null) continue;
 
-              this.current = mapped;
-              break;
-            case -2:
-              // Return line as Object[] for type conversion
-              Object[] objectLine = new Object[line.length];
-              System.arraycopy(line, 0, objectLine, 0, line.length);
-              current = objectLine;
-              break;
-            case -1:
-              // Singleton empty string instead of null
-              this.current = "";
-              break;
-            default:
-              this.current = line[source];
-              break;
+          rowCount++;
+
+          // Debug first few rows
+          if (rowCount <= 3) {
+            System.out.println("=== JSON ROW " + rowCount + " ===");
+            System.out.println("Available JSON fields: " + jsonRecord.keySet());
+
+            // Show first few fields to avoid clutter
+            int fieldCount = 0;
+            for (Map.Entry<String, Object> entry : jsonRecord.entrySet()) {
+              if (fieldCount++ >= 5) break; // Only show first 5 fields
+              Object value = entry.getValue();
+              System.out.printf("  '%s': '%s' (%s)\n", entry.getKey(), value,
+                  value != null ? value.getClass().getSimpleName() : "null");
             }
-            return true;
+            System.out.println();
           }
+
+          // Map to schema fields
+          Object[] result = new Object[schemaFieldList.size()];
+          for (int i = 0; i < schemaFieldList.size(); i++) {
+            String schemaField = schemaFieldList.get(i);
+
+            if ("_extra".equals(schemaField)) {
+              // Collect unmapped fields as JSON
+              result[i] = buildExtraFields(jsonRecord);
+            } else {
+              // Map schema field name to Splunk field name
+              String splunkField = fieldMapping.getOrDefault(schemaField, schemaField);
+              Object value = jsonRecord.get(splunkField);
+
+              // Jackson preserves types well: Integer, Double, Boolean, null, String
+              result[i] = value;
+
+              if (rowCount <= 3) {
+                System.out.printf("  result[%d]: schema='%s' -> splunk='%s' -> value='%s' (%s)\n",
+                    i, schemaField, splunkField, value,
+                    value != null ? value.getClass().getSimpleName() : "null");
+              }
+            }
+          }
+
+          this.current = result;
+          return true;
         }
-      } catch (IOException e) {
-        StringWriter sw = new StringWriter();
-        e.printStackTrace(new PrintWriter(sw));
-        LOGGER.warn("{}\n{}", e.getMessage(), sw);
+      } catch (Exception e) {
+        System.err.println("Error in JSON enumerator: " + e.getMessage());
+        e.printStackTrace();
       }
       return false;
     }
 
-
-
     /**
-     * Collect fields that are in Splunk results but not defined in the table schema.
-     * Serialize them as JSON for the "_extra" field.
+     * Parse a single JSON line from Splunk using Jackson.
+     * Robust and handles all JSON edge cases properly.
      */
-    private String collectExtraFields(String[] line) {
-      Map<String, String> extraFields = new HashMap<>();
-
-      // Find fields that exist in Splunk but aren't defined in the table schema
-      for (int i = 0; i < fieldNames.length && i < line.length; i++) {
-        String fieldName = fieldNames[i];
-
-        // If field is not explicitly defined in the table schema and isn't "_extra" itself, collect it
-        if (!explicitFields.contains(fieldName) && !"_extra".equals(fieldName)) {
-          extraFields.put(fieldName, line[i]);
+    private Map<String, Object> parseJsonLine(String line) {
+      try {
+        return OBJECT_MAPPER.readValue(line, MAP_TYPE_REF);
+      } catch (Exception e) {
+        System.err.println("Failed to parse JSON line: " + line.substring(0, Math.min(100, line.length())));
+        if (rowCount <= 3) {
+          // Show more details for first few parsing errors
+          System.err.println("Parsing error: " + e.getMessage());
         }
+        return null;
       }
-
-      return serializeToJson(extraFields);
     }
 
     /**
-     * Simple JSON serialization for extra fields.
+     * Build _extra field containing all unmapped fields as JSON.
+     * Uses Jackson for reliable serialization.
      */
-    private String serializeToJson(Map<String, String> extraFields) {
-      if (extraFields.isEmpty()) {
+    private String buildExtraFields(Map<String, Object> jsonRecord) {
+      Map<String, Object> extra = new HashMap<>();
+
+      for (Map.Entry<String, Object> entry : jsonRecord.entrySet()) {
+        String fieldName = entry.getKey();
+        if (!explicitFields.contains(fieldName) && !"_extra".equals(fieldName)) {
+          extra.put(fieldName, entry.getValue());
+        }
+      }
+
+      return serializeToJson(extra);
+    }
+
+    /**
+     * Serialize map to JSON using Jackson.
+     * Much more robust than hand-crafted JSON serialization.
+     */
+    private String serializeToJson(Map<String, Object> map) {
+      try {
+        return OBJECT_MAPPER.writeValueAsString(map);
+      } catch (Exception e) {
+        System.err.println("Failed to serialize _extra fields to JSON: " + e.getMessage());
         return "{}";
       }
-
-      StringBuilder json = new StringBuilder("{");
-      boolean first = true;
-
-      for (Map.Entry<String, String> entry : extraFields.entrySet()) {
-        if (!first) {
-          json.append(",");
-        }
-        first = false;
-
-        json.append("\"").append(escapeJson(entry.getKey())).append("\":");
-
-        String value = entry.getValue();
-        if (value == null || value.isEmpty()) {
-          json.append("null");
-        } else {
-          json.append("\"").append(escapeJson(value)).append("\"");
-        }
-      }
-
-      json.append("}");
-      return json.toString();
     }
 
-    /**
-     * Simple JSON string escaping.
-     */
-    private String escapeJson(String str) {
-      return str.replace("\\", "\\\\")
-          .replace("\"", "\\\"")
-          .replace("\n", "\\n")
-          .replace("\r", "\\r")
-          .replace("\t", "\\t");
-    }
-
-    @Override public void reset() {
+    @Override
+    public void reset() {
       throw new UnsupportedOperationException();
     }
 
-    @Override public void close() {
+    @Override
+    public void close() {
       try {
-        csvReader.close();
+        reader.close();
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
