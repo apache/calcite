@@ -308,11 +308,11 @@ public class SplunkConnectionImpl implements SplunkConnection {
     args.put("preview", "0");
     args.put("check_connection", "0");
 
-    System.out.println("=== SPLUNK SEARCH DEBUG ===");
-    System.out.println("Search URL: " + searchUrl);
-    System.out.println("Search query: " + search);
-    System.out.println("All search args: " + args);
-    System.out.println("=== END SPLUNK SEARCH DEBUG ===");
+    LOGGER.debug("=== SPLUNK SEARCH DEBUG ===");
+    LOGGER.debug("Search URL: {}", searchUrl);
+    LOGGER.debug("Search query: {}", search);
+    LOGGER.debug("All search args: {}", args);
+    LOGGER.debug("=== END SPLUNK SEARCH DEBUG ===");
 
     appendURLEncodedArgs(data, args);
     try {
@@ -506,21 +506,21 @@ public class SplunkConnectionImpl implements SplunkConnection {
         this.fieldMapping.put(entry.getValue(), entry.getKey());
       }
 
-      System.out.println("=== JSON ENUMERATOR INITIALIZED ===");
-      System.out.println("REQUESTED fields (schemaFieldList) SIZE: " + schemaFieldList.size());
-      System.out.println("REQUESTED fields: " + schemaFieldList);
-      System.out.println("Field mapping (Schema -> Splunk): " + fieldMapping);
-      System.out.println("Explicit fields: " + explicitFields);
+      LOGGER.debug("=== JSON ENUMERATOR INITIALIZED ===");
+      LOGGER.debug("REQUESTED fields (schemaFieldList) SIZE: {}", schemaFieldList.size());
+      LOGGER.debug("REQUESTED fields: {}", schemaFieldList);
+      LOGGER.debug("Field mapping (Schema -> Splunk): {}", fieldMapping);
+      LOGGER.debug("Explicit fields: {}", explicitFields);
 
       // CRITICAL DEBUG: Show the exact order of REQUESTED schema fields
-      System.out.println("=== REQUESTED FIELD ORDER ===");
+      LOGGER.debug("=== REQUESTED FIELD ORDER ===");
       for (int i = 0; i < schemaFieldList.size(); i++) {
         String schemaField = schemaFieldList.get(i);
         String splunkField = fieldMapping.getOrDefault(schemaField, schemaField);
-        System.out.printf("  [%d] REQUESTED: '%s' -> '%s'\n", i, schemaField, splunkField);
+        LOGGER.debug("  [{}] REQUESTED: '{}' -> '{}'", i, schemaField, splunkField);
       }
 
-      System.out.println("*** CRITICAL: SimpleTypeConverter expects these " + schemaFieldList.size() + " fields to be in schema order, not query order! ***");
+      LOGGER.debug("*** CRITICAL: SimpleTypeConverter expects these {} fields to be in schema order, not query order! ***", schemaFieldList.size());
     }
 
     @Override
@@ -546,39 +546,38 @@ public class SplunkConnectionImpl implements SplunkConnection {
 
           // Debug first few rows
           if (rowCount <= 3) {
-            System.out.println("=== JSON ROW " + rowCount + " ===");
-            System.out.println("Raw JSON keys: " + rawJsonRecord.keySet());
-            System.out.println("Extracted event data keys: " + eventData.keySet());
-            System.out.println("Event data field count: " + eventData.size());
+            LOGGER.debug("=== JSON ROW {} ===", rowCount);
+            LOGGER.debug("Raw JSON keys: {}", rawJsonRecord.keySet());
+            LOGGER.debug("Extracted event data keys: {}", eventData.keySet());
+            LOGGER.debug("Event data field count: {}", eventData.size());
 
             // Show ALL event data fields so we can see what we're working with
-            System.out.println("ALL EVENT DATA (showing first 30 fields):");
+            LOGGER.debug("ALL EVENT DATA (showing first 30 fields):");
             int fieldCount = 0;
             for (Map.Entry<String, Object> entry : eventData.entrySet()) {
               if (fieldCount >= 30) {
-                System.out.println("  ... (" + (eventData.size() - 30) + " more fields)");
+                LOGGER.debug("  ... ({} more fields)", eventData.size() - 30);
                 break;
               }
               Object value = entry.getValue();
-              System.out.printf("  '%s': '%s' (%s)\n", entry.getKey(), value,
+              LOGGER.debug("  '{}': '{}' ({})", entry.getKey(), value,
                   value != null ? value.getClass().getSimpleName() : "null");
               fieldCount++;
             }
 
             // Show some key analysis
-            System.out.println("FIELD ANALYSIS:");
+            LOGGER.debug("FIELD ANALYSIS:");
             long authFields = eventData.keySet().stream().filter(k -> k.startsWith("Authentication.")).count();
             long basicFields = eventData.keySet().stream().filter(k -> !k.startsWith("Authentication.")).count();
-            System.out.println("  Authentication.* fields: " + authFields);
-            System.out.println("  Other fields: " + basicFields);
-            System.out.println("  Total fields returned by Splunk: " + eventData.size());
-            System.out.println("  Expected fields in schema: 53");
+            LOGGER.debug("  Authentication.* fields: {}", authFields);
+            LOGGER.debug("  Other fields: {}", basicFields);
+            LOGGER.debug("  Total fields returned by Splunk: {}", eventData.size());
+            LOGGER.debug("  Expected fields in schema: 53");
 
             if (eventData.size() < 40) {
-              System.out.println("  *** WARNING: Splunk returned fewer fields than expected! ***");
-              System.out.println("  *** This suggests the field_list='*' may not be working as expected ***");
+              LOGGER.warn("  *** WARNING: Splunk returned fewer fields than expected! ***");
+              LOGGER.warn("  *** This suggests the field_list='*' may not be working as expected ***");
             }
-            System.out.println();
           }
 
           System.out.println("=== CRITICAL DIAGNOSIS ===");
@@ -607,7 +606,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
             if ("_extra".equals(schemaField)) {
               // Collect unmapped fields as JSON
               if (rowCount <= 3) {
-                System.out.printf("  [%d] Processing _extra field...\n", i);
+                LOGGER.debug("  [{}] Processing _extra field...", i);
               }
               result[i] = buildExtraFields(eventData);
             } else {
@@ -617,15 +616,15 @@ public class SplunkConnectionImpl implements SplunkConnection {
 
               // DEBUG: Show the lookup process
               if (rowCount <= 3) {
-                System.out.printf("  [%d] Looking up: schema='%s' -> splunk='%s'\n", i, schemaField, splunkField);
-                System.out.printf("      Event data contains key '%s'? %s\n", splunkField, eventData.containsKey(splunkField));
-                System.out.printf("      RAW VALUE: '%s' (%s)\n", value, value != null ? value.getClass().getSimpleName() : "null");
+                LOGGER.debug("  [{}] Looking up: schema='{}' -> splunk='{}'", i, schemaField, splunkField);
+                LOGGER.debug("      Event data contains key '{}'? {}", splunkField, eventData.containsKey(splunkField));
+                LOGGER.debug("      RAW VALUE: '{}' ({})", value, value != null ? value.getClass().getSimpleName() : "null");
               }
 
               result[i] = value;
 
               if (rowCount <= 3) {
-                System.out.printf("  [%d] FINAL: schema='%s' -> splunk='%s' -> value='%s' (%s)\n",
+                LOGGER.debug("  [{}] FINAL: schema='{}' -> splunk='{}' -> value='{}' ({})",
                     i, schemaField, splunkField, value,
                     value != null ? value.getClass().getSimpleName() : "null");
               }
@@ -675,17 +674,17 @@ public class SplunkConnectionImpl implements SplunkConnection {
       try {
         // Show raw JSON for first few lines so we can see what we're actually getting
         if (rowCount <= 2) {
-          System.out.println("=== RAW JSON LINE " + (rowCount + 1) + " ===");
-          System.out.println(line);
-          System.out.println("=== END RAW JSON ===");
+          LOGGER.debug("=== RAW JSON LINE {} ===", rowCount + 1);
+          LOGGER.debug("{}", line);
+          LOGGER.debug("=== END RAW JSON ===");
         }
 
         return OBJECT_MAPPER.readValue(line, MAP_TYPE_REF);
       } catch (Exception e) {
-        System.err.println("Failed to parse JSON line: " + line.substring(0, Math.min(100, line.length())));
+        LOGGER.warn("Failed to parse JSON line: {}", line.substring(0, Math.min(100, line.length())));
         if (rowCount <= 3) {
           // Show more details for first few parsing errors
-          System.err.println("Parsing error: " + e.getMessage());
+          LOGGER.warn("Parsing error: {}", e.getMessage());
         }
         return null;
       }
@@ -708,9 +707,9 @@ public class SplunkConnectionImpl implements SplunkConnection {
       }
 
       if (rowCount <= 3) {
-        System.out.println("    REQUESTED schema fields: " + schemaFieldList);
-        System.out.println("    REQUESTED Splunk fields: " + requestedSplunkFields);
-        System.out.println("    AVAILABLE Splunk fields: " + eventData.keySet());
+        LOGGER.debug("    REQUESTED schema fields: {}", schemaFieldList);
+        LOGGER.debug("    REQUESTED Splunk fields: {}", requestedSplunkFields);
+        LOGGER.debug("    AVAILABLE Splunk fields: {}", eventData.keySet());
       }
 
       for (Map.Entry<String, Object> entry : eventData.entrySet()) {
@@ -720,29 +719,27 @@ public class SplunkConnectionImpl implements SplunkConnection {
         boolean wasRequested = requestedSplunkFields.contains(fieldName);
 
         if (rowCount <= 3) {
-          System.out.printf("    Evaluating field '%s': wasRequested=%s\n",
-              fieldName, wasRequested);
+          LOGGER.debug("    Evaluating field '{}': wasRequested={}", fieldName, wasRequested);
         }
 
         if (!wasRequested) {
           extra.put(fieldName, entry.getValue());
           if (rowCount <= 3) {
-            System.out.printf("    -> Including '%s' in _extra\n", fieldName);
+            LOGGER.debug("    -> Including '{}' in _extra", fieldName);
           }
         } else if (rowCount <= 3) {
-          System.out.printf("    -> Excluding '%s' from _extra (was requested)\n", fieldName);
+          LOGGER.debug("    -> Excluding '{}' from _extra (was requested)", fieldName);
         }
       }
 
       if (rowCount <= 3) {
-        System.out.printf("  _extra field contains %d unmapped fields: %s\n",
-            extra.size(), extra.keySet());
+        LOGGER.debug("  _extra field contains {} unmapped fields: {}", extra.size(), extra.keySet());
       }
 
       String extraJson = serializeToJson(extra);
 
       if (rowCount <= 3) {
-        System.out.printf("  _extra JSON result: %s\n", extraJson);
+        LOGGER.debug("  _extra JSON result: {}", extraJson);
       }
 
       return extraJson;

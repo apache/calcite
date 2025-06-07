@@ -24,6 +24,9 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -37,6 +40,8 @@ import java.util.ArrayList;
  * @param <T> Element type
  */
 public class SplunkQuery<T> extends AbstractEnumerable<T> {
+  private static final Logger LOGGER = LoggerFactory.getLogger(SplunkQuery.class);
+
   private final SplunkConnection splunkConnection;
   private final String search;
   private final String earliest;
@@ -116,19 +121,19 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
     Enumerator<T> rawEnumerator = (Enumerator<T>) splunkConnection.getSearchResultEnumerator(
         search, getArgs(), fieldList, explicitFields, reverseMapping);
 
-    System.out.println("DEBUG: SplunkQuery.enumerator() - JSON Mode");
-    System.out.println("  Query field list: " + fieldList);
-    System.out.println("  Field mapping: " + fieldMapping);
-    System.out.println("  Schema is null? " + (schema == null));
+    LOGGER.debug("DEBUG: SplunkQuery.enumerator() - JSON Mode");
+    LOGGER.debug("  Query field list: {}", fieldList);
+    LOGGER.debug("  Field mapping: {}", fieldMapping);
+    LOGGER.debug("  Schema is null? {}", schema == null);
 
     // Type conversion is simpler with JSON since types are better preserved
     if (schema != null) {
-      System.out.println("  Creating SimpleTypeConverter...");
+      LOGGER.debug("  Creating SimpleTypeConverter...");
       // CRITICAL FIX: Pass the actual query field list so SimpleTypeConverter knows the array order
       return (Enumerator<T>) new SimpleTypeConverter((Enumerator<Object>) rawEnumerator, schema, fieldList);
     }
 
-    System.out.println("  Using raw enumerator (no schema conversion)");
+    LOGGER.debug("  Using raw enumerator (no schema conversion)");
     return rawEnumerator;
   }
 
@@ -150,16 +155,27 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
     // The JSON enumerator will handle the mapping to Splunk field names
     List<String> fieldsForQuery = new ArrayList<>(fieldList);
 
+    LOGGER.debug("=== SPLUNK QUERY ARGS DEBUG ===");
+    LOGGER.debug("Original fieldList: {}", fieldList);
+    LOGGER.debug("Contains _extra? {}", fieldList.contains("_extra"));
+
     // If _extra is requested, add wildcard to get all fields
     if (fieldList.contains("_extra")) {
+      LOGGER.debug("_extra detected - requesting ALL fields from Splunk");
       fieldsForQuery.remove("_extra");
       fieldsForQuery.add("*");
+      LOGGER.debug("Modified fieldsForQuery: {}", fieldsForQuery);
     }
 
     String fields = StringUtils.encodeList(fieldsForQuery, ',').toString();
+    LOGGER.debug("Final field_list sent to Splunk: '{}'", fields);
+
     args.put("field_list", fields);
     args.put("earliest_time", earliest);
     args.put("latest_time", latest);
+
+    LOGGER.debug("Complete Splunk args: {}", args);
+    LOGGER.debug("=== END SPLUNK QUERY ARGS DEBUG ===");
     return args;
   }
 
@@ -240,21 +256,20 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
         Object[] convertedRow = convertRowWithFieldMapping(inputRow, schema, queryFieldList);
 
         if (rowCount <= 3) {
-          System.out.println("  Post-conversion:");
+          LOGGER.debug("  Post-conversion:");
           for (int i = 0; i < Math.min(convertedRow.length, queryFieldList.size()); i++) {
             String fieldName = queryFieldList.get(i);
             RelDataTypeField field = schema.getField(fieldName, false, false);
             Object value = convertedRow[i];
             String valueType = value != null ? value.getClass().getSimpleName() : "null";
 
-            System.out.printf("  [%d] %s: '%s' (%s)\n", i, fieldName, value, valueType);
+            LOGGER.debug("  [{}] {}: '{}' ({})", i, fieldName, value, valueType);
 
             // Flag any type mismatches
             if (field != null && field.getType().getSqlTypeName() == SqlTypeName.INTEGER && value instanceof String) {
-              System.out.println("    *** WARNING: INTEGER field has String value ***");
+              LOGGER.warn("    *** WARNING: INTEGER field has String value ***");
             }
           }
-          System.out.println();
         }
 
         return convertedRow;

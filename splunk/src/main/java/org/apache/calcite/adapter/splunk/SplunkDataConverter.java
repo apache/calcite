@@ -20,6 +20,9 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.math.BigDecimal;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -36,6 +39,7 @@ import java.util.regex.Pattern;
  * Optimized for ISO timestamp strings from Splunk.
  */
 public class SplunkDataConverter {
+  private static final Logger LOGGER = LoggerFactory.getLogger(SplunkDataConverter.class);
 
   // ISO 8601 timestamp patterns (most common from Splunk)
   private static final DateTimeFormatter[] ISO_FORMATTERS = {
@@ -82,14 +86,14 @@ public class SplunkDataConverter {
           (field.getType().getSqlTypeName() == SqlTypeName.INTEGER && value instanceof String);
 
       if (debugThis && value != null) {
-        System.out.println("DEBUG: Converting field '" + field.getName() + "' at index " + i);
-        System.out.println("  Input value: '" + value + "' (type: " + value.getClass().getSimpleName() + ")");
-        System.out.println("  Expected type: " + field.getType().getSqlTypeName());
+        LOGGER.debug("DEBUG: Converting field '{}' at index {}", field.getName(), i);
+        LOGGER.debug("  Input value: '{}' (type: {})", value, value.getClass().getSimpleName());
+        LOGGER.debug("  Expected type: {}", field.getType().getSqlTypeName());
       }
 
       if (value == null) {
         converted[i] = null;
-        if (debugThis) System.out.println("  Result: null (was null input)");
+        if (debugThis) LOGGER.debug("  Result: null (was null input)");
         continue;
       }
 
@@ -98,20 +102,20 @@ public class SplunkDataConverter {
         converted[i] = convertedValue;
 
         if (debugThis) {
-          System.out.println("  Result: '" + convertedValue + "' (type: " +
-              (convertedValue != null ? convertedValue.getClass().getSimpleName() : "null") + ")");
+          LOGGER.debug("  Result: '{}' (type: {})", convertedValue,
+              convertedValue != null ? convertedValue.getClass().getSimpleName() : "null");
         }
       } catch (Exception e) {
         // Log the conversion error and provide a safe default
-        System.err.println("Warning: Failed to convert field '" + field.getName() +
-            "' value '" + value + "' (" + value.getClass().getSimpleName() + ") to type " +
-            field.getType().getSqlTypeName() + ": " + e.getMessage());
+        LOGGER.warn("Warning: Failed to convert field '{}' value '{}' ({}) to type {}: {}",
+            field.getName(), value, value.getClass().getSimpleName(),
+            field.getType().getSqlTypeName(), e.getMessage());
 
         // For type safety, return null instead of the original value
         converted[i] = null;
 
         if (debugThis) {
-          System.out.println("  Result: null (conversion failed)");
+          LOGGER.debug("  Result: null (conversion failed)");
         }
       }
     }
