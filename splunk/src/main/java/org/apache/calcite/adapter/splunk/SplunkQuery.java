@@ -203,20 +203,20 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
       this.schema = schema;
       this.queryFieldList = queryFieldList;
 
-      System.out.println("DEBUG: SimpleTypeConverter created for JSON mode");
-      System.out.println("  Full schema field count: " + schema.getFieldCount());
-      System.out.println("  Query field count: " + queryFieldList.size());
-      System.out.println("  Query field list: " + queryFieldList);
+      LOGGER.debug("DEBUG: SimpleTypeConverter created for JSON mode");
+      LOGGER.debug("  Full schema field count: " + schema.getFieldCount());
+      LOGGER.debug("  Query field count: " + queryFieldList.size());
+      LOGGER.debug("  Query field list: " + queryFieldList);
 
       // Show the mapping between array indices and field names
-      System.out.println("  Array index mapping:");
+      LOGGER.debug("  Array index mapping:");
       for (int i = 0; i < queryFieldList.size(); i++) {
         String fieldName = queryFieldList.get(i);
         RelDataTypeField schemaField = schema.getField(fieldName, false, false);
         if (schemaField != null) {
-          System.out.printf("    [%d] = %s (%s)\n", i, fieldName, schemaField.getType().getSqlTypeName());
+          LOGGER.debug(String.format("    [%d] = %s (%s)\n", i, fieldName, schemaField.getType().getSqlTypeName()));
         } else {
-          System.out.printf("    [%d] = %s (field not found in schema)\n", i, fieldName);
+          LOGGER.debug(String.format("    [%d] = %s (field not found in schema)\n", i, fieldName));
         }
       }
     }
@@ -230,9 +230,9 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
         Object[] inputRow = (Object[]) current;
 
         if (rowCount <= 3) {
-          System.out.println("DEBUG: SimpleTypeConverter - Row " + rowCount);
-          System.out.println("  Input row length: " + inputRow.length);
-          System.out.println("  Query field count: " + queryFieldList.size());
+          LOGGER.debug("DEBUG: SimpleTypeConverter - Row " + rowCount);
+          LOGGER.debug("  Input row length: " + inputRow.length);
+          LOGGER.debug("  Query field count: " + queryFieldList.size());
 
           // Show what we got from JSON using the CORRECT field mapping
           for (int i = 0; i < Math.min(inputRow.length, queryFieldList.size()); i++) {
@@ -243,11 +243,11 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
 
             if (field != null) {
               String expectedType = field.getType().getSqlTypeName().toString();
-              System.out.printf("  [%d] %s: '%s' (%s) -> expected %s\n",
-                  i, fieldName, value, valueType, expectedType);
+              LOGGER.debug(String.format("  [%d] %s: '%s' (%s) -> expected %s\n",
+                  i, fieldName, value, valueType, expectedType));
             } else {
-              System.out.printf("  [%d] %s: '%s' (%s) -> field not in schema\n",
-                  i, fieldName, value, valueType);
+              LOGGER.debug(String.format("  [%d] %s: '%s' (%s) -> field not in schema\n",
+                  i, fieldName, value, valueType));
             }
           }
         }
