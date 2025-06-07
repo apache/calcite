@@ -121,7 +121,7 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
 
     // If we have schema information, wrap with type converter
     if (schema != null) {
-      return (Enumerator<T>) new TypeConvertingEnumerator((Enumerator<Object>) rawEnumerator, schema);
+      return (Enumerator<T>) new TypeConvertingEnumerator((Enumerator<Object>) rawEnumerator, schema, fieldList, fieldMapping);
     }
 
     return rawEnumerator;
@@ -184,11 +184,16 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
   private static class TypeConvertingEnumerator implements Enumerator<Object> {
     private final Enumerator<Object> underlying;
     private final RelDataType schema;
+    private final List<String> originalFieldList;
+    private final Map<String, String> fieldMapping;
     private int rowCount = 0;
 
-    public TypeConvertingEnumerator(Enumerator<Object> underlying, RelDataType schema) {
+    public TypeConvertingEnumerator(Enumerator<Object> underlying, RelDataType schema,
+                                  List<String> originalFieldList, Map<String, String> fieldMapping) {
       this.underlying = underlying;
       this.schema = schema;
+      this.originalFieldList = originalFieldList;
+      this.fieldMapping = fieldMapping;
 
       // Print schema info once
 //      System.out.println("=== Schema Info ===");
@@ -207,15 +212,19 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
       if (current instanceof Object[]) {
         Object[] inputRow = (Object[]) current;
 
+        // Expand the row to match the full schema
+        Object[] expandedRow = expandRowToSchema(inputRow);
+
         // Enhanced debug logging for first few rows
         if (rowCount <= 3) { // Debug first 3 rows to see patterns
           System.out.println("=== Row " + rowCount + " Field Mapping Debug ===");
           System.out.println("Schema field count: " + schema.getFieldCount());
           System.out.println("Data field count: " + inputRow.length);
+          System.out.println("Expanded field count: " + expandedRow.length);
           System.out.println();
 
           // Show schema vs actual data alignment
-          int maxFields = Math.max(inputRow.length, schema.getFieldList().size());
+          int maxFields = Math.max(expandedRow.length, schema.getFieldList().size());
           for (int i = 0; i < maxFields; i++) {
             String schemaInfo = "N/A";
             String dataInfo = "N/A";
@@ -227,8 +236,8 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
             }
 
             // Get actual data info
-            if (i < inputRow.length) {
-              Object dataValue = inputRow[i];
+            if (i < expandedRow.length) {
+              Object dataValue = expandedRow[i];
               String valueStr = (dataValue != null) ? dataValue.toString() : "null";
               String typeStr = (dataValue != null) ? dataValue.getClass().getSimpleName() : "null";
 
@@ -242,9 +251,9 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
 
             // Mark mismatches
             String status = "";
-            if (i < schema.getFieldList().size() && i < inputRow.length) {
+            if (i < schema.getFieldList().size() && i < expandedRow.length) {
               RelDataTypeField schemaField = schema.getFieldList().get(i);
-              Object dataValue = inputRow[i];
+              Object dataValue = expandedRow[i];
 
               // Check for obvious type mismatches
               if (schemaField.getType().getSqlTypeName() == SqlTypeName.TIMESTAMP &&
@@ -262,14 +271,14 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
           System.out.println();
         }
 
-        // Perform conversion
-        Object[] convertedRow = SplunkDataConverter.convertRow(inputRow, schema);
+        // Perform conversion on the expanded row
+        Object[] convertedRow = SplunkDataConverter.convertRow(expandedRow, schema);
 
         // Show conversion results for first row
         if (rowCount == 1) {
           System.out.println("=== Conversion Results ===");
           for (int i = 0; i < Math.min(convertedRow.length, 10); i++) { // First 10 fields
-            Object originalValue = (i < inputRow.length) ? inputRow[i] : null;
+            Object originalValue = (i < expandedRow.length) ? expandedRow[i] : null;
             Object convertedValue = convertedRow[i];
 
             String originalStr = (originalValue != null) ? originalValue.toString() : "null";
@@ -291,6 +300,52 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
       }
 
       return current;
+    }
+
+    /**
+     * Expand a row from SplunkResultEnumerator to match the full schema.
+     * The input row contains only the requested fields (in correct order),
+     * but we need to expand it to include all schema fields.
+     */
+    private Object[] expandRowToSchema(Object[] inputRow) {
+      Object[] expandedRow = new Object[schema.getFieldCount()];
+
+      // Create a map from schema field name to schema field index
+      Map<String, Integer> schemaFieldIndexMap = new HashMap<>();
+      for (int i = 0; i < schema.getFieldList().size(); i++) {
+        RelDataTypeField field = schema.getFieldList().get(i);
+        schemaFieldIndexMap.put(field.getName(), i);
+      }
+
+      // Map the input row values to the correct schema positions
+      for (int i = 0; i < originalFieldList.size() && i < inputRow.length; i++) {
+        String originalFieldName = originalFieldList.get(i);
+
+        // Find the schema field name (unmapped field name)
+        String schemaFieldName = findSchemaFieldName(originalFieldName);
+
+        // Find the schema index for this field
+        Integer schemaIndex = schemaFieldIndexMap.get(schemaFieldName);
+        if (schemaIndex != null) {
+          expandedRow[schemaIndex] = inputRow[i];
+        }
+      }
+
+      return expandedRow;
+    }
+
+    /**
+     * Find the schema field name for a given field (which might be a Splunk field name).
+     */
+    private String findSchemaFieldName(String fieldName) {
+      // If this field is in the reverse mapping (Splunk -> schema), use the schema name
+      for (Map.Entry<String, String> entry : fieldMapping.entrySet()) {
+        if (entry.getValue().equals(fieldName)) {
+          return entry.getKey(); // Return schema field name
+        }
+      }
+      // Otherwise, assume it's already a schema field name
+      return fieldName;
     }
 
     /**
