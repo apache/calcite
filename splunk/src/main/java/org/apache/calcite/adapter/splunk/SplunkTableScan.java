@@ -37,6 +37,9 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.util.Util;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -53,6 +56,8 @@ import java.util.Map;
 public class SplunkTableScan
     extends TableScan
     implements EnumerableRel {
+  private static final Logger LOGGER = LoggerFactory.getLogger(SplunkTableScan.class);
+
   final SplunkTable splunkTable;
   final String search;
   final String earliest;
@@ -167,7 +172,7 @@ public class SplunkTableScan
         .build();
 
     if (CalciteSystemProperty.DEBUG.value()) {
-      System.out.println("Splunk JSON Mode: " + map);
+      LOGGER.debug("Splunk JSON Mode: {}", map);
     }
     Hook.QUERY_PLAN.run(map);
 
