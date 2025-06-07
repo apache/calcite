@@ -451,7 +451,26 @@ public class RexImplicationCheckerTest {
     // after simplify trimSimplifiedCall is equal to null
     assertThat(trimSimplifiedNullCall, hasToString("null:VARCHAR(2)"));
 
-    final RexNode literalTs =
+    // simplifyTrim supports recursive simplification
+    RelDataType varcharType =
+        f.typeFactory.createSqlType(SqlTypeName.VARCHAR);
+    // castCall is CAST(CAST(1111):VARCHAR NOT NULL):VARCHAR NOT NULL
+    final RexNode castCall =
+        f.cast(varcharType,
+            f.cast(varcharType, f.literal(1111)));
+
+    innerTrimCall =
+        (RexCall) f.rexBuilder.makeCall(SqlStdOperatorTable.TRIM, trimBoth, trimed, castCall);
+    // outerTrimCall is
+    // TRIM('BOTH', 'a', TRIM('BOTH', 'a', CAST(CAST(1111):VARCHAR NOT NULL):VARCHAR NOT NULL))
+    outerTrimCall =
+        (RexCall) f.rexBuilder.makeCall(SqlStdOperatorTable.TRIM, trimBoth, trimed, innerTrimCall);
+    trimSimplifiedCall =
+        (RexCall) f.simplify.simplifyPreservingType(outerTrimCall,
+            RexUnknownAs.UNKNOWN, true);
+
+    assertThat(trimSimplifiedCall,
+        hasToString("TRIM('BOTH', 'a', '1111':VARCHAR)"));
         f.timestampLiteral(new TimestampString("2010-10-10 00:00:00"));
     final RexNode innerFloorCall =
         f.rexBuilder.makeCall(SqlStdOperatorTable.FLOOR, literalTs,
