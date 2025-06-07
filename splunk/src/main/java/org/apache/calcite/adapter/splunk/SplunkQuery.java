@@ -334,10 +334,10 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
           System.out.println();
         }
 
-        // Show conversion results for first row
+        // Show conversion results for first row - expanded to show all fields
         if (rowCount == 1) {
           System.out.println("=== Conversion Results ===");
-          for (int i = 0; i < Math.min(convertedRow.length, 10); i++) { // First 10 fields
+          for (int i = 0; i < convertedRow.length; i++) { // Show ALL fields
             Object originalValue = (i < expandedRow.length) ? expandedRow[i] : null;
             Object convertedValue = convertedRow[i];
 
@@ -350,8 +350,20 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
             if (originalStr.length() > 30) originalStr = originalStr.substring(0, 27) + "...";
             if (convertedStr.length() > 30) convertedStr = convertedStr.substring(0, 27) + "...";
 
-            System.out.println(String.format("  [%d] '%s' (%s) -> '%s' (%s)",
-                i, originalStr, originalType, convertedStr, convertedType));
+            // Show field name for better debugging
+            String fieldName = (i < schema.getFieldList().size()) ? schema.getFieldList().get(i).getName() : "unknown";
+            String fieldType = (i < schema.getFieldList().size()) ? schema.getFieldList().get(i).getType().getSqlTypeName().toString() : "unknown";
+
+            // Mark problematic conversions
+            String warning = "";
+            if (originalValue != null && convertedValue != null &&
+                !originalValue.getClass().equals(convertedValue.getClass()) &&
+                convertedValue instanceof String && fieldType.equals("INTEGER")) {
+              warning = " *** PROBLEM: STRING FOR INTEGER ***";
+            }
+
+            System.out.println(String.format("  [%d] %s (%s): '%s' (%s) -> '%s' (%s)%s",
+                i, fieldName, fieldType, originalStr, originalType, convertedStr, convertedType, warning));
           }
           System.out.println("==========================");
         }
@@ -377,17 +389,59 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
         schemaFieldIndexMap.put(field.getName(), i);
       }
 
+      System.out.println("DEBUG: expandRowToSchema - Field Mapping Process");
+      System.out.println("  Input row length: " + inputRow.length);
+      System.out.println("  Original field list length: " + originalFieldList.size());
+      System.out.println("  Schema field count: " + schema.getFieldCount());
+
+      // Track which schema positions have been written to detect overwrites
+      boolean[] positionUsed = new boolean[schema.getFieldCount()];
+
       // Map the input row values to the correct schema positions
       for (int i = 0; i < originalFieldList.size() && i < inputRow.length; i++) {
         String originalFieldName = originalFieldList.get(i);
+        Object inputValue = inputRow[i];
 
         // Find the schema field name (unmapped field name)
         String schemaFieldName = findSchemaFieldName(originalFieldName);
 
         // Find the schema index for this field
         Integer schemaIndex = schemaFieldIndexMap.get(schemaFieldName);
+
+        System.out.println(String.format("  [%d] Input field '%s' -> Schema field '%s' -> Schema index %s | Value: '%s'",
+            i, originalFieldName, schemaFieldName, schemaIndex, inputValue));
+
         if (schemaIndex != null) {
-          expandedRow[schemaIndex] = inputRow[i];
+          // Check for overwrites
+          if (positionUsed[schemaIndex]) {
+            System.out.println("    *** ERROR: OVERWRITING schema position " + schemaIndex +
+                " (was: '" + expandedRow[schemaIndex] + "', now: '" + inputValue + "')");
+          }
+
+          expandedRow[schemaIndex] = inputValue;
+          positionUsed[schemaIndex] = true;
+
+          // Special tracking for INTEGER fields
+          if (schemaIndex < schema.getFieldList().size()) {
+            RelDataTypeField schemaField = schema.getFieldList().get(schemaIndex);
+            if (schemaField.getType().getSqlTypeName() == SqlTypeName.INTEGER) {
+              System.out.println(String.format("    *** Mapping INTEGER field '%s': input[%d] -> expanded[%d] = '%s'",
+                  schemaField.getName(), i, schemaIndex, inputValue));
+            }
+          }
+        } else {
+          System.out.println("    *** WARNING: No schema index found for field '" + schemaFieldName + "'");
+        }
+      }
+
+      // Check for any INTEGER fields that are still null after mapping
+      System.out.println("DEBUG: Post-mapping INTEGER field check:");
+      for (int i = 0; i < schema.getFieldList().size(); i++) {
+        RelDataTypeField field = schema.getFieldList().get(i);
+        if (field.getType().getSqlTypeName() == SqlTypeName.INTEGER) {
+          Object value = expandedRow[i];
+          System.out.println(String.format("  INTEGER field '%s'[%d] = '%s' (%s)",
+              field.getName(), i, value, value != null ? value.getClass().getSimpleName() : "null"));
         }
       }
 
