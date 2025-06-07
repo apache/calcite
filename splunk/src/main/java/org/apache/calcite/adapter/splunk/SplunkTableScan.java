@@ -49,13 +49,8 @@ import java.util.Map;
 import static java.util.Objects.requireNonNull;
 
 /**
- * Relational expression representing a scan of Splunk.
- *
- * <p>Splunk does not have tables, but it's easiest to imagine that a Splunk
- * instance is one large table. This "table" does not have a fixed set of
- * columns (Splunk calls them "fields") but each query specifies the fields that
- * it wants. It also specifies a search expression, and optionally earliest and
- * latest dates.
+ * Relational expression representing a scan of Splunk using JSON output.
+ * Much simpler than CSV approach - no complex field mapping needed.
  */
 public class SplunkTableScan
     extends TableScan
@@ -153,6 +148,7 @@ public class SplunkTableScan
         newSearch, newEarliest, newLatest, newFieldList);
   }
 
+  // Simple method reference - only one createQuery method needed with JSON
   private static final Method METHOD =
       Types.lookupMethod(
           SplunkTable.SplunkTableQueryable.class,
@@ -163,19 +159,17 @@ public class SplunkTableScan
           List.class);
 
   @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
-    // Map field list to Splunk field names for the query
-    List<String> mappedFieldList = splunkTable.mapSchemaFieldsToSplunkFields(fieldList);
-
+    // With JSON, we can pass schema field names directly - much simpler!
     Map<String, Object> map = ImmutableMap.<String, Object>builder()
         .put("search", search)
         .put("earliest", Util.first(earliest, ""))
         .put("latest", Util.first(latest, ""))
-        .put("fieldList", mappedFieldList)
-        .put("schemaFieldList", fieldList)
+        .put("fieldList", fieldList)                    // Schema field names
         .put("fieldMapping", splunkTable.getFieldMapping())
         .build();
+
     if (CalciteSystemProperty.DEBUG.value()) {
-      System.out.println("Splunk: " + map);
+      System.out.println("Splunk JSON Mode: " + map);
     }
     Hook.QUERY_PLAN.run(map);
 
@@ -185,16 +179,19 @@ public class SplunkTableScan
             getRowType(),
             pref.preferCustom());
     final BlockBuilder builder = new BlockBuilder();
+
+    // Simple call - just pass schema field names
     return implementor.result(
         physType,
         builder.append(
-            Expressions.call(
-                table.getExpression(SplunkTable.SplunkTableQueryable.class),
-                METHOD,
-                Expressions.constant(search),
-                Expressions.constant(earliest),
-                Expressions.constant(latest),
-                constantStringList(mappedFieldList))).toBlock());
+                Expressions.call(
+                    table.getExpression(SplunkTable.SplunkTableQueryable.class),
+                    METHOD,
+                    Expressions.constant(search),
+                    Expressions.constant(earliest),
+                    Expressions.constant(latest),
+                    constantStringList(fieldList)))      // Schema field names only
+            .toBlock());
   }
 
   private static Expression constantStringList(final List<String> strings) {

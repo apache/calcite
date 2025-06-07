@@ -23,33 +23,45 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import java.math.BigDecimal;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.regex.Pattern;
 
 /**
- * Utility class for converting string values from Splunk to appropriate Java types
+ * Utility class for converting values from Splunk JSON to appropriate Java types
  * based on the expected schema data types.
+ *
+ * Optimized for ISO timestamp strings from Splunk.
  */
 public class SplunkDataConverter {
 
-  // Common Splunk timestamp formats
-  private static final SimpleDateFormat[] TIMESTAMP_FORMATS = {
-      new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX"),  // ISO 8601 with timezone
-      new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX"),      // ISO 8601 without millis
-      new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS"),       // Standard format with millis
-      new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"),           // Standard format
-      new SimpleDateFormat("MM/dd/yyyy HH:mm:ss"),           // US format
-      new SimpleDateFormat("dd/MM/yyyy HH:mm:ss"),           // EU format
-      new SimpleDateFormat("yyyy/MM/dd HH:mm:ss"),           // Alternative format
+  // ISO 8601 timestamp patterns (most common from Splunk)
+  private static final DateTimeFormatter[] ISO_FORMATTERS = {
+      DateTimeFormatter.ISO_INSTANT,                          // 2025-06-07T14:07:02.975Z
+      DateTimeFormatter.ISO_OFFSET_DATE_TIME,                 // 2025-06-07T14:07:02.975+00:00
+      DateTimeFormatter.ISO_LOCAL_DATE_TIME,                  // 2025-06-07T14:07:02.975
+      DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'"), // 2025-06-07T14:07:02Z
+      DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX"), // 2025-06-07T14:07:02+00:00
   };
 
-  // Pattern for detecting numeric epoch timestamps (10 or 13 digits)
+  // Fallback legacy formats
+  private static final SimpleDateFormat[] LEGACY_FORMATS = {
+      new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS"),       // 2025-06-07 14:07:02.975
+      new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"),           // 2025-06-07 14:07:02
+      new SimpleDateFormat("MM/dd/yyyy HH:mm:ss"),           // 06/07/2025 14:07:02
+      new SimpleDateFormat("dd/MM/yyyy HH:mm:ss"),           // 07/06/2025 14:07:02
+      new SimpleDateFormat("yyyy/MM/dd HH:mm:ss"),           // 2025/06/07 14:07:02
+  };
+
+  // Pattern for detecting numeric epoch timestamps (fallback)
   private static final Pattern EPOCH_PATTERN = Pattern.compile("^\\d{10}(\\.\\d+)?$|^\\d{13}$");
 
   /**
-   * Converts a row of string values to appropriate types based on the schema.
+   * Converts a row of values to appropriate types based on the schema.
    *
-   * @param row The row data as strings (or other objects)
+   * @param row The row data from Jackson JSON parsing
    * @param schema The expected schema
    * @return Converted row with appropriate data types
    */
@@ -65,18 +77,19 @@ public class SplunkDataConverter {
       RelDataTypeField field = fields.get(i);
       Object value = row[i];
 
-      // Enhanced debug logging for ALL INTEGER fields to find the problematic one
-      if (field.getType().getSqlTypeName() == SqlTypeName.INTEGER) {
-        System.out.println("DEBUG: Converting INTEGER field '" + field.getName() + "' at index " + i);
-        System.out.println("  Input value: '" + value + "' (type: " +
-            (value != null ? value.getClass().getSimpleName() : "null") + ")");
+      // Debug logging for timestamp and integer conversions
+      boolean debugThis = field.getType().getSqlTypeName() == SqlTypeName.TIMESTAMP ||
+          (field.getType().getSqlTypeName() == SqlTypeName.INTEGER && value instanceof String);
+
+      if (debugThis && value != null) {
+        System.out.println("DEBUG: Converting field '" + field.getName() + "' at index " + i);
+        System.out.println("  Input value: '" + value + "' (type: " + value.getClass().getSimpleName() + ")");
+        System.out.println("  Expected type: " + field.getType().getSqlTypeName());
       }
 
       if (value == null) {
         converted[i] = null;
-        if (field.getType().getSqlTypeName() == SqlTypeName.INTEGER) {
-          System.out.println("  Result: null (was null input)");
-        }
+        if (debugThis) System.out.println("  Result: null (was null input)");
         continue;
       }
 
@@ -84,21 +97,20 @@ public class SplunkDataConverter {
         Object convertedValue = convertValue(value, field.getType().getSqlTypeName());
         converted[i] = convertedValue;
 
-        if (field.getType().getSqlTypeName() == SqlTypeName.INTEGER) {
+        if (debugThis) {
           System.out.println("  Result: '" + convertedValue + "' (type: " +
               (convertedValue != null ? convertedValue.getClass().getSimpleName() : "null") + ")");
         }
       } catch (Exception e) {
-        // Log the conversion error and provide a safe default instead of original value
+        // Log the conversion error and provide a safe default
         System.err.println("Warning: Failed to convert field '" + field.getName() +
-            "' value '" + value + "' to type " + field.getType().getSqlTypeName() +
-            ": " + e.getMessage());
+            "' value '" + value + "' (" + value.getClass().getSimpleName() + ") to type " +
+            field.getType().getSqlTypeName() + ": " + e.getMessage());
 
-        // For type safety, return null instead of the original string value
-        // This prevents ClassCastException when Avatica tries to access the field
+        // For type safety, return null instead of the original value
         converted[i] = null;
 
-        if (field.getType().getSqlTypeName() == SqlTypeName.INTEGER) {
+        if (debugThis) {
           System.out.println("  Result: null (conversion failed)");
         }
       }
@@ -109,112 +121,114 @@ public class SplunkDataConverter {
 
   /**
    * Converts a single value to the specified SQL type.
+   * Optimized for Jackson's parsing of JSON values.
    *
    * @param value The value to convert
    * @param targetType The target SQL type
    * @return Converted value
    */
   public static Object convertValue(Object value, SqlTypeName targetType) {
-    // Enhanced debug logging for ALL INTEGER conversions to catch the problematic field
-    boolean isIntegerConversion = targetType == SqlTypeName.INTEGER;
-    if (isIntegerConversion) {
-      System.out.println("DEBUG: convertValue called for INTEGER field");
-      System.out.println("  Input: '" + value + "' (type: " + (value != null ? value.getClass().getSimpleName() : "null") + ")");
-      System.out.println("  Target type: " + targetType);
-    }
-
     if (value == null) {
-      if (isIntegerConversion) System.out.println("  Returning null (input was null)");
       return null;
     }
 
     // If already the correct type, return as-is
     if (isCorrectType(value, targetType)) {
-      if (isIntegerConversion) System.out.println("  Returning as-is (already correct type)");
       return value;
     }
 
-    String stringValue = value.toString().trim();
-    if (isIntegerConversion) {
-      System.out.println("  String value after trim: '" + stringValue + "'");
-      System.out.println("  Is empty? " + stringValue.isEmpty());
-      System.out.println("  Is literal 'null'? " + "null".equals(stringValue));
+    // Handle direct numeric conversions from Jackson
+    switch (targetType) {
+    case INTEGER:
+      if (value instanceof Number) {
+        return ((Number) value).intValue();
+      }
+      break;
+    case BIGINT:
+      if (value instanceof Number) {
+        return ((Number) value).longValue();
+      }
+      break;
+    case DOUBLE:
+      if (value instanceof Number) {
+        return ((Number) value).doubleValue();
+      }
+      break;
+    case FLOAT:
+    case REAL:
+      if (value instanceof Number) {
+        return ((Number) value).floatValue();
+      }
+      break;
+    case BOOLEAN:
+      if (value instanceof Boolean) {
+        return value;
+      }
+      break;
+    case TIMESTAMP:
+      // For timestamps, we expect strings from Splunk
+      if (value instanceof String) {
+        return convertIsoStringToTimestampMillis((String) value);
+      } else if (value instanceof Number) {
+        // Fallback for numeric epoch timestamps
+        return convertNumberToTimestampMillis((Number) value);
+      }
+      break;
     }
 
-    // Handle empty strings AND literal "null" strings - convert to NULL for all types except VARCHAR/CHAR
+    // Convert to string and parse (for string values from JSON)
+    String stringValue = value.toString().trim();
+
+    // Handle empty strings and literal "null" strings
     if (stringValue.isEmpty() || "null".equals(stringValue)) {
       switch (targetType) {
       case VARCHAR:
       case CHAR:
-        if (isIntegerConversion) System.out.println("  Returning string value (VARCHAR/CHAR type)");
-        return stringValue; // Preserve for text fields (even "null" strings)
+        return stringValue; // Preserve for text fields
       default:
-        if (isIntegerConversion) System.out.println("  Returning null (empty string or 'null' string for non-text type)");
-        return null; // Convert empty strings AND "null" strings to NULL for numeric/date types
+        return null; // Convert to NULL for other types
       }
     }
 
-    Object result;
     try {
       switch (targetType) {
       case TIMESTAMP:
-        result = convertToTimestampMillis(stringValue);
-        break;
+        return convertIsoStringToTimestampMillis(stringValue);
 
       case DATE:
-        result = convertToDateDays(stringValue);
-        break;
+        return convertToDateDays(stringValue);
 
       case TIME:
-        result = convertToTimeMillis(stringValue);
-        break;
+        return convertToTimeMillis(stringValue);
 
       case INTEGER:
-        result = convertToInteger(stringValue);
-        break;
+        return convertToInteger(stringValue);
 
       case BIGINT:
-        result = convertToBigInt(stringValue);
-        break;
+        return convertToBigInt(stringValue);
 
       case DECIMAL:
-        result = convertToDecimal(stringValue);
-        break;
+        return convertToDecimal(stringValue);
 
       case DOUBLE:
-        result = convertToDouble(stringValue);
-        break;
+        return convertToDouble(stringValue);
 
       case FLOAT:
       case REAL:
-        result = convertToFloat(stringValue);
-        break;
+        return convertToFloat(stringValue);
 
       case BOOLEAN:
-        result = convertToBoolean(stringValue);
-        break;
+        return convertToBoolean(stringValue);
 
       case VARCHAR:
       case CHAR:
-        result = stringValue; // Keep as string
-        break;
+        return stringValue; // Keep as string
 
       default:
-        result = stringValue; // Keep as string
-        break;
+        return stringValue; // Keep as string
       }
-
-      if (isIntegerConversion) {
-        System.out.println("  Conversion successful: '" + result +
-            "' (type: " + (result != null ? result.getClass().getSimpleName() : "null") + ")");
-      }
-      return result;
 
     } catch (Exception e) {
-      if (isIntegerConversion) {
-        System.out.println("  Conversion failed: " + e.getMessage());
-        System.out.println("  Re-throwing exception...");
-      }
       // Re-throw the exception so it can be handled properly at the row level
       throw new RuntimeException("Failed to convert value '" + stringValue +
           "' to type " + targetType + ": " + e.getMessage(), e);
@@ -222,7 +236,7 @@ public class SplunkDataConverter {
   }
 
   /**
-   * Checks if the value is already the correct type for the target SQL type.
+   * Type checking for Jackson-parsed values.
    */
   private static boolean isCorrectType(Object value, SqlTypeName targetType) {
     switch (targetType) {
@@ -245,37 +259,41 @@ public class SplunkDataConverter {
       return value instanceof Float;
     case BOOLEAN:
       return value instanceof Boolean;
+    case VARCHAR:
+    case CHAR:
+      return value instanceof String;
     default:
       return false;
     }
   }
 
   /**
-   * Converts string to epoch milliseconds for TIMESTAMP fields.
-   * Avatica expects TIMESTAMP fields to be Long values representing epoch milliseconds.
+   * Convert ISO timestamp string to epoch milliseconds.
+   * Optimized for Splunk's ISO 8601 timestamp formats.
    */
-  private static Long convertToTimestampMillis(String value) {
-    // Try parsing as epoch timestamp first
-    if (EPOCH_PATTERN.matcher(value).matches()) {
+  private static Long convertIsoStringToTimestampMillis(String value) {
+    // First try modern ISO 8601 parsing (faster and more accurate)
+    for (DateTimeFormatter formatter : ISO_FORMATTERS) {
       try {
-        double epochValue = Double.parseDouble(value);
-        long millis;
-
-        // If value is less than 1e12, assume it's in seconds
-        if (epochValue < 1e12) {
-          millis = (long) (epochValue * 1000);
-        } else {
-          millis = (long) epochValue;
-        }
-
-        return millis;
-      } catch (NumberFormatException e) {
-        // Fall through to string parsing
+        Instant instant = Instant.from(formatter.parse(value));
+        return instant.toEpochMilli();
+      } catch (DateTimeParseException e) {
+        // Try next formatter
       }
     }
 
-    // Try parsing as formatted date string
-    for (SimpleDateFormat format : TIMESTAMP_FORMATS) {
+    // Try parsing as epoch timestamp (numeric string)
+    if (EPOCH_PATTERN.matcher(value).matches()) {
+      try {
+        double epochValue = Double.parseDouble(value);
+        return convertNumberToTimestampMillis(epochValue);
+      } catch (NumberFormatException e) {
+        // Fall through to legacy parsing
+      }
+    }
+
+    // Fallback to legacy SimpleDateFormat parsing
+    for (SimpleDateFormat format : LEGACY_FORMATS) {
       try {
         return format.parse(value).getTime();
       } catch (ParseException e) {
@@ -287,18 +305,31 @@ public class SplunkDataConverter {
   }
 
   /**
+   * Convert a numeric value to timestamp milliseconds (fallback).
+   */
+  private static Long convertNumberToTimestampMillis(Number number) {
+    double value = number.doubleValue();
+
+    // If value is less than 1e12, assume it's in seconds and convert to milliseconds
+    if (value < 1e12) {
+      return Math.round(value * 1000);
+    } else {
+      // Assume it's already in milliseconds
+      return Math.round(value);
+    }
+  }
+
+  /**
    * Converts string to days since epoch for DATE fields.
-   * Avatica expects DATE fields to be Integer values representing days since 1970-01-01.
    */
   private static Integer convertToDateDays(String value) {
-    long millis = convertToTimestampMillis(value);
+    long millis = convertIsoStringToTimestampMillis(value);
     // Convert milliseconds to days since epoch
     return (int) (millis / (24 * 60 * 60 * 1000L));
   }
 
   /**
    * Converts string to milliseconds since midnight for TIME fields.
-   * Avatica expects TIME fields to be Integer values representing milliseconds since midnight.
    */
   private static Integer convertToTimeMillis(String value) {
     try {
@@ -309,7 +340,7 @@ public class SplunkDataConverter {
       return (int) (parsed.getTime() % (24 * 60 * 60 * 1000L));
     } catch (ParseException e) {
       // Try parsing as full timestamp and extract time portion
-      long millis = convertToTimestampMillis(value);
+      long millis = convertIsoStringToTimestampMillis(value);
       return (int) (millis % (24 * 60 * 60 * 1000L));
     }
   }

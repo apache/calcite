@@ -28,7 +28,13 @@ dependencies {
     api("org.apache.calcite.avatica:avatica-core")
     api("org.slf4j:slf4j-api")
 
+    // CSV parsing (keeping for legacy SearchResultListener support)
     implementation("net.sf.opencsv:opencsv")
+
+    // JSON parsing for new JSON-based enumerator
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.17.2")
+    implementation("com.fasterxml.jackson.core:jackson-core:2.17.2")
+    implementation("com.fasterxml.jackson.core:jackson-annotations:2.17.2")
 
     testImplementation(project(":testkit"))
     testRuntimeOnly("org.apache.logging.log4j:log4j-slf4j-impl")

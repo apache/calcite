@@ -37,7 +37,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Table based on Splunk.
+ * Table based on Splunk using JSON output for simplified processing.
  */
 public class SplunkTable extends AbstractQueryableTable implements TranslatableTable {
   private final RelDataType rowType;
@@ -159,6 +159,7 @@ public class SplunkTable extends AbstractQueryableTable implements TranslatableT
       return query.enumerator();
     }
 
+    // Simplified: Only one createQuery method needed with JSON approach
     public SplunkQuery<T> createQuery(String search, String earliest,
         String latest, List<String> fieldList) {
       final SplunkSchema splunkSchema = schema.unwrap(SplunkSchema.class);
@@ -167,15 +168,19 @@ public class SplunkTable extends AbstractQueryableTable implements TranslatableT
       }
       final SplunkTable splunkTable = (SplunkTable) table;
 
+      System.out.println("=== SplunkTableQueryable.createQuery (JSON Mode) ===");
+      System.out.println("Schema field list: " + fieldList);
+      System.out.println("Field mapping: " + splunkTable.getFieldMapping());
+
       return new SplunkQuery<>(
           splunkSchema.splunkConnection,
           search,
           earliest,
           latest,
-          fieldList,
+          fieldList,           // Schema field names - JSON enumerator handles mapping
           splunkTable.getExplicitFields(),
           splunkTable.getFieldMapping(),
-          splunkTable.rowType);  // Pass the table's row type as schema
+          splunkTable.rowType);
     }
   }
 }
