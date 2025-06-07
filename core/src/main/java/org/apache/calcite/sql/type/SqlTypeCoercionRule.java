@@ -328,6 +328,7 @@ public class SqlTypeCoercionRule implements SqlTypeMappingRule {
     coerceRules.add(SqlTypeName.GEOMETRY,
         coerceRules.copyValues(SqlTypeName.GEOMETRY)
             .addAll(SqlTypeName.CHAR_TYPES)
+            .addAll(SqlTypeName.BINARY_TYPES)
             .build());
 
     INSTANCE = new SqlTypeCoercionRule(coerceRules.map);
