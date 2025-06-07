@@ -458,7 +458,6 @@ public class RexImplicationCheckerTest {
     final RexNode castCall =
         f.cast(varcharType,
             f.cast(varcharType, f.literal(1111)));
-
     innerTrimCall =
         (RexCall) f.rexBuilder.makeCall(SqlStdOperatorTable.TRIM, trimBoth, trimed, castCall);
     // outerTrimCall is
@@ -468,45 +467,8 @@ public class RexImplicationCheckerTest {
     trimSimplifiedCall =
         (RexCall) f.simplify.simplifyPreservingType(outerTrimCall,
             RexUnknownAs.UNKNOWN, true);
-
     assertThat(trimSimplifiedCall,
         hasToString("TRIM('BOTH', 'a', '1111':VARCHAR)"));
-        f.timestampLiteral(new TimestampString("2010-10-10 00:00:00"));
-    final RexNode innerFloorCall =
-        f.rexBuilder.makeCall(SqlStdOperatorTable.FLOOR, literalTs,
-            f.rexBuilder.makeFlag(TimeUnitRange.YEAR));
-    final RexNode outerFloorCall =
-        f.rexBuilder.makeCall(SqlStdOperatorTable.FLOOR, innerFloorCall,
-            f.rexBuilder.makeFlag(TimeUnitRange.YEAR));
-
-    RexCall floorSimplifiedExpr =
-        (RexCall) f.simplify.simplifyPreservingType(outerFloorCall,
-            RexUnknownAs.UNKNOWN, true);
-
-    assertThat(floorSimplifiedExpr,
-        hasToString("FLOOR(2010-10-10 00:00:00, FLAG(YEAR))"));
-    RelDataType varcharType =
-        f.typeFactory.createSqlType(SqlTypeName.VARCHAR);
-    RexCall floorSimplifiedExpr2 =
-        (RexCall) f.simplify.simplifyPreservingType(
-            f.rexBuilder.makeCast(varcharType, outerFloorCall),
-            RexUnknownAs.UNKNOWN, true);
-
-    assertThat(floorSimplifiedExpr2,
-        hasToString(
-            "CAST(FLOOR(2010-10-10 00:00:00, FLAG(YEAR))):VARCHAR NOT NULL"));
-    innerTrimCall =
-        (RexCall) f.rexBuilder.makeCall(SqlStdOperatorTable.TRIM, trimBoth, trimed,
-            f.rexBuilder.makeCast(varcharType, outerFloorCall));
-    outerTrimCall =
-        (RexCall) f.rexBuilder.makeCall(SqlStdOperatorTable.TRIM, trimBoth, trimed, innerTrimCall);
-    trimSimplifiedCall =
-        (RexCall) f.simplify.simplifyPreservingType(outerTrimCall,
-            RexUnknownAs.UNKNOWN, true);
-
-    assertThat(trimSimplifiedCall,
-        hasToString("TRIM('BOTH', 'a', CAST(FLOOR(2010-10-10 00:00:00, "
-            + "FLAG(YEAR))):VARCHAR NOT NULL)"));
   }
 
   /** Test case for simplifier of ceil/floor. */
