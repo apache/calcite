@@ -458,10 +458,9 @@ public class SplunkConnectionImpl implements SplunkConnection {
       if (print) {
         int maxIndex = Math.min(fieldNames.length, values.length);
         for (int i = 0; i < maxIndex; ++i) {
-          System.out.printf(Locale.ROOT, "%s=%s\n", this.fieldNames[i],
-              values[i]);
+          LOGGER.debug(String.format(Locale.ROOT, "%s=%s\n", this.fieldNames[i],
+              values[i]));
         }
-        System.out.println();
       }
       return true;
     }
@@ -580,22 +579,19 @@ public class SplunkConnectionImpl implements SplunkConnection {
             }
           }
 
-          System.out.println("=== CRITICAL DIAGNOSIS ===");
-          System.out.println("Problem: SimpleTypeConverter expects field indices to match schema order");
-          System.out.println("But we're building array in QUERY order, not SCHEMA order");
-          System.out.println();
-          System.out.println("Query requested these fields in this order:");
+          LOGGER.debug("=== CRITICAL DIAGNOSIS ===");
+          LOGGER.debug("Problem: SimpleTypeConverter expects field indices to match schema order");
+          LOGGER.debug("But we're building array in QUERY order, not SCHEMA order");
+          LOGGER.debug("Query requested these fields in this order:");
           for (int i = 0; i < schemaFieldList.size(); i++) {
-            System.out.printf("  [%d] %s\n", i, schemaFieldList.get(i));
+            LOGGER.debug(String.format("  [%d] %s\n", i, schemaFieldList.get(i)));
           }
-          System.out.println();
-          System.out.println("But SimpleTypeConverter thinks:");
-          System.out.println("  [0] = _time, [1] = host, [2] = source, [3] = sourcetype, [4] = index...");
-          System.out.println();
-          System.out.println("SOLUTION: Need to determine if we should:");
-          System.out.println("  A) Build compact array (current) - requires SimpleTypeConverter to know field mapping");
-          System.out.println("  B) Build full 53-field schema array with nulls - requires knowing full schema order");
-          System.out.println("=== END DIAGNOSIS ===");
+          LOGGER.debug("But SimpleTypeConverter thinks:");
+          LOGGER.debug("  [0] = _time, [1] = host, [2] = source, [3] = sourcetype, [4] = index...");
+          LOGGER.debug("SOLUTION: Need to determine if we should:");
+          LOGGER.debug("  A) Build compact array (current) - requires SimpleTypeConverter to know field mapping");
+          LOGGER.debug("  B) Build full 53-field schema array with nulls - requires knowing full schema order");
+          LOGGER.debug("=== END DIAGNOSIS ===");
 
           // Map to schema fields - build array in the exact order schemaFieldList specifies
           Object[] result = new Object[schemaFieldList.size()];
