@@ -65,13 +65,30 @@ public class SplunkDataConverter {
       RelDataTypeField field = fields.get(i);
       Object value = row[i];
 
+      // Enhanced debug logging for duration field specifically
+      if (field.getName().equals("duration")) {
+        System.out.println("DEBUG: Converting duration field at index " + i);
+        System.out.println("  Input value: '" + value + "' (type: " +
+            (value != null ? value.getClass().getSimpleName() : "null") + ")");
+        System.out.println("  Target type: " + field.getType().getSqlTypeName());
+      }
+
       if (value == null) {
         converted[i] = null;
+        if (field.getName().equals("duration")) {
+          System.out.println("  Result: null (was null input)");
+        }
         continue;
       }
 
       try {
-        converted[i] = convertValue(value, field.getType().getSqlTypeName());
+        Object convertedValue = convertValue(value, field.getType().getSqlTypeName());
+        converted[i] = convertedValue;
+
+        if (field.getName().equals("duration")) {
+          System.out.println("  Result: '" + convertedValue + "' (type: " +
+              (convertedValue != null ? convertedValue.getClass().getSimpleName() : "null") + ")");
+        }
       } catch (Exception e) {
         // Log the conversion error and provide a safe default instead of original value
         System.err.println("Warning: Failed to convert field '" + field.getName() +
@@ -81,6 +98,10 @@ public class SplunkDataConverter {
         // For type safety, return null instead of the original string value
         // This prevents ClassCastException when Avatica tries to access the field
         converted[i] = null;
+
+        if (field.getName().equals("duration")) {
+          System.out.println("  Result: null (conversion failed)");
+        }
       }
     }
 
@@ -95,24 +116,40 @@ public class SplunkDataConverter {
    * @return Converted value
    */
   public static Object convertValue(Object value, SqlTypeName targetType) {
+    // Enhanced debug logging for duration-related conversions
+    boolean isDurationField = value != null && value.toString().equals("") && targetType == SqlTypeName.INTEGER;
+    if (isDurationField) {
+      System.out.println("DEBUG: convertValue called for likely duration field");
+      System.out.println("  Input: '" + value + "' (type: " + (value != null ? value.getClass().getSimpleName() : "null") + ")");
+      System.out.println("  Target type: " + targetType);
+    }
+
     if (value == null) {
+      if (isDurationField) System.out.println("  Returning null (input was null)");
       return null;
     }
 
     // If already the correct type, return as-is
     if (isCorrectType(value, targetType)) {
+      if (isDurationField) System.out.println("  Returning as-is (already correct type)");
       return value;
     }
 
     String stringValue = value.toString().trim();
+    if (isDurationField) {
+      System.out.println("  String value after trim: '" + stringValue + "'");
+      System.out.println("  Is empty? " + stringValue.isEmpty());
+    }
 
     // Handle empty strings - convert to NULL for all types except VARCHAR/CHAR
     if (stringValue.isEmpty()) {
       switch (targetType) {
       case VARCHAR:
       case CHAR:
+        if (isDurationField) System.out.println("  Returning empty string (VARCHAR/CHAR type)");
         return stringValue; // Preserve empty strings for text fields
       default:
+        if (isDurationField) System.out.println("  Returning null (empty string for non-text type)");
         return null; // Convert empty strings to NULL for numeric/date types
       }
     }
@@ -167,9 +204,17 @@ public class SplunkDataConverter {
         break;
       }
 
+      if (isDurationField) {
+        System.out.println("  Conversion successful: '" + result +
+            "' (type: " + (result != null ? result.getClass().getSimpleName() : "null") + ")");
+      }
       return result;
 
     } catch (Exception e) {
+      if (isDurationField) {
+        System.out.println("  Conversion failed: " + e.getMessage());
+        System.out.println("  Re-throwing exception...");
+      }
       // Re-throw the exception so it can be handled properly at the row level
       throw new RuntimeException("Failed to convert value '" + stringValue +
           "' to type " + targetType + ": " + e.getMessage(), e);

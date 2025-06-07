@@ -119,11 +119,32 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
     Enumerator<T> rawEnumerator = (Enumerator<T>) splunkConnection.getSearchResultEnumerator(
         search, getArgs(), mappedFieldList, explicitFields, reverseMapping);
 
+    // DEBUG: Check if we have schema and will use TypeConvertingEnumerator
+    System.out.println("DEBUG: SplunkQuery.enumerator()");
+    System.out.println("  Schema is null? " + (schema == null));
+    System.out.println("  Will use TypeConvertingEnumerator? " + (schema != null));
+    if (schema != null) {
+      System.out.println("  Schema field count: " + schema.getFieldCount());
+      System.out.println("  Field list size: " + fieldList.size());
+
+      // Check if duration field is in the schema
+      for (int i = 0; i < schema.getFieldList().size(); i++) {
+        RelDataTypeField field = schema.getFieldList().get(i);
+        if (field.getName().equals("duration")) {
+          System.out.println("  Duration field found at schema index: " + i +
+              " (type: " + field.getType().getSqlTypeName() + ")");
+          break;
+        }
+      }
+    }
+
     // If we have schema information, wrap with type converter
     if (schema != null) {
+      System.out.println("  Creating TypeConvertingEnumerator...");
       return (Enumerator<T>) new TypeConvertingEnumerator((Enumerator<Object>) rawEnumerator, schema, fieldList, fieldMapping);
     }
 
+    System.out.println("  Using raw enumerator (no schema)");
     return rawEnumerator;
   }
 
@@ -189,19 +210,23 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
     private int rowCount = 0;
 
     public TypeConvertingEnumerator(Enumerator<Object> underlying, RelDataType schema,
-                                  List<String> originalFieldList, Map<String, String> fieldMapping) {
+        List<String> originalFieldList, Map<String, String> fieldMapping) {
       this.underlying = underlying;
       this.schema = schema;
       this.originalFieldList = originalFieldList;
       this.fieldMapping = fieldMapping;
 
-      // Print schema info once
-//      System.out.println("=== Schema Info ===");
-//      for (int i = 0; i < schema.getFieldList().size(); i++) {
-//        RelDataTypeField field = schema.getFieldList().get(i);
-//        System.out.println("Field[" + i + "]: " + field.getName() + " -> " + field.getType().getSqlTypeName());
-//      }
-//      System.out.println("===================");
+      System.out.println("DEBUG: TypeConvertingEnumerator created");
+      System.out.println("  Schema field count: " + schema.getFieldCount());
+      System.out.println("  Original field list: " + originalFieldList);
+
+      // Find duration field in original field list
+      for (int i = 0; i < originalFieldList.size(); i++) {
+        if (originalFieldList.get(i).equals("duration")) {
+          System.out.println("  Duration field found in original field list at index: " + i);
+          break;
+        }
+      }
     }
 
     @Override
@@ -209,11 +234,49 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
       Object current = underlying.current();
       rowCount++;
 
+      System.out.println("DEBUG: TypeConvertingEnumerator.current() - Row " + rowCount);
+      System.out.println("  Input type: " + (current != null ? current.getClass().getSimpleName() : "null"));
+
       if (current instanceof Object[]) {
         Object[] inputRow = (Object[]) current;
+        System.out.println("  Input row length: " + inputRow.length);
+
+        // Check for duration field in input row
+        for (int i = 0; i < Math.min(inputRow.length, originalFieldList.size()); i++) {
+          if (originalFieldList.get(i).equals("duration")) {
+            System.out.println("  Duration field at input index " + i + ": '" + inputRow[i] +
+                "' (type: " + (inputRow[i] != null ? inputRow[i].getClass().getSimpleName() : "null") + ")");
+            break;
+          }
+        }
 
         // Expand the row to match the full schema
         Object[] expandedRow = expandRowToSchema(inputRow);
+        System.out.println("  Expanded row length: " + expandedRow.length);
+
+        // Check for duration field in expanded row
+        for (int i = 0; i < expandedRow.length && i < schema.getFieldList().size(); i++) {
+          RelDataTypeField field = schema.getFieldList().get(i);
+          if (field.getName().equals("duration")) {
+            System.out.println("  Duration field at expanded index " + i + ": '" + expandedRow[i] +
+                "' (type: " + (expandedRow[i] != null ? expandedRow[i].getClass().getSimpleName() : "null") + ")");
+            break;
+          }
+        }
+
+        // Perform conversion on the expanded row
+        Object[] convertedRow = SplunkDataConverter.convertRow(expandedRow, schema);
+        System.out.println("  Converted row length: " + convertedRow.length);
+
+        // Check for duration field in converted row
+        for (int i = 0; i < convertedRow.length && i < schema.getFieldList().size(); i++) {
+          RelDataTypeField field = schema.getFieldList().get(i);
+          if (field.getName().equals("duration")) {
+            System.out.println("  Duration field at converted index " + i + ": '" + convertedRow[i] +
+                "' (type: " + (convertedRow[i] != null ? convertedRow[i].getClass().getSimpleName() : "null") + ")");
+            break;
+          }
+        }
 
         // Enhanced debug logging for first few rows
         if (rowCount <= 3) { // Debug first 3 rows to see patterns
@@ -270,9 +333,6 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
           }
           System.out.println();
         }
-
-        // Perform conversion on the expanded row
-        Object[] convertedRow = SplunkDataConverter.convertRow(expandedRow, schema);
 
         // Show conversion results for first row
         if (rowCount == 1) {
