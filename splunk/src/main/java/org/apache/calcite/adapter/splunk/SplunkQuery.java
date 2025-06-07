@@ -121,7 +121,7 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
     Enumerator<T> rawEnumerator = (Enumerator<T>) splunkConnection.getSearchResultEnumerator(
         search, getArgs(), fieldList, explicitFields, reverseMapping);
 
-    LOGGER.debug("DEBUG: SplunkQuery.enumerator() - JSON Mode");
+    LOGGER.debug("SplunkQuery.enumerator() - JSON Mode");
     LOGGER.debug("  Query field list: {}", fieldList);
     LOGGER.debug("  Field mapping: {}", fieldMapping);
     LOGGER.debug("  Schema is null? {}", schema == null);
@@ -151,20 +151,27 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
   private Map<String, String> getArgs() {
     Map<String, String> args = new HashMap<>();
 
-    // For JSON mode, we can pass schema field names directly
-    // The JSON enumerator will handle the mapping to Splunk field names
-    List<String> fieldsForQuery = new ArrayList<>(fieldList);
+    // For JSON mode, we need to translate schema field names to Splunk field names
+    List<String> fieldsForQuery = new ArrayList<>();
 
     LOGGER.debug("=== SPLUNK QUERY ARGS DEBUG ===");
-    LOGGER.debug("Original fieldList: {}", fieldList);
+    LOGGER.debug("Original fieldList (schema names): {}", fieldList);
     LOGGER.debug("Contains _extra? {}", fieldList.contains("_extra"));
 
-    // If _extra is requested, add wildcard to get all fields
-    if (fieldList.contains("_extra")) {
-      LOGGER.debug("_extra detected - requesting ALL fields from Splunk");
-      fieldsForQuery.remove("_extra");
-      fieldsForQuery.add("*");
-      LOGGER.debug("Modified fieldsForQuery: {}", fieldsForQuery);
+    // Translate schema field names to Splunk field names
+    for (String schemaField : fieldList) {
+      if ("_extra".equals(schemaField)) {
+        // _extra is special - request all fields with wildcard
+        LOGGER.debug("_extra detected - will request ALL fields from Splunk");
+        fieldsForQuery.clear(); // Clear any previously added fields
+        fieldsForQuery.add("*");
+        break; // No need to process more fields when using wildcard
+      } else {
+        // Translate schema field name to Splunk field name
+        String splunkField = fieldMapping.getOrDefault(schemaField, schemaField);
+        fieldsForQuery.add(splunkField);
+        LOGGER.debug("  Translating: '{}' -> '{}'", schemaField, splunkField);
+      }
     }
 
     String fields = StringUtils.encodeList(fieldsForQuery, ',').toString();
@@ -203,10 +210,10 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
       this.schema = schema;
       this.queryFieldList = queryFieldList;
 
-      LOGGER.debug("DEBUG: SimpleTypeConverter created for JSON mode");
-      LOGGER.debug("  Full schema field count: " + schema.getFieldCount());
-      LOGGER.debug("  Query field count: " + queryFieldList.size());
-      LOGGER.debug("  Query field list: " + queryFieldList);
+      LOGGER.debug("SimpleTypeConverter created for JSON mode");
+      LOGGER.debug("  Full schema field count: {}", schema.getFieldCount());
+      LOGGER.debug("  Query field count: {}", queryFieldList.size());
+      LOGGER.debug("  Query field list: {}", queryFieldList);
 
       // Show the mapping between array indices and field names
       LOGGER.debug("  Array index mapping:");
@@ -214,9 +221,9 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
         String fieldName = queryFieldList.get(i);
         RelDataTypeField schemaField = schema.getField(fieldName, false, false);
         if (schemaField != null) {
-          LOGGER.debug(String.format("    [%d] = %s (%s)\n", i, fieldName, schemaField.getType().getSqlTypeName()));
+          LOGGER.debug("    [{}] = {} ({})", i, fieldName, schemaField.getType().getSqlTypeName());
         } else {
-          LOGGER.debug(String.format("    [%d] = %s (field not found in schema)\n", i, fieldName));
+          LOGGER.debug("    [{}] = {} (field not found in schema)", i, fieldName);
         }
       }
     }
@@ -230,9 +237,9 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
         Object[] inputRow = (Object[]) current;
 
         if (rowCount <= 3) {
-          LOGGER.debug("DEBUG: SimpleTypeConverter - Row " + rowCount);
-          LOGGER.debug("  Input row length: " + inputRow.length);
-          LOGGER.debug("  Query field count: " + queryFieldList.size());
+          LOGGER.debug("SimpleTypeConverter - Row {}", rowCount);
+          LOGGER.debug("  Input row length: {}", inputRow.length);
+          LOGGER.debug("  Query field count: {}", queryFieldList.size());
 
           // Show what we got from JSON using the CORRECT field mapping
           for (int i = 0; i < Math.min(inputRow.length, queryFieldList.size()); i++) {
@@ -243,11 +250,11 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
 
             if (field != null) {
               String expectedType = field.getType().getSqlTypeName().toString();
-              LOGGER.debug(String.format("  [%d] %s: '%s' (%s) -> expected %s\n",
-                  i, fieldName, value, valueType, expectedType));
+              LOGGER.debug("  [{}] {}: '{}' ({}) -> expected {}",
+                  i, fieldName, value, valueType, expectedType);
             } else {
-              LOGGER.debug(String.format("  [%d] %s: '%s' (%s) -> field not in schema\n",
-                  i, fieldName, value, valueType));
+              LOGGER.debug("  [{}] {}: '{}' ({}) -> field not in schema",
+                  i, fieldName, value, valueType);
             }
           }
         }
