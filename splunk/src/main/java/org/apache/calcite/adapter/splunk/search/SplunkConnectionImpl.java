@@ -504,6 +504,9 @@ public class SplunkConnectionImpl implements SplunkConnection {
         String splunkField = fieldMapping.getOrDefault(schemaField, schemaField);
         System.out.println("  '" + schemaField + "' -> '" + splunkField + "'");
       }
+
+      System.out.println("DEBUG: Explicit fields that will be excluded from _extra: " + explicitFields);
+      System.out.println("DEBUG: Mapped fields that will be excluded from _extra: " + fieldMapping.values());
     }
 
     @Override
@@ -533,10 +536,9 @@ public class SplunkConnectionImpl implements SplunkConnection {
             System.out.println("Raw JSON keys: " + rawJsonRecord.keySet());
             System.out.println("Extracted event data keys: " + jsonRecord.keySet());
 
-            // Show first few fields to avoid clutter
-            int fieldCount = 0;
+            // Show ALL event data fields so we can see what we're working with
+            System.out.println("ALL EVENT DATA:");
             for (Map.Entry<String, Object> entry : jsonRecord.entrySet()) {
-              if (fieldCount++ >= 5) break; // Only show first 5 fields
               Object value = entry.getValue();
               System.out.printf("  '%s': '%s' (%s)\n", entry.getKey(), value,
                   value != null ? value.getClass().getSimpleName() : "null");
@@ -551,6 +553,9 @@ public class SplunkConnectionImpl implements SplunkConnection {
 
             if ("_extra".equals(schemaField)) {
               // Collect unmapped fields as JSON
+              if (rowCount <= 3) {
+                System.out.printf("  Processing _extra field...\n");
+              }
               result[i] = buildExtraFields(jsonRecord);
             } else {
               // Map schema field name to Splunk field name
@@ -561,12 +566,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
               if (rowCount <= 3) {
                 System.out.printf("  Looking up: schema='%s' -> splunk='%s'\n", schemaField, splunkField);
                 System.out.printf("    Event data contains key '%s'? %s\n", splunkField, jsonRecord.containsKey(splunkField));
-                System.out.printf("    Value: %s\n", value);
-
-                // If lookup failed, show what keys ARE available
-                if (value == null && !jsonRecord.containsKey(splunkField)) {
-                  System.out.println("    Available event keys: " + jsonRecord.keySet());
-                }
+                System.out.printf("    RAW VALUE: '%s' (%s)\n", value, value != null ? value.getClass().getSimpleName() : "null");
               }
 
               // Jackson preserves types well: Integer, Double, Boolean, null, String
@@ -621,6 +621,13 @@ public class SplunkConnectionImpl implements SplunkConnection {
      */
     private Map<String, Object> parseJsonLine(String line) {
       try {
+        // Show raw JSON for first few lines so we can see what we're actually getting
+        if (rowCount <= 2) {
+          System.out.println("=== RAW JSON LINE " + (rowCount + 1) + " ===");
+          System.out.println(line);
+          System.out.println("=== END RAW JSON ===");
+        }
+
         return OBJECT_MAPPER.readValue(line, MAP_TYPE_REF);
       } catch (Exception e) {
         System.err.println("Failed to parse JSON line: " + line.substring(0, Math.min(100, line.length())));
@@ -646,12 +653,34 @@ public class SplunkConnectionImpl implements SplunkConnection {
         boolean isExplicitField = explicitFields.contains(fieldName);
         boolean isMappedField = fieldMapping.values().contains(fieldName);
 
-        if (!isExplicitField && !isMappedField && !"_extra".equals(fieldName)) {
+        if (rowCount <= 3) {
+          System.out.printf("    Evaluating field '%s': explicit=%s, mapped=%s\n",
+              fieldName, isExplicitField, isMappedField);
+        }
+
+        // Include field in _extra if it's not mapped to any schema field
+        if (!isMappedField && !"_extra".equals(fieldName)) {
           extra.put(fieldName, entry.getValue());
+          if (rowCount <= 3) {
+            System.out.printf("    -> Including '%s' in _extra\n", fieldName);
+          }
+        } else if (rowCount <= 3) {
+          System.out.printf("    -> Excluding '%s' from _extra\n", fieldName);
         }
       }
 
-      return serializeToJson(extra);
+      if (rowCount <= 3) {
+        System.out.printf("  _extra field contains %d unmapped fields: %s\n",
+            extra.size(), extra.keySet());
+      }
+
+      String extraJson = serializeToJson(extra);
+
+      if (rowCount <= 3) {
+        System.out.printf("  _extra JSON result: %s\n", extraJson);
+      }
+
+      return extraJson;
     }
 
     /**
