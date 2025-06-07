@@ -73,11 +73,14 @@ public class SplunkDataConverter {
       try {
         converted[i] = convertValue(value, field.getType().getSqlTypeName());
       } catch (Exception e) {
-        // Log the conversion error but continue with original value
+        // Log the conversion error and provide a safe default instead of original value
         System.err.println("Warning: Failed to convert field '" + field.getName() +
             "' value '" + value + "' to type " + field.getType().getSqlTypeName() +
             ": " + e.getMessage());
-        converted[i] = value; // Keep original value
+
+        // For type safety, return null instead of the original string value
+        // This prevents ClassCastException when Avatica tries to access the field
+        converted[i] = null;
       }
     }
 
@@ -92,27 +95,26 @@ public class SplunkDataConverter {
    * @return Converted value
    */
   public static Object convertValue(Object value, SqlTypeName targetType) {
-//    System.out.println("SplunkDataConverter.convertValue: input=" + value +
-//        " (type=" + (value != null ? value.getClass().getName() : "null") +
-//        "), targetType=" + targetType);
-
     if (value == null) {
       return null;
     }
 
     // If already the correct type, return as-is
     if (isCorrectType(value, targetType)) {
-//      System.out.println("  -> Already correct type, returning as-is");
       return value;
     }
 
     String stringValue = value.toString().trim();
 
-    // Handle empty strings
+    // Handle empty strings - convert to NULL for all types except VARCHAR/CHAR
     if (stringValue.isEmpty()) {
-      Object defaultValue = getDefaultValue(targetType);
-//      System.out.println("  -> Empty string, returning default: " + defaultValue);
-      return defaultValue;
+      switch (targetType) {
+      case VARCHAR:
+      case CHAR:
+        return stringValue; // Preserve empty strings for text fields
+      default:
+        return null; // Convert empty strings to NULL for numeric/date types
+      }
     }
 
     Object result;
@@ -157,18 +159,20 @@ public class SplunkDataConverter {
 
       case VARCHAR:
       case CHAR:
+        result = stringValue; // Keep as string
+        break;
+
       default:
         result = stringValue; // Keep as string
         break;
       }
 
-//      System.out.println("  -> Converted to: " + result +
-//          " (type=" + (result != null ? result.getClass().getName() : "null") + ")");
       return result;
 
     } catch (Exception e) {
-      System.err.println("  -> Conversion failed: " + e.getMessage());
-      throw e;
+      // Re-throw the exception so it can be handled properly at the row level
+      throw new RuntimeException("Failed to convert value '" + stringValue +
+          "' to type " + targetType + ": " + e.getMessage(), e);
     }
   }
 
@@ -341,33 +345,4 @@ public class SplunkDataConverter {
       throw new IllegalArgumentException("Unable to parse boolean: " + value);
     }
   }
-
-  /**
-   * Returns a default value for null/empty values based on the SQL type.
-   */
-  private static Object getDefaultValue(SqlTypeName targetType) {
-    switch (targetType) {
-    case TIMESTAMP:
-      return 0L; // Epoch start
-    case DATE:
-      return 0; // Days since epoch start
-    case TIME:
-      return 0; // Milliseconds since midnight start
-    case INTEGER:
-      return 0;
-    case BIGINT:
-      return 0L;
-    case DECIMAL:
-      return BigDecimal.ZERO;
-    case DOUBLE:
-      return 0.0;
-    case FLOAT:
-    case REAL:
-      return 0.0f;
-    case BOOLEAN:
-      return Boolean.FALSE;
-    default:
-      return null;
-    }
   }
-}
