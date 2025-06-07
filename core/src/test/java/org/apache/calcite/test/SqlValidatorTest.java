@@ -61,6 +61,7 @@ import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.test.catalog.CountingFactory;
+import org.apache.calcite.test.catalog.MockCatalogReaderSimple;
 import org.apache.calcite.test.catalog.MustFilterMockCatalogReader;
 import org.apache.calcite.testlib.annotations.LocaleEnUs;
 import org.apache.calcite.util.Bug;
@@ -68,8 +69,11 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Ordering;
+import com.google.common.collect.Sets;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -86,6 +90,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -5484,6 +5489,195 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .ok()
         .withConformance(SqlConformanceEnum.ORACLE_12)
         .ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7051">[CALCITE-7051]
+   * JOIN with USING does not match the appropriate columns when caseSensitive is false</a>. */
+  @Test void testSelectJoinUsingCommonColumnCaseSensitive() {
+    ImmutableSet<String> columnNames = ImmutableSet.of("DEPTNO", "deptno", "DeptNo", "dEptNO");
+    ImmutableList<String> empTableNames =
+        ImmutableList.of("S.EMP_UPPER", "S.emp_lower", "S.Emp_Mixed");
+    ImmutableList<String> deptTableNames =
+        ImmutableList.of("S.DEPT_UPPER", "S.dept_lower", "S.Dept_Mixed");
+    Set<List<String>> cartesianedSet =
+        Sets.cartesianProduct(
+            columnNames,
+            ImmutableSet.copyOf(empTableNames),
+            ImmutableSet.copyOf(deptTableNames),
+            columnNames);
+
+    for (List<String> list : cartesianedSet) {
+      String sql =
+          String.format(Locale.ROOT, "select %s from %s join %s using (%s)", list.get(0),
+          list.get(1),
+          list.get(2),
+          list.get(3));
+      joinCommonColumnsFixture(false)
+          .withSql(sql)
+          .ok();
+    }
+
+    ImmutableList<String> columnNames2 = ImmutableList.of("DEPTNO", "deptno", "DeptNo");
+    for (String columnName : columnNames2) {
+      String sql =
+          String.format(Locale.ROOT, "select %s from S.EMP_BOTH join S.DEPT_BOTH using (%s)",
+              columnName,
+              columnName);
+      joinCommonColumnsFixture(true)
+          .withSql(sql)
+          .ok();
+    }
+
+    joinCommonColumnsFixture(true)
+        .withSql("select deptno,DeptNo,DEPTNO "
+            + "from S.EMP_BOTH join S.DEPT_BOTH using (deptno,DeptNo,DEPTNO)")
+        .ok();
+
+    joinCommonColumnsFixture(true)
+        .withSql("select ^dEptnO^ from S.EMP_BOTH join S.DEPT_BOTH using (deptno,DeptNo,DEPTNO)")
+        .fails("Column 'dEptnO' not found in any table; did you mean 'DEPTNO', 'DEPTNO'\\?");
+
+    for (int i = 0; i < columnNames2.size(); i++) {
+      String sql =
+          String.format(Locale.ROOT, "select %s from %s join %s using (%s)", columnNames2.get(i),
+          empTableNames.get(i),
+          deptTableNames.get(i),
+          columnNames2.get(i));
+      joinCommonColumnsFixture(true)
+          .withSql(sql)
+          .ok();
+    }
+
+
+    joinCommonColumnsFixture(true)
+        .withSql("select ^deptno^ from S.EMP_UPPER join S.DEPT_UPPER using (DEPTNO)")
+        .fails("Column 'deptno' not found in any table; did you mean 'DEPTNO', 'DEPTNO'\\?");
+
+    joinCommonColumnsFixture(true)
+        .withSql("select DEPTNO from S.EMP_UPPER join S.DEPT_UPPER using (^deptno^)")
+        .fails("Column 'deptno' not found in any table");
+
+    joinCommonColumnsFixture(true)
+        .withSql("select DEPTNO from S.EMP_UPPER join S.dept_lower using (^DEPTNO^)")
+        .fails("Column 'DEPTNO' not found in any table");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7051">[CALCITE-7051]
+   * JOIN with USING does not match the appropriate columns when caseSensitive is false</a>.
+   * select common columns in NATURAL JOIN*/
+  @Test void testNaturalJoinCommonColumn() {
+    ImmutableSet<String> columnNames = ImmutableSet.of("DEPTNO", "deptno", "DeptNo", "dEptNO");
+    ImmutableList<String> empTableNames =
+        ImmutableList.of("S.EMP_UPPER", "S.emp_lower", "S.Emp_Mixed");
+    ImmutableList<String> deptTableNames =
+        ImmutableList.of("S.DEPT_UPPER", "S.dept_lower", "S.Dept_Mixed");
+    Set<List<String>> cartesianedSet =
+        Sets.cartesianProduct(
+            columnNames,
+            ImmutableSet.copyOf(empTableNames),
+            ImmutableSet.copyOf(deptTableNames),
+            columnNames);
+    for (List<String> list : cartesianedSet) {
+      String sql =
+          String.format(Locale.ROOT, "select %s from %s natural join %s", list.get(0),
+          list.get(1),
+          list.get(2));
+      joinCommonColumnsFixture(false)
+          .withSql(sql)
+          .ok();
+    }
+
+    ImmutableList<String> columnNames2 = ImmutableList.of("DEPTNO", "deptno", "DeptNo");
+    for (String columnName : columnNames2) {
+      String sql =
+          String.format(Locale.ROOT, "select %s from S.EMP_BOTH natural join S.DEPT_BOTH",
+              columnName);
+      joinCommonColumnsFixture(true)
+          .withSql(sql)
+          .ok();
+    }
+    joinCommonColumnsFixture(true)
+        .withSql("select deptno,DeptNo,DEPTNO from S.EMP_BOTH natural join S.DEPT_BOTH")
+        .ok();
+    joinCommonColumnsFixture(true)
+        .withSql("select ^dEptnO^ from S.EMP_BOTH natural join S.DEPT_BOTH")
+        .fails("Column 'dEptnO' not found in any table; did you mean 'DEPTNO', 'DEPTNO'\\?");
+
+    for (int i = 0; i < columnNames2.size(); i++) {
+      String sql =
+          String.format(Locale.ROOT, "select %s from %s natural join %s", columnNames2.get(i),
+          empTableNames.get(i),
+          deptTableNames.get(i));
+      joinCommonColumnsFixture(true)
+          .withSql(sql)
+          .ok();
+    }
+    joinCommonColumnsFixture(true)
+        .withSql("select ^deptno^ from S.EMP_UPPER natural join S.DEPT_UPPER")
+        .fails("Column 'deptno' not found in any table; did you mean 'DEPTNO', 'DEPTNO'\\?");
+    // If case sensensitive, no common column in natural join
+    joinCommonColumnsFixture(true)
+        .withSql("select deptno,DEPTNO from S.EMP_UPPER natural join S.dept_lower")
+        .ok();
+  }
+
+  /** Mock catalog reader for registering tables with different case. */
+  private static class JoinCommonColumnsTestCatalogReader
+      extends MockCatalogReaderSimple {
+    JoinCommonColumnsTestCatalogReader(RelDataTypeFactory typeFactory,
+        boolean caseSensitive) {
+      super(typeFactory, caseSensitive);
+    }
+
+    public static @NonNull JoinCommonColumnsTestCatalogReader create(
+        RelDataTypeFactory typeFactory, boolean caseSensitive) {
+      return new JoinCommonColumnsTestCatalogReader(typeFactory, caseSensitive).init();
+    }
+
+    @Override public JoinCommonColumnsTestCatalogReader init() {
+      super.init();
+      MockSchema tSchema = new MockSchema("S");
+      registerSchema(tSchema);
+      registerDeptTable(tSchema, "DEPT_UPPER", "DEPTNO");
+      registerDeptTable(tSchema, "dept_lower", "deptno");
+      registerDeptTable(tSchema, "Dept_Mixed", "DeptNo");
+      registerDeptTable(tSchema, "DEPT_BOTH", "DEPTNO", "deptno", "DeptNo");
+      registerEmpTable(tSchema, "EMP_UPPER", "DEPTNO");
+      registerEmpTable(tSchema, "emp_lower", "deptno");
+      registerEmpTable(tSchema, "Emp_Mixed", "DeptNo");
+      registerEmpTable(tSchema, "EMP_BOTH", "DEPTNO", "deptno", "DeptNo");
+      return this;
+    }
+
+    private void registerDeptTable(MockSchema tSchema, String tableName, String... deptnoColNames) {
+      MockTable t = MockTable.create(this, tSchema, tableName, false, 4);
+      for (String deptnoColName : deptnoColNames) {
+        t.addColumn(deptnoColName, typeFactory.createSqlType(SqlTypeName.INTEGER));
+      }
+      t.addColumn("NAME", typeFactory.createSqlType(SqlTypeName.VARCHAR));
+      registerTable(t);
+    }
+
+    private void registerEmpTable(MockSchema tSchema, String tableName, String... deptnoColNames) {
+      MockTable t = MockTable.create(this, tSchema, tableName, false, 4);
+      for (String deptnoColName : deptnoColNames) {
+        t.addColumn(deptnoColName, typeFactory.createSqlType(SqlTypeName.INTEGER));
+      }
+      t.addColumn("EMPNO", typeFactory.createSqlType(SqlTypeName.VARCHAR));
+      t.addColumn("ENAME", typeFactory.createSqlType(SqlTypeName.INTEGER));
+      registerTable(t);
+    }
+  }
+
+  private SqlValidatorFixture joinCommonColumnsFixture(boolean caseSensitive) {
+    return fixture()
+        .withFactory(t -> t.withCatalogReader(JoinCommonColumnsTestCatalogReader::create))
+        .withCaseSensitive(caseSensitive)
+        .withValidatorIdentifierExpansion(true)
+        .withQuotedCasing(Casing.UNCHANGED)
+        .withUnquotedCasing(Casing.UNCHANGED);
   }
 
   @Test void testCrossJoinOnFails() {
