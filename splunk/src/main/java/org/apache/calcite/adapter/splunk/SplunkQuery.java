@@ -368,6 +368,23 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
           System.out.println("==========================");
         }
 
+        // Final validation: Check what we're actually returning to Avatica
+        System.out.println("DEBUG: Final row validation before returning to Avatica:");
+        for (int i = 0; i < convertedRow.length && i < schema.getFieldList().size(); i++) {
+          RelDataTypeField field = schema.getFieldList().get(i);
+          if (field.getType().getSqlTypeName() == SqlTypeName.INTEGER) {
+            Object value = convertedRow[i];
+            String actualType = (value != null) ? value.getClass().getSimpleName() : "null";
+            System.out.println(String.format("  Final INTEGER field '%s'[%d] = '%s' (%s)",
+                field.getName(), i, value, actualType));
+
+            // Flag any remaining String values in INTEGER fields
+            if (value instanceof String) {
+              System.out.println("    *** CRITICAL ERROR: STRING VALUE IN INTEGER FIELD ***");
+            }
+          }
+        }
+
         return convertedRow;
       }
 
@@ -376,8 +393,8 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
 
     /**
      * Expand a row from SplunkResultEnumerator to match the full schema.
-     * The input row contains only the requested fields (in correct order),
-     * but we need to expand it to include all schema fields.
+     * The SplunkResultEnumerator has already mapped inputRow[i] to originalFieldList[i],
+     * so we just need to place each value in the correct schema position.
      */
     private Object[] expandRowToSchema(Object[] inputRow) {
       Object[] expandedRow = new Object[schema.getFieldCount()];
@@ -389,52 +406,38 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
         schemaFieldIndexMap.put(field.getName(), i);
       }
 
-      System.out.println("DEBUG: expandRowToSchema - Field Mapping Process");
+      System.out.println("DEBUG: expandRowToSchema - Simplified Direct Mapping");
       System.out.println("  Input row length: " + inputRow.length);
       System.out.println("  Original field list length: " + originalFieldList.size());
       System.out.println("  Schema field count: " + schema.getFieldCount());
 
-      // Track which schema positions have been written to detect overwrites
-      boolean[] positionUsed = new boolean[schema.getFieldCount()];
-
-      // Map the input row values to the correct schema positions
+      // Direct mapping - inputRow[i] corresponds to originalFieldList[i]
+      // (SplunkResultEnumerator already did the complex field mapping)
       for (int i = 0; i < originalFieldList.size() && i < inputRow.length; i++) {
-        String originalFieldName = originalFieldList.get(i);
+        String fieldName = originalFieldList.get(i);
         Object inputValue = inputRow[i];
+        Integer schemaIndex = schemaFieldIndexMap.get(fieldName);
 
-        // Find the schema field name (unmapped field name)
-        String schemaFieldName = findSchemaFieldName(originalFieldName);
-
-        // Find the schema index for this field
-        Integer schemaIndex = schemaFieldIndexMap.get(schemaFieldName);
-
-        System.out.println(String.format("  [%d] Input field '%s' -> Schema field '%s' -> Schema index %s | Value: '%s'",
-            i, originalFieldName, schemaFieldName, schemaIndex, inputValue));
+        System.out.println(String.format("  [%d] Field '%s' -> Schema index %s | Value: '%s'",
+            i, fieldName, schemaIndex, inputValue));
 
         if (schemaIndex != null) {
-          // Check for overwrites
-          if (positionUsed[schemaIndex]) {
-            System.out.println("    *** ERROR: OVERWRITING schema position " + schemaIndex +
-                " (was: '" + expandedRow[schemaIndex] + "', now: '" + inputValue + "')");
-          }
-
           expandedRow[schemaIndex] = inputValue;
-          positionUsed[schemaIndex] = true;
 
           // Special tracking for INTEGER fields
           if (schemaIndex < schema.getFieldList().size()) {
             RelDataTypeField schemaField = schema.getFieldList().get(schemaIndex);
             if (schemaField.getType().getSqlTypeName() == SqlTypeName.INTEGER) {
-              System.out.println(String.format("    *** Mapping INTEGER field '%s': input[%d] -> expanded[%d] = '%s'",
+              System.out.println(String.format("    *** Direct mapping INTEGER field '%s': input[%d] -> expanded[%d] = '%s'",
                   schemaField.getName(), i, schemaIndex, inputValue));
             }
           }
         } else {
-          System.out.println("    *** WARNING: No schema index found for field '" + schemaFieldName + "'");
+          System.out.println("    *** WARNING: No schema index found for field '" + fieldName + "'");
         }
       }
 
-      // Check for any INTEGER fields that are still null after mapping
+      // Check final INTEGER field state
       System.out.println("DEBUG: Post-mapping INTEGER field check:");
       for (int i = 0; i < schema.getFieldList().size(); i++) {
         RelDataTypeField field = schema.getFieldList().get(i);
@@ -446,20 +449,6 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
       }
 
       return expandedRow;
-    }
-
-    /**
-     * Find the schema field name for a given field (which might be a Splunk field name).
-     */
-    private String findSchemaFieldName(String fieldName) {
-      // If this field is in the reverse mapping (Splunk -> schema), use the schema name
-      for (Map.Entry<String, String> entry : fieldMapping.entrySet()) {
-        if (entry.getValue().equals(fieldName)) {
-          return entry.getKey(); // Return schema field name
-        }
-      }
-      // Otherwise, assume it's already a schema field name
-      return fieldName;
     }
 
     /**
