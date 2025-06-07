@@ -512,6 +512,33 @@ public class SplunkConnectionImpl implements SplunkConnection {
         if (headerRow != null && headerRow.length > 0
             && !(headerRow.length == 1 && headerRow[0].isEmpty())) {
           this.fieldNames = headerRow;
+
+          // DEBUG: Print actual Splunk CSV headers
+          System.out.println("=== SPLUNK CSV HEADERS ===");
+          for (int i = 0; i < fieldNames.length; i++) {
+            System.out.printf("Header[%d]: '%s'\n", i, fieldNames[i]);
+          }
+
+          // DEBUG: Print reverse field mapping
+          System.out.println("=== REVERSE FIELD MAPPING ===");
+          if (this.reverseFieldMapping.isEmpty()) {
+            System.out.println("Reverse field mapping is EMPTY");
+          } else {
+            for (Map.Entry<String, String> entry : this.reverseFieldMapping.entrySet()) {
+              System.out.printf("'%s' -> '%s'\n", entry.getKey(), entry.getValue());
+            }
+          }
+
+          // DEBUG: Print wanted fields and their lookups
+          System.out.println("=== FIELD LOOKUP RESULTS ===");
+          for (int i = 0; i < wantedFields.size(); i++) {
+            String wantedField = wantedFields.get(i);
+            String splunkFieldName = findSplunkFieldName(wantedField, this.reverseFieldMapping);
+            int index = Arrays.asList(fieldNames).indexOf(splunkFieldName);
+            System.out.printf("WantedField[%d]: '%s' -> SplunkField: '%s' -> Index: %d\n",
+                i, wantedField, splunkFieldName, index);
+          }
+
           final List<String> headerList = Arrays.asList(fieldNames);
 
           // Check if "_extra" field is requested
