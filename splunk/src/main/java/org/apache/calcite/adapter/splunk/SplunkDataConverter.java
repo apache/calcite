@@ -65,17 +65,16 @@ public class SplunkDataConverter {
       RelDataTypeField field = fields.get(i);
       Object value = row[i];
 
-      // Enhanced debug logging for duration field specifically
-      if (field.getName().equals("duration")) {
-        System.out.println("DEBUG: Converting duration field at index " + i);
+      // Enhanced debug logging for ALL INTEGER fields to find the problematic one
+      if (field.getType().getSqlTypeName() == SqlTypeName.INTEGER) {
+        System.out.println("DEBUG: Converting INTEGER field '" + field.getName() + "' at index " + i);
         System.out.println("  Input value: '" + value + "' (type: " +
             (value != null ? value.getClass().getSimpleName() : "null") + ")");
-        System.out.println("  Target type: " + field.getType().getSqlTypeName());
       }
 
       if (value == null) {
         converted[i] = null;
-        if (field.getName().equals("duration")) {
+        if (field.getType().getSqlTypeName() == SqlTypeName.INTEGER) {
           System.out.println("  Result: null (was null input)");
         }
         continue;
@@ -85,7 +84,7 @@ public class SplunkDataConverter {
         Object convertedValue = convertValue(value, field.getType().getSqlTypeName());
         converted[i] = convertedValue;
 
-        if (field.getName().equals("duration")) {
+        if (field.getType().getSqlTypeName() == SqlTypeName.INTEGER) {
           System.out.println("  Result: '" + convertedValue + "' (type: " +
               (convertedValue != null ? convertedValue.getClass().getSimpleName() : "null") + ")");
         }
@@ -99,7 +98,7 @@ public class SplunkDataConverter {
         // This prevents ClassCastException when Avatica tries to access the field
         converted[i] = null;
 
-        if (field.getName().equals("duration")) {
+        if (field.getType().getSqlTypeName() == SqlTypeName.INTEGER) {
           System.out.println("  Result: null (conversion failed)");
         }
       }
@@ -116,41 +115,42 @@ public class SplunkDataConverter {
    * @return Converted value
    */
   public static Object convertValue(Object value, SqlTypeName targetType) {
-    // Enhanced debug logging for duration-related conversions
-    boolean isDurationField = value != null && value.toString().equals("") && targetType == SqlTypeName.INTEGER;
-    if (isDurationField) {
-      System.out.println("DEBUG: convertValue called for likely duration field");
+    // Enhanced debug logging for ALL INTEGER conversions to catch the problematic field
+    boolean isIntegerConversion = targetType == SqlTypeName.INTEGER;
+    if (isIntegerConversion) {
+      System.out.println("DEBUG: convertValue called for INTEGER field");
       System.out.println("  Input: '" + value + "' (type: " + (value != null ? value.getClass().getSimpleName() : "null") + ")");
       System.out.println("  Target type: " + targetType);
     }
 
     if (value == null) {
-      if (isDurationField) System.out.println("  Returning null (input was null)");
+      if (isIntegerConversion) System.out.println("  Returning null (input was null)");
       return null;
     }
 
     // If already the correct type, return as-is
     if (isCorrectType(value, targetType)) {
-      if (isDurationField) System.out.println("  Returning as-is (already correct type)");
+      if (isIntegerConversion) System.out.println("  Returning as-is (already correct type)");
       return value;
     }
 
     String stringValue = value.toString().trim();
-    if (isDurationField) {
+    if (isIntegerConversion) {
       System.out.println("  String value after trim: '" + stringValue + "'");
       System.out.println("  Is empty? " + stringValue.isEmpty());
+      System.out.println("  Is literal 'null'? " + "null".equals(stringValue));
     }
 
-    // Handle empty strings - convert to NULL for all types except VARCHAR/CHAR
-    if (stringValue.isEmpty()) {
+    // Handle empty strings AND literal "null" strings - convert to NULL for all types except VARCHAR/CHAR
+    if (stringValue.isEmpty() || "null".equals(stringValue)) {
       switch (targetType) {
       case VARCHAR:
       case CHAR:
-        if (isDurationField) System.out.println("  Returning empty string (VARCHAR/CHAR type)");
-        return stringValue; // Preserve empty strings for text fields
+        if (isIntegerConversion) System.out.println("  Returning string value (VARCHAR/CHAR type)");
+        return stringValue; // Preserve for text fields (even "null" strings)
       default:
-        if (isDurationField) System.out.println("  Returning null (empty string for non-text type)");
-        return null; // Convert empty strings to NULL for numeric/date types
+        if (isIntegerConversion) System.out.println("  Returning null (empty string or 'null' string for non-text type)");
+        return null; // Convert empty strings AND "null" strings to NULL for numeric/date types
       }
     }
 
@@ -204,14 +204,14 @@ public class SplunkDataConverter {
         break;
       }
 
-      if (isDurationField) {
+      if (isIntegerConversion) {
         System.out.println("  Conversion successful: '" + result +
             "' (type: " + (result != null ? result.getClass().getSimpleName() : "null") + ")");
       }
       return result;
 
     } catch (Exception e) {
-      if (isDurationField) {
+      if (isIntegerConversion) {
         System.out.println("  Conversion failed: " + e.getMessage());
         System.out.println("  Re-throwing exception...");
       }
@@ -390,4 +390,4 @@ public class SplunkDataConverter {
       throw new IllegalArgumentException("Unable to parse boolean: " + value);
     }
   }
-  }
+}
