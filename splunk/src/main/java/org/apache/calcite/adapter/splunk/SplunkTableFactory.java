@@ -124,7 +124,7 @@ public class SplunkTableFactory implements TableFactory<SplunkTable> {
     }
 
     // Handle field_mapping as Map<String, String>
-    Object mappingObj = operand.get("field_mapping");
+    Object mappingObj = operand.get("fieldMapping");
     if (mappingObj instanceof Map) {
       try {
         Map<String, Object> rawMapping = (Map<String, Object>) mappingObj;
@@ -143,7 +143,7 @@ public class SplunkTableFactory implements TableFactory<SplunkTable> {
     }
 
     // Handle field_mappings as List<String> with "key:value" format
-    Object mappingListObj = operand.get("field_mappings");
+    Object mappingListObj = operand.get("fieldMappings");
     if (mappingListObj instanceof List) {
       try {
         List<String> mappingList = (List<String>) mappingListObj;

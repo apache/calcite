@@ -59,7 +59,7 @@ public class SplunkSchemaFactory implements SchemaFactory {
     RelDataTypeFactory typeFactory = new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
 
     // Check for multiple CIM models first
-    Object cimModelsObj = operand.get("cim_models");
+    Object cimModelsObj = operand.get("cimModels");
     if (cimModelsObj instanceof List) {
       @SuppressWarnings("unchecked")
       List<String> cimModels = (List<String>) cimModelsObj;
@@ -67,7 +67,7 @@ public class SplunkSchemaFactory implements SchemaFactory {
     }
 
     // Check for single CIM model
-    String cimModel = (String) operand.get("cim_model");
+    String cimModel = (String) operand.get("cimModel");
     if (cimModel != null) {
       return createSingleCimSchema(typeFactory, cimModel, operand);
     }
@@ -139,7 +139,7 @@ public class SplunkSchemaFactory implements SchemaFactory {
    */
   private SplunkConnection createConnection(Map<String, Object> operand) {
     String url = buildSplunkUrl(operand);
-    Boolean disableSslValidation = (Boolean) operand.get("disable_ssl_validation");
+    Boolean disableSslValidation = (Boolean) operand.get("disableSslValidation");
     boolean disableSsl = Boolean.TRUE.equals(disableSslValidation);
 
     try {
