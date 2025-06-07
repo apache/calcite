@@ -526,56 +526,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return false;
   }
 
-  private static SqlNode expandExprFromJoin(SqlJoin join,
-      SqlIdentifier identifier, SelectScope scope) {
-    if (join.getConditionType() != JoinConditionType.USING) {
-      return identifier;
-    }
-
-    final Map<String, String> fieldAliases = getFieldAliases(scope);
-
-    for (String name
-        : SqlIdentifier.simpleNames((SqlNodeList) getCondition(join))) {
-      if (identifier.getSimple().equals(name)) {
-        final List<SqlNode> qualifiedNode = new ArrayList<>();
-        for (ScopeChild child : requireNonNull(scope, "scope").children) {
-          if (child.namespace.getRowType().getFieldNames().contains(name)) {
-            final SqlIdentifier exp =
-                new SqlIdentifier(
-                    ImmutableList.of(child.name, name),
-                    identifier.getParserPosition());
-            qualifiedNode.add(exp);
-          }
-        }
-
-        assert qualifiedNode.size() == 2;
-
-        // If there is an alias for the column, no need to wrap the coalesce with an AS operator
-        boolean haveAlias = fieldAliases.containsKey(name);
-
-        final SqlCall coalesceCall =
-            SqlStdOperatorTable.COALESCE.createCall(SqlParserPos.ZERO, qualifiedNode.get(0),
-            qualifiedNode.get(1));
-
-        if (haveAlias) {
-          return coalesceCall;
-        } else {
-          return SqlStdOperatorTable.AS.createCall(SqlParserPos.ZERO, coalesceCall,
-              new SqlIdentifier(name, SqlParserPos.ZERO));
-        }
-      }
-    }
-
-    // Only need to try to expand the expr from the left input of join
-    // since it is always left-deep join.
-    final SqlNode node = join.getLeft();
-    if (node instanceof SqlJoin) {
-      return expandExprFromJoin((SqlJoin) node, identifier, scope);
-    } else {
-      return identifier;
-    }
-  }
-
   private static Map<String, String> getFieldAliases(final SelectScope scope) {
     final ImmutableMap.Builder<String, String> fieldAliases = new ImmutableMap.Builder<>();
 
@@ -621,28 +571,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         catalogReader.nameMatcher(),
         getNamespaceOrThrow(join.getLeft()).getRowType(),
         getNamespaceOrThrow(join.getRight()).getRowType());
-  }
-
-  private static SqlNode expandCommonColumn(SqlSelect sqlSelect,
-      SqlNode selectItem, SelectScope scope, SqlValidatorImpl validator) {
-    if (!(selectItem instanceof SqlIdentifier)) {
-      return selectItem;
-    }
-
-    final SqlNode from = sqlSelect.getFrom();
-    if (!(from instanceof SqlJoin)) {
-      return selectItem;
-    }
-
-    final SqlIdentifier identifier = (SqlIdentifier) selectItem;
-    if (!identifier.isSimple()) {
-      if (!validator.config().conformance().allowQualifyingCommonColumn()) {
-        validateQualifiedCommonColumn((SqlJoin) from, identifier, scope, validator);
-      }
-      return selectItem;
-    }
-
-    return expandExprFromJoin((SqlJoin) from, identifier, scope);
   }
 
   private static void validateQualifiedCommonColumn(SqlJoin join,
@@ -7312,6 +7240,83 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
       return fqId;
     }
+
+    protected SqlNode expandCommonColumn(SqlSelect sqlSelect, SqlNode selectItem,
+        SelectScope scope) {
+      if (!(selectItem instanceof SqlIdentifier)) {
+        return selectItem;
+      }
+
+      final SqlNode from = sqlSelect.getFrom();
+      if (!(from instanceof SqlJoin)) {
+        return selectItem;
+      }
+
+      final SqlIdentifier identifier = (SqlIdentifier) selectItem;
+      if (!identifier.isSimple()) {
+        if (!validator.config().conformance().allowQualifyingCommonColumn()) {
+          validateQualifiedCommonColumn((SqlJoin) from, identifier, scope, validator);
+        }
+        return selectItem;
+      }
+
+      return expandExprFromJoin((SqlJoin) from, identifier, scope);
+    }
+
+    private SqlNode expandExprFromJoin(SqlJoin join, SqlIdentifier identifier, SelectScope scope) {
+      List<String> commonColumnNames;
+      // must be NATURAL or USING here, and cannot specify NATURAL keyword with USING clause
+      if (join.isNatural()) {
+        commonColumnNames = validator.deriveNaturalJoinColumnList(join);
+      } else if (join.getConditionType() == JoinConditionType.USING) {
+        commonColumnNames = SqlIdentifier.simpleNames((SqlNodeList) getCondition(join));
+      } else {
+        return identifier;
+      }
+
+      final SqlNameMatcher matcher = validator.getCatalogReader().nameMatcher();
+      final Map<String, String> fieldAliases = getFieldAliases(scope);
+
+      for (String name : commonColumnNames) {
+        if (matcher.matches(identifier.getSimple(), name)) {
+          final List<SqlNode> qualifiedNode = new ArrayList<>();
+          for (ScopeChild child : requireNonNull(scope, "scope").children) {
+            if (matcher.indexOf(child.namespace.getRowType().getFieldNames(), name) >= 0) {
+              final SqlIdentifier exp =
+                  new SqlIdentifier(
+                      ImmutableList.of(child.name, name),
+                      identifier.getParserPosition());
+              qualifiedNode.add(exp);
+            }
+          }
+
+          assert qualifiedNode.size() == 2;
+
+          // If there is an alias for the column, no need to wrap the coalesce with an AS operator
+          boolean haveAlias = fieldAliases.containsKey(name);
+
+          final SqlCall coalesceCall =
+              SqlStdOperatorTable.COALESCE.createCall(SqlParserPos.ZERO, qualifiedNode.get(0),
+                  qualifiedNode.get(1));
+
+          if (haveAlias) {
+            return coalesceCall;
+          } else {
+            return SqlStdOperatorTable.AS.createCall(SqlParserPos.ZERO, coalesceCall,
+                new SqlIdentifier(identifier.getSimple(), SqlParserPos.ZERO));
+          }
+        }
+      }
+
+      // Only need to try to expand the expr from the left input of join
+      // since it is always left-deep join.
+      final SqlNode node = join.getLeft();
+      if (node instanceof SqlJoin) {
+        return expandExprFromJoin((SqlJoin) node, identifier, scope);
+      } else {
+        return identifier;
+      }
+    }
   }
 
   /**
@@ -7468,8 +7473,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
     @Override public @Nullable SqlNode visit(SqlIdentifier id) {
-      final SqlNode node =
-          expandCommonColumn(select, id, (SelectScope) getScope(), validator);
+      final SqlNode node = expandCommonColumn(select, id, (SelectScope) getScope());
       if (node != id) {
         return node;
       } else {
@@ -7587,7 +7591,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       try {
         // First try a standard expansion
         if (clause == Clause.GROUP_BY) {
-          SqlNode node = expandCommonColumn(select, id, selectScope, validator);
+          SqlNode node = expandCommonColumn(select, id, selectScope);
           if (node != id) {
             return node;
           }
