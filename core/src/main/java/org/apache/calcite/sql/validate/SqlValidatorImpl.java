@@ -527,15 +527,22 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   private static SqlNode expandExprFromJoin(SqlJoin join,
-      SqlIdentifier identifier, SelectScope scope, boolean caseSensitive) {
-    if (join.getConditionType() != JoinConditionType.USING) {
+      SqlIdentifier identifier, SelectScope scope, SqlValidatorImpl validator) {
+    if (join.getConditionType() != JoinConditionType.USING && !join.isNatural()) {
       return identifier;
     }
+    List<String> commonColumnNames;
+    // must be natural or using here, and cannot specify NATURAL keyword with USING clause
+    if (join.isNatural()) {
+      commonColumnNames = validator.deriveNaturalJoinColumnList(join);
+    } else {
+      commonColumnNames = SqlIdentifier.simpleNames((SqlNodeList) getCondition(join));
+    }
 
+    final boolean caseSensitive = validator.catalogReader.nameMatcher().isCaseSensitive();
     final Map<String, String> fieldAliases = getFieldAliases(scope);
 
-    for (String name
-        : SqlIdentifier.simpleNames((SqlNodeList) getCondition(join))) {
+    for (String name : commonColumnNames) {
       if (Util.matches(caseSensitive, identifier.getSimple(), name)) {
         final List<SqlNode> qualifiedNode = new ArrayList<>();
         for (ScopeChild child : requireNonNull(scope, "scope").children) {
@@ -573,7 +580,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // since it is always left-deep join.
     final SqlNode node = join.getLeft();
     if (node instanceof SqlJoin) {
-      return expandExprFromJoin((SqlJoin) node, identifier, scope, caseSensitive);
+      return expandExprFromJoin((SqlJoin) node, identifier, scope, validator);
     } else {
       return identifier;
     }
@@ -648,7 +655,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return expandExprFromJoin((SqlJoin) from,
          identifier,
          scope,
-         validator.catalogReader.nameMatcher().isCaseSensitive());
+         validator);
   }
 
   private static void validateQualifiedCommonColumn(SqlJoin join,

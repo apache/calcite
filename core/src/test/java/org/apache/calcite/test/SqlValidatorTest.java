@@ -5466,21 +5466,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .ok();
   }
 
-  @Test void testSelectJoinUsingColumn() {
-    sql("select empno from emp join dept using (deptno)")
-        .withCaseSensitive(false)
-        .withValidatorIdentifierExpansion(true)
-        .withQuotedCasing(Casing.UNCHANGED)
-        .withUnquotedCasing(Casing.UNCHANGED)
-        .ok();
-
-
-    sql("select EMPNO from emp join dept using (deptno)")
-        .withCaseSensitive(false)
-        .withValidatorIdentifierExpansion(true)
-        .withQuotedCasing(Casing.UNCHANGED)
-        .withUnquotedCasing(Casing.UNCHANGED)
-        .ok();
+  @Test void testSelectJoinUsingCommonColumnCaseSensitive() {
 
     sql("select DEPTNO from emp join dept using (DEPTNO)")
         .withCaseSensitive(false)
@@ -5504,6 +5490,32 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .ok();
 
     sql("select deptno from emp join dept using (DEPTNO)")
+        .withCaseSensitive(false)
+        .withValidatorIdentifierExpansion(true)
+        .withQuotedCasing(Casing.UNCHANGED)
+        .withUnquotedCasing(Casing.UNCHANGED)
+        .ok();
+  }
+
+  @Test void testNaturalJoinCommonColumn() {
+    sql("select DEPTNO from emp natural join dept")
+        .withCaseSensitive(true)
+        .withValidatorIdentifierExpansion(true)
+        .ok();
+
+    sql("select deptno from emp natural join dept")
+        .withCaseSensitive(true)
+        .withValidatorIdentifierExpansion(true)
+        .ok();
+
+    sql("select deptno from emp natural join dept")
+        .withCaseSensitive(false)
+        .withValidatorIdentifierExpansion(true)
+        .withQuotedCasing(Casing.UNCHANGED)
+        .withUnquotedCasing(Casing.UNCHANGED)
+        .ok();
+
+    sql("select DEPTNO from emp natural join dept")
         .withCaseSensitive(false)
         .withValidatorIdentifierExpansion(true)
         .withQuotedCasing(Casing.UNCHANGED)
