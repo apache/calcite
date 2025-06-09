@@ -65,7 +65,6 @@ dependencies {
         apiv("com.google.protobuf:protobuf-java", "protobuf")
         apiv("com.google.uzaygezen:uzaygezen-core", "uzaygezen")
         apiv("com.h2database:h2")
-        apiv("com.jayway.jsonpath:json-path")
         apiv("com.joestelmach:natty")
         apiv("com.oracle.ojdbc:ojdbc8")
         apiv("com.teradata.tpcds:tpcds", "teradata.tpcds")

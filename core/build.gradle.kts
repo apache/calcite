@@ -64,7 +64,6 @@ dependencies {
         exclude("log4j", "log4j").because("conflicts with log4j-slf4j-impl which uses log4j2 and" +
                 " also leaks transitively to projects depending on calcite-core")
     }
-    implementation("com.jayway.jsonpath:json-path")
     implementation("com.yahoo.datasketches:sketches-core")
     implementation("commons-codec:commons-codec")
     implementation("net.hydromatic:aggdesigner-algorithm")
