@@ -777,6 +777,10 @@ public class RexUtil {
     @Override public Boolean visitLambdaRef(RexLambdaRef lambdaRef) {
       return false;
     }
+
+    @Override public Boolean visitNodeAndFieldIndex(RexNodeAndFieldIndex nodeAndFieldIndex) {
+      return false;
+    }
   }
 
   /**
