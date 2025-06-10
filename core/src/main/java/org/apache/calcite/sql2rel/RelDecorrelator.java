@@ -828,7 +828,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     // input of the Correlation, there is always an aggregation result available for join output.
     //
     // Implementation based on: Improving Unnesting of Complex Queries
-    // (https://15799.courses.cs.cmu.edu/spring2025/papers/11-unnesting/neumann-btw2025.pdf)
+    // (https://dl.gi.de/server/api/core/bitstreams/c1918e8c-6a87-4da2-930a-bfed289f2388/content)
     if (rel.getGroupType() == Aggregate.Group.SIMPLE
         && rel.getGroupSet().isEmpty()
         && !frame.corDefOutputs.isEmpty()
@@ -885,7 +885,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
       final List<RexNode> newProjects = new ArrayList<>();
       for (int index : ImmutableBitSet.range(groupKeySize, join.getRowType().getFieldCount())) {
         if (newProjectMap.containsKey(index)) {
-          newProjects.add(newProjectMap.get(index));
+          newProjects.add(requireNonNull(newProjectMap.get(index)));
         } else {
           newProjects.add(RexInputRef.of(index, join.getRowType()));
         }
