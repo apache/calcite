@@ -24,9 +24,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.logical.LogicalJoin;
-import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexShuttle;
 
 import org.immutables.value.Value;
 
@@ -59,22 +57,30 @@ public class JoinToHyperGraphRule
       return;
     }
 
-    HyperGraph result;
     long notProjectInputs = 0;
     List<RelNode> inputs = new ArrayList<>();
     List<HyperEdge> leftSubEdges = new ArrayList<>();
     List<HyperEdge> rightSubEdges = new ArrayList<>();
     List<RexNode> joinConds = new ArrayList<>();
 
-    if (origJoin.getCondition().isAlwaysTrue()) {
+    if (origJoin.getCondition().isAlwaysTrue() || origJoin.getJoinType() != JoinRelType.INNER) {
       joinConds.add(origJoin.getCondition());
     } else {
+      // inner join can be rewritten as cross product + filter. Due to this property, inner join
+      // condition can be split by conjunction and freely combine with other inner join conditions.
+      // So we split inner join condition by conjunction and build multiple hyperedges, which is
+      // helpful to obtain the potential optimal plan
       RelOptUtil.decomposeConjunction(origJoin.getCondition(), joinConds);
     }
 
     // when right is HyperGraph, need shift fields related to bitmap of HyperEdge
     int leftNodeCount;
     if (left instanceof HyperGraph && right instanceof HyperGraph) {
+      //
+      //              LogicalJoin
+      //             /           \
+      //       HyperGraph      HyperGraph (need to shift bitmap)
+      //
       leftNodeCount = left.getInputs().size();
       inputs.addAll(left.getInputs());
       inputs.addAll(right.getInputs());
@@ -88,6 +94,11 @@ public class JoinToHyperGraphRule
               .map(hyperEdge -> hyperEdge.adjustNodeBit(leftNodeCount))
               .collect(Collectors.toList()));
     } else if (left instanceof HyperGraph) {
+      //
+      //              LogicalJoin
+      //             /           \
+      //       HyperGraph      RelNode
+      //
       leftNodeCount = left.getInputs().size();
       inputs.addAll(left.getInputs());
       inputs.add(right);
@@ -96,6 +107,11 @@ public class JoinToHyperGraphRule
 
       leftSubEdges.addAll(((HyperGraph) left).getEdges());
     } else if (right instanceof HyperGraph) {
+      //
+      //              LogicalJoin
+      //             /           \
+      //         RelNode      HyperGraph (need to shift bitmap)
+      //
       leftNodeCount = 1;
       inputs.add(left);
       inputs.addAll(right.getInputs());
@@ -107,6 +123,11 @@ public class JoinToHyperGraphRule
               .map(hyperEdge -> hyperEdge.adjustNodeBit(leftNodeCount))
               .collect(Collectors.toList()));
     } else {
+      //
+      //              LogicalJoin
+      //             /           \
+      //         RelNode        RelNode
+      //
       leftNodeCount = 1;
       inputs.add(left);
       inputs.add(right);
@@ -117,113 +138,55 @@ public class JoinToHyperGraphRule
     }
 
     // calculate conflict rules
-    Map<Long, Long> conflictRules =
+    List<ConflictRule> conflictRules =
         ConflictDetectionHelper.makeConflictRules(
             leftSubEdges,
             rightSubEdges,
             origJoin.getJoinType());
-    leftSubEdges.addAll(rightSubEdges);
 
-    Map<Integer, Integer> fieldIndexToNodeIndexMap = new HashMap<>();
-    // the map from input index to the count of fields before it, used to convert RexInputRef to
-    // RexNodeAndFieldIndex
-    Map<Integer, Integer> relativePositionInNode = new HashMap<>();
-    int fieldCount = 0;
-    for (int i = 0; i < inputs.size(); i++) {
-      if (LongBitmap.isOverlap(notProjectInputs, LongBitmap.newBitmap(i))) {
+    // build the map from input ref to node index and field index. The RexInputRef in the join
+    // condition will be converted to RexNodeAndFieldIndex and stored in the hyperedge. The reason
+    // for the replacement is that the order of inputs will be constantly adjusted during
+    // enumeration, and maintaining the correct RexInputRef is too complicated.
+    Map<Integer, Integer> inputRefToNodeIndexMap = new HashMap<>();
+    Map<Integer, Integer> inputRefToFieldIndexMap = new HashMap<>();
+    int inputRef = 0;
+    for (int nodeIndex = 0; nodeIndex < inputs.size(); nodeIndex++) {
+      if (LongBitmap.isOverlap(notProjectInputs, LongBitmap.newBitmap(nodeIndex))) {
         continue;
       }
-      relativePositionInNode.put(i, fieldCount);
-      for (int j = 0; j < inputs.get(i).getRowType().getFieldCount(); j++) {
-        fieldIndexToNodeIndexMap.put(fieldCount++, i);
+      int fieldCount = inputs.get(nodeIndex).getRowType().getFieldCount();
+      for (int fieldIndex = 0; fieldIndex < fieldCount; fieldIndex++) {
+        inputRefToNodeIndexMap.put(inputRef, nodeIndex);
+        inputRefToFieldIndexMap.put(inputRef, fieldIndex);
+        inputRef++;
       }
     }
-    // convert current join condition to hyper edge condition
-    for (RexNode joinCond : joinConds) {
-      long leftEndpoint;
-      long rightEndpoint;
-      long leftNodeUsedInPredicate;
-      long rightNodeUsedInPredicate;
-      long initialLeftNodeBits = LongBitmap.newBitmapBetween(0, leftNodeCount);
-      long initialRightNodeBits = LongBitmap.newBitmapBetween(leftNodeCount, inputs.size());
-      List<Integer> leftRefs = new ArrayList<>();
-      List<Integer> rightRefs = new ArrayList<>();
 
-      RexShuttle shuttle = new RexShuttle() {
-        @Override public RexNode visitInputRef(RexInputRef inputRef) {
-          Integer nodeIndex = fieldIndexToNodeIndexMap.get(inputRef.getIndex());
-          if (nodeIndex == null) {
-            throw new AssertionError("When build hyper graph, RexInputRef refers "
-                + "a dummy field: " + inputRef + ", rowType is: " + origJoin.getRowType());
-          }
-          if (nodeIndex < leftNodeCount) {
-            leftRefs.add(nodeIndex);
-          } else {
-            rightRefs.add(nodeIndex);
-          }
-          Integer fieldOffset = relativePositionInNode.get(nodeIndex);
-          if (fieldOffset == null) {
-            throw new AssertionError("When build hyper graph, failed to map "
-                + "input index to field count before it");
-          }
-          int fieldIndex = inputRef.getIndex() - fieldOffset;
-          if (fieldIndex < 0) {
-            throw new AssertionError("When build hyper graph, failed to convert "
-                + "the input ref to the relative position of the field in the input");
-          }
-          return new HyperGraph.RexNodeAndFieldIndex(
-              nodeIndex,
-              fieldIndex,
-              inputRef.getName(),
-              inputRef.getType());
-        }
-      };
-      RexNode hyperEdgeCondition = joinCond.accept(shuttle);
-
-      Map<Long, Long> conflictRulesAfterAbsorb = new HashMap<>();
-      leftNodeUsedInPredicate = LongBitmap.newBitmapFromList(leftRefs);
-      rightNodeUsedInPredicate = LongBitmap.newBitmapFromList(rightRefs);
-      if (leftRefs.isEmpty() || rightRefs.isEmpty()) {
-        // when cartesian product or degenerate predicate, a complex hyperedge is generated to fix
-        // current join operator without exploring more possibilities. See section 6.2 in CD-C paper
-        leftEndpoint = initialLeftNodeBits;
-        rightEndpoint = initialRightNodeBits;
-      } else {
-        // simplify conflict rules. See section 5.5 in CD-C paper
-        long tes =
-            ConflictDetectionHelper.absorbConflictRulesIntoTES(
-                leftNodeUsedInPredicate | rightNodeUsedInPredicate,
-                conflictRulesAfterAbsorb,
-                conflictRules);
-        rightEndpoint = tes & initialRightNodeBits;
-        leftEndpoint = tes & ~rightEndpoint;
-      }
-      leftSubEdges.add(
-          new HyperEdge(
-              leftEndpoint,
-              rightEndpoint,
-              leftNodeUsedInPredicate,
-              rightNodeUsedInPredicate,
-              conflictRulesAfterAbsorb,
-              initialLeftNodeBits,
-              initialRightNodeBits,
-              origJoin.getJoinType(),
-              hyperEdgeCondition));
-    }
+    List<HyperEdge> edges =
+        HyperEdge.createHyperEdgesFromJoinConds(
+            inputRefToNodeIndexMap,
+            inputRefToFieldIndexMap,
+            joinConds,
+            conflictRules,
+            origJoin.getJoinType(),
+            leftNodeCount,
+            inputs.size());
+    edges.addAll(leftSubEdges);
+    edges.addAll(rightSubEdges);
 
     if (!origJoin.getJoinType().projectsRight()) {
       notProjectInputs |= LongBitmap.newBitmapBetween(leftNodeCount, inputs.size());
     }
-    result =
+    HyperGraph hyperGraph =
         new HyperGraph(
             origJoin.getCluster(),
             origJoin.getTraitSet(),
             inputs,
             notProjectInputs,
-            leftSubEdges,
+            edges,
             origJoin.getRowType());
-
-    call.transformTo(result);
+    call.transformTo(hyperGraph);
   }
 
   private static boolean unSupportedJoinType(JoinRelType joinType) {

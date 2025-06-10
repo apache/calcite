@@ -10768,4 +10768,21 @@ class RelOptRulesTest extends RelOptTestBase {
         .withRule(CoreRules.HYPER_GRAPH_OPTIMIZE, CoreRules.PROJECT_REMOVE, CoreRules.PROJECT_MERGE)
         .check();
   }
+
+  @Test void testComplexPredicateForDphyp() {
+    HepProgram program = new HepProgramBuilder()
+        .addMatchOrder(HepMatchOrder.BOTTOM_UP)
+        .addRuleInstance(CoreRules.FILTER_INTO_JOIN)
+        .addRuleInstance(CoreRules.JOIN_TO_HYPER_GRAPH)
+        .build();
+
+    sql("select emp.empno from "
+        + "emp, emp_b, dept, dept_nested "
+        + "where emp.deptno + emp_b.empno = dept.deptno + dept_nested.deptno "
+        + "and (emp.empno = emp_b.empno or emp.ename = emp_b.ename) "
+        + "and sqrt(dept.deptno + dept_nested.deptno) > 2")
+        .withPre(program)
+        .withRule(CoreRules.HYPER_GRAPH_OPTIMIZE, CoreRules.PROJECT_REMOVE, CoreRules.PROJECT_MERGE)
+        .check();
+  }
 }

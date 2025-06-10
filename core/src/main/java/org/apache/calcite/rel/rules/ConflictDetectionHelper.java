@@ -20,9 +20,8 @@ import org.apache.calcite.rel.core.JoinRelType;
 
 import com.google.common.collect.ImmutableMap;
 
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Conflict detection algorithm based on CD-C. More details are in paper:
@@ -89,101 +88,100 @@ public class ConflictDetectionHelper {
       /* full-A  */ {false,  false,  false,  false,  false}};
 
   /**
-   * Make conflict rules for join operator based on CD-C.
+   * Make conflict rules for join operator based on CD-C. See Figure.11 in paper.
    *
    * @param leftSubEdges  left sub operators
    * @param rightSubEdges right sub operators
    * @param joinType      current join operator
-   * @return  a map from table set1 to table set2 that if set1 and the tables in the current join
-   * operator have an intersection, then set2 must be included in the current join operator
+   * @return  conflict rule list
    */
-  public static Map<Long, Long> makeConflictRules(
+  public static List<ConflictRule> makeConflictRules(
       List<HyperEdge> leftSubEdges,
       List<HyperEdge> rightSubEdges,
       JoinRelType joinType) {
-    Map<Long, Long> conflictRules = new HashMap<>();
+    List<ConflictRule> conflictRules = new ArrayList<>();
+    //       o_b
+    //      /   \
+    //    ...   ...
+    //    /
+    //  o_a
+    //
+    // calculate the conflict rules for join_operator_b based on the all join operator
+    // (join_operator_a) on the left side of join_operator_b
     for (HyperEdge leftSubEdge : leftSubEdges) {
       if (!isAssociative(leftSubEdge.getJoinType(), joinType)) {
+        // if (o_a, o_b) does not satisfy the associative law
         if (leftSubEdge.getLeftNodeUsedInPredicate() != 0) {
-          conflictRules.merge(
-              leftSubEdge.getInitialRightNodeBits(),
-              leftSubEdge.getLeftNodeUsedInPredicate(),
-              (oldValue, newValue) -> oldValue | newValue);
+          // if T(left(o_a)) ∩ F_T(o_a) != ∅, a less restrictive conflict rule will be added
+          conflictRules.add(
+              new ConflictRule(
+                  leftSubEdge.getInitialRightNodeBits(),
+                  leftSubEdge.getLeftNodeUsedInPredicate()));
         } else {
-          conflictRules.merge(
+          conflictRules.add(
+              new ConflictRule(
               leftSubEdge.getInitialRightNodeBits(),
-              leftSubEdge.getInitialLeftNodeBits(),
-              (oldValue, newValue) -> oldValue | newValue);
+              leftSubEdge.getInitialLeftNodeBits()));
         }
-
       }
       if (!isLeftAsscom(leftSubEdge.getJoinType(), joinType)) {
+        // if (o_a, o_b) does not satisfy the left-asscom law
         if (leftSubEdge.getRightNodeUsedInPredicate() != 0) {
-          conflictRules.merge(
-              leftSubEdge.getInitialLeftNodeBits(),
-              leftSubEdge.getRightNodeUsedInPredicate(),
-              (oldValue, newValue) -> oldValue | newValue);
+          // if T(right(o_a)) ∩ F_T(o_a) != ∅, a less restrictive conflict rule will be added
+          conflictRules.add(
+              new ConflictRule(
+                  leftSubEdge.getInitialLeftNodeBits(),
+                  leftSubEdge.getRightNodeUsedInPredicate()));
         } else {
-          conflictRules.merge(
-              leftSubEdge.getInitialLeftNodeBits(),
-              leftSubEdge.getInitialRightNodeBits(),
-              (oldValue, newValue) -> oldValue | newValue);
+          conflictRules.add(
+              new ConflictRule(
+                  leftSubEdge.getInitialLeftNodeBits(),
+                  leftSubEdge.getInitialRightNodeBits()));
         }
       }
     }
 
+    //       o_b
+    //      /   \
+    //    ...   ...
+    //            \
+    //            o_a
+    //
+    // calculate the conflict rules for join_operator_b based on the all join operator
+    // (join_operator_a) on the right side of join_operator_b
     for (HyperEdge rightSubEdge : rightSubEdges) {
       if (!isAssociative(joinType, rightSubEdge.getJoinType())) {
+        // if (o_b, o_a) does not satisfy the associative law
         if (rightSubEdge.getRightNodeUsedInPredicate() != 0) {
-          conflictRules.merge(
-              rightSubEdge.getInitialLeftNodeBits(),
-              rightSubEdge.getRightNodeUsedInPredicate(),
-              (oldValue, newValue) -> oldValue | newValue);
+          // if T(right(o_a)) ∩ F_T(o_a) != ∅, a less restrictive conflict rule will be added
+          conflictRules.add(
+              new ConflictRule(
+                  rightSubEdge.getInitialLeftNodeBits(),
+                  rightSubEdge.getRightNodeUsedInPredicate()));
         } else {
-          conflictRules.merge(
-              rightSubEdge.getInitialLeftNodeBits(),
-              rightSubEdge.getInitialRightNodeBits(),
-              (oldValue, newValue) -> oldValue | newValue);
+          conflictRules.add(
+              new ConflictRule(
+                  rightSubEdge.getInitialLeftNodeBits(),
+                  rightSubEdge.getInitialRightNodeBits()));
         }
       }
       if (!isRightAsscom(joinType, rightSubEdge.getJoinType())) {
+        // if (o_b, o_a) does not satisfy the right-asscom law
         if (rightSubEdge.getLeftNodeUsedInPredicate() != 0) {
-          conflictRules.merge(
-              rightSubEdge.getInitialRightNodeBits(),
-              rightSubEdge.getLeftNodeUsedInPredicate(),
-              (oldValue, newValue) -> oldValue | newValue);
+          // if T(left(o_a)) ∩ F_T(o_a) != ∅, a less restrictive conflict rule will be added
+          conflictRules.add(
+              new ConflictRule(
+                  rightSubEdge.getInitialRightNodeBits(),
+                  rightSubEdge.getLeftNodeUsedInPredicate()));
         } else {
-          conflictRules.merge(
-              rightSubEdge.getInitialRightNodeBits(),
-              rightSubEdge.getInitialLeftNodeBits(),
-              (oldValue, newValue) -> oldValue | newValue);
+          conflictRules.add(
+              new ConflictRule(
+                  rightSubEdge.getInitialRightNodeBits(),
+                  rightSubEdge.getInitialLeftNodeBits()));
         }
       }
     }
     return conflictRules;
-  }
-
-  /**
-   * For conflict rule T1 → T2, if T1 and tes have intersection, we can add T2
-   * into tes and remove this rule. See section 5.5 in paper.
-   *
-   * @param tes                       tes
-   * @param conflictRulesAfterAbsorb  conflict rules after absorbing
-   * @param initialconflictRules      conflict rules before absorbing
-   * @return  tes after absorbing conflict rules
-   */
-  public static long absorbConflictRulesIntoTES(
-      long tes,
-      Map<Long, Long> conflictRulesAfterAbsorb,
-      Map<Long, Long> initialconflictRules) {
-    for (Map.Entry<Long, Long> rule : initialconflictRules.entrySet()) {
-      if (LongBitmap.isOverlap(tes, rule.getKey())) {
-        tes |= rule.getValue();
-        continue;
-      }
-      conflictRulesAfterAbsorb.put(rule.getKey(), rule.getValue());
-    }
-    return tes;
   }
 
   public static boolean isCommutative(JoinRelType operator) {
