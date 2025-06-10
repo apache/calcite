@@ -263,7 +263,7 @@ public class RelDecorrelatorTest {
         + "LogicalProject(EXPR$0=[ROW($9, $1)])\n"
         + "  LogicalJoin(condition=[IS NOT DISTINCT FROM($7, $8)], joinType=[left])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n"
-        + "    LogicalProject(DEPTNO=[$0], $f1=[$2])\n"
+        + "    LogicalProject(DEPTNO1=[$0], $f1=[$2])\n"
         + "      LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
         + "        LogicalAggregate(group=[{7}])\n"
         + "          LogicalTableScan(table=[[scott, EMP]])\n"

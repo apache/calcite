@@ -94,7 +94,7 @@ EnumerableCalc(expr#0..7=[{inputs}], expr#8=[0], expr#9=[=($t3, $t8)], expr#10=[
     EnumerableSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])
       EnumerableNestedLoopJoin(condition=[IS NOT DISTINCT FROM($0, $2)], joinType=[left])
         EnumerableTableScan(table=[[BLANK, TABLE1]])
-        EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NOT NULL($t2)], expr#5=[0], expr#6=[CASE($t4, $t2, $t5)], expr#7=[IS NOT NULL($t3)], expr#8=[CASE($t7, $t3, $t5)], I=[$t0], $f1=[$t6], $f2=[$t8])
+        EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NOT NULL($t2)], expr#5=[0], expr#6=[CASE($t4, $t2, $t5)], expr#7=[IS NOT NULL($t3)], expr#8=[CASE($t7, $t3, $t5)], J=[$t0], c=[$t6], ck=[$t8])
           EnumerableNestedLoopJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])
             EnumerableAggregate(group=[{0}])
               EnumerableTableScan(table=[[BLANK, TABLE1]])

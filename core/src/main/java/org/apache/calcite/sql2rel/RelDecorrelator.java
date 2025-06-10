@@ -161,6 +161,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
   // map built during translation
   protected CorelMap cm;
 
+  /** Stack maintaining visible Frames to the currently invoked RelNode during top-down traversal.
+   *  Each entry maps a CorrelationId to the Frame where its correlated variables originate. */
   protected final Deque<Pair<CorrelationId, Frame>> frameStack = new ArrayDeque<>();
 
   @SuppressWarnings("method.invocation.invalid")
@@ -770,8 +772,63 @@ public class RelDecorrelator implements ReflectiveVisitor {
         break;
       }
     }
-    // Special case where the group by is static (i.e., a select clause with aggregation functions
-    // but without group by).
+
+    // Special case where the group by is static (i.e., aggregation functions without group by).
+    //
+    // When unnesting an Aggregate, we add corVar as an extra groupKey to rewrite Correlate as JOIN.
+    // For the query:
+    //  SELECT SUM(salary), COUNT(name) FROM A;
+    // When table A is empty, it returns [null, 0].
+    // But for
+    //  SELECT SUM(salary), COUNT(name) FROM A group by id
+    // When table A is empty, it returns empty. This causes result mismatch.
+    //
+    // We refer to this situation as: `The well-known count bug`,
+    // More details about this issue: Optimization of Nested SQL Queries Revisited
+    // (https://dl.acm.org/doi/pdf/10.1145/38714.38723)
+    //
+    // To handle this situation, we ensure aggregated result output through pre-join
+    // Given the following plan:
+    //    LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+    //      LogicalProject(DEPTNO=[$0])
+    //        LogicalTableScan(table=[[scott, DEPT]])
+    //      LogicalProject(EXPR$1=[IS NULL($1)])
+    //        LogicalFilter(condition=[=(0, $0)])
+    //          LogicalAggregate(group=[{}], EXPR$0=[COUNT()], EXPR$1=[SUM($0)])
+    //            LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
+    //              LogicalTableScan(table=[[scott, EMP]])
+    //
+    // The regular rewrite as:
+    //    LogicalJoin(condition=[=($0, $2)], joinType=[inner])
+    //      LogicalProject(DEPTNO=[$0])
+    //        LogicalTableScan(table=[[scott, DEPT]])
+    //      LogicalProject(EXPR$1=[IS NULL($2)], DEPTNO=[$0])
+    //        LogicalFilter(condition=[=(0, $1)])
+    //          LogicalAggregate(group=[{0}], EXPR$0=[COUNT()], EXPR$1=[SUM($0)])
+    //            LogicalProject(DEPTNO=[$7])
+    //              LogicalFilter(condition=[IS NOT NULL($7)])
+    //                LogicalTableScan(table=[[scott, EMP]])
+    // It will causes rows with `count=0` to be filtered out, and IS NULL($2) will return null
+    // instead of true. Therefore, we use LEFT JOIN to ensure that
+    // correlation fields (extra group by key) always returns the aggregation result.
+    //
+    // Rewrite Aggregate as:
+    //    LogicalProject(DEPTNO=[$0], EXPR$0=[CASE(IS NOT NULL($2), $2, 0), EXPR$1=[$(1)])
+    //      LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])
+    //        LogicalAggregate(group=[{0}])
+    //          LogicalProject(DEPTNO=[$0])
+    //            LogicalTableScan(table=[[scott, DEPT]])
+    //        LogicalAggregate(group=[{0}], EXPR$0=[COUNT(), EXPR$1=[SUM($0)])
+    //          LogicalProject(DEPTNO=[$7])
+    //            LogicalFilter(condition=[IS NOT NULL($7)])
+    //              LogicalTableScan(table=[[scott, EMP]])
+    //
+    // Here we perform an early join, preserving all possible CorVar sets from the outer scope
+    // and their corresponding aggregation results. This ensures that for any row from the left
+    // input of the Correlation, there is always an aggregation result available for join output.
+    //
+    // Implementation based on: Improving Unnesting of Complex Queries
+    // (https://15799.courses.cs.cmu.edu/spring2025/papers/11-unnesting/neumann-btw2025.pdf)
     if (rel.getGroupType() == Aggregate.Group.SIMPLE
         && rel.getGroupSet().isEmpty()
         && !frame.corDefOutputs.isEmpty()
@@ -835,7 +892,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
       }
 
       newRel = relBuilder.push(join)
-          .project(newProjects)
+          .project(newProjects, newRel.getRowType().getFieldNames())
           .build();
     }
 
@@ -860,6 +917,12 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
   }
 
+  /**
+   * Invokes decorrelation logic for a given relational expression.
+   *
+   * @param parentPropagatesNullValues True if the parent RelNode produces null
+   *                                   when all of its inputs fields are null.
+   */
   public @Nullable Frame getInvoke(RelNode r, boolean isCorVarDefined,
       @Nullable RelNode parent, boolean parentPropagatesNullValues) {
     final Frame frame = dispatcher.invoke(r, isCorVarDefined, parentPropagatesNullValues);
