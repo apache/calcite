@@ -17,15 +17,20 @@
 package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
+
+import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -102,15 +107,33 @@ public class SqlQuantifyOperator extends SqlInOperator {
     final SqlNode left = call.operand(0);
     final SqlNode right = call.operand(1);
     if (right instanceof SqlNodeList && ((SqlNodeList) right).size() == 1) {
-      final RelDataType rightType =
+      RelDataType rightType =
           validator.deriveType(scope, ((SqlNodeList) right).get(0));
       if (SqlTypeUtil.isCollection(rightType)) {
-        final RelDataType componentRightType =
-            requireNonNull(rightType.getComponentType());
-        final RelDataType leftType = validator.deriveType(scope, left);
-        if (SqlTypeUtil.sameNamedType(componentRightType, leftType)
-            || SqlTypeUtil.isNull(leftType)
-            || SqlTypeUtil.isNull(componentRightType)) {
+        RelDataType componentRightType = requireNonNull(rightType.getComponentType());
+        RelDataType leftType = validator.deriveType(scope, left);
+        boolean isCompatibleType = isCompatibleType(componentRightType, leftType);
+        SqlCall sqlCall =
+            new SqlBasicCall(call.getOperator(),
+                ImmutableList.of(left, ((SqlNodeList) right).get(0)), SqlParserPos.ZERO);
+        SqlCallBinding callBinding = new SqlCallBinding(validator, scope, sqlCall);
+        if (!isCompatibleType && callBinding.isTypeCoercionEnabled()) {
+          boolean coerced = callBinding.getValidator().getTypeCoercion()
+              .quantifyOperationCoercion(callBinding);
+          if (coerced) {
+            // Update the node data type if we coerced any type.
+            call.setOperand(0,
+                callBinding.operand(0));
+            call.setOperand(1,
+                new SqlNodeList(ImmutableList.of(callBinding.operand(1)), SqlParserPos.ZERO));
+            leftType = validator.deriveType(scope, call.operand(0));
+            rightType = validator.deriveType(scope, ((SqlNodeList) right).get(0));
+            componentRightType = rightType.getComponentType();
+            requireNonNull(componentRightType, "componentRightType");
+            isCompatibleType = isCompatibleType(componentRightType, leftType);
+          }
+        }
+        if (isCompatibleType) {
           return validator.getTypeFactory().createTypeWithNullability(
               validator.getTypeFactory().createSqlType(SqlTypeName.BOOLEAN),
               rightType.isNullable()
@@ -122,6 +145,12 @@ public class SqlQuantifyOperator extends SqlInOperator {
       }
     }
     return null;
+  }
+
+  private static boolean isCompatibleType(RelDataType leftType, RelDataType rightType) {
+    return SqlTypeUtil.sameNamedType(rightType, leftType)
+        || SqlTypeUtil.isNull(leftType)
+        || SqlTypeUtil.isNull(rightType);
   }
 
   @Override public SqlOperator not() {
