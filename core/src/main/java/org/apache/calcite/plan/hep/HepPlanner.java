@@ -450,28 +450,14 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
   private Iterator<HepRelVertex> getGraphIterator(
       HepProgram.State programState, HepRelVertex start) {
-    // Make sure there's no garbage, because topological sort
-    // doesn't start from a specific root, and rules can't
-    // deal with firing on garbage.
-
-    // FIXME jvs 25-Sept-2006:  I had to move this earlier because
-    // of FRG-215, which is still under investigation.  Once we
-    // figure that one out, move down to location below for
-    // better optimizer performance.
-    collectGarbage();
-
     switch (requireNonNull(programState.matchOrder, "programState.matchOrder")) {
     case ARBITRARY:
     case DEPTH_FIRST:
       return DepthFirstIterator.of(graph, start).iterator();
-
     case TOP_DOWN:
     case BOTTOM_UP:
       assert start == root;
-      // see above
-/*
-        collectGarbage();
-*/
+      collectGarbage();
       return TopologicalOrderIterator.of(graph, programState.matchOrder).iterator();
     default:
       throw new
