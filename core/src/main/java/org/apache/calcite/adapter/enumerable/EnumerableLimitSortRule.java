@@ -25,8 +25,9 @@ import org.apache.calcite.rel.logical.LogicalSort;
 import org.immutables.value.Value;
 
 /**
- * Rule to convert an {@link EnumerableLimit} of on
- * {@link EnumerableSort} into an {@link EnumerableLimitSort}.
+ * Rule to convert an {@link LogicalSort} with ({@link LogicalSort#fetch}
+ * or {@link LogicalSort#offset}) and {@link LogicalSort#collation}(Order By)
+ * into an {@link EnumerableLimitSort}.
  */
 @Value.Enclosing
 public class EnumerableLimitSortRule extends RelRule<EnumerableLimitSortRule.Config> {
@@ -57,7 +58,8 @@ public class EnumerableLimitSortRule extends RelRule<EnumerableLimitSortRule.Con
         ImmutableEnumerableLimitSortRule.Config.of()
             .withOperandSupplier(b0 ->
                 b0.operand(LogicalSort.class)
-                    .predicate(sort -> sort.fetch != null)
+                    .predicate(sort -> (sort.fetch != null || sort.offset != null)
+                        && !sort.collation.getFieldCollations().isEmpty())
                     .anyInputs());
 
     @Override default EnumerableLimitSortRule toRule() {

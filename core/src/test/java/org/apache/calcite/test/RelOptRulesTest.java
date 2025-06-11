@@ -10798,4 +10798,100 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withRule(CoreRules.AGGREGATE_MIN_MAX_TO_LIMIT)
         .check();
   }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7047">[CALCITE-7047]
+   * Improve Volcano planner selection of sort conversion rules</a>. */
+  @Test void testLimitSortOnlyLimit() {
+    String sql = "select * from emp limit 10";
+    sql(sql)
+        .withVolcanoPlanner(false, p -> {
+          p.addRule(EnumerableRules.ENUMERABLE_LIMIT_SORT_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_LIMIT_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_SORT_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_PROJECT_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+        })
+        .check();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7047">[CALCITE-7047]
+   * Improve Volcano planner selection of sort conversion rules</a>. */
+  @Test void testLimitSortOnlyOffset() {
+    String sql = "select * from emp offset 10";
+    sql(sql)
+        .withVolcanoPlanner(false, p -> {
+          p.addRule(EnumerableRules.ENUMERABLE_LIMIT_SORT_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_LIMIT_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_SORT_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_PROJECT_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+        })
+        .check();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7047">[CALCITE-7047]
+   * Improve Volcano planner selection of sort conversion rules</a>. */
+  @Test void testLimitSortOnlyOrderBy() {
+    String sql = "select * from emp order by deptno";
+    sql(sql)
+        .withVolcanoPlanner(false, p -> {
+          p.addRule(EnumerableRules.ENUMERABLE_LIMIT_SORT_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_LIMIT_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_SORT_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_PROJECT_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+        })
+        .check();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7047">[CALCITE-7047]
+   * Improve Volcano planner selection of sort conversion rules</a>. */
+  @Test void testLimitSortOrderByLimit() {
+    String sql = "select * from emp order by deptno limit 10";
+    sql(sql)
+        .withVolcanoPlanner(false, p -> {
+          p.addRule(EnumerableRules.ENUMERABLE_LIMIT_SORT_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_LIMIT_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_SORT_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_PROJECT_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+        })
+        .check();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7047">[CALCITE-7047]
+   * Improve Volcano planner selection of sort conversion rules</a>. */
+  @Test void testLimitSortOrderByOffsetLimit() {
+    String sql = "select * from emp order by deptno limit 10 offset 5";
+    sql(sql)
+        .withVolcanoPlanner(false, p -> {
+          p.addRule(EnumerableRules.ENUMERABLE_LIMIT_SORT_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_LIMIT_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_SORT_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_PROJECT_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+        })
+        .check();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7047">[CALCITE-7047]
+   * Improve Volcano planner selection of sort conversion rules</a>. */
+  @Test void testLimitSortOrderByOffset() {
+    String sql = "select * from emp order by deptno offset 5";
+    sql(sql)
+        .withVolcanoPlanner(false, p -> {
+          p.addRule(EnumerableRules.ENUMERABLE_LIMIT_SORT_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_LIMIT_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_SORT_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_PROJECT_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+        })
+        .check();
+  }
 }
