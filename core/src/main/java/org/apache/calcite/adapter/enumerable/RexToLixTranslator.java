@@ -363,6 +363,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
 
     switch (targetType.getSqlTypeName()) {
     case ARRAY:
+    case MULTISET:
       final RelDataType sourceDataType = sourceType.getComponentType();
       final RelDataType targetDataType = targetType.getComponentType();
       assert sourceDataType != null;
