@@ -17,17 +17,23 @@
 package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.linq4j.function.Experimental;
+import org.apache.calcite.plan.PlanTooComplexError;
 import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
 
+import com.google.common.collect.ImmutableList;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * The core process of dphyp enumeration algorithm.
@@ -37,23 +43,30 @@ public class DpHyp {
 
   private final HyperGraph hyperGraph;
 
-  private final HashMap<Long, RelNode> dpTable;
+  private final Map<Long, RelNode> dpTable;
+
+  // a map from subgraph to the node list of the best join tree. The node list records the node
+  // index and whether it is projected, which is used to convert the RexNodeAndFieldIndex in
+  // hyperedge to the RexInputRef in join condition
+  private final Map<Long, ImmutableList<HyperGraph.NodeState>> resultInputOrder;
 
   private final RelBuilder builder;
 
   private final RelMetadataQuery mq;
 
-  public DpHyp(HyperGraph hyperGraph, RelBuilder builder, RelMetadataQuery relMetadataQuery) {
+  private final int bloat;
+
+  public DpHyp(HyperGraph hyperGraph, RelBuilder builder, RelMetadataQuery relMetadataQuery,
+      int bloat) {
     this.hyperGraph =
         hyperGraph.copy(
             hyperGraph.getTraitSet(),
             hyperGraph.getInputs());
     this.dpTable = new HashMap<>();
+    this.resultInputOrder = new HashMap<>();
     this.builder = builder;
     this.mq = relMetadataQuery;
-    // make all field name unique and convert the
-    // HyperEdge condition from RexInputRef to RexInputFieldName
-    this.hyperGraph.convertHyperEdgeCond(builder);
+    this.bloat = bloat;
   }
 
   /**
@@ -68,15 +81,22 @@ public class DpHyp {
     for (int i = 0; i < size; i++) {
       long singleNode = LongBitmap.newBitmap(i);
       dpTable.put(singleNode, hyperGraph.getInput(i));
+      resultInputOrder.put(
+          singleNode,
+          ImmutableList.of(new HyperGraph.NodeState(i, true)));
       hyperGraph.initEdgeBitMap(singleNode);
     }
 
-    // start enumerating from the second to last
-    for (int i = size - 2; i >= 0; i--) {
-      long csg = LongBitmap.newBitmap(i);
-      long forbidden = csg - 1;
-      emitCsg(csg);
-      enumerateCsgRec(csg, forbidden);
+    try {
+      // start enumerating from the second to last
+      for (int i = size - 2; i >= 0; i--) {
+        long csg = LongBitmap.newBitmap(i);
+        long forbidden = csg - 1;
+        emitCsg(csg);
+        enumerateCsgRec(csg, forbidden);
+      }
+    } catch (PlanTooComplexError e) {
+      return;
     }
   }
 
@@ -173,42 +193,97 @@ public class DpHyp {
   private void emitCsgCmp(long csg, long cmp, List<HyperEdge> edges) {
     RelNode child1 = dpTable.get(csg);
     RelNode child2 = dpTable.get(cmp);
-    if (child1 == null || child2 == null) {
-      throw new IllegalArgumentException(
-          "csg and cmp were not enumerated in the previous dp process");
-    }
+    ImmutableList<HyperGraph.NodeState> csgOrder = resultInputOrder.get(csg);
+    ImmutableList<HyperGraph.NodeState> cmpOrder = resultInputOrder.get(cmp);
+    assert child1 != null && child2 != null && csgOrder != null && cmpOrder != null;
+    assert Long.bitCount(csg) == csgOrder.size() && Long.bitCount(cmp) == cmpOrder.size();
 
     JoinRelType joinType = hyperGraph.extractJoinType(edges);
     if (joinType == null) {
       return;
     }
-    RexNode joinCond1 = hyperGraph.extractJoinCond(child1, child2, edges);
+    // verify whether the subgraph is legal by using the conflict rules in hyperedges
+    if (!hyperGraph.applicable(csg | cmp, edges)) {
+      return;
+    }
+
+    List<HyperGraph.NodeState> unionOrder = new ArrayList<>(csgOrder);
+    unionOrder.addAll(cmpOrder);
+    // build join condition from hyperedges. e.g.
+    // csg: node0_projected [field0, field1], node1_projected [field0, field1],
+    // cmp: node2_projected [field0, field1]
+    // hyperedge1: node0.field0 = node2.field0
+    // hyperedge2: node1.field1 = node2.field1
+    // we will get join condition: ($0 = $4) and ($3 = $5)
+    //
+    // csg: node0_projected [field0, field1], node1_not_projected [field0, field1],
+    // cmp: node2_projected [field0, field1]
+    // hyperedge1: node0.field0 = node2.field0
+    // hyperedge2: node0.field1 = node2.field1
+    // we will get join condition: ($0 = $2) and ($1 = $3)
+    RexNode joinCond1 = hyperGraph.extractJoinCond(unionOrder, csgOrder.size(), edges, joinType);
     RelNode newPlan1 = builder
         .push(child1)
         .push(child2)
         .join(joinType, joinCond1)
         .build();
+    RelNode winPlan = newPlan1;
+    ImmutableList<HyperGraph.NodeState> winOrder = ImmutableList.copyOf(unionOrder);
+    assert verifyDpResultRowType(newPlan1, unionOrder);
 
-    // swap left and right
-    RexNode joinCond2 = hyperGraph.extractJoinCond(child2, child1, edges);
-    RelNode newPlan2 = builder
-        .push(child2)
-        .push(child1)
-        .join(joinType, joinCond2)
-        .build();
-    RelNode winPlan = chooseBetterPlan(newPlan1, newPlan2);
+    if (ConflictDetectionHelper.isCommutative(joinType)) {
+      // swap left and right
+      unionOrder = new ArrayList<>(cmpOrder);
+      unionOrder.addAll(csgOrder);
+      RexNode joinCond2 = hyperGraph.extractJoinCond(unionOrder, cmpOrder.size(), edges, joinType);
+      RelNode newPlan2 = builder
+          .push(child2)
+          .push(child1)
+          .join(joinType, joinCond2)
+          .build();
+      winPlan = chooseBetterPlan(winPlan, newPlan2);
+      assert verifyDpResultRowType(newPlan2, unionOrder);
+      if (winPlan.equals(newPlan2)) {
+        winOrder = ImmutableList.copyOf(unionOrder);
+      }
+    }
 
     RelNode oriPlan = dpTable.get(csg | cmp);
     if (oriPlan != null) {
       winPlan = chooseBetterPlan(winPlan, oriPlan);
+      if (winPlan.equals(oriPlan)) {
+        winOrder = resultInputOrder.get(csg | cmp);
+      }
+    } else {
+      // when enumerating a new connected subgraph, check whether the dpTable size is too large
+      if (dpTable.size() > bloat) {
+        throw new PlanTooComplexError();
+      }
     }
+    assert winOrder != null;
     dpTable.put(csg | cmp, winPlan);
+    resultInputOrder.put(csg | cmp, winOrder);
   }
 
   public @Nullable RelNode getBestPlan() {
     int size = hyperGraph.getInputs().size();
     long wholeGraph = LongBitmap.newBitmapBetween(0, size);
-    return dpTable.get(wholeGraph);
+    RelNode orderedJoin = dpTable.get(wholeGraph);
+    if (orderedJoin == null) {
+      return null;
+    }
+    ImmutableList<HyperGraph.NodeState> resultOrder = resultInputOrder.get(wholeGraph);
+    assert resultOrder != null && resultOrder.size() == size;
+
+    // ensure that the fields produced by the reordered join are in the same order as in the
+    // original plan.
+    List<RexNode> projects =
+        hyperGraph.restoreProjectionOrder(resultOrder,
+        orderedJoin.getRowType().getFieldList());
+    return builder
+        .push(orderedJoin)
+        .project(projects)
+        .build();
   }
 
   private RelNode chooseBetterPlan(RelNode plan1, RelNode plan2) {
@@ -223,4 +298,25 @@ public class DpHyp {
     }
   }
 
+  /**
+   * Verify that the row type of plans generated by dphyp is equivalent to the origin plan.
+   *
+   * @param plan          plan generated by dphyp
+   * @param resultOrder   node status ordered list
+   * @return  true if the plan row type equivalent to the hyperGraph row type
+   */
+  private boolean verifyDpResultRowType(RelNode plan, List<HyperGraph.NodeState> resultOrder) {
+    // only verify the whole graph
+    if (resultOrder.size() != hyperGraph.getInputs().size()) {
+      return true;
+    }
+    List<RexNode> projects =
+        hyperGraph.restoreProjectionOrder(resultOrder,
+            plan.getRowType().getFieldList());
+    RelNode resultNode = builder
+        .push(plan)
+        .project(projects)
+        .build();
+    return RelOptUtil.areRowTypesEqual(resultNode.getRowType(), hyperGraph.getRowType(), false);
+  }
 }

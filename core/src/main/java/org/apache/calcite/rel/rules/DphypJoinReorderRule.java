@@ -21,14 +21,9 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
-import org.apache.calcite.rex.RexBuilder;
-import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
 
 import org.immutables.value.Value;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /** Rule that re-orders a {@link Join} tree using dphyp algorithm.
  *
@@ -48,27 +43,13 @@ public class DphypJoinReorderRule
     RelBuilder relBuilder = call.builder();
 
     // enumerate by Dphyp
-    DpHyp dpHyp = new DpHyp(hyperGraph, relBuilder, call.getMetadataQuery());
+    DpHyp dpHyp = new DpHyp(hyperGraph, relBuilder, call.getMetadataQuery(), config.bloat());
     dpHyp.startEnumerateJoin();
     RelNode orderedJoin = dpHyp.getBestPlan();
     if (orderedJoin == null) {
       return;
     }
-
-    // permute field to origin order
-    List<String> oriNames = hyperGraph.getRowType().getFieldNames();
-    List<String> newNames = orderedJoin.getRowType().getFieldNames();
-    List<RexNode> projects = new ArrayList<>();
-    RexBuilder rexBuilder = hyperGraph.getCluster().getRexBuilder();
-    for (String oriName : oriNames) {
-      projects.add(rexBuilder.makeInputRef(orderedJoin, newNames.indexOf(oriName)));
-    }
-
-    RelNode result = call.builder()
-        .push(orderedJoin)
-        .project(projects)
-        .build();
-    call.transformTo(result);
+    call.transformTo(orderedJoin);
   }
 
   /** Rule configuration. */
@@ -80,6 +61,15 @@ public class DphypJoinReorderRule
 
     @Override default DphypJoinReorderRule toRule() {
       return new DphypJoinReorderRule(this);
+    }
+
+    /**
+     * Limit to the size growth of the dpTable allowed during enumerating.
+     * If the graph with n inputs is fully connected and any combination is legal, the size of
+     * dpTable is 2^n-1. The default value assumes n=7.
+     */
+    default int bloat() {
+      return 127;
     }
   }
 }

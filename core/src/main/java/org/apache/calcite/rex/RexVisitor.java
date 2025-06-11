@@ -61,6 +61,8 @@ public interface RexVisitor<R> {
 
   R visitLambdaRef(RexLambdaRef lambdaRef);
 
+  R visitNodeAndFieldIndex(RexNodeAndFieldIndex nodeAndFieldIndex);
+
   /** Visits a list and writes the results to another list. */
   default void visitList(Iterable<? extends RexNode> exprs, List<R> out) {
     for (RexNode expr : exprs) {

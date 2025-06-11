@@ -244,6 +244,10 @@ public class RexShuttle implements RexVisitor<RexNode> {
     return lambdaRef;
   }
 
+  @Override public RexNode visitNodeAndFieldIndex(RexNodeAndFieldIndex nodeAndFieldIndex) {
+    return nodeAndFieldIndex;
+  }
+
   /**
    * Applies this shuttle to each expression in a list.
    *
