@@ -2553,6 +2553,47 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7056">[CALCITE-7056]
+   * Convert RelNode to Sql failed when the RelNode includes quantify operators</a>.
+   */
+  @Test void testQuantifyOperatorsWithTypeCoercion() {
+    final String query = "SELECT timestamp '1970-01-01 01:23:45'"
+        + " = any (array[timestamp '1970-01-01 01:23:45',"
+        + "timestamp '1970-01-01 01:23:46'])";
+    final String expected = "SELECT TIMESTAMP '1970-01-01 01:23:45' ="
+        + " SOME ARRAY[TIMESTAMP '1970-01-01 01:23:45', TIMESTAMP '1970-01-01 01:23:46']\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    sql(query).withCalcite().ok(expected);
+
+    final String query1 = "SELECT 1, \"gross_weight\" < SOME(SELECT \"gross_weight\" "
+        + "FROM \"foodmart\".\"product\") AS \"t\" "
+        + "FROM \"foodmart\".\"product\"";
+    final String expected1 = "SELECT 1, \"gross_weight\" < SOME (SELECT \"gross_weight\"\n"
+        + "FROM \"foodmart\".\"product\") AS \"t\"\nFROM \"foodmart\".\"product\"";
+    sql(query1).withCalcite().ok(expected1);
+
+    final String query2 = "SELECT 1 = SOME (ARRAY[2,3,null])";
+    final String expected2 = "SELECT 1 = SOME ARRAY[2, 3, NULL]\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    sql(query2).withCalcite().ok(expected2);
+
+    final String query3 =
+        "WITH tb(a) as (VALUES "
+            + "(ARRAY[timestamp '1970-01-01 01:23:45', timestamp '1970-01-01 01:23:46'])) "
+            + "SELECT timestamp '1970-01-01 01:23:45' >= some (a) FROM tb";
+    final String expected3 = "SELECT TIMESTAMP '1970-01-01 01:23:45'"
+        + " >= SOME ARRAY[TIMESTAMP '1970-01-01 01:23:45', TIMESTAMP '1970-01-01 01:23:46']\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    sql(query3).withCalcite().ok(expected3);
+
+    final String query4 = "SELECT 1.0 = SOME (VALUES (1.0), (2.0))";
+    final String expected4 = "SELECT 1.0 IN "
+        + "(SELECT *\nFROM (VALUES (1.0),\n(2.0)) AS \"t\" (\"EXPR$0\"))\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    sql(query4).withCalcite().ok(expected4);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6088">[CALCITE-6088]
    * SqlItemOperator fails in RelToSqlConverter</a>. */
   @Test void testSqlItemOperator() {
