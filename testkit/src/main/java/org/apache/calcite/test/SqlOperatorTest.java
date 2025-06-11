@@ -16145,6 +16145,41 @@ public class SqlOperatorTest {
         "Values passed to = SOME operator must have compatible types", false);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6950">[CALCITE-6950]
+   * Use ANY operator to check if an element exists in an array throws exception</a>. */
+  @Test void testQuantifyCollectionOperators2() {
+    final SqlOperatorFixture f = fixture();
+    QUANTIFY_OPERATORS.forEach(operator -> f.setFor(operator, SqlOperatorFixture.VmName.EXPAND));
+
+    f.checkNull("1.0 = some (ARRAY[2,3,null])");
+    f.checkNull("1.0 = some (ARRAY[2,null,3])");
+    f.checkBoolean("1.0 = some (ARRAY[1,2,null])", true);
+    f.checkBoolean("3.0 = some (ARRAY[1,2])", false);
+
+    f.checkBoolean(
+        "'1970-01-01 01:23:45' = any (array[timestamp '1970-01-01 01:23:45',"
+            + "timestamp '1970-01-01 01:23:46'])", true);
+    f.checkBoolean(
+        "'1970-01-01 01:23:47' = any (array[timestamp '1970-01-01 01:23:45',"
+            + "timestamp '1970-01-01 01:23:46'])", false);
+
+    f.checkBoolean(
+        "timestamp '1970-01-01 01:23:45' = any (array['1970-01-01 01:23:45',"
+            + "'1970-01-01 01:23:46'])", true);
+    f.checkBoolean(
+        "'timestamp 1970-01-01 01:23:47' = any (array['1970-01-01 01:23:45',"
+            + "'1970-01-01 01:23:46'])", false);
+
+    f.checkBoolean("'value  ' = any(array['value1', 'value2', 'value34'])", false);
+    f.checkBoolean("'value  ' = any(array['value', 'value2', 'value34'])", true);
+
+    f.enableTypeCoercion(false).checkFails(
+            "^1.0 = some (ARRAY[2,3,null])^",
+            "Values passed to = SOME operator must have compatible types",
+            false);
+  }
+
   @Test void testAnyValueFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.ANY_VALUE, VM_EXPAND);
