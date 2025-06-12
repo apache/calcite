@@ -127,7 +127,7 @@ public class PivotRelToSqlUtil {
             }
             SqlNode secondOperand = extractSecondOperand(sqlBasicCall);
 
-            if (secondOperand != null && secondOperand.getKind() == SqlKind.AS
+            if (secondOperand instanceof SqlBasicCall && secondOperand.getKind() == SqlKind.AS
                 && ((SqlBasicCall) secondOperand).operand(1) instanceof SqlCharStringLiteral) {
               return modifyAlias(secondOperand);
             }
@@ -239,19 +239,19 @@ public class PivotRelToSqlUtil {
     SqlNode firstOperand = sqlBasicCall.operand(0);
     if (firstOperand instanceof SqlCase) {
       SqlCase sqlCase = (SqlCase) firstOperand;
-      if (!sqlCase.getWhenOperands().isEmpty()) {
-        SqlNode when = sqlCase.getWhenOperands().get(0);
+      List<SqlNode> whenOperands = sqlCase.getWhenOperands();
+      if (!whenOperands.isEmpty()) {
+        SqlNode when = whenOperands.get(0);
         if (when instanceof SqlBasicCall) {
           SqlBasicCall whenCall = (SqlBasicCall) when;
-          if (whenCall.getOperandList().size() > 1) {
-            return whenCall.getOperandList().get(1);
+          List<SqlNode> whenCallOperands = whenCall.getOperandList();
+          if (whenCallOperands.size() > 1) {
+            return whenCallOperands.get(1);
           }
         }
       }
     }
-    if (sqlBasicCall.getOperandList().size() > 1) {
-      return sqlBasicCall.getOperandList().get(1);
-    }
-    return null;
+    List<SqlNode> operands = sqlBasicCall.getOperandList();
+    return operands.size() > 1 ? operands.get(1) : null;
   }
 }
