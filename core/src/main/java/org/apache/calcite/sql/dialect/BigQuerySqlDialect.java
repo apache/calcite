@@ -333,7 +333,7 @@ public class BigQuerySqlDialect extends SqlDialect {
         put(YYMMDDHH24MISS, "%y%m%d%H%M%S");
         put(ISOWEEK, "%V");
         put(FOURDIGITISOYEAR, "%G");
-        put(FORMAT_QQYY, "%Q%Q%Y");
+        put(FORMAT_QQYY, "%Q%Q%y");
 
       }};
 
