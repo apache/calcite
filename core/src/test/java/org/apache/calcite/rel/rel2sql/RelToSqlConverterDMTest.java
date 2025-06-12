@@ -13272,12 +13272,12 @@ class RelToSqlConverterDMTest {
   @Test public void testDateFormatWithQQYY() {
     final RelBuilder builder = relBuilder();
     final RexNode dateFormatNode =
-        builder.call(SqlLibraryOperators.FORMAT_DATE, builder.literal(FORMAT_QQYY.value), builder.literal(2025));
+        builder.call(SqlLibraryOperators.FORMAT_DATE, builder.literal(FORMAT_QQYY.value), builder.call(CURRENT_DATE));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(dateFormatNode, "format_date"))
         .build();
-    final String expectedTDSql = "SELECT FORMAT_DATE('%Q%Q%y', 2025) AS format_date\nFROM scott.EMP";
+    final String expectedTDSql = "SELECT FORMAT_DATE('%Q%Q%y', CURRENT_DATE) AS format_date\nFROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedTDSql));
   }
@@ -13285,12 +13285,12 @@ class RelToSqlConverterDMTest {
   @Test public void testDateFormatWithQQYYYY() {
     final RelBuilder builder = relBuilder();
     final RexNode dateFormatNode =
-        builder.call(SqlLibraryOperators.FORMAT_DATE, builder.literal(FORMAT_QQYYYY.value), builder.literal(2025));
+        builder.call(SqlLibraryOperators.FORMAT_DATE, builder.literal(FORMAT_QQYYYY.value), builder.call(CURRENT_DATE));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(dateFormatNode, "format_date"))
         .build();
-    final String expectedTDSql = "SELECT FORMAT_DATE('%Q%Q%Y', 2025) AS format_date\nFROM scott.EMP";
+    final String expectedTDSql = "SELECT FORMAT_DATE('%Q%Q%Y', CURRENT_DATE) AS format_date\nFROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedTDSql));
   }
