@@ -10785,4 +10785,61 @@ class RelOptRulesTest extends RelOptTestBase {
         .withRule(CoreRules.HYPER_GRAPH_OPTIMIZE, CoreRules.PROJECT_REMOVE, CoreRules.PROJECT_MERGE)
         .check();
   }
+
+  @Test void testVariousJoinTypeForDphyp() {
+    HepProgram program = new HepProgramBuilder()
+        .addMatchOrder(HepMatchOrder.BOTTOM_UP)
+        .addRuleInstance(CoreRules.PROJECT_MERGE)
+        .addRuleInstance(CoreRules.PROJECT_TO_SEMI_JOIN)
+        .addRuleInstance(CoreRules.JOIN_TO_HYPER_GRAPH)
+        .build();
+
+    sql("select emp.empno from "
+        + "emp_address inner join emp on emp_address.empno = emp.empno "
+        + "left join dept on emp.deptno = dept.deptno "
+        + "where exists(select * from dept_nested where dept.deptno = dept_nested.deptno)")
+        .withExpand(true)
+        .withDecorrelate(true)
+        .withPre(program)
+        .withRule(CoreRules.HYPER_GRAPH_OPTIMIZE, CoreRules.PROJECT_REMOVE, CoreRules.PROJECT_MERGE)
+        .check();
+  }
+
+  @Test void testVariousJoinTypeForDphyp2() {
+    HepProgram program = new HepProgramBuilder()
+        .addMatchOrder(HepMatchOrder.BOTTOM_UP)
+        .addRuleInstance(CoreRules.PROJECT_MERGE)
+        .addRuleInstance(CoreRules.PROJECT_TO_SEMI_JOIN)
+        .addRuleInstance(CoreRules.JOIN_TO_HYPER_GRAPH)
+        .build();
+
+    sql("select emp.empno from "
+        + "emp_address left join emp on emp_address.empno = emp.empno "
+        + "inner join dept on emp.deptno = dept.deptno "
+        + "where exists(select * from dept_nested where dept.deptno = dept_nested.deptno)")
+        .withExpand(true)
+        .withDecorrelate(true)
+        .withPre(program)
+        .withRule(CoreRules.HYPER_GRAPH_OPTIMIZE, CoreRules.PROJECT_REMOVE, CoreRules.PROJECT_MERGE)
+        .check();
+  }
+
+  @Test void testVariousJoinTypeForDphyp3() {
+    HepProgram program = new HepProgramBuilder()
+        .addMatchOrder(HepMatchOrder.BOTTOM_UP)
+        .addRuleInstance(CoreRules.PROJECT_MERGE)
+        .addRuleInstance(CoreRules.PROJECT_TO_SEMI_JOIN)
+        .addRuleInstance(CoreRules.JOIN_TO_HYPER_GRAPH)
+        .build();
+
+    sql("select emp.empno from "
+        + "emp_address full join emp on emp_address.empno = emp.empno "
+        + "left join dept on emp.deptno = dept.deptno "
+        + "where exists(select * from dept_nested where dept.deptno = dept_nested.deptno)")
+        .withExpand(true)
+        .withDecorrelate(true)
+        .withPre(program)
+        .withRule(CoreRules.HYPER_GRAPH_OPTIMIZE, CoreRules.PROJECT_REMOVE, CoreRules.PROJECT_MERGE)
+        .check();
+  }
 }

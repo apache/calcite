@@ -24,22 +24,28 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * The core process of dphyp enumeration algorithm.
  */
 @Experimental
 public class DpHyp {
+
+  private static final Logger LOGGER = CalciteTrace.getDpHypJoinReorderTracer();
 
   private final HyperGraph hyperGraph;
 
@@ -77,9 +83,13 @@ public class DpHyp {
    * in the {@link DpHyp#dpTable}.
    */
   public void startEnumerateJoin() {
+    LOGGER.debug("Start dphyp enumeration.");
     int size = hyperGraph.getInputs().size();
     for (int i = 0; i < size; i++) {
       long singleNode = LongBitmap.newBitmap(i);
+      LOGGER.debug("Initialize the dp table. Node {{}} is:\n {}",
+          i,
+          RelOptUtil.toString(hyperGraph.getInput(i)));
       dpTable.put(singleNode, hyperGraph.getInput(i));
       resultInputOrder.put(
           singleNode,
@@ -96,7 +106,7 @@ public class DpHyp {
         enumerateCsgRec(csg, forbidden);
       }
     } catch (PlanTooComplexError e) {
-      return;
+      LOGGER.error("The dp table is too large, and the enumeration ends automatically.");
     }
   }
 
@@ -247,12 +257,23 @@ public class DpHyp {
         winOrder = ImmutableList.copyOf(unionOrder);
       }
     }
+    LOGGER.debug("Found set {} and {}, connected by condition {}. [cost={}, rows={}]",
+        LongBitmap.printBitmap(csg),
+        LongBitmap.printBitmap(cmp),
+        RexUtil.composeConjunction(
+            builder.getRexBuilder(),
+            edges.stream()
+                .map(edge -> edge.getCondition()).collect(Collectors.toList())),
+        mq.getCumulativeCost(winPlan),
+        mq.getRowCount(winPlan));
 
     RelNode oriPlan = dpTable.get(csg | cmp);
+    boolean dpTableUpdated = true;
     if (oriPlan != null) {
       winPlan = chooseBetterPlan(winPlan, oriPlan);
       if (winPlan.equals(oriPlan)) {
         winOrder = resultInputOrder.get(csg | cmp);
+        dpTableUpdated = false;
       }
     } else {
       // when enumerating a new connected subgraph, check whether the dpTable size is too large
@@ -260,7 +281,13 @@ public class DpHyp {
         throw new PlanTooComplexError();
       }
     }
+
     assert winOrder != null;
+    if (dpTableUpdated) {
+      LOGGER.debug("Dp table is updated. The better plan for subgraph {} now is:\n {}",
+          LongBitmap.printBitmap(csg | cmp),
+          RelOptUtil.toString(winPlan));
+    }
     dpTable.put(csg | cmp, winPlan);
     resultInputOrder.put(csg | cmp, winOrder);
   }
@@ -270,8 +297,10 @@ public class DpHyp {
     long wholeGraph = LongBitmap.newBitmapBetween(0, size);
     RelNode orderedJoin = dpTable.get(wholeGraph);
     if (orderedJoin == null) {
+      LOGGER.error("The optimal plan was not generated because the enumeration ended prematurely");
       return null;
     }
+    LOGGER.debug("Enumeration completed. The best plan is:\n {}", RelOptUtil.toString(orderedJoin));
     ImmutableList<HyperGraph.NodeState> resultOrder = resultInputOrder.get(wholeGraph);
     assert resultOrder != null && resultOrder.size() == size;
 

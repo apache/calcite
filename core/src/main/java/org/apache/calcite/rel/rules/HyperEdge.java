@@ -328,7 +328,7 @@ public class HyperEdge {
         long initialRightNodeBits) {
       long totalSetAbsorb = totalSet;
       for (ConflictRule conflictRule : conflictRules) {
-        if (LongBitmap.isOverlap(totalSet, conflictRule.from)) {
+        if (LongBitmap.isOverlap(totalSetAbsorb, conflictRule.from)) {
           totalSetAbsorb |= conflictRule.to;
           continue;
         }
