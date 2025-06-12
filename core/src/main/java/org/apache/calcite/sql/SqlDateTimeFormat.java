@@ -109,7 +109,8 @@ public enum SqlDateTimeFormat {
   DDMMYYYYHH24("DDMMYYYYHH24"),
   YYMMDDHH24MISS("YYMMDDHH24MISS"),
   FORMAT_1YYMMDD("1YYMMDD"),
-  FORMAT_QQYY("QQYY");
+  FORMAT_QQYY("QQYY"),
+  FORMAT_QQYYYY("QQYYYY");
 
 
   public final String value;

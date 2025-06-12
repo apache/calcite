@@ -114,6 +114,7 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.DDYYYYMM;
 import static org.apache.calcite.sql.SqlDateTimeFormat.E3;
 import static org.apache.calcite.sql.SqlDateTimeFormat.E4;
 import static org.apache.calcite.sql.SqlDateTimeFormat.FORMAT_QQYY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.FORMAT_QQYYYY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.FOURDIGITISOYEAR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.FOURDIGITYEAR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONFIVE;
@@ -334,6 +335,7 @@ public class BigQuerySqlDialect extends SqlDialect {
         put(ISOWEEK, "%V");
         put(FOURDIGITISOYEAR, "%G");
         put(FORMAT_QQYY, "%Q%Q%y");
+        put(FORMAT_QQYYYY, "%Q%Q%Y");
 
       }};
 

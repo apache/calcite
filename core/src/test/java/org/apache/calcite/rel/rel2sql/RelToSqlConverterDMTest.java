@@ -148,6 +148,8 @@ import static org.apache.calcite.avatica.util.TimeUnit.MONTH;
 import static org.apache.calcite.avatica.util.TimeUnit.SECOND;
 import static org.apache.calcite.avatica.util.TimeUnit.WEEK;
 import static org.apache.calcite.avatica.util.TimeUnit.YEAR;
+import static org.apache.calcite.sql.SqlDateTimeFormat.FORMAT_QQYY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.FORMAT_QQYYYY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BITNOT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CURRENT_TIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CURRENT_TIMESTAMP_WITH_TIME_ZONE;
@@ -13265,5 +13267,31 @@ class RelToSqlConverterDMTest {
         + "(46.3214, 46.2144)) AS \"$f0\"\nFROM \"scott\".\"EMP\"";
 
     assertThat(toSql(root, DatabaseProduct.REDSHIFT.getDialect()), isLinux(expectedRedshiftSql));
+  }
+
+  @Test public void testDateFormatWithQQYY() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dateFormatNode =
+        builder.call(SqlLibraryOperators.FORMAT_DATE, builder.literal(FORMAT_QQYY.value), builder.literal(2025));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(dateFormatNode, "format_date"))
+        .build();
+    final String expectedTDSql = "SELECT FORMAT_DATE('%Q%Q%y', 2025) AS format_date\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedTDSql));
+  }
+
+  @Test public void testDateFormatWithQQYYYY() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dateFormatNode =
+        builder.call(SqlLibraryOperators.FORMAT_DATE, builder.literal(FORMAT_QQYYYY.value), builder.literal(2025));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(dateFormatNode, "format_date"))
+        .build();
+    final String expectedTDSql = "SELECT FORMAT_DATE('%Q%Q%Y', 2025) AS format_date\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedTDSql));
   }
 }
