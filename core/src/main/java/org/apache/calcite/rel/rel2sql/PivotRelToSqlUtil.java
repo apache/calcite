@@ -125,16 +125,16 @@ public class PivotRelToSqlUtil {
             if (sqlBasicCall.getOperator().kind == SqlKind.IS_TRUE) {
               sqlBasicCall = sqlBasicCall.operand(0);
             }
-            SqlNode secondOperand = ((SqlBasicCall)
-                ((SqlCase) sqlBasicCall.operand(0)).getWhenOperands().get(0)).operand(1);
+            SqlNode secondOperand = extractSecondOperand(sqlBasicCall);
 
-            if (secondOperand.getKind() == SqlKind.AS
+            if (secondOperand != null && secondOperand.getKind() == SqlKind.AS
                 && ((SqlBasicCall) secondOperand).operand(1) instanceof SqlCharStringLiteral) {
               return modifyAlias(secondOperand);
             }
 
             return secondOperand;
           })
+          .filter(Objects::nonNull)
           .forEach(inColumnList::add);
     }
 
@@ -233,5 +233,25 @@ public class PivotRelToSqlUtil {
   private boolean isLowerFunction(SqlNode node) {
     return node instanceof SqlBasicCall
         && ((SqlBasicCall) node).getOperator() == SqlStdOperatorTable.LOWER;
+  }
+
+  private SqlNode extractSecondOperand(SqlBasicCall sqlBasicCall) {
+    SqlNode firstOperand = sqlBasicCall.operand(0);
+    if (firstOperand instanceof SqlCase) {
+      SqlCase sqlCase = (SqlCase) firstOperand;
+      if (!sqlCase.getWhenOperands().isEmpty()) {
+        SqlNode when = sqlCase.getWhenOperands().get(0);
+        if (when instanceof SqlBasicCall) {
+          SqlBasicCall whenCall = (SqlBasicCall) when;
+          if (whenCall.getOperandList().size() > 1) {
+            return whenCall.getOperandList().get(1);
+          }
+        }
+      }
+    }
+    if (sqlBasicCall.getOperandList().size() > 1) {
+      return sqlBasicCall.getOperandList().get(1);
+    }
+    return null;
   }
 }
