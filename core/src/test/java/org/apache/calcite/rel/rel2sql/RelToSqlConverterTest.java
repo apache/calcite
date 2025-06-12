@@ -2516,6 +2516,43 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7055">[CALCITE-7055]
+   * Invalid unparse for cast to array type in StarRocks</a>.
+   */
+  @Test void testCastArrayStarRocks() {
+    final String query = "select cast(array['a','b','c']"
+        + " as varchar array)";
+    final String expectedStarRocks =
+        "SELECT CAST(['a', 'b', 'c'] AS ARRAY< VARCHAR >)";
+    sql(query).withStarRocks().ok(expectedStarRocks);
+
+    final String query1 = "select cast(array[array['a'], array['b'], array['c']]"
+        + " as varchar array array)";
+    final String expectedStarRocks1 =
+        "SELECT CAST([['a'],['b'],['c']] AS ARRAY< ARRAY< VARCHAR > >)";
+    sql(query1).withStarRocks().ok(expectedStarRocks1);
+
+    final String query2 = "select cast(array[MAP['a',1],MAP['b',2],MAP['c',3]]"
+        + " as MAP<varchar,integer> array)";
+    final String expectedStarRocks2 =
+        "SELECT CAST([MAP { 'a' : 1 }, MAP { 'b' : 2 }, MAP { 'c' : 3 }]"
+            + " AS ARRAY< MAP< VARCHAR, INT > >)";
+    sql(query2).withStarRocks().ok(expectedStarRocks2);
+
+    final String query3 = "select cast(MAP['a',ARRAY[1,2,3]]"
+        + " as MAP<varchar,integer array>)";
+    final String expectedStarRocks3 =
+        "SELECT CAST(MAP { 'a' :[1, 2, 3] } AS MAP< VARCHAR, ARRAY< INT > >)";
+    sql(query3).withStarRocks().ok(expectedStarRocks3);
+
+    final String query4 = "select cast(MAP['a',ARRAY[1.0,2.0,3.0]]"
+        + " as MAP<varchar,real array>)";
+    final String expectedStarRocks4 =
+        "SELECT CAST(MAP { 'a' :[1.0, 2.0, 3.0] } AS MAP< VARCHAR, ARRAY< FLOAT > >)";
+    sql(query4).withStarRocks().ok(expectedStarRocks4);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6088">[CALCITE-6088]
    * SqlItemOperator fails in RelToSqlConverter</a>. */
   @Test void testSqlItemOperator() {
@@ -9945,7 +9982,6 @@ class RelToSqlConverterTest {
     String query = "SELECT CAST(array[1,2,3] AS real array) FROM \"employee\"";
     sql(query)
         .withPhoenix().throws_("Phoenix dialect does not support cast to ARRAY")
-        .withStarRocks().throws_("StarRocks dialect does not support cast to ARRAY")
         .withHive().throws_("Hive dialect does not support cast to ARRAY");
 
     String query1 = "SELECT CAST(MAP[1.0,2.0,3.0,4.0] AS MAP<FLOAT, REAL>) FROM \"employee\"";
