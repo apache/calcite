@@ -76,7 +76,9 @@ import static org.apache.calcite.sql.fun.SqlLibrary.SPARK;
 import static org.apache.calcite.sql.fun.SqlLibrary.SQL_SERVER;
 import static org.apache.calcite.sql.fun.SqlLibrary.STANDARD;
 import static org.apache.calcite.sql.fun.SqlLibrary.TERADATA;
+import static org.apache.calcite.sql.fun.SqlLibrary.VERTICA;
 import static org.apache.calcite.sql.type.OperandTypes.ANY_STRING_OR_STRING_STRING;
+import static org.apache.calcite.sql.type.OperandTypes.BINARY_STRING;
 import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTEGER;
 import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTERVAL;
 import static org.apache.calcite.sql.type.OperandTypes.JSON_STRING;
@@ -87,6 +89,7 @@ import static org.apache.calcite.sql.type.OperandTypes.STRING_JSON;
 import static org.apache.calcite.sql.type.OperandTypes.STRING_OPTIONAL_STRING;
 import static org.apache.calcite.sql.type.OperandTypes.STRING_STRING;
 import static org.apache.calcite.sql.type.OperandTypes.STRING_STRING_BOOLEAN;
+import static org.apache.calcite.sql.type.OperandTypes.STRING_STRING_STRING;
 import static org.apache.calcite.sql.type.OperandTypes.family;
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -272,6 +275,46 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.LEAST_RESTRICTIVE
               .andThen(SqlTypeTransforms.TO_NULLABLE_ALL),
           OperandTypes.SAME_SAME);
+
+  @LibraryOperator(libraries = {REDSHIFT})
+  public static final SqlBasicFunction REDSHIFT_NVL =
+      SqlBasicFunction.create(SqlKind.REDSHIFT_NVL,
+          ReturnTypes.LEAST_RESTRICTIVE
+              .andThen(SqlTypeTransforms.TO_NULLABLE_ALL),
+          OperandTypes.AT_LEAST_ONE_SAME_VARIADIC).withName("NVL");
+
+  @LibraryOperator(libraries = {REDSHIFT})
+  public static final SqlFunction JSON_EXTRACT_ARRAY_ELEMENT_TEXT =
+      new SqlFunction("JSON_EXTRACT_ARRAY_ELEMENT_TEXT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000_NULLABLE,
+          null,
+          OperandTypes.STRING_INTEGER,
+          SqlFunctionCategory.STRING);
+
+  /** The "INET_ATON(string)" function. */
+  @LibraryOperator(libraries = {VERTICA})
+  public static final SqlFunction INET_ATON =
+      SqlBasicFunction.create("INET_ATON",
+          ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.STRING,
+          SqlFunctionCategory.STRING);
+
+  /** The "NET.IPV4_TO_INT64(string)" function. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction NET_IPV4_TO_INT64 =
+      SqlBasicFunction.create("NET.IPV4_TO_INT64",
+          ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.STRING,
+          SqlFunctionCategory.STRING);
+
+  /** The "NET.IP_FROM_STRING(string)" function. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction NET_IP_FROM_STRING =
+      SqlBasicFunction.create("NET.IP_FROM_STRING",
+          ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.STRING,
+          SqlFunctionCategory.STRING);
 
   /** The "NVL2(value, value, value)" function. */
   @LibraryOperator(libraries = {ORACLE, SPARK})
@@ -4092,6 +4135,82 @@ public abstract class SqlLibraryOperators {
           .withOperandTypeInference(InferTypes.FIRST_KNOWN)
           .withOperandHandler(
               OperandHandlers.of(SqlLibraryOperators::transformConvert));
+
+  @LibraryOperator(libraries = {REDSHIFT})
+  public static final SqlFunction REDSHIFT_CONVERT =
+      SqlBasicFunction.create(SqlKind.REDSHIFT_CONVERT,
+              ReturnTypes.andThen(SqlLibraryOperators::transformConvert,
+                  SqlCastFunction.returnTypeInference(false)),
+                  OperandTypes.ANY)
+          .withName("CONVERT")
+          .withFunctionType(SqlFunctionCategory.SYSTEM)
+          .withOperandTypeInference(InferTypes.FIRST_KNOWN)
+          .withOperandHandler(
+              OperandHandlers.of(SqlLibraryOperators::transformConvert));
+
+  /**
+   * The "TRUNC(value [, integer])" function (Redshift);
+   * truncates a number to a specified decimal precision or
+   * a TIMESTAMP to a DATE.
+   *
+   * <p>{@code TRUNC(number [, precision])} removes fractional digits,
+   * while {@code TRUNC(timestamp)} drops the time part.
+   *
+   * <p>Docs:
+   * <a href="https://docs.aws.amazon.com/redshift/latest/dg/r_TRUNC_date.html">Redshift TRUNC</a>.
+   */
+  @LibraryOperator(libraries = {REDSHIFT})
+  public static final SqlFunction REDSHIFT_TRUNC =
+      new SqlFunction(
+          "TRUNC",
+          SqlKind.REDSHIFT_TRUNC,
+          opBinding -> {
+            RelDataType firstArgType = opBinding.getOperandType(0);
+            if (firstArgType.getSqlTypeName() == SqlTypeName.TIMESTAMP) {
+              return opBinding.getTypeFactory().createSqlType(SqlTypeName.DATE);
+            }
+            return firstArgType;
+          },
+          null,
+          OperandTypes.or(OperandTypes.NUMERIC_OPTIONAL_INTEGER, OperandTypes.DATETIME),
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {VERTICA})
+  public static final SqlFunction AGE_IN_YEARS =
+      new SqlFunction("AGE_IN_YEARS",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER,
+          null,
+          OperandTypes.or(OperandTypes.DATETIME,
+              OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME)),
+          SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlFunction ENCODE =
+      new SqlFunction("ENCODE",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR,
+          null,
+          BINARY_STRING,
+          SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlFunction DIGEST =
+      new SqlFunction("DIGEST",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARBINARY,
+          null,
+          STRING_STRING,
+          SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlFunction JSON_EXTRACT_PATH_TEXT =
+      new SqlFunction("JSON_EXTRACT_PATH_TEXT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR,
+          null,
+          STRING_STRING_STRING,
+          SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {SQL_SERVER})
   public static final SqlFunction OBJECT_SCHEMA_NAME =
