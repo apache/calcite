@@ -12966,7 +12966,8 @@ class RelToSqlConverterDMTest {
         .scan("EMP")
         .project(builder.alias(objectId, "result"))
         .build();
-    final String expectedSql = "SELECT JSON_EXTRACT_PATH_TEXT('290', 'jhon', 'Insert') AS [result]\n" +
+    final String expectedSql = "SELECT JSON_EXTRACT_PATH_TEXT('290', 'jhon', 'Insert') AS [result]\n"
+  +
         "FROM [scott].[EMP]";
 
     assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedSql));
@@ -12995,7 +12996,8 @@ class RelToSqlConverterDMTest {
         .scan("EMP")
         .project(builder.alias(objectId, "result"))
         .build();
-    final String expectedSql = "SELECT ENCODE(DIGEST('shA', 'username'), 'hex') AS \"result\"\n" +
+    final String expectedSql = "SELECT ENCODE(DIGEST('shA', 'username'), 'hex') AS \"result\"\n"
+  +
         "FROM \"scott\".\"EMP\"";
 
     assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedSql));
