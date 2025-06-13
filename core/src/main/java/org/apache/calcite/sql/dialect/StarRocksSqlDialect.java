@@ -25,7 +25,7 @@ import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlAbstractDateTimeLiteral;
 import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
-import org.apache.calcite.sql.SqlArrayTypeNameSpec;
+import org.apache.calcite.sql.SqlArrayWithAngleBracketsNameSpec;
 import org.apache.calcite.sql.SqlBasicTypeNameSpec;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
@@ -211,7 +211,7 @@ public class StarRocksSqlDialect extends MysqlSqlDialect {
         SqlDataTypeSpec nonNullarrayValueSpec =
             requireNonNull(arrayValueSpec, "arrayValueSpec");
         SqlTypeNameSpec typeNameSpec =
-            new SqlArrayTypeNameSpec(
+            new SqlArrayWithAngleBracketsNameSpec(
                 nonNullarrayValueSpec.getTypeNameSpec(),
                 arraySqlType.getSqlTypeName(), SqlParserPos.ZERO);
         return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);

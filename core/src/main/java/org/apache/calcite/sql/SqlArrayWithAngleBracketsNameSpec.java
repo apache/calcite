@@ -20,18 +20,18 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 /**
- * A SqlArrayTypeNameSpec to parse SQL ARRAY type to {@code ARRAY<VARCHAR>}.
+ * A SqlArrayWithAngleBracketsNameSpec to parse or unparse SQL ARRAY type to {@code ARRAY<VARCHAR>}.
  */
-public class SqlArrayTypeNameSpec extends SqlCollectionTypeNameSpec {
+public class SqlArrayWithAngleBracketsNameSpec extends SqlCollectionTypeNameSpec {
 
   /**
-   * Creates a {@code SqlArrayTypeNameSpec}.
+   * Creates a {@code SqlArrayWithAngleBracketsNameSpec}.
    *
    * @param elementTypeName    Type of the collection element
    * @param collectionTypeName Collection type name
    * @param pos                Parser position, must not be null
    */
-  public SqlArrayTypeNameSpec(SqlTypeNameSpec elementTypeName,
+  public SqlArrayWithAngleBracketsNameSpec(SqlTypeNameSpec elementTypeName,
       SqlTypeName collectionTypeName, SqlParserPos pos) {
     super(elementTypeName, collectionTypeName, pos);
   }
