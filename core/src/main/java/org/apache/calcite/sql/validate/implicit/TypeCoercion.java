@@ -125,9 +125,12 @@ public interface TypeCoercion {
    * <p>For example:
    * <ul>
    * <li>{@code 1.0 = some (ARRAY[2,3,null])}
-   * <li>{@code 'timestamp 1970-01-01 01:23:47' = any (array['1970-01-01 01:23:45', '1970-01-01 01:23:46'])}
+   * <li>{@code 'timestamp 1970-01-01 01:23:47' =
+   * any (array['1970-01-01 01:23:45', '1970-01-01 01:23:46'])}
    * <li>{@code WITH tb as
-   * (select array(SELECT * FROM (VALUES ('1970-01-01 01:23:45'), ('1970-01-01 01:23:46')) as x(a)) as a)
+   * (select
+   * array(SELECT * FROM (VALUES ('1970-01-01 01:23:45'), ('1970-01-01 01:23:46'))
+   * as x(a)) as a)
    * SELECT timestamp '1970-01-01 01:23:45' >= some (a) FROM tb}
    * </ul>
    *
