@@ -12950,8 +12950,8 @@ class RelToSqlConverterDMTest {
         .scan("EMP")
         .project(nvl, nvlThreeParam)
         .build();
-    final String expectedSql = "SELECT REDSHIFT_NVL('operand', 'operand1') AS \"$f0\", "
-        + "REDSHIFT_NVL('operand', 'operand1', 'operand2') AS \"$f1\""
+    final String expectedSql = "SELECT NVL('operand', 'operand1') AS \"$f0\", "
+        + "NVL('operand', 'operand1', 'operand2') AS \"$f1\""
         + "\nFROM \"scott\".\"EMP\"";
 
     assertThat(toSql(root, DatabaseProduct.REDSHIFT.getDialect()), isLinux(expectedSql));
@@ -12966,9 +12966,9 @@ class RelToSqlConverterDMTest {
         .scan("EMP")
         .project(builder.alias(objectId, "result"))
         .build();
-    final String expectedSql = "SELECT JSON_EXTRACT_PATH_TEXT('290', 'jhon', 'Insert') AS [result]\n"
-  +
-        "FROM [scott].[EMP]";
+    final String expectedSql =
+        "SELECT JSON_EXTRACT_PATH_TEXT('290', 'jhon', 'Insert') AS \"result\""
+        + "\nFROM \"scott\".\"EMP\"";
 
     assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedSql));
   }
@@ -12996,9 +12996,8 @@ class RelToSqlConverterDMTest {
         .scan("EMP")
         .project(builder.alias(objectId, "result"))
         .build();
-    final String expectedSql = "SELECT ENCODE(DIGEST('shA', 'username'), 'hex') AS \"result\"\n"
-  +
-        "FROM \"scott\".\"EMP\"";
+    final String expectedSql = "SELECT ENCODE(DIGEST('shA', 'username'), 'hex') AS \"result\""
+        + "\nFROM \"scott\".\"EMP\"";
 
     assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedSql));
   }
@@ -13019,12 +13018,15 @@ class RelToSqlConverterDMTest {
   @Test public void testJsonExtractArrayElementTextFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode objectId =
-        builder.call(SqlLibraryOperators.JSON_EXTRACT_ARRAY_ELEMENT_TEXT, builder.literal("[1,2,3,4]"), builder.literal(1));
+        builder.call(SqlLibraryOperators.JSON_EXTRACT_ARRAY_ELEMENT_TEXT,
+            builder.literal("[1,2,3,4]"), builder.literal(1));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(objectId, "result"))
         .build();
-    final String expectedSql = "SELECT JSON_EXTRACT_ARRAY_ELEMENT_TEXT('[1,2,3,4]', 1) AS \"result\"\nFROM \"scott\".\"EMP\"";
+    final String expectedSql =
+        "SELECT JSON_EXTRACT_ARRAY_ELEMENT_TEXT('[1,2,3,4]', 1) AS \"result\""
+            + "\nFROM \"scott\".\"EMP\"";
 
     assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedSql));
   }
