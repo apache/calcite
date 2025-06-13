@@ -657,4 +657,9 @@ public interface SqlConformance {
    * they terminate with a fatal error on overflow.
    */
   boolean checkedArithmetic();
+
+  /**
+   * True when the unsigned versions of integer types are supported.
+   */
+  boolean supportsUnsignedTypes();
 }

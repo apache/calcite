@@ -160,6 +160,27 @@ public class SqlBasicTypeNameSpec extends SqlTypeNameSpec {
     // instead of direct unparsing with enum name.
     // i.e. TIME_WITH_LOCAL_TIME_ZONE(3)
     // would be unparsed as "time(3) with local time zone".
+    if (SqlTypeName.UNSIGNED_TYPES.contains(sqlTypeName)) {
+      switch (sqlTypeName) {
+      case UBIGINT:
+        writer.keyword("BIGINT");
+        break;
+      case UINTEGER:
+        writer.keyword("INTEGER");
+        break;
+      case USMALLINT:
+        writer.keyword("SMALLINT");
+        break;
+      case UTINYINT:
+        writer.keyword("TINYINT");
+        break;
+      default:
+        throw new UnsupportedOperationException("Unexpected unsigned type");
+      }
+      writer.keyword("UNSIGNED");
+      return;
+    }
+
     final boolean isWithTimeZone = isWithTimeZoneDef(sqlTypeName);
     if (isWithTimeZone) {
       writer.keyword(stripTimeZoneDef(sqlTypeName).name());

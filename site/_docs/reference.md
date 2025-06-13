@@ -1633,7 +1633,7 @@ decimal:
       DECIMAL | DEC | NUMERIC
 
 integer:
-      INTEGER [ UNSIGNED ] | INT [ UNSIGNED ]
+      INTEGER [ UNSIGNED ] | INT [ UNSIGNED ] | UNSIGNED
 
 varbinary:
       BINARY VARYING | VARBINARY

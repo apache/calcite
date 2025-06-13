@@ -316,15 +316,6 @@ public enum SqlTypeName {
    * @return Type name, or null if not found
    */
   public static @Nullable SqlTypeName get(String name) {
-    if (false) {
-      // The following code works OK, but the spurious exceptions are
-      // annoying.
-      try {
-        return SqlTypeName.valueOf(name);
-      } catch (IllegalArgumentException e) {
-        return null;
-      }
-    }
     return VALUES_MAP.get(name);
   }
 

@@ -66,6 +66,9 @@ public interface CalciteResource {
   @BaseMessage("Geo-spatial extensions and the GEOMETRY data type are not enabled")
   ExInst<SqlValidatorException> geometryDisabled();
 
+  @BaseMessage("Support for UNSIGNED data types is not enabled")
+  ExInst<SqlValidatorException> unsignedDisabled();
+
   @BaseMessage("Proj4J EPSG is missing from the classpath; to resolve this problem, download the EPSG data set and agree to its terms of use")
   ExInst<CalciteException> proj4jEpsgIsMissing();
 

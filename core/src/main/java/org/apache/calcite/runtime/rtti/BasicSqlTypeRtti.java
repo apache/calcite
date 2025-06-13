@@ -55,6 +55,14 @@ public class BasicSqlTypeRtti extends RuntimeTypeInformation {
       return "INTEGER";
     case BIGINT:
       return "BIGINT";
+    case UTINYINT:
+      return "TINYINT UNSIGNED";
+    case USMALLINT:
+      return "SMALLINT UNSIGNED";
+    case UINTEGER:
+      return "INTEGER UNSIGNED";
+    case UBIGINT:
+      return "BIGINT UNSIGNED";
     case DECIMAL:
       return "DECIMAL";
     case REAL:

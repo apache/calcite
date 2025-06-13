@@ -165,4 +165,8 @@ public class SqlDelegatingConformance implements SqlConformance {
   @Override public boolean checkedArithmetic() {
     return delegate.checkedArithmetic();
   }
+
+  @Override public boolean supportsUnsignedTypes() {
+    return delegate.supportsUnsignedTypes();
+  }
 }

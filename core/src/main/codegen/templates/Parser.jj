@@ -5905,19 +5905,38 @@ SqlTypeNameSpec SqlTypeName1(Span s) :
         <BOOLEAN> { s.add(this); sqlTypeName = SqlTypeName.BOOLEAN; }
     |
         ( <INTEGER> | <INT> ) ( <UNSIGNED> { unsigned = true; })? {
-             s.add(this); sqlTypeName = unsigned ? SqlTypeName.UINTEGER : SqlTypeName.INTEGER;
+            if (unsigned && !this.conformance.supportsUnsignedTypes()) {
+                throw SqlUtil.newContextException(getPos(), RESOURCE.unsignedDisabled());
+            }
+            s.add(this); sqlTypeName = unsigned ? SqlTypeName.UINTEGER : SqlTypeName.INTEGER;
+        }
+    |
+        <UNSIGNED> {
+            if (!this.conformance.supportsUnsignedTypes()) {
+                throw SqlUtil.newContextException(getPos(), RESOURCE.unsignedDisabled());
+            }
+            s.add(this); sqlTypeName = SqlTypeName.UINTEGER;
         }
     |
         <TINYINT> ( <UNSIGNED> { unsigned = true; })? {
-             s.add(this); sqlTypeName = unsigned ? SqlTypeName.UTINYINT : SqlTypeName.TINYINT;
+            if (unsigned && !this.conformance.supportsUnsignedTypes()) {
+                throw SqlUtil.newContextException(getPos(), RESOURCE.unsignedDisabled());
+            }
+            s.add(this); sqlTypeName = unsigned ? SqlTypeName.UTINYINT : SqlTypeName.TINYINT;
         }
     |
         <SMALLINT> ( <UNSIGNED> { unsigned = true; })? {
-             s.add(this); sqlTypeName = unsigned ? SqlTypeName.USMALLINT : SqlTypeName.SMALLINT;
+            if (unsigned && !this.conformance.supportsUnsignedTypes()) {
+                throw SqlUtil.newContextException(getPos(), RESOURCE.unsignedDisabled());
+            }
+            s.add(this); sqlTypeName = unsigned ? SqlTypeName.USMALLINT : SqlTypeName.SMALLINT;
         }
     |
         <BIGINT> ( <UNSIGNED> { unsigned = true; })? {
-             s.add(this); sqlTypeName = unsigned ? SqlTypeName.UBIGINT : SqlTypeName.BIGINT;
+            if (unsigned && !this.conformance.supportsUnsignedTypes()) {
+                throw SqlUtil.newContextException(getPos(), RESOURCE.unsignedDisabled());
+            }
+            s.add(this); sqlTypeName = unsigned ? SqlTypeName.UBIGINT : SqlTypeName.BIGINT;
         }
     |
         <REAL> { s.add(this); sqlTypeName = SqlTypeName.REAL; }

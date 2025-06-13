@@ -85,6 +85,21 @@ public abstract class RuntimeTypeInformation {
     public boolean isScalar() {
       return !this.composite;
     }
+
+    @Override public String toString() {
+      switch (this) {
+      case UINTEGER:
+        return "INTEGER UNSIGNED";
+      case UBIGINT:
+        return "BIGINT UNSIGNED";
+      case UTINYINT:
+        return "TINYINT UNSIGNED";
+      case USMALLINT:
+        return "SMALLINT UNSIGNED";
+      default:
+        return this.name();
+      }
+    }
   }
 
   final RuntimeSqlTypeName typeName;
