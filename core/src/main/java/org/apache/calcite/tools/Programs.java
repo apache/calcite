@@ -248,6 +248,7 @@ public class Programs {
     final HepProgramBuilder builder = HepProgram.builder();
     builder.addRuleCollection(
         ImmutableList.of(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE,
+            CoreRules.FILTER_WITH_PARENT_SUB_QUERY_TO_CORRELATE,
             CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE,
             CoreRules.JOIN_SUB_QUERY_TO_CORRELATE,
             CoreRules.PROJECT_OVER_SUM_TO_SUM0_RULE));

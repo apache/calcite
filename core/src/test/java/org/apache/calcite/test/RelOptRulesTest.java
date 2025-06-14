@@ -9874,6 +9874,52 @@ class RelOptRulesTest extends RelOptTestBase {
         })
         .withDynamicTable()
         .check();
+
+    sql(sql)
+        .withVolcanoPlanner(false, p -> {
+          p.addRelTraitDef(RelDistributionTraitDef.INSTANCE);
+          p.addRule(CoreRules.FILTER_WITH_PARENT_SUB_QUERY_TO_CORRELATE);
+          p.addRule(EnumerableRules.ENUMERABLE_FILTER_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_PROJECT_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_AGGREGATE_RULE);
+        })
+        .withDynamicTable()
+        .check();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6899">[CALCITE-6899]
+   * Mismatch of Trait information results in a missing conversion exception</a>. */
+  @Test void testEnumerableFilterRule2() {
+    final String sql = "select ename from emp\n"
+        + "where sal > all (select comm from emp)";
+    sql(sql)
+        .withVolcanoPlanner(false, p -> {
+          p.addRelTraitDef(RelDistributionTraitDef.INSTANCE);
+          p.addRule(CoreRules.FILTER_WITH_PARENT_SUB_QUERY_TO_CORRELATE);
+          p.addRule(EnumerableRules.ENUMERABLE_FILTER_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_PROJECT_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_AGGREGATE_RULE);
+        })
+        .check();
+
+    sql(sql)
+        .withVolcanoPlanner(false, p -> {
+          p.addRelTraitDef(RelDistributionTraitDef.INSTANCE);
+          p.addRule(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE);
+          p.addRule(CoreRules.FILTER_WITH_PARENT_SUB_QUERY_TO_CORRELATE);
+          p.addRule(EnumerableRules.ENUMERABLE_FILTER_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_PROJECT_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
+          p.addRule(EnumerableRules.ENUMERABLE_AGGREGATE_RULE);
+        })
+        .check();
   }
 
   @Test void testEnumerableProjectRule() {

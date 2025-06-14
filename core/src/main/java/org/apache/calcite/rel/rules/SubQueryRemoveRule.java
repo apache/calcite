@@ -864,6 +864,24 @@ public class SubQueryRemoveRule
   private static void matchFilter(SubQueryRemoveRule rule,
       RelOptRuleCall call) {
     final Filter filter = call.rel(0);
+    RelNode rel = matchFilter(rule, call, filter);
+    call.transformTo(rel);
+  }
+
+  private static void matchFilterWithParent(SubQueryRemoveRule rule,
+      RelOptRuleCall call) {
+    final RelNode parent = call.rel(0);
+    final Filter filter = call.rel(1);
+    RelNode rel = matchFilter(rule, call, filter);
+    RelNode newSubset = call.getPlanner().register(rel, null);
+    if (parent.getInput(0) == newSubset) {
+      return;
+    }
+    RelNode newParent = RelOptUtil.replaceInput(parent, 0, newSubset);
+    call.transformTo(newParent);
+  }
+
+  private static RelNode matchFilter(SubQueryRemoveRule rule, RelOptRuleCall call, Filter filter) {
     final Set<CorrelationId> filterVariablesSet = filter.getVariablesSet();
     final RelBuilder builder = call.builder();
     builder.push(filter.getInput());
@@ -878,7 +896,7 @@ public class SubQueryRemoveRule
       ++count;
       final RelOptUtil.Logic logic =
           LogicVisitor.find(RelOptUtil.Logic.TRUE, ImmutableList.of(c), e);
-      final Set<CorrelationId>  variablesSet =
+      final Set<CorrelationId> variablesSet =
           RelOptUtil.getVariablesUsed(e.rel);
       // Filter without variables could be handled before this change, we do not want
       // to break it yet for compatibility reason.
@@ -894,7 +912,7 @@ public class SubQueryRemoveRule
     }
     builder.filter(c);
     builder.project(fields(builder, filter.getRowType().getFieldCount()));
-    call.transformTo(builder.build());
+    return builder.build();
   }
 
   private static void matchJoin(SubQueryRemoveRule rule, RelOptRuleCall call) {
@@ -1009,6 +1027,16 @@ public class SubQueryRemoveRule
             b.operand(Filter.class)
                 .predicate(RexUtil.SubQueryFinder::containsSubQuery).anyInputs())
         .withDescription("SubQueryRemoveRule:Filter");
+
+    Config FILTER_WITH_PARENT = ImmutableSubQueryRemoveRule.Config.builder()
+        .withMatchHandler(SubQueryRemoveRule::matchFilterWithParent)
+        .build()
+        .withOperandSupplier(b ->
+            b.operand(RelNode.class).oneInput(b1 ->
+                b1.operand(Filter.class)
+                    .predicate(RexUtil.SubQueryFinder::containsSubQuery).anyInputs()))
+        .withDescription("SubQueryRemoveRule:FilterWithParent");
+
 
     Config JOIN = ImmutableSubQueryRemoveRule.Config.builder()
         .withMatchHandler(SubQueryRemoveRule::matchJoin)

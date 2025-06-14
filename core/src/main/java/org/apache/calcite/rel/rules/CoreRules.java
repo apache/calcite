@@ -485,6 +485,7 @@ public class CoreRules {
    * {@link Correlate} instances.
    *
    * @see #FILTER_SUB_QUERY_TO_CORRELATE
+   * @see #FILTER_WITH_PARENT_SUB_QUERY_TO_CORRELATE
    * @see #JOIN_SUB_QUERY_TO_CORRELATE */
   @RuleConfig(value = "PROJECT")
   public static final SubQueryRemoveRule PROJECT_SUB_QUERY_TO_CORRELATE =
@@ -494,16 +495,29 @@ public class CoreRules {
    * {@link Correlate} instances.
    *
    * @see #PROJECT_SUB_QUERY_TO_CORRELATE
-   * @see #JOIN_SUB_QUERY_TO_CORRELATE */
+   * @see #JOIN_SUB_QUERY_TO_CORRELATE
+   * @see #FILTER_WITH_PARENT_SUB_QUERY_TO_CORRELATE */
   @RuleConfig(value = "FILTER")
   public static final SubQueryRemoveRule FILTER_SUB_QUERY_TO_CORRELATE =
       SubQueryRemoveRule.Config.FILTER.toRule();
+
+  /** Rule that converts a sub-queries from filter expressions into
+   * {@link Correlate} instances, and updates the parent's input if
+   * necessary to ensure correct trait propagation.
+   *
+   * @see #FILTER_SUB_QUERY_TO_CORRELATE
+   * @see #PROJECT_SUB_QUERY_TO_CORRELATE
+   * @see #JOIN_SUB_QUERY_TO_CORRELATE */
+  @RuleConfig(value = "FILTER")
+  public static final SubQueryRemoveRule FILTER_WITH_PARENT_SUB_QUERY_TO_CORRELATE =
+      SubQueryRemoveRule.Config.FILTER_WITH_PARENT.toRule();
 
   /** Rule that converts sub-queries from join expressions into
    * {@link Correlate} instances.
    *
    * @see #PROJECT_SUB_QUERY_TO_CORRELATE
-   * @see #FILTER_SUB_QUERY_TO_CORRELATE */
+   * @see #FILTER_SUB_QUERY_TO_CORRELATE
+   * @see #FILTER_WITH_PARENT_SUB_QUERY_TO_CORRELATE */
   @RuleConfig(value = "JOIN")
   public static final SubQueryRemoveRule JOIN_SUB_QUERY_TO_CORRELATE =
       SubQueryRemoveRule.Config.JOIN.toRule();
