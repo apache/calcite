@@ -480,6 +480,15 @@ public enum SqlKind {
   /** {@code NVL} function (Oracle). */
   NVL,
 
+  /** {@code NVL} function (Redshift). */
+  REDSHIFT_NVL,
+
+  /** {@code CONVERT} function (Redshift). */
+  REDSHIFT_CONVERT,
+
+  /** {@code TRUNC} function (Redshift). */
+  REDSHIFT_TRUNC,
+
   /** {@code NVL} function (Oracle, Vertica and Spark). */
   NVL2,
 
