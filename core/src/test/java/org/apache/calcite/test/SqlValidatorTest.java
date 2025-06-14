@@ -5466,6 +5466,70 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7051">[CALCITE-7051]
+   * JOIN with USING does not match the appropriate columns when caseSensitive is false</a>. */
+  @Test void testSelectJoinUsingCommonColumnCaseSensitive() {
+
+    sql("select DEPTNO from emp join dept using (DEPTNO)")
+        .withCaseSensitive(false)
+        .withValidatorIdentifierExpansion(true)
+        .withQuotedCasing(Casing.UNCHANGED)
+        .withUnquotedCasing(Casing.UNCHANGED)
+        .ok();
+
+    sql("select deptno from emp join dept using (deptno)")
+        .withCaseSensitive(false)
+        .withValidatorIdentifierExpansion(true)
+        .withQuotedCasing(Casing.UNCHANGED)
+        .withUnquotedCasing(Casing.UNCHANGED)
+        .ok();
+
+    sql("select DEPTNO from emp join dept using (deptno)")
+        .withCaseSensitive(false)
+        .withValidatorIdentifierExpansion(true)
+        .withQuotedCasing(Casing.UNCHANGED)
+        .withUnquotedCasing(Casing.UNCHANGED)
+        .ok();
+
+    sql("select deptno from emp join dept using (DEPTNO)")
+        .withCaseSensitive(false)
+        .withValidatorIdentifierExpansion(true)
+        .withQuotedCasing(Casing.UNCHANGED)
+        .withUnquotedCasing(Casing.UNCHANGED)
+        .ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7051">[CALCITE-7051]
+   * JOIN with USING does not match the appropriate columns when caseSensitive is false</a>.
+   * select common columns in NATURAL JOIN*/
+  @Test void testNaturalJoinCommonColumn() {
+    sql("select DEPTNO from emp natural join dept")
+        .withCaseSensitive(true)
+        .withValidatorIdentifierExpansion(true)
+        .ok();
+
+    sql("select deptno from emp natural join dept")
+        .withCaseSensitive(true)
+        .withValidatorIdentifierExpansion(true)
+        .ok();
+
+    sql("select deptno from emp natural join dept")
+        .withCaseSensitive(false)
+        .withValidatorIdentifierExpansion(true)
+        .withQuotedCasing(Casing.UNCHANGED)
+        .withUnquotedCasing(Casing.UNCHANGED)
+        .ok();
+
+    sql("select DEPTNO from emp natural join dept")
+        .withCaseSensitive(false)
+        .withValidatorIdentifierExpansion(true)
+        .withQuotedCasing(Casing.UNCHANGED)
+        .withUnquotedCasing(Casing.UNCHANGED)
+        .ok();
+  }
+
   @Test void testCrossJoinOnFails() {
     sql("select * from emp cross join dept\n"
         + " ^on^ emp.deptno = dept.deptno")
