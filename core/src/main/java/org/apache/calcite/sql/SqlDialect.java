@@ -797,6 +797,11 @@ public class SqlDialect {
     return true;
   }
 
+  /** Returns whether this dialect supports generate 'SELECT *' when duplicate field names. */
+  public boolean supportGenerateSelectStar() {
+    return true;
+  }
+
   /** Converts {@link RexNode} expression to {@link RexNode} expression before unparse. */
   public RexNode prepareUnparse(RexNode rexNode) {
     return rexNode;

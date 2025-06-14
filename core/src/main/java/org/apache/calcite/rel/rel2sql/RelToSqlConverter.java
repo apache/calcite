@@ -50,6 +50,7 @@ import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.rel.rules.MultiJoin;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
@@ -114,6 +115,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
@@ -531,7 +533,8 @@ public class RelToSqlConverter extends SqlImplementor
     }
     parseCorrelTable(e, x);
     final Builder builder = x.builder(e);
-    if (!isStar(e.getProjects(), e.getInput().getRowType(), e.getRowType())) {
+    if (!isStar(e.getProjects(), e.getInput().getRowType(), e.getRowType())
+        || !dialect.supportGenerateSelectStar() && isJoinWithDupFieldNames(e.getInput())) {
       final List<SqlNode> selectList = new ArrayList<>();
       for (RexNode ref : e.getProjects()) {
         SqlNode sqlExpr = builder.context.toSql(null, ref);
@@ -559,6 +562,21 @@ public class RelToSqlConverter extends SqlImplementor
       builder.setSelect(selectNodeList);
     }
     return builder.result();
+  }
+
+  /**
+   * Whether the relNode is a join and whether its inputs have duplicate field names.
+   * For example, EMP JOIN DEPT, both of which have columns named DEPTNO
+   */
+  private boolean isJoinWithDupFieldNames(RelNode relNode) {
+    if (relNode instanceof Join || relNode instanceof MultiJoin) {
+      final List<String> fieldNames = relNode.getInputs().stream()
+          .flatMap(input -> input.getRowType().getFieldNames().stream())
+          .map(name -> dialect.isCaseSensitive() ? name : name.toLowerCase(Locale.ROOT))
+          .collect(Collectors.toList());
+      return !Util.isDistinct(fieldNames);
+    }
+    return false;
   }
 
   /** Wraps a NULL literal in a CAST operator to a target type.
