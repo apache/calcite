@@ -16173,8 +16173,8 @@ public class SqlOperatorTest {
         "'1970-01-01 01:23:47' = any (array[timestamp '1970-01-01 01:23:45',"
             + "timestamp '1970-01-01 01:23:46'])", false);
     f.enableTypeCoercion(false).checkFails(
-        "^'1970-01-01 01:23:47' = any (array[timestamp '1970-01-01 01:23:45'," +
-            "timestamp '1970-01-01 01:23:46'])^",
+        "^'1970-01-01 01:23:47' = any (array[timestamp '1970-01-01 01:23:45',"
+            + "timestamp '1970-01-01 01:23:46'])^",
         "Values passed to = SOME operator must have compatible types",
         false);
 
@@ -16185,8 +16185,8 @@ public class SqlOperatorTest {
         "cast('1970-01-01 01:23:47' as timestamp) = any (array['1970-01-01 01:23:45',"
             + "'1970-01-01 01:23:46'])", false);
     f.enableTypeCoercion(false).checkFails(
-        "^cast('1970-01-01 01:23:47' as timestamp) = any (array['1970-01-01 01:23:45'," +
-            "'1970-01-01 01:23:46'])^",
+        "^cast('1970-01-01 01:23:47' as timestamp) = any (array['1970-01-01 01:23:45',"
+            + "'1970-01-01 01:23:46'])^",
         "Values passed to = SOME operator must have compatible types",
         false);
   }
