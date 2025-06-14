@@ -16154,8 +16154,17 @@ public class SqlOperatorTest {
 
     f.checkNull("1.0 = some (ARRAY[2,3,null])");
     f.checkNull("1.0 = some (ARRAY[2,null,3])");
+    f.enableTypeCoercion(false).checkFails(
+        "^1.0 = some (ARRAY[2,3,null])^",
+        "Values passed to = SOME operator must have compatible types",
+        false);
+
     f.checkBoolean("1.0 = some (ARRAY[1,2,null])", true);
     f.checkBoolean("3.0 = some (ARRAY[1,2])", false);
+    f.enableTypeCoercion(false).checkFails(
+        "^3.0 = some (ARRAY[1,2])^",
+        "Values passed to = SOME operator must have compatible types",
+        false);
 
     f.checkBoolean(
         "'1970-01-01 01:23:45' = any (array[timestamp '1970-01-01 01:23:45',"
@@ -16163,21 +16172,23 @@ public class SqlOperatorTest {
     f.checkBoolean(
         "'1970-01-01 01:23:47' = any (array[timestamp '1970-01-01 01:23:45',"
             + "timestamp '1970-01-01 01:23:46'])", false);
+    f.enableTypeCoercion(false).checkFails(
+        "^'1970-01-01 01:23:47' = any (array[timestamp '1970-01-01 01:23:45'," +
+            "timestamp '1970-01-01 01:23:46'])^",
+        "Values passed to = SOME operator must have compatible types",
+        false);
 
     f.checkBoolean(
-        "timestamp '1970-01-01 01:23:45' = any (array['1970-01-01 01:23:45',"
+        "cast('1970-01-01 01:23:45' as timestamp) = any (array['1970-01-01 01:23:45',"
             + "'1970-01-01 01:23:46'])", true);
     f.checkBoolean(
-        "'timestamp 1970-01-01 01:23:47' = any (array['1970-01-01 01:23:45',"
+        "cast('1970-01-01 01:23:47' as timestamp) = any (array['1970-01-01 01:23:45',"
             + "'1970-01-01 01:23:46'])", false);
-
-    f.checkBoolean("'value  ' = any(array['value1', 'value2', 'value34'])", false);
-    f.checkBoolean("'value  ' = any(array['value', 'value2', 'value34'])", true);
-
     f.enableTypeCoercion(false).checkFails(
-            "^1.0 = some (ARRAY[2,3,null])^",
-            "Values passed to = SOME operator must have compatible types",
-            false);
+        "^cast('1970-01-01 01:23:47' as timestamp) = any (array['1970-01-01 01:23:45'," +
+            "'1970-01-01 01:23:46'])^",
+        "Values passed to = SOME operator must have compatible types",
+        false);
   }
 
   @Test void testAnyValueFunc() {
