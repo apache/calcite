@@ -18,6 +18,10 @@ package org.apache.calcite.linq4j.tree;
 
 import org.apiguardian.api.API;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.joou.UByte;
+import org.joou.UInteger;
+import org.joou.ULong;
+import org.joou.UShort;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
@@ -572,7 +576,16 @@ public enum Primitive {
       if (value instanceof Byte
           || value instanceof Short
           || value instanceof Integer
-          || value instanceof Long) {
+          || value instanceof Long
+          || value instanceof UByte
+          || value instanceof UShort
+          || value instanceof UInteger) {
+        return value.longValue();
+      }
+      if (value instanceof ULong) {
+        if (value.longValue() < 0) {
+          throw new ArithmeticException("Value " + value + " out of range");
+        }
         return value.longValue();
       }
       if (value instanceof Float

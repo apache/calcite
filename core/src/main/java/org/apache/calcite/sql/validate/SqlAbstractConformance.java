@@ -160,4 +160,8 @@ public abstract class SqlAbstractConformance implements SqlConformance {
   @Override public boolean checkedArithmetic() {
     return SqlConformanceEnum.DEFAULT.checkedArithmetic();
   }
+
+  @Override public boolean supportsUnsignedTypes() {
+    return SqlConformanceEnum.DEFAULT.supportsUnsignedTypes();
+  }
 }
