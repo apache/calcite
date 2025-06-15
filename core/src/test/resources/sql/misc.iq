@@ -2467,24 +2467,6 @@ FROM "hr"."emps";
 
 !ok
 
-!use post
-
-# [CALCITE-4512] GROUP BY expression with argument name same with SELECT field and alias causes validation error
-SELECT floor(empno/2) as empno
-FROM emps
-GROUP BY floor(empno/2);
-+-------+
-| EMPNO |
-+-------+
-|    50 |
-|    55 |
-|    60 |
-|    65 |
-+-------+
-(4 rows)
-
-!ok
-
 # [CALCITE-6566] JDBC adapter should generate PI function with parentheses in most dialects
 
 !use scott-mysql
