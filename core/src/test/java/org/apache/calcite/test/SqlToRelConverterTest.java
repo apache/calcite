@@ -461,7 +461,12 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test void testGroupByAliasEqualToColumnName() {
+    // If the alias (deptno) matches an existing column, it is not used in the GROUP BY
     sql("select empno, ename as deptno from emp group by empno, deptno")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .throws_("Expression 'ENAME' is not being grouped");
+    // If the alias is a new one, it is used in the GROUP BY
+    sql("select empno, ename as x from emp group by empno, x")
         .withConformance(SqlConformanceEnum.LENIENT).ok();
   }
 
@@ -505,6 +510,30 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "((deptno), (empno, deptno / 2), (2, 1), ((1, 2), (deptno, deptno / 2)))";
     sql(sql)
         .withConformance(SqlConformanceEnum.LENIENT)
+        .ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4512">[CALCITE-4512]
+   * GROUP BY expression with argument name same with SELECT field and alias causes
+   * validation error</a>.
+   */
+  @Test void testGroupByExprArgFieldSameWithAlias3() {
+    // Same as the test above, but different conformance.
+    // Must produce the exact same plan.
+    final String sql = "SELECT deptno / 2 AS deptno, deptno / 2 as empno, sum(sal)\n"
+        + "FROM emp\n"
+        + "GROUP BY GROUPING SETS "
+        + "((deptno), (empno, deptno / 2), (2, 1), ((1, 2), (deptno, deptno / 2)))";
+    sql(sql)
+        .withConformance(
+            // This ensures that numbers in grouping sets are interpreted as column numbers
+            new SqlDelegatingConformance(SqlConformanceEnum.DEFAULT) {
+              @Override public boolean isGroupByOrdinal() {
+                return true;
+              }
+            })
         .ok();
   }
 
