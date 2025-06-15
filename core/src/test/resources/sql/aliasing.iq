@@ -1,0 +1,465 @@
+# aliasing.iq - Test for column aliases in GROUP BY, HAVING, SELECT
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+# They exercise various aliasing options for GROUP BY, HAVING, and SELECT.
+
+!use scott
+!set outputformat mysql
+
+# [CALCITE-4512] GROUP BY expression with argument name same with SELECT field and alias causes validation error
+SELECT floor(empno/2) as empno
+FROM emp
+GROUP BY floor(empno/2);
+
+SELECT FLOOR("EMP"."EMPNO" / 2) AS "EMPNO"
+FROM "scott"."EMP" AS "EMP"
+GROUP BY FLOOR("EMP"."EMPNO" / 2)
+!explain-validated-on calcite
+#
++-------+
+| EMPNO |
++-------+
+|  3684 |
+|  3749 |
+|  3760 |
+|  3783 |
+|  3827 |
+|  3849 |
+|  3891 |
+|  3894 |
+|  3919 |
+|  3922 |
+|  3938 |
+|  3950 |
+|  3951 |
+|  3967 |
++-------+
+(14 rows)
+
+!ok
+
+!use scott-lenient
+
+# Result should be the same as above
+# Validated using MySQL
+SELECT floor(empno/2) as empno
+FROM emp
+GROUP BY floor(empno/2);
+
+SELECT FLOOR("EMP"."EMPNO" / 2) AS "EMPNO"
+FROM "scott"."EMP" AS "EMP"
+GROUP BY FLOOR("EMP"."EMPNO" / 2)
+!explain-validated-on calcite
+#
++-------+
+| EMPNO |
++-------+
+|  3684 |
+|  3749 |
+|  3760 |
+|  3783 |
+|  3827 |
+|  3849 |
+|  3891 |
+|  3894 |
+|  3919 |
+|  3922 |
+|  3938 |
+|  3950 |
+|  3951 |
+|  3967 |
++-------+
+(14 rows)
+
+!ok
+
+# Test cases for CALCITE-7052
+# When conformance specifies isGroupbyAlias = true the validator rejects legal queries
+# Result validated using MySQL
+SELECT floor(empno/2) as empno
+FROM emp
+GROUP BY empno;
+
+SELECT FLOOR("EMP"."EMPNO" / 2) AS "EMPNO"
+FROM "scott"."EMP" AS "EMP"
+GROUP BY "EMP"."EMPNO"
+!explain-validated-on calcite
+#
++-------+
+| EMPNO |
++-------+
+|  3684 |
+|  3749 |
+|  3760 |
+|  3783 |
+|  3827 |
+|  3849 |
+|  3891 |
+|  3894 |
+|  3919 |
+|  3922 |
+|  3938 |
+|  3950 |
+|  3951 |
+|  3967 |
++-------+
+(14 rows)
+
+!ok
+
+# Result validated using MySQL
+SELECT floor(empno/100) as empno
+FROM emp
+GROUP BY empno;
+
+SELECT FLOOR("EMP"."EMPNO" / 100) AS "EMPNO"
+FROM "scott"."EMP" AS "EMP"
+GROUP BY "EMP"."EMPNO"
+!explain-validated-on calcite
+#
++-------+
+| EMPNO |
++-------+
+|    73 |
+|    74 |
+|    75 |
+|    75 |
+|    76 |
+|    76 |
+|    77 |
+|    77 |
+|    78 |
+|    78 |
+|    78 |
+|    79 |
+|    79 |
+|    79 |
++-------+
+(14 rows)
+
+!ok
+
+# Result validated using MySQL
+SELECT floor(empno/100) as empno
+FROM emp
+GROUP BY floor(empno/100);
+
+SELECT FLOOR("EMP"."EMPNO" / 100) AS "EMPNO"
+FROM "scott"."EMP" AS "EMP"
+GROUP BY FLOOR("EMP"."EMPNO" / 100)
+!explain-validated-on calcite
+#
++-------+
+| EMPNO |
++-------+
+|    73 |
+|    74 |
+|    75 |
+|    76 |
+|    77 |
+|    78 |
+|    79 |
++-------+
+(7 rows)
+
+!ok
+
+# Result validated using MySQL
+SELECT floor(empno/100) as X
+FROM emp
+GROUP BY X;
+
+SELECT FLOOR("EMP"."EMPNO" / 100) AS "X"
+FROM "scott"."EMP" AS "EMP"
+GROUP BY FLOOR("EMP"."EMPNO" / 100)
+!explain-validated-on calcite
+#
++----+
+| X  |
++----+
+| 73 |
+| 74 |
+| 75 |
+| 76 |
+| 77 |
+| 78 |
+| 79 |
++----+
+(7 rows)
+
+!ok
+
+# MySQL also gives an error, but a different error message
+SELECT sum(empno) as X
+FROM emp
+GROUP BY X;
+Aggregate expression is illegal in GROUP BY clause
+!error
+
+# Validated on MySQL, by replacing / with DIV, which does integer division in MySQL
+SELECT sum(empno / 100) as empno
+FROM EMP
+GROUP BY empno / 100;
+
+SELECT SUM("EMP"."EMPNO" / 100) AS "EMPNO"
+FROM "scott"."EMP" AS "EMP"
+GROUP BY "EMP"."EMPNO" / 100
+!explain-validated-on calcite
+#
++-------+
+| EMPNO |
++-------+
+|    73 |
+|    74 |
+|   150 |
+|   152 |
+|   154 |
+|   234 |
+|   237 |
++-------+
+(7 rows)
+
+!ok
+
+# Validated on MySQL, by replacing / with DIV
+SELECT sum(empno / 100), EMPNO / 100 as X
+FROM EMP
+GROUP BY X
+ORDER BY X;
+
+SELECT SUM("EMP"."EMPNO" / 100), "EMP"."EMPNO" / 100 AS "X"
+FROM "scott"."EMP" AS "EMP"
+GROUP BY "EMP"."EMPNO" / 100
+ORDER BY "X"
+!explain-validated-on calcite
+#
++--------+----+
+| EXPR$0 | X  |
++--------+----+
+|     73 | 73 |
+|     74 | 74 |
+|    150 | 75 |
+|    152 | 76 |
+|    154 | 77 |
+|    234 | 78 |
+|    237 | 79 |
++--------+----+
+(7 rows)
+
+!ok
+
+# Validated on MySQL, by replacing / with DIV
+SELECT sum(empno / 100), EMPNO / 100 as X
+FROM EMP
+GROUP BY X
+HAVING X > 75;
+
+SELECT SUM("EMP"."EMPNO" / 100), "EMP"."EMPNO" / 100 AS "X"
+FROM "scott"."EMP" AS "EMP"
+GROUP BY "EMP"."EMPNO" / 100
+HAVING "EMP"."EMPNO" / 100 > 75
+!explain-validated-on calcite
+#
++--------+----+
+| EXPR$0 | X  |
++--------+----+
+|    152 | 76 |
+|    154 | 77 |
+|    234 | 78 |
+|    237 | 79 |
++--------+----+
+(4 rows)
+
+!ok
+
+# Validated on MySQL, by replacing / with DIV
+SELECT sum(empno / 100), EMPNO / 100 as empno
+FROM EMP
+GROUP BY empno
+HAVING empno > 75;
+
+SELECT SUM("EMP"."EMPNO" / 100), "EMP"."EMPNO" / 100 AS "EMPNO"
+FROM "scott"."EMP" AS "EMP"
+GROUP BY "EMP"."EMPNO"
+HAVING CAST("EMP"."EMPNO" AS INTEGER) > 75
+!explain-validated-on calcite
+#
++--------+-------+
+| EXPR$0 | EMPNO |
++--------+-------+
+|     73 |    73 |
+|     74 |    74 |
+|     75 |    75 |
+|     75 |    75 |
+|     76 |    76 |
+|     76 |    76 |
+|     77 |    77 |
+|     77 |    77 |
+|     78 |    78 |
+|     78 |    78 |
+|     78 |    78 |
+|     79 |    79 |
+|     79 |    79 |
+|     79 |    79 |
++--------+-------+
+(14 rows)
+
+!ok
+
+# Validated on MySQL
+SELECT empno AS X
+FROM EMP, DEPT
+GROUP BY X
+HAVING empno > 75;
+
+SELECT "EMP"."EMPNO" AS "X"
+FROM "scott"."EMP" AS "EMP",
+    "scott"."DEPT" AS "DEPT"
+GROUP BY "EMP"."EMPNO"
+HAVING CAST("EMP"."EMPNO" AS INTEGER) > 75
+!explain-validated-on calcite
+#
++------+
+| X    |
++------+
+| 7369 |
+| 7499 |
+| 7521 |
+| 7566 |
+| 7654 |
+| 7698 |
+| 7782 |
+| 7788 |
+| 7839 |
+| 7844 |
+| 7876 |
+| 7900 |
+| 7902 |
+| 7934 |
++------+
+(14 rows)
+
+!ok
+
+# Validated on MySQL by replacing / with DIV
+SELECT empno AS X
+FROM EMP, DEPT
+GROUP BY empno / 100
+HAVING empno > 75;
+Expression 'EMPNO' is not being grouped
+!error
+
+# Validated on MySQL by replacing / with DIV
+SELECT empno / 100 AS X
+FROM EMP, DEPT
+GROUP BY empno / 100
+HAVING empno > 75;
+Expression 'EMPNO' is not being grouped
+!error
+
+# Validated on MySQL by changing MOD to %
+SELECT MAX(empno)
+FROM EMP
+GROUP BY deptno
+HAVING MOD(MAX(empno), 2) = 0;
+
+SELECT MAX("EMP"."EMPNO")
+FROM "scott"."EMP" AS "EMP"
+GROUP BY "EMP"."DEPTNO"
+HAVING MOD(MAX("EMP"."EMPNO"), 2) = 0
+!explain-validated-on calcite
+#
++--------+
+| EXPR$0 |
++--------+
+|   7900 |
+|   7902 |
+|   7934 |
++--------+
+(3 rows)
+
+!ok
+
+# Validated on MySQL by changing MOD to %
+SELECT MAX(empno) AS X
+FROM EMP
+GROUP BY deptno
+HAVING MOD(X, 2) = 0;
+
+SELECT MAX("EMP"."EMPNO") AS "X"
+FROM "scott"."EMP" AS "EMP"
+GROUP BY "EMP"."DEPTNO"
+HAVING MOD(MAX("EMP"."EMPNO"), 2) = 0
+!explain-validated-on calcite
+#
++------+
+| X    |
++------+
+| 7900 |
+| 7902 |
+| 7934 |
++------+
+(3 rows)
+
+!ok
+
+# Validated on MySQL by changing MOD to %
+# The alias 'deptno' is substituted in HAVING
+SELECT MAX(empno) AS deptno
+FROM EMP
+HAVING MOD(deptno, 2) = 0;
+
+SELECT MAX("EMP"."EMPNO") AS "DEPTNO"
+FROM "scott"."EMP" AS "EMP"
+HAVING MOD(MAX("EMP"."EMPNO"), 2) = 0
+!explain-validated-on calcite
+#
++--------+
+| DEPTNO |
++--------+
+|   7934 |
++--------+
+(1 row)
+
+!ok
+
+# Validated on MySQL by changing MOD to %
+# The alias 'deptno' if not substituted in HAVING because it is grouped on
+SELECT MAX(empno) AS deptno
+FROM EMP
+GROUP BY deptno
+HAVING MOD(deptno, 2) = 0;
+
+SELECT MAX("EMP"."EMPNO") AS "DEPTNO"
+FROM "scott"."EMP" AS "EMP"
+GROUP BY "EMP"."DEPTNO"
+HAVING MOD("EMP"."DEPTNO", 2) = 0
+!explain-validated-on calcite
+#
++--------+
+| DEPTNO |
++--------+
+|   7900 |
+|   7902 |
+|   7934 |
++--------+
+(3 rows)
+
+!ok
+
+# End aliasing.iq
