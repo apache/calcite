@@ -163,7 +163,7 @@ public class SqlDialect {
    * between two tokens which makes us easy to getFinalFormat
    */
   private static final List<Character> DATE_FORMAT_SEPARATORS =
-      Arrays.asList('-', '/', ',', '.', ':', ' ', '\'', '@', '_');
+      Arrays.asList('-', '/', ',', '.', ':', ' ', '\'', '@', '_', '|', '*');
 
   //~ Instance fields --------------------------------------------------------
 
