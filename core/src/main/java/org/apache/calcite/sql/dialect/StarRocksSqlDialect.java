@@ -25,6 +25,7 @@ import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlAbstractDateTimeLiteral;
 import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
+import org.apache.calcite.sql.SqlArrayWithAngleBracketsNameSpec;
 import org.apache.calcite.sql.SqlBasicTypeNameSpec;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
@@ -32,10 +33,12 @@ import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlMapTypeNameSpec;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlTypeNameSpec;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.AbstractSqlType;
+import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.MapSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -44,6 +47,8 @@ import org.apache.calcite.util.RelToSqlConverterUtil;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import static org.apache.calcite.util.RelToSqlConverterUtil.unparseHiveTrim;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A <code>SqlDialect</code> implementation for the StarRocks database.
@@ -191,12 +196,25 @@ public class StarRocksSqlDialect extends MysqlSqlDialect {
         SqlDataTypeSpec keySpec = (SqlDataTypeSpec) getCastSpec(mapSqlType.getKeyType());
         SqlDataTypeSpec valueSpec =
             (SqlDataTypeSpec) getCastSpec(mapSqlType.getValueType());
-        @SuppressWarnings("argument.type.incompatible")
+        SqlDataTypeSpec nonNullKeySpec =
+            requireNonNull(keySpec, "keySpec");
+        SqlDataTypeSpec nonNullValueSpec =
+            requireNonNull(valueSpec, "valueSpec");
         SqlMapTypeNameSpec sqlMapTypeNameSpec =
-            new SqlMapTypeNameSpec(keySpec, valueSpec, SqlParserPos.ZERO);
+            new SqlMapTypeNameSpec(nonNullKeySpec, nonNullValueSpec, SqlParserPos.ZERO);
         return new SqlDataTypeSpec(sqlMapTypeNameSpec,
             SqlParserPos.ZERO);
       case ARRAY:
+        ArraySqlType arraySqlType = (ArraySqlType) type;
+        SqlDataTypeSpec arrayValueSpec =
+            (SqlDataTypeSpec) getCastSpec(arraySqlType.getComponentType());
+        SqlDataTypeSpec nonNullarrayValueSpec =
+            requireNonNull(arrayValueSpec, "arrayValueSpec");
+        SqlTypeNameSpec typeNameSpec =
+            new SqlArrayWithAngleBracketsNameSpec(
+                nonNullarrayValueSpec.getTypeNameSpec(),
+                arraySqlType.getSqlTypeName(), SqlParserPos.ZERO);
+        return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
       case MULTISET:
         throw new UnsupportedOperationException("StarRocks dialect does not support cast to "
             + type.getSqlTypeName());
