@@ -63,6 +63,13 @@ public enum Lex {
   MYSQL_ANSI(Quoting.DOUBLE_QUOTE, Casing.UNCHANGED, Casing.UNCHANGED, false,
       CharLiteralStyle.STANDARD),
 
+  /** Lexical policy similar to PostgreSQL. Quoted identifiers are preserved;
+   * Unquoted identifiers are converted to lower-case; after which, identifiers
+   * are matched case-sensitively.
+   */
+  POSTGRESQL(Quoting.DOUBLE_QUOTE, Casing.TO_LOWER, Casing.UNCHANGED, false,
+      CharLiteralStyle.STANDARD),
+
   /** Lexical policy similar to Microsoft SQL Server.
    * The case of identifiers is preserved whether or not they are quoted;
    * after which, identifiers are matched case-insensitively.
