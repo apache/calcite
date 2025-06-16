@@ -7236,6 +7236,30 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           () -> this + " returned null for " + root);
     }
 
+    /** True if the exception ex indicates that name lookup has failed. */
+    public static boolean isNotFoundException(Exception ex) {
+      if (!(ex instanceof CalciteContextException)) {
+        return false;
+      }
+      String message = ex.getMessage();
+      if (message != null && !message.contains("not found")) {
+        return false;
+      }
+      return true;
+    }
+
+    /** True if the exception ex indicates that a column is ambiguous. */
+    public static boolean isAmbiguousException(Exception ex) {
+      if (!(ex instanceof CalciteContextException)) {
+        return false;
+      }
+      String message = ex.getMessage();
+      if (message != null && !message.contains("is ambiguous")) {
+        return false;
+      }
+      return true;
+    }
+
     @Override public @Nullable SqlNode visit(SqlIdentifier id) {
       // First check for builtin functions which don't have
       // parentheses, like "LOCALTIME".
@@ -7452,11 +7476,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         try {
           return super.visit(id);
         } catch (Exception ex) {
-          if (!(ex instanceof CalciteContextException)) {
-            throw ex;
-          }
-          String message = ex.getMessage();
-          if (message != null && !message.contains("not found")) {
+          if (!isNotFoundException(ex)) {
             throw ex;
           }
           // This point is reached only if the name lookup failed using standard rules
@@ -7540,7 +7560,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final SqlSelect select;
     final SqlNode root;
     final Clause clause;
-    // Retain only expandable aliases or ordinals to prevent their expansion in a SQL call expr.
+    // This contains the ordinal nodes in a GROUP BY that may need to be expanded
+    // into column names when using a conformance that allows ordinals in group bys
+    // E.g., For GROUP BY 1, 1 will be in this list
+    // For GROUP BY CUBE(1), 1 will also be in this list
     final Set<SqlNode> aliasOrdinalExpandSet = Sets.newIdentityHashSet();
 
     ExtendedExpander(SqlValidatorImpl validator, SqlValidatorScope scope,
@@ -7560,13 +7583,29 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
 
       final SelectScope selectScope = validator.getRawSelectScopeNonNull(select);
-      final boolean replaceAliases = clause.shouldReplaceAliases(validator.config);
-      if (!replaceAliases || (clause == Clause.GROUP_BY && !aliasOrdinalExpandSet.contains(id))) {
-        SqlNode node = expandCommonColumn(select, id, selectScope, validator);
-        if (node != id) {
-          return node;
+      try {
+        // First try a standard expansion
+        if (clause == Clause.GROUP_BY || clause == Clause.HAVING) {
+          SqlNode node = expandCommonColumn(select, id, selectScope, validator);
+          if (node != id) {
+            return node;
+          }
+          return super.visit(id);
         }
-        return super.visit(id);
+      } catch (Exception ex) {
+        // This behavior is from MySQL:
+        // - if there is no column in the SELECT with the name used in the GROUP BY or HAVING,
+        //   then look for a column alias in the SELECT
+        // - if there are multiple columns in the SELECT with the name used in the GROUP BY or
+        //   HAVING, then also look for a column alias in the SELECT
+        if (!Expander.isNotFoundException(ex) && !Expander.isAmbiguousException(ex)) {
+          throw ex;
+        }
+        final boolean replaceAliases = clause.shouldReplaceAliases(validator.config);
+        if (!replaceAliases) {
+          throw ex;
+        }
+        // Fall through and try to replace alias
       }
 
       String name = id.getSimple();
@@ -7641,7 +7680,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           break;
         }
       }
-
       return super.visit(literal);
     }
 
@@ -7652,7 +7690,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     @RequiresNonNull({"root"})
     private void addExpandableExpressions(@UnknownInitialization ExtendedExpander this) {
       switch (root.getKind()) {
-      case IDENTIFIER:
       case LITERAL:
         aliasOrdinalExpandSet.add(root);
         break;
@@ -7683,7 +7720,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         for (SqlNode node : rowOperandList) {
           addIdentifierOrdinal2ExpandSet(node);
         }
-      } else if (sqlNode.getKind() == SqlKind.IDENTIFIER || sqlNode.getKind() == SqlKind.LITERAL) {
+      } else if (sqlNode.getKind() == SqlKind.LITERAL) {
         aliasOrdinalExpandSet.add(sqlNode);
       }
     }
@@ -8218,14 +8255,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     boolean shouldReplaceAliases(Config config) {
       switch (this) {
       case GROUP_BY:
-        return config.conformance().isGroupByAlias()
-                || (config.conformance().isSelectAlias()
-                != SqlConformance.SelectAliasLookup.UNSUPPORTED);
+        return config.conformance().isGroupByAlias();
 
       case HAVING:
-        return config.conformance().isHavingAlias()
-                || (config.conformance().isSelectAlias()
-                != SqlConformance.SelectAliasLookup.UNSUPPORTED);
+        return config.conformance().isHavingAlias();
 
       case QUALIFY:
         return true;
