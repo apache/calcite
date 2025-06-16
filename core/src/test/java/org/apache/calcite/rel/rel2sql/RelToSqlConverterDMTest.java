@@ -12910,6 +12910,140 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedQuery));
   }
 
+  @Test public void testInetAtonTranslationToBigQuery() {
+    final RelBuilder builder = relBuilder();
+    RexNode ipLiteral = builder.literal("209.207.224.40");
+    RexNode functionRex = builder.call(SqlLibraryOperators.INET_ATON, ipLiteral);
+    RexNode regexMatch =
+        builder.call(SqlLibraryOperators.REGEXP_CONTAINS,
+            ipLiteral,
+            builder.literal("^(25[0-5]|2[0-4][0-9]|1?[0-9]?[0-9])(\\.(25[0-5]|2[0-4][0-9]|1?[0-9]?[0-9])){3}$"));
+    RexNode ipFromString = builder.call(SqlLibraryOperators.NET_IP_FROM_STRING, ipLiteral);
+    RexNode ipv4ToInt64 = builder.call(SqlLibraryOperators.NET_IPV4_TO_INT64, ipFromString);
+    RexNode ifExpr = builder.call(SqlLibraryOperators.IF, regexMatch, ipv4ToInt64, builder.literal(null));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(functionRex)
+        .project(builder.alias(ifExpr, "inet_aton_value"))
+        .build();
+
+    final String expectedSql =
+        "SELECT IF(REGEXP_CONTAINS('209.207.224.40', "
+            + "r'^(25[0-5]|2[0-4][0-9]|1?[0-9]?[0-9])(\\.(25[0-5]|2[0-4][0-9]|1?[0-9]?[0-9])){3}$'), "
+            + "NET.IPV4_TO_INT64(NET.IP_FROM_STRING('209.207.224.40')), "
+            + "NULL) AS inet_aton_value"
+            + "\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSql));
+  }
+
+  @Test public void testRedShiftNvlFunction() {
+    final RelBuilder builder = relBuilder();
+    RexNode operand = builder.literal("operand");
+    RexNode operand1 = builder.literal("operand1");
+    RexNode operand2 = builder.literal("operand2");
+    final RexNode nvl =
+        builder.call(SqlLibraryOperators.REDSHIFT_NVL, operand, operand1);
+    final RexNode nvlThreeParam =
+        builder.call(SqlLibraryOperators.REDSHIFT_NVL, operand, operand1, operand2);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(nvl, nvlThreeParam)
+        .build();
+    final String expectedSql = "SELECT NVL('operand', 'operand1') AS \"$f0\", "
+        + "NVL('operand', 'operand1', 'operand2') AS \"$f1\""
+        + "\nFROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.REDSHIFT.getDialect()), isLinux(expectedSql));
+  }
+
+  @Test public void testJsonExtractTextFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode objectId =
+        builder.call(SqlLibraryOperators.JSON_EXTRACT_PATH_TEXT, builder.literal("290"), builder.literal("jhon"),
+            builder.literal("Insert"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(objectId, "result"))
+        .build();
+    final String expectedSql =
+        "SELECT JSON_EXTRACT_PATH_TEXT('290', 'jhon', 'Insert') AS \"result\""
+        + "\nFROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedSql));
+  }
+
+  @Test public void testDigestFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode objectId =
+        builder.call(SqlLibraryOperators.DIGEST, builder.literal("shA"), builder.literal("username"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(objectId, "result"))
+        .build();
+    final String expectedSql = "SELECT DIGEST('shA', 'username') AS \"result\"\nFROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedSql));
+  }
+
+  @Test public void testEncodeFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode digestNode =
+        builder.call(SqlLibraryOperators.DIGEST, builder.literal("shA"), builder.literal("username"));
+    final RexNode objectId =
+        builder.call(SqlLibraryOperators.ENCODE, digestNode, builder.literal("hex"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(objectId, "result"))
+        .build();
+    final String expectedSql = "SELECT ENCODE(DIGEST('shA', 'username'), 'hex') AS \"result\""
+        + "\nFROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedSql));
+  }
+
+  @Test public void testAgeinYearsFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode objectId =
+        builder.call(SqlLibraryOperators.AGE_IN_YEARS, builder.call(CURRENT_TIMESTAMP));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(objectId, "result"))
+        .build();
+    final String expectedSql = "SELECT AGE_IN_YEARS(CURRENT_TIMESTAMP) AS \"result\"\nFROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedSql));
+  }
+
+  @Test public void testJsonExtractArrayElementTextFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode objectId =
+        builder.call(SqlLibraryOperators.JSON_EXTRACT_ARRAY_ELEMENT_TEXT,
+            builder.literal("[1,2,3,4]"), builder.literal(1));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(objectId, "result"))
+        .build();
+    final String expectedSql =
+        "SELECT JSON_EXTRACT_ARRAY_ELEMENT_TEXT('[1,2,3,4]', 1) AS \"result\""
+            + "\nFROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedSql));
+  }
+
+  @Test public void testRedshiftTruncFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode nvlCall =
+        builder.call(SqlLibraryOperators.REDSHIFT_TRUNC, builder.literal(10), builder.call(CURRENT_TIMESTAMP));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(nvlCall, "result"))
+        .build();
+
+    final String expectedSql = "SELECT TRUNC(10, CURRENT_TIMESTAMP) AS \"result\"\nFROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.REDSHIFT.getDialect()), isLinux(expectedSql));
+  }
+
   @Test public void testSQLERRSTFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode rex =
