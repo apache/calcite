@@ -3745,11 +3745,12 @@ NATURAL JOIN (values ('Calcite', 200)) as s(ename, salary)]]>
     <Resource name="plan">
       <![CDATA[
 LogicalProject(DEPTNO=[$7], ENAME=[$1])
-  LogicalJoin(condition=[=($1, $11)], joinType=[inner])
+  LogicalJoin(condition=[=($1, $13)], joinType=[inner])
     LogicalJoin(condition=[=($7, $9)], joinType=[inner])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-    LogicalValues(tuples=[[{ 'Calcite', 200 }]])
+    LogicalProject(ENAME=[$0], SALARY=[$1], ENAME0=[CAST($0):VARCHAR(20) NOT NULL])
+      LogicalValues(tuples=[[{ 'Calcite', 200 }]])
 ]]>
     </Resource>
   </TestCase>
