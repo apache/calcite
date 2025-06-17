@@ -19307,7 +19307,7 @@ LogicalProject(DEPTNO=[$0], NAME=[$1])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testVariousJoinTypeForDphyp">
+  <TestCase name="testInnerLeftSemiJoinTypeForDphyp">
     <Resource name="sql">
       <![CDATA[select emp.empno from emp_address inner join emp on emp_address.empno = emp.empno left join dept on emp.deptno = dept.deptno where exists(select * from dept_nested where dept.deptno = dept_nested.deptno)]]>
     </Resource>
@@ -19338,7 +19338,7 @@ LogicalProject(EMPNO=[$0])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testVariousJoinTypeForDphyp2">
+  <TestCase name="testLeftInnerSemiJoinTypeForDphyp">
     <Resource name="sql">
       <![CDATA[select emp.empno from emp_address left join emp on emp_address.empno = emp.empno inner join dept on emp.deptno = dept.deptno where exists(select * from dept_nested where dept.deptno = dept_nested.deptno)]]>
     </Resource>
@@ -19369,7 +19369,7 @@ LogicalProject(EMPNO=[$11])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testVariousJoinTypeForDphyp3">
+  <TestCase name="testFullLeftSemiJoinTypeForDphyp">
     <Resource name="sql">
       <![CDATA[select emp.empno from emp_address full join emp on emp_address.empno = emp.empno left join dept on emp.deptno = dept.deptno where exists(select * from dept_nested where dept.deptno = dept_nested.deptno)]]>
     </Resource>

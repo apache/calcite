@@ -83,7 +83,6 @@ public class DpHyp {
    * in the {@link DpHyp#dpTable}.
    */
   public void startEnumerateJoin() {
-    LOGGER.debug("Start dphyp enumeration.");
     int size = hyperGraph.getInputs().size();
     for (int i = 0; i < size; i++) {
       long singleNode = LongBitmap.newBitmap(i);

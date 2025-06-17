@@ -10786,7 +10786,7 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  @Test void testVariousJoinTypeForDphyp() {
+  @Test void testInnerLeftSemiJoinTypeForDphyp() {
     HepProgram program = new HepProgramBuilder()
         .addMatchOrder(HepMatchOrder.BOTTOM_UP)
         .addRuleInstance(CoreRules.PROJECT_MERGE)
@@ -10805,7 +10805,7 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  @Test void testVariousJoinTypeForDphyp2() {
+  @Test void testLeftInnerSemiJoinTypeForDphyp() {
     HepProgram program = new HepProgramBuilder()
         .addMatchOrder(HepMatchOrder.BOTTOM_UP)
         .addRuleInstance(CoreRules.PROJECT_MERGE)
@@ -10824,7 +10824,7 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  @Test void testVariousJoinTypeForDphyp3() {
+  @Test void testFullLeftSemiJoinTypeForDphyp() {
     HepProgram program = new HepProgramBuilder()
         .addMatchOrder(HepMatchOrder.BOTTOM_UP)
         .addRuleInstance(CoreRules.PROJECT_MERGE)
