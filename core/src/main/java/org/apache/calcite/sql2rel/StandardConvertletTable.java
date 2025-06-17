@@ -21,6 +21,7 @@ import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.TimeFrame;
@@ -1310,7 +1311,9 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       SqlOperandTypeChecker.Consistency consistency, List<RelDataType> types) {
     switch (consistency) {
     case COMPARE:
-      if (SqlTypeUtil.areSameFamily(types)) {
+      if (SqlTypeUtil.areSameFamily(types)
+          && (types.stream().allMatch(RelDataTypeFactoryImpl::isJavaType)
+          || types.stream().noneMatch(RelDataTypeFactoryImpl::isJavaType))) {
         // All arguments are of same family. No need for explicit casts.
         return null;
       }

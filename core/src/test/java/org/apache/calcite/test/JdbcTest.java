@@ -2904,10 +2904,10 @@ public class JdbcTest {
         + " then 'y' else null end)) T\n"
         + "from \"hr\".\"emps\"";
     final String plan = ""
-        + "      String case_when_value;\n"
+        + "              String case_when_value;\n"
         + "              final org.apache.calcite.test.schemata.hr.Employee current = (org.apache"
         + ".calcite.test.schemata.hr.Employee) inputEnumerator.current();\n"
-        + "              if (current.empid > current.deptno * 10) {\n"
+        + "              if (org.apache.calcite.runtime.SqlFunctions.toInt(org.apache.calcite.linq4j.tree.Primitive.integerCast(org.apache.calcite.linq4j.tree.Primitive.INT, current.empid, java.math.RoundingMode.DOWN)) > current.deptno * 10) {\n"
         + "                case_when_value = \"y\";\n"
         + "              } else {\n"
         + "                case_when_value = null;\n"
@@ -2928,10 +2928,10 @@ public class JdbcTest {
         + " then \"name\" end)) T\n"
         + "from \"hr\".\"emps\"";
     final String plan = ""
-        + "      String case_when_value;\n"
+        + "              String case_when_value;\n"
         + "              final org.apache.calcite.test.schemata.hr.Employee current = (org.apache"
         + ".calcite.test.schemata.hr.Employee) inputEnumerator.current();\n"
-        + "              if (current.empid > current.deptno * 10) {\n"
+        + "              if (org.apache.calcite.runtime.SqlFunctions.toInt(org.apache.calcite.linq4j.tree.Primitive.integerCast(org.apache.calcite.linq4j.tree.Primitive.INT, current.empid, java.math.RoundingMode.DOWN)) > current.deptno * 10) {\n"
         + "                case_when_value = current.name;\n"
         + "              } else {\n"
         + "                case_when_value = null;\n"
@@ -3442,15 +3442,15 @@ public class JdbcTest {
             + "LogicalProject(deptno=[$0], name=[$1], employees=[$2], location=[$3])\n"
             + "  LogicalFilter(condition=[IN($0, {\n"
             + "LogicalProject(deptno=[$1])\n"
-            + "  LogicalFilter(condition=[<($0, 150)])\n"
+            + "  LogicalFilter(condition=[<(CAST($0):INTEGER NOT NULL, 150)])\n"
             + "    LogicalTableScan(table=[[hr, emps]])\n"
             + "})])\n"
-            + "    LogicalTableScan(table=[[hr, depts]])")
+            + "    LogicalTableScan(table=[[hr, depts]])\n")
         .explainContains(""
             + "EnumerableHashJoin(condition=[=($0, $5)], joinType=[semi])\n"
             + "  EnumerableTableScan(table=[[hr, depts]])\n"
-            + "  EnumerableCalc(expr#0..4=[{inputs}], expr#5=[150], expr#6=[<($t0, $t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
-            + "    EnumerableTableScan(table=[[hr, emps]])")
+            + "  EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t0):INTEGER NOT NULL], expr#6=[150], expr#7=[<($t5, $t6)], proj#0..4=[{exprs}], $condition=[$t7])\n"
+            + "    EnumerableTableScan(table=[[hr, emps]])\n\n")
         .returnsUnordered(
             "deptno=10; name=Sales; employees=[{100, 10, Bill, 10000.0, 1000}, {150, 10, Sebastian, 7000.0, null}]; location={-122, 38}");
   }
@@ -4267,12 +4267,11 @@ public class JdbcTest {
             + "    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[0], expr#4=[=($t2, $t3)], "
             + "expr#5=[1], expr#6=[=($t2, $t5)], proj#0..1=[{exprs}], $f2=[$t4], $f3=[$t6])\n"
             + "      EnumerableUnion(all=[true])\n"
-            + "        EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[CAST($t1):INTEGER"
-            + " NOT NULL], expr#7=[10], expr#8=[=($t6, $t7)], empid=[$t0], name=[$t2], $f2=[$t5],"
-            + " $condition=[$t8])\n"
+            + "        EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[CAST($t1):INTEGER NOT NULL], expr#7=[10], expr#8=[=($t6, $t7)], empid=[$t0], name=[$t2], $f2=[$t5], "
+            + "$condition=[$t8])\n"
             + "          EnumerableTableScan(table=[[hr, emps]])\n"
-            + "        EnumerableCalc(expr#0..4=[{inputs}], expr#5=[1], expr#6=[150], expr#7=[>="
-            + "($t0, $t6)], empid=[$t0], name=[$t2], $f2=[$t5], $condition=[$t7])\n"
+            + "        EnumerableCalc(expr#0..4=[{inputs}], expr#5=[1], expr#6=[CAST($t0):INTEGER NOT NULL], expr#7=[150], expr#8=[>="
+            + "($t6, $t7)], empid=[$t0], name=[$t2], $f2=[$t5], $condition=[$t8])\n"
             + "          EnumerableTableScan(table=[[hr, emps]])\n")
         .returnsUnordered("empid=100; name=Bill",
             "empid=110; name=Theodore");
@@ -4327,7 +4326,7 @@ public class JdbcTest {
         .explainContains(""
             + "PLAN=EnumerableCalc(expr#0..1=[{inputs}], expr#2=[0], expr#3=[=($t0, $t2)], expr#4=[null:JavaType(class java.lang.Integer)], expr#5=[CASE($t3, $t4, $t1)], expr#6=[/($t5, $t0)], expr#7=[CAST($t6):JavaType(class java.lang.Integer)], CS=[$t0], C=[$t0], S=[$t5], A=[$t7])\n"
             + "  EnumerableAggregate(group=[{}], CS=[COUNT()], S=[$SUM0($1)])\n"
-            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[<($t1, $t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
+            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t1):INTEGER NOT NULL], expr#6=[0], expr#7=[<($t5, $t6)], proj#0..4=[{exprs}], $condition=[$t7])\n"
             + "      EnumerableTableScan(table=[[hr, emps]])\n")
         .returns("CS=0; C=0; S=null; A=null\n");
   }
@@ -4343,7 +4342,7 @@ public class JdbcTest {
         .explainContains(""
             + "PLAN=EnumerableCalc(expr#0=[{inputs}], CS=[$t0], CS2=[$t0])\n"
             + "  EnumerableAggregate(group=[{}], CS=[COUNT()])\n"
-            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[<($t1, $t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
+            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t1):INTEGER NOT NULL], expr#6=[0], expr#7=[<($t5, $t6)], proj#0..4=[{exprs}], $condition=[$t7])\n"
             + "      EnumerableTableScan(table=[[hr, emps]])\n")
         .returns("CS=0; CS2=0\n");
   }
@@ -5242,7 +5241,7 @@ public class JdbcTest {
               + "where \"empid\" > 10")
           .convertContains(""
               + "LogicalProject(name=[$2], EXPR$1=[+(COUNT($3) OVER (PARTITION BY $1), 1)])\n"
-              + "  LogicalFilter(condition=[>($0, 10)])\n"
+              + "  LogicalFilter(condition=[>(CAST($0):INTEGER NOT NULL, 10)])\n"
               + "    LogicalProject(empid=[$0], deptno=[$1], name=[$2], commission=[$4])\n"
               + "      LogicalTableScan(table=[[hr, emps]])\n");
     }
@@ -6612,7 +6611,7 @@ public class JdbcTest {
         .explainMatches(" without implementation ",
             checkResult("PLAN="
                 + "LogicalProject(empid=[$0], deptno=[$1])\n"
-                + "  LogicalFilter(condition=[>($1, 10)])\n"
+                + "  LogicalFilter(condition=[>(CAST($1):INTEGER NOT NULL, 10)])\n"
                 + "    LogicalProject(empid=[$0], deptno=[$1])\n"
                 + "      LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
     with.query("select * from \"adhoc\".\"EMPLOYEES\" where exists (select * from \"adhoc\".V)")
@@ -6668,7 +6667,7 @@ public class JdbcTest {
             checkResult("PLAN="
                 + "LogicalProject(empid=[$0], deptno=[$1], name=[$2], "
                 + "salary=[$3], commission=[$4])\n"
-                + "  LogicalFilter(condition=[>($1, 10)])\n"
+                + "  LogicalFilter(condition=[>(CAST($1):INTEGER NOT NULL, 10)])\n"
                 + "    LogicalSort(sort0=[$1], dir0=[ASC])\n"
                 + "      LogicalProject(empid=[$0], deptno=[$1], name=[$2], "
                 + "salary=[$3], commission=[$4])\n"
@@ -6681,7 +6680,7 @@ public class JdbcTest {
             checkResult("PLAN="
                 + "LogicalProject(empid=[$0], deptno=[$1], name=[$2], "
                 + "salary=[$3], commission=[$4])\n"
-                + "  LogicalFilter(condition=[>($1, 10)])\n"
+                + "  LogicalFilter(condition=[>(CAST($1):INTEGER NOT NULL, 10)])\n"
                 + "    LogicalSort(sort0=[$1], dir0=[ASC])\n"
                 + "      LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], "
                 + "commission=[$4])\n"
@@ -8171,6 +8170,42 @@ public class JdbcTest {
         .query("select [DID] from (select deptid as did FROM\n"
             + "     ( values (1), (2) ) as T1([deptid]) ) ")
         .returnsUnordered("DID=1", "DID=2");
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4993">[CALCITE-4993]
+   * Simplify EQUALS or NOT-EQUALS with other number comparison</a>.
+   */
+  @Test void testJavaTypeSimplifyEqWithOtherNumberComparison() {
+    CalciteAssert.hr()
+        .query("select \"empid\", \"deptno\" from \"hr\".\"emps\"\n"
+            + "where \"empid\" <> 5 and \"empid\"> 3 and \"empid\"< 10")
+        .explainContains(""
+            + "PLAN=EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t0):INTEGER NOT NULL], expr#6=[Sarg[(3..5), (5..10)]], expr#7=[SEARCH($t5, $t6)], "
+            + "proj#0..1=[{exprs}], $condition=[$t7])\n"
+            + "  EnumerableTableScan(table=[[hr, emps]])\n\n")
+        .returns("");
+  }
+
+  @Test void testJavaTypeSimplifyEqWithOtherNumberComparison2() {
+    CalciteAssert.hr()
+        .query("select \"empid\", \"deptno\" from \"hr\".\"emps\"\n"
+            + "where \"empid\" = 5 and \"empid\"> 3 and \"empid\"< 10")
+        .explainContains(""
+            + "PLAN=EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t0):INTEGER NOT NULL], expr#6=[5], expr#7=[=($t5, $t6)], "
+            + "proj#0..1=[{exprs}], $condition=[$t7])\n"
+            + "  EnumerableTableScan(table=[[hr, emps]])\n\n")
+        .returns("");
+  }
+
+  @Test void testJavaTypeSimplifyEqWithOtherNumberComparison3() {
+    CalciteAssert.hr()
+        .query("select \"empid\", \"deptno\" from \"hr\".\"emps\"\n"
+            + "where \"empid\" = 5 and \"empid\"> 6 and \"empid\"< 10")
+        .explainContains(""
+            + "PLAN=EnumerableValues(tuples=[[]])\n\n")
+        .returns("");
   }
 
   /**
