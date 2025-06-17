@@ -862,9 +862,9 @@ public class MaterializedViewSubstitutionVisitorTest {
     sql(m, q)
         .checkingThatResultContains(""
             + "LogicalUnion(all=[true])\n"
-            + "  LogicalCalc(expr#0..4=[{inputs}], expr#5=[300], expr#6=[>($t0, $t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
+            + "  LogicalCalc(expr#0..4=[{inputs}], expr#5=[CAST($t0):INTEGER NOT NULL], expr#6=[300], expr#7=[>($t5, $t6)], proj#0..4=[{exprs}], $condition=[$t7])\n"
             + "    LogicalTableScan(table=[[hr, emps]])\n"
-            + "  LogicalCalc(expr#0..4=[{inputs}], expr#5=[200], expr#6=[<($t0, $t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
+            + "  LogicalCalc(expr#0..4=[{inputs}], expr#5=[200], expr#6=[CAST($t0):INTEGER NOT NULL], expr#7=[>($t5, $t6)], proj#0..4=[{exprs}], $condition=[$t7])\n"
             + "    EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
@@ -887,9 +887,9 @@ public class MaterializedViewSubstitutionVisitorTest {
         .checkingThatResultContains(""
             + "LogicalCalc(expr#0..9=[{inputs}], proj#0..4=[{exprs}], deptno0=[$t6], name0=[$t7], salary0=[$t8], commission0=[$t9])\n"
             + "  LogicalJoin(condition=[=($0, $5)], joinType=[inner])\n"
-            + "    LogicalCalc(expr#0..4=[{inputs}], expr#5=[300], expr#6=[<($t0, $t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
+            + "    LogicalCalc(expr#0..4=[{inputs}], expr#5=[300], expr#6=[CAST($t0):INTEGER NOT NULL], expr#7=[>($t5, $t6)], proj#0..4=[{exprs}], $condition=[$t7])\n"
             + "      EnumerableTableScan(table=[[hr, MV0]])\n"
-            + "    LogicalCalc(expr#0..4=[{inputs}], expr#5=[200], expr#6=[<($t0, $t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
+            + "    LogicalCalc(expr#0..4=[{inputs}], expr#5=[200], expr#6=[CAST($t0):INTEGER NOT NULL], expr#7=[>($t5, $t6)], proj#0..4=[{exprs}], $condition=[$t7])\n"
             + "      EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
