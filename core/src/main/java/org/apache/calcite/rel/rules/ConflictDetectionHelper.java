@@ -112,7 +112,8 @@ public class ConflictDetectionHelper {
       if (!isAssociative(leftSubEdge.getJoinType(), joinType)) {
         // if (o_a, o_b) does not satisfy the associative law
         if (leftSubEdge.getLeftNodeUsedInPredicate() != 0) {
-          // if T(left(o_a)) ∩ F_T(o_a) != ∅, a less restrictive conflict rule will be added
+          // if the predicate of o_a does not reference the table on its left side,
+          // a less restrictive conflict rule will be added
           conflictRules.add(
               new ConflictRule(
                   leftSubEdge.getInitialRightNodeBits(),
@@ -127,7 +128,8 @@ public class ConflictDetectionHelper {
       if (!isLeftAsscom(leftSubEdge.getJoinType(), joinType)) {
         // if (o_a, o_b) does not satisfy the left-asscom law
         if (leftSubEdge.getRightNodeUsedInPredicate() != 0) {
-          // if T(right(o_a)) ∩ F_T(o_a) != ∅, a less restrictive conflict rule will be added
+          // if the predicate of o_a does not reference the table on its right side,
+          // a less restrictive conflict rule will be added
           conflictRules.add(
               new ConflictRule(
                   leftSubEdge.getInitialLeftNodeBits(),
@@ -153,7 +155,8 @@ public class ConflictDetectionHelper {
       if (!isAssociative(joinType, rightSubEdge.getJoinType())) {
         // if (o_b, o_a) does not satisfy the associative law
         if (rightSubEdge.getRightNodeUsedInPredicate() != 0) {
-          // if T(right(o_a)) ∩ F_T(o_a) != ∅, a less restrictive conflict rule will be added
+          // if the predicate of o_a does not reference the table on its right side,
+          // a less restrictive conflict rule will be added
           conflictRules.add(
               new ConflictRule(
                   rightSubEdge.getInitialLeftNodeBits(),
@@ -168,7 +171,8 @@ public class ConflictDetectionHelper {
       if (!isRightAsscom(joinType, rightSubEdge.getJoinType())) {
         // if (o_b, o_a) does not satisfy the right-asscom law
         if (rightSubEdge.getLeftNodeUsedInPredicate() != 0) {
-          // if T(left(o_a)) ∩ F_T(o_a) != ∅, a less restrictive conflict rule will be added
+          // if the predicate of o_a does not reference the table on its left side,
+          // a less restrictive conflict rule will be added
           conflictRules.add(
               new ConflictRule(
                   rightSubEdge.getInitialRightNodeBits(),

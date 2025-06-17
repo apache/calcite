@@ -220,17 +220,41 @@ public class DpHyp {
     List<HyperGraph.NodeState> unionOrder = new ArrayList<>(csgOrder);
     unionOrder.addAll(cmpOrder);
     // build join condition from hyperedges. e.g.
+    // case.1
     // csg: node0_projected [field0, field1], node1_projected [field0, field1],
+    //
+    //          join
+    //          /  \
+    //      node0  node1
+    //
     // cmp: node2_projected [field0, field1]
     // hyperedge1: node0.field0 = node2.field0
     // hyperedge2: node1.field1 = node2.field1
     // we will get join condition: ($0 = $4) and ($3 = $5)
     //
+    //         new_join(condition=[AND(($0 = $4), ($3 = $5))])
+    //           /  \
+    //        join  node2
+    //        /  \
+    //    node0  node1
+    //
+    // case.2
     // csg: node0_projected [field0, field1], node1_not_projected [field0, field1],
+    //
+    //          join(joinType=semi/anti)
+    //          /  \
+    //      node0  node1
+    //
     // cmp: node2_projected [field0, field1]
     // hyperedge1: node0.field0 = node2.field0
     // hyperedge2: node0.field1 = node2.field1
     // we will get join condition: ($0 = $2) and ($1 = $3)
+    //
+    //         new_join(condition=[AND(($0 = $2), ($1 = $3))])
+    //           /                              \
+    //  join(joinType=semi/anti)                node2
+    //        /  \
+    //    node0  node1
     RexNode joinCond1 = hyperGraph.extractJoinCond(unionOrder, csgOrder.size(), edges, joinType);
     RelNode newPlan1 = builder
         .push(child1)

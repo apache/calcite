@@ -478,9 +478,21 @@ public class HyperGraph extends AbstractRelNode {
     // n1_projected [field0, field1]
     // n2_projected [field0, field1]
     // rowType is [n0.field0, n0.field1, n1.field0, n1.field1, n2.field0, n2.field1]
+    // assume that the original plan tree is:
+    //        inner join
+    //         /      \
+    //   inner join    n2
+    //    /      \
+    //  n0        n1
     //
     // if the node order of the final result is [n2, n1, n0], rowType is
     // [n2.field0, n2.field1, n1.field0, n1.field1, n0.field0, n0.field1]
+    // assume that the reordered plan tree is:
+    //        inner join
+    //         /      \
+    //   inner join    n0
+    //    /      \
+    //  n2        n1
     //
     // we need a projection like [$4, $5, $2, $3, $0, $1]
     List<RexNode> projects = new ArrayList<>();
