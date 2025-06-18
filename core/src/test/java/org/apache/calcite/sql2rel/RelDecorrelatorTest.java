@@ -20,7 +20,6 @@ import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.plan.RelOptCluster;
-import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.prepare.CalciteCatalogReader;
@@ -33,10 +32,9 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.sql.SqlExplainFormat;
-import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.test.CalciteAssert;
@@ -79,6 +77,60 @@ public class RelDecorrelatorTest {
         .traitDefs((List<RelTraitDef>) null);
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7058">[CALCITE-7058]
+   * Decorrelator may produce different column names</a>. */
+  @Test void testDecorrelatorNames() throws SqlParseException {
+    String sql = "SELECT SUM(r.empno * r.deptno) FROM \"scott\".EMP r\n"
+        + "WHERE\n"
+        + "0.5 * (SELECT SUM(r1.deptno) FROM \"scott\".EMP r1) =\n"
+        + "(SELECT SUM(r2.deptno) FROM \"scott\".EMP r2 WHERE r2.empno = r.empno)";
+    SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+    CalciteAssert.addSchema(rootSchema, CalciteAssert.SchemaSpec.SCOTT);
+    CalciteConnectionConfig config = new CalciteConnectionConfigImpl(new Properties());
+    SqlTestFactory factory = SqlTestFactory.INSTANCE
+        .withCatalogReader((typeFactory, caseSensitive) ->
+            new CalciteCatalogReader(
+                CalciteSchema.from(rootSchema),
+                ImmutableList.of("SCOTT"),
+                typeFactory,
+                config))
+        .withSqlToRelConfig(c -> c.withExpand(true));
+    SqlParser parser = factory.createParser(sql);
+    SqlNode parsed = parser.parseQuery();
+    final SqlToRelConverter sqlToRelConverter = factory.createSqlToRelConverter();
+    assert sqlToRelConverter.validator != null;
+    final SqlNode validated = sqlToRelConverter.validator.validate(parsed);
+    RelRoot root = sqlToRelConverter.convertQuery(validated, false, true);
+    // Original plan:
+    // LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+    //   LogicalProject($f0=[*($0, $7)])
+    //     LogicalFilter(condition=[=(*(0.5:DECIMAL(2, 1), $9), CAST($10):DECIMAL(12, 1))])
+    //       LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+    //         LogicalJoin(condition=[true], joinType=[left])
+    //           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    //           LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+    //             LogicalProject(DEPTNO=[$7])
+    //               LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    //         LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+    //           LogicalProject(DEPTNO=[$7])
+    //             LogicalFilter(condition=[=($0, $cor0.EMPNO)])
+    //               LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+
+    RelNode correlate = root.rel.getInput(0).getInput(0).getInput(0);
+    // In the absence of the fix for [CALCITE-7058] the following statement
+    // will fail with an assertion failure:
+    // Decorrelation produced a relation with a different type;
+    // before:
+    // RecordType(SMALLINT EMPNO, VARCHAR(10) ENAME, VARCHAR(9) JOB, SMALLINT MGR, DATE HIREDATE,
+    // DECIMAL(7, 2) SAL, DECIMAL(7, 2) COMM, TINYINT DEPTNO, TINYINT EXPR$0, TINYINT EXPR$00)
+    // after:
+    // RecordType(SMALLINT EMPNO, VARCHAR(10) ENAME, VARCHAR(9) JOB, SMALLINT MGR, DATE HIREDATE,
+    // DECIMAL(7, 2) SAL, DECIMAL(7, 2) COMM, TINYINT DEPTNO, TINYINT EXPR$0, TINYINT EXPR$09)
+    final RelBuilder relBuilder =
+        RelFactories.LOGICAL_BUILDER.create(correlate.getCluster(), null);
+    RelDecorrelator.decorrelateQuery(correlate, relBuilder);
+  }
+
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7024">[CALCITE-7024]
    * Decorrelator does not always produce a query with the same type signature</a>. */
   @Test void testTypeEquivalence() {
@@ -102,9 +154,6 @@ public class RelDecorrelatorTest {
       final SqlToRelConverter sqlToRelConverter = factory.createSqlToRelConverter();
       final SqlNode validated = sqlToRelConverter.validator.validate(parsed);
       RelRoot root = sqlToRelConverter.convertQuery(validated, false, true);
-      System.out.println(
-          RelOptUtil.dumpPlan("[Logical plan]", root.rel,
-              SqlExplainFormat.TEXT, SqlExplainLevel.NON_COST_ATTRIBUTES));
 
       // The plan starts has this shape:
       // LogicalProject(DNAME=[$1])

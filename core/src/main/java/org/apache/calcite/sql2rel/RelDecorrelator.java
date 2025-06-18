@@ -253,7 +253,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
     if (!decorrelator.cm.mapCorToCorRel.isEmpty()) {
       newRootRel = decorrelator.decorrelate(newRootRel);
     }
-    Litmus.THROW.check(rootRel.getRowType().equals(newRootRel.getRowType()),
+    Litmus.THROW.check(
+        rootRel.getRowType().equalsSansFieldNames(newRootRel.getRowType()),
         "Decorrelation produced a relation with a different type; before: "
             + rootRel.getRowType() + " after: " + newRootRel.getRowType());
 
