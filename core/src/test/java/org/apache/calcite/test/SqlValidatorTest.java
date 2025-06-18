@@ -7550,9 +7550,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test void testStructuredTypes() {
     sql("values new address()")
-        .columnType("ObjectSqlType(ADDRESS) NOT NULL");
+        .columnType("ObjectSqlType(ADDRESS(VARCHAR(20) NOT NULL STREET, VARCHAR(20) "
+            + "NOT NULL CITY, INTEGER NOT NULL ZIP, VARCHAR(20) NOT NULL STATE)) NOT NULL");
     sql("select home_address from emp_address")
-        .columnType("ObjectSqlType(ADDRESS) NOT NULL");
+        .columnType("ObjectSqlType(ADDRESS(VARCHAR(20) NOT NULL STREET, VARCHAR(20) "
+            + "NOT NULL CITY, INTEGER NOT NULL ZIP, VARCHAR(20) NOT NULL STATE)) NOT NULL");
     sql("select ea.home_address.zip from emp_address ea")
         .columnType("INTEGER NOT NULL");
     sql("select ea.mailing_address.city from emp_address ea")

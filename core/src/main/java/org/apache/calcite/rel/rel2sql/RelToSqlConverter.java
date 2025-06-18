@@ -844,6 +844,10 @@ public class RelToSqlConverter extends SqlImplementor
     // Adding Alias in InClause and remove(return false) column from selectlist
     if (nestedCall instanceof SqlBasicCall && ((SqlBasicCall) nestedCall).getOperator().kind == SqlKind.AS) {
       SqlNode asNestedCall = ((SqlBasicCall) nestedCall).getOperandList().get(0);
+      if (asNestedCall instanceof SqlBasicCall
+          && ((SqlBasicCall) asNestedCall).getOperator() == SqlStdOperatorTable.LOWER) {
+        asNestedCall = ((SqlBasicCall) asNestedCall).getOperandList().get(0);
+      }
       String nestedCallString = asNestedCall.toString().replaceAll("'", "").toLowerCase();
       for (String aggName : aggNames) {
         if (aggName.replaceAll("'", "").startsWith(nestedCallString)) {
@@ -866,7 +870,7 @@ public class RelToSqlConverter extends SqlImplementor
       nestedCallString = requireNonNull(((SqlLiteral) nestedCall).toValue()).toLowerCase();
     }
     for (String aggName : aggNames) {
-      if (aggName.replaceAll("'", "").toLowerCase().startsWith(nestedCallString)) {
+      if (aggName.replaceAll("'", "").toLowerCase().contains(nestedCallString)) {
         aggregateInClauseFieldList.add(nestedCall);
         return false;
       }
