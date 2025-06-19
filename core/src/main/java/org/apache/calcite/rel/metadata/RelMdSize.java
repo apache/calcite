@@ -403,6 +403,20 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
     }
   }
 
+  /** Returns size for nested type ARRAY/MAP. */
+  public Double computeSizeForNestedType(RexCall call,
+      List<? extends @Nullable Double> inputColumnSizes) {
+    if (call.operands.size() == 0) {
+      return 0d;
+    }
+    Double compSize = 0d;
+    for (RexNode operand : call.getOperands()) {
+      Double nonNullSize = requireNonNull(averageRexSize(operand, inputColumnSizes));
+      compSize += nonNullSize;
+    }
+    return compSize;
+  }
+
   public @Nullable Double averageRexSize(RexNode node,
       List<? extends @Nullable Double> inputColumnSizes) {
     switch (node.getKind()) {
@@ -418,10 +432,12 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
         // ARRAY constructor: array size multiplied by the average size of its component type
         if (call.isA(SqlKind.ARRAY_VALUE_CONSTRUCTOR)) {
           assert SqlTypeUtil.isArray(call.getType());
-          Double compSize = averageTypeValueSize(requireNonNull(call.getType().getComponentType()));
-          if (compSize != null) {
-            return compSize * call.operands.size();
-          }
+          return computeSizeForNestedType(call, inputColumnSizes);
+        }
+
+        if (call.isA(SqlKind.MAP_VALUE_CONSTRUCTOR)) {
+          assert SqlTypeUtil.isMap(call.getType());
+          return computeSizeForNestedType(call, inputColumnSizes);
         }
 
         for (RexNode operand : call.getOperands()) {
