@@ -74,6 +74,7 @@ import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlDelete;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlHint;
@@ -776,10 +777,6 @@ public class RelToSqlConverter extends SqlImplementor
     PivotRelTrait pivotRelTrait = e.getTraitSet().getTrait(PivotRelTraitDef.instance);
     if (pivotRelTrait != null && pivotRelTrait.isPivotRel()) {
       List<SqlNode> selectList = builder.select.getSelectList();
-      int extraFieldCount = pivotRelTrait.getExtraFieldCountFromInputRel();
-      if (extraFieldCount > 0 && selectList.size() >= extraFieldCount) {
-        selectList = selectList.subList(0, selectList.size() - extraFieldCount);
-      }
       List<SqlNode> aggregateInClauseFieldList = new ArrayList<>();
 
       if (pivotRelTrait.hasSubquery()) {
@@ -826,7 +823,7 @@ public class RelToSqlConverter extends SqlImplementor
     if (firstOperand instanceof SqlBasicCall && firstOperand.getKind() == SqlKind.IS_TRUE) {
       firstOperand = ((SqlBasicCall) firstOperand).operand(0);
     }
-    if (firstOperand instanceof SqlIdentifier) {
+    if (firstOperand instanceof SqlIdentifier || firstOperand instanceof SqlCharStringLiteral) {
       return true;
     }
 
@@ -850,7 +847,9 @@ public class RelToSqlConverter extends SqlImplementor
       }
       String nestedCallString = asNestedCall.toString().replaceAll("'", "").toLowerCase();
       for (String aggName : aggNames) {
-        if (aggName.replaceAll("'", "").startsWith(nestedCallString)) {
+        if (aggName.replaceAll("'", "").startsWith(nestedCallString)
+            || ((SqlBasicCall) nestedCall).getOperandList().get(1).toString().replaceAll("'", "")
+            .equals(aggName.replaceAll("'", ""))) {
           aggregateInClauseFieldList.add(nestedCall);
           return false;
         }
@@ -953,7 +952,9 @@ public class RelToSqlConverter extends SqlImplementor
     if (!isStarInAggregateRel(e)) {
       builder.setSelect(new SqlNodeList(selectList, POS));
     }
-    if (!groupByList.isEmpty() || e.getAggCallList().isEmpty()) {
+    PivotRelTrait pivotRelTrait = e.getTraitSet().getTrait(PivotRelTraitDef.instance);
+    if ((!groupByList.isEmpty() || e.getAggCallList().isEmpty())
+        && !(pivotRelTrait != null && pivotRelTrait.isPivotRel())) {
       // Some databases don't support "GROUP BY ()". We can omit it as long
       // as there is at least one aggregate function. (We have to take care
       // if we later prune away that last aggregate function.)
