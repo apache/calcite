@@ -2709,11 +2709,32 @@ public class RelMetadataTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6594">[CALCITE-6594]
-   * RelMdSize does not handle ARRAY constructor calls</a>. */
+   * RelMdSize does not handle ARRAY constructor calls</a>,
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7061">[CALCITE-7061]
+   * RelMdSize does not handle nested ARRAY/MAP constructor calls</a>. */
   @Test void testSizeArrayConstructor() {
     checkSizeArrayConstructor("SELECT ARRAY[1, 2, 3, 4]", 16d);
     checkSizeArrayConstructor("SELECT ARRAY[true, false]", 2d);
     checkSizeArrayConstructor("SELECT ARRAY[CAST(3.14 AS DOUBLE)]", 8d);
+    checkSizeArrayConstructor(
+        "SELECT ARRAY[ARRAY[1,2], ARRAY[2,2], ARRAY[1,1], ARRAY[2,3]]", 32d);
+    checkSizeArrayConstructor(
+        "SELECT ARRAY[ARRAY[1,2], ARRAY[1,1,1], ARRAY[1,1], ARRAY[2,3]]", 36d);
+    checkSizeArrayConstructor(
+        "SELECT ARRAY[MAP[1,2], MAP[1,1,1,2], MAP[1,1], MAP[2,3,4,5,6,7]]", 56d);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7061">[CALCITE-7061]
+   * RelMdSize does not handle nested ARRAY/MAP constructor calls</a>. */
+  @Test void testSizeMapConstructor() {
+    checkSizeArrayConstructor("SELECT MAP[1, 2, 3, 4]", 16d);
+    checkSizeArrayConstructor("SELECT MAP[1,true,3,false]", 10d);
+    checkSizeArrayConstructor("SELECT MAP[CAST(3.14 AS DOUBLE),CAST(3.14 AS DOUBLE)]", 16d);
+    checkSizeArrayConstructor("SELECT MAP[1,ARRAY[true,false],3,ARRAY[true,false]]",
+        12d);
+    checkSizeArrayConstructor("SELECT MAP[1,MAP[true,2],3,MAP[false,1]]",
+        18d);
   }
 
   private void checkSizeArrayConstructor(String query, double expected) {
