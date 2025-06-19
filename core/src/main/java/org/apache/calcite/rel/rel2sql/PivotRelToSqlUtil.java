@@ -106,8 +106,7 @@ public class PivotRelToSqlUtil {
     }
     SqlNode select =
         new SqlSelect(SqlParserPos.ZERO, null, null, sqlTableAlias,
-            builder.select.getWhere(), null,
-            builder.select.getHaving(), null, builder.select.getOrderList(),
+            null, null, null, null, builder.select.getOrderList(),
             null, null, SqlNodeList.EMPTY);
     return select;
   }
