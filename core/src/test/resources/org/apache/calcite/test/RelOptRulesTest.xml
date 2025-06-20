@@ -15374,6 +15374,17 @@ LogicalProject(COL1=[$0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testReduceLambda">
+    <Resource name="sql">
+      <![CDATA[select "EXISTS"(ARRAY[1], x -> true)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EXPR$0=[EXISTS(ARRAY(1), (X) -> true)])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testReduceNestedCaseWhen">
     <Resource name="sql">
       <![CDATA[select sal
