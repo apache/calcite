@@ -2941,6 +2941,17 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withRule(CoreRules.PROJECT_JOIN_TRANSPOSE).check();
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7065">[CALCITE-7065]
+   * CoreRules.PROJECT_REDUCE_EXPRESSIONS crashes when applied to a lambda</a>. */
+  @Test void testReduceLambda() {
+    final String sql = "select \"EXISTS\"(ARRAY[1], x -> true)";
+    sql(sql)
+        .withFactory(f ->
+            f.withOperatorTable(opTab ->
+                SqlValidatorTest.operatorTableFor(SqlLibrary.SPARK)))
+        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS).checkUnchanged();
+  }
+
   @Test void testPushProjectPastLeftJoin() {
     final String sql = "select count(*), " + NOT_STRONG_EXPR + "\n"
         + "from emp e left outer join bonus b on e.ename = b.ename\n"
