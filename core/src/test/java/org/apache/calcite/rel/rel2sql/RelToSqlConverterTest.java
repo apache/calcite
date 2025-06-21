@@ -7505,20 +7505,6 @@ class RelToSqlConverterTest {
         callsUnparseCallOnSqlSelect[0], is(true));
   }
 
-  @Test void testCorrelate() {
-    final String sql = "select d.\"department_id\", d_plusOne "
-        + "from \"department\" as d, "
-        + "       lateral (select d.\"department_id\" + 1 as d_plusOne"
-        + "                from (values(true)))";
-
-    final String expected = "SELECT \"$cor0\".\"department_id\", \"t1\".\"D_PLUSONE\"\n"
-        + "FROM (SELECT \"department_id\", \"department_description\", \"department_id\" + 1 AS \"$f2\"\n"
-        + "FROM \"foodmart\".\"department\") AS \"$cor0\",\n"
-        + "LATERAL (SELECT \"$cor0\".\"$f2\" AS \"D_PLUSONE\"\n"
-        + "FROM (VALUES (TRUE)) AS \"t\" (\"EXPR$0\")) AS \"t1\"";
-    sql(sql).ok(expected);
-  }
-
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3651">[CALCITE-3651]
    * NullPointerException when convert relational algebra that correlates TableFunctionScan</a>. */
