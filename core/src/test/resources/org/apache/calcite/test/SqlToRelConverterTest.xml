@@ -2302,12 +2302,12 @@ LogicalAggregate(group=[{0}])
     <Resource name="plan">
       <![CDATA[
 LogicalAggregate(group=[{0, 1}])
-  LogicalProject(EMPNO=[$0], DEPTNO=[$1])
+  LogicalProject(EMPNO=[$0], X=[$1])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
     <Resource name="sql">
-      <![CDATA[select empno, ename as deptno from emp group by empno, deptno]]>
+      <![CDATA[select empno, ename as x from emp group by empno, x]]>
     </Resource>
   </TestCase>
   <TestCase name="testGroupByAliasOfSubExpressionsInProject">
@@ -2476,20 +2476,25 @@ GROUP BY GROUPING SETS ((deptno), (empno, deptno / 2), (2, 1), ((1, 2), (deptno,
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(DEPTNO=[$0], EMPNO=[$0], EXPR$2=[$1])
-  LogicalUnion(all=[true])
-    LogicalAggregate(group=[{0}], EXPR$2=[SUM($1)])
-      LogicalProject(EMPNO=[/($7, 2)], SAL=[$5])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalAggregate(group=[{0}], EXPR$2=[SUM($1)])
-      LogicalProject(EMPNO=[/($7, 2)], SAL=[$5])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalAggregate(group=[{0}], EXPR$2=[SUM($1)])
-      LogicalProject(EMPNO=[/($7, 2)], SAL=[$5])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalAggregate(group=[{0}], EXPR$2=[SUM($1)])
-      LogicalProject(EMPNO=[/($7, 2)], SAL=[$5])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+LogicalProject(DEPTNO=[$2], EMPNO=[$2], EXPR$2=[$3])
+  LogicalAggregate(group=[{0, 1, 2}], groups=[[{0, 2}, {0}, {1, 2}, {2}]], EXPR$2=[SUM($3)])
+    LogicalProject(DEPTNO=[$7], EMPNO=[$0], $f2=[/($7, 2)], SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testGroupByExprArgFieldSameWithAlias3">
+    <Resource name="sql">
+      <![CDATA[SELECT deptno / 2 AS deptno, deptno / 2 as empno, sum(sal)
+FROM emp
+GROUP BY GROUPING SETS ((deptno), (empno, deptno / 2), (2, 1), ((1, 2), (deptno, deptno / 2)))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$2], EMPNO=[$2], EXPR$2=[$3])
+  LogicalAggregate(group=[{0, 1, 2}], groups=[[{0, 2}, {0}, {1, 2}, {2}]], EXPR$2=[SUM($3)])
+    LogicalProject(DEPTNO=[$7], EMPNO=[$0], $f2=[/($7, 2)], SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>

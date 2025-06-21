@@ -293,6 +293,26 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("(?s).*Illegal TIMESTAMP literal.*");
   }
 
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7052">[CALCITE-7052]
+   * When conformance specifies isGroupbyAlias = true the validator rejects legal queries</a>.
+   */
+  @Test void testHavingTableAlias() {
+    sql("select ename as deptno from emp as e join dept as d on "
+        + "e.deptno = d.deptno group by ^deptno^")
+        .fails("Column 'DEPTNO' is ambiguous");
+    sql("select ename as deptno from emp as e join dept as d on "
+        + "e.deptno = d.deptno group by ^deptno^")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .ok();
+    sql("SELECT ALL - cor0.empno AS empno "
+        + "FROM emp AS cor0 GROUP BY empno HAVING NOT ( cor0.empno ) IS NULL")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .ok();
+    sql("select floor(empno/2) as empno from emp group by empno")
+        .withConformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
   /** PostgreSQL and Redshift allow TIMESTAMP literals that contain only a
    * date part. */
   @Test void testShortTimestampLiteral() {
@@ -6556,6 +6576,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .withConformance(lenient).ok();
     sql("select ename as deptno from emp as e join dept as d on "
         + "e.deptno = d.deptno group by ^deptno^")
+        .withConformance(strict).fails("Column 'DEPTNO' is ambiguous")
         .withConformance(lenient).ok();
     sql("select t.e, count(*) from (select empno as e from emp) t group by e")
         .withConformance(strict).ok()
@@ -6589,12 +6610,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select deptno + empno as d, deptno + empno + mgr from emp"
         + " group by d,mgr")
         .withConformance(lenient).ok();
-    // When alias is equal to one or more columns in the query then giving
-    // priority to alias. But Postgres may throw ambiguous column error or give
-    // priority to column name.
+    // Alias is not used since there is a single column in the SELECT already matching
     sql("select count(*) from (\n"
-        + "  select ename AS deptno FROM emp GROUP BY deptno) t")
-        .withConformance(lenient).ok();
+        + "  select ^ename^ AS deptno FROM emp GROUP BY deptno) t")
+        .withConformance(strict)
+        .fails("Expression 'ENAME' is not being grouped")
+        .withConformance(lenient)
+        .fails("Expression 'ENAME' is not being grouped");
+    // When alias matches multiple columns in the SELECT, alias takes precedence
     sql("select count(*) from "
         + "(select ename AS deptno FROM emp, dept GROUP BY deptno) t")
         .withConformance(lenient).ok();
@@ -6806,9 +6829,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select ^e.empno^ from emp as e group by 1 having e.empno > 10")
         .withConformance(strict).fails("Expression 'E.EMPNO' is not being grouped")
         .withConformance(lenient).ok();
-    // When alias is equal to one or more columns in the query then giving
-    // priority to alias, but PostgreSQL throws ambiguous column error or gives
-    // priority to column name.
+    // When alias matches multiple columns in the query, alias has priority.
+    sql("select ename AS deptno FROM emp, dept GROUP BY ^deptno^ HAVING deptno = 2")
+        .withConformance(strict).fails("Column 'DEPTNO' is ambiguous")
+        .withConformance(lenient).ok();
     sql("select count(empno) as deptno from emp having ^deptno^ > 10")
         .withConformance(strict).fails("Expression 'DEPTNO' is not being grouped")
         .withConformance(lenient).ok();
