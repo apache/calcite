@@ -18,25 +18,14 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.Lex;
-import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.materialize.MaterializationService;
-import org.apache.calcite.plan.Contexts;
-import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.dialect.BigQuerySqlDialect;
-import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.babel.SqlBabelParserImpl;
-import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
-import org.apache.calcite.tools.Frameworks;
-import org.apache.calcite.tools.Planner;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-import net.hydromatic.quidem.AbstractCommand;
 import net.hydromatic.quidem.Command;
 import net.hydromatic.quidem.CommandHandler;
 import net.hydromatic.quidem.Quidem;
@@ -48,7 +37,6 @@ import java.sql.Connection;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -158,54 +146,8 @@ class BabelQuidemTest extends QuidemTest {
     return new BabelCommandHandler();
   }
 
-  /** Command that prints the validated parse tree of a SQL statement. */
-  static class ExplainValidatedCommand extends AbstractCommand {
-    private final ImmutableList<String> lines;
-    private final ImmutableList<String> content;
-
-    ExplainValidatedCommand(List<String> lines, List<String> content,
-        Set<String> unusedProductSet) {
-      this.lines = ImmutableList.copyOf(lines);
-      this.content = ImmutableList.copyOf(content);
-    }
-
-    @Override public void execute(Context x, boolean execute) throws Exception {
-      if (execute) {
-        // use Babel parser
-        final SqlParser.Config parserConfig =
-            SqlParser.config().withParserFactory(SqlBabelParserImpl.FACTORY);
-
-        // extract named schema from connection and use it in planner
-        final CalciteConnection calciteConnection =
-            x.connection().unwrap(CalciteConnection.class);
-        final String schemaName = calciteConnection.getSchema();
-        final SchemaPlus schema =
-            schemaName != null
-                ? calciteConnection.getRootSchema().subSchemas().get(schemaName)
-                : calciteConnection.getRootSchema();
-        final Frameworks.ConfigBuilder config =
-            Frameworks.newConfigBuilder()
-                .defaultSchema(schema)
-                .parserConfig(parserConfig)
-                .context(Contexts.of(calciteConnection.config()));
-
-        // parse, validate and un-parse
-        final Quidem.SqlCommand sqlCommand = x.previousSqlCommand();
-        final Planner planner = Frameworks.getPlanner(config.build());
-        final SqlNode node = planner.parse(sqlCommand.sql);
-        final SqlNode validateNode = planner.validate(node);
-        final SqlWriter sqlWriter = new SqlPrettyWriter();
-        validateNode.unparse(sqlWriter, 0, 0);
-        x.echo(ImmutableList.of(sqlWriter.toSqlString().getSql()));
-      } else {
-        x.echo(content);
-      }
-      x.echo(lines);
-    }
-  }
-
   /** Command handler that adds a "!explain-validated-on dialect..." command
-   * (see {@link ExplainValidatedCommand}). */
+   * (see {@link QuidemTest.ExplainValidatedCommand}). */
   private static class BabelCommandHandler implements CommandHandler {
     @Override public @Nullable Command parseCommand(List<String> lines,
         List<String> content, String line) {
@@ -219,7 +161,8 @@ class BabelQuidemTest extends QuidemTest {
           for (int i = 0; i < matcher.groupCount(); i++) {
             set.add(matcher.group(i + 1));
           }
-          return new ExplainValidatedCommand(lines, content, set.build());
+          return new QuidemTest.ExplainValidatedCommand(
+              SqlBabelParserImpl.FACTORY, lines, content, set.build());
         }
       }
       return null;
