@@ -508,6 +508,14 @@ public enum SqlConformanceEnum implements SqlConformance {
   }
 
   @Override public boolean supportsUnsignedTypes() {
-    return true;
+    switch (this) {
+    case BABEL:
+    case DEFAULT:
+    case LENIENT:
+    case MYSQL_5:
+      return true;
+    default:
+      return false;
+    }
   }
 }

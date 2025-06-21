@@ -66,6 +66,7 @@ import org.junit.jupiter.api.Test;
 import java.io.Reader;
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Random;
@@ -1426,6 +1427,23 @@ public class SqlParserTest {
         .same();
     sql("SELECT CAST(1 AS BIGINT UNSIGNED)")
         .same();
+    List<SqlConformance> unsignedNotSupport =
+        Arrays.asList(
+          SqlConformanceEnum.ORACLE_10,
+          SqlConformanceEnum.ORACLE_12,
+          SqlConformanceEnum.BIG_QUERY,
+          SqlConformanceEnum.PRAGMATIC_99,
+          SqlConformanceEnum.PRAGMATIC_2003,
+          SqlConformanceEnum.PRESTO,
+          SqlConformanceEnum.SQL_SERVER_2008,
+          SqlConformanceEnum.STRICT_92,
+          SqlConformanceEnum.STRICT_99,
+          SqlConformanceEnum.STRICT_2003);
+    unsignedNotSupport.forEach(conformance -> {
+      sql("SELECT CAST(1 AS ^UNSIGNED^)")
+          .withConformance(conformance)
+          .fails("Support for UNSIGNED data types is not enabled");
+    });
     sql("SELECT CAST(1 AS ^UNSIGNED^)")
         .withConformance(new SqlAbstractConformance() {
           @Override public boolean supportsUnsignedTypes() {
