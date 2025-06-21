@@ -23,6 +23,7 @@ import org.apache.calcite.config.CharLiteralStyle;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -797,8 +798,8 @@ public class SqlDialect {
     return true;
   }
 
-  /** Returns whether this dialect supports generate 'SELECT *' when duplicate field names. */
-  public boolean supportGenerateSelectStar() {
+  /** Returns whether this dialect supports generate 'SELECT *'. */
+  public boolean supportGenerateSelectStar(RelNode relNode) {
     return true;
   }
 

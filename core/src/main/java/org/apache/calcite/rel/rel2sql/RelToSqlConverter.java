@@ -534,7 +534,7 @@ public class RelToSqlConverter extends SqlImplementor
     parseCorrelTable(e, x);
     final Builder builder = x.builder(e);
     if (!isStar(e.getProjects(), e.getInput().getRowType(), e.getRowType())
-        || !dialect.supportGenerateSelectStar() && isJoinWithDupFieldNames(e.getInput())) {
+        || !dialect.supportGenerateSelectStar(e.getInput())) {
       final List<SqlNode> selectList = new ArrayList<>();
       for (RexNode ref : e.getProjects()) {
         SqlNode sqlExpr = builder.context.toSql(null, ref);
@@ -562,21 +562,6 @@ public class RelToSqlConverter extends SqlImplementor
       builder.setSelect(selectNodeList);
     }
     return builder.result();
-  }
-
-  /**
-   * Whether the relNode is a join and whether its inputs have duplicate field names.
-   * For example, EMP JOIN DEPT, both of which have columns named DEPTNO
-   */
-  private boolean isJoinWithDupFieldNames(RelNode relNode) {
-    if (relNode instanceof Join || relNode instanceof MultiJoin) {
-      final List<String> fieldNames = relNode.getInputs().stream()
-          .flatMap(input -> input.getRowType().getFieldNames().stream())
-          .map(name -> dialect.isCaseSensitive() ? name : name.toLowerCase(Locale.ROOT))
-          .collect(Collectors.toList());
-      return !Util.isDistinct(fieldNames);
-    }
-    return false;
   }
 
   /** Wraps a NULL literal in a CAST operator to a target type.
