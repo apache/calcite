@@ -18,6 +18,13 @@
 !use post
 !set outputformat mysql
 
+# [CALCITE-7060] Enable dumping high-level plans in quidem tests
+SELECT * FROM EMP WHERE DEPTNO > 20;
+SELECT "EMP"."ENAME", "EMP"."DEPTNO", "EMP"."GENDER"
+FROM "POST"."EMP" AS "EMP"
+WHERE "EMP"."DEPTNO" > 20
+!explain-validated-on Calcite
+
 # [CALCITE-6751] Reduction of CAST from string to interval is incorrect
 SELECT TIME '10:00:00' + CAST('1' AS INTERVAL SECOND);
 +----------+
