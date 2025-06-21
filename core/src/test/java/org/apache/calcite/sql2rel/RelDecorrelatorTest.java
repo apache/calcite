@@ -269,17 +269,23 @@ public class RelDecorrelatorTest {
     // Verify plan
     final String planAfter = ""
         + "LogicalProject(EXPR$0=[1])\n"
-        + "  LogicalJoin(condition=[AND(=($0, $2), >($1, $3))], joinType=[inner])\n"
+        + "  LogicalJoin(condition=[AND(IS NOT DISTINCT FROM($0, $2), >($1, $3))], joinType=[inner])\n"
         + "    LogicalAggregate(group=[{0}], TOTAL=[SUM($1)])\n"
         + "      LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
         + "        LogicalTableScan(table=[[scott, EMP]])\n"
-        + "    LogicalAggregate(group=[{0}], EXPR$0=[AVG($1)])\n"
-        + "      LogicalProject(DEPTNO=[$0], TOTAL=[$1])\n"
-        + "        LogicalAggregate(group=[{0}], TOTAL=[SUM($1)])\n"
-        + "          LogicalProject(DEPTNO=[$0], SAL=[$1])\n"
-        + "            LogicalFilter(condition=[IS NOT NULL($0)])\n"
-        + "              LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
-        + "                LogicalTableScan(table=[[scott, EMP]])\n";
+        + "    LogicalProject(DEPTNO=[$0], EXPR$0=[$2])\n"
+        + "      LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
+        + "        LogicalProject(DEPTNO=[$0])\n"
+        + "          LogicalAggregate(group=[{0}], TOTAL=[SUM($1)])\n"
+        + "            LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+        + "              LogicalTableScan(table=[[scott, EMP]])\n"
+        + "        LogicalAggregate(group=[{0}], EXPR$0=[AVG($1)])\n"
+        + "          LogicalProject(DEPTNO=[$0], TOTAL=[$1])\n"
+        + "            LogicalAggregate(group=[{0}], TOTAL=[SUM($1)])\n"
+        + "              LogicalProject(DEPTNO=[$0], SAL=[$1])\n"
+        + "                LogicalFilter(condition=[IS NOT NULL($0)])\n"
+        + "                  LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+        + "                    LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(after, hasTree(planAfter));
   }
 
@@ -360,11 +366,15 @@ public class RelDecorrelatorTest {
         RelDecorrelator.decorrelateQuery(original, builder, noRules);
     final String planDecorrelatedNoRules = ""
         + "LogicalProject(EXPR$0=[ROW($9, $1)])\n"
-        + "  LogicalJoin(condition=[=($7, $8)], joinType=[left])\n"
+        + "  LogicalJoin(condition=[IS NOT DISTINCT FROM($7, $8)], joinType=[left])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n"
-        + "    LogicalAggregate(group=[{0}], agg#0=[SINGLE_VALUE($1)])\n"
-        + "      LogicalProject(DEPTNO1=[$0], DEPTNO=[$0])\n"
-        + "        LogicalTableScan(table=[[scott, DEPT]])\n";
+        + "    LogicalProject(DEPTNO1=[$0], $f1=[$2])\n"
+        + "      LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])\n"
+        + "        LogicalAggregate(group=[{7}])\n"
+        + "          LogicalTableScan(table=[[scott, EMP]])\n"
+        + "        LogicalAggregate(group=[{0}], agg#0=[SINGLE_VALUE($1)])\n"
+        + "          LogicalProject(DEPTNO1=[$0], DEPTNO=[$0])\n"
+        + "            LogicalTableScan(table=[[scott, DEPT]])\n";
     assertThat(decorrelatedNoRules, hasTree(planDecorrelatedNoRules));
   }
 }
