@@ -20,6 +20,7 @@ import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelRule.Config;
@@ -30,17 +31,27 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.Schema;
+import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.AbstractTable;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.parser.SqlParserImplFactory;
+import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.schemata.catchall.CatchallSchema;
+import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.tools.Planner;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Closer;
 import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.Util;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.io.PatternFilenameFilter;
 
+import net.hydromatic.quidem.AbstractCommand;
 import net.hydromatic.quidem.CommandHandler;
 import net.hydromatic.quidem.Quidem;
 
@@ -64,6 +75,7 @@ import java.sql.DriverManager;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.regex.Matcher;
@@ -78,6 +90,54 @@ import static java.util.Objects.requireNonNull;
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public abstract class QuidemTest {
+  /** Command that prints the validated parse tree of a SQL statement. */
+  public static class ExplainValidatedCommand extends AbstractCommand {
+    private final ImmutableList<String> lines;
+    private final ImmutableList<String> content;
+    private final SqlParserImplFactory parserFactory;
+
+    ExplainValidatedCommand(SqlParserImplFactory parserFactory,
+        List<String> lines, List<String> content,
+        Set<String> unusedProductSet) {
+      this.lines = ImmutableList.copyOf(lines);
+      this.content = ImmutableList.copyOf(content);
+      this.parserFactory = parserFactory;
+    }
+
+    @Override public void execute(Context x, boolean execute) throws Exception {
+      if (execute) {
+        // use Babel parser
+        final SqlParser.Config parserConfig =
+            SqlParser.config().withParserFactory(parserFactory);
+
+        // extract named schema from connection and use it in planner
+        final CalciteConnection calciteConnection =
+            x.connection().unwrap(CalciteConnection.class);
+        final String schemaName = calciteConnection.getSchema();
+        final SchemaPlus schema =
+            schemaName != null
+                ? calciteConnection.getRootSchema().subSchemas().get(schemaName)
+                : calciteConnection.getRootSchema();
+        final Frameworks.ConfigBuilder config =
+            Frameworks.newConfigBuilder()
+                .defaultSchema(schema)
+                .parserConfig(parserConfig)
+                .context(Contexts.of(calciteConnection.config()));
+
+        // parse, validate and un-parse
+        final Quidem.SqlCommand sqlCommand = x.previousSqlCommand();
+        final Planner planner = Frameworks.getPlanner(config.build());
+        final SqlNode node = planner.parse(sqlCommand.sql);
+        final SqlNode validateNode = planner.validate(node);
+        final SqlWriter sqlWriter = new SqlPrettyWriter();
+        validateNode.unparse(sqlWriter, 0, 0);
+        x.echo(ImmutableList.of(sqlWriter.toSqlString().getSql()));
+      } else {
+        x.echo(content);
+      }
+      x.echo(lines);
+    }
+  }
 
   private static final Pattern PATTERN = Pattern.compile("\\.iq$");
 
