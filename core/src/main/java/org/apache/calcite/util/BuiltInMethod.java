@@ -675,6 +675,8 @@ public enum BuiltInMethod {
   BITCOUNT(SqlFunctions.class, "bitCount", BigDecimal.class),
   BIT_OR(SqlFunctions.class, "bitOr", long.class, long.class),
   BIT_XOR(SqlFunctions.class, "bitXor", long.class, long.class),
+  LEFT_SHIFT(SqlFunctions.class, "leftShift", int.class, int.class),
+  RIGHT_SHIFT(SqlFunctions.class, "rightShift", int.class, int.class),
   BIT_NOT(SqlFunctions.class, "bitNot", long.class),
   MODIFIABLE_TABLE_GET_MODIFIABLE_COLLECTION(ModifiableTable.class,
       "getModifiableCollection"),

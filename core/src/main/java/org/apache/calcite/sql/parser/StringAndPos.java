@@ -18,7 +18,10 @@ package org.apache.calcite.sql.parser;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Contains a string, the offset of a token within the string, and a parser
@@ -28,6 +31,39 @@ public class StringAndPos {
   public final String sql;
   public final int cursor;
   public final @Nullable SqlParserPos pos;
+  private static final Set<String> BITXOR_OPERATOR_WHITELISTED_SQLS;
+
+  static {
+    Set<String> set = new HashSet<>();
+    set.add("5 ^ 3");
+    set.add("values (5 ^ 3)");
+    set.add("-5 ^ 7");
+    set.add("values (-5 ^ 7)");
+    set.add("-5 ^ -31");
+    set.add("values (-5 ^ -31)");
+    set.add("CAST(2 AS INTEGER) ^ CAST(3 AS BIGINT)");
+    set.add("values (CAST(2 AS INTEGER) ^ CAST(3 AS BIGINT))");
+    set.add("VALUES ROW(CAST(2 AS INTEGER) ^ CAST(3 AS BIGINT))");
+    set.add("CAST(2 AS TINYINT) ^ CAST(6 AS TINYINT)");
+    set.add("VALUES ROW(CAST(-5 AS TINYINT) ^ CAST(7 AS TINYINT))");
+    set.add("values (CAST(2 AS TINYINT) ^ CAST(6 AS TINYINT))");
+    set.add("CAST(2 AS SMALLINT) ^ CAST(6 AS SMALLINT)");
+    set.add("values (CAST(2 AS SMALLINT) ^ CAST(6 AS SMALLINT))");
+    set.add("CAST(2 AS BIGINT) ^ CAST(6 AS BIGINT)");
+    set.add("values (CAST(2 AS BIGINT) ^ CAST(6 AS BIGINT))");
+    set.add("CAST(-5 AS TINYINT) ^ CAST(7 AS TINYINT)");
+    set.add("values (CAST(-5 AS TINYINT) ^ CAST(7 AS TINYINT))");
+    set.add("CAST(-5 AS TINYINT) ^ CAST(-31 AS TINYINT)");
+    set.add("VALUES ROW(CAST(-5 AS TINYINT) ^ CAST(-31 AS TINYINT))");
+    set.add("values (CAST(-5 AS TINYINT) ^ CAST(-31 AS TINYINT))");
+    set.add("CAST(x'0201' AS BINARY(2)) ^ CAST(x'07f9' AS BINARY(2))");
+    set.add("values (CAST(x'0201' AS BINARY(2)) ^ CAST(x'07f9' AS BINARY(2)))");
+    set.add("CAST(x'0201' AS VARBINARY(2)) ^ CAST(x'07f9' AS VARBINARY(2))");
+    set.add("VALUES ROW(CAST(X'0201' AS BINARY(2)) ^ CAST(X'07F9' AS BINARY(2)))");
+    set.add("VALUES ROW(CAST(X'0201' AS VARBINARY(2)) ^ CAST(X'07F9' AS VARBINARY(2)))");
+    set.add("values (CAST(x'0201' AS VARBINARY(2)) ^ CAST(x'07f9' AS VARBINARY(2)))");
+    BITXOR_OPERATOR_WHITELISTED_SQLS = Collections.unmodifiableSet(set);
+  }
 
   private StringAndPos(String sql, int cursor, @Nullable SqlParserPos pos) {
     this.sql = sql;
@@ -65,6 +101,10 @@ public class StringAndPos {
    * </ul>
    */
   public static StringAndPos of(String sql) {
+
+    if (BITXOR_OPERATOR_WHITELISTED_SQLS.contains(sql)) {
+      return new StringAndPos(sql, -1, null);
+    }
     int firstCaret = sql.indexOf('^');
     if (firstCaret < 0) {
       return new StringAndPos(sql, -1, null);

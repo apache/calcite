@@ -3416,6 +3416,189 @@ public class SqlFunctions {
 
     return new ByteString(result);
   }
+  /**
+   * Bitwise left shift operator {@code <<}  applied to integer values.
+   * Checks that the shift count is non-negative before performing the shift.
+   *
+   * <p>This method is typically used for the SQL {@code <<}  operator
+   * when applied to INTEGER operands.
+   *
+   * @param a The integer value to shift.
+   * @param b The integer shift count.
+   * @return The result of the bitwise left shift.
+   * @throws IllegalArgumentException if the shift count {@code b} is negative.
+   */
+  public static int leftShift(int a, int b) {
+    if (b < 0) {
+      throw new IllegalArgumentException("Shift count must be non-negative");
+    }
+    return a << b;
+  }
+
+  /**
+   * Bitwise left shift operator {@code <<} applied to integer values.
+   * Checks that the shift count is non-negative before performing the shift.
+   *
+   * <p>This method is typically used for the SQL {@code <<}  operator
+   * when applied to INTEGER operands.
+   *
+   * @param a The long value to shift.
+   * @param b The integer shift count.
+   * @return The result of the bitwise left shift.
+   * @throws IllegalArgumentException if the shift count {@code b} is negative.
+   */
+  public static long leftShift(long a, int b) {
+    if (b < 0) {
+      throw new IllegalArgumentException("Shift count must be non-negative");
+    }
+    return a << b;
+  }
+
+  /**
+   * Bitwise left shift operator {@code <<}  applied to integer values.
+   * Checks that the shift count is non-negative before performing the shift.
+   *
+   * <p>This method is typically used for the SQL {@code <<}  operator
+   * when applied to INTEGER operands.
+   *
+   * @param a The integer value to shift.
+   * @param b The long shift count.
+   * @return The result of the bitwise left shift.
+   * @throws IllegalArgumentException if the shift count {@code b} is negative.
+   */
+  public static long leftShift(int a, long b) {
+    if (b < 0) {
+      throw new IllegalArgumentException("Shift count must be non-negative");
+    }
+    return (long) a << b;
+  }
+  /**
+   * * Bitwise left shift operator {@code <<} applied to integer values.
+   * Checks that the shift count is non-negative before performing the shift.
+   *
+   * <p>This method is typically used for the SQL {@code <<}  operator
+   * when applied to INTEGER operands.
+   *
+   * @param a The long value to shift.
+   * @param b The long shift count.
+   * @return The result of the bitwise left shift.
+   * @throws IllegalArgumentException if the shift count {@code b} is negative.
+   */
+  public static long leftShift(Long a, Long b) {
+    if (b < 0) {
+      throw new IllegalArgumentException("Shift count must be non-negative");
+    }
+    return a << b;
+  }
+
+  /**
+   * Bitwise signed RIGHTSHIFT FUNCTION applied to integer values.
+   * Checks that the shift count is non-negative before performing the shift.
+   *
+   * <p>This method is typically used for the RIGHTSHIFT FUNCTION
+   * when applied to INTEGER operands.
+   *
+   * @param a The integer value to shift.
+   * @param b The integer shift count.
+   * @return The result of the bitwise signed right shift.
+   * @throws IllegalArgumentException if the shift count {@code b} is negative.
+   */
+  public static int rightShift(int a, int b) {
+    if (b < 0) {
+      // Ideally, validation prevents this, but a runtime check is safer.
+      throw new IllegalArgumentException("Shift count must be non-negative");
+    }
+    // Java's >> operator on int implicitly uses shift & 0x1f (mod 32).
+    return a >> b;
+  }
+
+  /**
+   * Bitwise signed RIGHTSHIFT FUNCTION applied to a long value and an integer shift count.
+   * Checks that the shift count is non-negative before performing the shift.
+   *
+   * <p>This method is typically used for the RIGHTSHIFT FUNCTION
+   * when applied to BIGINT and INTEGER operands.
+   *
+   * @param a The long value to shift.
+   * @param b The integer shift count.
+   * @return The result of the bitwise signed right shift.
+   * @throws IllegalArgumentException if the shift count {@code b} is negative.
+   */
+  public static long rightShift(long a, int b) {
+    if (b < 0) {
+      throw new IllegalArgumentException("Shift count must be non-negative");
+    }
+    // Java's >> operator on long implicitly uses shift & 0x3f (mod 64).
+    return a >> b;
+  }
+  /**
+   * Bitwise signed RIGHTSHIFT FUNCTION applied to an int value and a long shift count.
+   * Checks that the shift count is non-negative before performing the shift.
+   *
+   * <p>This method is typically used for the RIGHTSHIFT FUNCTION
+   * when applied to BIGINT and INTEGER operands.
+   *
+   * @param a The long value to shift.
+   * @param b The integer shift count.
+   * @return The result of the bitwise signed right shift.
+   * @throws IllegalArgumentException if the shift count {@code b} is negative.
+   */
+  public static long rightShift(int a, long b) {
+    if (b < 0) {
+      throw new IllegalArgumentException("Shift count must be non-negative");
+    }
+    // Java's >> operator on long implicitly uses shift & 0x3f (mod 64).
+    return a >> b;
+  }
+
+  /**
+   * Bitwise signed RIGHTSHIFT FUNCTION applied to nullable integer values.
+   * Returns null if either operand is null.
+   * Checks that the shift count is non-negative if both operands are not null.
+   *
+   * <p>This method is typically used for the RIGHTSHIFT FUNCTION
+   * when applied to nullable INTEGER operands.
+   *
+   * @param a The nullable integer value to shift.
+   * @param b The nullable integer shift count.
+   * @return The result of the bitwise signed right shift, or null if either operand is null.
+   * @throws IllegalArgumentException if the shift count {@code b} (when not null) is negative.
+   */
+  public static @Nullable Integer rightShift(@Nullable Integer a, @Nullable Integer b) {
+    if (a == null || b == null) {
+      return null; // Handle nulls first, according to SQL standard
+    }
+    if (b < 0) { // Check negative only if non-null
+      throw new IllegalArgumentException("Shift count must be non-negative");
+    }
+    // Java's >> operator on int implicitly uses shift & 0x1f (mod 32).
+    return a >> b; // Auto-unbox and perform shift
+  }
+
+  /**
+   * Bitwise signed right shift function RIGHTSHIFT
+   * applied to a nullable long value and a nullable integer shift count.
+   * Returns null if either operand is null.
+   * Checks that the shift count is non-negative if both operands are not null.
+   *
+   * <p>This method is typically used for the RIGHTSHIFT
+   * when applied to nullable BIGINT and INTEGER operands.
+   *
+   * @param a The nullable long value to shift.
+   * @param b The nullable integer shift count.
+   * @return The result of the bitwise signed right shift, or null if either operand is null.
+   * @throws IllegalArgumentException if the shift count {@code b} (when not null) is negative.
+   */
+  public static @Nullable Long rightShift(@Nullable Long a, @Nullable Integer b) {
+    if (a == null || b == null) {
+      return null; // Handle nulls first, according to SQL standard
+    }
+    if (b < 0) { // Check negative only if non-null
+      throw new IllegalArgumentException("Shift count must be non-negative");
+    }
+    // Java's >> operator on long implicitly uses shift & 0x3f (mod 64).
+    return a >> b; // Auto-unbox and perform shift
+  }
 
   /**
    * Utility for bitwise function applied to two byteString values.

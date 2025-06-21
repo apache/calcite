@@ -33,6 +33,7 @@ import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlFunction;
@@ -44,6 +45,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.fun.LibraryOperator;
@@ -52,6 +54,7 @@ import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
+import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.test.AbstractSqlTester;
@@ -146,6 +149,8 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -16433,6 +16438,192 @@ public class SqlOperatorTest {
     f.checkAgg("logical_or(x)", values3, isSingle(false));
     String[] values4 = {"null"};
     f.checkAgg("logical_or(x)", values4, isNullValue());
+  }
+
+  @Test void testBitXorOperatorParserFunc() throws SqlParseException {
+    String sql = "SELECT 5 ^ 3 ";
+    SqlNode sqlNode = SqlParser.create(sql,  SqlParser.Config.DEFAULT).parseStmt();
+
+    assertInstanceOf(SqlSelect.class, sqlNode);
+    SqlSelect select = (SqlSelect) sqlNode;
+
+    SqlNode selectItem = select.getSelectList().get(0);
+    assertInstanceOf(SqlBasicCall.class, selectItem);
+    SqlBasicCall call = (SqlBasicCall) selectItem;
+    assertEquals(SqlStdOperatorTable.BITXOR_OPERATOR, call.getOperator());
+    assertEquals(2, call.getOperandList().size());
+  }
+
+  @Test void testBitXorOperatorScalarFunc() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlStdOperatorTable.BITXOR_OPERATOR, VmName.EXPAND);
+
+
+    // Basic XOR between two integer literals
+    f.checkScalar("5 ^ 3", "6", "INTEGER NOT NULL");
+    f.checkScalar("-5 ^ 7", "-4", "INTEGER NOT NULL");
+    f.checkScalar("-5 ^ -31", "26", "INTEGER NOT NULL");
+
+    // Mixed integer types: INTEGER ^ BIGINT → result type should be BIGINT
+    f.checkScalar("CAST(2 AS INTEGER) ^ CAST(3 AS BIGINT)", "1", "BIGINT NOT NULL");
+
+    // TINYINT XOR cases
+    f.checkScalar("CAST(-5 AS TINYINT) ^ CAST(7 AS TINYINT)", "-4", "TINYINT NOT NULL");
+    f.checkScalar("CAST(-5 AS TINYINT) ^ CAST(-31 AS TINYINT)", "26", "TINYINT NOT NULL");
+
+    // Type inference tests: result type should match the wider of the operands
+    f.checkType("CAST(2 AS TINYINT) ^ CAST(6 AS TINYINT)", "TINYINT NOT NULL");
+    f.checkType("CAST(2 AS SMALLINT) ^ CAST(6 AS SMALLINT)", "SMALLINT NOT NULL");
+    f.checkType("CAST(2 AS BIGINT) ^ CAST(6 AS BIGINT)", "BIGINT NOT NULL");
+
+    // XOR on fixed-length binary operands
+    f.checkScalar("CAST(x'0201' AS BINARY(2)) ^ CAST(x'07f9' AS BINARY(2))",
+        "05f8", "BINARY(2) NOT NULL");
+
+    // XOR on variable-length binary operands
+    f.checkScalar("CAST(x'0201' AS VARBINARY(2)) ^ CAST(x'07f9' AS VARBINARY(2))",
+        "05f8", "VARBINARY(2) NOT NULL");
+  }
+
+
+  @Test void testBitANDOperatorParserFunc() throws SqlParseException {
+    String sql = "SELECT 5 & 3 ";
+    SqlNode sqlNode = SqlParser.create(sql,  SqlParser.Config.DEFAULT).parseStmt();
+
+    assertInstanceOf(SqlSelect.class, sqlNode);
+    SqlSelect select = (SqlSelect) sqlNode;
+
+    SqlNode selectItem = select.getSelectList().get(0);
+    assertInstanceOf(SqlBasicCall.class, selectItem);
+    SqlBasicCall call = (SqlBasicCall) selectItem;
+    assertEquals(SqlStdOperatorTable.BITAND_OPERATOR, call.getOperator());
+    assertEquals(2, call.getOperandList().size());
+  }
+  @Test void testBitAndOperatorScalarFunc() {
+    final SqlOperatorFixture f = fixture();
+    // Set the test fixture for the BITAND_OPERATOR
+    f.setFor(SqlStdOperatorTable.BITAND_OPERATOR, VmName.EXPAND);
+
+    // Basic test cases
+    f.checkScalar("2 & 3", "2", "INTEGER NOT NULL");
+    f.checkScalar("5 & 3", "1", "INTEGER NOT NULL");
+    f.checkScalar("8 & 7", "0", "INTEGER NOT NULL");
+    f.checkScalar("-1 & 255", "255", "INTEGER NOT NULL");
+
+    // Tests with different integer types and type coercion
+    f.checkScalar("CAST(2 AS INTEGER) & CAST(3 AS BIGINT)", "2", "BIGINT NOT NULL");
+    f.checkScalar("-5 & 7", "3", "INTEGER NOT NULL");
+    f.checkScalar("-5 & -31", "-31", "INTEGER NOT NULL");
+    f.checkScalar("CAST(-5 AS TINYINT) & CAST(7 AS TINYINT)", "3", "TINYINT NOT NULL");
+
+    // Verify return types
+    f.checkType("CAST(2 AS TINYINT) & CAST(3 AS TINYINT)", "TINYINT NOT NULL");
+    f.checkType("CAST(2 AS SMALLINT) & CAST(6 AS SMALLINT)", "SMALLINT NOT NULL");
+    f.checkType("CAST(2 AS BIGINT) & CAST(6 AS BIGINT)", "BIGINT NOT NULL");
+
+    // Binary type tests
+    f.checkScalar("CAST(x'0201' AS BINARY(2)) & CAST(x'07f9' AS BINARY(2))", "0201",
+        "BINARY(2) NOT NULL");
+    f.checkScalar("CAST(x'0201' AS VARBINARY(2)) & CAST(x'07f9' AS VARBINARY(2))", "0201",
+        "VARBINARY(2) NOT NULL");
+
+    // Test invalid argument types
+    f.checkFails("^1.2 & 2^",
+        "Cannot apply '&' to arguments of type '<DECIMAL\\(2, 1\\)> & <INTEGER>'\\. Supported form\\(s\\): '<INTEGER> & <INTEGER>'\\n'<BINARY> & <BINARY>'",
+        false);
+
+    // NULL value tests
+    f.checkNull("CAST(NULL AS INTEGER) & 5");
+    f.checkNull("10 & CAST(NULL AS INTEGER)");
+    f.checkNull("CAST(NULL AS INTEGER) & CAST(NULL AS INTEGER)");
+
+    // Test binary operands with different lengths
+    f.checkFails("CAST(x'0201' AS VARBINARY) & CAST(x'02' AS VARBINARY)",
+        "Different length for bitwise operands: the first: 2, the second: 1",
+        true);
+
+    // Boundary cases for bitwise operations
+    f.checkScalar("0 & 0", "0", "INTEGER NOT NULL");
+    f.checkScalar("-1 & -1", "-1", "INTEGER NOT NULL");
+    f.checkScalar("2147483647 & 0", "0", "INTEGER NOT NULL");  // MAX_INT & 0
+    f.checkScalar("-2147483648 & -1", "-2147483648", "INTEGER NOT NULL");  // MIN_INT & -1
+  }
+
+  @Test void testLeftShiftScalarFunc() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlStdOperatorTable.LEFTSHIFT_OPERATOR, VmName.EXPAND);
+
+    // Basic test cases
+    f.checkScalar("2 << 2", "8", "INTEGER NOT NULL");
+    f.checkScalar("1 << 10", "1024", "INTEGER NOT NULL");
+    f.checkScalar("0 << 5", "0", "INTEGER NOT NULL");
+
+    // Test with different integer types and type coercion
+    f.checkScalar("CAST(2 AS INTEGER) << CAST(3 AS BIGINT)", "16", "BIGINT NOT NULL");
+    f.checkScalar("-5 << 2", "-20", "INTEGER NOT NULL");
+    f.checkScalar("-5 << 3", "-40", "INTEGER NOT NULL");
+    f.checkScalar("CAST(-5 AS TINYINT) << CAST(2 AS TINYINT)", "-20", "TINYINT NOT NULL");
+    // Verify return types
+    f.checkType("CAST(2 AS TINYINT) << CAST(3 AS TINYINT)", "TINYINT NOT NULL");
+    f.checkType("CAST(2 AS SMALLINT) << CAST(3 AS SMALLINT)", "SMALLINT NOT NULL");
+    f.checkType("CAST(2 AS BIGINT) << CAST(3 AS BIGINT)", "BIGINT NOT NULL");
+
+    // Test invalid argument types
+    f.checkFails("^1.2 << 2^",
+        "Cannot apply '<<' to arguments of type '<DECIMAL\\(2, 1\\)> << <INTEGER>'\\. Supported form\\(s\\): '<INTEGER> << <INTEGER>'",
+        false);
+
+    f.checkNull("CAST(NULL AS INTEGER) << 5");
+    f.checkNull("10 << CAST(NULL AS INTEGER)");
+    f.checkNull("CAST(NULL AS INTEGER) << CAST(NULL AS INTEGER)");
+    // INTEGER << shift: effective shift is shift % 32. 64 % 32 = 0.
+    f.checkScalar("1 << 64", "1", "INTEGER NOT NULL");
+    // BIGINT << shift: effective shift is shift % 64. 64 % 64 = 0.
+    f.checkScalar("CAST(1 AS BIGINT) << 64", "1", "BIGINT NOT NULL");
+    // BIGINT << shift: effective shift is shift % 64. 65 % 64 = 1.
+    f.checkScalar("CAST(1 AS BIGINT) << 65", "2", "BIGINT NOT NULL");
+    f.checkFails("1 << -2 ",
+        "Shift count must be non-negative", true);
+  }
+
+  @Test void testRightShiftScalarFunc() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlStdOperatorTable.RIGHTSHIFT, VmName.EXPAND);
+
+    // Basic test cases
+    f.checkScalar("RIGHTSHIFT(8, 2)", "2", "INTEGER NOT NULL");
+    f.checkScalar("RIGHTSHIFT(1024, 10)", "1", "INTEGER NOT NULL");
+    f.checkScalar("RIGHTSHIFT(0, 5)", "0", "INTEGER NOT NULL");
+
+    // Test with different integer types and type coercion
+    f.checkScalar("RIGHTSHIFT(CAST(16 AS INTEGER), CAST(2 AS BIGINT))", "4", "BIGINT NOT NULL");
+    f.checkScalar("RIGHTSHIFT(-20, 2)", "-5", "INTEGER NOT NULL");
+    f.checkScalar("RIGHTSHIFT(-40, 3)", "-5", "INTEGER NOT NULL");
+    f.checkScalar("RIGHTSHIFT(CAST(-20 AS TINYINT), CAST(2 AS TINYINT))", "-5", "TINYINT NOT NULL");
+
+    // Verify return types
+    f.checkType("RIGHTSHIFT(CAST(16 AS TINYINT), CAST(2 AS TINYINT))", "TINYINT NOT NULL");
+    f.checkType("RIGHTSHIFT(CAST(16 AS SMALLINT), CAST(2 AS SMALLINT))", "SMALLINT NOT NULL");
+    f.checkType("RIGHTSHIFT(CAST(16 AS BIGINT), CAST(2 AS BIGINT))", "BIGINT NOT NULL");
+
+    // Invalid argument types
+    f.checkFails("^RIGHTSHIFT(1.2, 2)^",
+        "Cannot apply 'RIGHTSHIFT' to arguments of type 'RIGHTSHIFT\\(<DECIMAL\\(2, 1\\)>, <INTEGER>\\)'\\. Supported form\\(s\\): 'RIGHTSHIFT\\(<INTEGER>, <INTEGER>\\)'\\n'RIGHTSHIFT\\(<BINARY>, <BINARY>\\)'",
+        false);
+
+    // Null arguments
+    f.checkNull("RIGHTSHIFT(CAST(NULL AS INTEGER), 5)");
+    f.checkNull("RIGHTSHIFT(10, CAST(NULL AS INTEGER))");
+    f.checkNull("RIGHTSHIFT(CAST(NULL AS INTEGER), CAST(NULL AS INTEGER))");
+
+    // Edge behavior with shift > width
+    f.checkScalar("RIGHTSHIFT(1, 64)", "1", "INTEGER NOT NULL"); // 64 % 32 = 0
+    f.checkScalar("RIGHTSHIFT(CAST(1 AS BIGINT), 64)", "1", "BIGINT NOT NULL");
+    f.checkScalar("RIGHTSHIFT(CAST(2 AS BIGINT), 65)", "1", "BIGINT NOT NULL"); // 65 % 64 = 1
+
+    // Negative shift
+    f.checkFails("RIGHTSHIFT(1, -2)",
+        "Shift count must be non-negative", true);
   }
 
   @Test void testBitAndScalarFunc() {
