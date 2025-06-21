@@ -1004,4 +1004,30 @@ ON t1.a IS NOT DISTINCT FROM t2.a;
 
 !ok
 
+### [CALCITE-4915] Query with unqualified common column and NATURAL JOIN fails
+select deptno, dname, empno, ename
+from "scott".emp
+natural join "scott".dept;
++--------+------------+-------+--------+
+| DEPTNO | DNAME      | EMPNO | ENAME  |
++--------+------------+-------+--------+
+|     10 | ACCOUNTING |  7782 | CLARK  |
+|     10 | ACCOUNTING |  7839 | KING   |
+|     10 | ACCOUNTING |  7934 | MILLER |
+|     20 | RESEARCH   |  7369 | SMITH  |
+|     20 | RESEARCH   |  7566 | JONES  |
+|     20 | RESEARCH   |  7788 | SCOTT  |
+|     20 | RESEARCH   |  7876 | ADAMS  |
+|     20 | RESEARCH   |  7902 | FORD   |
+|     30 | SALES      |  7499 | ALLEN  |
+|     30 | SALES      |  7521 | WARD   |
+|     30 | SALES      |  7654 | MARTIN |
+|     30 | SALES      |  7698 | BLAKE  |
+|     30 | SALES      |  7844 | TURNER |
+|     30 | SALES      |  7900 | JAMES  |
++--------+------------+-------+--------+
+(14 rows)
+
+!ok
+
 # End join.iq

@@ -386,6 +386,57 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4915">[CALCITE-4915]
+   * Query with unqualified common column and NATURAL JOIN fails</a>. */
+  @Test void testJoinNaturalWithUnqualifiedCommonColumn() {
+    final String sql = "SELECT deptno, name\n"
+        + "FROM emp\n"
+        + "NATURAL JOIN dept";
+    sql(sql).ok();
+  }
+
+  /** Similar to {@link #testJoinNaturalWithUnqualifiedCommonColumn()},
+   * but with nested common column. */
+  @Test void testJoinNaturalWithUnqualifiedNestedCommonColumn() {
+    final String sql =
+        "select (coord).x\n"
+            + "from customer.contact_peek t1\n"
+            + "natural join customer.contact_peek t2";
+    sql(sql).ok();
+  }
+
+  /** Similar to {@link #testJoinNaturalWithUnqualifiedCommonColumn()},
+   * but with aggregate. */
+  @Test void testJoinNaturalWithAggregate() {
+    final String sql = "select deptno, count(*)\n"
+        + "from emp\n"
+        + "natural join dept\n"
+        + "group by deptno";
+    sql(sql).ok();
+  }
+
+  /** Similar to {@link #testJoinNaturalWithUnqualifiedCommonColumn()},
+   * but with grouping sets. */
+  @Test void testJoinNaturalWithGroupingSets() {
+    final String sql = "select deptno, grouping(deptno),\n"
+        + "grouping(deptno, job), count(*)\n"
+        + "from emp\n"
+        + "natural join dept\n"
+        + "group by grouping sets ((deptno), (deptno, job))";
+    sql(sql).ok();
+  }
+
+  /** Similar to {@link #testJoinNaturalWithUnqualifiedCommonColumn()},
+   * but with multiple join. */
+  @Test void testJoinNaturalWithMultipleJoin() {
+    final String sql = "SELECT deptno, ename\n"
+        + "FROM emp\n"
+        + "NATURAL JOIN dept\n"
+        + "NATURAL JOIN (values ('Calcite', 200)) as s(ename, salary)";
+    sql(sql).ok();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3387">[CALCITE-3387]
    * Query with GROUP BY and JOIN ... USING wrongly fails with
    * "Column 'DEPTNO' is ambiguous"</a>. */
