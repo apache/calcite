@@ -1196,7 +1196,7 @@ public abstract class SqlLibraryOperators {
       SqlBasicFunction.create("CONCAT",
           ReturnTypes.MULTIVALENT_STRING_SUM_PRECISION_NULLABLE,
           OperandTypes.repeat(SqlOperandCountRanges.from(1),
-              OperandTypes.STRING),
+              OperandTypes.ANY),
           SqlFunctionCategory.STRING)
           .withOperandTypeInference(InferTypes.RETURN_TYPE);
 

@@ -2555,7 +2555,10 @@ public class SqlOperatorTest {
     checkConcat2Func(f.withLibrary(SqlLibrary.REDSHIFT));
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7063">
+   * Result type inferred for CONCAT_FUNCTION is incorrect for BINARY arguments</a>. */
   private static void checkConcatFunc(SqlOperatorFixture f) {
+    // test for String
     f.setFor(SqlLibraryOperators.CONCAT_FUNCTION);
     f.checkString("concat('a', 'b', 'c')", "abc", "VARCHAR(3) NOT NULL");
     f.checkString("concat(cast('a' as varchar), cast('b' as varchar), "
@@ -2565,6 +2568,17 @@ public class SqlOperatorTest {
     f.checkString("concat('', '', 'a')", "a", "VARCHAR(1) NOT NULL");
     f.checkString("concat('', '', '')", "", "VARCHAR(0) NOT NULL");
     f.checkFails("^concat()^", INVALID_ARGUMENTS_NUMBER, false);
+
+    // test for ByteString
+    f.checkString("concat(x'61',x'62')", "0x6162", "VARCHAR(2) NOT NULL");
+    f.checkString("concat(cast(x'61' as binary), cast(x'62' as binary), "
+        + "cast(x'63' as binary))", "0x616263", "VARCHAR(3) NOT NULL");
+    f.checkNull("concat(x'61', x'62', cast(null as binary))");
+    f.checkNull("concat(cast(null as ANY), 'b', cast(null as binary(2)))");
+    f.checkNull("concat(cast(null as ANY), 'b', x'61')");
+    f.checkString("concat('a', x'61')", "0x6161", "VARCHAR(2) NOT NULL");
+    f.checkString("concat(x'', x'', x'61')", "0x61", "VARCHAR(1) NOT NULL");
+    f.checkString("concat(x'', x'', x'')", "0x", "VARCHAR(0) NOT NULL");
   }
 
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6518">

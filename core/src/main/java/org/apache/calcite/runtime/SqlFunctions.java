@@ -1651,8 +1651,31 @@ public class SqlFunctions {
   }
 
   /** SQL {@code CONCAT(arg0, arg1, arg2, ...)} function. */
-  public static String concatMulti(String... args) {
-    return String.join("", args);
+  public static String concatMulti(Object... args) {
+    boolean containsByteString = containsByteString(args);
+    String ret = containsByteString ? "0x" : "";
+    for (Object str : args) {
+      if (str == null) {
+        ret = ret.concat("null");
+        continue;
+      }
+      if (!(str instanceof ByteString)) {
+        ret = containsByteString ? ret.concat(hex(str.toString())) : ret.concat(str.toString());
+      } else {
+        ByteString bs = (ByteString) str;
+        ret = ret.concat(bs.toString());
+      }
+    }
+    return ret;
+  }
+
+  public static boolean containsByteString(Object... args) {
+    for (Object o : args) {
+      if (o instanceof ByteString) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /** SQL {@code CONCAT(arg0, ...)} function which can accept null
