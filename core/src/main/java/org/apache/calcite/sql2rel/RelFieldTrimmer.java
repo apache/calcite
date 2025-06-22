@@ -529,9 +529,6 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
     Set<List<String>> subQueryTables = inputSubQueryTablesCollector.tables();
 
-    assert subQueryTables.isEmpty() || subQueryTables.size() == 1
-        : "unexpected different tables in subquery: " + subQueryTables;
-
     TableScanCollector inputTablesCollector = new TableScanCollector();
     input.accept(inputTablesCollector);
 
