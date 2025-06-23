@@ -286,7 +286,29 @@ public class RelToSqlConverter extends SqlImplementor
     //with your alias in map
 
     parseCorrelTable(e, leftResult);
-    final Result rightResult = visitInput(e, 1).resetAlias();
+    Result rightResult = visitInput(e, 1).resetAlias();
+    if (leftResult.neededAlias != null && rightResult.neededAlias != null
+        && leftResult.neededAlias.equals(rightResult.neededAlias)) {
+
+      String newGeneratedAlias =
+          SqlValidatorUtil.uniquify(rightResult.neededAlias, aliasSet, SqlValidatorUtil.EXPR_SUGGESTER);
+
+      Map<String, RelDataType> updated = new HashMap<>();
+      for (Map.Entry<String, RelDataType> entry : rightResult.aliases.entrySet()) {
+        if (entry.getKey().equals(rightResult.neededAlias)) {
+          updated.put(newGeneratedAlias, entry.getValue());
+        } else {
+          updated.put(entry.getKey(), entry.getValue());
+        }
+      }
+      rightResult =
+          new Result(rightResult.node,
+          rightResult.clauses,
+          newGeneratedAlias,
+          rightResult.neededType,
+          updated);
+    }
+
     final Context leftContext = leftResult.qualifiedContext();
     final Context rightContext = rightResult.qualifiedContext();
     SqlNode sqlCondition = null;
