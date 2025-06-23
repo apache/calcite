@@ -1298,20 +1298,6 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       SqlBasicFunction.create("BITXOR", SqlKind.BITXOR,
           ReturnTypes.LARGEST_INT_OR_FIRST_NON_NULL,
           OperandTypes.INTEGER_INTEGER.or(OperandTypes.BINARY_BINARY));
-
-  /**
-   * <code>{@code &}</code> operator.
-   */
-  public static final SqlBinaryOperator BITAND_OPERATOR =
-      new SqlBinaryOperator(
-          "&",
-          SqlKind.BITAND,
-          50,        // Higher precedence than XOR but lower than multiplication
-          true,
-          ReturnTypes.LARGEST_INT_OR_FIRST_NON_NULL,
-          InferTypes.FIRST_KNOWN,
-          OperandTypes.INTEGER_INTEGER.or(OperandTypes.BINARY_BINARY));
-
   /**
    * <code>{@code ^}</code> operator.
    */
@@ -1324,28 +1310,6 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           ReturnTypes.LARGEST_INT_OR_FIRST_NON_NULL,  // Returns same type as inputs when nullable
           InferTypes.FIRST_KNOWN,
           OperandTypes.INTEGER_INTEGER.or(OperandTypes.BINARY_BINARY));
-  // Both operands should support bitwise operations
-
-  /**
-   * <code>RIGHTSHIFT</code> scalar function.
-   */
-  public static final SqlFunction RIGHTSHIFT =
-      SqlBasicFunction.create("RIGHTSHIFT", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.LARGEST_INT_OR_FIRST_NON_NULL,
-          OperandTypes.INTEGER_INTEGER.or(OperandTypes.BINARY_BINARY));
-
-  /**
-   * <code>{@code <<}</code> operator.
-   */
-  public static final SqlBinaryOperator LEFTSHIFT_OPERATOR =
-      new SqlBinaryOperator("<<",                           // Operator name
-          SqlKind.OTHER_FUNCTION,             // SqlKind
-          32,
-          true,
-          ReturnTypes.LARGEST_INT_OR_FIRST_NON_NULL,
-          null,
-          OperandTypes.family(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER));
-
 
   /**
    * <code>BITNOT</code> scalar function.
