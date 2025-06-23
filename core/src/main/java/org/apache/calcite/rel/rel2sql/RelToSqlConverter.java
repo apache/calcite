@@ -531,7 +531,8 @@ public class RelToSqlConverter extends SqlImplementor
     }
     parseCorrelTable(e, x);
     final Builder builder = x.builder(e);
-    if (!isStar(e.getProjects(), e.getInput().getRowType(), e.getRowType())) {
+    if (!isStar(e.getProjects(), e.getInput().getRowType(), e.getRowType())
+        || !dialect.supportGenerateSelectStar(e.getInput())) {
       final List<SqlNode> selectList = new ArrayList<>();
       for (RexNode ref : e.getProjects()) {
         SqlNode sqlExpr = builder.context.toSql(null, ref);

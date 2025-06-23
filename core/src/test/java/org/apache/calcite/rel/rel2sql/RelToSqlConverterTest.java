@@ -8773,6 +8773,64 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5583">[CALCITE-5583]
+   * JDBC adapter does not generate 'SELECT *' when duplicate field names</a>. */
+  @Test void testSelectStarWithJoinOn() {
+    final String sql = "SELECT * FROM \"DEPT\" t1 "
+        + "LEFT JOIN (SELECT * FROM (SELECT DEPTNO AS c0 FROM \"DEPT\") t "
+        + "INNER JOIN (SELECT DEPTNO AS c0 FROM \"DEPT\") t0 ON t.c0 = t0.c0) t2 "
+        + "ON t1.DEPTNO = t2.c0";
+    final String expectedPostgres = "SELECT *\n"
+        + "FROM \"SCOTT\".\"DEPT\"\n"
+        + "LEFT JOIN (SELECT \"t\".\"C0\", \"t0\".\"C0\" AS \"C00\"\n"
+        + "FROM (SELECT \"DEPTNO\" AS \"C0\"\n"
+        + "FROM \"SCOTT\".\"DEPT\") AS \"t\"\n"
+        + "INNER JOIN (SELECT \"DEPTNO\" AS \"C0\"\n"
+        + "FROM \"SCOTT\".\"DEPT\") AS \"t0\""
+        + " ON \"t\".\"C0\" = \"t0\".\"C0\") AS \"t1\""
+        + " ON \"DEPT\".\"DEPTNO\" = \"t1\".\"C0\"";
+    sql(sql)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withPostgresql().ok(expectedPostgres);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5583">[CALCITE-5583]
+   * JDBC adapter does not generate 'SELECT *' when duplicate field names</a>. */
+  @Test void testSelectStarWithJoinUsing() {
+    final String sql = "select * from EMP JOIN DEPT USING (DEPTNO)";
+    final String expectedPostgres = ""
+        + "SELECT COALESCE(\"EMP\".\"DEPTNO\", \"DEPT\".\"DEPTNO\") AS \"DEPTNO\", "
+        + "\"EMP\".\"EMPNO\", \"EMP\".\"ENAME\", \"EMP\".\"JOB\", \"EMP\".\"MGR\", "
+        + "\"EMP\".\"HIREDATE\", \"EMP\".\"SAL\", \"EMP\".\"COMM\", \"DEPT\".\"DNAME\", "
+        + "\"DEPT\".\"LOC\"\n"
+        + "FROM \"SCOTT\".\"EMP\"\n"
+        + "INNER JOIN \"SCOTT\".\"DEPT\" "
+        + "ON \"EMP\".\"DEPTNO\" = \"DEPT\".\"DEPTNO\"";
+    sql(sql)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withPostgresql().ok(expectedPostgres);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5583">[CALCITE-5583]
+   * JDBC adapter does not generate 'SELECT *' when duplicate field names</a>. */
+  @Test void testSelectStarWithJoinNatural() {
+    final String sql = "select * from EMP NATURAL JOIN DEPT";
+    final String expectedPostgres = ""
+        + "SELECT COALESCE(\"EMP\".\"DEPTNO\", \"DEPT\".\"DEPTNO\") AS \"DEPTNO\", "
+        + "\"EMP\".\"EMPNO\", \"EMP\".\"ENAME\", \"EMP\".\"JOB\", \"EMP\".\"MGR\", "
+        + "\"EMP\".\"HIREDATE\", \"EMP\".\"SAL\", \"EMP\".\"COMM\", \"DEPT\".\"DNAME\", "
+        + "\"DEPT\".\"LOC\"\n"
+        + "FROM \"SCOTT\".\"EMP\"\n"
+        + "INNER JOIN \"SCOTT\".\"DEPT\" "
+        + "ON \"EMP\".\"DEPTNO\" = \"DEPT\".\"DEPTNO\"";
+    sql(sql)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withPostgresql().ok(expectedPostgres);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5265">[CALCITE-5265]
    * JDBC adapter sometimes adds unnecessary parentheses around SELECT in INSERT</a>. */
   @Test void testInsertSelect() {
