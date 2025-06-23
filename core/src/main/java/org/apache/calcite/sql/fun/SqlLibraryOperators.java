@@ -1200,6 +1200,12 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.STRING)
           .withOperandTypeInference(InferTypes.RETURN_TYPE);
 
+  /** The "CONCAT(arg, ...)" function that concatenates arguments.
+   * For example, "CONCAT('a', 'bc', 'd')" returns "abcd",
+   * "CONCAT(x'61', 'a')" returns "0x6161".
+   *
+   * <p>It accepts at least 1 argument and returns null if any of
+   * the arguments is null, if arguments contain bytestring, would return bytes string. */
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction CONCAT_FUNCTION_MYSQL =
       SqlBasicFunction.create("CONCAT",
