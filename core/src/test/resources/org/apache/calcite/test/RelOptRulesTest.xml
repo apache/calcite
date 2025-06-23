@@ -5427,6 +5427,24 @@ LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testFilterReduceCrash">
+    <Resource name="sql">
+      <![CDATA[SELECT + 54 FROM emp WHERE NOT CAST ( CAST(empno AS DOUBLE) AS INTEGER ) NOT BETWEEN ( NULL ) AND 89]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EXPR$0=[54])
+  LogicalFilter(condition=[NOT(NOT(AND(>=(CAST(CAST($0):DOUBLE NOT NULL):INTEGER NOT NULL, null), <=(CAST(CAST($0):DOUBLE NOT NULL):INTEGER NOT NULL, 89))))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EXPR$0=[54])
+  LogicalValues(tuples=[[]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testFilterRemoveIsNotDistinctFromRule">
     <Resource name="planBefore">
       <![CDATA[

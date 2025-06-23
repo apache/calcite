@@ -1965,8 +1965,7 @@ public class RexSimplify {
         if (comparison != null && comparison.ref.equals(ref)) {
           final C c1 = comparison.literal.getValueAs(clazz);
           if (c1 == null) {
-            throw new AssertionError("value must not be null in "
-                + comparison.literal);
+            continue;
           }
           switch (predicate.getKind()) {
           case NOT_EQUALS:
