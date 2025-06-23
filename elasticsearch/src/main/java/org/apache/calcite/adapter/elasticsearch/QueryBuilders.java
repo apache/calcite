@@ -20,7 +20,9 @@ import com.fasterxml.jackson.core.JsonGenerator;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static java.util.Objects.requireNonNull;
 
@@ -167,6 +169,17 @@ class QueryBuilders {
    */
   static RegexpQueryBuilder regexpQuery(String name, String regexp) {
     return new RegexpQueryBuilder(name, regexp);
+  }
+
+  /**
+   * A Query that matches documents containing terms with a specified regular expression.
+   *
+   * @param name   The name of the field
+   * @param regexp The regular expression
+   * @param escape The regular escape
+   */
+  static RegexpQueryBuilder regexpQuery(String name, String regexp, String escape) {
+    return new RegexpQueryBuilder(name, regexp, escape);
   }
 
 
@@ -497,14 +510,80 @@ class QueryBuilders {
     private final String fieldName;
     @SuppressWarnings("unused")
     private final String value;
+    @SuppressWarnings("unused")
+    private String escape;
 
     RegexpQueryBuilder(final String fieldName, final String value) {
-      this.fieldName = fieldName;
-      this.value = value;
+      this(fieldName, value, "\\");
     }
 
-    @Override void writeJson(final JsonGenerator generator) {
-      throw new UnsupportedOperationException();
+    RegexpQueryBuilder(final String fieldName, final String value, final String escape) {
+      requireNonNull(fieldName, "fieldName");
+      requireNonNull(value, "value");
+      requireNonNull(escape, "escape");
+      this.fieldName = fieldName;
+      this.escape = escape;
+      // replace % to * and _ to ? for sql with like operator
+      HashMap<String, String> kv = new HashMap<>();
+      kv.put("%", "*");
+      kv.put("_", "?");
+      this.value = replaceWildcard(value, kv, escape);
+    }
+
+    public static String replaceWildcard(String value, Map<String, String> kv, String escape) {
+      ArrayList<String> ret = new ArrayList<>();
+      int escapeCount = 0;
+      for (int index = 0; index < value.length(); index++) {
+        String current = value.substring(index, index + 1);
+        if (index == 0) {
+          if (!current.equals(escape)) {
+            current = kv.keySet().contains(current) ? kv.get(current) : current;
+            ret.add(current);
+          } else {
+            escapeCount++;
+          }
+          continue;
+        }
+
+        if (!kv.keySet().contains(current) && !current.equals(escape)) {
+          ret.add(current);
+          escapeCount = 0;
+          continue;
+        }
+
+        if (current.equals(escape)) {
+          escapeCount++;
+          if (escapeCount % 2 == 0) {
+            ret.add(current);
+          }
+          continue;
+        }
+
+        String last = value.substring(index - 1, index);
+        if (kv.keySet().contains(current)) {
+          if (!last.equals(escape)) {
+            ret.add(kv.get(current));
+          } else {
+            if (escapeCount % 2 == 0) {
+              ret.add(kv.get(current));
+            } else {
+              ret.add(current);
+            }
+          }
+          escapeCount = 0;
+        }
+      }
+      return String.join("", ret);
+    }
+
+    @Override void writeJson(final JsonGenerator generator) throws IOException  {
+      generator.writeStartObject();
+      generator.writeFieldName("wildcard");
+      generator.writeStartObject();
+      generator.writeFieldName(fieldName);
+      writeObject(generator, value);
+      generator.writeEndObject();
+      generator.writeEndObject();
     }
   }
 

@@ -188,6 +188,8 @@ class ElasticSearchAdapterTest {
     assertNotNull(esSchmea);
   }
 
+  /** Test for <a href="https://issues.apache.org/jira/browse/CALCITE-7068">[CALCITE-7068]
+   *  ElasticSearch adapter support LIKE operator</a>. */
   @Test void basic() {
     calciteAssert()
         // by default elastic returns max 10 records
@@ -214,11 +216,146 @@ class ElasticSearchAdapterTest {
         .query("select * from elastic.zips where _MAP['CITY'] = 'BROOKLYN'")
         .returnsCount(0);
 
-
     // limit 0
     calciteAssert()
         .query("select * from elastic.zips limit 0")
         .returnsCount(0);
+
+    // test with ESCAPE
+    calciteAssert()
+        // this case would covnert to like 'BRO%IK*', match no one, count is 0
+        .query(
+            "select * from elastic.zips where _MAP['city'] like 'BRO\\%OK%' ESCAPE '\\' limit 10")
+        .returnsOrdered("")
+        .returnsCount(0);
+
+    calciteAssert()
+        // this case would covnert to like 'BRO*IK*', match one result, count is 1
+        .query(
+            "select * from elastic.zips where _MAP['city'] like 'B\\R\\O%OK%' ESCAPE '\\' limit 10")
+        .returnsOrdered(
+
+            "_MAP={id=11226, city=BROOKLYN, loc=[-73.956985, 40.646694], pop=111396, state=NY}")
+        .returnsCount(1);
+
+
+    calciteAssert()
+        // this case would covnert to like 'BROIK*', match one result, count is 1
+        .query(
+            "select * from elastic.zips where _MAP['city'] like 'BRO!OK%' ESCAPE '!' limit 10")
+        .returnsOrdered(
+
+            "_MAP={id=11226, city=BROOKLYN, loc=[-73.956985, 40.646694], pop=111396, state=NY}")
+        .returnsCount(1);
+
+    calciteAssert()
+        // this case would covnert to like 'BR!OIK*', match no one, count is 0
+        .query(
+            "select * from elastic.zips where _MAP['city'] like 'BRO!!OK%' ESCAPE '!' limit 10")
+        .returnsOrdered("")
+        .returnsCount(0);
+
+    // test with %
+    calciteAssert()
+        .query("select * from elastic.zips where _MAP['city'] like 'BROOK%' limit 10")
+        .returnsOrdered(
+            "_MAP={id=11226, city=BROOKLYN, loc=[-73.956985, 40.646694], pop=111396, state=NY}")
+        .returnsCount(1);
+
+    calciteAssert()
+        .query("select * from elastic.zips where _MAP['city'] like '%ROOK%' limit 10")
+        .returnsOrdered(
+            "_MAP={id=11226, city=BROOKLYN, loc=[-73.956985, 40.646694], pop=111396, state=NY}")
+        .returnsCount(1);
+
+    // test with _
+    calciteAssert()
+        .query("select * from elastic.zips where _MAP['city'] like 'BROOKLY_' limit 10")
+        .returnsOrdered(
+            "_MAP={id=11226, city=BROOKLYN, loc=[-73.956985, 40.646694], pop=111396, state=NY}")
+        .returnsCount(1);
+
+    calciteAssert()
+        .query("select * from elastic.zips where _MAP['city'] like 'BROOKL_' limit 10")
+        .returnsOrdered("")
+        .returnsCount(0);
+
+    calciteAssert()
+        .query("select * from elastic.zips where _MAP['city'] like 'BROOKL__' limit 10")
+        .returnsOrdered(
+            "_MAP={id=11226, city=BROOKLYN, loc=[-73.956985, 40.646694], pop=111396, state=NY}")
+        .returnsCount(1);
+
+    calciteAssert()
+        .query("select * from elastic.zips where _MAP['city'] like '_ROOKLY_' limit 10")
+        .returnsOrdered(
+            "_MAP={id=11226, city=BROOKLYN, loc=[-73.956985, 40.646694], pop=111396, state=NY}")
+        .returnsCount(1);
+
+    calciteAssert()
+        .query("select * from elastic.zips where _MAP['city'] like '_ROO*Y_' limit 10")
+        .returnsOrdered(
+            "_MAP={id=11226, city=BROOKLYN, loc=[-73.956985, 40.646694], pop=111396, state=NY}")
+        .returnsCount(1);
+  }
+
+
+  /**
+   * A test for ReplaceWildcard with escape.
+   */
+  @Test void testReplaceWildcard() {
+    HashMap<String, String> kv = new HashMap<>();
+    kv.put("%", "*");
+    kv.put("_", "?");
+
+    String value = "aa\\%b%";
+    String source = "%";
+    String target = "*";
+    String escape = "\\";
+    assertEquals(QueryBuilders.RegexpQueryBuilder.replaceWildcard(value, kv, escape),
+        "aa%b*");
+
+    value = "aa\\\\%b%";
+    source = "%";
+    target = "*";
+    escape = "\\";
+    assertEquals(QueryBuilders.RegexpQueryBuilder.replaceWildcard(value, kv, escape),
+        "aa\\*b*");
+
+    value = "aa\\\\\\%b%";
+    source = "%";
+    target = "*";
+    escape = "\\";
+    assertEquals(QueryBuilders.RegexpQueryBuilder.replaceWildcard(value, kv, escape),
+        "aa\\%b*");
+
+    value = "aa!%b%";
+    source = "%";
+    target = "*";
+    escape = "!";
+    assertEquals(QueryBuilders.RegexpQueryBuilder.replaceWildcard(value, kv, escape),
+        "aa%b*");
+
+    value = "aa!!%b%";
+    source = "%";
+    target = "*";
+    escape = "!";
+    assertEquals(QueryBuilders.RegexpQueryBuilder.replaceWildcard(value, kv, escape),
+        "aa!*b*");
+
+    value = "aa!!!!%b%";
+    source = "%";
+    target = "*";
+    escape = "!";
+    assertEquals(QueryBuilders.RegexpQueryBuilder.replaceWildcard(value, kv, escape),
+        "aa!!*b*");
+
+    value = "aa!!!%b%";
+    source = "%";
+    target = "*";
+    escape = "!";
+    assertEquals(QueryBuilders.RegexpQueryBuilder.replaceWildcard(value, kv, escape),
+        "aa!%b*");
   }
 
   @Test void testAlias() {
