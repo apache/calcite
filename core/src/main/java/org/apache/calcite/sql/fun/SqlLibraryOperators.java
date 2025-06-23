@@ -1191,13 +1191,22 @@ public abstract class SqlLibraryOperators {
    *
    * <p>It accepts at least 1 argument and returns null if any of
    * the arguments is null. */
-  @LibraryOperator(libraries = {MYSQL, BIG_QUERY})
+  @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction CONCAT_FUNCTION =
       SqlBasicFunction.create("CONCAT",
           ReturnTypes.MULTIVALENT_STRING_SUM_PRECISION_NULLABLE,
           OperandTypes.repeat(SqlOperandCountRanges.from(1),
-              OperandTypes.ANY),
+              OperandTypes.STRING),
           SqlFunctionCategory.STRING)
+          .withOperandTypeInference(InferTypes.RETURN_TYPE);
+
+  @LibraryOperator(libraries = {MYSQL})
+  public static final SqlFunction CONCAT_FUNCTION_MYSQL =
+      SqlBasicFunction.create("CONCAT",
+              ReturnTypes.VARCHAR_NULLABLE,
+              OperandTypes.repeat(SqlOperandCountRanges.from(1),
+                  OperandTypes.ANY),
+              SqlFunctionCategory.STRING)
           .withOperandTypeInference(InferTypes.RETURN_TYPE);
 
   /** The "CONCAT(arg, ...)" function that concatenates strings,

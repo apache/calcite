@@ -1651,7 +1651,12 @@ public class SqlFunctions {
   }
 
   /** SQL {@code CONCAT(arg0, arg1, arg2, ...)} function. */
-  public static String concatMulti(Object... args) {
+  public static String concatMulti(String... args) {
+    return String.join("", args);
+  }
+
+  /** SQL {@code CONCAT(obj0, obj1, obj2, ...)} function. */
+  public static String concatMultiObjects(Object... args) {
     boolean containsByteString = containsByteString(args);
     String ret = containsByteString ? "0x" : "";
     for (Object str : args) {
