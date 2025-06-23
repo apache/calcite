@@ -361,7 +361,6 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ASIN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ATAN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ATAN2;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BITAND;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BITAND_OPERATOR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BITCOUNT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BITNOT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BITOR;
@@ -453,7 +452,6 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LAST;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LAST_DAY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LAST_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LEAD;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LEFTSHIFT_OPERATOR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LESS_THAN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LESS_THAN_OR_EQUAL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LIKE;
@@ -502,7 +500,6 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RANK;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REGR_COUNT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REINTERPRET;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REPLACE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RIGHTSHIFT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ROUND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ROW;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ROW_NUMBER;
@@ -539,8 +536,6 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.UNARY_PLUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.UPPER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.USER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.VARIANTNULL;
-import static org.apache.calcite.util.BuiltInMethod.LEFT_SHIFT;
-import static org.apache.calcite.util.BuiltInMethod.RIGHT_SHIFT;
 import static org.apache.calcite.util.ReflectUtil.isStatic;
 
 import static java.util.Objects.requireNonNull;
@@ -739,13 +734,7 @@ public class RexImpTable {
           NullPolicy.STRICT);
       defineMethod(BITXOR, BuiltInMethod.BIT_XOR.method,
           NullPolicy.STRICT);
-      defineMethod(LEFTSHIFT_OPERATOR, LEFT_SHIFT.method,
-          NullPolicy.STRICT);
-      defineMethod(RIGHTSHIFT, RIGHT_SHIFT.method,
-          NullPolicy.STRICT);
       defineMethod(BITXOR_OPERATOR, BuiltInMethod.BIT_XOR.method,
-          NullPolicy.STRICT);
-      defineMethod(BITAND_OPERATOR, BuiltInMethod.BIT_AND.method,
           NullPolicy.STRICT);
       defineMethod(BITNOT, BuiltInMethod.BIT_NOT.method,
           NullPolicy.STRICT);
