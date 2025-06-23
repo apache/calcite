@@ -1205,7 +1205,7 @@ public abstract class SqlLibraryOperators {
    * "CONCAT(x'61', 'a')" returns "0x6161".
    *
    * <p>It accepts at least 1 argument and returns null if any of
-   * the arguments is null, if arguments contain bytestring, would return bytes string. */
+   * the arguments is null, and returns bytes string if any of the arguments is a bytestring. */
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction CONCAT_FUNCTION_MYSQL =
       SqlBasicFunction.create("CONCAT",
