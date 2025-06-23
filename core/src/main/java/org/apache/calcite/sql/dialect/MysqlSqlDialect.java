@@ -74,6 +74,8 @@ public class MysqlSqlDialect extends SqlDialect {
             return 6;
           case DECIMAL:
             return 65;
+          case UBIGINT:
+            return 20;
           default:
             return super.getMaxPrecision(typeName);
           }

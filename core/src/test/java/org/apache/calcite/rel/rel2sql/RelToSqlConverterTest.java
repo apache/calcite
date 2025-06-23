@@ -4131,6 +4131,22 @@ class RelToSqlConverterTest {
         .withClickHouse().ok(expectedClickHouse);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7067">[CALCITE-7067]
+   * Maximum precision of unsigned bigint type in MysqlSqlDialect should be 20</a>. */
+  @Test void testCastToUBigInt() {
+    String query = "select cast(18446744073709551615 as bigint unsigned) from \"product\"";
+    final String expectedMysql = "SELECT CAST(18446744073709551615 AS BIGINT UNSIGNED)\n"
+        + "FROM `foodmart`.`product`";
+    final String errMsg = "org.apache.calcite.runtime.CalciteContextException: "
+        + "From line 1, column 13 to line 1, column 32: "
+        + "Numeric literal '18446744073709551615' out of range";
+    sql(query)
+        .withMysql().ok(expectedMysql)
+        .withPostgresql().throws_(errMsg)
+        .withOracle().throws_(errMsg);
+  }
+
   @Test void testSelectQueryWithLimitClauseWithoutOrder() {
     String query = "select \"product_id\" from \"product\" limit 100 offset 10";
     final String expected = "SELECT \"product_id\"\n"

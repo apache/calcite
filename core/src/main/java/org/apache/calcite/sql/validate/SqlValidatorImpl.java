@@ -3387,7 +3387,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       final BigDecimal noTrailingZeros = bd.stripTrailingZeros();
       // If we don't strip trailing zeros we may reject values such as 1.000....0.
 
-      final int maxPrecision = typeSystem.getMaxNumericPrecision();
+      final int maxPrecision = typeSystem.getMaxPrecision(SqlTypeName.DECIMAL);
       if (noTrailingZeros.precision() > maxPrecision) {
         throw newValidationError(literal,
             RESOURCE.numberLiteralOutOfRange(bd.toString()));
