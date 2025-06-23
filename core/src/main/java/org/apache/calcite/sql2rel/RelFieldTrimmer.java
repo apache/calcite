@@ -568,12 +568,9 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     List<RexSubQuery> subQueries = RexUtil.SubQueryCollector.collect(project);
     // Get all the correlationIds present in the SubQueries
     Set<CorrelationId> correlationIds = RelOptUtil.getVariablesUsed(subQueries);
-    // Subquery lookup is required.
-    boolean subQueryLookUp =
-        !correlationIds.isEmpty() && inputContainsSubQueryTables(project, input);
 
     RelOptUtil.InputFinder inputFinder =
-        new RelOptUtil.SubQueryAwareInputFinder(inputExtraFields, subQueryLookUp);
+        new RelOptUtil.InputFinder(inputExtraFields);
 
     for (Ord<RexNode> ord : Ord.zip(project.getProjects())) {
       if (fieldsUsed.get(ord.i)) {
