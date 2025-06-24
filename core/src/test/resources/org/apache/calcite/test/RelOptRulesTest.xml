@@ -4904,26 +4904,28 @@ from sales.empnullables as e]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalProject(EMPNO=[$0], EXPR$1=[OR(IN($7, {
+LogicalProject(variablesSet=[[$cor0]], EMPNO=[$0], EXPR$1=[OR(IN($2, {
 LogicalProject(DEPTNO=[$0])
   LogicalFilter(condition=[AND(=($cor0.ENAME, CAST($1):VARCHAR(20)), >($0, 10))])
     LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
-}), IN($7, {
+}), IN($2, {
 LogicalProject(DEPTNO=[$0])
   LogicalFilter(condition=[AND(=($cor0.ENAME, CAST($1):VARCHAR(20)), <($0, 20))])
     LogicalTableScan(table=[[CATALOG, SALES, DEPTNULLABLES]])
 }))])
-  LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
 ]]>
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalProject(EMPNO=[$0], EXPR$1=[OR(CASE(=($9, 0), false, IS NULL($7), null:BOOLEAN, IS NOT NULL($12), true, <($10, $9), null:BOOLEAN, false), CASE(=($13, 0), false, IS NULL($7), null:BOOLEAN, IS NOT NULL($16), true, <($14, $13), null:BOOLEAN, false))])
-  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1, 7}])
+LogicalProject(EMPNO=[$0], EXPR$1=[OR(CASE(=($3, 0), false, IS NULL($2), null:BOOLEAN, IS NOT NULL($6), true, <($4, $3), null:BOOLEAN, false), CASE(=($7, 0), false, IS NULL($2), null:BOOLEAN, IS NOT NULL($10), true, <($8, $7), null:BOOLEAN, false))])
+  LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1, 2}])
     LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1}])
-      LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1, 7}])
+      LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1, 2}])
         LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1}])
-          LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7])
+            LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
           LogicalAggregate(group=[{}], c=[COUNT()], ck=[COUNT($0)])
             LogicalProject(DEPTNO=[$0])
               LogicalFilter(condition=[AND(=($cor0.ENAME, CAST($1):VARCHAR(20)), >($0, 10))])

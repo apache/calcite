@@ -26,7 +26,7 @@ import org.apache.calcite.rex.RexShuttle;
 public class RexRewritingRelShuttle extends RelHomogeneousShuttle {
   private final RexShuttle rexVisitor;
 
-  RexRewritingRelShuttle(RexShuttle rexVisitor) {
+  public RexRewritingRelShuttle(RexShuttle rexVisitor) {
     this.rexVisitor = rexVisitor;
   }
 
