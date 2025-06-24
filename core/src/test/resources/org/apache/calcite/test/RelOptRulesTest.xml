@@ -3994,6 +3994,63 @@ EnumerableProject(ENAME=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testEnumerableFilterRule3">
+    <Resource name="sql">
+      <![CDATA[select ename from emp
+where sal > all (select comm from emp)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(ENAME=[$1])
+  LogicalFilter(condition=[NOT(<= SOME($5, {
+LogicalProject(COMM=[$6])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableProject(ENAME=[$1])
+  EnumerableProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    EnumerableFilter(condition=[NOT(CAST(OR(AND(IS TRUE(<=($5, $9)), <>($10, 0)), AND(>($10, $11), null, <>($10, 0), IS NOT TRUE(<=($5, $9))), AND(<=($5, $9), <>($10, 0), IS NOT TRUE(<=($5, $9)), <=($10, $11)))):BOOLEAN NOT NULL)])
+      EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
+        EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+        EnumerableProject(m=[$0], c=[$1], d=[$1])
+          EnumerableAggregate(group=[{}], m=[MAX($0)], c=[COUNT()])
+            EnumerableProject(COMM=[$6])
+              EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testEnumerableFilterRule4">
+    <Resource name="sql">
+      <![CDATA[select R_REGIONKEY from SALES.CUSTOMER
+where R_REGIONKEY > all (select R_REGIONKEY from SALES.CUSTOMER)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(R_REGIONKEY=[$0])
+  LogicalFilter(condition=[NOT(<= SOME($0, {
+LogicalProject(R_REGIONKEY=[$0])
+  LogicalTableScan(table=[[CATALOG, SALES, CUSTOMER]])
+}))])
+    LogicalTableScan(table=[[CATALOG, SALES, CUSTOMER]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableProject(R_REGIONKEY=[$0])
+  EnumerableProject(R_REGIONKEY=[$0])
+    EnumerableFilter(condition=[OR(=($2, 0), AND(>($0, $1), <>($2, 0), IS NOT TRUE(OR(<=($0, $1), >($2, $3)))))])
+      EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
+        EnumerableTableScan(table=[[CATALOG, SALES, CUSTOMER]])
+        EnumerableAggregate(group=[{}], m=[MAX($0)], c=[COUNT()], d=[COUNT($0)])
+          EnumerableProject(R_REGIONKEY=[$0])
+            EnumerableTableScan(table=[[CATALOG, SALES, CUSTOMER]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testEnumerableProjectRule">
     <Resource name="sql">
       <![CDATA[select R_REGIONKEY > all (select R_REGIONKEY from SALES.CUSTOMER)
