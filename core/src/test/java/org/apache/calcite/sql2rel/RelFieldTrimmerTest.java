@@ -708,7 +708,7 @@ class RelFieldTrimmerTest {
     final RelFieldTrimmer fieldTrimmer = new RelFieldTrimmer(null, builder);
     final RelNode trimmed = fieldTrimmer.trim(root);
     final String expected = ""
-        + "LogicalProject(EMPNO=[$0], $f1=[$SCALAR_QUERY({\n"
+        + "LogicalProject(variablesSet=[[$cor0]], EMPNO=[$0], $f1=[$SCALAR_QUERY({\n"
         + "LogicalAggregate(group=[{}], c=[COUNT()])\n"
         + "  LogicalFilter(condition=[<($3, $cor0.MGR)])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n"
