@@ -25,6 +25,8 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.TimeFrameSet;
 import org.apache.calcite.runtime.CalciteContextException;
+import org.apache.calcite.sql.SqlAsOperator;
+import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlBasicFunction;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCollation;
@@ -38,6 +40,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSpecialOperator;
+import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -5933,6 +5936,35 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select * from (emp join bonus using (job))\n"
         + "join (select 1 as job from ^(^true)) using (job)")
         .fails("(?s).*Encountered \"\\( true\" at .*");
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7072">[CALCITE-7072]
+   * Validator should not insert aliases on subexpressions</a>. */
+  @Test void testCaseCast() throws CalciteContextException, SqlParseException {
+    final String sql = "SELECT CASE WHEN deptno IS NOT NULL THEN empno\n"
+        + "ELSE CAST(deptno AS VARCHAR) END AS ID FROM emp";
+    final SqlParser.Config config = SqlParser.config();
+    final String messagePassingSqlString;
+    final SqlParser sqlParserReader = SqlParser.create(sql, config);
+    final SqlNode node = sqlParserReader.parseQuery();
+    final SqlValidator validator = fixture().factory
+        .withValidatorConfig(c -> c.withIdentifierExpansion(true))
+        .createValidator();
+    final SqlNode x = validator.validate(node);
+    assert x instanceof SqlSelect;
+    SqlSelect select = (SqlSelect) x;
+    SqlNode item = select.getSelectList().get(0);
+    assert item instanceof SqlBasicCall;
+    SqlBasicCall call = (SqlBasicCall) item;
+    assert call.getOperandList().size() == 2;
+    SqlNode op0 = call.getOperandList().get(0);
+    assert op0 instanceof SqlCase;
+    SqlCase caseStat = (SqlCase) op0;
+    assert caseStat.getThenOperands().size() == 1;
+    SqlNode then = caseStat.getThenOperands().get(0);
+    assert then instanceof SqlBasicCall;
+    SqlOperator operator = ((SqlBasicCall) then).getOperator();
+    assert !(operator instanceof SqlAsOperator);
   }
 
   @Disabled("bug: should fail if sub-query does not have alias")
