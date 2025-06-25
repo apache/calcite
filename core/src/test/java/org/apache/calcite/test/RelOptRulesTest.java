@@ -7878,6 +7878,32 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7071">[CALCITE-7071]
+   * Add test for replacing JOIN node with its child node
+   * when JOIN condition is false</a>. */
+  @Test void testLeftJoinRemoveConditionIsAlwaysFalse() {
+    final String sql = "SELECT e.deptno\n"
+        + "FROM sales.emp e\n"
+        + "LEFT JOIN sales.dept d ON e.deptno = d.deptno and e.deptno between 3 and 1";
+    sql(sql).withRule(CoreRules.JOIN_CONDITION_PUSH,
+            PruneEmptyRules.JOIN_RIGHT_INSTANCE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7071">[CALCITE-7071]
+   * Add test for replacing JOIN node with its child node
+   * when JOIN condition is false</a>. */
+  @Test void testRightJoinRemoveConditionIsAlwaysFalse() {
+    final String sql = "SELECT e.deptno\n"
+        + "FROM sales.dept d\n"
+        + "RIGHT JOIN sales.emp e ON e.deptno = d.deptno and e.deptno between 3 and 1";
+    sql(sql).withRule(CoreRules.JOIN_CONDITION_PUSH,
+            PruneEmptyRules.JOIN_LEFT_INSTANCE)
+        .check();
+  }
+
   @Test void testSwapOuterJoin() {
     final HepProgram program = new HepProgramBuilder()
         .addMatchLimit(1)

@@ -8302,6 +8302,28 @@ LogicalProject(EMPNO=[$11])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testLeftJoinRemoveConditionIsAlwaysFalse">
+    <Resource name="sql">
+      <![CDATA[SELECT e.deptno
+FROM sales.emp e
+LEFT JOIN sales.dept d ON e.deptno = d.deptno and e.deptno between 3 and 1]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[false], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[null:INTEGER], NAME=[null:VARCHAR(10)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testLeftJoinWithConstantRowOnRight">
     <Resource name="sql">
       <![CDATA[select e.empno, e.ename, c.* from emp e left join (select 5 as nm) c  on e.empno = c.nm]]>
@@ -16200,6 +16222,28 @@ LogicalProject(EMPNO=[$0])
       <![CDATA[
 LogicalProject(EMPNO=[$0])
   LogicalValues(tuples=[[]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testRightJoinRemoveConditionIsAlwaysFalse">
+    <Resource name="sql">
+      <![CDATA[SELECT e.deptno
+FROM sales.dept d
+RIGHT JOIN sales.emp e ON e.deptno = d.deptno and e.deptno between 3 and 1]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$9])
+  LogicalJoin(condition=[false], joinType=[right])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$9])
+  LogicalProject(DEPTNO=[null:INTEGER], NAME=[null:VARCHAR(10)], EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO0=[$7], SLACKER=[$8])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
