@@ -1247,6 +1247,10 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction ADD_MONTHS =
       new SqlAddMonths(false);
 
+  @LibraryOperator(libraries = {REDSHIFT})
+  public static final SqlFunction REDSHIFT_ADD_MONTHS =
+      new SqlAddMonths(true);
+
   /** The "DAYNAME(datetime)" function; returns the name of the day of the week,
    * in the current locale, of a TIMESTAMP or DATE argument. */
   @LibraryOperator(libraries = {MYSQL})
