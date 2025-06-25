@@ -40,5 +40,6 @@
     <logger name="org.apache.calcite.plan.RelOptPlanner" level="ERROR">
       <MarkerFilter marker="FULL_PLAN" onMatch="DENY" onMismatch="NEUTRAL"/>
     </logger>
+    <logger name="org.apache.calcite.rel.rules.DpHyp" level="ERROR"/>
   </Loggers>
 </Configuration>

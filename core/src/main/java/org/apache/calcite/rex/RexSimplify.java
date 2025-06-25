@@ -1462,6 +1462,10 @@ public class RexSimplify {
     @Override public Boolean visitLambdaRef(RexLambdaRef lambdaRef) {
       return true;
     }
+
+    @Override public Boolean visitNodeAndFieldIndex(RexNodeAndFieldIndex nodeAndFieldIndex) {
+      return true;
+    }
   }
 
   /** Analyzes a given {@link RexNode} and decides whenever it is safe to

@@ -22,6 +22,7 @@ import org.apache.calcite.plan.AbstractRelOptPlanner;
 import org.apache.calcite.plan.RelImplementor;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.prepare.Prepare;
+import org.apache.calcite.rel.rules.DpHyp;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
@@ -138,6 +139,13 @@ public abstract class CalciteTrace {
    */
   public static Logger getTestTracer(Class<?> testClass) {
     return LoggerFactory.getLogger(testClass.getName());
+  }
+
+  /**
+   * The tracer reports enumeration process of DpHyp.
+   */
+  public static Logger getDpHypJoinReorderTracer() {
+    return LoggerFactory.getLogger(DpHyp.class);
   }
 
   /**

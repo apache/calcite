@@ -87,4 +87,8 @@ public class RexUnaryBiVisitor<@Nullable R> extends RexBiVisitorImpl<R, R> {
     super.visitSubQuery(subQuery, arg);
     return end(subQuery, arg);
   }
+
+  @Override public R visitNodeAndFieldIndex(RexNodeAndFieldIndex nodeAndFieldIndex, R arg) {
+    return end(nodeAndFieldIndex, arg);
+  }
 }

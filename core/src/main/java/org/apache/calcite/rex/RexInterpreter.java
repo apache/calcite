@@ -159,6 +159,10 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     throw unbound(lambdaRef);
   }
 
+  @Override public Comparable visitNodeAndFieldIndex(RexNodeAndFieldIndex nodeAndFieldIndex) {
+    throw unbound(nodeAndFieldIndex);
+  }
+
   @Override public Comparable visitCall(RexCall call) {
     final List<Comparable> values = visitList(call.operands);
     switch (call.getKind()) {
