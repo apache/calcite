@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.type;
 
+import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlBasicTypeNameSpec;
@@ -292,5 +293,11 @@ class SqlTypeUtilTest {
         String.format(Locale.ROOT,
             "Expected to be able to cast from %s to %s without coercion.", fromType, toType),
         SqlTypeUtil.canCastFrom(toType, fromType, /* coerce= */ defaultRules), is(true));
+  }
+
+  @Test void testJavaToSqlByteStringMapping() {
+    SqlTypeName sqlTypeName = JavaToSqlTypeConversionRules.instance().lookup(ByteString.class);
+    assertThat("ByteString.class should map to SqlTypeName.VARBINARY",
+        sqlTypeName, is(SqlTypeName.VARBINARY));
   }
 }
