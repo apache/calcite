@@ -63,6 +63,7 @@ import java.util.stream.IntStream;
 import static org.apache.calcite.sql.fun.SqlLibrary.ALL;
 import static org.apache.calcite.sql.fun.SqlLibrary.BIG_QUERY;
 import static org.apache.calcite.sql.fun.SqlLibrary.CALCITE;
+import static org.apache.calcite.sql.fun.SqlLibrary.DATABRICKS;
 import static org.apache.calcite.sql.fun.SqlLibrary.DB2;
 import static org.apache.calcite.sql.fun.SqlLibrary.HIVE;
 import static org.apache.calcite.sql.fun.SqlLibrary.MSSQL;
@@ -3063,6 +3064,69 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {TERADATA})
   public static final SqlFunction DAYNUMBER_OF_CALENDAR =
         new SqlFunction("DAYNUMBER_OF_CALENDAR", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER, null, OperandTypes.DATETIME,
+          SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlFunction MONTHNUMBER_OF_CALENDAR =
+      new SqlFunction("MONTHNUMBER_OF_CALENDAR", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER, null,
+          OperandTypes.or(OperandTypes.family(SqlTypeFamily.DATETIME),
+              OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.CHARACTER)),
+          SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlFunction TD_MONTH_OF_CALENDAR =
+      new SqlFunction("TD_MONTH_OF_CALENDAR", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER, null,
+          OperandTypes.or(OperandTypes.family(SqlTypeFamily.DATETIME),
+              OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.CHARACTER)),
+          SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlFunction QUARTERNUMBER_OF_CALENDAR =
+      new SqlFunction("QUARTERNUMBER_OF_CALENDAR", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER, null,
+          OperandTypes.or(OperandTypes.family(SqlTypeFamily.DATETIME),
+              OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.CHARACTER)),
+          SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlFunction TD_QUARTER_OF_CALENDAR =
+      new SqlFunction("TD_QUARTER_OF_CALENDAR", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER, null,
+          OperandTypes.or(OperandTypes.family(SqlTypeFamily.DATETIME),
+              OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.CHARACTER)),
+          SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlFunction TD_MONTH_BEGIN =
+      new SqlFunction("TD_MONTH_BEGIN", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0_NULLABLE, null,
+          OperandTypes.or(OperandTypes.family(SqlTypeFamily.DATETIME),
+              OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.CHARACTER),
+              OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.CHARACTER,
+                  SqlTypeFamily.CHARACTER)),
+          SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {DATABRICKS})
+  public static final SqlFunction DAYOFWEEK =
+      new SqlFunction("DAYOFWEEK", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER, null, OperandTypes.family(SqlTypeFamily.DATETIME),
+          SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlFunction TD_WEEK_BEGIN =
+      new SqlFunction("TD_WEEK_BEGIN", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0_NULLABLE, null,
+          OperandTypes.or(OperandTypes.family(SqlTypeFamily.DATETIME),
+              OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.CHARACTER),
+              OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.CHARACTER,
+                  SqlTypeFamily.CHARACTER)), SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlFunction TD_WEEK_OF_YEAR =
+      new SqlFunction("TD_WEEK_OF_YEAR", SqlKind.OTHER_FUNCTION,
           ReturnTypes.INTEGER, null, OperandTypes.DATETIME,
           SqlFunctionCategory.TIMEDATE);
 

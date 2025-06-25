@@ -167,6 +167,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.PERIOD_CONSTRUCTOR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PERIOD_INTERSECT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.QUARTERNUMBER_OF_YEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_OFFSET;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TD_WEEK_OF_YEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRUE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.USING;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.WEEKNUMBER_OF_CALENDAR;
@@ -8364,6 +8365,117 @@ class RelToSqlConverterDMTest {
         + "EXTRACT(QUARTER FROM CURRENT_TIMESTAMP) $f2\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
+
+  @Test public void testMonthNumberOfCalender() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dbNameRexNode =
+        builder.call(SqlLibraryOperators.MONTHNUMBER_OF_CALENDAR, builder.call(CURRENT_DATE));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(dbNameRexNode, "result"))
+        .build();
+
+    final String expectedMsSqlQuery = "SELECT MONTHNUMBER_OF_CALENDAR(CURRENT_DATE) AS \"result\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.TERADATA.getDialect()), isLinux(expectedMsSqlQuery));
+  }
+
+  @Test public void testTdMonthOfCalender() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dbNameRexNode =
+        builder.call(SqlLibraryOperators.TD_MONTH_OF_CALENDAR, builder.call(CURRENT_DATE));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(dbNameRexNode, "result"))
+        .build();
+
+    final String expectedMsSqlQuery = "SELECT TD_MONTH_OF_CALENDAR(CURRENT_DATE) AS \"result\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.TERADATA.getDialect()), isLinux(expectedMsSqlQuery));
+  }
+
+  @Test public void testQuarterNumberOfCalender() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dbNameRexNode =
+        builder.call(SqlLibraryOperators.QUARTERNUMBER_OF_CALENDAR, builder.call(CURRENT_DATE));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(dbNameRexNode, "result"))
+        .build();
+
+    final String expectedMsSqlQuery = "SELECT QUARTERNUMBER_OF_CALENDAR(CAST(GETDATE() AS DATE)) "
+        + "AS [result] FROM [scott].[EMP]";
+    assertThat(toSql(root, DatabaseProduct.TERADATA.getDialect()), isLinux(expectedMsSqlQuery));
+  }
+
+  @Test public void testTdQuarterOfCalender() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dbNameRexNode =
+        builder.call(SqlLibraryOperators.TD_QUARTER_OF_CALENDAR, builder.call(CURRENT_DATE));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(dbNameRexNode, "result"))
+        .build();
+
+    final String expectedMsSqlQuery = "SELECT TD_QUARTER_OF_CALENDAR(CURRENT_DATE) AS "
+        + "\"result\" FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.TERADATA.getDialect()), isLinux(expectedMsSqlQuery));
+  }
+
+  @Test public void testTdMonthBeginWithDate() {
+    final RelBuilder builder = relBuilder();
+    final RexNode tdWeekBeginRexNode =
+        builder.call(SqlLibraryOperators.TD_MONTH_BEGIN, builder.literal("2023-02-22"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(tdWeekBeginRexNode, "month_begin"))
+        .build();
+    final String expectedTeradata = "SELECT TD_MONTH_BEGIN('2023-02-22') AS \"month_begin\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.TERADATA.getDialect()), isLinux(expectedTeradata));
+  }
+
+  @Test public void testDayOfWeekWithDate() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dayOfWeekRexNode =
+        builder.call(SqlLibraryOperators.DAYOFWEEK, builder.literal("2023-02-22"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(dayOfWeekRexNode, "DayOfWeek"))
+        .build();
+    final String expectedDatabricks = "SELECT DAYOFWEEK('2023-02-22') AS DayOfWeek\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.DATABRICKS.getDialect()), isLinux(expectedDatabricks));
+  }
+
+  @Test public void testTdWeekBeginWithDate() {
+    final RelBuilder builder = relBuilder();
+    final RexNode tdWeekBeginRexNode =
+        builder.call(SqlLibraryOperators.TD_WEEK_BEGIN, builder.literal("2023-02-22"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(tdWeekBeginRexNode, "week_begin"))
+        .build();
+    final String expectedDatabricks =
+        "SELECT TD_WEEK_BEGIN('2023-02-22') AS \"week_begin\"\n"
+            + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.TERADATA.getDialect()), isLinux(expectedDatabricks));
+  }
+
+  @Test public void testTeradataDateTimeNumberOfYear() {
+    final RelBuilder builder = relBuilder();
+    final RexNode weekNumberOfYearCall =
+        builder.call(TD_WEEK_OF_YEAR, builder.call(CURRENT_DATE));
+    final RelNode root = builder.scan("EMP")
+        .project(weekNumberOfYearCall)
+        .build();
+    final String expectedSql = "SELECT TD_WEEK_OF_YEAR(CURRENT_DATE) AS \"$f0\""
+        + "\nFROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.TERADATA.getDialect()), isLinux(expectedSql));
   }
 
   @Test public void testXNumberOfCalendar() {
