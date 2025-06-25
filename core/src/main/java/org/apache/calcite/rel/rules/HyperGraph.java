@@ -26,17 +26,14 @@ import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
-import org.apache.calcite.rex.RexBiVisitor;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexNodeAndFieldIndex;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
-import org.apache.calcite.rex.RexVariable;
-import org.apache.calcite.rex.RexVisitor;
-import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Pair;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -45,6 +42,7 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -56,6 +54,10 @@ import static com.google.common.base.Preconditions.checkArgument;
 public class HyperGraph extends AbstractRelNode {
 
   private final List<RelNode> inputs;
+
+  // unprojected input (from the right child of the semi/anti join) bitmap. Used to convert
+  // RexInputRef to RexNodeAndFieldIndex when building hypergraph
+  private final long notProjectInputs;
 
   @SuppressWarnings("HidingField")
   private final RelDataType rowType;
@@ -82,10 +84,12 @@ public class HyperGraph extends AbstractRelNode {
   protected HyperGraph(RelOptCluster cluster,
       RelTraitSet traitSet,
       List<RelNode> inputs,
+      long notProjectInputs,
       List<HyperEdge> edges,
       RelDataType rowType) {
     super(cluster, traitSet);
     this.inputs = Lists.newArrayList(inputs);
+    this.notProjectInputs = notProjectInputs;
     this.edges = Lists.newArrayList(edges);
     this.rowType = rowType;
     ImmutableBitSet.Builder bitSetBuilder = ImmutableBitSet.builder();
@@ -104,6 +108,7 @@ public class HyperGraph extends AbstractRelNode {
   protected HyperGraph(RelOptCluster cluster,
       RelTraitSet traitSet,
       List<RelNode> inputs,
+      long notProjectInputs,
       List<HyperEdge> edges,
       RelDataType rowType,
       ImmutableBitSet complexEdgesBitmap,
@@ -113,6 +118,7 @@ public class HyperGraph extends AbstractRelNode {
       HashMap<Long, BitSet> overlapEdgesMap) {
     super(cluster, traitSet);
     this.inputs = Lists.newArrayList(inputs);
+    this.notProjectInputs = notProjectInputs;
     this.edges = Lists.newArrayList(edges);
     this.rowType = rowType;
     this.complexEdgesBitmap = complexEdgesBitmap;
@@ -127,6 +133,7 @@ public class HyperGraph extends AbstractRelNode {
         getCluster(),
         traitSet,
         inputs,
+        notProjectInputs,
         edges,
         rowType,
         complexEdgesBitmap,
@@ -165,11 +172,7 @@ public class HyperGraph extends AbstractRelNode {
     List<HyperEdge> shuttleEdges = new ArrayList<>();
     for (HyperEdge edge : edges) {
       HyperEdge shuttleEdge =
-          new HyperEdge(
-              edge.getLeftNodeBitmap(),
-              edge.getRightNodeBitmap(),
-              edge.getJoinType(),
-              shuttle.apply(edge.getCondition()));
+          edge.accept(shuttle);
       shuttleEdges.add(shuttleEdge);
     }
 
@@ -177,6 +180,7 @@ public class HyperGraph extends AbstractRelNode {
         getCluster(),
         traitSet,
         inputs,
+        notProjectInputs,
         shuttleEdges,
         rowType,
         complexEdgesBitmap,
@@ -192,13 +196,17 @@ public class HyperGraph extends AbstractRelNode {
     return edges;
   }
 
+  public long getNotProjectInputs() {
+    return notProjectInputs;
+  }
+
   public long getNeighborBitmap(long csg, long forbidden) {
     long neighbors = 0L;
     List<HyperEdge> simpleEdges = simpleEdgesMap.getOrDefault(csg, new BitSet()).stream()
         .mapToObj(edges::get)
         .collect(Collectors.toList());
     for (HyperEdge edge : simpleEdges) {
-      neighbors |= edge.getNodeBitmap();
+      neighbors |= edge.getEndpoint();
     }
 
     forbidden = forbidden | csg;
@@ -209,8 +217,8 @@ public class HyperGraph extends AbstractRelNode {
         .mapToObj(edges::get)
         .collect(Collectors.toList());
     for (HyperEdge edge : complexEdges) {
-      long leftBitmap = edge.getLeftNodeBitmap();
-      long rightBitmap = edge.getRightNodeBitmap();
+      long leftBitmap = edge.getLeftEndpoint();
+      long rightBitmap = edge.getRightEndpoint();
       if (LongBitmap.isSubSet(leftBitmap, csg) && !LongBitmap.isOverlap(rightBitmap, forbidden)) {
         neighbors |= Long.lowestOneBit(rightBitmap);
       } else if (LongBitmap.isSubSet(rightBitmap, csg)
@@ -248,7 +256,7 @@ public class HyperGraph extends AbstractRelNode {
     mayMissedEdges.stream()
             .forEach(index -> {
               HyperEdge edge = edges.get(index);
-              if (LongBitmap.isSubSet(edge.getNodeBitmap(), csg | cmp)) {
+              if (LongBitmap.isSubSet(edge.getEndpoint(), csg | cmp)) {
                 connectedEdgesBitmap.set(index);
               }
             });
@@ -344,18 +352,18 @@ public class HyperGraph extends AbstractRelNode {
   }
 
   private static boolean isAccurateEdge(HyperEdge edge, long subset) {
-    boolean isLeftEnd = LongBitmap.isSubSet(edge.getLeftNodeBitmap(), subset)
-        && !LongBitmap.isOverlap(edge.getRightNodeBitmap(), subset);
-    boolean isRightEnd = LongBitmap.isSubSet(edge.getRightNodeBitmap(), subset)
-        && !LongBitmap.isOverlap(edge.getLeftNodeBitmap(), subset);
+    boolean isLeftEnd = LongBitmap.isSubSet(edge.getLeftEndpoint(), subset)
+        && !LongBitmap.isOverlap(edge.getRightEndpoint(), subset);
+    boolean isRightEnd = LongBitmap.isSubSet(edge.getRightEndpoint(), subset)
+        && !LongBitmap.isOverlap(edge.getLeftEndpoint(), subset);
     return isLeftEnd || isRightEnd;
   }
 
   private static boolean isOverlapEdge(HyperEdge edge, long subset) {
-    boolean isLeftEnd = LongBitmap.isOverlap(edge.getLeftNodeBitmap(), subset)
-        && !LongBitmap.isOverlap(edge.getRightNodeBitmap(), subset);
-    boolean isRightEnd = LongBitmap.isOverlap(edge.getRightNodeBitmap(), subset)
-        && !LongBitmap.isOverlap(edge.getLeftNodeBitmap(), subset);
+    boolean isLeftEnd = LongBitmap.isOverlap(edge.getLeftEndpoint(), subset)
+        && !LongBitmap.isOverlap(edge.getRightEndpoint(), subset);
+    boolean isRightEnd = LongBitmap.isOverlap(edge.getRightEndpoint(), subset)
+        && !LongBitmap.isOverlap(edge.getLeftEndpoint(), subset);
     return isLeftEnd || isRightEnd;
   }
 
@@ -369,124 +377,158 @@ public class HyperGraph extends AbstractRelNode {
     return joinType;
   }
 
-  public RexNode extractJoinCond(RelNode left, RelNode right, List<HyperEdge> edges) {
-    List<RexNode> joinConds = new ArrayList<>();
-    List<RelDataTypeField> fieldList = new ArrayList<>(left.getRowType().getFieldList());
-    fieldList.addAll(right.getRowType().getFieldList());
-
-    List<String> names = new ArrayList<>(left.getRowType().getFieldNames());
-    names.addAll(right.getRowType().getFieldNames());
-
-    // convert the HyperEdge's condition from RexInputFieldName to RexInputRef
-    RexShuttle inputName2InputRefShuttle = new RexShuttle() {
-      @Override protected List<RexNode> visitList(
-          List<? extends RexNode> exprs,
-          boolean @Nullable [] update) {
-        ImmutableList.Builder<RexNode> clonedOperands = ImmutableList.builder();
-        for (RexNode operand : exprs) {
-          RexNode clonedOperand;
-          if (operand instanceof RexInputFieldName) {
-            int index = names.indexOf(((RexInputFieldName) operand).getName());
-            clonedOperand = new RexInputRef(index, fieldList.get(index).getType());
-          } else {
-            clonedOperand = operand.accept(this);
-          }
-          if ((clonedOperand != operand) && (update != null)) {
-            update[0] = true;
-          }
-          clonedOperands.add(clonedOperand);
+  /**
+   * Check whether the csg-cmp pair is applicable through the conflict rule.
+   *
+   * @param csgcmp  csg-cmp pair
+   * @param edges   hyper edges with conflict rules
+   * @return  true if the csg-cmp pair is applicable
+   */
+  public boolean applicable(long csgcmp, List<HyperEdge> edges) {
+    for (HyperEdge edge : edges) {
+      if (!LongBitmap.isSubSet(edge.getEndpoint(), csgcmp)) {
+        return false;
+      }
+      for (ConflictRule conflictRule : edge.getConflictRules()) {
+        if (LongBitmap.isOverlap(csgcmp, conflictRule.from)
+            && !LongBitmap.isSubSet(conflictRule.to, csgcmp)) {
+          // for conflict rule T1 → T2, if T1 ∩ csgcmp != empty set, then T2 must be
+          // included in csgcmp
+          return false;
         }
-        return clonedOperands.build();
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Build an RexNode expression for the predicate corresponding to a set of hyperedges.
+   *
+   * @param inputOrder  node status ordered list for current csg-cmp
+   * @param leftCount   number of tables in left child
+   * @param edges       hyper edges
+   * @param joinType    join type
+   * @return  join condition
+   */
+  public RexNode extractJoinCond(
+      List<NodeState> inputOrder,
+      int leftCount,
+      List<HyperEdge> edges,
+      JoinRelType joinType) {
+    // a map from (node index, field index) to input ref
+    Map<Pair<Integer, Integer>, Integer> nodeAndFieldIndex2InputRefMap = new HashMap<>();
+    int inputRef = 0;
+    for (int i = 0; i < inputOrder.size(); i++) {
+      NodeState nodeState = inputOrder.get(i);
+      if (nodeState.projected) {
+        int fieldCount = inputs.get(nodeState.nodeIndex).getRowType().getFieldCount();
+        for (int fieldIndex = 0; fieldIndex < fieldCount; fieldIndex++) {
+          nodeAndFieldIndex2InputRefMap.put(
+              Pair.of(nodeState.nodeIndex, fieldIndex), inputRef++);
+        }
+      }
+    }
+
+    RexShuttle nodeAndFieldIndex2InputRefShuttle = new RexShuttle() {
+      @Override public RexNode visitNodeAndFieldIndex(RexNodeAndFieldIndex nodeAndFieldIndex) {
+        Integer inputRef =
+            nodeAndFieldIndex2InputRefMap.get(
+                Pair.of(nodeAndFieldIndex.getNodeIndex(), nodeAndFieldIndex.getFieldIndex()));
+        assert inputRef != null;
+        return new RexInputRef(inputRef, nodeAndFieldIndex.getType());
       }
     };
-
+    List<RexNode> joinConds = new ArrayList<>();
     for (HyperEdge edge : edges) {
-      RexNode inputRefCond = edge.getCondition().accept(inputName2InputRefShuttle);
+      RexNode inputRefCond = edge.getCondition().accept(nodeAndFieldIndex2InputRefShuttle);
       joinConds.add(inputRefCond);
     }
-    return RexUtil.composeConjunction(left.getCluster().getRexBuilder(), joinConds);
+
+    // update the node status of subgraph(csg-cmp pair) according to the join type.
+    if (!joinType.projectsRight()) {
+      for (int i = leftCount; i < inputOrder.size(); i++) {
+        int nodeIndex = inputOrder.get(i).nodeIndex;
+        inputOrder.set(i, new NodeState(nodeIndex, false));
+      }
+    }
+    return RexUtil.composeConjunction(getCluster().getRexBuilder(), joinConds);
   }
 
   /**
-   * Before starting enumeration, add Project on every input, make all field name unique.
-   * Convert the HyperEdge condition from RexInputRef to RexInputFieldName
+   * Ensure that the fields produced by the reordered join are in the same order as in the original
+   * plan.
+   *
+   * @param resultOrder node status ordered list for the final result
+   * @param rowTypeList rowType of the final result
+   * @return  list of RexInputRef
    */
-  public void convertHyperEdgeCond(RelBuilder builder) {
-    int fieldIndex = 0;
-    List<RelDataTypeField> fieldList = rowType.getFieldList();
-    for (int nodeIndex = 0; nodeIndex < inputs.size(); nodeIndex++) {
-      RelNode input = inputs.get(nodeIndex);
-      List<RexNode> projects = new ArrayList<>();
-      List<String> names = new ArrayList<>();
-      for (int i = 0; i < input.getRowType().getFieldCount(); i++) {
+  public List<RexNode> restoreProjectionOrder(
+      List<NodeState> resultOrder,
+      List<RelDataTypeField> rowTypeList) {
+    // a map from node index to the number of fields projected before this node
+    Map<Integer, Integer> nodeIndexToFieldCountBefore = new HashMap<>();
+    int projectedFieldCount = 0;
+    for (NodeState nodeState : resultOrder) {
+      nodeIndexToFieldCountBefore.put(nodeState.nodeIndex, projectedFieldCount);
+      if (nodeState.projected) {
+        projectedFieldCount += inputs.get(nodeState.nodeIndex).getRowType().getFieldCount();
+      }
+    }
+    // origin inputs order is [n0, n1, n2]
+    // n0_projected [field0, field1]
+    // n1_projected [field0, field1]
+    // n2_projected [field0, field1]
+    // rowType is [n0.field0, n0.field1, n1.field0, n1.field1, n2.field0, n2.field1]
+    // assume that the original plan tree is:
+    //        inner join
+    //         /      \
+    //   inner join    n2
+    //    /      \
+    //  n0        n1
+    //
+    // if the node order of the final result is [n2, n1, n0], rowType is
+    // [n2.field0, n2.field1, n1.field0, n1.field1, n0.field0, n0.field1]
+    // assume that the reordered plan tree is:
+    //        inner join
+    //         /      \
+    //   inner join    n0
+    //    /      \
+    //  n2        n1
+    //
+    // we need a projection like [$4, $5, $2, $3, $0, $1]
+    List<RexNode> projects = new ArrayList<>();
+    for (int inputIndex = 0; inputIndex < inputs.size(); inputIndex++) {
+      if (LongBitmap.isOverlap(notProjectInputs, LongBitmap.newBitmap(inputIndex))) {
+        continue;
+      }
+      int fieldCount = inputs.get(inputIndex).getRowType().getFieldCount();
+      for (int fieldIndex = 0; fieldIndex < fieldCount; fieldIndex++) {
+        Integer fieldOffset = nodeIndexToFieldCountBefore.get(inputIndex);
+        if (fieldOffset == null) {
+          throw new AssertionError(
+              "The result order looses the " + inputIndex + "-th input");
+        }
+        int inputRef = fieldIndex + fieldOffset;
         projects.add(
-            new RexInputRef(
-            i,
-            fieldList.get(fieldIndex).getType()));
-        names.add(fieldList.get(fieldIndex).getName());
-        fieldIndex++;
+            new RexInputRef(inputRef, rowTypeList.get(inputRef).getType()));
       }
-
-      builder.push(input)
-          .project(projects, names, true);
-      replaceInput(nodeIndex, builder.build());
     }
-
-    RexShuttle inputRef2inputNameShuttle = new RexShuttle() {
-      @Override public RexNode visitInputRef(RexInputRef inputRef) {
-        int index = inputRef.getIndex();
-        return new RexInputFieldName(
-            fieldList.get(index).getName(),
-            fieldList.get(index).getType());
-      }
-    };
-
-    for (int i = 0; i < edges.size(); i++) {
-      HyperEdge edge = edges.get(i);
-      RexNode convertCond = edge.getCondition().accept(inputRef2inputNameShuttle);
-      HyperEdge convertEdge =
-          new HyperEdge(
-              edge.getLeftNodeBitmap(),
-              edge.getRightNodeBitmap(),
-              edge.getJoinType(),
-              convertCond);
-      edges.set(i, convertEdge);
-    }
+    return projects;
   }
 
   /**
-   * Adjusting RexInputRef in enumeration process is too complicated,
-   * so use unique name replace input ref.
-   * Before starting enumeration, convert RexInputRef to RexInputFieldName.
-   * When connect csgcmp to Join, convert RexInputFieldName to RexInputRef.
+   * Record the projection state of vertices in the hypergraph during enumerating. It is used to
+   * calculate the index of RexInputRef when building join conditions from hyperedges.
    */
-  private static class RexInputFieldName extends RexVariable {
+  public static class NodeState {
+    final int nodeIndex;
 
-    RexInputFieldName(final String fieldName, final RelDataType type) {
-      super(fieldName, type);
-    }
+    final boolean projected;
 
-    @Override public <R> R accept(RexVisitor<R> visitor) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override public boolean equals(@Nullable Object obj) {
-      return this == obj
-          || obj instanceof RexInputFieldName
-          && name == ((RexInputFieldName) obj).name
-          && type.equals(((RexInputFieldName) obj).type);
-    }
-
-    @Override public int hashCode() {
-      return name.hashCode();
-    }
-
-    @Override public String toString() {
-      return name;
+    NodeState(int nodeIndex, boolean projected) {
+      this.nodeIndex = nodeIndex;
+      this.projected = projected;
     }
   }
+
 }

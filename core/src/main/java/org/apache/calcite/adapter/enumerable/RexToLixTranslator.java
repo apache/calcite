@@ -45,6 +45,7 @@ import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexNodeAndFieldIndex;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexPatternFieldRef;
 import org.apache.calcite.rex.RexProgram;
@@ -1782,6 +1783,10 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     list.add(Expressions.declare(Modifier.FINAL, isNullVariable, isNullExpression));
 
     return new Result(isNullVariable, valueVariable);
+  }
+
+  @Override public Result visitNodeAndFieldIndex(RexNodeAndFieldIndex nodeAndFieldIndex) {
+    throw new RuntimeException("cannot translate expression " + nodeAndFieldIndex);
   }
 
   Expression checkNull(Expression expr) {
