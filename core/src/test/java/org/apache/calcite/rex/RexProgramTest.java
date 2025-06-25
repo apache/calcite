@@ -3938,10 +3938,15 @@ class RexProgramTest extends RexProgramTestBase {
 
   /** Tests
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4094">[CALCITE-4094]
-   * RexSimplify should simplify more always true OR expressions</a>. */
+   * RexSimplify should simplify more always true OR expressions</a>,
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7088">[CALCITE-7088]
+   * Multiple consecutive '%' in the string matched by LIKE should simplify to a single '%'</a>.
+   * */
   @Test void testSimplifyLike() {
     final RexNode ref = input(tVarchar(true, 10), 0);
     checkSimplify3(like(ref, literal("%")),
+        "OR(null, IS NOT NULL($0))", "IS NOT NULL($0)", "true");
+    checkSimplify3(like(ref, literal("%%%")),
         "OR(null, IS NOT NULL($0))", "IS NOT NULL($0)", "true");
     checkSimplify3(like(ref, literal("%"), literal("#")),
         "OR(null, IS NOT NULL($0))", "IS NOT NULL($0)", "true");
@@ -3952,9 +3957,25 @@ class RexProgramTest extends RexProgramTestBase {
         "OR(IS NOT NULL($0), LIKE($0, '% %'))", "true");
     checkSimplify(or(isNull(ref), like(ref, literal("%"))),
         "true");
+    checkSimplify(or(isNull(ref), like(ref, literal("%%"))),
+        "true");
     checkSimplify(or(isNull(ref), like(ref, literal("%"), literal("#"))),
         "true");
     checkSimplifyUnchanged(like(ref, literal("%A")));
+    checkSimplify(like(ref, literal("%%A")), "LIKE($0, '%A')");
+    checkSimplify(like(ref, literal("%%%_A%%B%%")), "LIKE($0, '%_A%B%')");
+    checkSimplify(like(ref, literal("%%A%%%")), "LIKE($0, '%A%')");
+    checkSimplify(like(ref, literal("%%\\%%A\\%%%%%")), "LIKE($0, '%\\%%A\\%%')");
+    checkSimplify(like(ref, literal("%%A"), literal("#")), "LIKE($0, '%A', '#')");
+    checkSimplify(like(ref, literal("%%#%%A%%"), literal("#")),
+        "LIKE($0, '%#%%A%', '#')");
+    checkSimplify(like(ref, literal("%%#%#%A%%"), literal("#")),
+        "LIKE($0, '%#%#%A%', '#')");
+    checkSimplify(like(ref, literal("###%%#%#%A%%##%%%"), literal("#")),
+        "LIKE($0, '###%%#%#%A%##%', '#')");
+    checkSimplify(like(ref, literal("###%%#%#%A#%%%#%A%%###%%%"), literal("#")),
+        "LIKE($0, '###%%#%#%A#%%#%A%###%%', '#')");
+    checkSimplifyUnchanged(like(ref, literal("A"), literal("#")));
     checkSimplifyUnchanged(like(ref, literal("%A"), literal("#")));
 
     // As above, but ref is NOT NULL

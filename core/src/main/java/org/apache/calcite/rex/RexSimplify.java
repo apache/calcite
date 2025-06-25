@@ -65,6 +65,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.rex.RexUnknownAs.FALSE;
@@ -500,15 +501,65 @@ public class RexSimplify {
   private RexNode simplifyLike(RexCall e, RexUnknownAs unknownAs) {
     if (e.operands.get(1) instanceof RexLiteral) {
       final RexLiteral literal = (RexLiteral) e.operands.get(1);
-      if ("%".equals(literal.getValueAs(String.class))) {
-        // "x LIKE '%'" simplifies to "x = x"
+      String likeStr = requireNonNull(literal.getValueAs(String.class));
+      Pattern pattern = Pattern.compile("%+");
+      String value = pattern.matcher(likeStr).replaceAll("%");
+      if ("%".equals(value)) {
+        // "x LIKE '%'" or "x LIKE '%...'" simplifies to "x = x"
         final RexNode x = e.operands.get(0);
         return simplify(
             rexBuilder.makeCall(
                 e.getParserPosition(), SqlStdOperatorTable.EQUALS, x, x), unknownAs);
       }
+      // simplify "x LIKE '%%\%%a%%%'" to "x LIKE '%\%%a%'", default escape is '\'
+      if (e.operands.size() == 2) {
+        e = (RexCall) rexBuilder
+            .makeCall(e.getParserPosition(), e.getOperator(), e.operands.get(0),
+                rexBuilder.makeLiteral(simplifyLikeString(likeStr, '\\', '%')));
+      }
+      if (e.operands.size() == 3 && e.operands.get(2) instanceof RexLiteral) {
+        final RexLiteral escapeLiteral = (RexLiteral) e.operands.get(2);
+        Character escape = requireNonNull(escapeLiteral.getValueAs(Character.class));
+        e = (RexCall) rexBuilder
+            .makeCall(e.getParserPosition(), e.getOperator(), e.operands.get(0),
+                rexBuilder.makeLiteral(simplifyLikeString(likeStr, escape, '%')),
+                escapeLiteral);
+      }
     }
     return simplifyGenericNode(e);
+  }
+
+  /**
+   * Simplifies like string with escape.
+   * A like '%%#%%A%%' escape '#' should simplify to A like '%#%%A%' escape '#'.
+   */
+  private String simplifyLikeString(String content, char escape, char wildcard) {
+    int escapeCount = 0;
+    int wildcardCount = 0;
+    StringBuilder builder = new StringBuilder();
+    for (int index = 0; index < content.length(); index++) {
+      char c = content.charAt(index);
+      if (c == escape) {
+        builder.append(c);
+        escapeCount++;
+        wildcardCount = 0;
+        continue;
+      }
+      if (c == wildcard) {
+        if (escapeCount % 2 == 1) {
+          builder.append(wildcard);
+        } else if (wildcardCount == 0) {
+          builder.append(wildcard);
+          wildcardCount++;
+        }
+        escapeCount = 0;
+        continue;
+      }
+      builder.append(c);
+      escapeCount = 0;
+      wildcardCount = 0;
+    }
+    return builder.toString();
   }
 
   // e must be a comparison (=, >, >=, <, <=, !=)
