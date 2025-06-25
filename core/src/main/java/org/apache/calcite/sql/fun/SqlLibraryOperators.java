@@ -1664,6 +1664,13 @@ public abstract class SqlLibraryOperators {
           OperandTypes.or(JSON_STRING, STRING_STRING),
           SqlFunctionCategory.STRING);
 
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction JSON_EXTRACT_SCALAR =
+      new SqlFunction("JSON_EXTRACT_SCALAR", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000_NULLABLE, null,
+          OperandTypes.STRING_STRING, SqlFunctionCategory.STRING);
+
+
   @LibraryOperator(libraries = {TERADATA})
   public static final SqlFunction JSONEXTRACT =
       new SqlFunction("JSONEXTRACT", SqlKind.OTHER_FUNCTION,
@@ -3696,6 +3703,29 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.ARG0,
           null,
           ANY_STRING_OR_STRING_STRING,
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction JSON_QUERY_ARRAY =
+      new SqlFunction("JSON_QUERY_ARRAY",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR.andThen(SqlTypeTransforms.TO_ARRAY),
+          null,
+          OperandTypes.STRING_OPTIONAL_STRING,
+          SqlFunctionCategory.SYSTEM);
+
+  /**
+   * The "JSON_ARRAY_LENGTH(array, boolean)" function.
+   */
+  @LibraryOperator(libraries = {REDSHIFT})
+  public static final SqlFunction JSON_ARRAY_LENGTH =
+      new SqlFunction("JSON_ARRAY_LENGTH",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER,
+          null,
+          OperandTypes.or(
+              OperandTypes.family(SqlTypeFamily.STRING),
+              OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.BOOLEAN)),
           SqlFunctionCategory.SYSTEM);
 
   /** The {@code PERCENTILE_CONT} function, BigQuery's
