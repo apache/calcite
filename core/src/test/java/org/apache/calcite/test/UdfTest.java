@@ -1087,8 +1087,7 @@ class UdfTest {
    * and its return type (VARBINARY, mapped from ByteString) is fully
    * compatible for direct comparison with SQL VARBINARY literals (X'...')
    * within queries. */
-  @Test
-  void testUnbase64DirectComparison() {
+  @Test void testUnbase64DirectComparison() {
     final String testHex = "74657374"; // "test" in bytes
     final String testBase64 = "dGVzdA=="; // Base64 for "test"
 
