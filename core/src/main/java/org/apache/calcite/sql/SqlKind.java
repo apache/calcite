@@ -1383,8 +1383,11 @@ public enum SqlKind {
    */
   FORMAT,
 
-  /** {@code DATEDIFF} function (Big Query semantics). */
-  BQ_DATEDIFF;
+  /** {@code DATEDIFF} function (Databricks semantics). */
+  DATABRICKS_DATEDIFF,
+
+  /** {@code JSON_EXTRACT_PATH_TEXT} function (Redshift semantics). */
+  REDSHIFT_JSON_EXTRACT_PATH_TEXT;
 
   //~ Static fields/initializers ---------------------------------------------
 

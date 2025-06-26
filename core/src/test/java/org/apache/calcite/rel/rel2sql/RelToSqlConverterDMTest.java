@@ -8249,6 +8249,23 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.REDSHIFT.getDialect()), isLinux(expectedTeradataQuery));
   }
 
+  @Test public void testRedshiftJsonExtractTextFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode jsonCheckNode =
+        builder.call(
+            SqlLibraryOperators.REDSHIFT_JSON_EXTRACT_PATH_TEXT, builder.literal("{\"f2\": 1"
+                + ", \"f4\":{\"f6\":2}}"), builder.literal("f6"));
+
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(jsonCheckNode, "json"))
+        .build();
+    final String expectedBqQuery = "SELECT JSON_EXTRACT_PATH_TEXT('{\"f2\": 1, \"f4\":{\"f6\":2}}', 'f6') AS \"json\""
+        + "\nFROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.REDSHIFT.getDialect()), isLinux(expectedBqQuery));
+  }
+
   @Test public void testToCharWithSingleOperand() {
     final RelBuilder builder = relBuilder();
     final RexNode toCharNode =
@@ -9947,19 +9964,19 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.REDSHIFT.getDialect()), isLinux(expectedRedshiftSql));
   }
 
-  @Test public void testBQDateDiffFunction() {
+  @Test public void testDatabricksDateDiffFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode parseTSNode1 =
-        builder.call(SqlLibraryOperators.BQ_DATEDIFF, builder.literal(MONTH),
+        builder.call(SqlLibraryOperators.DATABRICKS_DATEDIFF, builder.literal(MONTH),
             builder.literal("1994-07-21"),
             builder.literal("1993-07-21"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(parseTSNode1, "datediff_value"))
         .build();
-    final String expectedBqSql = "SELECT DATEDIFF(MONTH, '1994-07-21', '1993-07-21') AS datediff_value\nFROM scott.EMP";
+    final String expectedDatabricksSql = "SELECT DATEDIFF(MONTH, '1994-07-21', '1993-07-21') AS datediff_value\nFROM scott.EMP";
 
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqSql));
+    assertThat(toSql(root, DatabaseProduct.DATABRICKS.getDialect()), isLinux(expectedDatabricksSql));
   }
 
   @Test public void testCurrentTimestampWithTimeZone() {
