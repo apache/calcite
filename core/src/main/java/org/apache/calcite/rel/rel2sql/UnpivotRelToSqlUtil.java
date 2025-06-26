@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.rel2sql;
 
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
@@ -39,6 +40,7 @@ import org.apache.calcite.sql.fun.SqlCaseOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.Litmus;
 
 import com.google.common.collect.ImmutableList;
 
@@ -382,7 +384,9 @@ public class UnpivotRelToSqlUtil {
       RelDataType inputRowType = projectRel.getInput().getRowType();
       RelDataType projectRowType = projectRel.getRowType();
 
-      if (inputRowType.getFieldNames().size() == projectRowType.getFieldNames().size()) {
+      if (inputRowType.getFieldNames().size() == projectRowType.getFieldNames().size()
+          && RelOptUtil.eq("project type", projectRowType,
+          "project input type", inputRowType, Litmus.IGNORE)) {
         SqlUnpivot sqlUnpivot = (SqlUnpivot) ((SqlSelect) result.node).getFrom();
         List<String> measureColumnNames =
             sqlUnpivot.measureList.stream()

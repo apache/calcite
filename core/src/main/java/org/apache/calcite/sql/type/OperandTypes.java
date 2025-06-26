@@ -468,6 +468,9 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker BINARY_BINARY =
       family(SqlTypeFamily.BINARY, SqlTypeFamily.BINARY);
 
+  public static final SqlSingleOperandTypeChecker BINARY_STRING =
+      family(SqlTypeFamily.BINARY, SqlTypeFamily.STRING);
+
   public static final SqlSingleOperandTypeChecker STRING =
       family(SqlTypeFamily.STRING);
 
