@@ -2268,14 +2268,6 @@ public abstract class SqlLibraryOperators {
       SqlBasicFunction.create("PARSE_TIME", ReturnTypes.TIME_NULLABLE,
           OperandTypes.STRING_STRING, SqlFunctionCategory.TIMEDATE);
 
-  /** BigQuery "DATEDIFF(datepart string, datetime,datetime)" function. */
-  @LibraryOperator(libraries = {BIG_QUERY})
-  public static final SqlFunction BQ_DATEDIFF =
-      new SqlFunction("DATEDIFF", SqlKind.BQ_DATEDIFF,
-          ReturnTypes.INTEGER, null,
-          OperandTypes.or(OperandTypes.ANY_STRING_STRING, OperandTypes.ANY_DATETIME_DATETIME),
-          SqlFunctionCategory.TIMEDATE);
-
   /**
    * The "PARSE_DATE(string, string)" function (BigQuery); Converts a string representation of date
    * to a DATE object.
@@ -3149,6 +3141,14 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.INTEGER, null, OperandTypes.DATETIME,
           SqlFunctionCategory.TIMEDATE);
 
+  /** DATABRICKS "DATEDIFF(datepart string, datetime,datetime)" function. */
+  @LibraryOperator(libraries = {DATABRICKS})
+  public static final SqlFunction DATABRICKS_DATEDIFF =
+      new SqlFunction("DATEDIFF", SqlKind.DATABRICKS_DATEDIFF,
+          ReturnTypes.INTEGER, null,
+          OperandTypes.or(OperandTypes.ANY_STRING_STRING, OperandTypes.ANY_DATETIME_DATETIME),
+          SqlFunctionCategory.TIMEDATE);
+
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction DATE_DIFF =
       new SqlFunction("DATE_DIFF", SqlKind.OTHER_FUNCTION,
@@ -3739,6 +3739,16 @@ public abstract class SqlLibraryOperators {
               OperandTypes.family(SqlTypeFamily.STRING),
               OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.BOOLEAN)),
           SqlFunctionCategory.SYSTEM);
+
+  /**
+   * The JSON_EXTRACT_PATH_TEXT function For Redshift
+   */
+  @LibraryOperator(libraries = {REDSHIFT})
+  public static final SqlFunction REDSHIFT_JSON_EXTRACT_PATH_TEXT =
+        new SqlFunction("JSON_EXTRACT_PATH_TEXT", SqlKind.REDSHIFT_JSON_EXTRACT_PATH_TEXT,
+          ReturnTypes.VARCHAR, null,
+          OperandTypes.or(OperandTypes.STRING_STRING, OperandTypes.STRING_STRING_STRING),
+          SqlFunctionCategory.STRING);
 
   /** The {@code PERCENTILE_CONT} function, BigQuery's
    * equivalent to {@link SqlStdOperatorTable#PERCENTILE_CONT},
