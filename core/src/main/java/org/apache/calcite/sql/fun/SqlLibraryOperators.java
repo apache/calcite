@@ -3741,7 +3741,7 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.SYSTEM);
 
   /**
-   * The JSON_EXTRACT_PATH_TEXT function For Redshift
+   * The JSON_EXTRACT_PATH_TEXT function For Redshift.
    */
   @LibraryOperator(libraries = {REDSHIFT})
   public static final SqlFunction REDSHIFT_JSON_EXTRACT_PATH_TEXT =

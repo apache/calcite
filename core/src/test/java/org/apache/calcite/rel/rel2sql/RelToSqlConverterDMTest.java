@@ -9974,9 +9974,11 @@ class RelToSqlConverterDMTest {
         .scan("EMP")
         .project(builder.alias(parseTSNode1, "datediff_value"))
         .build();
-    final String expectedDatabricksSql = "SELECT DATEDIFF(MONTH, '1994-07-21', '1993-07-21') AS datediff_value\nFROM scott.EMP";
+    final String expectedDatabricksSql =
+        "SELECT DATEDIFF(MONTH, '1994-07-21', '1993-07-21') AS datediff_value\nFROM scott.EMP";
 
-    assertThat(toSql(root, DatabaseProduct.DATABRICKS.getDialect()), isLinux(expectedDatabricksSql));
+    assertThat(toSql(root, DatabaseProduct.DATABRICKS.getDialect()),
+        isLinux(expectedDatabricksSql));
   }
 
   @Test public void testCurrentTimestampWithTimeZone() {
