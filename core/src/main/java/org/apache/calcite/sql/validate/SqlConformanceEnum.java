@@ -518,4 +518,14 @@ public enum SqlConformanceEnum implements SqlConformance {
       return false;
     }
   }
+
+  @Override public boolean emptyStringIsNull() {
+    switch (this) {
+    case ORACLE_10:
+    case ORACLE_12:
+      return true;
+    default:
+      return false;
+    }
+  }
 }

@@ -14933,7 +14933,14 @@ LogicalProject(U=[$0], S=[$1])
     <Resource name="planAfter">
       <![CDATA[
 LogicalCalc(expr#0=[{inputs}], expr#1=[1], expr#2=[2], expr#3=[SUBSTRING($t0, $t1, $t2)], expr#4=[3], expr#5=[SUBSTRING($t0, $t4)], expr#6=[||($t3, $t5)], expr#7=[UPPER($t6)], expr#8=[SUBSTRING($t0, $t1, $t1)], U=[$t7], S=[$t8])
-  LogicalValues(tuples=[[]])
+  LogicalUnion(all=[false])
+    LogicalUnion(all=[false])
+      LogicalCalc(expr#0=[{inputs}], expr#1=['table        '], expr#2=[false], expr#3=[CAST($t2):BOOLEAN], X=[$t1], $condition=[$t3])
+        LogicalValues(tuples=[[{ true }]])
+      LogicalCalc(expr#0=[{inputs}], expr#1=['view         '], expr#2=[false], expr#3=[CAST($t2):BOOLEAN], EXPR$0=[$t1], $condition=[$t3])
+        LogicalValues(tuples=[[{ true }]])
+    LogicalCalc(expr#0=[{inputs}], expr#1=['foreign table'], expr#2=[false], expr#3=[CAST($t2):BOOLEAN], EXPR$0=[$t1], $condition=[$t3])
+      LogicalValues(tuples=[[{ true }]])
 ]]>
     </Resource>
   </TestCase>
@@ -15918,7 +15925,7 @@ LogicalProject(EXPR$0=[REPLACE('abc', 'c', 'cd')])
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalProject(EXPR$0=['abcd':VARCHAR])
+LogicalProject(EXPR$0=[CAST('abcd':VARCHAR):VARCHAR])
   LogicalValues(tuples=[[{ 0 }]])
 ]]>
     </Resource>

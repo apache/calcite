@@ -216,7 +216,7 @@ values cast('TR' || 'UE' as boolean);
 (1 row)
 
 !ok
-EnumerableCalc(expr#0=[{inputs}], expr#1=['TR'], expr#2=['UE'], expr#3=[||($t1, $t2)], expr#4=[CAST($t3):BOOLEAN NOT NULL], EXPR$0=[$t4])
+EnumerableCalc(expr#0=[{inputs}], expr#1=['TR'], expr#2=['UE'], expr#3=[||($t1, $t2)], expr#4=[CAST($t3):BOOLEAN], EXPR$0=[$t4])
   EnumerableValues(tuples=[[{ 0 }]])
 !plan
 

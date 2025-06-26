@@ -80,6 +80,7 @@ import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -208,6 +209,13 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         new SubstrConvertlet(SqlLibrary.ORACLE));
     registerOp(SqlLibraryOperators.SUBSTR_POSTGRESQL,
         new SubstrConvertlet(SqlLibrary.POSTGRESQL));
+    registerOp(SqlStdOperatorTable.REPLACE, StandardConvertletTable::convertReplace);
+    registerOp(SqlStdOperatorTable.UPPER, StandardConvertletTable::convertUpper);
+    registerOp(SqlStdOperatorTable.LOWER, StandardConvertletTable::convertLower);
+    registerOp(SqlStdOperatorTable.INITCAP, StandardConvertletTable::convertInitcap);
+    registerOp(SqlStdOperatorTable.TRIM, StandardConvertletTable::convertTrim);
+    registerOp(SqlStdOperatorTable.OVERLAY, StandardConvertletTable::convertOverlay);
+    registerOp(SqlStdOperatorTable.CONCAT, StandardConvertletTable::convertConcat);
 
     registerOp(SqlLibraryOperators.DATE_ADD,
         new TimestampAddConvertlet());
@@ -1952,10 +1960,32 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
 
     @Override public RexNode convertCall(SqlRexContext cx, SqlCall call) {
       final RexBuilder rexBuilder = cx.getRexBuilder();
+      final SqlParserPos pos = call.getParserPosition();
+      final RelDataTypeFactory typeFactory =
+          cx.getValidator().getTypeFactory();
       final RexNode operand =
           cx.convertExpression(call.getOperandList().get(0));
-      return rexBuilder.makeCall(call.getParserPosition(), SqlStdOperatorTable.TRIM,
-          rexBuilder.makeFlag(flag), rexBuilder.makeLiteral(" "), operand);
+      RexNode rawCall =
+          rexBuilder.makeCall(pos, SqlStdOperatorTable.TRIM, rexBuilder.makeFlag(flag),
+              rexBuilder.makeLiteral(" "), operand);
+      SqlConformance conformance = cx.getValidator().config().conformance();
+      if (conformance.emptyStringIsNull()) {
+        // Translate
+        //   LTRIM/RTRIM(operand0[,operand1,...])
+        //
+        // to the following if we want Oracle semantics
+        //   CASE
+        //     WHEN LTRIM/RTRIM(operand0[,operand1,...]) = ''
+        //     THEN NULL
+        //     ELSE LTRIM/RTRIM(operand0[,operand1,...])
+        //   END
+        return rexBuilder.makeCall(pos, SqlStdOperatorTable.CASE,
+            rexBuilder.makeCall(pos, SqlStdOperatorTable.EQUALS, rawCall,
+                rexBuilder.makeLiteral("")),
+                rexBuilder.makeNullLiteral(typeFactory.createSqlType(SqlTypeName.NULL)),
+                rawCall);
+      }
+      return rawCall;
     }
   }
 
@@ -2154,6 +2184,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       final RexNode valueLengthPlusOne =
           rexBuilder.makeCall(pos, SqlStdOperatorTable.PLUS, valueLength,
               oneLiteral);
+      RexNode subStrCallWithEmptyString;
 
       final RexNode newStart;
       switch (library) {
@@ -2200,37 +2231,59 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       }
 
       if (call.operandCount() == 2) {
-        return rexBuilder.makeCall(pos, SqlStdOperatorTable.SUBSTRING, value,
-            newStart);
+        subStrCallWithEmptyString =
+            rexBuilder.makeCall(pos, SqlStdOperatorTable.SUBSTRING, value, newStart);
+      } else {
+        assert call.operandCount() == 3;
+        final RexNode length = exprs.get(2);
+        final RexNode newLength;
+        switch (library) {
+        case POSTGRESQL:
+          newLength = length;
+          break;
+        default:
+          newLength =
+              rexBuilder.makeCall(pos, SqlStdOperatorTable.CASE,
+                  rexBuilder.makeCall(pos, SqlStdOperatorTable.LESS_THAN, length,
+                      zeroLiteral),
+                  zeroLiteral, length);
+        }
+        final RexNode substringCall =
+            rexBuilder.makeCall(pos, SqlStdOperatorTable.SUBSTRING, value, newStart,
+                newLength);
+        switch (library) {
+        case BIG_QUERY:
+          subStrCallWithEmptyString =
+              rexBuilder.makeCall(
+                  pos, SqlStdOperatorTable.CASE, rexBuilder.makeCall(
+                      pos, SqlStdOperatorTable.LESS_THAN,
+                      rexBuilder.makeCall(pos, SqlStdOperatorTable.PLUS, start,
+                      valueLengthPlusOne), oneLiteral),
+              value, substringCall);
+          break;
+        default:
+          subStrCallWithEmptyString = substringCall;
+        }
       }
-
-      assert call.operandCount() == 3;
-      final RexNode length = exprs.get(2);
-      final RexNode newLength;
-      switch (library) {
-      case POSTGRESQL:
-        newLength = length;
-        break;
-      default:
-        newLength =
-            rexBuilder.makeCall(pos, SqlStdOperatorTable.CASE,
-                rexBuilder.makeCall(pos, SqlStdOperatorTable.LESS_THAN, length,
-                    zeroLiteral),
-                zeroLiteral, length);
-      }
-      final RexNode substringCall =
-          rexBuilder.makeCall(pos, SqlStdOperatorTable.SUBSTRING, value, newStart,
-              newLength);
-      switch (library) {
-      case BIG_QUERY:
+      SqlConformance conformance = cx.getValidator().config().conformance();
+      if (conformance.emptyStringIsNull()) {
+        // Translate
+        //   SUBSTRING_FUNCTION_BLOCK
+        //
+        // to the following if we want Oracle semantics
+        //   CASE
+        //     WHEN SUBSTRING_FUNCTION_BLOCK = ''
+        //     THEN NULL
+        //     ELSE SUBSTRING_FUNCTION_BLOCK
+        //   END
         return rexBuilder.makeCall(pos, SqlStdOperatorTable.CASE,
-            rexBuilder.makeCall(pos, SqlStdOperatorTable.LESS_THAN,
-                rexBuilder.makeCall(pos, SqlStdOperatorTable.PLUS, start,
-                    valueLengthPlusOne), oneLiteral),
-            value, substringCall);
-      default:
-        return substringCall;
+            rexBuilder.makeCall(pos, SqlStdOperatorTable.EQUALS, subStrCallWithEmptyString,
+                rexBuilder.makeLiteral("")),
+            rexBuilder.makeNullLiteral(
+                cx.getValidator().getTypeFactory().createSqlType(SqlTypeName.NULL)),
+            subStrCallWithEmptyString);
       }
+      return subStrCallWithEmptyString;
     }
   }
 
@@ -2556,5 +2609,79 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       RexNode e = rexBuilder.makeCast(pos, intType, call2);
       return rexBuilder.multiplyDivide(pos, e, multiplier, divider);
     }
+  }
+
+  /** Convertlet that handles {@code REPLACE} function. */
+  private static RexNode convertReplace(SqlRexContext cx, SqlCall call) {
+    return convertCallWithEmptyString(cx, call, SqlStdOperatorTable.REPLACE);
+  }
+
+  /** Convertlet that handles {@code UPPER} function. */
+  private static RexNode convertUpper(SqlRexContext cx, SqlCall call) {
+    return convertCallWithEmptyString(cx, call, SqlStdOperatorTable.UPPER);
+  }
+
+  /** Convertlet that handles {@code LOWER} function. */
+  private static RexNode convertLower(SqlRexContext cx, SqlCall call) {
+    return convertCallWithEmptyString(cx, call, SqlStdOperatorTable.LOWER);
+  }
+
+  /** Convertlet that handles {@code INITCAP} function. */
+  private static RexNode convertInitcap(SqlRexContext cx, SqlCall call) {
+    return convertCallWithEmptyString(cx, call, SqlStdOperatorTable.INITCAP);
+  }
+
+  /** Convertlet that handles {@code TRIM} function. */
+  private static RexNode convertTrim(SqlRexContext cx, SqlCall call) {
+    return convertCallWithEmptyString(cx, call, SqlStdOperatorTable.TRIM);
+  }
+
+  /** Convertlet that handles {@code OVERLAY} function. */
+  private static RexNode convertOverlay(SqlRexContext cx, SqlCall call) {
+    return convertCallWithEmptyString(cx, call, SqlStdOperatorTable.OVERLAY);
+  }
+
+  /** Convertlet that handles {@code CONCAT} function. */
+  private static RexNode convertConcat(SqlRexContext cx, SqlCall call) {
+    final RelDataType operandType = cx.getValidator()
+        .getValidatedNodeType(call.getOperandList().get(0));
+    if (operandType.getFamily() == SqlTypeFamily.ARRAY) {
+      final RexBuilder rexBuilder = cx.getRexBuilder();
+      final SqlParserPos pos = call.getParserPosition();
+      final List<RexNode> operands =
+          convertOperands(cx, call, SqlOperandTypeChecker.Consistency.NONE);
+      return rexBuilder.makeCall(pos, SqlStdOperatorTable.CONCAT, operands);
+    } else {
+      return convertCallWithEmptyString(cx, call, SqlStdOperatorTable.CONCAT);
+    }
+  }
+
+  private static RexNode convertCallWithEmptyString(SqlRexContext cx, SqlCall call,
+      SqlOperator op) {
+    // Translate
+    //   STR_FUNC(operand0[,operand1,...])
+    //
+    // to the following if we want Oracle semantics
+    //   CASE
+    //     WHEN STR_FUNC(operand0[,operand1,...]) = ''
+    //     THEN NULL
+    //     ELSE STR_FUNC(operand0[,operand1,...])
+    //   END
+    final RexBuilder rexBuilder = cx.getRexBuilder();
+    final SqlParserPos pos = call.getParserPosition();
+    final List<RexNode> operands =
+        convertOperands(cx, call, SqlOperandTypeChecker.Consistency.NONE);
+    final RelDataTypeFactory typeFactory = cx.getValidator().getTypeFactory();
+    final RexNode rawCall =
+        rexBuilder.makeCall(pos, cx.getValidator().getValidatedNodeType(call), op, operands);
+    SqlConformance conformance = cx.getValidator().config().conformance();
+    if (conformance.emptyStringIsNull()) {
+      return rexBuilder.makeCall(pos, SqlStdOperatorTable.CASE,
+          rexBuilder.makeCall(pos, SqlStdOperatorTable.EQUALS, rawCall,
+              rexBuilder.makeLiteral("")),
+              rexBuilder.makeNullLiteral(typeFactory.createSqlType(SqlTypeName.NULL)),
+              rawCall);
+    }
+    return rawCall;
   }
 }
