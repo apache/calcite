@@ -1054,10 +1054,6 @@ public class SparkSqlDialect extends SqlDialect {
       dateDiffCall =
           FLOOR.createCall(SqlParserPos.ZERO, DIVIDE.createCall(SqlParserPos.ZERO, divideOperands));
     }
-    if (call.operandCount() == 3) {
-      dateDiffCall =
-          DATEDIFF.createCall(SqlParserPos.ZERO, call.operand(0), call.operand(1), call.operand(2));
-    }
     super.unparseCall(writer, dateDiffCall, leftPrec, rightPrec);
   }
 

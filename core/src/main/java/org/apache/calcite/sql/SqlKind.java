@@ -1381,7 +1381,10 @@ public enum SqlKind {
   /**
    * format standard function.
    */
-  FORMAT;
+  FORMAT,
+
+  /** {@code DATEDIFF} function (Big Query semantics). */
+  BQ_DATEDIFF;
 
   //~ Static fields/initializers ---------------------------------------------
 

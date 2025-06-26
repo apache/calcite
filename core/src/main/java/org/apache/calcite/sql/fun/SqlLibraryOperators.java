@@ -2268,6 +2268,14 @@ public abstract class SqlLibraryOperators {
       SqlBasicFunction.create("PARSE_TIME", ReturnTypes.TIME_NULLABLE,
           OperandTypes.STRING_STRING, SqlFunctionCategory.TIMEDATE);
 
+  /** BigQuery "DATEDIFF(datepart string, datetime,datetime)" function. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction BQ_DATEDIFF =
+      new SqlFunction("DATEDIFF", SqlKind.BQ_DATEDIFF,
+          ReturnTypes.INTEGER, null,
+          OperandTypes.or(OperandTypes.ANY_STRING_STRING, OperandTypes.ANY_DATETIME_DATETIME),
+          SqlFunctionCategory.TIMEDATE);
+
   /**
    * The "PARSE_DATE(string, string)" function (BigQuery); Converts a string representation of date
    * to a DATE object.

@@ -9946,6 +9946,21 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.REDSHIFT.getDialect()), isLinux(expectedRedshiftSql));
   }
 
+  @Test public void testBQDateDiffFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode parseTSNode1 =
+        builder.call(SqlLibraryOperators.BQ_DATEDIFF, builder.literal(MONTH),
+            builder.literal("1994-07-21"),
+            builder.literal("1993-07-21"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(parseTSNode1, "datediff_value"))
+        .build();
+    final String expectedBqSql = "SELECT DATEDIFF(MONTH, '1994-07-21', '1993-07-21') AS datediff_value\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqSql));
+  }
+
   @Test public void testCurrentTimestampWithTimeZone() {
     final RelBuilder builder = relBuilder().scan("EMP");
     RelDataType relDataType =
