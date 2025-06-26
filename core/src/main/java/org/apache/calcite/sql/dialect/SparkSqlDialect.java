@@ -798,6 +798,10 @@ public class SparkSqlDialect extends SqlDialect {
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
       break;
+    case "CURRENT_CATALOG":
+      SqlWriter.Frame frame = writer.startFunCall("CURRENT_CATALOG");
+      writer.endFunCall(frame);
+      break;
     case "CURRENT_TIMESTAMP_TZ":
     case "CURRENT_TIMESTAMP_LTZ":
       final SqlWriter.Frame currentTimestampFunc = writer.startFunCall("CURRENT_TIMESTAMP");
