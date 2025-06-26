@@ -106,8 +106,7 @@ public class PivotRelToSqlUtil {
     }
     SqlNode select =
         new SqlSelect(SqlParserPos.ZERO, null, null, sqlTableAlias,
-            builder.select.getWhere(), null,
-            builder.select.getHaving(), null, builder.select.getOrderList(),
+            null, null, null, null, builder.select.getOrderList(),
             null, null, SqlNodeList.EMPTY);
     return select;
   }
@@ -125,16 +124,16 @@ public class PivotRelToSqlUtil {
             if (sqlBasicCall.getOperator().kind == SqlKind.IS_TRUE) {
               sqlBasicCall = sqlBasicCall.operand(0);
             }
-            SqlNode secondOperand = ((SqlBasicCall)
-                ((SqlCase) sqlBasicCall.operand(0)).getWhenOperands().get(0)).operand(1);
+            SqlNode secondOperand = extractSecondOperand(sqlBasicCall);
 
-            if (secondOperand.getKind() == SqlKind.AS
+            if (secondOperand instanceof SqlBasicCall && secondOperand.getKind() == SqlKind.AS
                 && ((SqlBasicCall) secondOperand).operand(1) instanceof SqlCharStringLiteral) {
               return modifyAlias(secondOperand);
             }
 
             return secondOperand;
           })
+          .filter(Objects::nonNull)
           .forEach(inColumnList::add);
     }
 
@@ -233,5 +232,25 @@ public class PivotRelToSqlUtil {
   private boolean isLowerFunction(SqlNode node) {
     return node instanceof SqlBasicCall
         && ((SqlBasicCall) node).getOperator() == SqlStdOperatorTable.LOWER;
+  }
+
+  private SqlNode extractSecondOperand(SqlBasicCall sqlBasicCall) {
+    SqlNode firstOperand = sqlBasicCall.operand(0);
+    if (firstOperand instanceof SqlCase) {
+      SqlCase sqlCase = (SqlCase) firstOperand;
+      List<SqlNode> whenOperands = sqlCase.getWhenOperands();
+      if (!whenOperands.isEmpty()) {
+        SqlNode when = whenOperands.get(0);
+        if (when instanceof SqlBasicCall) {
+          SqlBasicCall whenCall = (SqlBasicCall) when;
+          List<SqlNode> whenCallOperands = whenCall.getOperandList();
+          if (whenCallOperands.size() > 1) {
+            return whenCallOperands.get(1);
+          }
+        }
+      }
+    }
+    List<SqlNode> operands = sqlBasicCall.getOperandList();
+    return operands.size() > 1 ? operands.get(1) : null;
   }
 }
