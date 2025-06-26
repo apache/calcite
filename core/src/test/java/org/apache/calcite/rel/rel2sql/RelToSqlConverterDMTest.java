@@ -8236,7 +8236,8 @@ class RelToSqlConverterDMTest {
   @Test public void testJsonArrayLengthFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode jsonCheckNode =
-        builder.call(SqlLibraryOperators.JSON_ARRAY_LENGTH, builder.literal("[{\"name\": \"Bob\", \"age\": \"thirty\"}]"));
+        builder.call(SqlLibraryOperators.JSON_ARRAY_LENGTH,
+            builder.literal("[{\"name\": \"Bob\", \"age\": \"thirty\"}]"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(jsonCheckNode, "json_array_length"))
@@ -8453,8 +8454,8 @@ class RelToSqlConverterDMTest {
         .project(builder.alias(dbNameRexNode, "result"))
         .build();
 
-    final String expectedMsSqlQuery = "SELECT QUARTERNUMBER_OF_CALENDAR(CAST(GETDATE() AS DATE)) "
-        + "AS [result] FROM [scott].[EMP]";
+    final String expectedMsSqlQuery = "SELECT QUARTERNUMBER_OF_CALENDAR(CURRENT_DATE) "
+        + "AS \"result\"\nFROM \"scott\".\"EMP\"";
     assertThat(toSql(root, DatabaseProduct.TERADATA.getDialect()), isLinux(expectedMsSqlQuery));
   }
 
@@ -8468,7 +8469,7 @@ class RelToSqlConverterDMTest {
         .build();
 
     final String expectedMsSqlQuery = "SELECT TD_QUARTER_OF_CALENDAR(CURRENT_DATE) AS "
-        + "\"result\" FROM \"scott\".\"EMP\"";
+        + "\"result\"\nFROM \"scott\".\"EMP\"";
     assertThat(toSql(root, DatabaseProduct.TERADATA.getDialect()), isLinux(expectedMsSqlQuery));
   }
 
