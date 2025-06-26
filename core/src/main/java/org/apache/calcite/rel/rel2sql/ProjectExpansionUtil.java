@@ -123,7 +123,10 @@ class ProjectExpansionUtil {
       List<String> fieldNames = result.neededType.getFieldNames();
       List<String> columnsUsed =
           getColumnsUsedInOnConditionWithSubQueryAlias(sqlCondition, result.neededAlias);
-
+      if (result.node instanceof SqlSelect && ((SqlSelect) result.node).getSelectList() == null
+          && !hasStringEndingWithDigit(columnsUsed)) {
+        return;
+      }
       List<SqlNode> sqlIdentifierList = new ArrayList<>();
       for (String columnName : columnsUsed) {
         if (fieldNames.contains(columnName)) {
@@ -138,6 +141,10 @@ class ProjectExpansionUtil {
         updateResultSelectList(result, sqlIdentifierList);
       }
     }
+  }
+
+  private boolean hasStringEndingWithDigit(List<String> list) {
+    return list.stream().anyMatch(str -> !str.isEmpty() && Character.isDigit(str.charAt(str.length() - 1)));
   }
 
   private boolean shouldHandleResultAlias(SqlImplementor.Result result, SqlNode sqlCondition) {
