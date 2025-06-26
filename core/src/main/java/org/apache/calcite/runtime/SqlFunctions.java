@@ -1678,12 +1678,16 @@ public class SqlFunctions {
   }
 
   public static boolean containsByteString(Object... args) {
+    boolean ret = false;
     for (Object o : args) {
+      if (!(o instanceof ByteString) && !(o instanceof String)) {
+        throw new RuntimeException("concat function only accept for string or bytestring types.");
+      }
       if (o instanceof ByteString) {
-        return true;
+        ret = true;
       }
     }
-    return false;
+    return ret;
   }
 
   /** SQL {@code CONCAT(arg0, ...)} function which can accept null

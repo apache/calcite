@@ -2548,8 +2548,8 @@ public class SqlOperatorTest {
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7063">
    * Result type inferred for CONCAT_FUNCTION is incorrect for BINARY arguments</a>. */
   @Test void testConcatFuncMysql() {
-//    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.MYSQL);
-    final SqlOperatorFixture f = Fixtures.forOperators(true).withLibrary(SqlLibrary.MYSQL);
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.MYSQL);
+
     // test for String
     f.setFor(SqlLibraryOperators.CONCAT_FUNCTION_MYSQL);
     f.checkString("concat('a', x'61')", "6161", "BINARY(2) NOT NULL");
@@ -2572,6 +2572,8 @@ public class SqlOperatorTest {
     f.checkString("concat('a', x'61')", "6161", "BINARY(2) NOT NULL");
     f.checkString("concat(x'', x'', x'61')", "61", "BINARY(1) NOT NULL");
     f.checkString("concat(x'', x'', x'')", "", "BINARY(0) NOT NULL");
+    f.checkFails("concat(1, 'a', x'61')",
+        "concat function only accept for string or bytestring types.", true);
   }
 
   @Test void testConcatFunc() {
