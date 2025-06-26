@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.MissingNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableSet;
 
@@ -109,9 +110,10 @@ final class ElasticsearchJson {
       BiConsumer<String, String> consumer) {
     requireNonNull(mapping, "mapping");
     requireNonNull(consumer, "consumer");
-    if (mapping.has("properties")) {
-      visitMappingProperties(new ArrayDeque<>(), mapping, consumer);
+    if (mapping.findPath("properties") instanceof MissingNode) {
+      return;
     }
+    visitMappingProperties(new ArrayDeque<>(), mapping.findParent("properties"), consumer);
   }
 
   private static void visitMappingProperties(Deque<String> path,

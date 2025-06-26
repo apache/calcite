@@ -295,6 +295,42 @@ class ElasticsearchJsonTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3190">[CALCITE-3190]
+   * ElasticsearchJson throws Exception when visitMappingProperties</a>. */
+  @Test public void visitMappingPropertiesTest() throws Exception {
+    String mappingJson = "{"
+        + "\"mappings\":{"
+        + "    \"default\":{"
+        + "        \"properties\":{"
+        + "            \"city\":{"
+        + "                \"type\":\"keyword\""
+        + "            },"
+        + "            \"state\":{"
+        + "                \"type\":\"text\""
+        + "            },"
+        + "            \"pop\":{"
+        + "                \"type\":\"long\""
+        + "            }"
+        + "        }"
+        + "    },"
+        + "    \"type1\":{"
+        + "        \"_source\":{"
+        + "            \"enabled\":false"
+        + "        }"
+        + "    }"
+        + "}}";
+    ObjectNode root = new ObjectMapper().readValue(mappingJson, ObjectNode.class);
+    ObjectNode properties = (ObjectNode) root.get("mappings");
+
+    ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
+    ElasticsearchJson.visitMappingProperties(properties, builder::put);
+    Map<String, String> mapping = builder.build();
+    assertThat(mapping.get("city"), is("keyword"));
+    assertThat(mapping.get("state"), is("text"));
+    assertThat(mapping.get("pop"), is("long"));
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6498">[CALCITE-6498]
    * Elasticsearch multi-field mappings do not work</a>. */
   @Test void testVisitMappingPropertiesWithNestedAndMultiFieldMappings()
