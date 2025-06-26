@@ -1656,22 +1656,25 @@ public class SqlFunctions {
   }
 
   /** SQL {@code CONCAT(obj0, obj1, obj2, ...)} function. */
-  public static String concatMultiObjects(Object... args) {
+  public static Object concatMultiObjects(Object... args) {
     boolean containsByteString = containsByteString(args);
-    String ret = containsByteString ? "0x" : "";
-    for (Object str : args) {
-      if (str == null) {
-        ret = ret.concat("null");
-        continue;
+    if (containsByteString) {
+      ByteString ret = ByteString.of("", 16);
+      for (Object str : args) {
+        if (str instanceof String) {
+          ret = ret.concat(new ByteString(((String) str).getBytes(UTF_8)));
+        } else if (str instanceof ByteString) {
+          ret = ret.concat((ByteString) str);
+        }
       }
-      if (!(str instanceof ByteString)) {
-        ret = containsByteString ? ret.concat(hex(str.toString())) : ret.concat(str.toString());
-      } else {
-        ByteString bs = (ByteString) str;
-        ret = ret.concat(bs.toString());
+      return ret;
+    } else {
+      String ret = "";
+      for (Object str : args) {
+        ret = ret.concat(str.toString());
       }
+      return ret;
     }
-    return ret;
   }
 
   public static boolean containsByteString(Object... args) {

@@ -1228,6 +1228,62 @@ public abstract class ReturnTypes {
       };
 
   /**
+   * Type-inference strategy for String concatenation.
+   * Result is binary type when arguments contain binary type; otherwise return varchar type.
+   * For example,
+   *
+   * <p>concat(cast('a' as varchar(1)), cast('b' as varchar(1)),cast('c' as varchar(1)))
+   * returns varchar(3).
+   *
+   * <p>concat(x'61', x'62', x'63')
+   * returns binary(3).
+   *
+   * <p>concat(x'61', 'b', x'63')
+   * returns binary(3).
+   *
+   */
+  public static final SqlReturnTypeInference STRING_BYTESTRING_PRECISION =
+      opBinding -> {
+        boolean hasPrecisionNotSpecifiedOperand = false;
+        boolean precisionOverflow = false;
+        int typePrecision;
+        long amount = 0;
+        List<RelDataType> operandTypes = opBinding.collectOperandTypes();
+        boolean containsByteStringType = containsByteStringType(operandTypes);
+        final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+        final RelDataTypeSystem typeSystem = typeFactory.getTypeSystem();
+        for (RelDataType operandType : operandTypes) {
+          int operandPrecision = operandType.getPrecision();
+          amount = (long) operandPrecision + amount;
+          if (operandPrecision == RelDataType.PRECISION_NOT_SPECIFIED) {
+            hasPrecisionNotSpecifiedOperand = true;
+            break;
+          }
+          if (amount > typeSystem.getMaxPrecision(SqlTypeName.VARCHAR)) {
+            precisionOverflow = true;
+            break;
+          }
+        }
+        if (hasPrecisionNotSpecifiedOperand || precisionOverflow) {
+          typePrecision = RelDataType.PRECISION_NOT_SPECIFIED;
+        } else {
+          typePrecision = (int) amount;
+        }
+        SqlTypeName sqlTypeName = containsByteStringType ? SqlTypeName.BINARY : SqlTypeName.VARCHAR;
+        return opBinding.getTypeFactory()
+            .createSqlType(sqlTypeName, typePrecision);
+      };
+
+  private static boolean containsByteStringType(List<RelDataType> operandTypes) {
+    for (RelDataType dataType : operandTypes) {
+      if (dataType.getSqlTypeName() == SqlTypeName.BINARY) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
    * Type-inference strategy for String concatenation with separator.
    * The precision of separator should be calculated during combining.
    * Result is varying if either input is; otherwise fixed.
@@ -1295,6 +1351,13 @@ public abstract class ReturnTypes {
    */
   public static final SqlReturnTypeInference MULTIVALENT_STRING_SUM_PRECISION_NULLABLE =
       MULTIVALENT_STRING_SUM_PRECISION.andThen(SqlTypeTransforms.TO_NULLABLE);
+
+  /**
+   * Same as {@link #MULTIVALENT_STRING_SUM_PRECISION} and using
+   * {@link org.apache.calcite.sql.type.SqlTypeTransforms#TO_NULLABLE}.
+   */
+  public static final SqlReturnTypeInference STRING_BYTESTRING_PRECISION_NULLABLE =
+      STRING_BYTESTRING_PRECISION.andThen(SqlTypeTransforms.TO_NULLABLE);
 
   /**
    * Same as {@link #MULTIVALENT_STRING_SUM_PRECISION} and using

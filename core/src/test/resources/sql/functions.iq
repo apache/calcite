@@ -184,6 +184,46 @@ SELECT CONCAT('a');
 
 !ok
 
+SELECT CONCAT('a', 'b', 'c');
++--------+
+| EXPR$0 |
++--------+
+| abc    |
++--------+
+(1 row)
+
+!ok
+
+SELECT CONCAT('a', x'61');
++--------+
+| EXPR$0 |
++--------+
+| 6161   |
++--------+
+(1 row)
+
+!ok
+
+SELECT CONCAT(x'61', x'62');
++--------+
+| EXPR$0 |
++--------+
+| 6162   |
++--------+
+(1 row)
+
+!ok
+
+SELECT CONCAT('a', x'61', null);
++--------+
+| EXPR$0 |
++--------+
+|        |
++--------+
+(1 row)
+
+!ok
+
 SELECT CONCAT('c', 'h', 'a', 'r');
 +--------+
 | EXPR$0 |
