@@ -182,6 +182,12 @@ class UdfTest {
         + Smalls.AllTypesFunction.class.getName()
         + "',\n"
         + "           methodName: '*'\n"
+        + "         },\n"
+        + "         {\n"
+        + "           name: 'UNBASE64',\n"
+        + "           className: '"
+        + Smalls.MyUnbase64Function.class.getName()
+        + "'\n"
         + "         }\n"
         + "       ]\n"
         + "     }\n"
@@ -1073,6 +1079,22 @@ class UdfTest {
         assertThat(CalciteAssert.toString(resultSet), is(result));
       }
     }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7073">[CALCITE-7073]
+   * Tests that the UNBASE64 user-defined function correctly decodes a Base64 string
+   * and its return type (VARBINARY, mapped from ByteString) is fully
+   * compatible for direct comparison with SQL VARBINARY literals (X'...')
+   * within queries. */
+  @Test
+  void testUnbase64DirectComparison() {
+    final String testHex = "74657374"; // "test" in bytes
+    final String testBase64 = "dGVzdA=="; // Base64 for "test"
+
+    final String sql = "select \"adhoc\".unbase64(cast('" + testBase64 + "' as varchar)) = x'" + testHex + "' as C\n";
+
+    withUdf().query(sql).returns("C=true\n");
   }
 
   /**

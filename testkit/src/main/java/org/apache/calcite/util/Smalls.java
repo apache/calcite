@@ -19,6 +19,7 @@ package org.apache.calcite.util;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.EnumerableTableScan;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
+import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.BaseQueryable;
@@ -1475,6 +1476,20 @@ public class Smalls {
               Expressions.constant(tableName));
       return Expressions.call(queryableExpression,
           BuiltInMethod.QUERYABLE_AS_ENUMERABLE.method);
+    }
+  }
+
+  /** User-defined function that decodes a Base64 string to bytes. */
+  public static class MyUnbase64Function {
+    public static ByteString eval(String s) {
+      if (s == null) {
+        return null;
+      }
+      try {
+        return ByteString.ofBase64(s);
+      } catch (Exception e) {
+        return null;
+      }
     }
   }
 }
