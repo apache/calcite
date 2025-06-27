@@ -2550,20 +2550,10 @@ public class SqlOperatorTest {
   @Test void testConcatFuncMysql() {
     final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.MYSQL);
 
-    // test for String
+    // test for ByteString
     f.setFor(SqlLibraryOperators.CONCAT_FUNCTION_MYSQL);
     f.checkString("concat('a', x'61')", "6161", "BINARY(2) NOT NULL");
-    f.checkString("concat('a', 'b', 'c')", "abc", "VARCHAR(3) NOT NULL");
-    f.checkString("concat(cast('a' as varchar), cast('b' as varchar), "
-        + "cast('c' as varchar))", "abc", "VARCHAR NOT NULL");
-    f.checkNull("concat('a', 'b', cast(null as char(2)))");
-    f.checkNull("concat(cast(null as ANY), 'b', cast(null as char(2)))");
-    f.checkString("concat('', '', 'a')", "a", "VARCHAR(1) NOT NULL");
-    f.checkString("concat('', '', '')", "", "VARCHAR(0) NOT NULL");
-    f.checkFails("^concat()^", INVALID_ARGUMENTS_NUMBER, false);
     f.checkString("concat('abc', 'bb', 'cc')", "abcbbcc", "VARCHAR(7) NOT NULL");
-
-    // test for ByteString
     f.checkString("concat(x'616263',x'62')", "61626362", "BINARY(4) NOT NULL");
     f.checkString("concat(x'616263','abc')", "616263616263", "BINARY(6) NOT NULL");
     f.checkString("concat(x'61',x'62')", "6162", "BINARY(2) NOT NULL");
@@ -2581,6 +2571,7 @@ public class SqlOperatorTest {
 
   @Test void testConcatFunc() {
     final SqlOperatorFixture f = fixture();
+    checkConcatFunc(f.withLibrary(SqlLibrary.MYSQL));
     checkConcatFunc(f.withLibrary(SqlLibrary.BIG_QUERY));
     checkConcatFuncWithNull(f.withLibrary(SqlLibrary.POSTGRESQL));
     checkConcatFuncWithNull(f.withLibrary(SqlLibrary.MSSQL));

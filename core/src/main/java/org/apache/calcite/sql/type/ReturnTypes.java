@@ -1249,10 +1249,13 @@ public abstract class ReturnTypes {
         int typePrecision;
         long amount = 0;
         List<RelDataType> operandTypes = opBinding.collectOperandTypes();
-        boolean containsByteStringType = containsByteStringType(operandTypes);
         final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
         final RelDataTypeSystem typeSystem = typeFactory.getTypeSystem();
+        boolean containsByteStringType = false;
         for (RelDataType operandType : operandTypes) {
+          if (operandType.getSqlTypeName() == SqlTypeName.BINARY) {
+            containsByteStringType = true;
+          }
           int operandPrecision = operandType.getPrecision();
           amount = (long) operandPrecision + amount;
           if (operandPrecision == RelDataType.PRECISION_NOT_SPECIFIED) {
@@ -1273,15 +1276,6 @@ public abstract class ReturnTypes {
         return opBinding.getTypeFactory()
             .createSqlType(sqlTypeName, typePrecision);
       };
-
-  private static boolean containsByteStringType(List<RelDataType> operandTypes) {
-    for (RelDataType dataType : operandTypes) {
-      if (dataType.getSqlTypeName() == SqlTypeName.BINARY) {
-        return true;
-      }
-    }
-    return false;
-  }
 
   /**
    * Type-inference strategy for String concatenation with separator.
