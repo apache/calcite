@@ -225,6 +225,41 @@ SELECT CONCAT('a', x'61', null);
 
 !ok
 
+SELECT CONCAT(cast(1 as varchar), 'a');
++--------+
+| EXPR$0 |
++--------+
+| 1a     |
++--------+
+(1 row)
+
+!ok
+
+SELECT CONCAT(cast(1 as varchar), x'61');
++--------+
+| EXPR$0 |
++--------+
+| 3161   |
++--------+
+(1 row)
+
+!ok
+
+SELECT CONCAT(cast(1 as varchar), x'61', null);
++--------+
+| EXPR$0 |
++--------+
+|        |
++--------+
+(1 row)
+
+!ok
+
+#Only accept varchar/binary arguments
+SELECT CONCAT(1, x'61');
+concat function only accept for string or bytestring types.
+!error
+
 SELECT CONCAT('c', 'h', 'a', 'r');
 +--------+
 | EXPR$0 |

@@ -1657,7 +1657,7 @@ public class SqlFunctions {
 
   /** SQL {@code CONCAT(obj0, obj1, obj2, ...)} function. */
   public static Object concatMultiObjects(Object... args) {
-    boolean containsByteString = containsByteString(args);
+    boolean containsByteString = anyIsByteString(args);
     if (containsByteString) {
       ByteString ret = ByteString.of("", 16);
       for (Object str : args) {
@@ -1677,7 +1677,7 @@ public class SqlFunctions {
     }
   }
 
-  public static boolean containsByteString(Object... args) {
+  private static boolean anyIsByteString(Object... args) {
     boolean ret = false;
     for (Object o : args) {
       if (!(o instanceof ByteString) && !(o instanceof String)) {
