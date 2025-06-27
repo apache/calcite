@@ -323,6 +323,14 @@ public class JdbcToEnumerableConverter
               java.sql.Array.class);
       source = Expressions.call(BuiltInMethod.JDBC_ARRAY_TO_LIST.method, x);
       break;
+    case GEOMETRY:
+      source =
+          Expressions.call(
+              BuiltInMethod.DECODE_POSTGIS_GEOMETRY.method,
+              Expressions.call(
+                  resultSet_, "getString",
+                  Expressions.constant(i + 1)));
+      break;
     case NULL:
       source = RexImpTable.NULL_EXPR;
       break;
