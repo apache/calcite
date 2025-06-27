@@ -2548,8 +2548,7 @@ public class SqlOperatorTest {
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7063">
    * Result type inferred for CONCAT_FUNCTION is incorrect for BINARY arguments</a>. */
   @Test void testConcatFuncMysql() {
-//    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.MYSQL);
-    final SqlOperatorFixture f = Fixtures.forOperators(true).withLibrary(SqlLibrary.MYSQL);
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.MYSQL);
 
     // test for String
     f.setFor(SqlLibraryOperators.CONCAT_FUNCTION_MYSQL);
