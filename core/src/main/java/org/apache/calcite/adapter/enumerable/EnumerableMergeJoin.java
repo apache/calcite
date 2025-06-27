@@ -38,6 +38,8 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.util.BuiltInMethod;
@@ -492,8 +494,23 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
           new RelFieldCollation(i, RelFieldCollation.Direction.ASCENDING,
               RelFieldCollation.NullDirection.LAST));
     }
+
+    final RelDataTypeFactory.Builder typeBuilder = typeFactory.builder();
+    List<RelDataTypeField> leftRelDataTypeFieldList = leftKeyPhysType.getRowType().getFieldList();
+    List<RelDataTypeField> rightRelDataTypeFieldList = rightKeyPhysType.getRowType().getFieldList();
+    for (int i = 0; i < leftRelDataTypeFieldList.size(); i++) {
+      typeBuilder.add(leftRelDataTypeFieldList.get(i).getName(),
+          typeFactory.createTypeWithNullability(
+              leftRelDataTypeFieldList.get(i).getType(),
+              leftRelDataTypeFieldList.get(i).getType().isNullable()
+                  || rightRelDataTypeFieldList.get(i).getType().isNullable()));
+    }
+
+    RelDataType comparatorRowType = typeBuilder.build();
+    final PhysType comparatorPhysType =
+        PhysTypeImpl.of(typeFactory, comparatorRowType, JavaRowFormat.LIST);
     final RelCollation collation = RelCollations.of(fieldCollations);
-    final Expression comparator = leftKeyPhysType.generateMergeJoinComparator(collation);
+    final Expression comparator = comparatorPhysType.generateMergeJoinComparator(collation);
 
     return implementor.result(
         physType,
