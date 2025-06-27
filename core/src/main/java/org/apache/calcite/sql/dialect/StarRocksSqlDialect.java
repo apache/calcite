@@ -189,6 +189,11 @@ public class StarRocksSqlDialect extends MysqlSqlDialect {
       return new SqlDataTypeSpec(
           new SqlBasicTypeNameSpec(SqlTypeName.BIGINT, SqlParserPos.ZERO),
           SqlParserPos.ZERO);
+    case UTINYINT:
+    case USMALLINT:
+    case UINTEGER:
+      throw new RuntimeException(
+          "StarRocks doesn't support UNSIGNED TINYINT/SMALLINT/INTEGER!");
     case TIMESTAMP:
       return new SqlDataTypeSpec(
           new SqlAlienSystemTypeNameSpec(

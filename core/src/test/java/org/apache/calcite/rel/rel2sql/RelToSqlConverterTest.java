@@ -3777,6 +3777,26 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7069">[CALCITE-7069]
+   * Invalid unparse for INT UNSIGNED and BIGINT UNSIGNED in MysqlSqlDialect</a>. */
+  @Test void testCastToUnsignedInMySQL() {
+    final String query1 = "select cast(\"product_id\" as bigint unsigned) from \"product\"";
+    // MySQL does not allow cast to BIGINT UNSIGNED; instead cast to UNSIGNED.
+    final String expectedMysql1 = "SELECT CAST(`product_id` AS UNSIGNED)\n"
+        + "FROM `foodmart`.`product`";
+    final String query2 = "select cast(\"product_id\" as integer unsigned) from \"product\"";
+    sql(query1)
+        .withMysql().ok(expectedMysql1)
+        .withStarRocks().ok(expectedMysql1)
+        .withDoris().throws_("Doris doesn't support UNSIGNED TINYINT/SMALLINT/INTEGER/BIGINT!");
+    sql(query2)
+        // MySQL does not allow cast to INTEGER UNSIGNED, and we shouldn't use the next level
+        .withMysql().throws_("MySQL doesn't support UNSIGNED TINYINT/SMALLINT/INTEGER!")
+        .withStarRocks().throws_("StarRocks doesn't support UNSIGNED TINYINT/SMALLINT/INTEGER!")
+        .withDoris().throws_("Doris doesn't support UNSIGNED TINYINT/SMALLINT/INTEGER/BIGINT!");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2719">[CALCITE-2719]
    * MySQL does not support cast to BIGINT type</a>
    * and
@@ -4348,7 +4368,7 @@ class RelToSqlConverterTest {
    * Maximum precision of unsigned bigint type in MysqlSqlDialect should be 20</a>. */
   @Test void testCastToUBigInt() {
     String query = "select cast(18446744073709551615 as bigint unsigned) from \"product\"";
-    final String expectedMysql = "SELECT CAST(18446744073709551615 AS BIGINT UNSIGNED)\n"
+    final String expectedMysql = "SELECT CAST(18446744073709551615 AS UNSIGNED)\n"
         + "FROM `foodmart`.`product`";
     final String errMsg = "org.apache.calcite.runtime.CalciteContextException: "
         + "From line 1, column 13 to line 1, column 32: "

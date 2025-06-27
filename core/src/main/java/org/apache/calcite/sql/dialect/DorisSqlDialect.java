@@ -17,11 +17,15 @@
 package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.avatica.util.TimeUnitRange;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import static org.apache.calcite.util.RelToSqlConverterUtil.unparseSparkArrayAndMap;
 
@@ -59,5 +63,19 @@ public class DorisSqlDialect extends StarRocksSqlDialect {
       super.unparseCall(writer, call, leftPrec, rightPrec);
       break;
     }
+  }
+
+  @Override public @Nullable SqlNode getCastSpec(RelDataType type) {
+    switch (type.getSqlTypeName()) {
+    case UTINYINT:
+    case USMALLINT:
+    case UINTEGER:
+    case UBIGINT:
+      throw new RuntimeException(
+          "Doris doesn't support UNSIGNED TINYINT/SMALLINT/INTEGER/BIGINT!");
+    default:
+      break;
+    }
+    return super.getCastSpec(type);
   }
 }
