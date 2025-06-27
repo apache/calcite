@@ -150,6 +150,7 @@ import static org.apache.calcite.avatica.util.TimeUnit.WEEK;
 import static org.apache.calcite.avatica.util.TimeUnit.YEAR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.FORMAT_QQYY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.FORMAT_QQYYYY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.MMYYYY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BITNOT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CURRENT_TIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CURRENT_TIMESTAMP_WITH_TIME_ZONE;
@@ -13451,6 +13452,19 @@ class RelToSqlConverterDMTest {
         .project(builder.alias(dateFormatNode, "format_date"))
         .build();
     final String expectedTDSql = "SELECT FORMAT_DATE('%Q%Q%Y', CURRENT_DATE) AS format_date\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedTDSql));
+  }
+
+  @Test public void testDateFormatWithMMYYYY() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dateFormatNode =
+        builder.call(SqlLibraryOperators.FORMAT_DATE, builder.literal(MMYYYY.value), builder.call(CURRENT_DATE));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(dateFormatNode, "format_date"))
+        .build();
+    final String expectedTDSql = "SELECT FORMAT_DATE('%m%Y', CURRENT_DATE) AS format_date\nFROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedTDSql));
   }
