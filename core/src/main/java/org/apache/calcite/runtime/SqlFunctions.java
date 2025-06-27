@@ -1681,7 +1681,7 @@ public class SqlFunctions {
     boolean ret = false;
     for (Object o : args) {
       if (!(o instanceof ByteString) && !(o instanceof String)) {
-        throw new RuntimeException("concat function only accept for string or bytestring types.");
+        throw new RuntimeException("concat function only accepts strings or bytestring arguments.");
       }
       if (o instanceof ByteString) {
         ret = true;

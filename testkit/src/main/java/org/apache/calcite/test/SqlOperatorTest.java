@@ -2565,8 +2565,9 @@ public class SqlOperatorTest {
     f.checkString("concat('a', x'61')", "6161", "BINARY(2) NOT NULL");
     f.checkString("concat(x'', x'', x'61')", "61", "BINARY(1) NOT NULL");
     f.checkString("concat(x'', x'', x'')", "", "BINARY(0) NOT NULL");
+    f.checkString("concat(x'61', '方解石')", "", "BINARY(4) NOT NULL");
     f.checkFails("concat(1, 'a', x'61')",
-        "concat function only accept for string or bytestring types.", true);
+        "concat function only accepts strings or bytestring arguments.", true);
   }
 
   @Test void testConcatFunc() {

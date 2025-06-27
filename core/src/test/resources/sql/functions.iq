@@ -257,7 +257,7 @@ SELECT CONCAT(cast(1 as varchar), x'61', null);
 
 #Only accept varchar/binary arguments
 SELECT CONCAT(1, x'61');
-concat function only accept for string or bytestring types.
+concat function only accepts strings or bytestring arguments.
 !error
 
 SELECT CONCAT('c', 'h', 'a', 'r');
