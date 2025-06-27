@@ -3958,6 +3958,15 @@ EnumerableCalc(expr#0..14=[{inputs}], expr#15=[0], expr#16=[=($t8, $t15)], expr#
         EnumerableValues(tuples=[[{ 3, null }, { 1, 2 }]])
 !plan
 
+select * from "scott".emp where (empno, deptno) not in ((1, 2), (3, null), (cast(null as integer), cast(null as integer)));
++-------+-------+-----+-----+----------+-----+------+--------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
++-------+-------+-----+-----+----------+-----+------+--------+
++-------+-------+-----+-----+----------+-----+------+--------+
+(0 rows)
+
+!ok
+
 select * from "scott".emp where (empno, deptno) not in ((7369, 20), (7499, 30));
 +-------+--------+-----------+------+------------+---------+---------+--------+
 | EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
