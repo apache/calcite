@@ -1021,7 +1021,7 @@ class RelToSqlConverterDMTest {
   @Test public void testAnalyticalFunctionInAggregateExpressionTree() {
     final String query = "select\n"
         + "coalesce(max(case when \"full_name\" in ('John Smith') AND item = 1"
-        + "then \"position_title\" else null end), 'N/A') as \"position\""
+        + "then \"position_title\" else null end), 'N/A') as \"pos\""
         + "  from (select \"a\".\"full_name\", \"a\".\"position_title\","
         + "  row_number() over (partition by \"a\".\"full_name\" order by \"a\".\"full_name\") "
         + "  as item"
@@ -1029,7 +1029,7 @@ class RelToSqlConverterDMTest {
         + "    group by \"a\".\"full_name\", \"a\".\"position_title\""
         + "    qualify item <= 3) \"b\"";
     final String expectedBigQuery = "SELECT "
-        + "CASE WHEN MAX(`$f0`) IS NOT NULL THEN CAST(MAX(`$f0`) AS STRING) ELSE 'N/A' END AS position\n"
+        + "CASE WHEN MAX(`$f0`) IS NOT NULL THEN CAST(MAX(`$f0`) AS STRING) ELSE 'N/A' END AS pos\n"
         + "FROM (SELECT CASE WHEN full_name = 'John Smith' AND "
         + "(ROW_NUMBER() OVER (PARTITION BY full_name ORDER BY full_name IS NULL, full_name)) = 1 "
         + "THEN position_title ELSE NULL END AS `$f0`\n"

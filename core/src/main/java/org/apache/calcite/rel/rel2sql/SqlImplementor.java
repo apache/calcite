@@ -2167,7 +2167,7 @@ public abstract class SqlImplementor {
       if (sqlNode instanceof SqlCase) {
         SqlCase caseExpr = (SqlCase) sqlNode;
         for (SqlNode whenOperand : caseExpr.getWhenOperands()) {
-          if (hasAnalyticalFunctionInExpressionTree(whenOperand)) {
+          if (hasAnalyticalFunctionInOperandList(whenOperand)) {
             return true;
           }
         }
@@ -2237,14 +2237,14 @@ public abstract class SqlImplementor {
       return false;
     }
 
-    private boolean hasAnalyticalFunctionInExpressionTree(SqlNode node) {
+    private boolean hasAnalyticalFunctionInOperandList(SqlNode node) {
       if (node instanceof SqlCall) {
         SqlCall call = (SqlCall) node;
         if (call.getOperator() instanceof SqlOverOperator) {
           return true;
         }
         for (SqlNode operand : call.getOperandList()) {
-          if (hasAnalyticalFunctionInExpressionTree(operand)) {
+          if (hasAnalyticalFunctionInOperandList(operand)) {
             return true;
           }
         }
