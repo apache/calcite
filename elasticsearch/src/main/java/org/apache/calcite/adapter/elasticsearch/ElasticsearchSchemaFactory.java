@@ -45,6 +45,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -212,7 +213,18 @@ public class ElasticsearchSchemaFactory implements SchemaFactory {
     checkArgument(!hosts.isEmpty(), "no ES hosts specified");
     // Two lists are considered equal when all of their corresponding elements are equal
     // making a list of RestClient params a suitable cache key.
-    List cacheKey = ImmutableList.of(hosts, pathPrefix, username, password);
+    ArrayList<Object> config = new ArrayList<>();
+    config.add(hosts);
+    if (pathPrefix != null) {
+      config.add(pathPrefix);
+    }
+    if (username != null) {
+      config.add(username);
+    }
+    if (password != null) {
+      config.add(password);
+    }
+    List cacheKey = ImmutableList.copyOf(config);
 
     try {
       return REST_CLIENTS.get(cacheKey, new Callable<RestClient>() {
