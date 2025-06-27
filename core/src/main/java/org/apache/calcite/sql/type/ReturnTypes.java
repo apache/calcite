@@ -1347,7 +1347,7 @@ public abstract class ReturnTypes {
       MULTIVALENT_STRING_SUM_PRECISION.andThen(SqlTypeTransforms.TO_NULLABLE);
 
   /**
-   * Same as {@link #MULTIVALENT_STRING_SUM_PRECISION} and using
+   * Same as {@link #STRING_BYTESTRING_PRECISION} and using
    * {@link org.apache.calcite.sql.type.SqlTypeTransforms#TO_NULLABLE}.
    */
   public static final SqlReturnTypeInference STRING_BYTESTRING_PRECISION_NULLABLE =
