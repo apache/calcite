@@ -844,6 +844,39 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   /**
+   * Replaces all references to the given old subset with the new subset
+   * in the parent nodes' inputs. This is typically used when a rule
+   * rewrites a subquery or merges subsets, such as replacing a filter
+   * with a join in {@link org.apache.calcite.rel.rules.SubQueryRemoveRule}.
+   *
+   * @param oldSubset The subset to be replaced
+   * @param newSubset The subset to replace with
+   */
+  public void replaceSubset(RelSubset oldSubset, RelSubset newSubset) {
+    if (oldSubset == newSubset) {
+      // Nop.
+      return;
+    }
+
+    for (RelNode parent : oldSubset.getParents()) {
+      List<RelNode> inputs = parent.getInputs();
+      boolean updated = false;
+      for (int i = 0; i < inputs.size(); i++) {
+        RelNode child = inputs.get(i);
+        if (child != oldSubset) {
+          continue;
+        }
+        parent.replaceInput(i, newSubset);
+        updated = true;
+      }
+      if (updated) {
+        // after `recomputeDigest`, add new digest of parent in mapDigestToRel
+        mapDigestToRel.put(parent.getRelDigest(), parent);
+      }
+    }
+  }
+
+  /**
    * Dumps the internal state of this VolcanoPlanner to a writer.
    *
    * @param pw Print writer
