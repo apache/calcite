@@ -876,7 +876,7 @@ public class SubQueryRemoveRule
             project.getProjects(), e);
     builder.push(project.getInput());
     final int fieldCount = builder.peek().getRowType().getFieldCount();
-    final Set<CorrelationId>  variablesSet =
+    final Set<CorrelationId> variablesSet =
         RelOptUtil.getVariablesUsed(e.rel);
     final RexNode target =
         rule.apply(e, variablesSet, logic, builder, 1, fieldCount, 0);
@@ -908,7 +908,7 @@ public class SubQueryRemoveRule
       ++count;
       final RelOptUtil.Logic logic =
           LogicVisitor.find(RelOptUtil.Logic.TRUE, ImmutableList.of(c), e);
-      final Set<CorrelationId>  variablesSet =
+      final Set<CorrelationId> variablesSet =
           RelOptUtil.getVariablesUsed(e.rel);
       // Filter without variables could be handled before this change, we do not want
       // to break it yet for compatibility reason.
@@ -953,7 +953,8 @@ public class SubQueryRemoveRule
     RelBuilder relBuilder = call.builder();
     relBuilder.push(filter.getInput()); // push join left
 
-    Optional<RexNode> newCondition = rule.handleSubQuery(subQueryCall.get(), condition, relBuilder, decorrelate);
+    Optional<RexNode> newCondition = rule.handleSubQuery(subQueryCall.get(), condition, relBuilder,
+        decorrelate);
     if (newCondition.isPresent()) {
       RexNode c = newCondition.get();
       if (hasCorrelatedExpressions(c)) {
@@ -1104,7 +1105,8 @@ public class SubQueryRemoveRule
       RexNode condition,
       RelBuilder relBuilder,
       SubQueryDecorrelator.Result decorrelate) {
-    RelOptUtil.Logic logic = LogicVisitor.find(RelOptUtil.Logic.TRUE, ImmutableList.of(condition), subQueryCall);
+    RelOptUtil.Logic logic = LogicVisitor.find(RelOptUtil.Logic.TRUE, ImmutableList.of(condition),
+        subQueryCall);
     if (logic != RelOptUtil.Logic.TRUE) {
       // this should not happen, none unsupported SubQuery could not reach here
       // this is just for double-check
@@ -1118,11 +1120,13 @@ public class SubQueryRemoveRule
 
     RexNode newCondition = replaceSubQuery(condition, subQueryCall, target.get());
     Optional<RexCall> nextSubQueryCall = findSubQuery(newCondition);
-    return nextSubQueryCall.map(subQuery -> handleSubQuery(subQuery, newCondition, relBuilder, decorrelate))
+    return nextSubQueryCall.map(
+        subQuery -> handleSubQuery(subQuery, newCondition, relBuilder, decorrelate))
         .orElse(Optional.of(newCondition));
   }
 
-  private Optional<RexNode> apply(RexCall subQueryCall, RelBuilder relBuilder, SubQueryDecorrelator.Result decorrelate) {
+  private Optional<RexNode> apply(RexCall subQueryCall, RelBuilder relBuilder,
+      SubQueryDecorrelator.Result decorrelate) {
 
     RexSubQuery subQuery;
     boolean withNot = false;
@@ -1164,7 +1168,8 @@ public class SubQueryRemoveRule
       relBuilder.project(relBuilder.alias(relBuilder.literal(true), "i"));
       relBuilder.aggregate(relBuilder.groupKey(), relBuilder.min("m", relBuilder.field(0)));
       relBuilder.project(relBuilder.isNotNull(relBuilder.field(0)));
-      joinCondition = new RexInputRef(leftFieldCount, relBuilder.peek().getRowType().getFieldList().get(0).getType());
+      joinCondition = new RexInputRef(leftFieldCount,
+          relBuilder.peek().getRowType().getFieldList().get(0).getType());
     }
 
     if (withNot) {
@@ -1176,7 +1181,8 @@ public class SubQueryRemoveRule
   }
 
 
-  private static RexNode replaceSubQuery(RexNode condition, RexCall oldSubQueryCall, RexNode replacement) {
+  private static RexNode replaceSubQuery(RexNode condition, RexCall oldSubQueryCall,
+      RexNode replacement) {
     return condition.accept(new RexShuttle() {
 
       @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
@@ -1292,6 +1298,7 @@ public class SubQueryRemoveRule
       return subQuery.equals(this.subQuery) ? replacement : subQuery;
     }
   }
+
   /** Rule configuration. */
   @Value.Immutable(singleton = false)
   public interface Config extends RelRule.Config {
@@ -1304,7 +1311,7 @@ public class SubQueryRemoveRule
         .withDescription("SubQueryRemoveRule:Project");
 
     Config FILTER = ImmutableSubQueryRemoveRule.Config.builder()
-            .withMatchHandler((rule, call) -> SubQueryRemoveRule.matchFilter(rule, call, false))
+        .withMatchHandler((rule, call) -> SubQueryRemoveRule.matchFilter(rule, call, false))
         .build()
         .withOperandSupplier(b ->
             b.operand(Filter.class)
@@ -1312,12 +1319,12 @@ public class SubQueryRemoveRule
         .withDescription("SubQueryRemoveRule:Filter");
 
     Config FILTER_TO_SEMI = ImmutableSubQueryRemoveRule.Config.builder()
-            .withMatchHandler((rule, call) -> SubQueryRemoveRule.matchFilter(rule, call, true))
-            .build()
-            .withOperandSupplier(b ->
-                    b.operand(Filter.class)
-                            .predicate(RexUtil.SubQueryFinder::containsSubQuery).anyInputs())
-            .withDescription("SubQueryRemoveRule:Filter to semi");
+        .withMatchHandler((rule, call) -> SubQueryRemoveRule.matchFilter(rule, call, true))
+        .build()
+        .withOperandSupplier(b ->
+            b.operand(Filter.class)
+                .predicate(RexUtil.SubQueryFinder::containsSubQuery).anyInputs())
+        .withDescription("SubQueryRemoveRule:Filter to semi");
 
     Config JOIN = ImmutableSubQueryRemoveRule.Config.builder()
         .withMatchHandler(SubQueryRemoveRule::matchJoin)
