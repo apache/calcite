@@ -8761,6 +8761,15 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withExpand(false).withRule(SubQueryRemoveRule.Config.FILTER_TO_SEMI.toRule()).check();
   }
 
+  @Test void testConvertExistsWithUnsupportedCorrelate() {
+    final String sql = "select * from sales.emp\n"
+                       + "where EXISTS (\n"
+                       + "  select * from emp e where emp.deptno = e.deptno)\n"
+                       + " and sal > (select avg(e2.sal) from emp e2 where emp.empno = e2.empno)";
+    sql(sql).withExpand(false).withRule(SubQueryRemoveRule.Config.FILTER_TO_SEMI.toRule())
+            .withLateDecorrelate(true).check();
+  }
+
   // TODO test hasCorrelatedExpressions
 
   /** Test case for
