@@ -69,7 +69,6 @@ import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.base.Preconditions;
 
-import javax.annotation.Nonnull;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -1270,7 +1269,7 @@ public class SubQueryDecorrelator extends RelShuttleImpl {
                 || o instanceof CorRef && uniqueKey == ((CorRef) o).uniqueKey && corr == ((CorRef) o).corr && field == ((CorRef) o).field;
         }
 
-        public int compareTo(@Nonnull CorRef o) {
+        public int compareTo(CorRef o) {
             int c = corr.compareTo(o.corr);
             if (c != 0) {
                 return c;

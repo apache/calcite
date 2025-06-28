@@ -20,6 +20,7 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.core.Collect;
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
@@ -27,6 +28,9 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalJoin;
+import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.LogicVisitor;
@@ -952,7 +956,7 @@ public class SubQueryRemoveRule
     Optional<RexNode> newCondition = rule.handleSubQuery(subQueryCall.get(), condition, relBuilder, decorrelate);
     if (newCondition.isPresent()) {
       RexNode c = newCondition.get();
-      if (false) {
+      if (hasCorrelatedExpressions(c)) {
         // some correlated expressions can not be replaced in this rule,
         // so we must keep the VariablesSet for decorrelating later in new filter
         // RelBuilder.filter can not create Filter with VariablesSet arg
@@ -976,6 +980,49 @@ public class SubQueryRemoveRule
     } else {
       return false;
     }
+  }
+
+  private boolean hasCorrelatedExpressions(RexNode... nodes) {
+    final RelShuttleImpl relShuttle = new RelShuttleImpl() {
+      private final RexVisitorImpl<Void> corVarFinder = new RexVisitorImpl<Void>(true) {
+        @Override public Void visitCorrelVariable(RexCorrelVariable corVar) {
+          throw new Util.FoundOne(corVar);
+        }
+      };
+
+      @Override public RelNode visit(LogicalFilter filter) {
+        filter.getCondition().accept(corVarFinder);
+        return super.visit(filter);
+      }
+
+      @Override public RelNode visit(LogicalJoin join) {
+        join.getCondition().accept(corVarFinder);
+        return super.visit(join);
+      }
+
+      @Override public RelNode visit(LogicalProject project) {
+        for (RexNode node : project.getProjects()) {
+          node.accept(corVarFinder);
+        }
+        return super.visit(project);
+      }
+    };
+
+    final RexVisitorImpl<Void> subQueryFinder = new RexVisitorImpl<Void>(true) {
+      @Override public Void visitSubQuery(RexSubQuery subQuery) {
+        subQuery.rel.accept(relShuttle);
+        return null;
+      }
+    };
+
+    for (RexNode node : nodes) {
+      try {
+        node.accept(subQueryFinder);
+      } catch (Util.FoundOne e) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private boolean hasUnsupportedSubQuery(RexNode condition) {

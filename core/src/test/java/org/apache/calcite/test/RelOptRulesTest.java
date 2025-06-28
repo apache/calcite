@@ -8754,7 +8754,12 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withExpand(false).withRule(SubQueryRemoveRule.Config.FILTER_TO_SEMI.toRule()).check();
   }
 
-  // TODO test hasUnsupportedSubQuery
+  @Test void testConvertExistsWithUnsupportedCondition() {
+    final String sql = "select * from sales.emp\n"
+                       + "where emp.empno > 0 OR EXISTS (\n"
+                       + "  select * from emp e where emp.deptno = e.deptno)";
+    sql(sql).withExpand(false).withRule(SubQueryRemoveRule.Config.FILTER_TO_SEMI.toRule()).check();
+  }
 
   // TODO test hasCorrelatedExpressions
 
