@@ -383,11 +383,12 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
   }
 
   /**
-   * CASE and COALESCE type coercion, collect all the branches types including then
+   * CASE WHEN type coercion, collect all the branches types including then
    * operands and else operands to find a common type, then cast the operands to the common type
    * when needed.
    */
-  @Override public boolean caseWhenCoercion(SqlCallBinding callBinding) {
+  @SuppressWarnings("deprecation")
+  public boolean caseWhenCoercion(SqlCallBinding callBinding) {
     // For sql statement like:
     // `case when ... then (a, b, c) when ... then (d, e, f) else (g, h, i)`
     // an exception throws when entering this method.
@@ -418,6 +419,40 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
             || coerced;
       }
       return coerced;
+    }
+    return false;
+  }
+
+  /**
+   * Coerces CASE WHEN and COALESCE statement branches to a unified type.
+   * NULLIF returns the same type as the first operand without return type coercion.
+   */
+  @Override public boolean caseOrEquivalentCoercion(SqlCallBinding callBinding) {
+    if (callBinding.getCall().getKind() == SqlKind.COALESCE) {
+      // For sql statement like: `coalesce(a, b, c)`
+      return coalesceCoercion(callBinding);
+    } else if (callBinding.getCall().getKind() == SqlKind.NULLIF) {
+      // For sql statement like: `nullif(a, b)`
+      return false;
+    } else {
+      assert callBinding.getCall() instanceof SqlCase;
+      return caseWhenCoercion(callBinding);
+    }
+  }
+
+  /**
+   * COALESCE type coercion, collect all the branches types to find a common type,
+   * then cast the operands to the common type when needed.
+   */
+  private boolean coalesceCoercion(SqlCallBinding callBinding) {
+    List<RelDataType> argTypes = new ArrayList<>();
+    SqlValidatorScope scope = getScope(callBinding);
+    for (SqlNode node : callBinding.operands()) {
+      argTypes.add(validator.deriveType(scope, node));
+    }
+    RelDataType widerType = getWiderTypeFor(argTypes, true);
+    if (null != widerType) {
+      return coerceOperandsType(scope, callBinding.getCall(), widerType);
     }
     return false;
   }
@@ -561,6 +596,76 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
       return coerced;
     }
     return false;
+  }
+
+  /**
+   * {@inheritDoc}
+   *
+   * <p>STRATEGIES
+   *
+   * <p>To determine the common type:
+   *
+   * <ul>
+   *
+   * <li>When the LHS has a Simple type and RHS has a Collection type determined by {@link SqlTypeUtil#isCollection},
+   * to find the common type of LHS's type and RHS's component type.
+   * <li>If the common type differs from the LHS type, then coerced LHS type,
+   * and the nullability of the result type remains unchanged.
+   * <li>Create a new Collection type that matches the common type,
+   * the nullability of the new type keep same as RHS's component type and RHS's collection type.
+   * <li>If this new type differs from the RHS type, adjust the RHS type as needed.
+   *
+   *<pre>
+   * field1       ARRAY(field2, field3, field4)
+   *    |                |       |       |
+   *    |                +-------+-------+
+   *    |                        |
+   *    |                  component type
+   *    |                        |
+   *    +------common type-------+
+   *</pre>
+   *
+   * <li>If LHS type and the component type of RHS are different from the common type,
+   * CAST needs to be added.
+   * </ul>
+   */
+  @Override public boolean quantifyOperationCoercion(SqlCallBinding binding) {
+    final RelDataType type1 = binding.getOperandType(0);
+    final RelDataType collectionType = binding.getOperandType(1);
+    final RelDataType type2 = collectionType.getComponentType();
+    requireNonNull(type2, "type2");
+    final SqlCall sqlCall = binding.getCall();
+    final SqlValidatorScope scope = binding.getScope();
+    final SqlNode node1 = binding.operand(0);
+    final SqlNode node2 = binding.operand(1);
+    RelDataType widenType = commonTypeForBinaryComparison(type1, type2);
+    if (widenType == null) {
+      widenType = getTightestCommonType(type1, type2);
+    }
+    if (widenType == null) {
+      return false;
+    }
+    final RelDataType leftWidenType =
+        binding.getTypeFactory().enforceTypeWithNullability(widenType, type1.isNullable());
+    boolean coercedLeft =
+        coerceOperandType(scope, sqlCall, 0, leftWidenType);
+    if (coercedLeft) {
+      updateInferredType(node1, leftWidenType);
+    }
+    final RelDataType rightWidenType =
+        binding.getTypeFactory().enforceTypeWithNullability(widenType, type2.isNullable());
+    RelDataType collectionWidenType =
+        binding.getTypeFactory().createArrayType(rightWidenType, -1);
+    collectionWidenType =
+        binding
+            .getTypeFactory()
+            .enforceTypeWithNullability(collectionWidenType, collectionType.isNullable());
+    boolean coercedRight =
+        coerceOperandType(scope, sqlCall, 1, collectionWidenType);
+    if (coercedRight) {
+      updateInferredType(node2, collectionWidenType);
+    }
+    return coercedLeft || coercedRight;
   }
 
   @Override public boolean builtinFunctionCoercion(

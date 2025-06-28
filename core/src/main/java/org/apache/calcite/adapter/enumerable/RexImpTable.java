@@ -36,6 +36,7 @@ import org.apache.calcite.linq4j.tree.NewExpression;
 import org.apache.calcite.linq4j.tree.OptimizeShuttle;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.linq4j.tree.UnsignedType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
@@ -87,6 +88,10 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.joou.UByte;
+import org.joou.UInteger;
+import org.joou.ULong;
+import org.joou.UShort;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -309,6 +314,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPLIT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPLIT_PART;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.STARTS_WITH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.STRCMP;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.STRING_TO_ARRAY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.STR_TO_MAP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SUBSTRING_INDEX;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SYSDATE;
@@ -425,6 +431,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_JSON_OBJECT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_JSON_SCALAR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_JSON_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_A_SET;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_DISTINCT_FROM;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_EMPTY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_FALSE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_JSON_ARRAY;
@@ -1008,6 +1015,7 @@ public class RexImpTable {
       define(IS_NOT_TRUE, new IsNotTrueImplementor());
       define(IS_FALSE, new IsFalseImplementor());
       define(IS_NOT_FALSE, new IsNotFalseImplementor());
+      define(IS_NOT_DISTINCT_FROM, new IsNotDistinctFromImplementor());
 
       // LIKE, ILIKE, RLIKE and SIMILAR
       defineReflective(LIKE, BuiltInMethod.LIKE.method,
@@ -1069,6 +1077,7 @@ public class RexImpTable {
       defineMethod(ARRAY_SLICE, BuiltInMethod.ARRAY_SLICE.method, NullPolicy.STRICT);
       defineMethod(ARRAY_TO_STRING, BuiltInMethod.ARRAY_TO_STRING.method,
           NullPolicy.STRICT);
+      defineMethod(STRING_TO_ARRAY, BuiltInMethod.STRING_TO_ARRAY.method, NullPolicy.ARG0);
       defineMethod(ARRAY_UNION, BuiltInMethod.ARRAY_UNION.method, NullPolicy.ANY);
       defineMethod(ARRAYS_OVERLAP, BuiltInMethod.ARRAYS_OVERLAP.method, NullPolicy.ANY);
       defineMethod(ARRAYS_ZIP, BuiltInMethod.ARRAYS_ZIP.method, NullPolicy.ANY);
@@ -1721,9 +1730,31 @@ public class RexImpTable {
   static class SumImplementor extends StrictAggImplementor {
     @Override protected void implementNotNullReset(AggContext info,
         AggResetContext reset) {
-      Expression start = info.returnType() == BigDecimal.class
-          ? Expressions.constant(BigDecimal.ZERO)
-          : Expressions.constant(0);
+      Expression zero = Expressions.constant(0);
+      Expression start;
+      if (info.returnType() == BigDecimal.class) {
+        start = Expressions.constant(BigDecimal.ZERO);
+      } else if (UnsignedType.of(info.returnType()) != null) {
+        UnsignedType kind = UnsignedType.of(info.returnType());
+        switch (requireNonNull(kind, "kind")) {
+        case UBYTE:
+          start = Expressions.call(UByte.class, "valueOf", zero);
+          break;
+        case USHORT:
+          start = Expressions.call(UShort.class, "valueOf", zero);
+          break;
+        case UINT:
+          start = Expressions.call(UInteger.class, "valueOf", zero);
+          break;
+        case ULONG:
+          start = Expressions.call(ULong.class, "valueOf", zero);
+          break;
+        default:
+          throw new IllegalArgumentException("Unexpected type " + info.returnType());
+        }
+      } else {
+        start = zero;
+      }
 
       reset.currentBlock().add(
           Expressions.statement(
@@ -1734,7 +1765,8 @@ public class RexImpTable {
         AggAddContext add) {
       Expression acc = add.accumulator().get(0);
       Expression next;
-      if (info.returnType() == BigDecimal.class) {
+      if (info.returnType() == BigDecimal.class
+          || UnsignedType.of(info.returnType()) != null) {
         next = Expressions.call(acc, "add", add.arguments().get(0));
       } else {
         final Expression arg = EnumUtils.convert(add.arguments().get(0), acc.type);
@@ -4738,6 +4770,52 @@ public class RexImpTable {
     @Override Expression implementSafe(final RexToLixTranslator translator,
         final RexCall call, final List<Expression> argValueList) {
       return Expressions.equal(argValueList.get(0), NULL_EXPR);
+    }
+  }
+
+  /** Implementor for the {@code IS NOT DISTINCT FROM} SQL operator. */
+  private static class IsNotDistinctFromImplementor extends AbstractRexCallImplementor {
+    IsNotDistinctFromImplementor() {
+      super("is_not_distinct_from", NullPolicy.NONE, false);
+    }
+
+    @Override public RexToLixTranslator.Result implement(final RexToLixTranslator translator,
+        final RexCall call, final List<RexToLixTranslator.Result> arguments) {
+      final RexToLixTranslator.Result left = arguments.get(0);
+      final RexToLixTranslator.Result right = arguments.get(1);
+
+      // Generated expression:
+      // left IS NULL ?
+      //   (right IS NULL ? TRUE : FALSE) :  -> when left is null
+      //   (right IS NULL ? FALSE :          -> when left is not null
+      //     left.equals(right))             -> when both are not null, compare values
+      final Expression valueExpression =
+          Expressions.condition(left.isNullVariable,
+          Expressions.condition(right.isNullVariable, BOXED_TRUE_EXPR, BOXED_FALSE_EXPR),
+          Expressions.condition(right.isNullVariable, BOXED_FALSE_EXPR,
+              Expressions.call(BuiltInMethod.OBJECTS_EQUAL.method,
+                  left.valueVariable, right.valueVariable)));
+
+      BlockBuilder builder = translator.getBlockBuilder();
+      final ParameterExpression valueVariable =
+          Expressions.parameter(valueExpression.getType(),
+              builder.newName(variableName + "_value"));
+      final ParameterExpression isNullVariable =
+          Expressions.parameter(Boolean.TYPE,
+              builder.newName(variableName + "_isNull"));
+
+      builder.add(
+          Expressions.declare(Modifier.FINAL, valueVariable, valueExpression));
+      builder.add(
+          Expressions.declare(Modifier.FINAL, isNullVariable, FALSE_EXPR));
+
+      return new RexToLixTranslator.Result(isNullVariable, valueVariable);
+    }
+
+    @Override Expression implementSafe(final RexToLixTranslator translator,
+        final RexCall call, final List<Expression> argValueList) {
+      throw new IllegalStateException("This implementSafe should not be called,"
+          + " please call implement(...)");
     }
   }
 

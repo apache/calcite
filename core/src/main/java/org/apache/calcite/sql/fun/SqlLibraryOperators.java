@@ -408,6 +408,13 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_INTEGER_OPTIONAL_INTEGER,
           SqlFunctionCategory.STRING);
 
+  /** The "STRING_TO_ARRAY(string, delimiter [, null_string ])" function (PostgreSQL). */
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlFunction STRING_TO_ARRAY =
+      SqlBasicFunction.create(SqlKind.STRING_TO_ARRAY,
+          ReturnTypes.TO_ARRAY_NULLABLE,
+          OperandTypes.STRING_STRING_OPTIONAL_STRING);
+
   /** The "ENDS_WITH(value1, value2)" function (BigQuery). */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlBasicFunction ENDS_WITH =
@@ -1553,7 +1560,7 @@ public abstract class SqlLibraryOperators {
     type = opBinding.getTypeFactory().createTypeWithNullability(type, true);
     // make explicit CAST for array elements and inserted element to the biggest type
     // if array component type not equals to inserted element type
-    if (!componentType.equalsSansFieldNames(elementType2)) {
+    if (!componentType.equalsSansFieldNamesAndNullability(elementType2)) {
       // For array_insert, 0 is the array arg and 2 is the inserted element
       SqlValidatorUtil.
           adjustTypeForArrayFunctions(type, opBinding, 2);

@@ -34,13 +34,13 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
-import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.type.SqlTypeCoercionRule;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeMappingRule;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.validate.SelectScope;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorNamespace;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
@@ -214,7 +214,10 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
     }
     RelDataType targetType3 = syncAttributes(validator.deriveType(scope, node), targetType);
     SqlNode node3 = castTo(node, targetType3);
-    if (node.getKind() == SqlKind.IDENTIFIER) {
+    // Preserve the original column name as an alias only if 'node' is an item in a select list.
+    boolean isSelectItem = (scope instanceof SelectScope)
+        && ((SelectScope) scope).getNode().getSelectList() == nodeList;
+    if (node.getKind() == SqlKind.IDENTIFIER && isSelectItem) {
       SqlIdentifier id = (SqlIdentifier) node;
       String name = id.getComponent(id.names.size() - 1).getSimple();
       node3 = SqlValidatorUtil.addAlias(node3, name);
@@ -313,7 +316,7 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
    * <p>Ignore constant reduction which should happen in RexSimplify.
    */
   private static SqlNode castTo(SqlNode node, RelDataType type) {
-    return SqlStdOperatorTable.CAST.createCall(SqlParserPos.ZERO, node,
+    return SqlStdOperatorTable.CAST.createCall(node.getParserPosition(), node,
         SqlTypeUtil.convertTypeToSpec(type).withNullable(type.isNullable()));
   }
 

@@ -30,6 +30,7 @@ import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 import org.immutables.value.Value;
@@ -77,15 +78,21 @@ public class SortJoinTransposeRule
     final Join join = call.rel(1);
     final RelMetadataQuery mq = call.getMetadataQuery();
     final JoinInfo joinInfo =
-        JoinInfo.of(join.getLeft(), join.getRight(), join.getCondition());
+        JoinInfo.createWithStrictEquality(join.getLeft(), join.getRight(), join.getCondition());
 
-    // 1) If join is not a left or right outer, we bail out
-    // 2) If sort is not a trivial order-by, and if there is
+    // 1) If sort has dynamic parameter, we bail out
+    // 2) If join is not a left or right outer, we bail out
+    // 3) If sort is not a trivial order-by, and if there is
     // any sort column that is not part of the input where the
     // sort is pushed, we bail out
-    // 3) If sort has an offset, and if the non-preserved side
+    // 4) If sort has an offset, and if the non-preserved side
     // of the join is not count-preserving against the join
     // condition, we bail out
+    if (sort.offset instanceof RexDynamicParam
+        || sort.fetch instanceof RexDynamicParam) {
+      return false;
+    }
+
     if (join.getJoinType() == JoinRelType.LEFT) {
       if (sort.getCollation() != RelCollations.EMPTY) {
         for (RelFieldCollation relFieldCollation

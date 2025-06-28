@@ -176,7 +176,9 @@ public final class CalciteSystemProperty<T> {
               "H2",
               "MYSQL",
               "ORACLE",
-              "POSTGRESQL"));
+              "POSTGRESQL",
+              "STARROCKS",
+              "DORIS"));
 
   /**
    * Path to the dataset file that should used for integration tests.

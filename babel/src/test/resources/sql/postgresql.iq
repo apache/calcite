@@ -18,6 +18,27 @@
 !use scott-postgresql
 !set outputformat csv
 
+# Test CAST INTERVAL
+select CAST('3723' AS INTERVAL HOUR TO SECOND);
+EXPR$0
++1:02:03.000000
+!ok
+
+select CAST('3721' AS INTERVAL SECOND);
+EXPR$0
++3721.000000
+!ok
+
+select CAST('2' AS INTERVAL);
+EXPR$0
++2.000000
+!ok
+
+select CAST('-3723' AS INTERVAL);
+EXPR$0
+-3723.000000
+!ok
+
 # Test string and array comparison
 select array[0,1,2] = '{0,1,2}';
 EXPR$0
@@ -48,6 +69,57 @@ def
 select split_part('abc,def,ghi,jkl', ',', -2);
 EXPR$0
 ghi
+!ok
+
+# Test string_to_array function
+select string_to_array('a,b,c', ',', 'd');
+EXPR$0
+[a, b, c]
+!ok
+
+select string_to_array('a,b,,d', ',', 'd');
+EXPR$0
+[a, b, , null]
+!ok
+
+select string_to_array('a,b,,d', ',', null);
+EXPR$0
+[a, b, , d]
+!ok
+
+select string_to_array('abc', '');
+EXPR$0
+[abc]
+!ok
+
+select string_to_array('abc', ',', 'abc');
+EXPR$0
+[null]
+!ok
+
+select string_to_array('calcite apache org', ' ', 'apache');
+EXPR$0
+[calcite, null, org]
+!ok
+
+select string_to_array('calcite apache org', ' ');
+EXPR$0
+[calcite, apache, org]
+!ok
+
+select string_to_array('a*c', NULL, '*');
+EXPR$0
+[a, null, c]
+!ok
+
+select string_to_array(NULL, ' ');
+EXPR$0
+null
+!ok
+
+select string_to_array('', '');
+EXPR$0
+[]
 !ok
 
 # Test coercion string to array inside INSERT
@@ -1255,6 +1327,11 @@ X X GHI
 SELECT regexp_replace('ABC def GHI', '[a-z]+', 'X', 'i') AS x;
 X
 X def GHI
+!ok
+
+SELECT regexp_replace('ABC def GHI', '([a-z]+).*', '\1', 'i') AS x;
+X
+ABC
 !ok
 
 # End postgresql.iq

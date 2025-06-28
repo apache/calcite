@@ -98,7 +98,7 @@ class GeodeBookstoreTest extends AbstractGeodeTest {
             + "retailCost=34.99; yearPublished=2011; author=Daisy Mae West; title=A Treatise of "
             + "Treatises\n")
         .explainContains("PLAN=GeodeToEnumerableConverter\n"
-            + "  GeodeFilter(condition=[SEARCH($0, Sarg[(122..123]])])\n"
+            + "  GeodeFilter(condition=[SEARCH(CAST($0):INTEGER, Sarg[(122..123]])])\n"
             + "    GeodeTableScan(table=[[geode, BookMaster]])")
         .queryContains(
             GeodeAssertions.query("SELECT * FROM /BookMaster "
@@ -131,13 +131,13 @@ class GeodeBookstoreTest extends AbstractGeodeTest {
         .returnsUnordered("author=Jim Heavisides", "author=Daisy Mae West")
         .explainContains("PLAN=GeodeToEnumerableConverter\n"
             + "  GeodeProject(author=[$4])\n"
-            + "    GeodeFilter(condition=[OR(AND(>($0, 123), =(CAST($0):INTEGER, 789)), "
+            + "    GeodeFilter(condition=[OR(=(CAST($0):INTEGER, 789), "
             + "=(CAST($4):VARCHAR, 'Daisy Mae West'))])\n"
             + "      GeodeTableScan(table=[[geode, BookMaster]])\n"
             + "\n")
         .queryContains(
             GeodeAssertions.query("SELECT author AS author FROM /BookMaster "
-                + "WHERE (itemNumber > 123 AND itemNumber = 789) OR author = 'Daisy Mae West'"));
+                + "WHERE itemNumber = 789 OR author = 'Daisy Mae West'"));
   }
 
   // TODO: Not supported YET
@@ -159,7 +159,7 @@ class GeodeBookstoreTest extends AbstractGeodeTest {
             + "author=Jim Heavisides\n")
         .explainContains("PLAN=GeodeToEnumerableConverter\n"
             + "  GeodeProject(author=[$4])\n"
-            + "    GeodeFilter(condition=[>($0, 123)])\n"
+            + "    GeodeFilter(condition=[>(CAST($0):INTEGER, 123)])\n"
             + "      GeodeTableScan(table=[[geode, BookMaster]])")
         .queryContains(
             GeodeAssertions.query("SELECT author AS author "

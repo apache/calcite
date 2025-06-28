@@ -209,7 +209,7 @@ val javadocAggregateIncludingTests by tasks.registering(Javadoc::class) {
 val adaptersForSqlline = listOf(
     ":arrow", ":babel", ":cassandra", ":druid", ":elasticsearch",
     ":file", ":geode", ":innodb", ":kafka", ":mongodb",
-    ":pig", ":piglet", ":plus", ":redis", ":spark", ":splunk")
+    ":pig", ":piglet", ":plus", ":redis", ":server", ":spark", ":splunk")
 
 val dataSetsForSqlline = listOf(
     "net.hydromatic:foodmart-data-hsqldb",

@@ -120,6 +120,24 @@ public interface TypeCoercion {
    */
   boolean inOperationCoercion(SqlCallBinding binding);
 
+  /** Handles type coercion for Quantify operations {@link org.apache.calcite.sql.fun.SqlQuantifyOperator}.
+   *
+   * <p>For example:
+   * <ul>
+   * <li>{@code 1.0 = some (ARRAY[2,3,null])}
+   * <li>{@code 'timestamp 1970-01-01 01:23:47' =
+   * any (array['1970-01-01 01:23:45', '1970-01-01 01:23:46'])}
+   * <li>{@code WITH tb as
+   * (select
+   * array(SELECT * FROM (VALUES ('1970-01-01 01:23:45'), ('1970-01-01 01:23:46'))
+   * as x(a)) as a)
+   * SELECT timestamp '1970-01-01 01:23:45' >= some (a) FROM tb}
+   * </ul>
+   *
+   * <p>See {@link TypeCoercionImpl} for default strategies.
+   * */
+  boolean quantifyOperationCoercion(SqlCallBinding binding);
+
   /** Coerces operand of binary arithmetic expressions to Numeric type.*/
   boolean binaryArithmeticCoercion(SqlCallBinding binding);
 
@@ -129,10 +147,29 @@ public interface TypeCoercion {
   /**
    * Coerces CASE WHEN statement branches to one common type.
    *
-   * <p>Rules: Find common type for all the then operands and else operands,
-   * then try to coerce the then/else operands to the type if needed.
+   * @deprecated Use {@link #caseOrEquivalentCoercion} instead.
    */
-  boolean caseWhenCoercion(SqlCallBinding binding);
+  @Deprecated boolean caseWhenCoercion(SqlCallBinding binding);
+
+  /**
+   * Type coercion in CASE WHEN, COALESCE, and NULLIF.
+   *
+   * <p>Rules:
+   * <ol>
+   *   <li>
+   *     CASE WHEN collect all the branches types including then
+   *     operands and else operands to find a common type, then cast the operands to the common type
+   *     when needed.</li>
+   *   <li>
+   *     COALESCE collect all the branches types to find a common type,
+   *     then cast the operands to the common type when needed.</li>
+   *   <li>
+   *     NULLIF returns the first operand if the two operands are not equal,
+   *     otherwise it returns a null value of the type of the first operand,
+   *     without return type coercion.</li>
+   * </ol>
+   */
+  boolean caseOrEquivalentCoercion(SqlCallBinding binding);
 
   /**
    * Type coercion with inferred type from passed in arguments and the

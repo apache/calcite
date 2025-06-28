@@ -71,11 +71,10 @@ public class RelBuilderExample {
   }
 
   /**
-   * Creates a relational expression for a table scan.
+   * Creates a relational expression for a values.
    * It is equivalent to
    *
-   * <blockquote><pre>SELECT *
-   * FROM emp</pre></blockquote>
+   * <blockquote><pre>VALUES((1, TRUE), (NULL, FALSE))</pre></blockquote>
    */
   private RelBuilder example0(RelBuilder builder) {
     return builder

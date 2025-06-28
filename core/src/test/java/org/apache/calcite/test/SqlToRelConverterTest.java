@@ -33,8 +33,10 @@ import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.externalize.RelDotWriter;
 import org.apache.calcite.rel.externalize.RelXmlWriter;
+import org.apache.calcite.rel.logical.LogicalAsofJoin;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalRepeatUnion;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.rules.CoreRules;
@@ -459,7 +461,12 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test void testGroupByAliasEqualToColumnName() {
+    // If the alias (deptno) matches an existing column, it is not used in the GROUP BY
     sql("select empno, ename as deptno from emp group by empno, deptno")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .throws_("Expression 'ENAME' is not being grouped");
+    // If the alias is a new one, it is used in the GROUP BY
+    sql("select empno, ename as x from emp group by empno, x")
         .withConformance(SqlConformanceEnum.LENIENT).ok();
   }
 
@@ -503,6 +510,30 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "((deptno), (empno, deptno / 2), (2, 1), ((1, 2), (deptno, deptno / 2)))";
     sql(sql)
         .withConformance(SqlConformanceEnum.LENIENT)
+        .ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4512">[CALCITE-4512]
+   * GROUP BY expression with argument name same with SELECT field and alias causes
+   * validation error</a>.
+   */
+  @Test void testGroupByExprArgFieldSameWithAlias3() {
+    // Same as the test above, but different conformance.
+    // Must produce the exact same plan.
+    final String sql = "SELECT deptno / 2 AS deptno, deptno / 2 as empno, sum(sal)\n"
+        + "FROM emp\n"
+        + "GROUP BY GROUPING SETS "
+        + "((deptno), (empno, deptno / 2), (2, 1), ((1, 2), (deptno, deptno / 2)))";
+    sql(sql)
+        .withConformance(
+            // This ensures that numbers in grouping sets are interpreted as column numbers
+            new SqlDelegatingConformance(SqlConformanceEnum.DEFAULT) {
+              @Override public boolean isGroupByOrdinal() {
+                return true;
+              }
+            })
         .ok();
   }
 
@@ -1894,6 +1925,14 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).withExpand(false).ok();
   }
 
+  @Test void testMultipleCorrelatedSubQueriesInSelectReferencingDifferentTablesInFrom() {
+    final String sql = "select\n"
+        + "(select ename from emp where empno = empnos.empno) as emp_name,\n"
+        + "(select name from dept where deptno = deptnos.deptno) as dept_name\n"
+        + " from (values (1), (2)) as empnos(empno), (values (1), (2)) as deptnos(deptno)";
+    sql(sql).withExpand(false).ok();
+  }
+
   @Test void testExists() {
     final String sql = "select*from emp\n"
         + "where exists (select 1 from dept where deptno=55)";
@@ -2994,6 +3033,51 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     assertThat(rels.get(0), instanceOf(LogicalTableModify.class));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6959">[CALCITE-6959]
+   * Support LogicalAsofJoin in RelShuttle</a>. */
+  @Test void testRelShuttleForLogicalAsofJoin() {
+    final String sql = "select emp.empno from emp asof join dept\n"
+        + "match_condition emp.deptno <= dept.deptno\n"
+        + "on ename = name";
+    final RelNode rel = sql(sql).toRel();
+    final List<RelNode> rels = new ArrayList<>();
+    final RelShuttleImpl visitor = new RelShuttleImpl() {
+      @Override public RelNode visit(LogicalAsofJoin asofJoin) {
+        RelNode visitedRel = super.visit(asofJoin);
+        rels.add(visitedRel);
+        return visitedRel;
+      }
+    };
+    rel.accept(visitor);
+    assertThat(rels, hasSize(1));
+    assertThat(rels.get(0), instanceOf(LogicalAsofJoin.class));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6961">[CALCITE-6961]
+   * Support LogicalRepeatUnion in RelShuttle</a>. */
+  @Test void testRelShuttleForLogicalRepeatUnion() {
+    final String sql = "WITH RECURSIVE delta(n) AS (\n"
+        + "VALUES (1)\n"
+        + "UNION ALL\n"
+        + "SELECT n+1 FROM delta WHERE n < 10\n"
+        + ")\n"
+        + "SELECT * FROM delta";
+    final RelNode rel = sql(sql).toRel();
+    final List<RelNode> rels = new ArrayList<>();
+    final RelShuttleImpl visitor = new RelShuttleImpl() {
+      @Override public RelNode visit(LogicalRepeatUnion repeatUnion) {
+        RelNode visitedRel = super.visit(repeatUnion);
+        rels.add(visitedRel);
+        return visitedRel;
+      }
+    };
+    rel.accept(visitor);
+    assertThat(rels, hasSize(1));
+    assertThat(rels.get(0), instanceOf(LogicalRepeatUnion.class));
+  }
+
   @Test void testOffset0() {
     final String sql = "select * from emp offset 0";
     sql(sql).ok();
@@ -3739,6 +3823,35 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "QUALIFY rank_val = (SELECT COUNT(*) FROM emp)\n"
         + "ORDER BY deptno\n"
         + "LIMIT 5")
+        .ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6950">[CALCITE-6950]
+   * Use ANY operator to check if an element exists in an array throws exception</a>. */
+  @Test void testQuantifyOperatorsWithTypeCoercion() {
+    sql("SELECT 1.0 = some (ARRAY[2,null,3])")
+        .withExpand(false)
+        .ok();
+  }
+
+  @Test void testQuantifyOperatorsWithTypeCoercion2() {
+    sql("SELECT 3 = some (ARRAY[1.0, 2.0])")
+        .withExpand(false)
+        .ok();
+  }
+
+  @Test void testQuantifyOperatorsWithTypeCoercion3() {
+    sql("SELECT '1970-01-01 01:23:45' = any (array[timestamp '1970-01-01 01:23:45',"
+        + "timestamp '1970-01-01 01:23:46'])")
+        .withExpand(false)
+        .ok();
+  }
+
+  @Test void testQuantifyOperatorsWithTypeCoercion4() {
+    sql("SELECT timestamp '1970-01-01 01:23:45' = any (array['1970-01-01 01:23:45',"
+        + "'1970-01-01 01:23:46'])")
+        .withExpand(false)
         .ok();
   }
 
@@ -5177,6 +5290,18 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test void testCoalesceOnNullableField() {
     final String sql = "select coalesce(mgr, 0) from emp";
+    sql(sql).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7044">[CALCITE-7044]
+   * Add internal operator CAST NOT NULL to enhance rewrite COALESCE operator</a>. */
+  @Test void testCoalesceSubquery() {
+    final String sql = "SELECT"
+        + "  deptno, "
+        + "  coalesce((select sum(empno) from emp "
+        + "  where deptno = emp.deptno limit 1), 0) as w "
+        + "FROM dept";
     sql(sql).ok();
   }
 

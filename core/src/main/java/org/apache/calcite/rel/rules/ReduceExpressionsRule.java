@@ -44,6 +44,8 @@ import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLambda;
+import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
@@ -1183,6 +1185,14 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
     }
 
     @Override public Void visitFieldAccess(RexFieldAccess fieldAccess) {
+      return pushVariable();
+    }
+
+    @Override public Void visitLambda(RexLambda lambda) {
+      return pushVariable();
+    }
+
+    @Override public Void visitLambdaRef(RexLambdaRef lambda) {
       return pushVariable();
     }
   }

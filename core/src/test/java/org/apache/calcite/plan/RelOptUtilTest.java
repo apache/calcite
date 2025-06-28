@@ -25,6 +25,7 @@ import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
@@ -35,19 +36,27 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexCorrelVariable;
+import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexShuttle;
+import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql2rel.RexRewritingRelShuttle;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
+import org.apache.calcite.util.mapping.Mapping;
+import org.apache.calcite.util.mapping.MappingType;
+import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -60,6 +69,7 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import static org.apache.calcite.test.Matchers.isListOf;
@@ -68,6 +78,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -403,6 +414,15 @@ class RelOptUtilTest {
         Collections.singletonList(rightJoinIndex),
         Collections.singletonList(false),
         relBuilder.literal(true));
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7013">[CALCITE-7013]
+   * Support building RexLiterals from Character values</a>. */
+  @Test void testCharacterLiteral() {
+    char c = 'c';
+    relBuilder.literal(c);
   }
 
   private void splitJoinConditionHelper(RexNode joinCond, List<Integer> expLeftKeys,
@@ -981,6 +1001,125 @@ class RelOptUtilTest {
                 "JOB_CNT2"),
             ImmutableSet.of());
     assertThat(castNode2.explain(), is(expectNode2.explain()));
+  }
+
+  @Test void testRemapCorrelHandlesNestedSubQueries() {
+    // Equivalent SQL:
+    // select
+    //    (
+    //        select count(*)
+    //          from emp as middle_emp
+    //         where exists (
+    //                   select true
+    //                     from emp as innermost_emp
+    //                    where outermost_emp.deptno = innermost_emp.deptno
+    //                      and middle_emp.sal < innermost_emp.sal
+    //               )
+    //    ) as c
+    // from emp as outermost_emp
+
+    int deptNoIdx = empRow.getFieldNames().indexOf("DEPTNO");
+    int salIdx = empRow.getFieldNames().indexOf("SAL");
+
+    RelOptCluster cluster = relBuilder.getCluster();
+    RexBuilder rexBuilder = relBuilder.getRexBuilder();
+
+    CorrelationId outermostCorrelationId = cluster.createCorrel();
+    RexNode outermostCorrelate =
+        rexBuilder.makeFieldAccess(
+            rexBuilder.makeCorrel(empRow, outermostCorrelationId), deptNoIdx);
+    CorrelationId middleCorrelationId = cluster.createCorrel();
+    RexNode middleCorrelate =
+        rexBuilder.makeFieldAccess(rexBuilder.makeCorrel(empRow, middleCorrelationId), salIdx);
+
+    RelNode innermostQuery = relBuilder
+        .push(empScan)
+        .filter(
+            rexBuilder.makeCall(
+                SqlStdOperatorTable.AND,
+                rexBuilder.makeCall(
+                    SqlStdOperatorTable.EQUALS,
+                    outermostCorrelate,
+                    rexBuilder.makeInputRef(empRow, deptNoIdx)),
+                rexBuilder.makeCall(
+                    SqlStdOperatorTable.LESS_THAN,
+                    middleCorrelate,
+                    rexBuilder.makeInputRef(empRow, salIdx)
+                )
+            )
+        )
+        .project(rexBuilder.makeLiteral(true))
+        .build();
+
+    RelNode middleQuery = relBuilder
+        .push(empScan)
+        .filter(relBuilder.exists(ignored -> innermostQuery))
+        .aggregate(
+            relBuilder.groupKey(),
+            relBuilder.countStar("COUNT_ALL")
+        )
+        .build();
+
+    RelNode outermostQuery = relBuilder
+        .push(empScan)
+        .project(relBuilder.scalarQuery(ignored -> middleQuery))
+        .build();
+
+    // Wrap the outermost query in RexSubQuery since RelOptUtil.remapCorrelatesInSuqQuery
+    // accepts RexSubQuery as input.
+    RexSubQuery subQuery = relBuilder.exists(ignored -> outermostQuery);
+
+    RelDataType newType = cluster.getTypeFactory().builder()
+            .add(empRow.getFieldList().get(deptNoIdx))
+            .build();
+
+    Mapping mapping =
+            Mappings.create(MappingType.INVERSE_SURJECTION,
+            empRow.getFieldCount(),
+            1);
+    mapping.set(deptNoIdx, 0);
+
+    RexSubQuery newSubQuery =
+        RelOptUtil.remapCorrelatesInSuqQuery(
+            rexBuilder, subQuery, outermostCorrelationId, newType, mapping);
+
+    List<RexFieldAccess> variablesUsed = new ArrayList<>();
+
+    newSubQuery.accept(new RexShuttle() {
+      @Override public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
+        if (fieldAccess.getReferenceExpr() instanceof RexCorrelVariable) {
+          variablesUsed.add(fieldAccess);
+        }
+
+        return super.visitFieldAccess(fieldAccess);
+      }
+
+      @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
+        subQuery.rel.accept(new RexRewritingRelShuttle(this));
+
+        return super.visitSubQuery(subQuery);
+      }
+    });
+
+    assertThat(variablesUsed, hasSize(2));
+
+    variablesUsed.sort(
+        Comparator.comparingInt(v ->
+            ((RexCorrelVariable) v.getReferenceExpr()).id.getId()));
+
+    RexFieldAccess firstFieldAccess = variablesUsed.get(0);
+    assertThat(firstFieldAccess.getField().getIndex(), is(0));
+
+    RexCorrelVariable firstVar = (RexCorrelVariable) firstFieldAccess.getReferenceExpr();
+    assertThat(firstVar.id, is(outermostCorrelationId));
+    assertThat(firstVar.getType(), is(newType));
+
+    RexFieldAccess secondFieldAccess = variablesUsed.get(1);
+    assertThat(secondFieldAccess.getField().getIndex(), is(salIdx));
+
+    RexCorrelVariable secondVar = (RexCorrelVariable) secondFieldAccess.getReferenceExpr();
+    assertThat(secondVar.id, is(middleCorrelationId));
+    assertThat(secondVar.getType(), is(empRow));
   }
 
   /** Dummy sub-class of ConverterRule, to check whether generated descriptions

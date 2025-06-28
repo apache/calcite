@@ -131,7 +131,7 @@ class MaterializedViewRelOptRulesTest {
         "select \"deptno\" from \"emps\" where \"deptno\" > 10 group by \"deptno\"")
         .checkingThatResultContains(""
             + "EnumerableAggregate(group=[{1}])\n"
-            + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[10], expr#3=[<($t2, $t1)], proj#0..1=[{exprs}], $condition=[$t3])\n"
+            + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[10], expr#3=[CAST($t1):INTEGER NOT NULL], expr#4=[<($t2, $t3)], proj#0..1=[{exprs}], $condition=[$t4])\n"
             + "    EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
@@ -196,8 +196,8 @@ class MaterializedViewRelOptRulesTest {
             + "from \"emps\" where \"deptno\" > 10 group by \"deptno\"")
         .checkingThatResultContains(""
             + "EnumerableAggregate(group=[{1}], S=[$SUM0($3)])\n"
-            + "  EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[<($t4, $t1)], "
-            + "proj#0..3=[{exprs}], $condition=[$t5])\n"
+            + "  EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[CAST($t1):INTEGER NOT NULL], expr#6=[<($t4, $t5)], "
+            + "proj#0..3=[{exprs}], $condition=[$t6])\n"
             + "    EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
@@ -208,11 +208,11 @@ class MaterializedViewRelOptRulesTest {
         "select \"deptno\", sum(\"empid\") + 1 as s\n"
             + "from \"emps\" where \"deptno\" > 10 group by \"deptno\"")
         .checkingThatResultContains(""
-            + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[+($t1, $t2)],"
-            + " deptno=[$t0], S=[$t3])\n"
+            + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[+($t1, $t2)], "
+            + "deptno=[$t0], S=[$t3])\n"
             + "  EnumerableAggregate(group=[{1}], agg#0=[$SUM0($3)])\n"
-            + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[<($t4, $t1)], "
-            + "proj#0..3=[{exprs}], $condition=[$t5])\n"
+            + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[CAST($t1):INTEGER NOT NULL], expr#6=[<($t4, $t5)], "
+            + "proj#0..3=[{exprs}], $condition=[$t6])\n"
             + "      EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
@@ -234,8 +234,8 @@ class MaterializedViewRelOptRulesTest {
             + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[+($t0, $t2)], "
             + "expr#4=[+($t1, $t2)], EXPR$0=[$t3], S=[$t4])\n"
             + "  EnumerableAggregate(group=[{1}], agg#0=[$SUM0($3)])\n"
-            + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[<($t4, $t1)], "
-            + "proj#0..3=[{exprs}], $condition=[$t5])\n"
+            + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[CAST($t1):INTEGER NOT NULL], expr#6=[<($t4, $t5)], "
+            + "proj#0..3=[{exprs}], $condition=[$t6])\n"
             + "      EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
@@ -372,8 +372,8 @@ class MaterializedViewRelOptRulesTest {
             + "join \"depts\" using (\"deptno\") where \"depts\".\"deptno\" > 20\n"
             + "group by \"empid\", \"depts\".\"deptno\"")
         .checkingThatResultContains(""
-            + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[20], expr#3=[<($t2, $t1)], "
-            + "empid=[$t0], $condition=[$t3])\n"
+            + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[20], expr#3=[CAST($t1):INTEGER NOT NULL], "
+            + "expr#4=[<($t2, $t3)], empid=[$t0], $condition=[$t4])\n"
             + "  EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
@@ -386,8 +386,8 @@ class MaterializedViewRelOptRulesTest {
             + "join \"depts\" using (\"deptno\") where \"depts\".\"deptno\" > 20\n"
             + "group by \"empid\", \"depts\".\"deptno\"")
         .checkingThatResultContains(""
-            + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[20], expr#3=[<($t2, $t0)], "
-            + "empid=[$t1], $condition=[$t3])\n"
+            + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[20], expr#3=[CAST($t0):INTEGER NOT NULL], expr#4=[<($t2, $t3)], "
+            + "empid=[$t1], $condition=[$t4])\n"
             + "  EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
@@ -411,8 +411,8 @@ class MaterializedViewRelOptRulesTest {
             + "join \"depts\" using (\"deptno\") where \"depts\".\"deptno\" > 20\n"
             + "group by \"empid\", \"depts\".\"deptno\"")
         .checkingThatResultContains(""
-            + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[20], expr#3=[<($t2, $t1)], "
-            + "empid=[$t0], $condition=[$t3])\n"
+            + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[20], expr#3=[CAST($t1):INTEGER NOT NULL], expr#4=[<($t2, $t3)], "
+            + "empid=[$t0], $condition=[$t4])\n"
             + "  EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
@@ -425,8 +425,8 @@ class MaterializedViewRelOptRulesTest {
             + "join \"emps\" using (\"deptno\") where \"emps\".\"empid\" > 15\n"
             + "group by \"depts\".\"deptno\", \"emps\".\"empid\"")
         .checkingThatResultContains(""
-            + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[15], expr#3=[<($t2, $t1)], "
-            + "deptno=[$t0], $condition=[$t3])\n"
+            + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[15], expr#3=[CAST($t1):INTEGER NOT NULL], expr#4=[<($t2, $t3)], "
+            + "deptno=[$t0], $condition=[$t4])\n"
             + "  EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
@@ -440,8 +440,8 @@ class MaterializedViewRelOptRulesTest {
             + "group by \"depts\".\"deptno\"")
         .checkingThatResultContains(""
             + "EnumerableAggregate(group=[{0}])\n"
-            + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[15], expr#3=[<($t2, $t1)], "
-            + "proj#0..1=[{exprs}], $condition=[$t3])\n"
+            + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[15], expr#3=[CAST($t1):INTEGER NOT NULL], expr#4=[<($t2, $t3)], "
+            + "proj#0..1=[{exprs}], $condition=[$t4])\n"
             + "    EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
@@ -465,7 +465,7 @@ class MaterializedViewRelOptRulesTest {
                 "EnumerableUnion(all=[true])",
                 "EnumerableAggregate(group=[{2}])",
                 "EnumerableTableScan(table=[[hr, MV0]])",
-                "expr#5=[Sarg[(10..11]]], expr#6=[SEARCH($t0, $t5)]")
+                "expr#6=[Sarg[(10..11]]], expr#7=[SEARCH($t5, $t6)]")
         .ok();
   }
 
@@ -506,7 +506,7 @@ class MaterializedViewRelOptRulesTest {
             "EnumerableUnion(all=[true])",
             "EnumerableAggregate(group=[{2}])",
             "EnumerableTableScan(table=[[hr, MV0]])",
-            "expr#5=[Sarg[(10..11], [19..20)]], expr#6=[SEARCH($t0, $t5)]")
+            "expr#6=[Sarg[(10..11], [19..20)]], expr#7=[SEARCH($t5, $t6)]")
         .ok();
   }
 
@@ -582,8 +582,8 @@ class MaterializedViewRelOptRulesTest {
             + "where \"emps\".\"deptno\" > 10 group by \"depts\".\"deptno\"")
         .checkingThatResultContains(""
             + "EnumerableAggregate(group=[{1}], S=[$SUM0($3)])\n"
-            + "  EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[<($t4, $t1)], "
-            + "proj#0..3=[{exprs}], $condition=[$t5])\n"
+            + "  EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[CAST($t1):INTEGER NOT NULL], expr#6=[<($t4, $t5)], "
+            + "proj#0..3=[{exprs}], $condition=[$t6])\n"
             + "    EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
@@ -599,8 +599,8 @@ class MaterializedViewRelOptRulesTest {
             + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[+($t1, $t2)], "
             + "deptno=[$t0], S=[$t3])\n"
             + "  EnumerableAggregate(group=[{1}], agg#0=[$SUM0($3)])\n"
-            + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[<($t4, $t1)], "
-            + "proj#0..3=[{exprs}], $condition=[$t5])\n"
+            + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[CAST($t1):INTEGER NOT NULL], expr#6=[<($t4, $t5)], "
+            + "proj#0..3=[{exprs}], $condition=[$t6])\n"
             + "      EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
@@ -712,7 +712,7 @@ class MaterializedViewRelOptRulesTest {
             "EnumerableAggregate(group=[{2}], agg#0=[COUNT()])",
             "EnumerableAggregate(group=[{1}], agg#0=[$SUM0($2)])",
             "EnumerableTableScan(table=[[hr, MV0]])",
-            "expr#5=[Sarg[(10..11], [19..20)]], expr#6=[SEARCH($t0, $t5)]")
+            "expr#6=[Sarg[(10..11], [19..20)]], expr#7=[SEARCH($t5, $t6)]")
         .ok();
   }
 
@@ -837,7 +837,7 @@ class MaterializedViewRelOptRulesTest {
             + "join \"depts\" using (\"deptno\") where \"empid\" > 1")
         .checkingThatResultContains(""
             + "EnumerableCalc(expr#0=[{inputs}], expr#1=[CAST($t0):JavaType(int) NOT NULL], "
-            + "expr#2=[1], expr#3=[<($t2, $t1)], EXPR$0=[$t1], $condition=[$t3])\n"
+            + "expr#2=[1], expr#3=[CAST($t1):INTEGER NOT NULL], expr#4=[<($t2, $t3)], EXPR$0=[$t1], $condition=[$t4])\n"
             + "  EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
@@ -916,7 +916,7 @@ class MaterializedViewRelOptRulesTest {
             + "where \"depts\".\"deptno\" > 10")
         .checkingThatResultContains("EnumerableUnion(all=[true])",
                 "EnumerableTableScan(table=[[hr, MV0]])",
-                "expr#5=[Sarg[(10..30]]], expr#6=[SEARCH($t0, $t5)]")
+                "expr#6=[Sarg[(10..30]]], expr#7=[SEARCH($t5, $t6)]")
         .ok();
   }
 

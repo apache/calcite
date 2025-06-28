@@ -18,6 +18,7 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.DataContexts;
 import org.apache.calcite.adapter.clone.CloneSchema;
+import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.adapter.generate.RangeTable;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
@@ -989,7 +990,7 @@ public class JdbcTest {
     final int driverMajor = metaData.getDriverMajorVersion();
     final int driverMinor = metaData.getDriverMinorVersion();
     assertThat(driverMajor, is(1));
-    assertThat(driverMinor, is(40));
+    assertThat(driverMinor, is(41));
 
     assertThat(metaData.getDatabaseProductName(), is("Calcite"));
     final String databaseVersion =
@@ -1974,6 +1975,181 @@ public class JdbcTest {
             "c0=Drink; c1=Dairy; c2=USA; c3=WA; c4=Bellingham");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6930">[CALCITE-6930]
+   * Implementing JoinConditionOrExpansionRule</a>. */
+  @Test void testJoinConditionOrExpansionRule() {
+    final String sql = ""
+        + "SELECT \"t1\".\"deptno\", \"t1\".\"empid\", \"t2\".\"deptno\", \"t2\".\"empid\"\n"
+        + "FROM \"hr\".\"emps\" AS \"t1\"\n"
+        + "INNER JOIN (\n"
+        + "    SELECT (\"deptno\" + 10) AS \"deptno\", (\"empid\" + 100) AS \"empid\" FROM \"hr\".\"emps\"\n"
+        + ") AS \"t2\"\n"
+        + "ON (\"t1\".\"deptno\" = \"t2\".\"deptno\") OR (\"t1\".\"empid\" = \"t2\".\"empid\")";
+
+    String[] returns = new String[] {
+        "deptno=20; empid=200; deptno=20; empid=200",
+        "deptno=20; empid=200; deptno=20; empid=210",
+        "deptno=20; empid=200; deptno=20; empid=250"};
+
+    CalciteAssert.hr()
+        .query(sql)
+        .returnsUnordered(returns);
+
+    CalciteAssert.hr()
+        .query(sql)
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+          planner.addRule(CoreRules.JOIN_EXPAND_OR_TO_UNION_RULE);
+          planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
+        })
+        .returnsUnordered(returns);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6930">[CALCITE-6930]
+   * Implementing JoinConditionOrExpansionRule</a>. */
+  @Test void testJoinConditionOrExpansionRuleMultiOr() {
+    final String sql = ""
+        + "SELECT \"t1\".\"deptno\", \"t1\".\"empid\", \"t2\".\"deptno\", \"t2\".\"empid\"\n"
+        + "FROM \"hr\".\"emps\" AS \"t1\"\n"
+        + "INNER JOIN (\n"
+        + "    SELECT (\"deptno\" + 10) AS \"deptno\", (\"empid\" + 100) AS \"empid\" FROM \"hr\".\"emps\"\n"
+        + ") AS \"t2\"\n"
+        + "ON (\"t1\".\"deptno\" = \"t2\".\"deptno\")"
+        + "OR (\"t1\".\"salary\" > 8000)"
+        + "OR (\"t1\".\"empid\" = \"t2\".\"empid\")";
+
+    String[] returns = new String[] {
+        "deptno=10; empid=100; deptno=20; empid=200",
+        "deptno=10; empid=100; deptno=20; empid=210",
+        "deptno=10; empid=100; deptno=20; empid=250",
+        "deptno=10; empid=100; deptno=30; empid=300",
+        "deptno=10; empid=110; deptno=20; empid=200",
+        "deptno=10; empid=110; deptno=20; empid=210",
+        "deptno=10; empid=110; deptno=20; empid=250",
+        "deptno=10; empid=110; deptno=30; empid=300",
+        "deptno=20; empid=200; deptno=20; empid=200",
+        "deptno=20; empid=200; deptno=20; empid=210",
+        "deptno=20; empid=200; deptno=20; empid=250"};
+
+    CalciteAssert.hr()
+        .query(sql)
+        .returnsUnordered(returns);
+
+    CalciteAssert.hr()
+        .query(sql)
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+          planner.addRule(CoreRules.JOIN_EXPAND_OR_TO_UNION_RULE);
+          planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
+        })
+        .returnsUnordered(returns);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6930">[CALCITE-6930]
+   * Implementing JoinConditionOrExpansionRule</a>. */
+  @Test void testJoinConditionOrExpansionRuleLeft() {
+    final String sql = ""
+        + "SELECT \"t1\".\"deptno\", \"t1\".\"empid\", \"t2\".\"deptno\", \"t2\".\"empid\"\n"
+        + "FROM \"hr\".\"emps\" AS \"t1\"\n"
+        + "LEFT JOIN (\n"
+        + "    SELECT (\"deptno\" + 10) AS \"deptno\", (\"empid\" + 100) AS \"empid\" FROM \"hr\".\"emps\"\n"
+        + ") AS \"t2\"\n"
+        + "ON (\"t1\".\"deptno\" = \"t2\".\"deptno\") OR (\"t1\".\"empid\" = \"t2\".\"empid\")";
+
+    String[] returns = new String[] {
+        "deptno=10; empid=100; deptno=null; empid=null",
+        "deptno=10; empid=110; deptno=null; empid=null",
+        "deptno=10; empid=150; deptno=null; empid=null",
+        "deptno=20; empid=200; deptno=20; empid=200",
+        "deptno=20; empid=200; deptno=20; empid=210",
+        "deptno=20; empid=200; deptno=20; empid=250"};
+
+    CalciteAssert.hr()
+        .query(sql)
+        .returnsUnordered(returns);
+
+    CalciteAssert.hr()
+        .query(sql)
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+          planner.addRule(CoreRules.JOIN_EXPAND_OR_TO_UNION_RULE);
+          planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
+        })
+        .returnsUnordered(returns);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6930">[CALCITE-6930]
+   * Implementing JoinConditionOrExpansionRule</a>. */
+  @Test void testJoinConditionOrExpansionRuleLeftUnion() {
+    final String sql = ""
+        + "SELECT \"t1\".\"deptno\", \"t1\".\"empid\", \"t2\".\"deptno\", \"t2\".\"empid\"\n"
+        + "FROM \"hr\".\"emps\" AS \"t1\"\n"
+        + "LEFT JOIN (\n"
+        + "    SELECT (\"deptno\" + 10) AS \"deptno\", (\"empid\" + 100) AS \"empid\" FROM \"hr\".\"emps\"\n"
+        + "    UNION ALL\n"
+        + "    SELECT (\"deptno\" + 10) AS \"deptno\", (\"empid\" + 100) AS \"empid\" FROM \"hr\".\"emps\"\n"
+        + ") AS \"t2\"\n"
+        + "ON (\"t1\".\"deptno\" = \"t2\".\"deptno\") OR (\"t1\".\"empid\" = \"t2\".\"empid\")";
+
+    String[] returns = new String[] {
+        "deptno=10; empid=100; deptno=null; empid=null",
+        "deptno=10; empid=110; deptno=null; empid=null",
+        "deptno=10; empid=150; deptno=null; empid=null",
+        "deptno=20; empid=200; deptno=20; empid=200",
+        "deptno=20; empid=200; deptno=20; empid=200",
+        "deptno=20; empid=200; deptno=20; empid=210",
+        "deptno=20; empid=200; deptno=20; empid=210",
+        "deptno=20; empid=200; deptno=20; empid=250",
+        "deptno=20; empid=200; deptno=20; empid=250"};
+
+    CalciteAssert.hr()
+        .query(sql)
+        .returnsUnordered(returns);
+
+    CalciteAssert.hr()
+        .query(sql)
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+          planner.addRule(CoreRules.JOIN_EXPAND_OR_TO_UNION_RULE);
+          planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
+        })
+        .returnsUnordered(returns);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6930">[CALCITE-6930]
+   * Implementing JoinConditionOrExpansionRule</a>. */
+  @Test void testJoinConditionOrExpansionRuleLeftWithNull() {
+    final String sql = ""
+        + "SELECT \"t1\".\"deptno\", \"t1\".\"commission\", \"t2\".\"deptno\", \"t2\".\"commission\"\n"
+        + "FROM \"hr\".\"emps\" AS \"t1\"\n"
+        + "LEFT JOIN (\n"
+        + "    SELECT (\"deptno\" + 10) AS \"deptno\", \"commission\" FROM \"hr\".\"emps\"\n"
+        + ") AS \"t2\"\n"
+        + "ON (\"t1\".\"deptno\" = \"t2\".\"deptno\") OR (\"t1\".\"commission\" = \"t2\".\"commission\")";
+
+    String[] returns = new String[] {
+        "deptno=10; commission=1000; deptno=20; commission=1000",
+        "deptno=10; commission=250; deptno=20; commission=250",
+        "deptno=10; commission=null; deptno=null; commission=null",
+        "deptno=20; commission=500; deptno=20; commission=1000",
+        "deptno=20; commission=500; deptno=20; commission=250",
+        "deptno=20; commission=500; deptno=20; commission=null",
+        "deptno=20; commission=500; deptno=30; commission=500"};
+
+    CalciteAssert.hr()
+        .query(sql)
+        .returnsUnordered(returns);
+
+    CalciteAssert.hr()
+        .query(sql)
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+          planner.addRule(CoreRules.JOIN_EXPAND_OR_TO_UNION_RULE);
+          planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
+        })
+        .returnsUnordered(returns);
+  }
+
   /** Four-way join. Used to take 80 seconds. */
   @Disabled
   @Test void testJoinFiveWay() {
@@ -2728,10 +2904,10 @@ public class JdbcTest {
         + " then 'y' else null end)) T\n"
         + "from \"hr\".\"emps\"";
     final String plan = ""
-        + "      String case_when_value;\n"
+        + "              String case_when_value;\n"
         + "              final org.apache.calcite.test.schemata.hr.Employee current = (org.apache"
         + ".calcite.test.schemata.hr.Employee) inputEnumerator.current();\n"
-        + "              if (current.empid > current.deptno * 10) {\n"
+        + "              if (org.apache.calcite.runtime.SqlFunctions.toInt(org.apache.calcite.linq4j.tree.Primitive.integerCast(org.apache.calcite.linq4j.tree.Primitive.INT, current.empid, java.math.RoundingMode.DOWN)) > current.deptno * 10) {\n"
         + "                case_when_value = \"y\";\n"
         + "              } else {\n"
         + "                case_when_value = null;\n"
@@ -2752,10 +2928,10 @@ public class JdbcTest {
         + " then \"name\" end)) T\n"
         + "from \"hr\".\"emps\"";
     final String plan = ""
-        + "      String case_when_value;\n"
+        + "              String case_when_value;\n"
         + "              final org.apache.calcite.test.schemata.hr.Employee current = (org.apache"
         + ".calcite.test.schemata.hr.Employee) inputEnumerator.current();\n"
-        + "              if (current.empid > current.deptno * 10) {\n"
+        + "              if (org.apache.calcite.runtime.SqlFunctions.toInt(org.apache.calcite.linq4j.tree.Primitive.integerCast(org.apache.calcite.linq4j.tree.Primitive.INT, current.empid, java.math.RoundingMode.DOWN)) > current.deptno * 10) {\n"
         + "                case_when_value = current.name;\n"
         + "              } else {\n"
         + "                case_when_value = null;\n"
@@ -2861,6 +3037,24 @@ public class JdbcTest {
             + "T=heodore\n");
   }
 
+  @Test void testJoinConditionExpandIsNotDistinctFrom() {
+    final String sql = ""
+        + "select \"t1\".\"commission\" from \"hr\".\"emps\" as \"t1\"\n"
+        + "join\n"
+        + "\"hr\".\"emps\" as \"t2\"\n"
+        + "on \"t1\".\"commission\" is not distinct from \"t2\".\"commission\"";
+    CalciteAssert.hr()
+        .query(sql)
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+          planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
+          planner.addRule(CoreRules.JOIN_CONDITION_EXPAND_IS_NOT_DISTINCT_FROM);
+        })
+        .explainContains("HashJoin")
+        .returnsUnordered("commission=1000",
+            "commission=250",
+            "commission=500",
+            "commission=null");
+  }
   @Test void testReuseExpressionWhenNullChecking5() {
     final String sql = "select substring(trim(\n"
         + "substring(\"name\",\n"
@@ -3248,15 +3442,15 @@ public class JdbcTest {
             + "LogicalProject(deptno=[$0], name=[$1], employees=[$2], location=[$3])\n"
             + "  LogicalFilter(condition=[IN($0, {\n"
             + "LogicalProject(deptno=[$1])\n"
-            + "  LogicalFilter(condition=[<($0, 150)])\n"
+            + "  LogicalFilter(condition=[<(CAST($0):INTEGER NOT NULL, 150)])\n"
             + "    LogicalTableScan(table=[[hr, emps]])\n"
             + "})])\n"
-            + "    LogicalTableScan(table=[[hr, depts]])")
+            + "    LogicalTableScan(table=[[hr, depts]])\n")
         .explainContains(""
             + "EnumerableHashJoin(condition=[=($0, $5)], joinType=[semi])\n"
             + "  EnumerableTableScan(table=[[hr, depts]])\n"
-            + "  EnumerableCalc(expr#0..4=[{inputs}], expr#5=[150], expr#6=[<($t0, $t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
-            + "    EnumerableTableScan(table=[[hr, emps]])")
+            + "  EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t0):INTEGER NOT NULL], expr#6=[150], expr#7=[<($t5, $t6)], proj#0..4=[{exprs}], $condition=[$t7])\n"
+            + "    EnumerableTableScan(table=[[hr, emps]])\n\n")
         .returnsUnordered(
             "deptno=10; name=Sales; employees=[{100, 10, Bill, 10000.0, 1000}, {150, 10, Sebastian, 7000.0, null}]; location={-122, 38}");
   }
@@ -3925,6 +4119,123 @@ public class JdbcTest {
         .returnsUnordered("empid=150; name=Sebastian");
   }
 
+  /**
+   * Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6836">[CALCITE-6836]
+   * Add Rule to convert INTERSECT to EXISTS</a>. */
+  @Test void testIntersectToExist() {
+    final String sql = ""
+            + "select \"empid\", \"name\" from \"hr\".\"emps\" where \"deptno\"=10\n"
+            + "intersect\n"
+            + "select \"empid\", \"name\" from \"hr\".\"emps\" where \"empid\">=150";
+    CalciteAssert.hr()
+        .query(sql)
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>)
+            p -> {
+              p.removeRule(CoreRules.INTERSECT_TO_DISTINCT);
+              p.removeRule(EnumerableRules.ENUMERABLE_INTERSECT_RULE);
+              p.removeRule(EnumerableRules.ENUMERABLE_FILTER_RULE);
+              p.addRule(CoreRules.INTERSECT_TO_EXISTS);
+              p.addRule(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE);
+              p.addRule(CoreRules.FILTER_TO_CALC);
+            })
+        .explainContains("")
+        .returnsUnordered("empid=150; name=Sebastian");
+  }
+
+  /**
+   * Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6893">[CALCITE-6893]
+   * Remove agg from Union children in IntersectToDistinctRule</a>. */
+  @Test void testIntersectToDistinct() {
+    final String sql = ""
+        + "select \"empid\", \"name\" from \"hr\".\"emps\" where \"deptno\"=10\n"
+        + "intersect\n"
+        + "select \"empid\", \"name\" from \"hr\".\"emps\" where \"empid\">=150";
+    final String[] returns = new String[] {
+        "empid=150; name=Sebastian"};
+
+    CalciteAssert.hr()
+        .query(sql)
+        .explainContains("EnumerableIntersect")
+        .returnsUnordered(returns);
+
+    CalciteAssert.hr()
+        .query(sql)
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>)
+            p -> {
+              p.removeRule(EnumerableRules.ENUMERABLE_INTERSECT_RULE);
+            })
+        .explainContains("EnumerableUnion(all=[true])")
+        .returnsUnordered(returns);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6904">[CALCITE-6904]
+   * IS_NOT_DISTINCT_FROM is converted error in EnumerableJoinRule</a>. */
+  @Test void testIsNotDistinctFrom() {
+    final String sql = ""
+        + "select \"t1\".\"commission\" from \"hr\".\"emps\" as \"t1\"\n"
+        + "join\n"
+        + "\"hr\".\"emps\" as \"t2\"\n"
+        + "on \"t1\".\"commission\" is not distinct from \"t2\".\"commission\"";
+    CalciteAssert.hr()
+        .query(sql)
+        .explainContains("NestedLoopJoin(condition=[IS NOT DISTINCT FROM($0, $1)]")
+        .returnsUnordered("commission=1000",
+            "commission=250",
+            "commission=500",
+            "commission=null");
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6880">[CALCITE-6880]
+   * Implement IntersectToSemiJoinRule</a>. */
+  @Test void testIntersectToSemiJoin() {
+    final String sql = ""
+        + "select \"commission\" from \"hr\".\"emps\"\n"
+        + "intersect\n"
+        + "select \"commission\" from \"hr\".\"emps\" where \"empid\">=150";
+    CalciteAssert.hr()
+        .query(sql)
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>)
+            planner -> {
+              planner.removeRule(CoreRules.INTERSECT_TO_DISTINCT);
+              planner.removeRule(EnumerableRules.ENUMERABLE_INTERSECT_RULE);
+              planner.addRule(CoreRules.INTERSECT_TO_SEMI_JOIN);
+            })
+        .explainContains("")
+        .returnsUnordered("commission=500",
+            "commission=null");
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6948">[CALCITE-6948]
+   * Implement IntersectToSemiJoinRule</a>. */
+  @Test void testMinusToAntiJoinRule() {
+    final String sql = ""
+        + "select \"commission\" from \"hr\".\"emps\"\n"
+        + "except\n"
+        + "select \"commission\" from \"hr\".\"emps\" where \"empid\">=150";
+
+    final String[] returns = new String[] {
+        "commission=1000",
+        "commission=250"};
+
+    CalciteAssert.hr()
+        .query(sql)
+        .returnsUnordered(returns);
+
+    CalciteAssert.hr()
+        .query(sql)
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>)
+            p -> {
+              p.removeRule(CoreRules.MINUS_TO_DISTINCT);
+              p.removeRule(ENUMERABLE_MINUS_RULE);
+              p.addRule(CoreRules.MINUS_TO_ANTI_JOIN);
+            })
+        .explainContains("joinType=[anti]")
+        .returnsUnordered(returns);
+  }
+
   @Test void testExcept() {
     final String sql = ""
         + "select \"empid\", \"name\" from \"hr\".\"emps\" where \"deptno\"=10\n"
@@ -3956,12 +4267,11 @@ public class JdbcTest {
             + "    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[0], expr#4=[=($t2, $t3)], "
             + "expr#5=[1], expr#6=[=($t2, $t5)], proj#0..1=[{exprs}], $f2=[$t4], $f3=[$t6])\n"
             + "      EnumerableUnion(all=[true])\n"
-            + "        EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[CAST($t1):INTEGER"
-            + " NOT NULL], expr#7=[10], expr#8=[=($t6, $t7)], empid=[$t0], name=[$t2], $f2=[$t5],"
-            + " $condition=[$t8])\n"
+            + "        EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[CAST($t1):INTEGER NOT NULL], expr#7=[10], expr#8=[=($t6, $t7)], empid=[$t0], name=[$t2], $f2=[$t5], "
+            + "$condition=[$t8])\n"
             + "          EnumerableTableScan(table=[[hr, emps]])\n"
-            + "        EnumerableCalc(expr#0..4=[{inputs}], expr#5=[1], expr#6=[150], expr#7=[>="
-            + "($t0, $t6)], empid=[$t0], name=[$t2], $f2=[$t5], $condition=[$t7])\n"
+            + "        EnumerableCalc(expr#0..4=[{inputs}], expr#5=[1], expr#6=[CAST($t0):INTEGER NOT NULL], expr#7=[150], expr#8=[>="
+            + "($t6, $t7)], empid=[$t0], name=[$t2], $f2=[$t5], $condition=[$t8])\n"
             + "          EnumerableTableScan(table=[[hr, emps]])\n")
         .returnsUnordered("empid=100; name=Bill",
             "empid=110; name=Theodore");
@@ -4016,7 +4326,7 @@ public class JdbcTest {
         .explainContains(""
             + "PLAN=EnumerableCalc(expr#0..1=[{inputs}], expr#2=[0], expr#3=[=($t0, $t2)], expr#4=[null:JavaType(class java.lang.Integer)], expr#5=[CASE($t3, $t4, $t1)], expr#6=[/($t5, $t0)], expr#7=[CAST($t6):JavaType(class java.lang.Integer)], CS=[$t0], C=[$t0], S=[$t5], A=[$t7])\n"
             + "  EnumerableAggregate(group=[{}], CS=[COUNT()], S=[$SUM0($1)])\n"
-            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[<($t1, $t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
+            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t1):INTEGER NOT NULL], expr#6=[0], expr#7=[<($t5, $t6)], proj#0..4=[{exprs}], $condition=[$t7])\n"
             + "      EnumerableTableScan(table=[[hr, emps]])\n")
         .returns("CS=0; C=0; S=null; A=null\n");
   }
@@ -4032,7 +4342,7 @@ public class JdbcTest {
         .explainContains(""
             + "PLAN=EnumerableCalc(expr#0=[{inputs}], CS=[$t0], CS2=[$t0])\n"
             + "  EnumerableAggregate(group=[{}], CS=[COUNT()])\n"
-            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[<($t1, $t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
+            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t1):INTEGER NOT NULL], expr#6=[0], expr#7=[<($t5, $t6)], proj#0..4=[{exprs}], $condition=[$t7])\n"
             + "      EnumerableTableScan(table=[[hr, emps]])\n")
         .returns("CS=0; CS2=0\n");
   }
@@ -4931,7 +5241,7 @@ public class JdbcTest {
               + "where \"empid\" > 10")
           .convertContains(""
               + "LogicalProject(name=[$2], EXPR$1=[+(COUNT($3) OVER (PARTITION BY $1), 1)])\n"
-              + "  LogicalFilter(condition=[>($0, 10)])\n"
+              + "  LogicalFilter(condition=[>(CAST($0):INTEGER NOT NULL, 10)])\n"
               + "    LogicalProject(empid=[$0], deptno=[$1], name=[$2], commission=[$4])\n"
               + "      LogicalTableScan(table=[[hr, emps]])\n");
     }
@@ -6301,7 +6611,7 @@ public class JdbcTest {
         .explainMatches(" without implementation ",
             checkResult("PLAN="
                 + "LogicalProject(empid=[$0], deptno=[$1])\n"
-                + "  LogicalFilter(condition=[>($1, 10)])\n"
+                + "  LogicalFilter(condition=[>(CAST($1):INTEGER NOT NULL, 10)])\n"
                 + "    LogicalProject(empid=[$0], deptno=[$1])\n"
                 + "      LogicalTableScan(table=[[adhoc, EMPLOYEES]])\n\n"));
     with.query("select * from \"adhoc\".\"EMPLOYEES\" where exists (select * from \"adhoc\".V)")
@@ -6357,7 +6667,7 @@ public class JdbcTest {
             checkResult("PLAN="
                 + "LogicalProject(empid=[$0], deptno=[$1], name=[$2], "
                 + "salary=[$3], commission=[$4])\n"
-                + "  LogicalFilter(condition=[>($1, 10)])\n"
+                + "  LogicalFilter(condition=[>(CAST($1):INTEGER NOT NULL, 10)])\n"
                 + "    LogicalSort(sort0=[$1], dir0=[ASC])\n"
                 + "      LogicalProject(empid=[$0], deptno=[$1], name=[$2], "
                 + "salary=[$3], commission=[$4])\n"
@@ -6370,7 +6680,7 @@ public class JdbcTest {
             checkResult("PLAN="
                 + "LogicalProject(empid=[$0], deptno=[$1], name=[$2], "
                 + "salary=[$3], commission=[$4])\n"
-                + "  LogicalFilter(condition=[>($1, 10)])\n"
+                + "  LogicalFilter(condition=[>(CAST($1):INTEGER NOT NULL, 10)])\n"
                 + "    LogicalSort(sort0=[$1], dir0=[ASC])\n"
                 + "      LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], "
                 + "commission=[$4])\n"
@@ -7568,6 +7878,47 @@ public class JdbcTest {
     assertThat(aSchema.subSchemas().getNames(LikePattern.any()), hasSize(2));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6903">[CALCITE-6903]
+   * CalciteSchema#getSubSchemaMap must consider implicit sub-schemas</a>. */
+  @Test void testCalciteSchemaGetSubSchemaMapCache() {
+    checkCalciteSchemaGetSubSchemaMap(true);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6903">[CALCITE-6903]
+   * CalciteSchema#getSubSchemaMap must consider implicit sub-schemas</a>. */
+  @Test void testCalciteSchemaGetSubSchemaMapNoCache() {
+    checkCalciteSchemaGetSubSchemaMap(false);
+  }
+
+  void checkCalciteSchemaGetSubSchemaMap(boolean cache) {
+    final CalciteSchema calciteSchema = CalciteSchema.createRootSchema(false, cache);
+
+    // create schema "/a"
+    final Map<String, Schema> aSubSchemaMap = new HashMap<>();
+    final CalciteSchema aSchema =
+        calciteSchema.add("a", new AbstractSchema() {
+          @Override protected Map<String, Schema> getSubSchemaMap() {
+            return aSubSchemaMap;
+          }
+        });
+
+    // add explicit schema "/a/b".
+    aSchema.add("b", new AbstractSchema());
+
+    // add implicit schema "/a/c"
+    aSubSchemaMap.put("c", new AbstractSchema());
+
+    assertThat(aSchema.subSchemas().get("c"), notNullValue());
+    assertThat(aSchema.subSchemas().get("b"), notNullValue());
+
+    final Map<String, CalciteSchema> subSchemaMap = aSchema.getSubSchemaMap();
+    assertThat(subSchemaMap.values(), hasSize(2));
+    assertThat(subSchemaMap.get("c"), notNullValue());
+    assertThat(subSchemaMap.get("b"), notNullValue());
+  }
+
   @Test void testCaseSensitiveConfigurableSimpleCalciteSchema() {
     final SchemaPlus rootSchema = CalciteSchema.createRootSchema(false, false).plus();
     // create schema "/a"
@@ -7819,6 +8170,42 @@ public class JdbcTest {
         .query("select [DID] from (select deptid as did FROM\n"
             + "     ( values (1), (2) ) as T1([deptid]) ) ")
         .returnsUnordered("DID=1", "DID=2");
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4993">[CALCITE-4993]
+   * Simplify EQUALS or NOT-EQUALS with other number comparison</a>.
+   */
+  @Test void testJavaTypeSimplifyEqWithOtherNumberComparison() {
+    CalciteAssert.hr()
+        .query("select \"empid\", \"deptno\" from \"hr\".\"emps\"\n"
+            + "where \"empid\" <> 5 and \"empid\"> 3 and \"empid\"< 10")
+        .explainContains(""
+            + "PLAN=EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t0):INTEGER NOT NULL], expr#6=[Sarg[(3..5), (5..10)]], expr#7=[SEARCH($t5, $t6)], "
+            + "proj#0..1=[{exprs}], $condition=[$t7])\n"
+            + "  EnumerableTableScan(table=[[hr, emps]])\n\n")
+        .returns("");
+  }
+
+  @Test void testJavaTypeSimplifyEqWithOtherNumberComparison2() {
+    CalciteAssert.hr()
+        .query("select \"empid\", \"deptno\" from \"hr\".\"emps\"\n"
+            + "where \"empid\" = 5 and \"empid\"> 3 and \"empid\"< 10")
+        .explainContains(""
+            + "PLAN=EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t0):INTEGER NOT NULL], expr#6=[5], expr#7=[=($t5, $t6)], "
+            + "proj#0..1=[{exprs}], $condition=[$t7])\n"
+            + "  EnumerableTableScan(table=[[hr, emps]])\n\n")
+        .returns("");
+  }
+
+  @Test void testJavaTypeSimplifyEqWithOtherNumberComparison3() {
+    CalciteAssert.hr()
+        .query("select \"empid\", \"deptno\" from \"hr\".\"emps\"\n"
+            + "where \"empid\" = 5 and \"empid\"> 6 and \"empid\"< 10")
+        .explainContains(""
+            + "PLAN=EnumerableValues(tuples=[[]])\n\n")
+        .returns("");
   }
 
   /**

@@ -23,6 +23,8 @@ import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.dialect.ClickHouseSqlDialect;
 import org.apache.calcite.sql.dialect.Db2SqlDialect;
 import org.apache.calcite.sql.dialect.DerbySqlDialect;
+import org.apache.calcite.sql.dialect.DorisSqlDialect;
+import org.apache.calcite.sql.dialect.DuckDBSqlDialect;
 import org.apache.calcite.sql.dialect.ExasolSqlDialect;
 import org.apache.calcite.sql.dialect.FirebirdSqlDialect;
 import org.apache.calcite.sql.dialect.FireboltSqlDialect;
@@ -47,9 +49,11 @@ import org.apache.calcite.sql.dialect.PrestoSqlDialect;
 import org.apache.calcite.sql.dialect.RedshiftSqlDialect;
 import org.apache.calcite.sql.dialect.SnowflakeSqlDialect;
 import org.apache.calcite.sql.dialect.SparkSqlDialect;
+import org.apache.calcite.sql.dialect.SqliteSqlDialect;
 import org.apache.calcite.sql.dialect.StarRocksSqlDialect;
 import org.apache.calcite.sql.dialect.SybaseSqlDialect;
 import org.apache.calcite.sql.dialect.TeradataSqlDialect;
+import org.apache.calcite.sql.dialect.TrinoSqlDialect;
 import org.apache.calcite.sql.dialect.VerticaSqlDialect;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -183,6 +187,10 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
       return Db2SqlDialect.DEFAULT;
     case DERBY:
       return DerbySqlDialect.DEFAULT;
+    case DUCKDB:
+      return DuckDBSqlDialect.DEFAULT;
+    case DORIS:
+      return DorisSqlDialect.DEFAULT;
     case EXASOL:
       return ExasolSqlDialect.DEFAULT;
     case FIREBIRD:
@@ -231,12 +239,16 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
       return SnowflakeSqlDialect.DEFAULT;
     case SPARK:
       return SparkSqlDialect.DEFAULT;
+    case SQLITE:
+      return SqliteSqlDialect.DEFAULT;
     case STARROCKS:
       return StarRocksSqlDialect.DEFAULT;
     case SYBASE:
       return SybaseSqlDialect.DEFAULT;
     case TERADATA:
       return TeradataSqlDialect.DEFAULT;
+    case TRINO:
+      return TrinoSqlDialect.DEFAULT;
     case VERTICA:
       return VerticaSqlDialect.DEFAULT;
     case SQLSTREAM:

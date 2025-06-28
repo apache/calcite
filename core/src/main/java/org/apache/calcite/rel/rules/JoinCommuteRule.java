@@ -137,6 +137,12 @@ public class JoinCommuteRule
         .build();
   }
 
+  public static RexNode swapJoinCond(RexNode cond, Join join, RexBuilder rexBuilder) {
+    final VariableReplacer variableReplacer =
+        new VariableReplacer(rexBuilder, join.getLeft().getRowType(), join.getRight().getRowType());
+    return variableReplacer.apply(cond);
+  }
+
   @Override public boolean matches(RelOptRuleCall call) {
     Join join = call.rel(0);
     // SEMI and ANTI join cannot be swapped.
@@ -232,6 +238,8 @@ public class JoinCommuteRule
     Config DEFAULT = ImmutableJoinCommuteRule.Config.of()
         .withOperandFor(LogicalJoin.class)
         .withSwapOuter(false);
+
+    Config SWAP_OUTER = DEFAULT.withSwapOuter(true);
 
     @Override default JoinCommuteRule toRule() {
       return new JoinCommuteRule(this);

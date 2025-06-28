@@ -137,6 +137,7 @@ public class RexAnalyzer {
       case M2V:
       case OTHER_FUNCTION:
       case V2M:
+      case ARRAY_VALUE_CONSTRUCTOR:
         ++unsupportedCount;
         return null;
       default:

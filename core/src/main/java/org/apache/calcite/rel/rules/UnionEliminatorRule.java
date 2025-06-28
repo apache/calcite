@@ -18,7 +18,12 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.rel.core.Intersect;
+import org.apache.calcite.rel.core.Minus;
+import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Union;
+import org.apache.calcite.rel.logical.LogicalIntersect;
+import org.apache.calcite.rel.logical.LogicalMinus;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.tools.RelBuilderFactory;
 
@@ -28,6 +33,9 @@ import org.immutables.value.Value;
  * <code>UnionEliminatorRule</code> checks to see if its possible to optimize a
  * Union call by eliminating the Union operator altogether in the case the call
  * consists of only one input.
+ *
+ * <p>Originally written for {@link Union} (hence the name),
+ * but now also applies to {@link Intersect} and {@link Minus}.
  *
  * @see CoreRules#UNION_REMOVE
  */
@@ -42,6 +50,15 @@ public class UnionEliminatorRule
   }
 
   @Deprecated // to be removed before 2.0
+  public UnionEliminatorRule(Class<? extends SetOp> setOpClass,
+      String description, RelBuilderFactory relBuilderFactory) {
+    super(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+        .withDescription(description)
+        .as(Config.class)
+        .withOperandFor(setOpClass));
+  }
+
+  @Deprecated // to be removed before 2.0
   public UnionEliminatorRule(Class<? extends Union> unionClass,
       RelBuilderFactory relBuilderFactory) {
     super(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
@@ -52,13 +69,13 @@ public class UnionEliminatorRule
   //~ Methods ----------------------------------------------------------------
 
   @Override public boolean matches(RelOptRuleCall call) {
-    Union union = call.rel(0);
-    return union.all && union.getInputs().size() == 1;
+    SetOp setOp = call.rel(0);
+    return setOp.all && setOp.getInputs().size() == 1;
   }
 
   @Override public void onMatch(RelOptRuleCall call) {
-    Union union = call.rel(0);
-    call.transformTo(union.getInputs().get(0));
+    SetOp setOp = call.rel(0);
+    call.transformTo(setOp.getInputs().get(0));
   }
 
   @Override public boolean autoPruneOld() {
@@ -69,15 +86,24 @@ public class UnionEliminatorRule
   @Value.Immutable
   public interface Config extends RelRule.Config {
     Config DEFAULT = ImmutableUnionEliminatorRule.Config.of()
-        .withOperandFor(LogicalUnion.class);
+            .withDescription("UnionEliminatorRule")
+            .withOperandFor(LogicalUnion.class);
+
+    Config INTERSECT = ImmutableUnionEliminatorRule.Config.of()
+            .withDescription("IntersectEliminatorRule")
+            .withOperandFor(LogicalIntersect.class);
+
+    Config MINUS = ImmutableUnionEliminatorRule.Config.of()
+            .withDescription("MinusEliminatorRule")
+            .withOperandFor(LogicalMinus.class);
 
     @Override default UnionEliminatorRule toRule() {
       return new UnionEliminatorRule(this);
     }
 
     /** Defines an operand tree for the given classes. */
-    default Config withOperandFor(Class<? extends Union> unionClass) {
-      return withOperandSupplier(b -> b.operand(unionClass).anyInputs())
+    default Config withOperandFor(Class<? extends SetOp> setOpClass) {
+      return withOperandSupplier(b -> b.operand(setOpClass).anyInputs())
           .as(Config.class);
     }
   }

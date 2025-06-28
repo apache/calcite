@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 package org.apache.calcite.util.graph;
+import org.apache.calcite.plan.hep.HepMatchOrder;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -170,6 +172,19 @@ class DirectedGraphTest {
       list.add(s);
     }
     assertThat(list, hasToString("[A, B, E, C, F, D]"));
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7030">[CALCITE-7030]
+   * Enhance TopologicalOrderIterator to support BOTTOM_UP</a>. */
+  @Test void testTopologicalOrderWithBottomUpIterator() {
+    final DefaultDirectedGraph<String, DefaultEdge> graph = createDag();
+    final List<String> list = new ArrayList<>();
+    for (String s : TopologicalOrderIterator.of(graph, HepMatchOrder.BOTTOM_UP)) {
+      list.add(s);
+    }
+    assertThat(list, hasToString("[D, F, C, B, E, A]"));
   }
 
   private DefaultDirectedGraph<String, DefaultEdge> createDag() {

@@ -103,6 +103,34 @@ public interface SqlConformance {
   boolean isGroupByAlias();
 
   /**
+   * Value describing how to perform lookup for aliases defined in a SELECT list.
+   * When enabled, this feature is called "lateral column alias" in Spark SQL and Redshift,
+   * but also "inline column alias", or "self-referencing alias", "expression alias reuse", or
+   * "alias chaining".
+   */
+  enum SelectAliasLookup {
+    /** Values defined in a SELECT list are not visible within the list (standard SQL). */
+    UNSUPPORTED,
+    /** Values defined in a SELECT list are visible to the right of their definition.
+     *  */
+    LEFT_TO_RIGHT,
+    /** All values defined in a SELECT list can be used within the same list. */
+    ANY
+  }
+
+  /**
+   * Whether to allow aliases from the {@code SELECT} clause to be used as
+   * column names in the same {@code SELECT} clause.
+   * E.g., SELECT 1 as X, X+1 as Y;
+   * Name lookup considers an identifier in the same SELECT only
+   * if other lookups failed.
+   * Supported by Spark, Snowflake, Redshift, DuckDB.
+   *
+   * <p>Note: this usually requires {@link #isGroupByAlias} to also return true.
+   */
+  SelectAliasLookup isSelectAlias();
+
+  /**
    * Whether {@code GROUP BY 2} is interpreted to mean 'group by the 2nd column
    * in the select list'.
    *
@@ -629,4 +657,9 @@ public interface SqlConformance {
    * they terminate with a fatal error on overflow.
    */
   boolean checkedArithmetic();
+
+  /**
+   * True when the unsigned versions of integer types are supported.
+   */
+  boolean supportsUnsignedTypes();
 }

@@ -66,6 +66,9 @@ public interface CalciteResource {
   @BaseMessage("Geo-spatial extensions and the GEOMETRY data type are not enabled")
   ExInst<SqlValidatorException> geometryDisabled();
 
+  @BaseMessage("Support for UNSIGNED data types is not enabled")
+  ExInst<SqlValidatorException> unsignedDisabled();
+
   @BaseMessage("Proj4J EPSG is missing from the classpath; to resolve this problem, download the EPSG data set and agree to its terms of use")
   ExInst<CalciteException> proj4jEpsgIsMissing();
 
@@ -349,6 +352,9 @@ public interface CalciteResource {
 
   @BaseMessage("Argument to function ''{0}'' must be a measure")
   ExInst<SqlValidatorException> argumentMustBeMeasure(String functionName);
+
+  @BaseMessage("The definition of column ''{0}'' depends on itself through the following columns: {1}")
+  ExInst<SqlValidatorException> columnIsCyclic(String columnName, String dependentColumns);
 
   @BaseMessage("Window ''{0}'' not found")
   ExInst<SqlValidatorException> windowNotFound(String a0);
@@ -1138,4 +1144,13 @@ public interface CalciteResource {
 
   @BaseMessage("ASOF JOIN does not support correlated subqueries")
   ExInst<CalciteException> asofCannotBeCorrelated();
+
+  @BaseMessage("ROW type does not have a field named ''{0}'': {1}")
+  ExInst<SqlValidatorException> unknownRowField(String field, String type);
+
+  @BaseMessage("ROW type does not have a field with index {0,number}; legal range is 1 to {1,number}")
+  ExInst<SqlValidatorException> illegalRowIndexValue(int field, int max);
+
+  @BaseMessage("Index in ROW type does not have a constant integer or string value")
+  ExInst<SqlValidatorException> illegalRowIndex();
 }

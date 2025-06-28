@@ -41,6 +41,10 @@ public abstract class SqlAbstractConformance implements SqlConformance {
     return SqlConformanceEnum.DEFAULT.isGroupByAlias();
   }
 
+  @Override public SelectAliasLookup isSelectAlias() {
+    return SqlConformanceEnum.DEFAULT.isSelectAlias();
+  }
+
   @Override public boolean isGroupByOrdinal() {
     return SqlConformanceEnum.DEFAULT.isGroupByOrdinal();
   }
@@ -155,5 +159,9 @@ public abstract class SqlAbstractConformance implements SqlConformance {
 
   @Override public boolean checkedArithmetic() {
     return SqlConformanceEnum.DEFAULT.checkedArithmetic();
+  }
+
+  @Override public boolean supportsUnsignedTypes() {
+    return SqlConformanceEnum.DEFAULT.supportsUnsignedTypes();
   }
 }

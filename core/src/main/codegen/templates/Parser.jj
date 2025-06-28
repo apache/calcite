@@ -179,6 +179,7 @@ public class ${parser.class} extends SqlAbstractParserImpl
                 final String sql =
                     ((SourceStringReader) reader).getSourceString();
                 parser.setOriginalSql(sql);
+                parser.jj_input_stream.ReInit(reader, 1, 1, sql.length());
             }
           return parser;
         }
@@ -1114,17 +1115,19 @@ SqlNodeList SqlStmtList() :
     SqlNode stmt;
 }
 {
-    stmt = SqlStmt() {
-        stmtList.add(stmt);
-    }
     (
-        <SEMICOLON>
-        [
-            stmt = SqlStmt() {
-                stmtList.add(stmt);
-            }
-        ]
-    )*
+        stmt = SqlStmt() {
+            stmtList.add(stmt);
+        }
+        (
+            <SEMICOLON>
+            [
+                stmt = SqlStmt() {
+                    stmtList.add(stmt);
+                }
+            ]
+        )*
+    )?
     <EOF>
     {
         return new SqlNodeList(stmtList, Span.of(stmtList).pos());
@@ -5215,6 +5218,19 @@ TimeUnit Second() :
     <SECONDS> { return warn(TimeUnit.SECOND); }
 }
 
+SqlIntervalQualifier IntervalWithoutQualifier() :
+{
+    final Span s;
+    int secondFracPrec = RelDataType.PRECISION_NOT_SPECIFIED;
+}
+{
+    {
+        s = span();
+        return new SqlIntervalQualifier(TimeUnit.SECOND, -1, null, secondFracPrec,
+            s.end(this));
+    }
+}
+
 SqlIntervalQualifier IntervalQualifier() :
 {
     final Span s;
@@ -5874,6 +5890,7 @@ SqlTypeNameSpec SqlTypeName(Span s) :
 SqlTypeNameSpec SqlTypeName1(Span s) :
 {
     final SqlTypeName sqlTypeName;
+    boolean unsigned = false;
 }
 {
     (
@@ -5887,13 +5904,40 @@ SqlTypeNameSpec SqlTypeName1(Span s) :
     |
         <BOOLEAN> { s.add(this); sqlTypeName = SqlTypeName.BOOLEAN; }
     |
-        ( <INTEGER> | <INT> ) { s.add(this); sqlTypeName = SqlTypeName.INTEGER; }
+        ( <INTEGER> | <INT> ) ( <UNSIGNED> { unsigned = true; })? {
+            if (unsigned && !this.conformance.supportsUnsignedTypes()) {
+                throw SqlUtil.newContextException(getPos(), RESOURCE.unsignedDisabled());
+            }
+            s.add(this); sqlTypeName = unsigned ? SqlTypeName.UINTEGER : SqlTypeName.INTEGER;
+        }
     |
-        <TINYINT> { s.add(this); sqlTypeName = SqlTypeName.TINYINT; }
+        <UNSIGNED> {
+            if (!this.conformance.supportsUnsignedTypes()) {
+                throw SqlUtil.newContextException(getPos(), RESOURCE.unsignedDisabled());
+            }
+            s.add(this); sqlTypeName = SqlTypeName.UINTEGER;
+        }
     |
-        <SMALLINT> { s.add(this); sqlTypeName = SqlTypeName.SMALLINT; }
+        <TINYINT> ( <UNSIGNED> { unsigned = true; })? {
+            if (unsigned && !this.conformance.supportsUnsignedTypes()) {
+                throw SqlUtil.newContextException(getPos(), RESOURCE.unsignedDisabled());
+            }
+            s.add(this); sqlTypeName = unsigned ? SqlTypeName.UTINYINT : SqlTypeName.TINYINT;
+        }
     |
-        <BIGINT> { s.add(this); sqlTypeName = SqlTypeName.BIGINT; }
+        <SMALLINT> ( <UNSIGNED> { unsigned = true; })? {
+            if (unsigned && !this.conformance.supportsUnsignedTypes()) {
+                throw SqlUtil.newContextException(getPos(), RESOURCE.unsignedDisabled());
+            }
+            s.add(this); sqlTypeName = unsigned ? SqlTypeName.USMALLINT : SqlTypeName.SMALLINT;
+        }
+    |
+        <BIGINT> ( <UNSIGNED> { unsigned = true; })? {
+            if (unsigned && !this.conformance.supportsUnsignedTypes()) {
+                throw SqlUtil.newContextException(getPos(), RESOURCE.unsignedDisabled());
+            }
+            s.add(this); sqlTypeName = unsigned ? SqlTypeName.UBIGINT : SqlTypeName.BIGINT;
+        }
     |
         <REAL> { s.add(this); sqlTypeName = SqlTypeName.REAL; }
     |
@@ -6279,7 +6323,12 @@ SqlNode BuiltinFunctionCall() :
         (
             dt = DataType() { args.add(dt); }
         |
+            LOOKAHEAD(2)
             <INTERVAL> e = IntervalQualifier() { args.add(e); }
+<#if (parser.includeIntervalWithoutQualifier!default.parser.includeIntervalWithoutQualifier) >
+        |
+            <INTERVAL> e = IntervalWithoutQualifier() { args.add(e); }
+</#if>
         )
         [ <FORMAT> format = StringLiteral() { args.add(format); } ]
         <RPAREN> {
@@ -8697,6 +8746,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < UNPIVOT: "UNPIVOT" >
 |   < UNNAMED: "UNNAMED" >
 |   < UNNEST: "UNNEST" >
+|   < UNSIGNED: "UNSIGNED" >
 |   < UPDATE: "UPDATE" > { beforeTableName(); }
 |   < UPPER: "UPPER" >
 |   < UPSERT: "UPSERT" >

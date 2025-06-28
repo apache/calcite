@@ -17,6 +17,7 @@
 package org.apache.calcite.sql.parser;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDelete;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlExplain;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -32,12 +33,14 @@ import org.apache.calcite.sql.SqlUnknownLiteral;
 import org.apache.calcite.sql.SqlWriterConfig;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.dialect.SparkSqlDialect;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser.Config;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.test.SqlTests;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.SqlShuttle;
+import org.apache.calcite.sql.validate.SqlAbstractConformance;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.test.IntervalTest;
@@ -63,6 +66,7 @@ import org.junit.jupiter.api.Test;
 import java.io.Reader;
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Random;
@@ -564,6 +568,7 @@ public class SqlParserTest {
       "UNIQUE",                        "92", "99", "2003", "2011", "2014", "c",
       "UNKNOWN",                       "92", "99", "2003", "2011", "2014", "c",
       "UNNEST",                              "99", "2003", "2011", "2014", "c",
+      "UNSIGNED",                                                          "c",
       "UNTIL",                         "92", "99", "2003",
       "UPDATE",                        "92", "99", "2003", "2011", "2014", "c",
       "UPPER",                         "92",               "2011", "2014", "c",
@@ -790,6 +795,34 @@ public class SqlParserTest {
     // an exception.
     sql("values (a^#^b)")
         .fails("Lexical error at line 1, column 10\\.  Encountered: \"#\" \\(35\\), after : \"\"");
+  }
+
+  /** Test case for
+    * <a href="https://issues.apache.org/jira/browse/CALCITE-2636">[CALCITE-2636]
+    * SQL parser has quadratic running time when SQL string is very large</a>.
+    *
+    * <p>Before fix, this test took 107s for n = 2_000_000; after, 0.6s. */
+  @Test void testLarge() {
+    checkLarge(1_000_000);
+  }
+
+  private void checkLarge(int n) {
+    final CharSequence bigString = TestUtil.repeat("abcdefghi ", n);
+
+    // a query with a character literal of length 10 * n
+    String sql0 = "select '" + bigString + "' from (values (1))";
+    String expected0 = "SELECT '" + bigString + "'\n"
+        + "FROM (VALUES (ROW(1)))";
+    sql(sql0).ok(expected0);
+
+    // two queries with comments of length 10 * n
+    final String sql1 = "select 1 /* a large comment: " + bigString + "\n*/";
+    final String expected1 = "SELECT 1";
+    sql(sql1).ok(expected1);
+
+    final String sql2 = "select /* a large comment: " + bigString + "*/ 2";
+    final String expected2 = "SELECT 2";
+    sql(sql2).ok(expected2);
   }
 
   // TODO: should fail in parser
@@ -1381,6 +1414,42 @@ public class SqlParserTest {
     sql("select c1*1,c2  + 2,c3/3,c4-4,c5*c4  from t")
         .ok("SELECT (`C1` * 1), (`C2` + 2), (`C3` / 3), (`C4` - 4), (`C5` * `C4`)\n"
             + "FROM `T`");
+  }
+
+  @Test void testUnsigned() {
+    sql("SELECT CAST(1 AS UNSIGNED)")
+        .ok("SELECT CAST(1 AS INTEGER UNSIGNED)");
+    sql("SELECT CAST(1 AS INTEGER UNSIGNED)")
+        .same();
+    sql("SELECT CAST(1 AS TINYINT UNSIGNED)")
+        .same();
+    sql("SELECT CAST(1 AS SMALLINT UNSIGNED)")
+        .same();
+    sql("SELECT CAST(1 AS BIGINT UNSIGNED)")
+        .same();
+    List<SqlConformance> unsignedNotSupport =
+        Arrays.asList(
+          SqlConformanceEnum.ORACLE_10,
+          SqlConformanceEnum.ORACLE_12,
+          SqlConformanceEnum.BIG_QUERY,
+          SqlConformanceEnum.PRAGMATIC_99,
+          SqlConformanceEnum.PRAGMATIC_2003,
+          SqlConformanceEnum.PRESTO,
+          SqlConformanceEnum.SQL_SERVER_2008,
+          SqlConformanceEnum.STRICT_92,
+          SqlConformanceEnum.STRICT_99,
+          SqlConformanceEnum.STRICT_2003);
+    unsignedNotSupport.forEach(conformance -> {
+      sql("SELECT CAST(1 AS ^UNSIGNED^)")
+          .withConformance(conformance)
+          .fails("Support for UNSIGNED data types is not enabled");
+    });
+    sql("SELECT CAST(1 AS ^UNSIGNED^)")
+        .withConformance(new SqlAbstractConformance() {
+          @Override public boolean supportsUnsignedTypes() {
+            return false;
+          }
+        }).fails("Support for UNSIGNED data types is not enabled");
   }
 
   @Test void testRow() {
@@ -2081,6 +2150,14 @@ public class SqlParserTest {
             + "FROM `EMP`\n"
             + "WHERE (((1 = 2) AND (EXISTS (SELECT 1\n"
             + "FROM `DEPT`))) AND (3 = 4))");
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6986">[CALCITE-6986]
+   * Parser rejects SQL sources that produce an empty statement list</a>. */
+  @Test public void testEmpty() {
+    sql("").list().ok();
+    sql(" ").list().ok();
+    sql("-- comment").list().ok();
   }
 
   @Test void testUnique() {
@@ -4705,7 +4782,15 @@ public class SqlParserTest {
     // test one partition key for input table
     final String sql = "select * from table(topn(table orders partition by productid, 3))";
     final String expected = "SELECT *\n"
-        + "FROM TABLE(`TOPN`(((TABLE `ORDERS`) PARTITION BY `PRODUCTID`), 3))";
+        + "FROM TABLE(`TOPN`((TABLE `ORDERS`) PARTITION BY `PRODUCTID`, 3))";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testTableFunctionWithNamedArgAndPartitionKey() {
+    final String sql = "select * "
+        + "from table(topn(data=>table orders partition by (productid), col=>3))";
+    final String expected = "SELECT *\n"
+        + "FROM TABLE(`TOPN`(`DATA` => (TABLE `ORDERS`) PARTITION BY `PRODUCTID`, `COL` => 3))";
     sql(sql).ok(expected);
   }
 
@@ -4714,7 +4799,7 @@ public class SqlParserTest {
     final String sql =
         "select * from table(topn(table orders partition by (orderId, productid), 3))";
     final String expected = "SELECT *\n"
-        + "FROM TABLE(`TOPN`(((TABLE `ORDERS`) PARTITION BY `ORDERID`, `PRODUCTID`), 3))";
+        + "FROM TABLE(`TOPN`((TABLE `ORDERS`) PARTITION BY `ORDERID`, `PRODUCTID`, 3))";
     sql(sql).ok(expected);
   }
 
@@ -4723,7 +4808,7 @@ public class SqlParserTest {
     final String sql =
         "select * from table(topn(table orders order by orderId, 3))";
     final String expected = "SELECT *\n"
-        + "FROM TABLE(`TOPN`(((TABLE `ORDERS`) ORDER BY `ORDERID`), 3))";
+        + "FROM TABLE(`TOPN`((TABLE `ORDERS`) ORDER BY `ORDERID`, 3))";
     sql(sql).ok(expected);
   }
 
@@ -4732,7 +4817,7 @@ public class SqlParserTest {
     final String sql =
         "select * from table(topn(table orders order by (orderId, productid), 3))";
     final String expected = "SELECT *\n"
-        + "FROM TABLE(`TOPN`(((TABLE `ORDERS`) ORDER BY `ORDERID`, `PRODUCTID`), 3))";
+        + "FROM TABLE(`TOPN`((TABLE `ORDERS`) ORDER BY `ORDERID`, `PRODUCTID`, 3))";
     sql(sql).ok(expected);
   }
 
@@ -4741,7 +4826,7 @@ public class SqlParserTest {
     final String sql =
         "select * from table(topn(table orders order by (orderId desc, productid asc), 3))";
     final String expected = "SELECT *\n"
-        + "FROM TABLE(`TOPN`(((TABLE `ORDERS`) ORDER BY `ORDERID` DESC, `PRODUCTID`), 3))";
+        + "FROM TABLE(`TOPN`((TABLE `ORDERS`) ORDER BY `ORDERID` DESC, `PRODUCTID`, 3))";
     sql(sql).ok(expected);
   }
 
@@ -4750,7 +4835,7 @@ public class SqlParserTest {
     final String sql =
         "select * from table(topn(table orders partition by productid order by orderId, 3))";
     final String expected = "SELECT *\n"
-        + "FROM TABLE(`TOPN`(((TABLE `ORDERS`) PARTITION BY `PRODUCTID` ORDER BY `ORDERID`), 3))";
+        + "FROM TABLE(`TOPN`((TABLE `ORDERS`) PARTITION BY `PRODUCTID` ORDER BY `ORDERID`, 3))";
     sql(sql).ok(expected);
   }
 
@@ -4760,8 +4845,8 @@ public class SqlParserTest {
         "select * from table(topn(select * from Orders partition by productid "
             + "order by orderId, 3))";
     final String expected = "SELECT *\n"
-        + "FROM TABLE(`TOPN`(((SELECT *\n"
-        + "FROM `ORDERS`) PARTITION BY `PRODUCTID` ORDER BY `ORDERID`), 3))";
+        + "FROM TABLE(`TOPN`((SELECT *\n"
+        + "FROM `ORDERS`) PARTITION BY `PRODUCTID` ORDER BY `ORDERID`, 3))";
     sql(sql).ok(expected);
   }
 
@@ -4778,8 +4863,8 @@ public class SqlParserTest {
         + "  table emp partition by deptno order by empno, "
         + "  table emp_b partition by deptno order by empno))";
     final String expected = "SELECT *\n"
-        + "FROM TABLE(`SIMILARLITY`(((TABLE `EMP`) PARTITION BY `DEPTNO` ORDER BY `EMPNO`), "
-        + "((TABLE `EMP_B`) PARTITION BY `DEPTNO` ORDER BY `EMPNO`)))";
+        + "FROM TABLE(`SIMILARLITY`((TABLE `EMP`) PARTITION BY `DEPTNO` ORDER BY `EMPNO`, "
+        + "(TABLE `EMP_B`) PARTITION BY `DEPTNO` ORDER BY `EMPNO`))";
     sql(sql).ok(expected);
   }
 
@@ -7204,6 +7289,8 @@ public class SqlParserTest {
         .ok("CAST(`X` AS INTERVAL MINUTE TO SECOND)");
     expr("cast(interval '3-2' year to month as CHAR(5))")
         .ok("CAST(INTERVAL '3-2' YEAR TO MONTH AS CHAR(5))");
+    expr("cast(x as ^interval^)")
+        .fails("(?s)Encountered \"interval \\)\".*");
   }
 
   @Test void testCastToVarchar() {
@@ -9495,6 +9582,27 @@ public class SqlParserTest {
 
     sql("select 1 || (a, b) ^->^ a + b")
         .fails(errorMessage2);
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6977">[CALCITE-6977]
+   * Unparse DELETE SQL throws unsupported exception</a>.
+   */
+  @Test void testSqlDeleteSqlBasicCallToString() {
+    final SqlParserPos parserPos = SqlParserPos.ZERO;
+    final SqlIdentifier employees = new SqlIdentifier("employee", parserPos);
+    final SqlCall where =
+        SqlStdOperatorTable.EQUALS.createCall(parserPos,
+            new SqlIdentifier("id", parserPos),
+            SqlLiteral.createExactNumeric("1", parserPos));
+    SqlDelete sqlDelete = new SqlDelete(parserPos, employees, where, null, null);
+    // Create a new SqlDelete with the same operands as the original by SqlDelete.OPERATOR
+    final SqlCall call =
+        SqlDelete.OPERATOR.createCall(sqlDelete.getFunctionQuantifier(),
+            sqlDelete.getParserPosition(),
+            sqlDelete.getOperandList());
+    assertThat(call, hasToString(sqlDelete.toString()));
   }
 
   protected static String varToStr(Hoist.Variable v) {

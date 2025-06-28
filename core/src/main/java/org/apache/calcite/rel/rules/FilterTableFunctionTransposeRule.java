@@ -16,11 +16,12 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
 import org.apache.calcite.rel.metadata.RelColumnMapping;
@@ -55,14 +56,15 @@ public class FilterTableFunctionTransposeRule
   @Deprecated // to be removed before 2.0
   public FilterTableFunctionTransposeRule(RelBuilderFactory relBuilderFactory) {
     this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
-        .as(Config.class));
+        .as(Config.class)
+        .withOperandFor(LogicalFilter.class, LogicalTableFunctionScan.class));
   }
 
   //~ Methods ----------------------------------------------------------------
 
   @Override public void onMatch(RelOptRuleCall call) {
-    LogicalFilter filter = call.rel(0);
-    LogicalTableFunctionScan funcRel = call.rel(1);
+    Filter filter = call.rel(0);
+    TableFunctionScan funcRel = call.rel(1);
     Set<RelColumnMapping> columnMappings = funcRel.getColumnMappings();
     if (columnMappings == null || columnMappings.isEmpty()) {
       // No column mapping information, so no push-down
@@ -90,7 +92,6 @@ public class FilterTableFunctionTransposeRule
       }
     }
     final List<RelNode> newFuncInputs = new ArrayList<>();
-    final RelOptCluster cluster = funcRel.getCluster();
     final RexNode condition = filter.getCondition();
 
     // create filters on top of each func input, modifying the filter
@@ -109,14 +110,13 @@ public class FilterTableFunctionTransposeRule
                   funcInput.getRowType().getFieldList(),
                   adjustments));
       newFuncInputs.add(
-          LogicalFilter.create(funcInput, newCondition));
+          call.builder().push(funcInput)
+              .filter(newCondition)
+              .build());
     }
 
     // create a new UDX whose children are the filters created above
-    LogicalTableFunctionScan newFuncRel =
-        LogicalTableFunctionScan.create(cluster, newFuncInputs,
-            funcRel.getCall(), funcRel.getElementType(), funcRel.getRowType(),
-            columnMappings);
+    RelNode newFuncRel = funcRel.copy(funcRel.getTraitSet(), newFuncInputs);
     call.transformTo(newFuncRel);
   }
 
@@ -124,12 +124,18 @@ public class FilterTableFunctionTransposeRule
   @Value.Immutable
   public interface Config extends RelRule.Config {
     Config DEFAULT = ImmutableFilterTableFunctionTransposeRule.Config.of()
-        .withOperandSupplier(b0 ->
-            b0.operand(LogicalFilter.class).oneInput(b1 ->
-                b1.operand(LogicalTableFunctionScan.class).anyInputs()));
+        .withOperandFor(Filter.class, TableFunctionScan.class);
 
     @Override default FilterTableFunctionTransposeRule toRule() {
       return new FilterTableFunctionTransposeRule(this);
+    }
+
+    default Config withOperandFor(Class<? extends Filter> filterClass,
+        Class<? extends TableFunctionScan> tableFunctionScanClass) {
+      return withOperandSupplier(b0 ->
+          b0.operand(filterClass).oneInput(b1 ->
+              b1.operand(tableFunctionScanClass).anyInputs()))
+          .as(Config.class);
     }
   }
 }

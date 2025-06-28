@@ -23,6 +23,7 @@ import org.apache.calcite.config.CharLiteralStyle;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -277,6 +278,8 @@ public class SqlDialect {
       return DatabaseProduct.CLICKHOUSE;
     case "DBMS:CLOUDSCAPE":
       return DatabaseProduct.DERBY;
+    case "DUCKDB":
+      return DatabaseProduct.DUCKDB;
     case "EXASOL":
       return DatabaseProduct.EXASOL;
     case "FIREBOLT":
@@ -793,6 +796,16 @@ public class SqlDialect {
   /** Returns whether this dialect supports case when return boolean type. */
   public boolean supportBooleanCaseWhen() {
     return true;
+  }
+
+  /** Returns whether this dialect supports generate 'SELECT *'. */
+  public boolean supportGenerateSelectStar(RelNode relNode) {
+    return true;
+  }
+
+  /** Converts {@link RexNode} expression to {@link RexNode} expression before unparse. */
+  public RexNode prepareUnparse(RexNode rexNode) {
+    return rexNode;
   }
 
   /** Returns whether this dialect supports a given function or operator.
@@ -1422,6 +1435,8 @@ public class SqlDialect {
     ORACLE("Oracle", "\"", NullCollation.HIGH),
     DERBY("Apache Derby", null, NullCollation.HIGH),
     DB2("IBM DB2", null, NullCollation.HIGH),
+    DUCKDB("DUCKDB", null, NullCollation.LAST),
+    DORIS("Doris", "`", NullCollation.LOW),
     EXASOL("Exasol", "\"", NullCollation.LOW),
     FIREBIRD("Firebird", null, NullCollation.HIGH),
     FIREBOLT("Firebolt", "\"", NullCollation.LOW),
@@ -1435,6 +1450,7 @@ public class SqlDialect {
     PHOENIX("Phoenix", "\"", NullCollation.HIGH),
     POSTGRESQL("PostgreSQL", "\"", NullCollation.HIGH),
     PRESTO("Presto", "\"", NullCollation.LAST),
+    TRINO("Trino", "\"", NullCollation.LAST),
     NETEZZA("Netezza", "\"", NullCollation.HIGH),
     INFOBRIGHT("Infobright", "`", NullCollation.HIGH),
     NEOVIEW("Neoview", null, NullCollation.HIGH),
@@ -1444,6 +1460,7 @@ public class SqlDialect {
     VERTICA("Vertica", "\"", NullCollation.HIGH),
     SQLSTREAM("SQLstream", "\"", NullCollation.HIGH),
     SPARK("Spark", null, NullCollation.LOW),
+    SQLITE("SQLite", null, NullCollation.LOW),
     STARROCKS("StarRocks", "`", NullCollation.LOW),
 
     /** Paraccel, now called Actian Matrix. Redshift is based on this, so

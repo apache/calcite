@@ -275,9 +275,10 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     if (type == null) {
       return null;
     }
-    return sqlTypeName == SqlTypeName.ARRAY
-        ? new ArraySqlType(type, isNullable)
-        : new MultisetSqlType(type, isNullable);
+    RelDataType collection = sqlTypeName == SqlTypeName.ARRAY
+        ? createArrayType(type, -1)
+        : createMultisetType(type, -1);
+    return createTypeWithNullability(collection, isNullable);
   }
 
   protected @Nullable RelDataType leastRestrictiveMapType(
@@ -302,7 +303,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     if (valueType == null) {
       return null;
     }
-    return new MapSqlType(keyType, valueType, isNullable);
+    return createTypeWithNullability(createMapType(keyType, valueType), isNullable);
   }
 
   protected RelDataType leastRestrictiveIntervalDatetimeType(

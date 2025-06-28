@@ -18,6 +18,9 @@ package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.TimeUnitRange;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.rules.MultiJoin;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
@@ -40,17 +43,21 @@ import org.apache.calcite.sql.SqlSetOption;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
@@ -178,9 +185,27 @@ public class PostgresqlSqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public boolean supportGenerateSelectStar(RelNode relNode) {
+    // Whether the relNode is a join and whether its inputs have duplicate field names.
+    // For example, EMP JOIN DEPT, both of which have columns named DEPTNO.
+    if (relNode instanceof Join || relNode instanceof MultiJoin) {
+      final List<String> fieldNames = relNode.getInputs().stream()
+          .flatMap(input -> input.getRowType().getFieldNames().stream())
+          .map(name -> isCaseSensitive() ? name : name.toLowerCase(Locale.ROOT))
+          .collect(Collectors.toList());
+      return Util.isDistinct(fieldNames);
+    }
+    return true;
+  }
+
   @Override public void unparseCall(SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec) {
     switch (call.getKind()) {
+    case LISTAGG:
+      SqlCall stringAGG =
+          SqlLibraryOperators.STRING_AGG.createCall(SqlParserPos.ZERO, call.getOperandList());
+      super.unparseCall(writer, stringAGG, leftPrec, rightPrec);
+      break;
     case FLOOR:
       if (call.operandCount() != 2) {
         super.unparseCall(writer, call, leftPrec, rightPrec);

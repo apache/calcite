@@ -131,7 +131,7 @@ class EnumerableCorrelateTest {
             + "  EnumerableCorrelate(correlation=[$cor1], joinType=[inner], requiredColumns=[{0}])\n"
             + "    EnumerableAggregate(group=[{0}])\n"
             + "      EnumerableTableScan(table=[[s, depts]])\n"
-            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[$cor1], expr#6=[$t5.deptno], expr#7=[=($t1, $t6)], expr#8=[100], expr#9=[>($t0, $t8)], expr#10=[AND($t7, $t9)], proj#0..2=[{exprs}], $condition=[$t10])\n"
+            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[$cor1], expr#6=[$t5.deptno], expr#7=[=($t1, $t6)], expr#8=[CAST($t0):INTEGER NOT NULL], expr#9=[100], expr#10=[>($t8, $t9)], expr#11=[AND($t7, $t10)], proj#0..2=[{exprs}], $condition=[$t11])\n"
             + "      EnumerableTableScan(table=[[s, emps]])")
         .returnsUnordered(
             "empid=110; name=Theodore",
@@ -166,6 +166,24 @@ class EnumerableCorrelateTest {
             "empid=110",
             "empid=150",
             "empid=200");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5638">[CALCITE-5638]
+   * Columns trimmer need to consider sub queries</a>.
+   */
+  @Test void complexNestedCorrelatedSubquery() {
+    String sql = "SELECT empid, deptno, (SELECT count(*) FROM emps AS x "
+        + "WHERE x.salary>emps.salary and x.deptno<emps.deptno) FROM emps "
+        + "WHERE empid<salary ORDER BY 1,2,3";
+
+    tester(false, new HrSchema())
+        .query(sql)
+        .returnsOrdered(
+            "empid=100; deptno=10; EXPR$2=0",
+            "empid=110; deptno=10; EXPR$2=0",
+            "empid=150; deptno=10; EXPR$2=0",
+            "empid=200; deptno=20; EXPR$2=2");
   }
 
   /** Test case for

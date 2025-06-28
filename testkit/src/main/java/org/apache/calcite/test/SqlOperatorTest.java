@@ -643,18 +643,22 @@ public class SqlOperatorTest {
     f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
     SqlOperatorFixture f0 = f.withConformance(SqlConformanceEnum.DEFAULT);
     f0.checkFails("^" + castType.name() + "(true as integer)^",
-        "Cast function cannot convert value of type BOOLEAN to type INTEGER", false);
+        "Cast function cannot convert value of type BOOLEAN NOT NULL to "
+            + "type INTEGER NOT NULL", false);
     f0.checkFails("^" + castType.name() + "(true as decimal)^",
-        "Cast function cannot convert value of type BOOLEAN to type DECIMAL\\(19, 0\\)", false);
+        "Cast function cannot convert value of type BOOLEAN NOT NULL to "
+            + "type DECIMAL\\(19, 0\\) NOT NULL", false);
 
     SqlOperatorFixture f1 = f.withConformance(SqlConformanceEnum.BIG_QUERY);
     f1.checkString("cast(true as integer)", "1", "INTEGER NOT NULL");
     f1.checkString("cast(false as integer)", "0", "INTEGER NOT NULL");
     f1.checkString("cast(true as bigint)", "1", "BIGINT NOT NULL");
     f1.checkFails("^" + castType.name() + "(true as float)^",
-        "Cast function cannot convert value of type BOOLEAN to type FLOAT", false);
+        "Cast function cannot convert value of type BOOLEAN NOT NULL to "
+            + "type FLOAT NOT NULL", false);
     f1.checkFails("^" + castType.name() + "(true as decimal)^",
-        "Cast function cannot convert value of type BOOLEAN to type DECIMAL\\(19, 0\\)", false);
+        "Cast function cannot convert value of type BOOLEAN NOT NULL to "
+            + "type DECIMAL\\(19, 0\\) NOT NULL", false);
   }
 
   @ParameterizedTest
@@ -1824,7 +1828,7 @@ public class SqlOperatorTest {
     f.checkScalar("cast(cast(CAST('abc' AS VARCHAR) as VARIANT) AS VARCHAR)", "abc",
         "VARCHAR");
     f.checkScalar("cast(cast(ARRAY[1,2,3] as VARIANT) AS INTEGER ARRAY)", "[1, 2, 3]",
-        "INTEGER NOT NULL ARRAY");
+        "INTEGER ARRAY");
     f.checkScalar("cast(cast('abc' as VARIANT) AS VARCHAR)", "abc", "VARCHAR");
     f.checkScalar("cast(cast('abc' as VARIANT) AS CHAR(3))", "abc", "CHAR(3)");
 
@@ -6400,6 +6404,8 @@ public class SqlOperatorTest {
         "VARCHAR NOT NULL");
   }
 
+
+
   @Test void testRegexpReplace4Func() {
     final SqlOperatorFixture f0 = fixture();
     final Consumer<SqlOperatorFixture> consumer = f -> {
@@ -6501,6 +6507,8 @@ public class SqlOperatorTest {
     f.checkString("regexp_replace('abc\t\ndef\t\nghi', '\t\n', '+')", "abc+def\t\nghi",
         "VARCHAR NOT NULL");
     f.checkString("regexp_replace('abc\t\ndef\t\nghi', '\\w+', '+')", "+\t\ndef\t\nghi",
+        "VARCHAR NOT NULL");
+    f.checkString("regexp_replace('abc', 'a(.*)c', 'x\\1x')", "xbx",
         "VARCHAR NOT NULL");
 
     f.checkQuery("select regexp_replace('a b c', 'b', 'X')");
@@ -7717,6 +7725,11 @@ public class SqlOperatorTest {
     f0.checkFails("^log(100, 10)^",
         "No match found for function signature LOG\\(<NUMERIC>, <NUMERIC>\\)", false);
     final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
+    // Test case for https://issues.apache.org/jira/browse/CALCITE-6984
+    // FamilyOperandTypeChecker with a Predicate describing optional arguments does not
+    // reject mistyped expressions
+    f.checkFails("^log(x'')^",
+        "Cannot apply 'LOG' to arguments of type 'LOG\\(<BINARY\\(0\\)>\\)'.*\\n.*", false);
     f.checkScalarApprox("log(10, 10)", "DOUBLE NOT NULL",
         isWithin(1.0, 0.000001));
     f.checkScalarApprox("log(64, 8)", "DOUBLE NOT NULL",
@@ -7975,7 +7988,7 @@ public class SqlOperatorTest {
     f.checkScalar("array_append(array[map[1, 'a']], map[2, 'b'])", "[{1=a}, {2=b}]",
         "(INTEGER NOT NULL, CHAR(1) NOT NULL) MAP NOT NULL ARRAY NOT NULL");
     f.checkNull("array_append(cast(null as integer array), 1)");
-    f.checkType("array_append(cast(null as integer array), 1)", "INTEGER NOT NULL ARRAY");
+    f.checkType("array_append(cast(null as integer array), 1)", "INTEGER ARRAY");
     f.checkFails("^array_append(array[1, 2], true)^",
         "INTEGER is not comparable to BOOLEAN", false);
 
@@ -8312,7 +8325,7 @@ public class SqlOperatorTest {
     f.checkScalar("array_prepend(array[map[1, 'a']], map[2, 'b'])", "[{2=b}, {1=a}]",
         "(INTEGER NOT NULL, CHAR(1) NOT NULL) MAP NOT NULL ARRAY NOT NULL");
     f.checkNull("array_prepend(cast(null as integer array), 1)");
-    f.checkType("array_prepend(cast(null as integer array), 1)", "INTEGER NOT NULL ARRAY");
+    f.checkType("array_prepend(cast(null as integer array), 1)", "INTEGER ARRAY");
     f.checkFails("^array_prepend(array[1, 2], true)^",
         "INTEGER is not comparable to BOOLEAN", false);
 
@@ -8377,7 +8390,7 @@ public class SqlOperatorTest {
       f.checkScalar("array_remove(array[map[1, 'a']], map[1, 'a'])", "[]",
           "(INTEGER NOT NULL, CHAR(1) NOT NULL) MAP NOT NULL ARRAY NOT NULL");
       f.checkNull("array_remove(cast(null as integer array), 1)");
-      f.checkType("array_remove(cast(null as integer array), 1)", "INTEGER NOT NULL ARRAY");
+      f.checkType("array_remove(cast(null as integer array), 1)", "INTEGER ARRAY");
 
       // Flink and Spark differ on the following. The expression
       //   array_remove(array[1, null], cast(null as integer))
@@ -8823,10 +8836,10 @@ public class SqlOperatorTest {
 
     f.checkNull("arrays_zip(cast(null as integer array), array[1, 2])");
     f.checkType("arrays_zip(cast(null as integer array), array[1, 2])",
-        "RecordType(INTEGER NOT NULL 0, INTEGER NOT NULL 1) NOT NULL ARRAY");
+        "RecordType(INTEGER 0, INTEGER NOT NULL 1) NOT NULL ARRAY");
     f.checkNull("arrays_zip(array[1, 2], cast(null as integer array))");
     f.checkType("arrays_zip(array[1, 2], cast(null as integer array))",
-        "RecordType(INTEGER NOT NULL 0, INTEGER NOT NULL 1) NOT NULL ARRAY");
+        "RecordType(INTEGER NOT NULL 0, INTEGER 1) NOT NULL ARRAY");
     f.checkFails("^arrays_zip(array[1, 2], true)^",
         "Parameters must be of the same type", false);
   }
@@ -9012,10 +9025,10 @@ public class SqlOperatorTest {
     // test operand is null map
     f1.checkNull("map_concat(map('foo', 1), cast(null as map<varchar, int>))");
     f1.checkType("map_concat(map('foo', 1), cast(null as map<varchar, int>))",
-        "(VARCHAR NOT NULL, INTEGER NOT NULL) MAP");
+        "(VARCHAR NOT NULL, INTEGER) MAP");
     f1.checkNull("map_concat(cast(null as map<varchar, int>), map['foo', 1])");
     f1.checkType("map_concat(cast(null as map<varchar, int>), map['foo', 1])",
-        "(VARCHAR NOT NULL, INTEGER NOT NULL) MAP");
+        "(VARCHAR NOT NULL, INTEGER) MAP");
 
     f1.checkFails("^map_concat(map('foo', 1), null)^",
         "Function 'MAP_CONCAT' should all be of type map, "
@@ -9214,7 +9227,7 @@ public class SqlOperatorTest {
     f.checkScalar("map_from_arrays(array(), array())",
         "{}", "(UNKNOWN NOT NULL, UNKNOWN NOT NULL) MAP NOT NULL");
     f.checkType("map_from_arrays(cast(null as integer array), array['foo', 'bar'])",
-        "(INTEGER NOT NULL, CHAR(3) NOT NULL) MAP");
+        "(INTEGER, CHAR(3) NOT NULL) MAP");
     f.checkNull("map_from_arrays(cast(null as integer array), array['foo', 'bar'])");
 
     f.checkFails("^map_from_arrays(array[1, 2], 2)^",
@@ -12061,6 +12074,46 @@ public class SqlOperatorTest {
     f0.forEachLibrary(libraries, consumer);
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6939">
+   * [CALCITE-6939] Add support for Lateral Column Alias</a>. */
+  @Test void testAliasInSelect() {
+    final SqlOperatorFixture f = fixture()
+        // Babel sets isSelectAlias to ANY
+        .withConformance(SqlConformanceEnum.BABEL);
+    // Y uses the local X
+    f.check("select Y from (select 1 AS x, x as Y)",
+        "INTEGER NOT NULL", "1");
+    // X used twice
+    f.check("select Y from (select 1 AS x, x+x as Y)",
+        "INTEGER NOT NULL", "2");
+    // Chain of uses
+    f.check("select W from (select 1 AS x, x+x as Y, y+y as Z, z+z as W)",
+        "INTEGER NOT NULL", "8");
+    // Out of order lookup
+    f.check("SELECT W FROM (select z+z AS W, y+y AS Z, x+x AS Y, 1 AS x)",
+        "INTEGER NOT NULL", "8");
+    // Duplicate local column definition
+    f.checkFails("SELECT ^x^ FROM (select 1 AS x, 2 as x)",
+        "Column 'X' is ambiguous", false);
+    // Duplicate local column definition
+    f.checkFails("SELECT W FROM (select 1 AS x, 2 as x, ^x^ as W)",
+        "Column 'X' is ambiguous", false);
+    // Inner columns are not used if scope includes outer columns
+    f.check("SELECT W FROM (SELECT 1 AS X, X AS W FROM (SELECT 2 AS X))",
+        "INTEGER NOT NULL", "2");
+    // Circular dependency
+    f.checkFails("SELECT X FROM (SELECT ^X^ AS Y, Y AS X)",
+        "The definition of column 'X' depends on itself through "
+            + "the following columns: 'X', 'Y'", false);
+    // Circular dependency
+    f.checkFails("SELECT X FROM (SELECT ^X^ + 1 AS Y, Y + 1 AS X)",
+        "The definition of column 'X' depends on itself through "
+            + "the following columns: 'X', 'Y'", false);
+    // No circular dependency if a column is defined in an outer scope
+    f.check("SELECT X FROM (SELECT X + 1 AS Y, Y + 1 AS X FROM (SELECT 2 AS X))",
+        "INTEGER NOT NULL", "4");
+  }
+
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5634">
    * [CALCITE-5634] Enable GREATEST, LEAST functions in PostgreSQL library</a>. */
   @Test void testLeastPgFunc() {
@@ -12436,6 +12489,28 @@ public class SqlOperatorTest {
         "No match found for function signature STRING_AGG\\(<CHARACTER>, "
             + "<CHARACTER>\\)",
         false);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6951">[CALCITE-6951]
+   * Add STRING_TO_ARRAY function(enabled in PostgreSQL Library)</a>. */
+  @Test void testStringToArrayFunc() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.STRING_TO_ARRAY);
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.POSTGRESQL);
+    f.checkNull("string_to_array(NULL, ' ')");
+    f.checkScalar("string_to_array('', '')", "[]",
+        "CHAR(0) NOT NULL ARRAY NOT NULL");
+    f.checkScalar("string_to_array('ab', NULL)",
+        "[a, b]", "CHAR(2) NOT NULL ARRAY");
+    f.checkScalar("string_to_array('www apache org', ' ')",
+        "[www, apache, org]", "CHAR(14) NOT NULL ARRAY NOT NULL");
+    f.checkScalar("string_to_array('www apache org', ' ', 'apache')",
+        "[www, null, org]", "CHAR(14) NOT NULL ARRAY NOT NULL");
+    f.checkFails("^string_to_array(NULL)^",
+        "Invalid number of arguments to function 'STRING_TO_ARRAY'.*", false);
+    f.checkFails("^string_to_array(NULL, NULL, NULL, NULL)^",
+        "Invalid number of arguments to function 'STRING_TO_ARRAY'.*", false);
   }
 
   @Test void testGroupConcatFunc() {
@@ -13289,10 +13364,9 @@ public class SqlOperatorTest {
     f.check("select \"T\".\"X\"[2] "
             + "from (VALUES (ROW(ROW(3, CAST(NULL AS INTEGER)), ROW(4, 8)))) as T(x, y)",
         SqlTests.ANY_TYPE_CHECKER, isNullValue());
-    f.checkFails("select \"T\".\"X\"[1 + CAST(NULL AS INTEGER)] "
+    f.checkFails("select ^\"T\".\"X\"[1 + CAST(NULL AS INTEGER)]^ "
             + "from (VALUES (ROW(ROW(3, CAST(NULL AS INTEGER)), ROW(4, 8)))) as T(x, y)",
-        "Cannot infer type of field at position null within ROW type: "
-            + "RecordType\\(INTEGER EXPR\\$0, INTEGER EXPR\\$1\\)", false);
+        "Index in ROW type does not have a constant integer or string value", false);
   }
 
   @Test void testOffsetOperator() {
@@ -16049,6 +16123,76 @@ public class SqlOperatorTest {
     f.check("SELECT (SELECT * FROM UNNEST(ARRAY[3]) LIMIT 1) = "
             + "all(x.t) FROM (SELECT ARRAY[3,3] as t) as x",
         "BOOLEAN", true);
+  }
+
+  @Test void testQuantifyOperatorsWithTypeException() {
+    final SqlOperatorFixture f = fixture();
+    QUANTIFY_OPERATORS.forEach(operator -> f.setFor(operator, SqlOperatorFixture.VmName.EXPAND));
+    // some(List value)
+    f.checkFails("SELECT ^cast(true as boolean) = some(1, 2, 3)^",
+        "Values passed to = SOME operator must have compatible types", false);
+    // some(Collection value)
+    f.checkFails("^cast(true as boolean) = some (ARRAY[2,3,null])^",
+        "Values passed to = SOME operator must have compatible types", false);
+    f.checkFails("^cast(true as boolean) <> some (ARRAY[1,2,null])^",
+        "Values passed to <> SOME operator must have compatible types", false);
+    f.checkFails("^cast(true as boolean) < some (ARRAY[1,2,null])^",
+        "Values passed to < SOME operator must have compatible types", false);
+    f.checkFails("^cast(true as boolean) <= some (ARRAY[1,2,null])^",
+        "Values passed to <= SOME operator must have compatible types", false);
+    f.checkFails("^cast(true as boolean) > some (ARRAY[1,2,null])^",
+        "Values passed to > SOME operator must have compatible types", false);
+    f.checkFails("^cast(true as boolean) >= some (ARRAY[1,2,null])^",
+        "Values passed to >= SOME operator must have compatible types", false);
+    f.checkFails(
+        "SELECT ^cast(true as boolean) = some(x.t)^ FROM (SELECT ARRAY[1,2,3,null] as t) as x",
+        "Values passed to = SOME operator must have compatible types", false);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6950">[CALCITE-6950]
+   * Use ANY operator to check if an element exists in an array throws exception</a>. */
+  @Test void testQuantifyOperatorsWithTypeCoercion() {
+    final SqlOperatorFixture f = fixture();
+    QUANTIFY_OPERATORS.forEach(operator -> f.setFor(operator, SqlOperatorFixture.VmName.EXPAND));
+
+    f.checkNull("1.0 = some (ARRAY[2,3,null])");
+    f.checkNull("1.0 = some (ARRAY[2,null,3])");
+    f.enableTypeCoercion(false).checkFails(
+        "^1.0 = some (ARRAY[2,3,null])^",
+        "Values passed to = SOME operator must have compatible types",
+        false);
+
+    f.checkBoolean("1.0 = some (ARRAY[1,2,null])", true);
+    f.checkBoolean("3.0 = some (ARRAY[1,2])", false);
+    f.enableTypeCoercion(false).checkFails(
+        "^3.0 = some (ARRAY[1,2])^",
+        "Values passed to = SOME operator must have compatible types",
+        false);
+
+    f.checkBoolean(
+        "'1970-01-01 01:23:45' = any (array[timestamp '1970-01-01 01:23:45',"
+            + "timestamp '1970-01-01 01:23:46'])", true);
+    f.checkBoolean(
+        "'1970-01-01 01:23:47' = any (array[timestamp '1970-01-01 01:23:45',"
+            + "timestamp '1970-01-01 01:23:46'])", false);
+    f.enableTypeCoercion(false).checkFails(
+        "^'1970-01-01 01:23:47' = any (array[timestamp '1970-01-01 01:23:45',"
+            + "timestamp '1970-01-01 01:23:46'])^",
+        "Values passed to = SOME operator must have compatible types",
+        false);
+
+    f.checkBoolean(
+        "cast('1970-01-01 01:23:45' as timestamp) = any (array['1970-01-01 01:23:45',"
+            + "'1970-01-01 01:23:46'])", true);
+    f.checkBoolean(
+        "cast('1970-01-01 01:23:47' as timestamp) = any (array['1970-01-01 01:23:45',"
+            + "'1970-01-01 01:23:46'])", false);
+    f.enableTypeCoercion(false).checkFails(
+        "^cast('1970-01-01 01:23:47' as timestamp) = any (array['1970-01-01 01:23:45',"
+            + "'1970-01-01 01:23:46'])^",
+        "Values passed to = SOME operator must have compatible types",
+        false);
   }
 
   @Test void testAnyValueFunc() {

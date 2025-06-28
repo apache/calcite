@@ -20,17 +20,20 @@ import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlBasicTypeNameSpec;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCollectionTypeNameSpec;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlMapTypeNameSpec;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlArrayValueConstructor;
@@ -38,6 +41,8 @@ import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlMapValueConstructor;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.ArraySqlType;
+import org.apache.calcite.sql.type.MapSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.RelToSqlConverterUtil;
@@ -51,15 +56,46 @@ import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * A <code>SqlDialect</code> implementation for the Presto database.
  */
 public class PrestoSqlDialect extends SqlDialect {
+  public static final RelDataTypeSystem TYPE_SYSTEM =
+      new RelDataTypeSystemImpl() {
+
+        // We can refer to document of Presto 0.29:
+        // https://prestodb.io/docs/current/language/types.html#fixed-precision
+        @Override public int getMaxPrecision(SqlTypeName typeName) {
+          switch (typeName) {
+          case DECIMAL:
+            return 38;
+          default:
+            return super.getMaxPrecision(typeName);
+          }
+        }
+
+        @Override public int getMaxScale(SqlTypeName typeName) {
+          switch (typeName) {
+          case DECIMAL:
+            return 38;
+          default:
+            return super.getMaxScale(typeName);
+          }
+        }
+
+        @Override public int getMaxNumericScale() {
+          return getMaxScale(SqlTypeName.DECIMAL);
+        }
+      };
+
   public static final Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
       .withDatabaseProduct(DatabaseProduct.PRESTO)
       .withIdentifierQuoteString("\"")
       .withUnquotedCasing(Casing.UNCHANGED)
-      .withNullCollation(NullCollation.LAST);
+      .withNullCollation(NullCollation.LAST)
+      .withDataTypeSystem(TYPE_SYSTEM);
 
   public static final SqlDialect DEFAULT = new PrestoSqlDialect(DEFAULT_CONTEXT);
 
@@ -157,9 +193,38 @@ public class PrestoSqlDialect extends SqlDialect {
     case BINARY:
       return new SqlDataTypeSpec(
           new SqlBasicTypeNameSpec(SqlTypeName.VARBINARY, SqlParserPos.ZERO), SqlParserPos.ZERO);
+    case MAP:
+      MapSqlType mapSqlType = (MapSqlType) type;
+      SqlDataTypeSpec keySpec = (SqlDataTypeSpec) getCastSpec(mapSqlType.getKeyType());
+      SqlDataTypeSpec valueSpec =
+          (SqlDataTypeSpec) getCastSpec(mapSqlType.getValueType());
+      SqlDataTypeSpec nonNullkeySpec = requireNonNull(keySpec, "keySpec");
+      SqlDataTypeSpec nonNullvalueSpec = requireNonNull(valueSpec, "valueSpec");
+      SqlMapTypeNameSpec sqlMapTypeNameSpec =
+          new SqlMapTypeNameSpec(nonNullkeySpec, nonNullvalueSpec, SqlParserPos.ZERO);
+      return new SqlDataTypeSpec(sqlMapTypeNameSpec,
+          SqlParserPos.ZERO);
+    case ARRAY:
+      ArraySqlType arraySqlType = (ArraySqlType) type;
+      SqlDataTypeSpec arrayValueSpec =
+          (SqlDataTypeSpec) getCastSpec(arraySqlType.getComponentType());
+      SqlDataTypeSpec nonNullarrayValueSpec =
+          requireNonNull(arrayValueSpec, "arrayValueSpec");
+      SqlCollectionTypeNameSpec sqlArrayTypeNameSpec =
+          new SqlCollectionTypeNameSpec(nonNullarrayValueSpec.getTypeNameSpec(),
+              SqlTypeName.ARRAY, SqlParserPos.ZERO);
+      return new SqlDataTypeSpec(sqlArrayTypeNameSpec,
+          SqlParserPos.ZERO);
+    case MULTISET:
+      throw new UnsupportedOperationException("Presto dialect does not support cast to "
+          + type.getSqlTypeName());
     default:
       return super.getCastSpec(type);
     }
+  }
+
+  @Override public RexNode prepareUnparse(RexNode rexNode) {
+    return RelToSqlConverterUtil.unparseIsTrueOrFalse(rexNode);
   }
 
   @Override public void unparseCall(SqlWriter writer, SqlCall call,
@@ -175,10 +240,24 @@ public class PrestoSqlDialect extends SqlDialect {
       case MAP_VALUE_CONSTRUCTOR:
         unparseMapValue(writer, call, leftPrec, rightPrec);
         break;
+      case IS_NULL:
+      case IS_NOT_NULL:
+        if (call.operand(0) instanceof SqlBasicCall) {
+          final SqlWriter.Frame frame = writer.startList("(", ")");
+          call.operand(0).unparse(writer, leftPrec, rightPrec);
+          writer.endList(frame);
+          writer.print(call.getOperator().getName() + " ");
+        } else {
+          super.unparseCall(writer, call, leftPrec, rightPrec);
+        }
+        break;
       case CHAR_LENGTH:
         SqlCall lengthCall = SqlLibraryOperators.LENGTH
             .createCall(SqlParserPos.ZERO, call.getOperandList());
         super.unparseCall(writer, lengthCall, leftPrec, rightPrec);
+        break;
+      case TRIM:
+        RelToSqlConverterUtil.unparseTrimLR(writer, call, leftPrec, rightPrec);
         break;
       default:
         // Current impl is same with Postgresql.
@@ -196,7 +275,7 @@ public class PrestoSqlDialect extends SqlDialect {
   /**
    * change map open/close symbol from default [] to ().
    */
-  private static void unparseMapValue(SqlWriter writer, SqlCall call,
+  public static void unparseMapValue(SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec) {
     call = convertMapValueCall(call);
     writer.keyword(call.getOperator().getName());
@@ -213,9 +292,10 @@ public class PrestoSqlDialect extends SqlDialect {
    * from {@code MAP['k1', 'v1', 'k2', 'v2']}
    * to {@code MAP[ARRAY['k1', 'k2'], ARRAY['v1', 'v2']]}.
    */
-  private static SqlCall convertMapValueCall(SqlCall call) {
+  public static SqlCall convertMapValueCall(SqlCall call) {
     boolean unnestMap = call.operandCount() > 0
-        && call.getOperandList().stream().allMatch(operand -> operand instanceof SqlLiteral);
+        && (call.getOperandList().get(0) instanceof SqlLiteral
+        || call.getOperandList().get(1) instanceof SqlLiteral);
     if (!unnestMap) {
       return call;
     }

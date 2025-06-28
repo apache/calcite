@@ -95,6 +95,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.MultisetSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql2rel.RexRewritingRelShuttle;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -2692,6 +2693,33 @@ public abstract class RelOptUtil {
     return left;
   }
 
+  /**
+   * Updates instances of correlated variables with provided {@link CorrelationId} in a given
+   * subquery. That is, updates referenced row type with a new one, as well as remaps field indexes
+   * with according to provided {@link Mapping inputMapping}.
+   *
+   * @param rexBuilder A builder for constructing new RexNodes.
+   * @param node A subquery expression to update.
+   * @param correlationId The ID of the correlation variable to update.
+   * @param newRowType The new row type for the correlate reference.
+   * @param inputMapping Mapping to transform field indices.
+   * @return An updated subquery expression.
+   */
+  public static RexSubQuery remapCorrelatesInSuqQuery(
+      RexBuilder rexBuilder,
+      RexSubQuery node,
+      CorrelationId correlationId,
+      RelDataType newRowType,
+      Mapping inputMapping) {
+    RelNode subQuery = node.rel;
+    RexCorrelVariableMapShuttle rexVisitor =
+        new RexCorrelVariableMapShuttle(correlationId, newRowType, inputMapping, rexBuilder);
+    RelNode newSubQuery =
+        subQuery.accept(new RexRewritingRelShuttle(rexVisitor));
+
+    return node.clone(newSubQuery);
+  }
+
   /** Decomposes the WHERE clause of a view into predicates that constraint
    * a column to a particular value.
    *
@@ -4549,6 +4577,54 @@ public abstract class RelOptUtil {
         pw.print(" ");
         accept(field.getType());
       }
+    }
+  }
+
+  /**
+   * Updates correlate references in {@link RexNode} expressions.
+   */
+  public static class RexCorrelVariableMapShuttle extends RexShuttle {
+    private final CorrelationId correlationId;
+    private final Mapping mapping;
+    private final RelDataType newCorrelRowType;
+    private final RexBuilder rexBuilder;
+
+
+    /**
+     * Constructs a RexCorrelVariableMapShuttle.
+     *
+     * @param correlationId The ID of the correlation variable to update.
+     * @param newCorrelRowType The new row type for the correlate reference.
+     * @param mapping Mapping to transform field indices.
+     * @param rexBuilder A builder for constructing new RexNodes.
+     */
+    public RexCorrelVariableMapShuttle(final CorrelationId correlationId,
+        RelDataType newCorrelRowType, Mapping mapping, RexBuilder rexBuilder) {
+      this.correlationId = correlationId;
+      this.newCorrelRowType = newCorrelRowType;
+      this.mapping = mapping;
+      this.rexBuilder = rexBuilder;
+    }
+
+    @Override public RexNode visitFieldAccess(final RexFieldAccess fieldAccess) {
+      if (fieldAccess.getReferenceExpr() instanceof RexCorrelVariable) {
+        RexCorrelVariable referenceExpr =
+            (RexCorrelVariable) fieldAccess.getReferenceExpr();
+        if (referenceExpr.id.equals(correlationId)) {
+          int oldIndex = fieldAccess.getField().getIndex();
+          int newIndex = mapping.getTarget(oldIndex);
+          RexNode newCorrel =
+              rexBuilder.makeCorrel(newCorrelRowType, referenceExpr.id);
+          return rexBuilder.makeFieldAccess(newCorrel, newIndex);
+        }
+      }
+      return super.visitFieldAccess(fieldAccess);
+    }
+
+    @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
+      subQuery = (RexSubQuery) super.visitSubQuery(subQuery);
+      return remapCorrelatesInSuqQuery(
+          rexBuilder, subQuery, correlationId, newCorrelRowType, mapping);
     }
   }
 

@@ -329,7 +329,6 @@ public class SubQueryRemoveRule
       }
     } else {
       final String indicator = "trueLiteral";
-      final List<RexNode> parentQueryFields = new ArrayList<>();
       switch (op.comparisonKind) {
       case GREATER_THAN_OR_EQUAL:
       case LESS_THAN_OR_EQUAL:
@@ -354,17 +353,15 @@ public class SubQueryRemoveRule
         // from emp as e
         // left outer join (
         //   select name, max(deptno) as m, count(*) as c, count(deptno) as d,
-        //       "alwaysTrue" as indicator
+        //       LITERAL_AGG(true) as indicator
         //   from emp group by name) as q on e.name = q.name
         builder.push(e.rel)
             .aggregate(builder.groupKey(),
                 builder.aggregateCall(minMax, builder.field(0)).as("m"),
                 builder.count(false, "c"),
-                builder.count(false, "d", builder.field(0)));
-
-        parentQueryFields.addAll(builder.fields());
-        parentQueryFields.add(builder.alias(literalTrue, indicator));
-        builder.project(parentQueryFields).as(qAlias);
+                builder.count(false, "d", builder.field(0)),
+                builder.literalAgg(true, indicator));
+        builder.as(qAlias);
         builder.join(JoinRelType.LEFT, literalTrue, variablesSet);
         caseRexNode =
             builder.call(SqlStdOperatorTable.CASE,
@@ -407,7 +404,7 @@ public class SubQueryRemoveRule
         // from emp as e
         // left outer join (
         //   select name, count(*) as c, count(deptno) as d, count(distinct deptno) as dd,
-        //       max(deptno) as m, "alwaysTrue" as indicator
+        //       max(deptno) as m, LITERAL_AGG(true) as indicator
         //   from emp group by name) as q on e.name = q.name
 
         // Additional details on the `q.c <> q.d && q.dd <= 1` clause:
@@ -422,11 +419,9 @@ public class SubQueryRemoveRule
                 builder.count(false, "c"),
                 builder.count(false, "d", builder.field(0)),
                 builder.count(true, "dd", builder.field(0)),
-                builder.max(builder.field(0)).as("m"));
-
-        parentQueryFields.addAll(builder.fields());
-        parentQueryFields.add(builder.alias(literalTrue, indicator));
-        builder.project(parentQueryFields).as(qAlias); // TODO use projectPlus
+                builder.max(builder.field(0)).as("m"),
+                builder.literalAgg(true, indicator));
+        builder.as(qAlias);
         builder.join(JoinRelType.LEFT, literalTrue, variablesSet);
         caseRexNode =
             builder.call(SqlStdOperatorTable.CASE,
@@ -733,9 +728,24 @@ public class SubQueryRemoveRule
       case TRUE_FALSE_UNKNOWN:
       case UNKNOWN_AS_TRUE:
         // Builds the cross join
-        builder.aggregate(builder.groupKey(),
-            builder.count(false, "c"),
-            builder.count(builder.fields()).as("ck"));
+        // Some databases don't support use FILTER clauses for aggregate functions
+        // like {@code COUNT(*) FILTER (WHERE not(a is null))}
+        // So use count(*) when only one column
+        if (builder.fields().size() <= 1) {
+          builder.aggregate(builder.groupKey(),
+              builder.count(false, "c"),
+              builder.count(builder.fields()).as("ck"));
+        } else {
+          builder.aggregate(builder.groupKey(),
+              builder.count(false, "c"),
+              builder.count()
+                  .filter(builder
+                      .not(builder
+                          .and(builder.fields().stream()
+                              .map(builder::isNull)
+                              .collect(Collectors.toList()))))
+                  .as("ck"));
+        }
         builder.as(ctAlias);
         if (!variablesSet.isEmpty()) {
           builder.join(JoinRelType.LEFT, trueLiteral, variablesSet);
@@ -1154,6 +1164,24 @@ public class SubQueryRemoveRule
     int nFieldsLeft = join.getLeft().getRowType().getFieldCount();
     int nFieldsRight = join.getRight().getRowType().getFieldCount();
 
+    // Correlation columns should also be considered.
+    // For example:
+    //                                   LogicalJoin
+    //              left                                          right
+    //                |                                             |
+    // LogicalProject.NONE.[0, 1]                            LogicalValues.NONE.[0]
+    // RecordType(INTEGER DEPTNO, CHAR(11) DNAME)            RecordType(INTEGER DEPTNO)
+    //
+    // and subquery: $SCALAR_QUERY with correlate
+    // LogicalProject(DEPTNO=[$1])
+    //   LogicalFilter(condition=[=(CAST($0):CHAR(11) NOT NULL, $cor0.DNAME)])
+    //
+    // In such a case $cor0.DNAME need to be accounted as input form left side.
+    final Set<CorrelationId> variablesSet = RelOptUtil.getVariablesUsed(e.rel);
+    for (CorrelationId id : variablesSet) {
+      ImmutableBitSet requiredColumns = RelOptUtil.correlationColumns(id, e.rel);
+      inputSet = ImmutableBitSet.union(ImmutableList.of(requiredColumns, inputSet));
+    }
 
     boolean inputIntersectsLeftSide = inputSet.intersects(ImmutableBitSet.range(0, nFieldsLeft));
     boolean inputIntersectsRightSide =
@@ -1166,7 +1194,6 @@ public class SubQueryRemoveRule
       return;
     }
 
-    final Set<CorrelationId> variablesSet = RelOptUtil.getVariablesUsed(e.rel);
     if (inputIntersectsLeftSide) {
       builder.push(join.getLeft());
 

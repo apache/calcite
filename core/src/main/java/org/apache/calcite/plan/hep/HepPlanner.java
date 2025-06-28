@@ -58,7 +58,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -451,46 +450,18 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
   private Iterator<HepRelVertex> getGraphIterator(
       HepProgram.State programState, HepRelVertex start) {
-    // Make sure there's no garbage, because topological sort
-    // doesn't start from a specific root, and rules can't
-    // deal with firing on garbage.
-
-    // FIXME jvs 25-Sept-2006:  I had to move this earlier because
-    // of FRG-215, which is still under investigation.  Once we
-    // figure that one out, move down to location below for
-    // better optimizer performance.
-    collectGarbage();
-
     switch (requireNonNull(programState.matchOrder, "programState.matchOrder")) {
     case ARBITRARY:
     case DEPTH_FIRST:
       return DepthFirstIterator.of(graph, start).iterator();
-
     case TOP_DOWN:
-      assert start == root;
-      // see above
-/*
-        collectGarbage();
-*/
-      return TopologicalOrderIterator.of(graph).iterator();
-
     case BOTTOM_UP:
-    default:
       assert start == root;
-
-      // see above
-/*
-        collectGarbage();
-*/
-
-      // TODO jvs 4-Apr-2006:  enhance TopologicalOrderIterator
-      // to support reverse walk.
-      final List<HepRelVertex> list = new ArrayList<>();
-      for (HepRelVertex vertex : TopologicalOrderIterator.of(graph)) {
-        list.add(vertex);
-      }
-      Collections.reverse(list);
-      return list.iterator();
+      collectGarbage();
+      return TopologicalOrderIterator.of(graph, programState.matchOrder).iterator();
+    default:
+      throw new
+          UnsupportedOperationException("Unsupported match order: " + programState.matchOrder);
     }
   }
 
@@ -1008,6 +979,9 @@ public class HepPlanner extends AbstractRelOptPlanner {
         digestIter.remove();
       }
     }
+
+    // Clean up metadata cache too.
+    sweepSet.forEach(this::clearCache);
   }
 
   private void assertNoCycles() {

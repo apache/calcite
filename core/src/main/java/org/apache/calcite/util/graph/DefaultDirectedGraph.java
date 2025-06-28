@@ -61,6 +61,7 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
     return new DefaultDirectedGraph<>(edgeFactory);
   }
 
+  @Deprecated
   public String toStringUnordered() {
     return "graph("
         + "vertices: " + vertexMap.keySet()

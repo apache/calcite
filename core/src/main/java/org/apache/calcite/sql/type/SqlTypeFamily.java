@@ -65,6 +65,7 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
   STRING,
   APPROXIMATE_NUMERIC,
   EXACT_NUMERIC,
+  UNSIGNED_NUMERIC,
   DECIMAL,
   INTEGER,
   DATETIME,
@@ -201,6 +202,8 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
       return SqlTypeName.APPROX_TYPES;
     case EXACT_NUMERIC:
       return SqlTypeName.EXACT_TYPES;
+    case UNSIGNED_NUMERIC:
+      return SqlTypeName.UNSIGNED_TYPES;
     case INTEGER:
       return SqlTypeName.INT_TYPES;
     case DATETIME:

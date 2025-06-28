@@ -160,6 +160,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.hasToString;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -731,7 +732,7 @@ public class RelMetadataTest {
           planner.addRule(EnumerableRules.ENUMERABLE_PROJECT_RULE);
           planner.addRule(EnumerableRules.ENUMERABLE_FILTER_RULE);
           planner.addRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
-          planner.addRule(EnumerableRules.ENUMERABLE_LIMIT_SORT_RULE);
+          planner.addRule(EnumerableRules.ENUMERABLE_LIMIT_RULE);
           planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
           return RelOptCluster.create(planner, cluster.getRexBuilder());
         })
@@ -2704,6 +2705,45 @@ public class RelMetadataTest {
         nullValue());
     assertThat(mq.isPhaseTransition(aggregate), is(false));
     assertThat(mq.splitCount(aggregate), is(1));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6594">[CALCITE-6594]
+   * RelMdSize does not handle ARRAY constructor calls</a>,
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7061">[CALCITE-7061]
+   * RelMdSize does not handle nested ARRAY/MAP constructor calls</a>. */
+  @Test void testSizeArrayConstructor() {
+    checkSizeArrayConstructor("SELECT ARRAY[1, 2, 3, 4]", 16d);
+    checkSizeArrayConstructor("SELECT ARRAY[true, false]", 2d);
+    checkSizeArrayConstructor("SELECT ARRAY[CAST(3.14 AS DOUBLE)]", 8d);
+    checkSizeArrayConstructor(
+        "SELECT ARRAY[ARRAY[1,2], ARRAY[2,2], ARRAY[1,1], ARRAY[2,3]]", 32d);
+    checkSizeArrayConstructor(
+        "SELECT ARRAY[ARRAY[1,2], ARRAY[1,1,1], ARRAY[1,1], ARRAY[2,3]]", 36d);
+    checkSizeArrayConstructor(
+        "SELECT ARRAY[MAP[1,2], MAP[1,1,1,2], MAP[1,1], MAP[2,3,4,5,6,7]]", 56d);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7061">[CALCITE-7061]
+   * RelMdSize does not handle nested ARRAY/MAP constructor calls</a>. */
+  @Test void testSizeMapConstructor() {
+    checkSizeArrayConstructor("SELECT MAP[1, 2, 3, 4]", 16d);
+    checkSizeArrayConstructor("SELECT MAP[1,true,3,false]", 10d);
+    checkSizeArrayConstructor("SELECT MAP[CAST(3.14 AS DOUBLE),CAST(3.14 AS DOUBLE)]", 16d);
+    checkSizeArrayConstructor("SELECT MAP[1,ARRAY[true,false],3,ARRAY[true,false]]",
+        12d);
+    checkSizeArrayConstructor("SELECT MAP[1,MAP[true,2],3,MAP[false,1]]",
+        18d);
+  }
+
+  private void checkSizeArrayConstructor(String query, double expected) {
+    final RelNode rel = sql(query).toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    final List<@Nullable Double> averageColumnSizes = mq.getAverageColumnSizes(rel);
+    assertNotNull(averageColumnSizes);
+    assertThat(averageColumnSizes, hasSize(1));
+    assertThat(averageColumnSizes.get(0), is(expected));
   }
 
   /** Unit test for

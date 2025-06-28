@@ -52,6 +52,7 @@ import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.calcite.linq4j.tree.FunctionExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.linq4j.tree.UnsignedType;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.AllPredicates;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.Collation;
@@ -333,6 +334,14 @@ public enum BuiltInMethod {
   INTEGER_CAST(Primitive.class, "integerCast", Primitive.class, Object.class),
   INTEGER_CAST_ROUNDING_MODE(Primitive.class, "integerCast",
       Primitive.class, Object.class, RoundingMode.class),
+  CAST_TO_UBYTE(UnsignedType.class, "toUByte",
+      Number.class, RoundingMode.class),
+  CAST_TO_USHORT(UnsignedType.class, "toUShort",
+      Number.class, RoundingMode.class),
+  CAST_TO_UINTEGER(UnsignedType.class, "toUInteger",
+      Number.class, RoundingMode.class),
+  CAST_TO_ULONG(UnsignedType.class, "toULong",
+      Number.class, RoundingMode.class),
   MEMORY_GET0(MemoryFactory.Memory.class, "get"),
   MEMORY_GET1(MemoryFactory.Memory.class, "get", int.class),
   ENUMERATOR_CURRENT(Enumerator.class, "current"),
@@ -375,6 +384,7 @@ public enum BuiltInMethod {
   LIST_CONTAINS(List.class, "contains", Object.class),
   LIST_GET(List.class, "get", int.class),
   LIST_TO_ARRAY(List.class, "toArray"),
+  LIST_TRANSFORM(SqlFunctions.class, "transform", List.class, Function1.class),
   ITERATOR_HAS_NEXT(Iterator.class, "hasNext"),
   ITERATOR_NEXT(Iterator.class, "next"),
   MATH_MAX(Math.class, "max", int.class, int.class),
@@ -401,6 +411,8 @@ public enum BuiltInMethod {
   UPPER(SqlFunctions.class, "upper", String.class),
   LOWER(SqlFunctions.class, "lower", String.class),
   ARRAY_TO_STRING(SqlFunctions.class, "arrayToString", List.class,
+      String.class),
+  STRING_TO_ARRAY(SqlFunctions.class, "stringToArray", String.class, String.class,
       String.class),
   SROUND(SqlFunctions.class, "sround", long.class),
   STRUNCATE(SqlFunctions.class, "struncate", long.class),

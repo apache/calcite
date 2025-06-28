@@ -38,6 +38,8 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
@@ -48,6 +50,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Default implementations of the
@@ -399,6 +403,20 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
     }
   }
 
+  /** Returns size for nested type ARRAY/MAP. */
+  public Double computeSizeForNestedType(RexCall call,
+      List<? extends @Nullable Double> inputColumnSizes) {
+    if (call.operands.size() == 0) {
+      return 0d;
+    }
+    Double compSize = 0d;
+    for (RexNode operand : call.getOperands()) {
+      Double nonNullSize = requireNonNull(averageRexSize(operand, inputColumnSizes));
+      compSize += nonNullSize;
+    }
+    return compSize;
+  }
+
   public @Nullable Double averageRexSize(RexNode node,
       List<? extends @Nullable Double> inputColumnSizes) {
     switch (node.getKind()) {
@@ -410,6 +428,18 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
     default:
       if (node instanceof RexCall) {
         RexCall call = (RexCall) node;
+
+        // ARRAY constructor: array size multiplied by the average size of its component type
+        if (call.isA(SqlKind.ARRAY_VALUE_CONSTRUCTOR)) {
+          assert SqlTypeUtil.isArray(call.getType());
+          return computeSizeForNestedType(call, inputColumnSizes);
+        }
+
+        if (call.isA(SqlKind.MAP_VALUE_CONSTRUCTOR)) {
+          assert SqlTypeUtil.isMap(call.getType());
+          return computeSizeForNestedType(call, inputColumnSizes);
+        }
+
         for (RexNode operand : call.getOperands()) {
           // It's a reasonable assumption that a function's result will have
           // similar size to its argument of a similar type. For example,

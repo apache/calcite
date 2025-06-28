@@ -21,19 +21,27 @@ import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
+import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.RelToSqlConverterUtil;
+
+import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -119,6 +127,16 @@ public class SparkSqlDialect extends SqlDialect {
     case MAP_VALUE_CONSTRUCTOR:
       unparseSparkArrayAndMap(writer, call, leftPrec, rightPrec);
       break;
+    case STARTS_WITH:
+      SqlCall starsWithCall = SqlLibraryOperators.STARTSWITH
+          .createCall(SqlParserPos.ZERO, call.getOperandList());
+      super.unparseCall(writer, starsWithCall, leftPrec, rightPrec);
+      break;
+    case ENDS_WITH:
+      SqlCall endsWithCall = SqlLibraryOperators.ENDSWITH
+          .createCall(SqlParserPos.ZERO, call.getOperandList());
+      super.unparseCall(writer, endsWithCall, leftPrec, rightPrec);
+      break;
     case FLOOR:
       if (call.operandCount() != 2) {
         super.unparseCall(writer, call, leftPrec, rightPrec);
@@ -152,4 +170,39 @@ public class SparkSqlDialect extends SqlDialect {
     }
     return super.getCastSpec(type);
   }
+
+  /**
+   * Rewrite SINGLE_VALUE(result).
+   *
+   * <blockquote><pre>
+   * CASE COUNT(*)
+   * WHEN 0 THEN NULL
+   * WHEN 1 THEN MIN(&lt;result&gt;)
+   * ELSE RAISE_ERROR("more than one value in agg SINGLE_VALUE")
+   * </pre></blockquote>
+   *
+   * <pre>RAISE_ERROR("more than one value in agg SINGLE_VALUE") will throw exception
+   * when result includes more than one value.</pre>
+   */
+  @Override public SqlNode rewriteSingleValueExpr(SqlNode aggCall, RelDataType relDataType) {
+    final SqlNode operand = ((SqlBasicCall) aggCall).operand(0);
+    final SqlLiteral nullLiteral = SqlLiteral.createNull(SqlParserPos.ZERO);
+    SqlNodeList sqlNodesList = new SqlNodeList(SqlParserPos.ZERO);
+    sqlNodesList.add(
+        SqlLiteral.createCharString("more than one value in agg SINGLE_VALUE", SqlParserPos.ZERO));
+    final SqlNode caseExpr =
+        new SqlCase(SqlParserPos.ZERO,
+            SqlStdOperatorTable.COUNT.createCall(SqlParserPos.ZERO,
+                ImmutableList.of(SqlIdentifier.STAR)),
+            SqlNodeList.of(
+                SqlLiteral.createExactNumeric("0", SqlParserPos.ZERO),
+                SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO)),
+            SqlNodeList.of(
+                nullLiteral,
+                SqlStdOperatorTable.MIN.createCall(SqlParserPos.ZERO, operand)),
+            RelToSqlConverterUtil.specialOperatorByName("RAISE_ERROR").createCall(sqlNodesList));
+    LOGGER.debug("SINGLE_VALUE rewritten into [{}]", caseExpr);
+    return caseExpr;
+  }
+
 }

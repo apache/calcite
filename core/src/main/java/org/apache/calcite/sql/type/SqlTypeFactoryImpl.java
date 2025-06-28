@@ -341,6 +341,8 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
             ? createSqlType(typeName, type.getPrecision())
             : createSqlType(typeName);
         type = createTypeWithNullability(type, originalType.isNullable());
+        // update java type's family
+        family = type.getFamily();
       }
 
       if (resultType == null) {

@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.util;
 
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlKind;
@@ -61,6 +65,119 @@ public abstract class RelToSqlConverterUtil {
       final SqlNode[] trimOperands = new SqlNode[] { call.operand(2), regexNode, blankLiteral };
       final SqlCall regexReplaceCall = REGEXP_REPLACE_3.createCall(SqlParserPos.ZERO, trimOperands);
       regexReplaceCall.unparse(writer, leftPrec, rightPrec);
+    }
+  }
+
+  /**
+   * For usage of TRIM(LEADING 'A' FROM 'ABCA') convert to TRIM, LTRIM and RTRIM,
+   * can refer to BigQuery and Presto documents:
+   * <a href="https://cloud.google.com/bigquery/docs/reference/standard-sql/functions-and-operators#trim">
+   * BigQuery Trim Function</a>,
+   * <a href="https://prestodb.io/docs/current/functions/string.html#trim-string-varchar">
+   * Presto Trim Function</a>.
+   */
+  public static void unparseTrimLR(SqlWriter writer, SqlCall call, int leftPrec,
+      int rightPrec) {
+    final String operatorName;
+    SqlLiteral trimFlag = call.operand(0);
+    SqlLiteral valueToTrim = call.operand(1);
+    switch (trimFlag.getValueAs(SqlTrimFunction.Flag.class)) {
+    case LEADING:
+      operatorName = "LTRIM";
+      break;
+    case TRAILING:
+      operatorName = "RTRIM";
+      break;
+    default:
+      operatorName = call.getOperator().getName();
+      break;
+    }
+    final SqlWriter.Frame trimFrame = writer.startFunCall(operatorName);
+    call.operand(2).unparse(writer, leftPrec, rightPrec);
+
+    // If the trimmed character is a non-space character, add it to the target SQL.
+    // eg: TRIM(BOTH 'A' from 'ABCD')
+    // Output Query: TRIM('ABC', 'A')
+    String value = requireNonNull(valueToTrim.toValue(), "valueToTrim.toValue()");
+    if (!value.equals(" ")) {
+      writer.literal(",");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+    }
+    writer.endFunCall(trimFrame);
+  }
+
+  /**
+   * Unparses IS TRUE,IS FALSE,IS NOT TRUE and IS NOT FALSE.
+   *
+   * <p>For example :
+   *
+   * <blockquote><pre>
+   * A IS TRUE &rarr; A IS NOT NUL AND A
+   * A IS FALSE &rarr; A IS NOT NUL AND NOT A
+   * A IS NOT TRUE &rarr; A IS NUL OR NOT A
+   * A IS NOT FALSE &rarr; A IS NUL OR A
+   *
+   * an exception will be thrown when A is a non-deterministic function such as RAND_INTEGER.
+   * </pre></blockquote>
+   *
+   * @param rexNode rexNode
+   */
+  public static RexNode unparseIsTrueOrFalse(RexNode rexNode) {
+    if (!(rexNode instanceof RexCall)) {
+      return rexNode;
+    }
+    RexCall call = (RexCall) rexNode;
+    switch (call.getOperator().getKind()) {
+    case IS_FALSE:
+      RexNode operandIsFalse = call.operands.get(0);
+      if (RexUtil.isDeterministic(operandIsFalse)) {
+        // A IS FALSE -> A IS NOT NULL AND NOT A
+        RexNode isNotNullFunc =
+            RexBuilder.DEFAULT.makeCall(SqlStdOperatorTable.IS_NOT_NULL, operandIsFalse);
+        RexNode notFunc =
+            RexBuilder.DEFAULT.makeCall(SqlStdOperatorTable.NOT, operandIsFalse);
+        return RexBuilder.DEFAULT.makeCall(SqlStdOperatorTable.AND, isNotNullFunc, notFunc);
+      } else {
+        throw new UnsupportedOperationException("Unsupported unparse: "
+            + call.getOperator().getName());
+      }
+    case IS_NOT_FALSE:
+      RexNode operandIsNotFalse = call.operands.get(0);
+      if (RexUtil.isDeterministic(operandIsNotFalse)) {
+        // A IS NOT FALSE -> A IS NULL OR A
+        RexNode isNullFunc =
+            RexBuilder.DEFAULT.makeCall(SqlStdOperatorTable.IS_NULL, operandIsNotFalse);
+        return RexBuilder.DEFAULT.makeCall(SqlStdOperatorTable.OR, isNullFunc, operandIsNotFalse);
+      } else {
+        throw new UnsupportedOperationException("Unsupported unparse: "
+            + call.getOperator().getName());
+      }
+    case IS_TRUE:
+      RexNode operandIsTrue = call.operands.get(0);
+      if (RexUtil.isDeterministic(operandIsTrue)) {
+        // A IS TRUE -> A IS NOT NULL AND A
+        RexNode isNotNullFunc =
+            RexBuilder.DEFAULT.makeCall(SqlStdOperatorTable.IS_NOT_NULL, operandIsTrue);
+        return RexBuilder.DEFAULT.makeCall(SqlStdOperatorTable.AND, isNotNullFunc, operandIsTrue);
+      } else {
+        throw new UnsupportedOperationException("Unsupported unparse: "
+            + call.getOperator().getName());
+      }
+    case IS_NOT_TRUE:
+      RexNode operandIsNotTrue = call.operands.get(0);
+      if (RexUtil.isDeterministic(operandIsNotTrue)) {
+        // A IS NOT TRUE -> A IS NULL OR NOT A
+        RexNode isNullFunc =
+            RexBuilder.DEFAULT.makeCall(SqlStdOperatorTable.IS_NULL, operandIsNotTrue);
+        RexNode notFunc =
+            RexBuilder.DEFAULT.makeCall(SqlStdOperatorTable.NOT, operandIsNotTrue);
+        return RexBuilder.DEFAULT.makeCall(SqlStdOperatorTable.OR, isNullFunc, notFunc);
+      } else {
+        throw new UnsupportedOperationException("Unsupported unparse: "
+            + call.getOperator().getName());
+      }
+    default:
+      return rexNode;
     }
   }
 

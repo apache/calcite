@@ -477,6 +477,9 @@ public class RelBuilder {
       return rexBuilder.makeNullLiteral(type);
     } else if (value instanceof Boolean) {
       return rexBuilder.makeLiteral((Boolean) value);
+    } else if (value instanceof Character) {
+      return rexBuilder.makeLiteral(value,
+          getTypeFactory().createSqlType(SqlTypeName.CHAR));
     } else if (value instanceof BigDecimal) {
       return rexBuilder.makeExactLiteral((BigDecimal) value);
     } else if (value instanceof Float || value instanceof Double) {
@@ -1659,6 +1662,14 @@ public class RelBuilder {
   public AggCall literalAgg(@Nullable Object value) {
     return aggregateCall(SqlInternalOperators.LITERAL_AGG)
         .preOperands(literal(value));
+  }
+
+  /** Creates a call to the {@code LITERAL_AGG} aggregate function.
+   * optionally an alias. */
+  public AggCall literalAgg(@Nullable Object value, @Nullable String alias, RexNode... operands) {
+    return aggregateCall(SqlInternalOperators.LITERAL_AGG, false, false, false,
+        null, null, ImmutableList.of(), alias, ImmutableList.of(),
+        ImmutableList.copyOf(operands)).preOperands(literal(value));
   }
 
   // Methods for patterns

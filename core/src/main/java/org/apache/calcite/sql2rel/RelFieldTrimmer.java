@@ -19,6 +19,7 @@ package org.apache.calcite.sql2rel;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelOptUtil.RexCorrelVariableMapShuttle;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelDistribution;
@@ -57,7 +58,6 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexPermuteInputsShuttle;
 import org.apache.calcite.rex.RexProgram;
-import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitor;
@@ -535,9 +535,22 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
     // Build new project expressions, and populate the mapping.
     final List<RexNode> newProjects = new ArrayList<>();
-    final RexVisitor<RexNode> shuttle =
-        new RexPermuteInputsShuttle(
-            inputMapping, newInput);
+    final RexVisitor<RexNode> shuttle;
+
+    if (!correlationIds.isEmpty()) {
+      assert correlationIds.size() == 1;
+      shuttle = new RexPermuteInputsShuttle(inputMapping, newInput) {
+        @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
+          subQuery = (RexSubQuery) super.visitSubQuery(subQuery);
+
+          return RelOptUtil.remapCorrelatesInSuqQuery(relBuilder.getRexBuilder(),
+            subQuery, correlationIds.iterator().next(), newInput.getRowType(), inputMapping);
+        }
+      };
+    } else {
+      shuttle = new RexPermuteInputsShuttle(inputMapping, newInput);
+    }
+
     final Mapping mapping =
         Mappings.create(
             MappingType.INVERSE_SURJECTION,
@@ -556,7 +569,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
             mapping);
 
     relBuilder.push(newInput);
-    relBuilder.project(newProjects, newRowType.getFieldNames());
+    relBuilder.project(newProjects, newRowType.getFieldNames(), false, correlationIds);
     final RelNode newProject = relBuilder.build();
     return result(newProject, mapping, project);
   }
@@ -1403,48 +1416,6 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
                 correlate.getJoinType());
 
     return result(newCorrelate, mapping);
-  }
-
-  /**
-   * Updates correlate references in {@link RexNode} expressions.
-   */
-  static class RexCorrelVariableMapShuttle extends RexShuttle {
-    private final CorrelationId correlationId;
-    private final Mapping mapping;
-    private final RelDataType newCorrelRowType;
-    private final RexBuilder rexBuilder;
-
-
-    /**
-     * Constructs a RexCorrelVariableMapShuttle.
-     *
-     * @param correlationId The ID of the correlation variable to update.
-     * @param newCorrelRowType The new row type for the correlate reference.
-     * @param mapping Mapping to transform field indices.
-     * @param rexBuilder A builder for constructing new RexNodes.
-     */
-    RexCorrelVariableMapShuttle(final CorrelationId correlationId,
-        RelDataType newCorrelRowType, Mapping mapping, RexBuilder rexBuilder) {
-      this.correlationId = correlationId;
-      this.newCorrelRowType = newCorrelRowType;
-      this.mapping = mapping;
-      this.rexBuilder = rexBuilder;
-    }
-
-    @Override public RexNode visitFieldAccess(final RexFieldAccess fieldAccess) {
-      if (fieldAccess.getReferenceExpr() instanceof RexCorrelVariable) {
-        RexCorrelVariable referenceExpr =
-            (RexCorrelVariable) fieldAccess.getReferenceExpr();
-        if (referenceExpr.id.equals(correlationId)) {
-          int oldIndex = fieldAccess.getField().getIndex();
-          RexNode newCorrel =
-              rexBuilder.makeCorrel(newCorrelRowType, referenceExpr.id);
-          int newIndex = mapping.getTarget(oldIndex);
-          return rexBuilder.makeFieldAccess(newCorrel, newIndex);
-        }
-      }
-      return super.visitFieldAccess(fieldAccess);
-    }
   }
 
   protected Mapping createMapping(ImmutableBitSet fieldsUsed, int fieldCount) {

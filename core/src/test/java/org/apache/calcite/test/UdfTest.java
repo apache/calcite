@@ -182,6 +182,12 @@ class UdfTest {
         + Smalls.AllTypesFunction.class.getName()
         + "',\n"
         + "           methodName: '*'\n"
+        + "         },\n"
+        + "         {\n"
+        + "           name: 'UNBASE64',\n"
+        + "           className: '"
+        + Smalls.MyUnbase64Function.class.getName()
+        + "'\n"
         + "         }\n"
         + "       ]\n"
         + "     }\n"
@@ -728,7 +734,7 @@ class UdfTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1434">[CALCITE-1434]
-   * AggregateFunctionImpl doesnt work if the class implements a generic
+   * AggregateFunctionImpl doesn't work if the class implements a generic
    * interface</a>. */
   @Test void testUserDefinedAggregateFunctionImplementsInterface() {
     final String empDept = JdbcTest.EmpDeptTableFactory.class.getName();
@@ -1037,11 +1043,9 @@ class UdfTest {
         .returnsValue("0");
   }
 
-  /**
-   * Test case for
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1834">[CALCITE-1834]
-   * User-defined function for Arrays</a>.
-   */
+   * User-defined function for Arrays</a>. */
   @Test void testArrayUserDefinedFunction() throws Exception {
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:")) {
       CalciteConnection calciteConnection =
@@ -1073,6 +1077,28 @@ class UdfTest {
         assertThat(CalciteAssert.toString(resultSet), is(result));
       }
     }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7073">[CALCITE-7073]
+   * If the UDF's Java return type is ByteString, Calcite should deduce that the
+   * SQL type is VARBINARY</a>.
+   *
+   * <p>Tests that the {@code UNBASE64} user-defined function correctly decodes
+   * a Base64 string and its return type ({@code VARBINARY}, mapped from
+   * {@link org.apache.calcite.avatica.util.ByteString}) is fully compatible for
+   * direct comparison with SQL {@code VARBINARY} literals ({@code X'...'})
+   * within queries. */
+  @Test void testUnbase64DirectComparison() {
+    final String testHex = "74657374"; // "test" in bytes
+    final String testBase64 = "dGVzdA=="; // Base64 for "test"
+
+    final String sql = "values \"adhoc\".unbase64('" + testBase64 + "')";
+    withUdf().query(sql).typeIs("[EXPR$0 VARBINARY]");
+
+    final String sql2 = "select \"adhoc\".unbase64(cast('" + testBase64
+        + "' as varchar)) = x'" + testHex + "' as C\n";
+    withUdf().query(sql2).returns("C=true\n");
   }
 
   /**

@@ -272,7 +272,7 @@ public class SqlCaseOperator extends SqlOperator {
         // (with the correct nullability) in SqlValidator
         // instead of the commonType as the return type.
         if (null != commonType) {
-          coerced = typeCoercion.caseWhenCoercion(callBinding);
+          coerced = typeCoercion.caseOrEquivalentCoercion(callBinding);
           if (coerced) {
             ret = SqlTypeUtil.deriveType(callBinding);
           }

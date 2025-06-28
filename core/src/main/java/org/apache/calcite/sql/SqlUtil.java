@@ -835,6 +835,12 @@ public abstract class SqlUtil {
       assert row.operandCount() > i : "VALUES has too few columns";
       return row.operand(i);
 
+    case EXCEPT:
+    case INTERSECT:
+    case UNION:
+      final List<SqlNode> operandList = ((SqlBasicCall) query).getOperandList();
+      return getSelectListItem(operandList.get(0), i);
+
     default:
       // Unexpected type of query.
       throw Util.needToImplement(query);

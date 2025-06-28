@@ -45,6 +45,7 @@ import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexNodeAndFieldIndex;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexPatternFieldRef;
 import org.apache.calcite.rex.RexProgram;
@@ -362,6 +363,19 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     }
 
     switch (targetType.getSqlTypeName()) {
+    case ARRAY:
+    case MULTISET:
+      final RelDataType sourceDataType = sourceType.getComponentType();
+      final RelDataType targetDataType = targetType.getComponentType();
+      assert sourceDataType != null;
+      assert targetDataType != null;
+      final ParameterExpression parameter =
+          Expressions.parameter(typeFactory.getJavaClass(sourceDataType), "root");
+      Expression convert =
+          getConvertExpression(sourceDataType, targetDataType, parameter, format);
+      return Expressions.call(BuiltInMethod.LIST_TRANSFORM.method, operand,
+          Expressions.lambda(Function1.class, convert, parameter));
+
     case VARIANT:
       // Converting any type to a VARIANT invokes the Variant constructor
       Expression rtti = RuntimeTypeInformation.createExpression(sourceType);
@@ -572,6 +586,32 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
         }
       }
       return defaultExpression.get();
+    }
+    case UBIGINT:
+    case UINTEGER:
+    case UTINYINT:
+    case USMALLINT: {
+      Method method;
+      switch (targetType.getSqlTypeName()) {
+      case UBIGINT:
+        method = BuiltInMethod.CAST_TO_ULONG.method;
+        break;
+      case UINTEGER:
+        method = BuiltInMethod.CAST_TO_UINTEGER.method;
+        break;
+      case USMALLINT:
+        method = BuiltInMethod.CAST_TO_USHORT.method;
+        break;
+      case UTINYINT:
+        method = BuiltInMethod.CAST_TO_UBYTE.method;
+        break;
+      default:
+        throw new RuntimeException("Unexpected unsigned type " + targetType.getSqlTypeName());
+      }
+      return Expressions.call(
+          method,
+          operand,
+          Expressions.constant(typeFactory.getTypeSystem().roundingMode()));
     }
     case BIGINT:
     case INTEGER:
@@ -1743,6 +1783,10 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     list.add(Expressions.declare(Modifier.FINAL, isNullVariable, isNullExpression));
 
     return new Result(isNullVariable, valueVariable);
+  }
+
+  @Override public Result visitNodeAndFieldIndex(RexNodeAndFieldIndex nodeAndFieldIndex) {
+    throw new RuntimeException("cannot translate expression " + nodeAndFieldIndex);
   }
 
   Expression checkNull(Expression expr) {

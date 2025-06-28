@@ -57,6 +57,11 @@ public enum SqlTypeName {
   SMALLINT(PrecScale.NO_NO, false, Types.SMALLINT, SqlTypeFamily.NUMERIC),
   INTEGER(PrecScale.NO_NO, false, Types.INTEGER, SqlTypeFamily.NUMERIC),
   BIGINT(PrecScale.NO_NO, false, Types.BIGINT, SqlTypeFamily.NUMERIC),
+  // Unsigned types use the next-higher Java type
+  UTINYINT(PrecScale.NO_NO, false, Types.SMALLINT, SqlTypeFamily.NUMERIC),
+  USMALLINT(PrecScale.NO_NO, false, Types.INTEGER, SqlTypeFamily.NUMERIC),
+  UINTEGER(PrecScale.NO_NO, false, Types.BIGINT, SqlTypeFamily.NUMERIC),
+  UBIGINT(PrecScale.NO_NO, false, Types.DECIMAL, SqlTypeFamily.NUMERIC),
   DECIMAL(PrecScale.NO_NO | PrecScale.YES_NO | PrecScale.YES_YES, false,
       Types.DECIMAL, SqlTypeFamily.NUMERIC),
   FLOAT(PrecScale.NO_NO, false, Types.FLOAT, SqlTypeFamily.NUMERIC),
@@ -169,7 +174,8 @@ public enum SqlTypeName {
           INTERVAL_HOUR_SECOND, INTERVAL_MINUTE, INTERVAL_MINUTE_SECOND,
           INTERVAL_SECOND, TIME_WITH_LOCAL_TIME_ZONE, TIME_TZ,
           TIMESTAMP_WITH_LOCAL_TIME_ZONE, TIMESTAMP_TZ,
-          FLOAT, MULTISET, DISTINCT, STRUCTURED, ROW, CURSOR, COLUMN_LIST, VARIANT);
+          FLOAT, MULTISET, DISTINCT, STRUCTURED, ROW, CURSOR, COLUMN_LIST, UUID, VARIANT,
+          UTINYINT, USMALLINT, UINTEGER, UBIGINT);
 
   public static final List<SqlTypeName> BOOLEAN_TYPES =
       ImmutableList.of(BOOLEAN);
@@ -180,8 +186,11 @@ public enum SqlTypeName {
   public static final List<SqlTypeName> INT_TYPES =
       ImmutableList.of(TINYINT, SMALLINT, INTEGER, BIGINT);
 
+  public static final List<SqlTypeName> UNSIGNED_TYPES =
+      ImmutableList.of(UTINYINT, USMALLINT, UINTEGER, UBIGINT);
+
   public static final List<SqlTypeName> EXACT_TYPES =
-      combine(INT_TYPES, ImmutableList.of(DECIMAL));
+      combine(combine(INT_TYPES, UNSIGNED_TYPES), ImmutableList.of(DECIMAL));
 
   public static final List<SqlTypeName> APPROX_TYPES =
       ImmutableList.of(FLOAT, REAL, DOUBLE);
@@ -307,15 +316,6 @@ public enum SqlTypeName {
    * @return Type name, or null if not found
    */
   public static @Nullable SqlTypeName get(String name) {
-    if (false) {
-      // The following code works OK, but the spurious exceptions are
-      // annoying.
-      try {
-        return SqlTypeName.valueOf(name);
-      } catch (IllegalArgumentException e) {
-        return null;
-      }
-    }
     return VALUES_MAP.get(name);
   }
 
@@ -561,6 +561,18 @@ public enum SqlTypeName {
     case BIGINT:
       return getNumericLimit(2, 64, sign, limit, beyond);
 
+    case UTINYINT:
+      return getUnsignedLimit(8, sign, limit, beyond);
+
+    case USMALLINT:
+      return getUnsignedLimit(16, sign, limit, beyond);
+
+    case UINTEGER:
+      return getUnsignedLimit(32, sign, limit, beyond);
+
+    case UBIGINT:
+      return getUnsignedLimit(64, sign, limit, beyond);
+
     case DECIMAL:
       BigDecimal decimal =
           getNumericLimit(10, precision, sign, limit, beyond);
@@ -568,8 +580,6 @@ public enum SqlTypeName {
         return null;
       }
 
-      // Decimal values must fit into 64 bits. So, the maximum value of
-      // a DECIMAL(19, 0) is 2^63 - 1, not 10^19 - 1.
       switch (limit) {
       case OVERFLOW:
         final BigDecimal other =
@@ -971,6 +981,31 @@ public enum SqlTypeName {
     }
   }
 
+  private static @Nullable BigDecimal getUnsignedLimit(
+      int exponent,
+      boolean sign,
+      Limit limit,
+      boolean beyond) {
+    final int radix = 2;
+    switch (limit) {
+    case OVERFLOW:
+      // 2-based schemes run from 0 to 2^N-1 e.g. 0 to 255
+      if (!sign) {
+        return BigDecimal.ZERO;
+      }
+      final BigDecimal bigRadix = BigDecimal.valueOf(radix);
+      BigDecimal decimal = bigRadix.pow(exponent);
+      return decimal.subtract(BigDecimal.ONE);
+    case UNDERFLOW:
+      return beyond ? null
+          : (sign ? BigDecimal.ZERO : BigDecimal.ONE.negate());
+    case ZERO:
+      return BigDecimal.ZERO;
+    default:
+      throw Util.unexpected(limit);
+    }
+  }
+
   public SqlLiteral createLiteral(Object o, SqlParserPos pos) {
     switch (this) {
     case BOOLEAN:
@@ -999,6 +1034,11 @@ public enum SqlTypeName {
       return SqlLiteral.createTimestamp(this, o instanceof Calendar
           ? TimestampString.fromCalendarFields((Calendar) o)
           : (TimestampString) o, 0 /* todo */, pos);
+    case UTINYINT:
+    case USMALLINT:
+    case UINTEGER:
+    case UBIGINT:
+      // no literals for unsigned values yet
     default:
       throw Util.unexpected(this);
     }

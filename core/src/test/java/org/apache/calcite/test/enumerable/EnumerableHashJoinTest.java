@@ -105,9 +105,10 @@ class EnumerableHashJoinTest {
                 + ".empid>d.deptno")
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner ->
             planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE))
-        .explainContains("EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0], "
+        .explainContains(""
+            + "EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0], "
             + "name=[$t2], dept=[$t4])\n"
-            + "  EnumerableHashJoin(condition=[AND(=($1, $3), <($0, 150), >"
+            + "  EnumerableHashJoin(condition=[AND(=($1, $3), <(CAST($0):INTEGER NOT NULL, 150), >"
             + "($0, $3))], joinType=[left])\n"
             + "    EnumerableCalc(expr#0..4=[{inputs}], proj#0..2=[{exprs}])\n"
             + "      EnumerableTableScan(table=[[s, emps]])\n"
@@ -125,11 +126,12 @@ class EnumerableHashJoinTest {
         .query(
             "select e.empid, e.name, d.name as dept from emps e right outer "
                 + "join depts d on e.deptno=d.deptno and e.empid<150")
-        .explainContains("EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0], "
+        .explainContains(""
+            + "EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0], "
             + "name=[$t2], dept=[$t4])\n"
             + "  EnumerableHashJoin(condition=[=($1, $3)], joinType=[right])\n"
-            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[150], "
-            + "expr#6=[<($t0, $t5)], proj#0..2=[{exprs}], $condition=[$t6])\n"
+            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t0):INTEGER NOT NULL], expr#6=[150], "
+            + "expr#7=[<($t5, $t6)], proj#0..2=[{exprs}], $condition=[$t7])\n"
             + "      EnumerableTableScan(table=[[s, emps]])\n"
             + "    EnumerableCalc(expr#0..3=[{inputs}], proj#0..1=[{exprs}])\n"
             + "      EnumerableTableScan(table=[[s, depts]])\n")
@@ -205,11 +207,11 @@ class EnumerableHashJoinTest {
         .query(
             "select e.empid, e.name, d.name as dept from emps e join depts d"
                 + " on e.deptno=d.deptno and e.empid<150 and e.empid>d.deptno")
-        .explainContains("EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0], name=[$t2], "
-            + "dept=[$t4])\n"
+        .explainContains(""
+            + "EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0], name=[$t2], dept=[$t4])\n"
             + "  EnumerableHashJoin(condition=[AND(=($1, $3), >($0, $3))], joinType=[inner])\n"
-            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[150], expr#6=[<($t0, $t5)], "
-            + "proj#0..2=[{exprs}], $condition=[$t6])\n"
+            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t0):INTEGER NOT NULL], expr#6=[150], expr#7=[<($t5, $t6)], "
+            + "proj#0..2=[{exprs}], $condition=[$t7])\n"
             + "      EnumerableTableScan(table=[[s, emps]])\n"
             + "    EnumerableCalc(expr#0..3=[{inputs}], proj#0..1=[{exprs}])\n"
             + "      EnumerableTableScan(table=[[s, depts]])\n")

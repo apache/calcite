@@ -39,6 +39,7 @@ import java.util.Arrays;
 
 import static org.apache.calcite.sql.type.NonNullableAccessors.getComponentTypeOrThrow;
 import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getOperandLiteralValueOrThrow;
+import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
 
@@ -101,8 +102,48 @@ public class SqlItemOperator extends SqlSpecialOperator {
       return false;
     }
     final SqlSingleOperandTypeChecker checker = getChecker(callBinding);
-    return checker.checkSingleOperandType(callBinding, right, 0,
-        throwOnFailure);
+    if (!checker.checkSingleOperandType(callBinding, right, 0, throwOnFailure)) {
+      return false;
+    }
+
+    final RelDataType operandType = callBinding.getOperandType(0);
+    if (operandType.getSqlTypeName() != SqlTypeName.ROW) {
+      return true;
+    }
+
+    // For ROW types validate the index value (must be a constant).
+    RelDataType indexType = callBinding.getOperandType(1);
+    if (SqlTypeUtil.isString(indexType)) {
+      final String fieldName = getOperandLiteralValueOrThrow(callBinding, 1, String.class);
+      RelDataTypeField field = operandType.getField(fieldName, false, false);
+      if (field == null) {
+        if (throwOnFailure) {
+          throw callBinding.newValidationError(
+              RESOURCE.unknownRowField(fieldName, operandType.toString()));
+        } else {
+          return false;
+        }
+      }
+    } else if (SqlTypeUtil.isIntType(indexType)) {
+      Integer index = callBinding.getOperandLiteralValue(1, Integer.class);
+      if (index == null) {
+        if (throwOnFailure) {
+          throw callBinding.newValidationError(RESOURCE.illegalRowIndex());
+        } else {
+          return false;
+        }
+      }
+      if (index < 1 || index > operandType.getFieldCount()) {
+        if (throwOnFailure) {
+          throw callBinding.newValidationError(
+              RESOURCE.illegalRowIndexValue(index, operandType.getFieldCount()));
+        } else {
+          return false;
+        }
+      }
+    }
+
+    return true;
   }
 
   @Override public SqlSingleOperandTypeChecker getOperandTypeChecker() {
@@ -186,7 +227,7 @@ public class SqlItemOperator extends SqlSpecialOperator {
             + indexType + "'");
       }
       if (operandType.isNullable()) {
-        fieldType = typeFactory.createTypeWithNullability(fieldType, true);
+        fieldType = typeFactory.enforceTypeWithNullability(fieldType, true);
       }
       return fieldType;
     case ANY:

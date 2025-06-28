@@ -192,8 +192,7 @@ class TableInRootSchemaTest {
     Statement statement = calciteConnection.createStatement();
     // Without the fix to this issue the Validator crashes with an AssertionFailure:
     // java.lang.RuntimeException: java.lang.AssertionError:
-    // Conversion to relational algebra failed to preserve datatypes:
-    // validated type:
+    // Conversion to relational algebra failed to preserve datatypes.
     ResultSet resultSet = statement.executeQuery("SELECT P['a'].K, P['a'].S FROM T");
     resultSet.close();
     statement.close();
@@ -210,9 +209,25 @@ class TableInRootSchemaTest {
     Statement statement = calciteConnection.createStatement();
     // Without the fix to this issue the Validator crashes with an AssertionFailure:
     // java.lang.RuntimeException: java.lang.AssertionError:
-    // Conversion to relational algebra failed to preserve datatypes:
-    // validated type:
+    // Conversion to relational algebra failed to preserve datatypes
     ResultSet resultSet = statement.executeQuery("SELECT T.P.K, T.Q.S, T.Q.S.L, T.Q.S.M FROM T");
+    resultSet.close();
+    statement.close();
+    connection.close();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7043">[CALCITE-7043]
+   * Type inferred for SqlItemOperator has incorrect nullability</a>. */
+  @Test void testNullableRowTopLevel2() throws Exception {
+    Connection connection = DriverManager.getConnection("jdbc:calcite:");
+    CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class);
+    calciteConnection.getRootSchema().add("T", new TableWithNullableRowToplevel());
+    Statement statement = calciteConnection.createStatement();
+    // Without the fix to this issue the Validator crashes with an AssertionFailure:
+    // java.lang.RuntimeException: java.lang.AssertionError:
+    // Conversion to relational algebra failed to preserve datatypes.
+    ResultSet resultSet = statement.executeQuery("SELECT T.P[1], T.Q[1], T.Q[1][1] FROM T");
     resultSet.close();
     statement.close();
     connection.close();

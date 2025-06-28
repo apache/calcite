@@ -3110,12 +3110,6 @@ public class SqlToRelConverter {
     final ImmutableBitSet.Builder requiredColumns = ImmutableBitSet.builder();
     final List<CorrelationId> correlNames = new ArrayList<>();
 
-    // All correlations must refer the same namespace since correlation
-    // produces exactly one correlation source.
-    // The same source might be referenced by different variables since
-    // DeferredLookups are not de-duplicated at create time.
-    SqlValidatorNamespace prevNs = null;
-
     for (CorrelationId correlName : correlatedVariables) {
       DeferredLookup lookup =
           requireNonNull(mapCorrelToDeferred.get(correlName),
@@ -3131,7 +3125,6 @@ public class SqlToRelConverter {
           nameMatcher, false, resolved);
       assert resolved.count() == 1;
       final SqlValidatorScope.Resolve resolve = resolved.only();
-      final SqlValidatorNamespace foundNs = resolve.namespace;
       final RelDataType rowType = resolve.rowType();
       final int childNamespaceIndex = resolve.path.steps().get(0).i;
       final SqlValidatorScope ancestorScope = resolve.scope;
@@ -3139,15 +3132,6 @@ public class SqlToRelConverter {
 
       if (!correlInCurrentScope) {
         continue;
-      }
-
-      if (prevNs == null) {
-        prevNs = foundNs;
-      } else {
-        assert prevNs == foundNs : "All correlation variables should resolve"
-            + " to the same namespace."
-            + " Prev ns=" + prevNs
-            + ", new ns=" + foundNs;
       }
 
       int namespaceOffset = 0;
@@ -4984,6 +4968,7 @@ public class SqlToRelConverter {
       mapping = null;
     }
 
+    List<RelDataTypeField> fields = targetRowType.getFieldList();
     for (SqlNode rowConstructor : values.getOperandList()) {
       SqlCall newRowConst = (SqlCall) rowConstructor;
       Blackboard tmpBb = createBlackboard(bb.scope, null, false);
@@ -4991,6 +4976,7 @@ public class SqlToRelConverter {
           RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
       final PairList<RexNode, String> exps = PairList.of();
       Ord.forEach(newRowConst.getOperandList(), (operand, i) -> {
+        RelDataType fieldType = fields.get(i).getType();
         RexNode def;
         if (processDefaults
             && operand.getKind() == SqlKind.DEFAULT
@@ -5003,6 +4989,9 @@ public class SqlToRelConverter {
                   mapping[i], bb);
         } else {
           def = tmpBb.convertExpression(operand);
+        }
+        if (!(def instanceof RexDynamicParam) && !def.getType().equals(fieldType)) {
+          def = rexBuilder.makeCast(operand.getParserPosition(), fieldType, def);
         }
         exps.add(def, SqlValidatorUtil.alias(operand, i));
       });

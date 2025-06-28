@@ -30,8 +30,8 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlSingleOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
@@ -45,12 +45,24 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import static org.apache.calcite.sql.type.OperandTypes.family;
+
 import static java.util.Objects.requireNonNull;
 
 /**
  * The <code>JSON_QUERY</code> function.
  */
 public class SqlJsonQueryFunction extends SqlFunction {
+  static final SqlSingleOperandTypeChecker TYPE_CHECKER =
+      family(
+          ImmutableList.of(
+              SqlTypeFamily.ANY, SqlTypeFamily.CHARACTER,
+              SqlTypeFamily.ANY, SqlTypeFamily.ANY, SqlTypeFamily.ANY))
+          .or(
+              family(
+                  ImmutableList.of(SqlTypeFamily.ANY, SqlTypeFamily.CHARACTER,
+                      SqlTypeFamily.ANY, SqlTypeFamily.ANY, SqlTypeFamily.ANY, SqlTypeFamily.ANY)));
+
   public SqlJsonQueryFunction() {
     super("JSON_QUERY", SqlKind.OTHER_FUNCTION,
         ReturnTypes.cascade(
@@ -60,10 +72,7 @@ public class SqlJsonQueryFunction extends SqlFunction {
                     .orElseGet(() -> getDefaultType(opBinding)),
             SqlTypeTransforms.FORCE_NULLABLE),
         null,
-        OperandTypes.family(
-            ImmutableList.of(SqlTypeFamily.ANY, SqlTypeFamily.CHARACTER,
-            SqlTypeFamily.ANY, SqlTypeFamily.ANY, SqlTypeFamily.ANY, SqlTypeFamily.ANY),
-            i -> i >= 5),
+        TYPE_CHECKER,
         SqlFunctionCategory.SYSTEM);
   }
 

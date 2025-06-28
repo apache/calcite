@@ -263,7 +263,7 @@ public class RexSimplify {
    * Verify adds an overhead that is only acceptable for a top-level call.
    */
   RexNode simplify(RexNode e, RexUnknownAs unknownAs) {
-    if (STRONG.isNull(e)) {
+    if (isSafeExpression(e) && STRONG.isNull(e)) {
       // Only boolean NULL (aka UNKNOWN) can be converted to FALSE. Even in
       // unknownAs=FALSE mode, we must not convert a NULL integer (say) to FALSE
       if (e.getType().getSqlTypeName() == SqlTypeName.BOOLEAN) {
@@ -294,6 +294,8 @@ public class RexSimplify {
     case CEIL:
     case FLOOR:
       return simplifyCeilFloor((RexCall) e);
+    case TRIM:
+      return simplifyTrim((RexCall) e);
     case IS_NULL:
     case IS_NOT_NULL:
     case IS_TRUE:
@@ -1330,11 +1332,17 @@ public class RexSimplify {
 
     @SuppressWarnings("ImmutableEnumChecker")
     private final Set<SqlKind> safeOps;
+    @SuppressWarnings("ImmutableEnumChecker")
+    private final ImmutableSet<SqlOperator> safeOperators;
 
     SafeRexVisitor() {
-      Set<SqlKind> safeOps = EnumSet.noneOf(SqlKind.class);
+      ImmutableSet.Builder<SqlOperator> builder = ImmutableSet.builder();
+      builder.addAll(SqlStdOperatorTable.QUANTIFY_OPERATORS);
+      safeOperators = builder.build();
 
+      Set<SqlKind> safeOps = EnumSet.noneOf(SqlKind.class);
       safeOps.addAll(SqlKind.COMPARISON);
+      safeOps.add(SqlKind.ARRAY_VALUE_CONSTRUCTOR);
       safeOps.add(SqlKind.PLUS_PREFIX);
       safeOps.add(SqlKind.MINUS_PREFIX);
       safeOps.add(SqlKind.CHECKED_MINUS_PREFIX);
@@ -1385,10 +1393,34 @@ public class RexSimplify {
     }
 
     @Override public Boolean visitCall(RexCall call) {
-      if (!safeOps.contains(call.getKind())) {
+      SqlKind sqlKind = call.getKind();
+      SqlOperator sqlOperator = call.getOperator();
+
+      switch (sqlKind) {
+      case DIVIDE:
+      case MOD:
+        List<RexNode> operands = call.getOperands();
+        boolean isSafe = RexVisitorImpl.visitArrayAnd(this, ImmutableList.of(operands.get(0)));
+        if (!isSafe) {
+          return false;
+        }
+        if (operands.get(1) instanceof RexLiteral) {
+          RexLiteral literal = (RexLiteral) operands.get(1);
+          return RexUtil.isNullLiteral(literal, true);
+        }
         return false;
+      default:
+        break;
       }
-      return RexVisitorImpl.visitArrayAnd(this, call.operands);
+
+      if (sqlOperator.isSafeOperator()
+          || RexUtil.isLosslessCast(call)
+          || safeOps.contains(sqlKind)
+          || safeOperators.contains(sqlOperator)) {
+        return RexVisitorImpl.visitArrayAnd(this, call.operands);
+      }
+
+      return false;
     }
 
     @Override public Boolean visitOver(RexOver over) {
@@ -1428,6 +1460,10 @@ public class RexSimplify {
     }
 
     @Override public Boolean visitLambdaRef(RexLambdaRef lambdaRef) {
+      return true;
+    }
+
+    @Override public Boolean visitNodeAndFieldIndex(RexNodeAndFieldIndex nodeAndFieldIndex) {
       return true;
     }
   }
@@ -1933,8 +1969,7 @@ public class RexSimplify {
         if (comparison != null && comparison.ref.equals(ref)) {
           final C c1 = comparison.literal.getValueAs(clazz);
           if (c1 == null) {
-            throw new AssertionError("value must not be null in "
-                + comparison.literal);
+            continue;
           }
           switch (predicate.getKind()) {
           case NOT_EQUALS:
@@ -2362,6 +2397,45 @@ public class RexSimplify {
     }
     return e.clone(e.getType(),
         ImmutableList.of(operand, e.getOperands().get(1)));
+  }
+
+  /** Simplify TRIM function by eliminating nested duplication.
+   *
+   * <p>Examples:
+   * <ul>
+   *
+   * <li>{@code trim(trim(' aa '))} returns {@code trim(' aa ')}
+   *
+   * <li>{@code trim(BOTH ' ' from trim(BOTH ' ' from ' aa '))}
+   * returns {@code trim(BOTH ' ' from ' aa ')}
+   *
+   * <li>{@code trim(LEADING 'a' from trim(BOTH ' ' from ' aa '))} does not change
+   *
+   * </ul>
+   */
+  private RexNode simplifyTrim(RexCall e) {
+    if (e.getOperands().size() != 3) {
+      return e;
+    }
+
+    RexNode trimType = simplify(e.operands.get(0));
+    RexNode trimed = simplify(e.operands.get(1));
+    if (e.getOperands().get(2) instanceof RexCall) {
+      RexCall childNode = (RexCall) e.getOperands().get(2);
+      // only strings with the same trim method and deduplication will be eliminated.
+      if (childNode.getKind() == SqlKind.TRIM
+          && trimType.equals(simplify(childNode.operands.get(0)))
+          && trimed.equals(simplify(childNode.operands.get(1)))) {
+        return simplifyTrim(childNode);
+      }
+    }
+
+    ArrayList<RexNode> rexNodes = new ArrayList<>();
+    rexNodes.add(trimType);
+    rexNodes.add(trimed);
+    rexNodes.add(simplify(e.operands.get(2)));
+    RexNode rexNode = rexBuilder.makeCall(e.getType(), e.getOperator(), rexNodes);
+    return rexNode;
   }
 
   /** Method that returns whether we can rollup from inner time unit

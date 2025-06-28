@@ -406,6 +406,9 @@ public abstract class PruneEmptyRules {
               + RelOptUtil.toString(union);
           if (nonEmptyInputs == 0) {
             relBuilder.push(union).empty();
+          } else if (nonEmptyInputs == 1 && !union.all) {
+            relBuilder.distinct();
+            relBuilder.convert(union.getRowType(), true);
           } else {
             relBuilder.union(union.all, nonEmptyInputs);
             relBuilder.convert(union.getRowType(), true);
@@ -447,6 +450,9 @@ public abstract class PruneEmptyRules {
               + RelOptUtil.toString(minus);
           if (nonEmptyInputs == 0) {
             relBuilder.push(minus).empty();
+          } else if (nonEmptyInputs == 1 && !minus.all) {
+            relBuilder.distinct();
+            relBuilder.convert(minus.getRowType(), true);
           } else {
             relBuilder.minus(minus.all, nonEmptyInputs);
             relBuilder.convert(minus.getRowType(), true);

@@ -418,21 +418,23 @@ finds at most a single row in the right table that has the "closest"
 timestamp value. The matched row on the right side is the closest
 match whose timestamp column is compared using one of the operations
 &lt;, &le;, &gt;, or &ge;, as specified by the comparison operator in
-the `MATCH_CONDITION` clause.  The comparison is performed using SQL
-semantics, which returns 'false' when comparing NULL values with any
+the MATCH_CONDITION clause.  The comparison is performed using SQL
+semantics, which returns 'false' when comparing 'NULL' values with any
 other values.  Thus a 'NULL' timestamp in the left table will not
 match any timestamps in the right table.
 
-ASOF JOIN statements can also be LEFT ASOF JOIN.  In this case, when there
-is no match for a row in the left table, the columns from the right table
-are null-padded.
+ASOF JOIN can be used in an OUTER JOIN form as LEFT ASOF JOIN.  In this case,
+when there is no match for a row in the left table, the columns from
+the right table are null-padded.  There are no RIGHT ASOF joins.
 
-There are no RIGHT ASOF joins.
+Example:
 
+```SQL
 SELECT *
-FROM left_table [ LEFT ] ASOF JOIN right_table
-MATCH_CONDITION ( left_table.timecol &leq; right_table.timecol )
+FROM left_table LEFT ASOF JOIN right_table
+MATCH_CONDITION left_table.timecol <= right_table.timecol
 ON left_table.col = right_table.col
+```
 
 ## Keywords
 
@@ -1113,6 +1115,7 @@ UNDER,
 UNNAMED,
 **UNNEST**,
 UNPIVOT,
+**UNSIGNED**,
 **UPDATE**,
 **UPPER**,
 **UPSERT**,
@@ -1191,6 +1194,10 @@ name will have been converted to upper case also.
 | SMALLINT    | 2 byte signed integer     | Range is -32768 to 32767
 | INTEGER, INT | 4 byte signed integer    | Range is -2147483648 to 2147483647
 | BIGINT      | 8 byte signed integer     | Range is -9223372036854775808 to 9223372036854775807
+| TINYINT UNSIGNED  | 1 byte unsigned integer     | Range is 0 to 255
+| SMALLINT UNSIGNED | 2 byte unsigned integer     | Range is 0 to 65535
+| INTEGER UNSIGNED, INT UNSIGNED | 4 byte unsigned integer    | Range is 0 to 4294967295
+| BIGINT UNSIGNED   | 8 byte unsigned integer     | Range is 0 to 18446744073709551615
 | DECIMAL(p, s) | Fixed point             | Example: 123.45 and DECIMAL '123.45' are identical values, and have type DECIMAL(5, 2)
 | NUMERIC(p, s) | Fixed point             | A synonym for DECIMAL
 | REAL        | 4 byte floating point     | 6 decimal digits precision; examples: CAST(1.2 AS REAL), CAST('Infinity' AS REAL)
@@ -1599,9 +1606,9 @@ sqlTypeName:
   |   integer
   |   BINARY [ precision ]
   |   varbinary [ precision ]
-  |   TINYINT
-  |   SMALLINT
-  |   BIGINT
+  |   TINYINT [ UNSIGNED ]
+  |   SMALLINT [ UNSIGNED ]
+  |   BIGINT [ UNSIGNED ]
   |   REAL
   |   double
   |   FLOAT
@@ -1626,7 +1633,7 @@ decimal:
       DECIMAL | DEC | NUMERIC
 
 integer:
-      INTEGER | INT
+      INTEGER [ UNSIGNED ] | INT [ UNSIGNED ] | UNSIGNED
 
 varbinary:
       BINARY VARYING | VARBINARY
@@ -1656,29 +1663,33 @@ Calcite type conversions. The table shows all possible conversions,
 without regard to the context in which it is made. The rules governing
 these details follow the table.
 
-| FROM - TO           | NULL | BOOLEAN | TINYINT | SMALLINT | INT | BIGINT | DECIMAL | FLOAT or REAL | DOUBLE | INTERVAL | DATE | TIME | TIMESTAMP | CHAR or VARCHAR | BINARY or VARBINARY | GEOMETRY | ARRAY | MAP | MULTISET | ROW | UUID |
-|:--------------------|:-----|:--------|:--------|:---------|:----|:-------|:--------|:--------------|:-------|:---------|:-----|:-----|:----------|:----------------|:--------------------|:---------|:------|:----|:---------|:----|:-----|
-| NULL                | i    | i       | i       | i        | i   | i      | i       | i             | i      | i        | i    | i    | i         | i               | i                   | i        | x     | x   | x        | x   | i    |
-| BOOLEAN             | x    | i       | x       | x        | x   | x      | x       | x             | x      | x        | x    | x    | x         | i               | x                   | x        | x     | x   | x        | x   | x    |
-| TINYINT             | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
-| SMALLINT            | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
-| INT                 | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
-| BIGINT              | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
-| DECIMAL             | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
-| FLOAT/REAL          | x    | e       | i       | i        | i   | i      | i       | i             | i      | x        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
-| DOUBLE              | x    | e       | i       | i        | i   | i      | i       | i             | i      | x        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
-| INTERVAL            | x    | x       | e       | e        | e   | e      | e       | x             | x      | i        | x    | x    | x         | e               | x                   | x        | x     | x   | x        | x   | x    |
-| DATE                | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | i    | x    | i         | i               | x                   | x        | x     | x   | x        | x   | x    |
-| TIME                | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | x    | i    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
-| TIMESTAMP           | x    | x       | e       | e        | e   | e      | e       | e             | e      | x        | i    | e    | i         | i               | x                   | x        | x     | x   | x        | x   | x    |
-| CHAR or VARCHAR     | x    | e       | i       | i        | i   | i      | i       | i             | i      | i        | i    | i    | i         | i               | i                   | i        | i     | i   | i        | i   | i    |
-| BINARY or VARBINARY | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | e    | e    | e         | i               | i                   | x        | x     | x   | x        | x   | i    |
-| GEOMETRY            | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | x    | x    | x         | i               | x                   | i        | x     | x   | x        | x   | x    |
-| ARRAY               | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | x    | x    | x         | x               | x                   | x        | i     | x   | x        | x   | x    |
-| MAP                 | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | x    | x    | x         | x               | x                   | x        | x     | i   | x        | x   | x    |
-| MULTISET            | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | x    | x    | x         | x               | x                   | x        | x     | x   | i        | x   | x    |
-| ROW                 | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | x    | x    | x         | x               | x                   | x        | x     | x   | x        | i   | x    |
-| UUID                | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | x    | x    | x         | x               | x                   | x        | x     | x   | x        | x   | i    |
+| FROM - TO           | NULL | BOOLEAN | TINYINT | SMALLINT | INT | BIGINT | TINYINT UNSIGNED | SMALLINT UNSIGNED | INT UNSIGNED | BIGINT UNSIGNED | DECIMAL | FLOAT or REAL | DOUBLE | INTERVAL | DATE | TIME | TIMESTAMP | CHAR or VARCHAR | BINARY or VARBINARY | GEOMETRY | ARRAY | MAP | MULTISET | ROW | UUID |
+|:--------------------|:-----|:--------|:--------|:---------|:----|:-------|:-----------------|:------------------|:-------------|:----------------|:--------|:--------------|:-------|:---------|:-----|:-----|:----------|:----------------|:--------------------|:---------|:------|:----|:---------|:----|:-----|
+| NULL                | i    | i       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | i        | i    | i    | i         | i               | i                   | i        | x     | x   | x        | x   | i    |
+| BOOLEAN             | x    | i       | x       | x        | x   | x      | x                | x                 | x            | x               | x       | x             | x      | x        | x    | x    | x         | i               | x                   | x        | x     | x   | x        | x   | x    |
+| TINYINT             | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
+| SMALLINT            | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
+| INT                 | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
+| BIGINT              | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
+| TINYINT UNSIGNED    | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
+| SMALLINT UNSIGNED   | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
+| INT UNSIGNED        | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
+| BIGINT UNSIGNED     | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
+| DECIMAL             | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
+| FLOAT/REAL          | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | x        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
+| DOUBLE              | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | x        | x    | x    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
+| INTERVAL            | x    | x       | e       | e        | e   | e      | e                | e                 | e            | e               | e       | x             | x      | i        | x    | x    | x         | e               | x                   | x        | x     | x   | x        | x   | x    |
+| DATE                | x    | x       | x       | x        | x   | x      | x                | x                 | x            | x               | x       | x             | x      | x        | i    | x    | i         | i               | x                   | x        | x     | x   | x        | x   | x    |
+| TIME                | x    | x       | x       | x        | x   | x      | x                | x                 | x            | x               | x       | x             | x      | x        | x    | i    | e         | i               | x                   | x        | x     | x   | x        | x   | x    |
+| TIMESTAMP           | x    | x       | e       | e        | e   | e      | e                | e                 | e            | e               | e       | e             | e      | x        | i    | e    | i         | i               | x                   | x        | x     | x   | x        | x   | x    |
+| CHAR or VARCHAR     | x    | e       | i       | i        | i   | i      | i                | i                 | i            | i               | i       | i             | i      | i        | i    | i    | i         | i               | i                   | i        | i     | i   | i        | i   | i    |
+| BINARY or VARBINARY | x    | x       | x       | x        | x   | x      | x                | x                 | x            | x               | x       | x             | x      | x        | e    | e    | e         | i               | i                   | x        | x     | x   | x        | x   | i    |
+| GEOMETRY            | x    | x       | x       | x        | x   | x      | x                | x                 | x            | x               | x       | x             | x      | x        | x    | x    | x         | i               | x                   | i        | x     | x   | x        | x   | x    |
+| ARRAY               | x    | x       | x       | x        | x   | x      | x                | x                 | x            | x               | x       | x             | x      | x        | x    | x    | x         | x               | x                   | x        | i     | x   | x        | x   | x    |
+| MAP                 | x    | x       | x       | x        | x   | x      | x                | x                 | x            | x               | x       | x             | x      | x        | x    | x    | x         | x               | x                   | x        | x     | i   | x        | x   | x    |
+| MULTISET            | x    | x       | x       | x        | x   | x      | x                | x                 | x            | x               | x       | x             | x      | x        | x    | x    | x         | x               | x                   | x        | x     | x   | i        | x   | x    |
+| ROW                 | x    | x       | x       | x        | x   | x      | x                | x                 | x            | x               | x       | x             | x      | x        | x    | x    | x         | x               | x                   | x        | x     | x   | x        | i   | x    |
+| UUID                | x    | x       | x       | x        | x   | x      | x                | x                 | x            | x               | x       | x             | x      | x        | x    | x    | x         | x               | x                   | x        | x     | x   | x        | x   | i    |
 
 i: implicit cast / e: explicit cast / x: not allowed
 
@@ -1686,6 +1697,9 @@ i: implicit cast / e: explicit cast / x: not allowed
 
 * Set operation (`UNION`, `EXCEPT`, `INTERSECT`): compare every branch
   row data type and find the common type of each fields pair;
+* Arithmetic operations combining signed and unsigned values will
+  produce a result with the wider type; if both types have the same width,
+  the result is unsigned;
 * Binary arithmetic expression (`+`, `-`, `&`, `^`, `/`, `%`): promote
   string operand to data type of the other numeric operand;
 * Binary comparison (`=`, `<`, `<=`, `<>`, `>`, `>=`):
@@ -2756,6 +2770,7 @@ The 'C' (compatibility) column contains value:
 * 'p' for PostgreSQL ('fun=postgresql' in the connect string),
 * 'r' for Amazon RedShift ('fun=redshift' in the connect string),
 * 's' for Apache Spark ('fun=spark' in the connect string).
+* 'i' for ClickHouse('fun=clickhouse' in the connect string).
 
 One operator name may correspond to multiple SQL dialects, but with different
 semantics.
@@ -2942,6 +2957,7 @@ In the following:
 | s | MAP_FROM_ENTRIES(arrayOfRows)                  | Returns a map created from an arrays of row with two fields. Note that the number of fields in a row must be 2. Note that calcite is using the LAST_WIN strategy
 | s | STR_TO_MAP(string [, stringDelimiter [, keyValueDelimiter]]) | Returns a map after splitting the *string* into key/value pairs using delimiters. Default delimiters are ',' for *stringDelimiter* and ':' for *keyValueDelimiter*. Note that calcite is using the LAST_WIN strategy
 | s | SUBSTRING_INDEX(string, delim, count)          | Returns the substring from *string* before *count* occurrences of the delimiter *delim*. If *count* is positive, everything to the left of the final delimiter (counting from the left) is returned. If *count* is negative, everything to the right of the final delimiter (counting from the right) is returned. The function substring_index performs a case-sensitive match when searching for *delim*.
+| p r | STRING_TO_ARRAY(string, delimiter [, nullString ]) | Returns a one-dimensional string[] array by splitting the input string value into subvalues using the specified string value as the "delimiter". Optionally, allows a specified string value to be interpreted as NULL.
 | b m p r s h | MD5(string)                          | Calculates an MD5 128-bit checksum of *string* and returns it as a hex string
 | m | MONTHNAME(date)                                | Returns the name, in the connection's locale, of the month in *datetime*; for example, for a locale of en, it will return 'February' for both DATE '2020-02-10' and TIMESTAMP '2020-02-10 10:10:10', and for a locale of zh, it will return '二月'
 | o r s | NVL(value1, value2)                        | Returns *value1* if *value1* is not null, otherwise *value2*
@@ -3568,7 +3584,7 @@ and *minRepeat* and *maxRepeat* are non-negative integers.
 
 DDL extensions are only available in the calcite-server module.
 To enable, include `calcite-server.jar` in your class path, and add
-`parserFactory=org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl#FACTORY`
+`parserFactory=org.apache.calcite.server.ServerDdlExecutor#PARSER_FACTORY`
 to the JDBC connect string (see connect string property
 [parserFactory]({{ site.apiRoot }}/org/apache/calcite/config/CalciteConnectionProperty.html#PARSER_FACTORY)).
 

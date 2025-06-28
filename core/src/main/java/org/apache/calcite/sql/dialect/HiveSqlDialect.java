@@ -18,18 +18,27 @@ package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
+import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.AbstractSqlType;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.util.RelToSqlConverterUtil;
+
+import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -82,6 +91,10 @@ public class HiveSqlDialect extends SqlDialect {
     }
 
     return null;
+  }
+
+  @Override public RexNode prepareUnparse(RexNode rexNode) {
+    return RelToSqlConverterUtil.unparseIsTrueOrFalse(rexNode);
   }
 
   @Override public void unparseCall(final SqlWriter writer, final SqlCall call,
@@ -137,10 +150,6 @@ public class HiveSqlDialect extends SqlDialect {
     return false;
   }
 
-  @Override public boolean supportsApproxCountDistinct() {
-    return true;
-  }
-
   @Override public boolean supportsNestedAggregations() {
     return false;
   }
@@ -148,6 +157,11 @@ public class HiveSqlDialect extends SqlDialect {
   @Override public @Nullable SqlNode getCastSpec(final RelDataType type) {
     if (type instanceof BasicSqlType) {
       switch (type.getSqlTypeName()) {
+      case REAL:
+        return new SqlDataTypeSpec(
+            new SqlAlienSystemTypeNameSpec("FLOAT", type.getSqlTypeName(),
+                SqlParserPos.ZERO),
+            SqlParserPos.ZERO);
       case INTEGER:
         SqlAlienSystemTypeNameSpec typeNameSpec =
             new SqlAlienSystemTypeNameSpec("INT", type.getSqlTypeName(),
@@ -164,6 +178,52 @@ public class HiveSqlDialect extends SqlDialect {
         break;
       }
     }
+
+    if (type instanceof AbstractSqlType) {
+      switch (type.getSqlTypeName()) {
+      case ARRAY:
+      case MAP:
+      case MULTISET:
+        throw new UnsupportedOperationException("Hive dialect does not support cast to "
+            + type.getSqlTypeName());
+      default:
+        break;
+      }
+    }
+
     return super.getCastSpec(type);
+  }
+
+  /**
+   * Rewrite SINGLE_VALUE(result).
+   *
+   * <blockquote><pre>
+   * CASE COUNT(*)
+   * WHEN 0 THEN NULL
+   * WHEN 1 THEN MIN(&lt;result&gt;)
+   * ELSE ASSERT_TRUE(false)
+   * </pre></blockquote>
+   *
+   * <pre>ASSERT_TRUE(false) will throw assertion failed exception
+   * when result includes more than one value.</pre>
+   */
+  @Override public SqlNode rewriteSingleValueExpr(SqlNode aggCall, RelDataType relDataType) {
+    final SqlNode operand = ((SqlBasicCall) aggCall).operand(0);
+    final SqlLiteral nullLiteral = SqlLiteral.createNull(SqlParserPos.ZERO);
+    SqlNodeList sqlNodesList = new SqlNodeList(SqlParserPos.ZERO);
+    sqlNodesList.add(SqlLiteral.createBoolean(false, SqlParserPos.ZERO));
+    final SqlNode caseExpr =
+        new SqlCase(SqlParserPos.ZERO,
+            SqlStdOperatorTable.COUNT.createCall(SqlParserPos.ZERO,
+                ImmutableList.of(SqlIdentifier.STAR)),
+            SqlNodeList.of(
+                SqlLiteral.createExactNumeric("0", SqlParserPos.ZERO),
+                SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO)),
+            SqlNodeList.of(
+                nullLiteral,
+                SqlStdOperatorTable.MIN.createCall(SqlParserPos.ZERO, operand)),
+            RelToSqlConverterUtil.specialOperatorByName("ASSERT_TRUE").createCall(sqlNodesList));
+    LOGGER.debug("SINGLE_VALUE rewritten into [{}]", caseExpr);
+    return caseExpr;
   }
 }

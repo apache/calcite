@@ -314,7 +314,7 @@ class PlannerTest {
         "select * from \"emps\" where \"deptno\" < 10\n"
             + "union all\n"
             + "select * from \"emps\" where \"empid\" > 2",
-        "[OR(<($1, 10), >($0, 2))]");
+        "[OR(<(CAST($1):INTEGER NOT NULL, 10), >(CAST($0):INTEGER NOT NULL, 2))]");
   }
 
   /** Test case for
@@ -333,7 +333,7 @@ class PlannerTest {
         "select * from \"emps\" where \"deptno\" < 10\n"
             + "union all\n"
             + "select * from \"emps\" where \"deptno\" < 10 and \"empid\" > 1",
-        "[<($1, 10)]");
+        "[<(CAST($1):INTEGER NOT NULL, 10)]");
   }
 
   @Test void testMetadataUnionPredicates4() throws Exception {
@@ -341,14 +341,14 @@ class PlannerTest {
         "select * from \"emps\" where \"deptno\" < 10\n"
             + "union all\n"
             + "select * from \"emps\" where \"deptno\" < 10 or \"empid\" > 1",
-        "[OR(<($1, 10), >($0, 1))]");
+        "[OR(<(CAST($1):INTEGER NOT NULL, 10), >(CAST($0):INTEGER NOT NULL, 1))]");
   }
 
   @Test void testMetadataUnionPredicates5() throws Exception {
     final String sql = "select * from \"emps\" where \"deptno\" < 10\n"
         + "union all\n"
         + "select * from \"emps\" where \"deptno\" < 10 and false";
-    checkMetadataPredicates(sql, "[<($1, 10)]");
+    checkMetadataPredicates(sql, "[<(CAST($1):INTEGER NOT NULL, 10)]");
   }
 
   /** Tests predicates that can be pulled-up from an Aggregate with
@@ -374,7 +374,7 @@ class PlannerTest {
     final String sql = "select \"deptno\", count(\"deptno\")\n"
         + "from \"emps\" where \"deptno\" > 10\n"
         + "group by \"deptno\"";
-    checkMetadataPredicates(sql, "[>($0, 10)]");
+    checkMetadataPredicates(sql, "[>(CAST($0):INTEGER NOT NULL, 10)]");
   }
 
   /** Unit test that parses, validates, converts and plans. */
@@ -732,7 +732,7 @@ class PlannerTest {
     String typeString = SqlTests.getTypeString(insertSourceType);
     assertThat(typeString,
         is("RecordType(INTEGER NOT NULL empid, INTEGER NOT NULL deptno, "
-            + "JavaType(class java.lang.String) name, REAL NOT NULL salary, "
+            + "VARCHAR name, REAL NOT NULL salary, "
             + "INTEGER NOT NULL commission) NOT NULL"));
   }
 

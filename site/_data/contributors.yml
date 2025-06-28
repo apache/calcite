@@ -28,8 +28,8 @@
 - name: Alessandro Solimando
   apacheId: asolimando
   githubId: asolimando
-  org: Cloudera
-  role: Committer
+  org:
+  role: PMC
 - name: Aman Sinha
   apacheId: amansinha
   githubId: amansinha100
@@ -378,7 +378,7 @@
   githubId: NobiGo
   pronouns: he/him
   org: Hikvision
-  role: Committer
+  role: PMC
 - name: Yong Liu
   apacheId: jackylau
   githubId: liuyongvs
@@ -395,6 +395,11 @@
   githubId: ILuffZhe
   pronouns: he/him
   org: Hikvision
+  role: Committer
+- name: Zhen Chen
+  apacheId: zhenchen
+  githubId: xiedeyantu
+  org:
   role: Committer
 - name: Zhen Wang
   apacheId: zhenw

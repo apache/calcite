@@ -126,6 +126,15 @@ public enum SqlConformanceEnum implements SqlConformance {
     }
   }
 
+  @Override public SelectAliasLookup isSelectAlias() {
+    switch (this) {
+    case BABEL:
+      return SelectAliasLookup.ANY;
+    default:
+      return SelectAliasLookup.UNSUPPORTED;
+    }
+  }
+
   @Override public boolean isGroupByOrdinal() {
     switch (this) {
     case BABEL:
@@ -495,6 +504,18 @@ public enum SqlConformanceEnum implements SqlConformance {
       // SET ARITHABORT OFF can be used to turn off overflow behavior, but the default is ON
       // https://learn.microsoft.com/en-us/sql/t-sql/statements/set-arithabort-transact-sql
       return true;
+    }
+  }
+
+  @Override public boolean supportsUnsignedTypes() {
+    switch (this) {
+    case BABEL:
+    case DEFAULT:
+    case LENIENT:
+    case MYSQL_5:
+      return true;
+    default:
+      return false;
     }
   }
 }

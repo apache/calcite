@@ -159,6 +159,10 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     throw unbound(lambdaRef);
   }
 
+  @Override public Comparable visitNodeAndFieldIndex(RexNodeAndFieldIndex nodeAndFieldIndex) {
+    throw unbound(nodeAndFieldIndex);
+  }
+
   @Override public Comparable visitCall(RexCall call) {
     final List<Comparable> values = visitList(call.operands);
     switch (call.getKind()) {
@@ -230,6 +234,8 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     case CEIL:
     case FLOOR:
       return ceil(call, values);
+    case TRIM:
+      return trim(call, values);
     case EXTRACT:
       return extract(values);
     case LIKE:
@@ -337,6 +343,25 @@ public class RexInterpreter implements RexVisitor<Comparable> {
       }
     }
     return N;
+  }
+
+  private static Comparable trim(RexNode call, List<Comparable> values) {
+    if (containsNull(values)) {
+      return N;
+    }
+    NlsString trimType = (NlsString) values.get(0);
+    NlsString trimed = (NlsString) values.get(1);
+    NlsString trimString = (NlsString) values.get(2);
+    switch (trimType.getValue()) {
+    case "BOTH":
+      return trimString.trim(trimed.getValue());
+    case "LEADING":
+      return trimString.ltrim(trimed.getValue());
+    case "TRAILING":
+      return trimString.rtrim(trimed.getValue());
+    default:
+      throw unbound(call);
+    }
   }
 
   private static Comparable ceil(RexCall call, List<Comparable> values) {

@@ -17,6 +17,7 @@
 package org.apache.calcite.sql.type;
 
 import org.apache.calcite.avatica.util.ArrayImpl;
+import org.apache.calcite.avatica.util.ByteString;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -62,6 +63,7 @@ public class JavaToSqlTypeConversionRules {
           .put(boolean.class, SqlTypeName.BOOLEAN)
           .put(Boolean.class, SqlTypeName.BOOLEAN)
           .put(byte[].class, SqlTypeName.VARBINARY)
+          .put(ByteString.class, SqlTypeName.VARBINARY)
           .put(String.class, SqlTypeName.VARCHAR)
           .put(char[].class, SqlTypeName.VARCHAR)
           .put(Character.class, SqlTypeName.CHAR)

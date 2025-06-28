@@ -348,7 +348,7 @@ class PredicateAnalyzer {
 
       checkForIncompatibleDateTimeOperands(call);
 
-      checkState(call.getOperands().size() == 2);
+      checkState(call.getOperands().size() == 2 || call.isA(SqlKind.LIKE));
       final Expression a = call.getOperands().get(0).accept(this);
       final Expression b = call.getOperands().get(1).accept(this);
 
@@ -373,7 +373,12 @@ class PredicateAnalyzer {
       case CONTAINS:
         return QueryExpression.create(pair.getKey()).contains(pair.getValue());
       case LIKE:
-        throw new UnsupportedOperationException("LIKE not yet supported");
+        if (call.getOperands().size() == 3) {
+          final Expression e = call.getOperands().get(2).accept(this);
+          LiteralExpression escape = expressAsLiteral(e);
+          return QueryExpression.create(pair.getKey()).like(pair.getValue(), escape);
+        }
+        return QueryExpression.create(pair.getKey()).like(pair.getValue());
       case EQUALS:
         return QueryExpression.create(pair.getKey()).equals(pair.getValue());
       case NOT_EQUALS:
@@ -586,6 +591,8 @@ class PredicateAnalyzer {
 
     public abstract QueryExpression like(LiteralExpression literal);
 
+    public abstract QueryExpression like(LiteralExpression literal, LiteralExpression escape);
+
     public abstract QueryExpression notLike(LiteralExpression literal);
 
     public abstract QueryExpression equals(LiteralExpression literal);
@@ -698,6 +705,11 @@ class PredicateAnalyzer {
           + "cannot be applied to a compound expression");
     }
 
+    @Override public QueryExpression like(LiteralExpression literal, LiteralExpression escape) {
+      throw new PredicateAnalyzerException("SqlOperatorImpl ['like'] "
+          + "cannot be applied to a compound expression");
+    }
+
     @Override public QueryExpression notLike(LiteralExpression literal) {
       throw new PredicateAnalyzerException("SqlOperatorImpl ['notLike'] "
           + "cannot be applied to a compound expression");
@@ -793,6 +805,11 @@ class PredicateAnalyzer {
 
     @Override public QueryExpression like(LiteralExpression literal) {
       builder = regexpQuery(getFieldReference(), literal.stringValue());
+      return this;
+    }
+
+    @Override public QueryExpression like(LiteralExpression literal, LiteralExpression escape) {
+      builder = regexpQuery(getFieldReference(), literal.stringValue(), escape.stringValue());
       return this;
     }
 
