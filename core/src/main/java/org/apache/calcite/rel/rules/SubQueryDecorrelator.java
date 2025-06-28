@@ -69,6 +69,7 @@ import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.base.Preconditions;
 
+import javax.annotation.Nonnull;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;

@@ -1715,6 +1715,33 @@ LogicalProject(EXPR$0=[CASE(>($3, 0), $4, null:INTEGER)], SALARY=[$0], ENROLL_DA
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testConvertExistsToSemiJoin">
+    <Resource name="sql">
+      <![CDATA[select * from sales.emp
+where EXISTS (
+  select * from emp e where emp.deptno = e.deptno)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalFilter(condition=[EXISTS({
+LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})], variablesSet=[[$cor0]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalJoin(condition=[=($7, $9)], joinType=[semi])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$7])
+      LogicalFilter(condition=[true])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testConvertMultiJoinRule">
     <Resource name="sql">
       <![CDATA[select e1.ename from emp e1, dept d, emp e2

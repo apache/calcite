@@ -8740,12 +8740,23 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withSubQueryRules().withLateDecorrelate(true).check();
   }
 
+  @Test void testConvertExistsToSemiJoin() {
+    final String sql = "select * from sales.emp\n"
+                       + "where EXISTS (\n"
+                       + "  select * from emp e where emp.deptno = e.deptno)";
+    sql(sql).withExpand(false).withRule(SubQueryRemoveRule.Config.FILTER_TO_SEMI.toRule()).check();
+  }
+
   @Test void testConvertNotExistsToAntiJoin() {
     final String sql = "select * from sales.emp\n"
                        + "where NOT EXISTS (\n"
                        + "  select * from emp e where emp.deptno = e.deptno)";
     sql(sql).withExpand(false).withRule(SubQueryRemoveRule.Config.FILTER_TO_SEMI.toRule()).check();
   }
+
+  // TODO test hasUnsupportedSubQuery
+
+  // TODO test hasCorrelatedExpressions
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1511">[CALCITE-1511]
