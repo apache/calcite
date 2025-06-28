@@ -5717,6 +5717,37 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testFullLeftSemiJoinTypeForDphyp">
+    <Resource name="sql">
+      <![CDATA[select emp.empno from emp_address full join emp on emp_address.empno = emp.empno left join dept on emp.deptno = dept.deptno where exists(select * from dept_nested where dept.deptno = dept_nested.deptno)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$9])
+  HyperGraph(edges=[{0, 1, 2}——[SEMI, =(node(2)_field(0), node(3)_field(0))]——{3},{0, 1}——[LEFT, =(node(1)_field(7), node(2)_field(0))]——{2},{0}——[FULL, =(node(0)_field(0), node(1)_field(0))]——{1}])
+    LogicalProject(EMPNO=[$0], STREET=[$1.STREET], CITY=[$1.CITY], ZIP=[$1.ZIP], STATE=[$1.STATE], STREET5=[$2.STREET], CITY6=[$2.CITY], ZIP7=[$2.ZIP], STATE8=[$2.STATE])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(DEPTNO=[$0], $f0=[true])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[=($18, $20)], joinType=[semi])
+    LogicalJoin(condition=[=($7, $18)], joinType=[left])
+      LogicalJoin(condition=[=($9, $0)], joinType=[full])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalProject(EMPNO=[$0], STREET=[$1.STREET], CITY=[$1.CITY], ZIP=[$1.ZIP], STATE=[$1.STATE], STREET5=[$2.STREET], CITY6=[$2.CITY], ZIP7=[$2.ZIP], STATE8=[$2.STATE])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(DEPTNO=[$0], $f0=[true])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testFullOuterJoinSimplificationToInner">
     <Resource name="sql">
       <![CDATA[select 1 from sales.dept d full outer join sales.emp e
@@ -6079,6 +6110,37 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], T=[$10])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[7934], $f10=[CURRENT_TIMESTAMP])
     LogicalFilter(condition=[=($0, 7934)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testInnerLeftSemiJoinTypeForDphyp">
+    <Resource name="sql">
+      <![CDATA[select emp.empno from emp_address inner join emp on emp_address.empno = emp.empno left join dept on emp.deptno = dept.deptno where exists(select * from dept_nested where dept.deptno = dept_nested.deptno)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$9])
+  HyperGraph(edges=[{1, 2}——[SEMI, =(node(2)_field(0), node(3)_field(0))]——{3},{1}——[LEFT, =(node(1)_field(7), node(2)_field(0))]——{2},{0}——[INNER, =(node(0)_field(0), node(1)_field(0))]——{1}])
+    LogicalProject(EMPNO=[$0], STREET=[$1.STREET], CITY=[$1.CITY], ZIP=[$1.ZIP], STATE=[$1.STATE], STREET5=[$2.STREET], CITY6=[$2.CITY], ZIP7=[$2.ZIP], STATE8=[$2.STATE])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(DEPTNO=[$0], $f0=[true])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalJoin(condition=[=($11, $0)], joinType=[inner])
+    LogicalJoin(condition=[=($9, $11)], joinType=[semi])
+      LogicalJoin(condition=[=($7, $9)], joinType=[left])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalProject(DEPTNO=[$0], $f0=[true])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+    LogicalProject(EMPNO=[$0], STREET=[$1.STREET], CITY=[$1.CITY], ZIP=[$1.ZIP], STATE=[$1.STATE], STREET5=[$2.STREET], CITY6=[$2.CITY], ZIP7=[$2.ZIP], STATE8=[$2.STATE])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
 ]]>
     </Resource>
   </TestCase>
@@ -8163,6 +8225,37 @@ LogicalProject(EMPNO=[$0])
       <![CDATA[
 LogicalProject(EMPNO=[$0])
   LogicalValues(tuples=[[]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testLeftInnerSemiJoinTypeForDphyp">
+    <Resource name="sql">
+      <![CDATA[select emp.empno from emp_address left join emp on emp_address.empno = emp.empno inner join dept on emp.deptno = dept.deptno where exists(select * from dept_nested where dept.deptno = dept_nested.deptno)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$9])
+  HyperGraph(edges=[{2}——[SEMI, =(node(2)_field(0), node(3)_field(0))]——{3},{0, 1}——[INNER, =(node(1)_field(7), node(2)_field(0))]——{2},{0}——[LEFT, =(node(0)_field(0), node(1)_field(0))]——{1}])
+    LogicalProject(EMPNO=[$0], STREET=[$1.STREET], CITY=[$1.CITY], ZIP=[$1.ZIP], STATE=[$1.STATE], STREET5=[$2.STREET], CITY6=[$2.CITY], ZIP7=[$2.ZIP], STATE8=[$2.STATE])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(DEPTNO=[$0], $f0=[true])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$11])
+  LogicalJoin(condition=[=($18, $0)], joinType=[inner])
+    LogicalJoin(condition=[=($0, $2)], joinType=[semi])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalProject(DEPTNO=[$0], $f0=[true])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+    LogicalJoin(condition=[=($0, $9)], joinType=[left])
+      LogicalProject(EMPNO=[$0], STREET=[$1.STREET], CITY=[$1.CITY], ZIP=[$1.ZIP], STATE=[$1.STATE], STREET5=[$2.STREET], CITY6=[$2.CITY], ZIP7=[$2.ZIP], STATE8=[$2.STATE])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
@@ -19491,99 +19584,6 @@ LogicalProject(DEPTNO=[$7])
       <![CDATA[
 LogicalProject(DEPTNO=[$0], NAME=[$1])
   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testInnerLeftSemiJoinTypeForDphyp">
-    <Resource name="sql">
-      <![CDATA[select emp.empno from emp_address inner join emp on emp_address.empno = emp.empno left join dept on emp.deptno = dept.deptno where exists(select * from dept_nested where dept.deptno = dept_nested.deptno)]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(EMPNO=[$9])
-  HyperGraph(edges=[{1, 2}——[SEMI, =(node(2)_field(0), node(3)_field(0))]——{3},{1}——[LEFT, =(node(1)_field(7), node(2)_field(0))]——{2},{0}——[INNER, =(node(0)_field(0), node(1)_field(0))]——{1}])
-    LogicalProject(EMPNO=[$0], STREET=[$1.STREET], CITY=[$1.CITY], ZIP=[$1.ZIP], STATE=[$1.STATE], STREET5=[$2.STREET], CITY6=[$2.CITY], ZIP7=[$2.ZIP], STATE8=[$2.STATE])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-    LogicalProject(DEPTNO=[$0], $f0=[true])
-      LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(EMPNO=[$0])
-  LogicalJoin(condition=[=($11, $0)], joinType=[inner])
-    LogicalJoin(condition=[=($9, $11)], joinType=[semi])
-      LogicalJoin(condition=[=($7, $9)], joinType=[left])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-      LogicalProject(DEPTNO=[$0], $f0=[true])
-        LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
-    LogicalProject(EMPNO=[$0], STREET=[$1.STREET], CITY=[$1.CITY], ZIP=[$1.ZIP], STATE=[$1.STATE], STREET5=[$2.STREET], CITY6=[$2.CITY], ZIP7=[$2.ZIP], STATE8=[$2.STATE])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testLeftInnerSemiJoinTypeForDphyp">
-    <Resource name="sql">
-      <![CDATA[select emp.empno from emp_address left join emp on emp_address.empno = emp.empno inner join dept on emp.deptno = dept.deptno where exists(select * from dept_nested where dept.deptno = dept_nested.deptno)]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(EMPNO=[$9])
-  HyperGraph(edges=[{2}——[SEMI, =(node(2)_field(0), node(3)_field(0))]——{3},{0, 1}——[INNER, =(node(1)_field(7), node(2)_field(0))]——{2},{0}——[LEFT, =(node(0)_field(0), node(1)_field(0))]——{1}])
-    LogicalProject(EMPNO=[$0], STREET=[$1.STREET], CITY=[$1.CITY], ZIP=[$1.ZIP], STATE=[$1.STATE], STREET5=[$2.STREET], CITY6=[$2.CITY], ZIP7=[$2.ZIP], STATE8=[$2.STATE])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-    LogicalProject(DEPTNO=[$0], $f0=[true])
-      LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(EMPNO=[$11])
-  LogicalJoin(condition=[=($18, $0)], joinType=[inner])
-    LogicalJoin(condition=[=($0, $2)], joinType=[semi])
-      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-      LogicalProject(DEPTNO=[$0], $f0=[true])
-        LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
-    LogicalJoin(condition=[=($0, $9)], joinType=[left])
-      LogicalProject(EMPNO=[$0], STREET=[$1.STREET], CITY=[$1.CITY], ZIP=[$1.ZIP], STATE=[$1.STATE], STREET5=[$2.STREET], CITY6=[$2.CITY], ZIP7=[$2.ZIP], STATE8=[$2.STATE])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testFullLeftSemiJoinTypeForDphyp">
-    <Resource name="sql">
-      <![CDATA[select emp.empno from emp_address full join emp on emp_address.empno = emp.empno left join dept on emp.deptno = dept.deptno where exists(select * from dept_nested where dept.deptno = dept_nested.deptno)]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(EMPNO=[$9])
-  HyperGraph(edges=[{0, 1, 2}——[SEMI, =(node(2)_field(0), node(3)_field(0))]——{3},{0, 1}——[LEFT, =(node(1)_field(7), node(2)_field(0))]——{2},{0}——[FULL, =(node(0)_field(0), node(1)_field(0))]——{1}])
-    LogicalProject(EMPNO=[$0], STREET=[$1.STREET], CITY=[$1.CITY], ZIP=[$1.ZIP], STATE=[$1.STATE], STREET5=[$2.STREET], CITY6=[$2.CITY], ZIP7=[$2.ZIP], STATE8=[$2.STATE])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-    LogicalProject(DEPTNO=[$0], $f0=[true])
-      LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(EMPNO=[$0])
-  LogicalJoin(condition=[=($18, $20)], joinType=[semi])
-    LogicalJoin(condition=[=($7, $18)], joinType=[left])
-      LogicalJoin(condition=[=($9, $0)], joinType=[full])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-        LogicalProject(EMPNO=[$0], STREET=[$1.STREET], CITY=[$1.CITY], ZIP=[$1.ZIP], STATE=[$1.STATE], STREET5=[$2.STREET], CITY6=[$2.CITY], ZIP7=[$2.ZIP], STATE8=[$2.STATE])
-          LogicalTableScan(table=[[CATALOG, SALES, EMP_ADDRESS]])
-      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-    LogicalProject(DEPTNO=[$0], $f0=[true])
-      LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
 ]]>
     </Resource>
   </TestCase>
