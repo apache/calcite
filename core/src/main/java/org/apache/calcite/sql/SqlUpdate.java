@@ -36,7 +36,21 @@ import static java.util.Objects.requireNonNull;
  */
 public class SqlUpdate extends SqlCall {
   public static final SqlSpecialOperator OPERATOR =
-      new SqlSpecialOperator("UPDATE", SqlKind.UPDATE);
+      new SqlSpecialOperator("UPDATE", SqlKind.UPDATE) {
+        @SuppressWarnings("argument.type.incompatible")
+        @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
+            SqlParserPos pos,
+            @Nullable SqlNode... operands) {
+          return new SqlUpdate(
+              pos,
+              operands[0],
+              (SqlNodeList) operands[1],
+              (SqlNodeList) operands[2],
+              operands[3],
+              null,
+              (SqlIdentifier) operands[4]);
+        }
+      };
 
   SqlNode targetTable;
   SqlNodeList targetColumnList;

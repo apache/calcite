@@ -6576,6 +6576,22 @@ public class SqlParserTest {
     assertThat(str1, is(toLinux(sqlNodeVisited1.toString())));
   }
 
+  @Test void testVisitSqlUpdateWithSqlShuttle() {
+    final String sql = "UPDATE emps AS e SET e.sal = 0 WHERE e.sal < 0";
+    final SqlNode sqlNode = sql(sql).node();
+    final SqlNode sqlNodeVisited = sqlNode.accept(new SqlShuttle() {
+      @Override public SqlNode visit(SqlIdentifier identifier) {
+        // Copy the identifier in order to return a new SqlUpdate.
+        return identifier.clone(identifier.getParserPosition());
+      }
+    });
+    assertNotSame(sqlNodeVisited, sqlNode);
+    assertThat(sqlNodeVisited.getKind(), is(SqlKind.UPDATE));
+    final String str1 = "UPDATE `EMPS` AS `E` SET `E`.`SAL` = 0\n"
+        + "WHERE `E`.`SAL` < 0";
+    assertThat(str1, is(toLinux(sqlNodeVisited.toString())));
+  }
+
   @Test void testVisitSqlMatchRecognizeWithSqlShuttle() {
     final String sql = "select *\n"
         + "from emp \n"
