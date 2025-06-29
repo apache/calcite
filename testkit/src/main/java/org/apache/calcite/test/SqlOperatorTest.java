@@ -33,6 +33,7 @@ import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlFunction;
@@ -44,6 +45,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.fun.LibraryOperator;
@@ -52,6 +54,7 @@ import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
+import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.test.AbstractSqlTester;
@@ -146,6 +149,8 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -16435,6 +16440,50 @@ public class SqlOperatorTest {
     f.checkAgg("logical_or(x)", values4, isNullValue());
   }
 
+  @Test void testBitXorOperatorParserFunc() throws SqlParseException {
+    String sql = "SELECT 5 ^ 3 ";
+    SqlNode sqlNode = SqlParser.create(sql,  SqlParser.Config.DEFAULT).parseStmt();
+
+    assertInstanceOf(SqlSelect.class, sqlNode);
+    SqlSelect select = (SqlSelect) sqlNode;
+
+    SqlNode selectItem = select.getSelectList().get(0);
+    assertInstanceOf(SqlBasicCall.class, selectItem);
+    SqlBasicCall call = (SqlBasicCall) selectItem;
+    assertEquals(SqlStdOperatorTable.BITXOR_OPERATOR, call.getOperator());
+    assertEquals(2, call.getOperandList().size());
+  }
+
+  @Test void testBitXorOperatorScalarFunc() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlStdOperatorTable.BITXOR_OPERATOR, VmName.EXPAND);
+
+
+    // Basic XOR between two integer literals
+    f.checkScalar("5 ^ 3", "6", "INTEGER NOT NULL");
+    f.checkScalar("-5 ^ 7", "-4", "INTEGER NOT NULL");
+    f.checkScalar("-5 ^ -31", "26", "INTEGER NOT NULL");
+
+    // Mixed integer types: INTEGER ^ BIGINT → result type should be BIGINT
+    f.checkScalar("CAST(2 AS INTEGER) ^ CAST(3 AS BIGINT)", "1", "BIGINT NOT NULL");
+
+    // TINYINT XOR cases
+    f.checkScalar("CAST(-5 AS TINYINT) ^ CAST(7 AS TINYINT)", "-4", "TINYINT NOT NULL");
+    f.checkScalar("CAST(-5 AS TINYINT) ^ CAST(-31 AS TINYINT)", "26", "TINYINT NOT NULL");
+
+    // Type inference tests: result type should match the wider of the operands
+    f.checkType("CAST(2 AS TINYINT) ^ CAST(6 AS TINYINT)", "TINYINT NOT NULL");
+    f.checkType("CAST(2 AS SMALLINT) ^ CAST(6 AS SMALLINT)", "SMALLINT NOT NULL");
+    f.checkType("CAST(2 AS BIGINT) ^ CAST(6 AS BIGINT)", "BIGINT NOT NULL");
+
+    // XOR on fixed-length binary operands
+    f.checkScalar("CAST(x'0201' AS BINARY(2)) ^ CAST(x'07f9' AS BINARY(2))",
+        "05f8", "BINARY(2) NOT NULL");
+
+    // XOR on variable-length binary operands
+    f.checkScalar("CAST(x'0201' AS VARBINARY(2)) ^ CAST(x'07f9' AS VARBINARY(2))",
+        "05f8", "VARBINARY(2) NOT NULL");
+  }
   @Test void testBitAndScalarFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.BITAND, VmName.EXPAND);

@@ -3416,7 +3416,6 @@ public class SqlFunctions {
 
     return new ByteString(result);
   }
-
   /**
    * Utility for bitwise function applied to two byteString values.
    *
