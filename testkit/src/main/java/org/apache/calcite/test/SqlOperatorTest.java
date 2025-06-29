@@ -15835,6 +15835,9 @@ public class SqlOperatorTest {
     f.checkAgg("stddev(x)", new String[]{"5"}, isNullValue());
     // with zero values
     f.checkAgg("stddev(x)", new String[]{}, isNullValue());
+    // NaN fix check
+    final String[] values = {"cast(23.79 as double)", "23.79", "23.79"};
+    f.checkAgg("stddev(x)", values, isExactly(0));
   }
 
   @Test void testVarPopFunc() {
@@ -15906,6 +15909,9 @@ public class SqlOperatorTest {
     f.checkType("variance(cast(null as varchar(2)))", "DECIMAL(19, 9)");
     f.checkType("variance(CAST(NULL AS INTEGER))", "INTEGER");
     f.checkAggType("variance(DISTINCT 1.5)", "DECIMAL(2, 1) NOT NULL");
+
+    final String[] values2 = {"cast(64.34 as double)", "64.34", "64.34"};
+    f.checkAgg("variance(x)", values2, isExactly(0));
     final String[] values = {"0", "CAST(null AS FLOAT)", "3", "3"};
     if (!f.brokenTestsEnabled()) {
       return;
