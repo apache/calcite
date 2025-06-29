@@ -919,4 +919,37 @@ public class MongoAdapterTest implements SchemaFactory {
                 "{$sort: {STATE: 1}}"))
         .returns("STATE=ME; CITY=LEWISTON\nSTATE=VT; CITY=BRATTLEBORO\n");
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2109">[CALCITE-2109]
+   * Mongo adapter: unable to translate  (A <> 'ABERDEEN' and A <> 'AIKEN') conditional case  </a>. */
+  @Test void testMultiNeFilterContition() {
+    assertModel(MODEL)
+        .query("select city, state from zips where city <> 'ABERDEEN' and city <> 'AIKEN'  "
+            + "order by city")
+        .limit(3)
+        .queryContains(
+            mongoChecker(
+                "{$match: {city: {$nin: [\"ABERDEEN\", \"AIKEN\"]}}}",
+                "{$project: {CITY: '$city', STATE: '$state'}}",
+                "{$sort: {CITY: 1}}"))
+        .returnsUnordered("CITY=ALTON; STATE=TX",
+            "CITY=AMES; STATE=IA",
+            "CITY=ANCHORAGE; STATE=AK");
+
+    assertModel(MODEL)
+        .query("select city, state from zips where city <> 'ABERDEEN' and city <> 'AIKEN' and city <> 'ALTON' "
+            + "order by city")
+        .limit(3)
+        .queryContains(
+            mongoChecker(
+                "{$match: {city: {$nin: [\"ABERDEEN\", \"AIKEN\", \"ALTON\"]}}}",
+                "{$project: {CITY: '$city', STATE: '$state'}}",
+                "{$sort: {CITY: 1}}"))
+        .returnsUnordered("CITY=AMES; STATE=IA",
+            "CITY=ANCHORAGE; STATE=AK",
+            "CITY=BALTIMORE; STATE=MD");
+  }
+
+
 }
