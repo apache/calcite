@@ -10158,6 +10158,17 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7050">[CALCITE-7050]
+   * Invalid unparse for FULL JOIN in MySQLDialect</a>. */
+  @Test void testUnsupportedFullJoin() {
+    // MySQL not support full join
+    String sql = "select *\n"
+        + "from \"store\" as s\n"
+        + "full join \"employee\" as e on true\n";
+    sql(sql).withMysql().throws_("MysqlSqlDialect can not support join type: FULL");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6940">[CALCITE-6940]
    * Hive/Phoenix Dialect should not cast to REAL type directly</a>,
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6952">[CALCITE-6952]
