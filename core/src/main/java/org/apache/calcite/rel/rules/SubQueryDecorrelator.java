@@ -238,8 +238,8 @@ public class SubQueryDecorrelator extends RelShuttleImpl {
     relBuilder.push(frame.r);
     relBuilder.project(projects);
     final RelNode newProject = relBuilder.build();
-    final RexNode newCondition = adjustInputRefs(frame.c, mapInputToOutput,
-        newProject.getRowType());
+    final RexNode newCondition =
+        adjustInputRefs(frame.c, mapInputToOutput, newProject.getRowType());
 
     // There is no old RelNode corresponding to newProject, so oldToNewOutputs is empty.
     return new Frame(rel, newProject, newCondition, new HashMap<>());
@@ -454,8 +454,8 @@ public class SubQueryDecorrelator extends RelShuttleImpl {
       // Project projects the original expressions
       int newPos;
       for (newPos = 0; newPos < oldProjects.size(); newPos++) {
-        RexNode project = adjustInputRefs(oldProjects.get(newPos), frame.oldToNewOutputs,
-            newInput.getRowType());
+        RexNode project =
+            adjustInputRefs(oldProjects.get(newPos), frame.oldToNewOutputs, newInput.getRowType());
         projects.add(newPos, Pair.of(project, relOutput.get(newPos).getName()));
         mapOldToNewOutputs.put(newPos, newPos);
         if (project instanceof RexInputRef) {
@@ -529,8 +529,8 @@ public class SubQueryDecorrelator extends RelShuttleImpl {
           unsupportedCorConditions);
       assert unsupportedCorConditions.isEmpty();
 
-      final RexNode remainingCondition = RexUtil.composeConjunction(rexBuilder, nonCorConditions,
-          false);
+      final RexNode remainingCondition =
+          RexUtil.composeConjunction(rexBuilder, nonCorConditions, false);
 
       // Using LogicalFilter.create instead of RelBuilder.filter to create Filter
       // because RelBuilder.filter method does not have VariablesSet arg.
@@ -654,8 +654,8 @@ public class SubQueryDecorrelator extends RelShuttleImpl {
       final Map<Integer, Integer> oldToNewOutputs = new HashMap<>();
       final List<Integer> originalGrouping = rel.getGroupSet().toList();
       for (Integer oldInputPos : frame.oldToNewOutputs.keySet()) {
-        final Integer newIndex = mapNewInputToProjOutputs.get(
-            frame.oldToNewOutputs.get(oldInputPos));
+        final Integer newIndex =
+            mapNewInputToProjOutputs.get(frame.oldToNewOutputs.get(oldInputPos));
         combinedMap.put(oldInputPos, newIndex);
         // mapping grouping fields
         if (originalGrouping.contains(oldInputPos)) {
@@ -783,8 +783,8 @@ public class SubQueryDecorrelator extends RelShuttleImpl {
         for (int index : rightFrame.getCorInputRefIndices()) {
           rightMapOldToNewOutputs.put(index, index + newLeftFieldCount);
         }
-        final RexNode newRightCondition = adjustInputRefs(rightFrame.c, rightMapOldToNewOutputs,
-            newJoin.getRowType());
+        final RexNode newRightCondition =
+            adjustInputRefs(rightFrame.c, rightMapOldToNewOutputs, newJoin.getRowType());
         corConditions.add(newRightCondition);
       }
 
@@ -1251,8 +1251,8 @@ public class SubQueryDecorrelator extends RelShuttleImpl {
               // and record the 'rel' is using the same correlation
               mapRefRelToCorRef.put(rel, mapFieldAccessToCorVar.get(fieldAccess));
             } else {
-              final CorRef correlation = new CorRef(var.id, fieldAccess.getField().getIndex(),
-                  corrIdGenerator++);
+              final CorRef correlation =
+                  new CorRef(var.id, fieldAccess.getField().getIndex(), corrIdGenerator++);
               mapFieldAccessToCorVar.put(fieldAccess, correlation);
               mapRefRelToCorRef.put(rel, correlation);
             }
@@ -1339,8 +1339,8 @@ public class SubQueryDecorrelator extends RelShuttleImpl {
         Map<RelNode, Set<CorrelationId>> mapSubQueryNodeToCorSet) {
       this.mapRefRelToCorRef = mapRefRelToCorRef;
       this.mapCorToCorRel = mapCorToCorRel;
-      this.mapSubQueryNodeToCorSet = ImmutableMap.copyOf(
-          mapSubQueryNodeToCorSet);
+      this.mapSubQueryNodeToCorSet =
+          ImmutableMap.copyOf(mapSubQueryNodeToCorSet);
     }
 
     @Override public String toString() {

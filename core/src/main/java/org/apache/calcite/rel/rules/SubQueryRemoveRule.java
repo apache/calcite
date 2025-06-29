@@ -953,8 +953,8 @@ public class SubQueryRemoveRule
     RelBuilder relBuilder = call.builder();
     relBuilder.push(filter.getInput()); // push join left
 
-    Optional<RexNode> newCondition = rule.handleSubQuery(subQueryCall.get(), condition, relBuilder,
-        decorrelate);
+    Optional<RexNode> newCondition =
+        rule.handleSubQuery(subQueryCall.get(), condition, relBuilder, decorrelate);
     if (newCondition.isPresent()) {
       RexNode c = newCondition.get();
       if (hasCorrelatedExpressions(c)) {
@@ -1105,8 +1105,8 @@ public class SubQueryRemoveRule
       RexNode condition,
       RelBuilder relBuilder,
       SubQueryDecorrelator.Result decorrelate) {
-    RelOptUtil.Logic logic = LogicVisitor.find(RelOptUtil.Logic.TRUE, ImmutableList.of(condition),
-        subQueryCall);
+    RelOptUtil.Logic logic =
+        LogicVisitor.find(RelOptUtil.Logic.TRUE, ImmutableList.of(condition), subQueryCall);
     if (logic != RelOptUtil.Logic.TRUE) {
       // this should not happen, none unsupported SubQuery could not reach here
       // this is just for double-check
@@ -1168,8 +1168,9 @@ public class SubQueryRemoveRule
       relBuilder.project(relBuilder.alias(relBuilder.literal(true), "i"));
       relBuilder.aggregate(relBuilder.groupKey(), relBuilder.min("m", relBuilder.field(0)));
       relBuilder.project(relBuilder.isNotNull(relBuilder.field(0)));
-      joinCondition = new RexInputRef(leftFieldCount,
-          relBuilder.peek().getRowType().getFieldList().get(0).getType());
+      joinCondition =
+          new RexInputRef(leftFieldCount,
+              relBuilder.peek().getRowType().getFieldList().get(0).getType());
     }
 
     if (withNot) {
