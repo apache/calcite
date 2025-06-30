@@ -16,20 +16,29 @@
  */
 package org.apache.calcite.util;
 
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCharStringLiteral;
+import org.apache.calcite.sql.SqlCollectionTypeNameSpec;
+import org.apache.calcite.sql.SqlDataTypeSpec;
+import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlMapTypeNameSpec;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSpecialOperator;
+import org.apache.calcite.sql.SqlTypeNameSpec;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.ArraySqlType;
+import org.apache.calcite.sql.type.MapSqlType;
+import org.apache.calcite.sql.type.SqlTypeName;
 
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE_3;
 
@@ -327,5 +336,96 @@ public abstract class RelToSqlConverterUtil {
     writer.sep(SqlStdOperatorTable.EQUALS.getName());
     writer.literal(value ? "1" : "0");
     writer.endList(frame);
+  }
+
+  /**
+   * Transformation Map type from {@code MAP<VARCHAR,VARCHAR>} to {@code Map(VARCHAR,VARCHAR)}.
+   */
+  public static SqlDataTypeSpec getCastSpecClickHouseSqlMapType(SqlDialect dialect,
+      RelDataType type, SqlParserPos pos) {
+    MapSqlType mapSqlType = (MapSqlType) type;
+    SqlDataTypeSpec keySpec = (SqlDataTypeSpec) dialect.getCastSpec(mapSqlType.getKeyType());
+    SqlDataTypeSpec valueSpec =
+        (SqlDataTypeSpec) dialect.getCastSpec(mapSqlType.getValueType());
+    SqlDataTypeSpec nonNullKeySpec =
+        requireNonNull(keySpec, "keySpec");
+    SqlDataTypeSpec nonNullValueSpec =
+        requireNonNull(valueSpec, "valueSpec");
+    SqlMapTypeNameSpec sqlMapTypeNameSpec =
+        new ClickHouseSqlMapTypeNameSpec(nonNullKeySpec, nonNullValueSpec, pos);
+    return new SqlDataTypeSpec(sqlMapTypeNameSpec,
+        SqlParserPos.ZERO);
+  }
+
+  /**
+   * Transformation Map type from {@code VARCHAR ARRAY} to {@code Array(VARCHAR)}.
+   */
+  public static SqlDataTypeSpec getCastSpecClickHouseSqlArrayType(SqlDialect dialect,
+      RelDataType type, SqlParserPos pos) {
+    ArraySqlType arraySqlType = (ArraySqlType) type;
+    SqlDataTypeSpec arrayValueSpec =
+        (SqlDataTypeSpec) dialect.getCastSpec(arraySqlType.getComponentType());
+    SqlDataTypeSpec nonNullarrayValueSpec =
+        requireNonNull(arrayValueSpec, "arrayValueSpec");
+    ClickHouseSqlArrayTypeNameSpec sqlArrayTypeNameSpec =
+        new ClickHouseSqlArrayTypeNameSpec(nonNullarrayValueSpec.getTypeNameSpec(),
+            arraySqlType.getSqlTypeName(), pos);
+    return new SqlDataTypeSpec(sqlArrayTypeNameSpec, SqlParserPos.ZERO);
+  }
+
+  /**
+   * ClickHouseSqlMapTypeNameSpec to parse or unparse SQL MAP type to {@code Map(VARCHAR, VARCHAR)}.
+   */
+  public static class ClickHouseSqlMapTypeNameSpec extends SqlMapTypeNameSpec {
+
+    /**
+     * Creates a {@code SqlMapTypeNameSpec}.
+     * example: MAP type would convert to Map(VARCHAR, VARCHAR).
+     *
+     * @param keyType key type of the Map
+     * @param valType value type of the Map
+     * @param pos the parser position, must not be null
+     */
+    public ClickHouseSqlMapTypeNameSpec(SqlDataTypeSpec keyType,
+        SqlDataTypeSpec valType, SqlParserPos pos) {
+      super(keyType, valType, pos);
+    }
+
+    @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
+      writer.print("Map");
+      SqlWriter.Frame frame =
+          writer.startList(SqlWriter.FrameTypeEnum.FUN_CALL, "(", ")");
+      writer.sep(","); // configures the writer
+      getKeyType().unparse(writer, leftPrec, rightPrec);
+      writer.sep(",");
+      getValType().unparse(writer, leftPrec, rightPrec);
+      writer.endList(frame);
+    }
+  }
+
+  /**
+   * A ClickHouseSqlArrayTypeNameSpec to parse or unparse SQL ARRAY type to {@code Array(VARCHAR)}.
+   */
+  public static class ClickHouseSqlArrayTypeNameSpec extends SqlCollectionTypeNameSpec {
+
+    /**
+     * Creates a {@code ClickHouseSqlArrayTypeNameSpec}.
+     * example: integer array would convert to Array(integer).
+     *
+     * @param elementTypeName    Type of the collection element
+     * @param collectionTypeName Collection type name
+     * @param pos                Parser position, must not be null
+     */
+    public ClickHouseSqlArrayTypeNameSpec(SqlTypeNameSpec elementTypeName,
+        SqlTypeName collectionTypeName, SqlParserPos pos) {
+      super(elementTypeName, collectionTypeName, pos);
+    }
+
+    @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
+      writer.print("Array");
+      SqlWriter.Frame frame = writer.startList(SqlWriter.FrameTypeEnum.FUN_CALL, "(", ")");
+      this.getElementTypeName().unparse(writer, leftPrec, rightPrec);
+      writer.endList(frame);
+    }
   }
 }

@@ -2602,6 +2602,56 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7081">[CALCITE-7081]
+   * Invalid unparse for cast to nested type in ClickHouse</a>.
+   */
+  @Test void testCastNestedClickHouse() {
+    // All converted sql had been test passed in ClickHouse env.
+    final String query = "select cast(array['a','b','c']"
+        + " as varchar array)";
+    final String expectedClickHouse =
+        "SELECT CAST(array('a', 'b', 'c') AS Array(`String`))";
+    sql(query).withClickHouse().ok(expectedClickHouse);
+
+    final String query0 = "select cast(array['a','b','c',null]"
+        + " as varchar array)";
+    final String expectedClickHouse0 =
+        "SELECT CAST(array('a', 'b', 'c', NULL) AS Array(`Nullable(String)`))";
+    sql(query0).withClickHouse().ok(expectedClickHouse0);
+
+    final String query1 = "select cast(array[array['a'], array['b'], array['c']]"
+        + " as varchar array array)";
+    final String expectedClickHouse1 =
+        "SELECT CAST(array(array('a'), array('b'), array('c')) AS Array(Array(`String`)))";
+    sql(query1).withClickHouse().ok(expectedClickHouse1);
+
+    final String query2 = "select cast(array[MAP['a','1'],MAP['b','2'],MAP['c','3']]"
+        + " as MAP<varchar,varchar> array)";
+    final String expectedClickHouse2 =
+        "SELECT CAST(array(map('a', '1'), map('b', '2'), map('c', '3'))"
+            + " AS Array(Map(`String`, `Nullable(String)`)))";
+    sql(query2).withClickHouse().ok(expectedClickHouse2);
+
+    final String query3 = "select cast(MAP['a',ARRAY[1,2,3]]"
+        + " as MAP<varchar,integer array>)";
+    final String expectedClickHouse3 =
+        "SELECT CAST(map('a', array(1, 2, 3)) AS Map(`String`, Array(`Nullable(Int32)`)))";
+    sql(query3).withClickHouse().ok(expectedClickHouse3);
+
+    final String query4 = "select cast(MAP['a',ARRAY[1.0,2.0,3.0]]"
+        + " as MAP<varchar,real array>)";
+    final String expectedClickHouse4 =
+        "SELECT CAST(map('a', array(1.0, 2.0, 3.0)) AS Map(`String`, Array(`Nullable(Float32)`)))";
+    sql(query4).withClickHouse().ok(expectedClickHouse4);
+
+    final String query5 = "select cast(MAP['a',MAP['b','c']]"
+        + " as MAP<varchar,MAP<varchar,varchar>>)";
+    final String expectedClickHouse5 =
+        "SELECT CAST(map('a', map('b', 'c')) AS Map(`String`, Map(`String`, `Nullable(String)`)))";
+    sql(query5).withClickHouse().ok(expectedClickHouse5);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6088">[CALCITE-6088]
    * SqlItemOperator fails in RelToSqlConverter</a>. */
   @Test void testSqlItemOperator() {
@@ -10206,6 +10256,7 @@ class RelToSqlConverterTest {
     sql(query2)
         .withPhoenix().throws_("Phoenix dialect does not support cast to MULTISET")
         .withStarRocks().throws_("StarRocks dialect does not support cast to MULTISET")
+        .withClickHouse().throws_("ClickHouse dialect does not support cast to MULTISET")
         .withHive().throws_("Hive dialect does not support cast to MULTISET");
 
     String query3 = "SELECT CAST(MAP[1.0,2.0,3.0,4.0] AS MAP<FLOAT, REAL>) FROM \"employee\"";
