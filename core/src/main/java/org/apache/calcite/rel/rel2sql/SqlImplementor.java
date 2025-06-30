@@ -112,7 +112,6 @@ import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.fun.SqlCase;
-import org.apache.calcite.sql.fun.SqlCaseOperator;
 import org.apache.calcite.sql.fun.SqlCountAggFunction;
 import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -2186,22 +2185,11 @@ public abstract class SqlImplementor {
 
     private boolean hasAnalyticalFunctionInWhenClauseOfCase(SqlCall call) {
       SqlNode sqlNode = call.operand(0);
-      if (sqlNode instanceof SqlCall) {
-        if (((SqlCall) sqlNode).getOperator() instanceof SqlCaseOperator) {
-          for (SqlNode whenOperand : ((SqlCase) sqlNode).getWhenOperands()) {
-            boolean present;
-            if (whenOperand instanceof SqlIdentifier) {
-              present = false;
-              break;
-            }
-            if (whenOperand instanceof SqlCase) {
-              present = hasAnalyticalFunctionInWhenClauseOfCase((SqlCall) whenOperand);
-            } else {
-              present = hasAnalyticalFunction((SqlBasicCall) whenOperand);
-            }
-            if (present) {
-              return true;
-            }
+      if (sqlNode instanceof SqlCase) {
+        SqlCase caseExpr = (SqlCase) sqlNode;
+        for (SqlNode whenOperand : caseExpr.getWhenOperands()) {
+          if (hasAnalyticalFunctionInOperandList(whenOperand)) {
+            return true;
           }
         }
       }
@@ -2265,6 +2253,21 @@ public abstract class SqlImplementor {
         if (groupByItem instanceof SqlIdentifier
             && columnNames.contains(SqlIdentifier.getString(((SqlIdentifier) groupByItem).names))) {
           return true;
+        }
+      }
+      return false;
+    }
+
+    private boolean hasAnalyticalFunctionInOperandList(SqlNode node) {
+      if (node instanceof SqlCall) {
+        SqlCall call = (SqlCall) node;
+        if (call.getOperator() instanceof SqlOverOperator) {
+          return true;
+        }
+        for (SqlNode operand : call.getOperandList()) {
+          if (hasAnalyticalFunctionInOperandList(operand)) {
+            return true;
+          }
         }
       }
       return false;
