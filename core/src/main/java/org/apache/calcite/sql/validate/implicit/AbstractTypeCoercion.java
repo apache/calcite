@@ -909,13 +909,20 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
       return expected.getDefaultConcreteType(factory);
     }
     // CHAR -> GEOMETRY
-    if (SqlTypeUtil.isCharacter(in) && expected == SqlTypeFamily.GEO) {
+    if (SqlTypeUtil.isCharacter(in) && expected == SqlTypeFamily.GEOMETRY) {
       return expected.getDefaultConcreteType(factory);
     }
+
+    // BINARY -> GEOMETRY
+    if (SqlTypeUtil.isBinary(in) && expected == SqlTypeFamily.GEOMETRY) {
+      return expected.getDefaultConcreteType(factory);
+    }
+
     if ((SqlTypeUtil.isCharacter(in) || SqlTypeUtil.isBinary(in))
         && expected == SqlTypeFamily.UUID) {
       return expected.getDefaultConcreteType(factory);
     }
+
     return null;
   }
 
