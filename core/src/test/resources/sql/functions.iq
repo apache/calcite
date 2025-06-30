@@ -235,6 +235,26 @@ SELECT CONCAT(cast(1 as varchar), 'a');
 
 !ok
 
+SELECT CONCAT(x'61', _UTF8'方解石');
++----------------------+
+| EXPR$0               |
++----------------------+
+| 61e696b9e8a7a3e79fb3 |
++----------------------+
+(1 row)
+
+!ok
+
+SELECT CONCAT(_UTF8'方解石', ' is nice');
++-------------+
+| EXPR$0      |
++-------------+
+| 方解石 is nice |
++-------------+
+(1 row)
+
+!ok
+
 SELECT CONCAT(cast(1 as varchar), x'61');
 +--------+
 | EXPR$0 |
