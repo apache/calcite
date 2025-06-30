@@ -32,12 +32,14 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.SubQueryAliasTrait;
 import org.apache.calcite.plan.SubQueryAliasTraitDef;
+import org.apache.calcite.plan.TableAliasTrait;
 import org.apache.calcite.plan.TableAliasTraitDef;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
@@ -46,6 +48,7 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalIntersect;
@@ -351,6 +354,12 @@ public abstract class SqlImplementor {
   public Result setOpToSql(SqlSetOperator operator, RelNode rel) {
     SqlNode node = null;
     for (Ord<RelNode> input : Ord.zip(rel.getInputs())) {
+      Set<String> tableAliases = new HashSet<>();
+      getTableAlias(rel, tableAliases);
+      if (!aliasSet.isEmpty() && !tableAliases.isEmpty()) {
+        aliasSet.removeIf(tableAliases::contains);
+      }
+
       final Result result = visitInput(rel, input.i);
       if (node == null) {
         node = result.asSelect();
@@ -363,6 +372,18 @@ public abstract class SqlImplementor {
     final List<Clause> clauses =
         Expressions.list(Clause.SET_OP);
     return result(node, clauses, rel, null);
+  }
+
+  public static void getTableAlias(RelNode relNode, final Set<String> tableAliases) {
+    relNode.accept(new RelShuttleImpl() {
+      public RelNode visit(TableScan scan) {
+        TableAliasTrait tableAliasTrait = scan.getTraitSet().getTrait(TableAliasTraitDef.instance);
+        if (tableAliasTrait != null) {
+          tableAliases.add(tableAliasTrait.getTableAlias());
+        }
+        return scan;
+      }
+    });
   }
 
   /**
