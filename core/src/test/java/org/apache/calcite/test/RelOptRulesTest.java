@@ -82,6 +82,7 @@ import org.apache.calcite.rel.rules.FilterFlattenCorrelatedConditionRule;
 import org.apache.calcite.rel.rules.FilterJoinRule;
 import org.apache.calcite.rel.rules.FilterMultiJoinMergeRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
+import org.apache.calcite.rel.rules.FullToLeftAndRightJoinRule;
 import org.apache.calcite.rel.rules.JoinAssociateRule;
 import org.apache.calcite.rel.rules.JoinCommuteRule;
 import org.apache.calcite.rel.rules.LoptOptimizeJoinRule;
@@ -11035,6 +11036,45 @@ class RelOptRulesTest extends RelOptTestBase {
           p.addRule(EnumerableRules.ENUMERABLE_PROJECT_RULE);
           p.addRule(EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
         })
+        .check();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7077">[CALCITE-7077]
+   * Implement a rule to rewrite FULL JOIN as LEFT JOIN and RIGHT JOIN</a>. */
+  @Test void testFullJoinToLeftAndRightJoin() {
+    final String query = "select * from emp e1\n"
+        + "full join emp e2\n"
+        + "on e1.mgr = e2.mgr";
+    sql(query)
+        .withRule(FullToLeftAndRightJoinRule.Config.DEFAULT.toRule())
+        .check();
+  }
+
+  @Test void testFullJoinToLeftAndRightJoinComplex() {
+    final String query = "select * from emp e1\n"
+        + "full join emp e2\n"
+        + "on e1.mgr = e2.mgr and e1.sal > e2.sal and e1.job = e2.job";
+    sql(query)
+        .withRule(FullToLeftAndRightJoinRule.Config.DEFAULT.toRule())
+        .check();
+  }
+
+  @Test void testFullJoinToLeftAndRightJoinOnlyLeftColumn() {
+    final String query = "select * from emp e1\n"
+        + "full join emp e2\n"
+        + "on e1.mgr = 100";
+    sql(query)
+        .withRule(FullToLeftAndRightJoinRule.Config.DEFAULT.toRule())
+        .check();
+  }
+
+  @Test void testFullJoinToLeftAndRightJoinOnlyRightColumn() {
+    final String query = "select * from emp e1\n"
+        + "full join emp e2\n"
+        + "on e2.mgr = 100";
+    sql(query)
+        .withRule(FullToLeftAndRightJoinRule.Config.DEFAULT.toRule())
         .check();
   }
 }
