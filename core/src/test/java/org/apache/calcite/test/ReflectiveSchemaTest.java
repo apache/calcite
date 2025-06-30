@@ -997,7 +997,7 @@ public class ReflectiveSchemaTest {
   }
 
   /**
-   * Test that the Collections works as field of ReflectiveSchema.
+   * Test that Collections can be used as field of ReflectiveSchema.
    *
    * @see <a href="https://issues.apache.org/jira/browse/CALCITE-4708">[CALCITE-4708]</a>
    */
@@ -1010,8 +1010,8 @@ public class ReflectiveSchemaTest {
   }
 
   /**
-   * Test that the Collections works as field of ReflectiveSchema with corrects
-   * statistic for each Collection Type.
+   * Test that Collections can be used as field of ReflectiveSchema with correct statistics
+   * for each Collection Type.
    *
    * @see <a href="https://issues.apache.org/jira/browse/CALCITE-4708">[CALCITE-4708]</a>
    */
