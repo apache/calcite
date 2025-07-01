@@ -135,6 +135,7 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.MINUTE;
 import static org.apache.calcite.sql.SqlDateTimeFormat.MMDDYY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.MMDDYYYY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.MMYY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.MMYYYY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.MMYYYYDD;
 import static org.apache.calcite.sql.SqlDateTimeFormat.MONTHNAME;
 import static org.apache.calcite.sql.SqlDateTimeFormat.MONTH_NAME;
@@ -336,7 +337,7 @@ public class BigQuerySqlDialect extends SqlDialect {
         put(FOURDIGITISOYEAR, "%G");
         put(FORMAT_QQYY, "%Q%Q%y");
         put(FORMAT_QQYYYY, "%Q%Q%Y");
-
+        put(MMYYYY, "%m%Y");
       }};
 
   private static final String OR = "|";
