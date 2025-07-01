@@ -5130,4 +5130,25 @@ select * from emp where false > some(select deptno from dept);
 Values passed to > SOME operator must have compatible types
 !error
 
+# [CALCITE-4756] When subquery include NULL value, Calcite should return the right result
+select 1 in (values(null), (null));
++--------+
+| EXPR$0 |
++--------+
+|        |
++--------+
+(1 row)
+
+!ok
+
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[IS FALSE($t1)], expr#4=[null:BOOLEAN], expr#5=[IS NOT NULL($t2)], expr#6=[AND($t3, $t4, $t5)], expr#7=[IS NOT NULL($t1)], expr#8=[IS NOT FALSE($t1)], expr#9=[AND($t7, $t5, $t8)], expr#10=[OR($t6, $t9)], EXPR$0=[$t10])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[left])
+    EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableLimit(fetch=[1])
+      EnumerableSort(sort0=[$0], dir0=[DESC])
+        EnumerableAggregate(group=[{0}], c=[COUNT()])
+          EnumerableCalc(expr#0=[{inputs}], expr#1=[IS NOT NULL($t0)], cs=[$t1])
+            EnumerableValues(tuples=[[{ null }, { null }]])
+!plan
+
 # End sub-query.iq
