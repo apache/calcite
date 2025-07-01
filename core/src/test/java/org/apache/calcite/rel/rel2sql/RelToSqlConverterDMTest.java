@@ -150,6 +150,7 @@ import static org.apache.calcite.avatica.util.TimeUnit.WEEK;
 import static org.apache.calcite.avatica.util.TimeUnit.YEAR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.FORMAT_QQYY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.FORMAT_QQYYYY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.MMYYYY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BITNOT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CURRENT_TIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CURRENT_TIMESTAMP_WITH_TIME_ZONE;
@@ -167,6 +168,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.PERIOD_CONSTRUCTOR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PERIOD_INTERSECT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.QUARTERNUMBER_OF_YEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_OFFSET;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TD_WEEK_OF_YEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRUE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.USING;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.WEEKNUMBER_OF_CALENDAR;
@@ -1013,6 +1015,31 @@ class RelToSqlConverterDMTest {
         .ok(expectedHive)
         .withSpark()
         .ok(expectedSpark)
+        .withBigQuery()
+        .ok(expectedBigQuery);
+  }
+
+  @Test public void testAnalyticalFunctionInAggregateExpressionTree() {
+    final String query = "select\n"
+        + "coalesce(max(case when \"full_name\" in ('John Smith') AND item = 1"
+        + "then \"position_title\" else null end), 'N/A') as \"pos\""
+        + "  from (select \"a\".\"full_name\", \"a\".\"position_title\","
+        + "  row_number() over (partition by \"a\".\"full_name\" order by \"a\".\"full_name\") "
+        + "  as item"
+        + "  from \"foodmart\".\"employee\" \"a\"\n"
+        + "    group by \"a\".\"full_name\", \"a\".\"position_title\""
+        + "    qualify item <= 3) \"b\"";
+    final String expectedBigQuery = "SELECT "
+        + "CASE WHEN MAX(`$f0`) IS NOT NULL THEN CAST(MAX(`$f0`) AS STRING) ELSE 'N/A' END AS pos\n"
+        + "FROM (SELECT CASE WHEN full_name = 'John Smith' AND "
+        + "(ROW_NUMBER() OVER (PARTITION BY full_name ORDER BY full_name IS NULL, full_name)) = 1 "
+        + "THEN position_title ELSE NULL END AS `$f0`\n"
+        + "FROM foodmart.employee\n"
+        + "GROUP BY full_name, position_title\n"
+        + "QUALIFY "
+        + "(ROW_NUMBER() OVER "
+        + "(PARTITION BY position_title ORDER BY position_title IS NULL, position_title)) <= 3) AS t3";
+    sql(query)
         .withBigQuery()
         .ok(expectedBigQuery);
   }
@@ -8198,6 +8225,73 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqQuery));
   }
 
+  @Test public void testJsonExtractScalarFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode jsonCheckNode =
+        builder.call(
+            SqlLibraryOperators.JSON_EXTRACT_SCALAR, builder.literal("{\"name\": "
+                + "\"Bob\", \"age\": \"thirty\"}"), builder.literal("$.name"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(jsonCheckNode, "json_data"))
+        .build();
+    final String expectedBqQuery = "SELECT "
+        + "JSON_EXTRACT_SCALAR('{\"name\": \"Bob\", \"age\": \"thirty\"}', '$.name') AS json_data\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqQuery));
+  }
+
+  @Test public void testJsonQueryArrayFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode jsonCheckNode =
+        builder.call(
+            SqlLibraryOperators.JSON_QUERY_ARRAY, builder.literal("[{\"name\": \"Bob\", "
+                + "\"age\": \"thirty\"},{\"name\": \"Bob\"}]"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(jsonCheckNode, "json_data"))
+        .build();
+    final String expectedBqQuery = "SELECT "
+        + "JSON_QUERY_ARRAY('[{\"name\": \"Bob\", \"age\": \"thirty\"},{\"name\": \"Bob\"}]') AS json_data\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqQuery));
+  }
+
+  @Test public void testJsonArrayLengthFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode jsonCheckNode =
+        builder.call(SqlLibraryOperators.JSON_ARRAY_LENGTH,
+            builder.literal("[{\"name\": \"Bob\", \"age\": \"thirty\"}]"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(jsonCheckNode, "json_array_length"))
+        .build();
+    final String expectedTeradataQuery = "SELECT JSON_ARRAY_LENGTH('[{\"name\": \"Bob\", \"age\": "
+        + "\"thirty\"}]') AS \"json_array_length\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.REDSHIFT.getDialect()), isLinux(expectedTeradataQuery));
+  }
+
+  @Test public void testRedshiftJsonExtractTextFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode jsonCheckNode =
+        builder.call(
+            SqlLibraryOperators.REDSHIFT_JSON_EXTRACT_PATH_TEXT, builder.literal("{\"f2\": 1"
+                + ", \"f4\":{\"f6\":2}}"), builder.literal("f6"));
+
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(jsonCheckNode, "json"))
+        .build();
+    final String expectedBqQuery = "SELECT JSON_EXTRACT_PATH_TEXT('{\"f2\": 1, \"f4\":{\"f6\":2}}', 'f6') AS \"json\""
+        + "\nFROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.REDSHIFT.getDialect()), isLinux(expectedBqQuery));
+  }
+
   @Test public void testToCharWithSingleOperand() {
     final RelBuilder builder = relBuilder();
     final RexNode toCharNode =
@@ -8364,6 +8458,117 @@ class RelToSqlConverterDMTest {
         + "EXTRACT(QUARTER FROM CURRENT_TIMESTAMP) $f2\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
+
+  @Test public void testMonthNumberOfCalender() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dbNameRexNode =
+        builder.call(SqlLibraryOperators.MONTHNUMBER_OF_CALENDAR, builder.call(CURRENT_DATE));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(dbNameRexNode, "result"))
+        .build();
+
+    final String expectedMsSqlQuery = "SELECT MONTHNUMBER_OF_CALENDAR(CURRENT_DATE) AS \"result\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.TERADATA.getDialect()), isLinux(expectedMsSqlQuery));
+  }
+
+  @Test public void testTdMonthOfCalender() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dbNameRexNode =
+        builder.call(SqlLibraryOperators.TD_MONTH_OF_CALENDAR, builder.call(CURRENT_DATE));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(dbNameRexNode, "result"))
+        .build();
+
+    final String expectedMsSqlQuery = "SELECT TD_MONTH_OF_CALENDAR(CURRENT_DATE) AS \"result\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.TERADATA.getDialect()), isLinux(expectedMsSqlQuery));
+  }
+
+  @Test public void testQuarterNumberOfCalender() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dbNameRexNode =
+        builder.call(SqlLibraryOperators.QUARTERNUMBER_OF_CALENDAR, builder.call(CURRENT_DATE));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(dbNameRexNode, "result"))
+        .build();
+
+    final String expectedMsSqlQuery = "SELECT QUARTERNUMBER_OF_CALENDAR(CURRENT_DATE) "
+        + "AS \"result\"\nFROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.TERADATA.getDialect()), isLinux(expectedMsSqlQuery));
+  }
+
+  @Test public void testTdQuarterOfCalender() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dbNameRexNode =
+        builder.call(SqlLibraryOperators.TD_QUARTER_OF_CALENDAR, builder.call(CURRENT_DATE));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(dbNameRexNode, "result"))
+        .build();
+
+    final String expectedMsSqlQuery = "SELECT TD_QUARTER_OF_CALENDAR(CURRENT_DATE) AS "
+        + "\"result\"\nFROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.TERADATA.getDialect()), isLinux(expectedMsSqlQuery));
+  }
+
+  @Test public void testTdMonthBeginWithDate() {
+    final RelBuilder builder = relBuilder();
+    final RexNode tdWeekBeginRexNode =
+        builder.call(SqlLibraryOperators.TD_MONTH_BEGIN, builder.literal("2023-02-22"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(tdWeekBeginRexNode, "month_begin"))
+        .build();
+    final String expectedTeradata = "SELECT TD_MONTH_BEGIN('2023-02-22') AS \"month_begin\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.TERADATA.getDialect()), isLinux(expectedTeradata));
+  }
+
+  @Test public void testDayOfWeekWithDate() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dayOfWeekRexNode =
+        builder.call(SqlLibraryOperators.DAYOFWEEK, builder.literal("2023-02-22"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(dayOfWeekRexNode, "DayOfWeek"))
+        .build();
+    final String expectedDatabricks = "SELECT DAYOFWEEK('2023-02-22') AS DayOfWeek\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.DATABRICKS.getDialect()), isLinux(expectedDatabricks));
+  }
+
+  @Test public void testTdWeekBeginWithDate() {
+    final RelBuilder builder = relBuilder();
+    final RexNode tdWeekBeginRexNode =
+        builder.call(SqlLibraryOperators.TD_WEEK_BEGIN, builder.literal("2023-02-22"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(tdWeekBeginRexNode, "week_begin"))
+        .build();
+    final String expectedDatabricks =
+        "SELECT TD_WEEK_BEGIN('2023-02-22') AS \"week_begin\"\n"
+            + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.TERADATA.getDialect()), isLinux(expectedDatabricks));
+  }
+
+  @Test public void testTeradataDateTimeNumberOfYear() {
+    final RelBuilder builder = relBuilder();
+    final RexNode weekNumberOfYearCall =
+        builder.call(TD_WEEK_OF_YEAR, builder.call(CURRENT_DATE));
+    final RelNode root = builder.scan("EMP")
+        .project(weekNumberOfYearCall)
+        .build();
+    final String expectedSql = "SELECT TD_WEEK_OF_YEAR(CURRENT_DATE) AS \"$f0\""
+        + "\nFROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.TERADATA.getDialect()), isLinux(expectedSql));
   }
 
   @Test public void testXNumberOfCalendar() {
@@ -9760,6 +9965,46 @@ class RelToSqlConverterDMTest {
 
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
+  @Test public void testRedshiftAddMonths() {
+    RelBuilder relBuilder = relBuilder().scan("EMP");
+    RexBuilder rexBuilder = relBuilder.getRexBuilder();
+
+    final RexLiteral intervalLiteral =
+        rexBuilder.makeIntervalLiteral(BigDecimal.valueOf(-2),
+            new SqlIntervalQualifier(MONTH, null, SqlParserPos.ZERO));
+
+    final RexNode redshiftAddMonthsCall =
+        relBuilder.call(SqlLibraryOperators.REDSHIFT_ADD_MONTHS,
+            relBuilder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP), intervalLiteral);
+
+    RelNode root = relBuilder
+        .project(redshiftAddMonthsCall)
+        .build();
+
+    final String expectedRedshiftSql = "SELECT "
+        + "ADD_MONTHS(CURRENT_TIMESTAMP, INTERVAL -'2' MONTH) AS \"$f0\""
+        + "\nFROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.REDSHIFT.getDialect()), isLinux(expectedRedshiftSql));
+  }
+
+  @Test public void testDatabricksDateDiffFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode parseTSNode1 =
+        builder.call(SqlLibraryOperators.DATABRICKS_DATEDIFF, builder.literal(MONTH),
+            builder.literal("1994-07-21"),
+            builder.literal("1993-07-21"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(parseTSNode1, "datediff_value"))
+        .build();
+    final String expectedDatabricksSql =
+        "SELECT DATEDIFF(MONTH, '1994-07-21', '1993-07-21') AS datediff_value\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.DATABRICKS.getDialect()),
+        isLinux(expectedDatabricksSql));
   }
 
   @Test public void testCurrentTimestampWithTimeZone() {
@@ -13426,6 +13671,19 @@ class RelToSqlConverterDMTest {
         .project(builder.alias(dateFormatNode, "format_date"))
         .build();
     final String expectedTDSql = "SELECT FORMAT_DATE('%Q%Q%Y', CURRENT_DATE) AS format_date\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedTDSql));
+  }
+
+  @Test public void testDateFormatWithMMYYYY() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dateFormatNode =
+        builder.call(SqlLibraryOperators.FORMAT_DATE, builder.literal(MMYYYY.value), builder.call(CURRENT_DATE));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(dateFormatNode, "format_date"))
+        .build();
+    final String expectedTDSql = "SELECT FORMAT_DATE('%m%Y', CURRENT_DATE) AS format_date\nFROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedTDSql));
   }

@@ -133,11 +133,27 @@ class ProjectExpansionUtil {
           }
         }
       }
+      if (result.node instanceof SqlSelect && ((SqlSelect) result.node).getSelectList() == null
+          && !hasAliasEndingWithDigit(sqlIdentifierList)) {
+        return;
+      }
       if (result.node instanceof SqlSelect && ((SqlSelect) result.node).getFrom()
           instanceof SqlJoin) {
         updateResultSelectList(result, sqlIdentifierList);
       }
     }
+  }
+
+  private boolean hasAliasEndingWithDigit(List<SqlNode> sqlIdentifierList) {
+    return sqlIdentifierList.stream()
+        .filter(obj -> obj instanceof SqlBasicCall)
+        .map(obj -> (SqlBasicCall) obj)
+        .filter(call -> call.getOperator().getName().equalsIgnoreCase("AS"))
+        .map(call -> call.operand(1))
+        .filter(op -> op instanceof SqlIdentifier)
+        .map(op -> (SqlIdentifier) op)
+        .map(id -> id.names.get(0))
+        .anyMatch(ProjectExpansionUtil::endsWithDigit);
   }
 
   private boolean shouldHandleResultAlias(SqlImplementor.Result result, SqlNode sqlCondition) {
