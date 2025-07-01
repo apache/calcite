@@ -30,6 +30,7 @@ import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlPivot;
 import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
 
@@ -208,6 +209,12 @@ public class CTERelToSqlUtil {
         if (sqlSelect.getSelectList() != null) {
           sqlSelect.getSelectList().stream().filter(item -> item instanceof SqlBasicCall)
               .forEach(CTERelToSqlUtil::updateNode);
+        }
+      } else if (sqlNode instanceof SqlBasicCall
+          && ((SqlBasicCall) sqlNode).getOperator() instanceof SqlSetOperator) {
+        SqlBasicCall setOpCall = (SqlBasicCall) sqlNode;
+        for (SqlNode operand : setOpCall.getOperandList()) {
+          updateSqlNode(operand);
         }
       }
     }

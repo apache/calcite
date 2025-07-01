@@ -600,6 +600,9 @@ public class SparkSqlDialect extends SqlDialect {
         unparseIntervalOperandCall(call, writer, leftPrec, rightPrec);
       }
       break;
+    case MINUS :
+      unparseMinusOperandCall(call, writer, leftPrec, rightPrec);
+      break;
     default:
       throw new AssertionError(call.operand(1).getKind() + " is not valid");
     }
@@ -619,6 +622,16 @@ public class SparkSqlDialect extends SqlDialect {
     } else {
       operator.unparse(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unparseMinusOperandCall(
+      SqlCall call, SqlWriter writer, int leftPrec, int rightPrec) {
+    writer.print(call.getOperator().toString());
+    writer.print("(");
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.print(",");
+    call.operand(1).unparse(writer, leftPrec, rightPrec);
+    writer.print(")");
   }
 
   private void unparseIntervalOperandCall(
