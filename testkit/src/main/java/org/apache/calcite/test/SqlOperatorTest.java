@@ -2553,20 +2553,20 @@ public class SqlOperatorTest {
     // test for ByteString
     f.setFor(SqlLibraryOperators.CONCAT_FUNCTION_MYSQL);
     f.checkString("concat(_UTF8'方解石', x'61')", "e696b9e8a7a3e79fb361",
-        "BINARY(4) NOT NULL");
-    f.checkString("concat('a', x'61')", "6161", "BINARY(2) NOT NULL");
+        "VARBINARY NOT NULL");
+    f.checkString("concat('a', x'61')", "6161", "VARBINARY NOT NULL");
     f.checkString("concat('abc', 'bb', 'cc')", "abcbbcc", "VARCHAR(7) NOT NULL");
-    f.checkString("concat(x'616263',x'62')", "61626362", "BINARY(4) NOT NULL");
-    f.checkString("concat(x'616263','abc')", "616263616263", "BINARY(6) NOT NULL");
-    f.checkString("concat(x'61',x'62')", "6162", "BINARY(2) NOT NULL");
+    f.checkString("concat(x'616263',x'62')", "61626362", "VARBINARY NOT NULL");
+    f.checkString("concat(x'616263','abc')", "616263616263", "VARBINARY NOT NULL");
+    f.checkString("concat(x'61',x'62')", "6162", "VARBINARY NOT NULL");
     f.checkString("concat(cast(x'61' as binary), cast(x'62' as binary), "
-        + "cast(x'63' as binary))", "616263", "BINARY(3) NOT NULL");
+        + "cast(x'63' as binary))", "616263", "VARBINARY NOT NULL");
     f.checkNull("concat(x'61', x'62', cast(null as binary))");
     f.checkNull("concat(cast(null as ANY), 'b', cast(null as binary(2)))");
     f.checkNull("concat(cast(null as ANY), 'b', x'61')");
-    f.checkString("concat('a', x'61')", "6161", "BINARY(2) NOT NULL");
-    f.checkString("concat(x'', x'', x'61')", "61", "BINARY(1) NOT NULL");
-    f.checkString("concat(x'', x'', x'')", "", "BINARY(0) NOT NULL");
+    f.checkString("concat('a', x'61')", "6161", "VARBINARY NOT NULL");
+    f.checkString("concat(x'', x'', x'61')", "61", "VARBINARY NOT NULL");
+    f.checkString("concat(x'', x'', x'')", "", "VARBINARY NOT NULL");
     f.checkFails("concat(1, 'a', x'61')",
         "concat function only accepts strings or bytestring arguments.", true);
   }

@@ -1272,9 +1272,13 @@ public abstract class ReturnTypes {
         } else {
           typePrecision = (int) amount;
         }
-        SqlTypeName sqlTypeName = containsByteStringType ? SqlTypeName.BINARY : SqlTypeName.VARCHAR;
-        return opBinding.getTypeFactory()
-            .createSqlType(sqlTypeName, typePrecision);
+        if (containsByteStringType) {
+          return opBinding.getTypeFactory()
+              .createSqlType(SqlTypeName.VARBINARY);
+        } else {
+          return opBinding.getTypeFactory()
+              .createSqlType(SqlTypeName.VARCHAR, typePrecision);
+        }
       };
 
   /**
