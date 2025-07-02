@@ -86,7 +86,9 @@ public enum SqlLibrary {
   /** A collection of operators that are in REDSHIFT but not in standard SQL. */
   REDSHIFT("REDSHIFT", "redshift"),
   /** A collection of operators that are in VERTICA but not in standard SQL. */
-  VERTICA("VERTICA", "vertica");
+  VERTICA("VERTICA", "vertica"),
+  /** A collection of operators that are in DATABRICKS but not in standard SQL. */
+  DATABRICKS("DATABRICKS", "databricks");
 
 
   /** Map from {@link Enum#name() name} and {@link #fun} to library. */

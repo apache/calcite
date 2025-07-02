@@ -30,6 +30,7 @@ import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlPivot;
 import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
 
@@ -153,6 +154,10 @@ public class CTERelToSqlUtil {
    * This method fetches sqlNodes from SqlNode having sqlWithItem node and add it to sqlNodes list.
    */
   public static void fetchFromSqlWithItemNode(SqlNode sqlWithItem, List<SqlNode> sqlNodes) {
+    if ((sqlWithItem instanceof SqlBasicCall)
+        && (((SqlBasicCall) sqlWithItem).operand(0)) instanceof SqlWithItem) {
+      sqlWithItem = ((SqlBasicCall) sqlWithItem).operand(0);
+    }
     fetchSqlWithItems(((SqlWithItem) sqlWithItem).query, sqlNodes);
     updateSqlNode(((SqlWithItem) sqlWithItem).query);
     addSqlWithItemNode((SqlWithItem) sqlWithItem, sqlNodes);
@@ -204,6 +209,12 @@ public class CTERelToSqlUtil {
         if (sqlSelect.getSelectList() != null) {
           sqlSelect.getSelectList().stream().filter(item -> item instanceof SqlBasicCall)
               .forEach(CTERelToSqlUtil::updateNode);
+        }
+      } else if (sqlNode instanceof SqlBasicCall
+          && ((SqlBasicCall) sqlNode).getOperator() instanceof SqlSetOperator) {
+        SqlBasicCall setOpCall = (SqlBasicCall) sqlNode;
+        for (SqlNode operand : setOpCall.getOperandList()) {
+          updateSqlNode(operand);
         }
       }
     }
@@ -294,6 +305,10 @@ public class CTERelToSqlUtil {
     } else if (operand instanceof SqlPivot && ((SqlPivot) operand).query instanceof SqlWithItem) {
       ((SqlPivot) ((SqlBasicCall) parentNode).getOperandList().get(0)).setOperand(0,
           ((SqlWithItem) ((SqlPivot) operand).query).name);
+    } else if (operand instanceof SqlPivot && (((SqlPivot) operand).query instanceof SqlBasicCall)
+        && ((SqlBasicCall) ((SqlPivot) operand).query).operand(0) instanceof SqlWithItem) {
+      ((SqlPivot) ((SqlBasicCall) parentNode).getOperandList().get(0)).setOperand(0,
+          ((SqlWithItem) ((SqlBasicCall) ((SqlPivot) operand).query).operand(0)).name);
     } else if (operand instanceof SqlWithItem) {
       SqlIdentifier identifier = fetchCTEIdentifier(parentNode);
       if (identifier != null) {

@@ -222,6 +222,9 @@ public class FilterExtractInnerJoinRule
       RexCall call = (RexCall) operand;
       boolean atLeastOneMatches = false;
       for (RexNode op : call.operands) {
+        if (op instanceof RexLiteral) {
+          continue;
+        }
         if (!isOperandIndexLessThanEndIndex(op, endIndex)) {
           return false;
         }
