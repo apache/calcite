@@ -10137,6 +10137,34 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7050">[CALCITE-7050]
+   * Invalid unparse for FULL JOIN in MySQLDialect</a>. */
+  @Test void testUnsupportedFullJoin() {
+    // MySQL full join would transform to left join union right join
+    String sql = "select e1.\"salary\",e2.\"department_id\" from\n"
+        + "(select \"salary\", \"department_id\" from \"employee\") as e1\n"
+        + " full join "
+        + "(select \"salary\", \"department_id\" from \"employee\") as e2\n"
+        + "on e1.\"department_id\"=e2.\"department_id\"";
+    String query = "SELECT `salary`, `department_id0` AS `department_id`\n"
+        + "FROM (SELECT *\n"
+        + "FROM (SELECT `salary`, `department_id`\n"
+        + "FROM `foodmart`.`employee`) AS `t`\n"
+        + "LEFT JOIN (SELECT `salary`, `department_id`\n"
+        + "FROM `foodmart`.`employee`) AS `t0` ON `t`.`department_id` = `t0`.`department_id`\n"
+        + "UNION ALL\n"
+        + "SELECT `t1`.`salary` AS `salary`, `t1`.`department_id` AS `department_id`, "
+        + "`t2`.`salary` AS `salary0`, `t2`.`department_id` AS `department_id0`\n"
+        + "FROM (SELECT `salary`, `department_id`\n"
+        + "FROM `foodmart`.`employee`) AS `t1`\n"
+        + "RIGHT JOIN (SELECT `salary`, `department_id`\n"
+        + "FROM `foodmart`.`employee`) AS `t2`"
+        + " ON `t1`.`department_id` = `t2`.`department_id`\n"
+        + "WHERE `t1`.`department_id` <> `t2`.`department_id`) AS `t4`";
+    sql(sql).withMysql().ok(query);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6940">[CALCITE-6940]
    * Hive/Phoenix Dialect should not cast to REAL type directly</a>,
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6952">[CALCITE-6952]
