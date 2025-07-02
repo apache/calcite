@@ -34,6 +34,7 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.rules.AggregateProjectConstantToDummyJoinRule;
+import org.apache.calcite.rel.rules.FullToLeftAndRightJoinRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -182,10 +183,17 @@ public abstract class SqlImplementor {
   /** Visits a relational expression that has no parent. */
   public final Result visitRoot(RelNode r) {
     RelNode best;
-    if (!this.dialect.supportsGroupByLiteral()) {
+    if (!this.dialect.supportsGroupByLiteral()
+        || !this.dialect.supportsJoinType(JoinRelType.FULL)) {
       HepProgramBuilder hepProgramBuilder = new HepProgramBuilder();
-      hepProgramBuilder.addRuleInstance(
-          AggregateProjectConstantToDummyJoinRule.Config.DEFAULT.toRule());
+      if (!this.dialect.supportsGroupByLiteral()) {
+        hepProgramBuilder.addRuleInstance(
+            AggregateProjectConstantToDummyJoinRule.Config.DEFAULT.toRule());
+      }
+      if (!this.dialect.supportsJoinType(JoinRelType.FULL)) {
+        hepProgramBuilder.addRuleInstance(
+            FullToLeftAndRightJoinRule.Config.DEFAULT.toRule());
+      }
       HepPlanner hepPlanner = new HepPlanner(hepProgramBuilder.build());
 
       hepPlanner.setRoot(r);
