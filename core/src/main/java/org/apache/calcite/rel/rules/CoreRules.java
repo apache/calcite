@@ -953,4 +953,8 @@ public class CoreRules {
   @RuleConfig(value = "JOIN")
   public static final ExpandDisjunctionForJoinInputsRule EXPAND_JOIN_DISJUNCTION_LOCAL =
       ExpandDisjunctionForJoinInputsRule.Config.JOIN.toRule();
+
+  /** Rule that convert FULL JOIN to LEFT JOIN and RIGHT JOIN. */
+  public static final FullToLeftAndRightJoinRule FULL_TO_LEFT_AND_RIGHT_JOIN =
+      FullToLeftAndRightJoinRule.Config.DEFAULT.toRule();
 }
