@@ -10102,7 +10102,8 @@ class RelToSqlConverterDMTest {
     final RelDataType varcharRelType = builder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
     final RelDataType type =
         BasicSqlTypeWithFormat.from(RelDataTypeSystem.DEFAULT, (BasicSqlType) varcharRelType,
-        format.getValueAs(String.class));
+            varcharRelType.getPrecision(),
+            format.getValueAs(String.class));
     final RexNode castCall = rexBuilder.makeCast(type, builder.literal(1234), false);
     RelNode root = builder
         .project(castCall)
