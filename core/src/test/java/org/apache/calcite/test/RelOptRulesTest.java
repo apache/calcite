@@ -11037,4 +11037,28 @@ class RelOptRulesTest extends RelOptTestBase {
         })
         .check();
   }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7077">[CALCITE-7077]
+   * Implement a rule to rewrite FULL JOIN as LEFT JOIN and RIGHT JOIN</a>. */
+  @Test void testFullJoinToLeftAndRightJoin() {
+    final String query = "select * from emp e1\n"
+        + "full join emp e2\n"
+        + "on e1.sal = e2.sal and e1.mgr is null";
+    sql(query)
+        .withRule(CoreRules.FULL_TO_LEFT_AND_RIGHT_JOIN)
+        .check();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7077">[CALCITE-7077]
+   * Implement a rule to rewrite FULL JOIN as LEFT JOIN and RIGHT JOIN</a>. */
+  @Test void testFullJoinToLeftAndRightJoinNonDeterministic() {
+    final String query = "select * from emp e1\n"
+        + "full join emp e2\n"
+        + "on rand() > 0.5";
+    sql(query)
+        .withRule(CoreRules.FULL_TO_LEFT_AND_RIGHT_JOIN)
+        .checkUnchanged();
+  }
 }

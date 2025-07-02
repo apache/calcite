@@ -37,6 +37,7 @@ import org.apache.calcite.rel.rules.AggregateJoinTransposeRule;
 import org.apache.calcite.rel.rules.AggregateProjectMergeRule;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.rules.FilterJoinRule;
+import org.apache.calcite.rel.rules.FullToLeftAndRightJoinRule;
 import org.apache.calcite.rel.rules.ProjectOverSumToSum0Rule;
 import org.apache.calcite.rel.rules.ProjectToWindowRule;
 import org.apache.calcite.rel.rules.PruneEmptyRules;
@@ -10269,6 +10270,46 @@ class RelToSqlConverterTest {
     final String expected = "SELECT 1, \"gross_weight\" < ALL (SELECT \"gross_weight\"\n"
         + "FROM \"foodmart\".\"product\") AS \"t\"\nFROM \"foodmart\".\"product\"";
     sql(sql).ok(expected);
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7077">[CALCITE-7077]
+   * Implement a rule to rewrite FULL JOIN as LEFT JOIN and RIGHT JOIN</a>. */
+  @Test void testFullJoinToLeftAndRightJoin() {
+    final String query = "select * from emp e1\n"
+        + "full join emp e2\n"
+        + "on e1.sal = e2.sal and e1.mgr is null";
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"SCOTT\".\"EMP\"\n"
+        + "LEFT JOIN \"SCOTT\".\"EMP\" AS \"EMP0\""
+        + " ON \"EMP\".\"SAL\" = \"EMP0\".\"SAL\" AND \"EMP\".\"MGR\" IS NULL\n"
+        + "UNION ALL\n"
+        + "SELECT \"EMP1\".\"EMPNO\" AS \"EMPNO\", \"EMP1\".\"ENAME\" AS \"ENAME\","
+        + " \"EMP1\".\"JOB\" AS \"JOB\", \"EMP1\".\"MGR\" AS \"MGR\","
+        + " \"EMP1\".\"HIREDATE\" AS \"HIREDATE\", \"EMP1\".\"SAL\" AS \"SAL\","
+        + " \"EMP1\".\"COMM\" AS \"COMM\", \"EMP1\".\"DEPTNO\" AS \"DEPTNO\","
+        + " \"EMP2\".\"EMPNO\" AS \"EMPNO0\", \"EMP2\".\"ENAME\" AS \"ENAME0\","
+        + " \"EMP2\".\"JOB\" AS \"JOB0\", \"EMP2\".\"MGR\" AS \"MGR0\","
+        + " \"EMP2\".\"HIREDATE\" AS \"HIREDATE0\", \"EMP2\".\"SAL\" AS \"SAL0\","
+        + " \"EMP2\".\"COMM\" AS \"COMM0\", \"EMP2\".\"DEPTNO\" AS \"DEPTNO0\"\n"
+        + "FROM \"SCOTT\".\"EMP\" AS \"EMP1\"\n"
+        + "RIGHT JOIN \"SCOTT\".\"EMP\" AS \"EMP2\""
+        + " ON \"EMP1\".\"SAL\" = \"EMP2\".\"SAL\" AND \"EMP1\".\"MGR\" IS NULL\n"
+        + "WHERE (\"EMP1\".\"SAL\" = \"EMP2\".\"SAL\""
+        + " AND \"EMP1\".\"MGR\" IS NULL) IS NOT TRUE) AS \"t0\"";
+
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(FullToLeftAndRightJoinRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    RuleSet rules =
+        RuleSets.ofList(CoreRules.FULL_TO_LEFT_AND_RIGHT_JOIN);
+
+    sql(query)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withCalcite()
+        .optimize(rules, hepPlanner)
+        .ok(expected);
   }
 
   /** Fluid interface to run tests. */
