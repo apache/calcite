@@ -34,6 +34,7 @@ import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -81,6 +82,9 @@ public class CTERelToSqlUtil {
     }
     if (sqlSelect instanceof SqlSelect && ((SqlSelect) sqlSelect).getSelectList() != null) {
       fetchSqlWithSelectList(((SqlSelect) sqlSelect).getSelectList(), sqlNodes);
+    }
+    if (sqlSelect instanceof SqlSelect && ((SqlSelect) sqlSelect).getWhere() != null) {
+      fetchSqlWithSelectList(Arrays.asList(((SqlSelect) sqlSelect).getWhere()), sqlNodes);
     }
     return sqlNodes;
   }
