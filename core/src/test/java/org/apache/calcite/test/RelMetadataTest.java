@@ -4463,6 +4463,37 @@ public class RelMetadataTest {
     assertThat(ndv, is(100.0));
   }
 
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7083">[CALCITE-7083]
+   * RelMdDistinctRowCount aggregates implementation problems</a>. */
+  @Test void testAggregateDistinctRowcount() {
+    // test case of groupKey contains aggregated column
+    sql("select name, sum(sal) from (values ('b', 10), ('b', 20), ('b', 30)) as t(name, sal) "
+        + "group by name")
+        .assertThatDistinctRowCount(bitSetOf(1), is(1d));
+    sql("select name, sum(sal) from (values ('a', 10), ('b', 10), ('c', 10)) as t(name, sal) "
+        + "group by name")
+        .assertThatDistinctRowCount(bitSetOf(1), is(3d));
+    // test case of predicate is not null
+    // LogicalFilter(condition=[=($0, 2)])
+    //  LogicalAggregate(group=[{1}], sumsal=[SUM($0)])
+    //    LogicalValues(tuples=[[{ 10, 1 }, { 20, 2 }, { 30, 3 }]])
+    // since the selectivity of the predicate is guessed, this NDV does not represent the actual
+    // value. This case is only to verify that the predicate will be correctly pushed down
+    // to the Value
+    fixture()
+        .withRelFn(b -> {
+          b.values(new String[]{"sal", "id"}, 10, 1, 20, 2, 30, 3);
+          RelBuilder.GroupKey groupKey = b.groupKey(1);
+          b.aggregate(groupKey, b.sum(false, "sumsal", b.field(0)));
+          RexNode predicate =
+              b.equals(b.field(0), b.literal(2));
+          RelNode filter = b.filter(predicate).build();
+          return filter;
+        })
+        .assertThatDistinctRowCount(bitSetOf(0), is(1d));
+  }
+
   private void checkInputForCollationAndLimit(RelOptCluster cluster, RelOptTable empTable,
       RelOptTable deptTable) {
     final RexBuilder rexBuilder = cluster.getRexBuilder();
