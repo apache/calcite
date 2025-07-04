@@ -250,6 +250,44 @@ class RelToSqlConverterTest {
     sql(query).withMysql().ok(expected);
   }
 
+  /**
+   * Test for <a href="https://issues.apache.org/jira/browse/CALCITE-4723">[CALCITE-4723]</a>
+   * Check whether JDBC adapter generates "GROUP BY ()" against Oracle, DB2, MSSQL.
+   */
+  @Test void testGroupByNothing() {
+    String query = "select avg(\"salary\") from \"employee\" group by ()";
+    final String expected = "SELECT AVG(\"salary\")\n"
+        + "FROM \"foodmart\".\"employee\"";
+    final String expectedDb2 = "SELECT AVG(employee.salary)\n"
+        + "FROM foodmart.employee AS employee";
+    final String expectedOracle = "SELECT AVG(\"salary\")\n"
+        + "FROM \"foodmart\".\"employee\"";
+    final String expectedMssql = "SELECT AVG([salary])\n"
+        + "FROM [foodmart].[employee]";
+    sql(query)
+        .ok(expected)
+        .withDb2().ok(expectedDb2)
+        .withOracle().ok(expectedOracle)
+        .withMssql().ok(expectedMssql);
+  }
+
+  @Test void testAggregateWithoutGroupBy() {
+    String query = "select avg(\"salary\") from \"employee\"";
+    final String expected = "SELECT AVG(\"salary\")\n"
+        + "FROM \"foodmart\".\"employee\"";
+    final String expectedDb2 = "SELECT AVG(employee.salary)\n"
+        + "FROM foodmart.employee AS employee";
+    final String expectedOracle = "SELECT AVG(\"salary\")\n"
+        + "FROM \"foodmart\".\"employee\"";
+    final String expectedMssql = "SELECT AVG([salary])\n"
+        + "FROM [foodmart].[employee]";
+    sql(query)
+        .ok(expected)
+        .withDb2().ok(expectedDb2)
+        .withOracle().ok(expectedOracle)
+        .withMssql().ok(expectedMssql);
+  }
+
   @Test void testGroupByBooleanLiteral() {
     String query = "select avg(\"salary\") from \"employee\" group by true";
     String expectedRedshift = "SELECT AVG(\"employee\".\"salary\")\n"
