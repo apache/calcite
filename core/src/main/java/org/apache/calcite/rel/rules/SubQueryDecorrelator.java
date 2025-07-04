@@ -1398,7 +1398,7 @@ public class SubQueryDecorrelator extends RelShuttleImpl {
 
     Frame(RelNode oldRel, RelNode newRel, RexNode corCondition,
         Map<Integer, Integer> oldToNewOutputs) {
-      this.r = Preconditions.checkNotNull(newRel);
+      this.r = Objects.requireNonNull(newRel);
       this.c = corCondition;
       this.oldToNewOutputs = com.google.common.collect.ImmutableSortedMap.copyOf(oldToNewOutputs);
       assert allLessThan(this.oldToNewOutputs.keySet(), oldRel.getRowType().getFieldCount(),
