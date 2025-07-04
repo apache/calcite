@@ -1918,4 +1918,64 @@ EnumerableCalc(expr#0=[{inputs}], expr#1=[1.11:DECIMAL(3, 2)], expr#2=[2.22:DECI
   EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
+# [CALCITE-7062] Row type of SetOp may ignore a column's nullability
+# Common type for nullable date and not nullable timestamp
+SELECT CAST(NULL AS DATE) UNION ALL SELECT TIMESTAMP '2025-07-04 10:00:00';
++---------------------+
+| EXPR$0              |
++---------------------+
+|                     |
+| 2025-07-04 10:00:00 |
++---------------------+
+(2 rows)
+
+!ok
+EXPR$0 TIMESTAMP
+!type
+
+# [CALCITE-7062] Row type of SetOp may ignore a column's nullability
+# Common type for null and not nullable array;
+SELECT ARRAY[1, 2, 3] UNION ALL SELECT NULL;
++-----------+
+| EXPR$0    |
++-----------+
+| [1, 2, 3] |
+|           |
++-----------+
+(2 rows)
+
+!ok
+EXPR$0 INTEGER ARRAY
+!type
+
+# [CALCITE-7062] Row type of SetOp may ignore a column's nullability
+# Common type for null and not nullable map
+SELECT MAP[1, 2, 3, 4] UNION ALL SELECT NULL;
++------------+
+| EXPR$0     |
++------------+
+| {1=2, 3=4} |
+|            |
++------------+
+(2 rows)
+
+!ok
+EXPR$0 (INTEGER, INTEGER) MAP
+!type
+
+# [CALCITE-7062] Row type of SetOp may ignore a column's nullability
+# Common type for arrays with nullable and not nullable elements
+SELECT ARRAY[cast(null as integer), cast(null as integer), cast(null as integer)] UNION ALL SELECT ARRAY[1, 2, 3];
++--------------------+
+| EXPR$0             |
++--------------------+
+| [null, null, null] |
+| [1, 2, 3]          |
++--------------------+
+(2 rows)
+
+!ok
+EXPR$0 INTEGER ARRAY NOT NULL
+!type
+
 # End cast.iq
