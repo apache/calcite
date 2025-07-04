@@ -133,7 +133,26 @@ public class MongoFilter extends Filter implements MongoRel {
           : multimap.asMap().entrySet()) {
         Map<String, Object> map2 = builder.map();
         for (Pair<String, RexLiteral> s : entry.getValue()) {
-          addPredicate(map2, s.left, literalValue(s.right));
+          String op = s.left;
+          if ("$ne".equals(op))  {
+            if (map2.containsKey("$nin")) {
+              map2.computeIfPresent("$nin", (k, v) -> {
+                ((List<Object>) v).add(literalValue(s.right));
+                return v;
+              });
+            } else if (map2.containsKey(op)) {
+              // if two $ne conditions, translate to $nin op
+              List<Object> ninList = builder.list();
+              ninList.add(map2.remove(op));
+              ninList.add(literalValue(s.right));
+              map2.put("$nin", ninList);
+            } else {
+              // only one $ne condition
+              map2.put(op, literalValue(s.right));
+            }
+          } else {
+            addPredicate(map2, op, literalValue(s.right));
+          }
         }
         map.put(entry.getKey(), map2);
       }
