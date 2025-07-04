@@ -1547,7 +1547,7 @@ class PigRelOpTest extends PigRelTestBase {
         + "        LogicalTableScan(table=[[scott, EMP]])\n";
     final String sql = ""
         + "SELECT DEPTNO, MGR, HIREDATE, CAST(COUNT(*) AS BIGINT) AS $f3, 1 AS newCol, "
-        + "CAST(COLLECT(COMM) AS ROW(COMM DECIMAL(19, 0)) MULTISET) AS comArray, CAST(SUM(SAL) AS DECIMAL(19, 0)) AS salSum\n"
+        + "CAST(COLLECT(COMM) AS ROW(COMM DECIMAL(19, 0) NULL) MULTISET) AS comArray, CAST(SUM(SAL) AS DECIMAL(19, 0)) AS salSum\n"
         + "FROM scott.EMP\n"
         + "GROUP BY DEPTNO, MGR, HIREDATE\n"
         + "ORDER BY 7";

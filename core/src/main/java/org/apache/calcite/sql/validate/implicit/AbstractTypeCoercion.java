@@ -380,15 +380,9 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
     }
     // If one type is with Null type name: returns the other.
     if (SqlTypeUtil.isNull(type1)) {
-      if (SqlTypeUtil.isMap(type2) || SqlTypeUtil.isRow(type2) || SqlTypeUtil.isArray(type2)) {
-        return type2;
-      }
       return factory.createTypeWithNullability(type2, type1.isNullable());
     }
     if (SqlTypeUtil.isNull(type2)) {
-      if (SqlTypeUtil.isMap(type1) || SqlTypeUtil.isRow(type1) || SqlTypeUtil.isArray(type1)) {
-        return type1;
-      }
       return factory.createTypeWithNullability(type1, type2.isNullable());
     }
     RelDataType resultType = null;
@@ -407,10 +401,12 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
     }
     // Date + Timestamp -> Timestamp.
     if (SqlTypeUtil.isDate(type1) && SqlTypeUtil.isTimestamp(type2)) {
-      resultType = type2;
+      return factory.createTypeWithNullability(type2,
+          type1.isNullable() || type2.isNullable());
     }
     if (SqlTypeUtil.isDate(type2) && SqlTypeUtil.isTimestamp(type1)) {
-      resultType = type1;
+      return factory.createTypeWithNullability(type1,
+          type1.isNullable() || type2.isNullable());
     }
 
     if (type1.isStruct() && type2.isStruct()) {
