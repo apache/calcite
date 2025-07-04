@@ -79,7 +79,7 @@ public class JoinCorrelateSubqueryTransposeRule
 
     static boolean hasExistClause(RexNode conditionNode, Set<CorrelationId> correlationIdSet) {
       RexSubQuery rexSubQuery = RexUtil.SubQueryFinder.find(conditionNode);
-      return rexSubQuery != null && rexSubQuery.isA(SqlKind.EXISTS)
+      return rexSubQuery != null && (rexSubQuery.isA(SqlKind.EXISTS) || rexSubQuery.isA(SqlKind.IN))
           && correlationIdSet.stream().anyMatch(correlationId ->
           !RelOptUtil.notContainsCorrelation(rexSubQuery.rel, correlationId, Litmus.IGNORE));
     }
