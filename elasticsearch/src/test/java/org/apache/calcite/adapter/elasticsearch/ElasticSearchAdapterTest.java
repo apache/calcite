@@ -776,7 +776,8 @@ class ElasticSearchAdapterTest {
 
     calciteAssert()
         .query("select count(*), max(pop), min(pop), sum(pop), avg(pop) from zips")
-        .returns("EXPR$0=149; EXPR$1=112047; EXPR$2=21; EXPR$3=7865489; EXPR$4=52788\n");
+        .returns("EXPR$0=149; EXPR$1=112047; EXPR$2=21; EXPR$3=7865489;"
+            + " EXPR$4=52788.51677852349\n");
   }
 
   @Test void groupBy() {
