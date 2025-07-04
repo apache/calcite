@@ -51,6 +51,7 @@ import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.rules.MultiJoin;
@@ -247,6 +248,18 @@ public abstract class RelOptUtil {
     VariableSetVisitor visitor = new VariableSetVisitor();
     go(visitor, rel);
     return visitor.variables;
+  }
+
+  public static String getTableName(LogicalTableScan tableScan) {
+    String tableAlias = null;
+    TableAliasTrait tableAliasTrait =
+        tableScan.getTraitSet().getTrait(TableAliasTraitDef.instance);
+    if (tableAliasTrait != null) {
+      tableAlias = tableAliasTrait.getTableAlias();
+    } else {
+      tableAlias = Util.last(tableScan.getTable().getQualifiedName());
+    }
+    return tableAlias;
   }
 
   @Deprecated // to be removed before 2.0
