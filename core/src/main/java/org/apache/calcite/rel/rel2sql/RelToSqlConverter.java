@@ -2030,24 +2030,6 @@ public class RelToSqlConverter extends SqlImplementor
 
   private List<SqlNode> createGroupByList(SqlNodeList groupList,
       List<String> selectListAliases, List<String> tableFieldNames, String tableAlias) {
-//    List<SqlNode> modifiedGroupList = new ArrayList<>();
-//    for (SqlNode node : groupList) {
-//      if (node instanceof SqlIdentifier) {
-//        SqlIdentifier identifier = (SqlIdentifier) node;
-//        String name = identifier.names.get(0);
-//        boolean isMatch = selectListAliases.stream().anyMatch(alias -> alias.equals(name))
-//            && tableFieldNames.stream().anyMatch(alias -> alias.equals(name));
-//        if (isMatch) {
-//          modifiedGroupList.add(new SqlIdentifier(Arrays.asList(tableAlias, name),
-//              node.getParserPosition()));
-//        } else {
-//          modifiedGroupList.add(node);
-//        }
-//      } else {
-//        modifiedGroupList.add(node);
-//      }
-//    }
-//    return modifiedGroupList;
     return groupList.getList().stream()
         .map(node -> {
           if (node instanceof SqlIdentifier) {
