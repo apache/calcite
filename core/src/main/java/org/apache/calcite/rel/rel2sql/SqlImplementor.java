@@ -2470,7 +2470,8 @@ public abstract class SqlImplementor {
           return !hasNestedAgg || Aggregate.isNotGrandTotal(agg);
         }
         if (relInput instanceof LogicalProject
-            && relInput.getInput(0) instanceof LogicalProject
+            && (relInput.getInput(0) instanceof LogicalProject
+            || relInput.getInput(0) instanceof LogicalFilter)
             && clauses.contains(Clause.QUALIFY)) {
           return true;
         }
