@@ -28,9 +28,13 @@ import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelCollationTraitDef;
+import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.RelShuttleImpl;
+import org.apache.calcite.rel.core.RepeatUnion;
+import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.core.TableSpool;
 import org.apache.calcite.rel.externalize.RelDotWriter;
 import org.apache.calcite.rel.externalize.RelXmlWriter;
 import org.apache.calcite.rel.logical.LogicalAsofJoin;
@@ -73,6 +77,7 @@ import java.util.function.Consumer;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 
@@ -3127,6 +3132,49 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     rel.accept(visitor);
     assertThat(rels, hasSize(1));
     assertThat(rels.get(0), instanceOf(LogicalRepeatUnion.class));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7090">[CALCITE-7090]
+   * Support LogicalRepeatUnion in RelHomogeneousShuttle</a>. */
+  @Test void testRelHomogeneousShuttleForLogicalRepeatUnion() {
+    final String sql = "WITH RECURSIVE delta(n) AS (\n"
+        + "VALUES (1)\n"
+        + "UNION ALL\n"
+        + "SELECT n+1 FROM delta WHERE n < 10\n"
+        + ")\n"
+        + "SELECT * FROM delta";
+    final RelNode rel = sql(sql).toRel();
+    final List<RelNode> rels = new ArrayList<>();
+    // RelHomogeneousShuttle delegates all calls to visit(RelNode)
+    final RelShuttleImpl visitor = new RelHomogeneousShuttle() {
+      @Override public RelNode visit(RelNode node) {
+        // Collect all nodes applied to visit(RelNode)
+        rels.add(node);
+        super.visit(node);
+        return node;
+      }
+    };
+    rel.accept(visitor);
+    // Check existence and proper count of RepeatUnion, TableSpools and TableScans
+    RepeatUnion repeatUnion = null;
+    int spoolCount = 0;
+    TableScan transientScan = null;
+    for (RelNode node : rels) {
+      if (node instanceof RepeatUnion) {
+        assertThat("Should not have encountered a prior RepeatUnion", repeatUnion, nullValue());
+        repeatUnion = (RepeatUnion) node;
+      } else if (node instanceof TableSpool) {
+        spoolCount += 1;
+      } else if (node instanceof TableScan) {
+        assertThat("Should not have encountered a prior TableScan", transientScan, nullValue());
+        transientScan = (TableScan) node;
+      }
+    }
+
+    assertThat("Should have encountered a RepeatUnion", repeatUnion, notNullValue());
+    assertThat("Should have encountered 2 TableSpools", spoolCount, is(2));
+    assertThat("Should have encountered a TableScan", transientScan, notNullValue());
   }
 
   @Test void testOffset0() {
