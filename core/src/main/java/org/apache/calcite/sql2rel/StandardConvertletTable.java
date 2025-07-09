@@ -94,6 +94,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
@@ -106,6 +107,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.QUANTIFY_OPERATORS;
 import static org.apache.calcite.sql.type.NonNullableAccessors.getComponentTypeOrThrow;
+import static org.apache.calcite.util.Static.RESOURCE;
 import static org.apache.calcite.util.Util.first;
 
 import static java.util.Objects.requireNonNull;
@@ -1961,10 +1963,14 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     @Override public RexNode convertCall(SqlRexContext cx, SqlCall call) {
       final RexBuilder rexBuilder = cx.getRexBuilder();
       final SqlParserPos pos = call.getParserPosition();
-      final RelDataTypeFactory typeFactory =
-          cx.getValidator().getTypeFactory();
       final RexNode operand =
           cx.convertExpression(call.getOperandList().get(0));
+      RelDataType returnType =
+          cx.getValidator().getValidatedNodeTypeIfKnown(call);
+      if (returnType == null) {
+        returnType = cx.getRexBuilder()
+            .deriveReturnType(call.getOperator(), Collections.singletonList(operand));
+      }
       RexNode rawCall =
           rexBuilder.makeCall(pos, SqlStdOperatorTable.TRIM, rexBuilder.makeFlag(flag),
               rexBuilder.makeLiteral(" "), operand);
@@ -1979,10 +1985,13 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         //     THEN NULL
         //     ELSE LTRIM/RTRIM(operand0[,operand1,...])
         //   END
+        if (!RexUtil.isDeterministic(operand)) {
+          throw RESOURCE.nondeterministicParamNotAllowed().ex();
+        }
         return rexBuilder.makeCall(pos, SqlStdOperatorTable.CASE,
             rexBuilder.makeCall(pos, SqlStdOperatorTable.EQUALS, rawCall,
                 rexBuilder.makeLiteral("")),
-                rexBuilder.makeNullLiteral(typeFactory.createSqlType(SqlTypeName.NULL)),
+                rexBuilder.makeNullLiteral(returnType),
                 rawCall);
       }
       return rawCall;
@@ -2172,6 +2181,11 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       final SqlParserPos pos = call.getParserPosition();
       final List<RexNode> exprs =
           convertOperands(cx, call, SqlOperandTypeChecker.Consistency.NONE);
+      RelDataType returnType =
+          cx.getValidator().getValidatedNodeTypeIfKnown(call);
+      if (returnType == null) {
+        returnType = cx.getRexBuilder().deriveReturnType(call.getOperator(), exprs);
+      }
       final RexNode value = exprs.get(0);
       final RexNode start = exprs.get(1);
       final RelDataType startType = start.getType();
@@ -2276,11 +2290,15 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         //     THEN NULL
         //     ELSE SUBSTRING_FUNCTION_BLOCK
         //   END
+        exprs.forEach(operand -> {
+          if (!RexUtil.isDeterministic(operand)) {
+            throw RESOURCE.nondeterministicParamNotAllowed().ex();
+          }
+        });
         return rexBuilder.makeCall(pos, SqlStdOperatorTable.CASE,
             rexBuilder.makeCall(pos, SqlStdOperatorTable.EQUALS, subStrCallWithEmptyString,
                 rexBuilder.makeLiteral("")),
-            rexBuilder.makeNullLiteral(
-                cx.getValidator().getTypeFactory().createSqlType(SqlTypeName.NULL)),
+            rexBuilder.makeNullLiteral(returnType),
             subStrCallWithEmptyString);
       }
       return subStrCallWithEmptyString;
@@ -2671,15 +2689,24 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     final SqlParserPos pos = call.getParserPosition();
     final List<RexNode> operands =
         convertOperands(cx, call, SqlOperandTypeChecker.Consistency.NONE);
-    final RelDataTypeFactory typeFactory = cx.getValidator().getTypeFactory();
+    RelDataType returnType =
+        cx.getValidator().getValidatedNodeTypeIfKnown(call);
+    if (returnType == null) {
+      returnType = cx.getRexBuilder().deriveReturnType(call.getOperator(), operands);
+    }
     final RexNode rawCall =
         rexBuilder.makeCall(pos, cx.getValidator().getValidatedNodeType(call), op, operands);
     SqlConformance conformance = cx.getValidator().config().conformance();
     if (conformance.emptyStringIsNull()) {
+      operands.forEach(operand -> {
+        if (!RexUtil.isDeterministic(operand)) {
+          throw RESOURCE.nondeterministicParamNotAllowed().ex();
+        }
+      });
       return rexBuilder.makeCall(pos, SqlStdOperatorTable.CASE,
           rexBuilder.makeCall(pos, SqlStdOperatorTable.EQUALS, rawCall,
               rexBuilder.makeLiteral("")),
-              rexBuilder.makeNullLiteral(typeFactory.createSqlType(SqlTypeName.NULL)),
+              rexBuilder.makeNullLiteral(returnType),
               rawCall);
     }
     return rawCall;

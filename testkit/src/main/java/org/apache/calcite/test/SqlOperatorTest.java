@@ -2542,6 +2542,16 @@ public class SqlOperatorTest {
             + "array[cast(null as char)]",
         "[hello, world, !, null]", "CHAR(5) ARRAY NOT NULL");
     f.checkNull("cast(null as integer array) || array[1]");
+
+    final Consumer<SqlOperatorFixture> consumerOracle = f1 -> {
+      f1.checkNull("'' || ''");
+      f1.checkFails("rand() || 'a'",
+          ".*: Nondeterministic parameter is not supported under emptyStringIsNull semantics.*",
+          true);
+    };
+    final List<SqlConformanceEnum> oracleConformanceEnums =
+        list(SqlConformanceEnum.ORACLE_10, SqlConformanceEnum.ORACLE_12);
+    f.forEachConformance(oracleConformanceEnums, consumerOracle);
   }
 
   @Test void testConcatFunc() {
@@ -4799,6 +4809,9 @@ public class SqlOperatorTest {
       f1.checkNull("overlay(cast(null as varchar(1)) placing 'abc' from 1)");
       f1.checkNull("overlay('A' placing '' from 1 for 1)");
       f1.checkNull("overlay('abc' placing '' from 1 for 3)");
+      f1.checkFails("overlay(cast(rand() as varchar) placing '' from 1 for 1)",
+          ".*: Nondeterministic parameter is not supported under emptyStringIsNull semantics.*",
+          true);
     };
     final List<SqlConformanceEnum> oracleConformanceEnums =
             list(SqlConformanceEnum.ORACLE_10, SqlConformanceEnum.ORACLE_12);
@@ -6221,6 +6234,9 @@ public class SqlOperatorTest {
     f1.checkNull("upper('')");
     f1.checkString("upper('a')", "A", "CHAR(1)");
     f.checkString("upper('  ')", "  ", "CHAR(2)");
+    f1.checkFails("upper(cast(rand() as varchar))",
+        ".*: Nondeterministic parameter is not supported under emptyStringIsNull semantics.*",
+        true);
   }
 
   @Test void testLeftFunc() {
@@ -7561,6 +7577,9 @@ public class SqlOperatorTest {
     f1.checkNull("lower('')");
     f1.checkString("lower('A')", "a", "CHAR(1)");
     f.checkString("lower('  ')", "  ", "CHAR(2)");
+    f1.checkFails("lower(cast(rand() as varchar))",
+        ".*: Nondeterministic parameter is not supported under emptyStringIsNull semantics.*",
+        true);
   }
 
   @Test void testInitcapFunc() {
@@ -7588,6 +7607,9 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f1 = f.withConformance(SqlConformanceEnum.ORACLE_12);
     f1.checkNull("initcap('')");
     f.checkString("initcap('  ')", "  ", "CHAR(2)");
+    f1.checkFails("initcap(cast(rand() as varchar))",
+        ".*: Nondeterministic parameter is not supported under emptyStringIsNull semantics.*",
+        true);
   }
 
   @Test void testPowerFunc() {
@@ -11996,6 +12018,9 @@ public class SqlOperatorTest {
       f1.checkNull("trim('  ')");
       f1.checkNull("trim('a' from 'a')");
       f1.checkNull("trim('A' from 'AAA')");
+      f1.checkFails("trim(cast(rand() as varchar))",
+          ".*: Nondeterministic parameter is not supported under emptyStringIsNull semantics.*",
+          true);
     };
     final List<SqlConformanceEnum> oracleConformanceEnums =
             list(SqlConformanceEnum.ORACLE_10, SqlConformanceEnum.ORACLE_12);
@@ -12021,6 +12046,9 @@ public class SqlOperatorTest {
     final Consumer<SqlOperatorFixture> consumerOracle = f2 -> {
       f2.checkNull("rtrim(null)");
       f2.checkNull("rtrim('  ')");
+      f2.checkFails("rtrim(cast(rand() as varchar))",
+          ".*: Nondeterministic parameter is not supported under emptyStringIsNull semantics.*",
+          true);
     };
     f1.forEachLibrary(libraries, consumerOracle);
   }
@@ -12042,8 +12070,11 @@ public class SqlOperatorTest {
 
     final SqlOperatorFixture f1 = f0.withConformance(SqlConformanceEnum.ORACLE_12);
     final Consumer<SqlOperatorFixture> consumerOracle = f2 -> {
-      f2.checkNull("rtrim(null)");
-      f2.checkNull("rtrim('  ')");
+      f2.checkNull("ltrim(null)");
+      f2.checkNull("ltrim('  ')");
+      f2.checkFails("ltrim(cast(rand() as varchar))",
+          ".*: Nondeterministic parameter is not supported under emptyStringIsNull semantics.*",
+          true);
     };
     f1.forEachLibrary(libraries, consumerOracle);
   }

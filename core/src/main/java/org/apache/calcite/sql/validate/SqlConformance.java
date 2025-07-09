@@ -664,7 +664,7 @@ public interface SqlConformance {
   boolean supportsUnsignedTypes();
 
   /**
-   * Whether to convert empty string to null..
+   * Whether to convert empty string to null.
    *
    * <p>Consider the {@code SUBSTRING} operator. SUBSTRING('abc', 0, 0) will
    * return null in Oracle, and return an empty string in other databases
