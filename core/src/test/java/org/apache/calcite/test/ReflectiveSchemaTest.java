@@ -39,6 +39,7 @@ import org.apache.calcite.test.schemata.catchall.CatchallSchema.EveryType;
 import org.apache.calcite.test.schemata.hr.Dependent;
 import org.apache.calcite.test.schemata.hr.Employee;
 import org.apache.calcite.test.schemata.hr.HrSchema;
+import org.apache.calcite.test.schemata.pets.PetCollectionsSchema;
 import org.apache.calcite.util.Smalls;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
@@ -47,6 +48,9 @@ import com.google.common.collect.ImmutableList;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -62,6 +66,7 @@ import java.util.Arrays;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.stream.Stream;
 
 import static org.apache.calcite.test.Matchers.isListOf;
 
@@ -867,25 +872,28 @@ public class ReflectiveSchemaTest {
    *
    * @see CatchallSchema#enumerable
    * @see CatchallSchema#list */
-  @Test void testSchemaFieldHasBadType() {
+  @Test void testSchemaFieldHasBadAndProperType() {
     final CalciteAssert.AssertThat with =
         CalciteAssert.that().withSchema("s", CATCHALL);
     // BitSet is not a valid relation type. It's as if "bitSet" field does
     // not exist.
     with.query("select * from \"s\".\"bitSet\"")
         .throws_("Object 'bitSet' not found within 's'");
-    // Enumerable field returns 3 records with 0 fields
-    with.query("select * from \"s\".\"enumerable\"")
-        .returns("\n"
-            + "\n"
-            + "\n"
-            + "\n");
-    // List is implicitly converted to Enumerable
-    with.query("select * from \"s\".\"list\"")
-        .returns("\n"
-            + "\n"
-            + "\n"
-            + "\n");
+
+    final String employees = new StringBuilder()
+        .append("empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000\n")
+        .append("empid=200; deptno=20; name=Eric; salary=8000.0; commission=500\n")
+        .append("empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null\n")
+        .append("empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250\n")
+        .toString();
+
+    // Enumerable field returns 4 records with 5 fields,
+    // because enumerable now is the valid type for the table.
+    with.query("select * from \"s\".\"enumerable\"").returns(employees);
+
+    // List is implicitly converted to Enumerable,
+    // and List as Collection is the valid type for the table.
+    with.query("select * from \"s\".\"list\"").returns(employees);
   }
 
   /** Test case for a bug where a Java string 'Abc' compared to a char 'Ab'
@@ -1102,4 +1110,48 @@ public class ReflectiveSchemaTest {
     assertNotNull(statistic);
     assertThat(statistic.getRowCount(), is(2D));
   }
+
+  public static final ReflectiveSchema COLLECTIONS_SCHEMA =
+      new ReflectiveSchema(new PetCollectionsSchema());
+
+  public static Stream<Arguments> collectionsSchemaFieldNames() {
+    return Stream.of(
+        Arguments.of("cats_array_list"),
+        Arguments.of("cats_linked_list"),
+        Arguments.of("cats_stack"),
+        Arguments.of("cats_vector"),
+        Arguments.of("cats_array_dequeue"),
+        Arguments.of("cats_hash_set"),
+        Arguments.of("cats_linked_hash_set"),
+        Arguments.of("cats_tree_set"));
+  }
+
+  /**
+   * Test that Collections can be used as field of ReflectiveSchema.
+   *
+   * @see <a href="https://issues.apache.org/jira/browse/CALCITE-4708">[CALCITE-4708]</a>
+   */
+  @ParameterizedTest @MethodSource("collectionsSchemaFieldNames")
+  void testSelectCollectionsFieldsSchema(String fieldName) {
+    CalciteAssert.that()
+        .withSchema("s", COLLECTIONS_SCHEMA)
+        .query("select * from \"s\".\"" + fieldName + "\"")
+        .returns("name=Simba; age=2\nname=Luna; age=1\nname=Bella; age=3\n");
+  }
+
+  /**
+   * Test that Collections can be used as field of ReflectiveSchema with correct statistics
+   * for each Collection Type.
+   *
+   * @see <a href="https://issues.apache.org/jira/browse/CALCITE-4708">[CALCITE-4708]</a>
+   */
+  @ParameterizedTest @MethodSource("collectionsSchemaFieldNames")
+  void testStatisticCollectionsFieldsSchema(String fieldName) {
+    Table table = COLLECTIONS_SCHEMA.tables().get(fieldName);
+    assertNotNull(table);
+    Statistic statistic = table.getStatistic();
+    assertNotNull(statistic);
+    assertThat(statistic.getRowCount(), is(3D));
+  }
+
 }
