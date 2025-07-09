@@ -8363,6 +8363,30 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
   }
 
+  @Test public void testTeradataWeekNumberOfYear() {
+    final RelBuilder builder = relBuilder();
+    final RexNode weekNumberOfYearCall =
+        builder.call(WEEKNUMBER_OF_YEAR, builder.call(CURRENT_DATE), builder.literal("ISO"));
+    final RelNode root = builder.scan("EMP")
+        .project(weekNumberOfYearCall)
+        .build();
+    final String expectedSql = "SELECT WEEKNUMBER_OF_YEAR(CURRENT_DATE, 'ISO') AS \"$f0\""
+        + "\nFROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.TERADATA.getDialect()), isLinux(expectedSql));
+  }
+
+  @Test public void testTeradataYearNumberOfCalendar() {
+    final RelBuilder builder = relBuilder();
+    final RexNode weekNumberOfYearCall =
+        builder.call(YEARNUMBER_OF_CALENDAR, builder.call(CURRENT_DATE), builder.literal("ISO"));
+    final RelNode root = builder.scan("EMP")
+        .project(weekNumberOfYearCall)
+        .build();
+    final String expectedSql = "SELECT YEARNUMBER_OF_CALENDAR(CURRENT_DATE, 'ISO') AS \"$f0\""
+        + "\nFROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.TERADATA.getDialect()), isLinux(expectedSql));
+  }
+
   @Test public void testXNumberOfCalendar() {
     final RelBuilder builder = relBuilder();
     final RexNode dayNumberOfCalendarCall =
