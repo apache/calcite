@@ -1177,6 +1177,13 @@ public class SqlDialect {
   }
 
   /**
+   * Returns whether this dialect supports "GROUP BY()" clause.
+   */
+  public boolean supportEmptyGroupBy() {
+    return false;
+  }
+
+  /**
    * Returns whether this dialect support the specified type of join.
    */
   public boolean supportsJoinType(JoinRelType joinType) {
