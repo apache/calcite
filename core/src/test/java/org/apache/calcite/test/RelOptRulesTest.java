@@ -11087,4 +11087,21 @@ class RelOptRulesTest extends RelOptTestBase {
         .withRule(CoreRules.FULL_TO_LEFT_AND_RIGHT_JOIN)
         .checkUnchanged();
   }
+
+  @Test void testRightToLeftJoinRule() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .scan("DEPT")
+        .join(JoinRelType.RIGHT,
+            b.equals(b.field(2, 0, "DEPTNO"), b.field(2, 1, "DEPTNO")))
+        .build();
+  
+    HepProgram program = new HepProgramBuilder()
+        .addMatchLimit(1)
+        .addRuleInstance(org.apache.calcite.rel.rules.RightToLeftJoinRule.Config.DEFAULT.toRule())
+        .build();
+    HepPlanner hepPlanner = new HepPlanner(program);
+  
+    relFn(relFn).withPlanner(hepPlanner).check();
+  }
 }

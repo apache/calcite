@@ -20489,4 +20489,21 @@ LogicalValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }]])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testRightToLeftJoinRule">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalJoin(condition=[=($7, $8)], joinType=[right])
+  LogicalTableScan(table=[[scott, EMP]])
+  LogicalTableScan(table=[[scott, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$3], ENAME=[$4], JOB=[$5], MGR=[$6], HIREDATE=[$7], SAL=[$8], COMM=[$9], DEPTNO=[$10], DEPTNO0=[$0], DNAME=[$1], LOC=[$2])
+  LogicalJoin(condition=[=($10, $0)], joinType=[left])
+    LogicalTableScan(table=[[scott, DEPT]])
+    LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+  </TestCase>
 </Root>

@@ -913,6 +913,10 @@ public class CoreRules {
       ReduceExpressionsRule.WindowReduceExpressionsRule.WindowReduceExpressionsRuleConfig
           .DEFAULT.toRule();
 
+  /** Rule that converts a RIGHT join {@link Join} into a LEFT join by swapping inputs. */
+  public static final RightToLeftJoinRule RIGHT_TO_LEFT_JOIN_RULE =
+      RightToLeftJoinRule.Config.DEFAULT.toRule();
+
   /** Rule that flattens a tree of {@link LogicalJoin}s
    * into a single {@link HyperGraph} with N inputs. */
   @Experimental
