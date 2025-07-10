@@ -152,9 +152,11 @@ class TypeCoercionTest {
     f.checkCommonType(f.varcharType, f.timestampType, null, true);
     // STRUCT
     f.checkCommonType(f.nullType, f.mapType(f.intType, f.charType),
-        f.mapType(f.intType, f.charType), true);
+        f.typeFactory.createTypeWithNullability(f.mapType(f.intType, f.charType), true),
+        true);
     f.checkCommonType(f.nullType, f.recordType(ImmutableList.of()),
-        f.recordType(ImmutableList.of()), true);
+        f.typeFactory.createTypeWithNullability(f.recordType(ImmutableList.of()), true),
+        true);
     f.checkCommonType(f.charType, f.mapType(f.intType, f.charType), null, true);
     f.checkCommonType(f.arrayType(f.intType), f.recordType(ImmutableList.of()),
         null, true);
