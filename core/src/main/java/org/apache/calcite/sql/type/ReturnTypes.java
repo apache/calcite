@@ -1332,19 +1332,19 @@ public abstract class ReturnTypes {
 
   /**
    * Same as {@link #DYADIC_STRING_SUM_PRECISION} and using
-   * {@link org.apache.calcite.sql.type.SqlTypeTransforms#TO_NULLABLE},
+   * {@link org.apache.calcite.sql.type.SqlTypeTransforms#FORCE_NULLABLE},
    * {@link org.apache.calcite.sql.type.SqlTypeTransforms#TO_VARYING}.
    */
   public static final SqlReturnTypeInference DYADIC_STRING_SUM_PRECISION_NULLABLE_VARYING =
-      DYADIC_STRING_SUM_PRECISION.andThen(SqlTypeTransforms.TO_NULLABLE)
+      DYADIC_STRING_SUM_PRECISION.andThen(SqlTypeTransforms.FORCE_NULLABLE)
           .andThen(SqlTypeTransforms.TO_VARYING);
 
   /**
    * Same as {@link #DYADIC_STRING_SUM_PRECISION} and using
-   * {@link org.apache.calcite.sql.type.SqlTypeTransforms#TO_NULLABLE}.
+   * {@link org.apache.calcite.sql.type.SqlTypeTransforms#FORCE_NULLABLE}.
    */
   public static final SqlReturnTypeInference DYADIC_STRING_SUM_PRECISION_NULLABLE =
-      DYADIC_STRING_SUM_PRECISION.andThen(SqlTypeTransforms.TO_NULLABLE);
+      DYADIC_STRING_SUM_PRECISION.andThen(SqlTypeTransforms.FORCE_NULLABLE);
 
   /**
    * Type-inference strategy where the expression is assumed to be registered

@@ -691,11 +691,11 @@ class TypeCoercionTest {
   @Test void testBuiltinFunctionCoercion() {
     // concat
     expr("'ab'||'cde'")
-        .columnType("CHAR(5) NOT NULL");
+        .columnType("CHAR(5)");
     expr("null||'cde'")
         .columnType("VARCHAR");
     expr("1||'234'")
-        .columnType("VARCHAR NOT NULL");
+        .columnType("VARCHAR");
     expr("select ^'a'||t1_binary^ from t1")
         .fails("(?s).*Cannot apply.*");
     // smallint int double
