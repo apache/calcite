@@ -196,6 +196,14 @@ public class MysqlSqlDialect extends SqlDialect {
               type.getSqlTypeName(),
               SqlParserPos.ZERO),
           SqlParserPos.ZERO);
+    case UINTEGER:
+    case UBIGINT:
+      return new SqlDataTypeSpec(
+          new SqlAlienSystemTypeNameSpec(
+              "UNSIGNED",
+              type.getSqlTypeName(),
+              SqlParserPos.ZERO),
+          SqlParserPos.ZERO);
     case TIMESTAMP:
       return new SqlDataTypeSpec(
           new SqlAlienSystemTypeNameSpec(
