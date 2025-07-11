@@ -32,12 +32,14 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.SubQueryAliasTrait;
 import org.apache.calcite.plan.SubQueryAliasTraitDef;
+import org.apache.calcite.plan.TableAliasTrait;
 import org.apache.calcite.plan.TableAliasTraitDef;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
@@ -46,6 +48,7 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalIntersect;
@@ -109,7 +112,6 @@ import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.fun.SqlCase;
-import org.apache.calcite.sql.fun.SqlCaseOperator;
 import org.apache.calcite.sql.fun.SqlCountAggFunction;
 import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -351,6 +353,12 @@ public abstract class SqlImplementor {
   public Result setOpToSql(SqlSetOperator operator, RelNode rel) {
     SqlNode node = null;
     for (Ord<RelNode> input : Ord.zip(rel.getInputs())) {
+      Set<String> tableAliases = new HashSet<>();
+      getTableAlias(rel, tableAliases);
+      if (!aliasSet.isEmpty() && !tableAliases.isEmpty()) {
+        aliasSet.removeIf(tableAliases::contains);
+      }
+
       final Result result = visitInput(rel, input.i);
       if (node == null) {
         node = result.asSelect();
@@ -363,6 +371,18 @@ public abstract class SqlImplementor {
     final List<Clause> clauses =
         Expressions.list(Clause.SET_OP);
     return result(node, clauses, rel, null);
+  }
+
+  public static void getTableAlias(RelNode relNode, final Set<String> tableAliases) {
+    relNode.accept(new RelShuttleImpl() {
+      public RelNode visit(TableScan scan) {
+        TableAliasTrait tableAliasTrait = scan.getTraitSet().getTrait(TableAliasTraitDef.instance);
+        if (tableAliasTrait != null) {
+          tableAliases.add(tableAliasTrait.getTableAlias());
+        }
+        return scan;
+      }
+    });
   }
 
   /**
@@ -2165,22 +2185,11 @@ public abstract class SqlImplementor {
 
     private boolean hasAnalyticalFunctionInWhenClauseOfCase(SqlCall call) {
       SqlNode sqlNode = call.operand(0);
-      if (sqlNode instanceof SqlCall) {
-        if (((SqlCall) sqlNode).getOperator() instanceof SqlCaseOperator) {
-          for (SqlNode whenOperand : ((SqlCase) sqlNode).getWhenOperands()) {
-            boolean present;
-            if (whenOperand instanceof SqlIdentifier) {
-              present = false;
-              break;
-            }
-            if (whenOperand instanceof SqlCase) {
-              present = hasAnalyticalFunctionInWhenClauseOfCase((SqlCall) whenOperand);
-            } else {
-              present = hasAnalyticalFunction((SqlBasicCall) whenOperand);
-            }
-            if (present) {
-              return true;
-            }
+      if (sqlNode instanceof SqlCase) {
+        SqlCase caseExpr = (SqlCase) sqlNode;
+        for (SqlNode whenOperand : caseExpr.getWhenOperands()) {
+          if (hasAnalyticalFunctionInOperandList(whenOperand)) {
+            return true;
           }
         }
       }
@@ -2244,6 +2253,21 @@ public abstract class SqlImplementor {
         if (groupByItem instanceof SqlIdentifier
             && columnNames.contains(SqlIdentifier.getString(((SqlIdentifier) groupByItem).names))) {
           return true;
+        }
+      }
+      return false;
+    }
+
+    private boolean hasAnalyticalFunctionInOperandList(SqlNode node) {
+      if (node instanceof SqlCall) {
+        SqlCall call = (SqlCall) node;
+        if (call.getOperator() instanceof SqlOverOperator) {
+          return true;
+        }
+        for (SqlNode operand : call.getOperandList()) {
+          if (hasAnalyticalFunctionInOperandList(operand)) {
+            return true;
+          }
         }
       }
       return false;
@@ -2679,7 +2703,8 @@ public abstract class SqlImplementor {
             for (SqlNode selectNode : selectList.getList()) {
               if (selectNode instanceof SqlBasicCall) {
                 if (grpCallIsAlias(grpCall, (SqlBasicCall) selectNode)
-                    && !grpCallPresentInFinalProjection(grpCall, project)) {
+                    && (isgroupByWithSubQueryAlias(project)
+                    || !grpCallPresentInFinalProjection(grpCall, project))) {
                   return true;
                 }
               }
@@ -2688,6 +2713,10 @@ public abstract class SqlImplementor {
         }
       }
       return false;
+    }
+
+    private boolean isgroupByWithSubQueryAlias(Project project) {
+      return project.getInput().getTraitSet().getTrait(SubQueryAliasTraitDef.instance) != null;
     }
 
     private boolean hasNestedAnalyticalFunctions(Project rel) {

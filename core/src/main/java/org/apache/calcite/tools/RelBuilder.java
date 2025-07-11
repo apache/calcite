@@ -2494,7 +2494,7 @@ public class RelBuilder {
           ImmutableSortedMultiset.copyOf(ImmutableBitSet.COMPARATOR,
               groupSetList);
       if (aggCalls.stream().anyMatch(RelBuilder::isGroupId)
-          /*|| !ImmutableBitSet.ORDERING.isStrictlyOrdered(groupSetMultiset)*/) {
+          || !ImmutableBitSet.ORDERING.isStrictlyOrdered(groupSetMultiset)) {
         return rewriteAggregateWithDuplicateGroupSets(groupSet, groupSetMultiset,
             aggCalls);
       }

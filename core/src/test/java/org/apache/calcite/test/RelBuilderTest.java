@@ -1753,8 +1753,11 @@ public class RelBuilderTest {
                             ImmutableBitSet.of(7))))
             .build();
     final String expected = ""
-        + "LogicalAggregate(group=[{6, 7}], groups=[[{6}, {7}]])\n"
-        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+        + "LogicalUnion(all=[true])\n"
+        + "  LogicalAggregate(group=[{6, 7}], groups=[[{6}, {7}]])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalAggregate(group=[{6, 7}], groups=[[{7}]])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root, hasTree(expected));
   }
 

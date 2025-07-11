@@ -218,9 +218,19 @@ public class FilterExtractInnerJoinRule
    * If an operand(column) is wrapped in a function, for example TRIM(col), CAST(col) etc.,
    * we call the method recursively.*/
   private boolean isOperandIndexLessThanEndIndex(RexNode operand, int endIndex) {
-    if (operand.getClass().equals(RexCall.class)) {
-      return ((RexCall) operand).operands.size() > 0
-          && isOperandIndexLessThanEndIndex(((RexCall) operand).operands.get(0), endIndex);
+    if (operand instanceof RexCall && !((RexCall) operand).operands.isEmpty()) {
+      RexCall call = (RexCall) operand;
+      boolean atLeastOneMatches = false;
+      for (RexNode op : call.operands) {
+        if (op instanceof RexLiteral) {
+          continue;
+        }
+        if (!isOperandIndexLessThanEndIndex(op, endIndex)) {
+          return false;
+        }
+        atLeastOneMatches = true;
+      }
+      return atLeastOneMatches;
     }
     if (operand.getClass().equals(RexInputRef.class)) {
       return ((RexInputRef) operand).getIndex() <= endIndex;

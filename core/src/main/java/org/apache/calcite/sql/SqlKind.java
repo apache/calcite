@@ -480,6 +480,15 @@ public enum SqlKind {
   /** {@code NVL} function (Oracle). */
   NVL,
 
+  /** {@code NVL} function (Redshift). */
+  REDSHIFT_NVL,
+
+  /** {@code CONVERT} function (Redshift). */
+  REDSHIFT_CONVERT,
+
+  /** {@code TRUNC} function (Redshift). */
+  REDSHIFT_TRUNC,
+
   /** {@code NVL} function (Oracle, Vertica and Spark). */
   NVL2,
 
@@ -1372,7 +1381,13 @@ public enum SqlKind {
   /**
    * format standard function.
    */
-  FORMAT;
+  FORMAT,
+
+  /** {@code DATEDIFF} function (Databricks semantics). */
+  DATABRICKS_DATEDIFF,
+
+  /** {@code JSON_EXTRACT_PATH_TEXT} function (Redshift semantics). */
+  REDSHIFT_JSON_EXTRACT_PATH_TEXT;
 
   //~ Static fields/initializers ---------------------------------------------
 

@@ -74,6 +74,7 @@ import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDDAYOFWEEK;
 import static org.apache.calcite.sql.SqlDateTimeFormat.DDYYYYMM;
 import static org.apache.calcite.sql.SqlDateTimeFormat.MMYYYYDD;
+import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDDHH24;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ADD_MONTHS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATEDIFF;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_ADD;
@@ -171,7 +172,7 @@ public class SparkSqlDialect extends SqlDialect {
   private static final Map<SqlDateTimeFormat, String> DATE_TIME_FORMAT_MAP =
       new HashMap<SqlDateTimeFormat, String>() {{
         put(DAYOFMONTH, "dd");
-        put(DAYOFYEAR, "D");
+        put(DAYOFYEAR, "DDD");
         put(NUMERICMONTH, "MM");
         put(ABBREVIATEDMONTH, "MMM");
         put(TIMEOFDAY, "EE MMM dd HH:mm:ss yyyy zz");
@@ -186,6 +187,7 @@ public class SparkSqlDialect extends SqlDialect {
         put(MMDDYY, "MMddyy");
         put(YYYYMM, "yyyyMM");
         put(YYYYMMDD, "yyyyMMdd");
+        put(YYYYMMDDHH24, "yyyyMMddHH");
         put(DDYYYYMM, "ddyyyyMM");
         put(MMYYYYDD, "MMyyyydd");
         put(YYMMDD, "yyMMdd");
@@ -600,6 +602,9 @@ public class SparkSqlDialect extends SqlDialect {
         unparseIntervalOperandCall(call, writer, leftPrec, rightPrec);
       }
       break;
+    case MINUS :
+      unparseMinusOperandCall(call, writer, leftPrec, rightPrec);
+      break;
     default:
       throw new AssertionError(call.operand(1).getKind() + " is not valid");
     }
@@ -619,6 +624,16 @@ public class SparkSqlDialect extends SqlDialect {
     } else {
       operator.unparse(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unparseMinusOperandCall(
+      SqlCall call, SqlWriter writer, int leftPrec, int rightPrec) {
+    writer.print(call.getOperator().toString());
+    writer.print("(");
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.print(",");
+    call.operand(1).unparse(writer, leftPrec, rightPrec);
+    writer.print(")");
   }
 
   private void unparseIntervalOperandCall(
@@ -797,6 +812,10 @@ public class SparkSqlDialect extends SqlDialect {
       } else {
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
+      break;
+    case "CURRENT_CATALOG":
+      SqlWriter.Frame frame = writer.startFunCall("CURRENT_CATALOG");
+      writer.endFunCall(frame);
       break;
     case "CURRENT_TIMESTAMP_TZ":
     case "CURRENT_TIMESTAMP_LTZ":

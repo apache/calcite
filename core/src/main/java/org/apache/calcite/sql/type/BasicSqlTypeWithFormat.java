@@ -26,9 +26,9 @@ public class BasicSqlTypeWithFormat extends BasicSqlType {
   private final String formatValue;
 
   private BasicSqlTypeWithFormat(RelDataTypeSystem typeSystem,
-      SqlTypeName typeName,
+      SqlTypeName typeName, int precision,
       String formatValue) {
-    super(typeSystem, typeName);
+    super(typeSystem, typeName, precision);
     this.formatValue = formatValue;
   }
 
@@ -37,11 +37,10 @@ public class BasicSqlTypeWithFormat extends BasicSqlType {
   }
 
   public static BasicSqlTypeWithFormat from(RelDataTypeSystem relDataTypeSystem,
-      BasicSqlType basicSqlType,
+      BasicSqlType basicSqlType, int precision,
       String format) {
     return new BasicSqlTypeWithFormat(relDataTypeSystem,
-         basicSqlType.typeName,
-         format);
+        basicSqlType.typeName, precision, format);
   }
 
 }
