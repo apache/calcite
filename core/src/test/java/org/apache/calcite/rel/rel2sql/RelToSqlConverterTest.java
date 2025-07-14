@@ -10576,7 +10576,7 @@ class RelToSqlConverterTest {
             + "FROM (SELECT 1 AS \"additional_column\", \"product\".\"product_id\", \"product\".\"product_name\"\n"
             + "FROM \"foodmart\".\"product\"\n"
             + "LEFT JOIN \"foodmart\".\"product\" AS \"product0\" ON \"product\".\"product_id\" = \"product0\".\"product_id\") AS \"t\"\n"
-            + "WHERE \"product_name\" IS NOT NULL AND NOT EXISTS (SELECT *\n"
+            + "WHERE NOT EXISTS (SELECT *\n"
             + "FROM \"foodmart\".\"employee\"\n"
             + "WHERE \"employee_id\" = \"t\".\"additional_column\")";
     sql(sql).ok(expected);
