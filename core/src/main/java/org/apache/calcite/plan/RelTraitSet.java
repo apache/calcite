@@ -653,6 +653,13 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
     return t;
   }
 
+  public <T extends RelTrait> RelTraitSet applyTraitIfAbsent(
+      RelTraitSet traitSet, RelTraitDef<T> traitDef, T trait) {
+    return (trait != null && traitSet.getTrait(traitDef) == null)
+        ? traitSet.plus(trait)
+        : traitSet;
+  }
+
   public RelTraitSet merge(RelTraitSet additionalTraits) {
     return plusAll(additionalTraits.traits);
   }
