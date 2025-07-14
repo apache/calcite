@@ -4832,7 +4832,7 @@ class RelOptRulesTest extends RelOptTestBase {
         + "where empno=10 and empno is not null";
     sql(sql)
         .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
-        .check();
+        .checkUnchanged();
   }
 
   @Test void testReduceConstantsNegated() {

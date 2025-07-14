@@ -318,12 +318,11 @@ public class RelMdPredicates
     final RelNode input = filter.getInput();
     final RexBuilder rexBuilder = filter.getCluster().getRexBuilder();
     final RelOptPredicateList inputInfo = mq.getPulledUpPredicates(input);
-
+    List<RexNode> predicates =
+        RexUtil.retainDeterministic(RelOptUtil.conjunctions(filter.getCondition()));
     return Util.first(inputInfo, RelOptPredicateList.EMPTY)
         .union(rexBuilder,
-            RelOptPredicateList.of(rexBuilder,
-                RexUtil.retainDeterministic(
-                    RelOptUtil.conjunctions(filter.getCondition()))));
+            RelOptPredicateList.of(rexBuilder, predicates));
   }
 
   /**
