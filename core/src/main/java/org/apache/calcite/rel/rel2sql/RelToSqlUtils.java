@@ -28,6 +28,9 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexVisitor;
 import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableSet;
@@ -108,6 +111,23 @@ public class RelToSqlUtils {
 
     public Set<Integer> getRefs() {
       return ImmutableSet.copyOf(refs);
+    }
+  }
+
+  /**
+   * SqlVisitor to collect all the names used in this node.
+   */
+  public static class SqlColumnNameCollector extends SqlBasicVisitor<SqlNode> {
+
+    Set<String> names = new HashSet<>();
+
+    @Override public SqlNode visit(SqlIdentifier id) {
+      names.add(id.names.get(0));
+      return id;
+    }
+
+    public Set<String> getNames() {
+      return ImmutableSet.copyOf(names);
     }
   }
 
