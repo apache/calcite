@@ -70,7 +70,10 @@ public class SplunkPushDownRule
           SqlKind.LIKE,
           SqlKind.AND,
           SqlKind.OR,
-          SqlKind.NOT);
+          SqlKind.NOT,
+          SqlKind.IS_NULL,
+          SqlKind.IS_NOT_NULL,
+          SqlKind.IN);
 
   public static final SplunkPushDownRule PROJECT_ON_FILTER =
       ImmutableSplunkPushDownRule.Config.builder()
@@ -181,6 +184,7 @@ public class SplunkPushDownRule
       if (getFilter(op, operands, buf, topRow.getFieldNames())) {
         filterString = buf.toString();
       } else {
+        LOGGER.debug("Cannot push down filter: {} with operands: {}", op.getKind(), operands.size());
         return; // can't handle
       }
     } else {
@@ -312,6 +316,7 @@ public class SplunkPushDownRule
   private static boolean getFilter(SqlOperator op, List<RexNode> operands,
       StringBuilder s, List<String> fieldNames) {
     if (!valid(op.getKind())) {
+      LOGGER.debug("Unsupported operator: {}", op.getKind());
       return false;
     }
 
@@ -322,25 +327,81 @@ public class SplunkPushDownRule
       s.append(" NOT ");
       break;
     case CAST:
+      // For CAST, just process the first operand (the value being cast)
       return asd(false, operands, s, fieldNames, 0);
     case LIKE:
       like = true;
       break;
+    case IS_NULL:
+      // Handle IS NULL - only process the field operand
+      if (operands.size() != 1) {
+        LOGGER.debug("IS_NULL expects exactly 1 operand, got: {}", operands.size());
+        return false;
+      }
+      if (!asd(false, operands, s, fieldNames, 0)) {
+        return false;
+      }
+      s.append(" IS NULL");
+      return true;
+    case IS_NOT_NULL:
+      // Handle IS NOT NULL - only process the field operand
+      if (operands.size() != 1) {
+        LOGGER.debug("IS_NOT_NULL expects exactly 1 operand, got: {}", operands.size());
+        return false;
+      }
+      if (!asd(false, operands, s, fieldNames, 0)) {
+        return false;
+      }
+      s.append(" IS NOT NULL");
+      return true;
+    case IN:
+      // Handle IN operator
+      if (operands.size() < 2) {
+        LOGGER.debug("IN expects at least 2 operands, got: {}", operands.size());
+        return false;
+      }
+      // First operand is the field
+      if (!asd(false, operands, s, fieldNames, 0)) {
+        return false;
+      }
+      s.append(" IN (");
+      // Remaining operands are the values
+      for (int i = 1; i < operands.size(); i++) {
+        if (i > 1) {
+          s.append(", ");
+        }
+        if (!asd(false, operands, s, fieldNames, i)) {
+          return false;
+        }
+      }
+      s.append(")");
+      return true;
     default:
       break;
     }
 
+    // Process binary operators (EQUALS, LESS_THAN, etc.)
     for (int i = 0; i < operands.size(); i++) {
       if (!asd(like, operands, s, fieldNames, i)) {
         return false;
       }
       if (op instanceof SqlBinaryOperator && i == 0) {
-        s.append(" ").append(op).append(" ");
+        s.append(" ").append(getSplunkOperator(op)).append(" ");
       }
     }
     return true;
   }
 
+  /**
+   * Processes a single operand in a filter expression.
+   *
+   * @param like Whether this is a LIKE operation
+   * @param operands List of all operands
+   * @param s StringBuilder to append to
+   * @param fieldNames List of field names
+   * @param i Index of current operand
+   * @return true if operand can be handled, false otherwise
+   */
   private static boolean asd(boolean like, List<RexNode> operands, StringBuilder s,
       List<String> fieldNames, int i) {
     RexNode operand = operands.get(i);
@@ -359,18 +420,25 @@ public class SplunkPushDownRule
       s.append(")");
     } else {
       if (operand instanceof RexInputRef) {
-        if (i != 0) {
+        // Field reference
+        int fieldIndex = ((RexInputRef) operand).getIndex();
+        if (fieldIndex >= fieldNames.size()) {
+          LOGGER.debug("Field index {} out of bounds for field list size: {}", fieldIndex, fieldNames.size());
           return false;
         }
-        int fieldIndex = ((RexInputRef) operand).getIndex();
         String name = fieldNames.get(fieldIndex);
         s.append(name);
-      } else { // RexLiteral
+      } else if (operand instanceof RexLiteral) {
+        // Literal value
         String tmp = toString(like, (RexLiteral) operand);
         if (tmp == null) {
+          LOGGER.debug("Cannot convert literal to string: {}", operand);
           return false;
         }
         s.append(tmp);
+      } else {
+        LOGGER.debug("Unsupported operand type: {}", operand.getClass().getSimpleName());
+        return false;
       }
     }
     return true;
@@ -380,11 +448,22 @@ public class SplunkPushDownRule
     return SUPPORTED_OPS.contains(kind);
   }
 
+  /**
+   * Converts SQL operators to Splunk-compatible operators.
+   */
   @SuppressWarnings("unused")
   private static String toString(SqlOperator op) {
-    if (op.equals(SqlStdOperatorTable.LIKE)) {
-      return SqlStdOperatorTable.EQUALS.toString();
-    } else if (op.equals(SqlStdOperatorTable.NOT_EQUALS)) {
+    if (op.equals(SqlStdOperatorTable.NOT_EQUALS)) {
+      return "!=";
+    }
+    return op.toString();
+  }
+
+  /**
+   * Gets the Splunk-compatible operator string.
+   */
+  private static String getSplunkOperator(SqlOperator op) {
+    if (op.equals(SqlStdOperatorTable.NOT_EQUALS)) {
       return "!=";
     }
     return op.toString();
@@ -415,18 +494,63 @@ public class SplunkPushDownRule
     return str;
   }
 
+  /**
+   * Converts a RexLiteral to a string representation suitable for Splunk queries.
+   * Handles nullable types and all SQL data types.
+   */
   private static String toString(boolean like, RexLiteral literal) {
     String value = null;
     SqlTypeName litSqlType = literal.getTypeName();
+
     if (SqlTypeName.NUMERIC_TYPES.contains(litSqlType)) {
-      value = literal.getValue().toString();
-    } else if (litSqlType == SqlTypeName.CHAR) {
-      value = ((NlsString) literal.getValue()).getValue();
+      // Handle all numeric types: INTEGER, BIGINT, DECIMAL, DOUBLE, FLOAT, etc.
+      Object literalValue = literal.getValue();
+      if (literalValue != null) {
+        value = literalValue.toString();
+      }
+    } else if (SqlTypeName.STRING_TYPES.contains(litSqlType)) {
+      // Handle all string types: CHAR, VARCHAR, LONGVARCHAR, CLOB, NCHAR, NVARCHAR, LONGNVARCHAR, NCLOB
+      Object literalValue = literal.getValue();
+      if (literalValue instanceof NlsString) {
+        value = ((NlsString) literalValue).getValue();
+      } else if (literalValue != null) {
+        value = literalValue.toString();
+      } else {
+        return null; // null literal value
+      }
       if (like) {
         value = value.replace("%", "*");
       }
       value = searchEscape(value);
+    } else if (SqlTypeName.DATETIME_TYPES.contains(litSqlType)) {
+      // Handle DATE, TIME, TIMESTAMP, etc.
+      Object literalValue = literal.getValue();
+      if (literalValue != null) {
+        value = literalValue.toString();
+        value = searchEscape(value);
+      }
+    } else if (litSqlType == SqlTypeName.BOOLEAN) {
+      // Handle BOOLEAN type
+      Object literalValue = literal.getValue();
+      if (literalValue != null) {
+        value = literalValue.toString();
+      }
+    } else if (SqlTypeName.BINARY_TYPES.contains(litSqlType)) {
+      // Handle BINARY, VARBINARY - might need special encoding for Splunk
+      Object literalValue = literal.getValue();
+      if (literalValue != null) {
+        value = literalValue.toString();
+        value = searchEscape(value);
+      }
+    } else {
+      // Handle any other types by converting to string
+      Object literalValue = literal.getValue();
+      if (literalValue != null) {
+        value = literalValue.toString();
+        value = searchEscape(value);
+      }
     }
+
     return value;
   }
 
