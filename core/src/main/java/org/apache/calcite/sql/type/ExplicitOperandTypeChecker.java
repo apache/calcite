@@ -42,6 +42,14 @@ public class ExplicitOperandTypeChecker implements SqlOperandTypeChecker {
   @Override public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
+    if (!type.isStruct()) {
+      if (throwOnFailure) {
+        throw callBinding.newValidationSignatureError();
+      } else {
+        return false;
+      }
+    }
+
     List<SqlTypeFamily> families = new ArrayList<>();
 
     List<RelDataTypeField> fieldList = type.getFieldList();
@@ -62,10 +70,30 @@ public class ExplicitOperandTypeChecker implements SqlOperandTypeChecker {
   }
 
   @Override public SqlOperandCountRange getOperandCountRange() {
-    return SqlOperandCountRanges.of(type.getFieldCount());
+    if (type.isStruct()) {
+      return SqlOperandCountRanges.of(type.getFieldCount());
+    }
+    // This is a type constructor for a scalar type, which is illegal (e.g. INT64(...))
+    // (the validator will accept this for type aliases).
+    // We pretend here it's OK, but we throw in checkOperandTypes.
+    return SqlOperandCountRanges.between(0, -1);
   }
 
   @Override public String getAllowedSignatures(SqlOperator op, String opName) {
-    return "<TYPE> " + opName + " <TYPE>";
+    StringBuilder builder = new StringBuilder();
+    builder.append(opName);
+    if (type.isStruct()) {
+      builder.append("(");
+      boolean first = true;
+      for (RelDataTypeField field : type.getFieldList()) {
+        if (!first) {
+          builder.append(", ");
+        }
+        first = false;
+        builder.append(field.getType());
+      }
+      builder.append(")");
+    }
+    return builder.toString();
   }
 }

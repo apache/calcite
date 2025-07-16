@@ -110,6 +110,10 @@ class BabelQuidemTest extends QuidemTest {
               .with(
                   ConnectionFactories.addType("DATETIME", typeFactory ->
                       typeFactory.createSqlType(SqlTypeName.TIMESTAMP)))
+              // More type aliases could be added to emulate Big Query more precisely
+              .with(
+                  ConnectionFactories.addType("INT64", typeFactory ->
+                      typeFactory.createSqlType(SqlTypeName.BIGINT)))
               .with(
                   ConnectionFactories.addType("TIMESTAMP", typeFactory ->
                       typeFactory.createSqlType(
