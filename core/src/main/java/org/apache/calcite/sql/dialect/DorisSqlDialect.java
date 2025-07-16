@@ -55,15 +55,6 @@ public class DorisSqlDialect extends StarRocksSqlDialect {
               timeUnitNode.getParserPosition());
       SqlFloorFunction.unparseDatetimeFunction(writer, newCall, "DATE_TRUNC", true);
       break;
-    case EXTRACT:
-      writer.print(call.getOperator().getName());
-      final SqlWriter.Frame extractFrame = writer.startList("(", ")");
-      call.operand(0).unparse(writer, 0, 0);
-      writer.sep("FROM");
-      String value = ((SqlLiteral) call.operand(1)).toValue();
-      writer.print("'" + value + "'");
-      writer.endList(extractFrame);
-      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
       break;
