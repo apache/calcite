@@ -336,6 +336,131 @@ public class CimModelBuilder {
     return new CimSchemaResult(schema, fieldMapping, searchString);
   }
 
+  /**
+   * Web CIM model schema with field mapping - FIXED with nullable fields.
+   */
+  private static CimSchemaResult buildWebSchemaWithMapping(RelDataTypeFactory typeFactory) {
+    RelDataType schema = typeFactory.builder()
+        // Base Splunk fields - index can be nullable in data models
+        .add("_time", typeFactory.createSqlType(SqlTypeName.TIMESTAMP))
+        .add("host", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("source", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("sourcetype", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("index", createNullableType(typeFactory, SqlTypeName.VARCHAR))
+
+        // Web-specific fields - ALL NULLABLE for sparse web log data
+        .add("action", createNullableType(typeFactory, SqlTypeName.VARCHAR))
+        .add("app", createNullableType(typeFactory, SqlTypeName.VARCHAR))
+        .add("bytes", createNullableType(typeFactory, SqlTypeName.BIGINT))
+        .add("bytes_in", createNullableType(typeFactory, SqlTypeName.BIGINT))
+        .add("bytes_out", createNullableType(typeFactory, SqlTypeName.BIGINT))
+        .add("cookie", createNullableType(typeFactory, SqlTypeName.VARCHAR))
+        .add("dest", createNullableType(typeFactory, SqlTypeName.VARCHAR))
+        .add("dest_ip", createNullableType(typeFactory, SqlTypeName.VARCHAR))
+        .add("dest_port", createNullableType(typeFactory, SqlTypeName.INTEGER))
+        .add("http_content_type", createNullableType(typeFactory, SqlTypeName.VARCHAR))
+        .add("http_method", createNullableType(typeFactory, SqlTypeName.VARCHAR))
+        .add("http_referrer", createNullableType(typeFactory, SqlTypeName.VARCHAR))
+        .add("http_user_agent", createNullableType(typeFactory, SqlTypeName.VARCHAR))
+        .add("src", createNullableType(typeFactory, SqlTypeName.VARCHAR))
+        .add("src_ip", createNullableType(typeFactory, SqlTypeName.VARCHAR))
+        .add("src_port", createNullableType(typeFactory, SqlTypeName.INTEGER))
+        .add("status", createNullableType(typeFactory, SqlTypeName.INTEGER))
+        .add("uri", createNullableType(typeFactory, SqlTypeName.VARCHAR))
+        .add("uri_path", createNullableType(typeFactory, SqlTypeName.VARCHAR))
+        .add("uri_query", createNullableType(typeFactory, SqlTypeName.VARCHAR))
+        .add("url", createNullableType(typeFactory, SqlTypeName.VARCHAR))
+        .add("url_domain", createNullableType(typeFactory, SqlTypeName.VARCHAR))
+        .add("user", createNullableType(typeFactory, SqlTypeName.VARCHAR))
+
+        .add("_extra", createNullableType(typeFactory, SqlTypeName.ANY))
+        .build();
+
+    Map<String, String> fieldMapping = new HashMap<>();
+    fieldMapping.put("action", "Web.action");
+    fieldMapping.put("app", "Web.app");
+    fieldMapping.put("bytes", "Web.bytes");
+    fieldMapping.put("bytes_in", "Web.bytes_in");
+    fieldMapping.put("bytes_out", "Web.bytes_out");
+    fieldMapping.put("cookie", "Web.cookie");
+    fieldMapping.put("dest", "Web.dest");
+    fieldMapping.put("dest_ip", "Web.dest_ip");
+    fieldMapping.put("dest_port", "Web.dest_port");
+    fieldMapping.put("http_content_type", "Web.http_content_type");
+    fieldMapping.put("http_method", "Web.http_method");
+    fieldMapping.put("http_referrer", "Web.http_referrer");
+    fieldMapping.put("http_user_agent", "Web.http_user_agent");
+    fieldMapping.put("src", "Web.src");
+    fieldMapping.put("src_ip", "Web.src_ip");
+    fieldMapping.put("src_port", "Web.src_port");
+    fieldMapping.put("status", "Web.status");
+    fieldMapping.put("uri", "Web.uri");
+    fieldMapping.put("uri_path", "Web.uri_path");
+    fieldMapping.put("uri_query", "Web.uri_query");
+    fieldMapping.put("url", "Web.url");
+    fieldMapping.put("url_domain", "Web.url_domain");
+    fieldMapping.put("user", "Web.user");
+
+    String searchString = "| datamodel Web Web search";
+    return new CimSchemaResult(schema, fieldMapping, searchString);
+  }
+
+  /**
+   * Network Sessions CIM model schema - DHCP, VPN, and proxy sessions
+   */
+  private static CimSchemaResult buildNetworkSessionsSchemaWithMapping(RelDataTypeFactory typeFactory) {
+    RelDataType schema = typeFactory.builder()
+        // Base fields
+        .add("_time", typeFactory.createSqlType(SqlTypeName.TIMESTAMP))
+        .add("host", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("source", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("sourcetype", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("index", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+
+        // Network Sessions-specific fields
+        .add("bytes_in", typeFactory.createSqlType(SqlTypeName.BIGINT))
+        .add("bytes_out", typeFactory.createSqlType(SqlTypeName.BIGINT))
+        .add("dest", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("dest_ip", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("dest_port", typeFactory.createSqlType(SqlTypeName.INTEGER))
+        .add("duration", typeFactory.createSqlType(SqlTypeName.DOUBLE))
+        .add("lease_duration", typeFactory.createSqlType(SqlTypeName.INTEGER))
+        .add("packets_in", typeFactory.createSqlType(SqlTypeName.BIGINT))
+        .add("packets_out", typeFactory.createSqlType(SqlTypeName.BIGINT))
+        .add("session_id", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("signature", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("src", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("src_ip", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("src_port", typeFactory.createSqlType(SqlTypeName.INTEGER))
+        .add("transport", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("user", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("vendor_class", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+
+        .add("_extra", typeFactory.createSqlType(SqlTypeName.ANY))
+        .build();
+
+    Map<String, String> fieldMapping = new HashMap<>();
+    fieldMapping.put("bytes_in", "NetworkSessions.bytes_in");
+    fieldMapping.put("bytes_out", "NetworkSessions.bytes_out");
+    fieldMapping.put("dest", "NetworkSessions.dest");
+    fieldMapping.put("dest_ip", "NetworkSessions.dest_ip");
+    fieldMapping.put("dest_port", "NetworkSessions.dest_port");
+    fieldMapping.put("duration", "NetworkSessions.duration");
+    fieldMapping.put("lease_duration", "NetworkSessions.lease_duration");
+    fieldMapping.put("packets_in", "NetworkSessions.packets_in");
+    fieldMapping.put("packets_out", "NetworkSessions.packets_out");
+    fieldMapping.put("session_id", "NetworkSessions.session_id");
+    fieldMapping.put("signature", "NetworkSessions.signature");
+    fieldMapping.put("src", "NetworkSessions.src");
+    fieldMapping.put("src_ip", "NetworkSessions.src_ip");
+    fieldMapping.put("src_port", "NetworkSessions.src_port");
+    fieldMapping.put("transport", "NetworkSessions.transport");
+    fieldMapping.put("user", "NetworkSessions.user");
+    fieldMapping.put("vendor_class", "NetworkSessions.vendor_class");
+
+    String searchString = "| datamodel Network_Sessions All_Sessions search";
+    return new CimSchemaResult(schema, fieldMapping, searchString);
+  }
 
   /**
    * Network Traffic CIM model schema with field mapping.
@@ -400,45 +525,239 @@ public class CimModelBuilder {
     return new CimSchemaResult(schema, fieldMapping, searchString);
   }
 
-
   /**
-   * Web CIM model schema with field mapping - FIXED with nullable fields.
+   * Performance CIM model schema - System performance metrics
    */
-  private static CimSchemaResult buildWebSchemaWithMapping(RelDataTypeFactory typeFactory) {
+  private static CimSchemaResult buildPerformanceSchemaWithMapping(RelDataTypeFactory typeFactory) {
     RelDataType schema = typeFactory.builder()
-        // Base Splunk fields - index can be nullable in data models
+        // Base fields
         .add("_time", typeFactory.createSqlType(SqlTypeName.TIMESTAMP))
         .add("host", typeFactory.createSqlType(SqlTypeName.VARCHAR))
         .add("source", typeFactory.createSqlType(SqlTypeName.VARCHAR))
         .add("sourcetype", typeFactory.createSqlType(SqlTypeName.VARCHAR))
-        .add("index", createNullableType(typeFactory, SqlTypeName.VARCHAR))
+        .add("index", typeFactory.createSqlType(SqlTypeName.VARCHAR))
 
-        // Web-specific fields - ALL NULLABLE for sparse web log data
-        .add("action", createNullableType(typeFactory, SqlTypeName.VARCHAR))
-        .add("app", createNullableType(typeFactory, SqlTypeName.VARCHAR))
-        .add("bytes", createNullableType(typeFactory, SqlTypeName.BIGINT))
-        .add("bytes_in", createNullableType(typeFactory, SqlTypeName.BIGINT))
-        .add("bytes_out", createNullableType(typeFactory, SqlTypeName.BIGINT))
-        .add("cookie", createNullableType(typeFactory, SqlTypeName.VARCHAR))
-        .add("dest", createNullableType(typeFactory, SqlTypeName.VARCHAR))
-        .add("dest_ip", createNullableType(typeFactory, SqlTypeName.VARCHAR))
-        .add("dest_port", createNullableType(typeFactory, SqlTypeName.INTEGER))
-        .add("http_content_type", createNullableType(typeFactory, SqlTypeName.VARCHAR))
-        .add("http_method", createNullableType(typeFactory, SqlTypeName.VARCHAR))
-        .add("http_referrer", createNullableType(typeFactory, SqlTypeName.VARCHAR))
-        .add("http_user_agent", createNullableType(typeFactory, SqlTypeName.VARCHAR))
-        .add("src", createNullableType(typeFactory, SqlTypeName.VARCHAR))
-        .add("src_ip", createNullableType(typeFactory, SqlTypeName.VARCHAR))
-        .add("src_port", createNullableType(typeFactory, SqlTypeName.INTEGER))
-        .add("status", createNullableType(typeFactory, SqlTypeName.INTEGER))
-        .add("uri", createNullableType(typeFactory, SqlTypeName.VARCHAR))
-        .add("uri_path", createNullableType(typeFactory, SqlTypeName.VARCHAR))
-        .add("uri_query", createNullableType(typeFactory, SqlTypeName.VARCHAR))
-        .add("url", createNullableType(typeFactory, SqlTypeName.VARCHAR))
-        .add("url_domain", createNullableType(typeFactory, SqlTypeName.VARCHAR))
-        .add("user", createNullableType(typeFactory, SqlTypeName.VARCHAR))
+        // Performance-specific fields
+        .add("cpu_load_percent", typeFactory.createSqlType(SqlTypeName.DOUBLE))
+        .add("dest", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("mem", typeFactory.createSqlType(SqlTypeName.BIGINT))
+        .add("mem_used", typeFactory.createSqlType(SqlTypeName.BIGINT))
+        .add("thruput", typeFactory.createSqlType(SqlTypeName.DOUBLE))
 
-        .add("_extra", createNullableType(typeFactory, SqlTypeName.ANY))
+        .add("_extra", typeFactory.createSqlType(SqlTypeName.ANY))
+        .build();
+
+    Map<String, String> fieldMapping = new HashMap<>();
+    fieldMapping.put("cpu_load_percent", "Performance.cpu_load_percent");
+    fieldMapping.put("dest", "Performance.dest");
+    fieldMapping.put("mem", "Performance.mem");
+    fieldMapping.put("mem_used", "Performance.mem_used");
+    fieldMapping.put("thruput", "Performance.thruput");
+
+    String searchString = "| datamodel Performance Performance search";
+    return new CimSchemaResult(schema, fieldMapping, searchString);
+  }
+
+  /**
+   * Splunk Audit Logs CIM model schema - Splunk internal auditing
+   */
+  private static CimSchemaResult buildSplunkAuditLogsSchemaWithMapping(RelDataTypeFactory typeFactory) {
+    RelDataType schema = typeFactory.builder()
+        // Base fields
+        .add("_time", typeFactory.createSqlType(SqlTypeName.TIMESTAMP))
+        .add("host", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("source", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("sourcetype", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("index", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+
+        // Splunk Audit-specific fields
+        .add("action", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("info", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("search", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("search_id", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("user", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+
+        .add("_extra", typeFactory.createSqlType(SqlTypeName.ANY))
+        .build();
+
+    Map<String, String> fieldMapping = new HashMap<>();
+    fieldMapping.put("action", "SplunkAudit.action");
+    fieldMapping.put("info", "SplunkAudit.info");
+    fieldMapping.put("search", "SplunkAudit.search");
+    fieldMapping.put("search_id", "SplunkAudit.search_id");
+    fieldMapping.put("user", "SplunkAudit.user");
+
+    String searchString = "| datamodel Splunk_Audit Splunk_Audit search";
+    return new CimSchemaResult(schema, fieldMapping, searchString);
+  }
+
+  /**
+   * Ticket Management CIM model schema - ITIL ticketing systems
+   */
+  private static CimSchemaResult buildTicketManagementSchemaWithMapping(RelDataTypeFactory typeFactory) {
+    RelDataType schema = typeFactory.builder()
+        // Base fields
+        .add("_time", typeFactory.createSqlType(SqlTypeName.TIMESTAMP))
+        .add("host", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("source", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("sourcetype", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("index", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+
+        // Ticket Management-specific fields
+        .add("action", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("category", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("dest", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("priority", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("severity", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("status", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("ticket_id", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("user", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("vendor_product", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+
+        .add("_extra", typeFactory.createSqlType(SqlTypeName.ANY))
+        .build();
+
+    Map<String, String> fieldMapping = new HashMap<>();
+    fieldMapping.put("action", "TicketManagement.action");
+    fieldMapping.put("category", "TicketManagement.category");
+    fieldMapping.put("dest", "TicketManagement.dest");
+    fieldMapping.put("priority", "TicketManagement.priority");
+    fieldMapping.put("severity", "TicketManagement.severity");
+    fieldMapping.put("status", "TicketManagement.status");
+    fieldMapping.put("ticket_id", "TicketManagement.ticket_id");
+    fieldMapping.put("user", "TicketManagement.user");
+    fieldMapping.put("vendor_product", "TicketManagement.vendor_product");
+
+    String searchString = "| datamodel Ticket_Management Ticket_Management search";
+    return new CimSchemaResult(schema, fieldMapping, searchString);
+  }
+
+  /**
+   * Updates CIM model schema - Patch management events
+   */
+  private static CimSchemaResult buildUpdatesSchemaWithMapping(RelDataTypeFactory typeFactory) {
+    RelDataType schema = typeFactory.builder()
+        // Base fields
+        .add("_time", typeFactory.createSqlType(SqlTypeName.TIMESTAMP))
+        .add("host", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("source", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("sourcetype", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("index", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+
+        // Updates-specific fields
+        .add("category", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("dest", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("file_hash", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("file_name", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("file_size", typeFactory.createSqlType(SqlTypeName.BIGINT))
+        .add("kb", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("severity", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("signature", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("status", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("update_name", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("user", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("vendor_product", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+
+        .add("_extra", typeFactory.createSqlType(SqlTypeName.ANY))
+        .build();
+
+    Map<String, String> fieldMapping = new HashMap<>();
+    fieldMapping.put("category", "Updates.category");
+    fieldMapping.put("dest", "Updates.dest");
+    fieldMapping.put("file_hash", "Updates.file_hash");
+    fieldMapping.put("file_name", "Updates.file_name");
+    fieldMapping.put("file_size", "Updates.file_size");
+    fieldMapping.put("kb", "Updates.kb");
+    fieldMapping.put("severity", "Updates.severity");
+    fieldMapping.put("signature", "Updates.signature");
+    fieldMapping.put("status", "Updates.status");
+    fieldMapping.put("update_name", "Updates.update_name");
+    fieldMapping.put("user", "Updates.user");
+    fieldMapping.put("vendor_product", "Updates.vendor_product");
+
+    String searchString = "| datamodel Updates Updates search";
+    return new CimSchemaResult(schema, fieldMapping, searchString);
+  }
+
+  /**
+   * Vulnerabilities CIM model schema - Vulnerability scan results
+   */
+  private static CimSchemaResult buildVulnerabilitiesSchemaWithMapping(RelDataTypeFactory typeFactory) {
+    RelDataType schema = typeFactory.builder()
+        // Base fields
+        .add("_time", typeFactory.createSqlType(SqlTypeName.TIMESTAMP))
+        .add("host", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("source", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("sourcetype", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("index", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+
+        // Vulnerabilities-specific fields
+        .add("category", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("cve", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("cvss", typeFactory.createSqlType(SqlTypeName.DOUBLE))
+        .add("dest", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("dest_port", typeFactory.createSqlType(SqlTypeName.INTEGER))
+        .add("severity", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("signature", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("signature_id", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("vendor_product", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+
+        .add("_extra", typeFactory.createSqlType(SqlTypeName.ANY))
+        .build();
+
+    Map<String, String> fieldMapping = new HashMap<>();
+    fieldMapping.put("category", "Vulnerabilities.category");
+    fieldMapping.put("cve", "Vulnerabilities.cve");
+    fieldMapping.put("cvss", "Vulnerabilities.cvss");
+    fieldMapping.put("dest", "Vulnerabilities.dest");
+    fieldMapping.put("dest_port", "Vulnerabilities.dest_port");
+    fieldMapping.put("severity", "Vulnerabilities.severity");
+    fieldMapping.put("signature", "Vulnerabilities.signature");
+    fieldMapping.put("signature_id", "Vulnerabilities.signature_id");
+    fieldMapping.put("vendor_product", "Vulnerabilities.vendor_product");
+
+    String searchString = "| datamodel Vulnerabilities Vulnerabilities search";
+    return new CimSchemaResult(schema, fieldMapping, searchString);
+  }
+
+  /**
+   * Web CIM model schema with field mapping.
+   */
+  private static CimSchemaResult buildWebSchemaWithMapping(RelDataTypeFactory typeFactory) {
+    RelDataType schema = typeFactory.builder()
+        // Base fields
+        .add("_time", typeFactory.createSqlType(SqlTypeName.TIMESTAMP))
+        .add("host", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("source", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("sourcetype", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("index", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+
+        // Web-specific fields
+        .add("action", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("app", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("bytes", typeFactory.createSqlType(SqlTypeName.BIGINT))
+        .add("bytes_in", typeFactory.createSqlType(SqlTypeName.BIGINT))
+        .add("bytes_out", typeFactory.createSqlType(SqlTypeName.BIGINT))
+        .add("cookie", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("dest", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("dest_ip", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("dest_port", typeFactory.createSqlType(SqlTypeName.INTEGER))
+        .add("http_content_type", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("http_method", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("http_referrer", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("http_user_agent", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("src", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("src_ip", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("src_port", typeFactory.createSqlType(SqlTypeName.INTEGER))
+        .add("status", typeFactory.createSqlType(SqlTypeName.INTEGER))
+        .add("uri", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("uri_path", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("uri_query", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("url", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("url_domain", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("user", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+
+        .add("_extra", typeFactory.createSqlType(SqlTypeName.ANY))
         .build();
 
     Map<String, String> fieldMapping = new HashMap<>();
