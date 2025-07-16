@@ -136,6 +136,28 @@ public class StarRocksSqlDialect extends MysqlSqlDialect {
     case TRIM:
       unparseHiveTrim(writer, call, leftPrec, rightPrec);
       break;
+    case EXTRACT:
+      writer.print(call.getOperator().getName());
+      final SqlWriter.Frame extractFrame = writer.startList("(", ")");
+      SqlLiteral node = call.operand(0);
+      TimeUnitRange unit = node.getValueAs(TimeUnitRange.class);
+      String funName;
+      switch (unit) {
+      case DOW:
+        funName = "DAYOFWEEK";
+        break;
+      case DOY:
+        funName = "DAYOFYEAR";
+        break;
+      default:
+        funName = unit.name();
+      }
+      writer.print(funName);
+      writer.print(" FROM ");
+      String value = ((SqlLiteral) call.operand(1)).toValue();
+      writer.print("'" + value + "'");
+      writer.endList(extractFrame);
+      break;
     case FLOOR:
       if (call.operandCount() != 2) {
         super.unparseCall(writer, call, leftPrec, rightPrec);
