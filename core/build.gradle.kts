@@ -89,7 +89,6 @@ dependencies {
     testPostgresql("org.postgresql:postgresql")
 
     testImplementation(project(":testkit"))
-    testImplementation("commons-lang:commons-lang")
     testImplementation("net.bytebuddy:byte-buddy")
     testImplementation("net.hydromatic:foodmart-queries")
     testImplementation("net.hydromatic:quidem")
