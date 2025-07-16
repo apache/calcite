@@ -60,8 +60,8 @@ import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.codec.language.Soundex;
-import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.math3.util.CombinatoricsUtils;
+import org.apache.commons.text.StringEscapeUtils;
 import org.apache.commons.text.similarity.LevenshteinDistance;
 
 import com.google.common.base.Splitter;
@@ -6027,7 +6027,7 @@ public class SqlFunctions {
       return s.replace(search, replacement);
     }
     // for MSSQL's REPLACE function, search pattern is case-insensitive during matching
-    return org.apache.commons.lang3.StringUtils.replaceIgnoreCase(s, search, replacement);
+    return org.apache.commons.lang3.Strings.CI.replace(s, search, replacement);
   }
 
   /** Helper for "array element reference". Caller has already ensured that
