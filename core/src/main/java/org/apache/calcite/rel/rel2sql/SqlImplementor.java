@@ -2702,7 +2702,8 @@ public abstract class SqlImplementor {
             for (SqlNode selectNode : selectList.getList()) {
               if (selectNode instanceof SqlBasicCall) {
                 if (grpCallIsAlias(grpCall, (SqlBasicCall) selectNode)
-                    && !grpCallPresentInFinalProjection(grpCall, project)) {
+                    && (isgroupByWithSubQueryAlias(project)
+                    || !grpCallPresentInFinalProjection(grpCall, project))) {
                   return true;
                 }
               }
@@ -2711,6 +2712,10 @@ public abstract class SqlImplementor {
         }
       }
       return false;
+    }
+
+    private boolean isgroupByWithSubQueryAlias(Project project) {
+      return project.getInput().getTraitSet().getTrait(SubQueryAliasTraitDef.instance) != null;
     }
 
     private boolean hasNestedAnalyticalFunctions(Project rel) {
