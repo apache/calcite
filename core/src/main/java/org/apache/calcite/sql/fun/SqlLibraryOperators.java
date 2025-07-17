@@ -421,7 +421,7 @@ public abstract class SqlLibraryOperators {
   /** Generic "SUBSTR(string, position [, substringLength ])" function. */
   private static final SqlBasicFunction SUBSTR =
       SqlBasicFunction.create("SUBSTR", ReturnTypes.ARG0_NULLABLE_VARYING,
-          OperandTypes.STRING_INTEGER_OPTIONAL_INTEGER,
+          OperandTypes.STRING_INTEGER_OPTIONAL_INTEGER_OPTIONAL_STRING,
           SqlFunctionCategory.STRING);
 
   /** The "ENDS_WITH(value1, value2)" function (BigQuery, PostgreSQL). */
