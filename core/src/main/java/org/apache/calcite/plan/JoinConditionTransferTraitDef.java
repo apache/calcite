@@ -37,7 +37,7 @@ import org.apache.calcite.rel.RelNode;
  */
 public class JoinConditionTransferTraitDef extends RelTraitDef<JoinConditionTransferTrait> {
 
-  public static JoinConditionTransferTraitDef instance = new JoinConditionTransferTraitDef();
+  public static final JoinConditionTransferTraitDef INSTANCE = new JoinConditionTransferTraitDef();
 
   @Override public Class<JoinConditionTransferTrait> getTraitClass() {
     return JoinConditionTransferTrait.class;
@@ -60,8 +60,6 @@ public class JoinConditionTransferTraitDef extends RelTraitDef<JoinConditionTran
   }
 
   @Override public JoinConditionTransferTrait getDefault() {
-/*    throw new UnsupportedOperationException("Default implementation not "
-        + "supported for JoinConditionTransferTrait");*/
     return JoinConditionTransferTrait.EMPTY;
   }
 

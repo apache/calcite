@@ -858,7 +858,7 @@ public class JdbcTest {
     CalciteAssert.hr()
         .query(sql)
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner ->
-        planner.addRelTraitDef(JoinConditionTransferTraitDef.instance))
+        planner.addRelTraitDef(JoinConditionTransferTraitDef.INSTANCE))
         .returnsUnordered("empid=100",
             "empid=200",
             "empid=150");

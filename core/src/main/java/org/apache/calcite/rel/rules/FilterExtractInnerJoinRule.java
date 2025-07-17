@@ -228,7 +228,7 @@ public class FilterExtractInnerJoinRule
       for (RexNode op : call.operands) {
         if (op instanceof RexLiteral) {
           JoinConditionTransferTrait joinConditionTransferTrait =
-              filterTraitSet.getTrait(JoinConditionTransferTraitDef.instance);
+              filterTraitSet.getTrait(JoinConditionTransferTraitDef.INSTANCE);
           if (joinConditionTransferTrait != null && joinConditionTransferTrait.isJoinConditionMovedToFilter()) {
             atLeastOneMatches = true;
           }

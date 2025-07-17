@@ -21,12 +21,6 @@ package org.apache.calcite.plan;
  * whether join conditions in a relational expression have been pushed down
  * and moved into a filter clause.
  *
- *
- * <p>This trait helps during query optimization by marking a relational node
- * with a flag indicating if such a transformation has occurred. It is primarily
- * informational and is not intended for transformation or conversion between traits.
- * </p>
- *
  * <p>The {@code joinConditionMovedToFilter} flag is the key property, which determines
  * if the join condition has been relocated to a filter.</p>
  *
@@ -39,7 +33,6 @@ public class JoinConditionTransferTrait implements RelTrait {
 
   public static final JoinConditionTransferTrait EMPTY = new JoinConditionTransferTrait(false);
 
-
   public JoinConditionTransferTrait(boolean joinConditionMovedToFilter) {
     this.joinConditionMovedToFilter = joinConditionMovedToFilter;
   }
@@ -49,7 +42,7 @@ public class JoinConditionTransferTrait implements RelTrait {
   }
 
   @Override public RelTraitDef<JoinConditionTransferTrait> getTraitDef() {
-    return JoinConditionTransferTraitDef.instance;
+    return JoinConditionTransferTraitDef.INSTANCE;
   }
 
   @Override public boolean satisfies(RelTrait trait) {
