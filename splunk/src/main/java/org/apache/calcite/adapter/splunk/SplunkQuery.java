@@ -262,6 +262,10 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
         // Convert types as needed - most should already be correct from JSON
         Object[] convertedRow = convertRowWithFieldMapping(inputRow, schema, queryFieldList);
 
+        if (convertedRow.length == 1) {
+          return convertedRow[0];
+        }
+
         if (rowCount <= 3) {
           LOGGER.debug("  Post-conversion:");
           for (int i = 0; i < Math.min(convertedRow.length, queryFieldList.size()); i++) {

@@ -35,101 +35,83 @@ import java.util.regex.Pattern;
 /**
  * Utility class for converting values from Splunk JSON to appropriate Java types
  * based on the expected schema data types.
- *
+ * <p>
  * Optimized for ISO timestamp strings from Splunk.
  */
 public class SplunkDataConverter {
   private static final Logger LOGGER = LoggerFactory.getLogger(SplunkDataConverter.class);
 
-  // ISO 8601 timestamp patterns (most common from Splunk)
-  private static final DateTimeFormatter[] ISO_FORMATTERS = {
-      DateTimeFormatter.ISO_INSTANT,                          // 2025-06-07T14:07:02.975Z
-      DateTimeFormatter.ISO_OFFSET_DATE_TIME,                 // 2025-06-07T14:07:02.975+00:00
-      DateTimeFormatter.ISO_LOCAL_DATE_TIME,                  // 2025-06-07T14:07:02.975
-      DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'"), // 2025-06-07T14:07:02Z
-      DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX"), // 2025-06-07T14:07:02+00:00
-  };
-
-  // Fallback legacy formats
-  private static final SimpleDateFormat[] LEGACY_FORMATS = {
-      new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS"),       // 2025-06-07 14:07:02.975
-      new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"),           // 2025-06-07 14:07:02
-      new SimpleDateFormat("MM/dd/yyyy HH:mm:ss"),           // 06/07/2025 14:07:02
-      new SimpleDateFormat("dd/MM/yyyy HH:mm:ss"),           // 07/06/2025 14:07:02
-      new SimpleDateFormat("yyyy/MM/dd HH:mm:ss"),           // 2025/06/07 14:07:02
-  };
-
-  // Pattern for detecting numeric epoch timestamps (fallback)
-  private static final Pattern EPOCH_PATTERN = Pattern.compile("^\\d{10}(\\.\\d+)?$|^\\d{13}$");
-
   /**
-   * Converts a row of values to appropriate types based on the schema.
-   *
-   * @param row The row data from Jackson JSON parsing
-   * @param schema The expected schema
-   * @return Converted row with appropriate data types
+   * Converts string to days since epoch for DATE fields.
+   * FIXED: Handle the new Timestamp return type.
    */
-  public static Object[] convertRow(Object[] row, RelDataType schema) {
-    if (row == null || schema == null) {
-      return row;
-    }
-
-    Object[] converted = new Object[row.length];
-    List<RelDataTypeField> fields = schema.getFieldList();
-
-    for (int i = 0; i < row.length && i < fields.size(); i++) {
-      RelDataTypeField field = fields.get(i);
-      Object value = row[i];
-
-      // Debug logging for timestamp and integer conversions
-      boolean debugThis = field.getType().getSqlTypeName() == SqlTypeName.TIMESTAMP ||
-          (field.getType().getSqlTypeName() == SqlTypeName.INTEGER && value instanceof String);
-
-      if (debugThis && value != null) {
-        LOGGER.debug("DEBUG: Converting field '{}' at index {}", field.getName(), i);
-        LOGGER.debug("  Input value: '{}' (type: {})", value, value.getClass().getSimpleName());
-        LOGGER.debug("  Expected type: {}", field.getType().getSqlTypeName());
-      }
-
-      if (value == null) {
-        converted[i] = null;
-        if (debugThis) LOGGER.debug("  Result: null (was null input)");
-        continue;
-      }
-
-      try {
-        Object convertedValue = convertValue(value, field.getType().getSqlTypeName());
-        converted[i] = convertedValue;
-
-        if (debugThis) {
-          LOGGER.debug("  Result: '{}' (type: {})", convertedValue,
-              convertedValue != null ? convertedValue.getClass().getSimpleName() : "null");
-        }
-      } catch (Exception e) {
-        // Log the conversion error and provide a safe default
-        LOGGER.warn("Warning: Failed to convert field '{}' value '{}' ({}) to type {}: {}",
-            field.getName(), value, value.getClass().getSimpleName(),
-            field.getType().getSqlTypeName(), e.getMessage());
-
-        // For type safety, return null instead of the original value
-        converted[i] = null;
-
-        if (debugThis) {
-          LOGGER.debug("  Result: null (conversion failed)");
-        }
-      }
-    }
-
-    return converted;
+  private static Integer convertToDateDays(String value) {
+    java.sql.Timestamp timestamp = convertIsoStringToTimestampMillis(value);
+    long millis = timestamp.getTime();  // Extract milliseconds from Timestamp
+    // Convert milliseconds to days since epoch
+    return (int) (millis / (24 * 60 * 60 * 1000L));
   }
 
   /**
-   * Converts a single value to the specified SQL type.
-   * Optimized for Jackson's parsing of JSON values.
-   *
-   * @param value The value to convert
-   * @param targetType The target SQL type
-   * @return Converted value
+   * Converts string to milliseconds since midnight for TIME fields.
+   * FIXED: Handle the new Timestamp return type.
+   */
+  private static Integer convertToTimeMillis(String value) {
+    try {
+      // Try parsing as HH:mm:ss format
+      SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm:ss");
+      java.util.Date parsed = timeFormat.parse(value);
+      // Get milliseconds since midnight
+      return (int) (parsed.getTime() % (24 * 60 * 60 * 1000L));
+    } catch (ParseException e) {
+      // Try parsing as full timestamp and extract time portion
+      java.sql.Timestamp timestamp = convertIsoStringToTimestampMillis(value);
+      long millis = timestamp.getTime();  // Extract milliseconds from Timestamp
+      return (int) (millis % (24 * 60 * 60 * 1000L));
+    }
+  }
+
+  /**
+   * Convert ISO timestamp string to java.sql.Timestamp.
+   * MODIFIED: Now returns Timestamp object instead of Long milliseconds.
+   */
+  private static java.sql.Timestamp convertIsoStringToTimestampMillis(String value) {
+    // First try modern ISO 8601 parsing (faster and more accurate)
+    for (DateTimeFormatter formatter : ISO_FORMATTERS) {
+      try {
+        Instant instant = Instant.from(formatter.parse(value));
+        return new java.sql.Timestamp(instant.toEpochMilli());  // CHANGED: Return Timestamp object
+      } catch (DateTimeParseException e) {
+        // Try next formatter
+      }
+    }
+
+    // Try parsing as epoch timestamp (numeric string)
+    if (EPOCH_PATTERN.matcher(value).matches()) {
+      try {
+        double epochValue = Double.parseDouble(value);
+        long millis = convertNumberToTimestampMillis(epochValue);
+        return new java.sql.Timestamp(millis);  // CHANGED: Return Timestamp object
+      } catch (NumberFormatException e) {
+        // Fall through to legacy parsing
+      }
+    }
+
+    // Fallback to legacy SimpleDateFormat parsing
+    for (SimpleDateFormat format : LEGACY_FORMATS) {
+      try {
+        return new java.sql.Timestamp(format.parse(value).getTime());  // CHANGED: Return
+          // Timestamp object
+      } catch (ParseException e) {
+        // Try next format
+      }
+    }
+
+    throw new IllegalArgumentException("Unable to parse timestamp: " + value);
+  }
+
+  /**
+   * MODIFIED: Update the TIMESTAMP case to return Timestamp objects.
    */
   public static Object convertValue(Object value, SqlTypeName targetType) {
     if (value == null) {
@@ -172,10 +154,11 @@ public class SplunkDataConverter {
     case TIMESTAMP:
       // For timestamps, we expect strings from Splunk
       if (value instanceof String) {
-        return convertIsoStringToTimestampMillis((String) value);
+        return convertIsoStringToTimestampMillis((String) value);  // Now returns Timestamp
       } else if (value instanceof Number) {
         // Fallback for numeric epoch timestamps
-        return convertNumberToTimestampMillis((Number) value);
+        long millis = convertNumberToTimestampMillis((Number) value);
+        return new java.sql.Timestamp(millis);  // CHANGED: Return Timestamp object
       }
       break;
     }
@@ -197,7 +180,7 @@ public class SplunkDataConverter {
     try {
       switch (targetType) {
       case TIMESTAMP:
-        return convertIsoStringToTimestampMillis(stringValue);
+        return convertIsoStringToTimestampMillis(stringValue);  // Now returns Timestamp
 
       case DATE:
         return convertToDateDays(stringValue);
@@ -239,6 +222,91 @@ public class SplunkDataConverter {
     }
   }
 
+  // ISO 8601 timestamp patterns (most common from Splunk)
+  private static final DateTimeFormatter[] ISO_FORMATTERS = {
+      DateTimeFormatter.ISO_INSTANT,                          // 2025-06-07T14:07:02.975Z
+      DateTimeFormatter.ISO_OFFSET_DATE_TIME,                 // 2025-06-07T14:07:02.975+00:00
+      DateTimeFormatter.ISO_LOCAL_DATE_TIME,                  // 2025-06-07T14:07:02.975
+      DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'"), // 2025-06-07T14:07:02Z
+      DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX"), // 2025-06-07T14:07:02+00:00
+  };
+
+  // Fallback legacy formats
+  private static final SimpleDateFormat[] LEGACY_FORMATS = {
+      new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS"),       // 2025-06-07 14:07:02.975
+      new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"),           // 2025-06-07 14:07:02
+      new SimpleDateFormat("MM/dd/yyyy HH:mm:ss"),           // 06/07/2025 14:07:02
+      new SimpleDateFormat("dd/MM/yyyy HH:mm:ss"),           // 07/06/2025 14:07:02
+      new SimpleDateFormat("yyyy/MM/dd HH:mm:ss"),           // 2025/06/07 14:07:02
+  };
+
+  // Pattern for detecting numeric epoch timestamps (fallback)
+  private static final Pattern EPOCH_PATTERN = Pattern.compile("^\\d{10}(\\.\\d+)?$|^\\d{13}$");
+
+  /**
+   * Converts a row of values to appropriate types based on the schema.
+   *
+   * @param row    The row data from Jackson JSON parsing
+   * @param schema The expected schema
+   * @return Converted row with appropriate data types
+   */
+  public static Object[] convertRow(Object[] row, RelDataType schema) {
+    if (row == null || schema == null) {
+      return row;
+    }
+
+    Object[] converted = new Object[row.length];
+    List<RelDataTypeField> fields = schema.getFieldList();
+
+    for (int i = 0; i < row.length && i < fields.size(); i++) {
+      RelDataTypeField field = fields.get(i);
+      Object value = row[i];
+
+      // Debug logging for timestamp and integer conversions
+      boolean debugThis = field.getType().getSqlTypeName() == SqlTypeName.TIMESTAMP ||
+          (field.getType().getSqlTypeName() == SqlTypeName.INTEGER && value instanceof String);
+
+      if (debugThis && value != null) {
+        LOGGER.debug("DEBUG: Converting field '{}' at index {}", field.getName(), i);
+        LOGGER.debug("  Input value: '{}' (type: {})", value, value.getClass().getSimpleName());
+        LOGGER.debug("  Expected type: {}", field.getType().getSqlTypeName());
+      }
+
+      if (value == null) {
+        converted[i] = null;
+        if (debugThis) {
+          LOGGER.debug("  Result: null (was null input)");
+        }
+        continue;
+      }
+
+      try {
+        Object convertedValue = convertValue(value, field.getType().getSqlTypeName());
+        converted[i] = convertedValue;
+
+        if (debugThis) {
+          LOGGER.debug("  Result: '{}' (type: {})", convertedValue,
+              convertedValue != null ? convertedValue.getClass().getSimpleName() : "null");
+        }
+      } catch (Exception e) {
+        // Log the conversion error and provide a safe default
+        LOGGER.warn("Warning: Failed to convert field '{}' value '{}' ({}) to type {}: {}",
+            field.getName(), value, value.getClass().getSimpleName(),
+            field.getType().getSqlTypeName(), e.getMessage());
+
+        // For type safety, return null instead of the original value
+        converted[i] = null;
+
+        if (debugThis) {
+          LOGGER.debug("  Result: null (conversion failed)");
+        }
+      }
+    }
+
+    return converted;
+  }
+
+
   /**
    * Type checking for Jackson-parsed values.
    */
@@ -272,43 +340,6 @@ public class SplunkDataConverter {
   }
 
   /**
-   * Convert ISO timestamp string to epoch milliseconds.
-   * Optimized for Splunk's ISO 8601 timestamp formats.
-   */
-  private static Long convertIsoStringToTimestampMillis(String value) {
-    // First try modern ISO 8601 parsing (faster and more accurate)
-    for (DateTimeFormatter formatter : ISO_FORMATTERS) {
-      try {
-        Instant instant = Instant.from(formatter.parse(value));
-        return instant.toEpochMilli();
-      } catch (DateTimeParseException e) {
-        // Try next formatter
-      }
-    }
-
-    // Try parsing as epoch timestamp (numeric string)
-    if (EPOCH_PATTERN.matcher(value).matches()) {
-      try {
-        double epochValue = Double.parseDouble(value);
-        return convertNumberToTimestampMillis(epochValue);
-      } catch (NumberFormatException e) {
-        // Fall through to legacy parsing
-      }
-    }
-
-    // Fallback to legacy SimpleDateFormat parsing
-    for (SimpleDateFormat format : LEGACY_FORMATS) {
-      try {
-        return format.parse(value).getTime();
-      } catch (ParseException e) {
-        // Try next format
-      }
-    }
-
-    throw new IllegalArgumentException("Unable to parse timestamp: " + value);
-  }
-
-  /**
    * Convert a numeric value to timestamp milliseconds (fallback).
    */
   private static Long convertNumberToTimestampMillis(Number number) {
@@ -323,31 +354,6 @@ public class SplunkDataConverter {
     }
   }
 
-  /**
-   * Converts string to days since epoch for DATE fields.
-   */
-  private static Integer convertToDateDays(String value) {
-    long millis = convertIsoStringToTimestampMillis(value);
-    // Convert milliseconds to days since epoch
-    return (int) (millis / (24 * 60 * 60 * 1000L));
-  }
-
-  /**
-   * Converts string to milliseconds since midnight for TIME fields.
-   */
-  private static Integer convertToTimeMillis(String value) {
-    try {
-      // Try parsing as HH:mm:ss format
-      SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm:ss");
-      java.util.Date parsed = timeFormat.parse(value);
-      // Get milliseconds since midnight
-      return (int) (parsed.getTime() % (24 * 60 * 60 * 1000L));
-    } catch (ParseException e) {
-      // Try parsing as full timestamp and extract time portion
-      long millis = convertIsoStringToTimestampMillis(value);
-      return (int) (millis % (24 * 60 * 60 * 1000L));
-    }
-  }
 
   /**
    * Converts string to Integer.
