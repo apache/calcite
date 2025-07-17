@@ -7793,8 +7793,7 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
-  @Test
-  public void testSubTimeWith4Args() {
+  @Test public void testSubTimeWith4Args() {
     final RelBuilder builder = relBuilder();
     final RexNode substrRexNode =
         builder.call(SqlLibraryOperators.SUBSTR_POSTGRESQL, builder.literal("12:15:07"),
