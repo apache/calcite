@@ -16,8 +16,11 @@
  */
 package org.apache.calcite.rel.rules;
 
+import org.apache.calcite.plan.JoinConditionTransferTrait;
+import org.apache.calcite.plan.JoinConditionTransferTraitDef;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.CorrelationId;
@@ -89,6 +92,7 @@ public class FilterExtractInnerJoinRule
     final Filter filter = call.rel(0);
     final Join join = call.rel(1);
     RelBuilder builder = call.builder();
+    RelTraitSet filterTraitSet = filter.getTraitSet();
 
     if (!isCrossJoin(join, builder)) {
       return;
@@ -110,7 +114,7 @@ public class FilterExtractInnerJoinRule
     final RelNode modifiedJoinClauseWithWhereClause =
         moveConditionsFromWhereClauseToJoinOnClause(allConditions,
             stackForTableScanWithEndColumnIndex, ((RexCall) conditions).op, builder,
-        correlationIdSet);
+        correlationIdSet, filterTraitSet);
 
     call.transformTo(modifiedJoinClauseWithWhereClause);
   }
@@ -163,12 +167,12 @@ public class FilterExtractInnerJoinRule
    * ON conditions.*/
   private RelNode moveConditionsFromWhereClauseToJoinOnClause(List<RexNode> allConditions,
       Stack<Triple<RelNode, Integer, JoinRelType>> stack, SqlOperator op, RelBuilder builder,
-      Set<CorrelationId> correlationIdSet) {
+      Set<CorrelationId> correlationIdSet, RelTraitSet filterTraitSet) {
     RelNode left = stack.pop().getLeft();
     while (!stack.isEmpty()) {
       Triple<RelNode, Integer, JoinRelType> rightEntry = stack.pop();
       List<RexNode> joinConditions =
-          getConditionsForEndIndex(allConditions, rightEntry.getMiddle());
+          getConditionsForEndIndex(allConditions, rightEntry.getMiddle(), filterTraitSet);
 
       RexNode joinPredicate = (op.getKind() == SqlKind.OR && !joinConditions.isEmpty())
           ? builder.or(joinConditions)
@@ -200,7 +204,7 @@ public class FilterExtractInnerJoinRule
   }
 
   /** Gets all the conditions that are part of the current join.*/
-  private List<RexNode> getConditionsForEndIndex(List<RexNode> conditions, int endIndex) {
+  private List<RexNode> getConditionsForEndIndex(List<RexNode> conditions, int endIndex, RelTraitSet filterTraitSet) {
     return conditions.stream()
         .filter(
             condition ->
@@ -208,7 +212,7 @@ public class FilterExtractInnerJoinRule
                     && !(condition instanceof RexDynamicParam)
                     && ((RexCall) condition).operands.stream().noneMatch(
                       operand -> operand instanceof RexLiteral)
-                    && isConditionPartOfCurrentJoin((RexCall) condition, endIndex)
+                    && isConditionPartOfCurrentJoin((RexCall) condition, endIndex, filterTraitSet)
         )
         .collect(Collectors.toList());
   }
@@ -217,15 +221,20 @@ public class FilterExtractInnerJoinRule
    * Checks index of the given operand(column) if it's less than endIndex.
    * If an operand(column) is wrapped in a function, for example TRIM(col), CAST(col) etc.,
    * we call the method recursively.*/
-  private boolean isOperandIndexLessThanEndIndex(RexNode operand, int endIndex) {
+  private boolean isOperandIndexLessThanEndIndex(RexNode operand, int endIndex, RelTraitSet filterTraitSet) {
     if (operand instanceof RexCall && !((RexCall) operand).operands.isEmpty()) {
       RexCall call = (RexCall) operand;
       boolean atLeastOneMatches = false;
       for (RexNode op : call.operands) {
         if (op instanceof RexLiteral) {
+          JoinConditionTransferTrait joinConditionTransferTrait =
+              filterTraitSet.getTrait(JoinConditionTransferTraitDef.instance);
+          if (joinConditionTransferTrait != null && joinConditionTransferTrait.isJoinConditionMovedToFilter()) {
+            atLeastOneMatches = true;
+          }
           continue;
         }
-        if (!isOperandIndexLessThanEndIndex(op, endIndex)) {
+        if (!isOperandIndexLessThanEndIndex(op, endIndex, filterTraitSet)) {
           return false;
         }
         atLeastOneMatches = true;
@@ -240,12 +249,13 @@ public class FilterExtractInnerJoinRule
 
   /** Checks whether the given condition is part of the current join by matching the column
    * reference with endIndex of the table on which the join is being performed.*/
-  private boolean isConditionPartOfCurrentJoin(RexCall condition, int endIndex) {
+  private boolean isConditionPartOfCurrentJoin(RexCall condition, int endIndex,
+      RelTraitSet filterTraitSet) {
     if (condition instanceof RexSubQuery) {
       return false;
     }
     return condition.operands.stream().allMatch(operand ->
-        isOperandIndexLessThanEndIndex(operand, endIndex));
+        isOperandIndexLessThanEndIndex(operand, endIndex, filterTraitSet));
   }
 
   /** Checks whether a given condition is composed of a single condition.
