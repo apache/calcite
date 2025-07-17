@@ -198,4 +198,8 @@ public class RexWindow {
         + (lowerBound == null ? 0 : lowerBound.nodeCount())
         + (upperBound == null ? 0 : upperBound.nodeCount());
   }
+
+  public RexWindow accept(RexShuttle shuttle) {
+    return shuttle.visitWindow(this);
+  }
 }
