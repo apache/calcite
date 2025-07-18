@@ -78,6 +78,9 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
   }
 
   static {
+    System.setProperty("http.keepAlive", "false");
+    System.setProperty("http.maxConnections", "1");
+    System.setProperty("sun.net.http.retryPost", "false");
     new SplunkDriver().register();
   }
 
