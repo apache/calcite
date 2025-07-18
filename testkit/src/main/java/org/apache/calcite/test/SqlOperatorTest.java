@@ -16486,6 +16486,13 @@ public class SqlOperatorTest {
     f.checkNull("CAST(NULL AS INTEGER) ^ 1");
     f.checkNull("1 ^ CAST(NULL AS INTEGER)");
     f.checkNull("CAST(NULL AS BIGINT) ^ CAST(NULL AS BIGINT)");
+    // Test with unsigned numbers
+    f.checkScalar("CAST(255 AS TINYINT UNSIGNED) ^ CAST(15 AS TINYINT UNSIGNED)",
+        "240", "TINYINT UNSIGNED NOT NULL");
+    f.checkScalar("CAST(65535 AS SMALLINT UNSIGNED) ^ CAST(255 AS SMALLINT UNSIGNED)",
+        "65280", "SMALLINT UNSIGNED NOT NULL");
+    f.checkScalar("CAST(4294967295 AS INTEGER UNSIGNED) ^ CAST(255 AS INTEGER UNSIGNED)",
+        "4294967040", "INTEGER UNSIGNED NOT NULL");
   }
 
   @Test void testBitAndScalarFunc() {

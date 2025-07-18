@@ -1309,7 +1309,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           true,
           ReturnTypes.LARGEST_INT_OR_FIRST_NON_NULL,  // Returns same type as inputs when nullable
           InferTypes.FIRST_KNOWN,
-          OperandTypes.INTEGER_INTEGER.or(OperandTypes.BINARY_BINARY));
+          OperandTypes.INTEGER_INTEGER.or(OperandTypes.BINARY_BINARY)
+              .or(OperandTypes.UNSIGNED_NUMERIC_UNSIGNED_NUMERIC));
 
   /**
    * <code>BITNOT</code> scalar function.
