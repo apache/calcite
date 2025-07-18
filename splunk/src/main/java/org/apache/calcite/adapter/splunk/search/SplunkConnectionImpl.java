@@ -37,7 +37,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
@@ -59,10 +58,8 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import java.security.cert.X509Certificate;
 
-import org.apache.calcite.adapter.splunk.search.SplunkAuthenticationException;
-import org.apache.calcite.adapter.splunk.util.EnhancedHttpUtils;
-
 import static org.apache.calcite.runtime.HttpUtils.appendURLEncodedArgs;
+import static org.apache.calcite.runtime.HttpUtils.post;
 
 /**
  * Implementation of {@link SplunkConnection} based on Splunk's REST API.
@@ -99,7 +96,8 @@ public class SplunkConnectionImpl implements SplunkConnection {
     this(url, username, password, false);
   }
 
-  public SplunkConnectionImpl(String url, String username, String password, boolean disableSslValidation)
+  public SplunkConnectionImpl(String url, String username, String password,
+          boolean disableSslValidation)
       throws MalformedURLException {
     this(URI.create(url).toURL(), username, password, disableSslValidation);
   }
@@ -108,11 +106,12 @@ public class SplunkConnectionImpl implements SplunkConnection {
     this(url, username, password, false);
   }
 
-  public SplunkConnectionImpl(URL url, String username, String password, boolean disableSslValidation) {
-    this.url      = Objects.requireNonNull(url, "url cannot be null");
+  public SplunkConnectionImpl(URL url, String username, String password,
+          boolean disableSslValidation) {
+    this.url = Objects.requireNonNull(url, "url cannot be null");
     this.username = Objects.requireNonNull(username, "username cannot be null");
     this.password = Objects.requireNonNull(password, "password cannot be null");
-    this.token    = null;
+    this.token = null;
     this.useTokenAuth = false;
     this.disableSslValidation = disableSslValidation;
 
@@ -147,8 +146,8 @@ public class SplunkConnectionImpl implements SplunkConnection {
    * Constructor for token-based authentication with SSL configuration.
    */
   public SplunkConnectionImpl(URL url, String token, boolean disableSslValidation) {
-    this.url      = Objects.requireNonNull(url, "url cannot be null");
-    this.token    = Objects.requireNonNull(token, "token cannot be null");
+    this.url = Objects.requireNonNull(url, "url cannot be null");
+    this.token = Objects.requireNonNull(token, "token cannot be null");
     this.username = null;
     this.password = null;
     this.useTokenAuth = true;
@@ -175,14 +174,16 @@ public class SplunkConnectionImpl implements SplunkConnection {
 
     try {
       // Create a trust manager that accepts all certificates
-      TrustManager[] trustAllCerts = new TrustManager[] {
+      TrustManager[] trustAllCerts = new TrustManager[]{
           new X509TrustManager() {
             public X509Certificate[] getAcceptedIssuers() {
               return null;
             }
+
             public void checkClientTrusted(X509Certificate[] certs, String authType) {
               // Trust all client certificates
             }
+
             public void checkServerTrusted(X509Certificate[] certs, String authType) {
               // Trust all server certificates
             }
@@ -197,7 +198,8 @@ public class SplunkConnectionImpl implements SplunkConnection {
       // Disable hostname verification
       HttpsURLConnection.setDefaultHostnameVerifier((hostname, session) -> true);
 
-      LOGGER.warn("SSL certificate validation has been disabled. This should only be used in development/testing environments.");
+      LOGGER.warn("SSL certificate validation has been disabled. This should only be used in " +
+              "development/testing environments.");
 
     } catch (Exception e) {
       throw new RuntimeException("Failed to configure SSL settings", e);
@@ -238,12 +240,12 @@ public class SplunkConnectionImpl implements SplunkConnection {
         appendURLEncodedArgs(
             data, "username", username, "password", password);
 
-        LOGGER.debug("Authenticating to Splunk at: {}", loginUrl);
+        LOGGER.info("Attempting to authenticate to Splunk at: {}", loginUrl);
 
         // Create a temporary header map for authentication (don't include stale session)
         Map<String, String> authHeaders = new HashMap<>();
 
-        rd = Util.reader(EnhancedHttpUtils.post(loginUrl, data, authHeaders, 10000, 30000));
+        rd = Util.reader(post(loginUrl, data, authHeaders));
 
         String line;
         StringBuilder reply = new StringBuilder();
@@ -257,14 +259,44 @@ public class SplunkConnectionImpl implements SplunkConnection {
           sessionKey = m.group(1);
           requestHeaders.clear(); // Clear any old headers
           requestHeaders.put("Authorization", "Splunk " + sessionKey);
-          LOGGER.debug("Successfully authenticated to Splunk, received session key");
+          LOGGER.info("Successfully authenticated to Splunk, received session key");
         } else {
           LOGGER.error("Failed to extract session key from authentication response");
-          throw new RuntimeException("Authentication failed - no session key found");
+          LOGGER.debug("Authentication response: {}", reply.toString());
+          throw new RuntimeException("Authentication failed - no session key found in response");
         }
+      } catch (java.net.SocketTimeoutException e) {
+        String errorMsg = String.format("Connection to Splunk timed out. Please verify:\n" +
+                "1. Splunk URL is correct: %s\n" +
+                "2. Splunk server is running and accessible\n" +
+                "3. Network connectivity allows access to port %d\n" +
+                "4. No firewall is blocking the connection",
+            url.toString(), url.getPort());
+        LOGGER.error("Connection timeout during authentication: {}", errorMsg);
+        throw new RuntimeException("Splunk connection timeout: " + errorMsg, e);
+      } catch (java.net.ConnectException e) {
+        String errorMsg = String.format("Cannot connect to Splunk server. Please verify:\n" +
+                "1. Splunk URL is correct: %s\n" +
+                "2. Splunk server is running\n" +
+                "3. Splunk REST API is enabled\n" +
+                "4. Port %d is accessible",
+            url.toString(), url.getPort());
+        LOGGER.error("Connection refused during authentication: {}", errorMsg);
+        throw new RuntimeException("Splunk connection refused: " + errorMsg, e);
+      } catch (java.net.UnknownHostException e) {
+        String errorMsg = String.format("Cannot resolve Splunk hostname: %s\n" +
+            "Please verify the hostname/IP address is correct", url.getHost());
+        LOGGER.error("DNS resolution failed during authentication: {}", errorMsg);
+        throw new RuntimeException("Splunk hostname resolution failed: " + errorMsg, e);
+      } catch (javax.net.ssl.SSLException e) {
+        String errorMsg = String.format("SSL connection failed to Splunk server: %s\n" +
+                "Consider setting SPLUNK_DISABLE_SSL_VALIDATION=true for development/testing",
+            url.toString());
+        LOGGER.error("SSL error during authentication: {}", errorMsg);
+        throw new RuntimeException("Splunk SSL connection failed: " + errorMsg, e);
       } catch (Exception e) {
-        LOGGER.error("Authentication failed", e);
-        throw new RuntimeException("Failed to authenticate to Splunk", e);
+        LOGGER.error("Authentication failed with unexpected error", e);
+        throw new RuntimeException("Failed to authenticate to Splunk: " + e.getMessage(), e);
       } finally {
         if (rd != null) {
           close(rd);
@@ -274,33 +306,63 @@ public class SplunkConnectionImpl implements SplunkConnection {
   }
 
   /**
-   * Checks if an exception indicates an authentication error (HTTP 401).
+   * Checks if an exception indicates an HTTP 401 authentication error specifically.
+   * More conservative than the general isAuthenticationError method.
+   * Package-private for access by SplunkJsonResultEnumeratorWithRetry.
    */
-  private boolean isAuthenticationError(Throwable e) {
+  boolean isHttpAuthenticationError(Throwable e) {
     if (e == null) {
       return false;
     }
 
-    // Check for specific authentication exception
-    if (e instanceof SplunkAuthenticationException) {
-      return true;
+    // Network connectivity issues are definitely NOT authentication errors
+    if (e instanceof java.net.SocketTimeoutException ||
+        e instanceof java.net.ConnectException ||
+        e instanceof java.net.UnknownHostException ||
+        e instanceof javax.net.ssl.SSLException) {
+      return false;
     }
 
+    // Look for HTTP 401 in the message
     String message = e.getMessage();
-    if (message != null && message.contains(AUTH_ERROR_INDICATOR)) {
+    if (message != null && (message.contains("401") || message.contains("Unauthorized"))) {
       return true;
     }
 
-    // Check if it's a RuntimeException wrapping an authentication error
+    // FIXED: Also check for IOException with HTTP 401 response code
+    if (e instanceof java.io.IOException) {
+      String ioMessage = e.getMessage();
+      if (ioMessage != null && ioMessage.contains("Server returned HTTP response code: 401")) {
+        return true;
+      }
+    }
+
+    // Check cause chain but be conservative
     Throwable cause = e.getCause();
     while (cause != null) {
-      if (cause instanceof SplunkAuthenticationException) {
-        return true;
+      // Network issues in the cause chain are NOT auth errors
+      if (cause instanceof java.net.SocketTimeoutException ||
+          cause instanceof java.net.ConnectException ||
+          cause instanceof java.net.UnknownHostException ||
+          cause instanceof javax.net.ssl.SSLException) {
+        return false;
       }
+
       String causeMessage = cause.getMessage();
-      if (causeMessage != null && causeMessage.contains(AUTH_ERROR_INDICATOR)) {
+      if (causeMessage != null && (causeMessage.contains("401") || causeMessage.contains(
+              "Unauthorized"))) {
         return true;
       }
+
+      // FIXED: Check IOException in cause chain too
+      if (cause instanceof java.io.IOException) {
+        String causeIoMessage = cause.getMessage();
+        if (causeIoMessage != null && causeIoMessage.contains("Server returned HTTP response " +
+                "code: 401")) {
+          return true;
+        }
+      }
+
       cause = cause.getCause();
     }
 
@@ -328,52 +390,45 @@ public class SplunkConnectionImpl implements SplunkConnection {
     }
   }
 
-  @Override public void getSearchResults(String search, Map<String, String> otherArgs,
+  @Override
+  public void getSearchResults(String search, Map<String, String> otherArgs,
       List<String> fieldList, SearchResultListener srl) {
     Objects.requireNonNull(srl, "SearchResultListener cannot be null");
     performSearchWithRetry(search, otherArgs, srl);
   }
 
-  @Override public Enumerator<Object> getSearchResultEnumerator(String search,
+  @Override
+  public Enumerator<Object> getSearchResultEnumerator(String search,
       Map<String, String> otherArgs, List<String> fieldList, Set<String> explicitFields) {
     return getSearchResultEnumerator(search, otherArgs, fieldList, explicitFields, new HashMap<>());
   }
 
-  @Override public Enumerator<Object> getSearchResultEnumerator(String search,
+  @Override
+  public Enumerator<Object> getSearchResultEnumerator(String search,
       Map<String, String> otherArgs, List<String> fieldList, Set<String> explicitFields,
       Map<String, String> reverseFieldMapping) {
-    return performSearchForEnumeratorWithRetry(search, otherArgs, fieldList, explicitFields, reverseFieldMapping);
+    return performSearchForEnumeratorWithRetry(search, otherArgs, fieldList, explicitFields,
+            reverseFieldMapping);
   }
 
   /**
    * Performs search with automatic retry on authentication failure.
    */
-  private void performSearchWithRetry(String search, Map<String, String> otherArgs, SearchResultListener srl) {
+  private void performSearchWithRetry(String search, Map<String, String> otherArgs,
+          SearchResultListener srl) {
     Exception lastException = null;
 
     for (int attempt = 0; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
       try {
         performSearch(search, otherArgs, srl);
         return; // Success
-      } catch (IOException e) {
-        lastException = e;
-
-        if (isAuthenticationError(e) && attempt < MAX_RETRY_ATTEMPTS) {
-          LOGGER.warn("Authentication error detected on attempt {}, retrying...", attempt + 1);
-          try {
-            reAuthenticate();
-          } catch (Exception authException) {
-            LOGGER.error("Re-authentication failed", authException);
-            break; // Don't retry if re-auth fails
-          }
-        } else {
-          break; // Non-auth error or max retries reached
-        }
       } catch (Exception e) {
         lastException = e;
 
-        if (isAuthenticationError(e) && attempt < MAX_RETRY_ATTEMPTS) {
-          LOGGER.warn("Authentication error detected on attempt {}, retrying...", attempt + 1);
+        // Only retry on actual authentication errors, not network issues
+        if (isHttpAuthenticationError(e) && attempt < MAX_RETRY_ATTEMPTS) {
+          LOGGER.warn("HTTP 401 authentication error detected on attempt {}, retrying...",
+                  attempt + 1);
           try {
             reAuthenticate();
           } catch (Exception authException) {
@@ -409,26 +464,15 @@ public class SplunkConnectionImpl implements SplunkConnection {
 
     for (int attempt = 0; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
       try {
-        return performSearchForEnumerator(search, otherArgs, schemaFieldList, explicitFields, reverseFieldMapping);
-      } catch (IOException e) {
-        lastException = e;
-
-        if (isAuthenticationError(e) && attempt < MAX_RETRY_ATTEMPTS) {
-          LOGGER.warn("Authentication error detected on attempt {}, retrying...", attempt + 1);
-          try {
-            reAuthenticate();
-          } catch (Exception authException) {
-            LOGGER.error("Re-authentication failed", authException);
-            break; // Don't retry if re-auth fails
-          }
-        } else {
-          break; // Non-auth error or max retries reached
-        }
+        return performSearchForEnumerator(search, otherArgs, schemaFieldList, explicitFields,
+                reverseFieldMapping);
       } catch (Exception e) {
         lastException = e;
 
-        if (isAuthenticationError(e) && attempt < MAX_RETRY_ATTEMPTS) {
-          LOGGER.warn("Authentication error detected on attempt {}, retrying...", attempt + 1);
+        // Only retry on actual authentication errors, not network issues
+        if (isHttpAuthenticationError(e) && attempt < MAX_RETRY_ATTEMPTS) {
+          LOGGER.warn("HTTP 401 authentication error detected on attempt {}, retrying...",
+                  attempt + 1);
           try {
             reAuthenticate();
           } catch (Exception authException) {
@@ -455,7 +499,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
   private void performSearch(
       String search,
       Map<String, String> otherArgs,
-      SearchResultListener srl) throws IOException {
+      SearchResultListener srl) {
     String searchUrl =
         String.format(Locale.ROOT,
             "%s://%s:%d/services/search/jobs/export",
@@ -481,9 +525,13 @@ public class SplunkConnectionImpl implements SplunkConnection {
       headersToUse = new HashMap<>(requestHeaders);
     }
 
-    // wait at most 30 minutes for first result
-    InputStream in = EnhancedHttpUtils.post(searchUrl, data, headersToUse, 10000, 1800000);
-    parseResults(in, srl);
+    try {
+      // wait at most 30 minutes for first result
+      InputStream in = post(searchUrl, data, headersToUse, 10000, 1800000);
+      parseResults(in, srl);
+    } catch (Exception e) {
+      throw new RuntimeException("Search request failed: " + e.getMessage(), e);
+    }
   }
 
   private Enumerator<Object> performSearchForEnumerator(
@@ -491,7 +539,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
       Map<String, String> otherArgs,
       List<String> schemaFieldList,
       Set<String> explicitFields,
-      Map<String, String> reverseFieldMapping) throws IOException {
+      Map<String, String> reverseFieldMapping) throws Exception {
     String searchUrl =
         String.format(Locale.ROOT,
             "%s://%s:%d/services/search/jobs/export",
@@ -503,7 +551,6 @@ public class SplunkConnectionImpl implements SplunkConnection {
     Map<String, String> args = new LinkedHashMap<>(otherArgs);
     args.put("search", search);
 
-    // THE KEY CHANGE: Use JSON instead of CSV
     args.put("output_mode", "json");
     args.put("preview", "0");
     args.put("check_connection", "0");
@@ -516,15 +563,15 @@ public class SplunkConnectionImpl implements SplunkConnection {
 
     appendURLEncodedArgs(data, args);
 
-    // Use synchronized access to headers to ensure thread safety
     Map<String, String> headersToUse;
     synchronized (authLock) {
       headersToUse = new HashMap<>(requestHeaders);
     }
 
-    // wait at most 30 minutes for first result
-    InputStream in = EnhancedHttpUtils.post(searchUrl, data, headersToUse, 10000, 1800000);
-    return new SplunkJsonResultEnumeratorWithRetry(in, schemaFieldList, explicitFields, reverseFieldMapping, this);
+    // Just let the exception bubble up - no try-catch!
+    InputStream in = post(searchUrl, data, headersToUse, 10000, 1800000);
+    return new SplunkJsonResultEnumeratorWithRetry(in, schemaFieldList, explicitFields,
+            reverseFieldMapping, this);
   }
 
   private static void parseResults(InputStream in, SearchResultListener srl) {
@@ -591,12 +638,12 @@ public class SplunkConnectionImpl implements SplunkConnection {
 
   public static void main(String[] args) throws MalformedURLException {
     Map<String, String> argsMap = new HashMap<>();
-    argsMap.put("uri",           "https://localhost:8089");
-    argsMap.put("username",      "admin");
-    argsMap.put("password",      "changeme");
+    argsMap.put("uri", "https://localhost:8089");
+    argsMap.put("username", "admin");
+    argsMap.put("password", "changeme");
     argsMap.put("earliest_time", "-24h");
-    argsMap.put("latest_time",   "now");
-    argsMap.put("-print",        "true");
+    argsMap.put("latest_time", "now");
+    argsMap.put("-print", "true");
 
     parseArgs(args, argsMap);
 
@@ -635,9 +682,11 @@ public class SplunkConnectionImpl implements SplunkConnection {
     c.getSearchResults(search, searchArgs, fieldList, dummy);
   }
 
-  /** Implementation of
+  /**
+   * Implementation of
    * {@link SearchResultListener}
-   * interface that just counts the results. */
+   * interface that just counts the results.
+   */
   public static class CountingSearchResultListener
       implements SearchResultListener {
     String[] fieldNames = new String[0];
@@ -648,11 +697,13 @@ public class SplunkConnectionImpl implements SplunkConnection {
       this.print = print;
     }
 
-    @Override public void setFieldNames(String[] fieldNames) {
+    @Override
+    public void setFieldNames(String[] fieldNames) {
       this.fieldNames = fieldNames;
     }
 
-    @Override public boolean processSearchResult(String[] values) {
+    @Override
+    public boolean processSearchResult(String[] values) {
       resultCount++;
       if (print) {
         int maxIndex = Math.min(fieldNames.length, values.length);
@@ -670,7 +721,8 @@ public class SplunkConnectionImpl implements SplunkConnection {
   }
 
   /**
-   * Enhanced JSON-based result enumerator with retry capability for mid-stream authentication failures.
+   * Enhanced JSON-based result enumerator with retry capability for mid-stream authentication
+   * failures.
    * Much simpler and more reliable than the CSV approach.
    */
   public static class SplunkJsonResultEnumeratorWithRetry implements Enumerator<Object> {
@@ -683,14 +735,11 @@ public class SplunkConnectionImpl implements SplunkConnection {
     private int rowCount = 0;
     private boolean retryAttempted = false;
 
-    // Store original search parameters for potential retry
-    private String originalSearch;
-    private Map<String, String> originalArgs;
-
     // Jackson ObjectMapper for robust JSON parsing
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final TypeReference<Map<String, Object>> MAP_TYPE_REF =
-        new TypeReference<Map<String, Object>>() {};
+        new TypeReference<Map<String, Object>>() {
+        };
 
     public SplunkJsonResultEnumeratorWithRetry(InputStream in, List<String> schemaFieldList,
         Set<String> explicitFields, Map<String, String> reverseFieldMapping,
@@ -711,14 +760,6 @@ public class SplunkConnectionImpl implements SplunkConnection {
       LOGGER.debug("REQUESTED fields: {}", schemaFieldList);
       LOGGER.debug("Field mapping (Schema -> Splunk): {}", fieldMapping);
       LOGGER.debug("Explicit fields: {}", explicitFields);
-
-      // CRITICAL DEBUG: Show the exact order of REQUESTED schema fields
-      LOGGER.debug("=== REQUESTED FIELD ORDER ===");
-      for (int i = 0; i < schemaFieldList.size(); i++) {
-        String schemaField = schemaFieldList.get(i);
-        String splunkField = fieldMapping.getOrDefault(schemaField, schemaField);
-        LOGGER.debug("  [{}] REQUESTED: '{}' -> '{}'", i, schemaField, splunkField);
-      }
     }
 
     @Override
@@ -732,17 +773,20 @@ public class SplunkConnectionImpl implements SplunkConnection {
         return moveNextInternal();
       } catch (Exception e) {
         // Check for authentication error and retry if possible
-        if (connection.isAuthenticationError(e) && !retryAttempted) {
-          LOGGER.warn("Authentication error detected during stream processing, attempting to restart search");
+        if (connection.isHttpAuthenticationError(e) && !retryAttempted) {
+          LOGGER.warn("Authentication error detected during stream processing, attempting to " +
+                  "restart search");
           retryAttempted = true;
 
           try {
             connection.reAuthenticate();
 
-            // Note: For a complete implementation, we would need to restart the search from the beginning
+            // Note: For a complete implementation, we would need to restart the search from the
+              // beginning
             // This is complex because we've already consumed part of the stream
             // For now, we'll just re-authenticate and let the connection handle subsequent requests
-            LOGGER.warn("Re-authentication completed, but stream cannot be rewound. Query may need to be restarted.");
+            LOGGER.warn("Re-authentication completed, but stream cannot be rewound. Query may " +
+                    "need to be restarted.");
 
           } catch (Exception authException) {
             LOGGER.error("Re-authentication during stream processing failed", authException);
@@ -757,11 +801,15 @@ public class SplunkConnectionImpl implements SplunkConnection {
     private boolean moveNextInternal() throws Exception {
       String line;
       while ((line = reader.readLine()) != null) {
-        if (line.trim().isEmpty()) continue;
+        if (line.trim().isEmpty()) {
+          continue;
+        }
 
         // Parse JSON line using Jackson
         Map<String, Object> rawJsonRecord = parseJsonLine(line);
-        if (rawJsonRecord == null) continue;
+        if (rawJsonRecord == null) {
+          continue;
+        }
 
         // Extract event data from Splunk's wrapper structure
         Map<String, Object> eventData = extractEventData(rawJsonRecord);
@@ -774,20 +822,6 @@ public class SplunkConnectionImpl implements SplunkConnection {
           LOGGER.debug("Raw JSON keys: {}", rawJsonRecord.keySet());
           LOGGER.debug("Extracted event data keys: {}", eventData.keySet());
           LOGGER.debug("Event data field count: {}", eventData.size());
-
-          // Show ALL event data fields so we can see what we're working with
-          LOGGER.debug("ALL EVENT DATA (showing first 30 fields):");
-          int fieldCount = 0;
-          for (Map.Entry<String, Object> entry : eventData.entrySet()) {
-            if (fieldCount >= 30) {
-              LOGGER.debug("  ... ({} more fields)", eventData.size() - 30);
-              break;
-            }
-            Object value = entry.getValue();
-            LOGGER.debug("  '{}': '{}' ({})", entry.getKey(), value,
-                value != null ? value.getClass().getSimpleName() : "null");
-            fieldCount++;
-          }
         }
 
         // Map to schema fields - build array in the exact order schemaFieldList specifies
@@ -809,9 +843,12 @@ public class SplunkConnectionImpl implements SplunkConnection {
 
             // DEBUG: Show the lookup process
             if (rowCount <= 3) {
-              LOGGER.debug("  [{}] Looking up: schema='{}' -> splunk='{}'", i, schemaField, splunkField);
-              LOGGER.debug("      Event data contains key '{}'? {}", splunkField, eventData.containsKey(splunkField));
-              LOGGER.debug("      RAW VALUE: '{}' ({})", value, value != null ? value.getClass().getSimpleName() : "null");
+              LOGGER.debug("  [{}] Looking up: schema='{}' -> splunk='{}'", i, schemaField,
+                      splunkField);
+              LOGGER.debug("      Event data contains key '{}'? {}", splunkField,
+                      eventData.containsKey(splunkField));
+              LOGGER.debug("      RAW VALUE: '{}' ({})", value, value != null ?
+                      value.getClass().getSimpleName() : "null");
             }
 
             result[i] = value;
@@ -870,7 +907,8 @@ public class SplunkConnectionImpl implements SplunkConnection {
 
         return OBJECT_MAPPER.readValue(line, MAP_TYPE_REF);
       } catch (Exception e) {
-        LOGGER.warn("Failed to parse JSON line: {}", line.substring(0, Math.min(100, line.length())));
+        LOGGER.warn("Failed to parse JSON line: {}", line.substring(0, Math.min(100,
+                line.length())));
         if (rowCount <= 3) {
           // Show more details for first few parsing errors
           LOGGER.warn("Parsing error: {}", e.getMessage());
@@ -922,7 +960,8 @@ public class SplunkConnectionImpl implements SplunkConnection {
       }
 
       if (rowCount <= 3) {
-        LOGGER.debug("  _extra field contains {} unmapped fields: {}", extra.size(), extra.keySet());
+        LOGGER.debug("  _extra field contains {} unmapped fields: {}", extra.size(),
+                extra.keySet());
       }
 
       String extraJson = serializeToJson(extra);
