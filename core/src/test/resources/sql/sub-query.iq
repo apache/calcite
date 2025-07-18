@@ -5151,4 +5151,100 @@ EnumerableCalc(expr#0..2=[{inputs}], expr#3=[IS FALSE($t1)], expr#4=[null:BOOLEA
             EnumerableValues(tuples=[[{ null }, { null }]])
 !plan
 
+# [CALCITE-1583] Wrong results for query with correlated subqueries with aggregate subquery expression
+# Correlated sub-query with aggregate expression can optimized by Metadata RowCount
+select * from emp where exists (select count(deptno) from dept where dept.deptno = emp.deptno);
++-------+--------+--------+
+| ENAME | DEPTNO | GENDER |
++-------+--------+--------+
+| Adam  |     50 | M      |
+| Alice |     30 | F      |
+| Bob   |     10 | M      |
+| Eric  |     20 | M      |
+| Eve   |     50 | F      |
+| Grace |     60 | F      |
+| Jane  |     10 | F      |
+| Susan |     30 | F      |
+| Wilma |        | F      |
++-------+--------+--------+
+(9 rows)
+
+!ok
+EnumerableValues(tuples=[[{ 'Jane ', 10, 'F' }, { 'Bob  ', 10, 'M' }, { 'Eric ', 20, 'M' }, { 'Susan', 30, 'F' }, { 'Alice', 30, 'F' }, { 'Adam ', 50, 'M' }, { 'Eve  ', 50, 'F' }, { 'Grace', 60, 'F' }, { 'Wilma', null, 'F' }]])
+!plan
+
+
+# Same as previous; but the sub-query with always false condition.
+select * from emp where exists (select count(deptno) from dept where dept.deptno = emp.deptno and 1 = 2);
++-------+--------+--------+
+| ENAME | DEPTNO | GENDER |
++-------+--------+--------+
+| Adam  |     50 | M      |
+| Alice |     30 | F      |
+| Bob   |     10 | M      |
+| Eric  |     20 | M      |
+| Eve   |     50 | F      |
+| Grace |     60 | F      |
+| Jane  |     10 | F      |
+| Susan |     30 | F      |
+| Wilma |        | F      |
++-------+--------+--------+
+(9 rows)
+
+!ok
+EnumerableValues(tuples=[[{ 'Jane ', 10, 'F' }, { 'Bob  ', 10, 'M' }, { 'Eric ', 20, 'M' }, { 'Susan', 30, 'F' }, { 'Alice', 30, 'F' }, { 'Adam ', 50, 'M' }, { 'Eve  ', 50, 'F' }, { 'Grace', 60, 'F' }, { 'Wilma', null, 'F' }]])
+!plan
+
+
+# Same as previous; but the sub-query with true correlated condition sometimes and condition is always false.
+select * from emp where deptno <> (select count(deptno) from dept where dept.deptno = emp.deptno);
++-------+--------+--------+
+| ENAME | DEPTNO | GENDER |
++-------+--------+--------+
+| Adam  |     50 | M      |
+| Alice |     30 | F      |
+| Bob   |     10 | M      |
+| Eric  |     20 | M      |
+| Eve   |     50 | F      |
+| Grace |     60 | F      |
+| Jane  |     10 | F      |
+| Susan |     30 | F      |
++-------+--------+--------+
+(8 rows)
+
+!ok
+EnumerableCalc(expr#0..4=[{inputs}], expr#5=[IS NULL($t4)], expr#6=[CAST($t1):BIGINT], expr#7=[0:BIGINT], expr#8=[<>($t6, $t7)], expr#9=[AND($t5, $t8)], expr#10=[<>($t6, $t4)], expr#11=[OR($t9, $t10)], proj#0..2=[{exprs}], $condition=[$t11])
+  EnumerableNestedLoopJoin(condition=[IS NOT DISTINCT FROM($1, $3)], joinType=[left])
+    EnumerableValues(tuples=[[{ 'Jane ', 10, 'F' }, { 'Bob  ', 10, 'M' }, { 'Eric ', 20, 'M' }, { 'Susan', 30, 'F' }, { 'Alice', 30, 'F' }, { 'Adam ', 50, 'M' }, { 'Eve  ', 50, 'F' }, { 'Grace', 60, 'F' }, { 'Wilma', null, 'F' }]])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[IS NOT NULL($t2)], expr#4=[0], expr#5=[CASE($t3, $t2, $t4)], DEPTNO=[$t0], EXPR$0=[$t5])
+      EnumerableNestedLoopJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])
+        EnumerableAggregate(group=[{0}])
+          EnumerableValues(tuples=[[{ 10 }, { 10 }, { 20 }, { 30 }, { 30 }, { 50 }, { 50 }, { 60 }, { null }]])
+        EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1:BIGINT], DEPTNO=[$t0], $f1=[$t2])
+          EnumerableValues(tuples=[[{ 10, 'Sales      ' }, { 20, 'Marketing  ' }, { 30, 'Engineering' }, { 40, 'Empty      ' }]])
+!plan
+
+# Same as previous; but the sub-query with always false correlated condition and return true sometimes.
+select * from emp where deptno <> (select count(deptno) + 10  from dept where dept.deptno = emp.deptno and 1 = 2);
++-------+--------+--------+
+| ENAME | DEPTNO | GENDER |
++-------+--------+--------+
+| Adam  |     50 | M      |
+| Alice |     30 | F      |
+| Eric  |     20 | M      |
+| Eve   |     50 | F      |
+| Grace |     60 | F      |
+| Susan |     30 | F      |
++-------+--------+--------+
+(6 rows)
+
+!ok
+EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t1):BIGINT], expr#6=[IS NULL($t4)], expr#7=[0:BIGINT], expr#8=[CASE($t6, $t7, $t4)], expr#9=[10], expr#10=[+($t8, $t9)], expr#11=[<>($t5, $t10)], proj#0..2=[{exprs}], $condition=[$t11])
+  EnumerableNestedLoopJoin(condition=[IS NOT DISTINCT FROM($1, $3)], joinType=[left])
+    EnumerableValues(tuples=[[{ 'Jane ', 10, 'F' }, { 'Bob  ', 10, 'M' }, { 'Eric ', 20, 'M' }, { 'Susan', 30, 'F' }, { 'Alice', 30, 'F' }, { 'Adam ', 50, 'M' }, { 'Eve  ', 50, 'F' }, { 'Grace', 60, 'F' }, { 'Wilma', null, 'F' }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[0], expr#2=[CAST($t1):BIGINT NOT NULL], DEPTNO=[$t0], $f1=[$t2])
+      EnumerableAggregate(group=[{0}])
+        EnumerableValues(tuples=[[{ 10 }, { 10 }, { 20 }, { 30 }, { 30 }, { 50 }, { 50 }, { 60 }, { null }]])
+!plan
+
 # End sub-query.iq
