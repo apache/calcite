@@ -2125,9 +2125,17 @@ public abstract class SqlImplementor {
     }
 
     private boolean hasAliasUsedInHavingClause() {
-      SqlSelect sqlNode;
+      SqlSelect sqlNode = null;
       if (this.node instanceof SqlWithItem) {
         sqlNode = (SqlSelect) ((SqlWithItem) this.node).query;
+      } else if (this.node instanceof SqlBasicCall
+          && ((SqlBasicCall) this.node).getOperator() == SqlStdOperatorTable.AS) {
+        SqlNode leftOperand = ((SqlBasicCall) this.node).operand(0);
+        if (leftOperand instanceof SqlWithItem) {
+          sqlNode = (SqlSelect) ((SqlWithItem) leftOperand).query;
+        } else if (leftOperand instanceof SqlSelect) {
+          sqlNode = (SqlSelect) leftOperand;
+        }
       } else {
         sqlNode = (SqlSelect) this.node;
       }
@@ -2647,18 +2655,24 @@ public abstract class SqlImplementor {
         ((SqlSelect) node).setSelectList(selectList);
       }
     }
+
     boolean hasAliasUsedInGroupByWhichIsNotPresentInFinalProjection(Project rel) {
       SqlNode newNode = node;
       if (node instanceof SqlBasicCall
           && ((SqlBasicCall) node).getOperator() == SqlStdOperatorTable.AS) {
         newNode = ((SqlBasicCall) node).getOperandList().get(0);
       }
-      if (node instanceof SqlWithItem && ((SqlWithItem) node).query instanceof SqlSelect) {
-        newNode = ((SqlWithItem) node).query;
+      if (newNode instanceof SqlWithItem) {
+        SqlNode query = ((SqlWithItem) newNode).query;
+        if (query instanceof SqlSelect) {
+          newNode = query;
+        }
       }
-      final SqlNodeList selectList = ((SqlSelect) newNode).getSelectList();
-      final SqlNodeList grpList = ((SqlSelect) newNode).getGroup();
-      return isGrpCallNotUsedInFinalProjection(grpList, selectList, rel);
+      final SqlSelect selectNode = (SqlSelect) newNode;
+      final SqlNodeList selectList = selectNode.getSelectList();
+      final SqlNodeList grpList = selectNode.getGroup();
+
+      return this.isGrpCallNotUsedInFinalProjection(grpList, selectList, rel);
     }
 
     boolean hasFieldsUsedInFilterWhichIsNotUsedInFinalProjection(Project project) {
