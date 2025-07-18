@@ -957,4 +957,8 @@ public class CoreRules {
   /** Rule that convert FULL JOIN to LEFT JOIN and RIGHT JOIN. */
   public static final FullToLeftAndRightJoinRule FULL_TO_LEFT_AND_RIGHT_JOIN =
       FullToLeftAndRightJoinRule.Config.DEFAULT.toRule();
+
+  /** Rule that converts true filtered aggregates into CASE-style filtered aggregates. */
+  public static final AggregateFilterToCaseRule AGGREGATE_FILTER_TO_CASE =
+      AggregateFilterToCaseRule.Config.DEFAULT.toRule();
 }

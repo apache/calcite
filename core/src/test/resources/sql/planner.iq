@@ -319,4 +319,36 @@ EnumerableHashJoin(condition=[AND(=($0, $6), OR(AND(>($1, 11), <=($7, 32)), AND(
 !plan
 !set planner-rules original
 
+# [CALCITE-7086] Implement a rule that performs the inverse operation of AggregateCaseToFilterRule
+# Refer to RelToSqlConverterTest.testAggregateFilterToCase(). The following two SQL
+# represent the true filtered Aggregate and the case-style Aggregate converted by AggregateFilterToCaseRule.
+!use scott
+select
+ sum(sal) filter(where deptno = 10) as sum_match,
+ count(distinct deptno) filter(where job = 'CLERK') as count_distinct_match,
+ count(*) filter(where deptno = 40) as count_star_match
+ from emp;
++-----------+----------------------+------------------+
+| SUM_MATCH | COUNT_DISTINCT_MATCH | COUNT_STAR_MATCH |
++-----------+----------------------+------------------+
+|   8750.00 |                    3 |                0 |
++-----------+----------------------+------------------+
+(1 row)
+
+!ok
+
+SELECT
+SUM(CASE WHEN CAST("DEPTNO" AS INTEGER) = 10 THEN "SAL" ELSE NULL END) AS "SUM_MATCH",
+COUNT(DISTINCT CASE WHEN "JOB" = 'CLERK' THEN "DEPTNO" ELSE NULL END) AS "COUNT_DISTINCT_MATCH",
+COUNT(CASE WHEN CAST("DEPTNO" AS INTEGER) = 40 THEN 0 ELSE NULL END) AS "COUNT_STAR_MATCH"
+FROM "scott"."EMP";
++-----------+----------------------+------------------+
+| SUM_MATCH | COUNT_DISTINCT_MATCH | COUNT_STAR_MATCH |
++-----------+----------------------+------------------+
+|   8750.00 |                    3 |                0 |
++-----------+----------------------+------------------+
+(1 row)
+
+!ok
+
 # End planner.iq
