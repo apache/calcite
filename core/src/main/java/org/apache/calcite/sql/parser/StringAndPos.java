@@ -90,8 +90,10 @@ public class StringAndPos {
       return true;
     }
     // Pattern: CAST(...) ^ CAST(...)
-    if (before.matches(".*CAST\\s*\\(.*?AS\\s+[A-Z]+\\s*(\\(\\d+\\))?\\s*\\)$")
-        && after.matches("^CAST\\s*\\(.*?AS\\s+[A-Z]+\\s*(\\(\\d+\\))?\\s*\\).*")) {
+    String castPattern =
+        "CAST\\s*\\(.*?AS\\s+[A-Z]+(?:\\s*\\(\\d+(?:,\\d+)?\\))?(?:\\s+UNSIGNED)?\\s*\\)";
+    if (before.matches(".*" + castPattern + "$")
+        && after.matches("^" + castPattern + ".*")) {
       return true;
     }
 
