@@ -267,19 +267,19 @@ public class SplunkConnectionImpl implements SplunkConnection {
         }
       } catch (java.net.SocketTimeoutException e) {
         String errorMsg = String.format("Connection to Splunk timed out. Please verify:\n" +
-                "1. Splunk URL is correct: %s\n" +
-                "2. Splunk server is running and accessible\n" +
-                "3. Network connectivity allows access to port %d\n" +
-                "4. No firewall is blocking the connection",
+            "1. Splunk URL is correct: %s\n" +
+            "2. Splunk server is running and accessible\n" +
+            "3. Network connectivity allows access to port %d\n" +
+            "4. No firewall is blocking the connection",
             url.toString(), url.getPort());
         LOGGER.error("Connection timeout during authentication: {}", errorMsg);
         throw new RuntimeException("Splunk connection timeout: " + errorMsg, e);
       } catch (java.net.ConnectException e) {
         String errorMsg = String.format("Cannot connect to Splunk server. Please verify:\n" +
-                "1. Splunk URL is correct: %s\n" +
-                "2. Splunk server is running\n" +
-                "3. Splunk REST API is enabled\n" +
-                "4. Port %d is accessible",
+            "1. Splunk URL is correct: %s\n" +
+            "2. Splunk server is running\n" +
+            "3. Splunk REST API is enabled\n" +
+            "4. Port %d is accessible",
             url.toString(), url.getPort());
         LOGGER.error("Connection refused during authentication: {}", errorMsg);
         throw new RuntimeException("Splunk connection refused: " + errorMsg, e);
@@ -290,7 +290,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
         throw new RuntimeException("Splunk hostname resolution failed: " + errorMsg, e);
       } catch (javax.net.ssl.SSLException e) {
         String errorMsg = String.format("SSL connection failed to Splunk server: %s\n" +
-                "Consider setting SPLUNK_DISABLE_SSL_VALIDATION=true for development/testing",
+            "Consider setting SPLUNK_DISABLE_SSL_VALIDATION=true for development/testing",
             url.toString());
         LOGGER.error("SSL error during authentication: {}", errorMsg);
         throw new RuntimeException("Splunk SSL connection failed: " + errorMsg, e);
@@ -336,7 +336,6 @@ public class SplunkConnectionImpl implements SplunkConnection {
         return true;
       }
     }
-
     // Check cause chain but be conservative
     Throwable cause = e.getCause();
     while (cause != null) {
@@ -349,8 +348,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
       }
 
       String causeMessage = cause.getMessage();
-      if (causeMessage != null && (causeMessage.contains("401") || causeMessage.contains(
-              "Unauthorized"))) {
+      if (causeMessage != null && (causeMessage.contains("401") || causeMessage.contains("Unauthorized"))) {
         return true;
       }
 
@@ -427,8 +425,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
 
         // Only retry on actual authentication errors, not network issues
         if (isHttpAuthenticationError(e) && attempt < MAX_RETRY_ATTEMPTS) {
-          LOGGER.warn("HTTP 401 authentication error detected on attempt {}, retrying...",
-                  attempt + 1);
+          LOGGER.warn("HTTP 401 authentication error detected on attempt {}, retrying...", attempt + 1);
           try {
             reAuthenticate();
           } catch (Exception authException) {
@@ -464,15 +461,13 @@ public class SplunkConnectionImpl implements SplunkConnection {
 
     for (int attempt = 0; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
       try {
-        return performSearchForEnumerator(search, otherArgs, schemaFieldList, explicitFields,
-                reverseFieldMapping);
+        return performSearchForEnumerator(search, otherArgs, schemaFieldList, explicitFields, reverseFieldMapping);
       } catch (Exception e) {
         lastException = e;
 
         // Only retry on actual authentication errors, not network issues
         if (isHttpAuthenticationError(e) && attempt < MAX_RETRY_ATTEMPTS) {
-          LOGGER.warn("HTTP 401 authentication error detected on attempt {}, retrying...",
-                  attempt + 1);
+          LOGGER.warn("HTTP 401 authentication error detected on attempt {}, retrying...", attempt + 1);
           try {
             reAuthenticate();
           } catch (Exception authException) {
@@ -539,7 +534,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
       Map<String, String> otherArgs,
       List<String> schemaFieldList,
       Set<String> explicitFields,
-      Map<String, String> reverseFieldMapping) throws Exception {
+      Map<String, String> reverseFieldMapping) {
     String searchUrl =
         String.format(Locale.ROOT,
             "%s://%s:%d/services/search/jobs/export",
@@ -568,10 +563,13 @@ public class SplunkConnectionImpl implements SplunkConnection {
       headersToUse = new HashMap<>(requestHeaders);
     }
 
-    // Just let the exception bubble up - no try-catch!
-    InputStream in = post(searchUrl, data, headersToUse, 10000, 1800000);
-    return new SplunkJsonResultEnumeratorWithRetry(in, schemaFieldList, explicitFields,
-            reverseFieldMapping, this);
+    try {
+      // wait at most 30 minutes for first result
+      InputStream in = post(searchUrl, data, headersToUse, 10000, 1800000);
+      return new SplunkJsonResultEnumeratorWithRetry(in, schemaFieldList, explicitFields, reverseFieldMapping, this);
+    } catch (Exception e) {
+      throw new RuntimeException("Search request failed: " + e.getMessage(), e);
+    }
   }
 
   private static void parseResults(InputStream in, SearchResultListener srl) {
@@ -774,8 +772,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
       } catch (Exception e) {
         // Check for authentication error and retry if possible
         if (connection.isHttpAuthenticationError(e) && !retryAttempted) {
-          LOGGER.warn("Authentication error detected during stream processing, attempting to " +
-                  "restart search");
+          LOGGER.warn("Authentication error detected during stream processing, attempting to restart search");
           retryAttempted = true;
 
           try {
