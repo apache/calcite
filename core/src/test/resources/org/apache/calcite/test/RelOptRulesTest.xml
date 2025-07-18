@@ -291,6 +291,35 @@ LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}]], EXPR$2=[SUM($0)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testAggregateFilterToCase">
+    <Resource name="sql">
+      <![CDATA[select coalesce(sum_match, 0) as sum0_match, sum_distinct_not_match,
+ count_distinct_match, count_star_match from (
+ select
+ sum(sal) filter(where deptno = 10) as sum_match,
+ sum(distinct empno) filter(where deptno = 20) as sum_distinct_not_match,
+ count(distinct deptno) filter(where job = 'CLERK') as count_distinct_match,
+ count(*) filter(where deptno = 40) as count_star_match
+ from emp
+ )]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(SUM0_MATCH=[$3], SUM_DISTINCT_NOT_MATCH=[$0], COUNT_DISTINCT_MATCH=[$1], COUNT_STAR_MATCH=[$2])
+  LogicalAggregate(group=[{}], SUM_DISTINCT_NOT_MATCH=[SUM(DISTINCT $2) FILTER $3], COUNT_DISTINCT_MATCH=[COUNT(DISTINCT $4) FILTER $5], COUNT_STAR_MATCH=[COUNT() FILTER $6], agg#3=[$SUM0($0) FILTER $1])
+    LogicalProject(SAL=[$5], $f1=[=($7, 10)], EMPNO=[$0], $f3=[=($7, 20)], DEPTNO=[$7], $f5=[=($2, 'CLERK')], $f6=[=($7, 40)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(SUM0_MATCH=[$3], SUM_DISTINCT_NOT_MATCH=[$0], COUNT_DISTINCT_MATCH=[$1], COUNT_STAR_MATCH=[$2])
+  LogicalAggregate(group=[{}], SUM_DISTINCT_NOT_MATCH=[SUM(DISTINCT $0) FILTER $1], COUNT_DISTINCT_MATCH=[COUNT(DISTINCT $2)], COUNT_STAR_MATCH=[COUNT($3)], agg#3=[$SUM0($4)])
+    LogicalProject(EMPNO=[$0], $f3=[=($7, 20)], $f7=[CASE(=($2, 'CLERK'), $7, null:INTEGER)], $f8=[CASE(=($7, 40), 0, null:INTEGER)], $f9=[CASE(=($7, 10), $5, null:INTEGER)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testAggregateGroupingSetsProjectMerge">
     <Resource name="sql">
       <![CDATA[select x, sum(z), y from (
