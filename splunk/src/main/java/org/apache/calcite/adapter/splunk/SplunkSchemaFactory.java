@@ -26,13 +26,16 @@ import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
+import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.collect.ImmutableMap;
 
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -41,7 +44,8 @@ import java.util.Map;
  * Supports multiple modes:
  * 1. Single CIM model: {"cim_model": "authentication"} -> creates table named after the model
  * 2. Multiple CIM models: {"cim_models": ["auth", "network"]} -> creates multiple named tables
- * 3. Custom tables: Uses standard Calcite table definitions with optional search strings
+ * 3. Custom tables: {"tables": [...]} -> creates user-defined tables with custom schemas
+ * 4. Mixed mode: CIM models + custom tables can coexist
  *
  * Connection parameters can be specified in two ways:
  * 1. Complete URL: {"url": "https://host:port"}
@@ -55,36 +59,59 @@ public class SplunkSchemaFactory implements SchemaFactory {
 
   @Override
   public Schema create(SchemaPlus parentSchema, String name, Map<String, Object> operand) {
-    // Create type factory directly
     RelDataTypeFactory typeFactory = new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    ImmutableMap.Builder<String, Table> tableBuilder = ImmutableMap.builder();
 
-    // Check for multiple CIM models first
+    // Process environment variables for custom tables
+    CustomTableConfigProcessor.processEnvironmentVariables(operand);
+
+    // Process CIM models (both single and multiple)
+    processCimModels(typeFactory, operand, tableBuilder);
+
+    // Process custom table definitions
+    processCustomTables(typeFactory, operand, tableBuilder);
+
+    // Create connection
+    SplunkConnection connection = createConnection(operand);
+    Map<String, Table> tables = tableBuilder.build();
+
+    if (tables.isEmpty()) {
+      // No predefined tables - custom table mode via JSON definitions
+      return new SplunkSchema(connection);
+    } else {
+      // Return schema with predefined tables
+      return new SplunkSchema(connection, tables);
+    }
+  }
+
+  /**
+   * Processes CIM model definitions (both single and multiple).
+   */
+  private void processCimModels(RelDataTypeFactory typeFactory, Map<String, Object> operand,
+      ImmutableMap.Builder<String, Table> tableBuilder) {
+
+    // Handle multiple CIM models
     Object cimModelsObj = operand.get("cimModels");
     if (cimModelsObj instanceof List) {
       @SuppressWarnings("unchecked")
       List<String> cimModels = (List<String>) cimModelsObj;
-      return createMultiCimSchema(typeFactory, cimModels, operand);
+      for (String cimModel : cimModels) {
+        addCimModelTable(typeFactory, cimModel, tableBuilder);
+      }
     }
 
-    // Check for single CIM model
+    // Handle single CIM model
     String cimModel = (String) operand.get("cimModel");
     if (cimModel != null) {
-      return createSingleCimSchema(typeFactory, cimModel, operand);
+      addCimModelTable(typeFactory, cimModel, tableBuilder);
     }
-
-    // Default: custom table mode (tables defined via JSON)
-    return new SplunkSchema(createConnection(operand));
   }
 
   /**
-   * Creates a schema with multiple tables, one for each CIM model.
-   * Table names match the CIM model names.
+   * Adds a single CIM model table to the builder.
    */
-  private Schema createMultiCimSchema(RelDataTypeFactory typeFactory,
-      List<String> cimModels, Map<String, Object> operand) {
-    ImmutableMap.Builder<String, Table> builder = ImmutableMap.builder();
-
-    for (String cimModel : cimModels) {
+  private void addCimModelTable(RelDataTypeFactory typeFactory, String cimModel,
+      ImmutableMap.Builder<String, Table> tableBuilder) {
       CimModelBuilder.CimSchemaResult result = CimModelBuilder.buildCimSchemaWithMapping(
           typeFactory, cimModel);
 
@@ -93,33 +120,185 @@ public class SplunkSchemaFactory implements SchemaFactory {
           result.getFieldMapping(),
           result.getSearchString());
 
-      // Use the CIM model name as the table name
       String tableName = normalizeTableName(cimModel);
-      builder.put(tableName, table);
-    }
-
-    SplunkConnection connection = createConnection(operand);
-    return new SplunkSchema(connection, builder.build());
+    tableBuilder.put(tableName, table);
   }
 
   /**
-   * Creates a schema with a single table named after the CIM model.
+   * Processes custom table definitions from the "tables" operand.
    */
-  private Schema createSingleCimSchema(RelDataTypeFactory typeFactory,
-      String cimModel, Map<String, Object> operand) {
-    CimModelBuilder.CimSchemaResult result = CimModelBuilder.buildCimSchemaWithMapping(
-        typeFactory, cimModel);
+  @SuppressWarnings("unchecked")
+  private void processCustomTables(RelDataTypeFactory typeFactory, Map<String, Object> operand,
+      ImmutableMap.Builder<String, Table> tableBuilder) {
 
-    SplunkTable table = new SplunkTable(
-        result.getSchema(),
-        result.getFieldMapping(),
-        result.getSearchString());
+    Object tablesObj = operand.get("tables");
+    if (!(tablesObj instanceof List)) {
+      return; // No custom tables defined
+    }
 
-    // Use the normalized CIM model name as the table name (consistent with multi-model behavior)
-    String tableName = normalizeTableName(cimModel);
-    Map<String, Table> tables = Collections.singletonMap(tableName, table);
-    SplunkConnection connection = createConnection(operand);
-    return new SplunkSchema(connection, tables);
+    List<Object> tablesList = (List<Object>) tablesObj;
+    for (Object tableObj : tablesList) {
+      if (!(tableObj instanceof Map)) {
+        System.err.println("Warning: Invalid table definition in operand. Expected Map, got: "
+            + tableObj.getClass());
+        continue;
+      }
+
+      Map<String, Object> tableConfig = (Map<String, Object>) tableObj;
+      try {
+        Table customTable = createCustomTable(typeFactory, tableConfig);
+        String tableName = getRequiredString(tableConfig, "name");
+        tableBuilder.put(tableName, customTable);
+      } catch (Exception e) {
+        System.err.println("Warning: Failed to create custom table: " + e.getMessage());
+        e.printStackTrace();
+      }
+    }
+  }
+
+  /**
+   * Creates a custom table from a table configuration map.
+   */
+  private Table createCustomTable(RelDataTypeFactory typeFactory, Map<String, Object> tableConfig) {
+    String tableName = getRequiredString(tableConfig, "name");
+    String searchString = (String) tableConfig.getOrDefault("search", "search");
+
+    // Extract field mapping
+    Map<String, String> fieldMapping = extractFieldMapping(tableConfig);
+
+    // Build schema from field definitions
+    RelDataType rowType = buildCustomTableSchema(typeFactory, tableConfig, fieldMapping);
+
+    return new SplunkTable(rowType, fieldMapping, searchString);
+  }
+
+  /**
+   * Builds the schema for a custom table from its configuration.
+   */
+  @SuppressWarnings("unchecked")
+  private RelDataType buildCustomTableSchema(RelDataTypeFactory typeFactory,
+      Map<String, Object> tableConfig, Map<String, String> fieldMapping) {
+
+    RelDataTypeFactory.Builder builder = typeFactory.builder();
+
+    // Check for explicit field definitions
+    Object fieldsObj = tableConfig.get("fields");
+    if (fieldsObj instanceof List) {
+      List<Object> fieldsList = (List<Object>) fieldsObj;
+      for (Object fieldObj : fieldsList) {
+        if (fieldObj instanceof Map) {
+          Map<String, Object> fieldConfig = (Map<String, Object>) fieldObj;
+          addFieldToSchema(builder, typeFactory, fieldConfig);
+        } else if (fieldObj instanceof String) {
+          // Simple string field name - defaults to VARCHAR
+          String fieldName = (String) fieldObj;
+          builder.add(fieldName, typeFactory.createSqlType(SqlTypeName.VARCHAR));
+        }
+      }
+    } else {
+      // No explicit fields - infer from field mapping keys
+      for (String schemaField : fieldMapping.keySet()) {
+        builder.add(schemaField, typeFactory.createSqlType(SqlTypeName.VARCHAR));
+      }
+    }
+
+    // Always add _extra field for unmapped data
+    builder.add("_extra", typeFactory.createSqlType(SqlTypeName.ANY));
+
+    return builder.build();
+  }
+
+  /**
+   * Adds a single field to the schema builder from field configuration.
+   */
+  private void addFieldToSchema(RelDataTypeFactory.Builder builder,
+      RelDataTypeFactory typeFactory, Map<String, Object> fieldConfig) {
+
+    String fieldName = getRequiredString(fieldConfig, "name");
+    String typeStr = (String) fieldConfig.getOrDefault("type", "VARCHAR");
+    Boolean nullable = (Boolean) fieldConfig.getOrDefault("nullable", true);
+
+    SqlTypeName sqlType;
+    try {
+      sqlType = SqlTypeName.valueOf(typeStr.toUpperCase());
+    } catch (IllegalArgumentException e) {
+      System.err.println("Warning: Unknown SQL type '" + typeStr + "' for field '"
+          + fieldName + "'. Defaulting to VARCHAR.");
+      sqlType = SqlTypeName.VARCHAR;
+    }
+
+    RelDataType fieldType = typeFactory.createSqlType(sqlType);
+    if (!nullable) {
+      fieldType = typeFactory.createTypeWithNullability(fieldType, false);
+    }
+
+    builder.add(fieldName, fieldType);
+  }
+
+  /**
+   * Extracts field mapping from table configuration.
+   * Supports both "fieldMapping" (Map) and "fieldMappings" (List of "key:value" strings).
+   */
+  @SuppressWarnings("unchecked")
+  private Map<String, String> extractFieldMapping(Map<String, Object> tableConfig) {
+    Map<String, String> fieldMapping = new HashMap<>();
+
+    // Handle fieldMapping as Map<String, String>
+    Object mappingObj = tableConfig.get("fieldMapping");
+    if (mappingObj instanceof Map) {
+      try {
+        Map<String, Object> rawMapping = (Map<String, Object>) mappingObj;
+        for (Map.Entry<String, Object> entry : rawMapping.entrySet()) {
+          String key = entry.getKey();
+          Object value = entry.getValue();
+          if (value instanceof String) {
+            fieldMapping.put(key, (String) value);
+          }
+        }
+      } catch (ClassCastException e) {
+        System.err.println("Warning: Invalid fieldMapping format. Expected Map<String, String>");
+      }
+    }
+
+    // Handle fieldMappings as List<String> with "key:value" format
+    Object mappingListObj = tableConfig.get("fieldMappings");
+    if (mappingListObj instanceof List) {
+      try {
+        List<String> mappingList = (List<String>) mappingListObj;
+        for (String mapping : mappingList) {
+          String[] parts = mapping.split(":", 2);
+          if (parts.length == 2) {
+            String schemaField = parts[0].trim();
+            String splunkField = parts[1].trim();
+            if (!schemaField.isEmpty() && !splunkField.isEmpty()) {
+              fieldMapping.put(schemaField, splunkField);
+            }
+          } else {
+            System.err.println("Warning: Invalid field mapping format: '" + mapping
+                + "'. Expected 'schema_field:splunk_field'");
+          }
+        }
+      } catch (ClassCastException e) {
+        System.err.println("Warning: Invalid fieldMappings format. Expected List<String>");
+      }
+    }
+
+    return fieldMapping;
+  }
+
+  /**
+   * Gets a required string parameter from a configuration map.
+   */
+  private String getRequiredString(Map<String, Object> config, String key) {
+    Object value = config.get(key);
+    if (!(value instanceof String)) {
+      throw new IllegalArgumentException("Required parameter '" + key + "' is missing or not a string");
+    }
+    String str = (String) value;
+    if (str.trim().isEmpty()) {
+      throw new IllegalArgumentException("Required parameter '" + key + "' cannot be empty");
+    }
+    return str;
   }
 
   /**

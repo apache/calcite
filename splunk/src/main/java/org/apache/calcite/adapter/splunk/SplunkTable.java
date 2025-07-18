@@ -168,9 +168,9 @@ public class SplunkTable extends AbstractQueryableTable implements TranslatableT
       }
       final SplunkTable splunkTable = (SplunkTable) table;
 
-      System.out.println("=== SplunkTableQueryable.createQuery (JSON Mode) ===");
-      System.out.println("Schema field list: " + fieldList);
-      System.out.println("Field mapping: " + splunkTable.getFieldMapping());
+//      System.out.println("=== SplunkTableQueryable.createQuery (JSON Mode) ===");
+//      System.out.println("Schema field list: " + fieldList);
+//      System.out.println("Field mapping: " + splunkTable.getFieldMapping());
 
       return new SplunkQuery<>(
           splunkSchema.splunkConnection,
