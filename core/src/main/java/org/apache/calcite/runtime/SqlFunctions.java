@@ -3418,6 +3418,66 @@ public class SqlFunctions {
   }
 
   /**
+   * Bitwise function <code>BITXOR</code> applied to {@link Long} values.
+   * Returns {@code 0L} if any operand is null.
+   */
+  public static long bitXor(Long b0, Long b1) {
+    return (b0 == null || b1 == null)
+        ? 0L
+        : b0 ^ b1;
+  }
+
+  /**
+   * Bitwise function <code>BITXOR</code> applied to {@link Integer} values.
+   * Returns {@code 0L} if any operand is null.
+   */
+  public static long bitXor(Integer b0, Integer b1) {
+    return (b0 == null || b1 == null)
+        ? 0L
+        : b0 ^ b1;
+  }
+
+  /**
+   * Bitwise function <code>BITXOR</code> applied to {@link org.joou.UByte} values.
+   * Returns {@code null} if any operand is null.
+   */
+  public static @PolyNull UByte bitXor(@PolyNull UByte b0, @PolyNull UByte b1) {
+    return (b0 == null || b1 == null)
+        ? castNonNull(null)
+        : UByte.valueOf(b0.shortValue() ^ b1.shortValue());
+  }
+
+  /**
+   * Bitwise function <code>BITXOR</code> applied to {@link org.joou.UShort} values.
+   * Returns {@code null} if any operand is null.
+   */
+  public static @PolyNull UShort bitXor(@PolyNull UShort b0, @PolyNull UShort b1) {
+    return (b0 == null || b1 == null)
+        ? castNonNull(null)
+        : UShort.valueOf(b0.intValue() ^ b1.intValue());
+  }
+
+  /**
+   * Bitwise function <code>BITXOR</code> applied to {@link org.joou.UInteger} values.
+   * Returns {@code null} if any operand is null.
+   */
+  public static @PolyNull UInteger bitXor(@PolyNull UInteger b0, @PolyNull UInteger b1) {
+    return (b0 == null || b1 == null)
+        ? castNonNull(null)
+        : UInteger.valueOf(b0.longValue() ^ b1.longValue());
+  }
+
+  /**
+   * Bitwise function <code>BITXOR</code> applied to {@link org.joou.ULong} values.
+   * Returns {@code null} if any operand is null.
+   */
+  public static @PolyNull ULong bitXor(@PolyNull ULong b0, @PolyNull ULong b1) {
+    return (b0 == null || b1 == null)
+        ? castNonNull(null)
+        : ULong.valueOf(b0.longValue() ^ b1.longValue());
+  }
+
+  /**
    * Utility for bitwise function applied to two byteString values.
    *
    * @param b0 The first byteString value operand of bitwise function.

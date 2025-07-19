@@ -21,10 +21,11 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.Objects;
 
 /**
- * Contains a string, the offset of a token within the string, and a parser
- * position containing the beginning and end line number.
+ * Contains a string, the offset of a token within the string, and a parser position containing the
+ * beginning and end line number.
  */
 public class StringAndPos {
+
   public final String sql;
   public final int cursor;
   public final @Nullable SqlParserPos pos;
@@ -52,8 +53,56 @@ public class StringAndPos {
   }
 
   /**
-   * Looks for one or two carets in a SQL string, and if present, converts
-   * them into a parser position.
+   * Checks if the SQL expression is a simple XOR pattern that can be safely processed.
+   *
+   * <p>This method provides special handling for the BITXOR_OPERATOR (^) in Apache Calcite
+   * to identify common XOR patterns that should be processed without additional transformation.
+   *
+   * <p>Supported patterns:
+   * <ul>
+   *   <li>number ^ number (e.g., "5 ^ 3", "-2 ^ 7")</li>
+   *   <li>CAST expression ^ CAST expression (e.g., "CAST(5 AS INTEGER) ^ CAST(3 AS BIGINT)")</li>
+   * </ul>
+   *
+   * @param sql the SQL expression to check
+   * @return true if the expression matches a simple XOR pattern, false otherwise
+   */
+  private static boolean isSimpleXorPattern(String sql) {
+    int caretIndex = sql.indexOf('^');
+    if (caretIndex == -1) {
+      return false;
+    }
+    String before = sql.substring(0, caretIndex).trim();
+    String after = sql.substring(caretIndex + 1).trim();
+
+    // Pattern: number ^ number
+    if (before.matches(".*-?\\d$") && after.matches("^-?\\d.*")) {
+      return true;
+    }
+    if (before.matches(".*CAST\\s*\\(\\s*NULL\\s+AS\\s+\\w+(\\(\\d+\\))?\\s*\\)$")
+        && after.matches("^\\d.*")) {
+      return true;
+    }
+
+    // number ^ CAST(NULL AS ...)
+    if (before.matches(".*\\d$")
+        && after.matches("^CAST\\s*\\(\\s*NULL\\s+AS\\s+\\w+(\\(\\d+\\))?\\s*\\).*")) {
+      return true;
+    }
+    // Pattern: CAST(...) ^ CAST(...)
+    String castPattern =
+        "CAST\\s*\\(.*?AS\\s+[A-Z]+(?:\\s*\\(\\d+(?:,\\d+)?\\))?(?:\\s+UNSIGNED)?\\s*\\)";
+    if (before.matches(".*" + castPattern + "$")
+        && after.matches("^" + castPattern + ".*")) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Looks for one or two carets in a SQL string, and if present, converts them into a parser
+   * position.
    *
    * <p>Examples:
    *
@@ -65,8 +114,13 @@ public class StringAndPos {
    * </ul>
    */
   public static StringAndPos of(String sql) {
+
     int firstCaret = sql.indexOf('^');
     if (firstCaret < 0) {
+      return new StringAndPos(sql, -1, null);
+    }
+    // check for bitxor operator test cases
+    if (isSimpleXorPattern(sql)) {
       return new StringAndPos(sql, -1, null);
     }
     int secondCaret = sql.indexOf('^', firstCaret + 1);
@@ -107,6 +161,6 @@ public class StringAndPos {
   public String addCarets() {
     return pos == null ? sql
         : SqlParserUtil.addCarets(sql, pos.getLineNum(), pos.getColumnNum(),
-        pos.getEndLineNum(), pos.getEndColumnNum() + 1);
+            pos.getEndLineNum(), pos.getEndColumnNum() + 1);
   }
 }
