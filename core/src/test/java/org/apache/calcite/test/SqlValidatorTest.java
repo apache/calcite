@@ -810,17 +810,17 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("'a'||'b'").ok();
     expr("x'12'||x'34'").ok();
     expr("'a'||'b'")
-        .columnType("CHAR(2) NOT NULL");
+        .columnType("CHAR(2)");
     expr("cast('a' as char(1))||cast('b' as char(2))")
-        .columnType("CHAR(3) NOT NULL");
+        .columnType("CHAR(3)");
     expr("cast(null as char(1))||cast('b' as char(2))")
         .columnType("CHAR(3)");
     expr("'a'||'b'||'c'")
-        .columnType("CHAR(3) NOT NULL");
+        .columnType("CHAR(3)");
     expr("'a'||'b'||'cde'||'f'")
-        .columnType("CHAR(6) NOT NULL");
+        .columnType("CHAR(6)");
     expr("'a'||'b'||cast('cde' as VARCHAR(3))|| 'f'")
-        .columnType("VARCHAR(6) NOT NULL");
+        .columnType("VARCHAR(6)");
     expr("_UTF16'a'||_UTF16'b'||_UTF16'c'").ok();
   }
 
@@ -1000,12 +1000,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("upper(_UTF16'sadf')").ok();
     expr("lower(n'sadf')").ok();
     expr("lower('sadf')")
-        .columnType("CHAR(4) NOT NULL");
+        .columnType("CHAR(4)");
     wholeExpr("upper(123)")
         .withTypeCoercion(false)
         .fails("(?s).*Cannot apply 'UPPER' to arguments of type 'UPPER.<INTEGER>.'.*");
     expr("upper(123)")
-        .columnType("VARCHAR NOT NULL");
+        .columnType("VARCHAR");
   }
 
   @Test void testPosition() {
@@ -1027,9 +1027,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("trim(leading 'mustache' FROM 'beard')").ok();
     expr("trim(trailing 'mustache' FROM 'beard')").ok();
     expr("trim('mustache' FROM 'beard')")
-        .columnType("VARCHAR(5) NOT NULL");
+        .columnType("VARCHAR(5)");
     expr("trim('beard  ')")
-        .columnType("VARCHAR(7) NOT NULL");
+        .columnType("VARCHAR(7)");
     expr("trim('mustache' FROM cast(null as varchar(4)))")
         .columnType("VARCHAR(4)");
 
@@ -1045,12 +1045,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .withTypeCoercion(false)
         .fails("(?s).*Cannot apply 'TRIM' to arguments of type.*");
     expr("trim(123 FROM 'beard')")
-        .columnType("VARCHAR(5) NOT NULL");
+        .columnType("VARCHAR(5)");
     wholeExpr("trim('a' FROM 123)")
         .withTypeCoercion(false)
         .fails("(?s).*Cannot apply 'TRIM' to arguments of type.*");
     expr("trim('a' FROM 123)")
-        .columnType("VARCHAR NOT NULL");
+        .columnType("VARCHAR");
     wholeExpr("trim('a' FROM _UTF16'b')")
         .fails("(?s).*not comparable to each other.*");
   }
@@ -1159,11 +1159,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .withTypeCoercion(false)
         .fails("(?s).*OVERLAY\\(<STRING> PLACING <STRING> FROM <INTEGER>\\).*");
     expr("overlay('ABCdef' placing 'abc' from '1' for 3)")
-        .columnType("VARCHAR(9) NOT NULL");
+        .columnType("VARCHAR(9)");
     expr("overlay('ABCdef' placing 'abc' from 1 for 3)")
-        .columnType("VARCHAR(9) NOT NULL");
+        .columnType("VARCHAR(9)");
     expr("overlay('ABCdef' placing 'abc' from 6 for 3)")
-        .columnType("VARCHAR(9) NOT NULL");
+        .columnType("VARCHAR(9)");
     expr("overlay('ABCdef' placing cast(null as char(5)) from 1)")
         .columnType("VARCHAR(11)");
 
@@ -1182,15 +1182,15 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("substring(x'ff' FROM 1  FOR 2)").ok();
 
     expr("substring('10' FROM 1  FOR 2)")
-        .columnType("VARCHAR(2) NOT NULL");
+        .columnType("VARCHAR(2)");
     expr("substring('1000' FROM 2)")
-        .columnType("VARCHAR(4) NOT NULL");
+        .columnType("VARCHAR(4)");
     expr("substring('1000' FROM '1'  FOR 'w')")
-        .columnType("VARCHAR(4) NOT NULL");
+        .columnType("VARCHAR(4)");
     expr("substring(cast(' 100 ' as CHAR(99)) FROM '1'  FOR 'w')")
-        .columnType("VARCHAR(99) NOT NULL");
+        .columnType("VARCHAR(99)");
     expr("substring(x'10456b' FROM 1  FOR 2)")
-        .columnType("VARBINARY(3) NOT NULL");
+        .columnType("VARBINARY(3)");
 
     sql("substring('10' FROM 1  FOR 2)")
         .assertCharset(isCharset("ISO-8859-1")); // aka "latin1"
@@ -1200,11 +1200,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("substring('a', 1, 3)").ok();
     // Implicit type coercion.
     expr("substring(12345, '1')")
-        .columnType("VARCHAR NOT NULL");
+        .columnType("VARCHAR");
     expr("substring('a', '1')")
-        .columnType("VARCHAR(1) NOT NULL");
+        .columnType("VARCHAR(1)");
     expr("substring('a', 1, '3')")
-        .columnType("VARCHAR(1) NOT NULL");
+        .columnType("VARCHAR(1)");
 
     // Correctly processed null string and params.
     expr("SUBSTRING(NULL FROM 1 FOR 2)").ok();
@@ -1242,7 +1242,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     s.withExpr("'a' ilike 'b'").columnType("BOOLEAN NOT NULL");
     s.withExpr("'a' ilike cast(null as varchar(99))").columnType("BOOLEAN");
     s.withExpr("cast(null as varchar(99)) not ilike 'b'").columnType("BOOLEAN");
-    s.withExpr("'a' not ilike 'b' || 'c'").columnType("BOOLEAN NOT NULL");
+    s.withExpr("'a' not ilike 'b' || 'c'").columnType("BOOLEAN");
 
     // ILIKE is only available in the PostgreSQL function library
     expr("^'a' ilike 'b'^")
@@ -2024,9 +2024,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
       // Without the "FROM" noise word, TRIM is parsed as a regular
       // function without quoting and built-in function with quoting.
       expr("\"TRIM\"('b', 'FROM', 'a')")
-          .columnType("VARCHAR(1) NOT NULL");
+          .columnType("VARCHAR(1)");
       expr("TRIM('b')")
-          .columnType("VARCHAR(1) NOT NULL");
+          .columnType("VARCHAR(1)");
     }
   }
 
@@ -7901,7 +7901,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("date '2015-03-17' between '2015-03-16' and '2015-03-19'")
         .columnType("BOOLEAN NOT NULL");
     expr("date '2015-03-17' between '2015-03-16' and '2015-03'||'-19'")
-        .columnType("BOOLEAN NOT NULL");
+        .columnType("BOOLEAN");
     expr("'2015-03-17' between date '2015-03-16' and date '2015-03-19'")
         .columnType("BOOLEAN NOT NULL");
     expr("date '2015-03-17' between date '2015-03-16' and '2015-03-19'")

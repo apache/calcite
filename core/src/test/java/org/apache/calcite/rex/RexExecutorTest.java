@@ -250,8 +250,10 @@ class RexExecutorTest {
       executor.reduce(rexBuilder, ImmutableList.of(substring, plus),
           reducedValues);
       assertThat(reducedValues, hasSize(2));
-      assertThat(reducedValues.get(0), instanceOf(RexLiteral.class));
-      assertThat(((RexLiteral) reducedValues.get(0)).getValue2(),
+      // substring can return null even if no arguments is null
+      // so there will be a cast
+      assertThat(reducedValues.get(0), instanceOf(RexCall.class));
+      assertThat(((RexLiteral) ((RexCall) reducedValues.get(0)).getOperands().get(0)).getValue2(),
           equalTo("ello")); // substring('Hello world!, 2, 4)
       assertThat(reducedValues.get(1), instanceOf(RexLiteral.class));
       assertThat(((RexLiteral) reducedValues.get(1)).getValue2(),
@@ -277,8 +279,8 @@ class RexExecutorTest {
       executor.reduce(rexBuilder, ImmutableList.of(substring, plus),
           reducedValues);
       assertThat(reducedValues, hasSize(2));
-      assertThat(reducedValues.get(0), instanceOf(RexLiteral.class));
-      assertThat(((RexLiteral) reducedValues.get(0)).getValue2(),
+      assertThat(reducedValues.get(0), instanceOf(RexCall.class));
+      assertThat(((RexLiteral) ((RexCall) reducedValues.get(0)).getOperands().get(0)).getValue2(),
           hasToString("656c6c6f")); // substring('Hello world!, 2, 4)
       assertThat(reducedValues.get(1), instanceOf(RexLiteral.class));
       assertThat(((RexLiteral) reducedValues.get(1)).getValue2(),

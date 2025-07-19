@@ -1705,7 +1705,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <p>For example, {@code REPLACE(('ciAao', 'a', 'ciao'))} returns "ciAciaoo" in both
    * Oracle and PostgreSQL, but returns "ciciaociaoo" in Microsoft SQL Server. */
   public static final SqlFunction REPLACE =
-      SqlBasicFunction.create("REPLACE", ReturnTypes.VARCHAR_NULLABLE,
+      SqlBasicFunction.create("REPLACE", ReturnTypes.VARCHAR_FORCE_NULLABLE,
           OperandTypes.STRING_STRING_STRING, SqlFunctionCategory.STRING);
 
   /** The {@code CONVERT(charValue, srcCharsetName, destCharsetName)}
@@ -1755,19 +1755,19 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   public static final SqlFunction UPPER =
       SqlBasicFunction.create("UPPER",
-          ReturnTypes.ARG0_NULLABLE,
+          ReturnTypes.ARG0_FORCE_NULLABLE,
           OperandTypes.CHARACTER,
           SqlFunctionCategory.STRING);
 
   public static final SqlFunction LOWER =
       SqlBasicFunction.create("LOWER",
-          ReturnTypes.ARG0_NULLABLE,
+          ReturnTypes.ARG0_FORCE_NULLABLE,
           OperandTypes.CHARACTER,
           SqlFunctionCategory.STRING);
 
   public static final SqlFunction INITCAP =
       SqlBasicFunction.create("INITCAP",
-          ReturnTypes.ARG0_NULLABLE,
+          ReturnTypes.ARG0_FORCE_NULLABLE,
           OperandTypes.CHARACTER,
           SqlFunctionCategory.STRING);
 

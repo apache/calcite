@@ -1153,4 +1153,7 @@ public interface CalciteResource {
 
   @BaseMessage("Index in ROW type does not have a constant integer or string value")
   ExInst<SqlValidatorException> illegalRowIndex();
+
+  @BaseMessage("Nondeterministic parameter is not supported under emptyStringIsNull semantics")
+  ExInst<RuntimeException> nondeterministicParamNotAllowed();
 }
