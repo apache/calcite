@@ -1317,6 +1317,8 @@ public class SqlDialect {
       return SqlConformanceEnum.ORACLE_10;
     case MSSQL:
       return SqlConformanceEnum.SQL_SERVER_2008;
+    case PRESTO:
+      return SqlConformanceEnum.PRESTO;
     default:
       return SqlConformanceEnum.PRAGMATIC_2003;
     }
