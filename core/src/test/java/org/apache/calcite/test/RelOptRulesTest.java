@@ -11087,4 +11087,14 @@ class RelOptRulesTest extends RelOptTestBase {
         .withRule(CoreRules.FULL_TO_LEFT_AND_RIGHT_JOIN)
         .checkUnchanged();
   }
+
+  @Test void testAggregateFilterToCase() {
+    final String sql = "select\n"
+        + " sum(sal) filter(where deptno = 10) as sum_match,\n"
+        + " sum(distinct empno) filter(where deptno = 20) as sum_distinct_not_match,\n"
+        + " count(distinct deptno) filter(where job = 'CLERK') as count_distinct_match,\n"
+        + " count(*) filter(where deptno = 40) as count_match\n"
+        + " from emp";
+    sql(sql).withRule(CoreRules.AGGREGATE_FILTER_TO_CASE).check();
+  }
 }
