@@ -2355,6 +2355,21 @@ class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7103">[CALCITE-7103]
+   * Keep ALLOWS_AS in Hive and Spark SqlDialects. */
+  @Test void testAs() {
+    final String query = "select substring(\"brand_name\" from 2) as name "
+        + "from \"product\"\n";
+    final String hiveExpected = "SELECT SUBSTRING(`brand_name`, 2) AS `NAME`\n"
+        + "FROM `foodmart`.`product`";
+    final String sparkExpected = "SELECT SUBSTRING(`brand_name`, 2) AS `NAME`\n"
+        + "FROM `foodmart`.`product`";
+    sql(query)
+        .withHive().ok(hiveExpected)
+        .withSpark().ok(sparkExpected);
+  }
+
   @Test void testSelectQueryWithOrderByClause1() {
     String query =
         "select \"product_id\", \"net_weight\" from \"product\" order by \"net_weight\"";

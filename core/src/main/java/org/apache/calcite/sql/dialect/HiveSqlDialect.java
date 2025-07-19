@@ -67,10 +67,6 @@ public class HiveSqlDialect extends SqlDialect {
             && context.databaseMinorVersion() < 1);
   }
 
-  @Override protected boolean allowsAs() {
-    return false;
-  }
-
   @Override public boolean requiresAliasForFromItems() {
     return true;
   }
