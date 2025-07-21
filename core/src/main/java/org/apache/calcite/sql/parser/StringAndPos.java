@@ -60,15 +60,18 @@ public class StringAndPos {
    *
    * <p>Supported patterns include:
    * <ul>
-   *   <li><b>Literal numbers:</b> {@code number ^ number}, e.g., {@code "5 ^ 3"}, {@code "-2 ^ 7"}</li>
+   *   <li><b>Literal numbers:</b> {@code number ^ number}, e.g.,
+   *   {@code "5 ^ 3"}, {@code "-2 ^ 7"}</li>
    *   <li><b>Null handling:</b>
    *     <ul>
    *       <li>{@code NULL ^ number} or {@code CAST(NULL AS TYPE) ^ number}</li>
    *       <li>{@code number ^ NULL} or {@code number ^ CAST(NULL AS TYPE)}</li>
    *     </ul>
    *   </li>
-   *   <li><b>Typed casts:</b> {@code CAST(...) ^ CAST(...)}, including types with precision or UNSIGNED,
-   *       e.g., {@code CAST(5 AS INTEGER) ^ CAST(3 AS BIGINT)}, {@code CAST(255 AS INTEGER UNSIGNED) ^ CAST(1 AS INTEGER UNSIGNED)}</li>
+   *   <li><b>Typed casts:</b> {@code CAST(...) ^ CAST(...)},
+   *   including types with precision or UNSIGNED,
+   *       e.g., {@code CAST(5 AS INTEGER) ^ CAST(3 AS BIGINT)},
+   *       {@code CAST(255 AS INTEGER UNSIGNED) ^ CAST(1 AS INTEGER UNSIGNED)}</li>
    * </ul>
    *
    * @param sql the SQL expression containing the XOR (^) operator
