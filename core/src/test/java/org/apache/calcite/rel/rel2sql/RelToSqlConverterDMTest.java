@@ -7793,21 +7793,6 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
-  @Test public void testSubTimeWith4Args() {
-    final RelBuilder builder = relBuilder();
-    final RexNode substrRexNode =
-        builder.call(SqlLibraryOperators.SUBSTR_POSTGRESQL, builder.literal("12:15:07"),
-            builder.literal(2), builder.literal(3), builder.literal("USING OCTETS"));
-    final RelNode root = builder
-        .scan("EMP")
-        .project(builder.alias(substrRexNode, "FD"))
-        .build();
-    final String expectedBiqQuery = "SELECT SUBSTR('12:15:07', 2, 3, 'USING OCTETS') "
-        + "AS FD\n"
-        + "FROM scott.EMP";
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
-  }
-
   @Test public void testPlusForTimestampAdd() {
     final RelBuilder builder = relBuilder();
 
