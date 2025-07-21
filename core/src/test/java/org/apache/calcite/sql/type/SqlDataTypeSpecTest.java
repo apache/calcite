@@ -16,13 +16,14 @@
  */
 package org.apache.calcite.sql.type;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlDialect;
-
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
+
+import com.google.common.collect.ImmutableList;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
