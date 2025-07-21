@@ -16,10 +16,14 @@
  */
 package org.apache.calcite.sql.type;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlDialect;
 
+import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.Objects;
@@ -61,6 +65,18 @@ class SqlDataTypeSpecTest {
 
     assertEquals(dataTypeSpec, getSqlDataTypeSpec(dataType, dialect));
     assertEquals(dataTypeSpecPrecScale, getSqlDataTypeSpecWithPrecisionAndScale(dataType, dialect));
+  }
+
+  @Test void testSubstrWithFourArgs() {
+    SqlFunction sqlFunction = SqlLibraryOperators.SUBSTR_BIG_QUERY;
+
+    Assertions.assertNotNull(sqlFunction.getOperandTypeChecker());
+    ImmutableList<SqlTypeFamily> families =
+        ((FamilyOperandTypeChecker) sqlFunction.getOperandTypeChecker()).families;
+    int operandSize = families.size();
+    assertEquals(4, operandSize);
+    String dataTypeName = families.get(3).name();
+    assertEquals("STRING", dataTypeName);
   }
 
   @Test void testDecimalWithoutPrecisionAndScale() {
