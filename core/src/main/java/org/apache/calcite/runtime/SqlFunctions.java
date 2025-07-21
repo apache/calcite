@@ -3383,15 +3383,17 @@ public class SqlFunctions {
     return b0 ^ b1;
   }
 
-  /** Bitwise function <code>BITXOR</code> applied to a Long and int value.
-   *  Needed for handling NULL for the first argument.
+  /**
+   * Bitwise function <code>BITXOR</code> applied to a Long and int value. Overload to support type
+   * coercion between boxed Long and primitive int.
    */
   public static long bitXor(Long b0, int b1) {
     return b0 ^ b1;
   }
 
-  /** Bitwise function <code>BITXOR</code> applied to a Long and int value.
-   *  Needed for handling NULL for the second argument.
+  /**
+   * Bitwise function <code>BITXOR</code> applied to a Long and int value. Overload to support type
+   * coercion between boxed Long and primitive int.
    */
   public static long bitXor(int b0, Long b1) {
     return b0 ^ b1;
@@ -3419,62 +3421,59 @@ public class SqlFunctions {
 
   /**
    * Bitwise function <code>BITXOR</code> applied to {@link Long} values.
-   * Returns {@code 0L} if any operand is null.
+   * Returns {@code null} if any operand is null.
    */
   public static long bitXor(Long b0, Long b1) {
-    return (b0 == null || b1 == null)
-        ? 0L
-        : b0 ^ b1;
+    return b0 ^ b1;
   }
 
   /**
    * Bitwise function <code>BITXOR</code> applied to {@link Integer} values.
-   * Returns {@code 0L} if any operand is null.
+   * Returns {@code null} if any operand is null.
    */
   public static long bitXor(Integer b0, Integer b1) {
-    return (b0 == null || b1 == null)
-        ? 0L
-        : b0 ^ b1;
+    return b0 ^ b1;
   }
 
   /**
    * Bitwise function <code>BITXOR</code> applied to {@link org.joou.UByte} values.
    * Returns {@code null} if any operand is null.
    */
-  public static @PolyNull UByte bitXor(@PolyNull UByte b0, @PolyNull UByte b1) {
-    return (b0 == null || b1 == null)
-        ? castNonNull(null)
-        : UByte.valueOf(b0.shortValue() ^ b1.shortValue());
+  public static UByte bitXor(UByte b0, UByte b1) {
+    return  UByte.valueOf(b0.shortValue() ^ b1.shortValue());
   }
 
   /**
    * Bitwise function <code>BITXOR</code> applied to {@link org.joou.UShort} values.
    * Returns {@code null} if any operand is null.
    */
-  public static @PolyNull UShort bitXor(@PolyNull UShort b0, @PolyNull UShort b1) {
-    return (b0 == null || b1 == null)
-        ? castNonNull(null)
-        : UShort.valueOf(b0.intValue() ^ b1.intValue());
+  public static UShort bitXor(UShort b0, UShort b1) {
+    return  UShort.valueOf(b0.intValue() ^ b1.intValue());
   }
 
   /**
    * Bitwise function <code>BITXOR</code> applied to {@link org.joou.UInteger} values.
    * Returns {@code null} if any operand is null.
    */
-  public static @PolyNull UInteger bitXor(@PolyNull UInteger b0, @PolyNull UInteger b1) {
-    return (b0 == null || b1 == null)
-        ? castNonNull(null)
-        : UInteger.valueOf(b0.longValue() ^ b1.longValue());
+  public static UInteger bitXor(UInteger b0, UInteger b1) {
+    return UInteger.valueOf(b0.longValue() ^ b1.longValue());
   }
 
   /**
    * Bitwise function <code>BITXOR</code> applied to {@link org.joou.ULong} values.
    * Returns {@code null} if any operand is null.
    */
-  public static @PolyNull ULong bitXor(@PolyNull ULong b0, @PolyNull ULong b1) {
-    return (b0 == null || b1 == null)
-        ? castNonNull(null)
-        : ULong.valueOf(b0.longValue() ^ b1.longValue());
+  public static ULong bitXor(ULong b0, ULong b1) {
+    return ULong.valueOf(b0.longValue() ^ b1.longValue());
+  }
+
+  public static @Nullable Object bitXor(@Nullable Object b0, @Nullable Object b1) {
+    if (b0 == null || b1 == null) {
+      return null;
+    }
+    throw new IllegalArgumentException(
+        "Invalid arguments for BITXOR: "
+            + "" + b0.getClass() + ", " + b1.getClass());
   }
 
   /**

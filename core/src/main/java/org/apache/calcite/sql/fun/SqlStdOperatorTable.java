@@ -1307,7 +1307,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.BITXOR,
           40,        // Precedence between addition (40) and multiplication (60)
           true,
-          ReturnTypes.LARGEST_INT_OR_FIRST_NON_NULL,  // Returns same type as inputs when nullable
+          ReturnTypes.LARGEST_INT_OR_FIRST_NON_NULL,
           InferTypes.FIRST_KNOWN,
           OperandTypes.INTEGER_INTEGER.or(OperandTypes.BINARY_BINARY)
               .or(OperandTypes.UNSIGNED_NUMERIC_UNSIGNED_NUMERIC));

@@ -56,15 +56,22 @@ public class StringAndPos {
    * Checks if the SQL expression is a simple XOR pattern that can be safely processed.
    *
    * <p>This method provides special handling for the BITXOR_OPERATOR (^) in Apache Calcite
-   * to identify common XOR patterns that should be processed without additional transformation.
+   * to identify common XOR patterns that can be evaluated directly without complex rewriting.
    *
-   * <p>Supported patterns:
+   * <p>Supported patterns include:
    * <ul>
-   *   <li>number ^ number (e.g., "5 ^ 3", "-2 ^ 7")</li>
-   *   <li>CAST expression ^ CAST expression (e.g., "CAST(5 AS INTEGER) ^ CAST(3 AS BIGINT)")</li>
+   *   <li><b>Literal numbers:</b> {@code number ^ number}, e.g., {@code "5 ^ 3"}, {@code "-2 ^ 7"}</li>
+   *   <li><b>Null handling:</b>
+   *     <ul>
+   *       <li>{@code NULL ^ number} or {@code CAST(NULL AS TYPE) ^ number}</li>
+   *       <li>{@code number ^ NULL} or {@code number ^ CAST(NULL AS TYPE)}</li>
+   *     </ul>
+   *   </li>
+   *   <li><b>Typed casts:</b> {@code CAST(...) ^ CAST(...)}, including types with precision or UNSIGNED,
+   *       e.g., {@code CAST(5 AS INTEGER) ^ CAST(3 AS BIGINT)}, {@code CAST(255 AS INTEGER UNSIGNED) ^ CAST(1 AS INTEGER UNSIGNED)}</li>
    * </ul>
    *
-   * @param sql the SQL expression to check
+   * @param sql the SQL expression containing the XOR (^) operator
    * @return true if the expression matches a simple XOR pattern, false otherwise
    */
   private static boolean isSimpleXorPattern(String sql) {

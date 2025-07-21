@@ -306,4 +306,44 @@ public enum UnsignedType {
     }
     return Unsigned.ulong(s);
   }
+  public static UShort toUShort(Object o) {
+    if (o == null) {
+      return null;
+    }
+    if (o instanceof Number) {
+      return UShort.valueOf(((Number) o).intValue());
+    }
+    throw new IllegalArgumentException("Cannot cast to UShort: " + o.getClass());
+  }
+
+  public static UByte toUByte(Object o) {
+    if (o == null) {
+      return null;
+    }
+    if (o instanceof Number) {
+      return UByte.valueOf(((Number) o).shortValue());
+    }
+    throw new IllegalArgumentException("Cannot cast to UByte: " + o.getClass());
+  }
+
+  public static UInteger toUInteger(Object o) {
+    if (o == null) {
+      return null;
+    }
+    if (o instanceof Number) {
+      return UInteger.valueOf(((Number) o).longValue());
+    }
+    throw new IllegalArgumentException("Cannot cast to UInteger: " + o.getClass());
+  }
+
+  public static ULong toULong(Object o) {
+    if (o == null) {
+      return null;
+    }
+    if (o instanceof Number) {
+      return ULong.valueOf(((Number) o).longValue());
+    }
+    throw new IllegalArgumentException("Cannot cast to ULong: " + o.getClass());
+  }
+
 }

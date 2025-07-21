@@ -16464,24 +16464,28 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.BITXOR_OPERATOR, VM_EXPAND);
 
-    // Basic XOR between two integer literals
+    // Basic XOR between signed integer types
     f.checkScalar("2 ^ 3", "1", "INTEGER NOT NULL");
     f.checkScalar("CAST(2 AS INTEGER) ^ CAST(3 AS BIGINT)", "1", "BIGINT NOT NULL");
     f.checkScalar("-5 ^ 7", "-4", "INTEGER NOT NULL");
     f.checkScalar("-5 ^ -7", "2", "INTEGER NOT NULL");
     f.checkScalar("CAST(-5 AS TINYINT) ^ CAST(7 AS TINYINT)", "-4", "TINYINT NOT NULL");
     f.checkScalar("CAST(-5 AS TINYINT) ^ CAST(-31 AS TINYINT)", "26", "TINYINT NOT NULL");
+
+    // Type propagation check
     f.checkType("CAST(2 AS TINYINT) ^ CAST(6 AS TINYINT)", "TINYINT NOT NULL");
     f.checkType("CAST(2 AS SMALLINT) ^ CAST(6 AS SMALLINT)", "SMALLINT NOT NULL");
     f.checkType("CAST(2 AS BIGINT) ^ CAST(6 AS BIGINT)", "BIGINT NOT NULL");
+
+    // XOR on binary/varbinary types
     f.checkScalar("CAST(x'0201' AS BINARY(2)) ^ CAST(x'07f9' AS BINARY(2))", "05f8",
         "BINARY(2) NOT NULL");
     f.checkScalar("CAST(x'0201' AS VARBINARY(2)) ^ CAST(x'07f9' AS VARBINARY(2))", "05f8",
         "VARBINARY(2) NOT NULL");
 
+    // Binary length mismatch
     f.checkFails("CAST(x'0201' AS VARBINARY) ^ CAST(x'02' AS VARBINARY)",
-        "Different length for bitwise operands: the first: 2, the second: 1",
-        true);
+        "Different length for bitwise operands: the first: 2, the second: 1", true);
 
     f.checkNull("CAST(NULL AS INTEGER) ^ 1");
     f.checkNull("1 ^ CAST(NULL AS INTEGER)");
@@ -16489,11 +16493,24 @@ public class SqlOperatorTest {
     // Test with unsigned numbers
     f.checkScalar("CAST(255 AS TINYINT UNSIGNED) ^ CAST(15 AS TINYINT UNSIGNED)",
         "240", "TINYINT UNSIGNED NOT NULL");
+
     f.checkScalar("CAST(65535 AS SMALLINT UNSIGNED) ^ CAST(255 AS SMALLINT UNSIGNED)",
         "65280", "SMALLINT UNSIGNED NOT NULL");
+
     f.checkScalar("CAST(4294967295 AS INTEGER UNSIGNED) ^ CAST(255 AS INTEGER UNSIGNED)",
         "4294967040", "INTEGER UNSIGNED NOT NULL");
+
+    f.checkScalar("CAST(2147483648 AS INTEGER UNSIGNED) ^ CAST(123456789 AS INTEGER UNSIGNED)",
+        "2270940437", "INTEGER UNSIGNED NOT NULL");
+
+    // NULL handling (unsigned)
+    f.checkNull("CAST(NULL AS INTEGER UNSIGNED) ^ CAST(255 AS INTEGER UNSIGNED)");
+
+    f.checkNull("CAST(4294967295 AS INTEGER UNSIGNED) ^ CAST(NULL AS INTEGER UNSIGNED)");
+
+    f.checkNull("CAST(NULL AS INTEGER UNSIGNED) ^ CAST(NULL AS INTEGER UNSIGNED)");
   }
+
 
   @Test void testBitAndScalarFunc() {
     final SqlOperatorFixture f = fixture();
