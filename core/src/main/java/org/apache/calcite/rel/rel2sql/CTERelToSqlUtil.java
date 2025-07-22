@@ -27,6 +27,7 @@ import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlJoin;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlPivot;
 import org.apache.calcite.sql.SqlSelect;
@@ -299,7 +300,8 @@ public class CTERelToSqlUtil {
 
   public static void updateNode(SqlNode sqlNode) {
     SqlBasicCall basicCall = (SqlBasicCall) sqlNode;
-    if (basicCall.getOperator() instanceof SqlBinaryOperator) {
+    if (basicCall.getOperator() instanceof SqlBinaryOperator
+        || basicCall.getOperator().getKind() == SqlKind.BETWEEN) {
       for (SqlNode operand : basicCall.getOperandList()) {
         if (operand instanceof SqlBasicCall) {
           handleBasicCallOperand((SqlBasicCall) operand);
