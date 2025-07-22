@@ -7920,6 +7920,25 @@ class RelToSqlConverterTest {
     sql(query).withPresto().ok(expectedPresto);
   }
 
+  @Test void testLeftJoinForAmbiguityColumn() {
+    final String sql = "SELECT d.deptno, e.deptno\n"
+        + "FROM dept d\n"
+        + "LEFT JOIN emp e\n"
+        + " ON d.deptno = e.deptno\n"
+        + " AND d.deptno < 15\n"
+        + " AND d.deptno > 10\n"
+        + " AND d.deptno = (select e.deptno from emp e where e.empno = 1)\n"
+        + "WHERE e.job LIKE 'PRESIDENT'";
+    final String expected = "SELECT DEPT.DEPTNO, EMP.DEPTNO AS DEPTNO0"
+        + "\nFROM SCOTT.DEPT"
+        + "\nLEFT JOIN SCOTT.EMP ON DEPT.DEPTNO = EMP.DEPTNO "
+        + "AND (DEPT.DEPTNO > 10 AND DEPT.DEPTNO < 15) "
+        + "AND DEPT.DEPTNO = (SELECT DEPTNO\nFROM SCOTT.EMP\nWHERE CAST(EMPNO AS INT64) = 1)"
+        + "\nWHERE EMP.JOB LIKE 'PRESIDENT'";
+    sql(sql).schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withBigQuery().ok(expected);
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final CalciteAssert.SchemaSpec schemaSpec;
