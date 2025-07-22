@@ -702,4 +702,54 @@ FOO BOOLEAN(1) NOT NULL
 
 !ok
 
+SELECT 2 ^ 3 AS foo;
++-----+
+| FOO |
++-----+
+|   1 |
++-----+
+(1 row)
+
+!ok
+
+SELECT 0 ^ 0 AS foo;
++-----+
+| FOO |
++-----+
+|   0 |
++-----+
+(1 row)
+
+!ok
+
+SELECT 1 ^ 1 AS foo;
++-----+
+| FOO |
++-----+
+|   0 |
++-----+
+(1 row)
+
+!ok
+
+SELECT 5 ^ 2 AS foo;
++-----+
+| FOO |
++-----+
+|   7 |
++-----+
+(1 row)
+
+!ok
+
+SELECT 255 ^ 128 AS foo;
++-----+
+| FOO |
++-----+
+| 127 |
++-----+
+(1 row)
+
+!ok
+
 # End operator.iq
