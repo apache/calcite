@@ -16,14 +16,17 @@
  */
 package org.apache.calcite.rel.rules;
 
+import org.apache.calcite.plan.JoinConditionTransferTrait;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
@@ -231,10 +234,25 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
     // NOT NULL due to the join-type getting stricter.
     relBuilder.convert(join.getRowType(), false);
 
+
     // create a FilterRel on top of the join if needed
     relBuilder.filter(
         RexUtil.fixUp(rexBuilder, aboveFilters,
             RelOptUtil.getFieldTypeList(relBuilder.peek().getRowType())));
+
+    //create reltrait for the filter rel on the top of join
+    RelNode filterNode = relBuilder.peek();
+    if (filterNode instanceof LogicalFilter) {
+      JoinConditionTransferTrait filterJoinTrait = new JoinConditionTransferTrait(true);
+      RelTraitSet filterJoinTraitSet = filterNode.getTraitSet().plus(filterJoinTrait);
+
+      RelNode newFilterRel =
+          filterNode.copy(
+              filterJoinTraitSet,
+              filterNode.getInputs());
+
+      relBuilder.push(newFilterRel);
+    }
     call.transformTo(relBuilder.build());
   }
 
