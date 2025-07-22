@@ -4144,33 +4144,6 @@ public class JdbcTest {
         .returnsUnordered("empid=150; name=Sebastian");
   }
 
-  /**
-   * Test case of
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6893">[CALCITE-6893]
-   * Remove agg from Union children in IntersectToDistinctRule</a>. */
-  @Test void testIntersectToDistinct() {
-    final String sql = ""
-        + "select \"empid\", \"name\" from \"hr\".\"emps\" where \"deptno\"=10\n"
-        + "intersect\n"
-        + "select \"empid\", \"name\" from \"hr\".\"emps\" where \"empid\">=150";
-    final String[] returns = new String[] {
-        "empid=150; name=Sebastian"};
-
-    CalciteAssert.hr()
-        .query(sql)
-        .explainContains("EnumerableIntersect")
-        .returnsUnordered(returns);
-
-    CalciteAssert.hr()
-        .query(sql)
-        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>)
-            p -> {
-              p.removeRule(EnumerableRules.ENUMERABLE_INTERSECT_RULE);
-            })
-        .explainContains("EnumerableUnion(all=[true])")
-        .returnsUnordered(returns);
-  }
-
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6904">[CALCITE-6904]
    * IS_NOT_DISTINCT_FROM is converted error in EnumerableJoinRule</a>. */

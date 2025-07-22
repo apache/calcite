@@ -3686,6 +3686,22 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Tests {@link org.apache.calcite.rel.rules.IntersectToDistinctRule} with
+   * the option to not perform aggregation pushdown (see
+   * {@link CoreRules#INTERSECT_TO_DISTINCT_NO_AGGREGATE_PUSHDOWN}).
+   * which rewrites an {@link Intersect} operator with 3 inputs. */
+  @Test void testIntersectToDistinctNoAggregatePushdown() {
+    final String sql = "select * from emp where deptno = 10\n"
+        + "intersect\n"
+        + "select * from emp where deptno = 20\n"
+        + "intersect\n"
+        + "select * from emp where deptno = 30\n";
+    sql(sql)
+        .withRule(CoreRules.INTERSECT_MERGE,
+            CoreRules.INTERSECT_TO_DISTINCT_NO_AGGREGATE_PUSHDOWN)
+        .check();
+  }
+
   /** Tests that {@link org.apache.calcite.rel.rules.IntersectToDistinctRule}
    * correctly ignores an {@code INTERSECT ALL}. It can only handle
    * {@code INTERSECT DISTINCT}. */
@@ -3698,6 +3714,23 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql)
         .withRule(CoreRules.INTERSECT_MERGE,
             CoreRules.INTERSECT_TO_DISTINCT)
+        .check();
+  }
+
+  /** Tests {@link org.apache.calcite.rel.rules.IntersectToDistinctRule} with
+   * the option to not perform aggregation pushdown (see
+   * {@link CoreRules#INTERSECT_TO_DISTINCT_NO_AGGREGATE_PUSHDOWN}).
+   * correctly ignores an {@code INTERSECT ALL}. It can only handle
+   * {@code INTERSECT DISTINCT}. */
+  @Test void testIntersectToDistinctAllNoAggregatePushdown() {
+    final String sql = "select * from emp where deptno = 10\n"
+        + "intersect\n"
+        + "select * from emp where deptno = 20\n"
+        + "intersect all\n"
+        + "select * from emp where deptno = 30\n";
+    sql(sql)
+        .withRule(CoreRules.INTERSECT_MERGE,
+            CoreRules.INTERSECT_TO_DISTINCT_NO_AGGREGATE_PUSHDOWN)
         .check();
   }
 
