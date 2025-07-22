@@ -375,11 +375,17 @@ public class CoreRules {
   public static final IntersectReorderRule INTERSECT_REORDER =
       IntersectReorderRule.Config.DEFAULT.toRule();
 
-  /** Rule that translates a distinct
-   * {@link Intersect} into a group of operators
-   * composed of {@link Union}, {@link Aggregate}, etc. */
+  /** Rule that translates a distinct {@link Intersect} into a group of operators
+   * composed of {@link Union}, {@link Aggregate}, etc. The rule also applies a
+   * partial aggregation pushdown into the union branches. */
   public static final IntersectToDistinctRule INTERSECT_TO_DISTINCT =
       IntersectToDistinctRule.Config.DEFAULT.toRule();
+
+  /** As {@link #INTERSECT_TO_DISTINCT} but not applying (partial) aggregate pushdown
+   * into the union branches (behaviour introduced in CALCITE-6893). */
+  @RuleConfig(value = "NO_AGGREGATE_PUSHDOWN")
+  public static final IntersectToDistinctRule INTERSECT_TO_DISTINCT_NO_AGGREGATE_PUSHDOWN =
+      IntersectToDistinctRule.Config.NO_AGGREGATE_PUSHDOWN.toRule();
 
   /** Rule that translates a {@link Intersect}
    * into a {@link Exists} subquery. */

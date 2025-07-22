@@ -47,6 +47,74 @@ intersect
 
 !ok
 
+!use scott
+
+!set planner-rules "
+-EnumerableRules.ENUMERABLE_INTERSECT_RULE,
+-AGGREGATE_REMOVE"
+# AGGREGATE_REMOVE is disabled as it would remove the inner COUNTs
+# as the grouping columns are unique
+
+# Intersect rewrite as aggregation + union with partial aggregation pushdown
+select empno, ename from emp where deptno = 10
+intersect
+select empno, ename from emp where empno >= 150;
+
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[2:BIGINT], expr#4=[=($t2, $t3)], proj#0..1=[{exprs}], $condition=[$t4])
+  EnumerableAggregate(group=[{0, 1}], agg#0=[COUNT()])
+    EnumerableUnion(all=[true])
+      EnumerableAggregate(group=[{0, 1}], agg#0=[COUNT()])
+        EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t7):INTEGER], expr#9=[10], expr#10=[=($t8, $t9)], proj#0..7=[{exprs}], $condition=[$t10])
+          EnumerableTableScan(table=[[scott, EMP]])
+      EnumerableAggregate(group=[{0, 1}], agg#0=[COUNT()])
+        EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t0):INTEGER NOT NULL], expr#9=[150], expr#10=[>=($t8, $t9)], proj#0..7=[{exprs}], $condition=[$t10])
+          EnumerableTableScan(table=[[scott, EMP]])
+!plan
++-------+--------+
+| EMPNO | ENAME  |
++-------+--------+
+|  7782 | CLARK  |
+|  7839 | KING   |
+|  7934 | MILLER |
++-------+--------+
+(3 rows)
+
+!ok
+!set planner-rules original
+
+!use scott
+
+!set planner-rules "
+-CoreRules.INTERSECT_TO_DISTINCT,
+-EnumerableRules.ENUMERABLE_INTERSECT_RULE,
++CoreRules.INTERSECT_TO_DISTINCT_NO_AGGREGATE_PUSHDOWN"
+
+# Intersect rewrite as aggregation + union without partial aggregation pushdown
+select empno, ename from emp where deptno = 10
+intersect
+select empno, ename from emp where empno >= 150;
+
+EnumerableCalc(expr#0..3=[{inputs}], expr#4=[0], expr#5=[>($t2, $t4)], expr#6=[>($t3, $t4)], expr#7=[AND($t5, $t6)], proj#0..1=[{exprs}], $condition=[$t7])
+  EnumerableAggregate(group=[{0, 1}], count_i0=[COUNT() FILTER $2], count_i1=[COUNT() FILTER $3])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[0], expr#4=[=($t2, $t3)], expr#5=[1], expr#6=[=($t2, $t5)], proj#0..1=[{exprs}], $f3=[$t4], $f4=[$t6])
+      EnumerableUnion(all=[true])
+        EnumerableCalc(expr#0..7=[{inputs}], expr#8=[0], expr#9=[CAST($t7):INTEGER], expr#10=[10], expr#11=[=($t9, $t10)], proj#0..1=[{exprs}], i=[$t8], $condition=[$t11])
+          EnumerableTableScan(table=[[scott, EMP]])
+        EnumerableCalc(expr#0..7=[{inputs}], expr#8=[1], expr#9=[CAST($t0):INTEGER NOT NULL], expr#10=[150], expr#11=[>=($t9, $t10)], proj#0..1=[{exprs}], i=[$t8], $condition=[$t11])
+          EnumerableTableScan(table=[[scott, EMP]])
+!plan
++-------+--------+
+| EMPNO | ENAME  |
++-------+--------+
+|  7782 | CLARK  |
+|  7839 | KING   |
+|  7934 | MILLER |
++-------+--------+
+(3 rows)
+
+!ok
+!set planner-rules original
+
 # Intersect all with null value rows
 select * from
 (select x, y from (values (cast(NULL as int), cast(NULL as varchar(1))),
