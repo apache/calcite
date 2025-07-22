@@ -17824,6 +17824,31 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testSortRemoveDuplicateKeys">
+    <Resource name="sql">
+      <![CDATA[select d1
+ from (select deptno as d1, deptno as d2 from dept) as tmp
+ order by d1, d2
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(D1=[$0])
+  LogicalSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])
+    LogicalProject(D1=[$0], D2=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(D1=[$0])
+  LogicalProject(DEPTNO=[$0], DEPTNO0=[$0])
+    LogicalSort(sort0=[$0], dir0=[ASC])
+      LogicalProject(DEPTNO=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testSortRemoveWhenAggregateMaxRowCntIsOne">
     <Resource name="sql">
       <![CDATA[select count(*) as c

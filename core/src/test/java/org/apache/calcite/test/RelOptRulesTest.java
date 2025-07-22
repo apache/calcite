@@ -11110,4 +11110,16 @@ class RelOptRulesTest extends RelOptTestBase {
         .withRule(CoreRules.AGGREGATE_FILTER_TO_CASE)
         .check();
   }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7104">[CALCITE-7104]
+   * Remove duplicate sort keys</a>. */
+  @Test void testSortRemoveDuplicateKeys() {
+    final String query = "select d1\n"
+        + " from (select deptno as d1, deptno as d2 from dept) as tmp\n"
+        + " order by d1, d2\n";
+    sql(query)
+        .withRule(CoreRules.SORT_REMOVE_DUPLICATE_KEYS)
+        .check();
+  }
 }
