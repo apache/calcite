@@ -46,10 +46,11 @@ public class JoinConditionTransferTrait implements RelTrait {
   }
 
   @Override public boolean satisfies(RelTrait trait) {
-    return  this == trait;
+    return this == trait;
   }
 
   @Override public void register(RelOptPlanner planner) {
-    throw new UnsupportedOperationException("Registration not supported for JoinConditionTransferTrait");
+    throw new UnsupportedOperationException("Registration not supported for "
+        + "JoinConditionTransferTrait");
   }
 }
