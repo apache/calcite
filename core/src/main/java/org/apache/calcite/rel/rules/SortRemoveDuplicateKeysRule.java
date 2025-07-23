@@ -22,8 +22,6 @@ import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
-import org.apache.calcite.rel.type.RelDataTypeField;
-import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
 
@@ -34,7 +32,6 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Planner rule that remove duplicate sort keys.
@@ -84,8 +81,7 @@ public class SortRemoveDuplicateKeysRule
       exprToIndices.computeIfAbsent(projects.get(i), k -> new ArrayList<>()).add(i);
     }
 
-    List<RexNode> distinctProjects = new ArrayList<>(exprToIndices.keySet());
-    if (distinctProjects.equals(projects)) {
+    if (exprToIndices.size() == projects.size()) {
       // No duplicate keys found, no need to transform.
       return;
     }
@@ -100,21 +96,12 @@ public class SortRemoveDuplicateKeysRule
     }
 
     List<RelFieldCollation> newCollations =
-        sort.getCollation().getFieldCollations().stream()
-            .map(fc -> fc.withFieldIndex(oldToNewIdx.get(fc.getFieldIndex())))
-            .collect(Collectors.toList());
-
-    List<RexNode> newProjects = new ArrayList<>();
-    RexBuilder rexBuilder = sort.getCluster().getRexBuilder();
-    for (int i = 0; i < sort.getRowType().getFieldCount(); i++) {
-      RelDataTypeField field = sort.getRowType().getFieldList().get(i);
-      newProjects.add(rexBuilder.makeInputRef(field.getType(), oldToNewIdx.get(i)));
-    }
+        RelCollations.permute(sort.getCollation(), oldToNewIdx)
+            .getFieldCollations();
 
     relBuilder.push(project.getInput())
-        .project(distinctProjects)
-        .sort(RelCollations.of(newCollations))
-        .project(newProjects);
+        .project(projects)
+        .sort(RelCollations.of(newCollations));
 
     call.transformTo(relBuilder.build());
   }
