@@ -92,7 +92,7 @@ SELECT CAST(empno AS BIGINT) ^ CAST(deptno AS BIGINT) AS foo FROM "scott".emp LI
 !ok
 
 # [CALCITE-6731] Add support for ^ operator in Calcite
-SELECT CAST(empno AS BIGINT) ^ CAST(mgr AS BIGINT) AS foo FROM "scott".emp WHERE mgr IS NOT NULL LIMIT 5;
+SELECT CAST(empno AS BIGINT) ^ CAST(mgr AS INTEGER) AS foo FROM "scott".emp WHERE mgr IS NOT NULL LIMIT 5;
 +------+
 | FOO  |
 +------+
