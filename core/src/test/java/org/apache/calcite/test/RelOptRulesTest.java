@@ -11129,10 +11129,10 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testSortRemoveDuplicateKeysJoin() {
     final String query = "select * from (select deptno as d1, deptno as d2 from emp) as t1\n"
         + " join emp t2 on t1.d1 = t2.deptno order by t1.d1, t1.d2";
-        sql(query)
-            .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE,
-                CoreRules.JOIN_PROJECT_LEFT_TRANSPOSE)
-            .withRule(CoreRules.SORT_REMOVE_DUPLICATE_KEYS)
-            .check();
+    sql(query)
+        .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE,
+            CoreRules.JOIN_PROJECT_LEFT_TRANSPOSE)
+        .withRule(CoreRules.SORT_REMOVE_DUPLICATE_KEYS)
+        .check();
   }
 }
