@@ -48,6 +48,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.util.RelToSqlConverterUtil;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -112,6 +113,12 @@ public class PostgresqlSqlDialect extends SqlDialect {
       // Postgres has a double type but it is named differently
       castSpec = "double precision";
       break;
+    case ARRAY:
+      return RelToSqlConverterUtil.getCastSpecPostgreSqlArrayType(this, type, SqlParserPos.ZERO);
+    case MAP:
+    case MULTISET:
+      throw new UnsupportedOperationException("PostgreSQL dialect does not support cast to "
+          + type.getSqlTypeName());
     default:
       return super.getCastSpec(type);
     }

@@ -374,6 +374,26 @@ public abstract class RelToSqlConverterUtil {
   }
 
   /**
+   * Transformation ARRAY type from {@code VARCHAR VARCHAR ARRAY} to {@code VARCHAR ARRAY}.
+   */
+  public static SqlDataTypeSpec getCastSpecPostgreSqlArrayType(SqlDialect dialect,
+      RelDataType type, SqlParserPos pos) {
+    ArraySqlType arraySqlType = (ArraySqlType) type;
+    while (arraySqlType.getComponentType() instanceof ArraySqlType) {
+      arraySqlType = (ArraySqlType) arraySqlType.getComponentType();
+    }
+    SqlDataTypeSpec arrayValueSpec =
+        (SqlDataTypeSpec) dialect.getCastSpec(arraySqlType.getComponentType());
+    SqlDataTypeSpec nonNullarrayValueSpec =
+        requireNonNull(arrayValueSpec, "arrayValueSpec");
+    SqlTypeNameSpec typeNameSpec =
+        new SqlCollectionTypeNameSpec(
+            nonNullarrayValueSpec.getTypeNameSpec(),
+            arraySqlType.getSqlTypeName(), pos);
+    return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
+  }
+
+  /**
    * ClickHouseSqlMapTypeNameSpec to parse or unparse SQL MAP type to {@code Map(VARCHAR, VARCHAR)}.
    */
   public static class ClickHouseSqlMapTypeNameSpec extends SqlMapTypeNameSpec {

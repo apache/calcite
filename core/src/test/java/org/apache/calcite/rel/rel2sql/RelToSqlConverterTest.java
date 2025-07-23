@@ -2640,6 +2640,42 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7055">[CALCITE-7055]
+   * Invalid unparse for cast to array type in StarRocks</a>.
+   */
+  @Test void testCastArrayPostgreSql() {
+    // test for tinyint
+    final String query = "select cast(array[1,2,3]"
+        + " as TINYINT array)";
+    final String expectedPostgreSql =
+        "SELECT CAST(ARRAY[1, 2, 3] AS SMALLINT ARRAY)\n"
+            + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    sql(query).withPostgresql().ok(expectedPostgreSql);
+
+    final String query1 = "select cast(array[array[1], array[2], array[3]]"
+        + " as TINYINT array array)";
+    final String expectedPostgreSql1 =
+        "SELECT CAST(ARRAY[ARRAY[1], ARRAY[2], ARRAY[3]] AS SMALLINT ARRAY)\n"
+            + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    sql(query1).withPostgresql().ok(expectedPostgreSql1);
+
+    // test for double precision
+    final String query2 = "select cast(array[1.1,2.2,3.3]"
+        + " as double array)";
+    final String expectedPostgreSql2 =
+        "SELECT CAST(ARRAY[1.1, 2.2, 3.3] AS DOUBLE PRECISION ARRAY)\n"
+            + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    sql(query2).withPostgresql().ok(expectedPostgreSql2);
+
+    final String query3 = "select cast(array[array[1.1], array[2.2], array[3.3]]"
+        + " as double array array)";
+    final String expectedPostgreSql3 =
+        "SELECT CAST(ARRAY[ARRAY[1.1], ARRAY[2.2], ARRAY[3.3]] AS DOUBLE PRECISION ARRAY)\n"
+            + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    sql(query3).withPostgresql().ok(expectedPostgreSql3);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7081">[CALCITE-7081]
    * Invalid unparse for cast to nested type in ClickHouse</a>.
    */
@@ -10278,7 +10314,10 @@ class RelToSqlConverterTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6940">[CALCITE-6940]
    * Hive/Phoenix Dialect should not cast to REAL type directly</a>,
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6952">[CALCITE-6952]
-   * JDBC adapter for StarRocks generates incorrect SQL for REAL datatype</a>. */
+   * JDBC adapter for StarRocks generates incorrect SQL for REAL datatype</a>,
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6952">[CALCITE-6952]
+   * JDBC adapter for StarRocks generates incorrect SQL for REAL datatype</a>.
+   * */
   @Test void testRealNestedTypesCast() {
     String query = "SELECT CAST(array[1,2,3] AS real array) FROM \"employee\"";
     sql(query)
@@ -10288,6 +10327,7 @@ class RelToSqlConverterTest {
     String query1 = "SELECT CAST(MAP[1.0,2.0,3.0,4.0] AS MAP<FLOAT, REAL>) FROM \"employee\"";
     sql(query1)
         .withPhoenix().throws_("Phoenix dialect does not support cast to MAP")
+        .withPostgresql().throws_("PostgreSQL dialect does not support cast to MAP")
         .withHive().throws_("Hive dialect does not support cast to MAP");
 
     String query2 = "SELECT CAST(array[1,2,3] AS real multiset) FROM \"employee\"";
@@ -10295,6 +10335,7 @@ class RelToSqlConverterTest {
         .withPhoenix().throws_("Phoenix dialect does not support cast to MULTISET")
         .withStarRocks().throws_("StarRocks dialect does not support cast to MULTISET")
         .withClickHouse().throws_("ClickHouse dialect does not support cast to MULTISET")
+        .withPostgresql().throws_("PostgreSQL dialect does not support cast to MULTISET")
         .withHive().throws_("Hive dialect does not support cast to MULTISET");
 
     String query3 = "SELECT CAST(MAP[1.0,2.0,3.0,4.0] AS MAP<FLOAT, REAL>) FROM \"employee\"";
