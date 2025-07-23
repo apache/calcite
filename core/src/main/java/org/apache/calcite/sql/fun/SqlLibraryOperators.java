@@ -346,7 +346,7 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY, ORACLE, POSTGRESQL, SPARK, HIVE})
   public static final SqlFunction LTRIM =
       SqlBasicFunction.create(SqlKind.LTRIM,
-          ReturnTypes.ARG0.andThen(SqlTypeTransforms.TO_NULLABLE)
+          ReturnTypes.ARG0.andThen(SqlTypeTransforms.FORCE_NULLABLE)
               .andThen(SqlTypeTransforms.TO_VARYING),
           OperandTypes.STRING)
           .withFunctionType(SqlFunctionCategory.STRING);
@@ -355,7 +355,7 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY, ORACLE, POSTGRESQL, SPARK, HIVE})
   public static final SqlFunction RTRIM =
       SqlBasicFunction.create(SqlKind.RTRIM,
-          ReturnTypes.ARG0.andThen(SqlTypeTransforms.TO_NULLABLE)
+          ReturnTypes.ARG0.andThen(SqlTypeTransforms.FORCE_NULLABLE)
               .andThen(SqlTypeTransforms.TO_VARYING),
           OperandTypes.STRING)
           .withFunctionType(SqlFunctionCategory.STRING);
@@ -404,7 +404,8 @@ public abstract class SqlLibraryOperators {
 
   /** Generic "SUBSTR(string, position [, substringLength ])" function. */
   private static final SqlBasicFunction SUBSTR =
-      SqlBasicFunction.create("SUBSTR", ReturnTypes.ARG0_NULLABLE_VARYING,
+      SqlBasicFunction.create("SUBSTR",
+          ReturnTypes.ARG0_FORCE_NULLABLE.andThen(SqlTypeTransforms.TO_VARYING),
           OperandTypes.STRING_INTEGER_OPTIONAL_INTEGER,
           SqlFunctionCategory.STRING);
 
