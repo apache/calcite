@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.rel.rules;
 
+import org.apache.calcite.plan.CTEDefinationTrait;
+import org.apache.calcite.plan.CTEDefinationTraitDef;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptUtil;
@@ -157,7 +159,10 @@ public class FilterProjectTransposeRule
 
   @Override public void onMatch(RelOptRuleCall call) {
     final Filter filter = call.rel(0);
-    SubQueryAliasTrait filterSubQueryAliasTrait = filter.getTraitSet().getTrait(SubQueryAliasTraitDef.instance);
+    SubQueryAliasTrait filterSubQueryAliasTrait =
+        filter.getTraitSet().getTrait(SubQueryAliasTraitDef.instance);
+    CTEDefinationTrait cteDefinationTrait =
+        filter.getTraitSet().getTrait(CTEDefinationTraitDef.instance);
     final Project project = call.rel(1);
 
     if (project.containsOver()) {
@@ -180,7 +185,8 @@ public class FilterProjectTransposeRule
       RelTraitSet filterTraitSet = createEmpty();
       // Creating the filter trait set without SubQueryAliasTrait
       for (RelTrait trait : filter.getTraitSet()) {
-        if (!(trait instanceof SubQueryAliasTrait)) {
+        if (!(trait instanceof SubQueryAliasTrait
+            || trait instanceof CTEDefinationTrait)) {
           filterTraitSet = filterTraitSet.plus(trait);
         }
       }
@@ -199,10 +205,10 @@ public class FilterProjectTransposeRule
     }
 
     // If the filter has a SubQueryAliasTrait and project trait set no alias trait, add it to project trait set
-    RelTraitSet projectTraitSet = project.getTraitSet();
-    if (filterSubQueryAliasTrait != null && projectTraitSet.getTrait(SubQueryAliasTraitDef.instance) == null) {
-      projectTraitSet = projectTraitSet.plus(filterSubQueryAliasTrait);
-    }
+    RelTraitSet projectTraitSet = project.getTraitSet()
+        .applyTraitIfAbsent(project.getTraitSet(), SubQueryAliasTraitDef.instance, filterSubQueryAliasTrait)
+        .applyTraitIfAbsent(project.getTraitSet(), CTEDefinationTraitDef.instance, cteDefinationTrait);
+
     RelNode newProject =
         config.isCopyProject()
             ? project.copy(projectTraitSet, newFilterRel,

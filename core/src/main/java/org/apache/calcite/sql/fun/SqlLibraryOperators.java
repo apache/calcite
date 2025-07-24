@@ -3027,13 +3027,17 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {TERADATA})
   public static final SqlFunction WEEKNUMBER_OF_YEAR =
       new SqlFunction("WEEKNUMBER_OF_YEAR", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.INTEGER, null, OperandTypes.DATETIME,
+          ReturnTypes.INTEGER, null,
+          OperandTypes.or(OperandTypes.family(SqlTypeFamily.DATETIME),
+              OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.STRING)),
           SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {TERADATA})
   public static final SqlFunction YEARNUMBER_OF_CALENDAR =
       new SqlFunction("YEARNUMBER_OF_CALENDAR", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.INTEGER, null, OperandTypes.DATETIME,
+          ReturnTypes.INTEGER, null,
+          OperandTypes.or(OperandTypes.family(SqlTypeFamily.DATETIME),
+              OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.STRING)),
           SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {TERADATA})
@@ -3075,7 +3079,9 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {TERADATA})
   public static final SqlFunction DAYNUMBER_OF_CALENDAR =
         new SqlFunction("DAYNUMBER_OF_CALENDAR", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.INTEGER, null, OperandTypes.DATETIME,
+          ReturnTypes.INTEGER, null,
+          OperandTypes.or(OperandTypes.family(SqlTypeFamily.DATETIME),
+              OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.STRING)),
           SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {TERADATA})
