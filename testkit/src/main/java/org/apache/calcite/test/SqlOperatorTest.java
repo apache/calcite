@@ -8064,6 +8064,8 @@ public class SqlOperatorTest {
     SqlOperatorFixture f = fixture()
         .setFor(SqlLibraryOperators.ARRAY_CONCAT)
         .withLibrary(SqlLibrary.BIG_QUERY);
+    // Test case for [CALCITE-7105] ARRAY_CONCAT should only accept arguments with type ARRAY
+    f.checkFails("^array_concat('a')^", "Cannot apply 'ARRAY_CONCAT'.*", false);
     f.checkFails("^array_concat()^", INVALID_ARGUMENTS_NUMBER, false);
     f.checkScalar("array_concat(array[1, 2], array[2, 3])", "[1, 2, 2, 3]",
         "INTEGER NOT NULL ARRAY NOT NULL");
