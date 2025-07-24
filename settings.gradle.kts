@@ -80,6 +80,8 @@ include(
 //    "pig",
 //    "piglet",
     "plus",
+    "openapi",
+    "salesforce",
     "graphql",
     "redis",
     "server",
