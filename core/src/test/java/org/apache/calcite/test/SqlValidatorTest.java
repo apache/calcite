@@ -9979,8 +9979,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "/INT left\n" // checked
         + "|| left\n"
         + "\n"
-        + "^ left\n"
-        + "\n"
         + "+ left\n"
         + "+ left\n" // checked
         + "+ -\n"

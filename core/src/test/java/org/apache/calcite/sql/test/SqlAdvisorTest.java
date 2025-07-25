@@ -335,7 +335,6 @@ class SqlAdvisorTest extends SqlValidatorTestCase {
           "KEYWORD(SUBMULTISET)",
           "KEYWORD(SUCCEEDS)",
           "KEYWORD([)",
-          "KEYWORD(^)",
           "KEYWORD(||)");
 
   private static final List<String> WHERE_KEYWORDS =
