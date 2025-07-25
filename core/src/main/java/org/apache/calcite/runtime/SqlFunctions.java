@@ -3509,7 +3509,7 @@ public class SqlFunctions {
 
   /**
    * Left shift where the left operand is int and the right operand is long.
-   * This is necessary for supporting queries like: INTEGER << BIGINT
+   * This is necessary for supporting queries like:{@code INTEGER << BIGINT}
    */
   public static long leftShift(int a, long shift) {
     if (shift < 0) {
