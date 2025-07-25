@@ -1337,7 +1337,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           OperandTypes.INTEGER.or(OperandTypes.BINARY));
 
   /**
-   * <code><<</code> (left shift) operator.
+   * <code>{@code <<}</code> (left shift) operator.
    */
   public static final SqlBinaryOperator LEFTSHIFT =
       new SqlBinaryOperator(
