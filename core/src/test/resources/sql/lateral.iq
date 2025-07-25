@@ -268,6 +268,19 @@ FROM "scott"."DEPT" AS "DEPT"
 
 !ok
 
+select * from "scott".dept, lateral (select count(cast(deptno as integer)) from "scott".emp where emp.deptno = dept.deptno having count(cast(deptno as integer)) > 0);
+
++--------+------------+----------+--------+
+| DEPTNO | DNAME      | LOC      | EXPR$0 |
++--------+------------+----------+--------+
+|     10 | ACCOUNTING | NEW YORK |      3 |
+|     20 | RESEARCH   | DALLAS   |      5 |
+|     30 | SALES      | CHICAGO  |      6 |
++--------+------------+----------+--------+
+(4 rows)
+
+!ok
+
 select * from "scott".dept, lateral (select count(cast(deptno as integer)) from "scott".emp where emp.deptno = dept.deptno + 10);
 
 SELECT "DEPT"."DEPTNO", "DEPT"."DNAME", "DEPT"."LOC", "EXPR$0"."EXPR$0"
