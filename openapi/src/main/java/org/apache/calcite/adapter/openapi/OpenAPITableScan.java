@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.openapi;
 
+import static java.util.Objects.requireNonNull;
+
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -32,7 +34,6 @@ import com.google.common.collect.ImmutableList;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
-import java.util.Objects;
 
 /**
  * Relational expression representing a scan of an OpenAPI endpoint.
@@ -57,7 +58,7 @@ public class OpenAPITableScan extends TableScan implements OpenAPIRel {
       RelOptTable table, OpenAPITable openAPITable,
       RelDataType projectRowType) {
     super(cluster, traitSet, ImmutableList.of(), table);
-    this.openAPITable = Objects.requireNonNull(openAPITable, "openAPITable");
+    this.openAPITable = requireNonNull(openAPITable, "openAPITable");
     this.projectRowType = projectRowType;
 
     assert getConvention() == OpenAPIRel.CONVENTION;

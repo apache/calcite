@@ -26,10 +26,9 @@ import org.apache.arrow.gandiva.exceptions.GandivaException;
 import org.apache.arrow.memory.ArrowBuf;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;
+import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.ipc.ArrowFileReader;
 import org.apache.arrow.vector.ipc.message.ArrowRecordBatch;
-import org.apache.arrow.vector.VectorSchemaRoot;
-
 import org.apache.parquet.hadoop.ParquetReader;
 
 import java.io.IOException;
@@ -50,8 +49,7 @@ class ArrowFilterEnumerator extends AbstractArrowEnumerator {
     this.filter = filter;
   }
 
-  @Override
-  void evaluateOperator(ArrowRecordBatch arrowRecordBatch) {
+  @Override void evaluateOperator(ArrowRecordBatch arrowRecordBatch) {
     try {
       if (sourceReader instanceof ArrowFileReader) {
         this.buf = this.allocator.buffer((long) arrowRecordBatch.getLength() * 2);
@@ -79,8 +77,7 @@ class ArrowFilterEnumerator extends AbstractArrowEnumerator {
     return false;
   }
 
-  @Override
-  public boolean moveNext() {
+  @Override public boolean moveNext() {
     try {
       if (sourceReader instanceof ArrowFileReader) {
         return moveNextArrow();
@@ -121,8 +118,7 @@ class ArrowFilterEnumerator extends AbstractArrowEnumerator {
     return false;
   }
 
-  @Override
-  public void close() {
+  @Override public void close() {
     try {
       if (buf != null) {
         buf.close();
@@ -140,8 +136,7 @@ class ArrowFilterEnumerator extends AbstractArrowEnumerator {
     }
   }
 
-  @Override
-  public Object current() {
+  @Override public Object current() {
     if (sourceReader instanceof ParquetReader) {
       return current;
     }

@@ -1,3 +1,20 @@
+<\!--
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to you under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
 # Query Examples
 
 ## Table of Contents
@@ -21,13 +38,13 @@ SELECT name, email FROM users;
 SELECT * FROM users WHERE age > 21;
 
 -- With sorting and pagination
-SELECT * FROM users 
-ORDER BY name DESC 
+SELECT * FROM users
+ORDER BY name DESC
 LIMIT 10 OFFSET 20;
 
 -- Pattern matching
-SELECT * FROM users 
-WHERE email LIKE '%@company.com' 
+SELECT * FROM users
+WHERE email LIKE '%@company.com'
   AND name ILIKE 'john%';
 ```
 
@@ -57,28 +74,28 @@ WHERE phone IS NULL
 ### Row Numbers and Ranking
 ```sql
 -- Row numbers within partitions
-SELECT 
+SELECT
   department_id,
   employee_name,
   salary,
   ROW_NUMBER() OVER (
-    PARTITION BY department_id 
+    PARTITION BY department_id
     ORDER BY salary DESC
   ) as salary_rank
 FROM employees;
 
 -- Multiple window functions
-SELECT 
+SELECT
   department_id,
   employee_name,
   salary,
   RANK() OVER (ORDER BY salary DESC) as overall_rank,
   DENSE_RANK() OVER (
-    PARTITION BY department_id 
+    PARTITION BY department_id
     ORDER BY salary DESC
   ) as dept_rank,
   PERCENT_RANK() OVER (
-    PARTITION BY department_id 
+    PARTITION BY department_id
     ORDER BY salary
   ) as percentile
 FROM employees;
@@ -87,25 +104,25 @@ FROM employees;
 ### Moving Aggregates
 ```sql
 -- Moving averages
-SELECT 
+SELECT
   date,
   value,
   AVG(value) OVER (
-    ORDER BY date 
+    ORDER BY date
     ROWS BETWEEN 3 PRECEDING AND CURRENT ROW
   ) as moving_avg,
   MIN(value) OVER (
-    ORDER BY date 
+    ORDER BY date
     ROWS BETWEEN 3 PRECEDING AND CURRENT ROW
   ) as moving_min,
   MAX(value) OVER (
-    ORDER BY date 
+    ORDER BY date
     ROWS BETWEEN 3 PRECEDING AND CURRENT ROW
   ) as moving_max
 FROM time_series;
 
 -- Cumulative totals
-SELECT 
+SELECT
   date,
   amount,
   SUM(amount) OVER (
@@ -120,17 +137,17 @@ FROM sales;
 ### Basic CTE
 ```sql
 WITH monthly_sales AS (
-  SELECT 
+  SELECT
     DATE_TRUNC('month', sale_date) as month,
     SUM(amount) as total_sales
   FROM sales
   GROUP BY DATE_TRUNC('month', sale_date)
 )
-SELECT 
+SELECT
   month,
   total_sales,
   LAG(total_sales) OVER (ORDER BY month) as prev_month_sales,
-  (total_sales - LAG(total_sales) OVER (ORDER BY month)) / 
+  (total_sales - LAG(total_sales) OVER (ORDER BY month)) /
     LAG(total_sales) OVER (ORDER BY month) * 100 as growth_percent
 FROM monthly_sales;
 ```
@@ -139,29 +156,29 @@ FROM monthly_sales;
 ```sql
 WITH RECURSIVE employee_hierarchy AS (
   -- Base case: top-level employees
-  SELECT 
-    id, 
-    name, 
-    manager_id, 
+  SELECT
+    id,
+    name,
+    manager_id,
     1 as level,
     ARRAY[name] as path
   FROM employees
   WHERE manager_id IS NULL
-  
+
   UNION ALL
-  
+
   -- Recursive case: employees with managers
-  SELECT 
-    e.id, 
-    e.name, 
-    e.manager_id, 
+  SELECT
+    e.id,
+    e.name,
+    e.manager_id,
     h.level + 1,
     h.path || e.name
   FROM employees e
   JOIN employee_hierarchy h ON e.manager_id = h.id
   WHERE h.level < 5  -- Prevent infinite recursion
 )
-SELECT 
+SELECT
   id,
   name,
   level,
@@ -208,7 +225,7 @@ SELECT category FROM system2_products;
 
 ### GROUPING SETS
 ```sql
-SELECT 
+SELECT
   COALESCE(region, 'ALL') as region,
   COALESCE(department, 'ALL') as department,
   COALESCE(TO_CHAR(hire_date, 'YYYY'), 'ALL') as year,
@@ -227,7 +244,7 @@ ORDER BY region, department, year;
 ### CUBE and ROLLUP
 ```sql
 -- CUBE: all possible combinations
-SELECT 
+SELECT
   COALESCE(category, 'ALL') as category,
   COALESCE(status, 'ALL') as status,
   COUNT(*) as count,
@@ -236,7 +253,7 @@ FROM orders
 GROUP BY CUBE(category, status);
 
 -- ROLLUP: hierarchical combinations
-SELECT 
+SELECT
   COALESCE(year, 'ALL') as year,
   COALESCE(quarter, 'ALL') as quarter,
   COALESCE(month, 'ALL') as month,
@@ -249,7 +266,7 @@ GROUP BY ROLLUP(year, quarter, month);
 
 ### Multi-table Joins
 ```sql
-SELECT 
+SELECT
   o.order_id,
   c.name as customer_name,
   p.name as product_name,
@@ -267,7 +284,7 @@ WHERE o.order_date >= CURRENT_DATE - INTERVAL '30' DAY;
 ### Self Joins
 ```sql
 -- Employee hierarchy with multiple levels
-SELECT 
+SELECT
   e.name as employee,
   m1.name as manager,
   m2.name as managers_manager
@@ -281,7 +298,7 @@ ORDER BY m2.name, m1.name, e.name;
 
 ### IN Clause
 ```sql
-SELECT 
+SELECT
   product_name,
   price,
   category
@@ -296,7 +313,7 @@ WHERE category IN (
 
 ### EXISTS Clause
 ```sql
-SELECT 
+SELECT
   customer_id,
   name,
   email
@@ -312,7 +329,7 @@ WHERE EXISTS (
 
 ### Scalar Subqueries
 ```sql
-SELECT 
+SELECT
   department_id,
   department_name,
   employee_count,
@@ -325,7 +342,7 @@ SELECT
     ) t
   ) as relative_size
 FROM (
-  SELECT 
+  SELECT
     d.id as department_id,
     d.name as department_name,
     COUNT(e.id) as employee_count
@@ -368,7 +385,7 @@ WITH daily_stats AS (
   WHERE created_at >= CURRENT_DATE - INTERVAL '90' DAY
   GROUP BY DATE_TRUNC('day', created_at), status
 )
-SELECT 
+SELECT
   day,
   status,
   order_count,

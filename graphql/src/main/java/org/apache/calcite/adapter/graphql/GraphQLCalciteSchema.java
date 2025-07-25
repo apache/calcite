@@ -1,19 +1,35 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to you under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.calcite.adapter.graphql;
 
-import graphql.schema.*;
-
+import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
-import org.apache.calcite.schema.SchemaPlus;
-import graphql.GraphQL;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
+
+import graphql.GraphQL;
+import graphql.schema.*;
 
 /**
  * Represents a Calcite schema that generates tables based on the types defined in a GraphQL schema.
@@ -31,8 +47,8 @@ public class GraphQLCalciteSchema extends AbstractSchema {
   private final Integer objectDepth;
   private final Boolean pseudoKeys;
 
-  private static final List<String> excludedNames = Arrays.asList(
-      "Subscription", "Mutation", "Query", "__EnumValue", "__Field", "__InputValue",
+  private static final List<String> excludedNames =
+      Arrays.asList("Subscription", "Mutation", "Query", "__EnumValue", "__Field", "__InputValue",
       "__Schema", "__Type", "__Directive");
 
   public GraphQLCalciteSchema(GraphQL graphQL, SchemaPlus parentSchema,
@@ -60,8 +76,7 @@ public class GraphQLCalciteSchema extends AbstractSchema {
    *
    * @return a map of table names to Table objects
    */
-  @Override
-  protected Map<String, Table> getTableMap() {
+  @Override protected Map<String, Table> getTableMap() {
     if (tableMap == null) {
       tableMap = new HashMap<>();
       GraphQLSchema schema = graphQL.getGraphQLSchema();
@@ -113,8 +128,7 @@ public class GraphQLCalciteSchema extends AbstractSchema {
         });
   }
 
-  @Override
-  public String toString() {
+  @Override public String toString() {
     return "CalciteGraphQLSchema {name=" + name + "}";
   }
 

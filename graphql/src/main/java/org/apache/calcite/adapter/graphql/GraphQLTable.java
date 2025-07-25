@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to you under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.calcite.adapter.graphql;
 
 import org.apache.calcite.linq4j.*;
@@ -18,9 +34,10 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.util.*;
-import javax.annotation.Nullable;
 
 import graphql.ExecutionResult;
 import graphql.GraphQL;
@@ -44,13 +61,13 @@ public class GraphQLTable extends AbstractTable implements TranslatableTable, Qu
 
   private static final Logger LOGGER = LogManager.getLogger(GraphQLToEnumerableConverter.class);
 
-  private static final Set<String> RESERVED_WORDS = new HashSet<>(Arrays.asList(
-      "type", "timestamp", "date", "time", "interval", "group", "order",
+  private static final Set<String> RESERVED_WORDS =
+      new HashSet<>(
+          Arrays.asList("type", "timestamp", "date", "time", "interval", "group", "order",
       "by", "desc", "asc", "select", "from", "where", "having", "join",
       "left", "right", "inner", "outer", "cross", "natural", "union",
       "intersect", "except", "case", "when", "then", "else", "end",
-      "cast", "as", "between", "and", "or", "not", "null", "true", "false"
-  ));
+      "cast", "as", "between", "and", "or", "not", "null", "true", "false"));
 
   /**
    * Creates a GraphQLTable.
@@ -129,8 +146,7 @@ public class GraphQLTable extends AbstractTable implements TranslatableTable, Qu
    */
   public Enumerable<Object> query(String gqlQuery) {
     return new AbstractEnumerable<Object>() {
-      @Override
-      public Enumerator<Object> enumerator() {
+      @Override public Enumerator<Object> enumerator() {
         try {
           ExecutionResult result = new GraphQLExecutor(gqlQuery, endpoint, schema).executeQuery();
           return new GraphQLEnumerator(result.getData());
@@ -149,8 +165,7 @@ public class GraphQLTable extends AbstractTable implements TranslatableTable, Qu
    * @param clazz     The class representing the table
    * @return Expression representing the table
    */
-  @Override
-  public Expression getExpression(SchemaPlus schema, String tableName,
+  @Override public Expression getExpression(SchemaPlus schema, String tableName,
       Class clazz) {
     return Schemas.tableExpression(schema, getElementType(), tableName, clazz);
   }
@@ -165,8 +180,7 @@ public class GraphQLTable extends AbstractTable implements TranslatableTable, Qu
    * @param <T>           Element type of the queryable
    * @return A {@link Queryable} representing this table
    */
-  @Override
-  public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
+  @Override public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
       SchemaPlus schema, String tableName) {
     throw new UnsupportedOperationException();
   }
@@ -176,8 +190,7 @@ public class GraphQLTable extends AbstractTable implements TranslatableTable, Qu
    *
    * @return Type representing the elements in the table
    */
-  @Override
-  public Type getElementType() {
+  @Override public Type getElementType() {
     return Object[].class;
   }
 
@@ -188,8 +201,7 @@ public class GraphQLTable extends AbstractTable implements TranslatableTable, Qu
    * @param relOptTable The relational optimization table
    * @return The RelNode representing the GraphQLTable
    */
-  @Override
-  public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable relOptTable) {
+  @Override public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable relOptTable) {
     LOGGER.debug("Converting GraphQLTable to RelNode");
     final RelOptCluster cluster = context.getCluster();
     final RelTraitSet traitSet = cluster.traitSetOf(GraphQLRel.CONVENTION);
@@ -210,8 +222,7 @@ public class GraphQLTable extends AbstractTable implements TranslatableTable, Qu
    * @param typeFactory The factory used to create RelDataType instances
    * @return The resulting RelDataType representing the row type of this table
    */
-  @Override
-  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+  @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     this.typeFactory = typeFactory;
     RelDataTypeFactory.Builder builder = typeFactory.builder();
     return getRowType(typeFactory, builder, objectType, "", 0);
@@ -276,16 +287,13 @@ public class GraphQLTable extends AbstractTable implements TranslatableTable, Qu
       return typeFactory.createTypeWithNullability(
           convertGraphQLTypeToRelDataType(
               ((GraphQLNonNull) type).getWrappedType(),
-              typeFactory
-          ),
-          false
-      );
+              typeFactory),
+          false);
     } else if (type instanceof GraphQLList) {
       RelDataType elementType =
           convertGraphQLTypeToRelDataType(
               ((GraphQLList) type).getWrappedType(),
-              typeFactory
-          );
+              typeFactory);
       return typeFactory.createArrayType(elementType, -1);
     } else if (type instanceof GraphQLObjectType) {
       return typeFactory.createSqlType(SqlTypeName.MAP);
@@ -303,8 +311,7 @@ public class GraphQLTable extends AbstractTable implements TranslatableTable, Qu
   private RelDataType createTimestampType(RelDataTypeFactory typeFactory, boolean withTimeZone) {
     return typeFactory.createSqlType(
         withTimeZone ? SqlTypeName.TIMESTAMP_TZ : SqlTypeName.TIMESTAMP,
-        9  // Set precision to 9 for microseconds
-    );
+        9);  // Set precision to 9 for microseconds
   }
 
   /**
@@ -371,8 +378,7 @@ public class GraphQLTable extends AbstractTable implements TranslatableTable, Qu
     }
   }
 
-  @Override
-  public String toString() {
+  @Override public String toString() {
     return "GraphQLTableImpl:" + (getName() != null ? getName() : "unknown");
   }
 }

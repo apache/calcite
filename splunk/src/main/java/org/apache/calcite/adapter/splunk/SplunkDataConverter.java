@@ -35,8 +35,9 @@ import java.util.regex.Pattern;
 /**
  * Utility class for converting values from Splunk JSON to appropriate Java types
  * based on the expected schema data types.
- * <p>
- * Optimized for ISO timestamp strings from Splunk.
+ *
+ *
+ * <p>Optimized for ISO timestamp strings from Splunk.
  */
 public class SplunkDataConverter {
   private static final Logger LOGGER = LoggerFactory.getLogger(SplunkDataConverter.class);
@@ -89,7 +90,7 @@ public class SplunkDataConverter {
     // Try parsing as epoch timestamp (numeric string)
     if (EPOCH_PATTERN.matcher(value).matches()) {
       try {
-        double epochValue = Double.parseDouble(value);
+        double epochValue = parseDouble(value);
         long millis = convertNumberToTimestampMillis(epochValue);
         return new java.sql.Timestamp(millis);  // CHANGED: Return Timestamp object
       } catch (NumberFormatException e) {
@@ -362,9 +363,9 @@ public class SplunkDataConverter {
     try {
       // Handle decimal values by truncating
       if (value.contains(".")) {
-        return (int) Double.parseDouble(value);
+        return (int) parseDouble(value);
       }
-      return Integer.parseInt(value);
+      return parseInt(value);
     } catch (NumberFormatException e) {
       throw new IllegalArgumentException("Unable to parse integer: " + value);
     }
@@ -377,9 +378,9 @@ public class SplunkDataConverter {
     try {
       // Handle decimal values by truncating
       if (value.contains(".")) {
-        return (long) Double.parseDouble(value);
+        return (long) parseDouble(value);
       }
-      return Long.parseLong(value);
+      return parseLong(value);
     } catch (NumberFormatException e) {
       throw new IllegalArgumentException("Unable to parse long: " + value);
     }
@@ -401,7 +402,7 @@ public class SplunkDataConverter {
    */
   private static Double convertToDouble(String value) {
     try {
-      return Double.parseDouble(value);
+      return parseDouble(value);
     } catch (NumberFormatException e) {
       throw new IllegalArgumentException("Unable to parse double: " + value);
     }
@@ -412,7 +413,7 @@ public class SplunkDataConverter {
    */
   private static Float convertToFloat(String value) {
     try {
-      return Float.parseFloat(value);
+      return parseFloat(value);
     } catch (NumberFormatException e) {
       throw new IllegalArgumentException("Unable to parse float: " + value);
     }

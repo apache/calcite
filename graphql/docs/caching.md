@@ -1,3 +1,20 @@
+<\!--
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to you under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
 # Caching System
 
 ## Table of Contents
@@ -27,7 +44,7 @@ The caching system provides flexible, configurable caching for GraphQL query res
 ```java
 class InMemoryGraphQLCache implements GraphQLCache {
     private final Cache<String, ExecutionResult> cache;
-    
+
     public InMemoryGraphQLCache(long ttlSeconds) {
         this.cache = CacheBuilder.newBuilder()
             .expireAfterWrite(ttlSeconds, TimeUnit.SECONDS)
@@ -50,7 +67,7 @@ Features:
 class RedisGraphQLCache implements GraphQLCache {
     private final RedisCommands<String, ExecutionResult> redisCommands;
     private final long ttlSeconds;
-    
+
     public RedisGraphQLCache(String redisUrl, long ttlSeconds) {
         this.redisClient = RedisClient.create(redisUrl);
         this.connection = redisClient.connect(new GraphQLRedisCodec());
@@ -116,11 +133,11 @@ public String generateKey(String query, String role) {
         StringBuilder keyBuilder = new StringBuilder();
         keyBuilder.append(query);
         keyBuilder.append("|").append(role != null ? role : "");
-        
+
         byte[] hash = digest.digest(
             keyBuilder.toString().getBytes(StandardCharsets.UTF_8)
         );
-        
+
         StringBuilder hexString = new StringBuilder();
         for (byte b : hash) {
             hexString.append(String.format("%02x", b));
@@ -146,7 +163,7 @@ public void put(String key, ExecutionResult value) {
 // Get
 public ExecutionResult get(String key) {
     ExecutionResult result = cache.get(key);
-    LOGGER.debug("Cache {} for key: {}", 
+    LOGGER.debug("Cache {} for key: {}",
         result != null ? "hit" : "miss", key);
     return result;
 }
@@ -167,7 +184,7 @@ public void invalidate(String key) {
 .maximumSize(maxCacheSize)
 
 // Custom eviction
-.removalListener(notification -> 
+.removalListener(notification ->
     LOGGER.debug("Evicted cache entry: {}", notification.getKey())
 )
 ```
@@ -197,7 +214,7 @@ public class CacheMetrics {
 // Prometheus metrics
 public void recordMetrics() {
     CacheStats stats = cache.stats();
-    
+
     Metrics.counter("cache.hits").increment(stats.hitCount());
     Metrics.counter("cache.misses").increment(stats.missCount());
     Metrics.gauge("cache.size").set(cache.size());

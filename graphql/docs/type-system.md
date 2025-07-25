@@ -1,3 +1,20 @@
+<\!--
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to you under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
 # Type System
 
 ## Table of Contents
@@ -47,7 +64,7 @@ The type system provides a robust mapping between SQL types and GraphQL types, e
 public class TypeConverter {
     public static Object convert(Object value, int sqlType) {
         if (value == null) return null;
-        
+
         switch (sqlType) {
             case Types.INTEGER:
                 return convertToInteger(value);
@@ -60,7 +77,7 @@ public class TypeConverter {
             // ... other conversions
         }
     }
-    
+
     private static Object convertToTimestamp(Object value) {
         if (value instanceof String) {
             return Timestamp.valueOf((String) value);
@@ -69,7 +86,7 @@ public class TypeConverter {
         }
         throw new IllegalArgumentException("Cannot convert to timestamp: " + value);
     }
-    
+
     // ... other conversion methods
 }
 ```
@@ -87,7 +104,7 @@ public class TypeInference {
         }
         return Types.VARCHAR; // default
     }
-    
+
     private static int inferScalarType(GraphQLScalarType type) {
         switch (type.getName()) {
             case "Int": return Types.INTEGER;
@@ -109,23 +126,23 @@ public class CustomType implements SqlUserDefinedType {
     private final String name;
     private final int sqlType;
     private final Class<?> javaClass;
-    
+
     public CustomType(String name, int sqlType, Class<?> javaClass) {
         this.name = name;
         this.sqlType = sqlType;
         this.javaClass = javaClass;
     }
-    
+
     @Override
     public String getName() {
         return name;
     }
-    
+
     @Override
     public int getSqlType() {
         return sqlType;
     }
-    
+
     @Override
     public Class<?> getJavaClass() {
         return javaClass;
@@ -137,11 +154,11 @@ public class CustomType implements SqlUserDefinedType {
 ```java
 public class TypeRegistry {
     private final Map<String, CustomType> types = new HashMap<>();
-    
+
     public void register(CustomType type) {
         types.put(type.getName(), type);
     }
-    
+
     public CustomType get(String name) {
         return types.get(name);
     }
@@ -156,7 +173,7 @@ public class NullHandler {
     public static boolean isNullable(RelDataType type) {
         return type.isNullable();
     }
-    
+
     public static Object handleNull(Object value, RelDataType type) {
         if (value == null && !type.isNullable()) {
             throw new NullPointerException("Null value for non-nullable type: " + type);
@@ -199,15 +216,15 @@ public class ArrayHandler {
 public class NullPropagation {
     public static Boolean evaluateAnd(Boolean left, Boolean right) {
         if (left == null || right == null) {
-            return left == Boolean.FALSE || right == Boolean.FALSE 
+            return left == Boolean.FALSE || right == Boolean.FALSE
                 ? Boolean.FALSE : null;
         }
         return left && right;
     }
-    
+
     public static Boolean evaluateOr(Boolean left, Boolean right) {
         if (left == null || right == null) {
-            return left == Boolean.TRUE || right == Boolean.TRUE 
+            return left == Boolean.TRUE || right == Boolean.TRUE
                 ? Boolean.TRUE : null;
         }
         return left || right;

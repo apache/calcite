@@ -27,12 +27,12 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.ArrayList;
 
 /**
  * Query against Splunk using JSON output for simplified processing.
@@ -118,8 +118,8 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
 
     // Get the raw enumerator from the connection
     // With JSON, we pass schema field names directly - much simpler!
-    Enumerator<T> rawEnumerator = (Enumerator<T>) splunkConnection.getSearchResultEnumerator(
-        search, getArgs(), fieldList, explicitFields, reverseMapping);
+    Enumerator<T> rawEnumerator =
+        (Enumerator<T>) splunkConnection.getSearchResultEnumerator(search, getArgs(), fieldList, explicitFields, reverseMapping);
 
     LOGGER.debug("SplunkQuery.enumerator() - JSON Mode");
     LOGGER.debug("  Query field list: {}", fieldList);
@@ -228,8 +228,7 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
       }
     }
 
-    @Override
-    public Object current() {
+    @Override public Object current() {
       Object current = underlying.current();
       rowCount++;
 
@@ -312,18 +311,15 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
       return result;
     }
 
-    @Override
-    public boolean moveNext() {
+    @Override public boolean moveNext() {
       return underlying.moveNext();
     }
 
-    @Override
-    public void reset() {
+    @Override public void reset() {
       underlying.reset();
     }
 
-    @Override
-    public void close() {
+    @Override public void close() {
       underlying.close();
     }
   }

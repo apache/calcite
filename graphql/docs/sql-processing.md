@@ -1,3 +1,20 @@
+<\!--
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to you under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
 # SQL Processing
 
 ## Table of Contents
@@ -44,12 +61,12 @@ public class GraphQLFilterRule extends RelOptRule {
     public void onMatch(RelOptRuleCall call) {
         final LogicalFilter filter = call.rel(0);
         final LogicalTableScan scan = call.rel(1);
-        
+
         // Only push down if all conditions can be translated
         if (!canPushFilter(filter.getCondition())) {
             return;
         }
-        
+
         // Create new plan with pushed filter
         call.transformTo(
             new GraphQLTableScan(
@@ -68,11 +85,11 @@ public class GraphQLSortRule extends RelOptRule {
     public void onMatch(RelOptRuleCall call) {
         final Sort sort = call.rel(0);
         final RelNode input = sort.getInput();
-        
+
         // Handle offset and fetch
         RexNode offset = sort.offset;
         RexNode fetch = sort.fetch;
-        
+
         // Create new plan with pushed sort
         call.transformTo(
             new GraphQLSort(
@@ -93,13 +110,13 @@ public class GraphQLProjectRule extends RelOptRule {
     public void onMatch(RelOptRuleCall call) {
         final LogicalProject project = call.rel(0);
         final RelNode input = project.getInput();
-        
+
         // Only push down simple projections
         List<RexNode> projections = project.getProjects();
         if (!canPushProjections(projections)) {
             return;
         }
-        
+
         call.transformTo(
             new GraphQLProject(
                 project.getCluster(),
@@ -164,7 +181,7 @@ private String translateSort(Sort sort) {
             orderBy.append(", ");
         }
         orderBy.append(getFieldName(collation.getFieldIndex()));
-        orderBy.append(collation.direction == RelFieldCollation.Direction.DESCENDING 
+        orderBy.append(collation.direction == RelFieldCollation.Direction.DESCENDING
             ? " DESC" : " ASC");
     }
     return orderBy.toString();

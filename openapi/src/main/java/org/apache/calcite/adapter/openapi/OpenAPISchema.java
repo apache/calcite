@@ -16,13 +16,14 @@
  */
 package org.apache.calcite.adapter.openapi;
 
+import static java.util.Objects.requireNonNull;
+
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 
 import com.google.common.collect.ImmutableMap;
 
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * Schema that contains OpenAPI endpoint tables.
@@ -42,8 +43,8 @@ public class OpenAPISchema extends AbstractSchema {
    */
   public OpenAPISchema(OpenAPITransport transport, OpenAPIConfig config) {
     super();
-    this.transport = Objects.requireNonNull(transport, "transport");
-    this.config = Objects.requireNonNull(config, "config");
+    this.transport = requireNonNull(transport, "transport");
+    this.config = requireNonNull(config, "config");
     this.tableMap = createTables();
   }
 

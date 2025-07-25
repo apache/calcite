@@ -16,12 +16,13 @@
  */
 package org.apache.calcite.adapter.openapi;
 
+import static java.util.Objects.requireNonNull;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * Configuration for OpenAPI table variants and pushdown capabilities.
@@ -37,7 +38,7 @@ public class OpenAPIConfig {
       @JsonProperty("variants") List<Variant> variants,
       @JsonProperty("authentication") Authentication authentication,
       @JsonProperty("defaultParams") Map<String, Object> defaultParams) {
-    this.variants = Objects.requireNonNull(variants, "variants");
+    this.variants = requireNonNull(variants, "variants");
     this.authentication = authentication;
     this.defaultParams = defaultParams;
   }
@@ -71,8 +72,8 @@ public class OpenAPIConfig {
         @JsonProperty("defaultParams") Map<String, Object> defaultParams,
         @JsonProperty("projectionPushdown") ProjectionPushdown projectionPushdown,
         @JsonProperty("sortPushdown") SortPushdown sortPushdown) {
-      this.name = Objects.requireNonNull(name, "name");
-      this.path = Objects.requireNonNull(path, "path");
+      this.name = requireNonNull(name, "name");
+      this.path = requireNonNull(path, "path");
       this.httpMethod = httpMethod != null ? httpMethod : "GET";
       this.requiredFilters = requiredFilters != null ? requiredFilters : List.of();
       this.optionalFilters = optionalFilters != null ? optionalFilters : List.of();
@@ -108,7 +109,7 @@ public class OpenAPIConfig {
         @JsonProperty("location") ParameterLocation location,
         @JsonProperty("format") ProjectionFormat format,
         @JsonProperty("template") String template) {
-      this.paramName = Objects.requireNonNull(paramName, "paramName");
+      this.paramName = requireNonNull(paramName, "paramName");
       this.location = location != null ? location : ParameterLocation.QUERY;
       this.format = format != null ? format : ProjectionFormat.COMMA;
       this.template = template != null ? template : "{fields}";
@@ -139,7 +140,7 @@ public class OpenAPIConfig {
         @JsonProperty("format") SortFormat format,
         @JsonProperty("directionValues") Map<String, String> directionValues,
         @JsonProperty("supportedColumns") List<String> supportedColumns) {
-      this.paramName = Objects.requireNonNull(paramName, "paramName");
+      this.paramName = requireNonNull(paramName, "paramName");
       this.location = location != null ? location : ParameterLocation.QUERY;
       this.directionParam = directionParam;
       this.format = format != null ? format : SortFormat.SEPARATE_PARAMS;
@@ -173,7 +174,7 @@ public class OpenAPIConfig {
         @JsonProperty("paramName") String paramName,
         @JsonProperty("template") String template,
         @JsonProperty("credentials") Map<String, String> credentials) {
-      this.type = Objects.requireNonNull(type, "type");
+      this.type = requireNonNull(type, "type");
       this.location = location != null ? location : ParameterLocation.HEADER;
       this.paramName = paramName;
       this.template = template;

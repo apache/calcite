@@ -43,8 +43,7 @@ import java.util.Map;
  */
 public class SplunkTableFactory implements TableFactory<SplunkTable> {
 
-  @Override
-  public SplunkTable create(SchemaPlus schema, String name,
+  @Override public SplunkTable create(SchemaPlus schema, String name,
                            @Nullable Map<String, Object> operand,
                            @Nullable RelDataType rowType) {
 

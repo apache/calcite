@@ -14,13 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.adapter.cassandra;
 
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManagerFactory;
 import java.io.FileInputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.KeyFactory;
@@ -30,6 +27,9 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Base64;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
 
 public class CassandraSSLContext {
   public static SSLContext createSSLContext(String pathToCert, String pathToPrivateKey, String keyPassword, String pathToRootCert) throws Exception {
@@ -43,8 +43,8 @@ public class CassandraSSLContext {
       X509Certificate certificate = (X509Certificate) certFactory.generateCertificate(certFile);
 
       // Load the private key
-      String key = new String(Files.readAllBytes(Paths.get(pathToPrivateKey)));
-      key = key.replace("-----BEGIN PRIVATE KEY-----", "").replace("-----END PRIVATE KEY-----", "").replaceAll("\\s", "");
+      String key = new String(Files.readAllBytes(Paths.get(pathToPrivateKey)), StandardCharsets.UTF_8);
+      key = key.replace("-----BEGIN PRIVATE KEY-----", "").replace("-----END PRIVATE KEY-----", "").replace("\\s", "");
       byte[] keyBytes = Base64.getDecoder().decode(key);
       PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(keyBytes);
       KeyFactory keyFactory = KeyFactory.getInstance("RSA");

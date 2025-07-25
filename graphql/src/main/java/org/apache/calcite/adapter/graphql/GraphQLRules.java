@@ -14,26 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.adapter.graphql;
 
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.plan.*;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
-import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
-import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.*;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 import com.google.common.collect.ImmutableList;
+
 import java.util.*;
 
 /**
@@ -72,12 +74,11 @@ public class GraphQLRules {
           RelOptRule.operand(LogicalProject.class, RelOptRule.any()));
 
   // Update RULES list to include filter rule
-  public static final List<RelOptRule> RULES = ImmutableList.of(
-      PROJECT_SPLIT_RULE,
+  public static final List<RelOptRule> RULES =
+      ImmutableList.of(PROJECT_SPLIT_RULE,
       PROJECT_RULE,
       SORT_RULE,
-      FILTER_RULE
-  );
+      FILTER_RULE);
 
   static List<String> graphQLFieldNames(final RelDataType rowType) {
     return SqlValidatorUtil.uniquify(rowType.getFieldNames(),
@@ -155,8 +156,8 @@ public class GraphQLRules {
       }
 
       @SuppressWarnings("deprecation")
-      RelNode baseProject = LogicalProject.create(
-          input,
+      RelNode baseProject =
+          LogicalProject.create(input,
           Collections.emptyList(),
           baseProjects,
           baseFieldNames);
@@ -165,8 +166,8 @@ public class GraphQLRules {
       LOGGER.debug("Base project row type: {}", baseProject.getRowType());
 
       @SuppressWarnings("deprecation")
-      RelNode calcProject = LogicalProject.create(
-          baseProject,
+      RelNode calcProject =
+          LogicalProject.create(baseProject,
           Collections.emptyList(),
           calcProjects,
           calcFieldNames);
@@ -193,8 +194,7 @@ public class GraphQLRules {
       super(config);
     }
 
-    @Override
-    public boolean matches(RelOptRuleCall call) {
+    @Override public boolean matches(RelOptRuleCall call) {
       Project project = call.rel(0);
       return project.getConvention() == Convention.NONE
           && !(project instanceof GraphQLProject)
@@ -225,8 +225,7 @@ public class GraphQLRules {
       super(config);
     }
 
-    @Override
-    public boolean matches(RelOptRuleCall call) {
+    @Override public boolean matches(RelOptRuleCall call) {
       Sort sort = call.rel(0);
       LOGGER.debug("GraphQLSortRule matches called - Sort: {}, Traits: {}", sort, sort.getTraitSet());
 
@@ -258,8 +257,7 @@ public class GraphQLRules {
           convert(sort.getInput(), out),
           sort.getCollation(),
           sort.offset,
-          sort.fetch
-      );
+          sort.fetch);
     }
   }
 
@@ -274,8 +272,7 @@ public class GraphQLRules {
       super(config);
     }
 
-    @Override
-    public boolean matches(RelOptRuleCall call) {
+    @Override public boolean matches(RelOptRuleCall call) {
       Filter filter = call.rel(0);
       LOGGER.debug("GraphQLFilterRule matches called - Filter: {}, Traits: {}", filter, filter.getTraitSet());
 
@@ -388,29 +385,28 @@ public class GraphQLRules {
         if (!pushDownConditions.isEmpty()) {
           RexNode pushDownCondition;
           if (condition.isA(SqlKind.AND)) {
-            pushDownCondition = RexUtil.composeConjunction(
-                filter.getCluster().getRexBuilder(), pushDownConditions);
+            pushDownCondition =
+                RexUtil.composeConjunction(filter.getCluster().getRexBuilder(), pushDownConditions);
           } else {
-            pushDownCondition = RexUtil.composeDisjunction(
-                filter.getCluster().getRexBuilder(), pushDownConditions);
+            pushDownCondition =
+                RexUtil.composeDisjunction(filter.getCluster().getRexBuilder(), pushDownConditions);
           }
-          converted = new GraphQLFilter(
-              filter.getCluster(),
+          converted =
+              new GraphQLFilter(filter.getCluster(),
               traitSet,
               converted,
-              pushDownCondition
-          );
+              pushDownCondition);
         }
 
         // Add remaining filters as a regular filter
         if (!remainingConditions.isEmpty()) {
           RexNode remainingCondition;
           if (condition.isA(SqlKind.AND)) {
-            remainingCondition = RexUtil.composeConjunction(
-                filter.getCluster().getRexBuilder(), remainingConditions);
+            remainingCondition =
+                RexUtil.composeConjunction(filter.getCluster().getRexBuilder(), remainingConditions);
           } else {
-            remainingCondition = RexUtil.composeDisjunction(
-                filter.getCluster().getRexBuilder(), remainingConditions);
+            remainingCondition =
+                RexUtil.composeDisjunction(filter.getCluster().getRexBuilder(), remainingConditions);
           }
           converted = LogicalFilter.create(converted, remainingCondition);
         }
@@ -423,8 +419,7 @@ public class GraphQLRules {
           filter.getCluster(),
           traitSet,
           convert(filter.getInput(), out),
-          filter.getCondition()
-      );
+          filter.getCondition());
     }
   }
 

@@ -1,8 +1,26 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to you under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.calcite.adapter.graphql;
 
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.sql.SQLException;
 import java.util.*;
 
@@ -28,8 +46,7 @@ public class GraphQLEnumerator implements Enumerator<Object> {
     this.currentRowIndex = -1;
   }
 
-  @Override
-  public Object current() {
+  @Override public Object current() {
     Object row = enumerator.current();
     assert row != null;
     if (row.getClass().isArray()) {
@@ -41,8 +58,7 @@ public class GraphQLEnumerator implements Enumerator<Object> {
     return row;
   }
 
-  @Override
-  public boolean moveNext() {
+  @Override public boolean moveNext() {
     if (currentRowIndex + 1 < cachedRows.size()) {
       currentRowIndex++;
       return enumerator.moveNext();
@@ -50,14 +66,12 @@ public class GraphQLEnumerator implements Enumerator<Object> {
     return false;
   }
 
-  @Override
-  public void reset() {
+  @Override public void reset() {
     currentRowIndex = -1;
     enumerator.reset();
   }
 
-  @Override
-  public void close() {
+  @Override public void close() {
     enumerator.close();
   }
 

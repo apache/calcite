@@ -1,8 +1,25 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to you under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.calcite.adapter.arrow;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.tree.Expression;
@@ -18,45 +35,32 @@ import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.util.ImmutableIntList;
-import org.apache.parquet.avro.AvroSchemaConverter;
-import org.apache.avro.Schema;
-import org.apache.calcite.linq4j.Linq4j;
-import org.apache.calcite.linq4j.Enumerable;
 
-import org.apache.parquet.hadoop.ParquetFileReader;
-import org.apache.parquet.hadoop.util.HadoopInputFile;
-import org.apache.parquet.schema.MessageType;
-import org.apache.parquet.schema.Type;
-import org.apache.parquet.schema.PrimitiveType;
+import org.apache.arrow.gandiva.evaluator.Filter;
+import org.apache.arrow.gandiva.evaluator.Projector;
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.parquet.hadoop.ParquetReader;
-//import org.apache.parquet.hadoop.ParquetReadOptions;
-import org.apache.parquet.hadoop.ParquetFileReader;
-import org.apache.arrow.gandiva.evaluator.Filter;
-import org.apache.arrow.gandiva.expression.TreeBuilder;
-import org.apache.parquet.hadoop.metadata.ParquetMetadata;
-import org.apache.avro.generic.GenericRecord;
-import org.apache.arrow.gandiva.expression.Condition;
-import org.apache.parquet.io.InputFile;
-import org.apache.arrow.gandiva.expression.TreeNode;
-import static java.util.Objects.requireNonNull;
-import org.apache.arrow.gandiva.evaluator.Projector;
-import org.apache.arrow.gandiva.expression.ExpressionTree;
-import java.util.ArrayList;
-import org.apache.arrow.vector.types.pojo.Field;
-import org.apache.arrow.vector.types.pojo.ArrowType;
 import org.apache.parquet.avro.AvroParquetReader;
 import org.apache.parquet.avro.AvroReadSupport;
+import org.apache.parquet.avro.AvroSchemaConverter;
+import org.apache.parquet.hadoop.ParquetFileReader;
+import org.apache.parquet.hadoop.ParquetReader;
+import org.apache.parquet.hadoop.metadata.ParquetMetadata;
+import org.apache.parquet.hadoop.util.HadoopInputFile;
+import org.apache.parquet.io.InputFile;
+import org.apache.parquet.schema.MessageType;
+import org.apache.parquet.schema.PrimitiveType;
+import org.apache.parquet.schema.Type;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.apache.arrow.gandiva.exceptions.GandivaException;
-import org.apache.calcite.util.Util;
-import java.util.List;
-import java.util.Arrays;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
+import static java.util.Objects.requireNonNull;
 
 public class ParquetTable extends AbstractTable
     implements TranslatableTable, QueryableTable {
@@ -100,33 +104,28 @@ public class ParquetTable extends AbstractTable
     }
   }
 
-  @Override
-  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+  @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     if (this.protoRowType != null) {
       return this.protoRowType.apply(typeFactory);
     }
     return deduceRowType(this.schema, (JavaTypeFactory) typeFactory);
   }
 
-  @Override
-  public Expression getExpression(SchemaPlus schema, String tableName,
+  @Override public Expression getExpression(SchemaPlus schema, String tableName,
       Class clazz) {
     return Schemas.tableExpression(schema, Object[].class, tableName, clazz);
   }
 
-  @Override
-  public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
+  @Override public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
       SchemaPlus schema, String tableName) {
     throw new UnsupportedOperationException();
   }
 
-  @Override
-  public java.lang.reflect.Type getElementType() {
+  @Override public java.lang.reflect.Type getElementType() {
     return Object[].class;
   }
 
-  @Override
-  public RelNode toRel(RelOptTable.ToRelContext context,
+  @Override public RelNode toRel(RelOptTable.ToRelContext context,
       RelOptTable relOptTable) {
     final int fieldCount = relOptTable.getRowType().getFieldCount();
     final ImmutableIntList fields = ImmutableIntList.identity(fieldCount);

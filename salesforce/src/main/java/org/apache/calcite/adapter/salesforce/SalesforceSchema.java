@@ -37,44 +37,42 @@ import java.util.concurrent.TimeUnit;
  * Schema for Salesforce sObjects.
  */
 public class SalesforceSchema extends AbstractSchema {
-  
+
   private static final Logger LOGGER = LoggerFactory.getLogger(SalesforceSchema.class);
-  
+
   private final SalesforceConnection connection;
   private final LoadingCache<String, SalesforceConnection.SObjectDescription> descriptionCache;
   private Map<String, Table> tableMap;
-  
+
   public SalesforceSchema(SalesforceConnection connection, int cacheMaxSize) {
     this.connection = connection;
     this.descriptionCache = CacheBuilder.newBuilder()
         .maximumSize(cacheMaxSize)
         .expireAfterWrite(1, TimeUnit.HOURS)
         .build(new CacheLoader<String, SalesforceConnection.SObjectDescription>() {
-          @Override
-          public SalesforceConnection.SObjectDescription load(String sObjectType) 
+          @Override public SalesforceConnection.SObjectDescription load(String sObjectType)
               throws IOException {
             return connection.describeSObject(sObjectType);
           }
         });
   }
-  
-  @Override
-  protected Map<String, Table> getTableMap() {
+
+  @Override protected Map<String, Table> getTableMap() {
     if (tableMap == null) {
       tableMap = createTableMap();
     }
     return tableMap;
   }
-  
+
   private Map<String, Table> createTableMap() {
     try {
       List<SalesforceConnection.SObjectBasicInfo> sObjects = connection.listSObjects();
       ImmutableMap.Builder<String, Table> builder = ImmutableMap.builder();
-      
+
       for (SalesforceConnection.SObjectBasicInfo sObject : sObjects) {
         if (sObject.queryable) {
           builder.put(sObject.name, new SalesforceTable(this, sObject.name));
-          
+
           // Also add with lowercase name for case-insensitive matching
           String lowerName = sObject.name.toLowerCase();
           if (!lowerName.equals(sObject.name)) {
@@ -82,14 +80,14 @@ public class SalesforceSchema extends AbstractSchema {
           }
         }
       }
-      
+
       return builder.build();
     } catch (IOException e) {
       LOGGER.error("Failed to list Salesforce sObjects", e);
       throw new RuntimeException("Failed to list Salesforce sObjects", e);
     }
   }
-  
+
   /**
    * Get the cached description for an sObject.
    */
@@ -100,7 +98,7 @@ public class SalesforceSchema extends AbstractSchema {
       throw new RuntimeException("Failed to describe sObject: " + sObjectType, e);
     }
   }
-  
+
   /**
    * Get the connection to Salesforce.
    */

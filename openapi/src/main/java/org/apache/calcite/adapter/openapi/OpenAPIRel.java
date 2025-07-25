@@ -22,7 +22,6 @@ import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**

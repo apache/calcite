@@ -28,12 +28,12 @@ import com.google.common.collect.ImmutableSet;
 
 import org.slf4j.Logger;
 
-import javax.net.ssl.SSLContext;
 import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import javax.net.ssl.SSLContext;
 
 import static java.lang.Integer.parseInt;
 
@@ -55,8 +55,7 @@ public class CassandraSchemaFactory implements SchemaFactory {
     super();
   }
 
-  @Override
-  public Schema create(SchemaPlus parentSchema, String name,
+  @Override public Schema create(SchemaPlus parentSchema, String name,
       Map<String, Object> operand) {
 
     final Map<String, Object> sessionMap = projectMapOverKeys(operand, SESSION_DEFINING_KEYS);

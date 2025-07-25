@@ -21,13 +21,6 @@ import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
 
-import org.apache.arrow.gandiva.evaluator.Filter;
-import org.apache.arrow.gandiva.evaluator.Projector;
-import org.apache.arrow.vector.ipc.ArrowFileReader;
-import org.apache.parquet.hadoop.ParquetReader;
-import org.apache.parquet.filter2.compat.FilterCompat;
-import org.apache.parquet.hadoop.api.ReadSupport;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**

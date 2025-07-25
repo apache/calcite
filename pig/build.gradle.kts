@@ -25,7 +25,7 @@ dependencies {
     testImplementation(project(":testkit"))
     testImplementation("org.apache.hadoop:hadoop-client:3.3.6")
     testImplementation("org.apache.hadoop:hadoop-common:3.3.6")
-//    testImplementation("org.apache.pig:pigunit") {
+    testImplementation("org.apache.pig:pigunit") {
         // Note: pigunit is located after pig-h2 in the classpath,
         // so extra pig.jar (non-h2) should not harm.
         // But we exclude it just in case.

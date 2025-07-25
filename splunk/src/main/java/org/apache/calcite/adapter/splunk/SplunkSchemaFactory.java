@@ -32,9 +32,6 @@ import com.google.common.collect.ImmutableMap;
 
 import java.net.MalformedURLException;
 import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -57,8 +54,7 @@ import java.util.Map;
  */
 public class SplunkSchemaFactory implements SchemaFactory {
 
-  @Override
-  public Schema create(SchemaPlus parentSchema, String name, Map<String, Object> operand) {
+  @Override public Schema create(SchemaPlus parentSchema, String name, Map<String, Object> operand) {
     RelDataTypeFactory typeFactory = new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     ImmutableMap.Builder<String, Table> tableBuilder = ImmutableMap.builder();
 
@@ -112,11 +108,11 @@ public class SplunkSchemaFactory implements SchemaFactory {
    */
   private void addCimModelTable(RelDataTypeFactory typeFactory, String cimModel,
       ImmutableMap.Builder<String, Table> tableBuilder) {
-      CimModelBuilder.CimSchemaResult result = CimModelBuilder.buildCimSchemaWithMapping(
-          typeFactory, cimModel);
+      CimModelBuilder.CimSchemaResult result =
+          CimModelBuilder.buildCimSchemaWithMapping(typeFactory, cimModel);
 
-      SplunkTable table = new SplunkTable(
-          result.getSchema(),
+      SplunkTable table =
+          new SplunkTable(result.getSchema(),
           result.getFieldMapping(),
           result.getSearchString());
 

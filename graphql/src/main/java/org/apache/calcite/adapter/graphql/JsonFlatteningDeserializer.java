@@ -1,14 +1,29 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to you under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.calcite.adapter.graphql;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
-import graphql.schema.*;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.sql.Date;
 import java.sql.Timestamp;
@@ -19,6 +34,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import graphql.schema.*;
+
 public class JsonFlatteningDeserializer extends StdDeserializer<Object> {
     private final Map<String, GraphQLOutputType> fieldTypes;
     private static final Logger LOGGER = LogManager.getLogger(JsonFlatteningDeserializer.class);
@@ -28,8 +45,7 @@ public class JsonFlatteningDeserializer extends StdDeserializer<Object> {
         this.fieldTypes = fieldTypes != null ? fieldTypes : Collections.emptyMap();
     }
 
-    @Override
-    public Object deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
+    @Override public Object deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
         JsonNode node = p.getCodec().readTree(p);
         if (node.isArray()) {
             List<Object> result = new ArrayList<>();
@@ -66,12 +82,12 @@ public class JsonFlatteningDeserializer extends StdDeserializer<Object> {
                             return Stream.of(Map.entry(fullKey, extractValue(value, key)));
                         }
                     })
-                    .collect(Collectors.toMap(
+                    .collect(
+                        Collectors.toMap(
                         Map.Entry::getKey,
                         Map.Entry::getValue,
                         (v1, v2) -> v2,  // If duplicate keys, take the last one
-                        LinkedHashMap::new  // Use LinkedHashMap to preserve order
-                    ));
+                        LinkedHashMap::new));  // Use LinkedHashMap to preserve order
         } else {
             return new LinkedHashMap<>(Map.of("", extractValue(node, "")));
         }

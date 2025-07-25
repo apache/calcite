@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.openapi;
 
+import static java.util.Objects.requireNonNull;
+
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.HttpGet;
@@ -36,12 +38,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Base64;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * HTTP transport layer for OpenAPI REST calls.
@@ -58,8 +58,8 @@ public class OpenAPITransport {
 
   public OpenAPITransport(String baseUrl, ObjectMapper mapper,
       OpenAPIConfig.Authentication authConfig) {
-    this.baseUrl = Objects.requireNonNull(baseUrl, "baseUrl");
-    this.mapper = Objects.requireNonNull(mapper, "mapper");
+    this.baseUrl = requireNonNull(baseUrl, "baseUrl");
+    this.mapper = requireNonNull(mapper, "mapper");
     this.authConfig = authConfig;
     this.httpClient = HttpClients.createDefault();
   }
@@ -84,7 +84,8 @@ public class OpenAPITransport {
     try (org.apache.http.client.methods.CloseableHttpResponse response = httpClient.execute(httpRequest)) {
       if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
         String errorBody = EntityUtils.toString(response.getEntity());
-        throw new RuntimeException(String.format(
+        throw new RuntimeException(
+            String.format(
             "API request failed with status %d: %s",
             response.getStatusLine().getStatusCode(), errorBody));
       }

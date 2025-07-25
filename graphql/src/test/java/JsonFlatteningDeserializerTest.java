@@ -14,13 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import org.apache.calcite.adapter.graphql.JsonFlatteningDeserializer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-
-import graphql.schema.GraphQLOutputType;
-
-import org.apache.calcite.adapter.graphql.JsonFlatteningDeserializer;
 
 import org.junit.jupiter.api.Test;
 
@@ -33,14 +30,19 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class JsonFlatteningDeserializerTest {
-  @Test
-  void testDeserialize() throws IOException {
-    String json = "{\n" +
-        "  \"albumId\": 1,\n" +
-        "  \"title\": \"For Those About To Rock We Salute You\",\n" +
-        "  \"artist\": {\n" +
-        "    \"name\": \"AC/DC\"\n" +
-        "  }\n" +
+  @Test void testDeserialize() throws IOException {
+    String json = "{\n"
+  +
+        "  \"albumId\": 1,\n"
+  +
+        "  \"title\": \"For Those About To Rock We Salute You\",\n"
+  +
+        "  \"artist\": {\n"
+  +
+        "    \"name\": \"AC/DC\"\n"
+  +
+        "  }\n"
+  +
         "}";
 
     ObjectMapper mapper = new ObjectMapper();
@@ -57,8 +59,7 @@ class JsonFlatteningDeserializerTest {
     assertEquals(expected, actual);
   }
 
-  @Test
-  void testDeserializeNestedObjects() throws IOException {
+  @Test void testDeserializeNestedObjects() throws IOException {
     String jsonArray = "["
         + "{"
         + "  \"a\": { \"e\": 1 }, \"b\": \"test\""
@@ -92,14 +93,19 @@ class JsonFlatteningDeserializerTest {
     assertEquals(expected, actual);
   }
 
-  @Test
-  void testDeserializeWithArray() throws IOException {
-    String json = "{\n" +
-        "  \"albumId\": 1,\n" +
-        "  \"tracks\": [\n" +
-        "    {\"name\": \"Track 1\"},\n" +
-        "    {\"name\": \"Track 2\"}\n" +
-        "  ]\n" +
+  @Test void testDeserializeWithArray() throws IOException {
+    String json = "{\n"
+  +
+        "  \"albumId\": 1,\n"
+  +
+        "  \"tracks\": [\n"
+  +
+        "    {\"name\": \"Track 1\"},\n"
+  +
+        "    {\"name\": \"Track 2\"}\n"
+  +
+        "  ]\n"
+  +
         "}";
 
     ObjectMapper mapper = new ObjectMapper();

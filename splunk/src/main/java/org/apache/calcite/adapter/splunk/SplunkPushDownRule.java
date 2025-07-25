@@ -74,8 +74,7 @@ public class SplunkPushDownRule
           SqlKind.NOT,
           SqlKind.IS_NULL,
           SqlKind.IS_NOT_NULL,
-          SqlKind.IN
-      );
+          SqlKind.IN);
 
   public static final SplunkPushDownRule PROJECT_ON_FILTER =
       ImmutableSplunkPushDownRule.Config.builder()
@@ -143,8 +142,7 @@ public class SplunkPushDownRule
 
   // ~ Methods --------------------------------------------------------------
 
-  @Override
-  public void onMatch(RelOptRuleCall call) {
+  @Override public void onMatch(RelOptRuleCall call) {
     LOGGER.debug(description);
 
     int relLength = call.rels.length;
@@ -623,7 +621,7 @@ public class SplunkPushDownRule
   private static long parseTimestampToEpochSeconds(String timestampStr) throws Exception {
     // Handle epoch seconds/milliseconds first
     if (timestampStr.matches("\\d{10,13}")) {
-      long value = Long.parseLong(timestampStr);
+      long value = parseLong(timestampStr);
       if (value > 9999999999L) { // milliseconds
         return value / 1000;
       } else { // seconds
@@ -651,8 +649,8 @@ public class SplunkPushDownRule
         return zdt.toEpochSecond();
       } catch (Exception e1) {
         try {
-          java.time.ZonedDateTime zdt = java.time.ZonedDateTime.parse(timestampStr,
-              rfc3339Formatter);
+          java.time.ZonedDateTime zdt =
+              java.time.ZonedDateTime.parse(timestampStr, rfc3339Formatter);
           return zdt.toEpochSecond();
         } catch (Exception e2) {
           // Try standard ISO formatters as fallback
@@ -891,7 +889,7 @@ public class SplunkPushDownRule
           String strValue = literalValue.toString();
           try {
             // Try parsing as epoch milliseconds first
-            long epochMs = Long.parseLong(strValue);
+            long epochMs = parseLong(strValue);
             value = String.valueOf(epochMs / 1000);
           } catch (NumberFormatException e) {
             // If it's not a number, treat as string and escape
@@ -966,8 +964,7 @@ public class SplunkPushDownRule
    */
   @Value.Immutable(singleton = false)
   public interface Config extends RelRule.Config {
-    @Override
-    default SplunkPushDownRule toRule() {
+    @Override default SplunkPushDownRule toRule() {
       return new SplunkPushDownRule(this);
     }
 

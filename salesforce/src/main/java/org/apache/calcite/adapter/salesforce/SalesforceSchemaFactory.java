@@ -28,35 +28,34 @@ import java.util.Map;
  * Factory for Salesforce schemas.
  */
 public class SalesforceSchemaFactory implements SchemaFactory {
-  
+
   public static final SalesforceSchemaFactory INSTANCE = new SalesforceSchemaFactory();
-  
+
   private static final ObjectMapper MAPPER = new ObjectMapper();
-  
-  @Override
-  public Schema create(SchemaPlus parentSchema, String name, Map<String, Object> operand) {
+
+  @Override public Schema create(SchemaPlus parentSchema, String name, Map<String, Object> operand) {
     String loginUrl = (String) operand.get("loginUrl");
     if (loginUrl == null) {
       loginUrl = "https://login.salesforce.com";
     }
-    
+
     String username = (String) operand.get("username");
     String password = (String) operand.get("password");
     String securityToken = (String) operand.get("securityToken");
     String clientId = (String) operand.get("clientId");
     String clientSecret = (String) operand.get("clientSecret");
     String apiVersion = (String) operand.get("apiVersion");
-    
+
     if (apiVersion == null) {
       apiVersion = "v58.0";
     }
-    
+
     // Authentication configuration
     SalesforceConnection.AuthConfig authConfig;
     if (username != null && password != null) {
       // Username/password flow
-      authConfig = SalesforceConnection.AuthConfig.usernamePassword(
-          username, password, securityToken, clientId, clientSecret);
+      authConfig =
+          SalesforceConnection.AuthConfig.usernamePassword(username, password, securityToken, clientId, clientSecret);
     } else {
       // OAuth token flow
       String accessToken = (String) operand.get("accessToken");
@@ -67,16 +66,16 @@ public class SalesforceSchemaFactory implements SchemaFactory {
       }
       authConfig = SalesforceConnection.AuthConfig.accessToken(accessToken, instanceUrl);
     }
-    
+
     // Cache configuration
     Integer cacheMaxSize = (Integer) operand.get("cacheMaxSize");
     if (cacheMaxSize == null) {
       cacheMaxSize = 1000;
     }
-    
+
     try {
-      SalesforceConnection connection = new SalesforceConnection(
-          loginUrl, authConfig, apiVersion);
+      SalesforceConnection connection =
+          new SalesforceConnection(loginUrl, authConfig, apiVersion);
       return new SalesforceSchema(connection, cacheMaxSize);
     } catch (Exception e) {
       throw new RuntimeException("Failed to create Salesforce schema", e);

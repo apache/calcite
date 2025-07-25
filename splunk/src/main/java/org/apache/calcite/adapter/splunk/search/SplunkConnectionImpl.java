@@ -24,11 +24,11 @@ import org.apache.calcite.util.Util;
 
 import au.com.bytecode.opencsv.CSVReader;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.Closeable;
@@ -41,14 +41,13 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
+import java.security.cert.X509Certificate;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -56,7 +55,6 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
-import java.security.cert.X509Certificate;
 
 import static org.apache.calcite.runtime.HttpUtils.appendURLEncodedArgs;
 import static org.apache.calcite.runtime.HttpUtils.post;
@@ -108,9 +106,9 @@ public class SplunkConnectionImpl implements SplunkConnection {
 
   public SplunkConnectionImpl(URL url, String username, String password,
           boolean disableSslValidation) {
-    this.url = Objects.requireNonNull(url, "url cannot be null");
-    this.username = Objects.requireNonNull(username, "username cannot be null");
-    this.password = Objects.requireNonNull(password, "password cannot be null");
+    this.url = requireNonNull(url, "url cannot be null");
+    this.username = requireNonNull(username, "username cannot be null");
+    this.password = requireNonNull(password, "password cannot be null");
     this.token = null;
     this.useTokenAuth = false;
     this.disableSslValidation = disableSslValidation;
@@ -146,8 +144,8 @@ public class SplunkConnectionImpl implements SplunkConnection {
    * Constructor for token-based authentication with SSL configuration.
    */
   public SplunkConnectionImpl(URL url, String token, boolean disableSslValidation) {
-    this.url = Objects.requireNonNull(url, "url cannot be null");
-    this.token = Objects.requireNonNull(token, "token cannot be null");
+    this.url = requireNonNull(url, "url cannot be null");
+    this.token = requireNonNull(token, "token cannot be null");
     this.username = null;
     this.password = null;
     this.useTokenAuth = true;
@@ -266,30 +264,40 @@ public class SplunkConnectionImpl implements SplunkConnection {
           throw new RuntimeException("Authentication failed - no session key found in response");
         }
       } catch (java.net.SocketTimeoutException e) {
-        String errorMsg = String.format("Connection to Splunk timed out. Please verify:\n" +
-                "1. Splunk URL is correct: %s\n" +
-                "2. Splunk server is running and accessible\n" +
-                "3. Network connectivity allows access to port %d\n" +
+        String errorMsg = String.format("Connection to Splunk timed out. Please verify:\n"
+  +
+                "1. Splunk URL is correct: %s\n"
+  +
+                "2. Splunk server is running and accessible\n"
+  +
+                "3. Network connectivity allows access to port %d\n"
+  +
                 "4. No firewall is blocking the connection",
             url.toString(), url.getPort());
         LOGGER.error("Connection timeout during authentication: {}", errorMsg);
         throw new RuntimeException("Splunk connection timeout: " + errorMsg, e);
       } catch (java.net.ConnectException e) {
-        String errorMsg = String.format("Cannot connect to Splunk server. Please verify:\n" +
-                "1. Splunk URL is correct: %s\n" +
-                "2. Splunk server is running\n" +
-                "3. Splunk REST API is enabled\n" +
+        String errorMsg = String.format("Cannot connect to Splunk server. Please verify:\n"
+  +
+                "1. Splunk URL is correct: %s\n"
+  +
+                "2. Splunk server is running\n"
+  +
+                "3. Splunk REST API is enabled\n"
+  +
                 "4. Port %d is accessible",
             url.toString(), url.getPort());
         LOGGER.error("Connection refused during authentication: {}", errorMsg);
         throw new RuntimeException("Splunk connection refused: " + errorMsg, e);
       } catch (java.net.UnknownHostException e) {
-        String errorMsg = String.format("Cannot resolve Splunk hostname: %s\n" +
+        String errorMsg = String.format("Cannot resolve Splunk hostname: %s\n"
+  +
             "Please verify the hostname/IP address is correct", url.getHost());
         LOGGER.error("DNS resolution failed during authentication: {}", errorMsg);
         throw new RuntimeException("Splunk hostname resolution failed: " + errorMsg, e);
       } catch (javax.net.ssl.SSLException e) {
-        String errorMsg = String.format("SSL connection failed to Splunk server: %s\n" +
+        String errorMsg = String.format("SSL connection failed to Splunk server: %s\n"
+  +
                 "Consider setting SPLUNK_DISABLE_SSL_VALIDATION=true for development/testing",
             url.toString());
         LOGGER.error("SSL error during authentication: {}", errorMsg);
@@ -348,7 +356,8 @@ public class SplunkConnectionImpl implements SplunkConnection {
       }
 
       String causeMessage = cause.getMessage();
-      if (causeMessage != null && (causeMessage.contains("401") || causeMessage.contains(
+      if (causeMessage != null && (
+          causeMessage.contains("401") || causeMessage.contains(
               "Unauthorized"))) {
         return true;
       }
@@ -389,21 +398,18 @@ public class SplunkConnectionImpl implements SplunkConnection {
     }
   }
 
-  @Override
-  public void getSearchResults(String search, Map<String, String> otherArgs,
+  @Override public void getSearchResults(String search, Map<String, String> otherArgs,
       List<String> fieldList, SearchResultListener srl) {
-    Objects.requireNonNull(srl, "SearchResultListener cannot be null");
+    requireNonNull(srl, "SearchResultListener cannot be null");
     performSearchWithRetry(search, otherArgs, srl);
   }
 
-  @Override
-  public Enumerator<Object> getSearchResultEnumerator(String search,
+  @Override public Enumerator<Object> getSearchResultEnumerator(String search,
       Map<String, String> otherArgs, List<String> fieldList, Set<String> explicitFields) {
     return getSearchResultEnumerator(search, otherArgs, fieldList, explicitFields, new HashMap<>());
   }
 
-  @Override
-  public Enumerator<Object> getSearchResultEnumerator(String search,
+  @Override public Enumerator<Object> getSearchResultEnumerator(String search,
       Map<String, String> otherArgs, List<String> fieldList, Set<String> explicitFields,
       Map<String, String> reverseFieldMapping) {
     return performSearchForEnumeratorWithRetry(search, otherArgs, fieldList, explicitFields,
@@ -677,7 +683,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
         StringUtils.encodeList(fieldList, ',').toString());
 
     String printArg = argsMap.get("-print");
-    boolean shouldPrint = Boolean.parseBoolean(printArg);
+    boolean shouldPrint = parseBoolean(printArg);
 
     CountingSearchResultListener dummy = new CountingSearchResultListener(shouldPrint);
     long start = System.currentTimeMillis();
@@ -699,18 +705,17 @@ public class SplunkConnectionImpl implements SplunkConnection {
       this.print = print;
     }
 
-    @Override
-    public void setFieldNames(String[] fieldNames) {
+    @Override public void setFieldNames(String[] fieldNames) {
       this.fieldNames = fieldNames;
     }
 
-    @Override
-    public boolean processSearchResult(String[] values) {
+    @Override public boolean processSearchResult(String[] values) {
       resultCount++;
       if (print) {
         int maxIndex = Math.min(fieldNames.length, values.length);
         for (int i = 0; i < maxIndex; ++i) {
-          LOGGER.debug(String.format(Locale.ROOT, "%s=%s\n", this.fieldNames[i],
+          LOGGER.debug(
+              String.format(Locale.ROOT, "%s=%s\n", this.fieldNames[i],
               values[i]));
         }
       }
@@ -764,13 +769,11 @@ public class SplunkConnectionImpl implements SplunkConnection {
       LOGGER.debug("Explicit fields: {}", explicitFields);
     }
 
-    @Override
-    public Object current() {
+    @Override public Object current() {
       return current;
     }
 
-    @Override
-    public boolean moveNext() {
+    @Override public boolean moveNext() {
       try {
         return moveNextInternal();
       } catch (Exception e) {
@@ -909,7 +912,9 @@ public class SplunkConnectionImpl implements SplunkConnection {
 
         return OBJECT_MAPPER.readValue(line, MAP_TYPE_REF);
       } catch (Exception e) {
-        LOGGER.warn("Failed to parse JSON line: {}", line.substring(0, Math.min(100,
+        LOGGER.warn(
+            "Failed to parse JSON line: {}", line.substring(
+                0, Math.min(100,
                 line.length())));
         if (rowCount <= 3) {
           // Show more details for first few parsing errors
@@ -988,13 +993,11 @@ public class SplunkConnectionImpl implements SplunkConnection {
       }
     }
 
-    @Override
-    public void reset() {
+    @Override public void reset() {
       throw new UnsupportedOperationException();
     }
 
-    @Override
-    public void close() {
+    @Override public void close() {
       try {
         reader.close();
       } catch (IOException e) {

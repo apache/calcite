@@ -39,7 +39,6 @@ import org.apache.calcite.util.Pair;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.util.AbstractList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -72,36 +71,39 @@ public class OpenAPIToEnumerableConverter extends ConverterImpl implements Enume
             rowType, prefer.prefer(JavaRowFormat.ARRAY));
 
     // Convert filters map to expression
-    final Expression filters = block.append("filters",
-        Expressions.constant(implementor.filters));
+    final Expression filters =
+        block.append("filters", Expressions.constant(implementor.filters));
 
     // Convert projections to field list
-    final Expression fields = block.append("fields",
-        constantArrayList(
+    final Expression fields =
+        block.append(
+            "fields", constantArrayList(
             implementor.projections.entrySet().stream()
                 .map(entry -> Pair.of(entry.getKey(), entry.getValue()))
                 .collect(Collectors.toList()),
             Pair.class));
 
     // Convert sorts to list
-    final Expression sort = block.append("sort",
-        constantArrayList(
+    final Expression sort =
+        block.append(
+            "sort", constantArrayList(
             implementor.sorts.entrySet().stream()
                 .map(entry -> Pair.of(entry.getKey(), entry.getValue()))
                 .collect(Collectors.toList()),
             Pair.class));
 
     // Get table expression
-    final Expression table = block.append("table",
-        implementor.table.getExpression(OpenAPITable.OpenAPIQueryable.class));
+    final Expression table =
+        block.append("table", implementor.table.getExpression(OpenAPITable.OpenAPIQueryable.class));
 
     // Pagination parameters
     final Expression offset = block.append("offset", Expressions.constant(implementor.offset));
     final Expression fetch = block.append("fetch", Expressions.constant(implementor.fetch));
 
     // Generate method call to find()
-    Expression enumerable = block.append("enumerable",
-        Expressions.call(table,
+    Expression enumerable =
+        block.append(
+            "enumerable", Expressions.call(table,
             OpenAPIMethod.OPENAPI_QUERYABLE_FIND.method,
             filters, fields, sort, offset, fetch));
 

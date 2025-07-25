@@ -16,10 +16,6 @@
  */
 package org.apache.calcite.adapter.salesforce;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
@@ -29,13 +25,16 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -43,17 +42,17 @@ import java.util.Map;
  * Connection to Salesforce REST API.
  */
 public class SalesforceConnection implements Closeable {
-  
+
   private final String loginUrl;
   private final AuthConfig authConfig;
   private final String apiVersion;
   private final CloseableHttpClient httpClient;
   private final ObjectMapper mapper;
-  
+
   private String accessToken;
   private String instanceUrl;
-  
-  public SalesforceConnection(String loginUrl, AuthConfig authConfig, String apiVersion) 
+
+  public SalesforceConnection(String loginUrl, AuthConfig authConfig, String apiVersion)
       throws IOException {
     this.loginUrl = loginUrl;
     this.authConfig = authConfig;
@@ -61,10 +60,10 @@ public class SalesforceConnection implements Closeable {
     this.httpClient = HttpClients.createDefault();
     this.mapper = new ObjectMapper()
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-    
+
     authenticate();
   }
-  
+
   private void authenticate() throws IOException {
     if (authConfig.type == AuthType.ACCESS_TOKEN) {
       this.accessToken = authConfig.accessToken;
@@ -73,7 +72,7 @@ public class SalesforceConnection implements Closeable {
       // Username/password OAuth flow
       HttpPost post = new HttpPost(loginUrl + "/services/oauth2/token");
       post.setHeader("Content-Type", "application/x-www-form-urlencoded");
-      
+
       StringBuilder body = new StringBuilder();
       body.append("grant_type=password");
       body.append("&client_id=").append(encode(authConfig.clientId));
@@ -83,22 +82,22 @@ public class SalesforceConnection implements Closeable {
       if (authConfig.securityToken != null) {
         body.append(encode(authConfig.securityToken));
       }
-      
+
       post.setEntity(new StringEntity(body.toString()));
-      
+
       try (CloseableHttpResponse response = httpClient.execute(post)) {
         String responseBody = EntityUtils.toString(response.getEntity());
         if (response.getStatusLine().getStatusCode() != 200) {
           throw new IOException("Authentication failed: " + responseBody);
         }
-        
+
         JsonNode auth = mapper.readTree(responseBody);
         this.accessToken = auth.get("access_token").asText();
         this.instanceUrl = auth.get("instance_url").asText();
       }
     }
   }
-  
+
   /**
    * Execute a SOQL query.
    */
@@ -106,23 +105,23 @@ public class SalesforceConnection implements Closeable {
     URIBuilder builder = new URIBuilder(URI.create(instanceUrl))
         .setPath("/services/data/" + apiVersion + "/query")
         .addParameter("q", soql);
-    
+
     HttpGet get = new HttpGet(builder.toString());
     get.setHeader("Authorization", "Bearer " + accessToken);
     get.setHeader("Accept", "application/json");
-    
+
     try (CloseableHttpResponse response = httpClient.execute(get)) {
       String responseBody = EntityUtils.toString(response.getEntity());
       if (response.getStatusLine().getStatusCode() != 200) {
         throw new IOException("Query failed: " + responseBody);
       }
-      
+
       return mapper.readValue(responseBody, QueryResult.class);
     } catch (Exception e) {
       throw new IOException("Query failed", e);
     }
   }
-  
+
   /**
    * Continue a query using the nextRecordsUrl.
    */
@@ -130,61 +129,61 @@ public class SalesforceConnection implements Closeable {
     HttpGet get = new HttpGet(instanceUrl + nextRecordsUrl);
     get.setHeader("Authorization", "Bearer " + accessToken);
     get.setHeader("Accept", "application/json");
-    
+
     try (CloseableHttpResponse response = httpClient.execute(get)) {
       String responseBody = EntityUtils.toString(response.getEntity());
       if (response.getStatusLine().getStatusCode() != 200) {
         throw new IOException("QueryMore failed: " + responseBody);
       }
-      
+
       return mapper.readValue(responseBody, QueryResult.class);
     } catch (Exception e) {
       throw new IOException("QueryMore failed", e);
     }
   }
-  
+
   /**
    * Describe an sObject type.
    */
   public SObjectDescription describeSObject(String sObjectType) throws IOException {
-    String path = String.format("/services/data/%s/sobjects/%s/describe", 
-        apiVersion, sObjectType);
-    
+    String path =
+        String.format("/services/data/%s/sobjects/%s/describe", apiVersion, sObjectType);
+
     HttpGet get = new HttpGet(instanceUrl + path);
     get.setHeader("Authorization", "Bearer " + accessToken);
     get.setHeader("Accept", "application/json");
-    
+
     try (CloseableHttpResponse response = httpClient.execute(get)) {
       String responseBody = EntityUtils.toString(response.getEntity());
       if (response.getStatusLine().getStatusCode() != 200) {
         throw new IOException("Describe failed: " + responseBody);
       }
-      
+
       return mapper.readValue(responseBody, SObjectDescription.class);
     } catch (Exception e) {
       throw new IOException("Describe failed", e);
     }
   }
-  
+
   /**
    * Get list of all sObjects.
    */
   public List<SObjectBasicInfo> listSObjects() throws IOException {
     String path = String.format("/services/data/%s/sobjects", apiVersion);
-    
+
     HttpGet get = new HttpGet(instanceUrl + path);
     get.setHeader("Authorization", "Bearer " + accessToken);
     get.setHeader("Accept", "application/json");
-    
+
     try (CloseableHttpResponse response = httpClient.execute(get)) {
       String responseBody = EntityUtils.toString(response.getEntity());
       if (response.getStatusLine().getStatusCode() != 200) {
         throw new IOException("List sObjects failed: " + responseBody);
       }
-      
+
       JsonNode root = mapper.readTree(responseBody);
       JsonNode sobjects = root.get("sobjects");
-      
+
       List<SObjectBasicInfo> result = new ArrayList<>();
       for (JsonNode node : sobjects) {
         SObjectBasicInfo info = mapper.treeToValue(node, SObjectBasicInfo.class);
@@ -197,16 +196,15 @@ public class SalesforceConnection implements Closeable {
       throw new IOException("List sObjects failed", e);
     }
   }
-  
+
   private String encode(String value) {
     return URLEncoder.encode(value, StandardCharsets.UTF_8);
   }
-  
-  @Override
-  public void close() throws IOException {
+
+  @Override public void close() throws IOException {
     httpClient.close();
   }
-  
+
   /**
    * Authentication configuration.
    */
@@ -219,8 +217,8 @@ public class SalesforceConnection implements Closeable {
     final String clientSecret;
     final String accessToken;
     final String instanceUrl;
-    
-    private AuthConfig(AuthType type, String username, String password, 
+
+    private AuthConfig(AuthType type, String username, String password,
         String securityToken, String clientId, String clientSecret,
         String accessToken, String instanceUrl) {
       this.type = type;
@@ -232,24 +230,24 @@ public class SalesforceConnection implements Closeable {
       this.accessToken = accessToken;
       this.instanceUrl = instanceUrl;
     }
-    
+
     public static AuthConfig usernamePassword(String username, String password,
         String securityToken, String clientId, String clientSecret) {
       return new AuthConfig(AuthType.USERNAME_PASSWORD, username, password,
           securityToken, clientId, clientSecret, null, null);
     }
-    
+
     public static AuthConfig accessToken(String accessToken, String instanceUrl) {
       return new AuthConfig(AuthType.ACCESS_TOKEN, null, null, null, null, null,
           accessToken, instanceUrl);
     }
   }
-  
+
   private enum AuthType {
     USERNAME_PASSWORD,
     ACCESS_TOKEN
   }
-  
+
   /**
    * SOQL query result.
    */
@@ -259,7 +257,7 @@ public class SalesforceConnection implements Closeable {
     public String nextRecordsUrl;
     public List<Map<String, Object>> records;
   }
-  
+
   /**
    * Basic sObject information.
    */
@@ -269,7 +267,7 @@ public class SalesforceConnection implements Closeable {
     public boolean queryable;
     public boolean custom;
   }
-  
+
   /**
    * Full sObject description.
    */
@@ -280,7 +278,7 @@ public class SalesforceConnection implements Closeable {
     public boolean queryable;
     public boolean custom;
   }
-  
+
   /**
    * Field description.
    */

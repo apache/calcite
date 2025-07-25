@@ -14,16 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 dependencies {
     api(project(":core"))
     api(project(":linq4j"))
-    
+
     implementation("com.fasterxml.jackson.core:jackson-databind")
     implementation("com.google.guava:guava")
     implementation("org.apache.httpcomponents:httpclient")
     implementation("org.slf4j:slf4j-api")
-    
+
     testImplementation(project(":testkit"))
     testImplementation("org.hamcrest:hamcrest")
     testImplementation("org.junit.jupiter:junit-jupiter-api")

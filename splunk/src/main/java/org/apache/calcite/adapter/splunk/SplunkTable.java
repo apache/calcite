@@ -154,8 +154,8 @@ public class SplunkTable extends AbstractQueryableTable implements TranslatableT
 
     @Override public Enumerator<T> enumerator() {
       final SplunkTable splunkTable = (SplunkTable) table;
-      final SplunkQuery<T> query = createQuery(
-          splunkTable.getSearchString(), "", "", new ArrayList<>());
+      final SplunkQuery<T> query =
+          createQuery(splunkTable.getSearchString(), "", "", new ArrayList<>());
       return query.enumerator();
     }
 

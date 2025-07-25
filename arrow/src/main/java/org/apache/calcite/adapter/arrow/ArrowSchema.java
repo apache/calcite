@@ -18,20 +18,15 @@ package org.apache.calcite.adapter.arrow;
 
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
-import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.Util;
 
 import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.ipc.ArrowFileReader;
 import org.apache.arrow.vector.ipc.SeekableReadChannel;
-
+import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.parquet.avro.AvroParquetReader;
-import org.apache.parquet.hadoop.ParquetReader;
-import org.apache.parquet.hadoop.ParquetFileReader;
-import org.apache.avro.generic.GenericData;
-import org.apache.avro.generic.GenericRecord;
 import org.apache.parquet.hadoop.util.HadoopInputFile;
 import org.apache.parquet.io.InputFile;
 
@@ -51,9 +46,6 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 import static java.util.Objects.requireNonNull;
-
-import java.util.List;
-import java.util.ArrayList;
 
 class ArrowSchema extends AbstractSchema {
   private static final Logger LOGGER = LoggerFactory.getLogger(ArrowSchema.class);
@@ -82,8 +74,7 @@ class ArrowSchema extends AbstractSchema {
         : null;
   }
 
-  @Override
-  protected Map<String, Table> getTableMap() {
+  @Override protected Map<String, Table> getTableMap() {
     return tableMapSupplier.get();
   }
 

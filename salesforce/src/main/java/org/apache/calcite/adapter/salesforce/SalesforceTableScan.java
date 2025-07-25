@@ -23,8 +23,6 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableScan;
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rex.RexNode;
 
 import com.google.common.collect.ImmutableList;
 
@@ -34,17 +32,17 @@ import java.util.List;
  * Relational expression representing a scan of a Salesforce table.
  */
 public class SalesforceTableScan extends TableScan implements SalesforceRel {
-  
+
   private final SalesforceTable salesforceTable;
   private final String sObjectType;
   private final ImmutableList<String> projectedFields;
-  
+
   public SalesforceTableScan(RelOptCluster cluster, RelOptTable table,
       SalesforceTable salesforceTable, String sObjectType) {
-    this(cluster, cluster.traitSetOf(SalesforceRel.CONVENTION), table, 
+    this(cluster, cluster.traitSetOf(SalesforceRel.CONVENTION), table,
         salesforceTable, sObjectType, null);
   }
-  
+
   public SalesforceTableScan(RelOptCluster cluster, RelTraitSet traitSet,
       RelOptTable table, SalesforceTable salesforceTable, String sObjectType,
       List<String> projectedFields) {
@@ -52,39 +50,36 @@ public class SalesforceTableScan extends TableScan implements SalesforceRel {
     this.salesforceTable = salesforceTable;
     this.sObjectType = sObjectType;
     this.projectedFields = projectedFields == null ? null : ImmutableList.copyOf(projectedFields);
-    
+
     assert getConvention() == SalesforceRel.CONVENTION;
   }
-  
-  @Override
-  public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+
+  @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     assert inputs.isEmpty();
-    return new SalesforceTableScan(getCluster(), traitSet, table, 
+    return new SalesforceTableScan(getCluster(), traitSet, table,
         salesforceTable, sObjectType, projectedFields);
   }
-  
-  @Override
-  public void register(RelOptPlanner planner) {
+
+  @Override public void register(RelOptPlanner planner) {
     planner.addRule(SalesforceRules.TO_ENUMERABLE);
     for (RelOptRule rule : SalesforceRules.RULES) {
       planner.addRule(rule);
     }
   }
-  
-  @Override
-  public void implement(Implementor implementor) {
+
+  @Override public void implement(Implementor implementor) {
     implementor.salesforceTable = salesforceTable;
     implementor.table = table;
     implementor.sObjectType = sObjectType;
   }
-  
+
   /**
    * Get the projected fields, or null if all fields should be selected.
    */
   public List<String> getProjectedFields() {
     return projectedFields;
   }
-  
+
   /**
    * Get the sObject type.
    */

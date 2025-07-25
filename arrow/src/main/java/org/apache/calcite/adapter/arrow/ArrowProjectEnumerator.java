@@ -19,14 +19,12 @@ package org.apache.calcite.adapter.arrow;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
 
-import org.apache.arrow.vector.ipc.ArrowFileReader;
-import org.apache.arrow.vector.VectorSchemaRoot;
-import org.apache.arrow.vector.ipc.message.ArrowRecordBatch;
 import org.apache.arrow.gandiva.evaluator.Projector;
 import org.apache.arrow.gandiva.exceptions.GandivaException;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;
-
+import org.apache.arrow.vector.ipc.ArrowFileReader;
+import org.apache.arrow.vector.ipc.message.ArrowRecordBatch;
 import org.apache.parquet.hadoop.ParquetReader;
 
 import java.io.IOException;
@@ -47,8 +45,7 @@ class ArrowProjectEnumerator extends AbstractArrowEnumerator {
         this.allocator = new RootAllocator(Long.MAX_VALUE);
     }
 
-    @Override
-    void evaluateOperator(ArrowRecordBatch arrowRecordBatch) {
+    @Override void evaluateOperator(ArrowRecordBatch arrowRecordBatch) {
         try {
             if (sourceReader instanceof ArrowFileReader) {
                 ((Projector) projector).evaluate(arrowRecordBatch, valueVectors);
@@ -60,8 +57,7 @@ class ArrowProjectEnumerator extends AbstractArrowEnumerator {
         }
     }
 
-    @Override
-    public boolean moveNext() {
+    @Override public boolean moveNext() {
         try {
             if (sourceReader instanceof ArrowFileReader) {
                 return moveNextArrow();
@@ -100,8 +96,7 @@ class ArrowProjectEnumerator extends AbstractArrowEnumerator {
       return true;
     }
 
-    @Override
-    public void close() {
+    @Override public void close() {
         try {
             if (projector instanceof Projector) {
                 ((Projector) projector).close();
@@ -117,8 +112,7 @@ class ArrowProjectEnumerator extends AbstractArrowEnumerator {
         }
     }
 
-    @Override
-    public Object current() {
+    @Override public Object current() {
         if (sourceReader instanceof ParquetReader) {
             return current;
         }

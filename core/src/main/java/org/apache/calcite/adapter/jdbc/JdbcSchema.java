@@ -451,6 +451,10 @@ public class JdbcSchema implements Schema, Wrapper {
     }
   }
 
+  private static int parseIntValue(String value) {
+    return Integer.parseInt(value);
+  }
+
   /** Given "INTEGER", returns BasicSqlType(INTEGER).
    * Given "VARCHAR(10)", returns BasicSqlType(VARCHAR, 10).
    * Given "NUMERIC(10, 2)", returns BasicSqlType(NUMERIC, 10, 2). */
@@ -466,10 +470,10 @@ public class JdbcSchema implements Schema, Wrapper {
         typeString = typeString.substring(0, open);
         int comma = rest.indexOf(",");
         if (comma >= 0) {
-          precision = Integer.parseInt(rest.substring(0, comma));
-          scale = Integer.parseInt(rest.substring(comma));
+          precision = parseIntValue(rest.substring(0, comma));
+          scale = parseIntValue(rest.substring(comma + 1));
         } else {
-          precision = Integer.parseInt(rest);
+          precision = parseIntValue(rest);
         }
       }
     }

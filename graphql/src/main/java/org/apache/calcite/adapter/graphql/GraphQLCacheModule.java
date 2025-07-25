@@ -1,13 +1,30 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to you under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.calcite.adapter.graphql;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.api.StatefulRedisConnection;
 import io.lettuce.core.api.sync.RedisCommands;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import graphql.ExecutionResult;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -16,6 +33,8 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
+import graphql.ExecutionResult;
 
 /**
  * A caching module for GraphQL query results supporting both in-memory and Redis-based caching strategies.
@@ -161,19 +180,16 @@ interface GraphQLCache {
 class NoOpGraphQLCache implements GraphQLCache {
   private static final Logger LOGGER = LogManager.getLogger(NoOpGraphQLCache.class);
 
-  @Override
-  public void put(String key, ExecutionResult value) {
+  @Override public void put(String key, ExecutionResult value) {
     LOGGER.debug("Caching disabled - not storing result for key: {}", key);
   }
 
-  @Override
-  public ExecutionResult get(String key) {
+  @Override public ExecutionResult get(String key) {
     LOGGER.debug("Caching disabled - no cached result for key: {}", key);
     return null;
   }
 
-  @Override
-  public void invalidate(String key) {
+  @Override public void invalidate(String key) {
     LOGGER.debug("Caching disabled - no cache to invalidate for key: {}", key);
   }
 }
@@ -188,21 +204,18 @@ class InMemoryGraphQLCache implements GraphQLCache {
         .build();
   }
 
-  @Override
-  public void put(String key, ExecutionResult value) {
+  @Override public void put(String key, ExecutionResult value) {
     cache.put(key, value);
     LOGGER.debug("Cached result for key: {}", key);
   }
 
-  @Override
-  public ExecutionResult get(String key) {
+  @Override public ExecutionResult get(String key) {
     ExecutionResult result = cache.getIfPresent(key);
     LOGGER.debug("Cache {} for key: {}", result != null ? "hit" : "miss", key);
     return result;
   }
 
-  @Override
-  public void invalidate(String key) {
+  @Override public void invalidate(String key) {
     cache.invalidate(key);
     LOGGER.debug("Invalidated cache for key: {}", key);
   }
@@ -222,21 +235,18 @@ class RedisGraphQLCache implements GraphQLCache {
     this.ttlSeconds = ttlSeconds;
   }
 
-  @Override
-  public void put(String key, ExecutionResult value) {
+  @Override public void put(String key, ExecutionResult value) {
     redisCommands.setex(key, ttlSeconds, value);
     LOGGER.debug("Cached result in Redis for key: {}", key);
   }
 
-  @Override
-  public ExecutionResult get(String key) {
+  @Override public ExecutionResult get(String key) {
     ExecutionResult result = redisCommands.get(key);
     LOGGER.debug("Redis cache {} for key: {}", result != null ? "hit" : "miss", key);
     return result;
   }
 
-  @Override
-  public void invalidate(String key) {
+  @Override public void invalidate(String key) {
     redisCommands.del(key);
     LOGGER.debug("Invalidated Redis cache for key: {}", key);
   }

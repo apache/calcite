@@ -24,14 +24,14 @@ import org.apache.calcite.rel.RelNode;
  * Relational expression that uses Salesforce calling convention.
  */
 public interface SalesforceRel extends RelNode {
-  
+
   Convention CONVENTION = new Convention.Impl("SALESFORCE", SalesforceRel.class);
-  
+
   /**
    * Callback for the implementation process.
    */
   void implement(Implementor implementor);
-  
+
   /**
    * Shared context for implementing a Salesforce relational expression.
    */
@@ -39,7 +39,7 @@ public interface SalesforceRel extends RelNode {
     SalesforceTable salesforceTable;
     RelOptTable table;
     String sObjectType;
-    
+
     // Query components
     String selectClause;
     String fromClause;
@@ -47,7 +47,7 @@ public interface SalesforceRel extends RelNode {
     String orderByClause;
     Integer limitValue;
     Integer offsetValue;
-    
+
     void visitChild(int ordinal, RelNode input) {
       assert ordinal == 0;
       ((SalesforceRel) input).implement(this);

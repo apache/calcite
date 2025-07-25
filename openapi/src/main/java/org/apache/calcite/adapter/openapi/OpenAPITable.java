@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.openapi;
 
+import static java.util.Objects.requireNonNull;
+
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
@@ -41,7 +43,6 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * Table based on an OpenAPI endpoint.
@@ -58,9 +59,9 @@ public class OpenAPITable extends AbstractQueryableTable implements Translatable
    */
   OpenAPITable(String tableName, OpenAPITransport transport, OpenAPIConfig config) {
     super(Object[].class);
-    this.tableName = Objects.requireNonNull(tableName, "tableName");
-    this.transport = Objects.requireNonNull(transport, "transport");
-    this.config = Objects.requireNonNull(config, "config");
+    this.tableName = requireNonNull(tableName, "tableName");
+    this.transport = requireNonNull(transport, "transport");
+    this.config = requireNonNull(config, "config");
     this.mapper = transport.mapper();
   }
 
@@ -110,7 +111,8 @@ public class OpenAPITable extends AbstractQueryableTable implements Translatable
     return config.getVariants().stream()
         .filter(variant -> variant.getRequiredFilters().stream()
             .allMatch(filters::containsKey))
-        .max((v1, v2) -> Integer.compare(
+        .max(
+            (v1, v2) -> Integer.compare(
             v1.getRequiredFilters().size(),
             v2.getRequiredFilters().size()))
         .orElse(null);

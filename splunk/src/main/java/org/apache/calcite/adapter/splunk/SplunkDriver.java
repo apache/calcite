@@ -23,11 +23,10 @@ import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -84,18 +83,15 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
     new SplunkDriver().register();
   }
 
-  @Override
-  protected String getConnectStringPrefix() {
+  @Override protected String getConnectStringPrefix() {
     return "jdbc:splunk:";
   }
 
-  @Override
-  protected DriverVersion createDriverVersion() {
+  @Override protected DriverVersion createDriverVersion() {
     return new SplunkDriverVersion();
   }
 
-  @Override
-  public Connection connect(String url, Properties info)
+  @Override public Connection connect(String url, Properties info)
       throws SQLException {
     Connection connection = super.connect(url, info);
     CalciteConnection calciteConnection = (CalciteConnection) connection;
@@ -145,7 +141,7 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
     props.model = info.getProperty("model");
     props.models = parseModels(info.getProperty("models"));
     props.defaultTimeRange = info.getProperty("defaultTimeRange");
-    props.debug = Boolean.parseBoolean(info.getProperty("debug", "false"));
+    props.debug = parseBoolean(info.getProperty("debug", "false"));
     props.logLevel = info.getProperty("logLevel");
 
     // Parse custom tables JSON if provided
@@ -405,16 +401,14 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
    * Mock implementation for testing purposes.
    */
   private static class MockSplunkConnection implements SplunkConnection {
-    @Override
-    public void getSearchResults(String search, Map<String, String> otherArgs,
+    @Override public void getSearchResults(String search, Map<String, String> otherArgs,
         List<String> fieldList,
         org.apache.calcite.adapter.splunk.search.SearchResultListener srl) {
       // Mock implementation for testing - parameters intentionally unused
       LOGGER.debug("Mock connection: getSearchResults called");
     }
 
-    @Override
-    public org.apache.calcite.linq4j.Enumerator<Object> getSearchResultEnumerator(
+    @Override public org.apache.calcite.linq4j.Enumerator<Object> getSearchResultEnumerator(
         String search, Map<String, String> otherArgs, List<String> fieldList,
             Set<String> explicitFields) {
       // Mock implementation for testing - parameters intentionally unused
@@ -422,8 +416,7 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
       return org.apache.calcite.linq4j.Linq4j.emptyEnumerator();
     }
 
-    @Override
-    public org.apache.calcite.linq4j.Enumerator<Object> getSearchResultEnumerator(
+    @Override public org.apache.calcite.linq4j.Enumerator<Object> getSearchResultEnumerator(
         String search, Map<String, String> otherArgs, List<String> fieldList,
             Set<String> explicitFields,
         Map<String, String> reverseFieldMapping) {

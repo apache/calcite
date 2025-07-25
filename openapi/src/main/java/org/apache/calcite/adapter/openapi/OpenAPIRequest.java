@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.openapi;
 
 import org.apache.calcite.rel.RelFieldCollation;
+
 import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;
 

@@ -70,8 +70,7 @@ public class PostgresqlSqlDialect extends SqlDialect {
    */
   public static final RelDataTypeSystem POSTGRESQL_TYPE_SYSTEM =
       new RelDataTypeSystemImpl() {
-        @Override
-        public int getMaxPrecision(SqlTypeName typeName) {
+        @Override public int getMaxPrecision(SqlTypeName typeName) {
           switch (typeName) {
           case VARCHAR:
             // From htup_details.h in postgresql:
@@ -102,13 +101,11 @@ public class PostgresqlSqlDialect extends SqlDialect {
     super(context);
   }
 
-  @Override
-  public boolean supportsCharSet() {
+  @Override public boolean supportsCharSet() {
     return false;
   }
 
-  @Override
-  public @Nullable SqlNode getCastSpec(RelDataType type) {
+  @Override public @Nullable SqlNode getCastSpec(RelDataType type) {
     String castSpec;
     switch (type.getSqlTypeName()) {
     case TINYINT:
@@ -128,8 +125,7 @@ public class PostgresqlSqlDialect extends SqlDialect {
         SqlParserPos.ZERO);
   }
 
-  @Override
-  public SqlNode rewriteSingleValueExpr(SqlNode aggCall, RelDataType relDataType) {
+  @Override public SqlNode rewriteSingleValueExpr(SqlNode aggCall, RelDataType relDataType) {
     final SqlNode operand = ((SqlBasicCall) aggCall).operand(0);
     final SqlLiteral nullLiteral = SqlLiteral.createNull(SqlParserPos.ZERO);
     final SqlNode unionOperand =
@@ -163,8 +159,7 @@ public class PostgresqlSqlDialect extends SqlDialect {
     return caseExpr;
   }
 
-  @Override
-  public boolean supportsFunction(SqlOperator operator,
+  @Override public boolean supportsFunction(SqlOperator operator,
       RelDataType type, final List<RelDataType> paramTypes) {
     switch (operator.kind) {
     case LIKE:
@@ -186,13 +181,11 @@ public class PostgresqlSqlDialect extends SqlDialect {
     return supportImplicit && RexUtil.isLiteral(operand0, false);
   }
 
-  @Override
-  public boolean requiresAliasForFromItems() {
+  @Override public boolean requiresAliasForFromItems() {
     return true;
   }
 
-  @Override
-  public boolean supportsNestedAggregations() {
+  @Override public boolean supportsNestedAggregations() {
     return false;
   }
 
@@ -209,8 +202,7 @@ public class PostgresqlSqlDialect extends SqlDialect {
     return true;
   }
 
-  @Override
-  public void unparseCall(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+  @Override public void unparseCall(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     switch (call.getKind()) {
     case CAST: {
       switch(call.operand(0).getKind()) {
@@ -288,13 +280,11 @@ public class PostgresqlSqlDialect extends SqlDialect {
     }
   }
 
-  @Override
-  public SqlNode rewriteMaxMinExpr(SqlNode aggCall, RelDataType relDataType) {
+  @Override public SqlNode rewriteMaxMinExpr(SqlNode aggCall, RelDataType relDataType) {
     return rewriteMaxMin(aggCall, relDataType);
   }
 
-  @Override
-  public boolean supportsGroupByLiteral() {
+  @Override public boolean supportsGroupByLiteral() {
     return false;
   }
 

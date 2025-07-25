@@ -23,29 +23,18 @@ import org.apache.calcite.util.Source;
 import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.Util;
 
+import org.apache.poi.ss.usermodel.*;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.FileInputStream;
-import java.io.FileWriter;
-import java.net.MalformedURLException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Arrays;
-import java.util.ArrayList;
-import java.util.Iterator;
-
-import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-
 
 /**
  * Schema mapped onto a set of URLs / HTML tables. Each table in the schema
@@ -140,8 +129,7 @@ class FileSchema extends AbstractSchema {
     return files.toArray(new File[0]);
   }
 
-  @Override
-  protected Map<String, Table> getTableMap() {
+  @Override protected Map<String, Table> getTableMap() {
     final ImmutableMap.Builder<String, Table> builder = ImmutableMap.builder();
 
     for (Map<String, Object> tableDef : this.tables) {

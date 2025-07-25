@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.adapter.graphql;
 
 import org.apache.calcite.plan.Convention;
@@ -45,6 +44,8 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Interface representing a relational operation in the GraphQL context.
@@ -226,7 +227,7 @@ public interface GraphQLRel extends RelNode {
             if (literal.getTypeName().getFamily() == SqlTypeFamily.TIMESTAMP) {
               // For timestamp equality, create a range query
               GregorianCalendar gc = (GregorianCalendar) literal.getValue();
-              OffsetDateTime odt = OffsetDateTime.ofInstant(Objects.requireNonNull(gc).toInstant(), ZoneOffset.UTC);
+              OffsetDateTime odt = OffsetDateTime.ofInstant(requireNonNull(gc, "gc").toInstant(), ZoneOffset.UTC);
               OffsetDateTime nextMs = odt.plus(1, ChronoUnit.MILLIS);
 
               return String.format("{ %s: [{ %s: { %s: \"%s\" }}, { %s: { %s: \"%s\" }}] }",
@@ -236,8 +237,7 @@ public interface GraphQLRel extends RelNode {
                   odt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
                   fieldName,
                   KEYWORDS.get("_lt"),
-                  nextMs.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
-              );
+                  nextMs.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
             }
           }
           // Default equals handling for non-timestamp fields
@@ -280,8 +280,7 @@ public interface GraphQLRel extends RelNode {
                 KEYWORDS.get("_gt"),
                 ((Range<?>) range[0]).lowerEndpoint(),
                 KEYWORDS.get("_lt"),
-                ((Range<?>) range[0]).upperEndpoint()
-            );
+                ((Range<?>) range[0]).upperEndpoint());
           } else {
             boolean hasLowerBound = ((Range<?>) range[0]).hasLowerBound();
             ArrayList<String> ranges = new ArrayList<>();
@@ -300,14 +299,12 @@ public interface GraphQLRel extends RelNode {
                   KEYWORDS.get("_not"),
                   getFieldName(call.operands, rowType),
                   KEYWORDS.get("_in"),
-                  rangeString
-              );
+                  rangeString);
             }
             return String.format("{ %s: { %s: [%s] } }",
                 getFieldName(call.operands, rowType),
                 KEYWORDS.get("_in"),
-                rangeString
-            );
+                rangeString);
           }
         case NOT:
           return String.format("{ %s: %s }", KEYWORDS.get("_not"), convertRexNodeToGraphQLFilter(call.operands.get(1), rowType));
@@ -396,7 +393,7 @@ public interface GraphQLRel extends RelNode {
       RexLiteral op = (RexLiteral) opCandidate;
       SqlTypeFamily sqlType = op.getTypeName().getFamily();
 
-      switch (Objects.requireNonNull(sqlType)) {
+      switch (requireNonNull(sqlType, "sqlType")) {
       case NULL:
         return "null";
 
@@ -409,7 +406,7 @@ public interface GraphQLRel extends RelNode {
       case BOOLEAN:
       case INTERVAL_YEAR_MONTH:
       case INTERVAL_DAY_TIME:
-        return Objects.requireNonNull(op.getValue2()).toString();
+        return requireNonNull(op.getValue2()).toString();
 
       // Types that should be quoted
       case CHARACTER:
@@ -424,17 +421,16 @@ public interface GraphQLRel extends RelNode {
 
       case DATE:
         Calendar calendar = (Calendar) op.getValue();
-        LocalDate date = LocalDate.of(
-            Objects.requireNonNull(calendar).get(Calendar.YEAR),
+        LocalDate date =
+            LocalDate.of(requireNonNull(calendar, "calendar").get(Calendar.YEAR),
             calendar.get(Calendar.MONTH) + 1,  // Calendar months are 0-based
-            calendar.get(Calendar.DAY_OF_MONTH)
-        );
+            calendar.get(Calendar.DAY_OF_MONTH));
         return String.format("\"%s\"", date);
 
       case TIMESTAMP:
       case DATETIME:
         GregorianCalendar gc = (GregorianCalendar) op.getValue();
-        OffsetDateTime odt = OffsetDateTime.ofInstant(Objects.requireNonNull(gc).toInstant(), ZoneOffset.UTC);
+        OffsetDateTime odt = OffsetDateTime.ofInstant(requireNonNull(gc, "gc").toInstant(), ZoneOffset.UTC);
         return String.format("\"%s\"",
             odt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")));
 
@@ -446,8 +442,8 @@ public interface GraphQLRel extends RelNode {
 
     public String getQuery(RelDataType rowType) {
       assert graphQLTable != null;
-      StringBuilder builder = new StringBuilder(String.format("query find%s {\n",
-          graphQLTable.getName()));
+      StringBuilder builder =
+          new StringBuilder(String.format("query find%s {\n", graphQLTable.getName()));
       List<String> fieldNames = GraphQLRules.graphQLFieldNames(rowType);
       builder.append("  ").append(graphQLTable.getSelectMany());
       List<String> orderBy = new ArrayList<>();

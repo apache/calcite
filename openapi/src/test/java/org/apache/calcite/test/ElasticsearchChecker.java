@@ -27,7 +27,6 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -53,7 +52,7 @@ public class ElasticsearchChecker {
    * @return validation function
    */
   public static Consumer<List> elasticsearchChecker(final String... strings) {
-    Objects.requireNonNull(strings, "strings");
+    requireNonNull(strings, "strings");
     return a -> {
       ObjectNode actual =
           a == null || a.isEmpty() ? null : (ObjectNode) a.get(0);
@@ -91,7 +90,7 @@ public class ElasticsearchChecker {
    */
   @SuppressWarnings("unchecked")
   private static <T extends JsonNode> T expandDots(T parent) {
-    Objects.requireNonNull(parent, "parent");
+    requireNonNull(parent, "parent");
 
     if (parent.isValueNode()) {
       return parent.deepCopy();

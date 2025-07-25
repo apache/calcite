@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to you under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.calcite.adapter.graphql;
 
 import org.apache.logging.log4j.LogManager;
@@ -13,7 +29,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import graphql.ExecutionResult;
@@ -24,6 +39,8 @@ import graphql.language.OperationDefinition;
 import graphql.parser.Parser;
 import graphql.schema.*;
 import okhttp3.*;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Executes GraphQL queries with caching support. The cache can be configured through
@@ -123,11 +140,11 @@ public class GraphQLExecutor implements AutoCloseable {
    * @return The execution result, or null if the execution fails
    */
   public @Nullable ExecutionResult executeQuery() {
-    @Nullable String cacheKey = Objects.requireNonNull(cacheModule).generateKey(query, schema.role);
+    @Nullable String cacheKey = requireNonNull(cacheModule, "cacheModule").generateKey(query, schema.role);
 
     // Try to get from cache first
     assert cacheKey != null;
-    @Nullable ExecutionResult cachedResult = Objects.requireNonNull(cacheModule).get(cacheKey);
+    @Nullable ExecutionResult cachedResult = requireNonNull(cacheModule, "cacheModule").get(cacheKey);
     if (cachedResult != null) {
       LOGGER.debug("Returning cached result for query");
       return cachedResult;
@@ -140,7 +157,7 @@ public class GraphQLExecutor implements AutoCloseable {
     // Store successful results in cache
     if (queryResult != null) {
       LOGGER.debug("Storing query result in cache");
-      Objects.requireNonNull(cacheModule).put(cacheKey, queryResult);
+      requireNonNull(cacheModule, "cacheModule").put(cacheKey, queryResult);
     }
 
     return queryResult;
@@ -155,10 +172,9 @@ public class GraphQLExecutor implements AutoCloseable {
       LOGGER.debug("JSON body created with query: {}", this.query);
 
       @SuppressWarnings("deprecation")
-      RequestBody body = RequestBody.create(
-          MediaType.parse("application/json"),
-          objectMapper.writeValueAsString(jsonBody)
-      );
+      RequestBody body =
+          RequestBody.create(MediaType.parse("application/json"),
+          objectMapper.writeValueAsString(jsonBody));
 
       Request.Builder requestBuilder = new Request.Builder()
           .url(this.endpoint)
@@ -214,8 +230,7 @@ public class GraphQLExecutor implements AutoCloseable {
     }
   }
 
-  @Override
-  public void close() {
+  @Override public void close() {
     // Close HTTP client resources
     client.dispatcher().executorService().shutdown();
     client.connectionPool().evictAll();
@@ -229,7 +244,7 @@ public class GraphQLExecutor implements AutoCloseable {
   public static void shutdownCache() {
     synchronized (CACHE_LOCK) {
       if (cacheModule != null) {
-        Objects.requireNonNull(cacheModule).close();
+        requireNonNull(cacheModule, "cacheModule").close();
         cacheModule = null;
         LOGGER.info("Cache module shut down");
       }

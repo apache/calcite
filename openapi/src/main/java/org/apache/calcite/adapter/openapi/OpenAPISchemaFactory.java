@@ -77,8 +77,8 @@ public class OpenAPISchemaFactory implements SchemaFactory {
       OpenAPIConfig config;
       if (configFile != null) {
         // Load from file
-        config = mapper.readValue(
-            getClass().getClassLoader().getResourceAsStream(configFile),
+        config =
+            mapper.readValue(getClass().getClassLoader().getResourceAsStream(configFile),
             OpenAPIConfig.class);
       } else {
         // Try to parse inline configuration

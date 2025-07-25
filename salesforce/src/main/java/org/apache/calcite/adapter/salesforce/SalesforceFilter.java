@@ -29,34 +29,31 @@ import org.apache.calcite.rex.RexNode;
  * Implementation of {@link Filter} relational expression in Salesforce.
  */
 public class SalesforceFilter extends Filter implements SalesforceRel {
-  
+
   public SalesforceFilter(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, RexNode condition) {
     super(cluster, traitSet, input, condition);
     assert getConvention() == SalesforceRel.CONVENTION;
     assert getConvention() == input.getConvention();
   }
-  
-  @Override
-  public SalesforceFilter copy(RelTraitSet traitSet, RelNode input,
+
+  @Override public SalesforceFilter copy(RelTraitSet traitSet, RelNode input,
       RexNode condition) {
     return new SalesforceFilter(getCluster(), traitSet, input, condition);
   }
-  
-  @Override
-  public RelOptCost computeSelfCost(RelOptPlanner planner,
+
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     // Salesforce can push down filters effectively
     return super.computeSelfCost(planner, mq).multiplyBy(0.1);
   }
-  
-  @Override
-  public void implement(Implementor implementor) {
+
+  @Override public void implement(Implementor implementor) {
     implementor.visitChild(0, getInput());
-    
+
     // Convert filter condition to SOQL WHERE clause
     String whereClause = SOQLBuilder.buildWhereClause(condition);
-    
+
     if (implementor.whereClause == null) {
       implementor.whereClause = whereClause;
     } else {
