@@ -16463,11 +16463,54 @@ public class SqlOperatorTest {
     f.checkType("CAST(2 AS SMALLINT) << CAST(3 AS SMALLINT)", "SMALLINT NOT NULL");
     f.checkType("CAST(2 AS BIGINT) << CAST(3 AS BIGINT)", "BIGINT NOT NULL");
 
+    // Test overflow cases - TINYINT
+    f.checkScalar("CAST(64 AS TINYINT) << CAST(1 AS TINYINT)", "-128", "TINYINT NOT NULL");
+    f.checkScalar("CAST(127 AS TINYINT) << CAST(1 AS TINYINT)", "-2", "TINYINT NOT NULL");
+    f.checkScalar("CAST(1 AS TINYINT) << CAST(7 AS TINYINT)", "-128", "TINYINT NOT NULL");
+
+    // Test overflow cases - SMALLINT
+    f.checkScalar("CAST(16384 AS SMALLINT) << CAST(1 AS SMALLINT)", "-32768", "SMALLINT NOT NULL");
+    f.checkScalar("CAST(32767 AS SMALLINT) << CAST(1 AS SMALLINT)", "-2", "SMALLINT NOT NULL");
+    f.checkScalar("CAST(1 AS SMALLINT) << CAST(15 AS SMALLINT)", "-32768", "SMALLINT NOT NULL");
+
+    // Test overflow cases - INTEGER
+    f.checkScalar("1073741824 << 1", "-2147483648", "INTEGER NOT NULL");
+    f.checkScalar("2147483647 << 1", "-2", "INTEGER NOT NULL");
+    f.checkScalar("1 << 31", "-2147483648", "INTEGER NOT NULL");
+
+    // Test overflow cases - BIGINT
+    f.checkScalar("CAST(4611686018427387904 AS BIGINT) << CAST(1 AS BIGINT)",
+        "-9223372036854775808", "BIGINT NOT NULL");
+    f.checkScalar("CAST(9223372036854775807 AS BIGINT) << CAST(1 AS BIGINT)",
+        "-2", "BIGINT NOT NULL");
+    f.checkScalar("CAST(1 AS BIGINT) << CAST(63 AS BIGINT)",
+        "-9223372036854775808", "BIGINT NOT NULL");
+
+    // Test large shift amounts
+    f.checkScalar("1 << 32", "0", "INTEGER NOT NULL");
+    f.checkScalar("1 << 50", "0", "INTEGER NOT NULL");
+    f.checkScalar("CAST(1 AS TINYINT) << CAST(8 AS TINYINT)", "0", "TINYINT NOT NULL");
+    f.checkScalar("CAST(1 AS SMALLINT) << CAST(16 AS SMALLINT)", "0", "SMALLINT NOT NULL");
+
+    // Test negative shift amounts
+    f.checkScalar("8 << -1", "0", "INTEGER NOT NULL");
+    f.checkScalar("16 << -2", "0", "INTEGER NOT NULL");
+
+    // Edge cases with zero
+    f.checkScalar("0 << 32", "0", "INTEGER NOT NULL");
+    f.checkScalar("0 << 100", "0", "INTEGER NOT NULL");
+
+    // Test maximum values before overflow
+    f.checkScalar("CAST(63 AS TINYINT) << CAST(1 AS TINYINT)", "126", "TINYINT NOT NULL");
+    f.checkScalar("CAST(16383 AS SMALLINT) << CAST(1 AS SMALLINT)", "32766", "SMALLINT NOT NULL");
+    f.checkScalar("1073741823 << 1", "2147483646", "INTEGER NOT NULL");
+
     // Test invalid argument types
     f.checkFails("^1.2 << 2^",
         "Cannot apply '<<' to arguments of type '<DECIMAL\\(2, 1\\)> << <INTEGER>'\\. Supported form\\(s\\): '<INTEGER> << <INTEGER>'",
         false);
 
+    // Test null cases
     f.checkNull("CAST(NULL AS INTEGER) << 5");
     f.checkNull("10 << CAST(NULL AS INTEGER)");
     f.checkNull("CAST(NULL AS INTEGER) << CAST(NULL AS INTEGER)");
