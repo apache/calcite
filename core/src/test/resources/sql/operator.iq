@@ -734,53 +734,17 @@ FOO BOOLEAN(1) NOT NULL
 
 -- Bitwise LEFT SHIFT operator `<<`
 
-SELECT 1 << 0 AS foo;
-+-----+
-| FOO |
-+-----+
-|   1 |
-+-----+
-(1 row)
-
-!ok
-
-SELECT 1 << 1 AS foo;
-+-----+
-| FOO |
-+-----+
-|   2 |
-+-----+
-(1 row)
-
-!ok
-
-SELECT 2 << 2 AS foo;
-+-----+
-| FOO |
-+-----+
-|   8 |
-+-----+
-(1 row)
-
-!ok
-
-SELECT 4 << 3 AS foo;
-+-----+
-| FOO |
-+-----+
-|  32 |
-+-----+
-(1 row)
-
-!ok
-
--- Test with CAST
-SELECT CAST(2 AS SMALLINT) << CAST(3 AS INTEGER) AS foo;
-+-----+
-| FOO |
-+-----+
-|  16 |
-+-----+
+SELECT
+  1 << 0 AS shift1,
+  1 << 1 AS shift2,
+  2 << 2 AS shift3,
+  4 << 3 AS shift4,
+  CAST(2 AS SMALLINT) << CAST(3 AS INTEGER) AS cast_shift;
++--------+--------+--------+--------+------------+
+| SHIFT1 | SHIFT2 | SHIFT3 | SHIFT4 | CAST_SHIFT |
++--------+--------+--------+--------+------------+
+|      1 |      2 |      8 |     32 |         16 |
++--------+--------+--------+--------+------------+
 (1 row)
 
 !ok
