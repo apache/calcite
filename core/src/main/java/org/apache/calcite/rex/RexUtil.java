@@ -819,13 +819,13 @@ public class RexUtil {
   }
 
   public static List<RexNode> retainDeterministic(List<RexNode> list) {
-    List<RexNode> conjuctions = new ArrayList<>();
+    List<RexNode> conjunctions = new ArrayList<>();
     for (RexNode x : list) {
       if (isDeterministic(x)) {
-        conjuctions.add(x);
+        conjunctions.add(x);
       }
     }
-    return conjuctions;
+    return conjunctions;
   }
 
    /**
