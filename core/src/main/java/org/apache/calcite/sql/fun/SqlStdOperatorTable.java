@@ -1298,7 +1298,6 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       SqlBasicFunction.create("BITXOR", SqlKind.BITXOR,
           ReturnTypes.LARGEST_INT_OR_FIRST_NON_NULL,
           OperandTypes.INTEGER_INTEGER.or(OperandTypes.BINARY_BINARY));
-
   /**
    * <code>BITNOT</code> scalar function.
    */
@@ -1306,6 +1305,19 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       SqlBasicFunction.create("BITNOT", SqlKind.BITNOT,
           ReturnTypes.ARG0_OR_INTEGER,
           OperandTypes.INTEGER.or(OperandTypes.BINARY));
+
+  /**
+   * <code>{@code <<}</code> (left shift) operator.
+   */
+  public static final SqlBinaryOperator LEFTSHIFT =
+      new SqlBinaryOperator(
+          "<<",
+          SqlKind.OTHER,
+          32,                                     // Standard shift operator precedence
+          true,
+          ReturnTypes.ARG0_NULLABLE,              // Result type matches left operand
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.family(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER));
 
   /**
    * <code>BIT_AND</code> aggregate function.

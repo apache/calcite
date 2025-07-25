@@ -16443,6 +16443,104 @@ public class SqlOperatorTest {
     f.checkAgg("logical_or(x)", values4, isNullValue());
   }
 
+  @Test void testLeftShiftScalarFunc() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlStdOperatorTable.LEFTSHIFT, VmName.EXPAND);
+
+    // Basic test cases
+    f.checkScalar("2 << 2", "8", "INTEGER NOT NULL");
+    f.checkScalar("1 << 10", "1024", "INTEGER NOT NULL");
+    f.checkScalar("0 << 5", "0", "INTEGER NOT NULL");
+
+    // Test with different integer types and type coercion
+    f.checkScalar("CAST(2 AS INTEGER) << CAST(3 AS BIGINT)", "16", "INTEGER NOT NULL");
+    f.checkScalar("-5 << 2", "-20", "INTEGER NOT NULL");
+    f.checkScalar("-5 << 3", "-40", "INTEGER NOT NULL");
+    f.checkScalar("CAST(-5 AS TINYINT) << CAST(2 AS TINYINT)", "-20", "TINYINT NOT NULL");
+
+    // Verify return types
+    f.checkType("CAST(2 AS TINYINT) << CAST(3 AS TINYINT)", "TINYINT NOT NULL");
+    f.checkType("CAST(2 AS SMALLINT) << CAST(3 AS SMALLINT)", "SMALLINT NOT NULL");
+    f.checkType("CAST(2 AS BIGINT) << CAST(3 AS BIGINT)", "BIGINT NOT NULL");
+
+    // check overflow
+    f.checkFails(
+        "CAST(64 AS TINYINT) << CAST(1 AS TINYINT)",
+        "Numeric overflow: cannot represent value 128 as TINYINT",
+        true);
+
+    f.checkFails(
+        "CAST(127 AS TINYINT) << CAST(1 AS TINYINT)",
+        "Numeric overflow: cannot represent value 254 as TINYINT",
+        true);
+
+    f.checkFails(
+        "CAST(1 AS TINYINT) << CAST(7 AS TINYINT)",
+        "Numeric overflow: cannot represent value 128 as TINYINT",
+        true);
+
+    f.checkFails(
+        "CAST(16384 AS SMALLINT) << CAST(1 AS SMALLINT)",
+        "Numeric overflow: cannot represent value 32768 as SMALLINT",
+        true);
+
+    f.checkFails(
+        "CAST(32767 AS SMALLINT) << CAST(1 AS SMALLINT)",
+        "Numeric overflow: cannot represent value 65534 as SMALLINT",
+        true);
+
+    f.checkFails(
+        "CAST(1 AS SMALLINT) << CAST(15 AS SMALLINT)",
+        "Numeric overflow: cannot represent value 32768 as SMALLINT",
+        true);
+
+    f.checkFails(
+        "CAST(1 AS TINYINT) << CAST(8 AS TINYINT)",
+        "Numeric overflow: cannot represent value 256 as TINYINT",
+        true);
+
+    f.checkFails(
+        "CAST(1 AS SMALLINT) << CAST(16 AS SMALLINT)",
+        "Numeric overflow: cannot represent value 65536 as SMALLINT",
+        true);
+
+
+
+    // Java treats shift by 32 as 0, shift by 50 as 18
+    f.checkScalar("1 << 32", "1", "INTEGER NOT NULL");
+    f.checkScalar("1 << 50", "262144", "INTEGER NOT NULL");
+
+    // Overflow cases
+    f.checkFails("CAST(1 AS TINYINT) << CAST(8 AS TINYINT)",
+        "Numeric overflow: cannot represent value 256 as TINYINT", true);
+    f.checkFails("CAST(1 AS SMALLINT) << CAST(16 AS SMALLINT)",
+        "Numeric overflow: cannot represent value 65536 as SMALLINT", true);
+
+    // Negative shift values
+    f.checkFails("8 << -1", "Shift count < 0: -1", true);
+    f.checkFails("16 << -2", "Shift count < 0: -2", true);
+
+    // Zero shift
+    f.checkScalar("0 << 32", "0", "INTEGER NOT NULL");
+    f.checkScalar("0 << 100", "0", "INTEGER NOT NULL");
+
+    // Max before overflow
+    f.checkScalar("CAST(63 AS TINYINT) << CAST(1 AS TINYINT)", "126", "TINYINT NOT NULL");
+    f.checkScalar("CAST(16383 AS SMALLINT) << CAST(1 AS SMALLINT)", "32766", "SMALLINT NOT NULL");
+    f.checkScalar("1073741823 << 1", "2147483646", "INTEGER NOT NULL");
+
+    // Invalid argument types
+    f.checkFails("^1.2 << 2^",
+        "Cannot apply '<<' to arguments of type '<DECIMAL\\(2, 1\\)> << <INTEGER>'\\. Supported form\\(s\\): '<INTEGER> << <INTEGER>'",
+        false);
+
+    // Null propagation
+    f.checkNull("CAST(NULL AS INTEGER) << 5");
+    f.checkNull("10 << CAST(NULL AS INTEGER)");
+    f.checkNull("CAST(NULL AS INTEGER) << CAST(NULL AS INTEGER)");
+
+  }
+
   @Test void testBitAndScalarFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.BITAND, VmName.EXPAND);

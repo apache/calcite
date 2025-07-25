@@ -7968,6 +7968,7 @@ SqlBinaryOperator BinaryRowOperator() :
 {
     // <IN> is handled as a special case
     <EQ> { return SqlStdOperatorTable.EQUALS; }
+|   <LEFTSHIFT> { return SqlStdOperatorTable.LEFTSHIFT; }
 |   <GT> { return SqlStdOperatorTable.GREATER_THAN; }
 |   <LT> { return SqlStdOperatorTable.LESS_THAN; }
 |   <LE> { return SqlStdOperatorTable.LESS_THAN_OR_EQUAL; }
@@ -8990,6 +8991,7 @@ void NonReservedKeyWord2of3() :
 |   < DOUBLE_QUOTE: "\"" >
 |   < VERTICAL_BAR: "|" >
 |   < CARET: "^" >
+|   < LEFTSHIFT: "<<" >
 |   < DOLLAR: "$" >
 <#list (parser.binaryOperatorsTokens!default.parser.binaryOperatorsTokens) as operator>
 |   ${operator}
