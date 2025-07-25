@@ -19,6 +19,8 @@ package org.apache.calcite.test;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.parser.SqlParserUtil;
+import org.apache.calcite.sql.parser.StringAndPos;
 import org.apache.calcite.sql.test.SqlOperatorFixture;
 import org.apache.calcite.sql.test.SqlTestFactory;
 
@@ -77,21 +79,26 @@ public class SqlOperatorUnparseTest extends CalciteSqlOperatorTest {
       return new UnparseTester(transform.apply(this.factory));
     }
 
-    String rewrite(String sql) throws SqlParseException {
-      final SqlParser parser = factory.createParser(sql);
+    String rewrite(StringAndPos sap) throws SqlParseException {
+      final SqlParser parser = factory.createParser(sap.sql);
       final SqlNode sqlNode = parser.parseStmt();
-      return sqlNode.toSqlString(c -> c.withClauseStartsLine(false)).getSql();
+      String result = sqlNode.toSqlString(c -> c.withClauseStartsLine(false)).getSql();
+      return SqlParserUtil.escapeCarets(result);
     }
 
     @Override public void forEachQuery(
-        SqlTestFactory factory, String expression, Consumer<String> consumer) {
-      consumer.accept(buildQuery2(factory, expression));
+        SqlTestFactory factory, String expressionWithCarets, Consumer<String> consumer) {
+      String query = buildQuery2(factory, expressionWithCarets);
+      query = SqlParserUtil.escapeCarets(query);
+      consumer.accept(query);
     }
 
-    @Override public void check(SqlTestFactory factory, String sql, TypeChecker typeChecker,
+    @Override public void check(
+        SqlTestFactory factory, String queryWithCarets, TypeChecker typeChecker,
         ParameterChecker parameterChecker, ResultChecker resultChecker) {
       try {
-        String optQuery = this.rewrite(sql);
+        StringAndPos sap = StringAndPos.of(queryWithCarets);
+        String optQuery = this.rewrite(sap);
         super.check(factory, optQuery, typeChecker, parameterChecker, resultChecker);
       } catch (SqlParseException e) {
         throw new RuntimeException(e);

@@ -56,6 +56,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.parser.StringAndPos;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.test.AbstractSqlTester;
 import org.apache.calcite.sql.test.SqlOperatorFixture;
@@ -4125,13 +4126,14 @@ public class SqlOperatorTest {
   }
 
   void checkRlikeFunc(SqlOperatorFixture f0, SqlLibrary library, SqlOperator operator) {
+    // Note: carets were escaped (doubled) in some tests
     final Consumer<SqlOperatorFixture> consumer = f -> {
       f.checkBoolean(binaryExpression(operator, "'Merrisa@gmail.com'", "'.+@*\\.com'"), true);
       f.checkBoolean(binaryExpression(operator, "'Merrisa@gmail.com'", "'.com$'"), true);
-      f.checkBoolean(binaryExpression(operator, "'acbd'", "'^ac+'"), true);
+      f.checkBoolean(binaryExpression(operator, "'acbd'", "'^^ac+'"), true);
       f.checkBoolean(binaryExpression(operator, "'acb'", "'acb|efg'"), true);
       f.checkBoolean(binaryExpression(operator, "'acb|efg'", "'acb\\|efg'"), true);
-      f.checkBoolean(binaryExpression(operator, "'Acbd'", "'^ac+'"), false);
+      f.checkBoolean(binaryExpression(operator, "'Acbd'", "'^^ac+'"), false);
       f.checkBoolean(binaryExpression(operator, "'Merrisa@gmail.com'", "'Merrisa_'"), false);
       f.checkBoolean(binaryExpression(operator, "'abcdef'", "'%cd%'"), false);
       f.checkBoolean(binaryExpression(operator, "'abc def ghi'", "'abc'"), true);
@@ -4142,8 +4144,8 @@ public class SqlOperatorTest {
       f.checkBoolean(
           binaryExpression(operator, "'foo@.com'",
           "'@[a-zA-Z0-9-]+\\.[a-zA-Z0-9.]+'"), false);
-      f.checkBoolean(binaryExpression(operator, "'5556664422'", "'^\\d{10}$'"), true);
-      f.checkBoolean(binaryExpression(operator, "'11555666442233'", "'^\\d{10}$'"), false);
+      f.checkBoolean(binaryExpression(operator, "'5556664422'", "'^^\\d{10}$'"), true);
+      f.checkBoolean(binaryExpression(operator, "'11555666442233'", "'^^\\d{10}$'"), false);
       f.checkBoolean(binaryExpression(operator, "'55566644221133'", "'\\d{10}'"), true);
       f.checkBoolean(binaryExpression(operator, "'55as56664as422'", "'\\d{10}'"), false);
       f.checkBoolean(binaryExpression(operator, "'55as56664as422'", "''"), true);
@@ -4460,11 +4462,12 @@ public class SqlOperatorTest {
     f.checkBoolean("'a(b{3})' similar to 'a\\(b\\{3\\}\\)' ESCAPE '\\' ", true);
 
     f.checkBoolean("'yd' similar to '[a-ey]d'", true);
-    f.checkBoolean("'yd' similar to '[^a-ey]d'", false);
-    f.checkBoolean("'yd' similar to '[^a-ex-z]d'", false);
+    // Note: carets were escaped (doubled) in some expressions
+    f.checkBoolean("'yd' similar to '[^^a-ey]d'", false);
+    f.checkBoolean("'yd' similar to '[^^a-ex-z]d'", false);
     f.checkBoolean("'yd' similar to '[a-ex-z]d'", true);
     f.checkBoolean("'yd' similar to '[x-za-e]d'", true);
-    f.checkBoolean("'yd' similar to '[^a-ey]?d'", false);
+    f.checkBoolean("'yd' similar to '[^^a-ey]?d'", false);
     f.checkBoolean("'yyyd' similar to '[a-ey]*d'", true);
 
     // range must be specified in []
@@ -6277,8 +6280,9 @@ public class SqlOperatorTest {
     f.checkBoolean("regexp_contains('abc def ghi', '[a-z]+')", true);
     f.checkBoolean("regexp_contains('foo@bar.com', '@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+')", true);
     f.checkBoolean("regexp_contains('foo@.com', '@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+')", false);
-    f.checkBoolean("regexp_contains('5556664422', '^\\d{10}$')", true);
-    f.checkBoolean("regexp_contains('11555666442233', '^\\d{10}$')", false);
+    // Note: Caret below is escaped (doubled)
+    f.checkBoolean("regexp_contains('5556664422', '^^\\d{10}$')", true);
+    f.checkBoolean("regexp_contains('11555666442233', '^^\\d{10}$')", false);
     f.checkBoolean("regexp_contains('55566644221133', '\\d{10}')", true);
     f.checkBoolean("regexp_contains('55as56664as422', '\\d{10}')", false);
     f.checkBoolean("regexp_contains('55as56664as422', '')", true);
@@ -16465,50 +16469,51 @@ public class SqlOperatorTest {
     f.setFor(SqlStdOperatorTable.BITXOR_OPERATOR, VM_EXPAND);
 
     // Basic XOR between signed integer types
-    f.checkScalar("2 ^ 3", "1", "INTEGER NOT NULL");
-    f.checkScalar("CAST(2 AS INTEGER) ^ CAST(3 AS BIGINT)", "1", "BIGINT NOT NULL");
-    f.checkScalar("-5 ^ 7", "-4", "INTEGER NOT NULL");
-    f.checkScalar("-5 ^ -7", "2", "INTEGER NOT NULL");
-    f.checkScalar("CAST(-5 AS TINYINT) ^ CAST(7 AS TINYINT)", "-4", "TINYINT NOT NULL");
-    f.checkScalar("CAST(-5 AS TINYINT) ^ CAST(-31 AS TINYINT)", "26", "TINYINT NOT NULL");
+    // Notice that ^ needs to be escaped (doubled) everywhere
+    f.checkScalar("2 ^^ 3", "1", "INTEGER NOT NULL");
+    f.checkScalar("CAST(2 AS INTEGER) ^^ CAST(3 AS BIGINT)", "1", "BIGINT NOT NULL");
+    f.checkScalar("-5 ^^ 7", "-4", "INTEGER NOT NULL");
+    f.checkScalar("-5 ^^ -7", "2", "INTEGER NOT NULL");
+    f.checkScalar("CAST(-5 AS TINYINT) ^^ CAST(7 AS TINYINT)", "-4", "TINYINT NOT NULL");
+    f.checkScalar("CAST(-5 AS TINYINT) ^^ CAST(-31 AS TINYINT)", "26", "TINYINT NOT NULL");
 
     // Type propagation check
-    f.checkType("CAST(2 AS TINYINT) ^ CAST(6 AS TINYINT)", "TINYINT NOT NULL");
-    f.checkType("CAST(2 AS SMALLINT) ^ CAST(6 AS SMALLINT)", "SMALLINT NOT NULL");
-    f.checkType("CAST(2 AS BIGINT) ^ CAST(6 AS BIGINT)", "BIGINT NOT NULL");
+    f.checkType("CAST(2 AS TINYINT) ^^ CAST(6 AS TINYINT)", "TINYINT NOT NULL");
+    f.checkType("CAST(2 AS SMALLINT) ^^ CAST(6 AS SMALLINT)", "SMALLINT NOT NULL");
+    f.checkType("CAST(2 AS BIGINT) ^^ CAST(6 AS BIGINT)", "BIGINT NOT NULL");
 
     // XOR on binary/varbinary types
-    f.checkScalar("CAST(x'0201' AS BINARY(2)) ^ CAST(x'07f9' AS BINARY(2))", "05f8",
+    f.checkScalar("CAST(x'0201' AS BINARY(2)) ^^ CAST(x'07f9' AS BINARY(2))", "05f8",
         "BINARY(2) NOT NULL");
-    f.checkScalar("CAST(x'0201' AS VARBINARY(2)) ^ CAST(x'07f9' AS VARBINARY(2))", "05f8",
+    f.checkScalar("CAST(x'0201' AS VARBINARY(2)) ^^ CAST(x'07f9' AS VARBINARY(2))", "05f8",
         "VARBINARY(2) NOT NULL");
 
     // Binary length mismatch
-    f.checkFails("CAST(x'0201' AS VARBINARY) ^ CAST(x'02' AS VARBINARY)",
+    f.checkFails("CAST(x'0201' AS VARBINARY) ^^ CAST(x'02' AS VARBINARY)",
         "Different length for bitwise operands: the first: 2, the second: 1", true);
 
-    f.checkNull("CAST(NULL AS INTEGER) ^ 1");
-    f.checkNull("1 ^ CAST(NULL AS INTEGER)");
-    f.checkNull("CAST(NULL AS BIGINT) ^ CAST(NULL AS BIGINT)");
+    f.checkNull("CAST(NULL AS INTEGER) ^^ 1");
+    f.checkNull("1 ^^ CAST(NULL AS INTEGER)");
+    f.checkNull("CAST(NULL AS BIGINT) ^^ CAST(NULL AS BIGINT)");
     // Test with unsigned numbers
-    f.checkScalar("CAST(255 AS TINYINT UNSIGNED) ^ CAST(15 AS TINYINT UNSIGNED)",
+    f.checkScalar("CAST(255 AS TINYINT UNSIGNED) ^^ CAST(15 AS TINYINT UNSIGNED)",
         "240", "TINYINT UNSIGNED NOT NULL");
 
-    f.checkScalar("CAST(65535 AS SMALLINT UNSIGNED) ^ CAST(255 AS SMALLINT UNSIGNED)",
+    f.checkScalar("CAST(65535 AS SMALLINT UNSIGNED) ^^ CAST(255 AS SMALLINT UNSIGNED)",
         "65280", "SMALLINT UNSIGNED NOT NULL");
 
-    f.checkScalar("CAST(4294967295 AS INTEGER UNSIGNED) ^ CAST(255 AS INTEGER UNSIGNED)",
+    f.checkScalar("CAST(4294967295 AS INTEGER UNSIGNED) ^^ CAST(255 AS INTEGER UNSIGNED)",
         "4294967040", "INTEGER UNSIGNED NOT NULL");
 
-    f.checkScalar("CAST(2147483648 AS INTEGER UNSIGNED) ^ CAST(123456789 AS INTEGER UNSIGNED)",
+    f.checkScalar("CAST(2147483648 AS INTEGER UNSIGNED) ^^ CAST(123456789 AS INTEGER UNSIGNED)",
         "2270940437", "INTEGER UNSIGNED NOT NULL");
 
     // NULL handling (unsigned)
-    f.checkNull("CAST(NULL AS INTEGER UNSIGNED) ^ CAST(255 AS INTEGER UNSIGNED)");
+    f.checkNull("CAST(NULL AS INTEGER UNSIGNED) ^^ CAST(255 AS INTEGER UNSIGNED)");
 
-    f.checkNull("CAST(4294967295 AS INTEGER UNSIGNED) ^ CAST(NULL AS INTEGER UNSIGNED)");
+    f.checkNull("CAST(4294967295 AS INTEGER UNSIGNED) ^^ CAST(NULL AS INTEGER UNSIGNED)");
 
-    f.checkNull("CAST(NULL AS INTEGER UNSIGNED) ^ CAST(NULL AS INTEGER UNSIGNED)");
+    f.checkNull("CAST(NULL AS INTEGER UNSIGNED) ^^ CAST(NULL AS INTEGER UNSIGNED)");
   }
 
 
@@ -17174,7 +17179,8 @@ public class SqlOperatorTest {
                   query = "SELECT " + s + " FROM (VALUES (1))";
                 }
               } else {
-                query = AbstractSqlTester.buildQuery(s);
+                StringAndPos sap = StringAndPos.of(s);
+                query = AbstractSqlTester.buildQuery(sap);
               }
               f.check(query, SqlTests.ANY_TYPE_CHECKER,
                   SqlTests.ANY_PARAMETER_CHECKER, (sql, result) -> { });
@@ -17285,11 +17291,11 @@ public class SqlOperatorTest {
     public TesterImpl() {
     }
 
-    @Override public void check(SqlTestFactory factory, String query,
+    @Override public void check(SqlTestFactory factory, String queryWithCarets,
         SqlTester.TypeChecker typeChecker,
         SqlTester.ParameterChecker parameterChecker,
         SqlTester.ResultChecker resultChecker) {
-      super.check(factory, query, typeChecker, parameterChecker, resultChecker);
+      super.check(factory, queryWithCarets, typeChecker, parameterChecker, resultChecker);
       final RelDataTypeSystem typeSystem =
           factory.typeSystemTransform.apply(RelDataTypeSystem.DEFAULT);
       final ConnectionFactory connectionFactory =
@@ -17298,9 +17304,10 @@ public class SqlOperatorTest {
       try (TryThreadLocal.Memo ignore = THREAD_TYPE_SYSTEM.push(typeSystem);
            Connection connection = connectionFactory.createConnection();
            Statement statement = connection.createStatement()) {
+        final StringAndPos sap = StringAndPos.of(queryWithCarets);
         final ResultSet resultSet =
-            statement.executeQuery(query);
-        resultChecker.checkResult(query, resultSet);
+            statement.executeQuery(sap.sql);
+        resultChecker.checkResult(queryWithCarets, resultSet);
       } catch (Exception e) {
         throw TestUtil.rethrow(e);
       }
