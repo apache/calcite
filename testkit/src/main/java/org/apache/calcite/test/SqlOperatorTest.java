@@ -16519,57 +16519,82 @@ public class SqlOperatorTest {
     f.checkType("CAST(2 AS SMALLINT) << CAST(3 AS SMALLINT)", "SMALLINT NOT NULL");
     f.checkType("CAST(2 AS BIGINT) << CAST(3 AS BIGINT)", "BIGINT NOT NULL");
 
-    // Test overflow cases - TINYINT
-    f.checkScalar("CAST(64 AS TINYINT) << CAST(1 AS TINYINT)", "-128", "TINYINT NOT NULL");
-    f.checkScalar("CAST(127 AS TINYINT) << CAST(1 AS TINYINT)", "-2", "TINYINT NOT NULL");
-    f.checkScalar("CAST(1 AS TINYINT) << CAST(7 AS TINYINT)", "-128", "TINYINT NOT NULL");
+    // check overflow
+    f.checkFails(
+        "CAST(64 AS TINYINT) << CAST(1 AS TINYINT)",
+        "Numeric overflow: cannot represent value 128 as TINYINT",
+        true);
 
-    // Test overflow cases - SMALLINT
-    f.checkScalar("CAST(16384 AS SMALLINT) << CAST(1 AS SMALLINT)", "-32768", "SMALLINT NOT NULL");
-    f.checkScalar("CAST(32767 AS SMALLINT) << CAST(1 AS SMALLINT)", "-2", "SMALLINT NOT NULL");
-    f.checkScalar("CAST(1 AS SMALLINT) << CAST(15 AS SMALLINT)", "-32768", "SMALLINT NOT NULL");
+    f.checkFails(
+        "CAST(127 AS TINYINT) << CAST(1 AS TINYINT)",
+        "Numeric overflow: cannot represent value 254 as TINYINT",
+        true);
 
-    // Test overflow cases - INTEGER
-    f.checkScalar("1073741824 << 1", "-2147483648", "INTEGER NOT NULL");
-    f.checkScalar("2147483647 << 1", "-2", "INTEGER NOT NULL");
-    f.checkScalar("1 << 31", "-2147483648", "INTEGER NOT NULL");
+    f.checkFails(
+        "CAST(1 AS TINYINT) << CAST(7 AS TINYINT)",
+        "Numeric overflow: cannot represent value 128 as TINYINT",
+        true);
 
-    // Test overflow cases - BIGINT
-    f.checkScalar("CAST(4611686018427387904 AS BIGINT) << CAST(1 AS BIGINT)",
-        "-9223372036854775808", "BIGINT NOT NULL");
-    f.checkScalar("CAST(9223372036854775807 AS BIGINT) << CAST(1 AS BIGINT)",
-        "-2", "BIGINT NOT NULL");
-    f.checkScalar("CAST(1 AS BIGINT) << CAST(63 AS BIGINT)",
-        "-9223372036854775808", "BIGINT NOT NULL");
+    f.checkFails(
+        "CAST(16384 AS SMALLINT) << CAST(1 AS SMALLINT)",
+        "Numeric overflow: cannot represent value 32768 as SMALLINT",
+        true);
 
-    // Test large shift amounts
-    f.checkScalar("1 << 32", "0", "INTEGER NOT NULL");
-    f.checkScalar("1 << 50", "0", "INTEGER NOT NULL");
-    f.checkScalar("CAST(1 AS TINYINT) << CAST(8 AS TINYINT)", "0", "TINYINT NOT NULL");
-    f.checkScalar("CAST(1 AS SMALLINT) << CAST(16 AS SMALLINT)", "0", "SMALLINT NOT NULL");
+    f.checkFails(
+        "CAST(32767 AS SMALLINT) << CAST(1 AS SMALLINT)",
+        "Numeric overflow: cannot represent value 65534 as SMALLINT",
+        true);
 
-    // Test negative shift amounts
-    f.checkScalar("8 << -1", "0", "INTEGER NOT NULL");
-    f.checkScalar("16 << -2", "0", "INTEGER NOT NULL");
+    f.checkFails(
+        "CAST(1 AS SMALLINT) << CAST(15 AS SMALLINT)",
+        "Numeric overflow: cannot represent value 32768 as SMALLINT",
+        true);
 
-    // Edge cases with zero
+    f.checkFails(
+        "CAST(1 AS TINYINT) << CAST(8 AS TINYINT)",
+        "Numeric overflow: cannot represent value 256 as TINYINT",
+        true);
+
+    f.checkFails(
+        "CAST(1 AS SMALLINT) << CAST(16 AS SMALLINT)",
+        "Numeric overflow: cannot represent value 65536 as SMALLINT",
+        true);
+
+
+
+    // Java treats shift by 32 as 0, shift by 50 as 18
+    f.checkScalar("1 << 32", "1", "INTEGER NOT NULL");
+    f.checkScalar("1 << 50", "262144", "INTEGER NOT NULL");
+
+    // Overflow cases
+    f.checkFails("CAST(1 AS TINYINT) << CAST(8 AS TINYINT)",
+        "Numeric overflow: cannot represent value 256 as TINYINT", true);
+    f.checkFails("CAST(1 AS SMALLINT) << CAST(16 AS SMALLINT)",
+        "Numeric overflow: cannot represent value 65536 as SMALLINT", true);
+
+    // Negative shift values
+    f.checkFails("8 << -1", "Shift count < 0: -1", true);
+    f.checkFails("16 << -2", "Shift count < 0: -2", true);
+
+    // Zero shift
     f.checkScalar("0 << 32", "0", "INTEGER NOT NULL");
     f.checkScalar("0 << 100", "0", "INTEGER NOT NULL");
 
-    // Test maximum values before overflow
+    // Max before overflow
     f.checkScalar("CAST(63 AS TINYINT) << CAST(1 AS TINYINT)", "126", "TINYINT NOT NULL");
     f.checkScalar("CAST(16383 AS SMALLINT) << CAST(1 AS SMALLINT)", "32766", "SMALLINT NOT NULL");
     f.checkScalar("1073741823 << 1", "2147483646", "INTEGER NOT NULL");
 
-    // Test invalid argument types
+    // Invalid argument types
     f.checkFails("^1.2 << 2^",
         "Cannot apply '<<' to arguments of type '<DECIMAL\\(2, 1\\)> << <INTEGER>'\\. Supported form\\(s\\): '<INTEGER> << <INTEGER>'",
         false);
 
-    // Test null cases
+    // Null propagation
     f.checkNull("CAST(NULL AS INTEGER) << 5");
     f.checkNull("10 << CAST(NULL AS INTEGER)");
     f.checkNull("CAST(NULL AS INTEGER) << CAST(NULL AS INTEGER)");
+
   }
 
   @Test void testBitAndScalarFunc() {

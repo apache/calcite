@@ -43,6 +43,7 @@ import org.apache.calcite.runtime.variant.VariantValue;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.NumberUtil;
 import org.apache.calcite.util.TimeWithTimeZoneString;
 import org.apache.calcite.util.TimestampWithTimeZoneString;
@@ -3418,16 +3419,109 @@ public class SqlFunctions {
 
     return new ByteString(result);
   }
-  public static int leftShift(int a, int b) {
-    return a << b;
+  /**
+   * Checks if the shift count is negative.
+   * Bitwise left shift with a negative shift count is invalid.
+   *
+   * @param shift The shift amount
+   * @throws IllegalArgumentException if shift < 0
+   */
+  private static void checkShiftCount(int shift) {
+    if (shift < 0) {
+      throw new IllegalArgumentException("Shift count < 0: " + shift);
+    }
   }
 
-  public static long leftShift(long a, int b) {
-    return a << b;
+  /**
+   * Checks whether the shifted result overflows the allowed range for the given SQL type.
+   *
+   * @param result The result after left shift
+   * @param type   The SQL type to validate against (TINYINT, SMALLINT, etc.)
+   * @throws ArithmeticException if result cannot be represented in the given type
+   */
+  private static void checkOverflow(long result, SqlTypeName type) {
+    switch (type) {
+    case TINYINT:
+      if (result < Byte.MIN_VALUE || result > Byte.MAX_VALUE) {
+        throw new ArithmeticException(
+            "Numeric overflow: cannot represent value " + result + " as TINYINT");
+      }
+      break;
+    case SMALLINT:
+      if (result < Short.MIN_VALUE || result > Short.MAX_VALUE) {
+        throw new ArithmeticException(
+            "Numeric overflow: cannot represent value " + result + " as SMALLINT");
+      }
+      break;
+    case INTEGER:
+      if (result < Integer.MIN_VALUE || result > Integer.MAX_VALUE) {
+        throw new ArithmeticException(
+            "Numeric overflow: cannot represent value " + result + " as INTEGER");
+      }
+      break;
+    case BIGINT:
+      // No check required for BIGINT; Java long allows full range.
+      break;
+    default:
+      // No validation for other types
+    }
   }
 
-  public static long leftShift(int a, long b) {
-    return a << b;
+  /**
+   * Left shift for byte (TINYINT) with overflow and negative shift check.
+   */
+  public static byte leftShift(byte a, int shift) {
+    checkShiftCount(shift);
+    int result = a << shift;
+    checkOverflow(result, SqlTypeName.TINYINT);
+    return (byte) result;
+  }
+
+  /**
+   * Left shift for short (SMALLINT) with overflow and negative shift check.
+   */
+  public static short leftShift(short a, int shift) {
+    checkShiftCount(shift);
+    int result = a << shift;
+    checkOverflow(result, SqlTypeName.SMALLINT);
+    return (short) result;
+  }
+
+  /**
+   * Left shift for int with optional overflow check.
+   */
+  public static int leftShift(int a, int shift) {
+    checkShiftCount(shift);
+    // Uncomment if overflow check is needed for INTEGER
+    // checkOverflow(result, SqlTypeName.INTEGER);
+    return a << shift;
+  }
+
+  /**
+   * Left shift for long with optional overflow check.
+   */
+  public static long leftShift(long a, int shift) {
+    checkShiftCount(shift);
+    // Uncomment if overflow check is needed for BIGINT
+    // checkOverflow(result, SqlTypeName.BIGINT);
+    return a << shift;
+  }
+
+  /**
+   * Left shift where the left operand is int and the right operand is long.
+   * This is necessary for supporting queries like: INTEGER << BIGINT
+   */
+  public static long leftShift(int a, long shift) {
+    if (shift < 0) {
+      throw new IllegalArgumentException("Shift count < 0: " + shift);
+    }
+    if (shift >= 64) {
+      // Shifting more than 63 bits yields 0
+      return 0L;
+    }
+    // Optional overflow check if needed
+    // checkOverflow(result, SqlTypeName.BIGINT);
+    return ((long) a) << shift;
   }
 
   /**
