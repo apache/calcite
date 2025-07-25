@@ -3490,9 +3490,9 @@ public class SqlFunctions {
    */
   public static int leftShift(int a, int shift) {
     checkShiftCount(shift);
-    // Uncomment if overflow check is needed for INTEGER
-    // checkOverflow(result, SqlTypeName.INTEGER);
-    return a << shift;
+    int result = a << shift;
+    checkOverflow(result, SqlTypeName.INTEGER);
+    return result;
   }
 
   /**
@@ -3500,9 +3500,9 @@ public class SqlFunctions {
    */
   public static long leftShift(long a, int shift) {
     checkShiftCount(shift);
-    // Uncomment if overflow check is needed for BIGINT
-    // checkOverflow(result, SqlTypeName.BIGINT);
-    return a << shift;
+    long result = a << shift;
+    checkOverflow(result, SqlTypeName.BIGINT);
+    return result;
   }
 
   /**
@@ -3517,9 +3517,10 @@ public class SqlFunctions {
       // Shifting more than 63 bits yields 0
       return 0L;
     }
-    // Optional overflow check if needed
-    // checkOverflow(result, SqlTypeName.BIGINT);
-    return ((long) a) << shift;
+    long result = (long) a << shift;
+    // Uncomment if overflow check is needed for BIGINT
+    checkOverflow(result, SqlTypeName.BIGINT);
+    return result;
   }
 
   /**
