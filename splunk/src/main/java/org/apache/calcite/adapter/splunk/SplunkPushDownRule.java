@@ -142,7 +142,8 @@ public class SplunkPushDownRule
 
   // ~ Methods --------------------------------------------------------------
 
-  @Override public void onMatch(RelOptRuleCall call) {
+  @Override
+  public void onMatch(RelOptRuleCall call) {
     LOGGER.debug(description);
 
     int relLength = call.rels.length;
@@ -964,7 +965,8 @@ public class SplunkPushDownRule
    */
   @Value.Immutable(singleton = false)
   public interface Config extends RelRule.Config {
-    @Override default SplunkPushDownRule toRule() {
+    @Override
+    default SplunkPushDownRule toRule() {
       return new SplunkPushDownRule(this);
     }
 

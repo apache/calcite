@@ -25,10 +25,13 @@ import org.apache.calcite.util.Source;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.io.IOException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -36,6 +39,7 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.lang.reflect.Field;
 
 /**
  * Enumerator that reads from a Object List.
@@ -186,19 +190,23 @@ public class JsonEnumerator implements Enumerator<@Nullable Object[]> {
     return new JsonDataConverter(relDataType, list);
   }
 
-  @Override public Object[] current() {
+  @Override
+  public Object[] current() {
     return enumerator.current();
   }
 
-  @Override public boolean moveNext() {
+  @Override
+  public boolean moveNext() {
     return enumerator.moveNext();
   }
 
-  @Override public void reset() {
+  @Override
+  public void reset() {
     enumerator.reset();
   }
 
-  @Override public void close() {
+  @Override
+  public void close() {
     enumerator.close();
   }
 

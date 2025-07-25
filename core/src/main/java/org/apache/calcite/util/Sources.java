@@ -21,6 +21,20 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.RemovalCause;
 import com.google.common.io.CharSource;
+import com.github.benmanes.caffeine.cache.Cache;
+import org.redisson.api.RedissonClient;
+import org.redisson.Redisson;
+import org.redisson.config.Config;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.CacheLoader;
+import org.redisson.api.RMapCache;
+import com.github.benmanes.caffeine.cache.RemovalCause;
+
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.redisson.Redisson;
@@ -46,6 +60,7 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPInputStream;
+import java.util.function.Function;
 
 import static java.util.Objects.requireNonNull;
 
@@ -150,51 +165,63 @@ public abstract class Sources {
           String.format(Locale.ROOT, "Invalid operation for '%s' protocol", protocol()));
     }
 
-    @Override public URL url() {
+    @Override
+    public URL url() {
       throw unsupported();
     }
 
-    @Override public File file() {
+    @Override
+    public File file() {
       throw unsupported();
     }
 
-    @Override public Optional<File> fileOpt() {
+    @Override
+    public Optional<File> fileOpt() {
       return Optional.empty();
     }
 
-    @Override public String path() {
+    @Override
+    public String path() {
       throw unsupported();
     }
 
-    @Override public Reader reader() throws IOException {
+    @Override
+    public Reader reader() throws IOException {
       return charSource.openStream();
     }
 
-    @Override public InputStream openStream() throws IOException {
+    @Override
+    public InputStream openStream() throws IOException {
       return charSource.asByteSource(StandardCharsets.UTF_8).openStream();
     }
 
-    @Override public String protocol() {
+    @Override
+    public String protocol() {
       return "memory";
     }
 
-    @Override public Source trim(final String suffix) {
+    @Override
+    public Source trim(final String suffix) {
       throw unsupported();
     }
 
-    @Override public @Nullable Source trimOrNull(final String suffix) {
+    @Override
+    public @Nullable Source trimOrNull(final String suffix) {
       throw unsupported();
     }
 
-    @Override public Source append(final Source child) {
+    @Override
+    public Source append(final Source child) {
       throw unsupported();
     }
 
-    @Override public Source relative(final Source source) {
+    @Override
+    public Source relative(final Source source) {
       throw unsupported();
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
       return getClass().getSimpleName() + "{" + protocol() + "}";
     }
   }
@@ -398,18 +425,21 @@ public abstract class Sources {
       return (urlGenerated ? fileNonNull() : url).toString();
     }
 
-    @Override public URL url() {
+    @Override
+    public URL url() {
       return url;
     }
 
-    @Override public File file() {
+    @Override
+    public File file() {
       if (file == null) {
         throw new UnsupportedOperationException();
       }
       return file;
     }
 
-    @Override public Optional<File> fileOpt() {
+    @Override
+    public Optional<File> fileOpt() {
       return Optional.ofNullable(file);
     }
 
@@ -420,7 +450,8 @@ public abstract class Sources {
       return file != null ? "file" : url.getProtocol();
     }
 
-    @Override public String path() {
+    @Override
+    public String path() {
       if (file != null) {
         return file.getPath();
       }
@@ -435,7 +466,8 @@ public abstract class Sources {
       }
     }
 
-    @Override public Reader reader() throws IOException {
+    @Override
+    public Reader reader() throws IOException {
       final InputStream is;
       if (path().endsWith(".gz")) {
         final InputStream fis = openStream();
@@ -460,7 +492,8 @@ public abstract class Sources {
       }
     }
 
-    @Override public Source trim(String suffix) {
+    @Override
+    public Source trim(String suffix) {
       Source x = trimOrNull(suffix);
       return x == null ? this : x;
     }
@@ -508,7 +541,8 @@ public abstract class Sources {
       }
     }
 
-    @Override public Source relative(Source parent) {
+    @Override
+    public Source relative(Source parent) {
       if (isFile(parent)) {
         if (isFile(this)
             && fileNonNull().getPath().startsWith(parent.file().getPath())) {

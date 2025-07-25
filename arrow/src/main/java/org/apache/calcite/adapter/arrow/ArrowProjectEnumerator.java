@@ -19,6 +19,9 @@ package org.apache.calcite.adapter.arrow;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
 
+import org.apache.arrow.vector.ipc.ArrowFileReader;
+import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.ipc.message.ArrowRecordBatch;
 import org.apache.arrow.gandiva.evaluator.Projector;
 import org.apache.arrow.gandiva.exceptions.GandivaException;
 import org.apache.arrow.memory.BufferAllocator;

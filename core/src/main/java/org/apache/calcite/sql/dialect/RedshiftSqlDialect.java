@@ -25,6 +25,8 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import org.apache.calcite.sql.util.SqlString;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**

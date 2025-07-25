@@ -53,7 +53,8 @@ class ArrowFilterEnumerator extends AbstractArrowEnumerator {
     this.filter = filter;
   }
 
-  @Override void evaluateOperator(ArrowRecordBatch arrowRecordBatch) {
+  @Override
+  void evaluateOperator(ArrowRecordBatch arrowRecordBatch) {
     try {
       if (sourceReader instanceof ArrowFileReader) {
         this.buf = this.allocator.buffer((long) arrowRecordBatch.getLength() * 2);

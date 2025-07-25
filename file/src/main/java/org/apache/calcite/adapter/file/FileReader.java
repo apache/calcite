@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.file;
 
 import org.apache.calcite.util.S3Reader;
 import org.apache.calcite.util.Source;
+import org.apache.calcite.util.S3Reader;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jsoup.Jsoup;
@@ -32,6 +33,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
+import java.io.InputStream;
 
 import static java.util.Objects.requireNonNull;
 

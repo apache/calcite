@@ -30,6 +30,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.io.BufferedReader;
 import java.io.Closeable;
 import java.io.IOException;
@@ -399,7 +402,93 @@ public class SplunkConnectionImpl implements SplunkConnection {
     }
   }
 
-  @Override public void getSearchResults(String search, Map<String, String> otherArgs,
+  /**
+   * Checks if an exception indicates an HTTP 401 authentication error specifically.
+   * More conservative than the general isAuthenticationError method.
+   * Package-private for access by SplunkJsonResultEnumeratorWithRetry.
+   */
+  boolean isHttpAuthenticationError(Throwable e) {
+    if (e == null) {
+      return false;
+    }
+
+    // Network connectivity issues are definitely NOT authentication errors
+    if (e instanceof java.net.SocketTimeoutException ||
+        e instanceof java.net.ConnectException ||
+        e instanceof java.net.UnknownHostException ||
+        e instanceof javax.net.ssl.SSLException) {
+      return false;
+    }
+
+    // Look for HTTP 401 in the message
+    String message = e.getMessage();
+    if (message != null && (message.contains("401") || message.contains("Unauthorized"))) {
+      return true;
+    }
+
+    // FIXED: Also check for IOException with HTTP 401 response code
+    if (e instanceof java.io.IOException) {
+      String ioMessage = e.getMessage();
+      if (ioMessage != null && ioMessage.contains("Server returned HTTP response code: 401")) {
+        return true;
+      }
+    }
+
+    // Check cause chain but be conservative
+    Throwable cause = e.getCause();
+    while (cause != null) {
+      // Network issues in the cause chain are NOT auth errors
+      if (cause instanceof java.net.SocketTimeoutException ||
+          cause instanceof java.net.ConnectException ||
+          cause instanceof java.net.UnknownHostException ||
+          cause instanceof javax.net.ssl.SSLException) {
+        return false;
+      }
+
+      String causeMessage = cause.getMessage();
+      if (causeMessage != null && (causeMessage.contains("401") || causeMessage.contains(
+              "Unauthorized"))) {
+        return true;
+      }
+
+      // FIXED: Check IOException in cause chain too
+      if (cause instanceof java.io.IOException) {
+        String causeIoMessage = cause.getMessage();
+        if (causeIoMessage != null && causeIoMessage.contains("Server returned HTTP response " +
+                "code: 401")) {
+          return true;
+        }
+      }
+
+      cause = cause.getCause();
+    }
+
+    return false;
+  }
+
+  /**
+   * Re-authenticates the connection based on the authentication method.
+   */
+  private void reAuthenticate() {
+    LOGGER.info("Re-authenticating Splunk connection due to session expiry");
+
+    if (useTokenAuth) {
+      // For token auth, we can't refresh the token automatically
+      // Just reset the header - the token might have been refreshed externally
+      synchronized (authLock) {
+        requestHeaders.clear();
+        requestHeaders.put("Authorization", "Bearer " + token);
+      }
+      LOGGER.info("Reset token authorization header");
+    } else {
+      // For username/password auth, get a new session
+      connect();
+      LOGGER.info("Successfully re-authenticated with new session key");
+    }
+  }
+
+  @Override
+  public void getSearchResults(String search, Map<String, String> otherArgs,
       List<String> fieldList, SearchResultListener srl) {
     requireNonNull(srl, "SearchResultListener cannot be null");
     performSearchWithRetry(search, otherArgs, srl);
@@ -583,6 +672,46 @@ public class SplunkConnectionImpl implements SplunkConnection {
     }
   }
 
+  private Enumerator<Object> performSearchForEnumerator(
+      String search,
+      Map<String, String> otherArgs,
+      List<String> schemaFieldList,
+      Set<String> explicitFields,
+      Map<String, String> reverseFieldMapping) throws Exception {
+    String searchUrl =
+        String.format(Locale.ROOT,
+            "%s://%s:%d/services/search/jobs/export",
+            url.getProtocol(),
+            url.getHost(),
+            url.getPort());
+
+    StringBuilder data = new StringBuilder();
+    Map<String, String> args = new LinkedHashMap<>(otherArgs);
+    args.put("search", search);
+
+    args.put("output_mode", "json");
+    args.put("preview", "0");
+    args.put("check_connection", "0");
+
+    LOGGER.debug("=== SPLUNK SEARCH DEBUG ===");
+    LOGGER.debug("Search URL: {}", searchUrl);
+    LOGGER.debug("Search query: {}", search);
+    LOGGER.debug("All search args: {}", args);
+    LOGGER.debug("=== END SPLUNK SEARCH DEBUG ===");
+
+    appendURLEncodedArgs(data, args);
+
+    Map<String, String> headersToUse;
+    synchronized (authLock) {
+      headersToUse = new HashMap<>(requestHeaders);
+    }
+
+    // Just let the exception bubble up - no try-catch!
+    InputStream in = post(searchUrl, data, headersToUse, 10000, 1800000);
+    return new SplunkJsonResultEnumeratorWithRetry(in, schemaFieldList, explicitFields,
+            reverseFieldMapping, this);
+  }
+
   private static void parseResults(InputStream in, SearchResultListener srl) {
     try (CSVReader r =
              new CSVReader(
@@ -706,11 +835,13 @@ public class SplunkConnectionImpl implements SplunkConnection {
       this.print = print;
     }
 
-    @Override public void setFieldNames(String[] fieldNames) {
+    @Override
+    public void setFieldNames(String[] fieldNames) {
       this.fieldNames = fieldNames;
     }
 
-    @Override public boolean processSearchResult(String[] values) {
+    @Override
+    public boolean processSearchResult(String[] values) {
       resultCount++;
       if (print) {
         int maxIndex = Math.min(fieldNames.length, values.length);
@@ -770,11 +901,13 @@ public class SplunkConnectionImpl implements SplunkConnection {
       LOGGER.debug("Explicit fields: {}", explicitFields);
     }
 
-    @Override public Object current() {
+    @Override
+    public Object current() {
       return current;
     }
 
-    @Override public boolean moveNext() {
+    @Override
+    public boolean moveNext() {
       try {
         return moveNextInternal();
       } catch (Exception e) {
@@ -998,7 +1131,8 @@ public class SplunkConnectionImpl implements SplunkConnection {
       throw new UnsupportedOperationException();
     }
 
-    @Override public void close() {
+    @Override
+    public void close() {
       try {
         reader.close();
       } catch (IOException e) {

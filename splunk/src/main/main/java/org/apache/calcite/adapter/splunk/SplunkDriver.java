@@ -23,10 +23,11 @@ import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,23 +44,17 @@ import java.util.Properties;
 import java.util.Set;
 
 /**
- * Enhanced JDBC driver for Splunk with CIM model, custom table, and token authentication support.
+ * Enhanced JDBC driver for Splunk with CIM model and custom table support.
  *
  * <p>It accepts connect strings that start with "jdbc:splunk:" and supports
  * additional parameters for CIM models, custom tables, and enhanced features.</p>
  *
  * <p>Enhanced connection string examples:</p>
  * <ul>
- * <li>Token Auth: jdbc:splunk:url=
- * <a href="https://localhost:8089;token=eyJhbGciOiJIUzI1NiI...">...</a></li>
- * <li>Basic Auth: jdbc:splunk:url=
- * <a href="https://localhost:8089;user=admin;password=changeme">...</a></li>
- * <li>Single CIM model: jdbc:splunk:url=https://localhost:8089;user=admin;password=changeme;
- * model=Authentication</li>
- * <li>Multiple CIM models: jdbc:splunk:url=https://localhost:8089;user=admin;password=changeme;
- * models=Authentication,Web,Network_Traffic</li>
- * <li>Custom tables: jdbc:splunk:url=https://localhost:8089;user=admin;password=changeme;
- * customTables=[{"name":"alerts","columns":[...]}]</li>
+ * <li>Basic: jdbc:splunk:url=<a href="https://localhost:8089;user=admin;password=changeme">...</a></li>
+ * <li>Single CIM model: jdbc:splunk:url=https://localhost:8089;user=admin;password=changeme;model=Authentication</li>
+ * <li>Multiple CIM models: jdbc:splunk:url=https://localhost:8089;user=admin;password=changeme;models=Authentication,Web,Network_Traffic</li>
+ * <li>Custom tables: jdbc:splunk:url=https://localhost:8089;user=admin;password=changeme;customTables=[{"name":"alerts","columns":[...]}]</li>
  * </ul>
  *
  * <p>Note: For custom tables, the JSON must be URL-encoded. In Java 8:</p>
@@ -77,34 +72,28 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
   }
 
   static {
-    System.setProperty("http.keepAlive", "false");
-    System.setProperty("http.maxConnections", "1");
-    System.setProperty("sun.net.http.retryPost", "false");
     new SplunkDriver().register();
   }
 
-  @Override
-  protected String getConnectStringPrefix() {
+  @Override protected String getConnectStringPrefix() {
     return "jdbc:splunk:";
   }
 
-  @Override
-  protected DriverVersion createDriverVersion() {
+  @Override protected DriverVersion createDriverVersion() {
     return new SplunkDriverVersion();
   }
 
-  @Override
-  public Connection connect(String url, Properties info)
+  @Override public Connection connect(String url, Properties info)
       throws SQLException {
     Connection connection = super.connect(url, info);
     CalciteConnection calciteConnection = (CalciteConnection) connection;
 
     try {
-      // Extract and validate connection properties
+      // Extract and validate basic connection properties
       ConnectionProperties props = extractConnectionProperties(info);
       validateRequiredProperties(props);
 
-      // Create Splunk connection with token or username/password authentication
+      // Create Splunk connection
       SplunkConnection splunkConnection = createSplunkConnection(props);
 
       // Create enhanced schema with new features
@@ -112,7 +101,7 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
 
       if (props.debug) {
         LOGGER.info("Successfully created enhanced Splunk connection with features: " +
-                "models={}, customTables={}, defaultTimeRange={}",
+            "models={}, customTables={}, defaultTimeRange={}",
             props.models, props.customTables.size(),
             props.defaultTimeRange);
       }
@@ -127,7 +116,6 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
 
   /**
    * Extracts and processes connection properties from the JDBC properties.
-   *
    * @param info the JDBC connection properties
    * @return non-null ConnectionProperties object
    */
@@ -136,7 +124,6 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
 
     // Basic required properties (can be null from Properties.getProperty())
     props.splunkUrl = info.getProperty("url");
-    props.token = info.getProperty("token");
     props.user = info.getProperty("user");
     props.password = info.getProperty("password");
 
@@ -160,38 +147,34 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
     if (props.splunkUrl == null) {
       throw new SQLException("Must specify 'url' property");
     }
-
-    boolean hasToken = props.token != null && !props.token.trim().isEmpty();
-    boolean hasCredentials = props.user != null && props.password != null &&
-        !props.user.trim().isEmpty() && !props.password.trim().isEmpty();
-
-    if (!hasToken && !hasCredentials) {
-      throw new SQLException("Must specify either 'token' or both 'user' and 'password' " +
-              "properties");
+    if (props.user == null) {
+      throw new SQLException("Must specify 'user' property");
     }
+    if (props.password == null) {
+      throw new SQLException("Must specify 'password' property");
+      }
   }
 
   /**
    * Creates a SplunkConnection based on the provided properties.
    * Properties have been validated as non-null at this point.
-   *
    * @return non-null SplunkConnection instance
    */
   private SplunkConnection createSplunkConnection(ConnectionProperties props) throws SQLException {
+    // At this point, validation ensures these are non-null
     String splunkUrl = props.splunkUrl;
+    String user = props.user;
+    String password = props.password;
+
+    if (splunkUrl == null || user == null || password == null) {
+      throw new SQLException("Connection properties not properly validated");
+    }
 
     if ("mock".equals(splunkUrl)) {
       return new MockSplunkConnection();
-    } else {
+      } else {
       try {
-        // Try token authentication first
-        if (props.token != null && !props.token.trim().isEmpty()) {
-          return new SplunkConnectionImpl(splunkUrl, props.token);
-        }
-
-        // Fall back to username/password
-        return new SplunkConnectionImpl(splunkUrl, props.user, props.password);
-
+      return new SplunkConnectionImpl(splunkUrl, user, password);
       } catch (MalformedURLException e) {
         throw new SQLException("Invalid Splunk URL: " + splunkUrl, e);
       }
@@ -202,8 +185,8 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
    * Creates the enhanced Splunk schema with CIM models and custom tables.
    */
   private void createEnhancedSchema(CalciteConnection calciteConnection,
-      ConnectionProperties props,
-      SplunkConnection splunkConnection) throws SQLException {
+                                   ConnectionProperties props,
+                                   SplunkConnection splunkConnection) throws SQLException {
     SchemaPlus rootSchema = calciteConnection.getRootSchema();
 
     // Build operand map for SplunkSchemaFactory
@@ -214,20 +197,13 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
     String user = props.user;
     String password = props.password;
 
-    if (splunkUrl == null) {
+    if (splunkUrl == null || user == null || password == null) {
       throw new SQLException("Connection properties not properly validated");
     }
 
     operand.put("url", splunkUrl);
-
-    // Add authentication - token takes precedence
-    if (props.token != null && !props.token.trim().isEmpty()) {
-      operand.put("token", props.token);
-    } else if (user != null && password != null) {
-      operand.put("username", user);
-      operand.put("password", password);
-    }
-
+    operand.put("username", user);
+    operand.put("password", password);
     operand.put("splunkConnection", splunkConnection);
 
     // Add CIM model support
@@ -236,7 +212,7 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
       if (props.debug) {
         LOGGER.debug("Added single CIM model: {}", props.model);
       }
-    }
+        }
 
     if (!props.models.isEmpty()) {
       operand.put("models", props.models);
@@ -265,17 +241,16 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
 
     // Create the enhanced schema using SplunkSchemaFactory
     try {
-      SplunkSchemaFactory factory = new SplunkSchemaFactory();
-      Schema splunkSchema = factory.create(rootSchema, "splunk", operand);
-      rootSchema.add("splunk", splunkSchema);
+    SplunkSchemaFactory factory = new SplunkSchemaFactory();
+    Schema splunkSchema = factory.create(rootSchema, "splunk", operand);
+    rootSchema.add("splunk", splunkSchema);
     } catch (Exception e) {
       throw new SQLException("Failed to create Splunk schema: " + e.getMessage(), e);
     }
-  }
+        }
 
   /**
    * Parses comma-separated model names into a list.
-   *
    * @param modelsString the comma-separated string of model names (can be null or empty)
    * @return non-null list of model names (empty if no valid models found)
    */
@@ -283,20 +258,19 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
     List<String> models = new ArrayList<>();
 
     if (modelsString != null && !modelsString.trim().isEmpty()) {
-      for (String model : modelsString.split(",")) {
-        String trimmed = model.trim();
-        if (!trimmed.isEmpty()) {
-          models.add(trimmed);
-        }
+    for (String model : modelsString.split(",")) {
+      String trimmed = model.trim();
+      if (!trimmed.isEmpty()) {
+        models.add(trimmed);
       }
+    }
     }
 
     return models;
-  }
+      }
 
   /**
    * Parses JSON string containing custom table definitions.
-   *
    * @param customTablesJson the JSON string containing table definitions (can be null or empty)
    * @return non-null list of custom table definitions (empty if no valid tables found)
    */
@@ -304,30 +278,29 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
     List<Map<String, Object>> customTables = new ArrayList<>();
 
     if (customTablesJson != null && !customTablesJson.trim().isEmpty()) {
-      try {
-        // URL decode the JSON string (Java 8 compatible)
-        String decodedJson = URLDecoder.decode(customTablesJson, "UTF-8");
+    try {
+      // URL decode the JSON string (Java 8 compatible)
+      String decodedJson = URLDecoder.decode(customTablesJson, "UTF-8");
 
-        // Parse JSON using Jackson
-        ObjectMapper mapper = new ObjectMapper();
-        TypeReference<List<Map<String, Object>>> typeRef =
-            new TypeReference<List<Map<String, Object>>>() {
-            };
+      // Parse JSON using Jackson
+      ObjectMapper mapper = new ObjectMapper();
+      TypeReference<List<Map<String, Object>>> typeRef =
+          new TypeReference<List<Map<String, Object>>>() {};
 
         customTables = mapper.readValue(decodedJson, typeRef);
         if (customTables == null) {
           customTables = new ArrayList<>();
         }
 
-        // Validate custom table structure
-        validateCustomTables(customTables);
+      // Validate custom table structure
+      validateCustomTables(customTables);
 
-      } catch (UnsupportedEncodingException e) {
-        throw new SQLException("UTF-8 encoding not supported: " + e.getMessage(), e);
-      } catch (Exception e) {
-        throw new SQLException("Invalid customTables JSON: " + e.getMessage(), e);
-      }
+    } catch (UnsupportedEncodingException e) {
+      throw new SQLException("UTF-8 encoding not supported: " + e.getMessage(), e);
+    } catch (Exception e) {
+      throw new SQLException("Invalid customTables JSON: " + e.getMessage(), e);
     }
+  }
 
     return customTables;
   }
@@ -342,8 +315,7 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
       // Validate table name
       Object name = table.get("name");
       if (!(name instanceof String) || ((String) name).trim().isEmpty()) {
-        throw new SQLException("Custom table at index " + i + " must have a non-empty 'name' " +
-                "property");
+        throw new SQLException("Custom table at index " + i + " must have a non-empty 'name' property");
       }
 
       // Validate columns
@@ -364,14 +336,12 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
 
         Object columnName = column.get("name");
         if (!(columnName instanceof String) || ((String) columnName).trim().isEmpty()) {
-          throw new SQLException("Column at index " + j + " in table '" + name + "' must have a " +
-                  "non-empty 'name' property");
+          throw new SQLException("Column at index " + j + " in table '" + name + "' must have a non-empty 'name' property");
         }
 
         Object columnType = column.get("type");
         if (!(columnType instanceof String) || ((String) columnType).trim().isEmpty()) {
-          throw new SQLException("Column '" + columnName + "' in table '" + name + "' must have a" +
-                  " non-empty 'type' property");
+          throw new SQLException("Column '" + columnName + "' in table '" + name + "' must have a non-empty 'type' property");
         }
       }
     }
@@ -383,20 +353,13 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
   private static class ConnectionProperties {
     @Nullable
     String splunkUrl;
-    @Nullable
-    String token;
-    @Nullable
-    String user;
-    @Nullable
-    String password;
-    @Nullable
-    String model;
+    @Nullable String user;
+    @Nullable String password;
+    @Nullable String model;
     List<String> models = new ArrayList<>();
-    @Nullable
-    String defaultTimeRange;
+    @Nullable String defaultTimeRange;
     boolean debug = false;
-    @Nullable
-    String logLevel;
+    @Nullable String logLevel;
     List<Map<String, Object>> customTables = new ArrayList<>();
   }
 
@@ -404,28 +367,18 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
    * Mock implementation for testing purposes.
    */
   private static class MockSplunkConnection implements SplunkConnection {
-    @Override public void getSearchResults(String search, Map<String, String> otherArgs,
-        List<String> fieldList,
-        org.apache.calcite.adapter.splunk.search.SearchResultListener srl) {
+    @Override
+    public void getSearchResults(String search, Map<String, String> otherArgs,
+                               List<String> fieldList,
+                               org.apache.calcite.adapter.splunk.search.SearchResultListener srl) {
       // Mock implementation for testing - parameters intentionally unused
-      LOGGER.debug("Mock connection: getSearchResults called");
     }
 
-    @Override public org.apache.calcite.linq4j.Enumerator<Object> getSearchResultEnumerator(
-        String search, Map<String, String> otherArgs, List<String> fieldList,
-            Set<String> explicitFields) {
+    @Override
+    public org.apache.calcite.linq4j.Enumerator<Object> getSearchResultEnumerator(
+        String search, Map<String, String> otherArgs, List<String> fieldList, Set<String> explicitFields) {
       // Mock implementation for testing - parameters intentionally unused
-      LOGGER.debug("Mock connection: getSearchResultEnumerator called");
-      return org.apache.calcite.linq4j.Linq4j.emptyEnumerator();
-    }
-
-    @Override public org.apache.calcite.linq4j.Enumerator<Object> getSearchResultEnumerator(
-        String search, Map<String, String> otherArgs, List<String> fieldList,
-            Set<String> explicitFields,
-        Map<String, String> reverseFieldMapping) {
-      // Mock implementation for testing - parameters intentionally unused
-      LOGGER.debug("Mock connection: getSearchResultEnumerator with field mapping called");
       return org.apache.calcite.linq4j.Linq4j.emptyEnumerator();
     }
   }
-}
+  }
