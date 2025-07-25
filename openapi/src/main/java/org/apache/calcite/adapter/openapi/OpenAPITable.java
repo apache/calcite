@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.adapter.openapi;
 
-import static java.util.Objects.requireNonNull;
-
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
@@ -43,6 +41,8 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Map;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Table based on an OpenAPI endpoint.

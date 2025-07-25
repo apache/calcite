@@ -141,7 +141,7 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
     props.model = info.getProperty("model");
     props.models = parseModels(info.getProperty("models"));
     props.defaultTimeRange = info.getProperty("defaultTimeRange");
-    props.debug = parseBoolean(info.getProperty("debug", "false"));
+    props.debug = Boolean.parseBoolean(info.getProperty("debug", "false"));
     props.logLevel = info.getProperty("logLevel");
 
     // Parse custom tables JSON if provided

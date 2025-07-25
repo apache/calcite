@@ -1,16 +1,62 @@
 # Hasura Fork of Apache Calcite
 
-- Adds support, or provides additional features, for
-  - SQLite
-  - Redshift
-  - Files
-    - Entity Caching (via Redis),
-    - XSLX,
-    - YAML
-    - HML
-    - Recursive Search for Files
-    - s3:// protocol
-  - Cassandra
+This is a fork of Apache Calcite customized for integration with Hasura DDN (Data Delivery Network). This fork includes significant enhancements and new adapters to support a wider range of data sources and improved functionality.
+
+## Key Differences from Upstream Apache Calcite
+
+### New Adapters Added
+- **Arrow Adapter**: Support for Apache Arrow format files and Parquet files
+  - Direct Arrow file reading with memory-efficient streaming
+  - Parquet file support with schema inference
+  - Integration with Arrow's columnar format for better performance
+
+- **OpenAPI Adapter**: Query REST APIs through SQL
+  - Configure multiple OpenAPI endpoints as SQL tables
+  - Support for parameterized API calls
+  - Response transformation and type mapping
+
+- **GraphQL Adapter**: Native Hasura GraphQL endpoint support
+  - SQL:2003 compliant query translation to GraphQL
+  - Support for window functions, CTEs, and set operations
+  - Built-in caching system (in-memory and Redis)
+  - Comprehensive type system mapping
+
+### Enhanced Existing Adapters
+
+#### File Adapter Enhancements
+- **Entity Caching**: Redis-based caching for improved performance
+- **New File Formats**:
+  - XLSX (Excel) files with automatic sheet detection
+  - YAML files as data sources
+  - HML (Hasura Metadata Language) files
+- **S3 Protocol Support**: Direct querying of files in S3 buckets
+- **Recursive File Search**: Automatic discovery of files in nested directories
+- **Improved JSON/CSV handling**: Better type inference and streaming
+
+#### Splunk Adapter Improvements
+- HTTP timeout configuration and handling
+- Token expiration retry logic
+- Support for Common Information Models (CIM)
+- Enhanced field comparison operations
+- Nullable field handling improvements
+
+#### Additional Database Support
+- **SQLite**: Native SQLite database connectivity
+- **Redshift**: Amazon Redshift specific optimizations
+- **Cassandra**: Enhanced Cassandra adapter features
+
+### Technical Enhancements
+- **Type System Enhancements**: Stronger type mapping between SQL and native data sources
+- **Model-Driven Configuration**: JSON-based adapter configuration system
+- **Multi-level Caching**: Query result and schema metadata caching
+- **Performance Improvements**:
+  - Connection pooling enhancements
+  - Better error handling and retry logic
+  - Streaming support for large datasets
+  - Memory-efficient processing for file adapters
+
+## Upstream Merge Status
+This fork was last merged with upstream Apache Calcite on commit b5fb7233, maintaining compatibility while preserving all custom enhancements.
 <!--
 {% comment %}
 Licensed to the Apache Software Foundation (ASF) under one or more

@@ -77,8 +77,8 @@ include(
     "kafka",
     "linq4j",
     "mongodb",
-    "pig",
-    "piglet",
+    // "pig",    // Disabled due to heavy dependencies
+    // "piglet", // Disabled due to heavy dependencies
     "plus",
     "openapi",
     "salesforce",

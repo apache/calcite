@@ -35,6 +35,10 @@ import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+/**
+ * Relational expression representing a scan of a Parquet table.
+ * Implements the ArrowRel interface for integration with the Arrow adapter.
+ */
 class ParquetTableScan extends TableScan implements ArrowRel {
   private final ParquetTable parquetTable;
   private final ImmutableIntList fields;

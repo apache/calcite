@@ -62,6 +62,10 @@ import java.util.List;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * Table implementation for Apache Parquet files.
+ * Provides SQL query capabilities over Parquet columnar data format.
+ */
 public class ParquetTable extends AbstractTable
     implements TranslatableTable, QueryableTable {
 

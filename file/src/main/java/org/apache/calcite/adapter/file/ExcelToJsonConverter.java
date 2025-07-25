@@ -16,7 +16,13 @@
  */
 package org.apache.calcite.adapter.file;
 
-import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.DateUtil;
+import org.apache.poi.ss.usermodel.FormulaEvaluator;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,7 +35,14 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Iterator;
 
-public class ExcelToJsonConverter {
+/**
+ * Utility class for converting Excel files to JSON format.
+ * Supports reading XLSX files and converting each sheet to a separate JSON file.
+ */
+public final class ExcelToJsonConverter {
+  private ExcelToJsonConverter() {
+    // Prevent instantiation
+  }
 
   public static void convertFileToJson(File inputFile) throws IOException {
     FileInputStream file = new FileInputStream(inputFile);

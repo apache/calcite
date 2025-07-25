@@ -41,6 +41,9 @@ import java.util.List;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * Relational expression representing a scan of an Arrow data source.
+ */
 class ArrowToEnumerableConverter
     extends ConverterImpl implements EnumerableRel {
   protected ArrowToEnumerableConverter(RelOptCluster cluster,

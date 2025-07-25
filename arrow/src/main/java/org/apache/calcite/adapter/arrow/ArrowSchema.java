@@ -47,6 +47,10 @@ import java.util.function.Supplier;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * Schema implementation for Apache Arrow and Parquet file sources.
+ * Scans a directory for .arrow and .parquet files and exposes them as tables.
+ */
 class ArrowSchema extends AbstractSchema {
   private static final Logger LOGGER = LoggerFactory.getLogger(ArrowSchema.class);
   private final Supplier<Map<String, Table>> tableMapSupplier;

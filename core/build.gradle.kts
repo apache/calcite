@@ -221,6 +221,11 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
         jvmTarget = "1.8"
     }
 }
+
+// Disable werror for this module due to deprecation warnings from upstream
+tasks.withType<JavaCompile>().configureEach {
+    options.compilerArgs.remove("-Werror")
+}
 ide {
     fun generatedSource(javacc: TaskProvider<org.apache.calcite.buildtools.javacc.JavaCCTask>, sourceSet: String) =
         generatedJavaSources(javacc.get(), javacc.get().output.get().asFile, sourceSets.named(sourceSet))

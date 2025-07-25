@@ -29,6 +29,9 @@ import org.apache.parquet.schema.MessageType;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Parquet read support implementation for reading Parquet files.
+ */
 public class ParquetReadSupport extends ReadSupport<Object> {
 
   @Override public ReadContext init(InitContext context) {
@@ -52,6 +55,9 @@ public class ParquetReadSupport extends ReadSupport<Object> {
     return prepareForRead(configuration, keyValueMetaData, fileSchema, readContext);
   }
 
+  /**
+   * Custom record materializer for reading Parquet records.
+   */
   private static class CustomRecordMaterializer extends RecordMaterializer<Object> {
     private final MessageType schema;
     private Map<String, Object> currentRecord;
@@ -92,6 +98,9 @@ public class ParquetReadSupport extends ReadSupport<Object> {
       };
     }
 
+    /**
+     * Custom primitive converter for converting Parquet primitive values.
+     */
     private class CustomPrimitiveConverter extends PrimitiveConverter {
       private final String fieldName;
 

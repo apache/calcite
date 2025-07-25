@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.adapter.openapi;
 
-import static java.util.Objects.requireNonNull;
-
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.HttpGet;
@@ -42,6 +40,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Base64;
 import java.util.Map;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * HTTP transport layer for OpenAPI REST calls.

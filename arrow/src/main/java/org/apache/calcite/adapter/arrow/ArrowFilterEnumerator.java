@@ -33,6 +33,10 @@ import org.apache.parquet.hadoop.ParquetReader;
 
 import java.io.IOException;
 
+/**
+ * Enumerator that reads from Arrow or Parquet files and applies filters using Gandiva.
+ * Supports both Arrow file format and Parquet file format with filtering capabilities.
+ */
 class ArrowFilterEnumerator extends AbstractArrowEnumerator {
   private final BufferAllocator allocator;
   private final Object filter; // Can be either Arrow Filter or Parquet FilterPredicate

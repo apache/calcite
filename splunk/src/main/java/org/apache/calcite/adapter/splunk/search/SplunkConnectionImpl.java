@@ -58,6 +58,7 @@ import javax.net.ssl.X509TrustManager;
 
 import static org.apache.calcite.runtime.HttpUtils.appendURLEncodedArgs;
 import static org.apache.calcite.runtime.HttpUtils.post;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of {@link SplunkConnection} based on Splunk's REST API.
@@ -683,7 +684,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
         StringUtils.encodeList(fieldList, ',').toString());
 
     String printArg = argsMap.get("-print");
-    boolean shouldPrint = parseBoolean(printArg);
+    boolean shouldPrint = Boolean.parseBoolean(printArg);
 
     CountingSearchResultListener dummy = new CountingSearchResultListener(shouldPrint);
     long start = System.currentTimeMillis();

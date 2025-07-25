@@ -621,7 +621,7 @@ public class SplunkPushDownRule
   private static long parseTimestampToEpochSeconds(String timestampStr) throws Exception {
     // Handle epoch seconds/milliseconds first
     if (timestampStr.matches("\\d{10,13}")) {
-      long value = parseLong(timestampStr);
+      long value = Long.parseLong(timestampStr);
       if (value > 9999999999L) { // milliseconds
         return value / 1000;
       } else { // seconds
@@ -889,7 +889,7 @@ public class SplunkPushDownRule
           String strValue = literalValue.toString();
           try {
             // Try parsing as epoch milliseconds first
-            long epochMs = parseLong(strValue);
+            long epochMs = Long.parseLong(strValue);
             value = String.valueOf(epochMs / 1000);
           } catch (NumberFormatException e) {
             // If it's not a number, treat as string and escape

@@ -90,7 +90,7 @@ public class SplunkDataConverter {
     // Try parsing as epoch timestamp (numeric string)
     if (EPOCH_PATTERN.matcher(value).matches()) {
       try {
-        double epochValue = parseDouble(value);
+        double epochValue = Double.parseDouble(value);
         long millis = convertNumberToTimestampMillis(epochValue);
         return new java.sql.Timestamp(millis);  // CHANGED: Return Timestamp object
       } catch (NumberFormatException e) {
@@ -363,9 +363,9 @@ public class SplunkDataConverter {
     try {
       // Handle decimal values by truncating
       if (value.contains(".")) {
-        return (int) parseDouble(value);
+        return (int) Double.parseDouble(value);
       }
-      return parseInt(value);
+      return Integer.parseInt(value);
     } catch (NumberFormatException e) {
       throw new IllegalArgumentException("Unable to parse integer: " + value);
     }
@@ -378,9 +378,9 @@ public class SplunkDataConverter {
     try {
       // Handle decimal values by truncating
       if (value.contains(".")) {
-        return (long) parseDouble(value);
+        return (long) Double.parseDouble(value);
       }
-      return parseLong(value);
+      return Long.parseLong(value);
     } catch (NumberFormatException e) {
       throw new IllegalArgumentException("Unable to parse long: " + value);
     }
@@ -402,7 +402,7 @@ public class SplunkDataConverter {
    */
   private static Double convertToDouble(String value) {
     try {
-      return parseDouble(value);
+      return Double.parseDouble(value);
     } catch (NumberFormatException e) {
       throw new IllegalArgumentException("Unable to parse double: " + value);
     }
@@ -413,7 +413,7 @@ public class SplunkDataConverter {
    */
   private static Float convertToFloat(String value) {
     try {
-      return parseFloat(value);
+      return Float.parseFloat(value);
     } catch (NumberFormatException e) {
       throw new IllegalArgumentException("Unable to parse float: " + value);
     }

@@ -22,12 +22,12 @@
   <packaging>jar</packaging>
   <groupId>org.apache.calcite</groupId>
   <artifactId>calcite</artifactId>
-  <version>1.38.0-SNAPSHOT</version>
+  <version>1.41.0-SNAPSHOT</version>
   <properties>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <calcite.version>1.38.0-SNAPSHOT</calcite.version>
+    <calcite.version>1.41.0-SNAPSHOT</calcite.version>
     <opentelemetry.version>1.42.1</opentelemetry.version>
   </properties>
   <dependencyManagement>

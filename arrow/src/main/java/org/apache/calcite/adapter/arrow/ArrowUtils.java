@@ -26,9 +26,16 @@ import org.apache.arrow.vector.ipc.message.ArrowRecordBatch;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ArrowUtils {
+/**
+ * Utility methods for working with Apache Arrow data structures.
+ */
+public final class ArrowUtils {
+  private ArrowUtils() {
+    // Prevent instantiation
+  }
 
-  public static ArrowRecordBatch fromStructsToArrowRecordBatch(VectorSchemaRoot root, BufferAllocator allocator) {
+  public static ArrowRecordBatch fromStructsToArrowRecordBatch(VectorSchemaRoot root,
+      BufferAllocator allocator) {
     List<ArrowFieldNode> nodes = new ArrayList<>();
     List<ArrowBuf> buffers = new ArrayList<>();
 

@@ -16,13 +16,13 @@
  */
 package org.apache.calcite.adapter.openapi;
 
-import static java.util.Objects.requireNonNull;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
 import java.util.Map;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Configuration for OpenAPI table variants and pushdown capabilities.

@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.adapter.openapi;
 
-import static java.util.Objects.requireNonNull;
-
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -34,6 +32,8 @@ import com.google.common.collect.ImmutableList;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Relational expression representing a scan of an OpenAPI endpoint.

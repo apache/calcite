@@ -16,14 +16,14 @@
  */
 package org.apache.calcite.adapter.openapi;
 
-import static java.util.Objects.requireNonNull;
-
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 
 import com.google.common.collect.ImmutableMap;
 
 import java.util.Map;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Schema that contains OpenAPI endpoint tables.

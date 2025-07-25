@@ -23,8 +23,6 @@ import org.apache.calcite.util.Source;
 import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.Util;
 
-import org.apache.poi.ss.usermodel.*;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 

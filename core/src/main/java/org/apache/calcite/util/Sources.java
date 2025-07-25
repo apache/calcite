@@ -244,22 +244,15 @@ public abstract class Sources {
       }
     }
 
-    private static boolean parseBooleanValue(String value) {
-      return Boolean.parseBoolean(value);
-    }
-
-    private static long parseLongValue(String value) {
-      return Long.parseLong(value);
-    }
 
     static {
-      boolean useRedis = parseBooleanValue(System.getenv("USE_REDIS"));
+      boolean useRedis = Boolean.parseBoolean(System.getenv("USE_REDIS"));
       String maxsizeEnv = System.getenv("FILE_CACHE_MAXIMUM_SIZE");
       String expireTimeEnv = System.getenv("FILE_CACHE_EXPIRE_TIME");
 
       if (maxsizeEnv != null) {
         try {
-          maximumSize = parseLongValue(maxsizeEnv);
+          maximumSize = Long.parseLong(maxsizeEnv);
         } catch (NumberFormatException e) {
           System.err.println("Invalid number format for FILE_CACHE_MAXIMUM_SIZE. Falling back to default...");
         }
@@ -267,7 +260,7 @@ public abstract class Sources {
 
       if (expireTimeEnv != null) {
         try {
-          expireTime = parseLongValue(expireTimeEnv);
+          expireTime = Long.parseLong(expireTimeEnv);
         } catch (NumberFormatException e) {
           System.err.println("Invalid number format for FILE_CACHE_EXPIRE_TIME. Falling back to default...");
         }

@@ -20,7 +20,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.util.LinkedHashMap;
 
-public class ComparableLinkedHashMap<K, V> extends LinkedHashMap<K, V> implements Comparable<ComparableLinkedHashMap<K, V>> {
+/**
+ * A LinkedHashMap implementation that can be compared for ordering.
+ * Comparison is done by converting maps to JSON strings and comparing them lexicographically.
+ *
+ * @param <K> the type of keys maintained by this map
+ * @param <V> the type of mapped values
+ */
+public class ComparableLinkedHashMap<K, V> extends LinkedHashMap<K, V>
+    implements Comparable<ComparableLinkedHashMap<K, V>> {
   @Override public int compareTo(ComparableLinkedHashMap<K, V> o) {
     ObjectMapper mapper = new ObjectMapper();
 
