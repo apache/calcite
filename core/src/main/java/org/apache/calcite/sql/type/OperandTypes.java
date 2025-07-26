@@ -402,6 +402,10 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker INTEGER =
       family(SqlTypeFamily.INTEGER);
 
+  public static final SqlSingleOperandTypeChecker UNSIGNED_NUMERIC_UNSIGNED_NUMERIC =
+      family(SqlTypeFamily.UNSIGNED_NUMERIC, SqlTypeFamily.UNSIGNED_NUMERIC);
+
+
   public static final SqlSingleOperandTypeChecker INTEGER_INTEGER =
       family(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER);
 

@@ -62,10 +62,10 @@ public interface SqlTester extends AutoCloseable {
    * evaluate it, and calls a given action with each.
    *
    * @param factory    Factory
-   * @param expression Scalar expression
+   * @param expressionWithCarets Scalar expression, possibly with carets
    * @param consumer   Action to be called for each query
    */
-  void forEachQuery(SqlTestFactory factory, String expression,
+  void forEachQuery(SqlTestFactory factory, String expressionWithCarets,
       Consumer<String> consumer);
 
   /** Parses a query. */
@@ -165,14 +165,14 @@ public interface SqlTester extends AutoCloseable {
    * and {@link ResultChecker} functors.
    *
    * @param factory       Factory
-   * @param query         SQL query
+   * @param queryWithCarets SQL query, possibly with carets
    * @param typeChecker   Checks whether the result is the expected type
    * @param parameterChecker Checks whether the parameters are of expected
    *                      types
    * @param resultChecker Checks whether the result has the expected value
    */
   void check(SqlTestFactory factory,
-      String query,
+      String queryWithCarets,
       TypeChecker typeChecker,
       ParameterChecker parameterChecker,
       ResultChecker resultChecker);

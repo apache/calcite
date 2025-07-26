@@ -3383,15 +3383,17 @@ public class SqlFunctions {
     return b0 ^ b1;
   }
 
-  /** Bitwise function <code>BITXOR</code> applied to a Long and int value.
-   *  Needed for handling NULL for the first argument.
+  /**
+   * Bitwise function <code>BITXOR</code> applied to a Long and int value. Overload to support type
+   * coercion between boxed Long and primitive int.
    */
   public static long bitXor(Long b0, int b1) {
     return b0 ^ b1;
   }
 
-  /** Bitwise function <code>BITXOR</code> applied to a Long and int value.
-   *  Needed for handling NULL for the second argument.
+  /**
+   * Bitwise function <code>BITXOR</code> applied to a Long and int value. Overload to support type
+   * coercion between boxed Long and primitive int.
    */
   public static long bitXor(int b0, Long b1) {
     return b0 ^ b1;
@@ -3415,6 +3417,63 @@ public class SqlFunctions {
     }
 
     return new ByteString(result);
+  }
+
+  /**
+   * Bitwise function <code>BITXOR</code> applied to {@link Long} values.
+   * Returns {@code null} if any operand is null.
+   */
+  public static long bitXor(Long b0, Long b1) {
+    return b0 ^ b1;
+  }
+
+  /**
+   * Bitwise function <code>BITXOR</code> applied to {@link Integer} values.
+   * Returns {@code null} if any operand is null.
+   */
+  public static long bitXor(Integer b0, Integer b1) {
+    return b0 ^ b1;
+  }
+
+  /**
+   * Bitwise function <code>BITXOR</code> applied to {@link org.joou.UByte} values.
+   * Returns {@code null} if any operand is null.
+   */
+  public static UByte bitXor(UByte b0, UByte b1) {
+    return  UByte.valueOf(b0.shortValue() ^ b1.shortValue());
+  }
+
+  /**
+   * Bitwise function <code>BITXOR</code> applied to {@link org.joou.UShort} values.
+   * Returns {@code null} if any operand is null.
+   */
+  public static UShort bitXor(UShort b0, UShort b1) {
+    return  UShort.valueOf(b0.intValue() ^ b1.intValue());
+  }
+
+  /**
+   * Bitwise function <code>BITXOR</code> applied to {@link org.joou.UInteger} values.
+   * Returns {@code null} if any operand is null.
+   */
+  public static UInteger bitXor(UInteger b0, UInteger b1) {
+    return UInteger.valueOf(b0.longValue() ^ b1.longValue());
+  }
+
+  /**
+   * Bitwise function <code>BITXOR</code> applied to {@link org.joou.ULong} values.
+   * Returns {@code null} if any operand is null.
+   */
+  public static ULong bitXor(ULong b0, ULong b1) {
+    return ULong.valueOf(b0.longValue() ^ b1.longValue());
+  }
+
+  public static @Nullable Object bitXor(@Nullable Object b0, @Nullable Object b1) {
+    if (b0 == null || b1 == null) {
+      return null;
+    }
+    throw new IllegalArgumentException(
+        "Invalid arguments for BITXOR: "
+            + "" + b0.getClass() + ", " + b1.getClass());
   }
 
   /**
