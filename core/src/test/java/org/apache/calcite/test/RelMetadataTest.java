@@ -160,6 +160,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.hasToString;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -313,6 +314,59 @@ public class RelMetadataTest {
     final RelColumnOrigin deptnoColumn = mq.getColumnOrigin(calc, 1);
     assertThat(deptnoColumn, notNullValue());
     assertThat(deptnoColumn.getOriginColumnOrdinal(), is(0));
+  }
+
+  @Test void testFunctionDependency() {
+    final String sql = "SELECT deptno, sal1Sum, sal2Sum\n"
+        + "FROM (\n"
+        + " SELECT deptno,"
+        + "    SUM(sal1) AS sal1Sum,"
+        + "    SUM(sal2) AS sal2Sum,"
+        + "    job\n"
+        + " FROM (\n"
+        + "  SELECT deptno,"
+        + "    sal AS sal1,"
+        + "    sal AS sal2,"
+        + "    job\n"
+        + "  FROM emp\n"
+        + " ) t\n"
+        + " GROUP BY deptno, job\n"
+        + ") t2\n"
+        + "ORDER BY sal1Sum, job, sal2Sum + sal1Sum + 1";
+
+    // Plan is
+    // LogicalSort(sort0=[$1], sort1=[$3], sort2=[$4], dir0=[ASC], dir1=[ASC], dir2=[ASC])
+    //   LogicalProject(DEPTNO=[$0], SAL1SUM=[$2], SAL2SUM=[$3], JOB=[$1],
+    //                  EXPR$4=[+(+($3, $2), 1)])
+    //     LogicalAggregate(group=[{0, 1}], SAL1SUM=[SUM($2)], SAL2SUM=[SUM($3)])
+    //       LogicalProject(DEPTNO=[$7], JOB=[$2], SAL1=[$5], SAL2=[$5])
+    //         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+
+    final RelNode relNode = sql(sql).toRel();
+    final RelMetadataQuery mq = relNode.getCluster().getMetadataQuery();
+
+    // check sort
+    final Sort sort = (Sort) relNode;
+    List<RelFieldCollation> collations = sort.getCollation().getFieldCollations();
+    int sal1Sum = collations.get(0).getFieldIndex();
+    int job = collations.get(1).getFieldIndex();
+    int sal2SumPlusSal1SumPlus1 = collations.get(2).getFieldIndex();
+
+    assertTrue(mq.determines(sort, sal1Sum, sal1Sum));
+    assertFalse(mq.determines(sort, job, sal1Sum));
+    assertTrue(mq.determines(sort, sal2SumPlusSal1SumPlus1, sal1Sum));
+    assertTrue(mq.determines(sort, sal2SumPlusSal1SumPlus1, sal2SumPlusSal1SumPlus1));
+    assertFalse(mq.determines(sort, sal2SumPlusSal1SumPlus1, job));
+
+    // check aggregate
+    Aggregate aggregate = (Aggregate) relNode.getInput(0).getInput(0);
+    int deptnoGroupByKey = 0;
+    int jobGroupByKey = 1;
+    int sal1SumAggCall = 2;
+    int sal2SumAggCall = 3;
+
+    assertFalse(mq.determines(aggregate, jobGroupByKey, deptnoGroupByKey));
+    assertTrue(mq.determines(aggregate, sal2SumAggCall, sal1SumAggCall));
   }
 
   @Test void testDerivedColumnOrigins() {
