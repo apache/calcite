@@ -3490,9 +3490,6 @@ public class SqlFunctions {
    * @throws IllegalArgumentException if {@code y} is negative
    */
   public static ByteString leftShift(ByteString bytes, int y) {
-    if (bytes == null) {
-      return null;
-    }
 
     // Convert ByteString to byte array
     byte[] byteArray = bytes.getBytes();
@@ -3514,9 +3511,6 @@ public class SqlFunctions {
    * @throws IllegalArgumentException if {@code y} is negative
    */
   public static byte[] leftShift(byte[] bytes, int y) {
-    if (bytes == null) {
-      return null;
-    }
     validateShiftCount(y);
 
     if (y == 0) {
