@@ -3432,7 +3432,7 @@ public class SqlFunctions {
   /**
    * Performs bitwise left shift on two integers.
    * Equivalent to: {@code (long)x << y}.
-   * Returns 0 if shift >= 64 (following BigQuery behavior).
+   * Returns 0 if shift {@code >= 64} (following BigQuery behavior).
    *
    * @throws IllegalArgumentException if {@code y} is negative.
    */
@@ -3449,7 +3449,7 @@ public class SqlFunctions {
   /**
    * Performs bitwise left shift on a long integer.
    * Returns {@code x << y}.
-   * Returns 0 if shift >= 64 (following BigQuery behavior).
+   * Returns 0 if shift {@code >= 64} (following BigQuery behavior).
    *
    * @throws IllegalArgumentException if {@code y} is negative.
    */
@@ -3466,7 +3466,7 @@ public class SqlFunctions {
   /**
    * Performs bitwise left shift with long shift amount.
    * Returns {@code x << y}.
-   * Returns 0 if shift >= 64 (following BigQuery behavior).
+   * Returns 0 if shift {@code >= 64} (following BigQuery behavior).
    *
    * @throws IllegalArgumentException if {@code y} is negative.
    */
