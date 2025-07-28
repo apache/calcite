@@ -164,7 +164,12 @@ public class FilterProjectTransposeRule
     CTEDefinationTrait cteDefinationTrait =
         filter.getTraitSet().getTrait(CTEDefinationTraitDef.instance);
     final Project project = call.rel(1);
-
+    SubQueryAliasTrait projectSubQueryAliasTrait =
+        project.getTraitSet().getTrait(SubQueryAliasTraitDef.instance);
+    if (projectSubQueryAliasTrait != null && !(filterSubQueryAliasTrait != null
+        && filterSubQueryAliasTrait.getSubQueryAlias().equals(projectSubQueryAliasTrait.getSubQueryAlias()))) {
+      return;
+    }
     if (project.containsOver()) {
       // In general a filter cannot be pushed below a windowing calculation.
       // Applying the filter before the aggregation function changes
