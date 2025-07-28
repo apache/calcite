@@ -28,6 +28,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Locale;
 import java.util.TimeZone;
 
 /**
@@ -62,52 +63,52 @@ public class SOQLBuilder {
       }
 
       switch (kind) {
-        case EQUALS:
-          return operands.get(0) + " = " + operands.get(1);
+      case EQUALS:
+        return operands.get(0) + " = " + operands.get(1);
 
-        case NOT_EQUALS:
-          return operands.get(0) + " != " + operands.get(1);
+      case NOT_EQUALS:
+        return operands.get(0) + " != " + operands.get(1);
 
-        case GREATER_THAN:
-          return operands.get(0) + " > " + operands.get(1);
+      case GREATER_THAN:
+        return operands.get(0) + " > " + operands.get(1);
 
-        case GREATER_THAN_OR_EQUAL:
-          return operands.get(0) + " >= " + operands.get(1);
+      case GREATER_THAN_OR_EQUAL:
+        return operands.get(0) + " >= " + operands.get(1);
 
-        case LESS_THAN:
-          return operands.get(0) + " < " + operands.get(1);
+      case LESS_THAN:
+        return operands.get(0) + " < " + operands.get(1);
 
-        case LESS_THAN_OR_EQUAL:
-          return operands.get(0) + " <= " + operands.get(1);
+      case LESS_THAN_OR_EQUAL:
+        return operands.get(0) + " <= " + operands.get(1);
 
-        case AND:
-          return "(" + String.join(" AND ", operands) + ")";
+      case AND:
+        return "(" + String.join(" AND ", operands) + ")";
 
-        case OR:
-          return "(" + String.join(" OR ", operands) + ")";
+      case OR:
+        return "(" + String.join(" OR ", operands) + ")";
 
-        case NOT:
-          return "NOT (" + operands.get(0) + ")";
+      case NOT:
+        return "NOT (" + operands.get(0) + ")";
 
-        case IS_NULL:
-          return operands.get(0) + " = null";
+      case IS_NULL:
+        return operands.get(0) + " = null";
 
-        case IS_NOT_NULL:
-          return operands.get(0) + " != null";
+      case IS_NOT_NULL:
+        return operands.get(0) + " != null";
 
-        case LIKE:
-          // SOQL uses LIKE with % wildcards
-          return operands.get(0) + " LIKE " + operands.get(1);
+      case LIKE:
+        // SOQL uses LIKE with % wildcards
+        return operands.get(0) + " LIKE " + operands.get(1);
 
-        case IN:
-          // First operand is the field, rest are values
-          String field = operands.get(0);
-          operands.remove(0);
-          return field + " IN (" + String.join(", ", operands) + ")";
+      case IN:
+        // First operand is the field, rest are values
+        String field = operands.get(0);
+        operands.remove(0);
+        return field + " IN (" + String.join(", ", operands) + ")";
 
-        default:
-          throw new UnsupportedOperationException(
-              "Operator not supported in SOQL: " + kind);
+      default:
+        throw new UnsupportedOperationException(
+            "Operator not supported in SOQL: " + kind);
       }
     }
 
@@ -126,41 +127,42 @@ public class SOQLBuilder {
       Object value = literal.getValue();
 
       switch (typeName) {
-        case VARCHAR:
-        case CHAR:
-          // Escape single quotes in strings
-          String str = value.toString().replace("'", "\\'");
-          return "'" + str + "'";
+      case VARCHAR:
+      case CHAR:
+        // Escape single quotes in strings
+        String str = value.toString().replace("'", "\\'");
+        return "'" + str + "'";
 
-        case BOOLEAN:
-          return value.toString();
+      case BOOLEAN:
+        return value.toString();
 
-        case INTEGER:
-        case BIGINT:
-        case SMALLINT:
-        case TINYINT:
-        case DECIMAL:
-        case DOUBLE:
-        case FLOAT:
-          return value.toString();
+      case INTEGER:
+      case BIGINT:
+      case SMALLINT:
+      case TINYINT:
+      case DECIMAL:
+      case DOUBLE:
+      case FLOAT:
+        return value.toString();
 
-        case DATE:
-          // Format: YYYY-MM-DD
-          Calendar cal = (Calendar) value;
-          SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-          dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-          return dateFormat.format(cal.getTime());
+      case DATE:
+        // Format: YYYY-MM-DD
+        Calendar cal = (Calendar) value;
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.ROOT);
+        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+        return dateFormat.format(cal.getTime());
 
-        case TIMESTAMP:
-          // Format: YYYY-MM-DDTHH:MM:SS.sssZ
-          Calendar tsCal = (Calendar) value;
-          SimpleDateFormat tsFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-          tsFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-          return tsFormat.format(tsCal.getTime());
+      case TIMESTAMP:
+        // Format: YYYY-MM-DDTHH:MM:SS.sssZ
+        Calendar tsCal = (Calendar) value;
+        SimpleDateFormat tsFormat =
+            new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ROOT);
+        tsFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+        return tsFormat.format(tsCal.getTime());
 
-        default:
-          throw new UnsupportedOperationException(
-              "Literal type not supported in SOQL: " + typeName);
+      default:
+        throw new UnsupportedOperationException(
+            "Literal type not supported in SOQL: " + typeName);
       }
     }
   }

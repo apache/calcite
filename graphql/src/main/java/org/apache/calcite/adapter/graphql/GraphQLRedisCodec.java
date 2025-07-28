@@ -26,6 +26,10 @@ import java.nio.charset.StandardCharsets;
 
 import graphql.ExecutionResult;
 
+/**
+ * Redis codec for GraphQL ExecutionResult objects.
+ * Handles serialization and deserialization of GraphQL query results for Redis caching.
+ */
 public class GraphQLRedisCodec implements RedisCodec<String, ExecutionResult> {
   private final ObjectMapper objectMapper = new ObjectMapper();
 

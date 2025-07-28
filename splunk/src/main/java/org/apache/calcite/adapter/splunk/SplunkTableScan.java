@@ -37,9 +37,6 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.util.Util;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -148,8 +145,8 @@ public class SplunkTableScan
    */
   public SplunkTableScan withSearchParameters(String newSearch, String newEarliest,
       String newLatest, List<String> newFieldList) {
-    if (search.equals(newSearch) && earliest.equals(newEarliest) &&
-        latest.equals(newLatest) && fieldList.equals(newFieldList)) {
+    if (search.equals(newSearch) && earliest.equals(newEarliest)
+        && latest.equals(newLatest) && fieldList.equals(newFieldList)) {
       return this;
     }
     return new SplunkTableScan(getCluster(), table, splunkTable,

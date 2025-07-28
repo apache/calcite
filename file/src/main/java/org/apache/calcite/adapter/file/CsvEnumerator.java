@@ -29,9 +29,11 @@ import org.apache.calcite.util.trace.CalciteLogger;
 
 import org.apache.commons.lang3.time.FastDateFormat;
 
-import au.com.bytecode.opencsv.CSVReader;
-
 import com.google.common.annotations.VisibleForTesting;
+import com.opencsv.CSVParserBuilder;
+import com.opencsv.CSVReader;
+import com.opencsv.CSVReaderBuilder;
+import com.opencsv.exceptions.CsvValidationException;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.LoggerFactory;
@@ -111,7 +113,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
         this.reader = openCsv(source);
       }
       this.reader.readNext(); // skip header row
-    } catch (IOException e) {
+    } catch (IOException | CsvValidationException e) {
       throw new RuntimeException(e);
     }
   }
@@ -215,7 +217,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
           fieldTypes.add(fieldType);
         }
       }
-    } catch (IOException e) {
+    } catch (IOException | CsvValidationException e) {
       // ignore
     }
     if (names.isEmpty()) {
@@ -227,7 +229,13 @@ public class CsvEnumerator<E> implements Enumerator<E> {
 
   static CSVReader openCsv(Source source) throws IOException {
     requireNonNull(source, "source");
-    return new CSVReader(source.reader());
+    // Check if this is a TSV file based on the file extension
+    if (source.path().endsWith(".tsv")) {
+      return new CSVReaderBuilder(source.reader())
+          .withCSVParser(new CSVParserBuilder().withSeparator('\t').build())
+          .build();
+    }
+    return new CSVReaderBuilder(source.reader()).build();
   }
 
   @Override public E current() {
@@ -268,7 +276,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
         current = rowConverter.convertRow(strings);
         return true;
       }
-    } catch (IOException e) {
+    } catch (IOException | CsvValidationException e) {
       throw new RuntimeException(e);
     }
   }

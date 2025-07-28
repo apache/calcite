@@ -31,8 +31,17 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 
-public class CassandraSSLContext {
-  public static SSLContext createSSLContext(String pathToCert, String pathToPrivateKey, String keyPassword, String pathToRootCert) throws Exception {
+/**
+ * Utility class for creating SSL contexts for Cassandra connections.
+ */
+public final class CassandraSSLContext {
+
+  private CassandraSSLContext() {
+    // Utility class
+  }
+
+  public static SSLContext createSSLContext(String pathToCert, String pathToPrivateKey,
+      String keyPassword, String pathToRootCert) throws Exception {
     KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
     keyStore.load(null, null);
 
@@ -43,20 +52,26 @@ public class CassandraSSLContext {
       X509Certificate certificate = (X509Certificate) certFactory.generateCertificate(certFile);
 
       // Load the private key
-      String key = new String(Files.readAllBytes(Paths.get(pathToPrivateKey)), StandardCharsets.UTF_8);
-      key = key.replace("-----BEGIN PRIVATE KEY-----", "").replace("-----END PRIVATE KEY-----", "").replace("\\s", "");
+      String key =
+          new String(Files.readAllBytes(Paths.get(pathToPrivateKey)), StandardCharsets.UTF_8);
+      key = key.replace("-----BEGIN PRIVATE KEY-----", "")
+          .replace("-----END PRIVATE KEY-----", "").replace("\\s", "");
       byte[] keyBytes = Base64.getDecoder().decode(key);
       PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(keyBytes);
       KeyFactory keyFactory = KeyFactory.getInstance("RSA");
       PrivateKey privateKey = keyFactory.generatePrivate(keySpec);
 
       // Add the certificate and private key to the KeyStore
-      keyStore.setKeyEntry("alias", privateKey, keyPassword != null ? keyPassword.toCharArray() : new char[0], new java.security.cert.Certificate[]{certificate});
+      keyStore.setKeyEntry("alias", privateKey,
+          keyPassword != null ? keyPassword.toCharArray() : new char[0],
+          new java.security.cert.Certificate[]{certificate});
     }
 
     // Initialize KeyManagerFactory with the KeyStore
-    KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-    keyManagerFactory.init(keyStore, keyPassword != null ? keyPassword.toCharArray() : new char[0]);
+    KeyManagerFactory keyManagerFactory =
+        KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+    keyManagerFactory.init(keyStore,
+        keyPassword != null ? keyPassword.toCharArray() : new char[0]);
 
     // Load the root CA certificate if provided
     KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
@@ -69,12 +84,14 @@ public class CassandraSSLContext {
     }
 
     // Initialize TrustManagerFactory with the TrustStore
-    TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+    TrustManagerFactory trustManagerFactory =
+        TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
     trustManagerFactory.init(trustStore);
 
     // Initialize SSLContext with KeyManagers and TrustManagers
     SSLContext sslContext = SSLContext.getInstance("TLS");
-    sslContext.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), null);
+    sslContext.init(keyManagerFactory.getKeyManagers(),
+        trustManagerFactory.getTrustManagers(), null);
 
     return sslContext;
   }

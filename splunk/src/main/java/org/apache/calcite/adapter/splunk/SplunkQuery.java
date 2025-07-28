@@ -119,7 +119,8 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
     // Get the raw enumerator from the connection
     // With JSON, we pass schema field names directly - much simpler!
     Enumerator<T> rawEnumerator =
-        (Enumerator<T>) splunkConnection.getSearchResultEnumerator(search, getArgs(), fieldList, explicitFields, reverseMapping);
+        (Enumerator<T>) splunkConnection.getSearchResultEnumerator(search, getArgs(), fieldList,
+            explicitFields, reverseMapping);
 
     LOGGER.debug("SplunkQuery.enumerator() - JSON Mode");
     LOGGER.debug("  Query field list: {}", fieldList);
@@ -130,7 +131,8 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
     if (schema != null) {
       LOGGER.debug("  Creating SimpleTypeConverter...");
       // CRITICAL FIX: Pass the actual query field list so SimpleTypeConverter knows the array order
-      return (Enumerator<T>) new SimpleTypeConverter((Enumerator<Object>) rawEnumerator, schema, fieldList);
+      return (Enumerator<T>) new SimpleTypeConverter((Enumerator<Object>) rawEnumerator,
+          schema, fieldList);
     }
 
     LOGGER.debug("  Using raw enumerator (no schema conversion)");
@@ -205,7 +207,8 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
     private final List<String> queryFieldList; // ADDED: The actual field order in the array
     private int rowCount = 0;
 
-    public SimpleTypeConverter(Enumerator<Object> underlying, RelDataType schema, List<String> queryFieldList) {
+    SimpleTypeConverter(Enumerator<Object> underlying, RelDataType schema,
+        List<String> queryFieldList) {
       this.underlying = underlying;
       this.schema = schema;
       this.queryFieldList = queryFieldList;
@@ -221,7 +224,8 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
         String fieldName = queryFieldList.get(i);
         RelDataTypeField schemaField = schema.getField(fieldName, false, false);
         if (schemaField != null) {
-          LOGGER.debug("    [{}] = {} ({})", i, fieldName, schemaField.getType().getSqlTypeName());
+          LOGGER.debug("    [{}] = {} ({})", i, fieldName,
+              schemaField.getType().getSqlTypeName());
         } else {
           LOGGER.debug("    [{}] = {} (field not found in schema)", i, fieldName);
         }
@@ -276,7 +280,8 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
             LOGGER.debug("  [{}] {}: '{}' ({})", i, fieldName, value, valueType);
 
             // Flag any type mismatches
-            if (field != null && field.getType().getSqlTypeName() == SqlTypeName.INTEGER && value instanceof String) {
+            if (field != null && field.getType().getSqlTypeName() == SqlTypeName.INTEGER
+                && value instanceof String) {
               LOGGER.warn("    *** WARNING: INTEGER field has String value ***");
             }
           }
@@ -291,7 +296,8 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
     /**
      * Convert a row using the query field mapping instead of assuming schema order.
      */
-    private Object[] convertRowWithFieldMapping(Object[] inputRow, RelDataType schema, List<String> queryFieldList) {
+    private Object[] convertRowWithFieldMapping(Object[] inputRow, RelDataType schema,
+        List<String> queryFieldList) {
       Object[] result = new Object[inputRow.length];
 
       for (int i = 0; i < Math.min(inputRow.length, queryFieldList.size()); i++) {

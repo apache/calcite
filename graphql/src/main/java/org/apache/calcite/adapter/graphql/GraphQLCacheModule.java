@@ -31,6 +31,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -149,7 +150,7 @@ public class GraphQLCacheModule {
       byte[] hash = digest.digest(keyBuilder.getBytes(StandardCharsets.UTF_8));
       StringBuilder hexString = new StringBuilder();
       for (byte b : hash) {
-        hexString.append(String.format("%02x", b));
+        hexString.append(String.format(Locale.ROOT, "%02x", b));
       }
       return hexString.toString();
     } catch (NoSuchAlgorithmException e) {

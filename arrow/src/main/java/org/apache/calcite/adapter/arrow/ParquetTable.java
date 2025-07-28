@@ -213,7 +213,8 @@ public class ParquetTable extends AbstractTable
         throw new UnsupportedOperationException("Unsupported Parquet type: " + parquetType);
       }
     } else {
-      throw new UnsupportedOperationException("Complex Parquet types not supported: " + parquetType);
+      throw new UnsupportedOperationException(
+          "Complex Parquet types not supported: " + parquetType);
     }
   }
 }

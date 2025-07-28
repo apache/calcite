@@ -67,6 +67,7 @@ include(
     "babel",
     "cassandra",
     "core",
+    "csv-nextgen",
     "druid",
     "elasticsearch",
     "example:csv",

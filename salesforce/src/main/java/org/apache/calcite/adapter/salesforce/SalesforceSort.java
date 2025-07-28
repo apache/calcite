@@ -72,12 +72,12 @@ public class SalesforceSort extends Sort implements SalesforceRel {
         // Handle nulls direction if specified
         String nullsDirection = "";
         switch (fieldCollation.nullDirection) {
-          case FIRST:
-            nullsDirection = " NULLS FIRST";
-            break;
-          case LAST:
-            nullsDirection = " NULLS LAST";
-            break;
+        case FIRST:
+          nullsDirection = " NULLS FIRST";
+          break;
+        case LAST:
+          nullsDirection = " NULLS LAST";
+          break;
         }
 
         orderByItems.add(fieldName + " " + direction + nullsDirection);

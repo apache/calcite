@@ -66,13 +66,14 @@ import java.util.Set;
  * <pre>{@code
  * String customTablesJson = "[{\"name\":\"alerts\",\"columns\":[...]}]";
  * String encodedJson = URLEncoder.encode(customTablesJson, "UTF-8");
- * String url = "jdbc:splunk:url=https://localhost:8089;user=admin;password=changeme;customTables=" + encodedJson;
+ * String url = "jdbc:splunk:url=https://localhost:8089;user=admin;password=changeme;
+ * customTables=" + encodedJson;
  * }</pre>
  */
 public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
   private static final Logger LOGGER = LoggerFactory.getLogger(SplunkDriver.class);
 
-  protected SplunkDriver() {
+  public SplunkDriver() {
     super();
   }
 
@@ -83,18 +84,15 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
     new SplunkDriver().register();
   }
 
-  @Override
-  protected String getConnectStringPrefix() {
+  @Override protected String getConnectStringPrefix() {
     return "jdbc:splunk:";
   }
 
-  @Override
-  protected DriverVersion createDriverVersion() {
+  @Override protected DriverVersion createDriverVersion() {
     return new SplunkDriverVersion();
   }
 
-  @Override
-  public Connection connect(String url, Properties info)
+  @Override public Connection connect(String url, Properties info)
       throws SQLException {
     Connection connection = super.connect(url, info);
     CalciteConnection calciteConnection = (CalciteConnection) connection;
@@ -111,8 +109,8 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
       createEnhancedSchema(calciteConnection, props, splunkConnection);
 
       if (props.debug) {
-        LOGGER.info("Successfully created enhanced Splunk connection with features: " +
-                "models={}, customTables={}, defaultTimeRange={}",
+        LOGGER.info("Successfully created enhanced Splunk connection with features: "
+                + "models={}, customTables={}, defaultTimeRange={}",
             props.models, props.customTables.size(),
             props.defaultTimeRange);
       }
@@ -162,12 +160,12 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
     }
 
     boolean hasToken = props.token != null && !props.token.trim().isEmpty();
-    boolean hasCredentials = props.user != null && props.password != null &&
-        !props.user.trim().isEmpty() && !props.password.trim().isEmpty();
+    boolean hasCredentials = props.user != null && props.password != null
+        && !props.user.trim().isEmpty() && !props.password.trim().isEmpty();
 
     if (!hasToken && !hasCredentials) {
-      throw new SQLException("Must specify either 'token' or both 'user' and 'password' " +
-              "properties");
+      throw new SQLException("Must specify either 'token' or both 'user' and 'password' "
+              + "properties");
     }
   }
 
@@ -300,7 +298,8 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
    * @param customTablesJson the JSON string containing table definitions (can be null or empty)
    * @return non-null list of custom table definitions (empty if no valid tables found)
    */
-  private List<Map<String, Object>> parseCustomTables(@Nullable String customTablesJson) throws SQLException {
+  private List<Map<String, Object>> parseCustomTables(@Nullable String customTablesJson)
+      throws SQLException {
     List<Map<String, Object>> customTables = new ArrayList<>();
 
     if (customTablesJson != null && !customTablesJson.trim().isEmpty()) {
@@ -342,8 +341,8 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
       // Validate table name
       Object name = table.get("name");
       if (!(name instanceof String) || ((String) name).trim().isEmpty()) {
-        throw new SQLException("Custom table at index " + i + " must have a non-empty 'name' " +
-                "property");
+        throw new SQLException("Custom table at index " + i + " must have a non-empty 'name' "
+                + "property");
       }
 
       // Validate columns
@@ -364,14 +363,14 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
 
         Object columnName = column.get("name");
         if (!(columnName instanceof String) || ((String) columnName).trim().isEmpty()) {
-          throw new SQLException("Column at index " + j + " in table '" + name + "' must have a " +
-                  "non-empty 'name' property");
+          throw new SQLException("Column at index " + j + " in table '" + name
+                  + "' must have a non-empty 'name' property");
         }
 
         Object columnType = column.get("type");
         if (!(columnType instanceof String) || ((String) columnType).trim().isEmpty()) {
-          throw new SQLException("Column '" + columnName + "' in table '" + name + "' must have a" +
-                  " non-empty 'type' property");
+          throw new SQLException("Column '" + columnName + "' in table '" + name
+                  + "' must have a non-empty 'type' property");
         }
       }
     }

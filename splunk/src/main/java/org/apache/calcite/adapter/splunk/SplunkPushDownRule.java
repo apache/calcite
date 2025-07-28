@@ -47,6 +47,7 @@ import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -142,8 +143,7 @@ public class SplunkPushDownRule
 
   // ~ Methods --------------------------------------------------------------
 
-  @Override
-  public void onMatch(RelOptRuleCall call) {
+  @Override public void onMatch(RelOptRuleCall call) {
     LOGGER.debug(description);
 
     int relLength = call.rels.length;
@@ -372,7 +372,8 @@ public class SplunkPushDownRule
 
     // If this looks like a timestamp and we're comparing against a time field,
     // convert to epoch seconds regardless of the literal's declared type
-    if (isTimeComparison && (SqlTypeName.DATETIME_TYPES.contains(literalType) || isLikelyTimestamp(literalValue))) {
+    if (isTimeComparison && (SqlTypeName.DATETIME_TYPES.contains(literalType)
+        || isLikelyTimestamp(literalValue))) {
       try {
         long epochSeconds = convertToEpochSeconds(literalValue);
         LOGGER.debug("Converted timestamp for time field comparison: {}", epochSeconds);
@@ -426,16 +427,16 @@ public class SplunkPushDownRule
       return false;
     }
 
-    String lowerFieldName = fieldName.toLowerCase();
-    return lowerFieldName.equals("_time") ||
-        lowerFieldName.contains("time") ||
-        lowerFieldName.contains("timestamp") ||
-        lowerFieldName.contains("date") ||
-        lowerFieldName.equals("created_at") ||
-        lowerFieldName.equals("updated_at") ||
-        lowerFieldName.endsWith("_at") ||
-        lowerFieldName.endsWith("_date") ||
-        lowerFieldName.endsWith("_time");
+    String lowerFieldName = fieldName.toLowerCase(Locale.ROOT);
+    return lowerFieldName.equals("_time")
+        || lowerFieldName.contains("time")
+        || lowerFieldName.contains("timestamp")
+        || lowerFieldName.contains("date")
+        || lowerFieldName.equals("created_at")
+        || lowerFieldName.equals("updated_at")
+        || lowerFieldName.endsWith("_at")
+        || lowerFieldName.endsWith("_date")
+        || lowerFieldName.endsWith("_time");
   }
 
   /**
@@ -533,10 +534,10 @@ public class SplunkPushDownRule
    * Determines if a value is likely a timestamp, regardless of its Java type.
    */
   private static boolean isLikelyTimestamp(Object value) {
-    if (value instanceof java.sql.Timestamp ||
-        value instanceof java.sql.Date ||
-        value instanceof java.util.Date ||
-        value instanceof java.util.Calendar) {
+    if (value instanceof java.sql.Timestamp
+        || value instanceof java.sql.Date
+        || value instanceof java.util.Date
+        || value instanceof java.util.Calendar) {
       return true;
     }
 
@@ -547,8 +548,8 @@ public class SplunkPushDownRule
     }
 
     if (value instanceof String || value instanceof NlsString) {
-      String strValue = value instanceof NlsString ?
-          ((NlsString) value).getValue() : value.toString();
+      String strValue = value instanceof NlsString
+          ? ((NlsString) value).getValue() : value.toString();
       return isTimestampString(strValue);
     }
 
@@ -611,12 +612,12 @@ public class SplunkPushDownRule
     }
 
     // Reuse the same pattern from StatementPreparer (line 75)
-    Pattern utcPattern = Pattern.compile("^\\d{4}-\\d{1,2}-\\d{1,2}([T\\s]\\d{2}:\\d{2}:\\d{2}(\\" +
-        ".\\d{3}))Z$");
+    Pattern utcPattern = Pattern.compile("^\\d{4}-\\d{1,2}-\\d{1,2}([T\\s]\\d{2}:\\d{2}:\\d{2}(\\"
+        + ".\\d{3}))Z$");
 
-    return utcPattern.matcher(str).matches() ||
-        str.matches("\\d{4}-\\d{2}-\\d{2}") ||           // Date only
-        str.matches("\\d{10,13}");                       // Epoch seconds/milliseconds
+    return utcPattern.matcher(str).matches()
+        || str.matches("\\d{4}-\\d{2}-\\d{2}")           // Date only
+        || str.matches("\\d{10,13}");                       // Epoch seconds/milliseconds
   }
 
   private static long parseTimestampToEpochSeconds(String timestampStr) throws Exception {
@@ -632,7 +633,7 @@ public class SplunkPushDownRule
 
     // Use the same RFC formatters as StatementPreparer
     java.time.format.DateTimeFormatter rfcFormatter =
-        java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSX");
+        java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSX", Locale.ROOT);
     java.time.format.DateTimeFormatter rfc3339Formatter =
         new java.time.format.DateTimeFormatterBuilder()
             .parseCaseInsensitive()
@@ -641,7 +642,7 @@ public class SplunkPushDownRule
             .appendPattern(".SSS")
             .optionalEnd()
             .appendPattern("XXX")
-            .toFormatter();
+            .toFormatter(Locale.ROOT);
 
     try {
       // Try RFC formatters first (matching StatementPreparer logic)
@@ -965,8 +966,7 @@ public class SplunkPushDownRule
    */
   @Value.Immutable(singleton = false)
   public interface Config extends RelRule.Config {
-    @Override
-    default SplunkPushDownRule toRule() {
+    @Override default SplunkPushDownRule toRule() {
       return new SplunkPushDownRule(this);
     }
 

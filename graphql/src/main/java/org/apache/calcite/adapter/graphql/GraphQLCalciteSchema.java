@@ -29,7 +29,13 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import graphql.GraphQL;
-import graphql.schema.*;
+import graphql.schema.GraphQLFieldDefinition;
+import graphql.schema.GraphQLList;
+import graphql.schema.GraphQLNonNull;
+import graphql.schema.GraphQLObjectType;
+import graphql.schema.GraphQLOutputType;
+import graphql.schema.GraphQLSchema;
+import graphql.schema.GraphQLType;
 
 /**
  * Represents a Calcite schema that generates tables based on the types defined in a GraphQL schema.
@@ -47,14 +53,15 @@ public class GraphQLCalciteSchema extends AbstractSchema {
   private final Integer objectDepth;
   private final Boolean pseudoKeys;
 
-  private static final List<String> excludedNames =
+  private static final List<String> EXCLUDED_NAMES =
       Arrays.asList("Subscription", "Mutation", "Query", "__EnumValue", "__Field", "__InputValue",
       "__Schema", "__Type", "__Directive");
 
   public GraphQLCalciteSchema(GraphQL graphQL, SchemaPlus parentSchema,
       String name, String endpoint, @Nullable String role,
       @Nullable String auth, @Nullable String user,
-      @Nullable Map<String, Object> cacheConfig, @Nullable Integer objectDepth, @Nullable Boolean pseudoKeys) {
+      @Nullable Map<String, Object> cacheConfig, @Nullable Integer objectDepth,
+      @Nullable Boolean pseudoKeys) {
     this.graphQL = graphQL;
     this.parentSchema = parentSchema;
     this.name = name;
@@ -72,7 +79,8 @@ public class GraphQLCalciteSchema extends AbstractSchema {
   }
 
   /**
-   * Retrieves a map of table names to Table objects representing the tables based on types defined in the GraphQL schema.
+   * Retrieves a map of table names to Table objects representing the tables
+   * based on types defined in the GraphQL schema.
    *
    * @return a map of table names to Table objects
    */
@@ -81,16 +89,16 @@ public class GraphQLCalciteSchema extends AbstractSchema {
       tableMap = new HashMap<>();
       GraphQLSchema schema = graphQL.getGraphQLSchema();
       schema.getTypeMap().values().stream()
-          .filter(type -> type instanceof GraphQLObjectType &&
-              !excludedNames.contains(type.getName()) &&
-              !type.getName().endsWith("AggExp"))
+          .filter(type -> type instanceof GraphQLObjectType
+              && !EXCLUDED_NAMES.contains(type.getName())
+              && !type.getName().endsWith("AggExp"))
           .forEach(type -> {
             GraphQLObjectType objectType = (GraphQLObjectType) type;
 
             // Find all types that have a list reference to this type
             List<GraphQLObjectType> referencingTypes = schema.getTypeMap().values().stream()
                 .filter(t -> t instanceof GraphQLObjectType &&
-                    !excludedNames.contains(t.getName()) &&
+                    !EXCLUDED_NAMES.contains(t.getName()) &&
                     !t.getName().endsWith("AggExp"))
                 .map(t -> (GraphQLObjectType) t)
                 .filter(t -> hasListReferenceToType(t, objectType))

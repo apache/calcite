@@ -44,8 +44,10 @@ abstract class AbstractArrowEnumerator implements Enumerator<Object> {
   protected Object[] currentItem;
 
   AbstractArrowEnumerator(Object sourceReader, ImmutableIntList fields) {
-    this.arrowFileReader = sourceReader instanceof ArrowFileReader ? (ArrowFileReader) sourceReader : null;
-    this.parquetReader = sourceReader instanceof ParquetReader ? (ParquetReader) sourceReader : null;
+    this.arrowFileReader = sourceReader instanceof ArrowFileReader
+        ? (ArrowFileReader) sourceReader : null;
+    this.parquetReader = sourceReader instanceof ParquetReader
+        ? (ParquetReader) sourceReader : null;
     this.fields = fields;
     this.valueVectors = new ArrayList<>(fields.size());
     this.currRowIndex = -1;

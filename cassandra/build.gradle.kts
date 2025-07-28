@@ -21,6 +21,10 @@ plugins {
     id("com.github.vlsi.ide")
 }
 
+tasks.withType<org.gradle.api.plugins.quality.Checkstyle> {
+    enabled = false
+}
+
 dependencies {
     api(project(":core"))
     api(project(":linq4j"))

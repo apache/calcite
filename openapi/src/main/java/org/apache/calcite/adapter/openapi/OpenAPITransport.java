@@ -38,7 +38,9 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Locale;
 import java.util.Map;
 
 import static java.util.Objects.requireNonNull;
@@ -81,13 +83,13 @@ public class OpenAPITransport {
 
     LOGGER.debug("OpenAPI Request: {} {}", httpRequest.getMethod(), httpRequest.getURI());
 
-    try (org.apache.http.client.methods.CloseableHttpResponse response = httpClient.execute(httpRequest)) {
+    try (org.apache.http.client.methods.CloseableHttpResponse response =
+        httpClient.execute(httpRequest)) {
       if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
         String errorBody = EntityUtils.toString(response.getEntity());
         throw new RuntimeException(
-            String.format(
-            "API request failed with status %d: %s",
-            response.getStatusLine().getStatusCode(), errorBody));
+            "API request failed with status " + response.getStatusLine().getStatusCode()
+                + ": " + errorBody);
       }
 
       HttpEntity entity = response.getEntity();
@@ -104,7 +106,7 @@ public class OpenAPITransport {
 
   private HttpRequestBase buildHttpRequest(OpenAPIRequest request) throws IOException {
     try {
-      String method = request.getVariant().getHttpMethod().toUpperCase();
+      String method = request.getVariant().getHttpMethod().toUpperCase(Locale.ROOT);
       String path = buildPath(request);
       URI uri = new URIBuilder(baseUrl + path)
           .addParameters(request.getQueryParams())
@@ -202,7 +204,8 @@ public class OpenAPITransport {
     }
 
     String credentials = username + ":" + password;
-    String encoded = Base64.getEncoder().encodeToString(credentials.getBytes());
+    String encoded =
+        Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
     request.addHeader("Authorization", "Basic " + encoded);
   }
 

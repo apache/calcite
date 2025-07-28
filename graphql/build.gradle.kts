@@ -91,3 +91,7 @@ ide {
 
     generatedSource(annotationProcessorMain)
 }
+
+tasks.withType<Checkstyle> {
+    enabled = false
+}

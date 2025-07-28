@@ -33,7 +33,8 @@ public class SalesforceSchemaFactory implements SchemaFactory {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
-  @Override public Schema create(SchemaPlus parentSchema, String name, Map<String, Object> operand) {
+  @Override public Schema create(SchemaPlus parentSchema, String name,
+      Map<String, Object> operand) {
     String loginUrl = (String) operand.get("loginUrl");
     if (loginUrl == null) {
       loginUrl = "https://login.salesforce.com";
@@ -54,8 +55,8 @@ public class SalesforceSchemaFactory implements SchemaFactory {
     SalesforceConnection.AuthConfig authConfig;
     if (username != null && password != null) {
       // Username/password flow
-      authConfig =
-          SalesforceConnection.AuthConfig.usernamePassword(username, password, securityToken, clientId, clientSecret);
+      authConfig = SalesforceConnection.AuthConfig
+          .usernamePassword(username, password, securityToken, clientId, clientSecret);
     } else {
       // OAuth token flow
       String accessToken = (String) operand.get("accessToken");

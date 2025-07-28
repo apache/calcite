@@ -29,21 +29,18 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+/**
+ * Tests for JsonFlatteningDeserializer.
+ */
 class JsonFlatteningDeserializerTest {
   @Test void testDeserialize() throws IOException {
     String json = "{\n"
-  +
-        "  \"albumId\": 1,\n"
-  +
-        "  \"title\": \"For Those About To Rock We Salute You\",\n"
-  +
-        "  \"artist\": {\n"
-  +
-        "    \"name\": \"AC/DC\"\n"
-  +
-        "  }\n"
-  +
-        "}";
+        + "  \"albumId\": 1,\n"
+        + "  \"title\": \"For Those About To Rock We Salute You\",\n"
+        + "  \"artist\": {\n"
+        + "    \"name\": \"AC/DC\"\n"
+        + "  }\n"
+        + "}";
 
     ObjectMapper mapper = new ObjectMapper();
     SimpleModule module = new SimpleModule();
@@ -95,18 +92,12 @@ class JsonFlatteningDeserializerTest {
 
   @Test void testDeserializeWithArray() throws IOException {
     String json = "{\n"
-  +
-        "  \"albumId\": 1,\n"
-  +
-        "  \"tracks\": [\n"
-  +
-        "    {\"name\": \"Track 1\"},\n"
-  +
-        "    {\"name\": \"Track 2\"}\n"
-  +
-        "  ]\n"
-  +
-        "}";
+        + "  \"albumId\": 1,\n"
+        + "  \"tracks\": [\n"
+        + "    {\"name\": \"Track 1\"},\n"
+        + "    {\"name\": \"Track 2\"}\n"
+        + "  ]\n"
+        + "}";
 
     ObjectMapper mapper = new ObjectMapper();
     SimpleModule module = new SimpleModule();

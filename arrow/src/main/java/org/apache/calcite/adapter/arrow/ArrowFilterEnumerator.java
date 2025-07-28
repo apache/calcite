@@ -53,15 +53,15 @@ class ArrowFilterEnumerator extends AbstractArrowEnumerator {
     this.filter = filter;
   }
 
-  @Override
-  void evaluateOperator(ArrowRecordBatch arrowRecordBatch) {
+  @Override void evaluateOperator(ArrowRecordBatch arrowRecordBatch) {
     try {
       if (sourceReader instanceof ArrowFileReader) {
         this.buf = this.allocator.buffer((long) arrowRecordBatch.getLength() * 2);
         this.selectionVector = new SelectionVectorInt16(buf);
         ((Filter) filter).evaluate(arrowRecordBatch, selectionVector);
       } else {
-        // For Parquet, filtering is typically done during reading, so we don't need to do anything here
+        // For Parquet, filtering is typically done during reading,
+        // so we don't need to do anything here
       }
     } catch (GandivaException e) {
       throw Util.toUnchecked(e);

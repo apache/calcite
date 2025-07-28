@@ -76,8 +76,9 @@ public class OpenAPITableScan extends TableScan implements OpenAPIRel {
   @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     // Estimate cost based on projected fields
-    final float projectionFactor = projectRowType == null ? 1f :
-        (float) projectRowType.getFieldCount() / 100f;
+    final float projectionFactor =
+        projectRowType == null ? 1f
+            : (float) projectRowType.getFieldCount() / 100f;
     return super.computeSelfCost(planner, mq).multiplyBy(0.1 * projectionFactor);
   }
 

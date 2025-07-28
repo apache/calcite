@@ -25,13 +25,18 @@ import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 import java.util.Map;
 
 /**
  * Enhanced HTTP utilities with proper authentication error detection and handling.
  * Extends the base HttpUtils functionality with Splunk-specific error handling.
  */
-public class EnhancedHttpUtils {
+public final class EnhancedHttpUtils {
+
+  private EnhancedHttpUtils() {
+    // Utility class, prevent instantiation
+  }
 
   /**
    * Posts data to a URL with authentication error detection.
@@ -139,7 +144,10 @@ public class EnhancedHttpUtils {
       InputStream errorStream = connection.getErrorStream();
       if (errorStream != null) {
         byte[] errorBytes = errorStream.readAllBytes();
-        return new String(errorBytes, StandardCharsets.UTF_8);
+        if (errorBytes != null) {
+          return StandardCharsets.UTF_8.decode(java.nio.ByteBuffer.wrap(errorBytes)).toString();
+        }
+        return "";
       }
     } catch (IOException e) {
       // Ignore errors reading the error response
@@ -161,7 +169,8 @@ public class EnhancedHttpUtils {
 
     try {
       // Use the existing HttpUtils.post method
-      return org.apache.calcite.runtime.HttpUtils.post(url, data, headers, connectTimeout, readTimeout);
+      return org.apache.calcite.runtime.HttpUtils.post(url, data, headers, connectTimeout,
+          readTimeout);
     } catch (RuntimeException e) {
       // Check if the RuntimeException is hiding an authentication error
       if (isAuthenticationError(e)) {
@@ -198,12 +207,12 @@ public class EnhancedHttpUtils {
     // Check the exception message
     String message = e.getMessage();
     if (message != null) {
-      String lowerMessage = message.toLowerCase();
-      if (lowerMessage.contains("401") ||
-          lowerMessage.contains("unauthorized") ||
-          lowerMessage.contains("authentication") ||
-          lowerMessage.contains("login required") ||
-          lowerMessage.contains("session expired")) {
+      String lowerMessage = message.toLowerCase(Locale.ROOT);
+      if (lowerMessage.contains("401")
+          || lowerMessage.contains("unauthorized")
+          || lowerMessage.contains("authentication")
+          || lowerMessage.contains("login required")
+          || lowerMessage.contains("session expired")) {
         return true;
       }
     }

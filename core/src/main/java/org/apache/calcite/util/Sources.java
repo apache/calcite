@@ -21,20 +21,6 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.RemovalCause;
 import com.google.common.io.CharSource;
-import com.github.benmanes.caffeine.cache.Cache;
-import org.redisson.api.RedissonClient;
-import org.redisson.Redisson;
-import org.redisson.config.Config;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
-import com.github.benmanes.caffeine.cache.CacheLoader;
-import org.redisson.api.RMapCache;
-import com.github.benmanes.caffeine.cache.RemovalCause;
-
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.redisson.Redisson;
@@ -60,7 +46,6 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPInputStream;
-import java.util.function.Function;
 
 import static java.util.Objects.requireNonNull;
 
@@ -74,7 +59,7 @@ public abstract class Sources {
   static byte[] readAllBytes(InputStream in) throws IOException {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     byte[] buffer = new byte[1024];
-    for (int len; (len = in.read(buffer)) != -1; ) {
+    for (int len; (len = in.read(buffer)) != -1;) {
       out.write(buffer, 0, len);
     }
     return out.toByteArray();
@@ -165,63 +150,51 @@ public abstract class Sources {
           String.format(Locale.ROOT, "Invalid operation for '%s' protocol", protocol()));
     }
 
-    @Override
-    public URL url() {
+    @Override public URL url() {
       throw unsupported();
     }
 
-    @Override
-    public File file() {
+    @Override public File file() {
       throw unsupported();
     }
 
-    @Override
-    public Optional<File> fileOpt() {
+    @Override public Optional<File> fileOpt() {
       return Optional.empty();
     }
 
-    @Override
-    public String path() {
+    @Override public String path() {
       throw unsupported();
     }
 
-    @Override
-    public Reader reader() throws IOException {
+    @Override public Reader reader() throws IOException {
       return charSource.openStream();
     }
 
-    @Override
-    public InputStream openStream() throws IOException {
+    @Override public InputStream openStream() throws IOException {
       return charSource.asByteSource(StandardCharsets.UTF_8).openStream();
     }
 
-    @Override
-    public String protocol() {
+    @Override public String protocol() {
       return "memory";
     }
 
-    @Override
-    public Source trim(final String suffix) {
+    @Override public Source trim(final String suffix) {
       throw unsupported();
     }
 
-    @Override
-    public @Nullable Source trimOrNull(final String suffix) {
+    @Override public @Nullable Source trimOrNull(final String suffix) {
       throw unsupported();
     }
 
-    @Override
-    public Source append(final Source child) {
+    @Override public Source append(final Source child) {
       throw unsupported();
     }
 
-    @Override
-    public Source relative(final Source source) {
+    @Override public Source relative(final Source source) {
       throw unsupported();
     }
 
-    @Override
-    public String toString() {
+    @Override public String toString() {
       return getClass().getSimpleName() + "{" + protocol() + "}";
     }
   }
@@ -252,8 +225,7 @@ public abstract class Sources {
         } catch (IOException e) {
           throw new IOException(e);
         }
-      }
-      else if (key.startsWith("file://")) {
+      } else if (key.startsWith("file://")) {
         try (InputStream in = Files.newInputStream(Paths.get(new URI(key)))) {
           return readAllBytes(in);
         } catch (IOException e) {
@@ -261,8 +233,7 @@ public abstract class Sources {
         } catch (URISyntaxException e) {
           throw new IOException(e);
         }
-      }
-      else {
+      } else {
         try (InputStream in = Files.newInputStream(Paths.get(key))) {
           return readAllBytes(in);
         } catch (IOException e) {
@@ -281,7 +252,8 @@ public abstract class Sources {
         try {
           maximumSize = Long.parseLong(maxsizeEnv);
         } catch (NumberFormatException e) {
-          System.err.println("Invalid number format for FILE_CACHE_MAXIMUM_SIZE. Falling back to default...");
+          System.err.println("Invalid number format for FILE_CACHE_MAXIMUM_SIZE. "
+              + "Falling back to default...");
         }
       }
 
@@ -289,7 +261,8 @@ public abstract class Sources {
         try {
           expireTime = Long.parseLong(expireTimeEnv);
         } catch (NumberFormatException e) {
-          System.err.println("Invalid number format for FILE_CACHE_EXPIRE_TIME. Falling back to default...");
+          System.err.println("Invalid number format for FILE_CACHE_EXPIRE_TIME. "
+              + "Falling back to default...");
         }
       }
       if (useRedis) {
@@ -314,10 +287,11 @@ public abstract class Sources {
                 // Read data from file, database, etc. using key
                 // then return the data
                 try {
-                  return loadDataFromExternalResource(key); //this function should implement logic to return byte[] for a specific key
+                  return loadDataFromExternalResource(key);
+                  // this function should implement logic to return byte[] for a specific key
                 } catch (IOException e) {
                   throw new RuntimeException("Exception loading data", e);
-                } //this function should implement logic to return byte[] for a specific key
+                } // this function should implement logic to return byte[] for a specific key
               }
             });
       } else {
@@ -329,10 +303,11 @@ public abstract class Sources {
                 // Read data from file, database, etc. using key
                 // then return the data
                 try {
-                  return loadDataFromExternalResource(key); //this function should implement logic to return byte[] for a specific key
+                  return loadDataFromExternalResource(key);
+                  // this function should implement logic to return byte[] for a specific key
                 } catch (IOException e) {
                   throw new RuntimeException("Exception loading data", e);
-                } //this function should implement logic to return byte[] for a specific key
+                } // this function should implement logic to return byte[] for a specific key
               }
             }); // Update this line with your cache loading logic if not using Redis
       }
@@ -425,21 +400,18 @@ public abstract class Sources {
       return (urlGenerated ? fileNonNull() : url).toString();
     }
 
-    @Override
-    public URL url() {
+    @Override public URL url() {
       return url;
     }
 
-    @Override
-    public File file() {
+    @Override public File file() {
       if (file == null) {
         throw new UnsupportedOperationException();
       }
       return file;
     }
 
-    @Override
-    public Optional<File> fileOpt() {
+    @Override public Optional<File> fileOpt() {
       return Optional.ofNullable(file);
     }
 
@@ -450,8 +422,7 @@ public abstract class Sources {
       return file != null ? "file" : url.getProtocol();
     }
 
-    @Override
-    public String path() {
+    @Override public String path() {
       if (file != null) {
         return file.getPath();
       }
@@ -466,8 +437,7 @@ public abstract class Sources {
       }
     }
 
-    @Override
-    public Reader reader() throws IOException {
+    @Override public Reader reader() throws IOException {
       final InputStream is;
       if (path().endsWith(".gz")) {
         final InputStream fis = openStream();
@@ -492,8 +462,7 @@ public abstract class Sources {
       }
     }
 
-    @Override
-    public Source trim(String suffix) {
+    @Override public Source trim(String suffix) {
       Source x = trimOrNull(suffix);
       return x == null ? this : x;
     }
@@ -541,8 +510,7 @@ public abstract class Sources {
       }
     }
 
-    @Override
-    public Source relative(Source parent) {
+    @Override public Source relative(Source parent) {
       if (isFile(parent)) {
         if (isFile(this)
             && fileNonNull().getPath().startsWith(parent.file().getPath())) {

@@ -51,8 +51,9 @@ class OpenAPIEnumerators {
    * @param fields List of fields to extract, or null for all fields
    * @return Function that converts JsonNode to appropriate return type
    */
-  static org.apache.calcite.linq4j.function.Function1<com.fasterxml.jackson.databind.JsonNode, Object>
-  getter(List<Map.Entry<String, Class>> fields) {
+  static org.apache.calcite.linq4j.function.Function1<
+      com.fasterxml.jackson.databind.JsonNode, Object>
+      getter(List<Map.Entry<String, Class>> fields) {
 
     if (fields == null || fields.isEmpty()) {
       // Return the entire JSON object as a map
@@ -117,7 +118,8 @@ class OpenAPIEnumerators {
   /**
    * Converts a JsonNode to a specific Java type.
    */
-  private static Object convertJsonValue(com.fasterxml.jackson.databind.JsonNode node, Class targetClass) {
+  private static Object convertJsonValue(
+      com.fasterxml.jackson.databind.JsonNode node, Class targetClass) {
     Object value = convertJsonValue(node);
     if (value == null || targetClass.isInstance(value)) {
       return value;

@@ -36,12 +36,15 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
  * Connection to Salesforce REST API.
  */
 public class SalesforceConnection implements Closeable {
+
+  private static final String DESCRIBE_PATH = "/services/data/%s/sobjects/%s/describe";
 
   private final String loginUrl;
   private final AuthConfig authConfig;
@@ -146,8 +149,7 @@ public class SalesforceConnection implements Closeable {
    * Describe an sObject type.
    */
   public SObjectDescription describeSObject(String sObjectType) throws IOException {
-    String path =
-        String.format("/services/data/%s/sobjects/%s/describe", apiVersion, sObjectType);
+    String path = String.format(Locale.ROOT, DESCRIBE_PATH, apiVersion, sObjectType);
 
     HttpGet get = new HttpGet(instanceUrl + path);
     get.setHeader("Authorization", "Bearer " + accessToken);
@@ -169,7 +171,7 @@ public class SalesforceConnection implements Closeable {
    * Get list of all sObjects.
    */
   public List<SObjectBasicInfo> listSObjects() throws IOException {
-    String path = String.format("/services/data/%s/sobjects", apiVersion);
+    String path = String.format(Locale.ROOT, "/services/data/%s/sobjects", apiVersion);
 
     HttpGet get = new HttpGet(instanceUrl + path);
     get.setHeader("Authorization", "Bearer " + accessToken);
@@ -243,6 +245,9 @@ public class SalesforceConnection implements Closeable {
     }
   }
 
+  /**
+   * Authentication type for Salesforce connection.
+   */
   private enum AuthType {
     USERNAME_PASSWORD,
     ACCESS_TOKEN

@@ -29,7 +29,7 @@ dependencies {
     api("org.slf4j:slf4j-api")
 
     // CSV parsing (keeping for legacy SearchResultListener support)
-    implementation("net.sf.opencsv:opencsv")
+    implementation("com.opencsv:opencsv:5.7.1")
 
     // JSON parsing for new JSON-based enumerator
     implementation("com.fasterxml.jackson.core:jackson-databind:2.17.2")

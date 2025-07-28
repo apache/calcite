@@ -85,9 +85,9 @@ public class OpenAPITable extends AbstractQueryableTable implements Translatable
     OpenAPIConfig.Variant variant = findMatchingVariant(filters);
     if (variant == null) {
       throw new IllegalArgumentException(
-          "No endpoint variant supports filtering by: " + filters.keySet() +
-              ". Available variants require: " +
-              config.getVariants().stream()
+          "No endpoint variant supports filtering by: " + filters.keySet()
+              + ". Available variants require: "
+              + config.getVariants().stream()
                   .map(v -> v.getRequiredFilters().toString())
                   .reduce((a, b) -> a + ", " + b)
                   .orElse("none"));

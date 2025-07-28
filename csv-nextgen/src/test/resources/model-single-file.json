@@ -1,0 +1,26 @@
+{
+  "version": "1.0",
+  "defaultSchema": "csvnextgen_single",
+  "schemas": [
+    {
+      "name": "csvnextgen_single",
+      "type": "custom",
+      "factory": "org.apache.calcite.adapter.csvnextgen.CsvNextGenSchemaFactory",
+      "operand": {
+        "file": "src/test/resources/data/sales.csv",
+        "tableName": "sales_data",
+        "executionEngine": "vectorized",
+        "batchSize": 2048
+      }
+    },
+    {
+      "name": "csvnextgen_single_auto",
+      "type": "custom",
+      "factory": "org.apache.calcite.adapter.csvnextgen.CsvNextGenSchemaFactory",
+      "operand": {
+        "file": "src/test/resources/data/products.tsv",
+        "executionEngine": "arrow"
+      }
+    }
+  ]
+}

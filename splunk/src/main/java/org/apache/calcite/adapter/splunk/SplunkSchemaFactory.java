@@ -34,7 +34,9 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * Factory for creating Splunk schemas.
@@ -54,7 +56,13 @@ import java.util.Map;
  */
 public class SplunkSchemaFactory implements SchemaFactory {
 
-  @Override public Schema create(SchemaPlus parentSchema, String name, Map<String, Object> operand) {
+  // Patterns for normalizing table names
+  private static final Pattern NON_ALPHANUMERIC_PATTERN = Pattern.compile("[^a-z0-9_]");
+  private static final Pattern MULTIPLE_UNDERSCORES_PATTERN = Pattern.compile("_+");
+  private static final Pattern LEADING_TRAILING_UNDERSCORES_PATTERN = Pattern.compile("^_|_$");
+
+  @Override public Schema create(SchemaPlus parentSchema, String name,
+      Map<String, Object> operand) {
     RelDataTypeFactory typeFactory = new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     ImmutableMap.Builder<String, Table> tableBuilder = ImmutableMap.builder();
 
@@ -108,15 +116,15 @@ public class SplunkSchemaFactory implements SchemaFactory {
    */
   private void addCimModelTable(RelDataTypeFactory typeFactory, String cimModel,
       ImmutableMap.Builder<String, Table> tableBuilder) {
-      CimModelBuilder.CimSchemaResult result =
-          CimModelBuilder.buildCimSchemaWithMapping(typeFactory, cimModel);
+    CimModelBuilder.CimSchemaResult result =
+        CimModelBuilder.buildCimSchemaWithMapping(typeFactory, cimModel);
 
-      SplunkTable table =
-          new SplunkTable(result.getSchema(),
-          result.getFieldMapping(),
-          result.getSearchString());
+    SplunkTable table =
+        new SplunkTable(result.getSchema(),
+        result.getFieldMapping(),
+        result.getSearchString());
 
-      String tableName = normalizeTableName(cimModel);
+    String tableName = normalizeTableName(cimModel);
     tableBuilder.put(tableName, table);
   }
 
@@ -216,7 +224,7 @@ public class SplunkSchemaFactory implements SchemaFactory {
 
     SqlTypeName sqlType;
     try {
-      sqlType = SqlTypeName.valueOf(typeStr.toUpperCase());
+      sqlType = SqlTypeName.valueOf(typeStr.toUpperCase(Locale.ROOT));
     } catch (IllegalArgumentException e) {
       System.err.println("Warning: Unknown SQL type '" + typeStr + "' for field '"
           + fieldName + "'. Defaulting to VARCHAR.");
@@ -288,7 +296,8 @@ public class SplunkSchemaFactory implements SchemaFactory {
   private String getRequiredString(Map<String, Object> config, String key) {
     Object value = config.get(key);
     if (!(value instanceof String)) {
-      throw new IllegalArgumentException("Required parameter '" + key + "' is missing or not a string");
+      throw new IllegalArgumentException(
+          "Required parameter '" + key + "' is missing or not a string");
     }
     String str = (String) value;
     if (str.trim().isEmpty()) {
@@ -302,10 +311,11 @@ public class SplunkSchemaFactory implements SchemaFactory {
    * Converts to lowercase and replaces spaces/special chars with underscores.
    */
   private String normalizeTableName(String cimModel) {
-    return cimModel.toLowerCase()
-        .replaceAll("[^a-z0-9_]", "_")
-        .replaceAll("_+", "_")
-        .replaceAll("^_|_$", "");
+    String normalized = cimModel.toLowerCase(Locale.ROOT);
+    normalized = NON_ALPHANUMERIC_PATTERN.matcher(normalized).replaceAll("_");
+    normalized = MULTIPLE_UNDERSCORES_PATTERN.matcher(normalized).replaceAll("_");
+    normalized = LEADING_TRAILING_UNDERSCORES_PATTERN.matcher(normalized).replaceAll("");
+    return normalized;
   }
 
   /**
@@ -362,6 +372,6 @@ public class SplunkSchemaFactory implements SchemaFactory {
     Integer port = (Integer) operand.getOrDefault("port", 8089);
     String protocol = (String) operand.getOrDefault("protocol", "https");
 
-    return String.format("%s://%s:%d", protocol, host, port);
+    return String.format(Locale.ROOT, "%s://%s:%d", protocol, host, port);
   }
 }

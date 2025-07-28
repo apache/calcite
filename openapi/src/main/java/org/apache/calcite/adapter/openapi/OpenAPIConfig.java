@@ -43,9 +43,15 @@ public class OpenAPIConfig {
     this.defaultParams = defaultParams;
   }
 
-  public List<Variant> getVariants() { return variants; }
-  public Authentication getAuthentication() { return authentication; }
-  public Map<String, Object> getDefaultParams() { return defaultParams; }
+  public List<Variant> getVariants() {
+    return variants;
+  }
+  public Authentication getAuthentication() {
+    return authentication;
+  }
+  public Map<String, Object> getDefaultParams() {
+    return defaultParams;
+  }
 
   /**
    * Configuration for a specific API endpoint variant.
@@ -83,15 +89,33 @@ public class OpenAPIConfig {
       this.sortPushdown = sortPushdown;
     }
 
-    public String getName() { return name; }
-    public String getPath() { return path; }
-    public String getHttpMethod() { return httpMethod; }
-    public List<String> getRequiredFilters() { return requiredFilters; }
-    public List<String> getOptionalFilters() { return optionalFilters; }
-    public String getArrayPath() { return arrayPath; }
-    public Map<String, Object> getDefaultParams() { return defaultParams; }
-    public ProjectionPushdown getProjectionPushdown() { return projectionPushdown; }
-    public SortPushdown getSortPushdown() { return sortPushdown; }
+    public String getName() {
+      return name;
+    }
+    public String getPath() {
+      return path;
+    }
+    public String getHttpMethod() {
+      return httpMethod;
+    }
+    public List<String> getRequiredFilters() {
+      return requiredFilters;
+    }
+    public List<String> getOptionalFilters() {
+      return optionalFilters;
+    }
+    public String getArrayPath() {
+      return arrayPath;
+    }
+    public Map<String, Object> getDefaultParams() {
+      return defaultParams;
+    }
+    public ProjectionPushdown getProjectionPushdown() {
+      return projectionPushdown;
+    }
+    public SortPushdown getSortPushdown() {
+      return sortPushdown;
+    }
   }
 
   /**
@@ -115,10 +139,18 @@ public class OpenAPIConfig {
       this.template = template != null ? template : "{fields}";
     }
 
-    public String getParamName() { return paramName; }
-    public ParameterLocation getLocation() { return location; }
-    public ProjectionFormat getFormat() { return format; }
-    public String getTemplate() { return template; }
+    public String getParamName() {
+      return paramName;
+    }
+    public ParameterLocation getLocation() {
+      return location;
+    }
+    public ProjectionFormat getFormat() {
+      return format;
+    }
+    public String getTemplate() {
+      return template;
+    }
   }
 
   /**
@@ -144,17 +176,30 @@ public class OpenAPIConfig {
       this.location = location != null ? location : ParameterLocation.QUERY;
       this.directionParam = directionParam;
       this.format = format != null ? format : SortFormat.SEPARATE_PARAMS;
-      this.directionValues = directionValues != null ? directionValues :
-          Map.of("asc", "asc", "desc", "desc");
+      this.directionValues =
+          directionValues != null ? directionValues
+              : Map.of("asc", "asc", "desc", "desc");
       this.supportedColumns = supportedColumns;
     }
 
-    public String getParamName() { return paramName; }
-    public ParameterLocation getLocation() { return location; }
-    public String getDirectionParam() { return directionParam; }
-    public SortFormat getFormat() { return format; }
-    public Map<String, String> getDirectionValues() { return directionValues; }
-    public List<String> getSupportedColumns() { return supportedColumns; }
+    public String getParamName() {
+      return paramName;
+    }
+    public ParameterLocation getLocation() {
+      return location;
+    }
+    public String getDirectionParam() {
+      return directionParam;
+    }
+    public SortFormat getFormat() {
+      return format;
+    }
+    public Map<String, String> getDirectionValues() {
+      return directionValues;
+    }
+    public List<String> getSupportedColumns() {
+      return supportedColumns;
+    }
   }
 
   /**
@@ -181,17 +226,33 @@ public class OpenAPIConfig {
       this.credentials = credentials;
     }
 
-    public AuthType getType() { return type; }
-    public ParameterLocation getLocation() { return location; }
-    public String getParamName() { return paramName; }
-    public String getTemplate() { return template; }
-    public Map<String, String> getCredentials() { return credentials; }
+    public AuthType getType() {
+      return type;
+    }
+    public ParameterLocation getLocation() {
+      return location;
+    }
+    public String getParamName() {
+      return paramName;
+    }
+    public String getTemplate() {
+      return template;
+    }
+    public Map<String, String> getCredentials() {
+      return credentials;
+    }
   }
 
+  /**
+   * Locations where parameters can be placed in HTTP requests.
+   */
   public enum ParameterLocation {
     QUERY, HEADER, PATH, BODY
   }
 
+  /**
+   * Formats for field projection parameters.
+   */
   public enum ProjectionFormat {
     COMMA,        // "field1,field2,field3"
     JSON_ARRAY,   // ["field1","field2","field3"]
@@ -199,6 +260,9 @@ public class OpenAPIConfig {
     PIPE          // "field1|field2|field3"
   }
 
+  /**
+   * Formats for sort parameters in API requests.
+   */
   public enum SortFormat {
     SEPARATE_PARAMS,  // ?sort=name&order=desc
     PREFIX,           // ?sort=-name
@@ -208,6 +272,9 @@ public class OpenAPIConfig {
     SIMPLE            // ?orderBy=name or ?orderBy=-name
   }
 
+  /**
+   * Authentication types supported by the OpenAPI adapter.
+   */
   public enum AuthType {
     API_KEY, BASIC, OAUTH2, BEARER
   }

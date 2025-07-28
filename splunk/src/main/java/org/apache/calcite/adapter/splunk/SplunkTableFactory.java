@@ -111,8 +111,8 @@ public class SplunkTableFactory implements TableFactory<SplunkTable> {
   /**
    * Extracts field mapping from the operand map.
    * Supports two formats:
-   * 1. field_mapping: Map<String, String> where key=schema field, value=splunk field
-   * 2. field_mappings: List<String> with "schema_field:splunk_field" format
+   * 1. field_mapping: Map&lt;String, String&gt; where key=schema field, value=splunk field
+   * 2. field_mappings: List&lt;String&gt; with "schema_field:splunk_field" format
    */
   @SuppressWarnings("unchecked")
   private Map<String, String> extractFieldMapping(@Nullable Map<String, Object> operand) {
@@ -136,8 +136,8 @@ public class SplunkTableFactory implements TableFactory<SplunkTable> {
         }
       } catch (ClassCastException e) {
         // Log warning and continue with empty mapping
-        System.err.println("Warning: Invalid field_mapping format in table operand. " +
-            "Expected Map<String, String>, got: " + mappingObj.getClass());
+        System.err.println("Warning: Invalid field_mapping format in table operand. "
+            + "Expected Map<String, String>, got: " + mappingObj.getClass());
       }
     }
 
@@ -155,16 +155,16 @@ public class SplunkTableFactory implements TableFactory<SplunkTable> {
               fieldMapping.put(schemaField, splunkField);
             }
           } else {
-            System.err.println("Warning: Invalid field mapping format: '" + mapping +
-                "'. Expected 'schema_field:splunk_field'");
+            System.err.println("Warning: Invalid field mapping format: '" + mapping
+                + "'. Expected 'schema_field:splunk_field'");
           }
         }
       } catch (ClassCastException e) {
         // Log warning and continue
-        System.err.println("Warning: Invalid field_mappings format in table operand. " +
-            "Expected List<String>, got: " + mappingListObj.getClass());
+        System.err.println("Warning: Invalid field_mappings format in table operand. "
+            + "Expected List<String>, got: " + mappingListObj.getClass());
       }
-}
+    }
 
     return fieldMapping;
   }

@@ -1,0 +1,48 @@
+{
+  "version": "1.0",
+  "defaultSchema": "csvnextgen",
+  "schemas": [
+    {
+      "name": "csvnextgen",
+      "type": "custom",
+      "factory": "org.apache.calcite.adapter.csvnextgen.CsvNextGenSchemaFactory",
+      "operand": {
+        "directory": "src/test/resources/data",
+        "executionEngine": "vectorized",
+        "batchSize": 2048,
+        "tables": [
+          {
+            "name": "sales",
+            "file": "sales.csv",
+            "header": true
+          },
+          {
+            "name": "products", 
+            "file": "products.tsv",
+            "header": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "csvnextgen_linq4j",
+      "type": "custom", 
+      "factory": "org.apache.calcite.adapter.csvnextgen.CsvNextGenSchemaFactory",
+      "operand": {
+        "directory": "src/test/resources/data",
+        "executionEngine": "linq4j",
+        "batchSize": 1024
+      }
+    },
+    {
+      "name": "csvnextgen_arrow",
+      "type": "custom",
+      "factory": "org.apache.calcite.adapter.csvnextgen.CsvNextGenSchemaFactory", 
+      "operand": {
+        "directory": "src/test/resources/data",
+        "executionEngine": "arrow",
+        "batchSize": 4096
+      }
+    }
+  ]
+}

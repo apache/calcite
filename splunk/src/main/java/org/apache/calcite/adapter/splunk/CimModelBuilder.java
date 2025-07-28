@@ -21,6 +21,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -30,7 +31,11 @@ import java.util.Map;
  *
  * FIXED: All CIM fields are now properly nullable to match Splunk's sparse data model.
  */
-public class CimModelBuilder {
+public final class CimModelBuilder {
+
+  private CimModelBuilder() {
+    // Utility class, prevent instantiation
+  }
 
   /**
    * Result of building a CIM schema, containing both the schema and field mapping.
@@ -40,7 +45,8 @@ public class CimModelBuilder {
     private final Map<String, String> fieldMapping;
     private final String searchString;
 
-    public CimSchemaResult(RelDataType schema, Map<String, String> fieldMapping, String searchString) {
+    public CimSchemaResult(RelDataType schema, Map<String, String> fieldMapping,
+        String searchString) {
       this.schema = schema;
       this.fieldMapping = fieldMapping;
       this.searchString = searchString;
@@ -64,7 +70,8 @@ public class CimModelBuilder {
    * Base Splunk fields use typeFactory.createSqlType() directly (non-nullable by default).
    * CIM-specific fields and _extra use this helper to handle sparse data.
    */
-  private static RelDataType createNullableType(RelDataTypeFactory typeFactory, SqlTypeName typeName) {
+  private static RelDataType createNullableType(RelDataTypeFactory typeFactory,
+      SqlTypeName typeName) {
     return typeFactory.createTypeWithNullability(
         typeFactory.createSqlType(typeName), true);
   }
@@ -72,8 +79,9 @@ public class CimModelBuilder {
   /**
    * Builds a CIM schema for the specified model type.
    */
-  public static CimSchemaResult buildCimSchemaWithMapping(RelDataTypeFactory typeFactory, String cimModel) {
-    switch (cimModel.toLowerCase()) {
+  public static CimSchemaResult buildCimSchemaWithMapping(RelDataTypeFactory typeFactory,
+      String cimModel) {
+    switch (cimModel.toLowerCase(Locale.ROOT)) {
     case "alerts":
       return buildAlertsSchemaWithMapping(typeFactory);
     case "authentication":
@@ -159,9 +167,12 @@ public class CimModelBuilder {
         .add("sourcetype", typeFactory.createSqlType(SqlTypeName.VARCHAR))
 
         // Can be missing in certain scenarios
-        .add("index", createNullableType(typeFactory, SqlTypeName.VARCHAR)) // Missing in data models
-        .add("_raw", createNullableType(typeFactory, SqlTypeName.VARCHAR)) // Missing in summary data
-        .add("_extra", createNullableType(typeFactory, SqlTypeName.ANY)) // Empty when all fields mapped
+        // Missing in data models
+        .add("index", createNullableType(typeFactory, SqlTypeName.VARCHAR))
+        // Missing in summary data
+        .add("_raw", createNullableType(typeFactory, SqlTypeName.VARCHAR))
+        // Empty when all fields mapped
+        .add("_extra", createNullableType(typeFactory, SqlTypeName.ANY))
         .build();
 
     Map<String, String> fieldMapping = new HashMap<>();
@@ -169,7 +180,7 @@ public class CimModelBuilder {
   }
 
   /**
-   * Alerts CIM model schema - External alerting system events
+   * Alerts CIM model schema - External alerting system events.
    */
   private static CimSchemaResult buildAlertsSchemaWithMapping(RelDataTypeFactory typeFactory) {
     RelDataType schema = typeFactory.builder()
@@ -218,7 +229,8 @@ public class CimModelBuilder {
   /**
    * Authentication CIM model schema with field mapping.
    */
-  private static CimSchemaResult buildAuthenticationSchemaWithMapping(RelDataTypeFactory typeFactory) {
+  private static CimSchemaResult buildAuthenticationSchemaWithMapping(
+      RelDataTypeFactory typeFactory) {
     RelDataType schema = typeFactory.builder()
         // Base Splunk fields - index can be nullable in data models
         .add("_time", typeFactory.createSqlType(SqlTypeName.TIMESTAMP))
@@ -268,15 +280,19 @@ public class CimModelBuilder {
 
         // Status indicators - nullable
         .add("is_Failed_Authentication", createNullableType(typeFactory, SqlTypeName.INTEGER))
-        .add("is_not_Failed_Authentication", createNullableType(typeFactory, SqlTypeName.INTEGER))
-        .add("is_Successful_Authentication", createNullableType(typeFactory, SqlTypeName.INTEGER))
-        .add("is_not_Successful_Authentication", createNullableType(typeFactory, SqlTypeName.INTEGER))
+        .add("is_not_Failed_Authentication",
+            createNullableType(typeFactory, SqlTypeName.INTEGER))
+        .add("is_Successful_Authentication",
+            createNullableType(typeFactory, SqlTypeName.INTEGER))
+        .add("is_not_Successful_Authentication",
+            createNullableType(typeFactory, SqlTypeName.INTEGER))
         .add("is_Default_Authentication", createNullableType(typeFactory, SqlTypeName.INTEGER))
         .add("is_not_Default_Authentication", createNullableType(typeFactory, SqlTypeName.INTEGER))
         .add("is_Insecure_Authentication", createNullableType(typeFactory, SqlTypeName.INTEGER))
         .add("is_not_Insecure_Authentication", createNullableType(typeFactory, SqlTypeName.INTEGER))
         .add("is_Privileged_Authentication", createNullableType(typeFactory, SqlTypeName.INTEGER))
-        .add("is_not_Privileged_Authentication", createNullableType(typeFactory, SqlTypeName.INTEGER))
+        .add("is_not_Privileged_Authentication",
+            createNullableType(typeFactory, SqlTypeName.INTEGER))
 
         .add("_extra", createNullableType(typeFactory, SqlTypeName.ANY))
         .build();
@@ -322,15 +338,24 @@ public class CimModelBuilder {
 
     // Map status indicators
     fieldMapping.put("is_Failed_Authentication", "Authentication.is_Failed_Authentication");
-    fieldMapping.put("is_not_Failed_Authentication", "Authentication.is_not_Failed_Authentication");
-    fieldMapping.put("is_Successful_Authentication", "Authentication.is_Successful_Authentication");
-    fieldMapping.put("is_not_Successful_Authentication", "Authentication.is_not_Successful_Authentication");
-    fieldMapping.put("is_Default_Authentication", "Authentication.is_Default_Authentication");
-    fieldMapping.put("is_not_Default_Authentication", "Authentication.is_not_Default_Authentication");
-    fieldMapping.put("is_Insecure_Authentication", "Authentication.is_Insecure_Authentication");
-    fieldMapping.put("is_not_Insecure_Authentication", "Authentication.is_not_Insecure_Authentication");
-    fieldMapping.put("is_Privileged_Authentication", "Authentication.is_Privileged_Authentication");
-    fieldMapping.put("is_not_Privileged_Authentication", "Authentication.is_not_Privileged_Authentication");
+    fieldMapping.put("is_not_Failed_Authentication",
+        "Authentication.is_not_Failed_Authentication");
+    fieldMapping.put("is_Successful_Authentication",
+        "Authentication.is_Successful_Authentication");
+    fieldMapping.put("is_not_Successful_Authentication",
+        "Authentication.is_not_Successful_Authentication");
+    fieldMapping.put("is_Default_Authentication",
+        "Authentication.is_Default_Authentication");
+    fieldMapping.put("is_not_Default_Authentication",
+        "Authentication.is_not_Default_Authentication");
+    fieldMapping.put("is_Insecure_Authentication",
+        "Authentication.is_Insecure_Authentication");
+    fieldMapping.put("is_not_Insecure_Authentication",
+        "Authentication.is_not_Insecure_Authentication");
+    fieldMapping.put("is_Privileged_Authentication",
+        "Authentication.is_Privileged_Authentication");
+    fieldMapping.put("is_not_Privileged_Authentication",
+        "Authentication.is_not_Privileged_Authentication");
 
     String searchString = "| datamodel Authentication Authentication search";
     return new CimSchemaResult(schema, fieldMapping, searchString);
@@ -340,7 +365,8 @@ public class CimModelBuilder {
   /**
    * Network Traffic CIM model schema with field mapping.
    */
-  private static CimSchemaResult buildNetworkTrafficSchemaWithMapping(RelDataTypeFactory typeFactory) {
+  private static CimSchemaResult buildNetworkTrafficSchemaWithMapping(
+      RelDataTypeFactory typeFactory) {
     RelDataType schema = typeFactory.builder()
         // Base Splunk fields - index can be nullable in data models
         .add("_time", typeFactory.createSqlType(SqlTypeName.TIMESTAMP))
@@ -471,9 +497,10 @@ public class CimModelBuilder {
   }
 
   /**
-   * Certificates CIM model schema - SSL/TLS certificate data
+   * Certificates CIM model schema - SSL/TLS certificate data.
    */
-  private static CimSchemaResult buildCertificatesSchemaWithMapping(RelDataTypeFactory typeFactory) {
+  private static CimSchemaResult buildCertificatesSchemaWithMapping(
+      RelDataTypeFactory typeFactory) {
     RelDataType schema = typeFactory.builder()
         // Core Splunk metadata fields - always present
         .add("_time", typeFactory.createSqlType(SqlTypeName.TIMESTAMP))
@@ -524,7 +551,7 @@ public class CimModelBuilder {
   }
 
   /**
-   * Change CIM model schema - CRUD operations on systems
+   * Change CIM model schema - CRUD operations on systems.
    */
   private static CimSchemaResult buildChangeSchemaWithMapping(RelDataTypeFactory typeFactory) {
     RelDataType schema = typeFactory.builder()
@@ -577,7 +604,7 @@ public class CimModelBuilder {
   }
 
   /**
-   * Data Access CIM model schema - Shared data access monitoring
+   * Data Access CIM model schema - Shared data access monitoring.
    */
   private static CimSchemaResult buildDataAccessSchemaWithMapping(RelDataTypeFactory typeFactory) {
     RelDataType schema = typeFactory.builder()
@@ -618,7 +645,7 @@ public class CimModelBuilder {
   }
 
   /**
-   * Databases CIM model schema - Database events
+   * Databases CIM model schema - Database events.
    */
   private static CimSchemaResult buildDatabasesSchemaWithMapping(RelDataTypeFactory typeFactory) {
     RelDataType schema = typeFactory.builder()
@@ -669,9 +696,10 @@ public class CimModelBuilder {
   }
 
   /**
-   * Data Loss Prevention CIM model schema - DLP policy violations
+   * Data Loss Prevention CIM model schema - DLP policy violations.
    */
-  private static CimSchemaResult buildDataLossPreventionSchemaWithMapping(RelDataTypeFactory typeFactory) {
+  private static CimSchemaResult buildDataLossPreventionSchemaWithMapping(
+      RelDataTypeFactory typeFactory) {
     RelDataType schema = typeFactory.builder()
         // Core Splunk metadata fields - always present
         .add("_time", typeFactory.createSqlType(SqlTypeName.TIMESTAMP))
@@ -724,7 +752,7 @@ public class CimModelBuilder {
   }
 
   /**
-   * Email CIM model schema - Email traffic and filtering
+   * Email CIM model schema - Email traffic and filtering.
    */
   private static CimSchemaResult buildEmailSchemaWithMapping(RelDataTypeFactory typeFactory) {
     RelDataType schema = typeFactory.builder()
@@ -785,7 +813,7 @@ public class CimModelBuilder {
   }
 
   /**
-   * Endpoint CIM model schema - EDR events (replaces Application State)
+   * Endpoint CIM model schema - EDR events (replaces Application State).
    */
   private static CimSchemaResult buildEndpointSchemaWithMapping(RelDataTypeFactory typeFactory) {
     RelDataType schema = typeFactory.builder()
@@ -798,7 +826,8 @@ public class CimModelBuilder {
         // Can be missing in certain scenarios
         .add("index", createNullableType(typeFactory, SqlTypeName.VARCHAR))
 
-        // Endpoint-specific fields (processes, services, filesystem, registry, ports) - all nullable
+        // Endpoint-specific fields
+        // (processes, services, filesystem, registry, ports) - all nullable
         .add("action", createNullableType(typeFactory, SqlTypeName.VARCHAR))
         .add("dest", createNullableType(typeFactory, SqlTypeName.VARCHAR))
 
@@ -883,9 +912,10 @@ public class CimModelBuilder {
   }
 
   /**
-   * Event Signatures CIM model schema - Signature-based detection
+   * Event Signatures CIM model schema - Signature-based detection.
    */
-  private static CimSchemaResult buildEventSignaturesSchemaWithMapping(RelDataTypeFactory typeFactory) {
+  private static CimSchemaResult buildEventSignaturesSchemaWithMapping(
+      RelDataTypeFactory typeFactory) {
     RelDataType schema = typeFactory.builder()
         // Core Splunk metadata fields - always present
         .add("_time", typeFactory.createSqlType(SqlTypeName.TIMESTAMP))
@@ -924,9 +954,10 @@ public class CimModelBuilder {
   }
 
   /**
-   * Interprocess Messaging CIM model schema - IPC and message queues
+   * Interprocess Messaging CIM model schema - IPC and message queues.
    */
-  private static CimSchemaResult buildInterprocessMessagingSchemaWithMapping(RelDataTypeFactory typeFactory) {
+  private static CimSchemaResult buildInterprocessMessagingSchemaWithMapping(
+      RelDataTypeFactory typeFactory) {
     RelDataType schema = typeFactory.builder()
         // Core Splunk metadata fields - always present
         .add("_time", typeFactory.createSqlType(SqlTypeName.TIMESTAMP))
@@ -969,9 +1000,10 @@ public class CimModelBuilder {
   }
 
   /**
-   * Intrusion Detection CIM model schema - IDS/IPS alerts
+   * Intrusion Detection CIM model schema - IDS/IPS alerts.
    */
-  private static CimSchemaResult buildIntrusionDetectionSchemaWithMapping(RelDataTypeFactory typeFactory) {
+  private static CimSchemaResult buildIntrusionDetectionSchemaWithMapping(
+      RelDataTypeFactory typeFactory) {
     RelDataType schema = typeFactory.builder()
         // Core Splunk metadata fields - always present
         .add("_time", typeFactory.createSqlType(SqlTypeName.TIMESTAMP))
@@ -1028,7 +1060,7 @@ public class CimModelBuilder {
   }
 
   /**
-   * Inventory CIM model schema - Asset and network inventory
+   * Inventory CIM model schema - Asset and network inventory.
    */
   private static CimSchemaResult buildInventorySchemaWithMapping(RelDataTypeFactory typeFactory) {
     RelDataType schema = typeFactory.builder()
@@ -1060,7 +1092,7 @@ public class CimModelBuilder {
   }
 
   /**
-   * JVM CIM model schema - Java application performance
+   * JVM CIM model schema - Java application performance.
    */
   private static CimSchemaResult buildJvmSchemaWithMapping(RelDataTypeFactory typeFactory) {
     RelDataType schema = typeFactory.builder()
@@ -1098,7 +1130,7 @@ public class CimModelBuilder {
   }
 
   /**
-   * Malware CIM model schema - Malware detection events
+   * Malware CIM model schema - Malware detection events.
    */
   private static CimSchemaResult buildMalwareSchemaWithMapping(RelDataTypeFactory typeFactory) {
     RelDataType schema = typeFactory.builder()
@@ -1138,9 +1170,10 @@ public class CimModelBuilder {
   }
 
   /**
-   * Network Resolution (DNS) CIM model schema - DNS queries and responses
+   * Network Resolution (DNS) CIM model schema - DNS queries and responses.
    */
-  private static CimSchemaResult buildNetworkResolutionSchemaWithMapping(RelDataTypeFactory typeFactory) {
+  private static CimSchemaResult buildNetworkResolutionSchemaWithMapping(
+      RelDataTypeFactory typeFactory) {
     RelDataType schema = typeFactory.builder()
         .add("_time", typeFactory.createSqlType(SqlTypeName.TIMESTAMP))
         .add("host", typeFactory.createSqlType(SqlTypeName.VARCHAR))
@@ -1180,9 +1213,10 @@ public class CimModelBuilder {
   }
 
   /**
-   * Network Sessions CIM model schema - DHCP, VPN, and proxy sessions
+   * Network Sessions CIM model schema - DHCP, VPN, and proxy sessions.
    */
-  private static CimSchemaResult buildNetworkSessionsSchemaWithMapping(RelDataTypeFactory typeFactory) {
+  private static CimSchemaResult buildNetworkSessionsSchemaWithMapping(
+      RelDataTypeFactory typeFactory) {
     RelDataType schema = typeFactory.builder()
         .add("_time", typeFactory.createSqlType(SqlTypeName.TIMESTAMP))
         .add("host", typeFactory.createSqlType(SqlTypeName.VARCHAR))
@@ -1228,11 +1262,12 @@ public class CimModelBuilder {
     fieldMapping.put("user", "NetworkSessions.user");
     fieldMapping.put("vendor_class", "NetworkSessions.vendor_class");
 
-    return new CimSchemaResult(schema, fieldMapping, "| datamodel Network_Sessions All_Sessions search");
+    return new CimSchemaResult(schema, fieldMapping,
+        "| datamodel Network_Sessions All_Sessions search");
   }
 
   /**
-   * Performance CIM model schema - System performance metrics
+   * Performance CIM model schema - System performance metrics.
    */
   private static CimSchemaResult buildPerformanceSchemaWithMapping(RelDataTypeFactory typeFactory) {
     RelDataType schema = typeFactory.builder()
@@ -1260,9 +1295,10 @@ public class CimModelBuilder {
   }
 
   /**
-   * Splunk Audit Logs CIM model schema - Splunk internal auditing
+   * Splunk Audit Logs CIM model schema - Splunk internal auditing.
    */
-  private static CimSchemaResult buildSplunkAuditLogsSchemaWithMapping(RelDataTypeFactory typeFactory) {
+  private static CimSchemaResult buildSplunkAuditLogsSchemaWithMapping(
+      RelDataTypeFactory typeFactory) {
     RelDataType schema = typeFactory.builder()
         .add("_time", typeFactory.createSqlType(SqlTypeName.TIMESTAMP))
         .add("host", typeFactory.createSqlType(SqlTypeName.VARCHAR))
@@ -1284,13 +1320,15 @@ public class CimModelBuilder {
     fieldMapping.put("search_id", "SplunkAudit.search_id");
     fieldMapping.put("user", "SplunkAudit.user");
 
-    return new CimSchemaResult(schema, fieldMapping, "| datamodel Splunk_Audit Splunk_Audit search");
+    return new CimSchemaResult(schema, fieldMapping,
+        "| datamodel Splunk_Audit Splunk_Audit search");
   }
 
   /**
-   * Ticket Management CIM model schema - ITIL ticketing systems
+   * Ticket Management CIM model schema - ITIL ticketing systems.
    */
-  private static CimSchemaResult buildTicketManagementSchemaWithMapping(RelDataTypeFactory typeFactory) {
+  private static CimSchemaResult buildTicketManagementSchemaWithMapping(
+      RelDataTypeFactory typeFactory) {
     RelDataType schema = typeFactory.builder()
         .add("_time", typeFactory.createSqlType(SqlTypeName.TIMESTAMP))
         .add("host", typeFactory.createSqlType(SqlTypeName.VARCHAR))
@@ -1320,11 +1358,12 @@ public class CimModelBuilder {
     fieldMapping.put("user", "TicketManagement.user");
     fieldMapping.put("vendor_product", "TicketManagement.vendor_product");
 
-    return new CimSchemaResult(schema, fieldMapping, "| datamodel Ticket_Management Ticket_Management search");
+    return new CimSchemaResult(schema, fieldMapping,
+        "| datamodel Ticket_Management Ticket_Management search");
   }
 
   /**
-   * Updates CIM model schema - Patch management events
+   * Updates CIM model schema - Patch management events.
    */
   private static CimSchemaResult buildUpdatesSchemaWithMapping(RelDataTypeFactory typeFactory) {
     RelDataType schema = typeFactory.builder()
@@ -1366,9 +1405,10 @@ public class CimModelBuilder {
   }
 
   /**
-   * Vulnerabilities CIM model schema - Vulnerability scan results
+   * Vulnerabilities CIM model schema - Vulnerability scan results.
    */
-  private static CimSchemaResult buildVulnerabilitiesSchemaWithMapping(RelDataTypeFactory typeFactory) {
+  private static CimSchemaResult buildVulnerabilitiesSchemaWithMapping(
+      RelDataTypeFactory typeFactory) {
     RelDataType schema = typeFactory.builder()
         .add("_time", typeFactory.createSqlType(SqlTypeName.TIMESTAMP))
         .add("host", typeFactory.createSqlType(SqlTypeName.VARCHAR))
@@ -1398,6 +1438,7 @@ public class CimModelBuilder {
     fieldMapping.put("signature_id", "Vulnerabilities.signature_id");
     fieldMapping.put("vendor_product", "Vulnerabilities.vendor_product");
 
-    return new CimSchemaResult(schema, fieldMapping, "| datamodel Vulnerabilities Vulnerabilities search");
+    return new CimSchemaResult(schema, fieldMapping,
+        "| datamodel Vulnerabilities Vulnerabilities search");
   }
 }

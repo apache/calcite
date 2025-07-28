@@ -30,16 +30,6 @@ import org.apache.parquet.avro.AvroParquetReader;
 import org.apache.parquet.hadoop.util.HadoopInputFile;
 import org.apache.parquet.io.InputFile;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
-import org.apache.parquet.avro.AvroParquetReader;
-import org.apache.parquet.hadoop.ParquetReader;
-import org.apache.parquet.hadoop.ParquetFileReader;
-import org.apache.avro.generic.GenericData;
-import org.apache.avro.generic.GenericRecord;
-import org.apache.parquet.hadoop.util.HadoopInputFile;
-import org.apache.parquet.io.InputFile;
-
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 
@@ -88,8 +78,7 @@ class ArrowSchema extends AbstractSchema {
         : null;
   }
 
-  @Override
-  protected Map<String, Table> getTableMap() {
+  @Override protected Map<String, Table> getTableMap() {
     return tableMapSupplier.get();
   }
 
@@ -141,7 +130,8 @@ class ArrowSchema extends AbstractSchema {
     try {
       Path path = new Path(file.toString());
       InputFile inputFile = HadoopInputFile.fromPath(path, new Configuration());
-      AvroParquetReader.Builder<GenericRecord> builder = AvroParquetReader.<GenericRecord>builder(inputFile);
+      AvroParquetReader.Builder<GenericRecord> builder =
+          AvroParquetReader.<GenericRecord>builder(inputFile);
       return new ParquetTable(file.getAbsolutePath(), builder, null);
     } catch (Exception e) {
       e.printStackTrace();

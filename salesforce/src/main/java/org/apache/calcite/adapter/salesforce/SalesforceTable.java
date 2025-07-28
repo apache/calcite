@@ -32,6 +32,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Table based on a Salesforce sObject.
@@ -81,56 +82,56 @@ public class SalesforceTable extends AbstractTable implements TranslatableTable 
     SqlTypeName typeName;
     Integer precision = null;
 
-    switch (field.type.toLowerCase()) {
-      case "id":
-      case "reference":
-      case "string":
-      case "picklist":
-      case "multipicklist":
-      case "textarea":
-      case "phone":
-      case "email":
-      case "url":
-      case "combobox":
-        typeName = SqlTypeName.VARCHAR;
-        precision = field.length > 0 ? field.length : null;
-        break;
+    switch (field.type.toLowerCase(Locale.ROOT)) {
+    case "id":
+    case "reference":
+    case "string":
+    case "picklist":
+    case "multipicklist":
+    case "textarea":
+    case "phone":
+    case "email":
+    case "url":
+    case "combobox":
+      typeName = SqlTypeName.VARCHAR;
+      precision = field.length > 0 ? field.length : null;
+      break;
 
-      case "boolean":
-        typeName = SqlTypeName.BOOLEAN;
-        break;
+    case "boolean":
+      typeName = SqlTypeName.BOOLEAN;
+      break;
 
-      case "int":
-      case "integer":
-        typeName = SqlTypeName.INTEGER;
-        break;
+    case "int":
+    case "integer":
+      typeName = SqlTypeName.INTEGER;
+      break;
 
-      case "double":
-      case "percent":
-        typeName = SqlTypeName.DOUBLE;
-        break;
+    case "double":
+    case "percent":
+      typeName = SqlTypeName.DOUBLE;
+      break;
 
-      case "currency":
-      case "decimal":
-        typeName = SqlTypeName.DECIMAL;
-        precision = 19; // Salesforce currency precision
-        break;
+    case "currency":
+    case "decimal":
+      typeName = SqlTypeName.DECIMAL;
+      precision = 19; // Salesforce currency precision
+      break;
 
-      case "date":
-        typeName = SqlTypeName.DATE;
-        break;
+    case "date":
+      typeName = SqlTypeName.DATE;
+      break;
 
-      case "datetime":
-        typeName = SqlTypeName.TIMESTAMP;
-        break;
+    case "datetime":
+      typeName = SqlTypeName.TIMESTAMP;
+      break;
 
-      case "time":
-        typeName = SqlTypeName.TIME;
-        break;
+    case "time":
+      typeName = SqlTypeName.TIME;
+      break;
 
-      default:
-        // Default to VARCHAR for unknown types
-        typeName = SqlTypeName.VARCHAR;
+    default:
+      // Default to VARCHAR for unknown types
+      typeName = SqlTypeName.VARCHAR;
     }
 
     RelDataType baseType;

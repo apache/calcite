@@ -30,6 +30,7 @@ import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Pattern;
 
 /**
@@ -39,7 +40,11 @@ import java.util.regex.Pattern;
  *
  * <p>Optimized for ISO timestamp strings from Splunk.
  */
-public class SplunkDataConverter {
+public final class SplunkDataConverter {
+
+  private SplunkDataConverter() {
+    // Utility class, prevent instantiation
+  }
   private static final Logger LOGGER = LoggerFactory.getLogger(SplunkDataConverter.class);
 
   /**
@@ -60,7 +65,7 @@ public class SplunkDataConverter {
   private static Integer convertToTimeMillis(String value) {
     try {
       // Try parsing as HH:mm:ss format
-      SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm:ss");
+      SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm:ss", Locale.ROOT);
       java.util.Date parsed = timeFormat.parse(value);
       // Get milliseconds since midnight
       return (int) (parsed.getTime() % (24 * 60 * 60 * 1000L));
@@ -218,8 +223,8 @@ public class SplunkDataConverter {
 
     } catch (Exception e) {
       // Re-throw the exception so it can be handled properly at the row level
-      throw new RuntimeException("Failed to convert value '" + stringValue +
-          "' to type " + targetType + ": " + e.getMessage(), e);
+      throw new RuntimeException("Failed to convert value '" + stringValue
+          + "' to type " + targetType + ": " + e.getMessage(), e);
     }
   }
 
@@ -228,17 +233,17 @@ public class SplunkDataConverter {
       DateTimeFormatter.ISO_INSTANT,                          // 2025-06-07T14:07:02.975Z
       DateTimeFormatter.ISO_OFFSET_DATE_TIME,                 // 2025-06-07T14:07:02.975+00:00
       DateTimeFormatter.ISO_LOCAL_DATE_TIME,                  // 2025-06-07T14:07:02.975
-      DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'"), // 2025-06-07T14:07:02Z
-      DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX"), // 2025-06-07T14:07:02+00:00
+      DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.ROOT), // 2025-06-07T14:07:02Z
+      DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.ROOT), // ISO with timezone
   };
 
   // Fallback legacy formats
   private static final SimpleDateFormat[] LEGACY_FORMATS = {
-      new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS"),       // 2025-06-07 14:07:02.975
-      new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"),           // 2025-06-07 14:07:02
-      new SimpleDateFormat("MM/dd/yyyy HH:mm:ss"),           // 06/07/2025 14:07:02
-      new SimpleDateFormat("dd/MM/yyyy HH:mm:ss"),           // 07/06/2025 14:07:02
-      new SimpleDateFormat("yyyy/MM/dd HH:mm:ss"),           // 2025/06/07 14:07:02
+      new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.ROOT),       // 2025-06-07 14:07:02.975
+      new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.ROOT),           // 2025-06-07 14:07:02
+      new SimpleDateFormat("MM/dd/yyyy HH:mm:ss", Locale.ROOT),           // 06/07/2025 14:07:02
+      new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.ROOT),           // 07/06/2025 14:07:02
+      new SimpleDateFormat("yyyy/MM/dd HH:mm:ss", Locale.ROOT),           // 2025/06/07 14:07:02
   };
 
   // Pattern for detecting numeric epoch timestamps (fallback)
@@ -264,8 +269,8 @@ public class SplunkDataConverter {
       Object value = row[i];
 
       // Debug logging for timestamp and integer conversions
-      boolean debugThis = field.getType().getSqlTypeName() == SqlTypeName.TIMESTAMP ||
-          (field.getType().getSqlTypeName() == SqlTypeName.INTEGER && value instanceof String);
+      boolean debugThis = field.getType().getSqlTypeName() == SqlTypeName.TIMESTAMP
+          || (field.getType().getSqlTypeName() == SqlTypeName.INTEGER && value instanceof String);
 
       if (debugThis && value != null) {
         LOGGER.debug("DEBUG: Converting field '{}' at index {}", field.getName(), i);
@@ -423,10 +428,11 @@ public class SplunkDataConverter {
    * Converts string to Boolean.
    */
   private static Boolean convertToBoolean(String value) {
-    String lower = value.toLowerCase();
+    String lower = value.toLowerCase(Locale.ROOT);
     if ("true".equals(lower) || "1".equals(lower) || "yes".equals(lower) || "y".equals(lower)) {
       return Boolean.TRUE;
-    } else if ("false".equals(lower) || "0".equals(lower) || "no".equals(lower) || "n".equals(lower)) {
+    } else if ("false".equals(lower) || "0".equals(lower) || "no".equals(lower)
+        || "n".equals(lower)) {
       return Boolean.FALSE;
     } else {
       throw new IllegalArgumentException("Unable to parse boolean: " + value);

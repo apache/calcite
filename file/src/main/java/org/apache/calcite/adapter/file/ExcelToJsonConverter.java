@@ -23,7 +23,7 @@ import org.apache.poi.ss.usermodel.FormulaEvaluator;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -33,6 +33,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 
 /**
@@ -46,7 +47,7 @@ public final class ExcelToJsonConverter {
 
   public static void convertFileToJson(File inputFile) throws IOException {
     FileInputStream file = new FileInputStream(inputFile);
-    Workbook workbook = new XSSFWorkbook(file);
+    Workbook workbook = WorkbookFactory.create(file);
     ObjectMapper mapper = new ObjectMapper();
     FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
     String fileName = inputFile.getName();
@@ -89,7 +90,8 @@ public final class ExcelToJsonConverter {
       // Write JSON file
       String sheetName = toPascalCase(sheet.getSheetName());
       String jsonFileName = baseName + "__" + sheetName + ".json";
-      FileWriter fileWriter = new FileWriter(new File(inputFile.getParent(), jsonFileName));
+      FileWriter fileWriter =
+          new FileWriter(new File(inputFile.getParent(), jsonFileName), StandardCharsets.UTF_8);
       mapper.writerWithDefaultPrettyPrinter().writeValue(fileWriter, sheetData);
       fileWriter.close();
     }

@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -74,7 +75,7 @@ public class SalesforceSchema extends AbstractSchema {
           builder.put(sObject.name, new SalesforceTable(this, sObject.name));
 
           // Also add with lowercase name for case-insensitive matching
-          String lowerName = sObject.name.toLowerCase();
+          String lowerName = sObject.name.toLowerCase(Locale.ROOT);
           if (!lowerName.equals(sObject.name)) {
             builder.put(lowerName, new SalesforceTable(this, sObject.name));
           }

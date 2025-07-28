@@ -51,7 +51,8 @@ public class SplunkAuthenticationException extends RuntimeException {
    * @param httpStatusCode the HTTP status code (typically 401)
    * @param isSessionExpiry true if this is a session expiry vs initial auth failure
    */
-  public SplunkAuthenticationException(String message, int httpStatusCode, boolean isSessionExpiry) {
+  public SplunkAuthenticationException(String message, int httpStatusCode,
+      boolean isSessionExpiry) {
     super(message);
     this.httpStatusCode = httpStatusCode;
     this.isSessionExpiry = isSessionExpiry;
@@ -75,7 +76,8 @@ public class SplunkAuthenticationException extends RuntimeException {
    * @param isSessionExpiry true if this is a session expiry
    * @param cause the underlying cause
    */
-  public SplunkAuthenticationException(String message, int httpStatusCode, boolean isSessionExpiry, Throwable cause) {
+  public SplunkAuthenticationException(String message, int httpStatusCode,
+      boolean isSessionExpiry, Throwable cause) {
     super(message, cause);
     this.httpStatusCode = httpStatusCode;
     this.isSessionExpiry = isSessionExpiry;
@@ -91,7 +93,8 @@ public class SplunkAuthenticationException extends RuntimeException {
   }
 
   /**
-   * Returns whether this exception represents a session expiry vs an initial authentication failure.
+   * Returns whether this exception represents a session expiry vs an initial authentication
+   * failure.
    *
    * @return true if this is a session expiry, false if initial authentication failure
    */

@@ -18,7 +18,6 @@ package org.apache.calcite.adapter.file;
 
 import org.apache.calcite.util.S3Reader;
 import org.apache.calcite.util.Source;
-import org.apache.calcite.util.S3Reader;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jsoup.Jsoup;
@@ -33,7 +32,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
-import java.io.InputStream;
 
 import static java.util.Objects.requireNonNull;
 
@@ -68,14 +66,37 @@ public class FileReader implements Iterable<Elements> {
     final Document doc;
     try {
       String proto = source.protocol();
+
       if ("file".equals(proto)) {
         doc = Jsoup.parse(source.file(), this.charset.name());
       } else if ("s3".equals(proto)) {
-        // known protocols handled by URL
-        InputStream stream = S3Reader.getS3ObjectStream(source.url().toString());
-        doc = Jsoup.parse(stream, charset.name(), "");
+        // Check if this is actually a local file path mistakenly identified as S3
+        String path = source.path();
+        if (path != null && (path.startsWith("/") || (path.length() > 2 && path.charAt(1) == ':'))) {
+          // This is a local file path, not an S3 URL
+          java.io.File file = new java.io.File(path);
+          if (file.exists()) {
+            doc = Jsoup.parse(file, this.charset.name());
+          } else {
+            throw new FileReaderException("File not found: " + path);
+          }
+        } else if (source.url() == null) {
+          // Try to read it as a regular file
+          try {
+            doc = Jsoup.parse(source.file(), this.charset.name());
+          } catch (Exception ex) {
+            throw new FileReaderException("S3 source URL is null and cannot read as file: " + source);
+          }
+        } else {
+          // This is a real S3 URL
+          InputStream stream = S3Reader.getS3ObjectStream(source.url().toString());
+          doc = Jsoup.parse(stream, charset.name(), "");
+        }
       } else if (Arrays.asList("http", "https", "ftp").contains(proto)) {
         // known protocols handled by URL
+        if (source.url() == null) {
+          throw new FileReaderException("URL is null for protocol " + proto + ": " + source);
+        }
         doc = Jsoup.parse(source.url(), (int) TimeUnit.SECONDS.toMillis(20));
       } else {
         // generically read this source

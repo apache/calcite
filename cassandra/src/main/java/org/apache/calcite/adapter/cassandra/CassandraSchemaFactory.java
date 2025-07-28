@@ -28,7 +28,6 @@ import com.google.common.collect.ImmutableSet;
 
 import org.slf4j.Logger;
 
-import javax.net.ssl.SSLContext;
 import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Set;
@@ -56,8 +55,7 @@ public class CassandraSchemaFactory implements SchemaFactory {
     super();
   }
 
-  @Override
-  public Schema create(SchemaPlus parentSchema, String name,
+  @Override public Schema create(SchemaPlus parentSchema, String name,
       Map<String, Object> operand) {
 
     final Map<String, Object> sessionMap = projectMapOverKeys(operand, SESSION_DEFINING_KEYS);
@@ -93,7 +91,8 @@ public class CassandraSchemaFactory implements SchemaFactory {
           String keyPassword = (String) m.get("keyPassword");
           String pathToRootCert = (String) m.get("pathToRootCert");
           SSLContext sslContext =
-              CassandraSSLContext.createSSLContext(pathToCert,pathToPrivateKey,keyPassword,pathToRootCert);
+              CassandraSSLContext.createSSLContext(pathToCert, pathToPrivateKey, keyPassword,
+                  pathToRootCert);
           builder = builder.withSslContext(sslContext);
         } catch (Exception e) {
           throw new RuntimeException(e);

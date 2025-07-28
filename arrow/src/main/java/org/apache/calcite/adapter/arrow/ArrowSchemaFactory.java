@@ -27,9 +27,6 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.util.Map;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  * Factory that creates an {@link ArrowSchema}.
  */
@@ -69,19 +66,19 @@ public class ArrowSchemaFactory implements SchemaFactory {
       ArrowSchema schema = new ArrowSchema(directoryFile);
       LOGGER.info("ArrowSchema created successfully");
       return schema;
-    } catch(ClassNotFoundException e) {
+    } catch (ClassNotFoundException e) {
       LOGGER.error("Error loading ArrowSchema class", e);
       return null;
-    } catch(NoClassDefFoundError e) {
+    } catch (NoClassDefFoundError e) {
       LOGGER.error("Error finding a class definition required by ArrowSchema", e);
       return null;
-    } catch(ExceptionInInitializerError e) {
+    } catch (ExceptionInInitializerError e) {
       LOGGER.error("Error in static initializer of ArrowSchema or a dependency", e);
       return null;
-    } catch(LinkageError e) {
+    } catch (LinkageError e) {
       LOGGER.error("Linkage error when loading ArrowSchema or a dependency", e);
       return null;
-    } catch(Throwable e) {
+    } catch (Throwable e) {
       LOGGER.error("Unexpected error creating ArrowSchema", e);
       return null;
     }

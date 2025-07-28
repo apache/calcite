@@ -90,7 +90,8 @@ public class OpenAPISchemaFactory implements SchemaFactory {
       }
 
       // Create transport
-      OpenAPITransport transport = new OpenAPITransport(baseUrl, mapper, config.getAuthentication());
+      OpenAPITransport transport =
+          new OpenAPITransport(baseUrl, mapper, config.getAuthentication());
 
       return new OpenAPISchema(transport, config);
     } catch (IOException e) {

@@ -29,7 +29,14 @@ import software.amazon.awssdk.services.s3.model.GetBucketLocationRequest;
 import software.amazon.awssdk.services.s3.model.GetBucketLocationResponse;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 
+/**
+ * Utility class for reading S3 objects and getting S3 bucket information.
+ */
 public class S3Reader {
+  /** Private constructor to prevent instantiation of utility class. */
+  private S3Reader() {
+    // Utility class
+  }
   public static Region getBucketRegion(String bucketName) {
     S3Client s3Client = S3Client.builder().build();
     GetBucketLocationRequest locationRequest = GetBucketLocationRequest.builder()

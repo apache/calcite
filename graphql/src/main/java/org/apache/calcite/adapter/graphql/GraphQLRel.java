@@ -44,6 +44,7 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.Locale;
 
 import static java.util.Objects.requireNonNull;
 
@@ -230,7 +231,7 @@ public interface GraphQLRel extends RelNode {
               OffsetDateTime odt = OffsetDateTime.ofInstant(requireNonNull(gc, "gc").toInstant(), ZoneOffset.UTC);
               OffsetDateTime nextMs = odt.plus(1, ChronoUnit.MILLIS);
 
-              return String.format("{ %s: [{ %s: { %s: \"%s\" }}, { %s: { %s: \"%s\" }}] }",
+              return String.format(Locale.ROOT, "{ %s: [{ %s: { %s: \"%s\" }}, { %s: { %s: \"%s\" }}] }",
                   KEYWORDS.get("_and"),
                   fieldName,
                   KEYWORDS.get("_gte"),
@@ -241,33 +242,33 @@ public interface GraphQLRel extends RelNode {
             }
           }
           // Default equals handling for non-timestamp fields
-          return String.format("{ %s: { %s: %s } }",
+          return String.format(Locale.ROOT, "{ %s: { %s: %s } }",
               fieldName,
               KEYWORDS.get("_eq"),
               getComparator(call.operands));
         case NOT_EQUALS:
-          return String.format("{ %s: { %s: { %s: %s } } }",
+          return String.format(Locale.ROOT, "{ %s: { %s: { %s: %s } } }",
               KEYWORDS.get("_not"),
               getFieldName(call.operands, rowType),
               KEYWORDS.get("_eq"),
               getComparator(call.operands));
         case GREATER_THAN:
-          return String.format("{ %s: { %s: %s } }",
+          return String.format(Locale.ROOT, "{ %s: { %s: %s } }",
               getFieldName(call.operands, rowType),
               KEYWORDS.get("_gt"),
               getComparator(call.operands));
         case GREATER_THAN_OR_EQUAL:
-          return String.format("{ %s: { %s: %s } }",
+          return String.format(Locale.ROOT, "{ %s: { %s: %s } }",
               getFieldName(call.operands, rowType),
               KEYWORDS.get("_gte"),
               getComparator(call.operands));
         case LESS_THAN:
-          return String.format("{ %s: { %s: %s } }",
+          return String.format(Locale.ROOT, "{ %s: { %s: %s } }",
               getFieldName(call.operands, rowType),
               KEYWORDS.get("_lt"),
               getComparator(call.operands));
         case LESS_THAN_OR_EQUAL:
-          return String.format("{ %s: { %s: %s } }",
+          return String.format(Locale.ROOT, "{ %s: { %s: %s } }",
               getFieldName(call.operands, rowType),
               KEYWORDS.get("_lte"),
               getComparator(call.operands));
@@ -275,7 +276,7 @@ public interface GraphQLRel extends RelNode {
           Object[] range = getRange(call.operands);
           if (range.length == 1 && !Objects.equals(((Range<?>) range[0]).lowerEndpoint().toString()
               , ((Range<?>) range[0]).upperEndpoint().toString())) {
-            return String.format("{ %s: { %s: %s, %s: %s } }",
+            return String.format(Locale.ROOT, "{ %s: { %s: %s, %s: %s } }",
                 getFieldName(call.operands, rowType),
                 KEYWORDS.get("_gt"),
                 ((Range<?>) range[0]).lowerEndpoint(),
@@ -295,28 +296,28 @@ public interface GraphQLRel extends RelNode {
             }
             String rangeString = String.join(",", ranges);
             if (!hasLowerBound) {
-              return String.format("{ %s: { %s: { %s: [%s] } } }",
+              return String.format(Locale.ROOT, "{ %s: { %s: { %s: [%s] } } }",
                   KEYWORDS.get("_not"),
                   getFieldName(call.operands, rowType),
                   KEYWORDS.get("_in"),
                   rangeString);
             }
-            return String.format("{ %s: { %s: [%s] } }",
+            return String.format(Locale.ROOT, "{ %s: { %s: [%s] } }",
                 getFieldName(call.operands, rowType),
                 KEYWORDS.get("_in"),
                 rangeString);
           }
         case NOT:
-          return String.format("{ %s: %s }", KEYWORDS.get("_not"), convertRexNodeToGraphQLFilter(call.operands.get(1), rowType));
+          return String.format(Locale.ROOT, "{ %s: %s }", KEYWORDS.get("_not"), convertRexNodeToGraphQLFilter(call.operands.get(1), rowType));
         case OR:
         case AND:
           StringBuilder f = new StringBuilder();
           switch (filter.getKind()) {
           case OR:
-            f.append(String.format("{ %s: [", KEYWORDS.get("_and")));
+            f.append(String.format(Locale.ROOT, "{ %s: [", KEYWORDS.get("_and")));
             break;
           case AND:
-            f.append(String.format("{ %s: [", KEYWORDS.get("_or")));
+            f.append(String.format(Locale.ROOT, "{ %s: [", KEYWORDS.get("_or")));
             break;
           }
           ArrayList<String> conditions = new ArrayList<>();
@@ -417,7 +418,7 @@ public interface GraphQLRel extends RelNode {
       case MULTISET:
       case CURSOR:
       case ANY:
-        return String.format("\"%s\"", op.getValue2());
+        return String.format(Locale.ROOT, "\"%s\"", op.getValue2());
 
       case DATE:
         Calendar calendar = (Calendar) op.getValue();
@@ -425,25 +426,25 @@ public interface GraphQLRel extends RelNode {
             LocalDate.of(requireNonNull(calendar, "calendar").get(Calendar.YEAR),
             calendar.get(Calendar.MONTH) + 1,  // Calendar months are 0-based
             calendar.get(Calendar.DAY_OF_MONTH));
-        return String.format("\"%s\"", date);
+        return String.format(Locale.ROOT, "\"%s\"", date);
 
       case TIMESTAMP:
       case DATETIME:
         GregorianCalendar gc = (GregorianCalendar) op.getValue();
         OffsetDateTime odt = OffsetDateTime.ofInstant(requireNonNull(gc, "gc").toInstant(), ZoneOffset.UTC);
-        return String.format("\"%s\"",
-            odt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")));
+        return String.format(Locale.ROOT, "\"%s\"",
+            odt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ROOT)));
 
       default:
         // For any new/unknown types, safer to quote them
-        return String.format("\"%s\"", op.getValue2());
+        return String.format(Locale.ROOT, "\"%s\"", op.getValue2());
       }
     }
 
     public String getQuery(RelDataType rowType) {
       assert graphQLTable != null;
       StringBuilder builder =
-          new StringBuilder(String.format("query find%s {\n", graphQLTable.getName()));
+          new StringBuilder(String.format(Locale.ROOT, "query find%s {\n", graphQLTable.getName()));
       List<String> fieldNames = GraphQLRules.graphQLFieldNames(rowType);
       builder.append("  ").append(graphQLTable.getSelectMany());
       List<String> orderBy = new ArrayList<>();
@@ -453,7 +454,7 @@ public interface GraphQLRel extends RelNode {
       // Add ordering if present
       if (!orderFields.isEmpty()) {
         StringBuilder ob = new StringBuilder();
-        ob.append(String.format("%s: {", KEYWORDS.get("order_by")));
+        ob.append(String.format(Locale.ROOT, "%s: {", KEYWORDS.get("order_by")));
         for (int i = 0; i < orderFields.size(); i++) {
           OrderByField item = orderFields.get(i);
           ob.append(item.toHasuraFormat());
@@ -465,13 +466,13 @@ public interface GraphQLRel extends RelNode {
         orderBy.add(ob.toString());
       }
       if (offset != null) {
-        orderBy.add(String.format("%s: %d", KEYWORDS.get("offset"), offset));
+        orderBy.add(String.format(Locale.ROOT, "%s: %d", KEYWORDS.get("offset"), offset));
       }
       if (fetch != null) {
-        orderBy.add(String.format("%s: %d", KEYWORDS.get("limit"), fetch));
+        orderBy.add(String.format(Locale.ROOT, "%s: %d", KEYWORDS.get("limit"), fetch));
       }
       if (filter != null) {
-        orderBy.add(String.format("%s: %s", KEYWORDS.get("where"), convertRexNodeToGraphQLFilter(filter, fields)));
+        orderBy.add(String.format(Locale.ROOT, "%s: %s", KEYWORDS.get("where"), convertRexNodeToGraphQLFilter(filter, fields)));
       }
 
       if (!orderBy.isEmpty()) {

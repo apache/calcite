@@ -50,6 +50,40 @@ public class FileSchemaFactory implements SchemaFactory {
     final File baseDirectory =
         (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
     final String directory = (String) operand.get("directory");
+
+    // Execution engine configuration
+    final String executionEngine =
+        (String) operand.getOrDefault("executionEngine", ExecutionEngineConfig.DEFAULT_EXECUTION_ENGINE);
+    final Object batchSizeObj = operand.get("batchSize");
+    final int batchSize = batchSizeObj instanceof Number
+        ? ((Number) batchSizeObj).intValue()
+        : ExecutionEngineConfig.DEFAULT_BATCH_SIZE;
+    final Object memoryThresholdObj = operand.get("memoryThreshold");
+    final long memoryThreshold = memoryThresholdObj instanceof Number
+        ? ((Number) memoryThresholdObj).longValue()
+        : ExecutionEngineConfig.DEFAULT_MEMORY_THRESHOLD;
+
+    final ExecutionEngineConfig engineConfig =
+        new ExecutionEngineConfig(executionEngine, batchSize, memoryThreshold, null);
+
+    // Get recursive parameter (default to false for backward compatibility)
+    final boolean recursive = operand.get("recursive") == Boolean.TRUE;
+
+    // Get materialized views configuration
+    @SuppressWarnings("unchecked") List<Map<String, Object>> materializations =
+        (List<Map<String, Object>>) operand.get("materializations");
+
+    // Get views configuration
+    @SuppressWarnings("unchecked") List<Map<String, Object>> views =
+        (List<Map<String, Object>>) operand.get("views");
+
+    // Get partitioned tables configuration
+    @SuppressWarnings("unchecked") List<Map<String, Object>> partitionedTables =
+        (List<Map<String, Object>>) operand.get("partitionedTables");
+
+    // Get refresh interval for schema (default for all tables)
+    final String refreshInterval = (String) operand.get("refreshInterval");
+
     File directoryFile = null;
     if (directory != null) {
       directoryFile = new File(directory);
@@ -61,6 +95,7 @@ public class FileSchemaFactory implements SchemaFactory {
         directoryFile = new File(baseDirectory, directory);
       }
     }
-    return new FileSchema(parentSchema, name, directoryFile, tables);
+    return new FileSchema(parentSchema, name, directoryFile, directory, tables, engineConfig, recursive,
+        materializations, views, partitionedTables, refreshInterval);
   }
 }

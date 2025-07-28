@@ -24,6 +24,7 @@ import org.apache.http.message.BasicNameValuePair;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -47,16 +48,29 @@ public class OpenAPIRequest {
     this.bodyParams = builder.bodyParams != null ? Map.copyOf(builder.bodyParams) : null;
   }
 
-  public OpenAPIConfig.Variant getVariant() { return variant; }
-  public Map<String, Object> getPathParams() { return pathParams; }
-  public List<NameValuePair> getQueryParams() { return queryParams; }
-  public Map<String, String> getHeaders() { return headers; }
-  public Map<String, Object> getBodyParams() { return bodyParams; }
+  public OpenAPIConfig.Variant getVariant() {
+    return variant;
+  }
+  public Map<String, Object> getPathParams() {
+    return pathParams;
+  }
+  public List<NameValuePair> getQueryParams() {
+    return queryParams;
+  }
+  public Map<String, String> getHeaders() {
+    return headers;
+  }
+  public Map<String, Object> getBodyParams() {
+    return bodyParams;
+  }
 
   public static Builder builder() {
     return new Builder();
   }
 
+  /**
+   * Builder for creating OpenAPIRequest instances.
+   */
   public static class Builder {
     private OpenAPIConfig.Variant variant;
     private OpenAPITransport transport;
@@ -138,7 +152,8 @@ public class OpenAPIRequest {
         bodyParam(config.getParamName(), paramValue);
         break;
       default:
-        throw new IllegalArgumentException("Invalid location for projection: " + config.getLocation());
+        throw new IllegalArgumentException(
+            "Invalid location for projection: " + config.getLocation());
       }
 
       return this;
@@ -154,8 +169,8 @@ public class OpenAPIRequest {
       String direction = sortField.getValue().isDescending() ? "desc" : "asc";
 
       // Check if column is supported
-      if (config.getSupportedColumns() != null &&
-          !config.getSupportedColumns().contains(columnName)) {
+      if (config.getSupportedColumns() != null
+          && !config.getSupportedColumns().contains(columnName)) {
         return this; // Skip unsupported columns
       }
 
@@ -264,7 +279,7 @@ public class OpenAPIRequest {
         return column + ":" + direction;
       case JQL_ORDER_BY:
         // Special format for Jira JQL: "ORDER BY field DESC"
-        return "ORDER BY " + column + " " + direction.toUpperCase();
+        return "ORDER BY " + column + " " + direction.toUpperCase(Locale.ROOT);
       case SIMPLE:
         // Simple format: just the column name with optional prefix
         return "desc".equals(direction) ? "-" + column : column;

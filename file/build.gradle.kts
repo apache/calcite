@@ -24,11 +24,12 @@ plugins {
 dependencies {
     api(project(":core"))
     api(project(":linq4j"))
+    api(project(":arrow")) // Need arrow for ParquetTable
     api("org.checkerframework:checker-qual")
 
     implementation("com.google.guava:guava")
     implementation("com.joestelmach:natty")
-    implementation("net.sf.opencsv:opencsv")
+    implementation("com.opencsv:opencsv:5.7.1")
     implementation("org.apache.calcite.avatica:avatica-core")
     implementation("commons-io:commons-io")
     implementation("org.apache.commons:commons-lang3")
@@ -40,11 +41,29 @@ dependencies {
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.17.2")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.17.2")
 
+    // Arrow dependencies for vectorized execution engine
+    implementation("org.apache.arrow:arrow-vector")
+    implementation("org.apache.arrow:arrow-memory-netty")
+    implementation("org.apache.arrow.gandiva:arrow-gandiva")
+
+    // Parquet dependencies for Parquet execution engine
+    implementation("org.apache.parquet:parquet-arrow:1.13.1")
+    implementation("org.apache.parquet:parquet-avro:1.13.1")
+    implementation("org.apache.parquet:parquet-column:1.13.1")
+    implementation("org.apache.parquet:parquet-common:1.13.1")
+    implementation("org.apache.parquet:parquet-encoding:1.13.1")
+    implementation("org.apache.parquet:parquet-hadoop:1.13.1")
+
+    // Hadoop dependencies for Parquet
+    implementation("org.apache.hadoop:hadoop-common:3.3.6")
+    implementation("org.apache.hadoop:hadoop-client:3.3.6")
+
     testImplementation(project(":testkit"))
     annotationProcessor("org.immutables:value")
     compileOnly("org.immutables:value-annotations")
     compileOnly("com.google.code.findbugs:jsr305")
     testRuntimeOnly("org.apache.logging.log4j:log4j-slf4j-impl")
+    testRuntimeOnly("org.apache.logging.log4j:log4j-core:2.23.1")
 }
 
 fun JavaCompile.configureAnnotationSet(sourceSet: SourceSet) {
@@ -76,4 +95,11 @@ ide {
     }
 
     generatedSource(annotationProcessorMain)
+}
+
+tasks.test {
+    jvmArgs(
+        "--add-opens=java.base/java.nio=org.apache.arrow.memory.core,ALL-UNNAMED",
+        "--add-opens=java.base/java.nio=org.apache.arrow.memory.netty,ALL-UNNAMED"
+    )
 }

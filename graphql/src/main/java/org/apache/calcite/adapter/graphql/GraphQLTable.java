@@ -38,6 +38,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Type;
 import java.util.*;
+import java.util.Locale;
+import java.util.regex.Pattern;
 
 import graphql.ExecutionResult;
 import graphql.GraphQL;
@@ -60,6 +62,7 @@ public class GraphQLTable extends AbstractTable implements TranslatableTable, Qu
   private final Map<String, String> graphQLToSQLFields = new HashMap<>();
 
   private static final Logger LOGGER = LogManager.getLogger(GraphQLToEnumerableConverter.class);
+  private static final Pattern NUMBERED_SUFFIX_PATTERN = Pattern.compile("(_\\d+)$");
 
   private static final Set<String> RESERVED_WORDS =
       new HashSet<>(
@@ -90,7 +93,7 @@ public class GraphQLTable extends AbstractTable implements TranslatableTable, Qu
   }
 
   private void mapField(String graphQLField, String prepend) {
-    String sqlField = RESERVED_WORDS.contains(graphQLField.toLowerCase())
+    String sqlField = RESERVED_WORDS.contains(graphQLField.toLowerCase(Locale.ROOT))
         ? graphQLField + "_"
         : graphQLField;
 
@@ -320,8 +323,8 @@ public class GraphQLTable extends AbstractTable implements TranslatableTable, Qu
   private RelDataType mapScalarType(GraphQLScalarType scalarType,
       RelDataTypeFactory typeFactory) {
     String name = scalarType.getName();
-    String trimmedName = name.replaceAll("(_\\d+)$", "");
-    switch (trimmedName.toLowerCase()) {
+    String trimmedName = NUMBERED_SUFFIX_PATTERN.matcher(name).replaceAll("");
+    switch (trimmedName.toLowerCase(Locale.ROOT)) {
     case "text":
     case "id":
     case "string":

@@ -22,8 +22,9 @@ import org.apache.commons.io.input.Tailer;
 import org.apache.commons.io.input.TailerListener;
 import org.apache.commons.io.input.TailerListenerAdapter;
 
-import au.com.bytecode.opencsv.CSVParser;
-import au.com.bytecode.opencsv.CSVReader;
+import com.opencsv.CSVParser;
+import com.opencsv.CSVParserBuilder;
+import com.opencsv.CSVReader;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -55,12 +56,12 @@ class CsvStreamReader extends CSVReader implements Closeable {
 
   CsvStreamReader(Source source) {
     this(source,
-        CSVParser.DEFAULT_SEPARATOR,
-        CSVParser.DEFAULT_QUOTE_CHARACTER,
-        CSVParser.DEFAULT_ESCAPE_CHARACTER,
+        ',',  // DEFAULT_SEPARATOR
+        '"',  // DEFAULT_QUOTE_CHARACTER
+        '\\', // DEFAULT_ESCAPE_CHARACTER
         DEFAULT_SKIP_LINES,
-        CSVParser.DEFAULT_STRICT_QUOTES,
-        CSVParser.DEFAULT_IGNORE_LEADING_WHITESPACE);
+        false, // DEFAULT_STRICT_QUOTES
+        true); // DEFAULT_IGNORE_LEADING_WHITESPACE
   }
 
   /**
@@ -91,9 +92,13 @@ class CsvStreamReader extends CSVReader implements Closeable {
             .setBufferSize(4096)
             .get();
 
-    this.parser =
-        new CSVParser(separator, quoteChar, escape, strictQuotes,
-            ignoreLeadingWhiteSpace);
+    this.parser = new CSVParserBuilder()
+        .withSeparator(separator)
+        .withQuoteChar(quoteChar)
+        .withEscapeChar(escape)
+        .withStrictQuotes(strictQuotes)
+        .withIgnoreLeadingWhiteSpace(ignoreLeadingWhiteSpace)
+        .build();
     this.skipLines = line;
     try {
       // wait for tailer to capture data
@@ -138,7 +143,7 @@ class CsvStreamReader extends CSVReader implements Closeable {
    * @return the next line from the file without trailing newline
    *
    */
-  private @Nullable String getNextLine() {
+  protected @Nullable String getNextLine() {
     return contentQueue.poll();
   }
 

@@ -21,6 +21,7 @@ import org.apache.calcite.config.NullCollation;
 
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
+import java.util.Locale;
 
 /**
  * Utilities related to {@link SqlDialect}.
@@ -49,7 +50,7 @@ public final class SqlDialects {
     } catch (SQLException e) {
       throw new RuntimeException("while detecting database product", e);
     }
-    if (databaseProductName.toLowerCase().equals("apache hive")) {
+    if (databaseProductName.toLowerCase(Locale.ROOT).equals("apache hive")) {
       final String quoteString = getIdentifierQuoteString(databaseMetaData);
       final NullCollation nullCollation = NullCollation.LOW;
       final Casing unquotedCasing = Casing.TO_LOWER;

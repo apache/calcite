@@ -117,30 +117,30 @@ public class SalesforceEnumerator implements Enumerator<Object[]> {
     String stringValue = value.toString();
 
     switch (type.getSqlTypeName()) {
-      case BOOLEAN:
-        return Boolean.parseBoolean(stringValue);
+    case BOOLEAN:
+      return Boolean.parseBoolean(stringValue);
 
-      case INTEGER:
-        return Integer.parseInt(stringValue);
+    case INTEGER:
+      return Integer.parseInt(stringValue);
 
-      case BIGINT:
-        return Long.parseLong(stringValue);
+    case BIGINT:
+      return Long.parseLong(stringValue);
 
-      case DOUBLE:
-      case FLOAT:
-        return Double.parseDouble(stringValue);
+    case DOUBLE:
+    case FLOAT:
+      return Double.parseDouble(stringValue);
 
-      case DECIMAL:
-        return new java.math.BigDecimal(stringValue);
+    case DECIMAL:
+      return new java.math.BigDecimal(stringValue);
 
-      case DATE:
-      case TIMESTAMP:
-        // Parse Salesforce date/datetime format
-        return parseDate(stringValue);
+    case DATE:
+    case TIMESTAMP:
+      // Parse Salesforce date/datetime format
+      return parseDate(stringValue);
 
-      default:
-        // VARCHAR and others
-        return stringValue;
+    default:
+      // VARCHAR and others
+      return stringValue;
     }
   }
 
