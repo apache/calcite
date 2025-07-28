@@ -45,6 +45,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
+import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
@@ -90,6 +91,7 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.ConversionUtil;
+import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
@@ -10452,6 +10454,41 @@ class RelToSqlConverterTest {
         .withCalcite()
         .optimize(RuleSets.ofList(CoreRules.AGGREGATE_FILTER_TO_CASE), null)
         .ok(expected);
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7112">[CALCITE-7112] Correlation
+   * variable in HAVING clause causes UnsupportedOperationException in RelToSql conversion</a>. */
+  @Test void testCorrelationVariableInHavingClause() {
+    final Holder<RexCorrelVariable> v = Holder.empty();
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("DEPT")
+        .variable(v::set)
+        .project(
+            ImmutableList.of(
+                b.field("DEPTNO"),
+                b.field("DNAME"),
+                b.scalarQuery(unused ->
+                    b.scan("EMP")
+                        .aggregate(b.groupKey("DEPTNO"), b.countStar("COUNT"))
+                        .filter(b.equals(b.field("DEPTNO"), b.field(v.get(), "DEPTNO")))
+                        .project(b.field("COUNT"))
+                        .build())),
+            ImmutableList.of(),
+            false,
+            ImmutableList.of(v.get().id))
+        .build();
+
+    final String expected = "SELECT "
+        + "\"DEPTNO\", "
+        + "\"DNAME\", "
+        + "(((SELECT COUNT(*) AS \"COUNT\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "GROUP BY \"DEPTNO\"\n"
+        + "HAVING \"DEPTNO\" = \"DEPT\".\"DEPTNO\"))) AS \"$f2\"\n"
+        + "FROM \"scott\".\"DEPT\"";
+
+    relFn(relFn).ok(expected);
   }
 
   /** Fluid interface to run tests. */

@@ -1897,59 +1897,7 @@ public abstract class SqlImplementor {
       if (!selectList.equals(SqlNodeList.SINGLETON_STAR)) {
         final boolean aliasRef = expectedClauses.contains(Clause.HAVING)
             && dialect.getConformance().isHavingAlias();
-        newContext = new Context(dialect, selectList.size()) {
-          @Override public SqlImplementor implementor() {
-            return SqlImplementor.this;
-          }
-
-          @Override public SqlNode field(int ordinal) {
-            final SqlNode selectItem = selectList.get(ordinal);
-            switch (selectItem.getKind()) {
-            case AS:
-              final SqlCall asCall = (SqlCall) selectItem;
-              SqlNode alias = asCall.operand(1);
-              if (aliasRef && !SqlUtil.isGeneratedAlias(((SqlIdentifier) alias).getSimple())) {
-                // For BigQuery, given the query
-                //   SELECT SUM(x) AS x FROM t HAVING(SUM(t.x) > 0)
-                // we can generate
-                //   SELECT SUM(x) AS x FROM t HAVING(x > 0)
-                // because 'x' in HAVING resolves to the 'AS x' not 't.x'.
-                return alias;
-              }
-              return asCall.operand(0);
-            default:
-              break;
-            }
-            return selectItem;
-          }
-
-          @Override public SqlNode orderField(int ordinal) {
-            // If the field expression is an unqualified column identifier
-            // and matches a different alias, use an ordinal.
-            // For example, given
-            //    SELECT deptno AS empno, empno AS x FROM emp ORDER BY emp.empno
-            // we generate
-            //    SELECT deptno AS empno, empno AS x FROM emp ORDER BY 2
-            // "ORDER BY empno" would give incorrect result;
-            // "ORDER BY x" is acceptable but is not preferred.
-            final SqlNode node = super.orderField(ordinal);
-            if (node instanceof SqlIdentifier
-                && ((SqlIdentifier) node).isSimple()) {
-              final String name = ((SqlIdentifier) node).getSimple();
-              for (Ord<SqlNode> selectItem : Ord.zip(selectList)) {
-                if (selectItem.i != ordinal) {
-                  final @Nullable String alias =
-                      SqlValidatorUtil.alias(selectItem.e);
-                  if (name.equalsIgnoreCase(alias) && dialect.getConformance().isSortByAlias()) {
-                    return SqlLiteral.createExactNumeric(
-                        Integer.toString(ordinal + 1), SqlParserPos.ZERO);
-                  }
-                }
-              }
-            }
-            return node;
-          }
-        };
+        newContext = new SelectListContext(dialect, selectList.size(), aliasRef, selectList);
       } else {
         boolean qualified =
             !dialect.hasImplicitTableAlias() || aliases.size() > 1;
@@ -2336,6 +2284,69 @@ public abstract class SqlImplementor {
           ? this
           : new Result(node, clauses, neededAlias, neededType, aliases, anon,
               ignoreClauses, ImmutableSet.copyOf(expectedClauses), expectedRel);
+    }
+
+    /**
+     * A context that uses a select list.
+     */
+    private final class SelectListContext extends BaseContext {
+      private final boolean aliasRef;
+      private final SqlNodeList selectList;
+
+      private SelectListContext(
+          SqlDialect dialect, int fieldCount, boolean aliasRef, SqlNodeList selectList) {
+        super(dialect, fieldCount);
+        this.aliasRef = aliasRef;
+        this.selectList = selectList;
+      }
+
+      @Override public SqlNode field(int ordinal) {
+        final SqlNode selectItem = selectList.get(ordinal);
+        switch (selectItem.getKind()) {
+        case AS:
+          final SqlCall asCall = (SqlCall) selectItem;
+          SqlNode alias = asCall.operand(1);
+          if (aliasRef && !SqlUtil.isGeneratedAlias(((SqlIdentifier) alias).getSimple())) {
+            // For BigQuery, given the query
+            //   SELECT SUM(x) AS x FROM t HAVING(SUM(t.x) > 0)
+            // we can generate
+            //   SELECT SUM(x) AS x FROM t HAVING(x > 0)
+            // because 'x' in HAVING resolves to the 'AS x' not 't.x'.
+            return alias;
+          }
+          return asCall.operand(0);
+        default:
+          break;
+        }
+        return selectItem;
+      }
+
+      @Override public SqlNode orderField(int ordinal) {
+        // If the field expression is an unqualified column identifier
+        // and matches a different alias, use an ordinal.
+        // For example, given
+        //    SELECT deptno AS empno, empno AS x FROM emp ORDER BY emp.empno
+        // we generate
+        //    SELECT deptno AS empno, empno AS x FROM emp ORDER BY 2
+        // "ORDER BY empno" would give incorrect result;
+        // "ORDER BY x" is acceptable but is not preferred.
+        final SqlNode node = super.orderField(ordinal);
+        if (node instanceof SqlIdentifier
+            && ((SqlIdentifier) node).isSimple()) {
+          final String name = ((SqlIdentifier) node).getSimple();
+          for (Ord<SqlNode> selectItem : Ord.zip(selectList)) {
+            if (selectItem.i != ordinal) {
+              final @Nullable String alias =
+                  SqlValidatorUtil.alias(selectItem.e);
+              if (name.equalsIgnoreCase(alias) && dialect.getConformance().isSortByAlias()) {
+                return SqlLiteral.createExactNumeric(
+                    Integer.toString(ordinal + 1), SqlParserPos.ZERO);
+              }
+            }
+          }
+        }
+        return node;
+      }
     }
   }
 
