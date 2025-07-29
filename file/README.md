@@ -17,19 +17,21 @@ limitations under the License.
 
 # Apache Calcite File Adapter
 
-The File adapter allows Calcite to read data from various file formats including CSV, JSON, YAML, TSV, Excel (XLS/XLSX), HTML, Arrow, and Parquet files.
+The File adapter allows Calcite to read data from various file formats including CSV, JSON, YAML, TSV, Excel (XLS/XLSX), HTML, Markdown, DOCX, Arrow, and Parquet files.
 
 ## Features
 
-- Support for multiple file formats: CSV, JSON, YAML, TSV, Excel (XLS/XLSX), HTML, Arrow, Parquet
+- Support for multiple file formats: CSV, JSON, YAML, TSV, Excel (XLS/XLSX), HTML, Markdown, DOCX, Arrow, Parquet
 - **Glob Pattern Support** - Process multiple files with patterns like `*.csv`, `data_*.json`
 - Automatic Excel to JSON conversion with multi-sheet and multi-table detection
 - Automatic HTML table discovery and extraction with JSON preprocessing
+- Automatic Markdown table extraction with multi-table and group header support
+- Automatic DOCX table extraction with title detection and group header support
 - Recursive directory scanning
 - Compressed file support (.gz files)
 - Custom type mapping
 - **Multiple Execution Engines** for optimal performance
-- **Unlimited Dataset Sizes** with automatic disk spillover
+- **Unlimited Dataset Sizes**for  with automatic disk spillover
 
 ## Key Advantages vs Traditional Approaches
 
@@ -59,10 +61,10 @@ The File adapter provides **automatic schema discovery**:
 
 This single configuration:
 - **Discovers all files** in `/data` and subdirectories
-- **Creates tables automatically** for every CSV, JSON, Excel, HTML, Parquet file found
+- **Creates tables automatically** for every CSV, JSON, Excel, HTML, Markdown, DOCX, Parquet file found
 - **Handles format detection** without explicit configuration
 - **Optimizes large files** automatically with spillover and caching
-- **Refreshes on restart** to pick up new files
+- **Refreshes on restart** to pick up additional files
 
 ### Zero-Code Data Lake
 
@@ -786,6 +788,281 @@ For remote HTML tables with specific selectors, use explicit table definitions:
 
 **Important**: Local HTML files cannot be used in explicit table definitions. Use directory discovery instead.
 
+### Markdown Table Discovery and Processing
+
+Markdown files containing tables are automatically discovered and processed into queryable JSON format. The adapter supports standard Markdown table syntax with extensions for group headers and complex table structures.
+
+#### Automatic Discovery and Conversion
+
+Simply place Markdown files in your schema directory. The adapter will:
+- Scan all Markdown files for table syntax (pipe-separated tables)
+- Extract each table and convert to JSON format
+- Create separate files for each discovered Markdown table
+- Name tables based on preceding headings or generate automatic names
+- Handle group headers and complex table structures
+- Skip Markdown files that contain no tables
+
+#### Supported Table Features
+
+The Markdown table processor includes:
+- **Standard Markdown Tables**: Pipe-separated tables with header rows
+- **Group Headers**: Multiple header rows with spanning columns
+- **Table Titles**: Uses preceding heading as table identifier
+- **Multi-table Support**: Handles multiple tables per Markdown file
+- **GFM Extensions**: GitHub Flavored Markdown table extensions
+- **Character Encoding**: Proper UTF-8 handling for international content
+
+#### Table Structure Detection
+
+The processor can handle complex table structures:
+
+**Simple Tables:**
+```markdown
+| Product | Price | Stock |
+|---------|-------|-------|
+| Widget  | 10.99 | 100   |
+| Gadget  | 25.50 | 50    |
+```
+
+**Tables with Group Headers:**
+```markdown
+| Metrics | Q1 2024 |          | Q2 2024 |          |
+|---------|---------|----------|---------|----------|
+|         | Revenue | Growth % | Revenue | Growth % |
+| North   | 125000  | 15%      | 135000  | 8%       |
+| South   | 98000   | 12%      | 102000  | 4%       |
+```
+
+**Tables with Titles:**
+```markdown
+## Sales Summary
+
+| Region | Sales |
+|--------|-------|
+| North  | 50000 |
+| South  | 45000 |
+```
+
+#### Table Naming
+
+Markdown tables are named using the following priority:
+1. Preceding heading text (e.g., `## Sales Summary` → `Sales_Summary`)
+2. Document title if table has no specific heading
+3. Generic names `Table1`, `Table2` for multiple tables without titles
+
+File naming follows the pattern:
+- `{MarkdownFileName}__{TableTitle}.json`
+- `{MarkdownFileName}__Table{Number}.json` (for tables without titles)
+
+#### Examples
+
+Given a Markdown file `quarterly_report.md` with:
+```markdown
+# Q1 Report
+
+## Regional Sales
+
+| Region | Revenue |
+|--------|---------|
+| North  | 125000  |
+| South  | 98000   |
+
+## Employee Performance
+
+| Employee | Rating |
+|----------|--------|
+| Alice    | A      |
+| Bob      | B      |
+```
+
+The adapter creates:
+- `QuarterlyReport__Regional_Sales.json`
+- `QuarterlyReport__Employee_Performance.json`
+
+#### Glob Pattern Support for Markdown
+
+Markdown files work seamlessly with glob patterns:
+
+```json
+{
+  "name": "documentation_tables",
+  "url": "docs/*.md"  // Processes all Markdown files, extracts all tables
+}
+```
+
+This automatically:
+- Finds all Markdown files matching the pattern
+- Extracts tables from each Markdown file to JSON
+- Combines all extracted data into a single queryable table
+- Caches results in Parquet format for performance
+
+#### Group Header Processing
+
+For complex tables with group headers, the processor:
+- Identifies multiple header rows before the separator row (`|---|---|`)
+- Combines group headers with detail headers using underscore separation
+- Handles sparse group headers (empty cells span across columns)
+- Preserves hierarchical column naming
+
+Example:
+```markdown
+|            | 2023      |           | 2024      |           |
+| Department | Budget    | Spent     | Budget    | Spent     |
+|------------|-----------|-----------|-----------|-----------|
+| Sales      | 100000    | 95000     | 110000    | 50000     |
+```
+
+Results in columns: `Department`, `2023_Budget`, `2023_Spent`, `2024_Budget`, `2024_Spent`
+
+**Important**: Like Excel and HTML files, Markdown files cannot be used in explicit table definitions because they can contain multiple tables. Use directory discovery instead.
+
+### DOCX Table Discovery and Processing
+
+Microsoft Word DOCX files containing tables are automatically discovered and processed into queryable JSON format. The adapter uses Apache POI to extract tables from Word documents with support for complex table structures and formatting.
+
+#### Automatic Discovery and Conversion
+
+Simply place DOCX files in your schema directory. The adapter will:
+- Scan all DOCX files for table elements
+- Extract each table and convert to JSON format
+- Create separate files for each discovered table
+- Name tables based on preceding paragraphs or generate automatic names
+- Handle merged cells and group headers
+- Skip DOCX files that contain no tables
+
+#### Supported Table Features
+
+The DOCX table processor includes:
+- **Standard Word Tables**: Tables with proper header rows
+- **Group Headers**: Tables with merged cells spanning multiple columns
+- **Table Titles**: Uses preceding paragraph as table identifier
+- **Multi-table Support**: Handles multiple tables per document
+- **Merged Cell Handling**: Processes complex table structures with merged cells
+- **Text Formatting**: Extracts plain text content from formatted cells
+
+#### Table Structure Detection
+
+The processor can handle various Word table structures:
+
+**Simple Tables:**
+```
+Document Title
+
+Product Inventory
+
+| Product | Price | Stock |
+|---------|-------|-------|
+| Widget  | 10.99 | 100   |
+| Gadget  | 25.50 | 50    |
+```
+
+**Tables with Group Headers:**
+```
+Department Budget Analysis
+
+|            | 2023      |           | 2024      |           |
+| Department | Budget    | Spent     | Budget    | Spent     |
+|------------|-----------|-----------|-----------|-----------|
+| Sales      | 100000    | 95000     | 110000    | 50000     |
+| Marketing  | 80000     | 78000     | 85000     | 40000     |
+```
+
+**Tables with Titles:**
+```
+Quarterly Report
+
+Sales Summary
+| Region | Q1 Sales | Q2 Sales |
+|--------|----------|----------|
+| North  | 125000   | 135000   |
+| South  | 98000    | 102000   |
+
+Employee Performance
+| Employee | Department | Rating |
+|----------|------------|--------|
+| Alice    | Sales      | A      |
+| Bob      | Marketing  | B      |
+```
+
+#### Table Naming
+
+DOCX tables are named using the following priority:
+1. Preceding paragraph text (e.g., "Sales Summary" → `Sales_Summary`)
+2. Previous heading if table has no immediate title
+3. Generic names `Table1`, `Table2` for multiple tables without titles
+
+File naming follows the pattern:
+- `{DocxFileName}__{TableTitle}.json`
+- `{DocxFileName}__Table{Number}.json` (for tables without titles)
+
+#### Examples
+
+Given a DOCX file `business_report.docx` with:
+```
+Quarterly Business Report
+
+Regional Sales Summary
+[Table with regional sales data]
+
+Employee Performance Metrics
+[Table with employee performance data]
+```
+
+The adapter creates:
+- `BusinessReport__Regional_Sales_Summary.json`
+- `BusinessReport__Employee_Performance_Metrics.json`
+
+#### Glob Pattern Support for DOCX
+
+DOCX files work seamlessly with glob patterns:
+
+```json
+{
+  "name": "business_reports",
+  "url": "reports/*.docx"  // Processes all DOCX files, extracts all tables
+}
+```
+
+This automatically:
+- Finds all DOCX files matching the pattern
+- Extracts tables from each DOCX file to JSON
+- Combines all extracted data into a single queryable table
+- Caches results in Parquet format for performance
+
+#### Group Header Processing
+
+For complex tables with group headers, the processor:
+- Detects merged cells that span multiple columns
+- Identifies header rows vs data rows based on content analysis
+- Combines group headers with detail headers using underscore separation
+- Handles tables with up to 3 header rows
+
+Example Word table:
+```
+| Department | 2023 Budget | 2023 Spent | 2024 Budget | 2024 Spent |
+```
+Where "2023" and "2024" are merged cells spanning two columns each.
+
+Results in columns: `Department`, `2023_Budget`, `2023_Spent`, `2024_Budget`, `2024_Spent`
+
+#### Header Row Detection
+
+The processor uses several heuristics to identify header rows:
+- **First row assumption**: First row is typically a header
+- **Content analysis**: Rows with mostly text (vs numbers) are likely headers
+- **Formatting analysis**: Bold or differently formatted rows (when available)
+- **Structure analysis**: Rows with merged cells often indicate group headers
+
+#### Performance Characteristics
+
+DOCX processing involves:
+- **Document parsing**: Uses Apache POI for efficient DOCX reading
+- **Table extraction**: Direct access to table elements without full document rendering
+- **Memory efficiency**: Streams table content without loading entire document
+- **Caching**: Converted JSON files are cached as Parquet for subsequent queries
+
+**Important**: Like Excel, HTML, and Markdown files, DOCX files cannot be used in explicit table definitions because they can contain multiple tables. Use directory discovery instead.
+
 ## Performance Considerations
 
 The vectorized execution engine provides the best performance for:
@@ -805,6 +1082,8 @@ For small datasets or simple scans, the traditional LINQ4J engine may be suffici
 | **JSON** | **LINQ4J** | **850ms** | **0.6x** | Semi-structured data |
 | **Excel** | **PARQUET** | **Auto-converts to Parquet** | **1.6x** | Business intelligence |
 | **HTML** | **PARQUET** | **Auto-converts to JSON→Parquet** | **1.4x** | Web scraping, reports |
+| **Markdown** | **PARQUET** | **Auto-converts to JSON→Parquet** | **1.4x** | Documentation, reports |
+| **DOCX** | **PARQUET** | **Auto-converts to JSON→Parquet** | **1.4x** | Business documents, reports |
 | **Glob Patterns** | **PARQUET** | **Multi-file → Single Parquet** | **5.3x** | Time-series, logs |
 
 ### **Memory Management Results**
@@ -935,6 +1214,16 @@ FROM CUSTOMERS;
 - Column names from `<th>` elements or first row
 - Table names: `FILENAME__TABLENAME` or `FILENAME__TABLE1`, `FILENAME__TABLE2`
 
+**Markdown Files:**
+- Column names from table headers (first row after separator)
+- Table names: `FILENAME__TABLENAME` or `FILENAME__TABLE1`, `FILENAME__TABLE2`
+- Multi-table files: separate tables based on preceding headings
+
+**DOCX Files:**
+- Column names from table headers (first row or detected header rows)
+- Table names: `FILENAME__TABLENAME` or `FILENAME__TABLE1`, `FILENAME__TABLE2`
+- Multi-table files: separate tables based on preceding paragraphs
+
 **Parquet Files:**
 - Column names from Parquet schema metadata
 - Table name: uppercase filename without extension
@@ -998,7 +1287,7 @@ sales/
 
 ### Directory Glob Patterns
 
-The File adapter now supports **glob patterns directly in the directory operand**, enabling flexible file discovery without explicit table definitions.
+The File adapter supports **glob patterns directly in the directory operand**, enabling flexible file discovery without explicit table definitions.
 
 #### Configuration Examples
 
@@ -1081,7 +1370,7 @@ Matches application log files: `app_2024_07_28.log.json`, `app_error.log.json`, 
 #### Advantages Over Individual Table Definitions
 
 1. **Zero Configuration**: No need to define each file explicitly
-2. **Dynamic Discovery**: New files matching the pattern are automatically available
+2. **Dynamic Discovery**: Files matching the pattern are automatically available
 3. **Consistent Performance**: All files use the same optimized processing pipeline
 4. **Schema Evolution**: Handles schema changes across multiple files gracefully
 
@@ -1140,7 +1429,7 @@ Files can be read from S3:
 
 ### Remote File Refresh
 
-The File adapter now supports efficient change detection for remote files (HTTP/HTTPS/S3/FTP) using metadata checking instead of downloading the entire file:
+The File adapter supports efficient change detection for remote files (HTTP/HTTPS/S3/FTP) using metadata checking instead of downloading the entire file:
 
 **Protocol-Specific Refresh Behavior:**
 
@@ -1692,7 +1981,7 @@ The file adapter has been comprehensively tested showing significant improvement
 
 Full performance analysis available in [PERFORMANCE_RESULTS.md](PERFORMANCE_RESULTS.md).
 
-### Recent Performance Improvements
+### Performance Improvements
 
 **Memory Threshold Configuration (4GB vs 64MB):**
 | Query | Default (64MB) | 4GB RAM | Improvement |

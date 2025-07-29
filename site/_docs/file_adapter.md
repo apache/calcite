@@ -25,10 +25,10 @@ limitations under the License.
 ## Overview
 
 The file adapter is able to read files in a variety of formats,
-including **CSV**, **JSON**, **XLSX** (Excel), **Parquet**, and **HTML** tables,
+including **CSV**, **JSON**, **XLSX** (Excel), **Parquet**, **HTML** tables, **Markdown** tables, and **DOCX** (Word) tables,
 and can also read files over various protocols, such as HTTP.
 
-**New**: The adapter now supports **glob patterns** to automatically combine multiple files into single queryable tables, with intelligent preprocessing and Parquet caching for optimal performance.
+The adapter supports **glob patterns** to automatically combine multiple files into single queryable tables, with intelligent preprocessing and Parquet caching for optimal performance.
 
 The file adapter features multiple **execution engines** optimized for different workloads:
 - **PARQUET**: Columnar processing with disk spillover (handles unlimited dataset sizes)
@@ -38,13 +38,13 @@ The file adapter features multiple **execution engines** optimized for different
 
 ### 🚀 Large Dataset Support & Performance
 
-The file adapter now supports **datasets larger than RAM** through automatic disk spillover:
+The file adapter supports **datasets larger than RAM** through automatic disk spillover:
 - **Unlimited file sizes**: Process 1TB+ CSV files without memory issues
 - **Multiple large tables**: Reference hundreds of tables simultaneously
 - **Automatic spillover**: Batches automatically spill to compressed disk storage
 - **Memory efficiency**: Only current working set kept in memory
 
-### ⚡ **Latest Performance Achievements**
+### ⚡ **Performance Achievements**
 - **PARQUET Engine**: 380ms (50K rows) - Leader for TB+ analytics with spillover
 - **VECTORIZED Engine**: 420ms (50K rows) - **Now truly vectorized!** (53% gap closed)
 - **Major Fix**: VECTORIZED was fake-vectorized before, now does real columnar processing
@@ -59,6 +59,8 @@ The file adapter now supports **datasets larger than RAM** through automatic dis
 | XLSX | `.xlsx` | Excel spreadsheets | Business reports, multiple sheets |
 | Parquet | `.parquet` | Columnar storage format | Large datasets, analytics |
 | HTML | `.html` | Web page tables | Web scraping, remote data |
+| Markdown | `.md`, `.markdown` | Markdown table syntax | Documentation, technical reports |
+| DOCX | `.docx` | Word document tables | Business documents, formatted reports |
 | **Glob Patterns** | `*.csv`, `data_*.json`, etc. | Multiple files combined | Time-series, logs, distributed data |
 
 ### Performance Recommendations
@@ -604,8 +606,8 @@ sqlline> SELECT DATE(timestamp) as day, SUM(value) as total
 ### How Glob Processing Works
 
 1. **Pattern Matching**: Finds all files matching the glob pattern
-2. **Format Detection**: Automatically detects CSV, JSON, HTML, Excel formats
-3. **Preprocessing**: Converts HTML tables and Excel sheets to JSON format
+2. **Format Detection**: Automatically detects CSV, JSON, HTML, Excel, Markdown, DOCX formats
+3. **Preprocessing**: Converts HTML tables, Excel sheets, Markdown tables, and DOCX tables to JSON format
 4. **Schema Inference**: Combines schemas from all files with type promotion
 5. **Parquet Caching**: Results cached as compressed Parquet for performance
 6. **Auto-Refresh**: Monitors source files and updates cache when changed
@@ -641,7 +643,7 @@ sqlline> SELECT DATE(timestamp) as day, SUM(value) as total
 {% highlight json %}
 {
   "name": "mixed_reports", 
-  "url": "reports/*.*"  // Matches CSV, JSON, HTML, Excel files
+  "url": "reports/*.*"  // Matches CSV, JSON, HTML, Excel, Markdown, DOCX files
 }
 {% endhighlight %}
 
@@ -687,7 +689,7 @@ GROUP BY region;
 
 **Change Detection:**
 - Monitors file modification times
-- Detects new files matching pattern
+- Detects files matching pattern
 - Configurable refresh intervals (seconds to hours)
 - Regenerates cache only when source files change
 
@@ -839,7 +841,7 @@ sqlline> select distinct deptno from depts;
 
 ### Execution Engine Performance Comparison
 
-**Latest Comprehensive Benchmarks (Post-VECTORIZED Fix):**
+**Comprehensive Benchmarks:**
 
 | Engine | Time (50K rows) | Memory (MB) | Aggregations | Filtering | Sorting | Best For |
 |--------|----------------|-------------|-------------|-----------|---------|----------|
@@ -887,7 +889,7 @@ sqlline> select distinct deptno from depts;
 
 - **LINQ4J**: Traditional row-oriented processing using standard Calcite enumerables. Lowest memory overhead but significantly slower for analytical workloads.
 
-**Key Insights from Latest Benchmarks:**
+**Key Insights from Benchmarks:**
 - ✅ VECTORIZED engine now truly vectorized (was just batching before)
 - ✅ 53% performance gap closed between VECTORIZED and PARQUET engines
 - ✅ PARQUET maintains lead due to spillover optimization and better cache patterns
@@ -1009,7 +1011,7 @@ logger.info("Query executed in {}ms: {}", elapsed, sql);
 
 ## Multi-table File Support
 
-The file adapter can extract multiple tables from single files that naturally contain multiple data structures, such as Excel workbooks and HTML documents.
+The file adapter can extract multiple tables from single files that naturally contain multiple data structures, such as Excel workbooks, HTML documents, Markdown files, and DOCX documents.
 
 ### Multi-table Excel Support
 

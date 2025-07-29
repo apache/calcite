@@ -247,6 +247,49 @@ class FileSchema extends AbstractSchema {
     return htmlTables;
   }
 
+  private void convertMarkdownFilesToJson(File baseDirectory) {
+    // Get the list of all files and directories
+    File[] files = baseDirectory.listFiles();
+
+    if (files != null) {
+      for (File file : files) {
+        // If it's a directory and recursive is enabled, recurse into it
+        if (file.isDirectory() && recursive) {
+          convertMarkdownFilesToJson(file);
+        } else if ((file.getName().endsWith(".md") || file.getName().endsWith(".markdown"))
+            && !file.getName().startsWith("~")) {
+          // If it's a Markdown file, scan it for tables
+          try {
+            MarkdownTableScanner.scanAndConvertTables(file);
+          } catch (Exception e) {
+            System.err.println("Error scanning Markdown file: " + file.getName() + " - " + e.getMessage());
+          }
+        }
+      }
+    }
+  }
+
+  private void convertDocxFilesToJson(File baseDirectory) {
+    // Get the list of all files and directories
+    File[] files = baseDirectory.listFiles();
+
+    if (files != null) {
+      for (File file : files) {
+        // If it's a directory and recursive is enabled, recurse into it
+        if (file.isDirectory() && recursive) {
+          convertDocxFilesToJson(file);
+        } else if (file.getName().endsWith(".docx") && !file.getName().startsWith("~")) {
+          // If it's a DOCX file, scan it for tables
+          try {
+            DocxTableScanner.scanAndConvertTables(file);
+          } catch (Exception e) {
+            System.err.println("Error scanning DOCX file: " + file.getName() + " - " + e.getMessage());
+          }
+        }
+      }
+    }
+  }
+
   private File[] getFilesInDir(File dir) {
     List<File> files = new ArrayList<>();
     File[] fileArr = dir.listFiles();
@@ -298,6 +341,12 @@ class FileSchema extends AbstractSchema {
     if (baseDirectory != null) {
 
       convertExcelFilesToJson(baseDirectory);
+      
+      // Convert Markdown files to JSON
+      convertMarkdownFilesToJson(baseDirectory);
+      
+      // Convert DOCX files to JSON
+      convertDocxFilesToJson(baseDirectory);
 
       // Always scan HTML files for tables
       Map<String, List<HtmlTableScanner.TableInfo>> htmlTables = scanHtmlFiles(baseDirectory);
@@ -652,6 +701,25 @@ class FileSchema extends AbstractSchema {
             "because they contain multiple sheets. Each sheet becomes a separate table. " +
             "Place the Excel file in your schema directory and it will be automatically " +
             "processed, with each sheet accessible as 'filename__sheetname'.");
+      case "md":
+      case "markdown":
+        // Markdown files in explicit table mappings are problematic because:
+        // 1. Markdown files can contain multiple tables
+        // 2. Mapping one table name to entire Markdown file loses table information
+        // 3. Better to use directory discovery mode for Markdown files
+        throw new RuntimeException("Markdown files cannot be used in explicit table definitions " +
+            "because they can contain multiple tables. " +
+            "Place the Markdown file in your schema directory and it will be automatically " +
+            "processed, with each table accessible as 'filename__tablename'.");
+      case "docx":
+        // DOCX files in explicit table mappings are problematic because:
+        // 1. DOCX files can contain multiple tables
+        // 2. Mapping one table name to entire DOCX file loses table information
+        // 3. Better to use directory discovery mode for DOCX files
+        throw new RuntimeException("DOCX files cannot be used in explicit table definitions " +
+            "because they can contain multiple tables. " +
+            "Place the DOCX file in your schema directory and it will be automatically " +
+            "processed, with each table accessible as 'filename__tablename'.");
       default:
         throw new RuntimeException("Unsupported format override: " + forcedFormat
             + " for table: " + tableName);
