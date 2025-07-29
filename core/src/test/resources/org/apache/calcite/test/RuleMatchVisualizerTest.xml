@@ -54,30 +54,35 @@ LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
       "1000":{
         "label":"#1000-LogicalTableScan",
         "explanation":"{table=[CATALOG, SALES, DEPT]}",
-        "set":"default"
+        "set":"default",
+        "cost":"rowCount: 4E0\nrows: 4E0\ncpu:  0E0\nio:   0E0"
       },
       "1001":{
         "label":"#1001-LogicalProject",
         "explanation":"{NAME=$1}",
         "set":"default",
+        "cost":"rowCount: 4E0\nrows: 8E0\ncpu:  0E0\nio:   0E0",
         "inputs":[ "1000" ]
       },
       "1002":{
         "label":"#1002-LogicalUnion",
         "explanation":"{all=true}",
         "set":"default",
+        "cost":"rowCount: 8E0\nrows: 2.4E1\ncpu:  0E0\nio:   0E0",
         "inputs":[ "1001", "1001" ]
       },
       "1003":{
         "label":"#1003-LogicalProject",
         "explanation":"{NAME=$0}",
         "set":"default",
+        "cost":"rowCount: 8E0\nrows: 3.2E1\ncpu:  0E0\nio:   0E0",
         "inputs":[ "1002" ]
       },
       "1004":{
         "label":"#1004-LogicalSort",
         "explanation":"{sort0=$0, dir0=ASC, fetch=10}",
         "set":"default",
+        "cost":"rowCount: 8E0\nrows: 4E1\ncpu:  0E0\nio:   0E0",
         "inputs":[ "1003" ]
       },
       "default":{
@@ -90,6 +95,7 @@ LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
     "id":"100-ProjectSetOpTransposeRule",
     "updates":{
       "1004":{
+        "cost":"rowCount: 8E0\nrows: 3.2E1\ncpu:  0E0\nio:   0E0",
         "inputs":[ "1002" ]
       }
     },
@@ -101,18 +107,21 @@ LogicalSort(sort0=[$0], dir0=[ASC], fetch=[10])
         "label":"#1005-LogicalSort",
         "explanation":"{sort0=$0, dir0=ASC, fetch=10}",
         "set":"default",
+        "cost":"rowCount: 4E0\nrows: 1.2E1\ncpu:  0E0\nio:   0E0",
         "inputs":[ "1001" ]
       },
       "1006":{
         "label":"#1006-LogicalUnion",
         "explanation":"{all=true}",
         "set":"default",
+        "cost":"rowCount: 8E0\nrows: 3.2E1\ncpu:  0E0\nio:   0E0",
         "inputs":[ "1005", "1005" ]
       },
       "1007":{
         "label":"#1007-LogicalSort",
         "explanation":"{sort0=$0, dir0=ASC, fetch=10}",
         "set":"default",
+        "cost":"rowCount: 8E0\nrows: 4E1\ncpu:  0E0\nio:   0E0",
         "inputs":[ "1006" ]
       }
     },
@@ -151,12 +160,15 @@ EnumerableProject(NAME=[$1])
         "explanation":"{subset=rel#1000:RelSubset#0.NONE.[]}",
         "set":"set-0",
         "kind":"subset",
+        "cost":"{inf}",
+        "best":"",
         "inputs":[ "1001" ]
       },
       "1001":{
         "label":"#1001-LogicalTableScan",
         "explanation":"{table=[CATALOG, SALES, DEPT]}",
-        "set":"set-0"
+        "set":"set-0",
+        "cost":"{inf}"
       },
       "set-1":{
         "label":"set-1",
@@ -167,12 +179,15 @@ EnumerableProject(NAME=[$1])
         "explanation":"{subset=rel#1002:RelSubset#1.NONE.[]}",
         "set":"set-1",
         "kind":"subset",
+        "cost":"{inf}",
+        "best":"",
         "inputs":[ "1003" ]
       },
       "1003":{
         "label":"#1003-LogicalProject",
         "explanation":"{NAME=$1}",
         "set":"set-1",
+        "cost":"{inf}",
         "inputs":[ "1000" ]
       },
       "1004":{
@@ -180,12 +195,15 @@ EnumerableProject(NAME=[$1])
         "explanation":"{subset=rel#1004:RelSubset#1.ENUMERABLE.[], NAME=$1}",
         "set":"set-1",
         "kind":"subset",
+        "cost":"{inf}",
+        "best":"",
         "inputs":[ "1005" ]
       },
       "1005":{
         "label":"#1005-AbstractConverter",
         "explanation":"{convention=ENUMERABLE, sort=[]}",
         "set":"set-1",
+        "cost":"{inf}",
         "inputs":[ "1002" ]
       }
     },
@@ -198,12 +216,15 @@ EnumerableProject(NAME=[$1])
         "explanation":"{subset=rel#1006:RelSubset#0.ENUMERABLE.[], table=[CATALOG, SALES, DEPT]}",
         "set":"set-0",
         "kind":"subset",
+        "cost":"rowCount: 4E0\nrows: 4E0\ncpu:  5E0\nio:   0E0",
+        "best":"1007",
         "inputs":[ "1007" ]
       },
       "1007":{
         "label":"#1007-EnumerableTableScan",
         "explanation":"{table=[CATALOG, SALES, DEPT]}",
-        "set":"set-0"
+        "set":"set-0",
+        "cost":"rowCount: 4E0\nrows: 4E0\ncpu:  5E0\nio:   0E0"
       }
     },
     "matchedRels":[ "1001" ]
@@ -211,12 +232,15 @@ EnumerableProject(NAME=[$1])
     "id":"101-EnumerableProjectRule(in:NONE,out:ENUMERABLE)",
     "updates":{
       "1004":{
+        "cost":"rowCount: 4E0\nrows: 8E0\ncpu:  9E0\nio:   0E0",
+        "best":"1008",
         "inputs":[ "1005", "1008" ]
       },
       "1008":{
         "label":"#1008-EnumerableProject",
         "explanation":"{NAME=$1}",
         "set":"set-1",
+        "cost":"rowCount: 4E0\nrows: 8E0\ncpu:  9E0\nio:   0E0",
         "inputs":[ "1006" ]
       }
     },
@@ -224,36 +248,17 @@ EnumerableProject(NAME=[$1])
   }, {
     "id":"FINAL",
     "updates":{
-      "1000":{
-        "cost":"{inf}"
-      },
-      "1001":{
-        "cost":"{inf}"
-      },
-      "1002":{
-        "cost":"{inf}"
-      },
-      "1003":{
-        "cost":"{inf}"
-      },
       "1004":{
-        "inFinalPlan":true,
-        "cost":"\nrowCount: 4E0\nrows: 8E0\ncpu:  9E0\nio:   0E0"
-      },
-      "1005":{
-        "cost":"{inf}"
+        "inFinalPlan":true
       },
       "1006":{
-        "inFinalPlan":true,
-        "cost":"\nrowCount: 4E0\nrows: 4E0\ncpu:  5E0\nio:   0E0"
+        "inFinalPlan":true
       },
       "1007":{
-        "inFinalPlan":true,
-        "cost":"\nrowCount: 4E0\nrows: 4E0\ncpu:  5E0\nio:   0E0"
+        "inFinalPlan":true
       },
       "1008":{
-        "inFinalPlan":true,
-        "cost":"\nrowCount: 4E0\nrows: 8E0\ncpu:  9E0\nio:   0E0"
+        "inFinalPlan":true
       }
     },
     "matchedRels":[ ]

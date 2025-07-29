@@ -95,7 +95,7 @@ public class RuleMatchVisualizer implements RelOptListener {
   private @Nullable RelOptPlanner planner = null;
 
   private boolean includeTransitiveEdges = false;
-  private boolean includeIntermediateCosts = false;
+  private boolean includeIntermediateCosts = true;
 
   private final List<StepInfo> steps = new ArrayList<>();
   private final Map<String, NodeUpdateHelper> allNodes = new LinkedHashMap<>();
@@ -134,6 +134,24 @@ public class RuleMatchVisualizer implements RelOptListener {
   }
 
   /**
+   * Register the root node of the planner and adds an INITIAL step.
+   * This method is automatically invoked when the first rule is attempted.
+   */
+  public void ensureInitialized() {
+    if (!initialized) {
+      requireNonNull(planner, "planner");
+      RelNode root = requireNonNull(planner.getRoot(), "root");
+      initialized = true;
+      updateInitialPlan(root);
+    }
+    // add the initialState
+    if (!this.allNodes.isEmpty() && this.steps.isEmpty()) {
+      this.addStep(INITIAL, null);
+      this.latestRuleID = INITIAL;
+    }
+  }
+
+  /**
    * Output edges from a subset to the nodes of all subsets that satisfy it.
    */
   public void setIncludeTransitiveEdges(final boolean includeTransitiveEdges) {
@@ -142,6 +160,7 @@ public class RuleMatchVisualizer implements RelOptListener {
 
   /**
    * Output intermediate costs, including all cost updates.
+   * The default value is true.
    */
   public void setIncludeIntermediateCosts(final boolean includeIntermediateCosts) {
     this.includeIntermediateCosts = includeIntermediateCosts;
@@ -149,12 +168,7 @@ public class RuleMatchVisualizer implements RelOptListener {
 
   @Override public void ruleAttempted(RuleAttemptedEvent event) {
     // HepPlanner compatibility
-    if (!initialized) {
-      requireNonNull(planner, "planner");
-      RelNode root = requireNonNull(planner.getRoot());
-      initialized = true;
-      updateInitialPlan(root);
-    }
+    ensureInitialized();
   }
 
   /**
@@ -217,11 +231,7 @@ public class RuleMatchVisualizer implements RelOptListener {
   @Override public void ruleProductionSucceeded(RuleProductionEvent event) {
     // method is called once before ruleMatch, and once after ruleMatch
     if (event.isBefore()) {
-      // add the initialState
-      if (latestRuleID.isEmpty()) {
-        this.addStep(INITIAL, null);
-        this.latestRuleID = INITIAL;
-      }
+      ensureInitialized();
       return;
     }
 
@@ -300,6 +310,11 @@ public class RuleMatchVisualizer implements RelOptListener {
       RelOptCost cost = planner.getCost(rel, mq);
       Double rowCount = mq.getRowCount(rel);
       helper.updateAttribute("cost", formatCost(rowCount, cost));
+      if (rel instanceof RelSubset) {
+        final RelNode best = ((RelSubset) rel).getBest();
+        final String bestId = best != null ? Integer.toString(best.getId()) : "";
+        helper.updateAttribute("best", bestId);
+      }
     }
 
     List<String> inputs = new ArrayList<>();
@@ -464,7 +479,7 @@ public class RuleMatchVisualizer implements RelOptListener {
         || originalStr.contains("tiny")) {
       return originalStr;
     }
-    return new MessageFormat("\nrowCount: {0}\nrows: {1}\ncpu:  {2}\nio:   {3}",
+    return new MessageFormat("rowCount: {0}\nrows: {1}\ncpu:  {2}\nio:   {3}",
         Locale.ROOT).format(new String[]{
             formatCostScientific(rowCount),
             formatCostScientific(cost.getRows()),
