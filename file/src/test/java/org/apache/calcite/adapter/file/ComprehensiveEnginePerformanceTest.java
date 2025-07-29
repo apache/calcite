@@ -171,7 +171,7 @@ public class ComprehensiveEnginePerformanceTest {
       SchemaPlus fileSchema =
           rootSchema.add("TEST_" + engine.toUpperCase(), FileSchemaFactory.INSTANCE.create(rootSchema, "TEST_" + engine.toUpperCase(), operand));
 
-      String tableName = fileName.substring(0, fileName.lastIndexOf('.'));
+      String tableName = fileName.substring(0, fileName.lastIndexOf('.')).toUpperCase();
       String query;
 
       if (fileName.endsWith(".csv")) {

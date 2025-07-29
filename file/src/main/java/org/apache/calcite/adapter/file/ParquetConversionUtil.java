@@ -90,14 +90,19 @@ public class ParquetConversionUtil {
       File cacheDir, SchemaPlus parentSchema, String schemaName) throws Exception {
 
     File sourceFile = new File(source.path());
-    File parquetFile = getCachedParquetFile(sourceFile, cacheDir);
-
-    // Check if conversion is needed
-    if (!needsConversion(sourceFile, parquetFile)) {
-      System.out.println("Using cached Parquet file for " + tableName + ": " + parquetFile.getName());
-      return parquetFile;
-    }
-
+    
+    // Use concurrent cache for thread-safe conversion
+    return ConcurrentParquetCache.convertWithLocking(sourceFile, cacheDir, (tempFile) -> {
+      performConversion(source, tableName, table, tempFile, parentSchema, schemaName);
+    });
+  }
+  
+  /**
+   * Perform the actual conversion to a temporary file.
+   */
+  private static void performConversion(Source source, String tableName, Table table,
+      File targetFile, SchemaPlus parentSchema, String schemaName) throws Exception {
+    
     System.out.println("Converting " + tableName + " to Parquet format...");
 
     // Create a temporary schema with just this table
@@ -150,12 +155,12 @@ public class ParquetConversionUtil {
         Schema avroSchema = fieldAssembler.endRecord();
 
         // Delete existing file if it exists
-        if (parquetFile.exists()) {
-          parquetFile.delete();
+        if (targetFile.exists()) {
+          targetFile.delete();
         }
 
         // Write to Parquet
-        Path hadoopPath = new Path(parquetFile.getAbsolutePath());
+        Path hadoopPath = new Path(targetFile.getAbsolutePath());
         Configuration conf = new Configuration();
 
         @SuppressWarnings("deprecation")
@@ -211,8 +216,7 @@ public class ParquetConversionUtil {
     }
 
     // Set the modification time to match the source file
-    parquetFile.setLastModified(sourceFile.lastModified());
-
-    return parquetFile;
+    File sourceFile = new File(source.path());
+    targetFile.setLastModified(sourceFile.lastModified());
   }
 }

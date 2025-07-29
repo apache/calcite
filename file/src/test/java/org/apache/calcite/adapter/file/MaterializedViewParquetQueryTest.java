@@ -96,13 +96,13 @@ public class MaterializedViewParquetQueryTest {
       List<Map<String, Object>> materializations = new ArrayList<>();
 
       Map<String, Object> dailySalesMV = new HashMap<>();
-      dailySalesMV.put("view", "daily_summary");
-      dailySalesMV.put("table", "daily_summary_mv");
+      dailySalesMV.put("view", "DAILY_SUMMARY");
+      dailySalesMV.put("table", "DAILY_SUMMARY_MV");
       dailySalesMV.put("sql", "SELECT \"date\", " +
           "COUNT(*) as transaction_count, " +
           "SUM(\"quantity\") as total_quantity, " +
           "SUM(\"quantity\" * \"price\") as total_revenue " +
-          "FROM \"sales\" " +
+          "FROM SALES " +
           "GROUP BY \"date\"");
       materializations.add(dailySalesMV);
 
@@ -127,7 +127,7 @@ public class MaterializedViewParquetQueryTest {
         while (tables.next()) {
           String tableName = tables.getString("TABLE_NAME");
           System.out.println("   - " + tableName);
-          if (tableName.equals("daily_summary")) {
+          if (tableName.equals("DAILY_SUMMARY")) {
             foundMV = true;
           }
         }
@@ -137,7 +137,7 @@ public class MaterializedViewParquetQueryTest {
 
           // Query the materialized view
           System.out.println("\n3. Querying the materialized view:");
-          ResultSet rs = stmt.executeQuery("SELECT * FROM PARQUET_MV_TEST.\"daily_summary\" ORDER BY \"date\"");
+          ResultSet rs = stmt.executeQuery("SELECT * FROM PARQUET_MV_TEST.DAILY_SUMMARY ORDER BY \"date\"");
 
           System.out.println("   Date       | Count | Quantity | Revenue");
           System.out.println("   -----------|-------|----------|--------");
@@ -167,7 +167,7 @@ public class MaterializedViewParquetQueryTest {
             "COUNT(*) as transaction_count, " +
             "SUM(\"quantity\") as total_quantity, " +
             "SUM(\"quantity\" * \"price\") as total_revenue " +
-            "FROM PARQUET_MV_TEST.\"sales\" " +
+            "FROM PARQUET_MV_TEST.SALES " +
             "GROUP BY \"date\" " +
             "ORDER BY \"date\"");
 

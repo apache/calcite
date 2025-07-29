@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.file;
 
+import org.apache.calcite.util.trace.CalciteLogger;
+
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DateUtil;
@@ -29,6 +31,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
@@ -41,11 +45,25 @@ import java.util.Iterator;
  * Supports reading XLSX files and converting each sheet to a separate JSON file.
  */
 public final class ExcelToJsonConverter {
+  private static final CalciteLogger LOGGER =
+      new CalciteLogger(LoggerFactory.getLogger(ExcelToJsonConverter.class));
+      
   private ExcelToJsonConverter() {
     // Prevent instantiation
   }
 
   public static void convertFileToJson(File inputFile) throws IOException {
+    // Acquire read lock on source file
+    SourceFileLockManager.LockHandle lockHandle = null;
+    try {
+      lockHandle = SourceFileLockManager.acquireReadLock(inputFile);
+      LOGGER.debug("Acquired read lock on Excel file: " + inputFile.getPath());
+    } catch (IOException e) {
+      LOGGER.warn("Could not acquire lock on file: " + inputFile.getPath() + 
+          " - proceeding without lock");
+      // Continue without lock
+    }
+    
     FileInputStream file = new FileInputStream(inputFile);
     Workbook workbook = WorkbookFactory.create(file);
     ObjectMapper mapper = new ObjectMapper();
@@ -97,6 +115,12 @@ public final class ExcelToJsonConverter {
     }
     workbook.close();
     file.close();
+    
+    // Release the lock
+    if (lockHandle != null) {
+      lockHandle.close();
+      LOGGER.debug("Released read lock on Excel file");
+    }
   }
 
   private static boolean isNonEmptyRow(Row row) {

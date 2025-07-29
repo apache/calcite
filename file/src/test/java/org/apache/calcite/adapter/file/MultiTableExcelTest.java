@@ -129,20 +129,20 @@ public class MultiTableExcelTest {
       try (Statement statement = connection.createStatement()) {
         // Query the first table
         ResultSet rs1 =
-            statement.executeQuery("SELECT * FROM excel.\"multi_table_test__Data_Sales_Report_T1\" "
+            statement.executeQuery("SELECT * FROM \"excel\".\"MULTITABLETEST__DATA_SALES_REPORT\" "
             + "ORDER BY \"Product\"");
 
         assertTrue(rs1.next());
         assertThat(rs1.getString("Product"), is("Gadget"));
-        assertThat(rs1.getInt("Q1"), is(200));
+        assertThat((int) Double.parseDouble(rs1.getString("Q1")), is(200));
 
         assertTrue(rs1.next());
         assertThat(rs1.getString("Product"), is("Widget"));
-        assertThat(rs1.getInt("Q1"), is(100));
+        assertThat((int) Double.parseDouble(rs1.getString("Q1")), is(100));
 
         // Query the second table
         ResultSet rs2 =
-            statement.executeQuery("SELECT * FROM excel.\"multi_table_test__Data_Employee_Data_T2\" "
+            statement.executeQuery("SELECT * FROM \"excel\".\"MULTITABLETEST__DATA_EMPLOYEE_DATA\" "
             + "ORDER BY \"Name\"");
 
         assertTrue(rs2.next());
@@ -204,10 +204,10 @@ public class MultiTableExcelTest {
         // Count tables found
         ResultSet tables = connection.getMetaData().getTables(null, "excel", "%", null);
         int tableCount = 0;
-        System.out.println("Tables found in lots_of_tables.xlsx:");
+        System.out.println("Tables from lots_of_tables.xlsx:");
         while (tables.next()) {
           String tableName = tables.getString("TABLE_NAME");
-          if (tableName.startsWith("lots_of_tables")) {
+          if (tableName.startsWith("LOTSOFTABLES")) {
             tableCount++;
             System.out.println("  - " + tableName);
           }

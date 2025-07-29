@@ -153,7 +153,7 @@ public class MultiTableHtmlTest {
       try (Statement statement = connection.createStatement()) {
         // Query the first table (identified by id)
         ResultSet rs1 =
-            statement.executeQuery("SELECT * FROM \"html\".\"multi_table_test__sales_data\" ORDER BY \"Product\"");
+            statement.executeQuery("SELECT * FROM \"html\".\"MULTI_TABLE_TEST__SALES_DATA\" ORDER BY \"Product\"");
 
         assertTrue(rs1.next());
         assertThat(rs1.getString("Product"), is("Gadget"));
@@ -165,7 +165,7 @@ public class MultiTableHtmlTest {
 
         // Query the second table (identified by heading)
         ResultSet rs2 =
-            statement.executeQuery("SELECT * FROM \"html\".\"multi_table_test__Employee_Data\" ORDER BY \"Name\"");
+            statement.executeQuery("SELECT * FROM \"html\".\"MULTI_TABLE_TEST__EMPLOYEE_DATA\" ORDER BY \"Name\"");
 
         assertTrue(rs2.next());
         assertThat(rs2.getString("Name"), is("Jane"));
@@ -177,7 +177,7 @@ public class MultiTableHtmlTest {
 
         // Query the third table (identified by caption)
         ResultSet rs3 =
-            statement.executeQuery("SELECT * FROM \"html\".\"multi_table_test__Inventory_Status\" ORDER BY \"Item\"");
+            statement.executeQuery("SELECT * FROM \"html\".\"MULTI_TABLE_TEST__INVENTORY_STATUS\" ORDER BY \"Item\"");
 
         assertTrue(rs3.next());
         assertThat(rs3.getString("Item"), is("Paper"));
@@ -222,7 +222,7 @@ public class MultiTableHtmlTest {
 
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
       FileSchema fileSchema =
-          new FileSchema(rootSchema, "html", tempDir.toFile(), null, new ExecutionEngineConfig(), false, null, null);
+          new FileSchema(rootSchema, "html", tempDir.toFile(), null, new ExecutionEngineConfig(), true, null, null);
       rootSchema.add("html", fileSchema);
 
       // Force table discovery
@@ -235,7 +235,7 @@ public class MultiTableHtmlTest {
         System.out.println("Tables found in complex_tables.html:");
         while (tableList.next()) {
           String tableName = tableList.getString("TABLE_NAME");
-          if (tableName.startsWith("complex_tables")) {
+          if (tableName.toUpperCase().startsWith("COMPLEX_TABLES")) {
             tableCount++;
             System.out.println("  - " + tableName);
           }
@@ -245,13 +245,13 @@ public class MultiTableHtmlTest {
 
         // Query the revenue table
         ResultSet rs1 =
-            statement.executeQuery("SELECT * FROM \"html\".\"complex_tables__revenue\" WHERE \"Year\" = '2023'");
+            statement.executeQuery("SELECT * FROM \"html\".\"COMPLEX_TABLES__REVENUE\" WHERE \"Year\" = '2023'");
         assertTrue(rs1.next());
         assertThat(rs1.getString("Revenue"), is("1200000"));
 
         // Query the expenses table
         ResultSet rs2 =
-            statement.executeQuery("SELECT * FROM \"html\".\"complex_tables__expenses\" WHERE \"Year\" = '2023'");
+            statement.executeQuery("SELECT * FROM \"html\".\"COMPLEX_TABLES__EXPENSES\" WHERE \"Year\" = '2023'");
         assertTrue(rs2.next());
         assertThat(rs2.getString("Expenses"), is("900000"));
       }
@@ -269,18 +269,18 @@ public class MultiTableHtmlTest {
       java.util.List<java.util.Map<String, Object>> tableDefs =
           java.util.Collections.singletonList(
               java.util.Map.of(
-                  "name", "sales_only",
+                  "name", "SALES_ONLY",
                   "url", "file://" + new File(tempDir.toFile(), "multi_table_test.html").getAbsolutePath(),
                   "selector", "#sales_data"));
 
-      rootSchema.add("html",
-          new FileSchema(rootSchema, "html", null, tableDefs,
+      rootSchema.add("HTML",
+          new FileSchema(rootSchema, "HTML", null, tableDefs,
               new ExecutionEngineConfig(), false, null, null));
 
       try (Statement statement = connection.createStatement()) {
         // Should only find the explicitly defined table
         ResultSet rs =
-            statement.executeQuery("SELECT COUNT(*) as cnt FROM \"html\".\"sales_only\"");
+            statement.executeQuery("SELECT COUNT(*) as cnt FROM HTML.SALES_ONLY");
         assertTrue(rs.next());
         assertThat(rs.getLong("cnt"), is(2L)); // 2 rows in sales table
       }

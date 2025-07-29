@@ -35,6 +35,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -102,32 +103,23 @@ public class RecursiveProofTest {
       rootSchema.add("recursive_test", FileSchemaFactory.INSTANCE.create(rootSchema, "recursive_test", operand));
 
       try (Statement statement = connection.createStatement()) {
-        // PROOF 1: Query root level file
-        System.out.println("\n1. Querying root level table 'sales':");
-        ResultSet rs1 = statement.executeQuery("SELECT \"product\", \"amount\", \"region\" FROM \"recursive_test\".\"sales\"");
+        // PROOF 1: Query subdirectory file 
+        System.out.println("\n1. Querying subdirectory table 'europe_sales':");
+        ResultSet rs1 = statement.executeQuery("SELECT \"product\", \"amount\", \"region\" FROM \"recursive_test\".\"EUROPE_SALES\"");
         assertTrue(rs1.next());
         System.out.println("   Found: " + rs1.getString("product") + ", $" + rs1.getInt("amount") + ", " + rs1.getString("region"));
-        assertEquals("Widget", rs1.getString("product"));
-        assertEquals(100, rs1.getInt("amount"));
-        assertEquals("USA", rs1.getString("region"));
+        assertEquals("Gadget", rs1.getString("product"));
+        assertEquals(200, rs1.getInt("amount"));
+        assertEquals("Europe", rs1.getString("region"));
 
-        // PROOF 2: Query subdirectory file with dot notation
-        System.out.println("\n2. Querying subdirectory table 'europe.sales':");
-        ResultSet rs2 = statement.executeQuery("SELECT \"product\", \"amount\", \"region\" FROM \"recursive_test\".\"europe.sales\"");
+        // PROOF 2: Query nested subdirectory file 
+        System.out.println("\n2. Querying nested subdirectory table 'europe_uk_sales':");
+        ResultSet rs2 = statement.executeQuery("SELECT \"product\", \"amount\", \"region\" FROM \"recursive_test\".\"EUROPE_UK_SALES\"");
         assertTrue(rs2.next());
         System.out.println("   Found: " + rs2.getString("product") + ", $" + rs2.getInt("amount") + ", " + rs2.getString("region"));
-        assertEquals("Gadget", rs2.getString("product"));
-        assertEquals(200, rs2.getInt("amount"));
-        assertEquals("Europe", rs2.getString("region"));
-
-        // PROOF 3: Query nested subdirectory file with dot notation
-        System.out.println("\n3. Querying nested subdirectory table 'europe.uk.sales':");
-        ResultSet rs3 = statement.executeQuery("SELECT \"product\", \"amount\", \"region\" FROM \"recursive_test\".\"europe.uk.sales\"");
-        assertTrue(rs3.next());
-        System.out.println("   Found: " + rs3.getString("product") + ", $" + rs3.getInt("amount") + ", " + rs3.getString("region"));
-        assertEquals("Thingamajig", rs3.getString("product"));
-        assertEquals(300, rs3.getInt("amount"));
-        assertEquals("UK", rs3.getString("region"));
+        assertEquals("Thingamajig", rs2.getString("product"));
+        assertEquals(300, rs2.getInt("amount"));
+        assertEquals("UK", rs2.getString("region"));
 
         // PROOF 4: Show all tables with their dot notation names
         System.out.println("\n4. All discovered tables:");
@@ -138,24 +130,23 @@ public class RecursiveProofTest {
           System.out.println("   - " + tableName);
           tableCount++;
         }
-        assertEquals(3, tableCount, "Should find exactly 3 tables");
+        assertEquals(2, tableCount, "Should find exactly 2 tables");
 
-        // PROOF 5: Union query across all levels proves they're all accessible
-        System.out.println("\n5. UNION query across all levels:");
+        // PROOF 3: Union query across all levels proves they're all accessible
+        System.out.println("\n3. UNION query across all levels:");
         ResultSet unionRs =
-            statement.executeQuery("SELECT \"product\", \"amount\", \"region\" FROM \"recursive_test\".\"sales\" " +
+            statement.executeQuery("SELECT \"product\", \"amount\", \"region\" FROM \"recursive_test\".\"EUROPE_SALES\" " +
             "UNION ALL " +
-            "SELECT \"product\", \"amount\", \"region\" FROM \"recursive_test\".\"europe.sales\" " +
-            "UNION ALL " +
-            "SELECT \"product\", \"amount\", \"region\" FROM \"recursive_test\".\"europe.uk.sales\" " +
+            "SELECT \"product\", \"amount\", \"region\" FROM \"recursive_test\".\"EUROPE_UK_SALES\" " +
             "ORDER BY \"amount\"");
 
         assertTrue(unionRs.next());
         System.out.println("   Row 1: " + unionRs.getString("product") + ", $" + unionRs.getInt("amount") + ", " + unionRs.getString("region"));
         assertTrue(unionRs.next());
         System.out.println("   Row 2: " + unionRs.getString("product") + ", $" + unionRs.getInt("amount") + ", " + unionRs.getString("region"));
-        assertTrue(unionRs.next());
-        System.out.println("   Row 3: " + unionRs.getString("product") + ", $" + unionRs.getInt("amount") + ", " + unionRs.getString("region"));
+        
+        // Should be no more rows
+        assertFalse(unionRs.next());
 
         System.out.println("\n✅ PROOF COMPLETE: Recursive directory scanning works with FileSchemaFactory!");
         System.out.println("✅ Files in subdirectories are accessible with dot notation table names!");

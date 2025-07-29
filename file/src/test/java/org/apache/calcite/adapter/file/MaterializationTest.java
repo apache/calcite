@@ -88,7 +88,7 @@ public class MaterializationTest {
 
       // Daily sales summary materialization
       Map<String, Object> dailySalesMV = new HashMap<>();
-      dailySalesMV.put("view", "daily_sales_summary");
+      dailySalesMV.put("view", "DAILY_SALES_SUMMARY");
       dailySalesMV.put("table", "daily_sales_mv");
       dailySalesMV.put("sql", "SELECT \"date\", " +
           "COUNT(*) as transaction_count, " +
@@ -100,7 +100,7 @@ public class MaterializationTest {
 
       // Product sales summary materialization
       Map<String, Object> productSalesMV = new HashMap<>();
-      productSalesMV.put("view", "product_summary");
+      productSalesMV.put("view", "PRODUCT_SUMMARY");
       productSalesMV.put("table", "product_summary_mv");
       productSalesMV.put("sql", "SELECT \"product\", " +
           "COUNT(*) as sales_count, " +
@@ -128,7 +128,7 @@ public class MaterializationTest {
         // Test 1: Query base table
         System.out.println("\n2. Querying base sales table:");
         ResultSet rs1 =
-            statement.executeQuery("SELECT COUNT(*) as cnt FROM MV_SCHEMA.\"sales\"");
+            statement.executeQuery("SELECT COUNT(*) as cnt FROM MV_SCHEMA.\"SALES\"");
         assertTrue(rs1.next());
         int salesCount = rs1.getInt("cnt");
         assertEquals(6, salesCount);
@@ -145,8 +145,8 @@ public class MaterializationTest {
           tableNames.add(tableName);
           System.out.println("   - " + tableName);
         }
-        assertTrue(tableNames.contains("sales"), "Should have sales table");
-        assertTrue(tableNames.contains("products"), "Should have products table");
+        assertTrue(tableNames.contains("SALES"), "Should have sales table");
+        assertTrue(tableNames.contains("PRODUCTS"), "Should have products table");
         System.out.println("   ✓ Found " + tableNames.size() + " tables");
 
         // Test 3: Execute aggregation query (what MV would contain)
@@ -156,7 +156,7 @@ public class MaterializationTest {
             "COUNT(*) as transaction_count, " +
             "SUM(\"quantity\") as total_quantity, " +
             "SUM(\"quantity\" * \"price\") as total_revenue " +
-            "FROM MV_SCHEMA.\"sales\" " +
+            "FROM MV_SCHEMA.SALES " +
             "GROUP BY \"date\" " +
             "ORDER BY \"date\"");
 
@@ -180,7 +180,7 @@ public class MaterializationTest {
             statement.executeQuery("SELECT \"product\", " +
             "SUM(\"quantity\") as total_quantity, " +
             "SUM(\"quantity\" * \"price\") as total_revenue " +
-            "FROM MV_SCHEMA.\"sales\" " +
+            "FROM MV_SCHEMA.SALES " +
             "GROUP BY \"product\" " +
             "ORDER BY total_revenue DESC");
 

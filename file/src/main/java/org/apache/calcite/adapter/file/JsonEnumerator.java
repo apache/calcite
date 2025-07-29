@@ -22,6 +22,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Source;
+import org.apache.calcite.util.trace.CalciteLogger;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,7 +30,9 @@ import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -41,6 +44,8 @@ import java.util.Map;
  * Enumerator that reads from a Object List.
  */
 public class JsonEnumerator implements Enumerator<@Nullable Object[]> {
+  private static final CalciteLogger LOGGER =
+      new CalciteLogger(LoggerFactory.getLogger(JsonEnumerator.class));
 
   private final Enumerator<@Nullable Object[]> enumerator;
 
@@ -128,8 +133,25 @@ public class JsonEnumerator implements Enumerator<@Nullable Object[]> {
       }
 
       if ("file".equals(source.protocol()) && source.file().exists()) {
-        //noinspection unchecked
-        jsonObj = selectedMapper.readValue(source.file(), Object.class);
+        // Acquire read lock on source file
+        SourceFileLockManager.LockHandle lockHandle = null;
+        try {
+          lockHandle = SourceFileLockManager.acquireReadLock(source.file());
+          LOGGER.debug("Acquired read lock on JSON file: " + source.path());
+          //noinspection unchecked
+          jsonObj = selectedMapper.readValue(source.file(), Object.class);
+        } catch (IOException lockException) {
+          LOGGER.warn("Could not acquire lock on file: " + source.path() + 
+              " - proceeding without lock");
+          // Proceed without lock
+          //noinspection unchecked
+          jsonObj = selectedMapper.readValue(source.file(), Object.class);
+        } finally {
+          if (lockHandle != null) {
+            lockHandle.close();
+            LOGGER.debug("Released read lock on JSON file");
+          }
+        }
       } else if (Arrays.asList("http", "https", "ftp").contains(source.protocol())) {
         //noinspection unchecked
         jsonObj = selectedMapper.readValue(source.url(), Object.class);

@@ -242,7 +242,7 @@ public class ParquetColdStartPerformanceTest {
 
       // Run a simple query to trigger conversion
       try (Statement stmt = connection.createStatement();
-           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM CONV.\"sales\"")) {
+           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM CONV.\"SALES\"")) {
         rs.next();
         System.out.println("Pre-conversion complete. Row count: " + rs.getInt(1));
       }

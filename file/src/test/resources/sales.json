@@ -24,10 +24,10 @@
     "operand": {
       "tables": [ {
         "name": "EMPS",
-        "url": "file:sales/EMPS.html"
+        "url": "sales/EMPS.html"
       }, {
         "name": "DEPTS",
-        "url": "file:sales/DEPTS.html"
+        "url": "sales/DEPTS.html"
       } ]
     }
   } ]

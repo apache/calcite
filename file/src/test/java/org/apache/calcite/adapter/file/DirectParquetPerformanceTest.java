@@ -86,13 +86,13 @@ public class DirectParquetPerformanceTest {
 
     // Test 1: Simple aggregation
     System.out.println("\n## TEST 1: Simple COUNT(*) ##");
-    String countQuery = "SELECT COUNT(*) FROM TEST.\"sales\"";
+    String countQuery = "SELECT COUNT(*) FROM TEST.\"SALES\"";
     runComparison("Count Query", countQuery);
 
     // Test 2: Group By aggregation
     System.out.println("\n## TEST 2: GROUP BY Aggregation ##");
     String groupByQuery = "SELECT \"region\", COUNT(*) as cnt, SUM(\"total\") as revenue " +
-        "FROM TEST.\"sales\" " +
+        "FROM TEST.\"SALES\" " +
         "GROUP BY \"region\" " +
         "ORDER BY revenue DESC";
     runComparison("Group By Query", groupByQuery);
@@ -103,7 +103,7 @@ public class DirectParquetPerformanceTest {
         "COUNT(*) as orders, " +
         "AVG(\"unit_price\") as avg_price, " +
         "SUM(\"quantity\") as total_qty " +
-        "FROM TEST.\"sales\" " +
+        "FROM TEST.\"SALES\" " +
         "WHERE \"status\" = 'completed' AND \"total\" > 100 " +
         "GROUP BY \"product_category\"";
     runComparison("Filtered Aggregation", filteredQuery);
@@ -111,7 +111,7 @@ public class DirectParquetPerformanceTest {
     // Test 4: Top-N with sorting
     System.out.println("\n## TEST 4: Top-N Query ##");
     String topNQuery = "SELECT \"order_id\", \"customer_id\", \"total\" " +
-        "FROM TEST.\"sales\" " +
+        "FROM TEST.\"SALES\" " +
         "WHERE \"region\" = 'North America' " +
         "ORDER BY \"total\" DESC " +
         "LIMIT 1000";
@@ -120,7 +120,7 @@ public class DirectParquetPerformanceTest {
     // Test 5: Selective projection
     System.out.println("\n## TEST 5: Selective Column Projection ##");
     String projectionQuery = "SELECT \"order_id\", \"total\" " +
-        "FROM TEST.\"sales\" " +
+        "FROM TEST.\"SALES\" " +
         "WHERE \"total\" > 500";
     runComparison("Selective Projection", projectionQuery);
 
@@ -286,7 +286,7 @@ public class DirectParquetPerformanceTest {
 
       // Run a query to trigger conversion
       try (Statement stmt = connection.createStatement();
-           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM TEMP.\"sales\"")) {
+           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM TEMP.\"SALES\"")) {
         rs.next();
         System.out.println("  Conversion triggered. Row count: " + rs.getInt(1));
       }

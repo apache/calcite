@@ -107,7 +107,7 @@ public class HtmlToJsonConverterTest {
     assertEquals(1, jsonFiles.size());
     File jsonFile = jsonFiles.get(0);
     assertTrue(jsonFile.exists());
-    assertEquals("simple_table1.json", jsonFile.getName());
+    assertEquals("simple_T1.json", jsonFile.getName());
 
     // Read and verify JSON content
     JsonNode root = mapper.readTree(jsonFile);
@@ -245,7 +245,8 @@ public class HtmlToJsonConverterTest {
 
     String fileName = jsonFiles.get(0).getName();
     assertTrue(fileName.startsWith("special_"));
-    assertTrue(fileName.contains("sales_data__2024_"));
+    // ID "sales-data (2024)" gets sanitized to "salesdata_2024" 
+    assertTrue(fileName.contains("salesdata_2024"));
     assertTrue(fileName.endsWith(".json"));
 
     System.out.println("\n=== SPECIAL CHARACTERS TEST ===");

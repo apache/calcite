@@ -17,12 +17,16 @@
 package org.apache.calcite.adapter.file;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelProtoDataType;
+import org.apache.calcite.schema.ScannableTable;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Source;
@@ -43,11 +47,18 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
@@ -62,7 +73,7 @@ import java.util.stream.Collectors;
  * consolidation into Parquet.
  */
 public class GlobParquetTable extends AbstractTable
-    implements RefreshableTable {
+    implements RefreshableTable, ScannableTable {
 
   private static final Logger LOGGER = Logger.getLogger(GlobParquetTable.class.getName());
 
@@ -315,32 +326,25 @@ public class GlobParquetTable extends AbstractTable
     File tempFile = new File(cacheDir, parquetCacheFile.getName() + ".tmp");
 
     try {
-      // For initial implementation, we'll use a simpler approach
-      // Full Arrow Dataset integration would be added later
-
-      // If all files are already Parquet, just copy the first one
-      // Otherwise, we need to convert them
-      File firstFile = new File(filePaths.get(0));
-
-      if (filePaths.size() == 1 && firstFile.getName().endsWith(".parquet")) {
-        // Single Parquet file - just copy
-        Files.copy(firstFile.toPath(), tempFile.toPath());
-      } else {
-        // Multiple files or non-Parquet format
-        // For now, we'll use a simplified approach
-        // In production, this would use Arrow Dataset API to merge all files
-
-        if (firstFile.getName().endsWith(".json")) {
+      if (filePaths.size() == 1) {
+        // Single file processing
+        File singleFile = new File(filePaths.get(0));
+        if (singleFile.getName().endsWith(".parquet")) {
+          // Single Parquet file - just copy
+          Files.copy(singleFile.toPath(), tempFile.toPath());
+        } else if (singleFile.getName().endsWith(".json")) {
           // Convert JSON to Parquet
-          convertJsonToParquet(firstFile, tempFile);
-        } else if (firstFile.getName().endsWith(".csv")) {
+          convertJsonToParquet(singleFile, tempFile);
+        } else if (singleFile.getName().endsWith(".csv")) {
           // Convert CSV to Parquet
-          convertCsvToParquet(firstFile, tempFile);
+          convertCsvToParquet(singleFile, tempFile);
         } else {
-          // For now, just copy first file
-          LOGGER.warning("Multi-file merge not yet implemented - using first file only");
-          Files.copy(firstFile.toPath(), tempFile.toPath());
+          // Unknown format
+          throw new IOException("Unsupported file format: " + singleFile.getName());
         }
+      } else {
+        // Multiple files - need to merge them
+        mergeFilesToParquet(filePaths, tempFile);
       }
 
       // Atomic rename
@@ -359,40 +363,244 @@ public class GlobParquetTable extends AbstractTable
   }
 
   private void convertJsonToParquet(File jsonFile, File parquetFile) throws IOException {
-    // Simplified implementation - would use Arrow in production
     LOGGER.info("Converting JSON to Parquet: " + jsonFile.getName());
-    // For now, just copy as a placeholder
-    Files.copy(jsonFile.toPath(), parquetFile.toPath());
+    try {
+      // Create a temporary JSON table to read from
+      JsonScannableTable jsonTable = new JsonScannableTable(Sources.of(jsonFile));
+      String tableName = jsonFile.getName().replaceAll("\\.json$", "").toUpperCase();
+      
+      // Convert using Calcite's query engine
+      try (Connection conn = DriverManager.getConnection("jdbc:calcite:");
+           CalciteConnection calciteConn = conn.unwrap(CalciteConnection.class)) {
+        
+        SchemaPlus rootSchema = calciteConn.getRootSchema();
+        SchemaPlus tempSchema = rootSchema.add("TEMP_CONVERT", new AbstractSchema() {
+          @Override protected Map<String, org.apache.calcite.schema.Table> getTableMap() {
+            return Collections.singletonMap(tableName, jsonTable);
+          }
+        });
+        
+        // Use ParquetConversionUtil's conversion directly
+        File result = ParquetConversionUtil.convertToParquet(
+            Sources.of(jsonFile),
+            tableName,
+            jsonTable,
+            parquetFile.getParentFile(),
+            tempSchema,
+            "TEMP_CONVERT"
+        );
+        
+        // Move the result to our target location if different
+        if (!result.equals(parquetFile)) {
+          Files.move(result.toPath(), parquetFile.toPath(), 
+              java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        }
+      }
+    } catch (Exception e) {
+      throw new IOException("Failed to convert JSON to Parquet", e);
+    }
   }
 
   private void convertCsvToParquet(File csvFile, File parquetFile) throws IOException {
-    // Simplified implementation - would use Arrow in production
     LOGGER.info("Converting CSV to Parquet: " + csvFile.getName());
-    // For now, just copy as a placeholder
-    Files.copy(csvFile.toPath(), parquetFile.toPath());
+    try {
+      // Create a CSV table to read from
+      CsvTranslatableTable csvTable = new CsvTranslatableTable(Sources.of(csvFile), null);
+      String tableName = csvFile.getName().replaceAll("\\.csv$", "").toUpperCase();
+      
+      // Convert using Calcite's query engine
+      try (Connection conn = DriverManager.getConnection("jdbc:calcite:");
+           CalciteConnection calciteConn = conn.unwrap(CalciteConnection.class)) {
+        
+        SchemaPlus rootSchema = calciteConn.getRootSchema();
+        SchemaPlus tempSchema = rootSchema.add("TEMP_CONVERT", new AbstractSchema() {
+          @Override protected Map<String, org.apache.calcite.schema.Table> getTableMap() {
+            return Collections.singletonMap(tableName, csvTable);
+          }
+        });
+        
+        // Use ParquetConversionUtil's conversion directly
+        File result = ParquetConversionUtil.convertToParquet(
+            Sources.of(csvFile),
+            tableName,
+            csvTable,
+            parquetFile.getParentFile(),
+            tempSchema,
+            "TEMP_CONVERT"
+        );
+        
+        // Move the result to our target location if different
+        if (!result.equals(parquetFile)) {
+          Files.move(result.toPath(), parquetFile.toPath(), 
+              java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        }
+      }
+    } catch (Exception e) {
+      throw new IOException("Failed to convert CSV to Parquet", e);
+    }
+  }
+  
+  private void mergeFilesToParquet(List<String> filePaths, File parquetFile) throws IOException {
+    LOGGER.info("Merging " + filePaths.size() + " files to Parquet");
+    
+    try (Connection conn = DriverManager.getConnection("jdbc:calcite:");
+         CalciteConnection calciteConn = conn.unwrap(CalciteConnection.class)) {
+      
+      SchemaPlus rootSchema = calciteConn.getRootSchema();
+      
+      // Create a custom table that represents the UNION ALL of all files
+      org.apache.calcite.schema.Table unionTable = new AbstractTable() {
+        @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+          // Use the first file to determine schema
+          File firstFile = new File(filePaths.get(0));
+          if (firstFile.getName().endsWith(".csv")) {
+            return new CsvTranslatableTable(Sources.of(firstFile), null).getRowType(typeFactory);
+          } else if (firstFile.getName().endsWith(".json")) {
+            return new JsonScannableTable(Sources.of(firstFile)).getRowType(typeFactory);
+          } else {
+            throw new RuntimeException("Unsupported file type: " + firstFile.getName());
+          }
+        }
+      };
+      
+      // Create temporary schema with union table
+      SchemaPlus tempSchema = rootSchema.add("TEMP_MERGE", new AbstractSchema() {
+        @Override protected Map<String, org.apache.calcite.schema.Table> getTableMap() {
+          // Add each file as a separate table
+          Map<String, org.apache.calcite.schema.Table> tables = new HashMap<>();
+          for (int i = 0; i < filePaths.size(); i++) {
+            File file = new File(filePaths.get(i));
+            String tableName = "FILE_" + i;
+            
+            if (file.getName().endsWith(".csv")) {
+              tables.put(tableName, new CsvTranslatableTable(Sources.of(file), null));
+            } else if (file.getName().endsWith(".json")) {
+              tables.put(tableName, new JsonScannableTable(Sources.of(file)));
+            }
+          }
+          
+          // Add a combined view
+          tables.put("ALL_FILES", unionTable);
+          return tables;
+        }
+      });
+      
+      // Build UNION ALL query to merge all tables
+      StringBuilder unionQuery = new StringBuilder();
+      unionQuery.append("SELECT * FROM (");
+      for (int i = 0; i < filePaths.size(); i++) {
+        if (i > 0) {
+          unionQuery.append(" UNION ALL ");
+        }
+        unionQuery.append("SELECT * FROM \"TEMP_MERGE\".\"FILE_").append(i).append("\"");
+      }
+      unionQuery.append(") AS MERGED");
+      
+      // Use ParquetConversionUtil to convert the query result to Parquet
+      String mergedTableName = "MERGED_" + System.currentTimeMillis();
+      
+      // Create a view-like table that executes the union query
+      class MergedTable extends AbstractTable implements ScannableTable {
+        
+        @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+          return unionTable.getRowType(typeFactory);
+        }
+        
+        @Override public Enumerable<Object[]> scan(DataContext root) {
+          try (Statement stmt = calciteConn.createStatement();
+               ResultSet rs = stmt.executeQuery(unionQuery.toString())) {
+            List<Object[]> rows = new ArrayList<>();
+            int columnCount = rs.getMetaData().getColumnCount();
+            while (rs.next()) {
+              Object[] row = new Object[columnCount];
+              for (int i = 0; i < columnCount; i++) {
+                row[i] = rs.getObject(i + 1);
+              }
+              rows.add(row);
+            }
+            return org.apache.calcite.linq4j.Linq4j.asEnumerable(rows);
+          } catch (Exception e) {
+            throw new RuntimeException("Failed to execute union query", e);
+          }
+        }
+      }
+      
+      org.apache.calcite.schema.Table mergedTable = new MergedTable();
+      
+      // Use ParquetConversionUtil to convert the merged table
+      File result = ParquetConversionUtil.convertToParquet(
+          Sources.of(parquetFile), // Dummy source, not used for path
+          mergedTableName,
+          mergedTable,
+          parquetFile.getParentFile(),
+          tempSchema,
+          "TEMP_MERGE"
+      );
+      
+      // Move result if needed
+      if (!result.equals(parquetFile)) {
+        Files.move(result.toPath(), parquetFile.toPath(), 
+            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+      }
+      
+    } catch (Exception e) {
+      throw new IOException("Failed to merge files to Parquet", e);
+    }
   }
 
 
-  public Enumerable<Object> project(final DataContext root, final int[] projects) {
+  @Override public Enumerable<Object[]> scan(DataContext root) {
     ensureCacheValid();
 
+    // Create a ParquetScannableTable to read the cache file
+    ParquetScannableTable parquetTable = new ParquetScannableTable(parquetCacheFile);
+    
+    // Return the full enumerable from the Parquet table
+    return parquetTable.scan(root);
+  }
+  
+  public Enumerable<Object> project(final DataContext root, final int[] projects) {
+    // Use scan method to get the base enumerable
+    Enumerable<Object[]> fullEnumerable = scan(root);
+    
+    // Convert to Enumerable<Object> and apply projection if needed
     return new AbstractEnumerable<Object>() {
       @Override public Enumerator<Object> enumerator() {
-        try {
-          // Use CSV enumerator as fallback since we don't have full Parquet implementation
-          Source source = Sources.of(parquetCacheFile);
-          AtomicBoolean cancelFlag = new AtomicBoolean(false);
-          RelDataType rowType = CsvEnumerator.deduceRowType(root.getTypeFactory(), source, null, false);
-          List<RelDataType> fieldTypes = rowType.getFieldList().stream()
-              .map(field -> field.getType())
-              .collect(Collectors.toList());
-          List<Integer> fieldIndices = Arrays.stream(projects)
-              .boxed()
-              .collect(Collectors.toList());
-          return new CsvEnumerator(source, cancelFlag, fieldTypes, fieldIndices);
-        } catch (Exception e) {
-          throw new RuntimeException("Failed to read cache", e);
-        }
+        final Enumerator<Object[]> arrayEnumerator = fullEnumerable.enumerator();
+        
+        return new Enumerator<Object>() {
+          @Override public Object current() {
+            Object[] row = arrayEnumerator.current();
+            if (row == null) {
+              return null;
+            }
+            
+            // Apply projection if specified
+            if (projects != null && projects.length > 0) {
+              Object[] projected = new Object[projects.length];
+              for (int i = 0; i < projects.length; i++) {
+                if (projects[i] < row.length) {
+                  projected[i] = row[projects[i]];
+                }
+              }
+              return projected;
+            }
+            
+            return row;
+          }
+          
+          @Override public boolean moveNext() {
+            return arrayEnumerator.moveNext();
+          }
+          
+          @Override public void reset() {
+            arrayEnumerator.reset();
+          }
+          
+          @Override public void close() {
+            arrayEnumerator.close();
+          }
+        };
       }
     };
   }
@@ -417,25 +625,9 @@ public class GlobParquetTable extends AbstractTable
     // Ensure cache exists to infer schema
     ensureCacheValid();
 
-    // Read schema from Parquet file
-    try {
-      org.apache.hadoop.fs.Path hadoopPath = new org.apache.hadoop.fs.Path(parquetCacheFile.getAbsolutePath());
-      Configuration conf = new Configuration();
-
-      @SuppressWarnings("deprecation")
-      ParquetMetadata metadata = ParquetFileReader.readFooter(conf, hadoopPath);
-      MessageType messageType = metadata.getFileMetaData().getSchema();
-
-      // For now, return a simple schema - full implementation would convert Parquet schema
-      return typeFactory.builder()
-          .add("column1", SqlTypeName.VARCHAR)
-          .build();
-    } catch (IOException e) {
-      // Fallback schema
-      return typeFactory.builder()
-          .add("column1", SqlTypeName.VARCHAR)
-          .build();
-    }
+    // Use ParquetScannableTable to get the proper schema
+    ParquetScannableTable parquetTable = new ParquetScannableTable(parquetCacheFile);
+    return parquetTable.getRowType(typeFactory);
   }
 
   @Override public String toString() {

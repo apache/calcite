@@ -107,9 +107,9 @@ public class DotNotationSchemaTest {
         // Test 2: Cross-schema query with dot notation
         try {
           ResultSet rs =
-              stmt.executeQuery("SELECT s.name as customer, h.name as employee " +
+              stmt.executeQuery("SELECT s.\"name\" as customer, h.\"name\" as employee " +
               "FROM \"COMPANY.SALES\".customers s, \"COMPANY.HR\".employees h " +
-              "WHERE s.id = h.id");
+              "WHERE s.\"id\" = h.\"id\"");
 
           int rowCount = 0;
           while (rs.next()) {
@@ -129,7 +129,7 @@ public class DotNotationSchemaTest {
 
         // Test 3: List available schemas to see how they appear
         try {
-          ResultSet rs = stmt.executeQuery("SELECT SCHEMA_NAME FROM INFORMATION_S");
+          ResultSet rs = stmt.executeQuery("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA");
           System.out.println("Available schemas:");
           while (rs.next()) {
             String schemaName = rs.getString("SCHEMA_NAME");
@@ -190,9 +190,9 @@ public class DotNotationSchemaTest {
         // Test mixed query
         try {
           ResultSet rs =
-              stmt.executeQuery("SELECT s.region, h.department " +
+              stmt.executeQuery("SELECT s.\"region\", h.\"department\" " +
               "FROM \"COMPANY.SALES\".customers s, COMPANY_HR.employees h " +
-              "WHERE s.id = h.id");
+              "WHERE s.\"id\" = h.\"id\"");
 
           if (rs.next()) {
             System.out.println("✅ Mixed notation query works: " + rs.getString("region") + " / " + rs.getString("department"));
@@ -255,9 +255,9 @@ public class DotNotationSchemaTest {
         // Test "cross-hierarchy" join
         try {
           ResultSet rs =
-              stmt.executeQuery("SELECT s.region, f.amount " +
+              stmt.executeQuery("SELECT s.\"region\", f.\"amount\" " +
               "FROM \"ORG.DEPT.SALES\".customers s, \"ORG.FINANCE\".budgets f " +
-              "WHERE f.department = 'Sales'");
+              "WHERE f.\"department\" = 'Sales'");
 
           while (rs.next()) {
             String region = rs.getString("region");

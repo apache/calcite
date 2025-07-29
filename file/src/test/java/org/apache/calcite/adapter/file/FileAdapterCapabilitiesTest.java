@@ -76,7 +76,7 @@ public class FileAdapterCapabilitiesTest {
         String aggQuery = "SELECT \"date\", " +
             "COUNT(*) as transaction_count, " +
             "SUM(\"amount\") as daily_total " +
-            "FROM FILES.\"sales\" " +
+            "FROM FILES.\"SALES\" " +
             "GROUP BY \"date\" " +
             "ORDER BY \"date\"";
 
@@ -97,7 +97,7 @@ public class FileAdapterCapabilitiesTest {
             "COUNT(*) as sales_count, " +
             "SUM(\"amount\") as total_revenue, " +
             "AVG(\"amount\") as avg_sale " +
-            "FROM FILES.\"sales\" " +
+            "FROM FILES.\"SALES\" " +
             "GROUP BY \"product\" " +
             "ORDER BY total_revenue DESC";
 

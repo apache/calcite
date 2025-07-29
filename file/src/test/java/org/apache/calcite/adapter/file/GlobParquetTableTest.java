@@ -65,7 +65,7 @@ public class GlobParquetTableTest {
     // Create sales_2023.csv
     File sales2023 = new File(dataDir, "sales_2023.csv");
     try (FileWriter writer = new FileWriter(sales2023)) {
-      writer.write("id,product,amount,year\n");
+      writer.write("id:int,product:string,amount:double,year:int\n");
       writer.write("1,Laptop,1200.00,2023\n");
       writer.write("2,Mouse,25.00,2023\n");
       writer.write("3,Keyboard,75.00,2023\n");
@@ -74,7 +74,7 @@ public class GlobParquetTableTest {
     // Create sales_2024.csv
     File sales2024 = new File(dataDir, "sales_2024.csv");
     try (FileWriter writer = new FileWriter(sales2024)) {
-      writer.write("id,product,amount,year\n");
+      writer.write("id:int,product:string,amount:double,year:int\n");
       writer.write("4,Monitor,350.00,2024\n");
       writer.write("5,Webcam,95.00,2024\n");
     }
@@ -157,7 +157,7 @@ public class GlobParquetTableTest {
     operand.put("directory", dataDir.getAbsolutePath());
 
     Map<String, Object> tableConfig = new HashMap<>();
-    tableConfig.put("name", "all_sales");
+    tableConfig.put("name", "ALL_SALES");
     tableConfig.put("url", dataDir.getAbsolutePath() + "/sales_*.csv");
     operand.put("tables", Arrays.asList(tableConfig));
 
@@ -171,18 +171,18 @@ public class GlobParquetTableTest {
       try (Statement stmt = connection.createStatement();
            ResultSet rs =
                stmt.executeQuery("SELECT COUNT(*) as total_records, " +
-               "SUM(amount) as total_amount FROM TEST.all_sales")) {
+               "SUM(\"amount\") as total_amount FROM TEST.ALL_SALES")) {
 
         assertTrue(rs.next());
         assertEquals(5, rs.getInt("total_records")); // 3 from 2023 + 2 from 2024
-        assertEquals(1740.00, rs.getDouble("total_amount"), 0.01);
+        assertEquals(1745.00, rs.getDouble("total_amount"), 0.01); // 1300 + 445
       }
 
       // Test with year filter
       try (Statement stmt = connection.createStatement();
            ResultSet rs =
-               stmt.executeQuery("SELECT year, COUNT(*) as count FROM TEST.all_sales " +
-               "GROUP BY year ORDER BY year")) {
+               stmt.executeQuery("SELECT \"year\", COUNT(*) as \"count\" FROM TEST.ALL_SALES " +
+               "GROUP BY \"year\" ORDER BY \"year\"")) {
 
         assertTrue(rs.next());
         assertEquals(2023, rs.getInt("year"));
@@ -211,7 +211,7 @@ public class GlobParquetTableTest {
     operand.put("directory", dataDir.getAbsolutePath());
 
     Map<String, Object> tableConfig = new HashMap<>();
-    tableConfig.put("name", "quarterly_data");
+    tableConfig.put("name", "QUARTERLY_DATA");
     tableConfig.put("url", dataDir.getAbsolutePath() + "/data_q*.json");
     operand.put("tables", Arrays.asList(tableConfig));
 
@@ -225,7 +225,7 @@ public class GlobParquetTableTest {
       try (Statement stmt = connection.createStatement();
            ResultSet rs =
                stmt.executeQuery("SELECT COUNT(*) as months, " +
-               "SUM(revenue) as total_revenue FROM TEST.quarterly_data")) {
+               "SUM(\"revenue\") as total_revenue FROM TEST.QUARTERLY_DATA")) {
 
         assertTrue(rs.next());
         assertEquals(6, rs.getInt("months")); // 3 months Q1 + 3 months Q2
@@ -235,8 +235,8 @@ public class GlobParquetTableTest {
       // Test quarterly aggregation
       try (Statement stmt = connection.createStatement();
            ResultSet rs =
-               stmt.executeQuery("SELECT quarter, SUM(revenue) as quarterly_revenue " +
-               "FROM TEST.quarterly_data GROUP BY quarter ORDER BY quarter")) {
+               stmt.executeQuery("SELECT \"quarter\", SUM(\"revenue\") as quarterly_revenue " +
+               "FROM TEST.QUARTERLY_DATA GROUP BY \"quarter\" ORDER BY \"quarter\"")) {
 
         assertTrue(rs.next());
         assertEquals("Q1", rs.getString("quarter"));
@@ -266,7 +266,7 @@ public class GlobParquetTableTest {
     operand.put("directory", dataDir.getAbsolutePath());
 
     Map<String, Object> tableConfig = new HashMap<>();
-    tableConfig.put("name", "all_reports");
+    tableConfig.put("name", "ALL_REPORTS");
     tableConfig.put("url", dataDir.getAbsolutePath() + "/report*.html");
     operand.put("tables", Arrays.asList(tableConfig));
 
@@ -282,13 +282,13 @@ public class GlobParquetTableTest {
       File report2Table = new File(dataDir, "report2_table1.json");
 
       // The glob table should trigger HTML extraction
-      Table globTable = rootSchema.getSubSchema("TEST").unwrap(FileSchema.class).getTable("all_reports");
+      Table globTable = rootSchema.getSubSchema("TEST").unwrap(FileSchema.class).getTable("ALL_REPORTS");
       assertNotNull(globTable);
       assertTrue(globTable instanceof GlobParquetTable);
 
       // Force table initialization to trigger preprocessing
       try (Statement stmt = connection.createStatement();
-           ResultSet rs = stmt.executeQuery("SELECT 1 FROM TEST.all_reports LIMIT 1")) {
+           ResultSet rs = stmt.executeQuery("SELECT 1 FROM TEST.ALL_REPORTS LIMIT 1")) {
         // This will trigger the table to be processed
       } catch (Exception e) {
         // Expected - we haven't fully implemented the conversion yet
@@ -339,7 +339,7 @@ public class GlobParquetTableTest {
     // Create glob table with short refresh interval
     GlobParquetTable globTable =
         new GlobParquetTable(dataDir.getAbsolutePath() + "/sales_*.csv",
-        "sales_glob",
+        "SALES_GLOB",
         cacheDir,
         Duration.ofSeconds(2));
 
@@ -384,7 +384,7 @@ public class GlobParquetTableTest {
     operand.put("directory", dataDir.getAbsolutePath());
 
     Map<String, Object> tableConfig = new HashMap<>();
-    tableConfig.put("name", "all_data");
+    tableConfig.put("name", "ALL_DATA");
     tableConfig.put("url", dataDir.getAbsolutePath() + "/*.*");
     operand.put("tables", Arrays.asList(tableConfig));
 
@@ -394,7 +394,7 @@ public class GlobParquetTableTest {
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
       rootSchema.add("TEST", FileSchemaFactory.INSTANCE.create(rootSchema, "TEST", operand));
 
-      Table table = rootSchema.getSubSchema("TEST").unwrap(FileSchema.class).getTable("all_data");
+      Table table = rootSchema.getSubSchema("TEST").unwrap(FileSchema.class).getTable("ALL_DATA");
       assertNotNull(table);
       assertTrue(table instanceof GlobParquetTable);
     }

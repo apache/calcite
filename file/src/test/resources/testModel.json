@@ -24,13 +24,13 @@
     "operand": {
       "tables": [ {
         "name": "T1",
-        "url": "file:tableOK.html"
+        "url": "tableOK.html"
       }, {
         "name": "T1_NO_TH",
-        "url": "file:tableNoTH.html"
+        "url": "tableNoTH.html"
       }, {
         "name": "TABLEX2",
-        "url": "file:tableX2.html"
+        "url": "tableX2.html"
       } ]
     }
   } ]

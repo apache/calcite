@@ -93,10 +93,10 @@ public class HtmlTableScanner {
 
       // Create selector for this specific table
       String selector = null;
-      if (table.hasAttr("id")) {
+      if (table.hasAttr("id") && isValidCssIdentifier(table.attr("id"))) {
         selector = "#" + table.attr("id");
       } else {
-        // Use index-based selector as fallback
+        // Use index-based selector as fallback for IDs with special characters
         selector = "table:nth-of-type(" + (i + 1) + ")";
       }
 
@@ -176,5 +176,29 @@ public class HtmlTableScanner {
       name = "_" + name;
     }
     return name.isEmpty() ? "Table" : name;
+  }
+
+  /**
+   * Checks if an identifier can be safely used in a CSS selector without escaping.
+   */
+  private static boolean isValidCssIdentifier(String identifier) {
+    if (identifier == null || identifier.isEmpty()) {
+      return false;
+    }
+
+    // Check for problematic characters that JSoup's CSS selector parser doesn't handle well
+    for (int i = 0; i < identifier.length(); i++) {
+      char c = identifier.charAt(i);
+      
+      // Disallow special characters that cause CSS selector parsing issues
+      if (c == ' ' || c == '!' || c == '"' || c == '#' || c == '$' || c == '%' || c == '&' ||
+          c == '\'' || c == '(' || c == ')' || c == '*' || c == '+' || c == ',' || c == '.' ||
+          c == '/' || c == ':' || c == ';' || c == '<' || c == '=' || c == '>' || c == '?' ||
+          c == '@' || c == '[' || c == '\\' || c == ']' || c == '^' || c == '`' || c == '{' ||
+          c == '|' || c == '}' || c == '~') {
+        return false;
+      }
+    }
+    return true;
   }
 }

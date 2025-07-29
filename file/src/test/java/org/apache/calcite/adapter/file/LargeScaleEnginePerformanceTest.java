@@ -122,14 +122,14 @@ public class LargeScaleEnginePerformanceTest {
 
   private void testQueryType3() throws Exception {
     String queryTemplate = "SELECT " +
-        "SUBSTRING(\"order_date\", 1, 7) as month, " +
+        "SUBSTRING(\"order_date\", 1, 7) as order_month, " +
         "COUNT(*) as order_count, " +
         "SUM(\"total\") as revenue, " +
         "AVG(\"total\") as avg_order_value " +
         "FROM %s " +
         "WHERE \"status\" IN ('completed', 'shipped') " +
         "GROUP BY SUBSTRING(\"order_date\", 1, 7) " +
-        "ORDER BY month";
+        "ORDER BY order_month";
 
     runTestsForAllDatasets("Monthly Aggregation", queryTemplate);
   }
@@ -230,7 +230,7 @@ public class LargeScaleEnginePerformanceTest {
           rootSchema.add("PERF_" + engine.toUpperCase(), FileSchemaFactory.INSTANCE.create(rootSchema, "PERF_" + engine.toUpperCase(), operand));
 
       String tableName = fileName.substring(0, fileName.lastIndexOf('.'));
-      String query = String.format(queryTemplate, "PERF_" + engine.toUpperCase() + ".\"" + tableName + "\"");
+      String query = String.format(queryTemplate, "PERF_" + engine.toUpperCase() + "." + tableName);
 
       try (Statement stmt = connection.createStatement();
            ResultSet rs = stmt.executeQuery(query)) {

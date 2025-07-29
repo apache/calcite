@@ -77,6 +77,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
   private final AtomicBoolean cancelFlag;
   private final RowConverter<E> rowConverter;
   private @Nullable E current;
+  private final SourceFileLockManager.@Nullable LockHandle lockHandle;
 
   private static final FastDateFormat TIME_FORMAT_DATE;
   private static final FastDateFormat TIME_FORMAT_TIME;
@@ -106,6 +107,21 @@ public class CsvEnumerator<E> implements Enumerator<E> {
     this.filterValues =
         filterValues == null ? null
             : ImmutableNullableList.copyOf(filterValues);
+    
+    // Acquire read lock on source file if it's a local file
+    SourceFileLockManager.LockHandle tempLock = null;
+    if (!stream && source.file() != null) {
+      try {
+        tempLock = SourceFileLockManager.acquireReadLock(source.file());
+        LOGGER.debug("Acquired read lock on file: " + source.path());
+      } catch (IOException e) {
+        LOGGER.warn("Could not acquire lock on file: " + source.path() + 
+            " - proceeding without lock. Error: " + e.getMessage());
+        // Continue without lock - don't fail the query
+      }
+    }
+    this.lockHandle = tempLock;
+    
     try {
       if (stream) {
         this.reader = new CsvStreamReader(source);
@@ -114,6 +130,10 @@ public class CsvEnumerator<E> implements Enumerator<E> {
       }
       this.reader.readNext(); // skip header row
     } catch (IOException | CsvValidationException e) {
+      // Release lock if we failed to open the file
+      if (this.lockHandle != null) {
+        this.lockHandle.close();
+      }
       throw new RuntimeException(e);
     }
   }
@@ -290,6 +310,12 @@ public class CsvEnumerator<E> implements Enumerator<E> {
       reader.close();
     } catch (IOException e) {
       throw new RuntimeException("Error closing CSV reader", e);
+    } finally {
+      // Release the file lock
+      if (lockHandle != null) {
+        lockHandle.close();
+        LOGGER.debug("Released read lock on file");
+      }
     }
   }
 

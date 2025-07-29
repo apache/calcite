@@ -27,6 +27,7 @@ import org.jsoup.select.Elements;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -68,25 +69,23 @@ public class FileReader implements Iterable<Elements> {
       String proto = source.protocol();
 
       if ("file".equals(proto)) {
-        doc = Jsoup.parse(source.file(), this.charset.name());
+        // Handle file protocol - should only check file resources
+        java.io.File file = null;
+        try {
+          file = source.file();
+        } catch (UnsupportedOperationException e) {
+          throw new FileReaderException("Cannot get file from source: " + source);
+        }
+        
+        if (file != null && file.exists()) {
+          doc = Jsoup.parse(file, this.charset.name());
+        } else {
+          throw new FileReaderException("File not found: " + (file != null ? file.getPath() : source.path()));
+        }
       } else if ("s3".equals(proto)) {
-        // Check if this is actually a local file path mistakenly identified as S3
-        String path = source.path();
-        if (path != null && (path.startsWith("/") || (path.length() > 2 && path.charAt(1) == ':'))) {
-          // This is a local file path, not an S3 URL
-          java.io.File file = new java.io.File(path);
-          if (file.exists()) {
-            doc = Jsoup.parse(file, this.charset.name());
-          } else {
-            throw new FileReaderException("File not found: " + path);
-          }
-        } else if (source.url() == null) {
-          // Try to read it as a regular file
-          try {
-            doc = Jsoup.parse(source.file(), this.charset.name());
-          } catch (Exception ex) {
-            throw new FileReaderException("S3 source URL is null and cannot read as file: " + source);
-          }
+        // Handle S3 protocol
+        if (source.url() == null) {
+          throw new FileReaderException("S3 source URL is null: " + source);
         } else {
           // This is a real S3 URL
           InputStream stream = S3Reader.getS3ObjectStream(source.url().toString());

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.file;
 
+import org.apache.calcite.util.trace.CalciteLogger;
+
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DateUtil;
@@ -28,6 +30,8 @@ import org.apache.poi.ss.usermodel.WorkbookFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -55,6 +59,8 @@ import java.util.Map;
  * - [Required] Data rows: the table data
  */
 public final class MultiTableExcelToJsonConverter {
+  private static final CalciteLogger LOGGER =
+      new CalciteLogger(LoggerFactory.getLogger(MultiTableExcelToJsonConverter.class));
   private static final int MIN_EMPTY_ROWS_BETWEEN_TABLES = 2;
   private static final int MAX_HEADER_ROWS = 3;
 
@@ -72,7 +78,20 @@ public final class MultiTableExcelToJsonConverter {
       ExcelToJsonConverter.convertFileToJson(inputFile);
       return;
     }
+    
+    LOGGER.debug("Converting file with multi-table detection: " + inputFile.getName());
 
+    // Acquire read lock on source file
+    SourceFileLockManager.LockHandle lockHandle = null;
+    try {
+      lockHandle = SourceFileLockManager.acquireReadLock(inputFile);
+      LOGGER.debug("Acquired read lock on Excel file: " + inputFile.getPath());
+    } catch (IOException e) {
+      LOGGER.warn("Could not acquire lock on file: " + inputFile.getPath() + 
+          " - proceeding without lock");
+      // Continue without lock
+    }
+    
     try (FileInputStream file = new FileInputStream(inputFile)) {
       Workbook workbook = WorkbookFactory.create(file);
       ObjectMapper mapper = new ObjectMapper();
@@ -92,6 +111,7 @@ public final class MultiTableExcelToJsonConverter {
         List<TableRegion> validTables = new ArrayList<>();
         for (TableRegion table : tables) {
           ArrayNode tableData = convertTableToJson(sheet, table, evaluator, mapper);
+          LOGGER.trace("Table has " + tableData.size() + " rows of data");
           if (tableData.size() > 0) {
             table.jsonData = tableData; // Store for reuse
             validTables.add(table);
@@ -100,8 +120,11 @@ public final class MultiTableExcelToJsonConverter {
 
         // Skip processing if no valid tables found
         if (validTables.isEmpty()) {
+          LOGGER.debug("No valid tables found in sheet: " + sheet.getSheetName());
           continue;
         }
+        
+        LOGGER.debug("Found " + validTables.size() + " valid tables in sheet: " + sheet.getSheetName());
 
         // First pass: collect all planned filenames from valid tables only
         for (TableRegion table : validTables) {
@@ -135,6 +158,7 @@ public final class MultiTableExcelToJsonConverter {
             jsonFileName = plannedName + ".json";
           }
 
+          LOGGER.debug("Writing JSON file: " + jsonFileName);
           try (FileWriter fileWriter =
               new FileWriter(new File(inputFile.getParent(), jsonFileName), StandardCharsets.UTF_8)) {
             mapper.writerWithDefaultPrettyPrinter().writeValue(fileWriter, table.jsonData);
@@ -143,6 +167,12 @@ public final class MultiTableExcelToJsonConverter {
         }
       }
       workbook.close();
+    } finally {
+      // Release the lock
+      if (lockHandle != null) {
+        lockHandle.close();
+        LOGGER.debug("Released read lock on Excel file");
+      }
     }
   }
 
@@ -153,6 +183,7 @@ public final class MultiTableExcelToJsonConverter {
     List<TableRegion> tables = new ArrayList<>();
     int lastRowNum = sheet.getLastRowNum();
     int currentRow = 0;
+    LOGGER.debug("Detecting tables in sheet: " + sheet.getSheetName() + " (rows: 0-" + lastRowNum + ")");
 
     while (currentRow <= lastRowNum) {
       // Skip empty rows
@@ -167,6 +198,7 @@ public final class MultiTableExcelToJsonConverter {
       // Try to detect a table starting at currentRow
       TableRegion table = detectTableAt(sheet, currentRow, evaluator);
       if (table != null) {
+        LOGGER.trace("Found table at row " + currentRow + ", ending at row " + table.endRow);
         tables.add(table);
         currentRow = table.endRow + 1;
       } else {
@@ -235,6 +267,7 @@ public final class MultiTableExcelToJsonConverter {
     table.identifier = potentialIdentifier;
     table.headerRows = headerRows;
     table.dataStartRow = row;
+    LOGGER.trace("detectTableAt: headerRows=" + headerRows.size() + ", dataStartRow=" + table.dataStartRow);
 
     // Find end of table (consecutive empty rows or end of sheet)
     int dataRow = table.dataStartRow;
@@ -274,6 +307,7 @@ public final class MultiTableExcelToJsonConverter {
   private static ArrayNode convertTableToJson(Sheet sheet, TableRegion table,
       FormulaEvaluator evaluator, ObjectMapper mapper) {
     ArrayNode tableData = mapper.createArrayNode();
+    LOGGER.trace("Converting table: dataStartRow=" + table.dataStartRow + ", endRow=" + table.endRow);
 
     // Build column headers from all header rows
     Map<Integer, String> columnHeaders = buildColumnHeaders(table, evaluator);
@@ -409,6 +443,9 @@ public final class MultiTableExcelToJsonConverter {
     if (nonEmptyCells < 2) {
       return false;
     }
+    
+    // For small rows (2-3 cells), check if all cells are text
+    boolean allText = true;
 
     // Headers typically have more text cells than numeric cells
     int textCells = 0;
@@ -418,6 +455,7 @@ public final class MultiTableExcelToJsonConverter {
     for (Cell cell : row) {
       if (cell != null && cell.getCellType() != CellType.BLANK) {
         if (cell.getCellType() == CellType.STRING) {
+          allText = allText && true;
           String value = cell.getStringCellValue().trim();
           // Check if it's a typical header value (short, no special chars)
           if (value.length() > 50 || value.contains("\n")) {
@@ -435,6 +473,7 @@ public final class MultiTableExcelToJsonConverter {
           }
           textCells++;
         } else if (cell.getCellType() == CellType.NUMERIC) {
+          allText = false;
           double value = cell.getNumericCellValue();
           // Large numbers (like salaries) are unlikely to be headers
           if (value > 1000) {
@@ -449,8 +488,18 @@ public final class MultiTableExcelToJsonConverter {
     if (hasLongNumbers && numericCells > 0) {
       return false;
     }
+    
+    // For small tables (2-3 columns), header rows should be all text
+    if (nonEmptyCells <= 3 && allText) {
+      return true;
+    }
 
-    return textCells >= numericCells;
+    // For larger tables, headers should be mostly text
+    if (numericCells > 0) {
+      return textCells > numericCells * 2; // Text cells should be at least twice the numeric cells
+    }
+    
+    return textCells > 0; // Pure text row is likely a header
   }
 
   /**

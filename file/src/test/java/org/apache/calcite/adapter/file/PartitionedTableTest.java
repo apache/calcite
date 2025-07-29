@@ -84,7 +84,7 @@ public class PartitionedTableTest {
     operand.put("executionEngine", "parquet");
     operand.put(
         "partitionedTables", java.util.Arrays.asList(
-        createPartitionedTableConfig("sales", "sales/**/*.parquet", null)));
+        createPartitionedTableConfig("SALES", "sales/**/*.parquet", null)));
 
     // Run queries
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:");
@@ -96,7 +96,7 @@ public class PartitionedTableTest {
 
       // Test 1: Query all data
       try (Statement stmt = connection.createStatement();
-           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM \"TEST\".\"sales\"")) {
+           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM \"TEST\".\"SALES\"")) {
         assertTrue(rs.next());
         assertEquals(6, rs.getInt(1)); // 3 years * 2 months each
       }
@@ -104,7 +104,7 @@ public class PartitionedTableTest {
       // Test 2: Query with partition filter
       try (Statement stmt = connection.createStatement();
            ResultSet rs =
-               stmt.executeQuery("SELECT COUNT(*) FROM \"TEST\".\"sales\" WHERE \"year\" = '2024'")) {
+               stmt.executeQuery("SELECT COUNT(*) FROM \"TEST\".\"SALES\" WHERE \"year\" = '2024'")) {
         assertTrue(rs.next());
         assertEquals(2, rs.getInt(1)); // 2 months in 2024
       }
@@ -112,7 +112,7 @@ public class PartitionedTableTest {
       // Test 3: Verify partition columns are available
       try (Statement stmt = connection.createStatement();
            ResultSet rs =
-               stmt.executeQuery("SELECT DISTINCT \"year\", \"month\" FROM \"TEST\".\"sales\" ORDER BY \"year\", \"month\"")) {
+               stmt.executeQuery("SELECT DISTINCT \"year\", \"month\" FROM TEST.SALES ORDER BY \"year\", \"month\"")) {
         // Should have 6 rows: 2022/01, 2022/02, 2023/01, 2023/02, 2024/01, 2024/02
         int count = 0;
         while (rs.next()) {
@@ -137,7 +137,7 @@ public class PartitionedTableTest {
     operand.put("executionEngine", "parquet");
     operand.put(
         "partitionedTables", java.util.Arrays.asList(
-        createPartitionedTableConfig("events", "events/**/*.parquet", null)));
+        createPartitionedTableConfig("EVENTS", "events/**/*.parquet", null)));
 
     // Run queries - should work but without partition columns
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:");
@@ -149,7 +149,7 @@ public class PartitionedTableTest {
 
       // Query should work but no partition columns available
       try (Statement stmt = connection.createStatement();
-           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM \"TEST\".\"events\"")) {
+           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM TEST.EVENTS")) {
         assertTrue(rs.next());
         assertEquals(6, rs.getInt(1)); // All 6 files
       }
@@ -157,7 +157,7 @@ public class PartitionedTableTest {
       // Verify no partition columns (should fail)
       try (Statement stmt = connection.createStatement();
            ResultSet rs =
-               stmt.executeQuery("SELECT \"year\" FROM \"TEST\".\"events\" LIMIT 1")) {
+               stmt.executeQuery("SELECT \"year\" FROM TEST.EVENTS LIMIT 1")) {
         // This should fail as 'year' column doesn't exist
       } catch (Exception e) {
         // Expected - no partition columns
@@ -186,7 +186,7 @@ public class PartitionedTableTest {
         }}));
 
     Map<String, Object> tableConfig =
-        createPartitionedTableConfig("events", "events/**/*.parquet", null);
+        createPartitionedTableConfig("EVENTS", "events/**/*.parquet", null);
     tableConfig.put("partitions", partitionConfig);
 
     Map<String, Object> operand = new HashMap<>();
@@ -205,7 +205,7 @@ public class PartitionedTableTest {
       // Test 1: Numeric comparison should work with INTEGER type
       try (Statement stmt = connection.createStatement();
            ResultSet rs =
-               stmt.executeQuery("SELECT COUNT(*) FROM \"TEST\".\"events\" WHERE \"year\" > 2022")) {
+               stmt.executeQuery("SELECT COUNT(*) FROM TEST.EVENTS WHERE \"year\" > 2022")) {
         assertTrue(rs.next());
         assertEquals(4, rs.getInt(1)); // 2023 and 2024 data
       }
@@ -213,7 +213,7 @@ public class PartitionedTableTest {
       // Test 2: Verify partition columns are integers
       try (Statement stmt = connection.createStatement();
            ResultSet rs =
-               stmt.executeQuery("SELECT \"year\", \"month\" FROM \"TEST\".\"events\" LIMIT 1")) {
+               stmt.executeQuery("SELECT \"year\", \"month\" FROM TEST.EVENTS LIMIT 1")) {
         assertTrue(rs.next());
         // Should be able to get as int
         int year = rs.getInt("year");
@@ -226,7 +226,7 @@ public class PartitionedTableTest {
       try (Statement stmt = connection.createStatement();
            ResultSet rs =
                stmt.executeQuery("SELECT \"year\", SUM(\"month\") as total_months " +
-                                "FROM \"TEST\".\"events\" GROUP BY \"year\" ORDER BY \"year\"")) {
+                                "FROM TEST.EVENTS GROUP BY \"year\" ORDER BY \"year\"")) {
         assertTrue(rs.next());
         assertEquals(2022, rs.getInt("year"));
         assertEquals(3, rs.getInt("total_months")); // 1 + 2
@@ -252,7 +252,7 @@ public class PartitionedTableTest {
     partitionConfig.put("columns", java.util.Arrays.asList("year", "month"));
 
     Map<String, Object> tableConfig =
-        createPartitionedTableConfig("events", "events/**/*.parquet", null);
+        createPartitionedTableConfig("EVENTS", "events/**/*.parquet", null);
     tableConfig.put("partitions", partitionConfig);
 
     Map<String, Object> operand = new HashMap<>();
@@ -271,7 +271,7 @@ public class PartitionedTableTest {
       // Test 1: Query with partition columns available
       try (Statement stmt = connection.createStatement();
            ResultSet rs =
-               stmt.executeQuery("SELECT COUNT(*) FROM \"TEST\".\"events\" WHERE \"year\" = '2024'")) {
+               stmt.executeQuery("SELECT COUNT(*) FROM TEST.EVENTS WHERE \"year\" = '2024'")) {
         assertTrue(rs.next());
         assertEquals(2, rs.getInt(1)); // 2 months in 2024
       }
@@ -279,7 +279,7 @@ public class PartitionedTableTest {
       // Test 2: Verify partition columns
       try (Statement stmt = connection.createStatement();
            ResultSet rs =
-               stmt.executeQuery("SELECT DISTINCT \"year\", \"month\" FROM \"TEST\".\"events\" ORDER BY \"year\", \"month\"")) {
+               stmt.executeQuery("SELECT DISTINCT \"year\", \"month\" FROM TEST.EVENTS ORDER BY \"year\", \"month\"")) {
         int count = 0;
         while (rs.next()) {
           String year = rs.getString("year");
