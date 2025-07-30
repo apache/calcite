@@ -1245,19 +1245,6 @@ public enum SqlKind {
   // Spatial functions. They are registered as "user-defined functions" but it
   // is convenient to have a "kind" so that we can quickly match them in planner
   // rules.
-  //
-  // One can generate the list of spatial functions using the following snippet:
-  //
-  //  Method[] methods = SpatialTypeFunctions .class.getDeclaredMethods();
-  //  Arrays.stream(methods)
-  //    .map(java.lang.reflect.Method::getName)
-  //    .filter(method -> method.startsWith("ST_"))
-  //    .distinct().sorted()
-  //    .forEach(method -> {
-  //      System.out.println("/** The {@code " + method + "} function. */");
-  //      System.out.print(method.toUpperCase());
-  //      System.out.print(",\n\n");
-  //    });
 
   /** The {@code ST_AddPoint} function. */
   ST_ADDPOINT,
