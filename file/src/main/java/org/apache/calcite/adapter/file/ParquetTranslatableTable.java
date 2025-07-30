@@ -100,19 +100,19 @@ public class ParquetTranslatableTable extends AbstractTable implements Translata
 
   private SqlTypeName convertParquetTypeToSql(Type parquetType) {
     switch (parquetType.asPrimitiveType().getPrimitiveTypeName()) {
-      case INT32:
-        return SqlTypeName.INTEGER;
-      case INT64:
-        return SqlTypeName.BIGINT;
-      case FLOAT:
-        return SqlTypeName.FLOAT;
-      case DOUBLE:
-        return SqlTypeName.DOUBLE;
-      case BOOLEAN:
-        return SqlTypeName.BOOLEAN;
-      case BINARY:
-      default:
-        return SqlTypeName.VARCHAR;
+    case INT32:
+      return SqlTypeName.INTEGER;
+    case INT64:
+      return SqlTypeName.BIGINT;
+    case FLOAT:
+      return SqlTypeName.FLOAT;
+    case DOUBLE:
+      return SqlTypeName.DOUBLE;
+    case BOOLEAN:
+      return SqlTypeName.BOOLEAN;
+    case BINARY:
+    default:
+      return SqlTypeName.VARCHAR;
     }
   }
 

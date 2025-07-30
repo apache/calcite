@@ -37,13 +37,20 @@ import java.util.List;
 public abstract class CsvTable extends AbstractTable {
   protected final Source source;
   protected final @Nullable RelProtoDataType protoRowType;
+  protected final String columnCasing;
   private @Nullable RelDataType rowType;
   private @Nullable List<RelDataType> fieldTypes;
 
   /** Creates a CsvTable. */
   CsvTable(Source source, @Nullable RelProtoDataType protoRowType) {
+    this(source, protoRowType, "UNCHANGED");
+  }
+
+  /** Creates a CsvTable with column casing. */
+  CsvTable(Source source, @Nullable RelProtoDataType protoRowType, String columnCasing) {
     this.source = source;
     this.protoRowType = protoRowType;
+    this.columnCasing = columnCasing;
   }
 
   @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
@@ -53,7 +60,7 @@ public abstract class CsvTable extends AbstractTable {
     if (rowType == null) {
       rowType =
           CsvEnumerator.deduceRowType((JavaTypeFactory) typeFactory, source,
-              null, isStream());
+              null, isStream(), columnCasing);
     }
     return rowType;
   }
@@ -63,7 +70,7 @@ public abstract class CsvTable extends AbstractTable {
     if (fieldTypes == null) {
       fieldTypes = new ArrayList<>();
       CsvEnumerator.deduceRowType((JavaTypeFactory) typeFactory, source,
-          fieldTypes, isStream());
+          fieldTypes, isStream(), columnCasing);
     }
     return fieldTypes;
   }

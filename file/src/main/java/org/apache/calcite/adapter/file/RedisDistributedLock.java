@@ -34,22 +34,22 @@ public class RedisDistributedLock implements AutoCloseable {
   private final String lockValue;
   private final long lockTimeoutMs;
   private boolean locked = false;
-  
+
   private static final String LOCK_PREFIX = "calcite:file:lock:";
-  private static final String UNLOCK_SCRIPT = 
-      "if redis.call('get', KEYS[1]) == ARGV[1] then " +
-      "  return redis.call('del', KEYS[1]) " +
-      "else " +
-      "  return 0 " +
-      "end";
-  
+  private static final String UNLOCK_SCRIPT =
+      "if redis.call('get', KEYS[1]) == ARGV[1] then "
+      + "  return redis.call('del', KEYS[1]) "
+      + "else "
+      + "  return 0 "
+      + "end";
+
   public RedisDistributedLock(Object jedisPool, String resourceName, long timeoutMs) {
     this.jedisPool = jedisPool;
     this.lockKey = LOCK_PREFIX + resourceName;
     this.lockValue = UUID.randomUUID().toString();
     this.lockTimeoutMs = timeoutMs;
   }
-  
+
   /**
    * Try to acquire the lock with timeout.
    */
@@ -59,7 +59,7 @@ public class RedisDistributedLock implements AutoCloseable {
     // as createIfAvailable() will return null
     return false;
   }
-  
+
   /**
    * Release the lock if we own it.
    */
@@ -67,7 +67,7 @@ public class RedisDistributedLock implements AutoCloseable {
     // No-op when Redis is not available
     locked = false;
   }
-  
+
   /**
    * Extend the lock timeout if we still own it.
    */
@@ -75,14 +75,13 @@ public class RedisDistributedLock implements AutoCloseable {
     // No-op when Redis is not available
     return false;
   }
-  
-  @Override
-  public void close() {
+
+  @Override public void close() {
     unlock();
   }
-  
+
   /**
-   * Factory method to create a lock with Redis if available, 
+   * Factory method to create a lock with Redis if available,
    * otherwise returns null.
    */
   public static RedisDistributedLock createIfAvailable(String resourceName) {
@@ -91,15 +90,15 @@ public class RedisDistributedLock implements AutoCloseable {
     if (redisUrl == null) {
       return null;
     }
-    
+
     try {
       // Try to load Redis classes dynamically
       Class<?> jedisPoolClass = Class.forName("redis.clients.jedis.JedisPool");
       Class<?> jedisClass = Class.forName("redis.clients.jedis.Jedis");
-      
+
       // Create pool using reflection
       Object pool = jedisPoolClass.getConstructor(String.class).newInstance(redisUrl);
-      
+
       // Test connection using reflection
       Object jedis = jedisPoolClass.getMethod("getResource").invoke(pool);
       try {
@@ -107,10 +106,10 @@ public class RedisDistributedLock implements AutoCloseable {
       } finally {
         jedisClass.getMethod("close").invoke(jedis);
       }
-      
-      return new RedisDistributedLock(pool, resourceName, 
+
+      return new RedisDistributedLock(pool, resourceName,
           TimeUnit.MINUTES.toMillis(5)); // 5 minute default timeout
-          
+
     } catch (Exception e) {
       // Redis not available, fall back to file locks
       return null;

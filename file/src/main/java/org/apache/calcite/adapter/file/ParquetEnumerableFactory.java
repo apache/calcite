@@ -33,6 +33,10 @@ import java.io.IOException;
  */
 public class ParquetEnumerableFactory {
 
+  private ParquetEnumerableFactory() {
+    // Utility class should not be instantiated
+  }
+
   /**
    * Creates an Enumerable that reads from a Parquet file.
    * This method is called via reflection from generated code.
@@ -66,7 +70,8 @@ public class ParquetEnumerableFactory {
         Configuration conf = new Configuration();
 
         @SuppressWarnings("deprecation")
-        ParquetReader<GenericRecord> tempReader = AvroParquetReader.<GenericRecord>builder(hadoopPath)
+        ParquetReader<GenericRecord> tempReader =
+            AvroParquetReader.<GenericRecord>builder(hadoopPath)
             .withConf(conf)
             .build();
         reader = tempReader;

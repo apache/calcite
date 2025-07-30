@@ -86,6 +86,7 @@ include(
     "graphql",
     "redis",
     "server",
+    "sharepoint-list",
     "spark",
     "splunk",
     "testkit",

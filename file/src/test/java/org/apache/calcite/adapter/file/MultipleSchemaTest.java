@@ -26,6 +26,7 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -64,7 +65,7 @@ public class MultipleSchemaTest {
 
   private void createCsvFile(File dir, String filename, String content) throws IOException {
     File file = new File(dir, filename);
-    try (FileWriter writer = new FileWriter(file)) {
+    try (FileWriter writer = new FileWriter(file, StandardCharsets.UTF_8)) {
       writer.write(content);
     }
   }

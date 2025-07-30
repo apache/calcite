@@ -41,6 +41,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -298,7 +299,7 @@ public class PartitionedTableTest {
     for (int year = 2022; year <= 2024; year++) {
       for (int month = 1; month <= 2; month++) {
         File partDir =
-            new File(tempDir.toFile(), String.format("sales/year=%d/month=%02d", year, month));
+            new File(tempDir.toFile(), String.format(Locale.ROOT, "sales/year=%d/month=%02d", year, month));
         partDir.mkdirs();
 
         File parquetFile = new File(partDir, "data.parquet");
@@ -314,7 +315,7 @@ public class PartitionedTableTest {
     for (int year = 2022; year <= 2024; year++) {
       for (int month = 1; month <= 2; month++) {
         File partDir =
-            new File(tempDir.toFile(), String.format("events/%d/%02d", year, month));
+            new File(tempDir.toFile(), String.format(Locale.ROOT, "events/%d/%02d", year, month));
         partDir.mkdirs();
 
         File parquetFile = new File(partDir, "events.parquet");

@@ -103,7 +103,7 @@ public class RecursiveProofTest {
       rootSchema.add("recursive_test", FileSchemaFactory.INSTANCE.create(rootSchema, "recursive_test", operand));
 
       try (Statement statement = connection.createStatement()) {
-        // PROOF 1: Query subdirectory file 
+        // PROOF 1: Query subdirectory file
         System.out.println("\n1. Querying subdirectory table 'europe_sales':");
         ResultSet rs1 = statement.executeQuery("SELECT \"product\", \"amount\", \"region\" FROM \"recursive_test\".\"EUROPE_SALES\"");
         assertTrue(rs1.next());
@@ -112,7 +112,7 @@ public class RecursiveProofTest {
         assertEquals(200, rs1.getInt("amount"));
         assertEquals("Europe", rs1.getString("region"));
 
-        // PROOF 2: Query nested subdirectory file 
+        // PROOF 2: Query nested subdirectory file
         System.out.println("\n2. Querying nested subdirectory table 'europe_uk_sales':");
         ResultSet rs2 = statement.executeQuery("SELECT \"product\", \"amount\", \"region\" FROM \"recursive_test\".\"EUROPE_UK_SALES\"");
         assertTrue(rs2.next());
@@ -144,7 +144,7 @@ public class RecursiveProofTest {
         System.out.println("   Row 1: " + unionRs.getString("product") + ", $" + unionRs.getInt("amount") + ", " + unionRs.getString("region"));
         assertTrue(unionRs.next());
         System.out.println("   Row 2: " + unionRs.getString("product") + ", $" + unionRs.getInt("amount") + ", " + unionRs.getString("region"));
-        
+
         // Should be no more rows
         assertFalse(unionRs.next());
 

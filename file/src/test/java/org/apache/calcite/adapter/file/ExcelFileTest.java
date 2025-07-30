@@ -96,8 +96,8 @@ public class ExcelFileTest {
     createTestExcelFile(excelFile);
 
     // Use directory-based schema (this is how Excel files should be processed)
-    FileSchema schema = new FileSchema(null, "test", tempDir.toFile(), 
-        com.google.common.collect.ImmutableList.of());
+    FileSchema schema =
+        new FileSchema(null, "test", tempDir.toFile(), com.google.common.collect.ImmutableList.of());
     Map<String, Table> tableMap = schema.getTableMap();
 
     // After processing, the Excel file should be converted and tables created with proper names

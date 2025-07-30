@@ -36,6 +36,7 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -414,7 +415,7 @@ public class RefreshableTableTest {
   }
 
   private void writeJsonData(File file, String content) throws IOException {
-    try (FileWriter writer = new FileWriter(file)) {
+    try (FileWriter writer = new FileWriter(file, StandardCharsets.UTF_8)) {
       writer.write(content);
     }
   }

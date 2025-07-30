@@ -34,6 +34,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -99,7 +100,7 @@ public class MaterializedViewQueryTest {
           System.out.println("   Date       | Count | Quantity | Revenue");
           System.out.println("   -----------|-------|----------|--------");
           while (rs.next()) {
-            System.out.printf("   %-11s| %5d | %8d | %.2f%n",
+            System.out.printf(Locale.ROOT, "   %-11s| %5d | %8d | %.2f%n",
                 rs.getString("date"),
                 rs.getInt("transaction_count"),
                 rs.getInt("total_quantity"),
@@ -115,7 +116,7 @@ public class MaterializedViewQueryTest {
           ResultSet rs = stmt.executeQuery("SELECT * FROM MV_TEST.\"daily_summary_mv\"");
           System.out.println("   SUCCESS - Materialized view table is queryable!");
           while (rs.next()) {
-            System.out.printf("   Date: %s, Count: %d%n",
+            System.out.printf(Locale.ROOT, "   Date: %s, Count: %d%n",
                 rs.getString("date"),
                 rs.getInt("transaction_count"));
           }
@@ -158,7 +159,7 @@ public class MaterializedViewQueryTest {
         System.out.println("   Date       | Count | Quantity | Revenue");
         System.out.println("   -----------|-------|----------|--------");
         while (rs.next()) {
-          System.out.printf("   %-11s| %5d | %8d | %.2f%n",
+          System.out.printf(Locale.ROOT, "   %-11s| %5d | %8d | %.2f%n",
               rs.getString("date"),
               rs.getInt("transaction_count"),
               rs.getInt("total_quantity"),

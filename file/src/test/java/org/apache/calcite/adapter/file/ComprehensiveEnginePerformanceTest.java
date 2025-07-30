@@ -113,7 +113,7 @@ public class ComprehensiveEnginePerformanceTest {
         long avgTime = measureEnginePerformance(engine, fileName);
         engineTimes.put(engine, avgTime);
       } catch (Exception e) {
-        System.out.println("  " + engine.toUpperCase() + ": FAILED - " + e.getMessage());
+        System.out.println("  " + engine.toUpperCase(Locale.ROOT) + ": FAILED - " + e.getMessage());
       }
     }
 
@@ -134,7 +134,7 @@ public class ComprehensiveEnginePerformanceTest {
         Long time = entry.getValue();
         double speedup = (double) linq4jTime / time;
         System.out.printf(Locale.ROOT, "  %-12s: %,6d ms (%.2fx speedup vs LINQ4J)\n",
-            engine.toUpperCase(), time, speedup);
+            engine.toUpperCase(Locale.ROOT), time, speedup);
       }
     }
   }
@@ -169,23 +169,23 @@ public class ComprehensiveEnginePerformanceTest {
       operand.put("executionEngine", engine);
 
       SchemaPlus fileSchema =
-          rootSchema.add("TEST_" + engine.toUpperCase(), FileSchemaFactory.INSTANCE.create(rootSchema, "TEST_" + engine.toUpperCase(), operand));
+          rootSchema.add("TEST_" + engine.toUpperCase(Locale.ROOT), FileSchemaFactory.INSTANCE.create(rootSchema, "TEST_" + engine.toUpperCase(Locale.ROOT), operand));
 
-      String tableName = fileName.substring(0, fileName.lastIndexOf('.')).toUpperCase();
+      String tableName = fileName.substring(0, fileName.lastIndexOf('.')).toUpperCase(Locale.ROOT);
       String query;
 
       if (fileName.endsWith(".csv")) {
         // Aggregate query for CSV
-        query = String.format("SELECT \"category\", COUNT(*) as cnt, " +
+        query = String.format(Locale.ROOT, "SELECT \"category\", COUNT(*) as cnt, " +
             "SUM(\"quantity\") as total_qty, AVG(\"unit_price\") as avg_price " +
             "FROM TEST_%s.\"%s\" " +
             "GROUP BY \"category\" " +
-            "ORDER BY cnt DESC", engine.toUpperCase(), tableName);
+            "ORDER BY cnt DESC", engine.toUpperCase(Locale.ROOT), tableName);
       } else {
         // Filter query for JSON
-        query = String.format("SELECT * FROM TEST_%s.\"%s\" " +
+        query = String.format(Locale.ROOT, "SELECT * FROM TEST_%s.\"%s\" " +
             "WHERE \"status\" = 'shipped' AND \"amount\" > 100",
-            engine.toUpperCase(), tableName);
+            engine.toUpperCase(Locale.ROOT), tableName);
       }
 
       try (Statement stmt = connection.createStatement();
@@ -227,7 +227,7 @@ public class ComprehensiveEnginePerformanceTest {
         int quantity = 1 + (i % 10);
         double unitPrice = 10.0 + (i % 90);
         double total = quantity * unitPrice;
-        String date = String.format("2024-01-%02d", (i % 28) + 1);
+        String date = String.format(Locale.ROOT, "2024-01-%02d", (i % 28) + 1);
         String status = statuses[i % statuses.length];
 
         writer.write(
@@ -252,7 +252,7 @@ public class ComprehensiveEnginePerformanceTest {
         int customerId = 1000 + (i % 500);
         double amount = 50.0 + (i % 200) * 5;
         String status = statuses[i % statuses.length];
-        String date = String.format("2024-01-%02d", (i % 28) + 1);
+        String date = String.format(Locale.ROOT, "2024-01-%02d", (i % 28) + 1);
 
         writer.write(
             String.format(Locale.ROOT,

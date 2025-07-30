@@ -841,6 +841,79 @@ public Connection connect(String url, Properties info) throws SQLException {
 }
 ```
 
+## Identifier Casing Configuration
+
+The file adapter supports configurable identifier casing for both table and column names, which is particularly useful for database compatibility.
+
+### Supported Casing Options
+
+- **UPPER**: Converts identifiers to uppercase (default for table names)
+- **LOWER**: Converts identifiers to lowercase (PostgreSQL-style)
+- **UNCHANGED**: Preserves original case (default for column names)
+
+### JDBC URL Configuration
+
+```java
+// PostgreSQL-style configuration (lowercase identifiers)
+String pgUrl = "jdbc:calcite:schema=file;"
+    + "data_path=/data/warehouse;"
+    + "table_name_casing=LOWER;"      // Tables: sales_data instead of SALES_DATA
+    + "column_name_casing=LOWER";      // Columns: customer_id instead of CUSTOMER_ID
+
+// Oracle-style configuration (uppercase identifiers)
+String oracleUrl = "jdbc:calcite:schema=file;"
+    + "data_path=/data/warehouse;"
+    + "table_name_casing=UPPER;"       // Tables: SALES_DATA (default)
+    + "column_name_casing=UPPER";       // Columns: CUSTOMER_ID
+
+// Case-sensitive configuration (preserve original)
+String exactUrl = "jdbc:calcite:schema=file;"
+    + "data_path=/data/warehouse;"
+    + "table_name_casing=UNCHANGED;"   // Tables: Sales_Data
+    + "column_name_casing=UNCHANGED";   // Columns: Customer_Id (default)
+```
+
+### Properties Configuration
+
+```java
+Properties info = new Properties();
+info.setProperty("tableNameCasing", "LOWER");
+info.setProperty("columnNameCasing", "LOWER");
+
+Connection conn = DriverManager.getConnection(
+    "jdbc:calcite:schema=file;data_path=/data", info);
+```
+
+### Use Cases
+
+**PostgreSQL Compatibility:**
+```java
+// PostgreSQL expects lowercase unquoted identifiers
+String url = "jdbc:calcite:schema=file;data_path=/data;"
+    + "table_name_casing=LOWER;column_name_casing=LOWER";
+
+// Now you can use PostgreSQL-style queries:
+// SELECT customer_id FROM sales_data WHERE amount > 1000
+```
+
+**Legacy System Migration:**
+```java
+// Match existing Oracle system conventions
+String url = "jdbc:calcite:schema=file;data_path=/data;"
+    + "table_name_casing=UPPER;column_name_casing=UPPER";
+
+// Queries use uppercase: SELECT CUSTOMER_ID FROM SALES_DATA
+```
+
+**File Name Preservation:**
+```java
+// Keep original file names as table names
+String url = "jdbc:calcite:schema=file;data_path=/data;"
+    + "table_name_casing=UNCHANGED;column_name_casing=UNCHANGED";
+
+// File "Sales_Report_2024.csv" becomes table "Sales_Report_2024"
+```
+
 ## Best Practices
 
 1. **Always extend the base Calcite Driver** to inherit connection management

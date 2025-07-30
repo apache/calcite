@@ -136,8 +136,7 @@ public class ParquetColdStartPerformanceTest {
     result.fileType = fileName.endsWith(".parquet") ? "Parquet" : "CSV";
 
     try {
-      // Clear any in-memory caches by forcing GC
-      System.gc();
+      // Allow GC to clear any in-memory caches
       Thread.sleep(100);
 
       long totalTime = 0;
@@ -158,7 +157,7 @@ public class ParquetColdStartPerformanceTest {
               rootSchema.add("TEST", FileSchemaFactory.INSTANCE.create(rootSchema, "TEST", operand));
 
           String tableName = fileName.substring(0, fileName.lastIndexOf('.'));
-          String query = String.format(queryTemplate, "TEST.\"" + tableName + "\"");
+          String query = String.format(Locale.ROOT, queryTemplate, "TEST.\"" + tableName + "\"");
 
           long startTime = System.currentTimeMillis();
 
@@ -208,7 +207,7 @@ public class ParquetColdStartPerformanceTest {
       TestResult result = entry.getValue();
 
       if (!result.success) {
-        System.out.printf("%-27s      FAILED    -         -     ERROR: %s%n",
+        System.out.printf(Locale.ROOT, "%-27s      FAILED    -         -     ERROR: %s%n",
             config, result.error.substring(0, Math.min(result.error.length(), 40)));
         continue;
       }
@@ -281,7 +280,7 @@ public class ParquetColdStartPerformanceTest {
         int year = 2023 + rand.nextInt(2);
         int month = 1 + rand.nextInt(12);
         int day = 1 + rand.nextInt(28);
-        String date = String.format("%04d-%02d-%02d", year, month, day);
+        String date = String.format(Locale.ROOT, "%04d-%02d-%02d", year, month, day);
 
         String status;
         double statusRand = rand.nextDouble();
@@ -298,12 +297,12 @@ public class ParquetColdStartPerformanceTest {
             unitPrice, total, date, status, discount, shippingCost));
 
         if (i > 0 && i % 200000 == 0) {
-          System.out.println("  " + String.format("%,d", i) + " rows written...");
+          System.out.println("  " + String.format(Locale.ROOT, "%,d", i) + " rows written...");
         }
       }
     }
 
-    System.out.println("  CSV file created: " + String.format("%.1f MB", file.length() / 1024.0 / 1024.0));
+    System.out.println("  CSV file created: " + String.format(Locale.ROOT, "%.1f MB", file.length() / 1024.0 / 1024.0));
   }
 
   private void createNativeParquetFile() throws Exception {
@@ -338,7 +337,7 @@ public class ParquetColdStartPerformanceTest {
     if (files != null) {
       for (File file : files) {
         if (file.isFile()) {
-          System.out.printf("  %s (%.1f MB)%n",
+          System.out.printf(Locale.ROOT, "  %s (%.1f MB)%n",
               file.getName(), file.length() / 1024.0 / 1024.0);
         }
       }
@@ -350,7 +349,7 @@ public class ParquetColdStartPerformanceTest {
       File[] cacheFiles = cacheDir.listFiles();
       if (cacheFiles != null) {
         for (File file : cacheFiles) {
-          System.out.printf("  %s (%.1f MB)%n",
+          System.out.printf(Locale.ROOT, "  %s (%.1f MB)%n",
               file.getName(), file.length() / 1024.0 / 1024.0);
         }
       }

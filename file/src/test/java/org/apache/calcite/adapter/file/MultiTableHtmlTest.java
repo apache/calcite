@@ -26,11 +26,13 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.Locale;
 import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -54,7 +56,7 @@ public class MultiTableHtmlTest {
   private void createMultiTableHtmlFile() throws Exception {
     File htmlFile = new File(tempDir.toFile(), "multi_table_test.html");
 
-    try (FileWriter writer = new FileWriter(htmlFile)) {
+    try (FileWriter writer = new FileWriter(htmlFile, StandardCharsets.UTF_8)) {
       writer.write("<!DOCTYPE html>\n");
       writer.write("<html>\n");
       writer.write("<head><title>Test Page</title></head>\n");
@@ -97,7 +99,7 @@ public class MultiTableHtmlTest {
   private void createComplexHtmlFile() throws Exception {
     File htmlFile = new File(tempDir.toFile(), "complex_tables.html");
 
-    try (FileWriter writer = new FileWriter(htmlFile)) {
+    try (FileWriter writer = new FileWriter(htmlFile, StandardCharsets.UTF_8)) {
       writer.write("<!DOCTYPE html>\n");
       writer.write("<html>\n");
       writer.write("<head><title>Complex Tables</title></head>\n");
@@ -235,7 +237,7 @@ public class MultiTableHtmlTest {
         System.out.println("Tables found in complex_tables.html:");
         while (tableList.next()) {
           String tableName = tableList.getString("TABLE_NAME");
-          if (tableName.toUpperCase().startsWith("COMPLEX_TABLES")) {
+          if (tableName.toUpperCase(Locale.ROOT).startsWith("COMPLEX_TABLES")) {
             tableCount++;
             System.out.println("  - " + tableName);
           }

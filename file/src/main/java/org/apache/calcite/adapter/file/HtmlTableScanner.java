@@ -39,6 +39,10 @@ public class HtmlTableScanner {
   private static final Pattern WHITESPACE_PATTERN = Pattern.compile("\\s+");
   private static final Pattern INVALID_NAME_CHARS = Pattern.compile("[^a-zA-Z0-9_]");
 
+  private HtmlTableScanner() {
+    // Utility class should not be instantiated
+  }
+
   /**
    * Information about a discovered HTML table.
    */
@@ -189,13 +193,13 @@ public class HtmlTableScanner {
     // Check for problematic characters that JSoup's CSS selector parser doesn't handle well
     for (int i = 0; i < identifier.length(); i++) {
       char c = identifier.charAt(i);
-      
+
       // Disallow special characters that cause CSS selector parsing issues
-      if (c == ' ' || c == '!' || c == '"' || c == '#' || c == '$' || c == '%' || c == '&' ||
-          c == '\'' || c == '(' || c == ')' || c == '*' || c == '+' || c == ',' || c == '.' ||
-          c == '/' || c == ':' || c == ';' || c == '<' || c == '=' || c == '>' || c == '?' ||
-          c == '@' || c == '[' || c == '\\' || c == ']' || c == '^' || c == '`' || c == '{' ||
-          c == '|' || c == '}' || c == '~') {
+      if (c == ' ' || c == '!' || c == '"' || c == '#' || c == '$' || c == '%' || c == '&'
+          || c == '\'' || c == '(' || c == ')' || c == '*' || c == '+' || c == ',' || c == '.'
+          || c == '/' || c == ':' || c == ';' || c == '<' || c == '=' || c == '>' || c == '?'
+          || c == '@' || c == '[' || c == '\\' || c == ']' || c == '^' || c == '`' || c == '{'
+          || c == '|' || c == '}' || c == '~') {
         return false;
       }
     }

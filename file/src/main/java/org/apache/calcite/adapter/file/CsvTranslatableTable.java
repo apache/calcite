@@ -52,6 +52,12 @@ public class CsvTranslatableTable extends CsvTable
     super(source, protoRowType);
   }
 
+  /** Creates a CsvTable with column casing. */
+  CsvTranslatableTable(Source source, @Nullable RelProtoDataType protoRowType,
+      String columnCasing) {
+    super(source, protoRowType, columnCasing);
+  }
+
   @Override public String toString() {
     return "CsvTranslatableTable";
   }

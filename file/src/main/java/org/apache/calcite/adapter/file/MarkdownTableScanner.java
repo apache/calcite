@@ -52,7 +52,8 @@ public final class MarkdownTableScanner {
 
   // Pattern to match markdown table rows
   private static final Pattern TABLE_ROW_PATTERN = Pattern.compile("^\\s*\\|(.+)\\|\\s*$");
-  private static final Pattern SEPARATOR_ROW_PATTERN = Pattern.compile("^\\s*\\|[\\s\\-:|]+\\|\\s*$");
+  private static final Pattern SEPARATOR_ROW_PATTERN =
+      Pattern.compile("^\\s*\\|[\\s\\-:|]+\\|\\s*$");
   private static final Pattern HEADING_PATTERN = Pattern.compile("^#+\\s+(.+)$");
 
   private MarkdownTableScanner() {
@@ -71,13 +72,13 @@ public final class MarkdownTableScanner {
       lockHandle = SourceFileLockManager.acquireReadLock(inputFile);
       LOGGER.debug("Acquired read lock on Markdown file: " + inputFile.getPath());
     } catch (IOException e) {
-      LOGGER.warn("Could not acquire lock on file: " + inputFile.getPath() + 
-          " - proceeding without lock");
+      LOGGER.warn("Could not acquire lock on file: " + inputFile.getPath()
+          + " - proceeding without lock");
     }
 
     try {
       List<MarkdownTable> tables = extractTables(inputFile);
-      
+
       if (tables.isEmpty()) {
         LOGGER.debug("No tables found in Markdown file: " + inputFile.getName());
         return;
@@ -92,10 +93,10 @@ public final class MarkdownTableScanner {
       for (int i = 0; i < tables.size(); i++) {
         MarkdownTable table = tables.get(i);
         String jsonFileName = generateFileName(baseName, table.title, i, tables.size());
-        
+
         File jsonFile = new File(inputFile.getParent(), jsonFileName);
         LOGGER.debug("Writing JSON file: " + jsonFileName);
-        
+
         try (FileWriter writer = new FileWriter(jsonFile, StandardCharsets.UTF_8)) {
           mapper.writerWithDefaultPrettyPrinter().writeValue(writer, table.data);
         }
@@ -113,15 +114,15 @@ public final class MarkdownTableScanner {
    */
   private static List<MarkdownTable> extractTables(File inputFile) throws IOException {
     List<MarkdownTable> tables = new ArrayList<>();
-    
-    try (BufferedReader reader = new BufferedReader(
-        new FileReader(inputFile, StandardCharsets.UTF_8))) {
-      
+
+    try (BufferedReader reader =
+        new BufferedReader(new FileReader(inputFile, StandardCharsets.UTF_8))) {
+
       String line;
       String lastHeading = null;
       List<String> currentTableLines = new ArrayList<>();
       boolean inTable = false;
-      
+
       while ((line = reader.readLine()) != null) {
         // Check for headings
         Matcher headingMatcher = HEADING_PATTERN.matcher(line);
@@ -129,7 +130,7 @@ public final class MarkdownTableScanner {
           lastHeading = headingMatcher.group(1).trim();
           continue;
         }
-        
+
         // Check if line is a table row
         if (TABLE_ROW_PATTERN.matcher(line).matches()) {
           if (!inTable) {
@@ -145,7 +146,7 @@ public final class MarkdownTableScanner {
           }
           inTable = false;
           currentTableLines.clear();
-          
+
           // Check if this line is a new heading
           if (headingMatcher.matches()) {
             lastHeading = headingMatcher.group(1).trim();
@@ -157,7 +158,7 @@ public final class MarkdownTableScanner {
           lastHeading = null;
         }
       }
-      
+
       // Handle table at end of file
       if (inTable && !currentTableLines.isEmpty()) {
         MarkdownTable table = parseTable(currentTableLines, lastHeading);
@@ -166,7 +167,7 @@ public final class MarkdownTableScanner {
         }
       }
     }
-    
+
     return tables;
   }
 
@@ -178,7 +179,7 @@ public final class MarkdownTableScanner {
       // Minimum: header, separator, one data row
       return null;
     }
-    
+
     // Find the separator row
     int separatorIndex = -1;
     for (int i = 0; i < lines.size(); i++) {
@@ -187,11 +188,11 @@ public final class MarkdownTableScanner {
         break;
       }
     }
-    
+
     if (separatorIndex == -1 || separatorIndex == 0) {
       return null;
     }
-    
+
     // Extract header rows (all rows before separator)
     List<List<String>> headerRows = new ArrayList<>();
     for (int i = 0; i < separatorIndex; i++) {
@@ -200,24 +201,24 @@ public final class MarkdownTableScanner {
         headerRows.add(cells);
       }
     }
-    
+
     if (headerRows.isEmpty()) {
       return null;
     }
-    
+
     // Build column headers (handle group headers if multiple header rows)
     List<String> columnHeaders = buildColumnHeaders(headerRows);
-    
+
     // Parse data rows
     ObjectMapper mapper = new ObjectMapper();
     ArrayNode data = mapper.createArrayNode();
-    
+
     for (int i = separatorIndex + 1; i < lines.size(); i++) {
       List<String> cells = parseCells(lines.get(i));
       if (cells.isEmpty()) {
         continue;
       }
-      
+
       ObjectNode row = mapper.createObjectNode();
       for (int j = 0; j < Math.min(cells.size(), columnHeaders.size()); j++) {
         String value = cells.get(j).trim();
@@ -225,12 +226,12 @@ public final class MarkdownTableScanner {
           row.put(columnHeaders.get(j), value);
         }
       }
-      
+
       if (row.size() > 0) {
         data.add(row);
       }
     }
-    
+
     MarkdownTable table = new MarkdownTable();
     table.title = title;
     table.data = data;
@@ -242,7 +243,7 @@ public final class MarkdownTableScanner {
    */
   private static List<String> parseCells(String line) {
     List<String> cells = new ArrayList<>();
-    
+
     // Remove leading and trailing pipes and spaces
     line = line.trim();
     if (line.startsWith("|")) {
@@ -251,7 +252,7 @@ public final class MarkdownTableScanner {
     if (line.endsWith("|")) {
       line = line.substring(0, line.length() - 1);
     }
-    
+
     // Split by pipe, handling escaped pipes
     String[] parts = line.split("(?<!\\\\)\\|");
     for (String part : parts) {
@@ -259,7 +260,7 @@ public final class MarkdownTableScanner {
       String cell = part.replace("\\|", "|").trim();
       cells.add(cell);
     }
-    
+
     return cells;
   }
 
@@ -271,22 +272,22 @@ public final class MarkdownTableScanner {
       // Simple case: single header row
       return headerRows.get(0);
     }
-    
+
     // Multiple header rows: assume last row is detail headers, others are groups
     List<String> detailHeaders = headerRows.get(headerRows.size() - 1);
     List<String> combinedHeaders = new ArrayList<>();
-    
+
     // Build group prefixes for each column
     Map<Integer, String> groupPrefixes = new HashMap<>();
-    
+
     for (int i = 0; i < headerRows.size() - 1; i++) {
       List<String> groupRow = headerRows.get(i);
       String currentGroup = null;
       int groupStart = 0;
-      
+
       for (int col = 0; col <= groupRow.size(); col++) {
         String cellValue = (col < groupRow.size()) ? groupRow.get(col).trim() : null;
-        
+
         if (cellValue != null && !cellValue.isEmpty() && !cellValue.equals("-")) {
           // New group starts
           if (currentGroup != null) {
@@ -299,7 +300,7 @@ public final class MarkdownTableScanner {
           currentGroup = cellValue;
           groupStart = col;
         }
-        
+
         // End of row - apply last group
         if (col == groupRow.size() && currentGroup != null) {
           for (int c = groupStart; c < detailHeaders.size(); c++) {
@@ -309,7 +310,7 @@ public final class MarkdownTableScanner {
         }
       }
     }
-    
+
     // Combine group headers with detail headers
     for (int col = 0; col < detailHeaders.size(); col++) {
       String header = detailHeaders.get(col);
@@ -319,23 +320,23 @@ public final class MarkdownTableScanner {
       }
       combinedHeaders.add(header);
     }
-    
+
     return combinedHeaders;
   }
 
   /**
    * Generates a file name for the JSON output.
    */
-  private static String generateFileName(String baseName, String tableTitle, 
+  private static String generateFileName(String baseName, String tableTitle,
       int tableIndex, int totalTables) {
     StringBuilder fileName = new StringBuilder(baseName);
-    
+
     if (tableTitle != null && !tableTitle.isEmpty()) {
       fileName.append("__").append(sanitizeIdentifier(tableTitle));
     } else if (totalTables > 1) {
       fileName.append("__Table").append(tableIndex + 1);
     }
-    
+
     fileName.append(".json");
     return fileName.toString();
   }
@@ -374,7 +375,7 @@ public final class MarkdownTableScanner {
     }
 
     // Remove leading/trailing underscores
-    str = str.replaceAll("^_+|_+$", "");
+    str = Pattern.compile("^_+|_+$").matcher(str).replaceAll("");
 
     return str;
   }

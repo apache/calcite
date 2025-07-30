@@ -122,11 +122,14 @@ public class RefreshablePartitionedParquetTable extends AbstractTable
           } else if ("directory".equals(style) && partConfig.getColumns() != null) {
             // Directory-based partitioning
             partitionInfo =
-                PartitionDetector.extractDirectoryPartitions(matchingFiles.get(0), partConfig.getColumns());
+                PartitionDetector.extractDirectoryPartitions(
+                    matchingFiles.get(0), partConfig.getColumns());
           } else if ("custom".equals(style) && partConfig.getRegex() != null) {
             // Custom regex partitioning
             partitionInfo =
-                PartitionDetector.extractCustomPartitions(matchingFiles.get(0), partConfig.getRegex(), partConfig.getColumnMappings());
+                PartitionDetector.extractCustomPartitions(
+                    matchingFiles.get(0), partConfig.getRegex(),
+                    partConfig.getColumnMappings());
           }
         }
 
@@ -136,8 +139,8 @@ public class RefreshablePartitionedParquetTable extends AbstractTable
           // Try to get typed column definitions first
           if (config.getPartitions().getColumnDefinitions() != null) {
             columnTypes = new java.util.HashMap<>();
-            for (PartitionedTableConfig.ColumnDefinition colDef :
-                 config.getPartitions().getColumnDefinitions()) {
+            for (PartitionedTableConfig.ColumnDefinition colDef
+                 : config.getPartitions().getColumnDefinitions()) {
               columnTypes.put(colDef.getName(), colDef.getType());
             }
           } else if (config.getPartitions().getColumns() != null) {
@@ -159,11 +162,12 @@ public class RefreshablePartitionedParquetTable extends AbstractTable
 
         // Create new table instance
         currentTable =
-            new PartitionedParquetTable(matchingFiles, partitionInfo, engineConfig, columnTypes, regex, colMappings);
+            new PartitionedParquetTable(matchingFiles, partitionInfo,
+                engineConfig, columnTypes, regex, colMappings);
         lastDiscoveredFiles = matchingFiles;
 
-        System.out.println("[RefreshablePartitionedParquetTable] Discovered " +
-            matchingFiles.size() + " files for table: " + tableName);
+        System.out.println("[RefreshablePartitionedParquetTable] Discovered "
+            + matchingFiles.size() + " files for table: " + tableName);
       }
     } catch (Exception e) {
       System.err.println("Failed to refresh partitioned table: " + e.getMessage());

@@ -79,7 +79,7 @@ public class DirectParquetPerformanceTest {
 
   @Test public void testDirectPerformanceComparison() throws Exception {
     System.out.println("\n## TEST CONFIGURATION ##");
-    System.out.println("Dataset size: " + String.format("%,d", DATASET_SIZE) + " rows");
+    System.out.println("Dataset size: " + String.format(Locale.ROOT, "%,d", DATASET_SIZE) + " rows");
     System.out.println("Warmup runs: " + WARMUP_RUNS);
     System.out.println("Test runs: " + TEST_RUNS);
     System.out.println("Each test creates new connection (cold start)");
@@ -176,8 +176,7 @@ public class DirectParquetPerformanceTest {
   }
 
   private long runSingleQuery(File directory, String engine, String query) throws Exception {
-    // Force GC before each run
-    System.gc();
+    // Allow GC before each run
     Thread.sleep(50);
 
     long startTime = System.currentTimeMillis();
@@ -211,7 +210,7 @@ public class DirectParquetPerformanceTest {
 
   private void displayResult(String config, long time, long baseline) {
     if (time == Long.MAX_VALUE) {
-      System.out.printf("%-18s        FAILED%n", config);
+      System.out.printf(Locale.ROOT, "%-18s        FAILED%n", config);
       return;
     }
 
@@ -253,7 +252,7 @@ public class DirectParquetPerformanceTest {
         double total = quantity * unitPrice;
 
         String date =
-            String.format("2024-%02d-%02d", 1 + rand.nextInt(12), 1 + rand.nextInt(28));
+            String.format(Locale.ROOT, "2024-%02d-%02d", 1 + rand.nextInt(12), 1 + rand.nextInt(28));
 
         String status = statuses[rand.nextInt(statuses.length)];
         if (rand.nextDouble() < 0.6) status = "completed"; // 60% completed
@@ -267,7 +266,7 @@ public class DirectParquetPerformanceTest {
     }
 
     System.out.println("  Created: " + file.getName() + " (" +
-        String.format("%.1f MB", file.length() / 1024.0 / 1024.0) + ")");
+        String.format(Locale.ROOT, "%.1f MB", file.length() / 1024.0 / 1024.0) + ")");
   }
 
   private void createParquetFromCsv() throws Exception {
@@ -300,7 +299,7 @@ public class DirectParquetPerformanceTest {
     if (sourceParquet.exists()) {
       sourceParquet.renameTo(destParquet);
       System.out.println("  Moved Parquet file to: " + destParquet.getName() + " (" +
-          String.format("%.1f MB", destParquet.length() / 1024.0 / 1024.0) + ")");
+          String.format(Locale.ROOT, "%.1f MB", destParquet.length() / 1024.0 / 1024.0) + ")");
     }
   }
 
@@ -310,7 +309,7 @@ public class DirectParquetPerformanceTest {
     if (files != null) {
       for (File file : files) {
         if (file.isFile()) {
-          System.out.printf("  %s (%.1f MB)%n",
+          System.out.printf(Locale.ROOT, "  %s (%.1f MB)%n",
               file.getName(), file.length() / 1024.0 / 1024.0);
         }
       }

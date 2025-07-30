@@ -56,7 +56,7 @@ public class HighMemoryPerformanceTest {
   public void setUp() throws Exception {
     System.out.println("\n=== HIGH MEMORY PERFORMANCE TEST ===");
     System.out.println("Comparing 64MB vs 4GB memory threshold with " +
-        String.format("%,d", DATASET_SIZE) + " rows");
+        String.format(Locale.ROOT, "%,d", DATASET_SIZE) + " rows");
 
     // Create large CSV dataset
     createLargeSalesDataset();
@@ -66,7 +66,7 @@ public class HighMemoryPerformanceTest {
 
   @Test public void testMemoryThresholdPerformance() throws Exception {
     System.out.println("\n## TEST CONFIGURATION ##");
-    System.out.println("Dataset size: " + String.format("%,d", DATASET_SIZE) + " rows");
+    System.out.println("Dataset size: " + String.format(Locale.ROOT, "%,d", DATASET_SIZE) + " rows");
     System.out.println("Default memory: " + formatBytes(DEFAULT_MEMORY));
     System.out.println("High memory: " + formatBytes(HIGH_MEMORY));
     System.out.println("Warmup runs: " + WARMUP_RUNS);
@@ -168,8 +168,7 @@ public class HighMemoryPerformanceTest {
   }
 
   private long runSingleQuery(long memoryThreshold, String query) throws Exception {
-    // Force GC before each run
-    System.gc();
+    // Allow GC before each run
     Thread.sleep(50);
 
     long startTime = System.currentTimeMillis();
@@ -231,7 +230,7 @@ public class HighMemoryPerformanceTest {
         double total = quantity * unitPrice;
 
         String date =
-            String.format("2024-%02d-%02d", 1 + rand.nextInt(12), 1 + rand.nextInt(28));
+            String.format(Locale.ROOT, "2024-%02d-%02d", 1 + rand.nextInt(12), 1 + rand.nextInt(28));
 
         String status = statuses[rand.nextInt(statuses.length)];
         if (rand.nextDouble() < 0.6) status = "completed"; // 60% completed
@@ -243,19 +242,19 @@ public class HighMemoryPerformanceTest {
             unitPrice, total, date, status));
 
         if (i > 0 && i % 500000 == 0) {
-          System.out.println("  " + String.format("%,d", i) + " rows written...");
+          System.out.println("  " + String.format(Locale.ROOT, "%,d", i) + " rows written...");
         }
       }
     }
 
-    System.out.println("  CSV file created: " + String.format("%.1f MB", file.length() / 1024.0 / 1024.0));
+    System.out.println("  CSV file created: " + String.format(Locale.ROOT, "%.1f MB", file.length() / 1024.0 / 1024.0));
   }
 
   private String formatBytes(long bytes) {
     if (bytes < 1024) return bytes + " B";
-    if (bytes < 1024 * 1024) return String.format("%.1f KB", bytes / 1024.0);
-    if (bytes < 1024 * 1024 * 1024) return String.format("%.1f MB", bytes / 1024.0 / 1024.0);
-    return String.format("%.1f GB", bytes / 1024.0 / 1024.0 / 1024.0);
+    if (bytes < 1024 * 1024) return String.format(Locale.ROOT, "%.1f KB", bytes / 1024.0);
+    if (bytes < 1024 * 1024 * 1024) return String.format(Locale.ROOT, "%.1f MB", bytes / 1024.0 / 1024.0);
+    return String.format(Locale.ROOT, "%.1f GB", bytes / 1024.0 / 1024.0 / 1024.0);
   }
 
   private void printConclusions() {

@@ -185,7 +185,7 @@ public class ExcelNamingTest {
 
     // Small delay to ensure file system operations complete
     Thread.sleep(100);
-    
+
     // Should create: SingleWithId__Sales_Q1_Results.json (NO _T1 suffix)
     File expectedFile = new File(tempDir.toFile(), "SingleWithId__Sales_Q1_Results.json");
     File unexpectedFile = new File(tempDir.toFile(), "SingleWithId__Sales_Q1_Results_T1.json");
@@ -201,11 +201,11 @@ public class ExcelNamingTest {
   @Test public void testSingleTableWithoutIdentifierNoSuffix() throws Exception {
     // Convert Excel file
     File inputFile = new File(tempDir.toFile(), "single_no_id.xlsx");
-    
+
     System.out.println("Converting file: " + inputFile.getAbsolutePath());
     System.out.println("File exists: " + inputFile.exists());
     System.out.println("File size: " + inputFile.length() + " bytes");
-    
+
     MultiTableExcelToJsonConverter.convertFileToJson(inputFile, true);
 
     // List all files in directory after conversion
@@ -232,11 +232,11 @@ public class ExcelNamingTest {
   @Test public void testMultipleTablesWithSuffix() throws Exception {
     // Convert Excel file
     File inputFile = new File(tempDir.toFile(), "multiple_tables.xlsx");
-    
+
     System.out.println("Converting file: " + inputFile.getAbsolutePath());
     System.out.println("File exists: " + inputFile.exists());
     System.out.println("File size: " + inputFile.length() + " bytes");
-    
+
     MultiTableExcelToJsonConverter.convertFileToJson(inputFile, true);
 
     // List all files in directory after conversion

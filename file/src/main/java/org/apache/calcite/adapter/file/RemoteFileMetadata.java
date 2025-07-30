@@ -62,16 +62,16 @@ public class RemoteFileMetadata {
     String urlString = source.url() != null ? source.url().toString() : source.path();
 
     switch (protocol) {
-      case "http":
-      case "https":
-        return fetchHttpMetadata(urlString);
-      case "s3":
-        return fetchS3Metadata(source.path());
-      case "ftp":
-        return fetchFtpMetadata(urlString);
-      default:
-        // For unsupported protocols, return minimal metadata
-        return new RemoteFileMetadata(urlString, null, null, -1, null);
+    case "http":
+    case "https":
+      return fetchHttpMetadata(urlString);
+    case "s3":
+      return fetchS3Metadata(source.path());
+    case "ftp":
+      return fetchFtpMetadata(urlString);
+    default:
+      // For unsupported protocols, return minimal metadata
+      return new RemoteFileMetadata(urlString, null, null, -1, null);
     }
   }
 
@@ -123,7 +123,8 @@ public class RemoteFileMetadata {
     // Future enhancement: Use reflection to call S3 HeadObject if available
     // or move this logic to core module where AWS SDK is available
 
-    LOGGER.info("S3 metadata checking not yet implemented, using content-based detection for: " + s3Uri);
+    LOGGER.info("S3 metadata checking not yet implemented, using content-based detection for: "
+        + s3Uri);
     return new RemoteFileMetadata(s3Uri, null, null, -1, null);
   }
 
@@ -152,8 +153,8 @@ public class RemoteFileMetadata {
     }
 
     // Check content length as a quick indicator
-    if (contentLength > 0 && previous.contentLength > 0 &&
-        contentLength != previous.contentLength) {
+    if (contentLength > 0 && previous.contentLength > 0
+        && contentLength != previous.contentLength) {
       return true;
     }
 
@@ -201,24 +202,36 @@ public class RemoteFileMetadata {
    * Creates metadata for testing purposes.
    */
   public static RemoteFileMetadata createForTesting(String url, @Nullable String etag,
-                                                    @Nullable String lastModified, long contentLength,
-                                                    @Nullable String contentHash) {
+      @Nullable String lastModified, long contentLength,
+      @Nullable String contentHash) {
     return new RemoteFileMetadata(url, etag, lastModified, contentLength, contentHash);
   }
 
   // Getters
-  public String getUrl() { return url; }
-  public @Nullable String getEtag() { return etag; }
-  public @Nullable String getLastModified() { return lastModified; }
-  public long getContentLength() { return contentLength; }
-  public @Nullable String getContentHash() { return contentHash; }
-  public Instant getCheckTime() { return checkTime; }
+  public String getUrl() {
+    return url;
+  }
+  public @Nullable String getEtag() {
+    return etag;
+  }
+  public @Nullable String getLastModified() {
+    return lastModified;
+  }
+  public long getContentLength() {
+    return contentLength;
+  }
+  public @Nullable String getContentHash() {
+    return contentHash;
+  }
+  public Instant getCheckTime() {
+    return checkTime;
+  }
 
   @Override public String toString() {
-    return "RemoteFileMetadata{url=" + url +
-           ", etag=" + etag +
-           ", lastModified=" + lastModified +
-           ", contentLength=" + contentLength +
-           ", contentHash=" + contentHash + "}";
+    return "RemoteFileMetadata{url=" + url
+           + ", etag=" + etag
+           + ", lastModified=" + lastModified
+           + ", contentLength=" + contentLength
+           + ", contentHash=" + contentHash + "}";
   }
 }

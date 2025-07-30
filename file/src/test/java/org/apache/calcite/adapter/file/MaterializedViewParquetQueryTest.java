@@ -33,6 +33,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -144,7 +145,7 @@ public class MaterializedViewParquetQueryTest {
 
           int rowCount = 0;
           while (rs.next()) {
-            System.out.printf("   %-11s| %5d | %8d | %.2f%n",
+            System.out.printf(Locale.ROOT, "   %-11s| %5d | %8d | %.2f%n",
                 rs.getString("date"),
                 rs.getLong("transaction_count"),
                 rs.getLong("total_quantity"),
@@ -172,7 +173,7 @@ public class MaterializedViewParquetQueryTest {
             "ORDER BY \"date\"");
 
         while (directRs.next()) {
-          System.out.printf("   %-11s| %5d | %8d | %.2f%n",
+          System.out.printf(Locale.ROOT, "   %-11s| %5d | %8d | %.2f%n",
               directRs.getString("date"),
               directRs.getLong("transaction_count"),
               directRs.getLong("total_quantity"),

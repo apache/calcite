@@ -78,7 +78,7 @@ public final class MultiTableExcelToJsonConverter {
       ExcelToJsonConverter.convertFileToJson(inputFile);
       return;
     }
-    
+
     LOGGER.debug("Converting file with multi-table detection: " + inputFile.getName());
 
     // Acquire read lock on source file
@@ -87,11 +87,12 @@ public final class MultiTableExcelToJsonConverter {
       lockHandle = SourceFileLockManager.acquireReadLock(inputFile);
       LOGGER.debug("Acquired read lock on Excel file: " + inputFile.getPath());
     } catch (IOException e) {
-      LOGGER.warn("Could not acquire lock on file: " + inputFile.getPath() + 
-          " - proceeding without lock");
+      LOGGER.warn("Could not acquire lock on file: "
+          + inputFile.getPath()
+          + " - proceeding without lock");
       // Continue without lock
     }
-    
+
     try (FileInputStream file = new FileInputStream(inputFile)) {
       Workbook workbook = WorkbookFactory.create(file);
       ObjectMapper mapper = new ObjectMapper();
@@ -123,8 +124,9 @@ public final class MultiTableExcelToJsonConverter {
           LOGGER.debug("No valid tables found in sheet: " + sheet.getSheetName());
           continue;
         }
-        
-        LOGGER.debug("Found " + validTables.size() + " valid tables in sheet: " + sheet.getSheetName());
+
+        LOGGER.debug("Found " + validTables.size()
+            + " valid tables in sheet: " + sheet.getSheetName());
 
         // First pass: collect all planned filenames from valid tables only
         for (TableRegion table : validTables) {
@@ -133,7 +135,8 @@ public final class MultiTableExcelToJsonConverter {
 
           // For single table with no identifier, just use sheet name
           // For multiple tables or tables with identifiers, add identifier
-          if (validTables.size() > 1 || (table.identifier != null && !table.identifier.trim().isEmpty())) {
+          if (validTables.size() > 1
+              || (table.identifier != null && !table.identifier.trim().isEmpty())) {
             if (table.identifier != null && !table.identifier.trim().isEmpty()) {
               baseFilename += "_" + sanitizeIdentifier(table.identifier);
             }
@@ -158,10 +161,13 @@ public final class MultiTableExcelToJsonConverter {
             jsonFileName = plannedName + ".json";
           }
 
-          LOGGER.debug("Writing JSON file: " + jsonFileName);
+          LOGGER.debug("Writing JSON file: "
+              + jsonFileName);
           try (FileWriter fileWriter =
-              new FileWriter(new File(inputFile.getParent(), jsonFileName), StandardCharsets.UTF_8)) {
-            mapper.writerWithDefaultPrettyPrinter().writeValue(fileWriter, table.jsonData);
+              new FileWriter(new File(inputFile.getParent(), jsonFileName),
+                  StandardCharsets.UTF_8)) {
+            mapper.writerWithDefaultPrettyPrinter()
+                .writeValue(fileWriter, table.jsonData);
           }
           tableIndex++;
         }
@@ -183,7 +189,8 @@ public final class MultiTableExcelToJsonConverter {
     List<TableRegion> tables = new ArrayList<>();
     int lastRowNum = sheet.getLastRowNum();
     int currentRow = 0;
-    LOGGER.debug("Detecting tables in sheet: " + sheet.getSheetName() + " (rows: 0-" + lastRowNum + ")");
+    LOGGER.debug("Detecting tables in sheet: " + sheet.getSheetName()
+        + " (rows: 0-" + lastRowNum + ")");
 
     while (currentRow <= lastRowNum) {
       // Skip empty rows
@@ -267,7 +274,8 @@ public final class MultiTableExcelToJsonConverter {
     table.identifier = potentialIdentifier;
     table.headerRows = headerRows;
     table.dataStartRow = row;
-    LOGGER.trace("detectTableAt: headerRows=" + headerRows.size() + ", dataStartRow=" + table.dataStartRow);
+    LOGGER.trace("detectTableAt: headerRows=" + headerRows.size()
+        + ", dataStartRow=" + table.dataStartRow);
 
     // Find end of table (consecutive empty rows or end of sheet)
     int dataRow = table.dataStartRow;
@@ -307,7 +315,8 @@ public final class MultiTableExcelToJsonConverter {
   private static ArrayNode convertTableToJson(Sheet sheet, TableRegion table,
       FormulaEvaluator evaluator, ObjectMapper mapper) {
     ArrayNode tableData = mapper.createArrayNode();
-    LOGGER.trace("Converting table: dataStartRow=" + table.dataStartRow + ", endRow=" + table.endRow);
+    LOGGER.trace("Converting table: dataStartRow=" + table.dataStartRow
+        + ", endRow=" + table.endRow);
 
     // Build column headers from all header rows
     Map<Integer, String> columnHeaders = buildColumnHeaders(table, evaluator);
@@ -443,7 +452,7 @@ public final class MultiTableExcelToJsonConverter {
     if (nonEmptyCells < 2) {
       return false;
     }
-    
+
     // For small rows (2-3 cells), check if all cells are text
     boolean allText = true;
 
@@ -455,7 +464,7 @@ public final class MultiTableExcelToJsonConverter {
     for (Cell cell : row) {
       if (cell != null && cell.getCellType() != CellType.BLANK) {
         if (cell.getCellType() == CellType.STRING) {
-          allText = allText && true;
+          // allText already true, no need to update
           String value = cell.getStringCellValue().trim();
           // Check if it's a typical header value (short, no special chars)
           if (value.length() > 50 || value.contains("\n")) {
@@ -488,7 +497,7 @@ public final class MultiTableExcelToJsonConverter {
     if (hasLongNumbers && numericCells > 0) {
       return false;
     }
-    
+
     // For small tables (2-3 columns), header rows should be all text
     if (nonEmptyCells <= 3 && allText) {
       return true;
@@ -498,7 +507,7 @@ public final class MultiTableExcelToJsonConverter {
     if (numericCells > 0) {
       return textCells > numericCells * 2; // Text cells should be at least twice the numeric cells
     }
-    
+
     return textCells > 0; // Pure text row is likely a header
   }
 

@@ -35,6 +35,10 @@ public class RefreshInterval {
   private static final Pattern INTERVAL_PATTERN =
       Pattern.compile("(\\d+)\\s+(second|minute|hour|day)s?", Pattern.CASE_INSENSITIVE);
 
+  private RefreshInterval() {
+    // Utility class should not be instantiated
+  }
+
   /**
    * Parses a refresh interval string into a Duration.
    *
@@ -55,16 +59,16 @@ public class RefreshInterval {
     String unit = matcher.group(2).toLowerCase(Locale.ROOT);
 
     switch (unit) {
-      case "second":
-        return Duration.ofSeconds(value);
-      case "minute":
-        return Duration.ofMinutes(value);
-      case "hour":
-        return Duration.ofHours(value);
-      case "day":
-        return Duration.ofDays(value);
-      default:
-        return null;
+    case "second":
+      return Duration.ofSeconds(value);
+    case "minute":
+      return Duration.ofMinutes(value);
+    case "hour":
+      return Duration.ofHours(value);
+    case "day":
+      return Duration.ofDays(value);
+    default:
+      return null;
     }
   }
 

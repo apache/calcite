@@ -129,7 +129,8 @@ public class MaterializedViewJdbcDriver extends Driver {
       rootSchema.add(schemaConfig.getName(), schema);
 
       // Log successful schema creation
-      LOGGER.info("  Schema '" + schemaConfig.getName() + "' created from directory: " + dataDirectory.getAbsolutePath());
+      LOGGER.info("  Schema '" + schemaConfig.getName() + "' created from directory: "
+          + dataDirectory.getAbsolutePath());
 
       INITIALIZED_SCHEMAS.add(schemaKey);
       LOGGER.info("✓ Schema setup complete: " + schemaConfig.getName());

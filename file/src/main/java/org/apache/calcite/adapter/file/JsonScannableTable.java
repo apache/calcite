@@ -26,6 +26,8 @@ import org.apache.calcite.util.Source;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.Map;
+
 /**
  * Table based on a JSON file.
  *
@@ -39,6 +41,13 @@ public class JsonScannableTable extends JsonTable
    */
   public JsonScannableTable(Source source) {
     super(source);
+  }
+
+  /**
+   * Creates a JsonScannableTable with options.
+   */
+  public JsonScannableTable(Source source, Map<String, Object> options) {
+    super(source, options);
   }
 
   @Override public String toString() {

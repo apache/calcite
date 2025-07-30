@@ -31,6 +31,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -84,7 +85,7 @@ public class FileAdapterCapabilitiesTest {
         System.out.println("   Date       | Transactions | Total");
         System.out.println("   -----------|--------------|--------");
         while (rs.next()) {
-          System.out.printf("   %-11s| %12d | %.2f%n",
+          System.out.printf(Locale.ROOT, "   %-11s| %12d | %.2f%n",
               rs.getString("date"),
               rs.getInt("transaction_count"),
               rs.getDouble("daily_total"));
@@ -105,7 +106,7 @@ public class FileAdapterCapabilitiesTest {
         System.out.println("   Product | Count | Revenue | Avg Sale");
         System.out.println("   --------|-------|---------|----------");
         while (rs2.next()) {
-          System.out.printf("   %-8s| %5d | %7.2f | %.2f%n",
+          System.out.printf(Locale.ROOT, "   %-8s| %5d | %7.2f | %.2f%n",
               rs2.getString("product"),
               rs2.getInt("sales_count"),
               rs2.getDouble("total_revenue"),
@@ -124,7 +125,7 @@ public class FileAdapterCapabilitiesTest {
           ResultSet columns =
               connection.getMetaData().getColumns(null, "FILES", tables.getString("TABLE_NAME"), null);
           while (columns.next()) {
-            System.out.printf("     - %s (%s)%n",
+            System.out.printf(Locale.ROOT, "     - %s (%s)%n",
                 columns.getString("COLUMN_NAME"),
                 columns.getString("TYPE_NAME"));
           }

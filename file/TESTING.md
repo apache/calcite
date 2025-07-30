@@ -43,6 +43,7 @@ The file adapter tests are organized into several categories:
 #### Core Functionality Tests
 - `FileAdapterTest` - Basic file reading, glob patterns, and query execution
 - `JsonFileTest` - JSON file handling and type inference
+- `JsonFlattenTest` - JSON flattening functionality for nested structures
 - `CsvFileTest` - CSV parsing, headers, and data types
 
 #### Performance Tests
@@ -103,10 +104,10 @@ public class YourFeatureTest {
         Map<String, Object> operand = new HashMap<>();
         operand.put("directory", tempDir.toString());
         operand.put("executionEngine", "parquet");
-        
+
         // Create schema
         FileSchema schema = new FileSchema(null, operand);
-        
+
         // Execute query
         String sql = "SELECT * FROM your_table";
         // ... test assertions
@@ -135,10 +136,10 @@ public void testSpillover() throws Exception {
     Map<String, Object> operand = new HashMap<>();
     operand.put("memoryThreshold", 1024L); // 1KB - forces spillover
     operand.put("spillDirectory", tempDir.resolve("spill").toString());
-    
+
     // Create large dataset
     createLargeTestFile(1_000_000); // 1M rows
-    
+
     // Verify spillover occurs
     // ... execute query and check spill files created
 }
@@ -151,7 +152,7 @@ public void testSpillover() throws Exception {
 public void testPartitionedTable() throws Exception {
     // Create partitioned directory structure
     createPartitionedData();
-    
+
     Map<String, Object> partitionConfig = Map.of(
         "name", "sales",
         "pattern", "sales/**/*.parquet",
@@ -163,9 +164,9 @@ public void testPartitionedTable() throws Exception {
             )
         )
     );
-    
+
     operand.put("partitionedTables", Arrays.asList(partitionConfig));
-    
+
     // Test partition pruning
     String sql = "SELECT * FROM sales WHERE year = 2024 AND month = 1";
     // ... verify only relevant partitions are read
@@ -195,12 +196,28 @@ private void createTestJsonFile(File file) throws IOException {
     );
     mapper.writeValue(file, data);
 }
+
+// Creating nested JSON for flattening tests
+private void createNestedJsonFile(File file) throws IOException {
+    String json = "[\n" +
+        "  {\n" +
+        "    \"id\": 1,\n" +
+        "    \"name\": \"John\",\n" +
+        "    \"address\": {\n" +
+        "      \"street\": \"123 Main St\",\n" +
+        "      \"city\": \"Anytown\"\n" +
+        "    },\n" +
+        "    \"tags\": [\"customer\", \"vip\"]\n" +
+        "  }\n" +
+        "]";
+    Files.write(file.toPath(), json.getBytes(StandardCharsets.UTF_8));
+}
 ```
 
 ### Verifying Results
 
 ```java
-private void assertQueryResults(String sql, Consumer<ResultSet> validator) 
+private void assertQueryResults(String sql, Consumer<ResultSet> validator)
     throws Exception {
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:");
          Statement statement = connection.createStatement();
@@ -216,6 +233,38 @@ assertQueryResults("SELECT COUNT(*) FROM products", rs -> {
 });
 ```
 
+### Testing JSON Flattening
+
+The JSON flattening feature can be tested using the `JsonFlattenTest` class:
+
+```java
+@Test
+void testJsonFlattening() {
+    // Test flattened JSON table access
+    sql("sales-json-flatten", "select * from NESTED_FLAT")
+        .returns("id=1; name=John Doe; address.street=123 Main St; "
+            + "address.city=Anytown; address.zip=12345; tags=customer,vip,active")
+        .ok();
+}
+
+// Model configuration for flattening
+{
+  "tables": [{
+    "name": "NESTED_FLAT",
+    "url": "nested.json",
+    "format": "json",
+    "flatten": true
+  }]
+}
+```
+
+Key test scenarios for JSON flattening:
+- Nested objects converted to dot notation
+- Arrays converted to delimited strings
+- Query filtering on flattened columns
+- Null handling in nested structures
+- Maximum depth handling (3 levels)
+
 ### Testing File Locking
 
 ```java
@@ -223,18 +272,18 @@ assertQueryResults("SELECT COUNT(*) FROM products", rs -> {
 public void testConcurrentAccess() throws Exception {
     File testFile = new File(tempDir.toFile(), "concurrent.csv");
     createTestCsvFile(testFile, true);
-    
+
     // Simulate concurrent access
     ExecutorService executor = Executors.newFixedThreadPool(10);
     List<Future<Integer>> futures = new ArrayList<>();
-    
+
     for (int i = 0; i < 10; i++) {
         futures.add(executor.submit(() -> {
             // Execute query on same file
             return queryRowCount("SELECT * FROM concurrent");
         }));
     }
-    
+
     // Verify all threads succeed
     for (Future<Integer> future : futures) {
         assertEquals(2, future.get().intValue());
@@ -299,21 +348,21 @@ public void checkSpilloverCleanup() {
 @Test
 public void benchmarkExecutionEngines() throws Exception {
     Map<String, Long> results = new LinkedHashMap<>();
-    
+
     for (String engine : Arrays.asList("linq4j", "vectorized", "arrow", "parquet")) {
         long startTime = System.currentTimeMillis();
-        
+
         // Run query multiple times for accuracy
         for (int i = 0; i < 10; i++) {
             executeCountQuery(engine);
         }
-        
+
         long duration = System.currentTimeMillis() - startTime;
         results.put(engine, duration / 10); // Average
     }
-    
+
     // Log results
-    results.forEach((engine, time) -> 
+    results.forEach((engine, time) ->
         System.out.println(engine + ": " + time + "ms"));
 }
 ```
@@ -325,13 +374,13 @@ public void benchmarkExecutionEngines() throws Exception {
 public void testMemoryUsage() throws Exception {
     Runtime runtime = Runtime.getRuntime();
     long beforeMemory = runtime.totalMemory() - runtime.freeMemory();
-    
+
     // Execute operation
     processLargeFile();
-    
+
     long afterMemory = runtime.totalMemory() - runtime.freeMemory();
     long memoryUsed = afterMemory - beforeMemory;
-    
+
     System.out.println("Memory used: " + (memoryUsed / 1024 / 1024) + "MB");
     assertTrue(memoryUsed < 100 * 1024 * 1024, "Should use less than 100MB");
 }

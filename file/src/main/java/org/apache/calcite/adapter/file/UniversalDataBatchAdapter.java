@@ -51,6 +51,10 @@ import java.util.List;
 public class UniversalDataBatchAdapter {
   private static final RootAllocator ALLOCATOR = new RootAllocator(Long.MAX_VALUE);
 
+  private UniversalDataBatchAdapter() {
+    // Utility class should not be instantiated
+  }
+
   /**
    * Converts row-based data to Arrow VectorSchemaRoot format.
    */
@@ -216,7 +220,11 @@ public class UniversalDataBatchAdapter {
       return ((BitVector) vector).get(row) == 1;
     } else if (vector instanceof VarCharVector) {
       byte[] bytes = ((VarCharVector) vector).get(row);
-      return bytes != null ? new String(bytes, StandardCharsets.UTF_8) : null;
+      if (bytes == null) {
+        return null;
+      }
+      // Convert bytes to string using UTF-8 charset
+      return StandardCharsets.UTF_8.decode(java.nio.ByteBuffer.wrap(bytes)).toString();
     }
 
     return vector.getObject(row);

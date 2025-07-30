@@ -34,6 +34,10 @@ import java.util.regex.Pattern;
 public class PartitionDetector {
   private static final Logger LOGGER = LoggerFactory.getLogger(PartitionDetector.class);
 
+  private PartitionDetector() {
+    // Utility class should not be instantiated
+  }
+
   // Pattern for Hive-style partitions: key=value
   private static final Pattern HIVE_PARTITION_PATTERN =
       Pattern.compile("([^/=]+)=([^/]+)");
@@ -164,7 +168,8 @@ public class PartitionDetector {
     Path parent = path.getParent();
 
     List<String> dirValues = new ArrayList<>();
-    while (parent != null && parent.getFileName() != null && dirValues.size() < columnNames.size()) {
+    while (parent != null && parent.getFileName() != null
+        && dirValues.size() < columnNames.size()) {
       dirValues.add(0, parent.getFileName().toString());
       parent = parent.getParent();
     }
@@ -187,7 +192,7 @@ public class PartitionDetector {
    * @return Partition information
    */
   public static PartitionInfo extractCustomPartitions(String filePath, String regex,
-                                                      List<PartitionedTableConfig.ColumnMapping> columnMappings) {
+      List<PartitionedTableConfig.ColumnMapping> columnMappings) {
     if (regex == null || columnMappings == null) {
       return null;
     }

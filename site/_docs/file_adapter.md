@@ -1275,6 +1275,103 @@ CREATE VIEW sales_detail AS
 SELECT * FROM sales WHERE customer_id = 12345;
 ```
 
+## Configuration Reference
+
+### Schema Configuration Parameters
+
+The File adapter supports the following configuration parameters in the `operand` section:
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `directory` | String | Required | Base directory for files |
+| `tables` | Array | null | Explicit table definitions |
+| `recursive` | Boolean | false | Recursively scan subdirectories |
+| `executionEngine` | String | "linq4j" | Execution engine: "linq4j", "vectorized", "arrow", "parquet" |
+| `batchSize` | Integer | 8192 | Number of rows per batch |
+| `memoryThreshold` | Long | 67108864 | Memory limit per table (bytes) |
+| `refreshInterval` | String | null | Default refresh interval (e.g., "5 minutes") |
+| `tableNameCasing` | String | "UPPER" | Table name casing: "UPPER", "LOWER", "UNCHANGED" |
+| `columnNameCasing` | String | "UNCHANGED" | Column name casing: "UPPER", "LOWER", "UNCHANGED" |
+| `materializations` | Array | null | Materialized view definitions |
+| `views` | Array | null | View definitions |
+| `partitionedTables` | Array | null | Partitioned table configurations |
+
+### Identifier Casing Configuration
+
+The file adapter now supports configurable identifier casing for both table and column names. This is particularly useful for PostgreSQL compatibility or when working with case-sensitive systems.
+
+**Example: PostgreSQL-style configuration (lowercase identifiers):**
+```json
+{
+  "version": "1.0",
+  "defaultSchema": "postgres_style",
+  "schemas": [{
+    "name": "postgres_style",
+    "type": "custom",
+    "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
+    "operand": {
+      "directory": "/data",
+      "tableNameCasing": "LOWER",
+      "columnNameCasing": "LOWER"
+    }
+  }]
+}
+```
+
+**Example: Oracle-style configuration (uppercase identifiers):**
+```json
+{
+  "version": "1.0",
+  "defaultSchema": "oracle_style",
+  "schemas": [{
+    "name": "oracle_style",
+    "type": "custom",
+    "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
+    "operand": {
+      "directory": "/data",
+      "tableNameCasing": "UPPER",
+      "columnNameCasing": "UPPER"
+    }
+  }]
+}
+```
+
+**Example: Preserve original casing:**
+```json
+{
+  "version": "1.0",
+  "defaultSchema": "preserve_case",
+  "schemas": [{
+    "name": "preserve_case",
+    "type": "custom",
+    "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
+    "operand": {
+      "directory": "/data",
+      "tableNameCasing": "UNCHANGED",
+      "columnNameCasing": "UNCHANGED"
+    }
+  }]
+}
+```
+
+### JDBC URL Configuration
+
+The same parameters can be specified in JDBC URLs:
+
+```java
+// PostgreSQL-style lowercase identifiers
+String jdbcUrl = "jdbc:calcite:schemaFactory=org.apache.calcite.adapter.file.FileSchemaFactory;"
+    + "schema.directory=/data;"
+    + "schema.tableNameCasing=LOWER;"
+    + "schema.columnNameCasing=LOWER";
+
+// Oracle-style uppercase identifiers
+String jdbcUrl = "jdbc:calcite:schemaFactory=org.apache.calcite.adapter.file.FileSchemaFactory;"
+    + "schema.directory=/data;"
+    + "schema.tableNameCasing=UPPER;"
+    + "schema.columnNameCasing=UPPER";
+```
+
 ## Future improvements
 
 We are continuing to enhance the adapter, and would welcome

@@ -61,7 +61,7 @@ public class DocxTableTest {
 
   private void createSimpleDocxFile() throws IOException {
     simpleDocxFile = new File(tempDir.toFile(), "products.docx");
-    
+
     try (XWPFDocument document = new XWPFDocument()) {
       // Add title
       XWPFParagraph title = document.createParagraph();
@@ -69,42 +69,42 @@ public class DocxTableTest {
       titleRun.setText("Product Catalog");
       titleRun.setBold(true);
       titleRun.setFontSize(16);
-      
+
       // Add some text before table
       XWPFParagraph intro = document.createParagraph();
       intro.createRun().setText("Current inventory of products:");
-      
+
       // Add table title
       XWPFParagraph tableTitle = document.createParagraph();
       XWPFRun tableTitleRun = tableTitle.createRun();
       tableTitleRun.setText("Current Products");
       tableTitleRun.setBold(true);
-      
+
       // Create table
       XWPFTable table = document.createTable();
-      
+
       // Header row
       XWPFTableRow headerRow = table.getRow(0);
       headerRow.getCell(0).setText("Product");
       headerRow.addNewTableCell().setText("Price");
       headerRow.addNewTableCell().setText("Stock");
-      
+
       // Data rows
       XWPFTableRow row1 = table.createRow();
       row1.getCell(0).setText("Widget");
       row1.getCell(1).setText("10.99");
       row1.getCell(2).setText("100");
-      
+
       XWPFTableRow row2 = table.createRow();
       row2.getCell(0).setText("Gadget");
       row2.getCell(1).setText("25.50");
       row2.getCell(2).setText("50");
-      
+
       XWPFTableRow row3 = table.createRow();
       row3.getCell(0).setText("Tool");
       row3.getCell(1).setText("15.75");
       row3.getCell(2).setText("75");
-      
+
       try (FileOutputStream out = new FileOutputStream(simpleDocxFile)) {
         document.write(out);
       }
@@ -113,7 +113,7 @@ public class DocxTableTest {
 
   private void createComplexDocxFile() throws IOException {
     complexDocxFile = new File(tempDir.toFile(), "quarterly_report.docx");
-    
+
     try (XWPFDocument document = new XWPFDocument()) {
       // Document title
       XWPFParagraph docTitle = document.createParagraph();
@@ -121,77 +121,76 @@ public class DocxTableTest {
       docTitleRun.setText("Quarterly Business Report");
       docTitleRun.setBold(true);
       docTitleRun.setFontSize(18);
-      
+
       // First table - Sales Summary
       XWPFParagraph salesHeader = document.createParagraph();
       XWPFRun salesHeaderRun = salesHeader.createRun();
       salesHeaderRun.setText("Regional Sales Summary");
       salesHeaderRun.setBold(true);
       salesHeaderRun.setFontSize(14);
-      
+
       XWPFTable salesTable = document.createTable();
       XWPFTableRow salesHeaderRow = salesTable.getRow(0);
       salesHeaderRow.getCell(0).setText("Region");
       salesHeaderRow.addNewTableCell().setText("Q1 Sales");
       salesHeaderRow.addNewTableCell().setText("Q2 Sales");
-      
+
       XWPFTableRow northRow = salesTable.createRow();
       northRow.getCell(0).setText("North");
       northRow.getCell(1).setText("50000");
       northRow.getCell(2).setText("55000");
-      
+
       XWPFTableRow southRow = salesTable.createRow();
       southRow.getCell(0).setText("South");
       southRow.getCell(1).setText("45000");
       southRow.getCell(2).setText("48000");
-      
+
       // Add some text between tables
       XWPFParagraph separator = document.createParagraph();
       separator.createRun().setText("Employee performance metrics are shown below:");
-      
+
       // Second table - Employee Performance
       XWPFParagraph empHeader = document.createParagraph();
       XWPFRun empHeaderRun = empHeader.createRun();
       empHeaderRun.setText("Employee Performance");
       empHeaderRun.setBold(true);
       empHeaderRun.setFontSize(14);
-      
+
       XWPFTable empTable = document.createTable();
       XWPFTableRow empHeaderRow = empTable.getRow(0);
       empHeaderRow.getCell(0).setText("Employee");
       empHeaderRow.addNewTableCell().setText("Department");
       empHeaderRow.addNewTableCell().setText("Rating");
-      
+
       XWPFTableRow aliceRow = empTable.createRow();
       aliceRow.getCell(0).setText("Alice");
       aliceRow.getCell(1).setText("Sales");
       aliceRow.getCell(2).setText("A");
-      
+
       XWPFTableRow bobRow = empTable.createRow();
       bobRow.getCell(0).setText("Bob");
       bobRow.getCell(1).setText("Marketing");
       bobRow.getCell(2).setText("B");
-      
+
       XWPFTableRow charlieRow = empTable.createRow();
       charlieRow.getCell(0).setText("Charlie");
       charlieRow.getCell(1).setText("Engineering");
       charlieRow.getCell(2).setText("A");
-      
+
       try (FileOutputStream out = new FileOutputStream(complexDocxFile)) {
         document.write(out);
       }
     }
   }
 
-  @Test
-  public void testDocxTableExtraction() throws Exception {
+  @Test public void testDocxTableExtraction() throws Exception {
     // Run the DOCX scanner
     DocxTableScanner.scanAndConvertTables(simpleDocxFile);
-    
+
     // Check that JSON file was created
     File jsonFile = new File(tempDir.toFile(), "Products__Current_Products.json");
     assertTrue(jsonFile.exists(), "JSON file should be created from DOCX table");
-    
+
     // Verify content
     String jsonContent = Files.readString(jsonFile.toPath());
     assertTrue(jsonContent.contains("Widget"));
@@ -199,47 +198,45 @@ public class DocxTableTest {
     assertTrue(jsonContent.contains("Gadget"));
   }
 
-  @Test
-  public void testMultipleTablesInDocx() throws Exception {
+  @Test public void testMultipleTablesInDocx() throws Exception {
     // Run the DOCX scanner
     DocxTableScanner.scanAndConvertTables(complexDocxFile);
-    
+
     // Check that both JSON files were created
     File salesFile = new File(tempDir.toFile(), "QuarterlyReport__Regional_Sales_Summary.json");
     File employeeFile = new File(tempDir.toFile(), "QuarterlyReport__Employee_Performance.json");
-    
+
     assertTrue(salesFile.exists(), "Sales summary JSON should be created");
     assertTrue(employeeFile.exists(), "Employee performance JSON should be created");
-    
+
     // Verify sales content
     String salesContent = Files.readString(salesFile.toPath());
     assertTrue(salesContent.contains("North"));
     assertTrue(salesContent.contains("50000"));
-    
+
     // Verify employee content
     String employeeContent = Files.readString(employeeFile.toPath());
     assertTrue(employeeContent.contains("Alice"));
     assertTrue(employeeContent.contains("Sales"));
   }
 
-  @Test
-  public void testDocxWithGroupHeaders() throws Exception {
+  @Test public void testDocxWithGroupHeaders() throws Exception {
     File groupHeaderFile = new File(tempDir.toFile(), "budget.docx");
-    
+
     try (XWPFDocument document = new XWPFDocument()) {
       // Document title
       XWPFParagraph title = document.createParagraph();
       title.createRun().setText("Budget Report");
-      
+
       // Table title
       XWPFParagraph tableTitle = document.createParagraph();
       XWPFRun titleRun = tableTitle.createRun();
       titleRun.setText("Department Budgets");
       titleRun.setBold(true);
-      
+
       // Create table with group headers
       XWPFTable table = document.createTable();
-      
+
       // Group header row
       XWPFTableRow groupRow = table.getRow(0);
       groupRow.getCell(0).setText("");
@@ -247,7 +244,7 @@ public class DocxTableTest {
       groupRow.addNewTableCell().setText("");
       groupRow.addNewTableCell().setText("2024");
       groupRow.addNewTableCell().setText("");
-      
+
       // Detail header row
       XWPFTableRow headerRow = table.createRow();
       headerRow.getCell(0).setText("Department");
@@ -255,7 +252,7 @@ public class DocxTableTest {
       headerRow.getCell(2).setText("Spent");
       headerRow.getCell(3).setText("Budget");
       headerRow.getCell(4).setText("Spent");
-      
+
       // Data row
       XWPFTableRow dataRow = table.createRow();
       dataRow.getCell(0).setText("Sales");
@@ -263,55 +260,53 @@ public class DocxTableTest {
       dataRow.getCell(2).setText("95000");
       dataRow.getCell(3).setText("110000");
       dataRow.getCell(4).setText("50000");
-      
+
       try (FileOutputStream out = new FileOutputStream(groupHeaderFile)) {
         document.write(out);
       }
     }
-    
+
     DocxTableScanner.scanAndConvertTables(groupHeaderFile);
-    
+
     File jsonFile = new File(tempDir.toFile(), "Budget__Department_Budgets.json");
     assertTrue(jsonFile.exists(), "JSON file with group headers should be created");
-    
+
     String content = Files.readString(jsonFile.toPath());
     // Check that group headers were properly combined
     assertTrue(content.contains("Sales"));
     assertTrue(content.contains("100000"));
   }
 
-  @Test
-  public void testDocxInFileSchema() throws Exception {
+  @Test public void testDocxInFileSchema() throws Exception {
     // Create a simple schema with DOCX files
     Map<String, Object> operand = new HashMap<>();
     operand.put("directory", tempDir.toFile());
 
     FileSchema schema = new FileSchema(null, "test", tempDir.toFile(), null, null, new ExecutionEngineConfig(), false, null, null, null, null);
-    
+
     // Convert DOCX files first
     DocxTableScanner.scanAndConvertTables(simpleDocxFile);
     DocxTableScanner.scanAndConvertTables(complexDocxFile);
-    
+
     // Check that tables are accessible
     Map<String, Table> tables = schema.getTableMap();
-    
+
     // Tables should be created from the generated JSON files
-    assertTrue(tables.containsKey("PRODUCTS__CURRENT_PRODUCTS"), 
+    assertTrue(tables.containsKey("PRODUCTS__CURRENT_PRODUCTS"),
         "Should have PRODUCTS__CURRENT_PRODUCTS table");
-    assertTrue(tables.containsKey("QUARTERLYREPORT__REGIONAL_SALES_SUMMARY"), 
+    assertTrue(tables.containsKey("QUARTERLYREPORT__REGIONAL_SALES_SUMMARY"),
         "Should have QUARTERLYREPORT__REGIONAL_SALES_SUMMARY table");
-    assertTrue(tables.containsKey("QUARTERLYREPORT__EMPLOYEE_PERFORMANCE"), 
+    assertTrue(tables.containsKey("QUARTERLYREPORT__EMPLOYEE_PERFORMANCE"),
         "Should have QUARTERLYREPORT__EMPLOYEE_PERFORMANCE table");
   }
 
-  @Test
-  public void testDocxTableQuery() throws Exception {
+  @Test public void testDocxTableQuery() throws Exception {
     // Run the scanner first
     DocxTableScanner.scanAndConvertTables(simpleDocxFile);
-    
+
     // Create schema and run query
     final Map<String, Object> operand = ImmutableMap.of("directory", tempDir.toFile());
-    
+
     CalciteAssert.that()
         .with(CalciteAssert.Config.REGULAR)
         .withSchema("docx", new FileSchema(null, "test", tempDir.toFile(), null, null, new ExecutionEngineConfig(), false, null, null, null, null))
@@ -319,51 +314,49 @@ public class DocxTableTest {
         .returnsCount(2); // Gadget (25.50) and Tool (15.75) have prices >= 15.75
   }
 
-  @Test
-  public void testEmptyDocxFile() throws Exception {
+  @Test public void testEmptyDocxFile() throws Exception {
     File emptyFile = new File(tempDir.toFile(), "empty.docx");
-    
+
     try (XWPFDocument document = new XWPFDocument()) {
       XWPFParagraph para = document.createParagraph();
       para.createRun().setText("This document has no tables.");
-      
+
       try (FileOutputStream out = new FileOutputStream(emptyFile)) {
         document.write(out);
       }
     }
-    
+
     // Should not throw exception
     DocxTableScanner.scanAndConvertTables(emptyFile);
-    
+
     // No JSON files should be created
-    File[] jsonFiles = tempDir.toFile().listFiles((dir, name) -> 
+    File[] jsonFiles = tempDir.toFile().listFiles((dir, name) ->
         name.startsWith("Empty") && name.endsWith(".json"));
     assertEquals(0, jsonFiles.length, "No JSON files should be created for empty DOCX");
   }
 
-  @Test
-  public void testDocxTableWithoutTitle() throws Exception {
+  @Test public void testDocxTableWithoutTitle() throws Exception {
     File noTitleFile = new File(tempDir.toFile(), "no_title.docx");
-    
+
     try (XWPFDocument document = new XWPFDocument()) {
       // Just add a table without any preceding title
       XWPFTable table = document.createTable();
-      
+
       XWPFTableRow headerRow = table.getRow(0);
       headerRow.getCell(0).setText("Column1");
       headerRow.addNewTableCell().setText("Column2");
-      
+
       XWPFTableRow dataRow = table.createRow();
       dataRow.getCell(0).setText("Data1");
       dataRow.getCell(1).setText("Data2");
-      
+
       try (FileOutputStream out = new FileOutputStream(noTitleFile)) {
         document.write(out);
       }
     }
-    
+
     DocxTableScanner.scanAndConvertTables(noTitleFile);
-    
+
     // Should create file without Table suffix since there's only one table
     File jsonFile = new File(tempDir.toFile(), "NoTitle.json");
     assertTrue(jsonFile.exists(), "Should create table with generic name when no heading");

@@ -47,6 +47,10 @@ import java.util.Map;
  */
 public class ParquetConversionUtil {
 
+  private ParquetConversionUtil() {
+    // Utility class should not be instantiated
+  }
+
   /**
    * Get the cache directory for Parquet conversions.
    */
@@ -90,19 +94,19 @@ public class ParquetConversionUtil {
       File cacheDir, SchemaPlus parentSchema, String schemaName) throws Exception {
 
     File sourceFile = new File(source.path());
-    
+
     // Use concurrent cache for thread-safe conversion
-    return ConcurrentParquetCache.convertWithLocking(sourceFile, cacheDir, (tempFile) -> {
+    return ConcurrentParquetCache.convertWithLocking(sourceFile, cacheDir, tempFile -> {
       performConversion(source, tableName, table, tempFile, parentSchema, schemaName);
     });
   }
-  
+
   /**
    * Perform the actual conversion to a temporary file.
    */
   private static void performConversion(Source source, String tableName, Table table,
       File targetFile, SchemaPlus parentSchema, String schemaName) throws Exception {
-    
+
     System.out.println("Converting " + tableName + " to Parquet format...");
 
     // Create a temporary schema with just this table
@@ -124,7 +128,8 @@ public class ParquetConversionUtil {
         int columnCount = rsmd.getColumnCount();
 
         // Build Avro schema from ResultSet metadata
-        SchemaBuilder.FieldAssembler<Schema> fieldAssembler = SchemaBuilder.record(tableName + "_record")
+        SchemaBuilder.FieldAssembler<Schema> fieldAssembler =
+            SchemaBuilder.record(tableName + "_record")
             .namespace("org.apache.calcite.adapter.file.cache")
             .fields();
 
@@ -134,21 +139,21 @@ public class ParquetConversionUtil {
 
           // Add nullable types to handle null values
           switch (sqlType) {
-            case Types.INTEGER:
-            case Types.BIGINT:
-              fieldAssembler.name(columnName).type().nullable().longType().noDefault();
-              break;
-            case Types.FLOAT:
-            case Types.DOUBLE:
-            case Types.DECIMAL:
-              fieldAssembler.name(columnName).type().nullable().doubleType().noDefault();
-              break;
-            case Types.BOOLEAN:
-              fieldAssembler.name(columnName).type().nullable().booleanType().noDefault();
-              break;
-            default:
-              fieldAssembler.name(columnName).type().nullable().stringType().noDefault();
-              break;
+          case Types.INTEGER:
+          case Types.BIGINT:
+            fieldAssembler.name(columnName).type().nullable().longType().noDefault();
+            break;
+          case Types.FLOAT:
+          case Types.DOUBLE:
+          case Types.DECIMAL:
+            fieldAssembler.name(columnName).type().nullable().doubleType().noDefault();
+            break;
+          case Types.BOOLEAN:
+            fieldAssembler.name(columnName).type().nullable().booleanType().noDefault();
+            break;
+          default:
+            fieldAssembler.name(columnName).type().nullable().stringType().noDefault();
+            break;
           }
         }
 
@@ -184,21 +189,21 @@ public class ParquetConversionUtil {
               Object value = rs.getObject(i);
               if (value != null && !rs.wasNull()) {
                 switch (sqlType) {
-                  case Types.INTEGER:
-                  case Types.BIGINT:
-                    record.put(columnName, rs.getLong(i));
-                    break;
-                  case Types.FLOAT:
-                  case Types.DOUBLE:
-                  case Types.DECIMAL:
-                    record.put(columnName, rs.getDouble(i));
-                    break;
-                  case Types.BOOLEAN:
-                    record.put(columnName, rs.getBoolean(i));
-                    break;
-                  default:
-                    record.put(columnName, rs.getString(i));
-                    break;
+                case Types.INTEGER:
+                case Types.BIGINT:
+                  record.put(columnName, rs.getLong(i));
+                  break;
+                case Types.FLOAT:
+                case Types.DOUBLE:
+                case Types.DECIMAL:
+                  record.put(columnName, rs.getDouble(i));
+                  break;
+                case Types.BOOLEAN:
+                  record.put(columnName, rs.getBoolean(i));
+                  break;
+                default:
+                  record.put(columnName, rs.getString(i));
+                  break;
                 }
               }
             }

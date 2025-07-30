@@ -27,7 +27,6 @@ import org.jsoup.select.Elements;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -76,11 +75,12 @@ public class FileReader implements Iterable<Elements> {
         } catch (UnsupportedOperationException e) {
           throw new FileReaderException("Cannot get file from source: " + source);
         }
-        
+
         if (file != null && file.exists()) {
           doc = Jsoup.parse(file, this.charset.name());
         } else {
-          throw new FileReaderException("File not found: " + (file != null ? file.getPath() : source.path()));
+          throw new FileReaderException(
+              "File not found: " + (file != null ? file.getPath() : source.path()));
         }
       } else if ("s3".equals(proto)) {
         // Handle S3 protocol

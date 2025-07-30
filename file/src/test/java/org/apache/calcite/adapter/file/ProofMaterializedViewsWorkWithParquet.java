@@ -87,7 +87,7 @@ public class ProofMaterializedViewsWorkWithParquet {
       // Capture stdout to see the messages
       java.io.ByteArrayOutputStream outContent = new java.io.ByteArrayOutputStream();
       java.io.PrintStream originalOut = System.out;
-      System.setOut(new java.io.PrintStream(outContent));
+      System.setOut(new java.io.PrintStream(outContent, true, StandardCharsets.UTF_8));
 
       SchemaPlus fileSchema =
           rootSchema.add("PARQUET_TEST", FileSchemaFactory.INSTANCE.create(rootSchema, "PARQUET_TEST", operand));
@@ -102,7 +102,7 @@ public class ProofMaterializedViewsWorkWithParquet {
 
       // Restore stdout and check output
       System.setOut(originalOut);
-      String output = outContent.toString();
+      String output = outContent.toString(StandardCharsets.UTF_8);
 
       System.out.println("--- CAPTURED OUTPUT ---");
       System.out.println(output);

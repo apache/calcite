@@ -53,6 +53,14 @@ public class ParquetCsvTranslatableTable extends CsvTranslatableTable
     this.engineConfig = engineConfig;
   }
 
+  public ParquetCsvTranslatableTable(Source source,
+                                     RelProtoDataType protoRowType,
+                                     ExecutionEngineConfig engineConfig,
+                                     String columnCasing) {
+    super(source, protoRowType, columnCasing);
+    this.engineConfig = engineConfig;
+  }
+
   @Override public Enumerable<Object> project(final DataContext root, final int[] fields) {
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
     return new AbstractEnumerable<Object>() {

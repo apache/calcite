@@ -199,7 +199,8 @@ public class PartitionedTableConfig {
       }
 
       partitionConfig =
-                                           new PartitionConfig(style, simpleColumns, columnDefinitions, regex, columnMappings);
+          new PartitionConfig(style, simpleColumns,
+              columnDefinitions, regex, columnMappings);
     }
 
     return new PartitionedTableConfig(name, pattern, type, partitionConfig);

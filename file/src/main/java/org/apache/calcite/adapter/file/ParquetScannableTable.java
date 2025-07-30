@@ -94,19 +94,19 @@ public class ParquetScannableTable extends AbstractTable implements ScannableTab
 
   private SqlTypeName convertParquetTypeToSql(Type parquetType) {
     switch (parquetType.asPrimitiveType().getPrimitiveTypeName()) {
-      case INT32:
-        return SqlTypeName.INTEGER;
-      case INT64:
-        return SqlTypeName.BIGINT;
-      case FLOAT:
-        return SqlTypeName.FLOAT;
-      case DOUBLE:
-        return SqlTypeName.DOUBLE;
-      case BOOLEAN:
-        return SqlTypeName.BOOLEAN;
-      case BINARY:
-      default:
-        return SqlTypeName.VARCHAR;
+    case INT32:
+      return SqlTypeName.INTEGER;
+    case INT64:
+      return SqlTypeName.BIGINT;
+    case FLOAT:
+      return SqlTypeName.FLOAT;
+    case DOUBLE:
+      return SqlTypeName.DOUBLE;
+    case BOOLEAN:
+      return SqlTypeName.BOOLEAN;
+    case BINARY:
+    default:
+      return SqlTypeName.VARCHAR;
     }
   }
 
@@ -140,7 +140,8 @@ public class ParquetScannableTable extends AbstractTable implements ScannableTab
         Configuration conf = new Configuration();
 
         @SuppressWarnings("deprecation")
-        ParquetReader<GenericRecord> tempReader = AvroParquetReader.<GenericRecord>builder(hadoopPath)
+        ParquetReader<GenericRecord> tempReader =
+            AvroParquetReader.<GenericRecord>builder(hadoopPath)
             .withConf(conf)
             .build();
         reader = tempReader;

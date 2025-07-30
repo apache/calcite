@@ -39,6 +39,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * Scanner that extracts tables from Word (DOCX) documents.
@@ -69,13 +70,14 @@ public final class DocxTableScanner {
       lockHandle = SourceFileLockManager.acquireReadLock(inputFile);
       LOGGER.debug("Acquired read lock on DOCX file: " + inputFile.getPath());
     } catch (IOException e) {
-      LOGGER.warn("Could not acquire lock on file: " + inputFile.getPath() + 
-          " - proceeding without lock");
+      LOGGER.warn("Could not acquire lock on file: "
+          + inputFile.getPath()
+          + " - proceeding without lock");
     }
 
     try {
       List<DocxTable> tables = extractTables(inputFile);
-      
+
       if (tables.isEmpty()) {
         LOGGER.debug("No tables found in DOCX file: " + inputFile.getName());
         return;
@@ -90,10 +92,10 @@ public final class DocxTableScanner {
       for (int i = 0; i < tables.size(); i++) {
         DocxTable table = tables.get(i);
         String jsonFileName = generateFileName(baseName, table.title, i, tables.size());
-        
+
         File jsonFile = new File(inputFile.getParent(), jsonFileName);
         LOGGER.debug("Writing JSON file: " + jsonFileName);
-        
+
         try (FileWriter writer = new FileWriter(jsonFile, StandardCharsets.UTF_8)) {
           mapper.writerWithDefaultPrettyPrinter().writeValue(writer, table.data);
         }
@@ -111,42 +113,42 @@ public final class DocxTableScanner {
    */
   private static List<DocxTable> extractTables(File inputFile) throws IOException {
     List<DocxTable> tables = new ArrayList<>();
-    
+
     try (FileInputStream fis = new FileInputStream(inputFile);
          XWPFDocument document = new XWPFDocument(fis)) {
-      
+
       List<XWPFTable> wordTables = document.getTables();
       List<XWPFParagraph> paragraphs = document.getParagraphs();
-      
+
       for (int i = 0; i < wordTables.size(); i++) {
         XWPFTable wordTable = wordTables.get(i);
-        
+
         // Try to find a title from the paragraph immediately before this table
         String title = findTableTitle(document, wordTable, paragraphs);
-        
+
         DocxTable table = parseTable(wordTable, title, i);
         if (table != null && !table.data.isEmpty()) {
           tables.add(table);
         }
       }
     }
-    
+
     return tables;
   }
 
   /**
    * Finds a title for the table by looking at preceding paragraphs.
    */
-  private static String findTableTitle(XWPFDocument document, XWPFTable table, 
+  private static String findTableTitle(XWPFDocument document, XWPFTable table,
       List<XWPFParagraph> paragraphs) {
     // Get body elements in document order (paragraphs and tables interspersed)
     List<Object> bodyElements = new ArrayList<>();
-    
+
     // Use the document body elements to preserve order
     for (org.apache.poi.xwpf.usermodel.IBodyElement element : document.getBodyElements()) {
       bodyElements.add(element);
     }
-    
+
     // Find our table in the body elements
     int tableIndex = -1;
     for (int i = 0; i < bodyElements.size(); i++) {
@@ -155,7 +157,7 @@ public final class DocxTableScanner {
         break;
       }
     }
-    
+
     // Look for the closest preceding paragraph with text
     if (tableIndex > 0) {
       for (int i = tableIndex - 1; i >= 0; i--) {
@@ -165,8 +167,10 @@ public final class DocxTableScanner {
           String text = para.getText().trim();
           if (!text.isEmpty()) {
             // Remove common heading markers
-            text = text.replaceAll("^#+\\s*", ""); // Remove markdown-style headers
-            text = text.replaceAll("^\\d+\\.\\s*", ""); // Remove numbered headers
+            // Remove markdown-style headers
+            text = Pattern.compile("^#+\\s*").matcher(text).replaceAll("");
+            // Remove numbered headers
+            text = Pattern.compile("^\\d+\\.\\s*").matcher(text).replaceAll("");
             return text;
           }
         } else if (element instanceof XWPFTable) {
@@ -175,7 +179,7 @@ public final class DocxTableScanner {
         }
       }
     }
-    
+
     return null;
   }
 
@@ -206,17 +210,17 @@ public final class DocxTableScanner {
 
     // Build column headers (handle merged cells and group headers)
     List<String> columnHeaders = buildColumnHeaders(headerRows);
-    
+
     // Parse data rows
     ObjectMapper mapper = new ObjectMapper();
     ArrayNode data = mapper.createArrayNode();
-    
+
     for (int i = headerRowCount; i < rows.size(); i++) {
       List<String> cells = extractRowCells(rows.get(i));
       if (cells.isEmpty() || isEmptyRow(cells)) {
         continue;
       }
-      
+
       ObjectNode row = mapper.createObjectNode();
       for (int j = 0; j < Math.min(cells.size(), columnHeaders.size()); j++) {
         String value = cells.get(j).trim();
@@ -224,12 +228,12 @@ public final class DocxTableScanner {
           row.put(columnHeaders.get(j), value);
         }
       }
-      
+
       if (row.size() > 0) {
         data.add(row);
       }
     }
-    
+
     DocxTable table = new DocxTable();
     table.title = title;
     table.data = data;
@@ -249,25 +253,26 @@ public final class DocxTableScanner {
     // - Cell formatting (bold, different background)
     // - Content analysis (text vs numbers)
     // - Merged cells pattern
-    
+
     int headerCount = 1;
-    
+
     // Check if second row also looks like a header (for group headers)
     if (rows.size() > 1) {
       List<String> firstRow = extractRowCells(rows.get(0));
       List<String> secondRow = extractRowCells(rows.get(1));
-      
+
       // If first row has fewer cells than second, it might be a group header
       if (firstRow.size() < secondRow.size()) {
         headerCount = 2;
       }
-      
+
       // If second row is mostly text and third row has numbers, second might be header
-      if (rows.size() > 2 && looksLikeHeader(secondRow) && !looksLikeHeader(extractRowCells(rows.get(2)))) {
+      if (rows.size() > 2 && looksLikeHeader(secondRow)
+          && !looksLikeHeader(extractRowCells(rows.get(2)))) {
         headerCount = Math.max(headerCount, 2);
       }
     }
-    
+
     return Math.min(headerCount, 3); // Max 3 header rows
   }
 
@@ -290,27 +295,27 @@ public final class DocxTableScanner {
     if (headerRows.isEmpty()) {
       return new ArrayList<>();
     }
-    
+
     if (headerRows.size() == 1) {
       // Simple case: single header row
       return headerRows.get(0);
     }
-    
+
     // Multiple header rows: combine group headers with detail headers
     List<String> detailHeaders = headerRows.get(headerRows.size() - 1);
     List<String> combinedHeaders = new ArrayList<>();
-    
+
     // Build group prefixes for each column
     Map<Integer, String> groupPrefixes = new HashMap<>();
-    
+
     for (int i = 0; i < headerRows.size() - 1; i++) {
       List<String> groupRow = headerRows.get(i);
       String currentGroup = null;
       int groupStart = 0;
-      
+
       for (int col = 0; col <= groupRow.size(); col++) {
         String cellValue = (col < groupRow.size()) ? groupRow.get(col).trim() : null;
-        
+
         if (cellValue != null && !cellValue.isEmpty()) {
           // New group starts
           if (currentGroup != null) {
@@ -323,7 +328,7 @@ public final class DocxTableScanner {
           currentGroup = cellValue;
           groupStart = col;
         }
-        
+
         // End of row - apply last group
         if (col == groupRow.size() && currentGroup != null) {
           for (int c = groupStart; c < detailHeaders.size(); c++) {
@@ -333,7 +338,7 @@ public final class DocxTableScanner {
         }
       }
     }
-    
+
     // Combine group headers with detail headers
     for (int col = 0; col < detailHeaders.size(); col++) {
       String header = detailHeaders.get(col);
@@ -343,7 +348,7 @@ public final class DocxTableScanner {
       }
       combinedHeaders.add(header);
     }
-    
+
     return combinedHeaders;
   }
 
@@ -354,23 +359,23 @@ public final class DocxTableScanner {
     if (cells.isEmpty()) {
       return false;
     }
-    
+
     int textCells = 0;
     int numericCells = 0;
-    
+
     for (String cell : cells) {
       cell = cell.trim();
       if (cell.isEmpty()) {
         continue;
       }
-      
+
       if (cell.matches("^\\d+(\\.\\d+)?$")) {
         numericCells++;
       } else {
         textCells++;
       }
     }
-    
+
     // Headers should be mostly text
     return textCells > numericCells;
   }
@@ -390,16 +395,16 @@ public final class DocxTableScanner {
   /**
    * Generates a file name for the JSON output.
    */
-  private static String generateFileName(String baseName, String tableTitle, 
+  private static String generateFileName(String baseName, String tableTitle,
       int tableIndex, int totalTables) {
     StringBuilder fileName = new StringBuilder(baseName);
-    
+
     if (tableTitle != null && !tableTitle.isEmpty()) {
       fileName.append("__").append(sanitizeIdentifier(tableTitle));
     } else if (totalTables > 1) {
       fileName.append("__Table").append(tableIndex + 1);
     }
-    
+
     fileName.append(".json");
     return fileName.toString();
   }
@@ -438,7 +443,7 @@ public final class DocxTableScanner {
     }
 
     // Remove leading/trailing underscores
-    str = str.replaceAll("^_+|_+$", "");
+    str = Pattern.compile("^_+|_+$").matcher(str).replaceAll("");
 
     return str;
   }

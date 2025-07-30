@@ -49,6 +49,13 @@ public class EnhancedCsvTranslatableTable extends CsvTranslatableTable {
     this.engineConfig = engineConfig;
   }
 
+  /** Creates an EnhancedCsvTranslatableTable with column casing. */
+  EnhancedCsvTranslatableTable(Source source, @Nullable RelProtoDataType protoRowType,
+      ExecutionEngineConfig engineConfig, String columnCasing) {
+    super(source, protoRowType, columnCasing);
+    this.engineConfig = engineConfig;
+  }
+
   @Override public String toString() {
     return "EnhancedCsvTranslatableTable[engine=" + engineConfig.getEngineType() + "]";
   }

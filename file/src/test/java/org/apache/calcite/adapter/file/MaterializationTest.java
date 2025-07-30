@@ -34,6 +34,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -164,7 +165,7 @@ public class MaterializationTest {
         System.out.println("   -----------|--------------|----------|--------");
         int rowCount = 0;
         while (rs2.next()) {
-          System.out.printf("   %-11s| %12d | %8d | %.2f%n",
+          System.out.printf(Locale.ROOT, "   %-11s| %12d | %8d | %.2f%n",
               rs2.getString("date"),
               rs2.getInt("transaction_count"),
               rs2.getInt("total_quantity"),
@@ -187,7 +188,7 @@ public class MaterializationTest {
         System.out.println("   Product | Quantity | Revenue");
         System.out.println("   --------|----------|--------");
         while (rs3.next()) {
-          System.out.printf("   %-8s| %8d | %.2f%n",
+          System.out.printf(Locale.ROOT, "   %-8s| %8d | %.2f%n",
               rs3.getString("product"),
               rs3.getInt("total_quantity"),
               rs3.getDouble("total_revenue"));

@@ -39,17 +39,17 @@ public class MaterializedViewUtil {
     }
 
     switch (engineType.toUpperCase(Locale.ROOT)) {
-      case "PARQUET":
-        return "parquet";
-      case "ARROW":
-        return "arrow";
-      case "VECTORIZED":
-        // Vectorized engine can use either CSV or Arrow format
-        // Default to CSV for simplicity
-        return "csv";
-      case "LINQ4J":
-      default:
-        return "csv";
+    case "PARQUET":
+      return "parquet";
+    case "ARROW":
+      return "arrow";
+    case "VECTORIZED":
+      // Vectorized engine can use either CSV or Arrow format
+      // Default to CSV for simplicity
+      return "csv";
+    case "LINQ4J":
+    default:
+      return "csv";
     }
   }
 

@@ -29,7 +29,6 @@ import com.google.common.collect.ImmutableMap;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.File;
-import java.net.URL;
 import java.nio.file.FileSystems;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -63,9 +62,57 @@ class FileSchema extends AbstractSchema {
   private final @Nullable List<Map<String, Object>> views;
   private final @Nullable List<Map<String, Object>> partitionedTables;
   private final @Nullable String refreshInterval;
+  private final String tableNameCasing;
+  private final String columnNameCasing;
+
+  /**
+   * Creates a file schema with all features including partitioned tables, refresh support,
+   * and configurable identifier casing.
+   *
+   * @param parentSchema    Parent schema
+   * @param name            Schema name
+   * @param baseDirectory   Base directory to look for relative files, or null
+   * @param directoryPattern Directory pattern for file discovery, or null
+   * @param tables          List containing table identifiers, or null
+   * @param engineConfig    Execution engine configuration
+   * @param recursive       Whether to recursively scan subdirectories
+   * @param materializations List of materialized view definitions, or null
+   * @param views           List of view definitions, or null
+   * @param partitionedTables List of partitioned table definitions, or null
+   * @param refreshInterval Default refresh interval for tables (e.g., "5 minutes"), or null
+   * @param tableNameCasing Table name casing: "UPPER", "LOWER", or "UNCHANGED"
+   * @param columnNameCasing Column name casing: "UPPER", "LOWER", or "UNCHANGED"
+   */
+  FileSchema(SchemaPlus parentSchema, String name, @Nullable File baseDirectory,
+      @Nullable String directoryPattern,
+      @Nullable List<Map<String, Object>> tables, ExecutionEngineConfig engineConfig,
+      boolean recursive,
+      @Nullable List<Map<String, Object>> materializations,
+      @Nullable List<Map<String, Object>> views,
+      @Nullable List<Map<String, Object>> partitionedTables,
+      @Nullable String refreshInterval,
+      String tableNameCasing,
+      String columnNameCasing) {
+    this.tables =
+        tables == null ? ImmutableList.of()
+            : ImmutableList.copyOf(tables);
+    this.baseDirectory = baseDirectory;
+    this.directoryPattern = directoryPattern;
+    this.engineConfig = engineConfig;
+    this.recursive = recursive;
+    this.materializations = materializations;
+    this.views = views;
+    this.partitionedTables = partitionedTables;
+    this.refreshInterval = refreshInterval;
+    this.parentSchema = parentSchema;
+    this.name = name;
+    this.tableNameCasing = tableNameCasing;
+    this.columnNameCasing = columnNameCasing;
+  }
 
   /**
    * Creates a file schema with all features including partitioned tables and refresh support.
+   * Uses default casing (UPPER for tables, UNCHANGED for columns).
    *
    * @param parentSchema    Parent schema
    * @param name            Schema name
@@ -86,19 +133,8 @@ class FileSchema extends AbstractSchema {
       @Nullable List<Map<String, Object>> views,
       @Nullable List<Map<String, Object>> partitionedTables,
       @Nullable String refreshInterval) {
-    this.tables =
-        tables == null ? ImmutableList.of()
-            : ImmutableList.copyOf(tables);
-    this.baseDirectory = baseDirectory;
-    this.directoryPattern = directoryPattern;
-    this.engineConfig = engineConfig;
-    this.recursive = recursive;
-    this.materializations = materializations;
-    this.views = views;
-    this.partitionedTables = partitionedTables;
-    this.refreshInterval = refreshInterval;
-    this.parentSchema = parentSchema;
-    this.name = name;
+    this(parentSchema, name, baseDirectory, directoryPattern, tables, engineConfig, recursive,
+        materializations, views, partitionedTables, refreshInterval, "UPPER", "UNCHANGED");
   }
 
   /**
@@ -154,7 +190,8 @@ class FileSchema extends AbstractSchema {
    */
   FileSchema(SchemaPlus parentSchema, String name, @Nullable File baseDirectory,
       @Nullable List<Map<String, Object>> tables, ExecutionEngineConfig engineConfig) {
-    this(parentSchema, name, baseDirectory, null, tables, engineConfig, false, null, null, null, null);
+    this(parentSchema, name, baseDirectory, null, tables, engineConfig, false, null, null,
+        null, null);
   }
 
   /**
@@ -167,7 +204,8 @@ class FileSchema extends AbstractSchema {
    */
   FileSchema(SchemaPlus parentSchema, String name, @Nullable File baseDirectory,
       @Nullable List<Map<String, Object>> tables) {
-    this(parentSchema, name, baseDirectory, null, tables, new ExecutionEngineConfig(), false, null, null, null, null);
+    this(parentSchema, name, baseDirectory, null, tables, new ExecutionEngineConfig(), false,
+        null, null, null, null);
   }
 
   /**
@@ -178,6 +216,24 @@ class FileSchema extends AbstractSchema {
   private static String trim(String s, String suffix) {
     String trimmed = trimOrNull(s, suffix);
     return trimmed != null ? trimmed : s;
+  }
+
+  /**
+   * Applies the configured casing transformation to an identifier.
+   */
+  private String applyCasing(String identifier, String casing) {
+    if (identifier == null) {
+      return null;
+    }
+    switch (casing) {
+    case "UPPER":
+      return identifier.toUpperCase(Locale.ROOT);
+    case "LOWER":
+      return identifier.toLowerCase(Locale.ROOT);
+    case "UNCHANGED":
+    default:
+      return identifier;
+    }
   }
 
   /**
@@ -238,7 +294,8 @@ class FileSchema extends AbstractSchema {
               htmlTables.put(file.getPath(), tables);
             }
           } catch (Exception e) {
-            System.err.println("Error scanning HTML file: " + file.getName() + " - " + e.getMessage());
+            System.err.println("Error scanning HTML file: " + file.getName() + " - "
+                + e.getMessage());
           }
         }
       }
@@ -262,7 +319,8 @@ class FileSchema extends AbstractSchema {
           try {
             MarkdownTableScanner.scanAndConvertTables(file);
           } catch (Exception e) {
-            System.err.println("Error scanning Markdown file: " + file.getName() + " - " + e.getMessage());
+            System.err.println("Error scanning Markdown file: " + file.getName()
+                + " - " + e.getMessage());
           }
         }
       }
@@ -283,7 +341,8 @@ class FileSchema extends AbstractSchema {
           try {
             DocxTableScanner.scanAndConvertTables(file);
           } catch (Exception e) {
-            System.err.println("Error scanning DOCX file: " + file.getName() + " - " + e.getMessage());
+            System.err.println("Error scanning DOCX file: " + file.getName()
+                + " - " + e.getMessage());
           }
         }
       }
@@ -341,10 +400,10 @@ class FileSchema extends AbstractSchema {
     if (baseDirectory != null) {
 
       convertExcelFilesToJson(baseDirectory);
-      
+
       // Convert Markdown files to JSON
       convertMarkdownFilesToJson(baseDirectory);
-      
+
       // Convert DOCX files to JSON
       convertDocxFilesToJson(baseDirectory);
 
@@ -367,15 +426,19 @@ class FileSchema extends AbstractSchema {
           sourceSansJson = sourceSansGz.trimOrNull(".yml");
         }
         if (sourceSansJson != null) {
-          String baseName = WHITESPACE_PATTERN.matcher(sourceSansJson.relative(baseSource).path()
+          String baseName =
+              applyCasing(
+                  WHITESPACE_PATTERN.matcher(sourceSansJson.relative(baseSource).path()
               .replace(File.separator, "_"))
-              .replaceAll("_").toUpperCase(Locale.ROOT);
+              .replaceAll("_"), tableNameCasing);
           // Handle duplicate table names by adding extension suffix
           String tableName = baseName;
           if (tableNameCounts.containsKey(baseName)) {
             // Add file extension to disambiguate
-            String ext = source.path().endsWith(".yaml") || source.path().endsWith(".yaml.gz") ? "_YAML" 
-                       : source.path().endsWith(".yml") || source.path().endsWith(".yml.gz") ? "_YML" 
+            String ext = source.path().endsWith(".yaml")
+                || source.path().endsWith(".yaml.gz") ? "_YAML"
+                       : source.path().endsWith(".yml")
+                       || source.path().endsWith(".yml.gz") ? "_YML"
                        : "_JSON";
             tableName = baseName + ext;
           }
@@ -384,23 +447,29 @@ class FileSchema extends AbstractSchema {
         }
         final Source sourceSansCsv = sourceSansGz.trimOrNull(".csv");
         if (sourceSansCsv != null) {
-          String tableName = WHITESPACE_PATTERN.matcher(sourceSansCsv.relative(baseSource).path()
+          String tableName =
+              applyCasing(
+                  WHITESPACE_PATTERN.matcher(sourceSansCsv.relative(baseSource).path()
               .replace(File.separator, "_"))
-              .replaceAll("_").toUpperCase(Locale.ROOT);
+              .replaceAll("_"), tableNameCasing);
           addTable(builder, source, tableName, null);
         }
         final Source sourceSansTsv = sourceSansGz.trimOrNull(".tsv");
         if (sourceSansTsv != null) {
-          String tableName = WHITESPACE_PATTERN.matcher(sourceSansTsv.relative(baseSource).path()
+          String tableName =
+              applyCasing(
+                  WHITESPACE_PATTERN.matcher(sourceSansTsv.relative(baseSource).path()
               .replace(File.separator, "_"))
-              .replaceAll("_").toUpperCase(Locale.ROOT);
+              .replaceAll("_"), tableNameCasing);
           addTable(builder, source, tableName, null);
         }
-        final Source sourceSansParquet = sourceSansGz.trimOrNull(".parquet");
+        final Source sourceSansParquet =
+            sourceSansGz.trimOrNull(".parquet");
         if (sourceSansParquet != null) {
-          String tableName = WHITESPACE_PATTERN.matcher(sourceSansParquet.relative(baseSource).path()
+          String tableName = applyCasing(WHITESPACE_PATTERN
+              .matcher(sourceSansParquet.relative(baseSource).path()
               .replace(File.separator, "_"))
-              .replaceAll("_").toUpperCase(Locale.ROOT);
+              .replaceAll("_"), tableNameCasing);
           try {
             // Add Parquet file as a ParquetTranslatableTable
             Table table = new ParquetTranslatableTable(new java.io.File(source.path()));
@@ -429,7 +498,7 @@ class FileSchema extends AbstractSchema {
 
           // Create a FileTable for each table in the HTML
           for (HtmlTableScanner.TableInfo tableInfo : entry.getValue()) {
-            String fullTableName = (baseFileName + "__" + tableInfo.name).toUpperCase(Locale.ROOT);
+            String fullTableName = applyCasing(baseFileName + "__" + tableInfo.name, tableNameCasing);
 
             // Create table definition with selector
             Map<String, Object> htmlTableDef = new LinkedHashMap<>();
@@ -450,7 +519,9 @@ class FileSchema extends AbstractSchema {
     }
 
     // Process materialized views (only works with Parquet engine)
-    if (materializations != null && engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.PARQUET) {
+    if (materializations != null
+        && engineConfig.getEngineType()
+        == ExecutionEngineConfig.ExecutionEngineType.PARQUET) {
       for (Map<String, Object> materialization : materializations) {
         String viewName = (String) materialization.get("view");
         String tableName = (String) materialization.get("table");
@@ -468,11 +539,14 @@ class FileSchema extends AbstractSchema {
 
               if (mvParquetFile.exists()) {
                 // If the Parquet file exists, use our ParquetTranslatableTable
-                System.out.println("Found existing materialized view: " + mvParquetFile.getPath());
+                System.out.println("Found existing materialized view: "
+                    + mvParquetFile.getPath());
                 System.out.println("Using ParquetTranslatableTable to read it");
                 Table mvTable = new ParquetTranslatableTable(mvParquetFile);
-                builder.put(viewName.toUpperCase(Locale.ROOT), mvTable);
-                System.out.println("Successfully added ParquetTranslatableTable for view: " + viewName);
+                builder.put(applyCasing(viewName, tableNameCasing), mvTable);
+                System.out.println(
+                    "Successfully added ParquetTranslatableTable for view: "
+                    + viewName);
               } else {
                 // Create a MaterializedViewTable that will execute the SQL when queried
                 // and cache results to Parquet on first access
@@ -484,7 +558,8 @@ class FileSchema extends AbstractSchema {
                 // Ensure the SQL references tables with proper schema prefix
                 if (!sql.toUpperCase(Locale.ROOT).contains("FROM " + name + ".")) {
                   // Simple heuristic: replace unqualified table names
-                  modifiedSql = sql.replace("FROM ", "FROM " + name + ".");
+                  modifiedSql =
+                    sql.replace("FROM ", "FROM " + name + ".");
                 }
 
                 final String finalSql = modifiedSql;
@@ -493,20 +568,24 @@ class FileSchema extends AbstractSchema {
 
                 // Create a MaterializedViewTable that executes SQL on first access
                 Table mvTable =
-                    new MaterializedViewTable(parentSchema, name, finalViewName, finalSql, finalMvFile, builder.build());
-                builder.put(viewName.toUpperCase(Locale.ROOT), mvTable);
+                    new MaterializedViewTable(parentSchema, name,
+                        finalViewName, finalSql, finalMvFile, builder.build());
+                builder.put(applyCasing(viewName, tableNameCasing), mvTable);
               }
             }
           } catch (Exception e) {
-            System.err.println("Failed to create materialized view " + viewName + ": " + e.getMessage());
+            System.err.println("Failed to create materialized view "
+                + viewName + ": " + e.getMessage());
             e.printStackTrace();
           }
         }
       }
     } else if (materializations != null) {
-      System.err.println("ERROR: Materialized views are only supported with Parquet execution engine");
+      System.err.println(
+          "ERROR: Materialized views are only supported with Parquet execution engine");
       System.err.println("Current engine: " + engineConfig.getEngineType());
-      System.err.println("To use materialized views, set executionEngine to 'parquet' in your schema configuration");
+      System.err.println(
+          "To use materialized views, set executionEngine to 'parquet' in your schema configuration");
     }
 
     // Process views
@@ -544,12 +623,12 @@ class FileSchema extends AbstractSchema {
       Duration refreshDuration = RefreshInterval.parse(refreshInterval);
 
       // Get cache directory for glob results
-      File cacheDir = baseDirectory != null ?
-          new File(baseDirectory, ".glob_cache") :
-          new File(System.getProperty("java.io.tmpdir"), "calcite_glob_cache");
+      File cacheDir = baseDirectory != null
+          ? new File(baseDirectory, ".glob_cache")
+          : new File(System.getProperty("java.io.tmpdir"), "calcite_glob_cache");
 
       Table globTable = new GlobParquetTable(url, tableName, cacheDir, refreshDuration);
-      builder.put(tableName.toUpperCase(Locale.ROOT), globTable);
+      builder.put(applyCasing(tableName, tableNameCasing), globTable);
       return true;
     }
 
@@ -570,8 +649,8 @@ class FileSchema extends AbstractSchema {
     }
 
     // Check for glob characters
-    return path.contains("*") || path.contains("?") ||
-           (path.contains("[") && path.contains("]"));
+    return path.contains("*") || path.contains("?")
+           || (path.contains("[") && path.contains("]"));
   }
 
   /**
@@ -620,23 +699,28 @@ class FileSchema extends AbstractSchema {
       boolean canConvert = path.endsWith(".csv") || path.endsWith(".tsv")
           || path.endsWith(".json") || path.endsWith(".yaml") || path.endsWith(".yml")
           || path.endsWith(".csv.gz") || path.endsWith(".tsv.gz")
-          || path.endsWith(".json.gz") || path.endsWith(".yaml.gz") || path.endsWith(".yml.gz");
+          || path.endsWith(".json.gz") || path.endsWith(".yaml.gz")
+          || path.endsWith(".yml.gz");
 
       if (canConvert) {
         try {
           // Create the original table first
-          Table originalTable = createTableFromSource(source, tableDef);
+          Table originalTable =
+              createTableFromSource(source, tableDef);
           if (originalTable != null) {
             // Get cache directory
             File cacheDir = ParquetConversionUtil.getParquetCacheDir(baseDirectory);
 
             // Convert to Parquet
             File parquetFile =
-                ParquetConversionUtil.convertToParquet(source, tableName, originalTable, cacheDir, parentSchema, name);
+                ParquetConversionUtil.convertToParquet(source, tableName,
+                    originalTable, cacheDir, parentSchema, name);
 
             // Create a ParquetTranslatableTable for the converted file
             Table parquetTable = new ParquetTranslatableTable(parquetFile);
-            builder.put(Util.first(tableName, source.path()).toUpperCase(Locale.ROOT), parquetTable);
+            builder.put(
+                applyCasing(Util.first(tableName, source.path()),
+                tableNameCasing), parquetTable);
 
             return true;
           }
@@ -660,35 +744,47 @@ class FileSchema extends AbstractSchema {
       switch (forcedFormat.toLowerCase(Locale.ROOT)) {
       case "json":
         String refreshInterval = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
-        final Table jsonTable = createEnhancedJsonTable(source, tableName, refreshInterval);
-        builder.put(Util.first(tableName, source.path()).toUpperCase(Locale.ROOT), jsonTable);
+        Map<String, Object> options = null;
+        if (tableDef != null && tableDef.containsKey("flatten")) {
+          options = new HashMap<>();
+          options.put("flatten", tableDef.get("flatten"));
+        }
+        final Table jsonTable =
+            createEnhancedJsonTable(source, tableName, refreshInterval, options);
+        builder.put(applyCasing(Util.first(tableName, source.path()), tableNameCasing), jsonTable);
         return true;
       case "csv":
         refreshInterval = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
         final Table csvTable = createEnhancedCsvTable(source, null, tableName, refreshInterval);
-        builder.put(Util.first(tableName, source.path()).toUpperCase(Locale.ROOT), csvTable);
+        builder.put(applyCasing(Util.first(tableName, source.path()), tableNameCasing), csvTable);
         return true;
       case "tsv":
         refreshInterval = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
         final Table tsvTable = createEnhancedCsvTable(source, null, tableName, refreshInterval);
-        builder.put(Util.first(tableName, source.path()).toUpperCase(Locale.ROOT), tsvTable);
+        builder.put(applyCasing(Util.first(tableName, source.path()), tableNameCasing), tsvTable);
         return true;
       case "yaml":
       case "yml":
         refreshInterval = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
-        final Table yamlTable = createEnhancedJsonTable(source, tableName, refreshInterval);
-        builder.put(Util.first(tableName, source.path()).toUpperCase(Locale.ROOT), yamlTable);
+        options = null;
+        if (tableDef != null && tableDef.containsKey("flatten")) {
+          options = new HashMap<>();
+          options.put("flatten", tableDef.get("flatten"));
+        }
+        final Table yamlTable =
+            createEnhancedJsonTable(source, tableName, refreshInterval, options);
+        builder.put(applyCasing(Util.first(tableName, source.path()), tableNameCasing), yamlTable);
         return true;
       case "html":
       case "htm":
         // For backward compatibility, allow local HTML files without fragments
         // This supports existing tests and configurations
         final Table htmlTable = FileTable.create(source, tableDef);
-        builder.put(Util.first(tableName, source.path()).toUpperCase(Locale.ROOT), htmlTable);
+        builder.put(applyCasing(Util.first(tableName, source.path()), tableNameCasing), htmlTable);
         return true;
       case "parquet":
         final Table parquetTable = new ParquetTranslatableTable(new java.io.File(source.path()));
-        builder.put(Util.first(tableName, source.path()).toUpperCase(Locale.ROOT), parquetTable);
+        builder.put(applyCasing(Util.first(tableName, source.path()), tableNameCasing), parquetTable);
         return true;
       case "excel":
       case "xlsx":
@@ -697,29 +793,29 @@ class FileSchema extends AbstractSchema {
         // 1. Excel files naturally contain multiple tables (sheets)
         // 2. Mapping one table name to entire Excel file loses sheet information
         // 3. Better to use directory discovery mode for Excel files
-        throw new RuntimeException("Excel files cannot be used in explicit table definitions " +
-            "because they contain multiple sheets. Each sheet becomes a separate table. " +
-            "Place the Excel file in your schema directory and it will be automatically " +
-            "processed, with each sheet accessible as 'filename__sheetname'.");
+        throw new RuntimeException("Excel files cannot be used in explicit table definitions "
+            + "because they contain multiple sheets. Each sheet becomes a separate table. "
+            + "Place the Excel file in your schema directory and it will be automatically "
+            + "processed, with each sheet accessible as 'filename__sheetname'.");
       case "md":
       case "markdown":
         // Markdown files in explicit table mappings are problematic because:
         // 1. Markdown files can contain multiple tables
         // 2. Mapping one table name to entire Markdown file loses table information
         // 3. Better to use directory discovery mode for Markdown files
-        throw new RuntimeException("Markdown files cannot be used in explicit table definitions " +
-            "because they can contain multiple tables. " +
-            "Place the Markdown file in your schema directory and it will be automatically " +
-            "processed, with each table accessible as 'filename__tablename'.");
+        throw new RuntimeException("Markdown files cannot be used in explicit table definitions "
+            + "because they can contain multiple tables. "
+            + "Place the Markdown file in your schema directory and it will be automatically "
+            + "processed, with each table accessible as 'filename__tablename'.");
       case "docx":
         // DOCX files in explicit table mappings are problematic because:
         // 1. DOCX files can contain multiple tables
         // 2. Mapping one table name to entire DOCX file loses table information
         // 3. Better to use directory discovery mode for DOCX files
-        throw new RuntimeException("DOCX files cannot be used in explicit table definitions " +
-            "because they can contain multiple tables. " +
-            "Place the DOCX file in your schema directory and it will be automatically " +
-            "processed, with each table accessible as 'filename__tablename'.");
+        throw new RuntimeException("DOCX files cannot be used in explicit table definitions "
+            + "because they can contain multiple tables. "
+            + "Place the DOCX file in your schema directory and it will be automatically "
+            + "processed, with each table accessible as 'filename__tablename'.");
       default:
         throw new RuntimeException("Unsupported format override: " + forcedFormat
             + " for table: " + tableName);
@@ -736,29 +832,37 @@ class FileSchema extends AbstractSchema {
     }
     if (sourceSansJson != null) {
       String refreshInterval = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
-      final Table table = createEnhancedJsonTable(source, tableName, refreshInterval);
-      builder.put(Util.first(tableName, sourceSansJson.path()).toUpperCase(Locale.ROOT), table);
+      Map<String, Object> options = null;
+      if (tableDef != null && tableDef.containsKey("flatten")) {
+        options = new HashMap<>();
+        options.put("flatten", tableDef.get("flatten"));
+      }
+      final Table table =
+          createEnhancedJsonTable(source, tableName, refreshInterval, options);
+      builder.put(applyCasing(Util.first(tableName, sourceSansJson.path()), tableNameCasing), table);
       return true;
     }
     final Source sourceSansCsv = sourceSansGz.trimOrNull(".csv");
     if (sourceSansCsv != null) {
       String refreshInterval = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
       final Table table = createEnhancedCsvTable(source, null, tableName, refreshInterval);
-      builder.put(Util.first(tableName, sourceSansCsv.path()).toUpperCase(Locale.ROOT), table);
+      builder.put(applyCasing(Util.first(tableName, sourceSansCsv.path()), tableNameCasing), table);
       return true;
     }
     final Source sourceSansTsv = sourceSansGz.trimOrNull(".tsv");
     if (sourceSansTsv != null) {
       String refreshInterval = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
       final Table table = createEnhancedCsvTable(source, null, tableName, refreshInterval);
-      builder.put(Util.first(tableName, sourceSansTsv.path()).toUpperCase(Locale.ROOT), table);
+      builder.put(applyCasing(Util.first(tableName, sourceSansTsv.path()), tableNameCasing), table);
       return true;
     }
     final Source sourceSansArrow = sourceSansGz.trimOrNull(".arrow");
     if (sourceSansArrow != null) {
       try {
         final Table table = createArrowTable(new java.io.File(source.path()));
-        builder.put(Util.first(tableName, sourceSansArrow.path()).toUpperCase(Locale.ROOT), table);
+        builder.put(
+            applyCasing(Util.first(tableName, sourceSansArrow.path()),
+            tableNameCasing), table);
         return true;
       } catch (Exception e) {
         // Fall back to generic FileTable if Arrow creation fails
@@ -771,7 +875,9 @@ class FileSchema extends AbstractSchema {
       try {
         // Use our custom ParquetTranslatableTable instead of arrow's ParquetTable
         final Table table = new ParquetTranslatableTable(new java.io.File(source.path()));
-        builder.put(Util.first(tableName, sourceSansParquet.path()).toUpperCase(Locale.ROOT), table);
+        builder.put(
+            applyCasing(Util.first(tableName, sourceSansParquet.path()),
+            tableNameCasing), table);
         return true;
       } catch (Exception e) {
         // Fall back to generic FileTable if Parquet creation fails
@@ -786,9 +892,9 @@ class FileSchema extends AbstractSchema {
     if (sourceSansXlsx != null) {
       // Only throw error if this is from an explicit table definition
       if (tableDef != null) {
-        throw new RuntimeException("Excel files should not be used in explicit table mappings. " +
-            "Excel files contain multiple sheets (tables). " +
-            "Use directory discovery mode or direct file URL instead.");
+        throw new RuntimeException("Excel files should not be used in explicit table mappings. "
+            + "Excel files contain multiple sheets (tables). "
+            + "Use directory discovery mode or direct file URL instead.");
       }
       // For directory/file discovery mode, convert Excel to JSON
       try {
@@ -821,7 +927,7 @@ class FileSchema extends AbstractSchema {
         // This supports existing tests and configurations
         try {
           FileTable table = FileTable.create(source, tableDef);
-          builder.put(Util.first(tableName, source.path()).toUpperCase(Locale.ROOT), table);
+          builder.put(applyCasing(Util.first(tableName, source.path()), tableNameCasing), table);
           return true;
         } catch (Exception e) {
           throw new RuntimeException("Unable to instantiate HTML table for: "
@@ -834,7 +940,7 @@ class FileSchema extends AbstractSchema {
       // If file type not recognized by extension, try the generic FileTable approach
       try {
         FileTable table = FileTable.create(source, tableDef);
-        builder.put(Util.first(tableName, source.path()).toUpperCase(Locale.ROOT), table);
+        builder.put(applyCasing(Util.first(tableName, source.path()), tableNameCasing), table);
         return true;
       } catch (Exception e) {
         throw new RuntimeException("Unable to instantiate table for: "
@@ -941,7 +1047,8 @@ class FileSchema extends AbstractSchema {
   /**
    * Creates an enhanced CSV table with execution engine support.
    */
-  private org.apache.calcite.schema.Table createEnhancedCsvTable(Source source,
+  private org.apache.calcite.schema.Table createEnhancedCsvTable(
+      Source source,
       org.apache.calcite.rel.type.@Nullable RelProtoDataType protoRowType) {
     return createEnhancedCsvTable(source, protoRowType, null, null);
   }
@@ -949,11 +1056,14 @@ class FileSchema extends AbstractSchema {
   /**
    * Creates an enhanced CSV table with execution engine and refresh support.
    */
-  private org.apache.calcite.schema.Table createEnhancedCsvTable(Source source,
+  private org.apache.calcite.schema.Table createEnhancedCsvTable(
+      Source source,
       org.apache.calcite.rel.type.@Nullable RelProtoDataType protoRowType,
       String tableName, @Nullable String tableRefreshInterval) {
     // Get effective refresh interval (table level or schema default)
-    Duration effectiveInterval = RefreshInterval.getEffectiveInterval(tableRefreshInterval, this.refreshInterval);
+    Duration effectiveInterval =
+        RefreshInterval.getEffectiveInterval(tableRefreshInterval,
+            this.refreshInterval);
 
     // If refresh is configured, use refreshable table
     if (effectiveInterval != null && tableName != null) {
@@ -963,30 +1073,43 @@ class FileSchema extends AbstractSchema {
     // Otherwise use standard tables
     switch (engineConfig.getEngineType()) {
     case VECTORIZED:
-      return new EnhancedCsvTranslatableTable(source, protoRowType, engineConfig);
+      return new EnhancedCsvTranslatableTable(source, protoRowType, engineConfig, columnNameCasing);
     case PARQUET:
-      return new ParquetCsvTranslatableTable(source, protoRowType, engineConfig);
+      return new ParquetCsvTranslatableTable(source, protoRowType, engineConfig, columnNameCasing);
     case ARROW:
     case LINQ4J:
     default:
-      return new CsvTranslatableTable(source, protoRowType);
+      return new CsvTranslatableTable(source, protoRowType, columnNameCasing);
     }
   }
 
   /**
    * Creates an enhanced JSON table with execution engine support.
    */
-  private org.apache.calcite.schema.Table createEnhancedJsonTable(Source source) {
-    return createEnhancedJsonTable(source, null, null);
+  private org.apache.calcite.schema.Table createEnhancedJsonTable(
+      Source source) {
+    return createEnhancedJsonTable(source, null, null, null);
   }
 
   /**
    * Creates an enhanced JSON table with execution engine and refresh support.
    */
-  private org.apache.calcite.schema.Table createEnhancedJsonTable(Source source,
+  private org.apache.calcite.schema.Table createEnhancedJsonTable(
+      Source source,
       String tableName, @Nullable String tableRefreshInterval) {
+    return createEnhancedJsonTable(source, tableName, tableRefreshInterval, null);
+  }
+
+  /**
+   * Creates an enhanced JSON table with execution engine, refresh support, and options.
+   */
+  private org.apache.calcite.schema.Table createEnhancedJsonTable(
+      Source source,
+      String tableName, @Nullable String tableRefreshInterval, Map<String, Object> options) {
     // Get effective refresh interval (table level or schema default)
-    Duration effectiveInterval = RefreshInterval.getEffectiveInterval(tableRefreshInterval, this.refreshInterval);
+    Duration effectiveInterval =
+        RefreshInterval.getEffectiveInterval(tableRefreshInterval,
+            this.refreshInterval);
 
     // If refresh is configured, use refreshable table
     if (effectiveInterval != null && tableName != null) {
@@ -1002,7 +1125,7 @@ class FileSchema extends AbstractSchema {
     case ARROW:
     case LINQ4J:
     default:
-      return new JsonScannableTable(source);
+      return new JsonScannableTable(source, options);
     }
   }
 
@@ -1032,12 +1155,14 @@ class FileSchema extends AbstractSchema {
         // Detect or apply partition scheme
         PartitionDetector.PartitionInfo partitionInfo = null;
 
-        if (config.getPartitions() == null ||
-            "auto".equals(config.getPartitions().getStyle())) {
+        if (config.getPartitions() == null
+            || "auto".equals(config.getPartitions().getStyle())) {
           // Auto-detect partition scheme
-          partitionInfo = PartitionDetector.detectPartitionScheme(matchingFiles);
+          partitionInfo =
+              PartitionDetector.detectPartitionScheme(matchingFiles);
           if (partitionInfo == null) {
-            System.out.println("WARN: No partition scheme detected for table '"
+            System.out.println(
+                "WARN: No partition scheme detected for table '"
                 + config.getName() + "'. Treating as unpartitioned. "
                 + "Query performance may be impacted.");
           }
@@ -1048,25 +1173,31 @@ class FileSchema extends AbstractSchema {
 
           if ("hive".equals(style)) {
             // Force Hive-style interpretation
-            partitionInfo = PartitionDetector.extractHivePartitions(matchingFiles.get(0));
-          } else if ("directory".equals(style) && partConfig.getColumns() != null) {
+            partitionInfo =
+                PartitionDetector.extractHivePartitions(matchingFiles.get(0));
+          } else if ("directory".equals(style)
+              && partConfig.getColumns() != null) {
             // Directory-based partitioning
             partitionInfo =
-                PartitionDetector.extractDirectoryPartitions(matchingFiles.get(0), partConfig.getColumns());
-          } else if ("custom".equals(style) && partConfig.getRegex() != null) {
+                PartitionDetector.extractDirectoryPartitions(
+                    matchingFiles.get(0), partConfig.getColumns());
+          } else if ("custom".equals(style)
+              && partConfig.getRegex() != null) {
             // Custom regex partitioning
             partitionInfo =
-                PartitionDetector.extractCustomPartitions(matchingFiles.get(0), partConfig.getRegex(), partConfig.getColumnMappings());
+                PartitionDetector.extractCustomPartitions(
+                    matchingFiles.get(0), partConfig.getRegex(),
+                    partConfig.getColumnMappings());
           }
         }
 
         // Create map of column types if defined
         Map<String, String> columnTypes = null;
-        if (config.getPartitions() != null &&
-            config.getPartitions().getColumnDefinitions() != null) {
+        if (config.getPartitions() != null
+            && config.getPartitions().getColumnDefinitions() != null) {
           columnTypes = new HashMap<>();
-          for (PartitionedTableConfig.ColumnDefinition colDef :
-               config.getPartitions().getColumnDefinitions()) {
+          for (PartitionedTableConfig.ColumnDefinition colDef
+               : config.getPartitions().getColumnDefinitions()) {
             columnTypes.put(colDef.getName(), colDef.getType());
           }
         }
@@ -1076,14 +1207,16 @@ class FileSchema extends AbstractSchema {
         if (this.refreshInterval != null) {
           // Use refreshable version that can discover new partitions
           table =
-              new RefreshablePartitionedParquetTable(config.getName(), baseDirectory, config.getPattern(), config,
-              engineConfig, RefreshInterval.parse(this.refreshInterval));
+              new RefreshablePartitionedParquetTable(config.getName(),
+                  baseDirectory, config.getPattern(), config,
+                  engineConfig, RefreshInterval.parse(this.refreshInterval));
         } else {
           // Use standard version
           table =
-                                              new PartitionedParquetTable(matchingFiles, partitionInfo, engineConfig, columnTypes);
+              new PartitionedParquetTable(matchingFiles, partitionInfo,
+                  engineConfig, columnTypes);
         }
-        builder.put(config.getName().toUpperCase(Locale.ROOT), table);
+        builder.put(applyCasing(config.getName(), tableNameCasing), table);
 
       } catch (Exception e) {
         System.err.println("Failed to process partitioned table: " + e.getMessage());

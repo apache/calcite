@@ -63,6 +63,8 @@ import java.util.zip.GZIPOutputStream;
  *   <li>Automatic spillover when memory usage exceeds threshold</li>
  *   <li>Lazy loading of batches from disk when needed</li>
  * </ul>
+ *
+ * @param <E> the element type
  */
 public class ParquetEnumerator<E> implements Enumerator<E> {
 
@@ -107,7 +109,8 @@ public class ParquetEnumerator<E> implements Enumerator<E> {
 
   public ParquetEnumerator(Source source, AtomicBoolean cancelFlag,
                           List<RelDataType> fieldTypes, int[] projectedFields, int batchSize) {
-    this(source, cancelFlag, fieldTypes, projectedFields, batchSize, 80 * 1024 * 1024); // 80MB default
+    this(source, cancelFlag, fieldTypes, projectedFields, batchSize,
+        80 * 1024 * 1024); // 80MB default
   }
 
   public ParquetEnumerator(Source source, AtomicBoolean cancelFlag,
@@ -164,7 +167,8 @@ public class ParquetEnumerator<E> implements Enumerator<E> {
   private void initializeStreaming() {
     try {
       // Determine if this format supports true streaming
-      isStreamingFormat = (fileFormat == FileFormat.CSV || fileFormat == FileFormat.ARROW || fileFormat == FileFormat.PARQUET);
+      isStreamingFormat = fileFormat == FileFormat.CSV || fileFormat == FileFormat.ARROW
+          || fileFormat == FileFormat.PARQUET;
 
       if (isStreamingFormat) {
         // For streaming formats, create batch-based processing
@@ -224,29 +228,32 @@ public class ParquetEnumerator<E> implements Enumerator<E> {
     }
 
     switch (fileFormat) {
-      case CSV:
-        return new CsvEnumerator<>(source, cancelFlag, fieldTypes, projectedFieldsList);
-      case JSON:
-      case YAML:
-        // For JSON/YAML, we need to process the entire structure
-        try {
-          JsonEnumerator.JsonDataConverter converter =
-              JsonEnumerator.deduceRowType(null, source, fileFormat == FileFormat.JSON ? "json" : "yaml");
-          return new JsonEnumerator(converter.getDataList());
-        } catch (Exception e) {
-          throw new RuntimeException("Failed to create JSON/YAML enumerator", e);
-        }
-      case ARROW:
-        // TODO: Implement Arrow-specific enumerator
-        throw new UnsupportedOperationException("Arrow format not yet implemented in streaming mode");
-      case PARQUET:
-        // TODO: Implement Parquet-specific enumerator
-        throw new UnsupportedOperationException("Parquet format not yet implemented in streaming mode");
-      case EXCEL:
-        // TODO: Implement Excel-specific enumerator
-        throw new UnsupportedOperationException("Excel format not yet implemented in streaming mode");
-      default:
-        throw new UnsupportedOperationException("Unsupported format: " + fileFormat);
+    case CSV:
+      return new CsvEnumerator<>(source, cancelFlag, fieldTypes, projectedFieldsList);
+    case JSON:
+    case YAML:
+      // For JSON/YAML, we need to process the entire structure
+      try {
+        JsonEnumerator.JsonDataConverter converter =
+            JsonEnumerator.deduceRowType(null, source,
+                fileFormat == FileFormat.JSON ? "json" : "yaml");
+        return new JsonEnumerator(converter.getDataList());
+      } catch (Exception e) {
+        throw new RuntimeException("Failed to create JSON/YAML enumerator", e);
+      }
+    case ARROW:
+      // TODO: Implement Arrow-specific enumerator
+      throw new UnsupportedOperationException(
+          "Arrow format not yet implemented in streaming mode");
+    case PARQUET:
+      // TODO: Implement Parquet-specific enumerator
+      throw new UnsupportedOperationException(
+          "Parquet format not yet implemented in streaming mode");
+    case EXCEL:
+      // TODO: Implement Excel-specific enumerator
+      throw new UnsupportedOperationException("Excel format not yet implemented in streaming mode");
+    default:
+      throw new UnsupportedOperationException("Unsupported format: " + fileFormat);
     }
   }
 
@@ -335,7 +342,8 @@ public class ParquetEnumerator<E> implements Enumerator<E> {
       fieldsList.add(field);
     }
 
-    CsvEnumerator<Object[]> csvEnum = new CsvEnumerator<>(source, cancelFlag, fieldTypes, fieldsList);
+    CsvEnumerator<Object[]> csvEnum =
+        new CsvEnumerator<>(source, cancelFlag, fieldTypes, fieldsList);
 
     // Skip to batch start position
     for (int i = 0; i < batchInfo.startRow && csvEnum.moveNext(); i++) {
@@ -404,15 +412,18 @@ public class ParquetEnumerator<E> implements Enumerator<E> {
 
         // Verify data integrity
         if (currentBatchColumns == null || currentBatchRowCount <= 0) {
-          throw new IOException("Invalid spill data: columns=" + currentBatchColumns +
-                               ", rows=" + currentBatchRowCount);
+          throw new IOException("Invalid spill data: columns="
+              + currentBatchColumns
+              + ", rows=" + currentBatchRowCount);
         }
 
         // Update access time for LRU management
         batchInfo.lastAccessTime = System.currentTimeMillis();
 
-        System.out.println("Loaded batch " + batchInfo.batchIndex + " from disk: " +
-                          currentBatchRowCount + " rows, " + currentBatchColumns.size() + " columns");
+        System.out.println("Loaded batch " + batchInfo.batchIndex
+            + " from disk: "
+            + currentBatchRowCount + " rows, "
+            + currentBatchColumns.size() + " columns");
 
       }
     } catch (Exception e) {
@@ -456,8 +467,9 @@ public class ParquetEnumerator<E> implements Enumerator<E> {
       currentBatchColumns.clear();
       currentBatchColumns = null;
 
-      System.out.println("Spilled batch " + currentBatchIndex + " to disk: " + spillFile +
-                        " (" + Files.size(spillFile) + " bytes)");
+      System.out.println("Spilled batch " + currentBatchIndex
+          + " to disk: " + spillFile
+          + " (" + Files.size(spillFile) + " bytes)");
 
     } catch (Exception e) {
       // Log warning but continue - keep in memory
@@ -607,8 +619,9 @@ public class ParquetEnumerator<E> implements Enumerator<E> {
       Files.delete(spillDirectory);
 
       if (spillFileCount[0] > 0) {
-        System.out.println("Cleaned up " + spillFileCount[0] + " spill files (" +
-                          (totalSpillSize[0] / 1024 / 1024) + " MB total)");
+        System.out.println("Cleaned up " + spillFileCount[0]
+            + " spill files ("
+            + (totalSpillSize[0] / 1024 / 1024) + " MB total)");
       }
     } catch (IOException e) {
       System.err.println("Error during spill cleanup: " + e.getMessage());
@@ -719,7 +732,8 @@ public class ParquetEnumerator<E> implements Enumerator<E> {
     }
 
     Object[] column = currentBatchColumns.get(columnIndex);
-    Object min = null, max = null;
+    Object min = null;
+    Object max = null;
     int nullCount = 0;
 
     for (int i = 0; i < currentBatchRowCount; i++) {
@@ -794,6 +808,8 @@ public class ParquetEnumerator<E> implements Enumerator<E> {
 
   /**
    * Interface for streaming aggregation operations.
+   *
+   * @param <T> the element type
    */
   public interface StreamingAggregator<T> {
     void processBatch(List<Object[]> batchColumns, int rowCount);
@@ -880,8 +896,12 @@ public class ParquetEnumerator<E> implements Enumerator<E> {
     }
 
     public String getSpillSizeFormatted() {
-      if (totalSpillSize < 1024) return totalSpillSize + "B";
-      if (totalSpillSize < 1024 * 1024) return (totalSpillSize / 1024) + "KB";
+      if (totalSpillSize < 1024) {
+        return totalSpillSize + "B";
+      }
+      if (totalSpillSize < 1024 * 1024) {
+        return (totalSpillSize / 1024) + "KB";
+      }
       return (totalSpillSize / 1024 / 1024) + "MB";
     }
 

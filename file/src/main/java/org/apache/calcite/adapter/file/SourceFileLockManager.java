@@ -28,18 +28,22 @@ import java.util.concurrent.TimeUnit;
 /**
  * Manages read locks on source files to prevent concurrent processing
  * by multiple Calcite instances.
- * 
+ *
  * Uses shared (read) locks to allow multiple readers but coordinate
  * processing activities.
  */
 public class SourceFileLockManager {
   // Track open channels to prevent GC while locks are held
-  private static final ConcurrentHashMap<String, LockInfo> ACTIVE_LOCKS = 
+  private static final ConcurrentHashMap<String, LockInfo> ACTIVE_LOCKS =
       new ConcurrentHashMap<>();
-  
+
+  private SourceFileLockManager() {
+    // Utility class should not be instantiated
+  }
+
   private static final long DEFAULT_LOCK_TIMEOUT_MS = TimeUnit.SECONDS.toMillis(30);
   private static final long LOCK_RETRY_INTERVAL_MS = 100;
-  
+
   /**
    * Acquire a shared read lock on a source file.
    * Returns a LockHandle that must be closed when done.
@@ -47,18 +51,18 @@ public class SourceFileLockManager {
   public static LockHandle acquireReadLock(File sourceFile) throws IOException {
     return acquireReadLock(sourceFile, DEFAULT_LOCK_TIMEOUT_MS);
   }
-  
+
   /**
    * Acquire a shared read lock with custom timeout.
    */
-  public static LockHandle acquireReadLock(File sourceFile, long timeoutMs) 
+  public static LockHandle acquireReadLock(File sourceFile, long timeoutMs)
       throws IOException {
     String path = sourceFile.getCanonicalPath();
     long deadline = System.currentTimeMillis() + timeoutMs;
-    
+
     // Try Redis lock first if available
-    RedisDistributedLock redisLock = RedisDistributedLock.createIfAvailable(
-        "source:read:" + path);
+    RedisDistributedLock redisLock =
+        RedisDistributedLock.createIfAvailable("source:read:" + path);
     if (redisLock != null) {
       try {
         if (redisLock.tryLock(timeoutMs)) {
@@ -69,26 +73,26 @@ public class SourceFileLockManager {
         redisLock.close();
       }
     }
-    
+
     // Use file-based shared lock
     while (System.currentTimeMillis() < deadline) {
       try {
         RandomAccessFile raf = new RandomAccessFile(sourceFile, "r");
         FileChannel channel = raf.getChannel();
-        
+
         // Try to acquire shared lock (multiple readers allowed)
         FileLock lock = channel.tryLock(0, Long.MAX_VALUE, true);
-        
+
         if (lock != null) {
           LockInfo info = new LockInfo(raf, channel, lock);
           ACTIVE_LOCKS.put(path, info);
           return new FileLockHandle(path, info);
         }
-        
+
         // Close and retry if lock not available
         channel.close();
         raf.close();
-        
+
       } catch (OverlappingFileLockException e) {
         // This JVM already has a lock on this file
         LockInfo existing = ACTIVE_LOCKS.get(path);
@@ -97,30 +101,31 @@ public class SourceFileLockManager {
           return new FileLockHandle(path, existing);
         }
       }
-      
+
       try {
-        Thread.sleep(Math.min(LOCK_RETRY_INTERVAL_MS, 
+        Thread.sleep(
+            Math.min(LOCK_RETRY_INTERVAL_MS,
             deadline - System.currentTimeMillis()));
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         throw new IOException("Interrupted while waiting for lock on: " + sourceFile);
       }
     }
-    
+
     throw new IOException("Timeout acquiring lock on: " + sourceFile);
   }
-  
+
   /**
    * Acquire an exclusive write lock for file modifications.
    */
-  public static LockHandle acquireWriteLock(File sourceFile, long timeoutMs) 
+  public static LockHandle acquireWriteLock(File sourceFile, long timeoutMs)
       throws IOException {
     String path = sourceFile.getCanonicalPath();
     long deadline = System.currentTimeMillis() + timeoutMs;
-    
+
     // Try Redis lock first
-    RedisDistributedLock redisLock = RedisDistributedLock.createIfAvailable(
-        "source:write:" + path);
+    RedisDistributedLock redisLock =
+        RedisDistributedLock.createIfAvailable("source:write:" + path);
     if (redisLock != null) {
       try {
         if (redisLock.tryLock(timeoutMs)) {
@@ -130,42 +135,43 @@ public class SourceFileLockManager {
         redisLock.close();
       }
     }
-    
+
     // Use file-based exclusive lock
     while (System.currentTimeMillis() < deadline) {
       try {
         RandomAccessFile raf = new RandomAccessFile(sourceFile, "rw");
         FileChannel channel = raf.getChannel();
-        
+
         // Try to acquire exclusive lock
         FileLock lock = channel.tryLock(0, Long.MAX_VALUE, false);
-        
+
         if (lock != null) {
           LockInfo info = new LockInfo(raf, channel, lock);
           ACTIVE_LOCKS.put(path, info);
           return new FileLockHandle(path, info);
         }
-        
+
         channel.close();
         raf.close();
-        
+
       } catch (OverlappingFileLockException e) {
         // Cannot upgrade shared to exclusive in same JVM
         throw new IOException("Cannot acquire write lock - file already locked in this JVM");
       }
-      
+
       try {
-        Thread.sleep(Math.min(LOCK_RETRY_INTERVAL_MS, 
+        Thread.sleep(
+            Math.min(LOCK_RETRY_INTERVAL_MS,
             deadline - System.currentTimeMillis()));
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         throw new IOException("Interrupted while waiting for write lock");
       }
     }
-    
+
     throw new IOException("Timeout acquiring write lock on: " + sourceFile);
   }
-  
+
   /**
    * Handle for a file lock that must be closed when done.
    */
@@ -173,7 +179,7 @@ public class SourceFileLockManager {
     boolean isValid();
     void close();
   }
-  
+
   /**
    * Information about an active file lock.
    */
@@ -182,22 +188,22 @@ public class SourceFileLockManager {
     final FileChannel channel;
     final FileLock lock;
     int refCount = 1;
-    
+
     LockInfo(RandomAccessFile raf, FileChannel channel, FileLock lock) {
       this.raf = raf;
       this.channel = channel;
       this.lock = lock;
     }
-    
+
     synchronized void incrementRefCount() {
       refCount++;
     }
-    
+
     synchronized boolean decrementRefCount() {
       return --refCount <= 0;
     }
   }
-  
+
   /**
    * File-based lock handle.
    */
@@ -205,24 +211,22 @@ public class SourceFileLockManager {
     private final String path;
     private final LockInfo info;
     private volatile boolean closed = false;
-    
+
     FileLockHandle(String path, LockInfo info) {
       this.path = path;
       this.info = info;
     }
-    
-    @Override
-    public boolean isValid() {
+
+    @Override public boolean isValid() {
       return !closed && info.lock.isValid();
     }
-    
-    @Override
-    public void close() {
+
+    @Override public void close() {
       if (closed) {
         return;
       }
       closed = true;
-      
+
       if (info.decrementRefCount()) {
         // Last reference, actually close
         try {
@@ -244,7 +248,7 @@ public class SourceFileLockManager {
       }
     }
   }
-  
+
   /**
    * Redis-based lock handle.
    */
@@ -252,19 +256,17 @@ public class SourceFileLockManager {
     private final String path;
     private final RedisDistributedLock redisLock;
     private volatile boolean closed = false;
-    
+
     RedisLockHandle(String path, RedisDistributedLock redisLock) {
       this.path = path;
       this.redisLock = redisLock;
     }
-    
-    @Override
-    public boolean isValid() {
+
+    @Override public boolean isValid() {
       return !closed;
     }
-    
-    @Override
-    public void close() {
+
+    @Override public void close() {
       if (closed) {
         return;
       }

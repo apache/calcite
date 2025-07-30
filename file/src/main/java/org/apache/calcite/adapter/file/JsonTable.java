@@ -27,6 +27,7 @@ import org.apache.calcite.util.Source;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Table based on a JSON file.
@@ -35,14 +36,20 @@ public class JsonTable extends AbstractTable {
   private final Source source;
   private @Nullable RelDataType rowType;
   protected @Nullable List<Object> dataList;
+  protected final Map<String, Object> options;
 
   public JsonTable(Source source) {
+    this(source, null);
+  }
+
+  public JsonTable(Source source, Map<String, Object> options) {
     this.source = source;
+    this.options = options;
   }
 
   @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     if (rowType == null) {
-      rowType = JsonEnumerator.deduceRowType(typeFactory, source).getRelDataType();
+      rowType = JsonEnumerator.deduceRowType(typeFactory, source, options).getRelDataType();
     }
     return rowType;
   }
@@ -51,7 +58,7 @@ public class JsonTable extends AbstractTable {
   public List<Object> getDataList(RelDataTypeFactory typeFactory) {
     if (dataList == null) {
       JsonDataConverter jsonDataConverter =
-          JsonEnumerator.deduceRowType(typeFactory, source);
+          JsonEnumerator.deduceRowType(typeFactory, source, options);
       dataList = jsonDataConverter.getDataList();
     }
     return dataList;

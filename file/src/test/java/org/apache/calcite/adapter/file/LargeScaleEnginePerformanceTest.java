@@ -159,7 +159,7 @@ public class LargeScaleEnginePerformanceTest {
     int[] sizes = {SMALL_DATASET, MEDIUM_DATASET, LARGE_DATASET};
 
     for (int size : sizes) {
-      System.out.println("\n### Dataset: " + String.format("%,d", size) + " rows");
+      System.out.println("\n### Dataset: " + String.format(Locale.ROOT, "%,d", size) + " rows");
       String fileName = "sales_" + size + ".csv";
 
       Map<String, Long> engineTimes = new HashMap<>();
@@ -173,10 +173,9 @@ public class LargeScaleEnginePerformanceTest {
           engineTimes.put(engine, avgTime);
 
           // Give JVM time to clean up between tests
-          System.gc();
           Thread.sleep(100);
         } catch (Exception e) {
-          System.out.println("  " + engine.toUpperCase() + ": FAILED - " + e.getMessage());
+          System.out.println("  " + engine.toUpperCase(Locale.ROOT) + ": FAILED - " + e.getMessage());
         }
       }
 
@@ -227,10 +226,10 @@ public class LargeScaleEnginePerformanceTest {
       operand.put("executionEngine", engine);
 
       SchemaPlus fileSchema =
-          rootSchema.add("PERF_" + engine.toUpperCase(), FileSchemaFactory.INSTANCE.create(rootSchema, "PERF_" + engine.toUpperCase(), operand));
+          rootSchema.add("PERF_" + engine.toUpperCase(Locale.ROOT), FileSchemaFactory.INSTANCE.create(rootSchema, "PERF_" + engine.toUpperCase(Locale.ROOT), operand));
 
       String tableName = fileName.substring(0, fileName.lastIndexOf('.'));
-      String query = String.format(queryTemplate, "PERF_" + engine.toUpperCase() + "." + tableName);
+      String query = String.format(Locale.ROOT, queryTemplate, "PERF_" + engine.toUpperCase(Locale.ROOT) + "." + tableName);
 
       try (Statement stmt = connection.createStatement();
            ResultSet rs = stmt.executeQuery(query)) {
@@ -262,7 +261,7 @@ public class LargeScaleEnginePerformanceTest {
       Long time = entry.getValue();
 
       if (time == Long.MAX_VALUE) {
-        System.out.printf("  %-10s   FAILED%n", engine.toUpperCase());
+        System.out.printf(Locale.ROOT, "  %-10s   FAILED%n", engine.toUpperCase(Locale.ROOT));
         continue;
       }
 
@@ -270,7 +269,7 @@ public class LargeScaleEnginePerformanceTest {
       String bar = createPerformanceBar(speedup);
 
       System.out.printf(Locale.ROOT, "  %-10s   %,7d   %.2fx   %s%n",
-          engine.toUpperCase(), time, speedup, bar);
+          engine.toUpperCase(Locale.ROOT), time, speedup, bar);
     }
   }
 
@@ -292,7 +291,7 @@ public class LargeScaleEnginePerformanceTest {
       return;
     }
 
-    System.out.println("  Creating " + file.getName() + " with " + String.format("%,d", rows) + " rows...");
+    System.out.println("  Creating " + file.getName() + " with " + String.format(Locale.ROOT, "%,d", rows) + " rows...");
 
     Random rand = new Random(42); // Fixed seed for reproducibility
 
@@ -323,7 +322,7 @@ public class LargeScaleEnginePerformanceTest {
         int year = 2023 + rand.nextInt(2);
         int month = 1 + rand.nextInt(12);
         int day = 1 + rand.nextInt(28);
-        String date = String.format("%04d-%02d-%02d", year, month, day);
+        String date = String.format(Locale.ROOT, "%04d-%02d-%02d", year, month, day);
 
         // 60% completed, 20% shipped, 10% processing, 5% pending, 5% cancelled
         String status;
@@ -342,13 +341,13 @@ public class LargeScaleEnginePerformanceTest {
 
         // Progress indicator
         if (i > 0 && i % 100000 == 0) {
-          System.out.println("    " + String.format("%,d", i) + " rows written...");
+          System.out.println("    " + String.format(Locale.ROOT, "%,d", i) + " rows written...");
         }
       }
     }
 
     System.out.println("    Completed: " + file.getName() + " (" +
-        String.format("%.1f MB", file.length() / 1024.0 / 1024.0) + ")");
+        String.format(Locale.ROOT, "%.1f MB", file.length() / 1024.0 / 1024.0) + ")");
   }
 
   private void printSummary() {

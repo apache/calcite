@@ -31,6 +31,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -97,7 +98,7 @@ public class ParquetAutoConversionTest {
 
         int count1 = 0;
         while (rs1.next()) {
-          System.out.printf("   Customer %d: %s from %s - $%.2f%n",
+          System.out.printf(Locale.ROOT, "   Customer %d: %s from %s - $%.2f%n",
               rs1.getInt("customer_id"),
               rs1.getString("name"),
               rs1.getString("city"),
@@ -121,7 +122,7 @@ public class ParquetAutoConversionTest {
 
         int count2 = 0;
         while (rs2.next()) {
-          System.out.printf("   Order %d: Customer %d - $%.2f (%s)%n",
+          System.out.printf(Locale.ROOT, "   Order %d: Customer %d - $%.2f (%s)%n",
               rs2.getInt("order_id"),
               rs2.getInt("customer_id"),
               rs2.getDouble("amount"),
@@ -146,7 +147,7 @@ public class ParquetAutoConversionTest {
         System.out.println("   Customer | Orders | Total Spent");
         System.out.println("   ---------|--------|------------");
         while (rs3.next()) {
-          System.out.printf("   %-8s | %6d | $%.2f%n",
+          System.out.printf(Locale.ROOT, "   %-8s | %6d | $%.2f%n",
               rs3.getString("name"),
               rs3.getInt("order_count"),
               rs3.getDouble("total_spent"));

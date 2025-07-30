@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -35,19 +34,23 @@ import java.util.concurrent.locks.ReentrantLock;
 public class ConcurrentParquetCache {
   // In-process lock map for threads within the same JVM
   private static final ConcurrentHashMap<String, Lock> LOCK_MAP = new ConcurrentHashMap<>();
-  
+
+  private ConcurrentParquetCache() {
+    // Utility class should not be instantiated
+  }
+
   // Lock acquisition timeout
   private static final long LOCK_TIMEOUT_SECONDS = 30;
-  
+
   /**
    * Convert a file to Parquet with proper concurrency control.
    * Uses Redis locks if available, otherwise falls back to file system locks.
    */
-  public static File convertWithLocking(File sourceFile, File cacheDir, 
+  public static File convertWithLocking(File sourceFile, File cacheDir,
       ConversionCallback callback) throws Exception {
-    
+
     String lockKey = sourceFile.getAbsolutePath();
-    
+
     // Try Redis distributed lock first
     RedisDistributedLock redisLock = RedisDistributedLock.createIfAvailable(lockKey);
     if (redisLock != null) {
@@ -61,10 +64,10 @@ public class ConcurrentParquetCache {
         redisLock.close();
       }
     }
-    
+
     // Fall back to local locks
     Lock processLock = LOCK_MAP.computeIfAbsent(lockKey, k -> new ReentrantLock());
-    
+
     boolean acquired = false;
     try {
       // Try to acquire in-process lock with timeout
@@ -72,7 +75,7 @@ public class ConcurrentParquetCache {
       if (!acquired) {
         throw new IOException("Timeout waiting for lock on: " + sourceFile);
       }
-      
+
       return performConversionWithFileLock(sourceFile, cacheDir, callback);
     } finally {
       if (acquired) {
@@ -82,57 +85,57 @@ public class ConcurrentParquetCache {
       cleanupOldLockFiles(cacheDir);
     }
   }
-  
+
   private static File performConversion(File sourceFile, File cacheDir,
       ConversionCallback callback) throws Exception {
     File parquetFile = ParquetConversionUtil.getCachedParquetFile(sourceFile, cacheDir);
-    
+
     // Double-check if conversion is still needed
     if (!ParquetConversionUtil.needsConversion(sourceFile, parquetFile)) {
       return parquetFile;
     }
-    
+
     // Perform the actual conversion to a temp file
-    File tempFile = new File(parquetFile.getAbsolutePath() + ".tmp." + 
-        Thread.currentThread().threadId());
-    
+    File tempFile = new File(parquetFile.getAbsolutePath() + ".tmp."
+        + Thread.currentThread().threadId());
+
     try {
       callback.convert(tempFile);
-      
+
       // Atomic rename (on most filesystems)
       Files.move(tempFile.toPath(), parquetFile.toPath(),
           java.nio.file.StandardCopyOption.REPLACE_EXISTING,
           java.nio.file.StandardCopyOption.ATOMIC_MOVE);
-          
+
     } finally {
       // Clean up temp file if it still exists
       if (tempFile.exists()) {
         tempFile.delete();
       }
     }
-    
+
     return parquetFile;
   }
-  
+
   private static File performConversionWithFileLock(File sourceFile, File cacheDir,
       ConversionCallback callback) throws Exception {
     File parquetFile = ParquetConversionUtil.getCachedParquetFile(sourceFile, cacheDir);
     File lockFile = new File(parquetFile.getAbsolutePath() + ".lock");
-      
+
     // Use file lock for cross-JVM synchronization
-    try (FileChannel channel = FileChannel.open(lockFile.toPath(), 
-         StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+    try (FileChannel channel =
+         FileChannel.open(lockFile.toPath(), StandardOpenOption.CREATE, StandardOpenOption.WRITE);
          FileLock fileLock = channel.tryLock()) {
-      
+
       if (fileLock == null) {
         throw new IOException("Could not acquire file lock for: " + parquetFile);
       }
-      
+
       // Use the common conversion logic
       return performConversion(sourceFile, cacheDir, callback);
     }
   }
-  
+
   /**
    * Clean up stale lock files older than 1 hour.
    */
@@ -140,10 +143,10 @@ public class ConcurrentParquetCache {
     if (!cacheDir.exists()) {
       return;
     }
-    
+
     long oneHourAgo = System.currentTimeMillis() - TimeUnit.HOURS.toMillis(1);
     File[] lockFiles = cacheDir.listFiles((dir, name) -> name.endsWith(".lock"));
-    
+
     if (lockFiles != null) {
       for (File lockFile : lockFiles) {
         if (lockFile.lastModified() < oneHourAgo) {
@@ -152,7 +155,7 @@ public class ConcurrentParquetCache {
       }
     }
   }
-  
+
   /**
    * Callback interface for the actual conversion logic.
    */

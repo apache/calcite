@@ -32,7 +32,8 @@ import java.util.Map;
  * Refreshable materialized view table that can re-execute its query
  * when the refresh interval has elapsed.
  */
-public class RefreshableMaterializedViewTable extends MaterializedViewTable implements RefreshableTable {
+public class RefreshableMaterializedViewTable extends MaterializedViewTable
+    implements RefreshableTable {
   private final String tableName;
   private final @Nullable Duration refreshInterval;
   private @Nullable Instant lastRefreshTime;

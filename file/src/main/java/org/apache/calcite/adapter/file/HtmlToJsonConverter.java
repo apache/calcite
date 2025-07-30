@@ -31,8 +31,10 @@ import org.jsoup.select.Elements;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -43,6 +45,10 @@ import java.util.logging.Logger;
 public class HtmlToJsonConverter {
   private static final Logger LOGGER = Logger.getLogger(HtmlToJsonConverter.class.getName());
   private static final ObjectMapper MAPPER = new ObjectMapper();
+
+  private HtmlToJsonConverter() {
+    // Utility class should not be instantiated
+  }
 
   /**
    * Converts all tables in an HTML file to separate JSON files.
@@ -77,9 +83,9 @@ public class HtmlToJsonConverter {
 
       // Create filename: original_tablename.json
       String baseFileName = htmlFile.getName();
-      if (baseFileName.toLowerCase().endsWith(".html")) {
+      if (baseFileName.toLowerCase(Locale.ROOT).endsWith(".html")) {
         baseFileName = baseFileName.substring(0, baseFileName.length() - 5);
-      } else if (baseFileName.toLowerCase().endsWith(".htm")) {
+      } else if (baseFileName.toLowerCase(Locale.ROOT).endsWith(".htm")) {
         baseFileName = baseFileName.substring(0, baseFileName.length() - 4);
       }
 
@@ -172,7 +178,7 @@ public class HtmlToJsonConverter {
     }
 
     // Write to file
-    try (FileWriter writer = new FileWriter(jsonFile)) {
+    try (FileWriter writer = new FileWriter(jsonFile, StandardCharsets.UTF_8)) {
       MAPPER.writerWithDefaultPrettyPrinter().writeValue(writer, jsonArray);
     }
   }
@@ -194,9 +200,9 @@ public class HtmlToJsonConverter {
    */
   public static boolean hasExtractedFiles(File htmlFile, File outputDir) {
     String baseFileName = htmlFile.getName();
-    if (baseFileName.toLowerCase().endsWith(".html")) {
+    if (baseFileName.toLowerCase(Locale.ROOT).endsWith(".html")) {
       baseFileName = baseFileName.substring(0, baseFileName.length() - 5);
-    } else if (baseFileName.toLowerCase().endsWith(".htm")) {
+    } else if (baseFileName.toLowerCase(Locale.ROOT).endsWith(".htm")) {
       baseFileName = baseFileName.substring(0, baseFileName.length() - 4);
     }
 

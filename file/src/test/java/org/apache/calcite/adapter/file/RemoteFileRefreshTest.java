@@ -24,6 +24,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -98,7 +99,7 @@ public class RemoteFileRefreshTest {
   @Test public void testHashComputation() throws IOException {
     String testContent = "test,data\n1,value1\n2,value2\n";
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    PrintWriter writer = new PrintWriter(baos);
+    PrintWriter writer = new PrintWriter(baos, true, StandardCharsets.UTF_8);
     writer.print(testContent);
     writer.close();
 

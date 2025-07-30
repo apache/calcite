@@ -47,7 +47,7 @@ import java.util.Iterator;
 public final class ExcelToJsonConverter {
   private static final CalciteLogger LOGGER =
       new CalciteLogger(LoggerFactory.getLogger(ExcelToJsonConverter.class));
-      
+
   private ExcelToJsonConverter() {
     // Prevent instantiation
   }
@@ -59,11 +59,11 @@ public final class ExcelToJsonConverter {
       lockHandle = SourceFileLockManager.acquireReadLock(inputFile);
       LOGGER.debug("Acquired read lock on Excel file: " + inputFile.getPath());
     } catch (IOException e) {
-      LOGGER.warn("Could not acquire lock on file: " + inputFile.getPath() + 
-          " - proceeding without lock");
+      LOGGER.warn("Could not acquire lock on file: " + inputFile.getPath()
+          + " - proceeding without lock");
       // Continue without lock
     }
-    
+
     FileInputStream file = new FileInputStream(inputFile);
     Workbook workbook = WorkbookFactory.create(file);
     ObjectMapper mapper = new ObjectMapper();
@@ -115,7 +115,7 @@ public final class ExcelToJsonConverter {
     }
     workbook.close();
     file.close();
-    
+
     // Release the lock
     if (lockHandle != null) {
       lockHandle.close();

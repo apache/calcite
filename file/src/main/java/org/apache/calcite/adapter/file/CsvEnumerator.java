@@ -107,7 +107,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
     this.filterValues =
         filterValues == null ? null
             : ImmutableNullableList.copyOf(filterValues);
-    
+
     // Acquire read lock on source file if it's a local file
     SourceFileLockManager.LockHandle tempLock = null;
     if (!stream && source.file() != null) {
@@ -115,13 +115,13 @@ public class CsvEnumerator<E> implements Enumerator<E> {
         tempLock = SourceFileLockManager.acquireReadLock(source.file());
         LOGGER.debug("Acquired read lock on file: " + source.path());
       } catch (IOException e) {
-        LOGGER.warn("Could not acquire lock on file: " + source.path() + 
-            " - proceeding without lock. Error: " + e.getMessage());
+        LOGGER.warn("Could not acquire lock on file: " + source.path()
+            + " - proceeding without lock. Error: " + e.getMessage());
         // Continue without lock - don't fail the query
       }
     }
     this.lockHandle = tempLock;
-    
+
     try {
       if (stream) {
         this.reader = new CsvStreamReader(source);
@@ -157,6 +157,14 @@ public class CsvEnumerator<E> implements Enumerator<E> {
    * of a CSV file. */
   public static RelDataType deduceRowType(JavaTypeFactory typeFactory,
       Source source, @Nullable List<RelDataType> fieldTypes, Boolean stream) {
+    return deduceRowType(typeFactory, source, fieldTypes, stream, "UNCHANGED");
+  }
+
+  /** Deduces the names and types of a table's columns by reading the first line
+   * of a CSV file, with configurable column name casing. */
+  public static RelDataType deduceRowType(JavaTypeFactory typeFactory,
+      Source source, @Nullable List<RelDataType> fieldTypes, Boolean stream,
+      String columnCasing) {
     final List<RelDataType> types = new ArrayList<>();
     final List<String> names = new ArrayList<>();
     if (stream) {
@@ -231,7 +239,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
           name = string;
           fieldType = typeFactory.createSqlType(SqlTypeName.VARCHAR);
         }
-        names.add(name);
+        names.add(applyCasing(name, columnCasing));
         types.add(fieldType);
         if (fieldTypes != null) {
           fieldTypes.add(fieldType);
@@ -331,6 +339,22 @@ public class CsvEnumerator<E> implements Enumerator<E> {
   private static RelDataType toNullableRelDataType(JavaTypeFactory typeFactory,
       SqlTypeName sqlTypeName) {
     return typeFactory.createTypeWithNullability(typeFactory.createSqlType(sqlTypeName), true);
+  }
+
+  /** Applies the configured casing transformation to a column name. */
+  private static String applyCasing(String name, String casing) {
+    if (name == null) {
+      return null;
+    }
+    switch (casing) {
+    case "UPPER":
+      return name.toUpperCase(Locale.ROOT);
+    case "LOWER":
+      return name.toLowerCase(Locale.ROOT);
+    case "UNCHANGED":
+    default:
+      return name;
+    }
   }
 
   /** Row converter.

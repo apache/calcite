@@ -34,6 +34,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -160,16 +161,16 @@ public class MaterializedViewParquetTest {
         // Capture stderr output
         java.io.ByteArrayOutputStream errContent = new java.io.ByteArrayOutputStream();
         java.io.PrintStream originalErr = System.err;
-        System.setErr(new java.io.PrintStream(errContent));
+        System.setErr(new java.io.PrintStream(errContent, true, StandardCharsets.UTF_8));
 
         try {
           SchemaPlus schema =
-              rootSchema.add(engine.toUpperCase() + "_TEST", FileSchemaFactory.INSTANCE.create(rootSchema, engine.toUpperCase() + "_TEST", operand));
+              rootSchema.add(engine.toUpperCase(Locale.ROOT) + "_TEST", FileSchemaFactory.INSTANCE.create(rootSchema, engine.toUpperCase(Locale.ROOT) + "_TEST", operand));
 
           // Force table map creation by accessing tables
           try (Statement stmt = connection.createStatement()) {
             ResultSet tables =
-                connection.getMetaData().getTables(null, engine.toUpperCase() + "_TEST", "%", null);
+                connection.getMetaData().getTables(null, engine.toUpperCase(Locale.ROOT) + "_TEST", "%", null);
             while (tables.next()) {
               // Just iterate to trigger getTableMap()
             }
@@ -177,7 +178,7 @@ public class MaterializedViewParquetTest {
 
           // Restore stderr and check output
           System.setErr(originalErr);
-          String errorOutput = errContent.toString();
+          String errorOutput = errContent.toString(StandardCharsets.UTF_8);
 
           if (errorOutput.contains("ERROR: Materialized views are only supported with Parquet execution engine")) {
             System.out.println("   ✓ Correctly showed error for " + engine + " engine");

@@ -27,6 +27,7 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -64,7 +65,7 @@ public class GlobParquetTableTest {
   private void createTestCsvFiles() throws IOException {
     // Create sales_2023.csv
     File sales2023 = new File(dataDir, "sales_2023.csv");
-    try (FileWriter writer = new FileWriter(sales2023)) {
+    try (FileWriter writer = new FileWriter(sales2023, StandardCharsets.UTF_8)) {
       writer.write("id:int,product:string,amount:double,year:int\n");
       writer.write("1,Laptop,1200.00,2023\n");
       writer.write("2,Mouse,25.00,2023\n");
@@ -73,7 +74,7 @@ public class GlobParquetTableTest {
 
     // Create sales_2024.csv
     File sales2024 = new File(dataDir, "sales_2024.csv");
-    try (FileWriter writer = new FileWriter(sales2024)) {
+    try (FileWriter writer = new FileWriter(sales2024, StandardCharsets.UTF_8)) {
       writer.write("id:int,product:string,amount:double,year:int\n");
       writer.write("4,Monitor,350.00,2024\n");
       writer.write("5,Webcam,95.00,2024\n");
@@ -81,7 +82,7 @@ public class GlobParquetTableTest {
 
     // Create non-matching file
     File other = new File(dataDir, "inventory.csv");
-    try (FileWriter writer = new FileWriter(other)) {
+    try (FileWriter writer = new FileWriter(other, StandardCharsets.UTF_8)) {
       writer.write("id,product,quantity\n");
       writer.write("1,Laptop,50\n");
       writer.write("2,Mouse,200\n");
@@ -94,7 +95,7 @@ public class GlobParquetTableTest {
   private void createTestJsonFiles() throws IOException {
     // Create data_q1.json
     File dataQ1 = new File(dataDir, "data_q1.json");
-    try (FileWriter writer = new FileWriter(dataQ1)) {
+    try (FileWriter writer = new FileWriter(dataQ1, StandardCharsets.UTF_8)) {
       writer.write("[\n");
       writer.write("  {\"month\": \"Jan\", \"revenue\": 10000, \"quarter\": \"Q1\"},\n");
       writer.write("  {\"month\": \"Feb\", \"revenue\": 12000, \"quarter\": \"Q1\"},\n");
@@ -104,7 +105,7 @@ public class GlobParquetTableTest {
 
     // Create data_q2.json
     File dataQ2 = new File(dataDir, "data_q2.json");
-    try (FileWriter writer = new FileWriter(dataQ2)) {
+    try (FileWriter writer = new FileWriter(dataQ2, StandardCharsets.UTF_8)) {
       writer.write("[\n");
       writer.write("  {\"month\": \"Apr\", \"revenue\": 14000, \"quarter\": \"Q2\"},\n");
       writer.write("  {\"month\": \"May\", \"revenue\": 16000, \"quarter\": \"Q2\"},\n");
@@ -119,7 +120,7 @@ public class GlobParquetTableTest {
   private void createTestHtmlFiles() throws IOException {
     // Create report1.html
     File report1 = new File(dataDir, "report1.html");
-    try (FileWriter writer = new FileWriter(report1)) {
+    try (FileWriter writer = new FileWriter(report1, StandardCharsets.UTF_8)) {
       writer.write("<html><body>\n");
       writer.write("<h1>Sales Report</h1>\n");
       writer.write("<table id=\"sales\">\n");
@@ -136,7 +137,7 @@ public class GlobParquetTableTest {
 
     // Create report2.html
     File report2 = new File(dataDir, "report2.html");
-    try (FileWriter writer = new FileWriter(report2)) {
+    try (FileWriter writer = new FileWriter(report2, StandardCharsets.UTF_8)) {
       writer.write("<html><body>\n");
       writer.write("<table>\n");
       writer.write("  <tr><th>Region</th><th>Sales</th></tr>\n");
@@ -358,7 +359,7 @@ public class GlobParquetTableTest {
 
     // Add new file
     File sales2025 = new File(dataDir, "sales_2025.csv");
-    try (FileWriter writer = new FileWriter(sales2025)) {
+    try (FileWriter writer = new FileWriter(sales2025, StandardCharsets.UTF_8)) {
       writer.write("id,product,amount,year\n");
       writer.write("6,Printer,200.00,2025\n");
     }

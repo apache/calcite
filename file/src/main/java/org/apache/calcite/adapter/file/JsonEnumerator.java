@@ -87,6 +87,11 @@ public class JsonEnumerator implements Enumerator<@Nullable Object[]> {
   }
 
   static JsonDataConverter deduceRowType(RelDataTypeFactory typeFactory, Source source) {
+    return deduceRowType(typeFactory, source, (Map<String, Object>) null);
+  }
+
+  static JsonDataConverter deduceRowType(RelDataTypeFactory typeFactory, Source source,
+      Map<String, Object> options) {
     Source sourceSansGz = source.trim(".gz");
     Source sourceSansJson = sourceSansGz.trimOrNull(".json");
     Source sourceSansYaml = sourceSansGz.trimOrNull(".yaml");
@@ -97,12 +102,17 @@ public class JsonEnumerator implements Enumerator<@Nullable Object[]> {
       sourceSansYaml = sourceSansGz.trimOrNull(".hml");
     }
     if (sourceSansJson != null) {
-      return deduceRowType(typeFactory, source, "json");
+      return deduceRowType(typeFactory, source, "json", options);
     } else if (sourceSansYaml != null) {
-      return deduceRowType(typeFactory, source, "yaml");
+      return deduceRowType(typeFactory, source, "yaml", options);
     } else {
       throw new IllegalArgumentException("Unsupported data type: " + source);
     }
+  }
+
+  static JsonDataConverter deduceRowType(RelDataTypeFactory typeFactory, Source source,
+          String dataType) {
+    return deduceRowType(typeFactory, source, dataType, null);
   }
 
   /**
@@ -110,7 +120,7 @@ public class JsonEnumerator implements Enumerator<@Nullable Object[]> {
    * of a JSON file.
    */
   static JsonDataConverter deduceRowType(RelDataTypeFactory typeFactory, Source source,
-          String dataType) {
+          String dataType, Map<String, Object> options) {
     final ObjectMapper objectMapper = new ObjectMapper();
     ObjectMapper jsonMapper = new ObjectMapper();
     ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
@@ -141,8 +151,9 @@ public class JsonEnumerator implements Enumerator<@Nullable Object[]> {
           //noinspection unchecked
           jsonObj = selectedMapper.readValue(source.file(), Object.class);
         } catch (IOException lockException) {
-          LOGGER.warn("Could not acquire lock on file: " + source.path() + 
-              " - proceeding without lock");
+          LOGGER.warn("Could not acquire lock on file: "
+              + source.path()
+              + " - proceeding without lock");
           // Proceed without lock
           //noinspection unchecked
           jsonObj = selectedMapper.readValue(source.file(), Object.class);
@@ -182,9 +193,25 @@ public class JsonEnumerator implements Enumerator<@Nullable Object[]> {
       list = (List<Object>) jsonObj;
       //noinspection unchecked
       jsonFieldMap = (LinkedHashMap) list.get(0);
+      // Apply flattening if requested
+      if (options != null && Boolean.TRUE.equals(options.get("flatten"))) {
+        JsonFlattener flattener = new JsonFlattener();
+        jsonFieldMap = new LinkedHashMap<>(flattener.flatten(jsonFieldMap));
+        // Flatten all rows in the list
+        for (int i = 0; i < list.size(); i++) {
+          if (list.get(i) instanceof Map) {
+            list.set(i, flattener.flatten((Map<String, Object>) list.get(i)));
+          }
+        }
+      }
     } else if (jsonObj instanceof Map) {
       //noinspection unchecked
       jsonFieldMap = (LinkedHashMap) jsonObj;
+      // Apply flattening if requested
+      if (options != null && Boolean.TRUE.equals(options.get("flatten"))) {
+        JsonFlattener flattener = new JsonFlattener();
+        jsonFieldMap = new LinkedHashMap<>(flattener.flatten(jsonFieldMap));
+      }
       //noinspection unchecked
 //      list = new ArrayList(((LinkedHashMap) jsonObj).values());
       list = new ArrayList();

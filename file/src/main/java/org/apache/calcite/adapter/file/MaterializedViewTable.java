@@ -95,7 +95,8 @@ public class MaterializedViewTable extends AbstractTable implements Translatable
             int columnCount = rsmd.getColumnCount();
 
             // Build Avro schema from ResultSet metadata
-            SchemaBuilder.FieldAssembler<Schema> fieldAssembler = SchemaBuilder.record(viewName + "_record")
+            SchemaBuilder.FieldAssembler<Schema> fieldAssembler =
+                SchemaBuilder.record(viewName + "_record")
                 .namespace("org.apache.calcite.adapter.file")
                 .fields();
 
@@ -104,21 +105,21 @@ public class MaterializedViewTable extends AbstractTable implements Translatable
               int sqlType = rsmd.getColumnType(i);
 
               switch (sqlType) {
-                case Types.INTEGER:
-                case Types.BIGINT:
-                  fieldAssembler.name(columnName).type().longType().noDefault();
-                  break;
-                case Types.FLOAT:
-                case Types.DOUBLE:
-                case Types.DECIMAL:
-                  fieldAssembler.name(columnName).type().doubleType().noDefault();
-                  break;
-                case Types.BOOLEAN:
-                  fieldAssembler.name(columnName).type().booleanType().noDefault();
-                  break;
-                default:
-                  fieldAssembler.name(columnName).type().stringType().noDefault();
-                  break;
+              case Types.INTEGER:
+              case Types.BIGINT:
+                fieldAssembler.name(columnName).type().longType().noDefault();
+                break;
+              case Types.FLOAT:
+              case Types.DOUBLE:
+              case Types.DECIMAL:
+                fieldAssembler.name(columnName).type().doubleType().noDefault();
+                break;
+              case Types.BOOLEAN:
+                fieldAssembler.name(columnName).type().booleanType().noDefault();
+                break;
+              default:
+                fieldAssembler.name(columnName).type().stringType().noDefault();
+                break;
               }
             }
 
@@ -129,7 +130,8 @@ public class MaterializedViewTable extends AbstractTable implements Translatable
             Configuration conf = new Configuration();
 
             @SuppressWarnings("deprecation")
-            ParquetWriter<GenericRecord> writer = AvroParquetWriter.<GenericRecord>builder(hadoopPath)
+            ParquetWriter<GenericRecord> writer =
+                AvroParquetWriter.<GenericRecord>builder(hadoopPath)
                 .withConf(conf)
                 .withSchema(avroSchema)
                 .withCompressionCodec(CompressionCodecName.SNAPPY)
@@ -147,21 +149,21 @@ public class MaterializedViewTable extends AbstractTable implements Translatable
                   Object value = rs.getObject(i);
                   if (value != null && !rs.wasNull()) {
                     switch (sqlType) {
-                      case Types.INTEGER:
-                      case Types.BIGINT:
-                        record.put(columnName, rs.getLong(i));
-                        break;
-                      case Types.FLOAT:
-                      case Types.DOUBLE:
-                      case Types.DECIMAL:
-                        record.put(columnName, rs.getDouble(i));
-                        break;
-                      case Types.BOOLEAN:
-                        record.put(columnName, rs.getBoolean(i));
-                        break;
-                      default:
-                        record.put(columnName, rs.getString(i));
-                        break;
+                    case Types.INTEGER:
+                    case Types.BIGINT:
+                      record.put(columnName, rs.getLong(i));
+                      break;
+                    case Types.FLOAT:
+                    case Types.DOUBLE:
+                    case Types.DECIMAL:
+                      record.put(columnName, rs.getDouble(i));
+                      break;
+                    case Types.BOOLEAN:
+                      record.put(columnName, rs.getBoolean(i));
+                      break;
+                    default:
+                      record.put(columnName, rs.getString(i));
+                      break;
                     }
                   }
                 }
@@ -172,7 +174,8 @@ public class MaterializedViewTable extends AbstractTable implements Translatable
               writer.close();
             }
 
-            System.out.println("Materialized view written to Parquet: " + parquetFile.getAbsolutePath());
+            System.out.println("Materialized view written to Parquet: "
+                + parquetFile.getAbsolutePath());
           }
         }
       } catch (Exception e) {
@@ -199,9 +202,11 @@ public class MaterializedViewTable extends AbstractTable implements Translatable
       return ((TranslatableTable) parquetTable).toRel(context, relOptTable);
     } else if (parquetTable instanceof ScannableTable) {
       // For ScannableTable, we need to create a table scan
-      return LogicalTableScan.create(context.getCluster(), relOptTable, context.getTableHints());
+      return LogicalTableScan.create(context.getCluster(), relOptTable,
+          context.getTableHints());
     } else {
-      throw new RuntimeException("Parquet table doesn't implement TranslatableTable or ScannableTable");
+      throw new RuntimeException(
+          "Parquet table doesn't implement TranslatableTable or ScannableTable");
     }
   }
 

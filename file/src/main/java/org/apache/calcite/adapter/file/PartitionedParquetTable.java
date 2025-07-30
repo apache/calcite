@@ -184,49 +184,54 @@ public class PartitionedParquetTable extends AbstractTable implements ScannableT
     }
 
     org.apache.parquet.schema.PrimitiveType primitiveType = parquetType.asPrimitiveType();
-    org.apache.parquet.schema.LogicalTypeAnnotation logicalType = primitiveType.getLogicalTypeAnnotation();
+    org.apache.parquet.schema.LogicalTypeAnnotation logicalType =
+        primitiveType.getLogicalTypeAnnotation();
 
     switch (primitiveType.getPrimitiveTypeName()) {
-      case INT32:
-        // Check for logical types
-        if (logicalType instanceof org.apache.parquet.schema.LogicalTypeAnnotation.IntLogicalTypeAnnotation) {
-          org.apache.parquet.schema.LogicalTypeAnnotation.IntLogicalTypeAnnotation intType =
-              (org.apache.parquet.schema.LogicalTypeAnnotation.IntLogicalTypeAnnotation) logicalType;
-          if (intType.getBitWidth() <= 8) {
-            return SqlTypeName.TINYINT;
-          } else if (intType.getBitWidth() <= 16) {
-            return SqlTypeName.SMALLINT;
-          }
+    case INT32:
+      // Check for logical types
+      if (logicalType
+          instanceof org.apache.parquet.schema.LogicalTypeAnnotation.IntLogicalTypeAnnotation) {
+        org.apache.parquet.schema.LogicalTypeAnnotation.IntLogicalTypeAnnotation intType =
+            (org.apache.parquet.schema.LogicalTypeAnnotation.IntLogicalTypeAnnotation)
+                logicalType;
+        if (intType.getBitWidth() <= 8) {
+          return SqlTypeName.TINYINT;
+        } else if (intType.getBitWidth() <= 16) {
+          return SqlTypeName.SMALLINT;
         }
-        return SqlTypeName.INTEGER;
-      case INT64:
-        return SqlTypeName.BIGINT;
-      case FLOAT:
-        return SqlTypeName.REAL;
-      case DOUBLE:
-        return SqlTypeName.DOUBLE;
-      case BOOLEAN:
-        return SqlTypeName.BOOLEAN;
-      case BINARY:
-      case FIXED_LEN_BYTE_ARRAY:
-        // Check if it's a string
-        if (logicalType instanceof org.apache.parquet.schema.LogicalTypeAnnotation.StringLogicalTypeAnnotation) {
-          return SqlTypeName.VARCHAR;
-        }
-        // Check using ConvertedType instead of deprecated OriginalType
-        org.apache.parquet.schema.Type.Repetition repetition = primitiveType.getRepetition();
-        if (primitiveType.getId() != null &&
-            primitiveType.getName() != null &&
-            primitiveType.getPrimitiveTypeName() == org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.BINARY) {
-          // Most BINARY types in Parquet files are strings unless explicitly marked otherwise
-          return SqlTypeName.VARCHAR;
-        }
-        return SqlTypeName.VARBINARY;
-      case INT96:
-        // INT96 is typically used for timestamps
-        return SqlTypeName.TIMESTAMP;
-      default:
+      }
+      return SqlTypeName.INTEGER;
+    case INT64:
+      return SqlTypeName.BIGINT;
+    case FLOAT:
+      return SqlTypeName.REAL;
+    case DOUBLE:
+      return SqlTypeName.DOUBLE;
+    case BOOLEAN:
+      return SqlTypeName.BOOLEAN;
+    case BINARY:
+    case FIXED_LEN_BYTE_ARRAY:
+      // Check if it's a string
+      if (logicalType
+          instanceof org.apache.parquet.schema.LogicalTypeAnnotation.StringLogicalTypeAnnotation) {
         return SqlTypeName.VARCHAR;
+      }
+      // Check using ConvertedType instead of deprecated OriginalType
+      org.apache.parquet.schema.Type.Repetition repetition = primitiveType.getRepetition();
+      if (primitiveType.getId() != null
+          && primitiveType.getName() != null
+          && primitiveType.getPrimitiveTypeName()
+          == org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.BINARY) {
+        // Most BINARY types in Parquet files are strings unless explicitly marked otherwise
+        return SqlTypeName.VARCHAR;
+      }
+      return SqlTypeName.VARBINARY;
+    case INT96:
+      // INT96 is typically used for timestamps
+      return SqlTypeName.TIMESTAMP;
+    default:
+      return SqlTypeName.VARCHAR;
     }
   }
 
@@ -349,7 +354,8 @@ public class PartitionedParquetTable extends AbstractTable implements ScannableT
           // Put the record back by creating a new reader
           closeCurrentReader();
           @SuppressWarnings("deprecation")
-          ParquetReader<GenericRecord> newReader = AvroParquetReader.<GenericRecord>builder(hadoopPath)
+          ParquetReader<GenericRecord> newReader =
+              AvroParquetReader.<GenericRecord>builder(hadoopPath)
               .withConf(conf)
               .build();
           currentReader = newReader;
@@ -370,12 +376,17 @@ public class PartitionedParquetTable extends AbstractTable implements ScannableT
       PartitionDetector.PartitionInfo filePartitionInfo = null;
 
       if (globalPartitionInfo.isHiveStyle()) {
-        filePartitionInfo = PartitionDetector.extractHivePartitions(filePath);
+        filePartitionInfo =
+            PartitionDetector.extractHivePartitions(filePath);
       } else if (customRegex != null && columnMappings != null) {
         // Custom regex partitions
-        filePartitionInfo = PartitionDetector.extractCustomPartitions(filePath, customRegex, columnMappings);
+        filePartitionInfo =
+            PartitionDetector.extractCustomPartitions(filePath, customRegex,
+                columnMappings);
       } else if (partitionColumns != null && !partitionColumns.isEmpty()) {
-        filePartitionInfo = PartitionDetector.extractDirectoryPartitions(filePath, partitionColumns);
+        filePartitionInfo =
+            PartitionDetector.extractDirectoryPartitions(filePath,
+                partitionColumns);
       }
 
       return filePartitionInfo != null
@@ -427,33 +438,33 @@ public class PartitionedParquetTable extends AbstractTable implements ScannableT
       }
 
       switch (sqlType) {
-        case INTEGER:
-          return Integer.parseInt(strValue);
-        case BIGINT:
-          return Long.parseLong(strValue);
-        case SMALLINT:
-          return Short.parseShort(strValue);
-        case TINYINT:
-          return Byte.parseByte(strValue);
-        case DOUBLE:
-          return Double.parseDouble(strValue);
-        case FLOAT:
-        case REAL:
-          return Float.parseFloat(strValue);
-        case DECIMAL:
-          return new java.math.BigDecimal(strValue);
-        case BOOLEAN:
-          return Boolean.parseBoolean(strValue);
-        case DATE:
-          // Simple date parsing for yyyy-MM-dd format
-          if (strValue.matches("\\d{4}-\\d{2}-\\d{2}")) {
-            return java.sql.Date.valueOf(strValue);
-          }
-          return strValue;
-        case VARCHAR:
-        case CHAR:
-        default:
-          return strValue;
+      case INTEGER:
+        return Integer.parseInt(strValue);
+      case BIGINT:
+        return Long.parseLong(strValue);
+      case SMALLINT:
+        return Short.parseShort(strValue);
+      case TINYINT:
+        return Byte.parseByte(strValue);
+      case DOUBLE:
+        return Double.parseDouble(strValue);
+      case FLOAT:
+      case REAL:
+        return Float.parseFloat(strValue);
+      case DECIMAL:
+        return new java.math.BigDecimal(strValue);
+      case BOOLEAN:
+        return Boolean.parseBoolean(strValue);
+      case DATE:
+        // Simple date parsing for yyyy-MM-dd format
+        if (strValue.matches("\\d{4}-\\d{2}-\\d{2}")) {
+          return java.sql.Date.valueOf(strValue);
+        }
+        return strValue;
+      case VARCHAR:
+      case CHAR:
+      default:
+        return strValue;
       }
     }
 

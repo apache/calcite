@@ -93,8 +93,8 @@ public class RefreshableCsvTable extends CsvTranslatableTable implements Refresh
           lastModifiedTime = currentModified;
         }
       }
-    } else if ("http".equals(protocol) || "https".equals(protocol) ||
-               "s3".equals(protocol) || "ftp".equals(protocol)) {
+    } else if ("http".equals(protocol) || "https".equals(protocol)
+               || "s3".equals(protocol) || "ftp".equals(protocol)) {
       // Remote file - use metadata checking
       try {
         RemoteFileMetadata currentMetadata = RemoteFileMetadata.fetch(source);

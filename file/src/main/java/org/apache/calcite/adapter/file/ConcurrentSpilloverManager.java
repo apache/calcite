@@ -32,13 +32,16 @@ import java.util.concurrent.TimeUnit;
 public class ConcurrentSpilloverManager {
   // Connection ID to spillover directory mapping
   private static final ConcurrentHashMap<String, Path> CONNECTION_DIRS = new ConcurrentHashMap<>();
-  
+
   // Base spillover directory (configurable via system property)
-  private static final String SPILLOVER_BASE = System.getProperty(
-      "calcite.spillover.dir", 
-      System.getProperty("java.io.tmpdir") + File.separator + "calcite_spillover"
-  );
-  
+  private static final String SPILLOVER_BASE =
+      System.getProperty("calcite.spillover.dir",
+      System.getProperty("java.io.tmpdir") + File.separator + "calcite_spillover");
+
+  private ConcurrentSpilloverManager() {
+    // Utility class should not be instantiated
+  }
+
   /**
    * Get or create a spillover directory for a specific connection.
    * Each connection gets its own subdirectory to avoid conflicts.
@@ -49,34 +52,36 @@ public class ConcurrentSpilloverManager {
         // Create base directory if it doesn't exist
         Path baseDir = Paths.get(SPILLOVER_BASE);
         Files.createDirectories(baseDir);
-        
+
         // Create connection-specific directory with UUID to ensure uniqueness
         String dirName = "conn_" + id + "_" + UUID.randomUUID().toString();
         Path connDir = baseDir.resolve(dirName);
         Files.createDirectories(connDir);
-        
+
         // Register shutdown hook for cleanup
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-          cleanupConnectionDirectory(id);
-        }));
-        
+        Runtime.getRuntime().addShutdownHook(
+            new Thread(() -> {
+              cleanupConnectionDirectory(id);
+            }));
+
         return connDir;
       } catch (IOException e) {
         throw new RuntimeException("Failed to create spillover directory", e);
       }
     });
   }
-  
+
   /**
    * Create a unique spillover file within the connection's directory.
    */
   public static File createSpilloverFile(String connectionId, String prefix) throws IOException {
     Path spillDir = getSpilloverDirectory(connectionId);
-    String fileName = prefix + "_" + System.currentTimeMillis() + "_" + 
-        Thread.currentThread().threadId() + ".tmp";
+    String fileName = prefix + "_" + System.currentTimeMillis()
+        + "_"
+        + Thread.currentThread().threadId() + ".tmp";
     return spillDir.resolve(fileName).toFile();
   }
-  
+
   /**
    * Clean up spillover directory for a connection.
    */
@@ -100,7 +105,7 @@ public class ConcurrentSpilloverManager {
       }
     }
   }
-  
+
   /**
    * Clean up old spillover directories (older than specified hours).
    */
@@ -110,9 +115,9 @@ public class ConcurrentSpilloverManager {
       if (!Files.exists(baseDir)) {
         return;
       }
-      
+
       long cutoffTime = System.currentTimeMillis() - TimeUnit.HOURS.toMillis(hoursOld);
-      
+
       Files.list(baseDir)
           .filter(Files::isDirectory)
           .filter(dir -> {
@@ -137,7 +142,7 @@ public class ConcurrentSpilloverManager {
               // Ignore
             }
           });
-          
+
     } catch (IOException e) {
       System.err.println("Error during spillover cleanup: " + e.getMessage());
     }

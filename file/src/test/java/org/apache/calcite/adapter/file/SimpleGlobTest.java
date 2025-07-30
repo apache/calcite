@@ -23,6 +23,7 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 
@@ -50,7 +51,7 @@ public class SimpleGlobTest {
   @Test public void testHtmlToJsonConverter() throws Exception {
     // Create a simple HTML file
     File htmlFile = new File(dataDir, "test.html");
-    try (FileWriter writer = new FileWriter(htmlFile)) {
+    try (FileWriter writer = new FileWriter(htmlFile, StandardCharsets.UTF_8)) {
       writer.write("<html><body>\n");
       writer.write("<table>\n");
       writer.write("  <tr><th>Name</th><th>Age</th></tr>\n");
@@ -121,7 +122,7 @@ public class SimpleGlobTest {
 
   private void createTestCsvFile(String filename) throws IOException {
     File csvFile = new File(dataDir, filename);
-    try (FileWriter writer = new FileWriter(csvFile)) {
+    try (FileWriter writer = new FileWriter(csvFile, StandardCharsets.UTF_8)) {
       writer.write("id,name,value\n");
       writer.write("1,Test1,100\n");
       writer.write("2,Test2,200\n");

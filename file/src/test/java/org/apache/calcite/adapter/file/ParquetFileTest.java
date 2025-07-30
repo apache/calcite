@@ -39,6 +39,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -160,7 +161,7 @@ public class ParquetFileTest {
 
         int rowCount = 0;
         while (rs.next()) {
-          System.out.printf("   %2d | %-8s | %-11s | %.2f%n",
+          System.out.printf(Locale.ROOT, "   %2d | %-8s | %-11s | %.2f%n",
               rs.getInt("id"),
               rs.getString("name"),
               rs.getString("department"),
@@ -183,7 +184,7 @@ public class ParquetFileTest {
         System.out.println("   ------------|-------|------------");
 
         while (aggRs.next()) {
-          System.out.printf("   %-11s | %5d | %.2f%n",
+          System.out.printf(Locale.ROOT, "   %-11s | %5d | %.2f%n",
               aggRs.getString("department"),
               aggRs.getInt("emp_count"),
               aggRs.getDouble("avg_salary"));
@@ -230,7 +231,7 @@ public class ParquetFileTest {
 
         int rowCount = 0;
         while (rs.next()) {
-          System.out.printf("   %-8s | %-11s | %.2f%n",
+          System.out.printf(Locale.ROOT, "   %-8s | %-11s | %.2f%n",
               rs.getString("name"),
               rs.getString("department"),
               rs.getDouble("salary"));

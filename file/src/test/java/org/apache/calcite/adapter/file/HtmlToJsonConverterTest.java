@@ -25,6 +25,7 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -44,7 +45,7 @@ public class HtmlToJsonConverterTest {
    */
   private File createSimpleHtmlFile() throws IOException {
     File htmlFile = new File(tempDir, "simple.html");
-    try (FileWriter writer = new FileWriter(htmlFile)) {
+    try (FileWriter writer = new FileWriter(htmlFile, StandardCharsets.UTF_8)) {
       writer.write("<html><body>\n");
       writer.write("<table>\n");
       writer.write("  <tr><th>Name</th><th>Age</th><th>City</th></tr>\n");
@@ -62,7 +63,7 @@ public class HtmlToJsonConverterTest {
    */
   private File createMultiTableHtmlFile() throws IOException {
     File htmlFile = new File(tempDir, "multi.html");
-    try (FileWriter writer = new FileWriter(htmlFile)) {
+    try (FileWriter writer = new FileWriter(htmlFile, StandardCharsets.UTF_8)) {
       writer.write("<html><body>\n");
       writer.write("<h2>Sales Data</h2>\n");
       writer.write("<table id=\"sales\">\n");
@@ -87,7 +88,7 @@ public class HtmlToJsonConverterTest {
    */
   private File createNumericHtmlFile() throws IOException {
     File htmlFile = new File(tempDir, "numeric.html");
-    try (FileWriter writer = new FileWriter(htmlFile)) {
+    try (FileWriter writer = new FileWriter(htmlFile, StandardCharsets.UTF_8)) {
       writer.write("<html><body>\n");
       writer.write("<table>\n");
       writer.write("  <tr><th>ID</th><th>Score</th><th>Percentage</th><th>Active</th></tr>\n");
@@ -216,7 +217,7 @@ public class HtmlToJsonConverterTest {
 
   @Test public void testEmptyHtml() throws Exception {
     File htmlFile = new File(tempDir, "empty.html");
-    try (FileWriter writer = new FileWriter(htmlFile)) {
+    try (FileWriter writer = new FileWriter(htmlFile, StandardCharsets.UTF_8)) {
       writer.write("<html><body><p>No tables here</p></body></html>");
     }
 
@@ -231,7 +232,7 @@ public class HtmlToJsonConverterTest {
 
   @Test public void testSpecialCharactersInTableName() throws Exception {
     File htmlFile = new File(tempDir, "special.html");
-    try (FileWriter writer = new FileWriter(htmlFile)) {
+    try (FileWriter writer = new FileWriter(htmlFile, StandardCharsets.UTF_8)) {
       writer.write("<html><body>\n");
       writer.write("<table id=\"sales-data (2024)\">\n");
       writer.write("  <tr><th>Month</th><th>Revenue</th></tr>\n");
@@ -245,7 +246,7 @@ public class HtmlToJsonConverterTest {
 
     String fileName = jsonFiles.get(0).getName();
     assertTrue(fileName.startsWith("special_"));
-    // ID "sales-data (2024)" gets sanitized to "salesdata_2024" 
+    // ID "sales-data (2024)" gets sanitized to "salesdata_2024"
     assertTrue(fileName.contains("salesdata_2024"));
     assertTrue(fileName.endsWith(".json"));
 

@@ -53,7 +53,8 @@ public class FileSchemaFactory implements SchemaFactory {
 
     // Execution engine configuration
     final String executionEngine =
-        (String) operand.getOrDefault("executionEngine", ExecutionEngineConfig.DEFAULT_EXECUTION_ENGINE);
+        (String) operand.getOrDefault("executionEngine",
+            ExecutionEngineConfig.DEFAULT_EXECUTION_ENGINE);
     final Object batchSizeObj = operand.get("batchSize");
     final int batchSize = batchSizeObj instanceof Number
         ? ((Number) batchSizeObj).intValue()
@@ -84,6 +85,12 @@ public class FileSchemaFactory implements SchemaFactory {
     // Get refresh interval for schema (default for all tables)
     final String refreshInterval = (String) operand.get("refreshInterval");
 
+    // Get table name casing configuration (default to UPPER for backward compatibility)
+    final String tableNameCasing = (String) operand.getOrDefault("tableNameCasing", "UPPER");
+
+    // Get column name casing configuration (default to UNCHANGED for backward compatibility)
+    final String columnNameCasing = (String) operand.getOrDefault("columnNameCasing", "UNCHANGED");
+
     File directoryFile = null;
     if (directory != null) {
       directoryFile = new File(directory);
@@ -95,7 +102,9 @@ public class FileSchemaFactory implements SchemaFactory {
         directoryFile = new File(baseDirectory, directory);
       }
     }
-    return new FileSchema(parentSchema, name, directoryFile, directory, tables, engineConfig, recursive,
-        materializations, views, partitionedTables, refreshInterval);
+    return new FileSchema(parentSchema, name, directoryFile, directory,
+        tables, engineConfig, recursive,
+        materializations, views, partitionedTables, refreshInterval, tableNameCasing,
+        columnNameCasing);
   }
 }
