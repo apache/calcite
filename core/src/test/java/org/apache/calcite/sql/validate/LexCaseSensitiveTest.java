@@ -80,7 +80,7 @@ class LexCaseSensitiveTest {
       assertThat(fieldNames.get(1), is("empid"));
     } else {
       assertThat(fieldNames.get(0) + "-" + fieldNames.get(1),
-          anyOf(is("EMPID-empid0"), is("EMPID0-empid")));
+          anyOf(is("EMPID-empid0"), is("EMPID0-empid"), is("empid-empid0"), is("empid-empid")));
     }
   }
 
@@ -121,6 +121,18 @@ class LexCaseSensitiveTest {
     String sql = "select EMPID, empid from\n"
         + " (select empid from emps order by emps.deptno)";
     runProjectQueryWithLex(Lex.MYSQL_ANSI, sql);
+  }
+
+  @Test void testCalciteCasePostgresql() throws Exception {
+    String sql = "select empid as EMPID, empid from (\n"
+        + "  select empid from emps order by EMPS.DEPTNO)";
+    runProjectQueryWithLex(Lex.POSTGRESQL, sql);
+  }
+
+  @Test void testCalciteCasePostgresqlNoException() throws Exception {
+    String sql = "select EMPID, empid from\n"
+        + " (select empid from emps order by emps.deptno)";
+    runProjectQueryWithLex(Lex.POSTGRESQL, sql);
   }
 
   @Test void testCalciteCaseSqlServer() throws Exception {
