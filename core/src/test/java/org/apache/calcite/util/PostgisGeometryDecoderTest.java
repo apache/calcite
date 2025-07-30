@@ -17,18 +17,20 @@
 package org.apache.calcite.util;
 
 import org.junit.jupiter.api.Test;
+import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
-import org.locationtech.jts.io.WKTWriter;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Tests for the {@link PostgisGeometryDecoder} class. These tests are based
  * on the values retrieved from PostGIS using the JDBC driver for PostgreSQL.
  */
 class PostgisGeometryDecoderTest {
+
+  private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory();
 
   private static final String POINT = "0101000020E6100000000000000000F03F000000"
       + "0000000040";
@@ -67,58 +69,102 @@ class PostgisGeometryDecoderTest {
 
   @Test void decodeNull() {
     Geometry geometry = PostgisGeometryDecoder.decode((String) null);
-    assertEquals(null, geometry);
+    assertNull(geometry);
   }
 
   @Test void decodePoint() {
     Geometry geometry = PostgisGeometryDecoder.decode(POINT);
-    assertTrue(geometry instanceof Point);
-    assertEquals("POINT (1 2)", new WKTWriter().write(geometry));
+    Geometry expected = GEOMETRY_FACTORY.createPoint(new Coordinate(1, 2));
+    assertTrue(expected.equalsExact(geometry));
   }
 
   @Test void decodeLineString() {
     Geometry geometry = PostgisGeometryDecoder.decode(LINESTRING);
-    assertTrue(geometry instanceof org.locationtech.jts.geom.LineString);
-    assertEquals("LINESTRING (0 0, 1 1, 2 2)", new WKTWriter().write(geometry));
+    Geometry expected = GEOMETRY_FACTORY.createLineString(new Coordinate[] {
+        new Coordinate(0, 0),
+        new Coordinate(1, 1),
+        new Coordinate(2, 2)
+    });
+    assertTrue(expected.equalsExact(geometry));
   }
 
   @Test void decodePolygon() {
     Geometry geometry = PostgisGeometryDecoder.decode(POLYGON);
-    assertTrue(geometry instanceof org.locationtech.jts.geom.Polygon);
-    assertEquals(
-        "POLYGON ((0 0, 1 0, 1 1, 0 1, 0 0), (0.5 0.5, 0.5 0.6, 0.6 0.6, 0.6 0.5, 0.5 0.5))",
-        new WKTWriter().write(geometry));
+    org.locationtech.jts.geom.LinearRing shell = GEOMETRY_FACTORY.createLinearRing(new Coordinate[] {
+        new Coordinate(0, 0),
+        new Coordinate(1, 0),
+        new Coordinate(1, 1),
+        new Coordinate(0, 1),
+        new Coordinate(0, 0)
+    });
+    org.locationtech.jts.geom.LinearRing hole = GEOMETRY_FACTORY.createLinearRing(new Coordinate[] {
+        new Coordinate(0.5, 0.5),
+        new Coordinate(0.5, 0.6),
+        new Coordinate(0.6, 0.6),
+        new Coordinate(0.6, 0.5),
+        new Coordinate(0.5, 0.5)
+    });
+    org.locationtech.jts.geom.Polygon expected = GEOMETRY_FACTORY.createPolygon(shell, new org.locationtech.jts.geom.LinearRing[] {hole});
+    assertTrue(expected.equalsExact(geometry));
   }
 
   @Test void decodeMultiPoint() {
     Geometry geometry = PostgisGeometryDecoder.decode(MULTIPOINT);
-    assertTrue(geometry instanceof org.locationtech.jts.geom.MultiPoint);
-    assertEquals(
-        "MULTIPOINT ((0 0), (1 1))",
-        new WKTWriter().write(geometry));
+    Point[] points = new Point[] {
+        GEOMETRY_FACTORY.createPoint(new Coordinate(0, 0)),
+        GEOMETRY_FACTORY.createPoint(new Coordinate(1, 1))
+    };
+    Geometry expected = GEOMETRY_FACTORY.createMultiPoint(points);
+    assertTrue(expected.equalsExact(geometry));
   }
 
   @Test void decodeMultiLineString() {
     Geometry geometry = PostgisGeometryDecoder.decode(MULTILINESTRING);
-    assertTrue(geometry instanceof org.locationtech.jts.geom.MultiLineString);
-    assertEquals(
-        "MULTILINESTRING ((0 0, 1 1), (2 2, 3 3))",
-        new WKTWriter().write(geometry));
+    Geometry expected = GEOMETRY_FACTORY.createMultiLineString(new org.locationtech.jts.geom.LineString[] {
+        GEOMETRY_FACTORY.createLineString(new Coordinate[] {
+            new Coordinate(0, 0),
+            new Coordinate(1, 1)
+        }),
+        GEOMETRY_FACTORY.createLineString(new Coordinate[] {
+            new Coordinate(2, 2),
+            new Coordinate(3, 3)
+        })
+    });
+    assertTrue(expected.equalsExact(geometry));
   }
 
   @Test void decodeMultiPolygon() {
     Geometry geometry = PostgisGeometryDecoder.decode(MULTIPOLYGON);
-    assertTrue(geometry instanceof org.locationtech.jts.geom.MultiPolygon);
-    assertEquals(
-        "MULTIPOLYGON (((0 0, 1 0, 1 1, 0 1, 0 0)), ((2 2, 3 2, 3 3, 2 3, 2 2)))",
-        new WKTWriter().write(geometry));
+    org.locationtech.jts.geom.Polygon[] polygons = new org.locationtech.jts.geom.Polygon[] {
+        GEOMETRY_FACTORY.createPolygon(GEOMETRY_FACTORY.createLinearRing(new Coordinate[] {
+            new Coordinate(0, 0),
+            new Coordinate(1, 0),
+            new Coordinate(1, 1),
+            new Coordinate(0, 1),
+            new Coordinate(0, 0)
+        }), null),
+        GEOMETRY_FACTORY.createPolygon(GEOMETRY_FACTORY.createLinearRing(new Coordinate[] {
+            new Coordinate(2, 2),
+            new Coordinate(3, 2),
+            new Coordinate(3, 3),
+            new Coordinate(2, 3),
+            new Coordinate(2, 2)
+        }), null)
+    };
+    Geometry expected = GEOMETRY_FACTORY.createMultiPolygon(polygons);
+    assertTrue(expected.equalsExact(geometry));
   }
 
   @Test void decodeGeometryCollection() {
     Geometry geometry = PostgisGeometryDecoder.decode(GEOMETRYCOLLECTION);
-    assertTrue(geometry instanceof org.locationtech.jts.geom.GeometryCollection);
-    assertEquals(
-        "GEOMETRYCOLLECTION (POINT (0 0), LINESTRING (1 1, 2 2))",
-        new WKTWriter().write(geometry));
+    Geometry[] geometries = new Geometry[] {
+        GEOMETRY_FACTORY.createPoint(new Coordinate(0, 0)),
+        GEOMETRY_FACTORY.createLineString(new Coordinate[] {
+            new Coordinate(1, 1),
+            new Coordinate(2, 2)
+        })
+    };
+    Geometry expected = GEOMETRY_FACTORY.createGeometryCollection(geometries);
+    assertTrue(expected.equalsExact(geometry));
   }
 }
