@@ -43,6 +43,8 @@ import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexFieldCollation;
+import org.apache.calcite.rex.RexLambda;
+import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
@@ -615,6 +617,26 @@ public class RelJson {
       map.put("correl", ((RexCorrelVariable) node).getName());
       map.put("type", toJson(node.getType()));
       return map;
+    case LAMBDA_REF: {
+      RexLambdaRef ref = (RexLambdaRef) node;
+      map = jsonBuilder().map();
+      map.put("index", ref.getIndex());
+      map.put("name", ref.getName());
+      map.put("type", toJson(ref.getType()));
+      return map;
+    }
+    case LAMBDA: {
+      RexLambda lambda = (RexLambda) node;
+      map = jsonBuilder().map();
+      final List<@Nullable Object> parameters = jsonBuilder().list();
+      for (RexLambdaRef param : lambda.getParameters()) {
+        parameters.add(toJson(param));
+      }
+      map.put("op", "lambda");
+      map.put("parameters", parameters);
+      map.put("expression", toJson(lambda.getExpression()));
+      return map;
+    }
     default:
       if (node instanceof RexCall) {
         final RexCall call = (RexCall) node;
