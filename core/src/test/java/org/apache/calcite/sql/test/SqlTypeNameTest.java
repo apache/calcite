@@ -34,6 +34,7 @@ import static org.apache.calcite.sql.type.SqlTypeName.DISTINCT;
 import static org.apache.calcite.sql.type.SqlTypeName.DOUBLE;
 import static org.apache.calcite.sql.type.SqlTypeName.FLOAT;
 import static org.apache.calcite.sql.type.SqlTypeName.INTEGER;
+import static org.apache.calcite.sql.type.SqlTypeName.OTHER;
 import static org.apache.calcite.sql.type.SqlTypeName.REAL;
 import static org.apache.calcite.sql.type.SqlTypeName.SMALLINT;
 import static org.apache.calcite.sql.type.SqlTypeName.STRUCTURED;
@@ -202,7 +203,7 @@ class SqlTypeNameTest {
   @Test void testOther() {
     SqlTypeName tn =
         SqlTypeName.getNameForJdbcType(Types.OTHER);
-    assertThat("OTHER did not map to null", tn, nullValue());
+    assertThat("OTHER did not map to OTHER", tn, is(OTHER));
   }
 
   @Test void testJavaobject() {
