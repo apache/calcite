@@ -22,6 +22,8 @@ import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 
+import java.nio.ByteBuffer;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -67,20 +69,23 @@ class PostgisGeometryDecoderTest {
       + "1010000000000000000000000000000000000000001020000000200000000000000000"
       + "0F03F000000000000F03F00000000000000400000000000000040";
 
-  @Test void decodeNull() {
+  @Test
+  void decodeNull() {
     Geometry geometry = PostgisGeometryDecoder.decode((String) null);
     assertNull(geometry);
   }
 
-  @Test void decodePoint() {
+  @Test
+  void decodePoint() {
     Geometry geometry = PostgisGeometryDecoder.decode(POINT);
     Geometry expected = GEOMETRY_FACTORY.createPoint(new Coordinate(1, 2));
     assertTrue(expected.equalsExact(geometry));
   }
 
-  @Test void decodeLineString() {
+  @Test
+  void decodeLineString() {
     Geometry geometry = PostgisGeometryDecoder.decode(LINESTRING);
-    Geometry expected = GEOMETRY_FACTORY.createLineString(new Coordinate[] {
+    Geometry expected = GEOMETRY_FACTORY.createLineString(new Coordinate[]{
         new Coordinate(0, 0),
         new Coordinate(1, 1),
         new Coordinate(2, 2)
@@ -88,29 +93,31 @@ class PostgisGeometryDecoderTest {
     assertTrue(expected.equalsExact(geometry));
   }
 
-  @Test void decodePolygon() {
+  @Test
+  void decodePolygon() {
     Geometry geometry = PostgisGeometryDecoder.decode(POLYGON);
-    org.locationtech.jts.geom.LinearRing shell = GEOMETRY_FACTORY.createLinearRing(new Coordinate[] {
+    org.locationtech.jts.geom.LinearRing shell = GEOMETRY_FACTORY.createLinearRing(new Coordinate[]{
         new Coordinate(0, 0),
         new Coordinate(1, 0),
         new Coordinate(1, 1),
         new Coordinate(0, 1),
         new Coordinate(0, 0)
     });
-    org.locationtech.jts.geom.LinearRing hole = GEOMETRY_FACTORY.createLinearRing(new Coordinate[] {
+    org.locationtech.jts.geom.LinearRing hole = GEOMETRY_FACTORY.createLinearRing(new Coordinate[]{
         new Coordinate(0.5, 0.5),
         new Coordinate(0.5, 0.6),
         new Coordinate(0.6, 0.6),
         new Coordinate(0.6, 0.5),
         new Coordinate(0.5, 0.5)
     });
-    org.locationtech.jts.geom.Polygon expected = GEOMETRY_FACTORY.createPolygon(shell, new org.locationtech.jts.geom.LinearRing[] {hole});
+    org.locationtech.jts.geom.Polygon expected = GEOMETRY_FACTORY.createPolygon(shell, new org.locationtech.jts.geom.LinearRing[]{hole});
     assertTrue(expected.equalsExact(geometry));
   }
 
-  @Test void decodeMultiPoint() {
+  @Test
+  void decodeMultiPoint() {
     Geometry geometry = PostgisGeometryDecoder.decode(MULTIPOINT);
-    Point[] points = new Point[] {
+    Point[] points = new Point[]{
         GEOMETRY_FACTORY.createPoint(new Coordinate(0, 0)),
         GEOMETRY_FACTORY.createPoint(new Coordinate(1, 1))
     };
@@ -118,14 +125,15 @@ class PostgisGeometryDecoderTest {
     assertTrue(expected.equalsExact(geometry));
   }
 
-  @Test void decodeMultiLineString() {
+  @Test
+  void decodeMultiLineString() {
     Geometry geometry = PostgisGeometryDecoder.decode(MULTILINESTRING);
-    Geometry expected = GEOMETRY_FACTORY.createMultiLineString(new org.locationtech.jts.geom.LineString[] {
-        GEOMETRY_FACTORY.createLineString(new Coordinate[] {
+    Geometry expected = GEOMETRY_FACTORY.createMultiLineString(new org.locationtech.jts.geom.LineString[]{
+        GEOMETRY_FACTORY.createLineString(new Coordinate[]{
             new Coordinate(0, 0),
             new Coordinate(1, 1)
         }),
-        GEOMETRY_FACTORY.createLineString(new Coordinate[] {
+        GEOMETRY_FACTORY.createLineString(new Coordinate[]{
             new Coordinate(2, 2),
             new Coordinate(3, 3)
         })
@@ -133,17 +141,18 @@ class PostgisGeometryDecoderTest {
     assertTrue(expected.equalsExact(geometry));
   }
 
-  @Test void decodeMultiPolygon() {
+  @Test
+  void decodeMultiPolygon() {
     Geometry geometry = PostgisGeometryDecoder.decode(MULTIPOLYGON);
-    org.locationtech.jts.geom.Polygon[] polygons = new org.locationtech.jts.geom.Polygon[] {
-        GEOMETRY_FACTORY.createPolygon(GEOMETRY_FACTORY.createLinearRing(new Coordinate[] {
+    org.locationtech.jts.geom.Polygon[] polygons = new org.locationtech.jts.geom.Polygon[]{
+        GEOMETRY_FACTORY.createPolygon(GEOMETRY_FACTORY.createLinearRing(new Coordinate[]{
             new Coordinate(0, 0),
             new Coordinate(1, 0),
             new Coordinate(1, 1),
             new Coordinate(0, 1),
             new Coordinate(0, 0)
         }), null),
-        GEOMETRY_FACTORY.createPolygon(GEOMETRY_FACTORY.createLinearRing(new Coordinate[] {
+        GEOMETRY_FACTORY.createPolygon(GEOMETRY_FACTORY.createLinearRing(new Coordinate[]{
             new Coordinate(2, 2),
             new Coordinate(3, 2),
             new Coordinate(3, 3),
@@ -155,16 +164,40 @@ class PostgisGeometryDecoderTest {
     assertTrue(expected.equalsExact(geometry));
   }
 
-  @Test void decodeGeometryCollection() {
+  @Test
+  void decodeGeometryCollection() {
     Geometry geometry = PostgisGeometryDecoder.decode(GEOMETRYCOLLECTION);
-    Geometry[] geometries = new Geometry[] {
+    Geometry[] geometries = new Geometry[]{
         GEOMETRY_FACTORY.createPoint(new Coordinate(0, 0)),
-        GEOMETRY_FACTORY.createLineString(new Coordinate[] {
+        GEOMETRY_FACTORY.createLineString(new Coordinate[]{
             new Coordinate(1, 1),
             new Coordinate(2, 2)
         })
     };
     Geometry expected = GEOMETRY_FACTORY.createGeometryCollection(geometries);
     assertTrue(expected.equalsExact(geometry));
+  }
+
+  @Test
+  void decodeInvalidHex() {
+    String invalidHex = "XYZ";
+    assertThrows(IllegalArgumentException.class, () -> PostgisGeometryDecoder.decode(invalidHex));
+  }
+
+  @Test
+  void decodeUnknownEndianFlag() {
+    byte[] bytes = new byte[]{(byte) 2, 0, 0, 0, 0};
+    ByteBuffer buffer = ByteBuffer.wrap(bytes);
+    assertThrows(IllegalArgumentException.class, () -> PostgisGeometryDecoder.decode(buffer));
+  }
+
+  @Test
+  void decodeUnknownGeometryType() {
+    ByteBuffer buffer = ByteBuffer.allocate(9);
+    buffer.put((byte) 1); // little endian
+    buffer.putInt(999); // unknown geometry type
+    buffer.putInt(0); // dummy SRID
+    buffer.rewind();
+    assertThrows(IllegalArgumentException.class, () -> PostgisGeometryDecoder.decode(buffer));
   }
 }
