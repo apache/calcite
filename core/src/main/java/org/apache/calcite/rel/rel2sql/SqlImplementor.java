@@ -1530,7 +1530,7 @@ public abstract class SqlImplementor {
       // Create a string without specifying a charset
       return SqlLiteral.createCharString((String) castNonNull(literal.getValue2()), POS);
     }
-    case GEOMETRY: {
+    case GEO: {
       Geometry geom = castNonNull(literal.getValueAs(Geometry.class));
       switch (typeName) {
       case CHAR:
