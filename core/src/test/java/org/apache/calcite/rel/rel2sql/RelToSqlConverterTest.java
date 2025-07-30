@@ -2603,6 +2603,27 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7114">[CALCITE-7114]
+   * Invalid unparse for cast to array type in Spark</a>.
+   */
+  @Test void testCastArraySpark() {
+    final String query = "select cast(array['a','b','c']"
+        + " as varchar array)";
+    final String expectedSpark = "SELECT CAST(ARRAY ('a', 'b', 'c') AS ARRAY< STRING >)\n"
+        + "FROM (VALUES (0)) `t` (`ZERO`)";
+    sql(query)
+        .withSpark().ok(expectedSpark);
+
+    final String query1 = "select cast(array[array['a'], array['b'], array['c']]"
+        + " as varchar array array)";
+    final String expectedSpark1 =
+        "SELECT CAST(ARRAY (ARRAY ('a'), ARRAY ('b'), ARRAY ('c')) AS ARRAY< ARRAY< STRING > >)\n"
+            + "FROM (VALUES (0)) `t` (`ZERO`)";
+    sql(query1)
+        .withSpark().ok(expectedSpark1);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7055">[CALCITE-7055]
    * Invalid unparse for cast to array type in StarRocks</a>.
    */
@@ -10295,6 +10316,7 @@ class RelToSqlConverterTest {
         .withPhoenix().throws_("Phoenix dialect does not support cast to MULTISET")
         .withStarRocks().throws_("StarRocks dialect does not support cast to MULTISET")
         .withClickHouse().throws_("ClickHouse dialect does not support cast to MULTISET")
+        .withSpark().throws_("Spark dialect does not support cast to MULTISET")
         .withHive().throws_("Hive dialect does not support cast to MULTISET");
 
     String query3 = "SELECT CAST(MAP[1.0,2.0,3.0,4.0] AS MAP<FLOAT, REAL>) FROM \"employee\"";
