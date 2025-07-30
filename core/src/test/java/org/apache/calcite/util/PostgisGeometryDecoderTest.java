@@ -20,11 +20,16 @@ import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.LineString;
+import org.locationtech.jts.geom.LinearRing;
 import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.geom.Polygon;
 
 import java.nio.ByteBuffer;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for the {@link PostgisGeometryDecoder} class. These tests are based
@@ -92,21 +97,21 @@ class PostgisGeometryDecoderTest {
 
   @Test void decodePolygon() {
     Geometry geometry = PostgisGeometryDecoder.decode(POLYGON);
-    org.locationtech.jts.geom.LinearRing shell = GEOMETRY_FACTORY.createLinearRing(new Coordinate[]{
+    LinearRing shell = GEOMETRY_FACTORY.createLinearRing(new Coordinate[]{
         new Coordinate(0, 0),
         new Coordinate(1, 0),
         new Coordinate(1, 1),
         new Coordinate(0, 1),
         new Coordinate(0, 0)
     });
-    org.locationtech.jts.geom.LinearRing hole = GEOMETRY_FACTORY.createLinearRing(new Coordinate[]{
+    LinearRing hole = GEOMETRY_FACTORY.createLinearRing(new Coordinate[]{
         new Coordinate(0.5, 0.5),
         new Coordinate(0.5, 0.6),
         new Coordinate(0.6, 0.6),
         new Coordinate(0.6, 0.5),
         new Coordinate(0.5, 0.5)
     });
-    org.locationtech.jts.geom.Polygon expected = GEOMETRY_FACTORY.createPolygon(shell, new org.locationtech.jts.geom.LinearRing[]{hole});
+    Polygon expected = GEOMETRY_FACTORY.createPolygon(shell, new LinearRing[]{hole});
     assertTrue(expected.equalsExact(geometry));
   }
 
@@ -122,7 +127,7 @@ class PostgisGeometryDecoderTest {
 
   @Test void decodeMultiLineString() {
     Geometry geometry = PostgisGeometryDecoder.decode(MULTILINESTRING);
-    Geometry expected = GEOMETRY_FACTORY.createMultiLineString(new org.locationtech.jts.geom.LineString[]{
+    Geometry expected = GEOMETRY_FACTORY.createMultiLineString(new LineString[]{
         GEOMETRY_FACTORY.createLineString(new Coordinate[]{
             new Coordinate(0, 0),
             new Coordinate(1, 1)
@@ -137,23 +142,23 @@ class PostgisGeometryDecoderTest {
 
   @Test void decodeMultiPolygon() {
     Geometry geometry = PostgisGeometryDecoder.decode(MULTIPOLYGON);
-    org.locationtech.jts.geom.Polygon[] polygons = new org.locationtech.jts.geom.Polygon[]{
+    Polygon[] polygons = new Polygon[]{
         GEOMETRY_FACTORY.createPolygon(
             GEOMETRY_FACTORY.createLinearRing(new Coordinate[]{
-            new Coordinate(0, 0),
-            new Coordinate(1, 0),
-            new Coordinate(1, 1),
-            new Coordinate(0, 1),
-            new Coordinate(0, 0)
-        }), null),
+                new Coordinate(0, 0),
+                new Coordinate(1, 0),
+                new Coordinate(1, 1),
+                new Coordinate(0, 1),
+                new Coordinate(0, 0)
+            }), null),
         GEOMETRY_FACTORY.createPolygon(
             GEOMETRY_FACTORY.createLinearRing(new Coordinate[]{
-            new Coordinate(2, 2),
-            new Coordinate(3, 2),
-            new Coordinate(3, 3),
-            new Coordinate(2, 3),
-            new Coordinate(2, 2)
-        }), null)
+                new Coordinate(2, 2),
+                new Coordinate(3, 2),
+                new Coordinate(3, 3),
+                new Coordinate(2, 3),
+                new Coordinate(2, 2)
+            }), null)
     };
     Geometry expected = GEOMETRY_FACTORY.createMultiPolygon(polygons);
     assertTrue(expected.equalsExact(geometry));
