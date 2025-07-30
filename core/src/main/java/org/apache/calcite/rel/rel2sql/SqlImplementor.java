@@ -1536,7 +1536,7 @@ public abstract class SqlImplementor {
         return SqlLiteral.createBinaryString(
             SpatialTypeUtils.asWkbArray(geom), POS);
       default:
-        return SqlLiteral.createNull(POS);
+        return SqlLiteral.createUnknown(POS);
       }
     }
     case NUMERIC:
