@@ -37,8 +37,6 @@ import org.apache.calcite.sql.fun.SqlFloorFunction;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.type.BasicSqlType;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.RelToSqlConverterUtil;
 
 import com.google.common.collect.ImmutableList;
@@ -163,10 +161,19 @@ public class SparkSqlDialect extends SqlDialect {
   }
 
   @Override public @Nullable SqlNode getCastSpec(RelDataType type) {
-    if (type instanceof BasicSqlType && type.getSqlTypeName() == SqlTypeName.VARCHAR) {
+    switch (type.getSqlTypeName()) {
+    case VARCHAR:
       return new SqlDataTypeSpec(
           new SqlAlienSystemTypeNameSpec("STRING", type.getSqlTypeName(),
               SqlParserPos.ZERO), SqlParserPos.ZERO);
+    case ARRAY:
+      return RelToSqlConverterUtil.getCastSpecAngleBracketArrayType(this, type,
+          SqlParserPos.ZERO);
+    case MULTISET:
+      throw new UnsupportedOperationException("Spark dialect does not support cast to "
+          + type.getSqlTypeName());
+    default:
+      break;
     }
     return super.getCastSpec(type);
   }

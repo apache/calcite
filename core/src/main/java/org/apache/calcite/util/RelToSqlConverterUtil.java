@@ -21,6 +21,7 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.SqlArrayWithAngleBracketsNameSpec;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlCollectionTypeNameSpec;
@@ -369,6 +370,22 @@ public abstract class RelToSqlConverterUtil {
         requireNonNull(arrayValueSpec, "arrayValueSpec");
     ClickHouseSqlArrayTypeNameSpec sqlArrayTypeNameSpec =
         new ClickHouseSqlArrayTypeNameSpec(nonNullarrayValueSpec.getTypeNameSpec(),
+            arraySqlType.getSqlTypeName(), pos);
+    return new SqlDataTypeSpec(sqlArrayTypeNameSpec, SqlParserPos.ZERO);
+  }
+
+  /**
+   * Transformation ARRAY type from {@code VARCHAR ARRAY} to {@code Array<VARCHAR>}.
+   */
+  public static SqlDataTypeSpec getCastSpecAngleBracketArrayType(SqlDialect dialect,
+      RelDataType type, SqlParserPos pos) {
+    ArraySqlType arraySqlType = (ArraySqlType) type;
+    SqlDataTypeSpec arrayValueSpec =
+        (SqlDataTypeSpec) dialect.getCastSpec(arraySqlType.getComponentType());
+    SqlDataTypeSpec nonNullarrayValueSpec =
+        requireNonNull(arrayValueSpec, "arrayValueSpec");
+    SqlArrayWithAngleBracketsNameSpec sqlArrayTypeNameSpec =
+        new SqlArrayWithAngleBracketsNameSpec(nonNullarrayValueSpec.getTypeNameSpec(),
             arraySqlType.getSqlTypeName(), pos);
     return new SqlDataTypeSpec(sqlArrayTypeNameSpec, SqlParserPos.ZERO);
   }

@@ -25,7 +25,6 @@ import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlAbstractDateTimeLiteral;
 import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
-import org.apache.calcite.sql.SqlArrayWithAngleBracketsNameSpec;
 import org.apache.calcite.sql.SqlBasicTypeNameSpec;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
@@ -33,13 +32,9 @@ import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlMapTypeNameSpec;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlTypeNameSpec;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.type.AbstractSqlType;
-import org.apache.calcite.sql.type.ArraySqlType;
-import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.MapSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.RelToSqlConverterUtil;
@@ -177,72 +172,55 @@ public class StarRocksSqlDialect extends MysqlSqlDialect {
   }
 
   @Override public @Nullable SqlNode getCastSpec(RelDataType type) {
-    if (type instanceof BasicSqlType) {
-      switch (type.getSqlTypeName()) {
-      case INTEGER:
-        return new SqlDataTypeSpec(
-            new SqlAlienSystemTypeNameSpec(
-                "INT",
-                type.getSqlTypeName(),
-                SqlParserPos.ZERO),
-            SqlParserPos.ZERO);
-      case REAL:
-        return new SqlDataTypeSpec(
-            new SqlAlienSystemTypeNameSpec("FLOAT", type.getSqlTypeName(),
-                SqlParserPos.ZERO),
-            SqlParserPos.ZERO);
-      case BIGINT:
-        return new SqlDataTypeSpec(
-            new SqlBasicTypeNameSpec(SqlTypeName.BIGINT, SqlParserPos.ZERO),
-            SqlParserPos.ZERO);
-      case TIMESTAMP:
-        return new SqlDataTypeSpec(
-            new SqlAlienSystemTypeNameSpec(
-                "DATETIME",
-                type.getSqlTypeName(),
-                SqlParserPos.ZERO),
-            SqlParserPos.ZERO);
-      case VARCHAR:
-        return new SqlDataTypeSpec(
-            new SqlBasicTypeNameSpec(SqlTypeName.VARCHAR, type.getPrecision(), SqlParserPos.ZERO),
-            SqlParserPos.ZERO);
-      default:
-        break;
-      }
-    }
-
-    if (type instanceof AbstractSqlType) {
-      switch (type.getSqlTypeName()) {
-      case MAP:
-        MapSqlType mapSqlType = (MapSqlType) type;
-        SqlDataTypeSpec keySpec = (SqlDataTypeSpec) getCastSpec(mapSqlType.getKeyType());
-        SqlDataTypeSpec valueSpec =
-            (SqlDataTypeSpec) getCastSpec(mapSqlType.getValueType());
-        SqlDataTypeSpec nonNullKeySpec =
-            requireNonNull(keySpec, "keySpec");
-        SqlDataTypeSpec nonNullValueSpec =
-            requireNonNull(valueSpec, "valueSpec");
-        SqlMapTypeNameSpec sqlMapTypeNameSpec =
-            new SqlMapTypeNameSpec(nonNullKeySpec, nonNullValueSpec, SqlParserPos.ZERO);
-        return new SqlDataTypeSpec(sqlMapTypeNameSpec,
-            SqlParserPos.ZERO);
-      case ARRAY:
-        ArraySqlType arraySqlType = (ArraySqlType) type;
-        SqlDataTypeSpec arrayValueSpec =
-            (SqlDataTypeSpec) getCastSpec(arraySqlType.getComponentType());
-        SqlDataTypeSpec nonNullarrayValueSpec =
-            requireNonNull(arrayValueSpec, "arrayValueSpec");
-        SqlTypeNameSpec typeNameSpec =
-            new SqlArrayWithAngleBracketsNameSpec(
-                nonNullarrayValueSpec.getTypeNameSpec(),
-                arraySqlType.getSqlTypeName(), SqlParserPos.ZERO);
-        return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
-      case MULTISET:
-        throw new UnsupportedOperationException("StarRocks dialect does not support cast to "
-            + type.getSqlTypeName());
-      default:
-        break;
-      }
+    switch (type.getSqlTypeName()) {
+    case INTEGER:
+      return new SqlDataTypeSpec(
+          new SqlAlienSystemTypeNameSpec(
+              "INT",
+              type.getSqlTypeName(),
+              SqlParserPos.ZERO),
+          SqlParserPos.ZERO);
+    case REAL:
+      return new SqlDataTypeSpec(
+          new SqlAlienSystemTypeNameSpec("FLOAT", type.getSqlTypeName(),
+              SqlParserPos.ZERO),
+          SqlParserPos.ZERO);
+    case BIGINT:
+      return new SqlDataTypeSpec(
+          new SqlBasicTypeNameSpec(SqlTypeName.BIGINT, SqlParserPos.ZERO),
+          SqlParserPos.ZERO);
+    case TIMESTAMP:
+      return new SqlDataTypeSpec(
+          new SqlAlienSystemTypeNameSpec(
+              "DATETIME",
+              type.getSqlTypeName(),
+              SqlParserPos.ZERO),
+          SqlParserPos.ZERO);
+    case VARCHAR:
+      return new SqlDataTypeSpec(
+          new SqlBasicTypeNameSpec(SqlTypeName.VARCHAR, type.getPrecision(), SqlParserPos.ZERO),
+          SqlParserPos.ZERO);
+    case MAP:
+      MapSqlType mapSqlType = (MapSqlType) type;
+      SqlDataTypeSpec keySpec = (SqlDataTypeSpec) getCastSpec(mapSqlType.getKeyType());
+      SqlDataTypeSpec valueSpec =
+          (SqlDataTypeSpec) getCastSpec(mapSqlType.getValueType());
+      SqlDataTypeSpec nonNullKeySpec =
+          requireNonNull(keySpec, "keySpec");
+      SqlDataTypeSpec nonNullValueSpec =
+          requireNonNull(valueSpec, "valueSpec");
+      SqlMapTypeNameSpec sqlMapTypeNameSpec =
+          new SqlMapTypeNameSpec(nonNullKeySpec, nonNullValueSpec, SqlParserPos.ZERO);
+      return new SqlDataTypeSpec(sqlMapTypeNameSpec,
+          SqlParserPos.ZERO);
+    case ARRAY:
+      return RelToSqlConverterUtil.getCastSpecAngleBracketArrayType(this, type,
+          SqlParserPos.ZERO);
+    case MULTISET:
+      throw new UnsupportedOperationException("StarRocks dialect does not support cast to "
+          + type.getSqlTypeName());
+    default:
+      break;
     }
 
     return super.getCastSpec(type);
