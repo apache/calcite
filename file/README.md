@@ -322,6 +322,63 @@ JSON files should contain an array of objects:
 ]
 ```
 
+#### JSON Flattening
+
+The File adapter supports automatic flattening of nested JSON structures. When enabled, nested objects are converted to dot-notation columns and arrays are converted to delimited strings.
+
+**Example nested JSON:**
+```json
+[
+  {
+    "id": 1,
+    "name": "John Doe",
+    "address": {
+      "street": "123 Main St",
+      "city": "Anytown",
+      "zip": "12345"
+    },
+    "tags": ["customer", "vip", "active"]
+  }
+]
+```
+
+**Flattened result:**
+- `id`: 1
+- `name`: "John Doe"
+- `address.street`: "123 Main St"
+- `address.city`: "Anytown"
+- `address.zip`: "12345"
+- `tags`: "customer,vip,active"
+
+**Configuration:**
+```json
+{
+  "tables": [
+    {
+      "name": "customers",
+      "url": "customers.json",
+      "format": "json",
+      "flatten": true
+    }
+  ]
+}
+```
+
+**Query example:**
+```sql
+SELECT "id", "name", "address.city", "tags"
+FROM customers
+WHERE "address.zip" = '12345'
+```
+
+**Notes:**
+- Object properties become columns with dot notation (e.g., `address.street`)
+- Arrays of primitive values are converted to comma-delimited strings
+- Arrays of objects are skipped (not flattened)
+- Empty objects and arrays are handled gracefully
+- Maximum nesting depth is 3 levels by default
+- Works with both JSON and YAML files
+
 ### Custom Format Override
 
 You can force a specific format for files:
@@ -1271,6 +1328,67 @@ SELECT * FROM "COMPANY.SALES".CUSTOMERS;
 ```
 
 This normalization ensures consistent behavior across all file types and makes the File adapter compatible with standard SQL tools and practices.
+
+## Table Configuration Options
+
+When defining tables explicitly, the following options are available:
+
+### Common Options (All File Types)
+| Option | Type | Description | Example |
+|--------|------|-------------|---------|
+| `name` | String | Table name in SQL | `"customers"` |
+| `url` | String | File path or URL | `"data/customers.json"` |
+| `format` | String | Force file format | `"json"`, `"csv"`, `"yaml"` |
+| `refreshInterval` | String | Auto-refresh period | `"5 minutes"`, `"1 hour"` |
+
+### JSON/YAML Specific Options
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `flatten` | Boolean | Enable nested structure flattening | `false` |
+
+### CSV/TSV Specific Options
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `header` | Boolean | First row contains headers | `true` |
+| `delimiter` | String | Field delimiter | `","` for CSV, `"\t"` for TSV |
+| `quote` | String | Quote character | `"\""` |
+| `escape` | String | Escape character | `"\\"` |
+| `skipLines` | Integer | Lines to skip at start | `0` |
+
+### HTML Specific Options
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `selector` | String | CSS selector for table | Auto-detect largest |
+| `index` | Integer | Table index (0-based) | `0` |
+
+### Example Configuration
+```json
+{
+  "tables": [
+    {
+      "name": "customers",
+      "url": "customers.json",
+      "format": "json",
+      "flatten": true,
+      "refreshInterval": "30 minutes"
+    },
+    {
+      "name": "sales_data",
+      "url": "sales.csv",
+      "format": "csv",
+      "header": true,
+      "delimiter": ";",
+      "skipLines": 1
+    },
+    {
+      "name": "wiki_data",
+      "url": "https://example.com/data.html",
+      "selector": "#data-table",
+      "index": 0
+    }
+  ]
+}
+```
 
 ## Advanced Features
 
