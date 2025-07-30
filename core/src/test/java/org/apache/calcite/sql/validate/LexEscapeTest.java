@@ -113,6 +113,13 @@ class LexEscapeTest {
     runProjectQueryWithLex(Lex.MYSQL_ANSI, sql);
   }
 
+  @Test void testCalciteEscapePostgresql()
+      throws SqlParseException, ValidationException, RelConversionException {
+    String sql = "select \"localtime\", localtime, "
+        + "\"current_timestamp\", current_timestamp from TMP";
+    runProjectQueryWithLex(Lex.POSTGRESQL, sql);
+  }
+
   @Test void testCalciteEscapeSqlServer()
       throws SqlParseException, ValidationException, RelConversionException {
     String sql = "select [localtime], localtime, [current_timestamp], current_timestamp from TMP";
