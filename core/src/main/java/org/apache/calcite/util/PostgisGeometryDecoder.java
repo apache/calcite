@@ -55,7 +55,7 @@ public class PostgisGeometryDecoder {
       byte[] bytes = Hex.decodeHex(string);
       return decode(bytes);
     } catch (DecoderException e) {
-      throw new RuntimeException(e);
+      throw new IllegalArgumentException("Invalid HEX string: " + string, e);
     }
   }
 
