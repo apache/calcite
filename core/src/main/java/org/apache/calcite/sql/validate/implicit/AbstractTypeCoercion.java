@@ -918,7 +918,6 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
         && expected == SqlTypeFamily.UUID) {
       return expected.getDefaultConcreteType(factory);
     }
-
     return null;
   }
 
