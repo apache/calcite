@@ -77,7 +77,7 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
   ANY,
   CURSOR,
   COLUMN_LIST,
-  GEOMETRY,
+  GEO,
   FUNCTION,
   VARIANT,
   UUID,
@@ -123,7 +123,7 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
           .put(ExtraSqlTypes.REF_CURSOR, CURSOR)
           .put(Types.ARRAY, ARRAY)
           .put(Types.JAVA_OBJECT, VARIANT)
-          .put(ExtraSqlTypes.GEOMETRY, GEOMETRY)
+          .put(ExtraSqlTypes.GEOMETRY, GEO)
           .build();
 
   /**
@@ -211,7 +211,7 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
       return SqlTypeName.DATETIME_TYPES;
     case DATETIME_INTERVAL:
       return SqlTypeName.INTERVAL_TYPES;
-    case GEOMETRY:
+    case GEO:
       return SqlTypeName.GEOMETRY_TYPES;
     case MULTISET:
       return ImmutableList.of(SqlTypeName.MULTISET);
@@ -273,7 +273,7 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
     case INTERVAL_YEAR_MONTH:
       return factory.createSqlIntervalType(
           new SqlIntervalQualifier(TimeUnit.YEAR, TimeUnit.MONTH, SqlParserPos.ZERO));
-    case GEOMETRY:
+    case GEO:
       return factory.createSqlType(SqlTypeName.GEOMETRY);
     case MULTISET:
       return factory.createMultisetType(factory.createSqlType(SqlTypeName.ANY), -1);

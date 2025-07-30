@@ -463,7 +463,7 @@ public class JavaTypeFactoryImpl
       Class clazz,
       @Nullable RelDataTypeFamily family) {
     if (Geometry.class.isAssignableFrom(clazz)) {
-      return canonize(new JavaType(clazz, SqlTypeFamily.GEOMETRY));
+      return canonize(new JavaType(clazz, SqlTypeFamily.GEO));
     }
     return super.createJavaType(clazz, family);
   }
