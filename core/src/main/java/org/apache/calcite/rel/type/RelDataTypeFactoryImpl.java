@@ -125,10 +125,6 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     return typeSystem;
   }
 
-  @Override public RelDataType createJavaType(Class clazz) {
-    return createJavaType(clazz, null);
-  }
-
   @Override public RelDataType createJavaType(
       Class clazz,
       @Nullable RelDataTypeFamily family) {
