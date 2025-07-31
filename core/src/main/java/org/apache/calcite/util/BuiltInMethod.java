@@ -63,6 +63,7 @@ import org.apache.calcite.rel.metadata.BuiltInMetadata.DistinctRowCount;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.Distribution;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.ExplainVisibility;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.ExpressionLineage;
+import org.apache.calcite.rel.metadata.BuiltInMetadata.FunctionalDependency;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.LowerBoundCost;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.MaxRowCount;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.Measure;
@@ -967,7 +968,9 @@ public enum BuiltInMethod {
   VARIANT_CAST(VariantValue.class, "cast", RuntimeTypeInformation.class),
   TYPEOF(VariantValue.class, "getTypeString", VariantValue.class),
   VARIANT_ITEM(SqlFunctions.class, "item", VariantValue.class, Object.class),
-  VARIANTNULL(VariantNull.class, "getInstance");
+  VARIANTNULL(VariantNull.class, "getInstance"),
+  FUNCTIONAL_DEPENDENCY(FunctionalDependency.class, "determines",
+      int.class, int.class);
 
   @SuppressWarnings("ImmutableEnumChecker")
   public final Method method;
