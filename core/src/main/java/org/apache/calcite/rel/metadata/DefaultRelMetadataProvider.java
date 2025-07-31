@@ -63,6 +63,7 @@ public class DefaultRelMetadataProvider extends ChainedRelMetadataProvider {
             RelMdExplainVisibility.SOURCE,
             RelMdPredicates.SOURCE,
             RelMdAllPredicates.SOURCE,
-            RelMdCollation.SOURCE));
+            RelMdCollation.SOURCE,
+            RelMdFunctionalDependency.SOURCE));
   }
 }
