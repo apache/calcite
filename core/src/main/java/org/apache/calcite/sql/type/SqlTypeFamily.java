@@ -123,6 +123,7 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
           .put(ExtraSqlTypes.REF_CURSOR, CURSOR)
           .put(Types.ARRAY, ARRAY)
           .put(Types.JAVA_OBJECT, VARIANT)
+          .put(ExtraSqlTypes.GEOMETRY, GEO)
           .build();
 
   /**

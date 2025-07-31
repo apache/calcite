@@ -29,6 +29,7 @@ import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.nio.ByteBuffer;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -588,6 +589,17 @@ public abstract class ReflectUtil {
       }
     }
     return false;
+  }
+
+  /** Derives the JDBC type code of the {@code i}th parameter of a method.
+   * If not specified, returns {@link java.sql.Types#OTHER}. */
+  public static int getParameterSqlType(Method method, int i) {
+    for (Annotation annotation : method.getParameterAnnotations()[i]) {
+      if (annotation.annotationType() == Parameter.class) {
+        return ((Parameter) annotation).sqlType();
+      }
+    }
+    return Types.OTHER;
   }
 
   /** Returns whether a parameter of a given type could possibly have an

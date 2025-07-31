@@ -23,6 +23,7 @@ import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -32,6 +33,7 @@ import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.IntervalSqlType;
 import org.apache.calcite.sql.type.JavaToSqlTypeConversionRules;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Pair;
@@ -451,5 +453,18 @@ public class JavaTypeFactoryImpl
     @Override public Type getDeclaringClass() {
       return syntheticType;
     }
+  }
+
+  @Override public RelDataType createJavaType(Class clazz) {
+    return createJavaType(clazz, null);
+  }
+
+  @Override public RelDataType createJavaType(
+      Class clazz,
+      @Nullable RelDataTypeFamily family) {
+    if (Geometry.class.isAssignableFrom(clazz)) {
+      return canonize(new JavaType(clazz, SqlTypeFamily.GEO));
+    }
+    return super.createJavaType(clazz, family);
   }
 }
