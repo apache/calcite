@@ -4432,4 +4432,16 @@ public abstract class SqlLibraryOperators {
           null,
           OperandTypes.GEOMETRY_GEOMETRY,
           SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {VERTICA})
+  public static final SqlFunction TRUNC_VERTICA =
+      new SqlFunction(
+          "TRUNC",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0,
+          null,
+          OperandTypes.or(
+              OperandTypes.family(SqlTypeFamily.DATE, SqlTypeFamily.STRING),
+              OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.STRING)),
+          SqlFunctionCategory.SYSTEM);
 }

@@ -13712,4 +13712,17 @@ class RelToSqlConverterDMTest {
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedTDSql));
   }
+
+  @Test public void testTrunc() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dateFormatNode =
+        builder.call(SqlLibraryOperators.TRUNC_VERTICA, builder.call(CURRENT_DATE), builder.literal("HH"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(dateFormatNode)
+        .build();
+    final String expectedSql = "SELECT TRUNC(CURRENT_DATE, 'HH') AS \"$f0\"\nFROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.VERTICA.getDialect()), isLinux(expectedSql));
+  }
 }
