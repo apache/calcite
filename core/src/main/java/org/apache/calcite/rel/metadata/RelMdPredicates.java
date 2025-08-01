@@ -318,12 +318,19 @@ public class RelMdPredicates
     final RelNode input = filter.getInput();
     final RexBuilder rexBuilder = filter.getCluster().getRexBuilder();
     final RelOptPredicateList inputInfo = mq.getPulledUpPredicates(input);
-
+    List<RexNode> predicates =
+        RexUtil.retainDeterministic(RelOptUtil.conjunctions(filter.getCondition()));
+    RelOptCluster cluster = filter.getCluster();
+    final RexExecutor executor =
+        Util.first(cluster.getPlanner().getExecutor(), RexUtil.EXECUTOR);
+    RexSimplify simplify = new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, executor);
+    // The RelOptPredicateList data structure requires this invariant: no comparisons with null
+    List<RexNode> simplified = predicates.stream()
+        .map(e -> simplify.simplifyComparisonWithNull(e, RexUnknownAs.FALSE))
+        .collect(Collectors.toList());
     return Util.first(inputInfo, RelOptPredicateList.EMPTY)
         .union(rexBuilder,
-            RelOptPredicateList.of(rexBuilder,
-                RexUtil.retainDeterministic(
-                    RelOptUtil.conjunctions(filter.getCondition()))));
+            RelOptPredicateList.of(rexBuilder, simplified));
   }
 
   /**
