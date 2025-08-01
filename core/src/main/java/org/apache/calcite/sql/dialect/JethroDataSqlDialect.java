@@ -20,7 +20,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.collect.ImmutableList;
@@ -38,7 +37,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 
 import static java.util.Objects.requireNonNull;
 
@@ -78,36 +76,6 @@ public class JethroDataSqlDialect extends SqlDialect {
     default:
       break;
     }
-    return false;
-  }
-
-  @Override public boolean supportsFunction(SqlOperator operator,
-      RelDataType type, List<RelDataType> paramTypes) {
-    switch (operator.getKind()) {
-    case IS_NOT_NULL:
-    case IS_NULL:
-    case AND:
-    case OR:
-    case NOT:
-    case BETWEEN:
-    case CASE:
-    case CAST:
-      return true;
-    default:
-      break;
-    }
-    final Set<JethroSupportedFunction> functions =
-        info.supportedFunctions.get(operator.getName());
-
-    if (functions != null) {
-      for (JethroSupportedFunction f : functions) {
-        if (f.argumentsMatch(paramTypes)) {
-          return true;
-        }
-      }
-    }
-    LOGGER.debug("Unsupported function in jethro: " + operator + " with params "
-        + paramTypes);
     return false;
   }
 

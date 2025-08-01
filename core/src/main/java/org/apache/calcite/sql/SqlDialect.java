@@ -808,48 +808,6 @@ public class SqlDialect {
     return rexNode;
   }
 
-  /** Returns whether this dialect supports a given function or operator.
-   * It only applies to built-in scalar functions and operators, since
-   * user-defined functions and procedures should be read by JdbcSchema. */
-  public boolean supportsFunction(SqlOperator operator, RelDataType type,
-      List<RelDataType> paramTypes) {
-    switch (operator.kind) {
-    case AND:
-    case BETWEEN:
-    case CASE:
-    case CAST:
-    case CEIL:
-    case COALESCE:
-    case DIVIDE:
-    case EQUALS:
-    case FLOOR:
-    case GREATER_THAN:
-    case GREATER_THAN_OR_EQUAL:
-    case IN:
-    case IS_NULL:
-    case IS_NOT_NULL:
-    case LESS_THAN:
-    case LESS_THAN_OR_EQUAL:
-    case MINUS:
-    case MOD:
-    case NOT:
-    case NOT_IN:
-    case NOT_EQUALS:
-    case NVL:
-    case OR:
-    case PLUS:
-    case ROW:
-    case TIMES:
-    case CHECKED_PLUS:
-    case CHECKED_TIMES:
-    case CHECKED_MINUS:
-    case CHECKED_DIVIDE:
-      return true;
-    default:
-      return BUILT_IN_OPERATORS_LIST.contains(operator);
-    }
-  }
-
   public CalendarPolicy getCalendarPolicy() {
     return CalendarPolicy.NULL;
   }

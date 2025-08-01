@@ -30,7 +30,6 @@ import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -166,19 +165,6 @@ public class FireboltSqlDialect extends SqlDialect {
 
   @Override public boolean supportsAggregateFunctionFilter() {
     return false;
-  }
-
-  @Override public boolean supportsFunction(SqlOperator operator,
-      RelDataType type, final List<RelDataType> paramTypes) {
-    switch (operator.kind) {
-    case LIKE:
-      // introduces support for ILIKE as well
-    case EXISTS:
-      // introduces support for EXISTS as well
-      return true;
-    default:
-      return super.supportsFunction(operator, type, paramTypes);
-    }
   }
 
   @Override public void unparseCall(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {

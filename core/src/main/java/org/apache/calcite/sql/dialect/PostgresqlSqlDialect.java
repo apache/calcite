@@ -37,7 +37,6 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
-import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSetOption;
 import org.apache.calcite.sql.SqlWriter;
@@ -153,17 +152,6 @@ public class PostgresqlSqlDialect extends SqlDialect {
     LOGGER.debug("SINGLE_VALUE rewritten into [{}]", caseExpr);
 
     return caseExpr;
-  }
-
-  @Override public boolean supportsFunction(SqlOperator operator,
-      RelDataType type, final List<RelDataType> paramTypes) {
-    switch (operator.kind) {
-    case LIKE:
-      // introduces support for ILIKE as well
-      return true;
-    default:
-      return super.supportsFunction(operator, type, paramTypes);
-    }
   }
 
   @Override public boolean supportsImplicitTypeCoercion(RexCall call) {
