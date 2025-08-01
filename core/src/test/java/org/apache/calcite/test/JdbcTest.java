@@ -116,6 +116,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.File;
 import java.io.IOException;
@@ -9220,6 +9221,34 @@ public class JdbcTest {
           p.setLong(1, 100);
         })
         .returnsUnordered("EMPID=100");
+  }
+
+  @ValueSource(strings = {"a", "a ", "a a"})
+  @ParameterizedTest void bindCharParameter(String value) {
+    final String sql =
+        "with cte as (select cast('a' as char(2)) as empid)"
+            + "select * from cte where empid = ?";
+
+    CalciteAssert.hr()
+        .query(sql)
+        .consumesPreparedStatement(p -> {
+          p.setString(1, value);
+        })
+        .returnsUnordered("EMPID=a ");
+  }
+
+  @ValueSource(strings = {"aa", "aaa"})
+  @ParameterizedTest void bindVarcharParameter(String value) {
+    final String sql =
+        "with cte as (select cast('aa' as varchar(2)) as empid)"
+            + "select * from cte where empid = ?";
+
+    CalciteAssert.hr()
+        .query(sql)
+        .consumesPreparedStatement(p -> {
+          p.setString(1, value);
+        })
+        .returnsUnordered("EMPID=aa");
   }
 
   private static String sums(int n, boolean c) {
