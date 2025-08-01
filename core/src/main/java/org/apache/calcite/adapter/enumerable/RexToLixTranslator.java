@@ -31,6 +31,7 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Statement;
+import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
@@ -1642,29 +1643,35 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     if (rexWithStorageTypeResultMap.containsKey(key)) {
       return rexWithStorageTypeResultMap.get(key);
     }
-    final Type storageType = currentStorageType != null
-        ? currentStorageType : typeFactory.getJavaClass(dynamicParam.getType());
+    final Type valueType = typeFactory.getJavaClass(dynamicParam.getType());
+    final Type storageType = currentStorageType != null ? currentStorageType : valueType;
 
     final boolean isNumeric = SqlTypeFamily.NUMERIC.contains(dynamicParam.getType());
 
     // For numeric types, use java.lang.Number to prevent cast exception
     // when the parameter type differs from the target type
-    final Expression valueExpression = isNumeric
+    final Expression rawValueExpression = isNumeric
         ? EnumUtils.convert(
             EnumUtils.convert(
                 Expressions.call(root, BuiltInMethod.DATA_CONTEXT_GET.method,
                     Expressions.constant("?" + dynamicParam.getIndex())),
                 java.lang.Number.class),
-            storageType)
+            valueType)
         : EnumUtils.convert(
             Expressions.call(root, BuiltInMethod.DATA_CONTEXT_GET.method,
                 Expressions.constant("?" + dynamicParam.getIndex())),
-            storageType);
+            valueType);
+
+    final Expression valueExpression =
+        checkExpressionPadTruncate(rawValueExpression,
+            typeFactory.createJavaType(Types.toClass(rawValueExpression.getType())),
+            dynamicParam.getType());
 
     final ParameterExpression valueVariable =
-        Expressions.parameter(valueExpression.getType(),
-            list.newName("value_dynamic_param"));
-    list.add(Expressions.declare(Modifier.FINAL, valueVariable, valueExpression));
+        Expressions.parameter(storageType, list.newName("value_dynamic_param"));
+    list.add(
+        Expressions.declare(Modifier.FINAL, valueVariable,
+            EnumUtils.convert(valueExpression, storageType)));
     final ParameterExpression isNullVariable =
         Expressions.parameter(Boolean.TYPE, list.newName("isNull_dynamic_param"));
     list.add(
