@@ -27,6 +27,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
@@ -292,6 +293,196 @@ public class RelMetadataTest {
         .assertPercentageOriginalRows(
             isAlmost(((EMP_SIZE * DEFAULT_EQUAL_SELECTIVITY) + DEPT_SIZE)
                 / (DEPT_SIZE + EMP_SIZE)));
+  }
+
+  @Test void textFunctionDependencySimple() {
+    final String sql = "select empno, deptno, deptno + 1, rand() as r"
+        + " from emp where deptno < 20";
+
+    // Plan is
+    // LogicalProject(EMPNO=[$0], DEPTNO=[$7], EXPR$2=[+($7, 1)], R=[RAND()])
+    //   LogicalFilter(condition=[<($7, 20)])
+    //     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    final RelNode relNode = sql(sql).toRel();
+    final RelMetadataQuery mq = relNode.getCluster().getMetadataQuery();
+    Project project = (Project) relNode;
+    int empNo = 0;
+    int deptNo = 1;
+    int deptNoPlus1 = 2;
+    int r = 3;
+
+    assertThat(mq.determines(project, deptNoPlus1, deptNo), is(Boolean.TRUE));
+    assertThat(mq.determines(project, deptNo, deptNoPlus1), is(Boolean.FALSE));
+    assertThat(mq.determines(project, deptNo, empNo), is(Boolean.TRUE));
+    assertThat(mq.determines(project, empNo, deptNoPlus1), is(Boolean.FALSE));
+    assertThat(mq.determines(project, deptNoPlus1, empNo), is(Boolean.TRUE));
+    assertThat(mq.determines(project, r, empNo), is(Boolean.FALSE));
+  }
+
+  @Test void textFunctionDependencyJoin() {
+    final String sql = "SELECT e.job, e.deptno, e.deptno + 1, d.d1, d.d2\n"
+        + "FROM emp e JOIN (SELECT deptno AS d1, deptno AS d2 FROM dept) d\n"
+        + "ON e.deptno = d.d1";
+
+    // Plan is
+    // LogicalProject(JOB=[$2], DEPTNO=[$7], EXPR$2=[+($7, 1)], D1=[$9], D2=[$10])
+    //  LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+    //    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    //    LogicalProject(D1=[$0], D2=[$0])
+    //      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    final RelNode relNode = sql(sql).toRel();
+    final RelMetadataQuery mq = relNode.getCluster().getMetadataQuery();
+    Project project = (Project) relNode;
+    int eJob = 0;
+    int eDeptNo = 1;
+    int eDeptNoPlus1 = 2;
+    int dD1 = 3;
+    int dD2 = 4;
+
+    assertThat(mq.determines(project, eJob, eDeptNo), is(Boolean.FALSE));
+    assertThat(mq.determines(project, eDeptNoPlus1, eDeptNo), is(Boolean.TRUE));
+    assertThat(mq.determines(project, eDeptNoPlus1, dD1), is(Boolean.FALSE));
+    assertThat(mq.determines(project, dD2, dD1), is(Boolean.TRUE));
+  }
+
+  @Test void textFunctionDependencyDoulbePK() {
+    // Table double_pk with pk (id1, id2)
+    final String sql = "select id1, id2, sum(age) as z"
+        + " from double_pk group by id1, id2";
+
+    // Plan is
+    // LogicalAggregate(group=[{0, 1}], Z=[SUM($2)])
+    //   LogicalProject(ID1=[$0], ID2=[$1], AGE=[$3])
+    //     LogicalTableScan(table=[[CATALOG, SALES, DOUBLE_PK]])
+    final RelNode relNode = sql(sql).toRel();
+    System.out.println(RelOptUtil.toString(relNode));
+    final RelMetadataQuery mq = relNode.getCluster().getMetadataQuery();
+    Aggregate aggregate = (Aggregate) relNode;
+    int id1 = 0;
+    int id2 = 1;
+    int z = 2;
+
+    assertThat(mq.determines(aggregate, id2, id1), is(Boolean.FALSE));
+    assertThat(mq.determines(aggregate, id1, id2), is(Boolean.FALSE));
+    assertThat(mq.determines(aggregate, z, id1), is(Boolean.FALSE));
+    assertThat(mq.determines(aggregate, z, id2), is(Boolean.FALSE));
+  }
+
+  @Test void testFunctionDependencyComplex() {
+    final String sql = "SELECT deptno, sal1Sum, sal2Sum\n"
+        + "FROM (\n"
+        + " SELECT deptno,"
+        + "    SUM(sal1) AS sal1Sum,"
+        + "    SUM(sal2) AS sal2Sum,"
+        + "    job\n"
+        + " FROM (\n"
+        + "  SELECT deptno,"
+        + "    sal AS sal1,"
+        + "    sal AS sal2,"
+        + "    job\n"
+        + "  FROM emp\n"
+        + " ) t\n"
+        + " GROUP BY deptno, job\n"
+        + ") t2\n"
+        + "ORDER BY sal1Sum, job, sal2Sum + sal1Sum + 1";
+
+    // Plan is
+    // LogicalSort(sort0=[$1], sort1=[$3], sort2=[$4], dir0=[ASC], dir1=[ASC], dir2=[ASC])
+    //   LogicalProject(DEPTNO=[$0], SAL1SUM=[$2], SAL2SUM=[$3], JOB=[$1],
+    //                  EXPR$4=[+(+($3, $2), 1)])
+    //     LogicalAggregate(group=[{0, 1}], SAL1SUM=[SUM($2)], SAL2SUM=[SUM($3)])
+    //       LogicalProject(DEPTNO=[$7], JOB=[$2], SAL1=[$5], SAL2=[$5])
+    //         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+
+    final RelNode relNode = sql(sql).toRel();
+    final RelMetadataQuery mq = relNode.getCluster().getMetadataQuery();
+
+    // check sort
+    final Sort sort = (Sort) relNode;
+    List<RelFieldCollation> collations = sort.getCollation().getFieldCollations();
+    int sal1Sum = collations.get(0).getFieldIndex();
+    int job = collations.get(1).getFieldIndex();
+    int sal2SumPlusSal1SumPlus1 = collations.get(2).getFieldIndex();
+
+    assertThat(mq.determines(sort, sal1Sum, sal1Sum), is(Boolean.TRUE));
+    assertThat(mq.determines(sort, job, sal1Sum), is(Boolean.FALSE));
+    assertThat(mq.determines(sort, sal2SumPlusSal1SumPlus1, sal1Sum), is(Boolean.TRUE));
+    assertThat(mq.determines(sort, sal1Sum, sal2SumPlusSal1SumPlus1), is(Boolean.FALSE));
+    assertThat(mq.determines(sort, sal2SumPlusSal1SumPlus1, sal2SumPlusSal1SumPlus1),
+        is(Boolean.TRUE));
+    assertThat(mq.determines(sort, sal2SumPlusSal1SumPlus1, job), is(Boolean.FALSE));
+
+    // check aggregate
+    Aggregate aggregate = (Aggregate) relNode.getInput(0).getInput(0);
+    int deptNoGroupByKey = 0;
+    int jobGroupByKey = 1;
+    int sal1SumAggCall = 2;
+    int sal2SumAggCall = 3;
+
+    assertThat(mq.determines(aggregate, jobGroupByKey, deptNoGroupByKey), is(Boolean.FALSE));
+    assertThat(mq.determines(aggregate, jobGroupByKey, sal1SumAggCall), is(Boolean.FALSE));
+    assertThat(mq.determines(aggregate, sal2SumAggCall, sal1SumAggCall), is(Boolean.TRUE));
+  }
+
+  @Test void testFunctionDependencyCalc() {
+    final String sql = "SELECT deptno, sal1Sum, sal2Sum\n"
+        + "FROM (\n"
+        + " SELECT deptno,"
+        + "    SUM(sal1) AS sal1Sum,"
+        + "    SUM(sal2) AS sal2Sum,"
+        + "    job\n"
+        + " FROM (\n"
+        + "  SELECT deptno,"
+        + "    sal AS sal1,"
+        + "    sal AS sal2,"
+        + "    job\n"
+        + "  FROM emp\n"
+        + " ) t\n"
+        + " GROUP BY deptno, job\n"
+        + ") t2\n"
+        + "ORDER BY sal1Sum, job, sal2Sum + sal1Sum + 1";
+
+    // Plan is
+    // LogicalSort(sort0=[$1], sort1=[$3], sort2=[$4], dir0=[ASC], dir1=[ASC], dir2=[ASC])
+    //  LogicalCalc(expr#0..3=[{inputs}], expr#4=[+($t3, $t2)], expr#5=[1], expr#6=[+($t4, $t5)],
+    //              DEPTNO=[$t0], SAL1SUM=[$t2], SAL2SUM=[$t3], JOB=[$t1], EXPR$4=[$t6])
+    //    LogicalAggregate(group=[{0, 1}], SAL1SUM=[SUM($2)], SAL2SUM=[SUM($3)])
+    //      LogicalCalc(expr#0..8=[{inputs}], DEPTNO=[$t7], JOB=[$t2], SAL1=[$t5], SAL2=[$t5])
+    //        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+
+    RelNode relNode = sql(sql).toRel();
+    final HepProgram program = new HepProgramBuilder().
+        addRuleInstance(CoreRules.PROJECT_TO_CALC).build();
+    final HepPlanner planner = new HepPlanner(program);
+    planner.setRoot(relNode);
+    relNode = planner.findBestExp();
+    System.out.println(RelOptUtil.toString(relNode));
+    final RelMetadataQuery mq = relNode.getCluster().getMetadataQuery();
+
+    // check sort
+    final Sort sort = (Sort) relNode;
+    List<RelFieldCollation> collations = sort.getCollation().getFieldCollations();
+    int sal1Sum = collations.get(0).getFieldIndex();
+    int job = collations.get(1).getFieldIndex();
+    int sal2SumPlusSal1SumPlus1 = collations.get(2).getFieldIndex();
+
+    assertThat(mq.determines(sort, sal1Sum, sal1Sum), is(Boolean.TRUE));
+    assertThat(mq.determines(sort, job, sal1Sum), is(Boolean.FALSE));
+    assertThat(mq.determines(sort, sal2SumPlusSal1SumPlus1, sal1Sum), is(Boolean.TRUE));
+    assertThat(mq.determines(sort, sal1Sum, sal2SumPlusSal1SumPlus1), is(Boolean.FALSE));
+    assertThat(mq.determines(sort, sal2SumPlusSal1SumPlus1, sal2SumPlusSal1SumPlus1),
+        is(Boolean.TRUE));
+    assertThat(mq.determines(sort, sal2SumPlusSal1SumPlus1, job), is(Boolean.FALSE));
+    // check aggregate
+    Aggregate aggregate = (Aggregate) relNode.getInput(0).getInput(0);
+    int deptNoGroupByKey = 0;
+    int jobGroupByKey = 1;
+    int sal1SumAggCall = 2;
+    int sal2SumAggCall = 3;
+
+    assertThat(mq.determines(aggregate, jobGroupByKey, deptNoGroupByKey), is(Boolean.FALSE));
+    assertThat(mq.determines(aggregate, jobGroupByKey, sal1SumAggCall), is(Boolean.FALSE));
+    assertThat(mq.determines(aggregate, sal2SumAggCall, sal1SumAggCall), is(Boolean.TRUE));
   }
 
   // ----------------------------------------------------------------------

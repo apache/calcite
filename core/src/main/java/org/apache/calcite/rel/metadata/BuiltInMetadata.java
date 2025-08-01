@@ -901,10 +901,31 @@ public abstract class BuiltInMetadata {
     }
   }
 
+  /** Metadata about the functional dependency of columns. */
+  public interface FunctionalDependency extends Metadata {
+    MetadataDef<FunctionalDependency> DEF =
+        MetadataDef.of(FunctionalDependency.class, FunctionalDependency.Handler.class,
+            BuiltInMethod.FUNCTIONAL_DEPENDENCY.method);
+
+    /**
+     * Returns whether column is functionally dependent on column.
+     */
+    @Nullable Boolean determines(int key, int column);
+
+    /** Handler API. */
+    interface Handler extends MetadataHandler<FunctionalDependency> {
+      @Nullable Boolean determines(RelNode r, RelMetadataQuery mq, int key, int column);
+
+      @Override default MetadataDef<FunctionalDependency> getDef() {
+        return DEF;
+      }
+    }
+  }
+
   /** The built-in forms of metadata. */
   interface All extends Selectivity, UniqueKeys, RowCount, DistinctRowCount,
       PercentageOriginalRows, ColumnUniqueness, ColumnOrigin, Predicates,
       Collation, Distribution, Size, Parallelism, Memory, AllPredicates,
-      ExpressionLineage, TableReferences, NodeTypes {
+      ExpressionLineage, TableReferences, NodeTypes, FunctionalDependency {
   }
 }
