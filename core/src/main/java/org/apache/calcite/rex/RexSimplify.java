@@ -88,6 +88,12 @@ public class RexSimplify {
 
   private static final Strong STRONG = new Strong();
 
+  private static final ImmutableList<SqlOperator> IDEMOTENT_UNARY_FUNCTIONS =
+      ImmutableList.of(SqlStdOperatorTable.UPPER,
+          SqlStdOperatorTable.LOWER,
+          SqlStdOperatorTable.INITCAP,
+          SqlStdOperatorTable.ABS);
+
   /**
    * Creates a RexSimplify.
    *
@@ -333,7 +339,9 @@ public class RexSimplify {
       return simplifyM2v((RexCall) e);
     default:
       if (e.getClass() == RexCall.class) {
-        return simplifyGenericNode((RexCall) e);
+        RexCall rexCall = (RexCall) e;
+        rexCall = simplifyIdempotentUnaryFunction(rexCall);
+        return simplifyGenericNode(rexCall);
       } else {
         return e;
       }
@@ -395,6 +403,22 @@ public class RexSimplify {
         : predicates.isEffectivelyNotNull(e)
         ? not(e)
         : rexBuilder.makeCall(SqlStdOperatorTable.IS_FALSE, e);
+  }
+
+  /**
+   * Runs simplification unary function by eliminating idempotent.
+   */
+  private RexCall simplifyIdempotentUnaryFunction(RexCall rexCall) {
+    while (IDEMOTENT_UNARY_FUNCTIONS.contains(rexCall.getOperator())
+        && rexCall.getOperands().get(0) instanceof RexCall) {
+      RexCall subRexCall = (RexCall) rexCall.getOperands().get(0);
+      if (rexCall.getOperator() == subRexCall.getOperator()) {
+        rexCall = subRexCall;
+      } else {
+        break;
+      }
+    }
+    return rexCall;
   }
 
   /**
