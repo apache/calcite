@@ -458,6 +458,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LAST;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LAST_DAY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LAST_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LEAD;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LEFT_SHIFT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LESS_THAN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LESS_THAN_OR_EQUAL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LIKE;
@@ -744,6 +745,8 @@ public class RexImpTable {
           NullPolicy.STRICT);
       defineMethod(BITNOT, BuiltInMethod.BIT_NOT.method,
           NullPolicy.STRICT);
+      defineMethod(LEFT_SHIFT, BuiltInMethod.LEFT_SHIFT.method,
+          NullPolicy.STRICT);
       define(CONCAT, new ConcatImplementor());
       defineMethod(CONCAT_FUNCTION, BuiltInMethod.MULTI_STRING_CONCAT.method,
           NullPolicy.STRICT);
@@ -894,6 +897,10 @@ public class RexImpTable {
       defineMethod(LOG1P, BuiltInMethod.LOG1P.method, NullPolicy.STRICT);
       defineMethod(TYPEOF, BuiltInMethod.TYPEOF.method, NullPolicy.STRICT);
       defineMethod(VARIANTNULL, BuiltInMethod.VARIANTNULL.method, NullPolicy.STRICT);
+
+      // shift
+      defineMethod(LEFT_SHIFT,
+          BuiltInMethod.LEFT_SHIFT.method, NullPolicy.STRICT);
 
       define(SAFE_ADD,
           new SafeArithmeticImplementor(BuiltInMethod.SAFE_ADD.method));

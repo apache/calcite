@@ -17,6 +17,7 @@
 package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.avatica.util.TimeUnit;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
@@ -66,6 +67,8 @@ import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeTransforms;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
@@ -1338,6 +1341,33 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    */
   public static final SqlAggFunction BIT_XOR =
       new SqlBitOpAggFunction(SqlKind.BIT_XOR);
+
+  /**
+   * <code>{@code <<}</code> (left shift) operator.
+   */
+  public static final SqlBinaryOperator LEFT_SHIFT =
+      new SqlBinaryOperator(
+          "<<",
+          SqlKind.OTHER,
+          32,                                     // Standard shift operator precedence
+          true,
+          ReturnTypes.cascade(
+              // If first operand is BINARY, return BINARY with same precision
+              // If first operand is INTEGER family, return BIGINT
+              opBinding -> {
+                RelDataType firstOperandType = opBinding.getOperandType(0);
+                if (SqlTypeUtil.isBinary(firstOperandType)) {
+                  return firstOperandType; // Return same BINARY type as input
+                } else {
+                  // For INTEGER family, return BIGINT
+                  return opBinding.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
+                }
+              },
+              SqlTypeTransforms.TO_NULLABLE),
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.or(
+              OperandTypes.family(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER),
+              OperandTypes.family(SqlTypeFamily.BINARY, SqlTypeFamily.INTEGER)));
 
   //-------------------------------------------------------------
   // WINDOW Aggregate Functions

@@ -3420,6 +3420,134 @@ public class SqlFunctions {
   }
 
   /**
+   * Validates shift count following modern database standards.
+   */
+  private static void validateShiftCount(long shift) {
+    if (shift < 0) {
+      throw new IllegalArgumentException(
+          "Invalid shift parameter: " + shift);
+    }
+  }
+
+  /**
+   * Performs bitwise left shift on two integers.
+   * Equivalent to: {@code (long)x << y}.
+   * Returns 0 if shift {@code >= 64} (following BigQuery behavior).
+   *
+   * @throws IllegalArgumentException if {@code y} is negative.
+   */
+  public static Long leftShift(int x, int y) {
+    validateShiftCount(y);
+
+    if (y >= 64) {
+      return 0L;  // BigQuery behavior for large shifts
+    }
+
+    return (long) x << y;
+  }
+
+  /**
+   * Performs bitwise left shift on a long integer.
+   * Returns {@code x << y}.
+   * Returns 0 if shift {@code >= 64} (following BigQuery behavior).
+   *
+   * @throws IllegalArgumentException if {@code y} is negative.
+   */
+  public static Long leftShift(long x, int y) {
+    validateShiftCount(y);
+
+    if (y >= 64) {
+      return 0L;  // BigQuery behavior for large shifts
+    }
+
+    return x << y;
+  }
+
+  /**
+   * Performs bitwise left shift with long shift amount.
+   * Returns {@code x << y}.
+   * Returns 0 if shift {@code >= 64} (following BigQuery behavior).
+   *
+   * @throws IllegalArgumentException if {@code y} is negative.
+   */
+  public static Long leftShift(int x, long y) {
+    validateShiftCount(y);
+
+    if (y >= 64) {
+      return 0L;  // BigQuery behavior for large shifts
+    }
+
+    return (long) x << (int) y;  // Safe cast since y < 64
+  }
+
+  /**
+   * Performs bitwise left shift on binary data.
+   * Shifts the entire byte array as a unit, following BigQuery BYTES semantics.
+   *
+   * @param bytes the binary input as ByteString
+   * @param y the shift amount (number of bit positions)
+   * @return new ByteString with shifted bits, or {@code null} if input is null
+   * @throws IllegalArgumentException if {@code y} is negative
+   */
+  public static ByteString leftShift(ByteString bytes, int y) {
+
+    // Convert ByteString to byte array
+    byte[] byteArray = bytes.getBytes();
+
+    // Use the existing leftShift implementation
+    byte[] result = leftShift(byteArray, y);
+
+    // Convert back to ByteString
+    return new ByteString(result);
+  }
+
+  /**
+   * Performs bitwise left shift on binary data.
+   * Shifts the entire byte array as a unit, following BigQuery BYTES semantics.
+   *
+   * @param bytes the binary input
+   * @param y the shift amount (number of bit positions)
+   * @return new byte array with shifted bits, or {@code null} if input is null
+   * @throws IllegalArgumentException if {@code y} is negative
+   */
+  public static byte[] leftShift(byte[] bytes, int y) {
+    validateShiftCount(y);
+
+    if (y == 0) {
+      return bytes.clone();
+    }
+
+    if (y >= bytes.length * 8) {
+      // All bits shifted out, return zero-filled array
+      return new byte[bytes.length];
+    }
+
+    byte[] result = new byte[bytes.length];
+    int byteShift = y / 8;      // Number of whole bytes to shift
+    int bitShift = y % 8;       // Remaining bit shift within bytes
+
+    if (bitShift == 0) {
+      // Simple byte-aligned shift
+      System.arraycopy(bytes, 0, result, byteShift, bytes.length - byteShift);
+    } else {
+      // Bit-level shifting required
+      int carry = 0;
+      for (int i = bytes.length - 1 - byteShift; i >= 0; i--) {
+        int current = (bytes[i] & 0xFF) << bitShift;
+        result[i + byteShift] = (byte) ((current | carry) & 0xFF);
+        carry = (current >> 8) & 0xFF;
+      }
+      // Handle the final carry if there's space
+      if (byteShift > 0) {
+        result[byteShift - 1] = (byte) carry;
+      }
+    }
+
+    return result;
+  }
+
+
+  /**
    * Bitwise function <code>BITXOR</code> applied to {@link Long} values.
    * Returns {@code null} if any operand is null.
    */
