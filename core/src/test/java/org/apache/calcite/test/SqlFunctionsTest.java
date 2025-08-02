@@ -86,6 +86,8 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.hasToString;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -2031,5 +2033,28 @@ class SqlFunctionsTest {
 
   private long sqlTimestamp(String str) {
     return toLong(java.sql.Timestamp.valueOf(str));
+  }
+  @Test void testLeftShift() {
+    // Test 1-byte array
+    byte[] data1 = {(byte) 0x0F}; // 00001111
+    for (int shift = -10; shift <= 10; shift++) {
+      byte[] result = SqlFunctions.leftShift(data1.clone(), shift);
+      // Just verify it doesn't crash and returns correct length
+      assertEquals(1, result.length);
+    }
+
+    // Test 2-byte array
+    byte[] data2 = {(byte) 0x12, (byte) 0x34};
+    for (int shift = -18; shift <= 18; shift++) {
+      byte[] result = SqlFunctions.leftShift(data2.clone(), shift);
+      assertEquals(2, result.length);
+    }
+
+    // Verify specific known cases
+    assertArrayEquals(new byte[]{(byte) 0xAB, (byte) 0xCD},
+        SqlFunctions.leftShift(new byte[]{(byte) 0xAB, (byte) 0xCD}, 0));
+
+    assertArrayEquals(new byte[]{(byte) 0x80, (byte) 0x00},
+        SqlFunctions.leftShift(new byte[]{(byte) 0x40, (byte) 0x00}, 1));
   }
 }
