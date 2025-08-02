@@ -119,7 +119,6 @@ WHERE comm IS NOT NULL LIMIT 4;
 +-----+
 (4 rows)
 
-
 !ok
 
 # [CALCITE-5531] COALESCE throws ClassCastException

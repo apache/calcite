@@ -33,6 +33,7 @@ import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlFunction;
@@ -44,6 +45,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.fun.LibraryOperator;
@@ -52,6 +54,7 @@ import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
+import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.parser.StringAndPos;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
@@ -147,6 +150,8 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -16445,6 +16450,20 @@ public class SqlOperatorTest {
     f.checkAgg("logical_or(x)", values3, isSingle(false));
     String[] values4 = {"null"};
     f.checkAgg("logical_or(x)", values4, isNullValue());
+  }
+
+  @Test void testBitXorOperatorParserFunc() throws SqlParseException {
+    String sql = "SELECT 5 ^ 3 ";
+    SqlNode sqlNode = SqlParser.create(sql,  SqlParser.Config.DEFAULT).parseStmt();
+
+    assertInstanceOf(SqlSelect.class, sqlNode);
+    SqlSelect select = (SqlSelect) sqlNode;
+
+    SqlNode selectItem = select.getSelectList().get(0);
+    assertInstanceOf(SqlBasicCall.class, selectItem);
+    SqlBasicCall call = (SqlBasicCall) selectItem;
+    assertEquals(SqlStdOperatorTable.BITXOR_OPERATOR, call.getOperator());
+    assertEquals(2, call.getOperandList().size());
   }
 
   @Test void testBitXorOperatorScalarFunc() {

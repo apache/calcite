@@ -8000,6 +8000,7 @@ SqlBinaryOperator BinaryRowOperator() :
 |   <NOT> <SUBMULTISET> <OF> { return SqlStdOperatorTable.NOT_SUBMULTISET_OF; }
 |   <CONTAINS> { return SqlStdOperatorTable.CONTAINS; }
 |   <OVERLAPS> { return SqlStdOperatorTable.OVERLAPS; }
+|   <CARET> { return SqlStdOperatorTable.BITXOR_OPERATOR; }
 |   <EQUALS> { return SqlStdOperatorTable.PERIOD_EQUALS; }
 |   <PRECEDES> { return SqlStdOperatorTable.PRECEDES; }
 |   <SUCCEEDS> { return SqlStdOperatorTable.SUCCEEDS; }
