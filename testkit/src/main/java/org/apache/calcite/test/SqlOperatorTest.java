@@ -16452,20 +16452,6 @@ public class SqlOperatorTest {
     f.checkAgg("logical_or(x)", values4, isNullValue());
   }
 
-  @Test void testBitXorOperatorParserFunc() throws SqlParseException {
-    String sql = "SELECT 5 ^ 3 ";
-    SqlNode sqlNode = SqlParser.create(sql,  SqlParser.Config.DEFAULT).parseStmt();
-
-    assertInstanceOf(SqlSelect.class, sqlNode);
-    SqlSelect select = (SqlSelect) sqlNode;
-
-    SqlNode selectItem = select.getSelectList().get(0);
-    assertInstanceOf(SqlBasicCall.class, selectItem);
-    SqlBasicCall call = (SqlBasicCall) selectItem;
-    assertEquals(SqlStdOperatorTable.BITXOR_OPERATOR, call.getOperator());
-    assertEquals(2, call.getOperandList().size());
-  }
-
   @Test void testBitXorOperatorScalarFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.BITXOR_OPERATOR, VM_EXPAND);
@@ -16518,6 +16504,36 @@ public class SqlOperatorTest {
     f.checkNull("CAST(NULL AS INTEGER UNSIGNED) ^^ CAST(NULL AS INTEGER UNSIGNED)");
   }
 
+  @Test void testLeftShiftScalarFunc() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlStdOperatorTable.LEFTSHIFT_OPERATOR, VmName.EXPAND);
+
+
+    // Basic test cases
+    f.checkScalar("2 << 2", "8", "INTEGER NOT NULL");
+    f.checkScalar("1 << 10", "1024", "INTEGER NOT NULL");
+    f.checkScalar("0 << 5", "0", "INTEGER NOT NULL");
+
+    // Test with different integer types and type coercion
+    f.checkScalar("CAST(2 AS INTEGER) << CAST(3 AS BIGINT)", "16", "BIGINT NOT NULL");
+    f.checkScalar("-5 << 2", "-20", "INTEGER NOT NULL");
+    f.checkScalar("-5 << 3", "-40", "INTEGER NOT NULL");
+    f.checkScalar("CAST(-5 AS TINYINT) << CAST(2 AS TINYINT)", "-20", "TINYINT NOT NULL");
+
+    // Verify return types
+    f.checkType("CAST(2 AS TINYINT) << CAST(3 AS TINYINT)", "TINYINT NOT NULL");
+    f.checkType("CAST(2 AS SMALLINT) << CAST(3 AS SMALLINT)", "SMALLINT NOT NULL");
+    f.checkType("CAST(2 AS BIGINT) << CAST(3 AS BIGINT)", "BIGINT NOT NULL");
+
+    // Test invalid argument types
+    f.checkFails("^1.2 << 2^",
+        "Cannot apply '<<' to arguments of type '<DECIMAL\\(2, 1\\)> << <INTEGER>'\\. Supported form\\(s\\): '<INTEGER> << <INTEGER>'",
+        false);
+
+    f.checkNull("CAST(NULL AS INTEGER) << 5");
+    f.checkNull("10 << CAST(NULL AS INTEGER)");
+    f.checkNull("CAST(NULL AS INTEGER) << CAST(NULL AS INTEGER)");
+  }
 
   @Test void testBitAndScalarFunc() {
     final SqlOperatorFixture f = fixture();

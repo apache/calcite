@@ -1314,6 +1314,18 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
               .or(OperandTypes.UNSIGNED_NUMERIC_UNSIGNED_NUMERIC));
 
   /**
+   * <code><<</code> operator.
+   */
+  public static final SqlBinaryOperator LEFTSHIFT_OPERATOR =
+      new SqlBinaryOperator("<<",                           // Operator name
+          SqlKind.OTHER_FUNCTION,             // SqlKind
+          32,
+          true,
+          ReturnTypes.LARGEST_INT_OR_FIRST_NON_NULL,
+          null,
+          OperandTypes.family(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER));
+
+  /**
    * <code>BITNOT</code> scalar function.
    */
   public static final SqlFunction BITNOT =

@@ -3418,6 +3418,17 @@ public class SqlFunctions {
 
     return new ByteString(result);
   }
+  public static int leftShift(int a, int b) {
+    return a << b;
+  }
+
+  public static long leftShift(long a, int b) {
+    return a << b;
+  }
+
+  public static long leftShift(int a, long b) {
+    return a << b;
+  }
 
   /**
    * Bitwise function <code>BITXOR</code> applied to {@link Long} values.
