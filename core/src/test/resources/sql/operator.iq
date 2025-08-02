@@ -748,13 +748,7 @@ FOO BOOLEAN(1) NOT NULL
 
 !ok
 
-<<<<<<< HEAD
 SELECT 2 ^ 3 AS foo;
-=======
--- Bitwise LEFT SHIFT operator `<<`
-
-SELECT 1 << 0 AS foo;
->>>>>>> 252edcb87 (Add Support << operator)
 +-----+
 | FOO |
 +-----+
@@ -764,75 +758,58 @@ SELECT 1 << 0 AS foo;
 
 !ok
 
-<<<<<<< HEAD
 SELECT 0 ^ 0 AS foo;
 +-----+
 | FOO |
 +-----+
 |   0 |
-=======
-SELECT 1 << 1 AS foo;
-+-----+
-| FOO |
-+-----+
-|   2 |
->>>>>>> 252edcb87 (Add Support << operator)
 +-----+
 (1 row)
 
 !ok
 
-<<<<<<< HEAD
 SELECT 1 ^ 1 AS foo;
 +-----+
 | FOO |
 +-----+
 |   0 |
-=======
-SELECT 2 << 2 AS foo;
-+-----+
-| FOO |
-+-----+
-|   8 |
->>>>>>> 252edcb87 (Add Support << operator)
 +-----+
 (1 row)
 
 !ok
 
-<<<<<<< HEAD
 SELECT 5 ^ 2 AS foo;
 +-----+
 | FOO |
 +-----+
 |   7 |
-=======
-SELECT 4 << 3 AS foo;
-+-----+
-| FOO |
-+-----+
-|  32 |
->>>>>>> 252edcb87 (Add Support << operator)
 +-----+
 (1 row)
 
 !ok
 
-<<<<<<< HEAD
 SELECT 255 ^ 128 AS foo;
 +-----+
 | FOO |
 +-----+
 | 127 |
-=======
--- Test with CAST
-SELECT CAST(2 AS SMALLINT) << CAST(3 AS INTEGER) AS foo;
 +-----+
-| FOO |
-+-----+
-|  16 |
->>>>>>> 252edcb87 (Add Support << operator)
-+-----+
+(1 row)
+
+!ok
+
+-- Bitwise LEFT SHIFT operator `<<`
+SELECT
+  1 << 0 AS shift1,
+  1 << 1 AS shift2,
+  2 << 2 AS shift3,
+  4 << 3 AS shift4,
+  CAST(2 AS SMALLINT) << CAST(3 AS INTEGER) AS cast_shift;
++--------+--------+--------+--------+------------+
+| SHIFT1 | SHIFT2 | SHIFT3 | SHIFT4 | CAST_SHIFT |
++--------+--------+--------+--------+------------+
+|      1 |      2 |      8 |     32 |         16 |
++--------+--------+--------+--------+------------+
 (1 row)
 
 !ok
