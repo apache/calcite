@@ -334,6 +334,7 @@ class SqlAdvisorTest extends SqlValidatorTestCase {
           "KEYWORD(SIMILAR)",
           "KEYWORD(SUBMULTISET)",
           "KEYWORD(SUCCEEDS)",
+          "KEYWORD(^)",
           "KEYWORD([)",
           "KEYWORD(||)");
 
