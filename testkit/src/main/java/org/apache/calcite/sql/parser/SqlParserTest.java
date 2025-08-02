@@ -987,6 +987,25 @@ public class SqlParserTest {
         .fails("(?s)Encountered \"-\" at .*")
         .withDialect(BIG_QUERY)
         .fails("(?s)Encountered \"-\" at .*");
+
+    final SqlConformance nonBigQueryConformance = new SqlAbstractConformance() {
+      @Override public boolean allowHyphenInUnquotedTableName() {
+        return true;
+      }
+    };
+
+    sql("select * from foo-bar.baz cross join (select alpha-omega from t) as t")
+        .withDialect(MYSQL)
+        .withConformance(nonBigQueryConformance)
+        .ok("SELECT *\n"
+          + "FROM `foo-bar`.`baz`\n"
+          + "CROSS JOIN (SELECT (`alpha` - `omega`)\n"
+          + "FROM `t`) AS `t`");
+
+    sql("select * from foo ^-^ bar.baz cross join (select alpha-omega from t) as t")
+        .withDialect(MYSQL)
+        .withConformance(nonBigQueryConformance)
+        .fails("(?s)Encountered \"-\" at .*");
   }
 
   @Test void testHyphenatedColumnName() {

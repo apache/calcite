@@ -619,9 +619,11 @@ public abstract class SqlAbstractParserImpl {
         return BQID;
       case BACK_TICK:
         if (config.conformance().allowHyphenInUnquotedTableName()
-            && config.charLiteralStyles().equals(
+            && (config.charLiteralStyles().equals(
                 EnumSet.of(CharLiteralStyle.BQ_SINGLE,
-                    CharLiteralStyle.BQ_DOUBLE))) {
+                    CharLiteralStyle.BQ_DOUBLE))
+               || config.charLiteralStyles().equals(
+            EnumSet.of(CharLiteralStyle.STANDARD)))) {
           return BQID;
         }
         if (!config.conformance().allowHyphenInUnquotedTableName()
