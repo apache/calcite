@@ -43,7 +43,6 @@ import org.apache.calcite.runtime.variant.VariantValue;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.NumberUtil;
 import org.apache.calcite.util.TimeWithTimeZoneString;
 import org.apache.calcite.util.TimestampWithTimeZoneString;
@@ -3419,111 +3418,140 @@ public class SqlFunctions {
 
     return new ByteString(result);
   }
+
   /**
-   * Checks if the shift count is negative.
-   * Bitwise left shift with a negative shift count is invalid.
-   *
-   * @param shift The shift amount
-   * @throws IllegalArgumentException if shift < 0
+   * Validates shift count following modern database standards.
    */
-  private static void checkShiftCount(int shift) {
+  private static void validateShiftCount(long shift) {
     if (shift < 0) {
-      throw new IllegalArgumentException("Shift count < 0: " + shift);
+      throw new IllegalArgumentException(
+          "Invalid shift parameter: " + shift);
     }
   }
 
   /**
-   * Checks whether the shifted result overflows the allowed range for the given SQL type.
+   * Performs bitwise left shift on two integers.
+   * Equivalent to: {@code (long)x << y}.
+   * Returns 0 if shift >= 64 (following BigQuery behavior).
    *
-   * @param result The result after left shift
-   * @param type   The SQL type to validate against (TINYINT, SMALLINT, etc.)
-   * @throws ArithmeticException if result cannot be represented in the given type
+   * @throws IllegalArgumentException if {@code y} is negative.
    */
-  private static void checkOverflow(long result, SqlTypeName type) {
-    switch (type) {
-    case TINYINT:
-      if (result < Byte.MIN_VALUE || result > Byte.MAX_VALUE) {
-        throw new ArithmeticException(
-            "Numeric overflow: cannot represent value " + result + " as TINYINT");
-      }
-      break;
-    case SMALLINT:
-      if (result < Short.MIN_VALUE || result > Short.MAX_VALUE) {
-        throw new ArithmeticException(
-            "Numeric overflow: cannot represent value " + result + " as SMALLINT");
-      }
-      break;
-    case INTEGER:
-      if (result < Integer.MIN_VALUE || result > Integer.MAX_VALUE) {
-        throw new ArithmeticException(
-            "Numeric overflow: cannot represent value " + result + " as INTEGER");
-      }
-      break;
-    case BIGINT:
-      // No check required for BIGINT; Java long allows full range.
-      break;
-    default:
-      // No validation for other types
+  public static Long leftShift(int x, int y) {
+    validateShiftCount(y);
+
+    if (y >= 64) {
+      return 0L;  // BigQuery behavior for large shifts
     }
+
+    return (long) x << y;
   }
 
   /**
-   * Left shift for byte (TINYINT) with overflow and negative shift check.
+   * Performs bitwise left shift on a long integer.
+   * Returns {@code x << y}.
+   * Returns 0 if shift >= 64 (following BigQuery behavior).
+   *
+   * @throws IllegalArgumentException if {@code y} is negative.
    */
-  public static byte leftShift(byte a, int shift) {
-    checkShiftCount(shift);
-    int result = a << shift;
-    checkOverflow(result, SqlTypeName.TINYINT);
-    return (byte) result;
+  public static Long leftShift(long x, int y) {
+    validateShiftCount(y);
+
+    if (y >= 64) {
+      return 0L;  // BigQuery behavior for large shifts
+    }
+
+    return x << y;
   }
 
   /**
-   * Left shift for short (SMALLINT) with overflow and negative shift check.
+   * Performs bitwise left shift with long shift amount.
+   * Returns {@code x << y}.
+   * Returns 0 if shift >= 64 (following BigQuery behavior).
+   *
+   * @throws IllegalArgumentException if {@code y} is negative.
    */
-  public static short leftShift(short a, int shift) {
-    checkShiftCount(shift);
-    int result = a << shift;
-    checkOverflow(result, SqlTypeName.SMALLINT);
-    return (short) result;
+  public static Long leftShift(int x, long y) {
+    validateShiftCount(y);
+
+    if (y >= 64) {
+      return 0L;  // BigQuery behavior for large shifts
+    }
+
+    return (long) x << (int) y;  // Safe cast since y < 64
   }
 
   /**
-   * Left shift for int with optional overflow check.
+   * Performs bitwise left shift on binary data.
+   * Shifts the entire byte array as a unit, following BigQuery BYTES semantics.
+   *
+   * @param bytes the binary input as ByteString
+   * @param y the shift amount (number of bit positions)
+   * @return new ByteString with shifted bits, or {@code null} if input is null
+   * @throws IllegalArgumentException if {@code y} is negative
    */
-  public static int leftShift(int a, int shift) {
-    checkShiftCount(shift);
-    int result = a << shift;
-    checkOverflow(result, SqlTypeName.INTEGER);
+  public static ByteString leftShift(ByteString bytes, int y) {
+    if (bytes == null) {
+      return null;
+    }
+
+    // Convert ByteString to byte array
+    byte[] byteArray = bytes.getBytes();
+
+    // Use the existing leftShift implementation
+    byte[] result = leftShift(byteArray, y);
+
+    // Convert back to ByteString
+    return new ByteString(result);
+  }
+
+  /**
+   * Performs bitwise left shift on binary data.
+   * Shifts the entire byte array as a unit, following BigQuery BYTES semantics.
+   *
+   * @param bytes the binary input
+   * @param y the shift amount (number of bit positions)
+   * @return new byte array with shifted bits, or {@code null} if input is null
+   * @throws IllegalArgumentException if {@code y} is negative
+   */
+  public static byte[] leftShift(byte[] bytes, int y) {
+    if (bytes == null) {
+      return null;
+    }
+    validateShiftCount(y);
+
+    if (y == 0) {
+      return bytes.clone();
+    }
+
+    if (y >= bytes.length * 8) {
+      // All bits shifted out, return zero-filled array
+      return new byte[bytes.length];
+    }
+
+    byte[] result = new byte[bytes.length];
+    int byteShift = y / 8;      // Number of whole bytes to shift
+    int bitShift = y % 8;       // Remaining bit shift within bytes
+
+    if (bitShift == 0) {
+      // Simple byte-aligned shift
+      System.arraycopy(bytes, 0, result, byteShift, bytes.length - byteShift);
+    } else {
+      // Bit-level shifting required
+      int carry = 0;
+      for (int i = bytes.length - 1 - byteShift; i >= 0; i--) {
+        int current = (bytes[i] & 0xFF) << bitShift;
+        result[i + byteShift] = (byte) ((current | carry) & 0xFF);
+        carry = (current >> 8) & 0xFF;
+      }
+      // Handle the final carry if there's space
+      if (byteShift > 0) {
+        result[byteShift - 1] = (byte) carry;
+      }
+    }
+
     return result;
   }
 
-  /**
-   * Left shift for long with optional overflow check.
-   */
-  public static long leftShift(long a, int shift) {
-    checkShiftCount(shift);
-    long result = a << shift;
-    checkOverflow(result, SqlTypeName.BIGINT);
-    return result;
-  }
-
-  /**
-   * Left shift where the left operand is int and the right operand is long.
-   * This is necessary for supporting queries like:{@code INTEGER << BIGINT}
-   */
-  public static long leftShift(int a, long shift) {
-    if (shift < 0) {
-      throw new IllegalArgumentException("Shift count < 0: " + shift);
-    }
-    if (shift >= 64) {
-      // Shifting more than 63 bits yields 0
-      return 0L;
-    }
-    long result = (long) a << shift;
-    // Uncomment if overflow check is needed for BIGINT
-    checkOverflow(result, SqlTypeName.BIGINT);
-    return result;
-  }
 
   /**
    * Bitwise function <code>BITXOR</code> applied to {@link Long} values.

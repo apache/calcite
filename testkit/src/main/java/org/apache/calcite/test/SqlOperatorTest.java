@@ -16501,100 +16501,111 @@ public class SqlOperatorTest {
 
   @Test void testLeftShiftScalarFunc() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.LEFTSHIFT, VmName.EXPAND);
+    f.setFor(SqlStdOperatorTable.SHIFT_LEFT, VmName.EXPAND);
 
-    // Basic test cases
-    f.checkScalar("2 << 2", "8", "INTEGER NOT NULL");
-    f.checkScalar("1 << 10", "1024", "INTEGER NOT NULL");
-    f.checkScalar("0 << 5", "0", "INTEGER NOT NULL");
+    // === Basic functionality ===
+    f.checkScalar("2 << 2", "8", "BIGINT NOT NULL");
+    f.checkScalar("1 << 10", "1024", "BIGINT NOT NULL");
+    f.checkScalar("0 << 5", "0", "BIGINT NOT NULL");
 
-    // Test with different integer types and type coercion
-    f.checkScalar("CAST(2 AS INTEGER) << CAST(3 AS BIGINT)", "16", "INTEGER NOT NULL");
-    f.checkScalar("-5 << 2", "-20", "INTEGER NOT NULL");
-    f.checkScalar("-5 << 3", "-40", "INTEGER NOT NULL");
-    f.checkScalar("CAST(-5 AS TINYINT) << CAST(2 AS TINYINT)", "-20", "TINYINT NOT NULL");
+    // === Type coercion and signed behavior ===
+    f.checkScalar("CAST(2 AS INTEGER) << CAST(3 AS BIGINT)", "16", "BIGINT NOT NULL");
+    f.checkScalar("-5 << 2", "-20", "BIGINT NOT NULL");
+    f.checkScalar("-5 << 3", "-40", "BIGINT NOT NULL");
+    f.checkScalar("CAST(-5 AS TINYINT) << CAST(2 AS TINYINT)", "-20", "BIGINT NOT NULL");
 
-    // Verify return types
-    f.checkType("CAST(2 AS TINYINT) << CAST(3 AS TINYINT)", "TINYINT NOT NULL");
-    f.checkType("CAST(2 AS SMALLINT) << CAST(3 AS SMALLINT)", "SMALLINT NOT NULL");
+    // === Verify return type is always BIGINT ===
+    f.checkType("CAST(2 AS TINYINT) << CAST(3 AS TINYINT)", "BIGINT NOT NULL");
+    f.checkType("CAST(2 AS SMALLINT) << CAST(3 AS SMALLINT)", "BIGINT NOT NULL");
+    f.checkType("CAST(2 AS INTEGER) << CAST(3 AS INTEGER)", "BIGINT NOT NULL");
     f.checkType("CAST(2 AS BIGINT) << CAST(3 AS BIGINT)", "BIGINT NOT NULL");
 
-    // check overflow
-    f.checkFails(
-        "CAST(64 AS TINYINT) << CAST(1 AS TINYINT)",
-        "Numeric overflow: cannot represent value 128 as TINYINT",
-        true);
+    // === Overflow tests for BIGINT return type ===
+    // Test values that approach BIGINT.MAX_VALUE (9223372036854775807)
+    f.checkScalar("1 << 62", "4611686018427387904", "BIGINT NOT NULL"); // 2^62, still within range
+    // 2^63, overflows to BIGINT.MIN_VALUE
+    f.checkScalar("1 << 63", "-9223372036854775808", "BIGINT NOT NULL");
 
-    f.checkFails(
-        "CAST(127 AS TINYINT) << CAST(1 AS TINYINT)",
-        "Numeric overflow: cannot represent value 254 as TINYINT",
-        true);
+    // Test with larger base values that cause overflow
+    // (2^62) << 1 = overflow
+    f.checkScalar("4611686018427387904 << 1", "-9223372036854775808", "BIGINT NOT NULL");
+    // (2^61) << 2 = overflow
+    f.checkScalar("2305843009213693952 << 2", "-9223372036854775808", "BIGINT NOT NULL");
 
-    f.checkFails(
-        "CAST(1 AS TINYINT) << CAST(7 AS TINYINT)",
-        "Numeric overflow: cannot represent value 128 as TINYINT",
-        true);
+    // Test negative values that can cause overflow when shifted
+    // -(2^62) << 1
+    f.checkScalar("-4611686018427387904 << 1", "-9223372036854775808", "BIGINT NOT NULL");
+    f.checkScalar("-1 << 63", "-9223372036854775808", "BIGINT NOT NULL"); // -1 << 63
 
-    f.checkFails(
-        "CAST(16384 AS SMALLINT) << CAST(1 AS SMALLINT)",
-        "Numeric overflow: cannot represent value 32768 as SMALLINT",
-        true);
+    // Test edge cases around maximum shift positions
+    // No shift, should be max value
+    f.checkScalar("9223372036854775807 << 0", "9223372036854775807", "BIGINT NOT NULL");
+    // Test values that would overflow in intermediate calculations
+    // Large shift causing wraparound due to masking
+    f.checkScalar("1000000000 << 35", "-2533749779419103232", "BIGINT NOT NULL");
+    f.checkScalar("9223372036854775807 << 1", "-2", "BIGINT NOT NULL"); // MAX_VALUE << 1
 
-    f.checkFails(
-        "CAST(32767 AS SMALLINT) << CAST(1 AS SMALLINT)",
-        "Numeric overflow: cannot represent value 65534 as SMALLINT",
-        true);
+    // === Java shift semantics: bits masked to 5/6 bits ===
+    f.checkScalar("1 << 32", "4294967296", "BIGINT NOT NULL");
+    // 1L << 50
+    f.checkScalar("1 << 50", "1125899906842624", "BIGINT NOT NULL");
+    f.checkScalar("1 << 100", "0", "BIGINT NOT NULL");
+    f.checkScalar("100 << 50", "112589990684262400", "BIGINT NOT NULL");
 
-    f.checkFails(
-        "CAST(1 AS SMALLINT) << CAST(15 AS SMALLINT)",
-        "Numeric overflow: cannot represent value 32768 as SMALLINT",
-        true);
+    // === Negative shift counts (still throw) ===
+    f.checkFails("8 << -1", "Invalid shift parameter: -1", true);
+    f.checkFails("16 << -2", "Invalid shift parameter: -2", true);
 
-    f.checkFails(
-        "CAST(1 AS TINYINT) << CAST(8 AS TINYINT)",
-        "Numeric overflow: cannot represent value 256 as TINYINT",
-        true);
+    // === Shift by zero and large (but valid) shifts ===
+    f.checkScalar("0 << 32", "0", "BIGINT NOT NULL");
+    f.checkScalar("0 << 100", "0", "BIGINT NOT NULL");
 
-    f.checkFails(
-        "CAST(1 AS SMALLINT) << CAST(16 AS SMALLINT)",
-        "Numeric overflow: cannot represent value 65536 as SMALLINT",
-        true);
+    // === Binary type tests ===
+    // Single byte tests - result maintains same byte length
+    f.checkScalar("CAST(X'FF' AS BINARY(1)) << 1", "fe",
+        "BINARY(1) NOT NULL");  // 11111111 -> 11111110
+    f.checkScalar("CAST(X'0F' AS BINARY(1)) << 4", "f0",
+        "BINARY(1) NOT NULL");  // 00001111 -> 11110000
+    f.checkScalar("CAST(X'01' AS BINARY(1)) << 3", "08",
+        "BINARY(1) NOT NULL");  // 00000001 -> 00001000
+    f.checkScalar("CAST(X'00' AS BINARY(1)) << 5", "00",
+        "BINARY(1) NOT NULL");  // 00000000 -> 00000000
 
+    // Multi-byte tests
+    f.checkScalar("CAST(X'FFFF' AS BINARY(2)) << 1", "fffe",
+        "BINARY(2) NOT NULL");  // Shift left by 1 bit
+    f.checkScalar("CAST(X'1234' AS BINARY(2)) << 4", "2340",
+        "BINARY(2) NOT NULL");  // Shift left by 4 bits
+    f.checkScalar("CAST(X'1234' AS BINARY(2)) << 8", "0012",
+        "BINARY(2) NOT NULL");  // Shift left by 8 bits (1 byte)
 
-
-    // Java treats shift by 32 as 0, shift by 50 as 18
-    f.checkScalar("1 << 32", "1", "INTEGER NOT NULL");
-    f.checkScalar("1 << 50", "262144", "INTEGER NOT NULL");
-
-    // Overflow cases
-    f.checkFails("CAST(1 AS TINYINT) << CAST(8 AS TINYINT)",
-        "Numeric overflow: cannot represent value 256 as TINYINT", true);
-    f.checkFails("CAST(1 AS SMALLINT) << CAST(16 AS SMALLINT)",
-        "Numeric overflow: cannot represent value 65536 as SMALLINT", true);
-
-    // Negative shift values
-    f.checkFails("8 << -1", "Shift count < 0: -1", true);
-    f.checkFails("16 << -2", "Shift count < 0: -2", true);
+    // Edge cases - shifting more than available bits
+    f.checkScalar("CAST(X'FF' AS BINARY(1)) << 8", "00",
+        "BINARY(1) NOT NULL");   // All bits shifted out
+    f.checkScalar("CAST(X'FFFF' AS BINARY(2)) << 16", "0000",
+        "BINARY(2) NOT NULL"); // All bits shifted out
 
     // Zero shift
-    f.checkScalar("0 << 32", "0", "INTEGER NOT NULL");
-    f.checkScalar("0 << 100", "0", "INTEGER NOT NULL");
+    f.checkScalar("CAST(X'ABCD' AS BINARY(2)) << 0", "abcd",
+        "BINARY(2) NOT NULL");
 
-    // Max before overflow
-    f.checkScalar("CAST(63 AS TINYINT) << CAST(1 AS TINYINT)", "126", "TINYINT NOT NULL");
-    f.checkScalar("CAST(16383 AS SMALLINT) << CAST(1 AS SMALLINT)", "32766", "SMALLINT NOT NULL");
-    f.checkScalar("1073741823 << 1", "2147483646", "INTEGER NOT NULL");
+    // Complex multi-byte shifting
+    f.checkScalar("CAST(X'123456' AS BINARY(3)) << 4", "234560",
+        "BINARY(3) NOT NULL");
+    f.checkScalar("CAST(X'8000' AS BINARY(2)) << 1", "0000",
+        "BINARY(2) NOT NULL");   // MSB shifts out
+    f.checkScalar("CAST(X'4000' AS BINARY(2)) << 1", "8000",
+        "BINARY(2) NOT NULL");   // Normal shift
 
-    // Invalid argument types
+    // === Invalid argument types ===
     f.checkFails("^1.2 << 2^",
-        "Cannot apply '<<' to arguments of type '<DECIMAL\\(2, 1\\)> << <INTEGER>'\\. Supported form\\(s\\): '<INTEGER> << <INTEGER>'",
+        "Cannot apply '<<' to arguments of type '<DECIMAL\\(2, 1\\)> << <INTEGER>'\\. Supported form\\(s\\): '<INTEGER> << <INTEGER>'\\n'<BINARY> << <INTEGER>'",
         false);
 
-    // Null propagation
+    // === Null propagation ===
     f.checkNull("CAST(NULL AS INTEGER) << 5");
     f.checkNull("10 << CAST(NULL AS INTEGER)");
     f.checkNull("CAST(NULL AS INTEGER) << CAST(NULL AS INTEGER)");
-
   }
 
   @Test void testBitAndScalarFunc() {

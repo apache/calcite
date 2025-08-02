@@ -7968,7 +7968,7 @@ SqlBinaryOperator BinaryRowOperator() :
 {
     // <IN> is handled as a special case
     <EQ> { return SqlStdOperatorTable.EQUALS; }
-|   <LEFTSHIFT> { return SqlStdOperatorTable.LEFTSHIFT; }
+|   <LEFTSHIFT> { return SqlStdOperatorTable.SHIFT_LEFT; }
 |   <GT> { return SqlStdOperatorTable.GREATER_THAN; }
 |   <LT> { return SqlStdOperatorTable.LESS_THAN; }
 |   <LE> { return SqlStdOperatorTable.LESS_THAN_OR_EQUAL; }

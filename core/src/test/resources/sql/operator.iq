@@ -109,14 +109,14 @@ SELECT CAST(empno AS BIGINT) ^ CAST(mgr AS INTEGER) AS foo FROM "scott".emp WHER
 # [CALCITE-7109] Add support for << operator in Calcite
 SELECT CAST(deptno AS INTEGER) << CAST(comm AS INTEGER) AS foo FROM "scott".emp
 WHERE comm IS NOT NULL LIMIT 4;
-+-----------+
-| FOO       |
-+-----------+
-|    122880 |
-|        30 |
-|  31457280 |
-| 503316480 |
-+-----------+
++-----+
+| FOO |
++-----+
+|   0 |
+|   0 |
+|   0 |
+|  30 |
++-----+
 (4 rows)
 
 

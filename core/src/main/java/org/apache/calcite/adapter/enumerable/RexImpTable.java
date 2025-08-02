@@ -371,6 +371,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BITCOUNT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BITNOT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BITOR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BITXOR;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BITXOR_OPERATOR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BIT_AND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BIT_OR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BIT_XOR;
@@ -542,7 +543,6 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.UNARY_PLUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.UPPER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.USER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.VARIANTNULL;
-import static org.apache.calcite.util.BuiltInMethod.LEFT_SHIFT;
 import static org.apache.calcite.util.ReflectUtil.isStatic;
 
 import static java.util.Objects.requireNonNull;
@@ -741,15 +741,11 @@ public class RexImpTable {
           NullPolicy.STRICT);
       defineMethod(BITXOR, BuiltInMethod.BIT_XOR.method,
           NullPolicy.STRICT);
-<<<<<<< HEAD
       defineMethod(BITXOR_OPERATOR, BuiltInMethod.BIT_XOR.method,
-=======
-      defineMethod(LEFTSHIFT, LEFT_SHIFT.method,
->>>>>>> 252edcb87 (Add Support << operator)
           NullPolicy.STRICT);
       defineMethod(BITNOT, BuiltInMethod.BIT_NOT.method,
           NullPolicy.STRICT);
-      defineMethod(LEFTSHIFT_OPERATOR, BuiltInMethod.LEFT_SHIFT.method,
+      defineMethod(LEFTSHIFT, BuiltInMethod.LEFT_SHIFT.method,
           NullPolicy.STRICT);
       define(CONCAT, new ConcatImplementor());
       defineMethod(CONCAT_FUNCTION, BuiltInMethod.MULTI_STRING_CONCAT.method,
@@ -901,6 +897,10 @@ public class RexImpTable {
       defineMethod(LOG1P, BuiltInMethod.LOG1P.method, NullPolicy.STRICT);
       defineMethod(TYPEOF, BuiltInMethod.TYPEOF.method, NullPolicy.STRICT);
       defineMethod(VARIANTNULL, BuiltInMethod.VARIANTNULL.method, NullPolicy.STRICT);
+
+      // shift
+      defineMethod(SqlStdOperatorTable.SHIFT_LEFT,
+          BuiltInMethod.LEFT_SHIFT.method, NullPolicy.STRICT);
 
       define(SAFE_ADD,
           new SafeArithmeticImplementor(BuiltInMethod.SAFE_ADD.method));
