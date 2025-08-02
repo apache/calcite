@@ -16447,7 +16447,6 @@ public class SqlOperatorTest {
     f.checkAgg("logical_or(x)", values4, isNullValue());
   }
 
-<<<<<<< HEAD
   @Test void testBitXorOperatorScalarFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.BITXOR_OPERATOR, VM_EXPAND);
@@ -16500,15 +16499,14 @@ public class SqlOperatorTest {
     f.checkNull("CAST(NULL AS INTEGER UNSIGNED) ^^ CAST(NULL AS INTEGER UNSIGNED)");
   }
 
-=======
   /**
    * Test cases for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7109">[CALCITE-7109]
-   * Implement SHIFT_LEFT operator </a>. */
->>>>>>> 5f1004bd8 (Update comment)
+   * Implement SHIFT_LEFT operator </a>.
+   * */
   @Test void testLeftShiftScalarFunc() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.SHIFT_LEFT, VmName.EXPAND);
+    f.setFor(SqlStdOperatorTable.LEFT_SHIFT, VmName.EXPAND);
 
     // === Basic functionality ===
     f.checkScalar("2 << 2", "8", "BIGINT NOT NULL");

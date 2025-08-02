@@ -1317,33 +1317,6 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
               .or(OperandTypes.UNSIGNED_NUMERIC_UNSIGNED_NUMERIC));
 
   /**
-   * <code>{@code <<}</code> (left shift) operator.
-   */
-  public static final SqlBinaryOperator SHIFT_LEFT =
-      new SqlBinaryOperator(
-          "<<",
-          SqlKind.OTHER,
-          32,                                     // Standard shift operator precedence
-          true,
-          ReturnTypes.cascade(
-              // If first operand is BINARY, return BINARY with same precision
-              // If first operand is INTEGER family, return BIGINT
-              opBinding -> {
-                RelDataType firstOperandType = opBinding.getOperandType(0);
-                if (SqlTypeUtil.isBinary(firstOperandType)) {
-                  return firstOperandType; // Return same BINARY type as input
-                } else {
-                  // For INTEGER family, return BIGINT
-                  return opBinding.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
-                }
-              },
-              SqlTypeTransforms.TO_NULLABLE),
-          InferTypes.FIRST_KNOWN,
-          OperandTypes.or(
-              OperandTypes.family(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER),
-              OperandTypes.family(SqlTypeFamily.BINARY, SqlTypeFamily.INTEGER)));
-
-  /**
    * <code>BITNOT</code> scalar function.
    */
   public static final SqlFunction BITNOT =
@@ -1372,7 +1345,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * <code>{@code <<}</code> (left shift) operator.
    */
-  public static final SqlBinaryOperator SHIFT_LEFT =
+  public static final SqlBinaryOperator LEFT_SHIFT =
       new SqlBinaryOperator(
           "<<",
           SqlKind.OTHER,
