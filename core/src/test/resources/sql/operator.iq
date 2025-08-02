@@ -106,6 +106,22 @@ SELECT CAST(empno AS BIGINT) ^ CAST(mgr AS INTEGER) AS foo FROM "scott".emp WHER
 
 !ok
 
+# [CALCITE-7109] Add support for << operator in Calcite
+SELECT CAST(deptno AS INTEGER) << CAST(comm AS INTEGER) AS foo FROM "scott".emp
+WHERE comm IS NOT NULL LIMIT 4;
++-----------+
+| FOO       |
++-----------+
+|    122880 |
+|        30 |
+|  31457280 |
+| 503316480 |
++-----------+
+(4 rows)
+
+
+!ok
+
 # [CALCITE-5531] COALESCE throws ClassCastException
 SELECT COALESCE(DATE '2021-07-08', DATE '2020-01-01') as d;
 +------------+
@@ -732,7 +748,13 @@ FOO BOOLEAN(1) NOT NULL
 
 !ok
 
+<<<<<<< HEAD
 SELECT 2 ^ 3 AS foo;
+=======
+-- Bitwise LEFT SHIFT operator `<<`
+
+SELECT 1 << 0 AS foo;
+>>>>>>> 252edcb87 (Add Support << operator)
 +-----+
 | FOO |
 +-----+
@@ -742,41 +764,74 @@ SELECT 2 ^ 3 AS foo;
 
 !ok
 
+<<<<<<< HEAD
 SELECT 0 ^ 0 AS foo;
 +-----+
 | FOO |
 +-----+
 |   0 |
+=======
+SELECT 1 << 1 AS foo;
++-----+
+| FOO |
++-----+
+|   2 |
+>>>>>>> 252edcb87 (Add Support << operator)
 +-----+
 (1 row)
 
 !ok
 
+<<<<<<< HEAD
 SELECT 1 ^ 1 AS foo;
 +-----+
 | FOO |
 +-----+
 |   0 |
+=======
+SELECT 2 << 2 AS foo;
++-----+
+| FOO |
++-----+
+|   8 |
+>>>>>>> 252edcb87 (Add Support << operator)
 +-----+
 (1 row)
 
 !ok
 
+<<<<<<< HEAD
 SELECT 5 ^ 2 AS foo;
 +-----+
 | FOO |
 +-----+
 |   7 |
+=======
+SELECT 4 << 3 AS foo;
++-----+
+| FOO |
++-----+
+|  32 |
+>>>>>>> 252edcb87 (Add Support << operator)
 +-----+
 (1 row)
 
 !ok
 
+<<<<<<< HEAD
 SELECT 255 ^ 128 AS foo;
 +-----+
 | FOO |
 +-----+
 | 127 |
+=======
+-- Test with CAST
+SELECT CAST(2 AS SMALLINT) << CAST(3 AS INTEGER) AS foo;
++-----+
+| FOO |
++-----+
+|  16 |
+>>>>>>> 252edcb87 (Add Support << operator)
 +-----+
 (1 row)
 
