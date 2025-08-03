@@ -153,21 +153,47 @@ public class UniversalDataBatchAdapter {
     try {
       switch (sqlType) {
       case INTEGER:
-        ((IntVector) vectorSchemaRoot.getVector(col)).set(row,
-            Integer.parseInt(value.toString()));
+        int intValue;
+        if (value instanceof Integer) {
+          intValue = (Integer) value;
+        } else if (value instanceof Number) {
+          intValue = ((Number) value).intValue();
+        } else {
+          intValue = Integer.parseInt(value.toString());
+        }
+        ((IntVector) vectorSchemaRoot.getVector(col)).set(row, intValue);
         break;
       case BIGINT:
-        ((BigIntVector) vectorSchemaRoot.getVector(col)).set(row,
-            Long.parseLong(value.toString()));
+        long longValue;
+        if (value instanceof Long) {
+          longValue = (Long) value;
+        } else if (value instanceof Number) {
+          longValue = ((Number) value).longValue();
+        } else {
+          longValue = Long.parseLong(value.toString());
+        }
+        ((BigIntVector) vectorSchemaRoot.getVector(col)).set(row, longValue);
         break;
       case DOUBLE:
       case DECIMAL:
-        ((Float8Vector) vectorSchemaRoot.getVector(col)).set(row,
-            Double.parseDouble(value.toString()));
+        double doubleValue;
+        if (value instanceof Double) {
+          doubleValue = (Double) value;
+        } else if (value instanceof Number) {
+          doubleValue = ((Number) value).doubleValue();
+        } else {
+          doubleValue = Double.parseDouble(value.toString());
+        }
+        ((Float8Vector) vectorSchemaRoot.getVector(col)).set(row, doubleValue);
         break;
       case BOOLEAN:
-        ((BitVector) vectorSchemaRoot.getVector(col)).set(row,
-            Boolean.parseBoolean(value.toString()) ? 1 : 0);
+        boolean boolValue;
+        if (value instanceof Boolean) {
+          boolValue = (Boolean) value;
+        } else {
+          boolValue = Boolean.parseBoolean(value.toString());
+        }
+        ((BitVector) vectorSchemaRoot.getVector(col)).set(row, boolValue ? 1 : 0);
         break;
       default:
         ((VarCharVector) vectorSchemaRoot.getVector(col)).set(row,

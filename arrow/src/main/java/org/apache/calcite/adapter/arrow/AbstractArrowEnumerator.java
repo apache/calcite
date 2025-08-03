@@ -59,14 +59,20 @@ abstract class AbstractArrowEnumerator implements Enumerator<Object> {
   protected void loadNextArrowBatch() {
     if (arrowFileReader != null) {
       try {
-        final VectorSchemaRoot vsr = arrowFileReader.getVectorSchemaRoot();
-        for (int i : fields) {
-          this.valueVectors.add(vsr.getVector(i));
+        // Load the next batch from the file
+        boolean hasData = arrowFileReader.loadNextBatch();
+        if (hasData) {
+          final VectorSchemaRoot vsr = arrowFileReader.getVectorSchemaRoot();
+          for (int i : fields) {
+            this.valueVectors.add(vsr.getVector(i));
+          }
+          this.rowCount = vsr.getRowCount();
+          VectorUnloader vectorUnloader = new VectorUnloader(vsr);
+          ArrowRecordBatch arrowRecordBatch = vectorUnloader.getRecordBatch();
+          evaluateOperator(arrowRecordBatch);
+        } else {
+          this.rowCount = 0;
         }
-        this.rowCount = vsr.getRowCount();
-        VectorUnloader vectorUnloader = new VectorUnloader(vsr);
-        ArrowRecordBatch arrowRecordBatch = vectorUnloader.getRecordBatch();
-        evaluateOperator(arrowRecordBatch);
       } catch (IOException e) {
         throw Util.toUnchecked(e);
       }

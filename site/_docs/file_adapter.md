@@ -348,7 +348,7 @@ You can use dot notation in schema names to simulate a hierarchical organization
     },
     {
       "name": "COMPANY.HR",
-      "type": "custom", 
+      "type": "custom",
       "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
       "operand": {
         "directory": "/data/hr"
@@ -375,7 +375,7 @@ When using hierarchical schema names, use quoted identifiers in SQL queries:
 SELECT * FROM "COMPANY.SALES".customers;
 
 -- Cross-schema joins
-SELECT s.name as customer, h.name as employee 
+SELECT s.name as customer, h.name as employee
 FROM "COMPANY.SALES".customers s, "COMPANY.HR".employees h
 WHERE s.id = h.id;
 
@@ -387,7 +387,7 @@ SELECT * FROM "ORG.DEPT.ANALYTICS".reports;
 
 **Recommended naming conventions:**
 - `COMPANY.DEPARTMENT` - Two-level organization hierarchy
-- `ORG.DIVISION.TEAM` - Three-level departmental structure  
+- `ORG.DIVISION.TEAM` - Three-level departmental structure
 - `PROJECT.MODULE.COMPONENT` - Project-based organization
 - `ENV.SYSTEM.COMPONENT` - Environment-based separation
 
@@ -540,7 +540,7 @@ The File adapter supports glob patterns to automatically combine multiple files 
 ### Pattern Syntax
 
 - `*` - Matches any number of characters (except path separators)
-- `?` - Matches exactly one character  
+- `?` - Matches exactly one character
 - `[abc]` - Matches any character in brackets
 - `[a-z]` - Matches any character in range
 - `**` - Recursive directory matching
@@ -552,7 +552,7 @@ The File adapter supports glob patterns to automatically combine multiple files 
 {% highlight json %}
 {
   "version": "1.0",
-  "defaultSchema": "ANALYTICS", 
+  "defaultSchema": "ANALYTICS",
   "schemas": [
     {
       "name": "ANALYTICS",
@@ -597,9 +597,9 @@ sqlline> !tables
 # daily_metrics_2024_01.csv, daily_metrics_2024_02.csv, etc.
 # hourly_logs_2024_01_01.json, hourly_logs_2024_01_02.json, etc.
 
-sqlline> SELECT DATE(timestamp) as day, SUM(value) as total 
-         FROM "daily_metrics_*" 
-         GROUP BY DATE(timestamp) 
+sqlline> SELECT DATE(timestamp) as day, SUM(value) as total
+         FROM "daily_metrics_*"
+         GROUP BY DATE(timestamp)
          ORDER BY day;
 {% endhighlight %}
 
@@ -642,7 +642,7 @@ sqlline> SELECT DATE(timestamp) as day, SUM(value) as total
 **Multi-Format Reports:**
 {% highlight json %}
 {
-  "name": "mixed_reports", 
+  "name": "mixed_reports",
   "url": "reports/*.*"  // Matches CSV, JSON, HTML, Excel, Markdown, DOCX files
 }
 {% endhighlight %}
@@ -651,15 +651,15 @@ sqlline> SELECT DATE(timestamp) as day, SUM(value) as total
 
 {% highlight sql %}
 -- Cross-file time-series analysis
-SELECT DATE(timestamp) as day, 
+SELECT DATE(timestamp) as day,
        AVG(cpu_usage) as avg_cpu,
        MAX(memory_usage) as peak_memory
-FROM sensor_data 
+FROM sensor_data
 WHERE device_type = 'server'
 GROUP BY DATE(timestamp)
 ORDER BY day;
 
--- Log analysis across multiple files  
+-- Log analysis across multiple files
 SELECT severity, COUNT(*) as event_count,
        DATE(timestamp) as day
 FROM application_logs
@@ -683,7 +683,7 @@ GROUP BY region;
 
 **Performance Characteristics:**
 - **Initial scan**: 50-200ms depending on file count
-- **Cache hit**: 10-50ms for subsequent queries  
+- **Cache hit**: 10-50ms for subsequent queries
 - **Memory usage**: Minimal - only metadata cached
 - **Storage**: Temporary `.parquet` files in cache directory
 

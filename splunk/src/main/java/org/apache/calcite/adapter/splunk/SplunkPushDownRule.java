@@ -202,10 +202,19 @@ public class SplunkPushDownRule
     }
     LOGGER.debug("pre transformTo fieldNames: {}", getFieldsString(topRow));
 
-    call.transformTo(
-        appendSearchString(
-            filterString, splunkRel, topProj, bottomProj,
-            topRow, null));
+    RelNode transformedRel =
+        appendSearchString(filterString, splunkRel, topProj, bottomProj,
+        topRow, null);
+
+    // Only transform if we actually created a different relation
+    // If appendSearchString returns the original splunkRel, it means
+    // the projections/filters couldn't be pushed down, so we should
+    // let Calcite handle them normally instead of creating a transformation
+    if (transformedRel != splunkRel) {
+      call.transformTo(transformedRel);
+    } else {
+      LOGGER.debug("No pushdown possible, leaving original scan for Calcite to handle");
+    }
   }
 
   /**
@@ -238,19 +247,54 @@ public class SplunkPushDownRule
       bottomFields = splunkRel.getRowType().getFieldList();
     }
 
+    // Collect CAST expressions that need eval statements
+    final List<String> evalStatements = new ArrayList<>();
+
     // handle bottom projection (ie choose a subset of the table fields)
     if (bottomProj != null) {
+      // First check if all projections can be pushed down
+      for (RexNode rn : bottomProj.getProjects()) {
+        if (!canPushDownProjection(rn)) {
+          LOGGER.debug("Cannot push down bottom projection with complex expression: {} of type {}",
+              rn, rn.getClass().getSimpleName());
+          return splunkRel; // Return original scan without pushdown
+        }
+      }
+
       List<RelDataTypeField> tmp = new ArrayList<>();
       List<RelDataTypeField> dRow = bottomProj.getRowType().getFieldList();
+      int projIndex = 0;
       for (RexNode rn : bottomProj.getProjects()) {
         RelDataTypeField rdtf;
         if (rn instanceof RexSlot) {
           RexSlot rs = (RexSlot) rn;
           rdtf = bottomFields.get(rs.getIndex());
+        } else if (rn instanceof RexInputRef) {
+          RexInputRef rif = (RexInputRef) rn;
+          rdtf = bottomFields.get(rif.getIndex());
+        } else if (isSimpleCast(rn)) {
+          // For simple CAST, use the target type from the projection
+          rdtf = dRow.get(projIndex);
+          // Generate eval statement for bottom projection CAST
+          RexCall castCall = (RexCall) rn;
+          RexInputRef inputRef = (RexInputRef) castCall.getOperands().get(0);
+          String sourceField = splunkRel.getRowType().getFieldList().get(inputRef.getIndex()).getName();
+          String targetField = rdtf.getName();
+          RelDataType targetType = castCall.getType();
+
+          String evalExpr = generateSplunkCastExpression(sourceField, targetType);
+          if (evalExpr != null) {
+            evalStatements.add(targetField + " = " + evalExpr);
+          } else {
+            LOGGER.debug("Cannot generate Splunk eval for CAST in bottom projection: {}", rn);
+            return splunkRel;
+          }
         } else {
-          rdtf = dRow.get(tmp.size());
+          // This should not happen due to check above, but be defensive
+          rdtf = dRow.get(projIndex);
         }
         tmp.add(rdtf);
+        projIndex++;
       }
       bottomFields = tmp;
     }
@@ -262,19 +306,58 @@ public class SplunkPushDownRule
     List<RelDataTypeField> newFields = bottomFields;
     if (topProj != null) {
       LOGGER.debug("topProj: {}", topProj.getPermutation());
+
+      // First check if all projections can be pushed down
+      for (RexNode rn : topProj.getProjects()) {
+        if (!canPushDownProjection(rn)) {
+          LOGGER.debug("Cannot push down top projection with complex expression: {} of type {}",
+              rn, rn.getClass().getSimpleName());
+          return splunkRel; // Return original scan without pushdown
+        }
+      }
+
       newFields = new ArrayList<>();
       int i = 0;
       for (RexNode rn : topProj.getProjects()) {
-        RexInputRef rif = (RexInputRef) rn;
-        RelDataTypeField field = bottomFields.get(rif.getIndex());
-        if (!bottomFields.get(rif.getIndex()).getName()
-            .equals(topFields.get(i).getName())) {
-          renames.add(bottomFields.get(rif.getIndex()).getName(),
-              topFields.get(i).getName());
-          field = topFields.get(i);
+        if (rn instanceof RexInputRef) {
+          // Simple field reference
+          RexInputRef rif = (RexInputRef) rn;
+          RelDataTypeField field = bottomFields.get(rif.getIndex());
+          if (!bottomFields.get(rif.getIndex()).getName()
+              .equals(topFields.get(i).getName())) {
+            renames.add(bottomFields.get(rif.getIndex()).getName(),
+                topFields.get(i).getName());
+            field = topFields.get(i);
+          }
+          newFields.add(field);
+        } else if (isSimpleCast(rn)) {
+          // Simple CAST operation
+          RexCall castCall = (RexCall) rn;
+          RexInputRef inputRef = (RexInputRef) castCall.getOperands().get(0);
+          String sourceField = bottomFields.get(inputRef.getIndex()).getName();
+          String targetField = topFields.get(i).getName();
+          RelDataType targetType = castCall.getType();
+
+          // Generate Splunk eval statement
+          String evalExpr = generateSplunkCastExpression(sourceField, targetType);
+          if (evalExpr != null) {
+            evalStatements.add(targetField + " = " + evalExpr);
+            newFields.add(topFields.get(i));
+          } else {
+            // If we can't generate the eval expression, fall back
+            LOGGER.debug("Cannot generate Splunk eval for CAST: {}", rn);
+            return splunkRel;
+          }
         }
-        newFields.add(field);
+        i++;
       }
+    }
+
+    // Add eval statements for CAST operations
+    if (!evalStatements.isEmpty()) {
+      updateSearchStr.append("| eval ");
+      updateSearchStr.append(String.join(", ", evalStatements));
+      updateSearchStr.append(" ");
     }
 
     if (!renames.isEmpty()) {
@@ -284,9 +367,13 @@ public class SplunkPushDownRule
               .append(right).append(" "));
     }
 
-    RelDataType resultType =
-        cluster.getTypeFactory().createStructType(newFields);
     String searchWithFilter = updateSearchStr.toString();
+
+    // Create the scan with original field list (will be filtered by Splunk search)
+    List<String> scanFieldList = new ArrayList<>();
+    for (RelDataTypeField field : newFields) {
+      scanFieldList.add(field.getName());
+    }
 
     RelNode rel =
         new SplunkTableScan(
@@ -296,7 +383,10 @@ public class SplunkPushDownRule
             searchWithFilter,
             splunkRel.earliest,
             splunkRel.latest,
-            resultType.getFieldNames());
+            scanFieldList);
+
+    // For now, avoid complex type transformations that cause RelOptUtil issues
+    // The CAST expressions are handled in the Splunk search string via eval statements
 
     LOGGER.debug("end of appendSearchString fieldNames: {}",
         rel.getRowType().getFieldNames());
@@ -959,6 +1049,80 @@ public class SplunkPushDownRule
 
   public static String getFieldsString(RelDataType row) {
     return row.getFieldNames().toString();
+  }
+
+  /**
+   * Checks if a projection expression can be pushed down to Splunk.
+   * Currently supports simple field references and simple CAST operations.
+   */
+  private static boolean canPushDownProjection(RexNode node) {
+    // Push down simple field references, slots, and simple CAST operations
+    return node instanceof RexInputRef || node instanceof RexSlot || isSimpleCast(node);
+  }
+
+  /**
+   * Checks if a RexNode is a simple CAST operation (CAST of a field reference).
+   */
+  private static boolean isSimpleCast(RexNode node) {
+    if (!(node instanceof RexCall)) {
+      return false;
+    }
+    RexCall call = (RexCall) node;
+    if (call.getKind() != SqlKind.CAST) {
+      return false;
+    }
+    if (call.getOperands().size() != 1) {
+      return false;
+    }
+    // Check if the operand is a simple field reference
+    RexNode operand = call.getOperands().get(0);
+    return operand instanceof RexInputRef;
+  }
+
+
+  /**
+   * Generates a Splunk eval expression for a CAST operation.
+   * Maps SQL types to appropriate Splunk conversion functions.
+   * Wraps conversion functions with null checks to handle null values properly.
+   */
+  private static String generateSplunkCastExpression(String fieldName, RelDataType targetType) {
+    SqlTypeName typeName = targetType.getSqlTypeName();
+
+    switch (typeName) {
+    case INTEGER:
+    case BIGINT:
+    case SMALLINT:
+    case TINYINT:
+      // Use toint() for integer types - it rounds down decimals
+      // Wrap with null check: if field is null, return null; otherwise convert
+      return "if(isnull(" + fieldName + "), null, toint(" + fieldName + "))";
+
+    case DOUBLE:
+    case FLOAT:
+    case REAL:
+    case DECIMAL:
+      // ❌ DISABLED: tonumber() SPL function has compatibility issues with string-to-number conversion
+      // In testing, tonumber("200") returns null instead of 200.0, unlike toint("200") which works.
+      // Let Calcite handle these conversions instead of pushing down to Splunk.
+      LOGGER.debug("CAST to floating-point type {} not pushed down due to SPL tonumber() compatibility issues", typeName);
+      return null;
+
+    case VARCHAR:
+    case CHAR:
+      // Use tostring() for string types
+      // Wrap with null check
+      return "if(isnull(" + fieldName + "), null, tostring(" + fieldName + "))";
+
+    case BOOLEAN:
+      // For boolean, check if field equals "true" or is non-zero
+      // Wrap entire expression with null check
+      return "if(isnull(" + fieldName + "), null, if(" + fieldName + "=\"true\" OR tonumber(" + fieldName + ")!=0, \"true\", \"false\"))";
+
+    default:
+      // For unsupported types, return null to indicate we can't push down
+      LOGGER.debug("Unsupported CAST target type for Splunk pushdown: {}", typeName);
+      return null;
+    }
   }
 
   /**

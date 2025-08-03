@@ -1,0 +1,53 @@
+# Splunk Adapter Integration Test Configuration
+# Copy this file to local-properties.settings and update with your Splunk instance details
+
+# Splunk Connection Settings
+splunk.url=https://kentest.xyz:8089
+splunk.username=admin
+splunk.password=admin123
+
+# Alternative: Use token authentication instead of username/password
+# splunk.token=your-splunk-auth-token
+
+# SSL Configuration
+# Set to true to disable SSL certificate validation (for development/testing only)
+splunk.ssl.insecure=true
+
+# Connection timeout in milliseconds
+splunk.connection.timeout=30000
+
+# Search job timeout in seconds
+splunk.search.timeout=300
+
+# Test Data Configuration
+# Index to use for testing (must exist in your Splunk instance)
+splunk.test.index=main
+
+# Optional: Specific source types to test with
+splunk.test.sourcetype=access_combined
+
+# Optional: Time range for test queries (in Splunk time format)
+splunk.test.earliest=-24h
+splunk.test.latest=now
+
+# Metadata Testing Configuration
+# Enable/disable metadata schema testing
+splunk.test.metadata.enabled=true
+
+# List of CIM models to test (comma-separated)
+# Available: authentication, network_traffic, web, malware, email, vulnerability, intrusion_detection, change, inventory, performance
+splunk.test.cim.models=authentication,network_traffic,web
+
+# Performance Testing Configuration
+# Enable/disable performance tests
+splunk.test.performance.enabled=false
+
+# Number of iterations for performance tests
+splunk.test.performance.iterations=10
+
+# Debug Configuration
+# Enable debug logging for Splunk queries
+splunk.debug.queries=false
+
+# Enable debug logging for HTTP requests
+splunk.debug.http=false

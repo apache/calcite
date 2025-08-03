@@ -1,0 +1,17 @@
+{
+  "version": "1.0",
+  "defaultSchema": "SFTP",
+  "schemas": [
+    {
+      "name": "SFTP",
+      "type": "custom",
+      "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
+      "operand": {
+        "directory": "sftp://demo:password@test.rebex.net/",
+        "recursive": false,
+        "tableNameCasing": "UPPER",
+        "columnNameCasing": "UNCHANGED"
+      }
+    }
+  ]
+}

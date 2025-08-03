@@ -28,11 +28,11 @@ import java.util.Map;
  */
 public class SharePointListEnumerator implements Enumerator<Object[]> {
   private final SharePointListMetadata metadata;
-  private final SharePointRestClient client;
+  private final MicrosoftGraphListClient client;
   private Iterator<Map<String, Object>> iterator;
   private Object[] current;
 
-  public SharePointListEnumerator(SharePointListMetadata metadata, SharePointRestClient client) {
+  public SharePointListEnumerator(SharePointListMetadata metadata, MicrosoftGraphListClient client) {
     this.metadata = metadata;
     this.client = client;
     reset();
@@ -66,12 +66,16 @@ public class SharePointListEnumerator implements Enumerator<Object[]> {
 
   private Object[] convertToRow(Map<String, Object> item) {
     List<SharePointColumn> columns = metadata.getColumns();
-    Object[] row = new Object[columns.size()];
+    Object[] row = new Object[columns.size() + 1]; // +1 for ID column
 
+    // First column is always the ID
+    row[0] = item.get("id");
+
+    // Then the other columns
     for (int i = 0; i < columns.size(); i++) {
       SharePointColumn column = columns.get(i);
       Object value = item.get(column.getInternalName());
-      row[i] = convertValue(value, column.getType());
+      row[i + 1] = convertValue(value, column.getType());
     }
 
     return row;

@@ -40,11 +40,10 @@ import java.util.regex.Pattern;
 
 /**
  * Factory for creating Splunk schemas.
- * Supports multiple modes:
- * 1. Single CIM model: {"cim_model": "authentication"} -> creates table named after the model
- * 2. Multiple CIM models: {"cim_models": ["auth", "network"]} -> creates multiple named tables
- * 3. Custom tables: {"tables": [...]} -> creates user-defined tables with custom schemas
- * 4. Mixed mode: CIM models + custom tables can coexist
+ * Supports dynamic data model discovery and custom table definitions:
+ * 1. Dynamic Discovery: Automatically discovers Splunk data models
+ * 2. Custom tables: {"tables": [...]} -> creates user-defined tables with custom schemas
+ * 3. Filtering: Use "datamodelFilter" to filter discovered models
  *
  * Connection parameters can be specified in two ways:
  * 1. Complete URL: {"url": "https://host:port"}
@@ -69,14 +68,19 @@ public class SplunkSchemaFactory implements SchemaFactory {
     // Process environment variables for custom tables
     CustomTableConfigProcessor.processEnvironmentVariables(operand);
 
-    // Process CIM models (both single and multiple)
-    processCimModels(typeFactory, operand, tableBuilder);
+    // Create connection first as it's needed for dynamic discovery
+    SplunkConnection connection = createConnection(operand);
+
+    // Add connection to operand for dynamic discovery
+    Map<String, Object> operandWithConnection = new HashMap<>(operand);
+    operandWithConnection.put("splunkConnection", connection);
+
+    // Process dynamic model discovery
+    processModelDiscovery(typeFactory, operandWithConnection, tableBuilder);
 
     // Process custom table definitions
-    processCustomTables(typeFactory, operand, tableBuilder);
+    processCustomTables(typeFactory, operandWithConnection, tableBuilder);
 
-    // Create connection
-    SplunkConnection connection = createConnection(operand);
     Map<String, Table> tables = tableBuilder.build();
 
     if (tables.isEmpty()) {
@@ -89,44 +93,70 @@ public class SplunkSchemaFactory implements SchemaFactory {
   }
 
   /**
-   * Processes CIM model definitions (both single and multiple).
+   * Processes dynamic model discovery from Splunk.
    */
-  private void processCimModels(RelDataTypeFactory typeFactory, Map<String, Object> operand,
+  private void processModelDiscovery(RelDataTypeFactory typeFactory, Map<String, Object> operand,
       ImmutableMap.Builder<String, Table> tableBuilder) {
 
-    // Handle multiple CIM models
-    Object cimModelsObj = operand.get("cimModels");
-    if (cimModelsObj instanceof List) {
-      @SuppressWarnings("unchecked")
-      List<String> cimModels = (List<String>) cimModelsObj;
-      for (String cimModel : cimModels) {
-        addCimModelTable(typeFactory, cimModel, tableBuilder);
-      }
+    String appContext = (String) operand.get("app");
+    SplunkConnection connection = (SplunkConnection) operand.get("splunkConnection");
+
+    if (connection == null) {
+      // Can't do dynamic discovery without connection
+      System.err.println("WARNING: Connection is null, cannot perform dynamic discovery");
+      return;
     }
 
-    // Handle single CIM model
-    String cimModel = (String) operand.get("cimModel");
-    if (cimModel != null) {
-      addCimModelTable(typeFactory, cimModel, tableBuilder);
+    // Get cache settings
+    Long cacheTtl = getLongValue(operand.get("datamodelCacheTtl"), 60L); // Default 60 minutes
+    Boolean forceRefresh = (Boolean) operand.get("refreshDatamodels");
+
+    // Get filter if specified
+    String filter = (String) operand.get("datamodelFilter");
+
+    // Parse calculated fields from operand
+    Map<String, List<DataModelDiscovery.CalculatedFieldDef>> calculatedFields =
+        DataModelDiscovery.CalculatedFieldDef.parseFromOperand(operand);
+
+    // Discover data models dynamically
+    try {
+      DataModelDiscovery discovery =
+          new DataModelDiscovery(connection, appContext, cacheTtl, calculatedFields);
+      Map<String, Table> discoveredTables =
+          discovery.discoverDataModels(typeFactory, filter, Boolean.TRUE.equals(forceRefresh));
+
+      // Add discovered tables
+      for (Map.Entry<String, Table> entry : discoveredTables.entrySet()) {
+        tableBuilder.put(entry.getKey(), entry.getValue());
+      }
+
+      if (discoveredTables.size() > 0) {
+        System.out.println("Dynamically discovered " + discoveredTables.size() + " data model tables");
+      }
+    } catch (Exception e) {
+      System.err.println("Dynamic discovery failed: " + e.getMessage());
+      e.printStackTrace();
     }
   }
+
 
   /**
-   * Adds a single CIM model table to the builder.
+   * Safely converts object to Long.
    */
-  private void addCimModelTable(RelDataTypeFactory typeFactory, String cimModel,
-      ImmutableMap.Builder<String, Table> tableBuilder) {
-    CimModelBuilder.CimSchemaResult result =
-        CimModelBuilder.buildCimSchemaWithMapping(typeFactory, cimModel);
-
-    SplunkTable table =
-        new SplunkTable(result.getSchema(),
-        result.getFieldMapping(),
-        result.getSearchString());
-
-    String tableName = normalizeTableName(cimModel);
-    tableBuilder.put(tableName, table);
+  private Long getLongValue(Object value, Long defaultValue) {
+    if (value == null) {
+      return defaultValue;
+    }
+    if (value instanceof Number) {
+      return ((Number) value).longValue();
+    }
+    try {
+      return Long.parseLong(value.toString());
+    } catch (NumberFormatException e) {
+      return defaultValue;
+    }
   }
+
 
   /**
    * Processes custom table definitions from the "tables" operand.
@@ -323,21 +353,28 @@ public class SplunkSchemaFactory implements SchemaFactory {
    * Supports both complete URL and individual component specification.
    */
   private SplunkConnection createConnection(Map<String, Object> operand) {
+    // Check if we already have a connection (e.g., from SplunkDriver for mock)
+    Object existingConnection = operand.get("splunkConnection");
+    if (existingConnection instanceof SplunkConnection) {
+      return (SplunkConnection) existingConnection;
+    }
+
     String url = buildSplunkUrl(operand);
     Boolean disableSslValidation = (Boolean) operand.get("disableSslValidation");
     boolean disableSsl = Boolean.TRUE.equals(disableSslValidation);
+    String appContext = (String) operand.get("app");
 
     try {
       // Check for token authentication first
       String token = (String) operand.get("token");
       if (token != null && !token.trim().isEmpty()) {
-        return new SplunkConnectionImpl(url, token, disableSsl);
+        return new SplunkConnectionImpl(url, token, disableSsl, appContext);
       }
 
       // Fall back to username/password authentication
       String username = (String) operand.get("username");
       String password = (String) operand.get("password");
-      return new SplunkConnectionImpl(url, username, password, disableSsl);
+      return new SplunkConnectionImpl(url, username, password, disableSsl, appContext);
 
     } catch (MalformedURLException e) {
       throw new RuntimeException("Invalid Splunk URL: " + url, e);
@@ -354,6 +391,11 @@ public class SplunkSchemaFactory implements SchemaFactory {
     // Check if a complete URL is provided
     String url = (String) operand.get("url");
     if (url != null && !url.trim().isEmpty()) {
+      // Special case for mock testing
+      if ("mock".equals(url)) {
+        return url;
+      }
+
       // Validate the URL format using URI (modern approach)
       try {
         URI.create(url).toURL(); // Validates URI format and converts to URL

@@ -1,0 +1,19 @@
+{
+  "version": "1.0",
+  "defaultSchema": "SPLUNK",
+  "schemas": [
+    {
+      "name": "SPLUNK",
+      "type": "custom",
+      "factory": "org.apache.calcite.adapter.splunk.SplunkSchemaFactory",
+      "operand": {
+        "url": "${splunk.url}",
+        "username": "${splunk.username}",
+        "password": "${splunk.password}",
+        "disableSslValidation": true,
+        "connectTimeout": 30000,
+        "readTimeout": 30000
+      }
+    }
+  ]
+}

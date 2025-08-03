@@ -331,11 +331,16 @@ public final class MultiTableExcelToJsonConverter {
         for (int colNum = table.startCol; colNum <= table.endCol; colNum++) {
           Cell cell = row.getCell(colNum);
           String header = columnHeaders.get(colNum);
-          if (header != null && cell != null && cell.getCellType() != CellType.BLANK) {
-            String value = getCellValue(cell, evaluator);
-            if (!value.isEmpty()) {
-              rowData.put(header, value);
+          if (header != null) {
+            Object value = getCellValueAsObject(cell, evaluator);
+            if (value != null) {
+              rowData.putPOJO(header, value);
               hasData = true;
+            } else {
+              // Use null for empty cells to maintain consistent JSON structure
+              // This is semantically correct and allows proper nullable column handling
+              rowData.putNull(header);
+              hasData = true;  // Still count as having data since we maintain structure
             }
           }
         }
@@ -595,6 +600,37 @@ public final class MultiTableExcelToJsonConverter {
       return getCellValue(evaluator.evaluateInCell(cell), evaluator);
     default:
       return "";
+    }
+  }
+
+  private static Object getCellValueAsObject(Cell cell, FormulaEvaluator evaluator) {
+    if (cell == null) {
+      return null;
+    }
+    switch (cell.getCellType()) {
+    case STRING:
+      String stringValue = cell.getStringCellValue();
+      return stringValue.isEmpty() ? null : stringValue;
+    case NUMERIC:
+      if (DateUtil.isCellDateFormatted(cell)) {
+        return cell.getDateCellValue();
+      } else {
+        double numericValue = cell.getNumericCellValue();
+        // Return as integer if it's a whole number, otherwise as double
+        if (numericValue == (long) numericValue) {
+          return (long) numericValue;
+        } else {
+          return numericValue;
+        }
+      }
+    case BOOLEAN:
+      return cell.getBooleanCellValue();
+    case FORMULA:
+      return getCellValueAsObject(evaluator.evaluateInCell(cell), evaluator);
+    case BLANK:
+      return null;
+    default:
+      return null;
     }
   }
 

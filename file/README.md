@@ -19,10 +19,23 @@ limitations under the License.
 
 The File adapter allows Calcite to read data from various file formats including CSV, JSON, YAML, TSV, Excel (XLS/XLSX), HTML, Markdown, DOCX, Arrow, and Parquet files.
 
+## Default Configuration
+
+**The PARQUET execution engine is now the default.** This provides:
+- Best performance (1.6x faster than alternatives)
+- Automatic conversion of ALL file formats to Parquet (CSV, JSON, Excel, etc.)
+- Files in the `directory` operand are automatically converted to `.parquet_cache/*.parquet`
+- Automatic file update detection
+- Disk spillover for unlimited dataset sizes
+- Redis distributed cache support
+
+Other execution engines (linq4j, arrow, vectorized) are retained primarily for benchmarking purposes and are not recommended for production use.
+
 ## Features
 
 - Support for multiple file formats: CSV, JSON, YAML, TSV, Excel (XLS/XLSX), HTML, Markdown, DOCX, Arrow, Parquet
 - **Glob Pattern Support** - Process multiple files with patterns like `*.csv`, `data_*.json`
+- **Materialized Views** - Pre-compute complex queries with automatic query rewriting
 - Automatic Excel to JSON conversion with multi-sheet and multi-table detection
 - Automatic HTML table discovery and extraction with JSON preprocessing
 - Automatic Markdown table extraction with multi-table and group header support
@@ -31,7 +44,7 @@ The File adapter allows Calcite to read data from various file formats including
 - Compressed file support (.gz files)
 - Custom type mapping
 - **Multiple Execution Engines** for optimal performance
-- **Unlimited Dataset Sizes**for  with automatic disk spillover
+- **Unlimited Dataset Sizes** with automatic disk spillover
 
 ## Key Advantages vs Traditional Approaches
 
@@ -85,19 +98,20 @@ SELECT * FROM MYDATA."reports/*.html";     -- All HTML reports in directory
 
 ### **Engine Performance (1M rows)**
 
-| Configuration | COUNT(*) | GROUP BY | Filtered Agg | Top-N | Avg Speedup |
-|---------------|----------|----------|--------------|--------|-------------|
-| **Parquet+PARQUET** | **328ms** | **346ms** | **367ms** | **500ms** | **1.6x** |
-| **Parquet+ARROW** | **351ms** | **353ms** | **361ms** | **495ms** | **1.5x** |
-| **Parquet+LINQ4J** | **372ms** | **375ms** | **379ms** | **509ms** | **1.4x** |
-| **CSV+ARROW** | **504ms** | **496ms** | **504ms** | **656ms** | **1.1x** |
-| **CSV+LINQ4J** | **538ms** | **563ms** | **512ms** | **605ms** | **1.0x (baseline)** |
-| **CSV+VECTORIZED** | **572ms** | **499ms** | **650ms** | **716ms** | **0.9x** |
+| Configuration | COUNT(*) | GROUP BY | Filtered Agg | Top-N | Avg Speedup | Features |
+|---------------|----------|----------|--------------|--------|-------------|----------|
+| **Parquet+PARQUET** | **328ms** | **346ms** | **367ms** | **500ms** | **1.6x** | ✅ Spillover, Partitions, Materialized Views |
+| **Parquet+ARROW** | **351ms** | **353ms** | **361ms** | **495ms** | **1.5x** | ❌ No spillover |
+| **Parquet+LINQ4J** | **372ms** | **375ms** | **379ms** | **509ms** | **1.4x** | ❌ No advanced features |
+| **CSV+ARROW** | **504ms** | **496ms** | **504ms** | **656ms** | **1.1x** | ❌ No spillover |
+| **CSV+LINQ4J** | **538ms** | **563ms** | **512ms** | **605ms** | **1.0x (baseline)** | ❌ No advanced features |
+| **CSV+VECTORIZED** | **572ms** | **499ms** | **650ms** | **716ms** | **0.9x** | ❌ No spillover |
 
 ### **Key Performance Insights**
 
 - **Parquet files** provide 1.3-1.6x speedup over CSV files
-- **PARQUET engine** optimized for columnar Parquet format shows best performance
+- **PARQUET engine** (now the default) optimized for columnar Parquet format shows best performance
+- **Non-PARQUET engines** are retained primarily for benchmarking purposes
 - **ARROW engine** provides consistent performance across formats
 - **VECTORIZED engine** shows mixed results with CSV files
 
@@ -120,6 +134,8 @@ SELECT * FROM MYDATA."reports/*.html";     -- All HTML reports in directory
 
 ## 💾 **Disk Spillover - Unlimited Dataset Sizes**
 
+**Important**: Disk spillover is only available with the PARQUET execution engine.
+
 ### **Features**
 - **Process 1TB+ CSV files** without memory issues
 - **Reference hundreds of tables** simultaneously
@@ -141,6 +157,135 @@ SELECT * FROM MYDATA."reports/*.html";     -- All HTML reports in directory
 - **Memory Efficiency**: Only **14-64MB RAM** used regardless of dataset size
 - **Throughput**: **10-20% performance overhead** for spillover operations
 - **Scalability**: Successfully tested with **1TB+ simulated datasets**
+
+## Storage Provider Architecture
+
+The File adapter uses a pluggable Storage Provider architecture that provides unified access to files across different storage systems. This architecture enables:
+
+- **Unified API**: Same interface for local files, S3, FTP, SFTP, HTTP, and SharePoint
+- **Transparent Access**: Tables work identically regardless of storage location
+- **Extensibility**: Easy to add new storage providers
+- **Performance Optimization**: Provider-specific optimizations (e.g., S3 multipart downloads)
+
+### Supported Storage Providers
+
+| Provider | Protocol | Features | Authentication |
+|----------|----------|----------|----------------|
+| **LocalFileStorageProvider** | `file://` or local paths | Direct file system access | None |
+| **S3StorageProvider** | `s3://` | AWS S3 support, multipart downloads | AWS credentials |
+| **HttpStorageProvider** | `http://`, `https://` | Web resources, ETag support | Basic/Bearer auth |
+| **FtpStorageProvider** | `ftp://`, `ftps://` | FTP server access | Username/password |
+| **SftpStorageProvider** | `sftp://` | SSH file transfer | SSH keys/password |
+| **MicrosoftGraphStorageProvider** | SharePoint URLs | Microsoft Graph API access | OAuth2 |
+
+### SharePoint Integration
+
+Supports SharePoint document libraries using Microsoft Graph API.
+
+#### Authentication Methods
+
+SharePoint access requires Azure AD authentication. The adapter supports multiple OAuth2 flows:
+
+1. **Client Credentials (App-Only) - Recommended for servers**
+   ```json
+   {
+     "storageType": "sharepoint",
+     "siteUrl": "https://company.sharepoint.com/sites/Sales",
+     "tenantId": "your-tenant-id",
+     "clientId": "your-client-id",
+     "clientSecret": "your-client-secret"
+   }
+   ```
+
+2. **User Delegated with Refresh Token**
+   ```json
+   {
+     "storageType": "sharepoint",
+     "siteUrl": "https://company.sharepoint.com/sites/Sales",
+     "tenantId": "your-tenant-id",
+     "clientId": "your-client-id",
+     "refreshToken": "your-refresh-token"
+   }
+   ```
+
+3. **Static Access Token (Development/Testing Only)**
+   ```json
+   {
+     "storageType": "sharepoint",
+     "siteUrl": "https://company.sharepoint.com/sites/Sales",
+     "accessToken": "Bearer eyJ..."
+   }
+   ```
+
+
+### SFTP Configuration
+
+SFTP provider supports multiple authentication methods:
+
+```json
+{
+  "schemas": [{
+    "name": "REMOTE",
+    "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
+    "operand": {
+      "storageType": "sftp",
+      "username": "sftpuser",
+      "password": "password",        // Option 1: Password
+      "privateKeyPath": "~/.ssh/id_rsa",  // Option 2: SSH key
+      "strictHostKeyChecking": false,
+      "tables": [{
+        "name": "remote_data",
+        "url": "sftp://server/data/file.csv"
+      }]
+    }
+  }]
+}
+```
+
+### Custom Storage Provider Configuration
+
+For storage types that require configuration:
+
+```json
+{
+  "schemas": [{
+    "name": "CLOUD",
+    "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
+    "operand": {
+      "directory": "/tmp/cache",
+      "tables": [{
+        "name": "s3_data",
+        "url": "s3://my-bucket/data/sales.csv"
+      }, {
+        "name": "sharepoint_data",
+        "url": "https://company.sharepoint.com/sites/Sales/Shared Documents/report.xlsx",
+        "storageType": "sharepoint",
+        "config": {
+          "tenantId": "xxx",
+          "clientId": "xxx",
+          "clientSecret": "xxx"
+        }
+      }]
+    }
+  }]
+}
+```
+
+### Storage Provider Selection
+
+The adapter automatically selects the appropriate storage provider based on:
+
+1. **URL Scheme**: `s3://`, `ftp://`, `sftp://`, `http://`, `https://`
+2. **Explicit Type**: `"storageType": "sharepoint"` in configuration
+3. **Default**: LocalFileStorageProvider for paths without schemes
+
+### Performance Considerations
+
+- **Caching**: Remote files are cached locally for better performance
+- **Streaming**: Large files are streamed rather than loaded into memory
+- **Connection Pooling**: HTTP and FTP providers reuse connections
+- **Parallel Downloads**: S3 provider uses multipart downloads
+- **Metadata Checks**: Efficient change detection using ETags and timestamps
 
 ## Configuration
 
@@ -190,10 +335,26 @@ SELECT * FROM MYDATA."reports/*.html";     -- All HTML reports in directory
 
 ### Execution Engine Options
 
-- `parquet`: **Best performance** - Full columnar processing with disk spillover (handles unlimited dataset sizes)
-- `vectorized`: **True vectorized** - Batch processing with columnar layout for cache efficiency
-- `arrow`: **Balanced** - Arrow-based columnar processing for mixed workloads
-- `linq4j`: **Compatibility** - Traditional row-by-row processing (lowest memory, slowest performance)
+- `parquet`: **Default and Recommended** - Full columnar processing with disk spillover (handles unlimited dataset sizes)
+  - **Automatic conversion**: ALL files (CSV, JSON, Excel, etc.) are converted to Parquet format on first access
+  - **Converted files**: Stored in `.parquet_cache/` subdirectory within your data directory
+  - **Materialized Views**: Pre-compute complex queries with automatic query rewriting
+  - **Required for**: Materialized views, partitioned tables
+  - **Features**: Spillover support, columnar storage, best compression, proper file update detection
+  - **Important**: Only this engine detects file updates correctly
+  - **This is the default engine** - no configuration needed
+- `vectorized`: **Benchmarking Only** - Batch processing with columnar layout for cache efficiency
+  - Memory-based processing only (no spillover)
+  - **Note**: File updates are NOT detected until application restart
+  - **Warning**: Not recommended for production use
+- `arrow`: **Benchmarking Only** - Arrow-based columnar processing for mixed workloads
+  - Good for mixed file formats
+  - **Note**: File updates are NOT detected until application restart
+  - **Warning**: Not recommended for production use
+- `linq4j`: **Benchmarking Only** - Traditional row-by-row processing (lowest memory, slowest performance)
+  - Most compatible, supports all file types
+  - **Note**: File updates are NOT detected until application restart
+  - **Warning**: Not recommended for production use
 
 ### Configuration Parameters
 
@@ -201,6 +362,81 @@ SELECT * FROM MYDATA."reports/*.html";     -- All HTML reports in directory
 - **memoryThreshold**: Memory limit per table before spillover (default: 64MB)
 - **spillDirectory**: Custom location for spill files (default: system temp)
 - **refreshInterval**: Automatic refresh interval for tables (e.g., "5 minutes", "1 hour")
+
+### File Update Detection
+
+**Important**: File update detection behavior varies by execution engine:
+
+| Execution Engine | File Update Detection | Behavior |
+|-----------------|----------------------|-----------|
+| **PARQUET** | ✅ **Yes** | Files are re-read when modified, Parquet cache regenerated |
+| **VECTORIZED** | ❌ **No** | Cached file content persists until restart |
+| **ARROW** | ❌ **No** | Cached file content persists until restart |
+| **LINQ4J** | ❌ **No** | Cached file content persists until restart |
+
+With non-PARQUET engines, file content is cached in memory after first read and will not reflect subsequent file changes.
+
+**Production Recommendation**: Use the PARQUET execution engine for production systems where files may be updated. This ensures:
+- File changes are detected automatically
+- Parquet cache is regenerated with fresh data
+- No application restart required
+- Better query performance through columnar storage
+
+**Alternative for Non-PARQUET Engines**: If you must use other execution engines in production:
+- Implement a rolling restart strategy when file changes are detected
+- In Kubernetes, use a ConfigMap or volume mount change to trigger pod restarts
+- Consider using a file watcher to detect changes and initiate controlled restarts
+
+### Redis Distributed Caching Support
+
+The File adapter includes optional Redis support for distributed cache coordination:
+
+**Configuration**: Set system property `calcite.redis.url` to enable Redis integration.
+
+**How It Works by Execution Engine**:
+
+| Execution Engine | Local Cache | Redis Usage | Cache Rebuild on Restart |
+|-----------------|-------------|-------------|--------------------------|
+| **PARQUET** | `.parquet_cache/` files | Distributed lock during conversion | Checks timestamps, only rebuilds if source newer |
+| **VECTORIZED** | In-memory only | Not used | Full rebuild - reads from source files |
+| **ARROW** | In-memory only | Not used | Full rebuild - reads from source files |
+| **LINQ4J** | In-memory only | Not used | Full rebuild - reads from source files |
+
+**Redis Integration Details**:
+- **PARQUET Engine**: Uses Redis for distributed locking when multiple instances convert the same file
+  - Prevents duplicate conversions across pods
+  - Falls back to file system locks if Redis unavailable
+  - Cache files (`.parquet_cache/`) are stored locally on each pod
+  - On restart: Parquet files persist, only regenerated if source is newer
+
+- **Other Engines**: No Redis integration
+  - Each instance maintains independent in-memory cache
+  - On restart: Full data reload from source files
+  - No cache sharing between instances
+
+**Implications for Kubernetes Deployments**:
+1. **With PARQUET + Redis**:
+   - Efficient cache generation (only one pod converts)
+   - Fast restarts (existing Parquet cache reused)
+   - Consider shared volumes for `.parquet_cache/` to avoid redundant conversions
+
+2. **Without PARQUET**:
+   - Each pod independently caches data in memory
+   - Rolling restarts cause temporary performance degradation
+   - Consider staggered restarts to maintain service availability
+
+**Optimal Architecture for Production**:
+1. Use shared fast storage (NVMe SSD) for the `directory` operand (where all your data files and `.parquet_cache/` reside)
+2. Let the OS page cache handle keeping hot Parquet files in memory
+3. Use Redis for distributed locking (already implemented)
+4. For Kubernetes: mount the data directory as a persistent volume shared across pods
+
+This architecture provides:
+- Minimal memory footprint (Parquet files stay on disk)
+- Automatic memory caching of frequently accessed files (via OS page cache)
+- No redundant conversions across pods
+- Fast pod restarts (cache files persist)
+- Efficient resource utilization
 
 ## Basic Usage
 
@@ -219,6 +455,10 @@ The File adapter supports multiple URI formats for accessing files:
 3. **HTTP/HTTPS resources**: `http://example.com/data.csv` or `https://example.com/data.csv`
 
 4. **FTP resources**: `ftp://server/path/to/file.csv`
+
+5. **SFTP resources**: `sftp://user@server/path/to/file.csv`
+
+6. **SharePoint resources**: `https://company.sharepoint.com/sites/Sales/Shared Documents/data.csv`
 
 #### Path Resolution Details
 
@@ -1392,6 +1632,189 @@ When defining tables explicitly, the following options are available:
 
 ## Advanced Features
 
+### Materialized Views with Automatic Query Rewriting
+
+**Available only with PARQUET execution engine (default)**
+
+The File adapter supports Calcite's powerful materialized view feature, which provides:
+- **Pre-computed results** stored in efficient Parquet format
+- **Automatic query rewriting** - Calcite automatically uses MVs when possible
+- **Transparent optimization** - No need to change existing queries
+
+#### How It Works
+
+1. **Define the materialized view** in your schema configuration
+2. **On first access**: The SQL is executed and results are saved to Parquet
+3. **Subsequent queries**: Calcite automatically rewrites queries to use the MV when possible
+4. **Zero code changes**: Your application queries remain unchanged
+
+#### Configuration Example
+
+```json
+{
+  "schemas": [{
+    "name": "SALES",
+    "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
+    "operand": {
+      "directory": "/data",
+      "executionEngine": "parquet",  // Required (now default)
+      "materializations": [{
+        "view": "daily_summary",
+        "table": "daily_summary_mv",
+        "sql": "SELECT date, product, SUM(amount) as total_sales, COUNT(*) as num_sales FROM sales GROUP BY date, product"
+      }, {
+        "view": "customer_360",
+        "table": "customer_360_mv",
+        "sql": "SELECT c.*, COUNT(o.id) as order_count, SUM(o.total) as lifetime_value FROM customers c LEFT JOIN orders o ON c.id = o.customer_id GROUP BY c.id, c.name, c.email"
+      }]
+    }
+  }]
+}
+```
+
+#### Automatic Query Rewriting Examples
+
+```sql
+-- Original query (what you write)
+SELECT date, SUM(amount) as revenue
+FROM sales
+WHERE product = 'Widget'
+GROUP BY date
+
+-- Automatically rewritten by Calcite to:
+SELECT date, SUM(total_sales) as revenue
+FROM daily_summary
+WHERE product = 'Widget'
+GROUP BY date
+
+-- Complex join query
+SELECT c.name, COUNT(o.id) as orders
+FROM customers c
+LEFT JOIN orders o ON c.id = o.customer_id
+WHERE c.id = 123
+GROUP BY c.id, c.name
+
+-- Automatically uses the pre-joined MV:
+SELECT name, order_count as orders
+FROM customer_360
+WHERE id = 123
+```
+
+#### Benefits
+
+1. **Performance**: Complex queries run 10-100x faster using pre-computed results
+2. **Transparency**: No application changes needed - queries are rewritten automatically
+3. **Storage Efficiency**: Results stored in compressed Parquet format
+4. **Flexibility**: Calcite uses MVs even for partial matches (e.g., monthly MV for yearly query)
+
+#### Use Cases
+
+- **Pre-aggregated metrics**: Daily/monthly sales summaries
+- **Denormalized views**: Pre-joined dimension and fact tables
+- **Dashboard acceleration**: Pre-compute common dashboard queries
+- **Star schema optimization**: Flatten complex joins into single tables
+
+#### How Calcite Chooses MVs
+
+When multiple materialized views could satisfy a query:
+1. **Exact matches** are preferred over partial matches
+2. **Smaller MVs** are preferred (less data to scan)
+3. **Cost-based optimization** chooses the most efficient option
+
+#### The "One Big View" Strategy
+
+Create one comprehensive materialized view with multiple dimensions and common aggregates to accelerate ALL queries:
+
+```json
+{
+  "materializations": [{
+    "view": "sales_cube",
+    "table": "sales_cube_mv",
+    "sql": "SELECT
+      date,
+      EXTRACT(YEAR FROM date) as year,
+      EXTRACT(MONTH FROM date) as month,
+      EXTRACT(WEEK FROM date) as week,
+      product_id,
+      product_category,
+      customer_id,
+      customer_region,
+      customer_segment,
+      store_id,
+      store_region,
+      -- Pre-compute ALL common aggregates
+      SUM(quantity) as total_quantity,
+      SUM(amount) as total_amount,
+      SUM(discount) as total_discount,
+      COUNT(*) as transaction_count,
+      COUNT(DISTINCT customer_id) as unique_customers,
+      AVG(amount) as avg_amount,
+      MIN(amount) as min_amount,
+      MAX(amount) as max_amount
+    FROM sales s
+    JOIN products p ON s.product_id = p.id
+    JOIN customers c ON s.customer_id = c.id
+    JOIN stores st ON s.store_id = st.id
+    GROUP BY
+      date, product_id, product_category,
+      customer_id, customer_region, customer_segment,
+      store_id, store_region"
+  }]
+}
+```
+
+**Now EVERYTHING Gets Faster** - All these queries automatically use the MV:
+
+```sql
+-- Daily revenue (uses pre-computed total_amount)
+SELECT date, SUM(amount) FROM sales GROUP BY date
+→ SELECT date, SUM(total_amount) FROM sales_cube GROUP BY date
+
+-- Product performance by category
+SELECT product_category, SUM(quantity) FROM sales GROUP BY product_category
+→ SELECT product_category, SUM(total_quantity) FROM sales_cube GROUP BY product_category
+
+-- Regional analysis
+SELECT customer_region, COUNT(DISTINCT customer_id) FROM sales GROUP BY customer_region
+→ SELECT customer_region, SUM(unique_customers) FROM sales_cube GROUP BY customer_region
+
+-- Complex multi-dimensional query
+SELECT
+  EXTRACT(YEAR FROM date) as year,
+  product_category,
+  customer_segment,
+  SUM(amount) as revenue
+FROM sales
+WHERE customer_region = 'WEST'
+GROUP BY 1, 2, 3
+→ Automatically uses sales_cube with filter
+```
+
+**The Magic Multiplier Effect:**
+- **One MV accelerates hundreds of queries** - Any combination of dimensions/aggregates
+- **Partial aggregations work** - Calcite can sum daily totals to get monthly totals
+- **Filters still work** - WHERE clauses are pushed down to the MV
+- **Joins eliminated** - The MV already contains the joined data
+- **No code changes** - Existing dashboards/reports automatically get faster
+
+**Real-World Impact:**
+- Instead of 100+ dashboard queries taking 5-30 seconds each
+- Same queries hit the pre-computed MV in sub-second time
+- 10-100x overall performance improvement
+
+**Pro Tips:**
+1. Include time hierarchies (date, week, month, year) for rollups
+2. Include all common filter/group by dimensions
+3. Pre-compute expensive operations (DISTINCT counts, averages)
+4. Make it "wide" - more dimensions = more query patterns covered
+5. Refresh periodically based on data freshness needs
+
+#### Limitations
+
+- **Manual refresh**: MVs don't auto-update when base data changes (planned for future)
+- **PARQUET engine only**: Other engines don't support this feature
+- **Storage space**: Each MV creates a new Parquet file
+
 ### Directory Structure as Schema
 
 Files in subdirectories become tables with dotted names:
@@ -1615,6 +2038,31 @@ FROM SALES.EMPS e
 JOIN SALES.DEPTS d ON e.deptno = d.deptno;
 ```
 
+### Cross-Storage Queries
+
+With the Storage Provider architecture, you can seamlessly query and join data across different storage systems:
+
+```sql
+-- Join local CSV with SharePoint Excel
+SELECT l.customer_id, l.order_date, s.customer_name, s.credit_limit
+FROM LOCAL_ORDERS l
+JOIN SHAREPOINT_CUSTOMERS s ON l.customer_id = s.id
+WHERE s.credit_limit > 10000;
+
+-- Aggregate S3 data with FTP reference data
+SELECT f.category, SUM(s.amount) as total_sales
+FROM S3_TRANSACTIONS s
+JOIN FTP_CATEGORIES f ON s.category_id = f.id
+GROUP BY f.category;
+
+-- Union data from multiple sources
+SELECT 'Local' as source, COUNT(*) as records FROM LOCAL_SALES
+UNION ALL
+SELECT 'SharePoint' as source, COUNT(*) as records FROM SHAREPOINT_SALES
+UNION ALL
+SELECT 'S3' as source, COUNT(*) as records FROM S3_SALES;
+```
+
 ## Troubleshooting
 
 ### Performance Issues
@@ -1634,6 +2082,8 @@ For very large files, consider:
 ## Partitioned Tables
 
 The File adapter supports partitioned Parquet tables, allowing you to query large datasets efficiently by organizing data across multiple files with automatic partition pruning.
+
+**Important**: Partitioned tables require the PARQUET execution engine (`"executionEngine": "parquet"`).
 
 ### Partition Support
 
@@ -1914,7 +2364,7 @@ This automatically discovers new log files like `app_log_2024_07_28.parquet` eve
 
 The File adapter supports materialized views, which can significantly improve query performance by pre-computing and storing query results.
 
-**Important**: Materialized views are only supported with the PARQUET execution engine.
+**Important**: Materialized views require the PARQUET execution engine (`"executionEngine": "parquet"`). Attempting to use materialized views with other engines will result in an error.
 
 ### Basic Configuration
 
@@ -2120,6 +2570,24 @@ Full performance analysis available in [PERFORMANCE_RESULTS.md](PERFORMANCE_RESU
 - Configurable intervals from seconds to days
 
 Note: Performance tests are marked with `@Disabled` by default to avoid slow builds.
+
+## Known Limitations
+
+The following are known limitations in the File adapter:
+
+### Boolean Null Handling in WHERE Clauses
+- **Issue**: Boolean columns with null values cannot be directly tested in WHERE clauses
+- **Example**: `WHERE slacker` fails when the slacker column contains nulls
+- **Workaround**: Use explicit null checks: `WHERE slacker = true OR slacker IS NOT NULL`
+- **Status**: This is a SQL standard behavior related to three-valued logic
+
+
+### Limited CSV Header Type Support
+- **Issue**: CSV header type annotations support a limited set of types
+- **Supported Types**: string, boolean, byte, short, int, long, float, double, date, time, timestamp
+- **Not Supported**: Complex decimal specifications like `decimal(18,2)` in CSV headers
+- **Workaround**: Use `double` instead of `decimal` for CSV files requiring decimal precision
+- **Note**: This limitation only applies to CSV files. Other formats (Parquet, JSON) support full decimal precision
 
 ## Test Coverage
 

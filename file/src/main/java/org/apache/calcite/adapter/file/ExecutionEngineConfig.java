@@ -30,7 +30,7 @@ import java.util.Locale;
  */
 public class ExecutionEngineConfig {
   /** Default execution engine if not specified. */
-  public static final String DEFAULT_EXECUTION_ENGINE = "linq4j";
+  public static final String DEFAULT_EXECUTION_ENGINE = "parquet";
 
   /** Default batch size for columnar engines. */
   public static final int DEFAULT_BATCH_SIZE = 2048;
@@ -68,7 +68,20 @@ public class ExecutionEngineConfig {
 
   private static ExecutionEngineType parseExecutionEngine(String executionEngine) {
     try {
-      return ExecutionEngineType.valueOf(executionEngine.toUpperCase(Locale.ROOT));
+      ExecutionEngineType engineType = ExecutionEngineType.valueOf(executionEngine.toUpperCase(Locale.ROOT));
+
+      // Warn when using non-PARQUET engines
+      if (engineType != ExecutionEngineType.PARQUET) {
+        System.err.println("WARNING: Using execution engine '" + executionEngine + "' is not recommended for production use.");
+        System.err.println("         The PARQUET engine is the default and recommended choice for:");
+        System.err.println("         - Best performance (1.6x faster)");
+        System.err.println("         - Automatic file update detection");
+        System.err.println("         - Disk spillover for unlimited dataset sizes");
+        System.err.println("         - Redis distributed cache support");
+        System.err.println("         Other engines are primarily for benchmarking purposes.");
+      }
+
+      return engineType;
     } catch (IllegalArgumentException e) {
       throw new IllegalArgumentException(
           "Invalid execution engine: " + executionEngine

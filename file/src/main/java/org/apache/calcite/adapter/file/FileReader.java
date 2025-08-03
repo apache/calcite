@@ -37,7 +37,10 @@ import static java.util.Objects.requireNonNull;
 
 /**
  * Scrapes HTML tables from URLs using Jsoup.
+ *
+ * @deprecated Use {@link FileReaderV2} instead. This class will be removed in a future release.
  */
+@Deprecated
 public class FileReader implements Iterable<Elements> {
 
   private final Source source;

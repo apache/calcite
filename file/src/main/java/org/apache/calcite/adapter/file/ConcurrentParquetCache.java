@@ -88,6 +88,11 @@ public class ConcurrentParquetCache {
 
   private static File performConversion(File sourceFile, File cacheDir,
       ConversionCallback callback) throws Exception {
+    // Ensure cache directory exists
+    if (!cacheDir.exists()) {
+      cacheDir.mkdirs();
+    }
+    
     File parquetFile = ParquetConversionUtil.getCachedParquetFile(sourceFile, cacheDir);
 
     // Double-check if conversion is still needed
@@ -119,6 +124,11 @@ public class ConcurrentParquetCache {
 
   private static File performConversionWithFileLock(File sourceFile, File cacheDir,
       ConversionCallback callback) throws Exception {
+    // Ensure cache directory exists
+    if (!cacheDir.exists()) {
+      cacheDir.mkdirs();
+    }
+    
     File parquetFile = ParquetConversionUtil.getCachedParquetFile(sourceFile, cacheDir);
     File lockFile = new File(parquetFile.getAbsolutePath() + ".lock");
 

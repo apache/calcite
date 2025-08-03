@@ -25,6 +25,8 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.util.Source;
 
+import java.util.Map;
+
 /**
  * JSON table that uses the Parquet execution engine for columnar processing.
  *
@@ -41,14 +43,31 @@ public class ParquetJsonScannableTable extends JsonScannableTable
 
   private final Source source;
   private final ExecutionEngineConfig engineConfig;
+  private final Map<String, Object> options;
 
   ParquetJsonScannableTable(Source source, ExecutionEngineConfig engineConfig) {
     super(source);
     this.source = source;
     this.engineConfig = engineConfig;
+    this.options = null;
+  }
+
+  ParquetJsonScannableTable(Source source, ExecutionEngineConfig engineConfig,
+      Map<String, Object> options) {
+    super(source, options);
+    this.source = source;
+    this.engineConfig = engineConfig;
+    this.options = options;
   }
 
   @Override public Enumerable<Object[]> scan(DataContext root) {
+    // Check if flattening is enabled
+    if (options != null && Boolean.TRUE.equals(options.get("flatten"))) {
+      // Use parent class's scan method which handles flattening
+      return super.scan(root);
+    }
+
+    // Otherwise use Parquet file enumerator
     return new AbstractEnumerable<Object[]>() {
       @Override public Enumerator<Object[]> enumerator() {
         final RelDataType rowType = getRowType(root.getTypeFactory());

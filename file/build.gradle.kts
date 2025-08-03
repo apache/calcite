@@ -47,16 +47,21 @@ dependencies {
     implementation("org.apache.arrow.gandiva:arrow-gandiva")
 
     // Parquet dependencies for Parquet execution engine
-    implementation("org.apache.parquet:parquet-arrow:1.13.1")
-    implementation("org.apache.parquet:parquet-avro:1.13.1")
-    implementation("org.apache.parquet:parquet-column:1.13.1")
-    implementation("org.apache.parquet:parquet-common:1.13.1")
-    implementation("org.apache.parquet:parquet-encoding:1.13.1")
-    implementation("org.apache.parquet:parquet-hadoop:1.13.1")
+    implementation("org.apache.parquet:parquet-arrow:1.15.2")
+    implementation("org.apache.parquet:parquet-avro:1.15.2")
+    implementation("org.apache.parquet:parquet-column:1.15.2")
+    implementation("org.apache.parquet:parquet-common:1.15.2")
+    implementation("org.apache.parquet:parquet-encoding:1.15.2")
+    implementation("org.apache.parquet:parquet-hadoop:1.15.2")
 
     // Hadoop dependencies for Parquet
     implementation("org.apache.hadoop:hadoop-common:3.3.6")
     implementation("org.apache.hadoop:hadoop-client:3.3.6")
+
+    // Storage provider dependencies
+    implementation("com.amazonaws:aws-java-sdk-s3:1.12.565")
+    implementation("commons-net:commons-net:3.9.0")
+    implementation("com.jcraft:jsch:0.1.55")
 
     testImplementation(project(":testkit"))
     annotationProcessor("org.immutables:value")

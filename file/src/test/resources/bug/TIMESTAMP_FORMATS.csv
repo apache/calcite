@@ -1,0 +1,7 @@
+ID:int,FORMAT_DESC:string,TIMESTAMP_VALUE:timestamp
+1,"Basic format without timezone","2024-03-15 10:30:45"
+2,"ISO 8601 with T separator","2024-03-15T10:30:45"
+3,"Date only (midnight assumed)","2024-03-15"
+4,"With milliseconds","2024-03-15 10:30:45.123"
+5,"Slash date format","2024/03/15 10:30:45"
+6,"Dash date with T","2024-03-15T10:30:45"

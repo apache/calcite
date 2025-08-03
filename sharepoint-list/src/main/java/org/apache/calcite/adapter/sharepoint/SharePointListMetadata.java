@@ -23,14 +23,16 @@ import java.util.List;
  */
 public class SharePointListMetadata {
   private final String listId;
-  private final String listName;
+  private final String listName;       // SQL-friendly name (lowercase)
+  private final String displayName;    // Original SharePoint display name
   private final String entityTypeName;
   private final List<SharePointColumn> columns;
 
-  public SharePointListMetadata(String listId, String listName, String entityTypeName,
+  public SharePointListMetadata(String listId, String displayName, String entityTypeName,
       List<SharePointColumn> columns) {
     this.listId = listId;
-    this.listName = listName;
+    this.displayName = displayName;
+    this.listName = SharePointNameConverter.toSqlName(displayName);
     this.entityTypeName = entityTypeName;
     this.columns = columns;
   }
@@ -41,6 +43,10 @@ public class SharePointListMetadata {
 
   public String getListName() {
     return listName;
+  }
+
+  public String getDisplayName() {
+    return displayName;
   }
 
   public String getEntityTypeName() {

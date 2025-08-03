@@ -17,38 +17,83 @@
 package org.apache.calcite.adapter.sharepoint;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.QueryProvider;
+import org.apache.calcite.linq4j.Queryable;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.prepare.Prepare;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.TableModify;
+import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.schema.ScannableTable;
-import org.apache.calcite.schema.impl.AbstractTable;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.impl.AbstractTableQueryable;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
- * Table implementation for SharePoint lists.
+ * Table implementation for SharePoint lists with full CRUD support.
  */
-public class SharePointListTable extends AbstractTable implements ScannableTable {
+public class SharePointListTable extends AbstractQueryableTable
+    implements ScannableTable, ModifiableTable {
   private final SharePointListMetadata metadata;
-  private final SharePointRestClient client;
+  private final MicrosoftGraphListClient client;
 
-  public SharePointListTable(SharePointListMetadata metadata, SharePointRestClient client) {
+  public SharePointListTable(SharePointListMetadata metadata, MicrosoftGraphListClient client) {
+    super(Object[].class);
     this.metadata = metadata;
     this.client = client;
+  }
+
+  public SharePointListMetadata getMetadata() {
+    return metadata;
   }
 
   @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     List<String> names = new ArrayList<>();
     List<RelDataType> types = new ArrayList<>();
 
+    // Add ID column first (always present in SharePoint lists, but nullable for inserts)
+    names.add("id");
+    types.add(
+        typeFactory.createTypeWithNullability(
+        typeFactory.createSqlType(SqlTypeName.VARCHAR), true));
+
+    // Track column names to avoid duplicates
+    java.util.Set<String> seenNames = new HashSet<>();
+    seenNames.add("id");
+
     for (SharePointColumn column : metadata.getColumns()) {
-      names.add(column.getName());
-      types.add(typeFactory.createSqlType(mapSharePointTypeToSql(column.getType())));
+      String columnName = column.getName();
+      // Skip if we already have this column name
+      if (!seenNames.contains(columnName)) {
+        names.add(columnName);
+        seenNames.add(columnName);
+
+        SqlTypeName sqlType = mapSharePointTypeToSql(column.getType());
+        // Make column nullable unless it's required
+        RelDataType columnType = column.isRequired()
+            ? typeFactory.createSqlType(sqlType)
+            : typeFactory.createTypeWithNullability(typeFactory.createSqlType(sqlType), true);
+        types.add(columnType);
+      }
     }
 
     return typeFactory.createStructType(types, names);
@@ -60,6 +105,125 @@ public class SharePointListTable extends AbstractTable implements ScannableTable
         return new SharePointListEnumerator(metadata, client);
       }
     };
+  }
+
+  @Override public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
+      SchemaPlus schema, String tableName) {
+    return new AbstractTableQueryable<T>(queryProvider, schema, this, tableName) {
+      @Override public Enumerator<T> enumerator() {
+        @SuppressWarnings("unchecked")
+        Enumerator<T> enumerator = (Enumerator<T>) new SharePointListEnumerator(metadata, client);
+        return enumerator;
+      }
+    };
+  }
+
+  @Override public @Nullable Collection getModifiableCollection() {
+    return new SharePointModifiableCollection();
+  }
+
+  @Override public TableModify toModificationRel(RelOptCluster cluster,
+      RelOptTable table, Prepare.CatalogReader catalogReader, RelNode child,
+      TableModify.Operation operation, @Nullable List<String> updateColumnList,
+      @Nullable List<RexNode> sourceExpressionList, boolean flattened) {
+    return LogicalTableModify.create(table, catalogReader, child, operation,
+        updateColumnList, sourceExpressionList, flattened);
+  }
+
+  /**
+   * Modifiable collection implementation for SharePoint lists.
+   * This acts as a bridge between Calcite's collection-based operations
+   * and SharePoint's REST API.
+   */
+  private class SharePointModifiableCollection extends ArrayList<Object[]> {
+
+    @Override public boolean add(Object[] row) {
+      try {
+        // Convert row to SharePoint fields, skipping null ID
+        Map<String, Object> fields = convertRowToFields(row);
+
+        // Create item in SharePoint
+        String itemId = client.createListItem(metadata.getListId(), fields);
+
+        if (itemId != null) {
+          // Update the row with the generated ID
+          row[0] = itemId;
+          // Add to local collection for consistency
+          super.add(row);
+          return true;
+        }
+        return false;
+      } catch (Exception e) {
+        throw new RuntimeException("Failed to insert row into SharePoint list: " +
+            e.getMessage(), e);
+      }
+    }
+
+    @Override public boolean addAll(Collection<? extends Object[]> rows) {
+      // For batch operations, we need to insert one by one to get IDs
+      boolean allSucceeded = true;
+      for (Object[] row : rows) {
+        if (!add(row)) {
+          allSucceeded = false;
+        }
+      }
+      return allSucceeded;
+    }
+
+    @Override public boolean remove(Object o) {
+      if (!(o instanceof Object[])) {
+        return false;
+      }
+
+      Object[] row = (Object[]) o;
+      if (row.length == 0 || row[0] == null) {
+        return false;
+      }
+
+      try {
+        String itemId = row[0].toString();
+        client.deleteListItem(metadata.getListId(), itemId);
+        // Remove from local collection
+        return super.remove(o);
+      } catch (Exception e) {
+        throw new RuntimeException("Failed to delete row from SharePoint list: " +
+            e.getMessage(), e);
+      }
+    }
+
+    @Override public void clear() {
+      try {
+        List<Map<String, Object>> items = client.getListItems(metadata.getListId());
+        for (Map<String, Object> item : items) {
+          String itemId = item.get("id").toString();
+          client.deleteListItem(metadata.getListId(), itemId);
+        }
+        super.clear();
+      } catch (Exception e) {
+        throw new RuntimeException("Failed to clear SharePoint list: " + e.getMessage(), e);
+      }
+    }
+
+    /**
+     * Converts a row array to SharePoint field map.
+     */
+    private Map<String, Object> convertRowToFields(Object[] row) {
+      Map<String, Object> fields = new LinkedHashMap<>();
+
+      // Skip the ID field (index 0) for inserts - SharePoint assigns IDs automatically
+      List<SharePointColumn> columns = metadata.getColumns();
+
+      for (int i = 0; i < columns.size() && i + 1 < row.length; i++) {
+        SharePointColumn column = columns.get(i);
+        Object value = row[i + 1]; // +1 to skip ID column
+
+        if (value != null) {
+          fields.put(column.getInternalName(), value);
+        }
+      }
+
+      return fields;
+    }
   }
 
   private SqlTypeName mapSharePointTypeToSql(String sharePointType) {
@@ -89,4 +253,5 @@ public class SharePointListTable extends AbstractTable implements ScannableTable
       return SqlTypeName.VARCHAR;
     }
   }
+
 }

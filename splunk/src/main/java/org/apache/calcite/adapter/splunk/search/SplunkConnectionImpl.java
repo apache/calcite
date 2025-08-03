@@ -36,11 +36,13 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -84,6 +86,12 @@ public class SplunkConnectionImpl implements SplunkConnection {
   final String token;
   final boolean disableSslValidation;
   final boolean useTokenAuth;
+  final String appContext;
+
+  /** Get the Splunk server URL. */
+  public URL getUrl() {
+    return url;
+  }
 
   // Mutable authentication state
   private String sessionKey = "";
@@ -98,21 +106,33 @@ public class SplunkConnectionImpl implements SplunkConnection {
   public SplunkConnectionImpl(String url, String username, String password,
           boolean disableSslValidation)
       throws MalformedURLException {
-    this(URI.create(url).toURL(), username, password, disableSslValidation);
+    this(URI.create(url).toURL(), username, password, disableSslValidation, null);
+  }
+
+  public SplunkConnectionImpl(String url, String username, String password,
+          boolean disableSslValidation, String appContext)
+      throws MalformedURLException {
+    this(URI.create(url).toURL(), username, password, disableSslValidation, appContext);
   }
 
   public SplunkConnectionImpl(URL url, String username, String password) {
-    this(url, username, password, false);
+    this(url, username, password, false, null);
   }
 
   public SplunkConnectionImpl(URL url, String username, String password,
           boolean disableSslValidation) {
+    this(url, username, password, disableSslValidation, null);
+  }
+
+  public SplunkConnectionImpl(URL url, String username, String password,
+          boolean disableSslValidation, String appContext) {
     this.url = requireNonNull(url, "url cannot be null");
     this.username = requireNonNull(username, "username cannot be null");
     this.password = requireNonNull(password, "password cannot be null");
     this.token = null;
     this.useTokenAuth = false;
     this.disableSslValidation = disableSslValidation;
+    this.appContext = appContext;
 
     if (disableSslValidation) {
       configureSSL();
@@ -132,26 +152,37 @@ public class SplunkConnectionImpl implements SplunkConnection {
    */
   public SplunkConnectionImpl(String url, String token, boolean disableSslValidation)
       throws MalformedURLException {
-    this(URI.create(url).toURL(), token, disableSslValidation);
+    this(URI.create(url).toURL(), token, disableSslValidation, null);
+  }
+
+  public SplunkConnectionImpl(String url, String token, boolean disableSslValidation,
+          String appContext) throws MalformedURLException {
+    this(URI.create(url).toURL(), token, disableSslValidation, appContext);
   }
 
   /**
    * Constructor for token-based authentication.
    */
   public SplunkConnectionImpl(URL url, String token) {
-    this(url, token, false);
+    this(url, token, false, null);
   }
 
   /**
    * Constructor for token-based authentication with SSL configuration.
    */
   public SplunkConnectionImpl(URL url, String token, boolean disableSslValidation) {
+    this(url, token, disableSslValidation, null);
+  }
+
+  public SplunkConnectionImpl(URL url, String token, boolean disableSslValidation,
+          String appContext) {
     this.url = requireNonNull(url, "url cannot be null");
     this.token = requireNonNull(token, "token cannot be null");
     this.username = null;
     this.password = null;
     this.useTokenAuth = true;
     this.disableSslValidation = disableSslValidation;
+    this.appContext = appContext;
 
     if (disableSslValidation) {
       configureSSL();
@@ -501,12 +532,23 @@ public class SplunkConnectionImpl implements SplunkConnection {
       String search,
       Map<String, String> otherArgs,
       SearchResultListener srl) {
-    String searchUrl =
-        String.format(Locale.ROOT,
-            "%s://%s:%d/services/search/jobs/export",
-            url.getProtocol(),
-            url.getHost(),
-            url.getPort());
+    String searchUrl;
+    if (appContext != null && !appContext.trim().isEmpty()) {
+      // Use namespace-aware endpoint with app context
+      searchUrl =
+          String.format(Locale.ROOT, "%s://%s:%d/servicesNS/nobody/%s/search/jobs/export",
+          url.getProtocol(),
+          url.getHost(),
+          url.getPort(),
+          appContext);
+    } else {
+      // Use default endpoint (user's default app context)
+      searchUrl =
+          String.format(Locale.ROOT, "%s://%s:%d/services/search/jobs/export",
+          url.getProtocol(),
+          url.getHost(),
+          url.getPort());
+    }
 
     StringBuilder data = new StringBuilder();
     Map<String, String> args = new LinkedHashMap<>(otherArgs);
@@ -541,12 +583,23 @@ public class SplunkConnectionImpl implements SplunkConnection {
       List<String> schemaFieldList,
       Set<String> explicitFields,
       Map<String, String> reverseFieldMapping) {
-    String searchUrl =
-        String.format(Locale.ROOT,
-            "%s://%s:%d/services/search/jobs/export",
-            url.getProtocol(),
-            url.getHost(),
-            url.getPort());
+    String searchUrl;
+    if (appContext != null && !appContext.trim().isEmpty()) {
+      // Use namespace-aware endpoint with app context
+      searchUrl =
+          String.format(Locale.ROOT, "%s://%s:%d/servicesNS/nobody/%s/search/jobs/export",
+          url.getProtocol(),
+          url.getHost(),
+          url.getPort(),
+          appContext);
+    } else {
+      // Use default endpoint (user's default app context)
+      searchUrl =
+          String.format(Locale.ROOT, "%s://%s:%d/services/search/jobs/export",
+          url.getProtocol(),
+          url.getHost(),
+          url.getPort());
+    }
 
     StringBuilder data = new StringBuilder();
     Map<String, String> args = new LinkedHashMap<>(otherArgs);
@@ -579,6 +632,23 @@ public class SplunkConnectionImpl implements SplunkConnection {
     }
   }
 
+
+  /**
+   * Opens an HTTP connection with proper authentication headers.
+   * This method is public for use by DataModelDiscovery.
+   */
+  public HttpURLConnection openConnection(URL url) throws IOException {
+    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+
+    // Add authentication headers
+    synchronized (authLock) {
+      for (Map.Entry<String, String> header : requestHeaders.entrySet()) {
+        conn.setRequestProperty(header.getKey(), header.getValue());
+      }
+    }
+
+    return conn;
+  }
 
   private static void parseResults(InputStream in, SearchResultListener srl) {
     try (CSVReader r =
@@ -817,6 +887,12 @@ public class SplunkConnectionImpl implements SplunkConnection {
         // Extract event data from Splunk's wrapper structure
         Map<String, Object> eventData = extractEventData(rawJsonRecord);
 
+        // Check if this is a metadata-only row that should be filtered out
+        if (isMetadataOnlyRow(rawJsonRecord, eventData)) {
+          LOGGER.debug("Skipping metadata-only row with lastrow=true");
+          continue; // Skip this row entirely
+        }
+
         rowCount++;
 
         // Debug first few rows
@@ -893,6 +969,52 @@ public class SplunkConnectionImpl implements SplunkConnection {
         System.err.println("Failed to extract event data from JSON: " + e.getMessage());
         return rawJson; // Fallback to original
       }
+    }
+
+    /**
+     * Check if this is a metadata-only row that should be filtered out.
+     * These rows have all actual data fields as null and contain metadata markers.
+     */
+    private boolean isMetadataOnlyRow(Map<String, Object> rawJson, Map<String, Object> eventData) {
+      try {
+        // Check for "lastrow" marker in the raw JSON
+        Boolean lastRow = (Boolean) rawJson.get("lastrow");
+        Boolean preview = (Boolean) rawJson.get("preview");
+
+        // If lastrow=true and preview=false, this is likely a metadata-only row
+        if (Boolean.TRUE.equals(lastRow) && Boolean.FALSE.equals(preview)) {
+          // Check if result/event data is empty or contains only metadata
+          if (eventData.isEmpty() || hasOnlyMetadataFields(eventData)) {
+            return true; // Skip this row
+          }
+        }
+
+        return false;
+      } catch (Exception e) {
+        LOGGER.debug("Error checking if row is metadata-only: {}", e.getMessage());
+        return false; // If in doubt, don't filter it out
+      }
+    }
+
+    /**
+     * Check if the event data contains only metadata fields (no actual data).
+     */
+    private boolean hasOnlyMetadataFields(Map<String, Object> eventData) {
+      // Known metadata fields that don't represent actual event data
+      Set<String> metadataFields =
+          new HashSet<>(Arrays.asList("preview", "lastrow", "messages", "offset"));
+
+      for (Map.Entry<String, Object> entry : eventData.entrySet()) {
+        String fieldName = entry.getKey();
+        Object value = entry.getValue();
+
+        // If we find a non-metadata field with a non-null value, this has real data
+        if (!metadataFields.contains(fieldName) && value != null) {
+          return false;
+        }
+      }
+
+      return true; // Only metadata fields found
     }
 
     /**

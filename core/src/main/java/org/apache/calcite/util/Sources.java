@@ -74,6 +74,11 @@ public abstract class Sources {
   }
 
   public static Source of(String uri) {
+    // If string contains newlines or other indicators it's content rather than a path, treat as CharSequence
+    if (uri.contains("\n") || uri.contains("\r") || (uri.length() > 255 && !uri.startsWith("/"))) {
+      return of((CharSequence) uri);
+    }
+    
     // Smart string parsing to determine the type of source
     if (uri.startsWith("s3://")) {
       // S3 resource
@@ -409,6 +414,9 @@ public abstract class Sources {
           // That is why java.net.URLEncoder.encode(java.lang.String, java.lang.String) is not
           // suitable because it replaces " " with "+".
           String encodedPath = new URI(null, null, filePath, null).getRawPath();
+          if (encodedPath == null || encodedPath.isEmpty()) {
+            encodedPath = "/";
+          }
           return URI.create("file:" + encodedPath).toURL();
         } catch (MalformedURLException | URISyntaxException e) {
           throw new IllegalArgumentException("Unable to create URL for file " + filePath, e);

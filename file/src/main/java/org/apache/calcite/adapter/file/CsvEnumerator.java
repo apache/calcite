@@ -27,8 +27,6 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Source;
 import org.apache.calcite.util.trace.CalciteLogger;
 
-import org.apache.commons.lang3.time.FastDateFormat;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.opencsv.CSVParserBuilder;
 import com.opencsv.CSVReader;
@@ -42,6 +40,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -79,18 +78,47 @@ public class CsvEnumerator<E> implements Enumerator<E> {
   private @Nullable E current;
   private final SourceFileLockManager.@Nullable LockHandle lockHandle;
 
-  private static final FastDateFormat TIME_FORMAT_DATE;
-  private static final FastDateFormat TIME_FORMAT_TIME;
-  private static final FastDateFormat TIME_FORMAT_TIMESTAMP;
+  private static final ThreadLocal<SimpleDateFormat> TIME_FORMAT_DATE;
+  private static final ThreadLocal<SimpleDateFormat> TIME_FORMAT_TIME;
+  private static final ThreadLocal<SimpleDateFormat> TIME_FORMAT_TIMESTAMP;
+  private static final ThreadLocal<SimpleDateFormat> TIME_FORMAT_TIMESTAMP_UTC;
   private static final Pattern DECIMAL_TYPE_PATTERN = Pattern
       .compile("\"decimal\\(([0-9]+),([0-9]+)\\)");
+  private static final Pattern TIMEZONE_PATTERN = Pattern
+      .compile(".*[+-]\\d{2}:?\\d{2}$|.*Z$|.*\\s[A-Z]{3,4}$|.*,\\s*\\d+\\s+[+-]\\d{4}$|.*,\\s*\\d+\\s+[A-Z]{3,4}$");
 
   static {
+    // For DATE and TIME types, use GMT to avoid timezone issues
+    // TIME represents time-of-day without timezone
+    // DATE represents a calendar date without timezone
     final TimeZone gmt = TimeZone.getTimeZone("GMT");
-    TIME_FORMAT_DATE = FastDateFormat.getInstance("yyyy-MM-dd", gmt);
-    TIME_FORMAT_TIME = FastDateFormat.getInstance("HH:mm:ss", gmt);
-    TIME_FORMAT_TIMESTAMP =
-        FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss", gmt);
+
+    TIME_FORMAT_DATE = ThreadLocal.withInitial(() -> {
+      SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+      sdf.setTimeZone(gmt);
+      return sdf;
+    });
+
+    TIME_FORMAT_TIME = ThreadLocal.withInitial(() -> {
+      SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+      sdf.setTimeZone(gmt);
+      return sdf;
+    });
+
+    // For TIMESTAMP, use local timezone for timezone-naive timestamps to match Timestamp.valueOf() behavior
+    TIME_FORMAT_TIMESTAMP = ThreadLocal.withInitial(() -> {
+      SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+      // Always get the current default timezone when creating the formatter
+      sdf.setTimeZone(TimeZone.getDefault());
+      return sdf;
+    });
+
+    // For timezone-aware timestamps, use UTC
+    TIME_FORMAT_TIMESTAMP_UTC = ThreadLocal.withInitial(() -> {
+      SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+      sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+      return sdf;
+    });
   }
 
   public CsvEnumerator(Source source, AtomicBoolean cancelFlag,
@@ -110,7 +138,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
 
     // Acquire read lock on source file if it's a local file
     SourceFileLockManager.LockHandle tempLock = null;
-    if (!stream && source.file() != null) {
+    if (!stream && "file".equals(source.protocol())) {
       try {
         tempLock = SourceFileLockManager.acquireReadLock(source.file());
         LOGGER.debug("Acquired read lock on file: " + source.path());
@@ -221,7 +249,13 @@ public class CsvEnumerator<E> implements Enumerator<E> {
               fieldType = toNullableRelDataType(typeFactory, SqlTypeName.DATE);
               break;
             case "timestamp":
+              // Timezone-naive timestamp (local wall-clock time)
               fieldType = toNullableRelDataType(typeFactory, SqlTypeName.TIMESTAMP);
+              break;
+            case "timestamptz":
+              // Timezone-aware timestamp (specific instant in time)
+              // Use TIMESTAMP_WITH_LOCAL_TIME_ZONE for proper timezone handling
+              fieldType = toNullableRelDataType(typeFactory, SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
               break;
             case "time":
               fieldType = toNullableRelDataType(typeFactory, SqlTypeName.TIME);
@@ -411,35 +445,205 @@ public class CsvEnumerator<E> implements Enumerator<E> {
         }
         return parseDecimal(fieldType.getPrecision(), fieldType.getScale(), string);
       case DATE:
-        if (string.length() == 0) {
+        if (string == null || string.length() == 0) {
           return null;
         }
         try {
-          Date date = TIME_FORMAT_DATE.parse(string);
-          return (int) (date.getTime() / DateTimeUtils.MILLIS_PER_DAY);
+          // Try multiple date formats
+          String[] dateFormats = {
+              "yyyy-MM-dd",    // 2024-03-15
+              "yyyy/MM/dd",    // 2024/03/15
+              "yyyy.MM.dd",    // 2024.03.15
+              "MM/dd/yyyy",    // 03/15/2024
+              "MM-dd-yyyy",    // 03-15-2024
+              "dd/MM/yyyy",    // 15/03/2024
+              "dd-MM-yyyy",    // 15-03-2024
+              "dd.MM.yyyy"     // 15.03.2024
+          };
+
+          Date date = null;
+          ParseException lastException = null;
+
+          for (String format : dateFormats) {
+            try {
+              SimpleDateFormat sdf = new SimpleDateFormat(format);
+              sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
+              sdf.setLenient(false); // Strict date parsing
+              date = sdf.parse(string);
+              break; // Success, exit loop
+            } catch (ParseException e) {
+              lastException = e;
+              // Try next format
+            }
+          }
+
+          if (date == null) {
+            // Try the default format as last resort
+            date = TIME_FORMAT_DATE.get().parse(string);
+          }
+
+          // Return Integer (not int) to support null values
+          // Try to parse as LocalDate first for common ISO format
+          if (string.matches("\\d{4}-\\d{2}-\\d{2}")) {
+            java.time.LocalDate localDate = java.time.LocalDate.parse(string);
+            return Integer.valueOf((int) localDate.toEpochDay());
+          }
+          // For other formats, use the parsed date but convert carefully
+          // The date was parsed in GMT timezone, so convert directly
+          long millis = date.getTime();
+          // Use Math.floorDiv for proper handling of negative values (dates before 1970)
+          int daysSinceEpoch = Math.toIntExact(Math.floorDiv(millis, DateTimeUtils.MILLIS_PER_DAY));
+          return Integer.valueOf(daysSinceEpoch);
         } catch (ParseException e) {
           return null;
         }
       case TIME:
-        if (string.length() == 0) {
+        if (string == null || string.length() == 0) {
           return null;
         }
         try {
-          Date date = TIME_FORMAT_TIME.parse(string);
-          return (int) date.getTime();
+          // Try multiple time formats
+          String[] timeFormats = {
+              "HH:mm:ss.SSS",  // 10:30:45.123
+              "HH:mm:ss",      // 10:30:45
+              "HH:mm",         // 10:30
+              "H:mm:ss",       // 9:30:45 (single digit hour)
+              "H:mm"           // 9:30 (single digit hour)
+          };
+
+          Date date = null;
+
+          for (String format : timeFormats) {
+            try {
+              SimpleDateFormat sdf = new SimpleDateFormat(format);
+              sdf.setTimeZone(TimeZone.getTimeZone("GMT")); // TIME is timezone-naive
+              sdf.setLenient(false); // Strict time parsing
+              date = sdf.parse(string);
+              break; // Success, exit loop
+            } catch (ParseException e) {
+              // Try next format
+            }
+          }
+
+          if (date == null) {
+            // Try the default format as last resort
+            date = TIME_FORMAT_TIME.get().parse(string);
+          }
+
+          // Return Integer (not int) to support null values
+          return Integer.valueOf((int) date.getTime());
         } catch (ParseException e) {
           return null;
         }
       case TIMESTAMP:
-        if (string.length() == 0) {
+        // TIMESTAMP WITHOUT TIME ZONE - must not have timezone info
+        if (string == null || string.length() == 0) {
           return null;
         }
         try {
-          Date date = TIME_FORMAT_TIMESTAMP.parse(string);
+          if (hasTimezoneInfo(string)) {
+            throw new IllegalArgumentException(
+                "TIMESTAMP column cannot contain timezone information. " +
+                "Use TIMESTAMPTZ type for timezone-aware timestamps. " +
+                "Invalid value: '" + string + "'");
+          }
+
+          // Parse as local timestamp (no timezone conversion)
+          String[] localFormats = {
+              "yyyy-MM-dd HH:mm:ss",         // 2024-03-15 10:30:45
+              "yyyy-MM-dd'T'HH:mm:ss",       // 2024-03-15T10:30:45
+              "yyyy-MM-dd HH:mm:ss.SSS",     // 2024-03-15 10:30:45.123
+              "yyyy-MM-dd'T'HH:mm:ss.SSS",   // 2024-03-15T10:30:45.123
+              "yyyy/MM/dd HH:mm:ss",         // 2024/03/15 10:30:45
+              "MM/dd/yyyy HH:mm:ss",         // 03/15/2024 10:30:45
+              "dd/MM/yyyy HH:mm:ss",         // 15/03/2024 10:30:45
+              "yyyy-MM-dd"                   // 2024-03-15 (date only, assumes 00:00:00)
+          };
+
+          for (String format : localFormats) {
+            try {
+              SimpleDateFormat sdf = new SimpleDateFormat(format);
+              sdf.setTimeZone(TimeZone.getDefault()); // Parse as local time
+              sdf.setLenient(false); // Strict parsing
+              Date date = sdf.parse(string);
+              // Return as Long for timezone-naive timestamp
+              // This represents the local time, not UTC
+              return date.getTime();
+            } catch (ParseException ignored) {
+              // Try next format
+            }
+          }
+
+          // Last resort: try the standard format
+          SimpleDateFormat sdf = TIME_FORMAT_TIMESTAMP.get();
+          Date date = sdf.parse(string);
           return date.getTime();
         } catch (ParseException e) {
           return null;
+        } catch (IllegalArgumentException e) {
+          // Re-throw to propagate validation errors
+          throw new RuntimeException(e);
         }
+
+      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+        // TIMESTAMPTZ - must have timezone info
+        if (string == null || string.length() == 0) {
+          return null;
+        }
+        try {
+          if (!hasTimezoneInfo(string)) {
+            throw new IllegalArgumentException(
+                "TIMESTAMPTZ column must contain timezone information. " +
+                "Use TIMESTAMP type for timezone-naive timestamps. " +
+                "Invalid value: '" + string + "'");
+          }
+
+          // Parse timestamp with timezone and convert to UTC
+          String[] tzFormats = {
+              // Basic formats with timezone
+              "yyyy-MM-dd HH:mm:ss z",          // 2024-03-15 10:30:45 EST
+              "yyyy-MM-dd HH:mm:ss Z",          // 2024-03-15 10:30:45 +0530
+              "yyyy-MM-dd HH:mm:ss XXX",        // 2024-03-15 10:30:45 +05:30
+              "yyyy-MM-dd HH:mm:ssZ",           // 2024-03-15 10:30:45+0530
+              "yyyy-MM-dd HH:mm:ssXXX",         // 2024-03-15 10:30:45+05:30
+
+              // ISO 8601 formats
+              "yyyy-MM-dd'T'HH:mm:ssXXX",       // 2024-03-15T10:30:45+05:30
+              "yyyy-MM-dd'T'HH:mm:ssZ",         // 2024-03-15T10:30:45+0530
+              "yyyy-MM-dd'T'HH:mm:ssX",         // 2024-03-15T10:30:45Z
+              "yyyy-MM-dd'T'HH:mm:ss.SSSXXX",   // 2024-03-15T10:30:45.123+05:30
+              "yyyy-MM-dd'T'HH:mm:ss.SSSX",     // 2024-03-15T10:30:45.123Z
+
+              // RFC 2822 format
+              "EEE, dd MMM yyyy HH:mm:ss Z",    // Fri, 15 Mar 2024 10:30:45 +0000
+              "EEE, dd MMM yyyy HH:mm:ss z",    // Fri, 15 Mar 2024 10:30:45 EST
+
+              // With milliseconds
+              "yyyy-MM-dd HH:mm:ss.SSS Z",      // 2024-03-15 10:30:45.123 +0530
+              "yyyy-MM-dd HH:mm:ss.SSS z",      // 2024-03-15 10:30:45.123 EST
+              "yyyy-MM-dd HH:mm:ss.SSSXXX"      // 2024-03-15 10:30:45.123+05:30
+          };
+
+          for (String format : tzFormats) {
+            try {
+              SimpleDateFormat sdf = new SimpleDateFormat(format);
+              Date date = sdf.parse(string);
+              // Return UTC timestamp wrapped in UtcTimestamp for consistent display
+              return new UtcTimestamp(date.getTime());
+            } catch (ParseException ignored) {
+              // Try next format
+            }
+          }
+
+          throw new IllegalArgumentException(
+              "Unable to parse TIMESTAMPTZ value: '" + string + "'. " +
+              "Expected format with timezone (e.g., '2024-03-15T10:30:45Z' or '2024-03-15 10:30:45 EST')");
+
+        } catch (IllegalArgumentException e) {
+          // Re-throw to propagate validation errors
+          throw new RuntimeException(e);
+        }
+
       case VARCHAR:
       default:
         return string;
@@ -456,6 +660,17 @@ public class CsvEnumerator<E> implements Enumerator<E> {
         precision, scale);
     return typeFactory.createTypeWithNullability(
         typeFactory.createSqlType(SqlTypeName.DECIMAL, precision, scale), true);
+  }
+
+  /**
+   * Detects if a timestamp string contains timezone information.
+   * This method checks for common timezone formats:
+   * - ISO 8601 with offset: +05:30, -08:00, +0530, -0800
+   * - UTC indicator: Z
+   * - Named timezones: EST, PST, GMT, etc.
+   */
+  private static boolean hasTimezoneInfo(String timestampStr) {
+    return TIMEZONE_PATTERN.matcher(timestampStr).matches();
   }
 
   @VisibleForTesting

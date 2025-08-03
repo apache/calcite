@@ -25,6 +25,8 @@ import org.apache.calcite.util.Source;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.Map;
+
 /**
  * Enhanced JSON table with vectorized execution engine support.
  *
@@ -39,6 +41,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public class EnhancedJsonScannableTable extends JsonScannableTable {
 
   private final ExecutionEngineConfig engineConfig;
+  private final Map<String, Object> options;
 
   /**
    * Creates an EnhancedJsonScannableTable.
@@ -46,6 +49,17 @@ public class EnhancedJsonScannableTable extends JsonScannableTable {
   public EnhancedJsonScannableTable(Source source, ExecutionEngineConfig engineConfig) {
     super(source);
     this.engineConfig = engineConfig;
+    this.options = null;
+  }
+
+  /**
+   * Creates an EnhancedJsonScannableTable with options.
+   */
+  public EnhancedJsonScannableTable(Source source, ExecutionEngineConfig engineConfig,
+      Map<String, Object> options) {
+    super(source, options);
+    this.engineConfig = engineConfig;
+    this.options = options;
   }
 
   @Override public String toString() {

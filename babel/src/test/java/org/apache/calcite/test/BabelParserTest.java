@@ -57,7 +57,7 @@ class BabelParserTest extends SqlParserTest {
   @Test void testCastToInterval() {
     SqlParserFixture postgreF = fixture().withDialect(PostgresqlSqlDialect.DEFAULT);
     postgreF.sql("select cast(x as interval)")
-        .ok("SELECT CAST(\"x\" AS INTERVAL SECOND)");
+        .ok("SELECT CAST(\"x\" AS SECOND)");
   }
 
   @Test void testReservedWords() {

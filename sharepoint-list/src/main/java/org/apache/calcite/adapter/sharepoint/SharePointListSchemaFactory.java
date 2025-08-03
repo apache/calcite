@@ -52,6 +52,14 @@ public class SharePointListSchemaFactory implements SchemaFactory {
     authConfig.put("certificatePassword", operand.get("certificatePassword"));
     authConfig.put("thumbprint", operand.get("thumbprint"));
 
-    return new SharePointListSchema(siteUrl, authConfig);
+    // Create the main SharePoint schema
+    SharePointListSchema sharePointSchema = new SharePointListSchema(siteUrl, authConfig);
+
+    // Add the metadata schemas as top-level schemas (not sub-schemas)
+    SharePointMetadataSchema metadataSchema = new SharePointMetadataSchema(sharePointSchema, null, name);
+    parentSchema.add("pg_catalog", metadataSchema);
+    parentSchema.add("information_schema", metadataSchema);
+
+    return sharePointSchema;
   }
 }

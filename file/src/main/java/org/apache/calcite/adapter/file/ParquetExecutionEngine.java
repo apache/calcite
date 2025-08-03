@@ -20,6 +20,10 @@ import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.types.FloatingPointPrecision;
+import org.apache.arrow.vector.types.pojo.ArrowType;
+import org.apache.arrow.vector.types.pojo.Field;
+import org.apache.arrow.vector.types.pojo.FieldType;
 import org.apache.arrow.vector.types.pojo.Schema;
 import org.apache.parquet.hadoop.metadata.ParquetMetadata;
 import org.apache.parquet.schema.MessageType;
@@ -232,6 +236,11 @@ public final class ParquetExecutionEngine {
       String fieldName = input.schema.getFields().get(i).getName();
       FieldVector vector = root.getVector(fieldName);
 
+      if (vector == null) {
+        System.err.println("Warning: No vector found for field: " + fieldName);
+        continue;
+      }
+
       for (int j = 0; j < rowCount; j++) {
         if (columnData[j] != null) {
           setVectorValue(vector, j, columnData[j]);
@@ -367,8 +376,32 @@ public final class ParquetExecutionEngine {
 
   private static Schema convertToArrowSchema(MessageType parquetSchema) {
     // Convert Parquet schema back to Arrow
-    // Use SchemaConverter in real implementation
-    return new Schema(new ArrayList<>()); // Simplified
+    List<Field> fields = new ArrayList<>();
+    
+    for (Type field : parquetSchema.getFields()) {
+      ArrowType arrowType;
+      String fieldName = field.getName();
+      
+      // Convert Parquet types to Arrow types
+      if (field.asPrimitiveType().getPrimitiveTypeName() == PrimitiveType.PrimitiveTypeName.INT32) {
+        arrowType = new ArrowType.Int(32, true);
+      } else if (field.asPrimitiveType().getPrimitiveTypeName() == PrimitiveType.PrimitiveTypeName.INT64) {
+        arrowType = new ArrowType.Int(64, true);
+      } else if (field.asPrimitiveType().getPrimitiveTypeName() == PrimitiveType.PrimitiveTypeName.FLOAT) {
+        arrowType = new ArrowType.FloatingPoint(FloatingPointPrecision.SINGLE);
+      } else if (field.asPrimitiveType().getPrimitiveTypeName() == PrimitiveType.PrimitiveTypeName.DOUBLE) {
+        arrowType = new ArrowType.FloatingPoint(FloatingPointPrecision.DOUBLE);
+      } else if (field.asPrimitiveType().getPrimitiveTypeName() == PrimitiveType.PrimitiveTypeName.BOOLEAN) {
+        arrowType = new ArrowType.Bool();
+      } else {
+        // Default to UTF8 for strings and other types
+        arrowType = new ArrowType.Utf8();
+      }
+      
+      fields.add(new Field(fieldName, FieldType.nullable(arrowType), null));
+    }
+    
+    return new Schema(fields);
   }
 
   private static void setVectorValue(FieldVector vector, int index, Object value) {

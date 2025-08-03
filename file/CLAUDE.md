@@ -1,0 +1,3 @@
+- Always fix forbidden API issues, or DO NOT CREATE THEM, in Java code.
+- Always generate Java code with correct styles
+- Never unilaterally remove features. You may only simplify or improve features.

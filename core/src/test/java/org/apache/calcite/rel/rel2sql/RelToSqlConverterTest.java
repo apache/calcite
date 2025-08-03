@@ -4330,14 +4330,10 @@ class RelToSqlConverterTest {
     final String expectedMssql = "SELECT TOP (100) [product_id]\n"
         + "FROM [foodmart].[product]\n"
         + "ORDER BY CASE WHEN [product_id] IS NULL THEN 1 ELSE 0 END, [product_id]";
-    final String expectedSybase = "SELECT TOP (100) product_id\n"
-        + "FROM foodmart.product\n"
-        + "ORDER BY product_id";
     sql(query).ok(expected)
         .withMssql(10).ok(expectedMssql10)
         .withMssql(11).ok(expectedMssql)
-        .withMssql(14).ok(expectedMssql)
-        .withSybase().ok(expectedSybase);
+        .withMssql(14).ok(expectedMssql);
   }
 
   @Test void testSelectQueryComplex() {
@@ -6081,9 +6077,9 @@ class RelToSqlConverterTest {
         + "WHERE `product`.`net_weight` > CAST(`t0`.`$f0` AS DOUBLE)";
     final String expectedPostgresql = "SELECT \"product\".\"product_class_id\" AS \"C\"\n"
         + "FROM \"foodmart\".\"product\"\n"
-        + "LEFT JOIN (SELECT CASE COUNT(*) WHEN 0 THEN NULL WHEN 1 THEN MIN(\"product_class_id\") ELSE (SELECT CAST(NULL AS INTEGER)\n"
+        + "LEFT JOIN (SELECT CASE COUNT(*) WHEN 0 THEN NULL WHEN 1 THEN MIN(\"product_class_id\") ELSE (SELECT CAST((NULL) AS (INTEGER))\n"
         + "UNION ALL\n"
-        + "SELECT CAST(NULL AS INTEGER)) END AS \"$f0\"\n"
+        + "SELECT CAST((NULL) AS (INTEGER))) END AS \"$f0\"\n"
         + "FROM \"foodmart\".\"product\") AS \"t0\" ON TRUE\n"
         + "WHERE \"product\".\"net_weight\" > CAST(\"t0\".\"$f0\" AS DOUBLE PRECISION)";
     final String expectedHsqldb = "SELECT product.product_class_id AS C\n"

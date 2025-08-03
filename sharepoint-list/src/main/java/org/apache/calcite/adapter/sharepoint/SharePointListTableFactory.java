@@ -63,13 +63,19 @@ public class SharePointListTableFactory implements TableFactory<Table> {
       authConfig.put("thumbprint", operand.get("thumbprint"));
 
       SharePointAuth authenticator = SharePointAuthFactory.createAuth(authConfig);
-      SharePointRestClient client = new SharePointRestClient(siteUrl, authenticator);
+      MicrosoftGraphListClient client = new MicrosoftGraphListClient(siteUrl, authenticator);
 
       SharePointListMetadata metadata;
       if (listId != null) {
         metadata = client.getListMetadataById(listId);
       } else {
-        metadata = client.getListMetadataByName(listName);
+        // For now, we need to get all lists and find by name
+        // This could be optimized with a direct API call
+        Map<String, SharePointListMetadata> lists = client.getAvailableLists();
+        metadata = lists.get(SharePointNameConverter.toSqlName(listName));
+        if (metadata == null) {
+          throw new RuntimeException("List not found: " + listName);
+        }
       }
 
       return new SharePointListTable(metadata, client);

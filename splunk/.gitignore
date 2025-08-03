@@ -1,0 +1,16 @@
+# Local properties file for integration testing
+local-properties.settings
+
+# Build directories
+build/
+target/
+out/
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db

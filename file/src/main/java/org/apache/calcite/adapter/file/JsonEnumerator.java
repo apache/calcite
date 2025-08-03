@@ -149,14 +149,14 @@ public class JsonEnumerator implements Enumerator<@Nullable Object[]> {
           lockHandle = SourceFileLockManager.acquireReadLock(source.file());
           LOGGER.debug("Acquired read lock on JSON file: " + source.path());
           //noinspection unchecked
-          jsonObj = selectedMapper.readValue(source.file(), Object.class);
+          jsonObj = selectedMapper.readValue(source.reader(), Object.class);
         } catch (IOException lockException) {
           LOGGER.warn("Could not acquire lock on file: "
               + source.path()
               + " - proceeding without lock");
           // Proceed without lock
           //noinspection unchecked
-          jsonObj = selectedMapper.readValue(source.file(), Object.class);
+          jsonObj = selectedMapper.readValue(source.reader(), Object.class);
         } finally {
           if (lockHandle != null) {
             lockHandle.close();
@@ -195,7 +195,9 @@ public class JsonEnumerator implements Enumerator<@Nullable Object[]> {
       jsonFieldMap = (LinkedHashMap) list.get(0);
       // Apply flattening if requested
       if (options != null && Boolean.TRUE.equals(options.get("flatten"))) {
-        JsonFlattener flattener = new JsonFlattener();
+        String flattenSeparator = options.containsKey("flattenSeparator") 
+            ? (String) options.get("flattenSeparator") : ".";
+        JsonFlattener flattener = new JsonFlattener(",", 3, "", flattenSeparator);
         jsonFieldMap = new LinkedHashMap<>(flattener.flatten(jsonFieldMap));
         // Flatten all rows in the list
         for (int i = 0; i < list.size(); i++) {
@@ -209,7 +211,9 @@ public class JsonEnumerator implements Enumerator<@Nullable Object[]> {
       jsonFieldMap = (LinkedHashMap) jsonObj;
       // Apply flattening if requested
       if (options != null && Boolean.TRUE.equals(options.get("flatten"))) {
-        JsonFlattener flattener = new JsonFlattener();
+        String flattenSeparator = options.containsKey("flattenSeparator") 
+            ? (String) options.get("flattenSeparator") : ".";
+        JsonFlattener flattener = new JsonFlattener(",", 3, "", flattenSeparator);
         jsonFieldMap = new LinkedHashMap<>(flattener.flatten(jsonFieldMap));
       }
       //noinspection unchecked

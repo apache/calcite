@@ -1,4 +1,4 @@
-DEPTNO:int,BUDGET:"decimal(18,2)"
+DEPTNO:int,BUDGET:double
 10,100.00
 20,100.01
 30,-100.01

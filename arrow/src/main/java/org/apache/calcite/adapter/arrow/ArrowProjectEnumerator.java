@@ -74,19 +74,13 @@ class ArrowProjectEnumerator extends AbstractArrowEnumerator {
 
   private boolean moveNextArrow() throws IOException {
     if (currRowIndex >= rowCount - 1) {
-      ArrowFileReader arrowFileReader = (ArrowFileReader) sourceReader;
-      final boolean hasNextBatch;
-      try {
-        hasNextBatch = arrowFileReader.loadNextBatch();
-      } catch (IOException e) {
-        throw Util.toUnchecked(e);
-      }
-      if (hasNextBatch) {
+      this.valueVectors.clear();
+      loadNextArrowBatch();
+      if (rowCount > 0) {
         currRowIndex = 0;
-        this.valueVectors.clear();
-        loadNextArrowBatch();
+        return true;
       }
-      return hasNextBatch;
+      return false;
     } else {
       currRowIndex++;
       return true;

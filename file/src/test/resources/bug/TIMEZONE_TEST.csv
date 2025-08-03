@@ -1,0 +1,2 @@
+ID:int,EVENT_TIME:timestamp,DESCRIPTION:string
+1,"1959-05-14 05:00:00","Test timezone-naive timestamp"

@@ -1,0 +1,19 @@
+# Ignore local test configuration
+local-test.properties
+sharepoint-test-config.properties
+
+# Ignore any file with credentials
+*-credentials.properties
+*.credentials
+*-secret.properties
+
+# IDE files
+.idea/
+*.iml
+
+# Build files
+target/
+build/
+
+# Logs
+*.log

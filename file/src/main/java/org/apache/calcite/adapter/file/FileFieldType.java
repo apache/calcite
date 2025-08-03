@@ -45,7 +45,8 @@ enum FileFieldType {
   DOUBLE(Primitive.DOUBLE),
   DATE(null, java.sql.Date.class),
   TIME(null, java.sql.Time.class),
-  TIMESTAMP(null, java.sql.Timestamp.class);
+  TIMESTAMP(null, java.sql.Timestamp.class),
+  TIMESTAMP_WITH_LOCAL_TIME_ZONE(null, java.sql.Timestamp.class);
 
   private final @Nullable Primitive primitive;
   private final Class clazz;
@@ -62,6 +63,9 @@ enum FileFieldType {
         builder.put(value.primitive.getPrimitiveName(), value);
       }
     }
+    // Add aliases for timestamp types
+    builder.put("timestamp", TIMESTAMP);
+    builder.put("timestamptz", TIMESTAMP_WITH_LOCAL_TIME_ZONE);
     MAP = builder.build();
   }
 

@@ -17,7 +17,6 @@
 package org.apache.calcite.adapter.file;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
-import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.util.Pair;
 
@@ -32,12 +31,14 @@ import org.jsoup.select.Elements;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -53,6 +54,7 @@ import static java.util.Objects.requireNonNull;
 class FileRowConverter {
 
   // cache for lazy initialization
+  @SuppressWarnings("deprecation")
   private final FileReader fileReader;
   private final @Nullable List<Map<String, Object>> fieldConfigs;
   private boolean initialized = false;
@@ -71,6 +73,7 @@ class FileRowConverter {
       NumberFormat.getIntegerInstance(Locale.ROOT);
 
   /** Creates a FileRowConverter. */
+  @SuppressWarnings("deprecation")
   FileRowConverter(FileReader fileReader,
       List<Map<String, Object>> fieldConfigs) {
     this.fileReader = fileReader;
@@ -304,7 +307,11 @@ class FileRowConverter {
     }
 
     private java.util.Date parseDate(String string) {
-      Parser parser = new Parser(DateTimeUtils.UTC_ZONE);
+      return parseDate(string, TimeZone.getDefault());
+    }
+
+    private java.util.Date parseDate(String string, TimeZone timeZone) {
+      Parser parser = new Parser(timeZone);
       List<DateGroup> groups = parser.parse(string);
       DateGroup group = groups.get(0);
       return group.getDates().get(0);
@@ -364,12 +371,34 @@ class FileRowConverter {
         }
 
       case DATE:
-        return new java.sql.Date(parseDate(string).getTime());
+        // Parse date without timezone conversion
+        // Use LocalDate to ensure no timezone logic is applied
+        try {
+          // Try ISO format first (YYYY-MM-DD)
+          if (string.matches("\\d{4}-\\d{2}-\\d{2}")) {
+            return java.sql.Date.valueOf(string);
+          }
+          // Fall back to Natty parser but convert through LocalDate
+          Date parsed = parseDate(string);
+          // Convert to LocalDate to strip any timezone info
+          java.time.Instant instant = java.time.Instant.ofEpochMilli(parsed.getTime());
+          java.time.LocalDate localDate = instant.atZone(TimeZone.getDefault().toZoneId()).toLocalDate();
+          return java.sql.Date.valueOf(localDate);
+        } catch (Exception e) {
+          return null;
+        }
 
       case TIME:
-        return new java.sql.Time(parseDate(string).getTime());
+        // Parse and convert to java.sql.Time
+        Date timeParsed = parseDate(string);
+        return new java.sql.Time(timeParsed.getTime());
 
       case TIMESTAMP:
+        return new java.sql.Timestamp(parseDate(string).getTime());
+
+      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+        // Parse the timestamp with timezone information
+        // and convert to UTC for storage
         return new java.sql.Timestamp(parseDate(string).getTime());
 
       case STRING:

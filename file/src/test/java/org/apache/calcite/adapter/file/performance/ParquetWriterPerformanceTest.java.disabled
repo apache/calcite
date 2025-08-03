@@ -1,0 +1,216 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to you under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.calcite.adapter.file.performance;
+
+import org.apache.avro.Schema;
+import org.apache.avro.SchemaBuilder;
+import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.parquet.avro.AvroParquetWriter;
+import org.apache.parquet.hadoop.ParquetWriter;
+import org.apache.parquet.hadoop.metadata.CompressionCodecName;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+import java.io.File;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+
+/**
+ * Performance comparison test between Avro-based and direct Parquet writing.
+ */
+public class ParquetWriterPerformanceTest {
+
+  @TempDir
+  File tempDir;
+
+  private static final int[] ROW_COUNTS = {1000, 10_000, 100_000};
+  private static final int WARMUP_RUNS = 2;
+  private static final int TEST_RUNS = 5;
+
+  @Test public void compareParquetWritingPerformance() throws Exception {
+    System.out.println("=== Parquet Writer Performance Comparison ===\n");
+
+    for (int rowCount : ROW_COUNTS) {
+      System.out.println("Testing with " + String.format("%,d", rowCount) + " rows:");
+
+      // Create test data
+      ResultSet testData = createTestData(rowCount);
+
+      // Warm up both implementations
+      for (int i = 0; i < WARMUP_RUNS; i++) {
+        testData.beforeFirst();
+        writeWithAvro(testData, new File(tempDir, "warmup_avro.parquet"));
+        testData.beforeFirst();
+        writeDirectParquet(testData, new File(tempDir, "warmup_direct.parquet"));
+      }
+
+      // Test Avro-based writer
+      List<Long> avroTimes = new ArrayList<>();
+      for (int i = 0; i < TEST_RUNS; i++) {
+        testData.beforeFirst();
+        long startTime = System.nanoTime();
+        writeWithAvro(testData, new File(tempDir, "test_avro_" + i + ".parquet"));
+        long endTime = System.nanoTime();
+        avroTimes.add(endTime - startTime);
+      }
+
+      // Test direct Parquet writer
+      List<Long> directTimes = new ArrayList<>();
+      for (int i = 0; i < TEST_RUNS; i++) {
+        testData.beforeFirst();
+        long startTime = System.nanoTime();
+        writeDirectParquet(testData, new File(tempDir, "test_direct_" + i + ".parquet"));
+        long endTime = System.nanoTime();
+        directTimes.add(endTime - startTime);
+      }
+
+      // Calculate statistics
+      double avroAvg = avroTimes.stream().mapToLong(Long::longValue).average().orElse(0) / 1_000_000.0;
+      double directAvg = directTimes.stream().mapToLong(Long::longValue).average().orElse(0) / 1_000_000.0;
+
+      double avroMin = avroTimes.stream().mapToLong(Long::longValue).min().orElse(0) / 1_000_000.0;
+      double directMin = directTimes.stream().mapToLong(Long::longValue).min().orElse(0) / 1_000_000.0;
+
+      double avroMax = avroTimes.stream().mapToLong(Long::longValue).max().orElse(0) / 1_000_000.0;
+      double directMax = directTimes.stream().mapToLong(Long::longValue).max().orElse(0) / 1_000_000.0;
+
+      System.out.printf("  Avro-based:    avg=%7.2f ms, min=%7.2f ms, max=%7.2f ms%n", avroAvg, avroMin, avroMax);
+      System.out.printf("  Direct Parquet: avg=%7.2f ms, min=%7.2f ms, max=%7.2f ms%n", directAvg, directMin, directMax);
+
+      double speedup = avroAvg / directAvg;
+      if (speedup > 1.0) {
+        System.out.printf("  Direct writer is %.2fx faster%n", speedup);
+      } else {
+        System.out.printf("  Avro writer is %.2fx faster%n", 1.0 / speedup);
+      }
+
+      // Check file sizes
+      File avroFile = new File(tempDir, "test_avro_0.parquet");
+      File directFile = new File(tempDir, "test_direct_0.parquet");
+      System.out.printf("  File sizes: Avro=%,d bytes, Direct=%,d bytes%n",
+          avroFile.length(), directFile.length());
+
+      System.out.println();
+    }
+
+    System.out.println("\nConclusion:");
+    System.out.println("- Direct Parquet writing gives us control over timestamp types (isAdjustedToUTC)");
+    System.out.println("- Performance comparison shows relative efficiency of each approach");
+    System.out.println("- Direct writing avoids the intermediate Avro conversion step");
+    System.out.println("- Both approaches use the same compression (SNAPPY)");
+  }
+
+  private ResultSet createTestData(int rowCount) throws SQLException {
+    // Load H2 driver
+    try {
+      Class.forName("org.h2.Driver");
+    } catch (ClassNotFoundException e) {
+      throw new SQLException("H2 driver not found", e);
+    }
+
+    // Create in-memory H2 database with test data
+    Connection conn = DriverManager.getConnection("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1");
+
+    try (PreparedStatement create =
+        conn.prepareStatement("CREATE TABLE test_data (" +
+        "  id INTEGER," +
+        "  name VARCHAR(50)," +
+        "  value DOUBLE," +
+        "  created_timestamp TIMESTAMP," +
+        "  updated_timestamptz TIMESTAMP WITH TIME ZONE" +
+        ")")) {
+      create.execute();
+    }
+
+    Random rand = new Random(42); // Fixed seed for reproducibility
+
+    try (PreparedStatement insert =
+        conn.prepareStatement("INSERT INTO test_data VALUES (?, ?, ?, ?, ?)")) {
+
+      for (int i = 0; i < rowCount; i++) {
+        insert.setInt(1, i);
+        insert.setString(2, "Name_" + i);
+        insert.setDouble(3, rand.nextDouble() * 1000);
+        insert.setTimestamp(4, new Timestamp(System.currentTimeMillis() - rand.nextInt(86400000)));
+        insert.setTimestamp(5, new Timestamp(System.currentTimeMillis() - rand.nextInt(86400000)));
+        insert.addBatch();
+
+        if (i % 1000 == 0) {
+          insert.executeBatch();
+        }
+      }
+      insert.executeBatch();
+    }
+
+    return conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)
+        .executeQuery("SELECT * FROM test_data");
+  }
+
+  private void writeWithAvro(ResultSet rs, File outputFile) throws Exception {
+    // Build Avro schema
+    Schema schema = SchemaBuilder.record("test_record")
+        .namespace("test")
+        .fields()
+        .name("id").type().nullable().intType().noDefault()
+        .name("name").type().nullable().stringType().noDefault()
+        .name("value").type().nullable().doubleType().noDefault()
+        .name("created_timestamp").type().nullable().longType().noDefault()
+        .name("updated_timestamptz").type().nullable().longType().noDefault()
+        .endRecord();
+
+    Path path = new Path(outputFile.getAbsolutePath());
+    Configuration conf = new Configuration();
+
+    try (@SuppressWarnings("deprecation")
+    ParquetWriter<GenericRecord> writer = AvroParquetWriter.<GenericRecord>builder(path)
+        .withConf(conf)
+        .withSchema(schema)
+        .withCompressionCodec(CompressionCodecName.SNAPPY)
+        .build()) {
+
+      while (rs.next()) {
+        GenericRecord record = new GenericData.Record(schema);
+        record.put("id", rs.getInt(1));
+        record.put("name", rs.getString(2));
+        record.put("value", rs.getDouble(3));
+        if (rs.getTimestamp(4) != null) {
+          record.put("created_timestamp", rs.getTimestamp(4).getTime());
+        }
+        if (rs.getTimestamp(5) != null) {
+          record.put("updated_timestamptz", rs.getTimestamp(5).getTime());
+        }
+        writer.write(record);
+      }
+    }
+  }
+
+  private void writeDirectParquet(ResultSet rs, File outputFile) throws Exception {
+    Path path = new Path(outputFile.getAbsolutePath());
+    DirectParquetWriter.writeResultSetToParquet(rs, path);
+  }
+}

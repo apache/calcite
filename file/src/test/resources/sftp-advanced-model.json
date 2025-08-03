@@ -1,0 +1,25 @@
+{
+  "version": "1.0",
+  "defaultSchema": "SFTP_DATA",
+  "schemas": [
+    {
+      "name": "SFTP_DATA",
+      "type": "custom",
+      "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
+      "operand": {
+        "storageType": "sftp",
+        "storageConfig": {
+          "username": "${sftp.username}",
+          "password": "${sftp.password}",
+          "privateKeyPath": "${sftp.privateKeyPath}",
+          "strictHostKeyChecking": false
+        },
+        "directory": "sftp://${sftp.host}:${sftp.port}/data/",
+        "recursive": true,
+        "tableNameCasing": "UPPER",
+        "columnNameCasing": "UNCHANGED",
+        "executionEngine": "vectorized"
+      }
+    }
+  ]
+}

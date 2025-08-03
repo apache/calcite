@@ -20,14 +20,17 @@ package org.apache.calcite.adapter.sharepoint;
  * Represents a column in a SharePoint list.
  */
 public class SharePointColumn {
-  private final String internalName;
-  private final String name;
+  private final String internalName;    // SharePoint's internal field name
+  private final String name;             // SQL-friendly name (lowercase)
+  private final String displayName;      // Original display name
   private final String type;
   private final boolean required;
 
-  public SharePointColumn(String internalName, String name, String type, boolean required) {
+  public SharePointColumn(String internalName, String displayName, String type, boolean required) {
     this.internalName = internalName;
-    this.name = name;
+    // Use internalName as fallback if displayName is null or empty
+    this.displayName = (displayName != null && !displayName.isEmpty()) ? displayName : internalName;
+    this.name = SharePointNameConverter.toSqlName(this.displayName);
     this.type = type;
     this.required = required;
   }
@@ -38,6 +41,10 @@ public class SharePointColumn {
 
   public String getName() {
     return name;
+  }
+
+  public String getDisplayName() {
+    return displayName;
   }
 
   public String getType() {

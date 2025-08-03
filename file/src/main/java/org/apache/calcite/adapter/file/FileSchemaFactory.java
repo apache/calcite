@@ -70,6 +70,9 @@ public class FileSchemaFactory implements SchemaFactory {
     // Get recursive parameter (default to false for backward compatibility)
     final boolean recursive = operand.get("recursive") == Boolean.TRUE;
 
+    // Get directory pattern for glob-based file discovery
+    final String directoryPattern = (String) operand.get("directoryPattern");
+
     // Get materialized views configuration
     @SuppressWarnings("unchecked") List<Map<String, Object>> materializations =
         (List<Map<String, Object>>) operand.get("materializations");
@@ -82,14 +85,27 @@ public class FileSchemaFactory implements SchemaFactory {
     @SuppressWarnings("unchecked") List<Map<String, Object>> partitionedTables =
         (List<Map<String, Object>>) operand.get("partitionedTables");
 
+    // Get storage provider configuration
+    final String storageType = (String) operand.get("storageType");
+    @SuppressWarnings("unchecked") Map<String, Object> storageConfig =
+        (Map<String, Object>) operand.get("storageConfig");
+
     // Get refresh interval for schema (default for all tables)
     final String refreshInterval = (String) operand.get("refreshInterval");
 
     // Get table name casing configuration (default to UPPER for backward compatibility)
-    final String tableNameCasing = (String) operand.getOrDefault("tableNameCasing", "UPPER");
+    // Support both camelCase (model.json) and snake_case (JDBC URL) naming conventions
+    String tableNameCasing = (String) operand.get("tableNameCasing");
+    if (tableNameCasing == null) {
+      tableNameCasing = (String) operand.getOrDefault("table_name_casing", "UPPER");
+    }
 
     // Get column name casing configuration (default to UNCHANGED for backward compatibility)
-    final String columnNameCasing = (String) operand.getOrDefault("columnNameCasing", "UNCHANGED");
+    // Support both camelCase (model.json) and snake_case (JDBC URL) naming conventions
+    String columnNameCasing = (String) operand.get("columnNameCasing");
+    if (columnNameCasing == null) {
+      columnNameCasing = (String) operand.getOrDefault("column_name_casing", "UNCHANGED");
+    }
 
     File directoryFile = null;
     if (directory != null) {
@@ -102,9 +118,9 @@ public class FileSchemaFactory implements SchemaFactory {
         directoryFile = new File(baseDirectory, directory);
       }
     }
-    return new FileSchema(parentSchema, name, directoryFile, directory,
+    return new FileSchema(parentSchema, name, directoryFile, directoryPattern,
         tables, engineConfig, recursive,
         materializations, views, partitionedTables, refreshInterval, tableNameCasing,
-        columnNameCasing);
+        columnNameCasing, storageType, storageConfig);
   }
 }

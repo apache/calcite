@@ -1,0 +1,6 @@
+ID:int,NAIVE_TS:timestamp,AWARE_TS:timestamptz,DESCRIPTION:string
+1,"2024-03-15 10:30:45","2024-03-15 10:30:45Z","UTC timestamp"
+2,"2024-03-15 10:30:45","2024-03-15 10:30:45+05:30","IST timestamp"
+3,"2024-03-15 10:30:45","2024-03-15 10:30:45-08:00","PST timestamp"
+4,"2024-03-15 10:30:45","2024-03-15 10:30:45 EST","EST timestamp"
+5,"2024-03-15 10:30:45","Fri, 15 Mar 2024 10:30:45 +0000","RFC 2822 format"

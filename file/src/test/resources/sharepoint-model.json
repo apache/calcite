@@ -1,0 +1,24 @@
+{
+  "version": "1.0",
+  "defaultSchema": "FILES",
+  "schemas": [
+    {
+      "name": "FILES",
+      "type": "custom",
+      "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
+      "operand": {
+        "storageType": "sharepoint",
+        "storageConfig": {
+          "siteUrl": "${SHAREPOINT_SITE_URL}",
+          "tenantId": "${SHAREPOINT_TENANT_ID}",
+          "clientId": "${SHAREPOINT_CLIENT_ID}",
+          "clientSecret": "${SHAREPOINT_CLIENT_SECRET}"
+        },
+        "directory": "/Shared Documents",
+        "recursive": false,
+        "tableNameCasing": "UPPER",
+        "columnNameCasing": "UNCHANGED"
+      }
+    }
+  ]
+}

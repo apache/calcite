@@ -84,12 +84,18 @@ public final class CimModelBuilder {
     switch (cimModel.toLowerCase(Locale.ROOT)) {
     case "alerts":
       return buildAlertsSchemaWithMapping(typeFactory);
+    case "application_state":
+    case "applicationstate":
+      return buildApplicationStateSchemaWithMapping(typeFactory);
     case "authentication":
       return buildAuthenticationSchemaWithMapping(typeFactory);
     case "certificates":
       return buildCertificatesSchemaWithMapping(typeFactory);
     case "change":
       return buildChangeSchemaWithMapping(typeFactory);
+    case "compute_inventory":
+    case "computeinventory":
+      return buildInventorySchemaWithMapping(typeFactory);
     case "data_access":
     case "dataaccess":
       return buildDataAccessSchemaWithMapping(typeFactory);
@@ -129,9 +135,11 @@ public final class CimModelBuilder {
       return buildNetworkTrafficSchemaWithMapping(typeFactory);
     case "performance":
       return buildPerformanceSchemaWithMapping(typeFactory);
-    case "splunk_audit_logs":
-    case "splunkaudit":
-      return buildSplunkAuditLogsSchemaWithMapping(typeFactory);
+    // Note: splunk_audit_logs is not in the standard CIM 6.0 24 models
+    // Commenting out for now - only the 24 standard CIM models are supported
+    // case "splunk_audit_logs":
+    // case "splunkaudit":
+    //   return buildSplunkAuditLogsSchemaWithMapping(typeFactory);
     case "ticket_management":
     case "ticketing":
       return buildTicketManagementSchemaWithMapping(typeFactory);
@@ -361,6 +369,43 @@ public final class CimModelBuilder {
     return new CimSchemaResult(schema, fieldMapping, searchString);
   }
 
+  /**
+   * Application State CIM model schema - Application and service states.
+   */
+  private static CimSchemaResult buildApplicationStateSchemaWithMapping(
+      RelDataTypeFactory typeFactory) {
+    RelDataType schema = typeFactory.builder()
+        // Base Splunk fields
+        .add("_time", typeFactory.createSqlType(SqlTypeName.TIMESTAMP))
+        .add("host", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("source", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("sourcetype", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+        .add("index", createNullableType(typeFactory, SqlTypeName.VARCHAR))
+
+        // Application State-specific fields - all nullable for sparse data
+        .add("dest", createNullableType(typeFactory, SqlTypeName.VARCHAR))
+        .add("process", createNullableType(typeFactory, SqlTypeName.VARCHAR))
+        .add("process_name", createNullableType(typeFactory, SqlTypeName.VARCHAR))
+        .add("process_id", createNullableType(typeFactory, SqlTypeName.INTEGER))
+        .add("state", createNullableType(typeFactory, SqlTypeName.VARCHAR))
+        .add("user", createNullableType(typeFactory, SqlTypeName.VARCHAR))
+        .add("vendor_product", createNullableType(typeFactory, SqlTypeName.VARCHAR))
+
+        .add("_extra", createNullableType(typeFactory, SqlTypeName.ANY))
+        .build();
+
+    Map<String, String> fieldMapping = new HashMap<>();
+    fieldMapping.put("dest", "Application_State.dest");
+    fieldMapping.put("process", "Application_State.process");
+    fieldMapping.put("process_name", "Application_State.process_name");
+    fieldMapping.put("process_id", "Application_State.process_id");
+    fieldMapping.put("state", "Application_State.state");
+    fieldMapping.put("user", "Application_State.user");
+    fieldMapping.put("vendor_product", "Application_State.vendor_product");
+
+    String searchString = "| datamodel Application_State All_Application_State search";
+    return new CimSchemaResult(schema, fieldMapping, searchString);
+  }
 
   /**
    * Network Traffic CIM model schema with field mapping.
@@ -546,7 +591,7 @@ public final class CimModelBuilder {
     fieldMapping.put("ssl_start_time", "Certificates.ssl_start_time");
     fieldMapping.put("ssl_end_time", "Certificates.ssl_end_time");
 
-    String searchString = "| datamodel Certificates Certificates search";
+    String searchString = "| datamodel Certificates All_Certificates search";
     return new CimSchemaResult(schema, fieldMapping, searchString);
   }
 
@@ -691,7 +736,7 @@ public final class CimModelBuilder {
     fieldMapping.put("user", "Databases.user");
     fieldMapping.put("vendor_product", "Databases.vendor_product");
 
-    String searchString = "| datamodel Databases Databases search";
+    String searchString = "| datamodel Databases All_Databases search";
     return new CimSchemaResult(schema, fieldMapping, searchString);
   }
 
@@ -747,7 +792,7 @@ public final class CimModelBuilder {
     fieldMapping.put("vendor_product", "DLP.vendor_product");
     fieldMapping.put("violation_count", "DLP.violation_count");
 
-    String searchString = "| datamodel Data_Loss_Prevention DLP search";
+    String searchString = "| datamodel DLP DLP_Incidents search";
     return new CimSchemaResult(schema, fieldMapping, searchString);
   }
 
@@ -808,7 +853,7 @@ public final class CimModelBuilder {
     fieldMapping.put("user", "Email.user");
     fieldMapping.put("vendor_product", "Email.vendor_product");
 
-    String searchString = "| datamodel Email Email search";
+    String searchString = "| datamodel Email All_Email search";
     return new CimSchemaResult(schema, fieldMapping, searchString);
   }
 
@@ -907,7 +952,7 @@ public final class CimModelBuilder {
     fieldMapping.put("user", "Endpoint.user");
     fieldMapping.put("vendor_product", "Endpoint.vendor_product");
 
-    String searchString = "| datamodel Endpoint Endpoint search";
+    String searchString = "| datamodel Endpoint Filesystem search";
     return new CimSchemaResult(schema, fieldMapping, searchString);
   }
 
@@ -949,7 +994,7 @@ public final class CimModelBuilder {
     fieldMapping.put("user", "EventSignatures.user");
     fieldMapping.put("vendor_product", "EventSignatures.vendor_product");
 
-    String searchString = "| datamodel Event_Signatures Event_Signatures search";
+    String searchString = "| datamodel Event_Signatures Signatures search";
     return new CimSchemaResult(schema, fieldMapping, searchString);
   }
 
@@ -995,7 +1040,7 @@ public final class CimModelBuilder {
     fieldMapping.put("response_time", "Messaging.response_time");
     fieldMapping.put("src_process", "Messaging.src_process");
 
-    String searchString = "| datamodel Interprocess_Messaging Messaging search";
+    String searchString = "| datamodel Interprocess_Messaging All_Messaging search";
     return new CimSchemaResult(schema, fieldMapping, searchString);
   }
 
@@ -1055,7 +1100,7 @@ public final class CimModelBuilder {
     fieldMapping.put("user", "IDS.user");
     fieldMapping.put("vendor_product", "IDS.vendor_product");
 
-    String searchString = "| datamodel Intrusion_Detection IDS search";
+    String searchString = "| datamodel Intrusion_Detection IDS_Attacks search";
     return new CimSchemaResult(schema, fieldMapping, searchString);
   }
 
@@ -1088,7 +1133,7 @@ public final class CimModelBuilder {
     fieldMapping.put("vendor_product", "Inventory.vendor_product");
     fieldMapping.put("version", "Inventory.version");
 
-    return new CimSchemaResult(schema, fieldMapping, "| datamodel Inventory Inventory search");
+    return new CimSchemaResult(schema, fieldMapping, "| datamodel Compute_Inventory All_Inventory search");
   }
 
   /**
@@ -1166,7 +1211,7 @@ public final class CimModelBuilder {
     fieldMapping.put("user", "Malware.user");
     fieldMapping.put("vendor_product", "Malware.vendor_product");
 
-    return new CimSchemaResult(schema, fieldMapping, "| datamodel Malware Malware search");
+    return new CimSchemaResult(schema, fieldMapping, "| datamodel Malware Malware_Attacks search");
   }
 
   /**
@@ -1291,7 +1336,7 @@ public final class CimModelBuilder {
     fieldMapping.put("mem_used", "Performance.mem_used");
     fieldMapping.put("thruput", "Performance.thruput");
 
-    return new CimSchemaResult(schema, fieldMapping, "| datamodel Performance Performance search");
+    return new CimSchemaResult(schema, fieldMapping, "| datamodel Performance All_Performance search");
   }
 
   /**
@@ -1359,7 +1404,7 @@ public final class CimModelBuilder {
     fieldMapping.put("vendor_product", "TicketManagement.vendor_product");
 
     return new CimSchemaResult(schema, fieldMapping,
-        "| datamodel Ticket_Management Ticket_Management search");
+        "| datamodel Ticket_Management All_Ticket_Management search");
   }
 
   /**

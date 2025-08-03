@@ -4539,6 +4539,9 @@ public class SqlFunctions {
    * @see #internalToTime(int) converse method
    */
   public static int toInt(java.sql.Time v) {
+    if (v == null) {
+      throw new IllegalArgumentException("Cannot convert null Time to int");
+    }
     return DateTimeUtils.sqlTimeToUnixTime(v, LOCAL_TZ);
   }
 
@@ -4567,6 +4570,9 @@ public class SqlFunctions {
   }
 
   public static int toInt(Object o) {
+    if (o == null) {
+      throw new IllegalArgumentException("Cannot convert null to int");
+    }
     return o instanceof Integer ? (Integer) o
         : o instanceof Number ? toInt((Number) o)
         : o instanceof String ? toInt((String) o)
@@ -4752,8 +4758,10 @@ public class SqlFunctions {
    * @see #toInt(java.sql.Date) converse method
    */
   public static java.sql.Date internalToDate(int v) {
-    final LocalDate date = LocalDate.ofEpochDay(v);
-    return java.sql.Date.valueOf(date);
+    // Use LocalDate to avoid any timezone issues
+    // DATE values are days since epoch (1970-01-01)
+    java.time.LocalDate localDate = java.time.LocalDate.ofEpochDay(v);
+    return java.sql.Date.valueOf(localDate);
   }
 
   /**

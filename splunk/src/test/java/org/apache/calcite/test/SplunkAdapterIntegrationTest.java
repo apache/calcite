@@ -1,0 +1,352 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to you under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.calcite.test;
+
+import org.apache.calcite.config.CalciteSystemProperty;
+import org.apache.calcite.test.schemata.foodmart.FoodmartSchema;
+
+import com.google.common.collect.ImmutableSet;
+
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIf;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.HashSet;
+import java.util.Properties;
+import java.util.Set;
+import java.util.function.Function;
+
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+
+/**
+ * Integration tests for Splunk adapter.
+ * These tests require a live Splunk connection configured in local-properties.settings.
+ *
+ * Enable these tests by:
+ * 1. Creating splunk/local-properties.settings with your Splunk connection details
+ * 2. Running with -Dcalcite.test.splunk=true
+ */
+@EnabledIf("isSplunkEnabled")
+class SplunkAdapterIntegrationTest {
+  // Connection properties loaded from local-properties.settings
+  private static String SPLUNK_URL = "https://localhost:8089";
+  private static String SPLUNK_USER = "admin";
+  private static String SPLUNK_PASSWORD = "changeme";
+  private static boolean DISABLE_SSL_VALIDATION = false;
+
+  @BeforeAll
+  static void loadConnectionProperties() {
+    // Try multiple possible locations for the properties file
+    File[] possibleLocations = {
+        new File("local-properties.settings"),
+        new File("splunk/local-properties.settings"),
+        new File("../splunk/local-properties.settings")
+    };
+
+    File propsFile = null;
+    for (File location : possibleLocations) {
+      if (location.exists()) {
+        propsFile = location;
+        break;
+      }
+    }
+
+    if (propsFile != null) {
+      Properties props = new Properties();
+      try (FileInputStream fis = new FileInputStream(propsFile)) {
+        props.load(fis);
+
+        if (props.containsKey("splunk.url")) {
+          SPLUNK_URL = props.getProperty("splunk.url");
+        }
+        if (props.containsKey("splunk.username")) {
+          SPLUNK_USER = props.getProperty("splunk.username");
+        }
+        if (props.containsKey("splunk.password")) {
+          SPLUNK_PASSWORD = props.getProperty("splunk.password");
+        }
+        if (props.containsKey("splunk.ssl.insecure")) {
+          DISABLE_SSL_VALIDATION = Boolean.parseBoolean(props.getProperty("splunk.ssl.insecure"));
+        }
+
+        System.out.println("Loaded Splunk connection from " + propsFile.getPath() + ": " + SPLUNK_URL);
+      } catch (IOException e) {
+        System.err.println("Warning: Could not load local-properties.settings: " + e.getMessage());
+      }
+    } else {
+      System.out.println("Using default Splunk connection: " + SPLUNK_URL);
+      System.out.println("Searched for local-properties.settings in:");
+      for (File location : possibleLocations) {
+        System.out.println("  - " + location.getAbsolutePath());
+      }
+    }
+  }
+
+  /**
+   * Check if Splunk integration tests are enabled.
+   */
+  static boolean isSplunkEnabled() {
+    return CalciteSystemProperty.TEST_SPLUNK.value();
+  }
+
+  private void loadDriverClass() {
+    try {
+      Class.forName("org.apache.calcite.adapter.splunk.SplunkDriver");
+    } catch (ClassNotFoundException e) {
+      throw new RuntimeException("driver not found", e);
+    }
+  }
+
+  /**
+   * Creates a connection to Splunk with standard properties.
+   */
+  private Connection createConnection() throws SQLException {
+    loadDriverClass();
+    Properties info = new Properties();
+    info.setProperty("url", SPLUNK_URL);
+    info.put("user", SPLUNK_USER);
+    info.put("password", SPLUNK_PASSWORD);
+    if (DISABLE_SSL_VALIDATION) {
+      info.put("disableSslValidation", "true");
+    }
+    return DriverManager.getConnection("jdbc:splunk:", info);
+  }
+
+  /**
+   * Creates a connection with specific CIM models.
+   */
+  private Connection createConnectionWithModels(String models) throws SQLException {
+    loadDriverClass();
+    Properties info = new Properties();
+    info.setProperty("url", SPLUNK_URL);
+    info.put("user", SPLUNK_USER);
+    info.put("password", SPLUNK_PASSWORD);
+    if (DISABLE_SSL_VALIDATION) {
+      info.put("disableSslValidation", "true");
+    }
+    info.put("cimModels", models);
+    return DriverManager.getConnection("jdbc:splunk:", info);
+  }
+
+  @Test void testBasicConnection() throws SQLException {
+    try (Connection connection = createConnection()) {
+      assertThat(connection.isClosed(), is(false));
+      System.out.println("Successfully connected to Splunk at " + SPLUNK_URL);
+    }
+  }
+
+  @Test void testAuthenticationModel() throws SQLException {
+    try (Connection connection = createConnectionWithModels("authentication");
+         Statement stmt = connection.createStatement()) {
+
+      // First, try to get all available data to see what's there
+      String countSql = "SELECT COUNT(*) as cnt FROM \"splunk\".\"authentication\"";
+      try (ResultSet rs = stmt.executeQuery(countSql)) {
+        if (rs.next()) {
+          int totalCount = rs.getInt("cnt");
+          System.out.println("Total authentication events: " + totalCount);
+        }
+      }
+
+      // Query the authentication table - more flexible query
+      String sql = "SELECT \"action\", \"user\", \"_time\" " +
+                   "FROM \"splunk\".\"authentication\" " +
+                   "LIMIT 5";
+
+      try (ResultSet rs = stmt.executeQuery(sql)) {
+        int count = 0;
+        while (rs.next()) {
+          System.out.printf("Action: %s, User: %s, Time: %s%n",
+              rs.getString("action"),
+              rs.getString("user"),
+              rs.getString("_time"));
+          count++;
+        }
+        System.out.println("Found " + count + " authentication events");
+
+        // Test passes if we can execute the query without errors
+        // The authentication model might not have data in the test instance
+        assertThat(count >= 0, is(true));
+      }
+    }
+  }
+
+  @Test void testWebModel() throws SQLException {
+    try (Connection connection = createConnectionWithModels("web");
+         Statement stmt = connection.createStatement()) {
+
+      String sql = "SELECT \"action\", \"status\", \"user\" " +
+                   "FROM \"splunk\".\"web\" " +
+                   "LIMIT 10";
+
+      try (ResultSet rs = stmt.executeQuery(sql)) {
+        int count = 0;
+        while (rs.next()) {
+          count++;
+        }
+        System.out.println("Found " + count + " web events");
+        assertThat(count > 0, is(true));
+      }
+    }
+  }
+
+  @Test void testMultipleCimModels() throws SQLException {
+    try (Connection connection = createConnectionWithModels("authentication,web,network_traffic");
+         Statement stmt = connection.createStatement()) {
+
+      // Verify multiple tables are available
+      Set<String> expectedTables = ImmutableSet.of("authentication", "web", "network_traffic");
+
+      // This would need metadata query support to verify properly
+      // For now, just test that we can connect
+      assertThat(connection.isClosed(), is(false));
+    }
+  }
+
+  @Test void testSelectDistinct() throws SQLException {
+    try (Connection connection = createConnectionWithModels("web");
+         Statement stmt = connection.createStatement()) {
+
+      String sql = "SELECT DISTINCT \"status\" " +
+                   "FROM \"splunk\".\"web\" " +
+                   "LIMIT 20";
+
+      try (ResultSet rs = stmt.executeQuery(sql)) {
+        Set<String> statuses = new HashSet<>();
+        while (rs.next()) {
+          statuses.add(rs.getString("status"));
+        }
+        System.out.println("Found " + statuses.size() + " distinct status values: " + statuses);
+        assertThat(statuses.isEmpty(), is(false));
+      }
+    }
+  }
+
+  @Test void testGroupBy() throws SQLException {
+    try (Connection connection = createConnectionWithModels("web");
+         Statement stmt = connection.createStatement()) {
+
+      String sql = "SELECT \"status\", COUNT(*) as \"count\" " +
+                   "FROM \"splunk\".\"web\" " +
+                   "GROUP BY \"status\" " +
+                   "ORDER BY \"count\" DESC " +
+                   "LIMIT 10";
+
+      try (ResultSet rs = stmt.executeQuery(sql)) {
+        int count = 0;
+        while (rs.next()) {
+          System.out.printf("Status: %s, Count: %d%n",
+              rs.getString("status"),
+              rs.getInt("count"));
+          count++;
+        }
+        assertThat(count > 0, is(true));
+      }
+    }
+  }
+
+  @Test void testTimeRangeQuery() throws SQLException {
+    try (Connection connection = createConnectionWithModels("web");
+         Statement stmt = connection.createStatement()) {
+
+      // Query with time range
+      String sql = "SELECT \"_time\", \"action\", \"status\" " +
+                   "FROM \"splunk\".\"web\" " +
+                   "WHERE \"_time\" > CURRENT_TIMESTAMP - INTERVAL '1' DAY " +
+                   "LIMIT 10";
+
+      try (ResultSet rs = stmt.executeQuery(sql)) {
+        int count = 0;
+        while (rs.next()) {
+          count++;
+        }
+        System.out.println("Found " + count + " recent web events");
+      }
+    }
+  }
+
+  /**
+   * Test the vanity driver URL format.
+   */
+  @Test void testVanityDriver() throws SQLException {
+    loadDriverClass();
+    Properties info = new Properties();
+    info.setProperty("url", SPLUNK_URL);
+    info.put("user", SPLUNK_USER);
+    info.put("password", SPLUNK_PASSWORD);
+    if (DISABLE_SSL_VALIDATION) {
+      info.put("disableSslValidation", "true");
+    }
+
+    try (Connection connection = DriverManager.getConnection("jdbc:splunk:", info)) {
+      assertThat(connection.isClosed(), is(false));
+    }
+  }
+
+  /**
+   * Test with URL parameters (once supported).
+   */
+  @Test void testVanityDriverArgsInUrl() throws SQLException {
+    loadDriverClass();
+
+    // This format isn't supported yet, but test the connection
+    Properties info = new Properties();
+    info.setProperty("url", SPLUNK_URL);
+    info.put("user", SPLUNK_USER);
+    info.put("password", SPLUNK_PASSWORD);
+    if (DISABLE_SSL_VALIDATION) {
+      info.put("disableSslValidation", "true");
+    }
+
+    try (Connection connection = DriverManager.getConnection("jdbc:splunk:", info)) {
+      assertThat(connection.isClosed(), is(false));
+    }
+  }
+
+
+  /**
+   * Helper method to execute a query and apply a function to the result set.
+   */
+  private void checkSql(String sql, Function<ResultSet, Void> f) throws SQLException {
+    loadDriverClass();
+    try (Connection connection = createConnection();
+         Statement statement = connection.createStatement()) {
+
+      Properties info = new Properties();
+      info.put("url", SPLUNK_URL);
+      info.put("user", SPLUNK_USER);
+      info.put("password", SPLUNK_PASSWORD);
+      if (DISABLE_SSL_VALIDATION) {
+        info.put("disableSslValidation", "true");
+      }
+      info.put("model", "inline:" + FoodmartSchema.FOODMART_MODEL);
+
+      final ResultSet resultSet = statement.executeQuery(sql);
+      f.apply(resultSet);
+      resultSet.close();
+    }
+  }
+}

@@ -47,7 +47,7 @@ class ArrowFilterEnumerator extends AbstractArrowEnumerator {
   private Object current; // For Parquet records
 
   ArrowFilterEnumerator(Object sourceReader, ImmutableIntList fields, Object filter) {
-    super(sourceReader instanceof ArrowFileReader ? (ArrowFileReader) sourceReader : null, fields);
+    super(sourceReader, fields);
     this.sourceReader = sourceReader;
     this.allocator = new RootAllocator(Long.MAX_VALUE);
     this.filter = filter;
@@ -70,14 +70,9 @@ class ArrowFilterEnumerator extends AbstractArrowEnumerator {
 
   private boolean loadNextBatch() throws IOException {
     if (sourceReader instanceof ArrowFileReader) {
-      ArrowFileReader arrowReader = (ArrowFileReader) sourceReader;
-      boolean hasNextBatch = arrowReader.loadNextBatch();
-      if (hasNextBatch) {
-        VectorSchemaRoot root = arrowReader.getVectorSchemaRoot();
-        ArrowRecordBatch recordBatch = ArrowUtils.fromStructsToArrowRecordBatch(root, allocator);
-        evaluateOperator(recordBatch);
-      }
-      return hasNextBatch;
+      this.valueVectors.clear();
+      loadNextArrowBatch();
+      return rowCount > 0;
     }
     return false;
   }

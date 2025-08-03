@@ -71,7 +71,7 @@ public class ArrowTable extends AbstractTable
   private final Schema schema;
   private final ArrowFileReader arrowFileReader;
 
-  ArrowTable(@Nullable RelProtoDataType protoRowType, ArrowFileReader arrowFileReader) {
+  public ArrowTable(@Nullable RelProtoDataType protoRowType, ArrowFileReader arrowFileReader) {
     try {
       this.schema = arrowFileReader.getVectorSchemaRoot().getSchema();
     } catch (IOException e) {

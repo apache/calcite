@@ -92,15 +92,26 @@ public final class ExcelToJsonConverter {
           continue;
         }
         ObjectNode rowData = mapper.createObjectNode();
-        for (Cell cell : row) {
-          Cell headerCell = headerRow.getCell(cell.getColumnIndex());
+        
+        // Iterate through all columns in header to maintain consistent structure
+        int lastColNum = headerRow.getLastCellNum();
+        
+        for (int colIndex = 0; colIndex < lastColNum; colIndex++) {
+          Cell headerCell = headerRow.getCell(colIndex);
           if (headerCell == null || headerCell.getCellType() == CellType.BLANK) {
             continue; // Skip columns with blank header cells
           }
+          
           String key = getCellValue(headerCell, evaluator);
-          String value = getCellValue(cell, evaluator);
-          if (!value.isEmpty()) {
-            rowData.put(key, value);
+          Cell dataCell = row.getCell(colIndex);
+          Object value = getCellValueAsObject(dataCell, evaluator);
+          
+          if (value != null) {
+            rowData.putPOJO(key, value);
+          } else {
+            // Use null for empty cells to maintain consistent JSON structure
+            // This is semantically correct and allows proper nullable column handling
+            rowData.putNull(key);
           }
         }
         sheetData.add(rowData);
@@ -151,6 +162,37 @@ public final class ExcelToJsonConverter {
       return getCellValue(evaluator.evaluateInCell(cell), evaluator);
     default:
       return "";
+    }
+  }
+
+  private static Object getCellValueAsObject(Cell cell, FormulaEvaluator evaluator) {
+    if (cell == null) {
+      return null;
+    }
+    switch (cell.getCellType()) {
+    case STRING:
+      String stringValue = cell.getStringCellValue();
+      return stringValue.isEmpty() ? null : stringValue;
+    case NUMERIC:
+      if (DateUtil.isCellDateFormatted(cell)) {
+        return cell.getDateCellValue();
+      } else {
+        double numericValue = cell.getNumericCellValue();
+        // Return as integer if it's a whole number, otherwise as double
+        if (numericValue == (long) numericValue) {
+          return (long) numericValue;
+        } else {
+          return numericValue;
+        }
+      }
+    case BOOLEAN:
+      return cell.getBooleanCellValue();
+    case FORMULA:
+      return getCellValueAsObject(evaluator.evaluateInCell(cell), evaluator);
+    case BLANK:
+      return null;
+    default:
+      return null;
     }
   }
 

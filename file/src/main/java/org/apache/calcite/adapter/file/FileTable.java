@@ -49,10 +49,12 @@ class FileTable extends AbstractQueryableTable
     implements TranslatableTable {
 
   private final @Nullable RelProtoDataType protoRowType;
+  @SuppressWarnings("deprecation")
   private final FileReader reader;
   private final FileRowConverter converter;
 
   /** Creates a FileTable. */
+  @SuppressWarnings("deprecation")
   private FileTable(Source source, String selector, Integer index,
       @Nullable RelProtoDataType protoRowType,
       List<Map<String, Object>> fieldConfigs) {

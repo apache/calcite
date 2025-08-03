@@ -23,21 +23,27 @@ import java.util.stream.Collectors;
 
 /**
  * Utility to flatten nested JSON structures.
- * Objects are flattened using dot notation, arrays are converted to delimited strings.
+ * Objects are flattened using configurable separator, arrays are converted to delimited strings.
  */
 public class JsonFlattener {
   private final String delimiter;
   private final int maxDepth;
   private final String nullValue;
+  private final String separator;
 
   public JsonFlattener() {
-    this(",", 3, "");
+    this(",", 3, "", ".");
   }
 
   public JsonFlattener(String delimiter, int maxDepth, String nullValue) {
+    this(delimiter, maxDepth, nullValue, ".");
+  }
+
+  public JsonFlattener(String delimiter, int maxDepth, String nullValue, String separator) {
     this.delimiter = delimiter;
     this.maxDepth = maxDepth;
     this.nullValue = nullValue;
+    this.separator = separator;
   }
 
   /**
@@ -63,7 +69,7 @@ public class JsonFlattener {
     }
 
     for (Map.Entry<String, Object> entry : obj.entrySet()) {
-      String key = prefix.isEmpty() ? entry.getKey() : prefix + "." + entry.getKey();
+      String key = prefix.isEmpty() ? entry.getKey() : prefix + separator + entry.getKey();
       Object value = entry.getValue();
 
       if (value == null) {
@@ -92,7 +98,7 @@ public class JsonFlattener {
       return "";
     }
 
-    // Check if it's an array of objects - don't flatten those
+    // Check if it's an array of objects - don't flatten those, but arrays of simple values should be flattened
     if (array.stream().anyMatch(item -> item instanceof Map)) {
       return null; // Signal to skip this field
     }

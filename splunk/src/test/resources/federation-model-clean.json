@@ -1,0 +1,42 @@
+{
+  "version": "1.0",
+  "defaultSchema": "security",
+  "schemas": [
+    {
+      "name": "cisco",
+      "operand": {
+        "url": "https://splunk.company.com:8089",
+        "token": "your_auth_token",
+        "app": "Splunk_TA_cisco-esa",
+        "datamodelCacheTtl": -1
+      }
+    },
+    {
+      "name": "paloalto",
+      "operand": {
+        "url": "https://splunk.company.com:8089",
+        "token": "your_auth_token",
+        "app": "Splunk_TA_paloalto",
+        "datamodelCacheTtl": -1
+      }
+    },
+    {
+      "name": "crowdstrike",
+      "operand": {
+        "url": "https://splunk.company.com:8089",
+        "token": "your_auth_token",
+        "app": "Splunk_TA_crowdstrike",
+        "datamodelCacheTtl": -1
+      }
+    },
+    {
+      "name": "security",
+      "operand": {
+        "url": "https://splunk.company.com:8089",
+        "token": "your_auth_token",
+        "app": "Splunk_SA_CIM",
+        "datamodelCacheTtl": -1
+      }
+    }
+  ]
+}

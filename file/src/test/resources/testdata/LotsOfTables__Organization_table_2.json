@@ -4,68 +4,68 @@
   "Address_Street" : "123 Tech Boulevard",
   "Address_City" : "San Francisco",
   "Address_State" : "CA",
-  "Address_Zip Code" : "94105.0"
+  "Address_Zip Code" : 94105
 }, {
   "Company_Department" : "Sales",
   "Company_Team" : "Enterprise",
   "Address_Street" : "456 Commerce Ave",
   "Address_City" : "New York",
   "Address_State" : "NY",
-  "Address_Zip Code" : "10001.0"
+  "Address_Zip Code" : 10001
 }, {
   "Company_Department" : "Marketing",
   "Company_Team" : "Digital",
   "Address_Street" : "789 Creative Drive",
   "Address_City" : "Austin",
   "Address_State" : "TX",
-  "Address_Zip Code" : "73301.0"
+  "Address_Zip Code" : 73301
 }, {
   "Company_Department" : "Human Resources",
   "Company_Team" : "Recruiting",
   "Address_Street" : "321 Corporate Plaza",
   "Address_City" : "Chicago",
   "Address_State" : "IL",
-  "Address_Zip Code" : "60601.0"
+  "Address_Zip Code" : 60601
 }, {
   "Company_Department" : "Engineering",
   "Company_Team" : "Frontend",
   "Address_Street" : "654 Innovation Way",
   "Address_City" : "Seattle",
   "Address_State" : "WA",
-  "Address_Zip Code" : "98101.0"
+  "Address_Zip Code" : 98101
 }, {
   "Company_Department" : "Sales",
   "Company_Team" : "SMB",
   "Address_Street" : "987 Business Street",
   "Address_City" : "Atlanta",
   "Address_State" : "GA",
-  "Address_Zip Code" : "30309.0"
+  "Address_Zip Code" : 30309
 }, {
   "Company_Department" : "Finance",
   "Company_Team" : "Accounting",
   "Address_Street" : "147 Financial Center",
   "Address_City" : "Boston",
   "Address_State" : "MA",
-  "Address_Zip Code" : "2101.0"
+  "Address_Zip Code" : 2101
 }, {
   "Company_Department" : "Marketing",
   "Company_Team" : "Brand",
   "Address_Street" : "258 Madison Square",
   "Address_City" : "Denver",
   "Address_State" : "CO",
-  "Address_Zip Code" : "80202.0"
+  "Address_Zip Code" : 80202
 }, {
   "Company_Department" : "Operations",
   "Company_Team" : "Facilities",
   "Address_Street" : "369 Industrial Parkway",
   "Address_City" : "Phoenix",
   "Address_State" : "AZ",
-  "Address_Zip Code" : "85001.0"
+  "Address_Zip Code" : 85001
 }, {
   "Company_Department" : "Customer Success",
   "Company_Team" : "Support",
   "Address_Street" : "741 Service Road",
   "Address_City" : "Miami",
   "Address_State" : "FL",
-  "Address_Zip Code" : "33101.0"
+  "Address_Zip Code" : 33101
 } ]

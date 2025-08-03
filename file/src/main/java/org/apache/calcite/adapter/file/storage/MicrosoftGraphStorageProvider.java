@@ -1,0 +1,413 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to you under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.calcite.adapter.file.storage;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.net.HttpURLConnection;
+import java.net.URI;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+
+/**
+ * Storage provider implementation for SharePoint using Microsoft Graph API.
+ * Provides better compatibility and access to modern SharePoint features.
+ */
+public class MicrosoftGraphStorageProvider implements StorageProvider {
+
+  private static final String GRAPH_API_BASE = "https://graph.microsoft.com/v1.0";
+  private final String siteUrl;
+  private final SharePointTokenManager tokenManager;
+  private final ObjectMapper mapper = new ObjectMapper();
+  private String siteId;
+  private String driveId;
+
+  /**
+   * Creates a Microsoft Graph storage provider with automatic token refresh.
+   */
+  public MicrosoftGraphStorageProvider(SharePointTokenManager tokenManager) {
+    this.siteUrl = tokenManager.getSiteUrl().endsWith("/") ?
+        tokenManager.getSiteUrl().substring(0, tokenManager.getSiteUrl().length() - 1)
+        : tokenManager.getSiteUrl();
+
+    // Convert to MicrosoftGraphTokenManager if needed
+    if (!(tokenManager instanceof MicrosoftGraphTokenManager)) {
+      // Create a new Graph-specific token manager with the same credentials
+      if (tokenManager.clientSecret != null) {
+        this.tokenManager =
+            new MicrosoftGraphTokenManager(tokenManager.tenantId, tokenManager.clientId,
+            tokenManager.clientSecret, tokenManager.getSiteUrl());
+      } else {
+        // Use the existing token manager (might be static token)
+        this.tokenManager = tokenManager;
+      }
+    } else {
+      this.tokenManager = tokenManager;
+    }
+  }
+
+  /**
+   * Ensures site and drive IDs are initialized.
+   */
+  private void ensureInitialized() throws IOException {
+    if (siteId == null || driveId == null) {
+      initializeSiteAndDrive();
+    }
+  }
+
+  /**
+   * Initializes site ID and default document library drive ID.
+   */
+  private void initializeSiteAndDrive() throws IOException {
+    // Extract hostname and site path from URL
+    URI uri = URI.create(siteUrl);
+    String hostname = uri.getHost();
+    String sitePath = uri.getPath();
+
+    // Get site ID
+    String siteApiUrl;
+    if (sitePath == null || sitePath.isEmpty() || sitePath.equals("/")) {
+      // Root site
+      siteApiUrl = String.format(Locale.ROOT, "%s/sites/%s", GRAPH_API_BASE, hostname);
+    } else {
+      // Subsite
+      siteApiUrl = String.format(Locale.ROOT, "%s/sites/%s:%s", GRAPH_API_BASE, hostname, sitePath);
+    }
+
+    JsonNode siteResponse = executeGraphCall(siteApiUrl);
+    this.siteId = siteResponse.get("id").asText();
+
+    // Get default document library (drive)
+    String driveApiUrl = String.format(Locale.ROOT, "%s/sites/%s/drive", GRAPH_API_BASE, siteId);
+    JsonNode driveResponse = executeGraphCall(driveApiUrl);
+    this.driveId = driveResponse.get("id").asText();
+  }
+
+  @Override public List<FileEntry> listFiles(String path, boolean recursive) throws IOException {
+    ensureInitialized();
+    List<FileEntry> entries = new ArrayList<>();
+
+    // Normalize path
+    if (path.startsWith("/")) {
+      path = path.substring(1);
+    }
+
+    // Build Graph API URL
+    String apiUrl;
+    if (path.isEmpty() || path.equals("Shared Documents") || path.equals("/")) {
+      // Root of document library
+      apiUrl = String.format(Locale.ROOT, "%s/drives/%s/root/children", GRAPH_API_BASE, driveId);
+    } else {
+      // Remove common prefixes if present
+      if (path.startsWith("Shared Documents/")) {
+        path = path.substring("Shared Documents/".length());
+      } else if (path.startsWith("Documents/")) {
+        path = path.substring("Documents/".length());
+      }
+
+      String encodedPath = URLEncoder.encode(path, StandardCharsets.UTF_8)
+          .replace("+", "%20");
+      apiUrl =
+          String.format(Locale.ROOT, "%s/drives/%s/root:/%s:/children", GRAPH_API_BASE, driveId, encodedPath);
+    }
+
+    // Get items
+    JsonNode response = executeGraphCall(apiUrl);
+    JsonNode items = response.get("value");
+
+    if (items != null && items.isArray()) {
+      for (JsonNode item : items) {
+        String itemPath = buildItemPath(item);
+        boolean isFolder = item.has("folder");
+
+        entries.add(
+            new FileEntry(
+            itemPath,
+            item.get("name").asText(),
+            isFolder,
+            item.has("size") ? item.get("size").asLong() : 0,
+            parseDateTime(item.get("lastModifiedDateTime").asText())));
+
+        if (isFolder && recursive) {
+          // Recursively list folder contents
+          entries.addAll(listFiles(itemPath, true));
+        }
+      }
+    }
+
+    // Handle pagination
+    while (response.has("@odata.nextLink")) {
+      String nextLink = response.get("@odata.nextLink").asText();
+      response = executeGraphCall(nextLink);
+      items = response.get("value");
+
+      if (items != null && items.isArray()) {
+        for (JsonNode item : items) {
+          String itemPath = buildItemPath(item);
+          boolean isFolder = item.has("folder");
+
+          entries.add(
+              new FileEntry(
+              itemPath,
+              item.get("name").asText(),
+              isFolder,
+              item.has("size") ? item.get("size").asLong() : 0,
+              parseDateTime(item.get("lastModifiedDateTime").asText())));
+
+          if (isFolder && recursive) {
+            entries.addAll(listFiles(itemPath, true));
+          }
+        }
+      }
+    }
+
+    return entries;
+  }
+
+  @Override public FileMetadata getMetadata(String path) throws IOException {
+    ensureInitialized();
+
+    // Normalize path
+    if (path.startsWith("/")) {
+      path = path.substring(1);
+    }
+
+    // Remove "Shared Documents" prefix if present
+    if (path.startsWith("Shared Documents/")) {
+      path = path.substring("Shared Documents/".length());
+    }
+
+    // Build Graph API URL
+    String apiUrl;
+    if (path.isEmpty()) {
+      apiUrl = String.format(Locale.ROOT, "%s/drives/%s/root", GRAPH_API_BASE, driveId);
+    } else {
+      String encodedPath = URLEncoder.encode(path, StandardCharsets.UTF_8)
+          .replace("+", "%20");
+      apiUrl = String.format(Locale.ROOT, "%s/drives/%s/root:/%s", GRAPH_API_BASE, driveId, encodedPath);
+    }
+
+    JsonNode response = executeGraphCall(apiUrl);
+
+    return new FileMetadata(
+        path,
+        response.has("size") ? response.get("size").asLong() : 0,
+        parseDateTime(response.get("lastModifiedDateTime").asText()),
+        response.has("file") && response.get("file").has("mimeType")
+            ? response.get("file").get("mimeType").asText()
+            : "application/octet-stream",
+        response.has("eTag") ? response.get("eTag").asText() : null);
+  }
+
+  @Override public InputStream openInputStream(String path) throws IOException {
+    ensureInitialized();
+
+    // Normalize path
+    if (path.startsWith("/")) {
+      path = path.substring(1);
+    }
+
+    // Remove "Shared Documents" prefix if present
+    if (path.startsWith("Shared Documents/")) {
+      path = path.substring("Shared Documents/".length());
+    }
+
+    // Build download URL
+    String encodedPath = URLEncoder.encode(path, StandardCharsets.UTF_8)
+        .replace("+", "%20");
+    String downloadUrl =
+        String.format(Locale.ROOT, "%s/drives/%s/root:/%s:/content", GRAPH_API_BASE, driveId, encodedPath);
+
+    URL url = URI.create(downloadUrl).toURL();
+    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+    conn.setRequestProperty("Authorization", "Bearer " + tokenManager.getAccessToken());
+    conn.setRequestProperty("Accept", "application/octet-stream");
+    conn.setConnectTimeout(30000);
+    conn.setReadTimeout(60000);
+
+    int responseCode = conn.getResponseCode();
+    if (responseCode != HttpURLConnection.HTTP_OK) {
+      conn.disconnect();
+      throw new IOException("Failed to download file: HTTP " + responseCode);
+    }
+
+    return conn.getInputStream();
+  }
+
+  @Override public Reader openReader(String path) throws IOException {
+    return new InputStreamReader(openInputStream(path), StandardCharsets.UTF_8);
+  }
+
+  @Override public boolean exists(String path) throws IOException {
+    try {
+      getMetadata(path);
+      return true;
+    } catch (IOException e) {
+      // Check if it's a 404 error
+      if (e.getMessage().contains("404")) {
+        return false;
+      }
+      throw e;
+    }
+  }
+
+  @Override public boolean isDirectory(String path) throws IOException {
+    ensureInitialized();
+
+    // Normalize path
+    if (path.startsWith("/")) {
+      path = path.substring(1);
+    }
+
+    // Remove "Shared Documents" prefix if present
+    if (path.startsWith("Shared Documents/")) {
+      path = path.substring("Shared Documents/".length());
+    }
+
+    // Build Graph API URL
+    String apiUrl;
+    if (path.isEmpty()) {
+      apiUrl = String.format(Locale.ROOT, "%s/drives/%s/root", GRAPH_API_BASE, driveId);
+    } else {
+      String encodedPath = URLEncoder.encode(path, StandardCharsets.UTF_8)
+          .replace("+", "%20");
+      apiUrl = String.format(Locale.ROOT, "%s/drives/%s/root:/%s", GRAPH_API_BASE, driveId, encodedPath);
+    }
+
+    try {
+      JsonNode response = executeGraphCall(apiUrl);
+      return response.has("folder");
+    } catch (IOException e) {
+      if (e.getMessage().contains("404")) {
+        return false;
+      }
+      throw e;
+    }
+  }
+
+  @Override public String getStorageType() {
+    return "microsoft-graph";
+  }
+
+  @Override public String resolvePath(String basePath, String relativePath) {
+    if (relativePath.startsWith("http://") || relativePath.startsWith("https://")) {
+      return relativePath;
+    }
+
+    String baseDir = basePath;
+    if (!basePath.endsWith("/") && !isLikelyDirectory(basePath)) {
+      // It's likely a file, get the parent directory
+      int lastSlash = basePath.lastIndexOf('/');
+      if (lastSlash > 0) {
+        baseDir = basePath.substring(0, lastSlash);
+      }
+    }
+
+    if (baseDir.endsWith("/")) {
+      return baseDir + relativePath;
+    } else {
+      return baseDir + "/" + relativePath;
+    }
+  }
+
+  private boolean isLikelyDirectory(String path) {
+    // Simple heuristic: paths without extensions are likely directories
+    int lastSlash = path.lastIndexOf('/');
+    String name = lastSlash >= 0 ? path.substring(lastSlash + 1) : path;
+    return !name.contains(".");
+  }
+
+  private JsonNode executeGraphCall(String apiUrl) throws IOException {
+    URL url = URI.create(apiUrl).toURL();
+    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+    conn.setRequestMethod("GET");
+    conn.setRequestProperty("Authorization", "Bearer " + tokenManager.getAccessToken());
+    conn.setRequestProperty("Accept", "application/json");
+    conn.setConnectTimeout(30000);
+    conn.setReadTimeout(30000);
+
+    try {
+      int responseCode = conn.getResponseCode();
+      if (responseCode != HttpURLConnection.HTTP_OK) {
+        String error = "";
+        try (InputStream errorStream = conn.getErrorStream()) {
+          if (errorStream != null) {
+            JsonNode errorJson = mapper.readTree(errorStream);
+            if (errorJson.has("error") && errorJson.get("error").has("message")) {
+              error = errorJson.get("error").get("message").asText();
+            }
+          }
+        } catch (Exception e) {
+          // Ignore JSON parsing errors
+        }
+        throw new IOException("Microsoft Graph API error: HTTP " + responseCode +
+                              (error.isEmpty() ? "" : " - " + error));
+      }
+
+      try (InputStream in = conn.getInputStream()) {
+        return mapper.readTree(in);
+      }
+    } finally {
+      conn.disconnect();
+    }
+  }
+
+  private String buildItemPath(JsonNode item) {
+    // Build path from parentReference and name
+    String name = item.get("name").asText();
+
+    if (item.has("parentReference") && item.get("parentReference").has("path")) {
+      String parentPath = item.get("parentReference").get("path").asText();
+      // Remove the drive root prefix
+      if (parentPath.contains(":")) {
+        parentPath = parentPath.substring(parentPath.indexOf(":") + 1);
+      }
+      if (parentPath.startsWith("/")) {
+        parentPath = parentPath.substring(1);
+      }
+
+      if (parentPath.isEmpty()) {
+        // Item is at root - just return the name
+        return name;
+      } else {
+        return parentPath + "/" + name;
+      }
+    }
+
+    // Default to just the name if no parent reference
+    return name;
+  }
+
+  private long parseDateTime(String dateTime) {
+    try {
+      // Microsoft Graph returns ISO 8601 format
+      return Instant.parse(dateTime).toEpochMilli();
+    } catch (Exception e) {
+      return System.currentTimeMillis();
+    }
+  }
+}

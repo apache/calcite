@@ -43,7 +43,7 @@ import java.util.Properties;
 import java.util.Set;
 
 /**
- * Enhanced JDBC driver for Splunk with CIM model, custom table, and token authentication support.
+ * Enhanced JDBC driver for Splunk with dynamic data model discovery, federation support, advanced caching, and environment variable support.
  *
  * <p>It accepts connect strings that start with "jdbc:splunk:" and supports
  * additional parameters for CIM models, custom tables, and enhanced features.</p>
@@ -54,12 +54,56 @@ import java.util.Set;
  * <a href="https://localhost:8089;token=eyJhbGciOiJIUzI1NiI...">...</a></li>
  * <li>Basic Auth: jdbc:splunk:url=
  * <a href="https://localhost:8089;user=admin;password=changeme">...</a></li>
- * <li>Single CIM model: jdbc:splunk:url=https://localhost:8089;user=admin;password=changeme;
- * model=Authentication</li>
- * <li>Multiple CIM models: jdbc:splunk:url=https://localhost:8089;user=admin;password=changeme;
- * models=Authentication,Web,Network_Traffic</li>
+ * <li>Filtered discovery: jdbc:splunk:url=https://localhost:8089;user=admin;password=changeme;
+ * app=Splunk_SA_CIM;datamodelFilter=Authentication</li>
+ * <li>Multiple models: jdbc:splunk:url=https://localhost:8089;user=admin;password=changeme;
+ * app=Splunk_SA_CIM;datamodelFilter=/^(Authentication|Web|Network_Traffic)$/</li>
+ * <li>Custom default schema: jdbc:splunk:url=https://localhost:8089;user=admin;password=changeme;
+ * schema=myschema</li>
  * <li>Custom tables: jdbc:splunk:url=https://localhost:8089;user=admin;password=changeme;
  * customTables=[{"name":"alerts","columns":[...]}]</li>
+ * <li>App context: jdbc:splunk:url=https://localhost:8089;user=admin;password=changeme;
+ * app=Splunk_SA_CIM</li>
+ * <li>Datamodel filter: jdbc:splunk:url=https://localhost:8089;user=admin;password=changeme;
+ * app=my_app;datamodelFilter=prod_*</li>
+ * <li>Cache control: jdbc:splunk:url=https://localhost:8089;user=admin;password=changeme;
+ * datamodelCacheTtl=120;refreshDatamodels=true</li>
+ * <li>Permanent cache: jdbc:splunk:url=https://localhost:8089;user=admin;password=changeme;
+ * datamodelCacheTtl=-1</li>
+ * <li>No cache: jdbc:splunk:url=https://localhost:8089;user=admin;password=changeme;
+ * datamodelCacheTtl=0</li>
+ * <li>Environment variables: jdbc:splunk:datamodelCacheTtl=-1 (credentials from SPLUNK_URL,
+ * SPLUNK_TOKEN, SPLUNK_APP environment variables)</li>
+ * </ul>
+ *
+ * <p>Environment Variable Support (Production Deployments):</p>
+ * <ul>
+ * <li>SPLUNK_URL - Splunk server URL</li>
+ * <li>SPLUNK_TOKEN - Authentication token (preferred)</li>
+ * <li>SPLUNK_USER - Username</li>
+ * <li>SPLUNK_PASSWORD - Password</li>
+ * <li>SPLUNK_APP - App context</li>
+ * </ul>
+ * <p>Environment variables are used as fallback when parameters are not specified in URL or Properties.
+ * This enables secure credential management in production deployments.</p>
+ *
+ * <p>Federation Support:</p>
+ * <p>For multi-vendor security analytics, configure multiple schemas with different app contexts
+ * in a Calcite model file to enable cross-platform queries and correlation:</p>
+ * <pre>{@code
+ * // Cross-vendor threat correlation
+ * SELECT c.threat_category, p.action, cs.detection_name
+ * FROM cisco.email c
+ * JOIN paloalto.threat p ON c.src_ip = p.src_ip
+ * JOIN crowdstrike.endpoint cs ON p.dest_ip = cs.dest_ip
+ * WHERE c.time > CURRENT_TIMESTAMP - INTERVAL '1' HOUR;
+ * }</pre>
+ *
+ * <p>Default Schema Configuration:</p>
+ * <ul>
+ * <li>By default, unqualified table names resolve to the "splunk" schema</li>
+ * <li>Use 'schema' or 'currentSchema' properties to override the default schema</li>
+ * <li>Example: schema=myschema makes "web" resolve to "myschema"."web"</li>
  * </ul>
  *
  * <p>Note: For custom tables, the JSON must be URL-encoded. In Java 8:</p>
@@ -98,8 +142,11 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
     CalciteConnection calciteConnection = (CalciteConnection) connection;
 
     try {
+      // Parse URL parameters and merge with Properties
+      Properties mergedInfo = parseUrlAndMergeProperties(url, info);
+
       // Extract and validate connection properties
-      ConnectionProperties props = extractConnectionProperties(info);
+      ConnectionProperties props = extractConnectionProperties(mergedInfo);
       validateRequiredProperties(props);
 
       // Create Splunk connection with token or username/password authentication
@@ -108,11 +155,19 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
       // Create enhanced schema with new features
       createEnhancedSchema(calciteConnection, props, splunkConnection);
 
+      // Set default schema so unqualified table names resolve correctly
+      // Support configurable default schema via 'schema' or 'currentSchema' properties
+      String defaultSchema = props.defaultSchema;
+      if (defaultSchema == null || defaultSchema.trim().isEmpty()) {
+        defaultSchema = "splunk"; // Default fallback
+      }
+      calciteConnection.setSchema(defaultSchema);
+
       if (props.debug) {
         LOGGER.info("Successfully created enhanced Splunk connection with features: "
-                + "models={}, customTables={}, defaultTimeRange={}",
-            props.models, props.customTables.size(),
-            props.defaultTimeRange);
+                + "cimModels={}, customTables={}, defaultTimeRange={}, defaultSchema={}",
+            props.cimModels, props.customTables.size(),
+            props.defaultTimeRange, defaultSchema);
       }
 
     } catch (Exception e) {
@@ -121,6 +176,71 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
     }
 
     return connection;
+  }
+
+  /**
+   * Parses URL parameters and merges them with the provided Properties.
+   * URL parameters take precedence over Properties.
+   *
+   * @param url the JDBC URL (e.g., "jdbc:splunk:url=https://localhost:8089;user=admin;password=changeme")
+   * @param info the original Properties object
+   * @return merged Properties with URL parameters taking precedence
+   */
+  private Properties parseUrlAndMergeProperties(String url, Properties info) throws SQLException {
+    Properties merged = new Properties();
+    // Start with original properties
+    merged.putAll(info);
+
+    // Parse URL parameters if present
+    if (url != null && url.startsWith(getConnectStringPrefix())) {
+      String paramString = url.substring(getConnectStringPrefix().length());
+
+      if (!paramString.isEmpty()) {
+        try {
+          // Split by semicolon and parse key=value pairs
+          String[] params = paramString.split(";");
+          for (String param : params) {
+            String trimmedParam = param.trim();
+            if (!trimmedParam.isEmpty()) {
+              int equalsIndex = trimmedParam.indexOf('=');
+              if (equalsIndex > 0 && equalsIndex < trimmedParam.length() - 1) {
+                String key = trimmedParam.substring(0, equalsIndex).trim();
+                String value = trimmedParam.substring(equalsIndex + 1).trim();
+
+                // Remove surrounding quotes if present
+                if (value.startsWith("'") && value.endsWith("'") && value.length() > 1) {
+                  value = value.substring(1, value.length() - 1);
+                } else if (value.startsWith("\"") && value.endsWith("\"") && value.length() > 1) {
+                  value = value.substring(1, value.length() - 1);
+                }
+
+                // URL decode the value
+                try {
+                  value = URLDecoder.decode(value, "UTF-8");
+                } catch (UnsupportedEncodingException e) {
+                  // UTF-8 should always be supported, but if not, use the value as-is
+                  LOGGER.warn("Failed to URL decode parameter value: {}", value);
+                }
+
+                // Override property with URL parameter
+                merged.setProperty(key, value);
+
+                if (LOGGER.isDebugEnabled()) {
+                  // Don't log sensitive values
+                  String logValue = key.toLowerCase().contains("password") || key.toLowerCase().contains("token")
+                      ? "***" : value;
+                  LOGGER.debug("Parsed URL parameter: {}={}", key, logValue);
+                }
+              }
+            }
+          }
+        } catch (Exception e) {
+          throw new SQLException("Failed to parse URL parameters: " + e.getMessage(), e);
+        }
+      }
+    }
+
+    return merged;
   }
 
   /**
@@ -133,17 +253,34 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
     ConnectionProperties props = new ConnectionProperties();
 
     // Basic required properties (can be null from Properties.getProperty())
-    props.splunkUrl = info.getProperty("url");
-    props.token = info.getProperty("token");
-    props.user = info.getProperty("user");
-    props.password = info.getProperty("password");
+    props.splunkUrl = getPropertyWithEnvFallback(info, "url", "SPLUNK_URL");
+    props.token = getPropertyWithEnvFallback(info, "token", "SPLUNK_TOKEN");
+    props.user = getPropertyWithEnvFallback(info, "user", "SPLUNK_USER");
+    props.password = getPropertyWithEnvFallback(info, "password", "SPLUNK_PASSWORD");
+    props.appContext = getPropertyWithEnvFallback(info, "app", "SPLUNK_APP");
+    props.datamodelFilter = info.getProperty("datamodelFilter");
+    props.datamodelCacheTtl = getLongProperty(info, "datamodelCacheTtl", 60L);
+    props.refreshDatamodels = Boolean.parseBoolean(info.getProperty("refreshDatamodels", "false"));
 
-    // Enhanced feature properties
-    props.model = info.getProperty("model");
-    props.models = parseModels(info.getProperty("models"));
+    // Legacy CIM model parameters are no longer supported
+    // Use app context and datamodelFilter instead
     props.defaultTimeRange = info.getProperty("defaultTimeRange");
     props.debug = Boolean.parseBoolean(info.getProperty("debug", "false"));
     props.logLevel = info.getProperty("logLevel");
+
+    // Default schema configuration - support standard JDBC property names
+    String defaultSchema = info.getProperty("schema");
+    if (defaultSchema == null) {
+      defaultSchema = info.getProperty("currentSchema");
+    }
+    props.defaultSchema = defaultSchema;
+
+    // SSL validation - support both camelCase and snake_case
+    String disableSsl = info.getProperty("disableSslValidation");
+    if (disableSsl == null) {
+      disableSsl = info.getProperty("disable_ssl_validation");
+    }
+    props.disableSslValidation = Boolean.parseBoolean(disableSsl);
 
     // Parse custom tables JSON if provided
     props.customTables = parseCustomTables(info.getProperty("customTables"));
@@ -184,11 +321,13 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
       try {
         // Try token authentication first
         if (props.token != null && !props.token.trim().isEmpty()) {
-          return new SplunkConnectionImpl(splunkUrl, props.token);
+          return new SplunkConnectionImpl(splunkUrl, props.token, props.disableSslValidation,
+              props.appContext);
         }
 
         // Fall back to username/password
-        return new SplunkConnectionImpl(splunkUrl, props.user, props.password);
+        return new SplunkConnectionImpl(splunkUrl, props.user, props.password,
+            props.disableSslValidation, props.appContext);
 
       } catch (MalformedURLException e) {
         throw new SQLException("Invalid Splunk URL: " + splunkUrl, e);
@@ -228,19 +367,9 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
 
     operand.put("splunkConnection", splunkConnection);
 
-    // Add CIM model support
-    if (props.model != null && !props.model.trim().isEmpty()) {
-      operand.put("model", props.model);
-      if (props.debug) {
-        LOGGER.debug("Added single CIM model: {}", props.model);
-      }
-    }
-
-    if (!props.models.isEmpty()) {
-      operand.put("models", props.models);
-      if (props.debug) {
-        LOGGER.debug("Added multiple CIM models: {}", props.models);
-      }
+    // Dynamic discovery is now the default - no CIM model configuration needed
+    if (props.debug) {
+      LOGGER.debug("Using dynamic data model discovery");
     }
 
     // Add optional parameters
@@ -260,6 +389,23 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
     if (props.logLevel != null && !props.logLevel.trim().isEmpty()) {
       operand.put("logLevel", props.logLevel);
     }
+
+    // Add SSL validation setting
+    if (props.disableSslValidation) {
+      operand.put("disableSslValidation", true);
+    }
+
+    // Add app context if specified
+    if (props.appContext != null && !props.appContext.trim().isEmpty()) {
+      operand.put("app", props.appContext);
+    }
+
+    // Add datamodel discovery parameters
+    if (props.datamodelFilter != null && !props.datamodelFilter.trim().isEmpty()) {
+      operand.put("datamodelFilter", props.datamodelFilter);
+    }
+    operand.put("datamodelCacheTtl", props.datamodelCacheTtl);
+    operand.put("refreshDatamodels", props.refreshDatamodels);
 
     // Create the enhanced schema using SplunkSchemaFactory
     try {
@@ -389,14 +535,70 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
     @Nullable
     String password;
     @Nullable
-    String model;
-    List<String> models = new ArrayList<>();
+    String cimModel;
+    List<String> cimModels = new ArrayList<>();
     @Nullable
     String defaultTimeRange;
     boolean debug = false;
     @Nullable
     String logLevel;
+    @Nullable
+    String defaultSchema;
+    @Nullable
+    String appContext;
+    @Nullable
+    String datamodelFilter;
+    long datamodelCacheTtl = 60L;
+    boolean refreshDatamodels = false;
     List<Map<String, Object>> customTables = new ArrayList<>();
+    boolean disableSslValidation = false;
+  }
+
+  /**
+   * Safely gets a Long property value.
+   */
+  private Long getLongProperty(Properties props, String key, Long defaultValue) {
+    String value = props.getProperty(key);
+    if (value == null || value.trim().isEmpty()) {
+      return defaultValue;
+    }
+    try {
+      return Long.parseLong(value.trim());
+    } catch (NumberFormatException e) {
+      LOGGER.warn("Invalid long value for property '{}': {}", key, value);
+      return defaultValue;
+    }
+  }
+
+  /**
+   * Gets a property value with environment variable fallback.
+   * Checks the Properties object first, then falls back to environment variable.
+   *
+   * @param props Properties object
+   * @param propertyKey Property key to check
+   * @param envVarName Environment variable name to check as fallback
+   * @return Property value or null if neither is set
+   */
+  private String getPropertyWithEnvFallback(Properties props, String propertyKey, String envVarName) {
+    // Check Properties object first
+    String value = props.getProperty(propertyKey);
+    if (value != null && !value.trim().isEmpty()) {
+      return value;
+    }
+
+    // Fall back to environment variable
+    String envValue = System.getenv(envVarName);
+    if (envValue != null && !envValue.trim().isEmpty()) {
+      if (LOGGER.isDebugEnabled()) {
+        // Don't log sensitive values
+        String logValue = propertyKey.toLowerCase().contains("password") ||
+                         propertyKey.toLowerCase().contains("token") ? "***" : envValue;
+        LOGGER.debug("Using environment variable {} for property {}: {}", envVarName, propertyKey, logValue);
+      }
+      return envValue;
+    }
+
+    return null;
   }
 
   /**

@@ -18,28 +18,55 @@ package org.apache.calcite.adapter.sharepoint;
 
 import org.apache.calcite.adapter.sharepoint.auth.SharePointAuth;
 import org.apache.calcite.adapter.sharepoint.auth.SharePointAuthFactory;
+import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 
 import com.google.common.collect.ImmutableMap;
 
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Schema implementation for SharePoint Lists.
+ * Schema implementation for SharePoint Lists with CREATE/DROP support.
  */
 public class SharePointListSchema extends AbstractSchema {
   private final String siteUrl;
   private final Map<String, Table> tableMap;
   private final SharePointAuth authenticator;
+  private final MicrosoftGraphListClient client;
+  private final SharePointMetadataSchema metadataSchema;
 
   public SharePointListSchema(String siteUrl, Map<String, Object> authConfig) {
     this.siteUrl = siteUrl;
     this.authenticator = SharePointAuthFactory.createAuth(authConfig);
-    this.tableMap = createTableMap();
+    this.client = new MicrosoftGraphListClient(siteUrl, authenticator);
+    this.tableMap = new ConcurrentHashMap<>(createTableMap());
+    this.metadataSchema = new SharePointMetadataSchema(this, "sharepoint", "public");
   }
 
   @Override protected Map<String, Table> getTableMap() {
+    return tableMap;
+  }
+
+  @Override public boolean isMutable() {
+    return true; // Schema supports CREATE/DROP operations
+  }
+
+  @Override protected Map<String, Schema> getSubSchemaMap() {
+    // No sub-schemas - metadata schemas are now at root level
+    return ImmutableMap.of();
+  }
+
+  // TODO: To support CREATE/DROP TABLE, we would need to implement a custom
+  // Schema interface that extends AbstractSchema with these methods.
+  // For now, these operations can be done programmatically through the client.
+
+  /**
+   * Provides access to the underlying table map for metadata queries.
+   * Used by SharePointMetadataSchema to inspect available tables.
+   */
+  public Map<String, Table> getTableMapForMetadata() {
     return tableMap;
   }
 
@@ -47,7 +74,6 @@ public class SharePointListSchema extends AbstractSchema {
     final ImmutableMap.Builder<String, Table> builder = ImmutableMap.builder();
 
     try {
-      SharePointRestClient client = new SharePointRestClient(siteUrl, authenticator);
       Map<String, SharePointListMetadata> lists = client.getAvailableLists();
 
       for (Map.Entry<String, SharePointListMetadata> entry : lists.entrySet()) {
@@ -61,4 +87,5 @@ public class SharePointListSchema extends AbstractSchema {
 
     return builder.build();
   }
+
 }

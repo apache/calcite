@@ -1,0 +1,18 @@
+{
+  "version": "1.0",
+  "defaultSchema": "splunk",
+  "schemas": [
+    {
+      "name": "splunk",
+      "type": "custom",
+      "factory": "org.apache.calcite.adapter.splunk.SplunkSchemaFactory",
+      "operand": {
+        "url": "https://kentest.xyz:8089",
+        "username": "admin",
+        "password": "admin123",
+        "disableSslValidation": true,
+        "disableDynamicDiscovery": false
+      }
+    }
+  ]
+}
