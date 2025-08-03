@@ -31,7 +31,8 @@
             "name": "NESTED_FLAT",
             "url": "NESTED.json",
             "format": "json",
-            "flatten": true
+            "flatten": true,
+            "flattenSeparator": "_"
           }
         ]
       }

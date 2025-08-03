@@ -86,7 +86,7 @@ public class MaterializedViewParquetTest {
           "COUNT(*) as transaction_count, " +
           "SUM(\"quantity\") as total_quantity, " +
           "SUM(\"quantity\" * \"price\") as total_revenue " +
-          "FROM \"sales\" " +
+          "FROM SALES " +
           "GROUP BY \"date\"");
       materializations.add(dailySalesMV);
 

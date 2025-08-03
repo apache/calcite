@@ -57,7 +57,11 @@ public class JsonEnumerator implements Enumerator<@Nullable Object[]> {
         List<Object> tmp = (List<Object>) obj;
         objs.add(tmp.toArray());
       } else if (obj instanceof Map) {
-        objs.add(((LinkedHashMap) obj).values().toArray());
+        Map<String, Object> map = (Map<String, Object>) obj;
+        // For Map objects, preserve the natural order of LinkedHashMap
+        // which should match the column order determined during type deduction
+        Object[] values = map.values().toArray();
+        objs.add(values);
       } else {
         objs.add(new Object[]{obj});
       }
@@ -196,7 +200,7 @@ public class JsonEnumerator implements Enumerator<@Nullable Object[]> {
       // Apply flattening if requested
       if (options != null && Boolean.TRUE.equals(options.get("flatten"))) {
         String flattenSeparator = options.containsKey("flattenSeparator") 
-            ? (String) options.get("flattenSeparator") : ".";
+            ? (String) options.get("flattenSeparator") : "__";
         JsonFlattener flattener = new JsonFlattener(",", 3, "", flattenSeparator);
         jsonFieldMap = new LinkedHashMap<>(flattener.flatten(jsonFieldMap));
         // Flatten all rows in the list
@@ -212,7 +216,7 @@ public class JsonEnumerator implements Enumerator<@Nullable Object[]> {
       // Apply flattening if requested
       if (options != null && Boolean.TRUE.equals(options.get("flatten"))) {
         String flattenSeparator = options.containsKey("flattenSeparator") 
-            ? (String) options.get("flattenSeparator") : ".";
+            ? (String) options.get("flattenSeparator") : "__";
         JsonFlattener flattener = new JsonFlattener(",", 3, "", flattenSeparator);
         jsonFieldMap = new LinkedHashMap<>(flattener.flatten(jsonFieldMap));
       }

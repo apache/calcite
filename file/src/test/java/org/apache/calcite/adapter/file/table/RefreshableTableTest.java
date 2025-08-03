@@ -102,6 +102,7 @@ public class RefreshableTableTest {
     Map<String, Object> operand = new HashMap<>();
     operand.put("directory", tempDir.toString());
     operand.put("refreshInterval", "1 second");
+    operand.put("executionEngine", "parquet");
 
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:");
          CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
@@ -113,6 +114,8 @@ public class RefreshableTableTest {
       // Get the table
       Table table = fileSchema.getTable("TEST");
       assertNotNull(table);
+      System.out.println("Table type: " + table.getClass().getName());
+      System.out.println("Is RefreshableTable: " + (table instanceof RefreshableTable));
       assertTrue(table instanceof RefreshableTable);
 
       RefreshableTable refreshableTable = (RefreshableTable) table;
@@ -134,12 +137,13 @@ public class RefreshableTableTest {
       // Wait for refresh interval
       Thread.sleep(1100);
 
-      // Query again - should see updated data
+      // Query again - with parquet engine, refresh should work
+      // and regenerate parquet from updated source data
       try (Statement stmt = connection.createStatement();
            ResultSet rs = stmt.executeQuery("SELECT * FROM TEST.TEST")) {
         assertTrue(rs.next());
-        assertEquals(2, rs.getInt("id"));
-        assertEquals("Bob", rs.getString("name"));
+        assertEquals(2, rs.getInt("id")); // Should see updated data
+        assertEquals("Bob", rs.getString("name")); // Should see updated data
         assertFalse(rs.next());
       }
     }
@@ -150,6 +154,7 @@ public class RefreshableTableTest {
     Map<String, Object> operand = new HashMap<>();
     operand.put("directory", tempDir.toString());
     operand.put("refreshInterval", "10 minutes");
+    operand.put("executionEngine", "parquet");
 
     // Add table with override
     Map<String, Object> tableConfig = new HashMap<>();
@@ -205,6 +210,7 @@ public class RefreshableTableTest {
     Map<String, Object> operand = new HashMap<>();
     operand.put("directory", tempDir.toString());
     operand.put("refreshInterval", "1 second");
+    operand.put("executionEngine", "parquet");
 
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:");
          CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {

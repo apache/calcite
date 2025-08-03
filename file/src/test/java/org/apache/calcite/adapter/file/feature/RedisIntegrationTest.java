@@ -94,9 +94,9 @@ public class RedisIntegrationTest {
     // Test that default Redis configuration values are reasonable
     String model = createModelWithRedisConfig(tempDir);
 
-    assertTrue(model.contains("\"host\": \"localhost\""), "Default Redis host is localhost");
-    assertTrue(model.contains("\"port\": 6379"), "Default Redis port is 6379");
-    assertTrue(model.contains("\"keyPrefix\""), "Redis key prefix is configured");
+    assertTrue(model.contains("host: 'localhost'"), "Default Redis host is localhost");
+    assertTrue(model.contains("port: 6379"), "Default Redis port is 6379");
+    assertTrue(model.contains("keyPrefix: '"), "Redis key prefix is configured");
   }
 
   // Helper methods

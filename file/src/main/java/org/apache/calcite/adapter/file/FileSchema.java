@@ -71,6 +71,7 @@ class FileSchema extends AbstractSchema {
   private final @Nullable String storageType;
   private final @Nullable Map<String, Object> storageConfig;
   private final @Nullable StorageProvider storageProvider;
+  private final @Nullable Boolean flatten;
 
   /**
    * Creates a file schema with all features including storage provider support.
@@ -90,6 +91,7 @@ class FileSchema extends AbstractSchema {
    * @param columnNameCasing Column name casing: "UPPER", "LOWER", or "UNCHANGED"
    * @param storageType     Storage type (e.g., "local", "s3", "sharepoint"), or null
    * @param storageConfig   Storage-specific configuration, or null
+   * @param flatten         Whether to flatten JSON/YAML structures, or null
    */
   FileSchema(SchemaPlus parentSchema, String name, @Nullable File baseDirectory,
       @Nullable String directoryPattern,
@@ -102,7 +104,8 @@ class FileSchema extends AbstractSchema {
       String tableNameCasing,
       String columnNameCasing,
       @Nullable String storageType,
-      @Nullable Map<String, Object> storageConfig) {
+      @Nullable Map<String, Object> storageConfig,
+      @Nullable Boolean flatten) {
     this.tables =
         tables == null ? ImmutableList.of()
             : ImmutableList.copyOf(tables);
@@ -120,6 +123,7 @@ class FileSchema extends AbstractSchema {
     this.columnNameCasing = columnNameCasing;
     this.storageType = storageType;
     this.storageConfig = storageConfig;
+    this.flatten = flatten;
 
     // Create storage provider if configured
     if (storageType != null) {
@@ -175,6 +179,7 @@ class FileSchema extends AbstractSchema {
     this.storageType = null;
     this.storageConfig = null;
     this.storageProvider = null;
+    this.flatten = null;
   }
 
   /**
@@ -524,7 +529,13 @@ class FileSchema extends AbstractSchema {
             tableName = baseName + ext;
           }
           tableNameCounts.put(baseName, tableNameCounts.getOrDefault(baseName, 0) + 1);
-          addTable(builder, source, tableName, null);
+          // Create a table definition with schema-level refresh interval for JSON files
+          Map<String, Object> autoTableDef = null;
+          if (this.refreshInterval != null) {
+            autoTableDef = new HashMap<>();
+            autoTableDef.put("refreshInterval", this.refreshInterval);
+          }
+          addTable(builder, source, tableName, autoTableDef);
         }
         final Source sourceSansCsv = sourceSansGz.trimOrNull(".csv");
         if (sourceSansCsv != null) {
@@ -801,9 +812,14 @@ class FileSchema extends AbstractSchema {
 
   private boolean addTable(ImmutableMap.Builder<String, Table> builder,
       Source source, String tableName, @Nullable Map<String, Object> tableDef) {
-    // Check if we should convert to Parquet
+    // Check if refresh is configured - if so, use enhanced table creation instead of direct Parquet conversion
+    String refreshIntervalStr = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
+    boolean hasRefresh = RefreshInterval.parse(refreshIntervalStr) != null;
+    
+    // Check if we should convert to Parquet (but not if refresh is enabled)
     if (engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.PARQUET
         && baseDirectory != null
+        && !hasRefresh  // Don't bypass enhanced table creation if refresh is configured
         && !source.path().toLowerCase(Locale.ROOT).endsWith(".parquet")) {
 
       // Check if it's a file type we can convert
@@ -815,13 +831,23 @@ class FileSchema extends AbstractSchema {
           || path.endsWith(".yml.gz");
 
       if (canConvert) {
-        try {
-          // Create the original table first - use standard table for conversion
-          // to avoid convention issues during the conversion process
-          Table originalTable = path.endsWith(".csv") || path.endsWith(".csv.gz")
-              ? new CsvTranslatableTable(source, null, columnNameCasing)
-              : createTableFromSource(source, tableDef);
-          if (originalTable != null) {
+        // Skip Parquet conversion for JSON/YAML files with flatten option
+        // because flattening happens at scan time, not schema time
+        boolean skipConversion = false;
+        if (tableDef != null && Boolean.TRUE.equals(tableDef.get("flatten"))
+            && (path.endsWith(".json") || path.endsWith(".yaml") || path.endsWith(".yml")
+                || path.endsWith(".json.gz") || path.endsWith(".yaml.gz") || path.endsWith(".yml.gz"))) {
+          skipConversion = true;
+        }
+        
+        if (!skipConversion) {
+          try {
+            // Create the original table first - use standard table for conversion
+            // to avoid convention issues during the conversion process
+            Table originalTable = path.endsWith(".csv") || path.endsWith(".csv.gz")
+                ? new CsvTranslatableTable(source, null, columnNameCasing)
+                : createTableFromSource(source, tableDef);
+            if (originalTable != null) {
             // Get cache directory
             File cacheDir = ParquetConversionUtil.getParquetCacheDir(baseDirectory);
 
@@ -842,6 +868,7 @@ class FileSchema extends AbstractSchema {
           System.err.println("Failed to convert " + tableName + " to Parquet: " + e.getMessage());
           // Fall through to regular processing - don't return here!
           // We need to register the table even if Parquet conversion fails
+        }
         }
       }
     }
@@ -888,6 +915,9 @@ class FileSchema extends AbstractSchema {
         if (tableDef != null && tableDef.containsKey("flatten")) {
           options = new HashMap<>();
           options.put("flatten", tableDef.get("flatten"));
+          if (tableDef.containsKey("flattenSeparator")) {
+            options.put("flattenSeparator", tableDef.get("flattenSeparator"));
+          }
         }
         final Table yamlTable =
             createEnhancedJsonTable(source, tableName, refreshInterval, options);
@@ -953,9 +983,17 @@ class FileSchema extends AbstractSchema {
     if (sourceSansJson != null) {
       String refreshInterval = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
       Map<String, Object> options = null;
+      // Check table-level flatten first, then schema-level flatten
       if (tableDef != null && tableDef.containsKey("flatten")) {
         options = new HashMap<>();
         options.put("flatten", tableDef.get("flatten"));
+        if (tableDef.containsKey("flattenSeparator")) {
+          options.put("flattenSeparator", tableDef.get("flattenSeparator"));
+        }
+      } else if (this.flatten != null && this.flatten) {
+        // Use schema-level flatten option for auto-discovered JSON/YAML files
+        options = new HashMap<>();
+        options.put("flatten", this.flatten);
       }
       final Table table =
           createEnhancedJsonTable(source, tableName, refreshInterval, options);
@@ -1146,6 +1184,9 @@ class FileSchema extends AbstractSchema {
         if (tableDef != null && tableDef.containsKey("flatten")) {
           options = new HashMap<>();
           options.put("flatten", tableDef.get("flatten"));
+          if (tableDef.containsKey("flattenSeparator")) {
+            options.put("flattenSeparator", tableDef.get("flattenSeparator"));
+          }
         }
         return new JsonScannableTable(source, options);
       default:
@@ -1163,7 +1204,13 @@ class FileSchema extends AbstractSchema {
     }
     if (sourceSansJson != null) {
       // Use simple table for conversion to avoid Arrow issues
-      return new JsonScannableTable(source);
+      // Apply schema-level flatten option if no table definition is provided
+      Map<String, Object> options = null;
+      if (tableDef == null && this.flatten != null && this.flatten) {
+        options = new HashMap<>();
+        options.put("flatten", this.flatten);
+      }
+      return new JsonScannableTable(source, options);
     }
 
     final Source sourceSansCsv = sourceSansGz.trimOrNull(".csv");
@@ -1250,20 +1297,25 @@ class FileSchema extends AbstractSchema {
         RefreshInterval.getEffectiveInterval(tableRefreshInterval,
             this.refreshInterval);
 
-    // If refresh is configured, use refreshable table
-    if (effectiveInterval != null && tableName != null) {
-      return new RefreshableJsonTable(source, tableName, effectiveInterval);
-    }
-
-    // Otherwise use standard tables
+    // Create refreshable or standard tables based on engine type
     switch (engineConfig.getEngineType()) {
     case VECTORIZED:
+      if (effectiveInterval != null && tableName != null) {
+        // TODO: Create RefreshableEnhancedJsonTable when needed
+        return new EnhancedJsonScannableTable(source, engineConfig, options);
+      }
       return new EnhancedJsonScannableTable(source, engineConfig, options);
     case PARQUET:
+      if (effectiveInterval != null && tableName != null) {
+        return new RefreshableJsonTable(source, tableName, effectiveInterval);
+      }
       return new ParquetJsonScannableTable(source, engineConfig, options);
     case ARROW:
     case LINQ4J:
     default:
+      if (effectiveInterval != null && tableName != null) {
+        return new RefreshableJsonTable(source, tableName, effectiveInterval);
+      }
       return new JsonScannableTable(source, options);
     }
   }

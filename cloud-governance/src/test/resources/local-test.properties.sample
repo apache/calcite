@@ -1,0 +1,32 @@
+# Sample configuration for Cloud Governance integration tests
+# Copy this file to local-test.properties and fill in your actual credentials
+# WARNING: Do not commit local-test.properties to version control!
+
+# Azure Configuration
+# Obtain these from your Azure AD app registration
+azure.tenantId=your-azure-tenant-id
+azure.clientId=your-azure-client-id
+azure.clientSecret=your-azure-client-secret
+azure.subscriptionIds=subscription-id-1,subscription-id-2
+
+# GCP Configuration  
+# Path to your service account JSON key file
+gcp.credentialsPath=/path/to/your/service-account-key.json
+gcp.projectIds=your-gcp-project-1,your-gcp-project-2
+
+# AWS Configuration
+# Use IAM user credentials or temporary STS credentials
+aws.accessKeyId=your-aws-access-key-id
+aws.secretAccessKey=your-aws-secret-access-key
+aws.region=us-east-1
+aws.accountIds=111111111111,222222222222
+
+# Optional: Cross-account role ARN for AWS
+# Use {account-id} placeholder which will be replaced with actual account IDs
+#aws.roleArn=arn:aws:iam::{account-id}:role/CloudGovernanceRole
+
+# Notes:
+# - You only need to configure the cloud providers you want to test
+# - Azure: Requires App Registration with appropriate permissions
+# - GCP: Requires Service Account with Cloud Asset Viewer role
+# - AWS: Requires IAM user/role with read permissions for EC2, S3, EKS, etc.

@@ -1,4 +1,4 @@
 ID:int,NAME:string,CREATED_DATE:date,CREATED_TIME:time,CREATED_TS:timestamp,CREATED_TSZ:timestamptz
 1,"John Doe","2024-03-15","10:30:45","2024-03-15 10:30:45","2024-03-15T10:30:45Z"
-2,"Jane Smith",,,,,
+2,"Jane Smith",,,,
 3,"Bob Wilson","2024-03-16","14:20:00","2024-03-16 14:20:00","2024-03-16T14:20:00-05:00"

@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.Statement;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -172,15 +173,17 @@ public class YamlFileTest {
     try (Connection conn = DriverManager.getConnection("jdbc:calcite:model=inline:" + model);
          Statement stmt = conn.createStatement()) {
 
-      // With flattening, nested fields should be accessible with dot notation
+      // With flattening enabled, nested fields are accessible with double underscore notation
+      // (Using __ as separator to be consistent across all engines)
+      // Use quoted identifiers to preserve case
       try (ResultSet rs =
-          stmt.executeQuery("SELECT id, name, \"address.city\", \"address.zipcode\" "
-          + "FROM \"NESTED\" WHERE \"address.city\" = 'New York'")) {
+          stmt.executeQuery("SELECT \"id\", \"name\", \"address__city\", \"address__zipcode\" "
+          + "FROM NESTED WHERE \"address__city\" = 'New York'")) {
         assertTrue(rs.next());
         assertEquals(1, rs.getInt("id"));
         assertEquals("Alice", rs.getString("name"));
-        assertEquals("New York", rs.getString("address.city"));
-        assertEquals("10001", rs.getString("address.zipcode"));
+        assertEquals("New York", rs.getString("address__city"));
+        assertEquals("10001", rs.getString("address__zipcode"));
 
         assertThat(rs.next(), is(false));
       }

@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.file.performance;
 
+import org.apache.calcite.adapter.file.FileSchemaFactory;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 

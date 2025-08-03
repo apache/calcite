@@ -194,8 +194,13 @@ public final class MultiTableExcelToJsonConverter {
 
     while (currentRow <= lastRowNum) {
       // Skip empty rows
+      int emptyRowStart = currentRow;
       while (currentRow <= lastRowNum && isEmptyRow(sheet.getRow(currentRow))) {
         currentRow++;
+      }
+      if (currentRow > emptyRowStart) {
+        LOGGER.trace("Skipped " + (currentRow - emptyRowStart) + " empty rows from " 
+            + emptyRowStart + " to " + (currentRow - 1));
       }
 
       if (currentRow > lastRowNum) {
@@ -256,7 +261,6 @@ public final class MultiTableExcelToJsonConverter {
         boolean isLikelyHeader = headerRows.isEmpty()
             ? looksLikeHeader(currentRow)
             : looksLikeHeaderInContext(currentRow, headerRows);
-
         if (isLikelyHeader) {
           headerRows.add(currentRow);
         } else if (!headerRows.isEmpty()) {
@@ -268,13 +272,15 @@ public final class MultiTableExcelToJsonConverter {
     }
 
     if (headerRows.isEmpty()) {
+      LOGGER.trace("No header rows found at row " + startRow);
       return null;
     }
 
     table.identifier = potentialIdentifier;
     table.headerRows = headerRows;
     table.dataStartRow = row;
-    LOGGER.trace("detectTableAt: headerRows=" + headerRows.size()
+    LOGGER.trace("detectTableAt: found table at startRow=" + startRow 
+        + ", headerRows=" + headerRows.size()
         + ", dataStartRow=" + table.dataStartRow);
 
     // Find end of table (consecutive empty rows or end of sheet)
@@ -286,7 +292,12 @@ public final class MultiTableExcelToJsonConverter {
       Row currentRow = sheet.getRow(dataRow);
       if (isEmptyRow(currentRow)) {
         consecutiveEmptyRows++;
+        LOGGER.trace("Row " + dataRow + " is empty, consecutiveEmptyRows=" + consecutiveEmptyRows);
         if (consecutiveEmptyRows >= MIN_EMPTY_ROWS_BETWEEN_TABLES) {
+          LOGGER.trace("Found table boundary at row " + dataRow 
+              + " after " + consecutiveEmptyRows + " empty rows");
+          // Don't include the empty rows in the table
+          // endRow already set to last non-empty row
           break;
         }
       } else {
@@ -452,8 +463,8 @@ public final class MultiTableExcelToJsonConverter {
     if (row == null) {
       return false;
     }
-
     int nonEmptyCells = countNonEmptyCells(row);
+    LOGGER.trace("looksLikeHeader: row has " + nonEmptyCells + " non-empty cells");
     if (nonEmptyCells < 2) {
       return false;
     }
@@ -466,7 +477,9 @@ public final class MultiTableExcelToJsonConverter {
     int numericCells = 0;
     boolean hasLongNumbers = false;
 
-    for (Cell cell : row) {
+    // Use explicit iteration to ensure we check all cells
+    for (int i = row.getFirstCellNum(); i < row.getLastCellNum(); i++) {
+      Cell cell = row.getCell(i);
       if (cell != null && cell.getCellType() != CellType.BLANK) {
         if (cell.getCellType() == CellType.STRING) {
           // allText already true, no need to update
@@ -476,13 +489,9 @@ public final class MultiTableExcelToJsonConverter {
             // Long text or multiline - probably not a header
             return false;
           }
-          // Check for patterns that indicate data, not headers
-          // Names with spaces (like "John Doe") are typically data
-          if (value.matches(".*\\s+.*") && value.matches("^[A-Z][a-z]+\\s+[A-Z][a-z]+.*")) {
-            return false;
-          }
-          // Single digit strings are often IDs, not headers
-          if (value.matches("^\\d{1,2}$")) {
+          
+          // Check for patterns that are clearly data, not headers
+          if (isDataPattern(value)) {
             return false;
           }
           textCells++;
@@ -503,17 +512,53 @@ public final class MultiTableExcelToJsonConverter {
       return false;
     }
 
-    // For small tables (2-3 columns), header rows should be all text
-    if (nonEmptyCells <= 3 && allText) {
+    // Simple and robust logic: if all cells are text (no numbers), it's likely a header
+    // This handles "Product Name", "Employee ID", etc. without complex pattern matching
+    if (allText && textCells >= 2) {
       return true;
     }
 
-    // For larger tables, headers should be mostly text
+    // If there are numbers, it's probably data unless text heavily dominates
     if (numericCells > 0) {
-      return textCells > numericCells * 2; // Text cells should be at least twice the numeric cells
+      // Headers can have some numbers (like "Q1 Revenue") but should be mostly text
+      return textCells > numericCells * 2;
     }
 
-    return textCells > 0; // Pure text row is likely a header
+    // Fallback: any row with multiple text cells is likely a header
+    return textCells > 0;
+  }
+
+  /**
+   * Checks if a string value matches patterns that are clearly data, not headers.
+   * This includes GUIDs, hex strings, and other technical identifiers.
+   */
+  private static boolean isDataPattern(String value) {
+    // GUIDs (e.g., 550e8400-e29b-41d4-a716-446655440000)
+    if (value.matches("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")) {
+      return true;
+    }
+    
+    // Hex strings (e.g., A1B2C3D4, 0x1234ABCD, #FF00FF)
+    if (value.matches("^(0x|#)?[0-9a-fA-F]{6,}$")) {
+      return true;
+    }
+    
+    // Base64-like strings (long alphanumeric with possible padding)
+    if (value.length() > 20 && value.matches("^[A-Za-z0-9+/]+=*$")) {
+      return true;
+    }
+    
+    // Email addresses (clearly data, not headers)
+    if (value.matches("^[\\w._%+-]+@[\\w.-]+\\.[A-Za-z]{2,}$")) {
+      return true;
+    }
+    
+    // URLs (clearly data, not headers)
+    if (value.matches("^https?://.*") || value.matches("^www\\..*")) {
+      return true;
+    }
+    
+    return false;
   }
 
   /**
@@ -561,7 +606,9 @@ public final class MultiTableExcelToJsonConverter {
       return 0;
     }
     int count = 0;
-    for (Cell cell : row) {
+    // Use explicit iteration to ensure we check all cells
+    for (int i = row.getFirstCellNum(); i < row.getLastCellNum(); i++) {
+      Cell cell = row.getCell(i);
       if (cell != null && cell.getCellType() != CellType.BLANK) {
         count++;
       }

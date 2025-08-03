@@ -32,11 +32,11 @@ public class JsonFlattener {
   private final String separator;
 
   public JsonFlattener() {
-    this(",", 3, "", ".");
+    this(",", 3, "", "__");
   }
 
   public JsonFlattener(String delimiter, int maxDepth, String nullValue) {
-    this(delimiter, maxDepth, nullValue, ".");
+    this(delimiter, maxDepth, nullValue, "__");
   }
 
   public JsonFlattener(String delimiter, int maxDepth, String nullValue, String separator) {

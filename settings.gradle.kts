@@ -66,6 +66,7 @@ include(
     "arrow",
     "babel",
     "cassandra",
+    "cloud-governance",
     "core",
     "csv-nextgen",
     "druid",

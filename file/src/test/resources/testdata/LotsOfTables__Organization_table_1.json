@@ -1,21 +1,11 @@
 [ {
-  "id" : "1",
-  "name" : "John Doe",
-  "department" : "Engineering",
-  "salary" : "75000"
+  "id_1_2" : "3",
+  "name_John Doe_Jane Smith" : "Bob Johnson",
+  "department_Engineering_Marketing" : "Sales",
+  "salary_75000_68000" : "72000"
 }, {
-  "id" : "2",
-  "name" : "Jane Smith",
-  "department" : "Marketing",
-  "salary" : "68000"
-}, {
-  "id" : "3",
-  "name" : "Bob Johnson",
-  "department" : "Sales",
-  "salary" : "72000"
-}, {
-  "id" : "4",
-  "name" : "Alice Brown",
-  "department" : "Engineering",
-  "salary" : "82000"
+  "id_1_2" : "4",
+  "name_John Doe_Jane Smith" : "Alice Brown",
+  "department_Engineering_Marketing" : "Engineering",
+  "salary_75000_68000" : "82000"
 } ]

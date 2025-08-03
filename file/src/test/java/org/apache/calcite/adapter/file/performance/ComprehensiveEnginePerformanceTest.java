@@ -16,12 +16,16 @@
  */
 package org.apache.calcite.adapter.file.performance;
 
+import org.apache.calcite.adapter.file.FileSchemaFactory;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -39,6 +43,7 @@ import java.util.Map;
  * Comprehensive performance test comparing all execution engines:
  * LINQ4J, PARQUET, ARROW, and VECTORIZED.
  */
+@Tag("performance")
 public class ComprehensiveEnginePerformanceTest {
   @TempDir
   java.nio.file.Path tempDir;
@@ -48,6 +53,10 @@ public class ComprehensiveEnginePerformanceTest {
 
   @BeforeEach
   public void setUp() throws Exception {
+    // Skip performance tests unless explicitly enabled
+    assumeTrue(Boolean.getBoolean("enablePerformanceTests"), 
+        "Performance tests disabled - use -DenablePerformanceTests=true to enable");
+    
     // Create test datasets
     createTestCsvFile(1000);
     createTestCsvFile(10000);

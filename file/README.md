@@ -94,43 +94,45 @@ SELECT * FROM MYDATA."sales_*.csv";        -- Combines all sales CSV files
 SELECT * FROM MYDATA."reports/*.html";     -- All HTML reports in directory
 ```
 
-## 🚀 **Performance Results - All Engines**
+## 🚀 **Performance Analysis - Separated Results**
 
-### **Engine Performance (1M rows)**
+Performance characteristics vary significantly across three distinct phases:
 
-| Configuration | COUNT(*) | GROUP BY | Filtered Agg | Top-N | Avg Speedup | Features |
-|---------------|----------|----------|--------------|--------|-------------|----------|
-| **Parquet+PARQUET** | **328ms** | **346ms** | **367ms** | **500ms** | **1.6x** | ✅ Spillover, Partitions, Materialized Views |
-| **Parquet+ARROW** | **351ms** | **353ms** | **361ms** | **495ms** | **1.5x** | ❌ No spillover |
-| **Parquet+LINQ4J** | **372ms** | **375ms** | **379ms** | **509ms** | **1.4x** | ❌ No advanced features |
-| **CSV+ARROW** | **504ms** | **496ms** | **504ms** | **656ms** | **1.1x** | ❌ No spillover |
-| **CSV+LINQ4J** | **538ms** | **563ms** | **512ms** | **605ms** | **1.0x (baseline)** | ❌ No advanced features |
-| **CSV+VECTORIZED** | **572ms** | **499ms** | **650ms** | **716ms** | **0.9x** | ❌ No spillover |
+### **Performance Breakdown (100K rows, COUNT query)**
+
+| Phase | LINQ4J | PARQUET | VECTORIZED |
+|-------|---------|---------|------------|
+| **Cold Start** | 293 ms | 387 ms (1.3x slower) | 67 ms (4.4x faster) |
+| **Warm Start** | 59 ms | 72 ms (0.8x) | 72 ms (0.8x) |
+| **Pure Query** | 54 ms | 53 ms (1.0x faster) | 59 ms (0.9x) |
 
 ### **Key Performance Insights**
 
-- **Parquet files** provide 1.3-1.6x speedup over CSV files
-- **PARQUET engine** (now the default) optimized for columnar Parquet format shows best performance
-- **Non-PARQUET engines** are retained primarily for benchmarking purposes
-- **ARROW engine** provides consistent performance across formats
-- **VECTORIZED engine** shows mixed results with CSV files
+#### Cold Start (Fresh connection + cache conversion)
+- **VECTORIZED**: Fastest startup (67ms, 4.4x faster than CSV)
+- **LINQ4J**: Consistent CSV parsing (~293ms)
+- **PARQUET**: Suffers from conversion overhead (~387ms, 32% slower than CSV)
 
-### **Query Type Performance (1M rows)**
+#### Warm Start (Fresh connection + pre-built cache)  
+- **All engines perform similarly** (59-72ms range)
+- **Connection overhead dominates** performance in this phase
 
-**Simple Aggregation (COUNT):**
-- **Parquet+PARQUET**: **328ms** (1.6x faster than baseline)
-- **Parquet+ARROW**: **351ms** (1.5x faster)
-- **CSV+LINQ4J**: **538ms** (baseline)
+#### Pure Query Performance (Persistent connection + cache)
+- **All engines perform nearly identically** (53-59ms range)
+- **No significant performance difference** between engines for simple queries
 
-**GROUP BY Operations:**
-- **Parquet+PARQUET**: **346ms** (1.6x faster than baseline)
-- **Parquet+ARROW**: **353ms** (1.6x faster)
-- **CSV+LINQ4J**: **563ms** (baseline)
+### **Storage Efficiency**
 
-**Filtered Aggregations:**
-- **Parquet+ARROW**: **361ms** (1.4x faster than baseline)
-- **Parquet+PARQUET**: **367ms** (1.4x faster)
-- **CSV+LINQ4J**: **512ms** (baseline)
+**Parquet Format Compression** (1M row dataset):
+- **CSV**: 72.5 MB
+- **Parquet**: 22.0 MB
+- **Compression Ratio**: 69% smaller files with Parquet
+
+### **Engine Selection Guidelines**
+- **For one-time queries**: VECTORIZED engine (fastest cold start)
+- **For persistent connections**: All engines perform similarly
+- **For production workloads**: PARQUET engine for enterprise features
+- **For simple use cases**: LINQ4J engine for reliability and consistency
 
 ## 💾 **Disk Spillover - Unlimited Dataset Sizes**
 

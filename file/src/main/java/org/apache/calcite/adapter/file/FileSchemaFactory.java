@@ -93,6 +93,9 @@ public class FileSchemaFactory implements SchemaFactory {
     // Get refresh interval for schema (default for all tables)
     final String refreshInterval = (String) operand.get("refreshInterval");
 
+    // Get flatten option for JSON/YAML files
+    final Boolean flatten = (Boolean) operand.get("flatten");
+
     // Get table name casing configuration (default to UPPER for backward compatibility)
     // Support both camelCase (model.json) and snake_case (JDBC URL) naming conventions
     String tableNameCasing = (String) operand.get("tableNameCasing");
@@ -121,6 +124,6 @@ public class FileSchemaFactory implements SchemaFactory {
     return new FileSchema(parentSchema, name, directoryFile, directoryPattern,
         tables, engineConfig, recursive,
         materializations, views, partitionedTables, refreshInterval, tableNameCasing,
-        columnNameCasing, storageType, storageConfig);
+        columnNameCasing, storageType, storageConfig, flatten);
   }
 }

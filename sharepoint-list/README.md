@@ -373,7 +373,17 @@ This metadata support enables compatibility with:
 
 ## Testing
 
-Integration tests require SharePoint credentials. Create `sharepoint-test-config.properties` in the file module:
+### Unit Tests
+Unit tests can run without SharePoint credentials and test CAST operations, query parsing, and schema handling:
+```bash
+./gradlew :sharepoint-list:test --tests "*SharePointCastProjectionTest*"
+```
+
+### Integration Tests
+Integration tests require SharePoint credentials. 
+
+**Option 1: Using local properties file (recommended)**
+Copy `../file/local-test.properties.sample` to `../file/local-test.properties` and fill in your credentials:
 
 ```properties
 SHAREPOINT_TENANT_ID=your-tenant-id
@@ -382,7 +392,18 @@ SHAREPOINT_CLIENT_SECRET=your-client-secret
 SHAREPOINT_SITE_URL=https://yoursite.sharepoint.com
 ```
 
-Run tests with:
+**Option 2: Using environment variables**
+Set the credentials as environment variables:
+```bash
+export SHAREPOINT_TENANT_ID=your-tenant-id
+export SHAREPOINT_CLIENT_ID=your-client-id
+export SHAREPOINT_CLIENT_SECRET=your-client-secret
+export SHAREPOINT_SITE_URL=https://yoursite.sharepoint.com
+```
+
+**Run integration tests:**
 ```bash
 SHAREPOINT_INTEGRATION_TESTS=true ./gradlew :sharepoint-list:test
 ```
+
+**Security Note:** Never commit actual credentials to version control. The `local-test.properties` file is in `.gitignore` to prevent accidental commits.

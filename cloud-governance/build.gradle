@@ -1,0 +1,154 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to you under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+apply plugin: 'java-library'
+
+dependencies {
+    implementation project(':core')
+    implementation project(':linq4j')
+    
+    implementation 'com.google.guava:guava'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.fasterxml.jackson.core:jackson-annotations'
+    implementation 'org.slf4j:slf4j-api'
+    
+    // Azure SDK
+    implementation 'com.azure.resourcemanager:azure-resourcemanager:2.34.0'
+    implementation 'com.azure:azure-identity:1.11.0'
+    implementation 'com.azure.resourcemanager:azure-resourcemanager-resourcegraph:1.0.0'
+    
+    // GCP SDK
+    implementation 'com.google.cloud:google-cloud-storage:2.29.0'
+    
+    // AWS SDK
+    implementation platform('software.amazon.awssdk:bom:2.21.0')
+    implementation 'software.amazon.awssdk:config'
+    implementation 'software.amazon.awssdk:ec2'
+    implementation 'software.amazon.awssdk:s3'
+    implementation 'software.amazon.awssdk:iam'
+    implementation 'software.amazon.awssdk:eks'
+    implementation 'software.amazon.awssdk:ecr'
+    implementation 'software.amazon.awssdk:rds'
+    implementation 'software.amazon.awssdk:dynamodb'
+    implementation 'software.amazon.awssdk:elasticache'
+    implementation 'software.amazon.awssdk:sts'
+    implementation 'software.amazon.awssdk:resourcegroupstaggingapi'
+    
+    testImplementation 'junit:junit'
+    testImplementation 'org.hamcrest:hamcrest-core'
+    testImplementation project(':core').sourceSets.test.output
+    testRuntimeOnly 'org.apache.logging.log4j:log4j-slf4j-impl'
+}
+
+jar {
+    manifest {
+        attributes 'Implementation-Title': 'Apache Calcite Cloud Governance Adapter',
+                   'Implementation-Version': project.version
+    }
+}
+
+// Helper method to check if integration test credentials are available
+def hasIntegrationCredentials() {
+    def propsFile = file('src/test/resources/local-test.properties')
+    if (!propsFile.exists()) {
+        return false
+    }
+    
+    def props = new Properties()
+    propsFile.withInputStream { props.load(it) }
+    
+    // Check if any cloud provider credentials are present
+    def hasAzure = props.getProperty('azure.tenantId') && props.getProperty('azure.clientId') && 
+                   props.getProperty('azure.clientSecret') && props.getProperty('azure.subscriptionIds')
+    def hasGCP = props.getProperty('gcp.credentialsPath') && props.getProperty('gcp.projectIds')
+    def hasAWS = props.getProperty('aws.accessKeyId') && props.getProperty('aws.secretAccessKey') && 
+                 props.getProperty('aws.accountIds')
+    
+    return hasAzure || hasGCP || hasAWS
+}
+
+test {
+    useJUnit {
+        // Always exclude performance tests from default run
+        excludeCategories 'org.apache.calcite.adapter.governance.categories.PerformanceTest'
+        
+        // Only exclude integration tests if credentials are not available
+        if (!hasIntegrationCredentials()) {
+            excludeCategories 'org.apache.calcite.adapter.governance.categories.IntegrationTest'
+        }
+    }
+    maxHeapSize = '2g'
+    systemProperty 'java.awt.headless', 'true'
+}
+
+// Task to run only unit tests
+task unitTest(type: Test) {
+    useJUnit {
+        includeCategories 'org.apache.calcite.adapter.governance.categories.UnitTest'
+    }
+    maxHeapSize = '2g'
+    systemProperty 'java.awt.headless', 'true'
+    
+    // Separate test reports
+    reports {
+        html.outputLocation = layout.buildDirectory.dir('reports/tests/unit')
+        junitXml.outputLocation = layout.buildDirectory.dir('test-results/unit')
+    }
+}
+
+// Task to run only integration tests
+task integrationTest(type: Test) {
+    useJUnit {
+        includeCategories 'org.apache.calcite.adapter.governance.categories.IntegrationTest'
+    }
+    maxHeapSize = '2g'
+    systemProperty 'java.awt.headless', 'true'
+    
+    // Separate test reports
+    reports {
+        html.outputLocation = layout.buildDirectory.dir('reports/tests/integration')
+        junitXml.outputLocation = layout.buildDirectory.dir('test-results/integration')
+    }
+}
+
+// Task to run only performance tests
+task performanceTest(type: Test) {
+    useJUnit {
+        includeCategories 'org.apache.calcite.adapter.governance.categories.PerformanceTest'
+    }
+    maxHeapSize = '4g'
+    systemProperty 'java.awt.headless', 'true'
+    
+    // Separate test reports
+    reports {
+        html.outputLocation = layout.buildDirectory.dir('reports/tests/performance')
+        junitXml.outputLocation = layout.buildDirectory.dir('test-results/performance')
+    }
+}
+
+// Task to run all tests including integration and performance
+task allTests(type: Test) {
+    useJUnit()
+    maxHeapSize = '4g'
+    systemProperty 'java.awt.headless', 'true'
+    
+    // Separate test reports
+    reports {
+        html.outputLocation = layout.buildDirectory.dir('reports/tests/all')
+        junitXml.outputLocation = layout.buildDirectory.dir('test-results/all')
+    }
+}

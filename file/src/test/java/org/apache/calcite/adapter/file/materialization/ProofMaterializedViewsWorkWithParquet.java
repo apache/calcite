@@ -72,7 +72,7 @@ public class ProofMaterializedViewsWorkWithParquet {
       mv.put("view", "daily_summary");
       mv.put("table", "daily_summary_table");
       mv.put("sql", "SELECT \"date\", COUNT(*) as cnt, SUM(\"quantity\") as total " +
-                    "FROM \"sales\" GROUP BY \"date\"");
+                    "FROM SALES GROUP BY \"date\"");
       materializations.add(mv);
 
       // Step 3: Create schema with materializations AND Parquet engine

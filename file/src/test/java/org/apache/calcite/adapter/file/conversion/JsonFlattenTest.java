@@ -29,7 +29,7 @@ public class JsonFlattenTest {
 
   @Test void testJsonFlattening() {
     // Test flattened JSON table access
-    // Note: Parquet engine sanitizes column names, so "address.city" becomes "address_city"
+    // Note: Using flattenSeparator="_" in config
     sql("sales-json-flatten", "select * from NESTED_FLAT")
         .returns("id=1; name=John Doe; address_street=123 Main St; "
             + "address_city=Anytown; address_zip=12345; tags=customer,vip,active",
@@ -40,7 +40,7 @@ public class JsonFlattenTest {
 
   @Test void testJsonFlatteningSpecificColumns() {
     // Test accessing specific flattened columns
-    // Note: Parquet engine sanitizes column names, so "address.city" becomes "address_city"
+    // Note: Using flattenSeparator="_" in config
     sql("sales-json-flatten",
         "select \"id\", \"name\", \"address_city\" from NESTED_FLAT where \"id\" = 1")
         .returns("id=1; name=John Doe; address_city=Anytown")
@@ -48,6 +48,7 @@ public class JsonFlattenTest {
   }
 
   @Test void testJsonFlatteningUnit() {
+    // Test default flattener now uses "__" separator
     JsonFlattener flattener = new JsonFlattener();
 
     java.util.Map<String, Object> input = new java.util.LinkedHashMap<>();
@@ -64,8 +65,8 @@ public class JsonFlattenTest {
     java.util.Map<String, Object> result = flattener.flatten(input);
 
     assertEquals("John", result.get("name"));
-    assertEquals("123 Main", result.get("address.street"));
-    assertEquals("Anytown", result.get("address.city"));
+    assertEquals("123 Main", result.get("address__street"));
+    assertEquals("Anytown", result.get("address__city"));
     assertEquals("a,b,c", result.get("tags"));
   }
 
