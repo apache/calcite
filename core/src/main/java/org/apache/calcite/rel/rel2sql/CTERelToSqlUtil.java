@@ -296,8 +296,9 @@ public class CTERelToSqlUtil {
         }
       }
     } else {
-      SqlNode operand = basicCall.operand(0);
-      handleOperand(sqlNode, operand);
+      for (SqlNode operand : basicCall.getOperandList()) {
+        handleOperand(sqlNode, operand);
+      }
     }
   }
 

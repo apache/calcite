@@ -21,6 +21,7 @@ import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.CTEDefinationTraitDef;
 import org.apache.calcite.plan.PivotRelTrait;
 import org.apache.calcite.plan.PivotRelTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
@@ -2537,7 +2538,7 @@ public class RelBuilder {
     final ImmutableBitSet groupSet2;
     final ImmutableList<ImmutableBitSet> groupSets2;
     if (config.pruneInputOfAggregate()
-        && r instanceof Project) {
+        && r instanceof Project && r.getTraitSet().getTrait(CTEDefinationTraitDef.instance) == null) {
       final Set<Integer> fieldsUsed =
           getAllUsedProjectionFields(groupSet, aggregateCalls, hasSubquery, inFields.size());
       // Some parts of the system can't handle rows with zero fields, so
