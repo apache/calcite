@@ -2537,8 +2537,8 @@ public class RelBuilder {
     PairList<ImmutableSet<String>, RelDataTypeField> inFields = frame.fields;
     final ImmutableBitSet groupSet2;
     final ImmutableList<ImmutableBitSet> groupSets2;
-    if (config.pruneInputOfAggregate()
-        && r instanceof Project && r.getTraitSet().getTrait(CTEDefinationTraitDef.instance) == null) {
+    if (config.pruneInputOfAggregate() && r instanceof Project
+        && r.getTraitSet().getTrait(CTEDefinationTraitDef.instance) == null) {
       final Set<Integer> fieldsUsed =
           getAllUsedProjectionFields(groupSet, aggregateCalls, hasSubquery, inFields.size());
       // Some parts of the system can't handle rows with zero fields, so
