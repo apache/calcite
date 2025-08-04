@@ -3507,25 +3507,30 @@ public class SqlFunctions {
   }
 
   /**
-   * Performs bitwise shift on two integers. Equivalent to: {@code x << (y % 32)} if y >= 0, or
-   * {@code x >>> (-y % 32)} if y < 0.
+   * Performs bitwise shift on two integers.
+   * Equivalent to: {@code x &lt;&lt; (y % 32)} if y &gt;= 0, or
+   * {@code x &gt;&gt;&gt; (-y % 32)} if y &lt; 0.
    */
+
   public static int leftShift(int x, int y) {
     int shift = Math.abs(y % 32);
     return y >= 0 ? x << shift : x >>> shift;
   }
 
   /**
-   * Performs bitwise shift on a long. Equivalent to: {@code x << (y % 64)} if y >= 0, or
-   * {@code x >>> (-y % 64)} if y < 0.
+   * Performs bitwise shift on two integers.
+   * Equivalent to: {@code x &lt;&lt; (y % 64)} if y &gt;= 0, or
+   * {@code x &gt;&gt;&gt; (-y % 64)} if y &lt; 0.
    */
+
   public static long leftShift(long x, int y) {
     int shift = Math.abs(y % 64);
     return y >= 0 ? x << shift : x >>> shift;
   }
 
   /**
-   * Performs bitwise shift with long shift amount. Note: input x is int, so shift mod 32 is used.
+   * Performs bitwise shift with long shift amount.
+   * Note: input x is int, so shift mod 32 is used.
    * Returns long to prevent overflow.
    */
   public static long leftShift(int x, long y) {
@@ -3534,8 +3539,9 @@ public class SqlFunctions {
   }
 
   /**
-   * Performs bitwise shift on ByteString input. Returns a new ByteString with shifted bits. If y >=
-   * 0: left shift; if y < 0: logical right shift.
+   * Performs bitwise shift on ByteString input.
+   * Returns a new ByteString with shifted bits. If y &gt;=
+   * 0: left shift; if y &lt; 0: logical right shift.
    */
   public static ByteString leftShift(ByteString bytes, int y) {
     byte[] result = leftShift(bytes.getBytes(), y);
@@ -3543,7 +3549,8 @@ public class SqlFunctions {
   }
 
   /**
-   * Performs bitwise shift on byte array. If y >= 0: left shift; if y < 0: logical right shift.
+   * Performs bitwise shift on byte array.
+   * If y &gt;= 0: left shift; if y &lt; 0: logical right shift.
    * Shift amount is modulo 32 bits.
    */
   public static byte[] leftShift(byte[] bytes, int y) {
