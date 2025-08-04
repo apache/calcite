@@ -16522,114 +16522,213 @@ public class SqlOperatorTest {
    * Test cases for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7109">[CALCITE-7109]
    * Implement SHIFT_LEFT operator </a>.
-   * */
+   */
   @Test void testLeftShiftScalarFunc() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.LEFT_SHIFT, VmName.EXPAND);
+    f.setFor(SqlStdOperatorTable.BIT_LEFT_SHIFT, VmName.EXPAND);
 
     // === Basic functionality ===
-    f.checkScalar("2 << 2", "8", "BIGINT NOT NULL");
-    f.checkScalar("1 << 10", "1024", "BIGINT NOT NULL");
-    f.checkScalar("0 << 5", "0", "BIGINT NOT NULL");
+    f.checkScalar("2 << 2", "8", "INTEGER NOT NULL");
+    f.checkScalar("1 << 10", "1024", "INTEGER NOT NULL");
+    f.checkScalar("0 << 5", "0", "INTEGER NOT NULL");
 
     // === Type coercion and signed behavior ===
-    f.checkScalar("CAST(2 AS INTEGER) << CAST(3 AS BIGINT)", "16", "BIGINT NOT NULL");
-    f.checkScalar("-5 << 2", "-20", "BIGINT NOT NULL");
-    f.checkScalar("-5 << 3", "-40", "BIGINT NOT NULL");
-    f.checkScalar("CAST(-5 AS TINYINT) << CAST(2 AS TINYINT)", "-20", "BIGINT NOT NULL");
+    f.checkScalar("CAST(2 AS INTEGER) << CAST(3 AS BIGINT)", "16", "INTEGER NOT NULL");
+    f.checkScalar("-5 << 2", "-20", "INTEGER NOT NULL");
+    f.checkScalar("-5 << 3", "-40", "INTEGER NOT NULL");
+    f.checkScalar("CAST(-5 AS TINYINT) << CAST(2 AS TINYINT)", "-20", "TINYINT NOT NULL");
 
-    // === Verify return type is always BIGINT ===
-    f.checkType("CAST(2 AS TINYINT) << CAST(3 AS TINYINT)", "BIGINT NOT NULL");
-    f.checkType("CAST(2 AS SMALLINT) << CAST(3 AS SMALLINT)", "BIGINT NOT NULL");
-    f.checkType("CAST(2 AS INTEGER) << CAST(3 AS INTEGER)", "BIGINT NOT NULL");
+    // === Verify return type matches first argument type ===
+    f.checkType("CAST(2 AS TINYINT) << CAST(3 AS TINYINT)", "TINYINT NOT NULL");
+    f.checkType("CAST(2 AS SMALLINT) << CAST(3 AS SMALLINT)", "SMALLINT NOT NULL");
+    f.checkType("CAST(2 AS INTEGER) << CAST(3 AS INTEGER)", "INTEGER NOT NULL");
     f.checkType("CAST(2 AS BIGINT) << CAST(3 AS BIGINT)", "BIGINT NOT NULL");
 
-    // === Overflow tests for BIGINT return type ===
-    // Test values that approach BIGINT.MAX_VALUE (9223372036854775807)
-    f.checkScalar("1 << 62", "4611686018427387904", "BIGINT NOT NULL"); // 2^62, still within range
-    // 2^63, overflows to BIGINT.MIN_VALUE
-    f.checkScalar("1 << 63", "-9223372036854775808", "BIGINT NOT NULL");
-
-    // Test with larger base values that cause overflow
-    // (2^62) << 1 = overflow
-    f.checkScalar("4611686018427387904 << 1", "-9223372036854775808", "BIGINT NOT NULL");
-    // (2^61) << 2 = overflow
-    f.checkScalar("2305843009213693952 << 2", "-9223372036854775808", "BIGINT NOT NULL");
-
-    // Test negative values that can cause overflow when shifted
-    // -(2^62) << 1
-    f.checkScalar("-4611686018427387904 << 1", "-9223372036854775808", "BIGINT NOT NULL");
-    f.checkScalar("-1 << 63", "-9223372036854775808", "BIGINT NOT NULL"); // -1 << 63
-
-    // Test edge cases around maximum shift positions
-    // No shift, should be max value
-    f.checkScalar("9223372036854775807 << 0", "9223372036854775807", "BIGINT NOT NULL");
-    // Test values that would overflow in intermediate calculations
-    // Large shift causing wraparound due to masking
-    f.checkScalar("1000000000 << 35", "-2533749779419103232", "BIGINT NOT NULL");
-    f.checkScalar("9223372036854775807 << 1", "-2", "BIGINT NOT NULL"); // MAX_VALUE << 1
+    // === BigInt shifts with explicit BIGINT inputs ===
+    f.checkScalar("CAST(1 AS BIGINT) << 62", "4611686018427387904", "BIGINT NOT NULL"); // 2^62
+    f.checkScalar("CAST(1 AS BIGINT) << 63", "-9223372036854775808", "BIGINT NOT NULL"); // overflow
+    f.checkScalar("CAST(4611686018427387904 AS BIGINT) << 1",
+        "-9223372036854775808", "BIGINT NOT NULL"); // overflow
+    f.checkScalar("CAST(2305843009213693952 AS BIGINT) << 2",
+        "-9223372036854775808", "BIGINT NOT NULL"); // overflow
+    f.checkScalar("CAST(-4611686018427387904 AS BIGINT) << 1",
+        "-9223372036854775808", "BIGINT NOT NULL");
+    f.checkScalar("CAST(-1 AS BIGINT) << 63",
+        "-9223372036854775808", "BIGINT NOT NULL");
+    f.checkScalar("CAST(9223372036854775807 AS BIGINT) << 0",
+        "9223372036854775807", "BIGINT NOT NULL");
+    f.checkScalar("CAST(1000000000 AS BIGINT) << 35",
+        "-2533749779419103232", "BIGINT NOT NULL");
+    f.checkScalar("CAST(9223372036854775807 AS BIGINT) << 1",
+        "-2", "BIGINT NOT NULL");
 
     // === Java shift semantics: bits masked to 5/6 bits ===
-    f.checkScalar("1 << 32", "4294967296", "BIGINT NOT NULL");
-    // 1L << 50
-    f.checkScalar("1 << 50", "1125899906842624", "BIGINT NOT NULL");
-    f.checkScalar("1 << 100", "0", "BIGINT NOT NULL");
-    f.checkScalar("100 << 50", "112589990684262400", "BIGINT NOT NULL");
+    f.checkScalar("CAST(1 AS BIGINT) << 32",
+        "4294967296", "BIGINT NOT NULL");
+    f.checkScalar("CAST(1 AS BIGINT) << 50",
+        "1125899906842624", "BIGINT NOT NULL");
+    f.checkScalar("CAST(1 AS BIGINT) << 100",
+        "68719476736", "BIGINT NOT NULL");
+    f.checkScalar("CAST(100 AS BIGINT) << 50",
+        "112589990684262400", "BIGINT NOT NULL");
 
-    // === Negative shift counts (still throw) ===
-    f.checkFails("8 << -1", "Invalid shift parameter: -1", true);
-    f.checkFails("16 << -2", "Invalid shift parameter: -2", true);
+    f.checkScalar("CAST(100 AS BIGINT) << 50",
+        "112589990684262400", "BIGINT NOT NULL");
+
+    // Test left shift (<<) with unsigned types
+    // 63 << 2 = 252
+    f.checkScalar("CAST(63 AS TINYINT UNSIGNED) << 2",
+        "252", "TINYINT UNSIGNED NOT NULL");
+
+    // 255 << 8 = 65280
+    f.checkScalar("CAST(255 AS SMALLINT UNSIGNED) << 8",
+        "65280", "SMALLINT UNSIGNED NOT NULL");
+
+    // 65535 << 16 = 4294901760
+    f.checkScalar("CAST(65535 AS INTEGER UNSIGNED) << 16",
+        "4294901760", "INTEGER UNSIGNED NOT NULL");
+
+    // 1 << 31 = 2147483648 — requires long intermediate result
+    f.checkScalar("CAST(1 AS INTEGER UNSIGNED) << 31",
+        "2147483648", "INTEGER UNSIGNED NOT NULL");
+
+    // Shift by negative — logical right shift by 1 = 0
+    f.checkScalar("CAST(1 AS INTEGER UNSIGNED) << -1",
+        "0", "INTEGER UNSIGNED NOT NULL");
+
+
+    // === Negative shift counts ===
+    f.checkScalar("8 << -1", "4", "INTEGER NOT NULL");
+    f.checkScalar("16 << -2", "4", "INTEGER NOT NULL");
 
     // === Shift by zero and large (but valid) shifts ===
-    f.checkScalar("0 << 32", "0", "BIGINT NOT NULL");
-    f.checkScalar("0 << 100", "0", "BIGINT NOT NULL");
+    f.checkScalar("0 << 32", "0", "INTEGER NOT NULL");
+    f.checkScalar("0 << 100", "0", "INTEGER NOT NULL");
 
     // === Binary type tests ===
-    // Single byte tests - result maintains same byte length
-    f.checkScalar("CAST(X'FF' AS BINARY(1)) << 1", "fe",
-        "BINARY(1) NOT NULL");  // 11111111 -> 11111110
-    f.checkScalar("CAST(X'0F' AS BINARY(1)) << 4", "f0",
-        "BINARY(1) NOT NULL");  // 00001111 -> 11110000
-    f.checkScalar("CAST(X'01' AS BINARY(1)) << 3", "08",
-        "BINARY(1) NOT NULL");  // 00000001 -> 00001000
-    f.checkScalar("CAST(X'00' AS BINARY(1)) << 5", "00",
-        "BINARY(1) NOT NULL");  // 00000000 -> 00000000
+    f.checkScalar("CAST(X'FF' AS BINARY(1)) << 1", "fe", "BINARY(1) NOT NULL");
+    f.checkScalar("CAST(X'0F' AS BINARY(1)) << 4", "f0", "BINARY(1) NOT NULL");
+    f.checkScalar("CAST(X'01' AS BINARY(1)) << 3", "08", "BINARY(1) NOT NULL");
+    f.checkScalar("CAST(X'00' AS BINARY(1)) << 5", "00", "BINARY(1) NOT NULL");
 
-    // Multi-byte tests
-    f.checkScalar("CAST(X'FFFF' AS BINARY(2)) << 1", "fffe",
-        "BINARY(2) NOT NULL");  // Shift left by 1 bit
-    f.checkScalar("CAST(X'1234' AS BINARY(2)) << 4", "2340",
-        "BINARY(2) NOT NULL");  // Shift left by 4 bits
-    f.checkScalar("CAST(X'1234' AS BINARY(2)) << 8", "0012",
-        "BINARY(2) NOT NULL");  // Shift left by 8 bits (1 byte)
+    f.checkScalar("CAST(X'FFFF' AS BINARY(2)) << 1", "fffe", "BINARY(2) NOT NULL");
+    f.checkScalar("CAST(X'1234' AS BINARY(2)) << 4", "2340", "BINARY(2) NOT NULL");
+    f.checkScalar("CAST(X'1234' AS BINARY(2)) << 8", "0012", "BINARY(2) NOT NULL");
 
-    // Edge cases - shifting more than available bits
-    f.checkScalar("CAST(X'FF' AS BINARY(1)) << 8", "00",
-        "BINARY(1) NOT NULL");   // All bits shifted out
-    f.checkScalar("CAST(X'FFFF' AS BINARY(2)) << 16", "0000",
-        "BINARY(2) NOT NULL"); // All bits shifted out
+    f.checkScalar("CAST(X'FF' AS BINARY(1)) << 8", "00", "BINARY(1) NOT NULL");
+    f.checkScalar("CAST(X'FFFF' AS BINARY(2)) << 16", "0000", "BINARY(2) NOT NULL");
 
-    // Zero shift
-    f.checkScalar("CAST(X'ABCD' AS BINARY(2)) << 0", "abcd",
-        "BINARY(2) NOT NULL");
-
-    // Complex multi-byte shifting
-    f.checkScalar("CAST(X'123456' AS BINARY(3)) << 4", "234560",
-        "BINARY(3) NOT NULL");
-    f.checkScalar("CAST(X'8000' AS BINARY(2)) << 1", "0000",
-        "BINARY(2) NOT NULL");   // MSB shifts out
-    f.checkScalar("CAST(X'4000' AS BINARY(2)) << 1", "8000",
-        "BINARY(2) NOT NULL");   // Normal shift
+    f.checkScalar("CAST(X'ABCD' AS BINARY(2)) << 0", "abcd", "BINARY(2) NOT NULL");
+    f.checkScalar("CAST(X'123456' AS BINARY(3)) << 4", "234560", "BINARY(3) NOT NULL");
+    f.checkScalar("CAST(X'8000' AS BINARY(2)) << 1", "0000", "BINARY(2) NOT NULL");
+    f.checkScalar("CAST(X'4000' AS BINARY(2)) << 1", "8000", "BINARY(2) NOT NULL");
 
     // === Invalid argument types ===
     f.checkFails("^1.2 << 2^",
-        "Cannot apply '<<' to arguments of type '<DECIMAL\\(2, 1\\)> << <INTEGER>'\\. Supported form\\(s\\): '<INTEGER> << <INTEGER>'\\n'<BINARY> << <INTEGER>'",
+        "Cannot apply '<<' to arguments of type '<DECIMAL\\(2, 1\\)> << <INTEGER>'\\. Supported form\\(s\\): '<INTEGER> << <INTEGER>'\\n'<BINARY> << <INTEGER>'\\n'<UNSIGNED_NUMERIC> << <INTEGER>'",
         false);
 
     // === Null propagation ===
     f.checkNull("CAST(NULL AS INTEGER) << 5");
     f.checkNull("10 << CAST(NULL AS INTEGER)");
     f.checkNull("CAST(NULL AS INTEGER) << CAST(NULL AS INTEGER)");
+    f.checkNull("CAST(NULL AS INTEGER UNSIGNED) << 2");
+  }
+
+  @Test void testLeftShiftFunctionCall() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlStdOperatorTable.BIT_LEFT_SHIFT, VmName.EXPAND);
+
+    // === Basic functionality ===
+    f.checkScalar("LEFTSHIFT(2, 2)", "8", "INTEGER NOT NULL");
+    f.checkScalar("LEFTSHIFT(1, 10)", "1024", "INTEGER NOT NULL");
+    f.checkScalar("LEFTSHIFT(0, 5)", "0", "INTEGER NOT NULL");
+
+    // === Type coercion and signed behavior ===
+    f.checkScalar("LEFTSHIFT(CAST(2 AS INTEGER), CAST(3 AS BIGINT))", "16", "INTEGER NOT NULL");
+    f.checkScalar("LEFTSHIFT(-5, 2)", "-20", "INTEGER NOT NULL");
+    f.checkScalar("LEFTSHIFT(-5, 3)", "-40", "INTEGER NOT NULL");
+    f.checkScalar("LEFTSHIFT(CAST(-5 AS TINYINT), CAST(2 AS TINYINT))", "-20", "TINYINT NOT NULL");
+
+    // === Verify return type matches first argument type ===
+    f.checkType("LEFTSHIFT(CAST(2 AS TINYINT), CAST(3 AS TINYINT))", "TINYINT NOT NULL");
+    f.checkType("LEFTSHIFT(CAST(2 AS SMALLINT), CAST(3 AS SMALLINT))", "SMALLINT NOT NULL");
+    f.checkType("LEFTSHIFT(CAST(2 AS INTEGER), CAST(3 AS INTEGER))", "INTEGER NOT NULL");
+    f.checkType("LEFTSHIFT(CAST(2 AS BIGINT), CAST(3 AS BIGINT))", "BIGINT NOT NULL");
+
+    // === BigInt shifts with explicit BIGINT inputs ===
+    f.checkScalar("LEFTSHIFT(CAST(1 AS BIGINT), 62)",
+        "4611686018427387904", "BIGINT NOT NULL");
+    f.checkScalar("LEFTSHIFT(CAST(1 AS BIGINT), 63)",
+        "-9223372036854775808", "BIGINT NOT NULL");
+    f.checkScalar("LEFTSHIFT(CAST(4611686018427387904 AS BIGINT), 1)",
+        "-9223372036854775808", "BIGINT NOT NULL");
+    f.checkScalar("LEFTSHIFT(CAST(2305843009213693952 AS BIGINT), 2)",
+        "-9223372036854775808", "BIGINT NOT NULL");
+    f.checkScalar("LEFTSHIFT(CAST(-4611686018427387904 AS BIGINT), 1)",
+        "-9223372036854775808", "BIGINT NOT NULL");
+    f.checkScalar("LEFTSHIFT(CAST(-1 AS BIGINT), 63)",
+        "-9223372036854775808", "BIGINT NOT NULL");
+    f.checkScalar("LEFTSHIFT(CAST(9223372036854775807 AS BIGINT), 0)",
+        "9223372036854775807", "BIGINT NOT NULL");
+    f.checkScalar("LEFTSHIFT(CAST(1000000000 AS BIGINT), 35)",
+        "-2533749779419103232", "BIGINT NOT NULL");
+    f.checkScalar("LEFTSHIFT(CAST(9223372036854775807 AS BIGINT), 1)",
+        "-2", "BIGINT NOT NULL");
+
+    // === Java shift semantics: bits masked to 5/6 bits ===
+    f.checkScalar("LEFTSHIFT(CAST(1 AS BIGINT), 32)", "4294967296", "BIGINT NOT NULL");
+    f.checkScalar("LEFTSHIFT(CAST(1 AS BIGINT), 50)", "1125899906842624", "BIGINT NOT NULL");
+    f.checkScalar("LEFTSHIFT(CAST(1 AS BIGINT), 100)", "68719476736", "BIGINT NOT NULL");
+    f.checkScalar("LEFTSHIFT(CAST(100 AS BIGINT), 50)", "112589990684262400", "BIGINT NOT NULL");
+
+    // === Unsigned types ===
+    f.checkScalar("LEFTSHIFT(CAST(63 AS TINYINT UNSIGNED), 2)", "252", "TINYINT UNSIGNED NOT NULL");
+    f.checkScalar("LEFTSHIFT(CAST(255 AS SMALLINT UNSIGNED), 8)", "65280",
+        "SMALLINT UNSIGNED NOT NULL");
+    f.checkScalar("LEFTSHIFT(CAST(65535 AS INTEGER UNSIGNED), 16)", "4294901760",
+        "INTEGER UNSIGNED NOT NULL");
+    f.checkScalar("LEFTSHIFT(CAST(1 AS INTEGER UNSIGNED), 31)", "2147483648",
+        "INTEGER UNSIGNED NOT NULL");
+    f.checkScalar("LEFTSHIFT(CAST(1 AS INTEGER UNSIGNED), -1)", "0",
+        "INTEGER UNSIGNED NOT NULL");
+
+    // === Negative shifts ===
+    f.checkScalar("LEFTSHIFT(8, -1)", "4", "INTEGER NOT NULL");
+    f.checkScalar("LEFTSHIFT(16, -2)", "4", "INTEGER NOT NULL");
+
+    // === Large shifts ===
+    f.checkScalar("LEFTSHIFT(0, 32)", "0", "INTEGER NOT NULL");
+    f.checkScalar("LEFTSHIFT(0, 100)", "0", "INTEGER NOT NULL");
+
+    // === Binary types ===
+    f.checkScalar("LEFTSHIFT(CAST(X'FF' AS BINARY(1)), 1)", "fe", "BINARY(1) NOT NULL");
+    f.checkScalar("LEFTSHIFT(CAST(X'0F' AS BINARY(1)), 4)", "f0", "BINARY(1) NOT NULL");
+    f.checkScalar("LEFTSHIFT(CAST(X'01' AS BINARY(1)), 3)", "08", "BINARY(1) NOT NULL");
+    f.checkScalar("LEFTSHIFT(CAST(X'00' AS BINARY(1)), 5)", "00", "BINARY(1) NOT NULL");
+
+    f.checkScalar("LEFTSHIFT(CAST(X'FFFF' AS BINARY(2)), 1)", "fffe", "BINARY(2) NOT NULL");
+    f.checkScalar("LEFTSHIFT(CAST(X'1234' AS BINARY(2)), 4)", "2340", "BINARY(2) NOT NULL");
+    f.checkScalar("LEFTSHIFT(CAST(X'1234' AS BINARY(2)), 8)", "0012", "BINARY(2) NOT NULL");
+    f.checkScalar("LEFTSHIFT(CAST(X'FF' AS BINARY(1)), 8)", "00", "BINARY(1) NOT NULL");
+    f.checkScalar("LEFTSHIFT(CAST(X'FFFF' AS BINARY(2)), 16)", "0000", "BINARY(2) NOT NULL");
+
+    f.checkScalar("LEFTSHIFT(CAST(X'ABCD' AS BINARY(2)), 0)", "abcd", "BINARY(2) NOT NULL");
+    f.checkScalar("LEFTSHIFT(CAST(X'123456' AS BINARY(3)), 4)", "234560", "BINARY(3) NOT NULL");
+    f.checkScalar("LEFTSHIFT(CAST(X'8000' AS BINARY(2)), 1)", "0000", "BINARY(2) NOT NULL");
+    f.checkScalar("LEFTSHIFT(CAST(X'4000' AS BINARY(2)), 1)", "8000", "BINARY(2) NOT NULL");
+
+    // === Invalid types ===
+    f.checkFails("^LEFTSHIFT(1.2, 2)^",
+        "Cannot apply 'LEFTSHIFT' to arguments of type 'LEFTSHIFT\\(<DECIMAL\\(2, 1\\)>, <INTEGER>\\)'\\. Supported form\\(s\\): 'LEFTSHIFT\\(<INTEGER>, <INTEGER>\\)'\\n'LEFTSHIFT\\(<BINARY>, <INTEGER>\\)'\\n'LEFTSHIFT\\(<UNSIGNED_NUMERIC>, <INTEGER>\\)'",
+        false);
+
+
+    // === Nulls ===
+    f.checkNull("LEFTSHIFT(CAST(NULL AS INTEGER), 5)");
+    f.checkNull("LEFTSHIFT(10, CAST(NULL AS INTEGER))");
+    f.checkNull("LEFTSHIFT(CAST(NULL AS INTEGER), CAST(NULL AS INTEGER))");
+    f.checkNull("LEFTSHIFT(CAST(NULL AS INTEGER UNSIGNED), 2)");
   }
 
   @Test void testBitAndScalarFunc() {
