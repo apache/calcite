@@ -1,0 +1,269 @@
+<?xml version="1.0" ?>
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to you under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~ http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<Root>
+  <TestCase name="testSingleFilterScanSuggestion">
+    <Resource name="sql">
+      <![CDATA[
+SELECT '2025' FROM emp WHERE empno = 1
+UNION
+SELECT '2024' FROM emp WHERE empno = 1
+]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[LogicalUnion(all=[false])
+  LogicalProject(EXPR$0=['2025'])
+    LogicalFilter(condition=[=($0, 1)])
+      LogicalTableScan(table=[[EMP]])
+  LogicalProject(EXPR$0=['2024'])
+    LogicalFilter(condition=[=($0, 1)])
+      LogicalTableScan(table=[[EMP]])
+]]>
+    </Resource>
+    <Resource name="suggestions">
+      <![CDATA[LogicalFilter(condition=[=($0, 1)])
+  LogicalTableScan(table=[[EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testTwoFilterScanSuggestions">
+    <Resource name="sql">
+      <![CDATA[
+SELECT '2025' FROM emp WHERE empno = 1
+UNION
+SELECT '2024' FROM emp WHERE empno = 1
+UNION
+SELECT '2023' FROM emp WHERE empno = 2
+UNION
+SELECT '2022' FROM emp WHERE empno = 2
+]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[LogicalUnion(all=[false])
+  LogicalUnion(all=[false])
+    LogicalUnion(all=[false])
+      LogicalProject(EXPR$0=['2025'])
+        LogicalFilter(condition=[=($0, 1)])
+          LogicalTableScan(table=[[EMP]])
+      LogicalProject(EXPR$0=['2024'])
+        LogicalFilter(condition=[=($0, 1)])
+          LogicalTableScan(table=[[EMP]])
+    LogicalProject(EXPR$0=['2023'])
+      LogicalFilter(condition=[=($0, 2)])
+        LogicalTableScan(table=[[EMP]])
+  LogicalProject(EXPR$0=['2022'])
+    LogicalFilter(condition=[=($0, 2)])
+      LogicalTableScan(table=[[EMP]])
+]]>
+    </Resource>
+    <Resource name="suggestions">
+      <![CDATA[LogicalFilter(condition=[=($0, 1)])
+  LogicalTableScan(table=[[EMP]])
+
+LogicalFilter(condition=[=($0, 2)])
+  LogicalTableScan(table=[[EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSingleProjectFilterScanSuggestion">
+    <Resource name="sql">
+      <![CDATA[
+SELECT ename FROM emp WHERE empno = 1
+UNION
+SELECT ename FROM emp WHERE empno = 1
+]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[LogicalUnion(all=[false])
+  LogicalProject(ENAME=[$1])
+    LogicalFilter(condition=[=($0, 1)])
+      LogicalTableScan(table=[[EMP]])
+  LogicalProject(ENAME=[$1])
+    LogicalFilter(condition=[=($0, 1)])
+      LogicalTableScan(table=[[EMP]])
+]]>
+    </Resource>
+    <Resource name="suggestions">
+      <![CDATA[LogicalProject(ENAME=[$1])
+  LogicalFilter(condition=[=($0, 1)])
+    LogicalTableScan(table=[[EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSingleAggregateProjectScanSuggestion">
+    <Resource name="sql">
+      <![CDATA[
+SELECT COUNT(*), 'A' FROM emp GROUP BY ename
+UNION
+SELECT COUNT(*), 'B' FROM emp GROUP BY ename
+]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[LogicalUnion(all=[false])
+  LogicalProject(EXPR$0=[$1], EXPR$1=['A'])
+    LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])
+      LogicalProject(ENAME=[$1])
+        LogicalTableScan(table=[[EMP]])
+  LogicalProject(EXPR$0=[$1], EXPR$1=['B'])
+    LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])
+      LogicalProject(ENAME=[$1])
+        LogicalTableScan(table=[[EMP]])
+]]>
+    </Resource>
+    <Resource name="suggestions">
+      <![CDATA[LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])
+  LogicalProject(ENAME=[$1])
+    LogicalTableScan(table=[[EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSingleAggregateProjectFilterScanSuggestion">
+    <Resource name="sql">
+      <![CDATA[
+SELECT COUNT(*), 'A' FROM emp WHERE empno > 50 GROUP BY ename
+UNION
+SELECT COUNT(*), 'B' FROM emp WHERE empno > 50 GROUP BY ename
+]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[LogicalUnion(all=[false])
+  LogicalProject(EXPR$0=[$1], EXPR$1=['A'])
+    LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])
+      LogicalProject(ENAME=[$1])
+        LogicalFilter(condition=[>($0, 50)])
+          LogicalTableScan(table=[[EMP]])
+  LogicalProject(EXPR$0=[$1], EXPR$1=['B'])
+    LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])
+      LogicalProject(ENAME=[$1])
+        LogicalFilter(condition=[>($0, 50)])
+          LogicalTableScan(table=[[EMP]])
+]]>
+    </Resource>
+    <Resource name="suggestions">
+      <![CDATA[LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])
+  LogicalProject(ENAME=[$1])
+    LogicalFilter(condition=[>($0, 50)])
+      LogicalTableScan(table=[[EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSingleProjectJoinScanSuggestion">
+    <Resource name="sql">
+      <![CDATA[WITH cx AS (SELECT e.empno, d.dname FROM emp e INNER JOIN dept d ON e.deptno = d.deptno)
+SELECT * FROM cx WHERE cx.empno > 50
+INTERSECT
+SELECT * FROM cx WHERE cx.empno < 100
+]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[LogicalIntersect(all=[false])
+  LogicalProject(EMPNO=[$0], DNAME=[$1])
+    LogicalFilter(condition=[>($0, 50)])
+      LogicalProject(EMPNO=[$0], DNAME=[$4])
+        LogicalJoin(condition=[=($2, $3)], joinType=[inner])
+          LogicalTableScan(table=[[EMP]])
+          LogicalTableScan(table=[[DEPT]])
+  LogicalProject(EMPNO=[$0], DNAME=[$1])
+    LogicalFilter(condition=[<($0, 100)])
+      LogicalProject(EMPNO=[$0], DNAME=[$4])
+        LogicalJoin(condition=[=($2, $3)], joinType=[inner])
+          LogicalTableScan(table=[[EMP]])
+          LogicalTableScan(table=[[DEPT]])
+]]>
+    </Resource>
+    <Resource name="suggestions">
+      <![CDATA[LogicalProject(EMPNO=[$0], DNAME=[$4])
+  LogicalJoin(condition=[=($2, $3)], joinType=[inner])
+    LogicalTableScan(table=[[EMP]])
+    LogicalTableScan(table=[[DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSingleProjectFilterJoinScanSuggestion">
+    <Resource name="sql">
+      <![CDATA[WITH cx AS (SELECT e.empno, d.dname FROM emp e INNER JOIN dept d ON e.deptno = d.deptno WHERE d.dname = 'Sales')
+SELECT * FROM cx WHERE cx.empno > 50
+INTERSECT
+SELECT * FROM cx WHERE cx.empno < 100
+]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[LogicalIntersect(all=[false])
+  LogicalProject(EMPNO=[$0], DNAME=[$1])
+    LogicalFilter(condition=[>($0, 50)])
+      LogicalProject(EMPNO=[$0], DNAME=[$4])
+        LogicalFilter(condition=[=($4, 'Sales')])
+          LogicalJoin(condition=[=($2, $3)], joinType=[inner])
+            LogicalTableScan(table=[[EMP]])
+            LogicalTableScan(table=[[DEPT]])
+  LogicalProject(EMPNO=[$0], DNAME=[$1])
+    LogicalFilter(condition=[<($0, 100)])
+      LogicalProject(EMPNO=[$0], DNAME=[$4])
+        LogicalFilter(condition=[=($4, 'Sales')])
+          LogicalJoin(condition=[=($2, $3)], joinType=[inner])
+            LogicalTableScan(table=[[EMP]])
+            LogicalTableScan(table=[[DEPT]])
+]]>
+    </Resource>
+    <Resource name="suggestions">
+      <![CDATA[LogicalProject(EMPNO=[$0], DNAME=[$4])
+  LogicalFilter(condition=[=($4, 'Sales')])
+    LogicalJoin(condition=[=($2, $3)], joinType=[inner])
+      LogicalTableScan(table=[[EMP]])
+      LogicalTableScan(table=[[DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSingleAggregateProjectFilterJoinScanSuggestion">
+    <Resource name="sql">
+      <![CDATA[WITH cx AS (SELECT ename, COUNT(*) as cnt FROM emp e INNER JOIN dept d ON e.deptno = d.deptno WHERE d.dname = 'Sales' GROUP BY ename)
+SELECT * FROM cx WHERE cnt > 50
+INTERSECT
+SELECT * FROM cx WHERE cnt < 100
+]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[LogicalIntersect(all=[false])
+  LogicalProject(ENAME=[$0], CNT=[$1])
+    LogicalFilter(condition=[>($1, 50)])
+      LogicalAggregate(group=[{0}], CNT=[COUNT()])
+        LogicalProject(ENAME=[$1])
+          LogicalFilter(condition=[=($4, 'Sales')])
+            LogicalJoin(condition=[=($2, $3)], joinType=[inner])
+              LogicalTableScan(table=[[EMP]])
+              LogicalTableScan(table=[[DEPT]])
+  LogicalProject(ENAME=[$0], CNT=[$1])
+    LogicalFilter(condition=[<($1, 100)])
+      LogicalAggregate(group=[{0}], CNT=[COUNT()])
+        LogicalProject(ENAME=[$1])
+          LogicalFilter(condition=[=($4, 'Sales')])
+            LogicalJoin(condition=[=($2, $3)], joinType=[inner])
+              LogicalTableScan(table=[[EMP]])
+              LogicalTableScan(table=[[DEPT]])
+]]>
+    </Resource>
+    <Resource name="suggestions">
+      <![CDATA[LogicalAggregate(group=[{0}], CNT=[COUNT()])
+  LogicalProject(ENAME=[$1])
+    LogicalFilter(condition=[=($4, 'Sales')])
+      LogicalJoin(condition=[=($2, $3)], joinType=[inner])
+        LogicalTableScan(table=[[EMP]])
+        LogicalTableScan(table=[[DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+</Root>

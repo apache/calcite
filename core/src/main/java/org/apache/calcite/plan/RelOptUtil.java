@@ -3164,6 +3164,20 @@ public abstract class RelOptUtil {
     }
   }
 
+  /**
+   * Strips all wrapper nodes from the specified relational expression.
+   *
+   * @param node a relational expression which may have wrapper nodes
+   * @return the stripped relational expression
+   */
+  public static RelNode stripAll(RelNode node) {
+    return node.accept(new RelHomogeneousShuttle() {
+      @Override public RelNode visit(final RelNode other) {
+        return super.visit(other.stripped());
+      }
+    });
+  }
+
   @Deprecated // to be removed before 2.0
   public static boolean checkProjAndChildInputs(
       Project project,

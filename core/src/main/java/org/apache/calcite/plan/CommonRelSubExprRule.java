@@ -21,8 +21,6 @@ package org.apache.calcite.plan;
  * that are fired only on relational expressions that appear more than once
  * in a query tree.
  */
-
-// TODO: obsolete this?
 public abstract class CommonRelSubExprRule
     extends RelRule<CommonRelSubExprRule.Config> {
   //~ Constructors -----------------------------------------------------------
