@@ -961,4 +961,9 @@ public class CoreRules {
   /** Rule that converts true filtered aggregates into CASE-style filtered aggregates. */
   public static final AggregateFilterToCaseRule AGGREGATE_FILTER_TO_CASE =
       AggregateFilterToCaseRule.Config.DEFAULT.toRule();
+
+  /** Rule that converts GROUPING SETS of {@link Aggregate}
+   *  into equivalent {@link Union} ALL of GROUP BY operations. */
+  public static final AggregateGroupingSetsToUnionRule AGGREGATE_GROUPING_SETS_TO_UNION =
+      AggregateGroupingSetsToUnionRule.Config.DEFAULT.toRule();
 }
