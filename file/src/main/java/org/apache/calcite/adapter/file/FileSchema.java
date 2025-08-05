@@ -764,6 +764,11 @@ class FileSchema extends AbstractSchema {
    * Checks if a URL contains glob patterns like *, ?, or [].
    */
   private boolean isGlobPattern(String url) {
+    // URLs with http/https protocols are never glob patterns
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+      return false;
+    }
+    
     // Remove protocol prefix if present
     String path = url;
     if (url.contains("://")) {
