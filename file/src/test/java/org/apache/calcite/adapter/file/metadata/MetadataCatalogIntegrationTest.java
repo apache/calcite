@@ -96,7 +96,7 @@ public class MetadataCatalogIntegrationTest {
       // Test 1: Check if metadata schema exists
       try (Statement stmt = conn.createStatement()) {
         // Test using Calcite's built-in metadata schema
-        ResultSet rs = stmt.executeQuery("SELECT * FROM \"metadata\".TABLES");
+        ResultSet rs = stmt.executeQuery("SELECT * FROM \"metadata\".\"TABLES\"");
         assertTrue(rs.next(), "metadata.TABLES should have results");
 
         // Count tables discovered
@@ -110,7 +110,7 @@ public class MetadataCatalogIntegrationTest {
       // Test 2: Check columns metadata
       try (Statement stmt = conn.createStatement()) {
         // First, let's see what columns are available in metadata.COLUMNS
-        ResultSet rs = stmt.executeQuery("SELECT * FROM \"metadata\".COLUMNS LIMIT 1");
+        ResultSet rs = stmt.executeQuery("SELECT * FROM \"metadata\".\"COLUMNS\" LIMIT 1");
         ResultSetMetaData rsmd = rs.getMetaData();
         System.out.println("Columns in metadata.COLUMNS:");
         for (int i = 1; i <= rsmd.getColumnCount(); i++) {
@@ -120,7 +120,7 @@ public class MetadataCatalogIntegrationTest {
 
         // Now query with correct column names
         rs =
-            stmt.executeQuery("SELECT * FROM \"metadata\".COLUMNS WHERE \"TABLE_NAME\" = 'SALES' AND \"TABLE_SCHEMA\" = 'FILES'");
+            stmt.executeQuery("SELECT * FROM \"metadata\".\"COLUMNS\" WHERE \"TABLE_NAME\" = 'SALES' AND \"TABLE_SCHEMA\" = 'FILES'");
 
         List<String> columns = new ArrayList<>();
         while (rs.next()) {
@@ -249,7 +249,7 @@ public class MetadataCatalogIntegrationTest {
       // Test 1: Schema discovery query
       try (Statement stmt = conn.createStatement()) {
         ResultSet rs =
-            stmt.executeQuery("SELECT DISTINCT TABLE_SCHEMA FROM \"metadata\".TABLES ORDER BY TABLE_SCHEMA");
+            stmt.executeQuery("SELECT DISTINCT \"TABLE_SCHEMA\" FROM \"metadata\".\"TABLES\" ORDER BY \"TABLE_SCHEMA\"");
 
         List<String> schemas = new ArrayList<>();
         while (rs.next()) {
