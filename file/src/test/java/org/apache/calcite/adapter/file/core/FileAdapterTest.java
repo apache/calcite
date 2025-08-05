@@ -79,21 +79,21 @@ public class FileAdapterTest {
 
   /** Reads from a local file and checks the result. */
   @Test void testFileSelect() {
-    final String sql = "select H1 from T1 where H0 = 'R1C0'";
+    final String sql = "select \"H1\" from \"TEST\".\"T1\" where \"H0\" = 'R1C0'";
     sql("testModel", sql).returns("H1=R1C1").ok();
   }
 
   /** Reads from a local file without table headers &lt;TH&gt; and checks the
    * result. */
   @Test @RequiresNetwork void testNoThSelect() {
-    final String sql = "select \"col1\" from T1_NO_TH where \"col0\" like 'R0%'";
+    final String sql = "select \"col1\" from \"TEST\".\"T1_NO_TH\" where \"col0\" like 'R0%'";
     sql("testModel", sql).returns("col1=R0C1").ok();
   }
 
   /** Reads from a local file - finds larger table even without &lt;TH&gt;
    * elements. */
   @Test void testFindBiggerNoTh() {
-    final String sql = "select \"col4\" from TABLEX2 where \"col0\" like 'R1%'";
+    final String sql = "select \"col4\" from \"TEST\".\"TABLEX2\" where \"col0\" like 'R1%'";
     sql("testModel", sql).returns("col4=R1C4").ok();
   }
 
@@ -107,7 +107,7 @@ public class FileAdapterTest {
 
   /** Reads the EMPS table. */
   @Test void testSalesEmps() {
-    final String sql = "select * from sales.EMPS";
+    final String sql = "select * from \"SALES\".\"EMPS\"";
     sql("sales", sql)
         .returns("EMPNO=100; NAME=Fred; DEPTNO=30",
             "EMPNO=110; NAME=Eric; DEPTNO=20",
@@ -119,7 +119,7 @@ public class FileAdapterTest {
 
   /** Reads the DEPTS table. */
   @Test void testSalesDepts() {
-    final String sql = "select * from sales.DEPTS";
+    final String sql = "select * from \"SALES\".\"DEPTS\"";
     sql("sales", sql)
         .returns("DEPTNO=10; NAME=Sales",
             "DEPTNO=20; NAME=Marketing",
@@ -129,7 +129,7 @@ public class FileAdapterTest {
 
   /** Reads the DEPTS table from the CSV schema. */
   @Test void testCsvSalesDepts() {
-    final String sql = "select * from sales.DEPTS";
+    final String sql = "select * from \"SALES\".\"DEPTS\"";
     sql("sales-csv", sql)
         .returns("DEPTNO=10; NAME=Sales",
             "DEPTNO=20; NAME=Marketing",
@@ -139,7 +139,7 @@ public class FileAdapterTest {
 
   /** Reads the EMPS table from the CSV schema. */
   @Test void testCsvSalesEmps() {
-    final String sql = "select * from sales.EMPS";
+    final String sql = "select * from \"SALES\".\"EMPS\"";
     final String[] lines = {
         "EMPNO=100; NAME=Fred; DEPTNO=10; GENDER=; CITY=; EMPID=30; AGE=25; SLACKER=true; MANAGER=false; JOINEDAT=1996-08-03",
         "EMPNO=110; NAME=Eric; DEPTNO=20; GENDER=M; CITY=San Francisco; EMPID=3; AGE=80; SLACKER=null; MANAGER=false; JOINEDAT=2001-01-01",
@@ -153,7 +153,7 @@ public class FileAdapterTest {
   /** Reads the HEADER_ONLY table from the CSV schema. The CSV file has one
    * line - the column headers - but no rows of data. */
   @Test void testCsvSalesHeaderOnly() {
-    final String sql = "select * from sales.header_only";
+    final String sql = "select * from \"SALES\".\"HEADER_ONLY\"";
     sql("sales-csv", sql).returns().ok();
   }
 
@@ -161,7 +161,7 @@ public class FileAdapterTest {
    * therefore the table has a system-generated column called
    * "EmptyFileHasNoColumns". */
   @Test void testCsvSalesEmpty() {
-    final String sql = "select * from sales.\"EMPTY\"";
+    final String sql = "select * from \"SALES\".\"EMPTY\"";
     sql("sales-csv", sql)
         .checking(FileAdapterTest::checkEmpty)
         .ok();
@@ -182,8 +182,8 @@ public class FileAdapterTest {
 
   /** Test GROUP BY on date column */
   @Test void testGroupByDate() {
-    final String sql = "select count(*) as c, JOINEDAT as t\n"
-        + "from EMPS group by JOINEDAT order by t";
+    final String sql = "select count(*) as \"C\", \"JOINEDAT\" as \"T\"\n"
+        + "from \"SALES\".\"EMPS\" group by \"JOINEDAT\" order by \"T\"";
     // Note: This test appears to be reading from bug/DATE.csv instead of sales/EMPS.csv
     // This is likely a configuration issue, but for now we'll expect the actual data
     sql("sales-csv", sql)
@@ -197,7 +197,7 @@ public class FileAdapterTest {
 
   /** Reads the DEPTS table from the JSON schema. */
   @Test void testJsonSalesDepts() {
-    final String sql = "select * from sales.DEPTS";
+    final String sql = "select * from \"SALES\".\"DEPTS\"";
     sql("sales-json", sql)
         .returns("DEPTNO=10; NAME=Sales",
             "DEPTNO=20; NAME=Marketing",
@@ -207,7 +207,7 @@ public class FileAdapterTest {
 
   /** Reads the EMPS table from the JSON schema. */
   @Test void testJsonSalesEmps() {
-    final String sql = "select * from sales.EMPS";
+    final String sql = "select * from \"SALES\".\"EMPS\"";
     final String[] lines = {
         "EMPNO=100; NAME=Fred; DEPTNO=10; GENDER=; CITY=; EMPID=30; AGE=25; SLACKER=true; MANAGER=false; JOINEDAT=1996-08-03",
         "EMPNO=110; NAME=Eric; DEPTNO=20; GENDER=M; CITY=San Francisco; EMPID=3; AGE=80; SLACKER=null; MANAGER=false; JOINEDAT=2001-01-01",
@@ -222,7 +222,7 @@ public class FileAdapterTest {
    * therefore the table has a system-generated column called
    * "EmptyFileHasNoColumns". */
   @Test void testJsonSalesEmpty() {
-    final String sql = "select * from sales.\"EMPTY\"";
+    final String sql = "select * from \"SALES\".\"EMPTY\"";
     sql("sales-json", sql)
         .checking(FileAdapterTest::checkEmpty)
         .ok();
@@ -230,8 +230,8 @@ public class FileAdapterTest {
 
   /** Test returns the result of two json file joins. */
   @Test void testJsonJoinOnString() {
-    final String sql = "select EMPS.EMPNO, EMPS.NAME, DEPTS.DEPTNO from EMPS\n"
-        + "join DEPTS on EMPS.DEPTNO = DEPTS.DEPTNO";
+    final String sql = "select \"EMPS\".\"EMPNO\", \"EMPS\".\"NAME\", \"DEPTS\".\"DEPTNO\" from \"SALES\".\"EMPS\"\n"
+        + "join \"SALES\".\"DEPTS\" on \"EMPS\".\"DEPTNO\" = \"DEPTS\".\"DEPTNO\"";
     final String[] lines = {
         "EMPNO=100; NAME=Fred; DEPTNO=10",
         "EMPNO=110; NAME=Eric; DEPTNO=20",
@@ -242,12 +242,12 @@ public class FileAdapterTest {
 
   /** The folder contains both JSON files and CSV files joins. */
   @Test void testJsonWithCsvJoin() {
-    final String sql = "select EMPS.EMPNO,\n"
-        + " NAME,\n"
-        + " \"DATE\".JOINEDAT\n"
+    final String sql = "select \"EMPS\".\"EMPNO\",\n"
+        + " \"NAME\",\n"
+        + " \"DATE\".\"JOINEDAT\"\n"
         + " from \"DATE\"\n"
-        + "join EMPS on EMPS.EMPNO = \"DATE\".EMPNO\n"
-        + "order by EMPNO, NAME, JOINEDAT limit 3";
+        + "join \"SALES\".\"EMPS\" on \"EMPS\".\"EMPNO\" = \"DATE\".\"EMPNO\"\n"
+        + "order by \"EMPNO\", \"NAME\", \"JOINEDAT\" limit 3";
     final String[] lines = {
         "EMPNO=100; NAME=Fred; JOINEDAT=1996-08-03",
         "EMPNO=110; NAME=Eric; JOINEDAT=2001-01-01",
@@ -291,23 +291,23 @@ public class FileAdapterTest {
    * Reads from a table.
    */
   @Test void testSelect() {
-    sql("model", "select * from EMPS").ok();
+    sql("model", "select * from \"SALES\".\"EMPS\"").ok();
   }
 
   @Test void testSelectSingleProjectGz() {
-    sql("smart", "select NAME from EMPS").ok();
+    sql("smart", "select \"NAME\" from \"SALES\".\"EMPS\"").ok();
   }
 
   @Test void testSelectSingleProject() {
-    sql("smart", "select NAME from DEPTS").ok();
+    sql("smart", "select \"NAME\" from \"SALES\".\"DEPTS\"").ok();
   }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-898">[CALCITE-898]
    * Type inference multiplying Java long by SQL INTEGER</a>. */
   @Test void testSelectLongMultiplyInteger() {
-    final String sql = "select EMPNO * 3 as e3\n"
-        + "from LONG_EMPS where EMPNO = 100";
+    final String sql = "select \"EMPNO\" * 3 as \"E3\"\n"
+        + "from \"SALES\".\"LONG_EMPS\" where \"EMPNO\" = 100";
 
     sql("bug", sql).checking(resultSet -> {
       try {
@@ -326,18 +326,18 @@ public class FileAdapterTest {
   }
 
   @Test void testPushDownProject() {
-    final String sql = "explain plan for select * from EMPS";
+    final String sql = "explain plan for select * from \"SALES\".\"EMPS\"";
     final String expected = "PLAN=CsvTableScan(table=[[SALES, EMPS]], "
         + "fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])\n";
     sql("smart-csv", sql).returns(expected).ok();
   }
 
   @Test void testPushDownProject2() {
-    sql("smart-csv", "explain plan for select NAME, EMPNO from EMPS")
+    sql("smart-csv", "explain plan for select \"NAME\", \"EMPNO\" from \"SALES\".\"EMPS\"")
         .returns("PLAN=CsvTableScan(table=[[SALES, EMPS]], fields=[[1, 0]])\n")
         .ok();
     // make sure that it works...
-    sql("smart-csv", "select NAME, EMPNO from EMPS")
+    sql("smart-csv", "select \"NAME\", \"EMPNO\" from \"SALES\".\"EMPS\"")
         .returns("NAME=Fred; EMPNO=100",
             "NAME=Eric; EMPNO=110",
             "NAME=John; EMPNO=110",
@@ -367,7 +367,7 @@ public class FileAdapterTest {
       break;
     }
     final String sql = "explain plan " + extra + " for\n"
-        + "select GENDER, count(*) from EMPS group by GENDER";
+        + "select \"GENDER\", count(*) from \"SALES\".\"EMPS\" group by \"GENDER\"";
     sql("smart-csv", sql).returns(expected).ok();
   }
 
@@ -398,7 +398,7 @@ public class FileAdapterTest {
       break;
     }
     final String sql = "explain plan " + extra + " for\n"
-        + "select max(EMPNO) from EMPS where GENDER='F'";
+        + "select max(\"EMPNO\") from \"SALES\".\"EMPS\" where \"GENDER\"='F'";
     sql("smart-csv", sql).returns(expected).ok();
   }
 
@@ -426,43 +426,43 @@ public class FileAdapterTest {
       break;
     }
     final String sql = "explain plan " + extra + " for\n"
-        + "select GENDER, max(qty)\n"
+        + "select \"GENDER\", max(\"QTY\")\n"
         + "from (\n"
-        + "  select NAME, GENDER, count(*) qty\n"
-        + "  from EMPS\n"
-        + "  group by NAME, GENDER) t\n"
-        + "group by GENDER";
+        + "  select \"NAME\", \"GENDER\", count(*) \"QTY\"\n"
+        + "  from \"SALES\".\"EMPS\"\n"
+        + "  group by \"NAME\", \"GENDER\") T\n"
+        + "group by \"GENDER\"";
     sql("smart-csv", sql).returns(expected).ok();
   }
 
   @Test void testFilterableSelect() {
-    sql("filterable-model", "select NAME from EMPS").ok();
+    sql("filterable-model", "select \"NAME\" from \"SALES\".\"EMPS\"").ok();
   }
 
   @Test void testFilterableSelectStar() {
-    sql("filterable-model", "select * from EMPS").ok();
+    sql("filterable-model", "select * from \"SALES\".\"EMPS\"").ok();
   }
 
   /** Filter that can be fully handled by CsvFilterableTable. */
   @Test void testFilterableWhere() {
     final String sql =
-        "select EMPNO, GENDER, NAME from EMPS where NAME = 'John'";
+        "select \"EMPNO\", \"GENDER\", \"NAME\" from \"SALES\".\"EMPS\" where \"NAME\" = 'John'";
     sql("filterable-model", sql)
         .returns("EMPNO=110; GENDER=M; NAME=John").ok();
   }
 
   /** Filter that can be partly handled by CsvFilterableTable. */
   @Test void testFilterableWhere2() {
-    final String sql = "select EMPNO, GENDER, NAME from EMPS\n"
-        + " where GENDER = 'F' and EMPNO > 125";
+    final String sql = "select \"EMPNO\", \"GENDER\", \"NAME\" from \"SALES\".\"EMPS\"\n"
+        + " where \"GENDER\" = 'F' and \"EMPNO\" > 125";
     sql("filterable-model", sql)
         .returns("EMPNO=130; GENDER=F; NAME=Alice").ok();
   }
 
   /** Filter that can be slightly handled by CsvFilterableTable. */
   @Test void testFilterableWhere3() {
-    final String sql = "select EMPNO, GENDER, NAME from EMPS\n"
-        + " where GENDER <> 'M' and EMPNO > 125";
+    final String sql = "select \"EMPNO\", \"GENDER\", \"NAME\" from \"SALES\".\"EMPS\"\n"
+        + " where \"GENDER\" <> 'M' and \"EMPNO\" > 125";
     sql("filterable-model", sql)
         .returns("EMPNO=130; GENDER=F; NAME=Alice")
         .ok();
@@ -474,8 +474,8 @@ public class FileAdapterTest {
    */
   @Test void testFilterableWhereWithNot1() {
     sql("filterable-model",
-        "select NAME, EMPNO from EMPS "
-            + "where NAME like '%E%' and CITY not like '%W%' ")
+        "select \"NAME\", \"EMPNO\" from \"SALES\".\"EMPS\" "
+            + "where \"NAME\" like '%E%' and \"CITY\" not like '%W%' ")
         .returns("NAME=Eric; EMPNO=110")
         .ok();
   }
@@ -484,15 +484,15 @@ public class FileAdapterTest {
    * But use the same column. */
   @Test void testFilterableWhereWithNot2() {
     sql("filterable-model",
-        "select NAME, EMPNO from EMPS "
-            + "where NAME like '%i%' and NAME not like '%W%' ")
+        "select \"NAME\", \"EMPNO\" from \"SALES\".\"EMPS\" "
+            + "where \"NAME\" like '%i%' and \"NAME\" not like '%W%' ")
         .returns("NAME=Eric; EMPNO=110",
             "NAME=Alice; EMPNO=130")
         .ok();
   }
 
   @Test void testJson() {
-    final String sql = "select * from archers\n";
+    final String sql = "select * from \"SALES\".\"ARCHERS\"\n";
     final String[] lines = {
         "id=19990101; dow=Friday; longDate=New Years Day; title=Tractor trouble.; "
             + "characters=[Alice, Bob, Xavier]; script=Julian Hyde; summary=; "
@@ -509,17 +509,17 @@ public class FileAdapterTest {
   }
 
   @Test void testJoinOnString() {
-    final String sql = "select * from EMPS\n"
-        + "join DEPTS on EMPS.NAME = DEPTS.NAME";
+    final String sql = "select * from \"SALES\".\"EMPS\"\n"
+        + "join \"SALES\".\"DEPTS\" on \"EMPS\".\"NAME\" = \"DEPTS\".\"NAME\"";
     sql("smart", sql).ok();
   }
 
   @Test void testWackyColumns() {
-    final String sql = "select * from WACKY_COLUMN_NAMES where false";
+    final String sql = "select * from \"SALES\".\"WACKY_COLUMN_NAMES\" where false";
     sql("bug", sql).returns().ok();
 
     final String sql2 = "select \"joined at\", \"naME\"\n"
-        + "from WACKY_COLUMN_NAMES\n"
+        + "from \"SALES\".\"WACKY_COLUMN_NAMES\"\n"
         + "where \"2gender\" = 'F'";
     sql("bug", sql2)
         .returns("joined at=2005-09-07; naME=Wilma",
@@ -535,8 +535,8 @@ public class FileAdapterTest {
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
          Statement statement = connection.createStatement()) {
       // Properly handle potential null values
-      final String sql = "select count(*) as c, JOINTIME as t\n"
-          + "from \"DATE\" where JOINTIME is not null group by JOINTIME order by JOINTIME";
+      final String sql = "select count(*) as \"C\", \"JOINTIME\" as \"T\"\n"
+          + "from \"DATE\" where \"JOINTIME\" is not null group by \"JOINTIME\" order by \"JOINTIME\"";
       ResultSet resultSet = statement.executeQuery(sql);
 
       // Verify we get the expected distinct time values
@@ -567,8 +567,8 @@ public class FileAdapterTest {
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
          Statement statement = connection.createStatement()) {
       // Test GROUP BY with Parquet engine and null filtering
-      final String sql = "select count(*) as c, JOINTIME as t\n"
-          + "from \"DATE\" where JOINTIME is not null group by JOINTIME order by JOINTIME";
+      final String sql = "select count(*) as \"C\", \"JOINTIME\" as \"T\"\n"
+          + "from \"DATE\" where \"JOINTIME\" is not null group by \"JOINTIME\" order by \"JOINTIME\"";
       ResultSet resultSet = statement.executeQuery(sql);
 
       // Verify we get the expected distinct time values with Parquet engine
@@ -593,22 +593,22 @@ public class FileAdapterTest {
   }
 
   @Test void testUnionGroupByWithoutGroupKey() {
-    final String sql = "select count(*) as c1 from EMPS group by NAME\n"
+    final String sql = "select count(*) as \"C1\" from \"SALES\".\"EMPS\" group by \"NAME\"\n"
         + "union\n"
-        + "select count(*) as c1 from EMPS group by NAME";
+        + "select count(*) as \"C1\" from \"SALES\".\"EMPS\" group by \"NAME\"";
     sql("model", sql).ok();
   }
 
   @Test @Disabled("Known limitation: Boolean null handling in WHERE clauses") void testBoolean() {
-    sql("smart", "select EMPNO, SLACKER from EMPS where SLACKER")
+    sql("smart", "select \"EMPNO\", \"SLACKER\" from \"SALES\".\"EMPS\" where \"SLACKER\"")
         .returns("EMPNO=100; SLACKER=true").ok();
   }
 
   @Test void testReadme() {
-    final String sql = "SELECT d.NAME, COUNT(*) cnt"
-        + " FROM EMPS AS e"
-        + " JOIN DEPTS AS d ON e.DEPTNO = d.DEPTNO"
-        + " GROUP BY d.NAME";
+    final String sql = "SELECT \"D\".\"NAME\", COUNT(*) \"CNT\""
+        + " FROM \"SALES\".\"EMPS\" AS \"E\""
+        + " JOIN \"SALES\".\"DEPTS\" AS \"D\" ON \"E\".\"DEPTNO\" = \"D\".\"DEPTNO\""
+        + " GROUP BY \"D\".\"NAME\"";
     sql("smart", sql)
         .returns("NAME=Sales; CNT=1", "NAME=Marketing; CNT=2").ok();
   }
@@ -619,9 +619,9 @@ public class FileAdapterTest {
   @Test void testInToSemiJoinWithCast() {
     // Note that the IN list needs at least 20 values to trigger the rewrite
     // to a semijoin. Try it both ways.
-    final String sql = "SELECT e.NAME\n"
-        + "FROM EMPS AS e\n"
-        + "WHERE cast(e.EMPNO as bigint) in ";
+    final String sql = "SELECT \"E\".\"NAME\"\n"
+        + "FROM \"SALES\".\"EMPS\" AS \"E\"\n"
+        + "WHERE cast(\"E\".\"EMPNO\" as bigint) in ";
     final int threshold = SqlToRelConverter.DEFAULT_IN_SUB_QUERY_THRESHOLD;
     sql("smart", sql + range(130, threshold - 5))
         .returns("NAME=Alice").ok();
@@ -635,9 +635,9 @@ public class FileAdapterTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1051">[CALCITE-1051]
    * Underflow exception due to scaling IN clause literals</a>. */
   @Test void testInToSemiJoinWithoutCast() {
-    final String sql = "SELECT e.NAME\n"
-        + "FROM EMPS AS e\n"
-        + "WHERE e.EMPNO in "
+    final String sql = "SELECT \"E\".\"NAME\"\n"
+        + "FROM \"SALES\".\"EMPS\" AS \"E\"\n"
+        + "WHERE \"E\".\"EMPNO\" in "
         + range(130, SqlToRelConverter.DEFAULT_IN_SUB_QUERY_THRESHOLD);
     sql("smart", sql).returns("NAME=Alice").ok();
   }
@@ -651,7 +651,7 @@ public class FileAdapterTest {
   }
 
   @Test void testDecimalType() {
-    sql("sales-csv", "select BUDGET from sales.\"DECIMAL\"")
+    sql("sales-csv", "select \"BUDGET\" from \"SALES\".\"DECIMAL\"")
         .checking(resultSet -> {
           try {
             ResultSetMetaData metaData = resultSet.getMetaData();
@@ -664,7 +664,7 @@ public class FileAdapterTest {
   }
 
   @Test void testDecimalTypeArithmeticOperations() {
-    sql("sales-csv", "select BUDGET + 100.0 from sales.\"DECIMAL\" where DEPTNO = 10")
+    sql("sales-csv", "select \"BUDGET\" + 100.0 from \"SALES\".\"DECIMAL\" where \"DEPTNO\" = 10")
         .checking(resultSet -> {
           try {
             resultSet.next();
@@ -676,7 +676,7 @@ public class FileAdapterTest {
           }
         })
         .ok();
-    sql("sales-csv", "select BUDGET - 100.0 from sales.\"DECIMAL\" where DEPTNO = 10")
+    sql("sales-csv", "select \"BUDGET\" - 100.0 from \"SALES\".\"DECIMAL\" where \"DEPTNO\" = 10")
         .checking(resultSet -> {
           try {
             resultSet.next();
@@ -688,7 +688,7 @@ public class FileAdapterTest {
           }
         })
         .ok();
-    sql("sales-csv", "select BUDGET * 0.01 from sales.\"DECIMAL\" where DEPTNO = 10")
+    sql("sales-csv", "select \"BUDGET\" * 0.01 from \"SALES\".\"DECIMAL\" where \"DEPTNO\" = 10")
         .checking(resultSet -> {
           try {
             resultSet.next();
@@ -700,7 +700,7 @@ public class FileAdapterTest {
           }
         })
         .ok();
-    sql("sales-csv", "select BUDGET / 100 from sales.\"DECIMAL\" where DEPTNO = 10")
+    sql("sales-csv", "select \"BUDGET\" / 100 from \"SALES\".\"DECIMAL\" where \"DEPTNO\" = 10")
         .checking(resultSet -> {
           try {
             resultSet.next();
@@ -743,7 +743,7 @@ public class FileAdapterTest {
 
       Statement statement = connection.createStatement();
       final String sql = "select \"JOINEDAT\", \"JOINTIME\", \"JOINTIMES\" "
-          + "from \"DATE\" where EMPNO = 100";
+          + "from \"DATE\" where \"EMPNO\" = 100";
       ResultSet resultSet = statement.executeQuery(sql);
       resultSet.next();
 
@@ -783,7 +783,7 @@ public class FileAdapterTest {
              DriverManager.getConnection("jdbc:calcite:", info)) {
       Statement statement = connection.createStatement();
       final String sql = "select * from \"DATE\"\n"
-          + "where EMPNO >= 140 and EMPNO < 200";
+          + "where \"EMPNO\" >= 140 and \"EMPNO\" < 200";
       ResultSet resultSet = statement.executeQuery(sql);
       int n = 0;
       while (resultSet.next()) {
@@ -886,9 +886,9 @@ public class FileAdapterTest {
       final Statement statement = connection.createStatement();
 
       // date
-      final String sql1 = "select JOINEDAT from \"DATE\"\n"
-          + "where JOINEDAT < {d '2000-01-01'}\n"
-          + "or JOINEDAT >= {d '2017-01-01'}";
+      final String sql1 = "select \"JOINEDAT\" from \"DATE\"\n"
+          + "where \"JOINEDAT\" < {d '2000-01-01'}\n"
+          + "or \"JOINEDAT\" >= {d '2017-01-01'}";
       final ResultSet joinedAt = statement.executeQuery(sql1);
       assertThat(joinedAt.next(), is(true));
       // Use numeric comparison instead of Date.valueOf
@@ -897,22 +897,22 @@ public class FileAdapterTest {
       assertThat(dateMillis > 0, is(true));
 
       // time
-      final String sql2 = "select JOINTIME from \"DATE\"\n"
-          + "where JOINTIME is not null\n"
-          + "and JOINTIME >= {t '07:00:00'}\n"
-          + "and JOINTIME < {t '08:00:00'}";
+      final String sql2 = "select \"JOINTIME\" from \"DATE\"\n"
+          + "where \"JOINTIME\" is not null\n"
+          + "and \"JOINTIME\" >= {t '07:00:00'}\n"
+          + "and \"JOINTIME\" < {t '08:00:00'}";
       final ResultSet joinTime = statement.executeQuery(sql2);
       assertThat(joinTime.next(), is(true));
       assertThat(joinTime.getTime(1), is(Time.valueOf("07:15:56")));
 
       // timestamp
-      final String sql3 = "select JOINTIMES,\n"
-          + "  {fn timestampadd(SQL_TSI_DAY, 1, JOINTIMES)}\n"
+      final String sql3 = "select \"JOINTIMES\",\n"
+          + "  {fn timestampadd(SQL_TSI_DAY, 1, \"JOINTIMES\")}\n"
           + "from \"DATE\"\n"
-          + "where (JOINTIMES >= {ts '2003-01-01 00:00:00'}\n"
-          + "and JOINTIMES < {ts '2006-01-01 00:00:00'})\n"
-          + "or (JOINTIMES >= {ts '2003-01-01 00:00:00'}\n"
-          + "and JOINTIMES < {ts '2007-01-01 00:00:00'})";
+          + "where (\"JOINTIMES\" >= {ts '2003-01-01 00:00:00'}\n"
+          + "and \"JOINTIMES\" < {ts '2006-01-01 00:00:00'})\n"
+          + "or (\"JOINTIMES\" >= {ts '2003-01-01 00:00:00'}\n"
+          + "and \"JOINTIMES\" < {ts '2007-01-01 00:00:00'})";
       final ResultSet joinTimes = statement.executeQuery(sql3);
       assertThat(joinTimes.next(), is(true));
       // TIMESTAMP stored as UTC milliseconds
@@ -920,7 +920,7 @@ public class FileAdapterTest {
       assertThat(joinTimes.getTimestamp(1).toString().contains("2005-09-06"), is(true));
       assertThat(joinTimes.getTimestamp(2).toString().contains("2005-09-07"), is(true));
 
-      final String sql4 = "select JOINTIMES, extract(year from JOINTIMES)\n"
+      final String sql4 = "select \"JOINTIMES\", extract(year from \"JOINTIMES\")\n"
           + "from \"DATE\"";
       final ResultSet joinTimes2 = statement.executeQuery(sql4);
       assertThat(joinTimes2.next(), is(true));
@@ -943,8 +943,8 @@ public class FileAdapterTest {
       final Statement statement = connection.createStatement();
 
       // date
-      final String sql1 = "select JOINEDAT from \"DATE\"\n"
-          + "where JOINEDAT is not null";
+      final String sql1 = "select \"JOINEDAT\" from \"DATE\"\n"
+          + "where \"JOINEDAT\" is not null";
       final ResultSet joinedAt = statement.executeQuery(sql1);
       assertThat(joinedAt.next(), is(true));
       assertThat(joinedAt.getDate(1).getClass(), equalTo(Date.class));
@@ -961,8 +961,8 @@ public class FileAdapterTest {
       assertThat(epochDays, is(9710L));
 
       // time
-      final String sql2 = "select JOINTIME from \"DATE\"\n"
-          + "where JOINTIME is not null";
+      final String sql2 = "select \"JOINTIME\" from \"DATE\"\n"
+          + "where \"JOINTIME\" is not null";
       final ResultSet joinTime = statement.executeQuery(sql2);
       assertThat(joinTime.next(), is(true));
       assertThat(joinTime.getTime(1).getClass(), equalTo(Time.class));
@@ -974,8 +974,8 @@ public class FileAdapterTest {
       assertThat(timeMs == 62000L || timeMs == 18062000L, is(true));
 
       // timestamp
-      final String sql3 = "select JOINTIMES from \"DATE\"\n"
-          + "where JOINTIMES is not null";
+      final String sql3 = "select \"JOINTIMES\" from \"DATE\"\n"
+          + "where \"JOINTIMES\" is not null";
       final ResultSet joinTimes = statement.executeQuery(sql3);
       assertThat(joinTimes.next(), is(true));
       assertThat(joinTimes.getTimestamp(1).getClass(),
@@ -1006,8 +1006,8 @@ public class FileAdapterTest {
              DriverManager.getConnection("jdbc:calcite:", info)) {
       final Statement statement = connection.createStatement();
 
-      final String sql1 = "select JOINEDAT from \"DATE\"\n"
-          + "where JOINEDAT > {d '1990-01-01'}";
+      final String sql1 = "select \"JOINEDAT\" from \"DATE\"\n"
+          + "where \"JOINEDAT\" > {d '1990-01-01'}";
       final ResultSet joinedAt = statement.executeQuery(sql1);
       assertThat(joinedAt.next(), is(true));
       assertThat(joinedAt.getDate(1).getClass(), equalTo(Date.class));
@@ -1026,8 +1026,8 @@ public class FileAdapterTest {
       assertThat(epochDays, is(9710L));
 
       // time
-      final String sql2 = "select JOINTIME from \"DATE\"\n"
-          + "where JOINTIME > {t '00:00:00'}";
+      final String sql2 = "select \"JOINTIME\" from \"DATE\"\n"
+          + "where \"JOINTIME\" > {t '00:00:00'}";
       final ResultSet joinTime = statement.executeQuery(sql2);
       assertThat(joinTime.next(), is(true));
       assertThat(joinTime.getTime(1).getClass(), equalTo(Time.class));
@@ -1039,8 +1039,8 @@ public class FileAdapterTest {
       assertThat(timeMs == 62000L || timeMs == 18062000L, is(true));
 
       // timestamp
-      final String sql3 = "select JOINTIMES from \"DATE\"\n"
-          + "where JOINTIMES > {ts '1990-01-01 00:00:00'}";
+      final String sql3 = "select \"JOINTIMES\" from \"DATE\"\n"
+          + "where \"JOINTIMES\" > {ts '1990-01-01 00:00:00'}";
       final ResultSet joinTimes = statement.executeQuery(sql3);
       assertThat(joinTimes.next(), is(true));
       assertThat(joinTimes.getTimestamp(1).getClass(),
