@@ -30,7 +30,7 @@ public class JsonFlattenTest {
   @Test void testJsonFlattening() {
     // Test flattened JSON table access
     // Note: Using flattenSeparator="_" in config
-    sql("sales-json-flatten", "select * from NESTED_FLAT")
+    sql("sales-json-flatten", "select * from \"SALES\".\"NESTED_FLAT\"")
         .returns("id=1; name=John Doe; address_street=123 Main St; "
             + "address_city=Anytown; address_zip=12345; tags=customer,vip,active",
             "id=2; name=Jane Smith; address_street=456 Oak Ave; "
@@ -42,7 +42,7 @@ public class JsonFlattenTest {
     // Test accessing specific flattened columns
     // Note: Using flattenSeparator="_" in config
     sql("sales-json-flatten",
-        "select \"id\", \"name\", \"address_city\" from NESTED_FLAT where \"id\" = 1")
+        "select \"id\", \"name\", \"address_city\" from \"SALES\".\"NESTED_FLAT\" where \"id\" = 1")
         .returns("id=1; name=John Doe; address_city=Anytown")
         .ok();
   }

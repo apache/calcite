@@ -44,6 +44,7 @@ public class S3StorageProvider implements StorageProvider {
   public S3StorageProvider() {
     this.s3Client = AmazonS3ClientBuilder.standard()
         .withCredentials(new DefaultAWSCredentialsProviderChain())
+        .withRegion("us-east-1")
         .build();
   }
 
