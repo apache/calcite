@@ -7915,6 +7915,18 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7089">[CALCITE-7089]
+   * Implement a rule for converting a RIGHT JOIN to a LEFT JOIN</a>. */
+  @Test void testSwapRightToLeftOnly() {
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.JOIN_COMMUTE_RIGHT_TO_LEFT)
+        .build();
+    final String sql = "select 1 from sales.dept d right outer join sales.emp e\n"
+        + " on d.deptno = e.deptno";
+    sql(sql).withProgram(program).check();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4042">[CALCITE-4042]
    * JoinCommuteRule must not match SEMI / ANTI join</a>. */
   @Test void testSwapSemiJoin() {
