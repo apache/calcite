@@ -3508,8 +3508,9 @@ public class SqlFunctions {
 
   /**
    * Performs bitwise shift on two integers.
-   * Equivalent to: {@literal x << (y % 32)} if y >= 0, or
-   * {@literal x >>> (-y % 32)} if y < 0.
+   * If the shift amount is positive, a left shift is applied.
+   * If the shift amount is negative, a logical right shift is applied.
+   * The shift amount is taken modulo 32.
    */
 
   public static int leftShift(int x, int y) {
@@ -3518,9 +3519,10 @@ public class SqlFunctions {
   }
 
   /**
-   * Performs bitwise shift on two integers.
-   * Equivalent to: {@literal x << (y % 64)} if y >= 0, or
-   * {@literal x >>> (-y % 64)} if y < 0.
+   * Performs bitwise shift on a long value.
+   * If the shift amount is positive, a left shift is applied.
+   * If the shift amount is negative, a logical right shift is applied.
+   * The shift amount is taken modulo 64.
    */
 
   public static long leftShift(long x, int y) {
@@ -3539,9 +3541,9 @@ public class SqlFunctions {
   }
 
   /**
-   * Performs bitwise shift on ByteString input.
-   * Returns a new ByteString with shifted bits. If {@literal y >= 0}: left shift;
-   * if {@literal y < 0}: logical right shift.
+   * Performs bitwise shift on a byte array.
+   * A positive shift amount performs a left shift.
+   * A negative shift amount performs a logical right shift.
    */
   public static ByteString leftShift(ByteString bytes, int y) {
     byte[] result = leftShift(bytes.getBytes(), y);
@@ -3549,9 +3551,9 @@ public class SqlFunctions {
   }
 
   /**
-   * Performs bitwise shift on byte array.
-   * If {@literal y >= 0}: left shift; if {@literal y < 0}: logical right shift.
-   * Shift amount is modulo 32 bits.
+   * Performs bitwise shift on a byte array.
+   * A positive shift amount performs a left shift.
+   * A negative shift amount performs a logical right shift.
    */
   public static byte[] leftShift(byte[] bytes, int y) {
     int shift = Math.abs(y % 32);
