@@ -43,10 +43,19 @@ public class S3StorageProvider implements StorageProvider {
   private final AmazonS3 s3Client;
 
   public S3StorageProvider() {
-    this.s3Client = AmazonS3ClientBuilder.standard()
-        .withCredentials(new DefaultAWSCredentialsProviderChain())
-        .withRegion(new DefaultAwsRegionProviderChain().getRegion())
-        .build();
+    AmazonS3ClientBuilder builder = AmazonS3ClientBuilder.standard()
+        .withCredentials(new DefaultAWSCredentialsProviderChain());
+    
+    // Try to get region from default provider chain, fallback to us-east-1 if not available
+    try {
+      String region = new DefaultAwsRegionProviderChain().getRegion();
+      builder.withRegion(region);
+    } catch (Exception e) {
+      // If no region is configured, use us-east-1 as default
+      builder.withRegion("us-east-1");
+    }
+    
+    this.s3Client = builder.build();
   }
 
   public S3StorageProvider(AmazonS3 s3Client) {
