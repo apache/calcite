@@ -620,6 +620,11 @@ public class CoreRules {
   public static final JoinCommuteRule JOIN_COMMUTE_OUTER =
       JoinCommuteRule.Config.SWAP_OUTER.toRule();
 
+  /** As {@link #JOIN_COMMUTE} but only swaps RIGHT joins to LEFT joins. */
+  @RuleConfig(value = "RIGHT_TO_LEFT_ONLY")
+  public static final JoinCommuteRule JOIN_COMMUTE_RIGHT_TO_LEFT =
+      JoinCommuteRule.Config.RIGHT_TO_LEFT_ONLY.toRule();
+
   /** Rule to convert an
    * {@link LogicalJoin inner join} to a
    * {@link LogicalFilter filter} on top of a
