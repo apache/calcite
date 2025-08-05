@@ -98,7 +98,6 @@ public class FileAdapterTest {
   }
 
   /** Reads from a URL and checks the result. */
-  @Disabled("[CALCITE-1789] Wikipedia format change breaks file adapter test")
   @Test @RequiresNetwork void testUrlSelect() {
     final String sql = "select \"State\", \"Statehood\" from \"WIKI\".\"States_as_of\"\n"
         + "where \"State\" = 'California'";
@@ -599,7 +598,7 @@ public class FileAdapterTest {
     sql("model", sql).ok();
   }
 
-  @Test @Disabled("Known limitation: Boolean null handling in WHERE clauses") void testBoolean() {
+  @Test void testBoolean() {
     sql("smart", "select \"EMPNO\", \"SLACKER\" from \"SALES\".\"EMPS\" where \"SLACKER\"")
         .returns("EMPNO=100; SLACKER=true").ok();
   }

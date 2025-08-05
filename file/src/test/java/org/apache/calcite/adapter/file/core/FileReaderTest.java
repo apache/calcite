@@ -72,7 +72,6 @@ class FileReaderTest {
   }
 
   /** Tests {@link FileReader} URL instantiation - no path. */
-  @Disabled("[CALCITE-3800] FileReaderTest#testFileReaderUrlNoPath() timeout for AppVeyor test")
   @Test @RequiresNetwork public void testFileReaderUrlNoPath() throws FileReaderException {
     // Under OpenJDK, test fails with the following, so skip test:
     //   javax.net.ssl.SSLHandshakeException:
@@ -91,7 +90,6 @@ class FileReaderTest {
   }
 
   /** Tests {@link FileReader} URL instantiation - with path. */
-  @Disabled("[CALCITE-1789] Wikipedia format change breaks file adapter test")
   @Test @RequiresNetwork public void testFileReaderUrlWithPath() throws FileReaderException {
     FileReader t =
         new FileReader(CITIES_SOURCE,
@@ -100,7 +98,6 @@ class FileReaderTest {
   }
 
   /** Tests {@link FileReader} URL fetch. */
-  @Disabled("[CALCITE-1789] Wikipedia format change breaks file adapter test")
   @Test @RequiresNetwork public void testFileReaderUrlFetch() throws FileReaderException {
     FileReader t =
         new FileReader(STATES_SOURCE,

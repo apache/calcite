@@ -45,7 +45,7 @@ public class SftpStorageProviderTest {
    * Test using test.rebex.net public SFTP server.
    * This server allows anonymous access for testing.
    */
-  @Test @Disabled("Requires internet connection to test.rebex.net")
+  @Test
   void testRebexPublicSftpServer() throws IOException {
     // test.rebex.net provides a public SFTP test server
     // Username: demo
@@ -97,7 +97,7 @@ public class SftpStorageProviderTest {
   /**
    * Test using demo.wftpserver.com (another public test server).
    */
-  @Test @Disabled("Requires internet connection to demo.wftpserver.com")
+  @Test
   void testWftpPublicServer() throws IOException {
     // demo.wftpserver.com
     // Username: demo-user
@@ -154,7 +154,7 @@ public class SftpStorageProviderTest {
    * Test with local SFTP server (if available).
    * Uncomment and modify to test with your own SFTP server.
    */
-  @Test @Disabled("Requires local SFTP server")
+  @Test
   void testLocalSftpServer() throws IOException {
     // Example configuration for local testing
     String sftpUrl = "sftp://localhost/home/testuser/";

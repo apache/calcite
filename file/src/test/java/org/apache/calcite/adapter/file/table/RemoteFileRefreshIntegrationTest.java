@@ -41,7 +41,6 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Integration tests for remote file refresh functionality.
  */
-@Disabled("Uses forbidden com.sun.net.httpserver APIs")
 public class RemoteFileRefreshIntegrationTest {
 
   @TempDir
