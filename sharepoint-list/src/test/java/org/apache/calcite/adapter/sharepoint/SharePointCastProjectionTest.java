@@ -26,21 +26,18 @@ import org.junit.jupiter.api.Test;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Unit tests for CAST operations with SharePoint adapter schema.
- * 
+ *
  * These tests verify that CAST operations are properly handled by the Calcite
  * query planner when using SharePoint schema metadata, without requiring
  * actual SharePoint connectivity.
@@ -63,8 +60,7 @@ public class SharePointCastProjectionTest {
     rootSchema.add("sharepoint", new MockSharePointSchema());
   }
 
-  @Test
-  public void testCastOperationsParsing() throws SQLException {
+  @Test public void testCastOperationsParsing() throws SQLException {
     // Test that various CAST operations can be parsed and planned
     // without actually executing against SharePoint
 
@@ -91,8 +87,7 @@ public class SharePointCastProjectionTest {
     }
   }
 
-  @Test
-  public void testComplexCastExpressions() throws SQLException {
+  @Test public void testComplexCastExpressions() throws SQLException {
     // Test complex CAST expressions in various SQL clauses
     String[] complexCastQueries = {
         "SELECT CASE WHEN CAST(priority AS INTEGER) > 5 THEN 'HIGH' ELSE 'LOW' END AS priority_level FROM sharepoint.tasks",
@@ -113,8 +108,7 @@ public class SharePointCastProjectionTest {
     }
   }
 
-  @Test
-  public void testCastWithJoins() throws SQLException {
+  @Test public void testCastWithJoins() throws SQLException {
     // Test CAST operations in JOIN conditions and multi-table queries
     String joinQuery = "SELECT t1.title, CAST(t1.priority AS VARCHAR) AS priority_str "
         + "FROM sharepoint.tasks t1 "
@@ -128,8 +122,7 @@ public class SharePointCastProjectionTest {
     }, "JOIN query with CAST operations should parse successfully");
   }
 
-  @Test
-  public void testCastInSubqueries() throws SQLException {
+  @Test public void testCastInSubqueries() throws SQLException {
     // Test CAST operations in subqueries
     String subqueryWithCast = "SELECT title FROM sharepoint.tasks "
         + "WHERE CAST(priority AS INTEGER) > ("
@@ -148,14 +141,13 @@ public class SharePointCastProjectionTest {
    * without requiring actual SharePoint connectivity.
    */
   private static class MockSharePointSchema extends AbstractSchema {
-    @Override
-    protected Map<String, org.apache.calcite.schema.Table> getTableMap() {
+    @Override protected Map<String, org.apache.calcite.schema.Table> getTableMap() {
       Map<String, org.apache.calcite.schema.Table> tables = new HashMap<>();
-      
+
       // Create mock tables with various column types for CAST testing
       tables.put("tasks", new MockSharePointTable("tasks"));
       tables.put("users", new MockSharePointTable("users"));
-      
+
       return tables;
     }
   }
@@ -171,10 +163,9 @@ public class SharePointCastProjectionTest {
       this.tableName = tableName;
     }
 
-    @Override
-    public org.apache.calcite.rel.type.RelDataType getRowType(
+    @Override public org.apache.calcite.rel.type.RelDataType getRowType(
         org.apache.calcite.rel.type.RelDataTypeFactory typeFactory) {
-      
+
       org.apache.calcite.rel.type.RelDataTypeFactory.Builder builder = typeFactory.builder();
 
       if ("tasks".equals(tableName)) {
@@ -198,8 +189,7 @@ public class SharePointCastProjectionTest {
       return builder.build();
     }
 
-    @Override
-    public org.apache.calcite.linq4j.Enumerable<Object[]> scan(
+    @Override public org.apache.calcite.linq4j.Enumerable<Object[]> scan(
         org.apache.calcite.DataContext root) {
       // Return empty enumerable for mock data
       return org.apache.calcite.linq4j.Linq4j.emptyEnumerable();

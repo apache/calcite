@@ -28,7 +28,6 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.nio.file.Files;
 
 public class DetailedDebugTest {
@@ -57,7 +56,7 @@ public class DetailedDebugTest {
       sheet.createRow(2); // Empty
       sheet.createRow(3); // Empty
 
-      // Second table  
+      // Second table
       Row h2 = sheet.createRow(4);
       h2.createCell(0).setCellValue("Product");
       h2.createCell(1).setCellValue("Price");

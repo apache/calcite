@@ -28,7 +28,6 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 
 public class DebugMultiTableTest {
 

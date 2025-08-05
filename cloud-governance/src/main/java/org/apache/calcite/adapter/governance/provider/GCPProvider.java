@@ -1,4 +1,4 @@
- /*
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -16,11 +16,12 @@
  */
 package org.apache.calcite.adapter.governance.provider;
 
+import org.apache.calcite.adapter.governance.CloudGovernanceConfig;
+
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
-import org.apache.calcite.adapter.governance.CloudGovernanceConfig;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -40,23 +41,21 @@ public class GCPProvider implements CloudProvider {
   public GCPProvider(CloudGovernanceConfig.GCPConfig config) {
     this.config = config;
     try {
-      this.credentials = GoogleCredentials.fromStream(
-          new FileInputStream(config.credentialsPath))
+      this.credentials =
+          GoogleCredentials.fromStream(new FileInputStream(config.credentialsPath))
           .createScoped("https://www.googleapis.com/auth/cloud-platform");
     } catch (IOException e) {
       throw new RuntimeException("Failed to initialize GCP credentials", e);
     }
   }
 
-  @Override
-  public List<Map<String, Object>> queryKubernetesClusters(List<String> projectIds) {
+  @Override public List<Map<String, Object>> queryKubernetesClusters(List<String> projectIds) {
     List<Map<String, Object>> results = new ArrayList<>();
     // TODO: Implement GKE cluster query once API compatibility is resolved
     return results;
   }
 
-  @Override
-  public List<Map<String, Object>> queryStorageResources(List<String> projectIds) {
+  @Override public List<Map<String, Object>> queryStorageResources(List<String> projectIds) {
     List<Map<String, Object>> results = new ArrayList<>();
 
     for (String projectId : projectIds) {
@@ -129,36 +128,31 @@ public class GCPProvider implements CloudProvider {
     return results;
   }
 
-  @Override
-  public List<Map<String, Object>> queryComputeInstances(List<String> projectIds) {
+  @Override public List<Map<String, Object>> queryComputeInstances(List<String> projectIds) {
     List<Map<String, Object>> results = new ArrayList<>();
     // TODO: Implement compute instances query once API compatibility is resolved
     return results;
   }
 
-  @Override
-  public List<Map<String, Object>> queryNetworkResources(List<String> projectIds) {
+  @Override public List<Map<String, Object>> queryNetworkResources(List<String> projectIds) {
     List<Map<String, Object>> results = new ArrayList<>();
     // TODO: Implement network resources query once API compatibility is resolved
     return results;
   }
 
-  @Override
-  public List<Map<String, Object>> queryIAMResources(List<String> projectIds) {
+  @Override public List<Map<String, Object>> queryIAMResources(List<String> projectIds) {
     List<Map<String, Object>> results = new ArrayList<>();
     // TODO: Implement IAM resources query once API compatibility is resolved
     return results;
   }
 
-  @Override
-  public List<Map<String, Object>> queryDatabaseResources(List<String> projectIds) {
+  @Override public List<Map<String, Object>> queryDatabaseResources(List<String> projectIds) {
     List<Map<String, Object>> results = new ArrayList<>();
     // TODO: Implement database resources query once API compatibility is resolved
     return results;
   }
 
-  @Override
-  public List<Map<String, Object>> queryContainerRegistries(List<String> projectIds) {
+  @Override public List<Map<String, Object>> queryContainerRegistries(List<String> projectIds) {
     List<Map<String, Object>> results = new ArrayList<>();
     // TODO: Implement container registries query once API compatibility is resolved
     return results;

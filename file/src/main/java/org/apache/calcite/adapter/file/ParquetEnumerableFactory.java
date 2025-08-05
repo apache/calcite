@@ -158,7 +158,7 @@ public class ParquetEnumerableFactory {
                 value = null;
               } else {
                 // Log unexpected value type
-                System.out.println("[ParquetEnumerableFactory] Unexpected DATE value type: " 
+                System.out.println("[ParquetEnumerableFactory] Unexpected DATE value type: "
                     + (value != null ? value.getClass().getName() : "null"));
               }
             } else if ("time-millis".equals(logicalTypeName)) {
@@ -295,7 +295,7 @@ public class ParquetEnumerableFactory {
                 } else if (value == null) {
                   value = null;
                 } else {
-                  System.out.println("[FilteredParquetEnumerator] Unexpected DATE value type: " 
+                  System.out.println("[FilteredParquetEnumerator] Unexpected DATE value type: "
                       + (value != null ? value.getClass().getName() : "null"));
                 }
               } else if ("time-millis".equals(logicalTypeName)) {
@@ -332,7 +332,7 @@ public class ParquetEnumerableFactory {
           if (!shouldSkip) {
             return true; // Found a valid row
           }
-          
+
           // Continue to next row if this one should be skipped
         }
       } catch (IOException e) {
@@ -411,7 +411,7 @@ public class ParquetEnumerableFactory {
           int fieldCount = current.getSchema().getFields().size();
           currentRow = new Object[fieldCount];
           boolean shouldSkipRow = false;
-          
+
           for (int i = 0; i < fieldCount; i++) {
             Object value = current.get(i);
 
@@ -454,7 +454,7 @@ public class ParquetEnumerableFactory {
 
             currentRow[i] = value;
           }
-          
+
           // Skip this row if it has null TIME values
           if (shouldSkipRow) {
             continue; // Read next row

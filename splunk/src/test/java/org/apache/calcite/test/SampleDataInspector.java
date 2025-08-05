@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.config.CalciteSystemProperty;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIf;
 
@@ -37,7 +35,7 @@ import java.util.Properties;
 /**
  * Test to inspect sample data for all 24 CIM models showing complete field details.
  */
-@EnabledIf("isSplunkEnabled")
+@EnabledIf("splunkTestEnabled")
 class SampleDataInspector {
 
   private static String SPLUNK_URL = "https://localhost:8089";
@@ -87,9 +85,9 @@ class SampleDataInspector {
     }
   }
 
-  static boolean isSplunkEnabled() {
-    return CalciteSystemProperty.TEST_SPLUNK.value();
-  }
+  private static boolean splunkTestEnabled() {
+    return System.getProperty("CALCITE_TEST_SPLUNK", "false").equals("true") ||
+           System.getenv("CALCITE_TEST_SPLUNK") != null;  }
 
   @Test void inspectAllCimModelSampleData() throws SQLException, ClassNotFoundException {
     Class.forName("org.apache.calcite.adapter.splunk.SplunkDriver");

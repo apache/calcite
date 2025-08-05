@@ -25,8 +25,6 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
-
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -38,6 +36,8 @@ import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * Comprehensive performance test comparing all execution engines:
@@ -54,9 +54,9 @@ public class ComprehensiveEnginePerformanceTest {
   @BeforeEach
   public void setUp() throws Exception {
     // Skip performance tests unless explicitly enabled
-    assumeTrue(Boolean.getBoolean("enablePerformanceTests"), 
+    assumeTrue(Boolean.getBoolean("enablePerformanceTests"),
         "Performance tests disabled - use -DenablePerformanceTests=true to enable");
-    
+
     // Create test datasets
     createTestCsvFile(1000);
     createTestCsvFile(10000);

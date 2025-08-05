@@ -48,7 +48,8 @@ dependencies {
     implementation 'software.amazon.awssdk:sts'
     implementation 'software.amazon.awssdk:resourcegroupstaggingapi'
     
-    testImplementation 'junit:junit'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api'
+    testImplementation 'org.junit.jupiter:junit-jupiter-engine'
     testImplementation 'org.hamcrest:hamcrest-core'
     testImplementation project(':core').sourceSets.test.output
     testRuntimeOnly 'org.apache.logging.log4j:log4j-slf4j-impl'
@@ -82,13 +83,13 @@ def hasIntegrationCredentials() {
 }
 
 test {
-    useJUnit {
+    useJUnitPlatform {
         // Always exclude performance tests from default run
-        excludeCategories 'org.apache.calcite.adapter.governance.categories.PerformanceTest'
+        excludeTags 'performance'
         
         // Only exclude integration tests if credentials are not available
         if (!hasIntegrationCredentials()) {
-            excludeCategories 'org.apache.calcite.adapter.governance.categories.IntegrationTest'
+            excludeTags 'integration'
         }
     }
     maxHeapSize = '2g'
@@ -97,8 +98,8 @@ test {
 
 // Task to run only unit tests
 task unitTest(type: Test) {
-    useJUnit {
-        includeCategories 'org.apache.calcite.adapter.governance.categories.UnitTest'
+    useJUnitPlatform {
+        includeTags 'unit'
     }
     maxHeapSize = '2g'
     systemProperty 'java.awt.headless', 'true'
@@ -112,8 +113,8 @@ task unitTest(type: Test) {
 
 // Task to run only integration tests
 task integrationTest(type: Test) {
-    useJUnit {
-        includeCategories 'org.apache.calcite.adapter.governance.categories.IntegrationTest'
+    useJUnitPlatform {
+        includeTags 'integration'
     }
     maxHeapSize = '2g'
     systemProperty 'java.awt.headless', 'true'
@@ -127,8 +128,8 @@ task integrationTest(type: Test) {
 
 // Task to run only performance tests
 task performanceTest(type: Test) {
-    useJUnit {
-        includeCategories 'org.apache.calcite.adapter.governance.categories.PerformanceTest'
+    useJUnitPlatform {
+        includeTags 'performance'
     }
     maxHeapSize = '4g'
     systemProperty 'java.awt.headless', 'true'
@@ -142,7 +143,7 @@ task performanceTest(type: Test) {
 
 // Task to run all tests including integration and performance
 task allTests(type: Test) {
-    useJUnit()
+    useJUnitPlatform()
     maxHeapSize = '4g'
     systemProperty 'java.awt.headless', 'true'
     

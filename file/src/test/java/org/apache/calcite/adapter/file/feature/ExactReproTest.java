@@ -96,7 +96,7 @@ public class ExactReproTest {
       System.out.println("  Size: " + content.length() + " bytes");
       System.out.println("  First 200 chars: " + content.substring(0, Math.min(200, content.length())));
     }
-    
+
     assertTrue(jsonFiles.length >= 2, "Should create at least 2 JSON files, but created " + jsonFiles.length);
   }
 }

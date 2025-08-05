@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.adapter.governance;
 
-import org.apache.calcite.adapter.governance.provider.AzureProvider;
-import org.apache.calcite.adapter.governance.provider.GCPProvider;
 import org.apache.calcite.adapter.governance.provider.AWSProvider;
+import org.apache.calcite.adapter.governance.provider.AzureProvider;
 import org.apache.calcite.adapter.governance.provider.CloudProvider;
+import org.apache.calcite.adapter.governance.provider.GCPProvider;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -32,13 +32,12 @@ import java.util.Map;
  * Table containing network resource information across cloud providers.
  */
 public class NetworkResourcesTable extends AbstractCloudGovernanceTable {
-  
+
   public NetworkResourcesTable(CloudGovernanceConfig config) {
     super(config);
   }
-  
-  @Override
-  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+
+  @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     return typeFactory.builder()
         // Identity fields
         .add("cloud_provider", SqlTypeName.VARCHAR)
@@ -49,32 +48,31 @@ public class NetworkResourcesTable extends AbstractCloudGovernanceTable {
         .add("region", SqlTypeName.VARCHAR)
         .add("resource_group", SqlTypeName.VARCHAR)
         .add("resource_id", SqlTypeName.VARCHAR)
-        
+
         // Configuration facts
         .add("configuration", SqlTypeName.VARCHAR)
         .add("cidr_block", SqlTypeName.VARCHAR)
         .add("state", SqlTypeName.VARCHAR)
         .add("is_default", SqlTypeName.BOOLEAN)
-        
+
         // Security facts
         .add("security_findings", SqlTypeName.VARCHAR)
         .add("has_open_ingress", SqlTypeName.BOOLEAN)
         .add("rule_count", SqlTypeName.INTEGER)
-        
+
         // Metadata
         .add("tags", SqlTypeName.VARCHAR) // JSON
-        
+
         .build();
   }
-  
-  @Override
-  protected List<Object[]> queryAzure(List<String> subscriptionIds) {
+
+  @Override protected List<Object[]> queryAzure(List<String> subscriptionIds) {
     List<Object[]> results = new ArrayList<>();
-    
+
     try {
       CloudProvider azureProvider = new AzureProvider(config.azure);
       List<Map<String, Object>> networkResults = azureProvider.queryNetworkResources(subscriptionIds);
-      
+
       for (Map<String, Object> network : networkResults) {
         results.add(new Object[]{
             "azure",
@@ -98,18 +96,17 @@ public class NetworkResourcesTable extends AbstractCloudGovernanceTable {
     } catch (Exception e) {
       System.err.println("Error querying Azure network resources: " + e.getMessage());
     }
-    
+
     return results;
   }
-  
-  @Override
-  protected List<Object[]> queryGCP(List<String> projectIds) {
+
+  @Override protected List<Object[]> queryGCP(List<String> projectIds) {
     List<Object[]> results = new ArrayList<>();
-    
+
     try {
       CloudProvider gcpProvider = new GCPProvider(config.gcp);
       List<Map<String, Object>> networkResults = gcpProvider.queryNetworkResources(projectIds);
-      
+
       for (Map<String, Object> network : networkResults) {
         results.add(new Object[]{
             "gcp",
@@ -133,18 +130,17 @@ public class NetworkResourcesTable extends AbstractCloudGovernanceTable {
     } catch (Exception e) {
       System.err.println("Error querying GCP network resources: " + e.getMessage());
     }
-    
+
     return results;
   }
-  
-  @Override
-  protected List<Object[]> queryAWS(List<String> accountIds) {
+
+  @Override protected List<Object[]> queryAWS(List<String> accountIds) {
     List<Object[]> results = new ArrayList<>();
-    
+
     try {
       CloudProvider awsProvider = new AWSProvider(config.aws);
       List<Map<String, Object>> networkResults = awsProvider.queryNetworkResources(accountIds);
-      
+
       for (Map<String, Object> network : networkResults) {
         results.add(new Object[]{
             "aws",
@@ -155,15 +151,15 @@ public class NetworkResourcesTable extends AbstractCloudGovernanceTable {
             network.get("Region"),
             null, // resource group not applicable
             network.get("ResourceId"),
-            network.get("GroupName") != null ? 
-                "Name: " + network.get("GroupName") + ", Description: " + network.get("Description") : 
+            network.get("GroupName") != null ?
+                "Name: " + network.get("GroupName") + ", Description: " + network.get("Description") :
                 network.get("Configuration"),
             network.get("CidrBlock"),
             network.get("State"),
             network.get("IsDefault"),
             null, // security findings not computed
             network.get("HasOpenIngressRule"),
-            network.get("IngressRulesCount") != null ? network.get("IngressRulesCount") : 
+            network.get("IngressRulesCount") != null ? network.get("IngressRulesCount") :
                 network.get("EgressRulesCount"),
             null  // tags would need conversion
         });
@@ -171,7 +167,7 @@ public class NetworkResourcesTable extends AbstractCloudGovernanceTable {
     } catch (Exception e) {
       System.err.println("Error querying AWS network resources: " + e.getMessage());
     }
-    
+
     return results;
   }
 }

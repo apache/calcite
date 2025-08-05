@@ -56,10 +56,11 @@ You can connect to Splunk in multiple ways:
 | `url` | Splunk server URL | `https://host:port` | `https://splunk.com:8089` |
 | `user` / `password` | Basic authentication | credentials | `user='admin';password='secret'` |
 | `token` | Token authentication (preferred) | auth token | `token='eyJhbGciOiJIUzI1...'` |
-| `app` | Splunk app context | app name | `app='Splunk_SA_CIM'` |
+| `app` | Splunk app context (restricts to app namespace) | app name | `app='Splunk_SA_CIM'` |
 | `datamodelFilter` | Filter discovered models | glob/regex | `datamodelFilter='auth*'` |
 | `datamodelCacheTtl` | Cache behavior | `-1`=permanent, `0`=none, `>0`=minutes | `datamodelCacheTtl=-1` |
 | `refreshDatamodels` | Force cache refresh | `true`/`false` | `refreshDatamodels=true` |
+| `modelFile` | Path to Calcite model file | file path | `modelFile='/path/to/model.json'` |
 
 ### Environment Variable Support (Production)
 
@@ -70,6 +71,7 @@ You can connect to Splunk in multiple ways:
 | `SPLUNK_USER` | Username | `user` |
 | `SPLUNK_PASSWORD` | Password | `password` |
 | `SPLUNK_APP` | App context | `app` |
+| `SPLUNK_MODEL_FILE` | Path to Calcite model file | `modelFile` |
 
 **Priority**: Properties/URL parameters override environment variables
 
@@ -123,10 +125,10 @@ jdbc:splunk:url='[splunk_url]';[parameter]='[value]';[parameter]='[value]'...
 
 **Dynamic Data Model Discovery (Recommended):**
 ```java
-// Default app context (user's default in Splunk)
+// No app context - access all data models you have permissions for
 String url = "jdbc:splunk:url='https://splunk.company.com:8089';user='analyst';password='secret123'";
 
-// Explicit CIM app context (recommended)
+// Explicit CIM app context - restricts to CIM namespace only
 String url = "jdbc:splunk:url='https://splunk.company.com:8089';user='analyst';password='secret123';app='Splunk_SA_CIM'";
 
 // Filter to specific models
@@ -146,6 +148,13 @@ String url = "jdbc:splunk:url='https://splunk.company.com:8089';user='analyst';p
 // export SPLUNK_TOKEN="your_production_token"
 // export SPLUNK_APP="Splunk_SA_CIM"
 String url = "jdbc:splunk:datamodelCacheTtl=-1"; // Credentials from env vars
+
+// Using model file for federation
+String url = "jdbc:splunk:modelFile='/path/to/federation-model.json'";
+
+// Model file from environment variable
+// export SPLUNK_MODEL_FILE="/path/to/federation-model.json"
+String url = "jdbc:splunk:"; // Uses model file from env var
 ```
 
 
@@ -204,7 +213,7 @@ Connection conn = DriverManager.getConnection("jdbc:splunk:", props);
 
 **Benefits:**
 - ✅ No factory specification needed
-- ✅ Programmatic configuration  
+- ✅ Programmatic configuration
 - ✅ Environment variable fallback
 - ✅ Same capabilities as JDBC URL
 
@@ -256,7 +265,23 @@ String url = "jdbc:calcite:model=/path/to/model.json";
 Connection conn = DriverManager.getConnection(url);
 ```
 
-**Option 2: Using SplunkModelHelper**
+**Option 2: Splunk JDBC with modelFile parameter (NEW)**
+```java
+// Via JDBC URL parameter
+String url = "jdbc:splunk:modelFile=/path/to/model.json";
+Connection conn = DriverManager.getConnection(url);
+
+// Via Properties
+Properties props = new Properties();
+props.setProperty("modelFile", "/path/to/model.json");
+Connection conn = DriverManager.getConnection("jdbc:splunk:", props);
+
+// Via environment variable
+// export SPLUNK_MODEL_FILE="/path/to/model.json"
+Connection conn = DriverManager.getConnection("jdbc:splunk:");
+```
+
+**Option 3: Using SplunkModelHelper**
 ```java
 Connection conn = SplunkModelHelper.connect("/path/to/model.json");
 
@@ -570,7 +595,7 @@ String filteredUrl = "jdbc:splunk:url='https://splunk.com:8089';user='analyst';p
 Many security vendors provide Splunk Technology Add-ons (TAs) that include pre-built data models for their products:
 
 - **Cisco**: `Splunk_TA_cisco-esa`, `Splunk_TA_cisco-firepower`
-- **Palo Alto Networks**: `Splunk_TA_paloalto` 
+- **Palo Alto Networks**: `Splunk_TA_paloalto`
 - **CrowdStrike**: `Splunk_TA_crowdstrike`
 - **Microsoft**: `Splunk_TA_windows`, `Splunk_TA_microsoft-cloudservices`
 - **Fortinet**: `Splunk_TA_fortinet-fortigate`
@@ -606,7 +631,7 @@ Your Application
    Calcite Query Engine
        ↓ ↓ ↓ (Multiple backend connections)
    cisco.* ← Splunk_TA_cisco-esa
-   paloalto.* ← Splunk_TA_paloalto  
+   paloalto.* ← Splunk_TA_paloalto
    crowdstrike.* ← Splunk_TA_crowdstrike
 ```
 
@@ -666,7 +691,7 @@ String model = SplunkModelHelper.createFederationModel(
     "https://splunk.company.com:8089",
     "your_auth_token",
     "Splunk_SA_CIM",
-    "Splunk_TA_cisco-esa", 
+    "Splunk_TA_cisco-esa",
     "Splunk_TA_paloalto",
     "Splunk_TA_crowdstrike"
 );
@@ -676,7 +701,7 @@ Connection conn = SplunkModelHelper.connect("inline:" + model);
 
 // Or use the convenience method for common security federation
 Connection securityConn = SplunkModelHelper.createSecurityFederation(
-    "https://splunk.company.com:8089", 
+    "https://splunk.company.com:8089",
     "your_auth_token"
 );
 ```
@@ -685,7 +710,7 @@ Connection securityConn = SplunkModelHelper.createSecurityFederation(
 
 ```sql
 -- Correlate email threats with firewall blocks
-SELECT 
+SELECT
     c.recipient_email,
     c.subject,
     c.threat_category,
@@ -695,15 +720,15 @@ SELECT
     c.time as email_time,
     p.time as firewall_time
 FROM cisco.email c
-JOIN paloalto.threat p 
-  ON c.src_ip = p.src_ip 
+JOIN paloalto.threat p
+  ON c.src_ip = p.src_ip
   AND ABS(EXTRACT(EPOCH FROM c.time) - EXTRACT(EPOCH FROM p.time)) < 300 -- 5 minute window
 WHERE c.threat_category IS NOT NULL
   AND p.action = 'block'
   AND c.time > CURRENT_TIMESTAMP - INTERVAL '1' DAY;
 
 -- Multi-vendor endpoint correlation
-SELECT 
+SELECT
     cs.host,
     cs.process_name,
     cs.command_line,
@@ -713,13 +738,13 @@ SELECT
 FROM crowdstrike.endpoint cs
 JOIN paloalto.threat pa ON cs.dest_ip = pa.dest_ip
 JOIN security.authentication sec ON cs.user = sec.user
-WHERE cs.time BETWEEN sec.time - INTERVAL '10' MINUTE 
+WHERE cs.time BETWEEN sec.time - INTERVAL '10' MINUTE
                   AND sec.time + INTERVAL '10' MINUTE
   AND pa.severity = 'high'
   AND cs.time > CURRENT_TIMESTAMP - INTERVAL '2' HOUR;
 
 -- Cross-platform user behavior analysis
-SELECT 
+SELECT
     u.user,
     COUNT(DISTINCT auth.src_ip) as login_ips,
     COUNT(DISTINCT cs.host) as accessed_hosts,
@@ -735,17 +760,17 @@ HAVING COUNT(DISTINCT auth.src_ip) > 5  -- Users with multiple IPs
 ORDER BY last_activity DESC;
 
 -- Threat timeline across all platforms
-SELECT 
+SELECT
     'Cisco Email' as source,
     threat_category as threat_type,
     recipient_email as target,
     time as event_time
-FROM cisco.email 
+FROM cisco.email
 WHERE threat_category IS NOT NULL
 
 UNION ALL
 
-SELECT 
+SELECT
     'Palo Alto Firewall' as source,
     threat_name as threat_type,
     dest_ip as target,
@@ -755,7 +780,7 @@ WHERE severity IN ('high', 'critical')
 
 UNION ALL
 
-SELECT 
+SELECT
     'CrowdStrike Endpoint' as source,
     detection_name as threat_type,
     host as target,
@@ -769,18 +794,18 @@ LIMIT 100;
 
 **Why Federation is Required:**
 
-🚫 **Single Connection Limitation**: Each schema can only access **one app context** at a time  
-🚫 **Cannot Mix Apps**: You cannot access both `Splunk_TA_cisco-esa` and `Splunk_TA_paloalto` from the same connection  
-✅ **Federation Solution**: Multiple schemas allow cross-vendor queries in a single SQL statement  
+🚫 **Single Connection Limitation**: Each schema can only access **one app context** at a time
+🚫 **Cannot Mix Apps**: You cannot access both `Splunk_TA_cisco-esa` and `Splunk_TA_paloalto` from the same connection
+✅ **Federation Solution**: Multiple schemas allow cross-vendor queries in a single SQL statement
 
 **Federation Benefits:**
 
-✅ **Multi-Vendor Access**: Each schema connects to a different vendor app context  
-✅ **Cross-Platform Correlation**: Join data models from separate vendor Technology Add-ons  
-✅ **Unified Analysis**: Query Cisco + Palo Alto + CrowdStrike data in one SQL statement  
-✅ **Consistent Interface**: Standard SQL across all vendor platforms  
-✅ **Performance Optimization**: Permanent cache (`-1` TTL) for each vendor schema  
-✅ **Operational Efficiency**: Single query interface for multi-vendor SOC operations  
+✅ **Multi-Vendor Access**: Each schema connects to a different vendor app context
+✅ **Cross-Platform Correlation**: Join data models from separate vendor Technology Add-ons
+✅ **Unified Analysis**: Query Cisco + Palo Alto + CrowdStrike data in one SQL statement
+✅ **Consistent Interface**: Standard SQL across all vendor platforms
+✅ **Performance Optimization**: Permanent cache (`-1` TTL) for each vendor schema
+✅ **Operational Efficiency**: Single query interface for multi-vendor SOC operations
 
 **Real-World Use Cases:**
 - **Threat Hunting**: Correlate indicators across email, network, and endpoint platforms
@@ -920,6 +945,27 @@ The Splunk adapter automatically discovers data models available in your Splunk 
 Each discovered data model automatically includes core Splunk fields (`_time`, `host`, `source`, `sourcetype`, `index`) and CIM-specific calculated fields when applicable.
 
 ---
+
+## App Context and Permissions
+
+Understanding how app context affects data model access:
+
+### With App Context (`app='Splunk_SA_CIM'`)
+- Restricts queries to data models in that app's namespace
+- Uses namespace-aware endpoint: `/servicesNS/nobody/{app}/search/jobs/export`
+- HTTP 400 errors typically mean the data model doesn't exist in this app
+- Error message: "Data model 'X' is not accessible in app context 'Y'"
+
+### Without App Context (no `app` parameter)
+- Allows access to all data models across all apps you have permissions for
+- Uses default endpoint: `/services/search/jobs/export`
+- HTTP 400 errors mean you lack role-based permissions
+- Error message: "Data model 'X' is not accessible. You may lack permissions"
+
+### Common Scenarios
+1. **CIM models only**: Use `app='Splunk_SA_CIM'`
+2. **All available models**: Don't specify `app`
+3. **Splunk internal models**: Must omit `app` (not in CIM namespace)
 
 ## Troubleshooting
 

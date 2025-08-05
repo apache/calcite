@@ -13,3 +13,11 @@
 - The Splunk adapter can only push down simple field references in projections. Complex expressions (CAST, arithmetic, functions) must be handled by Calcite
 - Always check RexNode types before casting - never assume all projections are RexInputRef
 - Follow JDBC adapter patterns as the reference implementation
+
+## Testing Practices
+
+- The file adapter tests are extensive and require an extended timeout to complete
+
+## Documentation Practices
+
+- Read the fucking docs and stop making up shit

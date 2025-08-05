@@ -377,11 +377,11 @@ public final class ParquetExecutionEngine {
   private static Schema convertToArrowSchema(MessageType parquetSchema) {
     // Convert Parquet schema back to Arrow
     List<Field> fields = new ArrayList<>();
-    
+
     for (Type field : parquetSchema.getFields()) {
       ArrowType arrowType;
       String fieldName = field.getName();
-      
+
       // Convert Parquet types to Arrow types
       if (field.asPrimitiveType().getPrimitiveTypeName() == PrimitiveType.PrimitiveTypeName.INT32) {
         arrowType = new ArrowType.Int(32, true);
@@ -397,10 +397,10 @@ public final class ParquetExecutionEngine {
         // Default to UTF8 for strings and other types
         arrowType = new ArrowType.Utf8();
       }
-      
+
       fields.add(new Field(fieldName, FieldType.nullable(arrowType), null));
     }
-    
+
     return new Schema(fields);
   }
 

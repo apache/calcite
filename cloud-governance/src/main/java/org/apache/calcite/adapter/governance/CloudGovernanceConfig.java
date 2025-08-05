@@ -20,7 +20,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Configuration for Cloud Governance adapter.
@@ -28,22 +27,22 @@ import java.util.Map;
 public class CloudGovernanceConfig {
   @JsonProperty("providers")
   public final List<String> providers;
-  
+
   @JsonProperty("azure")
   public final AzureConfig azure;
-  
+
   @JsonProperty("gcp")
   public final GCPConfig gcp;
-  
+
   @JsonProperty("aws")
   public final AWSConfig aws;
-  
+
   @JsonProperty("cacheEnabled")
   public final boolean cacheEnabled;
-  
+
   @JsonProperty("cacheTtlMinutes")
   public final int cacheTtlMinutes;
-  
+
   @JsonCreator
   public CloudGovernanceConfig(
       @JsonProperty("providers") List<String> providers,
@@ -59,20 +58,20 @@ public class CloudGovernanceConfig {
     this.cacheEnabled = cacheEnabled != null ? cacheEnabled : true;
     this.cacheTtlMinutes = cacheTtlMinutes != null ? cacheTtlMinutes : 15;
   }
-  
+
   public static class AzureConfig {
     @JsonProperty("tenantId")
     public final String tenantId;
-    
+
     @JsonProperty("clientId")
     public final String clientId;
-    
+
     @JsonProperty("clientSecret")
     public final String clientSecret;
-    
+
     @JsonProperty("subscriptionIds")
     public final List<String> subscriptionIds;
-    
+
     @JsonCreator
     public AzureConfig(
         @JsonProperty("tenantId") String tenantId,
@@ -85,14 +84,14 @@ public class CloudGovernanceConfig {
       this.subscriptionIds = subscriptionIds;
     }
   }
-  
+
   public static class GCPConfig {
     @JsonProperty("projectIds")
     public final List<String> projectIds;
-    
+
     @JsonProperty("credentialsPath")
     public final String credentialsPath;
-    
+
     @JsonCreator
     public GCPConfig(
         @JsonProperty("projectIds") List<String> projectIds,
@@ -101,23 +100,23 @@ public class CloudGovernanceConfig {
       this.credentialsPath = credentialsPath;
     }
   }
-  
+
   public static class AWSConfig {
     @JsonProperty("accountIds")
     public final List<String> accountIds;
-    
+
     @JsonProperty("region")
     public final String region;
-    
+
     @JsonProperty("accessKeyId")
     public final String accessKeyId;
-    
+
     @JsonProperty("secretAccessKey")
     public final String secretAccessKey;
-    
+
     @JsonProperty("roleArn")
     public final String roleArn;
-    
+
     @JsonCreator
     public AWSConfig(
         @JsonProperty("accountIds") List<String> accountIds,

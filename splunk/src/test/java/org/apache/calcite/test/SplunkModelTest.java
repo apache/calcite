@@ -18,8 +18,10 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.util.Sources;
+
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import org.junit.jupiter.api.condition.EnabledIf;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -33,20 +35,25 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Test Splunk adapter using model JSON file.
  * Run with: -Dcalcite.test.splunk=true
  */
-@EnabledIfSystemProperty(named = "calcite.test.splunk", matches = "true")
+@Tag("integration")
+@EnabledIf("splunkTestEnabled")
 class SplunkModelTest {
-  
-  @Test
-  void testWithModelFile() throws Exception {
+
+  private static boolean splunkTestEnabled() {
+    return System.getProperty("CALCITE_TEST_SPLUNK", "false").equals("true") ||
+           System.getenv("CALCITE_TEST_SPLUNK") != null;
+  }
+
+  @Test void testWithModelFile() throws Exception {
     System.out.println("\n=== Testing with Model File ===");
-    
+
     Properties info = new Properties();
     info.put("model", Sources.of(SplunkModelTest.class.getResource("/test-splunk-model.json")).file().getAbsolutePath());
-    
+
     try (Connection conn = DriverManager.getConnection("jdbc:calcite:", info)) {
       CalciteConnection calciteConn = conn.unwrap(CalciteConnection.class);
       DatabaseMetaData metaData = calciteConn.getMetaData();
-      
+
       System.out.println("\nSchemas:");
       try (ResultSet rs = metaData.getSchemas()) {
         while (rs.next()) {
@@ -54,10 +61,10 @@ class SplunkModelTest {
           System.out.println("  - " + schemaName);
         }
       }
-      
+
       System.out.println("\nTables in 'splunk' schema:");
       int count = 0;
-      
+
       try (ResultSet rs = metaData.getTables(null, "splunk", "%", null)) {
         while (rs.next()) {
           String tableName = rs.getString("TABLE_NAME");
@@ -65,7 +72,7 @@ class SplunkModelTest {
           count++;
         }
       }
-      
+
       System.out.println("\nTotal tables discovered: " + count);
       assertTrue(count > 0, "Should discover some tables");
     }

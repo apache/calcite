@@ -78,7 +78,7 @@ public abstract class Sources {
     if (uri.contains("\n") || uri.contains("\r") || (uri.length() > 255 && !uri.startsWith("/"))) {
       return of((CharSequence) uri);
     }
-    
+
     // Smart string parsing to determine the type of source
     if (uri.startsWith("s3://")) {
       // S3 resource

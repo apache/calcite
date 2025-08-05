@@ -225,7 +225,7 @@ The `{account-id}` placeholder will be replaced with each account ID from `aws.a
    gcloud projects add-iam-policy-binding PROJECT_ID \
      --member="serviceAccount:cloud-governance@PROJECT_ID.iam.gserviceaccount.com" \
      --role="roles/cloudasset.viewer"
-   
+
    gcloud projects add-iam-policy-binding PROJECT_ID \
      --member="serviceAccount:cloud-governance@PROJECT_ID.iam.gserviceaccount.com" \
      --role="roles/storage.objectViewer"
@@ -241,7 +241,7 @@ The `{account-id}` placeholder will be replaced with each account ID from `aws.a
 
 Enable these APIs in your projects:
 - Cloud Asset API
-- Cloud Resource Manager API  
+- Cloud Resource Manager API
 - Kubernetes Engine API
 - Cloud Storage API
 - Compute Engine API
@@ -293,7 +293,7 @@ Reference in model file using `${VARIABLE_NAME}` syntax.
 ### Monitoring
 
 1. **Enable audit logging** in cloud providers
-2. **Monitor API usage** and rate limits  
+2. **Monitor API usage** and rate limits
 3. **Set up alerts** for unusual access patterns
 
 ## Troubleshooting

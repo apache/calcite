@@ -34,6 +34,9 @@ import org.apache.parquet.avro.AvroParquetWriter;
 import org.apache.parquet.hadoop.ParquetWriter;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 
+import com.joestelmach.natty.DateGroup;
+import com.joestelmach.natty.Parser;
+
 import java.io.File;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -47,12 +50,8 @@ import java.sql.Statement;
 import java.sql.Types;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-
-import com.joestelmach.natty.DateGroup;
-import com.joestelmach.natty.Parser;
 
 /**
  * Utility class for converting various file formats to Parquet.
@@ -403,7 +402,7 @@ public class ParquetConversionUtil {
                   // Get the original string to avoid any timezone shifts from rs.getDate()
                   String dateStr = rs.getString(i);
                   if (dateStr != null && !dateStr.trim().isEmpty()) {
-                    
+
                     // Use the same parsing logic as LINQ4J engine (CsvEnumerator)
                     int daysSinceEpoch;
                     if (dateStr.matches("\\d{4}-\\d{2}-\\d{2}")) {

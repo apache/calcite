@@ -25,8 +25,9 @@ import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Sources;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import org.junit.jupiter.api.condition.EnabledIf;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -38,8 +39,14 @@ import java.util.*;
  * Compare field definitions between dynamically discovered models and hardcoded CIM models.
  * Run with: -Dcalcite.test.splunk=true
  */
-@EnabledIfSystemProperty(named = "calcite.test.splunk", matches = "true")
+@Tag("integration")
+@EnabledIf("splunkTestEnabled")
 class SplunkFieldComparisonTest {
+
+  private static boolean splunkTestEnabled() {
+    return System.getProperty("CALCITE_TEST_SPLUNK", "false").equals("true") ||
+           System.getenv("CALCITE_TEST_SPLUNK") != null;
+  }
 
   @Test void compareFieldDefinitions() throws Exception {
     System.out.println("\n=== Comparing Field Definitions Between Dynamic and Hardcoded Models ===");

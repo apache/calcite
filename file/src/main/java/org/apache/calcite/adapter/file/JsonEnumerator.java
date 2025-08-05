@@ -199,7 +199,7 @@ public class JsonEnumerator implements Enumerator<@Nullable Object[]> {
       jsonFieldMap = (LinkedHashMap) list.get(0);
       // Apply flattening if requested
       if (options != null && Boolean.TRUE.equals(options.get("flatten"))) {
-        String flattenSeparator = options.containsKey("flattenSeparator") 
+        String flattenSeparator = options.containsKey("flattenSeparator")
             ? (String) options.get("flattenSeparator") : "__";
         JsonFlattener flattener = new JsonFlattener(",", 3, "", flattenSeparator);
         jsonFieldMap = new LinkedHashMap<>(flattener.flatten(jsonFieldMap));
@@ -215,7 +215,7 @@ public class JsonEnumerator implements Enumerator<@Nullable Object[]> {
       jsonFieldMap = (LinkedHashMap) jsonObj;
       // Apply flattening if requested
       if (options != null && Boolean.TRUE.equals(options.get("flatten"))) {
-        String flattenSeparator = options.containsKey("flattenSeparator") 
+        String flattenSeparator = options.containsKey("flattenSeparator")
             ? (String) options.get("flattenSeparator") : "__";
         JsonFlattener flattener = new JsonFlattener(",", 3, "", flattenSeparator);
         jsonFieldMap = new LinkedHashMap<>(flattener.flatten(jsonFieldMap));

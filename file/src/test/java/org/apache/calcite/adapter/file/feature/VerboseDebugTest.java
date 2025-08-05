@@ -44,11 +44,11 @@ public class VerboseDebugTest {
       Sheet sheet = workbook.createSheet("Sheet1");
 
       System.out.println("Creating Excel structure:");
-      
+
       // First table at A1
       Row header1 = sheet.createRow(0);
       header1.createCell(0).setCellValue("Employee ID");
-      header1.createCell(1).setCellValue("Name"); 
+      header1.createCell(1).setCellValue("Name");
       header1.createCell(2).setCellValue("Department");
       printRow("Row 0 (header)", header1);
 
@@ -93,10 +93,10 @@ public class VerboseDebugTest {
     }
 
     System.out.println("\nConverting with multi-table detection...");
-    
+
     // Enable trace logging programmatically
     System.setProperty("org.slf4j.simpleLogger.log.org.apache.calcite.adapter.file.MultiTableExcelToJsonConverter", "TRACE");
-    
+
     MultiTableExcelToJsonConverter.convertFileToJson(file, true);
 
     // Check results
@@ -105,11 +105,11 @@ public class VerboseDebugTest {
     for (File f : jsonFiles) {
       System.out.println("  " + f.getName());
     }
-    
+
     System.out.println("\nExpected: 2 JSON files");
     System.out.println("Actual: " + jsonFiles.length + " JSON files");
   }
-  
+
   private void printRow(String label, Row row) {
     System.out.print(label + ": ");
     for (int i = 0; i <= 2; i++) {

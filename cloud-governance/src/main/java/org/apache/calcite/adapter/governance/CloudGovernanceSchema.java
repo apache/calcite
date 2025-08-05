@@ -16,9 +16,10 @@
  */
 package org.apache.calcite.adapter.governance;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
+
+import com.google.common.collect.ImmutableMap;
 
 import java.util.Map;
 
@@ -31,20 +32,18 @@ import java.util.Map;
  */
 public class CloudGovernanceSchema extends AbstractSchema {
   private final CloudGovernanceConfig config;
-  
+
   public CloudGovernanceSchema(CloudGovernanceConfig config) {
     this.config = config;
   }
-  
-  @Override
-  public boolean isMutable() {
+
+  @Override public boolean isMutable() {
     return false; // Read-only schema
   }
-  
-  @Override
-  protected Map<String, Table> getTableMap() {
+
+  @Override protected Map<String, Table> getTableMap() {
     final ImmutableMap.Builder<String, Table> builder = ImmutableMap.builder();
-    
+
     // Core resource tables
     builder.put("compute_resources", new ComputeResourcesTable(config));
     builder.put("storage_resources", new StorageResourcesTable(config));
@@ -53,7 +52,15 @@ public class CloudGovernanceSchema extends AbstractSchema {
     builder.put("network_resources", new NetworkResourcesTable(config));
     builder.put("iam_resources", new IAMResourcesTable(config));
     builder.put("database_resources", new DatabaseResourcesTable(config));
-    
+
     return builder.build();
+  }
+
+  /**
+   * Provides access to the table map for metadata discovery.
+   * Used by the metadata schema to generate information_schema and pg_catalog tables.
+   */
+  public Map<String, Table> getTableMapForMetadata() {
+    return getTableMap();
   }
 }

@@ -21,8 +21,11 @@ import org.apache.calcite.adapter.splunk.search.SplunkConnection;
 import org.apache.calcite.adapter.splunk.search.SplunkConnectionImpl;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.condition.EnabledIf;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -31,28 +34,23 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.fail;
-
 /**
  * Test to validate CIM models are available in Splunk_SA_CIM namespace.
  * Run with: -Dcalcite.test.splunk=true
  */
-@EnabledIfSystemProperty(named = "calcite.test.splunk", matches = "true")
+@Tag("integration")
+@EnabledIf("splunkTestEnabled")
 class SplunkNamespaceValidationTest {
-  
+
   private static SplunkConnection connection;
-  
+
   @BeforeAll
   static void setUp() throws Exception {
     // Get connection properties from system properties or local-properties.settings
     String splunkUrl = System.getProperty("splunk.url");
     String splunkUser = System.getProperty("splunk.user");
     String splunkPassword = System.getProperty("splunk.password");
-    
+
     // If not in system properties, use defaults from local-properties.settings
     if (splunkUrl == null) {
       splunkUrl = "https://kentest.xyz:8089";
@@ -63,21 +61,27 @@ class SplunkNamespaceValidationTest {
     if (splunkPassword == null) {
       splunkPassword = "admin123";
     }
-    
+
     System.out.println("Connecting to Splunk at: " + splunkUrl);
-    
+
     connection = new SplunkConnectionImpl(splunkUrl, splunkUser, splunkPassword, true);
   }
 
-  @Test
+  private static boolean splunkTestEnabled() {
+    return System.getProperty("CALCITE_TEST_SPLUNK", "false").equals("true") ||
+           System.getenv("CALCITE_TEST_SPLUNK") != null;
+  }
+
+  @Test 
+  @Timeout(900) // 15 minutes
   void testListAvailableApps() throws Exception {
     System.out.println("=== Listing Available Splunk Apps ===");
-    
+
     // List all apps/namespaces
     String search = "| rest /services/apps/local | table title, eai:acl.app, disabled, visible";
-    
+
     List<String[]> results = executeSearch(search);
-    
+
     System.out.println("Found " + results.size() + " apps:");
     for (String[] row : results) {
       if (row.length >= 4) {
@@ -85,26 +89,27 @@ class SplunkNamespaceValidationTest {
             row[0], row[1], row[2], row[3]);
       }
     }
-    
+
     // Check if Splunk_SA_CIM exists
     boolean foundCIM = results.stream()
         .anyMatch(row -> row.length > 1 && "Splunk_SA_CIM".equals(row[1]));
-    
+
     if (!foundCIM) {
       System.out.println("\nWARNING: Splunk_SA_CIM app not found!");
     }
   }
 
-  @Test
+  @Test 
+  @Timeout(900) // 15 minutes
   void testListDataModelsWithNamespace() throws Exception {
     System.out.println("\n=== Listing All Data Models with Namespace Info ===");
-    
+
     // List all datamodels with their app context
     String search = "| rest /services/datamodel/model " +
                    "| table title, eai:appName, eai:acl.app, eai:acl.sharing, disabled";
-    
+
     List<String[]> results = executeSearch(search);
-    
+
     System.out.println("Found " + results.size() + " data models:");
     for (String[] row : results) {
       if (row.length >= 5) {
@@ -114,28 +119,29 @@ class SplunkNamespaceValidationTest {
     }
   }
 
-  @Test
+  @Test 
+  @Timeout(900) // 15 minutes
   void testCIMModelsInNamespace() throws Exception {
     System.out.println("\n=== Testing CIM Models in Splunk_SA_CIM Namespace ===");
-    
+
     // Try to access Authentication model with explicit app context
     String[] testSearches = {
         // Test 1: Direct datamodel command
         "| datamodel Authentication Authentication search | head 5",
-        
+
         // Test 2: With explicit app context in REST
         "| rest /servicesNS/nobody/Splunk_SA_CIM/datamodel/model/Authentication",
-        
+
         // Test 3: Search in specific app context
         "| datamodel Splunk_SA_CIM Authentication Authentication search | head 5"
     };
-    
+
     for (int i = 0; i < testSearches.length; i++) {
       System.out.println("\nTest " + (i + 1) + ": " + testSearches[i]);
       try {
         List<String[]> results = executeSearch(testSearches[i]);
         System.out.println("Success! Got " + results.size() + " results");
-        
+
         // Print first few results for debugging
         if (!results.isEmpty() && results.get(0).length > 0) {
           System.out.println("Sample fields: " + String.join(", ", results.get(0)));
@@ -147,16 +153,17 @@ class SplunkNamespaceValidationTest {
   }
 
   @Test 
+  @Timeout(900) // 15 minutes
   void testDiscoverCIMModelsInNamespace() throws Exception {
     System.out.println("\n=== Discovering CIM Models in Splunk_SA_CIM ===");
-    
+
     // List models specifically from Splunk_SA_CIM
     String search = "| rest /services/datamodel/model " +
                    "| search eai:appName=Splunk_SA_CIM OR eai:acl.app=Splunk_SA_CIM " +
                    "| table title, displayName, description";
-    
+
     List<String[]> results = executeSearch(search);
-    
+
     System.out.println("Found " + results.size() + " CIM models in Splunk_SA_CIM:");
     for (String[] row : results) {
       if (row.length >= 2) {
@@ -166,7 +173,7 @@ class SplunkNamespaceValidationTest {
         }
       }
     }
-    
+
     // Verify we found expected models
     List<String> foundModels = new ArrayList<>();
     for (String[] row : results) {
@@ -174,7 +181,7 @@ class SplunkNamespaceValidationTest {
         foundModels.add(row[0]);
       }
     }
-    
+
     // Check for common CIM models
     String[] expectedModels = {"Authentication", "Network_Traffic", "Web"};
     for (String model : expectedModels) {
@@ -186,16 +193,17 @@ class SplunkNamespaceValidationTest {
     }
   }
 
-  @Test
+  @Test 
+  @Timeout(900) // 15 minutes
   void testSearchContextBehavior() throws Exception {
     System.out.println("\n=== Testing Search Context Behavior ===");
-    
+
     // Test how search context affects model visibility
     String search = "| rest /services/authentication/current-context " +
                    "| table username, realname, defaultApp";
-    
+
     List<String[]> results = executeSearch(search);
-    
+
     if (!results.isEmpty() && results.get(0).length >= 3) {
       System.out.println("Current user context:");
       System.out.println("Username: " + results.get(0)[0]);
@@ -208,18 +216,18 @@ class SplunkNamespaceValidationTest {
     List<String[]> results = new ArrayList<>();
     CountDownLatch latch = new CountDownLatch(1);
     Exception[] error = new Exception[1];
-    
+
     Map<String, String> args = new HashMap<>();
     args.put("earliest_time", "-1h");
     args.put("latest_time", "now");
     args.put("output_mode", "csv");
-    
+
     // Determine fields based on search
     List<String> fields = new ArrayList<>();
     if (search.contains("| table")) {
       // Extract fields from table command
       String tableCmd = search.substring(search.indexOf("| table") + 8);
-      String fieldList = tableCmd.contains("|") ? 
+      String fieldList = tableCmd.contains("|") ?
           tableCmd.substring(0, tableCmd.indexOf("|")).trim() : tableCmd.trim();
       for (String field : fieldList.split(",")) {
         fields.add(field.trim());
@@ -229,10 +237,9 @@ class SplunkNamespaceValidationTest {
       fields.add("_time");
       fields.add("_raw");
     }
-    
+
     connection.getSearchResults(search, args, fields, new SearchResultListener() {
-      @Override
-      public boolean processSearchResult(String[] values) {
+      @Override public boolean processSearchResult(String[] values) {
         if (values != null) {
           results.add(values);
           return true; // Continue processing
@@ -241,22 +248,21 @@ class SplunkNamespaceValidationTest {
           return false; // Stop processing
         }
       }
-      
-      @Override
-      public void setFieldNames(String[] fieldNames) {
+
+      @Override public void setFieldNames(String[] fieldNames) {
         // Not needed for this test
       }
     });
-    
-    // Wait for search to complete
-    if (!latch.await(30, TimeUnit.SECONDS)) {
-      throw new RuntimeException("Search timed out");
+
+    // Wait for search to complete (REST queries can be slow)
+    if (!latch.await(600, TimeUnit.SECONDS)) {
+      throw new RuntimeException("Search timed out after 600 seconds");
     }
-    
+
     if (error[0] != null) {
       throw error[0];
     }
-    
+
     return results;
   }
 }

@@ -92,20 +92,20 @@ public final class ExcelToJsonConverter {
           continue;
         }
         ObjectNode rowData = mapper.createObjectNode();
-        
+
         // Iterate through all columns in header to maintain consistent structure
         int lastColNum = headerRow.getLastCellNum();
-        
+
         for (int colIndex = 0; colIndex < lastColNum; colIndex++) {
           Cell headerCell = headerRow.getCell(colIndex);
           if (headerCell == null || headerCell.getCellType() == CellType.BLANK) {
             continue; // Skip columns with blank header cells
           }
-          
+
           String key = getCellValue(headerCell, evaluator);
           Cell dataCell = row.getCell(colIndex);
           Object value = getCellValueAsObject(dataCell, evaluator);
-          
+
           if (value != null) {
             rowData.putPOJO(key, value);
           } else {

@@ -55,6 +55,10 @@ public abstract class FileAdapterTests {
     return new Fluent(model, sql, FileAdapterTests::output);
   }
 
+  static Fluent sqlWithOracleSettings(String model, String sql) {
+    return new Fluent(model, sql, FileAdapterTests::output);
+  }
+
   /** Returns a function that checks the contents of a result set against an
    * expected string. */
   static Consumer<ResultSet> expect(final String... expected) {
@@ -128,6 +132,9 @@ public abstract class FileAdapterTests {
     try {
       Properties info = new Properties();
       info.put("model", jsonPath(model));
+      // Set default lexical rules for file adapter
+      info.put("lex", "ORACLE");
+      info.put("unquotedCasing", "TO_LOWER");
       connection = DriverManager.getConnection("jdbc:calcite:", info);
       statement = connection.createStatement();
       final ResultSet resultSet =

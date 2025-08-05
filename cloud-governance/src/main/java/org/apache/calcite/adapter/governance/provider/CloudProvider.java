@@ -27,32 +27,32 @@ public interface CloudProvider {
    * Query Kubernetes clusters.
    */
   List<Map<String, Object>> queryKubernetesClusters(List<String> accountIds);
-  
+
   /**
    * Query storage resources.
    */
   List<Map<String, Object>> queryStorageResources(List<String> accountIds);
-  
+
   /**
    * Query compute instances.
    */
   List<Map<String, Object>> queryComputeInstances(List<String> accountIds);
-  
+
   /**
    * Query network resources.
    */
   List<Map<String, Object>> queryNetworkResources(List<String> accountIds);
-  
+
   /**
    * Query IAM resources.
    */
   List<Map<String, Object>> queryIAMResources(List<String> accountIds);
-  
+
   /**
    * Query database resources.
    */
   List<Map<String, Object>> queryDatabaseResources(List<String> accountIds);
-  
+
   /**
    * Query container registries.
    */

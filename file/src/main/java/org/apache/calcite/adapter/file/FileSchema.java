@@ -39,10 +39,10 @@ import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.EnumSet;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -583,8 +583,8 @@ class FileSchema extends AbstractSchema {
               // Try to convert Arrow file to Parquet, but fall back to ArrowTable if conversion fails
               try {
                 File cacheDir = new File(baseDirectory, ".parquet_cache");
-                File parquetFile = ParquetConversionUtil.convertToParquet(source, tableName, arrowTable, cacheDir, 
-                    parentSchema, "FILE");
+                File parquetFile =
+                    ParquetConversionUtil.convertToParquet(source, tableName, arrowTable, cacheDir, parentSchema, "FILE");
                 Table table = new ParquetTranslatableTable(parquetFile);
                 builder.put(tableName, table);
               } catch (Exception conversionException) {
@@ -815,7 +815,7 @@ class FileSchema extends AbstractSchema {
     // Check if refresh is configured - if so, use enhanced table creation instead of direct Parquet conversion
     String refreshIntervalStr = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
     boolean hasRefresh = RefreshInterval.parse(refreshIntervalStr) != null;
-    
+
     // Check if we should convert to Parquet (but not if refresh is enabled)
     if (engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.PARQUET
         && baseDirectory != null
@@ -839,7 +839,7 @@ class FileSchema extends AbstractSchema {
                 || path.endsWith(".json.gz") || path.endsWith(".yaml.gz") || path.endsWith(".yml.gz"))) {
           skipConversion = true;
         }
-        
+
         if (!skipConversion) {
           try {
             // Create the original table first - use standard table for conversion
@@ -1123,7 +1123,7 @@ class FileSchema extends AbstractSchema {
       Class<?> arrowFileReaderClass = Class.forName("org.apache.arrow.vector.ipc.ArrowFileReader");
       Class<?> seekableReadChannelClass =
           Class.forName("org.apache.arrow.vector.ipc.SeekableReadChannel");
-      Class<?> bufferAllocatorClass = Class.forName("org.apache.arrow.memory.BufferAllocator"); 
+      Class<?> bufferAllocatorClass = Class.forName("org.apache.arrow.memory.BufferAllocator");
       Class<?> rootAllocatorClass = Class.forName("org.apache.arrow.memory.RootAllocator");
 
       java.io.FileInputStream fileInputStream = new java.io.FileInputStream(file);

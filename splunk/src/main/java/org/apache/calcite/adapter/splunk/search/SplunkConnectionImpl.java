@@ -627,6 +627,37 @@ public class SplunkConnectionImpl implements SplunkConnection {
       InputStream in = post(searchUrl, data, headersToUse, 10000, 1800000);
       return new SplunkJsonResultEnumeratorWithRetry(in, schemaFieldList, explicitFields,
           reverseFieldMapping, this);
+    } catch (IOException e) {
+      // Check for HTTP 400 errors which often indicate app context access issues
+      if (e.getMessage() != null && e.getMessage().contains("response code: 400")) {
+        // Extract the data model name from the search string if possible
+        String modelInfo = "";
+        if (search != null && search.contains("| datamodel")) {
+          // Extract model name from search like "| datamodel internal_server server search"
+          String[] parts = search.split("\\s+");
+          for (int i = 0; i < parts.length - 1; i++) {
+            if ("datamodel".equals(parts[i]) && i + 1 < parts.length) {
+              modelInfo = " '" + parts[i + 1] + "'";
+              break;
+            }
+          }
+        }
+
+        if (appContext != null && !appContext.trim().isEmpty()) {
+          throw new RuntimeException(
+              String.format("Data model%s is not accessible in app context '%s'. " +
+                  "The model may not exist in this app's namespace. " +
+                  "Try removing the app context to access all data models you have permissions for.",
+                  modelInfo, appContext), e);
+        } else {
+          throw new RuntimeException(
+              String.format("Data model%s is not accessible. " +
+                  "You may lack permissions to access this data model. " +
+                  "Contact your Splunk administrator to verify your role has access to this model.",
+                  modelInfo), e);
+        }
+      }
+      throw new RuntimeException("Search request failed: " + e.getMessage(), e);
     } catch (Exception e) {
       throw new RuntimeException("Search request failed: " + e.getMessage(), e);
     }

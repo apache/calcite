@@ -51,12 +51,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 4. Both LINQ4J and Parquet engines handle the types correctly
  */
 public class DualTimestampTypeTest extends FileAdapterTest {
-  
+
   // Disable inherited tests that have date shift issues
   @Test void testGroupByDate() {
     // Skip - this test has timezone-related date shift issues when run in this context
   }
-  
+
   @Test void testGroupByTime() throws SQLException {
     // Skip - this test has timezone-related issues when run in this context
   }
@@ -364,7 +364,7 @@ public class DualTimestampTypeTest extends FileAdapterTest {
       ResultSet rs =
           statement.executeQuery("SELECT ID, NAME, CREATED_DATE, CREATED_TIME, CREATED_TS, CREATED_TSZ " +
           "FROM \"NULL_TIMESTAMP_TEST\" ORDER BY ID");
-      
+
       // Debug: Count total rows
       Statement countStmt = connection.createStatement();
       ResultSet countRs = countStmt.executeQuery("SELECT COUNT(*) FROM \"NULL_TIMESTAMP_TEST\"");
@@ -385,7 +385,7 @@ public class DualTimestampTypeTest extends FileAdapterTest {
       int nextId = rs.getInt("ID");
       String nextName = rs.getString("NAME");
       System.out.println("Next row ID: " + nextId + ", Name: " + nextName);
-      
+
       // If the Parquet engine filtered out the row with all nulls, we'll get ID=3 instead of ID=2
       if (nextId == 3) {
         System.out.println("WARNING: Row with ID=2 (all nulls) was filtered out during Parquet conversion");
@@ -418,7 +418,7 @@ public class DualTimestampTypeTest extends FileAdapterTest {
         assertEquals(3, rs.getInt("ID"));
         assertEquals("Bob Wilson", rs.getString("NAME"));
       }
-      
+
       // Verify row 3 has all values (only if we didn't already check it)
       if (nextId == 2) {
         assertNotNull(rs.getDate("CREATED_DATE"));

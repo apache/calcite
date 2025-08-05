@@ -121,9 +121,30 @@ public class FileSchemaFactory implements SchemaFactory {
         directoryFile = new File(baseDirectory, directory);
       }
     }
-    return new FileSchema(parentSchema, name, directoryFile, directoryPattern,
-        tables, engineConfig, recursive,
+    FileSchema fileSchema =
+        new FileSchema(parentSchema, name, directoryFile, directoryPattern, tables, engineConfig, recursive,
         materializations, views, partitionedTables, refreshInterval, tableNameCasing,
         columnNameCasing, storageType, storageConfig, flatten);
+
+    // Add metadata schemas as sibling schemas (not sub-schemas)
+    // This makes them available at the same level as the file schema
+    // Get the root schema to access all schemas for metadata
+    SchemaPlus rootSchema = parentSchema;
+    while (rootSchema.getParentSchema() != null) {
+      rootSchema = rootSchema.getParentSchema();
+    }
+
+    // Only add metadata schemas if they don't already exist
+    if (rootSchema.subSchemas().get("information_schema") == null) {
+      InformationSchema infoSchema = new InformationSchema(rootSchema, "CALCITE");
+      parentSchema.add("information_schema", infoSchema);
+    }
+
+    if (rootSchema.subSchemas().get("pg_catalog") == null) {
+      PostgresMetadataSchema pgSchema = new PostgresMetadataSchema(rootSchema, "CALCITE");
+      parentSchema.add("pg_catalog", pgSchema);
+    }
+
+    return fileSchema;
   }
 }

@@ -18,7 +18,7 @@ package org.apache.calcite.adapter.file.categories;
 
 /**
  * Marker interface for performance tests.
- * 
+ *
  * <p>Performance tests should:
  * <ul>
  *   <li>Measure execution time, memory usage, or throughput</li>
@@ -27,7 +27,7 @@ package org.apache.calcite.adapter.file.categories;
  *   <li>Be excluded from standard test runs</li>
  *   <li>Only run when explicitly requested</li>
  * </ul>
- * 
+ *
  * <p>Performance tests are typically disabled by default and enabled
  * via system properties or profiles:
  * <pre>{@code
@@ -35,7 +35,7 @@ package org.apache.calcite.adapter.file.categories;
  * public class MyPerformanceTest {
  *   @BeforeEach
  *   void checkEnabled() {
- *     assumeTrue(Boolean.getBoolean("enablePerformanceTests"), 
+ *     assumeTrue(Boolean.getBoolean("enablePerformanceTests"),
  *         "Performance tests disabled");
  *   }
  * }

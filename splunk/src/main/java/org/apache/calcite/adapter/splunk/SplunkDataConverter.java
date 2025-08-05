@@ -53,7 +53,7 @@ public final class SplunkDataConverter {
    */
   private static Integer convertToDateDays(String value) {
     java.sql.Timestamp timestamp = convertIsoStringToTimestampMillis(value);
-    long millis = timestamp.getTime();  // Extract milliseconds from Timestamp
+    long millis = timestamp.getTime();
     // Convert milliseconds to days since epoch
     return (int) (millis / (24 * 60 * 60 * 1000L));
   }
@@ -72,32 +72,43 @@ public final class SplunkDataConverter {
     } catch (ParseException e) {
       // Try parsing as full timestamp and extract time portion
       java.sql.Timestamp timestamp = convertIsoStringToTimestampMillis(value);
-      long millis = timestamp.getTime();  // Extract milliseconds from Timestamp
+      long millis = timestamp.getTime();
       return (int) (millis % (24 * 60 * 60 * 1000L));
     }
   }
 
   /**
    * Convert ISO timestamp string to java.sql.Timestamp.
-   * MODIFIED: Now returns Timestamp object instead of Long milliseconds.
+   * Returns Timestamp for proper JDBC compatibility.
    */
   private static java.sql.Timestamp convertIsoStringToTimestampMillis(String value) {
+    // Handle null, empty, or clearly invalid values early
+    if (value == null || value.trim().isEmpty()) {
+      throw new IllegalArgumentException("Cannot parse null or empty timestamp value");
+    }
+
+    // Handle obvious malformed values that would cause parsing errors
+    String trimmed = value.trim();
+    if (trimmed.equals(".E0") || trimmed.startsWith(".E") || trimmed.equals("null")) {
+      throw new IllegalArgumentException("Cannot parse malformed timestamp value: " + value);
+    }
+
     // First try modern ISO 8601 parsing (faster and more accurate)
     for (DateTimeFormatter formatter : ISO_FORMATTERS) {
       try {
-        Instant instant = Instant.from(formatter.parse(value));
-        return new java.sql.Timestamp(instant.toEpochMilli());  // CHANGED: Return Timestamp object
+        Instant instant = Instant.from(formatter.parse(trimmed));
+        return new java.sql.Timestamp(instant.toEpochMilli());
       } catch (DateTimeParseException e) {
         // Try next formatter
       }
     }
 
     // Try parsing as epoch timestamp (numeric string)
-    if (EPOCH_PATTERN.matcher(value).matches()) {
+    if (EPOCH_PATTERN.matcher(trimmed).matches()) {
       try {
-        double epochValue = Double.parseDouble(value);
+        double epochValue = Double.parseDouble(trimmed);
         long millis = convertNumberToTimestampMillis(epochValue);
-        return new java.sql.Timestamp(millis);  // CHANGED: Return Timestamp object
+        return new java.sql.Timestamp(millis);
       } catch (NumberFormatException e) {
         // Fall through to legacy parsing
       }
@@ -106,7 +117,7 @@ public final class SplunkDataConverter {
     // Fallback to legacy SimpleDateFormat parsing
     for (SimpleDateFormat format : LEGACY_FORMATS) {
       try {
-        return new java.sql.Timestamp(format.parse(value).getTime());  // CHANGED: Return
+        return new java.sql.Timestamp(format.parse(trimmed).getTime());
           // Timestamp object
       } catch (ParseException e) {
         // Try next format
@@ -158,13 +169,21 @@ public final class SplunkDataConverter {
       }
       break;
     case TIMESTAMP:
-      // For timestamps, we expect strings from Splunk
+      // Return Long (milliseconds since epoch) for TIMESTAMP fields
+      // This is consistent with Calcite's internal representation
+      // The JDBC layer will handle conversion to java.sql.Timestamp when needed
       if (value instanceof String) {
-        return convertIsoStringToTimestampMillis((String) value);  // Now returns Timestamp
+        String strValue = ((String) value).trim();
+        // Handle empty or clearly invalid timestamp strings early
+        if (strValue.isEmpty() || "null".equals(strValue) || strValue.startsWith(".E")) {
+          return null; // Return null for invalid timestamp strings
+        }
+        return convertIsoStringToTimestampMillis(strValue).getTime();
       } else if (value instanceof Number) {
         // Fallback for numeric epoch timestamps
-        long millis = convertNumberToTimestampMillis((Number) value);
-        return new java.sql.Timestamp(millis);  // CHANGED: Return Timestamp object
+        return convertNumberToTimestampMillis((Number) value);
+      } else if (value instanceof java.sql.Timestamp) {
+        return ((java.sql.Timestamp) value).getTime();
       }
       break;
     }
@@ -186,7 +205,11 @@ public final class SplunkDataConverter {
     try {
       switch (targetType) {
       case TIMESTAMP:
-        return convertIsoStringToTimestampMillis(stringValue);  // Now returns Timestamp
+        // Handle empty or clearly invalid timestamp strings early
+        if (stringValue.isEmpty() || "null".equals(stringValue) || stringValue.startsWith(".E")) {
+          return null; // Return null for invalid timestamp strings
+        }
+        return convertIsoStringToTimestampMillis(stringValue).getTime();  // Return Long milliseconds
 
       case DATE:
         return convertToDateDays(stringValue);

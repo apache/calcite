@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.test;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
@@ -28,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
  * Test environment variable support for Splunk JDBC credentials.
  * These tests verify environment variable fallback but don't require actual Splunk connectivity.
  */
+@Tag("unit")
 class SplunkEnvironmentVariableTest {
 
   @Test void testEnvironmentVariableDocumentation() throws Exception {

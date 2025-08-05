@@ -39,12 +39,15 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -314,14 +317,32 @@ public class DataModelDiscovery {
    * Parses a dataset object within a data model.
    */
   private DatasetInfo parseDatasetObject(JsonNode obj) {
-    String objectName = obj.path("objectName").asText();
-    if (objectName.isEmpty()) {
+    // Try multiple possible field names for the object name
+    String objectName = null;
+
+    // Common variations of object name fields in Splunk data models
+    if (obj.has("objectName") && !obj.path("objectName").asText().isEmpty()) {
+      objectName = obj.path("objectName").asText();
+    } else if (obj.has("name") && !obj.path("name").asText().isEmpty()) {
+      objectName = obj.path("name").asText();
+    } else if (obj.has("objectName") && obj.path("objectName").isTextual()) {
+      // Handle case where objectName exists but might be null/empty
+      objectName = obj.path("objectName").asText();
+    }
+
+    if (objectName == null || objectName.isEmpty()) {
       return null;
     }
 
     DatasetInfo dataset = new DatasetInfo();
     dataset.name = objectName;
-    dataset.displayName = obj.path("displayName").asText(objectName);
+
+    // Try multiple possible field names for display name
+    if (obj.has("displayName") && !obj.path("displayName").asText().isEmpty()) {
+      dataset.displayName = obj.path("displayName").asText();
+    } else {
+      dataset.displayName = objectName; // fallback to object name
+    }
 
     // Parse fields
     JsonNode fields = obj.path("fields");
@@ -334,8 +355,29 @@ public class DataModelDiscovery {
       }
     }
 
-    // Parse parent for inheritance
-    dataset.parentName = obj.path("parentName").asText();
+    // Parse parent for inheritance - try multiple field names
+    if (obj.has("parentName") && !obj.path("parentName").asText().isEmpty()) {
+      dataset.parentName = obj.path("parentName").asText();
+    } else if (obj.has("parent") && !obj.path("parent").asText().isEmpty()) {
+      dataset.parentName = obj.path("parent").asText();
+    } else {
+      dataset.parentName = null; // explicitly set to null if not found
+    }
+
+    // Parse calculations
+    JsonNode calculations = obj.path("calculations");
+    if (calculations.isArray()) {
+      for (JsonNode calc : calculations) {
+        String calcId = calc.path("calculationID").asText();
+        String expression = calc.path("expression").asText();
+        if (!calcId.isEmpty() && !expression.isEmpty()) {
+          CalculationInfo calcInfo = new CalculationInfo();
+          calcInfo.calculationId = calcId;
+          calcInfo.expression = expression;
+          dataset.calculations.add(calcInfo);
+        }
+      }
+    }
 
     return dataset;
   }
@@ -393,8 +435,25 @@ public class DataModelDiscovery {
       schemaBuilder.add(calciteFieldName, fieldType);
     }
 
+    // Extract fields referenced in calculations and add them if not already present
+    Set<String> calculatedFieldRefs = extractFieldsFromCalculations(rootDataset);
+    for (String fieldRef : calculatedFieldRefs) {
+      String normalizedName = normalizeFieldName(fieldRef);
+      // Only add if not already in schema
+      if (!fieldMapping.containsKey(normalizedName)) {
+        // Infer type based on field name patterns
+        SqlTypeName inferredType = inferFieldType(fieldRef);
+        schemaBuilder.add(normalizedName,
+            typeFactory.createTypeWithNullability(
+                typeFactory.createSqlType(inferredType), true));
+        fieldMapping.put(normalizedName, fieldRef);
+        LOGGER.debug("Added field '{}' from calculated field reference", fieldRef);
+      }
+    }
+
     // Add calculated fields for known CIM models
-    addCimCalculatedFields(model.name, schemaBuilder, fieldMapping, typeFactory);
+    // NOTE: Commenting out as we now extract fields from calculated field expressions dynamically
+    // addCimCalculatedFields(model.name, schemaBuilder, fieldMapping, typeFactory);
 
     // Add any additional calculated fields specified via operand
     addAdditionalCalculatedFields(model.name, schemaBuilder, fieldMapping, typeFactory);
@@ -452,6 +511,10 @@ public class DataModelDiscovery {
    * Usually it's the one with no parent or with the same name as the model.
    */
   private DatasetInfo findRootDataset(DataModelInfo model) {
+    if (model.datasets.isEmpty()) {
+      return null;
+    }
+
     // First try to find dataset with same name as model
     for (DatasetInfo dataset : model.datasets) {
       if (dataset.name.equalsIgnoreCase(model.name)) {
@@ -467,7 +530,7 @@ public class DataModelDiscovery {
     }
 
     // If still not found, use first dataset
-    return model.datasets.isEmpty() ? null : model.datasets.get(0);
+    return model.datasets.get(0);
   }
 
   /**
@@ -499,6 +562,15 @@ public class DataModelDiscovery {
         addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "user", SqlTypeName.VARCHAR);
         addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "src", SqlTypeName.VARCHAR);
         addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "dest", SqlTypeName.VARCHAR);
+        // Standard web server log fields
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "status", SqlTypeName.VARCHAR);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "bytes", SqlTypeName.INTEGER);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "method", SqlTypeName.VARCHAR);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "uri_path", SqlTypeName.VARCHAR);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "uri_query", SqlTypeName.VARCHAR);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "user_agent", SqlTypeName.VARCHAR);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "referrer", SqlTypeName.VARCHAR);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "cookie", SqlTypeName.VARCHAR);
         break;
 
       case "network_traffic":
@@ -719,6 +791,93 @@ public class DataModelDiscovery {
   }
 
   /**
+   * Extracts field names referenced in calculated field expressions.
+   */
+  private Set<String> extractFieldsFromCalculations(DatasetInfo dataset) {
+    Set<String> referencedFields = new HashSet<>();
+
+    // Pattern to match field references in SPL expressions
+    // Matches field names in various contexts: function args, comparisons, etc.
+    Pattern fieldPattern =
+        Pattern.compile("(?:isnull|isnotnull|isnum|len)\\s*\\(\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\)|" +  // Functions
+        "([a-zA-Z_][a-zA-Z0-9_]*)\\s*(?:=|!=|<|>|<=|>=)|" +  // Comparisons (field on left)
+        "(?:=|!=|<|>|<=|>=)\\s*([a-zA-Z_][a-zA-Z0-9_]*)|" +  // Comparisons (field on right)
+        "(?:^|[\\s,\\(])([a-zA-Z_][a-zA-Z0-9_]*)(?:\\s*[\\+\\-\\*/])|" +  // Math operations
+        "(?:[\\+\\-\\*/]\\s*)([a-zA-Z_][a-zA-Z0-9_]*)(?:\\s*[,\\)]|$)");    // Math operations
+
+    for (CalculationInfo calc : dataset.calculations) {
+      Matcher matcher = fieldPattern.matcher(calc.expression);
+      while (matcher.find()) {
+        // Check all capture groups
+        for (int i = 1; i <= matcher.groupCount(); i++) {
+          String field = matcher.group(i);
+          if (field != null && !field.isEmpty()) {
+            // Filter out known SPL keywords and functions
+            if (!isSplunkKeyword(field)) {
+              referencedFields.add(field);
+            }
+          }
+        }
+      }
+
+      // Also check for simple field references in case statements
+      Pattern casePattern = Pattern.compile("case\\s*\\(.*?([a-zA-Z_][a-zA-Z0-9_]*).*?\\)");
+      Matcher caseMatcher = casePattern.matcher(calc.expression);
+      while (caseMatcher.find()) {
+        String field = caseMatcher.group(1);
+        if (!isSplunkKeyword(field)) {
+          referencedFields.add(field);
+        }
+      }
+    }
+
+    return referencedFields;
+  }
+
+  /**
+   * Checks if a string is a Splunk SPL keyword or function.
+   */
+  private boolean isSplunkKeyword(String term) {
+    Set<String> keywords =
+        Set.of("if", "case", "when", "then", "else", "null", "true", "false",
+        "and", "or", "not", "in", "as", "by", "eval", "where",
+        "isnull", "isnotnull", "isnum", "len", "count", "sum", "avg",
+        "min", "max", "first", "last", "values", "list", "upper", "lower",
+        "trim", "ltrim", "rtrim", "substr", "replace", "split", "join",
+        "tostring", "tonumber", "toint", "unknown");
+    return keywords.contains(term.toLowerCase(Locale.ROOT));
+  }
+
+  /**
+   * Infers SQL type for a field based on naming patterns.
+   */
+  private SqlTypeName inferFieldType(String fieldName) {
+    String lowerName = fieldName.toLowerCase(Locale.ROOT);
+
+    // Numeric fields
+    if (lowerName.contains("bytes") || lowerName.contains("size") ||
+        lowerName.contains("length") || lowerName.contains("count") ||
+        lowerName.contains("duration") || lowerName.contains("_time") ||
+        lowerName.endsWith("_ms") || lowerName.endsWith("_sec")) {
+      return SqlTypeName.INTEGER;
+    }
+
+    // Port numbers
+    if (lowerName.contains("port") || lowerName.endsWith("_port")) {
+      return SqlTypeName.INTEGER;
+    }
+
+    // Boolean fields
+    if (lowerName.startsWith("is_") || lowerName.startsWith("has_") ||
+        lowerName.equals("cached")) {
+      return SqlTypeName.BOOLEAN;
+    }
+
+    // Default to VARCHAR for text fields
+    return SqlTypeName.VARCHAR;
+  }
+
+  /**
    * Information about a data model.
    */
   private static class DataModelInfo {
@@ -735,6 +894,7 @@ public class DataModelDiscovery {
     String displayName;
     String parentName;
     List<FieldInfo> fields = new ArrayList<>();
+    List<CalculationInfo> calculations = new ArrayList<>();
   }
 
   /**
@@ -746,6 +906,14 @@ public class DataModelDiscovery {
     String type;
     boolean required;
     boolean multivalue;
+  }
+
+  /**
+   * Information about a calculated field.
+   */
+  private static class CalculationInfo {
+    String calculationId;
+    String expression;
   }
 
   /**

@@ -308,20 +308,20 @@ public class SpuriousTableComprehensiveTest {
         // Count all rows returned by the CSV parser
         int totalRows = 0;
         int validDataRows = 0;
-        
+
         // First check what columns are available
         int columnCount = rs.getMetaData().getColumnCount();
         System.out.println("CSV has " + columnCount + " columns:");
         for (int i = 1; i <= columnCount; i++) {
           System.out.println("  Column " + i + ": " + rs.getMetaData().getColumnName(i));
         }
-        
+
         while (rs.next()) {
           totalRows++;
           // Use the first column by index
           String firstCol = rs.getString(1);
           System.out.println("Row " + totalRows + ": firstCol='" + firstCol + "'");
-          
+
           // Count only actual data rows (not comments or empty)
           if (firstCol != null && !firstCol.startsWith("#") && !firstCol.trim().isEmpty()) {
             validDataRows++;
@@ -329,7 +329,7 @@ public class SpuriousTableComprehensiveTest {
         }
 
         System.out.println("Total rows: " + totalRows + ", Valid data rows: " + validDataRows);
-        
+
         // The current behavior shows the CSV parser is including all lines (comments, empty, data)
         // This is actually exposing spurious line detection - the CSV parser should filter comments
         // For now, let's verify this is the spurious behavior we want to detect

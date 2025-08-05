@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.adapter.governance;
 
-import org.apache.calcite.adapter.governance.provider.AzureProvider;
-import org.apache.calcite.adapter.governance.provider.GCPProvider;
 import org.apache.calcite.adapter.governance.provider.AWSProvider;
+import org.apache.calcite.adapter.governance.provider.AzureProvider;
 import org.apache.calcite.adapter.governance.provider.CloudProvider;
+import org.apache.calcite.adapter.governance.provider.GCPProvider;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -32,13 +32,12 @@ import java.util.Map;
  * Table containing IAM resource information across cloud providers.
  */
 public class IAMResourcesTable extends AbstractCloudGovernanceTable {
-  
+
   public IAMResourcesTable(CloudGovernanceConfig config) {
     super(config);
   }
-  
-  @Override
-  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+
+  @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     return typeFactory.builder()
         // Identity fields
         .add("cloud_provider", SqlTypeName.VARCHAR)
@@ -49,11 +48,11 @@ public class IAMResourcesTable extends AbstractCloudGovernanceTable {
         .add("region", SqlTypeName.VARCHAR)
         .add("resource_group", SqlTypeName.VARCHAR)
         .add("resource_id", SqlTypeName.VARCHAR)
-        
+
         // Configuration facts
         .add("configuration", SqlTypeName.VARCHAR)
         .add("security_configuration", SqlTypeName.VARCHAR)
-        
+
         // IAM specific facts
         .add("principal_type", SqlTypeName.VARCHAR)
         .add("email", SqlTypeName.VARCHAR)
@@ -61,22 +60,21 @@ public class IAMResourcesTable extends AbstractCloudGovernanceTable {
         .add("mfa_enabled", SqlTypeName.BOOLEAN)
         .add("access_key_count", SqlTypeName.INTEGER)
         .add("active_access_keys", SqlTypeName.INTEGER)
-        
+
         // Timestamps
         .add("create_date", SqlTypeName.TIMESTAMP)
         .add("password_last_used", SqlTypeName.TIMESTAMP)
-        
+
         .build();
   }
-  
-  @Override
-  protected List<Object[]> queryAzure(List<String> subscriptionIds) {
+
+  @Override protected List<Object[]> queryAzure(List<String> subscriptionIds) {
     List<Object[]> results = new ArrayList<>();
-    
+
     try {
       CloudProvider azureProvider = new AzureProvider(config.azure);
       List<Map<String, Object>> iamResults = azureProvider.queryIAMResources(subscriptionIds);
-      
+
       for (Map<String, Object> iam : iamResults) {
         results.add(new Object[]{
             "azure",
@@ -102,25 +100,24 @@ public class IAMResourcesTable extends AbstractCloudGovernanceTable {
     } catch (Exception e) {
       System.err.println("Error querying Azure IAM resources: " + e.getMessage());
     }
-    
+
     return results;
   }
-  
-  @Override
-  protected List<Object[]> queryGCP(List<String> projectIds) {
+
+  @Override protected List<Object[]> queryGCP(List<String> projectIds) {
     List<Object[]> results = new ArrayList<>();
-    
+
     try {
       CloudProvider gcpProvider = new GCPProvider(config.gcp);
       List<Map<String, Object>> iamResults = gcpProvider.queryIAMResources(projectIds);
-      
+
       for (Map<String, Object> iam : iamResults) {
         String resourceType = (String) iam.get("IAMResourceType");
         Boolean isActive = true;
         if ("ServiceAccount".equals(resourceType)) {
           isActive = !(Boolean) iam.getOrDefault("Disabled", false);
         }
-        
+
         results.add(new Object[]{
             "gcp",
             iam.get("ProjectId"),
@@ -145,21 +142,20 @@ public class IAMResourcesTable extends AbstractCloudGovernanceTable {
     } catch (Exception e) {
       System.err.println("Error querying GCP IAM resources: " + e.getMessage());
     }
-    
+
     return results;
   }
-  
-  @Override
-  protected List<Object[]> queryAWS(List<String> accountIds) {
+
+  @Override protected List<Object[]> queryAWS(List<String> accountIds) {
     List<Object[]> results = new ArrayList<>();
-    
+
     try {
       CloudProvider awsProvider = new AWSProvider(config.aws);
       List<Map<String, Object>> iamResults = awsProvider.queryIAMResources(accountIds);
-      
+
       for (Map<String, Object> iam : iamResults) {
         String resourceType = (String) iam.get("IAMResourceType");
-        
+
         results.add(new Object[]{
             "aws",
             iam.get("AccountId"),
@@ -169,7 +165,7 @@ public class IAMResourcesTable extends AbstractCloudGovernanceTable {
             iam.get("Region"),
             null, // resource group not applicable
             iam.get("ResourceId"),
-            iam.get("Path") != null ? "Path: " + iam.get("Path") : 
+            iam.get("Path") != null ? "Path: " + iam.get("Path") :
                 iam.get("Description") != null ? "Description: " + iam.get("Description") : null,
             null, // security configuration not computed
             null, // principal type in users/roles
@@ -177,7 +173,7 @@ public class IAMResourcesTable extends AbstractCloudGovernanceTable {
             !"IAM Policy".equals(resourceType), // policies aren't active/inactive
             iam.get("MFAEnabled"),
             iam.get("AccessKeyCount") != null ? ((Number) iam.get("AccessKeyCount")).intValue() : null,
-            iam.get("ActiveAccessKeys") != null ? 
+            iam.get("ActiveAccessKeys") != null ?
                 ((Number) iam.get("ActiveAccessKeys")).intValue() : null,
             iam.get("CreateDate"),
             iam.get("PasswordLastUsed")
@@ -186,7 +182,7 @@ public class IAMResourcesTable extends AbstractCloudGovernanceTable {
     } catch (Exception e) {
       System.err.println("Error querying AWS IAM resources: " + e.getMessage());
     }
-    
+
     return results;
   }
 }

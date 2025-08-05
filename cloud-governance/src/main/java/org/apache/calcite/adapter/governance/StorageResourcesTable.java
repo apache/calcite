@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.adapter.governance;
 
-import org.apache.calcite.adapter.governance.provider.AzureProvider;
-import org.apache.calcite.adapter.governance.provider.GCPProvider;
 import org.apache.calcite.adapter.governance.provider.AWSProvider;
+import org.apache.calcite.adapter.governance.provider.AzureProvider;
 import org.apache.calcite.adapter.governance.provider.CloudProvider;
+import org.apache.calcite.adapter.governance.provider.GCPProvider;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -33,13 +33,12 @@ import java.util.Map;
  * Returns raw facts without subjective assessments.
  */
 public class StorageResourcesTable extends AbstractCloudGovernanceTable {
-  
+
   public StorageResourcesTable(CloudGovernanceConfig config) {
     super(config);
   }
-  
-  @Override
-  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+
+  @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     return typeFactory.builder()
         // Identity fields
         .add("cloud_provider", SqlTypeName.VARCHAR)
@@ -50,12 +49,12 @@ public class StorageResourcesTable extends AbstractCloudGovernanceTable {
         .add("region", SqlTypeName.VARCHAR)
         .add("resource_group", SqlTypeName.VARCHAR)
         .add("resource_id", SqlTypeName.VARCHAR)
-        
+
         // Configuration facts
         .add("size_bytes", SqlTypeName.BIGINT)
         .add("storage_class", SqlTypeName.VARCHAR)
         .add("replication_type", SqlTypeName.VARCHAR)
-        
+
         // Security facts
         .add("encryption_enabled", SqlTypeName.BOOLEAN)
         .add("encryption_type", SqlTypeName.VARCHAR)
@@ -64,40 +63,39 @@ public class StorageResourcesTable extends AbstractCloudGovernanceTable {
         .add("public_access_level", SqlTypeName.VARCHAR)
         .add("network_restrictions", SqlTypeName.VARCHAR)
         .add("https_only", SqlTypeName.BOOLEAN)
-        
+
         // Data protection facts
         .add("versioning_enabled", SqlTypeName.BOOLEAN)
         .add("soft_delete_enabled", SqlTypeName.BOOLEAN)
         .add("soft_delete_retention_days", SqlTypeName.INTEGER)
         .add("backup_enabled", SqlTypeName.BOOLEAN)
         .add("lifecycle_rules_count", SqlTypeName.INTEGER)
-        
+
         // Access control facts
         .add("access_tier", SqlTypeName.VARCHAR)
         .add("last_access_time", SqlTypeName.TIMESTAMP)
         .add("created_date", SqlTypeName.TIMESTAMP)
         .add("modified_date", SqlTypeName.TIMESTAMP)
-        
+
         // Metadata
         .add("tags", SqlTypeName.VARCHAR) // JSON string
-        
+
         .build();
   }
-  
-  @Override
-  protected List<Object[]> queryAzure(List<String> subscriptionIds) {
+
+  @Override protected List<Object[]> queryAzure(List<String> subscriptionIds) {
     List<Object[]> results = new ArrayList<>();
-    
+
     try {
       // Use native Azure provider
       CloudProvider azureProvider = new AzureProvider(config.azure);
       List<Map<String, Object>> storageResults = azureProvider.queryStorageResources(subscriptionIds);
-      
+
       // Convert to rows
       for (Map<String, Object> storage : storageResults) {
         String storageType = (String) storage.get("StorageType");
         String encryptionMethod = (String) storage.get("EncryptionMethod");
-        
+
         results.add(new Object[]{
             "azure",
             storage.get("SubscriptionId"),
@@ -112,7 +110,7 @@ public class StorageResourcesTable extends AbstractCloudGovernanceTable {
             getAzureReplicationType(storageType),
             storage.get("EncryptionEnabled"),
             encryptionMethod,
-            encryptionMethod != null && encryptionMethod.contains("Customer") ? 
+            encryptionMethod != null && encryptionMethod.contains("Customer") ?
                 "customer-managed" : "service-managed",
             false, // public_access_enabled - would need additional query
             null, // public_access_level
@@ -133,18 +131,17 @@ public class StorageResourcesTable extends AbstractCloudGovernanceTable {
     } catch (Exception e) {
       System.err.println("Error querying Azure storage resources: " + e.getMessage());
     }
-    
+
     return results;
   }
-  
-  @Override
-  protected List<Object[]> queryGCP(List<String> projectIds) {
+
+  @Override protected List<Object[]> queryGCP(List<String> projectIds) {
     List<Object[]> results = new ArrayList<>();
-    
+
     try {
       CloudProvider gcpProvider = new GCPProvider(config.gcp);
       List<Map<String, Object>> storageResults = gcpProvider.queryStorageResources(projectIds);
-      
+
       for (Map<String, Object> storage : storageResults) {
         results.add(new Object[]{
             "gcp",
@@ -159,7 +156,7 @@ public class StorageResourcesTable extends AbstractCloudGovernanceTable {
             storage.get("StorageClass"),
             null, // replication_type
             storage.get("EncryptionEnabled"),
-            storage.get("EncryptionEnabled") != null && (Boolean) storage.get("EncryptionEnabled") ? 
+            storage.get("EncryptionEnabled") != null && (Boolean) storage.get("EncryptionEnabled") ?
                 (storage.get("EncryptionKeyName") != null ? "customer-managed" : "service-managed") : "none",
             storage.get("EncryptionKeyName") != null ? "customer-managed" : "service-managed",
             false, // public_access_enabled - would need to check IAM
@@ -181,18 +178,17 @@ public class StorageResourcesTable extends AbstractCloudGovernanceTable {
     } catch (Exception e) {
       System.err.println("Error querying GCP storage resources: " + e.getMessage());
     }
-    
+
     return results;
   }
-  
-  @Override
-  protected List<Object[]> queryAWS(List<String> accountIds) {
+
+  @Override protected List<Object[]> queryAWS(List<String> accountIds) {
     List<Object[]> results = new ArrayList<>();
-    
+
     try {
       CloudProvider awsProvider = new AWSProvider(config.aws);
       List<Map<String, Object>> storageResults = awsProvider.queryStorageResources(accountIds);
-      
+
       for (Map<String, Object> storage : storageResults) {
         results.add(new Object[]{
             "aws",
@@ -210,7 +206,7 @@ public class StorageResourcesTable extends AbstractCloudGovernanceTable {
             storage.get("EncryptionType"),
             storage.get("KmsKeyId") != null ? "customer-managed" : "service-managed",
             !(Boolean) storage.get("PublicAccessBlocked"),
-            storage.get("PublicAccessBlocked") != null && (Boolean) storage.get("PublicAccessBlocked") ? 
+            storage.get("PublicAccessBlocked") != null && (Boolean) storage.get("PublicAccessBlocked") ?
                 "blocked" : "allowed",
             null, // network_restrictions - would need to check bucket policy
             true, // https_only - S3 supports both but HTTPS is default
@@ -229,10 +225,10 @@ public class StorageResourcesTable extends AbstractCloudGovernanceTable {
     } catch (Exception e) {
       System.err.println("Error querying AWS storage resources: " + e.getMessage());
     }
-    
+
     return results;
   }
-  
+
   private String getAzureReplicationType(String storageType) {
     // Simplified logic - in reality would parse from SKU
     switch (storageType) {

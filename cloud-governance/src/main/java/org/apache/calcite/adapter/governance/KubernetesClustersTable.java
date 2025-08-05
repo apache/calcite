@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.adapter.governance;
 
-import org.apache.calcite.adapter.governance.provider.AzureProvider;
-import org.apache.calcite.adapter.governance.provider.GCPProvider;
 import org.apache.calcite.adapter.governance.provider.AWSProvider;
+import org.apache.calcite.adapter.governance.provider.AzureProvider;
 import org.apache.calcite.adapter.governance.provider.CloudProvider;
+import org.apache.calcite.adapter.governance.provider.GCPProvider;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -33,13 +33,12 @@ import java.util.Map;
  * Returns raw facts without subjective assessments.
  */
 public class KubernetesClustersTable extends AbstractCloudGovernanceTable {
-  
+
   public KubernetesClustersTable(CloudGovernanceConfig config) {
     super(config);
   }
-  
-  @Override
-  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+
+  @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     return typeFactory.builder()
         // Identity fields
         .add("cloud_provider", SqlTypeName.VARCHAR)
@@ -49,12 +48,12 @@ public class KubernetesClustersTable extends AbstractCloudGovernanceTable {
         .add("region", SqlTypeName.VARCHAR)
         .add("resource_group", SqlTypeName.VARCHAR)
         .add("resource_id", SqlTypeName.VARCHAR)
-        
+
         // Configuration facts
         .add("kubernetes_version", SqlTypeName.VARCHAR)
         .add("node_count", SqlTypeName.INTEGER)
         .add("node_pools", SqlTypeName.INTEGER)
-        
+
         // Security facts (raw boolean/string values)
         .add("rbac_enabled", SqlTypeName.BOOLEAN)
         .add("private_cluster", SqlTypeName.BOOLEAN)
@@ -62,32 +61,31 @@ public class KubernetesClustersTable extends AbstractCloudGovernanceTable {
         .add("authorized_ip_ranges", SqlTypeName.INTEGER)
         .add("network_policy_provider", SqlTypeName.VARCHAR)
         .add("pod_security_policy_enabled", SqlTypeName.BOOLEAN)
-        
+
         // Encryption facts
         .add("encryption_at_rest_enabled", SqlTypeName.BOOLEAN)
         .add("encryption_key_type", SqlTypeName.VARCHAR)
-        
+
         // Monitoring facts
         .add("logging_enabled", SqlTypeName.BOOLEAN)
         .add("monitoring_enabled", SqlTypeName.BOOLEAN)
-        
+
         // Metadata
         .add("created_date", SqlTypeName.TIMESTAMP)
         .add("modified_date", SqlTypeName.TIMESTAMP)
         .add("tags", SqlTypeName.VARCHAR) // JSON string
-        
+
         .build();
   }
-  
-  @Override
-  protected List<Object[]> queryAzure(List<String> subscriptionIds) {
+
+  @Override protected List<Object[]> queryAzure(List<String> subscriptionIds) {
     List<Object[]> results = new ArrayList<>();
-    
+
     try {
       // Use native Azure provider
       CloudProvider azureProvider = new AzureProvider(config.azure);
       List<Map<String, Object>> aksResults = azureProvider.queryKubernetesClusters(subscriptionIds);
-      
+
       // Convert to rows
       for (Map<String, Object> cluster : aksResults) {
         results.add(new Object[]{
@@ -120,18 +118,17 @@ public class KubernetesClustersTable extends AbstractCloudGovernanceTable {
       // Log error but don't fail the entire query
       System.err.println("Error querying Azure AKS clusters: " + e.getMessage());
     }
-    
+
     return results;
   }
-  
-  @Override
-  protected List<Object[]> queryGCP(List<String> projectIds) {
+
+  @Override protected List<Object[]> queryGCP(List<String> projectIds) {
     List<Object[]> results = new ArrayList<>();
-    
+
     try {
       CloudProvider gcpProvider = new GCPProvider(config.gcp);
       List<Map<String, Object>> clusterResults = gcpProvider.queryKubernetesClusters(projectIds);
-      
+
       for (Map<String, Object> cluster : clusterResults) {
         results.add(new Object[]{
             "gcp",
@@ -162,21 +159,20 @@ public class KubernetesClustersTable extends AbstractCloudGovernanceTable {
     } catch (Exception e) {
       System.err.println("Error querying GCP Kubernetes clusters: " + e.getMessage());
     }
-    
+
     return results;
   }
-  
-  @Override
-  protected List<Object[]> queryAWS(List<String> accountIds) {
+
+  @Override protected List<Object[]> queryAWS(List<String> accountIds) {
     List<Object[]> results = new ArrayList<>();
-    
+
     try {
       CloudProvider awsProvider = new AWSProvider(config.aws);
       List<Map<String, Object>> clusterResults = awsProvider.queryKubernetesClusters(accountIds);
-      
+
       for (Map<String, Object> cluster : clusterResults) {
         Integer publicAccessCidrs = (Integer) cluster.get("PublicAccessCidrs");
-        
+
         results.add(new Object[]{
             "aws",
             cluster.get("AccountId"),
@@ -206,7 +202,7 @@ public class KubernetesClustersTable extends AbstractCloudGovernanceTable {
     } catch (Exception e) {
       System.err.println("Error querying AWS Kubernetes clusters: " + e.getMessage());
     }
-    
+
     return results;
   }
 }

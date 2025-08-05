@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.test;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
@@ -28,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
  * Test cache configuration and app context via JDBC URL parameters.
  * These tests verify URL parameter parsing but don't require actual Splunk connectivity.
  */
+@Tag("unit")
 class SplunkCacheAndAppTest {
 
   @Test void testCacheParametersInJdbcUrl() throws Exception {

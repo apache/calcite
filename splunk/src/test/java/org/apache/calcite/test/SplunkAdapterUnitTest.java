@@ -22,6 +22,7 @@ import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
@@ -47,6 +48,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  * Unit tests for Splunk adapter using mocks.
  * These tests don't require a live Splunk connection.
  */
+@Tag("unit")
 class SplunkAdapterUnitTest {
 
   @BeforeEach
@@ -83,7 +85,7 @@ class SplunkAdapterUnitTest {
     SQLException ex = assertThrows(SQLException.class, () -> {
       DriverManager.getConnection("jdbc:splunk:", info);
     });
-    assertThat(ex.getMessage(), containsString("Must specify 'url' property"));
+    assertThat(ex.getMessage(), containsString("Must specify 'url' or 'jdbcUrl' property"));
   }
 
   @Test void testConnectionWithMissingAuth() {
@@ -273,7 +275,7 @@ class SplunkAdapterUnitTest {
     SQLException ex = assertThrows(SQLException.class, () -> {
       DriverManager.getConnection("jdbc:splunk:", info);
     });
-    assertThat(ex.getMessage(), containsString("Must specify 'url' property"));
+    assertThat(ex.getMessage(), containsString("Must specify 'url' or 'jdbcUrl' property"));
   }
 
   @Test void testCastOperationsInMockEnvironment() throws SQLException {

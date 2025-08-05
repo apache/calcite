@@ -59,13 +59,13 @@ public class SharePointMetadataSchema extends AbstractSchema {
         .put("pg_namespace", new PgNamespaceTable())
         .put("pg_class", new PgClassTable())
         .put("pg_attribute", new PgAttributeTable())
-        // SQL standard information_schema tables
-        .put("tables", new InformationSchemaTablesTable())
-        .put("columns", new InformationSchemaColumnsTable())
-        .put("schemata", new InformationSchemaSchemataTable())
-        .put("views", new InformationSchemaViewsTable())
-        .put("table_constraints", new InformationSchemaTableConstraintsTable())
-        .put("key_column_usage", new InformationSchemaKeyColumnUsageTable())
+        // SQL standard information_schema tables (UPPERCASE as per SQL standard)
+        .put("TABLES", new InformationSchemaTablesTable())
+        .put("COLUMNS", new InformationSchemaColumnsTable())
+        .put("SCHEMATA", new InformationSchemaSchemataTable())
+        .put("VIEWS", new InformationSchemaViewsTable())
+        .put("TABLE_CONSTRAINTS", new InformationSchemaTableConstraintsTable())
+        .put("KEY_COLUMN_USAGE", new InformationSchemaKeyColumnUsageTable())
         // SharePoint-specific tables
         .put("sharepoint_lists", new SharePointListsTable())
         .build();
@@ -113,13 +113,13 @@ public class SharePointMetadataSchema extends AbstractSchema {
   private class InformationSchemaTablesTable extends AbstractTable implements ScannableTable {
     @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
       return typeFactory.builder()
-          .add("table_catalog", SqlTypeName.VARCHAR)
-          .add("table_schema", SqlTypeName.VARCHAR)
-          .add("table_name", SqlTypeName.VARCHAR)
-          .add("table_type", SqlTypeName.VARCHAR)
-          .add("is_insertable_into", SqlTypeName.VARCHAR)
-          .add("is_typed", SqlTypeName.VARCHAR)
-          .add("commit_action", SqlTypeName.VARCHAR)
+          .add("TABLE_CATALOG", SqlTypeName.VARCHAR)
+          .add("TABLE_SCHEMA", SqlTypeName.VARCHAR)
+          .add("TABLE_NAME", SqlTypeName.VARCHAR)
+          .add("TABLE_TYPE", SqlTypeName.VARCHAR)
+          .add("IS_INSERTABLE_INTO", SqlTypeName.VARCHAR)
+          .add("IS_TYPED", SqlTypeName.VARCHAR)
+          .add("COMMIT_ACTION", SqlTypeName.VARCHAR)
           .build();
     }
 
@@ -149,19 +149,19 @@ public class SharePointMetadataSchema extends AbstractSchema {
   private class InformationSchemaColumnsTable extends AbstractTable implements ScannableTable {
     @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
       return typeFactory.builder()
-          .add("table_catalog", SqlTypeName.VARCHAR)
-          .add("table_schema", SqlTypeName.VARCHAR)
-          .add("table_name", SqlTypeName.VARCHAR)
-          .add("column_name", SqlTypeName.VARCHAR)
-          .add("ordinal_position", SqlTypeName.INTEGER)
-          .add("column_default", SqlTypeName.VARCHAR)
-          .add("is_nullable", SqlTypeName.VARCHAR)
-          .add("data_type", SqlTypeName.VARCHAR)
-          .add("character_maximum_length", SqlTypeName.INTEGER)
-          .add("numeric_precision", SqlTypeName.INTEGER)
-          .add("numeric_scale", SqlTypeName.INTEGER)
-          .add("is_identity", SqlTypeName.VARCHAR)
-          .add("is_generated", SqlTypeName.VARCHAR)
+          .add("TABLE_CATALOG", SqlTypeName.VARCHAR)
+          .add("TABLE_SCHEMA", SqlTypeName.VARCHAR)
+          .add("TABLE_NAME", SqlTypeName.VARCHAR)
+          .add("COLUMN_NAME", SqlTypeName.VARCHAR)
+          .add("ORDINAL_POSITION", SqlTypeName.INTEGER)
+          .add("COLUMN_DEFAULT", SqlTypeName.VARCHAR)
+          .add("IS_NULLABLE", SqlTypeName.VARCHAR)
+          .add("DATA_TYPE", SqlTypeName.VARCHAR)
+          .add("CHARACTER_MAXIMUM_LENGTH", SqlTypeName.INTEGER)
+          .add("NUMERIC_PRECISION", SqlTypeName.INTEGER)
+          .add("NUMERIC_SCALE", SqlTypeName.INTEGER)
+          .add("IS_IDENTITY", SqlTypeName.VARCHAR)
+          .add("IS_GENERATED", SqlTypeName.VARCHAR)
           .build();
     }
 
@@ -236,12 +236,12 @@ public class SharePointMetadataSchema extends AbstractSchema {
   private class InformationSchemaSchemataTable extends AbstractTable implements ScannableTable {
     @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
       return typeFactory.builder()
-          .add("catalog_name", SqlTypeName.VARCHAR)
-          .add("schema_name", SqlTypeName.VARCHAR)
-          .add("schema_owner", SqlTypeName.VARCHAR)
-          .add("default_character_set_catalog", SqlTypeName.VARCHAR)
-          .add("default_character_set_schema", SqlTypeName.VARCHAR)
-          .add("default_character_set_name", SqlTypeName.VARCHAR)
+          .add("CATALOG_NAME", SqlTypeName.VARCHAR)
+          .add("SCHEMA_NAME", SqlTypeName.VARCHAR)
+          .add("SCHEMA_OWNER", SqlTypeName.VARCHAR)
+          .add("DEFAULT_CHARACTER_SET_CATALOG", SqlTypeName.VARCHAR)
+          .add("DEFAULT_CHARACTER_SET_SCHEMA", SqlTypeName.VARCHAR)
+          .add("DEFAULT_CHARACTER_SET_NAME", SqlTypeName.VARCHAR)
           .build();
     }
 
@@ -582,16 +582,16 @@ public class SharePointMetadataSchema extends AbstractSchema {
   private class InformationSchemaViewsTable extends AbstractTable implements ScannableTable {
     @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
       return typeFactory.builder()
-          .add("table_catalog", SqlTypeName.VARCHAR)
-          .add("table_schema", SqlTypeName.VARCHAR)
-          .add("table_name", SqlTypeName.VARCHAR)
-          .add("view_definition", SqlTypeName.VARCHAR)
-          .add("check_option", SqlTypeName.VARCHAR)
-          .add("is_updatable", SqlTypeName.VARCHAR)
-          .add("is_insertable_into", SqlTypeName.VARCHAR)
-          .add("is_trigger_updatable", SqlTypeName.VARCHAR)
-          .add("is_trigger_deletable", SqlTypeName.VARCHAR)
-          .add("is_trigger_insertable_into", SqlTypeName.VARCHAR)
+          .add("TABLE_CATALOG", SqlTypeName.VARCHAR)
+          .add("TABLE_SCHEMA", SqlTypeName.VARCHAR)
+          .add("TABLE_NAME", SqlTypeName.VARCHAR)
+          .add("VIEW_DEFINITION", SqlTypeName.VARCHAR)
+          .add("CHECK_OPTION", SqlTypeName.VARCHAR)
+          .add("IS_UPDATABLE", SqlTypeName.VARCHAR)
+          .add("IS_INSERTABLE_INTO", SqlTypeName.VARCHAR)
+          .add("IS_TRIGGER_UPDATABLE", SqlTypeName.VARCHAR)
+          .add("IS_TRIGGER_DELETABLE", SqlTypeName.VARCHAR)
+          .add("IS_TRIGGER_INSERTABLE_INTO", SqlTypeName.VARCHAR)
           .build();
     }
 
@@ -609,16 +609,16 @@ public class SharePointMetadataSchema extends AbstractSchema {
   private class InformationSchemaTableConstraintsTable extends AbstractTable implements ScannableTable {
     @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
       return typeFactory.builder()
-          .add("constraint_catalog", SqlTypeName.VARCHAR)
-          .add("constraint_schema", SqlTypeName.VARCHAR)
-          .add("constraint_name", SqlTypeName.VARCHAR)
-          .add("table_catalog", SqlTypeName.VARCHAR)
-          .add("table_schema", SqlTypeName.VARCHAR)
-          .add("table_name", SqlTypeName.VARCHAR)
-          .add("constraint_type", SqlTypeName.VARCHAR)
-          .add("is_deferrable", SqlTypeName.VARCHAR)
-          .add("initially_deferred", SqlTypeName.VARCHAR)
-          .add("enforced", SqlTypeName.VARCHAR)
+          .add("CONSTRAINT_CATALOG", SqlTypeName.VARCHAR)
+          .add("CONSTRAINT_SCHEMA", SqlTypeName.VARCHAR)
+          .add("CONSTRAINT_NAME", SqlTypeName.VARCHAR)
+          .add("TABLE_CATALOG", SqlTypeName.VARCHAR)
+          .add("TABLE_SCHEMA", SqlTypeName.VARCHAR)
+          .add("TABLE_NAME", SqlTypeName.VARCHAR)
+          .add("CONSTRAINT_TYPE", SqlTypeName.VARCHAR)
+          .add("IS_DEFERRABLE", SqlTypeName.VARCHAR)
+          .add("INITIALLY_DEFERRED", SqlTypeName.VARCHAR)
+          .add("ENFORCED", SqlTypeName.VARCHAR)
           .build();
     }
 
@@ -636,15 +636,15 @@ public class SharePointMetadataSchema extends AbstractSchema {
   private class InformationSchemaKeyColumnUsageTable extends AbstractTable implements ScannableTable {
     @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
       return typeFactory.builder()
-          .add("constraint_catalog", SqlTypeName.VARCHAR)
-          .add("constraint_schema", SqlTypeName.VARCHAR)
-          .add("constraint_name", SqlTypeName.VARCHAR)
-          .add("table_catalog", SqlTypeName.VARCHAR)
-          .add("table_schema", SqlTypeName.VARCHAR)
-          .add("table_name", SqlTypeName.VARCHAR)
-          .add("column_name", SqlTypeName.VARCHAR)
-          .add("ordinal_position", SqlTypeName.INTEGER)
-          .add("position_in_unique_constraint", SqlTypeName.INTEGER)
+          .add("CONSTRAINT_CATALOG", SqlTypeName.VARCHAR)
+          .add("CONSTRAINT_SCHEMA", SqlTypeName.VARCHAR)
+          .add("CONSTRAINT_NAME", SqlTypeName.VARCHAR)
+          .add("TABLE_CATALOG", SqlTypeName.VARCHAR)
+          .add("TABLE_SCHEMA", SqlTypeName.VARCHAR)
+          .add("TABLE_NAME", SqlTypeName.VARCHAR)
+          .add("COLUMN_NAME", SqlTypeName.VARCHAR)
+          .add("ORDINAL_POSITION", SqlTypeName.INTEGER)
+          .add("POSITION_IN_UNIQUE_CONSTRAINT", SqlTypeName.INTEGER)
           .build();
     }
 

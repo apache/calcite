@@ -175,13 +175,13 @@ public class ExcelComprehensiveTest {
 
       // Excel sheet names go through sanitization:
       // 1. Filename is converted to PascalCase (naming_test -> NamingTest)
-      // 2. Sheet name is also converted to PascalCase  
+      // 2. Sheet name is also converted to PascalCase
       // 3. Combined as filename__sheetname
       // 4. Then lowercased due to tableNameCasing: 'LOWER'
-      
+
       // Based on actual output:
       // - Spaces are removed
-      // - Dashes are removed  
+      // - Dashes are removed
       // - Underscores are REMOVED (contrary to expectation)
       // - Dots are kept
       // - Everything is lowercased
@@ -190,9 +190,9 @@ public class ExcelComprehensiveTest {
           .replace("-", "")     // dashes removed
           .replace("_", "");    // underscores removed
       // Dots are kept
-      
+
       String tableName = "namingtest__" + sanitizedSheetName;
-      
+
       try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as cnt FROM \"" + tableName + "\"")) {
         assertTrue(rs.next());
         assertEquals(2L, rs.getLong("cnt"));
@@ -204,7 +204,7 @@ public class ExcelComprehensiveTest {
     File excelFile = new File(tempDir, "datatypes.xlsx");
     createDataTypesExcel(excelFile);
 
-    // Use default Parquet engine 
+    // Use default Parquet engine
     String model = createModel(tempDir);
 
     try (Connection conn = DriverManager.getConnection("jdbc:calcite:model=inline:" + model);
@@ -219,7 +219,7 @@ public class ExcelComprehensiveTest {
         assertEquals("string_col", rsmd.getColumnName(3));
         assertEquals("bool_col", rsmd.getColumnName(4));
         assertEquals("date_col", rsmd.getColumnName(5));
-        
+
         // First row should have all values with proper types
         assertTrue(rs.next());
         assertEquals(1L, rs.getLong("int_col"));
@@ -227,7 +227,7 @@ public class ExcelComprehensiveTest {
         assertEquals("Hello", rs.getString("string_col"));
         assertEquals(true, rs.getBoolean("bool_col"));
         assertNotNull(rs.getObject("date_col")); // Date as timestamp
-        
+
         // Second row has some empty cells but now uses null placeholders for consistent structure
         // JSON structure is now: {"int_col": 2, "double_col": null, "string_col": "World", "bool_col": false, "date_col": null}
         assertTrue(rs.next());
@@ -237,7 +237,7 @@ public class ExcelComprehensiveTest {
         assertEquals("World", rs.getString("string_col"));
         assertEquals(false, rs.getBoolean("bool_col"));
         // date_col is null as expected
-        
+
         // Just verify we have exactly 2 rows
         assertThat(rs.next(), is(false));
       }
@@ -324,10 +324,10 @@ public class ExcelComprehensiveTest {
       // Merged cells in Excel are converted with limitations:
       // - Merged cell B2:B3 means row 2 has "Group A" but row 3 has empty cell
       // - When empty cells are omitted from JSON, subsequent values shift positions
-      // 
+      //
       // Original Excel:
       // | id | group   | item   |
-      // |----|---------|--------|  
+      // |----|---------|--------|
       // | 1  | Group A | Item 1 |
       // | 2  | (empty) | Item 2 |  <- group cell is part of merge, so empty
       //
@@ -347,7 +347,7 @@ public class ExcelComprehensiveTest {
         assertEquals(2L, rs.getLong("id"));
         // group field is missing due to merged cell being empty
         assertEquals("Item 2", rs.getString("item"));
-        
+
         assertThat(rs.next(), is(false));
       }
     }

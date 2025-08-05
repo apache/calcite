@@ -26,6 +26,7 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -41,7 +42,7 @@ class SharePointMetadataQueryTest {
     Map<String, Object> authConfig = createAuthConfig();
 
     SharePointListSchema schema =
-        new SharePointListSchema(System.getProperty("SHAREPOINT_SITE_URL", "https://test.sharepoint.com"), authConfig);
+        new SharePointListSchema(loadTestConfig().getProperty("SHAREPOINT_SITE_URL"), authConfig);
 
     // Get the pg_catalog schema and pg_tables table
     Schema pgCatalog = schema.subSchemas().get("pg_catalog");
@@ -80,7 +81,7 @@ class SharePointMetadataQueryTest {
     Map<String, Object> authConfig = createAuthConfig();
 
     SharePointListSchema schema =
-        new SharePointListSchema(System.getProperty("SHAREPOINT_SITE_URL", "https://test.sharepoint.com"), authConfig);
+        new SharePointListSchema(loadTestConfig().getProperty("SHAREPOINT_SITE_URL"), authConfig);
 
     // Get the information_schema and tables table
     Schema informationSchema = schema.subSchemas().get("information_schema");
@@ -121,7 +122,7 @@ class SharePointMetadataQueryTest {
     Map<String, Object> authConfig = createAuthConfig();
 
     SharePointListSchema schema =
-        new SharePointListSchema(System.getProperty("SHAREPOINT_SITE_URL", "https://test.sharepoint.com"), authConfig);
+        new SharePointListSchema(loadTestConfig().getProperty("SHAREPOINT_SITE_URL"), authConfig);
 
     // Get the information_schema and columns table
     Schema informationSchema = schema.subSchemas().get("information_schema");
@@ -166,7 +167,7 @@ class SharePointMetadataQueryTest {
     Map<String, Object> authConfig = createAuthConfig();
 
     SharePointListSchema schema =
-        new SharePointListSchema(System.getProperty("SHAREPOINT_SITE_URL", "https://test.sharepoint.com"), authConfig);
+        new SharePointListSchema(loadTestConfig().getProperty("SHAREPOINT_SITE_URL"), authConfig);
 
     // Get the pg_catalog schema and sharepoint_lists table
     Schema pgCatalog = schema.subSchemas().get("pg_catalog");
@@ -210,12 +211,41 @@ class SharePointMetadataQueryTest {
   }
 
   private Map<String, Object> createAuthConfig() {
+    // Load from local-test.properties file
+    Properties props = loadTestConfig();
+
     Map<String, Object> authConfig = new HashMap<>();
     authConfig.put("authType", "CLIENT_CREDENTIALS");
-    authConfig.put("tenantId", System.getProperty("SHAREPOINT_TENANT_ID", "test-tenant-id"));
-    authConfig.put("clientId", System.getProperty("SHAREPOINT_CLIENT_ID", "test-client-id"));
-    authConfig.put("clientSecret", System.getProperty("SHAREPOINT_CLIENT_SECRET", "test-client-secret"));
+    authConfig.put("tenantId", props.getProperty("SHAREPOINT_TENANT_ID"));
+    authConfig.put("clientId", props.getProperty("SHAREPOINT_CLIENT_ID"));
+    authConfig.put("clientSecret", props.getProperty("SHAREPOINT_CLIENT_SECRET"));
     return authConfig;
+  }
+
+  private Properties loadTestConfig() {
+    Properties props = new Properties();
+    try {
+      // Try to load from file module's local-test.properties
+      java.nio.file.Path configPath = java.nio.file.Paths.get("../file/local-test.properties");
+      if (!java.nio.file.Files.exists(configPath)) {
+        configPath = java.nio.file.Paths.get("../../file/local-test.properties");
+      }
+
+      if (java.nio.file.Files.exists(configPath)) {
+        try (java.io.FileInputStream fis = new java.io.FileInputStream(configPath.toFile())) {
+          props.load(fis);
+        }
+      } else {
+        // Fall back to environment variables
+        props.setProperty("SHAREPOINT_TENANT_ID", System.getenv("SHAREPOINT_TENANT_ID"));
+        props.setProperty("SHAREPOINT_CLIENT_ID", System.getenv("SHAREPOINT_CLIENT_ID"));
+        props.setProperty("SHAREPOINT_CLIENT_SECRET", System.getenv("SHAREPOINT_CLIENT_SECRET"));
+        props.setProperty("SHAREPOINT_SITE_URL", System.getenv("SHAREPOINT_SITE_URL"));
+      }
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to load test configuration", e);
+    }
+    return props;
   }
 
 }

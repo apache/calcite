@@ -16,35 +16,35 @@
  */
 package org.apache.calcite.adapter.file;
 
-import org.apache.calcite.DataContext;
-import org.apache.calcite.linq4j.AbstractEnumerable;
-import org.apache.calcite.linq4j.Enumerable;
-import org.apache.calcite.linq4j.Enumerator;
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.schema.TranslatableTable;
-import org.apache.calcite.plan.RelOptCluster;
-import org.apache.calcite.plan.RelOptTable;
-import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
 import org.apache.calcite.adapter.enumerable.PhysType;
 import org.apache.calcite.adapter.enumerable.PhysTypeImpl;
-import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
-import org.apache.calcite.rex.RexNode;
-import com.google.common.collect.ImmutableList;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Pair;
 
+import org.apache.avro.LogicalType;
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.parquet.avro.AvroParquetReader;
 import org.apache.parquet.hadoop.ParquetFileReader;
+import org.apache.parquet.hadoop.ParquetReader;
 import org.apache.parquet.hadoop.metadata.ParquetMetadata;
 import org.apache.parquet.schema.LogicalTypeAnnotation;
 import org.apache.parquet.schema.MessageType;
@@ -57,12 +57,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import org.apache.avro.LogicalType;
-import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericRecord;
-import org.apache.parquet.avro.AvroParquetReader;
-import org.apache.parquet.hadoop.ParquetReader;
 
 /**
  * Table based on a Parquet file that implements TranslatableTable.
@@ -173,7 +167,7 @@ public class ParquetTranslatableTable extends AbstractTable implements Translata
   @Override public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable relOptTable) {
     return new ParquetTableScan(context.getCluster(), relOptTable, this, relOptTable.getRowType());
   }
-  
+
   /**
    * Enumerator that reads from Parquet files.
    */
@@ -227,7 +221,7 @@ public class ParquetTranslatableTable extends AbstractTable implements Translata
           int fieldCount = current.getSchema().getFields().size();
           currentRow = new Object[fieldCount];
           boolean shouldSkipRow = false;
-          
+
           for (int i = 0; i < fieldCount; i++) {
             Object value = current.get(i);
 
@@ -270,7 +264,7 @@ public class ParquetTranslatableTable extends AbstractTable implements Translata
 
             currentRow[i] = value;
           }
-          
+
           // Skip this row if it has null TIME values
           if (shouldSkipRow) {
             continue; // Read next row

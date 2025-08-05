@@ -14,13 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.governance.categories;
 
 /**
- * Marker interface for performance tests.
- * 
- * Performance tests measure execution time, throughput, memory usage,
- * and other performance characteristics under various load conditions.
+ * Cloud provider implementations for the governance adapter.
+ *
+ * <p>Contains provider-specific implementations for Azure, AWS, and GCP
+ * that query cloud resources using native SDKs.
  */
-public interface PerformanceTest {
-}
+package org.apache.calcite.adapter.governance.provider;

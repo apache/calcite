@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.adapter.governance;
 
-import org.apache.calcite.adapter.governance.provider.AzureProvider;
-import org.apache.calcite.adapter.governance.provider.GCPProvider;
 import org.apache.calcite.adapter.governance.provider.AWSProvider;
+import org.apache.calcite.adapter.governance.provider.AzureProvider;
 import org.apache.calcite.adapter.governance.provider.CloudProvider;
+import org.apache.calcite.adapter.governance.provider.GCPProvider;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -32,13 +32,12 @@ import java.util.Map;
  * Table containing container registry information across cloud providers.
  */
 public class ContainerRegistriesTable extends AbstractCloudGovernanceTable {
-  
+
   public ContainerRegistriesTable(CloudGovernanceConfig config) {
     super(config);
   }
-  
-  @Override
-  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+
+  @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     return typeFactory.builder()
         // Identity fields
         .add("cloud_provider", SqlTypeName.VARCHAR)
@@ -49,35 +48,34 @@ public class ContainerRegistriesTable extends AbstractCloudGovernanceTable {
         .add("resource_group", SqlTypeName.VARCHAR)
         .add("resource_id", SqlTypeName.VARCHAR)
         .add("registry_uri", SqlTypeName.VARCHAR)
-        
+
         // Configuration facts
         .add("sku", SqlTypeName.VARCHAR)
         .add("admin_user_enabled", SqlTypeName.BOOLEAN)
         .add("public_access", SqlTypeName.VARCHAR)
         .add("image_scanning_enabled", SqlTypeName.BOOLEAN)
         .add("immutable_tags", SqlTypeName.BOOLEAN)
-        
+
         // Security facts
         .add("encryption_type", SqlTypeName.VARCHAR)
         .add("encryption_key", SqlTypeName.VARCHAR)
         .add("quarantine_policy", SqlTypeName.VARCHAR)
         .add("trust_policy", SqlTypeName.VARCHAR)
         .add("retention_policy", SqlTypeName.VARCHAR)
-        
+
         // Timestamps
         .add("created_at", SqlTypeName.TIMESTAMP)
-        
+
         .build();
   }
-  
-  @Override
-  protected List<Object[]> queryAzure(List<String> subscriptionIds) {
+
+  @Override protected List<Object[]> queryAzure(List<String> subscriptionIds) {
     List<Object[]> results = new ArrayList<>();
-    
+
     try {
       CloudProvider azureProvider = new AzureProvider(config.azure);
       List<Map<String, Object>> registryResults = azureProvider.queryContainerRegistries(subscriptionIds);
-      
+
       for (Map<String, Object> registry : registryResults) {
         results.add(new Object[]{
             "azure",
@@ -104,18 +102,17 @@ public class ContainerRegistriesTable extends AbstractCloudGovernanceTable {
     } catch (Exception e) {
       System.err.println("Error querying Azure container registries: " + e.getMessage());
     }
-    
+
     return results;
   }
-  
-  @Override
-  protected List<Object[]> queryGCP(List<String> projectIds) {
+
+  @Override protected List<Object[]> queryGCP(List<String> projectIds) {
     List<Object[]> results = new ArrayList<>();
-    
+
     try {
       CloudProvider gcpProvider = new GCPProvider(config.gcp);
       List<Map<String, Object>> registryResults = gcpProvider.queryContainerRegistries(projectIds);
-      
+
       for (Map<String, Object> registry : registryResults) {
         results.add(new Object[]{
             "gcp",
@@ -135,8 +132,8 @@ public class ContainerRegistriesTable extends AbstractCloudGovernanceTable {
             registry.get("KmsKey"),
             null, // quarantine policy not in GCP
             null, // trust policy not in GCP
-            registry.get("CleanupPoliciesCount") != null && 
-                ((Number) registry.get("CleanupPoliciesCount")).intValue() > 0 ? 
+            registry.get("CleanupPoliciesCount") != null &&
+                ((Number) registry.get("CleanupPoliciesCount")).intValue() > 0 ?
                 "Enabled" : "Disabled",
             registry.get("CreateTime")
         });
@@ -144,18 +141,17 @@ public class ContainerRegistriesTable extends AbstractCloudGovernanceTable {
     } catch (Exception e) {
       System.err.println("Error querying GCP container registries: " + e.getMessage());
     }
-    
+
     return results;
   }
-  
-  @Override
-  protected List<Object[]> queryAWS(List<String> accountIds) {
+
+  @Override protected List<Object[]> queryAWS(List<String> accountIds) {
     List<Object[]> results = new ArrayList<>();
-    
+
     try {
       CloudProvider awsProvider = new AWSProvider(config.aws);
       List<Map<String, Object>> registryResults = awsProvider.queryContainerRegistries(accountIds);
-      
+
       for (Map<String, Object> registry : registryResults) {
         results.add(new Object[]{
             "aws",
@@ -182,7 +178,7 @@ public class ContainerRegistriesTable extends AbstractCloudGovernanceTable {
     } catch (Exception e) {
       System.err.println("Error querying AWS container registries: " + e.getMessage());
     }
-    
+
     return results;
   }
 }

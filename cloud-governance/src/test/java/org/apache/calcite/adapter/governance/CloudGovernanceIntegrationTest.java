@@ -16,13 +16,13 @@
  */
 package org.apache.calcite.adapter.governance;
 
-import org.apache.calcite.adapter.governance.categories.IntegrationTest;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -36,39 +36,38 @@ import java.util.Properties;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Integration tests for Cloud Governance adapter.
- * 
+ *
  * Requires local-test.properties file with actual cloud credentials.
  * Skip tests if properties file is not available.
  */
-@Category(IntegrationTest.class)
+@Tag("integration")
 public class CloudGovernanceIntegrationTest {
-  
+
   private Properties testProperties;
   private boolean hasValidCredentials = false;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     testProperties = loadTestProperties();
     hasValidCredentials = validateCredentials();
   }
 
-  @Test
-  public void testAzureKubernetesClustersQuery() throws SQLException {
-    Assume.assumeTrue("Azure credentials not available", 
-        hasValidCredentials && hasAzureCredentials());
-    
+  @Test public void testAzureKubernetesClustersQuery() throws SQLException {
+    Assumptions.assumeTrue(hasValidCredentials && hasAzureCredentials(),
+        "Azure credentials not available");
+
     try (Connection connection = createConnection()) {
       Statement statement = connection.createStatement();
-      ResultSet resultSet = statement.executeQuery(
-          "SELECT cloud_provider, cluster_name, application, rbac_enabled " +
+      ResultSet resultSet =
+          statement.executeQuery("SELECT cloud_provider, cluster_name, application, rbac_enabled " +
           "FROM kubernetes_clusters " +
           "WHERE cloud_provider = 'azure' " +
           "LIMIT 10");
-      
+
       int rowCount = 0;
       while (resultSet.next()) {
         rowCount++;
@@ -77,107 +76,104 @@ public class CloudGovernanceIntegrationTest {
         assertTrue(resultSet.getString("cluster_name") != null);
         assertTrue(resultSet.getString("cluster_name").length() > 0);
       }
-      
+
       // Should have some results if Azure is properly configured
       System.out.println("Azure Kubernetes clusters found: " + rowCount);
     }
   }
 
-  @Test 
-  public void testMultiCloudStorageQuery() throws SQLException {
-    Assume.assumeTrue("Cloud credentials not available", hasValidCredentials);
-    
+  @Test public void testMultiCloudStorageQuery() throws SQLException {
+    Assumptions.assumeTrue(hasValidCredentials, "Cloud credentials not available");
+
     try (Connection connection = createConnection()) {
       Statement statement = connection.createStatement();
-      ResultSet resultSet = statement.executeQuery(
-          "SELECT cloud_provider, COUNT(*) as resource_count " +
+      ResultSet resultSet =
+          statement.executeQuery("SELECT cloud_provider, COUNT(*) as resource_count " +
           "FROM storage_resources " +
           "GROUP BY cloud_provider " +
           "ORDER BY cloud_provider");
-      
+
       int providerCount = 0;
       while (resultSet.next()) {
         providerCount++;
         String provider = resultSet.getString("cloud_provider");
         int count = resultSet.getInt("resource_count");
-        
+
         System.out.println(provider + " storage resources: " + count);
-        assertTrue("Should have valid provider name", 
-            Arrays.asList("azure", "aws", "gcp").contains(provider));
-        assertTrue("Should have non-negative count", count >= 0);
+        assertTrue(Arrays.asList("azure", "aws", "gcp").contains(provider),
+            "Should have valid provider name");
+        assertTrue(count >= 0, "Should have non-negative count");
       }
-      
+
       System.out.println("Total cloud providers with storage: " + providerCount);
     }
   }
 
-  @Test
-  public void testApplicationTaggingQuery() throws SQLException {
-    Assume.assumeTrue("Cloud credentials not available", hasValidCredentials);
-    
+  @Test public void testApplicationTaggingQuery() throws SQLException {
+    Assumptions.assumeTrue(hasValidCredentials, "Cloud credentials not available");
+
     try (Connection connection = createConnection()) {
       Statement statement = connection.createStatement();
-      ResultSet resultSet = statement.executeQuery(
-          "SELECT application, COUNT(*) as resource_count " +
+      ResultSet resultSet =
+          statement.executeQuery("SELECT application, COUNT(*) as resource_count " +
           "FROM storage_resources " +
           "GROUP BY application " +
           "ORDER BY resource_count DESC " +
           "LIMIT 10");
-      
+
       int applicationCount = 0;
       while (resultSet.next()) {
         applicationCount++;
         String application = resultSet.getString("application");
         int count = resultSet.getInt("resource_count");
-        
+
         System.out.println("Application '" + application + "': " + count + " storage resources");
-        assertTrue("Should have valid application name", application != null);
-        assertTrue("Should have positive count", count > 0);
+        assertTrue(application != null, "Should have valid application name");
+        assertTrue(count > 0, "Should have positive count");
       }
-      
+
       System.out.println("Total applications found: " + applicationCount);
     }
   }
 
-  @Test
-  public void testSecurityComplianceQuery() throws SQLException {
-    Assume.assumeTrue("Cloud credentials not available", hasValidCredentials);
-    
+  @Test public void testSecurityComplianceQuery() throws SQLException {
+    Assumptions.assumeTrue(hasValidCredentials, "Cloud credentials not available");
+
     try (Connection connection = createConnection()) {
       Statement statement = connection.createStatement();
-      ResultSet resultSet = statement.executeQuery(
-          "SELECT cloud_provider, " +
+      ResultSet resultSet =
+          statement.executeQuery("SELECT cloud_provider, " +
           "       COUNT(*) as total_clusters, " +
           "       SUM(CASE WHEN rbac_enabled = true THEN 1 ELSE 0 END) as rbac_enabled_count, " +
           "       SUM(CASE WHEN private_cluster = true THEN 1 ELSE 0 END) as private_cluster_count " +
           "FROM kubernetes_clusters " +
           "GROUP BY cloud_provider");
-      
+
       while (resultSet.next()) {
         String provider = resultSet.getString("cloud_provider");
         int total = resultSet.getInt("total_clusters");
         int rbacEnabled = resultSet.getInt("rbac_enabled_count");
         int privateClusters = resultSet.getInt("private_cluster_count");
-        
-        System.out.println(String.format("%s: %d clusters, %d with RBAC, %d private", 
+
+        System.out.println(
+            String.format("%s: %d clusters, %d with RBAC, %d private",
             provider, total, rbacEnabled, privateClusters));
-        
-        assertTrue("Should have valid provider", 
-            Arrays.asList("azure", "aws", "gcp").contains(provider));
-        assertTrue("RBAC count should not exceed total", rbacEnabled <= total);
-        assertTrue("Private count should not exceed total", privateClusters <= total);
+
+        assertTrue(Arrays.asList("azure", "aws", "gcp").contains(provider),
+            "Should have valid provider");
+        assertTrue(rbacEnabled <= total, "RBAC count should not exceed total");
+        assertTrue(privateClusters <= total, "Private count should not exceed total");
       }
     }
   }
 
-  @Test
-  public void testCrossProviderJoin() throws SQLException {
-    Assume.assumeTrue("Cloud credentials not available", hasValidCredentials);
-    
+  @Test public void testCrossProviderJoin() throws SQLException {
+    Assumptions.assumeTrue(hasValidCredentials, "Cloud credentials not available");
+
     try (Connection connection = createConnection()) {
       Statement statement = connection.createStatement();
-      ResultSet resultSet = statement.executeQuery(
-          "SELECT k.cloud_provider, k.application, " +
+      ResultSet resultSet =
+          statement.executeQuery("SELECT k.cloud_provider, k.application, " +
           "       COUNT(k.cluster_name) as cluster_count, " +
           "       COUNT(s.resource_name) as storage_count " +
           "FROM kubernetes_clusters k " +
@@ -186,14 +182,15 @@ public class CloudGovernanceIntegrationTest {
           "GROUP BY k.cloud_provider, k.application " +
           "ORDER BY cluster_count DESC " +
           "LIMIT 5");
-      
+
       while (resultSet.next()) {
         String provider = resultSet.getString("cloud_provider");
         String application = resultSet.getString("application");
         int clusterCount = resultSet.getInt("cluster_count");
         int storageCount = resultSet.getInt("storage_count");
-        
-        System.out.println(String.format("%s/%s: %d clusters, %d storage resources", 
+
+        System.out.println(
+            String.format("%s/%s: %d clusters, %d storage resources",
             provider, application, clusterCount, storageCount));
       }
     }
@@ -201,18 +198,19 @@ public class CloudGovernanceIntegrationTest {
 
   private Connection createConnection() throws SQLException {
     CloudGovernanceConfig config = createConfigFromProperties();
-    
+
     Properties info = new Properties();
-    info.setProperty("lex", "JAVA");
-    
+    info.setProperty("lex", "ORACLE");
+
     Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
     CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class);
     SchemaPlus rootSchema = calciteConnection.getRootSchema();
-    
+
     CloudGovernanceSchemaFactory factory = new CloudGovernanceSchemaFactory();
-    rootSchema.add("cloud_governance", factory.create(rootSchema, "cloud_governance", 
+    rootSchema.add(
+        "cloud_governance", factory.create(rootSchema, "cloud_governance",
         configToOperands(config)));
-    
+
     return connection;
   }
 
@@ -255,51 +253,51 @@ public class CloudGovernanceIntegrationTest {
     CloudGovernanceConfig.AzureConfig azure = null;
     CloudGovernanceConfig.GCPConfig gcp = null;
     CloudGovernanceConfig.AWSConfig aws = null;
-    
+
     // Azure configuration
     if (hasAzureCredentials()) {
-      azure = new CloudGovernanceConfig.AzureConfig(
-          testProperties.getProperty("azure.tenantId"),
+      azure =
+          new CloudGovernanceConfig.AzureConfig(testProperties.getProperty("azure.tenantId"),
           testProperties.getProperty("azure.clientId"),
           testProperties.getProperty("azure.clientSecret"),
           Arrays.asList(testProperties.getProperty("azure.subscriptionIds").split(",")));
     }
-    
+
     // GCP configuration
     if (hasGCPCredentials()) {
-      gcp = new CloudGovernanceConfig.GCPConfig(
-          Arrays.asList(testProperties.getProperty("gcp.projectIds").split(",")),
+      gcp =
+          new CloudGovernanceConfig.GCPConfig(Arrays.asList(testProperties.getProperty("gcp.projectIds").split(",")),
           testProperties.getProperty("gcp.credentialsPath"));
     }
-    
+
     // AWS configuration
     if (hasAWSCredentials()) {
-      aws = new CloudGovernanceConfig.AWSConfig(
-          Arrays.asList(testProperties.getProperty("aws.accountIds").split(",")),
+      aws =
+          new CloudGovernanceConfig.AWSConfig(Arrays.asList(testProperties.getProperty("aws.accountIds").split(",")),
           testProperties.getProperty("aws.region", "us-east-1"),
           testProperties.getProperty("aws.accessKeyId"),
           testProperties.getProperty("aws.secretAccessKey"),
           testProperties.getProperty("aws.roleArn"));
     }
-    
+
     return new CloudGovernanceConfig(null, azure, gcp, aws, true, 15);
   }
 
   private java.util.Map<String, Object> configToOperands(CloudGovernanceConfig config) {
     java.util.Map<String, Object> operands = new java.util.HashMap<>();
-    
+
     if (config.azure != null) {
       operands.put("azure.tenantId", config.azure.tenantId);
       operands.put("azure.clientId", config.azure.clientId);
       operands.put("azure.clientSecret", config.azure.clientSecret);
       operands.put("azure.subscriptionIds", String.join(",", config.azure.subscriptionIds));
     }
-    
+
     if (config.gcp != null) {
       operands.put("gcp.credentialsPath", config.gcp.credentialsPath);
       operands.put("gcp.projectIds", String.join(",", config.gcp.projectIds));
     }
-    
+
     if (config.aws != null) {
       operands.put("aws.accessKeyId", config.aws.accessKeyId);
       operands.put("aws.secretAccessKey", config.aws.secretAccessKey);
@@ -309,7 +307,7 @@ public class CloudGovernanceIntegrationTest {
         operands.put("aws.roleArn", config.aws.roleArn);
       }
     }
-    
+
     return operands;
   }
 }

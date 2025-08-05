@@ -33,7 +33,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -98,13 +97,12 @@ public class SharePointCastIntegrationTest {
     }
   }
 
-  @Test
-  public void testCastStringToNumeric() throws SQLException {
+  @Test public void testCastStringToNumeric() throws SQLException {
     Statement stmt = connection.createStatement();
 
     // Test CAST of string column to different numeric types
-    String sql = String.format(Locale.ROOT,
-        "SELECT "
+    String sql =
+        String.format(Locale.ROOT, "SELECT "
         + "CAST(text_number AS INTEGER) AS text_as_int, "
         + "CAST(text_number AS DOUBLE) AS text_as_double, "
         + "CAST(text_number AS DECIMAL) AS text_as_decimal "
@@ -124,13 +122,12 @@ public class SharePointCastIntegrationTest {
     assertNotNull(decimalValue, "Decimal cast should produce valid number");
   }
 
-  @Test
-  public void testCastNumericToString() throws SQLException {
+  @Test public void testCastNumericToString() throws SQLException {
     Statement stmt = connection.createStatement();
 
     // Test CAST of numeric columns to string (VARCHAR)
-    String sql = String.format(Locale.ROOT,
-        "SELECT "
+    String sql =
+        String.format(Locale.ROOT, "SELECT "
         + "CAST(priority_number AS VARCHAR) AS num_as_string, "
         + "CAST(budget_amount AS VARCHAR) AS amount_as_string "
         + "FROM sharepoint.%s WHERE priority_number IS NOT NULL",
@@ -147,13 +144,12 @@ public class SharePointCastIntegrationTest {
     assertTrue(numAsString.matches("\\d+"), "Should be a numeric string");
   }
 
-  @Test
-  public void testCastDateTimeToString() throws SQLException {
+  @Test public void testCastDateTimeToString() throws SQLException {
     Statement stmt = connection.createStatement();
 
     // Test CAST of datetime column to string
-    String sql = String.format(Locale.ROOT,
-        "SELECT "
+    String sql =
+        String.format(Locale.ROOT, "SELECT "
         + "CAST(due_date AS VARCHAR) AS date_as_string, "
         + "due_date AS original_date "
         + "FROM sharepoint.%s WHERE due_date IS NOT NULL",
@@ -170,13 +166,12 @@ public class SharePointCastIntegrationTest {
     assertTrue(dateAsString.contains("-"), "Date string should contain date separators");
   }
 
-  @Test
-  public void testCastStringToDateTime() throws SQLException {
+  @Test public void testCastStringToDateTime() throws SQLException {
     Statement stmt = connection.createStatement();
 
     // Test CAST of string to datetime (using a properly formatted date string)
-    String sql = String.format(Locale.ROOT,
-        "SELECT "
+    String sql =
+        String.format(Locale.ROOT, "SELECT "
         + "CAST('2023-12-25 10:30:00' AS TIMESTAMP) AS string_as_date, "
         + "text_title "
         + "FROM sharepoint.%s LIMIT 1",
@@ -189,13 +184,12 @@ public class SharePointCastIntegrationTest {
     assertNotNull(stringAsDate, "String to datetime cast should work");
   }
 
-  @Test
-  public void testCastBooleanToString() throws SQLException {
+  @Test public void testCastBooleanToString() throws SQLException {
     Statement stmt = connection.createStatement();
 
     // Test CAST of boolean column to string
-    String sql = String.format(Locale.ROOT,
-        "SELECT "
+    String sql =
+        String.format(Locale.ROOT, "SELECT "
         + "CAST(is_completed AS VARCHAR) AS bool_as_string, "
         + "is_completed AS original_bool "
         + "FROM sharepoint.%s",
@@ -212,14 +206,13 @@ public class SharePointCastIntegrationTest {
         "Boolean string should be 'true' or 'false'");
   }
 
-  @Test
-  public void testCastBooleanToNumeric() throws SQLException {
+  @Test public void testCastBooleanToNumeric() throws SQLException {
     Statement stmt = connection.createStatement();
 
     // Test boolean operations (CAST boolean to numeric not supported in strict mode)
     // Instead, test boolean logic with CASE expressions
-    String sql = String.format(Locale.ROOT,
-        "SELECT "
+    String sql =
+        String.format(Locale.ROOT, "SELECT "
         + "CASE WHEN is_completed THEN 1 ELSE 0 END AS bool_as_int, "
         + "CASE WHEN is_completed THEN 1.0 ELSE 0.0 END AS bool_as_double, "
         + "is_completed AS original_bool "
@@ -243,13 +236,12 @@ public class SharePointCastIntegrationTest {
     }
   }
 
-  @Test
-  public void testCastInWhereClause() throws SQLException {
+  @Test public void testCastInWhereClause() throws SQLException {
     Statement stmt = connection.createStatement();
 
     // Test CAST operations in WHERE clause for filtering
-    String sql = String.format(Locale.ROOT,
-        "SELECT text_title, priority_number "
+    String sql =
+        String.format(Locale.ROOT, "SELECT text_title, priority_number "
         + "FROM sharepoint.%s "
         + "WHERE CAST(text_number AS INTEGER) > 100 "
         + "AND is_completed = false",
@@ -267,13 +259,12 @@ public class SharePointCastIntegrationTest {
     assertTrue(rowCount >= 0, "Query should execute successfully");
   }
 
-  @Test
-  public void testCastInOrderBy() throws SQLException {
+  @Test public void testCastInOrderBy() throws SQLException {
     Statement stmt = connection.createStatement();
 
     // Test CAST operations in ORDER BY clause
-    String sql = String.format(Locale.ROOT,
-        "SELECT text_title, text_number, priority_number "
+    String sql =
+        String.format(Locale.ROOT, "SELECT text_title, text_number, priority_number "
         + "FROM sharepoint.%s "
         + "ORDER BY CAST(text_number AS INTEGER) DESC, "
         + "CAST(priority_number AS VARCHAR) ASC",
@@ -286,13 +277,12 @@ public class SharePointCastIntegrationTest {
     assertNotNull(rs.getString("text_title"), "Title should not be null");
   }
 
-  @Test
-  public void testComplexCastExpressions() throws SQLException {
+  @Test public void testComplexCastExpressions() throws SQLException {
     Statement stmt = connection.createStatement();
 
     // Test complex expressions involving CAST operations
-    String sql = String.format(Locale.ROOT,
-        "SELECT "
+    String sql =
+        String.format(Locale.ROOT, "SELECT "
         + "text_title, "
         + "CAST(text_number AS INTEGER) + priority_number AS calculated_total, "
         + "CONCAT(CAST(priority_number AS VARCHAR), '-', text_title) AS priority_title, "
@@ -316,13 +306,12 @@ public class SharePointCastIntegrationTest {
         "Status should be 'Done' or 'Pending'");
   }
 
-  @Test
-  public void testCastNullValues() throws SQLException {
+  @Test public void testCastNullValues() throws SQLException {
     Statement stmt = connection.createStatement();
 
     // Test CAST operations with NULL values
-    String sql = String.format(Locale.ROOT,
-        "SELECT "
+    String sql =
+        String.format(Locale.ROOT, "SELECT "
         + "CAST(NULL AS INTEGER) AS null_as_int, "
         + "CAST(NULL AS VARCHAR) AS null_as_string, "
         + "CAST(NULL AS TIMESTAMP) AS null_as_date, "
@@ -336,24 +325,23 @@ public class SharePointCastIntegrationTest {
     // All CAST operations on NULL should return NULL
     assertEquals(0, rs.getInt("null_as_int"), "NULL cast to int should be 0 (SQL default)");
     assertTrue(rs.wasNull(), "Should register as NULL");
-    
+
     rs.getString("null_as_string");
     assertTrue(rs.wasNull(), "NULL cast to string should be NULL");
-    
+
     rs.getTimestamp("null_as_date");
     assertTrue(rs.wasNull(), "NULL cast to timestamp should be NULL");
   }
 
   private void createTestList() throws Exception {
     // Define test columns with various types for CAST testing
-    List<SharePointColumn> columns = Arrays.asList(
-        new SharePointColumn("TextTitle", "Text Title", "text", true),
+    List<SharePointColumn> columns =
+        Arrays.asList(new SharePointColumn("TextTitle", "Text Title", "text", true),
         new SharePointColumn("TextNumber", "Text Number", "text", false), // String that contains numbers
         new SharePointColumn("PriorityNumber", "Priority Number", "integer", false),
         new SharePointColumn("BudgetAmount", "Budget Amount", "number", false),
         new SharePointColumn("IsCompleted", "Is Completed", "boolean", false),
-        new SharePointColumn("DueDate", "Due Date", "datetime", false)
-    );
+        new SharePointColumn("DueDate", "Due Date", "datetime", false));
 
     client.createList(testListName, columns);
   }

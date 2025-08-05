@@ -8,7 +8,7 @@ This document provides practical SQL query examples for common cloud governance,
 
 ```sql
 -- Get count of resources by provider
-SELECT 
+SELECT
   'kubernetes_clusters' as resource_type,
   cloud_provider,
   COUNT(*) as count
@@ -17,10 +17,10 @@ GROUP BY cloud_provider
 
 UNION ALL
 
-SELECT 
+SELECT
   'storage_resources' as resource_type,
   cloud_provider,
-  COUNT(*) as count  
+  COUNT(*) as count
 FROM storage_resources
 GROUP BY cloud_provider
 
@@ -40,7 +40,7 @@ ORDER BY resource_type, cloud_provider;
 
 ```sql
 -- Find all resources for a specific application
-SELECT 
+SELECT
   cloud_provider,
   'kubernetes' as resource_type,
   cluster_name as resource_name,
@@ -51,13 +51,13 @@ WHERE application = 'MyApp'
 
 UNION ALL
 
-SELECT 
+SELECT
   cloud_provider,
   'storage' as resource_type,
   resource_name,
   region,
   application
-FROM storage_resources  
+FROM storage_resources
 WHERE application = 'MyApp'
 
 ORDER BY cloud_provider, resource_type;
@@ -69,18 +69,18 @@ ORDER BY cloud_provider, resource_type;
 
 ```sql
 -- Kubernetes security compliance summary
-SELECT 
+SELECT
   cloud_provider,
   COUNT(*) as total_clusters,
-  
+
   -- RBAC Compliance
   SUM(CASE WHEN rbac_enabled = true THEN 1 ELSE 0 END) as rbac_enabled_count,
   ROUND(100.0 * SUM(CASE WHEN rbac_enabled = true THEN 1 ELSE 0 END) / COUNT(*), 1) as rbac_compliance_pct,
-  
+
   -- Network Security
   SUM(CASE WHEN private_cluster = true THEN 1 ELSE 0 END) as private_cluster_count,
   ROUND(100.0 * SUM(CASE WHEN private_cluster = true THEN 1 ELSE 0 END) / COUNT(*), 1) as private_cluster_pct,
-  
+
   -- Encryption
   SUM(CASE WHEN encryption_at_rest_enabled = true THEN 1 ELSE 0 END) as encryption_enabled_count,
   ROUND(100.0 * SUM(CASE WHEN encryption_at_rest_enabled = true THEN 1 ELSE 0 END) / COUNT(*), 1) as encryption_pct
@@ -94,19 +94,19 @@ ORDER BY cloud_provider;
 
 ```sql
 -- Storage encryption compliance
-SELECT 
+SELECT
   cloud_provider,
   storage_type,
   COUNT(*) as total_resources,
-  
+
   -- Encryption Status
   SUM(CASE WHEN encryption_enabled = true THEN 1 ELSE 0 END) as encrypted_count,
   SUM(CASE WHEN encryption_enabled = false OR encryption_enabled IS NULL THEN 1 ELSE 0 END) as unencrypted_count,
-  
+
   -- Encryption Key Management
   SUM(CASE WHEN encryption_key_type = 'customer-managed' THEN 1 ELSE 0 END) as customer_managed_keys,
   SUM(CASE WHEN encryption_key_type = 'service-managed' THEN 1 ELSE 0 END) as service_managed_keys,
-  
+
   -- Compliance Percentage
   ROUND(100.0 * SUM(CASE WHEN encryption_enabled = true THEN 1 ELSE 0 END) / COUNT(*), 1) as encryption_compliance_pct
 
@@ -119,7 +119,7 @@ ORDER BY cloud_provider, storage_type;
 
 ```sql
 -- Resources with public access exposure
-SELECT 
+SELECT
   s.cloud_provider,
   s.application,
   s.resource_name,
@@ -127,9 +127,9 @@ SELECT
   s.public_access_enabled,
   s.public_access_level,
   s.https_only,
-  
+
   -- Risk Assessment Factors
-  CASE 
+  CASE
     WHEN s.public_access_enabled = true AND s.https_only = false THEN 'HIGH RISK'
     WHEN s.public_access_enabled = true AND s.https_only = true THEN 'MEDIUM RISK'
     ELSE 'LOW RISK'
@@ -137,8 +137,8 @@ SELECT
 
 FROM storage_resources s
 WHERE s.public_access_enabled = true
-ORDER BY 
-  CASE 
+ORDER BY
+  CASE
     WHEN s.public_access_enabled = true AND s.https_only = false THEN 1
     WHEN s.public_access_enabled = true AND s.https_only = true THEN 2
     ELSE 3
@@ -152,7 +152,7 @@ ORDER BY
 
 ```sql
 -- Find untagged/orphaned resources that may be unused
-SELECT 
+SELECT
   cloud_provider,
   'storage' as resource_type,
   resource_name,
@@ -165,7 +165,7 @@ WHERE application IN ('Untagged/Orphaned', '', NULL)
 
 UNION ALL
 
-SELECT 
+SELECT
   cloud_provider,
   'compute' as resource_type,
   instance_name as resource_name,
@@ -173,7 +173,7 @@ SELECT
   instance_type as storage_type,
   launch_time as created_date,
   DATEDIFF('day', launch_time, CURRENT_DATE) as days_old
-FROM compute_resources  
+FROM compute_resources
 WHERE application IN ('Untagged/Orphaned', '', NULL)
 
 ORDER BY days_old DESC, cloud_provider;
@@ -183,22 +183,22 @@ ORDER BY days_old DESC, cloud_provider;
 
 ```sql
 -- Regional resource distribution for optimization
-SELECT 
+SELECT
   cloud_provider,
   region,
   COUNT(DISTINCT k.cluster_name) as kubernetes_clusters,
-  COUNT(DISTINCT s.resource_name) as storage_resources,  
+  COUNT(DISTINCT s.resource_name) as storage_resources,
   COUNT(DISTINCT c.instance_id) as compute_instances,
   COUNT(DISTINCT n.network_resource) as network_resources
 
 FROM kubernetes_clusters k
 FULL OUTER JOIN storage_resources s ON k.cloud_provider = s.cloud_provider AND k.region = s.region
-FULL OUTER JOIN compute_resources c ON k.cloud_provider = c.cloud_provider AND k.region = c.region  
+FULL OUTER JOIN compute_resources c ON k.cloud_provider = c.cloud_provider AND k.region = c.region
 FULL OUTER JOIN network_resources n ON k.cloud_provider = n.cloud_provider AND n.region = n.region
 
 GROUP BY cloud_provider, region
-ORDER BY cloud_provider, 
-  (COUNT(DISTINCT k.cluster_name) + COUNT(DISTINCT s.resource_name) + 
+ORDER BY cloud_provider,
+  (COUNT(DISTINCT k.cluster_name) + COUNT(DISTINCT s.resource_name) +
    COUNT(DISTINCT c.instance_id) + COUNT(DISTINCT n.network_resource)) DESC;
 ```
 
@@ -214,13 +214,13 @@ WITH app_clouds AS (
     SELECT application, cloud_provider FROM kubernetes_clusters WHERE application != 'Untagged/Orphaned'
     UNION ALL
     SELECT application, cloud_provider FROM storage_resources WHERE application != 'Untagged/Orphaned'
-    UNION ALL  
+    UNION ALL
     SELECT application, cloud_provider FROM compute_resources WHERE application != 'Untagged/Orphaned'
   ) all_resources
   GROUP BY application, cloud_provider
 ),
 app_summary AS (
-  SELECT 
+  SELECT
     application,
     COUNT(DISTINCT cloud_provider) as cloud_count,
     SUM(resource_count) as total_resources,
@@ -230,7 +230,7 @@ app_summary AS (
 )
 
 SELECT *
-FROM app_summary  
+FROM app_summary
 WHERE cloud_count > 1
 ORDER BY cloud_count DESC, total_resources DESC;
 ```
@@ -240,30 +240,30 @@ ORDER BY cloud_count DESC, total_resources DESC;
 ```sql
 -- Detailed inventory for a specific application
 WITH app_inventory AS (
-  SELECT 
+  SELECT
     'Kubernetes' as service_type,
     cloud_provider,
     region,
     cluster_name as resource_name,
     kubernetes_version as version_info,
     CASE WHEN rbac_enabled = true THEN 'Compliant' ELSE 'Non-Compliant' END as security_status
-  FROM kubernetes_clusters 
+  FROM kubernetes_clusters
   WHERE application = 'ProductionApp'
-  
+
   UNION ALL
-  
-  SELECT 
+
+  SELECT
     'Storage' as service_type,
     cloud_provider,
-    region, 
+    region,
     resource_name,
     storage_type as version_info,
     CASE WHEN encryption_enabled = true THEN 'Encrypted' ELSE 'Unencrypted' END as security_status
   FROM storage_resources
   WHERE application = 'ProductionApp'
-  
+
   UNION ALL
-  
+
   SELECT
     'Compute' as service_type,
     cloud_provider,
@@ -275,7 +275,7 @@ WITH app_inventory AS (
   WHERE application = 'ProductionApp'
 )
 
-SELECT 
+SELECT
   service_type,
   cloud_provider,
   COUNT(*) as resource_count,
@@ -292,19 +292,19 @@ ORDER BY service_type, cloud_provider;
 
 ```sql
 -- Database security posture analysis
-SELECT 
+SELECT
   cloud_provider,
   database_type,
   COUNT(*) as total_databases,
-  
+
   -- Encryption Analysis
   SUM(CASE WHEN encrypted = true THEN 1 ELSE 0 END) as encrypted_count,
   ROUND(100.0 * SUM(CASE WHEN encrypted = true THEN 1 ELSE 0 END) / COUNT(*), 1) as encryption_pct,
-  
-  -- Public Access Analysis  
+
+  -- Public Access Analysis
   SUM(CASE WHEN publicly_accessible = true THEN 1 ELSE 0 END) as public_accessible_count,
   ROUND(100.0 * SUM(CASE WHEN publicly_accessible = true THEN 1 ELSE 0 END) / COUNT(*), 1) as public_access_pct,
-  
+
   -- Backup Analysis
   SUM(CASE WHEN backup_retention_days > 0 THEN 1 ELSE 0 END) as backup_enabled_count,
   AVG(backup_retention_days) as avg_backup_retention_days
@@ -318,20 +318,20 @@ ORDER BY cloud_provider, database_type;
 
 ```sql
 -- Storage lifecycle and data management analysis
-SELECT 
+SELECT
   cloud_provider,
   storage_type,
-  
+
   -- Lifecycle Management
   COUNT(*) as total_resources,
   SUM(CASE WHEN lifecycle_rules_count > 0 THEN 1 ELSE 0 END) as with_lifecycle_rules,
   AVG(lifecycle_rules_count) as avg_lifecycle_rules,
-  
+
   -- Data Protection
   SUM(CASE WHEN versioning_enabled = true THEN 1 ELSE 0 END) as versioning_enabled_count,
   SUM(CASE WHEN soft_delete_enabled = true THEN 1 ELSE 0 END) as soft_delete_enabled_count,
   AVG(soft_delete_retention_days) as avg_soft_delete_retention,
-  
+
   -- Access Patterns
   SUM(CASE WHEN access_tier = 'Hot' OR access_tier = 'Standard' THEN 1 ELSE 0 END) as hot_tier_count,
   SUM(CASE WHEN access_tier = 'Cool' OR access_tier = 'Infrequent' THEN 1 ELSE 0 END) as cool_tier_count,
@@ -348,20 +348,20 @@ ORDER BY cloud_provider, total_resources DESC;
 
 ```sql
 -- IAM resource distribution and security analysis
-SELECT 
+SELECT
   cloud_provider,
   iam_resource_type,
   COUNT(*) as total_resources,
-  
+
   -- Activity Analysis
   SUM(CASE WHEN is_active = true THEN 1 ELSE 0 END) as active_count,
   SUM(CASE WHEN is_active = false THEN 1 ELSE 0 END) as inactive_count,
-  
+
   -- MFA Analysis (where applicable)
   SUM(CASE WHEN mfa_enabled = true THEN 1 ELSE 0 END) as mfa_enabled_count,
   SUM(CASE WHEN access_key_count > 0 THEN 1 ELSE 0 END) as with_access_keys,
   AVG(access_key_count) as avg_access_keys,
-  
+
   -- Security Concerns
   SUM(CASE WHEN active_access_keys > 1 THEN 1 ELSE 0 END) as multiple_keys_count
 
@@ -374,35 +374,35 @@ ORDER BY cloud_provider, iam_resource_type;
 
 ```sql
 -- Find IAM resources that may need review
-SELECT 
+SELECT
   cloud_provider,
   iam_resource,
   iam_resource_type,
   application,
-  
+
   -- Risk Factors
   is_active,
   mfa_enabled,
   access_key_count,
   active_access_keys,
-  
+
   -- Age Analysis
   create_date,
   password_last_used,
   DATEDIFF('day', password_last_used, CURRENT_DATE) as days_since_last_use,
-  
+
   -- Risk Score
-  CASE 
+  CASE
     WHEN is_active = true AND mfa_enabled = false AND access_key_count > 1 THEN 'HIGH'
-    WHEN is_active = true AND (mfa_enabled = false OR access_key_count > 1) THEN 'MEDIUM'  
+    WHEN is_active = true AND (mfa_enabled = false OR access_key_count > 1) THEN 'MEDIUM'
     WHEN is_active = false THEN 'LOW'
     ELSE 'REVIEW'
   END as risk_level
 
 FROM iam_resources
 WHERE iam_resource_type IN ('IAM User', 'Service Account', 'Managed Identity')
-ORDER BY 
-  CASE 
+ORDER BY
+  CASE
     WHEN is_active = true AND mfa_enabled = false AND access_key_count > 1 THEN 1
     WHEN is_active = true AND (mfa_enabled = false OR access_key_count > 1) THEN 2
     ELSE 3
@@ -416,16 +416,16 @@ ORDER BY
 
 ```sql
 -- Network security configuration analysis
-SELECT 
+SELECT
   cloud_provider,
   network_resource_type,
   COUNT(*) as total_resources,
-  
+
   -- Security Analysis
   SUM(CASE WHEN has_open_ingress = true THEN 1 ELSE 0 END) as open_ingress_count,
   SUM(CASE WHEN rule_count = 0 THEN 1 ELSE 0 END) as no_rules_count,
   SUM(CASE WHEN is_default = true THEN 1 ELSE 0 END) as default_resources,
-  
+
   -- Configuration Distribution
   AVG(rule_count) as avg_rule_count,
   MAX(rule_count) as max_rule_count
@@ -441,16 +441,16 @@ ORDER BY cloud_provider, network_resource_type;
 
 ```sql
 -- Resource age analysis for lifecycle management
-SELECT 
+SELECT
   cloud_provider,
   'Kubernetes' as resource_type,
   cluster_name as resource_name,
   application,
   created_date,
   DATEDIFF('day', created_date, CURRENT_DATE) as age_days,
-  CASE 
+  CASE
     WHEN DATEDIFF('day', created_date, CURRENT_DATE) > 365 THEN 'Very Old (>1 year)'
-    WHEN DATEDIFF('day', created_date, CURRENT_DATE) > 180 THEN 'Old (6-12 months)'  
+    WHEN DATEDIFF('day', created_date, CURRENT_DATE) > 180 THEN 'Old (6-12 months)'
     WHEN DATEDIFF('day', created_date, CURRENT_DATE) > 90 THEN 'Mature (3-6 months)'
     WHEN DATEDIFF('day', created_date, CURRENT_DATE) > 30 THEN 'Recent (1-3 months)'
     ELSE 'New (<1 month)'
@@ -460,17 +460,17 @@ WHERE created_date IS NOT NULL
 
 UNION ALL
 
-SELECT 
+SELECT
   cloud_provider,
-  'Storage' as resource_type, 
+  'Storage' as resource_type,
   resource_name,
   application,
   created_date,
   DATEDIFF('day', created_date, CURRENT_DATE) as age_days,
-  CASE 
+  CASE
     WHEN DATEDIFF('day', created_date, CURRENT_DATE) > 365 THEN 'Very Old (>1 year)'
     WHEN DATEDIFF('day', created_date, CURRENT_DATE) > 180 THEN 'Old (6-12 months)'
-    WHEN DATEDIFF('day', created_date, CURRENT_DATE) > 90 THEN 'Mature (3-6 months)' 
+    WHEN DATEDIFF('day', created_date, CURRENT_DATE) > 90 THEN 'Mature (3-6 months)'
     WHEN DATEDIFF('day', created_date, CURRENT_DATE) > 30 THEN 'Recent (1-3 months)'
     ELSE 'New (<1 month)'
   END as age_category
@@ -487,10 +487,10 @@ ORDER BY age_days DESC;
 ```sql
 -- High-level executive summary
 WITH resource_summary AS (
-  SELECT 
+  SELECT
     COUNT(DISTINCT CASE WHEN k.cluster_name IS NOT NULL THEN k.cloud_provider END) as k8s_providers,
     COUNT(k.cluster_name) as total_k8s_clusters,
-    COUNT(DISTINCT s.cloud_provider) as storage_providers, 
+    COUNT(DISTINCT s.cloud_provider) as storage_providers,
     COUNT(s.resource_name) as total_storage_resources,
     COUNT(DISTINCT c.cloud_provider) as compute_providers,
     COUNT(c.instance_id) as total_compute_instances
@@ -507,7 +507,7 @@ security_summary AS (
   FROM kubernetes_clusters
 )
 
-SELECT 
+SELECT
   'Multi-Cloud Infrastructure Summary' as report_section,
   r.k8s_providers as kubernetes_providers,
   r.total_k8s_clusters,
@@ -515,7 +515,7 @@ SELECT
   r.total_storage_resources,
   r.compute_providers,
   r.total_compute_instances,
-  
+
   -- Security Compliance
   ROUND(100.0 * s.k8s_rbac_compliant / NULLIF(s.total_k8s, 0), 1) as k8s_rbac_compliance_pct,
   ROUND(100.0 * s.storage_encrypted / NULLIF(s.total_storage, 0), 1) as storage_encryption_pct

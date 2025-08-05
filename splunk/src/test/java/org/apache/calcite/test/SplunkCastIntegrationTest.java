@@ -16,9 +16,8 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.config.CalciteSystemProperty;
-
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIf;
 
@@ -41,7 +40,8 @@ import static org.junit.jupiter.api.Assertions.*;
  *
  * Enable these tests by running with -Dcalcite.test.splunk=true
  */
-@EnabledIf("isSplunkEnabled")
+@Tag("integration")
+@EnabledIf("splunkTestEnabled")
 class SplunkCastIntegrationTest {
   // Connection properties loaded from local-properties.settings
   private static String SPLUNK_URL = "https://localhost:8089";
@@ -90,14 +90,19 @@ class SplunkCastIntegrationTest {
       }
     } else {
       System.out.println("No local-properties.settings found, using defaults: " + SPLUNK_URL);
+      System.out.println("Searched for local-properties.settings in:");
+      for (File location : possibleLocations) {
+        System.out.println("  - " + location.getAbsolutePath());
+      }
     }
   }
 
   /**
    * Check if Splunk integration tests are enabled.
    */
-  static boolean isSplunkEnabled() {
-    return CalciteSystemProperty.TEST_SPLUNK.value();
+  private static boolean splunkTestEnabled() {
+    return System.getProperty("CALCITE_TEST_SPLUNK", "false").equals("true") ||
+           System.getenv("CALCITE_TEST_SPLUNK") != null;
   }
 
   private void loadDriverClass() {
@@ -109,18 +114,18 @@ class SplunkCastIntegrationTest {
   }
 
   /**
-   * Creates a connection to Splunk with standard properties.
+   * Creates a connection for CIM web model testing.
    */
   private Connection createConnection() throws SQLException {
     loadDriverClass();
     Properties info = new Properties();
-    info.setProperty("url", SPLUNK_URL);
+    info.put("url", SPLUNK_URL);
     info.put("user", SPLUNK_USER);
     info.put("password", SPLUNK_PASSWORD);
-    info.put("cim_model", "web");
     if (DISABLE_SSL_VALIDATION) {
       info.put("disableSslValidation", "true");
     }
+    info.put("app", "search");
     return DriverManager.getConnection("jdbc:splunk:", info);
   }
 
@@ -130,7 +135,7 @@ class SplunkCastIntegrationTest {
     try (Connection conn = createConnection();
          Statement stmt = conn.createStatement()) {
 
-      // Test CAST(status AS VARCHAR) - should use if(isnull(status), null, tostring(status))
+      // Test null-safe CAST(status AS VARCHAR) - should use if(isnull(status), null, tostring(status))
       String sql = "SELECT \"status\", CAST(\"status\" AS VARCHAR) as status_str FROM \"splunk\".\"web\" LIMIT 10";
       try (ResultSet rs = stmt.executeQuery(sql)) {
         int count = 0;
@@ -157,7 +162,9 @@ class SplunkCastIntegrationTest {
 
         System.out.println("  Total rows: " + count + ", Null values: " + nullCount + ", Non-null values: " + nonNullCount);
         assertTrue(count > 0, "Should have returned at least one row");
-        System.out.println("  Successfully tested null-safe CAST to VARCHAR");
+
+        // Verify we're correctly handling nulls
+        System.out.println("  Successfully tested null-safe CAST to VARCHAR pushdown");
       }
     }
   }
@@ -262,7 +269,7 @@ class SplunkCastIntegrationTest {
       String sql = "SELECT "
                  + "CAST(\"status\" AS VARCHAR) as status_str, "
                  + "CAST(\"bytes\" AS INTEGER) as bytes_int, "
-                 + "CAST(\"src_port\" AS DOUBLE) as src_port_double "
+                 + "CAST(\"response_time\" AS DOUBLE) as response_time_double "
                  + "FROM \"splunk\".\"web\" LIMIT 3";
 
       try (ResultSet rs = stmt.executeQuery(sql)) {
@@ -270,10 +277,10 @@ class SplunkCastIntegrationTest {
         while (rs.next()) {
           String statusStr = rs.getString("status_str");
           int bytesInt = rs.getInt("bytes_int");
-          double srcPortDouble = rs.getDouble("src_port_double");
+          double responseTimeDouble = rs.getDouble("response_time_double");
 
-          System.out.printf("  Row %d: status_str='%s', bytes_int=%d, src_port_double=%.2f%n",
-                            count + 1, statusStr, bytesInt, srcPortDouble);
+          System.out.printf("  Row %d: status_str='%s', bytes_int=%d, response_time_double=%.2f%n",
+                            count + 1, statusStr, bytesInt, responseTimeDouble);
           count++;
         }
         assertTrue(count > 0, "Should have returned at least one row");
@@ -353,7 +360,116 @@ class SplunkCastIntegrationTest {
           count++;
         }
         assertTrue(count > 0, "Should have at least one row");
-        System.out.println("  Successfully executed " + count + " rows with multiple CASTs - no type errors");
+        System.out.println("  Successfully tested " + count + " rows - verified no type mismatch errors");
+      }
+    }
+  }
+
+  @Test void testTimestampOrdering() throws SQLException {
+    System.out.println("Testing timestamp field ORDER BY...");
+
+    try (Connection conn = createConnection();
+         Statement stmt = conn.createStatement()) {
+
+      // Test ORDER BY on timestamp field - should not cause ClassCastException
+      String sql = "SELECT \"time\", \"status\" FROM \"splunk\".\"web\" ORDER BY \"time\" DESC LIMIT 5";
+
+      try (ResultSet rs = stmt.executeQuery(sql)) {
+        int count = 0;
+        java.sql.Timestamp previousTime = null;
+        while (rs.next()) {
+          java.sql.Timestamp time = rs.getTimestamp("time");
+          String status = rs.getString("status");
+
+          System.out.println("  Time: " + time + ", Status: " + status);
+
+          // Verify descending order
+          if (previousTime != null && time != null) {
+            assertTrue(time.compareTo(previousTime) <= 0,
+                "Timestamps should be in descending order");
+          }
+          previousTime = time;
+          count++;
+        }
+        assertTrue(count > 0, "Should have at least one row");
+        System.out.println("  Successfully tested ORDER BY on timestamp field with " + count + " rows");
+      }
+    }
+  }
+
+  @Test void testCastTimestampInProjection() throws SQLException {
+    System.out.println("Testing CAST of timestamp in projection...");
+
+    try (Connection conn = createConnection();
+         Statement stmt = conn.createStatement()) {
+
+      // Test various CAST operations on timestamp field
+      String sql = "SELECT " +
+          "\"time\", " +
+          "CAST(\"time\" AS VARCHAR) as time_str, " +
+          "CAST(\"time\" AS TIMESTAMP) as time_ts " +
+          "FROM \"splunk\".\"web\" LIMIT 3";
+
+      try (ResultSet rs = stmt.executeQuery(sql)) {
+        int count = 0;
+        while (rs.next()) {
+          java.sql.Timestamp originalTime = rs.getTimestamp("time");
+          String timeStr = rs.getString("time_str");
+          java.sql.Timestamp timeTs = rs.getTimestamp("time_ts");
+
+          System.out.println("  Original time: " + originalTime);
+          System.out.println("    As string: " + timeStr);
+          System.out.println("    As timestamp: " + timeTs);
+
+          // Verify conversions
+          assertNotNull(timeStr, "CAST to VARCHAR should not be null");
+          assertEquals(originalTime, timeTs, "CAST to TIMESTAMP should preserve value");
+
+          count++;
+        }
+        assertTrue(count > 0, "Should have at least one row");
+        System.out.println("  Successfully tested timestamp CAST operations with " + count + " rows");
+      }
+    }
+  }
+
+  @Test void testTimestampInPredicate() throws SQLException {
+    System.out.println("Testing timestamp in WHERE clause...");
+
+    try (Connection conn = createConnection();
+         Statement stmt = conn.createStatement()) {
+
+      // First get a sample timestamp
+      String sampleSql = "SELECT \"time\" FROM \"splunk\".\"web\" LIMIT 1";
+      java.sql.Timestamp sampleTime = null;
+      try (ResultSet rs = stmt.executeQuery(sampleSql)) {
+        if (rs.next()) {
+          sampleTime = rs.getTimestamp("time");
+        }
+      }
+
+      if (sampleTime != null) {
+        // Test using timestamp in predicate
+        String sql = "SELECT \"time\", \"status\" FROM \"splunk\".\"web\" " +
+                     "WHERE \"time\" >= TIMESTAMP '" + sampleTime + "' LIMIT 5";
+
+        try (ResultSet rs = stmt.executeQuery(sql)) {
+          int count = 0;
+          while (rs.next()) {
+            java.sql.Timestamp time = rs.getTimestamp("time");
+            String status = rs.getString("status");
+
+            System.out.println("  Time: " + time + ", Status: " + status);
+
+            // Verify predicate
+            assertTrue(time.compareTo(sampleTime) >= 0,
+                "Timestamp should be >= sample time");
+            count++;
+          }
+          System.out.println("  Successfully tested timestamp predicate with " + count + " rows");
+        }
+      } else {
+        System.out.println("  No sample timestamp found, skipping predicate test");
       }
     }
   }

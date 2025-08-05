@@ -42,7 +42,7 @@ splunk.test.cim.models=authentication,network_traffic,web
 # Enable/disable performance tests
 splunk.test.performance.enabled=false
 
-# Number of iterations for performance tests
+# Number of iterations for performance testsnoticin
 splunk.test.performance.iterations=10
 
 # Debug Configuration

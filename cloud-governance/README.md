@@ -39,7 +39,7 @@ Create a model file (e.g., `cloud-governance-model.json`):
       "factory": "org.apache.calcite.adapter.governance.CloudGovernanceSchemaFactory",
       "operand": {
         "azure.tenantId": "your-tenant-id",
-        "azure.clientId": "your-client-id", 
+        "azure.clientId": "your-client-id",
         "azure.clientSecret": "your-client-secret",
         "azure.subscriptionIds": "sub1,sub2,sub3",
         "gcp.credentialsPath": "/path/to/service-account.json",
@@ -76,19 +76,19 @@ ORDER BY cloud_provider, cluster_name;
 
 **Storage security analysis:**
 ```sql
-SELECT cloud_provider, 
+SELECT cloud_provider,
        COUNT(*) as total_resources,
        SUM(CASE WHEN encryption_enabled = true THEN 1 ELSE 0 END) as encrypted_count
-FROM storage_resources 
+FROM storage_resources
 GROUP BY cloud_provider;
 ```
 
 **Cross-cloud application inventory:**
 ```sql
-SELECT application, 
+SELECT application,
        COUNT(DISTINCT cloud_provider) as cloud_count,
        COUNT(*) as total_resources
-FROM storage_resources 
+FROM storage_resources
 WHERE application != 'Untagged/Orphaned'
 GROUP BY application
 ORDER BY total_resources DESC;
@@ -283,7 +283,7 @@ The Cloud Governance adapter uses JUnit categories to organize tests into differ
 
 Each test category generates separate reports:
 - Unit Tests: `build/reports/tests/unit/index.html`
-- Integration Tests: `build/reports/tests/integration/index.html`  
+- Integration Tests: `build/reports/tests/integration/index.html`
 - Performance Tests: `build/reports/tests/performance/index.html`
 - All Tests: `build/reports/tests/all/index.html`
 

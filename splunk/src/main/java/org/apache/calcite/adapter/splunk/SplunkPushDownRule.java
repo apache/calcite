@@ -278,11 +278,13 @@ public class SplunkPushDownRule
           // Generate eval statement for bottom projection CAST
           RexCall castCall = (RexCall) rn;
           RexInputRef inputRef = (RexInputRef) castCall.getOperands().get(0);
-          String sourceField = splunkRel.getRowType().getFieldList().get(inputRef.getIndex()).getName();
+          String schemaField = splunkRel.getRowType().getFieldList().get(inputRef.getIndex()).getName();
+          // Map Calcite schema field to native Splunk field name for pushdown
+          String nativeSourceField = splunkRel.splunkTable.mapSchemaFieldToSplunkField(schemaField);
           String targetField = rdtf.getName();
           RelDataType targetType = castCall.getType();
 
-          String evalExpr = generateSplunkCastExpression(sourceField, targetType);
+          String evalExpr = generateSplunkCastExpression(nativeSourceField, targetType);
           if (evalExpr != null) {
             evalStatements.add(targetField + " = " + evalExpr);
           } else {
@@ -334,12 +336,15 @@ public class SplunkPushDownRule
           // Simple CAST operation
           RexCall castCall = (RexCall) rn;
           RexInputRef inputRef = (RexInputRef) castCall.getOperands().get(0);
-          String sourceField = bottomFields.get(inputRef.getIndex()).getName();
+          String schemaField = bottomFields.get(inputRef.getIndex()).getName();
+          // Map Calcite schema field to native Splunk field name for pushdown
+          // Note: If bottomFields comes from a previous projection, mapping might be redundant but safe
+          String nativeSourceField = splunkRel.splunkTable.mapSchemaFieldToSplunkField(schemaField);
           String targetField = topFields.get(i).getName();
           RelDataType targetType = castCall.getType();
 
           // Generate Splunk eval statement
-          String evalExpr = generateSplunkCastExpression(sourceField, targetType);
+          String evalExpr = generateSplunkCastExpression(nativeSourceField, targetType);
           if (evalExpr != null) {
             evalStatements.add(targetField + " = " + evalExpr);
             newFields.add(topFields.get(i));
@@ -1109,8 +1114,8 @@ public class SplunkPushDownRule
 
     case VARCHAR:
     case CHAR:
-      // Use tostring() for string types
-      // Wrap with null check
+      // Convert field to string using tostring() SPL function
+      // Handle null values and empty strings properly - empty strings should remain empty
       return "if(isnull(" + fieldName + "), null, tostring(" + fieldName + "))";
 
     case BOOLEAN:

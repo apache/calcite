@@ -19,6 +19,9 @@ package org.apache.calcite.adapter.splunk;
 import org.apache.calcite.adapter.splunk.search.SplunkConnection;
 import org.apache.calcite.adapter.splunk.search.SplunkConnectionImpl;
 import org.apache.calcite.avatica.DriverVersion;
+import org.apache.calcite.avatica.util.Casing;
+import org.apache.calcite.config.CalciteConnectionProperty;
+import org.apache.calcite.config.Lex;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
@@ -34,6 +37,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URLDecoder;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -74,6 +78,8 @@ import java.util.Set;
  * datamodelCacheTtl=0</li>
  * <li>Environment variables: jdbc:splunk:datamodelCacheTtl=-1 (credentials from SPLUNK_URL,
  * SPLUNK_TOKEN, SPLUNK_APP environment variables)</li>
+ * <li>Model file: jdbc:splunk:modelFile=/path/to/model.json (uses Calcite model file for
+ * federation)</li>
  * </ul>
  *
  * <p>Environment Variable Support (Production Deployments):</p>
@@ -83,6 +89,7 @@ import java.util.Set;
  * <li>SPLUNK_USER - Username</li>
  * <li>SPLUNK_PASSWORD - Password</li>
  * <li>SPLUNK_APP - App context</li>
+ * <li>SPLUNK_MODEL_FILE - Path to Calcite model file (for advanced federation)</li>
  * </ul>
  * <p>Environment variables are used as fallback when parameters are not specified in URL or Properties.
  * This enables secure credential management in production deployments.</p>
@@ -138,15 +145,41 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
 
   @Override public Connection connect(String url, Properties info)
       throws SQLException {
-    Connection connection = super.connect(url, info);
-    CalciteConnection calciteConnection = (CalciteConnection) connection;
-
     try {
       // Parse URL parameters and merge with Properties
       Properties mergedInfo = parseUrlAndMergeProperties(url, info);
 
-      // Extract and validate connection properties
+      // Configure PostgreSQL-compatible case handling
+      configurePostgreSQLCompatibility(mergedInfo);
+
+      // Extract connection properties to check for model file
       ConnectionProperties props = extractConnectionProperties(mergedInfo);
+
+      // If modelFile is specified, redirect to model-based connection
+      if (props.modelFile != null && !props.modelFile.trim().isEmpty()) {
+        String modelFile = props.modelFile.trim();
+
+        // Use SplunkModelHelper if available, otherwise direct Calcite connection
+        try {
+          if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Using model file: {}", modelFile);
+          }
+
+          // Try to use SplunkModelHelper for preprocessing
+          return SplunkModelHelper.connect(modelFile);
+        } catch (Exception e) {
+          // Fallback to direct Calcite model connection
+          LOGGER.warn("Failed to use SplunkModelHelper, falling back to direct model connection: {}",
+              e.getMessage());
+          String modelUrl = "jdbc:calcite:model=" + modelFile;
+          return DriverManager.getConnection(modelUrl);
+        }
+      }
+
+      // Normal Splunk connection (no model file)
+      Connection connection = super.connect(url, mergedInfo);
+      CalciteConnection calciteConnection = (CalciteConnection) connection;
+
       validateRequiredProperties(props);
 
       // Create Splunk connection with token or username/password authentication
@@ -170,12 +203,12 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
             props.defaultTimeRange, defaultSchema);
       }
 
+      return connection;
+
     } catch (Exception e) {
       LOGGER.error("Failed to create enhanced Splunk connection", e);
       throw new SQLException("Failed to create enhanced Splunk connection: " + e.getMessage(), e);
     }
-
-    return connection;
   }
 
   /**
@@ -193,12 +226,19 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
 
     // Parse URL parameters if present
     if (url != null && url.startsWith(getConnectStringPrefix())) {
-      String paramString = url.substring(getConnectStringPrefix().length());
+      String urlRemainder = url.substring(getConnectStringPrefix().length());
 
-      if (!paramString.isEmpty()) {
+      // Check if it's a standard JDBC URL format (starts with //)
+      if (urlRemainder.startsWith("//")) {
+        // Handle format: jdbc:splunk://host:port[/database][?params]
+        // Parse and merge all components
+        parseStandardJdbcUrl(url, merged);
+
+      } else if (!urlRemainder.isEmpty()) {
+        // Handle semicolon-separated format: jdbc:splunk:url=https://host:port;user=admin
         try {
           // Split by semicolon and parse key=value pairs
-          String[] params = paramString.split(";");
+          String[] params = urlRemainder.split(";");
           for (String param : params) {
             String trimmedParam = param.trim();
             if (!trimmedParam.isEmpty()) {
@@ -253,7 +293,24 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
     ConnectionProperties props = new ConnectionProperties();
 
     // Basic required properties (can be null from Properties.getProperty())
+    // First check for direct 'url' property
     props.splunkUrl = getPropertyWithEnvFallback(info, "url", "SPLUNK_URL");
+
+    // If not found, check for 'jdbcUrl' property and parse it
+    if (props.splunkUrl == null) {
+      String jdbcUrl = info.getProperty("jdbcUrl");
+      if (jdbcUrl != null && jdbcUrl.startsWith("jdbc:splunk://")) {
+        // Parse JDBC URL format and extract ALL parameters (not just the base URL)
+        parseStandardJdbcUrl(jdbcUrl, info);
+        // Now get the URL that was set by parseStandardJdbcUrl
+        props.splunkUrl = info.getProperty("url");
+      }
+    }
+
+    // Still not found? Check environment variable
+    if (props.splunkUrl == null) {
+      props.splunkUrl = System.getenv("SPLUNK_URL");
+    }
     props.token = getPropertyWithEnvFallback(info, "token", "SPLUNK_TOKEN");
     props.user = getPropertyWithEnvFallback(info, "user", "SPLUNK_USER");
     props.password = getPropertyWithEnvFallback(info, "password", "SPLUNK_PASSWORD");
@@ -285,7 +342,167 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
     // Parse custom tables JSON if provided
     props.customTables = parseCustomTables(info.getProperty("customTables"));
 
+    // Model file support - check property and environment variable
+    props.modelFile = getPropertyWithEnvFallback(info, "modelFile", "SPLUNK_MODEL_FILE");
+
     return props;
+  }
+
+  /**
+   * Parses a standard JDBC URL and extracts all components into properties.
+   * Handles formats like:
+   * - jdbc:splunk://host:port
+   * - jdbc:splunk://host:port/database
+   * - jdbc:splunk://host:port?param=value
+   * - jdbc:splunk://host:port/database?param1=value1&param2=value2
+   *
+   * @param jdbcUrl the full JDBC URL
+   * @param properties the properties object to populate
+   */
+  private void parseStandardJdbcUrl(String jdbcUrl, Properties properties) throws SQLException {
+    if (!jdbcUrl.startsWith("jdbc:splunk://")) {
+      throw new SQLException("Invalid JDBC URL format. Expected: jdbc:splunk://host:port");
+    }
+
+    try {
+      // Remove the "jdbc:splunk://" prefix
+      String urlPart = jdbcUrl.substring("jdbc:splunk://".length());
+
+      // Find the components
+      int pathIndex = urlPart.indexOf('/');
+      int queryIndex = urlPart.indexOf('?');
+
+      // Extract host:port
+      int hostPortEnd = -1;
+      if (pathIndex >= 0 && queryIndex >= 0) {
+        hostPortEnd = Math.min(pathIndex, queryIndex);
+      } else if (pathIndex >= 0) {
+        hostPortEnd = pathIndex;
+      } else if (queryIndex >= 0) {
+        hostPortEnd = queryIndex;
+      }
+
+      String hostPort = hostPortEnd >= 0 ? urlPart.substring(0, hostPortEnd) : urlPart;
+
+      // Validate host:port format
+      if (!hostPort.contains(":")) {
+        throw new SQLException("Invalid JDBC URL format. Missing port number: " + jdbcUrl);
+      }
+
+      // Set the Splunk URL property (assumes HTTPS by default)
+      properties.setProperty("url", "https://" + hostPort);
+
+      // Extract database/schema from path if present
+      if (pathIndex >= 0) {
+        int pathEnd = queryIndex >= 0 ? queryIndex : urlPart.length();
+        if (pathIndex + 1 < pathEnd) {
+          String database = urlPart.substring(pathIndex + 1, pathEnd);
+          if (!database.isEmpty()) {
+            properties.setProperty("schema", database);
+          }
+        }
+      }
+
+      // Extract query parameters if present
+      if (queryIndex >= 0 && queryIndex + 1 < urlPart.length()) {
+        String queryString = urlPart.substring(queryIndex + 1);
+        parseQueryParameters(queryString, properties);
+      }
+
+    } catch (Exception e) {
+      throw new SQLException("Failed to parse JDBC URL: " + jdbcUrl, e);
+    }
+  }
+
+  /**
+   * Parses query parameters from a query string and adds them to properties.
+   * Handles format: param1=value1&param2=value2
+   *
+   * @param queryString the query string (without the leading ?)
+   * @param properties the properties object to populate
+   */
+  private void parseQueryParameters(String queryString, Properties properties) {
+    if (queryString == null || queryString.isEmpty()) {
+      return;
+    }
+
+    String[] params = queryString.split("&");
+    for (String param : params) {
+      int equalsIndex = param.indexOf('=');
+      if (equalsIndex > 0 && equalsIndex < param.length() - 1) {
+        String key = param.substring(0, equalsIndex).trim();
+        String value = param.substring(equalsIndex + 1).trim();
+
+        // URL decode the value
+        try {
+          value = URLDecoder.decode(value, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+          // UTF-8 should always be supported
+          LOGGER.warn("Failed to URL decode parameter value: {}", value);
+        }
+
+        // Map common parameter aliases
+        if ("database".equalsIgnoreCase(key) || "db".equalsIgnoreCase(key)) {
+          key = "schema";
+        }
+
+        properties.setProperty(key, value);
+
+        if (LOGGER.isDebugEnabled()) {
+          // Don't log sensitive values
+          String logValue = key.toLowerCase().contains("password") || key.toLowerCase().contains("token")
+              ? "***" : value;
+          LOGGER.debug("Parsed query parameter: {}={}", key, logValue);
+        }
+      }
+    }
+  }
+
+  /**
+   * Parses a JDBC URL format to extract the Splunk URL.
+   * Handles formats like:
+   * - jdbc:splunk://host:port
+   * - jdbc:splunk://host:port/database
+   * - jdbc:splunk://host:port?param=value
+   *
+   * @param jdbcUrl the JDBC URL to parse
+   * @return the Splunk URL (e.g., "https://host:port")
+   */
+  private String parseJdbcUrlToSplunkUrl(String jdbcUrl) throws SQLException {
+    if (jdbcUrl == null || !jdbcUrl.startsWith("jdbc:splunk://")) {
+      throw new SQLException("Invalid JDBC URL format. Expected: jdbc:splunk://host:port");
+    }
+
+    try {
+      // Remove the "jdbc:splunk://" prefix
+      String urlPart = jdbcUrl.substring("jdbc:splunk://".length());
+
+      // Find the end of host:port (before path or query parameters)
+      int pathIndex = urlPart.indexOf('/');
+      int queryIndex = urlPart.indexOf('?');
+
+      int endIndex = -1;
+      if (pathIndex >= 0 && queryIndex >= 0) {
+        endIndex = Math.min(pathIndex, queryIndex);
+      } else if (pathIndex >= 0) {
+        endIndex = pathIndex;
+      } else if (queryIndex >= 0) {
+        endIndex = queryIndex;
+      }
+
+      String hostPort = endIndex >= 0 ? urlPart.substring(0, endIndex) : urlPart;
+
+      // Validate host:port format
+      if (!hostPort.contains(":")) {
+        throw new SQLException("Invalid JDBC URL format. Missing port number: " + jdbcUrl);
+      }
+
+      // Convert to Splunk URL format (assumes HTTPS by default)
+      return "https://" + hostPort;
+
+    } catch (Exception e) {
+      throw new SQLException("Failed to parse JDBC URL: " + jdbcUrl, e);
+    }
   }
 
   /**
@@ -293,7 +510,7 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
    */
   private void validateRequiredProperties(ConnectionProperties props) throws SQLException {
     if (props.splunkUrl == null) {
-      throw new SQLException("Must specify 'url' property");
+      throw new SQLException("Must specify 'url' or 'jdbcUrl' property");
     }
 
     boolean hasToken = props.token != null && !props.token.trim().isEmpty();
@@ -552,6 +769,8 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
     boolean refreshDatamodels = false;
     List<Map<String, Object>> customTables = new ArrayList<>();
     boolean disableSslValidation = false;
+    @Nullable
+    String modelFile;
   }
 
   /**
@@ -567,6 +786,31 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
     } catch (NumberFormatException e) {
       LOGGER.warn("Invalid long value for property '{}': {}", key, value);
       return defaultValue;
+    }
+  }
+
+  /**
+   * Configures PostgreSQL-compatible case handling.
+   * Uses ORACLE lex but with unquoted identifiers converted to lowercase.
+   *
+   * @param info the connection properties to configure
+   */
+  private void configurePostgreSQLCompatibility(Properties info) {
+    // Only set if not already configured
+    if (!info.containsKey(CalciteConnectionProperty.LEX.camelName())) {
+      // Use ORACLE lex (case-sensitive, double-quote for identifiers)
+      info.setProperty(CalciteConnectionProperty.LEX.camelName(), Lex.ORACLE.name());
+    }
+
+    // Override unquoted casing to lowercase (PostgreSQL-compatible)
+    if (!info.containsKey(CalciteConnectionProperty.UNQUOTED_CASING.camelName())) {
+      info.setProperty(CalciteConnectionProperty.UNQUOTED_CASING.camelName(),
+          Casing.TO_LOWER.name());
+    }
+
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug("Configured PostgreSQL-compatible case handling: lex={}, unquotedCasing=TO_LOWER",
+          info.getProperty(CalciteConnectionProperty.LEX.camelName()));
     }
   }
 

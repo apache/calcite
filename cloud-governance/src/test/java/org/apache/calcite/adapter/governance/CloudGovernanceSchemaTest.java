@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.adapter.governance;
 
-import org.apache.calcite.adapter.governance.categories.UnitTest;
 import org.apache.calcite.schema.Table;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -32,24 +32,22 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /**
  * Unit tests for {@link CloudGovernanceSchema}.
  */
-@Category(UnitTest.class)
+@Tag("unit")
 public class CloudGovernanceSchemaTest {
 
-  @Test
-  public void testSchemaCreation() {
+  @Test public void testSchemaCreation() {
     CloudGovernanceConfig config = createTestConfig();
     CloudGovernanceSchema schema = new CloudGovernanceSchema(config);
-    
+
     assertThat(schema, is(notNullValue()));
   }
 
-  @Test
-  public void testGetTableMap() {
+  @Test public void testGetTableMap() {
     CloudGovernanceConfig config = createTestConfig();
     CloudGovernanceSchema schema = new CloudGovernanceSchema(config);
-    
+
     Map<String, Table> tables = schema.getTableMap();
-    
+
     // Verify all expected tables are present
     assertThat(tables.containsKey("kubernetes_clusters"), is(true));
     assertThat(tables.containsKey("storage_resources"), is(true));
@@ -58,7 +56,7 @@ public class CloudGovernanceSchemaTest {
     assertThat(tables.containsKey("iam_resources"), is(true));
     assertThat(tables.containsKey("database_resources"), is(true));
     assertThat(tables.containsKey("container_registries"), is(true));
-    
+
     // Verify table types
     assertThat(tables.get("kubernetes_clusters"), instanceOf(KubernetesClustersTable.class));
     assertThat(tables.get("storage_resources"), instanceOf(StorageResourcesTable.class));
@@ -71,25 +69,24 @@ public class CloudGovernanceSchemaTest {
 
   // Sub-schema test removed - getSubSchemaMap() is protected
 
-  @Test
-  public void testIsMutable() {
+  @Test public void testIsMutable() {
     CloudGovernanceConfig config = createTestConfig();
     CloudGovernanceSchema schema = new CloudGovernanceSchema(config);
-    
+
     // Schema should be immutable (read-only)
     assertThat(schema.isMutable(), is(false));
   }
 
   private CloudGovernanceConfig createTestConfig() {
-    CloudGovernanceConfig.AzureConfig azure = new CloudGovernanceConfig.AzureConfig(
-        "test-tenant", "test-client", "test-secret", Arrays.asList("sub1", "sub2"));
-    
-    CloudGovernanceConfig.GCPConfig gcp = new CloudGovernanceConfig.GCPConfig(
-        Arrays.asList("project1", "project2"), "/path/to/credentials.json");
-    
-    CloudGovernanceConfig.AWSConfig aws = new CloudGovernanceConfig.AWSConfig(
-        Arrays.asList("account1", "account2"), "us-east-1", "test-key", "test-secret", null);
-    
+    CloudGovernanceConfig.AzureConfig azure =
+        new CloudGovernanceConfig.AzureConfig("test-tenant", "test-client", "test-secret", Arrays.asList("sub1", "sub2"));
+
+    CloudGovernanceConfig.GCPConfig gcp =
+        new CloudGovernanceConfig.GCPConfig(Arrays.asList("project1", "project2"), "/path/to/credentials.json");
+
+    CloudGovernanceConfig.AWSConfig aws =
+        new CloudGovernanceConfig.AWSConfig(Arrays.asList("account1", "account2"), "us-east-1", "test-key", "test-secret", null);
+
     return new CloudGovernanceConfig(
         Arrays.asList("azure", "gcp", "aws"), azure, gcp, aws, true, 15);
   }

@@ -18,34 +18,40 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.util.Sources;
+
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import org.junit.jupiter.api.condition.EnabledIf;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.TreeSet;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 /**
  * Compare dynamically discovered models with hardcoded CIM models.
  * Run with: -Dcalcite.test.splunk=true
  */
-@EnabledIfSystemProperty(named = "calcite.test.splunk", matches = "true")
+@Tag("integration")
+@EnabledIf("splunkTestEnabled")
 class SplunkModelComparisonTest {
-  
-  @Test
-  void compareModels() throws Exception {
+
+  private static boolean splunkTestEnabled() {
+    return System.getProperty("CALCITE_TEST_SPLUNK", "false").equals("true") ||
+           System.getenv("CALCITE_TEST_SPLUNK") != null;
+  }
+
+  @Test void compareModels() throws Exception {
     System.out.println("\n=== Comparing Dynamic Discovery with Hardcoded CIM Models ===");
-    
+
     // Define the hardcoded CIM models and their aliases from CimModelBuilder
     Map<String, Set<String>> hardcodedModels = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-    
+
     // Add all CIM models with their aliases
     hardcodedModels.put("alerts", Set.of("alerts"));
     hardcodedModels.put("application_state", Set.of("application_state", "applicationstate"));
@@ -72,17 +78,17 @@ class SplunkModelComparisonTest {
     hardcodedModels.put("updates", Set.of("updates"));
     hardcodedModels.put("vulnerabilities", Set.of("vulnerabilities", "vulnerability"));
     hardcodedModels.put("web", Set.of("web"));
-    
+
     // Get dynamically discovered models using model file
     Properties info = new Properties();
     info.put("model", Sources.of(SplunkModelComparisonTest.class.getResource("/test-splunk-model.json")).file().getAbsolutePath());
-    
+
     Set<String> discoveredModels = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
-    
+
     try (Connection conn = DriverManager.getConnection("jdbc:calcite:", info)) {
       CalciteConnection calciteConn = conn.unwrap(CalciteConnection.class);
       DatabaseMetaData metaData = calciteConn.getMetaData();
-      
+
       try (ResultSet rs = metaData.getTables(null, "splunk", "%", null)) {
         while (rs.next()) {
           String tableName = rs.getString("TABLE_NAME");
@@ -90,27 +96,27 @@ class SplunkModelComparisonTest {
         }
       }
     }
-    
+
     // Compare the sets
     System.out.println("\n--- Hardcoded CIM Models (" + hardcodedModels.size() + " total) ---");
     for (String model : hardcodedModels.keySet()) {
       System.out.println("  - " + model);
     }
-    
+
     System.out.println("\n--- Dynamically Discovered Models (" + discoveredModels.size() + " total) ---");
     for (String model : discoveredModels) {
       System.out.println("  - " + model);
     }
-    
+
     // Find differences
     Set<String> onlyInHardcoded = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
     onlyInHardcoded.addAll(hardcodedModels.keySet());
     onlyInHardcoded.removeAll(discoveredModels);
-    
+
     Set<String> onlyInDiscovered = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
     onlyInDiscovered.addAll(discoveredModels);
     onlyInDiscovered.removeAll(hardcodedModels.keySet());
-    
+
     System.out.println("\n--- Models Only in Hardcoded (" + onlyInHardcoded.size() + ") ---");
     if (onlyInHardcoded.isEmpty()) {
       System.out.println("  (none)");
@@ -119,7 +125,7 @@ class SplunkModelComparisonTest {
         System.out.println("  - " + model);
       }
     }
-    
+
     System.out.println("\n--- Models Only in Dynamic Discovery (" + onlyInDiscovered.size() + ") ---");
     if (onlyInDiscovered.isEmpty()) {
       System.out.println("  (none)");
@@ -128,11 +134,11 @@ class SplunkModelComparisonTest {
         System.out.println("  - " + model);
       }
     }
-    
+
     // Check naming patterns
     System.out.println("\n--- Naming Pattern Analysis ---");
     System.out.println("Checking if discovered models would match hardcoded aliases:");
-    
+
     for (String discovered : onlyInDiscovered) {
       System.out.println("\nDiscovered: " + discovered);
       // Check if it matches any hardcoded model alias
@@ -143,7 +149,7 @@ class SplunkModelComparisonTest {
           }
         }
       }
-      
+
       // Check if removing underscores would match
       String noUnderscore = discovered.replace("_", "");
       for (Map.Entry<String, Set<String>> entry : hardcodedModels.entrySet()) {
@@ -154,21 +160,21 @@ class SplunkModelComparisonTest {
         }
       }
     }
-    
+
     // Show which hardcoded models are missing
     System.out.println("\n--- Missing Standard CIM Models ---");
     for (String missing : onlyInHardcoded) {
       System.out.println("Model '" + missing + "' is not in dynamic discovery");
       System.out.println("  CimModelBuilder accepts: " + hardcodedModels.get(missing));
     }
-    
+
     // Summary
     System.out.println("\n--- Summary ---");
     System.out.println("Hardcoded CIM models: " + hardcodedModels.size());
     System.out.println("Dynamically discovered: " + discoveredModels.size());
     System.out.println("Missing from discovery: " + onlyInHardcoded.size());
     System.out.println("Extra in discovery: " + onlyInDiscovered.size());
-    
+
     // List all discovered models that are not standard CIM
     System.out.println("\n--- Non-Standard Models in Discovery ---");
     for (String model : onlyInDiscovered) {

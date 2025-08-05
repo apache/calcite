@@ -2573,6 +2573,148 @@ Full performance analysis available in [PERFORMANCE_RESULTS.md](PERFORMANCE_RESU
 
 Note: Performance tests are marked with `@Disabled` by default to avoid slow builds.
 
+## Metadata Catalogs
+
+The File adapter automatically provides PostgreSQL-compatible metadata catalogs for SQL introspection and BI tool compatibility. These schemas are built-in and available whenever you use the file adapter - no configuration required.
+
+### information_schema
+
+SQL standard metadata views are automatically available in every connection:
+
+```sql
+-- List all available schemas
+SELECT * FROM information_schema.schemata;
+
+-- View all tables across all schemas
+SELECT table_schema, table_name, table_type 
+FROM information_schema.tables;
+
+-- Get column details for a specific table
+SELECT column_name, data_type, is_nullable
+FROM information_schema.columns
+WHERE table_schema = 'FILES' AND table_name = 'SALES';
+```
+
+#### Available Views
+- `SCHEMATA` - All schemas in the catalog
+- `TABLES` - All tables across all schemas
+- `COLUMNS` - Column details for all tables
+- `TABLE_CONSTRAINTS` - Constraint information (empty for file tables)
+- `KEY_COLUMN_USAGE` - Key column information (empty for file tables)
+- `VIEWS` - View definitions (empty for file adapter)
+
+#### Example Queries
+```sql
+-- List all tables
+SELECT table_schema, table_name, table_type 
+FROM information_schema.tables;
+
+-- Get column information
+SELECT column_name, data_type, is_nullable
+FROM information_schema.columns
+WHERE table_schema = 'FILES' AND table_name = 'SALES';
+
+-- Find all date columns
+SELECT table_schema, table_name, column_name
+FROM information_schema.columns
+WHERE data_type = 'DATE';
+```
+
+### pg_catalog
+
+PostgreSQL-compatible system catalog is also automatically available:
+
+```sql
+-- List all schemas (namespaces)
+SELECT nspname FROM pg_catalog.pg_namespace;
+
+-- Get table information
+SELECT c.relname, n.nspname, c.relnatts
+FROM pg_catalog.pg_class c
+JOIN pg_catalog.pg_namespace n ON c.relnamespace = n.oid
+WHERE c.relkind = 'r';
+
+-- View column details with PostgreSQL types
+SELECT a.attname, t.typname, a.attnotnull
+FROM pg_catalog.pg_attribute a
+JOIN pg_catalog.pg_type t ON a.atttypid = t.oid
+WHERE a.attrelid = (
+  SELECT oid FROM pg_catalog.pg_class 
+  WHERE relname = 'sales'
+);
+```
+
+#### Available Tables
+- `pg_namespace` - Schema (namespace) listing
+- `pg_class` - Table and index information
+- `pg_attribute` - Column (attribute) information
+- `pg_type` - Data type definitions
+- `pg_database` - Database information
+- `pg_tables` - Simplified table view
+- `pg_views` - View listing (empty for file adapter)
+
+### BI Tool Integration
+
+The built-in metadata schemas provide automatic compatibility with:
+- **DBeaver** - Full schema browsing and table inspection
+- **DataGrip** - Database structure navigation
+- **Tableau** - Automatic table discovery
+- **Power BI** - Direct Query mode support
+- **pgAdmin** - PostgreSQL client compatibility
+- **Any JDBC-compliant tool** - Standard metadata API support
+
+### Multiple Schema Example
+
+When you configure multiple file schemas, the built-in metadata catalogs automatically discover and report on all of them:
+
+```json
+{
+  "version": "1.0",
+  "defaultSchema": "PRODUCTION",
+  "schemas": [
+    {
+      "name": "PRODUCTION",
+      "type": "custom",
+      "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
+      "operand": {
+        "directory": "/data/prod"
+      }
+    },
+    {
+      "name": "STAGING",
+      "type": "custom",
+      "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
+      "operand": {
+        "directory": "/data/staging"
+      }
+    },
+    {
+      "name": "ARCHIVE",
+      "type": "custom",
+      "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
+      "operand": {
+        "directory": "/data/archive"
+      }
+    }
+  ]
+}
+```
+
+No need to manually add metadata schemas - they're automatically available:
+
+```sql
+-- View all tables across all schemas
+SELECT table_schema, COUNT(*) as table_count
+FROM information_schema.tables 
+WHERE table_schema IN ('PRODUCTION', 'STAGING', 'ARCHIVE')
+GROUP BY table_schema;
+
+-- Find columns by name across all schemas
+SELECT table_schema, table_name, column_name, data_type
+FROM information_schema.columns
+WHERE column_name LIKE '%customer%';
+```
+
 ## Known Limitations
 
 The following are known limitations in the File adapter:

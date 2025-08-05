@@ -380,7 +380,7 @@ Unit tests can run without SharePoint credentials and test CAST operations, quer
 ```
 
 ### Integration Tests
-Integration tests require SharePoint credentials. 
+Integration tests require SharePoint credentials.
 
 **Option 1: Using local properties file (recommended)**
 Copy `../file/local-test.properties.sample` to `../file/local-test.properties` and fill in your credentials:

@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.test;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -26,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * The Splunk adapter now pushes down simple CAST operations to Splunk
  * using native conversion functions like tostring(), toint(), tonumber().
  */
+@Tag("unit")
 public class SplunkCastProjectionTest {
 
   @Test void testSimpleCastPushedDown() {

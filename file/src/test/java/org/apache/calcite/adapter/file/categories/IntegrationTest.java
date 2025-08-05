@@ -18,7 +18,7 @@ package org.apache.calcite.adapter.file.categories;
 
 /**
  * Marker interface for integration tests.
- * 
+ *
  * <p>Integration tests should:
  * <ul>
  *   <li>Test interactions between multiple components</li>
@@ -27,7 +27,7 @@ package org.apache.calcite.adapter.file.categories;
  *   <li>Take longer to run than unit tests</li>
  *   <li>Use real external dependencies when available</li>
  * </ul>
- * 
+ *
  * <p>Integration tests must check for required credentials/properties
  * and skip themselves if not available:
  * <pre>{@code

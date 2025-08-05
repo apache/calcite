@@ -14,13 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.governance.categories;
 
 /**
- * Marker interface for integration tests.
- * 
- * Integration tests verify interactions between components and external systems
- * such as cloud APIs, require real credentials, and may be slower to run.
+ * Cloud governance adapter for Apache Calcite.
+ *
+ * <p>Provides unified SQL access to cloud infrastructure resources across
+ * Azure, AWS, and Google Cloud Platform for governance, compliance, and
+ * security analysis.
  */
-public interface IntegrationTest {
-}
+package org.apache.calcite.adapter.governance;

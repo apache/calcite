@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.adapter.governance;
 
-import org.apache.calcite.adapter.governance.provider.AzureProvider;
-import org.apache.calcite.adapter.governance.provider.GCPProvider;
 import org.apache.calcite.adapter.governance.provider.AWSProvider;
+import org.apache.calcite.adapter.governance.provider.AzureProvider;
 import org.apache.calcite.adapter.governance.provider.CloudProvider;
+import org.apache.calcite.adapter.governance.provider.GCPProvider;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -32,13 +32,12 @@ import java.util.Map;
  * Table containing database resource information across cloud providers.
  */
 public class DatabaseResourcesTable extends AbstractCloudGovernanceTable {
-  
+
   public DatabaseResourcesTable(CloudGovernanceConfig config) {
     super(config);
   }
-  
-  @Override
-  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+
+  @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     return typeFactory.builder()
         // Identity fields
         .add("cloud_provider", SqlTypeName.VARCHAR)
@@ -49,7 +48,7 @@ public class DatabaseResourcesTable extends AbstractCloudGovernanceTable {
         .add("region", SqlTypeName.VARCHAR)
         .add("resource_group", SqlTypeName.VARCHAR)
         .add("resource_id", SqlTypeName.VARCHAR)
-        
+
         // Configuration facts
         .add("engine", SqlTypeName.VARCHAR)
         .add("engine_version", SqlTypeName.VARCHAR)
@@ -57,31 +56,30 @@ public class DatabaseResourcesTable extends AbstractCloudGovernanceTable {
         .add("allocated_storage", SqlTypeName.INTEGER)
         .add("multi_az", SqlTypeName.BOOLEAN)
         .add("status", SqlTypeName.VARCHAR)
-        
+
         // Security facts
         .add("publicly_accessible", SqlTypeName.BOOLEAN)
         .add("encrypted", SqlTypeName.BOOLEAN)
         .add("encryption_key", SqlTypeName.VARCHAR)
         .add("tls_version", SqlTypeName.VARCHAR)
-        
+
         // Backup facts
         .add("backup_retention_days", SqlTypeName.INTEGER)
         .add("backup_window", SqlTypeName.VARCHAR)
-        
+
         // Timestamps
         .add("create_time", SqlTypeName.TIMESTAMP)
-        
+
         .build();
   }
-  
-  @Override
-  protected List<Object[]> queryAzure(List<String> subscriptionIds) {
+
+  @Override protected List<Object[]> queryAzure(List<String> subscriptionIds) {
     List<Object[]> results = new ArrayList<>();
-    
+
     try {
       CloudProvider azureProvider = new AzureProvider(config.azure);
       List<Map<String, Object>> dbResults = azureProvider.queryDatabaseResources(subscriptionIds);
-      
+
       for (Map<String, Object> db : dbResults) {
         results.add(new Object[]{
             "azure",
@@ -110,18 +108,17 @@ public class DatabaseResourcesTable extends AbstractCloudGovernanceTable {
     } catch (Exception e) {
       System.err.println("Error querying Azure database resources: " + e.getMessage());
     }
-    
+
     return results;
   }
-  
-  @Override
-  protected List<Object[]> queryGCP(List<String> projectIds) {
+
+  @Override protected List<Object[]> queryGCP(List<String> projectIds) {
     List<Object[]> results = new ArrayList<>();
-    
+
     try {
       CloudProvider gcpProvider = new GCPProvider(config.gcp);
       List<Map<String, Object>> dbResults = gcpProvider.queryDatabaseResources(projectIds);
-      
+
       for (Map<String, Object> db : dbResults) {
         results.add(new Object[]{
             "gcp",
@@ -135,7 +132,7 @@ public class DatabaseResourcesTable extends AbstractCloudGovernanceTable {
             db.get("DatabaseVersion"),
             db.get("DatabaseVersion"),
             db.get("Tier"),
-            db.get("MemorySizeGb") != null ? 
+            db.get("MemorySizeGb") != null ?
                 ((Number) db.get("MemorySizeGb")).intValue() * 1024 : null, // Convert GB to MB
             false, // GCP uses regional replication differently
             db.get("State"),
@@ -151,18 +148,17 @@ public class DatabaseResourcesTable extends AbstractCloudGovernanceTable {
     } catch (Exception e) {
       System.err.println("Error querying GCP database resources: " + e.getMessage());
     }
-    
+
     return results;
   }
-  
-  @Override
-  protected List<Object[]> queryAWS(List<String> accountIds) {
+
+  @Override protected List<Object[]> queryAWS(List<String> accountIds) {
     List<Object[]> results = new ArrayList<>();
-    
+
     try {
       CloudProvider awsProvider = new AWSProvider(config.aws);
       List<Map<String, Object>> dbResults = awsProvider.queryDatabaseResources(accountIds);
-      
+
       for (Map<String, Object> db : dbResults) {
         results.add(new Object[]{
             "aws",
@@ -175,36 +171,36 @@ public class DatabaseResourcesTable extends AbstractCloudGovernanceTable {
             db.get("ResourceId"),
             db.get("Engine"),
             db.get("EngineVersion"),
-            db.get("DBInstanceClass") != null ? db.get("DBInstanceClass") : 
+            db.get("DBInstanceClass") != null ? db.get("DBInstanceClass") :
                 db.get("CacheNodeType"),
             db.get("AllocatedStorage"),
             db.get("MultiAZ"),
-            db.get("DBInstanceStatus") != null ? db.get("DBInstanceStatus") : 
+            db.get("DBInstanceStatus") != null ? db.get("DBInstanceStatus") :
                 db.get("Status"),
             db.get("PubliclyAccessible"),
-            db.get("StorageEncrypted") != null ? db.get("StorageEncrypted") : 
+            db.get("StorageEncrypted") != null ? db.get("StorageEncrypted") :
                 db.get("AtRestEncryptionEnabled"),
-            db.get("KmsKeyId") != null ? db.get("KmsKeyId") : 
+            db.get("KmsKeyId") != null ? db.get("KmsKeyId") :
                 db.get("KMSMasterKeyArn"),
             null, // TLS version not directly exposed
-            db.get("BackupRetentionPeriod") != null ? 
-                ((Number) db.get("BackupRetentionPeriod")).intValue() : 
-                db.get("SnapshotRetentionLimit") != null ? 
+            db.get("BackupRetentionPeriod") != null ?
+                ((Number) db.get("BackupRetentionPeriod")).intValue() :
+                db.get("SnapshotRetentionLimit") != null ?
                     ((Number) db.get("SnapshotRetentionLimit")).intValue() : null,
-            db.get("PreferredBackupWindow") != null ? db.get("PreferredBackupWindow") : 
+            db.get("PreferredBackupWindow") != null ? db.get("PreferredBackupWindow") :
                 db.get("SnapshotWindow"),
-            db.get("InstanceCreateTime") != null ? db.get("InstanceCreateTime") : 
-                db.get("ClusterCreateTime") != null ? db.get("ClusterCreateTime") : 
+            db.get("InstanceCreateTime") != null ? db.get("InstanceCreateTime") :
+                db.get("ClusterCreateTime") != null ? db.get("ClusterCreateTime") :
                 db.get("CreationDateTime")
         });
       }
     } catch (Exception e) {
       System.err.println("Error querying AWS database resources: " + e.getMessage());
     }
-    
+
     return results;
   }
-  
+
   private String parseMinTlsVersion(Object securityConfig) {
     if (securityConfig instanceof String) {
       String config = (String) securityConfig;

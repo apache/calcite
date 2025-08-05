@@ -59,7 +59,7 @@ The Cloud Governance adapter uses JUnit categories to organize tests into three 
 # With credentials configured
 ./gradlew :cloud-governance:test
 
-# Without credentials configured  
+# Without credentials configured
 ./gradlew :cloud-governance:allTests
 ```
 
@@ -108,7 +108,7 @@ cp src/test/resources/local-test.properties.sample src/test/resources/local-test
 ```properties
 # Azure AD App Registration required
 azure.tenantId=your-azure-tenant-id
-azure.clientId=your-azure-client-id  
+azure.clientId=your-azure-client-id
 azure.clientSecret=your-azure-client-secret
 azure.subscriptionIds=sub1,sub2,sub3
 ```
@@ -165,7 +165,7 @@ ELSE exclude integration tests from default 'test' task
 # Verbose output
 ./gradlew :cloud-governance:test --info
 
-# Debug output  
+# Debug output
 ./gradlew :cloud-governance:test --debug
 
 # Continue on failure
@@ -248,7 +248,7 @@ JUnit XML reports for CI/CD integration:
 # Open unit test report
 open build/reports/tests/unit/index.html
 
-# Open integration test report  
+# Open integration test report
 open build/reports/tests/integration/index.html
 
 # Open performance test report
@@ -270,7 +270,7 @@ Solution: Verify local-test.properties file exists and has valid credentials
 ```
 Symptom: AADSTS70011, "Invalid client credentials", "Security token invalid"
 Azure: Check tenantId, clientId, clientSecret, and app permissions
-AWS: Verify accessKeyId, secretAccessKey, and IAM permissions  
+AWS: Verify accessKeyId, secretAccessKey, and IAM permissions
 GCP: Confirm service account key file path and roles
 ```
 
@@ -349,11 +349,11 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-      
+
       # Unit tests only (no credentials)
       - name: Run Unit Tests
         run: ./gradlew :cloud-governance:unitTest
-      
+
       - name: Upload Unit Test Reports
         uses: actions/upload-artifact@v4
         if: always()
@@ -370,7 +370,7 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-      
+
       # Integration tests with secrets
       - name: Create Test Credentials
         run: |
@@ -380,10 +380,10 @@ jobs:
           azure.clientSecret=${{ secrets.AZURE_CLIENT_SECRET }}
           azure.subscriptionIds=${{ secrets.AZURE_SUBSCRIPTION_IDS }}
           EOF
-      
+
       - name: Run Integration Tests
         run: ./gradlew :cloud-governance:integrationTest
-      
+
       - name: Upload Integration Test Reports
         uses: actions/upload-artifact@v4
         if: always()
@@ -397,7 +397,7 @@ jobs:
 ```groovy
 pipeline {
     agent any
-    
+
     stages {
         stage('Unit Tests') {
             steps {
@@ -416,7 +416,7 @@ pipeline {
                 }
             }
         }
-        
+
         stage('Integration Tests') {
             when {
                 branch 'main'
@@ -434,7 +434,7 @@ pipeline {
                         azure.clientSecret=${AZURE_CLIENT_SECRET}
                         azure.subscriptionIds=${AZURE_SUBSCRIPTION_IDS}
                         EOF
-                        
+
                         ./gradlew :cloud-governance:integrationTest
                     '''
                 }
@@ -491,14 +491,14 @@ Add performance assertions to catch regressions:
 @Test
 public void testPerformanceRegression() {
     long startTime = System.currentTimeMillis();
-    
+
     // Test operation
     for (int i = 0; i < 1000; i++) {
         createSchema();
     }
-    
+
     long duration = System.currentTimeMillis() - startTime;
-    
+
     // Fail if performance degrades significantly
     assertThat("Performance regression detected", duration < 1000, is(true));
 }

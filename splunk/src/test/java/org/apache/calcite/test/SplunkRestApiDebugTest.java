@@ -17,8 +17,12 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.adapter.splunk.search.SplunkConnectionImpl;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import org.junit.jupiter.api.condition.EnabledIf;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -28,23 +32,26 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 /**
  * Debug test to directly examine Splunk REST API responses.
  * Run with: -Dcalcite.test.splunk=true
  */
-@EnabledIfSystemProperty(named = "calcite.test.splunk", matches = "true")
+@Tag("integration")
+@EnabledIf("splunkTestEnabled")
 class SplunkRestApiDebugTest {
-  
+
   private static final String BASE_URL = "https://kentest.xyz:8089";
   private static final String USERNAME = "admin";
   private static final String PASSWORD = "admin123";
-  
-  @Test
-  void testDirectRestApiCall() throws Exception {
+
+  private static boolean splunkTestEnabled() {
+    return System.getProperty("CALCITE_TEST_SPLUNK", "false").equals("true") ||
+           System.getenv("CALCITE_TEST_SPLUNK") != null;
+  }
+
+  @Test void testDirectRestApiCall() throws Exception {
     System.out.println("\n=== Direct REST API Debug Test ===");
-    
+
     // Test various endpoints
     String[] endpoints = {
         "/services/data/models",
@@ -53,56 +60,56 @@ class SplunkRestApiDebugTest {
         "/servicesNS/admin/Splunk_SA_CIM/data/models",
         "/services/apps/local"
     };
-    
+
     for (String endpoint : endpoints) {
       System.out.println("\n--- Testing endpoint: " + endpoint + " ---");
       testEndpoint(endpoint);
     }
   }
-  
+
   @SuppressWarnings("deprecation")
   private void testEndpoint(String endpoint) {
     try {
       URL url = new URL(BASE_URL + endpoint + "?output_mode=json&count=-1");
       HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-      
+
       // Disable SSL validation for test server
       if (conn instanceof javax.net.ssl.HttpsURLConnection) {
         javax.net.ssl.HttpsURLConnection httpsConn = (javax.net.ssl.HttpsURLConnection) conn;
         httpsConn.setSSLSocketFactory(createTrustAllSocketFactory());
         httpsConn.setHostnameVerifier((hostname, session) -> true);
       }
-      
+
       // Set up authentication
       String auth = USERNAME + ":" + PASSWORD;
       String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes());
       conn.setRequestProperty("Authorization", "Basic " + encodedAuth);
       conn.setRequestProperty("Accept", "application/json");
-      
+
       int responseCode = conn.getResponseCode();
       System.out.println("Response Code: " + responseCode);
-      
+
       if (responseCode == 200) {
-        try (BufferedReader reader = new BufferedReader(
-            new InputStreamReader(conn.getInputStream()))) {
+        try (BufferedReader reader =
+            new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
           StringBuilder response = new StringBuilder();
           String line;
           while ((line = reader.readLine()) != null) {
             response.append(line).append("\n");
           }
-          
+
           // Parse JSON response
           ObjectMapper mapper = new ObjectMapper();
-          Map<String, Object> jsonResponse = mapper.readValue(
-              response.toString(), HashMap.class);
-          
+          Map<String, Object> jsonResponse =
+              mapper.readValue(response.toString(), HashMap.class);
+
           // Check for entry array
           if (jsonResponse.containsKey("entry")) {
             Object entry = jsonResponse.get("entry");
             if (entry instanceof java.util.List) {
               java.util.List<?> entries = (java.util.List<?>) entry;
               System.out.println("Found " + entries.size() + " entries");
-              
+
               // Print first few entries
               int count = 0;
               for (Object e : entries) {
@@ -112,7 +119,7 @@ class SplunkRestApiDebugTest {
                   System.out.println("  Entry: " + entryMap.get("name"));
                 }
               }
-              
+
               if (entries.size() > 5) {
                 System.out.println("  ... and " + (entries.size() - 5) + " more");
               }
@@ -123,21 +130,21 @@ class SplunkRestApiDebugTest {
         }
       } else {
         System.out.println("Error response from server");
-        try (BufferedReader reader = new BufferedReader(
-            new InputStreamReader(conn.getErrorStream()))) {
+        try (BufferedReader reader =
+            new BufferedReader(new InputStreamReader(conn.getErrorStream()))) {
           String line;
           while ((line = reader.readLine()) != null) {
             System.out.println("  " + line);
           }
         }
       }
-      
+
     } catch (Exception e) {
       System.out.println("Error: " + e.getMessage());
       e.printStackTrace();
     }
   }
-  
+
   private javax.net.ssl.SSLSocketFactory createTrustAllSocketFactory() {
     try {
       javax.net.ssl.TrustManager[] trustAllCerts = new javax.net.ssl.TrustManager[] {
@@ -153,7 +160,7 @@ class SplunkRestApiDebugTest {
             }
           }
       };
-      
+
       javax.net.ssl.SSLContext sc = javax.net.ssl.SSLContext.getInstance("SSL");
       sc.init(null, trustAllCerts, new java.security.SecureRandom());
       return sc.getSocketFactory();
@@ -161,27 +168,26 @@ class SplunkRestApiDebugTest {
       throw new RuntimeException(e);
     }
   }
-  
-  @Test
-  @SuppressWarnings("deprecation")
+
+  @Test @SuppressWarnings("deprecation")
   void testUsingConnectionImpl() throws Exception {
     System.out.println("\n=== Testing Using SplunkConnectionImpl ===");
-    
-    SplunkConnectionImpl connection = new SplunkConnectionImpl(
-        BASE_URL, USERNAME, PASSWORD, true, null);
-    
+
+    SplunkConnectionImpl connection =
+        new SplunkConnectionImpl(BASE_URL, USERNAME, PASSWORD, true, null);
+
     // Test direct URL fetch
     URL modelsUrl = new URL(BASE_URL + "/services/data/models?output_mode=json&count=-1");
     System.out.println("Fetching: " + modelsUrl);
-    
+
     try {
       HttpURLConnection conn = connection.openConnection(modelsUrl);
       int responseCode = conn.getResponseCode();
       System.out.println("Response Code: " + responseCode);
-      
+
       if (responseCode == 200) {
-        try (BufferedReader reader = new BufferedReader(
-            new InputStreamReader(conn.getInputStream()))) {
+        try (BufferedReader reader =
+            new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
           StringBuilder response = new StringBuilder();
           String line;
           int lineCount = 0;

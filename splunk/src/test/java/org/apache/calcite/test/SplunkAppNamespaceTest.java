@@ -18,8 +18,9 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.adapter.splunk.search.SplunkConnectionImpl;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import org.junit.jupiter.api.condition.EnabledIf;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -31,8 +32,14 @@ import java.util.Properties;
  * Test to understand Splunk app namespaces and CIM model visibility.
  * Run with: -Dcalcite.test.splunk=true
  */
-@EnabledIfSystemProperty(named = "calcite.test.splunk", matches = "true")
+@Tag("integration")
+@EnabledIf("splunkTestEnabled")
 class SplunkAppNamespaceTest {
+
+  private static boolean splunkTestEnabled() {
+    return System.getProperty("CALCITE_TEST_SPLUNK", "false").equals("true") ||
+           System.getenv("CALCITE_TEST_SPLUNK") != null;
+  }
 
   @Test void testDataModelVisibilityInSplunk() throws Exception {
     System.out.println("\n=== Testing Data Model Visibility in Splunk ===");

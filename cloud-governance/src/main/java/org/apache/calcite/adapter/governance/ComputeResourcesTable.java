@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.adapter.governance;
 
-import org.apache.calcite.adapter.governance.provider.AzureProvider;
-import org.apache.calcite.adapter.governance.provider.GCPProvider;
 import org.apache.calcite.adapter.governance.provider.AWSProvider;
+import org.apache.calcite.adapter.governance.provider.AzureProvider;
 import org.apache.calcite.adapter.governance.provider.CloudProvider;
+import org.apache.calcite.adapter.governance.provider.GCPProvider;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -32,13 +32,12 @@ import java.util.Map;
  * Table containing compute resource (VM) information across cloud providers.
  */
 public class ComputeResourcesTable extends AbstractCloudGovernanceTable {
-  
+
   public ComputeResourcesTable(CloudGovernanceConfig config) {
     super(config);
   }
-  
-  @Override
-  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+
+  @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     return typeFactory.builder()
         // Identity fields
         .add("cloud_provider", SqlTypeName.VARCHAR)
@@ -50,40 +49,39 @@ public class ComputeResourcesTable extends AbstractCloudGovernanceTable {
         .add("availability_zone", SqlTypeName.VARCHAR)
         .add("resource_group", SqlTypeName.VARCHAR)
         .add("resource_id", SqlTypeName.VARCHAR)
-        
+
         // Configuration facts
         .add("instance_type", SqlTypeName.VARCHAR)
         .add("state", SqlTypeName.VARCHAR)
         .add("platform", SqlTypeName.VARCHAR)
         .add("architecture", SqlTypeName.VARCHAR)
         .add("virtualization_type", SqlTypeName.VARCHAR)
-        
+
         // Network facts
         .add("public_ip", SqlTypeName.VARCHAR)
         .add("private_ip", SqlTypeName.VARCHAR)
         .add("vpc_id", SqlTypeName.VARCHAR)
         .add("subnet_id", SqlTypeName.VARCHAR)
-        
+
         // Security facts
         .add("iam_role", SqlTypeName.VARCHAR)
         .add("security_groups", SqlTypeName.VARCHAR) // JSON array
         .add("disk_encryption_enabled", SqlTypeName.BOOLEAN)
         .add("monitoring_enabled", SqlTypeName.BOOLEAN)
-        
+
         // Timestamps
         .add("launch_time", SqlTypeName.TIMESTAMP)
-        
+
         .build();
   }
-  
-  @Override
-  protected List<Object[]> queryAzure(List<String> subscriptionIds) {
+
+  @Override protected List<Object[]> queryAzure(List<String> subscriptionIds) {
     List<Object[]> results = new ArrayList<>();
-    
+
     try {
       CloudProvider azureProvider = new AzureProvider(config.azure);
       List<Map<String, Object>> vmResults = azureProvider.queryComputeInstances(subscriptionIds);
-      
+
       for (Map<String, Object> vm : vmResults) {
         results.add(new Object[]{
             "azure",
@@ -114,18 +112,17 @@ public class ComputeResourcesTable extends AbstractCloudGovernanceTable {
     } catch (Exception e) {
       System.err.println("Error querying Azure compute instances: " + e.getMessage());
     }
-    
+
     return results;
   }
-  
-  @Override
-  protected List<Object[]> queryGCP(List<String> projectIds) {
+
+  @Override protected List<Object[]> queryGCP(List<String> projectIds) {
     List<Object[]> results = new ArrayList<>();
-    
+
     try {
       CloudProvider gcpProvider = new GCPProvider(config.gcp);
       List<Map<String, Object>> vmResults = gcpProvider.queryComputeInstances(projectIds);
-      
+
       for (Map<String, Object> vm : vmResults) {
         results.add(new Object[]{
             "gcp",
@@ -156,18 +153,17 @@ public class ComputeResourcesTable extends AbstractCloudGovernanceTable {
     } catch (Exception e) {
       System.err.println("Error querying GCP compute instances: " + e.getMessage());
     }
-    
+
     return results;
   }
-  
-  @Override
-  protected List<Object[]> queryAWS(List<String> accountIds) {
+
+  @Override protected List<Object[]> queryAWS(List<String> accountIds) {
     List<Object[]> results = new ArrayList<>();
-    
+
     try {
       CloudProvider awsProvider = new AWSProvider(config.aws);
       List<Map<String, Object>> vmResults = awsProvider.queryComputeInstances(accountIds);
-      
+
       for (Map<String, Object> vm : vmResults) {
         results.add(new Object[]{
             "aws",
@@ -198,7 +194,7 @@ public class ComputeResourcesTable extends AbstractCloudGovernanceTable {
     } catch (Exception e) {
       System.err.println("Error querying AWS compute instances: " + e.getMessage());
     }
-    
+
     return results;
   }
 }

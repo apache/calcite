@@ -16,9 +16,12 @@
  */
 package org.apache.calcite.adapter.splunk;
 
+import org.apache.calcite.adapter.splunk.search.SearchResultListener;
 import org.apache.calcite.adapter.splunk.search.SplunkConnection;
 import org.apache.calcite.adapter.splunk.search.SplunkConnectionImpl;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -36,6 +39,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -83,13 +87,37 @@ public class SplunkSchemaFactory implements SchemaFactory {
 
     Map<String, Table> tables = tableBuilder.build();
 
+    // Create the schema
+    SplunkSchema splunkSchema;
     if (tables.isEmpty()) {
       // No predefined tables - custom table mode via JSON definitions
-      return new SplunkSchema(connection);
+      splunkSchema = new SplunkSchema(connection);
     } else {
       // Return schema with predefined tables
-      return new SplunkSchema(connection, tables);
+      splunkSchema = new SplunkSchema(connection, tables);
     }
+
+    // Add metadata schemas as sibling schemas (not sub-schemas)
+    // Get the root schema to access all schemas for metadata
+    SchemaPlus rootSchema = parentSchema;
+    while (rootSchema.getParentSchema() != null) {
+      rootSchema = rootSchema.getParentSchema();
+    }
+
+    // Only add metadata schemas if they don't already exist
+    if (rootSchema.subSchemas().get("information_schema") == null) {
+      // Pass parentSchema so it can see sibling schemas
+      SplunkInformationSchema infoSchema = new SplunkInformationSchema(parentSchema, "SPLUNK");
+      rootSchema.add("information_schema", infoSchema);
+    }
+
+    if (rootSchema.subSchemas().get("pg_catalog") == null) {
+      // Pass parentSchema so it can see sibling schemas
+      SplunkPostgresMetadataSchema pgSchema = new SplunkPostgresMetadataSchema(parentSchema, "SPLUNK");
+      rootSchema.add("pg_catalog", pgSchema);
+    }
+
+    return splunkSchema;
   }
 
   /**
@@ -360,6 +388,12 @@ public class SplunkSchemaFactory implements SchemaFactory {
     }
 
     String url = buildSplunkUrl(operand);
+
+    // Special handling for mock testing
+    if ("mock".equals(url)) {
+      return new MockSplunkConnection();
+    }
+
     Boolean disableSslValidation = (Boolean) operand.get("disableSslValidation");
     boolean disableSsl = Boolean.TRUE.equals(disableSslValidation);
     String appContext = (String) operand.get("app");
@@ -415,5 +449,29 @@ public class SplunkSchemaFactory implements SchemaFactory {
     String protocol = (String) operand.getOrDefault("protocol", "https");
 
     return String.format(Locale.ROOT, "%s://%s:%d", protocol, host, port);
+  }
+
+  /**
+   * Mock implementation for testing purposes.
+   */
+  private static class MockSplunkConnection implements SplunkConnection {
+    @Override public void getSearchResults(String search, Map<String, String> otherArgs,
+        List<String> fieldList, SearchResultListener srl) {
+      // Mock implementation for testing
+    }
+
+    @Override public Enumerator<Object> getSearchResultEnumerator(
+        String search, Map<String, String> otherArgs, List<String> fieldList,
+        Set<String> explicitFields) {
+      // Mock implementation for testing
+      return Linq4j.emptyEnumerator();
+    }
+
+    @Override public Enumerator<Object> getSearchResultEnumerator(
+        String search, Map<String, String> otherArgs, List<String> fieldList,
+        Set<String> explicitFields, Map<String, String> reverseFieldMapping) {
+      // Mock implementation for testing
+      return Linq4j.emptyEnumerator();
+    }
   }
 }

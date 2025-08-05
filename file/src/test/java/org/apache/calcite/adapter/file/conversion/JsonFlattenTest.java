@@ -73,20 +73,20 @@ public class JsonFlattenTest {
   @Test void testJsonFlatteningCustomSeparator() {
     // Test custom separator (underscore) that works well with Parquet
     JsonFlattener flattener = new JsonFlattener(",", 3, "", "_");
-    
+
     java.util.Map<String, Object> input = new java.util.LinkedHashMap<>();
     input.put("name", "John");
-    
+
     java.util.Map<String, Object> address = new java.util.LinkedHashMap<>();
     address.put("street", "123 Main");
     address.put("city", "Anytown");
     input.put("address", address);
-    
+
     java.util.List<String> tags = java.util.Arrays.asList("a", "b", "c");
     input.put("tags", tags);
-    
+
     java.util.Map<String, Object> result = flattener.flatten(input);
-    
+
     assertEquals("John", result.get("name"));
     assertEquals("123 Main", result.get("address_street"));
     assertEquals("Anytown", result.get("address_city"));

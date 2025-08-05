@@ -52,8 +52,8 @@ import static org.apache.calcite.adapter.file.FileAdapterTests.sql;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.isA;
-import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /**
@@ -107,7 +107,7 @@ public class FileAdapterTest {
 
   /** Reads the EMPS table. */
   @Test void testSalesEmps() {
-    final String sql = "select * from sales.emps";
+    final String sql = "select * from sales.EMPS";
     sql("sales", sql)
         .returns("EMPNO=100; NAME=Fred; DEPTNO=30",
             "EMPNO=110; NAME=Eric; DEPTNO=20",
@@ -119,7 +119,7 @@ public class FileAdapterTest {
 
   /** Reads the DEPTS table. */
   @Test void testSalesDepts() {
-    final String sql = "select * from sales.depts";
+    final String sql = "select * from sales.DEPTS";
     sql("sales", sql)
         .returns("DEPTNO=10; NAME=Sales",
             "DEPTNO=20; NAME=Marketing",
@@ -129,7 +129,7 @@ public class FileAdapterTest {
 
   /** Reads the DEPTS table from the CSV schema. */
   @Test void testCsvSalesDepts() {
-    final String sql = "select * from sales.depts";
+    final String sql = "select * from sales.DEPTS";
     sql("sales-csv", sql)
         .returns("DEPTNO=10; NAME=Sales",
             "DEPTNO=20; NAME=Marketing",
@@ -139,7 +139,7 @@ public class FileAdapterTest {
 
   /** Reads the EMPS table from the CSV schema. */
   @Test void testCsvSalesEmps() {
-    final String sql = "select * from sales.emps";
+    final String sql = "select * from sales.EMPS";
     final String[] lines = {
         "EMPNO=100; NAME=Fred; DEPTNO=10; GENDER=; CITY=; EMPID=30; AGE=25; SLACKER=true; MANAGER=false; JOINEDAT=1996-08-03",
         "EMPNO=110; NAME=Eric; DEPTNO=20; GENDER=M; CITY=San Francisco; EMPID=3; AGE=80; SLACKER=null; MANAGER=false; JOINEDAT=2001-01-01",
@@ -197,7 +197,7 @@ public class FileAdapterTest {
 
   /** Reads the DEPTS table from the JSON schema. */
   @Test void testJsonSalesDepts() {
-    final String sql = "select * from sales.depts";
+    final String sql = "select * from sales.DEPTS";
     sql("sales-json", sql)
         .returns("DEPTNO=10; NAME=Sales",
             "DEPTNO=20; NAME=Marketing",
@@ -207,7 +207,7 @@ public class FileAdapterTest {
 
   /** Reads the EMPS table from the JSON schema. */
   @Test void testJsonSalesEmps() {
-    final String sql = "select * from sales.emps";
+    final String sql = "select * from sales.EMPS";
     final String[] lines = {
         "EMPNO=100; NAME=Fred; DEPTNO=10; GENDER=; CITY=; EMPID=30; AGE=25; SLACKER=true; MANAGER=false; JOINEDAT=1996-08-03",
         "EMPNO=110; NAME=Eric; DEPTNO=20; GENDER=M; CITY=San Francisco; EMPID=3; AGE=80; SLACKER=null; MANAGER=false; JOINEDAT=2001-01-01",
@@ -230,8 +230,8 @@ public class FileAdapterTest {
 
   /** Test returns the result of two json file joins. */
   @Test void testJsonJoinOnString() {
-    final String sql = "select emps.EMPNO, emps.NAME, depts.deptno from emps\n"
-        + "join depts on emps.deptno = depts.deptno";
+    final String sql = "select EMPS.EMPNO, EMPS.NAME, DEPTS.DEPTNO from EMPS\n"
+        + "join DEPTS on EMPS.DEPTNO = DEPTS.DEPTNO";
     final String[] lines = {
         "EMPNO=100; NAME=Fred; DEPTNO=10",
         "EMPNO=110; NAME=Eric; DEPTNO=20",
@@ -242,12 +242,12 @@ public class FileAdapterTest {
 
   /** The folder contains both JSON files and CSV files joins. */
   @Test void testJsonWithCsvJoin() {
-    final String sql = "select emps.empno,\n"
+    final String sql = "select EMPS.EMPNO,\n"
         + " NAME,\n"
         + " \"DATE\".JOINEDAT\n"
         + " from \"DATE\"\n"
-        + "join emps on emps.empno = \"DATE\".EMPNO\n"
-        + "order by empno, name, joinedat limit 3";
+        + "join EMPS on EMPS.EMPNO = \"DATE\".EMPNO\n"
+        + "order by EMPNO, NAME, JOINEDAT limit 3";
     final String[] lines = {
         "EMPNO=100; NAME=Fred; JOINEDAT=1996-08-03",
         "EMPNO=110; NAME=Eric; JOINEDAT=2001-01-01",
@@ -295,19 +295,19 @@ public class FileAdapterTest {
   }
 
   @Test void testSelectSingleProjectGz() {
-    sql("smart", "select name from EMPS").ok();
+    sql("smart", "select NAME from EMPS").ok();
   }
 
   @Test void testSelectSingleProject() {
-    sql("smart", "select name from DEPTS").ok();
+    sql("smart", "select NAME from DEPTS").ok();
   }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-898">[CALCITE-898]
    * Type inference multiplying Java long by SQL INTEGER</a>. */
   @Test void testSelectLongMultiplyInteger() {
-    final String sql = "select empno * 3 as e3\n"
-        + "from long_emps where empno = 100";
+    final String sql = "select EMPNO * 3 as e3\n"
+        + "from LONG_EMPS where EMPNO = 100";
 
     sql("bug", sql).checking(resultSet -> {
       try {
@@ -322,7 +322,7 @@ public class FileAdapterTest {
   }
 
   @Test void testCustomTable() {
-    sql("model-with-custom-table", "select * from CUSTOM_TABLE.EMPS").ok();
+    sql("model-with-custom-table", "select * from \"CUSTOM_TABLE\".EMPS").ok();
   }
 
   @Test void testPushDownProject() {
@@ -333,11 +333,11 @@ public class FileAdapterTest {
   }
 
   @Test void testPushDownProject2() {
-    sql("smart-csv", "explain plan for select name, empno from EMPS")
+    sql("smart-csv", "explain plan for select NAME, EMPNO from EMPS")
         .returns("PLAN=CsvTableScan(table=[[SALES, EMPS]], fields=[[1, 0]])\n")
         .ok();
     // make sure that it works...
-    sql("smart-csv", "select name, empno from EMPS")
+    sql("smart-csv", "select NAME, EMPNO from EMPS")
         .returns("NAME=Fred; EMPNO=100",
             "NAME=Eric; EMPNO=110",
             "NAME=John; EMPNO=110",
@@ -367,7 +367,7 @@ public class FileAdapterTest {
       break;
     }
     final String sql = "explain plan " + extra + " for\n"
-        + "select gender, count(*) from EMPS group by gender";
+        + "select GENDER, count(*) from EMPS group by GENDER";
     sql("smart-csv", sql).returns(expected).ok();
   }
 
@@ -398,7 +398,7 @@ public class FileAdapterTest {
       break;
     }
     final String sql = "explain plan " + extra + " for\n"
-        + "select max(empno) from EMPS where gender='F'";
+        + "select max(EMPNO) from EMPS where GENDER='F'";
     sql("smart-csv", sql).returns(expected).ok();
   }
 
@@ -426,17 +426,17 @@ public class FileAdapterTest {
       break;
     }
     final String sql = "explain plan " + extra + " for\n"
-        + "select gender, max(qty)\n"
+        + "select GENDER, max(qty)\n"
         + "from (\n"
-        + "  select name, gender, count(*) qty\n"
+        + "  select NAME, GENDER, count(*) qty\n"
         + "  from EMPS\n"
-        + "  group by name, gender) t\n"
-        + "group by gender";
+        + "  group by NAME, GENDER) t\n"
+        + "group by GENDER";
     sql("smart-csv", sql).returns(expected).ok();
   }
 
   @Test void testFilterableSelect() {
-    sql("filterable-model", "select name from EMPS").ok();
+    sql("filterable-model", "select NAME from EMPS").ok();
   }
 
   @Test void testFilterableSelectStar() {
@@ -446,23 +446,23 @@ public class FileAdapterTest {
   /** Filter that can be fully handled by CsvFilterableTable. */
   @Test void testFilterableWhere() {
     final String sql =
-        "select empno, gender, name from EMPS where name = 'John'";
+        "select EMPNO, GENDER, NAME from EMPS where NAME = 'John'";
     sql("filterable-model", sql)
         .returns("EMPNO=110; GENDER=M; NAME=John").ok();
   }
 
   /** Filter that can be partly handled by CsvFilterableTable. */
   @Test void testFilterableWhere2() {
-    final String sql = "select empno, gender, name from EMPS\n"
-        + " where gender = 'F' and empno > 125";
+    final String sql = "select EMPNO, GENDER, NAME from EMPS\n"
+        + " where GENDER = 'F' and EMPNO > 125";
     sql("filterable-model", sql)
         .returns("EMPNO=130; GENDER=F; NAME=Alice").ok();
   }
 
   /** Filter that can be slightly handled by CsvFilterableTable. */
   @Test void testFilterableWhere3() {
-    final String sql = "select empno, gender, name from EMPS\n"
-        + " where gender <> 'M' and empno > 125";
+    final String sql = "select EMPNO, GENDER, NAME from EMPS\n"
+        + " where GENDER <> 'M' and EMPNO > 125";
     sql("filterable-model", sql)
         .returns("EMPNO=130; GENDER=F; NAME=Alice")
         .ok();
@@ -474,8 +474,8 @@ public class FileAdapterTest {
    */
   @Test void testFilterableWhereWithNot1() {
     sql("filterable-model",
-        "select name, empno from EMPS "
-            + "where name like '%E%' and city not like '%W%' ")
+        "select NAME, EMPNO from EMPS "
+            + "where NAME like '%E%' and CITY not like '%W%' ")
         .returns("NAME=Eric; EMPNO=110")
         .ok();
   }
@@ -484,8 +484,8 @@ public class FileAdapterTest {
    * But use the same column. */
   @Test void testFilterableWhereWithNot2() {
     sql("filterable-model",
-        "select name, empno from EMPS "
-            + "where name like '%i%' and name not like '%W%' ")
+        "select NAME, EMPNO from EMPS "
+            + "where NAME like '%i%' and NAME not like '%W%' ")
         .returns("NAME=Eric; EMPNO=110",
             "NAME=Alice; EMPNO=130")
         .ok();
@@ -509,17 +509,17 @@ public class FileAdapterTest {
   }
 
   @Test void testJoinOnString() {
-    final String sql = "select * from emps\n"
-        + "join depts on emps.name = depts.name";
+    final String sql = "select * from EMPS\n"
+        + "join DEPTS on EMPS.NAME = DEPTS.NAME";
     sql("smart", sql).ok();
   }
 
   @Test void testWackyColumns() {
-    final String sql = "select * from wacky_column_names where false";
+    final String sql = "select * from WACKY_COLUMN_NAMES where false";
     sql("bug", sql).returns().ok();
 
     final String sql2 = "select \"joined at\", \"naME\"\n"
-        + "from wacky_column_names\n"
+        + "from WACKY_COLUMN_NAMES\n"
         + "where \"2gender\" = 'F'";
     sql("bug", sql2)
         .returns("joined at=2005-09-07; naME=Wilma",
@@ -527,35 +527,35 @@ public class FileAdapterTest {
         .ok();
   }
 
-  /** Test GROUP BY on time column */ 
+  /** Test GROUP BY on time column */
   @Test void testGroupByTime() throws SQLException {
     Properties info = new Properties();
     info.put("model", FileAdapterTests.jsonPath("bug-linq4j"));
-    
+
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
          Statement statement = connection.createStatement()) {
       // Properly handle potential null values
       final String sql = "select count(*) as c, JOINTIME as t\n"
           + "from \"DATE\" where JOINTIME is not null group by JOINTIME order by JOINTIME";
       ResultSet resultSet = statement.executeQuery(sql);
-      
+
       // Verify we get the expected distinct time values
       assertThat(resultSet.next(), is(true));
       assertThat(resultSet.getInt(1), is(4)); // Four rows with 00:00:00
-      assertThat(resultSet.getTime(2).toString(), is("00:00:00"));
-      
+      assertThat(resultSet.getTime(2), hasToString("00:00:00"));
+
       assertThat(resultSet.next(), is(true));
       assertThat(resultSet.getInt(1), is(1)); // One row with 00:01:02
-      assertThat(resultSet.getTime(2).toString(), is("00:01:02"));
-      
+      assertThat(resultSet.getTime(2), hasToString("00:01:02"));
+
       assertThat(resultSet.next(), is(true));
       assertThat(resultSet.getInt(1), is(1)); // One row with 07:15:56
-      assertThat(resultSet.getTime(2).toString(), is("07:15:56"));
-      
+      assertThat(resultSet.getTime(2), hasToString("07:15:56"));
+
       assertThat(resultSet.next(), is(true));
       assertThat(resultSet.getInt(1), is(1)); // One row with 13:31:21
-      assertThat(resultSet.getTime(2).toString(), is("13:31:21"));
-      
+      assertThat(resultSet.getTime(2), hasToString("13:31:21"));
+
       assertThat(resultSet.next(), is(false)); // No more rows
     }
   }
@@ -563,31 +563,31 @@ public class FileAdapterTest {
   @Test void testGroupByTimeParquet() throws SQLException {
     Properties info = new Properties();
     info.put("model", FileAdapterTests.jsonPath("bug-parquet"));
-    
+
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
          Statement statement = connection.createStatement()) {
       // Test GROUP BY with Parquet engine and null filtering
       final String sql = "select count(*) as c, JOINTIME as t\n"
           + "from \"DATE\" where JOINTIME is not null group by JOINTIME order by JOINTIME";
       ResultSet resultSet = statement.executeQuery(sql);
-      
+
       // Verify we get the expected distinct time values with Parquet engine
       assertThat(resultSet.next(), is(true));
       assertThat(resultSet.getInt(1), is(4)); // Four rows with 00:00:00
-      assertThat(resultSet.getTime(2).toString(), is("00:00:00"));
-      
+      assertThat(resultSet.getTime(2), hasToString("00:00:00"));
+
       assertThat(resultSet.next(), is(true));
       assertThat(resultSet.getInt(1), is(1)); // One row with 00:01:02
-      assertThat(resultSet.getTime(2).toString(), is("00:01:02"));
-      
+      assertThat(resultSet.getTime(2), hasToString("00:01:02"));
+
       assertThat(resultSet.next(), is(true));
       assertThat(resultSet.getInt(1), is(1)); // One row with 07:15:56
-      assertThat(resultSet.getTime(2).toString(), is("07:15:56"));
-      
+      assertThat(resultSet.getTime(2), hasToString("07:15:56"));
+
       assertThat(resultSet.next(), is(true));
       assertThat(resultSet.getInt(1), is(1)); // One row with 13:31:21
-      assertThat(resultSet.getTime(2).toString(), is("13:31:21"));
-      
+      assertThat(resultSet.getTime(2), hasToString("13:31:21"));
+
       assertThat(resultSet.next(), is(false)); // No more rows
     }
   }
@@ -600,15 +600,15 @@ public class FileAdapterTest {
   }
 
   @Test @Disabled("Known limitation: Boolean null handling in WHERE clauses") void testBoolean() {
-    sql("smart", "select empno, slacker from emps where slacker")
+    sql("smart", "select EMPNO, SLACKER from EMPS where SLACKER")
         .returns("EMPNO=100; SLACKER=true").ok();
   }
 
   @Test void testReadme() {
-    final String sql = "SELECT d.name, COUNT(*) cnt"
-        + " FROM emps AS e"
-        + " JOIN depts AS d ON e.deptno = d.deptno"
-        + " GROUP BY d.name";
+    final String sql = "SELECT d.NAME, COUNT(*) cnt"
+        + " FROM EMPS AS e"
+        + " JOIN DEPTS AS d ON e.DEPTNO = d.DEPTNO"
+        + " GROUP BY d.NAME";
     sql("smart", sql)
         .returns("NAME=Sales; CNT=1", "NAME=Marketing; CNT=2").ok();
   }
@@ -619,9 +619,9 @@ public class FileAdapterTest {
   @Test void testInToSemiJoinWithCast() {
     // Note that the IN list needs at least 20 values to trigger the rewrite
     // to a semijoin. Try it both ways.
-    final String sql = "SELECT e.name\n"
-        + "FROM emps AS e\n"
-        + "WHERE cast(e.empno as bigint) in ";
+    final String sql = "SELECT e.NAME\n"
+        + "FROM EMPS AS e\n"
+        + "WHERE cast(e.EMPNO as bigint) in ";
     final int threshold = SqlToRelConverter.DEFAULT_IN_SUB_QUERY_THRESHOLD;
     sql("smart", sql + range(130, threshold - 5))
         .returns("NAME=Alice").ok();
@@ -635,9 +635,9 @@ public class FileAdapterTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1051">[CALCITE-1051]
    * Underflow exception due to scaling IN clause literals</a>. */
   @Test void testInToSemiJoinWithoutCast() {
-    final String sql = "SELECT e.name\n"
-        + "FROM emps AS e\n"
-        + "WHERE e.empno in "
+    final String sql = "SELECT e.NAME\n"
+        + "FROM EMPS AS e\n"
+        + "WHERE e.EMPNO in "
         + range(130, SqlToRelConverter.DEFAULT_IN_SUB_QUERY_THRESHOLD);
     sql("smart", sql).returns("NAME=Alice").ok();
   }
@@ -948,15 +948,15 @@ public class FileAdapterTest {
       final ResultSet joinedAt = statement.executeQuery(sql1);
       assertThat(joinedAt.next(), is(true));
       assertThat(joinedAt.getDate(1).getClass(), equalTo(Date.class));
-      
+
       // Debug: Print actual date to understand what we're getting
       Date actualDate = joinedAt.getDate(1);
       long epochDays = actualDate.toLocalDate().toEpochDay();
-      System.out.println("DEBUG testNonNullFilterOnDateType: Date=" + actualDate + 
-                         ", epochDays=" + epochDays + 
-                         ", millis=" + actualDate.getTime() + 
+      System.out.println("DEBUG testNonNullFilterOnDateType: Date=" + actualDate +
+                         ", epochDays=" + epochDays +
+                         ", millis=" + actualDate.getTime() +
                          ", string=" + actualDate.toString());
-      
+
       // The CSV contains "1996-08-02" which is epoch day 9710
       assertThat(epochDays, is(9710L));
 
@@ -983,13 +983,13 @@ public class FileAdapterTest {
       // TIMESTAMP stored as milliseconds - account for timezone differences
       Timestamp ts = joinTimes.getTimestamp(1);
       long timestampMs = ts.getTime();
-      System.out.println("DEBUG TIMESTAMP: actual=" + timestampMs + 
+      System.out.println("DEBUG TIMESTAMP: actual=" + timestampMs +
                          ", timestamp=" + ts +
                          ", expected values: 838944062000L, 838958462000L, 838972862000L, 838915262000L");
       // The CSV contains "1996-08-02 00:01:02"
       // Actual value from test: 838987262000 (1996-08-02 08:01:02.0)
       // This appears to be parsed in a different timezone than expected
-      assertThat(timestampMs == 838987262000L || timestampMs == 838958462000L || 
+      assertThat(timestampMs == 838987262000L || timestampMs == 838958462000L ||
                  timestampMs == 838944062000L || timestampMs == 838972862000L, is(true));
     }
   }
@@ -1011,15 +1011,15 @@ public class FileAdapterTest {
       final ResultSet joinedAt = statement.executeQuery(sql1);
       assertThat(joinedAt.next(), is(true));
       assertThat(joinedAt.getDate(1).getClass(), equalTo(Date.class));
-      
+
       // Debug: Print actual date to understand what we're getting
       Date actualDate = joinedAt.getDate(1);
       long epochDays = actualDate.toLocalDate().toEpochDay();
-      System.out.println("DEBUG testGreaterThanFilterOnDateType: Date=" + actualDate + 
-                         ", epochDays=" + epochDays + 
-                         ", millis=" + actualDate.getTime() + 
+      System.out.println("DEBUG testGreaterThanFilterOnDateType: Date=" + actualDate +
+                         ", epochDays=" + epochDays +
+                         ", millis=" + actualDate.getTime() +
                          ", string=" + actualDate.toString());
-      
+
       // The CSV contains "1996-08-02" which is epoch day 9710
       // 1970-01-01 = epoch day 0
       // 1996-08-02 = epoch day 9710
@@ -1048,13 +1048,13 @@ public class FileAdapterTest {
       // TIMESTAMP stored as milliseconds - account for timezone differences
       Timestamp ts = joinTimes.getTimestamp(1);
       long timestampMs = ts.getTime();
-      System.out.println("DEBUG TIMESTAMP: actual=" + timestampMs + 
+      System.out.println("DEBUG TIMESTAMP: actual=" + timestampMs +
                          ", timestamp=" + ts +
                          ", expected values: 838944062000L, 838958462000L, 838972862000L, 838915262000L");
       // The CSV contains "1996-08-02 00:01:02"
       // Actual value from test: 838987262000 (1996-08-02 08:01:02.0)
       // This appears to be parsed in a different timezone than expected
-      assertThat(timestampMs == 838987262000L || timestampMs == 838958462000L || 
+      assertThat(timestampMs == 838987262000L || timestampMs == 838958462000L ||
                  timestampMs == 838944062000L || timestampMs == 838972862000L, is(true));
     }
   }

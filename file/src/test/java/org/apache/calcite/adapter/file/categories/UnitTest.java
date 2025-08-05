@@ -18,7 +18,7 @@ package org.apache.calcite.adapter.file.categories;
 
 /**
  * Marker interface for unit tests.
- * 
+ *
  * <p>Unit tests should:
  * <ul>
  *   <li>Run quickly (typically under 1 second)</li>
@@ -26,7 +26,7 @@ package org.apache.calcite.adapter.file.categories;
  *   <li>Test individual components in isolation</li>
  *   <li>Use mocks/stubs for external dependencies</li>
  * </ul>
- * 
+ *
  * <p>Usage:
  * <pre>{@code
  * @Category(UnitTest.class)

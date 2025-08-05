@@ -17,8 +17,9 @@
 package org.apache.calcite.test;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import org.junit.jupiter.api.condition.EnabledIf;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -33,7 +34,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Test dynamic discovery of Splunk datamodels.
  * Run with: -Dcalcite.test.splunk=true
  */
-@EnabledIfSystemProperty(named = "calcite.test.splunk", matches = "true")
+@Tag("integration")
+@EnabledIf("splunkTestEnabled")
 class SplunkDynamicDiscoveryTest {
 
   @BeforeAll
@@ -43,6 +45,11 @@ class SplunkDynamicDiscoveryTest {
     } catch (ClassNotFoundException e) {
       throw new RuntimeException("Splunk driver not found", e);
     }
+  }
+
+  private static boolean splunkTestEnabled() {
+    return System.getProperty("CALCITE_TEST_SPLUNK", "false").equals("true") ||
+           System.getenv("CALCITE_TEST_SPLUNK") != null;
   }
 
   @Test void testDynamicDiscovery() throws Exception {

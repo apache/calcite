@@ -22,13 +22,13 @@ import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.schema.FilterableTable;
-import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.schema.FilterableTable;
+import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.impl.AbstractTable;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Pair;
 
@@ -155,20 +155,20 @@ public class ParquetScannableTable extends AbstractTable implements ScannableTab
 
   @Override public Enumerable<Object[]> scan(DataContext root, List<RexNode> filters) {
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
-    
+
     // Extract filter conditions
     final boolean[] nullFilters = new boolean[getRowType(root.getTypeFactory()).getFieldCount()];
-    
+
     // Process filters and identify which columns have IS NOT NULL conditions
     filters.removeIf(filter -> processFilter(filter, nullFilters));
-    
+
     return new AbstractEnumerable<Object[]>() {
       @Override public Enumerator<Object[]> enumerator() {
         return new FilteredParquetReaderEnumerator(cancelFlag, nullFilters);
       }
     };
   }
-  
+
   /**
    * Process a filter condition and extract IS NOT NULL predicates.
    * @param filter The filter condition to process
@@ -348,7 +348,7 @@ public class ParquetScannableTable extends AbstractTable implements ScannableTab
           if (!shouldSkip) {
             return true; // Found a valid row
           }
-          
+
           // Continue to next row if this one should be skipped
         }
       } catch (IOException e) {
