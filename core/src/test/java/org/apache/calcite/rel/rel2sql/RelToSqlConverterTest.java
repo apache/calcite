@@ -3577,9 +3577,13 @@ class RelToSqlConverterTest {
     final String expectedMysql2 = "SELECT CAST(`product_id` AS UNSIGNED)\n"
         + "FROM `foodmart`.`product`";
     sql(query1)
-        .withMysql().ok(expectedMysql1);
+        .withMysql().ok(expectedMysql1)
+        .withStarRocks().ok(expectedMysql1)
+        .withDoris().throws_("Doris doesn't support UNSIGNED INTEGER/BIGINT!");
     sql(query2)
-        .withMysql().ok(expectedMysql2);
+        .withMysql().ok(expectedMysql2)
+        .withStarRocks().ok(expectedMysql1)
+        .withDoris().throws_("Doris doesn't support UNSIGNED INTEGER/BIGINT!");
   }
 
   /** Test case for
@@ -4154,7 +4158,7 @@ class RelToSqlConverterTest {
    * Maximum precision of unsigned bigint type in MysqlSqlDialect should be 20</a>. */
   @Test void testCastToUBigInt() {
     String query = "select cast(18446744073709551615 as bigint unsigned) from \"product\"";
-    final String expectedMysql = "SELECT CAST(18446744073709551615 AS BIGINT UNSIGNED)\n"
+    final String expectedMysql = "SELECT CAST(18446744073709551615 AS UNSIGNED)\n"
         + "FROM `foodmart`.`product`";
     final String errMsg = "org.apache.calcite.runtime.CalciteContextException: "
         + "From line 1, column 13 to line 1, column 32: "
