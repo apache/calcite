@@ -100,7 +100,7 @@ public class FileAdapterTest {
   /** Reads from a URL and checks the result. */
   @Disabled("[CALCITE-1789] Wikipedia format change breaks file adapter test")
   @Test @RequiresNetwork void testUrlSelect() {
-    final String sql = "select \"State\", \"Statehood\" from \"States_as_of\"\n"
+    final String sql = "select \"State\", \"Statehood\" from \"WIKI\".\"States_as_of\"\n"
         + "where \"State\" = 'California'";
     sql("wiki", sql).returns("State=California; Statehood=1850-09-09").ok();
   }
@@ -242,11 +242,11 @@ public class FileAdapterTest {
 
   /** The folder contains both JSON files and CSV files joins. */
   @Test void testJsonWithCsvJoin() {
-    final String sql = "select \"EMPS\".\"EMPNO\",\n"
-        + " \"NAME\",\n"
-        + " \"DATE\".\"JOINEDAT\"\n"
-        + " from \"DATE\"\n"
-        + "join \"SALES\".\"EMPS\" on \"EMPS\".\"EMPNO\" = \"DATE\".\"EMPNO\"\n"
+    final String sql = "select \"SALES\".\"EMPS\".\"EMPNO\",\n"
+        + " \"SALES\".\"EMPS\".\"NAME\",\n"
+        + " \"SALES\".\"DATE\".\"JOINEDAT\"\n"
+        + " from \"SALES\".\"DATE\"\n"
+        + "join \"SALES\".\"EMPS\" on \"SALES\".\"EMPS\".\"EMPNO\" = \"SALES\".\"DATE\".\"EMPNO\"\n"
         + "order by \"EMPNO\", \"NAME\", \"JOINEDAT\" limit 3";
     final String[] lines = {
         "EMPNO=100; NAME=Fred; JOINEDAT=1996-08-03",
@@ -307,7 +307,7 @@ public class FileAdapterTest {
    * Type inference multiplying Java long by SQL INTEGER</a>. */
   @Test void testSelectLongMultiplyInteger() {
     final String sql = "select \"EMPNO\" * 3 as \"E3\"\n"
-        + "from \"SALES\".\"LONG_EMPS\" where \"EMPNO\" = 100";
+        + "from \"BUG\".\"LONG_EMPS\" where \"EMPNO\" = 100";
 
     sql("bug", sql).checking(resultSet -> {
       try {
@@ -322,7 +322,7 @@ public class FileAdapterTest {
   }
 
   @Test void testCustomTable() {
-    sql("model-with-custom-table", "select * from \"CUSTOM_TABLE\".EMPS").ok();
+    sql("model-with-custom-table", "select * from \"CUSTOM_TABLE\".\"EMPS\"").ok();
   }
 
   @Test void testPushDownProject() {
@@ -492,7 +492,7 @@ public class FileAdapterTest {
   }
 
   @Test void testJson() {
-    final String sql = "select * from \"SALES\".\"ARCHERS\"\n";
+    final String sql = "select * from \"BUG\".\"ARCHERS\"\n";
     final String[] lines = {
         "id=19990101; dow=Friday; longDate=New Years Day; title=Tractor trouble.; "
             + "characters=[Alice, Bob, Xavier]; script=Julian Hyde; summary=; "
@@ -515,11 +515,11 @@ public class FileAdapterTest {
   }
 
   @Test void testWackyColumns() {
-    final String sql = "select * from \"SALES\".\"WACKY_COLUMN_NAMES\" where false";
+    final String sql = "select * from \"BUG\".\"WACKY_COLUMN_NAMES\" where false";
     sql("bug", sql).returns().ok();
 
     final String sql2 = "select \"joined at\", \"naME\"\n"
-        + "from \"SALES\".\"WACKY_COLUMN_NAMES\"\n"
+        + "from \"BUG\".\"WACKY_COLUMN_NAMES\"\n"
         + "where \"2gender\" = 'F'";
     sql("bug", sql2)
         .returns("joined at=2005-09-07; naME=Wilma",
