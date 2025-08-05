@@ -19,7 +19,13 @@ import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.jdbc.CalciteConnection;
-import org.apache.calcite.plan.*;
+import org.apache.calcite.plan.CTEDefinationTrait;
+import org.apache.calcite.plan.Contexts;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelTrait;
+import org.apache.calcite.plan.RelTraitDef;
+import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelNode;
@@ -2996,8 +3002,7 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
-  @Test
-  void testAggregateOnCteColumn() {
+  @Test void testAggregateOnCteColumn() {
     final RelBuilder builder = RelBuilder.create(config().build());
     RelNode root =
         builder.scan("EMP")
@@ -3007,9 +3012,10 @@ public class RelBuilderTest {
                 builder.alias(builder.literal(30), "thirty"),
                 builder.alias(builder.literal(40), "fourty")).build();
     RelTrait traitSet = new CTEDefinationTrait(true, "CTE1");
-    RelTraitSet set = root.getTraitSet().plus(traitSet);
-    builder.push(root.copy(set, root.getInputs()));
-    RelNode rel = builder.aggregate(builder.groupKey(),
+    RelTraitSet relTraitSet = root.getTraitSet().plus(traitSet);
+    builder.push(root.copy(relTraitSet, root.getInputs()));
+    RelNode rel =
+        builder.aggregate(builder.groupKey(),
             builder.sum(builder.field(0)))
         .project(builder.alias(builder.field(0), "sum"), builder.field(0))
         .build();
