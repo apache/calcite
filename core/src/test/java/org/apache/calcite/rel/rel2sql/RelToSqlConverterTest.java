@@ -17,6 +17,7 @@
 package org.apache.calcite.rel.rel2sql;
 
 import org.apache.calcite.config.NullCollation;
+import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelTraitDef;
@@ -551,6 +552,85 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "WHERE \"net_weight\" <> CAST(10 AS DOUBLE) OR \"net_weight\" IS NULL";
     sql(query).ok(expected);
+  }
+
+  /**
+   * Tests that an identity project is pruned over scan during SQL conversion,
+   * and that the correct table alias is propagated to the final projection.
+   */
+  @Test void testPruneIdentityProjectOverScan() {
+    final RelBuilder relBuilder =
+        RelBuilder.create(
+        // Disable merge-project optimization by RelBuilder to generate a plan
+        // containing multiple LogicalProject nodes like:
+        // LogicalProject(product_id=[$0])
+        //  LogicalProject(product_id=[$0], product_name=[$2])
+        RelBuilderTest.config().context(
+            Contexts.of(RelBuilder.Config.DEFAULT.withBloat(-1)))
+        .build());
+    final RelNode root = relBuilder
+        .scan("EMP")
+        // This identity project (which would be aliased 't') should not be used in SQL
+        .project(relBuilder.fields(),
+            ImmutableList.of(), true)
+        // This identity project (which would be aliased 't0') should not be used in SQL
+        .project(relBuilder.fields(),
+            ImmutableList.of(), true)
+        // this project should use `EMP` as table alias for fields instead of `t` or `t0`
+        .project(ImmutableList.of(relBuilder.field("EMPNO")),
+            ImmutableList.of(), true)
+        .build();
+    final String expected = "SELECT \"EMP\".\"EMPNO\"\n"
+        + "FROM \"scott\".\"EMP\" AS \"EMP\"";
+    final SqlDialect sqlDialect = new CalciteSqlDialect(CalciteSqlDialect.DEFAULT_CONTEXT) {
+      // Force use of explicit table aliases everywhere
+      @Override public boolean hasImplicitTableAlias() {
+        return false;
+      }
+    };
+    relFn(b -> root).dialect(sqlDialect).ok(expected);
+  }
+
+  /**
+   * Tests that an identity projection over a join is pruned during SQL conversion,
+   * and that the correct table alias is propagated to the final projection.
+   */
+  @Test void testPruneIdentityProjectOverJoin() {
+    final RelBuilder relBuilder =
+        RelBuilder.create(
+        // Disable merge-project optimization by RelBuilder to generate a plan
+        // containing multiple LogicalProject nodes like:
+        // LogicalProject(product_id=[$0])
+        //  LogicalProject(product_id=[$0], product_name=[$2])
+        RelBuilderTest.config().context(
+            Contexts.of(RelBuilder.Config.DEFAULT.withBloat(-1)))
+        .build());
+    final RelNode root = relBuilder
+        .scan("EMP")
+        .project(relBuilder.field("EMPNO"), relBuilder.field("DEPTNO"))
+        .scan("DEPT")
+        .project(relBuilder.field("DEPTNO"))
+        // join alias is `t`
+        .join(JoinRelType.INNER, relBuilder.literal(false))
+        // This identity project (which would be aliased 't1') should not be used in SQL
+        .project(relBuilder.fields(), ImmutableList.of(), true)
+        // The final SQL must use the join's alias ('t') because the
+        // project above is not used in SQL.
+        .project(ImmutableList.of(relBuilder.field("EMPNO")),
+            ImmutableList.of(), true)
+        .build();
+    final String expected = "SELECT \"t\".\"EMPNO\"\n"
+        + "FROM (SELECT \"EMP\".\"EMPNO\", \"EMP\".\"DEPTNO\"\n"
+        + "FROM \"scott\".\"EMP\" AS \"EMP\") AS \"t\"\n"
+        + "INNER JOIN (SELECT \"DEPT\".\"DEPTNO\"\n"
+        + "FROM \"scott\".\"DEPT\" AS \"DEPT\") AS \"t0\" ON FALSE";
+    final SqlDialect sqlDialect = new CalciteSqlDialect(CalciteSqlDialect.DEFAULT_CONTEXT) {
+      // Force use of explicit table aliases everywhere
+      @Override public boolean hasImplicitTableAlias() {
+        return false;
+      }
+    };
+    relFn(b -> root).dialect(sqlDialect).ok(expected);
   }
 
   /** Test case for
@@ -10380,6 +10460,30 @@ class RelToSqlConverterTest {
             + "SELECT *\nFROM \"foodmart\".\"product\"\n"
             + "WHERE \"product_id\" = \"t\".\"product_id\" AND \"product_id\" > 10"
             + ")";
+    sql(sql).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7127">[CALCITE-7127]
+   * RelToSqlConverter corrupts condition inside an anti-join with WHERE NOT EXISTS.</a>. */
+  @Test void testAntiJoinWithComplexInput3() {
+    final String sql = "select e3.\"product_id\", e3.\"product_name\" "
+        + "from ("
+        + "select 1 AS \"additional_column\", e1.\"product_id\", e1.\"product_name\" from \"foodmart\".\"product\" e1 "
+        + "left join \"foodmart\".\"product\" e2 on e1.\"product_id\" = e2.\"product_id\""
+        + ") as e3 "
+        + "where e3.\"product_name\" IS NOT NULL AND NOT EXISTS("
+        + "select 1 from \"foodmart\".\"employee\" e4 "
+        + "where e4.\"employee_id\" = e3.\"additional_column\""
+        + ")";
+    final String expected =
+        "SELECT \"product_id\", \"product_name\"\n"
+            + "FROM (SELECT 1 AS \"additional_column\", \"product\".\"product_id\", \"product\".\"product_name\"\n"
+            + "FROM \"foodmart\".\"product\"\n"
+            + "LEFT JOIN \"foodmart\".\"product\" AS \"product0\" ON \"product\".\"product_id\" = \"product0\".\"product_id\") AS \"t\"\n"
+            + "WHERE \"product_name\" IS NOT NULL AND NOT EXISTS (SELECT *\n"
+            + "FROM \"foodmart\".\"employee\"\n"
+            + "WHERE \"employee_id\" = \"t\".\"additional_column\")";
     sql(sql).ok(expected);
   }
 
