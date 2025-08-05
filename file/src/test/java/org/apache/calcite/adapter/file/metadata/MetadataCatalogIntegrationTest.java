@@ -120,7 +120,7 @@ public class MetadataCatalogIntegrationTest {
 
         // Now query with correct column names
         rs =
-            stmt.executeQuery("SELECT * FROM \"metadata\".COLUMNS WHERE \"TABLE_NAME\" = 'SALES' AND \"TABLE_SCHEM\" = 'FILES'");
+            stmt.executeQuery("SELECT * FROM \"metadata\".COLUMNS WHERE \"TABLE_NAME\" = 'SALES' AND \"TABLE_SCHEMA\" = 'FILES'");
 
         List<String> columns = new ArrayList<>();
         while (rs.next()) {
@@ -249,11 +249,11 @@ public class MetadataCatalogIntegrationTest {
       // Test 1: Schema discovery query
       try (Statement stmt = conn.createStatement()) {
         ResultSet rs =
-            stmt.executeQuery("SELECT DISTINCT TABLE_SCHEM FROM \"metadata\".TABLES ORDER BY TABLE_SCHEM");
+            stmt.executeQuery("SELECT DISTINCT TABLE_SCHEMA FROM \"metadata\".TABLES ORDER BY TABLE_SCHEMA");
 
         List<String> schemas = new ArrayList<>();
         while (rs.next()) {
-          schemas.add(rs.getString("TABLE_SCHEM"));
+          schemas.add(rs.getString("TABLE_SCHEMA"));
         }
         assertTrue(schemas.contains("FILES"), "Should list FILES schema");
       }
