@@ -45,7 +45,7 @@ public class SftpStorageProviderTest {
    * Test using test.rebex.net public SFTP server.
    * This server allows anonymous access for testing.
    */
-  @Test @Disabled("External service - unreliable for CI")
+  @Test
   void testRebexPublicSftpServer() throws IOException {
     // test.rebex.net provides a public SFTP test server
     // Username: demo
@@ -96,12 +96,14 @@ public class SftpStorageProviderTest {
 
   /**
    * Test using demo.wftpserver.com (another public test server).
+   * Note: This server appears to be offline or changed credentials.
+   * Keeping test disabled until a replacement is found.
    */
-  @Test @Disabled("External service - unreliable for CI")
+  @Test @Disabled("Server no longer available with these credentials")
   void testWftpPublicServer() throws IOException {
-    // demo.wftpserver.com
-    // Username: demo-user
-    // Password: demo-user
+    // demo.wftpserver.com - appears to be offline
+    // Previous credentials no longer work
+    // Keeping for reference in case server comes back online
     String sftpUrl = "sftp://demo-user:demo-user@demo.wftpserver.com/";
 
     StorageProvider provider = StorageProviderFactory.createFromUrl(sftpUrl);
@@ -154,7 +156,7 @@ public class SftpStorageProviderTest {
    * Test with local SFTP server (if available).
    * Uncomment and modify to test with your own SFTP server.
    */
-  @Test @Disabled("Requires local SFTP server")
+  @Test @Disabled("Requires local SFTP server - enable if you have one running")
   void testLocalSftpServer() throws IOException {
     // Example configuration for local testing
     String sftpUrl = "sftp://localhost/home/testuser/";
