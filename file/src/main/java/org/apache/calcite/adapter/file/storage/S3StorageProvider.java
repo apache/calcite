@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.file.storage;
 
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
+import com.amazonaws.regions.DefaultAwsRegionProviderChain;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.GetObjectRequest;
@@ -44,7 +45,7 @@ public class S3StorageProvider implements StorageProvider {
   public S3StorageProvider() {
     this.s3Client = AmazonS3ClientBuilder.standard()
         .withCredentials(new DefaultAWSCredentialsProviderChain())
-        .withRegion("us-east-2")
+        .withRegion(new DefaultAwsRegionProviderChain().getRegion())
         .build();
   }
 
