@@ -149,7 +149,8 @@ public class FileSchemaFactory implements SchemaFactory {
     // It should already exist at the root level from CalciteConnectionImpl
     if (rootSchema.subSchemas().get("metadata") != null && parentSchema.subSchemas().get("metadata") == null) {
       // The metadata schema exists at root but not at current level, so reference it
-      parentSchema.add("metadata", rootSchema.subSchemas().get("metadata").getWrappedSchema());
+      SchemaPlus metadataSchema = rootSchema.subSchemas().get("metadata");
+      parentSchema.add("metadata", metadataSchema.unwrap(Schema.class));
     }
 
     return fileSchema;
