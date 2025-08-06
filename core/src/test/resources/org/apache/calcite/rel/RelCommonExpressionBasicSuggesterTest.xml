@@ -17,13 +17,6 @@
   -->
 <Root>
   <TestCase name="testSingleFilterScanSuggestion">
-    <Resource name="sql">
-      <![CDATA[
-SELECT '2025' FROM emp WHERE empno = 1
-UNION
-SELECT '2024' FROM emp WHERE empno = 1
-]]>
-    </Resource>
     <Resource name="plan">
       <![CDATA[LogicalUnion(all=[false])
   LogicalProject(EXPR$0=['2025'])
@@ -41,17 +34,6 @@ SELECT '2024' FROM emp WHERE empno = 1
     </Resource>
   </TestCase>
   <TestCase name="testTwoFilterScanSuggestions">
-    <Resource name="sql">
-      <![CDATA[
-SELECT '2025' FROM emp WHERE empno = 1
-UNION
-SELECT '2024' FROM emp WHERE empno = 1
-UNION
-SELECT '2023' FROM emp WHERE empno = 2
-UNION
-SELECT '2022' FROM emp WHERE empno = 2
-]]>
-    </Resource>
     <Resource name="plan">
       <![CDATA[LogicalUnion(all=[false])
   LogicalUnion(all=[false])
@@ -80,13 +62,6 @@ LogicalFilter(condition=[=($0, 2)])
     </Resource>
   </TestCase>
   <TestCase name="testSingleProjectFilterScanSuggestion">
-    <Resource name="sql">
-      <![CDATA[
-SELECT ename FROM emp WHERE empno = 1
-UNION
-SELECT ename FROM emp WHERE empno = 1
-]]>
-    </Resource>
     <Resource name="plan">
       <![CDATA[LogicalUnion(all=[false])
   LogicalProject(ENAME=[$1])
@@ -105,13 +80,6 @@ SELECT ename FROM emp WHERE empno = 1
     </Resource>
   </TestCase>
   <TestCase name="testSingleAggregateProjectScanSuggestion">
-    <Resource name="sql">
-      <![CDATA[
-SELECT COUNT(*), 'A' FROM emp GROUP BY ename
-UNION
-SELECT COUNT(*), 'B' FROM emp GROUP BY ename
-]]>
-    </Resource>
     <Resource name="plan">
       <![CDATA[LogicalUnion(all=[false])
   LogicalProject(EXPR$0=[$1], EXPR$1=['A'])
@@ -132,13 +100,6 @@ SELECT COUNT(*), 'B' FROM emp GROUP BY ename
     </Resource>
   </TestCase>
   <TestCase name="testSingleAggregateProjectFilterScanSuggestion">
-    <Resource name="sql">
-      <![CDATA[
-SELECT COUNT(*), 'A' FROM emp WHERE empno > 50 GROUP BY ename
-UNION
-SELECT COUNT(*), 'B' FROM emp WHERE empno > 50 GROUP BY ename
-]]>
-    </Resource>
     <Resource name="plan">
       <![CDATA[LogicalUnion(all=[false])
   LogicalProject(EXPR$0=[$1], EXPR$1=['A'])
@@ -162,13 +123,6 @@ SELECT COUNT(*), 'B' FROM emp WHERE empno > 50 GROUP BY ename
     </Resource>
   </TestCase>
   <TestCase name="testSingleProjectJoinScanSuggestion">
-    <Resource name="sql">
-      <![CDATA[WITH cx AS (SELECT e.empno, d.dname FROM emp e INNER JOIN dept d ON e.deptno = d.deptno)
-SELECT * FROM cx WHERE cx.empno > 50
-INTERSECT
-SELECT * FROM cx WHERE cx.empno < 100
-]]>
-    </Resource>
     <Resource name="plan">
       <![CDATA[LogicalIntersect(all=[false])
   LogicalProject(EMPNO=[$0], DNAME=[$1])
@@ -194,13 +148,6 @@ SELECT * FROM cx WHERE cx.empno < 100
     </Resource>
   </TestCase>
   <TestCase name="testSingleProjectFilterJoinScanSuggestion">
-    <Resource name="sql">
-      <![CDATA[WITH cx AS (SELECT e.empno, d.dname FROM emp e INNER JOIN dept d ON e.deptno = d.deptno WHERE d.dname = 'Sales')
-SELECT * FROM cx WHERE cx.empno > 50
-INTERSECT
-SELECT * FROM cx WHERE cx.empno < 100
-]]>
-    </Resource>
     <Resource name="plan">
       <![CDATA[LogicalIntersect(all=[false])
   LogicalProject(EMPNO=[$0], DNAME=[$1])
@@ -229,13 +176,6 @@ SELECT * FROM cx WHERE cx.empno < 100
     </Resource>
   </TestCase>
   <TestCase name="testSingleAggregateProjectFilterJoinScanSuggestion">
-    <Resource name="sql">
-      <![CDATA[WITH cx AS (SELECT ename, COUNT(*) as cnt FROM emp e INNER JOIN dept d ON e.deptno = d.deptno WHERE d.dname = 'Sales' GROUP BY ename)
-SELECT * FROM cx WHERE cnt > 50
-INTERSECT
-SELECT * FROM cx WHERE cnt < 100
-]]>
-    </Resource>
     <Resource name="plan">
       <![CDATA[LogicalIntersect(all=[false])
   LogicalProject(ENAME=[$0], CNT=[$1])

@@ -44,40 +44,79 @@ import static java.util.stream.Collectors.joining;
 public class RelCommonExpressionBasicSuggesterTest {
 
   @Test void testSingleFilterScanSuggestion() {
-    checkSuggestions();
+    String sql = "SELECT '2025' FROM emp WHERE empno = 1\n"
+        + "UNION\n"
+        + "SELECT '2024' FROM emp WHERE empno = 1";
+    checkSuggestions(sql);
   }
 
   @Test void testTwoFilterScanSuggestions() {
-    checkSuggestions();
+    String sql = "SELECT '2025' FROM emp WHERE empno = 1\n"
+        + "UNION\n"
+        + "SELECT '2024' FROM emp WHERE empno = 1\n"
+        + "UNION\n"
+        + "SELECT '2023' FROM emp WHERE empno = 2\n"
+        + "UNION\n"
+        + "SELECT '2022' FROM emp WHERE empno = 2";
+    checkSuggestions(sql);
   }
 
   @Test void testSingleProjectFilterScanSuggestion() {
-    checkSuggestions();
+    String sql = "SELECT ename FROM emp WHERE empno = 1\n"
+        + "UNION\n"
+        + "SELECT ename FROM emp WHERE empno = 1";
+    checkSuggestions(sql);
   }
 
   @Test void testSingleAggregateProjectScanSuggestion() {
-    checkSuggestions();
+    String sql = "SELECT COUNT(*), 'A' FROM emp GROUP BY ename\n"
+        + "UNION\n"
+        + "SELECT COUNT(*), 'B' FROM emp GROUP BY ename";
+    checkSuggestions(sql);
   }
 
   @Test void testSingleAggregateProjectFilterScanSuggestion() {
-    checkSuggestions();
+    String sql = "SELECT COUNT(*), 'A' FROM emp WHERE empno > 50 GROUP BY ename\n"
+        + "UNION\n"
+        + "SELECT COUNT(*), 'B' FROM emp WHERE empno > 50 GROUP BY ename";
+    checkSuggestions(sql);
   }
 
   @Test void testSingleProjectJoinScanSuggestion() {
-    checkSuggestions();
+    String sql = "WITH cx AS (\n"
+        + "SELECT e.empno, d.dname FROM emp e\n"
+        + "INNER JOIN dept d ON e.deptno = d.deptno)\n"
+        + "SELECT * FROM cx WHERE cx.empno > 50\n"
+        + "INTERSECT\n"
+        + "SELECT * FROM cx WHERE cx.empno < 100";
+    checkSuggestions(sql);
   }
 
   @Test void testSingleProjectFilterJoinScanSuggestion() {
-    checkSuggestions();
+    String sql = "WITH cx AS (\n"
+        + "SELECT e.empno, d.dname FROM emp e\n"
+        + "INNER JOIN dept d ON e.deptno = d.deptno\n"
+        + "WHERE d.dname = 'Sales')\n"
+        + "SELECT * FROM cx WHERE cx.empno > 50\n"
+        + "INTERSECT\n"
+        + "SELECT * FROM cx WHERE cx.empno < 100";
+    checkSuggestions(sql);
   }
 
   @Test void testSingleAggregateProjectFilterJoinScanSuggestion() {
-    checkSuggestions();
+    String sql = "WITH cx AS (\n"
+        + "SELECT ename, COUNT(*) as cnt FROM emp e\n"
+        + "INNER JOIN dept d ON e.deptno = d.deptno\n"
+        + "WHERE d.dname = 'Sales' GROUP BY ename)\n"
+        + "SELECT * FROM cx WHERE cnt > 50\n"
+        + "INTERSECT\n"
+        + "SELECT * FROM cx WHERE cnt < 100";
+    checkSuggestions(sql);
   }
 
-  private void checkSuggestions() {
+  private void checkSuggestions(String sql) {
     DiffRepository diffRepo = DiffRepository.lookup(RelCommonExpressionBasicSuggesterTest.class);
-    RelNode rel = toRel(diffRepo.expand("sql", "${sql}"));
+    RelNode rel = toRel(sql);
     diffRepo.assertEquals("plan", "${plan}", RelOptUtil.toString(rel));
     RelCommonExpressionSuggester suggester = new RelCommonExpressionBasicSuggester();
     Collection<RelNode> output = suggester.suggest(rel, null);
