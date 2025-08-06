@@ -133,6 +133,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.Predicate;
@@ -1555,6 +1556,8 @@ public abstract class SqlImplementor {
       return SqlLiteral.createTimestamp(typeName,
           castNonNull(literal.getValueAs(TimestampString.class)),
           literal.getType().getPrecision(), POS);
+    case UUID:
+      return SqlLiteral.createUuid(castNonNull(literal.getValueAs(UUID.class)), POS);
     case BINARY:
       return SqlLiteral.createBinaryString(castNonNull(literal.getValueAs(byte[].class)), POS);
     case ANY:
