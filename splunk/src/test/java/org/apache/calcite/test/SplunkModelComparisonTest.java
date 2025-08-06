@@ -21,7 +21,6 @@ import org.apache.calcite.util.Sources;
 
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIf;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -38,13 +37,8 @@ import java.util.TreeSet;
  * Run with: -Dcalcite.test.splunk=true
  */
 @Tag("integration")
-@EnabledIf("splunkTestEnabled")
 class SplunkModelComparisonTest {
 
-  private static boolean splunkTestEnabled() {
-    return System.getProperty("CALCITE_TEST_SPLUNK", "false").equals("true") ||
-           System.getenv("CALCITE_TEST_SPLUNK") != null;
-  }
 
   @Test void compareModels() throws Exception {
     System.out.println("\n=== Comparing Dynamic Discovery with Hardcoded CIM Models ===");

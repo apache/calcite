@@ -395,7 +395,12 @@ public class ParquetConversionUtil {
                   }
                   break;
                 case Types.BOOLEAN:
-                  record.put(avroFieldName, rs.getBoolean(i));
+                  boolean boolVal = rs.getBoolean(i);
+                  if (rs.wasNull()) {
+                    record.put(avroFieldName, null);
+                  } else {
+                    record.put(avroFieldName, boolVal);
+                  }
                   break;
                 case Types.DATE:
                   // Convert Date to days since epoch (int)

@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.file.temporal;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -33,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Focused test to verify timestamp comparisons work correctly
  */
+@Tag("unit")
 public class TimestampComparisonFocusedTest {
 
   private File testDir;

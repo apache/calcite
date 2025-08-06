@@ -92,8 +92,18 @@ public class HtmlToJsonConverter {
       File jsonFile = new File(outputDir, baseFileName + "_" + tableName + ".json");
 
       try {
-        // Get the actual table element using the selector
-        Element table = doc.selectFirst(tableInfo.selector);
+        // Get the actual table element using the selector or index
+        Element table = null;
+        if (tableInfo.selector.startsWith("table[index=")) {
+          // Handle index-based selection directly
+          if (tableInfo.index < tables.size()) {
+            table = tables.get(tableInfo.index);
+          }
+        } else {
+          // Use regular CSS selector
+          table = doc.selectFirst(tableInfo.selector);
+        }
+        
         if (table != null) {
           writeTableAsJson(table, jsonFile);
           jsonFiles.add(jsonFile);

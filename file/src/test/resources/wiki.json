@@ -20,7 +20,7 @@
  * cities.
  */
   "version": "1.0",
-  "defaultSchema": "WIKI",
+  "defaultSchema": "wiki",
   /*
    * Schema Definition
    *
@@ -52,19 +52,19 @@
    *
    */
   "schemas": [ {
-    "name": "WIKI",
+    "name": "wiki",
     "type": "custom",
     "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
     "operand": {
       "tables": [ {
         "name": "RawCities",
         "url": "http://en.wikipedia.org/wiki/List_of_United_States_cities_by_population",
-        "selector": "#mw-content-text > table.wikitable.sortable",
+        "selector": "#mw-content-text table.wikitable.sortable",
         "index": 0
       }, {
         "name": "Cities",
         "url": "http://en.wikipedia.org/wiki/List_of_United_States_cities_by_population",
-        "selector": "#mw-content-text > table.wikitable.sortable",
+        "selector": "#mw-content-text table.wikitable.sortable",
         "index": 0,
         "fields": [
           // note the use of a pattern match in the following
@@ -91,7 +91,7 @@
       }, {
         "name": "States",
         "url": "http://en.wikipedia.org/wiki/List_of_states_and_territories_of_the_United_States",
-        "selector": "#mw-content-text > table.wikitable.sortable",
+        "selector": "#mw-content-text table.wikitable.sortable",
         "index": 0,
         "fields": [
           {"th": "State & abbreviation", "name": "State", "selector": "a", "selectedElement": 0},
@@ -107,7 +107,7 @@
         // Historic snapshot of "states" page, to ensure test stability.
         "name": "States_as_of",
         "url": "https://en.wikipedia.org/w/index.php?title=List_of_states_and_territories_of_the_United_States&oldid=713721917",
-        "selector": "#mw-content-text > table.wikitable.sortable",
+        "selector": "#mw-content-text table.wikitable.sortable",
         "index": 0,
         "fields": [
           {"th": "State", "selector": "a", "selectedElement": 0},

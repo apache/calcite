@@ -20,6 +20,7 @@ import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -41,6 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Test auto-conversion of files to Parquet when using Parquet execution engine.
  */
+@Tag("unit")
 public class ParquetAutoConversionTest {
   @TempDir
   java.nio.file.Path tempDir;

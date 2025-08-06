@@ -23,6 +23,7 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -38,6 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Test for Excel file processing in FileSchema.
  */
+@Tag("unit")
 public class ExcelFileTest {
 
   @Test public void testExcelFileConversion(@TempDir Path tempDir) throws IOException {

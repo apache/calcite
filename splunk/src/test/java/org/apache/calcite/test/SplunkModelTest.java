@@ -21,7 +21,6 @@ import org.apache.calcite.util.Sources;
 
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIf;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -36,13 +35,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Run with: -Dcalcite.test.splunk=true
  */
 @Tag("integration")
-@EnabledIf("splunkTestEnabled")
 class SplunkModelTest {
 
-  private static boolean splunkTestEnabled() {
-    return System.getProperty("CALCITE_TEST_SPLUNK", "false").equals("true") ||
-           System.getenv("CALCITE_TEST_SPLUNK") != null;
-  }
 
   @Test void testWithModelFile() throws Exception {
     System.out.println("\n=== Testing with Model File ===");

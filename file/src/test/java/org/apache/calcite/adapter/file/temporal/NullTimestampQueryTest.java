@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.file.temporal;
 
 import org.apache.calcite.adapter.file.FileAdapterTests;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
@@ -33,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Test to verify what actually gets returned when querying null timestamps
  */
+@Tag("unit")
 public class NullTimestampQueryTest {
 
   @Test public void testQueryNullTimestamps() throws Exception {

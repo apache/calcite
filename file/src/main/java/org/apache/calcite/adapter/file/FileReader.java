@@ -114,8 +114,32 @@ public class FileReader implements Iterable<Elements> {
 
   private Element getSelectedTable(Document doc, String selector)
       throws FileReaderException {
-    // get selected elements
-    Elements list = doc.select(selector);
+    Elements list;
+    
+    // Handle special index-based selector for tables without IDs
+    if (selector.startsWith("table[index=") && selector.endsWith("]")) {
+      String indexStr = selector.substring(12, selector.length() - 1);
+      try {
+        int tableIndex = Integer.parseInt(indexStr);
+        list = doc.select("table");
+        if (tableIndex >= 0 && tableIndex < list.size()) {
+          // Create a new Elements collection with just the selected table
+          list = new Elements(list.get(tableIndex));
+        } else {
+          list = new Elements(); // Empty collection
+        }
+      } catch (NumberFormatException e) {
+        list = doc.select(selector); // Fall back to regular selector
+      }
+    } else {
+      // get selected elements normally
+      list = doc.select(selector);
+    }
+
+    // Check if any elements were found
+    if (list.isEmpty()) {
+      throw new FileReaderException("No HTML elements found with selector: " + selector);
+    }
 
     // get the element
     Element el;
@@ -128,6 +152,10 @@ public class FileReader implements Iterable<Elements> {
 
       el = list.first();
     } else {
+      if (this.index >= list.size()) {
+        throw new FileReaderException("Index " + this.index + " out of bounds, only " 
+            + list.size() + " element(s) found with selector: " + selector);
+      }
       el = list.get(this.index);
     }
 

@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.file.temporal;
 
 import org.apache.calcite.adapter.file.FileAdapterTests;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
@@ -30,6 +31,7 @@ import java.util.Properties;
 /**
  * Test what SQL SELECT returns for DATE values.
  */
+@Tag("unit")
 public class DateSelectTest {
 
   @Test public void testDateSelectOutput() throws Exception {

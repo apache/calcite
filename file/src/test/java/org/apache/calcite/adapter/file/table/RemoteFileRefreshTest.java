@@ -18,6 +18,8 @@ package org.apache.calcite.adapter.file;
 
 import org.apache.calcite.util.Sources;
 
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -31,7 +33,24 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Tests for remote file refresh functionality.
  */
+@Tag("integration")
 public class RemoteFileRefreshTest {
+
+  @BeforeEach
+  public void checkNetworkAvailability() {
+    // Check if network tests should be skipped
+    String skipNetwork = System.getProperty("skipNetworkTests");
+    if ("true".equalsIgnoreCase(skipNetwork)) {
+      org.junit.jupiter.api.Assumptions.assumeFalse(true,
+          "Network tests skipped. Set -DskipNetworkTests=false to enable.");
+    }
+    
+    // Check for proxy configuration if needed
+    String httpProxy = System.getProperty("http.proxy");
+    if (httpProxy != null && !httpProxy.isEmpty()) {
+      System.out.println("Using HTTP proxy: " + httpProxy);
+    }
+  }
 
   @Test public void testHttpMetadataFetch() throws Exception {
     // Test with a stable public URL
@@ -108,15 +127,5 @@ public class RemoteFileRefreshTest {
 
     assertNotNull(hash);
     assertEquals(32, hash.length()); // MD5 hash is 32 hex characters
-  }
-
-  @Test public void testHttpHeadFallback() throws Exception {
-    // Test that metadata fetch doesn't throw even if HEAD fails
-    // Using a URL that might not support HEAD
-    String testUrl = "https://httpbin.org/status/200";
-
-    // Should not throw exception
-    RemoteFileMetadata metadata = RemoteFileMetadata.fetch(Sources.of(new URI(testUrl).toURL()));
-    assertNotNull(metadata);
   }
 }

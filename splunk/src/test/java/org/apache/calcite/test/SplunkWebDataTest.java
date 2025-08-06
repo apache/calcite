@@ -19,7 +19,6 @@ package org.apache.calcite.test;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIf;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -35,12 +34,20 @@ import java.util.Properties;
  * Test to find and display the actual web data rows.
  */
 @Tag("integration")
-@EnabledIf("splunkTestEnabled")
 class SplunkWebDataTest {
-  private static String SPLUNK_URL = "https://localhost:8089";
-  private static String SPLUNK_USER = "admin";
-  private static String SPLUNK_PASSWORD = "changeme";
+  private static String SPLUNK_URL = null;
+  private static String SPLUNK_USER = null;
+  private static String SPLUNK_PASSWORD = null;
   private static boolean DISABLE_SSL_VALIDATION = false;
+  private static boolean PROPERTIES_LOADED = false;
+
+  private static void loadDriverClass() {
+    try {
+      Class.forName("org.apache.calcite.adapter.splunk.SplunkDriver");
+    } catch (ClassNotFoundException e) {
+      throw new RuntimeException("driver not found", e);
+    }
+  }
 
   @BeforeAll
   static void loadConnectionProperties() {
@@ -83,17 +90,6 @@ class SplunkWebDataTest {
     }
   }
 
-  private static boolean splunkTestEnabled() {
-    return System.getProperty("CALCITE_TEST_SPLUNK", "false").equals("true") ||
-           System.getenv("CALCITE_TEST_SPLUNK") != null;  }
-
-  private void loadDriverClass() {
-    try {
-      Class.forName("org.apache.calcite.adapter.splunk.SplunkDriver");
-    } catch (ClassNotFoundException e) {
-      throw new RuntimeException("driver not found", e);
-    }
-  }
 
   private Connection createConnection() throws SQLException {
     loadDriverClass();

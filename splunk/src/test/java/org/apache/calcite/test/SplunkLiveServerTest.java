@@ -18,7 +18,6 @@ package org.apache.calcite.test;
 
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIf;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -38,10 +37,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 @Tag("integration")
 class SplunkLiveServerTest {
 
-  private static boolean splunkTestEnabled() {
-    return System.getProperty("CALCITE_TEST_SPLUNK", "false").equals("true") ||
-           System.getenv("CALCITE_TEST_SPLUNK") != null;
-  }
 
   private void loadDriverClass() {
     try {
@@ -51,8 +46,7 @@ class SplunkLiveServerTest {
     }
   }
 
-  @Test @EnabledIf("splunkTestEnabled")
-  void testDataModelDiscovery() throws SQLException {
+  @Test   void testDataModelDiscovery() throws SQLException {
     loadDriverClass();
 
     Properties props = new Properties();
@@ -164,8 +158,7 @@ class SplunkLiveServerTest {
     }
   }
 
-  @Test @EnabledIf("splunkTestEnabled")
-  void testBasicConnection() throws SQLException {
+  @Test   void testBasicConnection() throws SQLException {
     loadDriverClass();
 
     Properties props = loadTestProperties();
@@ -211,8 +204,7 @@ class SplunkLiveServerTest {
   }
 
   // Now re-enabled - metadata schemas are available
-  @Test @EnabledIf("splunkTestEnabled")
-  void testMetadataSchemas() throws SQLException {
+  @Test   void testMetadataSchemas() throws SQLException {
     loadDriverClass();
 
     Properties props = loadTestProperties();
@@ -274,8 +266,7 @@ class SplunkLiveServerTest {
     }
   }
 
-  @Test @EnabledIf("splunkTestEnabled")
-  void testDataQuery() throws SQLException {
+  @Test   void testDataQuery() throws SQLException {
     loadDriverClass();
 
     Properties props = loadTestProperties();

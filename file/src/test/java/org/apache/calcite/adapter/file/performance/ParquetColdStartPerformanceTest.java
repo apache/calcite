@@ -21,6 +21,7 @@ import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -41,6 +42,7 @@ import java.util.Random;
  * Performance test comparing engines with pre-converted Parquet files
  * to simulate restart scenarios where Parquet files are already cached.
  */
+@Tag("performance")
 public class ParquetColdStartPerformanceTest {
   @TempDir
   java.nio.file.Path tempDir;

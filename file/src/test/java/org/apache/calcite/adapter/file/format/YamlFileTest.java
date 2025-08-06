@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.file.format;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -35,6 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Test for YAML file format support in the file adapter.
  */
+@Tag("unit")
 public class YamlFileTest {
 
   @TempDir

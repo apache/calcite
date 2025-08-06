@@ -25,7 +25,6 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
-import org.junit.jupiter.api.condition.EnabledIf;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -39,7 +38,6 @@ import java.util.concurrent.TimeUnit;
  * Run with: -Dcalcite.test.splunk=true
  */
 @Tag("integration")
-@EnabledIf("splunkTestEnabled")
 class SplunkNamespaceValidationTest {
 
   private static SplunkConnection connection;
@@ -67,10 +65,6 @@ class SplunkNamespaceValidationTest {
     connection = new SplunkConnectionImpl(splunkUrl, splunkUser, splunkPassword, true);
   }
 
-  private static boolean splunkTestEnabled() {
-    return System.getProperty("CALCITE_TEST_SPLUNK", "false").equals("true") ||
-           System.getenv("CALCITE_TEST_SPLUNK") != null;
-  }
 
   @Test 
   @Timeout(120) // 2 minutes for debugging

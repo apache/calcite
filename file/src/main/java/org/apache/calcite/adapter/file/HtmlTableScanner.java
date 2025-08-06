@@ -100,8 +100,9 @@ public class HtmlTableScanner {
       if (table.hasAttr("id") && isValidCssIdentifier(table.attr("id"))) {
         selector = "#" + table.attr("id");
       } else {
-        // Use index-based selector as fallback for IDs with special characters
-        selector = "table:nth-of-type(" + (i + 1) + ")";
+        // For tables without valid IDs, use the index directly
+        // This will be handled specially by FileReader to select by index
+        selector = "table[index=" + i + "]";
       }
 
       tableInfos.add(new TableInfo(finalName, selector, i));

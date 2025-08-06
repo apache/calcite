@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.file;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -27,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 /**
  * Test for the {@link CsvEnumerator}.
  */
+@Tag("unit")
 @SuppressWarnings("SameParameterValue")
 class CsvEnumeratorTest {
 

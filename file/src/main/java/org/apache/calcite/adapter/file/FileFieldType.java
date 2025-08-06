@@ -57,15 +57,20 @@ enum FileFieldType {
     ImmutableMap.Builder<String, FileFieldType> builder =
         ImmutableMap.builder();
     for (FileFieldType value : values()) {
-      builder.put(value.clazz.getSimpleName(), value);
+      // Don't add duplicate keys for types with the same class
+      // TIMESTAMP_WITH_LOCAL_TIME_ZONE shares java.sql.Timestamp with TIMESTAMP
+      if (value != TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
+        builder.put(value.clazz.getSimpleName(), value);
+      }
 
       if (value.primitive != null) {
         builder.put(value.primitive.getPrimitiveName(), value);
       }
     }
-    // Add aliases for timestamp types
+    // Add explicit aliases for timestamp types
     builder.put("timestamp", TIMESTAMP);
     builder.put("timestamptz", TIMESTAMP_WITH_LOCAL_TIME_ZONE);
+    builder.put("TimestampWithLocalTimeZone", TIMESTAMP_WITH_LOCAL_TIME_ZONE);
     MAP = builder.build();
   }
 

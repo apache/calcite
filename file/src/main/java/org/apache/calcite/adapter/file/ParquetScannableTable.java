@@ -93,7 +93,9 @@ public class ParquetScannableTable extends AbstractTable implements ScannableTab
 
 
         names.add(originalName);
-        types.add(typeFactory.createSqlType(sqlType));
+        // All Parquet fields should be nullable
+        types.add(typeFactory.createTypeWithNullability(
+            typeFactory.createSqlType(sqlType), true));
       }
 
       return typeFactory.createStructType(Pair.zip(names, types));

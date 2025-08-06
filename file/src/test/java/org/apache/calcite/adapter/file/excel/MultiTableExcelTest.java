@@ -26,6 +26,7 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -47,6 +48,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Test for multi-table Excel detection feature.
  */
+@Tag("unit")
 public class MultiTableExcelTest {
   @TempDir
   Path tempDir;

@@ -23,6 +23,8 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 
+import org.junit.jupiter.api.Tag;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.ArrayList;
@@ -34,6 +36,7 @@ import java.util.regex.Pattern;
 /**
  * Simple program to show tables extracted from multi-table Excel file.
  */
+@Tag("unit")
 public class ShowExcelTables {
   public static void main(String[] args) throws Exception {
     // Disable POI logging to avoid conflicts

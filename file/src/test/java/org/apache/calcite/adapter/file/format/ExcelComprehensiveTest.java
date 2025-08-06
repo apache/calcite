@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.file.format;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -48,6 +49,7 @@ import static org.junit.jupiter.api.Assertions.fail;
  * Consolidates functionality from SimpleExcelTest, ExcelFileTest,
  * MultiTableExcelTest, and ExcelNamingTest.
  */
+@Tag("unit")
 public class ExcelComprehensiveTest {
 
   @TempDir

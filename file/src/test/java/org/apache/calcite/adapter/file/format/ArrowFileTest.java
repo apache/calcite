@@ -32,6 +32,7 @@ import org.apache.arrow.vector.types.pojo.FieldType;
 import org.apache.arrow.vector.types.pojo.Schema;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -56,6 +57,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Test for Arrow file format support in the file adapter.
  */
 @SuppressWarnings("deprecation")
+@Tag("unit")
 public class ArrowFileTest {
 
   @TempDir

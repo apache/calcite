@@ -63,7 +63,7 @@ public class OracleLexicalSettingsTest {
       
       // Test 1: Verify Oracle lexical settings are active
       // This should work - uppercase table and column names
-      ResultSet rs1 = statement.executeQuery("SELECT NAME FROM SALES.DEPTS WHERE DEPTNO = 10");
+      ResultSet rs1 = statement.executeQuery("SELECT \"NAME\" FROM \"SALES\".\"DEPTS\" WHERE \"DEPTNO\" = 10");
       assertTrue(rs1.next());
       assertEquals("Sales", rs1.getString("NAME"));
       rs1.close();
@@ -97,12 +97,12 @@ public class OracleLexicalSettingsTest {
       rs6.close();
       
       // Test 4: Verify schema and table access via SQL instead of deprecated methods
-      ResultSet schemaTest = statement.executeQuery("SELECT COUNT(*) FROM SALES.DEPTS");
+      ResultSet schemaTest = statement.executeQuery("SELECT COUNT(*) FROM \"SALES\".\"DEPTS\"");
       assertTrue(schemaTest.next());
       assertTrue(schemaTest.getInt(1) > 0);
       schemaTest.close();
       
-      ResultSet tableTest = statement.executeQuery("SELECT COUNT(*) FROM SALES.EMPS");
+      ResultSet tableTest = statement.executeQuery("SELECT COUNT(*) FROM \"SALES\".\"EMPS\"");
       assertTrue(tableTest.next());
       assertTrue(tableTest.getInt(1) > 0);
       tableTest.close();
@@ -136,14 +136,14 @@ public class OracleLexicalSettingsTest {
          Statement statement = connection.createStatement()) {
       
       // This should work - correct case with schema
-      ResultSet rs1 = statement.executeQuery("SELECT COUNT(*) FROM SALES.DEPTS");
+      ResultSet rs1 = statement.executeQuery("SELECT COUNT(*) FROM \"SALES\".\"DEPTS\"");
       assertTrue(rs1.next());
       assertEquals(3, rs1.getInt(1));
       rs1.close();
       
       // This should fail - incorrect case due to Oracle lexical rules
       try {
-        statement.executeQuery("SELECT COUNT(*) FROM SALES.depts");
+        statement.executeQuery("SELECT COUNT(*) FROM \"SALES\".depts");
         // If we get here, the test failed because the query should have thrown an exception
         throw new AssertionError("Expected SQLException for lowercase table name 'depts'");
       } catch (SQLException e) {

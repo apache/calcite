@@ -16,8 +16,8 @@
  */
 package org.apache.calcite.test;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIf;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -32,7 +32,7 @@ import java.util.Properties;
 /**
  * Test to show the full warning message from empty CIM models.
  */
-@EnabledIf("splunkTestEnabled")
+@Tag("integration")
 class ShowWarningMessage {
 
   private static String SPLUNK_URL = "https://localhost:8089";
@@ -82,50 +82,4 @@ class ShowWarningMessage {
     }
   }
 
-  private static boolean splunkTestEnabled() {
-    return System.getProperty("CALCITE_TEST_SPLUNK", "false").equals("true") ||
-           System.getenv("CALCITE_TEST_SPLUNK") != null;  }
-
-  @Test void showFullWarningMessage() throws SQLException, ClassNotFoundException {
-    Class.forName("org.apache.calcite.adapter.splunk.SplunkDriver");
-
-    Properties info = new Properties();
-    info.setProperty("url", SPLUNK_URL);
-    info.put("user", SPLUNK_USER);
-    info.put("password", SPLUNK_PASSWORD);
-    if (DISABLE_SSL_VALIDATION) {
-      info.put("disableSslValidation", "true");
-    }
-    info.put("cimModel", "certificates"); // Use certificates as example of empty model
-
-    System.out.println("Checking full warning message from certificates model...\n");
-
-    try (Connection connection = DriverManager.getConnection("jdbc:splunk:", info);
-         Statement stmt = connection.createStatement()) {
-
-      String sql = "SELECT * FROM \"splunk\".\"certificates\" LIMIT 1";
-
-      try (ResultSet rs = stmt.executeQuery(sql)) {
-        if (rs.next()) {
-          // Get all columns and find _extra
-          for (int i = 1; i <= rs.getMetaData().getColumnCount(); i++) {
-            String columnName = rs.getMetaData().getColumnName(i);
-            if ("_extra".equals(columnName)) {
-              String extraField = rs.getString(i);
-              System.out.println("Full _extra field content:");
-              System.out.println("=" + "=".repeat(80));
-              System.out.println(extraField);
-              System.out.println("=" + "=".repeat(80));
-              break;
-            }
-          }
-        } else {
-          System.out.println("No data returned");
-        }
-      }
-
-    } catch (SQLException e) {
-      System.err.println("Error: " + e.getMessage());
-    }
-  }
 }

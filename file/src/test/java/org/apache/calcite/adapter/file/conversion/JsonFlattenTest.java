@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.file;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import static org.apache.calcite.adapter.file.FileAdapterTests.sql;
@@ -25,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * Test for JSON flattening functionality.
  */
+@Tag("unit")
 public class JsonFlattenTest {
 
   @Test void testJsonFlattening() {

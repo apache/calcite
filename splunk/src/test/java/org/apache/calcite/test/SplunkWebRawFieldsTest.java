@@ -23,7 +23,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIf;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -39,13 +38,8 @@ import java.util.Properties;
  * Test to show raw fields discovered from Splunk web data model.
  */
 @Tag("integration")
-@EnabledIf("splunkTestEnabled")
 public class SplunkWebRawFieldsTest {
 
-  private static boolean splunkTestEnabled() {
-    return System.getProperty("CALCITE_TEST_SPLUNK", "false").equals("true") ||
-           System.getenv("CALCITE_TEST_SPLUNK") != null;
-  }
 
   @Test public void testWebModelRawFields() throws Exception {
     Properties props = new Properties();

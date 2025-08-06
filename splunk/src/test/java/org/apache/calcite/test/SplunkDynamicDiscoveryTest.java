@@ -19,7 +19,6 @@ package org.apache.calcite.test;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIf;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -35,7 +34,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Run with: -Dcalcite.test.splunk=true
  */
 @Tag("integration")
-@EnabledIf("splunkTestEnabled")
 class SplunkDynamicDiscoveryTest {
 
   @BeforeAll
@@ -47,10 +45,6 @@ class SplunkDynamicDiscoveryTest {
     }
   }
 
-  private static boolean splunkTestEnabled() {
-    return System.getProperty("CALCITE_TEST_SPLUNK", "false").equals("true") ||
-           System.getenv("CALCITE_TEST_SPLUNK") != null;
-  }
 
   @Test void testDynamicDiscovery() throws Exception {
     System.out.println("\n=== Testing Dynamic Discovery ===");

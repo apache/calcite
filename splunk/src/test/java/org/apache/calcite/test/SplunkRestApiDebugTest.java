@@ -22,7 +22,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIf;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -37,17 +36,12 @@ import java.util.Map;
  * Run with: -Dcalcite.test.splunk=true
  */
 @Tag("integration")
-@EnabledIf("splunkTestEnabled")
 class SplunkRestApiDebugTest {
 
   private static final String BASE_URL = "https://kentest.xyz:8089";
   private static final String USERNAME = "admin";
   private static final String PASSWORD = "admin123";
 
-  private static boolean splunkTestEnabled() {
-    return System.getProperty("CALCITE_TEST_SPLUNK", "false").equals("true") ||
-           System.getenv("CALCITE_TEST_SPLUNK") != null;
-  }
 
   @Test void testDirectRestApiCall() throws Exception {
     System.out.println("\n=== Direct REST API Debug Test ===");

@@ -25,7 +25,6 @@ import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIf;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -38,13 +37,8 @@ import java.util.Properties;
  * Test to show exactly what fields are discovered for the web data model.
  */
 @Tag("integration")
-@EnabledIf("splunkTestEnabled")
 public class SplunkWebFieldDiscoveryTest {
 
-  private static boolean splunkTestEnabled() {
-    return System.getProperty("CALCITE_TEST_SPLUNK", "false").equals("true") ||
-           System.getenv("CALCITE_TEST_SPLUNK") != null;
-  }
 
   @Test public void testWebModelFieldDiscovery() throws Exception {
     Properties props = new Properties();

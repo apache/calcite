@@ -34,6 +34,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import com.google.common.collect.ImmutableMap;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -45,10 +46,63 @@ public class SplunkPostgresMetadataSchema extends AbstractSchema {
 
   private final SchemaPlus rootSchema;
   private final String catalogName;
+  
+  // Shared OID mappings for referential integrity
+  private final Map<String, Integer> namespaceOids = new HashMap<>();
+  private final Map<String, Map<String, Integer>> tableOids = new HashMap<>();
+  private boolean oidsInitialized = false;
 
   public SplunkPostgresMetadataSchema(SchemaPlus rootSchema, String catalogName) {
     this.rootSchema = rootSchema;
     this.catalogName = catalogName;
+    initializeOidMappings();
+  }
+  
+  /**
+   * Initialize OID mappings for all schemas and tables to ensure
+   * referential integrity across pg_catalog tables.
+   */
+  private synchronized void initializeOidMappings() {
+    if (oidsInitialized) {
+      return;
+    }
+    
+    // Standard PostgreSQL schemas
+    namespaceOids.put("pg_catalog", 11);
+    namespaceOids.put("information_schema", 99);
+    namespaceOids.put("public", 2200);
+    
+    int namespaceOid = 16384;
+    int tableOid = 16385;
+    
+    // Iterate through all schemas and tables once to assign consistent OIDs
+    for (String schemaName : rootSchema.subSchemas().getNames(LikePattern.any())) {
+      if (!"pg_catalog".equals(schemaName) && 
+          !"information_schema".equals(schemaName) &&
+          !"metadata".equals(schemaName)) {
+        
+        // Assign namespace OID
+        namespaceOids.put(schemaName, namespaceOid++);
+        
+        // Get tables in this schema
+        SchemaPlus subSchema = rootSchema.subSchemas().get(schemaName);
+        if (subSchema != null) {
+          Map<String, Integer> schemaTableOids = new HashMap<>();
+          
+          try {
+            for (String tableName : subSchema.tables().getNames(LikePattern.any())) {
+              schemaTableOids.put(tableName, tableOid++);
+            }
+          } catch (Exception e) {
+            // Log but continue - some schemas might not support table listing
+          }
+          
+          tableOids.put(schemaName, schemaTableOids);
+        }
+      }
+    }
+    
+    oidsInitialized = true;
   }
 
   @Override protected Map<String, Table> getTableMap() {
@@ -57,6 +111,7 @@ public class SplunkPostgresMetadataSchema extends AbstractSchema {
         .put("pg_class", new PgClassTable())
         .put("pg_attribute", new PgAttributeTable())
         .put("pg_type", new PgTypeTable())
+        .put("pg_proc", new PgProcTable())
         .put("pg_database", new PgDatabaseTable())
         .put("pg_tables", new PgTablesView())
         .put("pg_views", new PgViewsView())
@@ -84,18 +139,9 @@ public class SplunkPostgresMetadataSchema extends AbstractSchema {
     @Override public Enumerable<Object[]> scan(DataContext root) {
       List<Object[]> rows = new ArrayList<>();
 
-      // Add standard PostgreSQL schemas
-      rows.add(new Object[] {11, "pg_catalog", 10, null});
-      rows.add(new Object[] {99, "information_schema", 10, null});
-      rows.add(new Object[] {2200, "public", 10, null});
-
-      // Add user schemas
-      int oid = 16384;
-      for (String schemaName : rootSchema.subSchemas().getNames(LikePattern.any())) {
-        // Skip metadata schemas
-        if (!"pg_catalog".equals(schemaName) && !"information_schema".equals(schemaName)) {
-          rows.add(new Object[] {oid++, schemaName, 10, null});
-        }
+      // Add all schemas from the OID mapping
+      for (Map.Entry<String, Integer> entry : namespaceOids.entrySet()) {
+        rows.add(new Object[] {entry.getValue(), entry.getKey(), 10, null});
       }
 
       return Linq4j.asEnumerable(rows);
@@ -147,59 +193,69 @@ public class SplunkPostgresMetadataSchema extends AbstractSchema {
       List<Object[]> rows = new ArrayList<>();
       RelDataTypeFactory typeFactory = new JavaTypeFactoryImpl();
 
-      int oid = 16385; // Start from a high OID for user tables
-      int namespaceOid = 16384;
-
-      for (String schemaName : rootSchema.subSchemas().getNames(LikePattern.any())) {
-        if (!"pg_catalog".equals(schemaName) && !"information_schema".equals(schemaName) &&
-            !"metadata".equals(schemaName)) {
-          SchemaPlus subSchema = rootSchema.subSchemas().get(schemaName);
-          if (subSchema != null) {
+      // Iterate through all schemas using the consistent OID mappings
+      for (Map.Entry<String, Integer> nsEntry : namespaceOids.entrySet()) {
+        String schemaName = nsEntry.getKey();
+        Integer namespaceOid = nsEntry.getValue();
+        
+        // Skip system schemas for table listing
+        if ("pg_catalog".equals(schemaName) || "information_schema".equals(schemaName)) {
+          continue;
+        }
+        
+        Map<String, Integer> schemaTableOids = tableOids.get(schemaName);
+        if (schemaTableOids == null) {
+          continue;
+        }
+        
+        SchemaPlus subSchema = rootSchema.subSchemas().get(schemaName);
+        if (subSchema != null) {
+          for (Map.Entry<String, Integer> tableEntry : schemaTableOids.entrySet()) {
+            String tableName = tableEntry.getKey();
+            Integer tableOid = tableEntry.getValue();
+            
             try {
-              for (String tableName : subSchema.tables().getNames(LikePattern.any())) {
-                Table table = subSchema.tables().get(tableName);
-                if (table != null) {
-                  RelDataType rowType = table.getRowType(typeFactory);
+              Table table = subSchema.tables().get(tableName);
+              if (table != null) {
+                RelDataType rowType = table.getRowType(typeFactory);
 
-                  rows.add(new Object[] {
-                      oid++,              // oid
-                      tableName,          // relname
-                      namespaceOid,       // relnamespace
-                      0,                  // reltype
-                      10,                 // relowner
-                      0,                  // relam
-                      0,                  // relfilenode
-                      0,                  // reltablespace
-                      0,                  // relpages
-                      0.0f,               // reltuples
-                      0,                  // relallvisible
-                      0,                  // reltoastrelid
-                      false,              // relhasindex
-                      false,              // relisshared
-                      'p',                // relpersistence (permanent)
-                      'r',                // relkind (regular table)
-                      (short) rowType.getFieldCount(), // relnatts
-                      (short) 0,          // relchecks
-                      false,              // relhasrules
-                      false,              // relhastriggers
-                      false,              // relhassubclass
-                      false,              // relrowsecurity
-                      false,              // relforcerowsecurity
-                      true,               // relispopulated
-                      'd',                // relreplident (default)
-                      false,              // relispartition
-                      0,                  // relfrozenxid
-                      0,                  // relminmxid
-                      null,               // relacl
-                      null,               // reloptions
-                      null                // relpartbound
-                  });
-                }
+                rows.add(new Object[] {
+                    tableOid,               // oid
+                    tableName,              // relname
+                    namespaceOid,           // relnamespace
+                    0,                      // reltype
+                    10,                     // relowner
+                    0,                      // relam
+                    0,                      // relfilenode
+                    0,                      // reltablespace
+                    0,                      // relpages
+                    0.0f,                   // reltuples
+                    0,                      // relallvisible
+                    0,                      // reltoastrelid
+                    false,                  // relhasindex
+                    false,                  // relisshared
+                    'p',                    // relpersistence (permanent)
+                    'r',                    // relkind (regular table)
+                    (short) rowType.getFieldCount(), // relnatts
+                    (short) 0,              // relchecks
+                    false,                  // relhasrules
+                    false,                  // relhastriggers
+                    false,                  // relhassubclass
+                    false,                  // relrowsecurity
+                    false,                  // relforcerowsecurity
+                    true,                   // relispopulated
+                    'd',                    // relreplident (default)
+                    false,                  // relispartition
+                    0,                      // relfrozenxid
+                    0,                      // relminmxid
+                    null,                   // relacl
+                    null,                   // reloptions
+                    null                    // relpartbound
+                });
               }
             } catch (Exception e) {
-              // Ignore errors
+              // Ignore individual table errors
             }
-            namespaceOid++;
           }
         }
       }
@@ -247,57 +303,65 @@ public class SplunkPostgresMetadataSchema extends AbstractSchema {
       List<Object[]> rows = new ArrayList<>();
       RelDataTypeFactory typeFactory = new JavaTypeFactoryImpl();
 
-      int relationOid = 16385; // Match OIDs from pg_class
-      int namespaceOid = 16384;
-
-      for (String schemaName : rootSchema.subSchemas().getNames(LikePattern.any())) {
-        if (!"pg_catalog".equals(schemaName) && !"information_schema".equals(schemaName) &&
-            !"metadata".equals(schemaName)) {
-          SchemaPlus subSchema = rootSchema.subSchemas().get(schemaName);
-          if (subSchema != null) {
+      // Iterate through all schemas using the consistent OID mappings
+      for (Map.Entry<String, Integer> nsEntry : namespaceOids.entrySet()) {
+        String schemaName = nsEntry.getKey();
+        
+        // Skip system schemas for table listing
+        if ("pg_catalog".equals(schemaName) || "information_schema".equals(schemaName)) {
+          continue;
+        }
+        
+        Map<String, Integer> schemaTableOids = tableOids.get(schemaName);
+        if (schemaTableOids == null) {
+          continue;
+        }
+        
+        SchemaPlus subSchema = rootSchema.subSchemas().get(schemaName);
+        if (subSchema != null) {
+          for (Map.Entry<String, Integer> tableEntry : schemaTableOids.entrySet()) {
+            String tableName = tableEntry.getKey();
+            Integer tableOid = tableEntry.getValue();
+            
             try {
-              for (String tableName : subSchema.tables().getNames(LikePattern.any())) {
-                Table table = subSchema.tables().get(tableName);
-                if (table != null) {
-                  RelDataType rowType = table.getRowType(typeFactory);
+              Table table = subSchema.tables().get(tableName);
+              if (table != null) {
+                RelDataType rowType = table.getRowType(typeFactory);
 
-                  short attnum = 1;
-                  for (RelDataTypeField field : rowType.getFieldList()) {
-                    rows.add(new Object[] {
-                        relationOid,        // attrelid
-                        field.getName(),    // attname
-                        getPostgresTypeOid(field.getType()), // atttypid
-                        -1,                 // attstattarget
-                        getTypeLength(field.getType()), // attlen
-                        attnum++,           // attnum
-                        0,                  // attndims
-                        -1,                 // attcacheoff
-                        -1,                 // atttypmod
-                        isPassByValue(field.getType()), // attbyval
-                        'p',                // attstorage (plain)
-                        'i',                // attalign (int)
-                        !field.getType().isNullable(), // attnotnull
-                        false,              // atthasdef
-                        false,              // atthasmissing
-                        ' ',                // attidentity
-                        ' ',                // attgenerated
-                        false,              // attisdropped
-                        true,               // attislocal
-                        0,                  // attinhcount
-                        0,                  // attcollation
-                        null,               // attacl
-                        null,               // attoptions
-                        null,               // attfdwoptions
-                        null                // attmissingval
-                    });
-                  }
-                  relationOid++;
+                short attnum = 1;
+                for (RelDataTypeField field : rowType.getFieldList()) {
+                  rows.add(new Object[] {
+                      tableOid,               // attrelid (matches pg_class.oid)
+                      field.getName(),        // attname
+                      getPostgresTypeOid(field.getType()), // atttypid
+                      -1,                     // attstattarget
+                      getTypeLength(field.getType()), // attlen
+                      attnum++,               // attnum
+                      0,                      // attndims
+                      -1,                     // attcacheoff
+                      -1,                     // atttypmod
+                      isPassByValue(field.getType()), // attbyval
+                      'p',                    // attstorage (plain)
+                      'i',                    // attalign (int)
+                      !field.getType().isNullable(), // attnotnull
+                      false,                  // atthasdef
+                      false,                  // atthasmissing
+                      ' ',                    // attidentity
+                      ' ',                    // attgenerated
+                      false,                  // attisdropped
+                      true,                   // attislocal
+                      0,                      // attinhcount
+                      0,                      // attcollation
+                      null,                   // attacl
+                      null,                   // attoptions
+                      null,                   // attfdwoptions
+                      null                    // attmissingval
+                  });
                 }
               }
             } catch (Exception e) {
-              // Ignore errors
+              // Ignore individual table errors
             }
-            namespaceOid++;
           }
         }
       }
@@ -448,6 +512,115 @@ public class SplunkPostgresMetadataSchema extends AbstractSchema {
   }
 
   /**
+   * PostgreSQL pg_proc system catalog.
+   * Lists all functions and procedures.
+   */
+  private class PgProcTable extends AbstractTable implements ScannableTable {
+    @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      return typeFactory.builder()
+          .add("oid", SqlTypeName.INTEGER)
+          .add("proname", SqlTypeName.VARCHAR)
+          .add("pronamespace", SqlTypeName.INTEGER)
+          .add("proowner", SqlTypeName.INTEGER)
+          .add("prolang", SqlTypeName.INTEGER)
+          .add("procost", SqlTypeName.REAL)
+          .add("prorows", SqlTypeName.REAL)
+          .add("provariadic", SqlTypeName.INTEGER)
+          .add("prosupport", SqlTypeName.VARCHAR)
+          .add("prokind", SqlTypeName.CHAR)
+          .add("prosecdef", SqlTypeName.BOOLEAN)
+          .add("proleakproof", SqlTypeName.BOOLEAN)
+          .add("proisstrict", SqlTypeName.BOOLEAN)
+          .add("proretset", SqlTypeName.BOOLEAN)
+          .add("provolatile", SqlTypeName.CHAR)
+          .add("proparallel", SqlTypeName.CHAR)
+          .add("pronargs", SqlTypeName.SMALLINT)
+          .add("pronargdefaults", SqlTypeName.SMALLINT)
+          .add("prorettype", SqlTypeName.INTEGER)
+          .add("proargtypes", SqlTypeName.VARCHAR)
+          .add("proallargtypes", SqlTypeName.VARCHAR)
+          .add("proargmodes", SqlTypeName.VARCHAR)
+          .add("proargnames", SqlTypeName.VARCHAR)
+          .add("proargdefaults", SqlTypeName.VARCHAR)
+          .add("protrftypes", SqlTypeName.VARCHAR)
+          .add("prosrc", SqlTypeName.VARCHAR)
+          .add("probin", SqlTypeName.VARCHAR)
+          .add("prosqlbody", SqlTypeName.VARCHAR)
+          .add("proconfig", SqlTypeName.VARCHAR)
+          .add("proacl", SqlTypeName.VARCHAR)
+          .build();
+    }
+
+    @Override public Enumerable<Object[]> scan(DataContext root) {
+      List<Object[]> rows = new ArrayList<>();
+      
+      // Add essential pg_catalog functions
+      int oid = 1299;
+      
+      // Information functions
+      rows.add(createFunctionRow(oid++, "current_database", 11, 0, 25)); // returns text
+      rows.add(createFunctionRow(oid++, "current_schema", 11, 0, 25)); // returns text
+      rows.add(createFunctionRow(oid++, "current_schemas", 11, 1, 1009)); // returns text[]
+      rows.add(createFunctionRow(oid++, "version", 11, 0, 25)); // returns text
+      
+      // Object visibility functions
+      rows.add(createFunctionRow(oid++, "pg_table_is_visible", 11, 1, 16)); // returns boolean
+      rows.add(createFunctionRow(oid++, "pg_type_is_visible", 11, 1, 16)); // returns boolean
+      rows.add(createFunctionRow(oid++, "pg_function_is_visible", 11, 1, 16)); // returns boolean
+      
+      // Privilege functions
+      rows.add(createFunctionRow(oid++, "has_table_privilege", 11, 2, 16)); // returns boolean
+      rows.add(createFunctionRow(oid++, "has_schema_privilege", 11, 2, 16)); // returns boolean
+      
+      // Formatting functions
+      rows.add(createFunctionRow(oid++, "quote_ident", 11, 1, 25)); // returns text
+      rows.add(createFunctionRow(oid++, "format_type", 11, 2, 25)); // returns text
+      rows.add(createFunctionRow(oid++, "pg_get_expr", 11, 2, 25)); // returns text
+      
+      // Type function
+      rows.add(createFunctionRow(oid++, "pg_typeof", 11, 1, 25)); // returns text
+      
+      return Linq4j.asEnumerable(rows);
+    }
+    
+    private Object[] createFunctionRow(int oid, String name, int namespace, 
+                                        int argCount, int returnType) {
+      return new Object[] {
+          oid,                // oid
+          name,               // proname
+          namespace,          // pronamespace (11 = pg_catalog)
+          10,                 // proowner
+          12,                 // prolang (12 = internal)
+          1.0f,               // procost
+          0.0f,               // prorows
+          0,                  // provariadic
+          null,               // prosupport
+          'f',                // prokind (f = function)
+          false,              // prosecdef
+          false,              // proleakproof
+          true,               // proisstrict
+          false,              // proretset
+          's',                // provolatile (s = stable)
+          's',                // proparallel (s = safe)
+          (short) argCount,   // pronargs
+          (short) 0,          // pronargdefaults
+          returnType,         // prorettype
+          "",                 // proargtypes (simplified)
+          null,               // proallargtypes
+          null,               // proargmodes
+          null,               // proargnames
+          null,               // proargdefaults
+          null,               // protrftypes
+          "internal",         // prosrc
+          null,               // probin
+          null,               // prosqlbody
+          null,               // proconfig
+          null                // proacl
+      };
+    }
+  }
+
+  /**
    * PostgreSQL pg_database system catalog.
    * Lists all databases (just returns the current catalog).
    */
@@ -516,28 +689,22 @@ public class SplunkPostgresMetadataSchema extends AbstractSchema {
     @Override public Enumerable<Object[]> scan(DataContext root) {
       List<Object[]> rows = new ArrayList<>();
 
-      for (String schemaName : rootSchema.subSchemas().getNames(LikePattern.any())) {
-        if (!"pg_catalog".equals(schemaName) && !"information_schema".equals(schemaName) &&
-            !"metadata".equals(schemaName)) {
-          SchemaPlus subSchema = rootSchema.subSchemas().get(schemaName);
-          if (subSchema != null) {
-            try {
-              for (String tableName : subSchema.tables().getNames(LikePattern.any())) {
-                rows.add(new Object[] {
-                    schemaName,         // schemaname
-                    tableName,          // tablename
-                    "splunk_admin",     // tableowner
-                    null,               // tablespace
-                    false,              // hasindexes
-                    false,              // hasrules
-                    false,              // hastriggers
-                    false               // rowsecurity
-                });
-              }
-            } catch (Exception e) {
-              // Ignore errors
-            }
-          }
+      // Use the shared OID mappings to ensure consistency
+      for (Map.Entry<String, Map<String, Integer>> schemaEntry : tableOids.entrySet()) {
+        String schemaName = schemaEntry.getKey();
+        Map<String, Integer> tables = schemaEntry.getValue();
+        
+        for (String tableName : tables.keySet()) {
+          rows.add(new Object[] {
+              schemaName,         // schemaname
+              tableName,          // tablename
+              "splunk_admin",     // tableowner
+              null,               // tablespace
+              false,              // hasindexes
+              false,              // hasrules
+              false,              // hastriggers
+              false               // rowsecurity
+          });
         }
       }
 

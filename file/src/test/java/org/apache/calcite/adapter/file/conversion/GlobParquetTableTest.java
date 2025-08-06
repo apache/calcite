@@ -21,6 +21,7 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -42,6 +43,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Test cases for GlobParquetTable functionality.
  */
+@Tag("unit")
 public class GlobParquetTableTest {
 
   @TempDir

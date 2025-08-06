@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.file;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -39,6 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 /**
  * Test demonstrating file adapter capabilities relevant to materialized views.
  */
+@Tag("unit")
 public class FileAdapterCapabilitiesTest {
   @TempDir
   Path tempDir;

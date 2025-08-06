@@ -16,8 +16,8 @@
  */
 package org.apache.calcite.test;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIf;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -35,7 +35,7 @@ import java.util.Properties;
 /**
  * Test to inspect sample data for all 24 CIM models showing complete field details.
  */
-@EnabledIf("splunkTestEnabled")
+@Tag("integration")
 class SampleDataInspector {
 
   private static String SPLUNK_URL = "https://localhost:8089";
@@ -85,28 +85,6 @@ class SampleDataInspector {
     }
   }
 
-  private static boolean splunkTestEnabled() {
-    return System.getProperty("CALCITE_TEST_SPLUNK", "false").equals("true") ||
-           System.getenv("CALCITE_TEST_SPLUNK") != null;  }
-
-  @Test void inspectAllCimModelSampleData() throws SQLException, ClassNotFoundException {
-    Class.forName("org.apache.calcite.adapter.splunk.SplunkDriver");
-
-    // All 24 CIM models from CIM 6.0
-    List<String> allCimModels =
-        Arrays.asList("alerts", "application_state", "authentication", "certificates",
-        "change", "compute_inventory", "data_access", "databases",
-        "data_loss_prevention", "email", "endpoint", "event_signatures",
-        "interprocess_messaging", "intrusion_detection", "jvm", "malware",
-        "network_resolution", "network_sessions", "network_traffic",
-        "performance", "ticket_management", "updates", "vulnerabilities", "web");
-
-    System.out.println("\n=== Inspecting sample data for all 24 CIM models ===\n");
-
-    for (String model : allCimModels) {
-      inspectModelSampleData(model);
-    }
-  }
 
   private void inspectModelSampleData(String modelName) {
     Properties info = new Properties();

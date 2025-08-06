@@ -23,7 +23,6 @@ import com.google.common.collect.ImmutableSet;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIf;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -44,19 +43,15 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /**
  * Integration tests for Splunk adapter.
  * These tests require a live Splunk connection configured in local-properties.settings.
- *
- * Enable these tests by:
- * 1. Creating splunk/local-properties.settings with your Splunk connection details
- * 2. Running with -Dcalcite.test.splunk=true
  */
 @Tag("integration")
-@EnabledIf("splunkTestEnabled")
 class SplunkAdapterIntegrationTest {
   // Connection properties loaded from local-properties.settings
-  private static String SPLUNK_URL = "https://localhost:8089";
-  private static String SPLUNK_USER = "admin";
-  private static String SPLUNK_PASSWORD = "changeme";
+  private static String SPLUNK_URL = null;
+  private static String SPLUNK_USER = null;
+  private static String SPLUNK_PASSWORD = null;
   private static boolean DISABLE_SSL_VALIDATION = false;
+  private static boolean PROPERTIES_LOADED = false;
 
   @BeforeAll
   static void loadConnectionProperties() {
@@ -93,25 +88,37 @@ class SplunkAdapterIntegrationTest {
           DISABLE_SSL_VALIDATION = Boolean.parseBoolean(props.getProperty("splunk.ssl.insecure"));
         }
 
+        PROPERTIES_LOADED = true;
         System.out.println("Loaded Splunk connection from " + propsFile.getPath() + ": " + SPLUNK_URL);
       } catch (IOException e) {
-        System.err.println("Warning: Could not load local-properties.settings: " + e.getMessage());
+        throw new RuntimeException("Failed to load local-properties.settings: " + e.getMessage(), e);
       }
     } else {
-      System.out.println("Using default Splunk connection: " + SPLUNK_URL);
-      System.out.println("Searched for local-properties.settings in:");
+      // No properties file found - fail with clear message
+      StringBuilder errorMsg = new StringBuilder();
+      errorMsg.append("\n\nINTEGRATION TEST CONFIGURATION ERROR\n");
+      errorMsg.append("=====================================\n");
+      errorMsg.append("Splunk integration tests require local-properties.settings file.\n");
+      errorMsg.append("\nSearched in these locations:\n");
       for (File location : possibleLocations) {
-        System.out.println("  - " + location.getAbsolutePath());
+        errorMsg.append("  - ").append(location.getAbsolutePath()).append("\n");
       }
+      errorMsg.append("\nCreate local-properties.settings with:\n");
+      errorMsg.append("  splunk.url=https://your-splunk-server:8089\n");
+      errorMsg.append("  splunk.username=your-username\n");
+      errorMsg.append("  splunk.password=your-password\n");
+      errorMsg.append("  splunk.ssl.insecure=true  # if using self-signed certs\n");
+      errorMsg.append("=====================================\n");
+      throw new IllegalStateException(errorMsg.toString());
     }
   }
 
-  /**
-   * Check if Splunk integration tests are enabled.
-   */
-  private static boolean splunkTestEnabled() {
-    return System.getProperty("CALCITE_TEST_SPLUNK", "false").equals("true") ||
-           System.getenv("CALCITE_TEST_SPLUNK") != null;  }
+  private void validateConfiguration() {
+    if (!PROPERTIES_LOADED || SPLUNK_URL == null || SPLUNK_USER == null || SPLUNK_PASSWORD == null) {
+      throw new IllegalStateException(
+          "Splunk connection not properly configured. Check local-properties.settings file.");
+    }
+  }
 
   private void loadDriverClass() {
     try {
@@ -153,6 +160,7 @@ class SplunkAdapterIntegrationTest {
   }
 
   @Test void testBasicConnection() throws SQLException {
+    validateConfiguration();
     try (Connection connection = createConnection()) {
       assertThat(connection.isClosed(), is(false));
       System.out.println("Successfully connected to Splunk at " + SPLUNK_URL);
@@ -160,6 +168,7 @@ class SplunkAdapterIntegrationTest {
   }
 
   @Test void testAuthenticationModel() throws SQLException {
+    validateConfiguration();
     try (Connection connection = createConnectionWithModels("authentication");
          Statement stmt = connection.createStatement()) {
 
@@ -196,6 +205,7 @@ class SplunkAdapterIntegrationTest {
   }
 
   @Test void testWebModel() throws SQLException {
+    validateConfiguration();
     try (Connection connection = createConnectionWithModels("web");
          Statement stmt = connection.createStatement()) {
 
@@ -215,6 +225,7 @@ class SplunkAdapterIntegrationTest {
   }
 
   @Test void testMultipleCimModels() throws SQLException {
+    validateConfiguration();
     try (Connection connection = createConnectionWithModels("authentication,web,network_traffic");
          Statement stmt = connection.createStatement()) {
 
@@ -228,6 +239,7 @@ class SplunkAdapterIntegrationTest {
   }
 
   @Test void testSelectDistinct() throws SQLException {
+    validateConfiguration();
     try (Connection connection = createConnectionWithModels("web");
          Statement stmt = connection.createStatement()) {
 
@@ -247,6 +259,7 @@ class SplunkAdapterIntegrationTest {
   }
 
   @Test void testGroupBy() throws SQLException {
+    validateConfiguration();
     try (Connection connection = createConnectionWithModels("web");
          Statement stmt = connection.createStatement()) {
 
@@ -270,6 +283,7 @@ class SplunkAdapterIntegrationTest {
   }
 
   @Test void testTimeRangeQuery() throws SQLException {
+    validateConfiguration();
     try (Connection connection = createConnectionWithModels("web");
          Statement stmt = connection.createStatement()) {
 
@@ -292,6 +306,7 @@ class SplunkAdapterIntegrationTest {
    * Test the vanity driver URL format.
    */
   @Test void testVanityDriver() throws SQLException {
+    validateConfiguration();
     loadDriverClass();
     Properties info = new Properties();
     info.setProperty("url", SPLUNK_URL);
@@ -310,6 +325,7 @@ class SplunkAdapterIntegrationTest {
    * Test with URL parameters (once supported).
    */
   @Test void testVanityDriverArgsInUrl() throws SQLException {
+    validateConfiguration();
     loadDriverClass();
 
     // This format isn't supported yet, but test the connection

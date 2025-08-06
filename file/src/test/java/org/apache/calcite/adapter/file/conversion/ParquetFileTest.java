@@ -30,6 +30,7 @@ import org.apache.parquet.hadoop.ParquetWriter;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -48,6 +49,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Test that Parquet files work as regular input files in the file adapter.
  */
+@Tag("unit")
 public class ParquetFileTest {
   @TempDir
   java.nio.file.Path tempDir;

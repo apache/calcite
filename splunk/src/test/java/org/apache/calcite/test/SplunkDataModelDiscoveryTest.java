@@ -18,7 +18,6 @@ package org.apache.calcite.test;
 
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIf;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -34,13 +33,8 @@ import java.util.Properties;
 @Tag("integration")
 public class SplunkDataModelDiscoveryTest {
 
-  private static boolean splunkTestEnabled() {
-    return System.getProperty("CALCITE_TEST_SPLUNK", "false").equals("true") ||
-           System.getenv("CALCITE_TEST_SPLUNK") != null;
-  }
 
-  @Test @EnabledIf("splunkTestEnabled")
-  public void testDataModelDiscoveryWithMetadata() throws Exception {
+  @Test   public void testDataModelDiscoveryWithMetadata() throws Exception {
     // Load driver class
     Class.forName("org.apache.calcite.adapter.splunk.SplunkDriver");
 
@@ -176,8 +170,7 @@ public class SplunkDataModelDiscoveryTest {
     }
   }
 
-  @Test @EnabledIf("splunkTestEnabled")
-  public void testDataModelDiscoveryWithDifferentApps() throws Exception {
+  @Test   public void testDataModelDiscoveryWithDifferentApps() throws Exception {
     Properties props = new Properties();
     props.load(SplunkDataModelDiscoveryTest.class.getResourceAsStream("/splunk-connection.properties"));
 
@@ -220,8 +213,7 @@ public class SplunkDataModelDiscoveryTest {
     }
   }
 
-  @Test @EnabledIf("splunkTestEnabled")
-  public void testDataModelFiltering() throws Exception {
+  @Test   public void testDataModelFiltering() throws Exception {
     Properties props = new Properties();
     props.load(SplunkDataModelDiscoveryTest.class.getResourceAsStream("/splunk-connection.properties"));
 
@@ -256,8 +248,7 @@ public class SplunkDataModelDiscoveryTest {
     }
   }
 
-  @Test @EnabledIf("splunkTestEnabled")
-  public void testSplunkSpecificMetadata() throws Exception {
+  @Test   public void testSplunkSpecificMetadata() throws Exception {
     // Load driver class
     Class.forName("org.apache.calcite.adapter.splunk.SplunkDriver");
 

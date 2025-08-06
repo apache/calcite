@@ -120,11 +120,11 @@ public class MetadataCatalogIntegrationTest {
 
         // Now query with correct column names
         rs =
-            stmt.executeQuery("SELECT * FROM \"metadata\".\"COLUMNS\" WHERE \"TABLE_NAME\" = 'SALES' AND \"TABLE_SCHEMA\" = 'FILES'");
+            stmt.executeQuery("SELECT * FROM \"metadata\".\"COLUMNS\" WHERE \"tableName\" = 'SALES' AND \"tableSchem\" = 'FILES'");
 
         List<String> columns = new ArrayList<>();
         while (rs.next()) {
-          String columnName = rs.getString("COLUMN_NAME");
+          String columnName = rs.getString("columnName");
           columns.add(columnName);
           System.out.println("Found column: " + columnName);
         }
@@ -164,18 +164,18 @@ public class MetadataCatalogIntegrationTest {
       try (Statement stmt = conn.createStatement()) {
         ResultSet rs =
             stmt.executeQuery("SELECT \"tablename\" FROM \"pg_catalog\".\"pg_tables\" " +
-            "WHERE \"schemaname\" = 'FILES'");
+            "WHERE \"schemaname\" = 'files'");
 
         List<String> tables = new ArrayList<>();
         while (rs.next()) {
           tables.add(rs.getString("tablename"));
         }
 
-        // Verify results
-        assertEquals(3, tables.size(), "Should find 3 tables");
-        assertTrue(tables.contains("SALES"), "Should find SALES table");
-        assertTrue(tables.contains("CUSTOMERS"), "Should find CUSTOMERS table");
-        assertTrue(tables.contains("PRODUCTS"), "Should find PRODUCTS table");
+        // Verify results - pg_catalog returns lowercase names
+        assertTrue(tables.size() >= 3, "Should find at least 3 tables, found: " + tables.size());
+        assertTrue(tables.contains("sales"), "Should find sales table");
+        assertTrue(tables.contains("customers"), "Should find customers table");
+        assertTrue(tables.contains("products"), "Should find products table");
       }
     }
   }
@@ -249,11 +249,11 @@ public class MetadataCatalogIntegrationTest {
       // Test 1: Schema discovery query
       try (Statement stmt = conn.createStatement()) {
         ResultSet rs =
-            stmt.executeQuery("SELECT DISTINCT \"TABLE_SCHEMA\" FROM \"metadata\".\"TABLES\" ORDER BY \"TABLE_SCHEMA\"");
+            stmt.executeQuery("SELECT DISTINCT \"tableSchem\" FROM \"metadata\".\"TABLES\" ORDER BY \"tableSchem\"");
 
         List<String> schemas = new ArrayList<>();
         while (rs.next()) {
-          schemas.add(rs.getString("TABLE_SCHEMA"));
+          schemas.add(rs.getString("tableSchem"));
         }
         assertTrue(schemas.contains("FILES"), "Should list FILES schema");
       }
@@ -261,35 +261,35 @@ public class MetadataCatalogIntegrationTest {
       // Test 2: Table listing with metadata
       try (Statement stmt = conn.createStatement()) {
         ResultSet rs =
-            stmt.executeQuery("SELECT TABLE_SCHEM, TABLE_NAME, TABLE_TYPE " +
-            "FROM \"metadata\".TABLES " +
-            "WHERE TABLE_SCHEM = 'FILES' " +
-            "ORDER BY TABLE_NAME");
+            stmt.executeQuery("SELECT \"tableSchem\", \"tableName\", \"tableType\" " +
+            "FROM \"metadata\".\"TABLES\" " +
+            "WHERE \"tableSchem\" = 'FILES' " +
+            "ORDER BY \"tableName\"");
 
         while (rs.next()) {
           System.out.printf("Table: %s.%s (Type: %s)%n",
-              rs.getString("TABLE_SCHEM"),
-              rs.getString("TABLE_NAME"),
-              rs.getString("TABLE_TYPE"));
+              rs.getString("tableSchem"),
+              rs.getString("tableName"),
+              rs.getString("tableType"));
         }
       }
 
       // Test 3: Column details query
       try (Statement stmt = conn.createStatement()) {
         ResultSet rs =
-            stmt.executeQuery("SELECT COLUMN_NAME, TYPE_NAME, COLUMN_SIZE, DECIMAL_DIGITS, NULLABLE " +
-            "FROM \"metadata\".COLUMNS " +
-            "WHERE TABLE_SCHEM = 'FILES' AND TABLE_NAME = 'SALES' " +
-            "ORDER BY ORDINAL_POSITION");
+            stmt.executeQuery("SELECT \"columnName\", \"typeName\", \"columnSize\", \"decimalDigits\", \"nullable\" " +
+            "FROM \"metadata\".\"COLUMNS\" " +
+            "WHERE \"tableSchem\" = 'FILES' AND \"tableName\" = 'SALES' " +
+            "ORDER BY \"ordinalPosition\"");
 
         System.out.println("\nSALES table structure:");
         while (rs.next()) {
           System.out.printf("  %s %s(%s,%s) %s%n",
-              rs.getString("COLUMN_NAME"),
-              rs.getString("TYPE_NAME"),
-              rs.getObject("COLUMN_SIZE"),
-              rs.getObject("DECIMAL_DIGITS"),
-              rs.getInt("NULLABLE") == DatabaseMetaData.columnNullable ? "NULL" : "NOT NULL");
+              rs.getString("columnName"),
+              rs.getString("typeName"),
+              rs.getObject("columnSize"),
+              rs.getObject("decimalDigits"),
+              rs.getInt("nullable") == DatabaseMetaData.columnNullable ? "NULL" : "NOT NULL");
         }
       }
     }

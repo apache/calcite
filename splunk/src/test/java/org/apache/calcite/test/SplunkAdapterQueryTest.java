@@ -23,7 +23,6 @@ import com.google.common.collect.ImmutableSet;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIf;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -50,13 +49,13 @@ import static org.hamcrest.MatcherAssert.assertThat;
  */
 @Tag("integration")
 @Deprecated
-@EnabledIf("splunkTestEnabled")
 class SplunkAdapterQueryTest {
-  // Default values - can be overridden by local-properties.settings
-  private static String SPLUNK_URL = "https://localhost:8089";
-  private static String SPLUNK_USER = "admin";
-  private static String SPLUNK_PASSWORD = "changeme";
+  // Connection properties must be loaded from local-properties.settings
+  private static String SPLUNK_URL = null;
+  private static String SPLUNK_USER = null;
+  private static String SPLUNK_PASSWORD = null;
   private static boolean DISABLE_SSL_VALIDATION = false;
+  private static boolean PROPERTIES_LOADED = false;
 
   @BeforeAll
   static void loadConnectionProperties() {
@@ -93,31 +92,24 @@ class SplunkAdapterQueryTest {
           DISABLE_SSL_VALIDATION = Boolean.parseBoolean(props.getProperty("splunk.ssl.insecure"));
         }
 
+        PROPERTIES_LOADED = true;
         System.out.println("Loaded Splunk connection from " + propsFile.getPath() + ": " + SPLUNK_URL);
       } catch (IOException e) {
-        System.err.println("Failed to load properties from " + propsFile.getPath() + ": " + e.getMessage());
+        throw new RuntimeException("Failed to load local-properties.settings: " + e.getMessage(), e);
       }
     } else {
-      System.out.println("No local-properties.settings found, using defaults: " + SPLUNK_URL);
-      System.out.println("Searched for local-properties.settings in:");
-      for (File location : possibleLocations) {
-        System.out.println("  - " + location.getAbsolutePath());
-      }
+      throw new IllegalStateException(
+          "Integration tests require local-properties.settings with Splunk credentials. " +
+          "Create the file with splunk.url, splunk.username, and splunk.password properties.");
     }
   }
 
-  /** Whether this test is enabled. Tests are disabled unless we know that
-   * Splunk is present and loaded with the requisite data. */
-  private boolean enabled() {
-    return System.getProperty("CALCITE_TEST_SPLUNK", "false").equals("true") ||
-           System.getenv("CALCITE_TEST_SPLUNK") != null;  }
-
-  /**
-   * Check if Splunk integration tests are enabled.
-   */
-  private static boolean splunkTestEnabled() {
-    return System.getProperty("CALCITE_TEST_SPLUNK", "false").equals("true") ||
-           System.getenv("CALCITE_TEST_SPLUNK") != null;  }
+  private void validateConfiguration() {
+    if (!PROPERTIES_LOADED || SPLUNK_URL == null || SPLUNK_USER == null || SPLUNK_PASSWORD == null) {
+      throw new IllegalStateException(
+          "Splunk connection not configured. Check local-properties.settings file.");
+    }
+  }
 
   private void loadDriverClass() {
     try {
@@ -148,10 +140,8 @@ class SplunkAdapterQueryTest {
    * Tests the vanity driver.
    */
   @Test void testVanityDriver() throws SQLException {
+    validateConfiguration();
     loadDriverClass();
-    if (!enabled()) {
-      return;
-    }
     Properties info = new Properties();
     info.setProperty("url", SPLUNK_URL);
     info.put("user", SPLUNK_USER);
@@ -168,10 +158,8 @@ class SplunkAdapterQueryTest {
    * Tests the vanity driver with properties in the URL.
    */
   @Test void testVanityDriverArgsInUrl() throws SQLException {
+    validateConfiguration();
     loadDriverClass();
-    if (!enabled()) {
-      return;
-    }
     Connection connection =
         DriverManager.getConnection("jdbc:splunk:"
             + "url='" + SPLUNK_URL + "'"
@@ -444,9 +432,7 @@ class SplunkAdapterQueryTest {
 
   private void checkSql(String sql, Function<ResultSet, Void> f)
       throws SQLException {
-    if (!enabled()) {
-      return;
-    }
+    validateConfiguration();
     loadDriverClass();
     Connection connection = null;
     Statement statement = null;
@@ -471,9 +457,7 @@ class SplunkAdapterQueryTest {
 
   private void checkSqlWithCustomSchema(String sql, String schema, Function<ResultSet, Void> f)
       throws SQLException {
-    if (!enabled()) {
-      return;
-    }
+    validateConfiguration();
     loadDriverClass();
     Connection connection = null;
     Statement statement = null;

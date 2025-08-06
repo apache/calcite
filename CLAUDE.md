@@ -17,6 +17,7 @@
 ## Testing Practices
 
 - The file adapter tests are extensive and require an extended timeout to complete
+- Running all tests requires an extended timeout
 
 ## Documentation Practices
 

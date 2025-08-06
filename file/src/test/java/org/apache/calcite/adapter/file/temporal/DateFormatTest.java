@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.file.temporal;
 
 import org.apache.calcite.adapter.file.FileAdapterTests;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
@@ -34,6 +35,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
  * Test DATE type handling to verify dates are stored as days since Unix epoch
  * without any time or timezone component.
  */
+@Tag("unit")
 public class DateFormatTest {
 
   @Test public void testDateFormats() throws Exception {

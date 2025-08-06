@@ -21,6 +21,7 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -32,6 +33,7 @@ import java.nio.file.Path;
 /**
  * Simplest possible test for Excel table detection.
  */
+@Tag("unit")
 public class SimpleExcelTest {
   @TempDir
   Path tempDir;

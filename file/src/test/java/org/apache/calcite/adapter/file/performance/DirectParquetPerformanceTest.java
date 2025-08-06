@@ -21,6 +21,7 @@ import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -42,6 +43,7 @@ import java.util.Random;
  * This test creates separate directories with only Parquet or only CSV files
  * to eliminate any conversion overhead.
  */
+@Tag("performance")
 public class DirectParquetPerformanceTest {
   @TempDir
   java.nio.file.Path tempDir;

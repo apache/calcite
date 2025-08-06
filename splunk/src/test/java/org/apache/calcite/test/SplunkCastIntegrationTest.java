@@ -19,7 +19,6 @@ package org.apache.calcite.test;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIf;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -41,13 +40,13 @@ import static org.junit.jupiter.api.Assertions.*;
  * Enable these tests by running with -Dcalcite.test.splunk=true
  */
 @Tag("integration")
-@EnabledIf("splunkTestEnabled")
 class SplunkCastIntegrationTest {
   // Connection properties loaded from local-properties.settings
-  private static String SPLUNK_URL = "https://localhost:8089";
-  private static String SPLUNK_USER = "admin";
-  private static String SPLUNK_PASSWORD = "changeme";
+  private static String SPLUNK_URL = null;
+  private static String SPLUNK_USER = null;
+  private static String SPLUNK_PASSWORD = null;
   private static boolean DISABLE_SSL_VALIDATION = false;
+  private static boolean PROPERTIES_LOADED = false;
 
   @BeforeAll
   static void loadConnectionProperties() {
@@ -97,13 +96,6 @@ class SplunkCastIntegrationTest {
     }
   }
 
-  /**
-   * Check if Splunk integration tests are enabled.
-   */
-  private static boolean splunkTestEnabled() {
-    return System.getProperty("CALCITE_TEST_SPLUNK", "false").equals("true") ||
-           System.getenv("CALCITE_TEST_SPLUNK") != null;
-  }
 
   private void loadDriverClass() {
     try {

@@ -100,23 +100,26 @@ public class ParquetTranslatableTable extends AbstractTable implements Translata
 
         // Handle DECIMAL type specially to preserve precision and scale
         LogicalTypeAnnotation logicalType = field.getLogicalTypeAnnotation();
+        RelDataType fieldType;
         if (logicalType instanceof LogicalTypeAnnotation.DecimalLogicalTypeAnnotation) {
           LogicalTypeAnnotation.DecimalLogicalTypeAnnotation decimalType =
               (LogicalTypeAnnotation.DecimalLogicalTypeAnnotation) logicalType;
           int precision = decimalType.getPrecision();
           int scale = decimalType.getScale();
-          types.add(typeFactory.createSqlType(SqlTypeName.DECIMAL, precision, scale));
+          fieldType = typeFactory.createSqlType(SqlTypeName.DECIMAL, precision, scale);
         } else {
           SqlTypeName sqlType = convertParquetTypeToSql(field);
           // Special handling for TIMESTAMP to ensure it's treated as local time
           if (sqlType == SqlTypeName.TIMESTAMP) {
             // Create TIMESTAMP with precision 3 (milliseconds) to match our data
             // This helps ensure consistent timestamp handling
-            types.add(typeFactory.createSqlType(sqlType, 3));
+            fieldType = typeFactory.createSqlType(sqlType, 3);
           } else {
-            types.add(typeFactory.createSqlType(sqlType));
+            fieldType = typeFactory.createSqlType(sqlType);
           }
         }
+        // All Parquet fields should be nullable
+        types.add(typeFactory.createTypeWithNullability(fieldType, true));
       }
 
       return typeFactory.createStructType(Pair.zip(names, types));

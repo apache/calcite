@@ -136,7 +136,9 @@ public class PartitionedParquetTable extends AbstractTable implements ScannableT
                           typeStr, partCol);
             }
           }
-          builder.add(partCol, typeFactory.createSqlType(sqlType));
+          // All Parquet fields should be nullable
+          builder.add(partCol, typeFactory.createTypeWithNullability(
+              typeFactory.createSqlType(sqlType), true));
         }
       }
 
@@ -171,7 +173,9 @@ public class PartitionedParquetTable extends AbstractTable implements ScannableT
     RelDataTypeFactory.Builder builder = typeFactory.builder();
     messageType.getFields().forEach(field -> {
       SqlTypeName sqlType = mapParquetTypeToSqlType(field);
-      builder.add(field.getName(), typeFactory.createSqlType(sqlType));
+      // All Parquet fields should be nullable
+      builder.add(field.getName(), typeFactory.createTypeWithNullability(
+          typeFactory.createSqlType(sqlType), true));
     });
 
     return builder.build();

@@ -14,13 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.file;
+package org.apache.calcite.adapter.file.storage.sftp;
 
 import org.apache.calcite.adapter.file.storage.SftpStorageProvider;
 import org.apache.calcite.adapter.file.storage.StorageProvider;
 import org.apache.calcite.adapter.file.storage.StorageProviderFactory;
 
-import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -36,87 +37,27 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Test for SFTP storage provider.
  *
- * Note: Most tests are disabled by default as they require external SFTP servers.
- * Enable specific tests when you have access to an SFTP server.
+ * These tests require network access to public SFTP test servers.
+ * They may fail if the servers are down or change their configuration.
  */
+@Tag("integration")
 public class SftpStorageProviderTest {
 
-  /**
-   * Test using test.rebex.net public SFTP server.
-   * This server allows anonymous access for testing.
-   */
-  @Test @Disabled("Authentication fails despite correct credentials - may need additional config")
-  void testRebexPublicSftpServer() throws IOException {
-    // test.rebex.net provides a public SFTP test server
-    // Username: demo
-    // Password: password
-    String sftpUrl = "sftp://demo:password@test.rebex.net/";
-
-    StorageProvider provider = StorageProviderFactory.createFromUrl(sftpUrl);
-    assertEquals("sftp", provider.getStorageType());
-
-    // List root directory
-    List<StorageProvider.FileEntry> entries = provider.listFiles(sftpUrl, false);
-    assertNotNull(entries);
-    assertTrue(entries.size() > 0, "Should have some files in test directory");
-
-    System.out.println("Files on test.rebex.net:");
-    for (StorageProvider.FileEntry entry : entries) {
-      System.out.printf(Locale.ROOT, "  %s %s (size: %d)%n",
-          entry.isDirectory() ? "[DIR] " : "[FILE]",
-          entry.getName(),
-          entry.getSize());
+  @BeforeEach
+  public void checkSftpTestRequirements() {
+    // Check if SFTP tests should be skipped
+    String skipSftp = System.getProperty("skipSftpTests");
+    if ("true".equalsIgnoreCase(skipSftp)) {
+      org.junit.jupiter.api.Assumptions.assumeFalse(true,
+          "SFTP tests skipped. Set -DskipSftpTests=false to enable.");
     }
-
-    // Find readme.txt which should exist
-    StorageProvider.FileEntry readmeFile = entries.stream()
-        .filter(e -> "readme.txt".equals(e.getName()))
-        .findFirst()
-        .orElse(null);
-
-    if (readmeFile != null) {
-      // Test file operations
-      assertTrue(provider.exists(readmeFile.getPath()));
-      assertFalse(provider.isDirectory(readmeFile.getPath()));
-
-      // Get metadata
-      StorageProvider.FileMetadata metadata = provider.getMetadata(readmeFile.getPath());
-      assertNotNull(metadata);
-      assertTrue(metadata.getSize() > 0);
-
-      // Download content
-      try (InputStream stream = provider.openInputStream(readmeFile.getPath())) {
-        byte[] buffer = new byte[100];
-        int bytesRead = stream.read(buffer);
-        assertTrue(bytesRead > 0);
-        System.out.println("First few bytes of readme.txt: " + new String(buffer, 0, bytesRead, StandardCharsets.UTF_8));
-      }
+    
+    // Check for SFTP test server configuration
+    String sftpTestServer = System.getProperty("sftp.test.server");
+    if (sftpTestServer == null || sftpTestServer.isEmpty()) {
+      System.out.println("WARNING: No SFTP test server configured. "
+          + "Set -Dsftp.test.server=<host> to enable full SFTP testing.");
     }
-  }
-
-  /**
-   * Test using demo.wftpserver.com (another public test server).
-   * Note: This server appears to be offline or changed credentials.
-   * Keeping test disabled until a replacement is found.
-   */
-  @Test @Disabled("Server no longer available with these credentials")
-  void testWftpPublicServer() throws IOException {
-    // demo.wftpserver.com - appears to be offline
-    // Previous credentials no longer work
-    // Keeping for reference in case server comes back online
-    String sftpUrl = "sftp://demo-user:demo-user@demo.wftpserver.com/";
-
-    StorageProvider provider = StorageProviderFactory.createFromUrl(sftpUrl);
-
-    List<StorageProvider.FileEntry> entries = provider.listFiles(sftpUrl, false);
-    assertNotNull(entries);
-
-    System.out.println("Files on demo.wftpserver.com:");
-    entries.stream().limit(10).forEach(entry -> {
-      System.out.printf(Locale.ROOT, "  %s %s%n",
-          entry.isDirectory() ? "[DIR] " : "[FILE]",
-          entry.getName());
-    });
   }
 
   /**
@@ -150,107 +91,5 @@ public class SftpStorageProviderTest {
     // Test absolute path
     resolved = provider.resolvePath("sftp://user@host.com/base/", "sftp://other@host2.com/file.txt");
     assertEquals("sftp://other@host2.com/file.txt", resolved);
-  }
-
-  /**
-   * Test with local SFTP server (if available).
-   * Uncomment and modify to test with your own SFTP server.
-   */
-  @Test @Disabled("Requires local SFTP server - enable if you have one running")
-  void testLocalSftpServer() throws IOException {
-    // Example configuration for local testing
-    String sftpUrl = "sftp://localhost/home/testuser/";
-
-    // Or with explicit credentials
-    // String sftpUrl = "sftp://testuser:password@localhost/home/testuser/";
-
-    StorageProvider provider = StorageProviderFactory.createFromUrl(sftpUrl);
-
-    List<StorageProvider.FileEntry> entries = provider.listFiles(sftpUrl, false);
-    assertNotNull(entries);
-
-    System.out.println("Local SFTP server files:");
-    entries.forEach(entry -> {
-      System.out.printf(Locale.ROOT, "  %s %s (size: %d)%n",
-          entry.isDirectory() ? "[DIR] " : "[FILE]",
-          entry.getName(),
-          entry.getSize());
-    });
-  }
-
-  /**
-   * Test configuration for Calcite schema.
-   */
-  @Test void testSchemaConfiguration() {
-    String schemaJson = "{\n"
-  +
-        "  \"version\": \"1.0\",\n"
-  +
-        "  \"defaultSchema\": \"SFTP_FILES\",\n"
-  +
-        "  \"schemas\": [{\n"
-  +
-        "    \"name\": \"SFTP_FILES\",\n"
-  +
-        "    \"type\": \"custom\",\n"
-  +
-        "    \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n"
-  +
-        "    \"operand\": {\n"
-  +
-        "      \"directory\": \"sftp://demo:password@test.rebex.net/\",\n"
-  +
-        "      \"recursive\": false\n"
-  +
-        "    }\n"
-  +
-        "  }]\n"
-  +
-        "}";
-
-    System.out.println("Example SFTP schema configuration:");
-    System.out.println(schemaJson);
-
-    // With storage configuration
-    String advancedSchemaJson = "{\n"
-  +
-        "  \"version\": \"1.0\",\n"
-  +
-        "  \"defaultSchema\": \"SFTP_FILES\",\n"
-  +
-        "  \"schemas\": [{\n"
-  +
-        "    \"name\": \"SFTP_FILES\",\n"
-  +
-        "    \"type\": \"custom\",\n"
-  +
-        "    \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n"
-  +
-        "    \"operand\": {\n"
-  +
-        "      \"storageType\": \"sftp\",\n"
-  +
-        "      \"storageConfig\": {\n"
-  +
-        "        \"username\": \"demo\",\n"
-  +
-        "        \"password\": \"password\",\n"
-  +
-        "        \"strictHostKeyChecking\": false\n"
-  +
-        "      },\n"
-  +
-        "      \"directory\": \"sftp://test.rebex.net/\",\n"
-  +
-        "      \"recursive\": false\n"
-  +
-        "    }\n"
-  +
-        "  }]\n"
-  +
-        "}";
-
-    System.out.println("\nAdvanced SFTP schema configuration:");
-    System.out.println(advancedSchemaJson);
   }
 }

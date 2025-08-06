@@ -24,6 +24,8 @@ import com.google.common.collect.Ordering;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import org.junit.jupiter.api.Tag;
+
 import java.io.PrintStream;
 import java.net.URL;
 import java.sql.Connection;
@@ -47,6 +49,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static java.util.Objects.requireNonNull;
 
 /** Helpers for test suite of the File adapter. */
+@Tag("unit")
 public abstract class FileAdapterTests {
   private FileAdapterTests() {
   }

@@ -115,6 +115,12 @@ public class SplunkSchemaFactory implements SchemaFactory {
       // Pass parentSchema so it can see sibling schemas
       SplunkPostgresMetadataSchema pgSchema = new SplunkPostgresMetadataSchema(parentSchema, "SPLUNK");
       rootSchema.add("pg_catalog", pgSchema);
+      
+      // Register pg_catalog functions
+      SchemaPlus pgCatalogSchema = rootSchema.subSchemas().get("pg_catalog");
+      if (pgCatalogSchema != null) {
+        SplunkPgCatalogFunctions.registerFunctions(pgCatalogSchema);
+      }
     }
 
     return splunkSchema;

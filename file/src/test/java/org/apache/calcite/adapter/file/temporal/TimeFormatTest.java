@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.file.temporal;
 
 import org.apache.calcite.adapter.file.FileAdapterTests;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
@@ -34,6 +35,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
  * Test TIME type handling to verify times are stored as milliseconds since midnight
  * without any timezone component.
  */
+@Tag("unit")
 public class TimeFormatTest {
 
   @Test public void testTimeFormats() throws Exception {
