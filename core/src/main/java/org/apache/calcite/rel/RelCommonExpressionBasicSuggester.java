@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
  * more than once in the query plan.
  */
 @API(since = "1.41.0", status = API.Status.EXPERIMENTAL)
-public class RelCommonExpressionIdentitySuggester implements RelCommonExpressionSuggester {
+public class RelCommonExpressionBasicSuggester implements RelCommonExpressionSuggester {
 
   @Override public Collection<RelNode> suggest(RelNode input, @Nullable Context context) {
     CommonRelExpressionRegistry localRegistry = new CommonRelExpressionRegistry();

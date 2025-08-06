@@ -37,11 +37,11 @@ import java.util.Collection;
 import static java.util.stream.Collectors.joining;
 
 /**
- * Tests for {@link RelCommonExpressionIdentitySuggester}.
+ * Tests for {@link RelCommonExpressionBasicSuggester}.
  * The tests ensure that the suggester can correctly identify common expressions in the query plan
  * that have a certain structure.
  */
-public class RelCommonExpressionIdentitySuggesterTest {
+public class RelCommonExpressionBasicSuggesterTest {
 
   @Test void testSingleFilterScanSuggestion() {
     checkSuggestions();
@@ -76,10 +76,10 @@ public class RelCommonExpressionIdentitySuggesterTest {
   }
 
   private void checkSuggestions() {
-    DiffRepository diffRepo = DiffRepository.lookup(RelCommonExpressionIdentitySuggesterTest.class);
+    DiffRepository diffRepo = DiffRepository.lookup(RelCommonExpressionBasicSuggesterTest.class);
     RelNode rel = toRel(diffRepo.expand("sql", "${sql}"));
     diffRepo.assertEquals("plan", "${plan}", RelOptUtil.toString(rel));
-    RelCommonExpressionSuggester suggester = new RelCommonExpressionIdentitySuggester();
+    RelCommonExpressionSuggester suggester = new RelCommonExpressionBasicSuggester();
     Collection<RelNode> output = suggester.suggest(rel, null);
     String result = output.stream().map(RelOptUtil::toString).sorted().collect(joining("\n"));
     diffRepo.assertEquals("suggestions", "${suggestions}", result);
