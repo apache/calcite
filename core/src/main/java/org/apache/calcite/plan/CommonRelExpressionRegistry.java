@@ -38,7 +38,7 @@ public final class CommonRelExpressionRegistry {
    *
    * <p>The expressions may contain internal planning concepts such as {@link org.apache.calcite.plan.hep.HepRelVertex}.
    */
-  private final Map<String, RelNode> rels = new HashMap<>();
+  private final Map<RelDigest, RelNode> rels = new HashMap<>();
 
   /**
    * Adds the specified expression to this registry.
@@ -46,7 +46,7 @@ public final class CommonRelExpressionRegistry {
    * @param rel a relational expression to be added to the registry.
    */
   public void add(RelNode rel) {
-    this.rels.put(rel.getDigest(), rel);
+    this.rels.put(rel.getRelDigest(), rel);
   }
 
   /**
