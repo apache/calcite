@@ -78,6 +78,11 @@ public class RelSuggesterFixture {
     });
   }
 
+  /** Checks that the actual and reference file are consistent. */
+  public void checkActualAndReferenceFiles() {
+    diffRepo.checkActualAndReferenceFiles();
+  }
+
   private RelNode toRel(String sql) {
     Planner planner =
         Frameworks.getPlanner(Frameworks.newConfigBuilder().defaultSchema(schema).build());

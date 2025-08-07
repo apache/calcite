@@ -18,6 +18,7 @@ package org.apache.calcite.rel;
 
 import org.apache.calcite.test.RelSuggesterFixture;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -27,9 +28,13 @@ import org.junit.jupiter.api.Test;
  */
 public class RelCommonExpressionBasicSuggesterTest {
 
-  private RelSuggesterFixture sql(String sql) {
+  private static RelSuggesterFixture fixture() {
     return RelSuggesterFixture.of(RelCommonExpressionBasicSuggesterTest.class,
-        new RelCommonExpressionBasicSuggester()).withSql(sql);
+        new RelCommonExpressionBasicSuggester());
+  }
+
+  private static RelSuggesterFixture sql(String sql) {
+    return fixture().withSql(sql);
   }
 
   @Test void testSuggestReturnsCommonFilterTableScan() {
@@ -101,6 +106,10 @@ public class RelCommonExpressionBasicSuggesterTest {
         + "INTERSECT\n"
         + "SELECT * FROM cx WHERE cnt < 100";
     sql(sql).checkSuggestions();
+  }
+
+  @AfterAll static void checkActualAndReferenceFiles() {
+    fixture().checkActualAndReferenceFiles();
   }
 
 }
