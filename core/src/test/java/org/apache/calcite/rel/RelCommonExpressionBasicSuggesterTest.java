@@ -43,14 +43,14 @@ import static java.util.stream.Collectors.joining;
  */
 public class RelCommonExpressionBasicSuggesterTest {
 
-  @Test void testSingleFilterScanSuggestion() {
+  @Test void testSuggestReturnsCommonFilterTableScan() {
     String sql = "SELECT '2025' FROM emp WHERE empno = 1\n"
         + "UNION\n"
         + "SELECT '2024' FROM emp WHERE empno = 1";
     checkSuggestions(sql);
   }
 
-  @Test void testTwoFilterScanSuggestions() {
+  @Test void testSuggestReturnsTwoCommonFilterTableScans() {
     String sql = "SELECT '2025' FROM emp WHERE empno = 1\n"
         + "UNION\n"
         + "SELECT '2024' FROM emp WHERE empno = 1\n"
@@ -61,28 +61,28 @@ public class RelCommonExpressionBasicSuggesterTest {
     checkSuggestions(sql);
   }
 
-  @Test void testSingleProjectFilterScanSuggestion() {
+  @Test void testSuggestReturnsCommonProjectFilterTableScan() {
     String sql = "SELECT ename FROM emp WHERE empno = 1\n"
         + "UNION\n"
         + "SELECT ename FROM emp WHERE empno = 1";
     checkSuggestions(sql);
   }
 
-  @Test void testSingleAggregateProjectScanSuggestion() {
+  @Test void testSuggestReturnsCommonAggregateProjectTableScan() {
     String sql = "SELECT COUNT(*), 'A' FROM emp GROUP BY ename\n"
         + "UNION\n"
         + "SELECT COUNT(*), 'B' FROM emp GROUP BY ename";
     checkSuggestions(sql);
   }
 
-  @Test void testSingleAggregateProjectFilterScanSuggestion() {
+  @Test void testSuggestReturnsCommonAggregateProjectFilterTableScan() {
     String sql = "SELECT COUNT(*), 'A' FROM emp WHERE empno > 50 GROUP BY ename\n"
         + "UNION\n"
         + "SELECT COUNT(*), 'B' FROM emp WHERE empno > 50 GROUP BY ename";
     checkSuggestions(sql);
   }
 
-  @Test void testSingleProjectJoinScanSuggestion() {
+  @Test void testSuggestReturnsCommonProjectJoinTableScan() {
     String sql = "WITH cx AS (\n"
         + "SELECT e.empno, d.dname FROM emp e\n"
         + "INNER JOIN dept d ON e.deptno = d.deptno)\n"
@@ -92,7 +92,7 @@ public class RelCommonExpressionBasicSuggesterTest {
     checkSuggestions(sql);
   }
 
-  @Test void testSingleProjectFilterJoinScanSuggestion() {
+  @Test void testSuggestReturnsCommonProjectFilterJoinTableScan() {
     String sql = "WITH cx AS (\n"
         + "SELECT e.empno, d.dname FROM emp e\n"
         + "INNER JOIN dept d ON e.deptno = d.deptno\n"
@@ -103,7 +103,7 @@ public class RelCommonExpressionBasicSuggesterTest {
     checkSuggestions(sql);
   }
 
-  @Test void testSingleAggregateProjectFilterJoinScanSuggestion() {
+  @Test void testSuggestReturnsCommonAggregateProjectFilterJoinTableScan() {
     String sql = "WITH cx AS (\n"
         + "SELECT ename, COUNT(*) as cnt FROM emp e\n"
         + "INNER JOIN dept d ON e.deptno = d.deptno\n"
