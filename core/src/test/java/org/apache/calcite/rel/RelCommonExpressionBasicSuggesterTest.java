@@ -32,9 +32,7 @@ import org.apache.calcite.tools.ValidationException;
 
 import org.junit.jupiter.api.Test;
 
-import java.util.Collection;
-
-import static java.util.stream.Collectors.joining;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Tests for {@link RelCommonExpressionBasicSuggester}.
@@ -118,9 +116,11 @@ public class RelCommonExpressionBasicSuggesterTest {
     DiffRepository diffRepo = DiffRepository.lookup(RelCommonExpressionBasicSuggesterTest.class);
     RelNode rel = toRel(sql);
     RelCommonExpressionSuggester suggester = new RelCommonExpressionBasicSuggester();
-    Collection<RelNode> output = suggester.suggest(rel, null);
-    String result = output.stream().map(RelOptUtil::toString).sorted().collect(joining("\n"));
-    diffRepo.assertEquals("suggestions", "${suggestions}", result);
+    AtomicInteger i = new AtomicInteger();
+    suggester.suggest(rel, null).stream().map(RelOptUtil::toString).sorted().forEach(plan -> {
+      String tag = "suggestion_" + i.getAndIncrement();
+      diffRepo.assertEquals(tag, "${" + tag + "}", plan);
+    });
   }
 
   private static RelNode toRel(String sql) {

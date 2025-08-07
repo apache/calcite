@@ -17,7 +17,7 @@
   -->
 <Root>
   <TestCase name="testSuggestReturnsCommonAggregateProjectFilterJoinTableScan">
-    <Resource name="suggestions">
+    <Resource name="suggestion_0">
       <![CDATA[LogicalAggregate(group=[{0}], CNT=[COUNT()])
   LogicalProject(ENAME=[$1])
     LogicalFilter(condition=[=($4, 'Sales')])
@@ -27,42 +27,8 @@
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testSuggestReturnsCommonAggregateProjectFilterTableScan">
-    <Resource name="suggestions">
-      <![CDATA[LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])
-  LogicalProject(ENAME=[$1])
-    LogicalFilter(condition=[>($0, 50)])
-      LogicalTableScan(table=[[EMP]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testSuggestReturnsCommonAggregateProjectTableScan">
-    <Resource name="suggestions">
-      <![CDATA[LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])
-  LogicalProject(ENAME=[$1])
-    LogicalTableScan(table=[[EMP]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testSuggestReturnsCommonFilterTableScan">
-    <Resource name="suggestions">
-      <![CDATA[LogicalFilter(condition=[=($0, 1)])
-  LogicalTableScan(table=[[EMP]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testSuggestReturnsTwoCommonFilterTableScans">
-    <Resource name="suggestions">
-      <![CDATA[LogicalFilter(condition=[=($0, 1)])
-  LogicalTableScan(table=[[EMP]])
-
-LogicalFilter(condition=[=($0, 2)])
-  LogicalTableScan(table=[[EMP]])
-]]>
-    </Resource>
-  </TestCase>
   <TestCase name="testSuggestReturnsCommonProjectFilterJoinTableScan">
-    <Resource name="suggestions">
+    <Resource name="suggestion_0">
       <![CDATA[LogicalProject(EMPNO=[$0], DNAME=[$4])
   LogicalFilter(condition=[=($4, 'Sales')])
     LogicalJoin(condition=[=($2, $3)], joinType=[inner])
@@ -71,8 +37,25 @@ LogicalFilter(condition=[=($0, 2)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testSuggestReturnsCommonAggregateProjectFilterTableScan">
+    <Resource name="suggestion_0">
+      <![CDATA[LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])
+  LogicalProject(ENAME=[$1])
+    LogicalFilter(condition=[>($0, 50)])
+      LogicalTableScan(table=[[EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSuggestReturnsCommonAggregateProjectTableScan">
+    <Resource name="suggestion_0">
+      <![CDATA[LogicalAggregate(group=[{0}], EXPR$0=[COUNT()])
+  LogicalProject(ENAME=[$1])
+    LogicalTableScan(table=[[EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testSuggestReturnsCommonProjectJoinTableScan">
-    <Resource name="suggestions">
+    <Resource name="suggestion_0">
       <![CDATA[LogicalProject(EMPNO=[$0], DNAME=[$4])
   LogicalJoin(condition=[=($2, $3)], joinType=[inner])
     LogicalTableScan(table=[[EMP]])
@@ -80,11 +63,30 @@ LogicalFilter(condition=[=($0, 2)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testSuggestReturnsCommonFilterTableScan">
+    <Resource name="suggestion_0">
+      <![CDATA[LogicalFilter(condition=[=($0, 1)])
+  LogicalTableScan(table=[[EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testSuggestReturnsCommonProjectFilterTableScan">
-    <Resource name="suggestions">
+    <Resource name="suggestion_0">
       <![CDATA[LogicalProject(ENAME=[$1])
   LogicalFilter(condition=[=($0, 1)])
     LogicalTableScan(table=[[EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSuggestReturnsTwoCommonFilterTableScans">
+    <Resource name="suggestion_0">
+      <![CDATA[LogicalFilter(condition=[=($0, 1)])
+  LogicalTableScan(table=[[EMP]])
+]]>
+    </Resource>
+    <Resource name="suggestion_1">
+      <![CDATA[LogicalFilter(condition=[=($0, 2)])
+  LogicalTableScan(table=[[EMP]])
 ]]>
     </Resource>
   </TestCase>
