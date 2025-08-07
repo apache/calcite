@@ -16,23 +16,9 @@
  */
 package org.apache.calcite.rel;
 
-import org.apache.calcite.jdbc.CalciteSchema;
-import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.schema.impl.AbstractTable;
-import org.apache.calcite.sql.parser.SqlParseException;
-import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.test.DiffRepository;
-import org.apache.calcite.tools.Frameworks;
-import org.apache.calcite.tools.Planner;
-import org.apache.calcite.tools.RelConversionException;
-import org.apache.calcite.tools.ValidationException;
+import org.apache.calcite.test.RelSuggesterFixture;
 
 import org.junit.jupiter.api.Test;
-
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Tests for {@link RelCommonExpressionBasicSuggester}.
@@ -41,11 +27,16 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class RelCommonExpressionBasicSuggesterTest {
 
+  private RelSuggesterFixture sql(String sql) {
+    return RelSuggesterFixture.of(RelCommonExpressionBasicSuggesterTest.class,
+        new RelCommonExpressionBasicSuggester()).withSql(sql);
+  }
+
   @Test void testSuggestReturnsCommonFilterTableScan() {
     String sql = "SELECT '2025' FROM emp WHERE empno = 1\n"
         + "UNION\n"
         + "SELECT '2024' FROM emp WHERE empno = 1";
-    checkSuggestions(sql);
+    sql(sql).checkSuggestions();
   }
 
   @Test void testSuggestReturnsTwoCommonFilterTableScans() {
@@ -56,28 +47,28 @@ public class RelCommonExpressionBasicSuggesterTest {
         + "SELECT '2023' FROM emp WHERE empno = 2\n"
         + "UNION\n"
         + "SELECT '2022' FROM emp WHERE empno = 2";
-    checkSuggestions(sql);
+    sql(sql).checkSuggestions();
   }
 
   @Test void testSuggestReturnsCommonProjectFilterTableScan() {
     String sql = "SELECT ename FROM emp WHERE empno = 1\n"
         + "UNION\n"
         + "SELECT ename FROM emp WHERE empno = 1";
-    checkSuggestions(sql);
+    sql(sql).checkSuggestions();
   }
 
   @Test void testSuggestReturnsCommonAggregateProjectTableScan() {
     String sql = "SELECT COUNT(*), 'A' FROM emp GROUP BY ename\n"
         + "UNION\n"
         + "SELECT COUNT(*), 'B' FROM emp GROUP BY ename";
-    checkSuggestions(sql);
+    sql(sql).checkSuggestions();
   }
 
   @Test void testSuggestReturnsCommonAggregateProjectFilterTableScan() {
     String sql = "SELECT COUNT(*), 'A' FROM emp WHERE empno > 50 GROUP BY ename\n"
         + "UNION\n"
         + "SELECT COUNT(*), 'B' FROM emp WHERE empno > 50 GROUP BY ename";
-    checkSuggestions(sql);
+    sql(sql).checkSuggestions();
   }
 
   @Test void testSuggestReturnsCommonProjectJoinTableScan() {
@@ -87,7 +78,7 @@ public class RelCommonExpressionBasicSuggesterTest {
         + "SELECT * FROM cx WHERE cx.empno > 50\n"
         + "INTERSECT\n"
         + "SELECT * FROM cx WHERE cx.empno < 100";
-    checkSuggestions(sql);
+    sql(sql).checkSuggestions();
   }
 
   @Test void testSuggestReturnsCommonProjectFilterJoinTableScan() {
@@ -98,7 +89,7 @@ public class RelCommonExpressionBasicSuggesterTest {
         + "SELECT * FROM cx WHERE cx.empno > 50\n"
         + "INTERSECT\n"
         + "SELECT * FROM cx WHERE cx.empno < 100";
-    checkSuggestions(sql);
+    sql(sql).checkSuggestions();
   }
 
   @Test void testSuggestReturnsCommonAggregateProjectFilterJoinTableScan() {
@@ -109,50 +100,7 @@ public class RelCommonExpressionBasicSuggesterTest {
         + "SELECT * FROM cx WHERE cnt > 50\n"
         + "INTERSECT\n"
         + "SELECT * FROM cx WHERE cnt < 100";
-    checkSuggestions(sql);
+    sql(sql).checkSuggestions();
   }
 
-  private void checkSuggestions(String sql) {
-    DiffRepository diffRepo = DiffRepository.lookup(RelCommonExpressionBasicSuggesterTest.class);
-    RelNode rel = toRel(sql);
-    RelCommonExpressionSuggester suggester = new RelCommonExpressionBasicSuggester();
-    AtomicInteger i = new AtomicInteger();
-    suggester.suggest(rel, null).stream().map(RelOptUtil::toString).sorted().forEach(plan -> {
-      String tag = "suggestion_" + i.getAndIncrement();
-      diffRepo.assertEquals(tag, "${" + tag + "}", plan);
-    });
-  }
-
-  private static RelNode toRel(String sql) {
-    Planner planner =
-        Frameworks.getPlanner(Frameworks.newConfigBuilder().defaultSchema(schema()).build());
-    try {
-      return planner.rel(planner.validate(planner.parse(sql))).rel;
-    } catch (SqlParseException | RelConversionException | ValidationException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  private static SchemaPlus schema() {
-    SchemaPlus schema = CalciteSchema.createRootSchema(false, false).plus();
-    schema.add("EMP", new AbstractTable() {
-      @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-        return typeFactory.builder()
-            .add("EMPNO", SqlTypeName.INTEGER)
-            .add("ENAME", SqlTypeName.VARCHAR)
-            .add("DEPTNO", SqlTypeName.INTEGER)
-            .build();
-      }
-    });
-    schema.add("DEPT", new AbstractTable() {
-      @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-        return typeFactory.builder()
-            .add("DEPTNO", SqlTypeName.INTEGER)
-            .add("DNAME", SqlTypeName.VARCHAR)
-            .add("EMPNO", SqlTypeName.INTEGER)
-            .build();
-      }
-    });
-    return schema;
-  }
 }
