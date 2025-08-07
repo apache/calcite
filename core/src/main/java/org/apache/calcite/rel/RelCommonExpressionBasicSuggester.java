@@ -31,7 +31,7 @@ import java.util.Collection;
 import java.util.stream.Collectors;
 
 /**
- * Suggester for common table expressions that appear as is (identical trees)
+ * Suggester for common relational expressions that appear as is (identical trees)
  * more than once in the query plan.
  */
 @API(since = "1.41.0", status = API.Status.EXPERIMENTAL)
