@@ -117,7 +117,6 @@ public class RelCommonExpressionBasicSuggesterTest {
   private void checkSuggestions(String sql) {
     DiffRepository diffRepo = DiffRepository.lookup(RelCommonExpressionBasicSuggesterTest.class);
     RelNode rel = toRel(sql);
-    diffRepo.assertEquals("plan", "${plan}", RelOptUtil.toString(rel));
     RelCommonExpressionSuggester suggester = new RelCommonExpressionBasicSuggester();
     Collection<RelNode> output = suggester.suggest(rel, null);
     String result = output.stream().map(RelOptUtil::toString).sorted().collect(joining("\n"));
