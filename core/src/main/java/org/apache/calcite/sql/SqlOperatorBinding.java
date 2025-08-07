@@ -75,6 +75,10 @@ public abstract class SqlOperatorBinding {
     return -1;
   }
 
+  public boolean allowChangeNullable() {
+    return true;
+  }
+
   /**
    * Returns whether the operator is an aggregate function with a filter.
    */

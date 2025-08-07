@@ -580,6 +580,7 @@ public abstract class Aggregate extends SingleRel implements Hintable {
     private final List<RelDataType> operands;
     private final int groupCount;
     private final boolean filter;
+    private final boolean allowChangeNullable;
 
     /**
      * Creates an AggCallBinding.
@@ -594,7 +595,7 @@ public abstract class Aggregate extends SingleRel implements Hintable {
     public AggCallBinding(RelDataTypeFactory typeFactory,
         SqlAggFunction aggFunction, List<RelDataType> preOperands,
         List<RelDataType> operands, int groupCount,
-        boolean filter) {
+        boolean filter, boolean allowChangeNullable) {
       super(typeFactory, aggFunction);
       this.preOperands = requireNonNull(preOperands, "preOperands");
       this.operands =
@@ -602,6 +603,7 @@ public abstract class Aggregate extends SingleRel implements Hintable {
               "operands of aggregate call should not be null");
       this.groupCount = groupCount;
       this.filter = filter;
+      this.allowChangeNullable = allowChangeNullable;
       checkArgument(groupCount >= 0,
           "number of group by columns should be greater than zero in "
               + "aggregate call. Got %s", groupCount);
@@ -612,7 +614,11 @@ public abstract class Aggregate extends SingleRel implements Hintable {
         SqlAggFunction aggFunction, List<RelDataType> operands, int groupCount,
         boolean filter) {
       this(typeFactory, aggFunction, ImmutableList.of(), operands, groupCount,
-          filter);
+          filter, true);
+    }
+
+    @Override public boolean allowChangeNullable() {
+      return allowChangeNullable;
     }
 
     @Override public int getGroupCount() {
