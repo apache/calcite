@@ -150,6 +150,11 @@ public class JoinCommuteRule
       return false;
     }
 
+    // If rightToLeftOnly is enabled, only allow RIGHT joins to be swapped
+    if (config.isRightToLeftOnly() && join.getJoinType() != JoinRelType.RIGHT) {
+      return false;
+    }
+
     // Suppress join with "true" condition (that is, cartesian joins).
     return config.isAllowAlwaysTrueCondition()
         || !join.getCondition().isAlwaysTrue();
@@ -241,6 +246,8 @@ public class JoinCommuteRule
 
     Config SWAP_OUTER = DEFAULT.withSwapOuter(true);
 
+    Config RIGHT_TO_LEFT_ONLY = DEFAULT.withRightToLeftOnly(true).withSwapOuter(true);
+
     @Override default JoinCommuteRule toRule() {
       return new JoinCommuteRule(this);
     }
@@ -273,5 +280,13 @@ public class JoinCommuteRule
 
     /** Sets {@link #isAllowAlwaysTrueCondition()}. */
     Config withAllowAlwaysTrueCondition(boolean allowAlwaysTrueCondition);
+
+    /** If true, only RIGHT JOIN will be swapped; default false. */
+    @Value.Default default boolean isRightToLeftOnly() {
+      return false;
+    }
+
+    /** Sets {@link #isRightToLeftOnly()}. */
+    Config withRightToLeftOnly(boolean isRightToLeftOnly);
   }
 }

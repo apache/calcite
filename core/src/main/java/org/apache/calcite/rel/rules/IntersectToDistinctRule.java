@@ -16,18 +16,23 @@
  */
 package org.apache.calcite.rel.rules;
 
+import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.logical.LogicalIntersect;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilder.AggCall;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Util;
 
 import org.immutables.value.Value;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -41,30 +46,12 @@ import static org.apache.calcite.util.Util.skipLast;
  * {@link org.apache.calcite.rel.core.Union},
  * {@link org.apache.calcite.rel.core.Aggregate}, etc.
  *
- * <h2>Example</h2>
- *
- * <p>Original query:
- * <pre>{@code
- * SELECT job FROM "scott".emp WHERE deptno = 10
- * INTERSECT
- * SELECT job FROM "scott".emp WHERE deptno = 20
- * }</pre>
- *
- * <p>Query after conversion:
- * <pre>{@code
- * SELECT job
- * FROM (
- *   SELECT job, 0 AS i FROM "scott".emp WHERE deptno = 10
- *   UNION ALL
- *   SELECT job, 1 AS i FROM "scott".emp WHERE deptno = 20
- * )
- * GROUP BY job
- * HAVING COUNT(*) FILTER (WHERE i = 0) > 0
- *    AND COUNT(*) FILTER (WHERE i = 1) > 0
- * }</pre>
+ * <p>The rule has a configuration option to control whether it should also perform
+ * a (partial) aggregation pushdown in the union branches (default behavior).
  *
  * @see org.apache.calcite.rel.rules.UnionToDistinctRule
  * @see CoreRules#INTERSECT_TO_DISTINCT
+ * @see CoreRules#INTERSECT_TO_DISTINCT_NO_AGGREGATE_PUSHDOWN
  */
 @Value.Enclosing
 public class IntersectToDistinctRule
@@ -85,8 +72,38 @@ public class IntersectToDistinctRule
   }
 
   //~ Methods ----------------------------------------------------------------
-
   @Override public void onMatch(RelOptRuleCall call) {
+    if (config.isAggregatePushdown()) {
+      onMatchAggregatePushdown(call);
+    } else {
+      onMatchAggregateOnUnion(call);
+    }
+  }
+
+  /**
+   * Variant not performing a partial aggregation pushdown.
+   *
+   * <p>Original query:
+   * <pre>{@code
+   * SELECT job FROM "scott".emp WHERE deptno = 10
+   * INTERSECT
+   * SELECT job FROM "scott".emp WHERE deptno = 20
+   * }</pre>
+   *
+   * <p>Query after conversion:
+   * <pre>{@code
+   * SELECT job
+   * FROM (
+   *   SELECT job, 0 AS i FROM "scott".emp WHERE deptno = 10
+   *   UNION ALL
+   *   SELECT job, 1 AS i FROM "scott".emp WHERE deptno = 20
+   * )
+   * GROUP BY job
+   * HAVING COUNT(*) FILTER (WHERE i = 0) > 0
+   *    AND COUNT(*) FILTER (WHERE i = 1) > 0
+   * }</pre>
+   */
+  public void onMatchAggregateOnUnion(RelOptRuleCall call) {
     final Intersect intersect = call.rel(0);
     if (intersect.all) {
       return; // nothing we can do
@@ -126,11 +143,85 @@ public class IntersectToDistinctRule
     call.transformTo(relBuilder.build());
   }
 
+  /**
+   * Variant performing a partial aggregation pushdown.
+   *
+   * <p>Original query:
+   * <pre>{@code
+   * SELECT job FROM "scott".emp WHERE deptno = 10
+   * INTERSECT
+   * SELECT job FROM "scott".emp WHERE deptno = 20
+   * }</pre>
+   *
+   * <p>Query after conversion:
+   * <pre>{@code
+   * SELECT job
+   * FROM (
+   *   SELECT job, COUNT(*) AS c
+   *   FROM (
+   *     SELECT job, COUNT(*) FROM "scott".emp
+   *     WHERE deptno = 10 GROUP BY job
+   *     UNION ALL
+   *     SELECT job, COUNT(*) FROM "scott".emp
+   *     WHERE deptno = 20 GROUP BY job)
+   *   GROUP BY job)
+   * WHERE c = 2
+   * }</pre>
+   */
+  public void onMatchAggregatePushdown(RelOptRuleCall call) {
+    final Intersect intersect = call.rel(0);
+    if (intersect.all) {
+      return; // nothing we can do
+    }
+    final RelOptCluster cluster = intersect.getCluster();
+    final RexBuilder rexBuilder = cluster.getRexBuilder();
+    final RelBuilder relBuilder = call.builder();
+
+    // 1st level aggregate: create an aggregate(col_0, ..., col_n, count(*)), for each branch
+    for (RelNode input : intersect.getInputs()) {
+      relBuilder.push(input);
+      relBuilder.aggregate(relBuilder.groupKey(relBuilder.fields()),
+          relBuilder.countStar(null));
+    }
+
+    // create a union above all the branches
+    final int branchCount = intersect.getInputs().size();
+    relBuilder.union(true, branchCount);
+    final RelNode union = relBuilder.peek();
+
+    // 2nd level aggregate: create an aggregate(col_0, ..., col_n, count(*)), for each branch
+    // the index of the counter is union.getRowType().getFieldList().size() - 1
+    final int fieldCount = union.getRowType().getFieldCount();
+
+    final ImmutableBitSet groupSet =
+        ImmutableBitSet.range(fieldCount - 1);
+    relBuilder.aggregate(relBuilder.groupKey(groupSet),
+        relBuilder.countStar(null));
+
+    // add a filter count(*) = #branches
+    relBuilder.filter(
+        relBuilder.equals(relBuilder.field(fieldCount - 1),
+            rexBuilder.makeBigintLiteral(new BigDecimal(branchCount))));
+
+    // Project all but the last field
+    relBuilder.project(Util.skipLast(relBuilder.fields()));
+
+    // the schema for intersect distinct matches that of the relation,
+    // built here with an extra last column for the count,
+    // which is projected out by the final project we added
+    call.transformTo(relBuilder.build());
+  }
+
   /** Rule configuration. */
   @Value.Immutable
   public interface Config extends RelRule.Config {
     Config DEFAULT = ImmutableIntersectToDistinctRule.Config.of()
         .withOperandFor(LogicalIntersect.class);
+
+    Config NO_AGGREGATE_PUSHDOWN = DEFAULT
+        .withDescription("IntersectToDistinctRule(NoAggregatePushDown)")
+        .as(Config.class)
+        .withAggregatePushdown(false);
 
     @Override default IntersectToDistinctRule toRule() {
       return new IntersectToDistinctRule(this);
@@ -141,5 +232,13 @@ public class IntersectToDistinctRule
       return withOperandSupplier(b -> b.operand(intersectClass).anyInputs())
           .as(Config.class);
     }
+
+    /** Whether to apply partial aggregate pushdown; default true. */
+    @Value.Default default boolean isAggregatePushdown() {
+      return true;
+    }
+
+    /** Sets {@link #isAggregatePushdown()} ()}. */
+    Config withAggregatePushdown(boolean aggregatePushdown);
   }
 }

@@ -17,6 +17,7 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.parser.StringAndPos;
 import org.apache.calcite.sql.test.AbstractSqlTester;
 import org.apache.calcite.sql.test.SqlTestFactory;
@@ -36,7 +37,8 @@ class SqlRuntimeTester extends AbstractSqlTester {
 
   @Override public void checkFails(SqlTestFactory factory, StringAndPos sap,
       String expectedError, boolean runtime) {
-    final StringAndPos sap2 = StringAndPos.of(buildQuery(sap.addCarets()));
+    String built = buildQuery(sap);
+    final StringAndPos sap2 = StringAndPos.of(SqlParserUtil.escapeCarets(built));
     assertExceptionIsThrown(factory, sap2, expectedError, runtime);
   }
 
@@ -74,7 +76,7 @@ class SqlRuntimeTester extends AbstractSqlTester {
       SqlNode validated = validator.validate(sqlNode);
       assertNotNull(validated);
       try {
-        check(factory, sap.sql, SqlTests.ANY_TYPE_CHECKER,
+        check(factory, sap.addCarets(), SqlTests.ANY_TYPE_CHECKER,
             SqlTests.ANY_PARAMETER_CHECKER, SqlTests.ANY_RESULT_CHECKER);
       } catch (Throwable ex) {
         // get the real exception in runtime check

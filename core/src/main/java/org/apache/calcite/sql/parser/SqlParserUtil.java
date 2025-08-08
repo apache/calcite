@@ -742,10 +742,16 @@ public final class SqlParserUtil {
     return i + column;
   }
 
+  /** Given a string with carets, double each of them.
+   * (This should probably be more sophisticated, and ignore carets within string literals). */
+  public static String escapeCarets(String sql) {
+    return sql.replace("^", "^^");
+  }
+
   /**
    * Converts a string to a string with one or two carets in it. For example,
    * <code>addCarets("values (foo)", 1, 9, 1, 12)</code> yields "values
-   * (^foo^)".
+   * (^foo^)".  Existing carets are escaped by doubling.
    */
   public static String addCarets(
       String sql,
@@ -755,8 +761,8 @@ public final class SqlParserUtil {
       int endCol) {
     String sqlWithCarets;
     int cut = lineColToIndex(sql, line, col);
-    sqlWithCarets = sql.substring(0, cut) + "^"
-        + sql.substring(cut);
+    sqlWithCarets = escapeCarets(sql.substring(0, cut)) + "^"
+        + escapeCarets(sql.substring(cut));
     if ((col != endCol) || (line != endLine)) {
       cut = lineColToIndex(sqlWithCarets, endLine, endCol);
       if (line == endLine) {
@@ -765,7 +771,7 @@ public final class SqlParserUtil {
       if (cut < sqlWithCarets.length()) {
         sqlWithCarets =
             sqlWithCarets.substring(0, cut)
-                + "^" + sqlWithCarets.substring(cut);
+                + "^" + escapeCarets(sqlWithCarets.substring(cut));
       } else {
         sqlWithCarets += "^";
       }

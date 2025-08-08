@@ -108,6 +108,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
   private BuiltInMetadata.Size.Handler sizeHandler;
   private BuiltInMetadata.UniqueKeys.Handler uniqueKeysHandler;
   private BuiltInMetadata.LowerBoundCost.Handler lowerBoundCostHandler;
+  private BuiltInMetadata.FunctionalDependency.Handler functionalDependencyHandler;
 
   /**
    * Creates the instance with {@link JaninoRelMetadataProvider} instance
@@ -154,6 +155,8 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
     this.sizeHandler = provider.handler(BuiltInMetadata.Size.Handler.class);
     this.uniqueKeysHandler = provider.handler(BuiltInMetadata.UniqueKeys.Handler.class);
     this.lowerBoundCostHandler = provider.handler(BuiltInMetadata.LowerBoundCost.Handler.class);
+    this.functionalDependencyHandler =
+        provider.handler(BuiltInMetadata.FunctionalDependency.Handler.class);
   }
 
   /** Creates and initializes the instance that will serve as a prototype for
@@ -187,6 +190,8 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
     this.sizeHandler = initialHandler(BuiltInMetadata.Size.Handler.class);
     this.uniqueKeysHandler = initialHandler(BuiltInMetadata.UniqueKeys.Handler.class);
     this.lowerBoundCostHandler = initialHandler(BuiltInMetadata.LowerBoundCost.Handler.class);
+    this.functionalDependencyHandler =
+        initialHandler(BuiltInMetadata.FunctionalDependency.Handler.class);
   }
 
   private RelMetadataQuery(
@@ -218,6 +223,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
     this.sizeHandler = prototype.sizeHandler;
     this.uniqueKeysHandler = prototype.uniqueKeysHandler;
     this.lowerBoundCostHandler = prototype.lowerBoundCostHandler;
+    this.functionalDependencyHandler = prototype.functionalDependencyHandler;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -982,6 +988,19 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
         return lowerBoundCostHandler.getLowerBoundCost(rel, this, planner);
       } catch (MetadataHandlerProvider.NoHandler e) {
         lowerBoundCostHandler = revise(BuiltInMetadata.LowerBoundCost.Handler.class);
+      }
+    }
+  }
+
+  /**
+   * Determines whether key is functionally dependent on column.
+   */
+  public @Nullable Boolean determines(RelNode rel, int key, int column) {
+    for (;;) {
+      try {
+        return functionalDependencyHandler.determines(rel, this, key, column);
+      } catch (MetadataHandlerProvider.NoHandler e) {
+        functionalDependencyHandler = revise(BuiltInMetadata.FunctionalDependency.Handler.class);
       }
     }
   }

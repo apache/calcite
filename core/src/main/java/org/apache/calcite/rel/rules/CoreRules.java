@@ -375,11 +375,17 @@ public class CoreRules {
   public static final IntersectReorderRule INTERSECT_REORDER =
       IntersectReorderRule.Config.DEFAULT.toRule();
 
-  /** Rule that translates a distinct
-   * {@link Intersect} into a group of operators
-   * composed of {@link Union}, {@link Aggregate}, etc. */
+  /** Rule that translates a distinct {@link Intersect} into a group of operators
+   * composed of {@link Union}, {@link Aggregate}, etc. The rule also applies a
+   * partial aggregation pushdown into the union branches. */
   public static final IntersectToDistinctRule INTERSECT_TO_DISTINCT =
       IntersectToDistinctRule.Config.DEFAULT.toRule();
+
+  /** As {@link #INTERSECT_TO_DISTINCT} but not applying (partial) aggregate pushdown
+   * into the union branches (behaviour introduced in CALCITE-6893). */
+  @RuleConfig(value = "NO_AGGREGATE_PUSHDOWN")
+  public static final IntersectToDistinctRule INTERSECT_TO_DISTINCT_NO_AGGREGATE_PUSHDOWN =
+      IntersectToDistinctRule.Config.NO_AGGREGATE_PUSHDOWN.toRule();
 
   /** Rule that translates a {@link Intersect}
    * into a {@link Exists} subquery. */
@@ -619,6 +625,11 @@ public class CoreRules {
   /** As {@link #JOIN_COMMUTE} but swaps outer joins as well as inner joins. */
   public static final JoinCommuteRule JOIN_COMMUTE_OUTER =
       JoinCommuteRule.Config.SWAP_OUTER.toRule();
+
+  /** As {@link #JOIN_COMMUTE} but only swaps RIGHT joins to LEFT joins. */
+  @RuleConfig(value = "RIGHT_TO_LEFT_ONLY")
+  public static final JoinCommuteRule JOIN_COMMUTE_RIGHT_TO_LEFT =
+      JoinCommuteRule.Config.RIGHT_TO_LEFT_ONLY.toRule();
 
   /** Rule to convert an
    * {@link LogicalJoin inner join} to a
@@ -953,4 +964,12 @@ public class CoreRules {
   @RuleConfig(value = "JOIN")
   public static final ExpandDisjunctionForJoinInputsRule EXPAND_JOIN_DISJUNCTION_LOCAL =
       ExpandDisjunctionForJoinInputsRule.Config.JOIN.toRule();
+
+  /** Rule that convert FULL JOIN to LEFT JOIN and RIGHT JOIN. */
+  public static final FullToLeftAndRightJoinRule FULL_TO_LEFT_AND_RIGHT_JOIN =
+      FullToLeftAndRightJoinRule.Config.DEFAULT.toRule();
+
+  /** Rule that converts true filtered aggregates into CASE-style filtered aggregates. */
+  public static final AggregateFilterToCaseRule AGGREGATE_FILTER_TO_CASE =
+      AggregateFilterToCaseRule.Config.DEFAULT.toRule();
 }

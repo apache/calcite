@@ -5345,6 +5345,38 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "select deptno, name, deptno from dept").ok();
   }
 
+  @Test void testUnionNullableTypeDerivation() {
+    sql("SELECT CAST(NULL AS DATE) UNION ALL SELECT TIMESTAMP '2025-07-04 10:00:00'")
+        .columnType("TIMESTAMP(0)");
+
+    sql("SELECT DATE '2025-07-05' UNION ALL SELECT TIMESTAMP '2025-07-04 10:00:00'")
+        .columnType("TIMESTAMP(0) NOT NULL");
+
+    sql("SELECT ARRAY[1, 2, cast(null as integer)] UNION ALL SELECT NULL")
+        .columnType("INTEGER ARRAY");
+
+    sql("SELECT ARRAY[1, 2, 3] UNION ALL SELECT NULL")
+        .columnType("INTEGER NOT NULL ARRAY");
+
+    sql("SELECT ARRAY[1, 2] UNION ALL SELECT ARRAY[3, cast(null as integer)]")
+        .columnType("INTEGER ARRAY NOT NULL");
+
+    sql("SELECT ARRAY[1, 2, 3] UNION ALL SELECT ARRAY[4, 5]")
+        .columnType("INTEGER NOT NULL ARRAY NOT NULL");
+
+    sql("SELECT MAP[1, 2, 3, 4] UNION ALL SELECT NULL")
+        .columnType("(INTEGER NOT NULL, INTEGER NOT NULL) MAP");
+
+    sql("SELECT MAP[1, 2, 3, cast(null as integer)] UNION ALL SELECT NULL")
+        .columnType("(INTEGER NOT NULL, INTEGER) MAP");
+
+    sql("SELECT MAP[1, 2, 3, cast(null as integer)] UNION ALL SELECT MAP[5, 6]")
+        .columnType("(INTEGER NOT NULL, INTEGER) MAP NOT NULL");
+
+    sql("SELECT MAP[1, 2, 3, 4] UNION ALL SELECT MAP[5, 6]")
+        .columnType("(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
+  }
+
   @Test void testValuesTypeMismatchFails() {
     sql("^values (1), ('a')^")
         .fails("Values passed to VALUES operator must have compatible types");
@@ -9987,6 +10019,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "- -\n"
         + "EXISTS pre\n"
         + "UNIQUE pre\n"
+        + "^ left\n"
         + "\n"
         + "< ALL left\n"
         + "< SOME left\n"

@@ -722,9 +722,24 @@ public class SubQueryRemoveRule
       case TRUE_FALSE_UNKNOWN:
       case UNKNOWN_AS_TRUE:
         // Builds the cross join
-        builder.aggregate(builder.groupKey(),
-            builder.count(false, "c"),
-            builder.count(builder.fields()).as("ck"));
+        // Some databases don't support use FILTER clauses for aggregate functions
+        // like {@code COUNT(*) FILTER (WHERE not(a is null))}
+        // So use count(*) when only one column
+        if (builder.fields().size() <= 1) {
+          builder.aggregate(builder.groupKey(),
+              builder.count(false, "c"),
+              builder.count(builder.fields()).as("ck"));
+        } else {
+          builder.aggregate(builder.groupKey(),
+              builder.count(false, "c"),
+              builder.count()
+                  .filter(builder
+                      .not(builder
+                          .and(builder.fields().stream()
+                              .map(builder::isNull)
+                              .collect(Collectors.toList()))))
+                  .as("ck"));
+        }
         builder.as(ctAlias);
         if (!variablesSet.isEmpty()) {
           builder.join(JoinRelType.LEFT, trueLiteral, variablesSet);

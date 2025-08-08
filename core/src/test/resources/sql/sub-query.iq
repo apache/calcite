@@ -3937,11 +3937,25 @@ EnumerableCalc(expr#0..12=[{inputs}], expr#13=[0], expr#14=[=($t8, $t13)], expr#
 !plan
 
 select * from "scott".emp where (empno, deptno) not in ((1, 2), (3, null));
-+-------+-------+-----+-----+----------+-----+------+--------+
-| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
-+-------+-------+-----+-----+----------+-----+------+--------+
-+-------+-------+-----+-----+----------+-----+------+--------+
-(0 rows)
++-------+--------+-----------+------+------------+---------+---------+--------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
++-------+--------+-----------+------+------------+---------+---------+--------+
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |
++-------+--------+-----------+------+------------+---------+---------+--------+
+(14 rows)
 
 !ok
 
@@ -3951,12 +3965,45 @@ EnumerableCalc(expr#0..14=[{inputs}], expr#15=[0], expr#16=[=($t8, $t15)], expr#
       EnumerableCalc(expr#0..9=[{inputs}], expr#10=[CAST($t0):INTEGER NOT NULL], expr#11=[CAST($t7):INTEGER], proj#0..11=[{exprs}])
         EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
           EnumerableTableScan(table=[[scott, EMP]])
-          EnumerableAggregate(group=[{}], c=[COUNT()], ck=[COUNT($0)])
-            EnumerableValues(tuples=[[{ null }, { 2 }]])
+          EnumerableAggregate(group=[{}], c=[COUNT()], ck=[COUNT() FILTER $0])
+            EnumerableValues(tuples=[[{ true }, { true }]])
     EnumerableSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])
       EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], proj#0..2=[{exprs}])
         EnumerableValues(tuples=[[{ 3, null }, { 1, 2 }]])
 !plan
+
+# As above, but the IN-list includes all null value
+select * from "scott".emp where (mgr, deptno) not in ((1, 2), (3, null), (cast(null as integer), cast(null as integer)));
++-------+-------+-----+-----+----------+-----+------+--------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
++-------+-------+-----+-----+----------+-----+------+--------+
++-------+-------+-----+-----+----------+-----+------+--------+
+(0 rows)
+
+!ok
+
+EnumerableCalc(expr#0..14=[{inputs}], expr#15=[0], expr#16=[=($t8, $t15)], expr#17=[IS NULL($t14)], expr#18=[>=($t9, $t8)], expr#19=[IS NOT NULL($t3)], expr#20=[IS NOT NULL($t7)], expr#21=[AND($t17, $t18, $t19, $t20)], expr#22=[OR($t16, $t21)], proj#0..7=[{exprs}], $condition=[$t22])
+  EnumerableMergeJoin(condition=[AND(=($10, $12), =($11, $13))], joinType=[left])
+    EnumerableSort(sort0=[$10], sort1=[$11], dir0=[ASC], dir1=[ASC])
+      EnumerableCalc(expr#0..9=[{inputs}], expr#10=[CAST($t3):INTEGER], expr#11=[CAST($t7):INTEGER], proj#0..11=[{exprs}])
+        EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
+          EnumerableTableScan(table=[[scott, EMP]])
+          EnumerableAggregate(group=[{}], c=[COUNT()], ck=[COUNT() FILTER $0])
+            EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NOT NULL($t0)], expr#3=[IS NOT NULL($t1)], expr#4=[OR($t2, $t3)], $f2=[$t4])
+              EnumerableValues(tuples=[[{ 3, null }, { null, null }, { 1, 2 }]])
+    EnumerableSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])
+      EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], proj#0..2=[{exprs}])
+        EnumerableValues(tuples=[[{ 3, null }, { null, null }, { 1, 2 }]])
+!plan
+
+select * from "scott".emp where (empno, deptno) not in ((1, 2), (3, null), (cast(null as integer), cast(null as integer)));
++-------+-------+-----+-----+----------+-----+------+--------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
++-------+-------+-----+-----+----------+-----+------+--------+
++-------+-------+-----+-----+----------+-----+------+--------+
+(0 rows)
+
+!ok
 
 select * from "scott".emp where (empno, deptno) not in ((7369, 20), (7499, 30));
 +-------+--------+-----------+------+------------+---------+---------+--------+
@@ -3985,8 +4032,8 @@ EnumerableCalc(expr#0..14=[{inputs}], expr#15=[0], expr#16=[=($t8, $t15)], expr#
       EnumerableCalc(expr#0..9=[{inputs}], expr#10=[CAST($t0):INTEGER NOT NULL], expr#11=[CAST($t7):INTEGER], proj#0..11=[{exprs}])
         EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
           EnumerableTableScan(table=[[scott, EMP]])
-          EnumerableCalc(expr#0=[{inputs}], c=[$t0], ck=[$t0])
-            EnumerableAggregate(group=[{}], c=[COUNT()])
+          EnumerableAggregate(group=[{}], c=[COUNT()], ck=[COUNT() FILTER $0])
+            EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], $f2=[$t2])
               EnumerableValues(tuples=[[{ 7369, 20 }, { 7499, 30 }]])
     EnumerableSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])
       EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], proj#0..2=[{exprs}])
@@ -4703,9 +4750,8 @@ EnumerableCalc(expr#0..8=[{inputs}], expr#9=[0], expr#10=[=($t2, $t9)], expr#11=
         EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
           EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], COMM=[$t6])
             EnumerableTableScan(table=[[scott, EMP]])
-          EnumerableCalc(expr#0=[{inputs}], c=[$t0], ck=[$t0])
-            EnumerableAggregate(group=[{}], c=[COUNT()])
-              EnumerableValues(tuples=[[{ 500.00 }, { 300.00 }, { 0.00 }]])
+          EnumerableAggregate(group=[{}], c=[COUNT()], ck=[COUNT() FILTER $0])
+            EnumerableValues(tuples=[[{ true }, { true }, { true }]])
     EnumerableSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])
       EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], proj#0..2=[{exprs}])
         EnumerableValues(tuples=[[{ 500.00, 500.00 }, { 300.00, 300.00 }, { 0.00, 0.00 }]])
@@ -4743,8 +4789,9 @@ EnumerableCalc(expr#0..8=[{inputs}], expr#9=[0], expr#10=[=($t2, $t9)], expr#11=
         EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
           EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], COMM=[$t6])
             EnumerableTableScan(table=[[scott, EMP]])
-          EnumerableAggregate(group=[{}], c=[COUNT()], ck=[COUNT($0, $1)])
-            EnumerableValues(tuples=[[{ 500.00, 500.00 }, { 300.00, 300.00 }, { 0.00, 0.00 }, { null, null }]])
+          EnumerableAggregate(group=[{}], c=[COUNT()], ck=[COUNT() FILTER $0])
+            EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NOT NULL($t0)], expr#3=[IS NOT NULL($t1)], expr#4=[OR($t2, $t3)], $f2=[$t4])
+              EnumerableValues(tuples=[[{ 500.00, 500.00 }, { 300.00, 300.00 }, { 0.00, 0.00 }, { null, null }]])
     EnumerableSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])
       EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], proj#0..2=[{exprs}])
         EnumerableValues(tuples=[[{ 500.00, 500.00 }, { 300.00, 300.00 }, { 0.00, 0.00 }, { null, null }]])
@@ -5082,5 +5129,122 @@ select deptno from emp where deptno not in (50, 20);
 select * from emp where false > some(select deptno from dept);
 Values passed to > SOME operator must have compatible types
 !error
+
+# [CALCITE-4756] When subquery include NULL value, Calcite should return the right result
+select 1 in (values(null), (null));
++--------+
+| EXPR$0 |
++--------+
+|        |
++--------+
+(1 row)
+
+!ok
+
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[IS FALSE($t1)], expr#4=[null:BOOLEAN], expr#5=[IS NOT NULL($t2)], expr#6=[AND($t3, $t4, $t5)], expr#7=[IS NOT NULL($t1)], expr#8=[IS NOT FALSE($t1)], expr#9=[AND($t7, $t5, $t8)], expr#10=[OR($t6, $t9)], EXPR$0=[$t10])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[left])
+    EnumerableValues(tuples=[[{ 0 }]])
+    EnumerableLimit(fetch=[1])
+      EnumerableSort(sort0=[$0], dir0=[DESC])
+        EnumerableAggregate(group=[{0}], c=[COUNT()])
+          EnumerableCalc(expr#0=[{inputs}], expr#1=[IS NOT NULL($t0)], cs=[$t1])
+            EnumerableValues(tuples=[[{ null }, { null }]])
+!plan
+
+# [CALCITE-1583] Wrong results for query with correlated subqueries with aggregate subquery expression
+# Correlated sub-query with aggregate expression can optimized by Metadata RowCount
+select * from emp where exists (select count(deptno) from dept where dept.deptno = emp.deptno);
++-------+--------+--------+
+| ENAME | DEPTNO | GENDER |
++-------+--------+--------+
+| Adam  |     50 | M      |
+| Alice |     30 | F      |
+| Bob   |     10 | M      |
+| Eric  |     20 | M      |
+| Eve   |     50 | F      |
+| Grace |     60 | F      |
+| Jane  |     10 | F      |
+| Susan |     30 | F      |
+| Wilma |        | F      |
++-------+--------+--------+
+(9 rows)
+
+!ok
+EnumerableValues(tuples=[[{ 'Jane ', 10, 'F' }, { 'Bob  ', 10, 'M' }, { 'Eric ', 20, 'M' }, { 'Susan', 30, 'F' }, { 'Alice', 30, 'F' }, { 'Adam ', 50, 'M' }, { 'Eve  ', 50, 'F' }, { 'Grace', 60, 'F' }, { 'Wilma', null, 'F' }]])
+!plan
+
+
+# Same as previous; but the sub-query with always false condition.
+select * from emp where exists (select count(deptno) from dept where dept.deptno = emp.deptno and 1 = 2);
++-------+--------+--------+
+| ENAME | DEPTNO | GENDER |
++-------+--------+--------+
+| Adam  |     50 | M      |
+| Alice |     30 | F      |
+| Bob   |     10 | M      |
+| Eric  |     20 | M      |
+| Eve   |     50 | F      |
+| Grace |     60 | F      |
+| Jane  |     10 | F      |
+| Susan |     30 | F      |
+| Wilma |        | F      |
++-------+--------+--------+
+(9 rows)
+
+!ok
+EnumerableValues(tuples=[[{ 'Jane ', 10, 'F' }, { 'Bob  ', 10, 'M' }, { 'Eric ', 20, 'M' }, { 'Susan', 30, 'F' }, { 'Alice', 30, 'F' }, { 'Adam ', 50, 'M' }, { 'Eve  ', 50, 'F' }, { 'Grace', 60, 'F' }, { 'Wilma', null, 'F' }]])
+!plan
+
+
+# Same as previous; but the sub-query with true correlated condition sometimes and condition is always false.
+select * from emp where deptno <> (select count(deptno) from dept where dept.deptno = emp.deptno);
++-------+--------+--------+
+| ENAME | DEPTNO | GENDER |
++-------+--------+--------+
+| Adam  |     50 | M      |
+| Alice |     30 | F      |
+| Bob   |     10 | M      |
+| Eric  |     20 | M      |
+| Eve   |     50 | F      |
+| Grace |     60 | F      |
+| Jane  |     10 | F      |
+| Susan |     30 | F      |
++-------+--------+--------+
+(8 rows)
+
+!ok
+EnumerableCalc(expr#0..4=[{inputs}], expr#5=[IS NULL($t4)], expr#6=[CAST($t1):BIGINT], expr#7=[0:BIGINT], expr#8=[<>($t6, $t7)], expr#9=[AND($t5, $t8)], expr#10=[<>($t6, $t4)], expr#11=[OR($t9, $t10)], proj#0..2=[{exprs}], $condition=[$t11])
+  EnumerableNestedLoopJoin(condition=[IS NOT DISTINCT FROM($1, $3)], joinType=[left])
+    EnumerableValues(tuples=[[{ 'Jane ', 10, 'F' }, { 'Bob  ', 10, 'M' }, { 'Eric ', 20, 'M' }, { 'Susan', 30, 'F' }, { 'Alice', 30, 'F' }, { 'Adam ', 50, 'M' }, { 'Eve  ', 50, 'F' }, { 'Grace', 60, 'F' }, { 'Wilma', null, 'F' }]])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[IS NOT NULL($t2)], expr#4=[0], expr#5=[CASE($t3, $t2, $t4)], DEPTNO=[$t0], EXPR$0=[$t5])
+      EnumerableNestedLoopJoin(condition=[IS NOT DISTINCT FROM($0, $1)], joinType=[left])
+        EnumerableAggregate(group=[{0}])
+          EnumerableValues(tuples=[[{ 10 }, { 10 }, { 20 }, { 30 }, { 30 }, { 50 }, { 50 }, { 60 }, { null }]])
+        EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1:BIGINT], DEPTNO=[$t0], $f1=[$t2])
+          EnumerableValues(tuples=[[{ 10, 'Sales      ' }, { 20, 'Marketing  ' }, { 30, 'Engineering' }, { 40, 'Empty      ' }]])
+!plan
+
+# Same as previous; but the sub-query with always false correlated condition and return true sometimes.
+select * from emp where deptno <> (select count(deptno) + 10  from dept where dept.deptno = emp.deptno and 1 = 2);
++-------+--------+--------+
+| ENAME | DEPTNO | GENDER |
++-------+--------+--------+
+| Adam  |     50 | M      |
+| Alice |     30 | F      |
+| Eric  |     20 | M      |
+| Eve   |     50 | F      |
+| Grace |     60 | F      |
+| Susan |     30 | F      |
++-------+--------+--------+
+(6 rows)
+
+!ok
+EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t1):BIGINT], expr#6=[IS NULL($t4)], expr#7=[0:BIGINT], expr#8=[CASE($t6, $t7, $t4)], expr#9=[10], expr#10=[+($t8, $t9)], expr#11=[<>($t5, $t10)], proj#0..2=[{exprs}], $condition=[$t11])
+  EnumerableNestedLoopJoin(condition=[IS NOT DISTINCT FROM($1, $3)], joinType=[left])
+    EnumerableValues(tuples=[[{ 'Jane ', 10, 'F' }, { 'Bob  ', 10, 'M' }, { 'Eric ', 20, 'M' }, { 'Susan', 30, 'F' }, { 'Alice', 30, 'F' }, { 'Adam ', 50, 'M' }, { 'Eve  ', 50, 'F' }, { 'Grace', 60, 'F' }, { 'Wilma', null, 'F' }]])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[0], expr#2=[CAST($t1):BIGINT NOT NULL], DEPTNO=[$t0], $f1=[$t2])
+      EnumerableAggregate(group=[{0}])
+        EnumerableValues(tuples=[[{ 10 }, { 10 }, { 20 }, { 30 }, { 30 }, { 50 }, { 50 }, { 60 }, { null }]])
+!plan
 
 # End sub-query.iq

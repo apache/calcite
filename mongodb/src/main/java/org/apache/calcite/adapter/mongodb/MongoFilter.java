@@ -24,12 +24,14 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.Pair;
 
@@ -133,7 +135,26 @@ public class MongoFilter extends Filter implements MongoRel {
           : multimap.asMap().entrySet()) {
         Map<String, Object> map2 = builder.map();
         for (Pair<String, RexLiteral> s : entry.getValue()) {
-          addPredicate(map2, s.left, literalValue(s.right));
+          String op = s.left;
+          if ("$ne".equals(op))  {
+            if (map2.containsKey("$nin")) {
+              map2.computeIfPresent("$nin", (k, v) -> {
+                ((List<Object>) v).add(literalValue(s.right));
+                return v;
+              });
+            } else if (map2.containsKey(op)) {
+              // if two $ne conditions, translate to $nin op
+              List<Object> ninList = builder.list();
+              ninList.add(map2.remove(op));
+              ninList.add(literalValue(s.right));
+              map2.put("$nin", ninList);
+            } else {
+              // only one $ne condition
+              map2.put(op, literalValue(s.right));
+            }
+          } else {
+            addPredicate(map2, op, literalValue(s.right));
+          }
         }
         map.put(entry.getKey(), map2);
       }
@@ -197,6 +218,10 @@ public class MongoFilter extends Filter implements MongoRel {
         return translateBinary("$gte", "$lte", (RexCall) node, multimap, eqMap);
       case OR:
         return translateOrAddToList(node, orMapList);
+      case IS_NOT_NULL:
+        return translateUnary("$ne", (RexCall) node, multimap, eqMap);
+      case IS_NULL:
+        return translateUnary("$eq", (RexCall) node, multimap, eqMap);
       default:
         throw new AssertionError("cannot translate " + node);
       }
@@ -266,6 +291,16 @@ public class MongoFilter extends Filter implements MongoRel {
         // E.g. {deptno: [$lt: 100, $gt: 50]}
         multimap.put(name, Pair.of(op, right));
       }
+    }
+
+    /** Translates is null/is not null to {$eq: null}/{$ne: null}. */
+    private Void translateUnary(String op, RexCall call,
+        Multimap<String, Pair<String, RexLiteral>> multimap, Map<String, RexLiteral> eqMap) {
+      final RexNode left = call.operands.get(0);
+      RelDataType nullType = rexBuilder.getTypeFactory().createSqlType(SqlTypeName.NULL);
+      final RexNode right = rexBuilder.makeNullLiteral(nullType);
+      translateBinary2(op, left, right, multimap, eqMap);
+      return null;
     }
   }
 }

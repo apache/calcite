@@ -919,4 +919,86 @@ public class MongoAdapterTest implements SchemaFactory {
                 "{$sort: {STATE: 1}}"))
         .returns("STATE=ME; CITY=LEWISTON\nSTATE=VT; CITY=BRATTLEBORO\n");
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7079">[CALCITE-7079]
+   * Mongo adapter: MongoDB Adapter unable to translate multiple NOT EQUALS expressions
+   * combined with AND  </a>. */
+  @Test void testMultiNeFilterContition() {
+    assertModel(MODEL)
+        .query("select city, state from zips where city <> 'ABERDEEN' and city <> 'AIKEN'  "
+            + "order by city")
+        .limit(3)
+        .queryContains(
+            mongoChecker(
+                "{$match: {city: {$nin: [\"ABERDEEN\", \"AIKEN\"]}}}",
+                "{$project: {CITY: '$city', STATE: '$state'}}",
+                "{$sort: {CITY: 1}}"))
+        .returnsOrdered("CITY=ALTON; STATE=TX",
+            "CITY=AMES; STATE=IA",
+            "CITY=ANCHORAGE; STATE=AK");
+
+    assertModel(MODEL)
+        .query("select city, state from zips where city <> 'ABERDEEN' and city <> 'AIKEN'  "
+            + "or (state <> 'IA' and state <> 'TX') order by city")
+        .limit(3)
+        .queryContains(
+            mongoChecker(
+                "{$match: {$or: [{city: {$nin: [\"ABERDEEN\", \"AIKEN\"]}}, {state: {$nin: [\"IA\", \"TX\"]}}]}}",
+                "{$project: {CITY: '$city', STATE: '$state'}}",
+                "{$sort: {CITY: 1}}"))
+        .returnsOrdered("CITY=ABERDEEN; STATE=SD",
+            "CITY=AIKEN; STATE=SC",
+            "CITY=ALTON; STATE=TX");
+
+    assertModel(MODEL)
+        .query("select city, state from zips where city <> 'ABERDEEN' and city <> 'AIKEN'  "
+            + "and state <> 'IA' order by city")
+        .limit(3)
+        .queryContains(
+            mongoChecker(
+                "{$match: {city: {$nin: [\"ABERDEEN\", \"AIKEN\"]}, state: {$ne: \"IA\"}}}",
+                "{$project: {CITY: '$city', STATE: '$state'}}",
+                "{$sort: {CITY: 1}}"))
+        .returnsOrdered("CITY=ALTON; STATE=TX",
+            "CITY=ANCHORAGE; STATE=AK",
+            "CITY=BALTIMORE; STATE=MD");
+
+    assertModel(MODEL)
+        .query("select city, state from zips where city <> 'ABERDEEN' and city <> 'AIKEN'  "
+            + "and (state <> 'IA' or state <> 'TX') order by city")
+        .limit(3)
+        .queryContains(
+            mongoChecker(
+                "{$match: {city: {$nin: [\"ABERDEEN\", \"AIKEN\"]}, state: {$ne: null}}}",
+                "{$project: {CITY: '$city', STATE: '$state'}}",
+                "{$sort: {CITY: 1}}"))
+        .returnsOrdered("CITY=ALTON; STATE=TX",
+            "CITY=AMES; STATE=IA",
+            "CITY=ANCHORAGE; STATE=AK");
+
+    assertModel(MODEL)
+        .query("select city, state from zips where city <> 'ABERDEEN' and city <> 'AIKEN'  "
+            + "and state IS NOT NULL order by city")
+        .limit(3)
+        .queryContains(
+            mongoChecker(
+                "{$match: {city: {$nin: [\"ABERDEEN\", \"AIKEN\"]}, state: {$ne: null}}}",
+                "{$project: {CITY: '$city', STATE: '$state'}}",
+                "{$sort: {CITY: 1}}"))
+        .returnsOrdered("CITY=ALTON; STATE=TX",
+            "CITY=AMES; STATE=IA",
+            "CITY=ANCHORAGE; STATE=AK");
+
+    assertModel(MODEL)
+        .query("select city, state from zips where city <> 'ABERDEEN' and city <> 'AIKEN'  "
+            + "and state IS NULL order by city")
+        .limit(3)
+        .queryContains(
+            mongoChecker(
+                "{$match: {city: {$nin: [\"ABERDEEN\", \"AIKEN\"]}, state: {$eq: null}}}",
+                "{$project: {CITY: '$city', STATE: '$state'}}",
+                "{$sort: {CITY: 1}}"))
+        .returnsOrdered("");
+  }
 }

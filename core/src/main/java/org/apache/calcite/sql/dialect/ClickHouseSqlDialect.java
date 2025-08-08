@@ -35,7 +35,6 @@ import org.apache.calcite.sql.SqlTimestampLiteral;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.RelToSqlConverterUtil;
 
@@ -118,36 +117,43 @@ public class ClickHouseSqlDialect extends SqlDialect {
   }
 
   @Override public @Nullable SqlNode getCastSpec(RelDataType type) {
-    if (type instanceof BasicSqlType) {
-      SqlTypeName typeName = type.getSqlTypeName();
-      switch (typeName) {
-      case CHAR:
-        return createSqlDataTypeSpecByName(
-            String.format(Locale.ROOT, "FixedString(%s)",
-            type.getPrecision()), typeName, type.isNullable());
-      case VARCHAR:
-        return createSqlDataTypeSpecByName("String", typeName, type.isNullable());
-      case TINYINT:
-        return createSqlDataTypeSpecByName("Int8", typeName, type.isNullable());
-      case SMALLINT:
-        return createSqlDataTypeSpecByName("Int16", typeName, type.isNullable());
-      case INTEGER:
-        return createSqlDataTypeSpecByName("Int32", typeName, type.isNullable());
-      case BIGINT:
-        return createSqlDataTypeSpecByName("Int64", typeName, type.isNullable());
-      case REAL:
-        return createSqlDataTypeSpecByName("Float32", typeName, type.isNullable());
-      case FLOAT:
-      case DOUBLE:
-        return createSqlDataTypeSpecByName("Float64", typeName, type.isNullable());
-      case DATE:
-        return createSqlDataTypeSpecByName("Date", typeName, type.isNullable());
-      case TIMESTAMP:
-      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-        return createSqlDataTypeSpecByName("DateTime", typeName, type.isNullable());
-      default:
-        break;
-      }
+    SqlTypeName typeName = type.getSqlTypeName();
+    switch (typeName) {
+    case CHAR:
+      return createSqlDataTypeSpecByName(
+          String.format(Locale.ROOT, "FixedString(%s)",
+              type.getPrecision()), typeName, type.isNullable());
+    case VARCHAR:
+      return createSqlDataTypeSpecByName("String", typeName, type.isNullable());
+    case TINYINT:
+      return createSqlDataTypeSpecByName("Int8", typeName, type.isNullable());
+    case SMALLINT:
+      return createSqlDataTypeSpecByName("Int16", typeName, type.isNullable());
+    case INTEGER:
+      return createSqlDataTypeSpecByName("Int32", typeName, type.isNullable());
+    case BIGINT:
+      return createSqlDataTypeSpecByName("Int64", typeName, type.isNullable());
+    case REAL:
+      return createSqlDataTypeSpecByName("Float32", typeName, type.isNullable());
+    case FLOAT:
+    case DOUBLE:
+      return createSqlDataTypeSpecByName("Float64", typeName, type.isNullable());
+    case DATE:
+      return createSqlDataTypeSpecByName("Date", typeName, type.isNullable());
+    case TIMESTAMP:
+    case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+      return createSqlDataTypeSpecByName("DateTime", typeName, type.isNullable());
+    case MAP:
+      return RelToSqlConverterUtil.getCastSpecClickHouseSqlMapType(this, type,
+          SqlParserPos.ZERO);
+    case ARRAY:
+      return RelToSqlConverterUtil.getCastSpecClickHouseSqlArrayType(this, type,
+          SqlParserPos.ZERO);
+    case MULTISET:
+      throw new UnsupportedOperationException("ClickHouse dialect does not support cast to "
+          + type.getSqlTypeName());
+    default:
+      break;
     }
 
     return super.getCastSpec(type);

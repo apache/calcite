@@ -3686,6 +3686,22 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Tests {@link org.apache.calcite.rel.rules.IntersectToDistinctRule} with
+   * the option to not perform aggregation pushdown (see
+   * {@link CoreRules#INTERSECT_TO_DISTINCT_NO_AGGREGATE_PUSHDOWN}).
+   * which rewrites an {@link Intersect} operator with 3 inputs. */
+  @Test void testIntersectToDistinctNoAggregatePushdown() {
+    final String sql = "select * from emp where deptno = 10\n"
+        + "intersect\n"
+        + "select * from emp where deptno = 20\n"
+        + "intersect\n"
+        + "select * from emp where deptno = 30\n";
+    sql(sql)
+        .withRule(CoreRules.INTERSECT_MERGE,
+            CoreRules.INTERSECT_TO_DISTINCT_NO_AGGREGATE_PUSHDOWN)
+        .check();
+  }
+
   /** Tests that {@link org.apache.calcite.rel.rules.IntersectToDistinctRule}
    * correctly ignores an {@code INTERSECT ALL}. It can only handle
    * {@code INTERSECT DISTINCT}. */
@@ -3698,6 +3714,23 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql)
         .withRule(CoreRules.INTERSECT_MERGE,
             CoreRules.INTERSECT_TO_DISTINCT)
+        .check();
+  }
+
+  /** Tests {@link org.apache.calcite.rel.rules.IntersectToDistinctRule} with
+   * the option to not perform aggregation pushdown (see
+   * {@link CoreRules#INTERSECT_TO_DISTINCT_NO_AGGREGATE_PUSHDOWN}).
+   * correctly ignores an {@code INTERSECT ALL}. It can only handle
+   * {@code INTERSECT DISTINCT}. */
+  @Test void testIntersectToDistinctAllNoAggregatePushdown() {
+    final String sql = "select * from emp where deptno = 10\n"
+        + "intersect\n"
+        + "select * from emp where deptno = 20\n"
+        + "intersect all\n"
+        + "select * from emp where deptno = 30\n";
+    sql(sql)
+        .withRule(CoreRules.INTERSECT_MERGE,
+            CoreRules.INTERSECT_TO_DISTINCT_NO_AGGREGATE_PUSHDOWN)
         .check();
   }
 
@@ -7878,12 +7911,50 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7071">[CALCITE-7071]
+   * Add test for replacing JOIN node with its child node
+   * when JOIN condition is false</a>. */
+  @Test void testLeftJoinRemoveConditionIsAlwaysFalse() {
+    final String sql = "SELECT e.deptno\n"
+        + "FROM sales.emp e\n"
+        + "LEFT JOIN sales.dept d ON e.deptno = d.deptno and e.deptno between 3 and 1";
+    sql(sql).withRule(CoreRules.JOIN_CONDITION_PUSH,
+            PruneEmptyRules.JOIN_RIGHT_INSTANCE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7071">[CALCITE-7071]
+   * Add test for replacing JOIN node with its child node
+   * when JOIN condition is false</a>. */
+  @Test void testRightJoinRemoveConditionIsAlwaysFalse() {
+    final String sql = "SELECT e.deptno\n"
+        + "FROM sales.dept d\n"
+        + "RIGHT JOIN sales.emp e ON e.deptno = d.deptno and e.deptno between 3 and 1";
+    sql(sql).withRule(CoreRules.JOIN_CONDITION_PUSH,
+            PruneEmptyRules.JOIN_LEFT_INSTANCE)
+        .check();
+  }
+
   @Test void testSwapOuterJoin() {
     final HepProgram program = new HepProgramBuilder()
         .addMatchLimit(1)
         .addRuleInstance(CoreRules.JOIN_COMMUTE_OUTER)
         .build();
     final String sql = "select 1 from sales.dept d left outer join sales.emp e\n"
+        + " on d.deptno = e.deptno";
+    sql(sql).withProgram(program).check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7089">[CALCITE-7089]
+   * Implement a rule for converting a RIGHT JOIN to a LEFT JOIN</a>. */
+  @Test void testSwapRightToLeftOnly() {
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.JOIN_COMMUTE_RIGHT_TO_LEFT)
+        .build();
+    final String sql = "select 1 from sales.dept d right outer join sales.emp e\n"
         + " on d.deptno = e.deptno";
     sql(sql).withProgram(program).check();
   }
@@ -11035,6 +11106,53 @@ class RelOptRulesTest extends RelOptTestBase {
           p.addRule(EnumerableRules.ENUMERABLE_PROJECT_RULE);
           p.addRule(EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
         })
+        .check();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7077">[CALCITE-7077]
+   * Implement a rule to rewrite FULL JOIN as LEFT JOIN and RIGHT JOIN</a>. */
+  @Test void testFullJoinToLeftAndRightJoin() {
+    final String query = "select * from emp e1\n"
+        + "full join emp e2\n"
+        + "on e1.sal = e2.sal and e1.mgr is null";
+    sql(query)
+        .withRule(CoreRules.FULL_TO_LEFT_AND_RIGHT_JOIN)
+        .check();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7077">[CALCITE-7077]
+   * Implement a rule to rewrite FULL JOIN as LEFT JOIN and RIGHT JOIN</a>. */
+  @Test void testFullJoinToLeftAndRightJoinNonDeterministic() {
+    final String query = "select * from emp e1\n"
+        + "full join emp e2\n"
+        + "on rand() > 0.5";
+    sql(query)
+        .withRule(CoreRules.FULL_TO_LEFT_AND_RIGHT_JOIN)
+        .checkUnchanged();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7086">[CALCITE-7086]
+   * Implement a rule that performs the inverse operation of AggregateCaseToFilterRule</a>. */
+  @Test void testAggregateFilterToCase() {
+    final String sql = "select coalesce(sum_match, 0) as sum0_match, sum_distinct_not_match,\n"
+        + " count_distinct_match, count_star_match from (\n"
+        + " select\n"
+        + " sum(sal) filter(where deptno = 10) as sum_match,\n"
+        + " sum(distinct empno) filter(where deptno = 20) as sum_distinct_not_match,\n"
+        + " count(distinct deptno) filter(where job = 'CLERK') as count_distinct_match,\n"
+        + " count(*) filter(where deptno = 40) as count_star_match\n"
+        + " from emp\n"
+        + " )";
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.PROJECT_AGGREGATE_MERGE)
+        .build();
+
+    sql(sql)
+        .withPre(program)
+        .withRule(CoreRules.AGGREGATE_FILTER_TO_CASE)
         .check();
   }
 }

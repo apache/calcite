@@ -30,6 +30,16 @@
 !use scott-big-query
 !set outputformat mysql
 
+# Two tests for [CALCITE-7094] Using a type alias as a constructor function
+# causes a validator assertion failure
+select int64();
+Cannot apply 'int64' to arguments of type 'int64()'. Supported form(s): int64
+!error
+
+select int64(2);
+Cannot apply 'int64' to arguments of type 'int64(<INTEGER>)'. Supported form(s): int64
+!error
+
 # TODO: create a means to set the current date/time/timestamp for the
 #   current session CURRENT_TIMESTAMP etc. will return those values.
 #   Then enable the CURRENT_x tests.

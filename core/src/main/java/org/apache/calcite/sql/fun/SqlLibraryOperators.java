@@ -26,6 +26,7 @@ import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlOperatorTable;
@@ -36,6 +37,7 @@ import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandHandlers;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SameOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
@@ -1512,7 +1514,34 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction ARRAY_CONCAT =
       SqlBasicFunction.create(SqlKind.ARRAY_CONCAT,
           ReturnTypes.LEAST_RESTRICTIVE,
-          OperandTypes.AT_LEAST_ONE_SAME_VARIADIC);
+          new SameOperandTypeChecker(-1) {
+            @Override public boolean checkOperandTypes(
+                SqlCallBinding callBinding,
+                boolean throwOnFailure) {
+              boolean result = super.checkOperandTypes(callBinding, throwOnFailure);
+              if (!result) {
+                return false;
+              }
+              for (int i = 0; i < callBinding.getOperandCount(); i++) {
+                RelDataType operandType = callBinding.getOperandType(i);
+                if (operandType.getSqlTypeName() != SqlTypeName.ARRAY) {
+                  if (throwOnFailure) {
+                    throw callBinding.newValidationSignatureError();
+                  }
+                  return false;
+                }
+              }
+              return true;
+            }
+
+              @Override public SqlOperandCountRange getOperandCountRange() {
+                return SqlOperandCountRanges.from(1);
+              }
+
+              @Override public String getAllowedSignatures(SqlOperator op, String opName) {
+                return opName + "(...)";
+              }
+          });
 
   /** The "ARRAY_CONTAINS(array, element)" function. */
   @LibraryOperator(libraries = {SPARK})

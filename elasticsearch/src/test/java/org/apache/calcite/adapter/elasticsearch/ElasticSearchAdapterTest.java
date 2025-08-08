@@ -163,6 +163,24 @@ class ElasticSearchAdapterTest {
         .returnsCount(0);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6386">[CALCITE-6386]
+   * NPE when using ES adapter with model.json and no specified username, password
+   * or pathPrefix</a>. */
+  @Test void testConnectNoSpecifiedUserOrpathPrefix() throws SQLException {
+    Connection connection = DriverManager.getConnection("jdbc:calcite:lex=JAVA");
+    final CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class);
+    final ElasticsearchSchemaFactory esSchemaFactory = new ElasticsearchSchemaFactory();
+
+    Map<String, Object> options = new HashMap<>();
+    String coordinates = String.format(Locale.ROOT, "[\"%s\"]", NODE.httpHost());
+    options.put("hosts", coordinates);
+
+    final Schema esSchmea =
+        esSchemaFactory.create(calciteConnection.getRootSchema(), "elasticsearch", options);
+    assertNotNull(esSchmea);
+  }
+
   @Test void testDisableSSL() throws SQLException {
     Connection connection =
         DriverManager.getConnection("jdbc:calcite:lex=JAVA");

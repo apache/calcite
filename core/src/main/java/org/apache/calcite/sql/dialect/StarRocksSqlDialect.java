@@ -25,7 +25,6 @@ import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlAbstractDateTimeLiteral;
 import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
-import org.apache.calcite.sql.SqlArrayWithAngleBracketsNameSpec;
 import org.apache.calcite.sql.SqlBasicTypeNameSpec;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
@@ -33,13 +32,9 @@ import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlMapTypeNameSpec;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlTypeNameSpec;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.type.AbstractSqlType;
-import org.apache.calcite.sql.type.ArraySqlType;
-import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.MapSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.RelToSqlConverterUtil;
@@ -135,6 +130,28 @@ public class StarRocksSqlDialect extends MysqlSqlDialect {
       break;
     case TRIM:
       unparseHiveTrim(writer, call, leftPrec, rightPrec);
+      break;
+    case EXTRACT:
+      writer.print(call.getOperator().getName());
+      final SqlWriter.Frame extractFrame = writer.startList("(", ")");
+      SqlLiteral node = call.operand(0);
+      TimeUnitRange unit = node.getValueAs(TimeUnitRange.class);
+      String funName;
+      switch (unit) {
+      case DOW:
+        funName = "DAYOFWEEK";
+        break;
+      case DOY:
+        funName = "DAYOFYEAR";
+        break;
+      default:
+        funName = unit.name();
+      }
+      writer.print(funName);
+      writer.print(" FROM ");
+      String value = ((SqlLiteral) call.operand(1)).toValue();
+      writer.print("'" + value + "'");
+      writer.endList(extractFrame);
       break;
     case FLOOR:
       if (call.operandCount() != 2) {

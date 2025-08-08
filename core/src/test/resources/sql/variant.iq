@@ -20,6 +20,17 @@
 !use scott
 !set outputformat csv
 
+# Test case for [CALCITE-7095] Allow MAP<VARIANT, X> to be indexed by any type of key
+SELECT CAST(MAP['a', 1] AS MAP<VARIANT, VARIANT>)['a'] AS C;
+C
+1
+!ok
+
+SELECT CAST(MAP['a', 1] AS MAP<VARIANT, VARIANT>)[1] AS C;
+C
+null
+!ok
+
 SELECT CAST(1 AS VARIANT) as C;
 C
 1

@@ -266,6 +266,29 @@ class JdbcAdapterTest {
             + "WHERE \"t\".\"c\" = 0 OR \"t0\".\"i\" IS NULL AND \"t\".\"ck\" >= \"t\".\"c\"");
   }
 
+  @Test void testNotPushDownNotIn() {
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL)
+        .query("select * from dept where (deptno, dname) not in (select deptno, ename from emp)")
+        .explainContains("PLAN=EnumerableCalc(expr#0..7=[{inputs}], expr#8=[0], "
+            + "expr#9=[=($t3, $t8)], expr#10=[IS NULL($t7)], expr#11=[>=($t4, $t3)], "
+            + "expr#12=[IS NOT NULL($t1)], expr#13=[AND($t10, $t11, $t12)], "
+            + "expr#14=[OR($t9, $t13)], proj#0..2=[{exprs}], $condition=[$t14])\n"
+            + "  EnumerableMergeJoin(condition=[AND(=($0, $5), =($1, $6))], joinType=[left])\n"
+            + "    EnumerableSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])\n"
+            + "      EnumerableNestedLoopJoin(condition=[true], joinType=[inner])\n"
+            + "        JdbcToEnumerableConverter\n"
+            + "          JdbcTableScan(table=[[SCOTT, DEPT]])\n"
+            + "        EnumerableAggregate(group=[{}], c=[COUNT()], ck=[COUNT() FILTER $0])\n"
+            + "          JdbcToEnumerableConverter\n"
+            + "            JdbcProject($f2=[OR(IS NOT NULL($7), IS NOT NULL($1))])\n"
+            + "              JdbcTableScan(table=[[SCOTT, EMP]])\n"
+            + "    JdbcToEnumerableConverter\n"
+            + "      JdbcSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])\n"
+            + "        JdbcAggregate(group=[{0, 1}], i=[LITERAL_AGG(true)])\n"
+            + "          JdbcProject(DEPTNO=[$7], ENAME=[CAST($1):VARCHAR(14)])\n"
+            + "            JdbcTableScan(table=[[SCOTT, EMP]])\n\n");
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6401">[CALCITE-6401]
    * JDBC adapter cannot push down JOIN with condition

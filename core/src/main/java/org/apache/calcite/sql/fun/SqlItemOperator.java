@@ -160,6 +160,10 @@ public class SqlItemOperator extends SqlSpecialOperator {
       RelDataType keyType =
           requireNonNull(operandType.getKeyType(), "operandType.getKeyType()");
       SqlTypeName sqlTypeName = keyType.getSqlTypeName();
+      if (sqlTypeName == SqlTypeName.VARIANT) {
+        // Allow any key type to be used when the map keys have a VARIANT type
+        return OperandTypes.family(SqlTypeFamily.ANY);
+      }
       return OperandTypes.family(
           requireNonNull(sqlTypeName.getFamily(),
               () -> "keyType.getSqlTypeName().getFamily() null, type is " + sqlTypeName));

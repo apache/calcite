@@ -93,6 +93,7 @@ class SqlAdvisorTest extends SqlValidatorTestCase {
           "TABLE(CATALOG.SALES.DEPT)",
           "TABLE(CATALOG.SALES.DEPTNULLABLES)",
           "TABLE(CATALOG.SALES.DEPT_SINGLE)",
+          "TABLE(CATALOG.SALES.DOUBLE_PK)",
           "TABLE(CATALOG.SALES.DEPT_NESTED)",
           "TABLE(CATALOG.SALES.DEPT_NESTED_EXPANDED)",
           "TABLE(CATALOG.SALES.BONUS)",
@@ -334,6 +335,7 @@ class SqlAdvisorTest extends SqlValidatorTestCase {
           "KEYWORD(SUBMULTISET)",
           "KEYWORD(SUCCEEDS)",
           "KEYWORD([)",
+          "KEYWORD(^)",
           "KEYWORD(||)");
 
   private static final List<String> WHERE_KEYWORDS =
