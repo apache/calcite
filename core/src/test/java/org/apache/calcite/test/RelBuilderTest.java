@@ -2055,12 +2055,8 @@ public class RelBuilderTest {
             .build();
     final String expected = ""
         + "LogicalUnion(all=[true])\n"
-        + "  LogicalProject(COMM=[$0], DEPTNO=[null:TINYINT])\n"
-        + "    LogicalAggregate(group=[{6}])\n"
-        + "      LogicalTableScan(table=[[scott, EMP]])\n"
-        + "  LogicalProject(COMM=[null:DECIMAL(7, 2)], DEPTNO=[$0])\n"
-        + "    LogicalAggregate(group=[{7}])\n"
-        + "      LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalAggregate(group=[{6, 7}], groups=[[{6}, {7}]])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n"
         + "  LogicalProject(COMM=[null:DECIMAL(7, 2)], DEPTNO=[$0])\n"
         + "    LogicalAggregate(group=[{7}])\n"
         + "      LogicalTableScan(table=[[scott, EMP]])\n";
@@ -2193,16 +2189,9 @@ public class RelBuilderTest {
    * GROUP_ID()</a>. */
   @Test void testAggregateGroupingSetsGroupId() {
     final String plan = ""
-        + "LogicalUnion(all=[true])\n"
-        + "  LogicalProject(JOB=[$0], DEPTNO=[$1], g=[0:BIGINT])\n"
-        + "    LogicalAggregate(group=[{2, 7}])\n"
-        + "      LogicalTableScan(table=[[scott, EMP]])\n"
-        + "  LogicalProject(JOB=[$0], DEPTNO=[null:TINYINT], g=[0:BIGINT])\n"
-        + "    LogicalAggregate(group=[{2}])\n"
-        + "      LogicalTableScan(table=[[scott, EMP]])\n"
-        + "  LogicalProject(JOB=[null:VARCHAR(9)], DEPTNO=[$0], g=[0:BIGINT])\n"
-        + "    LogicalAggregate(group=[{7}])\n"
-        + "      LogicalTableScan(table=[[scott, EMP]])\n";
+        + "LogicalProject(JOB=[$0], DEPTNO=[$1], g=[0:BIGINT])\n"
+        + "  LogicalAggregate(group=[{2, 7}], groups=[[{2, 7}, {2}, {7}]])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(groupIdRel(createBuilder(), false), hasTree(plan));
     assertThat(
         groupIdRel(createBuilder(c -> c.withAggregateUnique(true)), false),
@@ -2212,16 +2201,10 @@ public class RelBuilderTest {
     final String plan2 = ""
         + "LogicalUnion(all=[true])\n"
         + "  LogicalProject(JOB=[$0], DEPTNO=[$1], g=[0:BIGINT])\n"
-        + "    LogicalAggregate(group=[{2, 7}])\n"
+        + "    LogicalAggregate(group=[{2, 7}], groups=[[{2, 7}, {2}, {7}]])\n"
         + "      LogicalTableScan(table=[[scott, EMP]])\n"
         + "  LogicalProject(JOB=[$0], DEPTNO=[$1], g=[1:BIGINT])\n"
         + "    LogicalAggregate(group=[{2, 7}])\n"
-        + "      LogicalTableScan(table=[[scott, EMP]])\n"
-        + "  LogicalProject(JOB=[$0], DEPTNO=[null:TINYINT], g=[0:BIGINT])\n"
-        + "    LogicalAggregate(group=[{2}])\n"
-        + "      LogicalTableScan(table=[[scott, EMP]])\n"
-        + "  LogicalProject(JOB=[null:VARCHAR(9)], DEPTNO=[$0], g=[0:BIGINT])\n"
-        + "    LogicalAggregate(group=[{7}])\n"
         + "      LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(groupIdRel(createBuilder(), true), hasTree(plan2));
   }

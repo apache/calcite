@@ -128,6 +128,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMultiset;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multiset;
+import com.google.common.collect.Sets;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
@@ -2851,65 +2853,115 @@ public class RelBuilder {
     Mappings.TargetMapping mapping =
         Mappings.target(groupSet.toList(), peek().getRowType().getFieldCount());
 
-    // For each group id value, we first construct an Aggregate without
-    // GROUP_ID() function call, and if GROUPING() functions are present,
-    // all group sets must be expanded. and then create a Project node on top of it.
-    // The Project adds literal value for group id and grouping value  in right position.
     final Frame frame = stack.pop();
-    Map<ImmutableBitSet, Integer> groupSetToGroupId = new HashMap<>();
-    for (ImmutableBitSet gs : groupSets) {
-      stack.push(frame);
-      Map<Integer, RexNode> specialFields = new HashMap<>();
 
-      // Find removed fields in new grouping and construct corresponding typed NULL values.
+    // Only expand fully when GROUPING functions exist
+    boolean hasGroupingFunction = aggregateCalls.stream()
+        .anyMatch(call -> call.getAggregation().getKind() == SqlKind.GROUPING);
+
+    if (hasGroupingFunction) {
+      Map<ImmutableBitSet, Integer> groupSetToGroupId = new HashMap<>();
+      for (ImmutableBitSet gs : groupSets) {
+        int groupId = groupSetToGroupId.compute(gs, (k, v) -> v == null ? 0 : v + 1);
+        createAggregate(ImmutableSet.of(gs), groupSet, groupCount, aggregateCalls,
+            fieldNamesIfNoRewrite, mapping, frame, groupId);
+      }
+      return union(true, groupSets.size());
+    }
+
+    final Map<Integer, Set<ImmutableBitSet>> groupIdToGroupSets = new HashMap<>();
+    int maxGroupId = 0;
+    for (Multiset.Entry<ImmutableBitSet> entry : groupSets.entrySet()) {
+      int groupId = entry.getCount() - 1;
+      if (groupId > maxGroupId) {
+        maxGroupId = groupId;
+      }
+      for (int i = 0; i <= groupId; i++) {
+        groupIdToGroupSets.computeIfAbsent(i, k -> Sets.newTreeSet(ImmutableBitSet.COMPARATOR))
+            .add(entry.getElement());
+      }
+    }
+
+    // Create aggregate for each GROUP_ID value
+    for (Map.Entry<Integer, Set<ImmutableBitSet>> entry : groupIdToGroupSets.entrySet()) {
+      createAggregate(entry.getValue(), groupSet, groupCount, aggregateCalls,
+          fieldNamesIfNoRewrite, mapping, frame, entry.getKey());
+    }
+
+    return union(true, groupIdToGroupSets.size());
+  }
+
+  /**
+   * Create aggregate.
+   *
+   * @param groupSets group sets in this aggregate
+   * @param groupSet complete group set
+   * @param functionFirstIdx first index of aggregate functions
+   * @param aggregateCalls list of aggregate functions
+   * @param fieldNamesIfNoRewrite list of field names
+   * @param mapping field mapping
+   * @param frame stack frame
+   * @param groupId fixed GROUP_ID value
+   */
+  private void createAggregate(Set<ImmutableBitSet> groupSets, ImmutableBitSet groupSet,
+      int functionFirstIdx, List<AggregateCall> aggregateCalls, List<String> fieldNamesIfNoRewrite,
+      Mappings.TargetMapping mapping, Frame frame, int groupId) {
+    stack.push(frame);
+
+    // Handle aggregate functions
+    Map<Integer, RexNode> specialFields = new HashMap<>();
+    List<AggregateCall> aggCalls = new ArrayList<>();
+
+    for (int i = 0; i < aggregateCalls.size(); i++) {
+      AggregateCall aggCall = aggregateCalls.get(i);
+
+      switch (aggCall.getAggregation().getKind()) {
+      case GROUPING:
+        // Only process GROUPING functions in full expansion mode
+        if (groupSets.size() == 1) {
+          int grouping = calculateGroupingValue(groupSets.iterator().next(), aggCall.getArgList());
+          specialFields.put(functionFirstIdx + i,
+              getRexBuilder().makeLiteral(grouping, aggCall.getType(), true));
+        }
+        break;
+
+      case GROUP_ID:
+        specialFields.put(functionFirstIdx + i,
+            getRexBuilder().makeLiteral(groupId, aggCall.getType()));
+        break;
+
+      default:
+        aggCalls.add(aggCall);
+        break;
+      }
+    }
+
+    if (groupSets.size() == 1) {
+      ImmutableBitSet gs = groupSets.iterator().next();
       List<Integer> missingIndices = groupSet.except(gs).toList();
       for (int i : missingIndices) {
         specialFields.put(mapping.getTarget(i),
             getRexBuilder().makeNullLiteral(field(i).getType()));
       }
-
-      List<AggregateCall> aggCalls = new ArrayList<>();
-      for (int i = 0; i < aggregateCalls.size(); i++) {
-        AggregateCall aggCall = aggregateCalls.get(i);
-        switch (aggCall.getAggregation().getKind()) {
-        case GROUPING:
-          int grouping = calculateGroupingValue(gs, aggCall.getArgList());
-          specialFields.put(
-              groupCount + i,
-              getRexBuilder().makeLiteral(grouping, aggCall.getType(), true));
-          break;
-        case GROUP_ID:
-          // If n duplicates exist for a particular grouping, the {@code GROUP_ID()}
-          // function produces values in the range 0 to n-1. For each value,
-          // we need to figure out the corresponding group sets.
-          //
-          // For example, "... GROUPING SETS (a, a, b, c, c, c, c)"
-          // (i) The max value of the GROUP_ID() function returns is 3
-          // (ii) GROUPING SETS (a, b, c) produces value 0,
-          //      GROUPING SETS (a, c) produces value 1,
-          //      GROUPING SETS (c) produces value 2
-          //      GROUPING SETS (c) produces value 3
-          int groupId = groupSetToGroupId.compute(gs, (k, v) -> v == null ? 0 : v + 1);
-          specialFields.put(
-              groupCount + i,
-              getRexBuilder().makeLiteral(groupId, aggCall.getType()));
-          break;
-        default:
-          aggCalls.add(aggCall);
-        }
-      }
-
       aggregate(groupKey(gs), aggCalls);
-
-      int idx = 0;
-      List<RexNode> projects = new ArrayList<>();
-      for (int i = 0; i < fieldNamesIfNoRewrite.size(); i++) {
-        RexNode node = specialFields.get(i);
-        projects.add(node != null ? node : field(idx++));
+    } else {
+      ImmutableBitSet unionGs = ImmutableBitSet.union(groupSets);
+      List<Integer> missingIndices = groupSet.except(unionGs).toList();
+      for (int i : missingIndices) {
+        specialFields.put(mapping.getTarget(i),
+            getRexBuilder().makeNullLiteral(field(i).getType()));
       }
-      project(projects, fieldNamesIfNoRewrite);
+      aggregate(groupKey(unionGs, groupSets), aggCalls);
     }
-    return union(true, groupSets.size());
+
+    // Build projections
+    List<RexNode> projects = new ArrayList<>();
+    int idx = 0;
+    for (int i = 0; i < fieldNamesIfNoRewrite.size(); i++) {
+      RexNode node = specialFields.get(i);
+      projects.add(node != null ? node : field(idx++));
+    }
+    project(projects, fieldNamesIfNoRewrite);
   }
 
   private static boolean isGroupId(AggCall c) {
