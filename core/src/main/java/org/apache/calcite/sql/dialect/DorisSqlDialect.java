@@ -76,9 +76,12 @@ public class DorisSqlDialect extends StarRocksSqlDialect {
 
   @Override public @Nullable SqlNode getCastSpec(RelDataType type) {
     switch (type.getSqlTypeName()) {
+    case UTINYINT:
+    case USMALLINT:
     case UINTEGER:
     case UBIGINT:
-      throw new RuntimeException("Doris doesn't support UNSIGNED INTEGER/BIGINT!");
+      throw new RuntimeException(
+          "Doris doesn't support UNSIGNED TINYINT/SMALLINT/INTEGER/BIGINT!");
     default:
       break;
     }

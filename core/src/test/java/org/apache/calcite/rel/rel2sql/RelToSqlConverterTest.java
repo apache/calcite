@@ -3573,17 +3573,15 @@ class RelToSqlConverterTest {
     final String expectedMysql1 = "SELECT CAST(`product_id` AS UNSIGNED)\n"
         + "FROM `foodmart`.`product`";
     final String query2 = "select cast(\"product_id\" as integer unsigned) from \"product\"";
-    // MySQL does not allow cast to INTEGER UNSIGNED; instead cast to UNSIGNED.
-    final String expectedMysql2 = "SELECT CAST(`product_id` AS UNSIGNED)\n"
-        + "FROM `foodmart`.`product`";
     sql(query1)
         .withMysql().ok(expectedMysql1)
         .withStarRocks().ok(expectedMysql1)
-        .withDoris().throws_("Doris doesn't support UNSIGNED INTEGER/BIGINT!");
+        .withDoris().throws_("Doris doesn't support UNSIGNED TINYINT/SMALLINT/INTEGER/BIGINT!");
     sql(query2)
-        .withMysql().ok(expectedMysql2)
-        .withStarRocks().ok(expectedMysql1)
-        .withDoris().throws_("Doris doesn't support UNSIGNED INTEGER/BIGINT!");
+        // MySQL does not allow cast to INTEGER UNSIGNED, and we shouldn't use the next level
+        .withMysql().throws_("MySQL doesn't support UNSIGNED TINYINT/SMALLINT/INTEGER!")
+        .withStarRocks().throws_("StarRocks doesn't support UNSIGNED TINYINT/SMALLINT/INTEGER!")
+        .withDoris().throws_("Doris doesn't support UNSIGNED TINYINT/SMALLINT/INTEGER/BIGINT!");
   }
 
   /** Test case for
