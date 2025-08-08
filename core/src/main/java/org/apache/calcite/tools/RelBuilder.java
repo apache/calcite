@@ -120,7 +120,6 @@ import org.apache.calcite.util.Optionality;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mapping;
-import org.apache.calcite.util.mapping.MappingType;
 import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
@@ -2818,15 +2817,18 @@ public class RelBuilder {
    * GROUP_ID returns wrong result</a> and
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4748">[CALCITE-4748]
    * If there are duplicate GROUPING SETS, Calcite should return duplicate
-   * rows</a>.
+   * rows</a> and
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7126">[CALCITE-7126]
+   * The calculation result of grouping function is wrong</a>.
    */
   private RelBuilder rewriteAggregateWithDuplicateGroupSets(
       ImmutableBitSet groupSet,
       ImmutableSortedMultiset<ImmutableBitSet> groupSets,
       List<AggCallPlus> aggregateCalls) {
     List<AggregateCall> calls =
-        aggregateCalls.stream().map(c ->
-            c.aggregateCall()).collect(Collectors.toList());
+        aggregateCalls.stream()
+            .map(AggCallPlus::aggregateCall)
+            .collect(Collectors.toList());
     return rewriteAggregateWithDuplicateGroupSetsImpl(groupSet, groupSets, calls);
   }
 
@@ -2835,37 +2837,35 @@ public class RelBuilder {
       ImmutableSortedMultiset<ImmutableBitSet> groupSets,
       List<AggregateCall> aggregateCalls) {
     final int groupCount = groupSet.cardinality();
+    // No need to handle the case without GROUP BY in aggregate.
     if (groupCount > 0) {
       aggregateCalls = aggregateCalls.stream()
           .map(c -> c.withAllowChangeNullable(false))
           .collect(Collectors.toList());
     }
 
-    final RexBuilder rexBuilder = getRexBuilder();
-    final RelDataType inputRowType = peek().getRowType();
     final List<String> fieldNamesIfNoRewrite =
         Aggregate.deriveRowType(getTypeFactory(), peek().getRowType(),
             false, groupSet, groupSets.asList(), aggregateCalls).getFieldNames();
 
     Mappings.TargetMapping mapping =
-        Mappings.create(MappingType.INVERSE_SURJECTION,
-        inputRowType.getFieldCount(),
-        groupSet.cardinality());
-    int targetIndex = 0;
-    for (int sourceIndex : groupSet) {
-      mapping.set(sourceIndex, targetIndex++);
-    }
+        Mappings.target(groupSet.toList(), peek().getRowType().getFieldCount());
 
+    // For each group id value, we first construct an Aggregate without
+    // GROUP_ID() function call, and if GROUPING() functions are present,
+    // all group sets must be expanded. and then create a Project node on top of it.
+    // The Project adds literal value for group id and grouping value  in right position.
     final Frame frame = stack.pop();
     Map<ImmutableBitSet, Integer> groupSetToGroupId = new HashMap<>();
     for (ImmutableBitSet gs : groupSets) {
       stack.push(frame);
       Map<Integer, RexNode> specialFields = new HashMap<>();
 
-      List<Integer> missingGroupIndices = groupSet.except(gs).toList();
-      for (int i : missingGroupIndices) {
+      // Find removed fields in new grouping and construct corresponding typed NULL values.
+      List<Integer> missingIndices = groupSet.except(gs).toList();
+      for (int i : missingIndices) {
         specialFields.put(mapping.getTarget(i),
-            rexBuilder.makeNullLiteral(field(i).getType()));
+            getRexBuilder().makeNullLiteral(field(i).getType()));
       }
 
       List<AggregateCall> aggCalls = new ArrayList<>();
@@ -2876,7 +2876,7 @@ public class RelBuilder {
           int grouping = calculateGroupingValue(gs, aggCall.getArgList());
           specialFields.put(
               groupCount + i,
-              rexBuilder.makeLiteral(grouping, aggCall.getType(), true));
+              getRexBuilder().makeLiteral(grouping, aggCall.getType(), true));
           break;
         case GROUP_ID:
           // If n duplicates exist for a particular grouping, the {@code GROUP_ID()}
@@ -2892,7 +2892,7 @@ public class RelBuilder {
           int groupId = groupSetToGroupId.compute(gs, (k, v) -> v == null ? 0 : v + 1);
           specialFields.put(
               groupCount + i,
-              rexBuilder.makeLiteral(groupId, aggCall.getType()));
+              getRexBuilder().makeLiteral(groupId, aggCall.getType()));
           break;
         default:
           aggCalls.add(aggCall);
@@ -2902,9 +2902,8 @@ public class RelBuilder {
       aggregate(groupKey(gs), aggCalls);
 
       int idx = 0;
-      int fieldCount = groupCount + aggregateCalls.size();
       List<RexNode> projects = new ArrayList<>();
-      for (int i = 0; i < fieldCount; i++) {
+      for (int i = 0; i < fieldNamesIfNoRewrite.size(); i++) {
         RexNode node = specialFields.get(i);
         projects.add(node != null ? node : field(idx++));
       }
