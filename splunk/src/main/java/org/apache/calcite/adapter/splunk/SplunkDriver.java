@@ -42,12 +42,14 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
 /**
- * Enhanced JDBC driver for Splunk with dynamic data model discovery, federation support, advanced caching, and environment variable support.
+ * Enhanced JDBC driver for Splunk with dynamic data model discovery,
+ * federation support, advanced caching, and environment variable support.
  *
  * <p>It accepts connect strings that start with "jdbc:splunk:" and supports
  * additional parameters for CIM models, custom tables, and enhanced features.</p>
@@ -91,8 +93,8 @@ import java.util.Set;
  * <li>SPLUNK_APP - App context</li>
  * <li>SPLUNK_MODEL_FILE - Path to Calcite model file (for advanced federation)</li>
  * </ul>
- * <p>Environment variables are used as fallback when parameters are not specified in URL or Properties.
- * This enables secure credential management in production deployments.</p>
+ * <p>Environment variables are used as fallback when parameters are not specified
+ * in URL or Properties. This enables secure credential management in production deployments.</p>
  *
  * <p>Federation Support:</p>
  * <p>For multi-vendor security analytics, configure multiple schemas with different app contexts
@@ -169,7 +171,8 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
           return SplunkModelHelper.connect(modelFile);
         } catch (Exception e) {
           // Fallback to direct Calcite model connection
-          LOGGER.warn("Failed to use SplunkModelHelper, falling back to direct model connection: {}",
+          LOGGER.warn("Failed to use SplunkModelHelper, "
+              + "falling back to direct model connection: {}",
               e.getMessage());
           String modelUrl = "jdbc:calcite:model=" + modelFile;
           return DriverManager.getConnection(modelUrl);
@@ -215,7 +218,8 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
    * Parses URL parameters and merges them with the provided Properties.
    * URL parameters take precedence over Properties.
    *
-   * @param url the JDBC URL (e.g., "jdbc:splunk:url=https://localhost:8089;user=admin;password=changeme")
+   * @param url the JDBC URL
+   *     (e.g., "jdbc:splunk:url=https://localhost:8089;user=admin;password=changeme")
    * @param info the original Properties object
    * @return merged Properties with URL parameters taking precedence
    */
@@ -267,7 +271,8 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
 
                 if (LOGGER.isDebugEnabled()) {
                   // Don't log sensitive values
-                  String logValue = key.toLowerCase().contains("password") || key.toLowerCase().contains("token")
+                  String logValue = key.toLowerCase(Locale.ROOT).contains("password")
+                      || key.toLowerCase(Locale.ROOT).contains("token")
                       ? "***" : value;
                   LOGGER.debug("Parsed URL parameter: {}={}", key, logValue);
                 }
@@ -450,7 +455,8 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
 
         if (LOGGER.isDebugEnabled()) {
           // Don't log sensitive values
-          String logValue = key.toLowerCase().contains("password") || key.toLowerCase().contains("token")
+          String logValue = key.toLowerCase(Locale.ROOT).contains("password")
+              || key.toLowerCase(Locale.ROOT).contains("token")
               ? "***" : value;
           LOGGER.debug("Parsed query parameter: {}={}", key, logValue);
         }
@@ -809,7 +815,8 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
     }
 
     if (LOGGER.isDebugEnabled()) {
-      LOGGER.debug("Configured PostgreSQL-compatible case handling: lex={}, unquotedCasing=TO_LOWER",
+      LOGGER.debug("Configured PostgreSQL-compatible case handling: "
+          + "lex={}, unquotedCasing=TO_LOWER",
           info.getProperty(CalciteConnectionProperty.LEX.camelName()));
     }
   }
@@ -823,7 +830,8 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
    * @param envVarName Environment variable name to check as fallback
    * @return Property value or null if neither is set
    */
-  private String getPropertyWithEnvFallback(Properties props, String propertyKey, String envVarName) {
+  private String getPropertyWithEnvFallback(Properties props, String propertyKey,
+      String envVarName) {
     // Check Properties object first
     String value = props.getProperty(propertyKey);
     if (value != null && !value.trim().isEmpty()) {
@@ -835,8 +843,9 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
     if (envValue != null && !envValue.trim().isEmpty()) {
       if (LOGGER.isDebugEnabled()) {
         // Don't log sensitive values
-        String logValue = propertyKey.toLowerCase().contains("password") ||
-                         propertyKey.toLowerCase().contains("token") ? "***" : envValue;
+        String logValue = propertyKey.toLowerCase(Locale.ROOT).contains("password")
+            || propertyKey.toLowerCase(Locale.ROOT).contains("token")
+            ? "***" : envValue;
         LOGGER.debug("Using environment variable {} for property {}: {}", envVarName, propertyKey, logValue);
       }
       return envValue;

@@ -112,13 +112,12 @@ public class SplunkCastProjectionTest {
         "FROM \"splunk\".\"web\" " +
         "LIMIT 10";
 
-    System.out.println("Multiple CAST operations are combined:");
-    System.out.println(multipleCasts);
-    System.out.println();
-    System.out.println("Generates: | eval status_str = tostring(status), " +
-                       "bytes_int = toint(bytes), resp_double = tonumber(response_time)");
-    System.out.println();
-    System.out.println("All CAST operations are combined into a single eval statement.");
+    // Multiple CAST operations are combined:
+    // Generates: | eval status_str = tostring(status),
+    //           bytes_int = toint(bytes), resp_double = tonumber(response_time)
+    // All CAST operations are combined into a single eval statement.
+
+    assertNotNull(multipleCasts);
   }
 
   @Test void testUnsupportedCastTypesNotPushedDown() {

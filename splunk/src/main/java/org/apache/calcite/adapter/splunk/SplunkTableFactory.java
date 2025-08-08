@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.splunk;
 
+import org.apache.calcite.adapter.splunk.util.StringUtils;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -42,6 +43,8 @@ import java.util.Map;
  * - "field_mappings": List of "schema_field:splunk_field" mappings (alternative format)
  */
 public class SplunkTableFactory implements TableFactory<SplunkTable> {
+  private static final org.slf4j.Logger LOGGER =
+      StringUtils.getClassTracer(SplunkTableFactory.class);
 
   @Override public SplunkTable create(SchemaPlus schema, String name,
                            @Nullable Map<String, Object> operand,
@@ -136,8 +139,8 @@ public class SplunkTableFactory implements TableFactory<SplunkTable> {
         }
       } catch (ClassCastException e) {
         // Log warning and continue with empty mapping
-        System.err.println("Warning: Invalid field_mapping format in table operand. "
-            + "Expected Map<String, String>, got: " + mappingObj.getClass());
+        LOGGER.warn("Invalid field_mapping format in table operand. "
+            + "Expected Map<String, String>, got: {}", mappingObj.getClass());
       }
     }
 
@@ -155,14 +158,14 @@ public class SplunkTableFactory implements TableFactory<SplunkTable> {
               fieldMapping.put(schemaField, splunkField);
             }
           } else {
-            System.err.println("Warning: Invalid field mapping format: '" + mapping
-                + "'. Expected 'schema_field:splunk_field'");
+            LOGGER.warn("Invalid field mapping format: '{}'. "
+                + "Expected 'schema_field:splunk_field'", mapping);
           }
         }
       } catch (ClassCastException e) {
         // Log warning and continue
-        System.err.println("Warning: Invalid field_mappings format in table operand. "
-            + "Expected List<String>, got: " + mappingListObj.getClass());
+        LOGGER.warn("Invalid field_mappings format in table operand. "
+            + "Expected List<String>, got: {}", mappingListObj.getClass());
       }
     }
 

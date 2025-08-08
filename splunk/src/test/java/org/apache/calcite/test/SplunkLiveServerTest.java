@@ -46,7 +46,7 @@ class SplunkLiveServerTest {
     }
   }
 
-  @Test   void testDataModelDiscovery() throws SQLException {
+  @Test void testDataModelDiscovery() throws SQLException {
     loadDriverClass();
 
     Properties props = new Properties();
@@ -158,7 +158,7 @@ class SplunkLiveServerTest {
     }
   }
 
-  @Test   void testBasicConnection() throws SQLException {
+  @Test void testBasicConnection() throws SQLException {
     loadDriverClass();
 
     Properties props = loadTestProperties();
@@ -204,7 +204,7 @@ class SplunkLiveServerTest {
   }
 
   // Now re-enabled - metadata schemas are available
-  @Test   void testMetadataSchemas() throws SQLException {
+  @Test void testMetadataSchemas() throws SQLException {
     loadDriverClass();
 
     Properties props = loadTestProperties();
@@ -266,7 +266,7 @@ class SplunkLiveServerTest {
     }
   }
 
-  @Test   void testDataQuery() throws SQLException {
+  @Test void testDataQuery() throws SQLException {
     loadDriverClass();
 
     Properties props = loadTestProperties();

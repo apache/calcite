@@ -43,7 +43,10 @@ import org.apache.arrow.gandiva.expression.Condition;
 import org.apache.arrow.gandiva.expression.ExpressionTree;
 import org.apache.arrow.gandiva.expression.TreeBuilder;
 import org.apache.arrow.gandiva.expression.TreeNode;
+import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.ipc.ArrowFileReader;
+import org.apache.arrow.vector.ipc.SeekableReadChannel;
 import org.apache.arrow.vector.types.pojo.ArrowType;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.Schema;
@@ -70,8 +73,14 @@ public class ArrowTable extends AbstractTable
   /** Arrow schema. (In Calcite terminology, more like a row type than a Schema.) */
   private final Schema schema;
   private final ArrowFileReader arrowFileReader;
+  private final java.io.@Nullable File sourceFile;
 
   public ArrowTable(@Nullable RelProtoDataType protoRowType, ArrowFileReader arrowFileReader) {
+    this(protoRowType, arrowFileReader, null);
+  }
+  
+  public ArrowTable(@Nullable RelProtoDataType protoRowType, ArrowFileReader arrowFileReader, 
+      java.io.@Nullable File sourceFile) {
     try {
       this.schema = arrowFileReader.getVectorSchemaRoot().getSchema();
     } catch (IOException e) {
@@ -79,6 +88,7 @@ public class ArrowTable extends AbstractTable
     }
     this.protoRowType = protoRowType;
     this.arrowFileReader = arrowFileReader;
+    this.sourceFile = sourceFile;
   }
 
   @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
@@ -152,7 +162,21 @@ public class ArrowTable extends AbstractTable
       }
     }
 
-    return new ArrowEnumerable(arrowFileReader, fields, projector, filter);
+    // Create a new ArrowFileReader for each query to ensure we start from the beginning
+    ArrowFileReader readerForQuery = arrowFileReader;
+    if (sourceFile != null) {
+      try {
+        java.io.FileInputStream fileInputStream = new java.io.FileInputStream(sourceFile);
+        SeekableReadChannel seekableReadChannel = 
+            new SeekableReadChannel(fileInputStream.getChannel());
+        BufferAllocator allocator = new RootAllocator();
+        readerForQuery = new ArrowFileReader(seekableReadChannel, allocator);
+      } catch (IOException e) {
+        throw Util.toUnchecked(e);
+      }
+    }
+    
+    return new ArrowEnumerable(readerForQuery, fields, projector, filter);
   }
 
   @Override public <T> Queryable<T> asQueryable(QueryProvider queryProvider,

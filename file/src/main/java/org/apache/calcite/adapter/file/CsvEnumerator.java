@@ -37,6 +37,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.Reader;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.ParseException;
@@ -156,12 +157,15 @@ public class CsvEnumerator<E> implements Enumerator<E> {
       } else {
         this.reader = openCsv(source);
       }
-      this.reader.readNext(); // skip header row
+      String[] header = this.reader.readNext(); // skip header row
+      LOGGER.debug("[CsvEnumerator] Header row read: {}", 
+                  (header != null ? "length=" + header.length + ", content=" + String.join(",", header) : "null"));
     } catch (IOException | CsvValidationException e) {
       // Release lock if we failed to open the file
       if (this.lockHandle != null) {
         this.lockHandle.close();
       }
+      LOGGER.warn("[CsvEnumerator] Error reading CSV: {}", e.getMessage());
       throw new RuntimeException(e);
     }
   }
@@ -201,7 +205,12 @@ public class CsvEnumerator<E> implements Enumerator<E> {
     }
     try (CSVReader reader = openCsv(source)) {
       String[] strings = reader.readNext();
+      LOGGER.debug("[CsvEnumerator.deduceRowType] Read header: {}", 
+                  (strings != null ? "length=" + strings.length + ", content=" + String.join(",", strings) : "null"));
       if (strings == null) {
+        strings = new String[]{"EmptyFileHasNoColumns:boolean"};
+      } else if (strings.length == 0) {
+        LOGGER.warn("[CsvEnumerator.deduceRowType] ERROR: Empty header row read from source: {}", source.path());
         strings = new String[]{"EmptyFileHasNoColumns:boolean"};
       }
       for (String string : strings) {
@@ -291,13 +300,32 @@ public class CsvEnumerator<E> implements Enumerator<E> {
 
   static CSVReader openCsv(Source source) throws IOException {
     requireNonNull(source, "source");
+    LOGGER.debug("[CsvEnumerator.openCsv] Opening CSV from source: {}, protocol: {}", source.path(), source.protocol());
+    
     // Check if this is a TSV file based on the file extension
     if (source.path().endsWith(".tsv")) {
       return new CSVReaderBuilder(source.reader())
           .withCSVParser(new CSVParserBuilder().withSeparator('\t').build())
           .build();
     }
-    return new CSVReaderBuilder(source.reader()).build();
+    
+    Reader reader = source.reader();
+    LOGGER.debug("[CsvEnumerator.openCsv] Reader created: {}", (reader != null ? reader.getClass().getName() : "null"));
+    
+    CSVReader csvReader = new CSVReaderBuilder(reader).build();
+    
+    // Debug: Try to peek at the first line
+    try {
+      reader.mark(1000);
+      char[] buffer = new char[100];
+      int charsRead = reader.read(buffer);
+      LOGGER.debug("[CsvEnumerator.openCsv] First {} chars: {}", charsRead, new String(buffer, 0, Math.max(0, charsRead)));
+      reader.reset();
+    } catch (Exception e) {
+      LOGGER.debug("[CsvEnumerator.openCsv] Could not peek at reader: {}", e.getMessage());
+    }
+    
+    return csvReader;
   }
 
   @Override public E current() {
@@ -720,9 +748,22 @@ public class CsvEnumerator<E> implements Enumerator<E> {
     }
 
     public @Nullable Object[] convertNormalRow(@Nullable String[] strings) {
+      if (strings == null) {
+        LOGGER.debug("[ArrayRowConverter] Received null strings array");
+        return null;
+      }
+      LOGGER.debug("[ArrayRowConverter] Converting row with {} columns, need fields: {}", strings.length, fields);
+      
       final @Nullable Object[] objects = new Object[fields.size()];
       for (int i = 0; i < fields.size(); i++) {
         int field = fields.get(i);
+        if (field >= strings.length) {
+          LOGGER.warn("[ArrayRowConverter] ERROR: Field index {} out of bounds for strings array of length {}", field, strings.length);
+          LOGGER.warn("[ArrayRowConverter] Fields list: {}", fields);
+          LOGGER.warn("[ArrayRowConverter] FieldTypes: {}", fieldTypes);
+          LOGGER.warn("[ArrayRowConverter] Row data: {}", java.util.Arrays.toString(strings));
+          throw new ArrayIndexOutOfBoundsException("Index " + field + " out of bounds for length " + strings.length);
+        }
         objects[i] = convert(fieldTypes.get(field), strings[field]);
       }
       return objects;

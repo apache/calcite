@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.file.integration;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -44,6 +45,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Test for mixed-format glob patterns in the file adapter.
  */
+@Tag("unit")
 @SuppressWarnings("deprecation")
 public class MixedFormatGlobTest {
 

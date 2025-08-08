@@ -25,11 +25,16 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Manages spillover directories for large data processing with proper
  * concurrency control and cleanup.
  */
 public class ConcurrentSpilloverManager {
+  private static final Logger LOGGER = LoggerFactory.getLogger(ConcurrentSpilloverManager.class);
+
   // Connection ID to spillover directory mapping
   private static final ConcurrentHashMap<String, Path> CONNECTION_DIRS = new ConcurrentHashMap<>();
 
@@ -97,11 +102,11 @@ public class ConcurrentSpilloverManager {
                 Files.deleteIfExists(path);
               } catch (IOException e) {
                 // Log error but continue cleanup
-                System.err.println("Failed to delete spillover file: " + path);
+                LOGGER.error("Failed to delete spillover file: {}", path);
               }
             });
       } catch (IOException e) {
-        System.err.println("Failed to cleanup spillover directory: " + dir);
+        LOGGER.error("Failed to cleanup spillover directory: {}", dir);
       }
     }
   }
@@ -144,7 +149,7 @@ public class ConcurrentSpilloverManager {
           });
 
     } catch (IOException e) {
-      System.err.println("Error during spillover cleanup: " + e.getMessage());
+      LOGGER.error("Error during spillover cleanup: {}", e.getMessage());
     }
   }
 }

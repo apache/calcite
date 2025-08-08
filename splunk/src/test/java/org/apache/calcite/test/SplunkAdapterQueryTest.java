@@ -280,7 +280,7 @@ class SplunkAdapterQueryTest {
               }
             }
             System.out.println("testSelectDistinct: Found " + rowCount + " rows, " + statuses.size() + " distinct statuses: " + statuses);
-            
+
             // Accept that we may have string "null" values as valid data
             // This reflects the current state of demo data where status appears as string "null"
             if (rowCount == 0) {
@@ -324,7 +324,7 @@ class SplunkAdapterQueryTest {
               }
             }
             System.out.println("testSelectNonBuiltInColumn: Found " + rowCount + " rows, status values: " + actual);
-            
+
             // Accept that we have rows even if status values are string "null"
             // This reflects the current state of demo data
             if (rowCount == 0) {

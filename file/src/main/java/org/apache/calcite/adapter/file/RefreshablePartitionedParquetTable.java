@@ -34,11 +34,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Refreshable partitioned Parquet table that can discover new partitions.
  */
 public class RefreshablePartitionedParquetTable extends AbstractTable
     implements ScannableTable, RefreshableTable {
+  private static final Logger LOGGER = LoggerFactory.getLogger(RefreshablePartitionedParquetTable.class);
 
   private final String tableName;
   private final File directory;
@@ -166,12 +170,10 @@ public class RefreshablePartitionedParquetTable extends AbstractTable
                 engineConfig, columnTypes, regex, colMappings);
         lastDiscoveredFiles = matchingFiles;
 
-        System.out.println("[RefreshablePartitionedParquetTable] Discovered "
-            + matchingFiles.size() + " files for table: " + tableName);
+        LOGGER.debug("[RefreshablePartitionedParquetTable] Discovered {} files for table: {}", matchingFiles.size(), tableName);
       }
     } catch (Exception e) {
-      System.err.println("Failed to refresh partitioned table: " + e.getMessage());
-      e.printStackTrace();
+      LOGGER.error("Failed to refresh partitioned table: {}", e.getMessage());
     }
   }
 

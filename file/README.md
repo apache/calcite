@@ -17,7 +17,7 @@ limitations under the License.
 
 # Apache Calcite File Adapter
 
-The File adapter allows Calcite to read data from various file formats including CSV, JSON, YAML, TSV, Excel (XLS/XLSX), HTML, Markdown, DOCX, Arrow, and Parquet files.
+The File adapter allows Calcite to read data from various file formats including CSV, JSON, YAML, TSV, Excel (XLS/XLSX), HTML, Markdown, DOCX, PPTX, Arrow, and Parquet files.
 
 ## Default Configuration
 
@@ -33,13 +33,14 @@ Other execution engines (linq4j, arrow, vectorized) are retained primarily for b
 
 ## Features
 
-- Support for multiple file formats: CSV, JSON, YAML, TSV, Excel (XLS/XLSX), HTML, Markdown, DOCX, Arrow, Parquet
+- Support for multiple file formats: CSV, JSON, YAML, TSV, Excel (XLS/XLSX), HTML, Markdown, DOCX, PPTX, Arrow, Parquet
 - **Glob Pattern Support** - Process multiple files with patterns like `*.csv`, `data_*.json`
 - **Materialized Views** - Pre-compute complex queries with automatic query rewriting
 - Automatic Excel to JSON conversion with multi-sheet and multi-table detection
 - Automatic HTML table discovery and extraction with JSON preprocessing
 - Automatic Markdown table extraction with multi-table and group header support
 - Automatic DOCX table extraction with title detection and group header support
+- Automatic PPTX table extraction with slide context, title detection, and multi-table support
 - Recursive directory scanning
 - Compressed file support (.gz files)
 - Custom type mapping
@@ -74,7 +75,7 @@ The File adapter provides **automatic schema discovery**:
 
 This single configuration:
 - **Discovers all files** in `/data` and subdirectories
-- **Creates tables automatically** for every CSV, JSON, Excel, HTML, Markdown, DOCX, Parquet file found
+- **Creates tables automatically** for every CSV, JSON, Excel, HTML, Markdown, DOCX, PPTX, Arrow, Parquet file found
 - **Handles format detection** without explicit configuration
 - **Optimizes large files** automatically with spillover and caching
 - **Refreshes on restart** to pick up additional files
@@ -2714,6 +2715,55 @@ SELECT table_schema, table_name, column_name, data_type
 FROM information_schema.columns
 WHERE column_name LIKE '%customer%';
 ```
+
+## Logging and Debugging
+
+The File adapter uses SLF4J logging throughout for debugging and monitoring, providing production-ready configurability and performance.
+
+### Logging Configuration
+
+Configure logging levels through your SLF4J implementation (e.g., Logback, Log4j2):
+
+```xml
+<!-- Example Logback configuration -->
+<configuration>
+  <!-- File adapter logging -->
+  <logger name="org.apache.calcite.adapter.file" level="INFO"/>
+  
+  <!-- Detailed debugging for specific components -->
+  <logger name="org.apache.calcite.adapter.file.FileSchema" level="DEBUG"/>
+  <logger name="org.apache.calcite.adapter.file.CsvEnumerator" level="DEBUG"/>
+  <logger name="org.apache.calcite.adapter.file.ParquetExecutionEngine" level="DEBUG"/>
+</configuration>
+```
+
+### Key Logger Names
+
+- `org.apache.calcite.adapter.file.FileSchema` - Schema discovery and table creation
+- `org.apache.calcite.adapter.file.CsvEnumerator` - CSV file parsing and type deduction
+- `org.apache.calcite.adapter.file.CsvTable` - CSV table operations
+- `org.apache.calcite.adapter.file.StorageProviderSource` - Remote storage operations
+- `org.apache.calcite.adapter.file.ParquetExecutionEngine` - Parquet engine operations
+- `org.apache.calcite.adapter.file.MaterializedViewTable` - Materialized view operations
+
+### Debug Output Examples
+
+With DEBUG level enabled, you'll see helpful information like:
+
+```
+DEBUG FileSchema - Creating storage provider of type: sharepoint
+DEBUG FileSchema - Computing tables! baseDirectory=/data, storageProvider=SharePointStorageProvider
+DEBUG FileSchema - Found 15 files for processing
+DEBUG CsvTable - Deducing row type for source: sales.csv
+DEBUG CsvTable - Deduced row type with 8 fields
+DEBUG ParquetExecutionEngine - Converting CSV to Parquet: sales.csv -> .parquet_cache/sales.parquet
+```
+
+### Performance Impact
+
+- **INFO level**: Minimal impact, only important events logged
+- **DEBUG level**: Moderate impact, useful for development and troubleshooting
+- **TRACE level**: Higher impact, detailed execution flow (not recommended for production)
 
 ## Known Limitations
 

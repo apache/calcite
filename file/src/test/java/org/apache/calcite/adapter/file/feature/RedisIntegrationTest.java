@@ -16,8 +16,8 @@
  */
 package org.apache.calcite.adapter.file.feature;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
@@ -37,6 +37,7 @@ import static org.junit.jupiter.api.Assertions.fail;
  * To run full Redis integration tests, add Redis dependencies and set system property:
  * -Dcalcite.test.redis=true
  */
+@Tag("integration")
 public class RedisIntegrationTest {
 
   @TempDir
@@ -63,7 +64,7 @@ public class RedisIntegrationTest {
     }
   }
 
-  @Test @EnabledIfSystemProperty(named = "calcite.test.redis.full", matches = "true")
+  @Test
   void testRedisIntegrationPlaceholder() {
     // This test would run full Redis integration if dependencies were available
     // Currently serves as placeholder for when Redis support is fully implemented

@@ -45,7 +45,7 @@ class SplunkInformationSchemaTest {
 
   private Connection createTestConnection() throws SQLException {
     Properties info = new Properties();
-    
+
     // Use inline model JSON
     String model = "inline:{\n"
         + "  \"version\": \"1.0\",\n"
@@ -65,7 +65,7 @@ class SplunkInformationSchemaTest {
         + "    }\n"
         + "  ]\n"
         + "}";
-    
+
     info.setProperty("model", model);
     return DriverManager.getConnection("jdbc:calcite:", info);
   }
@@ -73,26 +73,26 @@ class SplunkInformationSchemaTest {
   @Test void testInformationSchemaSchemata() throws SQLException {
     try (Connection connection = createTestConnection();
          Statement stmt = connection.createStatement()) {
-      
+
       // Test SCHEMATA table
       String query = "SELECT CATALOG_NAME, SCHEMA_NAME, SCHEMA_OWNER "
           + "FROM information_schema.SCHEMATA "
           + "ORDER BY SCHEMA_NAME";
-      
+
       try (ResultSet rs = stmt.executeQuery(query)) {
         Set<String> schemas = new HashSet<>();
         while (rs.next()) {
           String catalog = rs.getString("CATALOG_NAME");
           String schema = rs.getString("SCHEMA_NAME");
           String owner = rs.getString("SCHEMA_OWNER");
-          
+
           assertThat("Catalog should be SPLUNK", catalog, is("SPLUNK"));
           assertThat("Schema name should not be null", schema, notNullValue());
           assertThat("Owner should not be null", owner, notNullValue());
-          
+
           schemas.add(schema);
         }
-        
+
         // Should have at least the core schemas
         assertThat("Should have splunk schema", schemas, hasItem("splunk"));
         assertThat("Should have information_schema", schemas, hasItem("information_schema"));
@@ -104,13 +104,13 @@ class SplunkInformationSchemaTest {
   @Test void testInformationSchemaTables() throws SQLException {
     try (Connection connection = createTestConnection();
          Statement stmt = connection.createStatement()) {
-      
+
       // Test TABLES table
       String query = "SELECT TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME, TABLE_TYPE "
           + "FROM information_schema.TABLES "
           + "WHERE TABLE_SCHEMA = 'splunk' "
           + "ORDER BY TABLE_NAME";
-      
+
       try (ResultSet rs = stmt.executeQuery(query)) {
         int tableCount = 0;
         while (rs.next()) {
@@ -118,15 +118,15 @@ class SplunkInformationSchemaTest {
           String schema = rs.getString("TABLE_SCHEMA");
           String table = rs.getString("TABLE_NAME");
           String type = rs.getString("TABLE_TYPE");
-          
+
           assertThat("Catalog should be SPLUNK", catalog, is("SPLUNK"));
           assertThat("Schema should be splunk", schema, is("splunk"));
           assertThat("Table name should not be null", table, notNullValue());
           assertThat("Table type should be BASE TABLE", type, is("BASE TABLE"));
-          
+
           tableCount++;
         }
-        
+
         // Should have at least some default tables
         assertThat("Should have tables in splunk schema", tableCount, greaterThan(0));
       }
@@ -136,7 +136,7 @@ class SplunkInformationSchemaTest {
   @Test void testInformationSchemaColumns() throws SQLException {
     try (Connection connection = createTestConnection();
          Statement stmt = connection.createStatement()) {
-      
+
       // Test COLUMNS table
       String query = "SELECT TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, "
           + "ORDINAL_POSITION, IS_NULLABLE, DATA_TYPE "
@@ -144,11 +144,11 @@ class SplunkInformationSchemaTest {
           + "WHERE TABLE_SCHEMA = 'splunk' "
           + "AND TABLE_NAME = 'web' "
           + "ORDER BY ORDINAL_POSITION";
-      
+
       try (ResultSet rs = stmt.executeQuery(query)) {
         int columnCount = 0;
         int previousPosition = 0;
-        
+
         while (rs.next()) {
           String schema = rs.getString("TABLE_SCHEMA");
           String table = rs.getString("TABLE_NAME");
@@ -156,19 +156,19 @@ class SplunkInformationSchemaTest {
           int position = rs.getInt("ORDINAL_POSITION");
           String nullable = rs.getString("IS_NULLABLE");
           String dataType = rs.getString("DATA_TYPE");
-          
+
           assertThat("Schema should be splunk", schema, is("splunk"));
           assertThat("Table should be web", table, is("web"));
           assertThat("Column name should not be null", column, notNullValue());
           assertThat("Position should be sequential", position, is(previousPosition + 1));
-          assertThat("Nullable should be YES or NO", 
+          assertThat("Nullable should be YES or NO",
               nullable.equals("YES") || nullable.equals("NO"), is(true));
           assertThat("Data type should not be null", dataType, notNullValue());
-          
+
           previousPosition = position;
           columnCount++;
         }
-        
+
         // Web table should have columns
         assertThat("Should have columns for web table", columnCount, greaterThan(0));
       }
@@ -178,19 +178,19 @@ class SplunkInformationSchemaTest {
   @Test void testInformationSchemaStandardCompliance() throws SQLException {
     try (Connection connection = createTestConnection();
          Statement stmt = connection.createStatement()) {
-      
+
       // Test that all required SQL standard tables exist
       String query = "SELECT TABLE_NAME "
           + "FROM information_schema.TABLES "
           + "WHERE TABLE_SCHEMA = 'information_schema' "
           + "ORDER BY TABLE_NAME";
-      
+
       try (ResultSet rs = stmt.executeQuery(query)) {
         Set<String> tables = new HashSet<>();
         while (rs.next()) {
           tables.add(rs.getString("TABLE_NAME"));
         }
-        
+
         // Verify SQL standard required tables exist
         assertThat("Should have SCHEMATA table", tables, hasItem("SCHEMATA"));
         assertThat("Should have TABLES table", tables, hasItem("TABLES"));
@@ -207,23 +207,23 @@ class SplunkInformationSchemaTest {
   @Test void testCaseInsensitivity() throws SQLException {
     try (Connection connection = createTestConnection();
          Statement stmt = connection.createStatement()) {
-      
+
       // Test that column names are case-insensitive (SQL standard)
       String query1 = "SELECT table_catalog, table_schema, table_name "
           + "FROM information_schema.tables "
           + "WHERE table_schema = 'splunk' "
           + "LIMIT 1";
-      
+
       String query2 = "SELECT TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME "
           + "FROM INFORMATION_SCHEMA.TABLES "
           + "WHERE TABLE_SCHEMA = 'splunk' "
           + "LIMIT 1";
-      
+
       // Both queries should work
       try (ResultSet rs1 = stmt.executeQuery(query1)) {
         assertThat("Lowercase query should work", rs1.next(), is(true));
       }
-      
+
       try (ResultSet rs2 = stmt.executeQuery(query2)) {
         assertThat("Uppercase query should work", rs2.next(), is(true));
       }
@@ -232,7 +232,7 @@ class SplunkInformationSchemaTest {
 
   @Test void testJdbcCompatibleQuery() throws SQLException {
     try (Connection connection = createTestConnection()) {
-      
+
       // Test a typical JDBC metadata query pattern
       String query = "SELECT "
           + "NULL AS TABLE_CAT, "
@@ -263,25 +263,25 @@ class SplunkInformationSchemaTest {
           + "FROM information_schema.COLUMNS "
           + "WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? "
           + "ORDER BY ORDINAL_POSITION";
-      
+
       try (PreparedStatement pstmt = connection.prepareStatement(query)) {
         pstmt.setString(1, "splunk");
         pstmt.setString(2, "web");
-        
+
         try (ResultSet rs = pstmt.executeQuery()) {
           int columnCount = 0;
           while (rs.next()) {
             String columnName = rs.getString("COLUMN_NAME");
             String typeName = rs.getString("TYPE_NAME");
             int ordinalPos = rs.getInt("ORDINAL_POSITION");
-            
+
             assertThat("Column name should not be null", columnName, notNullValue());
             assertThat("Type name should not be null", typeName, notNullValue());
             assertThat("Ordinal position should be positive", ordinalPos, greaterThan(0));
-            
+
             columnCount++;
           }
-          
+
           assertThat("Should retrieve columns", columnCount, greaterThan(0));
         }
       }

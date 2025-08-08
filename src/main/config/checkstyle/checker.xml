@@ -171,7 +171,7 @@
     <module name="ArrayTypeStyle"/>
       <!-- Indentation -->
     <module name="Indentation">
-      <property name="caseIndent" value="0"/>
+      <property name="caseIndent" value="2"/>
       <property name="basicOffset" value="2"/>
       <property name="braceAdjustment" value="0"/>
     </module>

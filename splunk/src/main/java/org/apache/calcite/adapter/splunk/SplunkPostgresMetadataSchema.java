@@ -46,7 +46,7 @@ public class SplunkPostgresMetadataSchema extends AbstractSchema {
 
   private final SchemaPlus rootSchema;
   private final String catalogName;
-  
+
   // Shared OID mappings for referential integrity
   private final Map<String, Integer> namespaceOids = new HashMap<>();
   private final Map<String, Map<String, Integer>> tableOids = new HashMap<>();
@@ -57,7 +57,7 @@ public class SplunkPostgresMetadataSchema extends AbstractSchema {
     this.catalogName = catalogName;
     initializeOidMappings();
   }
-  
+
   /**
    * Initialize OID mappings for all schemas and tables to ensure
    * referential integrity across pg_catalog tables.
@@ -66,29 +66,29 @@ public class SplunkPostgresMetadataSchema extends AbstractSchema {
     if (oidsInitialized) {
       return;
     }
-    
+
     // Standard PostgreSQL schemas
     namespaceOids.put("pg_catalog", 11);
     namespaceOids.put("information_schema", 99);
     namespaceOids.put("public", 2200);
-    
+
     int namespaceOid = 16384;
     int tableOid = 16385;
-    
+
     // Iterate through all schemas and tables once to assign consistent OIDs
     for (String schemaName : rootSchema.subSchemas().getNames(LikePattern.any())) {
-      if (!"pg_catalog".equals(schemaName) && 
-          !"information_schema".equals(schemaName) &&
-          !"metadata".equals(schemaName)) {
-        
+      if (!"pg_catalog".equals(schemaName)
+          && !"information_schema".equals(schemaName)
+          && !"metadata".equals(schemaName)) {
+
         // Assign namespace OID
         namespaceOids.put(schemaName, namespaceOid++);
-        
+
         // Get tables in this schema
         SchemaPlus subSchema = rootSchema.subSchemas().get(schemaName);
         if (subSchema != null) {
           Map<String, Integer> schemaTableOids = new HashMap<>();
-          
+
           try {
             for (String tableName : subSchema.tables().getNames(LikePattern.any())) {
               schemaTableOids.put(tableName, tableOid++);
@@ -96,12 +96,12 @@ public class SplunkPostgresMetadataSchema extends AbstractSchema {
           } catch (Exception e) {
             // Log but continue - some schemas might not support table listing
           }
-          
+
           tableOids.put(schemaName, schemaTableOids);
         }
       }
     }
-    
+
     oidsInitialized = true;
   }
 
@@ -197,23 +197,23 @@ public class SplunkPostgresMetadataSchema extends AbstractSchema {
       for (Map.Entry<String, Integer> nsEntry : namespaceOids.entrySet()) {
         String schemaName = nsEntry.getKey();
         Integer namespaceOid = nsEntry.getValue();
-        
+
         // Skip system schemas for table listing
         if ("pg_catalog".equals(schemaName) || "information_schema".equals(schemaName)) {
           continue;
         }
-        
+
         Map<String, Integer> schemaTableOids = tableOids.get(schemaName);
         if (schemaTableOids == null) {
           continue;
         }
-        
+
         SchemaPlus subSchema = rootSchema.subSchemas().get(schemaName);
         if (subSchema != null) {
           for (Map.Entry<String, Integer> tableEntry : schemaTableOids.entrySet()) {
             String tableName = tableEntry.getKey();
             Integer tableOid = tableEntry.getValue();
-            
+
             try {
               Table table = subSchema.tables().get(tableName);
               if (table != null) {
@@ -306,23 +306,23 @@ public class SplunkPostgresMetadataSchema extends AbstractSchema {
       // Iterate through all schemas using the consistent OID mappings
       for (Map.Entry<String, Integer> nsEntry : namespaceOids.entrySet()) {
         String schemaName = nsEntry.getKey();
-        
+
         // Skip system schemas for table listing
         if ("pg_catalog".equals(schemaName) || "information_schema".equals(schemaName)) {
           continue;
         }
-        
+
         Map<String, Integer> schemaTableOids = tableOids.get(schemaName);
         if (schemaTableOids == null) {
           continue;
         }
-        
+
         SchemaPlus subSchema = rootSchema.subSchemas().get(schemaName);
         if (subSchema != null) {
           for (Map.Entry<String, Integer> tableEntry : schemaTableOids.entrySet()) {
             String tableName = tableEntry.getKey();
             Integer tableOid = tableEntry.getValue();
-            
+
             try {
               Table table = subSchema.tables().get(tableName);
               if (table != null) {
@@ -553,37 +553,37 @@ public class SplunkPostgresMetadataSchema extends AbstractSchema {
 
     @Override public Enumerable<Object[]> scan(DataContext root) {
       List<Object[]> rows = new ArrayList<>();
-      
+
       // Add essential pg_catalog functions
       int oid = 1299;
-      
+
       // Information functions
       rows.add(createFunctionRow(oid++, "current_database", 11, 0, 25)); // returns text
       rows.add(createFunctionRow(oid++, "current_schema", 11, 0, 25)); // returns text
       rows.add(createFunctionRow(oid++, "current_schemas", 11, 1, 1009)); // returns text[]
       rows.add(createFunctionRow(oid++, "version", 11, 0, 25)); // returns text
-      
+
       // Object visibility functions
       rows.add(createFunctionRow(oid++, "pg_table_is_visible", 11, 1, 16)); // returns boolean
       rows.add(createFunctionRow(oid++, "pg_type_is_visible", 11, 1, 16)); // returns boolean
       rows.add(createFunctionRow(oid++, "pg_function_is_visible", 11, 1, 16)); // returns boolean
-      
+
       // Privilege functions
       rows.add(createFunctionRow(oid++, "has_table_privilege", 11, 2, 16)); // returns boolean
       rows.add(createFunctionRow(oid++, "has_schema_privilege", 11, 2, 16)); // returns boolean
-      
+
       // Formatting functions
       rows.add(createFunctionRow(oid++, "quote_ident", 11, 1, 25)); // returns text
       rows.add(createFunctionRow(oid++, "format_type", 11, 2, 25)); // returns text
       rows.add(createFunctionRow(oid++, "pg_get_expr", 11, 2, 25)); // returns text
-      
+
       // Type function
       rows.add(createFunctionRow(oid++, "pg_typeof", 11, 1, 25)); // returns text
-      
+
       return Linq4j.asEnumerable(rows);
     }
-    
-    private Object[] createFunctionRow(int oid, String name, int namespace, 
+
+    private Object[] createFunctionRow(int oid, String name, int namespace,
                                         int argCount, int returnType) {
       return new Object[] {
           oid,                // oid
@@ -693,7 +693,7 @@ public class SplunkPostgresMetadataSchema extends AbstractSchema {
       for (Map.Entry<String, Map<String, Integer>> schemaEntry : tableOids.entrySet()) {
         String schemaName = schemaEntry.getKey();
         Map<String, Integer> tables = schemaEntry.getValue();
-        
+
         for (String tableName : tables.keySet()) {
           rows.add(new Object[] {
               schemaName,         // schemaname

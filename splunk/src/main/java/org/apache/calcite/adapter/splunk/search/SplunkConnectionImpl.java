@@ -645,15 +645,15 @@ public class SplunkConnectionImpl implements SplunkConnection {
 
         if (appContext != null && !appContext.trim().isEmpty()) {
           throw new RuntimeException(
-              String.format("Data model%s is not accessible in app context '%s'. " +
-                  "The model may not exist in this app's namespace. " +
-                  "Try removing the app context to access all data models you have permissions for.",
+              String.format(Locale.ROOT, "Data model%s is not accessible in app context '%s'. "
+                  + "The model may not exist in this app's namespace. "
+                  + "Try removing the app context to access all data models you have permissions for.",
                   modelInfo, appContext), e);
         } else {
           throw new RuntimeException(
-              String.format("Data model%s is not accessible. " +
-                  "You may lack permissions to access this data model. " +
-                  "Contact your Splunk administrator to verify your role has access to this model.",
+              String.format(Locale.ROOT, "Data model%s is not accessible. "
+                  + "You may lack permissions to access this data model. "
+                  + "Contact your Splunk administrator to verify your role has access to this model.",
                   modelInfo), e);
         }
       }
@@ -736,9 +736,9 @@ public class SplunkConnectionImpl implements SplunkConnection {
         "latest_time   - latest time for the search, default: now",
         "-print        - whether to print results or just the summary"
     };
-    System.err.println(errorMsg);
+    LOGGER.error(errorMsg);
     for (String s : strings) {
-      System.err.println(s);
+      LOGGER.error(s);
     }
     Unsafe.systemExit(1);
   }
@@ -997,7 +997,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
         return rawJson;
 
       } catch (Exception e) {
-        System.err.println("Failed to extract event data from JSON: " + e.getMessage());
+        LOGGER.error("Failed to extract event data from JSON", e);
         return rawJson; // Fallback to original
       }
     }
@@ -1139,7 +1139,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
       try {
         return OBJECT_MAPPER.writeValueAsString(map);
       } catch (Exception e) {
-        System.err.println("Failed to serialize _extra fields to JSON: " + e.getMessage());
+        LOGGER.error("Failed to serialize _extra fields to JSON", e);
         return "{}";
       }
     }

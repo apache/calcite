@@ -19,8 +19,8 @@ package org.apache.calcite.adapter.file;
 import org.apache.calcite.adapter.file.storage.S3StorageProvider;
 import org.apache.calcite.adapter.file.storage.StorageProvider;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,15 +31,14 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Integration test for S3 storage provider.
  * These tests require AWS credentials to be configured.
- * Run with -DrunS3Tests=true to enable.
  *
- * The tests assume the following environment variables are set:
+ * The tests require the following environment variables:
  * - AWS_ACCESS_KEY_ID
  * - AWS_SECRET_ACCESS_KEY
  * - AWS_REGION (optional, defaults to us-east-1)
  * - S3_TEST_BUCKET (the bucket name to use for testing)
  */
-@EnabledIfSystemProperty(named = "runS3Tests", matches = "true")
+@Tag("integration")
 public class S3StorageProviderTest {
 
   private String getTestBucket() {

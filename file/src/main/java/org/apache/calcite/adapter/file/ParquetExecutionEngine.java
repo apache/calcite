@@ -36,6 +36,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Parquet-based execution engine for columnar data processing.
  *
@@ -57,6 +60,7 @@ import java.util.function.Predicate;
  * </ul>
  */
 public final class ParquetExecutionEngine {
+  private static final Logger LOGGER = LoggerFactory.getLogger(ParquetExecutionEngine.class);
 
   private ParquetExecutionEngine() {
     // Utility class
@@ -237,7 +241,7 @@ public final class ParquetExecutionEngine {
       FieldVector vector = root.getVector(fieldName);
 
       if (vector == null) {
-        System.err.println("Warning: No vector found for field: " + fieldName);
+        LOGGER.warn("Warning: No vector found for field: {}", fieldName);
         continue;
       }
 

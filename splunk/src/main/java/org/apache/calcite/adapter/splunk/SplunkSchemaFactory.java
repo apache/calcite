@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.splunk;
 import org.apache.calcite.adapter.splunk.search.SearchResultListener;
 import org.apache.calcite.adapter.splunk.search.SplunkConnection;
 import org.apache.calcite.adapter.splunk.search.SplunkConnectionImpl;
+import org.apache.calcite.adapter.splunk.util.StringUtils;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
@@ -58,6 +59,8 @@ import java.util.regex.Pattern;
  * This setting is passed to SplunkConnectionImpl for per-connection SSL configuration.
  */
 public class SplunkSchemaFactory implements SchemaFactory {
+  private static final org.slf4j.Logger LOGGER =
+      StringUtils.getClassTracer(SplunkSchemaFactory.class);
 
   // Patterns for normalizing table names
   private static final Pattern NON_ALPHANUMERIC_PATTERN = Pattern.compile("[^a-z0-9_]");
@@ -113,9 +116,10 @@ public class SplunkSchemaFactory implements SchemaFactory {
 
     if (rootSchema.subSchemas().get("pg_catalog") == null) {
       // Pass parentSchema so it can see sibling schemas
-      SplunkPostgresMetadataSchema pgSchema = new SplunkPostgresMetadataSchema(parentSchema, "SPLUNK");
+      SplunkPostgresMetadataSchema pgSchema =
+          new SplunkPostgresMetadataSchema(parentSchema, "SPLUNK");
       rootSchema.add("pg_catalog", pgSchema);
-      
+
       // Register pg_catalog functions
       SchemaPlus pgCatalogSchema = rootSchema.subSchemas().get("pg_catalog");
       if (pgCatalogSchema != null) {
@@ -137,7 +141,7 @@ public class SplunkSchemaFactory implements SchemaFactory {
 
     if (connection == null) {
       // Can't do dynamic discovery without connection
-      System.err.println("WARNING: Connection is null, cannot perform dynamic discovery");
+      LOGGER.warn("Connection is null, cannot perform dynamic discovery");
       return;
     }
 
@@ -165,11 +169,10 @@ public class SplunkSchemaFactory implements SchemaFactory {
       }
 
       if (discoveredTables.size() > 0) {
-        System.out.println("Dynamically discovered " + discoveredTables.size() + " data model tables");
+        LOGGER.info("Dynamically discovered {} data model tables", discoveredTables.size());
       }
     } catch (Exception e) {
-      System.err.println("Dynamic discovery failed: " + e.getMessage());
-      e.printStackTrace();
+      LOGGER.error("Dynamic discovery failed", e);
     }
   }
 
@@ -207,8 +210,8 @@ public class SplunkSchemaFactory implements SchemaFactory {
     List<Object> tablesList = (List<Object>) tablesObj;
     for (Object tableObj : tablesList) {
       if (!(tableObj instanceof Map)) {
-        System.err.println("Warning: Invalid table definition in operand. Expected Map, got: "
-            + tableObj.getClass());
+        LOGGER.warn("Invalid table definition in operand. Expected Map, got: {}",
+            tableObj.getClass());
         continue;
       }
 
@@ -218,8 +221,7 @@ public class SplunkSchemaFactory implements SchemaFactory {
         String tableName = getRequiredString(tableConfig, "name");
         tableBuilder.put(tableName, customTable);
       } catch (Exception e) {
-        System.err.println("Warning: Failed to create custom table: " + e.getMessage());
-        e.printStackTrace();
+        LOGGER.warn("Failed to create custom table", e);
       }
     }
   }
@@ -290,8 +292,8 @@ public class SplunkSchemaFactory implements SchemaFactory {
     try {
       sqlType = SqlTypeName.valueOf(typeStr.toUpperCase(Locale.ROOT));
     } catch (IllegalArgumentException e) {
-      System.err.println("Warning: Unknown SQL type '" + typeStr + "' for field '"
-          + fieldName + "'. Defaulting to VARCHAR.");
+      LOGGER.warn("Unknown SQL type '{}' for field '{}'. Defaulting to VARCHAR.",
+          typeStr, fieldName);
       sqlType = SqlTypeName.VARCHAR;
     }
 
@@ -324,7 +326,7 @@ public class SplunkSchemaFactory implements SchemaFactory {
           }
         }
       } catch (ClassCastException e) {
-        System.err.println("Warning: Invalid fieldMapping format. Expected Map<String, String>");
+        LOGGER.warn("Invalid fieldMapping format. Expected Map<String, String>");
       }
     }
 
@@ -342,12 +344,12 @@ public class SplunkSchemaFactory implements SchemaFactory {
               fieldMapping.put(schemaField, splunkField);
             }
           } else {
-            System.err.println("Warning: Invalid field mapping format: '" + mapping
-                + "'. Expected 'schema_field:splunk_field'");
+            LOGGER.warn("Invalid field mapping format: '{}'. Expected 'schema_field:splunk_field'",
+                mapping);
           }
         }
       } catch (ClassCastException e) {
-        System.err.println("Warning: Invalid fieldMappings format. Expected List<String>");
+        LOGGER.warn("Invalid fieldMappings format. Expected List<String>");
       }
     }
 

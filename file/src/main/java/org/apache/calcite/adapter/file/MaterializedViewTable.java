@@ -49,10 +49,15 @@ import java.sql.Types;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Table that materializes query results to Parquet on first access.
  */
 public class MaterializedViewTable extends AbstractTable implements TranslatableTable {
+  private static final Logger LOGGER = LoggerFactory.getLogger(MaterializedViewTable.class);
+  
   private final SchemaPlus parentSchema;
   private final String schemaName;
   private final String viewName;
@@ -74,7 +79,7 @@ public class MaterializedViewTable extends AbstractTable implements Translatable
   private void materialize() {
     if (materialized.compareAndSet(false, true)) {
       try {
-        System.out.println("Materializing view " + viewName + " by executing SQL: " + sql);
+        LOGGER.debug("Materializing view {} by executing SQL: {}", viewName, sql);
 
         // Execute the SQL and write results to Parquet
         try (Connection conn = DriverManager.getConnection("jdbc:calcite:");
@@ -174,13 +179,11 @@ public class MaterializedViewTable extends AbstractTable implements Translatable
               writer.close();
             }
 
-            System.out.println("Materialized view written to Parquet: "
-                + parquetFile.getAbsolutePath());
+            LOGGER.debug("Materialized view written to Parquet: {}", parquetFile.getAbsolutePath());
           }
         }
       } catch (Exception e) {
-        System.err.println("Failed to materialize view " + viewName + ": " + e.getMessage());
-        e.printStackTrace();
+        LOGGER.error("Failed to materialize view {}: {}", viewName, e.getMessage());
         throw new RuntimeException("Failed to materialize view", e);
       }
     }

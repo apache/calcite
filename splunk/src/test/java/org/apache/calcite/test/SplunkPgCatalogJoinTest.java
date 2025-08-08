@@ -41,7 +41,7 @@ class SplunkPgCatalogJoinTest {
 
   @Test void testPgCatalogJoins() throws SQLException {
     Properties info = new Properties();
-    
+
     // Use inline model JSON
     String model = "inline:{\n"
         + "  \"version\": \"1.0\",\n"
@@ -61,9 +61,9 @@ class SplunkPgCatalogJoinTest {
         + "    }\n"
         + "  ]\n"
         + "}";
-    
+
     info.setProperty("model", model);
-    
+
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info)) {
       // First test that pg_catalog tables exist and have data
       String testQuery = "SELECT COUNT(*) FROM pg_catalog.pg_namespace";
@@ -73,7 +73,7 @@ class SplunkPgCatalogJoinTest {
         int count = rs.getInt(1);
         assertThat("pg_namespace should have entries", count, greaterThan(0));
       }
-      
+
       // Test the exact query that was failing
       String query = "SELECT "
           + "a.attname as name, "
@@ -93,52 +93,52 @@ class SplunkPgCatalogJoinTest {
           + "AND a.attnum > 0 "
           + "AND NOT a.attisdropped "
           + "ORDER BY a.attnum";
-      
+
       try (PreparedStatement stmt = connection.prepareStatement(query)) {
         stmt.setString(1, "splunk");
         stmt.setString(2, "web");
-        
+
         try (ResultSet rs = stmt.executeQuery()) {
           int columnCount = 0;
           while (rs.next()) {
             String name = rs.getString("name");
             String type = rs.getString("type");
             boolean nullable = rs.getBoolean("nullable");
-            
+
             assertThat("Column name should not be null", name, notNullValue());
             assertThat("Column type should not be null", type, notNullValue());
-            
+
             columnCount++;
           }
-          
+
           // We should get at least some columns
-          assertThat("Should retrieve columns from joined pg_catalog tables", 
+          assertThat("Should retrieve columns from joined pg_catalog tables",
               columnCount, greaterThan(0));
         }
       }
-      
+
       // Test a simpler join to verify OID consistency
       String simpleQuery = "SELECT c.relname, n.nspname "
           + "FROM pg_catalog.pg_class c "
           + "JOIN pg_catalog.pg_namespace n ON c.relnamespace = n.oid "
           + "WHERE n.nspname = 'splunk' "
           + "LIMIT 5";
-      
+
       try (PreparedStatement stmt = connection.prepareStatement(simpleQuery);
            ResultSet rs = stmt.executeQuery()) {
-        
+
         int tableCount = 0;
         while (rs.next()) {
           String tableName = rs.getString(1);
           String schemaName = rs.getString(2);
-          
+
           assertThat("Table name should not be null", tableName, notNullValue());
           assertThat("Schema should be 'splunk'", schemaName, is("splunk"));
-          
+
           tableCount++;
         }
-        
-        assertThat("Should retrieve tables from joined pg_class and pg_namespace", 
+
+        assertThat("Should retrieve tables from joined pg_class and pg_namespace",
             tableCount, greaterThan(0));
       }
     }

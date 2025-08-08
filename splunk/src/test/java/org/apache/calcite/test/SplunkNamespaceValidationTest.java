@@ -21,7 +21,6 @@ import org.apache.calcite.adapter.splunk.search.SplunkConnection;
 import org.apache.calcite.adapter.splunk.search.SplunkConnectionImpl;
 
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -66,8 +65,7 @@ class SplunkNamespaceValidationTest {
   }
 
 
-  @Test 
-  @Timeout(120) // 2 minutes for debugging
+  @Test @Timeout(120) // 2 minutes for debugging
   void testListAvailableApps() throws Exception {
     System.out.println("=== Listing Available Splunk Apps ===");
 
@@ -95,8 +93,7 @@ class SplunkNamespaceValidationTest {
     }
   }
 
-  @Test 
-  @Timeout(120) // 2 minutes
+  @Test @Timeout(120) // 2 minutes
   void testListDataModelsWithNamespace() throws Exception {
     System.out.println("\n=== Listing All Data Models with Namespace Info ===");
 
@@ -115,8 +112,7 @@ class SplunkNamespaceValidationTest {
     }
   }
 
-  @Test 
-  @Timeout(120) // 2 minutes
+  @Test @Timeout(120) // 2 minutes
   void testCIMModelsInNamespace() throws Exception {
     System.out.println("\n=== Testing CIM Models in Splunk_SA_CIM Namespace ===");
 
@@ -148,8 +144,7 @@ class SplunkNamespaceValidationTest {
     }
   }
 
-  @Test 
-  @Timeout(120) // 2 minutes
+  @Test @Timeout(120) // 2 minutes
   void testDiscoverCIMModelsInNamespace() throws Exception {
     System.out.println("\n=== Discovering CIM Models in Splunk_SA_CIM ===");
 
@@ -189,8 +184,7 @@ class SplunkNamespaceValidationTest {
     }
   }
 
-  @Test 
-  @Timeout(120) // 2 minutes
+  @Test @Timeout(120) // 2 minutes
   void testSearchContextBehavior() throws Exception {
     System.out.println("\n=== Testing Search Context Behavior ===");
 

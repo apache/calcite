@@ -30,10 +30,14 @@ import org.apache.parquet.hadoop.ParquetReader;
 
 import java.io.IOException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Factory for creating Enumerable instances from Parquet files.
  */
 public class ParquetEnumerableFactory {
+  private static final Logger LOGGER = LoggerFactory.getLogger(ParquetEnumerableFactory.class);
 
   private ParquetEnumerableFactory() {
     // Utility class should not be instantiated
@@ -158,8 +162,8 @@ public class ParquetEnumerableFactory {
                 value = null;
               } else {
                 // Log unexpected value type
-                System.out.println("[ParquetEnumerableFactory] Unexpected DATE value type: "
-                    + (value != null ? value.getClass().getName() : "null"));
+                LOGGER.debug("[ParquetEnumerableFactory] Unexpected DATE value type: {}", 
+                    (value != null ? value.getClass().getName() : "null"));
               }
             } else if ("time-millis".equals(logicalTypeName)) {
               if (value instanceof Integer) {
@@ -295,8 +299,8 @@ public class ParquetEnumerableFactory {
                 } else if (value == null) {
                   value = null;
                 } else {
-                  System.out.println("[FilteredParquetEnumerator] Unexpected DATE value type: "
-                      + (value != null ? value.getClass().getName() : "null"));
+                  LOGGER.debug("[FilteredParquetEnumerator] Unexpected DATE value type: {}", 
+                      (value != null ? value.getClass().getName() : "null"));
                 }
               } else if ("time-millis".equals(logicalTypeName)) {
                 if (value instanceof Integer) {

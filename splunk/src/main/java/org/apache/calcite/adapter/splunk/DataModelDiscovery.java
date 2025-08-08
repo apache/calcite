@@ -58,6 +58,11 @@ public class DataModelDiscovery {
   private static final Logger LOGGER = LoggerFactory.getLogger(DataModelDiscovery.class);
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
+  // Patterns for normalizing names
+  private static final Pattern NON_ALPHANUMERIC_PATTERN = Pattern.compile("[^a-z0-9_]");
+  private static final Pattern MULTIPLE_UNDERSCORES_PATTERN = Pattern.compile("_+");
+  private static final Pattern LEADING_TRAILING_UNDERSCORES_PATTERN = Pattern.compile("^_|_$");
+
   // Cache configuration
   private static final long DEFAULT_CACHE_TTL_MINUTES = 60; // 1 hour default
   private static final Map<String, CachedDataModels> CACHE = new ConcurrentHashMap<>();
@@ -83,8 +88,8 @@ public class DataModelDiscovery {
     this.connection = (SplunkConnectionImpl) connection;
     this.appContext = appContext;
     this.cacheTtlMinutes = cacheTtlMinutes;
-    this.additionalCalculatedFields = additionalCalculatedFields != null ?
-        additionalCalculatedFields : new HashMap<>();
+    this.additionalCalculatedFields = additionalCalculatedFields != null
+        ? additionalCalculatedFields : new HashMap<>();
   }
 
   /**
@@ -465,7 +470,7 @@ public class DataModelDiscovery {
 
     // Create search string for this data model
     String searchString =
-        String.format("| datamodel %s %s search", model.name, rootDataset.name);
+        String.format(Locale.ROOT, "| datamodel %s %s search", model.name, rootDataset.name);
 
     return new SplunkTable(schema, fieldMapping, searchString);
   }
@@ -698,9 +703,11 @@ public class DataModelDiscovery {
   /**
    * Adds additional calculated fields specified via operand.
    */
-  private void addAdditionalCalculatedFields(String modelName, RelDataTypeFactory.Builder schemaBuilder,
+  private void addAdditionalCalculatedFields(String modelName,
+      RelDataTypeFactory.Builder schemaBuilder,
       Map<String, String> fieldMapping, RelDataTypeFactory typeFactory) {
-    List<CalculatedFieldDef> fields = additionalCalculatedFields.get(modelName.toLowerCase(Locale.ROOT));
+    List<CalculatedFieldDef> fields =
+        additionalCalculatedFields.get(modelName.toLowerCase(Locale.ROOT));
     if (fields != null) {
       for (CalculatedFieldDef field : fields) {
         addCalculatedField(schemaBuilder, fieldMapping, typeFactory, field.name, field.type);
@@ -741,10 +748,11 @@ public class DataModelDiscovery {
    * Normalizes table names to valid SQL identifiers.
    */
   private String normalizeTableName(String name) {
-    return name.toLowerCase(Locale.ROOT)
-        .replaceAll("[^a-z0-9_]", "_")
-        .replaceAll("_+", "_")
-        .replaceAll("^_|_$", "");
+    String normalized = name.toLowerCase(Locale.ROOT);
+    normalized = NON_ALPHANUMERIC_PATTERN.matcher(normalized).replaceAll("_");
+    normalized = MULTIPLE_UNDERSCORES_PATTERN.matcher(normalized).replaceAll("_");
+    normalized = LEADING_TRAILING_UNDERSCORES_PATTERN.matcher(normalized).replaceAll("");
+    return normalized;
   }
 
   /**
@@ -756,10 +764,11 @@ public class DataModelDiscovery {
       return "time";
     }
 
-    return name.toLowerCase(Locale.ROOT)
-        .replaceAll("[^a-z0-9_]", "_")
-        .replaceAll("_+", "_")
-        .replaceAll("^_|_$", "");
+    String normalized = name.toLowerCase(Locale.ROOT);
+    normalized = NON_ALPHANUMERIC_PATTERN.matcher(normalized).replaceAll("_");
+    normalized = MULTIPLE_UNDERSCORES_PATTERN.matcher(normalized).replaceAll("_");
+    normalized = LEADING_TRAILING_UNDERSCORES_PATTERN.matcher(normalized).replaceAll("");
+    return normalized;
   }
 
   /**
@@ -767,7 +776,7 @@ public class DataModelDiscovery {
    */
   private String buildCacheKey() {
     URL url = connection.getUrl();
-    return String.format("%s:%d/%s",
+    return String.format(Locale.ROOT, "%s:%d/%s",
         url.getHost(),
         url.getPort(),
         appContext != null ? appContext : "default");
@@ -798,12 +807,12 @@ public class DataModelDiscovery {
 
     // Pattern to match field references in SPL expressions
     // Matches field names in various contexts: function args, comparisons, etc.
-    Pattern fieldPattern =
-        Pattern.compile("(?:isnull|isnotnull|isnum|len)\\s*\\(\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\)|" +  // Functions
-        "([a-zA-Z_][a-zA-Z0-9_]*)\\s*(?:=|!=|<|>|<=|>=)|" +  // Comparisons (field on left)
-        "(?:=|!=|<|>|<=|>=)\\s*([a-zA-Z_][a-zA-Z0-9_]*)|" +  // Comparisons (field on right)
-        "(?:^|[\\s,\\(])([a-zA-Z_][a-zA-Z0-9_]*)(?:\\s*[\\+\\-\\*/])|" +  // Math operations
-        "(?:[\\+\\-\\*/]\\s*)([a-zA-Z_][a-zA-Z0-9_]*)(?:\\s*[,\\)]|$)");    // Math operations
+    Pattern fieldPattern = Pattern.compile(
+        "(?:isnull|isnotnull|isnum|len)\\s*\\(\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\)|" // Functions
+        + "([a-zA-Z_][a-zA-Z0-9_]*)\\s*(?:=|!=|<|>|<=|>=)|" // Comparisons (field on left)
+        + "(?:=|!=|<|>|<=|>=)\\s*([a-zA-Z_][a-zA-Z0-9_]*)|" // Comparisons (field on right)
+        + "(?:^|[\\s,\\(])([a-zA-Z_][a-zA-Z0-9_]*)(?:\\s*[\\+\\-\\*/])|" // Math operations
+        + "(?:[\\+\\-\\*/]\\s*)([a-zA-Z_][a-zA-Z0-9_]*)(?:\\s*[,\\)]|$)"); // Math operations
 
     for (CalculationInfo calc : dataset.calculations) {
       Matcher matcher = fieldPattern.matcher(calc.expression);
@@ -855,10 +864,10 @@ public class DataModelDiscovery {
     String lowerName = fieldName.toLowerCase(Locale.ROOT);
 
     // Numeric fields
-    if (lowerName.contains("bytes") || lowerName.contains("size") ||
-        lowerName.contains("length") || lowerName.contains("count") ||
-        lowerName.contains("duration") || lowerName.contains("_time") ||
-        lowerName.endsWith("_ms") || lowerName.endsWith("_sec")) {
+    if (lowerName.contains("bytes") || lowerName.contains("size")
+        || lowerName.contains("length") || lowerName.contains("count")
+        || lowerName.contains("duration") || lowerName.contains("_time")
+        || lowerName.endsWith("_ms") || lowerName.endsWith("_sec")) {
       return SqlTypeName.INTEGER;
     }
 
@@ -868,8 +877,8 @@ public class DataModelDiscovery {
     }
 
     // Boolean fields
-    if (lowerName.startsWith("is_") || lowerName.startsWith("has_") ||
-        lowerName.equals("cached")) {
+    if (lowerName.startsWith("is_") || lowerName.startsWith("has_")
+        || lowerName.equals("cached")) {
       return SqlTypeName.BOOLEAN;
     }
 
@@ -1008,9 +1017,10 @@ public class DataModelDiscovery {
 
     CachedDataModels(List<DataModelInfo> models, long ttlMinutes) {
       this.models = models;
-      this.permanent = (ttlMinutes == -1);
-      this.expirationTime = permanent ? Long.MAX_VALUE :
-          System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(ttlMinutes);
+      this.permanent = ttlMinutes == -1;
+      this.expirationTime = permanent
+          ? Long.MAX_VALUE
+          : System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(ttlMinutes);
     }
 
     boolean isExpired() {
@@ -1034,7 +1044,8 @@ public class DataModelDiscovery {
      * Parse calculated field definitions from operand.
      * Expected format: modelName -> [ {name: "fieldName", type: "VARCHAR"}, ... ]
      */
-    public static Map<String, List<CalculatedFieldDef>> parseFromOperand(Map<String, Object> operand) {
+    public static Map<String, List<CalculatedFieldDef>> parseFromOperand(
+        Map<String, Object> operand) {
       Map<String, List<CalculatedFieldDef>> result = new HashMap<>();
 
       Object fieldsObj = operand.get("calculatedFields");

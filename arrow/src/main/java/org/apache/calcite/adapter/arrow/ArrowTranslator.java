@@ -127,13 +127,13 @@ class ArrowTranslator {
     case NOT_EQUALS:
       return translateBinary("not_equal", "<>", (RexCall) node);
     case LESS_THAN:
-      return translateBinary("less_than", ">", (RexCall) node);
+      return translateBinary("less_than", "<", (RexCall) node);
     case LESS_THAN_OR_EQUAL:
-      return translateBinary("less_than_or_equal_to", ">=", (RexCall) node);
+      return translateBinary("less_than_or_equal_to", "<=", (RexCall) node);
     case GREATER_THAN:
-      return translateBinary("greater_than", "<", (RexCall) node);
+      return translateBinary("greater_than", ">", (RexCall) node);
     case GREATER_THAN_OR_EQUAL:
-      return translateBinary("greater_than_or_equal_to", "<=", (RexCall) node);
+      return translateBinary("greater_than_or_equal_to", ">=", (RexCall) node);
     case IS_NULL:
       return translateUnary("isnull", (RexCall) node);
     case IS_NOT_NULL:

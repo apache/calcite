@@ -142,50 +142,50 @@ public final class SplunkDataConverter {
 
     // Handle direct numeric conversions from Jackson
     switch (targetType) {
-    case INTEGER:
-      if (value instanceof Number) {
-        return ((Number) value).intValue();
-      }
-      break;
-    case BIGINT:
-      if (value instanceof Number) {
-        return ((Number) value).longValue();
-      }
-      break;
-    case DOUBLE:
-      if (value instanceof Number) {
-        return ((Number) value).doubleValue();
-      }
-      break;
-    case FLOAT:
-    case REAL:
-      if (value instanceof Number) {
-        return ((Number) value).floatValue();
-      }
-      break;
-    case BOOLEAN:
-      if (value instanceof Boolean) {
-        return value;
-      }
-      break;
-    case TIMESTAMP:
-      // Return Long (milliseconds since epoch) for TIMESTAMP fields
-      // This is consistent with Calcite's internal representation
-      // The JDBC layer will handle conversion to java.sql.Timestamp when needed
-      if (value instanceof String) {
-        String strValue = ((String) value).trim();
-        // Handle empty or clearly invalid timestamp strings early
-        if (strValue.isEmpty() || "null".equals(strValue) || strValue.startsWith(".E")) {
-          return null; // Return null for invalid timestamp strings
+      case INTEGER:
+        if (value instanceof Number) {
+          return ((Number) value).intValue();
         }
-        return convertIsoStringToTimestampMillis(strValue).getTime();
-      } else if (value instanceof Number) {
-        // Fallback for numeric epoch timestamps
-        return convertNumberToTimestampMillis((Number) value);
-      } else if (value instanceof java.sql.Timestamp) {
-        return ((java.sql.Timestamp) value).getTime();
-      }
-      break;
+        break;
+      case BIGINT:
+        if (value instanceof Number) {
+          return ((Number) value).longValue();
+        }
+        break;
+      case DOUBLE:
+        if (value instanceof Number) {
+          return ((Number) value).doubleValue();
+        }
+        break;
+      case FLOAT:
+      case REAL:
+        if (value instanceof Number) {
+          return ((Number) value).floatValue();
+        }
+        break;
+      case BOOLEAN:
+        if (value instanceof Boolean) {
+          return value;
+        }
+        break;
+      case TIMESTAMP:
+        // Return Long (milliseconds since epoch) for TIMESTAMP fields
+        // This is consistent with Calcite's internal representation
+        // The JDBC layer will handle conversion to java.sql.Timestamp when needed
+        if (value instanceof String) {
+          String strValue = ((String) value).trim();
+          // Handle empty or clearly invalid timestamp strings early
+          if (strValue.isEmpty() || "null".equals(strValue) || strValue.startsWith(".E")) {
+            return null; // Return null for invalid timestamp strings
+          }
+          return convertIsoStringToTimestampMillis(strValue).getTime();
+        } else if (value instanceof Number) {
+          // Fallback for numeric epoch timestamps
+          return convertNumberToTimestampMillis((Number) value);
+        } else if (value instanceof java.sql.Timestamp) {
+          return ((java.sql.Timestamp) value).getTime();
+        }
+        break;
     }
 
     // Convert to string and parse (for string values from JSON)
@@ -194,54 +194,54 @@ public final class SplunkDataConverter {
     // Handle empty strings and literal "null" strings
     if (stringValue.isEmpty() || "null".equals(stringValue)) {
       switch (targetType) {
-      case VARCHAR:
-      case CHAR:
-        return stringValue; // Preserve for text fields
-      default:
-        return null; // Convert to NULL for other types
+        case VARCHAR:
+        case CHAR:
+          return stringValue; // Preserve for text fields
+        default:
+          return null; // Convert to NULL for other types
       }
     }
 
     try {
       switch (targetType) {
-      case TIMESTAMP:
-        // Handle empty or clearly invalid timestamp strings early
-        if (stringValue.isEmpty() || "null".equals(stringValue) || stringValue.startsWith(".E")) {
-          return null; // Return null for invalid timestamp strings
-        }
-        return convertIsoStringToTimestampMillis(stringValue).getTime();  // Return Long milliseconds
+        case TIMESTAMP:
+          // Handle empty or clearly invalid timestamp strings early
+          if (stringValue.isEmpty() || "null".equals(stringValue) || stringValue.startsWith(".E")) {
+            return null; // Return null for invalid timestamp strings
+          }
+          return convertIsoStringToTimestampMillis(stringValue).getTime();  // Return Long milliseconds
 
-      case DATE:
-        return convertToDateDays(stringValue);
+        case DATE:
+          return convertToDateDays(stringValue);
 
-      case TIME:
-        return convertToTimeMillis(stringValue);
+        case TIME:
+          return convertToTimeMillis(stringValue);
 
-      case INTEGER:
-        return convertToInteger(stringValue);
+        case INTEGER:
+          return convertToInteger(stringValue);
 
-      case BIGINT:
-        return convertToBigInt(stringValue);
+        case BIGINT:
+          return convertToBigInt(stringValue);
 
-      case DECIMAL:
-        return convertToDecimal(stringValue);
+        case DECIMAL:
+          return convertToDecimal(stringValue);
 
-      case DOUBLE:
-        return convertToDouble(stringValue);
+        case DOUBLE:
+          return convertToDouble(stringValue);
 
-      case FLOAT:
-      case REAL:
-        return convertToFloat(stringValue);
+        case FLOAT:
+        case REAL:
+          return convertToFloat(stringValue);
 
-      case BOOLEAN:
-        return convertToBoolean(stringValue);
+        case BOOLEAN:
+          return convertToBoolean(stringValue);
 
-      case VARCHAR:
-      case CHAR:
-        return stringValue; // Keep as string
+        case VARCHAR:
+        case CHAR:
+          return stringValue; // Keep as string
 
-      default:
-        return stringValue; // Keep as string
+        default:
+          return stringValue; // Keep as string
       }
 
     } catch (Exception e) {
@@ -341,30 +341,30 @@ public final class SplunkDataConverter {
    */
   private static boolean isCorrectType(Object value, SqlTypeName targetType) {
     switch (targetType) {
-    case TIMESTAMP:
-      return value instanceof Long;
-    case DATE:
-      return value instanceof Integer;
-    case TIME:
-      return value instanceof Integer;
-    case INTEGER:
-      return value instanceof Integer;
-    case BIGINT:
-      return value instanceof Long;
-    case DECIMAL:
-      return value instanceof BigDecimal;
-    case DOUBLE:
-      return value instanceof Double;
-    case FLOAT:
-    case REAL:
-      return value instanceof Float;
-    case BOOLEAN:
-      return value instanceof Boolean;
-    case VARCHAR:
-    case CHAR:
-      return value instanceof String;
-    default:
-      return false;
+      case TIMESTAMP:
+        return value instanceof Long;
+      case DATE:
+        return value instanceof Integer;
+      case TIME:
+        return value instanceof Integer;
+      case INTEGER:
+        return value instanceof Integer;
+      case BIGINT:
+        return value instanceof Long;
+      case DECIMAL:
+        return value instanceof BigDecimal;
+      case DOUBLE:
+        return value instanceof Double;
+      case FLOAT:
+      case REAL:
+        return value instanceof Float;
+      case BOOLEAN:
+        return value instanceof Boolean;
+      case VARCHAR:
+      case CHAR:
+        return value instanceof String;
+      default:
+        return false;
     }
   }
 

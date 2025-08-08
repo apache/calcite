@@ -49,6 +49,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Table that reads data from Parquet files using the ScannableTable interface.
  * This avoids the complexity of the Arrow adapter and works directly with
@@ -56,6 +59,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 @SuppressWarnings("deprecation")
 public class ParquetScannableTable extends AbstractTable implements ScannableTable, FilterableTable {
+  private static final Logger LOGGER = LoggerFactory.getLogger(ParquetScannableTable.class);
 
   private final File parquetFile;
   private RelDataType rowType;
@@ -112,8 +116,7 @@ public class ParquetScannableTable extends AbstractTable implements ScannableTab
     // Debug output
     String fieldName = parquetType.getName();
     if (fieldName.equals("JOINEDAT") || fieldName.equals("JOINTIME") || fieldName.equals("JOINTIMES")) {
-      System.out.println("DEBUG: Field " + fieldName + " - LogicalType: " + logicalType +
-                        ", PrimitiveType: " + parquetType.asPrimitiveType());
+      LOGGER.debug("DEBUG: Field {} - LogicalType: {}, PrimitiveType: {}", fieldName, logicalType, parquetType.asPrimitiveType());
     }
 
     if (logicalType != null) {

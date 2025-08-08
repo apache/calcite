@@ -62,7 +62,11 @@ import java.io.IOException;
  * }
  * }</pre>
  */
-public class ModelPreprocessor {
+public final class ModelPreprocessor {
+  private ModelPreprocessor() {
+    // Utility class
+  }
+
   private static final Logger LOGGER = LoggerFactory.getLogger(ModelPreprocessor.class);
 
   private static final ObjectMapper JSON_MAPPER = new ObjectMapper()
@@ -107,7 +111,8 @@ public class ModelPreprocessor {
     } else {
       // Handle file-based models (JSON only for now)
       if (modelUri.endsWith(".yaml") || modelUri.endsWith(".yml")) {
-        throw new IOException("YAML model files are not currently supported. Please use JSON format.");
+        throw new IOException(
+            "YAML model files are not currently supported. Please use JSON format.");
       }
       return JSON_MAPPER.readTree(new File(modelUri));
     }
@@ -182,22 +187,22 @@ public class ModelPreprocessor {
   private static String inferFactoryFromOperand(ObjectNode operandNode) {
     // Detect Splunk adapter based on presence of Splunk-specific properties
     if (operandNode.has("url")) {
-      boolean hasAuth = operandNode.has("token") ||
-          (operandNode.has("username") && operandNode.has("password")) ||
-          (operandNode.has("user") && operandNode.has("password"));
+      boolean hasAuth = operandNode.has("token")
+          || (operandNode.has("username") && operandNode.has("password"))
+          || (operandNode.has("user") && operandNode.has("password"));
 
       if (hasAuth) {
         // Additional Splunk-specific indicators
-        boolean hasSplunkIndicators = operandNode.has("app") ||
-                                     operandNode.has("datamodelFilter") ||
-                                     operandNode.has("datamodelCacheTtl") ||
-                                     operandNode.has("refreshDatamodels");
+        boolean hasSplunkIndicators = operandNode.has("app")
+            || operandNode.has("datamodelFilter")
+            || operandNode.has("datamodelCacheTtl")
+            || operandNode.has("refreshDatamodels");
 
         // Check if URL looks like a Splunk URL
         String url = operandNode.get("url").asText();
-        boolean looksLikeSplunk = url.contains(":8089") ||
-                                 url.contains("splunk") ||
-                                 hasSplunkIndicators;
+        boolean looksLikeSplunk = url.contains(":8089")
+            || url.contains("splunk")
+            || hasSplunkIndicators;
 
         if (looksLikeSplunk) {
           return "org.apache.calcite.adapter.splunk.SplunkSchemaFactory";

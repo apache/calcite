@@ -24,6 +24,8 @@ import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.util.Source;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +37,7 @@ import java.util.List;
  * with more advanced features.
  */
 public abstract class CsvTable extends AbstractTable {
+  private static final Logger LOGGER = LoggerFactory.getLogger(CsvTable.class);
   protected final Source source;
   protected final @Nullable RelProtoDataType protoRowType;
   protected final String columnCasing;
@@ -58,9 +61,16 @@ public abstract class CsvTable extends AbstractTable {
       return protoRowType.apply(typeFactory);
     }
     if (rowType == null) {
-      rowType =
-          CsvEnumerator.deduceRowType((JavaTypeFactory) typeFactory, source,
-              null, isStream(), columnCasing);
+      LOGGER.debug("Deducing row type for source: {}", source.path());
+      try {
+        rowType =
+            CsvEnumerator.deduceRowType((JavaTypeFactory) typeFactory, source,
+                null, isStream(), columnCasing);
+        LOGGER.debug("Deduced row type with {} fields", rowType.getFieldCount());
+      } catch (Exception e) {
+        LOGGER.error("ERROR deducing row type: {}", e.getMessage(), e);
+        throw e;
+      }
     }
     return rowType;
   }

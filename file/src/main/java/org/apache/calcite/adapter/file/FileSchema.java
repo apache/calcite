@@ -29,8 +29,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.FileVisitOption;
 import java.nio.file.FileVisitResult;
@@ -48,6 +51,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -55,6 +59,7 @@ import java.util.regex.Pattern;
  * is an HTML table on a URL.
  */
 class FileSchema extends AbstractSchema {
+  private static final Logger LOGGER = LoggerFactory.getLogger(FileSchema.class);
   private static final Pattern WHITESPACE_PATTERN = Pattern.compile("\\s+");
 
   private final ImmutableList<Map<String, Object>> tables;
@@ -127,8 +132,11 @@ class FileSchema extends AbstractSchema {
 
     // Create storage provider if configured
     if (storageType != null) {
+      LOGGER.debug("[FileSchema] Creating storage provider of type: {}", storageType);
       this.storageProvider = StorageProviderFactory.createFromType(storageType, storageConfig);
+      LOGGER.debug("[FileSchema] Storage provider created: {}", this.storageProvider);
     } else {
+      LOGGER.debug("[FileSchema] No storage provider configured");
       this.storageProvider = null;
     }
   }
@@ -338,7 +346,7 @@ class FileSchema extends AbstractSchema {
             SafeExcelToJsonConverter.convertIfNeeded(file, true);
           } catch (Exception e) {
             e.printStackTrace();
-            System.out.println("!");
+            LOGGER.debug("!");
           }
         }
       }
@@ -366,8 +374,7 @@ class FileSchema extends AbstractSchema {
               htmlTables.put(file.getPath(), tables);
             }
           } catch (Exception e) {
-            System.err.println("Error scanning HTML file: " + file.getName() + " - "
-                + e.getMessage());
+            LOGGER.error("Error scanning HTML file: {} - {}", file.getName(), e.getMessage());
           }
         }
       }
@@ -391,8 +398,7 @@ class FileSchema extends AbstractSchema {
           try {
             MarkdownTableScanner.scanAndConvertTables(file);
           } catch (Exception e) {
-            System.err.println("Error scanning Markdown file: " + file.getName()
-                + " - " + e.getMessage());
+            LOGGER.error("Error scanning Markdown file: {} - {}", file.getName(), e.getMessage());
           }
         }
       }
@@ -413,8 +419,28 @@ class FileSchema extends AbstractSchema {
           try {
             DocxTableScanner.scanAndConvertTables(file);
           } catch (Exception e) {
-            System.err.println("Error scanning DOCX file: " + file.getName()
-                + " - " + e.getMessage());
+            LOGGER.error("Error scanning DOCX file: {} - {}", file.getName(), e.getMessage());
+          }
+        }
+      }
+    }
+  }
+
+  private void convertPptxFilesToJson(File baseDirectory) {
+    // Get the list of all files and directories
+    File[] files = baseDirectory.listFiles();
+
+    if (files != null) {
+      for (File file : files) {
+        // If it's a directory and recursive is enabled, recurse into it
+        if (file.isDirectory() && recursive) {
+          convertPptxFilesToJson(file);
+        } else if (file.getName().endsWith(".pptx") && !file.getName().startsWith("~")) {
+          // If it's a PPTX file, scan it for tables
+          try {
+            PptxTableScanner.scanAndConvertTables(file);
+          } catch (Exception e) {
+            LOGGER.error("Error scanning PPTX file: {} - {}", file.getName(), e.getMessage());
           }
         }
       }
@@ -431,7 +457,7 @@ class FileSchema extends AbstractSchema {
 
     // Debug logging
     if (recursive) {
-      System.out.println("[FileSchema] Scanning directory (recursive=" + recursive + "): " + dir);
+      LOGGER.debug("[FileSchema] Scanning directory (recursive={}): {}", recursive, dir);
     }
 
     for (File file : fileArr) {
@@ -458,7 +484,19 @@ class FileSchema extends AbstractSchema {
     return files.toArray(new File[0]);
   }
 
+  private Map<String, Table> tableCache = null;
+  
   @Override protected Map<String, Table> getTableMap() {
+    try {
+      // Use cached tables if already computed
+      if (tableCache != null) {
+        LOGGER.debug("[FileSchema.getTableMap] Returning cached tables: {}", tableCache.size());
+        return tableCache;
+      }
+      
+      LOGGER.debug("[FileSchema.getTableMap] Computing tables! baseDirectory={}, storageProvider={}, storageType={}", 
+                   baseDirectory, storageProvider, storageType);
+    
     final ImmutableMap.Builder<String, Table> builder = ImmutableMap.builder();
     // Track table names to handle duplicates
     final Map<String, Integer> tableNameCounts = new HashMap<>();
@@ -469,7 +507,11 @@ class FileSchema extends AbstractSchema {
 
     // Look for files in the directory ending in ".csv", ".csv.gz", ".json",
     // ".json.gz".
-    if (baseDirectory != null) {
+    // If storage provider is configured, skip local file operations
+    LOGGER.debug("[FileSchema.getTableMap] Checking conditions: baseDirectory={}, storageProvider={}", 
+                 baseDirectory, storageProvider);
+    if (baseDirectory != null && storageProvider == null) {
+      LOGGER.debug("[FileSchema.getTableMap] Using local file system");
 
       convertExcelFilesToJson(baseDirectory);
 
@@ -479,13 +521,16 @@ class FileSchema extends AbstractSchema {
       // Convert DOCX files to JSON
       convertDocxFilesToJson(baseDirectory);
 
+      // Convert PPTX files to JSON
+      convertPptxFilesToJson(baseDirectory);
+
       // Always scan HTML files for tables
       Map<String, List<HtmlTableScanner.TableInfo>> htmlTables = scanHtmlFiles(baseDirectory);
 
       final Source baseSource = Sources.of(baseDirectory);
       // Get files using glob or regular directory scanning
       File[] files = getFilesForProcessing();
-      System.out.println("[FileSchema] Found " + files.length + " files for processing");
+      LOGGER.debug("[FileSchema] Found {} files for processing", files.length);
       // Track table names to handle conflicts
       Map<String, String> tableNameToFileType = new HashMap<>();
 
@@ -493,7 +538,11 @@ class FileSchema extends AbstractSchema {
       for (File file : files) {
         // Use DirectFileSource for PARQUET engine to bypass Sources cache, but handle gzip properly
         Source source;
-        if (engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.PARQUET) {
+        // Check if this is a StorageProviderFile
+        if (file instanceof StorageProviderFile) {
+          StorageProviderFile spFile = (StorageProviderFile) file;
+          source = new StorageProviderSource(spFile.getFileEntry(), spFile.getStorageProvider());
+        } else if (engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.PARQUET) {
           // For gzipped files, we still need Sources.of() to handle decompression
           if (file.getName().endsWith(".gz")) {
             source = Sources.of(file);
@@ -568,7 +617,7 @@ class FileSchema extends AbstractSchema {
             Table table = new ParquetTranslatableTable(new java.io.File(source.path()));
             builder.put(tableName, table);
           } catch (Exception e) {
-            System.err.println("Failed to add Parquet table: " + e.getMessage());
+            LOGGER.error("Failed to add Parquet table: {}", e.getMessage());
           }
         }
         final Source sourceSansArrow = sourceSansGz.trimOrNull(".arrow");
@@ -588,7 +637,7 @@ class FileSchema extends AbstractSchema {
                 Table table = new ParquetTranslatableTable(parquetFile);
                 builder.put(tableName, table);
               } catch (Exception conversionException) {
-                System.err.println("Parquet conversion failed for " + tableName + ", using Arrow table: " + conversionException.getMessage());
+                LOGGER.warn("Parquet conversion failed for {}, using Arrow table: {}", tableName, conversionException.getMessage());
                 // Fall back to using the original Arrow table
                 builder.put(tableName, arrowTable);
               }
@@ -597,7 +646,7 @@ class FileSchema extends AbstractSchema {
               builder.put(tableName, arrowTable);
             }
           } catch (Exception e) {
-            System.err.println("Failed to add Arrow table: " + e.getMessage());
+            LOGGER.error("Failed to add Arrow table: {}", e.getMessage());
           }
         }
         // HTML files are always scanned for tables in directory mode
@@ -633,12 +682,15 @@ class FileSchema extends AbstractSchema {
               FileTable table = FileTable.create(htmlSource, htmlTableDef);
               builder.put(fullTableName, table);
             } catch (Exception e) {
-              System.err.println("Failed to create table " + fullTableName + " from "
-                  + htmlFilePath + ": " + e.getMessage());
+              LOGGER.error("Failed to create table {} from {}: {}", fullTableName, htmlFilePath, e.getMessage());
             }
           }
         }
       }
+    } else if (storageProvider != null) {
+      // Process files from storage provider
+      LOGGER.debug("[FileSchema.getTableMap] Using storage provider to process files");
+      processStorageProviderFiles(builder, tableNameCounts);
     }
 
     // Process materialized views (only works with Parquet engine)
@@ -662,19 +714,16 @@ class FileSchema extends AbstractSchema {
 
               if (mvParquetFile.exists()) {
                 // If the Parquet file exists, use our ParquetTranslatableTable
-                System.out.println("Found existing materialized view: "
-                    + mvParquetFile.getPath());
-                System.out.println("Using ParquetTranslatableTable to read it");
+                LOGGER.debug("Found existing materialized view: {}", mvParquetFile.getPath());
+                LOGGER.debug("Using ParquetTranslatableTable to read it");
                 Table mvTable = new ParquetTranslatableTable(mvParquetFile);
                 builder.put(applyCasing(viewName, tableNameCasing), mvTable);
-                System.out.println(
-                    "Successfully added ParquetTranslatableTable for view: "
-                    + viewName);
+                LOGGER.debug("Successfully added ParquetTranslatableTable for view: {}", viewName);
               } else {
                 // Create a MaterializedViewTable that will execute the SQL when queried
                 // and cache results to Parquet on first access
-                System.out.println("Creating materialized view: " + viewName);
-                System.out.println("Will materialize to: " + mvParquetFile.getPath());
+                LOGGER.debug("Creating materialized view: {}", viewName);
+                LOGGER.debug("Will materialize to: {}", mvParquetFile.getPath());
 
                 // Create a view using ViewTable
                 String modifiedSql = sql;
@@ -697,18 +746,15 @@ class FileSchema extends AbstractSchema {
               }
             }
           } catch (Exception e) {
-            System.err.println("Failed to create materialized view "
-                + viewName + ": " + e.getMessage());
+            LOGGER.error("Failed to create materialized view {}: {}", viewName, e.getMessage());
             e.printStackTrace();
           }
         }
       }
     } else if (materializations != null) {
-      System.err.println(
-          "ERROR: Materialized views are only supported with Parquet execution engine");
-      System.err.println("Current engine: " + engineConfig.getEngineType());
-      System.err.println(
-          "To use materialized views, set executionEngine to 'parquet' in your schema configuration");
+      LOGGER.error("ERROR: Materialized views are only supported with Parquet execution engine");
+      LOGGER.error("Current engine: {}", engineConfig.getEngineType());
+      LOGGER.error("To use materialized views, set executionEngine to 'parquet' in your schema configuration");
     }
 
     // Process views
@@ -720,7 +766,7 @@ class FileSchema extends AbstractSchema {
         if (viewName != null && sql != null) {
           // For now, just log the view registration
           // In a full implementation, we would create a proper view table
-          System.out.println("View registered: " + viewName);
+          LOGGER.debug("View registered: {}", viewName);
           // TODO: Implement actual view creation
         }
       }
@@ -731,7 +777,14 @@ class FileSchema extends AbstractSchema {
       processPartitionedTables(builder);
     }
 
-    return builder.build();
+    tableCache = builder.build();
+    LOGGER.debug("[FileSchema.getTableMap] Computed {} tables: {}", tableCache.size(), tableCache.keySet());
+    return tableCache;
+    } catch (Exception e) {
+      LOGGER.error("[FileSchema.getTableMap] Error computing tables: {}", e.getMessage());
+      e.printStackTrace();
+      return ImmutableMap.of();
+    }
   }
 
   private boolean addTable(ImmutableMap.Builder<String, Table> builder,
@@ -870,7 +923,7 @@ class FileSchema extends AbstractSchema {
             return true;
           }
         } catch (Exception e) {
-          System.err.println("Failed to convert " + tableName + " to Parquet: " + e.getMessage());
+          LOGGER.error("Failed to convert {} to Parquet: {}", tableName, e.getMessage());
           // Fall through to regular processing - don't return here!
           // We need to register the table even if Parquet conversion fails
         }
@@ -1032,8 +1085,7 @@ class FileSchema extends AbstractSchema {
         return true;
       } catch (Exception e) {
         // Fall back to generic FileTable if Arrow creation fails
-        System.err.println("Warning: Failed to create Arrow table for " + source.path()
-            + ": " + e.getMessage());
+        LOGGER.warn("Warning: Failed to create Arrow table for {}: {}", source.path(), e.getMessage());
       }
     }
     final Source sourceSansParquet = sourceSansGz.trimOrNull(".parquet");
@@ -1047,8 +1099,7 @@ class FileSchema extends AbstractSchema {
         return true;
       } catch (Exception e) {
         // Fall back to generic FileTable if Parquet creation fails
-        System.err.println("Warning: Failed to create Parquet table for " + source.path()
-            + ": " + e.getMessage());
+        LOGGER.warn("Warning: Failed to create Parquet table for {}: {}", source.path(), e.getMessage());
       }
     }
     Source sourceSansXlsx = sourceSansGz.trimOrNull(".xlsx");
@@ -1070,8 +1121,7 @@ class FileSchema extends AbstractSchema {
         // Return false to let directory scanning pick up the converted JSON files
         return false;
       } catch (Exception e) {
-        System.err.println("Warning: Failed to convert Excel file " + source.path()
-            + ": " + e.getMessage());
+        LOGGER.warn("Warning: Failed to convert Excel file {}: {}", source.path(), e.getMessage());
       }
     }
 
@@ -1140,9 +1190,18 @@ class FileSchema extends AbstractSchema {
           .getConstructor(seekableReadChannelClass, bufferAllocatorClass)
           .newInstance(seekableReadChannel, allocator);
 
-      return (org.apache.calcite.schema.Table) arrowTableClass
-          .getConstructor(org.apache.calcite.rel.type.RelProtoDataType.class, arrowFileReaderClass)
-          .newInstance(null, arrowFileReader);
+      // Try the constructor with file parameter first, fall back to the old one if not available
+      try {
+        return (org.apache.calcite.schema.Table) arrowTableClass
+            .getConstructor(org.apache.calcite.rel.type.RelProtoDataType.class, 
+                arrowFileReaderClass, java.io.File.class)
+            .newInstance(null, arrowFileReader, file);
+      } catch (NoSuchMethodException e) {
+        // Fall back to old constructor for compatibility
+        return (org.apache.calcite.schema.Table) arrowTableClass
+            .getConstructor(org.apache.calcite.rel.type.RelProtoDataType.class, arrowFileReaderClass)
+            .newInstance(null, arrowFileReader);
+      }
     } catch (Exception e) {
       throw new RuntimeException("Failed to create Arrow table: " + e.getMessage(), e);
     }
@@ -1341,12 +1400,11 @@ class FileSchema extends AbstractSchema {
         List<String> matchingFiles = findMatchingFiles(config.getPattern());
 
         if (matchingFiles.isEmpty()) {
-          System.out.println("No files found matching pattern: " + config.getPattern());
+          LOGGER.debug("No files found matching pattern: {}", config.getPattern());
           continue;
         }
 
-        System.out.println("Found " + matchingFiles.size() + " files for partitioned table: "
-            + config.getName());
+        LOGGER.debug("Found {} files for partitioned table: {}", matchingFiles.size(), config.getName());
 
         // Detect or apply partition scheme
         PartitionDetector.PartitionInfo partitionInfo = null;
@@ -1357,10 +1415,7 @@ class FileSchema extends AbstractSchema {
           partitionInfo =
               PartitionDetector.detectPartitionScheme(matchingFiles);
           if (partitionInfo == null) {
-            System.out.println(
-                "WARN: No partition scheme detected for table '"
-                + config.getName() + "'. Treating as unpartitioned. "
-                + "Query performance may be impacted.");
+            LOGGER.warn("WARN: No partition scheme detected for table '{}'. Treating as unpartitioned. Query performance may be impacted.", config.getName());
           }
         } else {
           // Use configured partition scheme
@@ -1415,7 +1470,7 @@ class FileSchema extends AbstractSchema {
         builder.put(applyCasing(config.getName(), tableNameCasing), table);
 
       } catch (Exception e) {
-        System.err.println("Failed to process partitioned table: " + e.getMessage());
+        LOGGER.error("Failed to process partitioned table: {}", e.getMessage());
         e.printStackTrace();
       }
     }
@@ -1446,7 +1501,7 @@ class FileSchema extends AbstractSchema {
       });
 
     } catch (Exception e) {
-      System.err.println("Error scanning for files with pattern: " + pattern);
+      LOGGER.error("Error scanning for files with pattern: {}", pattern);
       e.printStackTrace();
     }
 
@@ -1454,10 +1509,16 @@ class FileSchema extends AbstractSchema {
   }
 
   /**
-   * Gets files for processing, always using glob patterns for consistency.
-   * Converts plain directories to appropriate glob patterns.
+   * Gets files for processing, using storage provider if configured,
+   * otherwise falls back to local file system.
    */
   private File[] getFilesForProcessing() {
+    // If storage provider is configured, use it for file discovery
+    if (storageProvider != null) {
+      return getFilesFromStorageProvider();
+    }
+    
+    // Otherwise use local file system
     if (baseDirectory == null) {
       return new File[0];
     }
@@ -1528,5 +1589,251 @@ class FileSchema extends AbstractSchema {
         || nameSansGz.endsWith(".html")
         || nameSansGz.endsWith(".arrow")
         || nameSansGz.endsWith(".parquet");
+  }
+  
+  /**
+   * Gets files from the configured storage provider.
+   * Traverses the directory structure recursively if needed.
+   */
+  private File[] getFilesFromStorageProvider() {
+    if (storageProvider == null) {
+      return new File[0];
+    }
+    
+    // Determine the base path to start from
+    String basePath = "/";
+    if (baseDirectory != null) {
+      basePath = baseDirectory.getPath();
+      // Normalize path for storage provider
+      if (!basePath.startsWith("/")) {
+        basePath = "/" + basePath;
+      }
+    }
+    
+    List<File> files = new ArrayList<>();
+    
+    try {
+      // Get files from storage provider recursively
+      LOGGER.debug("[FileSchema] Using storage provider to list files from: {}", basePath);
+      List<StorageProvider.FileEntry> entries = listFilesRecursively(basePath, recursive);
+      LOGGER.debug("[FileSchema] Storage provider found {} entries", entries.size());
+      
+      // Convert FileEntry objects to temporary File objects for compatibility
+      // Note: These File objects won't actually exist on disk, but we create them
+      // for compatibility with existing code that expects File objects
+      for (StorageProvider.FileEntry entry : entries) {
+        if (!entry.isDirectory() && isFileNameSupported(entry.getName())) {
+          // Create a virtual File object that represents the remote file
+          // The actual content will be fetched through the storage provider when needed
+          files.add(new StorageProviderFile(entry, storageProvider));
+        }
+      }
+      
+      LOGGER.debug("[FileSchema] Found {} supported files via storage provider", files.size());
+      
+    } catch (Exception e) {
+      LOGGER.error("Error listing files from storage provider: {}", e.getMessage());
+      e.printStackTrace();
+    }
+    
+    // Sort files for consistent processing order
+    File[] sortedFiles = files.stream()
+        .sorted((f1, f2) -> {
+          // Sort files to ensure CSV files are processed after HTML files
+          String ext1 = getFileExtension(f1.getName());
+          String ext2 = getFileExtension(f2.getName());
+
+          // CSV/TSV files should be processed last (higher priority)
+          boolean isCsv1 = "csv".equals(ext1) || "tsv".equals(ext1);
+          boolean isCsv2 = "csv".equals(ext2) || "tsv".equals(ext2);
+
+          if (isCsv1 && !isCsv2) return 1;  // CSV after non-CSV
+          if (!isCsv1 && isCsv2) return -1; // non-CSV before CSV
+
+          // For same priority types, sort alphabetically
+          return f1.getName().compareTo(f2.getName());
+        })
+        .toArray(File[]::new);
+    
+    return sortedFiles;
+  }
+  
+  /**
+   * Recursively lists files from storage provider.
+   */
+  private List<StorageProvider.FileEntry> listFilesRecursively(String path, boolean recursive) throws IOException {
+    List<StorageProvider.FileEntry> allFiles = new ArrayList<>();
+    
+    // List files at current path
+    List<StorageProvider.FileEntry> entries = storageProvider.listFiles(path, false);
+    
+    for (StorageProvider.FileEntry entry : entries) {
+      if (entry.isDirectory() && recursive) {
+        // Recursively list files in subdirectory
+        try {
+          List<StorageProvider.FileEntry> subEntries = listFilesRecursively(entry.getPath(), true);
+          allFiles.addAll(subEntries);
+        } catch (Exception e) {
+          LOGGER.error("Error listing files in directory {}: {}", entry.getPath(), e.getMessage());
+        }
+      } else if (!entry.isDirectory()) {
+        // Add file to list
+        allFiles.add(entry);
+      }
+    }
+    
+    return allFiles;
+  }
+  
+  /**
+   * Checks if a file name is supported based on its extension.
+   */
+  private boolean isFileNameSupported(String fileName) {
+    final String nameSansGz = trim(fileName, ".gz");
+    return nameSansGz.endsWith(".csv")
+        || nameSansGz.endsWith(".tsv")
+        || nameSansGz.endsWith(".json")
+        || nameSansGz.endsWith(".yaml")
+        || nameSansGz.endsWith(".yml")
+        || nameSansGz.endsWith(".html")
+        || nameSansGz.endsWith(".arrow")
+        || nameSansGz.endsWith(".parquet");
+  }
+  
+  /**
+   * Process files from the configured storage provider.
+   */
+  private void processStorageProviderFiles(ImmutableMap.Builder<String, Table> builder,
+                                           Map<String, Integer> tableNameCounts) {
+    if (storageProvider == null) {
+      return;
+    }
+    
+    // Determine the base path to start from
+    String basePath = "/";
+    if (baseDirectory != null) {
+      basePath = baseDirectory.getPath();
+      // Normalize path for storage provider
+      if (!basePath.startsWith("/")) {
+        basePath = "/" + basePath;
+      }
+    }
+    
+    try {
+      LOGGER.debug("[FileSchema] Processing files from storage provider at: {}", basePath);
+      List<StorageProvider.FileEntry> entries = listFilesRecursively(basePath, recursive);
+      LOGGER.debug("[FileSchema] Found {} entries from storage provider", entries.size());
+      
+      // Create a virtual base source for relative path calculations
+      final Source baseSource = new StorageProviderSource(
+          new StorageProvider.FileEntry(basePath, "", true, 0, 0), storageProvider);
+      
+      // Process each file
+      for (StorageProvider.FileEntry entry : entries) {
+        if (!entry.isDirectory() && isFileNameSupported(entry.getName())) {
+          // Create source for this file
+          Source source = new StorageProviderSource(entry, storageProvider);
+          Source sourceSansGz = source.trim(".gz");
+          
+          // Check for JSON/YAML files
+          Source sourceSansJson = sourceSansGz.trimOrNull(".json");
+          if (sourceSansJson == null) {
+            sourceSansJson = sourceSansGz.trimOrNull(".yaml");
+          }
+          if (sourceSansJson == null) {
+            sourceSansJson = sourceSansGz.trimOrNull(".yml");
+          }
+          if (sourceSansJson != null) {
+            String baseName = applyCasing(
+                WHITESPACE_PATTERN.matcher(sourceSansJson.relative(baseSource).path()
+                    .replace("/", "_"))
+                    .replaceAll("_"), tableNameCasing);
+            // Handle duplicate table names
+            String tableName = baseName;
+            if (tableNameCounts.containsKey(baseName)) {
+              String ext = source.path().endsWith(".yaml")
+                  || source.path().endsWith(".yaml.gz") ? "_YAML"
+                  : source.path().endsWith(".yml")
+                  || source.path().endsWith(".yml.gz") ? "_YML"
+                  : "_JSON";
+              tableName = baseName + ext;
+            }
+            tableNameCounts.put(baseName, tableNameCounts.getOrDefault(baseName, 0) + 1);
+            // Create table with refresh interval if configured
+            Map<String, Object> autoTableDef = null;
+            if (this.refreshInterval != null) {
+              autoTableDef = new HashMap<>();
+              autoTableDef.put("refreshInterval", this.refreshInterval);
+            }
+            addTable(builder, source, tableName, autoTableDef);
+            continue;
+          }
+          
+          // Check for CSV files
+          final Source sourceSansCsv = sourceSansGz.trimOrNull(".csv");
+          if (sourceSansCsv != null) {
+            String tableName = applyCasing(
+                WHITESPACE_PATTERN.matcher(sourceSansCsv.relative(baseSource).path()
+                    .replace("/", "_"))
+                    .replaceAll("_"), tableNameCasing);
+            addTable(builder, source, tableName, null);
+            continue;
+          }
+          
+          // Check for TSV files
+          final Source sourceSansTsv = sourceSansGz.trimOrNull(".tsv");
+          if (sourceSansTsv != null) {
+            String tableName = applyCasing(
+                WHITESPACE_PATTERN.matcher(sourceSansTsv.relative(baseSource).path()
+                    .replace("/", "_"))
+                    .replaceAll("_"), tableNameCasing);
+            addTable(builder, source, tableName, null);
+            continue;
+          }
+          
+          // Check for Parquet files
+          final Source sourceSansParquet = sourceSansGz.trimOrNull(".parquet");
+          if (sourceSansParquet != null) {
+            String tableName = applyCasing(
+                WHITESPACE_PATTERN.matcher(sourceSansParquet.relative(baseSource).path()
+                    .replace("/", "_"))
+                    .replaceAll("_"), tableNameCasing);
+            // Note: Parquet files from storage providers might need special handling
+            // For now, skip them or use FileTable
+            try {
+              FileTable table = FileTable.create(source, null);
+              builder.put(tableName, table);
+            } catch (Exception e) {
+              LOGGER.error("Failed to add Parquet table from storage provider: {}", e.getMessage());
+            }
+            continue;
+          }
+          
+          // Check for Arrow files
+          final Source sourceSansArrow = sourceSansGz.trimOrNull(".arrow");
+          if (sourceSansArrow != null) {
+            String tableName = applyCasing(
+                WHITESPACE_PATTERN.matcher(sourceSansArrow.relative(baseSource).path()
+                    .replace("/", "_"))
+                    .replaceAll("_"), tableNameCasing);
+            // Note: Arrow files from storage providers might need special handling
+            // For now, skip them or use FileTable
+            try {
+              FileTable table = FileTable.create(source, null);
+              builder.put(tableName, table);
+            } catch (Exception e) {
+              LOGGER.error("Failed to add Arrow table from storage provider: {}", e.getMessage());
+            }
+            continue;
+          }
+        }
+      }
+      
+      LOGGER.debug("[FileSchema] Processed {} files from storage provider", entries.size());
+      
+    } catch (Exception e) {
+      LOGGER.error("Error processing files from storage provider: {}", e.getMessage());
+      e.printStackTrace();
+    }
   }
 }

@@ -35,6 +35,7 @@ import com.google.common.collect.ImmutableMap;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -132,9 +133,9 @@ public class SplunkInformationSchema extends AbstractSchema {
           try {
             for (String tableName : subSchema.tables().getNames(LikePattern.any())) {
               // Only add tables from actual data schemas, not metadata schemas
-              if (!"information_schema".equals(schemaName) &&
-                  !"pg_catalog".equals(schemaName) &&
-                  !"metadata".equals(schemaName)) {
+              if (!"information_schema".equals(schemaName)
+                  && !"pg_catalog".equals(schemaName)
+                  && !"metadata".equals(schemaName)) {
                 rows.add(new Object[] {
                     catalogName,          // TABLE_CATALOG
                     schemaName,           // TABLE_SCHEMA
@@ -212,9 +213,9 @@ public class SplunkInformationSchema extends AbstractSchema {
           // Try to get tables and their columns directly from the SchemaPlus
           try {
             // Only process actual data schemas, not metadata schemas
-            if (!"information_schema".equals(schemaName) &&
-                !"pg_catalog".equals(schemaName) &&
-                !"metadata".equals(schemaName)) {
+            if (!"information_schema".equals(schemaName)
+                && !"pg_catalog".equals(schemaName)
+                && !"metadata".equals(schemaName)) {
               for (String tableName : subSchema.tables().getNames(LikePattern.any())) {
                 Table table = subSchema.tables().get(tableName);
                 if (table != null) {
@@ -266,18 +267,18 @@ public class SplunkInformationSchema extends AbstractSchema {
     }
 
     private Integer getCharacterMaxLength(RelDataType type) {
-      if (type.getSqlTypeName() == SqlTypeName.VARCHAR ||
-          type.getSqlTypeName() == SqlTypeName.CHAR) {
-        return type.getPrecision() == RelDataType.PRECISION_NOT_SPECIFIED ?
-            null : type.getPrecision();
+      if (type.getSqlTypeName() == SqlTypeName.VARCHAR
+          || type.getSqlTypeName() == SqlTypeName.CHAR) {
+        return type.getPrecision() == RelDataType.PRECISION_NOT_SPECIFIED
+            ? null : type.getPrecision();
       }
       return null;
     }
 
     private Integer getNumericPrecision(RelDataType type) {
       if (SqlTypeName.NUMERIC_TYPES.contains(type.getSqlTypeName())) {
-        return type.getPrecision() == RelDataType.PRECISION_NOT_SPECIFIED ?
-            null : type.getPrecision();
+        return type.getPrecision() == RelDataType.PRECISION_NOT_SPECIFIED
+            ? null : type.getPrecision();
       }
       return null;
     }
@@ -291,16 +292,16 @@ public class SplunkInformationSchema extends AbstractSchema {
 
     private Integer getNumericScale(RelDataType type) {
       if (SqlTypeName.NUMERIC_TYPES.contains(type.getSqlTypeName())) {
-        return type.getScale() == RelDataType.SCALE_NOT_SPECIFIED ?
-            null : type.getScale();
+        return type.getScale() == RelDataType.SCALE_NOT_SPECIFIED
+            ? null : type.getScale();
       }
       return null;
     }
 
     private Integer getDatetimePrecision(RelDataType type) {
       if (SqlTypeName.DATETIME_TYPES.contains(type.getSqlTypeName())) {
-        return type.getPrecision() == RelDataType.PRECISION_NOT_SPECIFIED ?
-            null : type.getPrecision();
+        return type.getPrecision() == RelDataType.PRECISION_NOT_SPECIFIED
+            ? null : type.getPrecision();
       }
       return null;
     }
@@ -446,7 +447,7 @@ public class SplunkInformationSchema extends AbstractSchema {
 
       for (RelDataTypeField field : originalType.getFieldList()) {
         // Add field with uppercase name (standard for information_schema)
-        builder.add(field.getName().toUpperCase(), field.getType());
+        builder.add(field.getName().toUpperCase(Locale.ROOT), field.getType());
       }
 
       return builder.build();

@@ -34,7 +34,7 @@ import java.util.Properties;
 public class SplunkDataModelDiscoveryTest {
 
 
-  @Test   public void testDataModelDiscoveryWithMetadata() throws Exception {
+  @Test public void testDataModelDiscoveryWithMetadata() throws Exception {
     // Load driver class
     Class.forName("org.apache.calcite.adapter.splunk.SplunkDriver");
 
@@ -170,7 +170,7 @@ public class SplunkDataModelDiscoveryTest {
     }
   }
 
-  @Test   public void testDataModelDiscoveryWithDifferentApps() throws Exception {
+  @Test public void testDataModelDiscoveryWithDifferentApps() throws Exception {
     Properties props = new Properties();
     props.load(SplunkDataModelDiscoveryTest.class.getResourceAsStream("/splunk-connection.properties"));
 
@@ -213,7 +213,7 @@ public class SplunkDataModelDiscoveryTest {
     }
   }
 
-  @Test   public void testDataModelFiltering() throws Exception {
+  @Test public void testDataModelFiltering() throws Exception {
     Properties props = new Properties();
     props.load(SplunkDataModelDiscoveryTest.class.getResourceAsStream("/splunk-connection.properties"));
 
@@ -248,7 +248,7 @@ public class SplunkDataModelDiscoveryTest {
     }
   }
 
-  @Test   public void testSplunkSpecificMetadata() throws Exception {
+  @Test public void testSplunkSpecificMetadata() throws Exception {
     // Load driver class
     Class.forName("org.apache.calcite.adapter.splunk.SplunkDriver");
 

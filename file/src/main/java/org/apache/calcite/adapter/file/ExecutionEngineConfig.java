@@ -18,6 +18,9 @@ package org.apache.calcite.adapter.file;
 
 import java.util.Locale;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Configuration for execution engines in the file adapter.
  *
@@ -29,6 +32,8 @@ import java.util.Locale;
  * </ul>
  */
 public class ExecutionEngineConfig {
+  private static final Logger LOGGER = LoggerFactory.getLogger(ExecutionEngineConfig.class);
+
   /** Default execution engine if not specified. */
   public static final String DEFAULT_EXECUTION_ENGINE = "parquet";
 
@@ -72,13 +77,13 @@ public class ExecutionEngineConfig {
 
       // Warn when using non-PARQUET engines
       if (engineType != ExecutionEngineType.PARQUET) {
-        System.err.println("WARNING: Using execution engine '" + executionEngine + "' is not recommended for production use.");
-        System.err.println("         The PARQUET engine is the default and recommended choice for:");
-        System.err.println("         - Best performance (1.6x faster)");
-        System.err.println("         - Automatic file update detection");
-        System.err.println("         - Disk spillover for unlimited dataset sizes");
-        System.err.println("         - Redis distributed cache support");
-        System.err.println("         Other engines are primarily for benchmarking purposes.");
+        LOGGER.warn("WARNING: Using execution engine '{}' is not recommended for production use.", executionEngine);
+        LOGGER.warn("         The PARQUET engine is the default and recommended choice for:");
+        LOGGER.warn("         - Best performance (1.6x faster)");
+        LOGGER.warn("         - Automatic file update detection");
+        LOGGER.warn("         - Disk spillover for unlimited dataset sizes");
+        LOGGER.warn("         - Redis distributed cache support");
+        LOGGER.warn("         Other engines are primarily for benchmarking purposes.");
       }
 
       return engineType;

@@ -16,9 +16,13 @@
  */
 package org.apache.calcite.adapter.splunk;
 
+import org.apache.calcite.adapter.splunk.util.StringUtils;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -34,6 +38,7 @@ import java.util.Map;
  * 2. Individual table environment variables: SPLUNK_TABLE_{NAME}_* pattern
  */
 public final class CustomTableConfigProcessor {
+  private static final Logger LOGGER = StringUtils.getClassTracer(CustomTableConfigProcessor.class);
 
   private CustomTableConfigProcessor() {
     // Utility class, prevent instantiation
@@ -78,7 +83,7 @@ public final class CustomTableConfigProcessor {
           new TypeReference<List<Map<String, Object>>>() { };
       return OBJECT_MAPPER.readValue(customTablesJson, typeRef);
     } catch (JsonProcessingException e) {
-      System.err.println("Warning: Failed to parse SPLUNK_CUSTOM_TABLES JSON: " + e.getMessage());
+      LOGGER.warn("Failed to parse SPLUNK_CUSTOM_TABLES JSON", e);
       return new ArrayList<>();
     }
   }
@@ -134,7 +139,7 @@ public final class CustomTableConfigProcessor {
         List<Object> fields = OBJECT_MAPPER.readValue(fieldsJson, typeRef);
         tableConfig.put("fields", fields);
       } catch (JsonProcessingException e) {
-        System.err.println("Warning: Failed to parse " + fieldsKey + " JSON: " + e.getMessage());
+        LOGGER.warn("Failed to parse {} JSON", fieldsKey, e);
       }
     }
 
@@ -148,8 +153,7 @@ public final class CustomTableConfigProcessor {
         Map<String, String> fieldMapping = OBJECT_MAPPER.readValue(fieldMappingJson, typeRef);
         tableConfig.put("fieldMapping", fieldMapping);
       } catch (JsonProcessingException e) {
-        System.err.println("Warning: Failed to parse " + fieldMappingKey + " JSON: "
-            + e.getMessage());
+        LOGGER.warn("Failed to parse {} JSON", fieldMappingKey, e);
       }
     }
 
@@ -162,8 +166,7 @@ public final class CustomTableConfigProcessor {
         List<String> fieldMappings = OBJECT_MAPPER.readValue(fieldMappingsJson, typeRef);
         tableConfig.put("fieldMappings", fieldMappings);
       } catch (JsonProcessingException e) {
-        System.err.println("Warning: Failed to parse " + fieldMappingsKey + " JSON: "
-            + e.getMessage());
+        LOGGER.warn("Failed to parse {} JSON", fieldMappingsKey, e);
       }
     }
 
@@ -192,7 +195,7 @@ public final class CustomTableConfigProcessor {
             (List<Map<String, Object>>) existingTablesObj;
         allTables.addAll(existingTables);
       } catch (ClassCastException e) {
-        System.err.println("Warning: Existing tables in operand are not in expected format");
+        LOGGER.warn("Existing tables in operand are not in expected format");
       }
     }
 
@@ -203,12 +206,11 @@ public final class CustomTableConfigProcessor {
     operand.put("tables", allTables);
 
     // Log configuration summary
-    System.out.println("Processed " + envTables.size()
-        + " custom tables from environment variables");
+    LOGGER.info("Processed {} custom tables from environment variables", envTables.size());
     for (Map<String, Object> table : envTables) {
       String name = (String) table.get("name");
       String search = (String) table.getOrDefault("search", "search");
-      System.out.println("  - Table: " + name + " (search: " + search + ")");
+      LOGGER.info("  - Table: {} (search: {})", name, search);
     }
   }
 }

@@ -42,7 +42,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Integration test to verify metadata catalog features work with dynamic file discovery.
  * Tests information_schema, pg_catalog, and JDBC DatabaseMetaData compatibility.
  */
-@Tag("integration")
+@Tag("unit")
 public class MetadataCatalogIntegrationTest {
 
   @TempDir

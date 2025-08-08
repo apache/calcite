@@ -36,6 +36,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Universal enumerator that reads various file formats using streaming columnar processing.
  *
@@ -67,6 +70,7 @@ import java.util.zip.GZIPOutputStream;
  * @param <E> the element type
  */
 public class ParquetEnumerator<E> implements Enumerator<E> {
+  private static final Logger LOGGER = LoggerFactory.getLogger(ParquetEnumerator.class);
 
   private final List<RelDataType> fieldTypes;
   private final int[] projectedFields;
@@ -420,15 +424,11 @@ public class ParquetEnumerator<E> implements Enumerator<E> {
         // Update access time for LRU management
         batchInfo.lastAccessTime = System.currentTimeMillis();
 
-        System.out.println("Loaded batch " + batchInfo.batchIndex
-            + " from disk: "
-            + currentBatchRowCount + " rows, "
-            + currentBatchColumns.size() + " columns");
+        LOGGER.debug("Loaded batch {} from disk: {} rows, {} columns", batchInfo.batchIndex, currentBatchRowCount, currentBatchColumns.size());
 
       }
     } catch (Exception e) {
-      System.err.println("Error loading batch from spill file: " + e.getMessage());
-      e.printStackTrace();
+      LOGGER.error("Error loading batch from spill file: {}", e.getMessage());
 
       // Fallback: initialize empty batch
       currentBatchColumns = new ArrayList<>();
@@ -467,14 +467,11 @@ public class ParquetEnumerator<E> implements Enumerator<E> {
       currentBatchColumns.clear();
       currentBatchColumns = null;
 
-      System.out.println("Spilled batch " + currentBatchIndex
-          + " to disk: " + spillFile
-          + " (" + Files.size(spillFile) + " bytes)");
+      LOGGER.debug("Spilled batch {} to disk: {} ({} bytes)", currentBatchIndex, spillFile, Files.size(spillFile));
 
     } catch (Exception e) {
       // Log warning but continue - keep in memory
-      System.err.println("Warning: Failed to spill batch to disk: " + e.getMessage());
-      e.printStackTrace();
+      LOGGER.warn("Warning: Failed to spill batch to disk: {}", e.getMessage());
     }
   }
 
@@ -613,18 +610,16 @@ public class ParquetEnumerator<E> implements Enumerator<E> {
               spillFileCount[0]++;
               Files.delete(path);
             } catch (IOException e) {
-              System.err.println("Failed to cleanup spill file: " + path + ", " + e.getMessage());
+              LOGGER.error("Failed to cleanup spill file: {}, {}", path, e.getMessage());
             }
           });
       Files.delete(spillDirectory);
 
       if (spillFileCount[0] > 0) {
-        System.out.println("Cleaned up " + spillFileCount[0]
-            + " spill files ("
-            + (totalSpillSize[0] / 1024 / 1024) + " MB total)");
+        LOGGER.debug("Cleaned up {} spill files ({} MB total)", spillFileCount[0], (totalSpillSize[0] / 1024 / 1024));
       }
     } catch (IOException e) {
-      System.err.println("Error during spill cleanup: " + e.getMessage());
+      LOGGER.error("Error during spill cleanup: {}", e.getMessage());
     }
   }
 
@@ -667,11 +662,11 @@ public class ParquetEnumerator<E> implements Enumerator<E> {
           try {
             if (Files.exists(batch.spillFile)) {
               Files.delete(batch.spillFile);
-              System.out.println("Cleaned up old spill file: " + batch.spillFile);
+              LOGGER.debug("Cleaned up old spill file: {}", batch.spillFile);
             }
             batch.spillFile = null;
           } catch (IOException e) {
-            System.err.println("Failed to cleanup spill file: " + e.getMessage());
+            LOGGER.error("Failed to cleanup spill file: {}", e.getMessage());
           }
         });
   }

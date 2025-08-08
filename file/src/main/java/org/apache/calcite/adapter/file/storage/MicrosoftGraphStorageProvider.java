@@ -30,8 +30,14 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Storage provider implementation for SharePoint using Microsoft Graph API.
@@ -40,6 +46,20 @@ import java.util.Locale;
 public class MicrosoftGraphStorageProvider implements StorageProvider {
 
   private static final String GRAPH_API_BASE = "https://graph.microsoft.com/v1.0";
+  private static final Logger LOGGER = LoggerFactory.getLogger(MicrosoftGraphStorageProvider.class);
+  
+  // Common document library names in different languages
+  private static final Set<String> DOCUMENT_LIBRARY_NAMES = new HashSet<>(Arrays.asList(
+      "Shared Documents",
+      "Documents",
+      "Documents Partagés",  // French
+      "Documentos compartidos",  // Spanish  
+      "Gemeinsame Dokumente",  // German
+      "Documenti condivisi",  // Italian
+      "共享文档",  // Chinese
+      "共有ドキュメント"  // Japanese
+  ));
+  
   private final String siteUrl;
   private final SharePointTokenManager tokenManager;
   private final ObjectMapper mapper = new ObjectMapper();
@@ -111,25 +131,24 @@ public class MicrosoftGraphStorageProvider implements StorageProvider {
     ensureInitialized();
     List<FileEntry> entries = new ArrayList<>();
 
-    // Normalize path
+    // Normalize and preserve the original path for building full paths
+    String originalPath = path;
     if (path.startsWith("/")) {
       path = path.substring(1);
     }
 
     // Build Graph API URL
     String apiUrl;
-    if (path.isEmpty() || path.equals("Shared Documents") || path.equals("/")) {
+    String apiPath = path; // Path to use for API call
+    
+    if (path.isEmpty() || isDocumentLibraryRoot(path) || path.equals("/")) {
       // Root of document library
       apiUrl = String.format(Locale.ROOT, "%s/drives/%s/root/children", GRAPH_API_BASE, driveId);
     } else {
-      // Remove common prefixes if present
-      if (path.startsWith("Shared Documents/")) {
-        path = path.substring("Shared Documents/".length());
-      } else if (path.startsWith("Documents/")) {
-        path = path.substring("Documents/".length());
-      }
+      // Remove common document library prefixes if present for API call
+      apiPath = removeDocumentLibraryPrefix(apiPath);
 
-      String encodedPath = URLEncoder.encode(path, StandardCharsets.UTF_8)
+      String encodedPath = URLEncoder.encode(apiPath, StandardCharsets.UTF_8)
           .replace("+", "%20");
       apiUrl =
           String.format(Locale.ROOT, "%s/drives/%s/root:/%s:/children", GRAPH_API_BASE, driveId, encodedPath);
@@ -141,19 +160,29 @@ public class MicrosoftGraphStorageProvider implements StorageProvider {
 
     if (items != null && items.isArray()) {
       for (JsonNode item : items) {
-        String itemPath = buildItemPath(item);
+        // Build the full path based on the directory we're listing
+        String itemName = item.get("name").asText();
+        String itemPath;
+        
+        // Construct full path based on the directory being listed
+        if (path.isEmpty() || path.equals("/")) {
+          itemPath = itemName;
+        } else {
+          itemPath = path + "/" + itemName;
+        }
+        
         boolean isFolder = item.has("folder");
 
         entries.add(
             new FileEntry(
             itemPath,
-            item.get("name").asText(),
+            itemName,
             isFolder,
             item.has("size") ? item.get("size").asLong() : 0,
             parseDateTime(item.get("lastModifiedDateTime").asText())));
 
         if (isFolder && recursive) {
-          // Recursively list folder contents
+          // Recursively list folder contents with the full path
           entries.addAll(listFiles(itemPath, true));
         }
       }
@@ -167,13 +196,23 @@ public class MicrosoftGraphStorageProvider implements StorageProvider {
 
       if (items != null && items.isArray()) {
         for (JsonNode item : items) {
-          String itemPath = buildItemPath(item);
+          // Build the full path based on the directory we're listing
+          String itemName = item.get("name").asText();
+          String itemPath;
+          
+          // Construct full path based on the directory being listed
+          if (path.isEmpty() || path.equals("/")) {
+            itemPath = itemName;
+          } else {
+            itemPath = path + "/" + itemName;
+          }
+          
           boolean isFolder = item.has("folder");
 
           entries.add(
               new FileEntry(
               itemPath,
-              item.get("name").asText(),
+              itemName,
               isFolder,
               item.has("size") ? item.get("size").asLong() : 0,
               parseDateTime(item.get("lastModifiedDateTime").asText())));
@@ -191,22 +230,24 @@ public class MicrosoftGraphStorageProvider implements StorageProvider {
   @Override public FileMetadata getMetadata(String path) throws IOException {
     ensureInitialized();
 
+    // Preserve original path for return value
+    String originalPath = path;
+    
     // Normalize path
     if (path.startsWith("/")) {
       path = path.substring(1);
     }
 
-    // Remove "Shared Documents" prefix if present
-    if (path.startsWith("Shared Documents/")) {
-      path = path.substring("Shared Documents/".length());
-    }
+    // For API call, we need to handle the nested structure properly
+    // Remove document library prefix for API call
+    String apiPath = removeDocumentLibraryPrefix(path);
 
     // Build Graph API URL
     String apiUrl;
-    if (path.isEmpty()) {
+    if (apiPath.isEmpty()) {
       apiUrl = String.format(Locale.ROOT, "%s/drives/%s/root", GRAPH_API_BASE, driveId);
     } else {
-      String encodedPath = URLEncoder.encode(path, StandardCharsets.UTF_8)
+      String encodedPath = URLEncoder.encode(apiPath, StandardCharsets.UTF_8)
           .replace("+", "%20");
       apiUrl = String.format(Locale.ROOT, "%s/drives/%s/root:/%s", GRAPH_API_BASE, driveId, encodedPath);
     }
@@ -214,7 +255,7 @@ public class MicrosoftGraphStorageProvider implements StorageProvider {
     JsonNode response = executeGraphCall(apiUrl);
 
     return new FileMetadata(
-        path,
+        originalPath,
         response.has("size") ? response.get("size").asLong() : 0,
         parseDateTime(response.get("lastModifiedDateTime").asText()),
         response.has("file") && response.get("file").has("mimeType")
@@ -231,13 +272,12 @@ public class MicrosoftGraphStorageProvider implements StorageProvider {
       path = path.substring(1);
     }
 
-    // Remove "Shared Documents" prefix if present
-    if (path.startsWith("Shared Documents/")) {
-      path = path.substring("Shared Documents/".length());
-    }
+    // For API call, we need to handle the nested structure properly
+    // Remove document library prefix for API call
+    String apiPath = removeDocumentLibraryPrefix(path);
 
     // Build download URL
-    String encodedPath = URLEncoder.encode(path, StandardCharsets.UTF_8)
+    String encodedPath = URLEncoder.encode(apiPath, StandardCharsets.UTF_8)
         .replace("+", "%20");
     String downloadUrl =
         String.format(Locale.ROOT, "%s/drives/%s/root:/%s:/content", GRAPH_API_BASE, driveId, encodedPath);
@@ -252,7 +292,7 @@ public class MicrosoftGraphStorageProvider implements StorageProvider {
     int responseCode = conn.getResponseCode();
     if (responseCode != HttpURLConnection.HTTP_OK) {
       conn.disconnect();
-      throw new IOException("Failed to download file: HTTP " + responseCode);
+      throw new IOException("Failed to download file from path '" + path + "' (API path: '" + apiPath + "'): HTTP " + responseCode);
     }
 
     return conn.getInputStream();
@@ -283,10 +323,8 @@ public class MicrosoftGraphStorageProvider implements StorageProvider {
       path = path.substring(1);
     }
 
-    // Remove "Shared Documents" prefix if present
-    if (path.startsWith("Shared Documents/")) {
-      path = path.substring("Shared Documents/".length());
-    }
+    // Remove document library prefix if present
+    path = removeDocumentLibraryPrefix(path);
 
     // Build Graph API URL
     String apiUrl;
@@ -409,5 +447,47 @@ public class MicrosoftGraphStorageProvider implements StorageProvider {
     } catch (Exception e) {
       return System.currentTimeMillis();
     }
+  }
+  
+  /**
+   * Checks if the given path represents a document library root.
+   */
+  private boolean isDocumentLibraryRoot(String path) {
+    return DOCUMENT_LIBRARY_NAMES.contains(path);
+  }
+  
+  /**
+   * Removes common document library prefixes from a path for API calls.
+   * This handles both single and nested document library paths.
+   */
+  private String removeDocumentLibraryPrefix(String path) {
+    // Special handling for the nested "Shared Documents/Shared Documents" pattern
+    // This occurs when the URL structure duplicates the library name
+    if (path.startsWith("Shared Documents/Shared Documents/")) {
+      // Remove only the first "Shared Documents/" 
+      return path.substring("Shared Documents/".length());
+    }
+    
+    // For other document library names, only remove if it's the root
+    for (String libraryName : DOCUMENT_LIBRARY_NAMES) {
+      if (path.equals(libraryName)) {
+        return "";
+      }
+      String prefix = libraryName + "/";
+      if (path.startsWith(prefix)) {
+        // For non-"Shared Documents" libraries, just remove the prefix once
+        // Don't remove nested occurrences as they might be actual folder names
+        if (!libraryName.equals("Shared Documents")) {
+          return path.substring(prefix.length());
+        }
+      }
+    }
+    
+    // Default case for "Shared Documents/" when not nested
+    if (path.startsWith("Shared Documents/") && !path.startsWith("Shared Documents/Shared Documents/")) {
+      return path.substring("Shared Documents/".length());
+    }
+    
+    return path;
   }
 }

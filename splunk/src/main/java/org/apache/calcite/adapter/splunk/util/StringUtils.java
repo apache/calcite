@@ -26,6 +26,8 @@ import java.util.List;
  * Utility methods for encoding and decoding strings for Splunk REST calls.
  */
 public class StringUtils {
+  private static final Logger LOGGER = getClassTracer(StringUtils.class);
+
   private StringUtils() {}
 
   public static StringBuilder encodeList(
@@ -138,17 +140,17 @@ public class StringUtils {
     list.add("");
     list.add(",");
 
-    System.out.println("=============");
+    LOGGER.debug("=============");
 
     StringBuilder sb = encodeList(list, ',');
-    System.out.println(sb);
+    LOGGER.debug("{}", sb);
 
     list.clear();
     list = decodeList(sb, ',');
     for (String s : list) {
-      System.out.println(s);
+      LOGGER.debug("{}", s);
     }
-    System.out.println("=============");
+    LOGGER.debug("=============");
   }
 
   public static Logger getClassTracer(Class clazz) {

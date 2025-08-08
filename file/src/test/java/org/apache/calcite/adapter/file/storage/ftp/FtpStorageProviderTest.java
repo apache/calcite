@@ -19,8 +19,8 @@ package org.apache.calcite.adapter.file;
 import org.apache.calcite.adapter.file.storage.FtpStorageProvider;
 import org.apache.calcite.adapter.file.storage.StorageProvider;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,9 +31,8 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Integration test for FTP storage provider.
  * These tests require network access and connect to public FTP test servers.
- * Run with -DrunFtpTests=true to enable.
  */
-@EnabledIfSystemProperty(named = "runFtpTests", matches = "true")
+@Tag("integration")
 public class FtpStorageProviderTest {
 
   @Test void testPublicFtpServer() throws IOException {
@@ -67,9 +66,7 @@ public class FtpStorageProviderTest {
     }
 
     if (!connected) {
-      System.out.println("WARNING: Could not connect to any public FTP server");
-      System.out.println("Skipping integration test - all servers appear to be down");
-      return;
+      fail("Could not connect to any public FTP server. All servers appear to be down or unreachable.");
     }
 
     // Test listing files

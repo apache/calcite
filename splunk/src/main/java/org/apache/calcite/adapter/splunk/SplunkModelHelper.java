@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Locale;
 
 /**
  * Helper class for creating Calcite connections with Splunk model files
@@ -41,7 +42,11 @@ import java.sql.SQLException;
  * Connection conn = DriverManager.getConnection("jdbc:calcite:model=inline:" + preprocessedModel);
  * }</pre>
  */
-public class SplunkModelHelper {
+public final class SplunkModelHelper {
+  private SplunkModelHelper() {
+    // Utility class
+  }
+
   private static final Logger LOGGER = LoggerFactory.getLogger(SplunkModelHelper.class);
 
   /**
@@ -92,7 +97,7 @@ public class SplunkModelHelper {
 
     for (int i = 0; i < appContexts.length; i++) {
       String appContext = appContexts[i];
-      String schemaName = appContext.toLowerCase()
+      String schemaName = appContext.toLowerCase(Locale.ROOT)
           .replace("splunk_ta_", "")
           .replace("splunk_sa_", "")
           .replace("-", "")
