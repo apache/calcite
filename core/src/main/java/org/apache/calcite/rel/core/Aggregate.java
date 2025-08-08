@@ -585,12 +585,14 @@ public abstract class Aggregate extends SingleRel implements Hintable {
     /**
      * Creates an AggCallBinding.
      *
-     * @param typeFactory  Type factory
-     * @param aggFunction  Aggregate function
-     * @param preOperands  Data types of pre-operands
-     * @param operands     Data types of operands
-     * @param groupCount   Number of columns in the GROUP BY clause
-     * @param filter       Whether the aggregate function has a FILTER clause
+     * @param typeFactory           Type factory
+     * @param aggFunction           Aggregate function
+     * @param preOperands           Data types of pre-operands
+     * @param operands              Data types of operands
+     * @param groupCount            Number of columns in the GROUP BY clause
+     * @param filter                Whether the aggregate function has a FILTER clause
+     * @param allowChangeNullable   Whether modifying the nullable property is allowed
+     *                              during type inference for aggregate function
      */
     public AggCallBinding(RelDataTypeFactory typeFactory,
         SqlAggFunction aggFunction, List<RelDataType> preOperands,
@@ -615,6 +617,14 @@ public abstract class Aggregate extends SingleRel implements Hintable {
         boolean filter) {
       this(typeFactory, aggFunction, ImmutableList.of(), operands, groupCount,
           filter, true);
+    }
+
+    @Deprecated
+    public AggCallBinding(RelDataTypeFactory typeFactory,
+        SqlAggFunction aggFunction, List<RelDataType> preOperands,
+        List<RelDataType> operands, int groupCount,
+        boolean filter) {
+      this(typeFactory, aggFunction, preOperands, operands, groupCount, filter, true);
     }
 
     @Override public boolean allowChangeNullable() {

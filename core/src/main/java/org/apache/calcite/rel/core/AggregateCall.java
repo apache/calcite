@@ -255,6 +255,17 @@ public class AggregateCall {
         filterArg, null, collation, type, name);
   }
 
+  /** Creates an AggregateCall. */
+  public static AggregateCall create(SqlAggFunction aggFunction,
+      boolean distinct, boolean approximate, boolean ignoreNulls,
+      List<RexNode> rexList, List<Integer> argList, int filterArg,
+      @Nullable ImmutableBitSet distinctKeys, RelCollation collation,
+      RelDataType type, @Nullable String name) {
+    return create(SqlParserPos.ZERO, aggFunction, distinct, approximate,
+        ignoreNulls, rexList, argList, filterArg, distinctKeys, collation,
+        type, name, true);
+  }
+
   public static AggregateCall create(SqlParserPos pos, SqlAggFunction aggFunction,
       boolean distinct, boolean approximate, boolean ignoreNulls,
       List<RexNode> rexList, List<Integer> argList, int filterArg,
@@ -287,18 +298,7 @@ public class AggregateCall {
         rexList, argList, filterArg, distinctKeys, collation, type, name, allowChangeNullable);
   }
 
-  /** Creates an AggregateCall. */
-  public static AggregateCall create(SqlAggFunction aggFunction,
-      boolean distinct, boolean approximate, boolean ignoreNulls,
-      List<RexNode> rexList, List<Integer> argList, int filterArg,
-      @Nullable ImmutableBitSet distinctKeys, RelCollation collation,
-      RelDataType type, @Nullable String name) {
-    return create(SqlParserPos.ZERO, aggFunction, distinct, approximate,
-        ignoreNulls, rexList, argList, filterArg, distinctKeys, collation,
-        type, name, true);
-  }
-
-  public static AggregateCall create(SqlParserPos pos, SqlAggFunction aggFunction,
+  private static AggregateCall create(SqlParserPos pos, SqlAggFunction aggFunction,
       boolean distinct, boolean approximate, boolean ignoreNulls,
       List<RexNode> rexList, List<Integer> argList, int filterArg,
       @Nullable ImmutableBitSet distinctKeys, RelCollation collation,
