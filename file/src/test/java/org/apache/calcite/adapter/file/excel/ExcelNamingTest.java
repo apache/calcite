@@ -189,8 +189,8 @@ public class ExcelNamingTest {
     Thread.sleep(100);
 
     // Should create: SingleWithId__Sales_Q1_Results.json (NO _T1 suffix)
-    File expectedFile = new File(tempDir.toFile(), "SingleWithId__Sales_Q1_Results.json");
-    File unexpectedFile = new File(tempDir.toFile(), "SingleWithId__Sales_Q1_Results_T1.json");
+    File expectedFile = new File(tempDir.toFile(), "single_with_id__sales_q1_results.json");
+    File unexpectedFile = new File(tempDir.toFile(), "single_with_id__sales_q1_results_t1.json");
 
     System.out.println("Testing single table with identifier:");
     System.out.println("  Expected file: " + expectedFile.getName() + " exists=" + expectedFile.exists());
@@ -220,8 +220,8 @@ public class ExcelNamingTest {
     }
 
     // Should create: SingleNoId__Data.json (NO _T1 suffix)
-    File expectedFile = new File(tempDir.toFile(), "SingleNoId__Data.json");
-    File unexpectedFile = new File(tempDir.toFile(), "SingleNoId__Data_T1.json");
+    File expectedFile = new File(tempDir.toFile(), "single_no_id__data.json");
+    File unexpectedFile = new File(tempDir.toFile(), "single_no_id__data_t1.json");
 
     System.out.println("Testing single table without identifier:");
     System.out.println("  Expected file: " + expectedFile.getName() + " exists=" + expectedFile.exists());
@@ -251,9 +251,9 @@ public class ExcelNamingTest {
     }
 
     // Should create: MultipleTables__Report_Sales_Data_T1.json and _T2.json (WITH suffixes)
-    File file1 = new File(tempDir.toFile(), "MultipleTables__Report_Sales_Data_T1.json");
-    File file2 = new File(tempDir.toFile(), "MultipleTables__Report_Sales_Data_T2.json");
-    File unexpectedFile = new File(tempDir.toFile(), "MultipleTables__Report_Sales_Data.json");
+    File file1 = new File(tempDir.toFile(), "multiple_tables__report_sales_data_t1.json");
+    File file2 = new File(tempDir.toFile(), "multiple_tables__report_sales_data_t2.json");
+    File unexpectedFile = new File(tempDir.toFile(), "multiple_tables__report_sales_data.json");
 
     System.out.println("Testing multiple tables with conflicts:");
     System.out.println("  File 1: " + file1.getName() + " exists=" + file1.exists());

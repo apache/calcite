@@ -46,13 +46,13 @@ public class S3StorageProvider implements StorageProvider {
     AmazonS3ClientBuilder builder = AmazonS3ClientBuilder.standard()
         .withCredentials(new DefaultAWSCredentialsProviderChain());
     
-    // Try to get region from default provider chain, fallback to us-east-1 if not available
+    // Try to get region from default provider chain, fallback to us-west-1 if not available
     try {
       String region = new DefaultAwsRegionProviderChain().getRegion();
       builder.withRegion(region);
     } catch (Exception e) {
-      // If no region is configured, use us-east-1 as default
-      builder.withRegion("us-east-1");
+      // If no region is configured, use us-west-1 as default
+      builder.withRegion("us-west-1");
     }
     
     this.s3Client = builder.build();
@@ -166,11 +166,26 @@ public class S3StorageProvider implements StorageProvider {
       return relativePath;
     }
 
-    if (basePath.endsWith("/")) {
-      return basePath + relativePath;
-    } else {
-      return basePath + "/" + relativePath;
+    // If basePath doesn't end with /, it might be a file
+    // Strip the filename part to get the directory
+    if (!basePath.endsWith("/")) {
+      int lastSlash = basePath.lastIndexOf('/');
+      if (lastSlash > "s3://".length()) {
+        // Check if the part after the last slash looks like a file (has extension)
+        String lastPart = basePath.substring(lastSlash + 1);
+        if (lastPart.contains(".")) {
+          // It's likely a file, use the directory part
+          basePath = basePath.substring(0, lastSlash + 1);
+        } else {
+          // It's likely a directory without trailing slash, add one
+          basePath = basePath + "/";
+        }
+      } else {
+        basePath = basePath + "/";
+      }
     }
+
+    return basePath + relativePath;
   }
 
   private S3Uri parseS3Uri(String uri) throws IOException {

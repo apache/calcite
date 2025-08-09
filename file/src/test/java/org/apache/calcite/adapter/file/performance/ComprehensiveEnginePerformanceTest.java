@@ -53,9 +53,9 @@ public class ComprehensiveEnginePerformanceTest {
 
   @BeforeEach
   public void setUp() throws Exception {
-    // Skip performance tests unless explicitly enabled
-    assumeTrue(Boolean.getBoolean("enablePerformanceTests"),
-        "Performance tests disabled - use -DenablePerformanceTests=true to enable");
+    // Performance tests are now always enabled
+    // assumeTrue(Boolean.getBoolean("enablePerformanceTests"),
+    //     "Performance tests disabled - use -DenablePerformanceTests=true to enable");
 
     // Create test datasets
     createTestCsvFile(1000);

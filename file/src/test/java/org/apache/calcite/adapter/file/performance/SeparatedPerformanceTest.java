@@ -54,9 +54,9 @@ public class SeparatedPerformanceTest {
 
   @BeforeEach
   public void setUp() throws Exception {
-    // Skip performance tests unless explicitly enabled
-    assumeTrue(Boolean.getBoolean("enablePerformanceTests"),
-        "Performance tests disabled - use -DenablePerformanceTests=true to enable");
+    // Performance tests are now always enabled
+    // assumeTrue(Boolean.getBoolean("enablePerformanceTests"),
+    //     "Performance tests disabled - use -DenablePerformanceTests=true to enable");
 
     System.out.println("\n=== SEPARATED PERFORMANCE ANALYSIS ===");
     createTestDataset();

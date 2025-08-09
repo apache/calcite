@@ -1,0 +1,71 @@
+[ {
+  "company_department" : "Engineering",
+  "company_team" : "Backend",
+  "address_street" : "123 Tech Boulevard",
+  "address_city" : "San Francisco",
+  "address_state" : "CA",
+  "address_zip_code" : 94105
+}, {
+  "company_department" : "Sales",
+  "company_team" : "Enterprise",
+  "address_street" : "456 Commerce Ave",
+  "address_city" : "New York",
+  "address_state" : "NY",
+  "address_zip_code" : 10001
+}, {
+  "company_department" : "Marketing",
+  "company_team" : "Digital",
+  "address_street" : "789 Creative Drive",
+  "address_city" : "Austin",
+  "address_state" : "TX",
+  "address_zip_code" : 73301
+}, {
+  "company_department" : "Human Resources",
+  "company_team" : "Recruiting",
+  "address_street" : "321 Corporate Plaza",
+  "address_city" : "Chicago",
+  "address_state" : "IL",
+  "address_zip_code" : 60601
+}, {
+  "company_department" : "Engineering",
+  "company_team" : "Frontend",
+  "address_street" : "654 Innovation Way",
+  "address_city" : "Seattle",
+  "address_state" : "WA",
+  "address_zip_code" : 98101
+}, {
+  "company_department" : "Sales",
+  "company_team" : "SMB",
+  "address_street" : "987 Business Street",
+  "address_city" : "Atlanta",
+  "address_state" : "GA",
+  "address_zip_code" : 30309
+}, {
+  "company_department" : "Finance",
+  "company_team" : "Accounting",
+  "address_street" : "147 Financial Center",
+  "address_city" : "Boston",
+  "address_state" : "MA",
+  "address_zip_code" : 2101
+}, {
+  "company_department" : "Marketing",
+  "company_team" : "Brand",
+  "address_street" : "258 Madison Square",
+  "address_city" : "Denver",
+  "address_state" : "CO",
+  "address_zip_code" : 80202
+}, {
+  "company_department" : "Operations",
+  "company_team" : "Facilities",
+  "address_street" : "369 Industrial Parkway",
+  "address_city" : "Phoenix",
+  "address_state" : "AZ",
+  "address_zip_code" : 85001
+}, {
+  "company_department" : "Customer Success",
+  "company_team" : "Support",
+  "address_street" : "741 Service Road",
+  "address_city" : "Miami",
+  "address_state" : "FL",
+  "address_zip_code" : 33101
+} ]

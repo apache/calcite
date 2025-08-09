@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.adapter.file;
 
+import org.apache.calcite.avatica.util.Casing;
+import org.apache.calcite.config.CalciteConnectionProperty;
+import org.apache.calcite.config.Lex;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.test.CalciteAssert;
 
@@ -217,13 +220,16 @@ public class PptxTableTest {
     // Run the PPTX scanner
     PptxTableScanner.scanAndConvertTables(simplePptxFile);
 
-    // Check that JSON file was created with slide context
+    // Check that JSON file was created with slide context (now lowercase)
     File jsonFile = new File(tempDir.toFile(), 
-        "SalesPresentation__Slide1_Q4_Sales_Results__Regional_Performance.json");
+        "sales_presentation__q4_sales_results__regional_performance.json");
     assertTrue(jsonFile.exists(), "JSON file should be created from PPTX table");
 
-    // Verify content
+    // Verify content (column names should be lowercase now)
     String jsonContent = Files.readString(jsonFile.toPath());
+    assertTrue(jsonContent.contains("\"region\""));
+    assertTrue(jsonContent.contains("\"sales\""));
+    assertTrue(jsonContent.contains("\"growth\""));
     assertTrue(jsonContent.contains("North"));
     assertTrue(jsonContent.contains("120000"));
     assertTrue(jsonContent.contains("East"));
@@ -243,14 +249,14 @@ public class PptxTableTest {
       }
     }
 
-    // Check that all JSON files were created
+    // Check that all JSON files were created (now lowercase)
     // Note: Indices are only added when there are duplicate names
     File revenueFile = new File(tempDir.toFile(), 
-        "CompanyOverview__Slide1_Financial_Overview__Revenue_by_Quarter.json");
+        "company_overview__financial_overview__revenue_by_quarter.json");
     File expenseFile = new File(tempDir.toFile(), 
-        "CompanyOverview__Slide1_Financial_Overview__Operating_Expenses.json");
+        "company_overview__financial_overview__operating_expenses.json");
     File deptFile = new File(tempDir.toFile(), 
-        "CompanyOverview__Slide2_Team_Structure__Department_Headcount.json");
+        "company_overview__team_structure__department_headcount.json");
 
     assertTrue(revenueFile.exists(), "Revenue table JSON should be created");
     assertTrue(expenseFile.exists(), "Expense table JSON should be created");
@@ -302,8 +308,8 @@ public class PptxTableTest {
 
     PptxTableScanner.scanAndConvertTables(noTitleFile);
 
-    // Should create file with slide info but no table title
-    File jsonFile = new File(tempDir.toFile(), "NoTitle__Slide1_Data_Slide.json");
+    // Should create file with slide info but no table title - adds __table when no title
+    File jsonFile = new File(tempDir.toFile(), "no_title__data_slide__table.json");
     assertTrue(jsonFile.exists(), "Should create table with slide context when no table title");
   }
 
@@ -346,15 +352,15 @@ public class PptxTableTest {
     // Check that tables are accessible
     Map<String, Table> tables = schema.getTableMap();
 
-    // Tables should be created from the generated JSON files
+    // Tables should be created from the generated JSON files (uppercase table names in schema)
     // Note: Indices are only added when there are duplicate names
-    assertTrue(tables.containsKey("SALESPRESENTATION__SLIDE1_Q4_SALES_RESULTS__REGIONAL_PERFORMANCE"),
+    assertTrue(tables.containsKey("SALES_PRESENTATION__Q4_SALES_RESULTS__REGIONAL_PERFORMANCE"),
         "Should have sales presentation table");
-    assertTrue(tables.containsKey("COMPANYOVERVIEW__SLIDE1_FINANCIAL_OVERVIEW__REVENUE_BY_QUARTER"),
+    assertTrue(tables.containsKey("COMPANY_OVERVIEW__FINANCIAL_OVERVIEW__REVENUE_BY_QUARTER"),
         "Should have revenue table");
-    assertTrue(tables.containsKey("COMPANYOVERVIEW__SLIDE1_FINANCIAL_OVERVIEW__OPERATING_EXPENSES"),
+    assertTrue(tables.containsKey("COMPANY_OVERVIEW__FINANCIAL_OVERVIEW__OPERATING_EXPENSES"),
         "Should have expense table");
-    assertTrue(tables.containsKey("COMPANYOVERVIEW__SLIDE2_TEAM_STRUCTURE__DEPARTMENT_HEADCOUNT"),
+    assertTrue(tables.containsKey("COMPANY_OVERVIEW__TEAM_STRUCTURE__DEPARTMENT_HEADCOUNT"),
         "Should have department table");
   }
 
@@ -369,8 +375,159 @@ public class PptxTableTest {
         .with(CalciteAssert.Config.REGULAR)
         .withSchema("pptx", new FileSchema(null, "test", tempDir.toFile(), null, null, 
             new ExecutionEngineConfig(), false, null, null, null, null))
-        .query("SELECT * FROM \"pptx\".SALESPRESENTATION__SLIDE1_Q4_SALES_RESULTS__REGIONAL_PERFORMANCE " +
-               "WHERE CAST(\"Sales\" AS INTEGER) > 100000")
+        .query("SELECT * FROM \"pptx\".SALES_PRESENTATION__Q4_SALES_RESULTS__REGIONAL_PERFORMANCE " +
+               "WHERE CAST(\"sales\" AS INTEGER) > 100000")
         .returnsCount(2); // North (120000) and East (145000) have sales > 100000
+  }
+
+  @Test public void testPptxWithViewSimplification() throws Exception {
+    // Run the scanner first to generate the complex named tables
+    PptxTableScanner.scanAndConvertTables(complexPptxFile);
+    
+    // Create a model file with views that simplify the complex PPTX table names
+    String modelContent = "{\n" +
+        "  \"version\": \"1.0\",\n" +
+        "  \"defaultSchema\": \"presentations\",\n" +
+        "  \"schemas\": [\n" +
+        "    {\n" +
+        "      \"name\": \"raw_pptx\",\n" +
+        "      \"type\": \"custom\",\n" +
+        "      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n" +
+        "      \"operand\": {\n" +
+        "        \"directory\": \"" + tempDir.toFile().getAbsolutePath().replace("\\", "\\\\") + "\"\n" +
+        "      }\n" +
+        "    },\n" +
+        "    {\n" +
+        "      \"name\": \"presentations\",\n" +
+        "      \"tables\": [\n" +
+        "        {\n" +
+        "          \"name\": \"revenue\",\n" +
+        "          \"type\": \"view\",\n" +
+        "          \"sql\": \"SELECT * FROM \\\"raw_pptx\\\".COMPANY_OVERVIEW__FINANCIAL_OVERVIEW__REVENUE_BY_QUARTER\"\n" +
+        "        },\n" +
+        "        {\n" +
+        "          \"name\": \"expenses\",\n" +
+        "          \"type\": \"view\",\n" +
+        "          \"sql\": \"SELECT * FROM \\\"raw_pptx\\\".COMPANY_OVERVIEW__FINANCIAL_OVERVIEW__OPERATING_EXPENSES\"\n" +
+        "        },\n" +
+        "        {\n" +
+        "          \"name\": \"departments\",\n" +
+        "          \"type\": \"view\",\n" +
+        "          \"sql\": \"SELECT * FROM \\\"raw_pptx\\\".COMPANY_OVERVIEW__TEAM_STRUCTURE__DEPARTMENT_HEADCOUNT\"\n" +
+        "        }\n" +
+        "      ]\n" +
+        "    }\n" +
+        "  ]\n" +
+        "}";
+    
+    // Now query the views with simple names - Oracle lex with TO_LOWER casing, no quotes needed for lowercase
+    CalciteAssert.model(modelContent)
+        .with(Lex.ORACLE)
+        .with(CalciteConnectionProperty.UNQUOTED_CASING, Casing.TO_LOWER)
+        .query("SELECT * FROM revenue WHERE quarter = 'Q1'")
+        .returnsCount(1)
+        .returns("quarter=Q1; revenue=500000\n");
+    
+    CalciteAssert.model(modelContent)
+        .with(Lex.ORACLE)
+        .with(CalciteConnectionProperty.UNQUOTED_CASING, Casing.TO_LOWER)
+        .query("SELECT * FROM expenses WHERE category = 'Salaries'")
+        .returnsCount(1)
+        .returns("category=Salaries; amount=200000\n");
+    
+    CalciteAssert.model(modelContent)
+        .with(Lex.ORACLE)
+        .with(CalciteConnectionProperty.UNQUOTED_CASING, Casing.TO_LOWER)
+        .query("SELECT * FROM departments WHERE department = 'Engineering'")
+        .returnsCount(1)
+        .returns("department=Engineering; employees=25; manager=Alice\n");
+    
+    // Join the simplified views
+    CalciteAssert.model(modelContent)
+        .with(Lex.ORACLE)
+        .with(CalciteConnectionProperty.UNQUOTED_CASING, Casing.TO_LOWER)
+        .query("SELECT r.quarter, r.revenue, e.category, e.amount " +
+               "FROM revenue r, expenses e " +
+               "WHERE r.quarter = 'Q2' AND e.category = 'Rent'")
+        .returnsCount(1)
+        .returns("quarter=Q2; revenue=550000; category=Rent; amount=50000\n");
+  }
+
+  @Test public void testPptxNameSimplificationDemo() throws Exception {
+    // This test demonstrates how PPTX tables get complex names based on their structure
+    // and shows how queries can work with these names
+    
+    // Run the scanner first to generate the complex named tables
+    PptxTableScanner.scanAndConvertTables(complexPptxFile);
+    
+    // Create schema with the PPTX files
+    FileSchema schema = new FileSchema(null, "test", tempDir.toFile(), null, null, 
+        new ExecutionEngineConfig(), false, null, null, null, null);
+    
+    // Test querying with the complex names (now lowercase columns, uppercase table names in schema)
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.REGULAR)
+        .withSchema("pptx", schema)
+        .query("SELECT * FROM \"pptx\".COMPANY_OVERVIEW__FINANCIAL_OVERVIEW__REVENUE_BY_QUARTER " +
+               "WHERE \"quarter\" = 'Q1'")
+        .returnsCount(1)
+        .returns("quarter=Q1; revenue=500000\n");
+    
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.REGULAR)
+        .withSchema("pptx", schema)
+        .query("SELECT * FROM \"pptx\".COMPANY_OVERVIEW__FINANCIAL_OVERVIEW__OPERATING_EXPENSES " +
+               "WHERE \"category\" = 'Salaries'")
+        .returnsCount(1)
+        .returns("category=Salaries; amount=200000\n");
+    
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.REGULAR)
+        .withSchema("pptx", schema)
+        .query("SELECT * FROM \"pptx\".COMPANY_OVERVIEW__TEAM_STRUCTURE__DEPARTMENT_HEADCOUNT " +
+               "WHERE \"department\" = 'Engineering'")
+        .returnsCount(1)
+        .returns("department=Engineering; employees=25; manager=Alice\n");
+    
+    // Demonstrate how views could simplify these names in a model file
+    // NOTE: In a real deployment, you could create a model file with views like:
+    //
+    // {
+    //   "version": "1.0",
+    //   "defaultSchema": "presentations",
+    //   "schemas": [{
+    //     "name": "raw_pptx",
+    //     "type": "custom",
+    //     "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
+    //     "operand": {
+    //       "directory": "/path/to/pptx/json/files"
+    //     }
+    //   }, {
+    //     "name": "presentations",
+    //     "type": "custom",
+    //     "factory": "org.apache.calcite.schema.impl.AbstractSchema$Factory",
+    //     "tables": [
+    //       {
+    //         "name": "revenue",
+    //         "type": "view",
+    //         "sql": "SELECT * FROM raw_pptx.COMPANYOVERVIEW__SLIDE1_FINANCIAL_OVERVIEW__REVENUE_BY_QUARTER"
+    //       },
+    //       {
+    //         "name": "expenses",
+    //         "type": "view", 
+    //         "sql": "SELECT * FROM raw_pptx.COMPANYOVERVIEW__SLIDE1_FINANCIAL_OVERVIEW__OPERATING_EXPENSES"
+    //       },
+    //       {
+    //         "name": "departments",
+    //         "type": "view",
+    //         "sql": "SELECT * FROM raw_pptx.COMPANYOVERVIEW__SLIDE2_TEAM_STRUCTURE__DEPARTMENT_HEADCOUNT"
+    //       }
+    //     ]
+    //   }]
+    // }
+    //
+    // This would allow users to query with simple names like:
+    // SELECT * FROM presentations.revenue WHERE "Quarter" = 'Q1'
+    // Instead of the complex auto-generated names
   }
 }

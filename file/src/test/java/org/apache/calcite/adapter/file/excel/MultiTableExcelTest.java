@@ -131,29 +131,29 @@ public class MultiTableExcelTest {
       try (Statement statement = connection.createStatement()) {
         // Query the first table
         ResultSet rs1 =
-            statement.executeQuery("SELECT * FROM \"excel\".\"MULTITABLETEST__DATA_SALES_REPORT\" "
-            + "ORDER BY \"Product\"");
+            statement.executeQuery("SELECT * FROM \"excel\".\"MULTI_TABLE_TEST__DATA_SALES_REPORT\" "
+            + "ORDER BY \"product\"");
 
         assertTrue(rs1.next());
-        assertThat(rs1.getString("Product"), is("Gadget"));
-        assertThat((int) Double.parseDouble(rs1.getString("Q1")), is(200));
+        assertThat(rs1.getString("product"), is("Gadget"));
+        assertThat((int) Double.parseDouble(rs1.getString("q1")), is(200));
 
         assertTrue(rs1.next());
-        assertThat(rs1.getString("Product"), is("Widget"));
-        assertThat((int) Double.parseDouble(rs1.getString("Q1")), is(100));
+        assertThat(rs1.getString("product"), is("Widget"));
+        assertThat((int) Double.parseDouble(rs1.getString("q1")), is(100));
 
         // Query the second table
         ResultSet rs2 =
-            statement.executeQuery("SELECT * FROM \"excel\".\"MULTITABLETEST__DATA_EMPLOYEE_DATA\" "
-            + "ORDER BY \"Name\"");
+            statement.executeQuery("SELECT * FROM \"excel\".\"MULTI_TABLE_TEST__DATA_EMPLOYEE_DATA\" "
+            + "ORDER BY \"name\"");
 
         assertTrue(rs2.next());
-        assertThat(rs2.getString("Name"), is("Jane"));
-        assertThat(rs2.getString("Department"), is("Engineering"));
+        assertThat(rs2.getString("name"), is("Jane"));
+        assertThat(rs2.getString("department"), is("Engineering"));
 
         assertTrue(rs2.next());
-        assertThat(rs2.getString("Name"), is("John"));
-        assertThat(rs2.getString("Department"), is("Sales"));
+        assertThat(rs2.getString("name"), is("John"));
+        assertThat(rs2.getString("department"), is("Sales"));
       }
     }
   }
@@ -184,7 +184,7 @@ public class MultiTableExcelTest {
         System.out.println("Tables from lots_of_tables.xlsx:");
         while (tables.next()) {
           String tableName = tables.getString("TABLE_NAME");
-          if (tableName.startsWith("LOTSOFTABLES")) {
+          if (tableName.startsWith("LOTS_OF_TABLES")) {
             tableCount++;
             System.out.println("  - " + tableName);
           }

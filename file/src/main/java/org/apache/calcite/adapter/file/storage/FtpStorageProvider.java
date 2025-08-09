@@ -182,6 +182,9 @@ public class FtpStorageProvider implements StorageProvider {
     ftpClient.setDefaultTimeout(DATA_TIMEOUT);
 
     ftpClient.connect(ftpUri.host, ftpUri.port);
+    
+    // Set socket timeout after connection is established
+    ftpClient.setSoTimeout(DATA_TIMEOUT);
 
     int replyCode = ftpClient.getReplyCode();
     if (!FTPReply.isPositiveCompletion(replyCode)) {

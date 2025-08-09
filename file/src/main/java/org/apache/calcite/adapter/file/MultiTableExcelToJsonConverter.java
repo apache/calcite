@@ -98,7 +98,8 @@ public final class MultiTableExcelToJsonConverter {
       ObjectMapper mapper = new ObjectMapper();
       FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
       String fileName = inputFile.getName();
-      String baseName = toPascalCase(fileName.substring(0, fileName.lastIndexOf('.')));
+      String baseName = fileName.substring(0, fileName.lastIndexOf('.'))
+          .toLowerCase().replaceAll("[^a-z0-9_]", "_");
 
       for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
         Sheet sheet = workbook.getSheetAt(i);
@@ -130,7 +131,8 @@ public final class MultiTableExcelToJsonConverter {
 
         // First pass: collect all planned filenames from valid tables only
         for (TableRegion table : validTables) {
-          String sheetName = toPascalCase(sheet.getSheetName());
+          String sheetName = sheet.getSheetName().toLowerCase()
+              .replaceAll("[^a-z0-9_]", "_");
           String baseFilename = baseName + "__" + sheetName;
 
           // For single table with no identifier, just use sheet name
@@ -138,7 +140,7 @@ public final class MultiTableExcelToJsonConverter {
           if (validTables.size() > 1
               || (table.identifier != null && !table.identifier.trim().isEmpty())) {
             if (table.identifier != null && !table.identifier.trim().isEmpty()) {
-              baseFilename += "_" + sanitizeIdentifier(table.identifier);
+              baseFilename += "_" + sanitizeIdentifier(table.identifier).toLowerCase();
             }
           }
 
@@ -155,7 +157,7 @@ public final class MultiTableExcelToJsonConverter {
 
           // Add suffix only if there's a naming conflict
           if (filenameCount.get(plannedName) > 1) {
-            jsonFileName = plannedName + "_T" + conflictIndex + ".json";
+            jsonFileName = plannedName + "_t" + conflictIndex + ".json";
             conflictIndex++;
           } else {
             jsonFileName = plannedName + ".json";
@@ -378,7 +380,10 @@ public final class MultiTableExcelToJsonConverter {
       for (int col = table.startCol; col <= table.endCol; col++) {
         Cell cell = headerRow.getCell(col);
         if (cell != null && cell.getCellType() != CellType.BLANK) {
-          headers.put(col, getCellValue(cell, evaluator));
+          String header = getCellValue(cell, evaluator);
+          // Convert to lowercase and sanitize for use as column name
+          header = header.toLowerCase().replaceAll("[^a-z0-9_]", "_");
+          headers.put(col, header);
         }
       }
     } else {
@@ -448,6 +453,8 @@ public final class MultiTableExcelToJsonConverter {
           header += detailHeaders.get(col);
         }
         if (!header.isEmpty()) {
+          // Convert to lowercase and sanitize for use as column name
+          header = header.toLowerCase().replaceAll("[^a-z0-9_]", "_");
           headers.put(col, header);
         }
       }

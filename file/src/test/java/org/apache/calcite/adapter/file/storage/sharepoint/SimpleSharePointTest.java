@@ -35,25 +35,26 @@ public class SimpleSharePointTest {
   @Test
   void testFileSchemaTableDiscovery() throws Exception {
     System.out.println("=== Simple FileSchema Test ===");
-    
+
     // Create a connection to get root schema
     java.util.Properties info = new java.util.Properties();
-    info.setProperty("lex", "JAVA");
-    
+    info.setProperty("lex", "ORACLE");
+    info.put("unquotedCasing", "TO_LOWER");
+
     try (java.sql.Connection conn = java.sql.DriverManager.getConnection("jdbc:calcite:", info)) {
       CalciteConnection calciteConn = conn.unwrap(CalciteConnection.class);
       SchemaPlus parentSchema = calciteConn.getRootSchema();
-      
+
       // Create FileSchema with simple configuration
       Map<String, Object> operand = new HashMap<>();
       operand.put("directory", "/tmp");  // Use a simple directory that exists
-    
+
     System.out.println("Creating FileSchema with directory: /tmp");
     FileSchemaFactory factory = FileSchemaFactory.INSTANCE;
     Schema fileSchema = factory.create(parentSchema, "test", operand);
-    
+
     System.out.println("FileSchema created: " + fileSchema.getClass().getName());
-    
+
     // This should trigger getTableMap()
     System.out.println("Calling getTableMap() via reflection...");
     if (fileSchema instanceof FileSchema) {

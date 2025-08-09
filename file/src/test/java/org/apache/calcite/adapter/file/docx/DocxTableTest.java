@@ -190,7 +190,7 @@ public class DocxTableTest {
     DocxTableScanner.scanAndConvertTables(simpleDocxFile);
 
     // Check that JSON file was created
-    File jsonFile = new File(tempDir.toFile(), "Products__Current_Products.json");
+    File jsonFile = new File(tempDir.toFile(), "products__current_products.json");
     assertTrue(jsonFile.exists(), "JSON file should be created from DOCX table");
 
     // Verify content
@@ -205,8 +205,8 @@ public class DocxTableTest {
     DocxTableScanner.scanAndConvertTables(complexDocxFile);
 
     // Check that both JSON files were created
-    File salesFile = new File(tempDir.toFile(), "QuarterlyReport__Regional_Sales_Summary.json");
-    File employeeFile = new File(tempDir.toFile(), "QuarterlyReport__Employee_Performance.json");
+    File salesFile = new File(tempDir.toFile(), "quarterly_report__regional_sales_summary.json");
+    File employeeFile = new File(tempDir.toFile(), "quarterly_report__employee_performance.json");
 
     assertTrue(salesFile.exists(), "Sales summary JSON should be created");
     assertTrue(employeeFile.exists(), "Employee performance JSON should be created");
@@ -270,7 +270,7 @@ public class DocxTableTest {
 
     DocxTableScanner.scanAndConvertTables(groupHeaderFile);
 
-    File jsonFile = new File(tempDir.toFile(), "Budget__Department_Budgets.json");
+    File jsonFile = new File(tempDir.toFile(), "budget__department_budgets.json");
     assertTrue(jsonFile.exists(), "JSON file with group headers should be created");
 
     String content = Files.readString(jsonFile.toPath());
@@ -296,10 +296,10 @@ public class DocxTableTest {
     // Tables should be created from the generated JSON files
     assertTrue(tables.containsKey("PRODUCTS__CURRENT_PRODUCTS"),
         "Should have PRODUCTS__CURRENT_PRODUCTS table");
-    assertTrue(tables.containsKey("QUARTERLYREPORT__REGIONAL_SALES_SUMMARY"),
-        "Should have QUARTERLYREPORT__REGIONAL_SALES_SUMMARY table");
-    assertTrue(tables.containsKey("QUARTERLYREPORT__EMPLOYEE_PERFORMANCE"),
-        "Should have QUARTERLYREPORT__EMPLOYEE_PERFORMANCE table");
+    assertTrue(tables.containsKey("QUARTERLY_REPORT__REGIONAL_SALES_SUMMARY"),
+        "Should have QUARTERLY_REPORT__REGIONAL_SALES_SUMMARY table");
+    assertTrue(tables.containsKey("QUARTERLY_REPORT__EMPLOYEE_PERFORMANCE"),
+        "Should have QUARTERLY_REPORT__EMPLOYEE_PERFORMANCE table");
   }
 
   @Test public void testDocxTableQuery() throws Exception {
@@ -312,7 +312,7 @@ public class DocxTableTest {
     CalciteAssert.that()
         .with(CalciteAssert.Config.REGULAR)
         .withSchema("docx", new FileSchema(null, "test", tempDir.toFile(), null, null, new ExecutionEngineConfig(), false, null, null, null, null))
-        .query("SELECT * FROM \"docx\".PRODUCTS__CURRENT_PRODUCTS WHERE CAST(\"Price\" AS DECIMAL) >= 15.75")
+        .query("SELECT * FROM \"docx\".PRODUCTS__CURRENT_PRODUCTS WHERE CAST(\"price\" AS DECIMAL) >= 15.75")
         .returnsCount(2); // Gadget (25.50) and Tool (15.75) have prices >= 15.75
   }
 
@@ -360,7 +360,7 @@ public class DocxTableTest {
     DocxTableScanner.scanAndConvertTables(noTitleFile);
 
     // Should create file without Table suffix since there's only one table
-    File jsonFile = new File(tempDir.toFile(), "NoTitle.json");
+    File jsonFile = new File(tempDir.toFile(), "no_title.json");
     assertTrue(jsonFile.exists(), "Should create table with generic name when no heading");
   }
 }

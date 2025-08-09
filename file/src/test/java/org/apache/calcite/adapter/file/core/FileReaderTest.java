@@ -222,12 +222,13 @@ class FileReaderTest {
         + "  ]\n"
         + "}";
     info.put("model", model);
-    info.put("lex", "JAVA");
+    info.put("lex", "ORACLE");
+    info.put("unquotedCasing", "TO_LOWER");
 
     try (Connection connection =
              DriverManager.getConnection("jdbc:calcite:", info);
          Statement stmt = connection.createStatement()) {
-      final String sql = "select * from FILES.DEPTS";
+      final String sql = "select * from \"FILES\".\"DEPTS\"";
       final ResultSet rs = stmt.executeQuery(sql);
       assertThat(rs.next(), is(true));
       assertThat(rs.getString(1), is("10"));
@@ -262,12 +263,13 @@ class FileReaderTest {
         + "  ]\n"
         + "}";
     info.put("model", model);
-    info.put("lex", "JAVA");
+    info.put("lex", "ORACLE");
+    info.put("unquotedCasing", "TO_LOWER");
 
     try (Connection connection =
              DriverManager.getConnection("jdbc:calcite:", info);
          Statement stmt = connection.createStatement()) {
-      final String sql = "select * from FILES.DEPTS";
+      final String sql = "select * from \"FILES\".\"DEPTS\"";
       final ResultSet rs = stmt.executeQuery(sql);
       assertThat(rs.next(), is(true));
       assertThat(rs.getString(1), is("10"));
@@ -302,13 +304,14 @@ class FileReaderTest {
         + "  ]\n"
         + "}";
     info.put("model", model);
-    info.put("lex", "JAVA");
+    info.put("lex", "ORACLE");
+    info.put("unquotedCasing", "TO_LOWER");
 
     try (Connection connection =
              DriverManager.getConnection("jdbc:calcite:", info);
          Statement stmt = connection.createStatement()) {
-      final String sql = "select a.EMPNO,a.NAME,a.CITY,b.DEPTNO "
-          + "from FILES.EMPS a, FILES.DEPTS b where a.DEPTNO = b.DEPTNO";
+      final String sql = "select a.\"EMPNO\",a.\"NAME\",a.\"CITY\",b.\"DEPTNO\" "
+          + "from \"FILES\".\"EMPS\" a, \"FILES\".\"DEPTS\" b where a.\"DEPTNO\" = b.\"DEPTNO\"";
       final ResultSet rs = stmt.executeQuery(sql);
       assertThat(rs.next(), is(true));
       assertThat(rs.getString(1), is("100"));

@@ -86,7 +86,8 @@ public final class DocxTableScanner {
       LOGGER.debug("Found " + tables.size() + " tables in DOCX file");
 
       // Convert each table to JSON
-      String baseName = toPascalCase(inputFile.getName().replaceFirst("\\.[^.]+$", ""));
+      String baseName = inputFile.getName().replaceFirst("\\.[^.]+$", "").toLowerCase()
+          .replaceAll("[^a-z0-9_]", "_");
       ObjectMapper mapper = new ObjectMapper();
 
       for (int i = 0; i < tables.size(); i++) {
@@ -297,8 +298,12 @@ public final class DocxTableScanner {
     }
 
     if (headerRows.size() == 1) {
-      // Simple case: single header row
-      return headerRows.get(0);
+      // Simple case: single header row - convert to lowercase
+      List<String> lowercaseHeaders = new ArrayList<>();
+      for (String header : headerRows.get(0)) {
+        lowercaseHeaders.add(header.toLowerCase().replaceAll("[^a-z0-9_]", "_"));
+      }
+      return lowercaseHeaders;
     }
 
     // Multiple header rows: combine group headers with detail headers
@@ -339,13 +344,15 @@ public final class DocxTableScanner {
       }
     }
 
-    // Combine group headers with detail headers
+    // Combine group headers with detail headers - convert to lowercase
     for (int col = 0; col < detailHeaders.size(); col++) {
       String header = detailHeaders.get(col);
       String prefix = groupPrefixes.get(col);
       if (prefix != null && !prefix.isEmpty()) {
         header = prefix + "_" + header;
       }
+      // Convert to lowercase and sanitize for use as column name
+      header = header.toLowerCase().replaceAll("[^a-z0-9_]", "_");
       combinedHeaders.add(header);
     }
 
@@ -400,9 +407,9 @@ public final class DocxTableScanner {
     StringBuilder fileName = new StringBuilder(baseName);
 
     if (tableTitle != null && !tableTitle.isEmpty()) {
-      fileName.append("__").append(sanitizeIdentifier(tableTitle));
+      fileName.append("__").append(sanitizeIdentifier(tableTitle).toLowerCase());
     } else if (totalTables > 1) {
-      fileName.append("__Table").append(tableIndex + 1);
+      fileName.append("__table").append(tableIndex + 1);
     }
 
     fileName.append(".json");

@@ -86,7 +86,8 @@ public final class PptxTableScanner {
       LOGGER.debug("Found {} tables in PPTX file", tables.size());
 
       // Convert each table to JSON
-      String baseName = toPascalCase(inputFile.getName().replaceFirst("\\.[^.]+$", ""));
+      String baseName = inputFile.getName().replaceFirst("\\.[^.]+$", "").toLowerCase()
+          .replaceAll("[^a-z0-9_]", "_");
       ObjectMapper mapper = new ObjectMapper();
       
       // First pass: generate base filenames for all tables
@@ -388,8 +389,12 @@ public final class PptxTableScanner {
     }
 
     if (headerRows.size() == 1) {
-      // Simple case: single header row
-      return headerRows.get(0);
+      // Simple case: single header row - convert to lowercase
+      List<String> lowercaseHeaders = new ArrayList<>();
+      for (String header : headerRows.get(0)) {
+        lowercaseHeaders.add(header.toLowerCase().replaceAll("[^a-z0-9_]", "_"));
+      }
+      return lowercaseHeaders;
     }
 
     // Multiple header rows: combine group headers with detail headers
@@ -430,13 +435,15 @@ public final class PptxTableScanner {
       }
     }
 
-    // Combine group headers with detail headers
+    // Combine group headers with detail headers - convert to lowercase
     for (int col = 0; col < detailHeaders.size(); col++) {
       String header = detailHeaders.get(col);
       String prefix = groupPrefixes.get(col);
       if (prefix != null && !prefix.isEmpty()) {
         header = prefix + "_" + header;
       }
+      // Convert to lowercase and sanitize for use as column name
+      header = header.toLowerCase().replaceAll("[^a-z0-9_]", "_");
       combinedHeaders.add(header);
     }
 
@@ -490,19 +497,19 @@ public final class PptxTableScanner {
       String slideTitle, int slideNumber) {
     StringBuilder fileName = new StringBuilder(baseName);
 
-    // Add slide context
+    // Add slide context (in lowercase)
+    // Only add slide number if there's no clear slide title
     if (slideTitle != null && !slideTitle.isEmpty()) {
-      fileName.append("__Slide").append(slideNumber)
-          .append("_").append(sanitizeIdentifier(slideTitle));
+      fileName.append("__").append(sanitizeIdentifier(slideTitle).toLowerCase());
     } else {
-      fileName.append("__Slide").append(slideNumber);
+      fileName.append("__slide").append(slideNumber);
     }
 
-    // Add table title if available
+    // Add table title if available (in lowercase)
     if (tableTitle != null && !tableTitle.isEmpty()) {
-      fileName.append("__").append(sanitizeIdentifier(tableTitle));
+      fileName.append("__").append(sanitizeIdentifier(tableTitle).toLowerCase());
     } else {
-      fileName.append("__Table");
+      fileName.append("__table");
     }
 
     return fileName.toString();

@@ -21,10 +21,13 @@ import org.apache.calcite.adapter.file.storage.StorageProvider;
 
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.SocketTimeoutException;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -35,7 +38,9 @@ import static org.junit.jupiter.api.Assertions.*;
 @Tag("integration")
 public class FtpStorageProviderTest {
 
-  @Test void testPublicFtpServer() throws IOException {
+  @Test 
+  @Timeout(value = 60, unit = TimeUnit.SECONDS)
+  void testPublicFtpServer() throws IOException {
     FtpStorageProvider provider = new FtpStorageProvider();
 
     // Try different public FTP servers
@@ -55,11 +60,18 @@ public class FtpStorageProviderTest {
     for (String server : testServers) {
       try {
         System.out.println("Trying FTP server: " + server);
+        // Skip test.rebex.net if it's causing issues - try with a short timeout
+        if (server.contains("test.rebex.net")) {
+          System.out.println("Skipping test.rebex.net due to known timeout issues");
+          continue;
+        }
         provider.exists(server);
         testUrl = server;
         connected = true;
         System.out.println("Successfully connected to: " + server);
         break;
+      } catch (SocketTimeoutException e) {
+        System.out.println("Timeout connecting to " + server + ": " + e.getMessage());
       } catch (Exception e) {
         System.out.println("Failed to connect to " + server + ": " + e.getMessage());
       }

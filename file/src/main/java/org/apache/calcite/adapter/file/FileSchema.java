@@ -1604,9 +1604,13 @@ class FileSchema extends AbstractSchema {
     String basePath = "/";
     if (baseDirectory != null) {
       basePath = baseDirectory.getPath();
-      // Normalize path for storage provider
-      if (!basePath.startsWith("/")) {
-        basePath = "/" + basePath;
+      // Don't normalize S3 or other cloud storage URIs
+      if (!basePath.startsWith("s3://") && !basePath.startsWith("gs://") 
+          && !basePath.startsWith("azure://") && !basePath.startsWith("http")) {
+        // Only normalize local paths
+        if (!basePath.startsWith("/")) {
+          basePath = "/" + basePath;
+        }
       }
     }
     
@@ -1713,9 +1717,13 @@ class FileSchema extends AbstractSchema {
     String basePath = "/";
     if (baseDirectory != null) {
       basePath = baseDirectory.getPath();
-      // Normalize path for storage provider
-      if (!basePath.startsWith("/")) {
-        basePath = "/" + basePath;
+      // Don't normalize S3 or other cloud storage URIs
+      if (!basePath.startsWith("s3://") && !basePath.startsWith("gs://") 
+          && !basePath.startsWith("azure://") && !basePath.startsWith("http")) {
+        // Only normalize local paths
+        if (!basePath.startsWith("/")) {
+          basePath = "/" + basePath;
+        }
       }
     }
     

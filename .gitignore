@@ -68,3 +68,5 @@ local.properties
 .java-version
 
 *.log
+.parquet_cache/
+

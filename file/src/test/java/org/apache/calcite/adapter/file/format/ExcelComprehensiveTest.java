@@ -109,13 +109,13 @@ public class ExcelComprehensiveTest {
          Statement stmt = conn.createStatement()) {
 
       // Query first sheet (employees)
-      try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as cnt FROM \"multisheet__employees\"")) {
+      try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as cnt FROM \"multi_sheet__employees\"")) {
         assertTrue(rs.next());
         assertEquals(3L, rs.getLong("cnt"));
       }
 
       // Query second sheet (departments)
-      try (ResultSet rs = stmt.executeQuery("SELECT * FROM \"multisheet__departments\" ORDER BY \"id\"")) {
+      try (ResultSet rs = stmt.executeQuery("SELECT * FROM \"multi_sheet__departments\" ORDER BY \"id\"")) {
         assertTrue(rs.next());
         assertEquals(10L, rs.getLong("id"));
         assertEquals("Engineering", rs.getString("name"));
@@ -131,8 +131,8 @@ public class ExcelComprehensiveTest {
       // Join across sheets
       try (ResultSet rs =
           stmt.executeQuery("SELECT e.\"name\", d.\"location\" "
-          + "FROM \"multisheet__employees\" e "
-          + "JOIN \"multisheet__departments\" d ON e.\"dept_id\" = d.\"id\" "
+          + "FROM \"multi_sheet__employees\" e "
+          + "JOIN \"multi_sheet__departments\" d ON e.\"dept_id\" = d.\"id\" "
           + "WHERE d.\"location\" = 'San Francisco'")) {
         assertTrue(rs.next());
         assertEquals("Alice", rs.getString("name"));
@@ -176,24 +176,18 @@ public class ExcelComprehensiveTest {
       }
 
       // Excel sheet names go through sanitization:
-      // 1. Filename is converted to PascalCase (naming_test -> NamingTest)
-      // 2. Sheet name is also converted to PascalCase
+      // 1. Filename is converted to lowercase (naming_test -> naming_test)
+      // 2. Sheet name is also converted to lowercase and sanitized
       // 3. Combined as filename__sheetname
-      // 4. Then lowercased due to tableNameCasing: 'LOWER'
+      // 4. The tableNameCasing: 'LOWER' setting applies to the final table name
 
       // Based on actual output:
-      // - Spaces are removed
-      // - Dashes are removed
-      // - Underscores are REMOVED (contrary to expectation)
-      // - Dots are kept
-      // - Everything is lowercased
+      // - Non-alphanumeric characters are replaced with underscores in file names
+      // - The final table name respects the tableNameCasing setting
       String sanitizedSheetName = sheetName.toLowerCase()
-          .replace(" ", "")     // spaces removed
-          .replace("-", "")     // dashes removed
-          .replace("_", "");    // underscores removed
-      // Dots are kept
+          .replaceAll("[^a-z0-9_]", "_");    // Replace non-alphanumeric with underscore
 
-      String tableName = "namingtest__" + sanitizedSheetName;
+      String tableName = "naming_test__" + sanitizedSheetName;
 
       try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as cnt FROM \"" + tableName + "\"")) {
         assertTrue(rs.next());

@@ -111,15 +111,31 @@ public class FileSchemaFactory implements SchemaFactory {
     }
 
     File directoryFile = null;
-    if (directory != null) {
-      directoryFile = new File(directory);
-    }
-    if (baseDirectory != null) {
-      if (directoryFile == null) {
-        directoryFile = baseDirectory;
-      } else if (!directoryFile.isAbsolute()) {
-        directoryFile = new File(baseDirectory, directory);
+    // Only create File objects for local storage, not for cloud storage providers
+    if (storageType == null || "local".equals(storageType)) {
+      if (directory != null) {
+        directoryFile = new File(directory);
       }
+      if (baseDirectory != null) {
+        if (directoryFile == null) {
+          directoryFile = baseDirectory;
+        } else if (!directoryFile.isAbsolute()) {
+          directoryFile = new File(baseDirectory, directory);
+        }
+      }
+    } else if (directory != null && storageType != null) {
+      // For cloud storage, use the directory as-is (it's a URI like s3://bucket/path)
+      // Create a fake File object that just holds the path
+      directoryFile = new File(directory) {
+        @Override
+        public String getPath() {
+          return directory;
+        }
+        @Override 
+        public String getAbsolutePath() {
+          return directory;
+        }
+      };
     }
     FileSchema fileSchema =
         new FileSchema(parentSchema, name, directoryFile, directoryPattern, tables, engineConfig, recursive,

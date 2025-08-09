@@ -26,6 +26,14 @@ SHAREPOINT_CLIENT_SECRET=your-azure-app-client-secret-here
 SHAREPOINT_SITE_URL=https://yourcompany.sharepoint.com/sites/yoursite
 SHAREPOINT_TEST_PATH=/Shared Documents
 
+# S3 Integration Test Configuration (optional)
+# Uncomment and configure these to enable S3 integration tests
+#AWS_ACCESS_KEY_ID=your-aws-access-key-id-here
+#AWS_SECRET_ACCESS_KEY=your-aws-secret-access-key-here
+#AWS_DEFAULT_REGION=us-west-1
+#AWS_REGION=us-west-1
+#S3_TEST_BUCKET=your-s3-test-bucket-name-here
+
 # Redis Integration Test Configuration (optional)
 # Uncomment and configure these to enable Redis integration tests
 #REDIS_HOST=localhost

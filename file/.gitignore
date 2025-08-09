@@ -17,3 +17,5 @@ build/
 
 # Logs
 *.log
+*.crc
+.parquet_cache/*

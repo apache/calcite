@@ -64,7 +64,7 @@ public class SharePointLiveIntegrationTest {
   static void setup() {
     // Load properties from local-test.properties file first
     Properties localProps = loadLocalProperties();
-    
+
     tenantId = getRequiredConfig("SHAREPOINT_TENANT_ID", localProps);
     clientId = getRequiredConfig("SHAREPOINT_CLIENT_ID", localProps);
     clientSecret = getRequiredConfig("SHAREPOINT_CLIENT_SECRET", localProps);
@@ -77,7 +77,7 @@ public class SharePointLiveIntegrationTest {
     System.out.println("  Site: " + siteUrl);
     System.out.println("  Client ID: " + clientId);
   }
-  
+
   private static Properties loadLocalProperties() {
     Properties props = new Properties();
     File propsFile = new File("local-test.properties");
@@ -93,7 +93,7 @@ public class SharePointLiveIntegrationTest {
       // Try absolute path
       propsFile = new File("/Users/kennethstott/ndc-calcite/calcite-rs-jni/calcite/file/local-test.properties");
     }
-    
+
     if (propsFile.exists()) {
       try (InputStream is = new FileInputStream(propsFile)) {
         props.load(is);
@@ -134,13 +134,13 @@ public class SharePointLiveIntegrationTest {
       String type = entry.isDirectory() ? "[DIR]" : "[FILE]";
       System.out.println("  " + type + " " + entry.getName() + " (path: " + entry.getPath() + ")");
     }
-    
+
     // List Shared Documents
     System.out.println("\n=== Listing /Shared Documents ===");
     List<StorageProvider.FileEntry> entries = provider.listFiles("/Shared Documents", false);
     assertNotNull(entries);
     System.out.println("Found " + entries.size() + " items in /Shared Documents:");
-    
+
     // List all files with their types and look for subdirectories
     List<StorageProvider.FileEntry> directories = new ArrayList<>();
     for (StorageProvider.FileEntry entry : entries) {
@@ -149,15 +149,15 @@ public class SharePointLiveIntegrationTest {
       if (!entry.isDirectory() && entry.getName().contains(".")) {
         extension = entry.getName().substring(entry.getName().lastIndexOf("."));
       }
-      System.out.println("  " + type + " " + entry.getName() + 
+      System.out.println("  " + type + " " + entry.getName() +
           (extension.isEmpty() ? "" : " (type: " + extension + ", size: " + entry.getSize() + " bytes)") +
           " (path: " + entry.getPath() + ")");
-      
+
       if (entry.isDirectory()) {
         directories.add(entry);
       }
     }
-    
+
     // Traverse into each subdirectory to look for CSV files
     List<StorageProvider.FileEntry> allCsvFiles = new ArrayList<>();
     for (StorageProvider.FileEntry dir : directories) {
@@ -165,23 +165,23 @@ public class SharePointLiveIntegrationTest {
       try {
         List<StorageProvider.FileEntry> innerEntries = provider.listFiles(dir.getPath(), false);
         System.out.println("Found " + innerEntries.size() + " items inside " + dir.getName() + ":");
-        
+
         for (StorageProvider.FileEntry entry : innerEntries) {
           String type = entry.isDirectory() ? "[DIR]" : "[FILE]";
           String extension = "";
           if (!entry.isDirectory() && entry.getName().contains(".")) {
             extension = entry.getName().substring(entry.getName().lastIndexOf("."));
           }
-          System.out.println("  " + type + " " + entry.getName() + 
+          System.out.println("  " + type + " " + entry.getName() +
               (extension.isEmpty() ? "" : " (type: " + extension + ", size: " + entry.getSize() + " bytes)") +
               " (path: " + entry.getPath() + ")");
-          
+
           // Collect CSV files
           if (!entry.isDirectory() && entry.getName().toLowerCase(Locale.ROOT).endsWith(".csv")) {
             allCsvFiles.add(entry);
             System.out.println("    ^-- Found CSV file!");
           }
-          
+
           // Traverse into any subdirectory, especially "Shared Documents" or "Documents"
           if (entry.isDirectory()) {
             System.out.println("\n    === Found subdirectory: " + entry.getName() + ", listing contents ===");
@@ -194,9 +194,9 @@ public class SharePointLiveIntegrationTest {
                 if (!subEntry.isDirectory() && subEntry.getName().contains(".")) {
                   subExt = subEntry.getName().substring(subEntry.getName().lastIndexOf("."));
                 }
-                System.out.println("      " + subType + " " + subEntry.getName() + 
+                System.out.println("      " + subType + " " + subEntry.getName() +
                     (subExt.isEmpty() ? "" : " (type: " + subExt + ", size: " + subEntry.getSize() + " bytes)"));
-                
+
                 if (!subEntry.isDirectory() && subEntry.getName().toLowerCase(Locale.ROOT).endsWith(".csv")) {
                   allCsvFiles.add(subEntry);
                   System.out.println("        ^-- Found CSV file in " + entry.getName() + "!");
@@ -211,18 +211,18 @@ public class SharePointLiveIntegrationTest {
         System.out.println("Error accessing " + dir.getName() + ": " + e.getMessage());
       }
     }
-    
+
     // Try specific paths that might exist
     System.out.println("\n=== Trying specific paths ===");
     String[] pathsToTry = {
         "/Shared Documents/Shared Documents",  // The nested structure from the URL
         "Shared Documents/Shared Documents",
         "/Shared Documents/Documents",
-        "/Documents", 
+        "/Documents",
         "Shared Documents/Documents",
         "Documents"
     };
-    
+
     for (String path : pathsToTry) {
       System.out.println("Trying path: " + path);
       try {
@@ -249,48 +249,48 @@ public class SharePointLiveIntegrationTest {
       System.out.println("\n=== No CSV files found in any location ===");
     }
   }
-  
+
   @Test void testDownloadFileFromSharePoint() throws Exception {
     // Test downloading and reading any file from SharePoint
     MicrosoftGraphStorageProvider provider = new MicrosoftGraphStorageProvider(tokenManager);
-    
+
     // List documents to find any file
     List<StorageProvider.FileEntry> entries = provider.listFiles("/Shared Documents", false);
     StorageProvider.FileEntry fileToDownload = entries.stream()
         .filter(e -> !e.isDirectory())
         .findFirst()
         .orElse(null);
-    
+
     if (fileToDownload == null) {
       System.out.println("No files found in SharePoint to test download - skipping test");
       return;
     }
-    
+
     System.out.println("Testing download of file: " + fileToDownload.getName());
     System.out.println("File size: " + fileToDownload.getSize() + " bytes");
-    
+
     // Download and read the file
     try (InputStream is = provider.openInputStream(fileToDownload.getPath())) {
       assertNotNull(is, "Should be able to open input stream for file");
-      
+
       // Read content (up to 1000 bytes for preview)
       byte[] buffer = new byte[Math.min(1000, (int)fileToDownload.getSize())];
       int bytesRead = is.read(buffer);
       assertTrue(bytesRead > 0, "Should be able to read content from file");
-      
+
       String content = new String(buffer, 0, bytesRead, StandardCharsets.UTF_8);
       System.out.println("\nFile content (first " + bytesRead + " bytes):");
       System.out.println("----------------------------------------");
       System.out.println(content);
       System.out.println("----------------------------------------");
-      
+
       // For CSV files, check CSV format
       if (fileToDownload.getName().toLowerCase(Locale.ROOT).endsWith(".csv")) {
-        assertTrue(content.contains(",") || content.contains("\n"), 
+        assertTrue(content.contains(",") || content.contains("\n"),
             "CSV content should contain commas or newlines");
       }
     }
-    
+
     // Test file metadata
     StorageProvider.FileMetadata metadata = provider.getMetadata(fileToDownload.getPath());
     assertNotNull(metadata, "Should be able to get file metadata");
@@ -324,23 +324,23 @@ public class SharePointLiveIntegrationTest {
     assertNotNull(entries);
     System.out.println("Access after invalidation successful - token refreshed!");
   }
-  
+
   @Test void testCalciteQueryWithCSV() throws Exception {
     // Test Calcite queries on CSV files in SharePoint
     MicrosoftGraphStorageProvider provider = new MicrosoftGraphStorageProvider(tokenManager);
-    
+
     // Look for CSV files in multiple locations
     List<StorageProvider.FileEntry> allCsvFiles = new ArrayList<>();
     String[] pathsToCheck = {
         "/Shared Documents/Shared Documents",  // The correct nested path
         "Shared Documents/Shared Documents",
         "/Shared Documents",
-        "/Shared Documents/Documents", 
+        "/Shared Documents/Documents",
         "Shared Documents/Documents",
         "/Documents",
         "Documents"
     };
-    
+
     for (String path : pathsToCheck) {
       try {
         List<StorageProvider.FileEntry> entries = provider.listFiles(path, false);
@@ -385,9 +385,9 @@ public class SharePointLiveIntegrationTest {
         // Path doesn't exist or isn't accessible
       }
     }
-    
+
     StorageProvider.FileEntry csvFile = allCsvFiles.isEmpty() ? null : allCsvFiles.get(0);
-    
+
     if (csvFile == null) {
       System.out.println("No CSV file found in SharePoint. To test this functionality:");
       System.out.println("1. Upload a CSV file to SharePoint's Shared Documents folder");
@@ -399,9 +399,9 @@ public class SharePointLiveIntegrationTest {
       System.out.println("3,Product C,150.00,Electronics");
       return;
     }
-    
+
     System.out.println("Found CSV file: " + csvFile.getName() + " at path: " + csvFile.getPath());
-    
+
     // Download and display CSV content
     System.out.println("\nDownloading CSV content from path: " + csvFile.getPath());
     String csvContent;
@@ -418,42 +418,43 @@ public class SharePointLiveIntegrationTest {
         System.out.println("  ... (" + (lines.length - 5) + " more lines)");
       }
     }
-    
+
     // Test with Calcite
     System.out.println("\nTesting Calcite queries on CSV file...");
     Properties info = new Properties();
-    info.setProperty("lex", "JAVA");
-    
+    info.setProperty("lex", "ORACLE");
+    info.put("unquotedCasing", "TO_LOWER");
+
     try (Connection conn = DriverManager.getConnection("jdbc:calcite:", info)) {
       CalciteConnection calciteConn = conn.unwrap(CalciteConnection.class);
       SchemaPlus rootSchema = calciteConn.getRootSchema();
-      
+
       // Create SharePoint-backed schema - try different directory configurations
       System.out.println("\n=== Testing different directory configurations ===");
-      
+
       // First try: Point directly to nested Shared Documents
       Map<String, Object> operand = new HashMap<>();
       operand.put("directory", "/Shared Documents/Shared Documents");
       operand.put("storageType", "sharepoint");
       operand.put("recursive", true);  // Enable recursive traversal
-      
+
       Map<String, Object> storageConfig = new HashMap<>();
       storageConfig.put("siteUrl", siteUrl);
       storageConfig.put("tenantId", tenantId);
       storageConfig.put("clientId", clientId);
       storageConfig.put("clientSecret", clientSecret);
       operand.put("storageConfig", storageConfig);
-      
+
       FileSchemaFactory factory = FileSchemaFactory.INSTANCE;
-      
+
       // Try creating schema with the nested path first
       System.out.println("Creating schema with directory: " + operand.get("directory"));
       Schema sharePointSchema = factory.create(rootSchema, "sharepoint", operand);
       rootSchema.add("sharepoint", sharePointSchema);
-      
+
       // Log that schema was created
       System.out.println("\nSharePoint schema created and added to root schema");
-      
+
       // Force table discovery via reflection
       if (sharePointSchema instanceof FileSchema) {
         FileSchema fs = (FileSchema) sharePointSchema;
@@ -467,7 +468,7 @@ public class SharePointLiveIntegrationTest {
           e.printStackTrace();
         }
       }
-      
+
       try (Statement stmt = conn.createStatement()) {
         // Try to query the table directly
         System.out.println("\nTrying direct query on discovered table:");
@@ -489,7 +490,7 @@ public class SharePointLiveIntegrationTest {
         } catch (Exception e) {
           System.out.println("Direct query failed: " + e.getMessage());
         }
-        
+
         // List all available tables - try different schema name cases
         System.out.println("\nChecking for tables in SharePoint schema (uppercase):");
         ResultSet tables = conn.getMetaData().getTables(null, "SHAREPOINT", "%", null);
@@ -499,7 +500,7 @@ public class SharePointLiveIntegrationTest {
           System.out.println("  - Found table: " + foundTable);
           tableCount++;
         }
-        
+
         if (tableCount == 0) {
           System.out.println("No tables found with uppercase SHAREPOINT, trying lowercase...");
           tables = conn.getMetaData().getTables(null, "sharepoint", "%", null);
@@ -509,53 +510,53 @@ public class SharePointLiveIntegrationTest {
             tableCount++;
           }
         }
-        
+
         if (tableCount == 0) {
           System.out.println("No tables found with /Shared Documents/Shared Documents");
-          
+
           // Try alternative: Use root /Shared Documents with recursive=true
           System.out.println("\nTrying alternative: /Shared Documents with recursive=true");
           Map<String, Object> operand2 = new HashMap<>(operand);
           operand2.put("directory", "/Shared Documents");
           operand2.put("recursive", true);
           rootSchema.add("sharepoint2", factory.create(rootSchema, "sharepoint2", operand2));
-          
+
           tables = conn.getMetaData().getTables(null, "SHAREPOINT2", "%", null);
           while (tables.next()) {
             String foundTable = tables.getString("TABLE_NAME");
             System.out.println("  - Found table: " + foundTable);
             tableCount++;
           }
-          
+
           if (tableCount > 0) {
             // Use sharepoint2 for queries
             operand = operand2;
           }
         }
-        
+
         if (tableCount == 0) {
           System.out.println("No tables found with /Shared Documents recursive");
-          
+
           // Try alternative: Use just Shared Documents/Shared Documents without leading slash
           System.out.println("\nTrying alternative: Shared Documents/Shared Documents");
           Map<String, Object> operand3 = new HashMap<>(operand);
           operand3.put("directory", "Shared Documents/Shared Documents");
           operand3.put("recursive", true);
           rootSchema.add("sharepoint3", factory.create(rootSchema, "sharepoint3", operand3));
-          
+
           tables = conn.getMetaData().getTables(null, "SHAREPOINT3", "%", null);
           while (tables.next()) {
             String foundTable = tables.getString("TABLE_NAME");
             System.out.println("  - Found table: " + foundTable);
             tableCount++;
           }
-          
+
           if (tableCount > 0) {
             // Use sharepoint3 for queries
             operand = operand3;
           }
         }
-        
+
         // Now try to query the CSV files if we found any tables
         if (tableCount > 0) {
           // Determine which schema has the tables
@@ -565,10 +566,10 @@ public class SharePointLiveIntegrationTest {
           } else if (operand.get("directory").equals("Shared Documents/Shared Documents")) {
             schemaName = "sharepoint3";
           }
-          
+
           // Query departments table - use the actual table names discovered
           System.out.println("\n=== Querying departments table from schema: " + schemaName + " ===");
-          
+
           // First, list all tables to find the actual table names
           ResultSet allTables = conn.getMetaData().getTables(null, schemaName.toLowerCase(), "%", null);
           String departmentsTable = null;
@@ -581,7 +582,7 @@ public class SharePointLiveIntegrationTest {
               employeesTable = tableName;
             }
           }
-          
+
           if (departmentsTable != null) {
             System.out.println("Found departments table: " + departmentsTable);
             try {
@@ -589,11 +590,11 @@ public class SharePointLiveIntegrationTest {
               if (rs.next()) {
                 System.out.println("Departments row count: " + rs.getInt("cnt"));
               }
-              
+
               rs = stmt.executeQuery("SELECT * FROM " + schemaName + "." + departmentsTable + " LIMIT 5");
               ResultSetMetaData rsmd = rs.getMetaData();
               int columnCount = rsmd.getColumnCount();
-            
+
             System.out.print("Columns: ");
             for (int i = 1; i <= columnCount; i++) {
               if (i > 1) System.out.print(", ");
@@ -614,7 +615,7 @@ public class SharePointLiveIntegrationTest {
           } else {
             System.out.println("No departments table found");
           }
-          
+
           // Query employees table
           if (employeesTable != null) {
             System.out.println("\n=== Querying employees table from schema: " + schemaName + " ===");
@@ -624,11 +625,11 @@ public class SharePointLiveIntegrationTest {
               if (rs.next()) {
                 System.out.println("Employees row count: " + rs.getInt("cnt"));
               }
-              
+
               rs = stmt.executeQuery("SELECT * FROM " + schemaName + "." + employeesTable + " LIMIT 5");
               ResultSetMetaData rsmd = rs.getMetaData();
               int columnCount = rsmd.getColumnCount();
-            
+
             System.out.print("Columns: ");
             for (int i = 1; i <= columnCount; i++) {
               if (i > 1) System.out.print(", ");
