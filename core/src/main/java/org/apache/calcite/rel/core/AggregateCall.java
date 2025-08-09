@@ -74,6 +74,7 @@ public class AggregateCall {
   public final int filterArg;
   public final @Nullable ImmutableBitSet distinctKeys;
   public final RelCollation collation;
+  public boolean allowChangeNullable;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -95,34 +96,37 @@ public class AggregateCall {
       String name) {
     this(SqlParserPos.ZERO, aggFunction, distinct, false, false,
         ImmutableList.of(), argList, -1, null,
-        RelCollations.EMPTY, type, name);
+        RelCollations.EMPTY, type, name, true);
   }
 
   /**
    * Creates an AggregateCall.
    *
-   * @param pos         Source position for this aggregate.
-   *                    Ideally it should only be ZERO when the aggregate
-   *                    can never fail at runtime.
-   * @param aggFunction Aggregate function
-   * @param distinct    Whether distinct
-   * @param approximate Whether approximate
-   * @param rexList     List of pre-arguments
-   * @param argList     List of ordinals of arguments
-   * @param filterArg   Ordinal of filter argument (the
-   *                    {@code FILTER (WHERE ...)} clause in SQL), or -1
-   * @param distinctKeys Ordinals of fields to make values distinct on before
-   *                    aggregating, or null
-   * @param collation   How to sort values before aggregation (the
-   *                    {@code WITHIN GROUP} clause in SQL)
-   * @param type        Result type
-   * @param name        Name (may be null)
+   * @param pos                   Source position for this aggregate.
+   *                              Ideally it should only be ZERO when the aggregate
+   *                              can never fail at runtime.
+   * @param aggFunction           Aggregate function
+   * @param distinct              Whether distinct
+   * @param approximate           Whether approximate
+   * @param rexList               List of pre-arguments
+   * @param argList               List of ordinals of arguments
+   * @param filterArg             Ordinal of filter argument (the
+   *                              {@code FILTER (WHERE ...)} clause in SQL), or -1
+   * @param distinctKeys          Ordinals of fields to make values distinct on before
+   *                              aggregating, or null
+   * @param collation             How to sort values before aggregation (the
+   *                              {@code WITHIN GROUP} clause in SQL)
+   * @param type                  Result type
+   * @param name                  Name (may be null)
+   * @param allowChangeNullable   Whether to support modifying nullable when doing
+   *                              type inference in AggCall, default true.
    */
   private AggregateCall(SqlParserPos pos, SqlAggFunction aggFunction, boolean distinct,
       boolean approximate, boolean ignoreNulls,
       List<RexNode> rexList, List<Integer> argList,
       int filterArg, @Nullable ImmutableBitSet distinctKeys,
-      RelCollation collation, RelDataType type, @Nullable String name) {
+      RelCollation collation, RelDataType type, @Nullable String name,
+      boolean allowChangeNullable) {
     this.pos = pos;
     this.type = requireNonNull(type, "type");
     this.name = name;
@@ -135,6 +139,7 @@ public class AggregateCall {
     this.distinct = distinct;
     this.approximate = approximate;
     this.ignoreNulls = ignoreNulls;
+    this.allowChangeNullable = allowChangeNullable;
     checkArgument(aggFunction.getDistinctOptionality() != Optionality.IGNORED
             || !distinct,
         "DISTINCT has no effect for this aggregate function, so must be false");
@@ -211,19 +216,8 @@ public class AggregateCall {
       @Nullable ImmutableBitSet distinctKeys, RelCollation collation,
       int groupCount,
       RelNode input, @Nullable RelDataType type, @Nullable String name) {
-    if (type == null) {
-      final RelDataTypeFactory typeFactory =
-          input.getCluster().getTypeFactory();
-      final List<RelDataType> preTypes = RexUtil.types(rexList);
-      final List<RelDataType> types =
-          SqlTypeUtil.projectTypes(input.getRowType(), argList);
-      final Aggregate.AggCallBinding callBinding =
-          new Aggregate.AggCallBinding(typeFactory, aggFunction, preTypes,
-              types, groupCount, filterArg >= 0);
-      type = aggFunction.inferReturnType(callBinding);
-    }
-    return create(pos, aggFunction, distinct, approximate, ignoreNulls,
-        rexList, argList, filterArg, distinctKeys, collation, type, name);
+    return create(pos, aggFunction, distinct, approximate, ignoreNulls, rexList, argList,
+        filterArg, distinctKeys, collation, groupCount, input, type, name, true);
   }
 
   @Deprecated // to be removed before 2.0
@@ -270,7 +264,8 @@ public class AggregateCall {
       @Nullable ImmutableBitSet distinctKeys, RelCollation collation,
       RelDataType type, @Nullable String name) {
     return create(SqlParserPos.ZERO, aggFunction, distinct, approximate,
-        ignoreNulls, rexList, argList, filterArg, distinctKeys, collation, type, name);
+        ignoreNulls, rexList, argList, filterArg, distinctKeys, collation,
+        type, name, true);
   }
 
   public static AggregateCall create(SqlParserPos pos, SqlAggFunction aggFunction,
@@ -281,7 +276,39 @@ public class AggregateCall {
     final boolean distinct2 = distinct
         && (aggFunction.getDistinctOptionality() != Optionality.IGNORED);
     return new AggregateCall(pos, aggFunction, distinct2, approximate, ignoreNulls,
-        rexList, argList, filterArg, distinctKeys, collation, type, name);
+        rexList, argList, filterArg, distinctKeys, collation, type, name, true);
+  }
+
+  public static AggregateCall create(SqlParserPos pos, SqlAggFunction aggFunction,
+      boolean distinct, boolean approximate, boolean ignoreNulls,
+      List<RexNode> rexList, List<Integer> argList, int filterArg,
+      @Nullable ImmutableBitSet distinctKeys, RelCollation collation,
+      int groupCount, RelNode input, @Nullable RelDataType type,
+      @Nullable String name, boolean allowChangeNullable) {
+    if (type == null) {
+      final RelDataTypeFactory typeFactory =
+          input.getCluster().getTypeFactory();
+      final List<RelDataType> preTypes = RexUtil.types(rexList);
+      final List<RelDataType> types =
+          SqlTypeUtil.projectTypes(input.getRowType(), argList);
+      final Aggregate.AggCallBinding callBinding =
+          new Aggregate.AggCallBinding(typeFactory, aggFunction, preTypes,
+              types, groupCount, filterArg >= 0, allowChangeNullable);
+      type = aggFunction.inferReturnType(callBinding);
+    }
+    return create(pos, aggFunction, distinct, approximate, ignoreNulls,
+        rexList, argList, filterArg, distinctKeys, collation, type, name, allowChangeNullable);
+  }
+
+  private static AggregateCall create(SqlParserPos pos, SqlAggFunction aggFunction,
+      boolean distinct, boolean approximate, boolean ignoreNulls,
+      List<RexNode> rexList, List<Integer> argList, int filterArg,
+      @Nullable ImmutableBitSet distinctKeys, RelCollation collation,
+      RelDataType type, @Nullable String name, boolean allowChangeNullable) {
+    final boolean distinct2 = distinct
+        && (aggFunction.getDistinctOptionality() != Optionality.IGNORED);
+    return new AggregateCall(pos, aggFunction, distinct2, approximate, ignoreNulls,
+        rexList, argList, filterArg, distinctKeys, collation, type, name, allowChangeNullable);
   }
 
   /**
@@ -294,11 +321,17 @@ public class AggregateCall {
     return distinct;
   }
 
+  public AggregateCall withAllowChangeNullable(boolean allowChangeNullable) {
+    return allowChangeNullable == this.allowChangeNullable ? this
+        : new AggregateCall(pos, aggFunction, distinct, approximate, ignoreNulls,
+            rexList, argList, filterArg, distinctKeys, collation, type, name, allowChangeNullable);
+  }
+
   /** Withs {@link #isDistinct()}. */
   public AggregateCall withDistinct(boolean distinct) {
     return distinct == this.distinct ? this
         : new AggregateCall(pos, aggFunction, distinct, approximate, ignoreNulls,
-            rexList, argList, filterArg, distinctKeys, collation, type, name);
+            rexList, argList, filterArg, distinctKeys, collation, type, name, allowChangeNullable);
   }
 
   /**
@@ -315,7 +348,7 @@ public class AggregateCall {
   public AggregateCall withApproximate(boolean approximate) {
     return approximate == this.approximate ? this
         : new AggregateCall(pos, aggFunction, distinct, approximate, ignoreNulls,
-            rexList, argList, filterArg, distinctKeys, collation, type, name);
+            rexList, argList, filterArg, distinctKeys, collation, type, name, allowChangeNullable);
   }
 
   /**
@@ -331,7 +364,7 @@ public class AggregateCall {
   public AggregateCall withIgnoreNulls(boolean ignoreNulls) {
     return ignoreNulls == this.ignoreNulls ? this
         : new AggregateCall(pos, aggFunction, distinct, approximate, ignoreNulls,
-            rexList, argList, filterArg, distinctKeys, collation, type, name);
+            rexList, argList, filterArg, distinctKeys, collation, type, name, allowChangeNullable);
   }
 
   /**
@@ -357,7 +390,7 @@ public class AggregateCall {
   public AggregateCall withCollation(RelCollation collation) {
     return collation.equals(this.collation) ? this
         : new AggregateCall(pos, aggFunction, distinct, approximate, ignoreNulls,
-            rexList, argList, filterArg, distinctKeys, collation, type, name);
+            rexList, argList, filterArg, distinctKeys, collation, type, name, allowChangeNullable);
   }
 
   /**
@@ -375,7 +408,7 @@ public class AggregateCall {
   public AggregateCall withArgList(List<Integer> argList) {
     return argList.equals(this.argList) ? this
         : new AggregateCall(pos, aggFunction, distinct, approximate, ignoreNulls,
-            rexList, argList, filterArg, distinctKeys, collation, type, name);
+            rexList, argList, filterArg, distinctKeys, collation, type, name, allowChangeNullable);
   }
 
   /** Withs {@link #distinctKeys}. */
@@ -383,7 +416,7 @@ public class AggregateCall {
       @Nullable ImmutableBitSet distinctKeys) {
     return Objects.equals(distinctKeys, this.distinctKeys) ? this
         : new AggregateCall(pos, aggFunction, distinct, approximate, ignoreNulls,
-            rexList, argList, filterArg, distinctKeys, collation, type, name);
+            rexList, argList, filterArg, distinctKeys, collation, type, name, allowChangeNullable);
   }
 
   /**
@@ -408,7 +441,7 @@ public class AggregateCall {
   public AggregateCall withName(@Nullable String name) {
     return Objects.equals(name, this.name) ? this
         : new AggregateCall(pos, aggFunction, distinct, approximate, ignoreNulls,
-            rexList, argList, filterArg, distinctKeys, collation, type, name);
+            rexList, argList, filterArg, distinctKeys, collation, type, name, allowChangeNullable);
   }
 
   @Deprecated // to be removed before 2.0
@@ -474,7 +507,7 @@ public class AggregateCall {
   public AggregateCall withFilter(int filterArg) {
     return filterArg == this.filterArg ? this
         : new AggregateCall(pos, aggFunction, distinct, approximate, ignoreNulls,
-            rexList, argList, filterArg, distinctKeys, collation, type, name);
+            rexList, argList, filterArg, distinctKeys, collation, type, name, allowChangeNullable);
   }
 
   public SqlParserPos getParserPosition() {
@@ -522,7 +555,7 @@ public class AggregateCall {
     }
     return new Aggregate.AggCallBinding(typeFactory, aggFunction,
         RexUtil.types(rexList), SqlTypeUtil.projectTypes(rowType, argList),
-        aggregateRelBase.getGroupCount(), hasFilter());
+        aggregateRelBase.getGroupCount(), hasFilter(), allowChangeNullable);
   }
 
   /**
@@ -537,7 +570,7 @@ public class AggregateCall {
   public AggregateCall copy(List<Integer> argList, int filterArg,
       @Nullable ImmutableBitSet distinctKeys, RelCollation collation) {
     return new AggregateCall(pos, aggFunction, distinct, approximate, ignoreNulls,
-        rexList, argList, filterArg, distinctKeys, collation, type, name);
+        rexList, argList, filterArg, distinctKeys, collation, type, name, allowChangeNullable);
   }
 
   @Deprecated // to be removed before 2.0
@@ -545,21 +578,21 @@ public class AggregateCall {
       RelCollation collation) {
     // ignoring distinctKeys is error-prone
     return new AggregateCall(pos, aggFunction, distinct, approximate, ignoreNulls,
-        rexList, argList, filterArg, distinctKeys, collation, type, name);
+        rexList, argList, filterArg, distinctKeys, collation, type, name, allowChangeNullable);
   }
 
   @Deprecated // to be removed before 2.0
   public AggregateCall copy(List<Integer> argList, int filterArg) {
     // ignoring distinctKeys, collation is error-prone
     return new AggregateCall(pos, aggFunction, distinct, approximate, ignoreNulls,
-        rexList, argList, filterArg, distinctKeys, collation, type, name);
+        rexList, argList, filterArg, distinctKeys, collation, type, name, allowChangeNullable);
   }
 
   @Deprecated // to be removed before 2.0
   public AggregateCall copy(List<Integer> argList) {
     // ignoring filterArg, distinctKeys, collation is error-prone
     return new AggregateCall(pos, aggFunction, distinct, approximate, ignoreNulls,
-        rexList, argList, filterArg, distinctKeys, collation, type, name);
+        rexList, argList, filterArg, distinctKeys, collation, type, name, allowChangeNullable);
   }
 
   /**
@@ -585,7 +618,7 @@ public class AggregateCall {
             : null;
     return create(pos, aggFunction, distinct, approximate, ignoreNulls,
         rexList, argList, filterArg, distinctKeys, collation,
-        newGroupKeyCount, input, newType, getName());
+        newGroupKeyCount, input, newType, getName(), true);
   }
 
   /** Creates a copy of this aggregate call, applying a mapping to its
@@ -595,6 +628,6 @@ public class AggregateCall {
         rexList, Mappings.apply2((Mapping) mapping, argList),
         hasFilter() ? Mappings.apply(mapping, filterArg) : -1,
         distinctKeys == null ? null : distinctKeys.permute(mapping),
-        RelCollations.permute(collation, mapping), type, name);
+        RelCollations.permute(collation, mapping), type, name, allowChangeNullable);
   }
 }

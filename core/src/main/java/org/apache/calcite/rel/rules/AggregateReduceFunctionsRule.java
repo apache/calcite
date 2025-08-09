@@ -376,7 +376,7 @@ public class AggregateReduceFunctionsRule
     final Aggregate.AggCallBinding binding =
         new Aggregate.AggCallBinding(typeFactory, aggFunction,
             ImmutableList.of(), ImmutableList.of(operandType),
-            oldAggRel.getGroupCount(), filter >= 0);
+            oldAggRel.getGroupCount(), filter >= 0, true);
     return AggregateCall.create(oldCall.getParserPosition(),
         aggFunction,
         oldCall.isDistinct(),

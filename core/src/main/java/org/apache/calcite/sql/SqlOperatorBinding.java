@@ -76,6 +76,13 @@ public abstract class SqlOperatorBinding {
   }
 
   /**
+   * Whether to support modifying nullable when doing type inference in AggCall.
+   */
+  public boolean allowChangeNullable() {
+    return true;
+  }
+
+  /**
    * Returns whether the operator is an aggregate function with a filter.
    */
   public boolean hasFilter() {
