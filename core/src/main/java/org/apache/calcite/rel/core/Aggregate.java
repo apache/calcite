@@ -620,6 +620,7 @@ public abstract class Aggregate extends SingleRel implements Hintable {
     }
 
     @Deprecated
+    // This constructor will be replaced by the constructor with allowChangeNullable.
     public AggCallBinding(RelDataTypeFactory typeFactory,
         SqlAggFunction aggFunction, List<RelDataType> preOperands,
         List<RelDataType> operands, int groupCount,

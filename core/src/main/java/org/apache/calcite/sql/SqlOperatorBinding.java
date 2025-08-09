@@ -75,6 +75,9 @@ public abstract class SqlOperatorBinding {
     return -1;
   }
 
+  /**
+   * Whether to support modifying nullable when doing type inference in AggCall.
+   */
   public boolean allowChangeNullable() {
     return true;
   }

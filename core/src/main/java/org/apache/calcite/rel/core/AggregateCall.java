@@ -102,22 +102,24 @@ public class AggregateCall {
   /**
    * Creates an AggregateCall.
    *
-   * @param pos         Source position for this aggregate.
-   *                    Ideally it should only be ZERO when the aggregate
-   *                    can never fail at runtime.
-   * @param aggFunction Aggregate function
-   * @param distinct    Whether distinct
-   * @param approximate Whether approximate
-   * @param rexList     List of pre-arguments
-   * @param argList     List of ordinals of arguments
-   * @param filterArg   Ordinal of filter argument (the
-   *                    {@code FILTER (WHERE ...)} clause in SQL), or -1
-   * @param distinctKeys Ordinals of fields to make values distinct on before
-   *                    aggregating, or null
-   * @param collation   How to sort values before aggregation (the
-   *                    {@code WITHIN GROUP} clause in SQL)
-   * @param type        Result type
-   * @param name        Name (may be null)
+   * @param pos                   Source position for this aggregate.
+   *                              Ideally it should only be ZERO when the aggregate
+   *                              can never fail at runtime.
+   * @param aggFunction           Aggregate function
+   * @param distinct              Whether distinct
+   * @param approximate           Whether approximate
+   * @param rexList               List of pre-arguments
+   * @param argList               List of ordinals of arguments
+   * @param filterArg             Ordinal of filter argument (the
+   *                              {@code FILTER (WHERE ...)} clause in SQL), or -1
+   * @param distinctKeys          Ordinals of fields to make values distinct on before
+   *                              aggregating, or null
+   * @param collation             How to sort values before aggregation (the
+   *                              {@code WITHIN GROUP} clause in SQL)
+   * @param type                  Result type
+   * @param name                  Name (may be null)
+   * @param allowChangeNullable   Whether to support modifying nullable when doing
+   *                              type inference in AggCall, default true.
    */
   private AggregateCall(SqlParserPos pos, SqlAggFunction aggFunction, boolean distinct,
       boolean approximate, boolean ignoreNulls,
