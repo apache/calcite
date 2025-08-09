@@ -106,6 +106,21 @@ SELECT CAST(empno AS BIGINT) ^ CAST(mgr AS INTEGER) AS foo FROM "scott".emp WHER
 
 !ok
 
+# [CALCITE-7109] Add support for << operator in Calcite
+SELECT CAST(deptno AS INTEGER) << CAST(comm AS INTEGER) AS foo FROM "scott".emp
+WHERE comm IS NOT NULL LIMIT 4;
++-----------+
+| FOO       |
++-----------+
+|    122880 |
+|        30 |
+|  31457280 |
+| 503316480 |
++-----------+
+(4 rows)
+
+!ok
+
 # [CALCITE-5531] COALESCE throws ClassCastException
 SELECT COALESCE(DATE '2021-07-08', DATE '2020-01-01') as d;
 +------------+
@@ -778,6 +793,22 @@ SELECT 255 ^ 128 AS foo;
 +-----+
 | 127 |
 +-----+
+(1 row)
+
+!ok
+
+-- Bitwise LEFT SHIFT operator `<<`
+SELECT
+  1 << 0 AS shift1,
+  1 << 1 AS shift2,
+  2 << 2 AS shift3,
+  4 << 3 AS shift4,
+  CAST(2 AS SMALLINT) << CAST(3 AS INTEGER) AS cast_shift;
++--------+--------+--------+--------+------------+
+| SHIFT1 | SHIFT2 | SHIFT3 | SHIFT4 | CAST_SHIFT |
++--------+--------+--------+--------+------------+
+|      1 |      2 |      8 |     32 |         16 |
++--------+--------+--------+--------+------------+
 (1 row)
 
 !ok
