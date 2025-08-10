@@ -78,7 +78,7 @@ public class MaterializedViewQueryTest {
           "COUNT(*) as transaction_count, " +
           "SUM(\"quantity\") as total_quantity, " +
           "SUM(\"quantity\" * \"price\") as total_revenue " +
-          "FROM SALES " +
+          "FROM sales " +
           "GROUP BY \"date\"");
       materializations.add(dailySalesMV);
 
@@ -153,7 +153,7 @@ public class MaterializedViewQueryTest {
             "COUNT(*) as transaction_count, " +
             "SUM(\"quantity\") as total_quantity, " +
             "SUM(\"quantity\" * \"price\") as total_revenue " +
-            "FROM MV_TEST.\"SALES\" " +
+            "FROM MV_TEST.\"sales\" " +
             "GROUP BY \"date\" " +
             "ORDER BY \"date\"");
 

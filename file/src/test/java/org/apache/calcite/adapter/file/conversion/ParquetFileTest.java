@@ -148,7 +148,7 @@ public class ParquetFileTest {
         while (tables.next()) {
           String tableName = tables.getString("TABLE_NAME");
           System.out.println("   - " + tableName);
-          if (tableName.equals("EMPLOYEES")) {
+          if (tableName.equals("employees")) {
             foundEmployees = true;
           }
         }
@@ -233,7 +233,7 @@ public class ParquetFileTest {
         // Query the explicitly mapped Parquet file
         System.out.println("\n2. Querying the explicitly mapped Parquet file:");
         ResultSet rs =
-            stmt.executeQuery("SELECT * FROM PARQUET_EXPLICIT.\"EMP_DATA\" "
+            stmt.executeQuery("SELECT * FROM parquet_explicit.\"emp_data\" "
             + "WHERE \"salary\" > 100000 ORDER BY \"salary\" DESC");
 
         System.out.println("   High earners (salary > 100k):");

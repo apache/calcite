@@ -341,7 +341,7 @@ public class DualTimestampTypeTest extends FileAdapterTest {
       int rowCount = 0;
       while (resultSet.next()) {
         rowCount++;
-        int id = resultSet.getInt("ID");
+        int id = resultSet.getInt("id");
         String localTs = resultSet.getString("LOCAL_TS");
         String utcTs = resultSet.getString("UTC_TS");
 
@@ -360,7 +360,7 @@ public class DualTimestampTypeTest extends FileAdapterTest {
 
   @Test public void testNullTimestampHandling() throws Exception {
     Properties info = new Properties();
-    info.put("model", FileAdapterTests.jsonPath("bug"));
+    info.put("model", FileAdapterTests.jsonPath("BUG"));
 
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info)) {
       Statement statement = connection.createStatement();
@@ -378,8 +378,8 @@ public class DualTimestampTypeTest extends FileAdapterTest {
 
       // Row 1: All values present
       assertTrue(rs.next());
-      assertEquals(1, rs.getInt("ID"));
-      assertEquals("John Doe", rs.getString("NAME"));
+      assertEquals(1, rs.getInt("id"));
+      assertEquals("John Doe", rs.getString("name"));
       assertNotNull(rs.getDate("CREATED_DATE"));
       assertNotNull(rs.getTime("CREATED_TIME"));
       assertNotNull(rs.getTimestamp("CREATED_TS"));
@@ -387,8 +387,8 @@ public class DualTimestampTypeTest extends FileAdapterTest {
 
       // Row 2: All date/time values are null
       assertTrue(rs.next());
-      int nextId = rs.getInt("ID");
-      String nextName = rs.getString("NAME");
+      int nextId = rs.getInt("id");
+      String nextName = rs.getString("name");
       System.out.println("Next row ID: " + nextId + ", Name: " + nextName);
 
       // If the Parquet engine filtered out the row with all nulls, we'll get ID=3 instead of ID=2
@@ -420,8 +420,8 @@ public class DualTimestampTypeTest extends FileAdapterTest {
 
         // Row 3: All values present
         assertTrue(rs.next());
-        assertEquals(3, rs.getInt("ID"));
-        assertEquals("Bob Wilson", rs.getString("NAME"));
+        assertEquals(3, rs.getInt("id"));
+        assertEquals("Bob Wilson", rs.getString("name"));
       }
 
       // Verify row 3 has all values (only if we didn't already check it)

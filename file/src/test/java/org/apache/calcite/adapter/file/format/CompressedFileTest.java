@@ -73,26 +73,26 @@ public class CompressedFileTest {
       // Test SELECT * from gzipped file
       try (ResultSet rs = stmt.executeQuery("SELECT * FROM \"employees\" ORDER BY \"empno\"")) {
         assertTrue(rs.next());
-        assertEquals(100, rs.getInt("EMPNO"));
-        assertEquals("Fred", rs.getString("NAME"));
-        assertEquals(10, rs.getInt("DEPTNO"));
-        assertEquals("M", rs.getString("GENDER"));
-        assertEquals("New York", rs.getString("CITY"));
-        assertEquals(30, rs.getInt("AGE"));
-        assertEquals(true, rs.getBoolean("SLACKER"));
+        assertEquals(100, rs.getInt("empno"));
+        assertEquals("Fred", rs.getString("name"));
+        assertEquals(10, rs.getInt("deptno"));
+        assertEquals("M", rs.getString("gender"));
+        assertEquals("New York", rs.getString("city"));
+        assertEquals(30, rs.getInt("age"));
+        assertEquals(true, rs.getBoolean("slacker"));
 
         assertTrue(rs.next());
-        assertEquals(110, rs.getInt("EMPNO"));
-        assertEquals("Eric", rs.getString("NAME"));
-        assertEquals(20, rs.getInt("DEPTNO"));
+        assertEquals(110, rs.getInt("empno"));
+        assertEquals("Eric", rs.getString("name"));
+        assertEquals(20, rs.getInt("deptno"));
 
         assertTrue(rs.next());
-        assertEquals(120, rs.getInt("EMPNO"));
-        assertEquals("Wilma", rs.getString("NAME"));
+        assertEquals(120, rs.getInt("empno"));
+        assertEquals("Wilma", rs.getString("name"));
 
         assertTrue(rs.next());
-        assertEquals(130, rs.getInt("EMPNO"));
-        assertEquals("Alice", rs.getString("NAME"));
+        assertEquals(130, rs.getInt("empno"));
+        assertEquals("Alice", rs.getString("name"));
 
         assertThat(rs.next(), is(false));
       }
@@ -222,11 +222,11 @@ public class CompressedFileTest {
           + "WHERE e.\"empno\" = p.\"id\" + 98 "
           + "ORDER BY e.\"empno\"")) {
         assertTrue(rs.next());
-        assertEquals("Fred", rs.getString("NAME"));
+        assertEquals("Fred", rs.getString("name"));
         assertEquals("Laptop", rs.getString("product"));
 
         assertTrue(rs.next());
-        assertEquals("Eric", rs.getString("NAME"));
+        assertEquals("Eric", rs.getString("name"));
         assertEquals("Monitor", rs.getString("product"));
 
         assertThat(rs.next(), is(false));

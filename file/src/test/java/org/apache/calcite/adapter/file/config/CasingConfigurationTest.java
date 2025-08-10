@@ -59,12 +59,12 @@ public class CasingConfigurationTest {
         // Table and column names should be uppercase
         try (ResultSet rs = stmt.executeQuery("SELECT \"ID\", \"NAME\" FROM \"TESTFILE\" ORDER BY \"ID\"")) {
           assertTrue(rs.next());
-          assertEquals(1, Integer.parseInt(rs.getString("ID")));
-          assertEquals("Alice", rs.getString("NAME"));
+          assertEquals(1, Integer.parseInt(rs.getString("id")));
+          assertEquals("Alice", rs.getString("name"));
 
           assertTrue(rs.next());
-          assertEquals(2, Integer.parseInt(rs.getString("ID")));
-          assertEquals("Bob", rs.getString("NAME"));
+          assertEquals(2, Integer.parseInt(rs.getString("id")));
+          assertEquals("Bob", rs.getString("name"));
         }
       }
     }
@@ -113,11 +113,11 @@ public class CasingConfigurationTest {
         // Table and column names should preserve original casing
         try (ResultSet rs = stmt.executeQuery("SELECT \"ID\", \"Name\" FROM \"TestFile\" ORDER BY \"ID\"")) {
           assertTrue(rs.next());
-          assertEquals(1, Integer.parseInt(rs.getString("ID")));
+          assertEquals(1, Integer.parseInt(rs.getString("id")));
           assertEquals("Alice", rs.getString("Name"));
 
           assertTrue(rs.next());
-          assertEquals(2, Integer.parseInt(rs.getString("ID")));
+          assertEquals(2, Integer.parseInt(rs.getString("id")));
           assertEquals("Bob", rs.getString("Name"));
         }
       }
@@ -170,7 +170,7 @@ public class CasingConfigurationTest {
         // Default column casing should be UNCHANGED
         try (ResultSet rs = stmt.executeQuery("SELECT \"ID\", \"Name\" FROM \"TESTFILE\" ORDER BY \"ID\"")) {
           assertTrue(rs.next());
-          assertEquals(1, Integer.parseInt(rs.getString("ID")));
+          assertEquals(1, Integer.parseInt(rs.getString("id")));
           assertEquals("Alice", rs.getString("Name"));
         }
       }
@@ -194,12 +194,12 @@ public class CasingConfigurationTest {
         // Table and column names should be uppercase
         try (ResultSet rs = stmt.executeQuery("SELECT \"ID\", \"NAME\" FROM \"TESTFILE\" ORDER BY \"ID\"")) {
           assertTrue(rs.next());
-          assertEquals(1, Integer.parseInt(rs.getString("ID")));
-          assertEquals("Alice", rs.getString("NAME"));
+          assertEquals(1, Integer.parseInt(rs.getString("id")));
+          assertEquals("Alice", rs.getString("name"));
 
           assertTrue(rs.next());
-          assertEquals(2, Integer.parseInt(rs.getString("ID")));
-          assertEquals("Bob", rs.getString("NAME"));
+          assertEquals(2, Integer.parseInt(rs.getString("id")));
+          assertEquals("Bob", rs.getString("name"));
         }
       }
     }

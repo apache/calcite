@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.file;
 
+import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 
@@ -72,7 +73,7 @@ public class MultiTableExcelTest {
 
       // Headers for table 1
       Row header1 = sheet.createRow(2);
-      header1.createCell(0).setCellValue("Product");
+      header1.createCell(0).setCellValue("product");
       header1.createCell(1).setCellValue("Q1");
       header1.createCell(2).setCellValue("Q2");
 
@@ -97,7 +98,7 @@ public class MultiTableExcelTest {
 
       Row header2 = sheet.createRow(9);
       header2.createCell(0).setCellValue("Name");
-      header2.createCell(1).setCellValue("Department");
+      header2.createCell(1).setCellValue("department");
       header2.createCell(2).setCellValue("Salary");
 
       Row emp1 = sheet.createRow(10);

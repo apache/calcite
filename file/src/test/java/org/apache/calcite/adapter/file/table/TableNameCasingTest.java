@@ -65,20 +65,20 @@ public class TableNameCasingTest {
       CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class);
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
 
-      Schema schema = FileSchemaFactory.INSTANCE.create(rootSchema, "test", operand);
-      rootSchema.add("test", schema);
+      Schema schema = FileSchemaFactory.INSTANCE.create(rootSchema, "TEST", operand);
+      rootSchema.add("TEST", schema);
 
       // Query should work with uppercase table name
       try (Statement statement = connection.createStatement()) {
         // First, let's see what tables are available
-        ResultSet tables = connection.getMetaData().getTables(null, "test", "%", null);
+        ResultSet tables = connection.getMetaData().getTables(null, "TEST", "%", null);
         System.out.println("Available tables in schema 'test':");
         while (tables.next()) {
           System.out.println("  Table: " + tables.getString("TABLE_NAME"));
         }
         tables.close();
 
-        ResultSet rs = statement.executeQuery("SELECT * FROM test.TEST_DATA");
+        ResultSet rs = statement.executeQuery("SELECT * FROM test.test_data");
         System.out.println("Query executed successfully");
         boolean hasNext = rs.next();
         System.out.println("ResultSet.next() = " + hasNext);
@@ -122,8 +122,8 @@ public class TableNameCasingTest {
       CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class);
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
 
-      Schema schema = FileSchemaFactory.INSTANCE.create(rootSchema, "test", operand);
-      rootSchema.add("test", schema);
+      Schema schema = FileSchemaFactory.INSTANCE.create(rootSchema, "TEST", operand);
+      rootSchema.add("TEST", schema);
 
       // Query should work with lowercase table name
       try (Statement statement = connection.createStatement()) {
@@ -162,8 +162,8 @@ public class TableNameCasingTest {
       CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class);
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
 
-      Schema schema = FileSchemaFactory.INSTANCE.create(rootSchema, "test", operand);
-      rootSchema.add("test", schema);
+      Schema schema = FileSchemaFactory.INSTANCE.create(rootSchema, "TEST", operand);
+      rootSchema.add("TEST", schema);
 
       // Query should work with exact case match
       try (Statement statement = connection.createStatement()) {
@@ -202,12 +202,12 @@ public class TableNameCasingTest {
       CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class);
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
 
-      Schema schema = FileSchemaFactory.INSTANCE.create(rootSchema, "test", operand);
-      rootSchema.add("test", schema);
+      Schema schema = FileSchemaFactory.INSTANCE.create(rootSchema, "TEST", operand);
+      rootSchema.add("TEST", schema);
 
       // Query should work with lowercase column names
       try (Statement statement = connection.createStatement()) {
-        ResultSet rs = statement.executeQuery("SELECT customer_id, first_name FROM test.TEST_COLUMNS");
+        ResultSet rs = statement.executeQuery("SELECT customer_id, first_name FROM test.test_columns");
         assertTrue(rs.next());
         assertThat(rs.getInt("customer_id"), equalTo(1));
         assertThat(rs.getString("first_name"), equalTo("John"));
@@ -234,8 +234,8 @@ public class TableNameCasingTest {
       CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class);
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
 
-      Schema schema = FileSchemaFactory.INSTANCE.create(rootSchema, "test", operand);
-      rootSchema.add("test", schema);
+      Schema schema = FileSchemaFactory.INSTANCE.create(rootSchema, "TEST", operand);
+      rootSchema.add("TEST", schema);
 
       // Everything should be lowercase
       try (Statement statement = connection.createStatement()) {
@@ -250,7 +250,8 @@ public class TableNameCasingTest {
 
   private Connection createConnection() throws SQLException {
     Properties info = new Properties();
-    info.setProperty("lex", "JAVA");
+    info.setProperty("lex", "ORACLE");
+    info.put("unquotedCasing", "TO_LOWER");
     return DriverManager.getConnection("jdbc:calcite:", info);
   }
 }

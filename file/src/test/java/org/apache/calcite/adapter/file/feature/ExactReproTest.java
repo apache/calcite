@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.adapter.file.feature;
 
-import org.apache.calcite.adapter.file.MultiTableExcelToJsonConverter;
+import org.apache.calcite.adapter.file.converters.MultiTableExcelToJsonConverter;
 
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -49,7 +49,7 @@ public class ExactReproTest {
       Row header1 = sheet.createRow(0);
       header1.createCell(0).setCellValue("Employee ID");
       header1.createCell(1).setCellValue("Name");
-      header1.createCell(2).setCellValue("Department");
+      header1.createCell(2).setCellValue("department");
 
       Row data1 = sheet.createRow(1);
       data1.createCell(0).setCellValue(1);
@@ -69,7 +69,7 @@ public class ExactReproTest {
       Row header2 = sheet.createRow(5);
       header2.createCell(0).setCellValue("Product ID");
       header2.createCell(1).setCellValue("Product Name");
-      header2.createCell(2).setCellValue("Price");
+      header2.createCell(2).setCellValue("price");
 
       Row prod1 = sheet.createRow(6);
       prod1.createCell(0).setCellValue(101);

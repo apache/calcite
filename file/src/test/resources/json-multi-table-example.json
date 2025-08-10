@@ -1,0 +1,59 @@
+{
+  "version": "1.0",
+  "defaultSchema": "MULTI_JSON",
+  "schemas": [
+    {
+      "name": "MULTI_JSON",
+      "type": "custom",
+      "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
+      "operand": {
+        "directory": "data",
+        "tables": [
+          {
+            "name": "company_data",
+            "url": "company.json",
+            "format": "json",
+            "jsonSearchPaths": [
+              "$.users",
+              "$.departments",
+              "$.projects"
+            ],
+            "tableNamePattern": "{pathSegment}"
+          },
+          {
+            "name": "analytics",
+            "url": "analytics.json",
+            "format": "json",
+            "jsonSearchPaths": [
+              "$.metrics.daily",
+              "$.metrics.monthly",
+              "$.reports.sales",
+              "$.reports.customers"
+            ],
+            "tableNamePattern": "{fullPath}"
+          },
+          {
+            "name": "auto_discovered",
+            "url": "complex.json",
+            "format": "json",
+            "autoDiscoverTables": true,
+            "tableNamePattern": "{pathSegment}_{index}",
+            "minArraySize": 2,
+            "maxDiscoveryDepth": 4
+          },
+          {
+            "name": "combined",
+            "url": "nested.json",
+            "format": "json",
+            "jsonSearchPaths": [
+              "$.data.users",
+              "$.data.orders"
+            ],
+            "autoDiscoverTables": true,
+            "tableNamePattern": "tbl_{pathSegment}"
+          }
+        ]
+      }
+    }
+  ]
+}

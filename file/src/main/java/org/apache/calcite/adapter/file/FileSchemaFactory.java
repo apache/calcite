@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.adapter.file;
 
+import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
+import org.apache.calcite.adapter.file.metadata.InformationSchema;
+import org.apache.calcite.adapter.file.metadata.PostgresMetadataSchema;
 import org.apache.calcite.model.ModelHandler;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaFactory;
@@ -38,7 +41,7 @@ public class FileSchemaFactory implements SchemaFactory {
 
   /** Name of the column that is implicitly created in a CSV stream table
    * to hold the data arrival time. */
-  static final String ROWTIME_COLUMN_NAME = "ROWTIME";
+  public static final String ROWTIME_COLUMN_NAME = "ROWTIME";
 
   private FileSchemaFactory() {
   }
@@ -96,18 +99,18 @@ public class FileSchemaFactory implements SchemaFactory {
     // Get flatten option for JSON/YAML files
     final Boolean flatten = (Boolean) operand.get("flatten");
 
-    // Get table name casing configuration (default to UPPER for backward compatibility)
+    // Get table name casing configuration (default to SMART_CASING)
     // Support both camelCase (model.json) and snake_case (JDBC URL) naming conventions
     String tableNameCasing = (String) operand.get("tableNameCasing");
     if (tableNameCasing == null) {
-      tableNameCasing = (String) operand.getOrDefault("table_name_casing", "UPPER");
+      tableNameCasing = (String) operand.getOrDefault("table_name_casing", "SMART_CASING");
     }
 
-    // Get column name casing configuration (default to UNCHANGED for backward compatibility)
+    // Get column name casing configuration (default to SMART_CASING)
     // Support both camelCase (model.json) and snake_case (JDBC URL) naming conventions
     String columnNameCasing = (String) operand.get("columnNameCasing");
     if (columnNameCasing == null) {
-      columnNameCasing = (String) operand.getOrDefault("column_name_casing", "UNCHANGED");
+      columnNameCasing = (String) operand.getOrDefault("column_name_casing", "SMART_CASING");
     }
 
     File directoryFile = null;

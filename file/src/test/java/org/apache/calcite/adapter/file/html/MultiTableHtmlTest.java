@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.file;
 
+import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
@@ -160,11 +161,11 @@ public class MultiTableHtmlTest {
             statement.executeQuery("SELECT * FROM \"html\".\"MULTI_TABLE_TEST__SALES_DATA\" ORDER BY \"Product\"");
 
         assertTrue(rs1.next());
-        assertThat(rs1.getString("Product"), is("Gadget"));
+        assertThat(rs1.getString("product"), is("Gadget"));
         assertThat(rs1.getString("Q1"), is("200"));
 
         assertTrue(rs1.next());
-        assertThat(rs1.getString("Product"), is("Widget"));
+        assertThat(rs1.getString("product"), is("Widget"));
         assertThat(rs1.getString("Q1"), is("100"));
 
         // Query the second table (identified by heading)
@@ -173,11 +174,11 @@ public class MultiTableHtmlTest {
 
         assertTrue(rs2.next());
         assertThat(rs2.getString("Name"), is("Jane"));
-        assertThat(rs2.getString("Department"), is("Engineering"));
+        assertThat(rs2.getString("department"), is("Engineering"));
 
         assertTrue(rs2.next());
         assertThat(rs2.getString("Name"), is("John"));
-        assertThat(rs2.getString("Department"), is("Sales"));
+        assertThat(rs2.getString("department"), is("Sales"));
 
         // Query the third table (identified by caption)
         ResultSet rs3 =
@@ -284,7 +285,7 @@ public class MultiTableHtmlTest {
       try (Statement statement = connection.createStatement()) {
         // Should only find the explicitly defined table
         ResultSet rs =
-            statement.executeQuery("SELECT COUNT(*) as cnt FROM HTML.SALES_ONLY");
+            statement.executeQuery("SELECT COUNT(*) as cnt FROM TEMP.sales_ONLY");
         assertTrue(rs.next());
         assertThat(rs.getLong("cnt"), is(2L)); // 2 rows in sales table
       }

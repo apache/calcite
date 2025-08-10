@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.file;
 
+import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
 import org.apache.calcite.schema.Table;
 
 import org.apache.poi.ss.usermodel.Row;
@@ -49,7 +50,7 @@ public class ExcelFileTest {
 
     // Create FileSchema pointing to the temp directory
     FileSchema schema =
-        new FileSchema(null, "test", tempDir.toFile(),
+        new FileSchema(null, "TEST", tempDir.toFile(),
             com.google.common.collect.ImmutableList.of());
 
     // Get table map which should trigger Excel conversion
@@ -82,7 +83,7 @@ public class ExcelFileTest {
 
     // Create FileSchema with recursive=true to scan subdirectories
     FileSchema schema =
-        new FileSchema(null, "test", tempDir.toFile(),
+        new FileSchema(null, "TEST", tempDir.toFile(),
             com.google.common.collect.ImmutableList.of(), new ExecutionEngineConfig(), true);
 
     Map<String, Table> tables = schema.getTableMap();
@@ -99,7 +100,7 @@ public class ExcelFileTest {
 
     // Use directory-based schema (this is how Excel files should be processed)
     FileSchema schema =
-        new FileSchema(null, "test", tempDir.toFile(), com.google.common.collect.ImmutableList.of());
+        new FileSchema(null, "TEST", tempDir.toFile(), com.google.common.collect.ImmutableList.of());
     Map<String, Table> tableMap = schema.getTableMap();
 
     // After processing, the Excel file should be converted and tables created with proper names
@@ -113,9 +114,9 @@ public class ExcelFileTest {
       // Create first sheet with sample data
       Sheet sheet1 = workbook.createSheet("Sheet1");
       Row header1 = sheet1.createRow(0);
-      header1.createCell(0).setCellValue("ID");
+      header1.createCell(0).setCellValue("id");
       header1.createCell(1).setCellValue("Name");
-      header1.createCell(2).setCellValue("Value");
+      header1.createCell(2).setCellValue("value");
 
       Row data1 = sheet1.createRow(1);
       data1.createCell(0).setCellValue(1);
@@ -132,7 +133,7 @@ public class ExcelFileTest {
       Row header2 = sheet2.createRow(0);
       header2.createCell(0).setCellValue("OrderID");
       header2.createCell(1).setCellValue("Customer");
-      header2.createCell(2).setCellValue("Amount");
+      header2.createCell(2).setCellValue("amount");
 
       Row order1 = sheet2.createRow(1);
       order1.createCell(0).setCellValue("ORD001");

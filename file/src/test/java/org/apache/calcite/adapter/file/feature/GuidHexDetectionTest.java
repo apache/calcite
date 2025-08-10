@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.adapter.file.feature;
 
-import org.apache.calcite.adapter.file.MultiTableExcelToJsonConverter;
+import org.apache.calcite.adapter.file.converters.MultiTableExcelToJsonConverter;
 
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -46,7 +46,7 @@ public class GuidHexDetectionTest {
 
       // Header row (should be detected as headers)
       Row header = sheet.createRow(0);
-      header.createCell(0).setCellValue("ID");
+      header.createCell(0).setCellValue("id");
       header.createCell(1).setCellValue("Name");
       header.createCell(2).setCellValue("Token");
 

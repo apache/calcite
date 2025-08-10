@@ -232,7 +232,7 @@ public class RecursiveDirectoryComprehensiveTest {
     // Create directory structure with files to ignore
     File srcDir = new File(tempDir, "src");
     File mainDir = new File(srcDir, "main");
-    File testDir = new File(srcDir, "test");
+    File testDir = new File(srcDir, "TEST");
     File hiddenDir = new File(tempDir, ".hidden");
     File nodeModulesDir = new File(tempDir, "node_modules");
 

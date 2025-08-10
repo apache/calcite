@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.adapter.csv;
 
-import org.apache.calcite.adapter.file.CsvEnumerator;
+import org.apache.calcite.adapter.file.execution.linq4j.CsvEnumerator;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;

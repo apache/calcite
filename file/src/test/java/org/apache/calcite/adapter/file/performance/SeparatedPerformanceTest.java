@@ -67,9 +67,9 @@ public class SeparatedPerformanceTest {
 
     // Test queries
     String[] queries = {
-        "SELECT COUNT(*) FROM TEST.\"SALES\"",
-        "SELECT \"region\", COUNT(*), SUM(\"total\") FROM TEST.\"SALES\" GROUP BY \"region\"",
-        "SELECT \"order_id\", \"total\" FROM TEST.\"SALES\" WHERE \"total\" > 500 ORDER BY \"total\" DESC LIMIT 100"
+        "SELECT COUNT(*) FROM TEST.\"sales\"",
+        "SELECT \"region\", COUNT(*), SUM(\"total\") FROM TEST.\"sales\" GROUP BY \"region\"",
+        "SELECT \"order_id\", \"total\" FROM TEST.\"sales\" WHERE \"total\" > 500 ORDER BY \"total\" DESC LIMIT 100"
     };
 
     String[] queryNames = {"COUNT Query", "GROUP BY Query", "TOP-N Query"};
@@ -357,7 +357,7 @@ public class SeparatedPerformanceTest {
           rootSchema.add("CACHE", FileSchemaFactory.INSTANCE.create(rootSchema, "CACHE", operand));
 
       try (Statement stmt = connection.createStatement();
-           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM CACHE.\"SALES\"")) {
+           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM CACHE.\"sales\"")) {
         rs.next();
       }
     }

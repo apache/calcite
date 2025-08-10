@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.file;
 
+import org.apache.calcite.adapter.file.refresh.RefreshInterval;
+import org.apache.calcite.adapter.file.refresh.RefreshableTable;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
@@ -246,11 +248,11 @@ public class RefreshableTableTest {
 
   @Test public void testPartitionedParquetTableRefresh() throws Exception {
     // Create partitioned directory structure with initial partitions
-    File salesDir = new File(tempDir.toFile(), "sales");
+    File salesDir = new File(tempDir.toFile(), "SALES");
     salesDir.mkdirs();
 
     // Create Avro schema for the Parquet files
-    Schema avroSchema = Schema.createRecord("SalesRecord", "", "sales", false);
+    Schema avroSchema = Schema.createRecord("SalesRecord", "", "SALES", false);
     avroSchema.setFields(
         Arrays.asList(
         new Schema.Field("id", Schema.create(Schema.Type.INT), "", null),
@@ -438,7 +440,7 @@ public class RefreshableTableTest {
     salesDir.mkdirs();
 
     // Create Avro schema
-    Schema avroSchema = Schema.createRecord("SalesRecord", "", "sales", false);
+    Schema avroSchema = Schema.createRecord("SalesRecord", "", "SALES", false);
     avroSchema.setFields(
         Arrays.asList(
         new Schema.Field("id", Schema.create(Schema.Type.INT), "", null),
@@ -484,7 +486,7 @@ public class RefreshableTableTest {
 
       // Verify initial files are available
       try (Statement stmt = connection.createStatement();
-           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM CUSTOM.SALES_CUSTOM")) {
+           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM TEMP.sales_CUSTOM")) {
         assertTrue(rs.next());
         assertEquals(2, rs.getInt(1));
       }
@@ -493,7 +495,7 @@ public class RefreshableTableTest {
       try (Statement stmt = connection.createStatement();
            ResultSet rs =
                stmt.executeQuery("SELECT \"id\", \"amount\", \"product\", \"year\", \"month\" " +
-               "FROM CUSTOM.SALES_CUSTOM ORDER BY \"id\"")) {
+               "FROM TEMP.sales_CUSTOM ORDER BY \"id\"")) {
         // First row
         assertTrue(rs.next());
         assertEquals(1, rs.getInt("id"));
@@ -522,7 +524,7 @@ public class RefreshableTableTest {
 
       // Should now see 3 records
       try (Statement stmt = connection.createStatement();
-           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM CUSTOM.SALES_CUSTOM")) {
+           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM TEMP.sales_CUSTOM")) {
         assertTrue(rs.next());
         assertEquals(3, rs.getInt(1));
       }
@@ -530,7 +532,7 @@ public class RefreshableTableTest {
       // Verify the new partition with proper types
       try (Statement stmt = connection.createStatement();
            ResultSet rs =
-               stmt.executeQuery("SELECT \"year\", \"month\", COUNT(*) as cnt FROM CUSTOM.SALES_CUSTOM " +
+               stmt.executeQuery("SELECT \"year\", \"month\", COUNT(*) as cnt FROM TEMP.sales_CUSTOM " +
                "GROUP BY \"year\", \"month\" ORDER BY \"year\", \"month\"")) {
         // 2023-01
         assertTrue(rs.next());
@@ -556,7 +558,7 @@ public class RefreshableTableTest {
       // Test year-level aggregation
       try (Statement stmt = connection.createStatement();
            ResultSet rs =
-               stmt.executeQuery("SELECT \"year\", SUM(\"amount\") as total FROM CUSTOM.SALES_CUSTOM " +
+               stmt.executeQuery("SELECT \"year\", SUM(\"amount\") as total FROM TEMP.sales_CUSTOM " +
                "GROUP BY \"year\" ORDER BY \"year\"")) {
         // 2023
         assertTrue(rs.next());

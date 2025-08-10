@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.file;
 
+import org.apache.calcite.adapter.file.converters.MultiTableExcelToJsonConverter;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -69,7 +70,7 @@ public class ExcelNamingTest {
 
       // Headers
       Row headerRow = sheet.createRow(2);
-      headerRow.createCell(0).setCellValue("Product");
+      headerRow.createCell(0).setCellValue("product");
       headerRow.createCell(1).setCellValue("Revenue");
 
       // Data
@@ -96,7 +97,7 @@ public class ExcelNamingTest {
       // Headers (no identifier)
       Row headerRow = sheet.createRow(0);
       headerRow.createCell(0).setCellValue("Name");
-      headerRow.createCell(1).setCellValue("Value");
+      headerRow.createCell(1).setCellValue("value");
 
       // Data
       Row dataRow1 = sheet.createRow(1);
@@ -123,7 +124,7 @@ public class ExcelNamingTest {
       Row id1Row = sheet.createRow(0);
       id1Row.createCell(0).setCellValue("Sales Data");
       Row header1Row = sheet.createRow(2);
-      header1Row.createCell(0).setCellValue("Product");
+      header1Row.createCell(0).setCellValue("product");
       header1Row.createCell(1).setCellValue("Q1");
       Row data1Row = sheet.createRow(3);
       data1Row.createCell(0).setCellValue("Widget");
@@ -140,7 +141,7 @@ public class ExcelNamingTest {
       Row id2Row = sheet.createRow(7);
       id2Row.createCell(0).setCellValue("Sales Data");
       Row header2Row = sheet.createRow(9);
-      header2Row.createCell(0).setCellValue("Product");
+      header2Row.createCell(0).setCellValue("product");
       header2Row.createCell(1).setCellValue("Q2");
       Row data2Row = sheet.createRow(10);
       data2Row.createCell(0).setCellValue("Widget");

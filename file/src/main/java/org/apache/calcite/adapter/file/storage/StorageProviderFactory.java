@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.file.storage;
 
+import org.apache.calcite.adapter.file.iceberg.IcebergStorageProvider;
+
 import com.amazonaws.services.s3.AmazonS3;
 
 import java.util.Locale;
@@ -67,6 +69,11 @@ public class StorageProviderFactory {
       case "sftp":
         return getCachedProvider("sftp", SftpStorageProvider::new);
 
+      case "iceberg":
+        // Iceberg URLs would be like: iceberg://catalog/namespace/table
+        // But typically Iceberg is accessed via storageType, not URL
+        return new IcebergStorageProvider(new java.util.HashMap<>());
+
       default:
         throw new IllegalArgumentException("Unsupported URL scheme: " + scheme);
     }
@@ -91,6 +98,12 @@ public class StorageProviderFactory {
 
       case "http":
       case "https":
+        if (config != null && (config.containsKey("method") || config.containsKey("body") 
+            || config.containsKey("headers") || config.containsKey("mimeType"))) {
+          // Create configured HTTP provider
+          HttpConfig httpConfig = HttpConfig.fromMap(config);
+          return httpConfig.createStorageProvider();
+        }
         return getCachedProvider("http", HttpStorageProvider::new);
 
       case "s3":
@@ -166,22 +179,49 @@ public class StorageProviderFactory {
               "'clientId+clientSecret', or 'refreshToken' for authentication");
         }
 
-        // Always use Microsoft Graph API for SharePoint
-        MicrosoftGraphTokenManager graphTokenManager;
-        if (tokenManager.clientSecret != null) {
-          graphTokenManager =
-              new MicrosoftGraphTokenManager(tokenManager.tenantId, tokenManager.clientId,
-              tokenManager.clientSecret, tokenManager.getSiteUrl());
-        } else if (tokenManager.refreshToken != null) {
-          graphTokenManager =
-              new MicrosoftGraphTokenManager(tokenManager.tenantId, tokenManager.clientId,
-              tokenManager.refreshToken, tokenManager.getSiteUrl(), true);
+        // Use SharePoint REST API by default, or Microsoft Graph if specified
+        boolean useGraphApi = config.containsKey("useGraphApi") 
+            && Boolean.TRUE.equals(config.get("useGraphApi"));
+        
+        if (useGraphApi) {
+          // Use Microsoft Graph API (legacy behavior)
+          MicrosoftGraphTokenManager graphTokenManager;
+          if (tokenManager.clientSecret != null) {
+            graphTokenManager =
+                new MicrosoftGraphTokenManager(tokenManager.tenantId, tokenManager.clientId,
+                tokenManager.clientSecret, tokenManager.getSiteUrl());
+          } else if (tokenManager.refreshToken != null) {
+            graphTokenManager =
+                new MicrosoftGraphTokenManager(tokenManager.tenantId, tokenManager.clientId,
+                tokenManager.refreshToken, tokenManager.getSiteUrl(), true);
+          } else {
+            // Static token
+            graphTokenManager =
+                new MicrosoftGraphTokenManager(tokenManager.accessToken, tokenManager.getSiteUrl());
+          }
+          return new MicrosoftGraphStorageProvider(graphTokenManager);
         } else {
-          // Static token
-          graphTokenManager =
-              new MicrosoftGraphTokenManager(tokenManager.accessToken, tokenManager.getSiteUrl());
+          // Use SharePoint REST API (new default)
+          SharePointRestTokenManager restTokenManager;
+          if (tokenManager.clientSecret != null) {
+            restTokenManager =
+                new SharePointRestTokenManager(tokenManager.tenantId, tokenManager.clientId,
+                tokenManager.clientSecret, tokenManager.getSiteUrl());
+          } else if (tokenManager.refreshToken != null) {
+            restTokenManager =
+                new SharePointRestTokenManager(tokenManager.tenantId, tokenManager.clientId,
+                tokenManager.refreshToken, tokenManager.getSiteUrl(), true);
+          } else {
+            // Static token
+            restTokenManager =
+                new SharePointRestTokenManager(tokenManager.accessToken, tokenManager.getSiteUrl());
+          }
+          return new SharePointRestStorageProvider(restTokenManager);
         }
-        return new MicrosoftGraphStorageProvider(graphTokenManager);
+
+      case "iceberg":
+        // Create Iceberg storage provider with configuration
+        return new IcebergStorageProvider(config != null ? config : new java.util.HashMap<>());
 
       default:
         throw new IllegalArgumentException("Unsupported storage type: " + storageType);

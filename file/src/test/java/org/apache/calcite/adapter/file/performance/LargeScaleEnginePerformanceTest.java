@@ -21,6 +21,7 @@ import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -41,6 +42,7 @@ import java.util.Random;
  * Large-scale performance test comparing execution engines with 1M+ row datasets
  * and complex queries involving aggregations, filtering, sorting, and projections.
  */
+@Tag("performance")
 public class LargeScaleEnginePerformanceTest {
   @TempDir
   java.nio.file.Path tempDir;
@@ -240,7 +242,7 @@ public class LargeScaleEnginePerformanceTest {
 
       String tableName = fileName.substring(0, fileName.lastIndexOf('.'));
       String query =
-          String.format(Locale.ROOT, queryTemplate, "PERF_" + engine.toUpperCase(Locale.ROOT) + "." + tableName);
+          String.format(Locale.ROOT, queryTemplate, "PERF_" + engine.toUpperCase(Locale.ROOT) + ".\"" + tableName + "\"");
 
       try (Statement stmt = connection.createStatement();
            ResultSet rs = stmt.executeQuery(query)) {
@@ -315,7 +317,7 @@ public class LargeScaleEnginePerformanceTest {
 
       String[] categories = {"Electronics", "Clothing", "Books",
           "Home & Garden", "Sports", "Toys", "Food & Beverage", "Beauty",
-          "Automotive", "Office"};
+          "Automotive", "office"};
       String[] regions = {"North America", "Europe", "Asia Pacific",
           "Latin America", "Middle East"};
       String[] statuses = {"pending", "processing", "shipped", "completed", "cancelled"};

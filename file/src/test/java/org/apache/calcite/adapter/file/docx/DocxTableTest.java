@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.file;
 
+import org.apache.calcite.adapter.file.converters.DocxTableScanner;
+import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.test.CalciteAssert;
 
@@ -87,8 +89,8 @@ public class DocxTableTest {
 
       // Header row
       XWPFTableRow headerRow = table.getRow(0);
-      headerRow.getCell(0).setText("Product");
-      headerRow.addNewTableCell().setText("Price");
+      headerRow.getCell(0).setText("product");
+      headerRow.addNewTableCell().setText("price");
       headerRow.addNewTableCell().setText("Stock");
 
       // Data rows
@@ -161,23 +163,23 @@ public class DocxTableTest {
       XWPFTable empTable = document.createTable();
       XWPFTableRow empHeaderRow = empTable.getRow(0);
       empHeaderRow.getCell(0).setText("Employee");
-      empHeaderRow.addNewTableCell().setText("Department");
+      empHeaderRow.addNewTableCell().setText("department");
       empHeaderRow.addNewTableCell().setText("Rating");
 
       XWPFTableRow aliceRow = empTable.createRow();
       aliceRow.getCell(0).setText("Alice");
       aliceRow.getCell(1).setText("Sales");
-      aliceRow.getCell(2).setText("A");
+      aliceRow.getCell(2).setText("a");
 
       XWPFTableRow bobRow = empTable.createRow();
       bobRow.getCell(0).setText("Bob");
       bobRow.getCell(1).setText("Marketing");
-      bobRow.getCell(2).setText("B");
+      bobRow.getCell(2).setText("b");
 
       XWPFTableRow charlieRow = empTable.createRow();
       charlieRow.getCell(0).setText("Charlie");
       charlieRow.getCell(1).setText("Engineering");
-      charlieRow.getCell(2).setText("A");
+      charlieRow.getCell(2).setText("a");
 
       try (FileOutputStream out = new FileOutputStream(complexDocxFile)) {
         document.write(out);
@@ -249,7 +251,7 @@ public class DocxTableTest {
 
       // Detail header row
       XWPFTableRow headerRow = table.createRow();
-      headerRow.getCell(0).setText("Department");
+      headerRow.getCell(0).setText("department");
       headerRow.getCell(1).setText("Budget");
       headerRow.getCell(2).setText("Spent");
       headerRow.getCell(3).setText("Budget");
@@ -284,7 +286,7 @@ public class DocxTableTest {
     Map<String, Object> operand = new HashMap<>();
     operand.put("directory", tempDir.toFile());
 
-    FileSchema schema = new FileSchema(null, "test", tempDir.toFile(), null, null, new ExecutionEngineConfig(), false, null, null, null, null);
+    FileSchema schema = new FileSchema(null, "TEST", tempDir.toFile(), null, null, new ExecutionEngineConfig(), false, null, null, null, null);
 
     // Convert DOCX files first
     DocxTableScanner.scanAndConvertTables(simpleDocxFile);
@@ -311,7 +313,7 @@ public class DocxTableTest {
 
     CalciteAssert.that()
         .with(CalciteAssert.Config.REGULAR)
-        .withSchema("docx", new FileSchema(null, "test", tempDir.toFile(), null, null, new ExecutionEngineConfig(), false, null, null, null, null))
+        .withSchema("docx", new FileSchema(null, "TEST", tempDir.toFile(), null, null, new ExecutionEngineConfig(), false, null, null, null, null))
         .query("SELECT * FROM \"docx\".PRODUCTS__CURRENT_PRODUCTS WHERE CAST(\"price\" AS DECIMAL) >= 15.75")
         .returnsCount(2); // Gadget (25.50) and Tool (15.75) have prices >= 15.75
   }

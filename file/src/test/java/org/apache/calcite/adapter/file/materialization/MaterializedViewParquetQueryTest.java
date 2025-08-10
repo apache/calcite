@@ -103,7 +103,7 @@ public class MaterializedViewParquetQueryTest {
           "COUNT(*) as transaction_count, " +
           "SUM(\"quantity\") as total_quantity, " +
           "SUM(\"quantity\" * \"price\") as total_revenue " +
-          "FROM SALES " +
+          "FROM sales " +
           "GROUP BY \"date\"");
       materializations.add(dailySalesMV);
 
@@ -138,7 +138,7 @@ public class MaterializedViewParquetQueryTest {
 
           // Query the materialized view
           System.out.println("\n3. Querying the materialized view:");
-          ResultSet rs = stmt.executeQuery("SELECT * FROM PARQUET_MV_TEST.DAILY_SUMMARY ORDER BY \"date\"");
+          ResultSet rs = stmt.executeQuery("SELECT * FROM parquet_mv_test.DAILY_SUMMARY ORDER BY \"date\"");
 
           System.out.println("   Date       | Count | Quantity | Revenue");
           System.out.println("   -----------|-------|----------|--------");
@@ -168,7 +168,7 @@ public class MaterializedViewParquetQueryTest {
             "COUNT(*) as transaction_count, " +
             "SUM(\"quantity\") as total_quantity, " +
             "SUM(\"quantity\" * \"price\") as total_revenue " +
-            "FROM PARQUET_MV_TEST.SALES " +
+            "FROM PARQUET_MV_TEST.sales " +
             "GROUP BY \"date\" " +
             "ORDER BY \"date\"");
 

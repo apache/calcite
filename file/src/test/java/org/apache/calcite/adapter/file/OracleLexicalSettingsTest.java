@@ -50,7 +50,9 @@ public class OracleLexicalSettingsTest {
         + "      type: 'custom',\n"
         + "      factory: 'org.apache.calcite.adapter.file.FileSchemaFactory',\n"
         + "      operand: {\n"
-        + "        directory: '" + FileAdapterTests.resourcePath("sales") + "'\n"
+        + "        directory: '" + FileAdapterTests.resourcePath("SALES") + "',\n"
+        + "        table_name_casing: 'UPPER',\n"
+        + "        column_name_casing: 'LOWER'\n"
         + "      }\n"
         + "    }\n"
         + "  ]\n"
@@ -63,9 +65,9 @@ public class OracleLexicalSettingsTest {
       
       // Test 1: Verify Oracle lexical settings are active
       // This should work - uppercase table and column names
-      ResultSet rs1 = statement.executeQuery("SELECT \"NAME\" FROM \"SALES\".\"DEPTS\" WHERE \"DEPTNO\" = 10");
+      ResultSet rs1 = statement.executeQuery("SELECT \"name\" FROM \"SALES\".\"DEPTS\" WHERE \"deptno\" = 10");
       assertTrue(rs1.next());
-      assertEquals("Sales", rs1.getString("NAME"));
+      assertEquals("Sales", rs1.getString("name"));
       rs1.close();
       
       // Test 2: Verify case-insensitive information_schema access
@@ -124,7 +126,9 @@ public class OracleLexicalSettingsTest {
         + "      type: 'custom',\n"
         + "      factory: 'org.apache.calcite.adapter.file.FileSchemaFactory',\n"
         + "      operand: {\n"
-        + "        directory: '" + FileAdapterTests.resourcePath("sales") + "'\n"
+        + "        directory: '" + FileAdapterTests.resourcePath("SALES") + "',\n"
+        + "        table_name_casing: 'UPPER',\n"
+        + "        column_name_casing: 'LOWER'\n"
         + "      }\n"
         + "    }\n"
         + "  ]\n"
@@ -148,7 +152,7 @@ public class OracleLexicalSettingsTest {
         throw new AssertionError("Expected SQLException for lowercase table name 'depts'");
       } catch (SQLException e) {
         // Expected - should contain "not found" message
-        assertTrue(e.getMessage().contains("not found") || e.getMessage().contains("DEPTS"));
+        assertTrue(e.getMessage().contains("not found") || e.getMessage().contains("depts"));
       }
       
       // But information_schema should still be case-insensitive
@@ -157,7 +161,7 @@ public class OracleLexicalSettingsTest {
       assertTrue(rs3.getInt(1) > 0);
       rs3.close();
       
-      ResultSet rs4 = statement.executeQuery("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES");
+      ResultSet rs4 = statement.executeQuery("SELECT COUNT(*) FROM information_schema.TABLES");
       assertTrue(rs4.next());
       assertTrue(rs4.getInt(1) > 0);
       rs4.close();

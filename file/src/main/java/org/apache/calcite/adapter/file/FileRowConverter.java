@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.file;
 
+import org.apache.calcite.adapter.file.FileReaderV2;
+import org.apache.calcite.adapter.file.metadata.FileFieldType;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.util.Pair;
@@ -51,11 +53,10 @@ import static java.util.Objects.requireNonNull;
 /**
  * FileRowConverter.
  */
-class FileRowConverter {
+public class FileRowConverter {
 
   // cache for lazy initialization
-  @SuppressWarnings("deprecation")
-  private final FileReader fileReader;
+  private final FileReaderV2 fileReader;
   private final @Nullable List<Map<String, Object>> fieldConfigs;
   private boolean initialized = false;
 
@@ -73,8 +74,7 @@ class FileRowConverter {
       NumberFormat.getIntegerInstance(Locale.ROOT);
 
   /** Creates a FileRowConverter. */
-  @SuppressWarnings("deprecation")
-  FileRowConverter(FileReader fileReader,
+  public FileRowConverter(FileReaderV2 fileReader,
       List<Map<String, Object>> fieldConfigs) {
     this.fileReader = fileReader;
     this.fieldConfigs = fieldConfigs;
@@ -171,7 +171,7 @@ class FileRowConverter {
   }
 
   /** Converts a row of JSoup Elements to an array of java objects. */
-  Object toRow(Elements rowElements, int[] projection) {
+  public Object toRow(Elements rowElements, int[] projection) {
     initialize();
     final Object[] objects = new Object[projection.length];
 
@@ -182,12 +182,12 @@ class FileRowConverter {
     return objects;
   }
 
-  int width() {
+  public int width() {
     initialize();
     return this.fields.size();
   }
 
-  RelDataType getRowType(JavaTypeFactory typeFactory) {
+  public RelDataType getRowType(JavaTypeFactory typeFactory) {
     initialize();
     List<String> names = new ArrayList<>();
     List<RelDataType> types = new ArrayList<>();

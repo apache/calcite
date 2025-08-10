@@ -53,7 +53,7 @@ public class TimezoneConversionTest {
          Statement statement = connection.createStatement()) {
 
       // Query the timezone-naive timestamp
-      String sql = "SELECT ID, EVENT_TIME, DESCRIPTION FROM \"TIMEZONE_TEST\" WHERE ID = 1";
+      String sql = "SELECT ID, EVENT_TIME, DESCRIPTION FROM \"timezone_test\" WHERE ID = 1";
 
       try (ResultSet resultSet = statement.executeQuery(sql)) {
         assertThat(resultSet.next(), is(true));

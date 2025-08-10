@@ -98,7 +98,7 @@ public class ParquetAutoConversionTest {
         // Query CSV file - should be auto-converted to Parquet
         System.out.println("\n2. Querying CSV file (should auto-convert to Parquet):");
         ResultSet rs1 =
-            stmt.executeQuery("SELECT * FROM PARQUET_CONVERT.\"CUSTOMERS\" WHERE \"balance\" > 1000 ORDER BY \"customer_id\"");
+            stmt.executeQuery("SELECT * FROM PARQUET_CONVERT.\"customers\" WHERE \"balance\" > 1000 ORDER BY \"customer_id\"");
 
         int count1 = 0;
         while (rs1.next()) {
@@ -143,7 +143,7 @@ public class ParquetAutoConversionTest {
         System.out.println("\n4. Testing join query across converted files:");
         ResultSet rs3 =
             stmt.executeQuery("SELECT c.\"name\", COUNT(*) as order_count, SUM(o.\"amount\") as total_spent " +
-            "FROM PARQUET_CONVERT.\"CUSTOMERS\" c " +
+            "FROM PARQUET_CONVERT.\"customers\" c " +
             "JOIN PARQUET_CONVERT.\"ORDERS\" o ON c.\"customer_id\" = o.\"customer_id\" " +
             "GROUP BY c.\"name\" " +
             "ORDER BY total_spent DESC");

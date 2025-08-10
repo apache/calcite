@@ -16,8 +16,6 @@
         },
         "directory": "sftp://${sftp.host}:${sftp.port}/data/",
         "recursive": true,
-        "tableNameCasing": "UPPER",
-        "columnNameCasing": "UNCHANGED",
         "executionEngine": "vectorized"
       }
     }

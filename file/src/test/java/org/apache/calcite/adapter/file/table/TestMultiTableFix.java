@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.file;
 
+import org.apache.calcite.adapter.file.converters.MultiTableExcelToJsonConverter;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;

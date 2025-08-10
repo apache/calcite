@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.file;
 
+import org.apache.calcite.adapter.file.format.csv.CsvProjectTableScanRule;
+
 /** Planner rules relating to the File adapter. */
 public abstract class FileRules {
   private FileRules() {}

@@ -152,8 +152,8 @@ public class MetadataCatalogIntegrationTest {
 
         // Verify results
         assertTrue(tables.contains("SALES"), "Should find SALES table");
-        assertTrue(tables.contains("CUSTOMERS"), "Should find CUSTOMERS table");
-        assertTrue(tables.contains("PRODUCTS"), "Should find PRODUCTS table");
+        assertTrue(tables.contains("customers"), "Should find CUSTOMERS table");
+        assertTrue(tables.contains("products"), "Should find PRODUCTS table");
       }
     }
   }
@@ -173,7 +173,7 @@ public class MetadataCatalogIntegrationTest {
 
         // Verify results - pg_catalog returns lowercase names
         assertTrue(tables.size() >= 3, "Should find at least 3 tables, found: " + tables.size());
-        assertTrue(tables.contains("sales"), "Should find sales table");
+        assertTrue(tables.contains("SALES"), "Should find sales table");
         assertTrue(tables.contains("customers"), "Should find customers table");
         assertTrue(tables.contains("products"), "Should find products table");
       }
@@ -198,7 +198,7 @@ public class MetadataCatalogIntegrationTest {
         assertTrue(schemaNames.contains("metadata"), "Should have metadata schema");
         // Check for our custom metadata schemas (might be case-sensitive)
         boolean hasInfoSchema = schemaNames.contains("information_schema") ||
-                               schemaNames.contains("INFORMATION_SCHEMA");
+                               schemaNames.contains("information_schema");
         boolean hasPgCatalog = schemaNames.contains("pg_catalog") ||
                               schemaNames.contains("PG_CATALOG");
         assertTrue(hasInfoSchema, "Should have information_schema, found: " + schemaNames);
@@ -214,8 +214,8 @@ public class MetadataCatalogIntegrationTest {
 
         assertEquals(4, tableNames.size(), "Should find 4 tables (3 data files + 1 cache)");
         assertTrue(tableNames.contains("SALES"), "Should find SALES table");
-        assertTrue(tableNames.contains("CUSTOMERS"), "Should find CUSTOMERS table");
-        assertTrue(tableNames.contains("PRODUCTS"), "Should find PRODUCTS table");
+        assertTrue(tableNames.contains("customers"), "Should find CUSTOMERS table");
+        assertTrue(tableNames.contains("products"), "Should find PRODUCTS table");
       }
 
       // Test 3: Get columns for a specific table
@@ -289,7 +289,7 @@ public class MetadataCatalogIntegrationTest {
               rs.getString("typeName"),
               rs.getObject("columnSize"),
               rs.getObject("decimalDigits"),
-              rs.getInt("nullable") == DatabaseMetaData.columnNullable ? "NULL" : "NOT NULL");
+              rs.getInt("nullable") == DatabaseMetaData.columnNullable ? "null" : "NOT NULL");
         }
       }
     }

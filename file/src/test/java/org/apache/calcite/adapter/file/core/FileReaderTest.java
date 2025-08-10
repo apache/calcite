@@ -212,7 +212,7 @@ class FileReaderTest {
         + "  \"defaultSchema\": \"XXX\",\n"
         + "  \"schemas\": [\n"
         + "    {\n"
-        + "      \"name\": \"FILES\",\n"
+        + "      \"name\": \"files\",\n"
         + "      \"type\": \"custom\",\n"
         + "      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n"
         + "      \"operand\": {\n"
@@ -228,7 +228,7 @@ class FileReaderTest {
     try (Connection connection =
              DriverManager.getConnection("jdbc:calcite:", info);
          Statement stmt = connection.createStatement()) {
-      final String sql = "select * from \"FILES\".\"DEPTS\"";
+      final String sql = "select * from \"files\".\"depts\"";
       final ResultSet rs = stmt.executeQuery(sql);
       assertThat(rs.next(), is(true));
       assertThat(rs.getString(1), is("10"));
@@ -253,7 +253,7 @@ class FileReaderTest {
         + "  \"defaultSchema\": \"XXX\",\n"
         + "  \"schemas\": [\n"
         + "    {\n"
-        + "      \"name\": \"FILES\",\n"
+        + "      \"name\": \"files\",\n"
         + "      \"type\": \"custom\",\n"
         + "      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n"
         + "      \"operand\": {\n"
@@ -269,7 +269,7 @@ class FileReaderTest {
     try (Connection connection =
              DriverManager.getConnection("jdbc:calcite:", info);
          Statement stmt = connection.createStatement()) {
-      final String sql = "select * from \"FILES\".\"DEPTS\"";
+      final String sql = "select * from \"files\".\"depts\"";
       final ResultSet rs = stmt.executeQuery(sql);
       assertThat(rs.next(), is(true));
       assertThat(rs.getString(1), is("10"));
@@ -294,7 +294,7 @@ class FileReaderTest {
         + "  \"defaultSchema\": \"XXX\",\n"
         + "  \"schemas\": [\n"
         + "    {\n"
-        + "      \"name\": \"FILES\",\n"
+        + "      \"name\": \"files\",\n"
         + "      \"type\": \"custom\",\n"
         + "      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n"
         + "      \"operand\": {\n"
@@ -310,8 +310,8 @@ class FileReaderTest {
     try (Connection connection =
              DriverManager.getConnection("jdbc:calcite:", info);
          Statement stmt = connection.createStatement()) {
-      final String sql = "select a.\"EMPNO\",a.\"NAME\",a.\"CITY\",b.\"DEPTNO\" "
-          + "from \"FILES\".\"EMPS\" a, \"FILES\".\"DEPTS\" b where a.\"DEPTNO\" = b.\"DEPTNO\"";
+      final String sql = "select a.\"empno\",a.\"name\",a.\"city\",b.\"DEPTNO\" "
+          + "from \"files\".\"emps\" a, \"files\".\"depts\" b where a.\"DEPTNO\" = b.\"DEPTNO\"";
       final ResultSet rs = stmt.executeQuery(sql);
       assertThat(rs.next(), is(true));
       assertThat(rs.getString(1), is("100"));

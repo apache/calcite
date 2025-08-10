@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.file;
 
+import org.apache.calcite.adapter.file.execution.linq4j.CsvEnumerator;
+
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 

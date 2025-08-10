@@ -375,21 +375,23 @@ allprojects {
 
     val hasTests = file("src/test/java").isDirectory || file("src/test/kotlin").isDirectory
     if (hasTests) {
-        // Add default tests dependencies
-        dependencies {
-            val testImplementation by configurations
-            val testRuntimeOnly by configurations
-            testImplementation(platform("org.junit:junit-bom"))
-            testImplementation("org.junit.jupiter:junit-jupiter")
-            testImplementation("org.hamcrest:hamcrest")
-            if (project.props.bool("junit4", default = false)) {
-                // Allow projects to opt-out of junit dependency, so they can be JUnit5-only
-                testImplementation("junit:junit")
-                testRuntimeOnly("org.junit.vintage:junit-vintage-engine")
+        plugins.withType<JavaPlugin> {
+            // Add default tests dependencies
+            dependencies {
+                val testImplementation by configurations
+                val testRuntimeOnly by configurations
+                testImplementation(platform("org.junit:junit-bom"))
+                testImplementation("org.junit.jupiter:junit-jupiter")
+                testImplementation("org.hamcrest:hamcrest")
+                if (project.props.bool("junit4", default = false)) {
+                    // Allow projects to opt-out of junit dependency, so they can be JUnit5-only
+                    testImplementation("junit:junit")
+                    testRuntimeOnly("org.junit.vintage:junit-vintage-engine")
+                }
             }
-        }
-        if (enableJacoco) {
-            apply(plugin = "jacoco")
+            if (enableJacoco) {
+                apply(plugin = "jacoco")
+            }
         }
     }
 

@@ -50,7 +50,7 @@ public class DotNotationSchemaTest {
 
   @BeforeEach
   public void setUp() throws IOException {
-    salesDir = new File(tempDir, "sales");
+    salesDir = new File(tempDir, "SALES");
     hrDir = new File(tempDir, "hr");
     financeDir = new File(tempDir, "finance");
     salesDir.mkdirs();
@@ -96,7 +96,7 @@ public class DotNotationSchemaTest {
 
         // Test 1: Direct dot notation access
         try {
-          ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as count FROM \"COMPANY.SALES\".customers");
+          ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as count FROM \"COMPANY.SALES\".\"customers\"");
           if (rs.next()) {
             int count = rs.getInt("count");
             System.out.println("✅ Dot notation query successful: " + count + " customers");
@@ -109,7 +109,7 @@ public class DotNotationSchemaTest {
         try {
           ResultSet rs =
               stmt.executeQuery("SELECT s.\"name\" as customer, h.\"name\" as employee " +
-              "FROM \"COMPANY.SALES\".customers s, \"COMPANY.HR\".employees h " +
+              "FROM \"COMPANY.SALES\".\"customers\" s, \"COMPANY.HR\".\"employees\" h " +
               "WHERE s.\"id\" = h.\"id\"");
 
           int rowCount = 0;
@@ -130,7 +130,7 @@ public class DotNotationSchemaTest {
 
         // Test 3: List available schemas to see how they appear
         try {
-          ResultSet rs = stmt.executeQuery("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA");
+          ResultSet rs = stmt.executeQuery("SELECT SCHEMA_NAME FROM information_schema.SCHEMATA");
           System.out.println("Available schemas:");
           while (rs.next()) {
             String schemaName = rs.getString("SCHEMA_NAME");
@@ -170,7 +170,7 @@ public class DotNotationSchemaTest {
 
         // Test dot notation
         try {
-          ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as count FROM \"COMPANY.SALES\".customers");
+          ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as count FROM \"COMPANY.SALES\".\"customers\"");
           if (rs.next()) {
             System.out.println("✅ Dot notation (COMPANY.SALES): " + rs.getInt("count") + " records");
           }
@@ -180,7 +180,7 @@ public class DotNotationSchemaTest {
 
         // Test underscore notation
         try {
-          ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as count FROM COMPANY_HR.employees");
+          ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as count FROM COMPANY_HR.\"employees\"");
           if (rs.next()) {
             System.out.println("✅ Underscore notation (COMPANY_HR): " + rs.getInt("count") + " records");
           }
@@ -192,7 +192,7 @@ public class DotNotationSchemaTest {
         try {
           ResultSet rs =
               stmt.executeQuery("SELECT s.\"region\", h.\"department\" " +
-              "FROM \"COMPANY.SALES\".customers s, COMPANY_HR.employees h " +
+              "FROM \"COMPANY.SALES\".\"customers\" s, COMPANY_HR.\"employees\" h " +
               "WHERE s.\"id\" = h.\"id\"");
 
           if (rs.next()) {
@@ -235,9 +235,9 @@ public class DotNotationSchemaTest {
 
         // Test different "levels" of hierarchy
         String[] testQueries = {
-            "SELECT 'SALES' as dept, COUNT(*) as count FROM \"ORG.DEPT.SALES\".customers",
-            "SELECT 'HR' as dept, COUNT(*) as count FROM \"ORG.DEPT.HR\".employees",
-            "SELECT 'FINANCE' as dept, COUNT(*) as count FROM \"ORG.FINANCE\".budgets"
+            "SELECT 'SALES' as dept, COUNT(*) as count FROM \"ORG.DEPT.SALES\".\"customers\"",
+            "SELECT 'HR' as dept, COUNT(*) as count FROM \"ORG.DEPT.HR\".\"employees\"",
+            "SELECT 'FINANCE' as dept, COUNT(*) as count FROM \"ORG.FINANCE\".\"budgets\""
         };
 
         for (String query : testQueries) {
@@ -257,7 +257,7 @@ public class DotNotationSchemaTest {
         try {
           ResultSet rs =
               stmt.executeQuery("SELECT s.\"region\", f.\"amount\" " +
-              "FROM \"ORG.DEPT.SALES\".customers s, \"ORG.FINANCE\".budgets f " +
+              "FROM \"ORG.DEPT.SALES\".\"customers\" s, \"ORG.FINANCE\".\"budgets\" f " +
               "WHERE f.\"department\" = 'Sales'");
 
           while (rs.next()) {

@@ -22,3 +22,4 @@
 ## Documentation Practices
 
 - Read the fucking docs and stop making up shit
+- the preference is for all connections to use lex = ORACLE and unquoted casing = TO_LOWER, while sql statements use unquoted identifiers (unless not possible - like mixed casing or special characters is a requirement of the use case)

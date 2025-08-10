@@ -55,8 +55,16 @@ public class FileReaderV2 implements Iterable<Elements> {
     this.index = index;
 
     // Create storage provider based on source
-    String url = source.url() != null ? source.url().toString() : source.path();
-    this.storageProvider = StorageProviderFactory.createFromUrl(url);
+    if (source instanceof org.apache.calcite.adapter.file.storage.StorageProviderSource) {
+      // If source is already a StorageProviderSource, use its existing provider
+      org.apache.calcite.adapter.file.storage.StorageProviderSource providerSource = 
+          (org.apache.calcite.adapter.file.storage.StorageProviderSource) source;
+      this.storageProvider = providerSource.getStorageProvider();
+    } else {
+      // Create new storage provider for regular sources
+      String url = source.url() != null ? source.url().toString() : source.path();
+      this.storageProvider = StorageProviderFactory.createFromUrl(url);
+    }
   }
 
   public FileReaderV2(Source source, String selector) {
@@ -70,7 +78,16 @@ public class FileReaderV2 implements Iterable<Elements> {
   private void getTable() throws FileReaderException {
     final Document doc;
     try {
-      String path = source.url() != null ? source.url().toString() : source.path();
+      String path;
+      if (source instanceof org.apache.calcite.adapter.file.storage.StorageProviderSource) {
+        // For StorageProviderSource, get the actual file path from the provider
+        org.apache.calcite.adapter.file.storage.StorageProviderSource providerSource = 
+            (org.apache.calcite.adapter.file.storage.StorageProviderSource) source;
+        path = providerSource.getFileEntry().getPath();
+      } else {
+        // For regular sources, use URL or path
+        path = source.url() != null ? source.url().toString() : source.path();
+      }
 
       // Use storage provider to read content
       try (InputStream stream = storageProvider.openInputStream(path)) {

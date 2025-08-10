@@ -17,11 +17,11 @@ limitations under the License.
 
 # Apache Calcite File Adapter
 
-The File adapter allows Calcite to read data from various file formats including CSV, JSON, YAML, TSV, Excel (XLS/XLSX), HTML, Markdown, DOCX, PPTX, Arrow, and Parquet files.
+The File adapter allows Calcite to read data from various file formats including CSV, JSON, YAML, TSV, Excel (XLS/XLSX), HTML, Markdown, DOCX, PPTX, Arrow, Parquet, and Apache Iceberg tables.
 
 ## Default Configuration
 
-**The PARQUET execution engine is now the default.** This provides:
+**The PARQUET execution engine is the default.** This provides:
 - Best performance (1.6x faster than alternatives)
 - Automatic conversion of ALL file formats to Parquet (CSV, JSON, Excel, etc.)
 - Files in the `directory` operand are automatically converted to `.parquet_cache/*.parquet`
@@ -33,9 +33,12 @@ Other execution engines (linq4j, arrow, vectorized) are retained primarily for b
 
 ## Features
 
-- Support for multiple file formats: CSV, JSON, YAML, TSV, Excel (XLS/XLSX), HTML, Markdown, DOCX, PPTX, Arrow, Parquet
+- Support for multiple file formats: CSV, JSON, YAML, TSV, Excel (XLS/XLSX), HTML, Markdown, DOCX, PPTX, Arrow, Parquet, **Iceberg**
+- **HTTP/API Support** - Query REST APIs, GraphQL endpoints, and web services with GET/POST
 - **Glob Pattern Support** - Process multiple files with patterns like `*.csv`, `data_*.json`
 - **Materialized Views** - Pre-compute complex queries with automatic query rewriting
+- **Multi-Table JSON Extraction** - Extract multiple tables from single JSON files using JSONPath expressions
+- **JSONPath Support** - Extract nested data from JSON responses and files
 - Automatic Excel to JSON conversion with multi-sheet and multi-table detection
 - Automatic HTML table discovery and extraction with JSON preprocessing
 - Automatic Markdown table extraction with multi-table and group header support
@@ -176,14 +179,204 @@ The File adapter uses a pluggable Storage Provider architecture that provides un
 |----------|----------|----------|----------------|
 | **LocalFileStorageProvider** | `file://` or local paths | Direct file system access | None |
 | **S3StorageProvider** | `s3://` | AWS S3 support, multipart downloads | AWS credentials |
-| **HttpStorageProvider** | `http://`, `https://` | Web resources, ETag support | Basic/Bearer auth |
+| **HttpStorageProvider** | `http://`, `https://` | GET/POST requests, GraphQL, JSONPath | Headers, Body |
 | **FtpStorageProvider** | `ftp://`, `ftps://` | FTP server access | Username/password |
 | **SftpStorageProvider** | `sftp://` | SSH file transfer | SSH keys/password |
-| **MicrosoftGraphStorageProvider** | SharePoint URLs | Microsoft Graph API access | OAuth2 |
+| **SharePointRestStorageProvider** | SharePoint URLs | SharePoint REST API access (default) | OAuth2 |
+| **MicrosoftGraphStorageProvider** | SharePoint URLs | Microsoft Graph API access (optional) | OAuth2 |
+| **IcebergStorageProvider** | `iceberg://` | Apache Iceberg table format | Catalog-specific |
+
+### Apache Iceberg Support
+
+The File adapter provides comprehensive support for Apache Iceberg tables, enabling SQL queries against Iceberg table formats with advanced features.
+
+#### Key Features
+- **Time Travel**: Query historical data at specific snapshots or timestamps
+- **Schema Evolution**: Automatic handling of schema changes over time
+- **Metadata Tables**: Access Iceberg metadata ($history, $snapshots, $files, $manifests, $partitions)
+- **Multiple Catalogs**: Support for Hadoop, REST, and extensible catalog types
+- **Partition Pruning**: Automatic optimization for partitioned tables
+
+#### Quick Example
+```json
+{
+  "tables": [
+    {
+      "name": "sales_data",
+      "format": "iceberg",
+      "catalogType": "hadoop",
+      "warehousePath": "/iceberg/warehouse",
+      "tablePath": "prod.sales",
+      "snapshotId": 3821550127947089009
+    }
+  ]
+}
+```
+
+For comprehensive documentation on Iceberg support, see the [**Iceberg Guide**](ICEBERG_GUIDE.md).
+
+### HTTP Storage Provider
+
+The HTTP storage provider supports both GET and POST requests, making it ideal for REST APIs, GraphQL endpoints, and other web services.
+
+#### Features
+
+- **GET and POST methods** - Fetch static resources or query APIs
+- **Request bodies** - Send JSON/XML payloads with POST requests
+- **Custom headers** - Add authentication tokens, content types, etc.
+- **MIME type override** - Handle APIs that return incorrect Content-Type
+- **JSONPath extraction** - Extract nested data from API responses
+- **Automatic format detection** - Based on Content-Type header
+- **GraphQL support** - Query GraphQL endpoints with static queries
+
+#### Basic GET Request
+
+```java
+// Simple GET request (default behavior)
+HttpStorageProvider provider = new HttpStorageProvider();
+InputStream data = provider.openInputStream("https://api.example.com/data.json");
+```
+
+#### POST Request with JSON Body
+
+```java
+// POST request with body and headers
+Map<String, String> headers = new HashMap<>();
+headers.put("Content-Type", "application/json");
+headers.put("Authorization", "Bearer token123");
+
+HttpStorageProvider provider = new HttpStorageProvider(
+    "POST",                              // HTTP method
+    "{\"filter\":\"active\"}",        // Request body
+    headers,                              // HTTP headers
+    null                                  // No MIME type override
+);
+
+InputStream data = provider.openInputStream("https://api.example.com/search");
+```
+
+#### GraphQL Query
+
+```java
+// GraphQL endpoint query
+String graphqlQuery = "{\"query\":\"{ users { id name email } orders { id total } }\"}"; 
+
+HttpStorageProvider provider = new HttpStorageProvider(
+    "POST",
+    graphqlQuery,
+    Map.of("Content-Type", "application/json"),
+    null
+);
+
+// Response will contain data at $.data.users and $.data.orders
+InputStream data = provider.openInputStream("https://api.example.com/graphql");
+```
+
+#### Configuration via HttpConfig
+
+```java
+// Using HttpConfig for cleaner configuration
+Map<String, Object> config = new HashMap<>();
+config.put("method", "POST");
+config.put("body", "{\"type\":\"users\"}");
+config.put("mimeType", "application/json");  // Override response Content-Type
+config.put("headers", Map.of(
+    "Authorization", "Bearer token123",
+    "X-API-Version", "v2"
+));
+
+HttpConfig httpConfig = HttpConfig.fromMap(config);
+HttpStorageProvider provider = httpConfig.createStorageProvider();
+```
+
+#### Authentication Support
+
+The HTTP storage provider supports multiple authentication methods for accessing protected APIs:
+
+- **Simple authentication**: Bearer tokens, API keys, and basic auth
+- **External token management**: Environment variables, files, commands, and HTTP endpoints
+- **Complex authentication**: Proxy delegation for OAuth, SAML, and other protocols
+
+For comprehensive authentication configuration and examples, see the [HTTP Authentication Guide](HTTP_AUTH_GUIDE.md).
+
+#### Integration with File Adapter
+
+When using the HTTP storage provider with the file adapter, you can fetch and query API data:
+
+```java
+// Programmatic usage
+FileSchema schema = new FileSchema(
+    parentSchema,
+    "api",
+    null,  // No local directory
+    null,  // No directory pattern  
+    null,  // No predefined tables
+    new ExecutionEngineConfig(),
+    false, // Not recursive
+    null,  // No materializations
+    null,  // No views
+    null,  // No partitioned tables
+    null,  // No refresh interval
+    "UPPER",      // Table name casing
+    "UNCHANGED",  // Column name casing
+    "http",       // Storage type
+    Map.of(       // Storage config
+        "method", "POST",
+        "body", "{\"query\":\"SELECT * FROM users\"}"
+    ),
+    null  // No flatten
+);
+```
+
+#### Use Cases
+
+- **REST APIs** - Query REST endpoints with GET or POST
+- **GraphQL** - Execute GraphQL queries with static query strings
+- **Search APIs** - Send search criteria in POST body
+- **Legacy SOAP** - POST XML and process responses
+- **Webhooks** - Fetch data from webhook endpoints
+- **API Aggregation** - Combine data from multiple API endpoints
+
+#### Processing JSON Responses
+
+When the HTTP response is JSON, it's processed as a JSON file by the adapter. If you need to work with nested data structures, you have several options:
+
+1. **For GraphQL responses**: The data typically comes under a `data` field, which the JSON processor can handle
+2. **For nested REST responses**: The entire JSON structure is available for querying
+3. **For programmatic usage**: You can process the response with Jackson or other JSON libraries before creating tables
+
+Example of processing a nested response programmatically:
+```java
+// Fetch data with HTTP storage provider
+HttpStorageProvider provider = new HttpStorageProvider("POST", graphqlQuery, headers, null);
+InputStream response = provider.openInputStream("https://api.example.com/graphql");
+
+// Parse and extract nested data with Jackson
+ObjectMapper mapper = new ObjectMapper();
+JsonNode root = mapper.readTree(response);
+JsonNode userData = root.at("/data/users");
+
+// Write extracted data to a file for the adapter to process
+Files.write(Paths.get("users.json"), mapper.writeValueAsString(userData).getBytes());
+```
 
 ### SharePoint Integration
 
-Supports SharePoint document libraries using Microsoft Graph API.
+Supports SharePoint document libraries using SharePoint REST API (default) or Microsoft Graph API.
+
+#### API Selection
+
+The adapter now uses **SharePoint REST API by default** for better compatibility and native SharePoint features. You can optionally use Microsoft Graph API by setting `useGraphApi: true` in the configuration.
+
+**SharePoint REST API (Default - NEW)**
+- Uses native SharePoint `/_api/` endpoints
+- Better compatibility with SharePoint-specific features
+- Direct integration with SharePoint permissions
+
+**Microsoft Graph API (Optional)**
+- Uses Microsoft Graph `/v1.0/` endpoints  
+- Unified API across Microsoft services
+- Enable with `"useGraphApi": true` in configuration
 
 #### Authentication Methods
 
@@ -197,6 +390,18 @@ SharePoint access requires Azure AD authentication. The adapter supports multipl
      "tenantId": "your-tenant-id",
      "clientId": "your-client-id",
      "clientSecret": "your-client-secret"
+   }
+   ```
+   
+   To use Microsoft Graph API instead of REST API:
+   ```json
+   {
+     "storageType": "sharepoint",
+     "siteUrl": "https://company.sharepoint.com/sites/Sales",
+     "tenantId": "your-tenant-id",
+     "clientId": "your-client-id",
+     "clientSecret": "your-client-secret",
+     "useGraphApi": true
    }
    ```
 
@@ -219,6 +424,21 @@ SharePoint access requires Azure AD authentication. The adapter supports multipl
      "accessToken": "Bearer eyJ..."
    }
    ```
+
+#### Migration from Graph API
+
+If you're currently using Microsoft Graph API and want to continue using it instead of the new default SharePoint REST API, simply add `"useGraphApi": true` to your existing configuration. No other changes are needed.
+
+**Benefits of SharePoint REST API (New Default):**
+- Native SharePoint feature support
+- Better compatibility with SharePoint-specific operations
+- Direct integration with SharePoint permissions and settings
+- Optimized for SharePoint document operations
+
+**Benefits of Microsoft Graph API (Optional):**
+- Unified API across all Microsoft 365 services
+- Consistent authentication across Microsoft products
+- Access to additional Microsoft Graph features beyond SharePoint
 
 
 ### SFTP Configuration
@@ -267,6 +487,7 @@ For storage types that require configuration:
           "tenantId": "xxx",
           "clientId": "xxx",
           "clientSecret": "xxx"
+          // Optional: Add "useGraphApi": true to use Microsoft Graph instead of REST API
         }
       }]
     }
@@ -291,6 +512,171 @@ The adapter automatically selects the appropriate storage provider based on:
 - **Metadata Checks**: Efficient change detection using ETags and timestamps
 
 ## Configuration
+
+### HTTP/API Data Sources
+
+The file adapter can query REST APIs, GraphQL endpoints, and other HTTP sources directly. The HTTP storage provider supports comprehensive authentication options including bearer tokens, API keys, OAuth, and more. See the [HTTP Authentication Guide](HTTP_AUTH_GUIDE.md) for detailed authentication configuration.
+
+#### Table-Level HTTP Configuration
+
+In addition to schema-level HTTP, you can configure HTTP at the table level for simple single-table endpoints:
+
+```json
+{
+  "schemas": [{
+    "name": "api",
+    "type": "custom",
+    "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
+    "operand": {
+      "tables": [
+        {
+          "name": "sales_data",
+          "url": "https://api.example.com/export.csv",
+          "format": "csv"
+        },
+        {
+          "name": "users",
+          "url": "https://api.example.com/users",
+          "format": "json",
+          "method": "POST",
+          "body": "{\"filter\": \"active\"}",
+          "headers": {
+            "Authorization": "Bearer token"
+          }
+        },
+        {
+          "name": "metrics",
+          "url": "https://storage.example.com/data/metrics.parquet",
+          "format": "parquet",
+          "headers": {
+            "X-API-Key": "secret"
+          }
+        }
+      ]
+    }
+  }]
+}
+```
+
+This is particularly useful for:
+- **CSV export endpoints** - APIs that return CSV data directly
+- **Parquet files** - Cloud storage or data lake files
+- **Simple JSON arrays** - APIs returning flat arrays of objects
+- **Single-table APIs** - Endpoints dedicated to one resource type
+
+**Note:** CSV data is read with all columns as strings by default. Use CAST for numeric operations:
+```sql
+SELECT SUM(CAST(amount AS DOUBLE)) FROM sales_data
+```
+
+#### Design Philosophy
+
+The file adapter HTTP support works at two levels:
+
+1. **Schema-level** (recommended for complex APIs):
+   - Best for APIs returning multiple tables (GraphQL, complex REST)
+   - Single HTTP request extracts multiple tables
+   - More efficient for related data
+
+2. **Table-level** (for simple endpoints):
+   - Perfect for CSV exports, Parquet files, simple JSON arrays
+   - Each table has its own HTTP configuration
+   - Direct mapping from endpoint to table
+
+Choose based on your API structure and use case.
+
+#### Practical Examples
+
+##### Example: REST API with POST
+
+For a REST API that requires POST with a body to fetch data:
+
+```json
+{
+  "schemas": [{
+    "name": "API",
+    "type": "custom",
+    "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
+    "operand": {
+      "storageType": "http",
+      "storageConfig": {
+        "method": "POST",
+        "body": "{\"filter\":\"active\",\"limit\":1000}",
+        "headers": {
+          "Authorization": "Bearer YOUR_TOKEN",
+          "Content-Type": "application/json"
+        }
+      }
+      // Note: No directory or tables specified - the HTTP provider
+      // would need to fetch from a specific endpoint
+    }
+  }]
+}
+```
+
+##### Example: GraphQL (Returns Multiple Datasets)
+
+GraphQL is a perfect example of why HTTP works best at the schema level - one query returns multiple related datasets:
+
+```json
+{
+  "schemas": [{
+    "name": "GRAPHQL",
+    "type": "custom",
+    "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
+    "operand": {
+      "storageType": "http", 
+      "storageConfig": {
+        "method": "POST",
+        "body": "{\"query\":\"{ users { id name email } orders { id userId total } products { id name price } }\"}",
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      }
+      // The response would contain data.users, data.orders, and data.products
+      // These would need to be extracted into separate tables
+    }
+  }]
+}
+```
+
+The GraphQL response structure:
+```json
+{
+  "data": {
+    "users": [...],     // Could become GRAPHQL.users table
+    "orders": [...],    // Could become GRAPHQL.orders table  
+    "products": [...]   // Could become GRAPHQL.products table
+  }
+}
+```
+
+#### Configuration Options
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `method` | HTTP method (GET, POST, PUT, etc.) | GET |
+| `body` | Request body for POST/PUT requests | null |
+| `headers` | Map of HTTP headers | {} |
+| `mimeType` | Override response Content-Type | null (use response header) |
+
+#### Current Limitations and Future Considerations
+
+**Current Implementation:**
+- HTTP configuration is at the storage provider level (schema-wide)
+- The provider fetches complete responses which are then processed as files
+- No direct JSONPath extraction at the table level
+
+**Potential Future Enhancements:**
+While not currently implemented, table-level HTTP configuration with JSONPath could be useful for the rare cases where:
+- An API endpoint returns a single, simple array that maps to one table
+- You want different tables to come from different API endpoints
+- You need to extract specific nested arrays from a response
+
+For now, complex API responses are best handled by:
+1. Fetching the complete response with the HTTP storage provider
+2. Processing it programmatically to extract the needed data structures
+3. Saving the extracted data as JSON files for the adapter to process
 
 ### **For Very Large Datasets (>1GB, potentially larger than RAM):**
 ```json
@@ -565,9 +951,145 @@ JSON files should contain an array of objects:
 ]
 ```
 
+#### Multi-Table JSON Support with JSONPath
+
+The File adapter provides advanced JSON processing capabilities that allow extracting multiple tables from a single JSON file using JSONPath expressions. This feature is particularly useful for complex JSON documents containing multiple data structures.
+
+**Key Features:**
+- Extract specific parts of JSON as separate tables using JSONPath expressions
+- Automatic discovery of array structures as potential tables
+- Shared parsed JSON for memory efficiency
+- Custom table naming patterns
+
+**Configuration Options:**
+
+```json
+{
+  "tables": [{
+    "name": "complex_data",
+    "url": "data.json",
+    "format": "json",
+    "jsonSearchPaths": [
+      "$.users",
+      "$.products",
+      "$.orders.items"
+    ],
+    "autoDiscoverTables": true,
+    "tableNamePattern": "{pathSegment}_{index}"
+  }]
+}
+```
+
+**Configuration Parameters:**
+- `jsonSearchPaths`: List of JSONPath expressions to extract specific data as tables
+- `autoDiscoverTables`: Enable automatic discovery of array structures (default: false)
+- `tableNamePattern`: Pattern for generating table names (default: "{pathSegment}")
+  - `{pathSegment}`: Last segment of the JSON path
+  - `{index}`: Sequential index for multiple discoveries
+  - `{fullPath}`: Complete path with dots replaced by underscores
+
+**Example 1: Manual Table Extraction with JSONPath**
+
+Given a JSON file `company.json`:
+```json
+{
+  "metadata": {"version": "1.0", "created": "2024-01-01"},
+  "users": [
+    {"id": 1, "name": "Alice", "role": "admin"},
+    {"id": 2, "name": "Bob", "role": "user"}
+  ],
+  "products": [
+    {"id": 101, "name": "Widget", "price": 29.99},
+    {"id": 102, "name": "Gadget", "price": 49.99}
+  ],
+  "analytics": {
+    "daily_stats": [
+      {"date": "2024-01-01", "visits": 1000, "sales": 50},
+      {"date": "2024-01-02", "visits": 1200, "sales": 65}
+    ]
+  }
+}
+```
+
+Configuration:
+```json
+{
+  "tables": [{
+    "name": "company_data",
+    "url": "company.json",
+    "format": "json",
+    "jsonSearchPaths": [
+      "$.users",
+      "$.products",
+      "$.analytics.daily_stats"
+    ]
+  }]
+}
+```
+
+This creates three queryable tables:
+- `company_data_users` - User data
+- `company_data_products` - Product catalog
+- `company_data_daily_stats` - Analytics data
+
+**Example 2: Automatic Table Discovery**
+
+Configuration with auto-discovery:
+```json
+{
+  "tables": [{
+    "name": "auto_discover",
+    "url": "complex.json",
+    "format": "json",
+    "autoDiscoverTables": true,
+    "tableNamePattern": "{pathSegment}_{index}",
+    "minArraySize": 1,
+    "maxDiscoveryDepth": 5
+  }]
+}
+```
+
+The adapter will:
+1. Scan the JSON structure up to 5 levels deep
+2. Identify all arrays with at least 1 element
+3. Create tables with names like `users_1`, `products_2`, etc.
+
+**Query Examples:**
+
+```sql
+-- Query specific extracted tables
+SELECT * FROM company_data_users WHERE role = 'admin';
+SELECT * FROM company_data_products WHERE price < 40;
+
+-- Join across extracted tables
+SELECT u.name, COUNT(s.sales) as total_sales
+FROM company_data_users u
+JOIN company_data_daily_stats s ON u.id = s.user_id
+GROUP BY u.name;
+```
+
+**Performance Optimization:**
+
+The multi-table JSON feature uses a shared parsed JSON approach:
+- JSON is parsed once into memory
+- Multiple table views share the same parsed data
+- JSONPath evaluations are cached
+- Memory-efficient for large JSON files with multiple tables
+
+**Supported JSONPath Features:**
+
+The adapter uses Jackson's JsonPointer internally and supports:
+- `$.users` - Top-level array or object
+- `$.data.items` - Nested path using dot notation
+- `$.users[0]` - Array index access
+- `$.users[*].name` - Wildcard to get all names from user array
+- Arrays are automatically detected and processed
+
+Note: Complex filter expressions like `[?(@.price < 10)]` are not supported
+
 #### JSON Flattening
 
-The File adapter supports automatic flattening of nested JSON structures. When enabled, nested objects are converted to dot-notation columns and arrays are converted to delimited strings.
+The File adapter also supports automatic flattening of nested JSON structures. When enabled, nested objects are converted to dot-notation columns and arrays are converted to delimited strings.
 
 **Example nested JSON:**
 ```json
@@ -958,7 +1480,7 @@ The adapter will automatically:
 To use the converter programmatically:
 
 ```java
-import org.apache.calcite.adapter.file.MultiTableExcelToJsonConverter;
+import org.apache.calcite.adapter.file.converters.MultiTableExcelToJsonConverter;
 
 // Convert with multi-table detection enabled
 MultiTableExcelToJsonConverter.convertFileToJson(

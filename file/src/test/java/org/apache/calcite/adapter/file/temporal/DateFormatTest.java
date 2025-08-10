@@ -120,7 +120,7 @@ public class DateFormatTest {
   @Test public void testDateParsingWithParquet() throws Exception {
     Properties info = new Properties();
     // Test with Parquet engine to ensure proper conversion
-    info.put("model", FileAdapterTests.jsonPath("bug"));
+    info.put("model", FileAdapterTests.jsonPath("BUG"));
 
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
          Statement statement = connection.createStatement()) {

@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.file;
 
+import org.apache.calcite.adapter.file.converters.MultiTableExcelToJsonConverter;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -50,7 +51,7 @@ public class SimpleExcelTest {
       // Just headers and data - no identifier
       Row header = sheet.createRow(0);
       header.createCell(0).setCellValue("Name");
-      header.createCell(1).setCellValue("Value");
+      header.createCell(1).setCellValue("value");
       System.out.println("Row 0: 'Name', 'Value'");
 
       Row data1 = sheet.createRow(1);

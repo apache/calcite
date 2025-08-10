@@ -89,13 +89,13 @@ public class DirectParquetPerformanceTest {
 
     // Test 1: Simple aggregation
     System.out.println("\n## TEST 1: Simple COUNT(*) ##");
-    String countQuery = "SELECT COUNT(*) FROM TEST.\"SALES\"";
+    String countQuery = "SELECT COUNT(*) FROM TEST.\"sales\"";
     runComparison("Count Query", countQuery);
 
     // Test 2: Group By aggregation
     System.out.println("\n## TEST 2: GROUP BY Aggregation ##");
     String groupByQuery = "SELECT \"region\", COUNT(*) as cnt, SUM(\"total\") as revenue " +
-        "FROM TEST.\"SALES\" " +
+        "FROM TEST.\"sales\" " +
         "GROUP BY \"region\" " +
         "ORDER BY revenue DESC";
     runComparison("Group By Query", groupByQuery);
@@ -106,7 +106,7 @@ public class DirectParquetPerformanceTest {
         "COUNT(*) as orders, " +
         "AVG(\"unit_price\") as avg_price, " +
         "SUM(\"quantity\") as total_qty " +
-        "FROM TEST.\"SALES\" " +
+        "FROM TEST.\"sales\" " +
         "WHERE \"status\" = 'completed' AND \"total\" > 100 " +
         "GROUP BY \"product_category\"";
     runComparison("Filtered Aggregation", filteredQuery);
@@ -114,7 +114,7 @@ public class DirectParquetPerformanceTest {
     // Test 4: Top-N with sorting
     System.out.println("\n## TEST 4: Top-N Query ##");
     String topNQuery = "SELECT \"order_id\", \"customer_id\", \"total\" " +
-        "FROM TEST.\"SALES\" " +
+        "FROM TEST.\"sales\" " +
         "WHERE \"region\" = 'North America' " +
         "ORDER BY \"total\" DESC " +
         "LIMIT 1000";
@@ -123,7 +123,7 @@ public class DirectParquetPerformanceTest {
     // Test 5: Selective projection
     System.out.println("\n## TEST 5: Selective Column Projection ##");
     String projectionQuery = "SELECT \"order_id\", \"total\" " +
-        "FROM TEST.\"SALES\" " +
+        "FROM TEST.\"sales\" " +
         "WHERE \"total\" > 500";
     runComparison("Selective Projection", projectionQuery);
 
@@ -240,7 +240,7 @@ public class DirectParquetPerformanceTest {
       writer.write("order_date:string,status:string\n");
 
       String[] categories = {"Electronics", "Clothing", "Books", "Home", "Sports",
-                            "Toys", "Food", "Beauty", "Auto", "Office"};
+                            "Toys", "Food", "Beauty", "Auto", "office"};
       String[] regions = {"North America", "Europe", "Asia Pacific", "Latin America", "Middle East"};
       String[] statuses = {"pending", "processing", "shipped", "completed", "cancelled"};
 

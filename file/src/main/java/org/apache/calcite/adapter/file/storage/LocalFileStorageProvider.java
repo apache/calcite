@@ -87,6 +87,20 @@ public class LocalFileStorageProvider implements StorageProvider {
   }
 
   @Override public InputStream openInputStream(String path) throws IOException {
+    // Handle file:// URLs
+    if (path.startsWith("file:")) {
+      try {
+        java.net.URI uri = new java.net.URI(path);
+        File file = new File(uri);
+        if (!file.exists()) {
+          throw new IOException("File does not exist: " + path);
+        }
+        return new FileInputStream(file);
+      } catch (java.net.URISyntaxException e) {
+        throw new IOException("Invalid file URI: " + path, e);
+      }
+    }
+    
     File file = new File(path);
     if (!file.exists()) {
       throw new IOException("File does not exist: " + path);
@@ -95,6 +109,20 @@ public class LocalFileStorageProvider implements StorageProvider {
   }
 
   @Override public Reader openReader(String path) throws IOException {
+    // Handle file:// URLs
+    if (path.startsWith("file:")) {
+      try {
+        java.net.URI uri = new java.net.URI(path);
+        File file = new File(uri);
+        if (!file.exists()) {
+          throw new IOException("File does not exist: " + path);
+        }
+        return new FileReader(file, StandardCharsets.UTF_8);
+      } catch (java.net.URISyntaxException e) {
+        throw new IOException("Invalid file URI: " + path, e);
+      }
+    }
+    
     File file = new File(path);
     if (!file.exists()) {
       throw new IOException("File does not exist: " + path);
@@ -103,10 +131,26 @@ public class LocalFileStorageProvider implements StorageProvider {
   }
 
   @Override public boolean exists(String path) {
+    if (path.startsWith("file:")) {
+      try {
+        java.net.URI uri = new java.net.URI(path);
+        return new File(uri).exists();
+      } catch (java.net.URISyntaxException e) {
+        return false;
+      }
+    }
     return new File(path).exists();
   }
 
   @Override public boolean isDirectory(String path) {
+    if (path.startsWith("file:")) {
+      try {
+        java.net.URI uri = new java.net.URI(path);
+        return new File(uri).isDirectory();
+      } catch (java.net.URISyntaxException e) {
+        return false;
+      }
+    }
     return new File(path).isDirectory();
   }
 

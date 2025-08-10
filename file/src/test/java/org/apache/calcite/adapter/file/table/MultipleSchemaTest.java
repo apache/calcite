@@ -49,7 +49,7 @@ public class MultipleSchemaTest {
 
   @BeforeEach
   public void setUp() throws IOException {
-    salesDir = new File(tempDir, "sales");
+    salesDir = new File(tempDir, "SALES");
     hrDir = new File(tempDir, "hr");
     salesDir.mkdirs();
     hrDir.mkdirs();
@@ -80,7 +80,7 @@ public class MultipleSchemaTest {
       // Add first DATA schema pointing to sales directory
       Map<String, Object> salesOperand = new HashMap<>();
       salesOperand.put("directory", salesDir.getAbsolutePath());
-      rootSchema.add("DATA", FileSchemaFactory.INSTANCE.create(rootSchema, "DATA", salesOperand));
+      rootSchema.add("data", FileSchemaFactory.INSTANCE.create(rootSchema, "data", salesOperand));
 
       // Try to add second DATA schema pointing to hr directory
       Map<String, Object> hrOperand = new HashMap<>();
@@ -89,7 +89,7 @@ public class MultipleSchemaTest {
       // This should either replace the first schema or throw an exception
       Exception caughtException = null;
       try {
-        rootSchema.add("DATA", FileSchemaFactory.INSTANCE.create(rootSchema, "DATA", hrOperand));
+        rootSchema.add("data", FileSchemaFactory.INSTANCE.create(rootSchema, "data", hrOperand));
       } catch (Exception e) {
         caughtException = e;
       }
@@ -182,7 +182,7 @@ public class MultipleSchemaTest {
       try (Statement stmt = connection.createStatement()) {
         ResultSet rs =
             stmt.executeQuery("SELECT s.NAME as customer_name, h.NAME as employee_name " +
-            "FROM SALES.CUSTOMERS s, HR.EMPLOYEES h " +
+            "FROM SALES.customers s, HR.EMPLOYEES h " +
             "WHERE s.ID = h.ID");
 
         int rowCount = 0;

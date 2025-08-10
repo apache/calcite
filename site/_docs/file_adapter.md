@@ -1290,15 +1290,32 @@ The File adapter supports the following configuration parameters in the `operand
 | `batchSize` | Integer | 8192 | Number of rows per batch |
 | `memoryThreshold` | Long | 67108864 | Memory limit per table (bytes) |
 | `refreshInterval` | String | null | Default refresh interval (e.g., "5 minutes") |
-| `tableNameCasing` | String | "UPPER" | Table name casing: "UPPER", "LOWER", "UNCHANGED" |
-| `columnNameCasing` | String | "UNCHANGED" | Column name casing: "UPPER", "LOWER", "UNCHANGED" |
+| `tableNameCasing` | String | "UPPER" | Table name casing: "UPPER", "LOWER", "UNCHANGED", "SMART_CASING" |
+| `columnNameCasing` | String | "SMART_CASING" | Column name casing: "UPPER", "LOWER", "UNCHANGED", "SMART_CASING" |
 | `materializations` | Array | null | Materialized view definitions |
 | `views` | Array | null | View definitions |
 | `partitionedTables` | Array | null | Partitioned table configurations |
 
 ### Identifier Casing Configuration
 
-The file adapter now supports configurable identifier casing for both table and column names. This is particularly useful for PostgreSQL compatibility or when working with case-sensitive systems.
+The file adapter supports configurable identifier casing for both table and column names. This is particularly useful for PostgreSQL compatibility or when working with case-sensitive systems.
+
+#### Casing Options
+
+- **`"UPPER"`**: Convert identifiers to UPPERCASE
+- **`"LOWER"`**: Convert identifiers to lowercase  
+- **`"UNCHANGED"`**: Preserve original casing
+- **`"SMART_CASING"`**: Intelligent PostgreSQL-style snake_case conversion with acronym preservation
+
+#### Smart Casing
+
+`SMART_CASING` (default for columns) provides intelligent conversion from camelCase/PascalCase to PostgreSQL-style snake_case. It uses a comprehensive dictionary of known acronyms and product names to avoid over-segmentation:
+
+**Examples:**
+- `XMLHttpRequest` → `xml_http_request` (not `x_m_l_http_request`)
+- `PostgreSQLConnection` → `postgresql_connection` 
+- `OAuth2Token` → `oauth2_token`
+- `RESTAPIEndpoint` → `rest_api_endpoint`
 
 **Example: PostgreSQL-style configuration (lowercase identifiers):**
 ```json

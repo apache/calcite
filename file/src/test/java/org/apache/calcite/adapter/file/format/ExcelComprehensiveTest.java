@@ -154,7 +154,7 @@ public class ExcelComprehensiveTest {
       "Sheet.With.Dots",
       "123Numbers",
       "UPPERCASE",
-      "CamelCase"
+      "camel_case"
   })
   void testExcelSheetNaming(String sheetName) throws Exception {
     File excelFile = new File(tempDir, "naming_test.xlsx");

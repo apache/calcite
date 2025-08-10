@@ -44,7 +44,7 @@ public class DateSelectTest {
       // Test key dates
       String sql = "SELECT ID, FORMAT_DESC, DATE_VALUE, "
           + "CAST(DATE_VALUE AS VARCHAR) AS STRING_VALUE "
-          + "FROM \"DATE_FORMATS\" "
+          + "FROM \"date_formats\" "
           + "WHERE ID IN (1, 4, 5, 6, 7) "
           + "ORDER BY ID";
 
@@ -71,7 +71,7 @@ public class DateSelectTest {
 
       // Test date comparison
       System.out.println("=== Date Comparison Test ===");
-      sql = "SELECT COUNT(*) FROM \"DATE_FORMATS\" "
+      sql = "SELECT COUNT(*) FROM \"date_formats\" "
           + "WHERE DATE_VALUE = DATE '2024-03-15'";
 
       try (ResultSet resultSet = statement.executeQuery(sql)) {
@@ -82,7 +82,7 @@ public class DateSelectTest {
       }
 
       // Test epoch date
-      sql = "SELECT COUNT(*) FROM \"DATE_FORMATS\" "
+      sql = "SELECT COUNT(*) FROM \"date_formats\" "
           + "WHERE DATE_VALUE = DATE '1970-01-01'";
 
       try (ResultSet resultSet = statement.executeQuery(sql)) {

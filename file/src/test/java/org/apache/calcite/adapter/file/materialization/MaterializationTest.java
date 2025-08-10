@@ -95,7 +95,7 @@ public class MaterializationTest {
           "COUNT(*) as transaction_count, " +
           "SUM(\"quantity\") as total_quantity, " +
           "SUM(\"quantity\" * \"price\") as total_revenue " +
-          "FROM SALES " +
+          "FROM sales " +
           "GROUP BY \"date\"");
       materializations.add(dailySalesMV);
 
@@ -108,7 +108,7 @@ public class MaterializationTest {
           "SUM(\"quantity\") as total_quantity, " +
           "SUM(\"quantity\" * \"price\") as total_revenue, " +
           "AVG(\"price\") as avg_price " +
-          "FROM SALES " +
+          "FROM sales " +
           "GROUP BY \"product\"");
       materializations.add(productSalesMV);
 
@@ -146,8 +146,8 @@ public class MaterializationTest {
           tableNames.add(tableName);
           System.out.println("   - " + tableName);
         }
-        assertTrue(tableNames.contains("SALES"), "Should have sales table");
-        assertTrue(tableNames.contains("PRODUCTS"), "Should have products table");
+        assertTrue(tableNames.contains("sales"), "Should have sales table");
+        assertTrue(tableNames.contains("products"), "Should have products table");
         System.out.println("   ✓ Found " + tableNames.size() + " tables");
 
         // Test 3: Execute aggregation query (what MV would contain)
@@ -157,7 +157,7 @@ public class MaterializationTest {
             "COUNT(*) as transaction_count, " +
             "SUM(\"quantity\") as total_quantity, " +
             "SUM(\"quantity\" * \"price\") as total_revenue " +
-            "FROM MV_SCHEMA.SALES " +
+            "FROM MV_SCHEMA.sales " +
             "GROUP BY \"date\" " +
             "ORDER BY \"date\"");
 
@@ -181,7 +181,7 @@ public class MaterializationTest {
             statement.executeQuery("SELECT \"product\", " +
             "SUM(\"quantity\") as total_quantity, " +
             "SUM(\"quantity\" * \"price\") as total_revenue " +
-            "FROM MV_SCHEMA.SALES " +
+            "FROM MV_SCHEMA.sales " +
             "GROUP BY \"product\" " +
             "ORDER BY total_revenue DESC");
 

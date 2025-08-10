@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.file;
 
+import org.apache.calcite.adapter.file.converters.MarkdownTableScanner;
+import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.test.CalciteAssert;
 
@@ -153,7 +155,7 @@ public class MarkdownTableTest {
     Map<String, Object> operand = new HashMap<>();
     operand.put("directory", tempDir.toFile());
 
-    FileSchema schema = new FileSchema(null, "test", tempDir.toFile(), null, null, new ExecutionEngineConfig(), false, null, null, null, null);
+    FileSchema schema = new FileSchema(null, "TEST", tempDir.toFile(), null, null, new ExecutionEngineConfig(), false, null, null, null, null);
 
     // Convert Markdown files first
     MarkdownTableScanner.scanAndConvertTables(markdownFile);
@@ -180,7 +182,7 @@ public class MarkdownTableTest {
 
     CalciteAssert.that()
         .with(CalciteAssert.Config.REGULAR)
-        .withSchema("markdown", new FileSchema(null, "test", tempDir.toFile(), null, null, new ExecutionEngineConfig(), false, null, null, null, null))
+        .withSchema("markdown", new FileSchema(null, "TEST", tempDir.toFile(), null, null, new ExecutionEngineConfig(), false, null, null, null, null))
         .query("SELECT * FROM \"markdown\".PRODUCTS__CURRENT_PRODUCTS WHERE CAST(\"Price\" AS DECIMAL) >= 15.75")
         .returnsCount(2); // Gadget (25.50) and Tool (15.75) have prices >= 15.75
   }

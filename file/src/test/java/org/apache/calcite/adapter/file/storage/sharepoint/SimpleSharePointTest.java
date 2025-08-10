@@ -51,7 +51,7 @@ public class SimpleSharePointTest {
 
     System.out.println("Creating FileSchema with directory: /tmp");
     FileSchemaFactory factory = FileSchemaFactory.INSTANCE;
-    Schema fileSchema = factory.create(parentSchema, "test", operand);
+    Schema fileSchema = factory.create(parentSchema, "TEST", operand);
 
     System.out.println("FileSchema created: " + fileSchema.getClass().getName());
 

@@ -253,7 +253,7 @@ public class ParquetColdStartPerformanceTest {
 
       // Run a simple query to trigger conversion
       try (Statement stmt = connection.createStatement();
-           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM CONV.\"SALES\"")) {
+           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM CONV.\"sales\"")) {
         rs.next();
         System.out.println("Pre-conversion complete. Row count: " + rs.getInt(1));
       }
@@ -274,7 +274,7 @@ public class ParquetColdStartPerformanceTest {
 
       String[] categories = {"Electronics", "Clothing", "Books",
           "Home & Garden", "Sports", "Toys", "Food & Beverage", "Beauty",
-          "Automotive", "Office"};
+          "Automotive", "office"};
       String[] regions = {"North America", "Europe", "Asia Pacific",
           "Latin America", "Middle East"};
       String[] statuses = {"pending", "processing", "shipped", "completed", "cancelled"};

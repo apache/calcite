@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.adapter.file.feature;
 
-import org.apache.calcite.adapter.file.MultiTableExcelToJsonConverter;
+import org.apache.calcite.adapter.file.converters.MultiTableExcelToJsonConverter;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 
@@ -396,7 +396,7 @@ public class SpuriousTableComprehensiveTest {
       Row header1 = sheet.createRow(0);
       header1.createCell(0).setCellValue("Employee ID");
       header1.createCell(1).setCellValue("Name");
-      header1.createCell(2).setCellValue("Department");
+      header1.createCell(2).setCellValue("department");
 
       Row data1 = sheet.createRow(1);
       data1.createCell(0).setCellValue(1);
@@ -416,7 +416,7 @@ public class SpuriousTableComprehensiveTest {
       Row header2 = sheet.createRow(5);
       header2.createCell(0).setCellValue("Product ID");
       header2.createCell(1).setCellValue("Product Name");
-      header2.createCell(2).setCellValue("Price");
+      header2.createCell(2).setCellValue("price");
 
       Row prod1 = sheet.createRow(6);
       prod1.createCell(0).setCellValue(101);
@@ -442,7 +442,7 @@ public class SpuriousTableComprehensiveTest {
 
       // Table with headers but no data
       Row header = sheet.createRow(0);
-      header.createCell(0).setCellValue("ID");
+      header.createCell(0).setCellValue("id");
       header.createCell(1).setCellValue("Name");
       header.createCell(2).setCellValue("Status");
 
@@ -468,7 +468,7 @@ public class SpuriousTableComprehensiveTest {
       // Actual table starts at row 11
       Row header = sheet.createRow(10);
       header.createCell(0).setCellValue("Data");
-      header.createCell(1).setCellValue("Value");
+      header.createCell(1).setCellValue("value");
 
       Row data = sheet.createRow(11);
       data.createCell(0).setCellValue("Test");

@@ -45,13 +45,6 @@ public class SftpStorageProviderTest {
 
   @BeforeEach
   public void checkSftpTestRequirements() {
-    // Check if SFTP tests should be skipped
-    String skipSftp = System.getProperty("skipSftpTests");
-    if ("true".equalsIgnoreCase(skipSftp)) {
-      org.junit.jupiter.api.Assumptions.assumeFalse(true,
-          "SFTP tests skipped. Set -DskipSftpTests=false to enable.");
-    }
-    
     // Check for SFTP test server configuration
     String sftpTestServer = System.getProperty("sftp.test.server");
     if (sftpTestServer == null || sftpTestServer.isEmpty()) {

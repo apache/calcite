@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.file;
 
+import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -55,7 +56,7 @@ public class SimpleMultiTableTest {
     // Use FileSchema to see what tables it creates
     try {
       FileSchema schema =
-          new FileSchema(null, "test", tempDir.toFile(), null, new ExecutionEngineConfig(), false, null, null);
+          new FileSchema(null, "TEST", tempDir.toFile(), null, new ExecutionEngineConfig(), false, null, null);
 
       System.out.println("\nTables extracted from " + targetFile.getName() + ":");
       for (String tableName : schema.getTableMap().keySet()) {

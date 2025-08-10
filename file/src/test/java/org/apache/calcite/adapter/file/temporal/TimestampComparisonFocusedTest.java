@@ -80,12 +80,12 @@ public class TimestampComparisonFocusedTest {
       Statement statement = connection.createStatement();
 
       // Test 1: Verify data is loaded
-      ResultSet rs = statement.executeQuery("SELECT COUNT(*) FROM \"EVENTS\"");
+      ResultSet rs = statement.executeQuery("SELECT COUNT(*) FROM \"events\"");
       assertTrue(rs.next());
       assertEquals(3, rs.getInt(1));
 
       // Test 2: Verify ordering works
-      rs = statement.executeQuery("SELECT ID FROM \"EVENTS\" ORDER BY EVENT_TIME");
+      rs = statement.executeQuery("SELECT ID FROM \"events\" ORDER BY EVENT_TIME");
       assertTrue(rs.next());
       assertEquals(1, rs.getInt(1));
       assertTrue(rs.next());
@@ -96,9 +96,9 @@ public class TimestampComparisonFocusedTest {
 
       // Test 3: Verify we can find the middle event
       rs =
-          statement.executeQuery("SELECT ID FROM \"EVENTS\" E1 " +
-          "WHERE EXISTS (SELECT 1 FROM \"EVENTS\" E2 WHERE E2.EVENT_TIME < E1.EVENT_TIME) " +
-          "AND EXISTS (SELECT 1 FROM \"EVENTS\" E3 WHERE E3.EVENT_TIME > E1.EVENT_TIME)");
+          statement.executeQuery("SELECT ID FROM \"events\" E1 " +
+          "WHERE EXISTS (SELECT 1 FROM \"events\" E2 WHERE E2.EVENT_TIME < E1.EVENT_TIME) " +
+          "AND EXISTS (SELECT 1 FROM \"events\" E3 WHERE E3.EVENT_TIME > E1.EVENT_TIME)");
       assertTrue(rs.next());
       assertEquals(2, rs.getInt(1)); // Only the middle event (10:00) satisfies this
       assertFalse(rs.next());
@@ -106,15 +106,15 @@ public class TimestampComparisonFocusedTest {
       // Test 4: Verify MIN/MAX work
       rs =
           statement.executeQuery("SELECT " +
-          "(SELECT ID FROM \"EVENTS\" WHERE EVENT_TIME = (SELECT MIN(EVENT_TIME) FROM \"EVENTS\")) AS MIN_ID, " +
-          "(SELECT ID FROM \"EVENTS\" WHERE EVENT_TIME = (SELECT MAX(EVENT_TIME) FROM \"EVENTS\")) AS MAX_ID");
+          "(SELECT ID FROM \"events\" WHERE EVENT_TIME = (SELECT MIN(EVENT_TIME) FROM \"events\")) AS MIN_ID, " +
+          "(SELECT ID FROM \"events\" WHERE EVENT_TIME = (SELECT MAX(EVENT_TIME) FROM \"events\")) AS MAX_ID");
       assertTrue(rs.next());
       assertEquals(1, rs.getInt("MIN_ID"));
       assertEquals(3, rs.getInt("MAX_ID"));
 
       // Test 5: Verify comparison between events
       rs =
-          statement.executeQuery("SELECT COUNT(*) FROM \"EVENTS\" E1, \"EVENTS\" E2 " +
+          statement.executeQuery("SELECT COUNT(*) FROM \"events\" E1, \"events\" E2 " +
           "WHERE E1.ID = 1 AND E2.ID = 2 AND E1.EVENT_TIME < E2.EVENT_TIME");
       assertTrue(rs.next());
       assertEquals(1, rs.getInt(1)); // Event 1 is before Event 2

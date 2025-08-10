@@ -18,6 +18,8 @@ package org.apache.calcite.adapter.file;
 
 import org.apache.calcite.adapter.file.storage.MicrosoftGraphStorageProvider;
 import org.apache.calcite.adapter.file.storage.MicrosoftGraphTokenManager;
+import org.apache.calcite.adapter.file.storage.SharePointRestStorageProvider;
+import org.apache.calcite.adapter.file.storage.SharePointRestTokenManager;
 import org.apache.calcite.adapter.file.storage.StorageProvider;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.Schema;
@@ -576,9 +578,9 @@ public class SharePointLiveIntegrationTest {
           String employeesTable = null;
           while (allTables.next()) {
             String tableName = allTables.getString("TABLE_NAME");
-            if (tableName.toUpperCase().contains("DEPARTMENTS")) {
+            if (tableName.toUpperCase().contains("departments")) {
               departmentsTable = tableName;
-            } else if (tableName.toUpperCase().contains("EMPLOYEES")) {
+            } else if (tableName.toUpperCase().contains("employees")) {
               employeesTable = tableName;
             }
           }
@@ -655,6 +657,125 @@ public class SharePointLiveIntegrationTest {
         }
       }
     }
+  }
+
+  @Test void testSharePointRestApiDirectAccess() throws Exception {
+    // Test direct SharePoint REST API access
+    SharePointRestTokenManager restTokenManager = 
+        new SharePointRestTokenManager(tenantId, clientId, clientSecret, siteUrl);
+    SharePointRestStorageProvider provider = new SharePointRestStorageProvider(restTokenManager);
+
+    // List root directory first
+    System.out.println("=== REST API: Listing root directory ===");
+    List<StorageProvider.FileEntry> rootEntries = provider.listFiles("/", false);
+    System.out.println("Found " + rootEntries.size() + " items at root:");
+    for (StorageProvider.FileEntry entry : rootEntries) {
+      String type = entry.isDirectory() ? "[DIR]" : "[FILE]";
+      System.out.println("  " + type + " " + entry.getName() + " (path: " + entry.getPath() + ")");
+    }
+
+    // List Shared Documents
+    System.out.println("\n=== REST API: Listing /Shared Documents ===");
+    List<StorageProvider.FileEntry> entries = provider.listFiles("/Shared Documents", false);
+    assertNotNull(entries);
+    System.out.println("Found " + entries.size() + " items in /Shared Documents:");
+
+    // List all files with their types
+    for (StorageProvider.FileEntry entry : entries) {
+      String type = entry.isDirectory() ? "[DIR]" : "[FILE]";
+      String extension = "";
+      if (!entry.isDirectory() && entry.getName().contains(".")) {
+        extension = entry.getName().substring(entry.getName().lastIndexOf("."));
+      }
+      System.out.println("  " + type + " " + entry.getName() +
+          (extension.isEmpty() ? "" : " (type: " + extension + ", size: " + entry.getSize() + " bytes)") +
+          " (path: " + entry.getPath() + ")");
+    }
+  }
+
+  @Test void testSharePointRestApiFileDownload() throws Exception {
+    // Test downloading and reading a file from SharePoint using REST API
+    SharePointRestTokenManager restTokenManager = 
+        new SharePointRestTokenManager(tenantId, clientId, clientSecret, siteUrl);
+    SharePointRestStorageProvider provider = new SharePointRestStorageProvider(restTokenManager);
+
+    // List documents to find any file
+    List<StorageProvider.FileEntry> entries = provider.listFiles("/Shared Documents", false);
+    StorageProvider.FileEntry fileToDownload = entries.stream()
+        .filter(e -> !e.isDirectory())
+        .findFirst()
+        .orElse(null);
+
+    if (fileToDownload == null) {
+      System.out.println("No files found in SharePoint to test download - skipping test");
+      return;
+    }
+
+    System.out.println("REST API: Testing download of file: " + fileToDownload.getName());
+    System.out.println("File size: " + fileToDownload.getSize() + " bytes");
+
+    // Download and read the file
+    try (InputStream is = provider.openInputStream(fileToDownload.getPath())) {
+      assertNotNull(is, "Should be able to open input stream for file");
+
+      // Read content (up to 1000 bytes for preview)
+      byte[] buffer = new byte[Math.min(1000, (int)fileToDownload.getSize())];
+      int bytesRead = is.read(buffer);
+      assertTrue(bytesRead > 0, "Should be able to read content from file");
+
+      String content = new String(buffer, 0, bytesRead, StandardCharsets.UTF_8);
+      System.out.println("\nFile content (first " + bytesRead + " bytes):");
+      System.out.println("----------------------------------------");
+      System.out.println(content);
+      System.out.println("----------------------------------------");
+    }
+
+    // Test file metadata
+    StorageProvider.FileMetadata metadata = provider.getMetadata(fileToDownload.getPath());
+    assertNotNull(metadata, "Should be able to get file metadata");
+    assertEquals(fileToDownload.getPath(), metadata.getPath());
+    assertEquals(fileToDownload.getSize(), metadata.getSize());
+  }
+
+  @Test void testCompareGraphApiVsRestApi() throws Exception {
+    // Compare results between Graph API and REST API
+    System.out.println("=== Comparing Microsoft Graph API vs SharePoint REST API ===");
+    
+    // Create both providers
+    MicrosoftGraphStorageProvider graphProvider = new MicrosoftGraphStorageProvider(tokenManager);
+    SharePointRestTokenManager restTokenManager = 
+        new SharePointRestTokenManager(tenantId, clientId, clientSecret, siteUrl);
+    SharePointRestStorageProvider restProvider = new SharePointRestStorageProvider(restTokenManager);
+
+    // List files with both providers
+    List<StorageProvider.FileEntry> graphEntries = graphProvider.listFiles("/Shared Documents", false);
+    List<StorageProvider.FileEntry> restEntries = restProvider.listFiles("/Shared Documents", false);
+
+    System.out.println("Graph API found " + graphEntries.size() + " items");
+    System.out.println("REST API found " + restEntries.size() + " items");
+
+    // Compare file counts
+    assertEquals(graphEntries.size(), restEntries.size(), 
+        "Both APIs should return the same number of files");
+
+    // Compare file names
+    Map<String, StorageProvider.FileEntry> graphMap = new HashMap<>();
+    for (StorageProvider.FileEntry entry : graphEntries) {
+      graphMap.put(entry.getName(), entry);
+    }
+
+    for (StorageProvider.FileEntry restEntry : restEntries) {
+      StorageProvider.FileEntry graphEntry = graphMap.get(restEntry.getName());
+      assertNotNull(graphEntry, "File " + restEntry.getName() + " should exist in both APIs");
+      assertEquals(graphEntry.isDirectory(), restEntry.isDirectory(), 
+          "File type should match for " + restEntry.getName());
+      if (!restEntry.isDirectory()) {
+        assertEquals(graphEntry.getSize(), restEntry.getSize(), 
+            "File size should match for " + restEntry.getName());
+      }
+    }
+
+    System.out.println("Both APIs returned identical file listings!");
   }
 
 }

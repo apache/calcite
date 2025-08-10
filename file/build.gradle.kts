@@ -63,6 +63,13 @@ dependencies {
     implementation("commons-net:commons-net:3.9.0")
     implementation("com.jcraft:jsch:0.1.55")
 
+    // Apache Iceberg support
+    implementation("org.apache.iceberg:iceberg-core:1.4.0")
+    implementation("org.apache.iceberg:iceberg-api:1.4.0")
+    implementation("org.apache.iceberg:iceberg-common:1.4.0")
+    implementation("org.apache.iceberg:iceberg-parquet:1.4.0")
+    implementation("org.apache.iceberg:iceberg-data:1.4.0")
+
     testImplementation(project(":testkit"))
     annotationProcessor("org.immutables:value")
     compileOnly("org.immutables:value-annotations")

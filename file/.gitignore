@@ -19,3 +19,9 @@ build/
 *.log
 *.crc
 .parquet_cache/*
+
+# S3 test data cache
+s3:/
+
+# Compiled Java files
+*.class

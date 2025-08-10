@@ -19,7 +19,7 @@ limitations under the License.
 
 ## Overview
 
-This guide is for developers creating JDBC drivers that extend the Calcite File Adapter with materialized view capabilities and large dataset spillover support. It provides technical implementation details and best practices for building production-ready JDBC drivers that can handle datasets larger than RAM.
+This guide is for developers creating JDBC drivers that extend the Calcite File Adapter with file-based data processing capabilities and large dataset spillover support. It provides technical implementation details and best practices for building production-ready JDBC drivers that can handle datasets larger than RAM.
 
 ### New Capabilities (Latest Release)
 
@@ -50,10 +50,42 @@ This guide is for developers creating JDBC drivers that extend the Calcite File 
 
 ## Architecture
 
+### Package Structure
+
+The File Adapter is organized into the following packages:
+
+```
+org.apache.calcite.adapter.file
+├── FileSchema.java                    // Main schema implementation
+├── FileSchemaFactory.java            // Schema factory
+├── FileJdbcDriver.java               // JDBC driver implementation
+├── cache/                            // Caching implementations
+│   ├── ConcurrentSpilloverManager.java
+│   └── RedisDistributedLock.java
+├── execution/                        // Execution engines
+│   ├── ExecutionEngineConfig.java
+│   ├── linq4j/                      // LINQ4J-based execution
+│   ├── parquet/                     // Parquet-optimized execution
+│   ├── arrow/                       // Arrow-based execution
+│   └── vectorized/                  // Vectorized execution
+├── format/                          // Format-specific implementations
+│   ├── csv/                         // CSV handling
+│   ├── json/                        // JSON handling
+│   └── parquet/                     // Parquet handling
+├── materialized/                    // Materialized view support
+├── metadata/                        // Metadata handling
+├── partition/                       // Partitioned table support
+├── refresh/                         // Refreshable table support
+├── storage/                         // Storage providers (S3, FTP, etc.)
+├── table/                           // Table implementations
+├── temporal/                        // Temporal type handling
+└── util/                            // Utilities
+```
+
 ### Core Components
 
 ```
-MaterializedViewJdbcDriver
+FileJdbcDriver
 ├── extends org.apache.calcite.jdbc.Driver
 ├── Connection Management
 │   ├── Schema Registration
@@ -68,10 +100,19 @@ MaterializedViewJdbcDriver
 ### Class Structure
 
 ```java
-public class MaterializedViewJdbcDriver extends Driver {
+// Required imports
+import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
+import org.apache.calcite.adapter.file.partition.PartitionedTableConfig;
+import org.apache.calcite.adapter.file.materialized.MaterializedViewTable;
+import org.apache.calcite.adapter.file.FileSchema;
+import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.jdbc.Driver;
+import org.apache.calcite.schema.SchemaPlus;
+
+public class FileJdbcDriver extends Driver {
     // Static registration
     static {
-        new MaterializedViewJdbcDriver().register();
+        new FileJdbcDriver().register();
     }
 
     // Core methods to implement
@@ -89,19 +130,19 @@ public class MaterializedViewJdbcDriver extends Driver {
 ### 1. Driver Registration
 
 ```java
-public class YourMaterializedViewDriver extends Driver {
-    private static final Logger LOGGER = Logger.getLogger(YourMaterializedViewDriver.class.getName());
+public class YourFileAdapterDriver extends Driver {
+    private static final Logger LOGGER = Logger.getLogger(YourFileAdapterDriver.class.getName());
 
     // Automatic registration via static block
     static {
-        new YourMaterializedViewDriver().register();
+        new YourFileAdapterDriver().register();
     }
 
     @Override
     public boolean acceptsURL(String url) throws SQLException {
         // Define your URL pattern
         return url.startsWith("jdbc:calcite:") &&
-               (url.contains("schema=file") || url.contains("materialized_view"));
+               url.contains("schema=file");
     }
 }
 ```
@@ -119,8 +160,8 @@ public Connection connect(String url, Properties info) throws SQLException {
     Connection connection = super.connect(url, info);
     CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class);
 
-    // Add your materialized view logic
-    setupSchemasAndRecoverMaterializedViews(calciteConnection, url, info);
+    // Add your file schema logic
+    setupFileSchemas(calciteConnection, url, info);
 
     return connection;
 }
@@ -129,17 +170,17 @@ public Connection connect(String url, Properties info) throws SQLException {
 ### 3. Schema Setup and Recovery
 
 ```java
-private void setupSchemasAndRecoverMaterializedViews(CalciteConnection connection,
-                                                    String url, Properties info) {
+private void setupFileSchemas(CalciteConnection connection,
+                              String url, Properties info) {
     try {
         SchemaPlus rootSchema = connection.getRootSchema();
 
         // Parse your configuration format
         MaterializedViewConfig config = parseConfiguration(url, info);
 
-        // Setup each schema with materialized view support
+        // Setup each schema with file adapter support
         for (SchemaConfig schemaConfig : config.getSchemas()) {
-            setupSchemaWithMaterializedViews(rootSchema, schemaConfig);
+            setupFileSchema(rootSchema, schemaConfig);
         }
 
     } catch (Exception e) {
@@ -152,11 +193,11 @@ private void setupSchemasAndRecoverMaterializedViews(CalciteConnection connectio
 ### 4. Configuration Parsing
 
 ```java
-private MaterializedViewConfig parseConfiguration(String url, Properties info) {
+private FileAdapterConfig parseConfiguration(String url, Properties info) {
     // Example URL format with spillover configuration:
     // jdbc:calcite:schema=file;storage_path=/mnt/ssd;engine=parquet;batch_size=10000;memory_threshold=67108864;spill_directory=/tmp/calcite
 
-    MaterializedViewConfig config = new MaterializedViewConfig();
+    FileAdapterConfig config = new FileAdapterConfig();
 
     // Parse URL parameters
     String[] urlParts = url.split(";");
@@ -172,24 +213,12 @@ private MaterializedViewConfig parseConfiguration(String url, Properties info) {
     // Extract configuration
     String dataPath = getConfigValue("data_path", urlParams, info, "./data");
     String storagePath = getConfigValue("storage_path", urlParams, info,
-                                       System.getProperty("java.io.tmpdir") + "/calcite_mv");
+                                       System.getProperty("java.io.tmpdir") + "/calcite_file_storage");
     String engine = getConfigValue("engine", urlParams, info, "parquet");
-    int batchSize = Integer.parseInt(getConfigValue("batch_size", urlParams, info, "10000"));
+    int batchSize = Integer.parseInt(getConfigValue("batch_size", urlParams, info, "2048"));
 
-    // NEW: Spillover configuration with comprehensive options
+    // Memory threshold for spillover (built into ExecutionEngineConfig)
     long memoryThreshold = Long.parseLong(getConfigValue("memory_threshold", urlParams, info, "67108864")); // 64MB default
-    String spillDirectory = getConfigValue("spill_directory", urlParams, info,
-                                          System.getProperty("java.io.tmpdir") + "/calcite_spill");
-    boolean spilloverEnabled = Boolean.parseBoolean(getConfigValue("spillover_enabled", urlParams, info, "true"));
-
-    // Advanced spillover options
-    int maxSpillFiles = Integer.parseInt(getConfigValue("max_spill_files", urlParams, info, "100"));
-    boolean spillCompression = Boolean.parseBoolean(getConfigValue("spill_compression", urlParams, info, "true"));
-    String spillCleanupStrategy = getConfigValue("spill_cleanup", urlParams, info, "auto"); // auto, manual, background
-
-    // Create schema configuration with enhanced spillover support
-    SpilloverConfig spilloverConfig = new SpilloverConfig(memoryThreshold, spillDirectory, spilloverEnabled,
-                                                         maxSpillFiles, spillCompression, spillCleanupStrategy);
 
     // NEW: Partitioned table configuration
     String partitionedTablesJson = getConfigValue("partitioned_tables", urlParams, info, null);
@@ -203,8 +232,7 @@ private MaterializedViewConfig parseConfiguration(String url, Properties info) {
     boolean enableRemoteRefresh = Boolean.parseBoolean(
         getConfigValue("enable_remote_refresh", urlParams, info, "true"));
 
-    SchemaConfig schemaConfig = new SchemaConfig("files", dataPath, storagePath, engine,
-                                                 batchSize, spilloverConfig, partitionedTables);
+    SchemaConfig schemaConfig = new SchemaConfig("files", dataPath, storagePath, engine, batchSize);
     config.addSchema(schemaConfig);
 
     return config;
@@ -219,37 +247,37 @@ private String getConfigValue(String key, Map<String, String> urlParams,
 }
 ```
 
-### 5. Schema Registration with Materialized Views
+### 5. Schema Registration with File Support
 
 ```java
-private void setupSchemaWithMaterializedViews(SchemaPlus rootSchema, SchemaConfig config) {
+private void setupFileSchema(SchemaPlus rootSchema, SchemaConfig config) {
     try {
         LOGGER.info("Setting up schema: " + config.getName());
 
-        // Create execution engine configuration with spillover support
+        // Create execution engine configuration
         ExecutionEngineConfig engineConfig = new ExecutionEngineConfig(
             config.getEngineType(),
             config.getBatchSize(),
-            config.getStoragePath(),
-            config.getSpilloverConfig()
+            config.getStoragePath()
         );
 
-        // Create enhanced file schema with materialized view support
+        // Create file schema
         File dataDirectory = new File(config.getDataPath());
-        EnhancedFileSchema schema = EnhancedFileSchema.createDirectorySchema(
+        FileSchema schema = new FileSchema(
             rootSchema,
             config.getName(),
             dataDirectory,
+            null,
             engineConfig
         );
 
         // Register the schema
         rootSchema.add(config.getName(), schema);
 
-        // Log discovered materialized views
-        Set<String> materializedViews = schema.getMaterializedViewNames();
-        if (!materializedViews.isEmpty()) {
-            LOGGER.info("Recovered materialized views: " + materializedViews);
+        // Log discovered tables
+        Set<String> tableNames = schema.getTableNames();
+        if (!tableNames.isEmpty()) {
+            LOGGER.info("Discovered tables: " + tableNames);
         }
 
     } catch (Exception e) {
@@ -261,10 +289,10 @@ private void setupSchemaWithMaterializedViews(SchemaPlus rootSchema, SchemaConfi
 
 ## Configuration Classes
 
-### MaterializedViewConfig
+### FileAdapterConfig
 
 ```java
-public class MaterializedViewConfig {
+public class FileAdapterConfig {
     private final List<SchemaConfig> schemas = new ArrayList<>();
 
     public void addSchema(SchemaConfig schema) {
@@ -286,18 +314,18 @@ public class SchemaConfig {
     private final String storagePath;
     private final String engineType;
     private final int batchSize;
-    private final SpilloverConfig spilloverConfig;
+    private final long memoryThreshold;
     private final List<PartitionedTableConfig> partitionedTables;
 
     public SchemaConfig(String name, String dataPath, String storagePath,
-                       String engineType, int batchSize, SpilloverConfig spilloverConfig,
+                       String engineType, int batchSize, long memoryThreshold,
                        List<PartitionedTableConfig> partitionedTables) {
         this.name = name;
         this.dataPath = dataPath;
         this.storagePath = storagePath;
         this.engineType = engineType;
         this.batchSize = batchSize;
-        this.spilloverConfig = spilloverConfig;
+        this.memoryThreshold = memoryThreshold;
         this.partitionedTables = partitionedTables;
     }
 
@@ -305,27 +333,26 @@ public class SchemaConfig {
 }
 ```
 
-### SpilloverConfig
+### ExecutionEngineConfig
 
 ```java
-public class SpilloverConfig {
+// Import: org.apache.calcite.adapter.file.execution.ExecutionEngineConfig
+public class ExecutionEngineConfig {
+    private final ExecutionEngineType engineType;
+    private final int batchSize;
     private final long memoryThreshold;
-    private final String spillDirectory;
-    private final boolean enabled;
-    private final int maxSpillFiles;
-    private final boolean compressionEnabled;
-    private final String cleanupStrategy;
+    private final String materializedViewStoragePath;
 
-    public SpilloverConfig(long memoryThreshold, String spillDirectory, boolean enabled,
-                          int maxSpillFiles, boolean compressionEnabled, String cleanupStrategy) {
-        this.memoryThreshold = memoryThreshold;
-        this.spillDirectory = spillDirectory;
-        this.enabled = enabled;
-        this.maxSpillFiles = maxSpillFiles;
-        this.compressionEnabled = compressionEnabled;
-        this.cleanupStrategy = cleanupStrategy;
-    }
+    // Multiple constructors available
+    public ExecutionEngineConfig(String executionEngine, int batchSize) { ... }
+    public ExecutionEngineConfig(String executionEngine, int batchSize, String storagePath) { ... }
+    public ExecutionEngineConfig(String executionEngine, int batchSize, 
+                                long memoryThreshold, String storagePath) { ... }
 
+    // Spillover and memory management are built-in
+    public long getMemoryThreshold() { return memoryThreshold; }
+    public boolean useCustomStoragePath() { return useCustomStoragePath; }
+    
     // Getters...
 }
 ```
@@ -367,8 +394,7 @@ private void addConfiguredSchemas(MaterializedViewConfig config, Properties info
             String spillDirectory = info.getProperty("schema." + schemaName + ".spill_directory",
                                                    System.getProperty("java.io.tmpdir") + "/calcite_spill_" + schemaName);
 
-            SpilloverConfig spilloverConfig = new SpilloverConfig(memoryThreshold, spillDirectory, true, 100, true, "auto");
-            SchemaConfig schemaConfig = new SchemaConfig(schemaName, dataPath, storagePath, engine, 2048, spilloverConfig);
+            SchemaConfig schemaConfig = new SchemaConfig(schemaName, dataPath, storagePath, engine, 2048, memoryThreshold, null);
             config.addSchema(schemaConfig);
         }
     }
@@ -378,7 +404,7 @@ private void addConfiguredSchemas(MaterializedViewConfig config, Properties info
 ### Deduplication and Caching
 
 ```java
-public class MaterializedViewJdbcDriver extends Driver {
+public class FileJdbcDriver extends Driver {
     // Track initialized schemas to avoid duplicate setup
     private static final Set<String> INITIALIZED_SCHEMAS = ConcurrentHashMap.newKeySet();
 
@@ -401,8 +427,8 @@ public class MaterializedViewJdbcDriver extends Driver {
 ### Error Handling and Logging
 
 ```java
-private void setupSchemasAndRecoverMaterializedViews(CalciteConnection connection,
-                                                    String url, Properties info) {
+private void setupFileSchemas(CalciteConnection connection,
+                              String url, Properties info) {
     try {
         // ... setup logic ...
     } catch (IOException e) {
@@ -424,7 +450,7 @@ private void setupSchemasAndRecoverMaterializedViews(CalciteConnection connectio
 @Override
 protected DriverVersion createDriverVersion() {
     return new DriverVersion(
-        "Your Materialized View JDBC Driver",
+        "Your File Adapter JDBC Driver",
         "1.0.0",                              // Your driver version
         "Your Organization",
         "1.41.0-SNAPSHOT",                    // Calcite version
@@ -444,7 +470,7 @@ protected DriverVersion createDriverVersion() {
 public void testDriverRegistration() throws SQLException {
     Driver driver = DriverManager.getDriver("jdbc:calcite:schema=file");
     assertNotNull(driver);
-    assertTrue(driver instanceof MaterializedViewJdbcDriver);
+    assertTrue(driver instanceof FileJdbcDriver);
 }
 
 @Test
@@ -459,7 +485,7 @@ public void testConnectionCreation() throws SQLException {
 @Test
 public void testSpilloverConfiguration() throws SQLException {
     String url = "jdbc:calcite:schema=file;data_path=/tmp/test;storage_path=/tmp/mv;"
-               + "engine=parquet;memory_threshold=8388608;spill_directory=/tmp/test_spill";
+               + "engine=parquet;memory_threshold=8388608";
     try (Connection conn = DriverManager.getConnection(url)) {
         // Verify spillover is properly configured
         CalciteConnection calciteConn = conn.unwrap(CalciteConnection.class);
@@ -506,7 +532,7 @@ public void testMaterializedViewRecovery() throws SQLException {
 ```java
 // Use connection pooling
 HikariConfig config = new HikariConfig();
-config.setDriverClassName("com.yourcompany.MaterializedViewJdbcDriver");
+config.setDriverClassName("org.apache.calcite.adapter.file.FileJdbcDriver");
 config.setJdbcUrl(jdbcUrl);
 config.setMaximumPoolSize(20);
 ```
@@ -914,6 +940,68 @@ String url = "jdbc:calcite:schema=file;data_path=/data;"
 // File "Sales_Report_2024.csv" becomes table "Sales_Report_2024"
 ```
 
+## Design Patterns
+
+### Thin Wrapper Pattern
+
+The `FileJdbcDriver` is already a complete, production-ready JDBC driver. However, you can create **thin wrapper drivers** for specific use cases:
+
+```java
+// Domain-specific driver with simplified URLs
+public class AnalyticsJdbcDriver extends FileJdbcDriver {
+    static {
+        new AnalyticsJdbcDriver().register();
+    }
+
+    @Override 
+    public boolean acceptsURL(String url) {
+        return url.startsWith("jdbc:analytics:");
+    }
+
+    @Override
+    public Connection connect(String url, Properties info) throws SQLException {
+        // Transform analytics:// URLs to calcite URLs
+        String calciteUrl = url.replace("jdbc:analytics:", "jdbc:calcite:schema=file;engine=parquet;");
+        return super.connect(calciteUrl, info);
+    }
+}
+
+// Cloud storage driver
+public class S3JdbcDriver extends FileJdbcDriver {
+    @Override
+    public boolean acceptsURL(String url) {
+        return url.startsWith("jdbc:s3:");
+    }
+    
+    @Override 
+    public Connection connect(String url, Properties info) throws SQLException {
+        // jdbc:s3://bucket/path -> jdbc:calcite:schema=file;storageType=s3;...
+        String s3Path = url.substring("jdbc:s3:".length());
+        String calciteUrl = "jdbc:calcite:schema=file;storageType=s3;directory=" + s3Path;
+        return super.connect(calciteUrl, info);
+    }
+}
+
+// Zero-configuration driver with optimal defaults
+public class AutoFileJdbcDriver extends FileJdbcDriver {
+    @Override
+    public Connection connect(String url, Properties info) throws SQLException {
+        // Auto-detect and set optimal defaults
+        if (!info.containsKey("engine")) {
+            info.setProperty("engine", "parquet"); // Best performance
+        }
+        return super.connect(url, info);
+    }
+}
+```
+
+**Benefits of Thin Wrappers:**
+- **Simpler URLs**: `jdbc:s3://bucket` vs `jdbc:calcite:schema=file;storageType=s3;directory=s3://bucket`
+- **Domain-specific defaults**: Analytics vs ETL vs reporting configurations
+- **Auto-configuration**: Based on URL patterns or environment detection
+- **Branded drivers**: For specific products or services
+- **URL transformation**: Convert proprietary formats to Calcite URLs
+
 ## Best Practices
 
 1. **Always extend the base Calcite Driver** to inherit connection management
@@ -926,16 +1014,17 @@ String url = "jdbc:calcite:schema=file;data_path=/data;"
 8. **Use thread-safe collections** for multi-threaded environments
 9. **Test with various configuration scenarios** including edge cases
 10. **Document your URL format and configuration options** clearly
-11. **🆕 Configure spillover appropriately** for your materialized view sizes
-12. **🆕 Monitor spillover statistics** in production environments
-13. **🆕 Use CSV format for very large materialized views** to enable streaming
-14. **🆕 Test with PARQUET engine** for best performance (328ms vs 538ms CSV)
-15. **🆕 Consider partitioned tables** for large datasets with natural hierarchies
-16. **🆕 Use typed partition columns** for numeric comparisons and aggregations
-17. **🆕 Configure refresh intervals** for tables that change frequently
-18. **🆕 Use custom regex partitions** for non-standard naming schemes
-19. **🆕 Enable auto-discovery** for Excel and HTML table extraction
-20. **🆕 Monitor refresh behavior** with RefreshableTable interface
+11. **🆕 Consider thin wrapper pattern** for domain-specific or simplified drivers
+12. **🆕 Configure spillover appropriately** for your materialized view sizes
+13. **🆕 Monitor spillover statistics** in production environments
+14. **🆕 Use CSV format for very large materialized views** to enable streaming
+15. **🆕 Test with PARQUET engine** for best performance (328ms vs 538ms CSV)
+16. **🆕 Consider partitioned tables** for large datasets with natural hierarchies
+17. **🆕 Use typed partition columns** for numeric comparisons and aggregations
+18. **🆕 Configure refresh intervals** for tables that change frequently
+19. **🆕 Use custom regex partitions** for non-standard naming schemes
+20. **🆕 Enable auto-discovery** for Excel and HTML table extraction
+21. **🆕 Monitor refresh behavior** with RefreshableTable interface
 
 ## Common Pitfalls
 
@@ -952,8 +1041,11 @@ String url = "jdbc:calcite:schema=file;data_path=/data;"
 ## Resources
 
 - **Calcite JDBC Driver Source**: Study the base Driver implementation
-- **EnhancedFileSchema**: Reference implementation for materialized view support
-- **ExecutionEngineConfig**: Configuration class for engine parameters
+- **FileSchema**: Reference implementation for file-based data access
+- **ExecutionEngineConfig**: Configuration class for engine parameters (org.apache.calcite.adapter.file.execution)
+- **FileJdbcDriver**: Example JDBC driver implementation (org.apache.calcite.adapter.file)
+- **PartitionedTableConfig**: Configuration for partitioned tables (org.apache.calcite.adapter.file.partition)
+- **MaterializedViewTable**: Materialized view implementation (org.apache.calcite.adapter.file.materialized)
 - **JDBC Specification**: Follow JDBC standards for compatibility
 
 ---

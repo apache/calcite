@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.adapter.file.feature;
 
-import org.apache.calcite.adapter.file.MultiTableExcelToJsonConverter;
+import org.apache.calcite.adapter.file.converters.MultiTableExcelToJsonConverter;
 
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -45,7 +45,7 @@ public class DetailedDebugTest {
 
       // First table
       Row h1 = sheet.createRow(0);
-      h1.createCell(0).setCellValue("ID");
+      h1.createCell(0).setCellValue("id");
       h1.createCell(1).setCellValue("Name");
 
       Row d1 = sheet.createRow(1);
@@ -58,8 +58,8 @@ public class DetailedDebugTest {
 
       // Second table
       Row h2 = sheet.createRow(4);
-      h2.createCell(0).setCellValue("Product");
-      h2.createCell(1).setCellValue("Price");
+      h2.createCell(0).setCellValue("product");
+      h2.createCell(1).setCellValue("price");
 
       Row d2 = sheet.createRow(5);
       d2.createCell(0).setCellValue("Widget");

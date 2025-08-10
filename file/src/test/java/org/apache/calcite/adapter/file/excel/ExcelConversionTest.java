@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.file;
 
+import org.apache.calcite.adapter.file.converters.SafeExcelToJsonConverter;
 import org.apache.calcite.schema.Table;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -55,7 +56,7 @@ public class ExcelConversionTest {
     excelFile.createNewFile();
 
     // Create FileSchema
-    FileSchema schema = new FileSchema(null, "test", tempDir.toFile(), null);
+    FileSchema schema = new FileSchema(null, "TEST", tempDir.toFile(), null);
 
     // Note: Without POI dependencies working, we can't actually convert Excel files
     // But we can test the schema creation and conflict detection logic
@@ -114,12 +115,12 @@ public class ExcelConversionTest {
     excelFile.createNewFile();
 
     // Create schema
-    FileSchema schema = new FileSchema(null, "test", tempDir.toFile(), null);
+    FileSchema schema = new FileSchema(null, "TEST", tempDir.toFile(), null);
     Map<String, Table> tables = schema.getTableMap();
 
     // Verify all file types are recognized
-    assertNotNull(tables.get("DATA"), "CSV file should be recognized");
-    assertNotNull(tables.get("CONFIG"), "JSON file should be recognized");
+    assertNotNull(tables.get("data"), "CSV file should be recognized");
+    assertNotNull(tables.get("config"), "JSON file should be recognized");
 
     System.out.println("Mixed directory tables: " + tables.keySet());
     assertTrue(tables.size() >= 2, "Should have at least CSV and JSON tables");

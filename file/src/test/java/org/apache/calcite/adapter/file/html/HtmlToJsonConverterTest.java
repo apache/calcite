@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.file;
 
+import org.apache.calcite.adapter.file.converters.HtmlToJsonConverter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -110,7 +111,7 @@ public class HtmlToJsonConverterTest {
     assertEquals(1, jsonFiles.size());
     File jsonFile = jsonFiles.get(0);
     assertTrue(jsonFile.exists());
-    assertEquals("simple_T1.json", jsonFile.getName());
+    assertEquals("simple__T1.json", jsonFile.getName());
 
     // Read and verify JSON content
     JsonNode root = mapper.readTree(jsonFile);
@@ -120,7 +121,7 @@ public class HtmlToJsonConverterTest {
     JsonNode firstRow = root.get(0);
     assertEquals("Alice", firstRow.get("Name").asText());
     assertEquals("30", firstRow.get("Age").asText());
-    assertEquals("New York", firstRow.get("City").asText());
+    assertEquals("New York", firstRow.get("city").asText());
 
     System.out.println("\n=== SIMPLE HTML CONVERSION TEST ===");
     System.out.println("✅ Single table extracted from HTML");
@@ -140,7 +141,7 @@ public class HtmlToJsonConverterTest {
     File salesFile = null;
     File inventoryFile = null;
     for (File f : jsonFiles) {
-      if (f.getName().contains("sales")) {
+      if (f.getName().contains("SALES")) {
         salesFile = f;
       } else if (f.getName().contains("inventory")) {
         inventoryFile = f;
@@ -153,7 +154,7 @@ public class HtmlToJsonConverterTest {
     // Verify sales table
     JsonNode salesData = mapper.readTree(salesFile);
     assertEquals(2, salesData.size());
-    assertEquals("Laptop", salesData.get(0).get("Product").asText());
+    assertEquals("Laptop", salesData.get(0).get("product").asText());
     assertEquals("5", salesData.get(0).get("Quantity").asText());
 
     // Verify inventory table
@@ -179,8 +180,8 @@ public class HtmlToJsonConverterTest {
 
     // Check first row
     JsonNode firstRow = data.get(0);
-    assertTrue(firstRow.get("ID").isNumber());
-    assertEquals(1, firstRow.get("ID").asInt());
+    assertTrue(firstRow.get("id").isNumber());
+    assertEquals(1, firstRow.get("id").asInt());
 
     assertTrue(firstRow.get("Score").isNumber());
     assertEquals(95, firstRow.get("Score").asInt());

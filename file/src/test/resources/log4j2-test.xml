@@ -42,7 +42,7 @@
     </logger>
     <logger name="org.apache.calcite.rel.rules.DpHyp" level="ERROR"/>
     <!-- File adapter specific logging -->
-    <logger name="org.apache.calcite.adapter.file.MultiTableExcelToJsonConverter" level="TRACE"/>
+    <logger name="org.apache.calcite.adapter.file.converters.MultiTableExcelToJsonConverter" level="TRACE"/>
     <logger name="org.apache.calcite.adapter.file" level="WARN"/>
   </Loggers>
 </Configuration>

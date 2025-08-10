@@ -16,8 +16,36 @@
  */
 package org.apache.calcite.adapter.file;
 
+import org.apache.calcite.adapter.file.converters.DocxTableScanner;
+import org.apache.calcite.adapter.file.converters.MarkdownTableScanner;
+import org.apache.calcite.adapter.file.converters.PptxTableScanner;
+import org.apache.calcite.adapter.file.converters.SafeExcelToJsonConverter;
+import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
+import org.apache.calcite.adapter.file.iceberg.IcebergTable;
+import org.apache.calcite.adapter.file.iceberg.IcebergMetadataTables;
+import org.apache.calcite.adapter.file.format.parquet.ParquetConversionUtil;
+import org.apache.calcite.adapter.file.materialized.MaterializedViewTable;
+import org.apache.calcite.adapter.file.partition.PartitionDetector;
+import org.apache.calcite.adapter.file.partition.PartitionedTableConfig;
+import org.apache.calcite.adapter.file.refresh.RefreshableCsvTable;
+import org.apache.calcite.adapter.file.refresh.RefreshableJsonTable;
+import org.apache.calcite.adapter.file.refresh.RefreshablePartitionedParquetTable;
+import org.apache.calcite.adapter.file.refresh.RefreshInterval;
+import org.apache.calcite.adapter.file.storage.HttpStorageProvider;
 import org.apache.calcite.adapter.file.storage.StorageProvider;
 import org.apache.calcite.adapter.file.storage.StorageProviderFactory;
+import org.apache.calcite.adapter.file.storage.StorageProviderFile;
+import org.apache.calcite.adapter.file.storage.StorageProviderSource;
+import org.apache.calcite.adapter.file.table.CsvScannableTable;
+import org.apache.calcite.adapter.file.table.CsvTranslatableTable;
+import org.apache.calcite.adapter.file.table.EnhancedCsvTranslatableTable;
+import org.apache.calcite.adapter.file.table.EnhancedJsonScannableTable;
+import org.apache.calcite.adapter.file.table.FileTable;
+import org.apache.calcite.adapter.file.table.GlobParquetTable;
+import org.apache.calcite.adapter.file.table.JsonScannableTable;
+import org.apache.calcite.adapter.file.table.ParquetJsonScannableTable;
+import org.apache.calcite.adapter.file.table.ParquetTranslatableTable;
+import org.apache.calcite.adapter.file.table.PartitionedParquetTable;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
@@ -58,7 +86,7 @@ import java.util.regex.Pattern;
  * Schema mapped onto a set of URLs / HTML tables. Each table in the schema
  * is an HTML table on a URL.
  */
-class FileSchema extends AbstractSchema {
+public class FileSchema extends AbstractSchema {
   private static final Logger LOGGER = LoggerFactory.getLogger(FileSchema.class);
   private static final Pattern WHITESPACE_PATTERN = Pattern.compile("\\s+");
 
@@ -98,7 +126,7 @@ class FileSchema extends AbstractSchema {
    * @param storageConfig   Storage-specific configuration, or null
    * @param flatten         Whether to flatten JSON/YAML structures, or null
    */
-  FileSchema(SchemaPlus parentSchema, String name, @Nullable File baseDirectory,
+  public FileSchema(SchemaPlus parentSchema, String name, @Nullable File baseDirectory,
       @Nullable String directoryPattern,
       @Nullable List<Map<String, Object>> tables, ExecutionEngineConfig engineConfig,
       boolean recursive,
@@ -159,7 +187,7 @@ class FileSchema extends AbstractSchema {
    * @param tableNameCasing Table name casing: "UPPER", "LOWER", or "UNCHANGED"
    * @param columnNameCasing Column name casing: "UPPER", "LOWER", or "UNCHANGED"
    */
-  FileSchema(SchemaPlus parentSchema, String name, @Nullable File baseDirectory,
+  public FileSchema(SchemaPlus parentSchema, String name, @Nullable File baseDirectory,
       @Nullable String directoryPattern,
       @Nullable List<Map<String, Object>> tables, ExecutionEngineConfig engineConfig,
       boolean recursive,
@@ -205,7 +233,7 @@ class FileSchema extends AbstractSchema {
    * @param partitionedTables List of partitioned table definitions, or null
    * @param refreshInterval Default refresh interval for tables (e.g., "5 minutes"), or null
    */
-  FileSchema(SchemaPlus parentSchema, String name, @Nullable File baseDirectory,
+  public FileSchema(SchemaPlus parentSchema, String name, @Nullable File baseDirectory,
       @Nullable String directoryPattern,
       @Nullable List<Map<String, Object>> tables, ExecutionEngineConfig engineConfig,
       boolean recursive,
@@ -230,7 +258,7 @@ class FileSchema extends AbstractSchema {
    * @param materializations List of materialized view definitions, or null
    * @param views           List of view definitions, or null
    */
-  FileSchema(SchemaPlus parentSchema, String name, @Nullable File baseDirectory,
+  public FileSchema(SchemaPlus parentSchema, String name, @Nullable File baseDirectory,
       @Nullable List<Map<String, Object>> tables, ExecutionEngineConfig engineConfig,
       boolean recursive,
       @Nullable List<Map<String, Object>> materializations,
@@ -252,7 +280,7 @@ class FileSchema extends AbstractSchema {
    * @param engineConfig  Execution engine configuration
    * @param recursive     Whether to recursively scan subdirectories
    */
-  FileSchema(SchemaPlus parentSchema, String name, @Nullable File baseDirectory,
+  public FileSchema(SchemaPlus parentSchema, String name, @Nullable File baseDirectory,
       @Nullable List<Map<String, Object>> tables, ExecutionEngineConfig engineConfig,
       boolean recursive) {
     this(parentSchema, name, baseDirectory, null, tables, engineConfig, recursive, null,
@@ -268,7 +296,7 @@ class FileSchema extends AbstractSchema {
    * @param tables        List containing table identifiers, or null
    * @param engineConfig  Execution engine configuration
    */
-  FileSchema(SchemaPlus parentSchema, String name, @Nullable File baseDirectory,
+  public FileSchema(SchemaPlus parentSchema, String name, @Nullable File baseDirectory,
       @Nullable List<Map<String, Object>> tables, ExecutionEngineConfig engineConfig) {
     this(parentSchema, name, baseDirectory, null, tables, engineConfig, false, null, null,
         null, null);
@@ -282,7 +310,7 @@ class FileSchema extends AbstractSchema {
    * @param baseDirectory Base directory to look for relative files, or null
    * @param tables        List containing table identifiers, or null
    */
-  FileSchema(SchemaPlus parentSchema, String name, @Nullable File baseDirectory,
+  public FileSchema(SchemaPlus parentSchema, String name, @Nullable File baseDirectory,
       @Nullable List<Map<String, Object>> tables) {
     this(parentSchema, name, baseDirectory, null, tables, new ExecutionEngineConfig(), false,
         null, null, null, null);
@@ -302,18 +330,7 @@ class FileSchema extends AbstractSchema {
    * Applies the configured casing transformation to an identifier.
    */
   private String applyCasing(String identifier, String casing) {
-    if (identifier == null) {
-      return null;
-    }
-    switch (casing) {
-    case "UPPER":
-      return identifier.toUpperCase(Locale.ROOT);
-    case "LOWER":
-      return identifier.toLowerCase(Locale.ROOT);
-    case "UNCHANGED":
-    default:
-      return identifier;
-    }
+    return org.apache.calcite.adapter.file.util.SmartCasing.applyCasing(identifier, casing);
   }
 
   /**
@@ -353,9 +370,7 @@ class FileSchema extends AbstractSchema {
     }
   }
 
-  private Map<String, List<HtmlTableScanner.TableInfo>> scanHtmlFiles(File baseDirectory) {
-    Map<String, List<HtmlTableScanner.TableInfo>> htmlTables = new LinkedHashMap<>();
-
+  private void convertHtmlFilesToJson(File baseDirectory) {
     // Get the list of all files and directories
     File[] files = baseDirectory.listFiles();
 
@@ -363,24 +378,19 @@ class FileSchema extends AbstractSchema {
       for (File file : files) {
         // If it's a directory and recursive is enabled, recurse into it
         if (file.isDirectory() && recursive) {
-          htmlTables.putAll(scanHtmlFiles(file));
+          convertHtmlFilesToJson(file);
         } else if ((file.getName().endsWith(".html") || file.getName().endsWith(".htm"))
             && !file.getName().startsWith("~")) {
-          // If it's a file ending in .html or .htm, scan it for tables
+          // If it's an HTML file, convert its tables to JSON
           try {
-            Source source = Sources.of(file);
-            List<HtmlTableScanner.TableInfo> tables = HtmlTableScanner.scanTables(source);
-            if (!tables.isEmpty()) {
-              htmlTables.put(file.getPath(), tables);
-            }
+            org.apache.calcite.adapter.file.converters.HtmlToJsonConverter.convert(
+                file, file.getParentFile(), columnNameCasing);
           } catch (Exception e) {
-            LOGGER.error("Error scanning HTML file: {} - {}", file.getName(), e.getMessage());
+            LOGGER.error("Error converting HTML file: {} - {}", file.getName(), e.getMessage());
           }
         }
       }
     }
-
-    return htmlTables;
   }
 
   private void convertMarkdownFilesToJson(File baseDirectory) {
@@ -472,7 +482,6 @@ class FileSchema extends AbstractSchema {
               || nameSansGz.endsWith(".json")
               || nameSansGz.endsWith(".yaml")
               || nameSansGz.endsWith(".yml")
-              || nameSansGz.endsWith(".html")
               || nameSansGz.endsWith(".arrow")
               || nameSansGz.endsWith(".parquet")) {
             files.add(file);
@@ -524,8 +533,8 @@ class FileSchema extends AbstractSchema {
       // Convert PPTX files to JSON
       convertPptxFilesToJson(baseDirectory);
 
-      // Always scan HTML files for tables
-      Map<String, List<HtmlTableScanner.TableInfo>> htmlTables = scanHtmlFiles(baseDirectory);
+      // Convert HTML files to JSON
+      convertHtmlFilesToJson(baseDirectory);
 
       final Source baseSource = Sources.of(baseDirectory);
       // Get files using glob or regular directory scanning
@@ -561,11 +570,11 @@ class FileSchema extends AbstractSchema {
           sourceSansJson = sourceSansGz.trimOrNull(".yml");
         }
         if (sourceSansJson != null) {
-          String baseName =
-              applyCasing(
-                  WHITESPACE_PATTERN.matcher(sourceSansJson.relative(baseSource).path()
+          String rawName = WHITESPACE_PATTERN.matcher(sourceSansJson.relative(baseSource).path()
               .replace(File.separator, "_"))
-              .replaceAll("_"), tableNameCasing);
+              .replaceAll("_");
+          String baseName = applyCasing(rawName, tableNameCasing);
+          System.out.println("FileSchema: Converting table name: '" + rawName + "' -> '" + baseName + "' (casing=" + tableNameCasing + ")");
           // Handle duplicate table names by adding extension suffix
           String tableName = baseName;
           if (tableNameCounts.containsKey(baseName)) {
@@ -578,6 +587,12 @@ class FileSchema extends AbstractSchema {
             tableName = baseName + ext;
           }
           tableNameCounts.put(baseName, tableNameCounts.getOrDefault(baseName, 0) + 1);
+          // Skip Calcite model files (they contain schema definitions, not data)
+          if (isCalciteModelFile(source)) {
+            LOGGER.debug("Skipping Calcite model file: {}", source.path());
+            continue;
+          }
+          
           // Create a table definition with schema-level refresh interval for JSON files
           Map<String, Object> autoTableDef = null;
           if (this.refreshInterval != null) {
@@ -653,40 +668,8 @@ class FileSchema extends AbstractSchema {
         // Explicit HTML tables with URL fragments are handled via table definitions
       }
 
-      // Add HTML tables discovered during scanning
-      if (htmlTables != null && !htmlTables.isEmpty()) {
-        for (Map.Entry<String, List<HtmlTableScanner.TableInfo>> entry : htmlTables.entrySet()) {
-          String htmlFilePath = entry.getKey();
-          Source htmlSource = Sources.of(new File(htmlFilePath));
-          String baseFileName = new File(htmlFilePath).getName();
-
-          // Remove extension
-          if (baseFileName.toLowerCase(Locale.ROOT).endsWith(".html")) {
-            baseFileName = baseFileName.substring(0, baseFileName.length() - 5);
-          } else if (baseFileName.toLowerCase(Locale.ROOT).endsWith(".htm")) {
-            baseFileName = baseFileName.substring(0, baseFileName.length() - 4);
-          }
-
-          // Create a FileTable for each table in the HTML
-          for (HtmlTableScanner.TableInfo tableInfo : entry.getValue()) {
-            String fullTableName = applyCasing(baseFileName + "__"
-                + tableInfo.name, tableNameCasing);
-
-            // Create table definition with selector
-            Map<String, Object> htmlTableDef = new LinkedHashMap<>();
-            htmlTableDef.put("selector", tableInfo.selector);
-            // Don't pass index when we have a specific selector
-            // The selector should already target the specific table
-
-            try {
-              FileTable table = FileTable.create(htmlSource, htmlTableDef);
-              builder.put(fullTableName, table);
-            } catch (Exception e) {
-              LOGGER.error("Failed to create table {} from {}: {}", fullTableName, htmlFilePath, e.getMessage());
-            }
-          }
-        }
-      }
+      // HTML tables are now handled as JSON files created by convertHtmlFilesToJson
+      // The JSON files will be picked up in the regular file scanning below
     } else if (storageProvider != null) {
       // Process files from storage provider
       LOGGER.debug("[FileSchema.getTableMap] Using storage provider to process files");
@@ -808,7 +791,15 @@ class FileSchema extends AbstractSchema {
       return true;
     }
 
-    // Regular processing for non-glob URLs
+    // Check if HTTP URL with custom configuration (POST, headers, etc.)
+    if ((url.startsWith("http://") || url.startsWith("https://")) 
+        && hasHttpConfiguration(tableDef)) {
+      final Source source = resolveSourceWithHttpConfig(url, tableDef);
+      System.out.println("FileSchema: Creating HTTP table '" + tableName + "' with source: " + source.path() + " (type: " + source.getClass().getName() + ")");
+      return addTable(builder, source, tableName, tableDef);
+    }
+
+    // Regular processing for URLs
     final Source source = resolveSource(url);
     return addTable(builder, source, tableName, tableDef);
   }
@@ -832,6 +823,65 @@ class FileSchema extends AbstractSchema {
     // Check for glob characters
     return path.contains("*") || path.contains("?")
            || (path.contains("[") && path.contains("]"));
+  }
+
+  /**
+   * Checks if a table definition has HTTP-specific configuration.
+   */
+  private boolean hasHttpConfiguration(Map<String, Object> tableDef) {
+    return tableDef != null && (
+        tableDef.containsKey("method") ||
+        tableDef.containsKey("body") ||
+        tableDef.containsKey("headers") ||
+        tableDef.containsKey("mimeType")
+    );
+  }
+
+  /**
+   * Resolves a Source with HTTP configuration for POST, headers, etc.
+   */
+  private Source resolveSourceWithHttpConfig(String url, Map<String, Object> tableDef) {
+    // Extract HTTP configuration from table definition
+    String method = (String) tableDef.getOrDefault("method", "GET");
+    String body = (String) tableDef.get("body");
+    String mimeType = (String) tableDef.get("mimeType");
+    
+    @SuppressWarnings("unchecked")
+    Map<String, String> headers = (Map<String, String>) tableDef.get("headers");
+    if (headers == null) {
+      headers = new HashMap<>();
+    }
+
+    // Create HTTP storage provider with configuration
+    HttpStorageProvider httpProvider = new HttpStorageProvider(method, body, headers, mimeType);
+    
+    // Try to get metadata for the file
+    StorageProvider.FileMetadata metadata;
+    try {
+      metadata = httpProvider.getMetadata(url);
+    } catch (Exception e) {
+      // If metadata can't be retrieved, use defaults
+      metadata = new StorageProvider.FileMetadata(url, -1, System.currentTimeMillis(), 
+                                                   "application/octet-stream", null);
+    }
+    
+    // Extract just the filename from the URL for the name field
+    String name = url.substring(url.lastIndexOf('/') + 1);
+    if (name.contains("?")) {
+      name = name.substring(0, name.indexOf('?'));
+    }
+    
+    // Create a FileEntry for the URL
+    StorageProvider.FileEntry fileEntry = new StorageProvider.FileEntry(
+        url,           // path
+        name,          // name
+        false,         // isDirectory
+        metadata.getSize(),         // size
+        metadata.getLastModified()  // lastModified
+    );
+    
+    // Create a StorageProviderSource that wraps the HTTP provider
+    return new StorageProviderSource(fileEntry, httpProvider);
   }
 
   /**
@@ -870,6 +920,7 @@ class FileSchema extends AbstractSchema {
 
   private boolean addTable(ImmutableMap.Builder<String, Table> builder,
       Source source, String tableName, @Nullable Map<String, Object> tableDef) {
+    System.out.println("FileSchema.addTable: tableName='" + tableName + "', source=" + source.path() + ", source type=" + source.getClass().getName());
     // Check if refresh is configured - if so, use enhanced table creation instead of direct Parquet conversion
     String refreshIntervalStr = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
     boolean hasRefresh = RefreshInterval.parse(refreshIntervalStr) != null;
@@ -954,7 +1005,9 @@ class FileSchema extends AbstractSchema {
         }
         final Table jsonTable =
             createEnhancedJsonTable(source, tableName, refreshInterval, options);
-        builder.put(applyCasing(Util.first(tableName, source.path()), tableNameCasing), jsonTable);
+        String finalTableName = applyCasing(Util.first(tableName, source.path()), tableNameCasing);
+        System.out.println("FileSchema.addTable: Created JSON table of type: " + jsonTable.getClass().getName() + " for table '" + tableName + "' -> registered as '" + finalTableName + "'");
+        builder.put(finalTableName, jsonTable);
         return true;
       case "csv":
         refreshInterval = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
@@ -1024,6 +1077,22 @@ class FileSchema extends AbstractSchema {
             + "because they can contain multiple tables. "
             + "Place the DOCX file in your schema directory and it will be automatically "
             + "processed, with each table accessible as 'filename__tablename'.");
+      case "iceberg":
+        // Create Iceberg table
+        Map<String, Object> icebergConfig = tableDef != null 
+            ? new HashMap<>(tableDef)
+            : new HashMap<>();
+        // Add storage config if available
+        if (this.storageConfig != null) {
+          icebergConfig.putAll(this.storageConfig);
+        }
+        final Table icebergTable = createIcebergTable(source, tableName, icebergConfig);
+        String icebergTableName = applyCasing(Util.first(tableName, source.path()), tableNameCasing);
+        builder.put(icebergTableName, icebergTable);
+        
+        // Add metadata tables if this is an Iceberg table
+        addIcebergMetadataTables(builder, icebergTableName, icebergTable);
+        return true;
       default:
         throw new RuntimeException("Unsupported format override: " + forcedFormat
             + " for table: " + tableName);
@@ -1234,13 +1303,13 @@ class FileSchema extends AbstractSchema {
             options.put("flattenSeparator", tableDef.get("flattenSeparator"));
           }
         }
-        return new JsonScannableTable(source, options);
+        return new JsonScannableTable(source, options, columnNameCasing);
       case "csv":
         // Use simple table for conversion to avoid Arrow issues
-        return new CsvTranslatableTable(source, null);
+        return new CsvTranslatableTable(source, null, columnNameCasing);
       case "tsv":
         // Use simple table for conversion to avoid Arrow issues
-        return new CsvTranslatableTable(source, null);
+        return new CsvTranslatableTable(source, null, columnNameCasing);
       case "yaml":
       case "yml":
         // Use simple table for conversion to avoid Arrow issues
@@ -1252,7 +1321,7 @@ class FileSchema extends AbstractSchema {
             options.put("flattenSeparator", tableDef.get("flattenSeparator"));
           }
         }
-        return new JsonScannableTable(source, options);
+        return new JsonScannableTable(source, options, columnNameCasing);
       default:
         return null;
       }
@@ -1274,19 +1343,19 @@ class FileSchema extends AbstractSchema {
         options = new HashMap<>();
         options.put("flatten", this.flatten);
       }
-      return new JsonScannableTable(source, options);
+      return new JsonScannableTable(source, options, columnNameCasing);
     }
 
     final Source sourceSansCsv = sourceSansGz.trimOrNull(".csv");
     if (sourceSansCsv != null) {
       // Use simple table for conversion to avoid Arrow issues
-      return new CsvTranslatableTable(source, null);
+      return new CsvTranslatableTable(source, null, columnNameCasing);
     }
 
     final Source sourceSansTsv = sourceSansGz.trimOrNull(".tsv");
     if (sourceSansTsv != null) {
       // Use simple table for conversion to avoid Arrow issues
-      return new CsvTranslatableTable(source, null);
+      return new CsvTranslatableTable(source, null, columnNameCasing);
     }
 
     return null;
@@ -1366,21 +1435,21 @@ class FileSchema extends AbstractSchema {
     case VECTORIZED:
       if (effectiveInterval != null && tableName != null) {
         // TODO: Create RefreshableEnhancedJsonTable when needed
-        return new EnhancedJsonScannableTable(source, engineConfig, options);
+        return new EnhancedJsonScannableTable(source, engineConfig, options, columnNameCasing);
       }
-      return new EnhancedJsonScannableTable(source, engineConfig, options);
+      return new EnhancedJsonScannableTable(source, engineConfig, options, columnNameCasing);
     case PARQUET:
       if (effectiveInterval != null && tableName != null) {
-        return new RefreshableJsonTable(source, tableName, effectiveInterval);
+        return new RefreshableJsonTable(source, tableName, effectiveInterval, columnNameCasing);
       }
-      return new ParquetJsonScannableTable(source, engineConfig, options);
+      return new ParquetJsonScannableTable(source, engineConfig, options, columnNameCasing);
     case ARROW:
     case LINQ4J:
     default:
       if (effectiveInterval != null && tableName != null) {
-        return new RefreshableJsonTable(source, tableName, effectiveInterval);
+        return new RefreshableJsonTable(source, tableName, effectiveInterval, columnNameCasing);
       }
-      return new JsonScannableTable(source, options);
+      return new JsonScannableTable(source, options, columnNameCasing);
     }
   }
 
@@ -1705,6 +1774,27 @@ class FileSchema extends AbstractSchema {
   }
   
   /**
+   * Checks if a JSON Source is a Calcite model file (should not be treated as data).
+   */
+  private boolean isCalciteModelFile(Source source) {
+    if (!source.path().toLowerCase().endsWith(".json") && 
+        !source.path().toLowerCase().endsWith(".json.gz")) {
+      return false;
+    }
+    
+    try {
+      com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+      com.fasterxml.jackson.databind.JsonNode root = mapper.readTree(source.reader());
+      
+      // Check for typical Calcite model structure
+      return root.has("version") && root.has("schemas");
+    } catch (Exception e) {
+      // If we can't read it, assume it's not a model file
+      return false;
+    }
+  }
+  
+  /**
    * Process files from the configured storage provider.
    */
   private void processStorageProviderFiles(ImmutableMap.Builder<String, Table> builder,
@@ -1767,6 +1857,12 @@ class FileSchema extends AbstractSchema {
               tableName = baseName + ext;
             }
             tableNameCounts.put(baseName, tableNameCounts.getOrDefault(baseName, 0) + 1);
+            // Skip Calcite model files (they contain schema definitions, not data)
+            if (isCalciteModelFile(source)) {
+              LOGGER.debug("Skipping Calcite model file: {}", source.path());
+              continue;
+            }
+            
             // Create table with refresh interval if configured
             Map<String, Object> autoTableDef = null;
             if (this.refreshInterval != null) {
@@ -1842,6 +1938,37 @@ class FileSchema extends AbstractSchema {
     } catch (Exception e) {
       LOGGER.error("Error processing files from storage provider: {}", e.getMessage());
       e.printStackTrace();
+    }
+  }
+
+  /**
+   * Creates an Iceberg table from the given source and configuration.
+   */
+  private Table createIcebergTable(Source source, String tableName, Map<String, Object> config) {
+    try {
+      // Create Iceberg table with source
+      return new IcebergTable(source, config);
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to create Iceberg table: " + tableName, e);
+    }
+  }
+
+  /**
+   * Adds Iceberg metadata tables for a given Iceberg table.
+   */
+  private void addIcebergMetadataTables(ImmutableMap.Builder<String, Table> builder, 
+                                        String baseTableName, Table icebergTable) {
+    if (!(icebergTable instanceof IcebergTable)) {
+      return;
+    }
+    
+    IcebergTable table = (IcebergTable) icebergTable;
+    
+    // Add metadata tables
+    Map<String, Table> metadataTables = IcebergMetadataTables.createMetadataTables(table);
+    for (Map.Entry<String, Table> entry : metadataTables.entrySet()) {
+      String metadataTableName = baseTableName + "$" + entry.getKey();
+      builder.put(metadataTableName, entry.getValue());
     }
   }
 }

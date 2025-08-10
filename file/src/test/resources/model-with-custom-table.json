@@ -24,7 +24,7 @@
         {
           "name": "EMPS",
           "type": "custom",
-          "factory": "org.apache.calcite.adapter.file.CsvTableFactory",
+          "factory": "org.apache.calcite.adapter.file.format.csv.CsvTableFactory",
           "operand": {
             "file": "sales/EMPS.csv.gz",
             "flavor": "scannable"

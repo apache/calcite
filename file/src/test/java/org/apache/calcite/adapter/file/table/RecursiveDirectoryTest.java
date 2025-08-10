@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.file;
 
+import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 
@@ -98,8 +99,8 @@ public class RecursiveDirectoryTest {
          CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
 
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
-      rootSchema.add("files",
-          new FileSchema(rootSchema, "files", tempDir.toFile(), null,
+      rootSchema.add("FILES",
+          new FileSchema(rootSchema, "FILES", tempDir.toFile(), null,
               new ExecutionEngineConfig(), true, null, null));
 
       try (Statement statement = connection.createStatement()) {
@@ -138,13 +139,13 @@ public class RecursiveDirectoryTest {
          CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
 
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
-      rootSchema.add("files",
-          new FileSchema(rootSchema, "files", tempDir.toFile(), null,
+      rootSchema.add("FILES",
+          new FileSchema(rootSchema, "FILES", tempDir.toFile(), null,
               new ExecutionEngineConfig(), false, null, null));
 
       try (Statement statement = connection.createStatement()) {
         // Count tables - should only find root level
-        ResultSet tables = connection.getMetaData().getTables(null, "files", "%", null);
+        ResultSet tables = connection.getMetaData().getTables(null, "FILES", "%", null);
         int tableCount = 0;
         boolean foundRootData = false;
         boolean foundNestedData = false;

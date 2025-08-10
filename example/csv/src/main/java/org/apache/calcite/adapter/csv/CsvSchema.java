@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.adapter.csv;
 
-import org.apache.calcite.adapter.file.JsonScannableTable;
+import org.apache.calcite.adapter.file.table.JsonScannableTable;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.util.Source;

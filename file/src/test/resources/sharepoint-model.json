@@ -15,9 +15,7 @@
           "clientSecret": "${SHAREPOINT_CLIENT_SECRET}"
         },
         "directory": "/Shared Documents",
-        "recursive": false,
-        "tableNameCasing": "UPPER",
-        "columnNameCasing": "UNCHANGED"
+        "recursive": false
       }
     }
   ]
