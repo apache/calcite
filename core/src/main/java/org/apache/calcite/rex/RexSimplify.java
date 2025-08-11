@@ -92,7 +92,9 @@ public class RexSimplify {
       ImmutableList.of(SqlStdOperatorTable.UPPER,
           SqlStdOperatorTable.LOWER,
           SqlStdOperatorTable.INITCAP,
-          SqlStdOperatorTable.ABS);
+          SqlStdOperatorTable.ABS,
+          SqlStdOperatorTable.FLOOR,
+          SqlStdOperatorTable.CEIL);
 
   /**
    * Creates a RexSimplify.
@@ -340,8 +342,7 @@ public class RexSimplify {
     default:
       if (e.getClass() == RexCall.class) {
         RexCall rexCall = (RexCall) e;
-        rexCall = simplifyIdempotentUnaryFunction(rexCall);
-        return simplifyGenericNode(rexCall);
+        return simplifyIdempotentUnaryFunction(rexCall);
       } else {
         return e;
       }
@@ -407,18 +408,26 @@ public class RexSimplify {
 
   /**
    * Runs simplification unary function by eliminating idempotent.
+   *
+   * <p>Examples:
+   * <ul>
+   *
+   * <li>{@code abs(abs(abs(n))} returns {@code abs(n)}
+   *
+   * </ul>
    */
-  private RexCall simplifyIdempotentUnaryFunction(RexCall rexCall) {
+  private RexNode simplifyIdempotentUnaryFunction(RexCall rexCall) {
     while (IDEMOTENT_UNARY_FUNCTIONS.contains(rexCall.getOperator())
         && rexCall.getOperands().get(0) instanceof RexCall) {
       RexCall subRexCall = (RexCall) rexCall.getOperands().get(0);
-      if (rexCall.getOperator() == subRexCall.getOperator()) {
+      if (rexCall.getOperator() == subRexCall.getOperator()
+          && rexCall.operands.size() == subRexCall.operands.size()) {
         rexCall = subRexCall;
       } else {
         break;
       }
     }
-    return rexCall;
+    return simplifyGenericNode(rexCall);
   }
 
   /**
@@ -2397,7 +2406,7 @@ public class RexSimplify {
   private RexNode simplifyCeilFloor(RexCall e) {
     if (e.getOperands().size() != 2) {
       // Bail out since we only simplify floor <date>
-      return e;
+      return simplifyIdempotentUnaryFunction(e);
     }
     final RexNode operand = simplify(e.getOperands().get(0), UNKNOWN);
     if (e.getKind() == operand.getKind()) {
@@ -2406,7 +2415,7 @@ public class RexSimplify {
       final RexCall child = (RexCall) operand;
       if (child.getOperands().size() != 2) {
         // Bail out since we only simplify ceil/floor <date>
-        return e;
+        return simplifyIdempotentUnaryFunction(e);
       }
       final RexLiteral parentFlag = (RexLiteral) e.operands.get(1);
       final TimeUnitRange parentFlagValue = (TimeUnitRange) parentFlag.getValue();
@@ -2415,12 +2424,12 @@ public class RexSimplify {
       if (parentFlagValue != null && childFlagValue != null) {
         if (canRollUp(parentFlagValue.startUnit, childFlagValue.startUnit)) {
           return e.clone(e.getType(),
-              ImmutableList.of(child.getOperands().get(0), parentFlag));
+              ImmutableList.of(simplify(child.getOperands().get(0)), parentFlag));
         }
       }
     }
     return e.clone(e.getType(),
-        ImmutableList.of(operand, e.getOperands().get(1)));
+        ImmutableList.of(simplify(operand), e.getOperands().get(1)));
   }
 
   /** Simplify TRIM function by eliminating nested duplication.

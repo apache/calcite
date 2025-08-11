@@ -368,12 +368,13 @@ public class RexImplicationCheckerTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-7122">[CALCITE-7122]
-   * Eliminate nested calls for idempotent unary functions UPPER/LOWER/ABS/INITCAP</a>. */
+   * Eliminate nested calls for idempotent unary functions UPPER/LOWER/ABS/INITCAP/CEIL/FLOOR</a>.
+   * */
   @Test void testSimplifyIdempotentUnaryFunctions() {
     // Test that:
     // upper(upper(x)) is simplied to upper(x)
-    // lower(upper(x)) is simplied to lower(x)
-    // initcap(upper(x)) is simplied to initcap(x)
+    // lower(lower(x)) is simplied to lower(x)
+    // initcap(initcap(x)) is simplied to initcap(x)
     final Fixture f = new Fixture();
     List<SqlOperator> testOeratorList =
         Arrays.asList(SqlStdOperatorTable.UPPER,
@@ -394,7 +395,30 @@ public class RexImplicationCheckerTest {
           is(((RexLiteral) innerCall.getOperands().get(0)).getValue()));
     }
 
-    // Test that abs(abs(x)) is simplied to abs(x)
+    // Test that:
+    // floor(floor(x)) is simplied to floor(x)
+    // ceil(ceil(x)) is simplied to ceil(x)
+    // abs(abs(x)) is simplied to abs(x)
+    testOeratorList =
+        Arrays.asList(SqlStdOperatorTable.ABS,
+            SqlStdOperatorTable.FLOOR,
+            SqlStdOperatorTable.CEIL);
+    for (SqlOperator operator : testOeratorList) {
+      RelDataType intType = f.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.DECIMAL);
+      RexCall innerCall =
+          (RexCall) f.rexBuilder
+              .makeCall(operator, f.rexBuilder.makeLiteral(12, intType));
+      RexCall outerCall =
+          (RexCall) f.rexBuilder
+              .makeCall(operator, innerCall);
+      RexCall simplifiedInnerCall =
+          (RexCall) f.simplify.simplifyPreservingType(outerCall,
+              RexUnknownAs.UNKNOWN, true);
+      assertThat(((RexLiteral) simplifiedInnerCall.getOperands().get(0)).getValue(),
+          is(((RexLiteral) innerCall.getOperands().get(0)).getValue()));
+    }
+
+    // Test that max(abs(abs(x))) is simplied to max(abs(x))
     RelDataType intType = f.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
     RexCall innerCall =
         (RexCall) f.rexBuilder
@@ -402,18 +426,10 @@ public class RexImplicationCheckerTest {
     RexCall outerCall =
         (RexCall) f.rexBuilder
             .makeCall(SqlStdOperatorTable.ABS, innerCall);
-    RexCall simplifiedInnerCall =
-        (RexCall) f.simplify.simplifyPreservingType(outerCall,
-            RexUnknownAs.UNKNOWN, true);
-
-    assertThat(((RexLiteral) simplifiedInnerCall.getOperands().get(0)).getValue(),
-        is(((RexLiteral) innerCall.getOperands().get(0)).getValue()));
-
-    // Test that max(abs(abs(x))) is simplied to max(abs(x))
     RexCall maxCall =
         (RexCall) f.rexBuilder
             .makeCall(SqlStdOperatorTable.MAX, outerCall);
-    simplifiedInnerCall =
+    RexCall simplifiedInnerCall =
         (RexCall) f.simplify.simplifyPreservingType(maxCall,
             RexUnknownAs.UNKNOWN, true);
     assertThat(simplifiedInnerCall.getOperator(), is(SqlStdOperatorTable.MAX));
