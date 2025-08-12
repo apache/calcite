@@ -108,7 +108,7 @@ public class FileAdapterTest {
 
   /** Reads the EMPS table. */
   @Test void testSalesEmps() {
-    final String sql = "select * from \"SALES\".\"emps\"";
+    final String sql = "select \"EMPNO\", \"NAME\", \"DEPTNO\" from \"SALES\".\"emps\"";
     sql("SALES", sql)
         .returns("EMPNO=100; NAME=Fred; DEPTNO=30",
             "EMPNO=110; NAME=Eric; DEPTNO=20",

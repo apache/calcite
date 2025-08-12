@@ -60,6 +60,7 @@ public class TableNameCasingTest {
     // Create schema with default settings (should uppercase table names)
     Map<String, Object> operand = new HashMap<>();
     operand.put("directory", tempDir.getAbsolutePath());
+    operand.put("tableNameCasing", "UPPER");
 
     try (Connection connection = createConnection()) {
       CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class);
@@ -78,7 +79,7 @@ public class TableNameCasingTest {
         }
         tables.close();
 
-        ResultSet rs = statement.executeQuery("SELECT * FROM test.test_data");
+        ResultSet rs = statement.executeQuery("SELECT * FROM \"TEST\".\"TEST_DATA\"");
         System.out.println("Query executed successfully");
         boolean hasNext = rs.next();
         System.out.println("ResultSet.next() = " + hasNext);
@@ -95,7 +96,7 @@ public class TableNameCasingTest {
 
       // Query with lowercase should fail
       try (Statement statement = connection.createStatement()) {
-        statement.executeQuery("SELECT * FROM test.test_data");
+        statement.executeQuery("SELECT * FROM \"TEST\".test_data");
         fail("Expected query to fail with lowercase table name");
       } catch (SQLException e) {
         System.out.println("Exception message: " + e.getMessage());
@@ -127,7 +128,7 @@ public class TableNameCasingTest {
 
       // Query should work with lowercase table name
       try (Statement statement = connection.createStatement()) {
-        ResultSet rs = statement.executeQuery("SELECT * FROM test.test_data");
+        ResultSet rs = statement.executeQuery("SELECT * FROM \"TEST\".test_data");
         assertTrue(rs.next());
         assertThat(rs.getInt("id"), equalTo(1));
         assertThat(rs.getString("name"), equalTo("Alice"));
@@ -135,7 +136,7 @@ public class TableNameCasingTest {
 
       // Query with uppercase should fail
       try (Statement statement = connection.createStatement()) {
-        statement.executeQuery("SELECT * FROM test.TEST_DATA");
+        statement.executeQuery("SELECT * FROM \"TEST\".\"TEST_DATA\"");
         fail("Expected query to fail with uppercase table name");
       } catch (SQLException e) {
         System.out.println("Exception message: " + e.getMessage());
@@ -167,7 +168,7 @@ public class TableNameCasingTest {
 
       // Query should work with exact case match
       try (Statement statement = connection.createStatement()) {
-        ResultSet rs = statement.executeQuery("SELECT * FROM test.Test_Data");
+        ResultSet rs = statement.executeQuery("SELECT * FROM \"TEST\".\"Test_Data\"");
         assertTrue(rs.next());
         assertThat(rs.getInt("id"), equalTo(1));
         assertThat(rs.getString("name"), equalTo("Alice"));
@@ -175,7 +176,7 @@ public class TableNameCasingTest {
 
       // Query with different case should fail
       try (Statement statement = connection.createStatement()) {
-        statement.executeQuery("SELECT * FROM test.test_data");
+        statement.executeQuery("SELECT * FROM \"TEST\".test_data");
         fail("Expected query to fail with incorrect case");
       } catch (SQLException e) {
         System.out.println("Exception message: " + e.getMessage());
@@ -207,7 +208,7 @@ public class TableNameCasingTest {
 
       // Query should work with lowercase column names
       try (Statement statement = connection.createStatement()) {
-        ResultSet rs = statement.executeQuery("SELECT customer_id, first_name FROM test.test_columns");
+        ResultSet rs = statement.executeQuery("SELECT customer_id, first_name FROM \"TEST\".test_columns");
         assertTrue(rs.next());
         assertThat(rs.getInt("customer_id"), equalTo(1));
         assertThat(rs.getString("first_name"), equalTo("John"));
@@ -239,7 +240,7 @@ public class TableNameCasingTest {
 
       // Everything should be lowercase
       try (Statement statement = connection.createStatement()) {
-        ResultSet rs = statement.executeQuery("SELECT product_id, product_name, unit_price FROM test.mixed_case_table");
+        ResultSet rs = statement.executeQuery("SELECT product_id, product_name, unit_price FROM \"TEST\".mixed_case_table");
         assertTrue(rs.next());
         assertThat(rs.getInt("product_id"), equalTo(1));
         assertThat(rs.getString("product_name"), equalTo("Widget"));

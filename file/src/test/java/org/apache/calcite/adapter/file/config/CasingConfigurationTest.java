@@ -20,8 +20,8 @@ import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-
+import org.junit.jupiter.api.Tag;import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.Tag;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -38,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Test for table and column name casing configuration in the file adapter.
  */
 @SuppressWarnings("deprecation")
-public class CasingConfigurationTest {
+@Tag("unit")public class CasingConfigurationTest {
 
   @TempDir
   public File tempDir;

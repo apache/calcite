@@ -1,0 +1,17 @@
+[
+{"engine":"linq4j","rows":1000,"scenario":"simple_aggregation","executionTimeMs":7,"executionTimeMicros":7000,"timestamp":1754940236566},
+{"engine":"parquet","rows":1000,"scenario":"simple_aggregation","executionTimeMs":8,"executionTimeMicros":8000,"timestamp":1754940238124},
+{"engine":"parquet+hll","rows":1000,"scenario":"simple_aggregation","executionTimeMs":7,"executionTimeMicros":7000,"timestamp":1754940239946},
+{"engine":"parquet+vec","rows":1000,"scenario":"simple_aggregation","executionTimeMs":7,"executionTimeMicros":7000,"timestamp":1754940241553},
+{"engine":"parquet+all","rows":1000,"scenario":"simple_aggregation","executionTimeMs":7,"executionTimeMicros":7000,"timestamp":1754940243287},
+{"engine":"arrow","rows":1000,"scenario":"simple_aggregation","executionTimeMs":8,"executionTimeMicros":8000,"timestamp":1754940244792},
+{"engine":"vectorized","rows":1000,"scenario":"simple_aggregation","executionTimeMs":7,"executionTimeMicros":7000,"timestamp":1754940246402},
+{"engine":"linq4j","rows":1000,"scenario":"count_distinct_single","executionTimeMs":9,"executionTimeMicros":9000,"timestamp":1754940248001},
+{"engine":"parquet","rows":1000,"scenario":"count_distinct_single","executionTimeMs":8,"executionTimeMicros":8000,"timestamp":1754940249616},
+{"engine":"parquet+hll","rows":1000,"scenario":"count_distinct_single","executionTimeMs":0,"executionTimeMicros":0,"timestamp":1754940251169},
+{"engine":"parquet+vec","rows":1000,"scenario":"count_distinct_single","executionTimeMs":7,"executionTimeMicros":7000,"timestamp":1754940252734},
+{"engine":"parquet+all","rows":1000,"scenario":"count_distinct_single","executionTimeMs":0,"executionTimeMicros":0,"timestamp":1754940254278},
+{"engine":"arrow","rows":1000,"scenario":"count_distinct_single","executionTimeMs":9,"executionTimeMicros":9000,"timestamp":1754940255901},
+{"engine":"vectorized","rows":1000,"scenario":"count_distinct_single","executionTimeMs":7,"executionTimeMicros":7000,"timestamp":1754940257519},
+{"engine":"linq4j","rows":1000,"scenario":"count_distinct_multiple","executionTimeMs":8,"executionTimeMicros":8000,"timestamp":1754940259242},
+{"engine":"parquet","rows":1000,"scenario":"count_distinct_multiple","executionTimeMs":9,"executionTimeMicros":9000,"timestamp":1754940260830}

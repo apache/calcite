@@ -192,8 +192,31 @@ public class IcebergMetadataTables {
         public Enumerator<Object[]> enumerator() {
           List<Object[]> rows = new ArrayList<>();
           
-          // Note: This is a simplified implementation
-          // A full implementation would scan all manifests and list all data files
+          try {
+            org.apache.iceberg.Table table = icebergTable.getIcebergTable();
+            Snapshot currentSnapshot = table.currentSnapshot();
+            
+            if (currentSnapshot != null) {
+              // Scan all data files in the current snapshot
+              try (CloseableIterable<org.apache.iceberg.FileScanTask> fileScanTasks = 
+                   table.newScan().planFiles()) {
+                
+                for (org.apache.iceberg.FileScanTask fileScanTask : fileScanTasks) {
+                  DataFile dataFile = fileScanTask.file();
+                  rows.add(new Object[]{
+                      dataFile.content().id(),  // content type (0=DATA, 1=POSITION_DELETES, 2=EQUALITY_DELETES)
+                      dataFile.path().toString(),
+                      dataFile.format().toString(),
+                      dataFile.specId(),
+                      dataFile.recordCount(),
+                      dataFile.fileSizeInBytes()
+                  });
+                }
+              }
+            }
+          } catch (Exception e) {
+            throw new RuntimeException("Failed to read data files", e);
+          }
           
           return new ListEnumerator<>(rows);
         }
@@ -229,8 +252,27 @@ public class IcebergMetadataTables {
         public Enumerator<Object[]> enumerator() {
           List<Object[]> rows = new ArrayList<>();
           
-          // Note: This is a simplified implementation
-          // A full implementation would scan current snapshot's manifest list
+          try {
+            org.apache.iceberg.Table table = icebergTable.getIcebergTable();
+            Snapshot currentSnapshot = table.currentSnapshot();
+            
+            if (currentSnapshot != null && currentSnapshot.allManifests(table.io()) != null) {
+              // Scan all manifest files in the current snapshot
+              for (ManifestFile manifestFile : currentSnapshot.allManifests(table.io())) {
+                rows.add(new Object[]{
+                    manifestFile.path(),
+                    manifestFile.length(),
+                    manifestFile.partitionSpecId(),
+                    manifestFile.snapshotId(),
+                    manifestFile.addedFilesCount(),
+                    manifestFile.existingFilesCount(),
+                    manifestFile.deletedFilesCount()
+                });
+              }
+            }
+          } catch (Exception e) {
+            throw new RuntimeException("Failed to read manifest files", e);
+          }
           
           return new ListEnumerator<>(rows);
         }
@@ -262,12 +304,66 @@ public class IcebergMetadataTables {
         public Enumerator<Object[]> enumerator() {
           List<Object[]> rows = new ArrayList<>();
           
-          // Note: This is a simplified implementation
-          // A full implementation would group files by partition
+          try {
+            org.apache.iceberg.Table table = icebergTable.getIcebergTable();
+            Snapshot currentSnapshot = table.currentSnapshot();
+            
+            if (currentSnapshot != null) {
+              // Group files by partition to calculate statistics
+              Map<String, PartitionStats> partitionStats = new HashMap<>();
+              
+              try (CloseableIterable<org.apache.iceberg.FileScanTask> fileScanTasks = 
+                   table.newScan().planFiles()) {
+                
+                for (org.apache.iceberg.FileScanTask fileScanTask : fileScanTasks) {
+                  DataFile dataFile = fileScanTask.file();
+                  // Convert partition data to string representation
+                  String partitionKey = partitionToString(dataFile.partition());
+                  
+                  PartitionStats stats = partitionStats.computeIfAbsent(partitionKey, 
+                      k -> new PartitionStats());
+                  stats.recordCount += dataFile.recordCount();
+                  stats.fileCount++;
+                }
+              }
+              
+              // Convert to rows
+              for (Map.Entry<String, PartitionStats> entry : partitionStats.entrySet()) {
+                rows.add(new Object[]{
+                    entry.getKey(),
+                    entry.getValue().recordCount,
+                    entry.getValue().fileCount
+                });
+              }
+            }
+          } catch (Exception e) {
+            throw new RuntimeException("Failed to read partition information", e);
+          }
           
           return new ListEnumerator<>(rows);
         }
+        
+        private String partitionToString(StructLike partition) {
+          if (partition == null) {
+            return "{}";
+          }
+          
+          StringBuilder sb = new StringBuilder();
+          sb.append("{");
+          for (int i = 0; i < partition.size(); i++) {
+            if (i > 0) sb.append(", ");
+            Object value = partition.get(i, Object.class);
+            sb.append(value != null ? value.toString() : "null");
+          }
+          sb.append("}");
+          return sb.toString();
+        }
       };
+    }
+    
+    private static class PartitionStats {
+      long recordCount = 0;
+      int fileCount = 0;
     }
   }
 

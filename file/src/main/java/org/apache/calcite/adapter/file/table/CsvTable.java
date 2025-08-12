@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.file.table;
 
 import org.apache.calcite.adapter.file.execution.linq4j.CsvEnumerator;
+import org.apache.calcite.adapter.file.format.csv.CsvTypeInferrer;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -28,8 +29,10 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Base class for table that reads CSV files.
@@ -44,6 +47,7 @@ public abstract class CsvTable extends AbstractTable {
   public final String columnCasing;
   private @Nullable RelDataType rowType;
   private @Nullable List<RelDataType> fieldTypes;
+  protected final CsvTypeInferrer.TypeInferenceConfig typeInferenceConfig;
 
   /** Creates a CsvTable. */
   public CsvTable(Source source, @Nullable RelProtoDataType protoRowType) {
@@ -52,9 +56,21 @@ public abstract class CsvTable extends AbstractTable {
 
   /** Creates a CsvTable with column casing. */
   public CsvTable(Source source, @Nullable RelProtoDataType protoRowType, String columnCasing) {
+    this(source, protoRowType, columnCasing, CsvTypeInferrer.TypeInferenceConfig.disabled());
+  }
+  
+  /** Creates a CsvTable with column casing and type inference. */
+  public CsvTable(Source source, @Nullable RelProtoDataType protoRowType, String columnCasing,
+      CsvTypeInferrer.TypeInferenceConfig typeInferenceConfig) {
     this.source = source;
     this.protoRowType = protoRowType;
     this.columnCasing = columnCasing;
+    this.typeInferenceConfig = typeInferenceConfig;
+  }
+  
+  /** Returns the type inference configuration. */
+  public CsvTypeInferrer.TypeInferenceConfig getTypeInferenceConfig() {
+    return typeInferenceConfig;
   }
 
   @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
@@ -64,10 +80,56 @@ public abstract class CsvTable extends AbstractTable {
     if (rowType == null) {
       LOGGER.debug("Deducing row type for source: {}", source.path());
       try {
+        // First get the basic row type with column names
         rowType =
             CsvEnumerator.deduceRowType((JavaTypeFactory) typeFactory, source,
                 null, isStream(), columnCasing);
-        LOGGER.debug("Deduced row type with {} fields", rowType.getFieldCount());
+        
+        LOGGER.debug("CSV table {}: typeInferenceConfig={}, enabled={}", 
+            source.path(), 
+            typeInferenceConfig != null ? "present" : "null",
+            typeInferenceConfig != null ? typeInferenceConfig.isEnabled() : "N/A");
+        
+        // If type inference is enabled, refine the column types
+        if (typeInferenceConfig != null && typeInferenceConfig.isEnabled() && !isStream()) {
+          try {
+            LOGGER.info("Applying type inference to CSV table: {}", source.path());
+            List<CsvTypeInferrer.ColumnTypeInfo> inferredTypes = 
+                CsvTypeInferrer.inferTypes(source, typeInferenceConfig, columnCasing);
+            LOGGER.info("Inferred {} column types", inferredTypes.size());
+            
+            if (!inferredTypes.isEmpty()) {
+              // Build a new row type with inferred types
+              RelDataTypeFactory.Builder builder = typeFactory.builder();
+              List<String> fieldNames = rowType.getFieldNames();
+              
+              for (int i = 0; i < fieldNames.size(); i++) {
+                String fieldName = fieldNames.get(i);
+                RelDataType fieldType;
+                
+                if (i < inferredTypes.size()) {
+                  CsvTypeInferrer.ColumnTypeInfo typeInfo = inferredTypes.get(i);
+                  fieldType = typeFactory.createSqlType(typeInfo.inferredType);
+                  fieldType = typeFactory.createTypeWithNullability(fieldType, typeInfo.nullable);
+                } else {
+                  // Fallback to VARCHAR for any extra columns
+                  fieldType = typeFactory.createSqlType(org.apache.calcite.sql.type.SqlTypeName.VARCHAR);
+                  fieldType = typeFactory.createTypeWithNullability(fieldType, true);
+                }
+                
+                builder.add(fieldName, fieldType);
+              }
+              
+              rowType = builder.build();
+              LOGGER.debug("Applied type inference, row type now has {} fields", rowType.getFieldCount());
+            }
+          } catch (Exception e) {
+            LOGGER.warn("Type inference failed, falling back to all VARCHAR: {}", e.getMessage());
+            // Keep the original rowType with all VARCHAR columns
+          }
+        }
+        
+        LOGGER.debug("Final row type with {} fields", rowType.getFieldCount());
       } catch (Exception e) {
         LOGGER.error("ERROR deducing row type: {}", e.getMessage(), e);
         throw e;
@@ -79,9 +141,18 @@ public abstract class CsvTable extends AbstractTable {
   /** Returns the field types of this CSV table. */
   public List<RelDataType> getFieldTypes(RelDataTypeFactory typeFactory) {
     if (fieldTypes == null) {
-      fieldTypes = new ArrayList<>();
-      CsvEnumerator.deduceRowType((JavaTypeFactory) typeFactory, source,
-          fieldTypes, isStream(), columnCasing);
+      // If type inference is disabled or this is a stream, use the original deduction
+      if (typeInferenceConfig == null || !typeInferenceConfig.isEnabled() || isStream()) {
+        fieldTypes = new ArrayList<>();
+        CsvEnumerator.deduceRowType((JavaTypeFactory) typeFactory, source,
+            fieldTypes, isStream(), columnCasing);
+      } else {
+        // Get the row type which includes inferred types
+        RelDataType rowType = getRowType(typeFactory);
+        fieldTypes = rowType.getFieldList().stream()
+            .map(field -> field.getType())
+            .collect(Collectors.toList());
+      }
     }
     return fieldTypes;
   }

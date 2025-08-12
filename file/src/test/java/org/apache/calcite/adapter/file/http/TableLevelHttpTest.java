@@ -238,7 +238,7 @@ public class TableLevelHttpTest {
     try (Connection conn = DriverManager.getConnection("jdbc:calcite:", info);
          Statement stmt = conn.createStatement()) {
       
-      ResultSet rs = stmt.executeQuery("SELECT * FROM csv_data ORDER BY \"id\"");
+      ResultSet rs = stmt.executeQuery("SELECT * FROM \"csv_data\" ORDER BY \"id\"");
       
       assertTrue(rs.next());
       assertEquals("1", rs.getString("id"));  // CSV data is read as strings
@@ -309,7 +309,7 @@ public class TableLevelHttpTest {
          Statement stmt = conn.createStatement()) {
       
       // Query products table
-      ResultSet rs = stmt.executeQuery("SELECT * FROM products WHERE \"price\" < 100 ORDER BY \"price\"");
+      ResultSet rs = stmt.executeQuery("SELECT * FROM \"products\" WHERE \"price\" < 100 ORDER BY \"price\"");
       
       assertTrue(rs.next());
       assertEquals("P002", rs.getString("id"));
@@ -325,7 +325,7 @@ public class TableLevelHttpTest {
       rs.close();
       
       // Query orders table
-      rs = stmt.executeQuery("SELECT COUNT(*) as cnt, SUM(\"total\") as total FROM orders");
+      rs = stmt.executeQuery("SELECT COUNT(*) as cnt, SUM(\"total\") as total FROM \"orders\"");
       
       assertTrue(rs.next());
       assertEquals(3, rs.getInt("cnt"));
@@ -374,8 +374,7 @@ public class TableLevelHttpTest {
          Statement stmt = conn.createStatement()) {
       
       // Note: Since CSV data is strings, we need to CAST for aggregations
-      ResultSet rs = stmt.executeQuery(
-          "SELECT \"region\", SUM(CAST(\"amount\" AS DOUBLE)) as total FROM sales GROUP BY \"region\" ORDER BY \"region\"");
+      ResultSet rs = stmt.executeQuery("SELECT \"region\", SUM(CAST(\"amount\" AS DOUBLE)) as total FROM \"sales\" GROUP BY \"region\" ORDER BY \"region\"");
       
       assertTrue(rs.next());
       assertEquals("East", rs.getString("region"));
@@ -434,7 +433,7 @@ public class TableLevelHttpTest {
     try (Connection conn = DriverManager.getConnection("jdbc:calcite:", info);
          Statement stmt = conn.createStatement()) {
       
-      ResultSet rs = stmt.executeQuery("SELECT * FROM status ORDER BY \"id\"");
+      ResultSet rs = stmt.executeQuery("SELECT * FROM \"status\" ORDER BY \"id\"");
       
       assertTrue(rs.next());
       assertEquals(1, rs.getInt("id"));
@@ -493,21 +492,20 @@ public class TableLevelHttpTest {
     try (Connection conn = DriverManager.getConnection("jdbc:calcite:", info);
          Statement stmt = conn.createStatement()) {
       
-      // Query local file (CSV columns are strings) - table name is uppercased by default
-      ResultSet rs = stmt.executeQuery("SELECT SUM(CAST(\"count\" AS INTEGER)) as total FROM \"LOCAL\"");
+      // Query local file (CSV columns are strings) - table name is lowercased by smart casing
+      ResultSet rs = stmt.executeQuery("SELECT SUM(CAST(\"count\" AS INTEGER)) as total FROM \"local\"");
       assertTrue(rs.next());
       assertEquals(60, rs.getInt("total"));
       rs.close();
       
       // Query remote HTTP file
-      rs = stmt.executeQuery("SELECT COUNT(*) as cnt FROM remote_data");
+      rs = stmt.executeQuery("SELECT COUNT(*) as cnt FROM \"remote_data\"");
       assertTrue(rs.next());
       assertEquals(3, rs.getInt("cnt"));
       rs.close();
       
       // Join local and remote (though not meaningful, tests integration)
-      rs = stmt.executeQuery(
-          "SELECT COUNT(*) as cnt FROM \"LOCAL\" l, remote_data r WHERE CAST(l.\"count\" AS INTEGER) > 15");
+      rs = stmt.executeQuery("SELECT COUNT(*) as cnt FROM \"local\" l, \"remote_data\" r WHERE CAST(l.\"count\" AS INTEGER) > 15");
       assertTrue(rs.next());
       assertEquals(6, rs.getInt("cnt")); // 2 local rows * 3 remote rows
       rs.close();

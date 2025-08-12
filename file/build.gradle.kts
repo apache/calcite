@@ -71,6 +71,10 @@ dependencies {
     implementation("org.apache.iceberg:iceberg-data:1.4.0")
 
     testImplementation(project(":testkit"))
+    // DuckDB for performance comparison tests and optional execution engine
+    compileOnly("org.duckdb:duckdb_jdbc:1.1.0")
+    testImplementation("org.duckdb:duckdb_jdbc:1.1.0")
+    
     annotationProcessor("org.immutables:value")
     compileOnly("org.immutables:value-annotations")
     compileOnly("com.google.code.findbugs:jsr305")
@@ -114,4 +118,11 @@ tasks.test {
         "--add-opens=java.base/java.nio=org.apache.arrow.memory.core,ALL-UNNAMED",
         "--add-opens=java.base/java.nio=org.apache.arrow.memory.netty,ALL-UNNAMED"
     )
+}
+
+// Task to print test classpath for performance test script
+tasks.register("printTestClasspath") {
+    doLast {
+        println(sourceSets.test.get().runtimeClasspath.asPath)
+    }
 }

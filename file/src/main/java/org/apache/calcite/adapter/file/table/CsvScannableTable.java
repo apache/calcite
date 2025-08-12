@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.file.table;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.file.format.csv.CsvTypeInferrer;
 import org.apache.calcite.adapter.file.execution.linq4j.CsvEnumerator;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.AbstractEnumerable;
@@ -47,6 +48,12 @@ public class CsvScannableTable extends CsvTable implements ScannableTable {
   /** Creates a CsvScannableTable with column casing. */
   public CsvScannableTable(Source source, @Nullable RelProtoDataType protoRowType, String columnCasing) {
     super(source, protoRowType, columnCasing);
+  }
+  
+  /** Creates a CsvScannableTable with column casing and type inference. */
+  public CsvScannableTable(Source source, @Nullable RelProtoDataType protoRowType, String columnCasing,
+      CsvTypeInferrer.TypeInferenceConfig typeInferenceConfig) {
+    super(source, protoRowType, columnCasing, typeInferenceConfig);
   }
 
   @Override public String toString() {

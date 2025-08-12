@@ -41,11 +41,12 @@ public class TimeFormatTest {
   @Test public void testTimeFormats() throws Exception {
     Properties info = new Properties();
     info.put("model", FileAdapterTests.jsonPath("bug-linq4j"));
+    info.put("lex", "ORACLE");
 
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
          Statement statement = connection.createStatement()) {
 
-      String sql = "SELECT ID, FORMAT_DESC, TIME_VALUE FROM \"TIME_FORMATS\" ORDER BY ID";
+      String sql = "SELECT \"id\", \"format_desc\", \"time_value\" FROM \"time_formats\" ORDER BY \"id\"";
 
       System.out.println("\n=== TIME Format Test ===");
       System.out.println("Verifying times are stored as milliseconds since midnight\n");
@@ -121,8 +122,8 @@ public class TimeFormatTest {
       System.out.println("=== SQL Time Operations ===");
 
       // Test time comparison
-      sql = "SELECT COUNT(*) FROM \"TIME_FORMATS\" "
-          + "WHERE TIME_VALUE = TIME '12:00:00'";
+      sql = "SELECT COUNT(*) FROM \"time_formats\" "
+          + "WHERE \"time_value\" = TIME '12:00:00'";
 
       try (ResultSet resultSet = statement.executeQuery(sql)) {
         if (resultSet.next()) {
@@ -133,9 +134,9 @@ public class TimeFormatTest {
 
       // Test time arithmetic
       sql = "SELECT "
-          + "TIME_VALUE, "
-          + "CAST(TIME_VALUE AS VARCHAR) AS STRING_VALUE "
-          + "FROM \"TIME_FORMATS\" WHERE ID = 7";
+          + "\"time_value\", "
+          + "CAST(\"time_value\" AS VARCHAR) AS STRING_VALUE "
+          + "FROM \"time_formats\" WHERE \"id\" = 7";
 
       try (ResultSet resultSet = statement.executeQuery(sql)) {
         if (resultSet.next()) {
@@ -152,16 +153,17 @@ public class TimeFormatTest {
   @Test public void testTimeSelectOutput() throws Exception {
     Properties info = new Properties();
     info.put("model", FileAdapterTests.jsonPath("bug-linq4j"));
+    info.put("lex", "ORACLE");
 
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
          Statement statement = connection.createStatement()) {
 
       // Test what SQL SELECT actually returns
-      String sql = "SELECT ID, FORMAT_DESC, TIME_VALUE, "
-          + "CAST(TIME_VALUE AS VARCHAR) AS STRING_VALUE "
-          + "FROM \"TIME_FORMATS\" "
-          + "WHERE ID IN (1, 4, 7, 9, 10) "
-          + "ORDER BY ID";
+      String sql = "SELECT \"id\", \"format_desc\", \"time_value\", "
+          + "CAST(\"time_value\" AS VARCHAR) AS STRING_VALUE "
+          + "FROM \"time_formats\" "
+          + "WHERE \"id\" IN (1, 4, 7, 9, 10) "
+          + "ORDER BY \"id\"";
 
       System.out.println("\n=== SQL SELECT Time Output ===");
       System.out.println("Testing what SQL SELECT returns for TIME values\n");

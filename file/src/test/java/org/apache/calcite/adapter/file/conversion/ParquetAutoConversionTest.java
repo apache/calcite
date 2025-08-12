@@ -92,13 +92,13 @@ public class ParquetAutoConversionTest {
 
       System.out.println("\n1. Creating schema with PARQUET execution engine");
       SchemaPlus fileSchema =
-          rootSchema.add("PARQUET_CONVERT", FileSchemaFactory.INSTANCE.create(rootSchema, "PARQUET_CONVERT", operand));
+          rootSchema.add("parquet_convert", FileSchemaFactory.INSTANCE.create(rootSchema, "parquet_convert", operand));
 
       try (Statement stmt = connection.createStatement()) {
         // Query CSV file - should be auto-converted to Parquet
         System.out.println("\n2. Querying CSV file (should auto-convert to Parquet):");
         ResultSet rs1 =
-            stmt.executeQuery("SELECT * FROM PARQUET_CONVERT.\"customers\" WHERE \"balance\" > 1000 ORDER BY \"customer_id\"");
+            stmt.executeQuery("SELECT * FROM \"parquet_convert\".\"customers\" WHERE \"balance\" > 1000 ORDER BY \"customer_id\"");
 
         int count1 = 0;
         while (rs1.next()) {
@@ -122,7 +122,7 @@ public class ParquetAutoConversionTest {
         // Query JSON file - should also be auto-converted
         System.out.println("\n3. Querying JSON file (should auto-convert to Parquet):");
         ResultSet rs2 =
-            stmt.executeQuery("SELECT * FROM PARQUET_CONVERT.\"ORDERS\" WHERE \"status\" = 'shipped' ORDER BY \"order_id\"");
+            stmt.executeQuery("SELECT * FROM \"parquet_convert\".\"orders\" WHERE \"status\" = 'shipped' ORDER BY \"order_id\"");
 
         int count2 = 0;
         while (rs2.next()) {
@@ -143,8 +143,8 @@ public class ParquetAutoConversionTest {
         System.out.println("\n4. Testing join query across converted files:");
         ResultSet rs3 =
             stmt.executeQuery("SELECT c.\"name\", COUNT(*) as order_count, SUM(o.\"amount\") as total_spent " +
-            "FROM PARQUET_CONVERT.\"customers\" c " +
-            "JOIN PARQUET_CONVERT.\"ORDERS\" o ON c.\"customer_id\" = o.\"customer_id\" " +
+            "FROM \"parquet_convert\".\"customers\" c " +
+            "JOIN \"parquet_convert\".\"orders\" o ON c.\"customer_id\" = o.\"customer_id\" " +
             "GROUP BY c.\"name\" " +
             "ORDER BY total_spent DESC");
 
@@ -187,7 +187,7 @@ public class ParquetAutoConversionTest {
       rootSchema.add("TEST1", FileSchemaFactory.INSTANCE.create(rootSchema, "TEST1", operand));
 
       try (Statement stmt = conn1.createStatement();
-           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as cnt FROM TEST1.\"PRODUCTS\"")) {
+           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as cnt FROM \"TEST1\".\"products\"")) {
         rs.next();
         assertEquals(2, rs.getInt("cnt"));
       }
@@ -215,7 +215,7 @@ public class ParquetAutoConversionTest {
       rootSchema.add("TEST2", FileSchemaFactory.INSTANCE.create(rootSchema, "TEST2", operand));
 
       try (Statement stmt = conn2.createStatement();
-           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as cnt FROM TEST2.\"PRODUCTS\"")) {
+           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as cnt FROM \"TEST2\".\"products\"")) {
         rs.next();
         assertEquals(2, rs.getInt("cnt"));
       }
@@ -252,7 +252,7 @@ public class ParquetAutoConversionTest {
       rootSchema.add("INVENTORY1", FileSchemaFactory.INSTANCE.create(rootSchema, "INVENTORY1", operand));
 
       try (Statement stmt = conn1.createStatement();
-           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as cnt FROM INVENTORY1.\"INVENTORY\"")) {
+           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as cnt FROM \"INVENTORY1\".\"inventory\"")) {
         rs.next();
         assertEquals(2, rs.getInt("cnt"));
       }
@@ -295,7 +295,7 @@ public class ParquetAutoConversionTest {
 
       try (Statement stmt = conn2.createStatement()) {
         // First, let's verify what's in the table
-        ResultSet rs = stmt.executeQuery("SELECT * FROM INVENTORY2.\"INVENTORY\" ORDER BY \"item_id\"");
+        ResultSet rs = stmt.executeQuery("SELECT * FROM \"INVENTORY2\".\"inventory\" ORDER BY \"item_id\"");
         int itemCount = 0;
         while (rs.next()) {
           itemCount++;
@@ -341,7 +341,7 @@ public class ParquetAutoConversionTest {
       rootSchema.add("JSON1", FileSchemaFactory.INSTANCE.create(rootSchema, "JSON1", operand));
 
       try (Statement stmt = conn1.createStatement();
-           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as cnt FROM JSON1.\"DATA\"")) {
+           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as cnt FROM \"JSON1\".\"data\"")) {
         rs.next();
         assertEquals(2, rs.getInt("cnt"));
       }
@@ -381,7 +381,7 @@ public class ParquetAutoConversionTest {
       rootSchema.add("JSON2", FileSchemaFactory.INSTANCE.create(rootSchema, "JSON2", operand));
 
       try (Statement stmt = conn2.createStatement();
-           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as cnt FROM JSON2.\"DATA\"")) {
+           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as cnt FROM \"JSON2\".\"data\"")) {
         rs.next();
         assertEquals(4, rs.getInt("cnt"), "Should see 4 records after update");
       }

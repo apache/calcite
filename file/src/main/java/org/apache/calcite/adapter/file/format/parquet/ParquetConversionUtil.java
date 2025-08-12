@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.file.format.parquet;
 
+import org.apache.calcite.adapter.file.format.csv.CsvTypeInferrer;
 import org.apache.calcite.adapter.file.table.CsvScannableTable;
 import org.apache.calcite.adapter.file.table.CsvTranslatableTable;
 import org.apache.calcite.adapter.file.table.CsvTable;
@@ -148,13 +149,22 @@ public class ParquetConversionUtil {
    * Get the cached Parquet file for a source file.
    */
   public static File getCachedParquetFile(File sourceFile, File cacheDir) {
+    return getCachedParquetFile(sourceFile, cacheDir, false);
+  }
+
+  /**
+   * Get the cached Parquet file for a source file with optional type inference suffix.
+   */
+  public static File getCachedParquetFile(File sourceFile, File cacheDir, boolean typeInferenceEnabled) {
     String baseName = sourceFile.getName();
     // Remove existing extensions
     int lastDot = baseName.lastIndexOf('.');
     if (lastDot > 0) {
       baseName = baseName.substring(0, lastDot);
     }
-    return new File(cacheDir, baseName + ".parquet");
+    // Add suffix to distinguish files created with different type inference settings
+    String suffix = typeInferenceEnabled ? ".inferred" : "";
+    return new File(cacheDir, baseName + suffix + ".parquet");
   }
 
   /**
@@ -176,9 +186,16 @@ public class ParquetConversionUtil {
       File cacheDir, SchemaPlus parentSchema, String schemaName) throws Exception {
 
     File sourceFile = new File(source.path());
+    
+    // Check if type inference is enabled for CSV tables
+    boolean typeInferenceEnabled = false;
+    if (table instanceof CsvTable) {
+      CsvTypeInferrer.TypeInferenceConfig config = ((CsvTable) table).getTypeInferenceConfig();
+      typeInferenceEnabled = config != null && config.isEnabled();
+    }
 
-    // Use concurrent cache for thread-safe conversion
-    return ConcurrentParquetCache.convertWithLocking(sourceFile, cacheDir, tempFile -> {
+    // Use concurrent cache for thread-safe conversion with type inference suffix
+    return ConcurrentParquetCache.convertWithLocking(sourceFile, cacheDir, typeInferenceEnabled, tempFile -> {
       performConversion(source, tableName, table, tempFile, parentSchema, schemaName);
     });
   }
@@ -215,12 +232,20 @@ public class ParquetConversionUtil {
       if (table instanceof CsvTranslatableTable || table instanceof ParquetCsvTranslatableTable) {
         // For CSV files, create a simple scannable table that can be queried
         // The source should already be a DirectFileSource if PARQUET engine is used
-        // Extract column casing from the original table if it's a CsvTable
+        // Extract column casing and type inference config from the original table if it's a CsvTable
         String columnCasing = "UNCHANGED"; // default
+        CsvTypeInferrer.TypeInferenceConfig typeInferenceConfig = null;
         if (table instanceof CsvTable) {
           columnCasing = ((CsvTable) table).columnCasing;
+          typeInferenceConfig = ((CsvTable) table).getTypeInferenceConfig();
         }
-        finalTable = new CsvScannableTable(source, null, columnCasing);
+        
+        // Create CsvScannableTable with type inference config if available
+        if (typeInferenceConfig != null) {
+          finalTable = new CsvScannableTable(source, null, columnCasing, typeInferenceConfig);
+        } else {
+          finalTable = new CsvScannableTable(source, null, columnCasing);
+        }
       } else {
         finalTable = table;
       }
@@ -348,6 +373,9 @@ public class ParquetConversionUtil {
         // Write to Parquet
         Path hadoopPath = new Path(targetFile.getAbsolutePath());
         Configuration conf = new Configuration();
+        
+        // Enable vectorized reading for better performance
+        conf.set("parquet.enable.vectorized.reader", "true");
 
         // Create GenericData model that supports conversions
         GenericData dataModel = new GenericData();

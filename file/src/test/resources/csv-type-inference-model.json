@@ -1,0 +1,32 @@
+{
+  "version": "1.0",
+  "defaultSchema": "CSV_INFER",
+  "schemas": [
+    {
+      "name": "CSV_INFER",
+      "type": "custom",
+      "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
+      "operand": {
+        "directory": "csv-type-inference",
+        "csvTypeInference": {
+          "enabled": true,
+          "samplingRate": 1.0,
+          "maxSampleRows": 100,
+          "confidenceThreshold": 0.9,
+          "makeAllNullable": true,
+          "inferDates": true,
+          "inferTimes": true,
+          "inferTimestamps": true
+        }
+      }
+    },
+    {
+      "name": "CSV_NO_INFER",
+      "type": "custom",
+      "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
+      "operand": {
+        "directory": "csv-type-inference"
+      }
+    }
+  ]
+}

@@ -76,6 +76,10 @@ public class DirectParquetWriter {
 
     // Configure Parquet writer
     Configuration conf = new Configuration();
+    
+    // Enable vectorized reading for better performance
+    conf.set("parquet.enable.vectorized.reader", "true");
+    
     GroupWriteSupport.setSchema(schema, conf);
 
     // Create writer

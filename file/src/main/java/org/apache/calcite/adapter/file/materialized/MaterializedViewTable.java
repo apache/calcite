@@ -134,6 +134,9 @@ public class MaterializedViewTable extends AbstractTable implements Translatable
             // Write to Parquet
             Path hadoopPath = new Path(parquetFile.getAbsolutePath());
             Configuration conf = new Configuration();
+            
+            // Enable vectorized reading for better performance
+            conf.set("parquet.enable.vectorized.reader", "true");
 
             @SuppressWarnings("deprecation")
             ParquetWriter<GenericRecord> writer =

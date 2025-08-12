@@ -17,7 +17,6 @@
 package org.apache.calcite.adapter.file.iceberg;
 
 import org.apache.calcite.DataContext;
-import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
@@ -29,15 +28,8 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Source;
 
 import org.apache.iceberg.Table;
-import org.apache.iceberg.catalog.TableIdentifier;
 import org.apache.iceberg.Schema;
 import org.apache.iceberg.types.Types;
-import org.apache.iceberg.TableScan;
-import org.apache.iceberg.io.CloseableIterable;
-import org.apache.iceberg.data.Record;
-import org.apache.iceberg.data.parquet.GenericParquetReaders;
-import org.apache.iceberg.data.IcebergGenerics;
-import org.apache.iceberg.expressions.Expressions;
 import org.apache.iceberg.hadoop.HadoopTables;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -190,15 +182,12 @@ public class IcebergTable extends AbstractTable implements ScannableTable {
       @Override
       public Enumerator<Object[]> enumerator() {
         try {
-          // Create table scan with time travel if specified
-          TableScan scan = createTableScan();
-          
-          // Get the iterable of records
-          CloseableIterable<Record> records = IcebergGenerics.read(icebergTable)
-              .useSnapshot(snapshotId != null ? snapshotId : icebergTable.currentSnapshot().snapshotId())
-              .build();
-          
-          return new IcebergEnumerator(records, icebergTable.schema(), cancelFlag);
+          // Use simplified IcebergEnumerator for MVP
+          return new IcebergEnumerator(
+              icebergTable, 
+              snapshotId, 
+              asOfTimestamp, 
+              cancelFlag);
         } catch (Exception e) {
           throw new RuntimeException("Failed to create Iceberg enumerator", e);
         }
@@ -206,33 +195,6 @@ public class IcebergTable extends AbstractTable implements ScannableTable {
     };
   }
 
-  private TableScan createTableScan() {
-    TableScan scan = icebergTable.newScan();
-    
-    // Apply time travel if specified
-    if (snapshotId != null) {
-      scan = scan.useSnapshot(snapshotId);
-    } else if (asOfTimestamp != null) {
-      // Convert timestamp string to snapshot ID
-      long timestampMillis = java.sql.Timestamp.valueOf(asOfTimestamp).getTime();
-      Long snapId = findSnapshotAtTime(timestampMillis);
-      if (snapId != null) {
-        scan = scan.useSnapshot(snapId);
-      }
-    }
-    
-    return scan;
-  }
-
-  private @Nullable Long findSnapshotAtTime(long timestampMillis) {
-    // Find the snapshot that was current at the given timestamp
-    for (org.apache.iceberg.Snapshot snapshot : icebergTable.snapshots()) {
-      if (snapshot.timestampMillis() <= timestampMillis) {
-        return snapshot.snapshotId();
-      }
-    }
-    return null;
-  }
 
   /**
    * Gets the underlying Iceberg table.

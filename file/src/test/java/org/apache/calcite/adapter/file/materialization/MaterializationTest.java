@@ -95,7 +95,7 @@ public class MaterializationTest {
           "COUNT(*) as transaction_count, " +
           "SUM(\"quantity\") as total_quantity, " +
           "SUM(\"quantity\" * \"price\") as total_revenue " +
-          "FROM sales " +
+          "FROM \"sales\" " +
           "GROUP BY \"date\"");
       materializations.add(dailySalesMV);
 
@@ -108,7 +108,7 @@ public class MaterializationTest {
           "SUM(\"quantity\") as total_quantity, " +
           "SUM(\"quantity\" * \"price\") as total_revenue, " +
           "AVG(\"price\") as avg_price " +
-          "FROM sales " +
+          "FROM \"sales\" " +
           "GROUP BY \"product\"");
       materializations.add(productSalesMV);
 

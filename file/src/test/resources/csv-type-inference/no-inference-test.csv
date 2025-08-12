@@ -1,0 +1,11 @@
+id,name,age,salary,hire_date,is_active,rating,login_time,notes
+1,John Doe,30,75000.50,2020-03-15,true,4.5,09:30:00,Started in sales
+2,Jane Smith,28,82000.00,2021-06-01,true,4.8,08:45:30,Senior developer
+3,Bob Johnson,45,95000.75,2015-11-20,false,3.9,10:15:00,On sabbatical
+4,Alice Brown,32,68500.25,2019-08-10,true,4.2,09:00:00,Team lead
+5,Charlie Wilson,,72000.00,2022-01-05,true,4.6,08:30:00,New hire
+6,Diana Martinez,38,88000.50,2018-04-22,true,4.9,09:45:00,
+7,Edward Lee,41,91000.00,2016-12-15,false,3.7,11:00:00,Remote worker
+8,Fiona Taylor,29,77500.75,2020-09-30,true,4.4,08:00:00,Product manager
+9,George Harris,35,83000.00,2019-02-14,true,4.7,09:30:00,NULL
+10,Helen White,31,79000.50,2021-03-01,true,4.3,10:00:00,Marketing specialist

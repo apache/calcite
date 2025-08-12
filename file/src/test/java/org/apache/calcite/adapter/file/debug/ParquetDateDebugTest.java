@@ -61,7 +61,7 @@ public class ParquetDateDebugTest {
     try (Connection conn = DriverManager.getConnection("jdbc:calcite:", linq4jProps);
          Statement stmt = conn.createStatement()) {
 
-      String sql = "SELECT ID, DATE_VALUE FROM \"date_formats\" WHERE ID IN (4, 5, 6)";
+      String sql = "SELECT id, date_value FROM \"date_formats\" WHERE id IN (4, 5, 6)";
       try (ResultSet rs = stmt.executeQuery(sql)) {
         while (rs.next()) {
           int id = rs.getInt(1);
@@ -75,13 +75,13 @@ public class ParquetDateDebugTest {
     // Step 4: Query with PARQUET engine
     System.out.println("\nStep 4: PARQUET Engine Results");
     Properties parquetProps = new Properties();
-    parquetProps.put("model", FileAdapterTests.jsonPath("BUG"));
+    parquetProps.put("model", FileAdapterTests.jsonPath("bug"));
 
     try (Connection conn = DriverManager.getConnection("jdbc:calcite:", parquetProps);
          Statement stmt = conn.createStatement()) {
 
       // First query to trigger parquet file creation
-      String sql = "SELECT ID, DATE_VALUE FROM \"date_formats\" ORDER BY ID";
+      String sql = "SELECT id, date_value FROM \"date_formats\" ORDER BY id";
       try (ResultSet rs = stmt.executeQuery(sql)) {
         while (rs.next()) {
           int id = rs.getInt(1);

@@ -49,7 +49,7 @@ public class MultipleSchemaTest {
 
   @BeforeEach
   public void setUp() throws IOException {
-    salesDir = new File(tempDir, "SALES");
+    salesDir = new File(tempDir, "sales");
     hrDir = new File(tempDir, "hr");
     salesDir.mkdirs();
     hrDir.mkdirs();
@@ -171,17 +171,17 @@ public class MultipleSchemaTest {
       // Add SALES schema
       Map<String, Object> salesOperand = new HashMap<>();
       salesOperand.put("directory", salesDir.getAbsolutePath());
-      rootSchema.add("SALES", FileSchemaFactory.INSTANCE.create(rootSchema, "SALES", salesOperand));
+      rootSchema.add("sales", FileSchemaFactory.INSTANCE.create(rootSchema, "sales", salesOperand));
 
       // Add HR schema
       Map<String, Object> hrOperand = new HashMap<>();
       hrOperand.put("directory", hrDir.getAbsolutePath());
-      rootSchema.add("HR", FileSchemaFactory.INSTANCE.create(rootSchema, "HR", hrOperand));
+      rootSchema.add("hr", FileSchemaFactory.INSTANCE.create(rootSchema, "hr", hrOperand));
 
       // Test cross-schema query
       try (Statement stmt = connection.createStatement()) {
         ResultSet rs =
-            stmt.executeQuery("SELECT s.NAME as customer_name, h.NAME as employee_name " +
+            stmt.executeQuery("SELECT s.name as customer_name, h.name as employee_name " +
             "FROM SALES.customers s, HR.EMPLOYEES h " +
             "WHERE s.ID = h.ID");
 
@@ -214,7 +214,7 @@ public class MultipleSchemaTest {
       // Add initial schema
       Map<String, Object> salesOperand = new HashMap<>();
       salesOperand.put("directory", salesDir.getAbsolutePath());
-      rootSchema.add("TEST", FileSchemaFactory.INSTANCE.create(rootSchema, "TEST", salesOperand));
+      rootSchema.add("test", FileSchemaFactory.INSTANCE.create(rootSchema, "test", salesOperand));
 
       // Verify sales tables are accessible
       try (Statement stmt = connection.createStatement()) {
@@ -228,7 +228,7 @@ public class MultipleSchemaTest {
       // Replace with hr schema
       Map<String, Object> hrOperand = new HashMap<>();
       hrOperand.put("directory", hrDir.getAbsolutePath());
-      rootSchema.add("TEST", FileSchemaFactory.INSTANCE.create(rootSchema, "TEST", hrOperand));
+      rootSchema.add("test", FileSchemaFactory.INSTANCE.create(rootSchema, "test", hrOperand));
 
       // Check what's now accessible
       try (Statement stmt = connection.createStatement()) {

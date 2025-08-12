@@ -17,9 +17,9 @@
 package org.apache.calcite.adapter.file;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
-import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
-import org.apache.calcite.rel.type.RelDataTypeSystem;
-
+import org.junit.jupiter.api.Tag;import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
+import org.junit.jupiter.api.Tag;import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.junit.jupiter.api.Tag;
 /**
  * Base class for file adapter tests.
  */

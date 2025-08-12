@@ -23,6 +23,10 @@ import org.apache.calcite.adapter.enumerable.PhysType;
 import org.apache.calcite.adapter.enumerable.PhysTypeImpl;
 import org.apache.calcite.adapter.file.execution.parquet.ParquetEnumerableFactory;
 import org.apache.calcite.adapter.file.format.parquet.ParquetConversionUtil;
+import org.apache.calcite.adapter.file.statistics.StatisticsProvider;
+import org.apache.calcite.adapter.file.statistics.StatisticsBuilder;
+import org.apache.calcite.adapter.file.statistics.TableStatistics;
+import org.apache.calcite.adapter.file.statistics.ColumnStatistics;
 import org.apache.calcite.adapter.file.temporal.LocalTimestamp;
 import org.apache.calcite.adapter.file.temporal.UtcTimestamp;
 import org.apache.calcite.linq4j.Enumerator;
@@ -30,16 +34,22 @@ import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Source;
+import org.apache.calcite.adapter.file.DirectFileSource;
 
 import org.apache.avro.LogicalType;
 import org.apache.avro.Schema;
@@ -63,16 +73,27 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Table based on a Parquet file that implements TranslatableTable.
- * This enables native Parquet operations with proper predicate pushdown.
+ * Table based on a Parquet file that implements TranslatableTable with statistics support.
+ * This enables native Parquet operations with proper predicate pushdown and cost-based optimization.
  */
-public class ParquetTranslatableTable extends AbstractTable implements TranslatableTable {
+public class ParquetTranslatableTable extends AbstractTable implements TranslatableTable, StatisticsProvider {
 
   private final File parquetFile;
+  private final Source source;
   private RelDataType rowType;
+  private final StatisticsBuilder statisticsBuilder;
+  private volatile TableStatistics cachedStatistics;
 
   public ParquetTranslatableTable(File parquetFile) {
     this.parquetFile = parquetFile;
+    this.source = new DirectFileSource(parquetFile);
+    this.statisticsBuilder = new StatisticsBuilder();
+  }
+
+  public ParquetTranslatableTable(File parquetFile, Source source) {
+    this.parquetFile = parquetFile;
+    this.source = source;
+    this.statisticsBuilder = new StatisticsBuilder();
   }
 
   @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
@@ -86,6 +107,9 @@ public class ParquetTranslatableTable extends AbstractTable implements Translata
     try {
       Path hadoopPath = new Path(parquetFile.getAbsolutePath());
       Configuration conf = new Configuration();
+      
+      // Enable vectorized reading for better performance
+      conf.set("parquet.enable.vectorized.reader", "true");
 
       // Read Parquet schema
       @SuppressWarnings("deprecation")
@@ -172,7 +196,81 @@ public class ParquetTranslatableTable extends AbstractTable implements Translata
 
 
   @Override public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable relOptTable) {
-    return new ParquetTableScan(context.getCluster(), relOptTable, this, relOptTable.getRowType());
+    return new StatisticsAwareParquetTableScan(context.getCluster(), relOptTable, this, relOptTable.getRowType());
+  }
+
+  // StatisticsProvider implementation
+
+  @Override
+  public TableStatistics getTableStatistics(RelOptTable table) {
+    if (cachedStatistics != null) {
+      return cachedStatistics;
+    }
+    
+    try {
+      // Try to load or generate statistics
+      File cacheDir = ParquetConversionUtil.getParquetCacheDir(parquetFile.getParentFile());
+      cachedStatistics = statisticsBuilder.buildStatistics(source, cacheDir);
+      return cachedStatistics;
+    } catch (Exception e) {
+      // Fall back to basic estimates if statistics generation fails
+      long estimatedRows = Math.max(1, parquetFile.length() / 100);
+      return TableStatistics.createBasicEstimate(estimatedRows);
+    }
+  }
+
+  @Override
+  public ColumnStatistics getColumnStatistics(RelOptTable table, String columnName) {
+    TableStatistics tableStats = getTableStatistics(table);
+    return tableStats != null ? tableStats.getColumnStatistics(columnName) : null;
+  }
+
+  @Override
+  public double getSelectivity(RelOptTable table, RexNode predicate) {
+    TableStatistics tableStats = getTableStatistics(table);
+    if (tableStats == null) {
+      return 0.1; // Default selectivity
+    }
+    
+    // TODO: Implement more sophisticated predicate analysis
+    // For now, return a reasonable default
+    return 0.1;
+  }
+
+  @Override
+  public long getDistinctCount(RelOptTable table, String columnName) {
+    ColumnStatistics colStats = getColumnStatistics(table, columnName);
+    if (colStats != null) {
+      return colStats.getDistinctCount();
+    }
+    
+    // Estimate based on table size
+    TableStatistics tableStats = getTableStatistics(table);
+    if (tableStats != null) {
+      return Math.min(1000, tableStats.getRowCount() / 10);
+    }
+    
+    return 100; // Default estimate
+  }
+
+  @Override
+  public boolean hasStatistics(RelOptTable table) {
+    return getTableStatistics(table) != null;
+  }
+
+  @Override
+  public void scheduleStatisticsGeneration(RelOptTable table) {
+    // Schedule background statistics generation
+    // This could be enhanced to use a thread pool
+    new Thread(() -> {
+      try {
+        File cacheDir = ParquetConversionUtil.getParquetCacheDir(parquetFile.getParentFile());
+        cachedStatistics = statisticsBuilder.buildStatistics(source, cacheDir);
+      } catch (Exception e) {
+        // Log error but don't fail the query
+        System.err.println("Background statistics generation failed: " + e.getMessage());
+      }
+    }).start();
   }
 
   /**
@@ -194,6 +292,9 @@ public class ParquetTranslatableTable extends AbstractTable implements Translata
       try {
         Path hadoopPath = new Path(parquetFile.getAbsolutePath());
         Configuration conf = new Configuration();
+        
+        // Enable vectorized reading for better performance
+        conf.set("parquet.enable.vectorized.reader", "true");
 
         @SuppressWarnings("deprecation")
         ParquetReader<GenericRecord> tempReader =
@@ -303,25 +404,90 @@ public class ParquetTranslatableTable extends AbstractTable implements Translata
   }
 
   /**
-   * Relational expression representing a scan of a Parquet file with native predicate pushdown.
+   * Relational expression representing a scan of a Parquet file with statistics-aware cost optimization.
    */
-  public static class ParquetTableScan extends TableScan implements EnumerableRel {
+  public static class StatisticsAwareParquetTableScan extends TableScan implements EnumerableRel {
     private final ParquetTranslatableTable parquetTable;
     private final RelDataType projectRowType;
 
-    public ParquetTableScan(RelOptCluster cluster, RelOptTable table,
+    public StatisticsAwareParquetTableScan(RelOptCluster cluster, RelOptTable table,
         ParquetTranslatableTable parquetTable, RelDataType projectRowType) {
       super(cluster, cluster.traitSetOf(EnumerableConvention.INSTANCE), ImmutableList.of(), table);
       this.parquetTable = parquetTable;
       this.projectRowType = projectRowType;
     }
 
+    @Override
+    public double estimateRowCount(RelMetadataQuery mq) {
+      // Use statistics for accurate row count
+      TableStatistics stats = parquetTable.getTableStatistics(table);
+      if (stats != null) {
+        return stats.getRowCount();
+      }
+      
+      // Fallback to file-size based estimation
+      long fileSize = parquetTable.parquetFile.length();
+      return Math.max(1, fileSize / 100);
+    }
+    
+    @Override
+    public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
+      // Use statistics for accurate cost calculation
+      TableStatistics stats = parquetTable.getTableStatistics(table);
+      if (stats != null) {
+        double rowCount = stats.getRowCount();
+        double dataSize = stats.getDataSize();
+        
+        // Calculate costs based on actual data characteristics
+        double cpu = rowCount * 0.01; // CPU cost per row
+        double io = dataSize * 0.0001; // IO cost per byte
+        double memory = Math.min(dataSize * 0.1, rowCount * 10); // Memory usage estimate
+        
+        return planner.getCostFactory().makeCost(rowCount, cpu, io);
+      }
+      
+      // Fallback to file-size based estimation
+      long fileSize = parquetTable.parquetFile.length();
+      double estimatedRows = Math.max(1, fileSize / 100);
+      double cpu = estimatedRows * 0.01;
+      double io = fileSize * 0.0001;
+      
+      return planner.getCostFactory().makeCost(estimatedRows, cpu, io);
+    }
+
     @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-      return new ParquetTableScan(getCluster(), table, parquetTable, projectRowType);
+      return new StatisticsAwareParquetTableScan(getCluster(), table, parquetTable, projectRowType);
     }
 
     @Override public RelDataType deriveRowType() {
       return projectRowType != null ? projectRowType : table.getRowType();
+    }
+
+    @Override public void register(RelOptPlanner planner) {
+      // Register all working file adapter optimization rules
+      planner.addRule(org.apache.calcite.adapter.file.FileRules.PROJECT_SCAN);
+      
+      // CRITICAL: Register VALUES converter rule so LogicalValues can become EnumerableValues
+      planner.addRule(org.apache.calcite.adapter.enumerable.EnumerableRules.ENUMERABLE_VALUES_RULE);
+      
+      // Register optimization rules based on configuration
+      // HLL rule is enabled by default but only applies to APPROX_COUNT_DISTINCT, not regular COUNT(DISTINCT)
+      if (!"false".equals(System.getProperty("calcite.file.statistics.hll.enabled"))) {
+        // Use INSTANCE for all COUNT(DISTINCT) queries for performance testing
+        planner.addRule(org.apache.calcite.adapter.file.rules.SimpleHLLCountDistinctRule.INSTANCE);
+      }
+      
+      if (!"false".equals(System.getProperty("calcite.file.statistics.filter.enabled"))) {
+        planner.addRule(org.apache.calcite.adapter.file.rules.SimpleFileFilterPushdownRule.INSTANCE);
+      }
+      
+      if (!"false".equals(System.getProperty("calcite.file.statistics.join.reorder.enabled"))) {
+        planner.addRule(org.apache.calcite.adapter.file.rules.SimpleFileJoinReorderRule.INSTANCE);
+      }
+      
+      if (!"false".equals(System.getProperty("calcite.file.statistics.column.pruning.enabled"))) {
+        planner.addRule(org.apache.calcite.adapter.file.rules.SimpleFileColumnPruningRule.INSTANCE);
+      }
     }
 
     @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {

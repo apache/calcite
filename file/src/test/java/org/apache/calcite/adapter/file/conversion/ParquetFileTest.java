@@ -107,7 +107,7 @@ public class ParquetFileTest {
 
       record.put("id", 4);
       record.put("name", "Diana");
-      record.put("department", "HR");
+      record.put("department", "hr");
       record.put("salary", 85000.0);
       writer.write(record);
 
@@ -135,13 +135,13 @@ public class ParquetFileTest {
       System.out.println(
           "\n1. Creating schema with directory containing Parquet file");
       SchemaPlus fileSchema =
-          rootSchema.add("PARQUET_TEST", FileSchemaFactory.INSTANCE.create(rootSchema, "PARQUET_TEST", operand));
+          rootSchema.add("parquet_test", FileSchemaFactory.INSTANCE.create(rootSchema, "parquet_test", operand));
 
       try (Statement stmt = connection.createStatement()) {
         // List all available tables
         System.out.println("\n2. Listing all tables in schema:");
         ResultSet tables =
-            connection.getMetaData().getTables(null, "PARQUET_TEST", "%", null);
+            connection.getMetaData().getTables(null, "parquet_test", "%", null);
 
         System.out.println("   Available tables:");
         boolean foundEmployees = false;
@@ -160,7 +160,7 @@ public class ParquetFileTest {
         // Query the Parquet file
         System.out.println("\n3. Querying the Parquet file:");
         ResultSet rs =
-            stmt.executeQuery("SELECT * FROM PARQUET_TEST.\"EMPLOYEES\" ORDER BY \"id\"");
+            stmt.executeQuery("SELECT * FROM parquet_test.\"employees\" ORDER BY \"id\"");
 
         System.out.println("   ID | Name     | Department  | Salary");
         System.out.println("   ---|----------|-------------|--------");
@@ -183,7 +183,7 @@ public class ParquetFileTest {
         System.out.println("\n4. Testing aggregation query on Parquet file:");
         ResultSet aggRs =
             stmt.executeQuery("SELECT \"department\", COUNT(*) as emp_count, AVG(\"salary\") as avg_salary "
-            + "FROM PARQUET_TEST.\"EMPLOYEES\" "
+            + "FROM parquet_test.\"employees\" "
             + "GROUP BY \"department\" "
             + "ORDER BY \"department\"");
 
@@ -233,7 +233,7 @@ public class ParquetFileTest {
         // Query the explicitly mapped Parquet file
         System.out.println("\n2. Querying the explicitly mapped Parquet file:");
         ResultSet rs =
-            stmt.executeQuery("SELECT * FROM parquet_explicit.\"emp_data\" "
+            stmt.executeQuery("SELECT * FROM PARQUET_EXPLICIT.\"emp_data\" "
             + "WHERE \"salary\" > 100000 ORDER BY \"salary\" DESC");
 
         System.out.println("   High earners (salary > 100k):");

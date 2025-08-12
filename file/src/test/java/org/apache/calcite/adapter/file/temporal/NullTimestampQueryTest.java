@@ -39,15 +39,16 @@ public class NullTimestampQueryTest {
 
   @Test public void testQueryNullTimestamps() throws Exception {
     Properties info = new Properties();
-    info.put("model", FileAdapterTests.jsonPath("BUG"));
+    info.put("model", FileAdapterTests.jsonPath("bug"));
+    info.put("lex", "ORACLE");
 
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info)) {
       Statement statement = connection.createStatement();
 
       // Query the NULL_TIMESTAMP_TEST table
       ResultSet rs =
-          statement.executeQuery("SELECT id, name, created_date, created_time, created_ts, created_tsz " +
-          "FROM \"NULL_TIMESTAMP_TEST\" WHERE id = 2");
+          statement.executeQuery("SELECT \"id\", \"name\", \"created_date\", \"created_time\", \"created_ts\", \"created_tsz\" " +
+          "FROM \"null_timestamp_test\" WHERE \"id\" = 2");
 
       // If the Parquet engine filtered out the row with all nulls, this query will return no results
       if (!rs.next()) {
@@ -99,7 +100,8 @@ public class NullTimestampQueryTest {
 
   @Test public void testFilteringOnNulls() throws Exception {
     Properties info = new Properties();
-    info.put("model", FileAdapterTests.jsonPath("BUG"));
+    info.put("model", FileAdapterTests.jsonPath("bug"));
+    info.put("lex", "ORACLE");
 
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info)) {
       Statement statement = connection.createStatement();
@@ -109,28 +111,28 @@ public class NullTimestampQueryTest {
 
       // TIME IS NULL
       ResultSet rs =
-          statement.executeQuery("SELECT COUNT(*) FROM \"NULL_TIMESTAMP_TEST\" WHERE created_time IS NULL");
+          statement.executeQuery("SELECT COUNT(*) FROM \"null_timestamp_test\" WHERE \"created_time\" IS NULL");
       assertTrue(rs.next());
       int timeNullCount = rs.getInt(1);
       System.out.println("Rows where TIME IS NULL: " + timeNullCount);
 
       // TIMESTAMP IS NULL
       rs =
-          statement.executeQuery("SELECT COUNT(*) FROM \"NULL_TIMESTAMP_TEST\" WHERE created_ts IS NULL");
+          statement.executeQuery("SELECT COUNT(*) FROM \"null_timestamp_test\" WHERE \"created_ts\" IS NULL");
       assertTrue(rs.next());
       int tsNullCount = rs.getInt(1);
       System.out.println("Rows where TIMESTAMP IS NULL: " + tsNullCount);
 
       // TIMESTAMPTZ IS NULL
       rs =
-          statement.executeQuery("SELECT COUNT(*) FROM \"NULL_TIMESTAMP_TEST\" WHERE created_tsz IS NULL");
+          statement.executeQuery("SELECT COUNT(*) FROM \"null_timestamp_test\" WHERE \"created_tsz\" IS NULL");
       assertTrue(rs.next());
       int tszNullCount = rs.getInt(1);
       System.out.println("Rows where TIMESTAMPTZ IS NULL: " + tszNullCount);
 
       // DATE IS NULL (this might not work as expected due to the epoch date issue)
       rs =
-          statement.executeQuery("SELECT COUNT(*) FROM \"NULL_TIMESTAMP_TEST\" WHERE created_date IS NULL");
+          statement.executeQuery("SELECT COUNT(*) FROM \"null_timestamp_test\" WHERE \"created_date\" IS NULL");
       assertTrue(rs.next());
       int dateNullCount = rs.getInt(1);
       System.out.println("Rows where DATE IS NULL: " + dateNullCount);

@@ -115,7 +115,7 @@ public class FileReader implements Iterable<Elements> {
   private Element getSelectedTable(Document doc, String selector)
       throws FileReaderException {
     Elements list;
-    
+
     // Handle special index-based selector for tables without IDs
     if (selector.startsWith("table[index=") && selector.endsWith("]")) {
       String indexStr = selector.substring(12, selector.length() - 1);
@@ -153,7 +153,7 @@ public class FileReader implements Iterable<Elements> {
       el = list.first();
     } else {
       if (this.index >= list.size()) {
-        throw new FileReaderException("Index " + this.index + " out of bounds, only " 
+        throw new FileReaderException("Index " + this.index + " out of bounds, only "
             + list.size() + " element(s) found with selector: " + selector);
       }
       el = list.get(this.index);

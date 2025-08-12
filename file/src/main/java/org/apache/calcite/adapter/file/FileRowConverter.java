@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.adapter.file;
 
-import org.apache.calcite.adapter.file.FileReaderV2;
 import org.apache.calcite.adapter.file.metadata.FileFieldType;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.rel.type.RelDataType;

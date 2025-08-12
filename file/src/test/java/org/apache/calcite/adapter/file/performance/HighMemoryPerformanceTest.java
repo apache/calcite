@@ -87,15 +87,15 @@ public class HighMemoryPerformanceTest {
 
     String[] queries = {
         // Simple count
-        "SELECT COUNT(*) FROM test.\"sales\"",
+        "SELECT COUNT(*) FROM TEST.\"sales\"",
 
         // Group by region (5 distinct values)
         "SELECT \"region\", COUNT(*) as orders, SUM(\"total\") as revenue " +
-        "FROM test.\"sales\" GROUP BY \"region\" ORDER BY revenue DESC",
+        "FROM TEST.\"sales\" GROUP BY \"region\" ORDER BY revenue DESC",
 
         // Group by category (10 distinct values)
         "SELECT \"product_category\", COUNT(*) as orders, AVG(\"unit_price\") as avg_price " +
-        "FROM test.\"sales\" GROUP BY \"product_category\" ORDER BY orders DESC",
+        "FROM TEST.\"sales\" GROUP BY \"product_category\" ORDER BY orders DESC",
 
         // Complex aggregation
         "SELECT \"region\", \"product_category\", " +
@@ -104,14 +104,14 @@ public class HighMemoryPerformanceTest {
         "AVG(\"unit_price\") as avg_price, " +
         "MIN(\"total\") as min_order, " +
         "MAX(\"total\") as max_order " +
-        "FROM test.\"sales\" " +
+        "FROM TEST.\"sales\" " +
         "WHERE \"status\" = 'completed' " +
         "GROUP BY \"region\", \"product_category\" " +
         "HAVING COUNT(*) > 100",
 
         // Top N query
         "SELECT \"order_id\", \"customer_id\", \"total\", \"region\" " +
-        "FROM test.\"sales\" " +
+        "FROM TEST.\"sales\" " +
         "WHERE \"total\" > 500 " +
         "ORDER BY \"total\" DESC " +
         "LIMIT 1000",
@@ -119,7 +119,7 @@ public class HighMemoryPerformanceTest {
         // Multi-column group by
         "SELECT \"region\", \"status\", SUBSTRING(\"order_date\", 1, 7) as order_month, " +
         "COUNT(*) as orders, SUM(\"total\") as revenue " +
-        "FROM test.\"sales\" " +
+        "FROM TEST.\"sales\" " +
         "GROUP BY \"region\", \"status\", SUBSTRING(\"order_date\", 1, 7) " +
         "ORDER BY order_month, \"region\", \"status\""
     };

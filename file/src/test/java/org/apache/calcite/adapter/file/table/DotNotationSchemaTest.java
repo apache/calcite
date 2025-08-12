@@ -96,7 +96,7 @@ public class DotNotationSchemaTest {
 
         // Test 1: Direct dot notation access
         try {
-          ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as count FROM \"COMPANY.SALES\".\"customers\"");
+          ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as \"count\" FROM \"COMPANY.SALES\".\"customers\"");
           if (rs.next()) {
             int count = rs.getInt("count");
             System.out.println("✅ Dot notation query successful: " + count + " customers");
@@ -170,7 +170,7 @@ public class DotNotationSchemaTest {
 
         // Test dot notation
         try {
-          ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as count FROM \"COMPANY.SALES\".\"customers\"");
+          ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as \"count\" FROM \"COMPANY.SALES\".\"customers\"");
           if (rs.next()) {
             System.out.println("✅ Dot notation (COMPANY.SALES): " + rs.getInt("count") + " records");
           }
@@ -180,7 +180,7 @@ public class DotNotationSchemaTest {
 
         // Test underscore notation
         try {
-          ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as count FROM COMPANY_HR.\"employees\"");
+          ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as \"count\" FROM COMPANY_HR.\"employees\"");
           if (rs.next()) {
             System.out.println("✅ Underscore notation (COMPANY_HR): " + rs.getInt("count") + " records");
           }
@@ -235,9 +235,9 @@ public class DotNotationSchemaTest {
 
         // Test different "levels" of hierarchy
         String[] testQueries = {
-            "SELECT 'SALES' as dept, COUNT(*) as count FROM \"ORG.DEPT.SALES\".\"customers\"",
-            "SELECT 'HR' as dept, COUNT(*) as count FROM \"ORG.DEPT.HR\".\"employees\"",
-            "SELECT 'FINANCE' as dept, COUNT(*) as count FROM \"ORG.FINANCE\".\"budgets\""
+            "SELECT 'SALES' as dept, COUNT(*) as \"count\" FROM \"ORG.DEPT.SALES\".\"customers\"",
+            "SELECT 'HR' as dept, COUNT(*) as \"count\" FROM \"ORG.DEPT.HR\".\"employees\"",
+            "SELECT 'FINANCE' as dept, COUNT(*) as \"count\" FROM \"ORG.FINANCE\".\"budgets\""
         };
 
         for (String query : testQueries) {

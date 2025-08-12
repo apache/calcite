@@ -57,7 +57,7 @@ public class FileReaderV2 implements Iterable<Elements> {
     // Create storage provider based on source
     if (source instanceof org.apache.calcite.adapter.file.storage.StorageProviderSource) {
       // If source is already a StorageProviderSource, use its existing provider
-      org.apache.calcite.adapter.file.storage.StorageProviderSource providerSource = 
+      org.apache.calcite.adapter.file.storage.StorageProviderSource providerSource =
           (org.apache.calcite.adapter.file.storage.StorageProviderSource) source;
       this.storageProvider = providerSource.getStorageProvider();
     } else {
@@ -81,7 +81,7 @@ public class FileReaderV2 implements Iterable<Elements> {
       String path;
       if (source instanceof org.apache.calcite.adapter.file.storage.StorageProviderSource) {
         // For StorageProviderSource, get the actual file path from the provider
-        org.apache.calcite.adapter.file.storage.StorageProviderSource providerSource = 
+        org.apache.calcite.adapter.file.storage.StorageProviderSource providerSource =
             (org.apache.calcite.adapter.file.storage.StorageProviderSource) source;
         path = providerSource.getFileEntry().getPath();
       } else {

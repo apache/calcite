@@ -48,12 +48,13 @@ public class TimezoneConversionTest {
     Properties info = new Properties();
     // Use LINQ4J engine to avoid Parquet conversion
     info.put("model", FileAdapterTests.jsonPath("bug-linq4j"));
+    info.put("lex", "ORACLE");
 
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
          Statement statement = connection.createStatement()) {
 
       // Query the timezone-naive timestamp
-      String sql = "SELECT ID, EVENT_TIME, DESCRIPTION FROM \"timezone_test\" WHERE ID = 1";
+      String sql = "SELECT \"id\", \"event_time\", \"description\" FROM \"timezone_test\" WHERE \"id\" = 1";
 
       try (ResultSet resultSet = statement.executeQuery(sql)) {
         assertThat(resultSet.next(), is(true));

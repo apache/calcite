@@ -205,7 +205,7 @@ public class JsonApiIntegrationTest {
          Statement stmt = conn.createStatement()) {
       
       // Query users table (POST with JSONPath extraction)
-      ResultSet rs = stmt.executeQuery("SELECT * FROM users ORDER BY \"id\"");
+      ResultSet rs = stmt.executeQuery("SELECT * FROM \"users\" ORDER BY \"id\"");
       
       int count = 0;
       while (rs.next()) {
@@ -229,7 +229,7 @@ public class JsonApiIntegrationTest {
       rs.close();
       
       // Query products table (different POST body, same endpoint)
-      rs = stmt.executeQuery("SELECT * FROM products WHERE \"price\" < 100 ORDER BY \"price\"");
+      rs = stmt.executeQuery("SELECT * FROM \"products\" WHERE \"price\" < 100 ORDER BY \"price\"");
       
       count = 0;
       while (rs.next()) {
@@ -252,7 +252,7 @@ public class JsonApiIntegrationTest {
       rs.close();
       
       // Test aggregation
-      rs = stmt.executeQuery("SELECT COUNT(*) as cnt, AVG(\"age\") as avg_age FROM users");
+      rs = stmt.executeQuery("SELECT COUNT(*) as cnt, AVG(\"age\") as avg_age FROM \"users\"");
       assertTrue(rs.next());
       assertEquals(3, rs.getInt("cnt"));
       assertEquals(30.0, rs.getDouble("avg_age"), 0.01);
@@ -294,7 +294,9 @@ public class JsonApiIntegrationTest {
         "UNCHANGED",  // columnNameCasing
         "http",  // storageType
         storageConfig,  // storageConfig
-        null  // flatten
+        null,  // flatten
+        null,   // csvTypeInference
+        false   // primeCache
     );
     
     // Verify the schema was created

@@ -37,16 +37,17 @@ public class DateSelectTest {
   @Test public void testDateSelectOutput() throws Exception {
     Properties info = new Properties();
     info.put("model", FileAdapterTests.jsonPath("bug-linq4j"));
+    info.put("lex", "ORACLE");
 
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
          Statement statement = connection.createStatement()) {
 
       // Test key dates
-      String sql = "SELECT ID, FORMAT_DESC, DATE_VALUE, "
-          + "CAST(DATE_VALUE AS VARCHAR) AS STRING_VALUE "
+      String sql = "SELECT \"id\", \"format_desc\", \"date_value\", "
+          + "CAST(\"date_value\" AS VARCHAR) AS STRING_VALUE "
           + "FROM \"date_formats\" "
-          + "WHERE ID IN (1, 4, 5, 6, 7) "
-          + "ORDER BY ID";
+          + "WHERE \"id\" IN (1, 4, 5, 6, 7) "
+          + "ORDER BY \"id\"";
 
       System.out.println("\n=== SQL SELECT Date Output ===");
       System.out.println("Testing what SQL SELECT returns for DATE values\n");
@@ -72,7 +73,7 @@ public class DateSelectTest {
       // Test date comparison
       System.out.println("=== Date Comparison Test ===");
       sql = "SELECT COUNT(*) FROM \"date_formats\" "
-          + "WHERE DATE_VALUE = DATE '2024-03-15'";
+          + "WHERE \"date_value\" = DATE '2024-03-15'";
 
       try (ResultSet resultSet = statement.executeQuery(sql)) {
         if (resultSet.next()) {
@@ -83,7 +84,7 @@ public class DateSelectTest {
 
       // Test epoch date
       sql = "SELECT COUNT(*) FROM \"date_formats\" "
-          + "WHERE DATE_VALUE = DATE '1970-01-01'";
+          + "WHERE \"date_value\" = DATE '1970-01-01'";
 
       try (ResultSet resultSet = statement.executeQuery(sql)) {
         if (resultSet.next()) {

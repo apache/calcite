@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.file.converters;
 
+import org.apache.calcite.adapter.file.converters.HtmlCrawler.CrawlResult;
+import org.apache.calcite.adapter.file.converters.HtmlTableScanner.TableInfo;
 import org.apache.calcite.util.Source;
 import org.apache.calcite.util.Sources;
 
@@ -33,7 +35,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -229,5 +233,192 @@ public class HtmlToJsonConverter {
         name.startsWith(finalBaseFileName + "__") && name.endsWith(".json"));
 
     return files != null && files.length > 0;
+  }
+  
+  /**
+   * Converts HTML tables to JSON with crawling support.
+   * Discovers and processes tables from the starting URL and linked pages/files.
+   *
+   * @param startUrl The starting URL to crawl from
+   * @param outputDir The directory to write JSON files to
+   * @param config The crawler configuration
+   * @return Map of generated JSON files (URL -> List of files)
+   * @throws IOException if conversion fails
+   */
+  public static Map<String, List<File>> convertWithCrawling(String startUrl, File outputDir, 
+                                                            CrawlerConfiguration config) throws IOException {
+    return convertWithCrawling(startUrl, outputDir, config, "UNCHANGED");
+  }
+  
+  /**
+   * Converts HTML tables to JSON with crawling support and column name casing.
+   *
+   * @param startUrl The starting URL to crawl from
+   * @param outputDir The directory to write JSON files to
+   * @param config The crawler configuration
+   * @param columnNameCasing The casing strategy for column names
+   * @return Map of generated JSON files (URL -> List of files)
+   * @throws IOException if conversion fails
+   */
+  public static Map<String, List<File>> convertWithCrawling(String startUrl, File outputDir,
+                                                            CrawlerConfiguration config,
+                                                            String columnNameCasing) throws IOException {
+    Map<String, List<File>> allJsonFiles = new HashMap<>();
+    
+    // Ensure output directory exists
+    if (!outputDir.exists()) {
+      outputDir.mkdirs();
+    }
+    
+    // Perform crawl
+    HtmlCrawler crawler = new HtmlCrawler(config);
+    CrawlResult crawlResult = crawler.crawl(startUrl);
+    
+    try {
+      LOGGER.info("Crawl complete. Found " + crawlResult.getTotalTablesFound() + " HTML tables and " 
+                  + crawlResult.getTotalDataFilesFound() + " data files");
+      
+      // Process HTML tables from all crawled pages
+      for (Map.Entry<String, List<TableInfo>> entry : crawlResult.getHtmlTables().entrySet()) {
+        String url = entry.getKey();
+        List<TableInfo> tables = entry.getValue();
+        
+        List<File> jsonFiles = processHtmlTables(url, tables, outputDir, columnNameCasing);
+        if (!jsonFiles.isEmpty()) {
+          allJsonFiles.put(url, jsonFiles);
+        }
+      }
+      
+      // Process downloaded data files
+      for (Map.Entry<String, File> entry : crawlResult.getDataFiles().entrySet()) {
+        String url = entry.getKey();
+        File dataFile = entry.getValue();
+        
+        List<File> jsonFiles = processDataFile(url, dataFile, outputDir, columnNameCasing);
+        if (!jsonFiles.isEmpty()) {
+          allJsonFiles.put(url, jsonFiles);
+        }
+      }
+      
+      LOGGER.info("Conversion complete. Generated JSON files for " + allJsonFiles.size() + " sources");
+      
+    } finally {
+      crawler.cleanup();
+    }
+    
+    return allJsonFiles;
+  }
+  
+  /**
+   * Processes HTML tables from a crawled page.
+   */
+  private static List<File> processHtmlTables(String url, List<TableInfo> tables, 
+                                             File outputDir, String columnNameCasing) throws IOException {
+    List<File> jsonFiles = new ArrayList<>();
+    
+    // Create a safe filename from URL
+    String urlFileName = sanitizeUrlForFileName(url);
+    
+    // Download and parse HTML to extract table data
+    Document doc = Jsoup.connect(url).get();
+    Elements tableElements = doc.select("table");
+    
+    for (TableInfo tableInfo : tables) {
+      try {
+        Element table = null;
+        if (tableInfo.selector.startsWith("table[index=")) {
+          // Handle index-based selection
+          if (tableInfo.index < tableElements.size()) {
+            table = tableElements.get(tableInfo.index);
+          }
+        } else {
+          table = doc.selectFirst(tableInfo.selector);
+        }
+        
+        if (table != null) {
+          File jsonFile = new File(outputDir, urlFileName + "__" + tableInfo.name + ".json");
+          writeTableAsJson(table, jsonFile, columnNameCasing);
+          jsonFiles.add(jsonFile);
+          LOGGER.fine("Wrote table from " + url + " to " + jsonFile.getName());
+        }
+      } catch (IOException e) {
+        LOGGER.log(Level.WARNING, "Failed to process table " + tableInfo.name + " from " + url, e);
+      }
+    }
+    
+    return jsonFiles;
+  }
+  
+  /**
+   * Processes a downloaded data file (CSV, Excel, etc.).
+   */
+  private static List<File> processDataFile(String url, File dataFile, 
+                                           File outputDir, String columnNameCasing) throws IOException {
+    List<File> jsonFiles = new ArrayList<>();
+    String fileName = dataFile.getName().toLowerCase();
+    
+    try {
+      if (fileName.endsWith(".csv") || fileName.endsWith(".tsv")) {
+        // Process as CSV - create a JSON representation
+        File jsonFile = new File(outputDir, sanitizeUrlForFileName(url) + ".json");
+        // TODO: Implement CSV to JSON conversion
+        LOGGER.info("CSV conversion not yet implemented for: " + dataFile.getName());
+        
+      } else if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
+        // Use Excel converter - convert to directory and find generated files
+        MultiTableExcelToJsonConverter.convertFileToJson(dataFile, true);
+        // Find the generated JSON files
+        File parentDir = dataFile.getParentFile();
+        String baseName = dataFile.getName().replaceFirst("\\.[^.]+$", "");
+        File[] generated = parentDir.listFiles((dir, name) -> 
+            name.startsWith(baseName) && name.endsWith(".json"));
+        if (generated != null) {
+          for (File f : generated) {
+            jsonFiles.add(f);
+          }
+        }
+        LOGGER.info("Converted Excel file " + dataFile.getName() + " to " + jsonFiles.size() + " JSON files");
+        
+      } else if (fileName.endsWith(".json")) {
+        // Copy JSON file directly
+        File targetFile = new File(outputDir, sanitizeUrlForFileName(url) + ".json");
+        java.nio.file.Files.copy(dataFile.toPath(), targetFile.toPath(), 
+                                 java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        jsonFiles.add(targetFile);
+        LOGGER.info("Copied JSON file to " + targetFile.getName());
+        
+      } else if (fileName.endsWith(".parquet")) {
+        // Parquet files can be used directly, no conversion needed
+        LOGGER.info("Parquet file " + dataFile.getName() + " can be used directly");
+        
+      } else {
+        LOGGER.warning("Unsupported file type: " + fileName);
+      }
+    } catch (Exception e) {
+      LOGGER.log(Level.WARNING, "Failed to process data file: " + dataFile.getName(), e);
+    }
+    
+    return jsonFiles;
+  }
+  
+  /**
+   * Sanitizes a URL to create a safe filename.
+   */
+  private static String sanitizeUrlForFileName(String url) {
+    // Remove protocol
+    String name = url.replaceFirst("^https?://", "");
+    
+    // Replace special characters
+    name = name.replaceAll("[^a-zA-Z0-9.-]", "_");
+    
+    // Limit length
+    if (name.length() > 100) {
+      name = name.substring(0, 100);
+    }
+    
+    // Remove trailing underscores
+    name = name.replaceAll("_+$", "");
+    
+    return name;
   }
 }

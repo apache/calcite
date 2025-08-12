@@ -97,11 +97,12 @@ public class DualTimestampTypeTest extends FileAdapterTest {
         + "    }\n"
         + "  ]\n"
         + "}");
+    info.put("lex", "ORACLE");
 
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info)) {
       Statement statement = connection.createStatement();
       ResultSet resultSet =
-          statement.executeQuery("SELECT id, naive_ts, aware_ts, description FROM \"DUAL_TIMESTAMP_TEST\"");
+          statement.executeQuery("SELECT \"id\", \"naive_ts\", \"aware_ts\", \"description\" FROM \"dual_timestamp_test\"");
 
       // Row 1: UTC timestamp
       assertThat(resultSet.next(), is(true));
@@ -230,6 +231,7 @@ public class DualTimestampTypeTest extends FileAdapterTest {
         + "    }\n"
         + "  ]\n"
         + "}");
+    info.put("lex", "ORACLE");
 
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info)) {
       Statement statement = connection.createStatement();
@@ -237,7 +239,7 @@ public class DualTimestampTypeTest extends FileAdapterTest {
       // This should throw an exception because TIMESTAMP cannot have timezone
       Exception exception = assertThrows(SQLException.class, () -> {
         ResultSet resultSet =
-            statement.executeQuery("SELECT * FROM \"INVALID_NAIVE_TEST\"");
+            statement.executeQuery("SELECT * FROM \"invalid_naive_test\"");
         resultSet.next(); // Trigger the parsing
       });
 
@@ -278,6 +280,7 @@ public class DualTimestampTypeTest extends FileAdapterTest {
         + "    }\n"
         + "  ]\n"
         + "}");
+    info.put("lex", "ORACLE");
 
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info)) {
       Statement statement = connection.createStatement();
@@ -285,7 +288,7 @@ public class DualTimestampTypeTest extends FileAdapterTest {
       // This should throw an exception because TIMESTAMPTZ must have timezone
       Exception exception = assertThrows(SQLException.class, () -> {
         ResultSet resultSet =
-            statement.executeQuery("SELECT * FROM \"INVALID_AWARE_TEST\"");
+            statement.executeQuery("SELECT * FROM \"invalid_aware_test\"");
         resultSet.next(); // Trigger the parsing
       });
 
@@ -332,18 +335,19 @@ public class DualTimestampTypeTest extends FileAdapterTest {
         + "    }\n"
         + "  ]\n"
         + "}");
+    info.put("lex", "ORACLE");
 
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info)) {
       Statement statement = connection.createStatement();
       ResultSet resultSet =
-          statement.executeQuery("SELECT * FROM \"MIXED_TIMESTAMPS_TEST\"");
+          statement.executeQuery("SELECT * FROM \"mixed_timestamps_test\"");
 
       int rowCount = 0;
       while (resultSet.next()) {
         rowCount++;
         int id = resultSet.getInt("id");
-        String localTs = resultSet.getString("LOCAL_TS");
-        String utcTs = resultSet.getString("UTC_TS");
+        String localTs = resultSet.getString("local_ts");
+        String utcTs = resultSet.getString("utc_ts");
 
         System.out.println("Row " + id + " - Local: " + localTs + ", UTC: " + utcTs);
 
@@ -360,19 +364,20 @@ public class DualTimestampTypeTest extends FileAdapterTest {
 
   @Test public void testNullTimestampHandling() throws Exception {
     Properties info = new Properties();
-    info.put("model", FileAdapterTests.jsonPath("BUG"));
+    info.put("model", FileAdapterTests.jsonPath("bug"));
+    info.put("lex", "ORACLE");
 
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info)) {
       Statement statement = connection.createStatement();
 
       // Test selecting all columns including nulls
       ResultSet rs =
-          statement.executeQuery("SELECT ID, NAME, CREATED_DATE, CREATED_TIME, CREATED_TS, CREATED_TSZ " +
-          "FROM \"NULL_TIMESTAMP_TEST\" ORDER BY ID");
+          statement.executeQuery("SELECT \"id\", \"name\", \"created_date\", \"created_time\", \"created_ts\", \"created_tsz\" " +
+          "FROM \"null_timestamp_test\" ORDER BY \"id\"");
 
       // Debug: Count total rows
       Statement countStmt = connection.createStatement();
-      ResultSet countRs = countStmt.executeQuery("SELECT COUNT(*) FROM \"NULL_TIMESTAMP_TEST\"");
+      ResultSet countRs = countStmt.executeQuery("SELECT COUNT(*) FROM \"null_timestamp_test\"");
       countRs.next();
       System.out.println("Total rows in NULL_TIMESTAMP_TEST: " + countRs.getInt(1));
 
@@ -380,10 +385,10 @@ public class DualTimestampTypeTest extends FileAdapterTest {
       assertTrue(rs.next());
       assertEquals(1, rs.getInt("id"));
       assertEquals("John Doe", rs.getString("name"));
-      assertNotNull(rs.getDate("CREATED_DATE"));
-      assertNotNull(rs.getTime("CREATED_TIME"));
-      assertNotNull(rs.getTimestamp("CREATED_TS"));
-      assertNotNull(rs.getString("CREATED_TSZ"));
+      assertNotNull(rs.getDate("created_date"));
+      assertNotNull(rs.getTime("created_time"));
+      assertNotNull(rs.getTimestamp("created_ts"));
+      assertNotNull(rs.getString("created_tsz"));
 
       // Row 2: All date/time values are null
       assertTrue(rs.next());
@@ -404,18 +409,18 @@ public class DualTimestampTypeTest extends FileAdapterTest {
       // Known limitation: Calcite converts null DATE values to epoch (1970-01-01)
       // This is because DATE is internally represented as int (days since epoch)
       // and null gets converted to 0 in the generated code
-      java.sql.Date dateVal = rs.getDate("CREATED_DATE");
+      java.sql.Date dateVal = rs.getDate("created_date");
       if (dateVal != null && dateVal.toString().equals("1970-01-01")) {
         // Document this as a known limitation
         System.out.println("Known limitation: null DATE returns as epoch date");
       }
 
         // TIME, TIMESTAMP, and TIMESTAMPTZ handle nulls correctly
-        assertNull(rs.getTime("CREATED_TIME"));
+        assertNull(rs.getTime("created_time"));
         assertTrue(rs.wasNull());
-        assertNull(rs.getTimestamp("CREATED_TS"));
+        assertNull(rs.getTimestamp("created_ts"));
         assertTrue(rs.wasNull());
-        assertNull(rs.getString("CREATED_TSZ"));
+        assertNull(rs.getString("created_tsz"));
         assertTrue(rs.wasNull());
 
         // Row 3: All values present
@@ -426,10 +431,10 @@ public class DualTimestampTypeTest extends FileAdapterTest {
 
       // Verify row 3 has all values (only if we didn't already check it)
       if (nextId == 2) {
-        assertNotNull(rs.getDate("CREATED_DATE"));
-        assertNotNull(rs.getTime("CREATED_TIME"));
-        assertNotNull(rs.getTimestamp("CREATED_TS"));
-        assertNotNull(rs.getString("CREATED_TSZ"));
+        assertNotNull(rs.getDate("created_date"));
+        assertNotNull(rs.getTime("created_time"));
+        assertNotNull(rs.getTimestamp("created_ts"));
+        assertNotNull(rs.getString("created_tsz"));
       }
 
       assertFalse(rs.next());

@@ -310,8 +310,8 @@ class FileReaderTest {
     try (Connection connection =
              DriverManager.getConnection("jdbc:calcite:", info);
          Statement stmt = connection.createStatement()) {
-      final String sql = "select a.\"empno\",a.\"name\",a.\"city\",b.\"DEPTNO\" "
-          + "from \"files\".\"emps\" a, \"files\".\"depts\" b where a.\"DEPTNO\" = b.\"DEPTNO\"";
+      final String sql = "select a.\"empno\",a.\"name\",a.\"city\",b.\"deptno\" "
+          + "from \"files\".\"emps\" a, \"files\".\"depts\" b where a.\"deptno\" = b.\"deptno\"";
       final ResultSet rs = stmt.executeQuery(sql);
       assertThat(rs.next(), is(true));
       assertThat(rs.getString(1), is("100"));

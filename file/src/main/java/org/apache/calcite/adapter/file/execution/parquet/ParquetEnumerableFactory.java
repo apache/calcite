@@ -37,6 +37,7 @@ import org.apache.parquet.schema.Type;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -60,7 +61,19 @@ public class ParquetEnumerableFactory {
   public static Enumerable<Object[]> enumerable(String filePath) {
     return new AbstractEnumerable<Object[]>() {
       @Override public Enumerator<Object[]> enumerator() {
-        return new ParquetEnumerator(filePath);
+        // Check if vectorized reading is enabled
+        Configuration conf = new Configuration();
+        String systemProperty = System.getProperty("parquet.enable.vectorized.reader", "false");
+        conf.set("parquet.enable.vectorized.reader", systemProperty);
+        boolean useVectorized = "true".equals(systemProperty);
+        
+        if (useVectorized) {
+          LOGGER.debug("Using batch reader for {} (batches rows for better I/O efficiency)", filePath);
+          return new VectorizedParquetEnumerator(filePath);
+        } else {
+          LOGGER.debug("Using record-by-record reader for {}", filePath);
+          return new ParquetEnumerator(filePath);
+        }
       }
     };
   }
@@ -72,7 +85,19 @@ public class ParquetEnumerableFactory {
   public static Enumerable<Object[]> enumerableWithFilters(String filePath, boolean[] nullFilters) {
     return new AbstractEnumerable<Object[]>() {
       @Override public Enumerator<Object[]> enumerator() {
-        return new FilteredParquetEnumerator(filePath, nullFilters);
+        // Check if vectorized reading is enabled
+        Configuration conf = new Configuration();
+        String systemProperty = System.getProperty("parquet.enable.vectorized.reader", "false");
+        conf.set("parquet.enable.vectorized.reader", systemProperty);
+        boolean useVectorized = "true".equals(systemProperty);
+        
+        if (useVectorized) {
+          LOGGER.debug("Using batch filtered reader for {} (batches rows for better I/O efficiency)", filePath);
+          return new VectorizedFilteredParquetEnumerator(filePath, nullFilters);
+        } else {
+          LOGGER.debug("Using record-by-record filtered reader for {}", filePath);
+          return new FilteredParquetEnumerator(filePath, nullFilters);
+        }
       }
     };
   }
@@ -109,6 +134,9 @@ public class ParquetEnumerableFactory {
       try {
         Path hadoopPath = new Path(filePath);
         Configuration conf = new Configuration();
+        
+        // Enable vectorized reading for better performance
+        conf.set("parquet.enable.vectorized.reader", "true");
 
         // Read Parquet schema to get timestamp metadata
         try (ParquetFileReader fileReader = ParquetFileReader.open(conf, hadoopPath)) {
@@ -279,6 +307,9 @@ public class ParquetEnumerableFactory {
       try {
         Path hadoopPath = new Path(filePath);
         Configuration conf = new Configuration();
+        
+        // Enable vectorized reading for better performance
+        conf.set("parquet.enable.vectorized.reader", "true");
 
         // Read Parquet schema to get timestamp metadata
         try (ParquetFileReader fileReader = ParquetFileReader.open(conf, hadoopPath)) {
@@ -452,6 +483,9 @@ public class ParquetEnumerableFactory {
       try {
         Path hadoopPath = new Path(filePath);
         Configuration conf = new Configuration();
+        
+        // Enable vectorized reading for better performance
+        conf.set("parquet.enable.vectorized.reader", "true");
 
         // Read Parquet schema to get timestamp metadata
         try (ParquetFileReader fileReader = ParquetFileReader.open(conf, hadoopPath)) {
@@ -587,6 +621,200 @@ public class ParquetEnumerableFactory {
         }
         reader = null;
       }
+    }
+  }
+  
+  /**
+   * Vectorized enumerator that reads from Parquet files in batches.
+   */
+  private static class VectorizedParquetEnumerator implements Enumerator<Object[]> {
+    private final String filePath;
+    private VectorizedParquetReader reader;
+    private List<Object[]> currentBatch;
+    private int batchPosition = 0;
+    private Object[] currentRow;
+    private boolean finished = false;
+    
+    VectorizedParquetEnumerator(String filePath) {
+      this.filePath = filePath;
+      initReader();
+    }
+    
+    private void initReader() {
+      try {
+        reader = new VectorizedParquetReader(filePath);
+        loadNextBatch();
+      } catch (IOException e) {
+        throw new RuntimeException("Failed to initialize vectorized Parquet reader for " + filePath, e);
+      }
+    }
+    
+    private void loadNextBatch() throws IOException {
+      currentBatch = reader.readBatch();
+      batchPosition = 0;
+      
+      if (currentBatch == null || currentBatch.isEmpty()) {
+        finished = true;
+        currentBatch = null;
+      } else {
+        LOGGER.trace("Loaded batch with {} rows", currentBatch.size());
+      }
+    }
+    
+    @Override 
+    public Object[] current() {
+      return currentRow;
+    }
+    
+    @Override 
+    public boolean moveNext() {
+      if (finished) {
+        return false;
+      }
+      
+      try {
+        // Check if we need to load the next batch
+        if (currentBatch == null || batchPosition >= currentBatch.size()) {
+          loadNextBatch();
+          if (finished) {
+            return false;
+          }
+        }
+        
+        // Get the next row from the current batch
+        currentRow = currentBatch.get(batchPosition);
+        batchPosition++;
+        return true;
+        
+      } catch (IOException e) {
+        throw new RuntimeException("Error reading vectorized Parquet data", e);
+      }
+    }
+    
+    @Override 
+    public void reset() {
+      close();
+      finished = false;
+      initReader();
+    }
+    
+    @Override 
+    public void close() {
+      if (reader != null) {
+        try {
+          reader.close();
+        } catch (IOException e) {
+          // Ignore
+        }
+        reader = null;
+      }
+      currentBatch = null;
+    }
+  }
+  
+  /**
+   * Vectorized filtered enumerator that reads from Parquet files in batches with null filtering.
+   */
+  private static class VectorizedFilteredParquetEnumerator implements Enumerator<Object[]> {
+    private final String filePath;
+    private final boolean[] nullFilters;
+    private VectorizedParquetReader reader;
+    private List<Object[]> currentBatch;
+    private int batchPosition = 0;
+    private Object[] currentRow;
+    private boolean finished = false;
+    
+    VectorizedFilteredParquetEnumerator(String filePath, boolean[] nullFilters) {
+      this.filePath = filePath;
+      this.nullFilters = nullFilters;
+      initReader();
+    }
+    
+    private void initReader() {
+      try {
+        reader = new VectorizedParquetReader(filePath);
+        loadNextBatch();
+      } catch (IOException e) {
+        throw new RuntimeException("Failed to initialize vectorized Parquet reader for " + filePath, e);
+      }
+    }
+    
+    private void loadNextBatch() throws IOException {
+      currentBatch = reader.readBatch();
+      batchPosition = 0;
+      
+      if (currentBatch == null || currentBatch.isEmpty()) {
+        finished = true;
+        currentBatch = null;
+      } else {
+        LOGGER.trace("Loaded batch with {} rows for filtering", currentBatch.size());
+      }
+    }
+    
+    @Override 
+    public Object[] current() {
+      return currentRow;
+    }
+    
+    @Override 
+    public boolean moveNext() {
+      if (finished) {
+        return false;
+      }
+      
+      try {
+        while (true) {
+          // Check if we need to load the next batch
+          if (currentBatch == null || batchPosition >= currentBatch.size()) {
+            loadNextBatch();
+            if (finished) {
+              return false;
+            }
+          }
+          
+          // Get the next row from the current batch
+          Object[] row = currentBatch.get(batchPosition);
+          batchPosition++;
+          
+          // Apply null filters - skip rows that have null values in filtered columns
+          boolean shouldSkip = false;
+          for (int i = 0; i < nullFilters.length && i < row.length; i++) {
+            if (nullFilters[i] && row[i] == null) {
+              shouldSkip = true;
+              break;
+            }
+          }
+          
+          if (!shouldSkip) {
+            currentRow = row;
+            return true; // Found a valid row
+          }
+          // Continue to next row if this one should be skipped
+        }
+        
+      } catch (IOException e) {
+        throw new RuntimeException("Error reading vectorized Parquet data", e);
+      }
+    }
+    
+    @Override 
+    public void reset() {
+      close();
+      finished = false;
+      initReader();
+    }
+    
+    @Override 
+    public void close() {
+      if (reader != null) {
+        try {
+          reader.close();
+        } catch (IOException e) {
+          // Ignore
+        }
+        reader = null;
+      }
+      currentBatch = null;
     }
   }
 }

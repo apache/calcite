@@ -1,0 +1,11 @@
+id,value1,value2,value3,value4
+1,100,200.5,true,2024-01-01
+2,,250.75,false,2024-01-02
+3,300,,true,
+4,400,350.25,,2024-01-04
+5,NULL,NULL,NULL,NULL
+6,NA,N/A,na,
+7,,,,,
+8,500,450.50,true,2024-01-08
+9,NONE,nil,NIL,n/a
+10,600,550.75,false,2024-01-10

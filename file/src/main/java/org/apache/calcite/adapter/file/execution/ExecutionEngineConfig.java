@@ -16,7 +16,10 @@
  */
 package org.apache.calcite.adapter.file.execution;
 
+import org.apache.calcite.adapter.file.execution.duckdb.DuckDBConfig;
+
 import java.util.Locale;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +51,7 @@ public class ExecutionEngineConfig {
   private final long memoryThreshold;
   private final String materializedViewStoragePath;
   private final boolean useCustomStoragePath;
+  private final DuckDBConfig duckdbConfig;
 
   public ExecutionEngineConfig(String executionEngine, int batchSize) {
     this(executionEngine, batchSize, DEFAULT_MEMORY_THRESHOLD, null);
@@ -60,15 +64,21 @@ public class ExecutionEngineConfig {
 
   public ExecutionEngineConfig(String executionEngine, int batchSize,
       long memoryThreshold, String materializedViewStoragePath) {
+    this(executionEngine, batchSize, memoryThreshold, materializedViewStoragePath, null);
+  }
+
+  public ExecutionEngineConfig(String executionEngine, int batchSize,
+      long memoryThreshold, String materializedViewStoragePath, DuckDBConfig duckdbConfig) {
     this.engineType = parseExecutionEngine(executionEngine);
     this.batchSize = batchSize;
     this.memoryThreshold = memoryThreshold;
     this.materializedViewStoragePath = materializedViewStoragePath;
     this.useCustomStoragePath = materializedViewStoragePath != null;
+    this.duckdbConfig = duckdbConfig != null ? duckdbConfig : new DuckDBConfig();
   }
 
   public ExecutionEngineConfig() {
-    this(DEFAULT_EXECUTION_ENGINE, DEFAULT_BATCH_SIZE, DEFAULT_MEMORY_THRESHOLD, null);
+    this(DEFAULT_EXECUTION_ENGINE, DEFAULT_BATCH_SIZE, DEFAULT_MEMORY_THRESHOLD, null, null);
   }
 
   private static ExecutionEngineType parseExecutionEngine(String executionEngine) {
@@ -90,7 +100,7 @@ public class ExecutionEngineConfig {
     } catch (IllegalArgumentException e) {
       throw new IllegalArgumentException(
           "Invalid execution engine: " + executionEngine
-          + ". Valid options: linq4j, arrow, vectorized, parquet", e);
+          + ". Valid options: linq4j, arrow, vectorized, parquet, duckdb", e);
     }
   }
 
@@ -112,6 +122,10 @@ public class ExecutionEngineConfig {
 
   public boolean hasCustomStoragePath() {
     return useCustomStoragePath;
+  }
+
+  public DuckDBConfig getDuckDBConfig() {
+    return duckdbConfig;
   }
 
   /**
@@ -141,6 +155,14 @@ public class ExecutionEngineConfig {
      * Best for: Very large datasets, streaming workloads, compressed data.
      * Supports row group-based streaming and efficient predicate pushdown.
      */
-    PARQUET
+    PARQUET,
+
+    /**
+     * DuckDB-based analytical processing with SQL pushdown.
+     * Best for: Complex analytics, high performance aggregations, joins.
+     * Leverages DuckDB's columnar execution engine for Parquet files.
+     * Requires DuckDB JDBC driver dependency.
+     */
+    DUCKDB
   }
 }

@@ -66,7 +66,7 @@ public class YamlFileTest {
          Statement stmt = conn.createStatement()) {
 
       // Test SELECT *
-      try (ResultSet rs = stmt.executeQuery("SELECT * FROM \"EMPLOYEES\" ORDER BY \"id\"")) {
+      try (ResultSet rs = stmt.executeQuery("SELECT * FROM \"employees\" ORDER BY \"id\"")) {
         assertTrue(rs.next());
         assertEquals(1, rs.getInt("id"));
         assertEquals("John Doe", rs.getString("name"));
@@ -91,7 +91,7 @@ public class YamlFileTest {
       // Test aggregation
       try (ResultSet rs =
           stmt.executeQuery("SELECT \"department\", AVG(\"salary\") as avg_salary "
-          + "FROM \"EMPLOYEES\" GROUP BY \"department\" ORDER BY \"department\"")) {
+          + "FROM \"employees\" GROUP BY \"department\" ORDER BY \"department\"")) {
         assertTrue(rs.next());
         assertEquals("Engineering", rs.getString("department"));
         assertEquals(75000.0, rs.getDouble("avg_salary"), 0.001);
@@ -132,7 +132,7 @@ public class YamlFileTest {
     try (Connection conn = DriverManager.getConnection("jdbc:calcite:model=inline:" + model);
          Statement stmt = conn.createStatement()) {
 
-      try (ResultSet rs = stmt.executeQuery("SELECT * FROM \"CONFIG\"")) {
+      try (ResultSet rs = stmt.executeQuery("SELECT * FROM \"config\"")) {
         assertTrue(rs.next());
         assertEquals("database", rs.getString("service"));
         assertEquals("localhost", rs.getString("host"));
@@ -179,7 +179,7 @@ public class YamlFileTest {
       // Use quoted identifiers to preserve case
       try (ResultSet rs =
           stmt.executeQuery("SELECT \"id\", \"name\", \"address__city\", \"address__zipcode\" "
-          + "FROM NESTED WHERE \"address__city\" = 'New York'")) {
+          + "FROM \"nested\" WHERE \"address__city\" = 'New York'")) {
         assertTrue(rs.next());
         assertEquals(1, rs.getInt("id"));
         assertEquals("Alice", rs.getString("name"));
@@ -216,7 +216,7 @@ public class YamlFileTest {
          Statement stmt = conn.createStatement()) {
 
       // Should work with PARQUET engine via auto-conversion
-      try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as cnt FROM \"DATA\"")) {
+      try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as cnt FROM \"data\"")) {
         assertTrue(rs.next());
         assertEquals(3L, rs.getLong("cnt"));
       }

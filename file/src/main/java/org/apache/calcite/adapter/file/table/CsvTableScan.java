@@ -86,6 +86,10 @@ public class CsvTableScan extends TableScan implements EnumerableRel {
 
   @Override public void register(RelOptPlanner planner) {
     planner.addRule(FileRules.PROJECT_SCAN);
+    planner.addRule(FileRules.HLL_COUNT_DISTINCT);
+    planner.addRule(FileRules.STATISTICS_FILTER_PUSHDOWN);
+    planner.addRule(FileRules.STATISTICS_JOIN_REORDER);
+    planner.addRule(FileRules.STATISTICS_COLUMN_PRUNING);
   }
 
   @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,

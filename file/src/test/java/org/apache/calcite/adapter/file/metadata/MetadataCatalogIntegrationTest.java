@@ -151,7 +151,7 @@ public class MetadataCatalogIntegrationTest {
         }
 
         // Verify results
-        assertTrue(tables.contains("SALES"), "Should find SALES table");
+        assertTrue(tables.contains("sales"), "Should find SALES table");
         assertTrue(tables.contains("customers"), "Should find CUSTOMERS table");
         assertTrue(tables.contains("products"), "Should find PRODUCTS table");
       }
@@ -173,7 +173,7 @@ public class MetadataCatalogIntegrationTest {
 
         // Verify results - pg_catalog returns lowercase names
         assertTrue(tables.size() >= 3, "Should find at least 3 tables, found: " + tables.size());
-        assertTrue(tables.contains("SALES"), "Should find sales table");
+        assertTrue(tables.contains("sales"), "Should find sales table");
         assertTrue(tables.contains("customers"), "Should find customers table");
         assertTrue(tables.contains("products"), "Should find products table");
       }
@@ -213,13 +213,13 @@ public class MetadataCatalogIntegrationTest {
         }
 
         assertEquals(4, tableNames.size(), "Should find 4 tables (3 data files + 1 cache)");
-        assertTrue(tableNames.contains("SALES"), "Should find SALES table");
+        assertTrue(tableNames.contains("sales"), "Should find SALES table");
         assertTrue(tableNames.contains("customers"), "Should find CUSTOMERS table");
         assertTrue(tableNames.contains("products"), "Should find PRODUCTS table");
       }
 
       // Test 3: Get columns for a specific table
-      try (ResultSet columns = metaData.getColumns(null, "FILES", "SALES", "%")) {
+      try (ResultSet columns = metaData.getColumns(null, "FILES", "sales", "%")) {
         List<String> columnInfo = new ArrayList<>();
         while (columns.next()) {
           String columnName = columns.getString("COLUMN_NAME");
@@ -232,7 +232,7 @@ public class MetadataCatalogIntegrationTest {
       }
 
       // Test 4: Get primary keys (might be empty for file tables)
-      try (ResultSet primaryKeys = metaData.getPrimaryKeys(null, "FILES", "SALES")) {
+      try (ResultSet primaryKeys = metaData.getPrimaryKeys(null, "FILES", "sales")) {
         if (primaryKeys.next()) {
           System.out.println("Primary key found: " + primaryKeys.getString("COLUMN_NAME"));
         } else {

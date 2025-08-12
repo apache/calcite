@@ -17,45 +17,108 @@
 package org.apache.calcite.adapter.file.iceberg;
 
 import org.apache.calcite.linq4j.Enumerator;
-import org.apache.iceberg.Schema;
+
+import org.apache.iceberg.Table;
+import org.apache.iceberg.TableScan;
+import org.apache.iceberg.data.IcebergGenerics;
 import org.apache.iceberg.data.Record;
+import org.apache.iceberg.expressions.Expression;
 import org.apache.iceberg.io.CloseableIterable;
+import org.apache.iceberg.Schema;
 import org.apache.iceberg.types.Types;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
-import java.math.BigDecimal;
-import java.nio.ByteBuffer;
-import java.sql.Date;
-import java.sql.Timestamp;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Enumerator that reads records from an Iceberg table.
+ * Simple Iceberg enumerator that reads records directly using Iceberg's data API.
+ * This provides snapshot-aware reading for the MVP implementation.
  */
 public class IcebergEnumerator implements Enumerator<Object[]> {
   private final CloseableIterable<Record> records;
   private final Iterator<Record> iterator;
   private final Schema schema;
+  private final Schema projectedSchema;
   private final AtomicBoolean cancelFlag;
+  private final @Nullable int[] projectedColumns;
   private @Nullable Object[] current;
 
-  public IcebergEnumerator(CloseableIterable<Record> records, 
-                          Schema schema,
+  public IcebergEnumerator(Table icebergTable, 
+                          @Nullable Long snapshotId, 
+                          @Nullable String asOfTimestamp,
                           AtomicBoolean cancelFlag) {
-    this.records = records;
-    this.iterator = records.iterator();
-    this.schema = schema;
+    this(icebergTable, snapshotId, asOfTimestamp, cancelFlag, null);
+  }
+  
+  public IcebergEnumerator(Table icebergTable, 
+                          @Nullable Long snapshotId, 
+                          @Nullable String asOfTimestamp,
+                          AtomicBoolean cancelFlag,
+                          @Nullable int[] projectedColumns) {
+    this(icebergTable, snapshotId, asOfTimestamp, cancelFlag, projectedColumns, null);
+  }
+  
+  public IcebergEnumerator(Table icebergTable, 
+                          @Nullable Long snapshotId, 
+                          @Nullable String asOfTimestamp,
+                          AtomicBoolean cancelFlag,
+                          @Nullable int[] projectedColumns,
+                          @Nullable Expression filter) {
+    this.schema = icebergTable.schema();
+    this.projectedColumns = projectedColumns;
     this.cancelFlag = cancelFlag;
+    
+    // Build projected schema if column projection is specified
+    if (projectedColumns != null && projectedColumns.length > 0) {
+      List<Types.NestedField> projectedFields = new ArrayList<>();
+      List<Types.NestedField> allFields = schema.columns();
+      
+      for (int columnIndex : projectedColumns) {
+        if (columnIndex >= 0 && columnIndex < allFields.size()) {
+          projectedFields.add(allFields.get(columnIndex));
+        }
+      }
+      this.projectedSchema = new Schema(projectedFields);
+    } else {
+      this.projectedSchema = schema;
+    }
+    
+    // Build the reader with snapshot filtering, column projection, and filters
+    IcebergGenerics.ScanBuilder scanBuilder = IcebergGenerics.read(icebergTable);
+    
+    // Apply column projection if specified
+    if (projectedColumns != null && projectedColumns.length > 0) {
+      scanBuilder = scanBuilder.select(getProjectedColumnNames());
+    }
+    
+    // Apply filter for partition pruning and row filtering
+    if (filter != null) {
+      scanBuilder = scanBuilder.where(filter);
+    }
+    
+    if (snapshotId != null) {
+      // Use specific snapshot
+      scanBuilder = scanBuilder.useSnapshot(snapshotId);
+    } else if (asOfTimestamp != null) {
+      // Use snapshot at specific time
+      try {
+        long timestampMillis = Instant.parse(asOfTimestamp).toEpochMilli();
+        scanBuilder = scanBuilder.asOfTime(timestampMillis);
+      } catch (Exception e) {
+        throw new IllegalArgumentException("Invalid timestamp format: " + asOfTimestamp 
+            + ". Expected ISO-8601 format like '2024-01-01T00:00:00Z'", e);
+      }
+    }
+    // If neither specified, uses current snapshot (default)
+    
+    this.records = scanBuilder.build();
+    this.iterator = records.iterator();
   }
 
   @Override
@@ -82,130 +145,51 @@ public class IcebergEnumerator implements Enumerator<Object[]> {
     return false;
   }
 
+  private String[] getProjectedColumnNames() {
+    if (projectedColumns == null || projectedColumns.length == 0) {
+      return null;
+    }
+    
+    List<Types.NestedField> allFields = schema.columns();
+    String[] columnNames = new String[projectedColumns.length];
+    
+    for (int i = 0; i < projectedColumns.length; i++) {
+      int columnIndex = projectedColumns[i];
+      if (columnIndex >= 0 && columnIndex < allFields.size()) {
+        columnNames[i] = allFields.get(columnIndex).name();
+      }
+    }
+    
+    return columnNames;
+  }
+
   private Object[] convertRecord(Record record) {
-    List<Types.NestedField> fields = schema.columns();
+    // Use projected schema for field iteration
+    List<Types.NestedField> fields = projectedSchema.columns();
     Object[] row = new Object[fields.size()];
     
     for (int i = 0; i < fields.size(); i++) {
       Types.NestedField field = fields.get(i);
       Object value = record.getField(field.name());
-      row[i] = convertValue(value, field.type());
+      row[i] = convertValue(value);
     }
     
     return row;
   }
 
-  private @Nullable Object convertValue(@Nullable Object value, org.apache.iceberg.types.Type type) {
+  private @Nullable Object convertValue(@Nullable Object value) {
     if (value == null) {
       return null;
     }
     
-    switch (type.typeId()) {
-      case BOOLEAN:
-      case INTEGER:
-      case LONG:
-      case FLOAT:
-      case DOUBLE:
-      case STRING:
-        return value;
-        
-      case DATE:
-        if (value instanceof LocalDate) {
-          return Date.valueOf((LocalDate) value);
-        } else if (value instanceof Integer) {
-          // Days since epoch
-          LocalDate date = LocalDate.ofEpochDay((Integer) value);
-          return Date.valueOf(date);
-        }
-        return value;
-        
-      case TIMESTAMP:
-        if (value instanceof LocalDateTime) {
-          return Timestamp.valueOf((LocalDateTime) value);
-        } else if (value instanceof OffsetDateTime) {
-          return Timestamp.from(((OffsetDateTime) value).toInstant());
-        } else if (value instanceof Long) {
-          // Microseconds since epoch
-          return new Timestamp(((Long) value) / 1000);
-        }
-        return value;
-        
-      case DECIMAL:
-        if (value instanceof BigDecimal) {
-          return value;
-        } else if (value instanceof ByteBuffer) {
-          // Convert ByteBuffer to BigDecimal
-          Types.DecimalType decimalType = (Types.DecimalType) type;
-          return convertBytesToDecimal((ByteBuffer) value, 
-              decimalType.precision(), decimalType.scale());
-        }
-        return value;
-        
-      case BINARY:
-      case FIXED:
-        if (value instanceof ByteBuffer) {
-          ByteBuffer buffer = (ByteBuffer) value;
-          byte[] bytes = new byte[buffer.remaining()];
-          buffer.get(bytes);
-          return bytes;
-        }
-        return value;
-        
-      case UUID:
-        if (value instanceof UUID) {
-          return value.toString();
-        }
-        return value;
-        
-      case STRUCT:
-        if (value instanceof Record) {
-          Types.StructType structType = (Types.StructType) type;
-          Record structRecord = (Record) value;
-          Object[] structValues = new Object[structType.fields().size()];
-          for (int i = 0; i < structType.fields().size(); i++) {
-            Types.NestedField field = structType.fields().get(i);
-            structValues[i] = convertValue(
-                structRecord.getField(field.name()), field.type());
-          }
-          return structValues;
-        }
-        return value;
-        
-      case LIST:
-        if (value instanceof List) {
-          Types.ListType listType = (Types.ListType) type;
-          List<?> list = (List<?>) value;
-          Object[] array = new Object[list.size()];
-          for (int i = 0; i < list.size(); i++) {
-            array[i] = convertValue(list.get(i), listType.elementType());
-          }
-          return array;
-        }
-        return value;
-        
-      case MAP:
-        if (value instanceof Map) {
-          // Return as-is, Calcite will handle Map types
-          return value;
-        }
-        return value;
-        
-      default:
-        return value;
-    }
-  }
-
-  private BigDecimal convertBytesToDecimal(ByteBuffer bytes, int precision, int scale) {
-    // Convert ByteBuffer to BigDecimal
-    byte[] byteArray = new byte[bytes.remaining()];
-    bytes.get(byteArray);
-    BigDecimal unscaled = new BigDecimal(new java.math.BigInteger(byteArray));
-    return unscaled.movePointLeft(scale);
+    // For MVP, do basic conversions
+    // TODO: Add more sophisticated type conversions as needed
+    return value;
   }
 
   @Override
   public void reset() {
-    throw new UnsupportedOperationException("Reset not supported");
+    throw new UnsupportedOperationException("Reset not supported on IcebergEnumerator");
   }
 
   @Override

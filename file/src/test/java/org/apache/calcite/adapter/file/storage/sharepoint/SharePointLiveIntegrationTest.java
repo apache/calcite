@@ -475,7 +475,7 @@ public class SharePointLiveIntegrationTest {
         // Try to query the table directly
         System.out.println("\nTrying direct query on discovered table:");
         try {
-          ResultSet rs = stmt.executeQuery("SELECT * FROM sharepoint.DEPARTMENTS LIMIT 5");
+          ResultSet rs = stmt.executeQuery("SELECT * FROM SHAREPOINT.DEPARTMENTS LIMIT 5");
           ResultSetMetaData rsmd = rs.getMetaData();
           int columnCount = rsmd.getColumnCount();
           System.out.println("Direct query SUCCESS! Columns: " + columnCount);

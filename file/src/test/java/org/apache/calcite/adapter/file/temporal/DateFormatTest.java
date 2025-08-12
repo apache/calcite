@@ -41,11 +41,12 @@ public class DateFormatTest {
   @Test public void testDateFormats() throws Exception {
     Properties info = new Properties();
     info.put("model", FileAdapterTests.jsonPath("bug-linq4j"));
+    info.put("lex", "ORACLE");
 
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
          Statement statement = connection.createStatement()) {
 
-      String sql = "SELECT ID, FORMAT_DESC, DATE_VALUE FROM \"DATE_FORMATS\" ORDER BY ID";
+      String sql = "SELECT \"id\", \"format_desc\", \"date_value\" FROM \"date_formats\" ORDER BY \"id\"";
 
       System.out.println("\n=== DATE Format Test ===");
       System.out.println("Verifying dates are stored as days since Unix epoch (1970-01-01)\n");
@@ -98,10 +99,10 @@ public class DateFormatTest {
 
       // Test date arithmetic
       sql = "SELECT "
-          + "DATE_VALUE, "
-          + "DATE_VALUE + INTERVAL '1' DAY AS NEXT_DAY, "
-          + "DATE_VALUE - INTERVAL '1' DAY AS PREV_DAY "
-          + "FROM \"DATE_FORMATS\" WHERE ID = 4";
+          + "\"date_value\", "
+          + "\"date_value\" + INTERVAL '1' DAY AS NEXT_DAY, "
+          + "\"date_value\" - INTERVAL '1' DAY AS PREV_DAY "
+          + "FROM \"date_formats\" WHERE \"id\" = 4";
 
       try (ResultSet resultSet = statement.executeQuery(sql)) {
         if (resultSet.next()) {
@@ -120,13 +121,14 @@ public class DateFormatTest {
   @Test public void testDateParsingWithParquet() throws Exception {
     Properties info = new Properties();
     // Test with Parquet engine to ensure proper conversion
-    info.put("model", FileAdapterTests.jsonPath("BUG"));
+    info.put("model", FileAdapterTests.jsonPath("bug"));
+    info.put("lex", "ORACLE");
 
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
          Statement statement = connection.createStatement()) {
 
       // Just test a few key dates with Parquet
-      String sql = "SELECT ID, DATE_VALUE FROM \"DATE_FORMATS\" WHERE ID IN (4, 5, 6) ORDER BY ID";
+      String sql = "SELECT \"id\", \"date_value\" FROM \"date_formats\" WHERE \"id\" IN (4, 5, 6) ORDER BY \"id\"";
 
       System.out.println("\n=== Parquet Date Storage Test ===");
 

@@ -45,6 +45,12 @@
  *   <li>{@link org.apache.calcite.adapter.file.converters.HtmlToJsonConverter} - Converts HTML content to JSON format</li>
  * </ul>
  *
+ * <h3>XML Converters</h3>
+ * <ul>
+ *   <li>{@link org.apache.calcite.adapter.file.converters.XmlTableScanner} - Detects repeating XML element patterns</li>
+ *   <li>{@link org.apache.calcite.adapter.file.converters.XmlToJsonConverter} - Converts XML structures to JSON format</li>
+ * </ul>
+ *
  * <h2>Conversion Process</h2>
  * <ol>
  *   <li>File is read and parsed using format-specific libraries (Apache POI, JSoup, etc.)</li>
@@ -70,6 +76,7 @@
  *   <li><b>Word</b> - Extracts tables from .docx files using OOXML parsing</li>
  *   <li><b>PowerPoint</b> - Extracts tables from slides in .pptx presentations</li>
  *   <li><b>Markdown</b> - Parses pipe-delimited table syntax</li>
+ *   <li><b>XML</b> - Detects repeating element patterns and converts to JSON</li>
  * </ul>
  *
  * <h2>Usage Example</h2>
@@ -86,6 +93,10 @@
  * // Extract tables from HTML
  * HtmlTableScanner scanner = new HtmlTableScanner();
  * List<Table> tables = scanner.scanDocument(htmlFile);
+ * 
+ * // Convert XML to JSON with XPath targeting
+ * File xmlFile = new File("data.xml");
+ * List<File> jsonFiles = XmlToJsonConverter.convert(xmlFile, outputDir, "//product");
  * }</pre>
  *
  * <h2>Error Handling</h2>
@@ -136,6 +147,22 @@
  *     <td>MarkdownTableScanner</td>
  *     <td>JSON table representation</td>
  *   </tr>
+ *   <tr>
+ *     <td>XML</td>
+ *     <td>XmlToJsonConverter</td>
+ *     <td>JSON array of element objects</td>
+ *   </tr>
  * </table>
+ *
+ * <h2>XML Conversion Features</h2>
+ * <ul>
+ *   <li>Automatic detection of repeating XML element patterns</li>
+ *   <li>XPath support for targeted element extraction</li>
+ *   <li>XML attribute handling (prefixed with @)</li>
+ *   <li>Nested element flattening with configurable separators</li>
+ *   <li>Multiple table generation from single XML file</li>
+ *   <li>Namespace-aware XML parsing</li>
+ *   <li>Support for complex XML structures and arrays</li>
+ * </ul>
  */
 package org.apache.calcite.adapter.file.converters;

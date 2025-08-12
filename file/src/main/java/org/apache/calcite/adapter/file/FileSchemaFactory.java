@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.file;
 
 import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
+import org.apache.calcite.adapter.file.execution.duckdb.DuckDBConfig;
 import org.apache.calcite.adapter.file.metadata.InformationSchema;
 import org.apache.calcite.adapter.file.metadata.PostgresMetadataSchema;
 import org.apache.calcite.model.ModelHandler;
@@ -58,6 +59,7 @@ public class FileSchemaFactory implements SchemaFactory {
     final String executionEngine =
         (String) operand.getOrDefault("executionEngine",
             ExecutionEngineConfig.DEFAULT_EXECUTION_ENGINE);
+    System.out.println("*** FILESCHEMAFACTORY *** executionEngine from operand: '" + executionEngine + "'");
     final Object batchSizeObj = operand.get("batchSize");
     final int batchSize = batchSizeObj instanceof Number
         ? ((Number) batchSizeObj).intValue()
@@ -67,8 +69,15 @@ public class FileSchemaFactory implements SchemaFactory {
         ? ((Number) memoryThresholdObj).longValue()
         : ExecutionEngineConfig.DEFAULT_MEMORY_THRESHOLD;
 
+    // Get DuckDB configuration if provided
+    @SuppressWarnings("unchecked") Map<String, Object> duckdbConfigMap =
+        (Map<String, Object>) operand.get("duckdbConfig");
+    final DuckDBConfig duckdbConfig = duckdbConfigMap != null 
+        ? new DuckDBConfig(duckdbConfigMap) 
+        : null;
+
     final ExecutionEngineConfig engineConfig =
-        new ExecutionEngineConfig(executionEngine, batchSize, memoryThreshold, null);
+        new ExecutionEngineConfig(executionEngine, batchSize, memoryThreshold, null, duckdbConfig);
 
     // Get recursive parameter (default to false for backward compatibility)
     final boolean recursive = operand.get("recursive") == Boolean.TRUE;
@@ -113,6 +122,17 @@ public class FileSchemaFactory implements SchemaFactory {
       columnNameCasing = (String) operand.getOrDefault("column_name_casing", "SMART_CASING");
     }
 
+    // Get CSV type inference configuration
+    @SuppressWarnings("unchecked") Map<String, Object> csvTypeInference =
+        (Map<String, Object>) operand.get("csvTypeInference");
+
+    // Get prime_cache option (default to true for optimal performance)
+    final Boolean primeCache = operand.get("primeCache") != null 
+        ? (Boolean) operand.get("primeCache") 
+        : operand.get("prime_cache") != null 
+            ? (Boolean) operand.get("prime_cache")
+            : Boolean.TRUE;  // Default to true
+
     File directoryFile = null;
     // Only create File objects for local storage, not for cloud storage providers
     if (storageType == null || "local".equals(storageType)) {
@@ -143,7 +163,7 @@ public class FileSchemaFactory implements SchemaFactory {
     FileSchema fileSchema =
         new FileSchema(parentSchema, name, directoryFile, directoryPattern, tables, engineConfig, recursive,
         materializations, views, partitionedTables, refreshInterval, tableNameCasing,
-        columnNameCasing, storageType, storageConfig, flatten);
+        columnNameCasing, storageType, storageConfig, flatten, csvTypeInference, primeCache);
 
     // Add metadata schemas as sibling schemas (not sub-schemas)
     // This makes them available at the same level as the file schema

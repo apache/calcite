@@ -111,10 +111,10 @@ public class RefreshableTableTest {
 
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
       SchemaPlus fileSchema =
-          rootSchema.add("TEST", FileSchemaFactory.INSTANCE.create(rootSchema, "TEST", operand));
+          rootSchema.add("test", FileSchemaFactory.INSTANCE.create(rootSchema, "test", operand));
 
       // Get the table
-      Table table = fileSchema.getTable("TEST");
+      Table table = fileSchema.getTable("test");
       assertNotNull(table);
       System.out.println("Table type: " + table.getClass().getName());
       System.out.println("Is RefreshableTable: " + (table instanceof RefreshableTable));
@@ -125,7 +125,7 @@ public class RefreshableTableTest {
 
       // Query initial data
       try (Statement stmt = connection.createStatement();
-           ResultSet rs = stmt.executeQuery("SELECT * FROM TEST.TEST")) {
+           ResultSet rs = stmt.executeQuery("SELECT * FROM \"test\".\"test\"")) {
         assertTrue(rs.next());
         assertEquals(1, rs.getInt("id"));
         assertEquals("Alice", rs.getString("name"));
@@ -142,7 +142,7 @@ public class RefreshableTableTest {
       // Query again - with parquet engine, refresh should work
       // and regenerate parquet from updated source data
       try (Statement stmt = connection.createStatement();
-           ResultSet rs = stmt.executeQuery("SELECT * FROM TEST.TEST")) {
+           ResultSet rs = stmt.executeQuery("SELECT * FROM \"test\".\"test\"")) {
         assertTrue(rs.next());
         assertEquals(2, rs.getInt("id")); // Should see updated data
         assertEquals("Bob", rs.getString("name")); // Should see updated data
@@ -171,10 +171,10 @@ public class RefreshableTableTest {
 
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
       SchemaPlus fileSchema =
-          rootSchema.add("TEST", FileSchemaFactory.INSTANCE.create(rootSchema, "TEST", operand));
+          rootSchema.add("test", FileSchemaFactory.INSTANCE.create(rootSchema, "test", operand));
 
       // Check table has overridden refresh interval
-      Table table = fileSchema.getTable("FAST_REFRESH");
+      Table table = fileSchema.getTable("fast_refresh");
       assertNotNull(table);
       assertTrue(table instanceof RefreshableTable);
 
@@ -193,10 +193,10 @@ public class RefreshableTableTest {
 
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
       SchemaPlus fileSchema =
-          rootSchema.add("TEST", FileSchemaFactory.INSTANCE.create(rootSchema, "TEST", operand));
+          rootSchema.add("test", FileSchemaFactory.INSTANCE.create(rootSchema, "test", operand));
 
       // Table should not be refreshable
-      Table table = fileSchema.getTable("TEST");
+      Table table = fileSchema.getTable("test");
       assertNotNull(table);
       assertFalse(table instanceof RefreshableTable);
     }
@@ -219,11 +219,11 @@ public class RefreshableTableTest {
 
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
       SchemaPlus fileSchema =
-          rootSchema.add("TEST", FileSchemaFactory.INSTANCE.create(rootSchema, "TEST", operand));
+          rootSchema.add("test", FileSchemaFactory.INSTANCE.create(rootSchema, "test", operand));
 
       // Verify both tables exist
-      assertNotNull(fileSchema.getTable("DATA1"));
-      assertNotNull(fileSchema.getTable("DATA2"));
+      assertNotNull(fileSchema.getTable("data1"));
+      assertNotNull(fileSchema.getTable("data2"));
 
       // Create new file after schema creation
       File file3 = new File(tempDir.toFile(), "data3.json");
@@ -239,7 +239,7 @@ public class RefreshableTableTest {
       Thread.sleep(1100);
 
       try (Statement stmt = connection.createStatement();
-           ResultSet rs = stmt.executeQuery("SELECT * FROM TEST.DATA1")) {
+           ResultSet rs = stmt.executeQuery("SELECT * FROM \"test\".\"data1\"")) {
         assertTrue(rs.next());
         assertEquals(10, rs.getInt("id"));
       }
@@ -248,11 +248,11 @@ public class RefreshableTableTest {
 
   @Test public void testPartitionedParquetTableRefresh() throws Exception {
     // Create partitioned directory structure with initial partitions
-    File salesDir = new File(tempDir.toFile(), "SALES");
+    File salesDir = new File(tempDir.toFile(), "sales");
     salesDir.mkdirs();
 
     // Create Avro schema for the Parquet files
-    Schema avroSchema = Schema.createRecord("SalesRecord", "", "SALES", false);
+    Schema avroSchema = Schema.createRecord("SalesRecord", "", "sales", false);
     avroSchema.setFields(
         Arrays.asList(
         new Schema.Field("id", Schema.create(Schema.Type.INT), "", null),
@@ -281,7 +281,7 @@ public class RefreshableTableTest {
 
     // Configure partitioned table
     Map<String, Object> partitionConfig = new HashMap<>();
-    partitionConfig.put("name", "SALES");
+    partitionConfig.put("name", "sales");
     partitionConfig.put("pattern", "sales/**/*.parquet");
 
     // Add Hive-style partition configuration with typed columns
@@ -300,11 +300,11 @@ public class RefreshableTableTest {
 
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
       SchemaPlus fileSchema =
-          rootSchema.add("PARTITIONED", FileSchemaFactory.INSTANCE.create(rootSchema, "PARTITIONED", operand));
+          rootSchema.add("partitioned", FileSchemaFactory.INSTANCE.create(rootSchema, "partitioned", operand));
 
       // Verify initial partitions are available
       try (Statement stmt = connection.createStatement();
-           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM PARTITIONED.SALES")) {
+           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM \"partitioned\".\"sales\"")) {
         assertTrue(rs.next());
         assertEquals(2, rs.getInt(1)); // Should see 2 records from 2 partitions
       }
@@ -320,14 +320,14 @@ public class RefreshableTableTest {
 
       // Query again - partitioned tables SHOULD auto-discover new partitions
       try (Statement stmt = connection.createStatement();
-           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM PARTITIONED.SALES")) {
+           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM \"partitioned\".\"sales\"")) {
         assertTrue(rs.next());
         assertEquals(3, rs.getInt(1)); // Should now see 3 records from 3 partitions
       }
 
       // Test partition pruning with new partition - first check column names
       try (Statement stmt = connection.createStatement();
-           ResultSet rs = stmt.executeQuery("SELECT * FROM PARTITIONED.SALES WHERE \"year\" = '2023' AND \"month\" = '03' LIMIT 1")) {
+           ResultSet rs = stmt.executeQuery("SELECT * FROM \"partitioned\".\"sales\" WHERE \"year\" = '2023' AND \"month\" = '03' LIMIT 1")) {
         assertTrue(rs.next());
 
         // Get actual column names from result set metadata
@@ -348,7 +348,7 @@ public class RefreshableTableTest {
 
       // Query the specific data - all columns are VARCHAR in the result
       try (Statement stmt = connection.createStatement();
-           ResultSet rs = stmt.executeQuery("SELECT \"id\", \"amount\", \"product\", \"year\", \"month\" FROM PARTITIONED.SALES WHERE \"year\" = '2023' AND \"month\" = '03'")) {
+           ResultSet rs = stmt.executeQuery("SELECT \"id\", \"amount\", \"product\", \"year\", \"month\" FROM \"partitioned\".\"sales\" WHERE \"year\" = '2023' AND \"month\" = '03'")) {
         assertTrue(rs.next());
         // All columns come back as VARCHAR from the Parquet file
         assertEquals("3", rs.getString("id"));
@@ -371,14 +371,14 @@ public class RefreshableTableTest {
 
       // Should now see 4 records total
       try (Statement stmt = connection.createStatement();
-           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM PARTITIONED.SALES")) {
+           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM \"partitioned\".\"sales\"")) {
         assertTrue(rs.next());
         assertEquals(4, rs.getInt(1));
       }
 
       // Test year-level partition pruning
       try (Statement stmt = connection.createStatement();
-           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM PARTITIONED.SALES WHERE \"year\" = 2024")) {
+           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM \"partitioned\".\"sales\" WHERE \"year\" = 2024")) {
         assertTrue(rs.next());
         assertEquals(1, rs.getInt(1)); // Only 2024 data
       }
@@ -440,7 +440,7 @@ public class RefreshableTableTest {
     salesDir.mkdirs();
 
     // Create Avro schema
-    Schema avroSchema = Schema.createRecord("SalesRecord", "", "SALES", false);
+    Schema avroSchema = Schema.createRecord("SalesRecord", "", "sales", false);
     avroSchema.setFields(
         Arrays.asList(
         new Schema.Field("id", Schema.create(Schema.Type.INT), "", null),
@@ -486,7 +486,7 @@ public class RefreshableTableTest {
 
       // Verify initial files are available
       try (Statement stmt = connection.createStatement();
-           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM TEMP.sales_CUSTOM")) {
+           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM \"CUSTOM\".\"sales_custom\"")) {
         assertTrue(rs.next());
         assertEquals(2, rs.getInt(1));
       }
@@ -495,7 +495,7 @@ public class RefreshableTableTest {
       try (Statement stmt = connection.createStatement();
            ResultSet rs =
                stmt.executeQuery("SELECT \"id\", \"amount\", \"product\", \"year\", \"month\" " +
-               "FROM TEMP.sales_CUSTOM ORDER BY \"id\"")) {
+               "FROM \"CUSTOM\".\"sales_custom\" ORDER BY \"id\"")) {
         // First row
         assertTrue(rs.next());
         assertEquals(1, rs.getInt("id"));
@@ -524,7 +524,7 @@ public class RefreshableTableTest {
 
       // Should now see 3 records
       try (Statement stmt = connection.createStatement();
-           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM TEMP.sales_CUSTOM")) {
+           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM \"CUSTOM\".\"sales_custom\"")) {
         assertTrue(rs.next());
         assertEquals(3, rs.getInt(1));
       }
@@ -532,7 +532,7 @@ public class RefreshableTableTest {
       // Verify the new partition with proper types
       try (Statement stmt = connection.createStatement();
            ResultSet rs =
-               stmt.executeQuery("SELECT \"year\", \"month\", COUNT(*) as cnt FROM TEMP.sales_CUSTOM " +
+               stmt.executeQuery("SELECT \"year\", \"month\", COUNT(*) as cnt FROM \"CUSTOM\".\"sales_custom\" " +
                "GROUP BY \"year\", \"month\" ORDER BY \"year\", \"month\"")) {
         // 2023-01
         assertTrue(rs.next());
@@ -558,7 +558,7 @@ public class RefreshableTableTest {
       // Test year-level aggregation
       try (Statement stmt = connection.createStatement();
            ResultSet rs =
-               stmt.executeQuery("SELECT \"year\", SUM(\"amount\") as total FROM TEMP.sales_CUSTOM " +
+               stmt.executeQuery("SELECT \"year\", SUM(\"amount\") as total FROM \"CUSTOM\".\"sales_custom\" " +
                "GROUP BY \"year\" ORDER BY \"year\"")) {
         // 2023
         assertTrue(rs.next());

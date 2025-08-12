@@ -50,15 +50,24 @@ public class ConcurrentParquetCache {
    */
   public static File convertWithLocking(File sourceFile, File cacheDir,
       ConversionCallback callback) throws Exception {
+    return convertWithLocking(sourceFile, cacheDir, false, callback);
+  }
 
-    String lockKey = sourceFile.getAbsolutePath();
+  /**
+   * Convert a file to Parquet with proper concurrency control and type inference flag.
+   * Uses Redis locks if available, otherwise falls back to file system locks.
+   */
+  public static File convertWithLocking(File sourceFile, File cacheDir, boolean typeInferenceEnabled,
+      ConversionCallback callback) throws Exception {
+
+    String lockKey = sourceFile.getAbsolutePath() + (typeInferenceEnabled ? ".inferred" : "");
 
     // Try Redis distributed lock first
     RedisDistributedLock redisLock = RedisDistributedLock.createIfAvailable(lockKey);
     if (redisLock != null) {
       try {
         if (redisLock.tryLock(TimeUnit.SECONDS.toMillis(LOCK_TIMEOUT_SECONDS))) {
-          return performConversion(sourceFile, cacheDir, callback);
+          return performConversion(sourceFile, cacheDir, typeInferenceEnabled, callback);
         } else {
           throw new IOException("Timeout waiting for Redis lock on: " + sourceFile);
         }
@@ -78,7 +87,7 @@ public class ConcurrentParquetCache {
         throw new IOException("Timeout waiting for lock on: " + sourceFile);
       }
 
-      return performConversionWithFileLock(sourceFile, cacheDir, callback);
+      return performConversionWithFileLock(sourceFile, cacheDir, typeInferenceEnabled, callback);
     } finally {
       if (acquired) {
         processLock.unlock();
@@ -90,12 +99,17 @@ public class ConcurrentParquetCache {
 
   private static File performConversion(File sourceFile, File cacheDir,
       ConversionCallback callback) throws Exception {
+    return performConversion(sourceFile, cacheDir, false, callback);
+  }
+
+  private static File performConversion(File sourceFile, File cacheDir, boolean typeInferenceEnabled,
+      ConversionCallback callback) throws Exception {
     // Ensure cache directory exists
     if (!cacheDir.exists()) {
       cacheDir.mkdirs();
     }
 
-    File parquetFile = ParquetConversionUtil.getCachedParquetFile(sourceFile, cacheDir);
+    File parquetFile = ParquetConversionUtil.getCachedParquetFile(sourceFile, cacheDir, typeInferenceEnabled);
 
     // Double-check if conversion is still needed
     if (!ParquetConversionUtil.needsConversion(sourceFile, parquetFile)) {
@@ -126,12 +140,17 @@ public class ConcurrentParquetCache {
 
   private static File performConversionWithFileLock(File sourceFile, File cacheDir,
       ConversionCallback callback) throws Exception {
+    return performConversionWithFileLock(sourceFile, cacheDir, false, callback);
+  }
+
+  private static File performConversionWithFileLock(File sourceFile, File cacheDir, boolean typeInferenceEnabled,
+      ConversionCallback callback) throws Exception {
     // Ensure cache directory exists
     if (!cacheDir.exists()) {
       cacheDir.mkdirs();
     }
 
-    File parquetFile = ParquetConversionUtil.getCachedParquetFile(sourceFile, cacheDir);
+    File parquetFile = ParquetConversionUtil.getCachedParquetFile(sourceFile, cacheDir, typeInferenceEnabled);
     File lockFile = new File(parquetFile.getAbsolutePath() + ".lock");
 
     // Use file lock for cross-JVM synchronization
@@ -144,7 +163,7 @@ public class ConcurrentParquetCache {
       }
 
       // Use the common conversion logic
-      return performConversion(sourceFile, cacheDir, callback);
+      return performConversion(sourceFile, cacheDir, typeInferenceEnabled, callback);
     }
   }
 

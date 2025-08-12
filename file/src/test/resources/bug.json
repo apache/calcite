@@ -23,7 +23,9 @@
       "type": "custom",
       "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
       "operand": {
-        "directory": "bug"
+        "directory": "bug",
+        "caseSensitive": false,
+        "unquotedCasing": "TO_LOWER"
       }
     }
   ]

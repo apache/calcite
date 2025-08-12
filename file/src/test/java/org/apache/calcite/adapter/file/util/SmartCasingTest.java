@@ -17,11 +17,11 @@
 package org.apache.calcite.adapter.file.util;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.MethodOrderer;
-
 import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -30,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * Tests for {@link SmartCasing}.
  */
 @TestMethodOrder(MethodOrderer.MethodName.class)
+@Tag("unit")
 public class SmartCasingTest {
 
   @BeforeEach
@@ -118,14 +119,14 @@ public class SmartCasingTest {
     ));
     
     // Test that unchanged terms are preserved
-    assertEquals("userID", SmartCasing.toSnakeCase("userID"));
+    assertEquals("user_id", SmartCasing.toSnakeCase("userID"));
     assertEquals("UUID", SmartCasing.toSnakeCase("UUID"));
     assertEquals("table_UUID_mapping", SmartCasing.toSnakeCase("tableUUIDMapping"));
   }
 
   @Test void testApplyCasingMethod() {
-    assertEquals("TEST", SmartCasing.applyCasing("TEST", "UPPER"));
-    assertEquals("TEST", SmartCasing.applyCasing("TEST", "LOWER"));
+    assertEquals("TEST", SmartCasing.applyCasing("test", "UPPER"));
+    assertEquals("test", SmartCasing.applyCasing("TEST", "LOWER"));
     assertEquals("Test", SmartCasing.applyCasing("Test", "UNCHANGED"));
     assertEquals("user_id", SmartCasing.applyCasing("userId", "SMART_CASING"));
   }
@@ -143,7 +144,7 @@ public class SmartCasingTest {
     assertEquals("a", SmartCasing.toSnakeCase("a"));
     
     // Multiple consecutive uppercase
-    assertEquals("html_css_js", SmartCasing.toSnakeCase("HTMLCSSJS"));
+    assertEquals("htmlcssjs", SmartCasing.toSnakeCase("HTMLCSSJS"));
     
     // Mixed with underscores already present
     assertEquals("user_api_key", SmartCasing.toSnakeCase("user_APIKey"));

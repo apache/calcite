@@ -261,7 +261,7 @@ public class MixedFormatGlobTest {
         assertEquals(3L, rs.getLong("cnt"));
 
         assertTrue(rs.next());
-        assertEquals("YAML", rs.getString("source"));
+        assertEquals("yaml", rs.getString("source"));
         assertEquals(2L, rs.getLong("cnt"));
 
         assertThat(rs.next(), is(false));

@@ -14,8 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.file;
+package org.apache.calcite.adapter.file.html;
 
+import org.apache.calcite.adapter.file.FileSchemaFactory;
+import org.apache.calcite.adapter.file.FileSchema;
 import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
@@ -34,6 +36,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
@@ -137,17 +140,20 @@ public class MultiTableHtmlTest {
     }
   }
 
-  @Test public void testMultiTableHtmlDetection() throws Exception {
+  @Test @SuppressWarnings("deprecation") public void testMultiTableHtmlDetection() throws Exception {
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:");
          CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
 
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
       FileSchema fileSchema =
           new FileSchema(rootSchema, "html", tempDir.toFile(), null, new ExecutionEngineConfig(), false, null, null);
-      rootSchema.add("html", fileSchema);
+      SchemaPlus htmlSchema = rootSchema.add("html", fileSchema);
 
       // Force table discovery
-      Map<String, Table> tables = fileSchema.getTableMap();
+      Map<String, Table> tables = new HashMap<>();
+      for (String tableName : htmlSchema.getTableNames()) {
+        tables.put(tableName, htmlSchema.getTable(tableName));
+      }
 
       // Debug: List all discovered tables
       System.out.println("Discovered tables:");
@@ -221,17 +227,20 @@ public class MultiTableHtmlTest {
     }
   }
 
-  @Test public void testComplexHtmlFile() throws Exception {
+  @Test @SuppressWarnings("deprecation") public void testComplexHtmlFile() throws Exception {
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:");
          CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
 
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
       FileSchema fileSchema =
           new FileSchema(rootSchema, "html", tempDir.toFile(), null, new ExecutionEngineConfig(), true, null, null);
-      rootSchema.add("html", fileSchema);
+      SchemaPlus htmlSchema = rootSchema.add("html", fileSchema);
 
       // Force table discovery
-      Map<String, Table> tables = fileSchema.getTableMap();
+      Map<String, Table> tables = new HashMap<>();
+      for (String tableName : htmlSchema.getTableNames()) {
+        tables.put(tableName, htmlSchema.getTable(tableName));
+      }
 
       try (Statement statement = connection.createStatement()) {
         // Count tables found

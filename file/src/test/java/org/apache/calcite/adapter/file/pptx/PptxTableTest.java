@@ -356,13 +356,13 @@ public class PptxTableTest {
 
     // Tables should be created from the generated JSON files (uppercase table names in schema)
     // Note: Indices are only added when there are duplicate names
-    assertTrue(tables.containsKey("sales_presentation__q4_sales_results__regional_performance"),
+    assertTrue(tables.containsKey("SALES_PRESENTATION__Q4_SALES_RESULTS__REGIONAL_PERFORMANCE"),
         "Should have sales presentation table");
-    assertTrue(tables.containsKey("company_overview__financial_overview__revenue_by_quarter"),
+    assertTrue(tables.containsKey("COMPANY_OVERVIEW__FINANCIAL_OVERVIEW__REVENUE_BY_QUARTER"),
         "Should have revenue table");
-    assertTrue(tables.containsKey("company_overview__financial_overview__operating_expenses"),
+    assertTrue(tables.containsKey("COMPANY_OVERVIEW__FINANCIAL_OVERVIEW__OPERATING_EXPENSES"),
         "Should have expense table");
-    assertTrue(tables.containsKey("company_overview__team_structure__department_headcount"),
+    assertTrue(tables.containsKey("COMPANY_OVERVIEW__TEAM_STRUCTURE__DEPARTMENT_HEADCOUNT"),
         "Should have department table");
   }
 
@@ -377,8 +377,8 @@ public class PptxTableTest {
         .with(CalciteAssert.Config.REGULAR)
         .withSchema("pptx", new FileSchema(null, "TEST", tempDir.toFile(), null, null,
             new ExecutionEngineConfig(), false, null, null, null, null))
-        .query("SELECT * FROM pptx.sales_presentation__q4_sales_results__regional_performance " +
-               "WHERE CAST(sales AS INTEGER) > 100000")
+        .query("SELECT * FROM \"pptx\".\"SALES_PRESENTATION__Q4_SALES_RESULTS__REGIONAL_PERFORMANCE\" " +
+               "WHERE CAST(\"sales\" AS INTEGER) > 100000")
         .returnsCount(2); // North (120000) and East (145000) have sales > 100000
   }
 
@@ -405,17 +405,17 @@ public class PptxTableTest {
         "        {\n" +
         "          \"name\": \"revenue\",\n" +
         "          \"type\": \"view\",\n" +
-        "          \"sql\": \"SELECT * FROM \\\"raw_pptx\\\".company_overview__financial_overview__revenue_by_quarter\"\n" +
+        "          \"sql\": \"SELECT * FROM \\\"raw_pptx\\\".\\\"company_overview__financial_overview__revenue_by_quarter\\\"\"\n" +
         "        },\n" +
         "        {\n" +
         "          \"name\": \"expenses\",\n" +
         "          \"type\": \"view\",\n" +
-        "          \"sql\": \"SELECT * FROM \\\"raw_pptx\\\".company_overview__financial_overview__operating_expenses\"\n" +
+        "          \"sql\": \"SELECT * FROM \\\"raw_pptx\\\".\\\"company_overview__financial_overview__operating_expenses\\\"\"\n" +
         "        },\n" +
         "        {\n" +
         "          \"name\": \"departments\",\n" +
         "          \"type\": \"view\",\n" +
-        "          \"sql\": \"SELECT * FROM \\\"raw_pptx\\\".company_overview__team_structure__department_headcount\"\n" +
+        "          \"sql\": \"SELECT * FROM \\\"raw_pptx\\\".\\\"company_overview__team_structure__department_headcount\\\"\"\n" +
         "        }\n" +
         "      ]\n" +
         "    }\n" +
@@ -470,24 +470,24 @@ public class PptxTableTest {
     CalciteAssert.that()
         .with(CalciteAssert.Config.REGULAR)
         .withSchema("pptx", schema)
-        .query("SELECT * FROM pptx.company_overview__financial_overview__revenue_by_quarter " +
-               "WHERE quarter = 'Q1'")
+        .query("SELECT * FROM \"pptx\".\"COMPANY_OVERVIEW__FINANCIAL_OVERVIEW__REVENUE_BY_QUARTER\" " +
+               "WHERE \"quarter\" = 'Q1'")
         .returnsCount(1)
         .returns("quarter=Q1; revenue=500000\n");
 
     CalciteAssert.that()
         .with(CalciteAssert.Config.REGULAR)
         .withSchema("pptx", schema)
-        .query("SELECT * FROM pptx.company_overview__financial_overview__operating_expenses " +
-               "WHERE category = 'Salaries'")
+        .query("SELECT * FROM \"pptx\".\"COMPANY_OVERVIEW__FINANCIAL_OVERVIEW__OPERATING_EXPENSES\" " +
+               "WHERE \"category\" = 'Salaries'")
         .returnsCount(1)
         .returns("category=Salaries; amount=200000\n");
 
     CalciteAssert.that()
         .with(CalciteAssert.Config.REGULAR)
         .withSchema("pptx", schema)
-        .query("SELECT * FROM pptx.company_overview__team_structure__department_headcount " +
-               "WHERE department = 'Engineering'")
+        .query("SELECT * FROM \"pptx\".\"COMPANY_OVERVIEW__TEAM_STRUCTURE__DEPARTMENT_HEADCOUNT\" " +
+               "WHERE \"department\" = 'Engineering'")
         .returnsCount(1)
         .returns("department=Engineering; employees=25; manager=Alice\n");
 

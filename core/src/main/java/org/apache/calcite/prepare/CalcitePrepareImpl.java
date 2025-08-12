@@ -113,6 +113,8 @@ import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -171,6 +173,26 @@ public class CalcitePrepareImpl implements CalcitePrepare {
           "select 1 from dual",
           "values 1",
           "VALUES 1");
+
+  /** Simple LRU cache for Statement queries (not PreparedStatements).
+   * Enabled by system property: calcite.statement.cache.enabled (default: true).
+   * Size configured by: calcite.statement.cache.size (default: 1000).
+   */
+  private static final Cache<String, Object> STATEMENT_CACHE;
+  
+  static {
+    // Always create the cache, but check the property when using it
+    int size = Integer.parseInt(
+        System.getProperty("calcite.statement.cache.size", "1000"));
+    STATEMENT_CACHE = CacheBuilder.newBuilder()
+        .maximumSize(size)
+        .build();
+  }
+  
+  private static boolean isCacheEnabled() {
+    return Boolean.parseBoolean(
+        System.getProperty("calcite.statement.cache.enabled", "true"));
+  }
 
   public CalcitePrepareImpl() {
   }
@@ -500,6 +522,17 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     if (SIMPLE_SQLS.contains(query.sql)) {
       return simplePrepare(context, castNonNull(query.sql));
     }
+    
+    // Simple plan cache for regular Statement queries using just SQL string
+    // This dramatically improves performance for repeated identical queries
+    // especially important for API-based access where PreparedStatements aren't used
+    if (isCacheEnabled()) {
+      @SuppressWarnings("unchecked")
+      CalciteSignature<T> cached = (CalciteSignature<T>) STATEMENT_CACHE.getIfPresent(query.sql);
+      if (cached != null) {
+        return cached;
+      }
+    }
     final JavaTypeFactory typeFactory = context.getTypeFactory();
     CalciteCatalogReader catalogReader =
         new CalciteCatalogReader(
@@ -521,8 +554,15 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       try {
         CalcitePreparingStmt preparingStmt =
             getPreparingStmt(context, elementType, catalogReader, planner);
-        return prepare2_(context, query, elementType, maxRowCount,
+        CalciteSignature<T> signature = prepare2_(context, query, elementType, maxRowCount,
             catalogReader, preparingStmt);
+        
+        // Store in cache for future use
+        if (isCacheEnabled() && signature != null) {
+          STATEMENT_CACHE.put(query.sql, signature);
+        }
+        
+        return signature;
       } catch (RelOptPlanner.CannotPlanException e) {
         exception = e;
       }

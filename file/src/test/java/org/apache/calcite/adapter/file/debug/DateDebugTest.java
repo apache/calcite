@@ -38,7 +38,7 @@ public class DateDebugTest {
 
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info)) {
       Statement statement = connection.createStatement();
-      final String sql = "select \"JOINEDAT\" from \"date\" where EMPNO = 100";
+      final String sql = "select \"JOINEDAT\" from \"date\" where empno = 100";
       ResultSet resultSet = statement.executeQuery(sql);
       resultSet.next();
 
