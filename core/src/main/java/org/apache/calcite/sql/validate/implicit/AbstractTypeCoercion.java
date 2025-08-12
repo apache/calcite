@@ -582,16 +582,53 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
     }
 
     if (SqlTypeUtil.isString(type1) && SqlTypeUtil.isString(type2)) {
-      // Return the string with the larger precision
-      if (type1.getPrecision() == RelDataType.PRECISION_NOT_SPECIFIED) {
-        return factory.createTypeWithNullability(type1, anyNullable);
-      } else if (type2.getPrecision() == RelDataType.PRECISION_NOT_SPECIFIED) {
-        return factory.createTypeWithNullability(type2, anyNullable);
-      } else if (type1.getPrecision() > type2.getPrecision()) {
-        return factory.createTypeWithNullability(type1, anyNullable);
-      } else {
-        return factory.createTypeWithNullability(type2, anyNullable);
+      // Note that isString covers VAR/BINARY and VAR/CHAR
+      if (type1.getCharset() != null && type2.getCharset() != null
+          && type1.getCharset() != type2.getCharset()) {
+        // Cannot coerce; we count on the validator to throw later
+        return null;
       }
+      if (type1.getCollation() != null && type2.getCollation() != null
+          && type1.getCollation() != type2.getCollation()) {
+        // Cannot coerce; we count on the validator to throw later
+        return null;
+      }
+
+      SqlTypeName type1Name = type1.getSqlTypeName();
+      SqlTypeName type2Name = type2.getSqlTypeName();
+      SqlTypeName resultName;
+
+      int precision;
+      if (type1.getPrecision() == RelDataType.PRECISION_NOT_SPECIFIED
+          || type2.getPrecision() == RelDataType.PRECISION_NOT_SPECIFIED) {
+        precision = RelDataType.PRECISION_NOT_SPECIFIED;
+      } else {
+        precision = Math.max(type1.getPrecision(), type2.getPrecision());
+      }
+
+      if (type1Name == SqlTypeName.VARCHAR || type2Name == SqlTypeName.VARCHAR) {
+        resultName = SqlTypeName.VARCHAR;
+      } else if (type1Name == SqlTypeName.CHAR || type2Name == SqlTypeName.CHAR) {
+        resultName = SqlTypeName.CHAR;
+        // If any is BINARY, use VARCHAR
+        if (type1Name == SqlTypeName.BINARY || type2Name == SqlTypeName.BINARY
+            || type1Name == SqlTypeName.VARBINARY || type2Name == SqlTypeName.VARBINARY) {
+          resultName = SqlTypeName.VARCHAR;
+          // We use unlimited precision in this case
+          precision = RelDataType.PRECISION_NOT_SPECIFIED;
+        }
+      } else if (type1Name == SqlTypeName.VARBINARY || type2Name == SqlTypeName.VARBINARY) {
+        resultName = SqlTypeName.VARBINARY;
+      } else {
+        resultName = SqlTypeName.BINARY;
+      }
+
+      RelDataType resultType = factory.createSqlType(resultName, precision);
+      // Copy collation and charset
+      syncAttributes(type1, resultType);
+      // We copy twice, since type1 may be BINARY
+      syncAttributes(type2, resultType);
+      return factory.createTypeWithNullability(resultType, anyNullable);
     }
 
     // 1 > '1' will be coerced to 1 > 1.

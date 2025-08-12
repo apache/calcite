@@ -3352,6 +3352,14 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-7132">[CALCITE-7132]
+   * Inconsistency with type coercion and character types</a>. */
+  @Test void testCoercion() {
+    sql("WITH c AS (SELECT CAST('x' as VARCHAR(2)) AS X, CAST('y' AS CHAR(2)) AS Y)"
+        + "SELECT X = Y AND Y = X FROM c")
+        .ok();
+  }
+
   @Test void testDeleteWhere() {
     final String sql = "delete from emp where deptno = 10";
     sql(sql).ok();

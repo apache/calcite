@@ -15045,7 +15045,7 @@ where cast(e.job as varchar(1)) = 'Manager']]>
     <Resource name="planBefore">
       <![CDATA[
 LogicalProject(EXPR$0=[CAST($1):VARCHAR(128) NOT NULL], EXPR$1=[CAST($2):INTEGER NOT NULL])
-  LogicalFilter(condition=[=(CAST(CAST($4):VARCHAR(1) NOT NULL):CHAR(7) NOT NULL, 'Manager')])
+  LogicalFilter(condition=[=(CAST(CAST($4):VARCHAR(1) NOT NULL):VARCHAR(7) NOT NULL, 'Manager')])
     LogicalProject(DEPTNO=[$0], NAME=[$1], EMPNO=[$3], ENAME=[$4], JOB=[$5], MGR=[$6], HIREDATE=[$7], SAL=[$8], COMM=[$9], DEPTNO1=[$10], SLACKER=[$11])
       LogicalJoin(condition=[=($2, $12)], joinType=[inner])
         LogicalProject(DEPTNO=[$0], NAME=[$1], DEPTNO0=[CAST($0):INTEGER NOT NULL])
@@ -15057,7 +15057,7 @@ LogicalProject(EXPR$0=[CAST($1):VARCHAR(128) NOT NULL], EXPR$1=[CAST($2):INTEGER
     <Resource name="planAfter">
       <![CDATA[
 LogicalProject(EXPR$0=[CAST($1):VARCHAR(128) NOT NULL], EXPR$1=[$2])
-  LogicalFilter(condition=[=(CAST(CAST($4):VARCHAR(1) NOT NULL):CHAR(7) NOT NULL, 'Manager')])
+  LogicalFilter(condition=[=(CAST(CAST($4):VARCHAR(1) NOT NULL):VARCHAR(7) NOT NULL, 'Manager')])
     LogicalProject(DEPTNO=[$0], NAME=[$1], EMPNO=[$3], ENAME=[$4], JOB=[$5], MGR=[$6], HIREDATE=[$7], SAL=[$8], COMM=[$9], DEPTNO1=[$10], SLACKER=[$11])
       LogicalJoin(condition=[=($2, $12)], joinType=[inner])
         LogicalProject(DEPTNO=[$0], NAME=[$1], DEPTNO0=[$0])
