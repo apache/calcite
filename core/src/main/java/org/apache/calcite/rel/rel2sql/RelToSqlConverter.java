@@ -926,39 +926,12 @@ public class RelToSqlConverter extends SqlImplementor
         generateGroupList(builder, selectList, e, groupKeyList);
 
     ProjectExpansionUtil projectExpansionUtil = new ProjectExpansionUtil();
-    if (projectExpansionUtil.isJoinWithBasicCall(builder) && !hasNestedJoinWithSelectOperands(builder)) {
+    if (projectExpansionUtil.isJoinWithBasicCall(builder)
+        && !projectExpansionUtil.hasNestedJoinWithSelectOperands(builder)) {
       projectExpansionUtil.updateSelectIfColumnIsUsedInGroupBy(builder, groupByList);
     }
 
     return buildAggregate(e, builder, selectList, groupByList);
-  }
-
-  /**
-   * Checks if the query's FROM clause is a join whose sides are both SELECT statements.
-   *
-   * @param builder SQL builder containing the query
-   * @return true if both sides of the join are SELECTs, false otherwise
-   */
-  boolean hasNestedJoinWithSelectOperands(SqlImplementor.Builder builder) {
-    SqlNode fromNode = builder.select.getFrom();
-    if (!(fromNode instanceof SqlJoin)) {
-      return false;
-    }
-    SqlJoin join = (SqlJoin) fromNode;
-    if (!(join.getLeft() instanceof SqlBasicCall)) {
-      return false;
-    }
-    SqlBasicCall basicCall = (SqlBasicCall) join.getLeft();
-    List<SqlNode> operands = basicCall.getOperandList();
-    if (operands.isEmpty() || !(operands.get(0) instanceof SqlSelect)) {
-      return false;
-    }
-    SqlSelect innerSelect = (SqlSelect) operands.get(0);
-    if (!(innerSelect.getFrom() instanceof SqlJoin)) {
-      return false;
-    }
-    SqlJoin innerJoin = (SqlJoin) innerSelect.getFrom();
-    return innerJoin.getLeft() instanceof SqlSelect && innerJoin.getRight() instanceof SqlSelect;
   }
 
   /**
