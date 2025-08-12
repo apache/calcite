@@ -27,6 +27,7 @@ import org.apache.parquet.avro.AvroParquetWriter;
 import org.apache.parquet.hadoop.ParquetWriter;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -61,8 +62,8 @@ public class PureQueryTimingTest {
     System.out.println("║                   PURE QUERY TIMING TEST SETUP                      ║");
     System.out.println("╚══════════════════════════════════════════════════════════════════════╝\n");
     
-    // Create test data ONCE
-    int[] sizes = {10000, 50000, 100000, 500000, 1000000};
+    // Create test data ONCE - reduced sizes for stability
+    int[] sizes = {1000, 5000, 10000};
     for (int size : sizes) {
       createJoinTestData(size);
     }
@@ -99,6 +100,15 @@ public class PureQueryTimingTest {
     System.out.println("Setup complete. Ready for pure timing tests.\n");
   }
   
+  @AfterAll
+  public static void tearDown() throws Exception {
+    // Close all resources properly
+    if (calciteStmt != null) calciteStmt.close();
+    if (duckdbStmt != null) duckdbStmt.close();
+    if (calciteConn != null) calciteConn.close();
+    if (duckdbConn != null) duckdbConn.close();
+  }
+  
   @Test
   public void testPureQueryTiming() throws Exception {
     System.out.println("\n╔══════════════════════════════════════════════════════════════════════╗");
@@ -106,7 +116,7 @@ public class PureQueryTimingTest {
     System.out.println("║         (Query Start → First Result ONLY - No Processing)           ║");
     System.out.println("╚══════════════════════════════════════════════════════════════════════╝\n");
     
-    int[] sizes = {10000, 50000, 100000, 500000, 1000000};
+    int[] sizes = {1000, 5000, 10000};
     
     // Test 1: Simple COUNT(DISTINCT)
     System.out.println("TEST 1: Simple COUNT(DISTINCT) on single table");

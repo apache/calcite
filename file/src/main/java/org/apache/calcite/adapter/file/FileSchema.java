@@ -34,6 +34,7 @@ import org.apache.calcite.adapter.file.refresh.RefreshableCsvTable;
 import org.apache.calcite.adapter.file.refresh.RefreshableJsonTable;
 import org.apache.calcite.adapter.file.refresh.RefreshablePartitionedParquetTable;
 import org.apache.calcite.adapter.file.statistics.CachePrimer;
+import org.apache.calcite.adapter.file.statistics.TableStatistics;
 import org.apache.calcite.adapter.file.storage.HttpStorageProvider;
 import org.apache.calcite.adapter.file.storage.StorageProvider;
 import org.apache.calcite.adapter.file.storage.StorageProviderFactory;
@@ -239,7 +240,25 @@ public class FileSchema extends AbstractSchema {
             if (tableInfo.table instanceof org.apache.calcite.adapter.file.statistics.StatisticsProvider) {
               org.apache.calcite.adapter.file.statistics.StatisticsProvider provider =
                   (org.apache.calcite.adapter.file.statistics.StatisticsProvider) tableInfo.table;
-              provider.getTableStatistics(null);  // This loads and caches the statistics
+              TableStatistics stats = provider.getTableStatistics(null);  // This loads and caches the statistics
+              
+              // CRITICAL: Load HLL sketches into the global cache with the correct table name
+              if (stats != null && stats.getColumnStatistics() != null) {
+                org.apache.calcite.adapter.file.statistics.HLLSketchCache cache = 
+                    org.apache.calcite.adapter.file.statistics.HLLSketchCache.getInstance();
+                for (Map.Entry<String, org.apache.calcite.adapter.file.statistics.ColumnStatistics> entry : 
+                     stats.getColumnStatistics().entrySet()) {
+                  String columnName = entry.getKey();
+                  org.apache.calcite.adapter.file.statistics.ColumnStatistics colStats = entry.getValue();
+                  if (colStats != null && colStats.getHllSketch() != null) {
+                    // Use fully qualified name (schema.table.column) to prevent collisions
+                    cache.putSketch(this.name, tableInfo.tableName, columnName, colStats.getHllSketch());
+                    LOGGER.debug("Loaded HLL sketch for {}.{}.{} with estimate: {}", 
+                        this.name, tableInfo.tableName, columnName, colStats.getHllSketch().getEstimate());
+                  }
+                }
+              }
+              
               successCount++;
             }
           } catch (Exception e) {
@@ -587,15 +606,27 @@ public class FileSchema extends AbstractSchema {
     return files.toArray(new File[0]);
   }
 
-  private Map<String, Table> tableCache = null;
+  // Make volatile for thread visibility
+  private volatile Map<String, Table> tableCache = null;
 
-  @Override protected Map<String, Table> getTableMap() {
+  /**
+   * Clear the table cache. This is primarily for testing to ensure
+   * test isolation. In production, each connection typically gets its
+   * own FileSchema instance so cache clearing isn't needed.
+   */
+  public synchronized void clearTableCache() {
+    tableCache = null;
+    LOGGER.debug("[FileSchema] Table cache cleared");
+  }
+
+  @Override protected synchronized Map<String, Table> getTableMap() {
     try {
       // Use cached tables if already computed
-      if (tableCache != null) {
-        LOGGER.debug("[FileSchema.getTableMap] Returning cached tables: {}", tableCache.size());
-        System.out.println("*** RETURNING CACHED TABLES *** size: " + tableCache.size() + " engine: " + engineConfig.getEngineType());
-        return tableCache;
+      Map<String, Table> cached = tableCache;
+      if (cached != null) {
+        LOGGER.debug("[FileSchema.getTableMap] Returning cached tables: {}", cached.size());
+        System.out.println("*** RETURNING CACHED TABLES *** size: " + cached.size() + " engine: " + engineConfig.getEngineType());
+        return cached;
       }
 
       LOGGER.debug("[FileSchema.getTableMap] Computing tables! baseDirectory={}, storageProvider={}, storageType={}",
@@ -2007,7 +2038,7 @@ public class FileSchema extends AbstractSchema {
             String baseName =
                 applyCasing(
                     WHITESPACE_PATTERN.matcher(sourceSansJson.relative(baseSource).path()
-                    .replace("/", "_"))
+                    .replace("/", "__"))
                     .replaceAll("_"), tableNameCasing);
             // Handle duplicate table names
             String tableName = baseName;
@@ -2042,7 +2073,7 @@ public class FileSchema extends AbstractSchema {
             String tableName =
                 applyCasing(
                     WHITESPACE_PATTERN.matcher(sourceSansCsv.relative(baseSource).path()
-                    .replace("/", "_"))
+                    .replace("/", "__"))
                     .replaceAll("_"), tableNameCasing);
             addTable(builder, source, tableName, null);
             continue;
@@ -2054,7 +2085,7 @@ public class FileSchema extends AbstractSchema {
             String tableName =
                 applyCasing(
                     WHITESPACE_PATTERN.matcher(sourceSansTsv.relative(baseSource).path()
-                    .replace("/", "_"))
+                    .replace("/", "__"))
                     .replaceAll("_"), tableNameCasing);
             addTable(builder, source, tableName, null);
             continue;
@@ -2066,7 +2097,7 @@ public class FileSchema extends AbstractSchema {
             String tableName =
                 applyCasing(
                     WHITESPACE_PATTERN.matcher(sourceSansParquet.relative(baseSource).path()
-                    .replace("/", "_"))
+                    .replace("/", "__"))
                     .replaceAll("_"), tableNameCasing);
             // Note: Parquet files from storage providers might need special handling
             // For now, skip them or use FileTable
@@ -2085,7 +2116,7 @@ public class FileSchema extends AbstractSchema {
             String tableName =
                 applyCasing(
                     WHITESPACE_PATTERN.matcher(sourceSansArrow.relative(baseSource).path()
-                    .replace("/", "_"))
+                    .replace("/", "__"))
                     .replaceAll("_"), tableNameCasing);
             // Note: Arrow files from storage providers might need special handling
             // For now, skip them or use FileTable

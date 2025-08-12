@@ -42,7 +42,7 @@ public class SimpleCacheEffectTest {
     // Create a test CSV file
     File csvFile = new File(tempDir, "test_data.csv");
     try (PrintWriter writer = new PrintWriter(csvFile)) {
-      writer.println("id,name,value");
+      writer.println("id,name,amount");
       for (int i = 1; i <= 10000; i++) {
         writer.println(i + ",Name" + i + "," + (i * 10));
       }
@@ -67,7 +67,7 @@ public class SimpleCacheEffectTest {
         + "}");
     
     try (Connection conn = DriverManager.getConnection("jdbc:calcite:", props)) {
-      String query = "SELECT COUNT(*), SUM(value), AVG(value) FROM test_data";
+      String query = "SELECT COUNT(*), SUM(\"amount\"), AVG(\"amount\") FROM \"test_data\"";
       
       // First query (cold cache)
       long coldStart = System.currentTimeMillis();

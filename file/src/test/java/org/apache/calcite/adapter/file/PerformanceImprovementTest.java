@@ -118,7 +118,7 @@ public class PerformanceImprovementTest {
         "       COUNT(*) as total, " +
         "       COUNT(DISTINCT \"customer_id\") as customers, " +
         "       AVG(\"amount\") as avg_amount, " +
-        "       MAX(\"amount\") - MIN(\"amount\") as range " +
+        "       MAX(\"amount\") - MIN(\"amount\") as amount_range " +
         "FROM FILES.\"perf_test\" " +
         "WHERE \"amount\" BETWEEN 200 AND 800 " +
         "GROUP BY \"region\" " +

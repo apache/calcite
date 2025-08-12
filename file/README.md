@@ -35,13 +35,14 @@ Storage providers can be configured at two levels:
 Mix storage types by using explicit table URLs or multiple schemas.
 
 ### Performance Features
-- **Specialized Execution Engines** - Each optimized for specific workloads:
+- **Multiple Execution Engines Per Connection** - Use different engines for different schemas:
   - **Parquet**: Large datasets (>2GB) with automatic spillover
   - **Arrow**: In-memory analytics (<2GB) with SIMD vectorization
   - **DuckDB**: Complex analytical queries with advanced SQL features
+  - **Mix & Match**: Each schema can use its optimal engine
+- **Cross-Schema Materialized Views** - Join data across different engines and storage systems
 - **Automatic Parquet Conversion** - Convert all formats to optimized columnar storage
 - **HyperLogLog Statistics** - Advanced cardinality estimation for query optimization
-- **Materialized Views** - Pre-computed results with automatic refresh
 - **Query Optimization** - Column pruning, filter pushdown, join reordering
 - **Unlimited Dataset Sizes** - Automatic disk spillover for memory management (Parquet engine)
 - **Distributed Caching** - Redis support for cluster environments
@@ -49,9 +50,9 @@ Mix storage types by using explicit table URLs or multiple schemas.
 ### Data Discovery
 - **Automatic Schema Discovery** - Zero-configuration table creation
 - **Recursive Directory Scanning** - Hierarchical data lake support
-- **Glob Pattern Matching** - Process multiple files with patterns like `*.csv`
+- **Glob Pattern Matching** - Tables can use glob patterns (e.g., `sales/*.csv`) to combine multiple files into a single table
 - **Partitioned Tables** - Automatic partition detection and pruning
-- **Multi-Table Extraction** - Extract multiple tables from single JSON/Excel files
+- **Multi-Table Extraction** - Extract multiple tables from single files (JSON, Excel, XML, HTML, Markdown, Word, PowerPoint)
 
 ## Quick Start
 
@@ -62,10 +63,10 @@ Create a model configuration file:
 ```json
 {
   "version": "1.0",
-  "defaultSchema": "FILES",
+  "defaultSchema": "files",
   "schemas": [
     {
-      "name": "FILES",
+      "name": "files",
       "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
       "operand": {
         "directory": "/path/to/data"
@@ -89,30 +90,37 @@ SELECT COUNT(*) FROM files.sales_data;
 ### Example Queries
 
 ```sql
--- Query CSV file with automatic type detection
+-- Files in /path/to/data/:
+--   sales_2024_q1.csv
+--   customer_orders.json  
+--   financial_report.xlsx (with sheets: Summary, Details)
+--   sales_data.parquet
+--   customer_info.csv
+
+-- Query CSV file (sales_2024_q1.csv → table: sales_2024_q1)
 SELECT customer_id, order_date, total_amount 
-FROM sales_2024_q1 
+FROM files.sales_2024_q1 
 WHERE order_date >= DATE '2024-01-01';
 
--- Query JSON with nested data extraction
+-- Query JSON with nested data (customer_orders.json → table: customer_orders)
 SELECT customer.name, address.city, order_total
-FROM customer_orders;
+FROM files.customer_orders;
 
--- Query Excel file with multiple sheets
-SELECT * FROM financial_report_summary;
-SELECT * FROM financial_report_details;
+-- Query Excel sheets (financial_report.xlsx → tables: financial_report__summary, financial_report__details)
+SELECT * FROM files.financial_report__summary;
+SELECT * FROM files.financial_report__details;
 
--- Query across multiple file formats
+-- Query across formats (sales_data.parquet, customer_info.csv)
 SELECT s.total_amount, c.customer_name
-FROM sales_data s
-JOIN customer_info c ON s.customer_id = c.id;
+FROM files.sales_data s
+JOIN files.customer_info c ON s.customer_id = c.id;
 ```
 
 ## Configuration Reference
 
 ### Configuration Scope
 
-**Schema-Level:** Each schema can have completely independent configurations:
+**Schema-level:** Each schema can have completely independent configurations:
 - Different execution engines (one schema uses Arrow, another uses Parquet)
 - Different storage providers (one schema on S3, another on local disk)
 - Different casing rules, statistics settings, etc.
@@ -133,128 +141,164 @@ JOIN customer_info c ON s.customer_id = c.id;
 - Spillover base directory (`-Dcalcite.spillover.dir`)
 - Statistics cache directory (`-Dcalcite.file.statistics.cache.directory`)
 
-### Schema Factory Options
+### Key Configuration Options
 
-#### Core Configuration
+**Common schema configuration properties:**
+- `directory` - Base directory path for file discovery
+- `directoryPattern` - Glob pattern to filter files within directory (e.g., `2024/*.csv`, `**/reports/*.json`)
+- `executionEngine` - Choose from `parquet`, `arrow`, `duckdb`, `linq4j`
+- `storageType` - Storage provider: `local`, `s3`, `http`, `sharepoint`
+- `recursive` - Scan subdirectories (default: `true`, ignored if `directoryPattern` is set)
+- `tableNameCasing` - Transform table names: `SMART_CASING`, `UPPER`, `LOWER`, `UNCHANGED`
 
-| Property | Type | Description | Default |
-|----------|------|-------------|---------|
-| `directory` | String | Base directory path | Required |
-| `recursive` | Boolean | Scan subdirectories | `true` |
-| `directoryPattern` | String | Glob pattern for directory discovery | `null` |
-| `tables` | Array | Explicit table definitions | `[]` |
+**📚 For complete configuration options, see [Configuration Reference](docs/configuration-reference.md)**
 
-#### Execution Engine
+### Execution Engine Configuration
 
-| Property | Type | Description | Default |
-|----------|------|-------------|---------|
-| `executionEngine` | String | Engine: `parquet`, `duckdb`, `arrow`, `linq4j` | `parquet` |
-| `batchSize` | Integer | Row batch size for processing | `10000` |
-| `memoryThreshold` | Long | Memory threshold for spillover (bytes) | `83886080` (80MB) |
-| `duckdbConfig` | Object | DuckDB-specific configuration | See DuckDB section |
+Each schema can use a different execution engine optimized for its workload:
+- **Parquet** - Best for large datasets with spillover support
+- **Arrow** - In-memory processing with SIMD vectorization
+- **DuckDB** - Advanced SQL analytics features
+- **LINQ4J** - Simple row-based processing
 
-#### Storage Provider
-
-| Property | Type | Description | Default |
-|----------|------|-------------|---------|
-| `storageType` | String | Storage: `local`, `s3`, `http`, `sharepoint`, `ftp` | `local` |
-| `storageConfig` | Object | Storage-specific configuration | `{}` |
-
-#### Name Transformation
-
-| Property | Type | Description | Default |
-|----------|------|-------------|---------|
-| `tableNameCasing` | String | Table names: `SMART_CASING`, `UPPER`, `LOWER`, `UNCHANGED` | `SMART_CASING` |
-| `columnNameCasing` | String | Column names: `SMART_CASING`, `UPPER`, `LOWER`, `UNCHANGED` | `SMART_CASING` |
-
-#### Advanced Features
-
-| Property | Type | Description | Default |
-|----------|------|-------------|---------|
-| `materializations` | Array | Materialized view definitions | `[]` |
-| `views` | Array | View definitions | `[]` |
-| `partitionedTables` | Array | Partitioned table definitions | `[]` |
-| `refreshInterval` | String | Default refresh interval (e.g., "5 minutes") | `null` |
-| `flatten` | Boolean | Flatten nested JSON/YAML structures | `false` |
-| `csvTypeInference` | Object | CSV type inference configuration | `null` |
-| `primeCache` | Boolean | Pre-load cache on startup | `true` |
-
-### DuckDB Configuration
-
-When using `executionEngine: "duckdb"`, configure with:
-
-```json
-{
-  "duckdbConfig": {
-    "memory_limit": "4GB",
-    "temp_directory": "/tmp/duckdb",
-    "threads": 8,
-    "max_memory": "80%",
-    "enable_progress_bar": false,
-    "preserve_insertion_order": true
-  }
-}
-```
+**📚 For detailed configuration, see [Configuration Reference](docs/configuration-reference.md)**
 
 ### Storage Provider Configuration
 
-#### AWS S3
-```json
-{
-  "storageType": "s3",
-  "bucket": "my-data-bucket",
-  "region": "us-east-1",
-  "accessKey": "${AWS_ACCESS_KEY}",
-  "secretKey": "${AWS_SECRET_KEY}"
-}
-```
+The File Adapter supports multiple storage systems (Local, S3, HTTP/HTTPS, SharePoint, FTP/SFTP) with automatic detection or explicit configuration.
 
-#### HTTP/REST API
+**Quick Examples:**
 ```json
 {
-  "storageType": "http",
-  "baseUrl": "https://api.example.com/data",
-  "authType": "bearer",
-  "authToken": "${API_TOKEN}",
-  "headers": {
-    "User-Agent": "Calcite-File-Adapter/1.0"
+  "storageType": "s3",           // Use S3 for all files in schema
+  "storageConfig": {
+    "bucket": "my-data-bucket",
+    "region": "us-east-1"
   }
-}
 ```
 
-#### Microsoft SharePoint
-```json
-{
-  "storageType": "sharepoint",
-  "siteUrl": "https://company.sharepoint.com/sites/data",
-  "clientId": "${SHAREPOINT_CLIENT_ID}",
-  "clientSecret": "${SHAREPOINT_CLIENT_SECRET}",
-  "tenantId": "${TENANT_ID}"
-}
-```
+Or use URL-based auto-detection:
+- `s3://bucket/file.parquet` → S3 Storage
+- `https://api.com/data.json` → HTTP Storage  
+- `/local/path/file.csv` → Local Storage
+
+**📚 For complete configuration details, see [Storage Providers Documentation](docs/storage-providers.md)**
 
 ## Advanced Features
 
-### Materialized Views
+### Multi-Engine Optimization Pattern
 
-Create pre-computed views for complex queries:
+**Optimize different workloads with multiple execution engines in a single connection:**
 
 ```json
 {
-  "materializedViews": [
+  "schemas": [
     {
-      "name": "monthly_sales_summary",
-      "sql": "SELECT YEAR(order_date) as year, MONTH(order_date) as month, SUM(total) as total_sales FROM sales GROUP BY YEAR(order_date), MONTH(order_date)",
-      "refreshInterval": "1 HOUR"
+      "name": "hot_data",
+      "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
+      "operand": {
+        "directory": "/data/hot",
+        "executionEngine": "arrow",  // In-memory for frequently accessed data
+        "batchSize": 10000
+      }
+    },
+    {
+      "name": "warehouse",
+      "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
+      "operand": {
+        "directory": "s3://data-lake/warehouse",
+        "executionEngine": "parquet",  // Spillover for massive datasets
+        "storageType": "s3",
+        "memoryThreshold": 268435456  // 256MB before spillover
+      }
+    },
+    {
+      "name": "analytics",
+      "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
+      "operand": {
+        "directory": "/data/analytics",
+        "executionEngine": "duckdb",  // Complex analytical queries
+        "duckdbConfig": {
+          "memory_limit": "8GB",
+          "threads": 16
+        }
+      }
     }
   ]
 }
 ```
 
-### Multi-Table JSON Extraction
+**Query across different engines seamlessly:**
+```sql
+-- Join hot in-memory data with warehouse data
+SELECT h.user_id, h.session_id, w.purchase_total
+FROM hot_data.active_sessions h
+JOIN warehouse.purchases w ON h.user_id = w.user_id
+WHERE h.last_activity > CURRENT_TIMESTAMP - INTERVAL '1' HOUR;
 
-Extract multiple tables from a single JSON file:
+-- Query combining multiple engines
+SELECT 
+  a.product_category,
+  COUNT(DISTINCT h.user_id) as active_users,
+  SUM(w.revenue) as total_revenue
+FROM analytics.product_metrics a
+JOIN hot_data.user_activity h ON a.product_id = h.product_id  
+JOIN warehouse.sales w ON a.product_id = w.product_id
+GROUP BY a.product_category;
+```
 
+### Materialized Views (Configuration Only)
+
+**Note:** The File Adapter is read-only. Materialized views are defined in the model configuration, not via SQL DDL.
+
+Configure pre-computed views in your schema (requires Parquet execution engine):
+
+```json
+{
+  "executionEngine": "parquet",  // Required for materialized views
+  "materializedViews": [
+    {
+      "view": "monthly_summary",      // Name used in SQL queries
+      "table": "monthly_sales_data",  // Filename for cached Parquet file (.parquet added)
+      "sql": "SELECT YEAR(order_date) as year, MONTH(order_date) as month, SUM(total) as total_sales FROM sales GROUP BY YEAR(order_date), MONTH(order_date)"
+    }
+  ]
+}
+```
+
+**Key properties:**
+- `view`: The table name you'll use in SQL queries (e.g., `SELECT * FROM monthly_summary`)
+- `table`: The filename for the materialized Parquet file (stored as `.materialized_views/monthly_sales_data.parquet`)
+- `sql`: The query to materialize (executed once on first access)
+
+**Cross-Schema Materialized Views:**
+
+The schema containing the MV must use Parquet engine, but can query data from any schema:
+
+```json
+{
+  "name": "analytics",
+  "executionEngine": "parquet",  // This schema must use parquet
+  "materializedViews": [
+    {
+      "view": "unified_customer_view",
+      "table": "unified_customer_view",
+      "sql": "SELECT c.customer_id, c.name, s3.lifetime_value FROM hot_data.customers c JOIN warehouse.customer_analytics s3 ON c.customer_id = s3.id"
+    }
+  ]
+}
+```
+
+Once configured, query the materialized view like any table:
+```sql
+SELECT * FROM analytics.unified_customer_view WHERE lifetime_value > 1000;
+```
+
+### Multi-Table Extraction
+
+Extract multiple tables from various file formats:
+
+**JSON Files** - Extract different arrays as separate tables:
 ```json
 {
   "jsonTables": [
@@ -269,6 +313,77 @@ Extract multiple tables from a single JSON file:
   ]
 }
 ```
+
+**Excel Files** - Each sheet becomes a separate table:
+- `financial_report.xlsx` → `financial_report__summary`, `financial_report__details`, `financial_report__charts`
+
+**XML Files** - Extract different elements as tables:
+```json
+{
+  "xmlTables": [
+    {
+      "name": "products",
+      "xpath": "//catalog/product"
+    },
+    {
+      "name": "categories",
+      "xpath": "//catalog/category"
+    }
+  ]
+}
+```
+
+**HTML Files** - Each `<table>` element becomes a separate table:
+- `report.html` → `report__table_1`, `report__table_2`, `report__table_3`
+
+**Word Documents** - Extract all tables:
+- `document.docx` → `document__table_1`, `document__table_2`
+
+**PowerPoint Presentations** - Tables include slide context:
+- `presentation.pptx` with titled slide → `presentation__slide_title__table_name`
+- `presentation.pptx` with untitled slide → `presentation__slide2__table_name`
+
+**Markdown Files** - Extract all markdown tables:
+- `documentation.md` → `documentation__table_1`, `documentation__table_2`
+
+### Glob Pattern Tables
+
+Tables can use glob patterns (`*`, `?`, `[]`) to combine multiple files into a single table:
+
+```json
+{
+  "tables": [
+    {
+      "name": "all_sales",
+      "url": "sales/*.csv"  // Combines all CSV files in sales directory
+    },
+    {
+      "name": "yearly_data",
+      "url": "file:///data/2024-*.parquet"  // All 2024 Parquet files
+    },
+    {
+      "name": "logs",
+      "url": "logs/**/*.json"  // All JSON files recursively
+    },
+    {
+      "name": "s3_data",
+      "url": "s3://bucket/path/2024-*.csv"  // S3 glob pattern (limited support)
+    }
+  ]
+}
+```
+
+**Storage Support for Glob Patterns:**
+- **Local files** (`file://` or bare paths): ✅ Supported
+- **S3** (`s3://`): ✅ Supported
+- **HTTP/HTTPS**: ❌ Not supported - no directory listing capability
+- **FTP/SFTP**: ❌ Not supported
+
+The adapter automatically:
+- Detects glob patterns in local file paths
+- Creates a GlobParquetTable that consolidates matching files
+- Caches the combined data as Parquet for efficient querying
+- Supports refresh intervals for updating when files change
 
 ### Partitioned Tables
 
@@ -286,30 +401,72 @@ Automatically detect and utilize partitioned data:
 }
 ```
 
+## Refresh and Change Detection
+
+### How Refresh Works
+
+Tables can be configured with a `refreshInterval` to detect file changes:
+
+```json
+{
+  "tables": [
+    {
+      "name": "live_data",
+      "url": "data.csv",
+      "refreshInterval": "5 minutes"
+    }
+  ]
+}
+```
+
+**Refresh behavior:**
+- **Check on query** - When queried, checks if refresh interval has elapsed
+- **File change detection** - Uses modification time (local) or ETag/Last-Modified (HTTP)
+- **Lazy refresh** - No background polling; refresh happens on access
+- **Fresh data on same query** - If file changed, query returns updated data immediately
+
+### Refresh Support by File Type
+
+| File Type | Refresh Support | Notes |
+|-----------|-----------------|-------|
+| CSV/TSV | ✅ Data only | Re-reads data on interval; schema fixed at startup |
+| JSON/YAML | ✅ Data only | Re-reads data on interval; schema fixed at startup |
+| Parquet | ✅ Data only | Re-read each query; schema fixed at startup |
+| Arrow | ❌ None | Loaded once at startup |
+| Excel/Word/PowerPoint | ❌ None | Converted once at startup |
+| HTML | ❌ None | Converted once at startup |
+| XML | ❌ None | Converted once at startup |
+| Markdown | ❌ None | Converted once at startup |
+
+**Important:** All schemas are determined at startup and never change. Refresh only updates data within the existing schema. Schema changes require a restart.
+
+### Important Limitations
+
+**Refresh vs. Performance Tradeoff (Parquet/DuckDB engines):**
+- If `refreshInterval` is set: **Disables Parquet conversion**, reads CSV/JSON directly (slower but refreshable)
+- Without `refreshInterval`: Converts to Parquet cache once (fast but static)
+- **Cannot have both** Parquet performance and refresh capability currently
+- DuckDB engine **not actually used** for CSV/JSON when refresh is enabled (falls back to Calcite's native CSV/JSON readers)
+
+**Complex formats (Excel, HTML, Word, PowerPoint):**
+- Converted to JSON **once** at schema initialization
+- Changes to source files **not detected** even with refresh configured
+- Must restart to pick up changes
+
+**Materialized views:**
+- Computed **once** on first access
+- **Never refresh** even if source tables have refresh enabled
+- Delete `.materialized_views/*.parquet` files to force recomputation
+
 ## Performance Optimization
 
-### Execution Engine Selection
+The File Adapter automatically optimizes queries through:
+- **Intelligent Engine Selection** - Each schema uses its optimal engine
+- **Automatic Memory Management** - Spillover to disk when needed
+- **Query Optimization** - Column pruning, filter pushdown, partition pruning
+- **Statistics-based Planning** - HyperLogLog cardinality estimates
 
-- **Parquet Engine** (Default) - Best overall performance with automatic caching
-- **DuckDB Engine** - Optimal for analytical workloads and complex aggregations  
-- **Arrow Engine** - Best for in-memory processing of smaller datasets
-- **LINQ4J Engine** - Row-based processing for simple queries
-
-### Memory Management
-
-The adapter automatically manages memory usage:
-- Large datasets spill to disk when memory limits are reached
-- Configurable spillover thresholds and cache sizes
-- Redis distributed caching for cluster deployments
-
-### Query Optimization
-
-Automatic optimizations include:
-- **Column Pruning** - Read only required columns
-- **Filter Pushdown** - Apply filters at the storage level
-- **Join Reordering** - Optimize join execution order
-- **Partition Pruning** - Skip irrelevant partitions
-- **Statistics-based Optimization** - Use HyperLogLog cardinality estimates
+**📚 For detailed tuning strategies, see [Performance Tuning Guide](docs/performance-tuning.md)**
 
 ## Complete Configuration Example
 
@@ -318,20 +475,33 @@ Automatic optimizations include:
 ```json
 {
   "version": "1.0",
-  "defaultSchema": "REPORTS",
+  "defaultSchema": "reports",
   "schemas": [
     {
-      "name": "REALTIME",
+      "name": "realtime",
       "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
       "operand": {
         "directory": "/data/realtime",
         "executionEngine": "arrow",
         "batchSize": 1000,
-        "tableNameCasing": "UPPER"
+        "tableNameCasing": "LOWER",
+        "tables": [
+          {
+            "name": "live_events",
+            "url": "events.csv",
+            "refreshInterval": "30 seconds"
+          }
+        ],
+        "views": [
+          {
+            "name": "active_sessions",
+            "sql": "SELECT user_id, COUNT(*) as event_count FROM live_events WHERE timestamp > CURRENT_TIMESTAMP - INTERVAL '5' MINUTE GROUP BY user_id"
+          }
+        ]
       }
     },
     {
-      "name": "ANALYTICS",
+      "name": "analytics",
       "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
       "operand": {
         "directory": "/data/warehouse",
@@ -343,13 +513,26 @@ Automatic optimizations include:
       }
     },
     {
-      "name": "REPORTS",
+      "name": "reports",
       "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
       "operand": {
         "directory": "/data/reports",
         "executionEngine": "parquet",
         "primeCache": true,
-        "tableNameCasing": "LOWER"
+        "tableNameCasing": "LOWER",
+        "materializedViews": [
+          {
+            "view": "quarterly_summary",
+            "table": "quarterly_summary_cache",
+            "sql": "SELECT quarter, SUM(revenue) as total_revenue FROM analytics.sales GROUP BY quarter"
+          }
+        ],
+        "views": [
+          {
+            "name": "current_month",
+            "sql": "SELECT * FROM realtime.live_events WHERE MONTH(timestamp) = MONTH(CURRENT_DATE)"
+          }
+        ]
       }
     }
   ]
@@ -359,21 +542,27 @@ Automatic optimizations include:
 **Query Examples with Multiple Schemas:**
 
 ```sql
--- Query from REALTIME schema (Arrow engine, in-memory)
-SELECT * FROM REALTIME.live_events WHERE timestamp > NOW() - INTERVAL '1' HOUR;
+-- Query refreshable table (re-reads CSV every 30 seconds if changed)
+SELECT * FROM realtime.live_events WHERE timestamp > NOW() - INTERVAL '1' HOUR;
 
--- Query from ANALYTICS schema (DuckDB engine, complex SQL)
+-- Query view (always fresh, re-executes on each query)
+SELECT * FROM realtime.active_sessions;
+
+-- Query from analytics schema (DuckDB engine, complex SQL)
 SELECT customer_id, 
        SUM(amount) OVER (PARTITION BY region ORDER BY date) as running_total
-FROM ANALYTICS.sales_history;
+FROM analytics.sales_history;
 
--- Query from REPORTS schema (Parquet engine, spillover)
-SELECT * FROM REPORTS.monthly_summary WHERE year = 2024;
+-- Query materialized view (pre-computed, fast)
+SELECT * FROM reports.quarterly_summary WHERE total_revenue > 1000000;
+
+-- Query regular view (fresh data from cross-schema query)
+SELECT * FROM reports.current_month;
 
 -- Cross-schema join
 SELECT r.event_id, r.timestamp, a.customer_name
-FROM REALTIME.live_events r
-JOIN ANALYTICS.customers a ON r.customer_id = a.id;
+FROM realtime.live_events r
+JOIN analytics.customers a ON r.customer_id = a.id;
 ```
 
 ## Documentation

@@ -228,12 +228,12 @@ public class HLLWorkingTest {
             if (colStats != null && colStats.getHllSketch() != null) {
                 System.out.println("  Loading HLL sketch for column " + columnName + 
                                    " with estimate " + colStats.getHllSketch().getEstimate());
-                cache.putSketch("test_data", columnName, colStats.getHllSketch());
+                cache.putSketch("TEST", "test_data", columnName, colStats.getHllSketch());
             }
         }
         
         // Verify cache is populated
-        HyperLogLogSketch customerIdSketch = cache.getSketch("test_data", "customer_id");
+        HyperLogLogSketch customerIdSketch = cache.getSketch("TEST", "test_data", "customer_id");
         if (customerIdSketch != null) {
             System.out.println("  Verified: HLL sketch for customer_id is in cache with estimate " + 
                                customerIdSketch.getEstimate());

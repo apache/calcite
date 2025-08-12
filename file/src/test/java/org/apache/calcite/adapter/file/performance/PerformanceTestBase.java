@@ -314,7 +314,17 @@ public abstract class PerformanceTestBase {
   private String getFirstTableName(String schemaName) throws Exception {
     SchemaPlus schema = calciteConnection.getRootSchema().getSubSchema(schemaName);
     if (schema != null && !schema.getTableNames().isEmpty()) {
-      return schema.getTableNames().iterator().next();
+      String tableName = schema.getTableNames().iterator().next();
+      // Quote SQL keywords
+      if (tableName.equalsIgnoreCase("date") || 
+          tableName.equalsIgnoreCase("time") || 
+          tableName.equalsIgnoreCase("timestamp") ||
+          tableName.equalsIgnoreCase("user") ||
+          tableName.equalsIgnoreCase("order") ||
+          tableName.equalsIgnoreCase("group")) {
+        return "\"" + tableName + "\"";
+      }
+      return tableName;
     }
     return "dual"; // fallback
   }

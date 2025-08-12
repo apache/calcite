@@ -155,9 +155,12 @@ public class StatisticsBuilder {
       ParquetStatisticsExtractor.ColumnStatsBuilder extractedBuilder = entry.getValue();
       String columnName = entry.getKey();
       
-      // Decide whether to generate HLL based on estimated distinct count
+      // Decide whether to generate HLL based on configuration
+      // When threshold is 1 or less, always generate HLL (for testing)
+      // Otherwise check estimated distinct count
       long estimatedDistinct = Math.min(actualRows / 10, 10000); // Rough estimate
-      boolean needsHLL = config.isHllEnabled() && estimatedDistinct > config.getHllThreshold();
+      boolean needsHLL = config.isHllEnabled() && 
+          (config.getHllThreshold() <= 1 || estimatedDistinct > config.getHllThreshold());
       
       if (needsHLL) {
         LOGGER.debug("Generating HLL for high-cardinality column: {}", columnName);

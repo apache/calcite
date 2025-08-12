@@ -107,11 +107,11 @@ public class RecursiveDirectoryTest {
         // Query all files from all levels
         ResultSet rs =
             statement.executeQuery("SELECT * FROM ("
-            + "  SELECT * FROM \"files\".\"LEVEL1_LEVEL1_DATA\""
+            + "  SELECT * FROM \"FILES\".\"LEVEL1_LEVEL1_DATA\""
             + "  UNION ALL"
-            + "  SELECT * FROM \"files\".\"LEVEL1_LEVEL2_LEVEL2_DATA\""
+            + "  SELECT * FROM \"FILES\".\"LEVEL1_LEVEL2_LEVEL2_DATA\""
             + "  UNION ALL"
-            + "  SELECT * FROM \"files\".\"BRANCH_BRANCH_DATA\""
+            + "  SELECT * FROM \"FILES\".\"BRANCH_BRANCH_DATA\""
             + ") ORDER BY \"id\"");
 
         // Should find 3 records (root file not processed)

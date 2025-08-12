@@ -156,7 +156,7 @@ public class ScalingEnginePerformanceTest {
             stats.getColumnStatistics(columnName);
         if (colStats != null && colStats.getHllSketch() != null) {
           // Put sketch with just table name - will be found regardless of schema
-          cache.putSketch(tableName, columnName, colStats.getHllSketch());
+          cache.putSketch("TEST", tableName, columnName, colStats.getHllSketch());
         }
       }
     }

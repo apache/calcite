@@ -116,7 +116,8 @@ ide {
 tasks.test {
     jvmArgs(
         "--add-opens=java.base/java.nio=org.apache.arrow.memory.core,ALL-UNNAMED",
-        "--add-opens=java.base/java.nio=org.apache.arrow.memory.netty,ALL-UNNAMED"
+        "--add-opens=java.base/java.nio=org.apache.arrow.memory.netty,ALL-UNNAMED",
+        "--add-modules=jdk.incubator.vector"
     )
 }
 

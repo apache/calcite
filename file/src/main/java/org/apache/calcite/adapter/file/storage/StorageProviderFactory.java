@@ -173,18 +173,31 @@ public class StorageProviderFactory {
 
           tokenManager = new SharePointTokenManager(tenantId, clientId, refreshToken, siteUrl, true);
 
+        } else if (config.containsKey("certificatePath") && config.containsKey("certificatePassword")) {
+          // Certificate authentication - still needs tenant and client IDs
+          String tenantId = (String) config.get("tenantId");
+          String clientId = (String) config.get("clientId");
+          
+          if (tenantId == null || clientId == null) {
+            throw new IllegalArgumentException(
+                "Certificate authentication requires 'tenantId' and 'clientId'");
+          }
+          // Create a dummy token manager - certificate handling is done below
+          tokenManager = new SharePointTokenManager(tenantId, clientId, "CERTIFICATE", siteUrl);
         } else {
           throw new IllegalArgumentException(
               "SharePoint storage requires one of: 'accessToken', " +
-              "'clientId+clientSecret', or 'refreshToken' for authentication");
+              "'clientId+clientSecret', 'refreshToken', or 'certificatePath+certificatePassword' for authentication");
         }
 
-        // Use SharePoint REST API by default, or Microsoft Graph if specified
+        // Determine which API to use
         boolean useGraphApi = config.containsKey("useGraphApi") 
             && Boolean.TRUE.equals(config.get("useGraphApi"));
+        boolean useLegacyAuth = config.containsKey("useLegacyAuth")
+            && Boolean.TRUE.equals(config.get("useLegacyAuth"));
         
         if (useGraphApi) {
-          // Use Microsoft Graph API (legacy behavior)
+          // Use Microsoft Graph API
           MicrosoftGraphTokenManager graphTokenManager;
           if (tokenManager.clientSecret != null) {
             graphTokenManager =
@@ -200,8 +213,34 @@ public class StorageProviderFactory {
                 new MicrosoftGraphTokenManager(tokenManager.accessToken, tokenManager.getSiteUrl());
           }
           return new MicrosoftGraphStorageProvider(graphTokenManager);
+        } else if (useLegacyAuth && tokenManager.clientSecret != null) {
+          // Use legacy SharePoint authentication (works with client secret)
+          // Note: Legacy auth uses realm instead of tenantId
+          String realm = config.containsKey("realm") ? (String) config.get("realm") : null;
+          SharePointLegacyTokenManager legacyTokenManager = 
+              realm != null 
+              ? new SharePointLegacyTokenManager(tokenManager.clientId, 
+                  tokenManager.clientSecret, tokenManager.getSiteUrl(), realm)
+              : new SharePointLegacyTokenManager(tokenManager.clientId,
+                  tokenManager.clientSecret, tokenManager.getSiteUrl());
+          return new SharePointRestStorageProvider(legacyTokenManager);
         } else {
-          // Use SharePoint REST API (new default)
+          // Use SharePoint REST API with modern auth
+          // Check for certificate authentication
+          if (config.containsKey("certificatePath") && config.containsKey("certificatePassword")) {
+            try {
+              String certificatePath = (String) config.get("certificatePath");
+              String certificatePassword = (String) config.get("certificatePassword");
+              SharePointCertificateTokenManager certTokenManager =
+                  new SharePointCertificateTokenManager(tokenManager.tenantId, tokenManager.clientId,
+                      certificatePath, certificatePassword, tokenManager.getSiteUrl());
+              return new SharePointRestStorageProvider(certTokenManager);
+            } catch (Exception e) {
+              throw new RuntimeException("Failed to initialize certificate authentication", e);
+            }
+          }
+          
+          // Fall back to client secret (will fail with REST API but might work with Graph)
           SharePointRestTokenManager restTokenManager;
           if (tokenManager.clientSecret != null) {
             restTokenManager =

@@ -135,13 +135,13 @@ public class ParquetFileTest {
       System.out.println(
           "\n1. Creating schema with directory containing Parquet file");
       SchemaPlus fileSchema =
-          rootSchema.add("parquet_test", FileSchemaFactory.INSTANCE.create(rootSchema, "parquet_test", operand));
+          rootSchema.add("PARQUET_TEST", FileSchemaFactory.INSTANCE.create(rootSchema, "PARQUET_TEST", operand));
 
       try (Statement stmt = connection.createStatement()) {
         // List all available tables
         System.out.println("\n2. Listing all tables in schema:");
         ResultSet tables =
-            connection.getMetaData().getTables(null, "parquet_test", "%", null);
+            connection.getMetaData().getTables(null, "PARQUET_TEST", "%", null);
 
         System.out.println("   Available tables:");
         boolean foundEmployees = false;
@@ -160,7 +160,7 @@ public class ParquetFileTest {
         // Query the Parquet file
         System.out.println("\n3. Querying the Parquet file:");
         ResultSet rs =
-            stmt.executeQuery("SELECT * FROM parquet_test.\"employees\" ORDER BY \"id\"");
+            stmt.executeQuery("SELECT * FROM PARQUET_TEST.\"employees\" ORDER BY \"id\"");
 
         System.out.println("   ID | Name     | Department  | Salary");
         System.out.println("   ---|----------|-------------|--------");
@@ -183,7 +183,7 @@ public class ParquetFileTest {
         System.out.println("\n4. Testing aggregation query on Parquet file:");
         ResultSet aggRs =
             stmt.executeQuery("SELECT \"department\", COUNT(*) as emp_count, AVG(\"salary\") as avg_salary "
-            + "FROM parquet_test.\"employees\" "
+            + "FROM PARQUET_TEST.\"employees\" "
             + "GROUP BY \"department\" "
             + "ORDER BY \"department\"");
 

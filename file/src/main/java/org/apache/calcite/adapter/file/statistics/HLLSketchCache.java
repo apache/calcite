@@ -83,10 +83,14 @@ public class HLLSketchCache {
   }
   
   /**
-   * Get HLL sketch from cache or load from disk.
+   * Get HLL sketch from cache.
+   * @param schemaName The schema name (for proper isolation)
+   * @param tableName The table name
+   * @param columnName The column name
+   * @return The HLL sketch or null if not found
    */
-  public HyperLogLogSketch getSketch(String tableName, String columnName) {
-    String key = tableName + "." + columnName;
+  public HyperLogLogSketch getSketch(String schemaName, String tableName, String columnName) {
+    String key = schemaName + "." + tableName + "." + columnName;
     
     lock.readLock().lock();
     try {
@@ -106,9 +110,13 @@ public class HLLSketchCache {
   
   /**
    * Put HLL sketch into cache.
+   * @param schemaName The schema name (for proper isolation)
+   * @param tableName The table name
+   * @param columnName The column name
+   * @param sketch The HLL sketch to cache
    */
-  public void putSketch(String tableName, String columnName, HyperLogLogSketch sketch) {
-    String key = tableName + "." + columnName;
+  public void putSketch(String schemaName, String tableName, String columnName, HyperLogLogSketch sketch) {
+    String key = schemaName + "." + tableName + "." + columnName;
     
     lock.writeLock().lock();
     try {
@@ -120,9 +128,12 @@ public class HLLSketchCache {
   
   /**
    * Remove entry from cache.
+   * @param schemaName The schema name
+   * @param tableName The table name
+   * @param columnName The column name
    */
-  public void invalidate(String tableName, String columnName) {
-    String key = tableName + "." + columnName;
+  public void invalidate(String schemaName, String tableName, String columnName) {
+    String key = schemaName + "." + tableName + "." + columnName;
     
     lock.writeLock().lock();
     try {

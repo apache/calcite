@@ -1,9 +1,7 @@
 package org.apache.calcite.adapter.file;
 
 import org.apache.calcite.adapter.file.statistics.HLLSketchCache;
-import org.apache.calcite.adapter.file.statistics.StatisticsBuilder;
-import org.apache.calcite.adapter.file.statistics.TableStatistics;
-import org.apache.calcite.adapter.file.statistics.ColumnStatistics;
+import org.apache.calcite.adapter.file.statistics.HyperLogLogSketch;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 import org.junit.jupiter.api.Test;
@@ -22,6 +20,16 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Simple verification that HLL optimization actually works.
  * This test uses the existing test data and just verifies HLL performance.
+ * 
+ * NOTE: This test is currently expected to fail because HLL optimization
+ * is not fully integrated into query execution. The infrastructure exists
+ * (HLLSketchCache, HyperLogLogSketch, HLLCountDistinctRule) but the rule
+ * is not being applied during query planning to transform COUNT(DISTINCT)
+ * into HLL sketch lookups.
+ * 
+ * When HLL is properly configured and working, COUNT(DISTINCT) should
+ * complete in sub-millisecond time by using pre-computed HLL sketches
+ * instead of scanning all data.
  */
 public class HLLSimpleVerificationTest {
     @TempDir
@@ -29,30 +37,23 @@ public class HLLSimpleVerificationTest {
     
     @Test
     public void verifyHLLOptimizationWorks() throws Exception {
-        // Copy test parquet file to temp dir
-        File sourceFile = new File("src/test/resources/parquet/users.parquet");
-        File targetFile = new File(tempDir.toFile(), "users.parquet");
-        java.nio.file.Files.copy(sourceFile.toPath(), targetFile.toPath());
+        // CONFIG-DRIVEN APPROACH: Use configuration to auto-generate HLL sketches
+        // No manual code to create sketches - let the system do it
         
-        // Generate HLL statistics
-        File cacheDir = tempDir.resolve("hll_cache").toFile();
-        cacheDir.mkdirs();
-        
-        System.setProperty("calcite.file.statistics.hll.enabled", "true");
-        System.setProperty("calcite.file.statistics.cache.directory", cacheDir.getAbsolutePath());
-        
-        StatisticsBuilder builder = new StatisticsBuilder();
-        TableStatistics stats = builder.buildStatistics(
-            new DirectFileSource(targetFile), cacheDir);
-        
-        // Load HLL sketches into cache
-        HLLSketchCache cache = HLLSketchCache.getInstance();
-        for (String columnName : stats.getColumnStatistics().keySet()) {
-            ColumnStatistics colStats = stats.getColumnStatistics(columnName);
-            if (colStats != null && colStats.getHllSketch() != null) {
-                cache.putSketch("users", columnName, colStats.getHllSketch());
+        // Create a simple test CSV file
+        File targetFile = new File(tempDir.toFile(), "users.csv");
+        try (java.io.PrintWriter writer = new java.io.PrintWriter(targetFile)) {
+            writer.println("id:int,name:string,age:int,department:string");
+            for (int i = 1; i <= 1000; i++) {
+                writer.println(i + ",User" + i + "," + (20 + i % 50) + ",Dept" + (i % 10));
             }
         }
+        
+        // CONFIG-DRIVEN: Set system properties to enable HLL auto-generation
+        System.setProperty("calcite.file.statistics.hll.enabled", "true");
+        System.setProperty("calcite.file.statistics.hll.threshold", "1"); // Very low threshold for test data
+        System.setProperty("calcite.file.statistics.auto.generate", "true"); // Auto-generate statistics
+        System.setProperty("calcite.file.statistics.cache.directory", tempDir.toString());
         
         try (Connection connection = DriverManager.getConnection("jdbc:calcite:");
              CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
@@ -62,8 +63,25 @@ public class HLLSimpleVerificationTest {
             operand.put("directory", tempDir.toString());
             operand.put("executionEngine", "parquet");
             
-            rootSchema.add("TEST", 
+            // CONFIG-DRIVEN: These settings should trigger auto-generation and priming
+            operand.put("primeCache", true);  // Enable cache priming to load HLL sketches
+            operand.put("autoGenerateStatistics", true); // Auto-generate statistics
+            operand.put("hllThreshold", 1); // Low threshold for test data
+            
+            SchemaPlus testSchema = rootSchema.add("TEST", 
                 FileSchemaFactory.INSTANCE.create(rootSchema, "TEST", operand));
+            
+            // Give cache priming time to complete (CONFIG-DRIVEN auto-generation)
+            Thread.sleep(3000);  // Give enough time for async priming
+            
+            // Verify HLL sketches were auto-generated and loaded
+            HLLSketchCache hllCache = HLLSketchCache.getInstance();
+            HyperLogLogSketch ageSketch = hllCache.getSketch("TEST", "users", "age");
+            if (ageSketch != null) {
+                System.out.println("CONFIG-DRIVEN: HLL Sketch auto-loaded for users.age with estimate: " + ageSketch.getEstimate());
+            } else {
+                System.out.println("WARNING: HLL Sketch not found in cache for users.age");
+            }
             
             // Test COUNT(DISTINCT) performance
             String query = "SELECT COUNT(DISTINCT \"age\") FROM TEST.\"users\"";
@@ -110,11 +128,17 @@ public class HLLSimpleVerificationTest {
                 }
                 
                 // For the test to pass, HLL must be working
-                assertTrue(ms < 5.0, "HLL should be fast but was " + ms + " ms");
+                assertTrue(ms < 1.0, "HLL optimization must provide sub-millisecond performance but was " + ms + " ms");
             }
         } finally {
+            // Clean up system properties
             System.clearProperty("calcite.file.statistics.hll.enabled");
+            System.clearProperty("calcite.file.statistics.hll.threshold");
+            System.clearProperty("calcite.file.statistics.auto.generate");
             System.clearProperty("calcite.file.statistics.cache.directory");
+            
+            // CRITICAL: Clear HLL cache to prevent test interference
+            HLLSketchCache.getInstance().invalidateAll();
         }
     }
 }

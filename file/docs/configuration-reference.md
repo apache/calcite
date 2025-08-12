@@ -4,44 +4,109 @@ This document provides comprehensive configuration options for the Apache Calcit
 
 ## Configuration Scope and Hierarchy
 
+### Multi-Engine Architecture for Optimized Workloads
+
+**Key Insight:** The File Adapter allows multiple schemas with different execution engines in a single connection, enabling you to optimize each workload with its ideal engine while still being able to query across all schemas.
+
 ### Schema-Level Configuration
 
-Each schema can have its own independent configuration, including different execution engines:
+Each schema operates as an independent instance with its own:
+- Execution engine (Parquet, Arrow, DuckDB, LINQ4J)
+- Storage provider (Local, S3, HTTP, SharePoint)
+- Memory and performance settings
+- Name transformation rules
+- Statistics and caching configuration
+
+**Example: Hybrid Architecture for Different Workloads**
 
 ```json
 {
   "schemas": [
     {
-      "name": "FAST_SCHEMA",
+      "name": "hot_cache",
       "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
       "operand": {
-        "directory": "/data/fast",
-        "executionEngine": "arrow"  // In-memory processing
+        "directory": "/data/cache",
+        "executionEngine": "arrow",     // In-memory, no spillover
+        "batchSize": 10000,             // Larger batches for in-memory
+        "primeCache": true              // Pre-load on startup
       }
     },
     {
-      "name": "LARGE_SCHEMA",
+      "name": "data_lake",
       "factory": "org.apache.calcite.adapter.file.FileSchemaFactory", 
       "operand": {
-        "directory": "/data/large",
-        "executionEngine": "parquet"  // Spillover support
+        "storageType": "s3",
+        "bucket": "company-data-lake",
+        "executionEngine": "parquet",   // Handles TB-scale with spillover
+        "memoryThreshold": 536870912,   // 512MB before spilling to disk
+        "spilloverDirectory": "/fast-ssd/spillover"
       }
     },
     {
-      "name": "ANALYTICS_SCHEMA",
+      "name": "analytics",
       "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
       "operand": {
         "directory": "/data/analytics",
-        "executionEngine": "duckdb",  // Complex SQL
+        "executionEngine": "duckdb",    // Advanced SQL features
         "duckdbConfig": {
-          "memory_limit": "8GB",
-          "threads": 16
+          "memory_limit": "16GB",
+          "threads": 32,
+          "enable_progress_bar": false
         }
+      }
+    },
+    {
+      "name": "realtime_api",
+      "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
+      "operand": {
+        "storageType": "http",
+        "baseUrl": "https://api.example.com",
+        "executionEngine": "linq4j",    // Simple row processing
+        "refreshInterval": "30 seconds"  // Fresh data
       }
     }
   ]
 }
 ```
+
+### Cross-Schema Queries and Optimization
+
+With multiple schemas configured with different engines, you can:
+
+1. **Query across engines seamlessly:**
+```sql
+-- Join in-memory cached data with S3 data lake
+SELECT 
+  cache.user_id,
+  cache.session_data,
+  lake.historical_purchases
+FROM hot_cache.active_users cache
+JOIN data_lake.purchase_history lake 
+  ON cache.user_id = lake.customer_id
+WHERE cache.last_active > CURRENT_TIMESTAMP - INTERVAL '1' HOUR;
+```
+
+2. **Create cross-engine materialized views:**
+```sql
+-- Combine data from multiple sources into optimized view
+CREATE MATERIALIZED VIEW unified_analytics AS
+SELECT 
+  api.current_price,
+  analytics.prediction,
+  lake.historical_avg
+FROM realtime_api.prices api
+JOIN analytics.ml_predictions analytics 
+  ON api.symbol = analytics.symbol
+JOIN data_lake.price_history lake 
+  ON api.symbol = lake.ticker
+```
+
+3. **Optimize query execution paths:**
+- Filter pushdown happens at the schema level
+- Each engine optimizes its portion independently
+- Calcite handles cross-schema join optimization
+- Materialized views can use the most appropriate engine for their workload
 
 ### Global Configuration (System Properties)
 
@@ -484,10 +549,10 @@ Configuration values are resolved in this order (highest priority first):
 ```json
 {
   "version": "1.0",
-  "defaultSchema": "FILES",
+  "defaultSchema": "files",
   "schemas": [
     {
-      "name": "FILES",
+      "name": "files",
       "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
       "operand": {
         "directory": "/data",
@@ -508,6 +573,20 @@ Configuration values are resolved in this order (highest priority first):
             "sampleSize": 10000
           }
         },
+        "tables": [
+          {
+            "name": "events",
+            "url": "events.csv"
+          },
+          {
+            "name": "users",
+            "url": "users.json"
+          },
+          {
+            "name": "transactions",
+            "url": "transactions.xlsx"
+          }
+        ],
         "materializedViews": [
           {
             "name": "daily_summary",

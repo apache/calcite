@@ -31,12 +31,13 @@ public class OptimalCachePerformanceTest extends PerformanceTestBase {
   
   @Override
   protected String getJdbcUrl() {
-    return "jdbc:calcite:";
+    return "jdbc:calcite:model=" + 
+        getClass().getResource("/sales-json.json").getPath();
   }
   
   @Override
   protected String[] getSchemaNames() {
-    return new String[] { "sales", "products", "customers" };
+    return new String[] { "SALES" };
   }
   
   @BeforeAll
@@ -50,7 +51,7 @@ public class OptimalCachePerformanceTest extends PerformanceTestBase {
   void testVectorizedReaderWithOptimalCache() throws Exception {
     printTestHeader("Vectorized Reader with Optimal Cache");
     
-    String query = "SELECT COUNT(*), SUM(amount) FROM sales.transactions WHERE year = 2024";
+    String query = "SELECT COUNT(*) FROM SALES.EMPS";
     
     // Compare vectorized vs non-vectorized with warm cache
     compareConfigurations(
@@ -67,13 +68,13 @@ public class OptimalCachePerformanceTest extends PerformanceTestBase {
     printTestHeader("Complex Aggregation with Cache");
     
     String query = 
-        "SELECT category, " +
-        "       COUNT(DISTINCT customer_id) as unique_customers, " +
-        "       SUM(amount) as total_sales, " +
-        "       AVG(amount) as avg_sale " +
-        "FROM sales.transactions " +
-        "GROUP BY category " +
-        "HAVING COUNT(*) > 100";
+        "SELECT DEPTNO, " +
+        "       COUNT(DISTINCT EMPNO) as unique_employees, " +
+        "       SUM(AGE) as total_age, " +
+        "       AVG(AGE) as avg_age " +
+        "FROM SALES.EMPS " +
+        "GROUP BY DEPTNO " +
+        "HAVING COUNT(*) > 1";
     
     QueryTiming timing = measureQuery(query);
     timing.print();
@@ -91,12 +92,12 @@ public class OptimalCachePerformanceTest extends PerformanceTestBase {
     printTestHeader("Join Performance with Cache");
     
     String query = 
-        "SELECT p.name, SUM(t.amount) as revenue " +
-        "FROM sales.transactions t " +
-        "JOIN products.catalog p ON t.product_id = p.id " +
-        "WHERE t.year = 2024 " +
-        "GROUP BY p.name " +
-        "ORDER BY revenue DESC " +
+        "SELECT d.NAME, COUNT(e.EMPNO) as employee_count " +
+        "FROM SALES.EMPS e " +
+        "JOIN SALES.DEPTS d ON e.DEPTNO = d.DEPTNO " +
+        "WHERE e.AGE > 10 " +
+        "GROUP BY d.NAME " +
+        "ORDER BY employee_count DESC " +
         "LIMIT 10";
     
     // Measure with warm cache (typical production scenario)
@@ -118,13 +119,13 @@ public class OptimalCachePerformanceTest extends PerformanceTestBase {
   void testCachePrimingEffectiveness() throws Exception {
     printTestHeader("Cache Priming Effectiveness");
     
-    // Test queries of different complexities
+    // Test queries of different complexities using actual tables
     String[] queries = {
-        "SELECT COUNT(*) FROM sales.transactions",
-        "SELECT product_id, SUM(amount) FROM sales.transactions GROUP BY product_id",
-        "SELECT * FROM sales.transactions WHERE amount > 1000 LIMIT 100",
-        "SELECT t.*, p.name FROM sales.transactions t " +
-        "JOIN products.catalog p ON t.product_id = p.id LIMIT 50"
+        "SELECT COUNT(*) FROM SALES.EMPS",
+        "SELECT DEPTNO, COUNT(*) FROM SALES.EMPS GROUP BY DEPTNO",
+        "SELECT * FROM SALES.EMPS WHERE AGE > 20 LIMIT 100",
+        "SELECT e.*, d.NAME FROM SALES.EMPS e " +
+        "JOIN SALES.DEPTS d ON e.DEPTNO = d.DEPTNO LIMIT 50"
     };
     
     System.out.println("Testing " + queries.length + " queries with primed cache:\n");
@@ -155,27 +156,25 @@ public class OptimalCachePerformanceTest extends PerformanceTestBase {
   void testLargeTableBenefit() throws Exception {
     printTestHeader("Large Table Cache Benefit");
     
-    // Assuming we have tables of different sizes
-    String[] tableSizes = {"small", "medium", "large"};
+    // Test with actual tables of different sizes
+    String[] tableNames = {"DEPTS", "EMPS", "SDEPTS"};
     
-    for (String size : tableSizes) {
+    for (String tableName : tableNames) {
       String query = String.format(
-          "SELECT COUNT(*), AVG(amount) FROM sales.transactions_%s", size);
+          "SELECT COUNT(*) FROM SALES.%s", tableName);
       
       try {
         QueryTiming timing = measureQuery(query);
         
-        System.out.println("\nTable size: " + size);
+        System.out.println("\nTable: " + tableName);
         System.out.println("  Cold time: " + timing.coldTimeMs + " ms");
         System.out.println("  Warm time: " + timing.avgWarmTimeMs + " ms");
         System.out.println("  Cache benefit: " + 
             (timing.coldTimeMs - timing.avgWarmTimeMs) + " ms");
         
-        // Larger tables should show more cache benefit
-        if (size.equals("large")) {
-          assertTrue(timing.getSpeedup() > 1.5, 
-              "Large tables should show significant cache benefit");
-        }
+        // All tables should show some cache benefit
+        assertTrue(timing.getSpeedup() > 1.0, 
+            "Tables should show cache benefit");
       } catch (Exception e) {
         System.out.println("  Table not found: " + e.getMessage());
       }

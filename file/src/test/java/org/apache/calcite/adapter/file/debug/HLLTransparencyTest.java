@@ -85,8 +85,8 @@ public class HLLTransparencyTest {
     
     // Test that both APPROX_COUNT_DISTINCT and COUNT(DISTINCT) give same results with HLL
     System.out.println("3. Comparing COUNT(DISTINCT) vs APPROX_COUNT_DISTINCT:");
-    long countDistinctResult = runSpecificQuery("SELECT COUNT(DISTINCT \\\"customer_id\\\") FROM HLL_TEST.\\\"test\\\"");
-    long approxCountResult = runSpecificQuery("SELECT APPROX_COUNT_DISTINCT(\\\"customer_id\\\") FROM HLL_TEST.\\\"test\\\"");
+    long countDistinctResult = runSpecificQuery("SELECT COUNT(DISTINCT \"customer_id\") FROM HLL_TEST.\"test\"");
+    long approxCountResult = runSpecificQuery("SELECT APPROX_COUNT_DISTINCT(\"customer_id\") FROM HLL_TEST.\"test\"");
     
     System.out.println("   COUNT(DISTINCT) with HLL: " + countDistinctResult);
     System.out.println("   APPROX_COUNT_DISTINCT with HLL: " + approxCountResult);
@@ -103,6 +103,7 @@ public class HLLTransparencyTest {
     if (enableHLL) {
       System.setProperty("calcite.file.statistics.hll.enabled", "true");
       System.setProperty("calcite.file.statistics.cache.directory", cacheDir.getAbsolutePath());
+      System.setProperty("calcite.file.statistics.hll.threshold", "1"); // Always generate HLL
     } else {
       System.setProperty("calcite.file.statistics.hll.enabled", "false");
     }
@@ -126,7 +127,7 @@ public class HLLTransparencyTest {
       }
       
       try (Statement stmt = connection.createStatement();
-           ResultSet rs = stmt.executeQuery("SELECT COUNT(DISTINCT \\\"customer_id\\\") FROM HLL_TEST.\\\"test\\\"")) {
+           ResultSet rs = stmt.executeQuery("SELECT COUNT(DISTINCT \"customer_id\") FROM HLL_TEST.\"test\"")) {
         
         if (rs.next()) {
           return rs.getLong(1);
@@ -136,12 +137,14 @@ public class HLLTransparencyTest {
     } finally {
       System.clearProperty("calcite.file.statistics.hll.enabled");
       System.clearProperty("calcite.file.statistics.cache.directory");
+      System.clearProperty("calcite.file.statistics.hll.threshold");
     }
   }
   
   private long runSpecificQuery(String query) throws Exception {
     System.setProperty("calcite.file.statistics.hll.enabled", "true");
     System.setProperty("calcite.file.statistics.cache.directory", cacheDir.getAbsolutePath());
+    System.setProperty("calcite.file.statistics.hll.threshold", "1"); // Always generate HLL
     
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:");
          CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
@@ -169,6 +172,7 @@ public class HLLTransparencyTest {
     } finally {
       System.clearProperty("calcite.file.statistics.hll.enabled");
       System.clearProperty("calcite.file.statistics.cache.directory");
+      System.clearProperty("calcite.file.statistics.hll.threshold");
     }
   }
   
@@ -177,11 +181,11 @@ public class HLLTransparencyTest {
     File file = new File(tempDir.toFile(), "test.parquet");
     
     String schemaString = "{"
-        + "\\\"type\\\": \\\"record\\\","
-        + "\\\"name\\\": \\\"TestRecord\\\","
-        + "\\\"fields\\\": ["
-        + "  {\\\"name\\\": \\\"customer_id\\\", \\\"type\\\": \\\"int\\\"},"
-        + "  {\\\"name\\\": \\\"amount\\\", \\\"type\\\": \\\"double\\\"}"
+        + "\"type\": \"record\","
+        + "\"name\": \"TestRecord\","
+        + "\"fields\": ["
+        + "  {\"name\": \"customer_id\", \"type\": \"int\"},"
+        + "  {\"name\": \"amount\", \"type\": \"double\"}"
         + "]"
         + "}";
     

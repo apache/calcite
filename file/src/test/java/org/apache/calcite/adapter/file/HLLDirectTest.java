@@ -27,7 +27,7 @@ public class HLLDirectTest {
         
         // Store in cache
         HLLSketchCache cache = HLLSketchCache.getInstance();
-        cache.putSketch("test_table", "customer_id", sketch);
+        cache.putSketch("TEST", "test_table", "customer_id", sketch);
         
         // Now simulate COUNT(DISTINCT) queries
         System.out.println("\nSimulating COUNT(DISTINCT) queries:");
@@ -48,7 +48,7 @@ public class HLLDirectTest {
         long startHLL = System.currentTimeMillis();
         long estimate = 0;
         for (int run = 0; run < 100; run++) {
-            HyperLogLogSketch cachedSketch = cache.getSketch("test_table", "customer_id");
+            HyperLogLogSketch cachedSketch = cache.getSketch("TEST", "test_table", "customer_id");
             if (cachedSketch != null) {
                 estimate = cachedSketch.getEstimate();
             }

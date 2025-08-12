@@ -132,12 +132,15 @@ public class SimpleHLLCountDistinctRule extends RelRule<SimpleHLLCountDistinctRu
     // Get column name and table name
     int columnIndex = aggCall.getArgList().get(0);
     String columnName = input.getRowType().getFieldNames().get(columnIndex);
-    String tableName = tableScan.getTable().getQualifiedName().get(
-        tableScan.getTable().getQualifiedName().size() - 1);
     
-    // Get HLL estimate from cache
+    // Get schema and table names from qualified name
+    List<String> qualifiedName = tableScan.getTable().getQualifiedName();
+    String schemaName = qualifiedName.size() >= 2 ? qualifiedName.get(qualifiedName.size() - 2) : "";
+    String tableName = qualifiedName.get(qualifiedName.size() - 1);
+    
+    // Get HLL estimate from cache with fully qualified name
     HLLSketchCache cache = HLLSketchCache.getInstance();
-    HyperLogLogSketch sketch = cache.getSketch(tableName, columnName);
+    HyperLogLogSketch sketch = cache.getSketch(schemaName, tableName, columnName);
     
     if (sketch != null) {
       long estimate = sketch.getEstimate();

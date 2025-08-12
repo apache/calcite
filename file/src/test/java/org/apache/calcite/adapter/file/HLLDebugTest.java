@@ -14,6 +14,8 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import org.apache.calcite.adapter.file.statistics.HLLSketchCache;
+
 /**
  * Debug test to see why HLL isn't working.
  */
@@ -26,15 +28,25 @@ public class HLLDebugTest {
         // Enable HLL
         System.setProperty("calcite.file.statistics.hll.enabled", "true");
         System.setProperty("calcite.file.statistics.cache.directory", tempDir.toString());
+        System.setProperty("calcite.file.statistics.hll.threshold", "1"); // Always generate HLL
         
         try (Connection connection = DriverManager.getConnection("jdbc:calcite:");
              CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
             
             SchemaPlus rootSchema = calciteConnection.getRootSchema();
             
+            // Create test data
+            java.io.File testFile = new java.io.File(tempDir.toFile(), "users.csv");
+            try (java.io.PrintWriter writer = new java.io.PrintWriter(testFile)) {
+                writer.println("id:int,name:string,age:int");
+                for (int i = 1; i <= 100; i++) {
+                    writer.println(i + ",User" + i + "," + (20 + i % 50));
+                }
+            }
+            
             // Create a simple test schema
             Map<String, Object> operand = new LinkedHashMap<>();
-            operand.put("directory", "src/test/resources/parquet");
+            operand.put("directory", tempDir.toString());
             operand.put("executionEngine", "parquet");
             
             rootSchema.add("TEST", 
@@ -117,6 +129,9 @@ public class HLLDebugTest {
         } finally {
             System.clearProperty("calcite.file.statistics.hll.enabled");
             System.clearProperty("calcite.file.statistics.cache.directory");
+            System.clearProperty("calcite.file.statistics.hll.threshold");
+            // Clear HLL cache to prevent test interference
+            HLLSketchCache.getInstance().invalidateAll();
         }
     }
 }

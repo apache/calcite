@@ -16,15 +16,20 @@ When you configure a schema with a specific `storageType`, ALL files in that sch
   "name": "S3_DATA",
   "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
   "operand": {
-    "storageType": "s3",                 // Forces S3 provider for ALL files
+    "storageType": "s3",
     "storageConfig": {
       "bucket": "my-bucket",
       "region": "us-east-1",
-      "prefix": "data/"                  // S3 will list files under this prefix
+      "prefix": "data/"
     }
   }
 }
 ```
+
+**Key Points:**
+- `storageType: "s3"` forces S3 provider for ALL files
+- S3 provider lists files under the specified prefix
+- The `directory` field is ignored when `storageType` is set
 
 With this configuration:
 - The File Adapter uses S3 storage provider to **list** files in the bucket
@@ -40,19 +45,24 @@ When defining individual tables, the storage provider is determined by the URL s
   "tables": [
     {
       "name": "local_data",
-      "url": "/local/path/data.csv"        // Uses LocalFileStorageProvider
+      "url": "/local/path/data.csv"
     },
     {
       "name": "s3_data",
-      "url": "s3://bucket/data.parquet"    // Uses S3StorageProvider
+      "url": "s3://bucket/data.parquet"
     },
     {
       "name": "api_data", 
-      "url": "https://api.example.com/data.json"  // Uses HttpStorageProvider
+      "url": "https://api.example.com/data.json"
     }
   ]
 }
 ```
+
+**URL Scheme Mapping:**
+- `/local/path/data.csv` → LocalFileStorageProvider
+- `s3://bucket/data.parquet` → S3StorageProvider  
+- `https://api.example.com/data.json` → HttpStorageProvider
 
 ### Storage Provider Selection Logic
 
@@ -669,54 +679,39 @@ Configure multiple storage providers for different data sources.
 - Cache authentication tokens
 - Limit concurrent requests to avoid throttling
 
-## Error Handling and Retry Logic
+## Error Handling
 
-### Retry Configuration
+### Current Capabilities
 
+The File Adapter provides basic error handling for storage providers:
+
+| Feature | Description | Configuration |
+|---------|-------------|--------------|
+| HTTP Timeout | Connection timeout for HTTP/HTTPS requests | Set via `httpTimeout` property |
+| HTTP Retries | Simple retry count for failed requests | Set via `httpRetries` property |
+
+**Example Configuration:**
 ```json
 {
-  "retryPolicy": {
-    "enabled": true,
-    "maxRetries": 3,
-    "backoffStrategy": "exponential",
-    "initialDelay": "1s",
-    "maxDelay": "30s",
-    "backoffMultiplier": 2.0,
-    "retryableErrors": [
-      "timeout",
-      "connection_reset",
-      "throttling"
-    ]
+  "storageProvider": {
+    "type": "http",
+    "baseUrl": "https://api.example.com/data",
+    "options": {
+      "timeout": "60s",         // Connection timeout
+      "maxRetries": 3           // Retry failed requests 3 times
+    }
   }
 }
 ```
 
-### Circuit Breaker
+**Note:** The File Adapter does NOT currently support:
+- Exponential backoff retry strategies
+- Circuit breaker patterns  
+- Health check monitoring
+- Configurable retry policies
+- Custom error recovery strategies
 
-```json
-{
-  "circuitBreaker": {
-    "enabled": true,
-    "failureThreshold": 5,
-    "recoveryTimeout": "60s",
-    "halfOpenMaxCalls": 3
-  }
-}
-```
-
-### Health Checks
-
-```json
-{
-  "healthCheck": {
-    "enabled": true,
-    "interval": "60s",
-    "timeout": "10s",
-    "endpoint": "/health",
-    "failureThreshold": 3
-  }
-}
-```
+For production deployments requiring advanced error handling, consider implementing these features at the application level or using a reverse proxy/API gateway.
 
 ## Security Best Practices
 

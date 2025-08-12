@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.file;
 
 import org.apache.calcite.adapter.file.storage.MicrosoftGraphStorageProvider;
 import org.apache.calcite.adapter.file.storage.MicrosoftGraphTokenManager;
+import org.apache.calcite.adapter.file.storage.SharePointLegacyTokenManager;
 import org.apache.calcite.adapter.file.storage.SharePointRestStorageProvider;
 import org.apache.calcite.adapter.file.storage.SharePointRestTokenManager;
 import org.apache.calcite.adapter.file.storage.StorageProvider;
@@ -439,12 +440,37 @@ public class SharePointLiveIntegrationTest {
       operand.put("directory", "/Shared Documents/Shared Documents");
       operand.put("storageType", "sharepoint");
       operand.put("recursive", true);  // Enable recursive traversal
+      operand.put("executionEngine", "linq4j");  // Use LINQ4J for CSV processing
 
       Map<String, Object> storageConfig = new HashMap<>();
       storageConfig.put("siteUrl", siteUrl);
       storageConfig.put("tenantId", tenantId);
       storageConfig.put("clientId", clientId);
-      storageConfig.put("clientSecret", clientSecret);
+      
+      // Check if certificate is configured
+      Properties localProps = loadLocalProperties();
+      String certPassword = localProps.getProperty("SHAREPOINT_CERT_PASSWORD");
+      if (certPassword != null) {
+        // Use certificate authentication for SharePoint REST API
+        File certFile = new File("src/test/resources/SharePointAppOnlyCert.pfx");
+        if (certFile.exists()) {
+          System.out.println("Using certificate authentication for SharePoint REST API");
+          storageConfig.put("certificatePath", certFile.getAbsolutePath());
+          storageConfig.put("certificatePassword", certPassword);
+          // No need for useGraphApi flag - certificate auth uses REST API
+        } else {
+          // Fall back to Graph API with client secret
+          System.out.println("Certificate not found, using Microsoft Graph API");
+          storageConfig.put("clientSecret", clientSecret);
+          storageConfig.put("useGraphApi", true);
+        }
+      } else {
+        // Use Graph API with client secret
+        System.out.println("Using Microsoft Graph API with client secret");
+        storageConfig.put("clientSecret", clientSecret);
+        storageConfig.put("useGraphApi", true);
+      }
+      
       operand.put("storageConfig", storageConfig);
 
       FileSchemaFactory factory = FileSchemaFactory.INSTANCE;
@@ -521,6 +547,9 @@ public class SharePointLiveIntegrationTest {
           Map<String, Object> operand2 = new HashMap<>(operand);
           operand2.put("directory", "/Shared Documents");
           operand2.put("recursive", true);
+          // Ensure storageConfig is copied with useGraphApi
+          Map<String, Object> storageConfig2 = new HashMap<>((Map<String, Object>) operand.get("storageConfig"));
+          operand2.put("storageConfig", storageConfig2);
           rootSchema.add("sharepoint2", factory.create(rootSchema, "sharepoint2", operand2));
 
           tables = conn.getMetaData().getTables(null, "SHAREPOINT2", "%", null);
@@ -544,6 +573,9 @@ public class SharePointLiveIntegrationTest {
           Map<String, Object> operand3 = new HashMap<>(operand);
           operand3.put("directory", "Shared Documents/Shared Documents");
           operand3.put("recursive", true);
+          // Ensure storageConfig is copied with useGraphApi
+          Map<String, Object> storageConfig3 = new HashMap<>((Map<String, Object>) operand.get("storageConfig"));
+          operand3.put("storageConfig", storageConfig3);
           rootSchema.add("sharepoint3", factory.create(rootSchema, "sharepoint3", operand3));
 
           tables = conn.getMetaData().getTables(null, "SHAREPOINT3", "%", null);
@@ -578,9 +610,9 @@ public class SharePointLiveIntegrationTest {
           String employeesTable = null;
           while (allTables.next()) {
             String tableName = allTables.getString("TABLE_NAME");
-            if (tableName.toUpperCase().contains("departments")) {
+            if (tableName.toUpperCase().contains("DEPARTMENTS")) {
               departmentsTable = tableName;
-            } else if (tableName.toUpperCase().contains("employees")) {
+            } else if (tableName.toUpperCase().contains("EMPLOYEES")) {
               employeesTable = tableName;
             }
           }
@@ -661,9 +693,23 @@ public class SharePointLiveIntegrationTest {
 
   @Test void testSharePointRestApiDirectAccess() throws Exception {
     // Test direct SharePoint REST API access
-    SharePointRestTokenManager restTokenManager = 
-        new SharePointRestTokenManager(tenantId, clientId, clientSecret, siteUrl);
-    SharePointRestStorageProvider provider = new SharePointRestStorageProvider(restTokenManager);
+    // First check if we should use legacy auth
+    Properties localProps = loadLocalProperties();
+    String legacyClientId = localProps.getProperty("SHAREPOINT_LEGACY_CLIENT_ID");
+    String legacyClientSecret = localProps.getProperty("SHAREPOINT_LEGACY_CLIENT_SECRET");
+    
+    SharePointRestStorageProvider provider;
+    if (legacyClientId != null && legacyClientSecret != null) {
+      System.out.println("Using legacy SharePoint authentication");
+      SharePointLegacyTokenManager legacyTokenManager = 
+          new SharePointLegacyTokenManager(legacyClientId, legacyClientSecret, siteUrl);
+      provider = new SharePointRestStorageProvider(legacyTokenManager);
+    } else {
+      System.out.println("Using modern SharePoint REST authentication (requires certificate)");
+      SharePointRestTokenManager restTokenManager = 
+          new SharePointRestTokenManager(tenantId, clientId, clientSecret, siteUrl);
+      provider = new SharePointRestStorageProvider(restTokenManager);
+    }
 
     // List root directory first
     System.out.println("=== REST API: Listing root directory ===");

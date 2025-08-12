@@ -344,14 +344,10 @@ com.amazonaws.services.s3.model.AmazonS3Exception: Access Denied
    }
    ```
 
-3. **Configure retry policy:**
-   ```json
-   {
-     "retryPolicy": {
-       "maxRetries": 3,
-       "backoffMultiplier": 2.0
-     }
-   }
+3. **Configure retry settings:**
+   ```java
+   Properties props = new Properties();
+   props.setProperty("httpRetries", "3");  // Simple retry count
    ```
 
 ### HTTP Connection Timeouts
@@ -376,16 +372,14 @@ java.net.SocketTimeoutException: Read timed out
    }
    ```
 
-2. **Configure retry logic:**
-   ```json
-   {
-     "retryPolicy": {
-       "enabled": true,
-       "maxRetries": 5,
-       "retryableErrors": ["timeout", "connection_reset"]
-     }
-   }
+2. **Configure retry settings:**
+   ```java
+   Properties props = new Properties();
+   props.setProperty("httpTimeout", "60000");  // 60 second timeout
+   props.setProperty("httpRetries", "5");       // Retry 5 times
    ```
+   
+   **Note:** The adapter currently only supports simple retry counts, not advanced retry policies with exponential backoff or specific error handling.
 
 3. **Use connection pooling:**
    ```json

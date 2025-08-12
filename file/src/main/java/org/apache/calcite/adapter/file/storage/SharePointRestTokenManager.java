@@ -65,6 +65,11 @@ public class SharePointRestTokenManager extends SharePointTokenManager {
     // Use SharePoint-specific scope for REST API
     // Format: https://{sharepoint-domain}/.default
     String scope = String.format(Locale.ROOT, "https://%s/.default", sharePointDomain);
+    
+    System.out.println("SharePoint REST API Token Request:");
+    System.out.println("  Token URL: " + tokenUrl);
+    System.out.println("  Scope: " + scope);
+    System.out.println("  Client ID: " + super.clientId);
 
     // Build request body
     String requestBody =
@@ -74,6 +79,7 @@ public class SharePointRestTokenManager extends SharePointTokenManager {
         URLEncoder.encode(scope, StandardCharsets.UTF_8));
 
     Map<String, Object> response = makeTokenRequest(tokenUrl, requestBody);
+    System.out.println("  Token acquired successfully");
     updateTokenFromResponse(response);
   }
 

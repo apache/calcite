@@ -84,12 +84,15 @@ public class StorageProviderSource implements Source {
 
   @Override
   public InputStream openStream() throws IOException {
+    LOGGER.debug("Opening stream for actualPath: {}, displayPath: {}, storageProvider: {}", 
+        actualPath, displayPath, storageProvider.getClass().getSimpleName());
     return storageProvider.openInputStream(actualPath);
   }
 
   @Override
   public Reader reader() throws IOException {
-    LOGGER.debug("Opening reader for actualPath: {}, displayPath: {}", actualPath, displayPath);
+    LOGGER.debug("Opening reader for actualPath: {}, displayPath: {}, storageProvider: {}", 
+        actualPath, displayPath, storageProvider.getClass().getSimpleName());
     return storageProvider.openReader(actualPath);
   }
 

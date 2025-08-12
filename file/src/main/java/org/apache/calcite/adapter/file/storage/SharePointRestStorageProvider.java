@@ -163,7 +163,9 @@ public class SharePointRestStorageProvider implements StorageProvider {
       if (files != null && files.isArray()) {
         for (JsonNode file : files) {
           String fileName = file.get("Name").asText();
-          String itemPath = path.isEmpty() ? fileName : path + "/" + fileName;
+          // Use originalPath to preserve the full path structure
+          String itemPath = originalPath.isEmpty() ? fileName : 
+              (originalPath.startsWith("/") ? originalPath.substring(1) : originalPath) + "/" + fileName;
           
           entries.add(new FileEntry(
               itemPath,
@@ -196,7 +198,9 @@ public class SharePointRestStorageProvider implements StorageProvider {
             continue;
           }
           
-          String itemPath = path.isEmpty() ? folderName : path + "/" + folderName;
+          // Use originalPath to preserve the full path structure
+          String itemPath = originalPath.isEmpty() ? folderName : 
+              (originalPath.startsWith("/") ? originalPath.substring(1) : originalPath) + "/" + folderName;
           
           entries.add(new FileEntry(
               itemPath,
@@ -254,6 +258,8 @@ public class SharePointRestStorageProvider implements StorageProvider {
 
   @Override public InputStream openInputStream(String path) throws IOException {
     ensureInitialized();
+    
+    LOGGER.debug("SharePointRestStorageProvider.openInputStream called with path: {}", path);
 
     // Normalize path
     if (path.startsWith("/")) {
@@ -262,6 +268,8 @@ public class SharePointRestStorageProvider implements StorageProvider {
 
     // Remove document library prefix if present
     path = removeDocumentLibraryPrefix(path);
+    
+    LOGGER.debug("After normalization: path={}, documentLibraryUrl={}", path, documentLibraryUrl);
 
     // Build the file path
     String filePath = documentLibraryUrl + "/" + path;
@@ -271,6 +279,8 @@ public class SharePointRestStorageProvider implements StorageProvider {
         "%s/_api/web/GetFileByServerRelativeUrl('%s')/$value", 
         webUrl, 
         URLEncoder.encode(filePath, StandardCharsets.UTF_8).replace("+", "%20"));
+    
+    LOGGER.debug("Download URL: {}", downloadUrl);
 
     URL url = URI.create(downloadUrl).toURL();
     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -282,8 +292,12 @@ public class SharePointRestStorageProvider implements StorageProvider {
     int responseCode = conn.getResponseCode();
     if (responseCode != HttpURLConnection.HTTP_OK) {
       conn.disconnect();
+      LOGGER.error("Failed to download file: responseCode={}, path={}, downloadUrl={}", 
+          responseCode, path, downloadUrl);
       throw new IOException("Failed to download file from path '" + path + "': HTTP " + responseCode);
     }
+    
+    LOGGER.debug("Successfully opened input stream for path: {}", path);
 
     return conn.getInputStream();
   }
@@ -375,31 +389,83 @@ public class SharePointRestStorageProvider implements StorageProvider {
   }
 
   private JsonNode executeRestCall(String apiUrl) throws IOException {
-    URL url = URI.create(apiUrl).toURL();
+    // Properly encode the URL to handle spaces and special characters
+    URL url;
+    try {
+      // Split URL into base and query parts
+      int queryIndex = apiUrl.indexOf('?');
+      if (queryIndex > 0) {
+        String baseUrl = apiUrl.substring(0, queryIndex);
+        String query = apiUrl.substring(queryIndex + 1);
+        // Encode spaces in query parameters
+        query = query.replace(" ", "%20");
+        url = URI.create(baseUrl + "?" + query).toURL();
+      } else {
+        url = URI.create(apiUrl).toURL();
+      }
+    } catch (Exception e) {
+      throw new IOException("Failed to create URL from: " + apiUrl, e);
+    }
     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
     conn.setRequestMethod("GET");
-    conn.setRequestProperty("Authorization", "Bearer " + tokenManager.getAccessToken());
+    String token = tokenManager.getAccessToken();
+    conn.setRequestProperty("Authorization", "Bearer " + token);
     conn.setRequestProperty("Accept", "application/json;odata=verbose");
     conn.setRequestProperty("Content-Type", "application/json;odata=verbose");
     conn.setConnectTimeout(30000);
     conn.setReadTimeout(30000);
+    
+    LOGGER.debug("SharePoint REST API Call:");
+    LOGGER.debug("  URL: " + apiUrl);
+    LOGGER.debug("  Token length: " + (token != null ? token.length() : "null"));
+    LOGGER.debug("  Token prefix: " + (token != null && token.length() > 20 ? token.substring(0, 20) + "..." : token));
 
     try {
       int responseCode = conn.getResponseCode();
       if (responseCode != HttpURLConnection.HTTP_OK) {
         String error = "";
+        String wwwAuthenticate = conn.getHeaderField("WWW-Authenticate");
+        String xMsErrorCode = conn.getHeaderField("x-ms-diagnostics");
+        
         try (InputStream errorStream = conn.getErrorStream()) {
           if (errorStream != null) {
-            JsonNode errorJson = mapper.readTree(errorStream);
-            if (errorJson.has("error") && errorJson.get("error").has("message")) {
-              error = errorJson.get("error").get("message").get("value").asText();
+            byte[] errorBytes = errorStream.readAllBytes();
+            String errorBody = new String(errorBytes, StandardCharsets.UTF_8);
+            LOGGER.debug("Error response body: " + errorBody);
+            
+            try {
+              JsonNode errorJson = mapper.readTree(errorBytes);
+              if (errorJson.has("error") && errorJson.get("error").has("message")) {
+                JsonNode messageNode = errorJson.get("error").get("message");
+                if (messageNode.has("value")) {
+                  error = messageNode.get("value").asText();
+                } else {
+                  error = messageNode.asText();
+                }
+              } else if (errorJson.has("error_description")) {
+                error = errorJson.get("error_description").asText();
+              }
+            } catch (Exception je) {
+              // If not JSON, use raw error
+              error = errorBody;
             }
           }
         } catch (Exception e) {
-          // Ignore JSON parsing errors
+          // Ignore stream reading errors
         }
-        throw new IOException("SharePoint REST API error: HTTP " + responseCode +
-                              (error.isEmpty() ? "" : " - " + error));
+        
+        String errorMessage = "SharePoint REST API error: HTTP " + responseCode;
+        if (!error.isEmpty()) {
+          errorMessage += " - " + error;
+        }
+        if (wwwAuthenticate != null) {
+          errorMessage += " (WWW-Authenticate: " + wwwAuthenticate + ")";
+        }
+        if (xMsErrorCode != null) {
+          errorMessage += " (x-ms-diagnostics: " + xMsErrorCode + ")";
+        }
+        
+        throw new IOException(errorMessage);
       }
 
       try (InputStream in = conn.getInputStream()) {

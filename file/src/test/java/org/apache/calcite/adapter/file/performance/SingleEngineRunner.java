@@ -285,7 +285,7 @@ public class SingleEngineRunner {
         for (String columnName : stats.getColumnStatistics().keySet()) {
             ColumnStatistics colStats = stats.getColumnStatistics(columnName);
             if (colStats != null && colStats.getHllSketch() != null) {
-                cache.putSketch(tableName, columnName, colStats.getHllSketch());
+                cache.putSketch("TEST", tableName, columnName, colStats.getHllSketch());
             }
         }
         
