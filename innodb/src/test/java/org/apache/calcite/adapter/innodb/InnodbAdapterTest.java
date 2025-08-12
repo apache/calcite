@@ -896,8 +896,8 @@ public class InnodbAdapterTest {
   @Test void testSelectByMultipleSkRangeQueryPushDownPartialCondition3() {
     sql("SELECT EMPNO,DEPTNO,JOB FROM \"EMP\" WHERE JOB >= 'SALE' AND DEPTNO >= 20")
         .explainContains("PLAN=EnumerableCalc(expr#0..12=[{inputs}], "
-            + "expr#13=[CAST($t2):CHAR(4) NOT NULL], "
-            + "expr#14=['SALE'], expr#15=[>=($t13, $t14)], "
+            + "expr#13=[CAST($t2):VARCHAR(4) NOT NULL], "
+            + "expr#14=['SALE':VARCHAR(4)], expr#15=[>=($t13, $t14)], "
             + "EMPNO=[$t0], DEPTNO=[$t8], JOB=[$t2], $condition=[$t15])\n"
             + "  InnodbToEnumerableConverter\n"
             + "    InnodbFilter(condition=[(SK_RANGE_QUERY, index=DEPTNO_JOB_KEY, "

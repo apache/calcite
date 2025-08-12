@@ -677,6 +677,17 @@ LogicalProject(DEPTNO=[$0], W=[CASE(IS NOT NULL($2), CAST($3):INTEGER NOT NULL, 
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testCoercion">
+    <Resource name="sql">
+      <![CDATA[WITH c AS (SELECT CAST('x' as VARCHAR(2)) AS X, CAST('y' AS CHAR(2)) AS Y)SELECT X = Y AND Y = X FROM c]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[=($0, CAST($1):VARCHAR(2) NOT NULL)])
+  LogicalValues(tuples=[[{ 'x', 'y ' }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testCollectionTable">
     <Resource name="sql">
       <![CDATA[select * from table(ramp(3))]]>
