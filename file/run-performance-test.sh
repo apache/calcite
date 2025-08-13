@@ -27,7 +27,7 @@ TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 RESULTS_FILE="$RESULTS_DIR/results_${TIMESTAMP}.json"
 
 # Engines to test
-ENGINES=("linq4j" "parquet" "parquet+hll" "parquet+vec" "parquet+all" "arrow" "vectorized")
+ENGINES=("linq4j" "parquet" "parquet+hll" "parquet+vec" "parquet+all" "arrow" "vectorized" "duckdb")
 
 # Row counts to test (configurable via environment variable)
 if [ -z "$ROW_COUNTS" ]; then
@@ -121,8 +121,12 @@ for rows in $ROW_COUNTS; do
             # Clean caches before each run
             cleanup > /dev/null 2>&1
 
-            # Run the test in isolated JVM
+            # Run the test in isolated JVM with SIMD optimizations
             RESULT=$(java -cp "$CLASSPATH" \
+                --add-modules=jdk.incubator.vector \
+                --enable-preview \
+                -XX:+UnlockExperimentalVMOptions \
+                -XX:+UseVectorApi \
                 org.apache.calcite.adapter.file.performance.SingleEngineRunner \
                 "$engine" "$rows" "$scenario" "$DATA_DIR" "$CACHE_DIR" 2>/dev/null)
 
@@ -168,11 +172,19 @@ TEMP_REPORT="$RESULTS_DIR/performance_report_${TIMESTAMP}.md"
 MAIN_REPORT="$SCRIPT_DIR/engine_performance_report.md"
 
 java -cp "$CLASSPATH" \
+    --add-modules=jdk.incubator.vector \
+    --enable-preview \
+    -XX:+UnlockExperimentalVMOptions \
+    -XX:+UseVectorApi \
     org.apache.calcite.adapter.file.performance.PerformanceReportGenerator \
     "$RESULTS_FILE" "$TEMP_REPORT"
 
 # Also update the main report file
 java -cp "$CLASSPATH" \
+    --add-modules=jdk.incubator.vector \
+    --enable-preview \
+    -XX:+UnlockExperimentalVMOptions \
+    -XX:+UseVectorApi \
     org.apache.calcite.adapter.file.performance.PerformanceReportGenerator \
     "$RESULTS_FILE" "$MAIN_REPORT"
 

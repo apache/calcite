@@ -1,8 +1,9 @@
 ## Java Practices
 
 - Never use the deprecated java.sql.Time, use java.sql.LocalTime instead
-- When testing time, data and timestamps always use numeric values as expectations, never use formatted values.
-- When writing tests that involve temporal elements do not use displayed values use numeric values OR make sure you understand how displayed values are created
+- When testing time, data, and timestamps, always use numeric values as expectations; never use formatted values.
+- When writing tests that involve temporal elements, do not use displayed values; use numeric values, OR make sure you understand how displayed values are created
+- When computing day offsets from epoch, never use any Java function that might misapply a local TZ offset, for example, toLocalDate().
 
 ## Code Maintenance
 

@@ -23,6 +23,7 @@ import org.apache.calcite.adapter.file.converters.SafeExcelToJsonConverter;
 import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
 import org.apache.calcite.adapter.file.execution.duckdb.DuckDBConnectionManager;
 import org.apache.calcite.adapter.file.format.csv.CsvTypeInferrer;
+import org.apache.calcite.adapter.file.format.parquet.ConcurrentParquetCache;
 import org.apache.calcite.adapter.file.format.parquet.ParquetConversionUtil;
 import org.apache.calcite.adapter.file.iceberg.IcebergMetadataTables;
 import org.apache.calcite.adapter.file.iceberg.IcebergTable;
@@ -32,6 +33,7 @@ import org.apache.calcite.adapter.file.partition.PartitionedTableConfig;
 import org.apache.calcite.adapter.file.refresh.RefreshInterval;
 import org.apache.calcite.adapter.file.refresh.RefreshableCsvTable;
 import org.apache.calcite.adapter.file.refresh.RefreshableJsonTable;
+import org.apache.calcite.adapter.file.refresh.RefreshableParquetCacheTable;
 import org.apache.calcite.adapter.file.refresh.RefreshablePartitionedParquetTable;
 import org.apache.calcite.adapter.file.statistics.CachePrimer;
 import org.apache.calcite.adapter.file.statistics.TableStatistics;
@@ -625,13 +627,13 @@ public class FileSchema extends AbstractSchema {
       Map<String, Table> cached = tableCache;
       if (cached != null) {
         LOGGER.debug("[FileSchema.getTableMap] Returning cached tables: {}", cached.size());
-        System.out.println("*** RETURNING CACHED TABLES *** size: " + cached.size() + " engine: " + engineConfig.getEngineType());
+        LOGGER.debug("Returning cached tables: size={}, engine={}", cached.size(), engineConfig.getEngineType());
         return cached;
       }
 
       LOGGER.debug("[FileSchema.getTableMap] Computing tables! baseDirectory={}, storageProvider={}, storageType={}",
                    baseDirectory, storageProvider, storageType);
-      System.out.println("*** COMPUTING TABLES *** engine: " + engineConfig.getEngineType() + " baseDirectory: " + baseDirectory);
+      LOGGER.debug("Computing tables: engine={}, baseDirectory={}", engineConfig.getEngineType(), baseDirectory);
 
     final ImmutableMap.Builder<String, Table> builder = ImmutableMap.builder();
     // Track table names to handle duplicates
@@ -701,7 +703,7 @@ public class FileSchema extends AbstractSchema {
               .replace(File.separator, "_"))
               .replaceAll("_");
           String baseName = applyCasing(rawName, tableNameCasing);
-          System.out.println("FileSchema: Converting table name: '" + rawName + "' -> '" + baseName + "' (casing=" + tableNameCasing + ")");
+          LOGGER.debug("Converting table name: '{}' -> '{}' (casing={})", rawName, baseName, tableNameCasing);
           // Handle duplicate table names by adding extension suffix
           String tableName = baseName;
           if (tableNameCounts.containsKey(baseName)) {
@@ -754,14 +756,14 @@ public class FileSchema extends AbstractSchema {
               .matcher(sourceSansParquet.relative(baseSource).path()
               .replace(File.separator, "_"))
               .replaceAll("_"), tableNameCasing);
-          System.out.println("*** FOUND PARQUET FILE IN DIRECTORY SCAN *** " + source.path() + " -> table: " + tableName);
+          LOGGER.debug("Found Parquet file in directory scan: {} -> table: {}", source.path(), tableName);
           try {
             // Add Parquet file using appropriate table type based on execution engine
             Table table;
-            System.out.println("*** ENGINE TYPE CHECK *** " + engineConfig.getEngineType());
+            LOGGER.debug("Engine type check: {}", engineConfig.getEngineType());
             if (engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.DUCKDB) {
               // Use DuckDB-enabled table for high performance
-              System.out.println("*** CREATING DUCKDB TABLE IN DIRECTORY SCAN ***");
+              LOGGER.debug("Creating DuckDB table in directory scan");
               DuckDBParquetTable duckTable = new DuckDBParquetTable(source, null, columnNameCasing);
               registerDuckDBView(tableName, source.path());
               duckTable.setDuckDBNames(name, tableName);
@@ -946,7 +948,7 @@ public class FileSchema extends AbstractSchema {
     if ((url.startsWith("http://") || url.startsWith("https://"))
         && hasHttpConfiguration(tableDef)) {
       final Source source = resolveSourceWithHttpConfig(url, tableDef);
-      System.out.println("FileSchema: Creating HTTP table '" + tableName + "' with source: " + source.path() + " (type: " + source.getClass().getName() + ")");
+      LOGGER.debug("Creating HTTP table '{}' with source: {} (type: {})", tableName, source.path(), source.getClass().getName());
       return addTable(builder, source, tableName, tableDef);
     }
 
@@ -1072,9 +1074,69 @@ public class FileSchema extends AbstractSchema {
     LOGGER.debug("FileSchema.addTable: schemaName={}, tableName='{}', source={}, csvTypeInferenceConfig={}",
         name, tableName, source.path(),
         csvTypeInferenceConfig != null ? "enabled=" + csvTypeInferenceConfig.isEnabled() : "null");
-    // Check if refresh is configured - if so, use enhanced table creation instead of direct Parquet conversion
+    
+    // Check if refresh is configured
     String refreshIntervalStr = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
-    boolean hasRefresh = RefreshInterval.parse(refreshIntervalStr) != null;
+    Duration refreshInterval = RefreshInterval.parse(refreshIntervalStr);
+    boolean hasRefresh = refreshInterval != null;
+
+    String path = source.path().toLowerCase(Locale.ROOT);
+    boolean isCSVorJSON = path.endsWith(".csv") || path.endsWith(".csv.gz") ||
+                          path.endsWith(".json") || path.endsWith(".json.gz");
+
+    // Handle refreshable CSV/JSON files with Parquet caching
+    if (hasRefresh && isCSVorJSON &&
+        (engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.PARQUET ||
+         engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.DUCKDB) &&
+        baseDirectory != null) {
+      
+      try {
+        File cacheDir = ParquetConversionUtil.getParquetCacheDir(baseDirectory);
+        File sourceFile = new File(source.path());
+        boolean typeInferenceEnabled = csvTypeInferenceConfig != null && csvTypeInferenceConfig.isEnabled();
+        File parquetFile = ParquetConversionUtil.getCachedParquetFile(sourceFile, cacheDir, typeInferenceEnabled);
+        
+        // Check if we need initial conversion/update
+        if (!parquetFile.exists() || sourceFile.lastModified() > parquetFile.lastModified()) {
+          LOGGER.debug("Creating/updating parquet cache for refreshable table: {}", tableName);
+          
+          // Convert/update the cache file using standard conversion method
+          Table sourceTable = path.endsWith(".csv") || path.endsWith(".csv.gz")
+              ? new CsvTranslatableTable(source, null, columnNameCasing, csvTypeInferenceConfig)
+              : createTableFromSource(source, tableDef);
+          
+          if (sourceTable != null) {
+            parquetFile = ParquetConversionUtil.convertToParquet(source, tableName, sourceTable, 
+                cacheDir, parentSchema, name);
+          } else {
+            throw new RuntimeException("Failed to create source table for: " + source.path());
+          }
+        } else {
+          LOGGER.debug("Using existing parquet cache for refreshable table: {}", tableName);
+        }
+        
+        // Create refreshable table that monitors the source and updates cache
+        RefreshableParquetCacheTable refreshableTable = new RefreshableParquetCacheTable(
+            source, parquetFile, cacheDir, refreshInterval, typeInferenceEnabled,
+            columnNameCasing, null, engineConfig.getEngineType(), parentSchema, name
+        );
+        
+        // Register with appropriate engine
+        if (engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.DUCKDB) {
+          // Register parquet file with DuckDB
+          String parquetTableName = tableName.replace(".csv", "").replace(".json", "");
+          registerDuckDBView(parquetTableName, parquetFile.getAbsolutePath());
+          refreshableTable.setDuckDBNames(name, parquetTableName);
+        }
+        
+        builder.put(applyCasing(tableName, tableNameCasing), refreshableTable);
+        return true;
+        
+      } catch (Exception e) {
+        LOGGER.error("Failed to create refreshable parquet cache table for {}: {}", tableName, e.getMessage(), e);
+        // Fall through to regular processing
+      }
+    }
 
     // Check if we should convert to Parquet (for PARQUET or DUCKDB engines, but not if refresh is enabled)
     if ((engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.PARQUET
@@ -1084,7 +1146,6 @@ public class FileSchema extends AbstractSchema {
         && !source.path().toLowerCase(Locale.ROOT).endsWith(".parquet")) {
 
       // Check if it's a file type we can convert
-      String path = source.path().toLowerCase(Locale.ROOT);
       boolean canConvert = path.endsWith(".csv") || path.endsWith(".tsv")
           || path.endsWith(".json") || path.endsWith(".yaml") || path.endsWith(".yml")
           || path.endsWith(".csv.gz") || path.endsWith(".tsv.gz")
@@ -1157,7 +1218,7 @@ public class FileSchema extends AbstractSchema {
     if (forcedFormat != null) {
       switch (forcedFormat.toLowerCase(Locale.ROOT)) {
       case "json":
-        String refreshInterval = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
+        String jsonRefreshInterval = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
         Map<String, Object> options = null;
         if (tableDef != null && tableDef.containsKey("flatten")) {
           options = new HashMap<>();
@@ -1167,24 +1228,24 @@ public class FileSchema extends AbstractSchema {
           }
         }
         final Table jsonTable =
-            createEnhancedJsonTable(source, tableName, refreshInterval, options);
+            createEnhancedJsonTable(source, tableName, jsonRefreshInterval, options);
         String finalTableName = applyCasing(Util.first(tableName, source.path()), tableNameCasing);
-        System.out.println("FileSchema.addTable: Created JSON table of type: " + jsonTable.getClass().getName() + " for table '" + tableName + "' -> registered as '" + finalTableName + "'");
+        LOGGER.debug("Created JSON table of type: {} for table '{}' -> registered as '{}'", jsonTable.getClass().getName(), tableName, finalTableName);
         builder.put(finalTableName, jsonTable);
         return true;
       case "csv":
-        refreshInterval = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
-        final Table csvTable = createEnhancedCsvTable(source, null, tableName, refreshInterval);
+        String csvRefreshInterval = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
+        final Table csvTable = createEnhancedCsvTable(source, null, tableName, csvRefreshInterval);
         builder.put(applyCasing(Util.first(tableName, source.path()), tableNameCasing), csvTable);
         return true;
       case "tsv":
-        refreshInterval = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
-        final Table tsvTable = createEnhancedCsvTable(source, null, tableName, refreshInterval);
+        String tsvRefreshInterval = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
+        final Table tsvTable = createEnhancedCsvTable(source, null, tableName, tsvRefreshInterval);
         builder.put(applyCasing(Util.first(tableName, source.path()), tableNameCasing), tsvTable);
         return true;
       case "yaml":
       case "yml":
-        refreshInterval = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
+        String yamlRefreshInterval = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
         options = null;
         if (tableDef != null && tableDef.containsKey("flatten")) {
           options = new HashMap<>();
@@ -1194,7 +1255,7 @@ public class FileSchema extends AbstractSchema {
           }
         }
         final Table yamlTable =
-            createEnhancedJsonTable(source, tableName, refreshInterval, options);
+            createEnhancedJsonTable(source, tableName, yamlRefreshInterval, options);
         builder.put(applyCasing(Util.first(tableName, source.path()), tableNameCasing), yamlTable);
         return true;
       case "html":
@@ -1206,10 +1267,10 @@ public class FileSchema extends AbstractSchema {
         return true;
       case "parquet":
         final Table parquetTable;
-        System.out.println("*** PROCESSING PARQUET FILE *** Engine: " + engineConfig.getEngineType());
+        LOGGER.debug("Processing Parquet file: Engine: {}", engineConfig.getEngineType());
         if (engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.DUCKDB) {
           // Use DuckDB-enabled table for high performance
-          System.out.println("*** CREATING DUCKDB TABLE IN FILESCHEMA ***");
+          LOGGER.debug("Creating DuckDB table in FileSchema");
           DuckDBParquetTable duckTable = new DuckDBParquetTable(source, null, columnNameCasing);
           registerDuckDBView(name, source.path());
           duckTable.setDuckDBNames(this.name, name);
@@ -1283,7 +1344,7 @@ public class FileSchema extends AbstractSchema {
       sourceSansJson = sourceSansGz.trimOrNull(".yml");
     }
     if (sourceSansJson != null) {
-      String refreshInterval = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
+      String jsonAutoRefreshInterval = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
       Map<String, Object> options = null;
       // Check table-level flatten first, then schema-level flatten
       if (tableDef != null && tableDef.containsKey("flatten")) {
@@ -1298,7 +1359,7 @@ public class FileSchema extends AbstractSchema {
         options.put("flatten", this.flatten);
       }
       final Table table =
-          createEnhancedJsonTable(source, tableName, refreshInterval, options);
+          createEnhancedJsonTable(source, tableName, jsonAutoRefreshInterval, options);
       builder.put(
           applyCasing(Util.first(tableName, sourceSansJson.path()),
           tableNameCasing), table);
@@ -1306,16 +1367,16 @@ public class FileSchema extends AbstractSchema {
     }
     final Source sourceSansCsv = sourceSansGz.trimOrNull(".csv");
     if (sourceSansCsv != null) {
-      String refreshInterval = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
-      final Table table = createEnhancedCsvTable(source, null, tableName, refreshInterval);
+      String csvAutoRefreshInterval = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
+      final Table table = createEnhancedCsvTable(source, null, tableName, csvAutoRefreshInterval);
       String tableNameKey = applyCasing(Util.first(tableName, sourceSansCsv.path()), tableNameCasing);
       builder.put(tableNameKey, table);
       return true;
     }
     final Source sourceSansTsv = sourceSansGz.trimOrNull(".tsv");
     if (sourceSansTsv != null) {
-      String refreshInterval = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
-      final Table table = createEnhancedCsvTable(source, null, tableName, refreshInterval);
+      String tsvAutoRefreshInterval = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
+      final Table table = createEnhancedCsvTable(source, null, tableName, tsvAutoRefreshInterval);
       builder.put(applyCasing(Util.first(tableName, sourceSansTsv.path()), tableNameCasing), table);
       return true;
     }

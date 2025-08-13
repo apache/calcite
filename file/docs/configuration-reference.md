@@ -11,7 +11,7 @@ This document provides comprehensive configuration options for the Apache Calcit
 ### Schema-Level Configuration
 
 Each schema operates as an independent instance with its own:
-- Execution engine (Parquet, Arrow, DuckDB, LINQ4J)
+- Execution engine (Parquet (default), DuckDB, Arrow, Vectorized, LINQ4J)
 - Storage provider (Local, S3, HTTP, SharePoint)
 - Memory and performance settings
 - Name transformation rules

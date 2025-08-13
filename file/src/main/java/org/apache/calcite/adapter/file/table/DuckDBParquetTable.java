@@ -43,8 +43,7 @@ public class DuckDBParquetTable extends ParquetTranslatableTable {
   public DuckDBParquetTable(Source source, RelDataType protoRowType, String columnNameCasing) {
     // Call parent constructor with File
     super(new File(source.path()));
-    LOGGER.info("*** CREATED DUCKDBPARQUETTABLE *** for: {}", source.path());
-    System.out.println("*** CREATED DUCKDBPARQUETTABLE *** for: " + source.path());
+    LOGGER.debug("Created DuckDBParquetTable for: {}", source.path());
   }
   
   /**
@@ -73,8 +72,7 @@ public class DuckDBParquetTable extends ParquetTranslatableTable {
    */
   @Override 
   public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable relOptTable) {
-    LOGGER.info("*** CREATING DUCKDB-SPECIFIC RELNODE *** for table: {}", getQualifiedTableName());
-    System.out.println("*** CREATING DUCKDB-SPECIFIC RELNODE *** for table: " + getQualifiedTableName());
+    LOGGER.debug("Creating DuckDB-specific RelNode for table: {}", getQualifiedTableName());
     return new DuckDBTableScan(context.getCluster(), relOptTable, this, schemaName, tableName);
   }
 }

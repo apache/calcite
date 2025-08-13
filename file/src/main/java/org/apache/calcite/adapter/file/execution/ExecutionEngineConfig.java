@@ -29,7 +29,9 @@ import org.slf4j.LoggerFactory;
  *
  * <p>Supports different execution engines for processing file data:
  * <ul>
- *   <li><b>LINQ4J</b>: Traditional row-by-row processing (default)</li>
+ *   <li><b>PARQUET</b>: Parquet-based columnar processing with streaming support (default)</li>
+ *   <li><b>DUCKDB</b>: DuckDB-based analytical processing with SQL pushdown</li>
+ *   <li><b>LINQ4J</b>: Traditional row-by-row processing</li>
  *   <li><b>ARROW</b>: Arrow-based columnar processing</li>
  *   <li><b>VECTORIZED</b>: Optimized vectorized Arrow processing</li>
  * </ul>
@@ -100,7 +102,7 @@ public class ExecutionEngineConfig {
     } catch (IllegalArgumentException e) {
       throw new IllegalArgumentException(
           "Invalid execution engine: " + executionEngine
-          + ". Valid options: linq4j, arrow, vectorized, parquet, duckdb", e);
+          + ". Valid options: " + String.join(", ", getAvailableEngineTypes()), e);
     }
   }
 
@@ -126,6 +128,14 @@ public class ExecutionEngineConfig {
 
   public DuckDBConfig getDuckDBConfig() {
     return duckdbConfig;
+  }
+
+  /**
+   * Get all available execution engine types.
+   * @return Array of available execution engine type names
+   */
+  public static String[] getAvailableEngineTypes() {
+    return new String[]{"linq4j", "arrow", "vectorized", "parquet", "duckdb"};
   }
 
   /**

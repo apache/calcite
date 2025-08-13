@@ -66,6 +66,9 @@ import org.apache.parquet.schema.Type;
 
 import com.google.common.collect.ImmutableList;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -77,6 +80,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * This enables native Parquet operations with proper predicate pushdown and cost-based optimization.
  */
 public class ParquetTranslatableTable extends AbstractTable implements TranslatableTable, StatisticsProvider {
+  private static final Logger LOGGER = LoggerFactory.getLogger(ParquetTranslatableTable.class);
 
   private final File parquetFile;
   private final Source source;
@@ -268,7 +272,7 @@ public class ParquetTranslatableTable extends AbstractTable implements Translata
         cachedStatistics = statisticsBuilder.buildStatistics(source, cacheDir);
       } catch (Exception e) {
         // Log error but don't fail the query
-        System.err.println("Background statistics generation failed: " + e.getMessage());
+        LOGGER.error("Background statistics generation failed", e);
       }
     }).start();
   }

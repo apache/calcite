@@ -16,16 +16,14 @@ The Apache Calcite File Adapter supports a wide variety of file formats with aut
 - Compressed file support (.csv.gz)
 
 **Configuration Options:**
+
+CSV configuration is handled through the `csvTypeInference` parameter and automatic detection. Advanced CSV configuration options are planned for future releases.
+
 ```json
 {
-  "csvConfig": {
-    "delimiter": ",",
-    "quote": "\"",
-    "escape": "\\",
-    "hasHeader": true,
-    "encoding": "UTF-8",
-    "enableTypeInference": true,
-    "nullStrings": ["", "null", "NULL", "N/A"]
+  "csvTypeInference": {
+    "enabled": true,
+    "sampleSize": 1000
   }
 }
 ```
@@ -57,21 +55,12 @@ The Apache Calcite File Adapter supports a wide variety of file formats with aut
 **Configuration Options:**
 ```json
 {
-  "jsonConfig": {
-    "flattenNested": true,
-    "arrayHandling": "flatten",
-    "multiTableExtraction": {
-      "enabled": true,
-      "tables": [
-        {
-          "name": "customers",
-          "jsonPath": "$.customers[*]"
-        }
-      ]
-    }
-  }
+  "flatten": true,
+  "refreshInterval": "30 seconds"
 }
 ```
+
+**Note:** Advanced JSON configuration features like JSONPath-based table extraction are planned for future releases.
 
 **JSONPath Examples:**
 ```json

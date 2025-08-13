@@ -25,6 +25,9 @@ import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +40,8 @@ import java.util.Map;
  */
 @SuppressWarnings("UnusedDeclaration")
 public class FileSchemaFactory implements SchemaFactory {
+  private static final Logger LOGGER = LoggerFactory.getLogger(FileSchemaFactory.class);
+  
   /** Public singleton, per factory contract. */
   public static final FileSchemaFactory INSTANCE = new FileSchemaFactory();
 
@@ -59,7 +64,7 @@ public class FileSchemaFactory implements SchemaFactory {
     final String executionEngine =
         (String) operand.getOrDefault("executionEngine",
             ExecutionEngineConfig.DEFAULT_EXECUTION_ENGINE);
-    System.out.println("*** FILESCHEMAFACTORY *** executionEngine from operand: '" + executionEngine + "'");
+    LOGGER.debug("executionEngine from operand: '{}'", executionEngine);
     final Object batchSizeObj = operand.get("batchSize");
     final int batchSize = batchSizeObj instanceof Number
         ? ((Number) batchSizeObj).intValue()

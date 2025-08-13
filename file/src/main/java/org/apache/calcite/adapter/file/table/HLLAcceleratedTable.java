@@ -40,6 +40,9 @@ import org.apache.parquet.io.MessageColumnIO;
 import org.apache.parquet.io.RecordReader;
 import org.apache.parquet.schema.MessageType;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -53,6 +56,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * This enables instant COUNT(DISTINCT) queries without scanning data.
  */
 public class HLLAcceleratedTable extends AbstractTable implements ScannableTable {
+  private static final Logger LOGGER = LoggerFactory.getLogger(HLLAcceleratedTable.class);
+  
   private final Source source;
   private final String tableName;
   private final RelDataType rowType;
@@ -80,7 +85,7 @@ public class HLLAcceleratedTable extends AbstractTable implements ScannableTable
       return;
     }
     
-    System.out.println("Building HLL sketches for table: " + tableName);
+    LOGGER.debug("Building HLL sketches for table: {}", tableName);
     long startTime = System.currentTimeMillis();
     
     try {
@@ -101,17 +106,15 @@ public class HLLAcceleratedTable extends AbstractTable implements ScannableTable
       
       sketchesBuilt = true;
       long elapsed = System.currentTimeMillis() - startTime;
-      System.out.println("Built HLL sketches in " + elapsed + "ms");
+      LOGGER.debug("Built HLL sketches in {}ms", elapsed);
       
       // Print sketch estimates
       for (Map.Entry<String, HyperLogLogSketch> entry : columnSketches.entrySet()) {
-        System.out.println("  Column " + entry.getKey() + ": ~" + 
-            entry.getValue().getEstimate() + " distinct values");
+        LOGGER.debug("  Column {}: ~{} distinct values", entry.getKey(), entry.getValue().getEstimate());
       }
       
     } catch (Exception e) {
-      System.err.println("Failed to build HLL sketches: " + e.getMessage());
-      e.printStackTrace();
+      LOGGER.error("Failed to build HLL sketches", e);
     }
   }
   
@@ -172,7 +175,7 @@ public class HLLAcceleratedTable extends AbstractTable implements ScannableTable
       try {
         StatisticsCache.saveHLLSketch(entry.getValue(), sketchFile);
       } catch (Exception e) {
-        System.err.println("Failed to save HLL sketch: " + e.getMessage());
+        LOGGER.error("Failed to save HLL sketch: {}", sketchFile.getName(), e);
       }
     }
   }

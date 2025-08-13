@@ -20,9 +20,18 @@ public class FileSchemaFactory implements SchemaFactory {
 |-----------|------|-------------|
 | `directory` | String | Base directory path |
 | `recursive` | Boolean | Enable recursive scanning |
-| `executionEngine` | String | Execution engine selection |
-| `filePatterns` | String[] | File inclusion patterns |
-| `excludePatterns` | String[] | File exclusion patterns |
+| `executionEngine` | String | Execution engine selection (`linq4j`, `arrow`, `vectorized`, `parquet`, `duckdb`) |
+| `batchSize` | Integer | Batch size for columnar engines (default: 2048) |
+| `memoryThreshold` | Long | Memory threshold before spillover in bytes (default: 64MB) |
+| `directoryPattern` | String | Directory pattern for glob-based discovery |
+| `storageType` | String | Storage provider type (`local`, `s3`, `http`, `sharepoint`) |
+| `storageConfig` | Map | Storage provider-specific configuration |
+| `refreshInterval` | String | Table refresh interval for dynamic sources |
+| `tableNameCasing` | String | Table name casing transformation (`UPPER`, `LOWER`, `SMART_CASING`) |
+| `columnNameCasing` | String | Column name casing transformation (`UPPER`, `LOWER`, `SMART_CASING`) |
+| `primeCache` | Boolean | Whether to prime statistics cache on startup (default: true) |
+| `duckdbConfig` | Map | DuckDB-specific configuration options |
+| `csvTypeInference` | Map | CSV type inference configuration |
 
 **Example Usage:**
 
@@ -31,6 +40,15 @@ Map<String, Object> operand = new HashMap<>();
 operand.put("directory", "/path/to/data");
 operand.put("recursive", true);
 operand.put("executionEngine", "parquet");
+operand.put("tableNameCasing", "SMART_CASING");
+operand.put("columnNameCasing", "SMART_CASING");
+operand.put("primeCache", true);
+
+// DuckDB configuration example
+Map<String, Object> duckdbConfig = new HashMap<>();
+duckdbConfig.put("memory_limit", "8GB");
+duckdbConfig.put("threads", 16);
+operand.put("duckdbConfig", duckdbConfig);
 
 FileSchemaFactory factory = new FileSchemaFactory();
 Schema schema = factory.create(parentSchema, "FILES", operand);
