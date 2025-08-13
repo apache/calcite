@@ -125,8 +125,6 @@ for rows in $ROW_COUNTS; do
             RESULT=$(java -cp "$CLASSPATH" \
                 --add-modules=jdk.incubator.vector \
                 --enable-preview \
-                -XX:+UnlockExperimentalVMOptions \
-                -XX:+UseVectorApi \
                 org.apache.calcite.adapter.file.performance.SingleEngineRunner \
                 "$engine" "$rows" "$scenario" "$DATA_DIR" "$CACHE_DIR" 2>/dev/null)
 
@@ -174,8 +172,6 @@ MAIN_REPORT="$SCRIPT_DIR/engine_performance_report.md"
 java -cp "$CLASSPATH" \
     --add-modules=jdk.incubator.vector \
     --enable-preview \
-    -XX:+UnlockExperimentalVMOptions \
-    -XX:+UseVectorApi \
     org.apache.calcite.adapter.file.performance.PerformanceReportGenerator \
     "$RESULTS_FILE" "$TEMP_REPORT"
 
@@ -183,8 +179,6 @@ java -cp "$CLASSPATH" \
 java -cp "$CLASSPATH" \
     --add-modules=jdk.incubator.vector \
     --enable-preview \
-    -XX:+UnlockExperimentalVMOptions \
-    -XX:+UseVectorApi \
     org.apache.calcite.adapter.file.performance.PerformanceReportGenerator \
     "$RESULTS_FILE" "$MAIN_REPORT"
 

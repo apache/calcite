@@ -207,8 +207,7 @@ public class DuckDBEnumerator implements Enumerator<Object[]> {
    * @return enumerable that yields query results
    */
   public static Enumerable<Object[]> createEnumerable(String schemaName, String tableName, String sql) {
-    LOGGER.info("*** QUERY BEING EXECUTED BY DUCKDB *** Creating enumerable for DuckDB table scan: {}.{} with SQL: {}", schemaName, tableName, sql);
-    System.out.println("*** QUERY BEING EXECUTED BY DUCKDB *** " + schemaName + "." + tableName + " SQL: " + sql);
+    LOGGER.debug("Creating enumerable for DuckDB table scan: {}.{} with SQL: {}", schemaName, tableName, sql);
     return create(schemaName, sql, null);
   }
 }
