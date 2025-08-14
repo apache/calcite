@@ -2096,8 +2096,25 @@ public abstract class SqlImplementor {
         return true;
       }
       if (expectedClauses.contains(Clause.QUALIFY)
-          && (rel.getInput(0) instanceof Aggregate || isQualifyFieldsContainsNestedAggregation())) {
+          && (rel.getInput(0) instanceof Aggregate || isQualifyFieldsContainsNestedAggregation()
+          || isQualifyFilter(rel))) {
         return true;
+      }
+      return false;
+    }
+
+    public boolean isQualifyFilter(RelNode relNode) {
+      if (!(relNode instanceof LogicalFilter)) {
+        return false;
+      }
+      LogicalFilter filter = (LogicalFilter) relNode;
+      RexNode condition = filter.getCondition();
+      if (condition instanceof RexCall) {
+        for (RexNode operand : ((RexCall) condition).getOperands()) {
+          if (operand instanceof RexOver) {
+            return true;
+          }
+        }
       }
       return false;
     }
