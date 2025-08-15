@@ -168,6 +168,8 @@ Results in table with columns: `id`, `name`, `profile_age`, `profile_city`
 - Web crawling capabilities for linked files
 - CSS selector support
 - Multi-table extraction per page
+- Configurable data file discovery patterns
+- Flexible HTML table extraction options
 
 **Configuration Options:**
 ```json
@@ -179,8 +181,63 @@ Results in table with columns: `id`, `name`, `profile_age`, `profile_city`
     "crawlConfig": {
       "enabled": true,
       "maxDepth": 2,
-      "followExternalLinks": false
+      "followExternalLinks": false,
+      
+      // New pattern-based data file discovery
+      "dataFilePattern": ".*\\.(csv|xlsx?|parquet)$",  // Regex for data files
+      "dataFileExcludePattern": ".*test.*",             // Exclude pattern
+      
+      // HTML table extraction control
+      "generateTablesFromHtml": true,    // Enable/disable HTML table extraction
+      "htmlTableMinRows": 2,              // Minimum rows for HTML tables
+      "htmlTableMaxRows": 10000           // Maximum rows to extract
     }
+  }
+}
+```
+
+**Advanced HTML Crawler Configuration:**
+
+The HTML crawler now supports flexible configuration for controlling which resources generate tables:
+
+1. **Data File Pattern Configuration:**
+   - Use `dataFilePattern` to specify a regex pattern for data file links that should generate tables
+   - Use `dataFileExcludePattern` to exclude certain files from processing
+   - Leave `dataFilePattern` as `null` to disable data file link processing entirely
+
+2. **HTML Table Configuration:**
+   - Set `generateTablesFromHtml` to `false` to ignore HTML `<table>` elements
+   - Use `htmlTableMinRows` and `htmlTableMaxRows` to filter tables by row count
+   - Useful for ignoring layout tables or very large tables
+
+**Example Use Cases:**
+
+```json
+// Only process CSV files, ignore HTML tables
+{
+  "crawlConfig": {
+    "dataFilePattern": ".*\\.csv$",
+    "generateTablesFromHtml": false
+  }
+}
+
+// Only extract HTML tables, ignore all data file links
+{
+  "crawlConfig": {
+    "dataFilePattern": null,
+    "generateTablesFromHtml": true,
+    "htmlTableMinRows": 3,
+    "htmlTableMaxRows": 1000
+  }
+}
+
+// Process specific data files and HTML tables
+{
+  "crawlConfig": {
+    "dataFilePattern": ".*\\.(csv|parquet)$",
+    "dataFileExcludePattern": ".*(temp|backup).*",
+    "generateTablesFromHtml": true,
+    "htmlTableMinRows": 2
   }
 }
 ```

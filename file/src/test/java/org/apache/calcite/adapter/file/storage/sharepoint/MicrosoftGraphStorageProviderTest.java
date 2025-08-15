@@ -22,6 +22,7 @@ import org.apache.calcite.adapter.file.storage.StorageProvider;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Tag;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -37,6 +38,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * Test for Microsoft Graph API-based SharePoint storage provider.
  * Compares functionality with the existing SharePoint REST API implementation.
  */
+@Tag("integration")
 public class MicrosoftGraphStorageProviderTest {
 
   private static Properties config;

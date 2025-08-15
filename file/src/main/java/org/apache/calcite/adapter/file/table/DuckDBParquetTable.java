@@ -69,10 +69,24 @@ public class DuckDBParquetTable extends ParquetTranslatableTable {
   
   /**
    * Override toRel to create DuckDB-specific RelNode that pushes queries to DuckDB.
+   * BUT we ensure HLL rules are registered FIRST in the planner.
    */
   @Override 
   public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable relOptTable) {
-    LOGGER.debug("Creating DuckDB-specific RelNode for table: {}", getQualifiedTableName());
+    LOGGER.debug("Creating DuckDB RelNode for table: {}", getQualifiedTableName());
+    
+    // CRITICAL: Register HLL rules in THIS planner before creating DuckDB scan
+    // This ensures COUNT(DISTINCT) can be optimized before DuckDB pushdown
+    org.apache.calcite.plan.RelOptPlanner planner = context.getCluster().getPlanner();
+    
+    // Register HLL optimization rule if not already registered
+    if (!"false".equals(System.getProperty("calcite.file.statistics.hll.enabled"))) {
+      planner.addRule(org.apache.calcite.adapter.file.rules.SimpleHLLCountDistinctRule.INSTANCE);
+      planner.addRule(org.apache.calcite.adapter.enumerable.EnumerableRules.ENUMERABLE_VALUES_RULE);
+      LOGGER.info("Registered HLL rules in planner for DuckDB table: {}", tableName);
+    }
+    
+    // Now create DuckDB table scan - HLL rules will be applied during optimization
     return new DuckDBTableScan(context.getCluster(), relOptTable, this, schemaName, tableName);
   }
 }

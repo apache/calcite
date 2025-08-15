@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -47,6 +48,9 @@ public class HLLSketchCache {
   
   // LRU cache implementation using LinkedHashMap
   private final Map<String, CacheEntry> cache;
+  
+  // Case-insensitive lookup index (lowercase key -> actual key)
+  private final Map<String, String> caseInsensitiveIndex = new HashMap<>();
   
   // Track cache statistics
   private final CacheStats stats = new CacheStats();
@@ -92,12 +96,34 @@ public class HLLSketchCache {
   public HyperLogLogSketch getSketch(String schemaName, String tableName, String columnName) {
     String key = schemaName + "." + tableName + "." + columnName;
     
+    LOGGER.debug("Looking up HLL sketch: {}", key);
+    
     lock.readLock().lock();
     try {
+      // Try exact match first
       CacheEntry entry = cache.get(key);
       if (entry != null && !entry.isExpired()) {
         stats.recordHit();
+        LOGGER.debug("Found HLL sketch (exact match): {} with estimate {}", key, entry.sketch.getEstimate());
         return entry.sketch;
+      }
+      
+      // Try case-insensitive match
+      String lowercaseKey = key.toLowerCase();
+      String actualKey = caseInsensitiveIndex.get(lowercaseKey);
+      if (actualKey != null) {
+        entry = cache.get(actualKey);
+        if (entry != null && !entry.isExpired()) {
+          stats.recordHit();
+          LOGGER.debug("Found HLL sketch via case-insensitive lookup: {} -> {} with estimate {}", 
+                      key, actualKey, entry.sketch.getEstimate());
+          return entry.sketch;
+        }
+      }
+      
+      // Log what keys are in the cache for debugging
+      if (LOGGER.isDebugEnabled() && cache.size() < 20) {
+        LOGGER.debug("Cache miss for {}. Current cache keys: {}", key, cache.keySet());
       }
     } finally {
       lock.readLock().unlock();
@@ -105,6 +131,7 @@ public class HLLSketchCache {
     
     // Cache miss or expired - load from disk
     stats.recordMiss();
+    LOGGER.debug("Cache miss for HLL sketch: {}", key);
     return loadFromDisk(key, tableName, columnName);
   }
   
@@ -121,6 +148,19 @@ public class HLLSketchCache {
     lock.writeLock().lock();
     try {
       cache.put(key, new CacheEntry(sketch, System.currentTimeMillis()));
+      
+      // Add to case-insensitive index, but warn if there's a conflict
+      String lowercaseKey = key.toLowerCase();
+      String existingKey = caseInsensitiveIndex.get(lowercaseKey);
+      if (existingKey != null && !existingKey.equals(key)) {
+        LOGGER.warn("Case-sensitive naming conflict detected! Both '{}' and '{}' map to lowercase '{}'. " +
+                   "Case-insensitive lookups may return incorrect results.", 
+                   existingKey, key, lowercaseKey);
+      }
+      caseInsensitiveIndex.put(lowercaseKey, key);
+      
+      // Debug logging to track what's being stored
+      LOGGER.debug("Stored HLL sketch: {} (estimate: {})", key, sketch.getEstimate());
     } finally {
       lock.writeLock().unlock();
     }
@@ -138,6 +178,7 @@ public class HLLSketchCache {
     lock.writeLock().lock();
     try {
       cache.remove(key);
+      caseInsensitiveIndex.remove(key.toLowerCase());
     } finally {
       lock.writeLock().unlock();
     }
@@ -150,6 +191,7 @@ public class HLLSketchCache {
     lock.writeLock().lock();
     try {
       cache.clear();
+      caseInsensitiveIndex.clear();
       LOGGER.info("HLL sketch cache cleared");
     } finally {
       lock.writeLock().unlock();

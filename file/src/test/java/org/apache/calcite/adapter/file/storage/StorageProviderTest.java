@@ -21,8 +21,8 @@ import org.apache.calcite.adapter.file.storage.StorageProvider;
 import org.apache.calcite.adapter.file.storage.StorageProviderFactory;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-
+import org.junit.jupiter.api.Tag;import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.Tag;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -34,11 +34,11 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
-
+import org.junit.jupiter.api.Tag;
 /**
  * Test for storage provider implementations.
  */
-public class StorageProviderTest {
+@Tag("unit")public class StorageProviderTest {
 
   @TempDir
   File tempDir;
@@ -123,7 +123,7 @@ public class StorageProviderTest {
     config.put("accessToken", "dummy-token");
 
     StorageProvider sharepoint = StorageProviderFactory.createFromType("sharepoint", config);
-    assertEquals("microsoft-graph", sharepoint.getStorageType());
+    assertEquals("sharepoint-rest", sharepoint.getStorageType());
   }
 
   @Test void testPathResolution() {

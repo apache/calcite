@@ -20,6 +20,7 @@ import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -40,6 +41,7 @@ import java.util.Map;
 /**
  * Test materialized views with Parquet execution engine.
  */
+@Tag("unit")
 public class MaterializedViewParquetTest {
   @TempDir
   Path tempDir;

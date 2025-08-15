@@ -14,12 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.file;
+package org.apache.calcite.adapter.file.materialization;
+
+import org.apache.calcite.adapter.file.FileSchemaFactory;
 
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -41,6 +44,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * Test that materialized views work with Parquet execution engine.
  */
+@Tag("unit")
 public class MaterializedViewParquetQueryTest {
   @TempDir
   java.nio.file.Path tempDir;
@@ -88,7 +92,7 @@ public class MaterializedViewParquetQueryTest {
   @Test public void testQueryMaterializedViewsWithParquet() throws Exception {
     System.out.println("\n=== QUERYING MATERIALIZED VIEWS WITH PARQUET ENGINE TEST ===");
 
-    try (Connection connection = DriverManager.getConnection("jdbc:calcite:");
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:lex=ORACLE;unquotedCasing=TO_LOWER");
          CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
 
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
@@ -115,13 +119,13 @@ public class MaterializedViewParquetQueryTest {
 
       System.out.println("\n1. Creating schema with PARQUET engine and materialized view 'daily_summary'");
       SchemaPlus fileSchema =
-          rootSchema.add("PARQUET_MV_TEST", FileSchemaFactory.INSTANCE.create(rootSchema, "PARQUET_MV_TEST", operand));
+          rootSchema.add("parquet_mv_test", FileSchemaFactory.INSTANCE.create(rootSchema, "parquet_mv_test", operand));
 
       try (Statement stmt = connection.createStatement()) {
         // List all available tables
         System.out.println("\n2. Listing all tables in schema:");
         ResultSet tables =
-            connection.getMetaData().getTables(null, "PARQUET_MV_TEST", "%", null);
+            connection.getMetaData().getTables(null, "parquet_mv_test", "%", null);
 
         System.out.println("   Available tables:");
         boolean foundMV = false;
@@ -138,7 +142,7 @@ public class MaterializedViewParquetQueryTest {
 
           // Query the materialized view
           System.out.println("\n3. Querying the materialized view:");
-          ResultSet rs = stmt.executeQuery("SELECT * FROM PARQUET_MV_TEST.DAILY_SUMMARY ORDER BY \"date\"");
+          ResultSet rs = stmt.executeQuery("SELECT * FROM parquet_mv_test.daily_summary ORDER BY \"date\"");
 
           System.out.println("   Date       | Count | Quantity | Revenue");
           System.out.println("   -----------|-------|----------|--------");
@@ -168,7 +172,7 @@ public class MaterializedViewParquetQueryTest {
             "COUNT(*) as transaction_count, " +
             "SUM(\"quantity\") as total_quantity, " +
             "SUM(\"quantity\" * \"price\") as total_revenue " +
-            "FROM PARQUET_MV_TEST.sales " +
+            "FROM parquet_mv_test.sales " +
             "GROUP BY \"date\" " +
             "ORDER BY \"date\"");
 

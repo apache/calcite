@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
@@ -46,6 +47,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Tests Phase 1, 2, and 3 authentication methods without requiring
  * actual external services.
  */
+@Tag("integration")
 public class HttpStorageProviderAuthTest {
   
   private HttpServer server;

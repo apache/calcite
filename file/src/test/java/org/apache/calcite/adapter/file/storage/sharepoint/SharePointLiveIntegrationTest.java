@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.file;
 
 import org.apache.calcite.adapter.file.storage.MicrosoftGraphStorageProvider;
 import org.apache.calcite.adapter.file.storage.MicrosoftGraphTokenManager;
+import org.apache.calcite.adapter.file.storage.SharePointCertificateTokenManager;
 import org.apache.calcite.adapter.file.storage.SharePointLegacyTokenManager;
 import org.apache.calcite.adapter.file.storage.SharePointRestStorageProvider;
 import org.apache.calcite.adapter.file.storage.SharePointRestTokenManager;
@@ -693,10 +694,11 @@ public class SharePointLiveIntegrationTest {
 
   @Test void testSharePointRestApiDirectAccess() throws Exception {
     // Test direct SharePoint REST API access
-    // First check if we should use legacy auth
+    // First check if we should use legacy auth or certificate auth
     Properties localProps = loadLocalProperties();
     String legacyClientId = localProps.getProperty("SHAREPOINT_LEGACY_CLIENT_ID");
     String legacyClientSecret = localProps.getProperty("SHAREPOINT_LEGACY_CLIENT_SECRET");
+    String certPassword = localProps.getProperty("SHAREPOINT_CERT_PASSWORD");
     
     SharePointRestStorageProvider provider;
     if (legacyClientId != null && legacyClientSecret != null) {
@@ -704,8 +706,15 @@ public class SharePointLiveIntegrationTest {
       SharePointLegacyTokenManager legacyTokenManager = 
           new SharePointLegacyTokenManager(legacyClientId, legacyClientSecret, siteUrl);
       provider = new SharePointRestStorageProvider(legacyTokenManager);
+    } else if (certPassword != null) {
+      // Use certificate authentication for SharePoint REST API
+      System.out.println("Using certificate-based SharePoint REST authentication");
+      String certPath = "src/test/resources/SharePointAppOnlyCert.pfx";
+      SharePointCertificateTokenManager certTokenManager = 
+          new SharePointCertificateTokenManager(tenantId, clientId, certPath, certPassword, siteUrl);
+      provider = new SharePointRestStorageProvider(certTokenManager);
     } else {
-      System.out.println("Using modern SharePoint REST authentication (requires certificate)");
+      System.out.println("Using modern SharePoint REST authentication with client secret");
       SharePointRestTokenManager restTokenManager = 
           new SharePointRestTokenManager(tenantId, clientId, clientSecret, siteUrl);
       provider = new SharePointRestStorageProvider(restTokenManager);
@@ -741,9 +750,22 @@ public class SharePointLiveIntegrationTest {
 
   @Test void testSharePointRestApiFileDownload() throws Exception {
     // Test downloading and reading a file from SharePoint using REST API
-    SharePointRestTokenManager restTokenManager = 
-        new SharePointRestTokenManager(tenantId, clientId, clientSecret, siteUrl);
-    SharePointRestStorageProvider provider = new SharePointRestStorageProvider(restTokenManager);
+    Properties localProps = loadLocalProperties();
+    String certPassword = localProps.getProperty("SHAREPOINT_CERT_PASSWORD");
+    
+    SharePointRestStorageProvider provider;
+    if (certPassword != null) {
+      // Use certificate authentication
+      System.out.println("Using certificate-based SharePoint REST authentication for file download");
+      String certPath = "src/test/resources/SharePointAppOnlyCert.pfx";
+      SharePointCertificateTokenManager certTokenManager = 
+          new SharePointCertificateTokenManager(tenantId, clientId, certPath, certPassword, siteUrl);
+      provider = new SharePointRestStorageProvider(certTokenManager);
+    } else {
+      SharePointRestTokenManager restTokenManager = 
+          new SharePointRestTokenManager(tenantId, clientId, clientSecret, siteUrl);
+      provider = new SharePointRestStorageProvider(restTokenManager);
+    }
 
     // List documents to find any file
     List<StorageProvider.FileEntry> entries = provider.listFiles("/Shared Documents", false);
@@ -789,9 +811,23 @@ public class SharePointLiveIntegrationTest {
     
     // Create both providers
     MicrosoftGraphStorageProvider graphProvider = new MicrosoftGraphStorageProvider(tokenManager);
-    SharePointRestTokenManager restTokenManager = 
-        new SharePointRestTokenManager(tenantId, clientId, clientSecret, siteUrl);
-    SharePointRestStorageProvider restProvider = new SharePointRestStorageProvider(restTokenManager);
+    
+    // Use certificate authentication for REST API if available
+    Properties localProps = loadLocalProperties();
+    String certPassword = localProps.getProperty("SHAREPOINT_CERT_PASSWORD");
+    
+    SharePointRestStorageProvider restProvider;
+    if (certPassword != null) {
+      System.out.println("Using certificate-based authentication for REST API");
+      String certPath = "src/test/resources/SharePointAppOnlyCert.pfx";
+      SharePointCertificateTokenManager certTokenManager = 
+          new SharePointCertificateTokenManager(tenantId, clientId, certPath, certPassword, siteUrl);
+      restProvider = new SharePointRestStorageProvider(certTokenManager);
+    } else {
+      SharePointRestTokenManager restTokenManager = 
+          new SharePointRestTokenManager(tenantId, clientId, clientSecret, siteUrl);
+      restProvider = new SharePointRestStorageProvider(restTokenManager);
+    }
 
     // List files with both providers
     List<StorageProvider.FileEntry> graphEntries = graphProvider.listFiles("/Shared Documents", false);

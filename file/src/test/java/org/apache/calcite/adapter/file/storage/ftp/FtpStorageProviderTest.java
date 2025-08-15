@@ -133,7 +133,8 @@ public class FtpStorageProviderTest {
     }
 
     // Test file metadata
-    String fileUrl = testUrl + testFile.getName();
+    // Use the full path from the FileEntry
+    String fileUrl = testFile.getPath();
     StorageProvider.FileMetadata metadata;
     try {
       metadata = provider.getMetadata(fileUrl);

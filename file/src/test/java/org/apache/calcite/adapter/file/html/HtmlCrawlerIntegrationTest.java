@@ -20,9 +20,9 @@ import org.apache.calcite.adapter.file.converters.CrawlerConfiguration;
 import org.apache.calcite.adapter.file.converters.HtmlToJsonConverter;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Tag;import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Tag;import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.io.TempDir;
 import java.io.File;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -38,7 +38,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Integration tests for HTML crawler with HtmlToJsonConverter.
  * These tests demonstrate real-world usage scenarios.
  */
-@Tag("integration")public class HtmlCrawlerIntegrationTest {
+@Tag("integration")
+public class HtmlCrawlerIntegrationTest {
   
   @TempDir
   Path tempDir;
@@ -47,7 +48,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
    * Test complete workflow: crawl, discover tables, convert to JSON.
    */
   @Test
-  //@Disabled("Requires internet access - enable for manual testing")
+  @Disabled("Requires internet access - integration test")
   public void testCompleteWorkflow() throws Exception {
     File outputDir = tempDir.resolve("output").toFile();
     outputDir.mkdirs();
@@ -89,7 +90,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
    * Uses a site that has downloadable data files.
    */
   @Test
-  @Disabled("Requires internet access - enable for manual testing")
+  @Disabled("Requires internet access - integration test")
   public void testDataFileCrawling() throws Exception {
     File outputDir = tempDir.resolve("data_files").toFile();
     outputDir.mkdirs();
@@ -137,7 +138,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
    * Ensures crawler respects domain boundaries.
    */
   @Test
-  @Disabled("Requires internet access - enable for manual testing")
+  @Disabled("Requires internet access - integration test")
   public void testDomainRestrictedCrawling() throws Exception {
     File outputDir = tempDir.resolve("domain_restricted").toFile();
     outputDir.mkdirs();
@@ -171,7 +172,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
    * Crawls the same site twice to demonstrate cache effectiveness.
    */
   @Test
-  @Disabled("Requires internet access - enable for manual testing")
+  @Disabled("Requires internet access - integration test")
   public void testCachingPerformance() throws Exception {
     File outputDir = tempDir.resolve("cache_test").toFile();
     outputDir.mkdirs();
@@ -209,7 +210,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
    * Test safety limits (max pages, max depth, content size).
    */
   @Test
-  @Disabled("Requires internet access - enable for manual testing")
+  @Disabled("Requires internet access - integration test")
   public void testSafetyLimits() throws Exception {
     File outputDir = tempDir.resolve("safety_test").toFile();
     outputDir.mkdirs();

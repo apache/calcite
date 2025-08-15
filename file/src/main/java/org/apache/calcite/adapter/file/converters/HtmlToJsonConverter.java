@@ -76,11 +76,25 @@ public class HtmlToJsonConverter {
    * @throws IOException if conversion fails
    */
   public static List<File> convert(File htmlFile, File outputDir, String columnNameCasing) throws IOException {
+    return convert(htmlFile, outputDir, columnNameCasing, "SMART_CASING");
+  }
+
+  /**
+   * Converts all tables in an HTML file to separate JSON files with column and table name casing.
+   *
+   * @param htmlFile The HTML file to convert
+   * @param outputDir The directory to write JSON files to
+   * @param columnNameCasing The casing strategy for column names
+   * @param tableNameCasing The casing strategy for table names
+   * @return List of generated JSON files
+   * @throws IOException if conversion fails
+   */
+  public static List<File> convert(File htmlFile, File outputDir, String columnNameCasing, String tableNameCasing) throws IOException {
     List<File> jsonFiles = new ArrayList<>();
 
     // Use HtmlTableScanner to find tables
     Source source = Sources.of(htmlFile);
-    List<HtmlTableScanner.TableInfo> tableInfos = HtmlTableScanner.scanTables(source);
+    List<HtmlTableScanner.TableInfo> tableInfos = HtmlTableScanner.scanTables(source, tableNameCasing);
 
     LOGGER.info("Found " + tableInfos.size() + " tables in " + htmlFile.getName());
 
@@ -247,7 +261,7 @@ public class HtmlToJsonConverter {
    */
   public static Map<String, List<File>> convertWithCrawling(String startUrl, File outputDir, 
                                                             CrawlerConfiguration config) throws IOException {
-    return convertWithCrawling(startUrl, outputDir, config, "UNCHANGED");
+    return convertWithCrawling(startUrl, outputDir, config, "UNCHANGED", "SMART_CASING");
   }
   
   /**
@@ -263,6 +277,24 @@ public class HtmlToJsonConverter {
   public static Map<String, List<File>> convertWithCrawling(String startUrl, File outputDir,
                                                             CrawlerConfiguration config,
                                                             String columnNameCasing) throws IOException {
+    return convertWithCrawling(startUrl, outputDir, config, columnNameCasing, "SMART_CASING");
+  }
+
+  /**
+   * Converts HTML tables to JSON with crawling support and column/table name casing.
+   *
+   * @param startUrl The starting URL to crawl from
+   * @param outputDir The directory to write JSON files to
+   * @param config The crawler configuration
+   * @param columnNameCasing The casing strategy for column names
+   * @param tableNameCasing The casing strategy for table names
+   * @return Map of generated JSON files (URL -> List of files)
+   * @throws IOException if conversion fails
+   */
+  public static Map<String, List<File>> convertWithCrawling(String startUrl, File outputDir,
+                                                            CrawlerConfiguration config,
+                                                            String columnNameCasing,
+                                                            String tableNameCasing) throws IOException {
     Map<String, List<File>> allJsonFiles = new HashMap<>();
     
     // Ensure output directory exists
@@ -283,7 +315,7 @@ public class HtmlToJsonConverter {
         String url = entry.getKey();
         List<TableInfo> tables = entry.getValue();
         
-        List<File> jsonFiles = processHtmlTables(url, tables, outputDir, columnNameCasing);
+        List<File> jsonFiles = processHtmlTables(url, tables, outputDir, columnNameCasing, tableNameCasing);
         if (!jsonFiles.isEmpty()) {
           allJsonFiles.put(url, jsonFiles);
         }
@@ -294,7 +326,7 @@ public class HtmlToJsonConverter {
         String url = entry.getKey();
         File dataFile = entry.getValue();
         
-        List<File> jsonFiles = processDataFile(url, dataFile, outputDir, columnNameCasing);
+        List<File> jsonFiles = processDataFile(url, dataFile, outputDir, columnNameCasing, tableNameCasing);
         if (!jsonFiles.isEmpty()) {
           allJsonFiles.put(url, jsonFiles);
         }
@@ -313,7 +345,7 @@ public class HtmlToJsonConverter {
    * Processes HTML tables from a crawled page.
    */
   private static List<File> processHtmlTables(String url, List<TableInfo> tables, 
-                                             File outputDir, String columnNameCasing) throws IOException {
+                                             File outputDir, String columnNameCasing, String tableNameCasing) throws IOException {
     List<File> jsonFiles = new ArrayList<>();
     
     // Create a safe filename from URL
@@ -353,7 +385,7 @@ public class HtmlToJsonConverter {
    * Processes a downloaded data file (CSV, Excel, etc.).
    */
   private static List<File> processDataFile(String url, File dataFile, 
-                                           File outputDir, String columnNameCasing) throws IOException {
+                                           File outputDir, String columnNameCasing, String tableNameCasing) throws IOException {
     List<File> jsonFiles = new ArrayList<>();
     String fileName = dataFile.getName().toLowerCase();
     

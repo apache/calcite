@@ -31,6 +31,7 @@ import org.apache.calcite.util.trace.CalciteLogger;
 import org.apache.calcite.adapter.file.cache.SourceFileLockManager;
 import org.apache.calcite.adapter.file.FileSchemaFactory;
 import org.apache.calcite.adapter.file.temporal.UtcTimestamp;
+import org.apache.calcite.adapter.file.temporal.LocalTimestamp;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.opencsv.CSVParserBuilder;
@@ -111,11 +112,11 @@ public class CsvEnumerator<E> implements Enumerator<E> {
       return sdf;
     });
 
-    // For TIMESTAMP, use local timezone for timezone-naive timestamps to match Timestamp.valueOf() behavior
+    // For TIMESTAMP WITHOUT TIME ZONE, parse as UTC to get consistent wall-clock time
     TIME_FORMAT_TIMESTAMP = ThreadLocal.withInitial(() -> {
       SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-      // Always get the current default timezone when creating the formatter
-      sdf.setTimeZone(TimeZone.getDefault());
+      // Parse as UTC for consistent behavior across timezones
+      sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
       return sdf;
     });
 
@@ -585,21 +586,23 @@ public class CsvEnumerator<E> implements Enumerator<E> {
           for (String format : localFormats) {
             try {
               SimpleDateFormat sdf = new SimpleDateFormat(format);
-              sdf.setTimeZone(TimeZone.getDefault()); // Parse as local time
+              // Parse as UTC to get consistent milliseconds for wall-clock time
+              // TIMESTAMP WITHOUT TIME ZONE should represent the same wall-clock time everywhere
+              sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
               sdf.setLenient(false); // Strict parsing
               Date date = sdf.parse(string);
-              // Return as Long for timezone-naive timestamp
-              // This represents the local time, not UTC
-              return date.getTime();
+              // Return Long for compatibility with generated code
+              return Long.valueOf(date.getTime());
             } catch (ParseException ignored) {
               // Try next format
             }
           }
 
-          // Last resort: try the standard format
-          SimpleDateFormat sdf = TIME_FORMAT_TIMESTAMP.get();
+          // Last resort: try the standard format (also use UTC)
+          SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+          sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
           Date date = sdf.parse(string);
-          return date.getTime();
+          return Long.valueOf(date.getTime());
         } catch (ParseException e) {
           return null;
         } catch (IllegalArgumentException e) {

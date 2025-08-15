@@ -100,7 +100,7 @@ public class LocalFileStorageProvider implements StorageProvider {
         throw new IOException("Invalid file URI: " + path, e);
       }
     }
-    
+
     File file = new File(path);
     if (!file.exists()) {
       throw new IOException("File does not exist: " + path);
@@ -122,7 +122,7 @@ public class LocalFileStorageProvider implements StorageProvider {
         throw new IOException("Invalid file URI: " + path, e);
       }
     }
-    
+
     File file = new File(path);
     if (!file.exists()) {
       throw new IOException("File does not exist: " + path);

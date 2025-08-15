@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.adapter.file.storage;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -37,25 +41,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 /**
  * Storage provider implementation for HTTP/HTTPS access.
  * Supports both GET and POST requests with configurable headers and body.
  */
 public class HttpStorageProvider implements StorageProvider {
-  
+
   private final String method;
   private final @Nullable String requestBody;
   private final Map<String, String> headers;
   private final @Nullable String mimeTypeOverride;
   private final @Nullable HttpConfig config;
-  
+
   // Cache for HTTP responses (Phase 2 enhancement)
   private final Map<String, CachedResponse> cache = new ConcurrentHashMap<>();
-  
+
   /**
    * Cached HTTP response with ETag support.
    */
@@ -64,19 +64,19 @@ public class HttpStorageProvider implements StorageProvider {
     final String etag;
     final long lastModified;
     final long cachedAt;
-    
+
     CachedResponse(byte[] data, String etag, long lastModified) {
       this.data = data;
       this.etag = etag;
       this.lastModified = lastModified;
       this.cachedAt = System.currentTimeMillis();
     }
-    
+
     boolean isExpired(long ttl) {
       return System.currentTimeMillis() - cachedAt > ttl;
     }
   }
-  
+
   /**
    * Request/response for proxy pattern (Phase 3).
    */
@@ -86,20 +86,20 @@ public class HttpStorageProvider implements StorageProvider {
     public Map<String, String> headers;
     public String body;
   }
-  
+
   public static class ProxyResponse {
     public int status;
     public Map<String, String> headers;
     public String body;
   }
-  
+
   /**
    * Creates an HTTP storage provider with default GET method.
    */
   public HttpStorageProvider() {
     this("GET", null, new HashMap<>(), null);
   }
-  
+
   /**
    * Creates an HTTP storage provider with specified configuration.
    *
@@ -115,7 +115,7 @@ public class HttpStorageProvider implements StorageProvider {
       @Nullable String mimeTypeOverride) {
     this(method, requestBody, headers, mimeTypeOverride, null);
   }
-  
+
   /**
    * Creates an HTTP storage provider with auth configuration.
    *
@@ -150,18 +150,18 @@ public class HttpStorageProvider implements StorageProvider {
       HttpURLConnection conn = createConnection(path);
       try {
         executeRequest(conn);
-        
+
         long contentLength = conn.getContentLengthLong();
         long lastModified = conn.getLastModified();
         String contentType = getEffectiveContentType(conn);
         String etag = conn.getHeaderField("ETag");
-        
+
         return new FileMetadata(path, contentLength, lastModified, contentType, etag);
       } finally {
         conn.disconnect();
       }
     }
-    
+
     // For GET requests, use HEAD method for metadata
     URL url;
     try {
@@ -197,7 +197,7 @@ public class HttpStorageProvider implements StorageProvider {
     if (config != null && config.getProxyEndpoint() != null) {
       return callViaProxy(path);
     }
-    
+
     // Check cache if enabled
     if (config != null && config.isCacheEnabled()) {
       CachedResponse cached = cache.get(path);
@@ -210,14 +210,14 @@ public class HttpStorageProvider implements StorageProvider {
         if (cached.lastModified > 0) {
           conn.setIfModifiedSince(cached.lastModified);
         }
-        
+
         executeRequest(conn);
-        
+
         if (conn.getResponseCode() == HttpURLConnection.HTTP_NOT_MODIFIED) {
           conn.disconnect();
           return new ByteArrayInputStream(cached.data);
         }
-        
+
         // Cache miss, read and cache new data
         byte[] data = readAllBytes(conn.getInputStream());
         String etag = conn.getHeaderField("ETag");
@@ -227,11 +227,11 @@ public class HttpStorageProvider implements StorageProvider {
         return new ByteArrayInputStream(data);
       }
     }
-    
+
     // Normal request
     HttpURLConnection conn = createConnection(path);
     executeRequest(conn);
-    
+
     // Cache if enabled
     if (config != null && config.isCacheEnabled()) {
       byte[] data = readAllBytes(conn.getInputStream());
@@ -241,7 +241,7 @@ public class HttpStorageProvider implements StorageProvider {
       conn.disconnect();
       return new ByteArrayInputStream(data);
     }
-    
+
     return conn.getInputStream();
   }
 
@@ -261,7 +261,7 @@ public class HttpStorageProvider implements StorageProvider {
           conn.disconnect();
         }
       }
-      
+
       // For GET, use HEAD method
       URL url = new URI(path).toURL();
       HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -304,7 +304,7 @@ public class HttpStorageProvider implements StorageProvider {
       }
     }
   }
-  
+
   /**
    * Creates and configures an HTTP connection.
    *
@@ -319,15 +319,15 @@ public class HttpStorageProvider implements StorageProvider {
     } catch (URISyntaxException e) {
       throw new IOException("Invalid URL: " + path, e);
     }
-    
+
     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
     conn.setRequestMethod(method);
     conn.setConnectTimeout(30000);
     conn.setReadTimeout(30000);
-    
+
     // Apply custom headers
     applyHeaders(conn);
-    
+
     // Set up for POST body if needed
     if (requestBody != null && ("POST".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method))) {
       conn.setDoOutput(true);
@@ -335,10 +335,10 @@ public class HttpStorageProvider implements StorageProvider {
         conn.setRequestProperty("Content-Type", "application/json");
       }
     }
-    
+
     return conn;
   }
-  
+
   /**
    * Applies custom headers to the connection.
    *
@@ -349,7 +349,7 @@ public class HttpStorageProvider implements StorageProvider {
     for (Map.Entry<String, String> header : headers.entrySet()) {
       conn.setRequestProperty(header.getKey(), header.getValue());
     }
-    
+
     // Apply auth headers if configured
     if (config != null) {
       try {
@@ -360,7 +360,7 @@ public class HttpStorageProvider implements StorageProvider {
       }
     }
   }
-  
+
   /**
    * Applies authentication based on configuration.
    * Implements Phase 1 and Phase 2 auth methods.
@@ -372,28 +372,28 @@ public class HttpStorageProvider implements StorageProvider {
     if (config == null) {
       return;
     }
-    
+
     // Phase 1: Simple static auth
     if (config.getBearerToken() != null) {
       conn.setRequestProperty("Authorization", "Bearer " + config.getBearerToken());
       return;
     }
-    
+
     if (config.getApiKey() != null) {
       conn.setRequestProperty("X-API-Key", config.getApiKey());
       return;
     }
-    
+
     if (config.getUsername() != null && config.getPassword() != null) {
-      String encoded = Base64.getEncoder().encodeToString(
-          (config.getUsername() + ":" + config.getPassword()).getBytes(StandardCharsets.UTF_8));
+      String encoded =
+          Base64.getEncoder().encodeToString((config.getUsername() + ":" + config.getPassword()).getBytes(StandardCharsets.UTF_8));
       conn.setRequestProperty("Authorization", "Basic " + encoded);
       return;
     }
-    
+
     // Phase 2: External token sources
     String token = null;
-    
+
     if (config.getTokenEnv() != null) {
       token = getEnvironmentVariable(config.getTokenEnv());
     } else if (config.getTokenFile() != null) {
@@ -418,7 +418,7 @@ public class HttpStorageProvider implements StorageProvider {
     } else if (config.getTokenEndpoint() != null) {
       token = fetchTokenFromEndpoint(config.getTokenEndpoint());
     }
-    
+
     // Apply token with template headers
     if (token != null) {
       if (config.getAuthHeaders() != null) {
@@ -433,7 +433,7 @@ public class HttpStorageProvider implements StorageProvider {
       }
     }
   }
-  
+
   /**
    * Executes the HTTP request, including sending body for POST/PUT.
    *
@@ -448,17 +448,17 @@ public class HttpStorageProvider implements StorageProvider {
         os.write(input, 0, input.length);
       }
     }
-    
+
     // Check response code (304 is valid for cached responses)
     int responseCode = conn.getResponseCode();
-    if (responseCode != HttpURLConnection.HTTP_OK && 
+    if (responseCode != HttpURLConnection.HTTP_OK &&
         responseCode != HttpURLConnection.HTTP_CREATED &&
         responseCode != HttpURLConnection.HTTP_NOT_MODIFIED) {
       conn.disconnect();
       throw new IOException("HTTP error code: " + responseCode + " for URL: " + conn.getURL());
     }
   }
-  
+
   /**
    * Fetches a token from an HTTP endpoint.
    *
@@ -477,7 +477,7 @@ public class HttpStorageProvider implements StorageProvider {
     conn.setRequestMethod("GET");
     conn.setConnectTimeout(5000);
     conn.setReadTimeout(5000);
-    
+
     try {
       int responseCode = conn.getResponseCode();
       if (responseCode == HttpURLConnection.HTTP_OK) {
@@ -488,10 +488,10 @@ public class HttpStorageProvider implements StorageProvider {
     } finally {
       conn.disconnect();
     }
-    
+
     return null;
   }
-  
+
   /**
    * Calls via proxy for complex auth (Phase 3).
    *
@@ -505,10 +505,10 @@ public class HttpStorageProvider implements StorageProvider {
     request.method = this.method;
     request.headers = new HashMap<>(this.headers);
     request.body = this.requestBody;
-    
+
     ObjectMapper mapper = new ObjectMapper();
     String jsonRequest = mapper.writeValueAsString(request);
-    
+
     URL proxyUrl;
     try {
       proxyUrl = new URI(config.getProxyEndpoint()).toURL();
@@ -521,35 +521,35 @@ public class HttpStorageProvider implements StorageProvider {
     conn.setDoOutput(true);
     conn.setConnectTimeout(30000);
     conn.setReadTimeout(30000);
-    
+
     // Send request to proxy
     try (OutputStream os = conn.getOutputStream()) {
       os.write(jsonRequest.getBytes(StandardCharsets.UTF_8));
     }
-    
+
     // Get response from proxy
     int responseCode = conn.getResponseCode();
     if (responseCode != HttpURLConnection.HTTP_OK) {
       conn.disconnect();
       throw new IOException("Proxy error: " + responseCode);
     }
-    
+
     // Parse proxy response
     ProxyResponse response;
     try (InputStream is = conn.getInputStream()) {
       response = mapper.readValue(is, ProxyResponse.class);
     }
     conn.disconnect();
-    
+
     // Check proxied response status
     if (response.status != 200 && response.status != 201) {
       throw new IOException("Proxied request failed: " + response.status);
     }
-    
+
     // Return the proxied data
     return new ByteArrayInputStream(response.body.getBytes(StandardCharsets.UTF_8));
   }
-  
+
   /**
    * Reads all bytes from an input stream.
    *
@@ -566,7 +566,7 @@ public class HttpStorageProvider implements StorageProvider {
     }
     return buffer.toByteArray();
   }
-  
+
   /**
    * Gets the effective content type, considering override.
    *
@@ -579,7 +579,7 @@ public class HttpStorageProvider implements StorageProvider {
     }
     return conn.getContentType();
   }
-  
+
   /**
    * Gets an environment variable value.
    * Protected to allow overriding in tests.

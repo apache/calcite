@@ -230,7 +230,7 @@ public class PptxTableTest {
     // Verify content (column names should be lowercase now)
     String jsonContent = Files.readString(jsonFile.toPath());
     assertTrue(jsonContent.contains("\"region\""));
-    assertTrue(jsonContent.contains("SALES"));
+    assertTrue(jsonContent.contains("\"sales\""));
     assertTrue(jsonContent.contains("\"growth\""));
     assertTrue(jsonContent.contains("North"));
     assertTrue(jsonContent.contains("120000"));

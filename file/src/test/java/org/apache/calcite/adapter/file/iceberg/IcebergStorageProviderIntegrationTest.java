@@ -34,10 +34,10 @@ import org.apache.iceberg.hadoop.HadoopCatalog;
 import org.apache.iceberg.types.Types;
 
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-
+import org.junit.jupiter.api.Tag;import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Tag;import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.Tag;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -49,12 +49,12 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
-
+import org.junit.jupiter.api.Tag;
 /**
  * Integration test for IcebergStorageProvider demonstrating the documented patterns.
  * This test creates a local Iceberg warehouse and verifies StorageProvider integration.
  */
-public class IcebergStorageProviderIntegrationTest {
+@Tag("integration")public class IcebergStorageProviderIntegrationTest {
   
   @TempDir
   Path tempDir;

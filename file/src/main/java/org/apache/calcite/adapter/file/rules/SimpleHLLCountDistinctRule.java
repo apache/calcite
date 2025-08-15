@@ -39,6 +39,9 @@ import org.apache.calcite.sql.type.SqlTypeName;
 
 import org.immutables.value.Value;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -51,6 +54,7 @@ import java.util.List;
  */
 @Value.Enclosing
 public class SimpleHLLCountDistinctRule extends RelRule<SimpleHLLCountDistinctRule.Config> {
+  private static final Logger LOGGER = LoggerFactory.getLogger(SimpleHLLCountDistinctRule.class);
 
   public static final SimpleHLLCountDistinctRule INSTANCE = 
       (SimpleHLLCountDistinctRule) Config.DEFAULT.toRule();
@@ -101,7 +105,10 @@ public class SimpleHLLCountDistinctRule extends RelRule<SimpleHLLCountDistinctRu
     // Create VALUES node with HLL estimates
     RelNode valuesNode = createHLLValues(aggregate, hllEstimates);
     if (valuesNode != null) {
+      LOGGER.debug("[HLL SUCCESS]: Successfully replaced COUNT(DISTINCT) with HLL sketch estimate");
       call.transformTo(valuesNode, com.google.common.collect.ImmutableMap.of());
+    } else {
+      LOGGER.debug("[HLL FAILED]: Could not create HLL values node");
     }
   }
   
@@ -119,6 +126,7 @@ public class SimpleHLLCountDistinctRule extends RelRule<SimpleHLLCountDistinctRu
     
     // For testing: ALWAYS optimize COUNT(DISTINCT) with HLL
     // This should make COUNT(DISTINCT) instantaneous
+    LOGGER.debug("[HLL OPTIMIZATION]: Attempting to optimize COUNT(DISTINCT) with HLL sketch");
     return true;
   }
   

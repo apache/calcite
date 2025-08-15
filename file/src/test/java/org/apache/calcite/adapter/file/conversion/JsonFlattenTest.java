@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.file;
 
 import org.apache.calcite.adapter.file.format.json.JsonFlattener;
+
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 

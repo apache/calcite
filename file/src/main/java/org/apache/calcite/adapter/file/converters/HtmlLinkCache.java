@@ -31,6 +31,7 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.Optional;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -64,10 +65,34 @@ public class HtmlLinkCache {
     private final @Nullable String lastModified;
     
     public ExtractedLinks(String url, String htmlContent, CrawlerConfiguration config) throws IOException {
+      if (htmlContent == null || htmlContent.isEmpty()) {
+        // Handle empty or null content
+        this.dataFileLinks = new java.util.HashSet<>();
+        this.htmlLinks = new java.util.HashSet<>();
+        this.tables = new java.util.ArrayList<>();
+        this.contentHash = "";
+        this.extractedAt = Instant.now();
+        this.etag = null;
+        this.lastModified = null;
+        return;
+      }
+      
       Document doc = Jsoup.parse(htmlContent, url);
       this.dataFileLinks = extractDataLinks(doc, url, config);
       this.htmlLinks = extractHtmlLinks(doc, url, config);
-      this.tables = HtmlTableScanner.scanTables(new StringSource(htmlContent, url));
+      
+      // Only extract HTML tables if configured to do so
+      if (config.isGenerateTablesFromHtml()) {
+        List<TableInfo> allTables = HtmlTableScanner.scanTables(new StringSource(htmlContent, url));
+        // Filter tables based on row count constraints
+        this.tables = allTables.stream()
+            .filter(table -> table.rowCount >= config.getHtmlTableMinRows())
+            .filter(table -> table.rowCount <= config.getHtmlTableMaxRows())
+            .collect(java.util.stream.Collectors.toList());
+      } else {
+        this.tables = new java.util.ArrayList<>();
+      }
+      
       this.contentHash = computeHash(htmlContent);
       this.extractedAt = Instant.now();
       this.etag = null;
@@ -131,14 +156,26 @@ public class HtmlLinkCache {
         return false;
       }
       
-      // Check against link pattern if configured
+      // Check exclude pattern first
+      if (config.getDataFileExcludePattern() != null) {
+        if (config.getDataFileExcludePattern().matcher(url).matches()) {
+          return false;
+        }
+      }
+      
+      // Check include pattern if configured
+      if (config.getDataFilePattern() != null) {
+        return config.getDataFilePattern().matcher(url).matches();
+      }
+      
+      // Fall back to link pattern if configured
       if (config.getLinkPattern() != null) {
         if (!config.getLinkPattern().matcher(url).matches()) {
           return false;
         }
       }
       
-      // Check file extension
+      // Fall back to file extension check if no pattern is configured
       String lowerUrl = url.toLowerCase();
       for (String ext : config.getAllowedFileExtensions()) {
         if (lowerUrl.endsWith("." + ext)) {
@@ -306,6 +343,10 @@ public class HtmlLinkCache {
     // Need to fetch and extract
     LOGGER.info("Fetching and extracting links from " + url);
     String html = downloadHtml(url);
+    if (html == null) {
+      // Return empty links if content couldn't be downloaded
+      return new ExtractedLinks(url, "", config);
+    }
     ExtractedLinks links = new ExtractedLinks(url, html, config);
     
     // Try to add HTTP metadata for future validation
@@ -335,24 +376,38 @@ public class HtmlLinkCache {
   }
   
   private HttpMetadata fetchHttpMetadata(String url) throws IOException {
-    HttpURLConnection conn;
     try {
-      conn = (HttpURLConnection) new URI(url).toURL().openConnection();
+      URLConnection connection = new URI(url).toURL().openConnection();
+      
+      // Only apply HTTP-specific settings if it's an HTTP(S) connection
+      if (connection instanceof HttpURLConnection) {
+        HttpURLConnection conn = (HttpURLConnection) connection;
+        conn.setRequestMethod("HEAD");
+        conn.setConnectTimeout(5000);
+        conn.setReadTimeout(5000);
+        conn.connect();
+        
+        String etag = conn.getHeaderField("ETag");
+        String lastModified = conn.getHeaderField("Last-Modified");
+        long contentLength = conn.getContentLengthLong();
+        
+        conn.disconnect();
+        
+        return new HttpMetadata(etag, lastModified, contentLength);
+      } else {
+        // For file:// URLs and other protocols, just get basic metadata
+        connection.setConnectTimeout(5000);
+        connection.setReadTimeout(5000);
+        connection.connect();
+        
+        long contentLength = connection.getContentLengthLong();
+        String lastModified = connection.getHeaderField("Last-Modified");
+        
+        return new HttpMetadata(null, lastModified, contentLength);
+      }
     } catch (URISyntaxException e) {
       throw new IOException("Invalid URL: " + url, e);
     }
-    conn.setRequestMethod("HEAD");
-    conn.setConnectTimeout(5000);
-    conn.setReadTimeout(5000);
-    conn.connect();
-    
-    String etag = conn.getHeaderField("ETag");
-    String lastModified = conn.getHeaderField("Last-Modified");
-    long contentLength = conn.getContentLengthLong();
-    
-    conn.disconnect();
-    
-    return new HttpMetadata(etag, lastModified, contentLength);
   }
   
   private String downloadHtml(String url) throws IOException {
@@ -364,20 +419,22 @@ public class HtmlLinkCache {
       }
     }
     
-    HttpURLConnection conn;
     try {
-      conn = (HttpURLConnection) new URI(url).toURL().openConnection();
+      URLConnection connection = new URI(url).toURL().openConnection();
+      connection.setConnectTimeout(10000);
+      connection.setReadTimeout(10000);
+      
+      try (InputStream is = new SizeLimitedInputStream(connection.getInputStream(), config.getMaxHtmlSize())) {
+        byte[] bytes = is.readAllBytes();
+        return new String(bytes, StandardCharsets.UTF_8);
+      } finally {
+        // Only disconnect if it's an HTTP connection
+        if (connection instanceof HttpURLConnection) {
+          ((HttpURLConnection) connection).disconnect();
+        }
+      }
     } catch (URISyntaxException e) {
       throw new IOException("Invalid URL: " + url, e);
-    }
-    conn.setConnectTimeout(10000);
-    conn.setReadTimeout(10000);
-    
-    try (InputStream is = new SizeLimitedInputStream(conn.getInputStream(), config.getMaxHtmlSize())) {
-      byte[] bytes = is.readAllBytes();
-      return new String(bytes, StandardCharsets.UTF_8);
-    } finally {
-      conn.disconnect();
     }
   }
   

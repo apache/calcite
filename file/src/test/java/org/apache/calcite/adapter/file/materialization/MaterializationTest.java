@@ -18,8 +18,11 @@ package org.apache.calcite.adapter.file;
 
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.util.Sources;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -36,6 +39,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -44,13 +48,28 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Test demonstrating materialized view functionality using the materializations operand.
  */
+@Tag("unit")
 public class MaterializationTest {
   @TempDir
   Path tempDir;
 
   @BeforeEach
   public void setUp() throws Exception {
+    // Clear any static caches that might interfere with test isolation
+    Sources.clearFileCache();
+    // Force garbage collection to release any file handles
+    System.gc();
+    // Wait a bit to ensure cleanup
+    Thread.sleep(100);
     createTestData();
+  }
+  
+  @AfterEach
+  public void tearDown() throws Exception {
+    // Clear caches after each test to prevent contamination
+    Sources.clearFileCache();
+    System.gc();
+    Thread.sleep(100);
   }
 
   private void createTestData() throws Exception {
@@ -79,7 +98,13 @@ public class MaterializationTest {
   @Test public void testMaterializationsOperand() throws Exception {
     System.out.println("\n=== FILE ADAPTER MATERIALIZATIONS TEST ===");
 
-    try (Connection connection = DriverManager.getConnection("jdbc:calcite:");
+    Properties info = new Properties();
+    info.setProperty("lex", "ORACLE");
+    info.setProperty("unquotedCasing", "TO_LOWER");
+    info.setProperty("quotedCasing", "UNCHANGED");
+    info.setProperty("caseSensitive", "false");
+
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
          CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
 
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
@@ -89,7 +114,7 @@ public class MaterializationTest {
 
       // Daily sales summary materialization
       Map<String, Object> dailySalesMV = new HashMap<>();
-      dailySalesMV.put("view", "DAILY_SALES_SUMMARY");
+      dailySalesMV.put("view", "daily_sales_summary");
       dailySalesMV.put("table", "daily_sales_mv");
       dailySalesMV.put("sql", "SELECT \"date\", " +
           "COUNT(*) as transaction_count, " +
@@ -129,7 +154,7 @@ public class MaterializationTest {
         // Test 1: Query base table
         System.out.println("\n2. Querying base sales table:");
         ResultSet rs1 =
-            statement.executeQuery("SELECT COUNT(*) as cnt FROM MV_SCHEMA.\"SALES\"");
+            statement.executeQuery("SELECT COUNT(*) as cnt FROM \"MV_SCHEMA\".sales");
         assertTrue(rs1.next());
         int salesCount = rs1.getInt("cnt");
         assertEquals(6, salesCount);
@@ -157,7 +182,7 @@ public class MaterializationTest {
             "COUNT(*) as transaction_count, " +
             "SUM(\"quantity\") as total_quantity, " +
             "SUM(\"quantity\" * \"price\") as total_revenue " +
-            "FROM MV_SCHEMA.sales " +
+            "FROM \"MV_SCHEMA\".sales " +
             "GROUP BY \"date\" " +
             "ORDER BY \"date\"");
 
@@ -181,7 +206,7 @@ public class MaterializationTest {
             statement.executeQuery("SELECT \"product\", " +
             "SUM(\"quantity\") as total_quantity, " +
             "SUM(\"quantity\" * \"price\") as total_revenue " +
-            "FROM MV_SCHEMA.sales " +
+            "FROM \"MV_SCHEMA\".sales " +
             "GROUP BY \"product\" " +
             "ORDER BY total_revenue DESC");
 
@@ -210,7 +235,13 @@ public class MaterializationTest {
   @Test public void testParquetEngineForMaterializations() throws Exception {
     System.out.println("\n=== PARQUET ENGINE MATERIALIZATION TEST ===");
 
-    try (Connection connection = DriverManager.getConnection("jdbc:calcite:");
+    Properties info = new Properties();
+    info.setProperty("lex", "ORACLE");
+    info.setProperty("unquotedCasing", "TO_LOWER");
+    info.setProperty("quotedCasing", "UNCHANGED");
+    info.setProperty("caseSensitive", "false");
+
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
          CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
 
       SchemaPlus rootSchema = calciteConnection.getRootSchema();

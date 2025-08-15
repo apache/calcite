@@ -19,6 +19,9 @@ package org.apache.calcite.adapter.file.storage;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -36,9 +39,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  * Storage provider implementation for SharePoint using Microsoft Graph API.
  * Provides better compatibility and access to modern SharePoint features.
@@ -47,19 +47,19 @@ public class MicrosoftGraphStorageProvider implements StorageProvider {
 
   private static final String GRAPH_API_BASE = "https://graph.microsoft.com/v1.0";
   private static final Logger LOGGER = LoggerFactory.getLogger(MicrosoftGraphStorageProvider.class);
-  
+
   // Common document library names in different languages
-  private static final Set<String> DOCUMENT_LIBRARY_NAMES = new HashSet<>(Arrays.asList(
-      "Shared Documents",
+  private static final Set<String> DOCUMENT_LIBRARY_NAMES =
+      new HashSet<>(
+          Arrays.asList("Shared Documents",
       "Documents",
       "Documents Partagés",  // French
-      "Documentos compartidos",  // Spanish  
+      "Documentos compartidos",  // Spanish
       "Gemeinsame Dokumente",  // German
       "Documenti condivisi",  // Italian
       "共享文档",  // Chinese
-      "共有ドキュメント"  // Japanese
-  ));
-  
+      "共有ドキュメント"));  // Japanese
+
   private final String siteUrl;
   private final SharePointTokenManager tokenManager;
   private final ObjectMapper mapper = new ObjectMapper();
@@ -140,7 +140,7 @@ public class MicrosoftGraphStorageProvider implements StorageProvider {
     // Build Graph API URL
     String apiUrl;
     String apiPath = path; // Path to use for API call
-    
+
     if (path.isEmpty() || isDocumentLibraryRoot(path) || path.equals("/")) {
       // Root of document library
       apiUrl = String.format(Locale.ROOT, "%s/drives/%s/root/children", GRAPH_API_BASE, driveId);
@@ -163,14 +163,14 @@ public class MicrosoftGraphStorageProvider implements StorageProvider {
         // Build the full path based on the directory we're listing
         String itemName = item.get("name").asText();
         String itemPath;
-        
+
         // Construct full path based on the directory being listed
         if (path.isEmpty() || path.equals("/")) {
           itemPath = itemName;
         } else {
           itemPath = path + "/" + itemName;
         }
-        
+
         boolean isFolder = item.has("folder");
 
         entries.add(
@@ -199,14 +199,14 @@ public class MicrosoftGraphStorageProvider implements StorageProvider {
           // Build the full path based on the directory we're listing
           String itemName = item.get("name").asText();
           String itemPath;
-          
+
           // Construct full path based on the directory being listed
           if (path.isEmpty() || path.equals("/")) {
             itemPath = itemName;
           } else {
             itemPath = path + "/" + itemName;
           }
-          
+
           boolean isFolder = item.has("folder");
 
           entries.add(
@@ -232,7 +232,7 @@ public class MicrosoftGraphStorageProvider implements StorageProvider {
 
     // Preserve original path for return value
     String originalPath = path;
-    
+
     // Normalize path
     if (path.startsWith("/")) {
       path = path.substring(1);
@@ -448,14 +448,14 @@ public class MicrosoftGraphStorageProvider implements StorageProvider {
       return System.currentTimeMillis();
     }
   }
-  
+
   /**
    * Checks if the given path represents a document library root.
    */
   private boolean isDocumentLibraryRoot(String path) {
     return DOCUMENT_LIBRARY_NAMES.contains(path);
   }
-  
+
   /**
    * Removes common document library prefixes from a path for API calls.
    * This handles both single and nested document library paths.
@@ -464,10 +464,10 @@ public class MicrosoftGraphStorageProvider implements StorageProvider {
     // Special handling for the nested "Shared Documents/Shared Documents" pattern
     // This occurs when the URL structure duplicates the library name
     if (path.startsWith("Shared Documents/Shared Documents/")) {
-      // Remove only the first "Shared Documents/" 
+      // Remove only the first "Shared Documents/"
       return path.substring("Shared Documents/".length());
     }
-    
+
     // For other document library names, only remove if it's the root
     for (String libraryName : DOCUMENT_LIBRARY_NAMES) {
       if (path.equals(libraryName)) {
@@ -482,12 +482,12 @@ public class MicrosoftGraphStorageProvider implements StorageProvider {
         }
       }
     }
-    
+
     // Default case for "Shared Documents/" when not nested
     if (path.startsWith("Shared Documents/") && !path.startsWith("Shared Documents/Shared Documents/")) {
       return path.substring("Shared Documents/".length());
     }
-    
+
     return path;
   }
 }

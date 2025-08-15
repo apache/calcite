@@ -29,6 +29,7 @@ import org.apache.calcite.util.Source;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.io.File;
 import java.util.List;
 import java.util.Map;
 
@@ -45,6 +46,7 @@ public class JsonTable extends AbstractTable {
   protected final Map<String, Object> options;
   protected final String columnNameCasing;
   private @Nullable JsonDataConverter cachedConverter;
+  private long lastModifiedTime = -1;
 
   public JsonTable(Source source) {
     this(source, null, "UNCHANGED");
@@ -103,20 +105,37 @@ public class JsonTable extends AbstractTable {
 
   /** Returns the data list of the table. */
   public List<Object> getDataList(RelDataTypeFactory typeFactory) {
-    System.out.println("JsonTable.getDataList called for source: " + source.path());
-    if (dataList == null) {
-      System.out.println("JsonTable.getDataList: dataList is null, loading...");
+    // Check if we need to invalidate cache due to file changes
+    boolean needsRefresh = false;
+    if (source != null) {
+      File file = source.file();
+      if (file != null && file.exists()) {
+        long currentModified = file.lastModified();
+        if (lastModifiedTime == -1) {
+          lastModifiedTime = currentModified;
+        } else if (currentModified > lastModifiedTime) {
+          needsRefresh = true;
+          lastModifiedTime = currentModified;
+        }
+      }
+    }
+    
+    if (dataList == null || needsRefresh) {
+      if (needsRefresh) {
+        // Clear cached data
+        dataList = null;
+        cachedConverter = null;
+        rowType = null;
+      }
+      
       if (cachedConverter == null) {
-        System.out.println("JsonTable.getDataList: cachedConverter is null, calling deduceRowType...");
         cachedConverter = JsonEnumerator.deduceRowType(typeFactory, source, options, columnNameCasing);
       }
       dataList = cachedConverter.getDataList();
-      System.out.println("JsonTable.getDataList: loaded dataList with size = " + dataList.size());
-    } else {
-      System.out.println("JsonTable.getDataList: using cached dataList with size = " + dataList.size());
     }
     return dataList;
   }
+
 
   @Override public Statistic getStatistic() {
     return Statistics.UNKNOWN;

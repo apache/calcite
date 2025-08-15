@@ -24,7 +24,8 @@
       "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
       "operand": {
         "directory": "bug",
-        "executionEngine": "parquet"
+        "executionEngine": "parquet",
+        "parquetCacheDirectory": "build/test-cache/bug-parquet"
       }
     }
   ]

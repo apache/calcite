@@ -127,6 +127,12 @@ public class ConcurrentParquetCache {
       Files.move(tempFile.toPath(), parquetFile.toPath(),
           java.nio.file.StandardCopyOption.REPLACE_EXISTING,
           java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+      
+      // Set the parquet file timestamp to match the source file
+      // This ensures that refresh logic works correctly
+      if (sourceFile.exists() && parquetFile.exists()) {
+        parquetFile.setLastModified(sourceFile.lastModified());
+      }
 
     } finally {
       // Clean up temp file if it still exists

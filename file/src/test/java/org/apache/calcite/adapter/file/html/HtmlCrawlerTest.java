@@ -21,8 +21,8 @@ import org.apache.calcite.adapter.file.converters.HtmlCrawler;
 import org.apache.calcite.adapter.file.converters.HtmlCrawler.CrawlResult;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Tag;import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Disabled;
 import java.io.File;
 import java.time.Duration;
 import java.util.regex.Pattern;
@@ -35,14 +35,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Tests for HTML crawler functionality.
  * Note: Some tests are disabled by default as they require internet access.
  */
-@Tag("unit")public class HtmlCrawlerTest {
+@Tag("integration")
+public class HtmlCrawlerTest {
   
   /**
    * Test crawling Wikipedia tables.
    * Wikipedia has well-structured HTML tables with interesting data.
    */
   @Test
-  //@Disabled("Requires internet access - enable for manual testing")
+  @Disabled("Requires internet access - integration test")
   public void testWikipediaCrawl() throws Exception {
     CrawlerConfiguration config = new CrawlerConfiguration();
     config.setEnabled(true);

@@ -64,8 +64,7 @@ public class RedisIntegrationTest {
     }
   }
 
-  @Test
-  void testRedisIntegrationPlaceholder() {
+  @Test void testRedisIntegrationPlaceholder() {
     // This test would run full Redis integration if dependencies were available
     // Currently serves as placeholder for when Redis support is fully implemented
     assertTrue(true, "Full Redis integration test placeholder");

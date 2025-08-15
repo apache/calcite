@@ -54,25 +54,35 @@ public class FileTable extends AbstractQueryableTable
   private final @Nullable RelProtoDataType protoRowType;
   private final FileReaderV2 reader;
   private final FileRowConverter converter;
+  private final String columnNameCasing;
 
   /** Creates a FileTable. */
   private FileTable(Source source, String selector, Integer index,
       @Nullable RelProtoDataType protoRowType,
-      List<Map<String, Object>> fieldConfigs) {
+      List<Map<String, Object>> fieldConfigs, String columnNameCasing) {
     super(Object[].class);
 
     this.protoRowType = protoRowType;
     this.reader = new FileReaderV2(source, selector, index);
-    this.converter = new FileRowConverter(this.reader, fieldConfigs);
+    this.converter = new FileRowConverter(this.reader, fieldConfigs, columnNameCasing);
+    this.columnNameCasing = columnNameCasing;
   }
 
-  /** Creates a FileTable. */
+  /** Creates a FileTable with default column name casing. */
   public static FileTable create(Source source, Map<String, Object> tableDef) {
+    return create(source, tableDef, "SMART_CASING");
+  }
+  
+  /** Creates a FileTable with specified column name casing. */
+  public static FileTable create(Source source, Map<String, Object> tableDef, String columnNameCasing) {
+    if (tableDef == null) {
+      return new FileTable(source, null, null, null, null, columnNameCasing);
+    }
     @SuppressWarnings("unchecked") List<Map<String, Object>> fieldConfigs =
         (List<Map<String, Object>>) tableDef.get("fields");
     String selector = (String) tableDef.get("selector");
     Integer index = (Integer) tableDef.get("index");
-    return new FileTable(source, selector, index, null, fieldConfigs);
+    return new FileTable(source, selector, index, null, fieldConfigs, columnNameCasing);
   }
 
   @Override public String toString() {

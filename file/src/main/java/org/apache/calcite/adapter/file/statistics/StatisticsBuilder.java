@@ -156,11 +156,9 @@ public class StatisticsBuilder {
       String columnName = entry.getKey();
       
       // Decide whether to generate HLL based on configuration
-      // When threshold is 1 or less, always generate HLL (for testing)
-      // Otherwise check estimated distinct count
-      long estimatedDistinct = Math.min(actualRows / 10, 10000); // Rough estimate
-      boolean needsHLL = config.isHllEnabled() && 
-          (config.getHllThreshold() <= 1 || estimatedDistinct > config.getHllThreshold());
+      // For Parquet files, always generate HLL for better optimization opportunities
+      // The user explicitly wants HLL sketches for all native and cached parquet files
+      boolean needsHLL = config.isHllEnabled();
       
       if (needsHLL) {
         LOGGER.debug("Generating HLL for high-cardinality column: {}", columnName);
@@ -419,21 +417,22 @@ public class StatisticsBuilder {
       org.apache.hadoop.fs.Path path = new org.apache.hadoop.fs.Path(parquetFile.getAbsolutePath());
       org.apache.hadoop.conf.Configuration conf = new org.apache.hadoop.conf.Configuration();
       
-      // Get column index
+      // Get column index and validate it exists in schema
       @SuppressWarnings("deprecation")
       org.apache.parquet.hadoop.metadata.ParquetMetadata metadata = 
           org.apache.parquet.hadoop.ParquetFileReader.readFooter(conf, path);
       org.apache.parquet.schema.MessageType schema = metadata.getFileMetaData().getSchema();
       
-      int columnIndex = -1;
+      // Verify column exists in schema
+      boolean columnFound = false;
       for (int i = 0; i < schema.getFieldCount(); i++) {
         if (schema.getFieldName(i).equals(columnName)) {
-          columnIndex = i;
+          columnFound = true;
           break;
         }
       }
       
-      if (columnIndex == -1) {
+      if (!columnFound) {
         LOGGER.warn("Column {} not found in Parquet schema, using estimate", columnName);
         // Fall back to estimate based on file size
         for (int i = 0; i < Math.min(10000, estimatedDistinctCount); i++) {
@@ -453,7 +452,8 @@ public class StatisticsBuilder {
         org.apache.avro.generic.GenericRecord record;
         int rowsProcessed = 0;
         while ((record = reader.read()) != null) {
-          Object value = record.get(columnIndex);
+          // Use column name to get value from GenericRecord
+          Object value = record.get(columnName);
           if (value != null) {
             // Add the actual value to the HLL sketch
             hllSketch.add(value.toString());

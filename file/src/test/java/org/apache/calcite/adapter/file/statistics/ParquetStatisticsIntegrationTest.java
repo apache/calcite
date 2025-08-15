@@ -93,26 +93,40 @@ import static org.junit.jupiter.api.Assertions.*;
     // Create a test Parquet file with high cardinality data
     File testParquet = createHighCardinalityParquetFile();
     
-    // Create ParquetTranslatableTable with HLL enabled
+    // Create ParquetTranslatableTable which will eagerly generate statistics
     ParquetTranslatableTable table = new ParquetTranslatableTable(testParquet);
     
-    // Generate statistics
-    StatisticsBuilder builder = new StatisticsBuilder(StatisticsConfig.DEFAULT);
-    TableStatistics stats = builder.buildStatistics(new DirectFileSource(testParquet), cacheDir);
+    // Wait for statistics to be generated (with timeout)
+    TableStatistics stats = null;
+    boolean foundHll = false;
+    int maxAttempts = 20;  // 10 seconds max wait
+    
+    for (int attempt = 0; attempt < maxAttempts; attempt++) {
+      stats = table.getTableStatistics(null);
+      
+      if (stats != null && stats.getRowCount() > 0) {
+        // Check if HLL sketches have been generated
+        for (ColumnStatistics colStats : stats.getColumnStatistics().values()) {
+          if (colStats.getHllSketch() != null) {
+            foundHll = true;
+            System.out.println("Found HLL sketch for column: " + colStats.getColumnName() + 
+                             " with distinct count: " + colStats.getDistinctCount());
+            break;
+          }
+        }
+        
+        if (foundHll) {
+          break;  // Successfully found HLL sketches
+        }
+      }
+      
+      // Wait before next attempt
+      Thread.sleep(500);
+      System.out.println("Waiting for statistics generation... attempt " + (attempt + 1));
+    }
     
     assertNotNull(stats, "Statistics should be generated");
     assertTrue(stats.getRowCount() > 0, "Statistics should report positive row count");
-    
-    // Check for HLL in high-cardinality columns
-    boolean foundHll = false;
-    for (ColumnStatistics colStats : stats.getColumnStatistics().values()) {
-      if (colStats.getHllSketch() != null) {
-        foundHll = true;
-        assertTrue(colStats.getDistinctCount() > 0, "HLL should provide distinct count estimate");
-        break;
-      }
-    }
-    
     assertTrue(foundHll, "HLL sketches should be generated for high-cardinality columns");
   }
 

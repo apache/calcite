@@ -17,17 +17,22 @@
 package org.apache.calcite.adapter.file.statistics;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Tag;import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Tag;import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Tag;import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.MethodOrderer;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Tests for statistics configuration system, ensuring HLL can be properly
  * enabled/disabled and configured through various mechanisms.
  */
-@Tag("unit")public class StatisticsConfigurationTest {
+@Tag("unit")
+@TestMethodOrder(MethodOrderer.MethodName.class)
+public class StatisticsConfigurationTest {
 
   private String originalHllEnabled;
   private String originalHllPrecision;
@@ -39,6 +44,13 @@ import static org.junit.jupiter.api.Assertions.*;
     originalHllEnabled = System.getProperty("calcite.file.statistics.hll.enabled");
     originalHllPrecision = System.getProperty("calcite.file.statistics.hll.precision");
     originalHllThreshold = System.getProperty("calcite.file.statistics.hll.threshold");
+    
+    // Clear all properties to ensure clean state for each test
+    System.clearProperty("calcite.file.statistics.hll.enabled");
+    System.clearProperty("calcite.file.statistics.hll.precision");
+    System.clearProperty("calcite.file.statistics.hll.threshold");
+    System.clearProperty("calcite.file.statistics.cache.maxAge");
+    System.clearProperty("calcite.file.statistics.backgroundGeneration");
   }
 
   @AfterEach
@@ -65,12 +77,12 @@ import static org.junit.jupiter.api.Assertions.*;
   }
 
   @Test
-  @DisplayName("Default configuration should enable HLL with reasonable settings")
+  @DisplayName("Default configuration should have HLL enabled by default")
   void testDefaultConfiguration() {
     StatisticsConfig config = StatisticsConfig.DEFAULT;
     
     assertTrue(config.isHllEnabled(), "HLL should be enabled by default");
-    assertEquals(12, config.getHllPrecision(), "Default HLL precision should be 12");
+    assertEquals(14, config.getHllPrecision(), "Default HLL precision should be 14 for better accuracy");
     assertEquals(1000, config.getHllThreshold(), "Default HLL threshold should be 1000");
     assertTrue(config.isBackgroundGeneration(), "Background generation should be enabled by default");
     assertEquals(7 * 24 * 60 * 60 * 1000L, config.getMaxCacheAge(), "Default cache age should be 7 days");
@@ -83,7 +95,7 @@ import static org.junit.jupiter.api.Assertions.*;
     
     assertFalse(config.isHllEnabled(), "NO_HLL config should disable HLL");
     // Other settings should still be reasonable
-    assertEquals(12, config.getHllPrecision(), "HLL precision should still be set");
+    assertEquals(14, config.getHllPrecision(), "HLL precision should still be set to default 14-bit");
     assertEquals(1000, config.getHllThreshold(), "HLL threshold should still be set");
   }
 

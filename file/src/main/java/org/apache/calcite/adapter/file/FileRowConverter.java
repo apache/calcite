@@ -57,6 +57,7 @@ public class FileRowConverter {
   // cache for lazy initialization
   private final FileReaderV2 fileReader;
   private final @Nullable List<Map<String, Object>> fieldConfigs;
+  private final String columnNameCasing;
   private boolean initialized = false;
 
   // row parser configuration
@@ -74,9 +75,10 @@ public class FileRowConverter {
 
   /** Creates a FileRowConverter. */
   public FileRowConverter(FileReaderV2 fileReader,
-      List<Map<String, Object>> fieldConfigs) {
+      List<Map<String, Object>> fieldConfigs, String columnNameCasing) {
     this.fileReader = fileReader;
     this.fieldConfigs = fieldConfigs;
+    this.columnNameCasing = columnNameCasing;
   }
 
   // initialize() - combine HTML table header information with field definitions
@@ -108,7 +110,7 @@ public class FileRowConverter {
           for (Map<String, Object> fieldConfig : this.fieldConfigs) {
 
             String thName = (String) fieldConfig.get("th");
-            String name = thName;
+            String name = applyCasing(thName, columnNameCasing);
             String newName;
             FileFieldType type = null;
             boolean skip = false;
@@ -117,7 +119,7 @@ public class FileRowConverter {
               throw new Exception("bad source column name: '" + thName + "'");
             }
             if ((newName = (String) fieldConfig.get("name")) != null) {
-              name = newName;
+              name = applyCasing(newName, columnNameCasing);
             }
             if (colNames.contains(name)) {
               throw new Exception("duplicate column name: '" + name + "'");
@@ -149,8 +151,9 @@ public class FileRowConverter {
 
       // pick up any data elements not explicitly defined
       for (Map.Entry<String, Integer> e : headerMap.entrySet()) {
-        final String name = e.getKey();
-        if (!sources.contains(name) && !colNames.contains(name)) {
+        final String originalName = e.getKey();
+        if (!sources.contains(originalName) && !colNames.contains(applyCasing(originalName, columnNameCasing))) {
+          String name = applyCasing(originalName, columnNameCasing);
           addFieldDef(name, null, ImmutableMap.of(), e.getValue());
         }
       }
@@ -167,6 +170,11 @@ public class FileRowConverter {
   private void addFieldDef(String name, @Nullable FileFieldType type,
       Map<String, Object> config, int sourceCol) {
     this.fields.add(new FieldDef(name, type, config, sourceCol));
+  }
+
+  // Apply casing transformation to column names
+  private String applyCasing(String name, String casing) {
+    return org.apache.calcite.adapter.file.util.SmartCasing.applyCasing(name, casing);
   }
 
   /** Converts a row of JSoup Elements to an array of java objects. */
@@ -364,25 +372,34 @@ public class FileRowConverter {
 
       case DOUBLE:
         try {
-          return numberFormat.parse(string).doubleValue();
+          // Clean up malformed scientific notation (e.g., ".197427137EE8" -> ".197427137E8")
+          String cleanedString = string.replaceAll("([Ee])\\1+", "$1");
+          return numberFormat.parse(cleanedString).doubleValue();
         } catch (ParseException e) {
-          return null;
+          // If parsing still fails, try parsing as a plain double
+          try {
+            return Double.parseDouble(string);
+          } catch (NumberFormatException nfe) {
+            return null;
+          }
         }
 
       case DATE:
         // Parse date without timezone conversion
-        // Use LocalDate to ensure no timezone logic is applied
         try {
           // Try ISO format first (YYYY-MM-DD)
           if (string.matches("\\d{4}-\\d{2}-\\d{2}")) {
             return java.sql.Date.valueOf(string);
           }
-          // Fall back to Natty parser but convert through LocalDate
+          // Fall back to Natty parser
+          // Parse with default timezone
           Date parsed = parseDate(string);
-          // Convert to LocalDate to strip any timezone info
-          java.time.Instant instant = java.time.Instant.ofEpochMilli(parsed.getTime());
-          java.time.LocalDate localDate = instant.atZone(TimeZone.getDefault().toZoneId()).toLocalDate();
-          return java.sql.Date.valueOf(localDate);
+          // Convert to java.sql.Date using string conversion to avoid timezone issues
+          // This ensures we get the date as displayed, not shifted by timezone
+          java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd");
+          sdf.setTimeZone(TimeZone.getDefault());
+          String dateStr = sdf.format(parsed);
+          return java.sql.Date.valueOf(dateStr);
         } catch (Exception e) {
           return null;
         }
@@ -393,11 +410,22 @@ public class FileRowConverter {
         return new java.sql.Time(timeParsed.getTime());
 
       case TIMESTAMP:
+        // Parse timestamp with local timezone (TZ naive)
+        // Check for ISO format first for consistent parsing
+        try {
+          if (string.matches("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}")) {
+            // Parse ISO format timestamp as local time
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            sdf.setTimeZone(TimeZone.getDefault());
+            return new java.sql.Timestamp(sdf.parse(string).getTime());
+          }
+        } catch (Exception e) {
+          // Fall through to Natty parser
+        }
         return new java.sql.Timestamp(parseDate(string).getTime());
 
       case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-        // Parse the timestamp with timezone information
-        // and convert to UTC for storage
+        // Parse the timestamp with local timezone
         return new java.sql.Timestamp(parseDate(string).getTime());
 
       case STRING:

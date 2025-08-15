@@ -14,13 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.file;
+package org.apache.calcite.adapter.file.table;
+
+import org.apache.calcite.adapter.file.FileSchemaFactory;
 
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
@@ -39,6 +42,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Tests for multiple schema configurations with File adapter.
  */
+@Tag("unit")
 public class MultipleSchemaTest {
 
   @TempDir
@@ -72,7 +76,7 @@ public class MultipleSchemaTest {
 
   @Test public void testDuplicateSchemaNames() throws Exception {
     // Try to create two schemas with the same name but different directories
-    try (Connection connection = DriverManager.getConnection("jdbc:calcite:");
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:lex=ORACLE;unquotedCasing=TO_LOWER");
          CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
 
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
@@ -102,7 +106,7 @@ public class MultipleSchemaTest {
 
         // Try to access sales tables
         try {
-          ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as total_count FROM DATA.CUSTOMERS");
+          ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as total_count FROM data.customers");
           if (rs.next()) {
             System.out.println("Found table in DATA schema: CUSTOMERS");
             hasSalesTables = true;
@@ -112,7 +116,7 @@ public class MultipleSchemaTest {
         }
 
         try {
-          ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as total_count FROM DATA.ORDERS");
+          ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as total_count FROM data.orders");
           if (rs.next()) {
             System.out.println("Found table in DATA schema: ORDERS");
             hasSalesTables = true;
@@ -123,7 +127,7 @@ public class MultipleSchemaTest {
 
         // Try to access hr tables
         try {
-          ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as total_count FROM DATA.EMPLOYEES");
+          ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as total_count FROM data.employees");
           if (rs.next()) {
             System.out.println("Found table in DATA schema: EMPLOYEES");
             hasHrTables = true;
@@ -133,7 +137,7 @@ public class MultipleSchemaTest {
         }
 
         try {
-          ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as total_count FROM DATA.DEPARTMENTS");
+          ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as total_count FROM data.departments");
           if (rs.next()) {
             System.out.println("Found table in DATA schema: DEPARTMENTS");
             hasHrTables = true;
@@ -163,7 +167,7 @@ public class MultipleSchemaTest {
 
   @Test public void testMultipleDistinctSchemas() throws Exception {
     // Test multiple schemas with different names
-    try (Connection connection = DriverManager.getConnection("jdbc:calcite:");
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:lex=ORACLE;unquotedCasing=TO_LOWER");
          CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
 
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
@@ -182,8 +186,8 @@ public class MultipleSchemaTest {
       try (Statement stmt = connection.createStatement()) {
         ResultSet rs =
             stmt.executeQuery("SELECT s.name as customer_name, h.name as employee_name " +
-            "FROM SALES.customers s, HR.EMPLOYEES h " +
-            "WHERE s.ID = h.ID");
+            "FROM sales.customers s, hr.employees h " +
+            "WHERE s.id = h.id");
 
         int rowCount = 0;
         while (rs.next()) {
@@ -206,7 +210,7 @@ public class MultipleSchemaTest {
 
   @Test public void testSchemaReplacement() throws Exception {
     // Test explicit schema replacement behavior
-    try (Connection connection = DriverManager.getConnection("jdbc:calcite:");
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:lex=ORACLE;unquotedCasing=TO_LOWER");
          CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
 
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
@@ -218,7 +222,7 @@ public class MultipleSchemaTest {
 
       // Verify sales tables are accessible
       try (Statement stmt = connection.createStatement()) {
-        ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as total_count FROM TEST.CUSTOMERS");
+        ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as total_count FROM test.customers");
         assertTrue(rs.next());
         int customerCount = rs.getInt("total_count");
         System.out.println("Initial customer count: " + customerCount);
@@ -234,7 +238,7 @@ public class MultipleSchemaTest {
       try (Statement stmt = connection.createStatement()) {
         // This should now access hr data, not sales data
         try {
-          ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as total_count FROM TEST.EMPLOYEES");
+          ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as total_count FROM test.employees");
           assertTrue(rs.next());
           int employeeCount = rs.getInt("total_count");
           System.out.println("Employee count after replacement: " + employeeCount);

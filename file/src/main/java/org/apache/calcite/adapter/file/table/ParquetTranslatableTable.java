@@ -92,12 +92,37 @@ public class ParquetTranslatableTable extends AbstractTable implements Translata
     this.parquetFile = parquetFile;
     this.source = new DirectFileSource(parquetFile);
     this.statisticsBuilder = new StatisticsBuilder();
+    // Eagerly generate statistics including HLL sketches for native Parquet files
+    initializeStatistics();
   }
 
   public ParquetTranslatableTable(File parquetFile, Source source) {
     this.parquetFile = parquetFile;
     this.source = source;
     this.statisticsBuilder = new StatisticsBuilder();
+    // Eagerly generate statistics including HLL sketches for native Parquet files
+    initializeStatistics();
+  }
+
+  /**
+   * Eagerly initialize statistics including HLL sketches.
+   * This ensures statistics are available when connections are created.
+   */
+  private void initializeStatistics() {
+    // Generate statistics in a background thread to avoid blocking table creation
+    new Thread(() -> {
+      try {
+        File cacheDir = ParquetConversionUtil.getParquetCacheDir(parquetFile.getParentFile());
+        cachedStatistics = statisticsBuilder.buildStatistics(source, cacheDir);
+        LOGGER.info("Statistics initialized for {}: {} rows, {} columns with HLL", 
+                   parquetFile.getName(), 
+                   cachedStatistics != null ? cachedStatistics.getRowCount() : 0,
+                   cachedStatistics != null ? cachedStatistics.getColumnStatistics().size() : 0);
+      } catch (Exception e) {
+        LOGGER.warn("Failed to initialize statistics for {}: {}", parquetFile.getName(), e.getMessage());
+        // Don't fail table creation - statistics will be generated on demand later
+      }
+    }, "ParquetStats-" + parquetFile.getName()).start();
   }
 
   @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {

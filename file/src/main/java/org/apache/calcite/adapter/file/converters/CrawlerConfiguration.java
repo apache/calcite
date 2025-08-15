@@ -39,6 +39,15 @@ public class CrawlerConfiguration {
   private boolean followExternalLinks = false;
   private Set<String> excludePatterns = new HashSet<>();
   
+  // Data file pattern configuration
+  private @Nullable Pattern dataFilePattern; // Regex pattern for data files to include
+  private @Nullable Pattern dataFileExcludePattern; // Regex pattern for data files to exclude
+  
+  // HTML table configuration
+  private boolean generateTablesFromHtml = true; // Whether to extract HTML tables
+  private int htmlTableMinRows = 1; // Minimum rows for HTML table extraction
+  private int htmlTableMaxRows = Integer.MAX_VALUE; // Maximum rows to extract from HTML tables
+  
   // Content size limits
   private long maxHtmlSize = 10L * 1024 * 1024; // 10MB for HTML pages
   private long maxDataFileSize = 100L * 1024 * 1024; // 100MB for data files
@@ -127,6 +136,26 @@ public class CrawlerConfiguration {
           config.addAllowedDomain(domain.toString());
         }
       }
+    }
+    
+    if (options.containsKey("dataFilePattern")) {
+      config.setDataFilePattern(Pattern.compile(options.get("dataFilePattern").toString()));
+    }
+    
+    if (options.containsKey("dataFileExcludePattern")) {
+      config.setDataFileExcludePattern(Pattern.compile(options.get("dataFileExcludePattern").toString()));
+    }
+    
+    if (options.containsKey("generateTablesFromHtml")) {
+      config.setGenerateTablesFromHtml(Boolean.parseBoolean(options.get("generateTablesFromHtml").toString()));
+    }
+    
+    if (options.containsKey("htmlTableMinRows")) {
+      config.setHtmlTableMinRows(Integer.parseInt(options.get("htmlTableMinRows").toString()));
+    }
+    
+    if (options.containsKey("htmlTableMaxRows")) {
+      config.setHtmlTableMaxRows(Integer.parseInt(options.get("htmlTableMaxRows").toString()));
     }
     
     return config;
@@ -295,5 +324,45 @@ public class CrawlerConfiguration {
   
   public void setEnforceContentLengthHeader(boolean enforceContentLengthHeader) {
     this.enforceContentLengthHeader = enforceContentLengthHeader;
+  }
+  
+  public @Nullable Pattern getDataFilePattern() {
+    return dataFilePattern;
+  }
+  
+  public void setDataFilePattern(@Nullable Pattern dataFilePattern) {
+    this.dataFilePattern = dataFilePattern;
+  }
+  
+  public @Nullable Pattern getDataFileExcludePattern() {
+    return dataFileExcludePattern;
+  }
+  
+  public void setDataFileExcludePattern(@Nullable Pattern dataFileExcludePattern) {
+    this.dataFileExcludePattern = dataFileExcludePattern;
+  }
+  
+  public boolean isGenerateTablesFromHtml() {
+    return generateTablesFromHtml;
+  }
+  
+  public void setGenerateTablesFromHtml(boolean generateTablesFromHtml) {
+    this.generateTablesFromHtml = generateTablesFromHtml;
+  }
+  
+  public int getHtmlTableMinRows() {
+    return htmlTableMinRows;
+  }
+  
+  public void setHtmlTableMinRows(int htmlTableMinRows) {
+    this.htmlTableMinRows = htmlTableMinRows;
+  }
+  
+  public int getHtmlTableMaxRows() {
+    return htmlTableMaxRows;
+  }
+  
+  public void setHtmlTableMaxRows(int htmlTableMaxRows) {
+    this.htmlTableMaxRows = htmlTableMaxRows;
   }
 }

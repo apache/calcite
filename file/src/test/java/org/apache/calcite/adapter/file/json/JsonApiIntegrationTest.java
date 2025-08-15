@@ -27,6 +27,7 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
@@ -51,6 +52,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Integration tests for JSON API access with POST and JSONPath.
  */
+@Tag("integration")
 public class JsonApiIntegrationTest {
   
   private HttpServer server;

@@ -20,8 +20,8 @@ import org.apache.calcite.adapter.file.storage.LocalFileStorageProvider;
 import org.apache.calcite.adapter.file.storage.StorageProvider;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-
+import org.junit.jupiter.api.Tag;import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.Tag;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -29,11 +29,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-
+import org.junit.jupiter.api.Tag;
 /**
  * Test for storage provider change detection functionality.
  */
-public class StorageProviderChangeDetectionTest {
+@Tag("unit")public class StorageProviderChangeDetectionTest {
 
   @TempDir
   File tempDir;

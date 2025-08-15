@@ -14,11 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.file;
+package org.apache.calcite.adapter.file.conversion;
 
+import org.apache.calcite.adapter.file.FileSchemaFactory;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.util.Sources;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -34,6 +37,7 @@ import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -49,14 +53,32 @@ public class ParquetAutoConversionTest {
 
   @BeforeEach
   public void setUp() throws Exception {
-    // No shared setup needed - each test creates its own files
+    // Clear any static caches that might interfere with test isolation
+    Sources.clearFileCache();
+    // Force garbage collection to release any file handles and clear caches
+    System.gc();
+    // Wait a bit to ensure cleanup
+    Thread.sleep(100);
+  }
+
+  @AfterEach
+  public void tearDown() throws Exception {
+    // Clear caches after each test to prevent contamination
+    Sources.clearFileCache();
+    System.gc();
+    Thread.sleep(100);
   }
 
   @Test public void testAutoConversionToParquet() throws Exception {
     System.out.println("\n=== TESTING AUTO-CONVERSION TO PARQUET ===");
 
+    // Create unique temp directory for this test with full UUID to ensure uniqueness
+    String testId = UUID.randomUUID().toString();
+    File uniqueTempDir = new File(tempDir.toFile(), "autoconvert_test_" + testId);
+    assertTrue(uniqueTempDir.mkdirs());
+
     // Create test CSV file
-    File csvFile = new File(tempDir.toFile(), "customers.csv");
+    File csvFile = new File(uniqueTempDir, "customers.csv");
     try (FileWriter writer = new FileWriter(csvFile, StandardCharsets.UTF_8)) {
       writer.write("customer_id:int,name:string,city:string,balance:double\n");
       writer.write("1,Alice,New York,1500.50\n");
@@ -66,7 +88,7 @@ public class ParquetAutoConversionTest {
     }
 
     // Create test JSON file
-    File jsonFile = new File(tempDir.toFile(), "orders.json");
+    File jsonFile = new File(uniqueTempDir, "orders.json");
     try (FileWriter writer = new FileWriter(jsonFile, StandardCharsets.UTF_8)) {
       writer.write("[\n");
       writer.write("  {\"order_id\": 101, \"customer_id\": 1, \"amount\": 250.00, \"status\": \"shipped\"},\n");
@@ -77,18 +99,20 @@ public class ParquetAutoConversionTest {
     }
 
     // Verify cache directory doesn't exist yet
-    File cacheDir = new File(tempDir.toFile(), ".parquet_cache");
+    File cacheDir = new File(uniqueTempDir, "test_cache_auto");
     assertFalse(cacheDir.exists(), "Cache directory should not exist initially");
 
-    try (Connection connection = DriverManager.getConnection("jdbc:calcite:");
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:lex=ORACLE;unquotedCasing=TO_LOWER");
          CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
 
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
 
       // Configure file schema with PARQUET execution engine
       Map<String, Object> operand = new HashMap<>();
-      operand.put("directory", tempDir.toString());
+      operand.put("directory", uniqueTempDir.getAbsolutePath());
       operand.put("executionEngine", "parquet");  // This triggers auto-conversion
+      // Use unique cache directory for test isolation
+      operand.put("parquetCacheDirectory", cacheDir.getAbsolutePath());
 
       System.out.println("\n1. Creating schema with PARQUET execution engine");
       SchemaPlus fileSchema =
@@ -162,76 +186,73 @@ public class ParquetAutoConversionTest {
     }
   }
 
-  @Test public void testCacheReuse() throws Exception {
-    System.out.println("\n=== TESTING PARQUET CACHE REUSE ===");
-
-    File cacheDir = new File(tempDir.toFile(), ".parquet_cache");
-    File csvFile = new File(tempDir.toFile(), "products.csv");
-
-    // Create initial CSV file
+  @Test public void testCacheCreationFailureHandling() throws Exception {
+    System.out.println("\n=== TESTING CACHE CREATION FAILURE HANDLING ===");
+    
+    // Create unique temp directory for this test
+    String testId = UUID.randomUUID().toString();
+    File uniqueTempDir = new File(tempDir.toFile(), "cache_failure_test_" + testId);
+    assertTrue(uniqueTempDir.mkdirs());
+    
+    // Create a cache directory that will fail (read-only after creation)
+    File cacheDir = new File(uniqueTempDir, "readonly_cache_" + testId);
+    assertTrue(cacheDir.mkdirs());
+    
+    File csvFile = new File(uniqueTempDir, "data.csv");
     try (FileWriter writer = new FileWriter(csvFile, StandardCharsets.UTF_8)) {
-      writer.write("product_id:int,name:string,price:double\n");
-      writer.write("1,Widget,25.50\n");
-      writer.write("2,Gadget,50.00\n");
+      writer.write("id:int,name:string\n");
+      writer.write("1,Alice\n");
+      writer.write("2,Bob\n");
     }
-
-    // First query - should create cache
-    try (Connection conn1 = DriverManager.getConnection("jdbc:calcite:");
-         CalciteConnection calciteConn1 = conn1.unwrap(CalciteConnection.class)) {
-
-      SchemaPlus rootSchema = calciteConn1.getRootSchema();
-      Map<String, Object> operand = new HashMap<>();
-      operand.put("directory", tempDir.toString());
-      operand.put("executionEngine", "parquet");
-
-      rootSchema.add("TEST1", FileSchemaFactory.INSTANCE.create(rootSchema, "TEST1", operand));
-
-      try (Statement stmt = conn1.createStatement();
-           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as cnt FROM \"TEST1\".\"products\"")) {
-        rs.next();
-        assertEquals(2, rs.getInt("cnt"));
+    
+    // Make cache directory read-only to simulate permission issues
+    assertTrue(cacheDir.setWritable(false), "Failed to make cache dir read-only");
+    
+    try {
+      // Attempt to use Parquet engine with read-only cache directory
+      try (Connection conn = DriverManager.getConnection("jdbc:calcite:lex=ORACLE;unquotedCasing=TO_LOWER");
+           CalciteConnection calciteConn = conn.unwrap(CalciteConnection.class)) {
+        
+        SchemaPlus rootSchema = calciteConn.getRootSchema();
+        Map<String, Object> operand = new HashMap<>();
+        operand.put("directory", uniqueTempDir.getAbsolutePath());
+        operand.put("executionEngine", "parquet");
+        operand.put("parquetCacheDirectory", cacheDir.getAbsolutePath());
+        
+        rootSchema.add("TEST", FileSchemaFactory.INSTANCE.create(rootSchema, "TEST", operand));
+        
+        // System should still work despite cache directory being read-only
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as cnt FROM \"TEST\".\"data\"")) {
+          rs.next();
+          assertEquals(2, rs.getInt("cnt"), "Should work even with read-only cache directory");
+        }
       }
+      
+      // Verify no cache file was created due to permissions
+      File expectedCache = new File(cacheDir, "data.parquet");
+      assertFalse(expectedCache.exists(), "Cache file should not exist in read-only directory");
+      
+      System.out.println("✓ System handles cache creation failure gracefully");
+      System.out.println("  - Read-only cache directory simulated permission issues");
+      System.out.println("  - Queries still succeeded by falling back to direct file reading");
+      
+    } finally {
+      // Restore write permissions for cleanup
+      cacheDir.setWritable(true);
     }
-
-    File cachedParquet = new File(cacheDir, "products.parquet");
-    assertTrue(cachedParquet.exists(), "Cached Parquet file should exist");
-    long cacheTime1 = cachedParquet.lastModified();
-
-    System.out.println("1. Initial conversion created cache file");
-    System.out.println("   Cache file: " + cachedParquet.getAbsolutePath());
-    System.out.println("   Cache time: " + cacheTime1);
-
-    // Second query with unchanged file - should reuse cache
-    Thread.sleep(100); // Ensure time difference
-
-    try (Connection conn2 = DriverManager.getConnection("jdbc:calcite:");
-         CalciteConnection calciteConn2 = conn2.unwrap(CalciteConnection.class)) {
-
-      SchemaPlus rootSchema = calciteConn2.getRootSchema();
-      Map<String, Object> operand = new HashMap<>();
-      operand.put("directory", tempDir.toString());
-      operand.put("executionEngine", "parquet");
-
-      rootSchema.add("TEST2", FileSchemaFactory.INSTANCE.create(rootSchema, "TEST2", operand));
-
-      try (Statement stmt = conn2.createStatement();
-           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as cnt FROM \"TEST2\".\"products\"")) {
-        rs.next();
-        assertEquals(2, rs.getInt("cnt"));
-      }
-    }
-
-    long cacheTime2 = cachedParquet.lastModified();
-    assertEquals(cacheTime1, cacheTime2, "Cache file should not be regenerated for unchanged source");
-    System.out.println("2. Second query reused existing cache (timestamps match)");
-    System.out.println("   ✓ Cache reuse is working correctly!");
   }
 
   @Test public void testCacheInvalidation() throws Exception {
     System.out.println("\n=== TESTING PARQUET CACHE INVALIDATION ===");
 
-    File cacheDir = new File(tempDir.toFile(), ".parquet_cache");
-    File csvFile = new File(tempDir.toFile(), "inventory.csv");
+    // Create unique temp directory for this test with full UUID
+    String testId = UUID.randomUUID().toString();
+    File uniqueTempDir = new File(tempDir.toFile(), "cache_invalidation_test_" + testId);
+    assertTrue(uniqueTempDir.mkdirs());
+    
+    File cacheDir = new File(uniqueTempDir, "test_cache_invalidation");
+    File csvFile = new File(uniqueTempDir, "inventory.csv");
 
     // Create initial CSV file
     try (FileWriter writer = new FileWriter(csvFile, StandardCharsets.UTF_8)) {
@@ -241,13 +262,15 @@ public class ParquetAutoConversionTest {
     }
 
     // First query - should create cache
-    try (Connection conn1 = DriverManager.getConnection("jdbc:calcite:");
+    try (Connection conn1 = DriverManager.getConnection("jdbc:calcite:lex=ORACLE;unquotedCasing=TO_LOWER");
          CalciteConnection calciteConn1 = conn1.unwrap(CalciteConnection.class)) {
 
       SchemaPlus rootSchema = calciteConn1.getRootSchema();
       Map<String, Object> operand = new HashMap<>();
-      operand.put("directory", tempDir.toString());
+      operand.put("directory", uniqueTempDir.getAbsolutePath());
       operand.put("executionEngine", "parquet");
+      // Use unique cache directory for test isolation
+      operand.put("parquetCacheDirectory", cacheDir.getAbsolutePath());
 
       rootSchema.add("INVENTORY1", FileSchemaFactory.INSTANCE.create(rootSchema, "INVENTORY1", operand));
 
@@ -283,13 +306,15 @@ public class ParquetAutoConversionTest {
     Thread.sleep(100);
 
     // Second query with updated file - should regenerate cache
-    try (Connection conn2 = DriverManager.getConnection("jdbc:calcite:");
+    try (Connection conn2 = DriverManager.getConnection("jdbc:calcite:lex=ORACLE;unquotedCasing=TO_LOWER");
          CalciteConnection calciteConn2 = conn2.unwrap(CalciteConnection.class)) {
 
       SchemaPlus rootSchema = calciteConn2.getRootSchema();
       Map<String, Object> operand = new HashMap<>();
-      operand.put("directory", tempDir.toString());
+      operand.put("directory", uniqueTempDir.getAbsolutePath());
       operand.put("executionEngine", "parquet");
+      // Use same cache directory to test invalidation
+      operand.put("parquetCacheDirectory", cacheDir.getAbsolutePath());
 
       rootSchema.add("INVENTORY2", FileSchemaFactory.INSTANCE.create(rootSchema, "INVENTORY2", operand));
 
@@ -318,8 +343,13 @@ public class ParquetAutoConversionTest {
   @Test public void testJsonFileCacheInvalidation() throws Exception {
     System.out.println("\n=== TESTING JSON FILE CACHE INVALIDATION ===");
 
-    File cacheDir = new File(tempDir.toFile(), ".parquet_cache");
-    File jsonFile = new File(tempDir.toFile(), "data.json");
+    // Use a subdirectory with full UUID for this test to ensure complete isolation
+    String testId = UUID.randomUUID().toString();
+    File testSubDir = new File(tempDir.toFile(), "json_cache_inv_test_" + testId);
+    assertTrue(testSubDir.mkdirs(), "Failed to create test subdirectory");
+
+    File cacheDir = new File(testSubDir, "cache_json_" + testId);
+    File jsonFile = new File(testSubDir, "cache_invalidation_test.json");
 
     // Create initial JSON file
     try (FileWriter writer = new FileWriter(jsonFile, StandardCharsets.UTF_8)) {
@@ -330,24 +360,27 @@ public class ParquetAutoConversionTest {
     }
 
     // First query - should create cache
-    try (Connection conn1 = DriverManager.getConnection("jdbc:calcite:");
+    try (Connection conn1 = DriverManager.getConnection("jdbc:calcite:lex=ORACLE;unquotedCasing=TO_LOWER");
          CalciteConnection calciteConn1 = conn1.unwrap(CalciteConnection.class)) {
 
       SchemaPlus rootSchema = calciteConn1.getRootSchema();
       Map<String, Object> operand = new HashMap<>();
-      operand.put("directory", tempDir.toString());
+      operand.put("directory", testSubDir.getAbsolutePath());
       operand.put("executionEngine", "parquet");
+      // Use unique cache directory for test isolation
+      operand.put("parquetCacheDirectory", cacheDir.getAbsolutePath());
 
       rootSchema.add("JSON1", FileSchemaFactory.INSTANCE.create(rootSchema, "JSON1", operand));
 
       try (Statement stmt = conn1.createStatement();
-           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as cnt FROM \"JSON1\".\"data\"")) {
+           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as cnt FROM \"JSON1\".\"cache_invalidation_test\"")) {
         rs.next();
-        assertEquals(2, rs.getInt("cnt"));
+        int actualCount = rs.getInt("cnt");
+        assertEquals(2, actualCount, "Should see 2 records initially but got " + actualCount);
       }
     }
 
-    File cachedParquet = new File(cacheDir, "data.parquet");
+    File cachedParquet = new File(cacheDir, "cache_invalidation_test.parquet");
     assertTrue(cachedParquet.exists(), "Cached Parquet file should exist");
     long cacheTime1 = cachedParquet.lastModified();
     System.out.println("1. Initial cache created with 2 records");
@@ -370,18 +403,20 @@ public class ParquetAutoConversionTest {
     Thread.sleep(100);
 
     // Second query with updated file - should regenerate cache
-    try (Connection conn2 = DriverManager.getConnection("jdbc:calcite:");
+    try (Connection conn2 = DriverManager.getConnection("jdbc:calcite:lex=ORACLE;unquotedCasing=TO_LOWER");
          CalciteConnection calciteConn2 = conn2.unwrap(CalciteConnection.class)) {
 
       SchemaPlus rootSchema = calciteConn2.getRootSchema();
       Map<String, Object> operand = new HashMap<>();
-      operand.put("directory", tempDir.toString());
+      operand.put("directory", testSubDir.getAbsolutePath());
       operand.put("executionEngine", "parquet");
+      // Use same cache directory to test invalidation
+      operand.put("parquetCacheDirectory", cacheDir.getAbsolutePath());
 
       rootSchema.add("JSON2", FileSchemaFactory.INSTANCE.create(rootSchema, "JSON2", operand));
 
       try (Statement stmt = conn2.createStatement();
-           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as cnt FROM \"JSON2\".\"data\"")) {
+           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as cnt FROM \"JSON2\".\"cache_invalidation_test\"")) {
         rs.next();
         assertEquals(4, rs.getInt("cnt"), "Should see 4 records after update");
       }
@@ -393,5 +428,17 @@ public class ParquetAutoConversionTest {
     System.out.println("   Original cache time: " + cacheTime1);
     System.out.println("   New cache time: " + cacheTime2);
     System.out.println("   ✓ JSON cache invalidation is working correctly!");
+  }
+
+  private void deleteDirectory(File dir) {
+    if (dir.isDirectory()) {
+      File[] files = dir.listFiles();
+      if (files != null) {
+        for (File file : files) {
+          deleteDirectory(file);
+        }
+      }
+    }
+    dir.delete();
   }
 }

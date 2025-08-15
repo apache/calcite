@@ -44,11 +44,11 @@ public class HyperLogLogSketch implements Serializable {
   private transient MessageDigest hasher;
 
   /**
-   * Create a new HyperLogLog sketch with default precision (12 bits).
-   * This gives ~1.6% standard error with 4KB memory usage.
+   * Create a new HyperLogLog sketch with default precision (14 bits).
+   * This gives ~0.8% standard error with 16KB memory usage.
    */
   public HyperLogLogSketch() {
-    this(12);
+    this(14);
   }
 
   /**

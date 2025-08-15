@@ -45,6 +45,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.Arrays;
+import java.util.Properties;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -140,7 +141,7 @@ public class ArrowFileTest {
 
   @Test void testArrowWithParquetEngine() throws Exception {
     // Create Arrow file
-    File arrowFile = new File(tempDir, "data.arrow");
+    File arrowFile = new File(tempDir, "parquet_test.arrow");
     createSampleArrowFile(arrowFile);
 
     // Test with PARQUET execution engine (should auto-convert)
@@ -155,6 +156,7 @@ public class ArrowFileTest {
         + "      operand: {\n"
         + "        directory: '" + tempDir.getAbsolutePath().replace("\\", "\\\\") + "',\n"
         + "        executionEngine: 'parquet',\n"
+        + "        parquetCacheDirectory: '" + tempDir.getAbsolutePath().replace("\\", "\\\\") + "/test_cache_arrow',\n"
         + "        tableNameCasing: 'LOWER',\n"
         + "        columnNameCasing: 'LOWER'\n"
         + "      }\n"
@@ -162,17 +164,22 @@ public class ArrowFileTest {
         + "  ]\n"
         + "}";
 
-    try (Connection conn = DriverManager.getConnection("jdbc:calcite:model=inline:" + model);
+    Properties info = new Properties();
+    info.setProperty("model", "inline:" + model);
+    info.setProperty("lex", "ORACLE");
+    info.setProperty("unquotedCasing", "TO_LOWER");
+
+    try (Connection conn = DriverManager.getConnection("jdbc:calcite:", info);
          Statement stmt = conn.createStatement()) {
 
       // Should work with PARQUET engine via auto-conversion
-      try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM \"data\"")) {
+      try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM parquet_test")) {
         assertTrue(rs.next());
         assertEquals(3L, rs.getLong(1));
       }
 
       // Check that Parquet cache was created
-      File cacheDir = new File(tempDir, ".parquet_cache");
+      File cacheDir = new File(tempDir, "test_cache_arrow");
       assertTrue(cacheDir.exists());
       File[] parquetFiles = cacheDir.listFiles((dir, name) -> name.endsWith(".parquet"));
       assertThat(parquetFiles, arrayWithSize(1));

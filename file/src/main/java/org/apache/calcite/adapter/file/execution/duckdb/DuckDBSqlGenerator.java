@@ -85,7 +85,8 @@ public final class DuckDBSqlGenerator {
    * @return simple SELECT * SQL string
    */
   public static String generateSelectAll(String tableName) {
-    String sql = String.format("SELECT * FROM %s", tableName);
+    String quotedTableName = DUCKDB_DIALECT.quoteIdentifier(tableName);
+    String sql = String.format("SELECT * FROM %s", quotedTableName);
     LOGGER.debug("Generated simple DuckDB SQL: {}", sql);
     return sql;
   }
@@ -109,9 +110,10 @@ public final class DuckDBSqlGenerator {
       first = false;
     }
     
+    String quotedTableName = DUCKDB_DIALECT.quoteIdentifier(tableName);
     String sql = String.format("SELECT %s FROM %s", 
         columns.length() > 0 ? columns.toString() : "*", 
-        tableName);
+        quotedTableName);
         
     LOGGER.debug("Generated projection DuckDB SQL: {}", sql);
     return sql;

@@ -1,9 +1,17 @@
 ## Java Practices
 
 - Never use the deprecated java.sql.Time, use java.sql.LocalTime instead
+- When computing day offsets from epoch, never use any Java function that might misapply a local TZ offset, for example, toLocalDate().
+
+## Testing Practices
 - When testing time, data, and timestamps, always use numeric values as expectations; never use formatted values.
 - When writing tests that involve temporal elements, do not use displayed values; use numeric values, OR make sure you understand how displayed values are created
-- When computing day offsets from epoch, never use any Java function that might misapply a local TZ offset, for example, toLocalDate().
+- When testing timestamp with no tz, values should be in UTC.
+- Tests should use lower case for all identifiers.
+- The test suite should be run with the default settings, unless the test is specifically designed to test a specific setting.
+- By default, lex is ORACLE and unquoted casing is TO_LOWER, and name generation is SMART_CASING (lower snake case).
+- Never relax a test to pass when it should fail without asking for approval from the user.
+- Always quote reserved words that have been used as identifiers in SQL statements.
 
 ## Code Maintenance
 
@@ -24,3 +32,6 @@
 
 - Read the docs and stop making things up
 - the preference is for all connections to use lex = ORACLE and unquoted casing = TO_LOWER, while sql statements use unquoted identifiers (unless not possible - like mixed casing or special characters is a requirement of the use case)
+
+- When I ask to "clean up debug code", do the following: 1) identify any uses of System.out or System.err and determine if they should be remove or added as logger debig, 2) identify tests that are clearly temp or debug and 
+  either remove them OR organize them and tag them as unit, integration or performance, 3) identify dead code and report it.

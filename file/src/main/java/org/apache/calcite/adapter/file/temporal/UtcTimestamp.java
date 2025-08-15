@@ -42,4 +42,17 @@ public class UtcTimestamp extends Timestamp {
     LocalDateTime utcDateTime = LocalDateTime.ofInstant(instant, ZoneId.of("UTC"));
     return FORMATTER.format(utcDateTime);
   }
+  
+  
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) return true;
+    if (!(obj instanceof Timestamp)) return false;
+    return super.equals(obj);
+  }
+  
+  @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
 }

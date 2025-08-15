@@ -21,16 +21,19 @@ import org.apache.calcite.adapter.file.format.parquet.ConcurrentParquetCache;
 import org.apache.calcite.adapter.file.format.parquet.ParquetConversionUtil;
 import org.apache.calcite.adapter.file.table.CsvTranslatableTable;
 import org.apache.calcite.adapter.file.table.JsonTable;
+import org.apache.calcite.adapter.file.table.JsonScannableTable;
 import org.apache.calcite.adapter.file.table.ParquetTranslatableTable;
 import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
 import org.apache.calcite.adapter.file.table.DuckDBParquetTable;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelProtoDataType;
+import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.util.Source;
@@ -60,7 +63,7 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
   private final String columnNameCasing;
   private final @Nullable RelProtoDataType protoRowType;
   private final ExecutionEngineConfig.ExecutionEngineType engineType;
-  private volatile TranslatableTable delegateTable;
+  protected volatile Table delegateTable;
   private final @Nullable SchemaPlus parentSchema;
   private final String fileSchemaName;
   
@@ -105,9 +108,9 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
   protected void doRefresh() {
     File sourceFile = new File(source.path());
     
-    // Check if source is newer than current cache
-    if (sourceFile.lastModified() > parquetFile.lastModified()) {
-      LOGGER.debug("Source file {} is newer than cache, updating parquet cache", source.path());
+    // Check if source file has been modified since our last refresh
+    if (isFileModified(sourceFile)) {
+      LOGGER.debug("Source file {} has been modified, updating parquet cache", source.path());
       
       try {
         // Atomically update the cache using the standard conversion method
@@ -116,6 +119,9 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
         
         // Update delegate table to use new parquet file
         updateDelegateTable();
+        
+        // Update our tracking of when the source file was last seen
+        updateLastModified(sourceFile);
         
         LOGGER.info("Updated parquet cache for {}", source.path());
       } catch (Exception e) {
@@ -130,7 +136,8 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
     if (path.endsWith(".csv") || path.endsWith(".csv.gz")) {
       return new CsvTranslatableTable(source, protoRowType, columnNameCasing, null);
     } else if (path.endsWith(".json") || path.endsWith(".json.gz")) {
-      return new JsonTable(source);
+      // Use JsonScannableTable instead of JsonTable for proper scanning support
+      return new JsonScannableTable(source);
     } else {
       throw new IllegalArgumentException("Unsupported file type for refresh: " + source.path());
     }
@@ -148,14 +155,22 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
       
       this.delegateTable = duckTable;
     } else {
-      this.delegateTable = new ParquetTranslatableTable(parquetFile);
+      // For PARQUET engine, use ParquetScannableTable which properly implements ScannableTable
+      // This avoids the type mismatch issues with ParquetTranslatableTable
+      this.delegateTable = new org.apache.calcite.adapter.file.table.ParquetScannableTable(parquetFile);
     }
   }
 
   @Override
   public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable relOptTable) {
     refresh(); // Check if refresh needed before query
-    return delegateTable.toRel(context, relOptTable);
+    if (delegateTable instanceof TranslatableTable) {
+      return ((TranslatableTable) delegateTable).toRel(context, relOptTable);
+    } else {
+      // For ScannableTable delegates, use LogicalTableScan
+      return org.apache.calcite.rel.logical.LogicalTableScan.create(context.getCluster(), relOptTable, 
+                                                                     context.getTableHints());
+    }
   }
 
   @Override
@@ -166,6 +181,7 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
     }
     return delegateTable.getRowType(typeFactory);
   }
+
 
 
   @Override
@@ -186,6 +202,7 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
   public Source getSource() {
     return source;
   }
+
 
   @Override
   public String toString() {

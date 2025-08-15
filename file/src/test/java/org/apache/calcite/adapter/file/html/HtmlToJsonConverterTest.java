@@ -17,8 +17,7 @@
 package org.apache.calcite.adapter.file.html;
 
 import org.apache.calcite.adapter.file.converters.HtmlToJsonConverter;
-import org.apache.calcite.adapter.file.converters.HtmlTableScanner;
-import org.apache.calcite.adapter.file.converters.ConverterUtils;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -251,8 +250,8 @@ public class HtmlToJsonConverterTest {
 
     String fileName = jsonFiles.get(0).getName();
     assertTrue(fileName.startsWith("special_"));
-    // ID "sales-data (2024)" gets sanitized to "salesdata_2024"
-    assertTrue(fileName.contains("salesdata_2024"));
+    // ID "sales-data (2024)" gets sanitized to "sales_data_2024" with dashes converted to underscores
+    assertTrue(fileName.contains("sales_data_2024"));
     assertTrue(fileName.endsWith(".json"));
 
     System.out.println("\n=== SPECIAL CHARACTERS TEST ===");

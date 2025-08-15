@@ -20,22 +20,22 @@ import org.apache.calcite.adapter.file.BaseFileTest;
 import org.apache.calcite.util.Sources;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-
+import org.junit.jupiter.api.Tag;import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.Tag;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
+import org.junit.jupiter.api.Tag;import static org.junit.jupiter.api.Assertions.assertNotNull;
+import org.junit.jupiter.api.Tag;import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.Tag;
 /**
  * Tests for IcebergTable implementation.
  * Basic unit tests using local test files.
  */
-public class IcebergTableTest extends BaseFileTest {
+@Tag("integration")public class IcebergTableTest extends BaseFileTest {
   
   @TempDir
   static Path tempDir;

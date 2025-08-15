@@ -127,19 +127,19 @@ public class FtpStorageProvider implements StorageProvider {
     try {
       // Set a shorter timeout for exists check to avoid long waits
       ftpClient.setDataTimeout(java.time.Duration.ofSeconds(10));
-      
+
       // For directories, use changeWorkingDirectory which is more reliable
       if (ftpUri.path.endsWith("/")) {
         return ftpClient.changeWorkingDirectory(ftpUri.path);
       }
-      
+
       // Try using MLST command first (more efficient for single file)
       ftpClient.sendCommand("MLST", ftpUri.path);
       int replyCode = ftpClient.getReplyCode();
       if (FTPReply.isPositiveCompletion(replyCode)) {
         return true;
       }
-      
+
       // Fallback to listing files if MLST is not supported
       FTPFile[] files = ftpClient.listFiles(ftpUri.path);
       return files.length > 0;
@@ -204,7 +204,7 @@ public class FtpStorageProvider implements StorageProvider {
     ftpClient.setDefaultTimeout(DATA_TIMEOUT);
 
     ftpClient.connect(ftpUri.host, ftpUri.port);
-    
+
     // Set socket timeout after connection is established
     ftpClient.setSoTimeout(DATA_TIMEOUT);
 

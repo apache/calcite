@@ -68,10 +68,6 @@ public class JsonScannableTable extends JsonTable
       @Override public Enumerator<@Nullable Object[]> enumerator() {
         JavaTypeFactory typeFactory = root.getTypeFactory();
         List<Object> dataList = getDataList(typeFactory);
-        System.out.println("JsonScannableTable.scan: dataList size = " + dataList.size());
-        if (!dataList.isEmpty()) {
-          System.out.println("JsonScannableTable.scan: first item = " + dataList.get(0));
-        }
         return new JsonEnumerator(dataList);
       }
     };

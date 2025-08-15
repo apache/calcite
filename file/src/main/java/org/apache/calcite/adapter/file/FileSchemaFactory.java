@@ -16,10 +16,12 @@
  */
 package org.apache.calcite.adapter.file;
 
+import org.apache.calcite.adapter.file.duckdb.DuckDBJdbcSchemaFactory;
 import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
 import org.apache.calcite.adapter.file.execution.duckdb.DuckDBConfig;
 import org.apache.calcite.adapter.file.metadata.InformationSchema;
 import org.apache.calcite.adapter.file.metadata.PostgresMetadataSchema;
+import org.apache.calcite.adapter.jdbc.JdbcSchema;
 import org.apache.calcite.model.ModelHandler;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaFactory;
@@ -41,7 +43,7 @@ import java.util.Map;
 @SuppressWarnings("UnusedDeclaration")
 public class FileSchemaFactory implements SchemaFactory {
   private static final Logger LOGGER = LoggerFactory.getLogger(FileSchemaFactory.class);
-  
+
   /** Public singleton, per factory contract. */
   public static final FileSchemaFactory INSTANCE = new FileSchemaFactory();
 
@@ -77,12 +79,15 @@ public class FileSchemaFactory implements SchemaFactory {
     // Get DuckDB configuration if provided
     @SuppressWarnings("unchecked") Map<String, Object> duckdbConfigMap =
         (Map<String, Object>) operand.get("duckdbConfig");
-    final DuckDBConfig duckdbConfig = duckdbConfigMap != null 
-        ? new DuckDBConfig(duckdbConfigMap) 
+    final DuckDBConfig duckdbConfig = duckdbConfigMap != null
+        ? new DuckDBConfig(duckdbConfigMap)
         : null;
 
+    // Get custom Parquet cache directory if provided
+    final String parquetCacheDirectory = (String) operand.get("parquetCacheDirectory");
+
     final ExecutionEngineConfig engineConfig =
-        new ExecutionEngineConfig(executionEngine, batchSize, memoryThreshold, null, duckdbConfig);
+        new ExecutionEngineConfig(executionEngine, batchSize, memoryThreshold, null, duckdbConfig, parquetCacheDirectory);
 
     // Get recursive parameter (default to false for backward compatibility)
     final boolean recursive = operand.get("recursive") == Boolean.TRUE;
@@ -132,9 +137,9 @@ public class FileSchemaFactory implements SchemaFactory {
         (Map<String, Object>) operand.get("csvTypeInference");
 
     // Get prime_cache option (default to true for optimal performance)
-    final Boolean primeCache = operand.get("primeCache") != null 
-        ? (Boolean) operand.get("primeCache") 
-        : operand.get("prime_cache") != null 
+    final Boolean primeCache = operand.get("primeCache") != null
+        ? (Boolean) operand.get("primeCache")
+        : operand.get("prime_cache") != null
             ? (Boolean) operand.get("prime_cache")
             : Boolean.TRUE;  // Default to true
 
@@ -155,16 +160,29 @@ public class FileSchemaFactory implements SchemaFactory {
       // For cloud storage, use the directory as-is (it's a URI like s3://bucket/path)
       // Create a fake File object that just holds the path
       directoryFile = new File(directory) {
-        @Override
-        public String getPath() {
+        @Override public String getPath() {
           return directory;
         }
-        @Override 
-        public String getAbsolutePath() {
+        @Override public String getAbsolutePath() {
           return directory;
         }
       };
     }
+
+    // If DuckDB engine is selected and we have a local directory, use JDBC adapter for proper pushdown
+    if (engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.DUCKDB
+        && directoryFile != null && directoryFile.exists() && directoryFile.isDirectory()
+        && storageType == null) {
+      LOGGER.info("Using DuckDB JDBC adapter for schema '{}' with proper query pushdown", name);
+      JdbcSchema duckdbSchema = DuckDBJdbcSchemaFactory.create(parentSchema, name, directoryFile, recursive);
+
+      // Add metadata schemas as sibling schemas
+      addMetadataSchemas(parentSchema);
+
+      return duckdbSchema;
+    }
+
+    // Otherwise use regular FileSchema
     FileSchema fileSchema =
         new FileSchema(parentSchema, name, directoryFile, directoryPattern, tables, engineConfig, recursive,
         materializations, views, partitionedTables, refreshInterval, tableNameCasing,
@@ -188,7 +206,7 @@ public class FileSchemaFactory implements SchemaFactory {
       PostgresMetadataSchema pgSchema = new PostgresMetadataSchema(rootSchema, "CALCITE");
       parentSchema.add("pg_catalog", pgSchema);
     }
-    
+
     // Ensure the standard Calcite metadata schema is preserved
     // It should already exist at the root level from CalciteConnectionImpl
     if (rootSchema.subSchemas().get("metadata") != null && parentSchema.subSchemas().get("metadata") == null) {
@@ -198,5 +216,30 @@ public class FileSchemaFactory implements SchemaFactory {
     }
 
     return fileSchema;
+  }
+
+  private static void addMetadataSchemas(SchemaPlus parentSchema) {
+    // Get the root schema to access all schemas for metadata
+    SchemaPlus rootSchema = parentSchema;
+    while (rootSchema.getParentSchema() != null) {
+      rootSchema = rootSchema.getParentSchema();
+    }
+
+    // Only add metadata schemas if they don't already exist
+    if (rootSchema.subSchemas().get("information_schema") == null) {
+      InformationSchema infoSchema = new InformationSchema(rootSchema, "CALCITE");
+      parentSchema.add("information_schema", infoSchema);
+    }
+
+    if (rootSchema.subSchemas().get("pg_catalog") == null) {
+      PostgresMetadataSchema pgSchema = new PostgresMetadataSchema(rootSchema, "CALCITE");
+      parentSchema.add("pg_catalog", pgSchema);
+    }
+
+    // Ensure the standard Calcite metadata schema is preserved
+    if (rootSchema.subSchemas().get("metadata") != null && parentSchema.subSchemas().get("metadata") == null) {
+      SchemaPlus metadataSchema = rootSchema.subSchemas().get("metadata");
+      parentSchema.add("metadata", metadataSchema.unwrap(Schema.class));
+    }
   }
 }

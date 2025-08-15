@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.file;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Tag;
 
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
@@ -29,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Test for understanding glob pattern behavior.
  */
+@Tag("unit")
 public class GlobPatternTest {
 
   @Test void testGlobPatterns() {

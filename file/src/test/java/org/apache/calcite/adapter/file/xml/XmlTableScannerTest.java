@@ -20,9 +20,9 @@ import org.apache.calcite.adapter.file.converters.XmlTableScanner;
 import org.apache.calcite.util.Sources;
 
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Tag;import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Tag;import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -37,6 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Tests for XML table scanner.
  */
+@Tag("unit")
 class XmlTableScannerTest {
   
   @TempDir

@@ -25,6 +25,7 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -52,6 +53,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * and ReproduceSpuriousTest.
  */
 @SuppressWarnings("deprecation")
+@Tag("unit")
 public class SpuriousTableComprehensiveTest {
 
   @TempDir
@@ -288,7 +290,7 @@ public class SpuriousTableComprehensiveTest {
           // If we can't query the table (e.g., "0 HTML element(s) selected" or "3 HTML element(s) selected"),
           // this might actually be correct spurious table detection behavior
           System.out.println("Failed to query table " + tableName + ": " + e.getMessage());
-          if (e.getMessage().contains("HTML element(s) selected") || 
+          if (e.getMessage().contains("HTML element(s) selected") ||
               e.getMessage().contains("No HTML elements found with selector")) {
             // This is expected for spurious/layout tables that can't be properly parsed
             // or have ambiguous table selection (e.g., nested tables with problematic selectors)

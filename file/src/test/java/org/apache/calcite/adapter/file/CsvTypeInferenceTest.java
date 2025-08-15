@@ -20,6 +20,7 @@ import org.apache.calcite.adapter.file.format.csv.CsvTypeInferrer;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Sources;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -42,6 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Tests for CSV type inference functionality.
  */
+@Tag("unit")
 public class CsvTypeInferenceTest {
 
   /**

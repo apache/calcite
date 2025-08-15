@@ -28,6 +28,7 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
+import java.net.URLConnection;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -183,8 +184,8 @@ public class HtmlCrawler {
           // Get links from page (uses cache)
           ExtractedLinks links = linkCache.getLinks(url);
           
-          // Process HTML tables
-          if (!links.getTables().isEmpty()) {
+          // Process HTML tables if configured
+          if (config.isGenerateTablesFromHtml() && !links.getTables().isEmpty()) {
             result.addHtmlTables(url, links.getTables());
             LOGGER.info("Found " + links.getTables().size() + " tables in " + url);
           }
@@ -214,8 +215,8 @@ public class HtmlCrawler {
   private void processSinglePage(String url, CrawlResult result) throws IOException {
     ExtractedLinks links = linkCache.getLinks(url);
     
-    // Add HTML tables
-    if (!links.getTables().isEmpty()) {
+    // Add HTML tables if configured
+    if (config.isGenerateTablesFromHtml() && !links.getTables().isEmpty()) {
       result.addHtmlTables(url, links.getTables());
     }
     
@@ -281,34 +282,39 @@ public class HtmlCrawler {
     String fileName = getFileName(url);
     File tempFile = new File(tempDir, fileName);
     
-    HttpURLConnection conn;
     try {
-      conn = (HttpURLConnection) new URI(url).toURL().openConnection();
-    } catch (Exception e) {
-      throw new IOException("Invalid URL: " + url, e);
-    }
-    conn.setConnectTimeout(30000);
-    conn.setReadTimeout(30000);
-    
-    try (InputStream is = conn.getInputStream();
-         FileOutputStream fos = new FileOutputStream(tempFile)) {
+      URLConnection connection = new URI(url).toURL().openConnection();
+      connection.setConnectTimeout(30000);
+      connection.setReadTimeout(30000);
       
-      byte[] buffer = new byte[8192];
-      int bytesRead;
-      long totalBytes = 0;
-      String extension = getFileExtension(url);
-      long maxSize = config.getSizeLimitForExtension(extension);
-      
-      while ((bytesRead = is.read(buffer)) != -1) {
-        totalBytes += bytesRead;
-        if (totalBytes > maxSize) {
-          tempFile.delete();
-          throw new IOException("File size exceeds limit: " + maxSize + " bytes");
+      try (InputStream is = connection.getInputStream();
+           FileOutputStream fos = new FileOutputStream(tempFile)) {
+        
+        byte[] buffer = new byte[8192];
+        int bytesRead;
+        long totalBytes = 0;
+        String extension = getFileExtension(url);
+        long maxSize = config.getSizeLimitForExtension(extension);
+        
+        while ((bytesRead = is.read(buffer)) != -1) {
+          totalBytes += bytesRead;
+          if (totalBytes > maxSize) {
+            tempFile.delete();
+            throw new IOException("File size exceeds limit: " + maxSize + " bytes");
+          }
+          fos.write(buffer, 0, bytesRead);
         }
-        fos.write(buffer, 0, bytesRead);
+      } finally {
+        // Only disconnect if it's an HTTP connection
+        if (connection instanceof HttpURLConnection) {
+          ((HttpURLConnection) connection).disconnect();
+        }
       }
-    } finally {
-      conn.disconnect();
+    } catch (Exception e) {
+      if (e instanceof IOException) {
+        throw (IOException) e;
+      }
+      throw new IOException("Invalid URL: " + url, e);
     }
     
     tempFile.deleteOnExit();
@@ -316,18 +322,25 @@ public class HtmlCrawler {
   }
   
   private long getContentLength(String url) throws IOException {
-    HttpURLConnection conn;
     try {
-      conn = (HttpURLConnection) new URI(url).toURL().openConnection();
+      URLConnection connection = new URI(url).toURL().openConnection();
+      connection.setConnectTimeout(5000);
+      connection.setReadTimeout(5000);
+      
+      if (connection instanceof HttpURLConnection) {
+        HttpURLConnection conn = (HttpURLConnection) connection;
+        conn.setRequestMethod("HEAD");
+        long length = conn.getContentLengthLong();
+        conn.disconnect();
+        return length;
+      } else {
+        // For file:// URLs and other protocols
+        long length = connection.getContentLengthLong();
+        return length;
+      }
     } catch (Exception e) {
       throw new IOException("Invalid URL: " + url, e);
     }
-    conn.setRequestMethod("HEAD");
-    conn.setConnectTimeout(5000);
-    conn.setReadTimeout(5000);
-    long length = conn.getContentLengthLong();
-    conn.disconnect();
-    return length;
   }
   
   private String getFileName(String url) {

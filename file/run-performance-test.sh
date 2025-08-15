@@ -15,7 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-set -e
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -108,6 +107,9 @@ for rows in $ROW_COUNTS; do
     echo -e "${GREEN}Testing with $rows rows${NC}"
     echo "----------------------------------------"
 
+    # Clean caches once per row count (not per engine!)
+    cleanup > /dev/null 2>&1
+
     for scenario in "${SCENARIOS[@]}"; do
         echo ""
         echo -e "${YELLOW}Scenario: $scenario${NC}"
@@ -117,9 +119,6 @@ for rows in $ROW_COUNTS; do
             PROGRESS=$((CURRENT_TEST * 100 / TOTAL_TESTS))
 
             echo -n "[$PROGRESS%] Testing $engine... "
-
-            # Clean caches before each run
-            cleanup > /dev/null 2>&1
 
             # Run the test in isolated JVM with SIMD optimizations
             RESULT=$(java -cp "$CLASSPATH" \
@@ -138,8 +137,8 @@ for rows in $ROW_COUNTS; do
                 # Append result to file
                 echo -n "$RESULT" >> "$RESULTS_FILE"
 
-                # Extract execution time for display
-                EXEC_TIME=$(echo "$RESULT" | grep -o '"executionTimeMs":[0-9]*' | cut -d: -f2)
+                # Extract execution time for display (now with decimal precision)
+                EXEC_TIME=$(echo "$RESULT" | grep -o '"executionTimeMs":[0-9.]*' | cut -d: -f2)
 
                 # Check if HLL warning present
                 if echo "$RESULT" | grep -q '"warning"'; then

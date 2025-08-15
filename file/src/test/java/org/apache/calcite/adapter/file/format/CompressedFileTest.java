@@ -167,6 +167,7 @@ public class CompressedFileTest {
         + "      operand: {\n"
         + "        directory: '" + tempDir.getAbsolutePath().replace("\\", "\\\\") + "',\n"
         + "        executionEngine: 'parquet',\n"
+        + "        parquetCacheDirectory: '" + new File(tempDir, "cache_compressed").getAbsolutePath().replace("\\", "\\\\") + "',\n"
         + "        tableNameCasing: 'LOWER',\n"
         + "        columnNameCasing: 'LOWER'\n"
         + "      }\n"
@@ -184,7 +185,7 @@ public class CompressedFileTest {
       }
 
       // Check that Parquet cache was created
-      File cacheDir = new File(tempDir, ".parquet_cache");
+      File cacheDir = new File(tempDir, "cache_compressed");
       assertTrue(cacheDir.exists());
     }
   }

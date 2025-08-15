@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.file;
 
 import org.apache.calcite.adapter.file.converters.MultiTableExcelToJsonConverter;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
@@ -30,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Test showing what tables are extracted from multi-table Excel files.
  */
+@Tag("unit")
 public class MultiTableExtractorTest {
   @TempDir
   Path tempDir;

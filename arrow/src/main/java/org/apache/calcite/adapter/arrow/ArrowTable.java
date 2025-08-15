@@ -78,8 +78,8 @@ public class ArrowTable extends AbstractTable
   public ArrowTable(@Nullable RelProtoDataType protoRowType, ArrowFileReader arrowFileReader) {
     this(protoRowType, arrowFileReader, null);
   }
-  
-  public ArrowTable(@Nullable RelProtoDataType protoRowType, ArrowFileReader arrowFileReader, 
+
+  public ArrowTable(@Nullable RelProtoDataType protoRowType, ArrowFileReader arrowFileReader,
       java.io.@Nullable File sourceFile) {
     try {
       this.schema = arrowFileReader.getVectorSchemaRoot().getSchema();
@@ -167,7 +167,7 @@ public class ArrowTable extends AbstractTable
     if (sourceFile != null) {
       try {
         java.io.FileInputStream fileInputStream = new java.io.FileInputStream(sourceFile);
-        SeekableReadChannel seekableReadChannel = 
+        SeekableReadChannel seekableReadChannel =
             new SeekableReadChannel(fileInputStream.getChannel());
         BufferAllocator allocator = new RootAllocator();
         readerForQuery = new ArrowFileReader(seekableReadChannel, allocator);
@@ -175,7 +175,7 @@ public class ArrowTable extends AbstractTable
         throw Util.toUnchecked(e);
       }
     }
-    
+
     return new ArrowEnumerable(readerForQuery, fields, projector, filter);
   }
 

@@ -65,6 +65,14 @@ public abstract class Sources {
     return out.toByteArray();
   }
 
+  /** Clears the static file cache. Useful for test isolation. */
+  public static void clearFileCache() {
+    if (FileSource.fileCache != null) {
+      FileSource.fileCache.invalidateAll();
+      FileSource.fileCache.cleanUp();
+    }
+  }
+
   public static Source of(File file) {
     return new FileSource(file);
   }

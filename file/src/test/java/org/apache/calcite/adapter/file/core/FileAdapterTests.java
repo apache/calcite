@@ -23,7 +23,6 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.Ordering;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-
 import org.junit.jupiter.api.Tag;
 
 import java.io.PrintStream;

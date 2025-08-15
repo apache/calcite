@@ -53,6 +53,8 @@ public class DuckDBConfig {
   public static final String DEFAULT_MAX_MEMORY = "80%";
   public static final boolean DEFAULT_ENABLE_PROGRESS_BAR = false;
   public static final boolean DEFAULT_PRESERVE_INSERTION_ORDER = true;
+  public static final boolean DEFAULT_USE_ARROW_OPTIMIZATION = true;
+  public static final int DEFAULT_ARROW_BATCH_SIZE = 1024;
 
   private final String memoryLimit;
   private final int threads;
@@ -60,6 +62,8 @@ public class DuckDBConfig {
   private final String tempDirectory;
   private final boolean enableProgressBar;
   private final boolean preserveInsertionOrder;
+  private final boolean useArrowOptimization;
+  private final int arrowBatchSize;
   private final Properties additionalSettings;
 
   /**
@@ -67,7 +71,8 @@ public class DuckDBConfig {
    */
   public DuckDBConfig() {
     this(DEFAULT_MEMORY_LIMIT, DEFAULT_THREADS, DEFAULT_MAX_MEMORY, null,
-        DEFAULT_ENABLE_PROGRESS_BAR, DEFAULT_PRESERVE_INSERTION_ORDER, null);
+        DEFAULT_ENABLE_PROGRESS_BAR, DEFAULT_PRESERVE_INSERTION_ORDER, 
+        DEFAULT_USE_ARROW_OPTIMIZATION, DEFAULT_ARROW_BATCH_SIZE, null);
   }
 
   /**
@@ -89,6 +94,14 @@ public class DuckDBConfig {
     this.enableProgressBar = Boolean.TRUE.equals(configMap.get("enable_progress_bar"));
     this.preserveInsertionOrder = Boolean.TRUE.equals(
         configMap.getOrDefault("preserve_insertion_order", DEFAULT_PRESERVE_INSERTION_ORDER));
+    
+    this.useArrowOptimization = Boolean.TRUE.equals(
+        configMap.getOrDefault("use_arrow_optimization", DEFAULT_USE_ARROW_OPTIMIZATION));
+    
+    Object batchSizeObj = configMap.get("arrow_batch_size");
+    this.arrowBatchSize = batchSizeObj instanceof Number
+        ? ((Number) batchSizeObj).intValue()
+        : DEFAULT_ARROW_BATCH_SIZE;
 
     // Store any additional settings that aren't explicitly handled
     this.additionalSettings = new Properties();
@@ -105,13 +118,15 @@ public class DuckDBConfig {
    */
   public DuckDBConfig(String memoryLimit, int threads, String maxMemory, 
       String tempDirectory, boolean enableProgressBar, boolean preserveInsertionOrder,
-      Properties additionalSettings) {
+      boolean useArrowOptimization, int arrowBatchSize, Properties additionalSettings) {
     this.memoryLimit = memoryLimit != null ? memoryLimit : DEFAULT_MEMORY_LIMIT;
     this.threads = threads > 0 ? threads : DEFAULT_THREADS;
     this.maxMemory = maxMemory != null ? maxMemory : DEFAULT_MAX_MEMORY;
     this.tempDirectory = tempDirectory;
     this.enableProgressBar = enableProgressBar;
     this.preserveInsertionOrder = preserveInsertionOrder;
+    this.useArrowOptimization = useArrowOptimization;
+    this.arrowBatchSize = arrowBatchSize > 0 ? arrowBatchSize : DEFAULT_ARROW_BATCH_SIZE;
     this.additionalSettings = additionalSettings != null ? additionalSettings : new Properties();
   }
 
@@ -154,7 +169,8 @@ public class DuckDBConfig {
   private boolean isKnownSetting(String key) {
     return "memory_limit".equals(key) || "threads".equals(key) || "max_memory".equals(key)
         || "temp_directory".equals(key) || "enable_progress_bar".equals(key)
-        || "preserve_insertion_order".equals(key);
+        || "preserve_insertion_order".equals(key) || "use_arrow_optimization".equals(key)
+        || "arrow_batch_size".equals(key);
   }
 
   private boolean isNumericValue(String value) {
@@ -199,6 +215,14 @@ public class DuckDBConfig {
     return additionalSettings;
   }
 
+  public boolean isUseArrowOptimization() {
+    return useArrowOptimization;
+  }
+
+  public int getArrowBatchSize() {
+    return arrowBatchSize;
+  }
+
   @Override
   public String toString() {
     return "DuckDBConfig{" +
@@ -208,6 +232,8 @@ public class DuckDBConfig {
         ", tempDirectory='" + tempDirectory + '\'' +
         ", enableProgressBar=" + enableProgressBar +
         ", preserveInsertionOrder=" + preserveInsertionOrder +
+        ", useArrowOptimization=" + useArrowOptimization +
+        ", arrowBatchSize=" + arrowBatchSize +
         ", additionalSettings=" + additionalSettings.size() + " items" +
         '}';
   }

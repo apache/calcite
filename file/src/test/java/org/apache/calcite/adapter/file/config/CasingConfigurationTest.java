@@ -19,9 +19,10 @@ package org.apache.calcite.adapter.file.config;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Tag;import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -155,23 +156,27 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
   @Test void testDefaultCasingBehavior() throws Exception {
     createTestCsvFile(new File(tempDir, "TestFile.csv"));
 
-    // Test default behavior (no casing config specified)
+    // Test default behavior with project standard: LEX=ORACLE and UNQUOTED_CASING=TO_LOWER
+    // Default table casing is SMART_CASING which converts "TestFile" to "test_file"
     String model = createModelWithoutCasing();
 
-    try (Connection conn = DriverManager.getConnection("jdbc:calcite:model=inline:" + model)) {
+    try (Connection conn = DriverManager.getConnection("jdbc:calcite:model=inline:" + model
+        + ";lex=ORACLE;unquotedCasing=TO_LOWER")) {
       CalciteConnection calciteConn = conn.unwrap(CalciteConnection.class);
       SchemaPlus schema = calciteConn.getRootSchema().getSubSchema("TEST");
 
       Set<String> tableNames = schema.getTableNames();
-      // Default table casing should be UPPER
-      assertTrue(tableNames.contains("TESTFILE"));
+      // Default SMART_CASING converts "TestFile" to "test_file"
+      assertTrue(tableNames.contains("test_file"),
+          "Table names found: " + tableNames);
 
       try (Statement stmt = conn.createStatement()) {
-        // Default column casing should be UNCHANGED
-        try (ResultSet rs = stmt.executeQuery("SELECT \"ID\", \"Name\" FROM \"TESTFILE\" ORDER BY \"ID\"")) {
+        // With ORACLE lex and TO_LOWER, unquoted identifiers are lowercase
+        // The table name is test_file (created by SMART_CASING)
+        try (ResultSet rs = stmt.executeQuery("SELECT id, name FROM test_file ORDER BY id")) {
           assertTrue(rs.next());
           assertEquals(1, Integer.parseInt(rs.getString("id")));
-          assertEquals("Alice", rs.getString("Name"));
+          assertEquals("Alice", rs.getString("name"));
         }
       }
     }

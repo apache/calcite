@@ -157,8 +157,12 @@ public class DuckDBConnectionManager {
   private static void registerParquetView(Connection conn, String schemaName, 
                                          String tableName, String parquetPath) {
     try {
+      // Properly quote identifiers for DuckDB to prevent case conversion
+      String quotedSchema = DuckDBSqlGenerator.getDialect().quoteIdentifier(schemaName);
+      String quotedTable = DuckDBSqlGenerator.getDialect().quoteIdentifier(tableName);
+      
       // Drop view if it exists (for re-registration)
-      String dropView = String.format("DROP VIEW IF EXISTS %s.%s", schemaName, tableName);
+      String dropView = String.format("DROP VIEW IF EXISTS %s.%s", quotedSchema, quotedTable);
       try (Statement stmt = conn.createStatement()) {
         stmt.execute(dropView);
       }
@@ -166,12 +170,13 @@ public class DuckDBConnectionManager {
       // Create view from Parquet file
       String createView = String.format(
           "CREATE VIEW %s.%s AS SELECT * FROM read_parquet('%s')",
-          schemaName, tableName, parquetPath.replace("'", "''")
+          quotedSchema, quotedTable, parquetPath.replace("'", "''")
       );
       
       try (Statement stmt = conn.createStatement()) {
         stmt.execute(createView);
-        LOGGER.debug("Registered Parquet view: {}.{} -> {}", schemaName, tableName, parquetPath);
+        LOGGER.debug("Registered Parquet view: {}.{} (quoted: {}.{}) -> {}", 
+                     schemaName, tableName, quotedSchema, quotedTable, parquetPath);
       }
       
     } catch (SQLException e) {

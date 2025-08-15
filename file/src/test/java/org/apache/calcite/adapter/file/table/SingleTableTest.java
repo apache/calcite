@@ -23,6 +23,7 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
@@ -33,6 +34,7 @@ import java.nio.file.Path;
 /**
  * Test single table with identifier to verify no _T1 suffix.
  */
+@Tag("unit")
 public class SingleTableTest {
   @TempDir
   Path tempDir;

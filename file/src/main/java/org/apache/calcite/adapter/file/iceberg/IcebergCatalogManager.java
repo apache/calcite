@@ -21,6 +21,7 @@ import org.apache.iceberg.Table;
 import org.apache.iceberg.catalog.Catalog;
 import org.apache.iceberg.catalog.TableIdentifier;
 import org.apache.iceberg.hadoop.HadoopCatalog;
+import org.apache.iceberg.hadoop.HadoopTables;
 // import org.apache.iceberg.hive.HiveCatalog; // TODO: Add Hive dependency
 import org.apache.iceberg.rest.RESTCatalog;
 
@@ -41,6 +42,17 @@ public class IcebergCatalogManager {
    * @return The loaded Iceberg table
    */
   public static Table loadTable(Map<String, Object> config, String tablePath) {
+    // Check if this is a direct file path (starts with / or contains file://)
+    if (tablePath.startsWith("/") || tablePath.startsWith("file://") || tablePath.contains("warehouse")) {
+      // Direct path loading - load table directly from filesystem
+      try {
+        Configuration hadoopConf = new Configuration();
+        return new HadoopTables(hadoopConf).load(tablePath);
+      } catch (Exception e) {
+        throw new RuntimeException("Failed to load table from path: " + tablePath, e);
+      }
+    }
+    
     String catalogType = (String) config.get("catalog");
     if (catalogType == null) {
       catalogType = "hadoop";

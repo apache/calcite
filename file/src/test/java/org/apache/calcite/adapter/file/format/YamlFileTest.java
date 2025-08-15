@@ -192,7 +192,7 @@ public class YamlFileTest {
   }
 
   @Test void testYamlWithParquetEngine() throws Exception {
-    File yamlFile = new File(tempDir, "data.yaml");
+    File yamlFile = new File(tempDir, "yaml_parquet_test.yaml");
     createEmployeeYaml(yamlFile);
 
     // Test with PARQUET execution engine
@@ -206,7 +206,8 @@ public class YamlFileTest {
         + "      factory: 'org.apache.calcite.adapter.file.FileSchemaFactory',\n"
         + "      operand: {\n"
         + "        directory: '" + tempDir.getAbsolutePath().replace("\\", "\\\\") + "',\n"
-        + "        executionEngine: 'parquet'\n"
+        + "        executionEngine: 'parquet',\n"
+        + "        parquetCacheDirectory: '" + tempDir.getAbsolutePath().replace("\\", "\\\\") + "/test_cache_yaml'\n"
         + "      }\n"
         + "    }\n"
         + "  ]\n"
@@ -216,13 +217,13 @@ public class YamlFileTest {
          Statement stmt = conn.createStatement()) {
 
       // Should work with PARQUET engine via auto-conversion
-      try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as cnt FROM \"data\"")) {
+      try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as cnt FROM \"yaml_parquet_test\"")) {
         assertTrue(rs.next());
         assertEquals(3L, rs.getLong("cnt"));
       }
 
       // Check that Parquet cache was created
-      File cacheDir = new File(tempDir, ".parquet_cache");
+      File cacheDir = new File(tempDir, "test_cache_yaml");
       assertTrue(cacheDir.exists());
     }
   }

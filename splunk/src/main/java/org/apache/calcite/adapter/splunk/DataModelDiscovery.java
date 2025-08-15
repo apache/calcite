@@ -807,8 +807,8 @@ public class DataModelDiscovery {
 
     // Pattern to match field references in SPL expressions
     // Matches field names in various contexts: function args, comparisons, etc.
-    Pattern fieldPattern = Pattern.compile(
-        "(?:isnull|isnotnull|isnum|len)\\s*\\(\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\)|" // Functions
+    Pattern fieldPattern =
+        Pattern.compile("(?:isnull|isnotnull|isnum|len)\\s*\\(\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\)|" // Functions
         + "([a-zA-Z_][a-zA-Z0-9_]*)\\s*(?:=|!=|<|>|<=|>=)|" // Comparisons (field on left)
         + "(?:=|!=|<|>|<=|>=)\\s*([a-zA-Z_][a-zA-Z0-9_]*)|" // Comparisons (field on right)
         + "(?:^|[\\s,\\(])([a-zA-Z_][a-zA-Z0-9_]*)(?:\\s*[\\+\\-\\*/])|" // Math operations

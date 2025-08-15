@@ -19,16 +19,16 @@ package org.apache.calcite.adapter.file;
 import org.apache.calcite.adapter.file.storage.FtpStorageProvider;
 
 import org.junit.jupiter.api.Test;
-
+import org.junit.jupiter.api.Tag;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
+import org.junit.jupiter.api.Tag;import static org.junit.jupiter.api.Assertions.assertThrows;
+import org.junit.jupiter.api.Tag;import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.Tag;
 /**
  * Unit tests for FTP storage provider functionality.
  * These tests verify the logic without requiring a real FTP server.
  */
-public class FtpStorageProviderMockTest {
+@Tag("unit")public class FtpStorageProviderMockTest {
 
   @Test void testFtpUriParsing() {
     FtpStorageProvider provider = new FtpStorageProvider();

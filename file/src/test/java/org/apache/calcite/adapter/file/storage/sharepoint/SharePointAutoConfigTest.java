@@ -21,8 +21,8 @@ import org.apache.calcite.adapter.file.storage.MicrosoftGraphTokenManager;
 import org.apache.calcite.adapter.file.storage.StorageProvider;
 
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-
+import org.junit.jupiter.api.Tag;import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Tag;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -34,8 +34,8 @@ import java.util.Locale;
 import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
-
+import org.junit.jupiter.api.Tag;import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import org.junit.jupiter.api.Tag;
 /**
  * Automated SharePoint test using Microsoft Graph API that loads credentials from multiple sources.
  *
@@ -47,7 +47,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  *
  * No need for -DrunSharePointTests flag!
  */
-public class SharePointAutoConfigTest {
+@Tag("integration")public class SharePointAutoConfigTest {
 
   private static Properties config;
   private static boolean credentialsAvailable = false;

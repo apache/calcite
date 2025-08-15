@@ -30,10 +30,10 @@ public class StatisticsConfig {
   private final boolean autoGenerateStatistics;
   
   /**
-   * Default configuration with HLL disabled for standard COUNT(DISTINCT).
-   * HLL should only be enabled for explicit APPROX_COUNT_DISTINCT functions.
+   * Default configuration with HLL enabled for COUNT(DISTINCT) optimization.
+   * HLL provides approximate counts with controllable precision.
    */
-  public static final StatisticsConfig DEFAULT = new Builder().hllEnabled(false).build();
+  public static final StatisticsConfig DEFAULT = new Builder().hllEnabled(true).build();
   
   /**
    * Configuration with HLL disabled (for testing or resource-constrained environments).
@@ -106,7 +106,7 @@ public class StatisticsConfig {
     String hllEnabled = System.getProperty("calcite.file.statistics.hll.enabled", "false");
     builder.hllEnabled(Boolean.parseBoolean(hllEnabled));
     
-    String hllPrecision = System.getProperty("calcite.file.statistics.hll.precision", "12");
+    String hllPrecision = System.getProperty("calcite.file.statistics.hll.precision", "14");
     builder.hllPrecision(Integer.parseInt(hllPrecision));
     
     String hllThreshold = System.getProperty("calcite.file.statistics.hll.threshold", "1000");
@@ -220,8 +220,8 @@ public class StatisticsConfig {
    * Builder for StatisticsConfig.
    */
   public static class Builder {
-    private boolean hllEnabled = false; // HLL disabled by default - useless for SQL
-    private int hllPrecision = 12; // Good balance of accuracy and memory
+    private boolean hllEnabled = true; // HLL enabled by default for optimization
+    private int hllPrecision = 14; // 14-bit precision: ~0.8% error vs 12-bit ~1.6% error (4x memory for 6x better accuracy)
     private long hllThreshold = 1000; // Generate HLL for columns with >1K estimated distinct values
     private long maxCacheAge = 7 * 24 * 60 * 60 * 1000L; // 7 days in milliseconds
     private boolean backgroundGeneration = true; // Generate statistics in background by default

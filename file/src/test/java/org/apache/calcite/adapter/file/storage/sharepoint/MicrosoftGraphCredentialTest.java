@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.file;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Tag;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -32,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Test to verify Microsoft Graph API credentials are available locally.
  * This test checks multiple credential sources and reports their status.
  */
+@Tag("integration")
 public class MicrosoftGraphCredentialTest {
 
   @Test void verifyCredentialsAvailable() {

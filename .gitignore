@@ -70,3 +70,8 @@ local.properties
 *.log
 .parquet_cache/
 
+/performance_results/
+/file/calcite_*
+/calcite_*
+/test_output.txt
+/file/testdb

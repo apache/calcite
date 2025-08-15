@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.file.integration;
 
+import org.apache.calcite.adapter.file.FileSchemaFactory;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 
@@ -188,9 +189,10 @@ public class MixedFormatGlobTest {
          Statement stmt = conn.createStatement()) {
 
       // Test three-way join across CSV, JSON, and YAML
+      // Use CAST to ensure type compatibility between string and integer values
       String query = "SELECT e.\"name\" as employee, d.\"name\" as department, l.\"city\" "
           + "FROM \"employees\" e "
-          + "JOIN \"departments\" d ON e.\"dept_id\" = d.\"id\" "
+          + "JOIN \"departments\" d ON CAST(e.\"dept_id\" AS INTEGER) = d.\"id\" "
           + "JOIN \"locations\" l ON d.\"location_id\" = l.\"id\" "
           + "ORDER BY e.\"name\"";
 

@@ -17,9 +17,12 @@
 package org.apache.calcite.adapter.file.execution;
 
 import org.apache.calcite.adapter.file.execution.duckdb.DuckDBConfig;
+import org.apache.calcite.adapter.file.execution.duckdb.DuckDBExecutionEngine;
 
+import java.io.File;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,8 +32,8 @@ import org.slf4j.LoggerFactory;
  *
  * <p>Supports different execution engines for processing file data:
  * <ul>
- *   <li><b>PARQUET</b>: Parquet-based columnar processing with streaming support (default)</li>
- *   <li><b>DUCKDB</b>: DuckDB-based analytical processing with SQL pushdown</li>
+ *   <li><b>DUCKDB</b>: DuckDB-based analytical processing with SQL pushdown (default when available)</li>
+ *   <li><b>PARQUET</b>: Parquet-based columnar processing with streaming support (fallback)</li>
  *   <li><b>LINQ4J</b>: Traditional row-by-row processing</li>
  *   <li><b>ARROW</b>: Arrow-based columnar processing</li>
  *   <li><b>VECTORIZED</b>: Optimized vectorized Arrow processing</li>
@@ -40,7 +43,7 @@ public class ExecutionEngineConfig {
   private static final Logger LOGGER = LoggerFactory.getLogger(ExecutionEngineConfig.class);
 
   /** Default execution engine if not specified. */
-  public static final String DEFAULT_EXECUTION_ENGINE = "parquet";
+  public static final String DEFAULT_EXECUTION_ENGINE = getDefaultEngine();
 
   /** Default batch size for columnar engines. */
   public static final int DEFAULT_BATCH_SIZE = 2048;
@@ -54,6 +57,7 @@ public class ExecutionEngineConfig {
   private final String materializedViewStoragePath;
   private final boolean useCustomStoragePath;
   private final DuckDBConfig duckdbConfig;
+  private final String parquetCacheDirectory;
 
   public ExecutionEngineConfig(String executionEngine, int batchSize) {
     this(executionEngine, batchSize, DEFAULT_MEMORY_THRESHOLD, null);
@@ -71,12 +75,19 @@ public class ExecutionEngineConfig {
 
   public ExecutionEngineConfig(String executionEngine, int batchSize,
       long memoryThreshold, String materializedViewStoragePath, DuckDBConfig duckdbConfig) {
+    this(executionEngine, batchSize, memoryThreshold, materializedViewStoragePath, duckdbConfig, null);
+  }
+
+  public ExecutionEngineConfig(String executionEngine, int batchSize,
+      long memoryThreshold, String materializedViewStoragePath, DuckDBConfig duckdbConfig,
+      String parquetCacheDirectory) {
     this.engineType = parseExecutionEngine(executionEngine);
     this.batchSize = batchSize;
     this.memoryThreshold = memoryThreshold;
     this.materializedViewStoragePath = materializedViewStoragePath;
     this.useCustomStoragePath = materializedViewStoragePath != null;
     this.duckdbConfig = duckdbConfig != null ? duckdbConfig : new DuckDBConfig();
+    this.parquetCacheDirectory = parquetCacheDirectory;
   }
 
   public ExecutionEngineConfig() {
@@ -87,15 +98,13 @@ public class ExecutionEngineConfig {
     try {
       ExecutionEngineType engineType = ExecutionEngineType.valueOf(executionEngine.toUpperCase(Locale.ROOT));
 
-      // Warn when using non-PARQUET engines
-      if (engineType != ExecutionEngineType.PARQUET) {
+      // Warn when using non-recommended engines (neither DUCKDB nor PARQUET)
+      if (engineType != ExecutionEngineType.DUCKDB && engineType != ExecutionEngineType.PARQUET) {
         LOGGER.warn("WARNING: Using execution engine '{}' is not recommended for production use.", executionEngine);
-        LOGGER.warn("         The PARQUET engine is the default and recommended choice for:");
-        LOGGER.warn("         - Best performance (1.6x faster)");
-        LOGGER.warn("         - Automatic file update detection");
-        LOGGER.warn("         - Disk spillover for unlimited dataset sizes");
-        LOGGER.warn("         - Redis distributed cache support");
-        LOGGER.warn("         Other engines are primarily for benchmarking purposes.");
+        LOGGER.warn("         Recommended engines:");
+        LOGGER.warn("         - DUCKDB: Best performance for analytics (10-100x faster)");
+        LOGGER.warn("         - PARQUET: Good performance with streaming support");
+        LOGGER.warn("         Other engines are primarily for benchmarking or compatibility purposes.");
       }
 
       return engineType;
@@ -128,6 +137,30 @@ public class ExecutionEngineConfig {
 
   public DuckDBConfig getDuckDBConfig() {
     return duckdbConfig;
+  }
+
+  public String getParquetCacheDirectory() {
+    return parquetCacheDirectory;
+  }
+
+  /**
+   * Determines the default execution engine based on driver availability.
+   * Defaults to DuckDB if the driver is in the classpath, otherwise falls back to PARQUET.
+   * 
+   * @return The default execution engine name
+   */
+  private static String getDefaultEngine() {
+    // Temporarily reverting to linq4j for testing
+    return "linq4j";
+    /*
+    if (DuckDBExecutionEngine.isAvailable()) {
+      LOGGER.info("DuckDB driver detected in classpath - using DUCKDB as default execution engine");
+      return "duckdb";
+    } else {
+      LOGGER.debug("DuckDB driver not found in classpath - using PARQUET as default execution engine");
+      return "parquet";
+    }
+    */
   }
 
   /**

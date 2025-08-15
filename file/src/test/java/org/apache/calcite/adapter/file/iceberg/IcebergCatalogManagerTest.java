@@ -23,9 +23,9 @@ import org.apache.iceberg.Schema;
 import org.apache.iceberg.types.Types;
 
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-
 import java.net.ConnectException;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -35,10 +35,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
 /**
  * Tests for IcebergCatalogManager.
  */
+@Tag("unit")
 public class IcebergCatalogManagerTest {
 
   @TempDir
@@ -55,7 +55,6 @@ public class IcebergCatalogManagerTest {
   }
 
   @Test
-  @Disabled("Requires actual Iceberg table infrastructure")
   public void testLoadTableFromHadoopCatalog() throws Exception {
     // Setup
     String warehousePath = tempDir.resolve("warehouse").toString();
@@ -78,11 +77,11 @@ public class IcebergCatalogManagerTest {
     config.put("tablePath", "test_table");
     Table loadedTable = IcebergCatalogManager.loadTable(config, "test_table");
     assertNotNull(loadedTable);
-    assertEquals("test_table", loadedTable.name());
+    // Table name may include default namespace prefix from Iceberg
+    assertTrue(loadedTable.name().equals("test_table") || loadedTable.name().equals("hadoop.test_table"));
   }
 
   @Test
-  @Disabled("Requires actual Iceberg table infrastructure")
   public void testDirectPathLoading() throws Exception {
     // Setup - create a table first
     String warehousePath = tempDir.resolve("warehouse").toString();
@@ -99,8 +98,10 @@ public class IcebergCatalogManagerTest {
     Table createdTable = catalog.createTable(tableId, schema);
     String tablePath = createdTable.location();
     
-    // Load table directly by path
+    // Load table directly by path - need warehousePath for catalog creation
     Map<String, Object> directConfig = new HashMap<>();
+    directConfig.put("catalogType", "hadoop");
+    directConfig.put("warehousePath", warehousePath);
     Table directTable = IcebergCatalogManager.loadTable(directConfig, tablePath);
     assertNotNull(directTable);
     assertEquals(tablePath, directTable.location());
@@ -173,7 +174,6 @@ public class IcebergCatalogManagerTest {
   }
 
   @Test
-  @Disabled("Requires actual Iceberg table infrastructure")
   public void testParseTablePath() throws Exception {
     // Setup catalog
     String warehousePath = tempDir.resolve("warehouse").toString();

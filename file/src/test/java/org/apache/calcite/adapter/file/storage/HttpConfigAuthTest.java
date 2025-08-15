@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.file.storage;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Tag;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -27,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Unit tests for HttpConfig authentication configuration.
  * Tests configuration parsing and builder patterns without network access.
  */
+@Tag("integration")
 public class HttpConfigAuthTest {
   
   @Test

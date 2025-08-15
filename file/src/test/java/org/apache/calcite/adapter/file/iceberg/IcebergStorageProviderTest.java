@@ -19,6 +19,8 @@ package org.apache.calcite.adapter.file.iceberg;
 import org.apache.calcite.adapter.file.storage.StorageProvider;
 
 import org.apache.iceberg.catalog.Catalog;
+import org.apache.iceberg.catalog.Namespace;
+import org.apache.iceberg.catalog.SupportsNamespaces;
 import org.apache.iceberg.catalog.TableIdentifier;
 import org.apache.iceberg.hadoop.HadoopCatalog;
 import org.apache.iceberg.Schema;
@@ -28,6 +30,7 @@ import org.apache.hadoop.conf.Configuration;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -45,9 +48,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for IcebergStorageProvider.
- * Integration tests disabled - require actual Iceberg infrastructure.
+ * Tests use local file-based Iceberg tables in a temp directory.
  */
-@Disabled("Integration tests require actual Iceberg table infrastructure")
+@Tag("unit")
 public class IcebergStorageProviderTest {
 
   @TempDir
@@ -70,11 +73,19 @@ public class IcebergStorageProviderTest {
         Types.NestedField.required(2, "data", Types.StringType.get())
     );
     
-    // Create tables in default namespace
-    catalog.createTable(TableIdentifier.of("table1"), schema);
-    catalog.createTable(TableIdentifier.of("table2"), schema);
+    // Create default namespace and tables in it
+    if (catalog instanceof SupportsNamespaces) {
+      SupportsNamespaces nsCatalog = (SupportsNamespaces) catalog;
+      nsCatalog.createNamespace(Namespace.of("default"));
+    }
+    catalog.createTable(TableIdentifier.of("default", "table1"), schema);
+    catalog.createTable(TableIdentifier.of("default", "table2"), schema);
     
-    // Create tables in custom namespace
+    // Create custom namespace and tables in it
+    if (catalog instanceof SupportsNamespaces) {
+      SupportsNamespaces nsCatalog = (SupportsNamespaces) catalog;
+      nsCatalog.createNamespace(Namespace.of("ns1"));
+    }
     catalog.createTable(TableIdentifier.of("ns1", "table3"), schema);
     
     // Create storage provider

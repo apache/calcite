@@ -21,16 +21,16 @@ import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
 
 import org.junit.jupiter.api.Test;
-
+import org.junit.jupiter.api.Tag;
 import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
-
+import org.junit.jupiter.api.Tag;
 /**
  * Simple test to debug FileSchema table discovery.
  */
-public class SimpleSharePointTest {
+@Tag("integration")public class SimpleSharePointTest {
 
   @Test
   void testFileSchemaTableDiscovery() throws Exception {

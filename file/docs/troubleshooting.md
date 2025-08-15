@@ -489,6 +489,38 @@ java.sql.SQLException: DuckDB connection failed
    }
    ```
 
+**Issue: COUNT(DISTINCT) not showing expected performance**
+
+**Symptom:** COUNT(DISTINCT) queries take milliseconds instead of being instant
+
+**Explanation:** The File Adapter uses a pre-optimizer with HyperLogLog statistics to provide instant COUNT(DISTINCT) results. This optimization layer intercepts queries before they reach DuckDB.
+
+**Solutions:**
+
+1. **Verify HLL optimization is enabled:**
+   ```bash
+   # Check system property (should not be set to "false")
+   -Dcalcite.file.statistics.hll.enabled=true
+   ```
+
+2. **Check if HLL statistics are being collected:**
+   - Statistics are built during initial schema load
+   - Verify cache directory exists and is writable
+   - Check logs for HLL sketch creation messages
+
+3. **Performance expectations:**
+   ```sql
+   -- With HLL optimization: 0ms (instant)
+   SELECT COUNT(DISTINCT column) FROM table;
+   
+   -- Without HLL: Time depends on data size
+   -- 10K rows: 1-3ms
+   -- 1M rows: 100-500ms
+   -- 100M rows: several seconds
+   ```
+
+**Note:** This pre-optimizer architecture is unique to the File Adapter's DuckDB integration. Standalone DuckDB cannot access these pre-computed statistics, which is why the File Adapter can achieve "impossible" performance for certain queries.
+
 ### Arrow Engine Memory Issues
 
 **Error:**

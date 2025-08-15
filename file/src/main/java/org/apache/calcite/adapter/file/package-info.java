@@ -111,11 +111,11 @@
  * <pre>{@code
  * -- Query CSV file
  * SELECT * FROM employees WHERE salary > 50000;
- * 
+ *
  * -- Query JSON with multiple tables
- * SELECT u.name, o.total 
+ * SELECT u.name, o.total
  * FROM users u JOIN orders o ON u.id = o.user_id;
- * 
+ *
  * -- Query partitioned Parquet
  * SELECT * FROM sales WHERE year = 2024 AND month = 3;
  * }</pre>

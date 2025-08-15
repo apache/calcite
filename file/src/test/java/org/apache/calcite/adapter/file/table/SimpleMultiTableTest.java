@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.file;
 
 import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
@@ -30,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Simple test to show what tables are extracted from Excel files.
  */
+@Tag("unit")
 public class SimpleMultiTableTest {
   @TempDir
   Path tempDir;

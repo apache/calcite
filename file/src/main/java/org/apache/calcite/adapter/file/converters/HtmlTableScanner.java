@@ -24,6 +24,7 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -50,11 +51,13 @@ public class HtmlTableScanner {
     public final String name;
     public final String selector;
     public final int index;
+    public final int rowCount;
 
-    TableInfo(String name, String selector, int index) {
+    TableInfo(String name, String selector, int index, int rowCount) {
       this.name = name;
       this.selector = selector;
       this.index = index;
+      this.rowCount = rowCount;
     }
   }
 
@@ -66,14 +69,28 @@ public class HtmlTableScanner {
    * @throws IOException If the source cannot be read
    */
   public static List<TableInfo> scanTables(Source source) throws IOException {
+    return scanTables(source, "SMART_CASING");
+  }
+
+  /**
+   * Scans an HTML source and returns information about all tables found.
+   *
+   * @param source The HTML source to scan
+   * @param columnNameCasing The casing strategy for table names
+   * @return List of table information
+   * @throws IOException If the source cannot be read
+   */
+  public static List<TableInfo> scanTables(Source source, String columnNameCasing) throws IOException {
     Document doc;
     String proto = source.protocol();
 
-    if ("file".equals(proto)) {
+    if ("file".equals(proto) && source.file() != null) {
       doc = Jsoup.parse(source.file(), StandardCharsets.UTF_8.name());
     } else {
-      // For URLs, use openStream to handle all protocols
-      doc = Jsoup.parse(source.openStream(), StandardCharsets.UTF_8.name(), "");
+      // For URLs and inline content, use openStream to handle all protocols
+      try (InputStream is = source.openStream()) {
+        doc = Jsoup.parse(is, StandardCharsets.UTF_8.name(), "");
+      }
     }
 
     Elements tables = doc.select("table");
@@ -82,7 +99,7 @@ public class HtmlTableScanner {
 
     for (int i = 0; i < tables.size(); i++) {
       Element table = tables.get(i);
-      String baseName = getTableName(table, i);
+      String baseName = getTableName(table, i, columnNameCasing);
 
       // Ensure unique names
       Integer count = nameCount.get(baseName);
@@ -104,8 +121,11 @@ public class HtmlTableScanner {
         // This will be handled specially by FileReader to select by index
         selector = "table[index=" + i + "]";
       }
+      
+      // Count rows in the table
+      int rowCount = table.select("tr").size();
 
-      tableInfos.add(new TableInfo(finalName, selector, i));
+      tableInfos.add(new TableInfo(finalName, selector, i, rowCount));
     }
 
     return tableInfos;
@@ -114,17 +134,17 @@ public class HtmlTableScanner {
   /**
    * Gets a name for the table based on its id, nearby headings, or caption.
    */
-  private static String getTableName(Element table, int index) {
+  private static String getTableName(Element table, int index, String columnNameCasing) {
     // First try table id attribute
     String id = table.attr("id");
     if (!id.isEmpty()) {
-      return sanitizeName(id);
+      return sanitizeName(id, columnNameCasing);
     }
 
     // Try table caption
     Element caption = table.selectFirst("caption");
     if (caption != null && !caption.text().trim().isEmpty()) {
-      return sanitizeName(caption.text().trim());
+      return sanitizeName(caption.text().trim(), columnNameCasing);
     }
 
     // Look for preceding heading (h1-h6) within 3 elements
@@ -137,7 +157,7 @@ public class HtmlTableScanner {
       if (current.tagName().matches("h[1-6]")) {
         String headingText = current.text().trim();
         if (!headingText.isEmpty()) {
-          return sanitizeName(headingText);
+          return sanitizeName(headingText, columnNameCasing);
         }
       }
     }
@@ -155,7 +175,7 @@ public class HtmlTableScanner {
           || idAttr.contains("title") || idAttr.contains("header")) {
         String text = current.text().trim();
         if (!text.isEmpty()) {
-          return sanitizeName(text);
+          return sanitizeName(text, columnNameCasing);
         }
       }
     }
@@ -167,10 +187,12 @@ public class HtmlTableScanner {
   /**
    * Sanitizes a string to be a valid table name.
    */
-  private static String sanitizeName(String name) {
-    // Replace whitespace with underscores
+  private static String sanitizeName(String name, String columnNameCasing) {
+    // First sanitize the name to make it a valid identifier
+    // Replace whitespace and dashes with underscores
     name = WHITESPACE_PATTERN.matcher(name).replaceAll("_");
-    // Remove invalid characters
+    name = name.replace("-", "_");
+    // Remove other invalid characters
     name = INVALID_NAME_CHARS.matcher(name).replaceAll("");
     // Limit length
     if (name.length() > 50) {
@@ -180,7 +202,15 @@ public class HtmlTableScanner {
     if (!name.isEmpty() && !Character.isLetter(name.charAt(0)) && name.charAt(0) != '_') {
       name = "_" + name;
     }
-    return name.isEmpty() ? "Table" : name;
+    // Handle empty result
+    if (name.isEmpty()) {
+      name = "table";
+    }
+    
+    // Finally, apply the configured casing transformation
+    name = org.apache.calcite.adapter.file.util.SmartCasing.applyCasing(name, columnNameCasing);
+    
+    return name;
   }
 
   /**

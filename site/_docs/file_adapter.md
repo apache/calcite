@@ -1303,7 +1303,7 @@ The file adapter supports configurable identifier casing for both table and colu
 #### Casing Options
 
 - **`"UPPER"`**: Convert identifiers to UPPERCASE
-- **`"LOWER"`**: Convert identifiers to lowercase  
+- **`"LOWER"`**: Convert identifiers to lowercase
 - **`"UNCHANGED"`**: Preserve original casing
 - **`"SMART_CASING"`**: Intelligent PostgreSQL-style snake_case conversion with acronym preservation
 
@@ -1313,7 +1313,7 @@ The file adapter supports configurable identifier casing for both table and colu
 
 **Examples:**
 - `XMLHttpRequest` → `xml_http_request` (not `x_m_l_http_request`)
-- `PostgreSQLConnection` → `postgresql_connection` 
+- `PostgreSQLConnection` → `postgresql_connection`
 - `OAuth2Token` → `oauth2_token`
 - `RESTAPIEndpoint` → `rest_api_endpoint`
 

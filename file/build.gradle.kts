@@ -42,8 +42,10 @@ dependencies {
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.17.2")
 
     // Arrow dependencies for vectorized execution engine
-    implementation("org.apache.arrow:arrow-vector")
-    implementation("org.apache.arrow:arrow-memory-netty")
+    implementation("org.apache.arrow:arrow-vector:15.0.2")
+    implementation("org.apache.arrow:arrow-memory-netty:15.0.2")
+    implementation("org.apache.arrow:arrow-format:15.0.2")
+    // Removed arrow-c-data - was only for DuckDB Arrow integration which has 400+ms overhead
     implementation("org.apache.arrow.gandiva:arrow-gandiva")
 
     // Parquet dependencies for Parquet execution engine
@@ -72,8 +74,8 @@ dependencies {
 
     testImplementation(project(":testkit"))
     // DuckDB for performance comparison tests and optional execution engine
-    compileOnly("org.duckdb:duckdb_jdbc:1.1.0")
-    testImplementation("org.duckdb:duckdb_jdbc:1.1.0")
+    compileOnly("org.duckdb:duckdb_jdbc:1.1.3")
+    testImplementation("org.duckdb:duckdb_jdbc:1.1.3")
     
     annotationProcessor("org.immutables:value")
     compileOnly("org.immutables:value-annotations")
@@ -114,6 +116,23 @@ ide {
 }
 
 tasks.test {
+    useJUnitPlatform {
+        // By default, run only unit tests for faster feedback
+        includeTags("unit")
+        // To run all tests: ./gradlew test -PrunAllTests=true
+        // To run specific tags: ./gradlew test -PincludeTags=integration,performance
+        if (project.hasProperty("runAllTests")) {
+            includeTags() // Clear filters to run all tests
+        }
+        if (project.hasProperty("includeTags")) {
+            val tags = project.property("includeTags").toString().split(",")
+            includeTags(*tags.toTypedArray())
+        }
+        if (project.hasProperty("excludeTags")) {
+            val tags = project.property("excludeTags").toString().split(",")
+            excludeTags(*tags.toTypedArray())
+        }
+    }
     jvmArgs(
         "--add-opens=java.base/java.nio=org.apache.arrow.memory.core,ALL-UNNAMED",
         "--add-opens=java.base/java.nio=org.apache.arrow.memory.netty,ALL-UNNAMED",

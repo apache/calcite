@@ -19,9 +19,12 @@ package org.apache.calcite.adapter.file;
 import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.util.Sources;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
@@ -42,14 +45,26 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Test for recursive directory scanning feature.
  */
+@Tag("unit")
 public class RecursiveDirectoryTest {
   @TempDir
   Path tempDir;
 
   @BeforeEach
   public void setUp() throws Exception {
+    // Clear any static caches that might interfere with test isolation
+    Sources.clearFileCache();
+    System.gc();
     // Create nested directory structure with CSV files
     createNestedDirectoryStructure();
+  }
+
+  @AfterEach
+  public void tearDown() throws Exception {
+    // Clear caches after each test to prevent contamination
+    Sources.clearFileCache();
+    System.gc();
+    Thread.sleep(100);
   }
 
   private void createNestedDirectoryStructure() throws Exception {

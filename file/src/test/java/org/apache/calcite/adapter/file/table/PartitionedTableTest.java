@@ -30,8 +30,12 @@ import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 import org.apache.parquet.hadoop.util.HadoopOutputFile;
 import org.apache.parquet.io.OutputFile;
 
+import org.apache.calcite.util.Sources;
+
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
@@ -54,6 +58,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 2. Unconfigured partitioned tables (warning but works)
  * 3. Configured non-Hive partitioned tables
  */
+@Tag("unit")
 public class PartitionedTableTest {
   @TempDir
   java.nio.file.Path tempDir;
@@ -73,6 +78,17 @@ public class PartitionedTableTest {
   @BeforeEach
   public void setUp() {
     avroSchema = new Schema.Parser().parse(AVRO_SCHEMA_STRING);
+    // Clear any static caches that might interfere with test isolation
+    Sources.clearFileCache();
+    System.gc();
+  }
+
+  @AfterEach
+  public void tearDown() throws Exception {
+    // Clear caches after each test to prevent contamination
+    Sources.clearFileCache();
+    System.gc();
+    Thread.sleep(100);
   }
 
   @Test public void testHiveStylePartitionedTable() throws Exception {

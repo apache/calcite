@@ -38,7 +38,7 @@ Mix storage types by using explicit table URLs or multiple schemas.
 - **Multiple Execution Engines Per Connection** - Use different engines for different schemas:
   - **Parquet**: Large datasets (>2GB) with automatic spillover
   - **Arrow**: In-memory analytics (<2GB) with SIMD vectorization
-  - **DuckDB**: Complex analytical queries with advanced SQL features
+  - **DuckDB**: Complex analytical queries with advanced SQL features (10-20x performance improvement)
   - **Mix & Match**: Each schema can use its optimal engine
 - **Cross-Schema Materialized Views** - Join data across different engines and storage systems
 - **Automatic Parquet Conversion** - Convert all formats to optimized columnar storage
@@ -46,6 +46,39 @@ Mix storage types by using explicit table URLs or multiple schemas.
 - **Query Optimization** - Column pruning, filter pushdown, join reordering
 - **Unlimited Dataset Sizes** - Automatic disk spillover for memory management (Parquet engine)
 - **Distributed Caching** - Redis support for cluster environments
+
+#### Why Use File Adapter with DuckDB?
+
+The File Adapter + DuckDB combination creates a **declarative data pipeline** that transforms complex data operations into simple SQL:
+
+**Traditional Approach** (Python/pandas):
+```python
+# Multiple steps, explicit data loading, memory management
+df1 = pd.read_csv('sales.csv')
+df2 = pd.read_json('customers.json') 
+df3 = pd.read_parquet('products.parquet')
+merged = df1.merge(df2).merge(df3)
+result = merged.groupby('region').agg({'amount': 'sum'}).sort_values('amount', ascending=False)
+```
+
+**File Adapter + DuckDB** (Declarative SQL):
+```sql
+-- Single query, automatic optimization, no memory concerns
+SELECT region, SUM(amount) as total_sales
+FROM sales s
+JOIN customers c ON s.customer_id = c.id  
+JOIN products p ON s.product_id = p.id
+GROUP BY region
+ORDER BY total_sales DESC;
+```
+
+**Key Benefits**:
+- **Performance**: 10-20x faster than pandas/Spark for analytical workloads
+- **Simplicity**: No ETL pipelines - just declare what you want
+- **Flexibility**: Mix any file formats (CSV + JSON + Parquet + Excel) seamlessly
+- **Scale**: Handle datasets larger than memory with automatic spillover
+- **SQL Ecosystem**: Use any SQL tool (BI tools, notebooks, applications)
+- **Advanced Optimization**: Pre-optimizer with HyperLogLog statistics provides instant COUNT(DISTINCT) results that DuckDB alone cannot achieve
 
 ### Data Discovery
 - **Automatic Schema Discovery** - Zero-configuration table creation

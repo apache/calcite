@@ -138,7 +138,19 @@ public class ParquetConversionUtil {
    * Get the cache directory for Parquet conversions.
    */
   public static File getParquetCacheDir(File baseDirectory) {
-    File cacheDir = new File(baseDirectory, ".parquet_cache");
+    return getParquetCacheDir(baseDirectory, null);
+  }
+
+  /**
+   * Get the cache directory for Parquet conversions with optional custom directory.
+   */
+  public static File getParquetCacheDir(File baseDirectory, String customCacheDir) {
+    File cacheDir;
+    if (customCacheDir != null && !customCacheDir.isEmpty()) {
+      cacheDir = new File(customCacheDir);
+    } else {
+      cacheDir = new File(baseDirectory, ".parquet_cache");
+    }
     if (!cacheDir.exists()) {
       cacheDir.mkdirs();
     }

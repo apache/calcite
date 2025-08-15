@@ -73,7 +73,14 @@ public class DuckDBEnumerator implements Enumerator<Object[]> {
       // No need to register views - they're already registered in DuckDBConnectionManager
       // No need to rewrite SQL - it already references the correct schema.table
       
+      System.err.println("[DuckDB Query]: " + sql);
       LOGGER.debug("Executing DuckDB SQL: {}", sql);
+      
+      // Log count distinct optimization status
+      if (sql.toUpperCase().contains("COUNT") && sql.toUpperCase().contains("DISTINCT")) {
+        System.err.println("[COUNT DISTINCT]: DuckDB is handling COUNT(DISTINCT) natively - no HLL optimization applied");
+        LOGGER.info("COUNT(DISTINCT) query detected - letting DuckDB handle natively: {}", sql);
+      }
       
       // Execute the query directly
       this.statement = connection.prepareStatement(sql);
@@ -112,7 +119,8 @@ public class DuckDBEnumerator implements Enumerator<Object[]> {
         for (int i = 0; i < columnCount; i++) {
           current[i] = resultSet.getObject(i + 1);
         }
-        LOGGER.debug("Read row: {}", java.util.Arrays.toString(current));
+        // Don't log every row - kills performance on large datasets
+        // LOGGER.debug("Read row: {}", java.util.Arrays.toString(current));
       } else {
         current = null;
         LOGGER.debug("No more rows available");
@@ -189,6 +197,35 @@ public class DuckDBEnumerator implements Enumerator<Object[]> {
    * @return enumerable that yields query results
    */
   public static Enumerable<Object[]> create(String schemaName, String sql, List<String> fieldNames, DuckDBConfig duckdbConfig) {
+    // Use smart strategy selection
+    return createSmart(schemaName, sql, fieldNames, duckdbConfig, true, -1);
+  }
+  
+  /**
+   * Creates an enumerable with smart strategy selection.
+   * 
+   * @param schemaName schema name for the shared connection
+   * @param sql SQL query to execute
+   * @param fieldNames expected field names
+   * @param duckdbConfig DuckDB configuration options
+   * @param needsEnumeration whether Calcite needs row-by-row processing
+   * @param estimatedRows estimated result size (-1 if unknown)
+   * @return enumerable that yields query results
+   */
+  public static Enumerable<Object[]> createSmart(String schemaName, String sql, 
+                                                 List<String> fieldNames, DuckDBConfig duckdbConfig,
+                                                 boolean needsEnumeration, long estimatedRows) {
+    // Use the smart enumerator that analyzes the query
+    return DuckDBSmartEnumerator.create(schemaName, sql, fieldNames, 
+                                        duckdbConfig, needsEnumeration, estimatedRows);
+  }
+  
+  /**
+   * Creates a standard JDBC enumerable (for backward compatibility).
+   */
+  public static Enumerable<Object[]> createJdbc(String schemaName, String sql, 
+                                                List<String> fieldNames, DuckDBConfig duckdbConfig) {
+    LOGGER.debug("Using standard JDBC DuckDB execution");
     return new AbstractEnumerable<Object[]>() {
       @Override
       public Enumerator<Object[]> enumerator() {

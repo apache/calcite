@@ -18,6 +18,8 @@ package org.apache.calcite.adapter.file;
 
 import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
 import org.apache.calcite.adapter.file.materialized.MaterializedViewUtil;
+
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -26,6 +28,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /**
  * Test for MaterializedViewUtil.
  */
+@Tag("unit")
 public class MaterializedViewUtilTest {
 
   @Test public void testEngineSpecificExtensions() {
