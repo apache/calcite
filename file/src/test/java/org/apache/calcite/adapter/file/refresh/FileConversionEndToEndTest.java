@@ -122,8 +122,8 @@ public class FileConversionEndToEndTest {
     boolean converted = FileConversionManager.convertIfNeeded(excelFile, schemaDir, "TO_LOWER");
     assertTrue(converted, "Excel file should be converted");
     
-    // Verify JSON file was created
-    File jsonFile = new File(schemaDir, "test_data.json");
+    // Verify JSON file was created (Excel creates files with sheet names)
+    File jsonFile = new File(schemaDir, "test_data__Sheet1.json");
     assertTrue(jsonFile.exists(), "JSON file should exist");
     
     // Verify metadata was recorded
@@ -139,7 +139,7 @@ public class FileConversionEndToEndTest {
     
     try (Connection connection = createConnection(info);
          Statement statement = connection.createStatement();
-         ResultSet rs = statement.executeQuery("SELECT id, name, amount FROM test_data ORDER BY id")) {
+         ResultSet rs = statement.executeQuery("SELECT id, name, amount FROM test_data__sheet1 ORDER BY id")) {
       
       assertTrue(rs.next());
       assertEquals(1, rs.getInt("id"));
