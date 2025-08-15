@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.adapter.file.storage;
 
+import org.apache.calcite.adapter.file.storage.cache.PersistentStorageCache;
+import org.apache.calcite.adapter.file.storage.cache.StorageCacheManager;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -55,6 +58,9 @@ public class HttpStorageProvider implements StorageProvider {
 
   // Cache for HTTP responses (Phase 2 enhancement)
   private final Map<String, CachedResponse> cache = new ConcurrentHashMap<>();
+  
+  // Persistent cache for restart-survivable caching
+  private PersistentStorageCache persistentCache;
 
   /**
    * Cached HTTP response with ETag support.
@@ -136,6 +142,14 @@ public class HttpStorageProvider implements StorageProvider {
     this.headers = headers != null ? headers : new HashMap<>();
     this.mimeTypeOverride = mimeTypeOverride;
     this.config = config;
+    
+    // Initialize persistent cache if cache manager is available
+    try {
+      this.persistentCache = StorageCacheManager.getInstance().getCache("http");
+    } catch (IllegalStateException e) {
+      // Cache manager not initialized, persistent cache will be null
+      this.persistentCache = null;
+    }
   }
 
   @Override public List<FileEntry> listFiles(String path, boolean recursive) throws IOException {
@@ -198,7 +212,25 @@ public class HttpStorageProvider implements StorageProvider {
       return callViaProxy(path);
     }
 
-    // Check cache if enabled
+    // Check persistent cache first if available
+    if (persistentCache != null) {
+      byte[] cachedData = persistentCache.getCachedData(path);
+      FileMetadata cachedMetadata = persistentCache.getCachedMetadata(path);
+      
+      if (cachedData != null && cachedMetadata != null) {
+        // Try conditional request to check if data is still fresh
+        try {
+          if (!hasChanged(path, cachedMetadata)) {
+            return new ByteArrayInputStream(cachedData);
+          }
+        } catch (IOException e) {
+          // If we can't check freshness, use cached data anyway
+          return new ByteArrayInputStream(cachedData);
+        }
+      }
+    }
+
+    // Check in-memory cache if enabled (for backward compatibility)
     if (config != null && config.isCacheEnabled()) {
       CachedResponse cached = cache.get(path);
       if (cached != null && !cached.isExpired(config.getCacheTtl())) {
@@ -223,6 +255,15 @@ public class HttpStorageProvider implements StorageProvider {
         String etag = conn.getHeaderField("ETag");
         long lastModified = conn.getLastModified();
         cache.put(path, new CachedResponse(data, etag, lastModified));
+        
+        // Also cache in persistent cache if available
+        if (persistentCache != null) {
+          FileMetadata metadata = new FileMetadata(path, data.length, lastModified, 
+              getEffectiveContentType(conn), etag);
+          long ttl = config.getCacheTtl();
+          persistentCache.cacheData(path, data, metadata, ttl);
+        }
+        
         conn.disconnect();
         return new ByteArrayInputStream(data);
       }
@@ -232,17 +273,25 @@ public class HttpStorageProvider implements StorageProvider {
     HttpURLConnection conn = createConnection(path);
     executeRequest(conn);
 
-    // Cache if enabled
+    byte[] data = readAllBytes(conn.getInputStream());
+    String etag = conn.getHeaderField("ETag");
+    long lastModified = conn.getLastModified();
+    String contentType = getEffectiveContentType(conn);
+    
+    // Cache in memory if enabled
     if (config != null && config.isCacheEnabled()) {
-      byte[] data = readAllBytes(conn.getInputStream());
-      String etag = conn.getHeaderField("ETag");
-      long lastModified = conn.getLastModified();
       cache.put(path, new CachedResponse(data, etag, lastModified));
-      conn.disconnect();
-      return new ByteArrayInputStream(data);
     }
-
-    return conn.getInputStream();
+    
+    // Cache in persistent cache if available
+    if (persistentCache != null) {
+      FileMetadata metadata = new FileMetadata(path, data.length, lastModified, contentType, etag);
+      long ttl = (config != null && config.isCacheEnabled()) ? config.getCacheTtl() : 0;
+      persistentCache.cacheData(path, data, metadata, ttl);
+    }
+    
+    conn.disconnect();
+    return new ByteArrayInputStream(data);
   }
 
   @Override public Reader openReader(String path) throws IOException {

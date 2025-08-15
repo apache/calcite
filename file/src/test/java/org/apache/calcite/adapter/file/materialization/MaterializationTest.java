@@ -26,9 +26,14 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -50,6 +55,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @Tag("unit")
 public class MaterializationTest {
+  private static final Logger LOGGER = LoggerFactory.getLogger(MaterializationTest.class);
+  
   @TempDir
   Path tempDir;
 
@@ -58,9 +65,7 @@ public class MaterializationTest {
     // Clear any static caches that might interfere with test isolation
     Sources.clearFileCache();
     // Force garbage collection to release any file handles
-    System.gc();
-    // Wait a bit to ensure cleanup
-    Thread.sleep(100);
+    forceCleanup();
     createTestData();
   }
   
@@ -68,8 +73,22 @@ public class MaterializationTest {
   public void tearDown() throws Exception {
     // Clear caches after each test to prevent contamination
     Sources.clearFileCache();
-    System.gc();
-    Thread.sleep(100);
+    // Force cleanup to help with temp directory deletion
+    forceCleanup();
+  }
+
+  /**
+   * Force cleanup of resources that might be holding file locks.
+   * This helps prevent directory deletion issues in tests.
+   */
+  private void forceCleanup() throws InterruptedException {
+    // Multiple rounds of GC to ensure cleanup
+    for (int i = 0; i < 3; i++) {
+      System.gc();
+      Thread.sleep(50);
+    }
+    // Give a bit more time for file handles to be released
+    Thread.sleep(200);
   }
 
   private void createTestData() throws Exception {
@@ -104,8 +123,12 @@ public class MaterializationTest {
     info.setProperty("quotedCasing", "UNCHANGED");
     info.setProperty("caseSensitive", "false");
 
-    try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
-         CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
+    Connection connection = null;
+    CalciteConnection calciteConnection = null;
+    
+    try {
+      connection = DriverManager.getConnection("jdbc:calcite:", info);
+      calciteConnection = connection.unwrap(CalciteConnection.class);
 
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
 
@@ -150,7 +173,9 @@ public class MaterializationTest {
       assertNotNull(fileSchema);
       System.out.println("   ✓ Schema created with " + materializations.size() + " materializations");
 
-      try (Statement statement = connection.createStatement()) {
+      Statement statement = null;
+      try {
+        statement = connection.createStatement();
         // Test 1: Query base table
         System.out.println("\n2. Querying base sales table:");
         ResultSet rs1 =
@@ -228,7 +253,33 @@ public class MaterializationTest {
         System.out.println("  • Base tables remain queryable");
         System.out.println("\nNote: The materializations are registered and ready");
         System.out.println("for execution by the Parquet engine when queried.");
+      } finally {
+        if (statement != null) {
+          try {
+            statement.close();
+          } catch (Exception e) {
+            LOGGER.debug("Error closing Statement: {}", e.getMessage());
+          }
+        }
       }
+    } finally {
+      // Explicit cleanup in finally block  
+      if (calciteConnection != null) {
+        try {
+          calciteConnection.close();
+        } catch (Exception e) {
+          LOGGER.debug("Error closing CalciteConnection: {}", e.getMessage());
+        }
+      }
+      if (connection != null) {
+        try {
+          connection.close();
+        } catch (Exception e) {
+          LOGGER.debug("Error closing Connection: {}", e.getMessage());
+        }
+      }
+      // Extra cleanup after closing connections
+      forceCleanup();
     }
   }
 
@@ -241,8 +292,12 @@ public class MaterializationTest {
     info.setProperty("quotedCasing", "UNCHANGED");
     info.setProperty("caseSensitive", "false");
 
-    try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
-         CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
+    Connection connection = null;
+    CalciteConnection calciteConnection = null;
+    
+    try {
+      connection = DriverManager.getConnection("jdbc:calcite:", info);
+      calciteConnection = connection.unwrap(CalciteConnection.class);
 
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
 
@@ -272,6 +327,24 @@ public class MaterializationTest {
       System.out.println("\n✅ PARQUET ENGINE TEST COMPLETE");
       System.out.println("The Parquet execution engine is configured to handle");
       System.out.println("materialized view storage when views are accessed.");
+    } finally {
+      // Explicit cleanup in finally block
+      if (calciteConnection != null) {
+        try {
+          calciteConnection.close();
+        } catch (Exception e) {
+          LOGGER.debug("Error closing CalciteConnection: {}", e.getMessage());
+        }
+      }
+      if (connection != null) {
+        try {
+          connection.close();
+        } catch (Exception e) {
+          LOGGER.debug("Error closing Connection: {}", e.getMessage());
+        }
+      }
+      // Extra cleanup after closing connections
+      forceCleanup();
     }
   }
 }

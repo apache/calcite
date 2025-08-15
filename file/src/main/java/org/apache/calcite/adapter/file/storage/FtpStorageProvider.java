@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.adapter.file.storage;
 
+import org.apache.calcite.adapter.file.storage.cache.PersistentStorageCache;
+import org.apache.calcite.adapter.file.storage.cache.StorageCacheManager;
+
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
@@ -39,6 +42,20 @@ public class FtpStorageProvider implements StorageProvider {
   private static final int DEFAULT_PORT = 21;
   private static final int CONNECT_TIMEOUT = 30000;
   private static final int DATA_TIMEOUT = 60000;
+  
+  // Persistent cache for restart-survivable caching
+  private final PersistentStorageCache persistentCache;
+  
+  public FtpStorageProvider() {
+    // Initialize persistent cache if cache manager is available
+    PersistentStorageCache cache = null;
+    try {
+      cache = StorageCacheManager.getInstance().getCache("ftp");
+    } catch (IllegalStateException e) {
+      // Cache manager not initialized, persistent cache will be null
+    }
+    this.persistentCache = cache;
+  }
 
   @Override public List<FileEntry> listFiles(String path, boolean recursive) throws IOException {
     FtpUri ftpUri = parseFtpUri(path);
@@ -101,6 +118,24 @@ public class FtpStorageProvider implements StorageProvider {
   }
 
   @Override public InputStream openInputStream(String path) throws IOException {
+    // Check persistent cache first if available
+    if (persistentCache != null) {
+      byte[] cachedData = persistentCache.getCachedData(path);
+      FileMetadata cachedMetadata = persistentCache.getCachedMetadata(path);
+      
+      if (cachedData != null && cachedMetadata != null) {
+        // Check if cached data is still fresh
+        try {
+          if (!hasChanged(path, cachedMetadata)) {
+            return new java.io.ByteArrayInputStream(cachedData);
+          }
+        } catch (IOException e) {
+          // If we can't check freshness, use cached data anyway
+          return new java.io.ByteArrayInputStream(cachedData);
+        }
+      }
+    }
+    
     FtpUri ftpUri = parseFtpUri(path);
 
     FTPClient ftpClient = createAndConnect(ftpUri);
@@ -110,6 +145,19 @@ public class FtpStorageProvider implements StorageProvider {
     if (stream == null) {
       disconnect(ftpClient);
       throw new IOException("Failed to retrieve file: " + path);
+    }
+
+    // If persistent cache is available, read data and cache it
+    if (persistentCache != null) {
+      byte[] data = readAllBytes(stream);
+      ftpClient.completePendingCommand();
+      disconnect(ftpClient);
+      
+      // Get file metadata for caching
+      FileMetadata metadata = getMetadata(path);
+      persistentCache.cacheData(path, data, metadata, 0); // No TTL for FTP
+      
+      return new java.io.ByteArrayInputStream(data);
     }
 
     // Return a wrapper that disconnects on close
@@ -234,6 +282,16 @@ public class FtpStorageProvider implements StorageProvider {
     } catch (IOException e) {
       // Ignore disconnect errors
     }
+  }
+  
+  private byte[] readAllBytes(InputStream inputStream) throws IOException {
+    java.io.ByteArrayOutputStream buffer = new java.io.ByteArrayOutputStream();
+    byte[] data = new byte[8192];
+    int nRead;
+    while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
+      buffer.write(data, 0, nRead);
+    }
+    return buffer.toByteArray();
   }
 
   private FtpUri parseFtpUri(String uri) throws IOException {

@@ -166,12 +166,16 @@ public final class MultiTableExcelToJsonConverter {
 
           LOGGER.debug("Writing JSON file: "
               + jsonFileName);
+          File jsonFile = new File(inputFile.getParent(), jsonFileName);
           try (FileWriter fileWriter =
-              new FileWriter(new File(inputFile.getParent(), jsonFileName),
-                  StandardCharsets.UTF_8)) {
+              new FileWriter(jsonFile, StandardCharsets.UTF_8)) {
             mapper.writerWithDefaultPrettyPrinter()
                 .writeValue(fileWriter, table.jsonData);
           }
+          
+          // Record the conversion for refresh tracking
+          ConversionRecorder.recordExcelConversion(inputFile, jsonFile);
+          
           tableIndex++;
         }
       }

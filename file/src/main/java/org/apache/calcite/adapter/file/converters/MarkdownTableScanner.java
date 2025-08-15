@@ -100,6 +100,9 @@ public final class MarkdownTableScanner {
 
         try (FileWriter writer = new FileWriter(jsonFile, StandardCharsets.UTF_8)) {
           mapper.writerWithDefaultPrettyPrinter().writeValue(writer, table.data);
+          
+          // Record the conversion for refresh tracking
+          ConversionRecorder.recordConversion(inputFile, jsonFile, "MARKDOWN_TO_JSON");
         }
       }
     } finally {

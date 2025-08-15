@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.file.converters;
 
+import org.apache.calcite.adapter.file.converters.ConversionRecorder;
 import org.apache.calcite.adapter.file.converters.HtmlCrawler.CrawlResult;
 import org.apache.calcite.adapter.file.converters.HtmlTableScanner.TableInfo;
 import org.apache.calcite.util.Source;
@@ -133,6 +134,10 @@ public class HtmlToJsonConverter {
         if (table != null) {
           writeTableAsJson(table, jsonFile, columnNameCasing);
           jsonFiles.add(jsonFile);
+          
+          // Record the conversion for refresh tracking
+          ConversionRecorder.recordHtmlConversion(htmlFile, jsonFile);
+          
           LOGGER.fine("Wrote table to " + jsonFile.getAbsolutePath());
         }
       } catch (IOException e) {
@@ -371,6 +376,11 @@ public class HtmlToJsonConverter {
           File jsonFile = new File(outputDir, urlFileName + "__" + tableInfo.name + ".json");
           writeTableAsJson(table, jsonFile, columnNameCasing);
           jsonFiles.add(jsonFile);
+          
+          // Record the conversion for refresh tracking (using URL as source identifier)
+          File sourceFile = new File(url); // Pseudo-file for URL tracking
+          ConversionRecorder.recordHtmlConversion(sourceFile, jsonFile);
+          
           LOGGER.fine("Wrote table from " + url + " to " + jsonFile.getName());
         }
       } catch (IOException e) {

@@ -169,11 +169,31 @@ public class FileSchemaFactory implements SchemaFactory {
       };
     }
 
-    // If DuckDB engine is selected and we have a local directory, use JDBC adapter for proper pushdown
+    // If DuckDB engine is selected, first create FileSchema with PARQUET engine for conversions
     if (engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.DUCKDB
         && directoryFile != null && directoryFile.exists() && directoryFile.isDirectory()
         && storageType == null) {
-      LOGGER.info("Using DuckDB JDBC adapter for schema '{}' with proper query pushdown", name);
+      LOGGER.info("Using DuckDB: Running conversions first, then creating JDBC adapter", name);
+      
+      // Step 1: Create FileSchema with PARQUET engine to handle all conversions
+      ExecutionEngineConfig conversionConfig = new ExecutionEngineConfig("PARQUET", 
+          engineConfig.getBatchSize(), engineConfig.getMemoryThreshold(), 
+          engineConfig.getMaterializedViewStoragePath(), engineConfig.getDuckDBConfig(),
+          engineConfig.getParquetCacheDirectory());
+      
+      FileSchema conversionSchema = new FileSchema(parentSchema, name + "_conv", directoryFile, 
+          directoryPattern, tables, conversionConfig, recursive, materializations, views, 
+          partitionedTables, refreshInterval, tableNameCasing, columnNameCasing, 
+          storageType, storageConfig, flatten, csvTypeInference, primeCache);
+      
+      // Force initialization to run conversions
+      // This will:
+      // 1. Convert Excel/HTML/Markdown/etc files to JSON
+      // 2. Discover all files (including newly created JSON)  
+      // 3. Convert everything to Parquet for DuckDB
+      conversionSchema.getTableMap();
+      
+      // Step 2: Now create DuckDB JDBC schema that reads the converted Parquet files
       JdbcSchema duckdbSchema = DuckDBJdbcSchemaFactory.create(parentSchema, name, directoryFile, recursive);
 
       // Add metadata schemas as sibling schemas

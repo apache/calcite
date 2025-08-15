@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.file;
 
 import org.apache.calcite.adapter.file.refresh.RefreshInterval;
 import org.apache.calcite.adapter.file.refresh.RefreshableTable;
+import org.apache.calcite.adapter.file.refresh.RefreshableJsonTable;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
@@ -32,6 +33,7 @@ import org.apache.parquet.hadoop.ParquetWriter;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.io.TempDir;
@@ -102,7 +104,8 @@ public class RefreshableTableTest {
     assertNull(RefreshInterval.getEffectiveInterval(null, null));
   }
 
-  @Test public void testRefreshableJsonTable() throws Exception {
+  @Test 
+  public void testRefreshableJsonTable() throws Exception {
     // Create schema with refresh interval
     Map<String, Object> operand = new HashMap<>();
     operand.put("directory", tempDir.toString());
@@ -142,14 +145,18 @@ public class RefreshableTableTest {
       Thread.sleep(1100); // Ensure file timestamp changes (1+ second)
       writeJsonData("[{\"id\": 2, \"name\": \"Bob\"}]");
       
+      
       // Force a newer timestamp to ensure filesystem detects the change
       testFile.setLastModified(System.currentTimeMillis());
 
-      // Wait for refresh interval
+      // The refresh will happen automatically in the scan() method
+      // which now checks for file modifications regardless of time interval
+
+      // Wait for refresh interval as well
       Thread.sleep(2500);
 
       // Query again with a different query to force new plan generation
-      // The refresh should work and regenerate parquet from updated source data
+      // The refresh should work and regenerate from updated source data
       try (Statement stmt = connection.createStatement();
            ResultSet rs = stmt.executeQuery("SELECT name, id FROM test.test WHERE id > '0'")) {
         assertTrue(rs.next());

@@ -100,6 +100,9 @@ public final class DocxTableScanner {
 
         try (FileWriter writer = new FileWriter(jsonFile, StandardCharsets.UTF_8)) {
           mapper.writerWithDefaultPrettyPrinter().writeValue(writer, table.data);
+          
+          // Record the conversion for refresh tracking
+          ConversionRecorder.recordConversion(inputFile, jsonFile, "DOCX_TO_JSON");
         }
       }
     } finally {

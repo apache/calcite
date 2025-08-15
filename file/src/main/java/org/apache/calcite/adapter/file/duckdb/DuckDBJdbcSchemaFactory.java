@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.file.duckdb;
 
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
 import org.apache.calcite.adapter.jdbc.JdbcConvention;
+import org.apache.calcite.adapter.file.format.parquet.ParquetConversionUtil;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.config.NullCollation;
@@ -71,8 +72,8 @@ public class DuckDBJdbcSchemaFactory {
       Class.forName("org.duckdb.DuckDBDriver");
       
       // Use a named in-memory database that persists across connections
-      // The name is based on the schema name to ensure uniqueness
-      String dbName = "calcite_" + schemaName;
+      // The name is based on the schema name and a unique ID to ensure isolation
+      String dbName = "calcite_" + schemaName + "_" + System.nanoTime();
       String jdbcUrl = "jdbc:duckdb:" + dbName;
       
       LOGGER.info("Using named DuckDB in-memory database: {}", dbName);
@@ -94,7 +95,8 @@ public class DuckDBJdbcSchemaFactory {
       setupConn.createStatement().execute("CREATE SCHEMA IF NOT EXISTS " + duckdbSchema);
       LOGGER.info("Created DuckDB schema: {}", duckdbSchema);
       
-      // Register files as views in the schema
+      // Register Parquet files as views
+      // FileSchemaFactory has already run conversions via FileSchema
       registerFilesAsViews(setupConn, directory, recursive, duckdbSchema);
       
       // Debug: List all registered views
@@ -282,37 +284,46 @@ public class DuckDBJdbcSchemaFactory {
   }
   
   /**
-   * Registers CSV and Parquet files as DuckDB views, optionally recursive.
+   * Registers ONLY Parquet files as DuckDB views.
+   * FileSchemaFactory has already handled all conversions by creating a FileSchema first.
    */
   private static void registerFilesAsViews(Connection conn, File directory, boolean recursive, String schema) 
+      throws SQLException {
+    // Get the standard Parquet cache directory
+    File cacheDir = ParquetConversionUtil.getParquetCacheDir(directory, null);
+    
+    // Register both original Parquet files and cached Parquet files
+    registerParquetFiles(conn, directory, recursive, schema);
+    
+    // Also register Parquet files from the cache directory
+    if (cacheDir.exists()) {
+      registerParquetFiles(conn, cacheDir, false, schema);
+    }
+  }
+  
+  private static void registerParquetFiles(Connection conn, File directory, boolean recursive, String schema) 
       throws SQLException {
     File[] files = directory.listFiles();
     
     if (files != null) {
       for (File file : files) {
         if (file.isDirectory() && recursive) {
-          registerFilesAsViews(conn, file, recursive, schema);
-        } else if (file.isFile()) {
+          registerParquetFiles(conn, file, recursive, schema);
+        } else if (file.isFile() && file.getName().endsWith(".parquet")) {
           String fileName = file.getName();
-          if (fileName.endsWith(".csv") || fileName.endsWith(".parquet") || fileName.endsWith(".json")) {
-            String tableName = fileName.replaceAll("\\.(csv|parquet|json)$", "").toLowerCase();
-            String sql;
-            
-            if (fileName.endsWith(".csv")) {
-              sql = String.format("CREATE OR REPLACE VIEW %s.%s AS SELECT * FROM read_csv_auto('%s')",
-                                schema, tableName, file.getAbsolutePath());
-            } else if (fileName.endsWith(".parquet")) {
-              sql = String.format("CREATE OR REPLACE VIEW %s.%s AS SELECT * FROM read_parquet('%s')",
-                                schema, tableName, file.getAbsolutePath());
-            } else {
-              sql = String.format("CREATE OR REPLACE VIEW %s.%s AS SELECT * FROM read_json_auto('%s')",
-                                schema, tableName, file.getAbsolutePath());
-            }
-            
-            LOGGER.info("Registering DuckDB view: {}", sql);
-            conn.createStatement().execute(sql);
-            LOGGER.info("Successfully registered view: {}", tableName);
+          
+          // Skip temporary and hidden files
+          if (fileName.startsWith(".") || fileName.startsWith("~")) {
+            continue;
           }
+          
+          // Register Parquet file
+          String tableName = fileName.replaceAll("\\.parquet$", "").toLowerCase();
+          String sql = String.format("CREATE OR REPLACE VIEW %s.%s AS SELECT * FROM read_parquet('%s')",
+                                   schema, tableName, file.getAbsolutePath());
+          LOGGER.debug("Registering DuckDB view: {}", sql);
+          conn.createStatement().execute(sql);
+          LOGGER.debug("Successfully registered view: {}", tableName);
         }
       }
     }

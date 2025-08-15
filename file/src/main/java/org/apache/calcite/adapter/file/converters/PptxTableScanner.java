@@ -124,6 +124,9 @@ public final class PptxTableScanner {
 
         try (FileWriter writer = new FileWriter(jsonFile, StandardCharsets.UTF_8)) {
           mapper.writerWithDefaultPrettyPrinter().writeValue(writer, table.data);
+          
+          // Record the conversion for refresh tracking
+          ConversionRecorder.recordConversion(inputFile, jsonFile, "PPTX_TO_JSON");
         }
       }
     } finally {

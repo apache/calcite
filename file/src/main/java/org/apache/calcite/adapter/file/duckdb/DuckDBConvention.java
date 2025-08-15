@@ -101,12 +101,30 @@ public class DuckDBConvention extends JdbcConvention {
     // Also register the VALUES converter rule so HLL results can become enumerable
     planner.addRule(org.apache.calcite.adapter.enumerable.EnumerableRules.ENUMERABLE_VALUES_RULE);
     
+    // Register parquet statistics-based optimization rules for DuckDB engine
+    // These provide the same optimizations available to the parquet engine
+    
+    // 1. Filter pushdown based on parquet min/max statistics
+    if (!"false".equals(System.getProperty("calcite.file.statistics.filter.enabled"))) {
+      planner.addRule(org.apache.calcite.adapter.file.rules.SimpleFileFilterPushdownRule.INSTANCE);
+    }
+    
+    // 2. Join reordering based on table size statistics 
+    if (!"false".equals(System.getProperty("calcite.file.statistics.join.reorder.enabled"))) {
+      planner.addRule(org.apache.calcite.adapter.file.rules.SimpleFileJoinReorderRule.INSTANCE);
+    }
+    
+    // 3. Column pruning to reduce I/O based on column statistics
+    if (!"false".equals(System.getProperty("calcite.file.statistics.column.pruning.enabled"))) {
+      planner.addRule(org.apache.calcite.adapter.file.rules.SimpleFileColumnPruningRule.INSTANCE);
+    }
+    
     // Register all standard JDBC rules for comprehensive pushdown
-    // These will only apply to queries that weren't optimized by HLL rules
+    // These will only apply to queries that weren't optimized by statistics-based rules
     for (RelOptRule rule : JdbcRules.rules(this)) {
       planner.addRule(rule);
     }
     
-    LOGGER.debug("Registered DuckDB convention with HLL optimization + comprehensive pushdown rules");
+    LOGGER.debug("Registered DuckDB convention with HLL + parquet statistics optimizations + comprehensive JDBC pushdown rules");
   }
 }

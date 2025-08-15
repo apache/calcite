@@ -33,5 +33,5 @@
 - Read the docs and stop making things up
 - the preference is for all connections to use lex = ORACLE and unquoted casing = TO_LOWER, while sql statements use unquoted identifiers (unless not possible - like mixed casing or special characters is a requirement of the use case)
 
-- When I ask to "clean up debug code", do the following: 1) identify any uses of System.out or System.err and determine if they should be remove or added as logger debig, 2) identify tests that are clearly temp or debug and 
-  either remove them OR organize them and tag them as unit, integration or performance, 3) identify dead code and report it.
+## Commands
+- When I ask you to "cleanup debug code", do the following: identify any uses of `System.out` or `System.err` and determine if they should be removed or added as logger debug, 2) identify tests that are clearly temp or debug, and either remove them OR organize them and tag them as unit, integration, or performance, 3) identify dead code, report it and ask for approval to remove it, and 4) identify any temp markdown files and remove them.

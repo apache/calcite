@@ -120,10 +120,14 @@ public final class ExcelToJsonConverter {
       // Write JSON file
       String sheetName = ConverterUtils.toPascalCase(sheet.getSheetName());
       String jsonFileName = baseName + "__" + sheetName + ".json";
+      File jsonFile = new File(inputFile.getParent(), jsonFileName);
       FileWriter fileWriter =
-          new FileWriter(new File(inputFile.getParent(), jsonFileName), StandardCharsets.UTF_8);
+          new FileWriter(jsonFile, StandardCharsets.UTF_8);
       mapper.writerWithDefaultPrettyPrinter().writeValue(fileWriter, sheetData);
       fileWriter.close();
+
+      // Record the conversion for refresh tracking
+      ConversionRecorder.recordExcelConversion(inputFile, jsonFile);
     }
     workbook.close();
     file.close();
@@ -201,10 +205,10 @@ public final class ExcelToJsonConverter {
     if (input == null || input.isEmpty()) {
       return input;
     }
-    
+
     StringBuilder result = new StringBuilder();
     boolean nextUpper = true;
-    
+
     for (char c : input.toCharArray()) {
       if (Character.isLetterOrDigit(c)) {
         if (nextUpper) {
@@ -217,7 +221,7 @@ public final class ExcelToJsonConverter {
         nextUpper = true;
       }
     }
-    
+
     return result.toString();
   }
 

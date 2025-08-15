@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.adapter.file.storage;
 
+import org.apache.calcite.adapter.file.storage.cache.PersistentStorageCache;
+import org.apache.calcite.adapter.file.storage.cache.StorageCacheManager;
+
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.regions.DefaultAwsRegionProviderChain;
 import com.amazonaws.services.s3.AmazonS3;
@@ -41,6 +44,9 @@ import java.util.List;
 public class S3StorageProvider implements StorageProvider {
 
   private final AmazonS3 s3Client;
+  
+  // Persistent cache for restart-survivable caching
+  private final PersistentStorageCache persistentCache;
 
   public S3StorageProvider() {
     AmazonS3ClientBuilder builder = AmazonS3ClientBuilder.standard()
@@ -56,10 +62,28 @@ public class S3StorageProvider implements StorageProvider {
     }
     
     this.s3Client = builder.build();
+    
+    // Initialize persistent cache if cache manager is available
+    PersistentStorageCache cache = null;
+    try {
+      cache = StorageCacheManager.getInstance().getCache("s3");
+    } catch (IllegalStateException e) {
+      // Cache manager not initialized, persistent cache will be null
+    }
+    this.persistentCache = cache;
   }
 
   public S3StorageProvider(AmazonS3 s3Client) {
     this.s3Client = s3Client;
+    
+    // Initialize persistent cache if cache manager is available
+    PersistentStorageCache cache = null;
+    try {
+      cache = StorageCacheManager.getInstance().getCache("s3");
+    } catch (IllegalStateException e) {
+      // Cache manager not initialized, persistent cache will be null
+    }
+    this.persistentCache = cache;
   }
 
   @Override public List<FileEntry> listFiles(String path, boolean recursive) throws IOException {
@@ -125,9 +149,44 @@ public class S3StorageProvider implements StorageProvider {
   }
 
   @Override public InputStream openInputStream(String path) throws IOException {
+    // Check persistent cache first if available
+    if (persistentCache != null) {
+      byte[] cachedData = persistentCache.getCachedData(path);
+      FileMetadata cachedMetadata = persistentCache.getCachedMetadata(path);
+      
+      if (cachedData != null && cachedMetadata != null) {
+        // Check if cached data is still fresh
+        try {
+          if (!hasChanged(path, cachedMetadata)) {
+            return new java.io.ByteArrayInputStream(cachedData);
+          }
+        } catch (IOException e) {
+          // If we can't check freshness, use cached data anyway
+          return new java.io.ByteArrayInputStream(cachedData);
+        }
+      }
+    }
+    
     S3Uri s3Uri = parseS3Uri(path);
     GetObjectRequest request = new GetObjectRequest(s3Uri.bucket, s3Uri.key);
     S3Object object = s3Client.getObject(request);
+    
+    // If persistent cache is available, read data and cache it
+    if (persistentCache != null) {
+      byte[] data = readAllBytes(object.getObjectContent());
+      object.close();
+      
+      // Get file metadata for caching (use S3 object metadata)
+      FileMetadata metadata = new FileMetadata(path, 
+          object.getObjectMetadata().getContentLength(),
+          object.getObjectMetadata().getLastModified().getTime(),
+          object.getObjectMetadata().getContentType(),
+          object.getObjectMetadata().getETag());
+      persistentCache.cacheData(path, data, metadata, 0); // No TTL for S3
+      
+      return new java.io.ByteArrayInputStream(data);
+    }
+    
     return object.getObjectContent();
   }
 
@@ -212,6 +271,16 @@ public class S3StorageProvider implements StorageProvider {
       return key.substring(lastSlash + 1);
     }
     return key;
+  }
+  
+  private byte[] readAllBytes(InputStream inputStream) throws IOException {
+    java.io.ByteArrayOutputStream buffer = new java.io.ByteArrayOutputStream();
+    byte[] data = new byte[8192];
+    int nRead;
+    while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
+      buffer.write(data, 0, nRead);
+    }
+    return buffer.toByteArray();
   }
 
   private static class S3Uri {

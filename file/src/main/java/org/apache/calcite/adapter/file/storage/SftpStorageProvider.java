@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.adapter.file.storage;
 
+import org.apache.calcite.adapter.file.storage.cache.PersistentStorageCache;
+import org.apache.calcite.adapter.file.storage.cache.StorageCacheManager;
+
 import com.jcraft.jsch.*;
 
 import java.io.IOException;
@@ -44,6 +47,9 @@ public class SftpStorageProvider implements StorageProvider {
   private final String defaultPassword;
   private final String defaultPrivateKeyPath;
   private final boolean strictHostKeyChecking;
+  
+  // Persistent cache for restart-survivable caching
+  private final PersistentStorageCache persistentCache;
 
   /**
    * Default constructor for factory creation.
@@ -53,6 +59,15 @@ public class SftpStorageProvider implements StorageProvider {
     this.defaultPassword = null;
     this.defaultPrivateKeyPath = findDefaultPrivateKey();
     this.strictHostKeyChecking = false;
+    
+    // Initialize persistent cache if cache manager is available
+    PersistentStorageCache cache = null;
+    try {
+      cache = StorageCacheManager.getInstance().getCache("sftp");
+    } catch (IllegalStateException e) {
+      // Cache manager not initialized, persistent cache will be null
+    }
+    this.persistentCache = cache;
   }
 
   /**
@@ -64,6 +79,15 @@ public class SftpStorageProvider implements StorageProvider {
     this.defaultPassword = password;
     this.defaultPrivateKeyPath = privateKeyPath != null ? privateKeyPath : findDefaultPrivateKey();
     this.strictHostKeyChecking = strictHostKeyChecking;
+    
+    // Initialize persistent cache if cache manager is available
+    PersistentStorageCache cache = null;
+    try {
+      cache = StorageCacheManager.getInstance().getCache("sftp");
+    } catch (IllegalStateException e) {
+      // Cache manager not initialized, persistent cache will be null
+    }
+    this.persistentCache = cache;
   }
 
   private String findDefaultPrivateKey() {
@@ -174,6 +198,24 @@ public class SftpStorageProvider implements StorageProvider {
   }
 
   @Override public InputStream openInputStream(String path) throws IOException {
+    // Check persistent cache first if available
+    if (persistentCache != null) {
+      byte[] cachedData = persistentCache.getCachedData(path);
+      FileMetadata cachedMetadata = persistentCache.getCachedMetadata(path);
+      
+      if (cachedData != null && cachedMetadata != null) {
+        // Check if cached data is still fresh
+        try {
+          if (!hasChanged(path, cachedMetadata)) {
+            return new java.io.ByteArrayInputStream(cachedData);
+          }
+        } catch (IOException e) {
+          // If we can't check freshness, use cached data anyway
+          return new java.io.ByteArrayInputStream(cachedData);
+        }
+      }
+    }
+    
     SftpUri sftpUri = parseSftpUri(path);
 
     Session session = null;
@@ -184,6 +226,20 @@ public class SftpStorageProvider implements StorageProvider {
       channelSftp = openSftpChannel(session);
 
       InputStream stream = channelSftp.get(sftpUri.path);
+
+      // If persistent cache is available, read data and cache it
+      if (persistentCache != null) {
+        byte[] data = readAllBytes(stream);
+        stream.close();
+        closeSftpChannel(channelSftp);
+        closeSession(session);
+        
+        // Get file metadata for caching
+        FileMetadata metadata = getMetadata(path);
+        persistentCache.cacheData(path, data, metadata, 0); // No TTL for SFTP
+        
+        return new java.io.ByteArrayInputStream(data);
+      }
 
       // Return a wrapper that closes the channel and session on stream close
       return new SftpInputStream(stream, channelSftp, session);
@@ -334,6 +390,16 @@ public class SftpStorageProvider implements StorageProvider {
     if (session != null && session.isConnected()) {
       session.disconnect();
     }
+  }
+  
+  private byte[] readAllBytes(InputStream inputStream) throws IOException {
+    java.io.ByteArrayOutputStream buffer = new java.io.ByteArrayOutputStream();
+    byte[] data = new byte[8192];
+    int nRead;
+    while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
+      buffer.write(data, 0, nRead);
+    }
+    return buffer.toByteArray();
   }
 
   private SftpUri parseSftpUri(String uri) throws IOException {

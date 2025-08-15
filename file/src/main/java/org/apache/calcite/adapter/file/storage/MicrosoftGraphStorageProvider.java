@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.adapter.file.storage;
 
+import org.apache.calcite.adapter.file.storage.cache.PersistentStorageCache;
+import org.apache.calcite.adapter.file.storage.cache.StorageCacheManager;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -65,6 +68,9 @@ public class MicrosoftGraphStorageProvider implements StorageProvider {
   private final ObjectMapper mapper = new ObjectMapper();
   private String siteId;
   private String driveId;
+  
+  // Persistent cache for restart-survivable caching
+  private final PersistentStorageCache persistentCache;
 
   /**
    * Creates a Microsoft Graph storage provider with automatic token refresh.
@@ -88,6 +94,15 @@ public class MicrosoftGraphStorageProvider implements StorageProvider {
     } else {
       this.tokenManager = tokenManager;
     }
+    
+    // Initialize persistent cache if cache manager is available
+    PersistentStorageCache cache = null;
+    try {
+      cache = StorageCacheManager.getInstance().getCache("sharepoint");
+    } catch (IllegalStateException e) {
+      // Cache manager not initialized, persistent cache will be null
+    }
+    this.persistentCache = cache;
   }
 
   /**
@@ -265,6 +280,24 @@ public class MicrosoftGraphStorageProvider implements StorageProvider {
   }
 
   @Override public InputStream openInputStream(String path) throws IOException {
+    // Check persistent cache first if available
+    if (persistentCache != null) {
+      byte[] cachedData = persistentCache.getCachedData(path);
+      FileMetadata cachedMetadata = persistentCache.getCachedMetadata(path);
+      
+      if (cachedData != null && cachedMetadata != null) {
+        // Check if cached data is still fresh
+        try {
+          if (!hasChanged(path, cachedMetadata)) {
+            return new java.io.ByteArrayInputStream(cachedData);
+          }
+        } catch (IOException e) {
+          // If we can't check freshness, use cached data anyway
+          return new java.io.ByteArrayInputStream(cachedData);
+        }
+      }
+    }
+    
     ensureInitialized();
 
     // Normalize path
@@ -293,6 +326,18 @@ public class MicrosoftGraphStorageProvider implements StorageProvider {
     if (responseCode != HttpURLConnection.HTTP_OK) {
       conn.disconnect();
       throw new IOException("Failed to download file from path '" + path + "' (API path: '" + apiPath + "'): HTTP " + responseCode);
+    }
+
+    // If persistent cache is available, read data and cache it
+    if (persistentCache != null) {
+      byte[] data = readAllBytes(conn.getInputStream());
+      conn.disconnect();
+      
+      // Get file metadata for caching
+      FileMetadata metadata = getMetadata(path);
+      persistentCache.cacheData(path, data, metadata, 0); // No TTL for SharePoint
+      
+      return new java.io.ByteArrayInputStream(data);
     }
 
     return conn.getInputStream();
@@ -460,6 +505,16 @@ public class MicrosoftGraphStorageProvider implements StorageProvider {
    * Removes common document library prefixes from a path for API calls.
    * This handles both single and nested document library paths.
    */
+  private byte[] readAllBytes(InputStream inputStream) throws IOException {
+    java.io.ByteArrayOutputStream buffer = new java.io.ByteArrayOutputStream();
+    byte[] data = new byte[8192];
+    int nRead;
+    while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
+      buffer.write(data, 0, nRead);
+    }
+    return buffer.toByteArray();
+  }
+  
   private String removeDocumentLibraryPrefix(String path) {
     // Special handling for the nested "Shared Documents/Shared Documents" pattern
     // This occurs when the URL structure duplicates the library name

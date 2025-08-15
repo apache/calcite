@@ -21,8 +21,11 @@ import org.apache.calcite.adapter.file.converters.MarkdownTableScanner;
 import org.apache.calcite.adapter.file.converters.PptxTableScanner;
 import org.apache.calcite.adapter.file.converters.SafeExcelToJsonConverter;
 import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
-import org.apache.calcite.adapter.file.execution.duckdb.DuckDBConnectionManager;
+import org.apache.calcite.adapter.file.metadata.ConversionMetadata;
+import org.apache.calcite.adapter.file.storage.cache.StorageCacheManager;
 import org.apache.calcite.adapter.file.format.csv.CsvTypeInferrer;
+import org.apache.calcite.adapter.file.format.json.JsonMultiTableFactory;
+import org.apache.calcite.adapter.file.format.json.JsonSearchConfig;
 import org.apache.calcite.adapter.file.format.parquet.ParquetConversionUtil;
 import org.apache.calcite.adapter.file.iceberg.IcebergMetadataTables;
 import org.apache.calcite.adapter.file.iceberg.IcebergTable;
@@ -31,7 +34,6 @@ import org.apache.calcite.adapter.file.partition.PartitionDetector;
 import org.apache.calcite.adapter.file.partition.PartitionedTableConfig;
 import org.apache.calcite.adapter.file.refresh.RefreshInterval;
 import org.apache.calcite.adapter.file.refresh.RefreshableCsvTable;
-import org.apache.calcite.adapter.file.refresh.RefreshableDuckDBParquetTable;
 import org.apache.calcite.adapter.file.refresh.RefreshableJsonTable;
 import org.apache.calcite.adapter.file.refresh.RefreshableParquetCacheTable;
 import org.apache.calcite.adapter.file.refresh.RefreshablePartitionedParquetTable;
@@ -43,7 +45,6 @@ import org.apache.calcite.adapter.file.storage.StorageProviderFactory;
 import org.apache.calcite.adapter.file.storage.StorageProviderFile;
 import org.apache.calcite.adapter.file.storage.StorageProviderSource;
 import org.apache.calcite.adapter.file.table.CsvTranslatableTable;
-import org.apache.calcite.adapter.file.table.DuckDBParquetTable;
 import org.apache.calcite.adapter.file.table.EnhancedCsvTranslatableTable;
 import org.apache.calcite.adapter.file.table.EnhancedJsonScannableTable;
 import org.apache.calcite.adapter.file.table.FileTable;
@@ -169,6 +170,21 @@ public class FileSchema extends AbstractSchema {
     this.flatten = flatten;
     this.csvTypeInferenceConfig = CsvTypeInferrer.TypeInferenceConfig.fromMap(csvTypeInference);
     this.primeCache = primeCache;
+
+    // Initialize central metadata directory and storage cache if parquetCacheDirectory is configured
+    if (engineConfig.getParquetCacheDirectory() != null) {
+      File cacheDir = new File(engineConfig.getParquetCacheDirectory());
+      String metadataStorageType = storageType != null ? storageType : "local";
+      
+      // Initialize conversion metadata
+      ConversionMetadata.setCentralMetadataDirectory(cacheDir, metadataStorageType);
+      LOGGER.debug("Initialized central metadata directory under: {}/metadata/{}", 
+          cacheDir, metadataStorageType);
+      
+      // Initialize storage cache manager
+      StorageCacheManager.initialize(cacheDir);
+      LOGGER.debug("Initialized storage cache manager under: {}/storage_cache", cacheDir);
+    }
 
     // Create storage provider if configured
     if (storageType != null) {
@@ -610,6 +626,33 @@ public class FileSchema extends AbstractSchema {
 
   // Make volatile for thread visibility
   private volatile Map<String, Table> tableCache = null;
+  
+  /**
+   * Finds the original source file for a converted JSON file using metadata.
+   * Returns null if this JSON file is not a conversion result.
+   * 
+   * @param jsonFile The JSON file that might be a conversion result
+   * @return The original source, or null if this is not a converted file
+   */
+  private Source findOriginalSource(File jsonFile) {
+    if (baseDirectory != null) {
+      try {
+        org.apache.calcite.adapter.file.metadata.ConversionMetadata metadata = 
+            new org.apache.calcite.adapter.file.metadata.ConversionMetadata(baseDirectory);
+        File originalFile = metadata.findOriginalSource(jsonFile);
+        if (originalFile != null) {
+          LOGGER.debug("Found original source {} for {} from metadata", 
+              originalFile.getName(), jsonFile.getName());
+          return Sources.of(originalFile);
+        }
+      } catch (Exception e) {
+        LOGGER.debug("Failed to check conversion metadata: {}", e.getMessage());
+      }
+    }
+    
+    // No metadata found - this is either not a converted file or metadata is missing
+    return null;
+  }
 
   /**
    * Clear the table cache. This is primarily for testing to ensure
@@ -759,19 +802,12 @@ public class FileSchema extends AbstractSchema {
           LOGGER.debug("Found Parquet file in directory scan: {} -> table: {}", source.path(), tableName);
           try {
             // Add Parquet file using appropriate table type based on execution engine
-            Table table;
-            LOGGER.debug("Engine type check: {}", engineConfig.getEngineType());
+            // DuckDB engine uses JDBC adapter, not FileSchema
             if (engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.DUCKDB) {
-              // Use DuckDB-enabled table for high performance
-              LOGGER.debug("Creating DuckDB table in directory scan");
-              DuckDBParquetTable duckTable = new DuckDBParquetTable(source, null, columnNameCasing);
-              registerDuckDBView(tableName, source.path());
-              duckTable.setDuckDBNames(name, tableName);
-              table = duckTable;
-            } else {
-              // Use standard Parquet table
-              table = new ParquetTranslatableTable(new java.io.File(source.path()));
+              throw new IllegalStateException("DuckDB engine should use JDBC adapter, not FileSchema");
             }
+            // Use standard Parquet table
+            Table table = new ParquetTranslatableTable(new java.io.File(source.path()));
             builder.put(tableName, table);
           } catch (Exception e) {
             LOGGER.error("Failed to add Parquet table: {}", e.getMessage());
@@ -841,19 +877,13 @@ public class FileSchema extends AbstractSchema {
               if (mvParquetFile.exists()) {
                 // If the Parquet file exists, use appropriate table based on execution engine
                 LOGGER.debug("Found existing materialized view: {}", mvParquetFile.getPath());
-                Table mvTable;
+                // DuckDB engine uses JDBC adapter, not FileSchema
                 if (engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.DUCKDB) {
-                  // Use DuckDB-enabled table for high performance
-                  LOGGER.debug("Using DuckDBParquetTable to read materialized view");
-                  DuckDBParquetTable duckTable = new DuckDBParquetTable(Sources.of(mvParquetFile), null, columnNameCasing);
-                  registerDuckDBView(viewName, mvParquetFile.getAbsolutePath());
-                  duckTable.setDuckDBNames(name, viewName);
-                  mvTable = duckTable;
-                } else {
-                  // Use standard Parquet table
-                  LOGGER.debug("Using ParquetTranslatableTable to read materialized view");
-                  mvTable = new ParquetTranslatableTable(mvParquetFile);
+                  throw new IllegalStateException("DuckDB engine should use JDBC adapter, not FileSchema");
                 }
+                // Use standard Parquet table
+                LOGGER.debug("Using ParquetTranslatableTable to read materialized view");
+                Table mvTable = new ParquetTranslatableTable(mvParquetFile);
                 builder.put(applyCasing(viewName, tableNameCasing), mvTable);
                 LOGGER.debug("Successfully added table for materialized view: {}", viewName);
               } else {
@@ -1087,8 +1117,7 @@ public class FileSchema extends AbstractSchema {
 
     // Handle refreshable CSV/JSON files with Parquet caching
     if (hasRefresh && isCSVorJSON &&
-        (engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.PARQUET ||
-         engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.DUCKDB) &&
+        engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.PARQUET &&
         baseDirectory != null) {
 
       try {
@@ -1118,18 +1147,9 @@ public class FileSchema extends AbstractSchema {
         }
 
         // Create refreshable table that monitors the source and updates cache
-        // Use RefreshableDuckDBParquetTable for both DUCKDB and PARQUET engines
-        // because it implements ScannableTable which is needed for proper query execution
         RefreshableParquetCacheTable refreshableTable =
-            new RefreshableDuckDBParquetTable(source, parquetFile, cacheDir, refreshInterval, typeInferenceEnabled,
+            new RefreshableParquetCacheTable(source, parquetFile, cacheDir, refreshInterval, typeInferenceEnabled,
             columnNameCasing, null, engineConfig.getEngineType(), parentSchema, name);
-        
-        if (engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.DUCKDB) {
-          // Register parquet file with DuckDB
-          String parquetTableName = tableName.replace(".csv", "").replace(".json", "");
-          registerDuckDBView(parquetTableName, parquetFile.getAbsolutePath());
-          refreshableTable.setDuckDBNames(name, parquetTableName);
-        }
 
         String finalName = applyCasing(tableName, tableNameCasing);
         builder.put(finalName, refreshableTable);
@@ -1141,9 +1161,8 @@ public class FileSchema extends AbstractSchema {
       }
     }
 
-    // Check if we should convert to Parquet (for PARQUET or DUCKDB engines)
-    if ((engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.PARQUET
-         || engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.DUCKDB)
+    // Check if we should convert to Parquet (for PARQUET engine)
+    if (engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.PARQUET
         && baseDirectory != null
         && !source.path().toLowerCase(Locale.ROOT).endsWith(".parquet")) {
 
@@ -1185,7 +1204,12 @@ public class FileSchema extends AbstractSchema {
             String tableRefreshInterval = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
             Duration effectiveInterval = RefreshInterval.getEffectiveInterval(tableRefreshInterval, this.refreshInterval);
 
-            // Create appropriate table based on execution engine and refresh configuration
+            // DuckDB uses JDBC adapter, not FileSchema
+            if (engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.DUCKDB) {
+              throw new IllegalStateException("DuckDB engine should use JDBC adapter, not FileSchema");
+            }
+            
+            // Create appropriate table based on refresh configuration
             Table parquetTable;
             if (effectiveInterval != null) {
               // Create refreshable table with Parquet cache
@@ -1193,25 +1217,9 @@ public class FileSchema extends AbstractSchema {
                   ? (csvTypeInferenceConfig != null && csvTypeInferenceConfig.isEnabled())
                   : false;
 
-              if (engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.DUCKDB) {
-                RefreshableDuckDBParquetTable refreshableTable =
-                    new RefreshableDuckDBParquetTable(source, parquetFile, cacheDir, effectiveInterval, typeInferenceEnabled,
-                    columnNameCasing, null, engineConfig.getEngineType(), parentSchema, name);
-                String parquetTableName = tableName.replace(".csv", "");
-                refreshableTable.setDuckDBNames(name, parquetTableName);
-                parquetTable = refreshableTable;
-              } else {
-                parquetTable =
-                    new RefreshableParquetCacheTable(source, parquetFile, cacheDir, effectiveInterval, typeInferenceEnabled,
-                    columnNameCasing, null, engineConfig.getEngineType(), parentSchema, name);
-              }
-            } else if (engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.DUCKDB) {
-              // Use DuckDB-enabled table for high performance
-              String parquetTableName = tableName.replace(".csv", "");
-              DuckDBParquetTable duckTable = new DuckDBParquetTable(Sources.of(parquetFile), null, columnNameCasing);
-              registerDuckDBView(parquetTableName, parquetFile.getAbsolutePath());
-              duckTable.setDuckDBNames(name, parquetTableName);
-              parquetTable = duckTable;
+              parquetTable =
+                  new RefreshableParquetCacheTable(source, parquetFile, cacheDir, effectiveInterval, typeInferenceEnabled,
+                  columnNameCasing, null, engineConfig.getEngineType(), parentSchema, name);
             } else {
               // Use standard Parquet table
               parquetTable = new ParquetTranslatableTable(parquetFile);
@@ -1243,6 +1251,21 @@ public class FileSchema extends AbstractSchema {
     if (forcedFormat != null) {
       switch (forcedFormat.toLowerCase(Locale.ROOT)) {
       case "json":
+        // Check if JSONPath extraction is configured
+        if (tableDef != null && tableDef.containsKey("jsonSearchPaths")) {
+          LOGGER.info("Using JSONPath extraction for source: {}", source.path());
+          
+          // Get refresh interval if configured
+          String jsonRefreshInterval = (String) tableDef.get("refreshInterval");
+          Duration effectiveInterval = RefreshInterval.getEffectiveInterval(jsonRefreshInterval, this.refreshInterval);
+          
+          // JSON table extraction would go here when JsonMultiTableFactory is available
+          // For now, skip JSONPath extraction as dependencies are not available
+          LOGGER.debug("Skipping JSONPath extraction - dependencies not available");
+          // Continue to single table creation below
+        }
+        
+        // Single table creation (existing code)
         String jsonRefreshInterval = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
         Map<String, Object> options = null;
         if (tableDef != null && tableDef.containsKey("flatten")) {
@@ -1291,19 +1314,12 @@ public class FileSchema extends AbstractSchema {
         builder.put(applyCasing(Util.first(tableName, source.path()), tableNameCasing), htmlTable);
         return true;
       case "parquet":
-        final Table parquetTable;
-        LOGGER.debug("Processing Parquet file: Engine: {}", engineConfig.getEngineType());
+        // DuckDB uses JDBC adapter, not FileSchema
         if (engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.DUCKDB) {
-          // Use DuckDB-enabled table for high performance
-          LOGGER.debug("Creating DuckDB table in FileSchema");
-          DuckDBParquetTable duckTable = new DuckDBParquetTable(source, null, columnNameCasing);
-          registerDuckDBView(name, source.path());
-          duckTable.setDuckDBNames(this.name, name);
-          parquetTable = duckTable;
-        } else {
-          // Use standard Parquet table
-          parquetTable = new ParquetTranslatableTable(new java.io.File(source.path()));
+          throw new IllegalStateException("DuckDB engine should use JDBC adapter, not FileSchema");
         }
+        // Use standard Parquet table
+        final Table parquetTable = new ParquetTranslatableTable(new java.io.File(source.path()));
         builder.put(
             applyCasing(Util.first(tableName, source.path()),
             tableNameCasing), parquetTable);
@@ -1421,18 +1437,12 @@ public class FileSchema extends AbstractSchema {
     final Source sourceSansParquet = sourceSansGz.trimOrNull(".parquet");
     if (sourceSansParquet != null) {
       try {
-        // Use appropriate Parquet table based on execution engine
-        final Table table;
+        // DuckDB uses JDBC adapter, not FileSchema
         if (engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.DUCKDB) {
-          // Use DuckDB-enabled table for high performance
-          DuckDBParquetTable duckTable = new DuckDBParquetTable(source, null, columnNameCasing);
-          registerDuckDBView(tableName, source.path());
-          duckTable.setDuckDBNames(name, tableName);
-          table = duckTable;
-        } else {
-          // Use our custom ParquetTranslatableTable instead of arrow's ParquetTable
-          table = new ParquetTranslatableTable(new java.io.File(source.path()));
+          throw new IllegalStateException("DuckDB engine should use JDBC adapter, not FileSchema");
         }
+        // Use our custom ParquetTranslatableTable instead of arrow's ParquetTable
+        final Table table = new ParquetTranslatableTable(new java.io.File(source.path()));
         builder.put(
             applyCasing(Util.first(tableName, sourceSansParquet.path()),
             tableNameCasing), table);
@@ -1682,26 +1692,8 @@ public class FileSchema extends AbstractSchema {
       // The conversion happens in addTable() method
       return new CsvTranslatableTable(source, protoRowType, columnNameCasing, csvTypeInferenceConfig);
     case DUCKDB:
-      if (effectiveInterval != null && tableName != null) {
-        try {
-          // For DuckDB engine with refresh, use RefreshableParquetCacheTable
-          File cacheDir =
-              ParquetConversionUtil.getParquetCacheDir(baseDirectory, engineConfig.getParquetCacheDirectory());
-          File parquetFile =
-              ParquetConversionUtil.convertToParquet(source, tableName, new CsvTranslatableTable(source, protoRowType, columnNameCasing, csvTypeInferenceConfig),
-              cacheDir, parentSchema, name);
-          boolean typeInferenceEnabled = csvTypeInferenceConfig != null && csvTypeInferenceConfig.isEnabled();
-          // Use DuckDB-specific RefreshableParquetCacheTable for DUCKDB engine
-          RefreshableDuckDBParquetTable table =
-              new RefreshableDuckDBParquetTable(source, parquetFile, cacheDir, effectiveInterval, typeInferenceEnabled, columnNameCasing, protoRowType, engineConfig.getEngineType(), parentSchema, name);
-          table.setDuckDBNames(name, tableName);
-          return table;
-        } catch (Exception e) {
-          throw new RuntimeException("Failed to create refreshable DuckDB table for " + source.path(), e);
-        }
-      }
-      // For DUCKDB engine, use the same logic as PARQUET (convert to Parquet then use DuckDB)
-      return new CsvTranslatableTable(source, protoRowType, columnNameCasing, csvTypeInferenceConfig);
+      // DuckDB uses JDBC adapter, not FileSchema
+      throw new IllegalStateException("DuckDB engine should use JDBC adapter, not FileSchema");
     case ARROW:
     case LINQ4J:
     default:
@@ -1758,8 +1750,8 @@ public class FileSchema extends AbstractSchema {
           File parquetFile =
               ParquetConversionUtil.convertToParquet(source, tableName, new JsonScannableTable(source, options, columnNameCasing), cacheDir, parentSchema, name);
           // JSON files don't have type inference config like CSV
-          // Use standard RefreshableParquetCacheTable for PARQUET engine
-          return new RefreshableParquetCacheTable(source, parquetFile, cacheDir,
+          // Use RefreshableParquetCacheTable 
+          return new RefreshableParquetCacheTable(source, null, parquetFile, cacheDir,
               effectiveInterval, false, columnNameCasing, null,
               engineConfig.getEngineType(), parentSchema, name);
         } catch (Exception e) {
@@ -1768,25 +1760,8 @@ public class FileSchema extends AbstractSchema {
       }
       return new ParquetJsonScannableTable(source, engineConfig, options, columnNameCasing);
     case DUCKDB:
-      if (effectiveInterval != null && tableName != null) {
-        try {
-          // For DuckDB engine with refresh, we need to use RefreshableParquetCacheTable
-          // First convert JSON to Parquet
-          File cacheDir =
-              ParquetConversionUtil.getParquetCacheDir(baseDirectory, engineConfig.getParquetCacheDirectory());
-          File parquetFile =
-              ParquetConversionUtil.convertToParquet(source, tableName, new JsonScannableTable(source, options, columnNameCasing), cacheDir, parentSchema, name);
-          // Use DuckDB-specific RefreshableParquetCacheTable for DUCKDB engine
-          RefreshableDuckDBParquetTable table =
-              new RefreshableDuckDBParquetTable(source, parquetFile, cacheDir, effectiveInterval, false, columnNameCasing, null, engineConfig.getEngineType(), parentSchema, name);
-          // Set DuckDB names for proper query execution
-          table.setDuckDBNames(name, tableName);
-          return table;
-        } catch (Exception e) {
-          throw new RuntimeException("Failed to create refreshable DuckDB table for " + source.path(), e);
-        }
-      }
-      return new ParquetJsonScannableTable(source, engineConfig, options, columnNameCasing);
+      // DuckDB uses JDBC adapter, not FileSchema
+      throw new IllegalStateException("DuckDB engine should use JDBC adapter, not FileSchema");
     case ARROW:
     case LINQ4J:
     default:
@@ -2321,22 +2296,4 @@ public class FileSchema extends AbstractSchema {
     }
   }
 
-  /**
-   * Registers a Parquet file as a view in DuckDB when using DUCKDB engine.
-   * Called when creating DuckDBParquetTable instances.
-   */
-  private void registerDuckDBView(String tableName, String parquetPath) {
-    if (engineConfig.getEngineType() != ExecutionEngineConfig.ExecutionEngineType.DUCKDB) {
-      return;
-    }
-
-    try {
-      LOGGER.debug("Registering DuckDB view: {}.{} -> {}", name, tableName, parquetPath);
-      DuckDBConnectionManager.addParquetFile(name, tableName, parquetPath);
-    } catch (Exception e) {
-      LOGGER.error("Failed to register DuckDB view for table: {}", tableName, e);
-      // Don't fail table creation, just log the error
-      // The table can still work with per-query temporary views
-    }
-  }
 }

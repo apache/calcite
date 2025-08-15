@@ -26,7 +26,8 @@ import org.apache.calcite.plan.RelOptRule;
  * These rules use table and column statistics to make informed decisions about
  * filter pushdown, join reordering, and column pruning.
  * 
- * This class now provides access to the actual implemented rules.
+ * Note: The complex rule variants have been replaced by "Simple" rule variants
+ * that are registered in the DuckDB and Parquet engine conventions.
  */
 public final class FileStatisticsRules {
 
@@ -34,27 +35,6 @@ public final class FileStatisticsRules {
     // Utility class - no instances
   }
 
-  /**
-   * Rule that pushes down filters when statistics indicate high selectivity.
-   * Uses min/max column statistics and HLL cardinality estimates.
-   */
-  public static final FileFilterPushdownRule STATISTICS_FILTER_PUSHDOWN = 
-      FileFilterPushdownRule.INSTANCE;
-
-  /**
-   * Rule that reorders joins based on table size estimates from statistics.
-   * Uses HLL cardinality estimates to choose optimal join order.
-   */
-  public static final FileJoinReorderRule STATISTICS_JOIN_REORDER = 
-      FileJoinReorderRule.INSTANCE;
-
-  /**
-   * Rule that prunes columns not used in downstream operations.
-   * Uses column statistics to identify unused columns early in the plan.
-   */
-  public static final FileColumnPruningRule STATISTICS_COLUMN_PRUNING = 
-      FileColumnPruningRule.INSTANCE;
-      
   // Legacy string constants for backwards compatibility
   public static final String STATISTICS_FILTER_PUSHDOWN_NAME = 
       "FileStatisticsRules:FilterPushdown";

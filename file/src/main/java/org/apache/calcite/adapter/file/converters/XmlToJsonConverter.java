@@ -147,6 +147,10 @@ public class XmlToJsonConverter {
         try {
           convertElementsToJson(tableInfo.elements, jsonFile, columnNameCasing);
           jsonFiles.add(jsonFile);
+          
+          // Record the conversion for refresh tracking
+          ConversionRecorder.recordXmlConversion(xmlFile, jsonFile);
+          
           LOGGER.fine("Wrote table '" + tableName + "' to " + jsonFile.getAbsolutePath());
           
         } catch (IOException e) {

@@ -90,9 +90,20 @@ public class CsvTableScan extends TableScan implements EnumerableRel {
     planner.addRule(org.apache.calcite.adapter.file.rules.SimpleHLLCountDistinctRule.INSTANCE);
     // Also register VALUES converter rule so LogicalValues can become EnumerableValues
     planner.addRule(org.apache.calcite.adapter.enumerable.EnumerableRules.ENUMERABLE_VALUES_RULE);
-    planner.addRule(FileRules.STATISTICS_FILTER_PUSHDOWN);
-    planner.addRule(FileRules.STATISTICS_JOIN_REORDER);
-    planner.addRule(FileRules.STATISTICS_COLUMN_PRUNING);
+    
+    // Register parquet statistics-based optimization rules
+    // These are now handled by the Simple rule variants that actually work
+    if (!"false".equals(System.getProperty("calcite.file.statistics.filter.enabled"))) {
+      planner.addRule(org.apache.calcite.adapter.file.rules.SimpleFileFilterPushdownRule.INSTANCE);
+    }
+    
+    if (!"false".equals(System.getProperty("calcite.file.statistics.join.reorder.enabled"))) {
+      planner.addRule(org.apache.calcite.adapter.file.rules.SimpleFileJoinReorderRule.INSTANCE);
+    }
+    
+    if (!"false".equals(System.getProperty("calcite.file.statistics.column.pruning.enabled"))) {
+      planner.addRule(org.apache.calcite.adapter.file.rules.SimpleFileColumnPruningRule.INSTANCE);
+    }
   }
 
   @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
