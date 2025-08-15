@@ -167,27 +167,17 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
   
   /**
    * Re-runs any necessary file conversions if the source requires it.
-   * This handles Excel→JSON, HTML→JSON, XML→JSON, etc.
+   * Uses the centralized FileConversionManager for all conversion logic.
    */
   private void rerunConversionsIfNeeded(File sourceFile) {
-    String path = sourceFile.getPath().toLowerCase();
-    
     try {
-      if (path.endsWith(".xlsx") || path.endsWith(".xls")) {
-        // Re-convert Excel to JSON if needed
-        org.apache.calcite.adapter.file.converters.SafeExcelToJsonConverter.convertIfNeeded(sourceFile, true);
-        LOGGER.debug("Re-converted Excel file to JSON: {}", sourceFile.getName());
-      } else if (path.endsWith(".html") || path.endsWith(".htm")) {
-        // HTML conversion - the converter should check if re-conversion is needed
-        // TODO: Implement HTML re-conversion check
-        LOGGER.debug("HTML file detected, re-conversion check not yet implemented: {}", sourceFile.getName());
-      } else if (path.endsWith(".xml")) {
-        // XML conversion - the converter should check if re-conversion is needed
-        // TODO: Implement XML re-conversion check
-        LOGGER.debug("XML file detected, re-conversion check not yet implemented: {}", sourceFile.getName());
+      File outputDir = sourceFile.getParentFile();
+      boolean converted = org.apache.calcite.adapter.file.converters.FileConversionManager.convertIfNeeded(
+          sourceFile, outputDir, columnNameCasing);
+      
+      if (converted) {
+        LOGGER.debug("Re-converted source file: {}", sourceFile.getName());
       }
-      // For JSON files, no conversion needed - they are the source
-      // For CSV files, no conversion needed - they are the source
     } catch (Exception e) {
       LOGGER.error("Failed to re-run conversions for {}: {}", sourceFile.getName(), e.getMessage(), e);
     }

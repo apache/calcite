@@ -149,7 +149,7 @@ public class XmlToJsonConverter {
           jsonFiles.add(jsonFile);
           
           // Record the conversion for refresh tracking
-          ConversionRecorder.recordXmlConversion(xmlFile, jsonFile);
+          ConversionRecorder.recordConversion(xmlFile, jsonFile, "XML_TO_JSON");
           
           LOGGER.fine("Wrote table '" + tableName + "' to " + jsonFile.getAbsolutePath());
           

@@ -1749,9 +1749,27 @@ public class FileSchema extends AbstractSchema {
               ParquetConversionUtil.getParquetCacheDir(baseDirectory, engineConfig.getParquetCacheDirectory());
           File parquetFile =
               ParquetConversionUtil.convertToParquet(source, tableName, new JsonScannableTable(source, options, columnNameCasing), cacheDir, parentSchema, name);
-          // JSON files don't have type inference config like CSV
-          // Use RefreshableParquetCacheTable 
-          return new RefreshableParquetCacheTable(source, null, parquetFile, cacheDir,
+          
+          // Check if this JSON file was converted from another source (HTML, Excel, XML)
+          Source originalSource = null;
+          try {
+            File jsonFile = source.file();
+            if (jsonFile != null) {
+              org.apache.calcite.adapter.file.metadata.ConversionMetadata metadata = 
+                  new org.apache.calcite.adapter.file.metadata.ConversionMetadata(jsonFile.getParentFile());
+              File origFile = metadata.findOriginalSource(jsonFile);
+              if (origFile != null && origFile.exists()) {
+                originalSource = Sources.of(origFile);
+                LOGGER.debug("Found original source {} for JSON file {}", 
+                    origFile.getName(), jsonFile.getName());
+              }
+            }
+          } catch (Exception e) {
+            LOGGER.debug("Could not find original source for {}: {}", source.path(), e.getMessage());
+          }
+          
+          // Use RefreshableParquetCacheTable with original source if found
+          return new RefreshableParquetCacheTable(source, originalSource, parquetFile, cacheDir,
               effectiveInterval, false, columnNameCasing, null,
               engineConfig.getEngineType(), parentSchema, name);
         } catch (Exception e) {

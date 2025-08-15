@@ -40,7 +40,10 @@ public class ConversionRecorder {
    */
   public static void recordConversion(File originalFile, File convertedFile, String conversionType) {
     try {
-      ConversionMetadata metadata = new ConversionMetadata(originalFile.getParentFile());
+      // Use the converted file's directory for metadata storage
+      // This ensures the metadata is in the same location where queries will look for it
+      File metadataDir = convertedFile.getParentFile();
+      ConversionMetadata metadata = new ConversionMetadata(metadataDir);
       metadata.recordConversion(originalFile, convertedFile, conversionType);
       LOGGER.debug("Recorded {} conversion: {} -> {}", 
           conversionType, originalFile.getName(), convertedFile.getName());

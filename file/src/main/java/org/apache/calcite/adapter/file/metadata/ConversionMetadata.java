@@ -68,6 +68,16 @@ public class ConversionMetadata {
       this.conversionType = conversionType;
       this.timestamp = System.currentTimeMillis();
     }
+    
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    public String getOriginalPath() {
+      return originalFile;
+    }
+    
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    public String getConversionType() {
+      return conversionType;
+    }
   }
   
   /**
@@ -175,6 +185,22 @@ public class ConversionMetadata {
     }
     
     return null;
+  }
+  
+  /**
+   * Gets the conversion record for a converted file.
+   * 
+   * @param convertedFile The converted file
+   * @return The conversion record, or null if not found
+   */
+  public ConversionRecord getConversionRecord(File convertedFile) {
+    try {
+      String key = convertedFile.getCanonicalPath();
+      return conversions.get(key);
+    } catch (IOException e) {
+      LOGGER.error("Failed to get conversion record", e);
+      return null;
+    }
   }
   
   /**

@@ -18,6 +18,10 @@ package org.apache.calcite.adapter.file.refresh;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.file.execution.linq4j.JsonEnumerator;
+import org.apache.calcite.adapter.file.metadata.ConversionMetadata;
+import org.apache.calcite.adapter.file.converters.HtmlToJsonConverter;
+import org.apache.calcite.adapter.file.converters.MultiTableExcelToJsonConverter;
+import org.apache.calcite.adapter.file.converters.XmlToJsonConverter;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
@@ -29,19 +33,27 @@ import org.apache.calcite.util.Source;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
+import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
 /**
  * Refreshable JSON table that re-reads the source file when modified.
+ * Also monitors original source files (HTML, Excel, XML) and re-converts them when changed.
  */
 public class RefreshableJsonTable extends AbstractRefreshableTable implements ScannableTable {
+  private static final Logger LOGGER = LoggerFactory.getLogger(RefreshableJsonTable.class);
+  
   private final Source source;
   private final String columnNameCasing;
   private @Nullable RelDataType rowType;
   private @Nullable List<Object> dataList;
+  private @Nullable ConversionMetadata conversionMetadata;
 
   public RefreshableJsonTable(Source source, String tableName, @Nullable Duration refreshInterval) {
     this(source, tableName, refreshInterval, "UNCHANGED");
@@ -82,13 +94,80 @@ public class RefreshableJsonTable extends AbstractRefreshableTable implements Sc
   }
 
   @Override protected void doRefresh() {
-    // Check if file has been modified
-    File file = source.file();
-    if (file != null && isFileModified(file)) {
+    File jsonFile = source.file();
+    if (jsonFile == null) {
+      return;
+    }
+    
+    // Initialize conversion metadata if not already done
+    if (conversionMetadata == null) {
+      try {
+        conversionMetadata = new ConversionMetadata(jsonFile.getParentFile());
+      } catch (Exception e) {
+        LOGGER.debug("Could not initialize conversion metadata: {}", e.getMessage());
+      }
+    }
+    
+    // Check if original source file needs re-conversion
+    boolean needsReconversion = false;
+    File originalSource = null;
+    
+    if (conversionMetadata != null) {
+      try {
+        originalSource = conversionMetadata.findOriginalSource(jsonFile);
+        if (originalSource != null && originalSource.exists()) {
+          // Check if original source has been modified
+          if (isFileModified(originalSource)) {
+            needsReconversion = true;
+            LOGGER.debug("Original source {} has been modified, triggering re-conversion", 
+                originalSource.getName());
+          }
+        }
+      } catch (Exception e) {
+        LOGGER.debug("Error checking original source: {}", e.getMessage());
+      }
+    }
+    
+    // If original source changed, re-convert it
+    if (needsReconversion && originalSource != null) {
+      try {
+        String fileName = originalSource.getName().toLowerCase();
+        File outputDir = jsonFile.getParentFile();
+        
+        if (fileName.endsWith(".html") || fileName.endsWith(".htm")) {
+          // Re-convert HTML to JSON
+          List<File> newJsonFiles = HtmlToJsonConverter.convert(originalSource, outputDir, columnNameCasing);
+          LOGGER.debug("Re-converted HTML file {} to {} JSON files", 
+              originalSource.getName(), newJsonFiles.size());
+        } else if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
+          // Re-convert Excel to JSON
+          MultiTableExcelToJsonConverter.convertFileToJson(originalSource, true);
+          LOGGER.debug("Re-converted Excel file {}", originalSource.getName());
+        } else if (fileName.endsWith(".xml")) {
+          // Re-convert XML to JSON
+          List<File> newJsonFiles = XmlToJsonConverter.convert(originalSource, outputDir, columnNameCasing);
+          LOGGER.debug("Re-converted XML file {} to {} JSON files", 
+              originalSource.getName(), newJsonFiles.size());
+        }
+        
+        // Update the last modified time of the original source
+        updateLastModified(originalSource);
+        
+        // Clear cached data to force re-read of new JSON
+        dataList = null;
+        rowType = null;
+      } catch (IOException e) {
+        LOGGER.warn("Failed to re-convert original source {}: {}", 
+            originalSource.getName(), e.getMessage());
+      }
+    }
+    
+    // Also check if JSON file itself has been modified directly
+    if (isFileModified(jsonFile)) {
       // Clear cached data to force re-read
       dataList = null;
       rowType = null;
-      updateLastModified(file);
+      updateLastModified(jsonFile);
     }
   }
 

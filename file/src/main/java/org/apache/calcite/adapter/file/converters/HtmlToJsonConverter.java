@@ -136,7 +136,7 @@ public class HtmlToJsonConverter {
           jsonFiles.add(jsonFile);
           
           // Record the conversion for refresh tracking
-          ConversionRecorder.recordHtmlConversion(htmlFile, jsonFile);
+          ConversionRecorder.recordConversion(htmlFile, jsonFile, "HTML_TO_JSON");
           
           LOGGER.fine("Wrote table to " + jsonFile.getAbsolutePath());
         }
@@ -188,6 +188,9 @@ public class HtmlToJsonConverter {
     try (FileWriter writer = new FileWriter(jsonFile, StandardCharsets.UTF_8)) {
       MAPPER.writerWithDefaultPrettyPrinter().writeValue(writer, jsonArray);
     }
+    
+    // Note: Conversion recording is handled by the calling method
+    // which has access to the original HTML source file
   }
 
   /**
@@ -379,7 +382,7 @@ public class HtmlToJsonConverter {
           
           // Record the conversion for refresh tracking (using URL as source identifier)
           File sourceFile = new File(url); // Pseudo-file for URL tracking
-          ConversionRecorder.recordHtmlConversion(sourceFile, jsonFile);
+          ConversionRecorder.recordConversion(sourceFile, jsonFile, "HTML_TO_JSON");
           
           LOGGER.fine("Wrote table from " + url + " to " + jsonFile.getName());
         }
