@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.file.format;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.parallel.Isolated;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -40,6 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Test for compressed file support in the file adapter.
  */
 @Tag("unit")
+@Isolated
 public class CompressedFileTest {
 
   @TempDir

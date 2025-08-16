@@ -35,6 +35,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -93,7 +94,7 @@ public class HtmlToJsonConverter {
   public static List<File> convert(File htmlFile, File outputDir, String columnNameCasing, String tableNameCasing) throws IOException {
     List<File> jsonFiles = new ArrayList<>();
 
-    // Use HtmlTableScanner to find tables
+    // Use HtmlTableScanner to find tables - make sure we re-scan each time
     Source source = Sources.of(htmlFile);
     List<HtmlTableScanner.TableInfo> tableInfos = HtmlTableScanner.scanTables(source, tableNameCasing);
 
@@ -104,9 +105,12 @@ public class HtmlToJsonConverter {
       outputDir.mkdirs();
     }
 
-    // Parse HTML to extract table data
+    // Parse HTML to extract table data - ensure we re-read the file
+    // Force re-reading by not using any cached document
     Document doc = Jsoup.parse(htmlFile, "UTF-8");
+    LOGGER.info("Parsed HTML file: " + htmlFile.getName() + " (size: " + htmlFile.length() + " bytes, lastModified: " + htmlFile.lastModified() + ")");
     Elements tables = doc.select("table");
+    LOGGER.info("Found " + tables.size() + " table elements in DOM");
 
     // Convert each table to a JSON file
     for (int i = 0; i < tableInfos.size(); i++) {
@@ -132,13 +136,22 @@ public class HtmlToJsonConverter {
         }
         
         if (table != null) {
+          // Delete existing file to ensure fresh write
+          if (jsonFile.exists()) {
+            jsonFile.delete();
+            LOGGER.info("Deleted existing JSON file for refresh: " + jsonFile.getName());
+          }
+          
+          // Log table content to debug
+          LOGGER.info("Table HTML content: " + table.html().substring(0, Math.min(200, table.html().length())));
+          
           writeTableAsJson(table, jsonFile, columnNameCasing);
           jsonFiles.add(jsonFile);
           
           // Record the conversion for refresh tracking
           ConversionRecorder.recordConversion(htmlFile, jsonFile, "HTML_TO_JSON");
           
-          LOGGER.fine("Wrote table to " + jsonFile.getAbsolutePath());
+          LOGGER.info("Wrote table to " + jsonFile.getAbsolutePath());
         }
       } catch (IOException e) {
         LOGGER.log(Level.WARNING, "Failed to write table " + tableName + " to JSON", e);
@@ -164,6 +177,8 @@ public class HtmlToJsonConverter {
     Elements rows = table.select("tr");
     boolean skipFirstRow = shouldSkipFirstRow(table, headers);
     
+    LOGGER.fine("Processing table with " + rows.size() + " rows, skipFirstRow=" + skipFirstRow);
+    
     for (int rowIndex = skipFirstRow ? 1 : 0; rowIndex < rows.size(); rowIndex++) {
       Element row = rows.get(rowIndex);
       Elements cells = row.select("td");
@@ -184,10 +199,32 @@ public class HtmlToJsonConverter {
       }
     }
 
-    // Write to file
-    try (FileWriter writer = new FileWriter(jsonFile, StandardCharsets.UTF_8)) {
-      MAPPER.writerWithDefaultPrettyPrinter().writeValue(writer, jsonArray);
+    LOGGER.info("Writing " + jsonArray.size() + " rows to " + jsonFile.getAbsolutePath());
+    
+    // Convert to JSON string first to verify content
+    String jsonContent = MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(jsonArray);
+    LOGGER.info("JSON content to write (first 200 chars): " + jsonContent.substring(0, Math.min(200, jsonContent.length())));
+    
+    // Write to temporary file first for atomic operation
+    File tempFile = new File(jsonFile.getAbsolutePath() + ".tmp." + Thread.currentThread().threadId());
+    
+    try (FileWriter writer = new FileWriter(tempFile, StandardCharsets.UTF_8)) {
+      writer.write(jsonContent);
+      writer.flush();
     }
+    
+    // Atomic rename (on most filesystems)
+    java.nio.file.Files.move(tempFile.toPath(), jsonFile.toPath(),
+        java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+        java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+    
+    // Force file system sync and set timestamp
+    jsonFile.setLastModified(System.currentTimeMillis());
+    
+    // Verify write by reading back
+    String readBack = Files.readString(jsonFile.toPath());
+    LOGGER.info("Successfully wrote " + jsonArray.size() + " rows to " + jsonFile.getAbsolutePath() + 
+                " (size: " + jsonFile.length() + " bytes, verified: " + readBack.substring(0, Math.min(100, readBack.length())) + ")");
     
     // Note: Conversion recording is handled by the calling method
     // which has access to the original HTML source file

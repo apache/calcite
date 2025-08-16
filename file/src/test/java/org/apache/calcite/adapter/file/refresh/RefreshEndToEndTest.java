@@ -24,6 +24,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.parallel.Isolated;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -43,6 +44,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Tests that converters automatically record metadata for refresh tracking.
  */
 @Tag("unit")
+@Isolated
 public class RefreshEndToEndTest {
 
   @TempDir
@@ -54,9 +56,9 @@ public class RefreshEndToEndTest {
   public void setupTestFiles() throws Exception {
     schemaDir = tempDir.toFile();
     
-    // Set central metadata directory for this test to ensure consistency
-    // Each test gets its own unique temp directory for isolation
-    ConversionMetadata.setCentralMetadataDirectory(schemaDir, "test");
+    // Don't use central metadata directory for tests - use local metadata files
+    // This avoids conflicts when tests run in parallel
+    ConversionMetadata.setCentralMetadataDirectory(null, null);
   }
   
   @AfterEach
@@ -287,7 +289,7 @@ public class RefreshEndToEndTest {
     }
     
     if (info.containsKey("engine")) {
-      model.append("        \"engine\": \"").append(info.getProperty("engine")).append("\",\n");
+      model.append("        \"executionEngine\": \"").append(info.getProperty("engine")).append("\",\n");
     }
     
     model.append("        \"caseSensitive\": false\n");

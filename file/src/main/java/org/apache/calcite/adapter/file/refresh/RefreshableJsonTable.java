@@ -134,7 +134,19 @@ public class RefreshableJsonTable extends AbstractRefreshableTable implements Sc
         String fileName = originalSource.getName().toLowerCase();
         File outputDir = jsonFile.getParentFile();
         
-        if (fileName.endsWith(".html") || fileName.endsWith(".htm")) {
+        // Check if this is a JSONPath extraction
+        ConversionMetadata.ConversionRecord record = conversionMetadata.getConversionRecord(jsonFile);
+        if (record != null && record.getConversionType() != null 
+            && record.getConversionType().startsWith("JSONPATH_EXTRACTION")) {
+          // Extract the JSONPath from the conversion type
+          String jsonPath = record.getConversionType().substring("JSONPATH_EXTRACTION:".length());
+          
+          // Re-run the JSONPath extraction
+          org.apache.calcite.adapter.file.converters.JsonPathConverter.extract(
+              originalSource, jsonFile, jsonPath);
+          LOGGER.debug("Re-extracted JSONPath {} from {} to {}", 
+              jsonPath, originalSource.getName(), jsonFile.getName());
+        } else if (fileName.endsWith(".html") || fileName.endsWith(".htm")) {
           // Re-convert HTML to JSON
           List<File> newJsonFiles = HtmlToJsonConverter.convert(originalSource, outputDir, columnNameCasing);
           LOGGER.debug("Re-converted HTML file {} to {} JSON files", 

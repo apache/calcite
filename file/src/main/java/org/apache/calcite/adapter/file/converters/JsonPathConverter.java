@@ -60,13 +60,24 @@ public class JsonPathConverter {
       extractedData = JSON_MAPPER.createObjectNode(); // Empty object
     }
     
-    // Write output as JSON
-    try (FileWriter writer = new FileWriter(outputFile, StandardCharsets.UTF_8)) {
-      String jsonOutput = JSON_MAPPER.writerWithDefaultPrettyPrinter()
-          .writeValueAsString(extractedData);
+    // Write output as JSON using atomic write operation
+    String jsonOutput = JSON_MAPPER.writerWithDefaultPrettyPrinter()
+        .writeValueAsString(extractedData);
+    
+    // Write to temporary file first for atomic operation
+    File tempFile = new File(outputFile.getAbsolutePath() + ".tmp." + Thread.currentThread().threadId());
+    
+    try (FileWriter writer = new FileWriter(tempFile, StandardCharsets.UTF_8)) {
       writer.write(jsonOutput);
-      LOGGER.debug("Wrote extracted JSON data to {}", outputFile.getName());
+      writer.flush();
     }
+    
+    // Atomic rename (on most filesystems)
+    java.nio.file.Files.move(tempFile.toPath(), outputFile.toPath(),
+        java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+        java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+    
+    LOGGER.debug("Wrote extracted JSON data to {} ({} bytes)", outputFile.getName(), jsonOutput.length());
     
     // Record the conversion for refresh tracking
     ConversionRecorder.recordConversion(sourceJson, outputFile, 

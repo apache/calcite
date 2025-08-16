@@ -150,8 +150,8 @@ public class ExecutionEngineConfig {
    * @return The default execution engine name
    */
   private static String getDefaultEngine() {
-    // Temporarily reverting to linq4j for testing
-    return "linq4j";
+    // Default to parquet engine
+    return "parquet";
     /*
     if (DuckDBExecutionEngine.isAvailable()) {
       LOGGER.info("DuckDB driver detected in classpath - using DUCKDB as default execution engine");

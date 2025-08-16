@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.file;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.parallel.Isolated;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -32,7 +33,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Test to verify Oracle lexical settings work correctly with case-insensitive information_schema.
  */
-@Tag("unit")public class OracleLexicalSettingsTest {
+@Tag("unit")
+@Isolated
+public class OracleLexicalSettingsTest {
 
   @Test
   void testOracleLexicalSettings() throws SQLException {

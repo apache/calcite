@@ -39,7 +39,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Test for table and column name casing configuration in the file adapter.
  */
 @SuppressWarnings("deprecation")
-@Tag("unit")public class CasingConfigurationTest {
+@Tag("unit")
+public class CasingConfigurationTest {
 
   @TempDir
   public File tempDir;

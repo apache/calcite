@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableMap;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.parallel.Isolated;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -66,31 +67,26 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * HTML tables over HTTP, and also read CSV and JSON files from the filesystem.
  */
 @Tag("unit")
+@Isolated
 @ExtendWith(RequiresNetworkExtension.class)
 public class FileAdapterTest {
 
   @org.junit.jupiter.api.BeforeEach
-  void clearCaches() {
-    // Clear HLL cache before each test to prevent interference
-    // This is critical because the cache uses fully qualified names now
-    HLLSketchCache.getInstance().invalidateAll();
-
-    // Clear cached JSON files that were auto-generated from HTML files
-    // These can persist between tests and cause column casing inconsistencies
-    clearCachedJsonFiles();
-
-    // Clear FileSchema table cache to prevent test isolation issues
-    // This ensures each test starts with a fresh schema discovery
-    clearFileSchemaCache();
+  void setUp() {
+    // Only clear temporary test artifacts, not production-like caches
+    // This maintains realistic production scenarios while ensuring test isolation
+    
+    // Clear only temporary JSON files generated from HTML conversions
+    // These are test artifacts that wouldn't exist in production
+    clearTemporaryTestFiles();
   }
 
-  private void clearFileSchemaCache() {
-    // Clear FileSchema table caches to ensure test isolation
-    // Since FileSchema instances are created per connection and cached,
-    // we need to ensure each test gets a fresh schema without cached tables
-
-    // Clear any temporary JSON files created from HTML conversions
-    // These can cause name conflicts between tests
+  private void clearTemporaryTestFiles() {
+    // Only clear temporary files that are test artifacts
+    // Avoid clearing production-like caches to maintain realistic scenarios
+    
+    // Clear temporary JSON files generated from HTML conversions during tests
+    // These are test artifacts that wouldn't exist in production
     java.io.File salesDir =
         new java.io.File(System.getProperty("user.dir"), "build/resources/test/sales");
     if (salesDir.exists()) {
@@ -102,19 +98,17 @@ public class FileAdapterTest {
         }
       }
     }
+    
+    // Clear other temporary test JSON files
+    clearTemporaryJsonFiles(new java.io.File(System.getProperty("user.dir"), "build/resources/test"));
   }
 
-  private void clearCachedJsonFiles() {
-    // Clear all cached files that can persist between test runs and affect subsequent tests
-    clearDirectory(new java.io.File(System.getProperty("user.dir"), "build/resources/test"));
-  }
-
-  private void clearDirectory(java.io.File baseDir) {
+  private void clearTemporaryJsonFiles(java.io.File baseDir) {
     if (!baseDir.exists() || !baseDir.isDirectory()) {
       return;
     }
 
-    // Clear JSON files auto-generated from HTML (pattern: name__table.json)
+    // Only clear JSON files that are test artifacts (pattern: name__table.json)
     java.io.File[] jsonFiles = baseDir.listFiles((dir, name) ->
         name.endsWith(".json") && name.contains("__"));
     if (jsonFiles != null) {
@@ -123,36 +117,16 @@ public class FileAdapterTest {
       }
     }
 
-    // Clear Parquet cache directories (.parquet_cache)
-    java.io.File[] cacheDir = baseDir.listFiles((dir, name) ->
-        name.equals(".parquet_cache"));
-    if (cacheDir != null) {
-      for (java.io.File cache : cacheDir) {
-        deleteRecursively(cache);
-      }
-    }
-
     // Recursively process subdirectories
     java.io.File[] subdirs = baseDir.listFiles(java.io.File::isDirectory);
     if (subdirs != null) {
       for (java.io.File subdir : subdirs) {
-        if (!subdir.getName().equals(".parquet_cache")) { // Already handled above
-          clearDirectory(subdir);
+        // Don't clear .parquet_cache as that simulates production behavior
+        if (!subdir.getName().equals(".parquet_cache")) {
+          clearTemporaryJsonFiles(subdir);
         }
       }
     }
-  }
-
-  private void deleteRecursively(java.io.File file) {
-    if (file.isDirectory()) {
-      java.io.File[] children = file.listFiles();
-      if (children != null) {
-        for (java.io.File child : children) {
-          deleteRecursively(child);
-        }
-      }
-    }
-    file.delete();
   }
 
   static Stream<String> explainFormats() {

@@ -44,8 +44,8 @@ public class ConversionMetadata {
   private static final ObjectMapper MAPPER = new ObjectMapper()
       .enable(SerializationFeature.INDENT_OUTPUT);
   
-  // Static field for central metadata directory
-  private static File centralMetadataDirectory = null;
+  // Static field for central metadata directory - using volatile for thread safety
+  private static volatile File centralMetadataDirectory = null;
   
   private final File metadataFile;
   private final Map<String, ConversionRecord> conversions = new ConcurrentHashMap<>();
@@ -74,7 +74,6 @@ public class ConversionMetadata {
       return originalFile;
     }
     
-    @com.fasterxml.jackson.annotation.JsonIgnore
     public String getConversionType() {
       return conversionType;
     }
@@ -88,7 +87,7 @@ public class ConversionMetadata {
    * @param directory The central directory for metadata storage
    * @param storageType The storage type (e.g., "local", "http", "s3", "sharepoint") 
    */
-  public static void setCentralMetadataDirectory(File directory, String storageType) {
+  public static synchronized void setCentralMetadataDirectory(File directory, String storageType) {
     if (directory != null) {
       // Create storage-specific metadata subdirectory
       String subdirName = storageType != null ? storageType : "local";
@@ -116,19 +115,33 @@ public class ConversionMetadata {
    * If a central metadata directory is configured, uses that instead.
    */
   public ConversionMetadata(File directory) {
+    File metadataFile;
     if (centralMetadataDirectory != null) {
-      // Use central directory with subdirectory based on the original path hash
-      String subdir = Integer.toHexString(directory.getAbsolutePath().hashCode());
-      File metadataDir = new File(centralMetadataDirectory, subdir);
-      if (!metadataDir.exists()) {
-        metadataDir.mkdirs();
+      try {
+        // Use canonical path to handle symlinks consistently (e.g., /var vs /private/var on macOS)
+        String canonicalPath = directory.getCanonicalPath();
+        String subdir = Integer.toHexString(canonicalPath.hashCode());
+        File metadataDir = new File(centralMetadataDirectory, subdir);
+        if (!metadataDir.exists()) {
+          metadataDir.mkdirs();
+        }
+        metadataFile = new File(metadataDir, METADATA_FILE);
+        LOGGER.debug("Using central metadata file: {}", metadataFile);
+      } catch (IOException e) {
+        // Fallback to absolute path if canonical path fails
+        String subdir = Integer.toHexString(directory.getAbsolutePath().hashCode());
+        File metadataDir = new File(centralMetadataDirectory, subdir);
+        if (!metadataDir.exists()) {
+          metadataDir.mkdirs();
+        }
+        metadataFile = new File(metadataDir, METADATA_FILE);
+        LOGGER.warn("Failed to get canonical path for {}, using absolute path", directory, e);
       }
-      this.metadataFile = new File(metadataDir, METADATA_FILE);
-      LOGGER.debug("Using central metadata file: {}", metadataFile);
     } else {
       // Use local directory (backward compatibility)
-      this.metadataFile = new File(directory, METADATA_FILE);
+      metadataFile = new File(directory, METADATA_FILE);
     }
+    this.metadataFile = metadataFile;
     loadMetadata();
   }
   
@@ -185,6 +198,38 @@ public class ConversionMetadata {
     }
     
     return null;
+  }
+  
+  /**
+   * Finds all files that were derived from a given source file.
+   * This is useful for finding JSONPath extractions that need to be refreshed
+   * when the source file changes.
+   * 
+   * @param sourceFile The source file to find derivatives for
+   * @return List of derived files, empty if none found
+   */
+  public java.util.List<File> findDerivedFiles(File sourceFile) {
+    java.util.List<File> derivedFiles = new java.util.ArrayList<>();
+    
+    try {
+      String sourcePath = sourceFile.getCanonicalPath();
+      
+      for (ConversionRecord record : conversions.values()) {
+        if (sourcePath.equals(record.originalFile)) {
+          File derivedFile = new File(record.convertedFile);
+          if (derivedFile.exists()) {
+            derivedFiles.add(derivedFile);
+          } else {
+            // Clean up metadata for non-existent files
+            LOGGER.debug("Derived file {} no longer exists", record.convertedFile);
+          }
+        }
+      }
+    } catch (IOException e) {
+      LOGGER.error("Failed to find derived files for {}", sourceFile.getName(), e);
+    }
+    
+    return derivedFiles;
   }
   
   /**

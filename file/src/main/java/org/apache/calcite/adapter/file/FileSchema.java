@@ -689,8 +689,8 @@ public class FileSchema extends AbstractSchema {
     // Look for files in the directory ending in ".csv", ".csv.gz", ".json",
     // ".json.gz".
     // If storage provider is configured, skip local file operations
-    LOGGER.debug("[FileSchema.getTableMap] Checking conditions: baseDirectory={}, storageProvider={}",
-                 baseDirectory, storageProvider);
+    LOGGER.debug("[FileSchema.getTableMap] Checking conditions: baseDirectory={}, storageProvider={}, refreshInterval={}",
+                 baseDirectory, storageProvider, refreshInterval);
     if (baseDirectory != null && storageProvider == null) {
       LOGGER.debug("[FileSchema.getTableMap] Using local file system");
 
@@ -770,6 +770,9 @@ public class FileSchema extends AbstractSchema {
           if (this.refreshInterval != null) {
             autoTableDef = new HashMap<>();
             autoTableDef.put("refreshInterval", this.refreshInterval);
+            LOGGER.debug("Creating JSON table {} with refresh interval: {}", tableName, this.refreshInterval);
+          } else {
+            LOGGER.debug("Creating JSON table {} with NO refresh interval", tableName);
           }
           addTable(builder, source, tableName, autoTableDef);
         }
@@ -1110,15 +1113,21 @@ public class FileSchema extends AbstractSchema {
     String refreshIntervalStr = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
     Duration refreshInterval = RefreshInterval.parse(refreshIntervalStr);
     boolean hasRefresh = refreshInterval != null;
+    LOGGER.debug("FileSchema.addTable: tableName={}, source={}, refreshIntervalStr={}, hasRefresh={}", 
+        tableName, source.path(), refreshIntervalStr, hasRefresh);
 
     String path = source.path().toLowerCase(Locale.ROOT);
     boolean isCSVorJSON = path.endsWith(".csv") || path.endsWith(".csv.gz") ||
                           path.endsWith(".json") || path.endsWith(".json.gz");
 
     // Handle refreshable CSV/JSON files with Parquet caching
+    LOGGER.debug("Refresh check: hasRefresh={}, isCSVorJSON={}, engineType={}, baseDirectory!=null={}", 
+        hasRefresh, isCSVorJSON, engineConfig.getEngineType(), baseDirectory != null);
+    
     if (hasRefresh && isCSVorJSON &&
         engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.PARQUET &&
         baseDirectory != null) {
+      LOGGER.debug("CREATING RefreshableParquetCacheTable for: {}", tableName);
 
       try {
         File cacheDir =
@@ -1147,8 +1156,12 @@ public class FileSchema extends AbstractSchema {
         }
 
         // Create refreshable table that monitors the source and updates cache
+        // Find original source file for converted files (e.g., HTML->JSON)
+        Source originalSource = findOriginalSource(new File(source.path()));
+        LOGGER.debug("RefreshableParquetCacheTable - source: {}, originalSource: {}", source.path(), (originalSource != null ? originalSource.path() : "null"));
+        
         RefreshableParquetCacheTable refreshableTable =
-            new RefreshableParquetCacheTable(source, parquetFile, cacheDir, refreshInterval, typeInferenceEnabled,
+            new RefreshableParquetCacheTable(source, originalSource, parquetFile, cacheDir, refreshInterval, typeInferenceEnabled,
             columnNameCasing, null, engineConfig.getEngineType(), parentSchema, name);
 
         String finalName = applyCasing(tableName, tableNameCasing);
@@ -1162,6 +1175,9 @@ public class FileSchema extends AbstractSchema {
     }
 
     // Check if we should convert to Parquet (for PARQUET engine)
+    String tableRefreshInterval = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
+    Duration effectiveInterval = RefreshInterval.getEffectiveInterval(tableRefreshInterval, this.refreshInterval);
+    
     if (engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.PARQUET
         && baseDirectory != null
         && !source.path().toLowerCase(Locale.ROOT).endsWith(".parquet")) {
@@ -1200,10 +1216,6 @@ public class FileSchema extends AbstractSchema {
                 ParquetConversionUtil.convertToParquet(source, tableName,
                     originalTable, cacheDir, parentSchema, name);
 
-            // Check if refresh is configured
-            String tableRefreshInterval = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
-            Duration effectiveInterval = RefreshInterval.getEffectiveInterval(tableRefreshInterval, this.refreshInterval);
-
             // DuckDB uses JDBC adapter, not FileSchema
             if (engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.DUCKDB) {
               throw new IllegalStateException("DuckDB engine should use JDBC adapter, not FileSchema");
@@ -1221,9 +1233,10 @@ public class FileSchema extends AbstractSchema {
                   new RefreshableParquetCacheTable(source, parquetFile, cacheDir, effectiveInterval, typeInferenceEnabled,
                   columnNameCasing, null, engineConfig.getEngineType(), parentSchema, name);
             } else {
-              // Use standard Parquet table
+              // Use standard Parquet table for non-refresh cases
               parquetTable = new ParquetTranslatableTable(parquetFile);
             }
+            
             builder.put(
                 applyCasing(Util.first(tableName, source.path()),
                 tableNameCasing), parquetTable);
@@ -1257,7 +1270,7 @@ public class FileSchema extends AbstractSchema {
           
           // Get refresh interval if configured
           String jsonRefreshInterval = (String) tableDef.get("refreshInterval");
-          Duration effectiveInterval = RefreshInterval.getEffectiveInterval(jsonRefreshInterval, this.refreshInterval);
+          Duration jsonEffectiveInterval = RefreshInterval.getEffectiveInterval(jsonRefreshInterval, this.refreshInterval);
           
           // JSON table extraction would go here when JsonMultiTableFactory is available
           // For now, skip JSONPath extraction as dependencies are not available
@@ -1742,6 +1755,30 @@ public class FileSchema extends AbstractSchema {
       return new EnhancedJsonScannableTable(source, engineConfig, options, columnNameCasing);
     case PARQUET:
       if (effectiveInterval != null && tableName != null) {
+        // Check if this JSON file was extracted via JSONPath
+        boolean isJsonPathExtraction = false;
+        File jsonFile = source.file();
+        if (jsonFile != null) {
+          try {
+            org.apache.calcite.adapter.file.metadata.ConversionMetadata metadata = 
+                new org.apache.calcite.adapter.file.metadata.ConversionMetadata(jsonFile.getParentFile());
+            org.apache.calcite.adapter.file.metadata.ConversionMetadata.ConversionRecord record = 
+                metadata.getConversionRecord(jsonFile);
+            if (record != null && record.getConversionType() != null 
+                && record.getConversionType().startsWith("JSONPATH_EXTRACTION")) {
+              isJsonPathExtraction = true;
+              LOGGER.debug("JSON file {} is a JSONPath extraction, using regular JSON table", jsonFile.getName());
+            }
+          } catch (Exception e) {
+            LOGGER.debug("Could not check if {} is a JSONPath extraction: {}", source.path(), e.getMessage());
+          }
+        }
+        
+        // JSONPath extractions should use regular JSON tables that can be refreshed via re-extraction
+        if (isJsonPathExtraction) {
+          return new RefreshableJsonTable(source, tableName, effectiveInterval, columnNameCasing);
+        }
+        
         try {
           // For Parquet engine with refresh, we need to use RefreshableParquetCacheTable
           // First convert JSON to Parquet
@@ -1753,7 +1790,6 @@ public class FileSchema extends AbstractSchema {
           // Check if this JSON file was converted from another source (HTML, Excel, XML)
           Source originalSource = null;
           try {
-            File jsonFile = source.file();
             if (jsonFile != null) {
               org.apache.calcite.adapter.file.metadata.ConversionMetadata metadata = 
                   new org.apache.calcite.adapter.file.metadata.ConversionMetadata(jsonFile.getParentFile());
@@ -1776,7 +1812,9 @@ public class FileSchema extends AbstractSchema {
           throw new RuntimeException("Failed to create refreshable Parquet table for " + source.path(), e);
         }
       }
-      return new ParquetJsonScannableTable(source, engineConfig, options, columnNameCasing);
+      // For PARQUET engine without refresh, just use regular JSON table
+      // The ParquetJsonScannableTable expects actual parquet files, not JSON
+      return new JsonScannableTable(source, options, columnNameCasing);
     case DUCKDB:
       // DuckDB uses JDBC adapter, not FileSchema
       throw new IllegalStateException("DuckDB engine should use JDBC adapter, not FileSchema");

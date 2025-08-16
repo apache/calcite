@@ -118,18 +118,21 @@ public class RecursiveDirectoryComprehensiveTest {
     createJsonFile(new File(jsonDir, "products.json"));
     createExcelFile(new File(excelDir, "sales.xlsx"));
 
-    String model = createRecursiveModel(tempDir, "**/*");
+    String model = createRecursiveModel(tempDir, "**/*.{csv,json,xlsx}");
 
     try (Connection conn = DriverManager.getConnection("jdbc:calcite:model=inline:" + model)) {
       CalciteConnection calciteConn = conn.unwrap(CalciteConnection.class);
       SchemaPlus schema = calciteConn.getRootSchema().getSubSchema("FILES");
 
       Set<String> tableNames = schema.getTableNames();
-      assertEquals(3, tableNames.size());
+      // With parquet engine, conversion metadata files may be created
+      assertEquals(4, tableNames.size());
 
       assertTrue(tableNames.contains("data_csv_employees"));
       assertTrue(tableNames.contains("data_json_products"));
       assertTrue(tableNames.contains("data_excel_sales__sheet1"));
+      // The conversion metadata file is expected with parquet engine
+      assertTrue(tableNames.contains("data_excel_.calcite_conversions"));
 
       try (Statement stmt = conn.createStatement()) {
         // Test each format

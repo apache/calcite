@@ -23,6 +23,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.parallel.Isolated;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -42,6 +43,7 @@ import java.util.Map;
  * Test that proves we can query materialized views.
  */
 @Tag("unit")
+@Isolated
 public class MaterializedViewQueryTest {
   @TempDir
   Path tempDir;

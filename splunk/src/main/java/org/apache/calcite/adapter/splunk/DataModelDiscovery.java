@@ -427,7 +427,12 @@ public class DataModelDiscovery {
     // Add fields from root dataset
     for (FieldInfo field : rootDataset.fields) {
       String calciteFieldName = normalizeFieldName(field.name);
-      fieldMapping.put(calciteFieldName, field.name);
+      // For data model fields, check if Splunk returns them with model prefix
+      // If the field doesn't start with the model name, add the prefix to the mapping
+      String splunkFieldName = field.name.startsWith(model.name + ".") 
+          ? field.name 
+          : model.name + "." + field.name;
+      fieldMapping.put(calciteFieldName, splunkFieldName);
 
       SqlTypeName sqlType = mapSplunkTypeToSql(field.type);
       RelDataType fieldType = typeFactory.createSqlType(sqlType);
@@ -438,6 +443,7 @@ public class DataModelDiscovery {
       }
 
       schemaBuilder.add(calciteFieldName, fieldType);
+      LOGGER.debug("Added field '{}' mapped to '{}'", calciteFieldName, splunkFieldName);
     }
 
     // Extract fields referenced in calculations and add them if not already present
@@ -451,14 +457,17 @@ public class DataModelDiscovery {
         schemaBuilder.add(normalizedName,
             typeFactory.createTypeWithNullability(
                 typeFactory.createSqlType(inferredType), true));
-        fieldMapping.put(normalizedName, fieldRef);
-        LOGGER.debug("Added field '{}' from calculated field reference", fieldRef);
+        // For data model fields, Splunk returns them with the model name as prefix
+        String splunkFieldName = model.name + "." + fieldRef;
+        fieldMapping.put(normalizedName, splunkFieldName);
+        LOGGER.debug("Added field '{}' from calculated field reference, mapped to '{}'", 
+            fieldRef, splunkFieldName);
       }
     }
 
-    // Add calculated fields for known CIM models
-    // NOTE: Commenting out as we now extract fields from calculated field expressions dynamically
-    // addCimCalculatedFields(model.name, schemaBuilder, fieldMapping, typeFactory);
+    // Add calculated fields for known CIM models to ensure completeness
+    // This includes fields that might not be referenced in calculations but are standard CIM fields
+    addCimCalculatedFields(model.name, schemaBuilder, fieldMapping, typeFactory);
 
     // Add any additional calculated fields specified via operand
     addAdditionalCalculatedFields(model.name, schemaBuilder, fieldMapping, typeFactory);
@@ -549,72 +558,86 @@ public class DataModelDiscovery {
     switch (normalizedName) {
       case "authentication":
         // Common authentication fields not in base model
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "action", SqlTypeName.VARCHAR);
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "app", SqlTypeName.VARCHAR);
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "user", SqlTypeName.VARCHAR);
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "src", SqlTypeName.VARCHAR);
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "src_user", SqlTypeName.VARCHAR);
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "dest", SqlTypeName.VARCHAR);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "action", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "app", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "user", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "src", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "src_user", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "dest", SqlTypeName.VARCHAR, modelName);
         // Boolean computed fields
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "is_failure", SqlTypeName.BOOLEAN);
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "is_success", SqlTypeName.BOOLEAN);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "is_failure", SqlTypeName.BOOLEAN, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "is_success", SqlTypeName.BOOLEAN, modelName);
         break;
 
       case "web":
         // Common web fields
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "action", SqlTypeName.VARCHAR);
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "app", SqlTypeName.VARCHAR);
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "user", SqlTypeName.VARCHAR);
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "src", SqlTypeName.VARCHAR);
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "dest", SqlTypeName.VARCHAR);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "action", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "app", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "user", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "src", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "dest", SqlTypeName.VARCHAR, modelName);
         // Standard web server log fields
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "status", SqlTypeName.VARCHAR);
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "bytes", SqlTypeName.INTEGER);
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "method", SqlTypeName.VARCHAR);
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "uri_path", SqlTypeName.VARCHAR);
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "uri_query", SqlTypeName.VARCHAR);
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "user_agent", SqlTypeName.VARCHAR);
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "referrer", SqlTypeName.VARCHAR);
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "cookie", SqlTypeName.VARCHAR);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "status", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "bytes", SqlTypeName.INTEGER, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "method", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "uri_path", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "uri_query", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "user_agent", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "referrer", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "cookie", SqlTypeName.VARCHAR, modelName);
+        // Additional calculated Web fields
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "is_Proxy", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "is_Storage", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "is_not_Proxy", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "is_not_Storage", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "url", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "url_length", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "url_domain", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "http_method", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "http_referrer", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "http_content_type", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "http_user_agent", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "http_user_agent_length", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "vendor_product", SqlTypeName.VARCHAR, modelName);
         break;
 
       case "network_traffic":
       case "network":
         // Common network fields
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "action", SqlTypeName.VARCHAR);
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "app", SqlTypeName.VARCHAR);
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "src", SqlTypeName.VARCHAR);
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "dest", SqlTypeName.VARCHAR);
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "src_ip", SqlTypeName.VARCHAR);
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "dest_ip", SqlTypeName.VARCHAR);
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "src_port", SqlTypeName.INTEGER);
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "dest_port", SqlTypeName.INTEGER);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "action", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "app", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "src", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "dest", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "src_ip", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "dest_ip", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "src_port", SqlTypeName.INTEGER, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "dest_port", SqlTypeName.INTEGER, modelName);
         break;
 
       case "endpoint":
         // Common endpoint fields
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "action", SqlTypeName.VARCHAR);
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "user", SqlTypeName.VARCHAR);
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "process", SqlTypeName.VARCHAR);
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "process_name", SqlTypeName.VARCHAR);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "action", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "user", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "process", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "process_name", SqlTypeName.VARCHAR, modelName);
         break;
 
       case "malware":
         // Common malware fields
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "action", SqlTypeName.VARCHAR);
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "user", SqlTypeName.VARCHAR);
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "src", SqlTypeName.VARCHAR);
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "dest", SqlTypeName.VARCHAR);
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "signature", SqlTypeName.VARCHAR);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "action", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "user", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "src", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "dest", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "signature", SqlTypeName.VARCHAR, modelName);
         break;
 
       case "email":
         // Common email fields
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "action", SqlTypeName.VARCHAR);
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "user", SqlTypeName.VARCHAR);
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "src_user", SqlTypeName.VARCHAR);
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "recipient", SqlTypeName.VARCHAR);
-        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "sender", SqlTypeName.VARCHAR);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "action", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "user", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "src_user", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "recipient", SqlTypeName.VARCHAR, modelName);
+        addCalculatedField(schemaBuilder, fieldMapping, typeFactory, "sender", SqlTypeName.VARCHAR, modelName);
         break;
 
       case "dlp":
@@ -641,12 +664,21 @@ public class DataModelDiscovery {
   private void addCalculatedField(RelDataTypeFactory.Builder schemaBuilder,
       Map<String, String> fieldMapping, RelDataTypeFactory typeFactory,
       String fieldName, SqlTypeName sqlType) {
+    addCalculatedField(schemaBuilder, fieldMapping, typeFactory, fieldName, sqlType, null);
+  }
+
+  private void addCalculatedField(RelDataTypeFactory.Builder schemaBuilder,
+      Map<String, String> fieldMapping, RelDataTypeFactory typeFactory,
+      String fieldName, SqlTypeName sqlType, String modelName) {
     // Check if field already exists
     if (!fieldMapping.containsKey(fieldName)) {
       schemaBuilder.add(fieldName,
           typeFactory.createTypeWithNullability(
               typeFactory.createSqlType(sqlType), true));
-      fieldMapping.put(fieldName, fieldName);
+      // For data model fields, Splunk returns them with the model name as prefix
+      // e.g., "Web.uri_query" instead of just "uri_query"
+      String splunkFieldName = modelName != null ? modelName + "." + fieldName : fieldName;
+      fieldMapping.put(fieldName, splunkFieldName);
     }
   }
 

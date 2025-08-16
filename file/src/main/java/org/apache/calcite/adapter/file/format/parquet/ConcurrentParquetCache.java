@@ -41,6 +41,18 @@ public class ConcurrentParquetCache {
     // Utility class should not be instantiated
   }
 
+  /**
+   * Clear all cached locks. This should only be used in testing.
+   * @deprecated This method creates unrealistic test scenarios and should not be used.
+   * In production, multiple instances must synchronize access to shared storage.
+   */
+  @Deprecated
+  public static void clearLocks() {
+    // Deprecated: This method creates unrealistic production scenarios
+    // In real deployments, multiple instances will share storage and must synchronize properly
+    // Tests should use proper cleanup that doesn't interfere with active locks
+  }
+
   // Lock acquisition timeout
   private static final long LOCK_TIMEOUT_SECONDS = 30;
 

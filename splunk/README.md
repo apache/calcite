@@ -291,6 +291,158 @@ String url = "jdbc:calcite:model=inline:" + preprocessedModel;
 Connection conn = DriverManager.getConnection(url);
 ```
 
+### Model File with Custom Views for Unmapped Fields
+
+The Splunk adapter supports creating custom views to extract specific fields from the `_extra` JSON column using Calcite's built-in JSON functions. This is particularly useful for accessing fields that weren't automatically mapped or for creating custom transformations.
+
+#### Accessing Unmapped Fields with Views
+
+Fields that don't have hardcoded mappings or can't be dynamically discovered appear in the `_extra` column as JSON. You can create views to extract specific fields:
+
+```json
+{
+  "version": "1.0",
+  "defaultSchema": "splunk",
+  "schemas": [
+    {
+      "name": "splunk",
+      "type": "custom",
+      "factory": "org.apache.calcite.adapter.splunk.SplunkSchemaFactory",
+      "operand": {
+        "url": "https://splunk.example.com:8089",
+        "token": "your_auth_token",
+        "app": "Splunk_SA_CIM"
+      },
+      "tables": [
+        {
+          "name": "web_extended",
+          "type": "view",
+          "sql": [
+            "SELECT *,",
+            "  JSON_VALUE(_extra, '$.\\"Web.uri_query\\"') as uri_query_from_extra,",
+            "  JSON_VALUE(_extra, '$.\\"Web.vendor_product\\"') as vendor_product_from_extra,",
+            "  JSON_VALUE(_extra, '$.\\"Web.url_length\\"') as url_length_from_extra",
+            "FROM \"splunk\".\"web\""
+          ]
+        },
+        {
+          "name": "authentication_enhanced",
+          "type": "view", 
+          "sql": [
+            "SELECT *,",
+            "  JSON_VALUE(_extra, '$.\\"Authentication.signature\\"') as signature,",
+            "  JSON_VALUE(_extra, '$.\\"Authentication.vendor_account\\"') as vendor_account,",
+            "  CAST(JSON_VALUE(_extra, '$.\\"Authentication.duration\\"') AS INTEGER) as session_duration",
+            "FROM \"splunk\".\"authentication\""
+          ]
+        },
+        {
+          "name": "custom_metrics",
+          "type": "view",
+          "sql": [
+            "SELECT",
+            "  _time,",
+            "  host,",
+            "  JSON_VALUE(_extra, '$.\\"custom_field_1\\"') as metric_1,",
+            "  JSON_VALUE(_extra, '$.\\"custom_field_2\\"') as metric_2,",
+            "  CASE WHEN JSON_VALUE(_extra, '$.\\"alert_level\\"') = 'high' THEN 1 ELSE 0 END as is_high_alert",
+            "FROM \"splunk\".\"web\"",
+            "WHERE JSON_VALUE(_extra, '$.\\"custom_field_1\\"') IS NOT NULL"
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+#### JSON Path Syntax for Splunk Fields
+
+When Splunk returns data model fields with prefixes (e.g., `Web.uri_query`), use the following JSON path syntax:
+
+```sql
+-- Extract fields with dot notation in keys
+JSON_VALUE(_extra, '$."Web.uri_query"')
+
+-- Extract nested JSON structures
+JSON_VALUE(_extra, '$.custom_data.nested_field')
+
+-- Extract array elements
+JSON_VALUE(_extra, '$.array_field[0]')
+
+-- Complex JSON path expressions
+JSON_VALUE(_extra, '$.metrics[?(@.type=="bandwidth")].value')
+```
+
+#### Use Cases for Custom Views
+
+**1. Vendor-Specific Fields**
+```sql
+-- Extract Palo Alto specific fields
+CREATE VIEW palo_alto_enhanced AS
+SELECT *,
+  JSON_VALUE(_extra, '$."PaloAlto.threat_id"') as threat_id,
+  JSON_VALUE(_extra, '$."PaloAlto.rule_name"') as rule_name
+FROM "splunk"."threat";
+```
+
+**2. Dynamic Field Discovery Supplements**
+```sql
+-- Fields that can't be automatically discovered
+CREATE VIEW web_complete AS  
+SELECT *,
+  JSON_VALUE(_extra, '$."Web.is_Proxy"') as is_proxy,
+  JSON_VALUE(_extra, '$."Web.is_Storage"') as is_storage,
+  JSON_VALUE(_extra, '$."Web.vendor_product"') as vendor_product
+FROM "splunk"."web";
+```
+
+**3. Custom Business Logic**
+```sql
+-- Transform and categorize data
+CREATE VIEW security_summary AS
+SELECT 
+  _time,
+  user,
+  src,
+  dest,
+  CASE 
+    WHEN JSON_VALUE(_extra, '$."risk_score"') > '80' THEN 'High'
+    WHEN JSON_VALUE(_extra, '$."risk_score"') > '50' THEN 'Medium'
+    ELSE 'Low'
+  END as risk_level,
+  JSON_VALUE(_extra, '$."custom_tags"') as tags
+FROM "splunk"."authentication"
+WHERE JSON_VALUE(_extra, '$."risk_score"') IS NOT NULL;
+```
+
+#### Field Mapping Discovery
+
+The adapter uses a hybrid approach for field mapping:
+
+**Automatically Discovered:**
+- Basic fields that appear in Splunk field metadata (e.g., `uri_query`)
+- Core CIM fields that can be extracted from search results
+
+**Require Hardcoded Mappings:**
+- Calculated boolean fields (e.g., `is_Proxy`, `is_Storage`)
+- Complex derived fields that only exist in data model definitions
+- Vendor-specific calculated fields
+
+**Available via JSON Extraction:**
+- Any field returned by Splunk but not in the schema
+- Custom fields specific to your environment
+- Fields from specialized apps or add-ons
+
+#### Benefits of View-Based Extraction
+
+✅ **Flexibility**: Extract any field from `_extra` without modifying adapter code
+✅ **Custom Logic**: Apply transformations, casting, and business rules
+✅ **Performance**: Views are computed by Calcite, not sent to Splunk
+✅ **Reusability**: Create reusable view definitions across multiple queries
+✅ **Type Safety**: Cast JSON strings to appropriate SQL types
+✅ **Federation Ready**: Views work across federated multi-vendor schemas
+
 ### Advanced Model Examples
 
 #### Dynamic Discovery with Filtering
@@ -434,14 +586,49 @@ WHERE status >= 400
 GROUP BY status
 ORDER BY error_count DESC;
 
--- Popular pages
-SELECT uri_path, COUNT(*) as hits
+-- Popular pages with query parameters (using mapped field)
+SELECT uri_path, uri_query, COUNT(*) as hits
 FROM web
 WHERE status = 200
   AND _time > CURRENT_TIMESTAMP - INTERVAL '1' DAY
-GROUP BY uri_path
+  AND uri_query IS NOT NULL
+GROUP BY uri_path, uri_query
 ORDER BY hits DESC
 LIMIT 20;
+
+-- Analyze proxy traffic (using mapped calculated field)
+SELECT is_Proxy, COUNT(*) as request_count,
+       AVG(CAST(bytes AS INTEGER)) as avg_bytes
+FROM web  
+WHERE _time > CURRENT_TIMESTAMP - INTERVAL '1' HOUR
+GROUP BY is_Proxy;
+```
+
+### Exploring Unmapped Fields
+
+```sql
+-- Discover what's in the _extra field
+SELECT _extra
+FROM web
+LIMIT 5;
+
+-- Extract specific vendor fields from _extra JSON
+SELECT _time, src_ip, uri_path,
+       JSON_VALUE(_extra, '$."Web.vendor_product"') as vendor_product,
+       JSON_VALUE(_extra, '$."Web.url_length"') as url_length
+FROM web
+WHERE JSON_VALUE(_extra, '$."Web.vendor_product"') IS NOT NULL
+LIMIT 10;
+
+-- Use ad-hoc JSON extraction for analysis
+SELECT 
+  JSON_VALUE(_extra, '$."Web.vendor_product"') as vendor,
+  COUNT(*) as request_count
+FROM web
+WHERE _time > CURRENT_TIMESTAMP - INTERVAL '1' DAY
+  AND JSON_VALUE(_extra, '$."Web.vendor_product"') IS NOT NULL
+GROUP BY JSON_VALUE(_extra, '$."Web.vendor_product"')
+ORDER BY request_count DESC;
 ```
 
 ### Custom Tables

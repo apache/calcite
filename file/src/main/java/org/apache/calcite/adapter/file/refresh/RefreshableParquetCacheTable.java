@@ -130,18 +130,47 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
 
   @Override
   protected void doRefresh() {
+    LOGGER.debug("doRefresh() called for RefreshableParquetCacheTable: {}", source.path());
+    
     // Check the original source if we have one (for converted files), otherwise check direct source
     File fileToMonitor = originalSource != null ? 
         new File(originalSource.path()) : new File(source.path());
     
+    LOGGER.debug("Monitoring file: {} (exists: {}, lastModified: {})", 
+                 fileToMonitor.getPath(), fileToMonitor.exists(), fileToMonitor.lastModified());
+    
     // Check if monitored file has been modified since our last refresh
     if (isFileModified(fileToMonitor)) {
-      LOGGER.debug("Source file {} has been modified, updating parquet cache", fileToMonitor.getPath());
+      LOGGER.info("Source file {} has been modified, updating parquet cache", fileToMonitor.getPath());
       
       try {
         // If we have an original source, re-run the conversion pipeline
         if (originalSource != null) {
           rerunConversionsIfNeeded(fileToMonitor);
+          
+          // IMPORTANT: Update the source file's timestamp to trigger parquet re-conversion
+          // The JSON file needs to be newer than the parquet file for conversion to happen
+          File jsonFile = new File(source.path());
+          if (jsonFile.exists()) {
+            jsonFile.setLastModified(System.currentTimeMillis());
+            LOGGER.debug("Updated JSON file timestamp to trigger parquet re-conversion");
+          }
+        }
+        
+        // Force delete the old parquet file to ensure a fresh conversion
+        if (parquetFile != null && parquetFile.exists()) {
+          parquetFile.delete();
+          LOGGER.debug("Deleted old parquet cache file: {}", parquetFile.getName());
+        }
+        
+        // Also delete any temporary parquet files that might be lingering
+        File[] tempFiles = cacheDir.listFiles((dir, name) -> 
+            name.contains(".tmp.") && name.endsWith(".parquet"));
+        if (tempFiles != null) {
+          for (File tempFile : tempFiles) {
+            tempFile.delete();
+            LOGGER.debug("Deleted temp parquet file: {}", tempFile.getName());
+          }
         }
         
         // Atomically update the cache using the standard conversion method
@@ -162,25 +191,98 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
         LOGGER.error("Failed to update parquet cache for {}: {}", source.path(), e.getMessage(), e);
         // Continue with existing cache file
       }
+    } else {
+      LOGGER.debug("No refresh needed for {} - file not modified", fileToMonitor.getPath());
     }
   }
   
   /**
    * Re-runs any necessary file conversions if the source requires it.
    * Uses the centralized FileConversionManager for all conversion logic.
+   * 
+   * For JSONPath extractions, this method also finds all derived files that were
+   * extracted from the source and re-runs their extractions.
    */
   private void rerunConversionsIfNeeded(File sourceFile) {
     try {
       File outputDir = sourceFile.getParentFile();
+      
+      // First, try standard conversion (for format conversions like HTML->JSON)
       boolean converted = org.apache.calcite.adapter.file.converters.FileConversionManager.convertIfNeeded(
           sourceFile, outputDir, columnNameCasing);
       
       if (converted) {
         LOGGER.debug("Re-converted source file: {}", sourceFile.getName());
       }
+      
+      // Additionally, for JSON source files, find and refresh any JSONPath extractions
+      if (sourceFile.getName().toLowerCase().endsWith(".json")) {
+        refreshJsonPathExtractions(sourceFile);
+      }
+      
     } catch (Exception e) {
       LOGGER.error("Failed to re-run conversions for {}: {}", sourceFile.getName(), e.getMessage(), e);
     }
+  }
+  
+  /**
+   * Finds and refreshes all JSONPath extractions that were derived from the given source JSON file.
+   */
+  private void refreshJsonPathExtractions(File sourceFile) {
+    try {
+      // Create metadata instance using the same directory structure as the original extraction
+      // This will automatically use the central metadata directory if it was configured
+      File metadataDir = sourceFile.getParentFile();
+      org.apache.calcite.adapter.file.metadata.ConversionMetadata metadata = 
+          new org.apache.calcite.adapter.file.metadata.ConversionMetadata(metadataDir);
+      
+      // Find all files that were derived from this source via JSONPath extraction
+      java.util.List<java.io.File> derivedFiles = metadata.findDerivedFiles(sourceFile);
+      
+      
+      for (File derivedFile : derivedFiles) {
+        org.apache.calcite.adapter.file.metadata.ConversionMetadata.ConversionRecord record = 
+            metadata.getConversionRecord(derivedFile);
+        
+        if (record != null && record.getConversionType() != null && 
+            record.getConversionType().startsWith("JSONPATH_EXTRACTION")) {
+          // Extract the JSONPath from the conversion type
+          String conversionType = record.getConversionType();
+          String jsonPath = extractJsonPath(conversionType);
+          
+          if (jsonPath != null) {
+            LOGGER.info("Re-running JSONPath extraction: {} -> {} using path {}", 
+                sourceFile.getName(), derivedFile.getName(), jsonPath);
+            
+            // Re-run the JSONPath extraction
+            org.apache.calcite.adapter.file.converters.JsonPathConverter.extract(
+                sourceFile, derivedFile, jsonPath);
+            
+            LOGGER.info("Refreshed JSONPath extraction: {} -> {} (path: {})", 
+                sourceFile.getName(), derivedFile.getName(), jsonPath);
+          } else {
+            LOGGER.warn("Could not extract JSONPath from conversion type: {}", conversionType);
+          }
+        }
+      }
+    } catch (Exception e) {
+      LOGGER.error("Failed to refresh JSONPath extractions for {}: {}", sourceFile.getName(), e.getMessage(), e);
+    }
+  }
+  
+  /**
+   * Extracts the JSONPath expression from a conversion type string.
+   * E.g., "JSONPATH_EXTRACTION[$.data.users]" -> "$.data.users"
+   */
+  private String extractJsonPath(String conversionType) {
+    if (conversionType != null && conversionType.contains("[") && conversionType.contains("]")) {
+      int start = conversionType.indexOf('[') + 1;
+      int end = conversionType.lastIndexOf(']');
+      if (start < end) {
+        return conversionType.substring(start, end);
+      }
+    }
+    return null;
   }
 
   private Table createSourceTable() {
@@ -239,12 +341,18 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
     // DuckDB now uses JDBC adapter, so always use ParquetScannableTable
     // For PARQUET engine, use ParquetScannableTable which properly implements ScannableTable
     // This avoids the type mismatch issues with ParquetTranslatableTable
+    
+    LOGGER.debug("Updating delegate table with parquet file: {}", 
+                 parquetFile != null ? parquetFile.getName() : "null");
+    
     this.delegateTable = new org.apache.calcite.adapter.file.table.ParquetScannableTable(parquetFile);
   }
 
   @Override
   public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable relOptTable) {
+    LOGGER.debug("toRel() called for RefreshableParquetCacheTable: {}", source.path());
     refresh(); // Check if refresh needed before query
+    LOGGER.debug("toRel() refresh complete for: {}", source.path());
     if (delegateTable instanceof TranslatableTable) {
       return ((TranslatableTable) delegateTable).toRel(context, relOptTable);
     } else {
@@ -265,7 +373,9 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
 
   @Override
   public Enumerable<@Nullable Object[]> scan(DataContext root) {
+    LOGGER.debug("scan() called for RefreshableParquetCacheTable: {}", source.path());
     refresh(); // Check if refresh needed before scanning
+    LOGGER.debug("scan() refresh complete for: {}", source.path());
     if (delegateTable instanceof ScannableTable) {
       return ((ScannableTable) delegateTable).scan(root);
     } else {
