@@ -47,7 +47,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * and queries return updated data.
  */
 @Tag("unit")
-@Isolated
+@Isolated  // Needs isolation due to static ConversionMetadata state
 public class JsonPathRefreshTest {
 
   @TempDir

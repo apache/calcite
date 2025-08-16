@@ -20,7 +20,6 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.parallel.Isolated;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -41,7 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Test for compressed file support in the file adapter.
  */
 @Tag("unit")
-@Isolated
+@Isolated  // Required due to engine-specific behavior and shared state
 public class CompressedFileTest {
 
   @TempDir
@@ -112,8 +111,8 @@ public class CompressedFileTest {
 
   @Test void testGzippedJsonFile() throws Exception {
     // Create a gzipped JSON file
-    File gzFile = new File(tempDir, "products.json.gz");
-    createGzippedJson(gzFile);
+    File gzFile = new File(tempDir, "products_test.json.gz");
+    createGzippedJsonForTest(gzFile);
 
     String model = "{\n"
         + "  version: '1.0',\n"
@@ -137,7 +136,7 @@ public class CompressedFileTest {
 
       // Test SELECT from gzipped JSON
       try (ResultSet rs =
-          stmt.executeQuery("SELECT * FROM \"products\" WHERE \"price\" > 20 ORDER BY \"id\"")) {
+          stmt.executeQuery("SELECT * FROM \"products_test\" WHERE \"price\" > 20 ORDER BY \"id\"")) {
         assertTrue(rs.next());
         assertEquals(2, rs.getInt("id"));
         assertEquals("Laptop", rs.getString("name"));
@@ -251,7 +250,7 @@ public class CompressedFileTest {
     }
   }
 
-  private void createGzippedJson(File file) throws IOException {
+  private void createGzippedJsonForTest(File file) throws IOException {
     String json = "[\n"
         + "  {\"id\": 1, \"name\": \"Widget\", \"price\": 19.99, \"inStock\": true},\n"
         + "  {\"id\": 2, \"name\": \"Laptop\", \"price\": 999.99, \"inStock\": false},\n"

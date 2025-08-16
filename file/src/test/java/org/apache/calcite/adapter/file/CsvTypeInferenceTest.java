@@ -22,6 +22,7 @@ import org.apache.calcite.util.Sources;
 
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Isolated;
 
 import java.io.File;
 import java.sql.Connection;
@@ -44,6 +45,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Tests for CSV type inference functionality.
  */
 @Tag("unit")
+@Isolated  // Needs isolation due to engine-specific type inference behavior
 public class CsvTypeInferenceTest {
 
   /**

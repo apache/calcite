@@ -24,11 +24,10 @@ import org.apache.calcite.test.CalciteAssert;
 import com.google.common.collect.ImmutableMap;
 
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.parallel.Isolated;import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.parallel.Isolated;import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Isolated;import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.parallel.Isolated;
-
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -45,7 +44,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Tests for Markdown table extraction in the file adapter.
  */
 @Tag("unit")
-@Isolated
+@Isolated  // Required due to engine-specific behavior and shared state
 public class MarkdownTableTest {
   @TempDir
   Path tempDir;
@@ -185,7 +184,7 @@ public class MarkdownTableTest {
     CalciteAssert.that()
         .with(CalciteAssert.Config.REGULAR)
         .withSchema("markdown", new FileSchema(null, "TEST", tempDir.toFile(), null, null, new ExecutionEngineConfig(), false, null, null, null, null))
-        .query("SELECT * FROM \"markdown\".PRODUCTS__CURRENT_PRODUCTS WHERE CAST(\"Price\" AS DECIMAL) >= 15.75")
+        .query("SELECT * FROM \"markdown\".\"PRODUCTS__CURRENT_PRODUCTS\" WHERE CAST(\"price\" AS DECIMAL) >= 15.75")
         .returnsCount(2); // Gadget (25.50) and Tool (15.75) have prices >= 15.75
   }
 

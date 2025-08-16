@@ -510,11 +510,45 @@ public class ParquetConversionUtil {
                   }
                   break;
                 case Types.TIMESTAMP:
+                  // For timezone-naive timestamps, we need to preserve the exact UTC value
+                  // Get the string representation first - this is the most reliable way
+                  String timestampStr = rs.getString(i);
+                  if (timestampStr != null && !timestampStr.trim().isEmpty()) {
+                    // Parse the string as UTC to get the correct value
+                    if (timestampStr.matches("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}.*")) {
+                      try {
+                        // Parse as UTC - this is what CsvEnumerator does for naive timestamps
+                        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                        sdf.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
+                        java.util.Date date = sdf.parse(timestampStr.substring(0, 19));
+                        record.put(avroFieldName, date.getTime());
+                      } catch (java.text.ParseException e) {
+                        // Fall back to the timestamp value
+                        java.sql.Timestamp timestamp = rs.getTimestamp(i);
+                        if (timestamp != null) {
+                          record.put(avroFieldName, timestamp.getTime());
+                        } else {
+                          record.put(avroFieldName, null);
+                        }
+                      }
+                    } else {
+                      // Non-standard format, use the timestamp value
+                      java.sql.Timestamp timestamp = rs.getTimestamp(i);
+                      if (timestamp != null) {
+                        record.put(avroFieldName, timestamp.getTime());
+                      } else {
+                        record.put(avroFieldName, null);
+                      }
+                    }
+                  } else {
+                    record.put(avroFieldName, null);
+                  }
+                  break;
                 case Types.TIMESTAMP_WITH_TIMEZONE:
-                  // Convert Timestamp to milliseconds since epoch (long)
-                  java.sql.Timestamp timestamp = rs.getTimestamp(i);
-                  if (timestamp != null) {
-                    long millis = timestamp.getTime();
+                  // For timezone-aware timestamps, use the standard getTimestamp
+                  java.sql.Timestamp timestampTz = rs.getTimestamp(i);
+                  if (timestampTz != null) {
+                    long millis = timestampTz.getTime();
                     record.put(avroFieldName, millis);
                   } else {
                     record.put(avroFieldName, null);

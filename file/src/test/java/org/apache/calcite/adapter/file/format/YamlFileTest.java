@@ -16,10 +16,11 @@
  */
 package org.apache.calcite.adapter.file.format;
 
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
+import org.apache.calcite.adapter.file.IsolatedFileAdapterTest;
 
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.parallel.Isolated;import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Isolated;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -35,16 +36,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Test for YAML file format support in the file adapter.
+ * 
+ * Uses isolated test environments with unique cache and data directories
+ * for each test to ensure proper test isolation.
  */
 @Tag("unit")
-public class YamlFileTest {
-
-  @TempDir
-  public File tempDir;
+@Isolated  // Required due to engine-specific behavior and shared state
+public class YamlFileTest extends IsolatedFileAdapterTest {
 
   @Test void testBasicYamlFile() throws Exception {
-    // Create a YAML file
-    File yamlFile = new File(tempDir, "employees.yaml");
+    // Create a YAML file in the isolated data directory
+    File yamlFile = new File(testDataDir, "employees.yaml");
     createEmployeeYaml(yamlFile);
 
     String model = "{\n"
@@ -56,7 +58,8 @@ public class YamlFileTest {
         + "      type: 'custom',\n"
         + "      factory: 'org.apache.calcite.adapter.file.FileSchemaFactory',\n"
         + "      operand: {\n"
-        + "        directory: '" + tempDir.getAbsolutePath().replace("\\", "\\\\") + "'\n"
+        + "        directory: '" + testDataDir.getAbsolutePath().replace("\\", "\\\\") + "',\n"
+        + "        parquetCacheDirectory: '" + testCacheDir.getAbsolutePath().replace("\\", "\\\\") + "'\n"
         + "      }\n"
         + "    }\n"
         + "  ]\n"
@@ -111,7 +114,7 @@ public class YamlFileTest {
 
   @Test void testYmlExtension() throws Exception {
     // Test that .yml extension also works
-    File ymlFile = new File(tempDir, "config.yml");
+    File ymlFile = new File(testDataDir, "config.yml");
     createConfigYml(ymlFile);
 
     String model = "{\n"
@@ -123,7 +126,8 @@ public class YamlFileTest {
         + "      type: 'custom',\n"
         + "      factory: 'org.apache.calcite.adapter.file.FileSchemaFactory',\n"
         + "      operand: {\n"
-        + "        directory: '" + tempDir.getAbsolutePath().replace("\\", "\\\\") + "'\n"
+        + "        directory: '" + testDataDir.getAbsolutePath().replace("\\", "\\\\") + "',\n"
+        + "        parquetCacheDirectory: '" + testCacheDir.getAbsolutePath().replace("\\", "\\\\") + "'\n"
         + "      }\n"
         + "    }\n"
         + "  ]\n"
@@ -152,7 +156,7 @@ public class YamlFileTest {
 
   @Test void testNestedYaml() throws Exception {
     // Create YAML with nested structure
-    File yamlFile = new File(tempDir, "nested.yaml");
+    File yamlFile = new File(testDataDir, "nested.yaml");
     createNestedYaml(yamlFile);
 
     String model = "{\n"
@@ -164,7 +168,8 @@ public class YamlFileTest {
         + "      type: 'custom',\n"
         + "      factory: 'org.apache.calcite.adapter.file.FileSchemaFactory',\n"
         + "      operand: {\n"
-        + "        directory: '" + tempDir.getAbsolutePath().replace("\\", "\\\\") + "',\n"
+        + "        directory: '" + testDataDir.getAbsolutePath().replace("\\", "\\\\") + "',\n"
+        + "        parquetCacheDirectory: '" + testCacheDir.getAbsolutePath().replace("\\", "\\\\") + "',\n"
         + "        flatten: true\n"
         + "      }\n"
         + "    }\n"
@@ -192,7 +197,7 @@ public class YamlFileTest {
   }
 
   @Test void testYamlWithParquetEngine() throws Exception {
-    File yamlFile = new File(tempDir, "yaml_parquet_test.yaml");
+    File yamlFile = new File(testDataDir, "yaml_parquet_test.yaml");
     createEmployeeYaml(yamlFile);
 
     // Test with PARQUET execution engine
@@ -205,9 +210,9 @@ public class YamlFileTest {
         + "      type: 'custom',\n"
         + "      factory: 'org.apache.calcite.adapter.file.FileSchemaFactory',\n"
         + "      operand: {\n"
-        + "        directory: '" + tempDir.getAbsolutePath().replace("\\", "\\\\") + "',\n"
+        + "        directory: '" + testDataDir.getAbsolutePath().replace("\\", "\\\\") + "',\n"
         + "        executionEngine: 'parquet',\n"
-        + "        parquetCacheDirectory: '" + tempDir.getAbsolutePath().replace("\\", "\\\\") + "/test_cache_yaml'\n"
+        + "        parquetCacheDirectory: '" + testCacheDir.getAbsolutePath().replace("\\", "\\\\") + "'\n"
         + "      }\n"
         + "    }\n"
         + "  ]\n"
@@ -222,9 +227,8 @@ public class YamlFileTest {
         assertEquals(3L, rs.getLong("cnt"));
       }
 
-      // Check that Parquet cache was created
-      File cacheDir = new File(tempDir, "test_cache_yaml");
-      assertTrue(cacheDir.exists());
+      // Check that Parquet cache was created in the isolated cache directory
+      assertTrue(testCacheDir.exists());
     }
   }
 

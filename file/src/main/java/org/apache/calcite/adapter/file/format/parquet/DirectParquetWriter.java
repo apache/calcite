@@ -252,10 +252,38 @@ public class DirectParquetWriter {
         break;
 
       case java.sql.Types.TIMESTAMP:
+        // For timezone-naive timestamps, parse the string as UTC
+        String timestampStr = rs.getString(index);
+        if (timestampStr != null && !timestampStr.trim().isEmpty()) {
+          if (timestampStr.matches("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}.*")) {
+            try {
+              // Parse as UTC - timezone-naive timestamps should be interpreted as UTC
+              java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+              sdf.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
+              java.util.Date parsedDate = sdf.parse(timestampStr.substring(0, 19));
+              group.append(columnName, parsedDate.getTime());
+            } catch (java.text.ParseException e) {
+              // Fall back to timestamp value
+              java.sql.Timestamp timestamp = rs.getTimestamp(index);
+              if (timestamp != null) {
+                group.append(columnName, timestamp.getTime());
+              }
+            }
+          } else {
+            // Non-standard format, use the timestamp value
+            java.sql.Timestamp timestamp = rs.getTimestamp(index);
+            if (timestamp != null) {
+              group.append(columnName, timestamp.getTime());
+            }
+          }
+        }
+        break;
+        
       case java.sql.Types.TIMESTAMP_WITH_TIMEZONE:
-        java.sql.Timestamp timestamp = rs.getTimestamp(index);
-        if (timestamp != null) {
-          group.append(columnName, timestamp.getTime());
+        // For timezone-aware timestamps, use the standard getTimestamp
+        java.sql.Timestamp timestampTz = rs.getTimestamp(index);
+        if (timestampTz != null) {
+          group.append(columnName, timestampTz.getTime());
         }
         break;
 

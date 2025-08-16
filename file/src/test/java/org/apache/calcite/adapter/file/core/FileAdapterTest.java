@@ -67,8 +67,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * HTML tables over HTTP, and also read CSV and JSON files from the filesystem.
  */
 @Tag("unit")
-@Isolated
 @ExtendWith(RequiresNetworkExtension.class)
+@Isolated  // Required due to engine-specific behavior and shared state
 public class FileAdapterTest {
 
   @org.junit.jupiter.api.BeforeEach
@@ -869,7 +869,7 @@ public class FileAdapterTest {
       long tsMs = actual.getTime();
 
       // The CSV has "1996-08-02 00:01:02"
-      // Now returns LocalTimestamp which preserves correct local time
+      // This should be parsed as UTC and return exactly 838958462000L
       assertThat(tsMs, is(838958462000L));
     }
   }
@@ -952,8 +952,7 @@ public class FileAdapterTest {
       // Validate timestamp using numeric value
       // The CSV has "1996-08-02 00:01:02"
       long tsMs = timestamp.getTime();
-      // The CSV has "1996-08-02 00:01:02"
-      // Now returns LocalTimestamp which preserves correct local time
+      // This should be parsed as UTC and return exactly 838958462000L
       assertThat(tsMs, is(838958462000L));
     }
   }

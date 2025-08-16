@@ -20,12 +20,11 @@ import org.apache.calcite.adapter.file.converters.JsonPathConverter;
 import org.apache.calcite.adapter.file.metadata.ConversionMetadata;
 
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.parallel.Isolated;import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.parallel.Isolated;import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.parallel.Isolated;import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Isolated;import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.parallel.Isolated;
-
 import java.io.File;
 import java.io.FileWriter;
 import java.nio.charset.StandardCharsets;
@@ -39,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * This is a basic test to verify that JsonPathConverter properly records metadata.
  */
 @Tag("unit")
-@Isolated
+@Isolated  // Required due to engine-specific behavior and shared state
 public class SimpleJsonPathRefreshTest {
 
   @TempDir

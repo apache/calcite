@@ -46,6 +46,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * Test that materialized views work with Parquet execution engine.
  */
 @Tag("unit")
+@Isolated  // Required due to engine-specific behavior and shared state
 public class MaterializedViewParquetQueryTest {
   @TempDir
   java.nio.file.Path tempDir;

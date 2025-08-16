@@ -25,7 +25,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.junit.jupiter.api.parallel.Isolated;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,7 +54,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Test demonstrating materialized view functionality using the materializations operand.
  */
 @Tag("unit")
-@Isolated
 public class MaterializationTest {
   private static final Logger LOGGER = LoggerFactory.getLogger(MaterializationTest.class);
   

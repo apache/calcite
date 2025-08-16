@@ -44,7 +44,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Tests that converters automatically record metadata for refresh tracking.
  */
 @Tag("unit")
-@Isolated
+@Isolated  // Needs isolation due to static ConversionMetadata state
 public class RefreshEndToEndTest {
 
   @TempDir

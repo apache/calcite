@@ -2024,6 +2024,10 @@ public class FileSchema extends AbstractSchema {
     if (!file.isFile()) {
       return false;
     }
+    // Exclude hidden files and metadata files (like .calcite_conversions)
+    if (file.getName().startsWith(".")) {
+      return false;
+    }
     final String nameSansGz = trim(file.getName(), ".gz");
     return nameSansGz.endsWith(".csv")
         || nameSansGz.endsWith(".tsv")

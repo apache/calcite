@@ -23,10 +23,10 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
 /**
- * A wrapper for timestamp values that ensures SQL:2003 compliant string representation.
+ * A wrapper for timestamp values that ensures consistent handling of timezone-naive timestamps.
  *
- * For TIMESTAMP WITHOUT TIME ZONE, the string representation should be in local time,
- * not UTC. This wrapper ensures consistent behavior across execution engines.
+ * For TIMESTAMP WITHOUT TIME ZONE, values are stored and interpreted as UTC to ensure
+ * consistent behavior across different execution engines (linq4j, parquet, duckdb).
  */
 public class LocalTimestamp extends Timestamp {
   private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -36,11 +36,11 @@ public class LocalTimestamp extends Timestamp {
   }
 
   @Override public String toString() {
-    // Convert UTC milliseconds to local time string
-    // This ensures SQL:2003 compliance for TIMESTAMP WITHOUT TIME ZONE
+    // For timezone-naive timestamps, interpret the stored value as UTC
+    // This ensures consistent behavior across different execution engines
     Instant instant = Instant.ofEpochMilli(getTime());
-    LocalDateTime localDateTime = LocalDateTime.ofInstant(instant, ZoneId.systemDefault());
-    return FORMATTER.format(localDateTime);
+    LocalDateTime utcDateTime = LocalDateTime.ofInstant(instant, ZoneId.of("UTC"));
+    return FORMATTER.format(utcDateTime);
   }
 
   /**

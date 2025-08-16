@@ -23,7 +23,6 @@ import org.apache.calcite.schema.SchemaPlus;
 
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.parallel.Isolated;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
@@ -44,7 +43,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
  * Test demonstrating file adapter capabilities relevant to materialized views.
  */
 @Tag("unit")
-@Isolated
 public class FileAdapterCapabilitiesTest {
   @TempDir
   Path tempDir;

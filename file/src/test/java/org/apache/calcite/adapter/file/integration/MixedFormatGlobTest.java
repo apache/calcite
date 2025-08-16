@@ -185,16 +185,16 @@ public class MixedFormatGlobTest {
         + "  ]\n"
         + "}";
 
-    try (Connection conn = DriverManager.getConnection("jdbc:calcite:model=inline:" + model);
+    try (Connection conn = DriverManager.getConnection("jdbc:calcite:lex=ORACLE;unquotedCasing=TO_LOWER;model=inline:" + model);
          Statement stmt = conn.createStatement()) {
 
       // Test three-way join across CSV, JSON, and YAML
       // Use CAST to ensure type compatibility between string and integer values
-      String query = "SELECT e.\"name\" as employee, d.\"name\" as department, l.\"city\" "
-          + "FROM \"employees\" e "
-          + "JOIN \"departments\" d ON CAST(e.\"dept_id\" AS INTEGER) = d.\"id\" "
-          + "JOIN \"locations\" l ON d.\"location_id\" = l.\"id\" "
-          + "ORDER BY e.\"name\"";
+      String query = "SELECT e.name as employee, d.name as department, l.city "
+          + "FROM employees e "
+          + "JOIN departments d ON CAST(e.dept_id AS INTEGER) = d.id "
+          + "JOIN locations l ON d.location_id = l.id "
+          + "ORDER BY e.name";
 
       try (ResultSet rs = stmt.executeQuery(query)) {
         assertTrue(rs.next());
@@ -242,7 +242,7 @@ public class MixedFormatGlobTest {
         + "  ]\n"
         + "}";
 
-    try (Connection conn = DriverManager.getConnection("jdbc:calcite:model=inline:" + model);
+    try (Connection conn = DriverManager.getConnection("jdbc:calcite:lex=ORACLE;unquotedCasing=TO_LOWER;model=inline:" + model);
          Statement stmt = conn.createStatement()) {
 
       // All formats should be auto-converted to Parquet

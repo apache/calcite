@@ -45,7 +45,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.junit.jupiter.api.parallel.Isolated;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -67,7 +66,6 @@ import static org.junit.jupiter.api.Assertions.*;
  * Tests that all converters properly record metadata for refresh tracking.
  */
 @Tag("unit")
-@Isolated
 public class FileConversionEndToEndTest {
 
   @TempDir

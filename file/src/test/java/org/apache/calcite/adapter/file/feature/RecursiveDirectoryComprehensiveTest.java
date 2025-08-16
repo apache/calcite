@@ -20,9 +20,9 @@ import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 
 import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-
+import org.junit.jupiter.api.parallel.Isolated;import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Isolated;import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.parallel.Isolated;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -44,6 +44,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @SuppressWarnings("deprecation")
 @Tag("unit")
+@Isolated  // Required due to engine-specific behavior and shared state
 public class RecursiveDirectoryComprehensiveTest {
 
   @TempDir
@@ -125,14 +126,11 @@ public class RecursiveDirectoryComprehensiveTest {
       SchemaPlus schema = calciteConn.getRootSchema().getSubSchema("FILES");
 
       Set<String> tableNames = schema.getTableNames();
-      // With parquet engine, conversion metadata files may be created
-      assertEquals(4, tableNames.size());
+      assertEquals(3, tableNames.size());
 
       assertTrue(tableNames.contains("data_csv_employees"));
       assertTrue(tableNames.contains("data_json_products"));
       assertTrue(tableNames.contains("data_excel_sales__sheet1"));
-      // The conversion metadata file is expected with parquet engine
-      assertTrue(tableNames.contains("data_excel_.calcite_conversions"));
 
       try (Statement stmt = conn.createStatement()) {
         // Test each format
