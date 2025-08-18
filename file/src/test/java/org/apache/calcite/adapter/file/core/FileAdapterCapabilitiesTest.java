@@ -66,9 +66,16 @@ public class FileAdapterCapabilitiesTest {
 
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
 
-      // Add file schema
+      // Add file schema with engine configuration if set
       Map<String, Object> operand = new HashMap<>();
       operand.put("directory", tempDir.toString());
+      
+      // Use global engine configuration if set
+      String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
+      if (engineType != null && !engineType.isEmpty()) {
+        operand.put("executionEngine", engineType.toLowerCase(Locale.ROOT));
+      }
+      
       SchemaPlus fileSchema =
           rootSchema.add("FILES", FileSchemaFactory.INSTANCE.create(rootSchema, "FILES", operand));
 

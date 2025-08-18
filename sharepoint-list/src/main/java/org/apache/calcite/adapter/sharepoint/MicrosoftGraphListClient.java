@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -382,9 +383,51 @@ public class MicrosoftGraphListClient {
   }
 
   /**
+   * Gets the Graph API base URL.
+   */
+  public String getGraphApiBase() {
+    return GRAPH_API_BASE;
+  }
+  
+  /**
+   * Gets the site ID.
+   */
+  public String getSiteId() throws IOException, InterruptedException {
+    ensureInitialized();
+    return siteId;
+  }
+  
+  /**
+   * Downloads binary content from a URL.
+   */
+  public byte[] downloadBinary(String url) throws IOException, InterruptedException {
+    URL apiUrl = URI.create(url).toURL();
+    HttpURLConnection conn = (HttpURLConnection) apiUrl.openConnection();
+    conn.setRequestMethod("GET");
+    conn.setRequestProperty("Authorization", "Bearer " + authenticator.getAccessToken());
+    conn.setConnectTimeout(30000);
+    conn.setReadTimeout(60000);
+    
+    int responseCode = conn.getResponseCode();
+    if (responseCode >= 200 && responseCode < 300) {
+      try (InputStream in = conn.getInputStream()) {
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        byte[] data = new byte[8192];
+        int bytesRead;
+        while ((bytesRead = in.read(data)) != -1) {
+          buffer.write(data, 0, bytesRead);
+        }
+        return buffer.toByteArray();
+      }
+    } else {
+      throw new IOException("Failed to download binary: HTTP " + responseCode);
+    }
+  }
+  
+  /**
    * Executes a Microsoft Graph API call.
    */
-  private JsonNode executeGraphCall(String method, String url, JsonNode requestBody)
+  public JsonNode executeGraphCall(String method, String url, JsonNode requestBody)
       throws IOException, InterruptedException {
     URL apiUrl = URI.create(url).toURL();
     HttpURLConnection conn = (HttpURLConnection) apiUrl.openConnection();

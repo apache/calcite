@@ -80,7 +80,7 @@ dependencies {
     annotationProcessor("org.immutables:value")
     compileOnly("org.immutables:value-annotations")
     compileOnly("com.google.code.findbugs:jsr305")
-    testRuntimeOnly("org.apache.logging.log4j:log4j-slf4j-impl")
+    testRuntimeOnly("org.apache.logging.log4j:log4j-slf4j2-impl:2.23.1")
     testRuntimeOnly("org.apache.logging.log4j:log4j-core:2.23.1")
 }
 

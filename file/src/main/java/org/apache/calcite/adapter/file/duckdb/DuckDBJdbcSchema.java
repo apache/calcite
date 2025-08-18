@@ -49,14 +49,17 @@ public class DuckDBJdbcSchema extends JdbcSchema {
   private final File directory;
   private final boolean recursive;
   private final Connection persistentConnection;
+  private final org.apache.calcite.adapter.file.FileSchema fileSchema; // Keep reference for refreshes
   
   public DuckDBJdbcSchema(DataSource dataSource, SqlDialect dialect,
                          JdbcConvention convention, String catalog, String schema,
-                         File directory, boolean recursive, Connection persistentConnection) {
+                         File directory, boolean recursive, Connection persistentConnection,
+                         org.apache.calcite.adapter.file.FileSchema fileSchema) {
     super(dataSource, dialect, convention, catalog, schema);
     this.directory = directory;
     this.recursive = recursive;
     this.persistentConnection = persistentConnection;
+    this.fileSchema = fileSchema; // Keep FileSchema alive for refresh handling
     
     LOGGER.info("Created DuckDB JDBC schema for directory: {} (recursive={}) with persistent connection", 
                 directory, recursive);

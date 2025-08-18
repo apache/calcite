@@ -17,46 +17,25 @@
 package org.apache.calcite.adapter.file.format.parquet;
 
 import org.apache.calcite.adapter.file.format.csv.CsvTypeInferrer;
-import org.apache.calcite.adapter.file.table.CsvScannableTable;
-import org.apache.calcite.adapter.file.table.CsvTranslatableTable;
 import org.apache.calcite.adapter.file.table.CsvTable;
-import org.apache.calcite.adapter.file.table.ParquetCsvTranslatableTable;
-import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
-import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.util.Source;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.schema.impl.AbstractSchema;
 
-import org.apache.avro.Conversions;
-import org.apache.avro.LogicalTypes;
-import org.apache.avro.Schema;
-import org.apache.avro.SchemaBuilder;
-import org.apache.avro.generic.GenericData;
-import org.apache.avro.generic.GenericRecord;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
-import org.apache.parquet.avro.AvroParquetWriter;
-import org.apache.parquet.hadoop.ParquetWriter;
-import org.apache.parquet.hadoop.metadata.CompressionCodecName;
-
-import com.joestelmach.natty.DateGroup;
-import com.joestelmach.natty.Parser;
-
-import java.io.File;
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Map;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.Types;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
+
+import java.io.File;
+import java.math.BigDecimal;
 
 /**
  * Utility class for converting various file formats to Parquet.
@@ -67,72 +46,6 @@ public class ParquetConversionUtil {
     // Utility class should not be instantiated
   }
 
-  /**
-   * Sanitize a name to be valid for Avro.
-   * Avro names must start with [A-Za-z_] and subsequently contain only [A-Za-z0-9_].
-   */
-  private static String sanitizeAvroName(String name) {
-    if (name == null || name.isEmpty()) {
-      return "field";
-    }
-
-    // Replace all invalid characters with underscore
-    StringBuilder sanitized = new StringBuilder();
-    for (char c : name.toCharArray()) {
-      if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_') {
-        sanitized.append(c);
-      } else {
-        sanitized.append('_');
-      }
-    }
-
-    // If name starts with a digit, prefix with underscore
-    if (sanitized.length() > 0 && Character.isDigit(sanitized.charAt(0))) {
-      sanitized.insert(0, '_');
-    }
-
-    // If name is empty after sanitization or starts with invalid character, use default
-    if (sanitized.length() == 0 || (sanitized.length() > 0 && !Character.isLetter(sanitized.charAt(0)) && sanitized.charAt(0) != '_')) {
-      sanitized.insert(0, "field_");
-    }
-
-    return sanitized.toString();
-  }
-
-  /**
-   * Reverse the Avro name sanitization to get back the original column name.
-   * This handles the common case where we prefixed with underscore for names starting with digits.
-   */
-  public static String unsanitizeAvroName(String avroName) {
-    if (avroName == null || avroName.isEmpty()) {
-      return avroName;
-    }
-
-    // Handle field_ prefix that we add for empty or invalid names
-    if (avroName.startsWith("field_")) {
-      String remainder = avroName.substring(6);
-      // If what remains starts with a digit, it was likely just a number
-      if (remainder.length() > 0 && Character.isDigit(remainder.charAt(0))) {
-        return remainder;
-      }
-    }
-
-    // If it starts with underscore followed by a digit, remove the underscore
-    if (avroName.length() > 1 && avroName.charAt(0) == '_' && Character.isDigit(avroName.charAt(1))) {
-      return avroName.substring(1);
-    }
-
-    // For the specific case of "joined_at", convert to "joined at"
-    // This is a targeted fix for known test cases
-    if (avroName.equals("joined_at")) {
-      return "joined at";
-    }
-
-    // For Parquet engine: accept sanitized names as-is
-    // Flattened JSON fields like "address.city" become "address_city" in Parquet
-    // This is documented behavior that users need to account for
-    return avroName;
-  }
 
   /**
    * Get the cache directory for Parquet conversions.
@@ -145,11 +58,30 @@ public class ParquetConversionUtil {
    * Get the cache directory for Parquet conversions with optional custom directory.
    */
   public static File getParquetCacheDir(File baseDirectory, String customCacheDir) {
+    return getParquetCacheDir(baseDirectory, customCacheDir, null);
+  }
+
+  /**
+   * Get the cache directory for Parquet conversions with optional custom directory and schema name.
+   * @param baseDirectory The base directory for data files
+   * @param customCacheDir Optional custom cache directory path
+   * @param schemaName Optional schema name for schema-specific caching
+   */
+  public static File getParquetCacheDir(File baseDirectory, String customCacheDir, String schemaName) {
     File cacheDir;
     if (customCacheDir != null && !customCacheDir.isEmpty()) {
-      cacheDir = new File(customCacheDir);
+      // If custom cache dir is specified, append schema name for separation
+      if (schemaName != null && !schemaName.isEmpty()) {
+        cacheDir = new File(customCacheDir, "schema_" + schemaName);
+      } else {
+        cacheDir = new File(customCacheDir);
+      }
     } else {
-      cacheDir = new File(baseDirectory, ".parquet_cache");
+      // Use default cache directory with optional schema suffix
+      String cacheDirName = schemaName != null && !schemaName.isEmpty() 
+          ? ".parquet_cache_" + schemaName 
+          : ".parquet_cache";
+      cacheDir = new File(baseDirectory, cacheDirName);
     }
     if (!cacheDir.exists()) {
       cacheDir.mkdirs();
@@ -206,25 +138,12 @@ public class ParquetConversionUtil {
       typeInferenceEnabled = config != null && config.isEnabled();
     }
 
-    // Use concurrent cache for thread-safe conversion with type inference suffix
-    return ConcurrentParquetCache.convertWithLocking(sourceFile, cacheDir, typeInferenceEnabled, tempFile -> {
+    // Use concurrent cache for thread-safe conversion with type inference suffix and schema name
+    return ConcurrentParquetCache.convertWithLocking(sourceFile, cacheDir, typeInferenceEnabled, schemaName, tempFile -> {
       performConversion(source, tableName, table, tempFile, parentSchema, schemaName);
     });
   }
 
-  /**
-   * Check if the table has timestamp types that require direct Parquet writing.
-   */
-  private static boolean hasTimestampTypes(ResultSetMetaData rsmd) throws SQLException {
-    int columnCount = rsmd.getColumnCount();
-    for (int i = 1; i <= columnCount; i++) {
-      int sqlType = rsmd.getColumnType(i);
-      if (sqlType == Types.TIMESTAMP || sqlType == Types.TIMESTAMP_WITH_TIMEZONE) {
-        return true;
-      }
-    }
-    return false;
-  }
 
   /**
    * Perform the actual conversion to a temporary file.
@@ -232,351 +151,480 @@ public class ParquetConversionUtil {
   private static void performConversion(Source source, String tableName, Table table,
       File targetFile, SchemaPlus parentSchema, String schemaName) throws Exception {
 
+    // Use direct conversion only to preserve original schema structure
+    if (!tryDirectConversion(table, targetFile, schemaName)) {
+      throw new RuntimeException("Table does not support direct scanning: " + tableName + 
+          ". Only ScannableTable implementations are supported for Parquet conversion.");
+    }
+  }
 
-    // Create a temporary schema with just this table
-    try (Connection conn = DriverManager.getConnection("jdbc:calcite:");
-         CalciteConnection calciteConn = conn.unwrap(CalciteConnection.class)) {
-
-      SchemaPlus rootSchema = calciteConn.getRootSchema();
-
-      // For CSV tables, we need to handle them specially since they don't support asQueryable()
-      final Table finalTable;
-      if (table instanceof CsvTranslatableTable || table instanceof ParquetCsvTranslatableTable) {
-        // For CSV files, create a simple scannable table that can be queried
-        // The source should already be a DirectFileSource if PARQUET engine is used
-        // Extract column casing and type inference config from the original table if it's a CsvTable
-        String columnCasing = "UNCHANGED"; // default
-        CsvTypeInferrer.TypeInferenceConfig typeInferenceConfig = null;
-        if (table instanceof CsvTable) {
-          columnCasing = ((CsvTable) table).columnCasing;
-          typeInferenceConfig = ((CsvTable) table).getTypeInferenceConfig();
-        }
-        
-        // Create CsvScannableTable with type inference config if available
-        if (typeInferenceConfig != null) {
-          finalTable = new CsvScannableTable(source, null, columnCasing, typeInferenceConfig);
-        } else {
-          finalTable = new CsvScannableTable(source, null, columnCasing);
-        }
-      } else {
-        finalTable = table;
+  /**
+   * Try to convert the table directly by reading from its scan() method
+   * to preserve original column names and types.
+   */
+  private static boolean tryDirectConversion(Table table, File targetFile, String schemaName) throws Exception {
+    org.apache.calcite.schema.ScannableTable scannableTable;
+    
+    if (table instanceof org.apache.calcite.schema.ScannableTable) {
+      scannableTable = (org.apache.calcite.schema.ScannableTable) table;
+    } else if (table instanceof org.apache.calcite.schema.TranslatableTable) {
+      // Create an adapter wrapper for TranslatableTable to make it scannable
+      scannableTable = new TranslatableTableAdapter((org.apache.calcite.schema.TranslatableTable) table, schemaName);
+    } else {
+      return false;
+    }
+    
+    // Create a minimal DataContext for scanning
+    org.apache.calcite.DataContext dataContext = new org.apache.calcite.DataContext() {
+      @Override public SchemaPlus getRootSchema() { return null; }
+      @Override public JavaTypeFactory getTypeFactory() { 
+        return new org.apache.calcite.jdbc.JavaTypeFactoryImpl();
       }
-
-      SchemaPlus tempSchema = rootSchema.add("TEMP_CONVERT", new AbstractSchema() {
-        @Override protected Map<String, Table> getTableMap() {
-          return Collections.singletonMap(tableName, finalTable);
-        }
-      });
-
-      // Query the table to get all data
-      try (Statement stmt = conn.createStatement();
-           ResultSet rs = stmt.executeQuery("SELECT * FROM TEMP_CONVERT.\"" + tableName + "\"")) {
-
-        ResultSetMetaData rsmd = rs.getMetaData();
-        int columnCount = rsmd.getColumnCount();
-
-        // Check if we need to use the direct Parquet writer for timestamp types
-        if (hasTimestampTypes(rsmd)) {
-          // Use direct Parquet writer to preserve timestamp type information
-          Path hadoopPath = new Path(targetFile.getAbsolutePath());
-          DirectParquetWriter.writeResultSetToParquet(rs, hadoopPath);
-          return;
-        }
-
-        // Create mapping from original to sanitized names
-        Map<String, String> columnNameMapping = new HashMap<>();
-
-        // Build Avro schema from ResultSet metadata
-        // Sanitize table name for Avro record name
-        String recordName = sanitizeAvroName(tableName) + "_record";
-        SchemaBuilder.FieldAssembler<Schema> fieldAssembler =
-            SchemaBuilder.record(recordName)
-            .namespace("org.apache.calcite.adapter.file.cache")
-            .fields();
-
-        for (int i = 1; i <= columnCount; i++) {
-          String columnName = rsmd.getColumnName(i);
-          // Sanitize column name for Avro field name
-          String avroFieldName = sanitizeAvroName(columnName);
-          columnNameMapping.put(columnName, avroFieldName);
-          int sqlType = rsmd.getColumnType(i);
-
-          // Add nullable types to handle null values
-          switch (sqlType) {
-          case Types.INTEGER:
-          case Types.BIGINT:
-            fieldAssembler.name(avroFieldName).type().nullable().longType().noDefault();
-            break;
-          case Types.FLOAT:
-          case Types.DOUBLE:
-            fieldAssembler.name(avroFieldName).type().nullable().doubleType().noDefault();
-            break;
-          case Types.DECIMAL:
-          case Types.NUMERIC:
-            // Use bytes type with decimal logical type
-            // Get precision and scale from metadata
-            int precision = rsmd.getPrecision(i);
-            int scale = rsmd.getScale(i);
-
-            // Default precision if metadata doesn't provide it
-            if (precision <= 0) {
-              precision = 38; // Common default precision
-            }
-
-            // Create decimal logical type
-            LogicalTypes.Decimal decimalType = LogicalTypes.decimal(precision, scale);
-
-            // Build the field with bytes type and decimal logical type
-            fieldAssembler.name(avroFieldName)
-                .type().nullable().bytesBuilder()
-                .prop("logicalType", "decimal")
-                .prop("precision", precision)
-                .prop("scale", scale)
-                .endBytes().noDefault();
-            break;
-          case Types.BOOLEAN:
-            fieldAssembler.name(avroFieldName).type().nullable().booleanType().noDefault();
-            break;
-          case Types.DATE:
-            // Use int type with date logical type (days since epoch)
-            // First create the int schema with logical type
-            Schema dateSchema = LogicalTypes.date().addToSchema(Schema.create(Schema.Type.INT));
-            fieldAssembler.name(avroFieldName)
-                .type().unionOf().nullType().and().type(dateSchema).endUnion()
-                .noDefault();
-            break;
-          case Types.TIME:
-            // Use int type with time-millis logical type (milliseconds since midnight)
-            Schema timeSchema = LogicalTypes.timeMillis().addToSchema(Schema.create(Schema.Type.INT));
-            fieldAssembler.name(avroFieldName)
-                .type().unionOf().nullType().and().type(timeSchema).endUnion()
-                .noDefault();
-            break;
-          case Types.TIMESTAMP:
-          case Types.TIMESTAMP_WITH_TIMEZONE:
-            // Use long type with timestamp-millis logical type (UTC-based)
-            // All timestamps are stored as UTC milliseconds since epoch
-            // - Timezone-naive timestamps are parsed as local time and converted to UTC
-            // - Timezone-aware timestamps are parsed with their timezone and converted to UTC
-            // TODO: The isAdjustedToUTC flag is a Parquet-specific feature, not available in Avro
-            // Currently both timestamp and timestamptz types are converted to Parquet with isAdjustedToUTC=true
-            // To properly fix this, we need to use Parquet's native writer instead of AvroParquetWriter
-            // This would allow us to set isAdjustedToUTC=false for timezone-naive timestamps
-            Schema timestampSchema = LogicalTypes.timestampMillis().addToSchema(Schema.create(Schema.Type.LONG));
-            fieldAssembler.name(avroFieldName)
-                .type().unionOf().nullType().and().type(timestampSchema).endUnion()
-                .noDefault();
-            break;
-          default:
-            // For unknown types, use string type by default
-            // Type introspection will happen during value conversion
-            fieldAssembler.name(avroFieldName).type().nullable().stringType().noDefault();
-            break;
-          }
-        }
-
-        Schema avroSchema = fieldAssembler.endRecord();
-
-        // Delete existing file if it exists
-        if (targetFile.exists()) {
-          targetFile.delete();
-        }
-
-        // Write to Parquet
-        Path hadoopPath = new Path(targetFile.getAbsolutePath());
-        Configuration conf = new Configuration();
-        
-        // Enable vectorized reading for better performance
-        conf.set("parquet.enable.vectorized.reader", "true");
-
-        // Create GenericData model that supports conversions
-        GenericData dataModel = new GenericData();
-        dataModel.addLogicalTypeConversion(new Conversions.DecimalConversion());
-
-        @SuppressWarnings("deprecation")
-        ParquetWriter<GenericRecord> writer = AvroParquetWriter.<GenericRecord>builder(hadoopPath)
-            .withConf(conf)
-            .withSchema(avroSchema)
-            .withDataModel(dataModel)
-            .withCompressionCodec(CompressionCodecName.SNAPPY)
-            .withWriteMode(org.apache.parquet.hadoop.ParquetFileWriter.Mode.OVERWRITE)
-            .build();
-
-        try {
-          int rowCount = 0;
-          while (rs.next()) {
-            GenericRecord record = new GenericData.Record(avroSchema);
-
-            for (int i = 1; i <= columnCount; i++) {
-              String columnName = rsmd.getColumnName(i);
-              // Use sanitized name for Avro field
-              String avroFieldName = sanitizeAvroName(columnName);
-              int sqlType = rsmd.getColumnType(i);
-
-              // Get value and check for nulls
-              Object value = rs.getObject(i);
-              if (value != null && !rs.wasNull()) {
-                switch (sqlType) {
-                case Types.INTEGER:
-                case Types.BIGINT:
-                  record.put(avroFieldName, rs.getLong(i));
-                  break;
-                case Types.FLOAT:
-                case Types.DOUBLE:
-                  record.put(avroFieldName, rs.getDouble(i));
-                  break;
-                case Types.DECIMAL:
-                case Types.NUMERIC:
-                  // Store DECIMAL as bytes using Avro decimal logical type
-                  BigDecimal decimal = rs.getBigDecimal(i);
-                  if (decimal != null) {
-                    // Convert BigDecimal to bytes
-                    BigInteger unscaled = decimal.unscaledValue();
-                    byte[] bytes = unscaled.toByteArray();
-                    record.put(avroFieldName, ByteBuffer.wrap(bytes));
-                  } else {
-                    record.put(avroFieldName, null);
-                  }
-                  break;
-                case Types.BOOLEAN:
-                  boolean boolVal = rs.getBoolean(i);
-                  if (rs.wasNull()) {
-                    record.put(avroFieldName, null);
-                  } else {
-                    record.put(avroFieldName, boolVal);
-                  }
-                  break;
-                case Types.DATE:
-                  // Convert Date to days since epoch (int)
-                  // Get the original string to avoid any timezone shifts from rs.getDate()
-                  String dateStr = rs.getString(i);
-                  if (dateStr != null && !dateStr.trim().isEmpty()) {
-
-                    // Use the same parsing logic as LINQ4J engine (CsvEnumerator)
-                    int daysSinceEpoch;
-                    if (dateStr.matches("\\d{4}-\\d{2}-\\d{2}")) {
-                      // ISO format - parse directly with LocalDate
-                      java.time.LocalDate localDate = java.time.LocalDate.parse(dateStr);
-                      daysSinceEpoch = (int) localDate.toEpochDay();
-                    } else {
-                      // Other formats - use Natty parser but handle timezone carefully
-                      try {
-                        // Use GMT timezone to avoid shifts, same as CsvEnumerator
-                        Parser parser = new Parser(java.util.TimeZone.getTimeZone("GMT"));
-                        java.util.List<DateGroup> groups = parser.parse(dateStr);
-                        java.util.Date parsed = groups.get(0).getDates().get(0);
-                        // The date was parsed in GMT timezone, so convert directly
-                        long millis = parsed.getTime();
-                        // Use Math.floorDiv for proper handling of negative values (dates before 1970)
-                        daysSinceEpoch = Math.toIntExact(Math.floorDiv(millis, org.apache.calcite.avatica.util.DateTimeUtils.MILLIS_PER_DAY));
-                      } catch (Exception e) {
-                        // Fallback to null if parsing fails
-                        record.put(avroFieldName, null);
-                        break;
-                      }
-                    }
-                    record.put(avroFieldName, daysSinceEpoch);
-                  } else {
-                    record.put(avroFieldName, null);
-                  }
-                  break;
-                case Types.TIME:
-                  // Convert Time to milliseconds since midnight (int)
-                  java.sql.Time time = rs.getTime(i);
-                  if (time != null) {
-                    // Get the time string representation to parse correctly
-                    String timeStr = rs.getString(i);
-                    if (timeStr != null && timeStr.matches("\\d{2}:\\d{2}:\\d{2}")) {
-                      // Parse time string directly to avoid timezone issues
-                      String[] parts = timeStr.split(":");
-                      int hours = Integer.parseInt(parts[0]);
-                      int minutes = Integer.parseInt(parts[1]);
-                      int seconds = Integer.parseInt(parts[2]);
-                      // Calculate milliseconds since midnight using proper time units
-                      int millisSinceMidnight =
-                          (int) (TimeUnit.HOURS.toMillis(hours) +
-                          TimeUnit.MINUTES.toMillis(minutes) +
-                          TimeUnit.SECONDS.toMillis(seconds));
-                      record.put(avroFieldName, millisSinceMidnight);
-                    } else {
-                      // Fallback to original logic
-                      // Calculate modulo using proper time units
-                      long millisPerDay = TimeUnit.DAYS.toMillis(1);
-                      int millisSinceMidnight = (int) (time.getTime() % millisPerDay);
-                      record.put(avroFieldName, millisSinceMidnight);
-                    }
-                  } else {
-                    record.put(avroFieldName, null);
-                  }
-                  break;
-                case Types.TIMESTAMP:
-                  // For timezone-naive timestamps, we need to preserve the exact UTC value
-                  // Get the string representation first - this is the most reliable way
-                  String timestampStr = rs.getString(i);
-                  if (timestampStr != null && !timestampStr.trim().isEmpty()) {
-                    // Parse the string as UTC to get the correct value
-                    if (timestampStr.matches("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}.*")) {
-                      try {
-                        // Parse as UTC - this is what CsvEnumerator does for naive timestamps
-                        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                        sdf.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
-                        java.util.Date date = sdf.parse(timestampStr.substring(0, 19));
-                        record.put(avroFieldName, date.getTime());
-                      } catch (java.text.ParseException e) {
-                        // Fall back to the timestamp value
-                        java.sql.Timestamp timestamp = rs.getTimestamp(i);
-                        if (timestamp != null) {
-                          record.put(avroFieldName, timestamp.getTime());
-                        } else {
-                          record.put(avroFieldName, null);
-                        }
-                      }
-                    } else {
-                      // Non-standard format, use the timestamp value
-                      java.sql.Timestamp timestamp = rs.getTimestamp(i);
-                      if (timestamp != null) {
-                        record.put(avroFieldName, timestamp.getTime());
-                      } else {
-                        record.put(avroFieldName, null);
-                      }
-                    }
-                  } else {
-                    record.put(avroFieldName, null);
-                  }
-                  break;
-                case Types.TIMESTAMP_WITH_TIMEZONE:
-                  // For timezone-aware timestamps, use the standard getTimestamp
-                  java.sql.Timestamp timestampTz = rs.getTimestamp(i);
-                  if (timestampTz != null) {
-                    long millis = timestampTz.getTime();
-                    record.put(avroFieldName, millis);
-                  } else {
-                    record.put(avroFieldName, null);
-                  }
-                  break;
-                default:
-                  // For unknown types, convert everything to string to maintain consistency
-                  // The typed placeholders in JSON ensure consistent structure
-                  String stringValue = rs.getString(i);
-                  record.put(avroFieldName, stringValue);
-                  break;
-                }
-              }
-            }
-
-            writer.write(record);
-            rowCount++;
-          }
-
-
-        } finally {
-          writer.close();
-        }
+      @Override public Object get(String name) { 
+        if ("spark".equals(name)) return false;
+        return null; 
       }
+      @Override public org.apache.calcite.linq4j.QueryProvider getQueryProvider() {
+        return null;
+      }
+    };
+
+    // Get the row type to understand the schema
+    JavaTypeFactory typeFactory = (JavaTypeFactory) dataContext.getTypeFactory();
+    org.apache.calcite.rel.type.RelDataType rowType = table.getRowType(typeFactory);
+    
+    // Scan the table directly
+    org.apache.calcite.linq4j.Enumerable<Object[]> enumerable = scannableTable.scan(dataContext);
+    
+    // Convert to Parquet using direct writer
+    convertEnumerableToParquetDirect(enumerable, rowType, targetFile, typeFactory);
+    
+    return true;
+  }
+
+  /**
+   * Convert an enumerable directly to Parquet using native Parquet writers.
+   * This preserves the original schema structure and column names exactly.
+   */
+  private static void convertEnumerableToParquetDirect(org.apache.calcite.linq4j.Enumerable<Object[]> enumerable,
+      org.apache.calcite.rel.type.RelDataType rowType, File targetFile, JavaTypeFactory typeFactory) throws Exception {
+    
+    List<org.apache.calcite.rel.type.RelDataTypeField> fields = rowType.getFieldList();
+    
+    // Build Parquet schema from the original RelDataType (preserves original column names and types)
+    List<org.apache.parquet.schema.Type> parquetFields = new ArrayList<>();
+    for (org.apache.calcite.rel.type.RelDataTypeField field : fields) {
+      String fieldName = field.getName(); // Preserve original field name exactly
+      org.apache.calcite.sql.type.SqlTypeName sqlType = field.getType().getSqlTypeName();
+      
+      // Map Calcite types to Parquet types directly
+      org.apache.parquet.schema.Type parquetField = createParquetFieldFromCalciteType(fieldName, sqlType, field);
+      parquetFields.add(parquetField);
     }
 
-    // Don't set the modification time to match the source file
-    // This allows us to detect when the source file has been updated
-    // and regenerate the cache accordingly
+    org.apache.parquet.schema.MessageType schema = new org.apache.parquet.schema.MessageType("record", parquetFields);
+
+    // Delete existing file if it exists
+    if (targetFile.exists()) {
+      targetFile.delete();
+    }
+
+    // Write to Parquet using direct writer
+    org.apache.hadoop.fs.Path hadoopPath = new org.apache.hadoop.fs.Path(targetFile.getAbsolutePath());
+    org.apache.hadoop.conf.Configuration conf = new org.apache.hadoop.conf.Configuration();
+    conf.set("parquet.enable.vectorized.reader", "true");
+    
+    org.apache.parquet.hadoop.example.GroupWriteSupport.setSchema(schema, conf);
+
+    // Create ParquetWriter
+    try (org.apache.parquet.hadoop.ParquetWriter<org.apache.parquet.example.data.Group> writer = 
+        createParquetWriter(hadoopPath, schema, conf)) {
+
+      org.apache.parquet.example.data.simple.SimpleGroupFactory groupFactory = 
+          new org.apache.parquet.example.data.simple.SimpleGroupFactory(schema);
+
+      // Write all rows
+      for (Object[] row : enumerable) {
+        org.apache.parquet.example.data.Group group = groupFactory.newGroup();
+
+        for (int i = 0; i < fields.size() && i < row.length; i++) {
+          org.apache.calcite.rel.type.RelDataTypeField field = fields.get(i);
+          String fieldName = field.getName();
+          Object value = row[i];
+          
+          if (value != null) {
+            org.apache.calcite.sql.type.SqlTypeName sqlType = field.getType().getSqlTypeName();
+            // Add value directly to group
+            addValueToParquetGroup(group, fieldName, value, sqlType);
+          }
+          // Skip null values - Parquet handles nulls through repetition levels
+        }
+
+        writer.write(group);
+      }
+    }
   }
+
+  /**
+   * Create a Parquet field from a Calcite type, preserving original type information.
+   */
+  private static org.apache.parquet.schema.Type createParquetFieldFromCalciteType(String fieldName, 
+      org.apache.calcite.sql.type.SqlTypeName sqlType, org.apache.calcite.rel.type.RelDataTypeField field) {
+    
+    org.apache.parquet.schema.Type.Repetition repetition = field.getType().isNullable() 
+        ? org.apache.parquet.schema.Type.Repetition.OPTIONAL 
+        : org.apache.parquet.schema.Type.Repetition.REQUIRED;
+
+    switch (sqlType) {
+      case BOOLEAN:
+        return org.apache.parquet.schema.Types.primitive(
+            org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.BOOLEAN, repetition).named(fieldName);
+
+      case TINYINT:
+      case SMALLINT:
+      case INTEGER:
+        return org.apache.parquet.schema.Types.primitive(
+            org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.INT32, repetition).named(fieldName);
+
+      case BIGINT:
+        return org.apache.parquet.schema.Types.primitive(
+            org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.INT64, repetition).named(fieldName);
+
+      case FLOAT:
+      case REAL:
+        return org.apache.parquet.schema.Types.primitive(
+            org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.FLOAT, repetition).named(fieldName);
+
+      case DOUBLE:
+        return org.apache.parquet.schema.Types.primitive(
+            org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.DOUBLE, repetition).named(fieldName);
+
+      case DECIMAL:
+        int precision = field.getType().getPrecision();
+        int scale = field.getType().getScale();
+        if (precision <= 0) precision = 38;
+        return org.apache.parquet.schema.Types.primitive(
+            org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.BINARY, repetition)
+            .as(org.apache.parquet.schema.LogicalTypeAnnotation.decimalType(scale, precision))
+            .named(fieldName);
+
+      case DATE:
+        return org.apache.parquet.schema.Types.primitive(
+            org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.INT32, repetition)
+            .as(org.apache.parquet.schema.LogicalTypeAnnotation.dateType())
+            .named(fieldName);
+
+      case TIME:
+        return org.apache.parquet.schema.Types.primitive(
+            org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.INT32, repetition)
+            .as(org.apache.parquet.schema.LogicalTypeAnnotation.timeType(true, 
+                org.apache.parquet.schema.LogicalTypeAnnotation.TimeUnit.MILLIS))
+            .named(fieldName);
+
+      case TIMESTAMP:
+        return org.apache.parquet.schema.Types.primitive(
+            org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.INT64, repetition)
+            .as(org.apache.parquet.schema.LogicalTypeAnnotation.timestampType(false, 
+                org.apache.parquet.schema.LogicalTypeAnnotation.TimeUnit.MILLIS))
+            .named(fieldName);
+
+      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+        return org.apache.parquet.schema.Types.primitive(
+            org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.INT64, repetition)
+            .as(org.apache.parquet.schema.LogicalTypeAnnotation.timestampType(true, 
+                org.apache.parquet.schema.LogicalTypeAnnotation.TimeUnit.MILLIS))
+            .named(fieldName);
+
+      default:
+        // Default to string for VARCHAR, CHAR, and unknown types
+        return org.apache.parquet.schema.Types.primitive(
+            org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.BINARY, repetition)
+            .as(org.apache.parquet.schema.LogicalTypeAnnotation.stringType())
+            .named(fieldName);
+    }
+  }
+
+  /**
+   * Create a custom ParquetWriter for Group objects using builder pattern.
+   */
+  private static org.apache.parquet.hadoop.ParquetWriter<org.apache.parquet.example.data.Group> createParquetWriter(
+      org.apache.hadoop.fs.Path path, org.apache.parquet.schema.MessageType schema, 
+      org.apache.hadoop.conf.Configuration conf) throws Exception {
+    
+    return new SimpleParquetWriter.Builder(path)
+        .withSchema(schema)
+        .withConf(conf)
+        .withCompressionCodec(org.apache.parquet.hadoop.metadata.CompressionCodecName.SNAPPY)
+        .withWriterVersion(org.apache.parquet.column.ParquetProperties.WriterVersion.PARQUET_1_0)
+        .withPageSize(org.apache.parquet.column.ParquetProperties.DEFAULT_PAGE_SIZE)
+        .withDictionaryEncoding(true)
+        .build();
+  }
+
+  /**
+   * Simple ParquetWriter implementation for Group objects.
+   */
+  @SuppressWarnings("deprecation")
+  private static class SimpleParquetWriter extends org.apache.parquet.hadoop.ParquetWriter<org.apache.parquet.example.data.Group> {
+    
+    public SimpleParquetWriter(org.apache.hadoop.fs.Path path, 
+                               org.apache.parquet.hadoop.example.GroupWriteSupport writeSupport,
+                               org.apache.parquet.hadoop.metadata.CompressionCodecName compressionCodecName,
+                               int blockSize, int pageSize, boolean enableDictionary,
+                               boolean enableValidation, 
+                               org.apache.parquet.column.ParquetProperties.WriterVersion writerVersion,
+                               org.apache.hadoop.conf.Configuration conf) throws java.io.IOException {
+      super(path, writeSupport, compressionCodecName, blockSize, pageSize,
+          pageSize, enableDictionary, enableValidation, writerVersion, conf);
+    }
+
+    public static Builder builder(org.apache.hadoop.fs.Path path) {
+      return new Builder(path);
+    }
+
+    public static class Builder extends org.apache.parquet.hadoop.ParquetWriter.Builder<org.apache.parquet.example.data.Group, Builder> {
+      private org.apache.parquet.schema.MessageType schema = null;
+
+      private Builder(org.apache.hadoop.fs.Path path) {
+        super(path);
+      }
+
+      public Builder withSchema(org.apache.parquet.schema.MessageType schema) {
+        this.schema = schema;
+        return this;
+      }
+
+      @Override protected Builder self() {
+        return this;
+      }
+
+      @Override @SuppressWarnings("deprecation")
+      protected org.apache.parquet.hadoop.example.GroupWriteSupport getWriteSupport(org.apache.hadoop.conf.Configuration conf) {
+        org.apache.parquet.hadoop.example.GroupWriteSupport.setSchema(schema, conf);
+        return new org.apache.parquet.hadoop.example.GroupWriteSupport();
+      }
+    }
+  }
+
+  /**
+   * Add a value to a Parquet group with proper type conversion.
+   */
+  private static void addValueToParquetGroup(org.apache.parquet.example.data.Group group, 
+      String fieldName, Object value, org.apache.calcite.sql.type.SqlTypeName sqlType) {
+    
+    if (value == null) return;
+
+    switch (sqlType) {
+      case BOOLEAN:
+        if (value instanceof Boolean) {
+          group.append(fieldName, (Boolean) value);
+        } else {
+          group.append(fieldName, Boolean.parseBoolean(value.toString()));
+        }
+        break;
+
+      case TINYINT:
+      case SMALLINT:
+      case INTEGER:
+        if (value instanceof Number) {
+          group.append(fieldName, ((Number) value).intValue());
+        } else {
+          group.append(fieldName, Integer.parseInt(value.toString()));
+        }
+        break;
+
+      case BIGINT:
+        if (value instanceof Number) {
+          group.append(fieldName, ((Number) value).longValue());
+        } else {
+          group.append(fieldName, Long.parseLong(value.toString()));
+        }
+        break;
+
+      case FLOAT:
+      case REAL:
+        if (value instanceof Number) {
+          group.append(fieldName, ((Number) value).floatValue());
+        } else {
+          group.append(fieldName, Float.parseFloat(value.toString()));
+        }
+        break;
+
+      case DOUBLE:
+        if (value instanceof Number) {
+          group.append(fieldName, ((Number) value).doubleValue());
+        } else {
+          group.append(fieldName, Double.parseDouble(value.toString()));
+        }
+        break;
+
+      case DECIMAL:
+        if (value instanceof BigDecimal) {
+          BigDecimal decimal = (BigDecimal) value;
+          group.append(fieldName, org.apache.parquet.io.api.Binary.fromConstantByteArray(
+              decimal.unscaledValue().toByteArray()));
+        } else {
+          BigDecimal decimal = new BigDecimal(value.toString());
+          group.append(fieldName, org.apache.parquet.io.api.Binary.fromConstantByteArray(
+              decimal.unscaledValue().toByteArray()));
+        }
+        break;
+
+      case DATE:
+        if (value instanceof java.sql.Date) {
+          // Convert to days since epoch (1970-01-01) in UTC
+          // Do NOT use toLocalDate() as it may apply timezone offset
+          long millis = ((java.sql.Date) value).getTime();
+          int daysSinceEpoch = (int) (millis / (24L * 60 * 60 * 1000));
+          group.append(fieldName, daysSinceEpoch);
+        } else if (value instanceof java.time.LocalDate) {
+          group.append(fieldName, (int) ((java.time.LocalDate) value).toEpochDay());
+        } else if (value instanceof Integer) {
+          // Already in days since epoch format
+          group.append(fieldName, (Integer) value);
+        } else {
+          // Try to parse as date string
+          try {
+            java.time.LocalDate localDate = java.time.LocalDate.parse(value.toString());
+            group.append(fieldName, (int) localDate.toEpochDay());
+          } catch (Exception e) {
+            // Fall back to string representation
+            group.append(fieldName, value.toString());
+          }
+        }
+        break;
+
+      case TIME:
+        if (value instanceof java.sql.Time) {
+          // Convert to milliseconds since midnight in local time
+          // TIME values don't have dates, so we need to extract just the time portion
+          java.sql.Time time = (java.sql.Time) value;
+          java.time.LocalTime localTime = time.toLocalTime();
+          int millisSinceMidnight = (int) (localTime.toNanoOfDay() / 1_000_000L);
+          group.append(fieldName, millisSinceMidnight);
+        } else if (value instanceof java.time.LocalTime) {
+          java.time.LocalTime localTime = (java.time.LocalTime) value;
+          int millisSinceMidnight = (int) (localTime.toNanoOfDay() / 1_000_000L);
+          group.append(fieldName, millisSinceMidnight);
+        } else if (value instanceof Integer) {
+          // Already in milliseconds since midnight format
+          group.append(fieldName, (Integer) value);
+        } else {
+          // Try to parse time string
+          String timeStr = value.toString();
+          if (timeStr.matches("\\d{2}:\\d{2}:\\d{2}")) {
+            String[] parts = timeStr.split(":");
+            int hours = Integer.parseInt(parts[0]);
+            int minutes = Integer.parseInt(parts[1]);
+            int seconds = Integer.parseInt(parts[2]);
+            int millisSinceMidnight = (hours * 3600 + minutes * 60 + seconds) * 1000;
+            group.append(fieldName, millisSinceMidnight);
+          } else {
+            group.append(fieldName, value.toString());
+          }
+        }
+        break;
+
+      case TIMESTAMP:
+        if (value instanceof java.sql.Timestamp) {
+          // Store as milliseconds since epoch in UTC (timezone-naive)
+          group.append(fieldName, ((java.sql.Timestamp) value).getTime());
+        } else if (value instanceof java.util.Date) {
+          group.append(fieldName, ((java.util.Date) value).getTime());
+        } else if (value instanceof Long) {
+          // Already in milliseconds since epoch format
+          group.append(fieldName, (Long) value);
+        } else if (value instanceof org.apache.calcite.adapter.file.temporal.LocalTimestamp) {
+          // LocalTimestamp stores milliseconds since epoch in UTC
+          org.apache.calcite.adapter.file.temporal.LocalTimestamp localTs = 
+              (org.apache.calcite.adapter.file.temporal.LocalTimestamp) value;
+          group.append(fieldName, localTs.getTime());
+        } else {
+          // Try to parse timestamp string as UTC
+          String timestampStr = value.toString();
+          if (timestampStr.matches("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}.*")) {
+            try {
+              java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+              sdf.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
+              java.util.Date parsedDate = sdf.parse(timestampStr.substring(0, 19));
+              group.append(fieldName, parsedDate.getTime());
+            } catch (java.text.ParseException e) {
+              group.append(fieldName, value.toString());
+            }
+          } else {
+            group.append(fieldName, value.toString());
+          }
+        }
+        break;
+
+      default:
+        // Default to string for all other types
+        group.append(fieldName, value.toString());
+        break;
+    }
+  }
+
+  /**
+   * Adapter that wraps a TranslatableTable to make it behave like a ScannableTable.
+   * This allows direct conversion of TranslatableTable implementations by executing
+   * their SQL translation and scanning the results.
+   */
+  private static class TranslatableTableAdapter extends org.apache.calcite.schema.impl.AbstractTable implements org.apache.calcite.schema.ScannableTable {
+    private final org.apache.calcite.schema.TranslatableTable translatableTable;
+    private final String schemaName;
+
+    public TranslatableTableAdapter(org.apache.calcite.schema.TranslatableTable translatableTable, String schemaName) {
+      this.translatableTable = translatableTable;
+      this.schemaName = schemaName;
+    }
+
+    @Override
+    public org.apache.calcite.rel.type.RelDataType getRowType(org.apache.calcite.rel.type.RelDataTypeFactory typeFactory) {
+      return translatableTable.getRowType(typeFactory);
+    }
+
+    @Override
+    public org.apache.calcite.linq4j.Enumerable<Object[]> scan(org.apache.calcite.DataContext root) {
+      try {
+        // Create a temporary Calcite connection to execute the translation
+        java.sql.Connection conn = java.sql.DriverManager.getConnection("jdbc:calcite:");
+        org.apache.calcite.jdbc.CalciteConnection calciteConn = conn.unwrap(org.apache.calcite.jdbc.CalciteConnection.class);
+        
+        SchemaPlus rootSchema = calciteConn.getRootSchema();
+        
+        // Create a temporary schema with just this table
+        String tempTableName = "temp_table_" + System.currentTimeMillis();
+        SchemaPlus tempSchema = rootSchema.add("TEMP_SCAN", new org.apache.calcite.schema.impl.AbstractSchema() {
+          @Override
+          protected java.util.Map<String, org.apache.calcite.schema.Table> getTableMap() {
+            return java.util.Collections.singletonMap(tempTableName, translatableTable);
+          }
+        });
+
+        // Execute a SELECT * query to get all data
+        try (java.sql.Statement stmt = conn.createStatement();
+             java.sql.ResultSet rs = stmt.executeQuery("SELECT * FROM TEMP_SCAN.\"" + tempTableName + "\"")) {
+
+          // Convert ResultSet to Enumerable<Object[]>
+          java.util.List<Object[]> rows = new java.util.ArrayList<>();
+          org.apache.calcite.rel.type.RelDataType rowType = getRowType(root.getTypeFactory());
+          int columnCount = rowType.getFieldCount();
+          
+          while (rs.next()) {
+            Object[] row = new Object[columnCount];
+            for (int i = 0; i < columnCount; i++) {
+              row[i] = rs.getObject(i + 1);
+            }
+            rows.add(row);
+          }
+          
+          conn.close();
+          return org.apache.calcite.linq4j.Linq4j.asEnumerable(rows);
+        }
+      } catch (Exception e) {
+        throw new RuntimeException("Failed to scan TranslatableTable: " + e.getMessage(), e);
+      }
+    }
+  }
+
 }

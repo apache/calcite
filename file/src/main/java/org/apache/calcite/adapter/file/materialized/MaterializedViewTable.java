@@ -49,6 +49,7 @@ import java.sql.Statement;
 import java.sql.Types;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,6 +66,7 @@ public class MaterializedViewTable extends AbstractTable implements Translatable
   private final String sql;
   protected final File parquetFile;
   private final Map<String, Table> existingTables;
+  private final Supplier<Map<String, Table>> tableSupplier;
   protected final AtomicBoolean materialized = new AtomicBoolean(false);
 
   public MaterializedViewTable(SchemaPlus parentSchema, String schemaName, String viewName,
@@ -75,6 +77,18 @@ public class MaterializedViewTable extends AbstractTable implements Translatable
     this.sql = sql;
     this.parquetFile = parquetFile;
     this.existingTables = existingTables;
+    this.tableSupplier = null;
+  }
+
+  public MaterializedViewTable(SchemaPlus parentSchema, String schemaName, String viewName,
+      String sql, File parquetFile, Supplier<Map<String, Table>> tableSupplier) {
+    this.parentSchema = parentSchema;
+    this.schemaName = schemaName;
+    this.viewName = viewName;
+    this.sql = sql;
+    this.parquetFile = parquetFile;
+    this.existingTables = null;
+    this.tableSupplier = tableSupplier;
   }
 
   private void materialize() {
@@ -83,16 +97,28 @@ public class MaterializedViewTable extends AbstractTable implements Translatable
         LOGGER.debug("Materializing view {} by executing SQL: {}", viewName, sql);
 
         // Execute the SQL and write results to Parquet
-        try (Connection conn = DriverManager.getConnection("jdbc:calcite:");
+        // TODO: These connection properties should be inherited from the parent connection
+        // For now, using the standard properties that most tests use
+        String jdbcUrl = "jdbc:calcite:lex=ORACLE;unquotedCasing=TO_LOWER";
+        try (Connection conn = DriverManager.getConnection(jdbcUrl);
              CalciteConnection calciteConn = conn.unwrap(CalciteConnection.class)) {
 
           // Add current schema with existing tables
           SchemaPlus rootSchema = calciteConn.getRootSchema();
+          final Map<String, Table> tables = tableSupplier != null ? tableSupplier.get() : existingTables;
+          LOGGER.debug("Registering schema '{}' with {} tables: {}", 
+              schemaName, tables != null ? tables.size() : 0, 
+              tables != null ? tables.keySet() : "null");
+          
+          // Register schema with exact name as provided - no casing transformations
           SchemaPlus schema = rootSchema.add(schemaName, new AbstractSchema() {
             @Override protected Map<String, Table> getTableMap() {
-              return existingTables;
+              return tables;
             }
           });
+          
+          // Set the default schema so unqualified table names work
+          calciteConn.setSchema(schemaName);
 
           try (Statement stmt = conn.createStatement();
                ResultSet rs = stmt.executeQuery(sql)) {
@@ -219,6 +245,6 @@ public class MaterializedViewTable extends AbstractTable implements Translatable
 
   private Table getParquetTable() {
     // Use our custom ParquetTranslatableTable that works with the file adapter
-    return new ParquetTranslatableTable(parquetFile);
+    return new ParquetTranslatableTable(parquetFile, schemaName);
   }
 }

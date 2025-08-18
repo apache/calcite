@@ -48,10 +48,15 @@ public class ExcelFileTest {
     File excelFile = new File(tempDir.toFile(), "TestData.xlsx");
     createTestExcelFile(excelFile);
 
-    // Create FileSchema pointing to the temp directory
-    FileSchema schema =
-        new FileSchema(null, "TEST", tempDir.toFile(),
-            com.google.common.collect.ImmutableList.of());
+    // Create FileSchema pointing to the temp directory with engine configuration if set
+    String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
+    ExecutionEngineConfig engineConfig = null;
+    if (engineType != null && !engineType.isEmpty()) {
+      engineConfig = new ExecutionEngineConfig(engineType, ExecutionEngineConfig.DEFAULT_BATCH_SIZE);
+    }
+    
+    FileSchema schema = new FileSchema(null, "TEST", tempDir.toFile(),
+        com.google.common.collect.ImmutableList.of(), engineConfig);
 
     // Get table map which should trigger Excel conversion
     Map<String, Table> tables = schema.getTableMap();
@@ -81,10 +86,15 @@ public class ExcelFileTest {
     File excelFile = new File(subDir, "Sales.xlsx");
     createTestExcelFile(excelFile);
 
-    // Create FileSchema with recursive=true to scan subdirectories
-    FileSchema schema =
-        new FileSchema(null, "TEST", tempDir.toFile(),
-            com.google.common.collect.ImmutableList.of(), new ExecutionEngineConfig(), true);
+    // Create FileSchema with recursive=true to scan subdirectories and engine configuration if set
+    String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
+    ExecutionEngineConfig engineConfig = new ExecutionEngineConfig();
+    if (engineType != null && !engineType.isEmpty()) {
+      engineConfig = new ExecutionEngineConfig(engineType, ExecutionEngineConfig.DEFAULT_BATCH_SIZE);
+    }
+    
+    FileSchema schema = new FileSchema(null, "TEST", tempDir.toFile(),
+        com.google.common.collect.ImmutableList.of(), engineConfig, true);
 
     Map<String, Table> tables = schema.getTableMap();
 
@@ -98,9 +108,15 @@ public class ExcelFileTest {
     File excelFile = new File(tempDir.toFile(), "DirectTest.xlsx");
     createTestExcelFile(excelFile);
 
-    // Use directory-based schema (this is how Excel files should be processed)
-    FileSchema schema =
-        new FileSchema(null, "TEST", tempDir.toFile(), com.google.common.collect.ImmutableList.of());
+    // Use directory-based schema with engine configuration if set
+    String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
+    ExecutionEngineConfig engineConfig = null;
+    if (engineType != null && !engineType.isEmpty()) {
+      engineConfig = new ExecutionEngineConfig(engineType, ExecutionEngineConfig.DEFAULT_BATCH_SIZE);
+    }
+    
+    FileSchema schema = new FileSchema(null, "TEST", tempDir.toFile(), 
+        com.google.common.collect.ImmutableList.of(), engineConfig);
     Map<String, Table> tableMap = schema.getTableMap();
 
     // After processing, the Excel file should be converted and tables created with proper names

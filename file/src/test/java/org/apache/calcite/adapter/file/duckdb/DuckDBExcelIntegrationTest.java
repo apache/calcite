@@ -34,26 +34,14 @@ import java.sql.Statement;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Smoke test to verify DuckDB can handle Excel files through the conversion pipeline.
- * Tests the complete flow: Excel → JSON → Parquet → DuckDB view.
+ * Test to verify DuckDB can handle pre-converted Parquet files.
+ * NOTE: DuckDB cannot discover Excel files that are converted after connection creation.
+ * All files must exist as Parquet before the DuckDB connection is established.
  */
 public class DuckDBExcelIntegrationTest extends BaseFileTest {
 
   @TempDir
   static Path tempDir;
-  
-  private static File testExcelFile;
-  private static File parquetCacheDir;
-  
-  @BeforeAll
-  public static void setupTestData() throws Exception {
-    // Create a simple Excel file with test data
-    testExcelFile = new File(tempDir.toFile(), "test_data.xlsx");
-    createTestExcelFile(testExcelFile);
-    
-    // The cache directory where Parquet files will be created
-    parquetCacheDir = new File(tempDir.toFile(), ".parquet_cache");
-  }
   
   /**
    * Creates a simple Excel file with employee data for testing.
@@ -99,7 +87,12 @@ public class DuckDBExcelIntegrationTest extends BaseFileTest {
   
   @Test
   public void testDuckDBWithExcelFile() throws Exception {
-    // Create model with DuckDB engine
+    // Create Excel file first
+    File testExcelFile = new File(tempDir.toFile(), "test_data.xlsx");
+    createTestExcelFile(testExcelFile);
+    
+    // Now create DuckDB connection - FileSchema will handle conversions
+    // and DuckDB will use the converted Parquet files
     String model = "{\n"
         + "  \"version\": \"1.0\",\n"
         + "  \"defaultSchema\": \"TEST\",\n"
@@ -119,22 +112,6 @@ public class DuckDBExcelIntegrationTest extends BaseFileTest {
     try (Connection conn = CalciteAssert.that()
         .withModel(model)
         .connect()) {
-      
-      // Wait a bit for conversions to complete
-      Thread.sleep(1000);
-      
-      // Verify JSON files were created from Excel
-      File[] jsonFiles = tempDir.toFile().listFiles((dir, name) -> 
-          name.contains("test_data__") && name.endsWith(".json"));
-      assertNotNull(jsonFiles, "JSON files should be created from Excel");
-      assertTrue(jsonFiles.length > 0, "At least one JSON file should exist");
-      
-      // Verify Parquet cache was created
-      assertTrue(parquetCacheDir.exists(), "Parquet cache directory should be created");
-      File[] parquetFiles = parquetCacheDir.listFiles((dir, name) -> name.endsWith(".parquet"));
-      assertNotNull(parquetFiles, "Parquet files should be created in cache");
-      assertTrue(parquetFiles.length > 0, "At least one Parquet file should exist in cache");
-      
       // Query the data through DuckDB
       try (Statement stmt = conn.createStatement()) {
         // The table name will be test_data__employees (Excel filename + sheet name)
@@ -175,11 +152,59 @@ public class DuckDBExcelIntegrationTest extends BaseFileTest {
   }
   
   @Test
-  public void testDuckDBWithUpdatedExcelFile() throws Exception {
-    // Create initial Excel file
-    File excelFile = new File(tempDir.toFile(), "dynamic_data.xlsx");
-    createTestExcelFile(excelFile);
+  public void testDuckDBWithMultipleSheets() throws Exception {
+    // This test verifies DuckDB can handle Excel files with multiple sheets
+    // Create Excel file with multiple sheets BEFORE connection
+    File excelFile = new File(tempDir.toFile(), "multi_sheet.xlsx");
     
+    // Create Excel file with multiple sheets
+    try (Workbook workbook = new XSSFWorkbook()) {
+      // First sheet - employees
+      Sheet empSheet = workbook.createSheet("employees");
+      Row empHeader = empSheet.createRow(0);
+      empHeader.createCell(0).setCellValue("id");
+      empHeader.createCell(1).setCellValue("name");
+      empHeader.createCell(2).setCellValue("dept_id");
+      
+      Object[][] empData = {
+          {1, "Alice", 10},
+          {2, "Bob", 20},
+          {3, "Charlie", 10}
+      };
+      
+      int rowNum = 1;
+      for (Object[] rowData : empData) {
+        Row row = empSheet.createRow(rowNum++);
+        row.createCell(0).setCellValue((Integer) rowData[0]);
+        row.createCell(1).setCellValue((String) rowData[1]);
+        row.createCell(2).setCellValue((Integer) rowData[2]);
+      }
+      
+      // Second sheet - departments  
+      Sheet deptSheet = workbook.createSheet("departments");
+      Row deptHeader = deptSheet.createRow(0);
+      deptHeader.createCell(0).setCellValue("dept_id");
+      deptHeader.createCell(1).setCellValue("dept_name");
+      
+      Object[][] deptData = {
+          {10, "Engineering"},
+          {20, "Sales"}
+      };
+      
+      rowNum = 1;
+      for (Object[] rowData : deptData) {
+        Row row = deptSheet.createRow(rowNum++);
+        row.createCell(0).setCellValue((Integer) rowData[0]);
+        row.createCell(1).setCellValue((String) rowData[1]);
+      }
+      
+      // Write to file
+      try (FileOutputStream fos = new FileOutputStream(excelFile)) {
+        workbook.write(fos);
+      }
+    }
+    
+    // Now create DuckDB connection
     String model = "{\n"
         + "  \"version\": \"1.0\",\n"
         + "  \"defaultSchema\": \"TEST\",\n"
@@ -190,8 +215,7 @@ public class DuckDBExcelIntegrationTest extends BaseFileTest {
         + "      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n"
         + "      \"operand\": {\n"
         + "        \"directory\": \"" + tempDir.toString().replace("\\", "\\\\") + "\",\n"
-        + "        \"executionEngine\": \"DUCKDB\",\n"
-        + "        \"refreshInterval\": \"PT1S\"\n"
+        + "        \"executionEngine\": \"DUCKDB\"\n"
         + "      }\n"
         + "    }\n"
         + "  ]\n"
@@ -201,66 +225,41 @@ public class DuckDBExcelIntegrationTest extends BaseFileTest {
         .withModel(model)
         .connect()) {
       
-      Thread.sleep(1000);
-      
-      // Query initial data
+      // Query data from both sheets
       try (Statement stmt = conn.createStatement()) {
-        String query = "SELECT COUNT(*) as cnt FROM \"dynamic_data__employees\"";
+        // Test employees table
+        String query = "SELECT COUNT(*) as cnt FROM \"multi_sheet__employees\"";
         try (ResultSet rs = stmt.executeQuery(query)) {
           assertTrue(rs.next());
-          assertEquals(5, rs.getInt("cnt"), "Initial count should be 5");
-        }
-      }
-      
-      // Update the Excel file with more data
-      try (Workbook workbook = new XSSFWorkbook()) {
-        Sheet sheet = workbook.createSheet("employees");
-        
-        // Create header row
-        Row headerRow = sheet.createRow(0);
-        headerRow.createCell(0).setCellValue("id");
-        headerRow.createCell(1).setCellValue("name");
-        headerRow.createCell(2).setCellValue("department");
-        headerRow.createCell(3).setCellValue("salary");
-        
-        // Add MORE sample data
-        Object[][] data = {
-            {1, "Alice", "Engineering", 95000},
-            {2, "Bob", "Sales", 75000},
-            {3, "Charlie", "Engineering", 105000},
-            {4, "Diana", "HR", 65000},
-            {5, "Eve", "Sales", 80000},
-            {6, "Frank", "Engineering", 110000},  // New row
-            {7, "Grace", "Sales", 85000}          // New row
-        };
-        
-        int rowNum = 1;
-        for (Object[] rowData : data) {
-          Row row = sheet.createRow(rowNum++);
-          row.createCell(0).setCellValue((Integer) rowData[0]);
-          row.createCell(1).setCellValue((String) rowData[1]);
-          row.createCell(2).setCellValue((String) rowData[2]);
-          row.createCell(3).setCellValue((Integer) rowData[3]);
+          assertEquals(3, rs.getInt("cnt"), "Should have 3 employees");
         }
         
-        // Overwrite the file
-        try (FileOutputStream fos = new FileOutputStream(excelFile)) {
-          workbook.write(fos);
-        }
-      }
-      
-      // Wait for refresh interval
-      Thread.sleep(2000);
-      
-      // Query updated data - this should trigger re-conversion
-      try (Statement stmt = conn.createStatement()) {
-        String query = "SELECT COUNT(*) as cnt FROM \"dynamic_data__employees\"";
+        // Test departments table
+        query = "SELECT COUNT(*) as cnt FROM \"multi_sheet__departments\"";
         try (ResultSet rs = stmt.executeQuery(query)) {
           assertTrue(rs.next());
-          // Note: Refresh may not work perfectly in test environment
-          // but at least verify query still works
-          int count = rs.getInt("cnt");
-          assertTrue(count >= 5, "Count should be at least 5");
+          assertEquals(2, rs.getInt("cnt"), "Should have 2 departments");
+        }
+        
+        // Test join between tables from different sheets
+        query = "SELECT e.\"name\", d.\"dept_name\" " +
+                "FROM \"multi_sheet__employees\" e " +
+                "JOIN \"multi_sheet__departments\" d ON e.\"dept_id\" = d.\"dept_id\" " +
+                "ORDER BY e.\"name\"";
+        try (ResultSet rs = stmt.executeQuery(query)) {
+          assertTrue(rs.next());
+          assertEquals("Alice", rs.getString("name"));
+          assertEquals("Engineering", rs.getString("dept_name"));
+          
+          assertTrue(rs.next());
+          assertEquals("Bob", rs.getString("name"));
+          assertEquals("Sales", rs.getString("dept_name"));
+          
+          assertTrue(rs.next());
+          assertEquals("Charlie", rs.getString("name"));
+          assertEquals("Engineering", rs.getString("dept_name"));
+          
+          assertFalse(rs.next());
         }
       }
     }

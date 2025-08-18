@@ -440,41 +440,77 @@ public class CsvTypeInferrer {
     }
     
     ColumnTypeInfo determineType(TypeInferenceConfig config) {
+      // Case 1: All values are NULL/blank/whitespace
       if (totalValues == 0 || totalValues == nullValues) {
         // All nulls or no data - default to nullable VARCHAR
-        return new ColumnTypeInfo(columnName, SqlTypeName.VARCHAR, true, null, 0.0, totalValues, nullValues);
+        return new ColumnTypeInfo(columnName, SqlTypeName.VARCHAR, true, null, 1.0, totalValues, nullValues);
       }
       
       int nonNullValues = totalValues - nullValues;
       
-      // Find the most common type
-      SqlTypeName bestType = SqlTypeName.VARCHAR;
+      // Case 2: We have some actual values - check if they all match a single type
+      // (or if there's a clear majority type with the rest being nulls)
+      
+      // If we only have one type detected (plus nulls), use that type
+      if (typeCounts.size() == 1) {
+        Map.Entry<SqlTypeName, Integer> entry = typeCounts.entrySet().iterator().next();
+        SqlTypeName type = entry.getKey();
+        DateTimeFormatter formatter = dateTimeFormatters.get(type);
+        
+        // All non-null values are the same type - use it
+        boolean nullable = nullValues > 0 || config.makeAllNullable;
+        return new ColumnTypeInfo(columnName, type, nullable, formatter, 1.0, totalValues, nullValues);
+      }
+      
+      // Case 3: Multiple types detected
+      // Check if we have VARCHAR mixed with other types
+      Integer varcharCount = typeCounts.get(SqlTypeName.VARCHAR);
+      if (varcharCount != null && varcharCount > 0) {
+        // We have actual string values that aren't parseable as other types
+        // Must use VARCHAR for safety
+        boolean nullable = nullValues > 0 || config.makeAllNullable;
+        return new ColumnTypeInfo(columnName, SqlTypeName.VARCHAR, nullable, null, 1.0, totalValues, nullValues);
+      }
+      
+      // Case 4: Multiple numeric/temporal types but no VARCHAR
+      // This can happen with mixed INTEGER/BIGINT or mixed temporal types
+      // Choose the most general type that can hold all values
+      SqlTypeName bestType = null;
       int bestCount = 0;
       
-      for (Map.Entry<SqlTypeName, Integer> entry : typeCounts.entrySet()) {
-        if (entry.getValue() > bestCount) {
-          bestCount = entry.getValue();
-          bestType = entry.getKey();
+      // Priority order for type selection when multiple compatible types exist
+      // (more general types that can hold values from more specific types)
+      SqlTypeName[] typePreference = {
+          SqlTypeName.VARCHAR,           // Can hold anything
+          SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE, // Can hold any timestamp
+          SqlTypeName.TIMESTAMP,          // Can hold date + time
+          SqlTypeName.DATE,               // Date only
+          SqlTypeName.TIME,               // Time only  
+          SqlTypeName.DOUBLE,             // Can hold any numeric
+          SqlTypeName.BIGINT,             // Can hold any integer
+          SqlTypeName.INTEGER,            // 32-bit integers
+          SqlTypeName.BOOLEAN             // Most specific
+      };
+      
+      for (SqlTypeName type : typePreference) {
+        Integer count = typeCounts.get(type);
+        if (count != null && count > 0) {
+          bestType = type;
+          bestCount = count;
+          break;  // Use first match in preference order
         }
       }
       
-      double confidence = (double) bestCount / nonNullValues;
-      
-      // Only use inferred type if confidence is high enough
-      if (confidence < config.confidenceThreshold) {
+      if (bestType == null) {
+        // Shouldn't happen, but fallback to VARCHAR
         bestType = SqlTypeName.VARCHAR;
-        confidence = 1.0; // VARCHAR is always safe
-      }
-      
-      // Determine nullability (default to true for safety)
-      boolean nullable = config.makeAllNullable;
-      if (!nullable) {
-        // Check if we should make nullable based on null ratio
-        double nullRatio = (double) nullValues / totalValues;
-        nullable = nullRatio > config.nullableThreshold;
       }
       
       DateTimeFormatter formatter = dateTimeFormatters.get(bestType);
+      boolean nullable = nullValues > 0 || config.makeAllNullable;
+      
+      // For confidence, use ratio of values that could be parsed as the chosen type
+      double confidence = (double) bestCount / nonNullValues;
       
       return new ColumnTypeInfo(columnName, bestType, nullable, formatter, 
           confidence, totalValues, nullValues);

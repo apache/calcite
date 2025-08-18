@@ -41,8 +41,9 @@ public class RefreshInterval {
 
   /**
    * Parses a refresh interval string into a Duration.
+   * Supports both human-readable formats like "5 minutes" and ISO 8601 formats like "PT1S".
    *
-   * @param intervalStr Interval string like "5 minutes"
+   * @param intervalStr Interval string like "5 minutes" or "PT1S"
    * @return Parsed duration, or null if invalid format
    */
   public static @Nullable Duration parse(@Nullable String intervalStr) {
@@ -50,7 +51,19 @@ public class RefreshInterval {
       return null;
     }
 
-    Matcher matcher = INTERVAL_PATTERN.matcher(intervalStr.trim());
+    String trimmed = intervalStr.trim();
+    
+    // First try ISO 8601 format (PT1S, PT5M, PT1H, etc.)
+    if (trimmed.startsWith("PT") || trimmed.startsWith("P")) {
+      try {
+        return Duration.parse(trimmed);
+      } catch (Exception e) {
+        // Fall through to try human-readable format
+      }
+    }
+
+    // Try human-readable format
+    Matcher matcher = INTERVAL_PATTERN.matcher(trimmed);
     if (!matcher.matches()) {
       return null;
     }

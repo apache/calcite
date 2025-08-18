@@ -20,6 +20,7 @@ import org.apache.calcite.adapter.file.statistics.StatisticsProvider;
 import org.apache.calcite.adapter.file.statistics.TableStatistics;
 import org.apache.calcite.adapter.file.table.ParquetTranslatableTable;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
@@ -82,10 +83,20 @@ public class SimpleFileJoinReorderRule extends RelRule<SimpleFileJoinReorderRule
       return null;
     }
     
-    ParquetTranslatableTable parquetTable = tableScan.getTable().unwrap(ParquetTranslatableTable.class);
-    if (parquetTable instanceof StatisticsProvider) {
-      StatisticsProvider provider = (StatisticsProvider) parquetTable;
-      return provider.getTableStatistics(tableScan.getTable());
+    // First try to get statistics directly from the table if it's a StatisticsProvider
+    RelOptTable table = tableScan.getTable();
+    if (table != null) {
+      // Try to unwrap as StatisticsProvider directly
+      StatisticsProvider provider = table.unwrap(StatisticsProvider.class);
+      if (provider != null) {
+        return provider.getTableStatistics(table);
+      }
+      
+      // Try ParquetTranslatableTable
+      ParquetTranslatableTable parquetTable = table.unwrap(ParquetTranslatableTable.class);
+      if (parquetTable != null && parquetTable instanceof StatisticsProvider) {
+        return ((StatisticsProvider) parquetTable).getTableStatistics(table);
+      }
     }
     return null;
   }

@@ -71,8 +71,24 @@ public class ConcurrentParquetCache {
    */
   public static File convertWithLocking(File sourceFile, File cacheDir, boolean typeInferenceEnabled,
       ConversionCallback callback) throws Exception {
+    return convertWithLocking(sourceFile, cacheDir, typeInferenceEnabled, null, callback);
+  }
 
-    String lockKey = sourceFile.getAbsolutePath() + (typeInferenceEnabled ? ".inferred" : "");
+  /**
+   * Convert a file to Parquet with proper concurrency control, type inference flag, and schema name.
+   * Uses Redis locks if available, otherwise falls back to file system locks.
+   * @param sourceFile The source file to convert
+   * @param cacheDir The cache directory to use
+   * @param typeInferenceEnabled Whether type inference is enabled
+   * @param schemaName Optional schema name for schema-specific locking
+   * @param callback The conversion callback
+   */
+  public static File convertWithLocking(File sourceFile, File cacheDir, boolean typeInferenceEnabled,
+      String schemaName, ConversionCallback callback) throws Exception {
+
+    // Include schema name in lock key for proper isolation
+    String lockKey = (schemaName != null ? schemaName + ":" : "") 
+        + sourceFile.getAbsolutePath() + (typeInferenceEnabled ? ".inferred" : "");
 
     // Try Redis distributed lock first
     RedisDistributedLock redisLock = RedisDistributedLock.createIfAvailable(lockKey);
@@ -140,11 +156,8 @@ public class ConcurrentParquetCache {
           java.nio.file.StandardCopyOption.REPLACE_EXISTING,
           java.nio.file.StandardCopyOption.ATOMIC_MOVE);
       
-      // Set the parquet file timestamp to match the source file
-      // This ensures that refresh logic works correctly
-      if (sourceFile.exists() && parquetFile.exists()) {
-        parquetFile.setLastModified(sourceFile.lastModified());
-      }
+      // Don't set cache file timestamp to match source file
+      // This allows cache invalidation to work correctly by comparing timestamps
 
     } finally {
       // Clean up temp file if it still exists

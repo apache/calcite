@@ -37,7 +37,8 @@ public class StorageCacheManager {
   private static volatile StorageCacheManager instance;
   
   private final File baseCacheDirectory;
-  private final ConcurrentHashMap<String, PersistentStorageCache> caches = new ConcurrentHashMap<>();
+  // Schema-aware caches: schemaName -> storageType -> cache
+  private final ConcurrentHashMap<String, ConcurrentHashMap<String, PersistentStorageCache>> schemaCaches = new ConcurrentHashMap<>();
   private final ScheduledExecutorService cleanupExecutor;
   
   // Default cache settings
@@ -107,7 +108,7 @@ public class StorageCacheManager {
    * @return Persistent cache for the storage type
    */
   public PersistentStorageCache getCache(String storageType) {
-    return getCache(storageType, DEFAULT_TTL_MS);
+    return getCache(null, storageType, DEFAULT_TTL_MS);
   }
   
   /**
@@ -118,9 +119,28 @@ public class StorageCacheManager {
    * @return Persistent cache for the storage type
    */
   public PersistentStorageCache getCache(String storageType, long ttlMs) {
+    return getCache(null, storageType, ttlMs);
+  }
+  
+  /**
+   * Gets or creates a cache for a storage type with schema awareness.
+   * 
+   * @param schemaName Schema name (optional)
+   * @param storageType Storage type identifier
+   * @param ttlMs Default TTL in milliseconds
+   * @return Persistent cache for the storage type
+   */
+  public PersistentStorageCache getCache(String schemaName, String storageType, long ttlMs) {
+    String effectiveSchema = schemaName != null ? schemaName : "default";
+    ConcurrentHashMap<String, PersistentStorageCache> caches = 
+        schemaCaches.computeIfAbsent(effectiveSchema, k -> new ConcurrentHashMap<>());
+    
     return caches.computeIfAbsent(storageType, type -> {
-      PersistentStorageCache cache = new PersistentStorageCache(baseCacheDirectory, type, ttlMs);
-      LOGGER.debug("Created cache for storage type: {}", type);
+      // Create schema-specific cache directory
+      File schemaCacheDir = new File(baseCacheDirectory, "schema_" + effectiveSchema);
+      PersistentStorageCache cache = new PersistentStorageCache(schemaCacheDir, type, ttlMs);
+      LOGGER.debug("Created cache for storage type '{}' in schema '{}': {}", 
+                  type, effectiveSchema, schemaCacheDir);
       return cache;
     });
   }
@@ -130,10 +150,15 @@ public class StorageCacheManager {
    */
   private void cleanupAllCaches() {
     try {
-      for (PersistentStorageCache cache : caches.values()) {
-        cache.cleanupExpired();
+      int totalCaches = 0;
+      for (ConcurrentHashMap<String, PersistentStorageCache> caches : schemaCaches.values()) {
+        for (PersistentStorageCache cache : caches.values()) {
+          cache.cleanupExpired();
+          totalCaches++;
+        }
       }
-      LOGGER.debug("Completed cache cleanup for {} storage types", caches.size());
+      LOGGER.debug("Completed cache cleanup for {} caches across {} schemas", 
+                  totalCaches, schemaCaches.size());
     } catch (Exception e) {
       LOGGER.error("Error during cache cleanup", e);
     }
@@ -150,10 +175,12 @@ public class StorageCacheManager {
    * Clears all caches (mainly for testing).
    */
   public void clearAll() {
-    for (PersistentStorageCache cache : caches.values()) {
-      cache.clear();
+    for (ConcurrentHashMap<String, PersistentStorageCache> caches : schemaCaches.values()) {
+      for (PersistentStorageCache cache : caches.values()) {
+        cache.clear();
+      }
     }
-    caches.clear();
+    schemaCaches.clear();
     LOGGER.debug("Cleared all storage caches");
   }
   
@@ -180,9 +207,12 @@ public class StorageCacheManager {
    */
   public java.util.Map<String, Integer> getCacheStats() {
     java.util.Map<String, Integer> stats = new java.util.HashMap<>();
-    caches.forEach((type, cache) -> {
-      // This is a simplified stat - could be enhanced with more metrics
-      stats.put(type, cache.getCacheSize());
+    schemaCaches.forEach((schema, caches) -> {
+      caches.forEach((type, cache) -> {
+        // This is a simplified stat - could be enhanced with more metrics
+        String key = schema + ":" + type;
+        stats.put(key, cache.getCacheSize());
+      });
     });
     return stats;
   }

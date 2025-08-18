@@ -40,20 +40,15 @@ public class SharePointListSchemaFactory implements SchemaFactory {
       throw new RuntimeException("siteUrl is required");
     }
 
-    // Extract all auth-related config
-    Map<String, Object> authConfig = new java.util.HashMap<>();
-    authConfig.put("authType", operand.get("authType"));
-    authConfig.put("clientId", operand.get("clientId"));
-    authConfig.put("clientSecret", operand.get("clientSecret"));
-    authConfig.put("tenantId", operand.get("tenantId"));
-    authConfig.put("username", operand.get("username"));
-    authConfig.put("password", operand.get("password"));
-    authConfig.put("certificatePath", operand.get("certificatePath"));
-    authConfig.put("certificatePassword", operand.get("certificatePassword"));
-    authConfig.put("thumbprint", operand.get("thumbprint"));
+    // Pass the entire operand map to support all auth patterns
+    // This includes Phase 1-3 auth options and API selection flags
+    Map<String, Object> config = new java.util.HashMap<>(operand);
+    
+    // Ensure siteUrl is in the config
+    config.put("siteUrl", siteUrl);
 
-    // Create the main SharePoint schema
-    SharePointListSchema sharePointSchema = new SharePointListSchema(siteUrl, authConfig);
+    // Create the main SharePoint schema with full config
+    SharePointListSchema sharePointSchema = new SharePointListSchema(siteUrl, config);
 
     // Add the metadata schemas as top-level schemas (not sub-schemas)
     SharePointMetadataSchema metadataSchema = new SharePointMetadataSchema(sharePointSchema, null, name);

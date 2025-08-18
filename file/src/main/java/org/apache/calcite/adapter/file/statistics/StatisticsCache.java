@@ -65,15 +65,53 @@ public class StatisticsCache {
       serializeColumnStatistics(entry.getValue(), columnNode);
     }
     
-    // Write to file atomically
-    File tempFile = new File(file.getParentFile(), file.getName() + ".tmp");
-    MAPPER.writerWithDefaultPrettyPrinter().writeValue(tempFile, root);
-    
-    if (!tempFile.renameTo(file)) {
-      throw new IOException("Failed to atomically move statistics file");
+    // Ensure parent directory exists
+    File parentDir = file.getParentFile();
+    if (parentDir != null && !parentDir.exists()) {
+      parentDir.mkdirs();
     }
     
-    LOGGER.debug("Saved statistics to {}", file);
+    // Write to file atomically with retry logic
+    File tempFile = new File(parentDir, file.getName() + ".tmp." + System.nanoTime());
+    try {
+      MAPPER.writerWithDefaultPrettyPrinter().writeValue(tempFile, root);
+      
+      // Attempt atomic move with retries
+      IOException lastException = null;
+      for (int attempt = 0; attempt < 3; attempt++) {
+        try {
+          if (moveFileAtomically(tempFile, file)) {
+            LOGGER.debug("Saved statistics to {} (attempt {})", file, attempt + 1);
+            return;
+          }
+        } catch (IOException e) {
+          lastException = e;
+          if (attempt < 2) {
+            try {
+              Thread.sleep(10 + attempt * 10); // Short backoff
+            } catch (InterruptedException ie) {
+              Thread.currentThread().interrupt();
+              throw new IOException("Interrupted while saving statistics", ie);
+            }
+          }
+        }
+      }
+      
+      // If all attempts failed, log warning but don't fail the operation
+      LOGGER.warn("Failed to atomically save statistics to {} after 3 attempts: {}", 
+                  file, lastException != null ? lastException.getMessage() : "Unknown error");
+    } catch (IOException e) {
+      LOGGER.warn("Failed to write statistics to temporary file {}: {}", tempFile, e.getMessage());
+    }
+    
+    // Note: We attempt to clean up temporary files but ignore failures to avoid contention issues
+    try {
+      if (tempFile.exists() && !tempFile.delete()) {
+        LOGGER.debug("Could not delete temporary statistics file: {}", tempFile);
+      }
+    } catch (Exception e) {
+      LOGGER.debug("Exception during temp file cleanup (ignored): {}", e.getMessage());
+    }
   }
 
   /**
@@ -272,6 +310,35 @@ public class StatisticsCache {
   }
   
   /**
+   * Atomically move a file from source to destination.
+   * This method handles cross-filesystem moves and concurrent access.
+   */
+  private static boolean moveFileAtomically(File source, File destination) throws IOException {
+    // First try direct rename (works within same filesystem)
+    if (source.renameTo(destination)) {
+      return true;
+    }
+    
+    // If rename failed, try copy and delete (for cross-filesystem moves)
+    try {
+      java.nio.file.Files.copy(source.toPath(), destination.toPath(), 
+                               java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+                               java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+      return true;
+    } catch (java.nio.file.AtomicMoveNotSupportedException e) {
+      // Atomic move not supported, try regular copy
+      try {
+        java.nio.file.Files.copy(source.toPath(), destination.toPath(),
+                                 java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        return true;
+      } catch (IOException copyException) {
+        // Re-throw the original move exception
+        throw new IOException("Failed to move file from " + source + " to " + destination, copyException);
+      }
+    }
+  }
+  
+  /**
    * Save a single HLL sketch to a file.
    */
   public static void saveHLLSketch(HyperLogLogSketch sketch, File file) throws IOException {
@@ -285,15 +352,53 @@ public class StatisticsCache {
     String bucketsBase64 = java.util.Base64.getEncoder().encodeToString(buckets);
     root.put("buckets", bucketsBase64);
     
-    // Write to file atomically
-    File tempFile = new File(file.getParentFile(), file.getName() + ".tmp");
-    MAPPER.writeValue(tempFile, root);
-    
-    if (!tempFile.renameTo(file)) {
-      throw new IOException("Failed to atomically move HLL sketch file");
+    // Ensure parent directory exists
+    File parentDir = file.getParentFile();
+    if (parentDir != null && !parentDir.exists()) {
+      parentDir.mkdirs();
     }
     
-    LOGGER.debug("Saved HLL sketch to {}", file);
+    // Write to file atomically with retry logic  
+    File tempFile = new File(parentDir, file.getName() + ".tmp." + System.nanoTime());
+    try {
+      MAPPER.writeValue(tempFile, root);
+      
+      // Attempt atomic move with retries
+      IOException lastException = null;
+      for (int attempt = 0; attempt < 3; attempt++) {
+        try {
+          if (moveFileAtomically(tempFile, file)) {
+            LOGGER.debug("Saved HLL sketch to {} (attempt {})", file, attempt + 1);
+            return;
+          }
+        } catch (IOException e) {
+          lastException = e;
+          if (attempt < 2) {
+            try {
+              Thread.sleep(10 + attempt * 10); // Short backoff
+            } catch (InterruptedException ie) {
+              Thread.currentThread().interrupt();
+              throw new IOException("Interrupted while saving HLL sketch", ie);
+            }
+          }
+        }
+      }
+      
+      // If all attempts failed, log warning but don't fail the operation
+      LOGGER.warn("Failed to atomically save HLL sketch to {} after 3 attempts: {}", 
+                  file, lastException != null ? lastException.getMessage() : "Unknown error");
+    } catch (IOException e) {
+      LOGGER.warn("Failed to write HLL sketch to temporary file {}: {}", tempFile, e.getMessage());
+    }
+    
+    // Note: We attempt to clean up temporary files but ignore failures to avoid contention issues  
+    try {
+      if (tempFile.exists() && !tempFile.delete()) {
+        LOGGER.debug("Could not delete temporary HLL sketch file: {}", tempFile);
+      }
+    } catch (Exception e) {
+      LOGGER.debug("Exception during temp file cleanup (ignored): {}", e.getMessage());
+    }
   }
   
   /**

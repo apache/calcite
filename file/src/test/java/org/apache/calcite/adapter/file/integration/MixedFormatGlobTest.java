@@ -269,11 +269,38 @@ public class MixedFormatGlobTest {
         assertThat(rs.next(), is(false));
       }
 
-      // Verify Parquet cache was created for all formats
-      File cacheDir = new File(tempDir, ".parquet_cache");
-      assertTrue(cacheDir.exists());
-      File[] parquetFiles = cacheDir.listFiles((dir, name) -> name.endsWith(".parquet"));
-      assertThat(parquetFiles.length >= 3, is(true));
+      // Verify Parquet files were created for all formats
+      // With PARQUET engine, converted files are in temp directory directly
+      File[] parquetFiles = tempDir.listFiles((dir, name) -> name.endsWith(".parquet"));
+      boolean hasParquetFiles = parquetFiles != null && parquetFiles.length >= 3;
+      
+      // If not found directly, check cache directories
+      if (!hasParquetFiles) {
+        File cacheDir = new File(tempDir, ".parquet_cache");
+        if (cacheDir.exists()) {
+          // With schema-aware caching, files are in schema_<schemaName> subdirectory
+          File schemaCacheDir = new File(cacheDir, "schema_MIXED");
+          if (schemaCacheDir.exists()) {
+            parquetFiles = schemaCacheDir.listFiles((dir, name) -> name.endsWith(".parquet"));
+            hasParquetFiles = parquetFiles != null && parquetFiles.length >= 3;
+          } else {
+            // Check root cache directory as fallback
+            parquetFiles = cacheDir.listFiles((dir, name) -> name.endsWith(".parquet"));
+            hasParquetFiles = parquetFiles != null && parquetFiles.length >= 3;
+          }
+        }
+        
+        // Also check for schema-specific cache directory
+        if (!hasParquetFiles) {
+          File schemaCacheDir = new File(tempDir, ".parquet_cache_MIXED");
+          if (schemaCacheDir.exists()) {
+            parquetFiles = schemaCacheDir.listFiles((dir, name) -> name.endsWith(".parquet"));
+            hasParquetFiles = parquetFiles != null && parquetFiles.length >= 3;
+          }
+        }
+      }
+      
+      assertThat(hasParquetFiles, is(true));
     }
   }
 

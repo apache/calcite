@@ -178,10 +178,19 @@ public class ArrowFileTest {
         assertEquals(3L, rs.getLong(1));
       }
 
-      // Check that Parquet cache was created
+      // Check that Parquet cache was created - check in schema-specific subdirectory
       File cacheDir = new File(tempDir, "test_cache_arrow");
       assertTrue(cacheDir.exists());
-      File[] parquetFiles = cacheDir.listFiles((dir, name) -> name.endsWith(".parquet"));
+      
+      // With schema-aware caching, files are in schema_<schemaName> subdirectory
+      File schemaCacheDir = new File(cacheDir, "schema_arrow");
+      File[] parquetFiles = null;
+      if (schemaCacheDir.exists()) {
+        parquetFiles = schemaCacheDir.listFiles((dir, name) -> name.endsWith(".parquet"));
+      } else {
+        // Check root directory as fallback
+        parquetFiles = cacheDir.listFiles((dir, name) -> name.endsWith(".parquet"));
+      }
       assertThat(parquetFiles, arrayWithSize(1));
     }
   }

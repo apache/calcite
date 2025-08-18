@@ -80,14 +80,22 @@ public class MaterializedViewQueryTest {
           "COUNT(*) as transaction_count, " +
           "SUM(\"quantity\") as total_quantity, " +
           "SUM(\"quantity\" * \"price\") as total_revenue " +
-          "FROM \"sales\" " +
+          "FROM sales " +
           "GROUP BY \"date\"");
       materializations.add(dailySalesMV);
 
       // Configure file schema with materializations
       Map<String, Object> operand = new HashMap<>();
       operand.put("directory", tempDir.toString());
-      operand.put("executionEngine", "parquet");
+      
+      // Use global engine configuration if set, otherwise default to parquet
+      String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
+      if (engineType != null && !engineType.isEmpty()) {
+        operand.put("executionEngine", engineType.toLowerCase(Locale.ROOT));
+      } else {
+        operand.put("executionEngine", "parquet");
+      }
+      
       operand.put("materializations", materializations);
 
       System.out.println("\n1. Creating schema with materialized view 'daily_summary'");
@@ -98,7 +106,7 @@ public class MaterializedViewQueryTest {
         // ATTEMPT 1: Query the materialized view by its view name
         System.out.println("\n2. Attempting to query materialized view 'daily_summary':");
         try {
-          ResultSet rs = stmt.executeQuery("SELECT * FROM MV_TEST.\"daily_summary\"");
+          ResultSet rs = stmt.executeQuery("SELECT * FROM \"MV_TEST\".daily_summary");
           System.out.println("   SUCCESS - Materialized view is queryable!");
           System.out.println("   Date       | Count | Quantity | Revenue");
           System.out.println("   -----------|-------|----------|--------");
@@ -116,7 +124,7 @@ public class MaterializedViewQueryTest {
         // ATTEMPT 2: Query by the table name
         System.out.println("\n3. Attempting to query by table name 'daily_summary_mv':");
         try {
-          ResultSet rs = stmt.executeQuery("SELECT * FROM MV_TEST.\"daily_summary_mv\"");
+          ResultSet rs = stmt.executeQuery("SELECT * FROM \"MV_TEST\".daily_summary_mv");
           System.out.println("   SUCCESS - Materialized view table is queryable!");
           while (rs.next()) {
             System.out.printf(Locale.ROOT, "   Date: %s, Count: %d%n",
@@ -155,7 +163,7 @@ public class MaterializedViewQueryTest {
             "COUNT(*) as transaction_count, " +
             "SUM(\"quantity\") as total_quantity, " +
             "SUM(\"quantity\" * \"price\") as total_revenue " +
-            "FROM MV_TEST.\"sales\" " +
+            "FROM \"MV_TEST\".sales " +
             "GROUP BY \"date\" " +
             "ORDER BY \"date\"");
 

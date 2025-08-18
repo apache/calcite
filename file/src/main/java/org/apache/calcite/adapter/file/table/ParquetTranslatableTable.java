@@ -87,18 +87,34 @@ public class ParquetTranslatableTable extends AbstractTable implements Translata
   private RelDataType rowType;
   private final StatisticsBuilder statisticsBuilder;
   private volatile TableStatistics cachedStatistics;
+  private final String schemaName;
 
-  public ParquetTranslatableTable(File parquetFile) {
+  /**
+   * Creates a Parquet table.
+   * @param parquetFile the Parquet file
+   * @param schemaName the schema name (required for cache directory resolution)
+   */
+  public ParquetTranslatableTable(File parquetFile, String schemaName) {
+    assert schemaName != null : "Schema name cannot be null for ParquetTranslatableTable";
     this.parquetFile = parquetFile;
     this.source = new DirectFileSource(parquetFile);
+    this.schemaName = schemaName;
     this.statisticsBuilder = new StatisticsBuilder();
     // Eagerly generate statistics including HLL sketches for native Parquet files
     initializeStatistics();
   }
 
-  public ParquetTranslatableTable(File parquetFile, Source source) {
+  /**
+   * Creates a Parquet table with a custom source.
+   * @param parquetFile the Parquet file
+   * @param source the source
+   * @param schemaName the schema name (required for cache directory resolution)
+   */
+  public ParquetTranslatableTable(File parquetFile, Source source, String schemaName) {
+    assert schemaName != null : "Schema name cannot be null for ParquetTranslatableTable";
     this.parquetFile = parquetFile;
     this.source = source;
+    this.schemaName = schemaName;
     this.statisticsBuilder = new StatisticsBuilder();
     // Eagerly generate statistics including HLL sketches for native Parquet files
     initializeStatistics();
@@ -112,7 +128,7 @@ public class ParquetTranslatableTable extends AbstractTable implements Translata
     // Generate statistics in a background thread to avoid blocking table creation
     new Thread(() -> {
       try {
-        File cacheDir = ParquetConversionUtil.getParquetCacheDir(parquetFile.getParentFile());
+        File cacheDir = ParquetConversionUtil.getParquetCacheDir(parquetFile.getParentFile(), schemaName);
         cachedStatistics = statisticsBuilder.buildStatistics(source, cacheDir);
         LOGGER.info("Statistics initialized for {}: {} rows, {} columns with HLL", 
                    parquetFile.getName(), 
@@ -151,9 +167,9 @@ public class ParquetTranslatableTable extends AbstractTable implements Translata
       List<Type> parquetFields = messageType.getFields();
 
       for (Type field : parquetFields) {
-        // Unsanitize the field name to get back the original column name
-        String originalName = ParquetConversionUtil.unsanitizeAvroName(field.getName());
-        names.add(originalName);
+        // Use the field name directly - no sanitization in direct conversion
+        String fieldName = field.getName();
+        names.add(fieldName);
 
         // Handle DECIMAL type specially to preserve precision and scale
         LogicalTypeAnnotation logicalType = field.getLogicalTypeAnnotation();
@@ -293,7 +309,7 @@ public class ParquetTranslatableTable extends AbstractTable implements Translata
     // This could be enhanced to use a thread pool
     new Thread(() -> {
       try {
-        File cacheDir = ParquetConversionUtil.getParquetCacheDir(parquetFile.getParentFile());
+        File cacheDir = ParquetConversionUtil.getParquetCacheDir(parquetFile.getParentFile(), schemaName);
         cachedStatistics = statisticsBuilder.buildStatistics(source, cacheDir);
       } catch (Exception e) {
         // Log error but don't fail the query

@@ -94,7 +94,7 @@ import static org.junit.jupiter.api.Assertions.*;
     File testParquet = createHighCardinalityParquetFile();
     
     // Create ParquetTranslatableTable which will eagerly generate statistics
-    ParquetTranslatableTable table = new ParquetTranslatableTable(testParquet);
+    ParquetTranslatableTable table = new ParquetTranslatableTable(testParquet, "TEST");
     
     // Wait for statistics to be generated (with timeout)
     TableStatistics stats = null;
@@ -158,7 +158,7 @@ import static org.junit.jupiter.api.Assertions.*;
   @DisplayName("ParquetTranslatableTable should implement StatisticsProvider with HLL")
   void testParquetTableStatisticsProvider() throws Exception {
     File testParquet = createHighCardinalityParquetFile();
-    ParquetTranslatableTable table = new ParquetTranslatableTable(testParquet);
+    ParquetTranslatableTable table = new ParquetTranslatableTable(testParquet, "TEST");
     
     // Verify it implements StatisticsProvider
     assertTrue(table instanceof StatisticsProvider, 

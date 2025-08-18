@@ -25,3 +25,4 @@ s3:/
 
 # Compiled Java files
 *.class
+*.apericio_stats

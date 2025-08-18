@@ -110,6 +110,8 @@ public class FileRowConverter {
           for (Map<String, Object> fieldConfig : this.fieldConfigs) {
 
             String thName = (String) fieldConfig.get("th");
+            // "th" matches against actual HTML table header text (derived from file)
+            // Apply casing transformation to it
             String name = applyCasing(thName, columnNameCasing);
             String newName;
             FileFieldType type = null;
@@ -119,7 +121,8 @@ public class FileRowConverter {
               throw new Exception("bad source column name: '" + thName + "'");
             }
             if ((newName = (String) fieldConfig.get("name")) != null) {
-              name = applyCasing(newName, columnNameCasing);
+              // Explicit column name from config - use as-is without casing transformation
+              name = newName;
             }
             if (colNames.contains(name)) {
               throw new Exception("duplicate column name: '" + name + "'");
@@ -410,19 +413,21 @@ public class FileRowConverter {
         return new java.sql.Time(timeParsed.getTime());
 
       case TIMESTAMP:
-        // Parse timestamp with local timezone (TZ naive)
-        // Check for ISO format first for consistent parsing
+        // Parse timestamp without timezone as UTC (TZ naive)
+        // For TIMESTAMP WITHOUT TIME ZONE, values should be interpreted as UTC
+        // to ensure consistent behavior across different execution engines
         try {
           if (string.matches("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}")) {
-            // Parse ISO format timestamp as local time
+            // Parse ISO format timestamp as UTC
             java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-            sdf.setTimeZone(TimeZone.getDefault());
+            sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
             return new java.sql.Timestamp(sdf.parse(string).getTime());
           }
         } catch (Exception e) {
-          // Fall through to Natty parser
+          // Fall through to Natty parser with UTC
         }
-        return new java.sql.Timestamp(parseDate(string).getTime());
+        // Parse with UTC timezone for consistency
+        return new java.sql.Timestamp(parseDate(string, TimeZone.getTimeZone("UTC")).getTime());
 
       case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
         // Parse the timestamp with local timezone

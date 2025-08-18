@@ -204,6 +204,28 @@ public class SharePointListTable extends AbstractQueryableTable
       }
     }
 
+    @Override public Object[] set(int index, Object[] element) {
+      if (element == null || element.length == 0 || element[0] == null) {
+        throw new IllegalArgumentException("Cannot update row without ID");
+      }
+
+      try {
+        String itemId = element[0].toString();
+        
+        // Convert row to fields map, excluding the ID
+        Map<String, Object> fields = convertRowToFieldsForUpdate(element);
+        
+        // Update via SharePoint API
+        client.updateListItem(metadata.getListId(), itemId, fields);
+        
+        // Update local collection
+        return super.set(index, element);
+      } catch (Exception e) {
+        throw new RuntimeException("Failed to update row in SharePoint list: " +
+            e.getMessage(), e);
+      }
+    }
+
     /**
      * Converts a row array to SharePoint field map.
      */
@@ -220,6 +242,27 @@ public class SharePointListTable extends AbstractQueryableTable
         if (value != null) {
           fields.put(column.getInternalName(), value);
         }
+      }
+
+      return fields;
+    }
+
+    /**
+     * Converts a row array to SharePoint field map for updates.
+     * Similar to convertRowToFields but handles updates specifically.
+     */
+    private Map<String, Object> convertRowToFieldsForUpdate(Object[] row) {
+      Map<String, Object> fields = new LinkedHashMap<>();
+
+      // Skip the ID field (index 0) - we don't update the ID
+      List<SharePointColumn> columns = metadata.getColumns();
+
+      for (int i = 0; i < columns.size() && i + 1 < row.length; i++) {
+        SharePointColumn column = columns.get(i);
+        Object value = row[i + 1]; // +1 to skip ID column
+
+        // For updates, include all fields (even nulls might be intentional)
+        fields.put(column.getInternalName(), value);
       }
 
       return fields;

@@ -138,8 +138,10 @@ public class ParquetAutoConversionTest {
         // Verify cache directory now exists
         assertTrue(cacheDir.exists(), "Cache directory should exist after conversion");
 
-        // Verify Parquet files were created
-        File customersParquet = new File(cacheDir, "customers.parquet");
+        // Verify Parquet files were created in schema-specific subdirectory
+        File schemaCacheDir = new File(cacheDir, "schema_parquet_convert");
+        assertTrue(schemaCacheDir.exists(), "Schema-specific cache directory should exist");
+        File customersParquet = new File(schemaCacheDir, "customers.parquet");
         assertTrue(customersParquet.exists(), "Customers Parquet file should exist");
         System.out.println("\n   ✓ CSV file was converted to Parquet: " + customersParquet.getName());
 
@@ -159,7 +161,7 @@ public class ParquetAutoConversionTest {
         }
         assertEquals(2, count2, "Should have 2 shipped orders");
 
-        File ordersParquet = new File(cacheDir, "orders.parquet");
+        File ordersParquet = new File(schemaCacheDir, "orders.parquet");
         assertTrue(ordersParquet.exists(), "Orders Parquet file should exist");
         System.out.println("\n   ✓ JSON file was converted to Parquet: " + ordersParquet.getName());
 
@@ -230,7 +232,9 @@ public class ParquetAutoConversionTest {
       }
       
       // Verify no cache file was created due to permissions
-      File expectedCache = new File(cacheDir, "data.parquet");
+      File schemaCacheDir = new File(cacheDir, "schema_READONLY_TEST");
+      // The schema directory might be created but the cache file should not exist
+      File expectedCache = new File(schemaCacheDir, "data.parquet");
       assertFalse(expectedCache.exists(), "Cache file should not exist in read-only directory");
       
       System.out.println("✓ System handles cache creation failure gracefully");
@@ -281,7 +285,9 @@ public class ParquetAutoConversionTest {
       }
     }
 
-    File cachedParquet = new File(cacheDir, "inventory.parquet");
+    File schemaCacheDir = new File(cacheDir, "schema_INVENTORY1");
+    assertTrue(schemaCacheDir.exists(), "Schema-specific cache directory should exist");
+    File cachedParquet = new File(schemaCacheDir, "inventory.parquet");
     assertTrue(cachedParquet.exists(), "Cached Parquet file should exist");
     long cacheTime1 = cachedParquet.lastModified();
     System.out.println("1. Initial cache created with 2 items");
@@ -316,11 +322,11 @@ public class ParquetAutoConversionTest {
       // Use same cache directory to test invalidation
       operand.put("parquetCacheDirectory", cacheDir.getAbsolutePath());
 
-      rootSchema.add("INVENTORY2", FileSchemaFactory.INSTANCE.create(rootSchema, "INVENTORY2", operand));
+      rootSchema.add("INVENTORY1", FileSchemaFactory.INSTANCE.create(rootSchema, "INVENTORY1", operand));
 
       try (Statement stmt = conn2.createStatement()) {
         // First, let's verify what's in the table
-        ResultSet rs = stmt.executeQuery("SELECT * FROM \"INVENTORY2\".\"inventory\" ORDER BY \"item_id\"");
+        ResultSet rs = stmt.executeQuery("SELECT * FROM \"INVENTORY1\".\"inventory\" ORDER BY \"item_id\"");
         int itemCount = 0;
         while (rs.next()) {
           itemCount++;
@@ -369,18 +375,22 @@ public class ParquetAutoConversionTest {
       operand.put("executionEngine", "parquet");
       // Use unique cache directory for test isolation
       operand.put("parquetCacheDirectory", cacheDir.getAbsolutePath());
+      // Enable refresh to use RefreshableParquetCacheTable which handles cache invalidation
+      operand.put("refreshInterval", "PT1S"); // 1 second refresh interval
 
-      rootSchema.add("JSON1", FileSchemaFactory.INSTANCE.create(rootSchema, "JSON1", operand));
+      rootSchema.add("JSON_CACHE_TEST", FileSchemaFactory.INSTANCE.create(rootSchema, "JSON_CACHE_TEST", operand));
 
       try (Statement stmt = conn1.createStatement();
-           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as cnt FROM \"JSON1\".\"cache_invalidation_test\"")) {
+           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as cnt FROM \"JSON_CACHE_TEST\".\"cache_invalidation_test\"")) {
         rs.next();
         int actualCount = rs.getInt("cnt");
         assertEquals(2, actualCount, "Should see 2 records initially but got " + actualCount);
       }
     }
 
-    File cachedParquet = new File(cacheDir, "cache_invalidation_test.parquet");
+    File schemaCacheDir = new File(cacheDir, "schema_JSON_CACHE_TEST");
+    assertTrue(schemaCacheDir.exists(), "Schema-specific cache directory should exist");
+    File cachedParquet = new File(schemaCacheDir, "cache_invalidation_test.parquet");
     assertTrue(cachedParquet.exists(), "Cached Parquet file should exist");
     long cacheTime1 = cachedParquet.lastModified();
     System.out.println("1. Initial cache created with 2 records");
@@ -399,8 +409,14 @@ public class ParquetAutoConversionTest {
     // Verify the file was updated
     String fileContent = new String(java.nio.file.Files.readAllBytes(jsonFile.toPath()), StandardCharsets.UTF_8);
     assertTrue(fileContent.contains("Charlie"), "JSON file should contain new records");
+    
+    System.out.println("JSON file timestamp after update: " + jsonFile.lastModified());
+    System.out.println("Cache file timestamp before query: " + cachedParquet.lastModified());
+    System.out.println("Time difference: " + (jsonFile.lastModified() - cachedParquet.lastModified()));
+    System.out.println("Needs conversion (>1000): " + (jsonFile.lastModified() > (cachedParquet.lastModified() + 1000)));
 
-    Thread.sleep(100);
+    // Wait longer to ensure cache invalidation detection
+    Thread.sleep(1000);
 
     // Second query with updated file - should regenerate cache
     try (Connection conn2 = DriverManager.getConnection("jdbc:calcite:lex=ORACLE;unquotedCasing=TO_LOWER");
@@ -412,13 +428,26 @@ public class ParquetAutoConversionTest {
       operand.put("executionEngine", "parquet");
       // Use same cache directory to test invalidation
       operand.put("parquetCacheDirectory", cacheDir.getAbsolutePath());
+      // Enable refresh to use RefreshableParquetCacheTable which handles cache invalidation
+      operand.put("refreshInterval", "PT1S"); // 1 second refresh interval
 
-      rootSchema.add("JSON2", FileSchemaFactory.INSTANCE.create(rootSchema, "JSON2", operand));
+      rootSchema.add("JSON_CACHE_TEST", FileSchemaFactory.INSTANCE.create(rootSchema, "JSON_CACHE_TEST", operand));
 
       try (Statement stmt = conn2.createStatement();
-           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as cnt FROM \"JSON2\".\"cache_invalidation_test\"")) {
+           ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as cnt FROM \"JSON_CACHE_TEST\".\"cache_invalidation_test\"")) {
         rs.next();
-        assertEquals(4, rs.getInt("cnt"), "Should see 4 records after update");
+        int actualCount = rs.getInt("cnt");
+        System.out.println("Query returned " + actualCount + " records");
+        
+        // Get updated cache file timestamp
+        File updatedCache = new File(schemaCacheDir, "cache_invalidation_test.parquet");
+        if (updatedCache.exists()) {
+          System.out.println("Updated cache exists with timestamp: " + updatedCache.lastModified());
+        } else {
+          System.out.println("No cache file found after query");
+        }
+        
+        assertEquals(4, actualCount, "Should see 4 records after update");
       }
     }
 

@@ -121,7 +121,8 @@ public class IcebergTimeRangeTest {
         dataFiles, 
         "snapshot_time",
         new org.apache.calcite.adapter.file.execution.ExecutionEngineConfig(),
-        ordersTablePath
+        ordersTablePath,
+        "TEST"
     );
     
     // Test that we can get the schema

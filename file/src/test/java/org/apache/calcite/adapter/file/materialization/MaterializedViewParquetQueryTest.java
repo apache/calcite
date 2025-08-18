@@ -74,10 +74,17 @@ public class MaterializedViewParquetQueryTest {
     // Create .materialized_views directory
     File mvDir = new File(tempDir.toFile(), ".materialized_views");
     mvDir.mkdirs();
+    
+    // Also create schema-specific subdirectory for schema-aware caching
+    File schemaMvDir = new File(mvDir, "schema_parquet_mv_test");
+    schemaMvDir.mkdirs();
 
     // For this test, we'll create a CSV file that represents the materialized view
     // In a real implementation, this would be a Parquet file created by executing the MV SQL
     File mvCsvFile = new File(mvDir, "daily_summary_mv.csv");
+    
+    // Also create in schema-specific directory
+    File schemaMvCsvFile = new File(schemaMvDir, "daily_summary_mv.csv");
 
     try (FileWriter writer = new FileWriter(mvCsvFile, StandardCharsets.UTF_8)) {
       // Write the aggregated data (simulating MV SQL execution results)
@@ -86,8 +93,17 @@ public class MaterializedViewParquetQueryTest {
       writer.write("2024-01-02,2,23,982.50\n");
       writer.write("2024-01-03,2,32,1110.00\n");
     }
+    
+    // Also write to schema-specific location
+    try (FileWriter writer = new FileWriter(schemaMvCsvFile, StandardCharsets.UTF_8)) {
+      writer.write("date:string,transaction_count:long,total_quantity:long,total_revenue:double\n");
+      writer.write("2024-01-01,2,15,505.00\n");
+      writer.write("2024-01-02,2,23,982.50\n");
+      writer.write("2024-01-03,2,32,1110.00\n");
+    }
 
     System.out.println("Created pre-materialized CSV file (simulating Parquet): " + mvCsvFile.getAbsolutePath());
+    System.out.println("Also created in schema directory: " + schemaMvCsvFile.getAbsolutePath());
     System.out.println("NOTE: In a real implementation, this would be a .parquet file");
   }
 

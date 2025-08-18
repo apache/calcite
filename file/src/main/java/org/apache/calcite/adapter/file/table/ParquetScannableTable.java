@@ -98,11 +98,10 @@ public class ParquetScannableTable extends AbstractTable implements ScannableTab
 
       for (Type field : parquetFields) {
         SqlTypeName sqlType = convertParquetTypeToSql(field);
-        // Unsanitize the field name to get back the original column name
-        String originalName = ParquetConversionUtil.unsanitizeAvroName(field.getName());
+        // Use the field name directly - no sanitization in direct conversion
+        String fieldName = field.getName();
 
-
-        names.add(originalName);
+        names.add(fieldName);
         // All Parquet fields should be nullable
         types.add(typeFactory.createTypeWithNullability(
             typeFactory.createSqlType(sqlType), true));

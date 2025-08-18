@@ -145,21 +145,21 @@ public class FileAdapterTest {
 
   /** Reads from a local file and checks the result. */
   @Test void testFileSelect() {
-    final String sql = "select \"h1\" from \"TEST\".\"t1\" where \"h0\" = 'R1C0'";
+    final String sql = "select \"h1\" from \"TEST\".\"T1\" where \"h0\" = 'R1C0'";
     sql("testModel", sql).returns("h1=R1C1").ok();
   }
 
   /** Reads from a local file without table headers &lt;TH&gt; and checks the
    * result. */
   @Test void testNoThSelect() {
-    final String sql = "select \"col1\" from \"TEST\".\"t1_no_th\" where \"col0\" like 'R0%'";
+    final String sql = "select \"col1\" from \"TEST\".\"T1_NO_TH\" where \"col0\" like 'R0%'";
     sql("testModel", sql).returns("col1=R0C1").ok();
   }
 
   /** Reads from a local file - finds larger table even without &lt;TH&gt;
    * elements. */
   @Test void testFindBiggerNoTh() {
-    final String sql = "select \"col4\" from \"TEST\".\"tablex2\" where \"col0\" like 'R1%'";
+    final String sql = "select \"col4\" from \"TEST\".\"TABLEX2\" where \"col0\" like 'R1%'";
     sql("testModel", sql).returns("col4=R1C4").ok();
   }
 
@@ -172,7 +172,7 @@ public class FileAdapterTest {
 
   /** Reads the EMPS table. */
   @Test void testSalesEmps() {
-    final String sql = "select \"empno\", \"name\", \"deptno\" from \"SALES\".\"emps\"";
+    final String sql = "select \"empno\", \"name\", \"deptno\" from \"SALES\".\"EMPS\"";
     sql("SALES", sql)
         .returns("empno=100; name=Fred; deptno=30",
             "empno=110; name=Eric; deptno=20",
@@ -184,7 +184,7 @@ public class FileAdapterTest {
 
   /** Reads the DEPTS table. */
   @Test void testSalesDepts() {
-    final String sql = "select * from \"SALES\".\"depts\"";
+    final String sql = "select * from \"SALES\".\"DEPTS\"";
     sql("SALES", sql)
         .returns("deptno=10; name=Sales",
             "deptno=20; name=Marketing",

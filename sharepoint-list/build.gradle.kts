@@ -37,6 +37,7 @@ dependencies {
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.11.5")
 
     testImplementation(project(":testkit"))
+    testImplementation(project(":file"))
     annotationProcessor("org.immutables:value")
     compileOnly("org.immutables:value-annotations")
     compileOnly("com.google.code.findbugs:jsr305")

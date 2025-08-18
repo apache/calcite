@@ -58,6 +58,7 @@ public class IcebergTimeRangeTable extends AbstractTable implements ScannableTab
   private final String snapshotColumnName;
   private final ExecutionEngineConfig engineConfig;
   private final String tablePath;
+  private final String schemaName;
   private RelDataType rowType;
 
   /**
@@ -67,15 +68,19 @@ public class IcebergTimeRangeTable extends AbstractTable implements ScannableTab
    * @param snapshotColumnName Name of the snapshot timestamp column
    * @param engineConfig Execution engine configuration
    * @param tablePath Path to the Iceberg table (for schema)
+   * @param schemaName The schema name (required for cache directory resolution)
    */
   public IcebergTimeRangeTable(List<IcebergTimeRangeResolver.IcebergDataFile> dataFiles, 
                               String snapshotColumnName,
                               ExecutionEngineConfig engineConfig,
-                              String tablePath) {
+                              String tablePath,
+                              String schemaName) {
+    assert schemaName != null : "Schema name cannot be null for IcebergTimeRangeTable";
     this.dataFiles = dataFiles;
     this.snapshotColumnName = snapshotColumnName;
     this.engineConfig = engineConfig;
     this.tablePath = tablePath;
+    this.schemaName = schemaName;
     
     LOGGER.info("Created IcebergTimeRangeTable with {} data files, snapshot column: {}", 
                 dataFiles.size(), snapshotColumnName);
@@ -202,7 +207,7 @@ public class IcebergTimeRangeTable extends AbstractTable implements ScannableTab
       try {
         // Create a ParquetTranslatableTable for this file
         File parquetFile = new File(currentFile.getFilePath());
-        ParquetTranslatableTable parquetTable = new ParquetTranslatableTable(parquetFile);
+        ParquetTranslatableTable parquetTable = new ParquetTranslatableTable(parquetFile, schemaName);
         
         // For now, we'll use a simple approach that reads the file directly
         // In practice, this should integrate with the execution engine configuration
@@ -227,10 +232,9 @@ public class IcebergTimeRangeTable extends AbstractTable implements ScannableTab
     switch (engineConfig.getEngineType()) {
       case PARQUET:
         try {
-          ParquetTranslatableTable parquetTable = new ParquetTranslatableTable(parquetFile);
-          // Since ParquetTranslatableTable is TranslatableTable, not ScannableTable,
-          // we need to create a basic enumerable for now
-          // In a full implementation, this would integrate with the execution engine
+          ParquetTranslatableTable parquetTable = new ParquetTranslatableTable(parquetFile, schemaName);
+          // ParquetTranslatableTable is TranslatableTable, not ScannableTable,
+          // so we create an enumerable directly
           return createBasicParquetEnumerable(parquetFile);
         } catch (Exception e) {
           LOGGER.error("Failed to create Parquet table for: {}", parquetFile, e);

@@ -27,18 +27,26 @@ import java.time.format.DateTimeFormatter;
  *
  * For TIMESTAMP WITHOUT TIME ZONE, values are stored and interpreted as UTC to ensure
  * consistent behavior across different execution engines (linq4j, parquet, duckdb).
+ * 
+ * When accessed via JDBC's getTimestamp(), the driver applies timezone conversion.
+ * To compensate, we adjust the stored value so that after JDBC's conversion,
+ * the original UTC value is preserved.
  */
 public class LocalTimestamp extends Timestamp {
   private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+  private final long originalUtcTime;
 
-  public LocalTimestamp(long time) {
-    super(time);
+  public LocalTimestamp(long utcTime) {
+    // Store the UTC time directly - no timezone adjustments
+    // TIMESTAMP WITHOUT TIME ZONE should preserve the exact millisecond value
+    super(utcTime);
+    this.originalUtcTime = utcTime;
   }
 
   @Override public String toString() {
-    // For timezone-naive timestamps, interpret the stored value as UTC
+    // For timezone-naive timestamps, use the original UTC value for display
     // This ensures consistent behavior across different execution engines
-    Instant instant = Instant.ofEpochMilli(getTime());
+    Instant instant = Instant.ofEpochMilli(originalUtcTime);
     LocalDateTime utcDateTime = LocalDateTime.ofInstant(instant, ZoneId.of("UTC"));
     return FORMATTER.format(utcDateTime);
   }
@@ -47,8 +55,15 @@ public class LocalTimestamp extends Timestamp {
    * Get the UTC string representation (for debugging or TIMESTAMP WITH TIME ZONE).
    */
   public String toUTCString() {
-    Instant instant = Instant.ofEpochMilli(getTime());
+    Instant instant = Instant.ofEpochMilli(originalUtcTime);
     LocalDateTime utcDateTime = LocalDateTime.ofInstant(instant, ZoneId.of("UTC"));
     return FORMATTER.format(utcDateTime);
+  }
+  
+  /**
+   * Get the original UTC time value.
+   */
+  public long getOriginalUtcTime() {
+    return originalUtcTime;
   }
 }

@@ -90,10 +90,34 @@ import java.util.regex.Pattern;
 /**
  * Schema mapped onto a set of URLs / HTML tables. Each table in the schema
  * is an HTML table on a URL.
+ * 
+ * <p><strong>Cache directory behavior:</strong>
+ * <ul>
+ *   <li>Multiple JVM instances can safely share the same cache directory on shared storage
+ *       (e.g., NFS, shared filesystem) - file locking ensures proper synchronization</li>
+ *   <li>This enables horizontal scaling of query processing across multiple servers</li>
+ *   <li>Within a single JVM, using the same schema name with the same cache directory
+ *       across multiple FileSchema instances may cause conflicts</li>
+ * </ul>
  */
 public class FileSchema extends AbstractSchema {
   private static final Logger LOGGER = LoggerFactory.getLogger(FileSchema.class);
   private static final Pattern WHITESPACE_PATTERN = Pattern.compile("\\s+");
+  
+  /**
+   * Gets the table name to use for registration.
+   * If an explicit name is provided, use it as-is.
+   * If the name is derived from a file path, apply casing transformations.
+   */
+  private String getTableName(String explicitName, String derivedName, String casing) {
+    if (explicitName != null) {
+      // Explicit name - use as-is without casing transformation
+      return explicitName;
+    } else {
+      // Derived name - apply casing transformation
+      return applyCasing(derivedName, casing);
+    }
+  }
 
   private final ImmutableList<Map<String, Object>> tables;
   private final @Nullable File baseDirectory;
@@ -112,6 +136,7 @@ public class FileSchema extends AbstractSchema {
   private final @Nullable Boolean flatten;
   private final CsvTypeInferrer.TypeInferenceConfig csvTypeInferenceConfig;
   private final boolean primeCache;
+  // Cache directories use schema name for stable, predictable paths
 
   /**
    * Creates a file schema with all features including storage provider support.
@@ -161,6 +186,7 @@ public class FileSchema extends AbstractSchema {
     this.views = views;
     this.partitionedTables = partitionedTables;
     this.refreshInterval = refreshInterval;
+    LOGGER.info("FileSchema constructor: refreshInterval set to '{}'", refreshInterval);
     this.parentSchema = parentSchema;
     this.name = name;
     this.tableNameCasing = tableNameCasing;
@@ -170,6 +196,9 @@ public class FileSchema extends AbstractSchema {
     this.flatten = flatten;
     this.csvTypeInferenceConfig = CsvTypeInferrer.TypeInferenceConfig.fromMap(csvTypeInference);
     this.primeCache = primeCache;
+    
+    // Schema name is used for cache directory naming to ensure stable, predictable paths
+    LOGGER.debug("FileSchema created with name: {}", name);
 
     // Initialize central metadata directory and storage cache if parquetCacheDirectory is configured
     if (engineConfig.getParquetCacheDirectory() != null) {
@@ -337,6 +366,7 @@ public class FileSchema extends AbstractSchema {
     this.views = views;
     this.partitionedTables = partitionedTables;
     this.refreshInterval = refreshInterval;
+    LOGGER.info("FileSchema constructor: refreshInterval set to '{}'", refreshInterval);
     this.parentSchema = parentSchema;
     this.name = name;
     this.tableNameCasing = tableNameCasing;
@@ -810,7 +840,7 @@ public class FileSchema extends AbstractSchema {
               throw new IllegalStateException("DuckDB engine should use JDBC adapter, not FileSchema");
             }
             // Use standard Parquet table
-            Table table = new ParquetTranslatableTable(new java.io.File(source.path()));
+            Table table = new ParquetTranslatableTable(new java.io.File(source.path()), name);
             builder.put(tableName, table);
           } catch (Exception e) {
             LOGGER.error("Failed to add Parquet table: {}", e.getMessage());
@@ -828,10 +858,10 @@ public class FileSchema extends AbstractSchema {
               // Try to convert Arrow file to Parquet, but fall back to ArrowTable if conversion fails
               try {
                 File cacheDir =
-                    ParquetConversionUtil.getParquetCacheDir(baseDirectory, engineConfig.getParquetCacheDirectory());
+                    ParquetConversionUtil.getParquetCacheDir(baseDirectory, engineConfig.getParquetCacheDirectory(), name);
                 File parquetFile =
                     ParquetConversionUtil.convertToParquet(source, tableName, arrowTable, cacheDir, parentSchema, "FILE");
-                Table table = new ParquetTranslatableTable(parquetFile);
+                Table table = new ParquetTranslatableTable(parquetFile, name);
                 builder.put(tableName, table);
               } catch (Exception conversionException) {
                 LOGGER.warn("Parquet conversion failed for {}, using Arrow table: {}", tableName, conversionException.getMessage());
@@ -858,7 +888,30 @@ public class FileSchema extends AbstractSchema {
       processStorageProviderFiles(builder, tableNameCounts);
     }
 
-    // Process materialized views (only works with Parquet engine)
+    // Process partitioned tables BEFORE views/materialized views
+    if (partitionedTables != null) {
+      processPartitionedTables(builder);
+    }
+
+    // Now process views and materialized views (they must come AFTER tables)
+    // Process views first
+    if (views != null) {
+      for (Map<String, Object> view : views) {
+        String viewName = (String) view.get("name");
+        String sql = (String) view.get("sql");
+
+        if (viewName != null && sql != null) {
+          // For now, just log the view registration
+          // In a full implementation, we would create a proper view table
+          LOGGER.debug("View registered: {}", viewName);
+          // TODO: Implement actual view creation
+          // NOTE: When implementing, use explicit viewName without casing transformation
+          // (same as materialized views)
+        }
+      }
+    }
+
+    // Process materialized views LAST (only works with Parquet engine)
     if (materializations != null
         && engineConfig.getEngineType()
         == ExecutionEngineConfig.ExecutionEngineType.PARQUET) {
@@ -871,7 +924,10 @@ public class FileSchema extends AbstractSchema {
           try {
             File mvParquetFile = null;
             if (baseDirectory != null) {
-              File mvDir = new File(baseDirectory, ".materialized_views");
+              // Use schema-aware cache directory for materialized views
+              File cacheDir = ParquetConversionUtil.getParquetCacheDir(baseDirectory, 
+                  engineConfig.getParquetCacheDirectory(), name);
+              File mvDir = new File(cacheDir, ".materialized_views");
               if (!mvDir.exists()) {
                 mvDir.mkdirs();
               }
@@ -886,33 +942,35 @@ public class FileSchema extends AbstractSchema {
                 }
                 // Use standard Parquet table
                 LOGGER.debug("Using ParquetTranslatableTable to read materialized view");
-                Table mvTable = new ParquetTranslatableTable(mvParquetFile);
-                builder.put(applyCasing(viewName, tableNameCasing), mvTable);
-                LOGGER.debug("Successfully added table for materialized view: {}", viewName);
+                Table mvTable = new ParquetTranslatableTable(mvParquetFile, name);
+                // Register by both view name and table name - use explicit names without casing transformation
+                builder.put(viewName, mvTable);
+                builder.put(tableName, mvTable);
+                LOGGER.debug("Successfully added table for materialized view: {} (also as {})", viewName, tableName);
               } else {
                 // Create a MaterializedViewTable that will execute the SQL when queried
                 // and cache results to Parquet on first access
                 LOGGER.debug("Creating materialized view: {}", viewName);
                 LOGGER.debug("Will materialize to: {}", mvParquetFile.getPath());
 
-                // Create a view using ViewTable
-                String modifiedSql = sql;
-                // Ensure the SQL references tables with proper schema prefix
-                if (!sql.toUpperCase(Locale.ROOT).contains("FROM " + name + ".")) {
-                  // Simple heuristic: replace unqualified table names
-                  modifiedSql =
-                    sql.replace("FROM ", "FROM " + name + ".");
-                }
-
-                final String finalSql = modifiedSql;
+                // Don't modify the SQL - MaterializedViewTable handles schema context
+                // The MaterializedViewTable creates its own connection and registers
+                // the schema with the existing tables, so we don't need schema prefixes
+                final String finalSql = sql;
                 final File finalMvFile = mvParquetFile;
                 final String finalViewName = viewName;
 
                 // Create a MaterializedViewTable that executes SQL on first access
+                // Build a snapshot of current tables for the MV to use
+                final Map<String, Table> currentTables = builder.build();
+                LOGGER.debug("Creating MV '{}' with {} available tables: {}", 
+                    viewName, currentTables.size(), currentTables.keySet());
                 Table mvTable =
                     new MaterializedViewTable(parentSchema, name,
-                        finalViewName, finalSql, finalMvFile, builder.build());
-                builder.put(applyCasing(viewName, tableNameCasing), mvTable);
+                        finalViewName, finalSql, finalMvFile, currentTables);
+                // Register by both view name and table name - use explicit names without casing transformation
+                builder.put(viewName, mvTable);
+                builder.put(tableName, mvTable);
               }
             }
           } catch (Exception e) {
@@ -925,26 +983,6 @@ public class FileSchema extends AbstractSchema {
       LOGGER.error("ERROR: Materialized views are only supported with Parquet execution engine");
       LOGGER.error("Current engine: {}", engineConfig.getEngineType());
       LOGGER.error("To use materialized views, set executionEngine to 'parquet' in your schema configuration");
-    }
-
-    // Process views
-    if (views != null) {
-      for (Map<String, Object> view : views) {
-        String viewName = (String) view.get("name");
-        String sql = (String) view.get("sql");
-
-        if (viewName != null && sql != null) {
-          // For now, just log the view registration
-          // In a full implementation, we would create a proper view table
-          LOGGER.debug("View registered: {}", viewName);
-          // TODO: Implement actual view creation
-        }
-      }
-    }
-
-    // Process partitioned tables
-    if (partitionedTables != null) {
-      processPartitionedTables(builder);
     }
 
     tableCache = builder.build();
@@ -974,7 +1012,8 @@ public class FileSchema extends AbstractSchema {
           : new File(System.getProperty("java.io.tmpdir"), "calcite_glob_cache");
 
       Table globTable = new GlobParquetTable(url, tableName, cacheDir, refreshDuration);
-      builder.put(applyCasing(tableName, tableNameCasing), globTable);
+      // Use explicit table name as-is, without casing transformation
+      builder.put(tableName, globTable);
       return true;
     }
 
@@ -1113,7 +1152,7 @@ public class FileSchema extends AbstractSchema {
     String refreshIntervalStr = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
     Duration refreshInterval = RefreshInterval.parse(refreshIntervalStr);
     boolean hasRefresh = refreshInterval != null;
-    LOGGER.debug("FileSchema.addTable: tableName={}, source={}, refreshIntervalStr={}, hasRefresh={}", 
+    LOGGER.info("FileSchema.addTable: tableName={}, source={}, refreshIntervalStr={}, hasRefresh={}", 
         tableName, source.path(), refreshIntervalStr, hasRefresh);
 
     String path = source.path().toLowerCase(Locale.ROOT);
@@ -1121,17 +1160,17 @@ public class FileSchema extends AbstractSchema {
                           path.endsWith(".json") || path.endsWith(".json.gz");
 
     // Handle refreshable CSV/JSON files with Parquet caching
-    LOGGER.debug("Refresh check: hasRefresh={}, isCSVorJSON={}, engineType={}, baseDirectory!=null={}", 
+    LOGGER.info("Refresh check: hasRefresh={}, isCSVorJSON={}, engineType={}, baseDirectory!=null={}", 
         hasRefresh, isCSVorJSON, engineConfig.getEngineType(), baseDirectory != null);
     
     if (hasRefresh && isCSVorJSON &&
         engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.PARQUET &&
         baseDirectory != null) {
-      LOGGER.debug("CREATING RefreshableParquetCacheTable for: {}", tableName);
+      LOGGER.info("CREATING RefreshableParquetCacheTable for: {}", tableName);
 
       try {
         File cacheDir =
-            ParquetConversionUtil.getParquetCacheDir(baseDirectory, engineConfig.getParquetCacheDirectory());
+            ParquetConversionUtil.getParquetCacheDir(baseDirectory, engineConfig.getParquetCacheDirectory(), name);
         File sourceFile = new File(source.path());
         boolean typeInferenceEnabled = csvTypeInferenceConfig != null && csvTypeInferenceConfig.isEnabled();
         File parquetFile = ParquetConversionUtil.getCachedParquetFile(sourceFile, cacheDir, typeInferenceEnabled);
@@ -1209,7 +1248,7 @@ public class FileSchema extends AbstractSchema {
             if (originalTable != null) {
             // Get cache directory
             File cacheDir =
-                ParquetConversionUtil.getParquetCacheDir(baseDirectory, engineConfig.getParquetCacheDirectory());
+                ParquetConversionUtil.getParquetCacheDir(baseDirectory, engineConfig.getParquetCacheDirectory(), name);
 
             // Convert to Parquet
             File parquetFile =
@@ -1234,7 +1273,7 @@ public class FileSchema extends AbstractSchema {
                   columnNameCasing, null, engineConfig.getEngineType(), parentSchema, name);
             } else {
               // Use standard Parquet table for non-refresh cases
-              parquetTable = new ParquetTranslatableTable(parquetFile);
+              parquetTable = new ParquetTranslatableTable(parquetFile, name);
             }
             
             builder.put(
@@ -1290,19 +1329,19 @@ public class FileSchema extends AbstractSchema {
         }
         final Table jsonTable =
             createEnhancedJsonTable(source, tableName, jsonRefreshInterval, options);
-        String finalTableName = applyCasing(Util.first(tableName, source.path()), tableNameCasing);
+        String finalTableName = getTableName(tableName, source.path(), tableNameCasing);
         LOGGER.debug("Created JSON table of type: {} for table '{}' -> registered as '{}'", jsonTable.getClass().getName(), tableName, finalTableName);
         builder.put(finalTableName, jsonTable);
         return true;
       case "csv":
         String csvRefreshInterval = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
         final Table csvTable = createEnhancedCsvTable(source, null, tableName, csvRefreshInterval);
-        builder.put(applyCasing(Util.first(tableName, source.path()), tableNameCasing), csvTable);
+        builder.put(getTableName(tableName, source.path(), tableNameCasing), csvTable);
         return true;
       case "tsv":
         String tsvRefreshInterval = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
         final Table tsvTable = createEnhancedCsvTable(source, null, tableName, tsvRefreshInterval);
-        builder.put(applyCasing(Util.first(tableName, source.path()), tableNameCasing), tsvTable);
+        builder.put(getTableName(tableName, source.path(), tableNameCasing), tsvTable);
         return true;
       case "yaml":
       case "yml":
@@ -1317,14 +1356,14 @@ public class FileSchema extends AbstractSchema {
         }
         final Table yamlTable =
             createEnhancedJsonTable(source, tableName, yamlRefreshInterval, options);
-        builder.put(applyCasing(Util.first(tableName, source.path()), tableNameCasing), yamlTable);
+        builder.put(getTableName(tableName, source.path(), tableNameCasing), yamlTable);
         return true;
       case "html":
       case "htm":
         // For backward compatibility, allow local HTML files without fragments
         // This supports existing tests and configurations
         final Table htmlTable = FileTable.create(source, tableDef);
-        builder.put(applyCasing(Util.first(tableName, source.path()), tableNameCasing), htmlTable);
+        builder.put(getTableName(tableName, source.path(), tableNameCasing), htmlTable);
         return true;
       case "parquet":
         // DuckDB uses JDBC adapter, not FileSchema
@@ -1332,7 +1371,7 @@ public class FileSchema extends AbstractSchema {
           throw new IllegalStateException("DuckDB engine should use JDBC adapter, not FileSchema");
         }
         // Use standard Parquet table
-        final Table parquetTable = new ParquetTranslatableTable(new java.io.File(source.path()));
+        final Table parquetTable = new ParquetTranslatableTable(new java.io.File(source.path()), name);
         builder.put(
             applyCasing(Util.first(tableName, source.path()),
             tableNameCasing), parquetTable);
@@ -1431,7 +1470,7 @@ public class FileSchema extends AbstractSchema {
     if (sourceSansTsv != null) {
       String tsvAutoRefreshInterval = tableDef != null ? (String) tableDef.get("refreshInterval") : null;
       final Table table = createEnhancedCsvTable(source, null, tableName, tsvAutoRefreshInterval);
-      builder.put(applyCasing(Util.first(tableName, sourceSansTsv.path()), tableNameCasing), table);
+      builder.put(getTableName(tableName, sourceSansTsv.path(), tableNameCasing), table);
       return true;
     }
     final Source sourceSansArrow = sourceSansGz.trimOrNull(".arrow");
@@ -1455,7 +1494,7 @@ public class FileSchema extends AbstractSchema {
           throw new IllegalStateException("DuckDB engine should use JDBC adapter, not FileSchema");
         }
         // Use our custom ParquetTranslatableTable instead of arrow's ParquetTable
-        final Table table = new ParquetTranslatableTable(new java.io.File(source.path()));
+        final Table table = new ParquetTranslatableTable(new java.io.File(source.path()), name);
         builder.put(
             applyCasing(Util.first(tableName, sourceSansParquet.path()),
             tableNameCasing), table);
@@ -1506,7 +1545,7 @@ public class FileSchema extends AbstractSchema {
         // This supports existing tests and configurations
         try {
           FileTable table = FileTable.create(source, tableDef);
-          builder.put(applyCasing(Util.first(tableName, source.path()), tableNameCasing), table);
+          builder.put(getTableName(tableName, source.path(), tableNameCasing), table);
           return true;
         } catch (Exception e) {
           throw new RuntimeException("Unable to instantiate HTML table for: "
@@ -1519,7 +1558,7 @@ public class FileSchema extends AbstractSchema {
       // If file type not recognized by extension, try the generic FileTable approach
       try {
         FileTable table = FileTable.create(source, tableDef);
-        builder.put(applyCasing(Util.first(tableName, source.path()), tableNameCasing), table);
+        builder.put(getTableName(tableName, source.path(), tableNameCasing), table);
         return true;
       } catch (Exception e) {
         throw new RuntimeException("Unable to instantiate table for: "
@@ -1688,7 +1727,7 @@ public class FileSchema extends AbstractSchema {
         try {
           // For Parquet engine with refresh, use RefreshableParquetCacheTable
           File cacheDir =
-              ParquetConversionUtil.getParquetCacheDir(baseDirectory, engineConfig.getParquetCacheDirectory());
+              ParquetConversionUtil.getParquetCacheDir(baseDirectory, engineConfig.getParquetCacheDirectory(), name);
           File parquetFile =
               ParquetConversionUtil.convertToParquet(source, tableName, new CsvTranslatableTable(source, protoRowType, columnNameCasing, csvTypeInferenceConfig),
               cacheDir, parentSchema, name);
@@ -1783,7 +1822,7 @@ public class FileSchema extends AbstractSchema {
           // For Parquet engine with refresh, we need to use RefreshableParquetCacheTable
           // First convert JSON to Parquet
           File cacheDir =
-              ParquetConversionUtil.getParquetCacheDir(baseDirectory, engineConfig.getParquetCacheDirectory());
+              ParquetConversionUtil.getParquetCacheDir(baseDirectory, engineConfig.getParquetCacheDirectory(), name);
           File parquetFile =
               ParquetConversionUtil.convertToParquet(source, tableName, new JsonScannableTable(source, options, columnNameCasing), cacheDir, parentSchema, name);
           
@@ -1911,7 +1950,8 @@ public class FileSchema extends AbstractSchema {
               new PartitionedParquetTable(matchingFiles, partitionInfo,
                   engineConfig, columnTypes);
         }
-        builder.put(applyCasing(config.getName(), tableNameCasing), table);
+        // Storage provider config explicitly defines table name - use as-is
+        builder.put(config.getName(), table);
 
       } catch (Exception e) {
         LOGGER.error("Failed to process partitioned table: {}", e.getMessage());

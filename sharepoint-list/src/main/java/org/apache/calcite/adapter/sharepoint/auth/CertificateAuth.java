@@ -33,6 +33,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Base64;
 import java.util.UUID;
 import java.util.concurrent.locks.ReentrantLock;
 import javax.net.ssl.KeyManagerFactory;
@@ -65,7 +66,6 @@ public class CertificateAuth implements SharePointAuth {
     this.tenantId = tenantId;
     this.certificatePath = certificatePath;
     this.certificatePassword = certificatePassword;
-    this.thumbprint = thumbprint;
     this.objectMapper = new ObjectMapper();
     this.tokenLock = new ReentrantLock();
 
@@ -73,6 +73,13 @@ public class CertificateAuth implements SharePointAuth {
     this.keyStore = KeyStore.getInstance("PKCS12");
     try (FileInputStream fis = new FileInputStream(certificatePath)) {
       keyStore.load(fis, certificatePassword.toCharArray());
+    }
+
+    // Auto-calculate thumbprint if not provided
+    if (thumbprint == null || "auto".equals(thumbprint)) {
+      this.thumbprint = calculateThumbprint();
+    } else {
+      this.thumbprint = thumbprint;
     }
 
     // Create SSL context with client certificate
@@ -86,6 +93,20 @@ public class CertificateAuth implements SharePointAuth {
         .sslContext(sslContext)
         .connectTimeout(Duration.ofSeconds(30))
         .build();
+  }
+
+  private String calculateThumbprint() throws Exception {
+    // Get the first alias (there should only be one)
+    String alias = keyStore.aliases().nextElement();
+    
+    // Get certificate
+    java.security.cert.X509Certificate certificate = 
+        (java.security.cert.X509Certificate) keyStore.getCertificate(alias);
+    
+    // Calculate thumbprint (SHA-1 hash of certificate)
+    java.security.MessageDigest sha1 = java.security.MessageDigest.getInstance("SHA-1");
+    byte[] certHash = sha1.digest(certificate.getEncoded());
+    return Base64.getUrlEncoder().withoutPadding().encodeToString(certHash);
   }
 
   @Override public String getAccessToken() throws IOException, InterruptedException {

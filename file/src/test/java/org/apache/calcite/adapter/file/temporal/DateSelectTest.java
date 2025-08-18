@@ -36,6 +36,8 @@ public class DateSelectTest {
 
   @Test public void testDateSelectOutput() throws Exception {
     Properties info = new Properties();
+    
+    // This test requires specific temporal data files and uses linq4j engine
     info.put("model", FileAdapterTests.jsonPath("bug-linq4j"));
     info.put("lex", "ORACLE");
 

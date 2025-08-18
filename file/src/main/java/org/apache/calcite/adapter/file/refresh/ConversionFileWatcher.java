@@ -42,15 +42,18 @@ public class ConversionFileWatcher {
   
   private static ConversionFileWatcher instance;
   private final ScheduledExecutorService executor;
-  private final Map<File, FileInfo> watchedFiles = new ConcurrentHashMap<>();
+  // Schema-aware watched files: schema -> file -> info
+  private final Map<String, Map<File, FileInfo>> schemaWatchedFiles = new ConcurrentHashMap<>();
   
   private static class FileInfo {
     final FileType type;
+    final String schemaName;
     long lastModified;
     long lastChecked;
     
-    FileInfo(FileType type, long lastModified) {
+    FileInfo(FileType type, String schemaName, long lastModified) {
       this.type = type;
+      this.schemaName = schemaName;
       this.lastModified = lastModified;
       this.lastChecked = System.currentTimeMillis();
     }
@@ -85,6 +88,17 @@ public class ConversionFileWatcher {
    * @param refreshInterval How often to check for changes
    */
   public void watchFile(File file, Duration refreshInterval) {
+    watchFile(null, file, refreshInterval);
+  }
+  
+  /**
+   * Registers a file to be watched for changes with schema awareness.
+   * 
+   * @param schemaName The schema name (optional)
+   * @param file The file to watch
+   * @param refreshInterval How often to check for changes
+   */
+  public void watchFile(String schemaName, File file, Duration refreshInterval) {
     if (file == null || !file.exists()) {
       return;
     }
@@ -101,17 +115,23 @@ public class ConversionFileWatcher {
     }
     
     if (type != null) {
-      FileInfo info = new FileInfo(type, file.lastModified());
+      // Use "default" if no schema name provided
+      String effectiveSchema = schemaName != null ? schemaName : "default";
+      Map<File, FileInfo> watchedFiles = schemaWatchedFiles.computeIfAbsent(
+          effectiveSchema, k -> new ConcurrentHashMap<>());
+      
+      FileInfo info = new FileInfo(type, effectiveSchema, file.lastModified());
       FileInfo existing = watchedFiles.putIfAbsent(file, info);
       
       if (existing == null) {
-        LOGGER.debug("Started watching {} file: {}", type, file.getAbsolutePath());
+        LOGGER.debug("Started watching {} file for schema '{}': {}", 
+                    type, effectiveSchema, file.getAbsolutePath());
         
         // Schedule periodic checks
         long intervalMillis = refreshInterval != null ? 
             refreshInterval.toMillis() : 60000; // Default 1 minute
             
-        executor.scheduleWithFixedDelay(() -> checkFile(file), 
+        executor.scheduleWithFixedDelay(() -> checkFile(effectiveSchema, file), 
             intervalMillis, intervalMillis, TimeUnit.MILLISECONDS);
       }
     }
@@ -121,13 +141,32 @@ public class ConversionFileWatcher {
    * Stops watching a file.
    */
   public void unwatchFile(File file) {
-    watchedFiles.remove(file);
+    // Remove from all schemas
+    for (Map<File, FileInfo> watchedFiles : schemaWatchedFiles.values()) {
+      watchedFiles.remove(file);
+    }
+  }
+  
+  /**
+   * Stops watching a file for a specific schema.
+   */
+  public void unwatchFile(String schemaName, File file) {
+    String effectiveSchema = schemaName != null ? schemaName : "default";
+    Map<File, FileInfo> watchedFiles = schemaWatchedFiles.get(effectiveSchema);
+    if (watchedFiles != null) {
+      watchedFiles.remove(file);
+    }
   }
   
   /**
    * Checks if a file has been modified and re-runs conversion if needed.
    */
-  private void checkFile(File file) {
+  private void checkFile(String schemaName, File file) {
+    Map<File, FileInfo> watchedFiles = schemaWatchedFiles.get(schemaName);
+    if (watchedFiles == null) {
+      return;
+    }
+    
     FileInfo info = watchedFiles.get(file);
     if (info == null) {
       return; // File no longer being watched

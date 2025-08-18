@@ -55,7 +55,14 @@ public class CsvTypeInferenceTest {
   void testMixedTypesInference() throws Exception {
     // Test with type inference enabled
     Properties info = new Properties();
-    info.put("model", resourcePath("csv-type-inference-model.json"));
+    // Use dynamic model if engine is configured
+    String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
+    if (engineType != null && !engineType.isEmpty()) {
+      String modelJson = buildModelJson(engineType);
+      info.put("model", "inline:" + modelJson);
+    } else {
+      info.put("model", resourcePath("csv-type-inference-model.json"));
+    }
     info.put("lex", "ORACLE");
     info.put("unquotedCasing", "TO_LOWER");
 
@@ -99,7 +106,10 @@ public class CsvTypeInferenceTest {
   @Test
   void testNoInferenceByDefault() throws Exception {
     Properties info = new Properties();
-    info.put("model", resourcePath("csv-type-inference-model.json"));
+    // Build model dynamically to include execution engine if set
+    String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
+    String modelJson = buildModelJson(engineType);
+    info.put("model", "inline:" + modelJson);
     info.put("lex", "ORACLE");
     info.put("unquotedCasing", "TO_LOWER");
 
@@ -129,7 +139,14 @@ public class CsvTypeInferenceTest {
   @Test
   void testTimestampInference() throws Exception {
     Properties info = new Properties();
-    info.put("model", resourcePath("csv-type-inference-model.json"));
+    // Use dynamic model if engine is configured
+    String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
+    if (engineType != null && !engineType.isEmpty()) {
+      String modelJson = buildModelJson(engineType);
+      info.put("model", "inline:" + modelJson);
+    } else {
+      info.put("model", resourcePath("csv-type-inference-model.json"));
+    }
     info.put("lex", "ORACLE");
     info.put("unquotedCasing", "TO_LOWER");
 
@@ -162,7 +179,14 @@ public class CsvTypeInferenceTest {
   @Test
   void testNullHandling() throws Exception {
     Properties info = new Properties();
-    info.put("model", resourcePath("csv-type-inference-model.json"));
+    // Use dynamic model if engine is configured
+    String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
+    if (engineType != null && !engineType.isEmpty()) {
+      String modelJson = buildModelJson(engineType);
+      info.put("model", "inline:" + modelJson);
+    } else {
+      info.put("model", resourcePath("csv-type-inference-model.json"));
+    }
     info.put("lex", "ORACLE");
     info.put("unquotedCasing", "TO_LOWER");
 
@@ -172,16 +196,27 @@ public class CsvTypeInferenceTest {
       try (ResultSet rs = connection.createStatement().executeQuery(sql)) {
         ResultSetMetaData metaData = rs.getMetaData();
         
-        // Types should still be inferred despite nulls
-        int idType2 = metaData.getColumnType(1);
-        assertTrue(idType2 == Types.INTEGER || idType2 == Types.BIGINT,
-            "id should be INTEGER or BIGINT, but was " + idType2);
+        // Smart type inference should correctly handle null representations like "NULL", "NA", "NONE", etc.
+        // These should be treated as actual NULL values, allowing proper type inference for the real data.
+        // The test file contains:
+        // - id: integers 1-10 (no nulls) → INTEGER
+        // - value1: integers 100,300,400,500,600 (with NULL/NA/NONE representations) → INTEGER nullable
+        // - value2: doubles 200.5,250.75,350.25,450.50,550.75 (with NULL/N/A/nil) → DOUBLE nullable
+        // - value3: booleans true,false (with NULL/na/NIL representations) → BOOLEAN nullable
+        // - value4: dates 2024-01-01 etc (with NULL/n/a representations) → DATE nullable
+        
+        // Check inferred types based on actual data (ignoring null representations)
+        int idType = metaData.getColumnType(1);
+        assertTrue(idType == Types.INTEGER || idType == Types.BIGINT,
+            "id should be INTEGER or BIGINT, but was " + idType);
+        
         int value1Type = metaData.getColumnType(2);
         assertTrue(value1Type == Types.INTEGER || value1Type == Types.BIGINT,
-            "value1 should be INTEGER or BIGINT despite nulls, but was " + value1Type);
-        assertEquals(Types.DOUBLE, metaData.getColumnType(3), "value2 should be DOUBLE despite nulls");
-        assertEquals(Types.BOOLEAN, metaData.getColumnType(4), "value3 should be BOOLEAN despite nulls");
-        assertEquals(Types.DATE, metaData.getColumnType(5), "value4 should be DATE despite nulls");
+            "value1 should be INTEGER or BIGINT (nulls are NULL representations), but was " + value1Type);
+            
+        assertEquals(Types.DOUBLE, metaData.getColumnType(3), "value2 should be DOUBLE (nulls are NULL representations)");
+        assertEquals(Types.BOOLEAN, metaData.getColumnType(4), "value3 should be BOOLEAN (nulls are NULL representations)");
+        assertEquals(Types.DATE, metaData.getColumnType(5), "value4 should be DATE (nulls are NULL representations)");
         
         // All columns should be nullable
         for (int i = 1; i <= metaData.getColumnCount(); i++) {
@@ -236,7 +271,14 @@ public class CsvTypeInferenceTest {
   @Test
   void testAggregationsWithInferredTypes() throws Exception {
     Properties info = new Properties();
-    info.put("model", resourcePath("csv-type-inference-model.json"));
+    // Use dynamic model if engine is configured
+    String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
+    if (engineType != null && !engineType.isEmpty()) {
+      String modelJson = buildModelJson(engineType);
+      info.put("model", "inline:" + modelJson);
+    } else {
+      info.put("model", resourcePath("csv-type-inference-model.json"));
+    }
     info.put("lex", "ORACLE");
     info.put("unquotedCasing", "TO_LOWER");
 
@@ -266,7 +308,14 @@ public class CsvTypeInferenceTest {
   @Test
   void testDateComparisons() throws Exception {
     Properties info = new Properties();
-    info.put("model", resourcePath("csv-type-inference-model.json"));
+    // Use dynamic model if engine is configured
+    String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
+    if (engineType != null && !engineType.isEmpty()) {
+      String modelJson = buildModelJson(engineType);
+      info.put("model", "inline:" + modelJson);
+    } else {
+      info.put("model", resourcePath("csv-type-inference-model.json"));
+    }
     info.put("lex", "ORACLE");
     info.put("unquotedCasing", "TO_LOWER");
 
@@ -284,5 +333,56 @@ public class CsvTypeInferenceTest {
 
   private static String resourcePath(String path) {
     return CsvTypeInferenceTest.class.getResource("/" + path).getFile();
+  }
+
+  private static String buildModelJson(String engineType) {
+    String resourceDir = CsvTypeInferenceTest.class.getResource("/csv-type-inference").getFile();
+    
+    StringBuilder model = new StringBuilder();
+    model.append("{\n");
+    model.append("  \"version\": \"1.0\",\n");
+    model.append("  \"defaultSchema\": \"CSV_INFER\",\n");
+    model.append("  \"schemas\": [\n");
+    
+    // CSV_INFER schema with type inference enabled
+    model.append("    {\n");
+    model.append("      \"name\": \"CSV_INFER\",\n");
+    model.append("      \"type\": \"custom\",\n");
+    model.append("      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n");
+    model.append("      \"operand\": {\n");
+    model.append("        \"directory\": \"").append(resourceDir).append("\",\n");
+    if (engineType != null && !engineType.isEmpty()) {
+      model.append("        \"executionEngine\": \"").append(engineType).append("\",\n");
+    }
+    model.append("        \"csvTypeInference\": {\n");
+    model.append("          \"enabled\": true,\n");
+    model.append("          \"samplingRate\": 1.0,\n");
+    model.append("          \"maxSampleRows\": 100,\n");
+    model.append("          \"confidenceThreshold\": 0.9,\n");
+    model.append("          \"makeAllNullable\": true,\n");
+    model.append("          \"inferDates\": true,\n");
+    model.append("          \"inferTimes\": true,\n");
+    model.append("          \"inferTimestamps\": true\n");
+    model.append("        }\n");
+    model.append("      }\n");
+    model.append("    },\n");
+    
+    // CSV_NO_INFER schema without type inference
+    model.append("    {\n");
+    model.append("      \"name\": \"CSV_NO_INFER\",\n");
+    model.append("      \"type\": \"custom\",\n");
+    model.append("      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n");
+    model.append("      \"operand\": {\n");
+    model.append("        \"directory\": \"").append(resourceDir).append("\"\n");
+    if (engineType != null && !engineType.isEmpty()) {
+      model.append(",        \"executionEngine\": \"").append(engineType).append("\"\n");
+    }
+    model.append("      }\n");
+    model.append("    }\n");
+    
+    model.append("  ]\n");
+    model.append("}\n");
+    
+    return model.toString();
   }
 }
