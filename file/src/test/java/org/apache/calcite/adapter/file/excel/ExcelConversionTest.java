@@ -118,9 +118,9 @@ public class ExcelConversionTest {
     FileSchema schema = new FileSchema(null, "TEST", tempDir.toFile(), null);
     Map<String, Table> tables = schema.getTableMap();
 
-    // Verify all file types are recognized (table names are uppercase by default)
-    assertNotNull(tables.get("DATA"), "CSV file should be recognized");
-    assertNotNull(tables.get("CONFIG"), "JSON file should be recognized");
+    // Verify all file types are recognized (table names are lowercase with SMART_CASING)
+    assertNotNull(tables.get("data"), "CSV file should be recognized");
+    assertNotNull(tables.get("config"), "JSON file should be recognized");
 
     System.out.println("Mixed directory tables: " + tables.keySet());
     assertTrue(tables.size() >= 2, "Should have at least CSV and JSON tables");
