@@ -224,10 +224,8 @@ public class ParquetEnumerableFactory {
               }
             } else if ("time-millis".equals(logicalTypeName)) {
               if (value instanceof Integer) {
-                // Convert milliseconds since midnight to Time
-                // Keep as integer (milliseconds since midnight) for Calcite compatibility
-                // The integer value will be properly handled by Calcite's runtime
-                // No conversion needed - Parquet time-millis is already in the correct format
+                // Keep as integer - milliseconds since midnight
+                // This is the correct representation for TIME values
               } else if (value == null) {
                 // Handle null times
                 value = null;
@@ -388,7 +386,8 @@ public class ParquetEnumerableFactory {
                 }
               } else if ("time-millis".equals(logicalTypeName)) {
                 if (value instanceof Integer) {
-                  // Keep as integer (milliseconds since midnight) for Calcite compatibility
+                  // Keep as integer - milliseconds since midnight
+                  // This is the correct representation for TIME values
                 } else if (value == null) {
                   value = null;
                 }
@@ -557,6 +556,9 @@ public class ParquetEnumerableFactory {
                 if (value == null) {
                   shouldSkipRow = true;
                   break;
+                } else if (value instanceof Integer) {
+                  // Keep as integer - milliseconds since midnight
+                  // This is the correct representation for TIME values
                 }
               } else if ("timestamp-millis".equals(logicalTypeName)) {
                 if (value instanceof Long) {

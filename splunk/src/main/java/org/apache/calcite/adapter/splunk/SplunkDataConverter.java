@@ -129,6 +129,7 @@ public final class SplunkDataConverter {
 
   /**
    * MODIFIED: Update the TIMESTAMP case to return Timestamp objects.
+   * Enhanced to support JDBC 4.3 compliant VARCHAR to numeric conversions.
    */
   public static Object convertValue(Object value, SqlTypeName targetType) {
     if (value == null) {
@@ -146,15 +147,48 @@ public final class SplunkDataConverter {
         if (value instanceof Number) {
           return ((Number) value).intValue();
         }
+        // JDBC 4.3: Support VARCHAR to INTEGER conversion
+        if (value instanceof String) {
+          String strValue = ((String) value).trim();
+          if (!strValue.isEmpty() && !"null".equals(strValue)) {
+            try {
+              return convertToInteger(strValue);
+            } catch (IllegalArgumentException e) {
+              // Fall through to string parsing below
+            }
+          }
+        }
         break;
       case BIGINT:
         if (value instanceof Number) {
           return ((Number) value).longValue();
         }
+        // JDBC 4.3: Support VARCHAR to BIGINT conversion
+        if (value instanceof String) {
+          String strValue = ((String) value).trim();
+          if (!strValue.isEmpty() && !"null".equals(strValue)) {
+            try {
+              return convertToBigInt(strValue);
+            } catch (IllegalArgumentException e) {
+              // Fall through to string parsing below
+            }
+          }
+        }
         break;
       case DOUBLE:
         if (value instanceof Number) {
           return ((Number) value).doubleValue();
+        }
+        // JDBC 4.3: Support VARCHAR to DOUBLE conversion
+        if (value instanceof String) {
+          String strValue = ((String) value).trim();
+          if (!strValue.isEmpty() && !"null".equals(strValue)) {
+            try {
+              return convertToDouble(strValue);
+            } catch (IllegalArgumentException e) {
+              // Fall through to string parsing below
+            }
+          }
         }
         break;
       case FLOAT:
@@ -162,10 +196,48 @@ public final class SplunkDataConverter {
         if (value instanceof Number) {
           return ((Number) value).floatValue();
         }
+        // JDBC 4.3: Support VARCHAR to FLOAT conversion
+        if (value instanceof String) {
+          String strValue = ((String) value).trim();
+          if (!strValue.isEmpty() && !"null".equals(strValue)) {
+            try {
+              return convertToFloat(strValue);
+            } catch (IllegalArgumentException e) {
+              // Fall through to string parsing below
+            }
+          }
+        }
+        break;
+      case DECIMAL:
+        if (value instanceof BigDecimal) {
+          return value;
+        }
+        // JDBC 4.3: Support VARCHAR to DECIMAL conversion
+        if (value instanceof String) {
+          String strValue = ((String) value).trim();
+          if (!strValue.isEmpty() && !"null".equals(strValue)) {
+            try {
+              return convertToDecimal(strValue);
+            } catch (IllegalArgumentException e) {
+              // Fall through to string parsing below
+            }
+          }
+        }
         break;
       case BOOLEAN:
         if (value instanceof Boolean) {
           return value;
+        }
+        // JDBC 4.3: Support VARCHAR to BOOLEAN conversion
+        if (value instanceof String) {
+          String strValue = ((String) value).trim();
+          if (!strValue.isEmpty() && !"null".equals(strValue)) {
+            try {
+              return convertToBoolean(strValue);
+            } catch (IllegalArgumentException e) {
+              // Fall through to string parsing below
+            }
+          }
         }
         break;
       case TIMESTAMP:
@@ -338,6 +410,8 @@ public final class SplunkDataConverter {
 
   /**
    * Type checking for Jackson-parsed values.
+   * Enhanced to support JDBC 4.3 spec: VARCHAR fields containing numeric strings
+   * can be converted to numeric types, so we don't consider them "correct" as-is.
    */
   private static boolean isCorrectType(Object value, SqlTypeName targetType) {
     switch (targetType) {
@@ -386,64 +460,79 @@ public final class SplunkDataConverter {
 
   /**
    * Converts string to Integer.
+   * JDBC 4.3 compliant: attempts conversion of VARCHAR to INTEGER.
    */
   private static Integer convertToInteger(String value) {
     try {
-      // Handle decimal values by truncating
+      // Handle decimal values by truncating (JDBC 4.3 compliant)
       if (value.contains(".")) {
         return (int) Double.parseDouble(value);
       }
       return Integer.parseInt(value);
     } catch (NumberFormatException e) {
-      throw new IllegalArgumentException("Unable to parse integer: " + value);
+      // JDBC 4.3: throw exception if conversion fails
+      throw new IllegalArgumentException("Cannot convert VARCHAR value '" + value 
+          + "' to INTEGER: " + e.getMessage());
     }
   }
 
   /**
    * Converts string to Long.
+   * JDBC 4.3 compliant: attempts conversion of VARCHAR to BIGINT.
    */
   private static Long convertToBigInt(String value) {
     try {
-      // Handle decimal values by truncating
+      // Handle decimal values by truncating (JDBC 4.3 compliant)
       if (value.contains(".")) {
         return (long) Double.parseDouble(value);
       }
       return Long.parseLong(value);
     } catch (NumberFormatException e) {
-      throw new IllegalArgumentException("Unable to parse long: " + value);
+      // JDBC 4.3: throw exception if conversion fails
+      throw new IllegalArgumentException("Cannot convert VARCHAR value '" + value 
+          + "' to BIGINT: " + e.getMessage());
     }
   }
 
   /**
    * Converts string to BigDecimal.
+   * JDBC 4.3 compliant: attempts conversion of VARCHAR to DECIMAL.
    */
   private static BigDecimal convertToDecimal(String value) {
     try {
       return new BigDecimal(value);
     } catch (NumberFormatException e) {
-      throw new IllegalArgumentException("Unable to parse decimal: " + value);
+      // JDBC 4.3: throw exception if conversion fails
+      throw new IllegalArgumentException("Cannot convert VARCHAR value '" + value 
+          + "' to DECIMAL: " + e.getMessage());
     }
   }
 
   /**
    * Converts string to Double.
+   * JDBC 4.3 compliant: attempts conversion of VARCHAR to DOUBLE.
    */
   private static Double convertToDouble(String value) {
     try {
       return Double.parseDouble(value);
     } catch (NumberFormatException e) {
-      throw new IllegalArgumentException("Unable to parse double: " + value);
+      // JDBC 4.3: throw exception if conversion fails
+      throw new IllegalArgumentException("Cannot convert VARCHAR value '" + value 
+          + "' to DOUBLE: " + e.getMessage());
     }
   }
 
   /**
    * Converts string to Float.
+   * JDBC 4.3 compliant: attempts conversion of VARCHAR to FLOAT/REAL.
    */
   private static Float convertToFloat(String value) {
     try {
       return Float.parseFloat(value);
     } catch (NumberFormatException e) {
-      throw new IllegalArgumentException("Unable to parse float: " + value);
+      // JDBC 4.3: throw exception if conversion fails
+      throw new IllegalArgumentException("Cannot convert VARCHAR value '" + value 
+          + "' to FLOAT: " + e.getMessage());
     }
   }
 

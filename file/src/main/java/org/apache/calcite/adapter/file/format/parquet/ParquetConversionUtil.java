@@ -499,15 +499,15 @@ public class ParquetConversionUtil {
         break;
 
       case TIME:
-        if (value instanceof java.sql.Time) {
-          // Convert to milliseconds since midnight in local time
-          // TIME values don't have dates, so we need to extract just the time portion
-          java.sql.Time time = (java.sql.Time) value;
-          java.time.LocalTime localTime = time.toLocalTime();
+        if (value instanceof java.time.LocalTime) {
+          // LocalTime is the preferred representation for TIME values
+          java.time.LocalTime localTime = (java.time.LocalTime) value;
           int millisSinceMidnight = (int) (localTime.toNanoOfDay() / 1_000_000L);
           group.append(fieldName, millisSinceMidnight);
-        } else if (value instanceof java.time.LocalTime) {
-          java.time.LocalTime localTime = (java.time.LocalTime) value;
+        } else if (value instanceof java.sql.Time) {
+          // Legacy java.sql.Time support - convert via LocalTime
+          java.sql.Time time = (java.sql.Time) value;
+          java.time.LocalTime localTime = time.toLocalTime();
           int millisSinceMidnight = (int) (localTime.toNanoOfDay() / 1_000_000L);
           group.append(fieldName, millisSinceMidnight);
         } else if (value instanceof Integer) {
@@ -517,11 +517,8 @@ public class ParquetConversionUtil {
           // Try to parse time string
           String timeStr = value.toString();
           if (timeStr.matches("\\d{2}:\\d{2}:\\d{2}")) {
-            String[] parts = timeStr.split(":");
-            int hours = Integer.parseInt(parts[0]);
-            int minutes = Integer.parseInt(parts[1]);
-            int seconds = Integer.parseInt(parts[2]);
-            int millisSinceMidnight = (hours * 3600 + minutes * 60 + seconds) * 1000;
+            java.time.LocalTime localTime = java.time.LocalTime.parse(timeStr);
+            int millisSinceMidnight = (int) (localTime.toNanoOfDay() / 1_000_000L);
             group.append(fieldName, millisSinceMidnight);
           } else {
             group.append(fieldName, value.toString());

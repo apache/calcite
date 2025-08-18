@@ -233,19 +233,19 @@ public class DirectParquetWriter {
         break;
 
       case java.sql.Types.TIME:
-        java.sql.Time time = rs.getTime(index);
-        if (time != null) {
-          // Convert to milliseconds since midnight
-          String timeStr = rs.getString(index);
-          if (timeStr != null && timeStr.matches("\\d{2}:\\d{2}:\\d{2}")) {
-            String[] parts = timeStr.split(":");
-            int hours = Integer.parseInt(parts[0]);
-            int minutes = Integer.parseInt(parts[1]);
-            int seconds = Integer.parseInt(parts[2]);
-            int millisSinceMidnight = (hours * 3600 + minutes * 60 + seconds) * 1000;
+        // Get the value as an object first to handle both Time and LocalTime
+        Object timeValue = rs.getObject(index);
+        if (timeValue != null) {
+          if (timeValue instanceof java.time.LocalTime) {
+            // LocalTime is the preferred representation
+            java.time.LocalTime localTime = (java.time.LocalTime) timeValue;
+            int millisSinceMidnight = (int) (localTime.toNanoOfDay() / 1_000_000L);
             group.append(columnName, millisSinceMidnight);
-          } else {
-            int millisSinceMidnight = (int) (time.getTime() % (24L * 60 * 60 * 1000));
+          } else if (timeValue instanceof java.sql.Time) {
+            // Legacy Time support - convert via LocalTime
+            java.sql.Time time = (java.sql.Time) timeValue;
+            java.time.LocalTime localTime = time.toLocalTime();
+            int millisSinceMidnight = (int) (localTime.toNanoOfDay() / 1_000_000L);
             group.append(columnName, millisSinceMidnight);
           }
         }

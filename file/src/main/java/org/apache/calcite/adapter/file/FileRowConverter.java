@@ -408,9 +408,26 @@ public class FileRowConverter {
         }
 
       case TIME:
-        // Parse and convert to java.sql.Time
-        Date timeParsed = parseDate(string);
-        return new java.sql.Time(timeParsed.getTime());
+        // Parse time and return milliseconds since midnight as Integer
+        // This avoids timezone issues when JDBC creates Time objects
+        try {
+          // Try HH:mm:ss format first
+          if (string.matches("\\d{2}:\\d{2}:\\d{2}")) {
+            // Parse to LocalTime then convert to milliseconds
+            java.time.LocalTime localTime = java.time.LocalTime.parse(string);
+            return (int) (localTime.toNanoOfDay() / 1_000_000L);
+          }
+          // Fall back to parsing with time parser
+          Date timeParsed = parseDate(string);
+          // Convert to milliseconds since midnight
+          java.text.SimpleDateFormat timeFormat = new java.text.SimpleDateFormat("HH:mm:ss");
+          timeFormat.setTimeZone(TimeZone.getDefault());
+          String timeStr = timeFormat.format(timeParsed);
+          java.time.LocalTime localTime = java.time.LocalTime.parse(timeStr);
+          return (int) (localTime.toNanoOfDay() / 1_000_000L);
+        } catch (Exception e) {
+          return null;
+        }
 
       case TIMESTAMP:
         // Parse timestamp without timezone as UTC (TZ naive)
