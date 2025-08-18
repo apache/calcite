@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -50,6 +51,22 @@ class SqlNodeTest {
         SqlNodeList.of(zero,
             Arrays.asList(SqlLiteral.createCharString("x", zero),
                 new SqlIdentifier("y", zero))));
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6161">[CALCITE-6161]
+   * The equalsDeep of sqlCall should compare sqlOperator's sqlKind</a>.
+   */
+  @Test void testSameNameButDifferent() {
+    final SqlParserPos zero = SqlParserPos.ZERO;
+    final List<SqlNode> operandList =
+        Arrays.asList(new SqlIdentifier("x", zero), new SqlIdentifier("y", zero));
+    final SqlNode unaryOperatorNode =
+        new SqlBasicCall(SqlStdOperatorTable.UNARY_MINUS, operandList, zero);
+    final SqlNode binaryOperatorNode =
+        new SqlBasicCall(SqlStdOperatorTable.MINUS, operandList, zero);
+    assertThat(unaryOperatorNode.equalsDeep(binaryOperatorNode, Litmus.IGNORE), is(false));
   }
 
   /**
