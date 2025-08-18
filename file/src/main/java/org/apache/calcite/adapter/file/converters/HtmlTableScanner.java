@@ -207,8 +207,8 @@ public class HtmlTableScanner {
       name = "table";
     }
     
-    // Finally, apply the configured casing transformation
-    name = org.apache.calcite.adapter.file.util.SmartCasing.applyCasing(name, columnNameCasing);
+    // Finally, apply the configured casing transformation and sanitization
+    name = ConverterUtils.sanitizeIdentifier(org.apache.calcite.adapter.file.util.SmartCasing.applyCasing(name, columnNameCasing));
     
     return name;
   }

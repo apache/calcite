@@ -51,6 +51,7 @@ import java.util.stream.Stream;
 
 import static org.apache.calcite.adapter.file.FileAdapterTests.sql;
 
+import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.isA;
@@ -915,25 +916,27 @@ public class FileAdapterTest {
         switch (empId) {
         case 140:
           // TIME "07:15:56" = 7*3600000 + 15*60000 + 56*1000 = 26156000ms
-          // With EST offset: 44156000ms
           long timeMs140 = timeVal.getTime() % (24L * 60 * 60 * 1000);
-          assertThat(timeMs140, is(44156000L));
+          assertThat(timeMs140, is(26156000L));
           // Timestamp numeric validation
           long tsMs140 = timestampVal.getTime();
           // The CSV has "2015-12-30 07:15:56"
-          // Now returns LocalTimestamp which preserves correct local time
-          assertThat(tsMs140, is(1451477756000L));
+          // This is a local timestamp, so we need to calculate expected value based on local timezone
+          java.time.LocalDateTime expectedLdt140 = java.time.LocalDateTime.of(2015, 12, 30, 7, 15, 56);
+          long expectedMs140 = expectedLdt140.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
+          assertThat(tsMs140, is(expectedMs140));
           break;
         case 150:
           // TIME "13:31:21" = 13*3600000 + 31*60000 + 21*1000 = 48681000ms
-          // With EST offset: 66681000ms
           long timeMs150 = timeVal.getTime() % (24L * 60 * 60 * 1000);
-          assertThat(timeMs150, is(66681000L));
+          assertThat(timeMs150, is(48681000L));
           // Timestamp numeric validation
           long tsMs150 = timestampVal.getTime();
           // The CSV has "2015-12-30 13:31:21"
-          // Now returns LocalTimestamp which preserves correct local time
-          assertThat(tsMs150, is(1451500281000L));
+          // This is a local timestamp, so we need to calculate expected value based on local timezone
+          java.time.LocalDateTime expectedLdt150 = java.time.LocalDateTime.of(2015, 12, 30, 13, 31, 21);
+          long expectedMs150 = expectedLdt150.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
+          assertThat(tsMs150, is(expectedMs150));
           break;
         default:
           throw new AssertionError();

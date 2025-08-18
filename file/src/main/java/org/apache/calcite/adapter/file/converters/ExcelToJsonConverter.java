@@ -110,7 +110,7 @@ public final class ExcelToJsonConverter {
           }
 
           String rawKey = getCellValue(headerCell, evaluator);
-          String key = SmartCasing.applyCasing(rawKey, columnNameCasing);
+          String key = ConverterUtils.sanitizeIdentifier(SmartCasing.applyCasing(rawKey, columnNameCasing));
           Cell dataCell = row.getCell(colIndex);
           Object value = getCellValueAsObject(dataCell, evaluator);
 

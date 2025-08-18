@@ -397,7 +397,7 @@ public final class PptxTableScanner {
       // Simple case: single header row - convert to lowercase
       List<String> lowercaseHeaders = new ArrayList<>();
       for (String header : headerRows.get(0)) {
-        lowercaseHeaders.add(header.toLowerCase().replaceAll("[^a-z0-9_]", "_"));
+        lowercaseHeaders.add(ConverterUtils.sanitizeIdentifier(header.toLowerCase()));
       }
       return lowercaseHeaders;
     }
@@ -448,7 +448,7 @@ public final class PptxTableScanner {
         header = prefix + "_" + header;
       }
       // Convert to lowercase and sanitize for use as column name
-      header = header.toLowerCase().replaceAll("[^a-z0-9_]", "_");
+      header = ConverterUtils.sanitizeIdentifier(header.toLowerCase());
       combinedHeaders.add(header);
     }
 
@@ -505,14 +505,14 @@ public final class PptxTableScanner {
     // Add slide context (in lowercase)
     // Only add slide number if there's no clear slide title
     if (slideTitle != null && !slideTitle.isEmpty()) {
-      fileName.append("__").append(sanitizeIdentifier(slideTitle).toLowerCase());
+      fileName.append("__").append(ConverterUtils.sanitizeIdentifier(slideTitle).toLowerCase());
     } else {
       fileName.append("__slide").append(slideNumber);
     }
 
     // Add table title if available (in lowercase)
     if (tableTitle != null && !tableTitle.isEmpty()) {
-      fileName.append("__").append(sanitizeIdentifier(tableTitle).toLowerCase());
+      fileName.append("__").append(ConverterUtils.sanitizeIdentifier(tableTitle).toLowerCase());
     } else {
       fileName.append("__table");
     }
@@ -536,28 +536,6 @@ public final class PptxTableScanner {
     return result.toString();
   }
 
-  private static String sanitizeIdentifier(String identifier) {
-    // Replace non-alphanumeric characters with underscore
-    StringBuilder result = new StringBuilder();
-    for (char c : identifier.toCharArray()) {
-      if (Character.isLetterOrDigit(c) || c == '_' || c == '-') {
-        result.append(c);
-      } else {
-        result.append('_');
-      }
-    }
-
-    // Collapse multiple underscores
-    String str = result.toString();
-    while (str.contains("__")) {
-      str = str.replace("__", "_");
-    }
-
-    // Remove leading/trailing underscores
-    str = Pattern.compile("^_+|_+$").matcher(str).replaceAll("");
-
-    return str;
-  }
 
   /**
    * Container for a parsed PPTX table.

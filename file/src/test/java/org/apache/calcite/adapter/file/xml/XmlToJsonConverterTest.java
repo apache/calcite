@@ -97,14 +97,14 @@ class XmlToJsonConverterTest {
     
     // Verify first product
     JsonNode firstProduct = jsonArray.get(0);
-    assertEquals("1", firstProduct.get("@id").asText());
+    assertEquals("1", firstProduct.get("id").asText());
     assertEquals("Widget", firstProduct.get("name").asText());
     assertEquals("9.99", firstProduct.get("price").asText());
     assertEquals("Electronics", firstProduct.get("category").asText());
     
     // Verify second product
     JsonNode secondProduct = jsonArray.get(1);
-    assertEquals("2", secondProduct.get("@id").asText());
+    assertEquals("2", secondProduct.get("id").asText());
     assertEquals("Gadget", secondProduct.get("name").asText());
   }
   
@@ -152,7 +152,7 @@ class XmlToJsonConverterTest {
     
     // Verify flattened structure
     JsonNode firstCustomer = jsonArray.get(0);
-    assertEquals("1", firstCustomer.get("@id").asText());
+    assertEquals("1", firstCustomer.get("id").asText());
     assertEquals("John Doe", firstCustomer.get("name").asText());
     assertEquals("123 Main St", firstCustomer.get("address__street").asText());
     assertEquals("New York", firstCustomer.get("address__city").asText());
@@ -304,13 +304,13 @@ class XmlToJsonConverterTest {
     JsonNode jsonArray = mapper.readTree(jsonFile);
     JsonNode firstItem = jsonArray.get(0);
     
-    assertTrue(firstItem.has("@id"));
+    assertTrue(firstItem.has("id"));
     assertTrue(firstItem.has("itemname"));
     assertTrue(firstItem.has("itemprice"));
     assertTrue(firstItem.has("isavailable"));
     
     // Verify values are preserved
-    assertEquals("1", firstItem.get("@id").asText());
+    assertEquals("1", firstItem.get("id").asText());
     assertEquals("Test Item", firstItem.get("itemname").asText());
   }
   

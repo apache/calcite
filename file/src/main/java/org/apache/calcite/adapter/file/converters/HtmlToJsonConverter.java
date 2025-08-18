@@ -240,7 +240,7 @@ public class HtmlToJsonConverter {
     if (!headerElements.isEmpty()) {
       return headerElements.stream()
           .map(Element::text)
-          .map(header -> org.apache.calcite.adapter.file.util.SmartCasing.applyCasing(header, columnNameCasing))
+          .map(header -> ConverterUtils.sanitizeIdentifier(org.apache.calcite.adapter.file.util.SmartCasing.applyCasing(header, columnNameCasing)))
           .collect(Collectors.toList());
     }
     
@@ -249,7 +249,7 @@ public class HtmlToJsonConverter {
     if (!firstRowCells.isEmpty()) {
       return firstRowCells.stream()
           .map(Element::text)
-          .map(header -> org.apache.calcite.adapter.file.util.SmartCasing.applyCasing(header, columnNameCasing))
+          .map(header -> ConverterUtils.sanitizeIdentifier(org.apache.calcite.adapter.file.util.SmartCasing.applyCasing(header, columnNameCasing)))
           .collect(Collectors.toList());
     }
     
@@ -261,7 +261,7 @@ public class HtmlToJsonConverter {
         .orElse(0);
     for (int i = 0; i < maxCells; i++) {
       String defaultHeader = "column" + (i + 1);
-      defaultHeaders.add(org.apache.calcite.adapter.file.util.SmartCasing.applyCasing(defaultHeader, columnNameCasing));
+      defaultHeaders.add(ConverterUtils.sanitizeIdentifier(org.apache.calcite.adapter.file.util.SmartCasing.applyCasing(defaultHeader, columnNameCasing)));
     }
     return defaultHeaders;
   }

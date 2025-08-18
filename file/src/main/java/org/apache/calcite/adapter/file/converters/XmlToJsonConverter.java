@@ -211,7 +211,7 @@ public class XmlToJsonConverter {
       String attrName = ATTRIBUTE_PREFIX + attr.getName();
       String attrValue = attr.getValue();
       
-      String columnName = org.apache.calcite.adapter.file.util.SmartCasing.applyCasing(attrName, columnNameCasing);
+      String columnName = ConverterUtils.sanitizeIdentifier(org.apache.calcite.adapter.file.util.SmartCasing.applyCasing(attrName, columnNameCasing));
       ConverterUtils.setJsonValueWithTypeInference(jsonObject, columnName, attrValue);
     }
     
@@ -241,7 +241,7 @@ public class XmlToJsonConverter {
               childArray.add(childJson);
             }
           }
-          String columnName = org.apache.calcite.adapter.file.util.SmartCasing.applyCasing(childName, columnNameCasing);
+          String columnName = ConverterUtils.sanitizeIdentifier(org.apache.calcite.adapter.file.util.SmartCasing.applyCasing(childName, columnNameCasing));
           jsonObject.set(columnName, childArray);
           
         } else {
@@ -251,7 +251,7 @@ public class XmlToJsonConverter {
           if (childJson.size() == 1 && childJson.has("_content")) {
             // Child has only text content - flatten it
             String value = childJson.get("_content").asText();
-            String columnName = org.apache.calcite.adapter.file.util.SmartCasing.applyCasing(childName, columnNameCasing);
+            String columnName = ConverterUtils.sanitizeIdentifier(org.apache.calcite.adapter.file.util.SmartCasing.applyCasing(childName, columnNameCasing));
             ConverterUtils.setJsonValueWithTypeInference(jsonObject, columnName, value);
           } else if (childJson.size() > 0) {
             // Child has complex content - use flattened naming
@@ -307,7 +307,7 @@ public class XmlToJsonConverter {
     child.fields().forEachRemaining(entry -> {
       String childKey = entry.getKey();
       String flattenedKey = prefix + DEFAULT_FLATTEN_SEPARATOR + childKey;
-      String columnName = org.apache.calcite.adapter.file.util.SmartCasing.applyCasing(flattenedKey, columnNameCasing);
+      String columnName = ConverterUtils.sanitizeIdentifier(org.apache.calcite.adapter.file.util.SmartCasing.applyCasing(flattenedKey, columnNameCasing));
       parent.set(columnName, entry.getValue());
     });
   }

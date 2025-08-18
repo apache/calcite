@@ -16,9 +16,6 @@
  */
 package org.apache.calcite.adapter.file.execution.parquet;
 
-import org.apache.calcite.adapter.file.temporal.LocalTimestamp;
-import org.apache.calcite.adapter.file.temporal.UtcTimestamp;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.parquet.column.ColumnDescriptor;
@@ -345,11 +342,10 @@ public class VectorizedParquetReader implements AutoCloseable {
           LOGGER.debug("Reading TIMESTAMP from Parquet: {} for field {} (isAdjustedToUTC={})", 
                       value, fieldName, isAdjustedToUTC);
           
-          if (isAdjustedToUTC != null && isAdjustedToUTC) {
-            currentGroup.setValue(fieldIndex, new UtcTimestamp(value));
-          } else {
-            currentGroup.setValue(fieldIndex, new LocalTimestamp(value));
-          }
+          // For Parquet engine, return long values for timestamps to avoid casting issues
+          // in ORDER BY and WHERE clauses. The timestamp display formatting is handled
+          // by the result set processing.
+          currentGroup.setValue(fieldIndex, value);
         } else {
           currentGroup.setValue(fieldIndex, value);
         }

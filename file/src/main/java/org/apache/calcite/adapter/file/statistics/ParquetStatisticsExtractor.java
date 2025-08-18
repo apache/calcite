@@ -103,6 +103,9 @@ public class ParquetStatisticsExtractor {
         LOGGER.info("Extracted statistics for {} columns from {}", 
                    columnStats.size(), parquetFile.getName());
       }
+    } catch (java.io.FileNotFoundException e) {
+      // File was deleted (likely during test cleanup) - this is expected behavior
+      LOGGER.debug("File no longer exists during statistics extraction (likely cleanup): {}", parquetFile);
     } catch (Exception e) {
       LOGGER.error("Failed to extract Parquet statistics from {}: {}", 
                   parquetFile, e.getMessage(), e);

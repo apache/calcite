@@ -119,8 +119,8 @@ public class MaterializedViewParquetQueryTest {
       List<Map<String, Object>> materializations = new ArrayList<>();
 
       Map<String, Object> dailySalesMV = new HashMap<>();
-      dailySalesMV.put("view", "DAILY_SUMMARY");
-      dailySalesMV.put("table", "DAILY_SUMMARY_MV");
+      dailySalesMV.put("view", "daily_summary");
+      dailySalesMV.put("table", "daily_summary_mv");
       dailySalesMV.put("sql", "SELECT \"date\", " +
           "COUNT(*) as transaction_count, " +
           "SUM(\"quantity\") as total_quantity, " +
@@ -134,6 +134,7 @@ public class MaterializedViewParquetQueryTest {
       operand.put("directory", tempDir.toString());
       operand.put("executionEngine", "parquet");  // KEY: Using Parquet engine
       operand.put("materializations", materializations);
+      operand.put("primeCache", false);  // Disable cache priming for tests
 
       System.out.println("\n1. Creating schema with PARQUET engine and materialized view 'daily_summary'");
       SchemaPlus fileSchema =
@@ -150,7 +151,7 @@ public class MaterializedViewParquetQueryTest {
         while (tables.next()) {
           String tableName = tables.getString("TABLE_NAME");
           System.out.println("   - " + tableName);
-          if (tableName.equals("DAILY_SUMMARY")) {
+          if (tableName.equals("daily_summary")) {
             foundMV = true;
           }
         }

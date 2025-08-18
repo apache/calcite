@@ -336,7 +336,7 @@ public final class MarkdownTableScanner {
     StringBuilder fileName = new StringBuilder(baseName);
 
     if (tableTitle != null && !tableTitle.isEmpty()) {
-      fileName.append("__").append(sanitizeIdentifier(tableTitle));
+      fileName.append("__").append(ConverterUtils.sanitizeIdentifier(tableTitle));
     } else if (totalTables > 1) {
       fileName.append("__Table").append(tableIndex + 1);
     }
@@ -361,28 +361,6 @@ public final class MarkdownTableScanner {
     return result.toString();
   }
 
-  private static String sanitizeIdentifier(String identifier) {
-    // Replace non-alphanumeric characters with underscore
-    StringBuilder result = new StringBuilder();
-    for (char c : identifier.toCharArray()) {
-      if (Character.isLetterOrDigit(c) || c == '_' || c == '-') {
-        result.append(c);
-      } else {
-        result.append('_');
-      }
-    }
-
-    // Collapse multiple underscores
-    String str = result.toString();
-    while (str.contains("__")) {
-      str = str.replace("__", "_");
-    }
-
-    // Remove leading/trailing underscores
-    str = Pattern.compile("^_+|_+$").matcher(str).replaceAll("");
-
-    return str;
-  }
 
   /**
    * Container for a parsed Markdown table.

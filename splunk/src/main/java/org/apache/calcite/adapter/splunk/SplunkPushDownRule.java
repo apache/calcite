@@ -1059,10 +1059,33 @@ public class SplunkPushDownRule
   /**
    * Checks if a projection expression can be pushed down to Splunk.
    * Currently supports simple field references and simple CAST operations.
+   * Complex expressions (arithmetic, functions, CASE) must be handled by Calcite.
    */
   private static boolean canPushDownProjection(RexNode node) {
-    // Push down simple field references, slots, and simple CAST operations
-    return node instanceof RexInputRef || node instanceof RexSlot || isSimpleCast(node);
+    // Push down simple field references and slots
+    if (node instanceof RexInputRef || node instanceof RexSlot) {
+      return true;
+    }
+    
+    // Check if it's a simple CAST that we can handle
+    if (isSimpleCast(node)) {
+      RexCall call = (RexCall) node;
+      RelDataType targetType = call.getType();
+      // Only push down CAST if we can generate a Splunk expression for it
+      String dummyField = "dummy";
+      return generateSplunkCastExpression(dummyField, targetType) != null;
+    }
+    
+    // Reject all other expressions (arithmetic, CASE, functions, concatenation, etc.)
+    if (node instanceof RexCall) {
+      RexCall call = (RexCall) node;
+      SqlKind kind = call.getKind();
+      LOGGER.debug("Cannot push down complex expression of kind: {}", kind);
+      return false;
+    }
+    
+    // Default: don't push down unknown node types
+    return false;
   }
 
   /**

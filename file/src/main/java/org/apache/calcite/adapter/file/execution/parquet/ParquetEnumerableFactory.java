@@ -19,8 +19,6 @@ package org.apache.calcite.adapter.file.execution.parquet;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
-import org.apache.calcite.adapter.file.temporal.LocalTimestamp;
-import org.apache.calcite.adapter.file.temporal.UtcTimestamp;
 
 import org.apache.avro.LogicalType;
 import org.apache.avro.Schema;
@@ -239,15 +237,10 @@ public class ParquetEnumerableFactory {
                 long milliseconds = (Long) value;
                 String fieldName = field.name();
                 
-                // Check if this timestamp field is adjusted to UTC
-                Boolean isAdjustedToUTC = timestampAdjustedMap.get(fieldName);
-                if (isAdjustedToUTC != null && isAdjustedToUTC) {
-                  // Use UtcTimestamp for timezone-aware timestamps
-                  value = new UtcTimestamp(milliseconds);
-                } else {
-                  // Use LocalTimestamp for timezone-naive timestamps
-                  value = new LocalTimestamp(milliseconds);
-                }
+                // For Parquet engine, return long values for timestamps to avoid casting issues
+                // in ORDER BY and WHERE clauses. The timestamp display formatting is handled
+                // by the result set processing.
+                value = milliseconds;
               } else if (value == null) {
                 // Handle null timestamps
                 value = null;
@@ -404,15 +397,10 @@ public class ParquetEnumerableFactory {
                   long milliseconds = (Long) value;
                   String fieldName = field.name();
                   
-                  // Check if this timestamp field is adjusted to UTC
-                  Boolean isAdjustedToUTC = timestampAdjustedMap.get(fieldName);
-                  if (isAdjustedToUTC != null && isAdjustedToUTC) {
-                    // Use UtcTimestamp for timezone-aware timestamps
-                    value = new UtcTimestamp(milliseconds);
-                  } else {
-                    // Use LocalTimestamp for timezone-naive timestamps
-                    value = new LocalTimestamp(milliseconds);
-                  }
+                  // For Parquet engine, return long values for timestamps to avoid casting issues
+                  // in ORDER BY and WHERE clauses. The timestamp display formatting is handled
+                  // by the result set processing.
+                  value = milliseconds;
                 } else if (value == null) {
                   value = null;
                 }
@@ -575,15 +563,10 @@ public class ParquetEnumerableFactory {
                   long milliseconds = (Long) value;
                   String fieldName = field.name();
                   
-                  // Check if this timestamp field is adjusted to UTC
-                  Boolean isAdjustedToUTC = timestampAdjustedMap.get(fieldName);
-                  if (isAdjustedToUTC != null && isAdjustedToUTC) {
-                    // Use UtcTimestamp for timezone-aware timestamps
-                    value = new UtcTimestamp(milliseconds);
-                  } else {
-                    // Use LocalTimestamp for timezone-naive timestamps
-                    value = new LocalTimestamp(milliseconds);
-                  }
+                  // For Parquet engine, return long values for timestamps to avoid casting issues
+                  // in ORDER BY and WHERE clauses. The timestamp display formatting is handled
+                  // by the result set processing.
+                  value = milliseconds;
                 }
               }
             } else if (value != null && value.getClass().getName().equals("org.apache.avro.util.Utf8")) {

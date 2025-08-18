@@ -105,16 +105,16 @@
         ]
       }, {
         // Historic snapshot of "states" page, to ensure test stability.
-        "name": "States_as_of",
+        "name": "states_as_of",
         "url": "https://en.wikipedia.org/w/index.php?title=List_of_states_and_territories_of_the_United_States&oldid=713721917",
         "selector": "#mw-content-text table.wikitable.sortable",
         "index": 0,
         "fields": [
-          {"th": "State", "selector": "a", "selectedElement": 0},
+          {"th": "State", "name": "state", "selector": "a", "selectedElement": 0},
           {"th": "Capital"},
           {"th": "Abbr.", "name": "Abbreviation"},
           {"th": "Largest city[A][10]", "name": "Largest City"},
-          {"th": "Statehood[B]", "name": "Statehood", "type": "Date"},
+          {"th": "Statehood[B]", "name": "statehood", "type": "Date"},
           {"th": "Population (2013 est)[11]", "name": "Population", "type": "double"},
           {"th": "Total area in mi2 (km2)[C][12]", "name": "Total Area", "type": "double"},
           {"th": "Land area in mi2 (km2)[C][12]", "name": "Land Area", "type": "double"},

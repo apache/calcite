@@ -193,10 +193,9 @@ public final class ConverterUtils {
 
     String str = result.toString();
     
-    // Collapse multiple underscores
-    while (str.contains("__")) {
-      str = str.replace("__", "_");
-    }
+    // Collapse multiple underscores (3 or more) but preserve double underscores for hierarchy
+    // Replace 3+ underscores with double underscore (preserving hierarchy separator)
+    str = str.replaceAll("_{3,}", "__");
 
     // Remove leading/trailing underscores
     str = str.replaceAll("^_+|_+$", "");

@@ -493,7 +493,7 @@ public class RefreshableTableTest {
 
     // Configure custom regex partitioned table
     Map<String, Object> partitionConfig = new HashMap<>();
-    partitionConfig.put("name", "SALES_CUSTOM");
+    partitionConfig.put("name", "sales_custom");
     partitionConfig.put("pattern", "sales_data/sales_*.parquet");
 
     // Custom regex partition configuration

@@ -305,7 +305,7 @@ public final class DocxTableScanner {
       // Simple case: single header row - convert to lowercase
       List<String> lowercaseHeaders = new ArrayList<>();
       for (String header : headerRows.get(0)) {
-        lowercaseHeaders.add(header.toLowerCase().replaceAll("[^a-z0-9_]", "_"));
+        lowercaseHeaders.add(ConverterUtils.sanitizeIdentifier(header.toLowerCase()));
       }
       return lowercaseHeaders;
     }
@@ -356,7 +356,7 @@ public final class DocxTableScanner {
         header = prefix + "_" + header;
       }
       // Convert to lowercase and sanitize for use as column name
-      header = header.toLowerCase().replaceAll("[^a-z0-9_]", "_");
+      header = ConverterUtils.sanitizeIdentifier(header.toLowerCase());
       combinedHeaders.add(header);
     }
 
@@ -411,7 +411,7 @@ public final class DocxTableScanner {
     StringBuilder fileName = new StringBuilder(baseName);
 
     if (tableTitle != null && !tableTitle.isEmpty()) {
-      fileName.append("__").append(sanitizeIdentifier(tableTitle).toLowerCase());
+      fileName.append("__").append(ConverterUtils.sanitizeIdentifier(tableTitle).toLowerCase());
     } else if (totalTables > 1) {
       fileName.append("__table").append(tableIndex + 1);
     }
@@ -436,28 +436,6 @@ public final class DocxTableScanner {
     return result.toString();
   }
 
-  private static String sanitizeIdentifier(String identifier) {
-    // Replace non-alphanumeric characters with underscore
-    StringBuilder result = new StringBuilder();
-    for (char c : identifier.toCharArray()) {
-      if (Character.isLetterOrDigit(c) || c == '_' || c == '-') {
-        result.append(c);
-      } else {
-        result.append('_');
-      }
-    }
-
-    // Collapse multiple underscores
-    String str = result.toString();
-    while (str.contains("__")) {
-      str = str.replace("__", "_");
-    }
-
-    // Remove leading/trailing underscores
-    str = Pattern.compile("^_+|_+$").matcher(str).replaceAll("");
-
-    return str;
-  }
 
   /**
    * Container for a parsed DOCX table.

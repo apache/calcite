@@ -397,7 +397,7 @@ public final class MultiTableExcelToJsonConverter {
         if (cell != null && cell.getCellType() != CellType.BLANK) {
           String header = getCellValue(cell, evaluator);
           // Convert to lowercase and sanitize for use as column name
-          header = SmartCasing.applyCasing(header, columnNameCasing);
+          header = ConverterUtils.sanitizeIdentifier(SmartCasing.applyCasing(header, columnNameCasing));
           headers.put(col, header);
         }
       }
@@ -469,7 +469,7 @@ public final class MultiTableExcelToJsonConverter {
         }
         if (!header.isEmpty()) {
           // Convert to lowercase and sanitize for use as column name
-          header = SmartCasing.applyCasing(header, columnNameCasing);
+          header = ConverterUtils.sanitizeIdentifier(SmartCasing.applyCasing(header, columnNameCasing));
           headers.put(col, header);
         }
       }
@@ -703,9 +703,6 @@ public final class MultiTableExcelToJsonConverter {
     }
   }
 
-  private static String sanitizeIdentifier(String identifier) {
-    return ConverterUtils.sanitizeIdentifier(identifier);
-  }
 
   /**
    * Represents a detected table region within a sheet.

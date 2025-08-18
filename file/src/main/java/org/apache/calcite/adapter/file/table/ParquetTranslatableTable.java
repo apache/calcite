@@ -27,8 +27,6 @@ import org.apache.calcite.adapter.file.statistics.StatisticsProvider;
 import org.apache.calcite.adapter.file.statistics.StatisticsBuilder;
 import org.apache.calcite.adapter.file.statistics.TableStatistics;
 import org.apache.calcite.adapter.file.statistics.ColumnStatistics;
-import org.apache.calcite.adapter.file.temporal.LocalTimestamp;
-import org.apache.calcite.adapter.file.temporal.UtcTimestamp;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
@@ -409,9 +407,11 @@ public class ParquetTranslatableTable extends AbstractTable implements Translata
                   long milliseconds = (Long) value;
                   LOGGER.debug("ParquetTranslatableTable READ: field={}, raw milliseconds={}", 
                       field.name(), milliseconds);
-                  value = new LocalTimestamp(milliseconds);
-                  LOGGER.debug("ParquetTranslatableTable: Created LocalTimestamp, getTime()={}", 
-                      ((LocalTimestamp)value).getTime());
+                  // For Parquet engine, return long values for timestamps to avoid casting issues
+                  // in ORDER BY and WHERE clauses. The timestamp display formatting is handled
+                  // by the result set processing.
+                  value = milliseconds;
+                  LOGGER.debug("ParquetTranslatableTable: Keeping timestamp as long={}", milliseconds);
                 }
               }
             } else if (value != null && value.getClass().getName().equals("org.apache.avro.util.Utf8")) {
