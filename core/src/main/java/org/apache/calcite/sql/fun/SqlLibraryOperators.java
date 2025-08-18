@@ -3909,6 +3909,15 @@ public abstract class SqlLibraryOperators {
           OperandTypes.NILADIC,
           SqlFunctionCategory.SYSTEM);
 
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlFunction SESSION =
+      new SqlFunction("SESSION",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER,
+          null,
+          OperandTypes.NILADIC,
+          SqlFunctionCategory.SYSTEM);
+
   /** The "ISNULL(value, value)" function. */
   @LibraryOperator(libraries = {MSSQL})
   public static final SqlFunction ISNULL =

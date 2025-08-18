@@ -5912,6 +5912,17 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }
 
+  @Test public void testSession() {
+    final RelBuilder builder = relBuilder();
+    builder.push(LogicalValues.createOneRow(builder.getCluster()))
+        .project(builder.alias(builder.call(SqlLibraryOperators.SESSION), "EXPR$"));
+    final RelNode root = builder.build();
+    final String expectedTDQuery =
+        "SELECT SESSION()";
+
+    assertThat(toSql(root, DatabaseProduct.TERADATA.getDialect()), isLinux(expectedTDQuery));
+  }
+
   @Test public void testParseTimestampFunctionFormat() {
     final RelBuilder builder = relBuilder();
     final RexNode parseTSNode1 =
