@@ -406,6 +406,31 @@ class RelToSqlConverterDMTest {
     sql(query).withBigQuery().ok(expected);
   }
 
+  @Test void testAmbigiousColumn1() {
+    String query = "SELECT \n"
+        + " a.\"full_name\",\n"
+        + " re.\"employee_id\"\n"
+        + "FROM \"employee\" a\n"
+        + "LEFT OUTER JOIN \"reserve_employee\" re\n"
+        + "  ON a.\"employee_id\" = re.\"employee_id\"\n"
+        + "   AND (\n"
+        + "    SELECT \"hire_date\" FROM \"employee\" WHERE \"employee_id\" = 100\n"
+        + "  ) BETWEEN re.\"hire_date\" AND re.\"birth_date\"\n"
+        + "INNER JOIN \"department\" d\n"
+        + "  ON a.\"department_id\" = d.\"department_id\"\n";
+    final String expected = "SELECT employee.full_name, reserve_employee.employee_id\n"
+        + "FROM foodmart.employee\n"
+        + "LEFT JOIN foodmart.reserve_employee ON employee.employee_id = reserve_employee.employee_id "
+        + "AND (SELECT hire_date\n"
+        + "FROM foodmart.employee\n"
+        + "WHERE employee_id = 100) >= reserve_employee.hire_date "
+        + "AND (SELECT hire_date\n"
+        + "FROM foodmart.employee\n"
+        + "WHERE employee_id = 100) <= reserve_employee.birth_date\n"
+        + "INNER JOIN foodmart.department ON employee.department_id = department.department_id";
+    sql(query).withBigQuery().ok(expected);
+  }
+
   @Test void testPivotToSqlFromProductTable() {
     String query = "select * from (\n"
         + "  select \"shelf_width\", \"net_weight\", \"product_id\"\n"
