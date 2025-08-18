@@ -586,8 +586,8 @@ public class CsvEnumerator<E> implements Enumerator<E> {
           for (String format : localFormats) {
             try {
               SimpleDateFormat sdf = new SimpleDateFormat(format);
-              // Parse as UTC to get consistent milliseconds for wall-clock time
-              // TIMESTAMP WITHOUT TIME ZONE should represent the same wall-clock time everywhere
+              // Parse as UTC to get the correct milliseconds for JDBC
+              // TIMESTAMP WITHOUT TIME ZONE should be stored as if it were UTC
               sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
               sdf.setLenient(false); // Strict parsing
               Date date = sdf.parse(string);
@@ -598,7 +598,8 @@ public class CsvEnumerator<E> implements Enumerator<E> {
             }
           }
 
-          // Last resort: try the standard format (also use UTC)
+          // Last resort: try the standard format
+          // Parse as UTC - TIMESTAMP WITHOUT TIME ZONE should store UTC time
           SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
           sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
           Date date = sdf.parse(string);

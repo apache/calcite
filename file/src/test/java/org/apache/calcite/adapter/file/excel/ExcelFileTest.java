@@ -50,7 +50,7 @@ public class ExcelFileTest {
 
     // Create FileSchema pointing to the temp directory with engine configuration if set
     String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
-    ExecutionEngineConfig engineConfig = null;
+    ExecutionEngineConfig engineConfig = new ExecutionEngineConfig();
     if (engineType != null && !engineType.isEmpty()) {
       engineConfig = new ExecutionEngineConfig(engineType, ExecutionEngineConfig.DEFAULT_BATCH_SIZE);
     }
@@ -61,19 +61,19 @@ public class ExcelFileTest {
     // Get table map which should trigger Excel conversion
     Map<String, Table> tables = schema.getTableMap();
 
-    // Verify that JSON files were created for each sheet
-    File sheet1Json = new File(tempDir.toFile(), "TestData__Sheet1.json");
-    File sheet2Json = new File(tempDir.toFile(), "TestData__Orders.json");
+    // Verify that JSON files were created for each sheet (SMART_CASING makes them snake_case)
+    File sheet1Json = new File(tempDir.toFile(), "test_data__sheet1.json");
+    File sheet2Json = new File(tempDir.toFile(), "test_data__orders.json");
 
     assertTrue(sheet1Json.exists(), "Sheet1 JSON file should exist");
     assertTrue(sheet2Json.exists(), "Orders JSON file should exist");
 
-    // Verify that tables were created for the converted files
-    assertNotNull(tables.get("TESTDATA__SHEET1"), "Should have table for Sheet1");
-    assertNotNull(tables.get("TESTDATA__ORDERS"), "Should have table for Orders");
+    // Verify that tables were created for the converted files (SMART_CASING makes them snake_case)
+    assertNotNull(tables.get("test_data__sheet1"), "Should have table for Sheet1");
+    assertNotNull(tables.get("test_data__orders"), "Should have table for Orders");
 
     // Verify we can query the tables
-    Table sheet1Table = tables.get("TESTDATA__SHEET1");
+    Table sheet1Table = tables.get("test_data__sheet1");
     assertNotNull(sheet1Table, "Sheet1 table should exist");
   }
 
@@ -98,9 +98,9 @@ public class ExcelFileTest {
 
     Map<String, Table> tables = schema.getTableMap();
 
-    // Verify tables are created with correct names including subdirectory
-    assertNotNull(tables.get("DATA_SALES__SHEET1"), "Should have table for data/Sales__Sheet1");
-    assertNotNull(tables.get("DATA_SALES__ORDERS"), "Should have table for data/Sales__Orders");
+    // Verify tables are created with correct names including subdirectory (SMART_CASING makes them snake_case)
+    assertNotNull(tables.get("data_sales__sheet1"), "Should have table for data/Sales__Sheet1");
+    assertNotNull(tables.get("data_sales__orders"), "Should have table for data/Sales__Orders");
   }
 
   @Test public void testExcelFileDirectoryProcessing(@TempDir Path tempDir) throws IOException {
@@ -110,7 +110,7 @@ public class ExcelFileTest {
 
     // Use directory-based schema with engine configuration if set
     String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
-    ExecutionEngineConfig engineConfig = null;
+    ExecutionEngineConfig engineConfig = new ExecutionEngineConfig();
     if (engineType != null && !engineType.isEmpty()) {
       engineConfig = new ExecutionEngineConfig(engineType, ExecutionEngineConfig.DEFAULT_BATCH_SIZE);
     }
@@ -119,10 +119,10 @@ public class ExcelFileTest {
         com.google.common.collect.ImmutableList.of(), engineConfig);
     Map<String, Table> tableMap = schema.getTableMap();
 
-    // After processing, the Excel file should be converted and tables created with proper names
+    // After processing, the Excel file should be converted and tables created with proper names (SMART_CASING makes them snake_case)
     // Verify we have the expected tables (Excel sheets become separate tables)
-    assertNotNull(tableMap.get("DIRECTTEST__SHEET1"), "Should have converted Sheet1 table");
-    assertNotNull(tableMap.get("DIRECTTEST__ORDERS"), "Should have converted Orders table");
+    assertNotNull(tableMap.get("direct_test__sheet1"), "Should have converted Sheet1 table");
+    assertNotNull(tableMap.get("direct_test__orders"), "Should have converted Orders table");
   }
 
   private void createTestExcelFile(File file) throws IOException {

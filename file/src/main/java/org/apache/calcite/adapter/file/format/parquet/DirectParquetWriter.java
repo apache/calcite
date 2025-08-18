@@ -164,9 +164,9 @@ public class DirectParquetWriter {
             .named(name);
 
       case java.sql.Types.TIMESTAMP:
-        // Timezone-naive timestamp - isAdjustedToUTC = false
+        // Timezone-naive timestamp - isAdjustedToUTC = true
         return org.apache.parquet.schema.Types.primitive(INT64, repetition)
-            .as(LogicalTypeAnnotation.timestampType(false, LogicalTypeAnnotation.TimeUnit.MILLIS))
+            .as(LogicalTypeAnnotation.timestampType(true, LogicalTypeAnnotation.TimeUnit.MILLIS))
             .named(name);
 
       case java.sql.Types.TIMESTAMP_WITH_TIMEZONE:

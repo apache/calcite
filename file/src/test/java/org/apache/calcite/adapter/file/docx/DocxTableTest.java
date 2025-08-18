@@ -296,12 +296,12 @@ public class DocxTableTest {
     Map<String, Table> tables = schema.getTableMap();
 
     // Tables should be created from the generated JSON files
-    assertTrue(tables.containsKey("PRODUCTS__CURRENT_PRODUCTS"),
-        "Should have PRODUCTS__CURRENT_PRODUCTS table");
-    assertTrue(tables.containsKey("QUARTERLY_REPORT__REGIONAL_SALES_SUMMARY"),
-        "Should have QUARTERLY_REPORT__REGIONAL_SALES_SUMMARY table");
-    assertTrue(tables.containsKey("QUARTERLY_REPORT__EMPLOYEE_PERFORMANCE"),
-        "Should have QUARTERLY_REPORT__EMPLOYEE_PERFORMANCE table");
+    assertTrue(tables.containsKey("products__current_products"),
+        "Should have products__current_products table");
+    assertTrue(tables.containsKey("quarterly_report__regional_sales_summary"),
+        "Should have quarterly_report__regional_sales_summary table");
+    assertTrue(tables.containsKey("quarterly_report__employee_performance"),
+        "Should have quarterly_report__employee_performance table");
   }
 
   @Test public void testDocxTableQuery() throws Exception {
@@ -314,7 +314,7 @@ public class DocxTableTest {
     CalciteAssert.that()
         .with(CalciteAssert.Config.REGULAR)
         .withSchema("docx", new FileSchema(null, "TEST", tempDir.toFile(), null, null, new ExecutionEngineConfig(), false, null, null, null, null))
-        .query("SELECT * FROM \"docx\".PRODUCTS__CURRENT_PRODUCTS WHERE CAST(\"price\" AS DECIMAL) >= 15.75")
+        .query("SELECT * FROM \"docx\".\"products__current_products\" WHERE CAST(\"price\" AS DECIMAL) >= 15.75")
         .returnsCount(2); // Gadget (25.50) and Tool (15.75) have prices >= 15.75
   }
 

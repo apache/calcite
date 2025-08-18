@@ -288,7 +288,13 @@ public class ParquetScannableTable extends AbstractTable implements ScannableTab
         int fieldCount = current.getSchema().getFields().size();
         currentRow = new Object[fieldCount];
         for (int i = 0; i < fieldCount; i++) {
-          currentRow[i] = current.get(i);
+          Object value = current.get(i);
+          String fieldName = current.getSchema().getFields().get(i).name();
+          if (fieldName.contains("time") && value != null) {
+            LOGGER.debug("ParquetScannableTable READ: field={}, value={}, type={}", 
+                fieldName, value, value.getClass().getName());
+          }
+          currentRow[i] = value;
         }
 
         return true;

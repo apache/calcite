@@ -91,32 +91,31 @@ public class CachePrimer {
     }
     
     public void printSummary() {
-      System.out.println("\n=== Cache Priming Summary ===");
-      System.out.println("Total tables: " + totalTables);
-      System.out.println("Successfully primed: " + successfullyPrimed);
-      System.out.println("Failed: " + failed);
-      System.out.println("Total time: " + totalTimeMs + " ms");
-      System.out.println("Total data processed: " + 
-          String.format("%.2f MB", totalBytesProcessed / (1024.0 * 1024.0)));
+      LOGGER.info("\n=== Cache Priming Summary ===");
+      LOGGER.info("Total tables: {}", totalTables);
+      LOGGER.info("Successfully primed: {}", successfullyPrimed);
+      LOGGER.info("Failed: {}", failed);
+      LOGGER.info("Total time: {} ms", totalTimeMs);
+      LOGGER.info("Total data processed: {} MB", 
+          String.format("%.2f", totalBytesProcessed / (1024.0 * 1024.0)));
       
       if (successfullyPrimed > 0) {
-        System.out.println("Average time per table: " + 
-            (totalTimeMs / successfullyPrimed) + " ms");
+        LOGGER.info("Average time per table: {} ms", 
+            totalTimeMs / successfullyPrimed);
       }
       
       if (!failures.isEmpty()) {
-        System.out.println("\nFailed tables:");
-        failures.forEach(f -> System.out.println("  - " + f));
+        LOGGER.info("\nFailed tables:");
+        failures.forEach(f -> LOGGER.info("  - {}", f));
       }
       
       // Show slowest tables
       if (!tableTimings.isEmpty()) {
-        System.out.println("\nSlowest tables to prime:");
+        LOGGER.info("\nSlowest tables to prime:");
         tableTimings.entrySet().stream()
             .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
             .limit(5)
-            .forEach(e -> System.out.println(
-                String.format("  - %s: %d ms", e.getKey(), e.getValue())));
+            .forEach(e -> LOGGER.info("  - {}: {} ms", e.getKey(), e.getValue()));
       }
     }
   }

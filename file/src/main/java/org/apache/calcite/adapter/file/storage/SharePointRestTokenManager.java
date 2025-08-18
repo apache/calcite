@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.adapter.file.storage;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -28,6 +31,7 @@ import java.util.Map;
  * Uses SharePoint-specific scopes instead of Microsoft Graph scopes.
  */
 public class SharePointRestTokenManager extends SharePointTokenManager {
+  private static final Logger LOGGER = LoggerFactory.getLogger(SharePointRestTokenManager.class);
 
   /**
    * Creates a token manager for client credentials flow (app-only) with SharePoint REST API.
@@ -66,10 +70,10 @@ public class SharePointRestTokenManager extends SharePointTokenManager {
     // Format: https://{sharepoint-domain}/.default
     String scope = String.format(Locale.ROOT, "https://%s/.default", sharePointDomain);
     
-    System.out.println("SharePoint REST API Token Request:");
-    System.out.println("  Token URL: " + tokenUrl);
-    System.out.println("  Scope: " + scope);
-    System.out.println("  Client ID: " + super.clientId);
+    LOGGER.debug("SharePoint REST API Token Request:");
+    LOGGER.debug("  Token URL: {}", tokenUrl);
+    LOGGER.debug("  Scope: {}", scope);
+    LOGGER.debug("  Client ID: {}", super.clientId);
 
     // Build request body
     String requestBody =
@@ -79,7 +83,7 @@ public class SharePointRestTokenManager extends SharePointTokenManager {
         URLEncoder.encode(scope, StandardCharsets.UTF_8));
 
     Map<String, Object> response = makeTokenRequest(tokenUrl, requestBody);
-    System.out.println("  Token acquired successfully");
+    LOGGER.debug("  Token acquired successfully");
     updateTokenFromResponse(response);
   }
 

@@ -354,15 +354,15 @@ public class PptxTableTest {
     // Check that tables are accessible
     Map<String, Table> tables = schema.getTableMap();
 
-    // Tables should be created from the generated JSON files (uppercase table names in schema)
+    // Tables should be created from the generated JSON files (snake_case table names with SMART_CASING)
     // Note: Indices are only added when there are duplicate names
-    assertTrue(tables.containsKey("SALES_PRESENTATION__Q4_SALES_RESULTS__REGIONAL_PERFORMANCE"),
+    assertTrue(tables.containsKey("sales_presentation__q4_sales_results__regional_performance"),
         "Should have sales presentation table");
-    assertTrue(tables.containsKey("COMPANY_OVERVIEW__FINANCIAL_OVERVIEW__REVENUE_BY_QUARTER"),
+    assertTrue(tables.containsKey("company_overview__financial_overview__revenue_by_quarter"),
         "Should have revenue table");
-    assertTrue(tables.containsKey("COMPANY_OVERVIEW__FINANCIAL_OVERVIEW__OPERATING_EXPENSES"),
+    assertTrue(tables.containsKey("company_overview__financial_overview__operating_expenses"),
         "Should have expense table");
-    assertTrue(tables.containsKey("COMPANY_OVERVIEW__TEAM_STRUCTURE__DEPARTMENT_HEADCOUNT"),
+    assertTrue(tables.containsKey("company_overview__team_structure__department_headcount"),
         "Should have department table");
   }
 
@@ -377,7 +377,7 @@ public class PptxTableTest {
         .with(CalciteAssert.Config.REGULAR)
         .withSchema("pptx", new FileSchema(null, "TEST", tempDir.toFile(), null, null,
             new ExecutionEngineConfig(), false, null, null, null, null))
-        .query("SELECT * FROM \"pptx\".\"SALES_PRESENTATION__Q4_SALES_RESULTS__REGIONAL_PERFORMANCE\" " +
+        .query("SELECT * FROM \"pptx\".\"sales_presentation__q4_sales_results__regional_performance\" " +
                "WHERE CAST(\"sales\" AS INTEGER) > 100000")
         .returnsCount(2); // North (120000) and East (145000) have sales > 100000
   }
@@ -466,11 +466,11 @@ public class PptxTableTest {
     FileSchema schema = new FileSchema(null, "TEST", tempDir.toFile(), null, null,
         new ExecutionEngineConfig(), false, null, null, null, null);
 
-    // Test querying with the complex names (now lowercase columns, uppercase table names in schema)
+    // Test querying with the complex names (now lowercase columns, snake_case table names with SMART_CASING)
     CalciteAssert.that()
         .with(CalciteAssert.Config.REGULAR)
         .withSchema("pptx", schema)
-        .query("SELECT * FROM \"pptx\".\"COMPANY_OVERVIEW__FINANCIAL_OVERVIEW__REVENUE_BY_QUARTER\" " +
+        .query("SELECT * FROM \"pptx\".\"company_overview__financial_overview__revenue_by_quarter\" " +
                "WHERE \"quarter\" = 'Q1'")
         .returnsCount(1)
         .returns("quarter=Q1; revenue=500000\n");
@@ -478,7 +478,7 @@ public class PptxTableTest {
     CalciteAssert.that()
         .with(CalciteAssert.Config.REGULAR)
         .withSchema("pptx", schema)
-        .query("SELECT * FROM \"pptx\".\"COMPANY_OVERVIEW__FINANCIAL_OVERVIEW__OPERATING_EXPENSES\" " +
+        .query("SELECT * FROM \"pptx\".\"company_overview__financial_overview__operating_expenses\" " +
                "WHERE \"category\" = 'Salaries'")
         .returnsCount(1)
         .returns("category=Salaries; amount=200000\n");
@@ -486,7 +486,7 @@ public class PptxTableTest {
     CalciteAssert.that()
         .with(CalciteAssert.Config.REGULAR)
         .withSchema("pptx", schema)
-        .query("SELECT * FROM \"pptx\".\"COMPANY_OVERVIEW__TEAM_STRUCTURE__DEPARTMENT_HEADCOUNT\" " +
+        .query("SELECT * FROM \"pptx\".\"company_overview__team_structure__department_headcount\" " +
                "WHERE \"department\" = 'Engineering'")
         .returnsCount(1)
         .returns("department=Engineering; employees=25; manager=Alice\n");

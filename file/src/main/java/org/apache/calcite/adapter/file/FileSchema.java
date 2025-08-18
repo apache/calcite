@@ -189,8 +189,8 @@ public class FileSchema extends AbstractSchema {
     LOGGER.info("FileSchema constructor: refreshInterval set to '{}'", refreshInterval);
     this.parentSchema = parentSchema;
     this.name = name;
-    this.tableNameCasing = tableNameCasing;
-    this.columnNameCasing = columnNameCasing;
+    this.tableNameCasing = tableNameCasing != null ? tableNameCasing : "SMART_CASING";
+    this.columnNameCasing = columnNameCasing != null ? columnNameCasing : "SMART_CASING";
     this.storageType = storageType;
     this.storageConfig = storageConfig;
     this.flatten = flatten;
@@ -369,8 +369,8 @@ public class FileSchema extends AbstractSchema {
     LOGGER.info("FileSchema constructor: refreshInterval set to '{}'", refreshInterval);
     this.parentSchema = parentSchema;
     this.name = name;
-    this.tableNameCasing = tableNameCasing;
-    this.columnNameCasing = columnNameCasing;
+    this.tableNameCasing = tableNameCasing != null ? tableNameCasing : "SMART_CASING";
+    this.columnNameCasing = columnNameCasing != null ? columnNameCasing : "SMART_CASING";
     this.storageType = null;
     this.storageConfig = null;
     this.storageProvider = null;
@@ -381,7 +381,7 @@ public class FileSchema extends AbstractSchema {
 
   /**
    * Creates a file schema with all features including partitioned tables and refresh support.
-   * Uses default casing (UPPER for tables, UNCHANGED for columns).
+   * Uses default casing (SMART_CASING for both tables and columns).
    *
    * @param parentSchema    Parent schema
    * @param name            Schema name
@@ -403,7 +403,7 @@ public class FileSchema extends AbstractSchema {
       @Nullable List<Map<String, Object>> partitionedTables,
       @Nullable String refreshInterval) {
     this(parentSchema, name, baseDirectory, directoryPattern, tables, engineConfig, recursive,
-        materializations, views, partitionedTables, refreshInterval, "UPPER", "UNCHANGED");
+        materializations, views, partitionedTables, refreshInterval, "SMART_CASING", "SMART_CASING");
   }
 
   /**
@@ -521,7 +521,7 @@ public class FileSchema extends AbstractSchema {
           // If it's a file ending in .xlsx, convert it
           try {
             // Always extract all sheets from Excel files
-            SafeExcelToJsonConverter.convertIfNeeded(file, true);
+            SafeExcelToJsonConverter.convertIfNeeded(file, true, tableNameCasing, columnNameCasing);
           } catch (Exception e) {
             e.printStackTrace();
             LOGGER.debug("!");
@@ -1519,7 +1519,7 @@ public class FileSchema extends AbstractSchema {
       try {
         java.io.File file = new java.io.File(source.path());
         // Always extract all sheets from Excel files
-        SafeExcelToJsonConverter.convertIfNeeded(file, true);
+        SafeExcelToJsonConverter.convertIfNeeded(file, true, tableNameCasing, columnNameCasing);
         // Return false to let directory scanning pick up the converted JSON files
         return false;
       } catch (Exception e) {

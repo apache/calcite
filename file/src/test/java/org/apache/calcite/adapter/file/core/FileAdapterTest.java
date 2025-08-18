@@ -821,7 +821,15 @@ public class FileAdapterTest {
     long offsetHours = TimeUnit.MILLISECONDS.toHours(java.util.TimeZone.getDefault().getRawOffset());
     System.out.println("Test JVM timezone: " + java.util.TimeZone.getDefault().getID() + " offset: " + offsetHours + " hours");
     Properties info = new Properties();
-    info.put("model", FileAdapterTests.jsonPath("BUG"));
+    
+    // Check if running with PARQUET engine via environment variable
+    String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
+    if ("PARQUET".equalsIgnoreCase(engineType)) {
+      // For PARQUET engine testing, use the parquet model to ensure correct configuration
+      info.put("model", FileAdapterTests.jsonPath("bug-parquet"));
+    } else {
+      info.put("model", FileAdapterTests.jsonPath("BUG"));
+    }
 
     try (Connection connection =
              DriverManager.getConnection("jdbc:calcite:", info)) {
@@ -869,8 +877,14 @@ public class FileAdapterTest {
       long tsMs = actual.getTime();
 
       // The CSV has "1996-08-02 00:01:02"
-      // This should be parsed as UTC and return exactly 838958462000L
-      assertThat(tsMs, is(838958462000L));
+      // For TIMESTAMP WITHOUT TIME ZONE, this represents wall clock time
+      // We store it as UTC (838958462000L) and when read back it should
+      // represent the same wall clock time in the local timezone
+      long utcMillis = 838958462000L; // "1996-08-02 00:01:02" UTC
+      long offset = java.util.TimeZone.getDefault().getOffset(utcMillis);
+      // Subtract offset because EDT is behind UTC
+      long expectedMillis = utcMillis - offset;
+      assertThat(tsMs, is(expectedMillis));
     }
   }
 

@@ -64,7 +64,7 @@ public class MaterializedViewQueryTest {
   @Test public void testQueryMaterializedViews() throws Exception {
     System.out.println("\n=== QUERYING MATERIALIZED VIEWS TEST ===");
 
-    try (Connection connection = DriverManager.getConnection("jdbc:calcite:");
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:lex=ORACLE;unquotedCasing=TO_LOWER");
          CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
 
       SchemaPlus rootSchema = calciteConnection.getRootSchema();

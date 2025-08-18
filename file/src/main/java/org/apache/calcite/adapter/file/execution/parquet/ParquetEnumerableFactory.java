@@ -241,15 +241,12 @@ public class ParquetEnumerableFactory {
                 
                 // Check if this timestamp field is adjusted to UTC
                 Boolean isAdjustedToUTC = timestampAdjustedMap.get(fieldName);
-                System.err.println("ParquetEnumerableFactory: field=" + fieldName + 
-                    ", milliseconds=" + milliseconds + ", isAdjustedToUTC=" + isAdjustedToUTC);
                 if (isAdjustedToUTC != null && isAdjustedToUTC) {
                   // Use UtcTimestamp for timezone-aware timestamps
                   value = new UtcTimestamp(milliseconds);
                 } else {
                   // Use LocalTimestamp for timezone-naive timestamps
                   value = new LocalTimestamp(milliseconds);
-                  System.err.println("Created LocalTimestamp with " + milliseconds + " ms");
                 }
               } else if (value == null) {
                 // Handle null timestamps

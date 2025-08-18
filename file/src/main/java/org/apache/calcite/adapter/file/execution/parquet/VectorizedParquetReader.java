@@ -342,6 +342,9 @@ public class VectorizedParquetReader implements AutoCloseable {
           String fieldName = fieldType.getName();
           Boolean isAdjustedToUTC = timestampAdjustedMap.get(fieldName);
           
+          LOGGER.debug("Reading TIMESTAMP from Parquet: {} for field {} (isAdjustedToUTC={})", 
+                      value, fieldName, isAdjustedToUTC);
+          
           if (isAdjustedToUTC != null && isAdjustedToUTC) {
             currentGroup.setValue(fieldIndex, new UtcTimestamp(value));
           } else {

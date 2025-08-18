@@ -18,6 +18,9 @@ package org.apache.calcite.adapter.file.storage;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
@@ -37,6 +40,7 @@ import java.util.Map;
  * not through Azure AD portal, to use this authentication method.
  */
 public class SharePointLegacyTokenManager extends SharePointTokenManager {
+  private static final Logger LOGGER = LoggerFactory.getLogger(SharePointLegacyTokenManager.class);
   
   private final ObjectMapper mapper = new ObjectMapper();
   private final String realm;
@@ -94,10 +98,10 @@ public class SharePointLegacyTokenManager extends SharePointTokenManager {
         URLEncoder.encode(clientSecret, StandardCharsets.UTF_8),
         URLEncoder.encode(sharePointResource, StandardCharsets.UTF_8));
     
-    System.out.println("SharePoint Legacy Authentication:");
-    System.out.println("  Token URL: " + tokenUrl);
-    System.out.println("  Client ID: " + formattedClientId);
-    System.out.println("  Resource: " + sharePointResource);
+    LOGGER.debug("SharePoint Legacy Authentication:");
+    LOGGER.debug("  Token URL: {}", tokenUrl);
+    LOGGER.debug("  Client ID: {}", formattedClientId);
+    LOGGER.debug("  Resource: {}", sharePointResource);
     
     // Make token request
     Map<String, Object> response = makeLegacyTokenRequest(tokenUrl, requestBody);
@@ -118,7 +122,7 @@ public class SharePointLegacyTokenManager extends SharePointTokenManager {
       }
       this.tokenExpiry = Instant.now().plusSeconds(expirySeconds - 60); // Subtract 60 seconds for safety
       
-      System.out.println("  Token acquired successfully (expires in " + expirySeconds + " seconds)");
+      LOGGER.debug("  Token acquired successfully (expires in {} seconds)", expirySeconds);
     } else {
       throw new IOException("No access token in response");
     }
@@ -147,7 +151,7 @@ public class SharePointLegacyTokenManager extends SharePointTokenManager {
       int start = authHeader.indexOf("Bearer realm=\"") + 14;
       int end = authHeader.indexOf("\"", start);
       String discoveredRealm = authHeader.substring(start, end);
-      System.out.println("Discovered SharePoint realm: " + discoveredRealm);
+      LOGGER.debug("Discovered SharePoint realm: {}", discoveredRealm);
       return discoveredRealm;
     }
     

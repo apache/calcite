@@ -130,9 +130,9 @@ public class MultiTableExcelTest {
               new ExecutionEngineConfig(), false, null, null));
 
       try (Statement statement = connection.createStatement()) {
-        // Query the first table
+        // Query the first table - table names use SMART_CASING (lowercase)
         ResultSet rs1 =
-            statement.executeQuery("SELECT * FROM \"excel\".\"MULTI_TABLE_TEST__DATA_SALES_REPORT\" "
+            statement.executeQuery("SELECT * FROM \"excel\".\"multi_table_test__data_sales_report\" "
             + "ORDER BY \"product\"");
 
         assertTrue(rs1.next());
@@ -145,7 +145,7 @@ public class MultiTableExcelTest {
 
         // Query the second table
         ResultSet rs2 =
-            statement.executeQuery("SELECT * FROM \"excel\".\"MULTI_TABLE_TEST__DATA_EMPLOYEE_DATA\" "
+            statement.executeQuery("SELECT * FROM \"excel\".\"multi_table_test__data_employee_data\" "
             + "ORDER BY \"name\"");
 
         assertTrue(rs2.next());
@@ -185,7 +185,7 @@ public class MultiTableExcelTest {
         System.out.println("Tables from lots_of_tables.xlsx:");
         while (tables.next()) {
           String tableName = tables.getString("TABLE_NAME");
-          if (tableName.startsWith("LOTS_OF_TABLES")) {
+          if (tableName.startsWith("lots_of_tables")) {
             tableCount++;
             System.out.println("  - " + tableName);
           }

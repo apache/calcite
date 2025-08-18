@@ -407,7 +407,11 @@ public class ParquetTranslatableTable extends AbstractTable implements Translata
               } else if ("timestamp-millis".equals(logicalTypeName)) {
                 if (value instanceof Long) {
                   long milliseconds = (Long) value;
+                  LOGGER.debug("ParquetTranslatableTable READ: field={}, raw milliseconds={}", 
+                      field.name(), milliseconds);
                   value = new LocalTimestamp(milliseconds);
+                  LOGGER.debug("ParquetTranslatableTable: Created LocalTimestamp, getTime()={}", 
+                      ((LocalTimestamp)value).getTime());
                 }
               }
             } else if (value != null && value.getClass().getName().equals("org.apache.avro.util.Utf8")) {

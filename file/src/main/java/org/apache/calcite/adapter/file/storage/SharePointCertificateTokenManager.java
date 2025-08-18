@@ -18,6 +18,9 @@ package org.apache.calcite.adapter.file.storage;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -43,6 +46,7 @@ import javax.crypto.spec.SecretKeySpec;
  * This implements the client assertion flow required for SharePoint REST API.
  */
 public class SharePointCertificateTokenManager extends SharePointRestTokenManager {
+  private static final Logger LOGGER = LoggerFactory.getLogger(SharePointCertificateTokenManager.class);
   
   private final ObjectMapper mapper = new ObjectMapper();
   private final PrivateKey privateKey;
@@ -84,9 +88,9 @@ public class SharePointCertificateTokenManager extends SharePointRestTokenManage
     byte[] certHash = sha1.digest(certificate.getEncoded());
     this.thumbprint = Base64.getUrlEncoder().withoutPadding().encodeToString(certHash);
     
-    System.out.println("Certificate loaded successfully");
-    System.out.println("  Subject: " + certificate.getSubjectX500Principal().getName());
-    System.out.println("  Thumbprint: " + thumbprint);
+    LOGGER.debug("Certificate loaded successfully");
+    LOGGER.debug("  Subject: {}", certificate.getSubjectX500Principal().getName());
+    LOGGER.debug("  Thumbprint: {}", thumbprint);
   }
   
   @Override
@@ -106,11 +110,11 @@ public class SharePointCertificateTokenManager extends SharePointRestTokenManage
       // Create client assertion (JWT)
       String clientAssertion = createClientAssertion(tokenUrl);
       
-      System.out.println("SharePoint Certificate Authentication:");
-      System.out.println("  Token URL: " + tokenUrl);
-      System.out.println("  Scope: " + scope);
-      System.out.println("  Client ID: " + clientId);
-      System.out.println("  Using certificate thumbprint: " + thumbprint);
+      LOGGER.debug("SharePoint Certificate Authentication:");
+      LOGGER.debug("  Token URL: {}", tokenUrl);
+      LOGGER.debug("  Scope: {}", scope);
+      LOGGER.debug("  Client ID: {}", clientId);
+      LOGGER.debug("  Using certificate thumbprint: {}", thumbprint);
       
       // Build request body
       String requestBody = String.format(
@@ -132,7 +136,7 @@ public class SharePointCertificateTokenManager extends SharePointRestTokenManage
         int expiresIn = ((Number) response.getOrDefault("expires_in", 3600)).intValue();
         this.tokenExpiry = Instant.now().plusSeconds(expiresIn - 60);
         
-        System.out.println("  Token acquired successfully (expires in " + expiresIn + " seconds)");
+        LOGGER.debug("  Token acquired successfully (expires in {} seconds)", expiresIn);
       } else {
         throw new IOException("No access token in response");
       }

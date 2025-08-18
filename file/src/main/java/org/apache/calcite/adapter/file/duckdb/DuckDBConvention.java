@@ -41,19 +41,12 @@ public class DuckDBConvention extends JdbcConvention {
   private static final Logger LOGGER = LoggerFactory.getLogger(DuckDBConvention.class);
   
   static {
-    System.err.println("[DUCKDB-CONVENTION] Class loaded");
-    try {
-      java.io.PrintWriter writer = new java.io.PrintWriter(new java.io.FileWriter("/tmp/duckdb_convention_loaded.txt"));
-      writer.println("DuckDBConvention loaded at: " + new java.util.Date());
-      writer.close();
-    } catch (Exception e) {
-      // Ignore
-    }
+    LOGGER.debug("[DUCKDB-CONVENTION] Class loaded");
   }
   
   public DuckDBConvention(SqlDialect dialect, Expression expression, String name) {
     super(dialect, expression, name);
-    System.err.println("[DUCKDB-CONVENTION] Instance created for: " + name);
+    LOGGER.debug("[DUCKDB-CONVENTION] Instance created for: {}", name);
   }
   
   /**
@@ -65,37 +58,19 @@ public class DuckDBConvention extends JdbcConvention {
   
   @Override
   public void register(RelOptPlanner planner) {
-    try {
-      java.io.PrintWriter writer = new java.io.PrintWriter(new java.io.FileWriter("/tmp/duckdb_register_called.txt", true));
-      writer.println("register() called at: " + new java.util.Date());
-      writer.close();
-    } catch (Exception e) {
-      // Ignore
-    }
+    LOGGER.debug("register() called");
     
     // CRITICAL: Register HLL optimization rules FIRST before JDBC pushdown
     // This allows COUNT(DISTINCT) to be optimized with HLL sketches before
     // being pushed down to DuckDB as raw SQL
     String hllEnabled = System.getProperty("calcite.file.statistics.hll.enabled");
-    try {
-      java.io.PrintWriter writer = new java.io.PrintWriter(new java.io.FileWriter("/tmp/duckdb_hll_property.txt", true));
-      writer.println("HLL property value: '" + hllEnabled + "' at: " + new java.util.Date());
-      writer.close();
-    } catch (Exception e) {
-      // Ignore
-    }
+    LOGGER.debug("HLL property value: '{}'", hllEnabled);
     
     if (!"false".equals(System.getProperty("calcite.file.statistics.hll.enabled", "true"))) {
       // Use the DuckDB-specific HLL rule that handles both JDBC and file adapter patterns
       planner.addRule(DuckDBHLLCountDistinctRule.INSTANCE);
       
-      try {
-        java.io.PrintWriter writer = new java.io.PrintWriter(new java.io.FileWriter("/tmp/duckdb_hll_rule_added.txt", true));
-        writer.println("Added HLL rule to planner at: " + new java.util.Date());
-        writer.close();
-      } catch (Exception e) {
-        // Ignore
-      }
+      LOGGER.debug("Added HLL rule to planner");
     }
     
     // Also register the VALUES converter rule so HLL results can become enumerable

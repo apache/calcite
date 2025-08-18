@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.file.converters;
 
 import org.apache.calcite.adapter.file.cache.SourceFileLockManager;
+import org.apache.calcite.adapter.file.util.SmartCasing;
 import org.apache.calcite.util.trace.CalciteLogger;
 
 import org.apache.poi.ss.usermodel.Cell;
@@ -74,9 +75,18 @@ public final class MultiTableExcelToJsonConverter {
    */
   public static void convertFileToJson(File inputFile, boolean detectMultipleTables)
       throws IOException {
+    convertFileToJson(inputFile, detectMultipleTables, "SMART_CASING", "SMART_CASING");
+  }
+
+  /**
+   * Converts an Excel file to JSON with multi-table detection and custom casing.
+   */
+  public static void convertFileToJson(File inputFile, boolean detectMultipleTables,
+      String tableNameCasing, String columnNameCasing)
+      throws IOException {
     if (!detectMultipleTables) {
       // Fall back to standard conversion
-      ExcelToJsonConverter.convertFileToJson(inputFile);
+      ExcelToJsonConverter.convertFileToJson(inputFile, tableNameCasing, columnNameCasing);
       return;
     }
 
@@ -99,8 +109,8 @@ public final class MultiTableExcelToJsonConverter {
       ObjectMapper mapper = new ObjectMapper();
       FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
       String fileName = inputFile.getName();
-      String baseName = fileName.substring(0, fileName.lastIndexOf('.'))
-          .toLowerCase().replaceAll("[^a-z0-9_]", "_");
+      String rawBaseName = fileName.substring(0, fileName.lastIndexOf('.'));
+      String baseName = SmartCasing.applyCasing(rawBaseName, tableNameCasing);
 
       for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
         Sheet sheet = workbook.getSheetAt(i);
@@ -113,7 +123,7 @@ public final class MultiTableExcelToJsonConverter {
         // Filter out empty tables first
         List<TableRegion> validTables = new ArrayList<>();
         for (TableRegion table : tables) {
-          ArrayNode tableData = convertTableToJson(sheet, table, evaluator, mapper);
+          ArrayNode tableData = convertTableToJson(sheet, table, evaluator, mapper, columnNameCasing);
           LOGGER.trace("Table has " + tableData.size() + " rows of data");
           if (tableData.size() > 0) {
             table.jsonData = tableData; // Store for reuse
@@ -132,8 +142,8 @@ public final class MultiTableExcelToJsonConverter {
 
         // First pass: collect all planned filenames from valid tables only
         for (TableRegion table : validTables) {
-          String sheetName = sheet.getSheetName().toLowerCase()
-              .replaceAll("[^a-z0-9_]", "_");
+          String rawSheetName = sheet.getSheetName();
+          String sheetName = SmartCasing.applyCasing(rawSheetName, tableNameCasing);
           String baseFilename = baseName + "__" + sheetName;
 
           // For single table with no identifier, just use sheet name
@@ -141,7 +151,8 @@ public final class MultiTableExcelToJsonConverter {
           if (validTables.size() > 1
               || (table.identifier != null && !table.identifier.trim().isEmpty())) {
             if (table.identifier != null && !table.identifier.trim().isEmpty()) {
-              baseFilename += "_" + ConverterUtils.sanitizeIdentifier(table.identifier).toLowerCase();
+              String sanitizedId = ConverterUtils.sanitizeIdentifier(table.identifier);
+              baseFilename += "_" + SmartCasing.applyCasing(sanitizedId, tableNameCasing);
             }
           }
 
@@ -164,8 +175,7 @@ public final class MultiTableExcelToJsonConverter {
             jsonFileName = plannedName + ".json";
           }
 
-          LOGGER.debug("Writing JSON file: "
-              + jsonFileName);
+          LOGGER.trace("Writing JSON file: " + jsonFileName);
           File jsonFile = new File(inputFile.getParent(), jsonFileName);
           try (FileWriter fileWriter =
               new FileWriter(jsonFile, StandardCharsets.UTF_8)) {
@@ -331,13 +341,13 @@ public final class MultiTableExcelToJsonConverter {
    * Converts a table region to JSON.
    */
   private static ArrayNode convertTableToJson(Sheet sheet, TableRegion table,
-      FormulaEvaluator evaluator, ObjectMapper mapper) {
+      FormulaEvaluator evaluator, ObjectMapper mapper, String columnNameCasing) {
     ArrayNode tableData = mapper.createArrayNode();
     LOGGER.trace("Converting table: dataStartRow=" + table.dataStartRow
         + ", endRow=" + table.endRow);
 
     // Build column headers from all header rows
-    Map<Integer, String> columnHeaders = buildColumnHeaders(table, evaluator);
+    Map<Integer, String> columnHeaders = buildColumnHeaders(table, evaluator, columnNameCasing);
 
     // Process data rows
     for (int rowNum = table.dataStartRow; rowNum <= table.endRow; rowNum++) {
@@ -376,7 +386,7 @@ public final class MultiTableExcelToJsonConverter {
    * Builds column headers from potentially multiple header rows.
    */
   private static Map<Integer, String> buildColumnHeaders(TableRegion table,
-      FormulaEvaluator evaluator) {
+      FormulaEvaluator evaluator, String columnNameCasing) {
     Map<Integer, String> headers = new HashMap<>();
 
     if (table.headerRows.size() == 1) {
@@ -387,7 +397,7 @@ public final class MultiTableExcelToJsonConverter {
         if (cell != null && cell.getCellType() != CellType.BLANK) {
           String header = getCellValue(cell, evaluator);
           // Convert to lowercase and sanitize for use as column name
-          header = header.toLowerCase().replaceAll("[^a-z0-9_]", "_");
+          header = SmartCasing.applyCasing(header, columnNameCasing);
           headers.put(col, header);
         }
       }
@@ -459,7 +469,7 @@ public final class MultiTableExcelToJsonConverter {
         }
         if (!header.isEmpty()) {
           // Convert to lowercase and sanitize for use as column name
-          header = header.toLowerCase().replaceAll("[^a-z0-9_]", "_");
+          header = SmartCasing.applyCasing(header, columnNameCasing);
           headers.put(col, header);
         }
       }

@@ -44,11 +44,27 @@ public final class SafeExcelToJsonConverter {
   /**
    * Converts Excel file to JSON only if not already converted or if Excel file is newer.
    * This prevents repeated conversions and checks for file freshness.
+   * Uses SMART_CASING defaults.
    *
    * @param excelFile Excel file to convert
    * @param detectMultipleTables If true, uses enhanced converter to detect multiple tables
    */
   public static void convertIfNeeded(File excelFile, boolean detectMultipleTables)
+      throws IOException {
+    convertIfNeeded(excelFile, detectMultipleTables, "SMART_CASING", "SMART_CASING");
+  }
+
+  /**
+   * Converts Excel file to JSON only if not already converted or if Excel file is newer.
+   * This prevents repeated conversions and checks for file freshness.
+   *
+   * @param excelFile Excel file to convert
+   * @param detectMultipleTables If true, uses enhanced converter to detect multiple tables
+   * @param tableNameCasing The casing strategy for table names
+   * @param columnNameCasing The casing strategy for column names
+   */
+  public static void convertIfNeeded(File excelFile, boolean detectMultipleTables,
+      String tableNameCasing, String columnNameCasing)
       throws IOException {
     String canonicalPath = excelFile.getCanonicalPath();
     long excelLastModified = excelFile.lastModified();
@@ -81,9 +97,9 @@ public final class SafeExcelToJsonConverter {
     // Only convert if needed and not already converted in this session
     if (needsConversion && !CONVERTED_FILES.contains(canonicalPath)) {
       if (detectMultipleTables) {
-        MultiTableExcelToJsonConverter.convertFileToJson(excelFile, true);
+        MultiTableExcelToJsonConverter.convertFileToJson(excelFile, true, tableNameCasing, columnNameCasing);
       } else {
-        ExcelToJsonConverter.convertFileToJson(excelFile);
+        ExcelToJsonConverter.convertFileToJson(excelFile, tableNameCasing, columnNameCasing);
       }
       CONVERTED_FILES.add(canonicalPath);
     }

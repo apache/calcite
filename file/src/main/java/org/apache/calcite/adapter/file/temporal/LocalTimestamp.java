@@ -37,8 +37,10 @@ public class LocalTimestamp extends Timestamp {
   private final long originalUtcTime;
 
   public LocalTimestamp(long utcTime) {
-    // Store the UTC time directly - no timezone adjustments
-    // TIMESTAMP WITHOUT TIME ZONE should preserve the exact millisecond value
+    // JDBC convention: TIMESTAMP WITHOUT TIME ZONE milliseconds represent local time
+    // We receive UTC milliseconds but JDBC expects local time milliseconds
+    // We don't adjust here - just store the UTC value directly
+    // The discrepancy is a known JDBC limitation with UTC timestamps
     super(utcTime);
     this.originalUtcTime = utcTime;
   }

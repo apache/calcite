@@ -52,8 +52,7 @@ public class DuckDBJdbcSchemaFactory {
   private static final Logger LOGGER = LoggerFactory.getLogger(DuckDBJdbcSchemaFactory.class);
   
   static {
-    // Log to stderr to ensure we see this during tests
-    System.err.println("[DuckDBJdbcSchemaFactory] Class loaded");
+    LOGGER.debug("[DuckDBJdbcSchemaFactory] Class loaded");
   }
   
   /**
@@ -83,7 +82,7 @@ public class DuckDBJdbcSchemaFactory {
   public static JdbcSchema create(SchemaPlus parentSchema, String schemaName, 
                                  File directory, boolean recursive,
                                  org.apache.calcite.adapter.file.FileSchema fileSchema) {
-    System.err.println("[DuckDBJdbcSchemaFactory] create() called with fileSchema for schema: " + schemaName);
+    LOGGER.debug("[DuckDBJdbcSchemaFactory] create() called with fileSchema for schema: {}", schemaName);
     LOGGER.info("Creating DuckDB JDBC schema for: {} with name: {} (recursive={}, hasFileSchema={})", 
                 directory, schemaName, recursive, fileSchema != null);
     
@@ -317,7 +316,7 @@ public class DuckDBJdbcSchemaFactory {
     // Get the schema-aware Parquet cache directory using schema name
     // This provides stable, predictable cache paths for proper caching
     File cacheDir = ParquetConversionUtil.getParquetCacheDir(directory, null, calciteSchemaName);
-    System.err.println("[DuckDBJdbcSchemaFactory] Looking for Parquet files in cache directory: " + cacheDir + " (exists: " + cacheDir.exists() + ")");
+    LOGGER.debug("[DuckDBJdbcSchemaFactory] Looking for Parquet files in cache directory: {} (exists: {})", cacheDir, cacheDir.exists());
     LOGGER.info("Looking for Parquet files in cache directory: {} (exists: {})", 
                 cacheDir, cacheDir.exists());
     
@@ -335,11 +334,11 @@ public class DuckDBJdbcSchemaFactory {
   
   private static void registerParquetFiles(Connection conn, File directory, boolean recursive, String schema) 
       throws SQLException {
-    System.err.println("[DuckDBJdbcSchemaFactory] Scanning directory: " + directory);
+    LOGGER.debug("[DuckDBJdbcSchemaFactory] Scanning directory: {}", directory);
     File[] files = directory.listFiles();
     
     if (files != null) {
-      System.err.println("[DuckDBJdbcSchemaFactory] Found " + files.length + " files in " + directory);
+      LOGGER.debug("[DuckDBJdbcSchemaFactory] Found {} files in {}", files.length, directory);
       for (File file : files) {
         if (file.isDirectory() && recursive) {
           registerParquetFiles(conn, file, recursive, schema);

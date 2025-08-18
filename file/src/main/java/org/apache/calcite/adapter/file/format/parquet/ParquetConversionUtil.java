@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.adapter.file.format.parquet;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.apache.calcite.adapter.file.format.csv.CsvTypeInferrer;
 import org.apache.calcite.adapter.file.table.CsvTable;
 import org.apache.calcite.schema.SchemaPlus;
@@ -41,6 +44,7 @@ import java.math.BigDecimal;
  * Utility class for converting various file formats to Parquet.
  */
 public class ParquetConversionUtil {
+  private static final Logger LOGGER = LoggerFactory.getLogger(ParquetConversionUtil.class);
 
   private ParquetConversionUtil() {
     // Utility class should not be instantiated
@@ -324,7 +328,7 @@ public class ParquetConversionUtil {
       case TIMESTAMP:
         return org.apache.parquet.schema.Types.primitive(
             org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.INT64, repetition)
-            .as(org.apache.parquet.schema.LogicalTypeAnnotation.timestampType(false, 
+            .as(org.apache.parquet.schema.LogicalTypeAnnotation.timestampType(true, 
                 org.apache.parquet.schema.LogicalTypeAnnotation.TimeUnit.MILLIS))
             .named(fieldName);
 
@@ -528,9 +532,13 @@ public class ParquetConversionUtil {
       case TIMESTAMP:
         if (value instanceof java.sql.Timestamp) {
           // Store as milliseconds since epoch in UTC (timezone-naive)
-          group.append(fieldName, ((java.sql.Timestamp) value).getTime());
+          long tsValue = ((java.sql.Timestamp) value).getTime();
+          LOGGER.debug("Writing TIMESTAMP to Parquet: {} for field {}", tsValue, fieldName);
+          group.append(fieldName, tsValue);
         } else if (value instanceof java.util.Date) {
-          group.append(fieldName, ((java.util.Date) value).getTime());
+          long tsValue = ((java.util.Date) value).getTime();
+          LOGGER.debug("Writing Date as TIMESTAMP to Parquet: {} for field {}", tsValue, fieldName);
+          group.append(fieldName, tsValue);
         } else if (value instanceof Long) {
           // Already in milliseconds since epoch format
           group.append(fieldName, (Long) value);
@@ -540,11 +548,12 @@ public class ParquetConversionUtil {
               (org.apache.calcite.adapter.file.temporal.LocalTimestamp) value;
           group.append(fieldName, localTs.getTime());
         } else {
-          // Try to parse timestamp string as UTC
+          // Parse timestamp string as UTC
           String timestampStr = value.toString();
           if (timestampStr.matches("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}.*")) {
             try {
               java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+              // Parse as UTC - TIMESTAMP WITHOUT TIME ZONE should store UTC time
               sdf.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
               java.util.Date parsedDate = sdf.parse(timestampStr.substring(0, 19));
               group.append(fieldName, parsedDate.getTime());

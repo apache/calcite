@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.file.converters;
 
 import org.apache.calcite.adapter.file.cache.SourceFileLockManager;
+import org.apache.calcite.adapter.file.util.SmartCasing;
 import org.apache.calcite.util.trace.CalciteLogger;
 
 import org.apache.poi.ss.usermodel.Cell;
@@ -54,6 +55,10 @@ public final class ExcelToJsonConverter {
   }
 
   public static void convertFileToJson(File inputFile) throws IOException {
+    convertFileToJson(inputFile, "SMART_CASING", "SMART_CASING");
+  }
+
+  public static void convertFileToJson(File inputFile, String tableNameCasing, String columnNameCasing) throws IOException {
     // Acquire read lock on source file
     SourceFileLockManager.LockHandle lockHandle = null;
     try {
@@ -70,7 +75,8 @@ public final class ExcelToJsonConverter {
     ObjectMapper mapper = new ObjectMapper();
     FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
     String fileName = inputFile.getName();
-    String baseName = toPascalCase(fileName.substring(0, fileName.lastIndexOf('.')));
+    String rawBaseName = fileName.substring(0, fileName.lastIndexOf('.'));
+    String baseName = SmartCasing.applyCasing(rawBaseName, tableNameCasing);
     for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
       Sheet sheet = workbook.getSheetAt(i);
       ArrayNode sheetData = mapper.createArrayNode();
@@ -103,7 +109,8 @@ public final class ExcelToJsonConverter {
             continue; // Skip columns with blank header cells
           }
 
-          String key = getCellValue(headerCell, evaluator);
+          String rawKey = getCellValue(headerCell, evaluator);
+          String key = SmartCasing.applyCasing(rawKey, columnNameCasing);
           Cell dataCell = row.getCell(colIndex);
           Object value = getCellValueAsObject(dataCell, evaluator);
 
@@ -118,7 +125,8 @@ public final class ExcelToJsonConverter {
         sheetData.add(rowData);
       }
       // Write JSON file
-      String sheetName = ConverterUtils.toPascalCase(sheet.getSheetName());
+      String rawSheetName = sheet.getSheetName();
+      String sheetName = SmartCasing.applyCasing(rawSheetName, tableNameCasing);
       String jsonFileName = baseName + "__" + sheetName + ".json";
       File jsonFile = new File(inputFile.getParent(), jsonFileName);
       FileWriter fileWriter =

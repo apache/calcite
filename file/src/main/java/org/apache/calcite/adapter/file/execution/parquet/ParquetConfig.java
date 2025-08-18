@@ -16,11 +16,15 @@
  */
 package org.apache.calcite.adapter.file.execution.parquet;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Configuration for Parquet reading operations.
  * Controls batch size and other Parquet-specific optimizations.
  */
 public class ParquetConfig {
+  private static final Logger LOGGER = LoggerFactory.getLogger(ParquetConfig.class);
   
   private final int batchSize;
   private final boolean enableVectorizedReader;
@@ -122,7 +126,7 @@ public class ParquetConfig {
     System.getProperty("calcite.debug.batch.computation", "false").equals("true");
     boolean debugMode = "true".equals(System.getProperty("calcite.debug.batch.computation", "false"));
     if (debugMode) {
-      System.out.printf("Batch size computation: maxHeap=%dMB, cores=%d, computed=%d, optimal=%d%n",
+      LOGGER.debug("Batch size computation: maxHeap={}MB, cores={}, computed={}, optimal={}",
                        maxHeapBytes / (1024 * 1024), availableCores, computedBatchSize, optimalBatchSize);
     }
     

@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.adapter.file.table;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.apache.calcite.adapter.file.execution.ExecutionEngineConfig;
 import org.apache.calcite.adapter.file.execution.parquet.ParquetFileEnumerator;
 import org.apache.calcite.adapter.file.table.JsonScannableTable;
@@ -43,6 +46,7 @@ import java.util.Map;
  */
 public class ParquetJsonScannableTable extends JsonScannableTable
     implements ScannableTable {
+  private static final Logger LOGGER = LoggerFactory.getLogger(ParquetJsonScannableTable.class);
 
   private final Source source;
   private final ExecutionEngineConfig engineConfig;
@@ -80,12 +84,12 @@ public class ParquetJsonScannableTable extends JsonScannableTable
 
     // Check if this is a StorageProviderSource (HTTP, etc.) - use standard JSON processing
     if (source instanceof org.apache.calcite.adapter.file.storage.StorageProviderSource) {
-      System.out.println("ParquetJsonScannableTable.scan: Detected StorageProviderSource, using standard JSON processing");
+      LOGGER.debug("ParquetJsonScannableTable.scan: Detected StorageProviderSource, using standard JSON processing");
       return super.scan(root);
     }
 
     // Otherwise use Parquet file enumerator for file-based sources
-    System.out.println("ParquetJsonScannableTable.scan: Using ParquetFileEnumerator for source: " + source.path());
+    LOGGER.debug("ParquetJsonScannableTable.scan: Using ParquetFileEnumerator for source: {}", source.path());
     return new AbstractEnumerable<Object[]>() {
       @Override public Enumerator<Object[]> enumerator() {
         final RelDataType rowType = getRowType(root.getTypeFactory());

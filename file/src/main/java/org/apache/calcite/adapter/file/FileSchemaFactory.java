@@ -44,10 +44,7 @@ import java.util.Map;
 public class FileSchemaFactory implements SchemaFactory {
   private static final Logger LOGGER = LoggerFactory.getLogger(FileSchemaFactory.class);
 
-  static {
-    // Log to stderr to ensure we see this during tests
-    System.err.println("[FileSchemaFactory] Class loaded");
-  }
+  // Static initialization block removed - class loading handled by JVM
 
   /** Public singleton, per factory contract. */
   public static final FileSchemaFactory INSTANCE = new FileSchemaFactory();
@@ -61,7 +58,7 @@ public class FileSchemaFactory implements SchemaFactory {
 
   @Override public Schema create(SchemaPlus parentSchema, String name,
       Map<String, Object> operand) {
-    System.err.println("[FileSchemaFactory] create() called for schema: " + name);
+    LOGGER.debug("[FileSchemaFactory] create() called for schema: {}", name);
     @SuppressWarnings("unchecked") List<Map<String, Object>> tables =
         (List) operand.get("tables");
     final File baseDirectory =
@@ -72,8 +69,7 @@ public class FileSchemaFactory implements SchemaFactory {
     final String executionEngine =
         (String) operand.getOrDefault("executionEngine",
             ExecutionEngineConfig.DEFAULT_EXECUTION_ENGINE);
-    System.err.println("[FileSchemaFactory] executionEngine from operand: '" + executionEngine + "'");
-    LOGGER.debug("executionEngine from operand: '{}'", executionEngine);
+    LOGGER.debug("[FileSchemaFactory] executionEngine from operand: '{}'", executionEngine);
     final Object batchSizeObj = operand.get("batchSize");
     final int batchSize = batchSizeObj instanceof Number
         ? ((Number) batchSizeObj).intValue()
@@ -186,14 +182,13 @@ public class FileSchemaFactory implements SchemaFactory {
     
     // Check if we're using DuckDB engine
     boolean isDuckDB = engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.DUCKDB;
-    System.err.println("[FileSchemaFactory] isDuckDB=" + isDuckDB + 
-                       ", directoryFile=" + directoryFile + 
-                       ", storageType=" + storageType);
+    LOGGER.debug("[FileSchemaFactory] isDuckDB={}, directoryFile={}, storageType={}", 
+                isDuckDB, directoryFile, storageType);
     LOGGER.info("isDuckDB={}, directoryFile != null={}, storageType={}", 
                 isDuckDB, directoryFile != null, storageType);
     
     if (isDuckDB && directoryFile != null && storageType == null) {
-      System.err.println("[FileSchemaFactory] Entering DuckDB path!");
+      LOGGER.debug("[FileSchemaFactory] Entering DuckDB path");
       // Create directory if it doesn't exist yet (common in tests)
       if (!directoryFile.exists()) {
         LOGGER.info("Creating directory as it doesn't exist: {}", directoryFile);
