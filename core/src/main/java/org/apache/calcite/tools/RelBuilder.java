@@ -2542,7 +2542,8 @@ public class RelBuilder {
     RelNode r = frame.rel;
     final List<AggregateCall> aggregateCalls = new ArrayList<>();
     for (AggCallPlus aggCall : aggCalls) {
-      AggregateCall aggregateCall = aggCall.aggregateCall(registrar, groupSet, r);
+      AggregateCall aggregateCall =
+          aggCall.aggregateCall(registrar, groupSets.contains(ImmutableBitSet.of()), r);
       if (groupSets.size() <= 1) {
         aggregateCall = removeRedundantAggregateDistinct(aggregateCall, groupSet, r);
       }
@@ -4264,7 +4265,7 @@ public class RelBuilder {
     AggregateCall aggregateCall();
 
     /** Converts this {@code AggCall} to a good {@link AggregateCall}. */
-    AggregateCall aggregateCall(Registrar registrar, ImmutableBitSet groupSet,
+    AggregateCall aggregateCall(Registrar registrar, boolean hasEmptyGroup,
         RelNode r);
 
     /** Registers expressions in operands and filters. */
@@ -4454,7 +4455,7 @@ public class RelBuilder {
     }
 
     @Override public AggregateCall aggregateCall(Registrar registrar,
-        ImmutableBitSet groupSet, RelNode r) {
+        boolean hasEmptyGroup, RelNode r) {
       List<Integer> args =
           registrar.registerExpressions(this.operands);
       final int filterArg =
@@ -4486,7 +4487,7 @@ public class RelBuilder {
 
       return AggregateCall.create(pos, aggFunction, distinct, approximate,
           ignoreNulls, preOperands, args, filterArg, distinctKeys,
-          collation, groupSet.cardinality(), r, null, alias);
+          collation, hasEmptyGroup, r, null, alias);
     }
 
     @Override public void register(Registrar registrar) {
@@ -4611,8 +4612,12 @@ public class RelBuilder {
     }
 
     @Override public AggregateCall aggregateCall(Registrar registrar,
-        ImmutableBitSet groupSet, RelNode r) {
-      return aggregateCall;
+        boolean hasEmptyGroup, RelNode r) {
+      return AggregateCall.create(aggregateCall.getParserPosition(), aggregateCall.getAggregation(),
+          aggregateCall.isDistinct(), aggregateCall.isApproximate(), aggregateCall.ignoreNulls(),
+          aggregateCall.rexList, aggregateCall.getArgList(), aggregateCall.filterArg,
+          aggregateCall.distinctKeys, aggregateCall.getCollation(), hasEmptyGroup, r, null,
+          aggregateCall.name);
     }
 
     @Override public void register(Registrar registrar) {
@@ -4894,8 +4899,8 @@ public class RelBuilder {
       final RexCallBinding bind =
           new RexCallBinding(getTypeFactory(), op, operands,
               ImmutableList.of()) {
-            @Override public int getGroupCount() {
-              return SqlWindow.isAlwaysNonEmpty(lowerBound, upperBound) ? 1 : 0;
+            @Override public boolean hasEmptyGroup() {
+              return !SqlWindow.isAlwaysNonEmpty(lowerBound, upperBound);
             }
           };
       final RelDataType type = op.inferReturnType(bind);

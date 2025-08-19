@@ -267,7 +267,7 @@ public class SqlWindow extends SqlCall {
    * @return true when the window is non-empty
    *
    * @see org.apache.calcite.rel.core.Window.Group#isAlwaysNonEmpty()
-   * @see SqlOperatorBinding#getGroupCount()
+   * @see SqlOperatorBinding#hasEmptyGroup()
    * @see org.apache.calcite.sql.validate.SqlValidatorImpl#resolveWindow(SqlNode, SqlValidatorScope)
    */
   public boolean isAlwaysNonEmpty() {

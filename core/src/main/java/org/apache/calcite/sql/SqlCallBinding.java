@@ -95,6 +95,7 @@ public class SqlCallBinding extends SqlOperatorBinding {
 
   //~ Methods ----------------------------------------------------------------
 
+  @Deprecated
   @Override public int getGroupCount() {
     final SelectScope selectScope =
         SqlValidatorUtil.getEnclosingSelectScope(scope);
@@ -115,6 +116,21 @@ public class SqlCallBinding extends SqlOperatorBinding {
       return n;
     }
     return validator.isAggregate(select) ? 0 : -1;
+  }
+
+  @Override public boolean hasEmptyGroup() {
+    final SelectScope selectScope =
+        SqlValidatorUtil.getEnclosingSelectScope(scope);
+    if (selectScope == null) {
+      // Probably "VALUES expr". Treat same as "SELECT expr GROUP BY ()"
+      return true;
+    }
+    final SqlSelect select = selectScope.getNode();
+    final SqlNodeList group = select.getGroup();
+    if (group != null) {
+      return SqlValidatorUtil.hasEmptyGroup(group);
+    }
+    return validator.isAggregate(select);
   }
 
   /**

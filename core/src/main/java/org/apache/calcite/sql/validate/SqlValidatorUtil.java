@@ -774,6 +774,39 @@ public class SqlValidatorUtil {
     return typeFactory.createStructType(fields);
   }
 
+  /**
+   * Returns whether there are empty groups in the GROUP BY clause. The final grouping sets of
+   * GROUP BY clause is the result of the cartesian product of group items. Therefore, the GROUP BY
+   * clause contains empty groups only if each group item contains empty groups.
+   *
+   * @param groupClause Group items in GROUP BY clause
+   * @return Whether there are empty groups in GROUP BY clause
+   */
+  public static boolean hasEmptyGroup(List<SqlNode> groupClause) {
+    for (SqlNode groupItem : groupClause) {
+      switch (groupItem.getKind()) {
+      case ROLLUP:
+      case CUBE:
+        break;
+      case GROUPING_SETS:
+        boolean atLeastOneEmptyGroup = false;
+        for (SqlNode groupingSetsItem : ((SqlBasicCall) groupItem).getOperandList()) {
+          atLeastOneEmptyGroup |= hasEmptyGroup(ImmutableList.of(groupingSetsItem));
+        }
+        if (atLeastOneEmptyGroup) {
+          break;
+        }
+        return false;
+      default:
+        if (groupItem instanceof SqlNodeList && ((SqlNodeList) groupItem).isEmpty()) {
+          break;
+        }
+        return false;
+      }
+    }
+    return true;
+  }
+
   /** Analyzes an expression in a GROUP BY clause.
    *
    * <p>It may be an expression, an empty list (), or a call to

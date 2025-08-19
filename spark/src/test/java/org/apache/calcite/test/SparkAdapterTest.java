@@ -144,8 +144,8 @@ class SparkAdapterTest {
     final String plan = "PLAN="
         + "EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t3):BIGINT NOT NULL], proj#0..2=[{exprs}], CNT_Y=[$t5], CNT_DIST_Y=[$t4])\n"
         + "  EnumerableAggregate(group=[{}], SUM_X=[MIN($1) FILTER $6], MIN_Y=[MIN($2) FILTER $6], MAX_Y=[MIN($3) FILTER $6], CNT_Y=[MIN($4) FILTER $6], CNT_DIST_Y=[COUNT($0) FILTER $5])\n"
-        + "    EnumerableCalc(expr#0..5=[{inputs}], expr#6=[0], expr#7=[=($t5, $t6)], expr#8=[1], expr#9=[=($t5, $t8)], proj#0..4=[{exprs}], $g_0=[$t7], $g_1=[$t9])\n"
-        + "      EnumerableAggregate(group=[{1}], groups=[[{1}, {}]], SUM_X=[$SUM0($0)], MIN_Y=[MIN($1)], MAX_Y=[MAX($1)], CNT_Y=[COUNT()], $g=[GROUPING($1)])\n"
+        + "    EnumerableCalc(expr#0..5=[{inputs}], expr#6=[0], expr#7=[=($t2, $t6)], expr#8=[null:INTEGER], expr#9=[CASE($t7, $t8, $t1)], expr#10=[=($t5, $t6)], expr#11=[1], expr#12=[=($t5, $t11)], Y=[$t0], SUM_X=[$t9], MIN_Y=[$t3], MAX_Y=[$t4], CNT_Y=[$t2], $g_0=[$t10], $g_1=[$t12])\n"
+        + "      EnumerableAggregate(group=[{1}], groups=[[{1}, {}]], SUM_X=[$SUM0($0)], agg#1=[COUNT()], MIN_Y=[MIN($1)], MAX_Y=[MAX($1)], $g=[GROUPING($1)])\n"
         + "        EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n";
 
     final String expectedResult = "SUM_X=8; MIN_Y=a; MAX_Y=c; CNT_Y=5; CNT_DIST_Y=3";

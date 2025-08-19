@@ -280,8 +280,6 @@ public class AggregateJoinTransposeRule
         List<AggregateCall> belowAggCalls = new ArrayList<>();
         final SqlSplittableAggFunction.Registry<AggregateCall>
             belowAggCallRegistry = registry(belowAggCalls);
-        final int oldGroupKeyCount = aggregate.getGroupCount();
-        final int newGroupKeyCount = belowAggregateKey.cardinality();
         for (Ord<AggregateCall> aggCall : Ord.zip(aggregate.getAggCallList())) {
           final SqlAggFunction aggregation = aggCall.e.getAggregation();
           final SqlSplittableAggFunction splitter =
@@ -291,7 +289,7 @@ public class AggregateJoinTransposeRule
             final AggregateCall splitCall = splitter.split(aggCall.e, mapping);
             call1 =
                 splitCall.adaptTo(joinInput, splitCall.getArgList(),
-                    splitCall.filterArg, oldGroupKeyCount, newGroupKeyCount);
+                    splitCall.filterArg, aggregate.hasEmptyGroup(), belowAggregateKey.isEmpty());
           } else {
             call1 = splitter.other(rexBuilder.getTypeFactory(), aggCall.e);
           }
