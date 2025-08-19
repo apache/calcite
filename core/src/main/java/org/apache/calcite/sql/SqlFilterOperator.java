@@ -104,8 +104,8 @@ public class SqlFilterOperator extends SqlBinaryOperator {
     // might be invoked with 0 rows in a group. Most aggregate functions will
     // return NULL in this case.
     SqlCallBinding opBinding = new SqlCallBinding(validator, scope, aggCall) {
-      @Override public int getGroupCount() {
-        return 0;
+      @Override public boolean hasEmptyGroup() {
+        return true;
       }
     };
 

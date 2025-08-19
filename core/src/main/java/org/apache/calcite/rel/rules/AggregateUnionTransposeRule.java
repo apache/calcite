@@ -46,7 +46,6 @@ import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
 
 import java.util.ArrayList;
@@ -117,17 +116,12 @@ public class AggregateUnionTransposeRule
       return;
     }
 
-    int groupCount = aggRel.getGroupSet().cardinality();
-
-    List<AggregateCall> transformedAggCalls =
-        transformAggCalls(
-            aggRel.copy(aggRel.getTraitSet(), aggRel.getInput(),
-                aggRel.getGroupSet(), null, aggRel.getAggCallList()),
-            groupCount, aggRel.getAggCallList());
-    if (transformedAggCalls == null) {
-      // we've detected the presence of something like AVG,
-      // which we can't handle
-      return;
+    for (AggregateCall aggCall : aggRel.getAggCallList()) {
+      if (aggCall.isDistinct()
+          || !SUPPORTED_AGGREGATES.containsKey(aggCall.getAggregation()
+              .getClass())) {
+        return;
+      }
     }
 
     boolean hasUniqueKeyInAllInputs = true;
@@ -156,7 +150,8 @@ public class AggregateUnionTransposeRule
     for (RelNode input : union.getInputs()) {
       List<AggregateCall> childAggCalls = new ArrayList<>(aggRel.getAggCallList());
       // if the nullability of a specific input column differs from the nullability
-      // of the union'ed column, we need to re-evaluate the nullability of the aggregate
+      // of the union'ed column, or the pushed-down Aggregate no longer has empty group,
+      // we need to re-evaluate the nullability of the aggregate
       RelDataType inputRowType = input.getRowType();
       for (int i = 0; i < childAggCalls.size(); ++i) {
         AggregateCall origCall = aggRel.getAggCallList().get(i);
@@ -166,12 +161,14 @@ public class AggregateUnionTransposeRule
         assert origCall.getArgList().size() == 1;
         int field = origCall.getArgList().get(0);
         if (origUnionType.getFieldList().get(field).getType().isNullable()
-            != inputRowType.getFieldList().get(field).getType().isNullable()) {
+            != inputRowType.getFieldList().get(field).getType().isNullable()
+              || (aggRel.hasEmptyGroup() && !aggRel.getGroupSet().isEmpty())) {
           AggregateCall newCall =
               AggregateCall.create(origCall.getParserPosition(), origCall.getAggregation(),
                   origCall.isDistinct(), origCall.isApproximate(), origCall.ignoreNulls(),
                   origCall.rexList, origCall.getArgList(), -1, origCall.distinctKeys,
-                  origCall.collation, groupCount, input, null, origCall.getName());
+                  origCall.collation, aggRel.getGroupSet().isEmpty(), input, null,
+                  origCall.getName());
           childAggCalls.set(i, newCall);
         }
       }
@@ -205,22 +202,22 @@ public class AggregateUnionTransposeRule
     ImmutableList<ImmutableBitSet> topGroupSets =
         Mappings.apply2(topGroupMapping, aggRel.getGroupSets());
 
+    int groupCount = aggRel.getGroupSet().cardinality();
+    List<AggregateCall> transformedAggCalls =
+        transformAggCalls(
+            relBuilder.peek(), groupCount, aggRel.hasEmptyGroup(), aggRel.getAggCallList());
+
     relBuilder.aggregate(
         relBuilder.groupKey(topGroupSet, topGroupSets),
         transformedAggCalls);
     call.transformTo(relBuilder.build());
   }
 
-  private static @Nullable List<AggregateCall> transformAggCalls(RelNode input, int groupCount,
-      List<AggregateCall> origCalls) {
+  private static List<AggregateCall> transformAggCalls(RelNode input, int groupCount,
+      boolean hasEmptyGroup, List<AggregateCall> origCalls) {
     final List<AggregateCall> newCalls = new ArrayList<>();
     for (Ord<AggregateCall> ord : Ord.zip(origCalls)) {
       final AggregateCall origCall = ord.e;
-      if (origCall.isDistinct()
-          || !SUPPORTED_AGGREGATES.containsKey(origCall.getAggregation()
-              .getClass())) {
-        return null;
-      }
       final SqlAggFunction aggFun;
       final RelDataType aggType;
       if (origCall.getAggregation() == SqlStdOperatorTable.COUNT) {
@@ -239,7 +236,7 @@ public class AggregateUnionTransposeRule
               origCall.isApproximate(), origCall.ignoreNulls(),
               origCall.rexList, ImmutableList.of(groupCount + ord.i), -1,
               origCall.distinctKeys, origCall.collation,
-              groupCount, input, aggType, origCall.getName());
+              hasEmptyGroup, input, aggType, origCall.getName());
       newCalls.add(newCall);
     }
     return newCalls;

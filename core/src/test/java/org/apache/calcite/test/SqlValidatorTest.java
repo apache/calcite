@@ -7284,7 +7284,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "from emp\n"
         + "group by rollup(deptno)")
         .ok()
-        .type("RecordType(INTEGER DEPTNO, BIGINT NOT NULL C, INTEGER NOT NULL S) NOT NULL");
+        .type("RecordType(INTEGER DEPTNO, BIGINT NOT NULL C, INTEGER S) NOT NULL");
 
     // EMPNO stays NOT NULL because it is not rolled up
     sql("select deptno, empno\n"
@@ -13509,6 +13509,47 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select * FROM TABLE(ROW_FUNC()) AS T(a, b)")
         .withOperatorTable(operatorTable)
         .type("RecordType(BIGINT NOT NULL A, BIGINT B) NOT NULL");
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7134">[CALCITE-7134]
+   * Incorrect type inference for some aggregate functions when groupSets contains '{}'</a>. */
+  @Test void testInferAggregateFunctionType() {
+    // empty grouping sets, SUM is nullable
+    sql("select sum(sal) as s from emp")
+        .ok()
+        .type("RecordType(INTEGER S) NOT NULL");
+
+    // non empty grouping sets, SUM isn't nullable
+    sql("select sum(sal) as s from emp group by deptno")
+        .ok()
+        .type("RecordType(INTEGER NOT NULL S) NOT NULL");
+
+    // ROLLUP contains empty group, SUM is nullable
+    sql("select sum(sal) as s from emp group by rollup(deptno)")
+        .ok()
+        .type("RecordType(INTEGER S) NOT NULL");
+
+    // CUBE contains empty group, SUM is nullable
+    sql("select sum(sal) as s from emp group by cube(deptno)")
+        .ok()
+        .type("RecordType(INTEGER S) NOT NULL");
+
+    // GROUPING SETS that contains empty group, SUM is nullable
+    sql("select sum(sal) as s from emp group by grouping sets(deptno, ())")
+        .ok()
+        .type("RecordType(INTEGER S) NOT NULL");
+
+    // cartesian product of ROLLUP and empno that does not contain empty group, SUM isn't nullable
+    sql("select sum(sal) as s from emp group by rollup(deptno), empno")
+        .ok()
+        .type("RecordType(INTEGER NOT NULL S) NOT NULL");
+
+    // cartesian product of ROLLUP and GROUPING SETS that contains empty group,
+    // SUM is nullable
+    sql("select sum(sal) as s from emp group by rollup(deptno), grouping sets(empno, ())")
+        .ok()
+        .type("RecordType(INTEGER S) NOT NULL");
   }
 
   /** Validator that rewrites columnar sql identifiers 'UNEXPANDED'.'Something'

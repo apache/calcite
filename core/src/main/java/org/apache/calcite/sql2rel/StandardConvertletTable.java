@@ -1072,13 +1072,13 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     }
     RelDataType returnType =
         cx.getValidator().getValidatedNodeTypeIfKnown(call);
-    final int groupCount = cx.getGroupCount();
+    final boolean hasEmptyGroup = cx.hasEmptyGroup();
     if (returnType == null) {
       RexCallBinding binding =
           new RexCallBinding(cx.getTypeFactory(), fun, exprs,
               ImmutableList.of()) {
-            @Override public int getGroupCount() {
-              return groupCount;
+            @Override public boolean hasEmptyGroup() {
+              return hasEmptyGroup;
             }
           };
       returnType = fun.inferReturnType(binding);

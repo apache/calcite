@@ -360,7 +360,7 @@ public abstract class Window extends SingleRel implements Hintable {
      *
      * @return true when the window is non-empty
      * @see org.apache.calcite.sql.SqlWindow#isAlwaysNonEmpty()
-     * @see org.apache.calcite.sql.SqlOperatorBinding#getGroupCount()
+     * @see org.apache.calcite.sql.SqlOperatorBinding#hasEmptyGroup()
      * @see org.apache.calcite.sql.validate.SqlValidatorImpl#resolveWindow(org.apache.calcite.sql.SqlNode, org.apache.calcite.sql.validate.SqlValidatorScope)
      */
     public boolean isAlwaysNonEmpty() {

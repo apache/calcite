@@ -42,24 +42,22 @@ public interface SqlRexContext {
   RexNode convertExpression(SqlNode expr);
 
   /**
-   * If the operator call occurs in an aggregate query, returns the number of
-   * columns in the GROUP BY clause. For example, for "SELECT count(*) FROM emp
-   * GROUP BY deptno, gender", returns 2.
-   * If the operator call occurs in window aggregate query, then returns 1 if
-   * the window is guaranteed to be non-empty, or 0 if the window might be
+   * If the operator call occurs in an aggregate query, returns whether there are
+   * empty groups in the GROUP BY clause. For example,
+   * <pre>
+   * SELECT count(*) FROM emp GROUP BY deptno, gender;            returns false
+   * SELECT count(*) FROM emp;                                    returns true
+   * SELECT count(*) FROM emp GROUP BY ROLLUP(deptno, gender);    returns true
+   * </pre>
+   * If the operator call occurs in window aggregate query, then returns false if
+   * the window is guaranteed to be non-empty, or true if the window might be
    * empty.
    *
-   * <p>Returns 0 if the query is implicitly "GROUP BY ()" because of an
-   * aggregate expression. For example, "SELECT sum(sal) FROM emp".
+   * <p>Returns false if the query is not an aggregate query.
    *
-   * <p>Returns -1 if the query is not an aggregate query.
-   *
-   * @return 0 if the query is implicitly GROUP BY (), -1 if the query is not
-   * and aggregate query
-   *
-   * @see org.apache.calcite.sql.SqlOperatorBinding#getGroupCount()
+   * @see org.apache.calcite.sql.SqlOperatorBinding#hasEmptyGroup()
    */
-  int getGroupCount();
+  boolean hasEmptyGroup();
 
   /**
    * Returns the {@link RexBuilder} to use to create {@link RexNode} objects.

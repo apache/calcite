@@ -119,6 +119,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -754,9 +755,16 @@ public class RelDecorrelator implements ReflectiveVisitor {
               : requireNonNull(combinedMap.get(oldAggCall.filterArg),
                   () -> "combinedMap.get(" + oldAggCall.filterArg + ")");
 
+      boolean newHasEmptyGroup = newGroupSets == null && newGroupSet.isEmpty();
+      if (newGroupSets != null) {
+        Iterator<ImmutableBitSet> groupSetsIterator = newGroupSets.iterator();
+        while (!newHasEmptyGroup && groupSetsIterator.hasNext()) {
+          newHasEmptyGroup |= groupSetsIterator.next().isEmpty();
+        }
+      }
       newAggCalls.add(
           oldAggCall.adaptTo(newProject, aggArgs, filterArg,
-              oldGroupKeyCount, newGroupKeyCount));
+              rel.hasEmptyGroup(), newHasEmptyGroup));
 
       // The old to new output position mapping will be the same as that
       // of newProject, plus any aggregates that the oldAgg produces.
@@ -2945,7 +2953,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
                 : aggCall.filterArg + groupCount;
         newAggCalls.add(
             aggCall.adaptTo(joinOutputProject, argList, filterArg,
-                aggregate.getGroupCount(), groupCount));
+                aggregate.hasEmptyGroup(), groupCount == 0));
       }
 
       ImmutableBitSet groupSet =

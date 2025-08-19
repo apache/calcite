@@ -127,7 +127,6 @@ public class AggregateProjectPullUpConstantsRule
     for (int key : map.keySet()) {
       newGroupSet = newGroupSet.clear(key);
     }
-    final int newGroupCount = newGroupSet.cardinality();
 
     // If the constants are on the trailing edge of the group list, we just
     // reduce the group count.
@@ -139,7 +138,7 @@ public class AggregateProjectPullUpConstantsRule
     for (AggregateCall aggCall : aggregate.getAggCallList()) {
       newAggCalls.add(
           aggCall.adaptTo(input, aggCall.getArgList(), aggCall.filterArg,
-              groupCount, newGroupCount));
+              aggregate.hasEmptyGroup(), newGroupSet.isEmpty()));
     }
     relBuilder.aggregate(relBuilder.groupKey(newGroupSet), newAggCalls);
 

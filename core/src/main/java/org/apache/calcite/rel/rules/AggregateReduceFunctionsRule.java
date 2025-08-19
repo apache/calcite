@@ -376,7 +376,7 @@ public class AggregateReduceFunctionsRule
     final Aggregate.AggCallBinding binding =
         new Aggregate.AggCallBinding(typeFactory, aggFunction,
             ImmutableList.of(), ImmutableList.of(operandType),
-            oldAggRel.getGroupCount(), filter >= 0);
+            oldAggRel.hasEmptyGroup(), filter >= 0);
     return AggregateCall.create(oldCall.getParserPosition(),
         aggFunction,
         oldCall.isDistinct(),
@@ -410,7 +410,7 @@ public class AggregateReduceFunctionsRule
             oldCall.filterArg,
             oldCall.distinctKeys,
             oldCall.collation,
-            oldAggRel.getGroupCount(),
+            oldAggRel.hasEmptyGroup(),
             oldAggRel.getInput(),
             null,
             null);
@@ -424,7 +424,7 @@ public class AggregateReduceFunctionsRule
             oldCall.filterArg,
             oldCall.distinctKeys,
             oldCall.collation,
-            oldAggRel.getGroupCount(),
+            oldAggRel.hasEmptyGroup(),
             oldAggRel.getInput(),
             null,
             null);
@@ -467,7 +467,7 @@ public class AggregateReduceFunctionsRule
         AggregateCall.create(pos, SqlStdOperatorTable.SUM0, oldCall.isDistinct(),
             oldCall.isApproximate(), oldCall.ignoreNulls(), oldCall.rexList,
             oldCall.getArgList(), oldCall.filterArg, oldCall.distinctKeys,
-            oldCall.collation, oldAggRel.getGroupCount(), oldAggRel.getInput(),
+            oldCall.collation, oldAggRel.hasEmptyGroup(), oldAggRel.getInput(),
             null, oldCall.name);
     final AggregateCall countCall =
         AggregateCall.create(pos, SqlStdOperatorTable.COUNT,
@@ -479,7 +479,7 @@ public class AggregateReduceFunctionsRule
             oldCall.filterArg,
             oldCall.distinctKeys,
             oldCall.collation,
-            oldAggRel.getGroupCount(),
+            oldAggRel.hasEmptyGroup(),
             oldAggRel,
             null,
             null);
@@ -571,7 +571,7 @@ public class AggregateReduceFunctionsRule
             oldCall.filterArg,
             oldCall.distinctKeys,
             oldCall.collation,
-            oldAggRel.getGroupCount(),
+            oldAggRel.hasEmptyGroup(),
             oldAggRel.getInput(),
             null,
             null);
@@ -597,7 +597,7 @@ public class AggregateReduceFunctionsRule
             oldCall.filterArg,
             oldCall.distinctKeys,
             oldCall.collation,
-            oldAggRel.getGroupCount(),
+            oldAggRel.hasEmptyGroup(),
             oldAggRel,
             null,
             null);
@@ -685,7 +685,7 @@ public class AggregateReduceFunctionsRule
             filterArg,
             oldCall.distinctKeys,
             oldCall.collation,
-            oldAggRel.getGroupCount(),
+            oldAggRel.hasEmptyGroup(),
             oldAggRel.getInput(),
             null,
             null);
@@ -732,7 +732,7 @@ public class AggregateReduceFunctionsRule
             filterArg,
             oldCall.distinctKeys,
             oldCall.collation,
-            oldAggRel.getGroupCount(),
+            oldAggRel.hasEmptyGroup(),
             oldAggRel,
             null,
             null);
