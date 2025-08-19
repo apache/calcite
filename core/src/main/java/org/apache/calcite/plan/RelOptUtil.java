@@ -2804,35 +2804,38 @@ public abstract class RelOptUtil {
         ImmutableBitSet.range(nSysFields + nFieldsLeft, nTotalFields);
 
     final List<RexNode> filtersToRemove = new ArrayList<>();
+    boolean hasAndCondition = LogicalJoin.class.isInstance(joinRel)
+                              && RexCall.class.isInstance(((LogicalJoin) joinRel).getCondition())
+                              && ((RexCall) ((LogicalJoin) joinRel).getCondition()).op.getName().equals("AND");
     for (RexNode filter : filters) {
       final InputFinder inputFinder = InputFinder.analyze(filter);
       final ImmutableBitSet inputBits = inputFinder.build();
-//      boolean isScalarQuery = false;
-//
-//      if (filter instanceof RexCall) {
-//        RexCall call = (RexCall) filter;
-//
-//        // Check first operand exists
-//        if (!call.getOperands().isEmpty()) {
-//          RexNode firstOperand = call.getOperands().get(0);
-//
-//          // Case 1: First operand is directly a RexSubQuery
-//          if (firstOperand instanceof RexSubQuery) {
-//            isScalarQuery = "$SCALAR_QUERY".equals(((RexSubQuery) firstOperand).op.getName());
-//          } else if (firstOperand instanceof RexCall) {
-//            // Case 2: First operand is a RexCall whose first operand is RexSubQuery
-//            RexCall innerCall = (RexCall) firstOperand;
-//            if (!innerCall.getOperands().isEmpty() && innerCall.getOperands().get(0) instanceof RexSubQuery) {
-//              RexSubQuery subQuery = (RexSubQuery) innerCall.getOperands().get(0);
-//              isScalarQuery = "$SCALAR_QUERY".equals(subQuery.op.getName());
-//            }
-//          }
-//        }
-//      }
-//      // REVIEW - are there any expressions that need special handling
+      boolean isScalarQuery = false;
+
+      if (hasAndCondition && filter instanceof RexCall) {
+        RexCall call = (RexCall) filter;
+
+        for (RexNode operand : call.getOperands()) {
+          if (operand instanceof RexSubQuery) {
+            RexSubQuery subQuery = (RexSubQuery) operand;
+            isScalarQuery = "$SCALAR_QUERY".equals(subQuery.op.getName());
+            break; // found one, exit loop
+          } else if (operand instanceof RexCall) {
+            RexCall innerCall = (RexCall) operand;
+            for (RexNode innerOperand : innerCall.getOperands()) {
+              if (innerOperand instanceof RexSubQuery) {
+                RexSubQuery subQuery = (RexSubQuery) innerOperand;
+                isScalarQuery = "$SCALAR_QUERY".equals(subQuery.op.getName());
+                break;
+              }
+            }
+          }
+        }
+      }
+      // REVIEW - are there any expressions that need special handling
       // and therefore cannot be pushed?
 
-      if (pushLeft && leftBitmap.contains(inputBits) /*&& !isScalarQuery*/) {
+      if (pushLeft && leftBitmap.contains(inputBits) && !isScalarQuery) {
         // ignore filters that always evaluate to true
         if (!filter.isAlwaysTrue()) {
           // adjust the field references in the filter to reflect
@@ -2852,7 +2855,7 @@ public abstract class RelOptUtil {
           leftFilters.add(shiftedFilter);
         }
         filtersToRemove.add(filter);
-      } else if (pushRight && rightBitmap.contains(inputBits)/* && !isScalarQuery*/) {
+      } else if (pushRight && rightBitmap.contains(inputBits) && !isScalarQuery) {
         if (!filter.isAlwaysTrue()) {
           // adjust the field references in the filter to reflect
           // that fields in the right now shift over to the left
