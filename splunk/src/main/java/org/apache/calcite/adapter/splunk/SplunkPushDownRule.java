@@ -1121,9 +1121,12 @@ public class SplunkPushDownRule
     case BIGINT:
     case SMALLINT:
     case TINYINT:
-      // Use toint() for integer types - it rounds down decimals
-      // Wrap with null check: if field is null, return null; otherwise convert
-      return "if(isnull(" + fieldName + "), null, toint(" + fieldName + "))";
+      // ❌ DISABLED: toint() SPL function has compatibility issues with string-to-integer conversion
+      // In testing, toint("200") returns null instead of 200, even though "200" is a valid integer string.
+      // This appears to be a Splunk SPL function issue where toint() fails on valid numeric strings.
+      // Let Calcite handle these conversions instead of pushing down to Splunk.
+      LOGGER.debug("CAST to integer type {} not pushed down due to SPL toint() compatibility issues", typeName);
+      return null;
 
     case DOUBLE:
     case FLOAT:

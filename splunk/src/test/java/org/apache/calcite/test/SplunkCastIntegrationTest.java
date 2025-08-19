@@ -19,6 +19,8 @@ package org.apache.calcite.test;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -41,6 +43,8 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @Tag("integration")
 class SplunkCastIntegrationTest {
+  private static final Logger logger = LoggerFactory.getLogger(SplunkCastIntegrationTest.class);
+  
   // Connection properties loaded from local-properties.settings
   private static String SPLUNK_URL = null;
   private static String SPLUNK_USER = null;
@@ -117,7 +121,10 @@ class SplunkCastIntegrationTest {
     if (DISABLE_SSL_VALIDATION) {
       info.put("disableSslValidation", "true");
     }
-    info.put("app", "search");
+    // Remove app context - CIM models are globally accessible
+    // info.put("app", "search");  // This fails - 'web' table not found in search context
+    info.put("lex", "ORACLE");
+    info.put("unquotedCasing", "TO_LOWER");
     return DriverManager.getConnection("jdbc:splunk:", info);
   }
 
