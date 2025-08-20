@@ -24,6 +24,8 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +34,7 @@ import java.util.Map;
  * Table containing network resource information across cloud providers.
  */
 public class NetworkResourcesTable extends AbstractCloudGovernanceTable {
-
+  private static final Logger LOGGER = LoggerFactory.getLogger(NetworkResourcesTable.class);
   public NetworkResourcesTable(CloudGovernanceConfig config) {
     super(config);
   }
@@ -94,7 +96,7 @@ public class NetworkResourcesTable extends AbstractCloudGovernanceTable {
         });
       }
     } catch (Exception e) {
-      System.err.println("Error querying Azure network resources: " + e.getMessage());
+      LOGGER.debug("Error querying Azure network resources: {}", e.getMessage());
     }
 
     return results;
@@ -128,7 +130,7 @@ public class NetworkResourcesTable extends AbstractCloudGovernanceTable {
         });
       }
     } catch (Exception e) {
-      System.err.println("Error querying GCP network resources: " + e.getMessage());
+      LOGGER.debug("Error querying GCP network resources: {}", e.getMessage());
     }
 
     return results;
@@ -165,7 +167,7 @@ public class NetworkResourcesTable extends AbstractCloudGovernanceTable {
         });
       }
     } catch (Exception e) {
-      System.err.println("Error querying AWS network resources: " + e.getMessage());
+      LOGGER.debug("Error querying AWS network resources: {}", e.getMessage());
     }
 
     return results;

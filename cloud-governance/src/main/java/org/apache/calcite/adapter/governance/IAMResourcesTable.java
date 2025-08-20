@@ -24,6 +24,8 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +34,7 @@ import java.util.Map;
  * Table containing IAM resource information across cloud providers.
  */
 public class IAMResourcesTable extends AbstractCloudGovernanceTable {
-
+  private static final Logger LOGGER = LoggerFactory.getLogger(IAMResourcesTable.class);
   public IAMResourcesTable(CloudGovernanceConfig config) {
     super(config);
   }
@@ -98,7 +100,7 @@ public class IAMResourcesTable extends AbstractCloudGovernanceTable {
         });
       }
     } catch (Exception e) {
-      System.err.println("Error querying Azure IAM resources: " + e.getMessage());
+      LOGGER.debug("Error querying Azure IAM resources: {}", e.getMessage());
     }
 
     return results;
@@ -140,7 +142,7 @@ public class IAMResourcesTable extends AbstractCloudGovernanceTable {
         });
       }
     } catch (Exception e) {
-      System.err.println("Error querying GCP IAM resources: " + e.getMessage());
+      LOGGER.debug("Error querying GCP IAM resources: {}", e.getMessage());
     }
 
     return results;
@@ -180,7 +182,7 @@ public class IAMResourcesTable extends AbstractCloudGovernanceTable {
         });
       }
     } catch (Exception e) {
-      System.err.println("Error querying AWS IAM resources: " + e.getMessage());
+      LOGGER.debug("Error querying AWS IAM resources: {}", e.getMessage());
     }
 
     return results;

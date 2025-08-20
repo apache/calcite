@@ -30,12 +30,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 /**
  * GCP provider implementation using Google Cloud SDK for Java.
  * Simplified implementation that only handles Cloud Storage for now.
  */
 public class GCPProvider implements CloudProvider {
-  private final CloudGovernanceConfig.GCPConfig config;
+  private static final Logger LOGGER = LoggerFactory.getLogger(GCPProvider.class);  private final CloudGovernanceConfig.GCPConfig config;
   private final GoogleCredentials credentials;
 
   public GCPProvider(CloudGovernanceConfig.GCPConfig config) {
@@ -120,8 +122,8 @@ public class GCPProvider implements CloudProvider {
           results.add(storageData);
         }
       } catch (Exception e) {
-        System.err.println("Error querying storage resources in project " +
-            projectId + ": " + e.getMessage());
+        LOGGER.debug("Error querying storage resources in project {}: {}",
+            projectId, e.getMessage());
       }
     }
 

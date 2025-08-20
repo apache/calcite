@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.governance.provider;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.calcite.adapter.governance.CloudGovernanceConfig;
 
 import java.util.ArrayList;
@@ -54,7 +56,7 @@ import software.amazon.awssdk.services.sts.model.AssumeRoleResponse;
  * AWS provider implementation using AWS SDK for Java v2.
  */
 public class AWSProvider implements CloudProvider {
-  private final CloudGovernanceConfig.AWSConfig config;
+  private static final Logger LOGGER = LoggerFactory.getLogger(AWSProvider.class);  private final CloudGovernanceConfig.AWSConfig config;
   private final Region region;
   private final AwsCredentials baseCredentials;
   private final Map<String, AwsCredentials> accountCredentials;
@@ -90,7 +92,7 @@ public class AWSProvider implements CloudProvider {
               response.credentials().secretAccessKey());
           accountCredentials.put(accountId, assumedCredentials);
         } catch (Exception e) {
-          System.err.println("Failed to assume role for account " + accountId + ": " + e.getMessage());
+          LOGGER.debug("Failed to assume role for account " + accountId + ": " + e.getMessage());
           accountCredentials.put(accountId, baseCredentials);
         }
       }
@@ -185,8 +187,8 @@ public class AWSProvider implements CloudProvider {
           results.add(clusterData);
         }
       } catch (Exception e) {
-        System.err.println("Error querying EKS clusters in account " +
-            accountId + ": " + e.getMessage());
+        LOGGER.debug("Error querying EKS clusters in account {}: {}",
+            accountId, e.getMessage());
       }
     }
 
@@ -299,14 +301,14 @@ public class AWSProvider implements CloudProvider {
 
           } catch (Exception e) {
             // Error getting bucket details, still add basic info
-            System.err.println("Error getting details for bucket " + bucket.name() + ": " + e.getMessage());
+            LOGGER.debug("Error getting details for bucket " + bucket.name() + ": " + e.getMessage());
           }
 
           results.add(storageData);
         }
       } catch (Exception e) {
-        System.err.println("Error querying S3 buckets in account " +
-            accountId + ": " + e.getMessage());
+        LOGGER.debug("Error querying S3 buckets in account {}: {}",
+            accountId, e.getMessage());
       }
     }
 
@@ -383,8 +385,8 @@ public class AWSProvider implements CloudProvider {
           }
         }
       } catch (Exception e) {
-        System.err.println("Error querying EC2 instances in account " +
-            accountId + ": " + e.getMessage());
+        LOGGER.debug("Error querying EC2 instances in account {}: {}",
+            accountId, e.getMessage());
       }
     }
 
@@ -496,8 +498,8 @@ public class AWSProvider implements CloudProvider {
         }
 
       } catch (Exception e) {
-        System.err.println("Error querying network resources in account " +
-            accountId + ": " + e.getMessage());
+        LOGGER.debug("Error querying network resources in account {}: {}",
+            accountId, e.getMessage());
       }
     }
 
@@ -638,8 +640,8 @@ public class AWSProvider implements CloudProvider {
         }
 
       } catch (Exception e) {
-        System.err.println("Error querying IAM resources in account " +
-            accountId + ": " + e.getMessage());
+        LOGGER.debug("Error querying IAM resources in account {}: {}",
+            accountId, e.getMessage());
       }
     }
 
@@ -827,7 +829,7 @@ public class AWSProvider implements CloudProvider {
 
             results.add(dbData);
           } catch (Exception e) {
-            System.err.println("Error describing DynamoDB table " + tableName + ": " + e.getMessage());
+            LOGGER.debug("Error describing DynamoDB table " + tableName + ": " + e.getMessage());
           }
         }
 
@@ -877,8 +879,8 @@ public class AWSProvider implements CloudProvider {
         }
 
       } catch (Exception e) {
-        System.err.println("Error querying database resources in account " +
-            accountId + ": " + e.getMessage());
+        LOGGER.debug("Error querying database resources in account {}: {}",
+            accountId, e.getMessage());
       }
     }
 
@@ -928,8 +930,8 @@ public class AWSProvider implements CloudProvider {
           results.add(registryData);
         }
       } catch (Exception e) {
-        System.err.println("Error querying ECR repositories in account " +
-            accountId + ": " + e.getMessage());
+        LOGGER.debug("Error querying ECR repositories in account {}: {}",
+            accountId, e.getMessage());
       }
     }
 

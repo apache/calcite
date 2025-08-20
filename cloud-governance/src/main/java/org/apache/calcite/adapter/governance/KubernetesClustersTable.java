@@ -24,6 +24,8 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -33,7 +35,7 @@ import java.util.Map;
  * Returns raw facts without subjective assessments.
  */
 public class KubernetesClustersTable extends AbstractCloudGovernanceTable {
-
+  private static final Logger LOGGER = LoggerFactory.getLogger(KubernetesClustersTable.class);
   public KubernetesClustersTable(CloudGovernanceConfig config) {
     super(config);
   }
@@ -116,7 +118,7 @@ public class KubernetesClustersTable extends AbstractCloudGovernanceTable {
       }
     } catch (Exception e) {
       // Log error but don't fail the entire query
-      System.err.println("Error querying Azure AKS clusters: " + e.getMessage());
+      LOGGER.debug("Error querying Azure AKS clusters: {}", e.getMessage());
     }
 
     return results;
@@ -157,7 +159,7 @@ public class KubernetesClustersTable extends AbstractCloudGovernanceTable {
         });
       }
     } catch (Exception e) {
-      System.err.println("Error querying GCP Kubernetes clusters: " + e.getMessage());
+      LOGGER.debug("Error querying GCP Kubernetes clusters: {}", e.getMessage());
     }
 
     return results;
@@ -200,7 +202,7 @@ public class KubernetesClustersTable extends AbstractCloudGovernanceTable {
         });
       }
     } catch (Exception e) {
-      System.err.println("Error querying AWS Kubernetes clusters: " + e.getMessage());
+      LOGGER.debug("Error querying AWS Kubernetes clusters: {}", e.getMessage());
     }
 
     return results;

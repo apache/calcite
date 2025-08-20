@@ -24,6 +24,8 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +34,7 @@ import java.util.Map;
  * Table containing database resource information across cloud providers.
  */
 public class DatabaseResourcesTable extends AbstractCloudGovernanceTable {
-
+  private static final Logger LOGGER = LoggerFactory.getLogger(DatabaseResourcesTable.class);
   public DatabaseResourcesTable(CloudGovernanceConfig config) {
     super(config);
   }
@@ -106,7 +108,7 @@ public class DatabaseResourcesTable extends AbstractCloudGovernanceTable {
         });
       }
     } catch (Exception e) {
-      System.err.println("Error querying Azure database resources: " + e.getMessage());
+      LOGGER.debug("Error querying Azure database resources: {}", e.getMessage());
     }
 
     return results;
@@ -146,7 +148,7 @@ public class DatabaseResourcesTable extends AbstractCloudGovernanceTable {
         });
       }
     } catch (Exception e) {
-      System.err.println("Error querying GCP database resources: " + e.getMessage());
+      LOGGER.debug("Error querying GCP database resources: {}", e.getMessage());
     }
 
     return results;
@@ -195,7 +197,7 @@ public class DatabaseResourcesTable extends AbstractCloudGovernanceTable {
         });
       }
     } catch (Exception e) {
-      System.err.println("Error querying AWS database resources: " + e.getMessage());
+      LOGGER.debug("Error querying AWS database resources: {}", e.getMessage());
     }
 
     return results;

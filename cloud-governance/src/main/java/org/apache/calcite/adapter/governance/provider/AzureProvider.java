@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.adapter.governance.provider;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.calcite.adapter.governance.CloudGovernanceConfig;
 
 import com.azure.core.credential.TokenCredential;
@@ -37,7 +39,7 @@ import java.util.Map;
  * Azure provider implementation using Azure Resource Graph with KQL queries.
  */
 public class AzureProvider implements CloudProvider {
-  private final CloudGovernanceConfig.AzureConfig config;
+  private static final Logger LOGGER = LoggerFactory.getLogger(AzureProvider.class);  private final CloudGovernanceConfig.AzureConfig config;
   private final ResourceGraphManager resourceGraphManager;
   private final ObjectMapper objectMapper;
 
@@ -85,7 +87,7 @@ public class AzureProvider implements CloudProvider {
         }
       }
     } catch (Exception e) {
-      System.err.println("Error executing KQL query: " + e.getMessage());
+      LOGGER.debug("Error executing KQL query: " + e.getMessage());
     }
 
     return results;

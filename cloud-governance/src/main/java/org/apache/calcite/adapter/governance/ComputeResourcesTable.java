@@ -24,6 +24,9 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +35,7 @@ import java.util.Map;
  * Table containing compute resource (VM) information across cloud providers.
  */
 public class ComputeResourcesTable extends AbstractCloudGovernanceTable {
+  private static final Logger LOGGER = LoggerFactory.getLogger(ComputeResourcesTable.class);
 
   public ComputeResourcesTable(CloudGovernanceConfig config) {
     super(config);
@@ -110,7 +114,7 @@ public class ComputeResourcesTable extends AbstractCloudGovernanceTable {
         });
       }
     } catch (Exception e) {
-      System.err.println("Error querying Azure compute instances: " + e.getMessage());
+      LOGGER.debug("Error querying Azure compute instances: {}", e.getMessage());
     }
 
     return results;
@@ -151,7 +155,7 @@ public class ComputeResourcesTable extends AbstractCloudGovernanceTable {
         });
       }
     } catch (Exception e) {
-      System.err.println("Error querying GCP compute instances: " + e.getMessage());
+      LOGGER.debug("Error querying GCP compute instances: {}", e.getMessage());
     }
 
     return results;
@@ -192,7 +196,7 @@ public class ComputeResourcesTable extends AbstractCloudGovernanceTable {
         });
       }
     } catch (Exception e) {
-      System.err.println("Error querying AWS compute instances: " + e.getMessage());
+      LOGGER.debug("Error querying AWS compute instances: {}", e.getMessage());
     }
 
     return results;
