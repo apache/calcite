@@ -4194,6 +4194,17 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7140">[CALCITE-7140]
+   * Improve constant reduction of expressions containing SqlRowOperator</a>. */
+  @Test void testReduceConstantsWithRow() {
+    final String sql = "SELECT ROW('a',1+1), ROW(1+2,ROW('b',2+2)), "
+        + "CARDINALITY(ARRAY[2*3, 2, 1]), "
+        + "CARDINALITY(ARRAY[ROW(4*2,'a'), ROW(4+4,'b')]), "
+        + "CARDINALITY(ARRAY[ROW(5+5, ROW('b',2+2))])";
+    sql(sql).withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS).check();
+  }
+
   @Test void testPullNull() {
     final String sql = "select *\n"
         + "from emp\n"

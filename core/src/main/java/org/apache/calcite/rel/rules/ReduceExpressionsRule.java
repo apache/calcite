@@ -1151,10 +1151,11 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
       // the operands are constants, we still want to reduce those
       if ((callConstancy == Constancy.REDUCIBLE_CONSTANT)
           && (call.getOperator() instanceof SqlRowOperator)) {
-        callConstancy = Constancy.NON_CONSTANT;
+        // Consider Row call as kind of "struct literal"
+        callConstancy = Constancy.IRREDUCIBLE_CONSTANT;
       }
 
-      if (callConstancy == Constancy.NON_CONSTANT) {
+      if (callConstancy != Constancy.REDUCIBLE_CONSTANT) {
         // any REDUCIBLE_CONSTANT children are now known to be maximal
         // reducible subtrees, so they can be added to the result
         // list
