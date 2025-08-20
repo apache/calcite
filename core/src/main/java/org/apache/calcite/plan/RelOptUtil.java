@@ -2804,35 +2804,20 @@ public abstract class RelOptUtil {
         ImmutableBitSet.range(nSysFields + nFieldsLeft, nTotalFields);
 
     final List<RexNode> filtersToRemove = new ArrayList<>();
-    boolean hasAndCondition = LogicalJoin.class.isInstance(joinRel)
-                              && RexCall.class.isInstance(((LogicalJoin) joinRel).getCondition())
-                              && ((RexCall) ((LogicalJoin) joinRel).getCondition()).op.getName().equals("AND");
+    boolean hasAndCondition = isAndCondition(joinRel);
     for (RexNode filter : filters) {
       final InputFinder inputFinder = InputFinder.analyze(filter);
       final ImmutableBitSet inputBits = inputFinder.build();
       boolean isScalarQuery = false;
-
       if (hasAndCondition && filter instanceof RexCall) {
         RexCall call = (RexCall) filter;
-
-        for (RexNode operand : call.getOperands()) {
-          if (operand instanceof RexSubQuery) {
-            RexSubQuery subQuery = (RexSubQuery) operand;
-            isScalarQuery = "$SCALAR_QUERY".equals(subQuery.op.getName());
-            break; // found one, exit loop
-          } else if (operand instanceof RexCall) {
-            RexCall innerCall = (RexCall) operand;
-            for (RexNode innerOperand : innerCall.getOperands()) {
-              if (innerOperand instanceof RexSubQuery) {
-                RexSubQuery subQuery = (RexSubQuery) innerOperand;
-                isScalarQuery = "$SCALAR_QUERY".equals(subQuery.op.getName());
-                break;
-              }
-            }
-          }
+        // Check first operand exists
+        if (!call.getOperands().isEmpty()) {
+          RexNode firstOperand = call.getOperands().get(0);
+          isScalarQuery = hasScalarSubQuery(firstOperand);
         }
       }
-      // REVIEW - are there any expressions that need special handling
+      // REVIEW - are there any expres
       // and therefore cannot be pushed?
 
       if (pushLeft && leftBitmap.contains(inputBits) && !isScalarQuery) {
@@ -2891,6 +2876,28 @@ public abstract class RelOptUtil {
 
     // Did anything change?
     return !filtersToRemove.isEmpty();
+  }
+
+  private static boolean isAndCondition(RelNode joinRel) {
+    return LogicalJoin.class.isInstance(joinRel)
+        && RexCall.class.isInstance(((LogicalJoin) joinRel).getCondition())
+        && ((RexCall) ((LogicalJoin) joinRel).getCondition()).op.getName().equals("AND");
+  }
+
+  private static boolean hasScalarSubQuery(RexNode rexNode) {
+    if (rexNode instanceof RexSubQuery) {
+      RexSubQuery subQuery = (RexSubQuery) rexNode;
+      return "$SCALAR_QUERY".equals(subQuery.op.getName());
+    }
+    if (rexNode instanceof RexCall) {
+      RexCall call = (RexCall) rexNode;
+      for (RexNode operand : call.getOperands()) {
+        if (hasScalarSubQuery(operand)) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   /**
