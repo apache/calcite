@@ -15704,6 +15704,32 @@ LogicalProject($0=[$3], $1=[$4])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testReduceConstantsWithRow">
+    <Resource name="sql">
+      <![CDATA[SELECT 1+1, ARRAY[1+1, 2+2], ROW('a', 3+3), MAP['a'||'b', 6+6],
+ROW(1+2, ARRAY[1+2, 2+3], ROW('a', 3+4), MAP['ab'||'cd', 6+7]),
+ARRAY[2*3, 2, 1],
+ARRAY[ROW(4*2, 'a'), ROW(4+4, 'b')],
+ARRAY[MAP['abc'||'def', 8+8], MAP['ghi'||'jkl', 9+9]],
+ARRAY[ROW(1+2, ARRAY[1+1, 2+2], ROW('a', 3+3), MAP['x'||'y', 8+8])],
+CARDINALITY(ARRAY[2*3, 2*2, 1*4]),
+CARDINALITY(ARRAY[ROW(4*3, 'm'), ROW(4+6, 'b')]),
+CARDINALITY(ARRAY[MAP['ac'||'bd', 1+8], MAP['gi'||'jl', 1+9]]),
+CARDINALITY(ARRAY[ROW(1+7, ARRAY[1+4, 4+2], ROW('t', 5+5), MAP['y'||'z', 9+9])])]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EXPR$0=[+(1, 1)], EXPR$1=[ARRAY(+(1, 1), +(2, 2))], EXPR$2=[ROW('a', +(3, 3))], EXPR$3=[MAP(||('a', 'b'), +(6, 6))], EXPR$4=[ROW(+(1, 2), ARRAY(+(1, 2), +(2, 3)), ROW('a', +(3, 4)), MAP(||('ab', 'cd'), +(6, 7)))], EXPR$5=[ARRAY(*(2, 3), 2, 1)], EXPR$6=[ARRAY(ROW(*(4, 2), 'a'), ROW(+(4, 4), 'b'))], EXPR$7=[ARRAY(MAP(||('abc', 'def'), +(8, 8)), MAP(||('ghi', 'jkl'), +(9, 9)))], EXPR$8=[ARRAY(ROW(+(1, 2), ARRAY(+(1, 1), +(2, 2)), ROW('a', +(3, 3)), MAP(||('x', 'y'), +(8, 8))))], EXPR$9=[CARDINALITY(ARRAY(*(2, 3), *(2, 2), 4))], EXPR$10=[CARDINALITY(ARRAY(ROW(*(4, 3), 'm'), ROW(+(4, 6), 'b')))], EXPR$11=[CARDINALITY(ARRAY(MAP(||('ac', 'bd'), +(1, 8)), MAP(||('gi', 'jl'), +(1, 9))))], EXPR$12=[CARDINALITY(ARRAY(ROW(+(1, 7), ARRAY(+(1, 4), +(4, 2)), ROW('t', +(5, 5)), MAP(||('y', 'z'), +(9, 9)))))])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EXPR$0=[2], EXPR$1=[ARRAY(2, 4)], EXPR$2=[ROW('a', 6)], EXPR$3=[MAP('ab', 12)], EXPR$4=[ROW(3, ARRAY(3, 5), ROW('a', 7), MAP('abcd', 13))], EXPR$5=[ARRAY(6, 2, 1)], EXPR$6=[ARRAY(ROW(8, 'a'), ROW(8, 'b'))], EXPR$7=[ARRAY(MAP('abcdef', 16), MAP('ghijkl', 18))], EXPR$8=[ARRAY(ROW(3, ARRAY(2, 4), ROW('a', 6), MAP('xy', 16)))], EXPR$9=[3], EXPR$10=[2], EXPR$11=[2], EXPR$12=[1])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testReduceDecimal">
     <Resource name="sql">
       <![CDATA[select ename from emp where sal > cast (100.0 as decimal(4, 1))]]>
