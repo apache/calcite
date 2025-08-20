@@ -27,6 +27,7 @@ import org.apache.calcite.plan.PivotRelTrait;
 import org.apache.calcite.plan.PivotRelTraitDef;
 import org.apache.calcite.plan.RelOptSamplingParameters;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.SubQueryAliasTrait;
 import org.apache.calcite.plan.SubQueryAliasTraitDef;
 import org.apache.calcite.plan.TableAliasTrait;
@@ -35,6 +36,7 @@ import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Calc;
@@ -60,6 +62,7 @@ import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -697,7 +700,16 @@ public class RelToSqlConverter extends SqlImplementor
     if (CTERelToSqlUtil.isCTEScopeOrDefinitionTrait(e.getTraitSet())) {
       result = updateCTEResult(e, result);
     }
-    return adjustResultWithSubQueryAlias(e, result);
+    result = adjustResultWithSubQueryAlias(e, result);
+    if (result.node instanceof SqlSelect
+        && !dialect.supportsIdenticalColumnAliasAndGroupByColumnName()) {
+      SqlSelect selectNode = (SqlSelect) result.node;
+      if (selectNode.getGroup() != null && !(selectNode.getFrom() instanceof SqlJoin)
+          && selectNode.getSelectList() != null) {
+        result = createResultWithModifiedGroupList(e, selectNode, result);
+      }
+    }
+    return result;
   }
 
   /**
@@ -1989,6 +2001,63 @@ public class RelToSqlConverter extends SqlImplementor
               ImmutableMap.of(subQueryAlias, rowType));
     }
     return result;
+  }
+
+  Result createResultWithModifiedGroupList(RelNode e, SqlSelect sqlSelect, Result result) {
+    String tableAlias = SqlValidatorUtil.alias(sqlSelect.getFrom());
+    List<String> tableFieldNames = tableAlias != null
+        ? getTableFieldNames(e, tableAlias) : Collections.emptyList();
+    if (tableAlias != null && !tableFieldNames.isEmpty()) {
+      List<String> selectListAliases = new ArrayList<>();
+      for (SqlNode node : sqlSelect.getSelectList()) {
+        if (node.getKind() == SqlKind.AS) {
+          SqlCall call = (SqlCall) node;
+          SqlIdentifier alias = call.operand(1);
+          selectListAliases.add(alias.names.get(0));
+        }
+      }
+      List<SqlNode> groupList =
+          createGroupByList(sqlSelect.getGroup(), selectListAliases, tableFieldNames, tableAlias);
+      SqlNode node =
+          new SqlSelect(sqlSelect.getParserPosition(), null, sqlSelect.getSelectList(),
+          sqlSelect.getFrom(), sqlSelect.getWhere(), new SqlNodeList(groupList, SqlParserPos.ZERO),
+          sqlSelect.getHaving(), sqlSelect.getWindowList(), sqlSelect.getQualify(),
+          sqlSelect.getOrderList(), sqlSelect.getOffset(), sqlSelect.getFetch(), sqlSelect.getHints());
+      return result(node, result.clauses, result.neededAlias, result.neededType, result.aliases);
+    }
+    return result;
+  }
+
+  private List<SqlNode> createGroupByList(SqlNodeList groupList,
+      List<String> selectListAliases, List<String> tableFieldNames, String tableAlias) {
+    return groupList.getList().stream()
+        .map(node -> {
+          if (node instanceof SqlIdentifier) {
+            SqlIdentifier identifier = (SqlIdentifier) node;
+            String name = identifier.names.get(0);
+            boolean isMatch = selectListAliases.stream().anyMatch(alias -> alias.equals(name))
+                && tableFieldNames.stream().anyMatch(alias -> alias.equals(name));
+            if (isMatch) {
+              return new SqlIdentifier(Arrays.asList(tableAlias, name), node.getParserPosition());
+            }
+          }
+          return node;
+        }).collect(Collectors.toList());
+  }
+
+  private List<String> getTableFieldNames(RelNode relNode, String tableName) {
+    List<String> tableColumns = new ArrayList<>();
+    new RelVisitor() {
+      @Override public void visit(RelNode node, int ordinal, RelNode parent) {
+        if (node instanceof LogicalTableScan
+            && RelOptUtil.getTableName((LogicalTableScan) node).equals(tableName)) {
+          tableColumns.addAll(node.getRowType().getFieldNames());
+        } else {
+          node.childrenAccept(this);
+        }
+      }
+    }.go(relNode);
+    return tableColumns;
   }
 
   /**

@@ -424,6 +424,10 @@ public class BigQuerySqlDialect extends SqlDialect {
     return false;
   }
 
+  public boolean supportsIdenticalColumnAliasAndGroupByColumnName() {
+    return false;
+  }
+
   @Override public boolean supportsQualifyClause() {
     return true;
   }
