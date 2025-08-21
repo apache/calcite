@@ -2943,7 +2943,9 @@ public class RelBuilder {
             ? term
             : call(SqlStdOperatorTable.PLUS, groupingExpr, term);
       }
-      specialFields.put(c.left, groupingExpr);
+      if (groupingExpr != null) {
+        specialFields.put(c.left, groupingExpr);
+      }
     }
 
     List<RexNode> projects = new ArrayList<>(fieldNames.size());
