@@ -24,7 +24,7 @@
       "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
       "operand": {
         "directory": "bug",
-        "executionEngine": "linq4j",
+        "executionEngine": "parquet",
         "caseSensitive": false,
         "unquotedCasing": "TO_LOWER"
       }

@@ -75,3 +75,8 @@ local.properties
 /calcite_*
 /test_output.txt
 /file/testdb
+*.tmp
+*.tmp.*
+.calcite_conversions.*
+*.args
+a
