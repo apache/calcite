@@ -46,16 +46,12 @@
  * <pre>
  *       // Initialize a HintStrategyTable.
  *       HintStrategyTable strategies = HintStrategyTable.builder()
- *         .addHintStrategy("time_zone", HintPredicates.SET_VAR)
- *         .addHintStrategy("index", HintPredicates.TABLE_SCAN)
- *         .addHintStrategy("resource", HintPredicates.PROJECT)
- *         .addHintStrategy("use_hash_join",
- *             HintPredicates.and(HintPredicates.JOIN,
- *                 HintPredicates.explicit((hint, rel) -&gt; {
- *                   ...
- *                 })))
+ *         .hintStrategy("time_zone", HintPredicates.SET_VAR)
+ *         .hintStrategy("index", HintPredicates.TABLE_SCAN)
+ *         .hintStrategy("resource", HintPredicates.PROJECT)
+ *         .hintStrategy("use_hash_join", HintPredicates.and(HintPredicates.JOIN))
  *         .hintStrategy("use_merge_join",
- *             HintStrategyTable.strategyBuilder(
+ *             HintStrategy.builder(
  *                 HintPredicates.and(HintPredicates.JOIN, joinWithFixedTableName()))
  *                 .excludedRules(EnumerableRules.ENUMERABLE_JOIN_RULE).build())
  *         .build();
