@@ -173,15 +173,15 @@ public class ParquetConversionUtil {
       CsvTypeInferrer.TypeInferenceConfig config = ((CsvTable) table).getTypeInferenceConfig();
       if (config != null) {
         blankStringsAsNull = config.isBlankStringsAsNull();
-        LOGGER.debug("ParquetConversionUtil: CsvTable with config, blankStringsAsNull={}, enabled={}", 
+        LOGGER.info("ParquetConversionUtil: CsvTable with config, blankStringsAsNull={}, enabled={}", 
             blankStringsAsNull, config.isEnabled());
       } else {
         // Default to true when type inference is not configured (disabled)
         blankStringsAsNull = true;
-        LOGGER.debug("ParquetConversionUtil: CsvTable with null config, defaulting blankStringsAsNull=true");
+        LOGGER.info("ParquetConversionUtil: CsvTable with null config, defaulting blankStringsAsNull=true");
       }
     } else {
-      LOGGER.debug("ParquetConversionUtil: Non-CsvTable type: {}", table.getClass().getName());
+      LOGGER.info("ParquetConversionUtil: Non-CsvTable type: {}", table.getClass().getName());
     }
 
     if (table instanceof org.apache.calcite.schema.ScannableTable) {
@@ -405,18 +405,20 @@ public class ParquetConversionUtil {
             .named(fieldName);
 
       case TIME:
+        // TIME is just time of day, no timezone adjustment needed
         return org.apache.parquet.schema.Types.primitive(
             org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.INT32, repetition)
-            .as(org.apache.parquet.schema.LogicalTypeAnnotation.timeType(true,
+            .as(org.apache.parquet.schema.LogicalTypeAnnotation.timeType(false,
                 org.apache.parquet.schema.LogicalTypeAnnotation.TimeUnit.MILLIS))
             .named(fieldName);
 
       case TIMESTAMP:
-        // Use INT64 with timestamp logical type annotation (milliseconds, not adjusted to UTC)
-        // This tells DuckDB and other readers that this is a timestamp, not just an integer
+        // Use INT64 with timestamp logical type annotation
+        // For TIMESTAMP WITHOUT TIME ZONE, we use isAdjustedToUTC=true
+        // This means the stored value is already in UTC and readers should not adjust it
         return org.apache.parquet.schema.Types.primitive(
             org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.INT64, repetition)
-            .as(org.apache.parquet.schema.LogicalTypeAnnotation.timestampType(false,
+            .as(org.apache.parquet.schema.LogicalTypeAnnotation.timestampType(true,
                 org.apache.parquet.schema.LogicalTypeAnnotation.TimeUnit.MILLIS))
             .named(fieldName);
 
@@ -762,13 +764,54 @@ public class ParquetConversionUtil {
         break;
 
       case TIMESTAMP:
+        // For TIMESTAMP WITHOUT TIME ZONE, the value from CsvEnumerator is adjusted for local timezone
+        // We need to convert it back to UTC for storage since we're using isAdjustedToUTC=true
+        int fieldIndexTs = group.getType().getFieldIndex(fieldName);
+
+        if (value instanceof java.sql.Timestamp) {
+          // The timestamp from CsvEnumerator has timezone adjustment applied
+          java.sql.Timestamp ts = (java.sql.Timestamp) value;
+          long adjustedMillis = ts.getTime();
+          
+          // Get the timezone offset for this timestamp
+          java.util.TimeZone tz = java.util.TimeZone.getDefault();
+          long offset = tz.getOffset(adjustedMillis);
+          
+          // Add the offset to get back to UTC (offset is negative for US timezones)
+          // For example, if the value is 838972862000 (04:01:02 EDT), 
+          // we add the -4 hour offset (which subtracts 4 hours) to get 838958462000 (00:01:02 UTC)
+          long utcMillis = adjustedMillis + offset;
+          
+          LOGGER.debug("TIMESTAMP storage: field={}, input value={}, adjusted millis={}, offset={}, storing UTC millis={}", 
+                      fieldName, value, adjustedMillis, offset, utcMillis);
+          group.add(fieldIndexTs, utcMillis);
+        } else if (value instanceof java.time.LocalDateTime) {
+          // Convert LocalDateTime to UTC millis
+          long millis = ((java.time.LocalDateTime) value)
+              .atZone(java.time.ZoneOffset.UTC)
+              .toInstant()
+              .toEpochMilli();
+          group.add(fieldIndexTs, millis);
+        } else if (value instanceof Long) {
+          group.add(fieldIndexTs, (Long) value);
+        } else if (value != null) {
+          // Try to parse as timestamp string
+          try {
+            java.sql.Timestamp ts = java.sql.Timestamp.valueOf(value.toString());
+            group.add(fieldIndexTs, ts.getTime());
+          } catch (Exception e) {
+            LOGGER.warn("Failed to parse timestamp value: {}", value);
+          }
+        }
+        break;
+
       case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
         // Get the field index to use group.add() instead of group.append()
         // This avoids the Parquet library bug with group.append() for TIMESTAMP fields
         int fieldIndex = group.getType().getFieldIndex(fieldName);
 
         if (value instanceof java.sql.Timestamp) {
-          // Convert to milliseconds since epoch in UTC
+          // For timezone-aware timestamps, store the actual epoch millis
           long millis = ((java.sql.Timestamp) value).getTime();
           group.add(fieldIndex, millis);
         } else if (value instanceof java.time.LocalDateTime) {
@@ -786,11 +829,16 @@ public class ParquetConversionUtil {
           if (isNullRepresentation(strValue)) {
             return;
           }
-          // Try to parse timestamp string
+          // Use the same type converter as LINQ4J engine
           try {
-            java.time.LocalDateTime localDateTime = java.time.LocalDateTime.parse(strValue);
-            long millis = localDateTime.atZone(java.time.ZoneOffset.UTC).toInstant().toEpochMilli();
-            group.add(fieldIndex, millis);
+            org.apache.calcite.adapter.file.format.csv.CsvTypeConverter converter = 
+                new org.apache.calcite.adapter.file.format.csv.CsvTypeConverter(null, null, true);
+            Object converted = converter.convert(strValue, org.apache.calcite.sql.type.SqlTypeName.TIMESTAMP);
+            if (converted != null) {
+              long millis = (Long) converted;
+              group.add(fieldIndex, millis);
+            }
+            // If converted is null, don't add value (treat as null)
           } catch (Exception e) {
             LOGGER.error("Failed to parse timestamp value '{}' for field '{}': {}", strValue, fieldName, e.getMessage());
             // Don't add value (treat as null)
@@ -801,15 +849,7 @@ public class ParquetConversionUtil {
 
       default:
         // Default to string for all other types
-        String stringValue = value.toString();
-        if (stringValue.isEmpty()) {
-          // Use sentinel for EMPTY strings to work around AvroParquetReader bug
-          LOGGER.info("[ParquetConversionUtil] Writing EMPTY sentinel for field '{}' (was empty string)", fieldName);
-          group.append(fieldName, DirectParquetWriter.EMPTY_STRING_SENTINEL);
-        } else {
-          LOGGER.info("[ParquetConversionUtil] Writing string value for field '{}': '{}'", fieldName, stringValue);
-          group.append(fieldName, stringValue);
-        }
+        group.append(fieldName, value.toString());
         break;
     }
   }
@@ -863,7 +903,22 @@ public class ParquetConversionUtil {
           while (rs.next()) {
             Object[] row = new Object[columnCount];
             for (int i = 0; i < columnCount; i++) {
-              row[i] = rs.getObject(i + 1);
+              // Check field type to handle VARCHAR/CHAR specially
+              org.apache.calcite.rel.type.RelDataTypeField field = rowType.getFieldList().get(i);
+              org.apache.calcite.sql.type.SqlTypeName sqlType = field.getType().getSqlTypeName();
+              
+              if (sqlType == org.apache.calcite.sql.type.SqlTypeName.VARCHAR ||
+                  sqlType == org.apache.calcite.sql.type.SqlTypeName.CHAR) {
+                // For VARCHAR/CHAR, use getString to preserve empty strings
+                String strValue = rs.getString(i + 1);
+                // getString returns null for SQL NULL, but empty string for empty string
+                row[i] = strValue;
+                LOGGER.debug("TranslatableTableAdapter: Column {} ({}): value='{}' (null={})", 
+                            i, field.getName(), strValue, (strValue == null));
+              } else {
+                // For other types, use getObject
+                row[i] = rs.getObject(i + 1);
+              }
             }
             rows.add(row);
           }

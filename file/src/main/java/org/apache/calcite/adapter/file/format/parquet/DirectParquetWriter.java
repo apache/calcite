@@ -165,8 +165,9 @@ public class DirectParquetWriter {
             .named(name);
 
       case java.sql.Types.TIME:
+        // TIME is just time of day, no timezone adjustment needed
         return org.apache.parquet.schema.Types.primitive(INT32, repetition)
-            .as(LogicalTypeAnnotation.timeType(true, LogicalTypeAnnotation.TimeUnit.MILLIS))
+            .as(LogicalTypeAnnotation.timeType(false, LogicalTypeAnnotation.TimeUnit.MILLIS))
             .named(name);
 
       case java.sql.Types.TIMESTAMP:
@@ -228,12 +229,15 @@ public class DirectParquetWriter {
       case java.sql.Types.DATE:
         java.sql.Date date = rs.getDate(index);
         if (date != null) {
-          // Use LocalDate to avoid timezone issues
           // DATE type should never involve timezones
-          java.time.LocalDate localDate = date.toLocalDate();
-          int daysSinceEpoch = (int) localDate.toEpochDay();
-
-
+          // Convert directly from millis to avoid timezone issues
+          // Do NOT use toLocalDate() as it applies timezone conversion
+          long millis = date.getTime();
+          int daysSinceEpoch = (int) (millis / (24L * 60 * 60 * 1000));
+          
+          LOGGER.debug("DATE storage: column={}, date={}, millis={}, daysSinceEpoch={}", 
+                      columnName, date, millis, daysSinceEpoch);
+          
           group.append(columnName, daysSinceEpoch);
         }
         break;
@@ -258,11 +262,20 @@ public class DirectParquetWriter {
         break;
 
       case java.sql.Types.TIMESTAMP:
-        // For timezone-naive timestamps, store the value as-is
-        // The CSV reader should have already parsed them as UTC
+        // For TIMESTAMP WITHOUT TIME ZONE (wall clock time):
+        // The CsvEnumerator already provides the correct UTC value for the wall clock time.
+        // For example, "1996-08-02 00:01:02" becomes 838958462000 (UTC representation).
+        // We store this value directly in parquet.
         java.sql.Timestamp timestamp = rs.getTimestamp(index);
         if (timestamp != null) {
-          group.append(columnName, timestamp.getTime());
+          // The timestamp from CsvEnumerator is already the UTC representation
+          // of the wall clock time that we need to store
+          long utcMillis = timestamp.getTime();
+          
+          LOGGER.debug("TIMESTAMP storage: column={}, storing UTC value={}, as timestamp={}", 
+                      columnName, utcMillis, new java.sql.Timestamp(utcMillis));
+          
+          group.append(columnName, utcMillis);
         }
         break;
         
@@ -276,19 +289,7 @@ public class DirectParquetWriter {
 
       default:
         String stringValue = rs.getString(index);
-        if (stringValue != null && stringValue.isEmpty()) {
-          // Write sentinel value for EMPTY strings
-          // This works around AvroParquetReader's bug that converts empty strings to null
-          group.append(columnName, EMPTY_STRING_SENTINEL);
-          if ("name".equals(columnName) || "status".equals(columnName)) {
-            LOGGER.info("[DirectParquetWriter] Writing column '{}': EMPTY string (using sentinel)", columnName);
-          }
-        } else if (stringValue != null) {
-          // Write the actual non-empty string value
-          if ("name".equals(columnName) || "status".equals(columnName)) {
-            LOGGER.info("[DirectParquetWriter] Writing column '{}': value='{}', length={}", 
-                        columnName, stringValue, stringValue.length());
-          }
+        if (stringValue != null) {
           group.append(columnName, stringValue);
         }
         // If stringValue is null, don't write anything (Parquet will handle it as NULL)

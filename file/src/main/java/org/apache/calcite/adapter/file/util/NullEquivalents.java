@@ -25,7 +25,7 @@ import java.util.Set;
  * Utility class for handling null equivalent strings in CSV and other text formats.
  */
 public final class NullEquivalents {
-  
+
   /**
    * Default set of strings that are considered equivalent to NULL.
    * These are checked case-insensitively.
@@ -35,13 +35,14 @@ public final class NullEquivalents {
       "NA",
       "N/A",
       "NONE",
-      "NIL"
+      "NIL",
+      ""
   ));
-  
+
   private NullEquivalents() {
     // Utility class
   }
-  
+
   /**
    * Check if a string value represents a null value using the default null equivalents.
    * @param value The string value to check
@@ -50,7 +51,7 @@ public final class NullEquivalents {
   public static boolean isNullRepresentation(String value) {
     return isNullRepresentation(value, DEFAULT_NULL_EQUIVALENTS);
   }
-  
+
   /**
    * Check if a string value represents a null value using a custom set of null equivalents.
    * @param value The string value to check
@@ -61,16 +62,16 @@ public final class NullEquivalents {
     if (value == null) {
       return false; // null is already null, not a "representation" of null
     }
-    
+
     // Trim the value
     String trimmed = value.trim();
-    
+
     // Empty or blank strings are considered null representations for type inference
     // (since they can't be parsed as numbers, dates, etc.)
     if (trimmed.isEmpty()) {
       return true;
     }
-    
+
     // Check if it matches any explicit null markers
     String upper = trimmed.toUpperCase(Locale.ROOT);
     return nullEquivalents.contains(upper);
