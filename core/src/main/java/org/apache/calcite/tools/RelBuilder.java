@@ -2817,31 +2817,52 @@ public class RelBuilder {
    *
    * <p>Also see the discussion in
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1824">[CALCITE-1824]
-   * GROUP_ID returns wrong result</a> and
+   * GROUP_ID returns wrong result</a>,
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4748">[CALCITE-4748]
    * If there are duplicate GROUPING SETS, Calcite should return duplicate
-   * rows</a>.
+   * rows</a> and
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7126">[CALCITE-7126]
+   * The calculation result of grouping function is wrong</a>.
    */
   private RelBuilder rewriteAggregateWithDuplicateGroupSets(
       ImmutableBitSet groupSet,
       ImmutableSortedMultiset<ImmutableBitSet> groupSets,
       List<AggCallPlus> aggregateCalls) {
-    final List<String> fieldNamesIfNoRewrite =
-        Aggregate.deriveRowType(getTypeFactory(), peek().getRowType(), false,
-            groupSet, groupSets.asList(),
-            aggregateCalls.stream().map(AggCallPlus::aggregateCall)
-                .collect(toImmutableList())).getFieldNames();
+    List<AggregateCall> calls =
+        aggregateCalls.stream()
+            .map(AggCallPlus::aggregateCall)
+            .collect(Collectors.toList());
+    return rewriteAggregateWithDuplicateGroupSetsByAggregateCall(groupSet, groupSets, calls);
+  }
 
-    // If n duplicates exist for a particular grouping, the {@code GROUP_ID()}
-    // function produces values in the range 0 to n-1. For each value,
-    // we need to figure out the corresponding group sets.
-    //
-    // For example, "... GROUPING SETS (a, a, b, c, c, c, c)"
-    // (i) The max value of the GROUP_ID() function returns is 3
-    // (ii) GROUPING SETS (a, b, c) produces value 0,
-    //      GROUPING SETS (a, c) produces value 1,
-    //      GROUPING SETS (c) produces value 2
-    //      GROUPING SETS (c) produces value 3
+  private RelBuilder rewriteAggregateWithDuplicateGroupSetsByAggregateCall(
+      ImmutableBitSet groupSet,
+      ImmutableSortedMultiset<ImmutableBitSet> groupSets,
+      List<AggregateCall> aggregateCalls) {
+    final int groupCount = groupSet.cardinality();
+    final List<String> fieldNamesIfNoRewrite =
+        Aggregate.deriveRowType(getTypeFactory(), peek().getRowType(),
+            false, groupSet, groupSets.asList(), aggregateCalls).getFieldNames();
+
+    Mappings.TargetMapping mapping =
+        Mappings.target(groupSet.toList(), peek().getRowType().getFieldCount());
+
+    final Frame input = stack.pop();
+
+    // Only expand fully when GROUPING functions exist
+    boolean hasGroupingFunction = aggregateCalls.stream()
+        .anyMatch(call -> call.getAggregation().getKind() == SqlKind.GROUPING);
+
+    if (hasGroupingFunction) {
+      Map<ImmutableBitSet, Integer> groupSetToGroupId = new HashMap<>();
+      for (ImmutableBitSet gs : groupSets) {
+        int groupId = groupSetToGroupId.compute(gs, (k, v) -> v == null ? 0 : v + 1);
+        rewriteGroupAggCalls(ImmutableSet.of(gs), groupSet, aggregateCalls, groupCount,
+            fieldNamesIfNoRewrite, mapping, input, groupId);
+      }
+      return union(true, groupSets.size());
+    }
+
     final Map<Integer, Set<ImmutableBitSet>> groupIdToGroupSets = new HashMap<>();
     int maxGroupId = 0;
     for (Multiset.Entry<ImmutableBitSet> entry : groupSets.entrySet()) {
@@ -2856,47 +2877,103 @@ public class RelBuilder {
       }
     }
 
-    // AggregateCall list without GROUP_ID function
-    final List<AggCall> aggregateCallsWithoutGroupId =
-        new ArrayList<>(aggregateCalls);
-    aggregateCallsWithoutGroupId.removeIf(RelBuilder::isGroupId);
-
-    // For each group id value, we first construct an Aggregate without
-    // GROUP_ID() function call, and then create a Project node on top of it.
-    // The Project adds literal value for group id in right position.
-    final Frame frame = stack.pop();
-    for (int groupId = 0; groupId <= maxGroupId; groupId++) {
-      // Create the Aggregate node without GROUP_ID() call
-      stack.push(frame);
-      aggregate(groupKey(groupSet, castNonNull(groupIdToGroupSets.get(groupId))),
-          aggregateCallsWithoutGroupId);
-
-      final List<RexNode> selectList = new ArrayList<>();
-      final int groupExprLength = groupSet.cardinality();
-      // Project fields in group by expressions
-      for (int i = 0; i < groupExprLength; i++) {
-        selectList.add(field(i));
-      }
-      // Project fields in aggregate calls
-      int groupIdCount = 0;
-      for (int i = 0; i < aggregateCalls.size(); i++) {
-        if (isGroupId(aggregateCalls.get(i))) {
-          selectList.add(
-              getRexBuilder().makeExactLiteral(BigDecimal.valueOf(groupId),
-                  getTypeFactory().createSqlType(SqlTypeName.BIGINT)));
-          groupIdCount++;
-        } else {
-          selectList.add(field(groupExprLength + i - groupIdCount));
-        }
-      }
-      project(selectList, fieldNamesIfNoRewrite);
+    // Create aggregate for each GROUP_ID value
+    for (Map.Entry<Integer, Set<ImmutableBitSet>> entry : groupIdToGroupSets.entrySet()) {
+      // If n duplicates exist for a particular grouping, the {@code GROUP_ID()}
+      // function produces values in the range 0 to n-1. For each value,
+      // we need to figure out the corresponding group sets.
+      //
+      // For example, "... GROUPING SETS (a, a, b, c, c, c, c)"
+      // (i) The max value of the GROUP_ID() function returns is 3
+      // (ii) GROUPING SETS (a, b, c) produces value 0,
+      //      GROUPING SETS (a, c) produces value 1,
+      //      GROUPING SETS (c) produces value 2
+      //      GROUPING SETS (c) produces value 3
+      int groupId = entry.getKey();
+      Set<ImmutableBitSet> newGroupSets = entry.getValue();
+      rewriteGroupAggCalls(newGroupSets, groupSet, aggregateCalls, groupCount,
+          fieldNamesIfNoRewrite, mapping, input, groupId);
     }
 
-    return union(true, maxGroupId + 1);
+    return union(true, groupIdToGroupSets.size());
+  }
+
+  /**
+   * Rewrite aggregate calls with special handling for GROUPING and GROUP_ID functions,
+   * including NULL padding for missing grouping fields.
+   *
+   * @param groupSets           The groupSets to use for this aggregate
+   * @param groupSet            The groupSet to use for this aggregate
+   * @param aggregateCalls      List of aggregate calls for this aggregate
+   * @param originalGroupCount  The original groupSet size
+   * @param fieldNames          Field names for the output row type
+   * @param mapping             Field index mapping between input and output
+   * @param input               The input relational expression
+   * @param groupId             The GROUP_ID value to use for this aggregate
+   */
+  private void rewriteGroupAggCalls(Set<ImmutableBitSet> groupSets, ImmutableBitSet groupSet,
+      List<AggregateCall> aggregateCalls, int originalGroupCount, List<String> fieldNames,
+      Mappings.TargetMapping mapping, Frame input, int groupId) {
+    stack.push(input);
+
+    // specialFields records special values and their indexes.
+    // For example, GROUP_ID or GROUPING will be treated as
+    // numeric literals or NULL literals.
+    Map<Integer, RexNode> specialFields = new HashMap<>();
+    List<AggregateCall> aggCalls = new ArrayList<>();
+    for (int i = 0; i < aggregateCalls.size(); i++) {
+      AggregateCall aggCall = aggregateCalls.get(i);
+      switch (aggCall.getAggregation().getKind()) {
+      case GROUPING:
+        int grouping = calculateGroupingValue(groupSets.iterator().next(), aggCall.getArgList());
+        specialFields.put(originalGroupCount + i,
+            getRexBuilder().makeLiteral(grouping, aggCall.getType(), true));
+        break;
+      case GROUP_ID:
+        specialFields.put(originalGroupCount + i,
+            getRexBuilder().makeLiteral(groupId, aggCall.getType()));
+        break;
+      default:
+        aggCalls.add(aggCall);
+        break;
+      }
+    }
+
+    ImmutableBitSet gs = ImmutableBitSet.union(groupSets);
+    List<Integer> missingIndices = groupSet.except(gs).toList();
+    for (int i : missingIndices) {
+      specialFields.put(mapping.getTarget(i),
+          getRexBuilder().makeNullLiteral(field(i).getType()));
+    }
+
+    aggregate(groupKey(gs, groupSets), aggCalls);
+
+    List<RexNode> projects = new ArrayList<>();
+    int idx = 0;
+    for (int i = 0; i < fieldNames.size(); i++) {
+      RexNode node = specialFields.get(i);
+      projects.add(node != null ? node : field(idx++));
+    }
+    project(projects, fieldNames);
   }
 
   private static boolean isGroupId(AggCall c) {
     return ((AggCallPlus) c).op().kind == SqlKind.GROUP_ID;
+  }
+
+  private static int calculateGroupingValue(ImmutableBitSet groupSet, List<Integer> argIndices) {
+    if (argIndices.size() == 1) {
+      return groupSet.get(argIndices.get(0)) ? 0 : 1;
+    }
+
+    int groupingValue = 0;
+    for (int k = 0; k < argIndices.size(); k++) {
+      int index = argIndices.get(k);
+      if (!groupSet.get(index)) {
+        groupingValue |= 1 << argIndices.size() - 1 - k;
+      }
+    }
+    return groupingValue;
   }
 
   /** Given a list of literals and a target row type, make the literals
@@ -4447,8 +4524,14 @@ public class RelBuilder {
       // return a call that is "approximately equivalent ... and is good for
       // deriving field names", so dummy values are good enough.
       final RelCollation collation = RelCollations.EMPTY;
-      final RelDataType type =
-          getTypeFactory().createSqlType(SqlTypeName.BOOLEAN);
+      final RelDataType type;
+      if (aggFunction.getKind() == SqlKind.GROUP_ID) {
+        // The return type of GROUP_ID function is SqlTypeName.BIGINT,
+        // see SqlGroupIdFunction.
+        type = getTypeFactory().createSqlType(SqlTypeName.BIGINT);
+      } else {
+        type = getTypeFactory().createSqlType(SqlTypeName.BOOLEAN);
+      }
       return AggregateCall.create(pos, aggFunction, distinct, approximate,
           ignoreNulls, preOperands, ImmutableList.of(), -1,
           null, collation, type, alias);
