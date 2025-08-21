@@ -9079,12 +9079,14 @@ public class JdbcTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5094">[CALCITE-5094]
-   * Calcite JDBC Adapter and Avatica should support MySQL UNSIGNED types of TINYINT, SMALLINT, INT, BIGINT</a>. */
+   * Calcite JDBC Adapter and Avatica should support
+   * MySQL UNSIGNED types of TINYINT, SMALLINT, INT, BIGINT</a>. */
   @Test void testMySQLUnsignedType() {
     CalciteAssert.that()
         .with(CalciteAssert.SchemaSpec.UNSIGNED_TYPE)
         .with(Lex.MYSQL)
-        .query("SELECT * FROM test_unsigned WHERE tiny_id = ? AND small_id = ? AND int_id = ? AND big_id = ?")
+        .query("SELECT * FROM test_unsigned WHERE tiny_id = ? "
+            + "AND small_id = ? AND int_id = ? AND big_id = ?")
         .consumesPreparedStatement(p -> {
           p.setInt(1, 255);
           p.setInt(2, 65535);

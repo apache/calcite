@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.linq4j.tree;
 
-import com.google.common.base.Preconditions;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.joou.UByte;
 import org.joou.UInteger;
@@ -29,6 +27,8 @@ import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /** Support for compiling unsigned types.
  * This class has a role similar to {@link Primitive} */
@@ -112,7 +112,7 @@ public enum UnsignedType {
   }
 
   public static UByte toUByte(Object n) {
-    Preconditions.checkArgument(n instanceof Number, "Unexpected Object value " + n.getClass().getSimpleName());
+    checkArgument(n instanceof Number, "Unexpected Object value " + n.getClass().getSimpleName());
     return toUByteNonNull((Number) n, RoundingMode.DOWN);
   }
 
@@ -171,7 +171,7 @@ public enum UnsignedType {
   }
 
   public static UShort toUShort(Object n) {
-    Preconditions.checkArgument(n instanceof Number, "Unexpected Object value " + n.getClass().getSimpleName());
+    checkArgument(n instanceof Number, "Unexpected Object value " + n.getClass().getSimpleName());
     return toUShortNonNull((Number) n, RoundingMode.DOWN);
   }
 
@@ -234,7 +234,7 @@ public enum UnsignedType {
   }
 
   public static UInteger toUInteger(Object n) {
-    Preconditions.checkArgument(n instanceof Number, "Unexpected Object value " + n.getClass().getSimpleName());
+    checkArgument(n instanceof Number, "Unexpected Object value " + n.getClass().getSimpleName());
     return toUIntegerNonNull((Number) n, RoundingMode.DOWN);
   }
 
@@ -293,7 +293,7 @@ public enum UnsignedType {
   }
 
   public static ULong toULong(Object n) {
-    Preconditions.checkArgument(n instanceof Number, "Unexpected Object value " + n.getClass().getSimpleName());
+    checkArgument(n instanceof Number, "Unexpected Object value " + n.getClass().getSimpleName());
     return toULongNonNull((Number) n, RoundingMode.DOWN);
   }
 

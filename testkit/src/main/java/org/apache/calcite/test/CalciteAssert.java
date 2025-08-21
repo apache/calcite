@@ -2366,12 +2366,12 @@ public class CalciteAssert {
   /** Schema instance for {@link SchemaSpec#UNSIGNED_TYPE}. */
   private static final Schema UNSIGNED_TYPE_SCHEMA = new AbstractSchema() {
 
-    @Override
-    protected Map<String, Table> getTableMap() {
+    @Override protected Map<String, Table> getTableMap() {
       return ImmutableMap.of("test_unsigned", new UnsingedScannableTable());
     }
   };
 
+  /** Scannable table for unsigned types test. */
   private static class UnsingedScannableTable extends AbstractTable implements ScannableTable {
 
     /**
