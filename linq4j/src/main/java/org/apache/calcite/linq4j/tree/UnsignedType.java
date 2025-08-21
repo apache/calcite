@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import com.google.common.base.Preconditions;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.joou.UByte;
 import org.joou.UInteger;
@@ -109,6 +111,11 @@ public enum UnsignedType {
     return toUByteNonNull(n, RoundingMode.DOWN);
   }
 
+  public static UByte toUByte(Object n) {
+    Preconditions.checkArgument(n instanceof Number, "Unexpected Object value " + n.getClass().getSimpleName());
+    return toUByteNonNull((Number) n, RoundingMode.DOWN);
+  }
+
   private static UByte toUByteNonNull(Number n, RoundingMode mode) {
     if (n instanceof BigDecimal) {
       BigDecimal d = ((BigDecimal) n).setScale(0, mode);
@@ -161,6 +168,11 @@ public enum UnsignedType {
 
   public static UShort toUShort(double n) {
     return toUShortNonNull(n, RoundingMode.DOWN);
+  }
+
+  public static UShort toUShort(Object n) {
+    Preconditions.checkArgument(n instanceof Number, "Unexpected Object value " + n.getClass().getSimpleName());
+    return toUShortNonNull((Number) n, RoundingMode.DOWN);
   }
 
   private static UShort toUShortNonNull(Number n, RoundingMode mode) {
@@ -221,6 +233,11 @@ public enum UnsignedType {
     return toUIntegerNonNull(n, RoundingMode.DOWN);
   }
 
+  public static UInteger toUInteger(Object n) {
+    Preconditions.checkArgument(n instanceof Number, "Unexpected Object value " + n.getClass().getSimpleName());
+    return toUIntegerNonNull((Number) n, RoundingMode.DOWN);
+  }
+
   private static UInteger toUIntegerNonNull(Number n, RoundingMode mode) {
     if (n instanceof BigDecimal) {
       BigDecimal d = ((BigDecimal) n).setScale(0, mode);
@@ -275,10 +292,15 @@ public enum UnsignedType {
     return toULongNonNull(n, RoundingMode.DOWN);
   }
 
+  public static ULong toULong(Object n) {
+    Preconditions.checkArgument(n instanceof Number, "Unexpected Object value " + n.getClass().getSimpleName());
+    return toULongNonNull((Number) n, RoundingMode.DOWN);
+  }
+
   private static ULong toULongNonNull(Number n, RoundingMode mode) {
     if (n instanceof BigDecimal) {
       BigDecimal d = ((BigDecimal) n).setScale(0, mode);
-      return Unsigned.ulong(d.longValueExact());
+      return Unsigned.ulong(d.toBigIntegerExact());
     } else if (n instanceof Byte || n instanceof Short || n instanceof Integer
         || n instanceof Long || n instanceof Float || n instanceof Double
         || n instanceof UByte || n instanceof UShort || n instanceof UInteger) {
