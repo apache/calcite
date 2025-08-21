@@ -2893,29 +2893,30 @@ public class RelBuilder {
     Map<Integer, RexNode> specialFields = new HashMap<>();
     List<AggCallPlus> aggCalls = new ArrayList<>();
     List<AggCallPlus> allGroupings = new ArrayList<>();
-    List<Pair<Integer, List<Pair<Integer, AggCallPlus>>>> groupingCalls = new ArrayList<>();
+    List<Pair<Integer, List<Pair<Integer, @Nullable AggCallPlus>>>> groupingCalls =
+        new ArrayList<>();
 
     ImmutableBitSet unionGroupSet = ImmutableBitSet.union(groupSets);
     int baseIndex = groupSet.cardinality();
     for (int i = 0; i < aggregateCalls.size(); i++) {
       AggCallPlus aggCall = aggregateCalls.get(i);
       switch (aggCall.op().getKind()) {
-        case GROUPING:
-          List<Pair<Integer, AggCallPlus>> groupings =
-              convertGrouping(unionGroupSet, aggCall.aggregateCall().getArgList());
-          groupings.forEach(g -> {
-            if (g.right != null) {
-              allGroupings.add(g.right);
-            }
-          });
-          groupingCalls.add(Pair.of(baseIndex + i, groupings));
-          break;
-        case GROUP_ID:
-          specialFields.put(baseIndex + i,
-              getRexBuilder().makeLiteral(groupId, aggCall.aggregateCall().getType()));
-          break;
-        default:
-          aggCalls.add(aggCall);
+      case GROUPING:
+        List<Pair<Integer, @Nullable AggCallPlus>> groupings =
+            convertGrouping(unionGroupSet, aggCall.aggregateCall().getArgList());
+        groupings.forEach(g -> {
+          if (g.right != null) {
+            allGroupings.add(g.right);
+          }
+        });
+        groupingCalls.add(Pair.of(baseIndex + i, groupings));
+        break;
+      case GROUP_ID:
+        specialFields.put(baseIndex + i,
+            getRexBuilder().makeLiteral(groupId, aggCall.aggregateCall().getType()));
+        break;
+      default:
+        aggCalls.add(aggCall);
       }
     }
 
@@ -2930,7 +2931,7 @@ public class RelBuilder {
     aggregate(groupKey(unionGroupSet, groupSets), aggCalls);
 
     RelDataType bigIntType = getTypeFactory().createSqlType(SqlTypeName.BIGINT);
-    for (Pair<Integer, List<Pair<Integer, AggCallPlus>>> c : groupingCalls) {
+    for (Pair<Integer, List<Pair<Integer, @Nullable AggCallPlus>>> c : groupingCalls) {
       RexNode groupingExpr = null;
       for (Pair<Integer, AggCallPlus> g : c.right) {
         RexNode term =
@@ -2960,14 +2961,14 @@ public class RelBuilder {
 
   private List<Pair<Integer, AggCallPlus>> convertGrouping(ImmutableBitSet groupSet,
       List<Integer> argIndices) {
-    List<Pair<Integer, AggCallPlus>> groupingFuncs = new ArrayList<>();
+    List<Pair<Integer, @Nullable AggCallPlus>> groupingFuncs = new ArrayList<>();
     for (int idx = 0; idx < argIndices.size(); idx++) {
       int i = argIndices.get(idx);
       int coefficient = 1 << argIndices.size() - 1 - idx;
       if (groupSet.get(i)) {
         groupingFuncs.add(
             Pair.of(coefficient,
-                ((AggCallPlus) aggregateCall(SqlStdOperatorTable.GROUPING, field(i)))));
+                (AggCallPlus) aggregateCall(SqlStdOperatorTable.GROUPING, field(i))));
       } else {
         groupingFuncs.add(Pair.of(coefficient, null));
       }
