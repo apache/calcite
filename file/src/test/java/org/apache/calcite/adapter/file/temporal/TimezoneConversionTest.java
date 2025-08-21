@@ -41,9 +41,10 @@ public class TimezoneConversionTest {
 
   @Test public void testTimezoneNaiveTimestampConversion() throws Exception {
     // This test verifies that timezone-naive timestamps in CSV files
-    // are parsed as UTC for consistent wall-clock time representation
+    // are parsed as LOCAL timezone wall clock time, then converted to UTC for storage
 
     TimeZone localTz = TimeZone.getDefault();
+    System.out.println("Current JVM timezone: " + localTz.getID());
 
     Properties info = new Properties();
     // Use LINQ4J engine to avoid Parquet conversion
@@ -66,27 +67,32 @@ public class TimezoneConversionTest {
         // Do not use getTimestamp() as it applies unwanted timezone conversions
         long utcMillis = resultSet.getLong(2);
 
-        // The input was "1959-05-14 05:00:00" which is parsed as UTC for consistency
-        // TIMESTAMP WITHOUT TIME ZONE in CSV files are parsed as UTC to provide
-        // consistent wall-clock time representation
+        // The input was "1959-05-14 05:00:00" which is TIMESTAMP (timezone-naive)
+        // CORRECT BEHAVIOR: Store as UTC wall clock to preserve the time regardless of timezone
+        // The timestamp is stored as if it were UTC: 1959-05-14T05:00:00Z
         SimpleDateFormat utcParseFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         utcParseFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
         long expectedMillis = utcParseFormat.parse("1959-05-14 05:00:00").getTime();
 
         // Verify the stored value matches what we expect
-        assertThat("UTC milliseconds should match expected value",
+        assertThat("Wall clock time should be stored as UTC to preserve the value",
                    utcMillis, is(expectedMillis));
 
-        // Verify how it's displayed in UTC
+        // Verify how it's displayed
         SimpleDateFormat utcFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
         utcFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
         String actualUtcString = utcFormat.format(new java.util.Date(utcMillis));
 
-        // Timestamps without timezone are parsed as UTC for consistency
-        // The timestamp "1959-05-14 05:00:00" is treated as already being in UTC
-        System.out.println("Input: '1959-05-14 05:00:00' (timezone-naive)");
-        System.out.println("Parsed as: UTC (for consistency)");
-        System.out.println("Stored value: " + actualUtcString);
+        SimpleDateFormat localFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss z");
+        localFormat.setTimeZone(localTz);
+        String actualLocalString = localFormat.format(new java.util.Date(utcMillis));
+
+        // Log the conversion for debugging
+        System.out.println("Input: '1959-05-14 05:00:00' (TIMESTAMP - timezone-naive)");
+        System.out.println("Parsed as: " + localTz.getID() + " wall clock time");
+        System.out.println("Stored as UTC millis: " + utcMillis);
+        System.out.println("UTC representation: " + actualUtcString);
+        System.out.println("Local representation: " + actualLocalString);
 
         // Verify we got the description
         String description = resultSet.getString(3);

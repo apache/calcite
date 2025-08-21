@@ -54,7 +54,7 @@ import java.util.regex.Pattern;
  */
 public class CsvTypeInferrer {
   private static final Logger LOGGER = LoggerFactory.getLogger(CsvTypeInferrer.class);
-  
+
   // Common date/time formats to try
   private static final DateTimeFormatter[] DATE_FORMATTERS = {
       DateTimeFormatter.ISO_LOCAL_DATE,
@@ -65,7 +65,7 @@ public class CsvTypeInferrer {
       DateTimeFormatter.ofPattern("dd/MM/yyyy"),
       DateTimeFormatter.ofPattern("yyyy/MM/dd")
   };
-  
+
   private static final DateTimeFormatter[] TIME_FORMATTERS = {
       DateTimeFormatter.ISO_LOCAL_TIME,
       DateTimeFormatter.ofPattern("HH:mm:ss"),
@@ -73,7 +73,7 @@ public class CsvTypeInferrer {
       DateTimeFormatter.ofPattern("h:mm:ss a"),
       DateTimeFormatter.ofPattern("h:mm a")
   };
-  
+
   private static final DateTimeFormatter[] DATETIME_FORMATTERS = {
       DateTimeFormatter.ISO_LOCAL_DATE_TIME,
       DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"),
@@ -82,7 +82,7 @@ public class CsvTypeInferrer {
       DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss"),
       DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")
   };
-  
+
   // RFC formatted timestamps with timezone
   private static final DateTimeFormatter[] RFC_DATETIME_FORMATTERS = {
       DateTimeFormatter.RFC_1123_DATE_TIME,
@@ -93,11 +93,11 @@ public class CsvTypeInferrer {
           .appendOffset("+HH:MM", "Z")
           .toFormatter()
   };
-  
+
   private static final Pattern INTEGER_PATTERN = Pattern.compile("^-?\\d+$");
   private static final Pattern FLOAT_PATTERN = Pattern.compile("^-?\\d*\\.\\d+([eE][+-]?\\d+)?$");
   private static final Pattern BOOLEAN_PATTERN = Pattern.compile("^(true|false|TRUE|FALSE|True|False|0|1)$");
-  
+
   /**
    * Configuration for type inference.
    */
@@ -113,7 +113,7 @@ public class CsvTypeInferrer {
     private final double nullableThreshold;
     private final Set<String> nullEquivalents;
     private final boolean blankStringsAsNull;
-    
+
     public TypeInferenceConfig(boolean enabled, double samplingRate, int maxSampleRows,
         double confidenceThreshold, boolean inferDates, boolean inferTimes, boolean inferTimestamps,
         boolean makeAllNullable, double nullableThreshold) {
@@ -121,7 +121,7 @@ public class CsvTypeInferrer {
           inferTimestamps, makeAllNullable, nullableThreshold, NullEquivalents.DEFAULT_NULL_EQUIVALENTS,
           !enabled); // Default: blankStringsAsNull = true when inference is disabled
     }
-    
+
     public TypeInferenceConfig(boolean enabled, double samplingRate, int maxSampleRows,
         double confidenceThreshold, boolean inferDates, boolean inferTimes, boolean inferTimestamps,
         boolean makeAllNullable, double nullableThreshold, Set<String> nullEquivalents) {
@@ -129,7 +129,7 @@ public class CsvTypeInferrer {
           inferTimestamps, makeAllNullable, nullableThreshold, nullEquivalents,
           !enabled); // Default: blankStringsAsNull = true when inference is disabled
     }
-    
+
     public TypeInferenceConfig(boolean enabled, double samplingRate, int maxSampleRows,
         double confidenceThreshold, boolean inferDates, boolean inferTimes, boolean inferTimestamps,
         boolean makeAllNullable, double nullableThreshold, Set<String> nullEquivalents,
@@ -146,7 +146,7 @@ public class CsvTypeInferrer {
       this.nullEquivalents = nullEquivalents;
       this.blankStringsAsNull = blankStringsAsNull;
     }
-    
+
     /**
      * Returns default configuration with safe defaults:
      * - Type inference enabled
@@ -159,14 +159,14 @@ public class CsvTypeInferrer {
     public static TypeInferenceConfig defaultConfig() {
       return new TypeInferenceConfig(true, 0.1, 1000, 0.95, true, true, true, true, 0.0);
     }
-    
+
     /**
      * Returns a disabled configuration (no type inference).
      */
     public static TypeInferenceConfig disabled() {
       return new TypeInferenceConfig(false, 0, 0, 0, false, false, false, false, 0);
     }
-    
+
     /**
      * Creates a configuration from a map (typically from model.json).
      */
@@ -176,19 +176,19 @@ public class CsvTypeInferrer {
         return new TypeInferenceConfig(false, 0, 0, 0, false, false, false, false, 0,
             NullEquivalents.DEFAULT_NULL_EQUIVALENTS, true);
       }
-      
+
       boolean enabled = Boolean.TRUE.equals(config.get("enabled"));
-      
+
       // When inference is not enabled, default to treating blank strings as null
       // Unless explicitly set to false
       boolean blankStringsAsNull = getBoolean(config, "blankStringsAsNull", !enabled);
-      
+
       if (!enabled) {
         // Return disabled config with blankStringsAsNull setting
         return new TypeInferenceConfig(false, 0, 0, 0, false, false, false, false, 0,
             NullEquivalents.DEFAULT_NULL_EQUIVALENTS, blankStringsAsNull);
       }
-      
+
       double samplingRate = getDouble(config, "samplingRate", 0.1);
       int maxSampleRows = getInt(config, "maxSampleRows", 1000);
       double confidenceThreshold = getDouble(config, "confidenceThreshold", 0.95);
@@ -197,7 +197,7 @@ public class CsvTypeInferrer {
       boolean inferTimestamps = getBoolean(config, "inferTimestamps", true);
       boolean makeAllNullable = getBoolean(config, "makeAllNullable", true);
       double nullableThreshold = getDouble(config, "nullableThreshold", 0.0);
-      
+
       // Get null equivalents from config or use defaults
       @SuppressWarnings("unchecked")
       List<String> nullEquivalentsList = (List<String>) config.get("nullEquivalents");
@@ -211,27 +211,27 @@ public class CsvTypeInferrer {
       } else {
         nullEquivalents = NullEquivalents.DEFAULT_NULL_EQUIVALENTS;
       }
-      
+
       return new TypeInferenceConfig(enabled, samplingRate, maxSampleRows,
           confidenceThreshold, inferDates, inferTimes, inferTimestamps,
           makeAllNullable, nullableThreshold, nullEquivalents, blankStringsAsNull);
     }
-    
+
     private static boolean getBoolean(Map<String, Object> map, String key, boolean defaultValue) {
       Object value = map.get(key);
       return value instanceof Boolean ? (Boolean) value : defaultValue;
     }
-    
+
     private static double getDouble(Map<String, Object> map, String key, double defaultValue) {
       Object value = map.get(key);
       return value instanceof Number ? ((Number) value).doubleValue() : defaultValue;
     }
-    
+
     private static int getInt(Map<String, Object> map, String key, int defaultValue) {
       Object value = map.get(key);
       return value instanceof Number ? ((Number) value).intValue() : defaultValue;
     }
-    
+
     public boolean isEnabled() { return enabled; }
     public double getSamplingRate() { return samplingRate; }
     public int getMaxSampleRows() { return maxSampleRows; }
@@ -244,7 +244,7 @@ public class CsvTypeInferrer {
     public Set<String> getNullEquivalents() { return nullEquivalents; }
     public boolean isBlankStringsAsNull() { return blankStringsAsNull; }
   }
-  
+
   /**
    * Result of type inference for a column.
    */
@@ -257,9 +257,9 @@ public class CsvTypeInferrer {
     public final int sampledRows;
     public final int nullCount;
     public final double nullRatio;
-    
+
     public ColumnTypeInfo(String columnName, SqlTypeName inferredType, boolean nullable,
-        @Nullable DateTimeFormatter dateTimeFormatter, double confidence, 
+        @Nullable DateTimeFormatter dateTimeFormatter, double confidence,
         int sampledRows, int nullCount) {
       this.columnName = columnName;
       this.inferredType = inferredType;
@@ -271,7 +271,7 @@ public class CsvTypeInferrer {
       this.nullRatio = sampledRows > 0 ? (double) nullCount / sampledRows : 0.0;
     }
   }
-  
+
   /**
    * Infers column types from a CSV source.
    */
@@ -280,63 +280,63 @@ public class CsvTypeInferrer {
     if (!config.enabled) {
       return new ArrayList<>();
     }
-    
+
     List<ColumnTypeInfo> results = new ArrayList<>();
-    
+
     try (Reader reader = source.reader();
          CSVReader csvReader = createCsvReader(reader)) {
-      
+
       // Read header
       String[] header = csvReader.readNext();
       if (header == null || header.length == 0) {
         return results;
       }
-      
+
       // Initialize column type tracking
       int numColumns = header.length;
       List<ColumnTypeTracker> trackers = new ArrayList<>();
       for (int i = 0; i < numColumns; i++) {
         trackers.add(new ColumnTypeTracker(header[i], config));
       }
-      
+
       // Sample rows
       String[] row;
       int rowCount = 0;
       int sampledCount = 0;
-      
+
       while ((row = csvReader.readNext()) != null && sampledCount < config.maxSampleRows) {
         rowCount++;
-        
+
         // Apply sampling rate
         if (config.samplingRate < 1.0 && Math.random() > config.samplingRate) {
           continue;
         }
-        
+
         sampledCount++;
-        
+
         // Analyze each column value
         for (int i = 0; i < Math.min(row.length, numColumns); i++) {
           trackers.get(i).analyzeValue(row[i]);
         }
       }
-      
+
       // Determine final types based on analysis
       for (ColumnTypeTracker tracker : trackers) {
         ColumnTypeInfo typeInfo = tracker.determineType(config);
         results.add(typeInfo);
       }
-      
+
       LOGGER.info("Type inference complete: sampled {} of {} rows", sampledCount, rowCount);
       for (ColumnTypeInfo info : results) {
-        LOGGER.debug("Column '{}': {} (nullable={}, confidence={:.2f}, nulls={}/{})", 
-            info.columnName, info.inferredType, info.nullable, 
+        LOGGER.debug("Column '{}': {} (nullable={}, confidence={:.2f}, nulls={}/{})",
+            info.columnName, info.inferredType, info.nullable,
             info.confidence, info.nullCount, info.sampledRows);
       }
     }
-    
+
     return results;
   }
-  
+
   /**
    * Tracks type information for a single column during inference.
    */
@@ -349,43 +349,30 @@ public class CsvTypeInferrer {
     private int totalValues = 0;
     private int nullValues = 0;
     private int emptyStringValues = 0;
-    
+
     ColumnTypeTracker(String columnName, TypeInferenceConfig config) {
       this.columnName = columnName;
       this.config = config;
       this.nullEquivalents = config.getNullEquivalents();
     }
-    
+
     void analyzeValue(@Nullable String value) {
       totalValues++;
-      
+
       // Track nulls and empty strings separately
       if (value == null) {
         nullValues++;
         return;
       }
-      
+
       value = value.trim();
-      
-      if (value.isEmpty()) {
-        emptyStringValues++;
-        // Only treat blank strings as nulls if configured to do so
-        if (config.isBlankStringsAsNull()) {
-          nullValues++;
-          return;
-        } else {
-          // Empty strings should count as VARCHAR values for type inference
-          incrementType(SqlTypeName.VARCHAR);
-          return;
-        }
-      }
-      
-      // Check for common null representations
+
+      // Check for null representations (including empty strings)
       if (isNullRepresentation(value)) {
         nullValues++;
         return;
       }
-      
+
       // Try integer first (before boolean, since "0" and "1" could be either)
       if (INTEGER_PATTERN.matcher(value).matches()) {
         try {
@@ -400,7 +387,7 @@ public class CsvTypeInferrer {
           // Fall through
         }
       }
-      
+
       // Try float/double
       if (FLOAT_PATTERN.matcher(value).matches()) {
         try {
@@ -411,48 +398,56 @@ public class CsvTypeInferrer {
           // Fall through
         }
       }
-      
+
       // Try to parse as boolean (after numeric types, since "0" and "1" are ambiguous)
       if (BOOLEAN_PATTERN.matcher(value).matches()) {
         incrementType(SqlTypeName.BOOLEAN);
         return;
       }
-      
+
       // Try temporal types
+      LOGGER.debug("Trying temporal types for value: '{}', inferTimestamps={}, inferDates={}, inferTimes={}", value, config.inferTimestamps, config.inferDates, config.inferTimes);
       if (config.inferTimestamps && tryParseDateTime(value)) {
+        LOGGER.debug("Successfully parsed '{}' as timestamp", value);
         return;
       }
-      
+
       if (config.inferDates && tryParseDate(value)) {
+        LOGGER.debug("Successfully parsed '{}' as date", value);
         return;
       }
-      
+
       if (config.inferTimes && tryParseTime(value)) {
+        LOGGER.debug("Successfully parsed '{}' as time", value);
         return;
       }
-      
+
       // Default to VARCHAR
+      LOGGER.debug("Defaulting value '{}' to VARCHAR", value);
       incrementType(SqlTypeName.VARCHAR);
     }
-    
+
     private boolean isNullRepresentation(String value) {
       return NullEquivalents.isNullRepresentation(value, nullEquivalents);
     }
-    
+
     private boolean tryParseDate(String value) {
+      LOGGER.debug("tryParseDate called with: '{}'", value);
       for (DateTimeFormatter formatter : DATE_FORMATTERS) {
         try {
           LocalDate.parse(value, formatter);
+          LOGGER.debug("DATE parse SUCCESS for '{}' with formatter: {}", value, formatter);
           incrementType(SqlTypeName.DATE);
           dateTimeFormatters.putIfAbsent(SqlTypeName.DATE, formatter);
           return true;
         } catch (DateTimeParseException e) {
-          // Try next formatter
+          LOGGER.debug("DATE parse failed for '{}' with formatter: {} - {}", value, formatter, e.getMessage());
         }
       }
+      LOGGER.debug("No date parse success for: '{}'", value);
       return false;
     }
-    
+
     private boolean tryParseTime(String value) {
       for (DateTimeFormatter formatter : TIME_FORMATTERS) {
         try {
@@ -466,10 +461,10 @@ public class CsvTypeInferrer {
       }
       return false;
     }
-    
+
     private boolean tryParseDateTime(String value) {
       LOGGER.debug("tryParseDateTime called with: '{}'", value);
-      
+
       // Try RFC formatted timestamps first (with timezone)
       for (DateTimeFormatter formatter : RFC_DATETIME_FORMATTERS) {
         try {
@@ -482,7 +477,7 @@ public class CsvTypeInferrer {
           LOGGER.debug("RFC parse failed for '{}' with formatter: {} - {}", value, formatter, e.getMessage());
         }
       }
-      
+
       // Try regular timestamps (without timezone)
       for (DateTimeFormatter formatter : DATETIME_FORMATTERS) {
         try {
@@ -495,54 +490,61 @@ public class CsvTypeInferrer {
           LOGGER.debug("LOCAL parse failed for '{}' with formatter: {} - {}", value, formatter, e.getMessage());
         }
       }
-      
+
       LOGGER.debug("No datetime parse success for: '{}'", value);
       return false;
     }
-    
+
     private void incrementType(SqlTypeName type) {
       typeCounts.merge(type, 1, Integer::sum);
     }
-    
+
     ColumnTypeInfo determineType(TypeInferenceConfig config) {
+      LOGGER.debug("determineType for column '{}': totalValues={}, nullValues={}, typeCounts={}", 
+                   columnName, totalValues, nullValues, typeCounts);
+      
       // Case 1: All values are NULL/blank/whitespace
       if (totalValues == 0 || totalValues == nullValues) {
         // All nulls or no data - default to nullable VARCHAR
+        LOGGER.debug("Column '{}': All values are null/empty, defaulting to VARCHAR", columnName);
         return new ColumnTypeInfo(columnName, SqlTypeName.VARCHAR, true, null, 1.0, totalValues, nullValues);
       }
-      
+
       int nonNullValues = totalValues - nullValues;
-      
+
       // Case 2: We have some actual values - check if they all match a single type
       // (or if there's a clear majority type with the rest being nulls)
-      
+
       // If we only have one type detected (plus nulls), use that type
       if (typeCounts.size() == 1) {
         Map.Entry<SqlTypeName, Integer> entry = typeCounts.entrySet().iterator().next();
         SqlTypeName type = entry.getKey();
         DateTimeFormatter formatter = dateTimeFormatters.get(type);
-        
+
         // All non-null values are the same type - use it
         boolean nullable = nullValues > 0 || config.makeAllNullable;
+        LOGGER.debug("Column '{}': Single type detected: {}, using it", columnName, type);
         return new ColumnTypeInfo(columnName, type, nullable, formatter, 1.0, totalValues, nullValues);
       }
-      
+
       // Case 3: Multiple types detected
+      LOGGER.debug("Column '{}': Multiple types detected: {}", columnName, typeCounts);
       // Check if we have VARCHAR mixed with other types
       Integer varcharCount = typeCounts.get(SqlTypeName.VARCHAR);
       if (varcharCount != null && varcharCount > 0) {
         // We have actual string values that aren't parseable as other types
         // Must use VARCHAR for safety
+        LOGGER.debug("Column '{}': VARCHAR count={} > 0, must use VARCHAR for safety", columnName, varcharCount);
         boolean nullable = nullValues > 0 || config.makeAllNullable;
         return new ColumnTypeInfo(columnName, SqlTypeName.VARCHAR, nullable, null, 1.0, totalValues, nullValues);
       }
-      
+
       // Case 4: Multiple numeric/temporal types but no VARCHAR
       // This can happen with mixed INTEGER/BIGINT or mixed temporal types
       // Choose the most general type that can hold all values
       SqlTypeName bestType = null;
       int bestCount = 0;
-      
+
       // Priority order for type selection when multiple compatible types exist
       // (more general types that can hold values from more specific types)
       SqlTypeName[] typePreference = {
@@ -550,62 +552,68 @@ public class CsvTypeInferrer {
           SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE, // Can hold any timestamp
           SqlTypeName.TIMESTAMP,          // Can hold date + time
           SqlTypeName.DATE,               // Date only
-          SqlTypeName.TIME,               // Time only  
+          SqlTypeName.TIME,               // Time only
           SqlTypeName.DOUBLE,             // Can hold any numeric
           SqlTypeName.BIGINT,             // Can hold any integer
           SqlTypeName.INTEGER,            // 32-bit integers
           SqlTypeName.BOOLEAN             // Most specific
       };
-      
+
       for (SqlTypeName type : typePreference) {
         Integer count = typeCounts.get(type);
         if (count != null && count > 0) {
           bestType = type;
           bestCount = count;
+          LOGGER.debug("Column '{}': Selected best type: {} (count: {})", columnName, bestType, bestCount);
           break;  // Use first match in preference order
         }
       }
-      
+
       if (bestType == null) {
         // Shouldn't happen, but fallback to VARCHAR
+        LOGGER.debug("Column '{}': No best type found, falling back to VARCHAR", columnName);
         bestType = SqlTypeName.VARCHAR;
       }
-      
+
       DateTimeFormatter formatter = dateTimeFormatters.get(bestType);
       boolean nullable = nullValues > 0 || config.makeAllNullable;
-      
+
       // For confidence, use ratio of values that could be parsed as the chosen type
       double confidence = (double) bestCount / nonNullValues;
-      
-      return new ColumnTypeInfo(columnName, bestType, nullable, formatter, 
+
+      LOGGER.debug("Column '{}': Final determination - type: {}, confidence: {}, formatter: {}", 
+                   columnName, bestType, confidence, formatter);
+
+      return new ColumnTypeInfo(columnName, bestType, nullable, formatter,
           confidence, totalValues, nullValues);
     }
   }
-  
+
   private static CSVReader createCsvReader(Reader reader) {
     CSVParser parser = new CSVParserBuilder()
         .withSeparator(',')
         .build();
-    
+
     return new CSVReaderBuilder(reader)
         .withCSVParser(parser)
         .build();
   }
-  
+
   /**
    * Creates RelDataTypes from type inference results.
    */
   public static List<RelDataType> createRelDataTypes(JavaTypeFactory typeFactory,
       List<ColumnTypeInfo> typeInfos) {
     List<RelDataType> types = new ArrayList<>();
-    
+
     for (ColumnTypeInfo info : typeInfos) {
       RelDataType type = typeFactory.createSqlType(info.inferredType);
       // Apply nullability from the type info
       type = typeFactory.createTypeWithNullability(type, info.nullable);
       types.add(type);
     }
-    
+
     return types;
   }
+
 }
