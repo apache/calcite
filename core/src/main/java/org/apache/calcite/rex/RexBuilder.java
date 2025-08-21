@@ -2187,15 +2187,21 @@ public class RexBuilder {
     case ROW:
       operands = new ArrayList<>();
       //noinspection unchecked
+      final List<Object> valueList = value instanceof Object[]
+          ? Arrays.asList((Object[]) value)
+          : (List<Object>) value;
       for (Pair<RelDataTypeField, Object> pair
-          : Pair.zip(type.getFieldList(), (List<Object>) value)) {
+          : Pair.zip(type.getFieldList(), valueList)) {
         final RexNode e = pair.right instanceof RexLiteral
             ? (RexNode) pair.right
             : makeLiteral(pair.right, pair.left.getType(), allowCast);
         operands.add(e);
       }
-      return new RexLiteral((Comparable) FlatLists.of(operands), type,
-          sqlTypeName);
+      if (allowCast) {
+        return makeCall(type, SqlStdOperatorTable.ROW, operands);
+      } else {
+        return new RexLiteral((Comparable) FlatLists.of(operands), type, sqlTypeName);
+      }
     case GEOMETRY:
       return new RexLiteral((Comparable) value, guessType(value),
           SqlTypeName.GEOMETRY);

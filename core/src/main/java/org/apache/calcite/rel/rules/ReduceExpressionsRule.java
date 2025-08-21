@@ -64,7 +64,6 @@ import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.fun.SqlRowOperator;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
@@ -1147,15 +1146,7 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
         callConstancy = Constancy.NON_CONSTANT;
       }
 
-      // Row operator itself can't be reduced to a literal, but if
-      // the operands are constants, we still want to reduce those
-      if ((callConstancy == Constancy.REDUCIBLE_CONSTANT)
-          && (call.getOperator() instanceof SqlRowOperator)) {
-        // Consider Row call as kind of "struct literal"
-        callConstancy = Constancy.IRREDUCIBLE_CONSTANT;
-      }
-
-      if (callConstancy != Constancy.REDUCIBLE_CONSTANT) {
+      if (callConstancy == Constancy.NON_CONSTANT) {
         // any REDUCIBLE_CONSTANT children are now known to be maximal
         // reducible subtrees, so they can be added to the result
         // list
