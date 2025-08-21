@@ -28,6 +28,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.runtime.FlatLists;
+import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlIntervalQualifier;
@@ -49,7 +50,6 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.NlsString;
-import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Sarg;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimeWithTimeZoneString;
@@ -2186,15 +2186,12 @@ public class RexBuilder {
       }
     case ROW:
       operands = new ArrayList<>();
-      //noinspection unchecked
-      final List<Object> valueList = value instanceof Object[]
-          ? Arrays.asList((Object[]) value)
-          : (List<Object>) value;
-      for (Pair<RelDataTypeField, Object> pair
-          : Pair.zip(type.getFieldList(), valueList)) {
-        final RexNode e = pair.right instanceof RexLiteral
-            ? (RexNode) pair.right
-            : makeLiteral(pair.right, pair.left.getType(), allowCast);
+      for (int i = 0; i < type.getFieldList().size(); i++) {
+        final RelDataTypeField relDataTypeField = type.getFieldList().get(i);
+        final Object fieldValue = SqlFunctions.structAccess(value, i, relDataTypeField.getName());
+        final RexNode e = fieldValue instanceof RexLiteral
+            ? (RexNode) fieldValue
+            : makeLiteral(fieldValue, relDataTypeField.getType(), allowCast);
         operands.add(e);
       }
       if (allowCast) {
