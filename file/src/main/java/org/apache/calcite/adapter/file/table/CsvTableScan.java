@@ -128,11 +128,12 @@ public class CsvTableScan extends TableScan implements EnumerableRel {
             getRowType(),
             pref.preferArray());
 
-    // The original implementation - works with PARQUET and DUCKDB engines
-    // For LINQ4J and ARROW, the expression tree can't find the project method
-    // but this is the best we can do without major refactoring
+    // Get the table expression - now that CsvTranslatableTable doesn't implement ScannableTable,
+    // this will return a reference to the table itself, not an Enumerable
     final Expression expression =
         requireNonNull(table.getExpression(CsvTranslatableTable.class));
+    
+    // Call the project method on the table
     return implementor.result(
         physType,
         Blocks.toBlock(

@@ -27,6 +27,7 @@ import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.lookup.LikePattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,12 +75,25 @@ public class FileSchemaFactory implements SchemaFactory {
     LOGGER.debug("[FileSchemaFactory] baseDirectory: '{}'", baseDirectory);
 
     // Execution engine configuration
-    final String executionEngine =
-        (String) operand.getOrDefault("executionEngine",
-            ExecutionEngineConfig.DEFAULT_EXECUTION_ENGINE);
-    LOGGER.info("[FileSchemaFactory] ==> executionEngine from operand: '{}' for schema: '{}'", executionEngine, name);
-    LOGGER.info("[FileSchemaFactory] ==> Raw executionEngine value: '{}'", operand.get("executionEngine"));
-    LOGGER.info("[FileSchemaFactory] ==> Default engine: '{}'", ExecutionEngineConfig.DEFAULT_EXECUTION_ENGINE);
+    // Priority: 1. Schema-specific operand, 2. Environment variable, 3. System property, 4. Default
+    String executionEngine = (String) operand.get("executionEngine");
+    String source = "schema operand";
+    
+    if (executionEngine == null || executionEngine.isEmpty()) {
+      executionEngine = System.getenv("CALCITE_FILE_ENGINE_TYPE");
+      source = "environment variable";
+    }
+    if (executionEngine == null || executionEngine.isEmpty()) {
+      executionEngine = System.getProperty("calcite.file.engine.type");
+      source = "system property";
+    }
+    if (executionEngine == null || executionEngine.isEmpty()) {
+      executionEngine = ExecutionEngineConfig.DEFAULT_EXECUTION_ENGINE;
+      source = "default";
+    }
+    
+    LOGGER.info("[FileSchemaFactory] ==> executionEngine: '{}' for schema: '{}' (source: {})", 
+        executionEngine, name, source);
     final Object batchSizeObj = operand.get("batchSize");
     final int batchSize = batchSizeObj instanceof Number
         ? ((Number) batchSizeObj).intValue()
@@ -251,6 +265,16 @@ public class FileSchemaFactory implements SchemaFactory {
         materializations, views, partitionedTables, refreshInterval, tableNameCasing,
         columnNameCasing, storageType, storageConfig, flatten, csvTypeInference, primeCache);
 
+    // Force table discovery to populate the schema before creating metadata schemas
+    LOGGER.debug("FileSchemaFactory: About to call fileSchema.getTableMap() for table discovery");
+    Map<String, Table> tableMap = fileSchema.getTableMap();
+    LOGGER.info("FileSchemaFactory: FileSchema discovered {} tables: {}", tableMap.size(), tableMap.keySet());
+
+    // Register the FileSchema with the parent so metadata queries can find the tables
+    // This is critical for DatabaseMetaData.getColumns() to work
+    parentSchema.add(name, fileSchema);
+    LOGGER.info("FileSchemaFactory: Registered FileSchema '{}' with parent schema for metadata visibility", name);
+
     // Add metadata schemas as sibling schemas (not sub-schemas)
     // This makes them available at the same level as the file schema
     // Get the root schema to access all schemas for metadata
@@ -260,13 +284,18 @@ public class FileSchemaFactory implements SchemaFactory {
     }
 
     // Only add metadata schemas if they don't already exist
-    if (rootSchema.subSchemas().get("information_schema") == null) {
-      InformationSchema infoSchema = new InformationSchema(rootSchema, "CALCITE");
+    if (parentSchema.subSchemas().get("information_schema") == null) {
+      LOGGER.info("FileSchemaFactory: Creating InformationSchema with parentSchema containing tables: {}", 
+                  parentSchema.tables().getNames(LikePattern.any()));
+      InformationSchema infoSchema = new InformationSchema(parentSchema, "CALCITE");
       parentSchema.add("information_schema", infoSchema);
+      LOGGER.info("FileSchemaFactory: Added InformationSchema to parent schema");
+    } else {
+      LOGGER.info("FileSchemaFactory: InformationSchema already exists, not creating new one");
     }
 
-    if (rootSchema.subSchemas().get("pg_catalog") == null) {
-      PostgresMetadataSchema pgSchema = new PostgresMetadataSchema(rootSchema, "CALCITE");
+    if (parentSchema.subSchemas().get("pg_catalog") == null) {
+      PostgresMetadataSchema pgSchema = new PostgresMetadataSchema(parentSchema, "CALCITE");
       parentSchema.add("pg_catalog", pgSchema);
     }
 
@@ -289,13 +318,13 @@ public class FileSchemaFactory implements SchemaFactory {
     }
 
     // Only add metadata schemas if they don't already exist
-    if (rootSchema.subSchemas().get("information_schema") == null) {
-      InformationSchema infoSchema = new InformationSchema(rootSchema, "CALCITE");
+    if (parentSchema.subSchemas().get("information_schema") == null) {
+      InformationSchema infoSchema = new InformationSchema(parentSchema, "CALCITE");
       parentSchema.add("information_schema", infoSchema);
     }
 
-    if (rootSchema.subSchemas().get("pg_catalog") == null) {
-      PostgresMetadataSchema pgSchema = new PostgresMetadataSchema(rootSchema, "CALCITE");
+    if (parentSchema.subSchemas().get("pg_catalog") == null) {
+      PostgresMetadataSchema pgSchema = new PostgresMetadataSchema(parentSchema, "CALCITE");
       parentSchema.add("pg_catalog", pgSchema);
     }
 

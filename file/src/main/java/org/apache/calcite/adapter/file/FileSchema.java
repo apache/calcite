@@ -1021,7 +1021,7 @@ public class FileSchema extends AbstractSchema {
     }
 
     // Check if HTTP URL with custom configuration (POST, headers, etc.)
-    if ((url.startsWith("http://") || url.startsWith("https://"))
+    if (url != null && (url.startsWith("http://") || url.startsWith("https://"))
         && hasHttpConfiguration(tableDef)) {
       final Source source = resolveSourceWithHttpConfig(url, tableDef);
       LOGGER.debug("Creating HTTP table '{}' with source: {} (type: {})", tableName, source.path(), source.getClass().getName());
@@ -1029,6 +1029,10 @@ public class FileSchema extends AbstractSchema {
     }
 
     // Regular processing for URLs
+    if (url == null) {
+      LOGGER.warn("Skipping table '{}' due to null URL", tableName);
+      return false;
+    }
     final Source source = resolveSource(url);
     return addTable(builder, source, tableName, tableDef);
   }
@@ -1037,6 +1041,11 @@ public class FileSchema extends AbstractSchema {
    * Checks if a URL contains glob patterns like *, ?, or [].
    */
   private boolean isGlobPattern(String url) {
+    // Null URLs are not glob patterns
+    if (url == null) {
+      return false;
+    }
+    
     // URLs with http/https protocols are never glob patterns
     if (url.startsWith("http://") || url.startsWith("https://")) {
       return false;
@@ -2012,8 +2021,12 @@ public class FileSchema extends AbstractSchema {
 
     // Otherwise use local file system
     if (baseDirectory == null) {
+      LOGGER.warn("[FileSchema] baseDirectory is null, returning empty file array");
       return new File[0];
     }
+    
+    LOGGER.debug("[FileSchema] getFilesForProcessing - baseDirectory: {}, exists: {}, isDirectory: {}", 
+        baseDirectory.getAbsolutePath(), baseDirectory.exists(), baseDirectory.isDirectory());
 
     // Determine the glob pattern to use
     String pattern;

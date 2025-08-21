@@ -34,6 +34,9 @@ import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.collect.ImmutableMap;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -45,12 +48,19 @@ import java.util.Map;
  * Provides metadata views compatible with SQL standard and common BI tools.
  */
 public class InformationSchema extends AbstractSchema {
+  private static final Logger LOGGER = LoggerFactory.getLogger(InformationSchema.class);
+  
   private final SchemaPlus rootSchema;
   private final String catalogName;
 
   public InformationSchema(SchemaPlus rootSchema, String catalogName) {
     this.rootSchema = rootSchema;
     this.catalogName = catalogName;
+    
+    LOGGER.info("InformationSchema constructor: Created with rootSchema tables: {}", 
+                rootSchema.tables().getNames(LikePattern.any()));
+    LOGGER.info("InformationSchema constructor: Available sub-schemas: {}", 
+                rootSchema.subSchemas().getNames(LikePattern.any()));
   }
 
   private final Map<String, Table> tableMap = createCaseInsensitiveTableMap();
@@ -247,12 +257,21 @@ public class InformationSchema extends AbstractSchema {
 
     @Override public Enumerable<Object[]> scan(DataContext root) {
       List<Object[]> rows = new ArrayList<>();
+      
+      LOGGER.info("ColumnsTable.scan: Available sub-schemas: {}", 
+                  rootSchema.subSchemas().getNames(LikePattern.any()));
 
       for (String schemaName : rootSchema.subSchemas().getNames(LikePattern.any())) {
         SchemaPlus schema = rootSchema.subSchemas().get(schemaName);
+        LOGGER.info("ColumnsTable.scan: Processing schema '{}', schema != null: {}", 
+                    schemaName, schema != null);
         if (schema != null) {
+          LOGGER.info("ColumnsTable.scan: Schema '{}' contains tables: {}", 
+                      schemaName, schema.tables().getNames(LikePattern.any()));
           for (String tableName : schema.tables().getNames(LikePattern.any())) {
             Table table = schema.tables().get(tableName);
+            LOGGER.info("ColumnsTable.scan: Processing table '{}' in schema '{}'", 
+                        tableName, schemaName);
             if (table != null) {
               RelDataType rowType = table.getRowType(root.getTypeFactory());
 
