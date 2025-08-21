@@ -143,6 +143,16 @@ public class VolcanoRuleCall extends RelOptRuleCall {
       @SuppressWarnings("unused")
       RelSubset subset = volcanoPlanner.ensureRegistered(rel, rels[0]);
 
+      // If the rule requires replacing the old RelSubset with a new one,
+      // for example, {@link SubQueryRemoveRule} may rewrite a subquery
+      // by replacing the old filter with a join
+      if (this.getRule() instanceof SubstitutionRule
+          && ((SubstitutionRule) getRule()).autoReplaceOld()) {
+        RelSubset oldSubset = volcanoPlanner.getSubset(rels[0]);
+        requireNonNull(oldSubset, "oldSubset");
+        volcanoPlanner.replaceSubset(oldSubset, subset);
+      }
+
       if (volcanoPlanner.getListener() != null) {
         RelOptListener.RuleProductionEvent event =
             new RelOptListener.RuleProductionEvent(
