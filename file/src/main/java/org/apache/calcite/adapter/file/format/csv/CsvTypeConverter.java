@@ -361,24 +361,12 @@ public final class CsvTypeConverter {
     // First try parsing with timezone information
     for (DateTimeFormatter formatter : TIMEZONE_AWARE_FORMATTERS) {
       try {
-        if (formatter == DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss'Z'") ||
-            formatter == DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")) {
-          // Special handling for literal 'Z' - treat as UTC
-          String normalizedValue = value.replace("Z", "+00:00");
-          OffsetDateTime odt = OffsetDateTime.parse(normalizedValue,
-              DateTimeFormatter.ofPattern(formatter.toString().replace("'Z'", "XXX")));
-          long utcMillis = odt.toInstant().toEpochMilli();
-          LOGGER.debug("=== TIMESTAMPTZ DEBUG: Parsed '{}' with timezone as UTC (literal Z), UTC millis: {} ===",
-              value, utcMillis);
-          return Long.valueOf(utcMillis);
-        } else {
-          // Try parsing as OffsetDateTime first
-          OffsetDateTime odt = OffsetDateTime.parse(value, formatter);
-          long utcMillis = odt.toInstant().toEpochMilli();
-          LOGGER.debug("=== TIMESTAMPTZ DEBUG: Parsed '{}' with timezone offset using formatter={}, UTC millis: {} ===",
-              value, formatter, utcMillis);
-          return Long.valueOf(utcMillis);
-        }
+        // Try parsing as OffsetDateTime first
+        OffsetDateTime odt = OffsetDateTime.parse(value, formatter);
+        long utcMillis = odt.toInstant().toEpochMilli();
+        LOGGER.debug("=== TIMESTAMPTZ DEBUG: Parsed '{}' with timezone offset using formatter={}, UTC millis: {} ===",
+            value, formatter, utcMillis);
+        return Long.valueOf(utcMillis);
       } catch (DateTimeParseException e) {
         try {
           // Try parsing as ZonedDateTime for timezone abbreviations

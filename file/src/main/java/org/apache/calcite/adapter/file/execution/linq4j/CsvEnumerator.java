@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.file.execution.linq4j;
 import org.apache.calcite.adapter.file.format.csv.CsvStreamReader;
 import org.apache.calcite.adapter.file.format.csv.CsvTypeInferrer;
 import org.apache.calcite.adapter.file.util.NullEquivalents;
+import org.apache.calcite.adapter.file.format.csv.CsvTypeConverter;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.linq4j.Enumerator;
@@ -188,9 +189,16 @@ public class CsvEnumerator<E> implements Enumerator<E> {
 
   private static RowConverter<?> converter(List<RelDataType> fieldTypes,
       List<Integer> fields) {
+    // Create CsvTypeConverter with default settings for backward compatibility
+    CsvTypeConverter typeConverter = new CsvTypeConverter(
+        new java.util.HashMap<>(), 
+        NullEquivalents.DEFAULT_NULL_EQUIVALENTS, 
+        true  // default: blank strings as null
+    );
+    
     if (fields.size() == 1) {
       final int field = fields.get(0);
-      return new SingleColumnRowConverter(fieldTypes.get(field), field);
+      return new SingleColumnRowConverter(fieldTypes.get(field), field, typeConverter);
     } else {
       return arrayConverter(fieldTypes, fields, false);
     }
@@ -206,11 +214,18 @@ public class CsvEnumerator<E> implements Enumerator<E> {
     LOGGER.debug("CsvEnumerator.converter: typeInferenceConfig={}, blankStringsAsNull={}", 
                 typeInferenceConfig, blankStringsAsNull);
     
+    // Always create CsvTypeConverter - no fallback needed
+    CsvTypeConverter typeConverter = new CsvTypeConverter(
+        new java.util.HashMap<>(), 
+        typeInferenceConfig != null ? typeInferenceConfig.getNullEquivalents() : NullEquivalents.DEFAULT_NULL_EQUIVALENTS, 
+        blankStringsAsNull
+    );
+    
     if (fields.size() == 1) {
       final int field = fields.get(0);
-      return new SingleColumnRowConverter(fieldTypes.get(field), field, blankStringsAsNull);
+      return new SingleColumnRowConverter(fieldTypes.get(field), field, blankStringsAsNull, typeConverter);
     } else {
-      return arrayConverter(fieldTypes, fields, false, blankStringsAsNull);
+      return arrayConverter(fieldTypes, fields, false, blankStringsAsNull, typeConverter);
     }
   }
 
@@ -222,6 +237,12 @@ public class CsvEnumerator<E> implements Enumerator<E> {
   public static RowConverter<@Nullable Object[]> arrayConverter(
       List<RelDataType> fieldTypes, List<Integer> fields, boolean stream, boolean blankStringsAsNull) {
     return new ArrayRowConverter(fieldTypes, fields, stream, blankStringsAsNull);
+  }
+
+  public static RowConverter<@Nullable Object[]> arrayConverter(
+      List<RelDataType> fieldTypes, List<Integer> fields, boolean stream, boolean blankStringsAsNull, 
+      @Nullable CsvTypeConverter typeConverter) {
+    return new ArrayRowConverter(fieldTypes, fields, stream, blankStringsAsNull, typeConverter);
   }
 
 
@@ -534,6 +555,8 @@ public class CsvEnumerator<E> implements Enumerator<E> {
     private final boolean stream;
     /** Whether blank strings should be treated as null. */
     final boolean blankStringsAsNull;
+    /** Type converter that reuses the same parsing logic as type inference. */
+    private final @Nullable CsvTypeConverter typeConverter;
 
     ArrayRowConverter(List<RelDataType> fieldTypes, List<Integer> fields,
         boolean stream) {
@@ -542,10 +565,16 @@ public class CsvEnumerator<E> implements Enumerator<E> {
 
     ArrayRowConverter(List<RelDataType> fieldTypes, List<Integer> fields,
         boolean stream, boolean blankStringsAsNull) {
+      this(fieldTypes, fields, stream, blankStringsAsNull, null);
+    }
+
+    ArrayRowConverter(List<RelDataType> fieldTypes, List<Integer> fields,
+        boolean stream, boolean blankStringsAsNull, @Nullable CsvTypeConverter typeConverter) {
       this.fieldTypes = ImmutableNullableList.copyOf(fieldTypes);
       this.fields = ImmutableIntList.copyOf(fields);
       this.stream = stream;
       this.blankStringsAsNull = blankStringsAsNull;
+      this.typeConverter = typeConverter;
     }
 
     @Override public @Nullable Object[] convertRow(@Nullable String[] strings) {
@@ -599,265 +628,11 @@ public class CsvEnumerator<E> implements Enumerator<E> {
       LOGGER.debug("[ArrayRowConverter.convert] Processing fieldType={}, string='{}', blankStringsAsNull={}", 
                   fieldType.getSqlTypeName(), string, blankStringsAsNull);
       
-      switch (fieldType.getSqlTypeName()) {
-      case BOOLEAN:
-        if (string.length() == 0) {
-          return blankStringsAsNull ? null : string;
-        }
-        return parseBoolean(string);
-      case TINYINT:
-        if (string.length() == 0) {
-          return blankStringsAsNull ? null : string;
-        }
-        return parseByte(string);
-      case SMALLINT:
-        if (string.length() == 0) {
-          return blankStringsAsNull ? null : string;
-        }
-        return parseShort(string);
-      case INTEGER:
-        if (string.length() == 0) {
-          return blankStringsAsNull ? null : string;
-        }
-        return parseInt(string);
-      case BIGINT:
-        if (string.length() == 0) {
-          return blankStringsAsNull ? null : string;
-        }
-        return parseLong(string);
-      case REAL:
-        if (string.length() == 0) {
-          return blankStringsAsNull ? null : string;
-        }
-        return parseFloat(string);
-      case FLOAT:
-      case DOUBLE:
-        if (string.length() == 0) {
-          return blankStringsAsNull ? null : string;
-        }
-        return parseDouble(string);
-      case DECIMAL:
-        if (string.length() == 0) {
-          return blankStringsAsNull ? null : string;
-        }
-        return parseDecimal(fieldType.getPrecision(), fieldType.getScale(), string);
-      case DATE:
-        if (string == null || string.length() == 0) {
-          return null;
-        }
-        try {
-          // Try multiple date formats
-          String[] dateFormats = {
-              "yyyy-MM-dd",    // 2024-03-15
-              "yyyy/MM/dd",    // 2024/03/15
-              "yyyy.MM.dd",    // 2024.03.15
-              "MM/dd/yyyy",    // 03/15/2024
-              "MM-dd-yyyy",    // 03-15-2024
-              "dd/MM/yyyy",    // 15/03/2024
-              "dd-MM-yyyy",    // 15-03-2024
-              "dd.MM.yyyy"     // 15.03.2024
-          };
-
-          Date date = null;
-          ParseException lastException = null;
-
-          for (String format : dateFormats) {
-            try {
-              SimpleDateFormat sdf = new SimpleDateFormat(format);
-              sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
-              sdf.setLenient(false); // Strict date parsing
-              date = sdf.parse(string);
-              break; // Success, exit loop
-            } catch (ParseException e) {
-              lastException = e;
-              // Try next format
-            }
-          }
-
-          if (date == null) {
-            // Try the default format as last resort
-            date = TIME_FORMAT_DATE.get().parse(string);
-          }
-
-          // Return Integer (not int) to support null values
-          // Try to parse as LocalDate first for common ISO format
-          if (string.matches("\\d{4}-\\d{2}-\\d{2}")) {
-            java.time.LocalDate localDate = java.time.LocalDate.parse(string);
-            return Integer.valueOf((int) localDate.toEpochDay());
-          }
-          // For other formats, use the parsed date but convert carefully
-          // The date was parsed in GMT timezone, so convert directly
-          long millis = date.getTime();
-          // Use Math.floorDiv for proper handling of negative values (dates before 1970)
-          int daysSinceEpoch = Math.toIntExact(Math.floorDiv(millis, DateTimeUtils.MILLIS_PER_DAY));
-          return Integer.valueOf(daysSinceEpoch);
-        } catch (ParseException e) {
-          return null;
-        }
-      case TIME:
-        if (string == null || string.length() == 0) {
-          return null;
-        }
-        try {
-          // Try multiple time formats
-          String[] timeFormats = {
-              "HH:mm:ss.SSS",  // 10:30:45.123
-              "HH:mm:ss",      // 10:30:45
-              "HH:mm",         // 10:30
-              "H:mm:ss",       // 9:30:45 (single digit hour)
-              "H:mm"           // 9:30 (single digit hour)
-          };
-
-          Date date = null;
-
-          for (String format : timeFormats) {
-            try {
-              SimpleDateFormat sdf = new SimpleDateFormat(format);
-              sdf.setTimeZone(TimeZone.getTimeZone("GMT")); // TIME is timezone-naive
-              sdf.setLenient(false); // Strict time parsing
-              date = sdf.parse(string);
-              break; // Success, exit loop
-            } catch (ParseException e) {
-              // Try next format
-            }
-          }
-
-          if (date == null) {
-            // Try the default format as last resort
-            date = TIME_FORMAT_TIME.get().parse(string);
-          }
-
-          // Return Integer (not int) to support null values
-          return Integer.valueOf((int) date.getTime());
-        } catch (ParseException e) {
-          return null;
-        }
-      case TIMESTAMP:
-        // TIMESTAMP WITHOUT TIME ZONE - must not have timezone info
-        if (string == null || string.length() == 0) {
-          return null;
-        }
-        try {
-          if (hasTimezoneInfo(string)) {
-            throw new IllegalArgumentException(
-                "TIMESTAMP column cannot contain timezone information. " +
-                "Use TIMESTAMPTZ type for timezone-aware timestamps. " +
-                "Invalid value: '" + string + "'");
-          }
-
-          // Parse as local timestamp (no timezone conversion)
-          String[] localFormats = {
-              "yyyy-MM-dd HH:mm:ss",         // 2024-03-15 10:30:45
-              "yyyy-MM-dd'T'HH:mm:ss",       // 2024-03-15T10:30:45
-              "yyyy-MM-dd HH:mm:ss.SSS",     // 2024-03-15 10:30:45.123
-              "yyyy-MM-dd'T'HH:mm:ss.SSS",   // 2024-03-15T10:30:45.123
-              "yyyy/MM/dd HH:mm:ss",         // 2024/03/15 10:30:45
-              "MM/dd/yyyy HH:mm:ss",         // 03/15/2024 10:30:45
-              "dd/MM/yyyy HH:mm:ss",         // 15/03/2024 10:30:45
-              "yyyy-MM-dd"                   // 2024-03-15 (date only, assumes 00:00:00)
-          };
-
-          for (String format : localFormats) {
-            try {
-              SimpleDateFormat sdf = new SimpleDateFormat(format);
-              // Parse as UTC to get the correct milliseconds for JDBC
-              // TIMESTAMP WITHOUT TIME ZONE should be stored as if it were UTC
-              sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
-              sdf.setLenient(false); // Strict parsing
-              Date date = sdf.parse(string);
-              // Return Long for compatibility with generated code
-              return Long.valueOf(date.getTime());
-            } catch (ParseException ignored) {
-              // Try next format
-            }
-          }
-
-          // Last resort: try the standard format
-          // Parse as UTC - TIMESTAMP WITHOUT TIME ZONE should store UTC time
-          SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-          sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
-          Date date = sdf.parse(string);
-          return Long.valueOf(date.getTime());
-        } catch (ParseException e) {
-          return null;
-        } catch (IllegalArgumentException e) {
-          // Re-throw to propagate validation errors
-          throw new RuntimeException(e);
-        }
-
-      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-        // TIMESTAMPTZ - must have timezone info
-        if (string == null || string.length() == 0) {
-          return null;
-        }
-        try {
-          if (!hasTimezoneInfo(string)) {
-            throw new IllegalArgumentException(
-                "TIMESTAMPTZ column must contain timezone information. " +
-                "Use TIMESTAMP type for timezone-naive timestamps. " +
-                "Invalid value: '" + string + "'");
-          }
-
-          // Parse timestamp with timezone and convert to UTC
-          String[] tzFormats = {
-              // Basic formats with timezone
-              "yyyy-MM-dd HH:mm:ss z",          // 2024-03-15 10:30:45 EST
-              "yyyy-MM-dd HH:mm:ss Z",          // 2024-03-15 10:30:45 +0530
-              "yyyy-MM-dd HH:mm:ss XXX",        // 2024-03-15 10:30:45 +05:30
-              "yyyy-MM-dd HH:mm:ssZ",           // 2024-03-15 10:30:45+0530
-              "yyyy-MM-dd HH:mm:ssXXX",         // 2024-03-15 10:30:45+05:30
-
-              // ISO 8601 formats
-              "yyyy-MM-dd'T'HH:mm:ssXXX",       // 2024-03-15T10:30:45+05:30
-              "yyyy-MM-dd'T'HH:mm:ssZ",         // 2024-03-15T10:30:45+0530
-              "yyyy-MM-dd'T'HH:mm:ssX",         // 2024-03-15T10:30:45Z
-              "yyyy-MM-dd'T'HH:mm:ss.SSSXXX",   // 2024-03-15T10:30:45.123+05:30
-              "yyyy-MM-dd'T'HH:mm:ss.SSSX",     // 2024-03-15T10:30:45.123Z
-
-              // RFC 2822 format
-              "EEE, dd MMM yyyy HH:mm:ss Z",    // Fri, 15 Mar 2024 10:30:45 +0000
-              "EEE, dd MMM yyyy HH:mm:ss z",    // Fri, 15 Mar 2024 10:30:45 EST
-
-              // With milliseconds
-              "yyyy-MM-dd HH:mm:ss.SSS Z",      // 2024-03-15 10:30:45.123 +0530
-              "yyyy-MM-dd HH:mm:ss.SSS z",      // 2024-03-15 10:30:45.123 EST
-              "yyyy-MM-dd HH:mm:ss.SSSXXX"      // 2024-03-15 10:30:45.123+05:30
-          };
-
-          for (String format : tzFormats) {
-            try {
-              SimpleDateFormat sdf = new SimpleDateFormat(format);
-              Date date = sdf.parse(string);
-              // Return UTC timestamp wrapped in UtcTimestamp for consistent display
-              return new UtcTimestamp(date.getTime());
-            } catch (ParseException ignored) {
-              // Try next format
-            }
-          }
-
-          throw new IllegalArgumentException(
-              "Unable to parse TIMESTAMPTZ value: '" + string + "'. " +
-              "Expected format with timezone (e.g., '2024-03-15T10:30:45Z' or '2024-03-15 10:30:45 EST')");
-
-        } catch (IllegalArgumentException e) {
-          // Re-throw to propagate validation errors
-          throw new RuntimeException(e);
-        }
-
-      case VARCHAR:
-      case CHAR:
-        // For string types, respect the blankStringsAsNull setting
-        if (string != null && string.length() == 0) {
-          Object result = blankStringsAsNull ? null : string;
-          LOGGER.debug("[ArrayRowConverter.convert] VARCHAR/CHAR: empty string '{}' -> {} (blankStringsAsNull={})", 
-                      string, (result == null ? "null" : "'" + result + "'"), blankStringsAsNull);
-          return result;
-        }
-        LOGGER.debug("[ArrayRowConverter.convert] VARCHAR/CHAR: non-empty string '{}' -> '{}'", string, string);
-        return string;
-      default:
-        return string;
-      }
+      // Always use CsvTypeConverter - no fallback needed
+      LOGGER.debug("[ArrayRowConverter] Using CsvTypeConverter for fieldType={}, string='{}'", fieldType.getSqlTypeName(), string);
+      Object result = typeConverter.convert(string, fieldType.getSqlTypeName());
+      LOGGER.debug("[ArrayRowConverter] CsvTypeConverter returned: {} (type: {})", result, (result != null ? result.getClass().getSimpleName() : "null"));
+      return result;
     }
   }
 
@@ -911,79 +686,30 @@ public class CsvEnumerator<E> implements Enumerator<E> {
     private final RelDataType fieldType;
     private final int fieldIndex;
     private final boolean blankStringsAsNull;
+    private final CsvTypeConverter typeConverter;
 
-    private SingleColumnRowConverter(RelDataType fieldType, int fieldIndex) {
-      this(fieldType, fieldIndex, true); // default: blank strings as null
+    private SingleColumnRowConverter(RelDataType fieldType, int fieldIndex, CsvTypeConverter typeConverter) {
+      this(fieldType, fieldIndex, true, typeConverter); // default: blank strings as null
     }
 
-    private SingleColumnRowConverter(RelDataType fieldType, int fieldIndex, boolean blankStringsAsNull) {
+    private SingleColumnRowConverter(RelDataType fieldType, int fieldIndex, boolean blankStringsAsNull, CsvTypeConverter typeConverter) {
       this.fieldType = fieldType;
       this.fieldIndex = fieldIndex;
       this.blankStringsAsNull = blankStringsAsNull;
+      this.typeConverter = typeConverter;
     }
 
     @Override public @Nullable Object convertRow(@Nullable String[] strings) {
       return convert(fieldType, strings[fieldIndex]);
     }
 
-    // Convert method that respects blankStringsAsNull setting
+    // Convert method using CsvTypeConverter
     private @Nullable Object convert(@Nullable RelDataType fieldType, @Nullable String string) {
       if (fieldType == null || string == null) {
         return string;
       }
       
-      switch (fieldType.getSqlTypeName()) {
-      case BOOLEAN:
-        if (string.length() == 0) {
-          return blankStringsAsNull ? null : string;
-        }
-        return parseBoolean(string);
-      case TINYINT:
-        if (string.length() == 0) {
-          return blankStringsAsNull ? null : string;
-        }
-        return parseByte(string);
-      case SMALLINT:
-        if (string.length() == 0) {
-          return blankStringsAsNull ? null : string;
-        }
-        return parseShort(string);
-      case INTEGER:
-        if (string.length() == 0) {
-          return blankStringsAsNull ? null : string;
-        }
-        return parseInt(string);
-      case BIGINT:
-        if (string.length() == 0) {
-          return blankStringsAsNull ? null : string;
-        }
-        return parseLong(string);
-      case REAL:
-        if (string.length() == 0) {
-          return blankStringsAsNull ? null : string;
-        }
-        return parseFloat(string);
-      case FLOAT:
-      case DOUBLE:
-        if (string.length() == 0) {
-          return blankStringsAsNull ? null : string;
-        }
-        return parseDouble(string);
-      case DECIMAL:
-        if (string.length() == 0) {
-          return blankStringsAsNull ? null : string;
-        }
-        return parseDecimal(fieldType.getPrecision(), fieldType.getScale(), string);
-      case VARCHAR:
-      case CHAR:
-        // For string types, respect the blankStringsAsNull setting
-        if (string.length() == 0) {
-          return blankStringsAsNull ? null : string;
-        }
-        return string;
-      default:
-        return string;
-      }
+      return typeConverter.convert(string, fieldType.getSqlTypeName());
     }
   }
 }
