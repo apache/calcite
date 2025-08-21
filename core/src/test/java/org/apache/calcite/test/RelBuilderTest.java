@@ -4308,6 +4308,32 @@ public class RelBuilderTest {
     assertThat(root2, hasTree(expected));
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7144">[CALCITE-7144]
+   * LIMIT should not be pushed through projections containing window functions</a>.
+   * The test checks that the RelBuilder does not merge a limit through a Project
+   * that contains a windowed aggregate function into a lower sort. */
+  @Test void testLimitOverProjectWithWindowFunctions() {
+    final Function<RelBuilder, RelNode> f = b -> b.scan("EMP")
+        .sort(1)
+        .project(b.field("DEPTNO"),
+            b.aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
+                .over()
+                .partitionBy()
+                .orderBy(b.field("EMPNO"))
+                .rowsUnbounded()
+                .as("x"))
+        .limit(0, 10)
+        .build();
+    final String expected = ""
+        + "LogicalSort(fetch=[10])\n"
+        + "  LogicalProject(DEPTNO=[$7], x=[ROW_NUMBER() OVER (ORDER BY $0)])\n"
+        + "    LogicalSort(sort0=[$1], dir0=[ASC])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(expected));
+  }
+
   /** Tests {@link org.apache.calcite.tools.RelRunner} for a VALUES query. */
   @Test void testRunValues() throws Exception {
     // Equivalent SQL:
