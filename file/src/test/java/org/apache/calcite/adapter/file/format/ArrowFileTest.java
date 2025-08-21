@@ -19,6 +19,9 @@ package org.apache.calcite.adapter.file.format;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.BigIntVector;
@@ -31,15 +34,21 @@ import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.FieldType;
 import org.apache.arrow.vector.types.pojo.Schema;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -60,15 +69,58 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @SuppressWarnings("deprecation")
 @Tag("unit")
 public class ArrowFileTest {
+  private static final Logger LOGGER = LoggerFactory.getLogger(ArrowFileTest.class);
 
-  @TempDir
-  public File tempDir;
-
+  private File tempDir;
   private static BufferAllocator allocator;
 
   @BeforeAll
   public static void setUp() {
     allocator = new RootAllocator();
+  }
+
+  @BeforeEach
+  public void setUpTempDir() throws IOException {
+    tempDir = Files.createTempDirectory("arrow_test_").toFile();
+  }
+
+  @AfterEach
+  public void cleanUpTempDir() {
+    if (tempDir != null && tempDir.exists()) {
+      // Best effort cleanup - don't fail tests if cleanup fails
+      try {
+        deleteDirectoryRecursively(tempDir.toPath());
+      } catch (Exception e) {
+        // Log but don't fail - temp directories will be cleaned up by OS eventually
+        LOGGER.debug("Could not delete temp directory: {} - {}", tempDir, e.getMessage());
+      }
+    }
+  }
+
+  private void deleteDirectoryRecursively(Path path) throws IOException {
+    if (Files.exists(path)) {
+      Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
+        @Override
+        public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+          try {
+            Files.delete(file);
+          } catch (IOException e) {
+            // Ignore individual file deletion failures
+          }
+          return FileVisitResult.CONTINUE;
+        }
+
+        @Override
+        public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
+          try {
+            Files.delete(dir);
+          } catch (IOException e) {
+            // Ignore directory deletion failures
+          }
+          return FileVisitResult.CONTINUE;
+        }
+      });
+    }
   }
 
   @Test void testBasicArrowFile() throws Exception {
