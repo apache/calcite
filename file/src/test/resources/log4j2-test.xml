@@ -43,6 +43,13 @@
     <logger name="org.apache.calcite.rel.rules.DpHyp" level="ERROR"/>
     <!-- File adapter specific logging -->
     <logger name="org.apache.calcite.adapter.file.converters.MultiTableExcelToJsonConverter" level="TRACE"/>
+    <logger name="org.apache.calcite.adapter.file.CsvTypeInferenceTest" level="DEBUG"/>
+    <logger name="org.apache.calcite.adapter.file.FileSchemaFactory" level="INFO"/>
+    <logger name="org.apache.calcite.adapter.file.duckdb.DuckDBJdbcSchemaFactory" level="INFO"/>
+    <logger name="org.apache.calcite.adapter.file.format.csv.CsvTypeInferrer" level="DEBUG"/>
+    <logger name="org.apache.calcite.adapter.file.table.CsvTable" level="DEBUG"/>
+    <logger name="org.apache.calcite.adapter.file.format.parquet.ParquetConversionUtil" level="DEBUG"/>
+    <logger name="org.apache.calcite.adapter.file.execution.linq4j.CsvEnumerator" level="DEBUG"/>
     <logger name="org.apache.calcite.adapter.file" level="WARN"/>
   </Loggers>
 </Configuration>

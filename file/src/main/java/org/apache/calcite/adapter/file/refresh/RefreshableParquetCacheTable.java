@@ -61,6 +61,7 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
   private volatile File parquetFile;
   private final boolean typeInferenceEnabled;
   private final String columnNameCasing;
+  private final String tableNameCasing;
   private final @Nullable RelProtoDataType protoRowType;
   private final ExecutionEngineConfig.ExecutionEngineType engineType;
   protected volatile Table delegateTable;
@@ -73,11 +74,11 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
 
   public RefreshableParquetCacheTable(Source source, File initialParquetFile, 
       File cacheDir, @Nullable Duration refreshInterval, boolean typeInferenceEnabled,
-      String columnNameCasing, @Nullable RelProtoDataType protoRowType,
+      String columnNameCasing, String tableNameCasing, @Nullable RelProtoDataType protoRowType,
       ExecutionEngineConfig.ExecutionEngineType engineType, @Nullable SchemaPlus parentSchema,
       String fileSchemaName) {
     this(source, null, initialParquetFile, cacheDir, refreshInterval, typeInferenceEnabled,
-        columnNameCasing, protoRowType, engineType, parentSchema, fileSchemaName);
+        columnNameCasing, tableNameCasing, protoRowType, engineType, parentSchema, fileSchemaName);
   }
   
   /**
@@ -90,6 +91,7 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
    * @param refreshInterval Refresh interval
    * @param typeInferenceEnabled Whether type inference is enabled
    * @param columnNameCasing Column name casing
+   * @param tableNameCasing Table name casing
    * @param protoRowType Proto row type
    * @param engineType Engine type
    * @param parentSchema Parent schema
@@ -97,7 +99,7 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
    */
   public RefreshableParquetCacheTable(Source source, @Nullable Source originalSource,
       File initialParquetFile, File cacheDir, @Nullable Duration refreshInterval, 
-      boolean typeInferenceEnabled, String columnNameCasing, @Nullable RelProtoDataType protoRowType,
+      boolean typeInferenceEnabled, String columnNameCasing, String tableNameCasing, @Nullable RelProtoDataType protoRowType,
       ExecutionEngineConfig.ExecutionEngineType engineType, @Nullable SchemaPlus parentSchema,
       String fileSchemaName) {
     // Monitor the original source if provided, otherwise monitor the direct source
@@ -108,6 +110,7 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
     this.cacheDir = cacheDir;
     this.typeInferenceEnabled = typeInferenceEnabled;
     this.columnNameCasing = columnNameCasing;
+    this.tableNameCasing = tableNameCasing;
     this.protoRowType = protoRowType;
     this.engineType = engineType;
     this.parentSchema = parentSchema;
@@ -177,7 +180,7 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
         // Note: createSourceTable() reads from 'source' which may be the converted JSON
         this.parquetFile = ParquetConversionUtil.convertToParquet(source, 
             new File(source.path()).getName(), 
-            createSourceTable(), cacheDir, parentSchema, fileSchemaName);
+            createSourceTable(), cacheDir, parentSchema, fileSchemaName, this.tableNameCasing);
         
         // Update delegate table to use new parquet file
         updateDelegateTable();

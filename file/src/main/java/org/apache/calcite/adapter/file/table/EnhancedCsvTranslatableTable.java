@@ -77,12 +77,14 @@ public class EnhancedCsvTranslatableTable extends CsvTranslatableTable {
         if (engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.VECTORIZED) {
           // Create a vectorized enumerator that processes data in batches
           // while maintaining compatibility with Calcite's type system
-          return new VectorizedCsvEnumerator<>(source, cancelFlag,
+          //noinspection unchecked
+          return (Enumerator<Object>) new VectorizedCsvEnumerator<>(source, cancelFlag,
               getFieldTypes(typeFactory), ImmutableIntList.of(fields),
               engineConfig.getBatchSize());
         } else {
           // Use traditional LINQ4J processing
-          return new CsvEnumerator<>(source, cancelFlag,
+          //noinspection unchecked
+          return (Enumerator<Object>) new CsvEnumerator<>(source, cancelFlag,
               getFieldTypes(typeFactory), ImmutableIntList.of(fields));
         }
       }

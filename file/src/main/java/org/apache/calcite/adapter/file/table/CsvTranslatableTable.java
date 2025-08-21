@@ -30,6 +30,7 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.QueryableTable;
+import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.TranslatableTable;
@@ -48,7 +49,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * with more advanced features.
  */
 public class CsvTranslatableTable extends CsvTable
-    implements QueryableTable, TranslatableTable {
+    implements QueryableTable, TranslatableTable, ScannableTable {
   /** Creates a CsvTable. */
   public CsvTranslatableTable(Source source, @Nullable RelProtoDataType protoRowType) {
     super(source, protoRowType);
@@ -79,7 +80,7 @@ public class CsvTranslatableTable extends CsvTable
       @Override public Enumerator<Object> enumerator() {
         JavaTypeFactory typeFactory = root.getTypeFactory();
         return new CsvEnumerator<>(source, cancelFlag,
-            getFieldTypes(typeFactory), ImmutableIntList.of(fields));
+            getFieldTypes(typeFactory), ImmutableIntList.of(fields), typeInferenceConfig);
       }
     };
   }
@@ -105,5 +106,18 @@ public class CsvTranslatableTable extends CsvTable
     final int fieldCount = relOptTable.getRowType().getFieldCount();
     final int[] fields = CsvEnumerator.identityList(fieldCount);
     return new CsvTableScan(context.getCluster(), relOptTable, this, fields);
+  }
+
+  @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
+    JavaTypeFactory typeFactory = root.getTypeFactory();
+    final java.util.List<org.apache.calcite.rel.type.RelDataType> fieldTypes = getFieldTypes(typeFactory);
+    final java.util.List<Integer> fields = ImmutableIntList.identity(fieldTypes.size());
+    final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
+    
+    return new AbstractEnumerable<@Nullable Object[]>() {
+      @Override public Enumerator<@Nullable Object[]> enumerator() {
+        return new CsvEnumerator<>(source, cancelFlag, fieldTypes, fields, typeInferenceConfig);
+      }
+    };
   }
 }

@@ -30,6 +30,8 @@ import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Source;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -39,6 +41,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Used for Parquet conversion where we need to scan the table data.
  */
 public class CsvScannableTable extends CsvTable implements ScannableTable {
+  private static final Logger LOGGER = LoggerFactory.getLogger(CsvScannableTable.class);
 
   /** Creates a CsvScannableTable. */
   public CsvScannableTable(Source source, @Nullable RelProtoDataType protoRowType) {
@@ -65,6 +68,7 @@ public class CsvScannableTable extends CsvTable implements ScannableTable {
     final List<RelDataType> fieldTypes = getFieldTypes(typeFactory);
     final List<Integer> fields = ImmutableIntList.identity(fieldTypes.size());
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
+    
     return new AbstractEnumerable<@Nullable Object[]>() {
       @Override public Enumerator<@Nullable Object[]> enumerator() {
         return new CsvEnumerator<>(source, cancelFlag, false, null,

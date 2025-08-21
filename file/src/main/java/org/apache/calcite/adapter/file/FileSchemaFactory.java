@@ -26,6 +26,7 @@ import org.apache.calcite.model.ModelHandler;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.Table;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,7 +45,9 @@ import java.util.Map;
 public class FileSchemaFactory implements SchemaFactory {
   private static final Logger LOGGER = LoggerFactory.getLogger(FileSchemaFactory.class);
 
-  // Static initialization block removed - class loading handled by JVM
+  static {
+    LOGGER.debug("[FileSchemaFactory] Class loaded and static initializer running");
+  }
 
   /** Public singleton, per factory contract. */
   public static final FileSchemaFactory INSTANCE = new FileSchemaFactory();
@@ -58,18 +61,25 @@ public class FileSchemaFactory implements SchemaFactory {
 
   @Override public Schema create(SchemaPlus parentSchema, String name,
       Map<String, Object> operand) {
-    LOGGER.debug("[FileSchemaFactory] create() called for schema: {}", name);
+    LOGGER.info("[FileSchemaFactory] ==> create() called for schema: '{}'", name);
+    LOGGER.info("[FileSchemaFactory] ==> Parent schema: '{}'", parentSchema != null ? parentSchema.getName() : "null");
+    LOGGER.info("[FileSchemaFactory] ==> Operand keys: {}", operand.keySet());
+    LOGGER.info("[FileSchemaFactory] ==> Thread: {}", Thread.currentThread().getName());
     @SuppressWarnings("unchecked") List<Map<String, Object>> tables =
         (List) operand.get("tables");
     final File baseDirectory =
         (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
     final String directory = (String) operand.get("directory");
+    LOGGER.debug("[FileSchemaFactory] directory from operand: '{}'", directory);
+    LOGGER.debug("[FileSchemaFactory] baseDirectory: '{}'", baseDirectory);
 
     // Execution engine configuration
     final String executionEngine =
         (String) operand.getOrDefault("executionEngine",
             ExecutionEngineConfig.DEFAULT_EXECUTION_ENGINE);
-    LOGGER.debug("[FileSchemaFactory] executionEngine from operand: '{}'", executionEngine);
+    LOGGER.info("[FileSchemaFactory] ==> executionEngine from operand: '{}' for schema: '{}'", executionEngine, name);
+    LOGGER.info("[FileSchemaFactory] ==> Raw executionEngine value: '{}'", operand.get("executionEngine"));
+    LOGGER.info("[FileSchemaFactory] ==> Default engine: '{}'", ExecutionEngineConfig.DEFAULT_EXECUTION_ENGINE);
     final Object batchSizeObj = operand.get("batchSize");
     final int batchSize = batchSizeObj instanceof Number
         ? ((Number) batchSizeObj).intValue()
@@ -174,29 +184,34 @@ public class FileSchemaFactory implements SchemaFactory {
     }
 
     // If DuckDB engine is selected, first create FileSchema with PARQUET engine for conversions
-    LOGGER.info("FileSchemaFactory: engineConfig.getEngineType()={}, directoryFile={}, exists={}, isDirectory={}, storageType={}", 
-                engineConfig.getEngineType(), directoryFile, 
+    LOGGER.debug("FileSchemaFactory: Checking DuckDB conditions for schema '{}': engineConfig.getEngineType()={}, directoryFile={}, exists={}, isDirectory={}, storageType={}", 
+                name, engineConfig.getEngineType(), directoryFile, 
                 directoryFile != null ? directoryFile.exists() : false,
                 directoryFile != null ? directoryFile.isDirectory() : false,
                 storageType);
     
     // Check if we're using DuckDB engine
     boolean isDuckDB = engineConfig.getEngineType() == ExecutionEngineConfig.ExecutionEngineType.DUCKDB;
-    LOGGER.debug("[FileSchemaFactory] isDuckDB={}, directoryFile={}, storageType={}", 
-                isDuckDB, directoryFile, storageType);
-    LOGGER.info("isDuckDB={}, directoryFile != null={}, storageType={}", 
-                isDuckDB, directoryFile != null, storageType);
+    LOGGER.info("[FileSchemaFactory] ==> DuckDB analysis for schema '{}': ", name);
+    LOGGER.info("[FileSchemaFactory] ==> - engineConfig.getEngineType(): {}", engineConfig.getEngineType());
+    LOGGER.info("[FileSchemaFactory] ==> - ExecutionEngineType.DUCKDB: {}", ExecutionEngineConfig.ExecutionEngineType.DUCKDB);
+    LOGGER.info("[FileSchemaFactory] ==> - isDuckDB: {}", isDuckDB);
+    LOGGER.info("[FileSchemaFactory] ==> - directoryFile != null: {}", directoryFile != null);
+    LOGGER.info("[FileSchemaFactory] ==> - storageType: '{}'", storageType);
+    LOGGER.info("[FileSchemaFactory] ==> - Full condition: {}", isDuckDB && directoryFile != null && storageType == null);
     
     if (isDuckDB && directoryFile != null && storageType == null) {
-      LOGGER.debug("[FileSchemaFactory] Entering DuckDB path");
+      LOGGER.info("[FileSchemaFactory] ==> *** ENTERING DUCKDB PATH FOR SCHEMA: {} ***", name);
       // Create directory if it doesn't exist yet (common in tests)
       if (!directoryFile.exists()) {
         LOGGER.info("Creating directory as it doesn't exist: {}", directoryFile);
         directoryFile.mkdirs();
       }
+      
       LOGGER.info("Using DuckDB: Running conversions first, then creating JDBC adapter for schema: {}", name);
       
       // Step 1: Create FileSchema with PARQUET engine to handle all conversions
+      // DuckDB always uses Parquet for consistent performance and functionality
       ExecutionEngineConfig conversionConfig = new ExecutionEngineConfig("PARQUET", 
           engineConfig.getBatchSize(), engineConfig.getMemoryThreshold(), 
           engineConfig.getMaterializedViewStoragePath(), engineConfig.getDuckDBConfig(),
@@ -208,15 +223,18 @@ public class FileSchemaFactory implements SchemaFactory {
           storageType, storageConfig, flatten, csvTypeInference, primeCache);
       
       // Force initialization to run conversions
-      // This will:
-      // 1. Convert Excel/HTML/Markdown/etc files to JSON
-      // 2. Discover all files (including newly created JSON)  
-      // 3. Convert everything to Parquet for DuckDB
-      fileSchema.getTableMap();
+      LOGGER.debug("FileSchemaFactory: About to call fileSchema.getTableMap() for table discovery");
+      Map<String, Table> tableMap = fileSchema.getTableMap();
+      LOGGER.info("FileSchemaFactory: FileSchema discovered {} tables: {}", tableMap.size(), tableMap.keySet());
       
-      // Step 2: Now create DuckDB JDBC schema that reads the converted Parquet files
+      // Parquet conversion should happen automatically when tables are accessed
+      LOGGER.debug("FileSchemaFactory: Parquet conversion will happen on-demand via FileSchema");
+      
+      // Step 2: Now create DuckDB JDBC schema that reads the files
       // Pass the FileSchema so it stays alive for refresh handling
+      LOGGER.debug("FileSchemaFactory: Now creating DuckDB JDBC schema");
       JdbcSchema duckdbSchema = DuckDBJdbcSchemaFactory.create(parentSchema, name, directoryFile, recursive, fileSchema);
+      LOGGER.info("FileSchemaFactory: DuckDB JDBC schema created successfully");
 
       // Add metadata schemas as sibling schemas
       addMetadataSchemas(parentSchema);
@@ -225,6 +243,9 @@ public class FileSchemaFactory implements SchemaFactory {
     }
 
     // Otherwise use regular FileSchema
+    LOGGER.info("[FileSchemaFactory] ==> *** USING REGULAR FILESCHEMA FOR SCHEMA: {} ***", name);
+    LOGGER.info("[FileSchemaFactory] ==> - Reason: isDuckDB={}, directoryFile != null={}, storageType='{}'", 
+               isDuckDB, directoryFile != null, storageType);
     FileSchema fileSchema =
         new FileSchema(parentSchema, name, directoryFile, directoryPattern, tables, engineConfig, recursive,
         materializations, views, partitionedTables, refreshInterval, tableNameCasing,

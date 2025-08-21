@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.file.format.csv;
 
+import org.apache.calcite.adapter.file.util.NullEquivalents;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -41,9 +42,11 @@ import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -108,10 +111,29 @@ public class CsvTypeInferrer {
     private final boolean inferTimestamps;
     private final boolean makeAllNullable;
     private final double nullableThreshold;
+    private final Set<String> nullEquivalents;
+    private final boolean blankStringsAsNull;
     
     public TypeInferenceConfig(boolean enabled, double samplingRate, int maxSampleRows,
         double confidenceThreshold, boolean inferDates, boolean inferTimes, boolean inferTimestamps,
         boolean makeAllNullable, double nullableThreshold) {
+      this(enabled, samplingRate, maxSampleRows, confidenceThreshold, inferDates, inferTimes,
+          inferTimestamps, makeAllNullable, nullableThreshold, NullEquivalents.DEFAULT_NULL_EQUIVALENTS,
+          !enabled); // Default: blankStringsAsNull = true when inference is disabled
+    }
+    
+    public TypeInferenceConfig(boolean enabled, double samplingRate, int maxSampleRows,
+        double confidenceThreshold, boolean inferDates, boolean inferTimes, boolean inferTimestamps,
+        boolean makeAllNullable, double nullableThreshold, Set<String> nullEquivalents) {
+      this(enabled, samplingRate, maxSampleRows, confidenceThreshold, inferDates, inferTimes,
+          inferTimestamps, makeAllNullable, nullableThreshold, nullEquivalents,
+          !enabled); // Default: blankStringsAsNull = true when inference is disabled
+    }
+    
+    public TypeInferenceConfig(boolean enabled, double samplingRate, int maxSampleRows,
+        double confidenceThreshold, boolean inferDates, boolean inferTimes, boolean inferTimestamps,
+        boolean makeAllNullable, double nullableThreshold, Set<String> nullEquivalents,
+        boolean blankStringsAsNull) {
       this.enabled = enabled;
       this.samplingRate = Math.max(0.0, Math.min(1.0, samplingRate));
       this.maxSampleRows = Math.max(1, maxSampleRows);
@@ -121,6 +143,8 @@ public class CsvTypeInferrer {
       this.inferTimestamps = inferTimestamps;
       this.makeAllNullable = makeAllNullable;
       this.nullableThreshold = Math.max(0.0, Math.min(1.0, nullableThreshold));
+      this.nullEquivalents = nullEquivalents;
+      this.blankStringsAsNull = blankStringsAsNull;
     }
     
     /**
@@ -147,11 +171,24 @@ public class CsvTypeInferrer {
      * Creates a configuration from a map (typically from model.json).
      */
     public static TypeInferenceConfig fromMap(@Nullable Map<String, Object> config) {
-      if (config == null || !Boolean.TRUE.equals(config.get("enabled"))) {
-        return disabled();
+      if (config == null) {
+        // No config - return disabled with blankStringsAsNull = true
+        return new TypeInferenceConfig(false, 0, 0, 0, false, false, false, false, 0,
+            NullEquivalents.DEFAULT_NULL_EQUIVALENTS, true);
       }
       
-      boolean enabled = true;
+      boolean enabled = Boolean.TRUE.equals(config.get("enabled"));
+      
+      // When inference is not enabled, default to treating blank strings as null
+      // Unless explicitly set to false
+      boolean blankStringsAsNull = getBoolean(config, "blankStringsAsNull", !enabled);
+      
+      if (!enabled) {
+        // Return disabled config with blankStringsAsNull setting
+        return new TypeInferenceConfig(false, 0, 0, 0, false, false, false, false, 0,
+            NullEquivalents.DEFAULT_NULL_EQUIVALENTS, blankStringsAsNull);
+      }
+      
       double samplingRate = getDouble(config, "samplingRate", 0.1);
       int maxSampleRows = getInt(config, "maxSampleRows", 1000);
       double confidenceThreshold = getDouble(config, "confidenceThreshold", 0.95);
@@ -161,9 +198,23 @@ public class CsvTypeInferrer {
       boolean makeAllNullable = getBoolean(config, "makeAllNullable", true);
       double nullableThreshold = getDouble(config, "nullableThreshold", 0.0);
       
+      // Get null equivalents from config or use defaults
+      @SuppressWarnings("unchecked")
+      List<String> nullEquivalentsList = (List<String>) config.get("nullEquivalents");
+      Set<String> nullEquivalents;
+      if (nullEquivalentsList != null && !nullEquivalentsList.isEmpty()) {
+        // Convert to uppercase for case-insensitive comparison
+        nullEquivalents = new HashSet<>();
+        for (String equiv : nullEquivalentsList) {
+          nullEquivalents.add(equiv.toUpperCase(Locale.ROOT));
+        }
+      } else {
+        nullEquivalents = NullEquivalents.DEFAULT_NULL_EQUIVALENTS;
+      }
+      
       return new TypeInferenceConfig(enabled, samplingRate, maxSampleRows,
           confidenceThreshold, inferDates, inferTimes, inferTimestamps,
-          makeAllNullable, nullableThreshold);
+          makeAllNullable, nullableThreshold, nullEquivalents, blankStringsAsNull);
     }
     
     private static boolean getBoolean(Map<String, Object> map, String key, boolean defaultValue) {
@@ -190,6 +241,8 @@ public class CsvTypeInferrer {
     public boolean isInferTimestamps() { return inferTimestamps; }
     public boolean isMakeAllNullable() { return makeAllNullable; }
     public double getNullableThreshold() { return nullableThreshold; }
+    public Set<String> getNullEquivalents() { return nullEquivalents; }
+    public boolean isBlankStringsAsNull() { return blankStringsAsNull; }
   }
   
   /**
@@ -290,6 +343,7 @@ public class CsvTypeInferrer {
   private static class ColumnTypeTracker {
     private final String columnName;
     private final TypeInferenceConfig config;
+    private final Set<String> nullEquivalents;
     private final Map<SqlTypeName, Integer> typeCounts = new HashMap<>();
     private final Map<SqlTypeName, DateTimeFormatter> dateTimeFormatters = new HashMap<>();
     private int totalValues = 0;
@@ -299,6 +353,7 @@ public class CsvTypeInferrer {
     ColumnTypeTracker(String columnName, TypeInferenceConfig config) {
       this.columnName = columnName;
       this.config = config;
+      this.nullEquivalents = config.getNullEquivalents();
     }
     
     void analyzeValue(@Nullable String value) {
@@ -314,8 +369,15 @@ public class CsvTypeInferrer {
       
       if (value.isEmpty()) {
         emptyStringValues++;
-        nullValues++; // Treat empty strings as nulls for type inference
-        return;
+        // Only treat blank strings as nulls if configured to do so
+        if (config.isBlankStringsAsNull()) {
+          nullValues++;
+          return;
+        } else {
+          // Empty strings should count as VARCHAR values for type inference
+          incrementType(SqlTypeName.VARCHAR);
+          return;
+        }
       }
       
       // Check for common null representations
@@ -374,9 +436,7 @@ public class CsvTypeInferrer {
     }
     
     private boolean isNullRepresentation(String value) {
-      String upper = value.toUpperCase(Locale.ROOT);
-      return upper.equals("NULL") || upper.equals("NA") || upper.equals("N/A") 
-          || upper.equals("NONE") || upper.equals("NIL");
+      return NullEquivalents.isNullRepresentation(value, nullEquivalents);
     }
     
     private boolean tryParseDate(String value) {
@@ -408,15 +468,18 @@ public class CsvTypeInferrer {
     }
     
     private boolean tryParseDateTime(String value) {
+      LOGGER.debug("tryParseDateTime called with: '{}'", value);
+      
       // Try RFC formatted timestamps first (with timezone)
       for (DateTimeFormatter formatter : RFC_DATETIME_FORMATTERS) {
         try {
           formatter.parse(value);
+          LOGGER.debug("RFC parse SUCCESS for '{}' with formatter: {}", value, formatter);
           incrementType(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
           dateTimeFormatters.putIfAbsent(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE, formatter);
           return true;
         } catch (DateTimeParseException e) {
-          // Try next formatter
+          LOGGER.debug("RFC parse failed for '{}' with formatter: {} - {}", value, formatter, e.getMessage());
         }
       }
       
@@ -424,14 +487,16 @@ public class CsvTypeInferrer {
       for (DateTimeFormatter formatter : DATETIME_FORMATTERS) {
         try {
           LocalDateTime.parse(value, formatter);
+          LOGGER.debug("LOCAL parse SUCCESS for '{}' with formatter: {}", value, formatter);
           incrementType(SqlTypeName.TIMESTAMP);
           dateTimeFormatters.putIfAbsent(SqlTypeName.TIMESTAMP, formatter);
           return true;
         } catch (DateTimeParseException e) {
-          // Try next formatter
+          LOGGER.debug("LOCAL parse failed for '{}' with formatter: {} - {}", value, formatter, e.getMessage());
         }
       }
       
+      LOGGER.debug("No datetime parse success for: '{}'", value);
       return false;
     }
     

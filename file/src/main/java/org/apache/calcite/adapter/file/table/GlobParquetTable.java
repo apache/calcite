@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.file.table;
 
 import org.apache.calcite.adapter.file.converters.HtmlToJsonConverter;
+import org.apache.calcite.adapter.file.format.csv.CsvTypeInferrer;
 import org.apache.calcite.adapter.file.format.parquet.ParquetConversionUtil;
 import org.apache.calcite.adapter.file.refresh.RefreshableTable;
 import org.apache.calcite.adapter.file.refresh.RefreshableTable.RefreshBehavior;
@@ -88,6 +89,7 @@ public class GlobParquetTable extends AbstractTable
   private @Nullable Instant lastRefreshTime;
   private final AtomicBoolean cacheValid = new AtomicBoolean(false);
   private @Nullable RelProtoDataType protoRowType;
+  private final CsvTypeInferrer.TypeInferenceConfig csvTypeInferenceConfig;
 
   /**
    * Cache metadata for glob pattern matching results.
@@ -153,11 +155,12 @@ public class GlobParquetTable extends AbstractTable
   private @Nullable CacheMetadata cacheMetadata;
 
   public GlobParquetTable(String globPattern, String tableName, File cacheDir,
-      @Nullable Duration refreshInterval) {
+      @Nullable Duration refreshInterval, CsvTypeInferrer.TypeInferenceConfig csvTypeInferenceConfig) {
     this.globPattern = globPattern;
     this.tableName = tableName;
     this.cacheDir = cacheDir;
     this.refreshInterval = refreshInterval;
+    this.csvTypeInferenceConfig = csvTypeInferenceConfig;
     this.allocator = new RootAllocator();
 
     // Initialize cache file path
@@ -395,7 +398,8 @@ public class GlobParquetTable extends AbstractTable
             jsonTable,
             parquetFile.getParentFile(),
             tempSchema,
-            "TEMP_CONVERT");
+            "TEMP_CONVERT",
+            "TO_LOWER");
 
         // Move the result to our target location if different
         if (!result.equals(parquetFile)) {
@@ -411,8 +415,8 @@ public class GlobParquetTable extends AbstractTable
   private void convertCsvToParquet(File csvFile, File parquetFile) throws IOException {
     LOGGER.info("Converting CSV to Parquet: " + csvFile.getName());
     try {
-      // Create a CSV table to read from
-      CsvTranslatableTable csvTable = new CsvTranslatableTable(Sources.of(csvFile), null);
+      // Create a CSV table to read from with proper CSV configuration
+      CsvTranslatableTable csvTable = new CsvTranslatableTable(Sources.of(csvFile), null, "TO_LOWER", csvTypeInferenceConfig);
       String tableName = Pattern.compile("\\.csv$")
           .matcher(csvFile.getName()).replaceAll("")
           .toUpperCase(Locale.ROOT);
@@ -435,7 +439,8 @@ public class GlobParquetTable extends AbstractTable
             csvTable,
             parquetFile.getParentFile(),
             tempSchema,
-            "TEMP_CONVERT");
+            "TEMP_CONVERT",
+            "TO_LOWER");
 
         // Move the result to our target location if different
         if (!result.equals(parquetFile)) {
@@ -545,7 +550,8 @@ public class GlobParquetTable extends AbstractTable
               mergedTable,
               parquetFile.getParentFile(),
               tempSchema,
-              "TEMP_MERGE");
+              "TEMP_MERGE",
+              "TO_LOWER");
 
       // Move result if needed
       if (!result.equals(parquetFile)) {

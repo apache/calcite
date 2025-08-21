@@ -17,6 +17,8 @@
 package org.apache.calcite.adapter.file.execution.linq4j;
 
 import org.apache.calcite.adapter.file.format.csv.CsvStreamReader;
+import org.apache.calcite.adapter.file.format.csv.CsvTypeInferrer;
+import org.apache.calcite.adapter.file.util.NullEquivalents;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.linq4j.Enumerator;
@@ -134,6 +136,14 @@ public class CsvEnumerator<E> implements Enumerator<E> {
     this(source, cancelFlag, false, null,
         (RowConverter<E>) converter(fieldTypes, fields));
   }
+
+  public CsvEnumerator(Source source, AtomicBoolean cancelFlag,
+      List<RelDataType> fieldTypes, List<Integer> fields,
+      CsvTypeInferrer.@Nullable TypeInferenceConfig typeInferenceConfig) {
+    //noinspection unchecked
+    this(source, cancelFlag, false, null,
+        (RowConverter<E>) converter(fieldTypes, fields, typeInferenceConfig));
+  }
   
   public CsvEnumerator(Source source, AtomicBoolean cancelFlag, boolean stream,
       @Nullable String @Nullable [] filterValues, RowConverter<E> rowConverter) {
@@ -186,10 +196,34 @@ public class CsvEnumerator<E> implements Enumerator<E> {
     }
   }
 
+  private static RowConverter<?> converter(List<RelDataType> fieldTypes,
+      List<Integer> fields, CsvTypeInferrer.@Nullable TypeInferenceConfig typeInferenceConfig) {
+    // Determine blankStringsAsNull setting
+    boolean blankStringsAsNull = true; // default
+    if (typeInferenceConfig != null) {
+      blankStringsAsNull = typeInferenceConfig.isBlankStringsAsNull();
+    }
+    LOGGER.debug("CsvEnumerator.converter: typeInferenceConfig={}, blankStringsAsNull={}", 
+                typeInferenceConfig, blankStringsAsNull);
+    
+    if (fields.size() == 1) {
+      final int field = fields.get(0);
+      return new SingleColumnRowConverter(fieldTypes.get(field), field, blankStringsAsNull);
+    } else {
+      return arrayConverter(fieldTypes, fields, false, blankStringsAsNull);
+    }
+  }
+
   public static RowConverter<@Nullable Object[]> arrayConverter(
       List<RelDataType> fieldTypes, List<Integer> fields, boolean stream) {
-    return new ArrayRowConverter(fieldTypes, fields, stream);
+    return new ArrayRowConverter(fieldTypes, fields, stream, true); // default: blank strings as null
   }
+
+  public static RowConverter<@Nullable Object[]> arrayConverter(
+      List<RelDataType> fieldTypes, List<Integer> fields, boolean stream, boolean blankStringsAsNull) {
+    return new ArrayRowConverter(fieldTypes, fields, stream, blankStringsAsNull);
+  }
+
 
   /** Deduces the names and types of a table's columns by reading the first line
    * of a CSV file. */
@@ -369,7 +403,13 @@ public class CsvEnumerator<E> implements Enumerator<E> {
             }
           }
         }
-        current = rowConverter.convertRow(strings);
+        // Pre-process strings to convert null representations to actual nulls
+        // This ensures that when the converter tries to parse numeric values,
+        // it won't fail on strings like "NULL", "NA", etc.
+        String[] processedStrings = preprocessNullRepresentations(strings, rowConverter);
+        LOGGER.debug("[CsvEnumerator.moveNext] Raw CSV row: {}", java.util.Arrays.toString(strings));
+        LOGGER.debug("[CsvEnumerator.moveNext] Processed row: {}", java.util.Arrays.toString(processedStrings));
+        current = rowConverter.convertRow(processedStrings);
         return true;
       }
     } catch (IOException | CsvValidationException e) {
@@ -393,6 +433,69 @@ public class CsvEnumerator<E> implements Enumerator<E> {
         LOGGER.debug("Released read lock on file");
       }
     }
+  }
+  
+  /**
+   * Pre-process string array to convert null representations to actual nulls.
+   * This ensures that parsers won't fail on strings like "NULL", "NA", etc.
+   * For VARCHAR fields, respects the blankStringsAsNull setting.
+   */
+  private static String[] preprocessNullRepresentations(String[] strings, RowConverter<?> rowConverter) {
+    String[] result = new String[strings.length];
+    for (int i = 0; i < strings.length; i++) {
+      String value = strings[i];
+      if (value != null && shouldConvertToNull(value, i, rowConverter)) {
+        result[i] = null;
+      } else {
+        result[i] = value;
+      }
+    }
+    return result;
+  }
+  
+  /**
+   * Determine if a string value should be converted to null during preprocessing.
+   * For VARCHAR/CHAR fields, only convert if blankStringsAsNull is true.
+   * For non-VARCHAR fields, always convert null representations (for type inference).
+   */
+  private static boolean shouldConvertToNull(String value, int fieldIndex, RowConverter<?> rowConverter) {
+    StackTraceElement[] stack = Thread.currentThread().getStackTrace();
+    String caller = stack.length > 3 ? stack[3].getClassName() + "." + stack[3].getMethodName() : "unknown";
+    
+    // Get the field type if available
+    if (rowConverter instanceof ArrayRowConverter) {
+      ArrayRowConverter arrayConverter = (ArrayRowConverter) rowConverter;
+      // Check if we can determine if this is a VARCHAR field
+      if (fieldIndex < arrayConverter.fieldTypes.size()) {
+        org.apache.calcite.rel.type.RelDataType fieldType = arrayConverter.fieldTypes.get(fieldIndex);
+        if (fieldType != null) {
+          org.apache.calcite.sql.type.SqlTypeName sqlType = fieldType.getSqlTypeName();
+          LOGGER.info("[shouldConvertToNull] Field {} type info: sqlType={}, called from {}", 
+                      fieldIndex, sqlType, caller);
+          if (sqlType == org.apache.calcite.sql.type.SqlTypeName.VARCHAR || 
+              sqlType == org.apache.calcite.sql.type.SqlTypeName.CHAR) {
+            // For VARCHAR/CHAR fields, only convert empty strings to null if blankStringsAsNull is true
+            if (value.trim().isEmpty()) {
+              boolean convertToNull = arrayConverter.blankStringsAsNull;
+              LOGGER.info("[shouldConvertToNull] VARCHAR field {}: value='{}', blankStringsAsNull={}, convertToNull={}", 
+                          fieldIndex, value, arrayConverter.blankStringsAsNull, convertToNull);
+              return convertToNull;
+            }
+            // For non-empty VARCHAR values, check explicit null markers only
+            boolean isExplicitNull = NullEquivalents.DEFAULT_NULL_EQUIVALENTS.contains(value.trim().toUpperCase(java.util.Locale.ROOT));
+            LOGGER.debug("[shouldConvertToNull] VARCHAR field {}: non-empty value='{}', isExplicitNull={}", 
+                        fieldIndex, value, isExplicitNull);
+            return isExplicitNull;
+          }
+        }
+      }
+    }
+    
+    // For non-VARCHAR fields or when type is unknown, use standard null representation logic
+    boolean isNullRep = NullEquivalents.isNullRepresentation(value);
+    LOGGER.info("[shouldConvertToNull] Non-VARCHAR field {} called from {}: value='{}', isNullRepresentation={}", 
+                fieldIndex, caller, value, isNullRep);
+    return isNullRep;
   }
 
   /** Returns an array of integers {0, ..., n - 1}. */
@@ -419,52 +522,123 @@ public class CsvEnumerator<E> implements Enumerator<E> {
    * @param <E> element type */
   abstract static class RowConverter<E> {
     abstract E convertRow(@Nullable String[] rows);
+  }
+
+  /** Array row converter. */
+  static class ArrayRowConverter extends RowConverter<@Nullable Object[]> {
+
+    /** Field types. List must not be null, but any element may be null. */
+    final List<RelDataType> fieldTypes;
+    private final ImmutableIntList fields;
+    /** Whether the row to convert is from a stream. */
+    private final boolean stream;
+    /** Whether blank strings should be treated as null. */
+    final boolean blankStringsAsNull;
+
+    ArrayRowConverter(List<RelDataType> fieldTypes, List<Integer> fields,
+        boolean stream) {
+      this(fieldTypes, fields, stream, true); // default: blank strings as null
+    }
+
+    ArrayRowConverter(List<RelDataType> fieldTypes, List<Integer> fields,
+        boolean stream, boolean blankStringsAsNull) {
+      this.fieldTypes = ImmutableNullableList.copyOf(fieldTypes);
+      this.fields = ImmutableIntList.copyOf(fields);
+      this.stream = stream;
+      this.blankStringsAsNull = blankStringsAsNull;
+    }
+
+    @Override public @Nullable Object[] convertRow(@Nullable String[] strings) {
+      if (stream) {
+        return convertStreamRow(strings);
+      } else {
+        return convertNormalRow(strings);
+      }
+    }
+
+    public @Nullable Object[] convertNormalRow(@Nullable String[] strings) {
+      if (strings == null) {
+        LOGGER.debug("[ArrayRowConverter] Received null strings array");
+        return null;
+      }
+      LOGGER.debug("[ArrayRowConverter] Converting row with {} columns, need fields: {}", strings.length, fields);
+      
+      final @Nullable Object[] objects = new Object[fields.size()];
+      for (int i = 0; i < fields.size(); i++) {
+        int field = fields.get(i);
+        if (field >= strings.length) {
+          LOGGER.warn("[ArrayRowConverter] ERROR: Field index {} out of bounds for strings array of length {}", field, strings.length);
+          LOGGER.warn("[ArrayRowConverter] Fields list: {}", fields);
+          LOGGER.warn("[ArrayRowConverter] FieldTypes: {}", fieldTypes);
+          LOGGER.warn("[ArrayRowConverter] Row data: {}", java.util.Arrays.toString(strings));
+          throw new ArrayIndexOutOfBoundsException("Index " + field + " out of bounds for length " + strings.length);
+        }
+        objects[i] = convert(fieldTypes.get(field), strings[field]);
+      }
+      return objects;
+    }
+
+    public @Nullable Object[] convertStreamRow(@Nullable String[] strings) {
+      final @Nullable Object[] objects = new Object[fields.size() + 1];
+      objects[0] = System.currentTimeMillis();
+      for (int i = 0; i < fields.size(); i++) {
+        int field = fields.get(i);
+        objects[i + 1] = convert(fieldTypes.get(field), strings[field]);
+      }
+      return objects;
+    }
 
     @SuppressWarnings("JavaUtilDate")
-    protected @Nullable Object convert(@Nullable RelDataType fieldType, @Nullable String string) {
+    private @Nullable Object convert(@Nullable RelDataType fieldType, @Nullable String string) {
       if (fieldType == null || string == null) {
+        LOGGER.debug("[ArrayRowConverter.convert] fieldType={}, string={} -> returning string as-is", 
+                    (fieldType != null ? fieldType.getSqlTypeName() : "null"), 
+                    (string != null ? "'" + string + "'" : "null"));
         return string;
       }
+      LOGGER.debug("[ArrayRowConverter.convert] Processing fieldType={}, string='{}', blankStringsAsNull={}", 
+                  fieldType.getSqlTypeName(), string, blankStringsAsNull);
+      
       switch (fieldType.getSqlTypeName()) {
       case BOOLEAN:
         if (string.length() == 0) {
-          return null;
+          return blankStringsAsNull ? null : string;
         }
         return parseBoolean(string);
       case TINYINT:
         if (string.length() == 0) {
-          return null;
+          return blankStringsAsNull ? null : string;
         }
         return parseByte(string);
       case SMALLINT:
         if (string.length() == 0) {
-          return null;
+          return blankStringsAsNull ? null : string;
         }
         return parseShort(string);
       case INTEGER:
         if (string.length() == 0) {
-          return null;
+          return blankStringsAsNull ? null : string;
         }
         return parseInt(string);
       case BIGINT:
         if (string.length() == 0) {
-          return null;
+          return blankStringsAsNull ? null : string;
         }
         return parseLong(string);
       case REAL:
         if (string.length() == 0) {
-          return null;
+          return blankStringsAsNull ? null : string;
         }
         return parseFloat(string);
       case FLOAT:
       case DOUBLE:
         if (string.length() == 0) {
-          return null;
+          return blankStringsAsNull ? null : string;
         }
         return parseDouble(string);
       case DECIMAL:
         if (string.length() == 0) {
-          return null;
+          return blankStringsAsNull ? null : string;
         }
         return parseDecimal(fieldType.getPrecision(), fieldType.getScale(), string);
       case DATE:
@@ -671,6 +845,16 @@ public class CsvEnumerator<E> implements Enumerator<E> {
         }
 
       case VARCHAR:
+      case CHAR:
+        // For string types, respect the blankStringsAsNull setting
+        if (string != null && string.length() == 0) {
+          Object result = blankStringsAsNull ? null : string;
+          LOGGER.debug("[ArrayRowConverter.convert] VARCHAR/CHAR: empty string '{}' -> {} (blankStringsAsNull={})", 
+                      string, (result == null ? "null" : "'" + result + "'"), blankStringsAsNull);
+          return result;
+        }
+        LOGGER.debug("[ArrayRowConverter.convert] VARCHAR/CHAR: non-empty string '{}' -> '{}'", string, string);
+        return string;
       default:
         return string;
       }
@@ -721,75 +905,85 @@ public class CsvEnumerator<E> implements Enumerator<E> {
     return result;
   }
 
-  /** Array row converter. */
-  static class ArrayRowConverter extends RowConverter<@Nullable Object[]> {
-
-    /** Field types. List must not be null, but any element may be null. */
-    private final List<RelDataType> fieldTypes;
-    private final ImmutableIntList fields;
-    /** Whether the row to convert is from a stream. */
-    private final boolean stream;
-
-    ArrayRowConverter(List<RelDataType> fieldTypes, List<Integer> fields,
-        boolean stream) {
-      this.fieldTypes = ImmutableNullableList.copyOf(fieldTypes);
-      this.fields = ImmutableIntList.copyOf(fields);
-      this.stream = stream;
-    }
-
-    @Override public @Nullable Object[] convertRow(@Nullable String[] strings) {
-      if (stream) {
-        return convertStreamRow(strings);
-      } else {
-        return convertNormalRow(strings);
-      }
-    }
-
-    public @Nullable Object[] convertNormalRow(@Nullable String[] strings) {
-      if (strings == null) {
-        LOGGER.debug("[ArrayRowConverter] Received null strings array");
-        return null;
-      }
-      LOGGER.debug("[ArrayRowConverter] Converting row with {} columns, need fields: {}", strings.length, fields);
-      
-      final @Nullable Object[] objects = new Object[fields.size()];
-      for (int i = 0; i < fields.size(); i++) {
-        int field = fields.get(i);
-        if (field >= strings.length) {
-          LOGGER.warn("[ArrayRowConverter] ERROR: Field index {} out of bounds for strings array of length {}", field, strings.length);
-          LOGGER.warn("[ArrayRowConverter] Fields list: {}", fields);
-          LOGGER.warn("[ArrayRowConverter] FieldTypes: {}", fieldTypes);
-          LOGGER.warn("[ArrayRowConverter] Row data: {}", java.util.Arrays.toString(strings));
-          throw new ArrayIndexOutOfBoundsException("Index " + field + " out of bounds for length " + strings.length);
-        }
-        objects[i] = convert(fieldTypes.get(field), strings[field]);
-      }
-      return objects;
-    }
-
-    public @Nullable Object[] convertStreamRow(@Nullable String[] strings) {
-      final @Nullable Object[] objects = new Object[fields.size() + 1];
-      objects[0] = System.currentTimeMillis();
-      for (int i = 0; i < fields.size(); i++) {
-        int field = fields.get(i);
-        objects[i + 1] = convert(fieldTypes.get(field), strings[field]);
-      }
-      return objects;
-    }
-  }
 
   /** Single column row converter. */
   private static class SingleColumnRowConverter extends RowConverter<Object> {
     private final RelDataType fieldType;
     private final int fieldIndex;
+    private final boolean blankStringsAsNull;
 
     private SingleColumnRowConverter(RelDataType fieldType, int fieldIndex) {
+      this(fieldType, fieldIndex, true); // default: blank strings as null
+    }
+
+    private SingleColumnRowConverter(RelDataType fieldType, int fieldIndex, boolean blankStringsAsNull) {
       this.fieldType = fieldType;
       this.fieldIndex = fieldIndex;
+      this.blankStringsAsNull = blankStringsAsNull;
     }
 
     @Override public @Nullable Object convertRow(@Nullable String[] strings) {
       return convert(fieldType, strings[fieldIndex]);
+    }
+
+    // Convert method that respects blankStringsAsNull setting
+    private @Nullable Object convert(@Nullable RelDataType fieldType, @Nullable String string) {
+      if (fieldType == null || string == null) {
+        return string;
+      }
+      
+      switch (fieldType.getSqlTypeName()) {
+      case BOOLEAN:
+        if (string.length() == 0) {
+          return blankStringsAsNull ? null : string;
+        }
+        return parseBoolean(string);
+      case TINYINT:
+        if (string.length() == 0) {
+          return blankStringsAsNull ? null : string;
+        }
+        return parseByte(string);
+      case SMALLINT:
+        if (string.length() == 0) {
+          return blankStringsAsNull ? null : string;
+        }
+        return parseShort(string);
+      case INTEGER:
+        if (string.length() == 0) {
+          return blankStringsAsNull ? null : string;
+        }
+        return parseInt(string);
+      case BIGINT:
+        if (string.length() == 0) {
+          return blankStringsAsNull ? null : string;
+        }
+        return parseLong(string);
+      case REAL:
+        if (string.length() == 0) {
+          return blankStringsAsNull ? null : string;
+        }
+        return parseFloat(string);
+      case FLOAT:
+      case DOUBLE:
+        if (string.length() == 0) {
+          return blankStringsAsNull ? null : string;
+        }
+        return parseDouble(string);
+      case DECIMAL:
+        if (string.length() == 0) {
+          return blankStringsAsNull ? null : string;
+        }
+        return parseDecimal(fieldType.getPrecision(), fieldType.getScale(), string);
+      case VARCHAR:
+      case CHAR:
+        // For string types, respect the blankStringsAsNull setting
+        if (string.length() == 0) {
+          return blankStringsAsNull ? null : string;
+        }
+        return string;
+      default:
+        return string;
+      }
     }
   }
 }

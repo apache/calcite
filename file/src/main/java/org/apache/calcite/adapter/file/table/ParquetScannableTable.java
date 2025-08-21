@@ -159,6 +159,7 @@ public class ParquetScannableTable extends AbstractTable implements ScannableTab
     return new AbstractEnumerable<Object[]>() {
       @Override public Enumerator<Object[]> enumerator() {
         // Check if vectorized reading is enabled
+        // Default to false - AvroParquetReader handles large files better (spillover)
         Configuration conf = new Configuration();
         String systemProperty = System.getProperty("parquet.enable.vectorized.reader", "false");
         conf.set("parquet.enable.vectorized.reader", systemProperty);
@@ -187,6 +188,7 @@ public class ParquetScannableTable extends AbstractTable implements ScannableTab
     return new AbstractEnumerable<Object[]>() {
       @Override public Enumerator<Object[]> enumerator() {
         // Check if vectorized reading is enabled
+        // Default to false - AvroParquetReader handles large files better (spillover)
         Configuration conf = new Configuration();
         String systemProperty = System.getProperty("parquet.enable.vectorized.reader", "false");
         conf.set("parquet.enable.vectorized.reader", systemProperty);
@@ -294,6 +296,12 @@ public class ParquetScannableTable extends AbstractTable implements ScannableTab
             LOGGER.debug("ParquetScannableTable READ: field={}, value={}, type={}", 
                 fieldName, value, value.getClass().getName());
           }
+          
+          // Convert Avro UTF8 to String
+          if (value != null && value.getClass().getName().equals("org.apache.avro.util.Utf8")) {
+            value = value.toString();
+          }
+          
           currentRow[i] = value;
         }
 
@@ -379,7 +387,14 @@ public class ParquetScannableTable extends AbstractTable implements ScannableTab
           int fieldCount = current.getSchema().getFields().size();
           currentRow = new Object[fieldCount];
           for (int i = 0; i < fieldCount; i++) {
-            currentRow[i] = current.get(i);
+            Object value = current.get(i);
+            
+            // Convert Avro UTF8 to String
+            if (value != null && value.getClass().getName().equals("org.apache.avro.util.Utf8")) {
+              value = value.toString();
+            }
+            
+            currentRow[i] = value;
           }
 
           // Apply null filters - skip rows that have null values in filtered columns

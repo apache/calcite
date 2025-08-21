@@ -55,7 +55,9 @@ public class DuckDBJdbcSchema extends JdbcSchema {
                          JdbcConvention convention, String catalog, String schema,
                          File directory, boolean recursive, Connection persistentConnection,
                          org.apache.calcite.adapter.file.FileSchema fileSchema) {
-    super(dataSource, dialect, convention, catalog, schema);
+    // DuckDB uses in-memory databases where catalog concept is irrelevant
+    // Always pass null as catalog to ensure 2-part naming (schema.table)
+    super(dataSource, dialect, convention, null, schema);
     this.directory = directory;
     this.recursive = recursive;
     this.persistentConnection = persistentConnection;
@@ -69,7 +71,7 @@ public class DuckDBJdbcSchema extends JdbcSchema {
   @Override
   public Set<String> getTableNames() {
     Set<String> tableNames = super.getTableNames();
-    LOGGER.info("DuckDB schema tables available from parent: {}", tableNames);
+    LOGGER.debug("DuckDB schema tables available: {}", tableNames);
     return tableNames;
   }
   

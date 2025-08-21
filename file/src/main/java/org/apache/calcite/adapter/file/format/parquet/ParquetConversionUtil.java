@@ -39,6 +39,9 @@ import java.sql.Statement;
 
 import java.io.File;
 import java.math.BigDecimal;
+import java.util.Locale;
+import java.util.Set;
+import org.apache.calcite.adapter.file.util.NullEquivalents;
 
 /**
  * Utility class for converting various file formats to Parquet.
@@ -82,8 +85,8 @@ public class ParquetConversionUtil {
       }
     } else {
       // Use default cache directory with optional schema suffix
-      String cacheDirName = schemaName != null && !schemaName.isEmpty() 
-          ? ".parquet_cache_" + schemaName 
+      String cacheDirName = schemaName != null && !schemaName.isEmpty()
+          ? ".parquet_cache_" + schemaName
           : ".parquet_cache";
       cacheDir = new File(baseDirectory, cacheDirName);
     }
@@ -93,26 +96,21 @@ public class ParquetConversionUtil {
     return cacheDir;
   }
 
-  /**
-   * Get the cached Parquet file for a source file.
-   */
-  public static File getCachedParquetFile(File sourceFile, File cacheDir) {
-    return getCachedParquetFile(sourceFile, cacheDir, false);
-  }
 
   /**
-   * Get the cached Parquet file for a source file with optional type inference suffix.
+   * Get the cached Parquet file for a source file with configurable casing.
    */
-  public static File getCachedParquetFile(File sourceFile, File cacheDir, boolean typeInferenceEnabled) {
+  public static File getCachedParquetFile(File sourceFile, File cacheDir, boolean typeInferenceEnabled, String casing) {
     String baseName = sourceFile.getName();
     // Remove existing extensions
     int lastDot = baseName.lastIndexOf('.');
     if (lastDot > 0) {
       baseName = baseName.substring(0, lastDot);
     }
-    // Add suffix to distinguish files created with different type inference settings
-    String suffix = typeInferenceEnabled ? ".inferred" : "";
-    return new File(cacheDir, baseName + suffix + ".parquet");
+    // Apply the same casing transformation and sanitization used for table names
+    String casedName = org.apache.calcite.adapter.file.util.SmartCasing.applyCasing(baseName, casing);
+    baseName = org.apache.calcite.adapter.file.converters.ConverterUtils.sanitizeIdentifier(casedName);
+    return new File(cacheDir, baseName + ".parquet");
   }
 
   /**
@@ -128,13 +126,13 @@ public class ParquetConversionUtil {
   }
 
   /**
-   * Convert a source file to Parquet by querying it through Calcite.
+   * Convert a source file to Parquet by querying it through Calcite with configurable casing.
    */
   public static File convertToParquet(Source source, String tableName, Table table,
-      File cacheDir, SchemaPlus parentSchema, String schemaName) throws Exception {
+      File cacheDir, SchemaPlus parentSchema, String schemaName, String casing) throws Exception {
 
     File sourceFile = new File(source.path());
-    
+
     // Check if type inference is enabled for CSV tables
     boolean typeInferenceEnabled = false;
     if (table instanceof CsvTable) {
@@ -143,7 +141,7 @@ public class ParquetConversionUtil {
     }
 
     // Use concurrent cache for thread-safe conversion with type inference suffix and schema name
-    return ConcurrentParquetCache.convertWithLocking(sourceFile, cacheDir, typeInferenceEnabled, schemaName, tempFile -> {
+    return ConcurrentParquetCache.convertWithLocking(sourceFile, cacheDir, typeInferenceEnabled, schemaName, casing, tempFile -> {
       performConversion(source, tableName, table, tempFile, parentSchema, schemaName);
     });
   }
@@ -157,7 +155,7 @@ public class ParquetConversionUtil {
 
     // Use direct conversion only to preserve original schema structure
     if (!tryDirectConversion(table, targetFile, schemaName)) {
-      throw new RuntimeException("Table does not support direct scanning: " + tableName + 
+      throw new RuntimeException("Table does not support direct scanning: " + tableName +
           ". Only ScannableTable implementations are supported for Parquet conversion.");
     }
   }
@@ -168,7 +166,24 @@ public class ParquetConversionUtil {
    */
   private static boolean tryDirectConversion(Table table, File targetFile, String schemaName) throws Exception {
     org.apache.calcite.schema.ScannableTable scannableTable;
-    
+
+    // Check if we need to handle blankStringsAsNull for CSV tables
+    boolean blankStringsAsNull = false;
+    if (table instanceof CsvTable) {
+      CsvTypeInferrer.TypeInferenceConfig config = ((CsvTable) table).getTypeInferenceConfig();
+      if (config != null) {
+        blankStringsAsNull = config.isBlankStringsAsNull();
+        LOGGER.debug("ParquetConversionUtil: CsvTable with config, blankStringsAsNull={}, enabled={}", 
+            blankStringsAsNull, config.isEnabled());
+      } else {
+        // Default to true when type inference is not configured (disabled)
+        blankStringsAsNull = true;
+        LOGGER.debug("ParquetConversionUtil: CsvTable with null config, defaulting blankStringsAsNull=true");
+      }
+    } else {
+      LOGGER.debug("ParquetConversionUtil: Non-CsvTable type: {}", table.getClass().getName());
+    }
+
     if (table instanceof org.apache.calcite.schema.ScannableTable) {
       scannableTable = (org.apache.calcite.schema.ScannableTable) table;
     } else if (table instanceof org.apache.calcite.schema.TranslatableTable) {
@@ -177,16 +192,20 @@ public class ParquetConversionUtil {
     } else {
       return false;
     }
-    
+
     // Create a minimal DataContext for scanning
+    final java.util.concurrent.atomic.AtomicBoolean cancelFlag = new java.util.concurrent.atomic.AtomicBoolean(false);
     org.apache.calcite.DataContext dataContext = new org.apache.calcite.DataContext() {
       @Override public SchemaPlus getRootSchema() { return null; }
-      @Override public JavaTypeFactory getTypeFactory() { 
+      @Override public JavaTypeFactory getTypeFactory() {
         return new org.apache.calcite.jdbc.JavaTypeFactoryImpl();
       }
-      @Override public Object get(String name) { 
+      @Override public Object get(String name) {
         if ("spark".equals(name)) return false;
-        return null; 
+        if (org.apache.calcite.DataContext.Variable.CANCEL_FLAG.camelName.equals(name)) {
+          return cancelFlag;
+        }
+        return null;
       }
       @Override public org.apache.calcite.linq4j.QueryProvider getQueryProvider() {
         return null;
@@ -196,13 +215,13 @@ public class ParquetConversionUtil {
     // Get the row type to understand the schema
     JavaTypeFactory typeFactory = (JavaTypeFactory) dataContext.getTypeFactory();
     org.apache.calcite.rel.type.RelDataType rowType = table.getRowType(typeFactory);
-    
+
     // Scan the table directly
     org.apache.calcite.linq4j.Enumerable<Object[]> enumerable = scannableTable.scan(dataContext);
-    
+
     // Convert to Parquet using direct writer
-    convertEnumerableToParquetDirect(enumerable, rowType, targetFile, typeFactory);
-    
+    convertEnumerableToParquetDirect(enumerable, rowType, targetFile, typeFactory, blankStringsAsNull);
+
     return true;
   }
 
@@ -211,22 +230,38 @@ public class ParquetConversionUtil {
    * This preserves the original schema structure and column names exactly.
    */
   private static void convertEnumerableToParquetDirect(org.apache.calcite.linq4j.Enumerable<Object[]> enumerable,
-      org.apache.calcite.rel.type.RelDataType rowType, File targetFile, JavaTypeFactory typeFactory) throws Exception {
-    
+      org.apache.calcite.rel.type.RelDataType rowType, File targetFile, JavaTypeFactory typeFactory,
+      boolean blankStringsAsNull) throws Exception {
+
     List<org.apache.calcite.rel.type.RelDataTypeField> fields = rowType.getFieldList();
-    
+
     // Build Parquet schema from the original RelDataType (preserves original column names and types)
     List<org.apache.parquet.schema.Type> parquetFields = new ArrayList<>();
     for (org.apache.calcite.rel.type.RelDataTypeField field : fields) {
       String fieldName = field.getName(); // Preserve original field name exactly
       org.apache.calcite.sql.type.SqlTypeName sqlType = field.getType().getSqlTypeName();
-      
+
+      LOGGER.debug("Processing field: {} with type: {}", fieldName, sqlType);
       // Map Calcite types to Parquet types directly
-      org.apache.parquet.schema.Type parquetField = createParquetFieldFromCalciteType(fieldName, sqlType, field);
-      parquetFields.add(parquetField);
+      try {
+        org.apache.parquet.schema.Type parquetField = createParquetFieldFromCalciteType(fieldName, sqlType, field);
+        parquetFields.add(parquetField);
+        LOGGER.debug("Successfully created Parquet field for: {}", fieldName);
+      } catch (Exception e) {
+        LOGGER.error("Failed to create Parquet field for: {} with type: {}", fieldName, sqlType, e);
+        throw e;
+      }
     }
 
-    org.apache.parquet.schema.MessageType schema = new org.apache.parquet.schema.MessageType("record", parquetFields);
+    org.apache.parquet.schema.MessageType schema;
+    try {
+      schema = new org.apache.parquet.schema.MessageType("record", parquetFields);
+      LOGGER.debug("Successfully created MessageType schema with {} fields", parquetFields.size());
+      LOGGER.debug("Parquet schema details: {}", schema);
+    } catch (Exception e) {
+      LOGGER.error("Failed to create MessageType schema: {}", e.getMessage(), e);
+      throw e;
+    }
 
     // Delete existing file if it exists
     if (targetFile.exists()) {
@@ -237,29 +272,66 @@ public class ParquetConversionUtil {
     org.apache.hadoop.fs.Path hadoopPath = new org.apache.hadoop.fs.Path(targetFile.getAbsolutePath());
     org.apache.hadoop.conf.Configuration conf = new org.apache.hadoop.conf.Configuration();
     conf.set("parquet.enable.vectorized.reader", "true");
-    
+
     org.apache.parquet.hadoop.example.GroupWriteSupport.setSchema(schema, conf);
 
     // Create ParquetWriter
-    try (org.apache.parquet.hadoop.ParquetWriter<org.apache.parquet.example.data.Group> writer = 
+    try (org.apache.parquet.hadoop.ParquetWriter<org.apache.parquet.example.data.Group> writer =
         createParquetWriter(hadoopPath, schema, conf)) {
 
-      org.apache.parquet.example.data.simple.SimpleGroupFactory groupFactory = 
-          new org.apache.parquet.example.data.simple.SimpleGroupFactory(schema);
+      LOGGER.debug("Created Parquet writer successfully for schema: {}", schema);
+      org.apache.parquet.example.data.simple.SimpleGroupFactory groupFactory;
+      try {
+        groupFactory = new org.apache.parquet.example.data.simple.SimpleGroupFactory(schema);
+        LOGGER.debug("Created SimpleGroupFactory successfully");
+      } catch (Exception e) {
+        LOGGER.error("Failed to create SimpleGroupFactory: {}", e.getMessage(), e);
+        throw e;
+      }
 
       // Write all rows
       for (Object[] row : enumerable) {
-        org.apache.parquet.example.data.Group group = groupFactory.newGroup();
+        org.apache.parquet.example.data.Group group;
+        try {
+          group = groupFactory.newGroup();
+          LOGGER.debug("Created new group successfully");
+        } catch (Exception e) {
+          LOGGER.error("Failed to create new group: {}", e.getMessage(), e);
+          throw e;
+        }
 
         for (int i = 0; i < fields.size() && i < row.length; i++) {
           org.apache.calcite.rel.type.RelDataTypeField field = fields.get(i);
           String fieldName = field.getName();
           Object value = row[i];
-          
+
+          LOGGER.debug("Processing field {}: {} = {} (type: {})", i, fieldName, value, field.getType().getSqlTypeName());
+
+          // Handle blankStringsAsNull for VARCHAR/CHAR fields
+          org.apache.calcite.sql.type.SqlTypeName sqlType = field.getType().getSqlTypeName();
+          if (value != null && (sqlType == org.apache.calcite.sql.type.SqlTypeName.VARCHAR ||
+               sqlType == org.apache.calcite.sql.type.SqlTypeName.CHAR) && value instanceof String) {
+            String stringValue = (String) value;
+            LOGGER.debug("Processing field {}: value='{}', blankStringsAsNull={}, isEmpty={}, trimIsEmpty={}",
+                fieldName, stringValue, blankStringsAsNull, stringValue.isEmpty(), stringValue.trim().isEmpty());
+
+            if (blankStringsAsNull && stringValue.isEmpty()) {
+              // Treat empty strings as null for VARCHAR/CHAR fields when configured
+              value = null;
+              LOGGER.debug("Converting empty string to null for field: {}", fieldName);
+            }
+            // When blankStringsAsNull=false, preserve empty strings as-is
+          }
+
           if (value != null) {
-            org.apache.calcite.sql.type.SqlTypeName sqlType = field.getType().getSqlTypeName();
             // Add value directly to group
-            addValueToParquetGroup(group, fieldName, value, sqlType);
+            try {
+              addValueToParquetGroup(group, fieldName, value, sqlType, blankStringsAsNull);
+              LOGGER.debug("Successfully added value for field: {}", fieldName);
+            } catch (Exception e) {
+              LOGGER.error("Failed to add value for field {}: {}", fieldName, e.getMessage(), e);
+              throw e;
+            }
           }
           // Skip null values - Parquet handles nulls through repetition levels
         }
@@ -272,12 +344,23 @@ public class ParquetConversionUtil {
   /**
    * Create a Parquet field from a Calcite type, preserving original type information.
    */
-  private static org.apache.parquet.schema.Type createParquetFieldFromCalciteType(String fieldName, 
+  private static org.apache.parquet.schema.Type createParquetFieldFromCalciteType(String fieldName,
       org.apache.calcite.sql.type.SqlTypeName sqlType, org.apache.calcite.rel.type.RelDataTypeField field) {
-    
-    org.apache.parquet.schema.Type.Repetition repetition = field.getType().isNullable() 
-        ? org.apache.parquet.schema.Type.Repetition.OPTIONAL 
-        : org.apache.parquet.schema.Type.Repetition.REQUIRED;
+
+    // Force VARCHAR/CHAR fields to be OPTIONAL (nullable) to avoid DuckDB buffer issues
+    org.apache.parquet.schema.Type.Repetition repetition;
+    if (sqlType == org.apache.calcite.sql.type.SqlTypeName.VARCHAR ||
+        sqlType == org.apache.calcite.sql.type.SqlTypeName.CHAR) {
+      repetition = org.apache.parquet.schema.Type.Repetition.OPTIONAL;
+      LOGGER.debug("FORCING VARCHAR/CHAR field '{}' to be OPTIONAL for DuckDB compatibility", fieldName);
+    } else {
+      repetition = field.getType().isNullable()
+          ? org.apache.parquet.schema.Type.Repetition.OPTIONAL
+          : org.apache.parquet.schema.Type.Repetition.REQUIRED;
+    }
+
+    LOGGER.debug("Creating Parquet field '{}': sqlType={}, isNullable={}, repetition={}",
+                fieldName, sqlType, field.getType().isNullable(), repetition);
 
     switch (sqlType) {
       case BOOLEAN:
@@ -291,8 +374,11 @@ public class ParquetConversionUtil {
             org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.INT32, repetition).named(fieldName);
 
       case BIGINT:
+        // Add a logical type annotation to distinguish from timestamp INT64 fields
         return org.apache.parquet.schema.Types.primitive(
-            org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.INT64, repetition).named(fieldName);
+            org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.INT64, repetition)
+            .as(org.apache.parquet.schema.LogicalTypeAnnotation.intType(64, true))
+            .named(fieldName);
 
       case FLOAT:
       case REAL:
@@ -321,21 +407,25 @@ public class ParquetConversionUtil {
       case TIME:
         return org.apache.parquet.schema.Types.primitive(
             org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.INT32, repetition)
-            .as(org.apache.parquet.schema.LogicalTypeAnnotation.timeType(true, 
+            .as(org.apache.parquet.schema.LogicalTypeAnnotation.timeType(true,
                 org.apache.parquet.schema.LogicalTypeAnnotation.TimeUnit.MILLIS))
             .named(fieldName);
 
       case TIMESTAMP:
+        // Use INT64 with timestamp logical type annotation (milliseconds, not adjusted to UTC)
+        // This tells DuckDB and other readers that this is a timestamp, not just an integer
         return org.apache.parquet.schema.Types.primitive(
             org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.INT64, repetition)
-            .as(org.apache.parquet.schema.LogicalTypeAnnotation.timestampType(true, 
+            .as(org.apache.parquet.schema.LogicalTypeAnnotation.timestampType(false,
                 org.apache.parquet.schema.LogicalTypeAnnotation.TimeUnit.MILLIS))
             .named(fieldName);
 
       case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+        // Use INT64 with timestamp logical type annotation (milliseconds, adjusted to UTC)
+        // Store as milliseconds since epoch in UTC
         return org.apache.parquet.schema.Types.primitive(
             org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.INT64, repetition)
-            .as(org.apache.parquet.schema.LogicalTypeAnnotation.timestampType(true, 
+            .as(org.apache.parquet.schema.LogicalTypeAnnotation.timestampType(true,
                 org.apache.parquet.schema.LogicalTypeAnnotation.TimeUnit.MILLIS))
             .named(fieldName);
 
@@ -352,9 +442,9 @@ public class ParquetConversionUtil {
    * Create a custom ParquetWriter for Group objects using builder pattern.
    */
   private static org.apache.parquet.hadoop.ParquetWriter<org.apache.parquet.example.data.Group> createParquetWriter(
-      org.apache.hadoop.fs.Path path, org.apache.parquet.schema.MessageType schema, 
+      org.apache.hadoop.fs.Path path, org.apache.parquet.schema.MessageType schema,
       org.apache.hadoop.conf.Configuration conf) throws Exception {
-    
+
     return new SimpleParquetWriter.Builder(path)
         .withSchema(schema)
         .withConf(conf)
@@ -370,12 +460,12 @@ public class ParquetConversionUtil {
    */
   @SuppressWarnings("deprecation")
   private static class SimpleParquetWriter extends org.apache.parquet.hadoop.ParquetWriter<org.apache.parquet.example.data.Group> {
-    
-    public SimpleParquetWriter(org.apache.hadoop.fs.Path path, 
+
+    public SimpleParquetWriter(org.apache.hadoop.fs.Path path,
                                org.apache.parquet.hadoop.example.GroupWriteSupport writeSupport,
                                org.apache.parquet.hadoop.metadata.CompressionCodecName compressionCodecName,
                                int blockSize, int pageSize, boolean enableDictionary,
-                               boolean enableValidation, 
+                               boolean enableValidation,
                                org.apache.parquet.column.ParquetProperties.WriterVersion writerVersion,
                                org.apache.hadoop.conf.Configuration conf) throws java.io.IOException {
       super(path, writeSupport, compressionCodecName, blockSize, pageSize,
@@ -411,19 +501,103 @@ public class ParquetConversionUtil {
   }
 
   /**
-   * Add a value to a Parquet group with proper type conversion.
+   * Check if a string value represents a null value using default null equivalents.
    */
-  private static void addValueToParquetGroup(org.apache.parquet.example.data.Group group, 
-      String fieldName, Object value, org.apache.calcite.sql.type.SqlTypeName sqlType) {
+  private static boolean isNullRepresentation(String value) {
+    return NullEquivalents.isNullRepresentation(value);
+  }
+
+  /**
+   * Check if a string value represents a null value using specified null equivalents.
+   */
+  private static boolean isNullRepresentation(String value, Set<String> nullEquivalents) {
+    return NullEquivalents.isNullRepresentation(value, nullEquivalents);
+  }
+
+  /**
+   * WTFAdd a value to a Parquet group with proper type conversion.
+   */
+  private static void addValueToParquetGroup(org.apache.parquet.example.data.Group group,
+      String fieldName, Object value, org.apache.calcite.sql.type.SqlTypeName sqlType, boolean blankStringsAsNull) {
+
+    LOGGER.info("[addValueToParquetGroup] Called with field={}, value={}, sqlType={}, blankStringsAsNull={}", 
+                fieldName, (value == null ? "null" : "'" + value + "'"), sqlType, blankStringsAsNull);
     
-    if (value == null) return;
+    if (value == null) {
+      // For null values, skip (Parquet handles null via absence)
+      LOGGER.debug("[addValueToParquetGroup] Value is null, skipping field: {}", fieldName);
+      return;
+    }
+
+    // For VARCHAR/CHAR fields, empty strings are valid values, not nulls
+    // Only check for null representations for non-string SQL types
+    if (value instanceof String && 
+        sqlType != org.apache.calcite.sql.type.SqlTypeName.VARCHAR &&
+        sqlType != org.apache.calcite.sql.type.SqlTypeName.CHAR) {
+      // For non-string types (numbers, dates), check if the string represents null
+      if (isNullRepresentation((String) value)) {
+        // It's a null representation for a non-string type, skip
+        return;
+      }
+    }
+
+    // Handle empty strings for VARCHAR/CHAR fields based on blankStringsAsNull setting
+    LOGGER.info("[addValueToParquetGroup] Checking if value is String: {}, sqlType: {}", 
+                value instanceof String, sqlType);
+    if (value instanceof String && 
+        (sqlType == org.apache.calcite.sql.type.SqlTypeName.VARCHAR ||
+         sqlType == org.apache.calcite.sql.type.SqlTypeName.CHAR)) {
+      String strValue = (String) value;
+      LOGGER.info("[addValueToParquetGroup] VARCHAR field '{}': value='{}', length={}, isEmpty={}", 
+                  fieldName, strValue, strValue.length(), strValue.isEmpty());
+      if (strValue.isEmpty()) {
+        if (blankStringsAsNull) {
+          // Convert empty strings to null (don't add to group)
+          LOGGER.info("[addValueToParquetGroup] Converting empty string to null for field '{}' with sqlType {}", fieldName, sqlType);
+          return;
+        } else {
+          // Store empty strings as empty strings
+          LOGGER.info("[addValueToParquetGroup] IMPORTANT: Storing empty string for field '{}' with sqlType {}", fieldName, sqlType);
+          group.append(fieldName, "");
+          LOGGER.info("[addValueToParquetGroup] Successfully appended empty string to field '{}'", fieldName);
+          return;
+        }
+      }
+    }
+
+    LOGGER.debug("Adding value to Parquet group: field={}, value={}, sqlType={}, valueClass={}",
+                fieldName, value, sqlType, value.getClass().getName());
+
+    // Check if field exists in the schema to prevent "is not primitive" errors
+    try {
+      org.apache.parquet.schema.Type fieldType = group.getType().getType(fieldName);
+      if (fieldType == null) {
+        LOGGER.warn("Field '{}' not found in Parquet schema, skipping", fieldName);
+        return;
+      }
+      LOGGER.debug("Found field type in schema: {}", fieldType);
+    } catch (Exception e) {
+      LOGGER.warn("Field '{}' not found in Parquet schema: {}, skipping", fieldName, e.getMessage());
+      return;
+    }
 
     switch (sqlType) {
       case BOOLEAN:
         if (value instanceof Boolean) {
           group.append(fieldName, (Boolean) value);
         } else {
-          group.append(fieldName, Boolean.parseBoolean(value.toString()));
+          String strValue = value.toString();
+          // For non-string types, check again for null representations
+          if (isNullRepresentation(strValue)) {
+            return;
+          }
+          try {
+            group.append(fieldName, Boolean.parseBoolean(strValue));
+          } catch (Exception e) {
+            LOGGER.error("Failed to parse boolean value '{}' for field '{}': {}", strValue, fieldName, e.getMessage());
+            // Don't add value (treat as null)
+            return;
+          }
         }
         break;
 
@@ -433,7 +607,18 @@ public class ParquetConversionUtil {
         if (value instanceof Number) {
           group.append(fieldName, ((Number) value).intValue());
         } else {
-          group.append(fieldName, Integer.parseInt(value.toString()));
+          String strValue = value.toString();
+          // For non-string types, check again for null representations
+          if (isNullRepresentation(strValue)) {
+            return;
+          }
+          try {
+            group.append(fieldName, Integer.parseInt(strValue));
+          } catch (NumberFormatException e) {
+            LOGGER.error("Failed to parse integer value '{}' for field '{}': {}", strValue, fieldName, e.getMessage());
+            // Don't add value (treat as null)
+            return;
+          }
         }
         break;
 
@@ -441,7 +626,18 @@ public class ParquetConversionUtil {
         if (value instanceof Number) {
           group.append(fieldName, ((Number) value).longValue());
         } else {
-          group.append(fieldName, Long.parseLong(value.toString()));
+          String strValue = value.toString();
+          // For non-string types, check again for null representations
+          if (isNullRepresentation(strValue)) {
+            return;
+          }
+          try {
+            group.append(fieldName, Long.parseLong(strValue));
+          } catch (NumberFormatException e) {
+            LOGGER.error("Failed to parse long value '{}' for field '{}': {}", strValue, fieldName, e.getMessage());
+            // Don't add value (treat as null)
+            return;
+          }
         }
         break;
 
@@ -450,7 +646,18 @@ public class ParquetConversionUtil {
         if (value instanceof Number) {
           group.append(fieldName, ((Number) value).floatValue());
         } else {
-          group.append(fieldName, Float.parseFloat(value.toString()));
+          String strValue = value.toString();
+          // For non-string types, check again for null representations
+          if (isNullRepresentation(strValue)) {
+            return;
+          }
+          try {
+            group.append(fieldName, Float.parseFloat(strValue));
+          } catch (NumberFormatException e) {
+            LOGGER.error("Failed to parse float value '{}' for field '{}': {}", strValue, fieldName, e.getMessage());
+            // Don't add value (treat as null)
+            return;
+          }
         }
         break;
 
@@ -458,7 +665,18 @@ public class ParquetConversionUtil {
         if (value instanceof Number) {
           group.append(fieldName, ((Number) value).doubleValue());
         } else {
-          group.append(fieldName, Double.parseDouble(value.toString()));
+          String strValue = value.toString();
+          // For non-string types, check again for null representations
+          if (isNullRepresentation(strValue)) {
+            return;
+          }
+          try {
+            group.append(fieldName, Double.parseDouble(strValue));
+          } catch (NumberFormatException e) {
+            LOGGER.error("Failed to parse double value '{}' for field '{}': {}", strValue, fieldName, e.getMessage());
+            // Don't add value (treat as null)
+            return;
+          }
         }
         break;
 
@@ -468,9 +686,20 @@ public class ParquetConversionUtil {
           group.append(fieldName, org.apache.parquet.io.api.Binary.fromConstantByteArray(
               decimal.unscaledValue().toByteArray()));
         } else {
-          BigDecimal decimal = new BigDecimal(value.toString());
-          group.append(fieldName, org.apache.parquet.io.api.Binary.fromConstantByteArray(
-              decimal.unscaledValue().toByteArray()));
+          String strValue = value.toString();
+          // For non-string types, check again for null representations
+          if (isNullRepresentation(strValue)) {
+            return;
+          }
+          try {
+            BigDecimal decimal = new BigDecimal(strValue);
+            group.append(fieldName, org.apache.parquet.io.api.Binary.fromConstantByteArray(
+                decimal.unscaledValue().toByteArray()));
+          } catch (NumberFormatException e) {
+            LOGGER.error("Failed to parse decimal value '{}' for field '{}': {}", strValue, fieldName, e.getMessage());
+            // Don't add value (treat as null)
+            return;
+          }
         }
         break;
 
@@ -487,13 +716,19 @@ public class ParquetConversionUtil {
           // Already in days since epoch format
           group.append(fieldName, (Integer) value);
         } else {
+          String strValue = value.toString();
+          // For non-string types, check again for null representations
+          if (isNullRepresentation(strValue)) {
+            return;
+          }
           // Try to parse as date string
           try {
-            java.time.LocalDate localDate = java.time.LocalDate.parse(value.toString());
+            java.time.LocalDate localDate = java.time.LocalDate.parse(strValue);
             group.append(fieldName, (int) localDate.toEpochDay());
           } catch (Exception e) {
-            // Fall back to string representation
-            group.append(fieldName, value.toString());
+            LOGGER.error("Failed to parse date value '{}' for field '{}': {}", strValue, fieldName, e.getMessage());
+            // Don't add value (treat as null)
+            return;
           }
         }
         break;
@@ -527,45 +762,54 @@ public class ParquetConversionUtil {
         break;
 
       case TIMESTAMP:
+      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+        // Get the field index to use group.add() instead of group.append()
+        // This avoids the Parquet library bug with group.append() for TIMESTAMP fields
+        int fieldIndex = group.getType().getFieldIndex(fieldName);
+
         if (value instanceof java.sql.Timestamp) {
-          // Store as milliseconds since epoch in UTC (timezone-naive)
-          long tsValue = ((java.sql.Timestamp) value).getTime();
-          LOGGER.debug("Writing TIMESTAMP to Parquet: {} for field {}", tsValue, fieldName);
-          group.append(fieldName, tsValue);
-        } else if (value instanceof java.util.Date) {
-          long tsValue = ((java.util.Date) value).getTime();
-          LOGGER.debug("Writing Date as TIMESTAMP to Parquet: {} for field {}", tsValue, fieldName);
-          group.append(fieldName, tsValue);
-        } else if (value instanceof Long) {
+          // Convert to milliseconds since epoch in UTC
+          long millis = ((java.sql.Timestamp) value).getTime();
+          group.add(fieldIndex, millis);
+        } else if (value instanceof java.time.LocalDateTime) {
+          // Convert to milliseconds since epoch in UTC
+          long millis = ((java.time.LocalDateTime) value).atZone(java.time.ZoneOffset.UTC).toInstant().toEpochMilli();
+          group.add(fieldIndex, millis);
+        } else if (value instanceof java.time.Instant) {
+          group.add(fieldIndex, ((java.time.Instant) value).toEpochMilli());
+        } else if (value instanceof Number) {
           // Already in milliseconds since epoch format
-          group.append(fieldName, (Long) value);
-        } else if (value instanceof org.apache.calcite.adapter.file.temporal.LocalTimestamp) {
-          // LocalTimestamp stores milliseconds since epoch in UTC
-          org.apache.calcite.adapter.file.temporal.LocalTimestamp localTs = 
-              (org.apache.calcite.adapter.file.temporal.LocalTimestamp) value;
-          group.append(fieldName, localTs.getTime());
+          group.add(fieldIndex, ((Number) value).longValue());
         } else {
-          // Parse timestamp string as UTC
-          String timestampStr = value.toString();
-          if (timestampStr.matches("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}.*")) {
-            try {
-              java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-              // Parse as UTC - TIMESTAMP WITHOUT TIME ZONE should store UTC time
-              sdf.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
-              java.util.Date parsedDate = sdf.parse(timestampStr.substring(0, 19));
-              group.append(fieldName, parsedDate.getTime());
-            } catch (java.text.ParseException e) {
-              group.append(fieldName, value.toString());
-            }
-          } else {
-            group.append(fieldName, value.toString());
+          String strValue = value.toString();
+          // For non-string types, check again for null representations
+          if (isNullRepresentation(strValue)) {
+            return;
+          }
+          // Try to parse timestamp string
+          try {
+            java.time.LocalDateTime localDateTime = java.time.LocalDateTime.parse(strValue);
+            long millis = localDateTime.atZone(java.time.ZoneOffset.UTC).toInstant().toEpochMilli();
+            group.add(fieldIndex, millis);
+          } catch (Exception e) {
+            LOGGER.error("Failed to parse timestamp value '{}' for field '{}': {}", strValue, fieldName, e.getMessage());
+            // Don't add value (treat as null)
+            return;
           }
         }
         break;
 
       default:
         // Default to string for all other types
-        group.append(fieldName, value.toString());
+        String stringValue = value.toString();
+        if (stringValue.isEmpty()) {
+          // Use sentinel for EMPTY strings to work around AvroParquetReader bug
+          LOGGER.info("[ParquetConversionUtil] Writing EMPTY sentinel for field '{}' (was empty string)", fieldName);
+          group.append(fieldName, DirectParquetWriter.EMPTY_STRING_SENTINEL);
+        } else {
+          LOGGER.info("[ParquetConversionUtil] Writing string value for field '{}': '{}'", fieldName, stringValue);
+          group.append(fieldName, stringValue);
+        }
         break;
     }
   }
@@ -595,9 +839,9 @@ public class ParquetConversionUtil {
         // Create a temporary Calcite connection to execute the translation
         java.sql.Connection conn = java.sql.DriverManager.getConnection("jdbc:calcite:");
         org.apache.calcite.jdbc.CalciteConnection calciteConn = conn.unwrap(org.apache.calcite.jdbc.CalciteConnection.class);
-        
+
         SchemaPlus rootSchema = calciteConn.getRootSchema();
-        
+
         // Create a temporary schema with just this table
         String tempTableName = "temp_table_" + System.currentTimeMillis();
         SchemaPlus tempSchema = rootSchema.add("TEMP_SCAN", new org.apache.calcite.schema.impl.AbstractSchema() {
@@ -615,7 +859,7 @@ public class ParquetConversionUtil {
           java.util.List<Object[]> rows = new java.util.ArrayList<>();
           org.apache.calcite.rel.type.RelDataType rowType = getRowType(root.getTypeFactory());
           int columnCount = rowType.getFieldCount();
-          
+
           while (rs.next()) {
             Object[] row = new Object[columnCount];
             for (int i = 0; i < columnCount; i++) {
@@ -623,7 +867,7 @@ public class ParquetConversionUtil {
             }
             rows.add(row);
           }
-          
+
           conn.close();
           return org.apache.calcite.linq4j.Linq4j.asEnumerable(rows);
         }

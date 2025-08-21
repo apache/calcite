@@ -420,49 +420,4 @@ public abstract class SparkRules {
     }
   }
 
-  // Play area
-
-  public static void main(String[] args) {
-    final JavaSparkContext sc = new JavaSparkContext("local[1]", "calcite");
-    final JavaRDD<String> file = sc.textFile("/usr/share/dict/words");
-    System.out.println(
-        file.map(s -> s.substring(0, Math.min(s.length(), 1)))
-            .distinct().count());
-    file.cache();
-    String s =
-        file.groupBy((Function<String, String>) s1 ->
-                s1.substring(0, Math.min(s1.length(), 1)))
-            //CHECKSTYLE: IGNORE 1
-            .map((Function<Tuple2<String, Iterable<String>>, Object>) pair ->
-                pair._1() + ":" + Iterables.size(pair._2()))
-            .collect()
-            .toString();
-    System.out.print(s);
-
-    final JavaRDD<Integer> rdd =
-        sc.parallelize(new AbstractList<Integer>() {
-          final Random random = new Random();
-          @Override public Integer get(int index) {
-            System.out.println("get(" + index + ")");
-            return random.nextInt(100);
-          }
-
-          @Override public int size() {
-            System.out.println("size");
-            return 10;
-          }
-        });
-    System.out.println(
-        rdd.groupBy((Function<Integer, Integer>) integer -> integer % 2).collect().toString());
-    System.out.println(
-        file.flatMap((FlatMapFunction<String, Pair<String, Integer>>) x -> {
-          if (!x.startsWith("a")) {
-            return Collections.emptyIterator();
-          }
-          return Collections.singletonList(
-              Pair.of(x.toUpperCase(Locale.ROOT), x.length())).iterator();
-        })
-            .take(5)
-            .toString());
-  }
 }

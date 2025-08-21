@@ -433,22 +433,24 @@ public class FileRowConverter {
         // Parse timestamp without timezone as UTC (TZ naive)
         // For TIMESTAMP WITHOUT TIME ZONE, values should be interpreted as UTC
         // to ensure consistent behavior across different execution engines
+        // Return milliseconds since epoch (not Timestamp object) for better compatibility
         try {
           if (string.matches("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}")) {
             // Parse ISO format timestamp as UTC
             java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
-            return new java.sql.Timestamp(sdf.parse(string).getTime());
+            return sdf.parse(string).getTime(); // Return millis directly
           }
         } catch (Exception e) {
           // Fall through to Natty parser with UTC
         }
         // Parse with UTC timezone for consistency
-        return new java.sql.Timestamp(parseDate(string, TimeZone.getTimeZone("UTC")).getTime());
+        return parseDate(string, TimeZone.getTimeZone("UTC")).getTime(); // Return millis directly
 
       case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
         // Parse the timestamp with local timezone
-        return new java.sql.Timestamp(parseDate(string).getTime());
+        // Return milliseconds since epoch (not Timestamp object) for better compatibility
+        return parseDate(string).getTime(); // Return millis directly
 
       case STRING:
       default:

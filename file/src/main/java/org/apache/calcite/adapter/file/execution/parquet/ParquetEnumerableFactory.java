@@ -406,7 +406,9 @@ public class ParquetEnumerableFactory {
               }
             } else if (value != null && value.getClass().getName().equals("org.apache.avro.util.Utf8")) {
               // Convert Avro UTF8 to String
-              value = value.toString();
+              String stringValue = value.toString();
+              // Just use the string value as-is
+              value = stringValue;
             }
 
             currentRow[i] = value;
@@ -573,7 +575,9 @@ public class ParquetEnumerableFactory {
               }
             } else if (value != null && value.getClass().getName().equals("org.apache.avro.util.Utf8")) {
               // Convert Avro UTF8 to String
-              value = value.toString();
+              String stringValue = value.toString();
+              // Just use the string value as-is
+              value = stringValue;
             }
 
             currentRow[i] = value;

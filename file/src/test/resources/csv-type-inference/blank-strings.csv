@@ -1,0 +1,7 @@
+id,name,status
+1,Alice,Active
+2,,Inactive
+3,Charlie,
+4,David,Pending
+5,  ,Active
+6,Eve,   

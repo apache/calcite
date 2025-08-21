@@ -152,15 +152,6 @@ public class ExecutionEngineConfig {
   private static String getDefaultEngine() {
     // Default to parquet engine
     return "parquet";
-    /*
-    if (DuckDBExecutionEngine.isAvailable()) {
-      LOGGER.info("DuckDB driver detected in classpath - using DUCKDB as default execution engine");
-      return "duckdb";
-    } else {
-      LOGGER.debug("DuckDB driver not found in classpath - using PARQUET as default execution engine");
-      return "parquet";
-    }
-    */
   }
 
   /**

@@ -73,6 +73,24 @@ public abstract class CsvTable extends AbstractTable {
     return typeInferenceConfig;
   }
 
+  /**
+   * Create a default type inference configuration for consistent processing.
+   * This ensures we always use the same inference logic even when type inference is disabled.
+   */
+  private CsvTypeInferrer.TypeInferenceConfig createDefaultInferenceConfig() {
+    return new CsvTypeInferrer.TypeInferenceConfig(
+        false, // enabled = false (but we'll still run the inference for consistency)
+        1.0,   // samplingRate = 1.0 (check all rows)
+        100,   // maxSampleRows = 100
+        0.95,  // confidenceThreshold = 0.95
+        true,  // makeAllNullable = true (important for consistent nullability)
+        false, // inferDates = false (avoid timestamp parsing issues when forcing VARCHAR)
+        false, // inferTimes = false (avoid timestamp parsing issues when forcing VARCHAR)
+        false, // inferTimestamps = false (avoid timestamp parsing issues when forcing VARCHAR)
+        0.0    // nullThreshold = 0.0
+    );
+  }
+
   @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     if (protoRowType != null) {
       return protoRowType.apply(typeFactory);
@@ -99,6 +117,15 @@ public abstract class CsvTable extends AbstractTable {
             LOGGER.info("Inferred {} column types", inferredTypes.size());
             
             if (!inferredTypes.isEmpty()) {
+              // Log all inferred types for debugging
+              LOGGER.info("=== TYPE INFERENCE RESULTS ===");
+              for (int i = 0; i < inferredTypes.size(); i++) {
+                CsvTypeInferrer.ColumnTypeInfo typeInfo = inferredTypes.get(i);
+                LOGGER.info("Column {}: {} -> {} (nullable={}, confidence={})", 
+                    i, typeInfo.columnName, typeInfo.inferredType, typeInfo.nullable, typeInfo.confidence);
+              }
+              LOGGER.info("=== END TYPE INFERENCE RESULTS ===");
+              
               // Build a new row type with inferred types
               RelDataTypeFactory.Builder builder = typeFactory.builder();
               List<String> fieldNames = rowType.getFieldNames();
@@ -109,10 +136,13 @@ public abstract class CsvTable extends AbstractTable {
                 
                 if (i < inferredTypes.size()) {
                   CsvTypeInferrer.ColumnTypeInfo typeInfo = inferredTypes.get(i);
+                  LOGGER.info("Applying type to column {}: {} -> {}", 
+                      fieldName, typeInfo.inferredType, typeInfo.inferredType);
                   fieldType = typeFactory.createSqlType(typeInfo.inferredType);
                   fieldType = typeFactory.createTypeWithNullability(fieldType, typeInfo.nullable);
                 } else {
                   // Fallback to VARCHAR for any extra columns
+                  LOGGER.warn("Column {} has no inferred type, falling back to VARCHAR", fieldName);
                   fieldType = typeFactory.createSqlType(org.apache.calcite.sql.type.SqlTypeName.VARCHAR);
                   fieldType = typeFactory.createTypeWithNullability(fieldType, true);
                 }

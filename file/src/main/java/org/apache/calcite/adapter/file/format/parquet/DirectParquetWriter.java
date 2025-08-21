@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.file.format.parquet;
 
+import org.apache.calcite.adapter.file.converters.ConverterUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.parquet.column.ParquetProperties;
@@ -36,6 +37,9 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import static org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.BINARY;
 import static org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.BOOLEAN;
 import static org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.DOUBLE;
@@ -51,6 +55,8 @@ import static org.apache.parquet.schema.Type.Repetition.REQUIRED;
  * allowing us to properly set the isAdjustedToUTC flag for timestamps.
  */
 public class DirectParquetWriter {
+  private static final Logger LOGGER = LoggerFactory.getLogger(DirectParquetWriter.class);
+  
 
   private DirectParquetWriter() {
     // Utility class
@@ -66,7 +72,7 @@ public class DirectParquetWriter {
     // Build Parquet schema from ResultSet metadata
     List<Type> fields = new ArrayList<>();
     for (int i = 1; i <= columnCount; i++) {
-      String columnName = sanitizeColumnName(rsmd.getColumnName(i));
+      String columnName = ConverterUtils.sanitizeIdentifier(rsmd.getColumnName(i));
       int sqlType = rsmd.getColumnType(i);
       Type field = createParquetField(columnName, sqlType, i, rsmd);
       fields.add(field);
@@ -99,7 +105,7 @@ public class DirectParquetWriter {
         Group group = groupFactory.newGroup();
 
         for (int i = 1; i <= columnCount; i++) {
-          String columnName = sanitizeColumnName(rsmd.getColumnName(i));
+          String columnName = ConverterUtils.sanitizeIdentifier(rsmd.getColumnName(i));
           int sqlType = rsmd.getColumnType(i);
 
           // Check for null values
@@ -270,19 +276,24 @@ public class DirectParquetWriter {
 
       default:
         String stringValue = rs.getString(index);
-        if (stringValue != null) {
+        if (stringValue != null && stringValue.isEmpty()) {
+          // Write sentinel value for EMPTY strings
+          // This works around AvroParquetReader's bug that converts empty strings to null
+          group.append(columnName, EMPTY_STRING_SENTINEL);
+          if ("name".equals(columnName) || "status".equals(columnName)) {
+            LOGGER.info("[DirectParquetWriter] Writing column '{}': EMPTY string (using sentinel)", columnName);
+          }
+        } else if (stringValue != null) {
+          // Write the actual non-empty string value
+          if ("name".equals(columnName) || "status".equals(columnName)) {
+            LOGGER.info("[DirectParquetWriter] Writing column '{}': value='{}', length={}", 
+                        columnName, stringValue, stringValue.length());
+          }
           group.append(columnName, stringValue);
         }
+        // If stringValue is null, don't write anything (Parquet will handle it as NULL)
         break;
     }
-  }
-
-  private static String sanitizeColumnName(String name) {
-    if (name == null || name.isEmpty()) {
-      return "column";
-    }
-    // Replace invalid characters with underscore
-    return name.replaceAll("[^a-zA-Z0-9_]", "_");
   }
 
   /**

@@ -1,0 +1,3 @@
+-cp
+build/libs/calcite-file-1.41.0-SNAPSHOT-sources.jar:build/libs/calcite-file-1.41.0-SNAPSHOT.jar:build/classes/java/main:../core/build/libs/calcite-core-1.41.0-SNAPSHOT-sources.jar:../core/build/libs/calcite-core-1.41.0-SNAPSHOT.jar:../linq4j/build/libs/calcite-linq4j-1.41.0-SNAPSHOT.jar:../linq4j/build/libs/calcite-linq4j-1.41.0-SNAPSHOT-sources.jar
+/tmp/simple_test.java

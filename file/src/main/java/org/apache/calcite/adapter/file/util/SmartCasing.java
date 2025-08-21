@@ -643,16 +643,19 @@ public final class SmartCasing {
       return null;
     }
     
+    // First sanitize to convert hyphens to underscores
+    String sanitized = org.apache.calcite.adapter.file.converters.ConverterUtils.sanitizeIdentifier(name);
+    
     switch (casing) {
     case "UPPER":
-      return name.toUpperCase(Locale.ROOT);
+      return sanitized.toUpperCase(Locale.ROOT);
     case "LOWER":
-      return name.toLowerCase(Locale.ROOT);
+      return sanitized.toLowerCase(Locale.ROOT);
     case "SMART_CASING":
-      return toSnakeCase(name);
+      return toSnakeCase(sanitized);
     case "UNCHANGED":
     default:
-      return name;
+      return sanitized;
     }
   }
 }

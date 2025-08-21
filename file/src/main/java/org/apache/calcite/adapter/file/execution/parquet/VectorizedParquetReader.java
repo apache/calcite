@@ -300,7 +300,24 @@ public class VectorizedParquetReader implements AutoCloseable {
           currentGroup.setValue(fieldIndex, value.getBytes());
         } else {
           // Handle as string
-          currentGroup.setValue(fieldIndex, value.toStringUsingUTF8());
+          String stringValue = value.toStringUsingUTF8();
+          
+          // Check for EMPTY sentinel and convert back to empty string
+          if ("\uFFFF".equals(stringValue)) {
+            // Debug logging for name and status fields
+            if (fieldIndex == 1 || fieldIndex == 2) {
+              LOGGER.info("[VectorizedParquetReader] Field {} (index {}): EMPTY sentinel detected, converting to empty string", 
+                          fieldType.getName(), fieldIndex);
+            }
+            currentGroup.setValue(fieldIndex, "");
+          } else {
+            // Debug logging for name and status fields
+            if (fieldIndex == 1 || fieldIndex == 2) {
+              LOGGER.info("[VectorizedParquetReader] Field {} (index {}): Binary value='{}', length={}, isEmpty={}", 
+                          fieldType.getName(), fieldIndex, stringValue, stringValue.length(), stringValue.isEmpty());
+            }
+            currentGroup.setValue(fieldIndex, stringValue);
+          }
         }
       }
       

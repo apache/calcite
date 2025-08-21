@@ -32,6 +32,8 @@ import org.apache.calcite.util.Source;
 
 import org.apache.calcite.adapter.file.execution.linq4j.ParquetEnumerator;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -72,7 +74,8 @@ public class ParquetCsvTranslatableTable extends CsvTranslatableTable
         JavaTypeFactory typeFactory = root.getTypeFactory();
 
         // Use Parquet-style columnar processing
-        return new ParquetEnumerator<>(source, cancelFlag,
+        //noinspection unchecked
+        return (Enumerator<Object>) new ParquetEnumerator<>(source, cancelFlag,
             getFieldTypes(typeFactory), fields, engineConfig.getBatchSize(),
             engineConfig.getMemoryThreshold());
       }
