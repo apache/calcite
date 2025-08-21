@@ -105,17 +105,17 @@ public class ExcelComprehensiveTest {
 
     String model = createModel(tempDir);
 
-    try (Connection conn = DriverManager.getConnection("jdbc:calcite:model=inline:" + model);
+    try (Connection conn = DriverManager.getConnection("jdbc:calcite:model=inline:" + model + ";lex=ORACLE;unquotedCasing=TO_LOWER");
          Statement stmt = conn.createStatement()) {
 
       // Query first sheet (employees)
-      try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as cnt FROM \"multi_sheet__employees\"")) {
+      try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as cnt FROM multi_sheet__employees")) {
         assertTrue(rs.next());
         assertEquals(3L, rs.getLong("cnt"));
       }
 
       // Query second sheet (departments)
-      try (ResultSet rs = stmt.executeQuery("SELECT * FROM \"multi_sheet__departments\" ORDER BY \"id\"")) {
+      try (ResultSet rs = stmt.executeQuery("SELECT * FROM multi_sheet__departments ORDER BY id")) {
         assertTrue(rs.next());
         assertEquals(10L, rs.getLong("id"));
         assertEquals("Engineering", rs.getString("name"));
@@ -180,7 +180,7 @@ public class ExcelComprehensiveTest {
       // 2. Sheet name is also converted to snake_case with SMART_CASING
       // 3. Combined as filename__sheetname
       // 4. FileSchema applies SMART_CASING which converts to snake_case and sanitizes identifiers
-      
+
       // Instead of predicting, let's find the actual table that was created for this sheet
       String actualTableName = null;
       try (ResultSet tables = metaData.getTables(null, "EXCEL", "naming_test__%", null)) {
@@ -194,7 +194,7 @@ public class ExcelComprehensiveTest {
         }
       }
 
-      
+
       if (actualTableName == null) {
         fail("No table found for sheet: " + sheetName);
       }

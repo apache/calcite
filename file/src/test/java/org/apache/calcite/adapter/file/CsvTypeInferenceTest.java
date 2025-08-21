@@ -59,9 +59,9 @@ public class CsvTypeInferenceTest {
    */
   @Test
   void testMixedTypesInference() throws Exception {
-    // Skip for LINQ4J and ARROW engines - CSV type inference not supported
+    // Skip for ARROW engine - CSV type inference not supported
     String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
-    if ("LINQ4J".equals(engineType) || "ARROW".equals(engineType)) {
+    if ("ARROW".equals(engineType)) {
       return;
     }
     // Test with type inference enabled
@@ -162,9 +162,9 @@ public class CsvTypeInferenceTest {
    */
   @Test
   void testTimestampInference() throws Exception {
-    // Skip for LINQ4J and ARROW engines - CSV type inference not supported
+    // Skip for ARROW engine - CSV type inference not supported
     String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
-    if ("LINQ4J".equals(engineType) || "ARROW".equals(engineType)) {
+    if ("ARROW".equals(engineType)) {
       return;
     }
     Properties info = new Properties();
@@ -220,9 +220,9 @@ public class CsvTypeInferenceTest {
    */
   @Test
   void testNullHandling() throws Exception {
-    // Skip for LINQ4J and ARROW engines - CSV type inference not supported
+    // Skip for ARROW engine - CSV type inference not supported
     String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
-    if ("LINQ4J".equals(engineType) || "ARROW".equals(engineType)) {
+    if ("ARROW".equals(engineType)) {
       return;
     }
     Properties info = new Properties();
@@ -318,9 +318,9 @@ public class CsvTypeInferenceTest {
    */
   @Test
   void testAggregationsWithInferredTypes() throws Exception {
-    // Skip for LINQ4J and ARROW engines - CSV type inference not supported
+    // Skip for ARROW engine - CSV type inference not supported
     String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
-    if ("LINQ4J".equals(engineType) || "ARROW".equals(engineType)) {
+    if ("ARROW".equals(engineType)) {
       return;
     }
     
@@ -367,9 +367,9 @@ public class CsvTypeInferenceTest {
    */
   @Test
   void testDateComparisons() throws Exception {
-    // Skip for LINQ4J and ARROW engines - CSV type inference not supported
+    // Skip for ARROW engine - CSV type inference not supported
     String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
-    if ("LINQ4J".equals(engineType) || "ARROW".equals(engineType)) {
+    if ("ARROW".equals(engineType)) {
       return;
     }
     Properties info = new Properties();
@@ -407,9 +407,9 @@ public class CsvTypeInferenceTest {
    */
   @Test
   void testBlankStringsAsNullWithNoInference() throws Exception {
-    // Skip for LINQ4J and ARROW engines - CSV type inference not supported
+    // Skip for ARROW engine - CSV type inference not supported
     String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
-    if ("LINQ4J".equals(engineType) || "ARROW".equals(engineType)) {
+    if ("ARROW".equals(engineType)) {
       return;
     }
     
@@ -485,9 +485,9 @@ public class CsvTypeInferenceTest {
    */
   @Test
   void testBlankStringsPreserved() throws Exception {
-    // Skip for LINQ4J and ARROW engines - CSV type inference not supported
+    // Skip for ARROW engine - CSV type inference not supported
     String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
-    if ("LINQ4J".equals(engineType) || "ARROW".equals(engineType)) {
+    if ("ARROW".equals(engineType)) {
       return;
     }
     
@@ -645,5 +645,52 @@ public class CsvTypeInferenceTest {
     model.append("}\n");
 
     return model.toString();
+  }
+
+  /**
+   * Test to verify what types are inferred for the mixed-types.csv file with LINQ4J engine.
+   */
+  @Test
+  @Tag("temp")
+  void testMixedTypesColumnTypes() throws Exception {
+    // Skip for ARROW engine - CSV type inference not supported
+    String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
+    if ("ARROW".equals(engineType)) {
+      return;
+    }
+    Properties info = new Properties();
+    // Use dynamic model if engine is configured
+    if (engineType != null && !engineType.isEmpty()) {
+      String modelJson = buildModelJson(engineType);
+      info.put("model", "inline:" + modelJson);
+    } else {
+      info.put("model", resourcePath("csv-type-inference-model.json"));
+    }
+    info.put("lex", "ORACLE");
+    info.put("unquotedCasing", "TO_LOWER");
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info)) {
+      String tableName = "mixed_types";
+      String sql = "SELECT * FROM csv_infer." + tableName + " LIMIT 1";
+      try (ResultSet rs = connection.createStatement().executeQuery(sql)) {
+        ResultSetMetaData metaData = rs.getMetaData();
+        int columnCount = metaData.getColumnCount();
+        System.out.println("Column types for mixed_types with engine: " + engineType);
+        for (int i = 1; i <= columnCount; i++) {
+          String columnName = metaData.getColumnName(i);
+          int sqlType = metaData.getColumnType(i);
+          String typeName = metaData.getColumnTypeName(i);
+          System.out.println(String.format("Column %d: %s - SQL Type: %d (%s)", 
+                            i, columnName, sqlType, typeName));
+        }
+        // Focus on hire_date column (should be column 5)
+        if (columnCount >= 5) {
+          String hireDateColumnName = metaData.getColumnName(5);
+          int hireDateSqlType = metaData.getColumnType(5);
+          String hireDateTypeName = metaData.getColumnTypeName(5);
+          System.out.println(String.format("hire_date column details: name=%s, sqlType=%d, typeName=%s", 
+                            hireDateColumnName, hireDateSqlType, hireDateTypeName));
+        }
+      }
+    }
   }
 }

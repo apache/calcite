@@ -71,7 +71,8 @@ public class GuidHexDetectionTest {
     MultiTableExcelToJsonConverter.convertFileToJson(file, true);
 
     // Should create exactly 1 JSON file (not treat GUID rows as separate tables)
-    File[] jsonFiles = tempDir.listFiles((dir, name) -> name.endsWith(".json"));
+    // Exclude metadata files that start with dots
+    File[] jsonFiles = tempDir.listFiles((dir, name) -> name.endsWith(".json") && !name.startsWith("."));
     System.out.println("JSON files created: " + jsonFiles.length);
     for (File f : jsonFiles) {
       System.out.println("  " + f.getName());

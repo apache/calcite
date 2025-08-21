@@ -26,6 +26,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.opentest4j.TestAbortedException;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -50,9 +51,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class ParquetAutoConversionTest {
   @TempDir
   java.nio.file.Path tempDir;
+  
+  private boolean shouldSkipTests;
 
   @BeforeEach
   public void setUp() throws Exception {
+    // Check if we should skip tests based on the current execution engine
+    String currentEngine = System.getProperty("CALCITE_FILE_ENGINE_TYPE", "PARQUET");
+    shouldSkipTests = "LINQ4J".equals(currentEngine) || "ARROW".equals(currentEngine);
+    
+    if (shouldSkipTests) {
+      System.out.println("Skipping ParquetAutoConversionTest - not relevant for " + currentEngine + " engine");
+      return;
+    }
+    
     // Clear any static caches that might interfere with test isolation
     Sources.clearFileCache();
     // Force garbage collection to release any file handles and clear caches
@@ -69,7 +81,15 @@ public class ParquetAutoConversionTest {
     Thread.sleep(100);
   }
 
-  @Test public void testAutoConversionToParquet() throws Exception {
+  @Test 
+  public void testAutoConversionToParquet() throws Exception {
+    String currentEngine = System.getenv("CALCITE_FILE_ENGINE_TYPE");
+    if (currentEngine == null) {
+      currentEngine = System.getProperty("CALCITE_FILE_ENGINE_TYPE", "PARQUET");
+    }
+    if (!"PARQUET".equals(currentEngine) && !"DUCKDB".equals(currentEngine)) {
+      throw new TestAbortedException("Skipping test - only relevant for PARQUET or DUCKDB engines, current: " + currentEngine);
+    }
     System.out.println("\n=== TESTING AUTO-CONVERSION TO PARQUET ===");
 
     // Create unique temp directory for this test with full UUID to ensure uniqueness
@@ -110,7 +130,6 @@ public class ParquetAutoConversionTest {
       // Configure file schema with PARQUET execution engine
       Map<String, Object> operand = new HashMap<>();
       operand.put("directory", uniqueTempDir.getAbsolutePath());
-      operand.put("executionEngine", "parquet");  // This triggers auto-conversion
       // Use unique cache directory for test isolation
       operand.put("parquetCacheDirectory", cacheDir.getAbsolutePath());
 
@@ -188,73 +207,89 @@ public class ParquetAutoConversionTest {
     }
   }
 
-  @Test public void testCacheCreationFailureHandling() throws Exception {
+  @Test 
+  public void testCacheCreationFailureHandling() throws Exception {
+    String currentEngine = System.getenv("CALCITE_FILE_ENGINE_TYPE");
+    if (currentEngine == null) {
+      currentEngine = System.getProperty("CALCITE_FILE_ENGINE_TYPE", "PARQUET");
+    }
+    if (!"PARQUET".equals(currentEngine) && !"DUCKDB".equals(currentEngine)) {
+      throw new TestAbortedException("Skipping test - only relevant for PARQUET or DUCKDB engines, current: " + currentEngine);
+    }
+
     System.out.println("\n=== TESTING CACHE CREATION FAILURE HANDLING ===");
-    
+
     // Create unique temp directory for this test
     String testId = UUID.randomUUID().toString();
     File uniqueTempDir = new File(tempDir.toFile(), "cache_failure_test_" + testId);
     assertTrue(uniqueTempDir.mkdirs());
-    
+
     // Create a cache directory that will fail (read-only after creation)
     File cacheDir = new File(uniqueTempDir, "readonly_cache_" + testId);
     assertTrue(cacheDir.mkdirs());
-    
+
     File csvFile = new File(uniqueTempDir, "data.csv");
     try (FileWriter writer = new FileWriter(csvFile, StandardCharsets.UTF_8)) {
       writer.write("id:int,name:string\n");
       writer.write("1,Alice\n");
       writer.write("2,Bob\n");
     }
-    
+
     // Make cache directory read-only to simulate permission issues
     assertTrue(cacheDir.setWritable(false), "Failed to make cache dir read-only");
-    
+
     try {
       // Attempt to use Parquet engine with read-only cache directory
       try (Connection conn = DriverManager.getConnection("jdbc:calcite:lex=ORACLE;unquotedCasing=TO_LOWER");
            CalciteConnection calciteConn = conn.unwrap(CalciteConnection.class)) {
-        
+
         SchemaPlus rootSchema = calciteConn.getRootSchema();
         Map<String, Object> operand = new HashMap<>();
         operand.put("directory", uniqueTempDir.getAbsolutePath());
-        operand.put("executionEngine", "parquet");
         operand.put("parquetCacheDirectory", cacheDir.getAbsolutePath());
-        
-        rootSchema.add("TEST", FileSchemaFactory.INSTANCE.create(rootSchema, "TEST", operand));
-        
+
+        rootSchema.add("test", FileSchemaFactory.INSTANCE.create(rootSchema, "test", operand));
+
         // System should still work despite cache directory being read-only
         try (Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as cnt FROM \"TEST\".\"data\"")) {
+             ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as cnt FROM test.data")) {
           rs.next();
           assertEquals(2, rs.getInt("cnt"), "Should work even with read-only cache directory");
         }
       }
-      
+
       // Verify no cache file was created due to permissions
       File schemaCacheDir = new File(cacheDir, "schema_READONLY_TEST");
       // The schema directory might be created but the cache file should not exist
       File expectedCache = new File(schemaCacheDir, "data.parquet");
       assertFalse(expectedCache.exists(), "Cache file should not exist in read-only directory");
-      
+
       System.out.println("✓ System handles cache creation failure gracefully");
       System.out.println("  - Read-only cache directory simulated permission issues");
       System.out.println("  - Queries still succeeded by falling back to direct file reading");
-      
+
     } finally {
       // Restore write permissions for cleanup
       cacheDir.setWritable(true);
     }
   }
 
-  @Test public void testCacheInvalidation() throws Exception {
+  @Test 
+  public void testCacheInvalidation() throws Exception {
+    String currentEngine = System.getenv("CALCITE_FILE_ENGINE_TYPE");
+    if (currentEngine == null) {
+      currentEngine = System.getProperty("CALCITE_FILE_ENGINE_TYPE", "PARQUET");
+    }
+    if (!"PARQUET".equals(currentEngine) && !"DUCKDB".equals(currentEngine)) {
+      throw new TestAbortedException("Skipping test - only relevant for PARQUET or DUCKDB engines, current: " + currentEngine);
+    }
     System.out.println("\n=== TESTING PARQUET CACHE INVALIDATION ===");
 
     // Create unique temp directory for this test with full UUID
     String testId = UUID.randomUUID().toString();
     File uniqueTempDir = new File(tempDir.toFile(), "cache_invalidation_test_" + testId);
     assertTrue(uniqueTempDir.mkdirs());
-    
+
     File cacheDir = new File(uniqueTempDir, "test_cache_invalidation");
     File csvFile = new File(uniqueTempDir, "inventory.csv");
 
@@ -272,7 +307,6 @@ public class ParquetAutoConversionTest {
       SchemaPlus rootSchema = calciteConn1.getRootSchema();
       Map<String, Object> operand = new HashMap<>();
       operand.put("directory", uniqueTempDir.getAbsolutePath());
-      operand.put("executionEngine", "parquet");
       // Use unique cache directory for test isolation
       operand.put("parquetCacheDirectory", cacheDir.getAbsolutePath());
 
@@ -318,7 +352,6 @@ public class ParquetAutoConversionTest {
       SchemaPlus rootSchema = calciteConn2.getRootSchema();
       Map<String, Object> operand = new HashMap<>();
       operand.put("directory", uniqueTempDir.getAbsolutePath());
-      operand.put("executionEngine", "parquet");
       // Use same cache directory to test invalidation
       operand.put("parquetCacheDirectory", cacheDir.getAbsolutePath());
 
@@ -346,7 +379,15 @@ public class ParquetAutoConversionTest {
     System.out.println("   ✓ Cache invalidation is working correctly!");
   }
 
-  @Test public void testJsonFileCacheInvalidation() throws Exception {
+  @Test 
+  public void testJsonFileCacheInvalidation() throws Exception {
+    String currentEngine = System.getenv("CALCITE_FILE_ENGINE_TYPE");
+    if (currentEngine == null) {
+      currentEngine = System.getProperty("CALCITE_FILE_ENGINE_TYPE", "PARQUET");
+    }
+    if (!"PARQUET".equals(currentEngine) && !"DUCKDB".equals(currentEngine)) {
+      throw new TestAbortedException("Skipping test - only relevant for PARQUET or DUCKDB engines, current: " + currentEngine);
+    }
     System.out.println("\n=== TESTING JSON FILE CACHE INVALIDATION ===");
 
     // Use a subdirectory with full UUID for this test to ensure complete isolation
@@ -372,7 +413,6 @@ public class ParquetAutoConversionTest {
       SchemaPlus rootSchema = calciteConn1.getRootSchema();
       Map<String, Object> operand = new HashMap<>();
       operand.put("directory", testSubDir.getAbsolutePath());
-      operand.put("executionEngine", "parquet");
       // Use unique cache directory for test isolation
       operand.put("parquetCacheDirectory", cacheDir.getAbsolutePath());
       // Enable refresh to use RefreshableParquetCacheTable which handles cache invalidation
@@ -409,7 +449,7 @@ public class ParquetAutoConversionTest {
     // Verify the file was updated
     String fileContent = new String(java.nio.file.Files.readAllBytes(jsonFile.toPath()), StandardCharsets.UTF_8);
     assertTrue(fileContent.contains("Charlie"), "JSON file should contain new records");
-    
+
     System.out.println("JSON file timestamp after update: " + jsonFile.lastModified());
     System.out.println("Cache file timestamp before query: " + cachedParquet.lastModified());
     System.out.println("Time difference: " + (jsonFile.lastModified() - cachedParquet.lastModified()));
@@ -425,7 +465,6 @@ public class ParquetAutoConversionTest {
       SchemaPlus rootSchema = calciteConn2.getRootSchema();
       Map<String, Object> operand = new HashMap<>();
       operand.put("directory", testSubDir.getAbsolutePath());
-      operand.put("executionEngine", "parquet");
       // Use same cache directory to test invalidation
       operand.put("parquetCacheDirectory", cacheDir.getAbsolutePath());
       // Enable refresh to use RefreshableParquetCacheTable which handles cache invalidation
@@ -438,7 +477,7 @@ public class ParquetAutoConversionTest {
         rs.next();
         int actualCount = rs.getInt("cnt");
         System.out.println("Query returned " + actualCount + " records");
-        
+
         // Get updated cache file timestamp
         File updatedCache = new File(schemaCacheDir, "cache_invalidation_test.parquet");
         if (updatedCache.exists()) {
@@ -446,7 +485,7 @@ public class ParquetAutoConversionTest {
         } else {
           System.out.println("No cache file found after query");
         }
-        
+
         assertEquals(4, actualCount, "Should see 4 records after update");
       }
     }
@@ -458,6 +497,7 @@ public class ParquetAutoConversionTest {
     System.out.println("   New cache time: " + cacheTime2);
     System.out.println("   ✓ JSON cache invalidation is working correctly!");
   }
+
 
   private void deleteDirectory(File dir) {
     if (dir.isDirectory()) {

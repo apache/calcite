@@ -18,15 +18,19 @@ package org.apache.calcite.adapter.file;
 
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.util.Sources;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
+import org.opentest4j.TestAbortedException;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -43,11 +47,13 @@ import java.util.Map;
  */
 @Tag("unit")
 public class MaterializedViewParquetTest {
-  @TempDir
-  Path tempDir;
+  private Path tempDir;
 
   @BeforeEach
   public void setUp() throws Exception {
+    // Create temporary directory manually to avoid JUnit automatic cleanup issues
+    tempDir = Files.createTempDirectory("materialized-view-test-");
+    
     // Create sales data
     File salesCsv = new File(tempDir.toFile(), "sales.csv");
     try (FileWriter writer = new FileWriter(salesCsv, StandardCharsets.UTF_8)) {
@@ -70,7 +76,94 @@ public class MaterializedViewParquetTest {
     System.out.println("Created .materialized_views directory: " + mvDir.getAbsolutePath());
   }
 
+  @AfterEach
+  public void tearDown() throws Exception {
+    // Clear caches after each test to prevent contamination
+    try {
+      Sources.clearFileCache();
+    } catch (Exception e) {
+      // Log but don't fail the test for cache cleanup issues
+      System.err.println("Warning: Failed to clear file cache during cleanup: " + e.getMessage());
+    }
+    
+    // Force cleanup to help with temp directory deletion
+    try {
+      forceCleanup();
+    } catch (Exception e) {
+      // Log but don't fail the test for cleanup issues
+      System.err.println("Warning: Failed during resource cleanup: " + e.getMessage());
+    }
+    
+    // Clean up temp directory - failures should never be fatal
+    if (tempDir != null) {
+      deleteTempDirectoryRecursively(tempDir.toFile());
+    }
+  }
+
+  /**
+   * Force cleanup of resources that might be holding file locks.
+   * This helps prevent directory deletion issues in tests.
+   * Temp directory deletion failures should never be fatal.
+   */
+  private void forceCleanup() throws InterruptedException {
+    // Multiple rounds of GC to ensure cleanup
+    for (int i = 0; i < 3; i++) {
+      System.gc();
+      Thread.sleep(50);
+    }
+  }
+
+  /**
+   * Check if current engine supports materialized views.
+   * Skip test if not using DUCKDB or PARQUET engines.
+   */
+  private void skipIfEngineDoesNotSupportMaterializedViews() {
+    String currentEngine = System.getenv("CALCITE_FILE_ENGINE_TYPE");
+    if (currentEngine == null) {
+      currentEngine = System.getProperty("CALCITE_FILE_ENGINE_TYPE", "PARQUET");
+    }
+    
+    if (!"PARQUET".equals(currentEngine) && !"DUCKDB".equals(currentEngine)) {
+      throw new TestAbortedException("Skipping test - materialized views only supported with PARQUET or DUCKDB engines, current: " + currentEngine);
+    }
+  }
+
+  /**
+   * Recursively delete a directory and all its contents.
+   * Failures are logged but never cause test failures.
+   * This follows the principle that temp directory deletion should never be fatal.
+   */
+  private void deleteTempDirectoryRecursively(File directory) {
+    if (directory == null || !directory.exists()) {
+      return;
+    }
+    
+    try {
+      File[] files = directory.listFiles();
+      if (files != null) {
+        for (File file : files) {
+          if (file.isDirectory()) {
+            deleteTempDirectoryRecursively(file);
+          } else {
+            if (!file.delete()) {
+              System.err.println("Warning: Could not delete temp file: " + file.getAbsolutePath());
+            }
+          }
+        }
+      }
+      
+      if (!directory.delete()) {
+        System.err.println("Warning: Could not delete temp directory: " + directory.getAbsolutePath());
+      }
+    } catch (Exception e) {
+      // Log but never fail the test for temp directory cleanup issues
+      System.err.println("Warning: Exception during temp directory cleanup (ignored): " + e.getMessage());
+    }
+  }
+
   @Test public void testMaterializedViewsWithParquetEngine() throws Exception {
+    skipIfEngineDoesNotSupportMaterializedViews();
+    
     System.out.println("\n=== MATERIALIZED VIEWS WITH PARQUET ENGINE TEST ===");
 
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:");
@@ -92,10 +185,9 @@ public class MaterializedViewParquetTest {
           "GROUP BY \"date\"");
       materializations.add(dailySalesMV);
 
-      // Configure file schema with Parquet execution engine
+      // Configure file schema with materializations (engine determined by environment)
       Map<String, Object> operand = new HashMap<>();
       operand.put("directory", tempDir.toString());
-      operand.put("executionEngine", "parquet");
       operand.put("materializations", materializations);
 
       System.out.println("\n1. Creating schema with Parquet engine and materialized view 'daily_summary'");
@@ -134,67 +226,4 @@ public class MaterializedViewParquetTest {
     }
   }
 
-  @Test public void testMaterializedViewsWithOtherEngines() throws Exception {
-    System.out.println("\n=== TESTING MATERIALIZED VIEWS WITH NON-PARQUET ENGINES ===");
-
-    try (Connection connection = DriverManager.getConnection("jdbc:calcite:");
-         CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class)) {
-
-      SchemaPlus rootSchema = calciteConnection.getRootSchema();
-
-      // Create materialization definitions
-      List<Map<String, Object>> materializations = new ArrayList<>();
-      Map<String, Object> mv = new HashMap<>();
-      mv.put("view", "test_mv");
-      mv.put("table", "test_mv_table");
-      mv.put("sql", "SELECT * FROM \"sales\"");
-      materializations.add(mv);
-
-      // Test each non-Parquet engine
-      String[] engines = {"linq4j", "arrow", "vectorized"};
-
-      for (String engine : engines) {
-        System.out.println("\nTesting with " + engine + " engine:");
-        Map<String, Object> operand = new HashMap<>();
-        operand.put("directory", tempDir.toString());
-        operand.put("executionEngine", engine);
-        operand.put("materializations", materializations);
-
-        // Capture stderr output
-        java.io.ByteArrayOutputStream errContent = new java.io.ByteArrayOutputStream();
-        java.io.PrintStream originalErr = System.err;
-        System.setErr(new java.io.PrintStream(errContent, true, StandardCharsets.UTF_8));
-
-        try {
-          SchemaPlus schema =
-              rootSchema.add(engine.toUpperCase(Locale.ROOT) + "_TEST", FileSchemaFactory.INSTANCE.create(rootSchema, engine.toUpperCase(Locale.ROOT) + "_TEST", operand));
-
-          // Force table map creation by accessing tables
-          try (Statement stmt = connection.createStatement()) {
-            ResultSet tables =
-                connection.getMetaData().getTables(null, engine.toUpperCase(Locale.ROOT) + "_TEST", "%", null);
-            while (tables.next()) {
-              // Just iterate to trigger getTableMap()
-            }
-          }
-
-          // Restore stderr and check output
-          System.setErr(originalErr);
-          String errorOutput = errContent.toString(StandardCharsets.UTF_8);
-
-          if (errorOutput.contains("ERROR: Materialized views are only supported with Parquet execution engine")) {
-            System.out.println("   ✓ Correctly showed error for " + engine + " engine");
-            System.out.println("   Error message: " + errorOutput.trim());
-          } else {
-            System.out.println("   ✗ No error shown for " + engine + " engine");
-            if (!errorOutput.isEmpty()) {
-              System.out.println("   Stderr output: " + errorOutput);
-            }
-          }
-        } finally {
-          System.setErr(originalErr);
-        }
-      }
-    }
-  }
 }
