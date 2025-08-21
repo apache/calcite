@@ -2933,7 +2933,7 @@ public class RelBuilder {
     RelDataType bigIntType = getTypeFactory().createSqlType(SqlTypeName.BIGINT);
     for (Pair<Integer, List<Pair<Integer, @Nullable AggCallPlus>>> c : groupingCalls) {
       RexNode groupingExpr = null;
-      for (Pair<Integer, AggCallPlus> g : c.right) {
+      for (Pair<Integer, @Nullable AggCallPlus> g : c.right) {
         RexNode term =
             call(SqlStdOperatorTable.MULTIPLY, getRexBuilder().makeLiteral(g.left, bigIntType),
             g.right != null
@@ -2959,7 +2959,7 @@ public class RelBuilder {
     return ((AggCallPlus) c).op().kind == SqlKind.GROUP_ID;
   }
 
-  private List<Pair<Integer, AggCallPlus>> convertGrouping(ImmutableBitSet groupSet,
+  private List<Pair<Integer, @Nullable AggCallPlus>> convertGrouping(ImmutableBitSet groupSet,
       List<Integer> argIndices) {
     List<Pair<Integer, @Nullable AggCallPlus>> groupingFuncs = new ArrayList<>();
     for (int idx = 0; idx < argIndices.size(); idx++) {
