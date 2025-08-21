@@ -28,8 +28,6 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 /** Support for compiling unsigned types.
  * This class has a role similar to {@link Primitive} */
 public enum UnsignedType {
@@ -111,11 +109,6 @@ public enum UnsignedType {
     return toUByteNonNull(n, RoundingMode.DOWN);
   }
 
-  public static UByte toUByte(Object n) {
-    checkArgument(n instanceof Number, "Unexpected Object value " + n.getClass().getSimpleName());
-    return toUByteNonNull((Number) n, RoundingMode.DOWN);
-  }
-
   private static UByte toUByteNonNull(Number n, RoundingMode mode) {
     if (n instanceof BigDecimal) {
       BigDecimal d = ((BigDecimal) n).setScale(0, mode);
@@ -168,11 +161,6 @@ public enum UnsignedType {
 
   public static UShort toUShort(double n) {
     return toUShortNonNull(n, RoundingMode.DOWN);
-  }
-
-  public static UShort toUShort(Object n) {
-    checkArgument(n instanceof Number, "Unexpected Object value " + n.getClass().getSimpleName());
-    return toUShortNonNull((Number) n, RoundingMode.DOWN);
   }
 
   private static UShort toUShortNonNull(Number n, RoundingMode mode) {
@@ -233,11 +221,6 @@ public enum UnsignedType {
     return toUIntegerNonNull(n, RoundingMode.DOWN);
   }
 
-  public static UInteger toUInteger(Object n) {
-    checkArgument(n instanceof Number, "Unexpected Object value " + n.getClass().getSimpleName());
-    return toUIntegerNonNull((Number) n, RoundingMode.DOWN);
-  }
-
   private static UInteger toUIntegerNonNull(Number n, RoundingMode mode) {
     if (n instanceof BigDecimal) {
       BigDecimal d = ((BigDecimal) n).setScale(0, mode);
@@ -290,11 +273,6 @@ public enum UnsignedType {
 
   public static ULong toULong(double n) {
     return toULongNonNull(n, RoundingMode.DOWN);
-  }
-
-  public static ULong toULong(Object n) {
-    checkArgument(n instanceof Number, "Unexpected Object value " + n.getClass().getSimpleName());
-    return toULongNonNull((Number) n, RoundingMode.DOWN);
   }
 
   private static ULong toULongNonNull(Number n, RoundingMode mode) {
