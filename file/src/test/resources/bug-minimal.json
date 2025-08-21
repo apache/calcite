@@ -1,0 +1,27 @@
+{
+  "version": "1.0",
+  "defaultSchema": "BUG",
+  "schemas": [
+    {
+      "name": "BUG",
+      "type": "custom",
+      "factory": "org.apache.calcite.adapter.file.FileSchemaFactory",
+      "operand": {
+        "directory": "bug",
+        "executionEngine": "parquet",
+        "caseSensitive": false,
+        "unquotedCasing": "TO_LOWER",
+        "tables": [
+          {
+            "name": "date",
+            "type": "custom",
+            "factory": "org.apache.calcite.adapter.file.FileTableFactory",
+            "operand": {
+              "url": "DATE.csv"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

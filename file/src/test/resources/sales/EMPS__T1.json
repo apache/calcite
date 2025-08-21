@@ -1,0 +1,21 @@
+[ {
+  "empno" : 100,
+  "name" : "Fred",
+  "deptno" : 30
+}, {
+  "empno" : 110,
+  "name" : "Eric",
+  "deptno" : 20
+}, {
+  "empno" : 110,
+  "name" : "John",
+  "deptno" : 40
+}, {
+  "empno" : 120,
+  "name" : "Wilma",
+  "deptno" : 20
+}, {
+  "empno" : 130,
+  "name" : "Alice",
+  "deptno" : 40
+} ]
