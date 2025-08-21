@@ -3705,7 +3705,7 @@ public class RelBuilder {
       }
       if (top instanceof Project) {
         final Project project = (Project) top;
-        if (project.getInput() instanceof Sort) {
+        if (!project.containsOver() && project.getInput() instanceof Sort) {
           final Sort sort2 = (Sort) project.getInput();
           if (sort2.offset == null && sort2.fetch == null) {
             final RelNode sort =
