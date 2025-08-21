@@ -2886,77 +2886,70 @@ public class RelBuilder {
       List<AggCallPlus> aggregateCalls, List<String> fieldNames,
       Mappings.TargetMapping mapping, Frame input, int groupId) {
     stack.push(input);
-    ImmutableBitSet newgroupSet = ImmutableBitSet.union(groupSets);
 
     // specialFields records special values and their indexes.
     // For example, GROUP_ID or GROUPING will be treated as
     // numeric literals or NULL literals.
     Map<Integer, RexNode> specialFields = new HashMap<>();
     List<AggCallPlus> aggCalls = new ArrayList<>();
+    List<AggCallPlus> allGroupings = new ArrayList<>();
     List<Pair<Integer, List<Pair<Integer, AggCallPlus>>>> groupingCalls = new ArrayList<>();
-    List<AggCallPlus> allGroupingCalls = new ArrayList<>();
+
+    ImmutableBitSet unionGroupSet = ImmutableBitSet.union(groupSets);
+    int baseIndex = groupSet.cardinality();
     for (int i = 0; i < aggregateCalls.size(); i++) {
       AggCallPlus aggCall = aggregateCalls.get(i);
       switch (aggCall.op().getKind()) {
-      case GROUPING:
-        List<Pair<Integer, AggCallPlus>> groupings =
-            convertGrouping(newgroupSet, aggCall.aggregateCall().getArgList());
-        groupings.forEach(p -> {
-          if (p.right != null) {
-            allGroupingCalls.add(p.right);
-          }
-        });
-        groupingCalls.add(Pair.of(groupSet.cardinality() + i, groupings));
-        break;
-      case GROUP_ID:
-        specialFields.put(groupSet.cardinality() + i,
-            getRexBuilder().makeLiteral(groupId, aggCall.aggregateCall().getType()));
-        break;
-      default:
-        aggCalls.add(aggCall);
-        break;
+        case GROUPING:
+          List<Pair<Integer, AggCallPlus>> groupings =
+              convertGrouping(unionGroupSet, aggCall.aggregateCall().getArgList());
+          groupings.forEach(g -> {
+            if (g.right != null) {
+              allGroupings.add(g.right);
+            }
+          });
+          groupingCalls.add(Pair.of(baseIndex + i, groupings));
+          break;
+        case GROUP_ID:
+          specialFields.put(baseIndex + i,
+              getRexBuilder().makeLiteral(groupId, aggCall.aggregateCall().getType()));
+          break;
+        default:
+          aggCalls.add(aggCall);
       }
     }
 
-    int newGroupingFuncBeginIndex = newgroupSet.cardinality() + aggCalls.size();
-
-    aggCalls.addAll(allGroupingCalls);
-
-    ImmutableBitSet gs = ImmutableBitSet.union(groupSets);
-    List<Integer> missingIndices = groupSet.except(gs).toList();
+    List<Integer> missingIndices = groupSet.except(unionGroupSet).toList();
     for (int i : missingIndices) {
       specialFields.put(mapping.getTarget(i),
           getRexBuilder().makeNullLiteral(field(i).getType()));
     }
 
-    aggregate(groupKey(gs, groupSets), aggCalls);
+    int groupingExprIdx = unionGroupSet.cardinality() + aggCalls.size();
+    aggCalls.addAll(allGroupings);
+    aggregate(groupKey(unionGroupSet, groupSets), aggCalls);
 
     RelDataType bigIntType = getTypeFactory().createSqlType(SqlTypeName.BIGINT);
-    for (Pair<Integer, List<Pair<Integer, AggCallPlus>>> p : groupingCalls) {
+    for (Pair<Integer, List<Pair<Integer, AggCallPlus>>> c : groupingCalls) {
       RexNode groupingExpr = null;
-      for (Pair<Integer, AggCallPlus> p2 : p.right) {
-        RexNode tmp = null;
-        if (p2.right != null) {
-          tmp = call(SqlStdOperatorTable.MULTIPLY,
-              getRexBuilder().makeLiteral(p2.left, bigIntType),
-              field(newGroupingFuncBeginIndex++));
-        } else {
-          tmp = call(SqlStdOperatorTable.MULTIPLY,
-              getRexBuilder().makeLiteral(p2.left, bigIntType),
-              getRexBuilder().makeLiteral(1, bigIntType));
-        }
-        groupingExpr = groupingExpr != null
-            ? call(SqlStdOperatorTable.PLUS, groupingExpr, tmp)
-            : tmp;
+      for (Pair<Integer, AggCallPlus> g : c.right) {
+        RexNode term =
+            call(SqlStdOperatorTable.MULTIPLY, getRexBuilder().makeLiteral(g.left, bigIntType),
+            g.right != null
+                ? field(groupingExprIdx++)
+                : getRexBuilder().makeLiteral(1, bigIntType));
+        groupingExpr = groupingExpr == null
+            ? term
+            : call(SqlStdOperatorTable.PLUS, groupingExpr, term);
       }
-      specialFields.put(p.left, groupingExpr);
+      specialFields.put(c.left, groupingExpr);
     }
 
-    List<RexNode> projects = new ArrayList<>();
-    int idx = 0;
+    List<RexNode> projects = new ArrayList<>(fieldNames.size());
+    int fieldIdx = 0;
     for (int i = 0; i < fieldNames.size(); i++) {
       RexNode node = specialFields.get(i);
-      projects.add(node != null ? node : field(idx++));
+      projects.add(node != null ? node : field(fieldIdx++));
     }
     project(projects, fieldNames);
   }
