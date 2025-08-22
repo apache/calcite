@@ -2829,8 +2829,8 @@ public class RelBuilder {
       ImmutableSortedMultiset<ImmutableBitSet> groupSets,
       List<AggCallPlus> aggregateCalls) {
     final List<String> fieldNamesIfNoRewrite =
-        Aggregate.deriveRowType(getTypeFactory(), peek().getRowType(),
-            false, groupSet, groupSets.asList(),
+        Aggregate.deriveRowType(getTypeFactory(), peek().getRowType(), false,
+            groupSet, groupSets.asList(),
             aggregateCalls.stream().map(AggCallPlus::aggregateCall)
                 .collect(toImmutableList())).getFieldNames();
 
@@ -2867,10 +2867,13 @@ public class RelBuilder {
     return union(true, groupIdToGroupSets.size());
   }
 
-
-  private void rewriteGroupAggCalls(Set<ImmutableBitSet> subGroupSets,
-      ImmutableBitSet oriGroupSet, List<AggCallPlus> oriAggCalls,
-      List<String> fieldNames, Frame input, int groupId) {
+  private void rewriteGroupAggCalls(
+      Set<ImmutableBitSet> subGroupSets,
+      ImmutableBitSet oriGroupSet,
+      List<AggCallPlus> oriAggCalls,
+      List<String> fieldNames,
+      Frame input,
+      int groupId) {
     stack.push(input);
     List<AggCallPlus> subAggCalls = new ArrayList<>();
     ImmutableBitSet subGroupSet = ImmutableBitSet.union(subGroupSets);
