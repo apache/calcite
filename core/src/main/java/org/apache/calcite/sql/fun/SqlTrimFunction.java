@@ -45,7 +45,7 @@ import java.util.Arrays;
 public class SqlTrimFunction extends SqlFunction {
   protected static final SqlTrimFunction INSTANCE =
       new SqlTrimFunction("TRIM", SqlKind.TRIM,
-          ReturnTypes.ARG2.andThen(SqlTypeTransforms.TO_NULLABLE)
+          ReturnTypes.ARG2.andThen(SqlTypeTransforms.FORCE_NULLABLE)
               .andThen(SqlTypeTransforms.TO_VARYING),
           OperandTypes.ANY_STRING_STRING.and(
               OperandTypes.same(3, 1, 2)));
