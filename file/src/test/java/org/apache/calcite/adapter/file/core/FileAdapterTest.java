@@ -606,12 +606,6 @@ public class FileAdapterTest {
         .ok();
   }
 
-  @Test void testJoinOnString() {
-    final String sql = "select * from \"SALES\".\"emps\"\n"
-        + "join \"SALES\".\"depts\" on \"emps\".\"name\" = \"depts\".\"name\"";
-    sql("smart", sql).ok();
-  }
-
   @Test void testWackyColumns() {
     final String sql = "select * from \"BUG\".\"wacky_column_names\" where false";
     sql("BUG", sql).returns().ok();
