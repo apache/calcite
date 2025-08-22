@@ -2954,10 +2954,7 @@ public class RelBuilder {
         aggCalls.add((AggCallPlus) aggregateCall(SqlStdOperatorTable.GROUPING, field(groupingArg)));
       } else {
         // Sets GROUPING function value to 1 for parameters not in GroupSet and calculates offset.
-        splitOperands.add(
-            call(SqlStdOperatorTable.MULTIPLY,
-                literal(1 << groupingArgs.size() - 1 - i),
-                literal(1)));
+        splitOperands.add(literal(1 << groupingArgs.size() - 1 - i));
       }
     }
 
@@ -4521,8 +4518,14 @@ public class RelBuilder {
       // return a call that is "approximately equivalent ... and is good for
       // deriving field names", so dummy values are good enough.
       final RelCollation collation = RelCollations.EMPTY;
-      final RelDataType type =
-          getTypeFactory().createSqlType(SqlTypeName.BOOLEAN);
+      final RelDataType type;
+      if (aggFunction.getKind() == SqlKind.GROUP_ID) {
+        // The return type of GROUP_ID function is SqlTypeName.BIGINT,
+        // see SqlGroupIdFunction.
+        type = getTypeFactory().createSqlType(SqlTypeName.BIGINT);
+      } else {
+        type = getTypeFactory().createSqlType(SqlTypeName.BOOLEAN);
+      }
       return AggregateCall.create(pos, aggFunction, distinct, approximate,
           ignoreNulls, preOperands, ImmutableList.of(), -1,
           null, collation, type, alias);
