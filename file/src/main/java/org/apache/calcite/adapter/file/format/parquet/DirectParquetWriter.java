@@ -230,13 +230,13 @@ public class DirectParquetWriter {
         java.sql.Date date = rs.getDate(index);
         if (date != null) {
           // DATE type should never involve timezones
-          // Convert directly from millis to avoid timezone issues
-          // Do NOT use toLocalDate() as it applies timezone conversion
-          long millis = date.getTime();
-          int daysSinceEpoch = (int) (millis / (24L * 60 * 60 * 1000));
+          // Convert to LocalDate using UTC instant to avoid timezone issues
+          java.time.Instant instant = java.time.Instant.ofEpochMilli(date.getTime());
+          java.time.LocalDate localDate = instant.atZone(java.time.ZoneOffset.UTC).toLocalDate();
+          int daysSinceEpoch = (int) localDate.toEpochDay();
           
-          LOGGER.debug("DATE storage: column={}, date={}, millis={}, daysSinceEpoch={}", 
-                      columnName, date, millis, daysSinceEpoch);
+          LOGGER.debug("DATE storage: column={}, date={}, daysSinceEpoch={}", 
+                      columnName, date, daysSinceEpoch);
           
           group.append(columnName, daysSinceEpoch);
         }

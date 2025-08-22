@@ -708,9 +708,11 @@ public class ParquetConversionUtil {
       case DATE:
         if (value instanceof java.sql.Date) {
           // Convert to days since epoch (1970-01-01) in UTC
-          // Do NOT use toLocalDate() as it may apply timezone offset
-          long millis = ((java.sql.Date) value).getTime();
-          int daysSinceEpoch = (int) (millis / (24L * 60 * 60 * 1000));
+          // Use Instant from millis with UTC zone to avoid timezone issues
+          java.sql.Date sqlDate = (java.sql.Date) value;
+          java.time.Instant instant = java.time.Instant.ofEpochMilli(sqlDate.getTime());
+          java.time.LocalDate localDate = instant.atZone(java.time.ZoneOffset.UTC).toLocalDate();
+          int daysSinceEpoch = (int) localDate.toEpochDay();
           group.append(fieldName, daysSinceEpoch);
         } else if (value instanceof java.time.LocalDate) {
           group.append(fieldName, (int) ((java.time.LocalDate) value).toEpochDay());
