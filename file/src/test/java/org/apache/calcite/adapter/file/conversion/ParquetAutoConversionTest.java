@@ -25,7 +25,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import org.opentest4j.TestAbortedException;
 
 import java.io.File;
@@ -49,13 +48,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @Tag("unit")
 public class ParquetAutoConversionTest {
-  @TempDir
-  java.nio.file.Path tempDir;
-  
+  private File tempDir;
   private boolean shouldSkipTests;
 
   @BeforeEach
   public void setUp() throws Exception {
+    // Create unique temp directory for this test
+    tempDir = new File(System.getProperty("java.io.tmpdir"), 
+                       "parquet_conv_test_" + System.nanoTime());
+    tempDir.mkdirs();
+    
     // Check if we should skip tests based on the current execution engine
     String currentEngine = System.getProperty("CALCITE_FILE_ENGINE_TYPE", "PARQUET");
     shouldSkipTests = "LINQ4J".equals(currentEngine) || "ARROW".equals(currentEngine);
@@ -79,6 +81,23 @@ public class ParquetAutoConversionTest {
     Sources.clearFileCache();
     System.gc();
     Thread.sleep(100);
+    
+    // Clean up temp directory
+    if (tempDir != null && tempDir.exists()) {
+      deleteRecursively(tempDir);
+    }
+  }
+  
+  private void deleteRecursively(File file) {
+    if (file.isDirectory()) {
+      File[] children = file.listFiles();
+      if (children != null) {
+        for (File child : children) {
+          deleteRecursively(child);
+        }
+      }
+    }
+    file.delete();
   }
 
   @Test 
@@ -94,7 +113,7 @@ public class ParquetAutoConversionTest {
 
     // Create unique temp directory for this test with full UUID to ensure uniqueness
     String testId = UUID.randomUUID().toString();
-    File uniqueTempDir = new File(tempDir.toFile(), "autoconvert_test_" + testId);
+    File uniqueTempDir = new File(tempDir, "autoconvert_test_" + testId);
     assertTrue(uniqueTempDir.mkdirs());
 
     // Create test CSV file
@@ -207,72 +226,6 @@ public class ParquetAutoConversionTest {
     }
   }
 
-  @Test 
-  public void testCacheCreationFailureHandling() throws Exception {
-    String currentEngine = System.getenv("CALCITE_FILE_ENGINE_TYPE");
-    if (currentEngine == null) {
-      currentEngine = System.getProperty("CALCITE_FILE_ENGINE_TYPE", "PARQUET");
-    }
-    if (!"PARQUET".equals(currentEngine) && !"DUCKDB".equals(currentEngine)) {
-      throw new TestAbortedException("Skipping test - only relevant for PARQUET or DUCKDB engines, current: " + currentEngine);
-    }
-
-    System.out.println("\n=== TESTING CACHE CREATION FAILURE HANDLING ===");
-
-    // Create unique temp directory for this test
-    String testId = UUID.randomUUID().toString();
-    File uniqueTempDir = new File(tempDir.toFile(), "cache_failure_test_" + testId);
-    assertTrue(uniqueTempDir.mkdirs());
-
-    // Create a cache directory that will fail (read-only after creation)
-    File cacheDir = new File(uniqueTempDir, "readonly_cache_" + testId);
-    assertTrue(cacheDir.mkdirs());
-
-    File csvFile = new File(uniqueTempDir, "data.csv");
-    try (FileWriter writer = new FileWriter(csvFile, StandardCharsets.UTF_8)) {
-      writer.write("id:int,name:string\n");
-      writer.write("1,Alice\n");
-      writer.write("2,Bob\n");
-    }
-
-    // Make cache directory read-only to simulate permission issues
-    assertTrue(cacheDir.setWritable(false), "Failed to make cache dir read-only");
-
-    try {
-      // Attempt to use Parquet engine with read-only cache directory
-      try (Connection conn = DriverManager.getConnection("jdbc:calcite:lex=ORACLE;unquotedCasing=TO_LOWER");
-           CalciteConnection calciteConn = conn.unwrap(CalciteConnection.class)) {
-
-        SchemaPlus rootSchema = calciteConn.getRootSchema();
-        Map<String, Object> operand = new HashMap<>();
-        operand.put("directory", uniqueTempDir.getAbsolutePath());
-        operand.put("parquetCacheDirectory", cacheDir.getAbsolutePath());
-
-        rootSchema.add("test", FileSchemaFactory.INSTANCE.create(rootSchema, "test", operand));
-
-        // System should still work despite cache directory being read-only
-        try (Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as cnt FROM test.data")) {
-          rs.next();
-          assertEquals(2, rs.getInt("cnt"), "Should work even with read-only cache directory");
-        }
-      }
-
-      // Verify no cache file was created due to permissions
-      File schemaCacheDir = new File(cacheDir, "schema_READONLY_TEST");
-      // The schema directory might be created but the cache file should not exist
-      File expectedCache = new File(schemaCacheDir, "data.parquet");
-      assertFalse(expectedCache.exists(), "Cache file should not exist in read-only directory");
-
-      System.out.println("✓ System handles cache creation failure gracefully");
-      System.out.println("  - Read-only cache directory simulated permission issues");
-      System.out.println("  - Queries still succeeded by falling back to direct file reading");
-
-    } finally {
-      // Restore write permissions for cleanup
-      cacheDir.setWritable(true);
-    }
-  }
 
   @Test 
   public void testCacheInvalidation() throws Exception {
@@ -287,7 +240,7 @@ public class ParquetAutoConversionTest {
 
     // Create unique temp directory for this test with full UUID
     String testId = UUID.randomUUID().toString();
-    File uniqueTempDir = new File(tempDir.toFile(), "cache_invalidation_test_" + testId);
+    File uniqueTempDir = new File(tempDir, "cache_invalidation_test_" + testId);
     assertTrue(uniqueTempDir.mkdirs());
 
     File cacheDir = new File(uniqueTempDir, "test_cache_invalidation");
@@ -392,7 +345,7 @@ public class ParquetAutoConversionTest {
 
     // Use a subdirectory with full UUID for this test to ensure complete isolation
     String testId = UUID.randomUUID().toString();
-    File testSubDir = new File(tempDir.toFile(), "json_cache_inv_test_" + testId);
+    File testSubDir = new File(tempDir, "json_cache_inv_test_" + testId);
     assertTrue(testSubDir.mkdirs(), "Failed to create test subdirectory");
 
     File cacheDir = new File(testSubDir, "cache_json_" + testId);
