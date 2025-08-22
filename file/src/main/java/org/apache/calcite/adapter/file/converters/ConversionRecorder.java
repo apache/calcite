@@ -43,14 +43,16 @@ public class ConversionRecorder {
       // Use the converted file's directory for metadata storage
       // This ensures the metadata is in the same location where queries will look for it
       File metadataDir = convertedFile.getParentFile();
+      LOGGER.info("Recording conversion: originalFile={}, convertedFile={}, metadataDir={}, conversionType={}", 
+          originalFile, convertedFile, metadataDir, conversionType);
       ConversionMetadata metadata = new ConversionMetadata(metadataDir);
       metadata.recordConversion(originalFile, convertedFile, conversionType);
-      LOGGER.debug("Recorded {} conversion: {} -> {}", 
+      LOGGER.info("Successfully recorded {} conversion: {} -> {}", 
           conversionType, originalFile.getName(), convertedFile.getName());
     } catch (Exception e) {
       // Don't fail the conversion if metadata recording fails
       LOGGER.warn("Failed to record conversion metadata for {}: {}", 
-          convertedFile.getName(), e.getMessage());
+          convertedFile.getName(), e.getMessage(), e);
     }
   }
   
