@@ -3945,12 +3945,12 @@ ORDER BY deptno, job, sal;
 
 EnumerableMergeUnion(all=[true])
   EnumerableSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[ASC], dir1=[ASC], dir2=[ASC])
-    EnumerableCalc(expr#0..6=[{inputs}], DEPTNO=[$t2], JOB=[$t0], SAL=[$t1], EXPR$3=[$t3], $f4=[$t4], $f5=[$t5], $f6=[$t6])
-      EnumerableAggregate(group=[{2, 5, 7}], groups=[[{2, 7}, {5, 7}]], EXPR$3=[SUM($6)], agg#1=[GROUPING($7)], agg#2=[GROUPING($2)], agg#3=[GROUPING($5)])
+    EnumerableCalc(expr#0..6=[{inputs}], DEPTNO=[$t2], JOB=[$t0], SAL=[$t1], EXPR$3=[$t3], DEPTNO_FLAG=[$t4], JOB_FLAG=[$t5], SAL_FLAG=[$t6])
+      EnumerableAggregate(group=[{2, 5, 7}], groups=[[{2, 7}, {5, 7}]], EXPR$3=[SUM($6)], DEPTNO_FLAG=[GROUPING($7)], JOB_FLAG=[GROUPING($2)], SAL_FLAG=[GROUPING($5)])
         EnumerableTableScan(table=[[scott, EMP]])
   EnumerableSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[ASC], dir1=[ASC], dir2=[ASC])
-    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[null:DECIMAL(7, 2)], expr#6=[1:BIGINT], DEPTNO=[$t1], JOB=[$t0], SAL=[$t5], EXPR$3=[$t2], DEPTNO_FLAG=[$t3], JOB_FLAG=[$t4], SAL_FLAG=[$t6])
-      EnumerableAggregate(group=[{2, 7}], EXPR$3=[SUM($6)], agg#1=[GROUPING($7)], agg#2=[GROUPING($2)])
+    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[null:DECIMAL(7, 2)], expr#6=[1], DEPTNO=[$t1], JOB=[$t0], SAL=[$t5], EXPR$3=[$t2], DEPTNO_FLAG=[$t3], JOB_FLAG=[$t4], SAL_FLAG=[$t6])
+      EnumerableAggregate(group=[{2, 7}], EXPR$3=[SUM($6)], DEPTNO_FLAG=[GROUPING($7)], JOB_FLAG=[GROUPING($2)])
         EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
@@ -4001,11 +4001,11 @@ ORDER BY deptno, job, sal;
 !ok
 EnumerableMergeUnion(all=[true])
   EnumerableSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[ASC], dir1=[ASC], dir2=[ASC])
-    EnumerableCalc(expr#0..6=[{inputs}], expr#7=[4:BIGINT], expr#8=[*($t7, $t4)], expr#9=[2:BIGINT], expr#10=[*($t9, $t5)], expr#11=[+($t8, $t10)], expr#12=[+($t11, $t6)], expr#13=[0:BIGINT], DEPTNO=[$t2], JOB=[$t0], SAL=[$t1], SUM_COMM=[$t3], FLAG=[$t12], G=[$t13])
-      EnumerableAggregate(group=[{2, 5, 7}], groups=[[{2, 7}, {5, 7}]], SUM_COMM=[SUM($6)], agg#1=[GROUPING($7)], agg#2=[GROUPING($2)], agg#3=[GROUPING($5)])
+    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0:BIGINT], DEPTNO=[$t2], JOB=[$t0], SAL=[$t1], SUM_COMM=[$t3], FLAG=[$t4], G=[$t5])
+      EnumerableAggregate(group=[{2, 5, 7}], groups=[[{2, 7}, {5, 7}]], SUM_COMM=[SUM($6)], FLAG=[GROUPING($7, $2, $5)])
         EnumerableTableScan(table=[[scott, EMP]])
   EnumerableSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[ASC], dir1=[ASC], dir2=[ASC])
-    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[null:DECIMAL(7, 2)], expr#6=[4:BIGINT], expr#7=[*($t6, $t3)], expr#8=[2:BIGINT], expr#9=[*($t8, $t4)], expr#10=[+($t7, $t9)], expr#11=[1:BIGINT], expr#12=[+($t10, $t11)], DEPTNO=[$t1], JOB=[$t0], SAL=[$t5], SUM_COMM=[$t2], FLAG=[$t12], G=[$t11])
+    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[null:DECIMAL(7, 2)], expr#6=[4], expr#7=[*($t6, $t3)], expr#8=[2], expr#9=[*($t8, $t4)], expr#10=[+($t7, $t9)], expr#11=[1], expr#12=[+($t10, $t11)], expr#13=[1:BIGINT], DEPTNO=[$t1], JOB=[$t0], SAL=[$t5], SUM_COMM=[$t2], FLAG=[$t12], G=[$t13])
       EnumerableAggregate(group=[{2, 7}], SUM_COMM=[SUM($6)], agg#1=[GROUPING($7)], agg#2=[GROUPING($2)])
         EnumerableTableScan(table=[[scott, EMP]])
 !plan

@@ -2834,9 +2834,6 @@ public class RelBuilder {
             aggregateCalls.stream().map(AggCallPlus::aggregateCall)
                 .collect(toImmutableList())).getFieldNames();
 
-    Mappings.TargetMapping mapping =
-        Mappings.target(groupSet.toList(), peek().getRowType().getFieldCount());
-
     final Frame input = stack.pop();
 
     final Map<Integer, Set<ImmutableBitSet>> groupIdToGroupSets = new HashMap<>();
@@ -2864,118 +2861,113 @@ public class RelBuilder {
       int groupId = entry.getKey();
       Set<ImmutableBitSet> newGroupSets = entry.getValue();
       rewriteGroupAggCalls(newGroupSets, groupSet, aggregateCalls,
-          fieldNamesIfNoRewrite, mapping, input, groupId);
+          fieldNamesIfNoRewrite, input, groupId);
     }
 
     return union(true, groupIdToGroupSets.size());
   }
 
-  /**
-   * Rewrite aggregate calls with special handling for GROUPING and GROUP_ID functions,
-   * including NULL padding for missing grouping fields.
-   *
-   * @param groupSets           The groupSets to use for this aggregate
-   * @param groupSet            The groupSet to use for this aggregate
-   * @param aggregateCalls      List of aggregate calls for this aggregate
-   * @param fieldNames          Field names for the output row type
-   * @param mapping             Field index mapping between input and output
-   * @param input               The input relational expression
-   * @param groupId             The GROUP_ID value to use for this aggregate
-   */
-  private void rewriteGroupAggCalls(Set<ImmutableBitSet> groupSets, ImmutableBitSet groupSet,
-      List<AggCallPlus> aggregateCalls, List<String> fieldNames,
-      Mappings.TargetMapping mapping, Frame input, int groupId) {
+
+  private void rewriteGroupAggCalls(Set<ImmutableBitSet> subGroupSets,
+      ImmutableBitSet oriGroupSet, List<AggCallPlus> oriAggCalls,
+      List<String> fieldNames, Frame input, int groupId) {
     stack.push(input);
+    List<AggCallPlus> subAggCalls = new ArrayList<>();
+    ImmutableBitSet subGroupSet = ImmutableBitSet.union(subGroupSets);
+    List<RexNode> subProjects = new ArrayList<>();
 
-    // specialFields records special values and their indexes.
-    // For example, GROUP_ID or GROUPING will be treated as
-    // numeric literals or NULL literals.
-    Map<Integer, RexNode> specialFields = new HashMap<>();
-    List<AggCallPlus> aggCalls = new ArrayList<>();
-    List<AggCallPlus> allGroupings = new ArrayList<>();
-    List<Pair<Integer, List<Pair<Integer, @Nullable AggCallPlus>>>> groupingCalls =
-        new ArrayList<>();
+    // 1. For GroupSet
+    RelDataType subAggregateGroupSetType =
+        Aggregate.deriveRowType(getTypeFactory(), peek().getRowType(), false,
+            subGroupSet, ImmutableList.copyOf(subGroupSets), ImmutableList.of());
+    for (int i = 0; i < oriGroupSet.cardinality(); i++) {
+      int groupKey = oriGroupSet.nth(i);
+      if (subGroupSet.get(groupKey)) {
+        subProjects.add(
+            RexInputRef.of(
+                subGroupSet.indexOf(groupKey),
+                subAggregateGroupSetType));
+      } else {
+        // If the groupKey is not in the GroupSet, use null as a placeholder.
+        subProjects.add(getRexBuilder().makeNullLiteral(field(groupKey).getType()));
+      }
+    }
 
-    ImmutableBitSet unionGroupSet = ImmutableBitSet.union(groupSets);
-    int baseIndex = groupSet.cardinality();
-    for (int i = 0; i < aggregateCalls.size(); i++) {
-      AggCallPlus aggCall = aggregateCalls.get(i);
-      switch (aggCall.op().getKind()) {
+    // 2. For AggregateCalls
+    int newGroupCount = subGroupSet.cardinality();
+    for (AggCallPlus oriAggCall : oriAggCalls) {
+      AggregateCall aggCall = oriAggCall.aggregateCall();
+      switch (oriAggCall.op().getKind()) {
       case GROUPING:
-        List<Pair<Integer, @Nullable AggCallPlus>> groupings =
-            convertGrouping(unionGroupSet, aggCall.aggregateCall().getArgList());
-        groupings.forEach(g -> {
-          if (g.right != null) {
-            allGroupings.add(g.right);
-          }
-        });
-        groupingCalls.add(Pair.of(baseIndex + i, groupings));
+        if (!subGroupSet.contains(ImmutableBitSet.of(aggCall.getArgList()))) {
+          // If the parameters of the GROUPING function cannot be fully covered by the GroupSet,
+          // the GROUPING function needs to be split.
+          splitGrouping(subAggCalls, subProjects, aggCall, subGroupSet);
+        } else {
+          subProjects.add(
+              new RexInputRef(
+                  newGroupCount + subAggCalls.size(),
+                  aggCall.getType()));
+          subAggCalls.add(oriAggCall);
+        }
         break;
       case GROUP_ID:
-        specialFields.put(baseIndex + i,
-            getRexBuilder().makeLiteral(groupId, aggCall.aggregateCall().getType()));
+        subProjects.add(
+            getRexBuilder().makeLiteral(
+                groupId,
+                aggCall.getType()));
         break;
       default:
-        aggCalls.add(aggCall);
+        subProjects.add(
+            new RexInputRef(
+                newGroupCount + subAggCalls.size(),
+                aggCall.getType()));
+        subAggCalls.add(oriAggCall);
+        break;
       }
     }
 
-    List<Integer> missingIndices = groupSet.except(unionGroupSet).toList();
-    for (int i : missingIndices) {
-      specialFields.put(mapping.getTarget(i),
-          getRexBuilder().makeNullLiteral(field(i).getType()));
-    }
+    aggregate(groupKey(subGroupSet, subGroupSets), subAggCalls);
+    project(subProjects, fieldNames);
+  }
 
-    int groupingExprIdx = unionGroupSet.cardinality() + aggCalls.size();
-    aggCalls.addAll(allGroupings);
-    aggregate(groupKey(unionGroupSet, groupSets), aggCalls);
-
-    RelDataType bigIntType = getTypeFactory().createSqlType(SqlTypeName.BIGINT);
-    for (Pair<Integer, List<Pair<Integer, @Nullable AggCallPlus>>> c : groupingCalls) {
-      RexNode groupingExpr = null;
-      for (Pair<Integer, @Nullable AggCallPlus> g : c.right) {
-        RexNode term =
-            call(SqlStdOperatorTable.MULTIPLY, getRexBuilder().makeLiteral(g.left, bigIntType),
-            g.right != null
-                ? field(groupingExprIdx++)
-                : getRexBuilder().makeLiteral(1, bigIntType));
-        groupingExpr = groupingExpr == null
-            ? term
-            : call(SqlStdOperatorTable.PLUS, groupingExpr, term);
+  private void splitGrouping(
+      List<AggCallPlus> aggCalls,
+      List<RexNode> projects,
+      AggregateCall grouping,
+      ImmutableBitSet groupSet) {
+    List<RexNode> splitOperands = new ArrayList<>();
+    List<Integer> groupingArgs = grouping.getArgList();
+    RelDataType groupingType = getTypeFactory().createSqlType(SqlTypeName.BIGINT);
+    for (int i = 0; i < groupingArgs.size(); i++) {
+      int groupingArg = groupingArgs.get(i);
+      if (groupSet.get(groupingArg)) {
+        RexInputRef groupingRef =
+            new RexInputRef(groupSet.cardinality() + aggCalls.size(), groupingType);
+        splitOperands.add(
+            call(SqlStdOperatorTable.MULTIPLY,
+                literal(1 << groupingArgs.size() - 1 - i),
+                groupingRef));
+        aggCalls.add((AggCallPlus) aggregateCall(SqlStdOperatorTable.GROUPING, field(groupingArg)));
+      } else {
+        // Sets GROUPING function value to 1 for parameters not in GroupSet and calculates offset.
+        splitOperands.add(
+            call(SqlStdOperatorTable.MULTIPLY,
+                literal(1 << groupingArgs.size() - 1 - i),
+                literal(1)));
       }
-      if (groupingExpr != null) {
-        specialFields.put(c.left, groupingExpr);
-      }
     }
 
-    List<RexNode> projects = new ArrayList<>(fieldNames.size());
-    int fieldIdx = 0;
-    for (int i = 0; i < fieldNames.size(); i++) {
-      RexNode node = specialFields.get(i);
-      projects.add(node != null ? node : field(fieldIdx++));
+    // Plus all expanded expressions (including GROUPING functions and constants).
+    RexNode plus = splitOperands.get(0);
+    for (int i = 1; i < splitOperands.size(); i++) {
+      plus = call(SqlStdOperatorTable.PLUS, plus, splitOperands.get(i));
     }
-    project(projects, fieldNames);
+    projects.add(plus);
   }
 
   private static boolean isGroupId(AggCall c) {
     return ((AggCallPlus) c).op().kind == SqlKind.GROUP_ID;
-  }
-
-  private List<Pair<Integer, @Nullable AggCallPlus>> convertGrouping(ImmutableBitSet groupSet,
-      List<Integer> argIndices) {
-    List<Pair<Integer, @Nullable AggCallPlus>> groupingFuncs = new ArrayList<>();
-    for (int idx = 0; idx < argIndices.size(); idx++) {
-      int i = argIndices.get(idx);
-      int coefficient = 1 << argIndices.size() - 1 - idx;
-      if (groupSet.get(i)) {
-        groupingFuncs.add(
-            Pair.of(coefficient,
-                (AggCallPlus) aggregateCall(SqlStdOperatorTable.GROUPING, field(i))));
-      } else {
-        groupingFuncs.add(Pair.of(coefficient, null));
-      }
-    }
-    return groupingFuncs;
   }
 
   /** Given a list of literals and a target row type, make the literals
@@ -4526,14 +4518,8 @@ public class RelBuilder {
       // return a call that is "approximately equivalent ... and is good for
       // deriving field names", so dummy values are good enough.
       final RelCollation collation = RelCollations.EMPTY;
-      final RelDataType type;
-      if (aggFunction.getKind() == SqlKind.GROUP_ID) {
-        // The return type of GROUP_ID function is SqlTypeName.BIGINT,
-        // see SqlGroupIdFunction.
-        type = getTypeFactory().createSqlType(SqlTypeName.BIGINT);
-      } else {
-        type = getTypeFactory().createSqlType(SqlTypeName.BOOLEAN);
-      }
+      final RelDataType type =
+          getTypeFactory().createSqlType(SqlTypeName.BOOLEAN);
       return AggregateCall.create(pos, aggFunction, distinct, approximate,
           ignoreNulls, preOperands, ImmutableList.of(), -1,
           null, collation, type, alias);
