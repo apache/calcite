@@ -28,6 +28,8 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.tools.RelBuilder;
 
 import org.immutables.value.Value;
@@ -174,19 +176,18 @@ public class SimpleFileJoinReorderRule extends RelRule<SimpleFileJoinReorderRule
       builder.push(rightNode);
       builder.push(leftNode);
       
-      // For a proper implementation, we'd need to adjust the condition
-      // For now, use the original condition (may not be completely correct)
+      // Adjust join condition for swapped inputs: rightNode becomes new left, leftNode becomes new right
       RexNode swappedCondition = adjustJoinCondition(originalJoin.getCondition(), 
           leftNode.getRowType().getFieldCount(), rightNode.getRowType().getFieldCount());
       
       return builder.join(JoinRelType.LEFT, swappedCondition).build();
       
     } else if (decision.shouldReorder) {
-      // Swap inputs for better hash join performance
-      builder.push(rightNode); // Smaller table becomes left (probe side)
-      builder.push(leftNode);  // Larger table becomes right (build side)
+      // Swap inputs for better hash join performance: rightNode becomes new left, leftNode becomes new right
+      builder.push(rightNode); // Smaller table becomes left
+      builder.push(leftNode);  // Larger table becomes right
       
-      // Adjust join condition for swapped inputs
+      // Adjust join condition for swapped inputs  
       RexNode swappedCondition = adjustJoinCondition(originalJoin.getCondition(),
           leftNode.getRowType().getFieldCount(), rightNode.getRowType().getFieldCount());
       
@@ -196,11 +197,43 @@ public class SimpleFileJoinReorderRule extends RelRule<SimpleFileJoinReorderRule
     return null;
   }
   
-  private RexNode adjustJoinCondition(RexNode condition, int leftFieldCount, int rightFieldCount) {
-    // This is a simplified approach - in a full implementation, we'd need to
-    // properly swap field references in the condition
-    // For now, return the original condition and let Calcite handle it
-    return condition;
+  private RexNode adjustJoinCondition(RexNode condition, int originalLeftFieldCount, int originalRightFieldCount) {
+    // When we swap the join inputs in createReorderedJoin:
+    // builder.push(rightNode);  // rightNode becomes new left input
+    // builder.push(leftNode);   // leftNode becomes new right input
+    //
+    // Original field layout:
+    // LEFT(0..originalLeftFieldCount-1) JOIN RIGHT(originalLeftFieldCount..originalLeftFieldCount+originalRightFieldCount-1)
+    //
+    // After swap field layout:
+    // NEW_LEFT=originalRight(0..originalRightFieldCount-1) JOIN NEW_RIGHT=originalLeft(originalRightFieldCount..originalRightFieldCount+originalLeftFieldCount-1)
+    //
+    // Field index mapping:
+    // - Original left field [i] where i < originalLeftFieldCount -> New right field [originalRightFieldCount + i]  
+    // - Original right field [originalLeftFieldCount + j] where j < originalRightFieldCount -> New left field [j]
+    
+    return condition.accept(new RexShuttle() {
+      @Override
+      public RexNode visitInputRef(RexInputRef inputRef) {
+        int originalIndex = inputRef.getIndex();
+        int newIndex;
+        
+        if (originalIndex < originalLeftFieldCount) {
+          // Original left field -> becomes new right field after swap
+          newIndex = originalRightFieldCount + originalIndex;
+        } else if (originalIndex < originalLeftFieldCount + originalRightFieldCount) {
+          // Original right field -> becomes new left field after swap  
+          newIndex = originalIndex - originalLeftFieldCount;
+        } else {
+          // This shouldn't happen in a well-formed join condition
+          throw new IllegalArgumentException("Field index " + originalIndex + 
+              " is out of range for join with " + originalLeftFieldCount + " left fields and " + 
+              originalRightFieldCount + " right fields");
+        }
+        
+        return new RexInputRef(newIndex, inputRef.getType());
+      }
+    });
   }
   
   /** Join reorder decision result */
