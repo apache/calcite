@@ -2935,17 +2935,9 @@ public class RelBuilder {
   }
 
   /**
-   * Explains the relationship between the SQL GROUPING function and GROUPING SETS.
-   *
-   * <p>The GROUPING function returns a bitmask integer for each column, indicating whether
-   * it is aggregated (not present in the current grouping set) or grouped (present).
-   *
-   * <p>GROUPING SETS defines multiple grouping combinations for an aggregate query.
-   * For each output row, the GROUPING function uses the active grouping set to determine
-   * which columns are grouped and which are aggregated, encoding this as a bitmask.
-   *
-   * <p>The calculation 2^2 * GROUPING(x) + 2^1 * GROUPING(y) + 2^0 * GROUPING(z)
-   * shows how GROUPING encodes the grouping state of each column as a bitmask value.
+   * This method is used to expand the SQL GROUPING operator
+   * into a set of expressions. For example, it expands GROUPING(x, y, z)
+   * into 2^2 * GROUPING(x) + 2^1 * GROUPING(y) + 2^0 * GROUPING(z)
    *
    * <p>For example, in "GROUP BY GROUPING SETS ((a, b), (a), (), (b))":
    * In the grouping set (a, b), GROUPING(a) = 0, GROUPING(b) = 0,
