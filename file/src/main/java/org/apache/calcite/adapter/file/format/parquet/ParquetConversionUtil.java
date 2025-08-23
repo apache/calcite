@@ -84,11 +84,9 @@ public class ParquetConversionUtil {
         cacheDir = new File(customCacheDir);
       }
     } else {
-      // Use default cache directory with optional schema suffix
-      String cacheDirName = schemaName != null && !schemaName.isEmpty()
-          ? ".parquet_cache_" + schemaName
-          : ".parquet_cache";
-      cacheDir = new File(baseDirectory, cacheDirName);
+      // The baseDirectory should already be .aperio/<schema> from FileSchema
+      // So we just need to add .parquet_cache subdirectory
+      cacheDir = new File(baseDirectory, ".parquet_cache");
     }
     if (!cacheDir.exists()) {
       cacheDir.mkdirs();
@@ -98,18 +96,49 @@ public class ParquetConversionUtil {
 
 
   /**
+   * Gets the cached Parquet file for an explicit table name.
+   * This version should be used when we have an explicit table name from testModel.json.
+   */
+  public static File getCachedParquetFile(File sourceFile, File cacheDir, boolean typeInferenceEnabled, String casing, String explicitTableName) {
+    if (explicitTableName != null && !explicitTableName.isEmpty()) {
+      // Use explicit table name for the cache file
+      String casedName = org.apache.calcite.adapter.file.util.SmartCasing.applyCasing(explicitTableName, casing);
+      String sanitizedName = org.apache.calcite.adapter.file.converters.ConverterUtils.sanitizeIdentifier(casedName);
+      return new File(cacheDir, sanitizedName + ".parquet");
+    }
+    // Fall back to source file name
+    return getCachedParquetFile(sourceFile, cacheDir, typeInferenceEnabled, casing);
+  }
+
+  /**
    * Get the cached Parquet file for a source file with configurable casing.
+   * The cache file name should match the table name exactly.
    */
   public static File getCachedParquetFile(File sourceFile, File cacheDir, boolean typeInferenceEnabled, String casing) {
     String baseName = sourceFile.getName();
-    // Remove existing extensions
-    int lastDot = baseName.lastIndexOf('.');
-    if (lastDot > 0) {
-      baseName = baseName.substring(0, lastDot);
+    
+    // Remove compression extension if present
+    if (baseName.endsWith(".gz") || baseName.endsWith(".bz2") || baseName.endsWith(".xz")) {
+      int lastDot = baseName.lastIndexOf('.');
+      if (lastDot > 0) {
+        baseName = baseName.substring(0, lastDot);
+      }
     }
-    // Apply the same casing transformation and sanitization used for table names
-    String casedName = org.apache.calcite.adapter.file.util.SmartCasing.applyCasing(baseName, casing);
-    baseName = org.apache.calcite.adapter.file.converters.ConverterUtils.sanitizeIdentifier(casedName);
+    
+    // Remove file type extension to get the table name
+    // This matches how FileSchema determines table names
+    if (baseName.endsWith(".csv") || baseName.endsWith(".tsv") || 
+        baseName.endsWith(".json") || baseName.endsWith(".xml") || 
+        baseName.endsWith(".html") || baseName.endsWith(".htm")) {
+      int lastDot = baseName.lastIndexOf('.');
+      if (lastDot > 0) {
+        baseName = baseName.substring(0, lastDot);
+      }
+    }
+    
+    // Don't change the name - preserve it exactly as is
+    // Only sanitize for SQL identifier safety
+    baseName = org.apache.calcite.adapter.file.converters.ConverterUtils.sanitizeIdentifier(baseName);
     return new File(cacheDir, baseName + ".parquet");
   }
 
@@ -124,6 +153,7 @@ public class ParquetConversionUtil {
     // Add a small buffer (1 second) to handle filesystem timestamp precision issues
     return sourceFile.lastModified() > (parquetFile.lastModified() + 1000);
   }
+
 
   /**
    * Convert a source file to Parquet by querying it through Calcite with configurable casing.

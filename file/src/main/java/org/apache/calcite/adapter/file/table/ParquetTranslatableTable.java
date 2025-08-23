@@ -126,7 +126,9 @@ public class ParquetTranslatableTable extends AbstractTable implements Translata
     // Generate statistics in a background thread to avoid blocking table creation
     new Thread(() -> {
       try {
-        File cacheDir = ParquetConversionUtil.getParquetCacheDir(parquetFile.getParentFile(), schemaName);
+        // The parquetFile is already in .aperio/<schema>/.parquet_cache
+        // So use its parent directory directly as the cache directory
+        File cacheDir = parquetFile.getParentFile();
         cachedStatistics = statisticsBuilder.buildStatistics(source, cacheDir);
         LOGGER.info("Statistics initialized for {}: {} rows, {} columns with HLL", 
                    parquetFile.getName(), 
@@ -252,7 +254,8 @@ public class ParquetTranslatableTable extends AbstractTable implements Translata
     
     try {
       // Try to load or generate statistics
-      File cacheDir = ParquetConversionUtil.getParquetCacheDir(parquetFile.getParentFile());
+      // The parquetFile is already in .aperio/<schema>/.parquet_cache
+      File cacheDir = parquetFile.getParentFile();
       cachedStatistics = statisticsBuilder.buildStatistics(source, cacheDir);
       return cachedStatistics;
     } catch (Exception e) {
@@ -307,7 +310,9 @@ public class ParquetTranslatableTable extends AbstractTable implements Translata
     // This could be enhanced to use a thread pool
     new Thread(() -> {
       try {
-        File cacheDir = ParquetConversionUtil.getParquetCacheDir(parquetFile.getParentFile(), schemaName);
+        // The parquetFile is already in .aperio/<schema>/.parquet_cache
+        // So use its parent directory directly as the cache directory
+        File cacheDir = parquetFile.getParentFile();
         cachedStatistics = statisticsBuilder.buildStatistics(source, cacheDir);
       } catch (Exception e) {
         // Log error but don't fail the query

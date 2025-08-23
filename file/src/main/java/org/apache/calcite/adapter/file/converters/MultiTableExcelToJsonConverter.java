@@ -71,14 +71,6 @@ public final class MultiTableExcelToJsonConverter {
   }
 
   /**
-   * Converts an Excel file to JSON with multi-table detection.
-   */
-  public static void convertFileToJson(File inputFile, boolean detectMultipleTables)
-      throws IOException {
-    convertFileToJson(inputFile, detectMultipleTables, "SMART_CASING", "SMART_CASING");
-  }
-
-  /**
    * Converts an Excel file to JSON with multi-table detection and custom casing.
    */
   public static void convertFileToJson(File inputFile, boolean detectMultipleTables,
@@ -182,10 +174,10 @@ public final class MultiTableExcelToJsonConverter {
             mapper.writerWithDefaultPrettyPrinter()
                 .writeValue(fileWriter, table.jsonData);
           }
-          
+
           // Record the conversion for refresh tracking
           ConversionRecorder.recordExcelConversion(inputFile, jsonFile);
-          
+
           tableIndex++;
         }
       }

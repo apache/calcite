@@ -91,7 +91,76 @@ public class HtmlToJsonConverter {
    * @return List of generated JSON files
    * @throws IOException if conversion fails
    */
+  /**
+   * Converts HTML file to JSON using explicit table name.
+   * 
+   * @param htmlFile The HTML file to convert
+   * @param outputDir The directory to write JSON files to
+   * @param columnNameCasing The casing strategy for column names
+   * @param tableNameCasing The casing strategy for table names
+   * @param explicitTableName The explicit name to use for the table (overrides auto-generated name)
+   * @return List of generated JSON files
+   * @throws IOException if conversion fails
+   */
+  public static List<File> convert(File htmlFile, File outputDir, String columnNameCasing, 
+                                   String tableNameCasing, String explicitTableName) throws IOException {
+    List<File> jsonFiles = new ArrayList<>();
+    // Use HtmlTableScanner to find tables - make sure we re-scan each time
+    Source source = Sources.of(htmlFile);
+    List<HtmlTableScanner.TableInfo> tableInfos = HtmlTableScanner.scanTables(source, tableNameCasing);
+    LOGGER.info("Found " + tableInfos.size() + " tables in " + htmlFile.getName());
+    
+    // Ensure output directory exists
+    if (!outputDir.exists()) {
+      outputDir.mkdirs();
+    }
+    
+    // Parse HTML to get actual table elements
+    Document doc = Jsoup.parse(htmlFile, "UTF-8");
+    Elements tables = doc.select("table");
+    
+    // If explicit table name is provided and there's exactly one table, use it
+    if (explicitTableName != null && tableInfos.size() == 1 && tables.size() > 0) {
+      Element table = tables.get(0);
+      File jsonFile = new File(outputDir, explicitTableName + ".json");
+      writeTableAsJson(table, jsonFile, columnNameCasing);
+      jsonFiles.add(jsonFile);
+      
+      // Record the conversion for refresh tracking
+      ConversionRecorder.recordConversion(htmlFile, jsonFile, "HTML_TO_JSON");
+      
+      LOGGER.info("Wrote table to " + jsonFile.getAbsolutePath() + " with explicit name: " + explicitTableName);
+    } else {
+      // Use the original logic for multiple tables or no explicit name
+      for (int i = 0; i < tableInfos.size() && i < tables.size(); i++) {
+        HtmlTableScanner.TableInfo tableInfo = tableInfos.get(i);
+        Element table = tables.get(i);
+        String tableName = tableInfo.name;
+        
+        // Generate JSON filename
+        String baseFileName = ConverterUtils.getBaseFileName(htmlFile.getName(), ".html", ".htm");
+        String jsonFileName = baseFileName + "__" + tableName + ".json";
+        File jsonFile = new File(outputDir, jsonFileName);
+        
+        writeTableAsJson(table, jsonFile, columnNameCasing);
+        jsonFiles.add(jsonFile);
+        
+        // Record the conversion for refresh tracking
+        ConversionRecorder.recordConversion(htmlFile, jsonFile, "HTML_TO_JSON");
+        
+        LOGGER.info("Wrote table to " + jsonFile.getAbsolutePath());
+      }
+    }
+    
+    return jsonFiles;
+  }
+  
   public static List<File> convert(File htmlFile, File outputDir, String columnNameCasing, String tableNameCasing) throws IOException {
+    return convert(htmlFile, outputDir, columnNameCasing, tableNameCasing, null);
+  }
+  
+  // Original method implementation that was unreachable - remove it
+  private static List<File> convertOld(File htmlFile, File outputDir, String columnNameCasing, String tableNameCasing) throws IOException {
     List<File> jsonFiles = new ArrayList<>();
 
     // Use HtmlTableScanner to find tables - make sure we re-scan each time
@@ -448,7 +517,7 @@ public class HtmlToJsonConverter {
         
       } else if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
         // Use Excel converter - convert to directory and find generated files
-        MultiTableExcelToJsonConverter.convertFileToJson(dataFile, true);
+        MultiTableExcelToJsonConverter.convertFileToJson(dataFile, true, "SMART_CASING", "SMART_CASING");
         // Find the generated JSON files
         File parentDir = dataFile.getParentFile();
         String baseName = dataFile.getName().replaceFirst("\\.[^.]+$", "");

@@ -39,20 +39,30 @@ public class ConversionRecorder {
    * @param conversionType Type of conversion (e.g., "EXCEL_TO_JSON", "HTML_TO_JSON")
    */
   public static void recordConversion(File originalFile, File convertedFile, String conversionType) {
+    recordConversion(originalFile, convertedFile, conversionType, null);
+  }
+  
+  /**
+   * Records a file conversion for refresh tracking.
+   * This should be called by all converters after successfully creating output files.
+   * 
+   * @param originalFile The source file (e.g., Excel, HTML, XML)
+   * @param convertedFile The output file (typically JSON)
+   * @param conversionType Type of conversion (e.g., "EXCEL_TO_JSON", "HTML_TO_JSON")
+   * @param baseDirectory The base directory for metadata storage (if null, uses converted file's parent)
+   */
+  public static void recordConversion(File originalFile, File convertedFile, String conversionType, File baseDirectory) {
     try {
-      // Use the converted file's directory for metadata storage
-      // This ensures the metadata is in the same location where queries will look for it
-      File metadataDir = convertedFile.getParentFile();
-      LOGGER.info("Recording conversion: originalFile={}, convertedFile={}, metadataDir={}, conversionType={}", 
-          originalFile, convertedFile, metadataDir, conversionType);
+      // Use baseDirectory if provided, otherwise use the converted file's directory
+      File metadataDir = baseDirectory != null ? baseDirectory : convertedFile.getParentFile();
       ConversionMetadata metadata = new ConversionMetadata(metadataDir);
       metadata.recordConversion(originalFile, convertedFile, conversionType);
-      LOGGER.info("Successfully recorded {} conversion: {} -> {}", 
-          conversionType, originalFile.getName(), convertedFile.getName());
+      LOGGER.debug("Recorded {} conversion: {} -> {} (metadata in: {})", 
+          conversionType, originalFile.getName(), convertedFile.getName(), metadataDir);
     } catch (Exception e) {
       // Don't fail the conversion if metadata recording fails
       LOGGER.warn("Failed to record conversion metadata for {}: {}", 
-          convertedFile.getName(), e.getMessage(), e);
+          convertedFile.getName(), e.getMessage());
     }
   }
   
@@ -64,10 +74,24 @@ public class ConversionRecorder {
   }
   
   /**
+   * Records an Excel to JSON conversion with specified base directory.
+   */
+  public static void recordExcelConversion(File excelFile, File jsonFile, File baseDirectory) {
+    recordConversion(excelFile, jsonFile, "EXCEL_TO_JSON", baseDirectory);
+  }
+  
+  /**
    * Records an HTML to JSON conversion.
    */
   public static void recordHtmlConversion(File htmlFile, File jsonFile) {
     recordConversion(htmlFile, jsonFile, "HTML_TO_JSON");
+  }
+  
+  /**
+   * Records an HTML to JSON conversion with specified base directory.
+   */
+  public static void recordHtmlConversion(File htmlFile, File jsonFile, File baseDirectory) {
+    recordConversion(htmlFile, jsonFile, "HTML_TO_JSON", baseDirectory);
   }
   
   /**
@@ -78,9 +102,23 @@ public class ConversionRecorder {
   }
   
   /**
+   * Records an XML to JSON conversion with specified base directory.
+   */
+  public static void recordXmlConversion(File xmlFile, File jsonFile, File baseDirectory) {
+    recordConversion(xmlFile, jsonFile, "XML_TO_JSON", baseDirectory);
+  }
+  
+  /**
    * Records a JSONPath extraction (JSON to JSON).
    */
   public static void recordJsonPathExtraction(File sourceJson, File extractedJson, String jsonPath) {
     recordConversion(sourceJson, extractedJson, "JSONPATH_EXTRACTION[" + jsonPath + "]");
+  }
+  
+  /**
+   * Records a JSONPath extraction (JSON to JSON) with specified base directory.
+   */
+  public static void recordJsonPathExtraction(File sourceJson, File extractedJson, String jsonPath, File baseDirectory) {
+    recordConversion(sourceJson, extractedJson, "JSONPATH_EXTRACTION[" + jsonPath + "]", baseDirectory);
   }
 }

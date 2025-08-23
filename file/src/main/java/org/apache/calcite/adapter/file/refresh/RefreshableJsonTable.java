@@ -153,7 +153,7 @@ public class RefreshableJsonTable extends AbstractRefreshableTable implements Sc
               originalSource.getName(), newJsonFiles.size());
         } else if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
           // Re-convert Excel to JSON
-          MultiTableExcelToJsonConverter.convertFileToJson(originalSource, true);
+          MultiTableExcelToJsonConverter.convertFileToJson(originalSource, true, "SMART_CASING", "SMART_CASING");
           LOGGER.debug("Re-converted Excel file {}", originalSource.getName());
         } else if (fileName.endsWith(".xml")) {
           // Re-convert XML to JSON
