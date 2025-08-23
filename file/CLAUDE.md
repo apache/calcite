@@ -68,8 +68,8 @@
 ### FileSchema Configuration
 - `FileSchema.baseDirectory` defaults to: `{working_directory}/.aperio` (fully qualified path)
 - Can be overridden via `model.json` baseDirectory attribute + `.aperio`
-- `FileSchema.sourceDirectory` defaults to the model.json parent path + `.aperio` (fully qualified path)
-- Can be overridden via `model.json` schema operand `sourceDirectory` attribute + `.aperio`
+- `FileSchema.sourceDirectory` defaults to the model.json parent path (fully qualified path)
+- Can be overridden via `model.json` schema operand `sourceDirectory` attribute
 - **ALWAYS** convert paths to fully qualified absolute paths
 
 ## Development Workflow
@@ -102,3 +102,14 @@ When asked to "cleanup debug code":
   1. Analyze and present a plan
   2. Request approval
   3. Implement approved changes
+
+## Plan Review Requirement
+
+- **ALWAYS** compare your plan against these developer guidelines before presenting to user
+- Ensure the plan:
+  - Follows all coding standards (no System.out, proper temporal handling, etc.)
+  - Adheres to testing standards (numeric temporal values, proper SQL casing)
+  - Respects the "no backward compatibility" and "no FixedXYZ classes" rules
+  - Doesn't create unnecessary files or documentation
+  - Follows the DRY principle
+  - Uses proper logging with lazy evaluation

@@ -2,6 +2,7 @@
 
 - Never use the deprecated java.sql.Time, use java.sql.LocalTime instead
 - When computing day offsets from epoch, never use any Java function that might misapply a local TZ offset, for example, toLocalDate().
+- ALWAYS ask for more guidance if you are not confident in your reasoning.
 
 ## Testing Practices
 - When testing time, data, and timestamps, always use numeric values as expectations; never use formatted values.
@@ -15,6 +16,7 @@
 ## Code Maintenance
 
 - Do not add backward compatibility to code revisions unless specifically requested.
+- Breaking changes are preferred if they more faithfully represent the objective. Creating overload constructors and methods introducing unwanted defaults in order to maintain backwards compatibility should be avoided.
 - Always fix forbidden API issues, or DO NOT CREATE THEM, in Java code.
 - Always generate Java code with correct styles
 - Never unilaterally remove features. You may only simplify or improve features.
