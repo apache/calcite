@@ -11155,4 +11155,58 @@ class RelOptRulesTest extends RelOptTestBase {
         .withRule(CoreRules.AGGREGATE_FILTER_TO_CASE)
         .check();
   }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7116">[CALCITE-7116]
+   * Optimize queries with GROUPING SETS by converting them
+   * into equivalent UNION ALL of GROUP BY operations</a>. */
+  @Test void testAggregateGroupingSetsToUnionRule() {
+    final String sql = "SELECT deptno, job, sal, SUM(comm)\n"
+        + "FROM emp\n"
+        + "GROUP BY GROUPING SETS ((deptno, job), (deptno, sal))";
+    sql(sql)
+        .withRule(CoreRules.AGGREGATE_GROUPING_SETS_TO_UNION)
+        .check();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7116">[CALCITE-7116]
+   * Optimize queries with GROUPING SETS by converting them
+   * into equivalent UNION ALL of GROUP BY operations</a>. */
+  @Test void testAggregateGroupingSetsToUnionRuleGrouping() {
+    final String sql = "SELECT deptno, job, sal, SUM(comm),\n"
+        + " GROUPING(deptno) AS deptno_flag,\n"
+        + " GROUPING(job) AS job_flag,\n"
+        + " GROUPING(sal) AS sal_flag,\n"
+        + " GROUPING(deptno, sal) AS deptno_sal_flag\n"
+        + "FROM emp\n"
+        + "GROUP BY GROUPING SETS ((deptno, job),(deptno, job, sal),(deptno, sal),(deptno, job))";
+
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.AGGREGATE_GROUPING_SETS_TO_UNION)
+        .build();
+
+    sql(sql)
+        .withProgram(program)
+        .check();
+  }
+
+  /** Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-7116">[CALCITE-7116]
+   * Optimize queries with GROUPING SETS by converting them
+   * into equivalent UNION ALL of GROUP BY operations</a>. */
+  @Test void testAggregateGroupingSetsToUnionRuleGroupId() {
+    final String sql = "SELECT deptno, job, sal, SUM(comm),"
+        + " GROUP_ID() AS group_id\n"
+        + "FROM emp\n"
+        + "GROUP BY GROUPING SETS (deptno, deptno, job, sal, sal, sal, sal)";
+
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.AGGREGATE_GROUPING_SETS_TO_UNION)
+        .build();
+
+    sql(sql)
+        .withProgram(program)
+        .check();
+  }
 }
