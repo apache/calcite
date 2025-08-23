@@ -49,7 +49,7 @@ public class MultiTableExtractorTest {
 
     // Convert with multi-table detection
     System.out.println("Converting " + targetFile.getName() + " with multi-table detection...");
-    MultiTableExcelToJsonConverter.convertFileToJson(targetFile, true);
+    MultiTableExcelToJsonConverter.convertFileToJson(targetFile, true, "SMART_CASING", "SMART_CASING");
 
     // List all JSON files created
     File[] jsonFiles = tempDir.toFile().listFiles((dir, name) -> name.endsWith(".json"));

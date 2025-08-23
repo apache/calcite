@@ -59,15 +59,13 @@ public class JsonPathRefreshTest {
   public void setupTestFiles() throws Exception {
     schemaDir = tempDir.toFile();
     
-    // Don't use central metadata directory for tests - use local metadata files
+    // Metadata now stored directly in the test directory
     // This avoids conflicts when tests run in parallel
-    ConversionMetadata.setCentralMetadataDirectory(null, null);
   }
   
   @AfterEach
   public void cleanup() throws Exception {
-    // Clear the central metadata directory after each test
-    ConversionMetadata.setCentralMetadataDirectory(null, null);
+    // No longer need to reset central metadata directory
     
     // Clear various static caches that might interfere between tests
     try {

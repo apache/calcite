@@ -123,13 +123,13 @@ public class CsvTypeInferenceTest {
     Properties info = new Properties();
     // Build model dynamically to include execution engine if set
     String engineType = System.getenv("CALCITE_FILE_ENGINE_TYPE");
-    
+
     // Skip for engines with known CsvTableScan.project issues
     if (engineType != null && (engineType.equals("LINQ4J") || engineType.equals("ARROW"))) {
       // These engines have a known issue with CsvTableScan.project method
       return;
     }
-    
+
     String modelJson = buildModelJson(engineType);
     info.put("model", "inline:" + modelJson);
     info.put("lex", "ORACLE");
@@ -169,13 +169,13 @@ public class CsvTypeInferenceTest {
     }
     Properties info = new Properties();
     // Use dynamic model if engine is configured
-    
+
     // Skip for engines with known CsvTableScan.project issues
     if (engineType != null && (engineType.equals("LINQ4J") || engineType.equals("ARROW"))) {
       // These engines have a known issue with CsvTableScan.project method
       return;
     }
-    
+
     if (engineType != null && !engineType.isEmpty()) {
       String modelJson = buildModelJson(engineType);
       info.put("model", "inline:" + modelJson);
@@ -198,18 +198,21 @@ public class CsvTypeInferenceTest {
         assertTrue(eventIdType == Types.INTEGER || eventIdType == Types.BIGINT,
             "event_id should be INTEGER or BIGINT, but was " + eventIdType);
         assertEquals(Types.VARCHAR, metaData.getColumnType(2), "event_name should be VARCHAR");
-        assertEquals(Types.TIMESTAMP, metaData.getColumnType(3), "timestamp_local should be TIMESTAMP");
-        
+        // DuckDB returns JAVA_OBJECT (2000) for timestamps
+        int localType = metaData.getColumnType(3);
+        assertTrue(localType == Types.TIMESTAMP || localType == Types.JAVA_OBJECT,
+            "timestamp_local should be TIMESTAMP but was " + localType);
+
         // RFC formatted timestamps should be detected as TIMESTAMP types
         // DuckDB JDBC driver may return type 2000 (JAVA_OBJECT) for TIMESTAMP WITH TIME ZONE
         int utcType = metaData.getColumnType(4);
-        LOGGER.info("timestamp_utc column type from engine: {} (Types.TIMESTAMP={}, Types.TIMESTAMP_WITH_TIMEZONE={}, actual type name={})", 
+        LOGGER.info("timestamp_utc column type from engine: {} (Types.TIMESTAMP={}, Types.TIMESTAMP_WITH_TIMEZONE={}, actual type name={})",
             utcType, Types.TIMESTAMP, Types.TIMESTAMP_WITH_TIMEZONE, metaData.getColumnTypeName(4));
-        assertTrue(utcType == Types.TIMESTAMP || utcType == Types.TIMESTAMP_WITH_TIMEZONE || utcType == 2000,
+        assertTrue(utcType == Types.TIMESTAMP || utcType == Types.TIMESTAMP_WITH_TIMEZONE || utcType == Types.JAVA_OBJECT,
             "timestamp_utc should be TIMESTAMP type but was " + utcType);
-        
+
         int rfcType = metaData.getColumnType(5);
-        assertTrue(rfcType == Types.TIMESTAMP || rfcType == Types.TIMESTAMP_WITH_TIMEZONE || rfcType == 2000,
+        assertTrue(rfcType == Types.TIMESTAMP || rfcType == Types.TIMESTAMP_WITH_TIMEZONE || rfcType == Types.JAVA_OBJECT,
             "timestamp_rfc should be TIMESTAMP type but was " + rfcType);
       }
     }
@@ -323,11 +326,11 @@ public class CsvTypeInferenceTest {
     if ("ARROW".equals(engineType)) {
       return;
     }
-    
+
     Properties info = new Properties();
     // Use dynamic model if engine is configured
     LOGGER.info("=== Starting testAggregationsWithInferredTypes with engine: {} ===", engineType);
-    
+
     if (engineType != null && !engineType.isEmpty()) {
       String modelJson = buildModelJson(engineType);
       info.put("model", "inline:" + modelJson);
@@ -340,7 +343,7 @@ public class CsvTypeInferenceTest {
     LOGGER.debug("About to create Calcite connection");
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info)) {
       LOGGER.debug("Connection created successfully");
-      
+
       // Test numeric aggregations
       // Note: DuckDB sanitizes hyphens in table names to underscores
       String tableName = "mixed_types";
@@ -412,15 +415,15 @@ public class CsvTypeInferenceTest {
     if ("ARROW".equals(engineType)) {
       return;
     }
-    
+
     // Skip this test for engines that don't support this feature
     if (engineType != null && (engineType.equals("LINQ4J") || engineType.equals("ARROW"))) {
       // blankStringsAsNull is only relevant for PARQUET and DUCKDB
       return;
     }
-    
+
     Properties info = new Properties();
-    
+
     // Build model with type inference disabled (should default to blankStringsAsNull=true)
     // Use a unique schema name to avoid cache conflicts
     String modelJson = buildModelJsonWithBlankStringConfig(engineType, false, null, "csv_blank_as_null");
@@ -432,43 +435,43 @@ public class CsvTypeInferenceTest {
       // Create test data with blank strings
       String tableName = "blank_strings";
       String sql = "SELECT * FROM csv_blank_as_null." + tableName;
-      
+
       try (Statement stmt = connection.createStatement();
            ResultSet rs = stmt.executeQuery(sql)) {
-        
+
         // First row: normal values
         assertTrue(rs.next());
         assertEquals("1", rs.getString(1)); // When type inference is off, all columns are VARCHAR
         assertEquals("Alice", rs.getString(2));
         assertEquals("Active", rs.getString(3));
-        
+
         // Second row: blank string in name (should be NULL)
         assertTrue(rs.next());
         assertEquals("2", rs.getString(1));
         assertThat(rs.getString(2), equalTo(null)); // Blank string should be NULL
         assertTrue(rs.wasNull());
         assertEquals("Inactive", rs.getString(3));
-        
+
         // Third row: blank string in status (should be NULL)
         assertTrue(rs.next());
         assertEquals("3", rs.getString(1));
         assertEquals("Charlie", rs.getString(2));
         assertThat(rs.getString(3), equalTo(null)); // Blank string should be NULL
         assertTrue(rs.wasNull());
-        
+
         // Fourth row: normal values
         assertTrue(rs.next());
         assertEquals("4", rs.getString(1));
         assertEquals("David", rs.getString(2));
         assertEquals("Pending", rs.getString(3));
-        
+
         // Fifth row: whitespace-only string in name (should be NULL)
         assertTrue(rs.next());
         assertEquals("5", rs.getString(1));
         assertThat(rs.getString(2), equalTo(null)); // Whitespace-only should be NULL
         assertTrue(rs.wasNull());
         assertEquals("Active", rs.getString(3));
-        
+
         // Sixth row: whitespace-only string in status (should be NULL)
         assertTrue(rs.next());
         assertEquals("6", rs.getString(1));
@@ -490,15 +493,15 @@ public class CsvTypeInferenceTest {
     if ("ARROW".equals(engineType)) {
       return;
     }
-    
+
     // Skip this test for engines that don't support this feature
     if (engineType != null && (engineType.equals("LINQ4J") || engineType.equals("ARROW"))) {
       // blankStringsAsNull is only relevant for PARQUET and DUCKDB
       return;
     }
-    
+
     Properties info = new Properties();
-    
+
     // Build model with blankStringsAsNull explicitly set to false
     // Use a unique schema name to avoid cache conflicts
     String modelJson = buildModelJsonWithBlankStringConfig(engineType, true, false, "csv_blank_preserved");
@@ -509,10 +512,10 @@ public class CsvTypeInferenceTest {
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:", info)) {
       String tableName = "blank_strings";
       String sql = "SELECT * FROM csv_blank_preserved." + tableName;
-      
+
       try (Statement stmt = connection.createStatement();
            ResultSet rs = stmt.executeQuery(sql)) {
-        
+
         // First row: normal values
         assertTrue(rs.next());
         // When blankStringsAsNull is false, blank strings are kept as empty strings,
@@ -521,34 +524,34 @@ public class CsvTypeInferenceTest {
         assertEquals("1", id1);
         assertEquals("Alice", rs.getString(2));
         assertEquals("Active", rs.getString(3));
-        
+
         // Second row: blank string in name (should be preserved as empty string)
         assertTrue(rs.next());
         assertEquals("2", rs.getString(1));
         assertEquals("", rs.getString(2));
         assertThat(rs.wasNull(), is(false));
         assertEquals("Inactive", rs.getString(3));
-        
+
         // Third row: blank string in status (should be preserved as empty string)
         assertTrue(rs.next());
         assertEquals("3", rs.getString(1));
         assertEquals("Charlie", rs.getString(2));
         assertEquals("", rs.getString(3));
         assertThat(rs.wasNull(), is(false));
-        
+
         // Fourth row: normal values
         assertTrue(rs.next());
         assertEquals("4", rs.getString(1));
         assertEquals("David", rs.getString(2));
         assertEquals("Pending", rs.getString(3));
-        
+
         // Fifth row: whitespace-only string in name (should be preserved as whitespace)
         assertTrue(rs.next());
         assertEquals("5", rs.getString(1));
         assertEquals("  ", rs.getString(2)); // Whitespace should be preserved
         assertThat(rs.wasNull(), is(false));
         assertEquals("Active", rs.getString(3));
-        
+
         // Sixth row: whitespace-only string in status (should be preserved as whitespace)
         assertTrue(rs.next());
         assertEquals("6", rs.getString(1));
@@ -679,7 +682,7 @@ public class CsvTypeInferenceTest {
           String columnName = metaData.getColumnName(i);
           int sqlType = metaData.getColumnType(i);
           String typeName = metaData.getColumnTypeName(i);
-          System.out.println(String.format("Column %d: %s - SQL Type: %d (%s)", 
+          System.out.println(String.format("Column %d: %s - SQL Type: %d (%s)",
                             i, columnName, sqlType, typeName));
         }
         // Focus on hire_date column (should be column 5)
@@ -687,7 +690,7 @@ public class CsvTypeInferenceTest {
           String hireDateColumnName = metaData.getColumnName(5);
           int hireDateSqlType = metaData.getColumnType(5);
           String hireDateTypeName = metaData.getColumnTypeName(5);
-          System.out.println(String.format("hire_date column details: name=%s, sqlType=%d, typeName=%s", 
+          System.out.println(String.format("hire_date column details: name=%s, sqlType=%d, typeName=%s",
                             hireDateColumnName, hireDateSqlType, hireDateTypeName));
         }
       }

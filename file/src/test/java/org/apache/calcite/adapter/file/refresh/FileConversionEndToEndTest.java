@@ -78,15 +78,13 @@ public class FileConversionEndToEndTest {
     tempDir.mkdirs();
     schemaDir = tempDir;
     
-    // Set central metadata directory for this test to ensure consistency
+    // Metadata now stored directly in schemaDir
     // Each test gets its own unique temp directory for isolation
-    ConversionMetadata.setCentralMetadataDirectory(schemaDir, "test");
   }
   
   @AfterEach
   public void cleanup() throws Exception {
-    // Clear the central metadata directory after each test
-    ConversionMetadata.setCentralMetadataDirectory(null, null);
+    // No longer need to reset central metadata directory
     
     // Clean up temp directory
     if (tempDir != null && tempDir.exists()) {
@@ -144,13 +142,11 @@ public class FileConversionEndToEndTest {
     File jsonFile = new File(schemaDir, "test_data__Sheet1.json");
     assertTrue(jsonFile.exists(), "JSON file should exist");
     
-    // Check metadata - it's acceptable if it's null
+    // Check metadata is properly recorded
     ConversionMetadata metadata = new ConversionMetadata(schemaDir);
     File foundSource = metadata.findOriginalSource(jsonFile);
-    // It's acceptable if metadata is null (blank)
-    if (foundSource != null) {
-      assertEquals(excelFile.getCanonicalPath(), foundSource.getCanonicalPath());
-    }
+    assertNotNull(foundSource, "Conversion metadata should be recorded");
+    assertEquals(excelFile.getCanonicalPath(), foundSource.getCanonicalPath());
     
     // Query the data through Calcite
     Properties info = new Properties();
@@ -224,13 +220,11 @@ public class FileConversionEndToEndTest {
     
     assertTrue(jsonFile.exists(), "JSON file should exist");
     
-    // Check metadata - it's acceptable if it's null
+    // Check metadata is properly recorded
     ConversionMetadata metadata = new ConversionMetadata(schemaDir);
     File foundSource = metadata.findOriginalSource(jsonFile);
-    // It's acceptable if metadata is null (blank)
-    if (foundSource != null) {
-      assertEquals(xmlFile.getCanonicalPath(), foundSource.getCanonicalPath());
-    }
+    assertNotNull(foundSource, "Conversion metadata should be recorded");
+    assertEquals(xmlFile.getCanonicalPath(), foundSource.getCanonicalPath());
     
     System.out.println("✅ XML to JSON conversion successful with metadata recording");
   }

@@ -71,7 +71,7 @@ public class SimpleExcelTest {
     }
 
     System.out.println("\nConverting...");
-    MultiTableExcelToJsonConverter.convertFileToJson(excelFile, true);
+    MultiTableExcelToJsonConverter.convertFileToJson(excelFile, true, "SMART_CASING", "SMART_CASING");
 
     // List results
     System.out.println("\nFiles created:");

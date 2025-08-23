@@ -87,7 +87,7 @@ public class ExactReproTest {
     }
 
     System.out.println("Created Excel file: " + file.getAbsolutePath());
-    MultiTableExcelToJsonConverter.convertFileToJson(file, true);
+    MultiTableExcelToJsonConverter.convertFileToJson(file, true, "SMART_CASING", "SMART_CASING");
 
     // List all JSON files created
     File[] jsonFiles = tempDir.listFiles((dir, name) -> name.endsWith(".json"));

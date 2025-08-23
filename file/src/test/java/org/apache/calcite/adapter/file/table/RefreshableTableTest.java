@@ -190,7 +190,7 @@ public class RefreshableTableTest {
           rootSchema.add("test", FileSchemaFactory.INSTANCE.create(rootSchema, "test", operand));
 
       // Check table has overridden refresh interval
-      Table table = fileSchema.getTable("fast_refresh");
+      Table table = fileSchema.getTable("FAST_REFRESH");
       assertNotNull(table);
       assertTrue(table instanceof RefreshableTable);
 

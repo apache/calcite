@@ -166,7 +166,7 @@ public class ExcelNamingTest {
     System.out.println("File size: " + inputFile.length() + " bytes");
 
     try {
-      MultiTableExcelToJsonConverter.convertFileToJson(inputFile, true);
+      MultiTableExcelToJsonConverter.convertFileToJson(inputFile, true, "SMART_CASING", "SMART_CASING");
       System.out.println("Conversion completed successfully");
     } catch (Exception e) {
       System.out.println("Conversion failed: " + e.getMessage());
@@ -210,7 +210,7 @@ public class ExcelNamingTest {
     System.out.println("File exists: " + inputFile.exists());
     System.out.println("File size: " + inputFile.length() + " bytes");
 
-    MultiTableExcelToJsonConverter.convertFileToJson(inputFile, true);
+    MultiTableExcelToJsonConverter.convertFileToJson(inputFile, true, "SMART_CASING", "SMART_CASING");
 
     // List all files in directory after conversion
     System.out.println("Files in temp directory after conversion:");
@@ -241,7 +241,7 @@ public class ExcelNamingTest {
     System.out.println("File exists: " + inputFile.exists());
     System.out.println("File size: " + inputFile.length() + " bytes");
 
-    MultiTableExcelToJsonConverter.convertFileToJson(inputFile, true);
+    MultiTableExcelToJsonConverter.convertFileToJson(inputFile, true, "SMART_CASING", "SMART_CASING");
 
     // List all files in directory after conversion
     System.out.println("Files in temp directory after conversion:");

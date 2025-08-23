@@ -51,12 +51,12 @@ public class SimpleRefreshTest {
   @BeforeEach
   public void setup() throws Exception {
     schemaDir = tempDir.toFile();
-    ConversionMetadata.setCentralMetadataDirectory(schemaDir, "test");
+    // Metadata now stored directly in schemaDir
   }
   
   @AfterEach
   public void cleanup() throws Exception {
-    ConversionMetadata.setCentralMetadataDirectory(null, null);
+    // No longer need to reset central metadata directory
   }
   
   @Test

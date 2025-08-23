@@ -68,7 +68,7 @@ public class GuidHexDetectionTest {
     }
 
     System.out.println("Testing GUID/hex detection...");
-    MultiTableExcelToJsonConverter.convertFileToJson(file, true);
+    MultiTableExcelToJsonConverter.convertFileToJson(file, true, "SMART_CASING", "SMART_CASING");
 
     // Should create exactly 1 JSON file (not treat GUID rows as separate tables)
     // Exclude metadata files that start with dots

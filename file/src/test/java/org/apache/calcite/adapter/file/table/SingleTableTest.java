@@ -74,7 +74,7 @@ public class SingleTableTest {
     }
 
     System.out.println("Converting single table with identifier...");
-    MultiTableExcelToJsonConverter.convertFileToJson(excelFile, true);
+    MultiTableExcelToJsonConverter.convertFileToJson(excelFile, true, "SMART_CASING", "SMART_CASING");
 
     // List results
     System.out.println("\nFiles created:");
