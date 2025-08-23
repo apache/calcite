@@ -391,7 +391,7 @@ import static org.junit.jupiter.api.Assertions.*;
       baseName = baseName.substring(0, lastDot);
     }
     
-    File statsFile = new File(cacheDir, baseName + ".apericio_stats");
+    File statsFile = new File(cacheDir, baseName + ".aperio_stats");
     return statsFile.exists() ? statsFile : null;
   }
 

@@ -181,7 +181,7 @@ import java.util.Random;
     System.out.println("=".repeat(80));
     
     File cacheDir = tempDir.resolve("opt_cache").toFile();
-    File statsFile = new File(cacheDir, "comparison_test.apericio_stats");
+    File statsFile = new File(cacheDir, "comparison_test.aperio_stats");
     
     if (statsFile.exists()) {
       TableStatistics stats = StatisticsCache.loadStatistics(statsFile);
