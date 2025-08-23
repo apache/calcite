@@ -765,7 +765,8 @@ select count(*) as c,
   grouping_id(gender, deptno) as ggd,
   grouping_id(deptno, gender) as gdg
 from emp
-group by rollup(deptno, gender);
+group by rollup(deptno, gender)
+order by c, g, gid, gd, gg, ggd, gdg;
 +---+---+-----+----+----+-----+-----+
 | C | G | GID | GD | GG | GGD | GDG |
 +---+---+-----+----+----+-----+-----+
@@ -880,31 +881,32 @@ group by rollup(deptno);
 
 # GROUPING, GROUPING_ID and GROUP_ID
 select deptno, gender, grouping(deptno) gd, grouping(gender) gg,
-  grouping_id(deptno, gender) dg, grouping_id(gender, deptno) gd,
-  group_id() gid, count(*) c
+  grouping_id(deptno, gender) dg, grouping_id(gender, deptno) gid,
+  group_id() g, count(*) c
 from emp
-group by cube(deptno, gender);
-+--------+--------+----+----+----+----+-----+---+
-| DEPTNO | GENDER | GD | GG | DG | GD | GID | C |
-+--------+--------+----+----+----+----+-----+---+
-|     10 | F      |  0 |  0 |  0 |  0 |   0 | 1 |
-|     10 | M      |  0 |  0 |  0 |  0 |   0 | 1 |
-|     10 |        |  0 |  1 |  1 |  2 |   0 | 2 |
-|     20 | M      |  0 |  0 |  0 |  0 |   0 | 1 |
-|     20 |        |  0 |  1 |  1 |  2 |   0 | 1 |
-|     30 | F      |  0 |  0 |  0 |  0 |   0 | 2 |
-|     30 |        |  0 |  1 |  1 |  2 |   0 | 2 |
-|     50 | F      |  0 |  0 |  0 |  0 |   0 | 1 |
-|     50 | M      |  0 |  0 |  0 |  0 |   0 | 1 |
-|     50 |        |  0 |  1 |  1 |  2 |   0 | 2 |
-|     60 | F      |  0 |  0 |  0 |  0 |   0 | 1 |
-|     60 |        |  0 |  1 |  1 |  2 |   0 | 1 |
-|        | F      |  0 |  0 |  0 |  0 |   0 | 1 |
-|        | F      |  1 |  0 |  2 |  1 |   0 | 6 |
-|        | M      |  1 |  0 |  2 |  1 |   0 | 3 |
-|        |        |  0 |  1 |  1 |  2 |   0 | 1 |
-|        |        |  1 |  1 |  3 |  3 |   0 | 9 |
-+--------+--------+----+----+----+----+-----+---+
+group by cube(deptno, gender)
+order by deptno, gender, gd, gg, dg, gid, g, c;
++--------+--------+----+----+----+-----+---+---+
+| DEPTNO | GENDER | GD | GG | DG | GID | G | C |
++--------+--------+----+----+----+-----+---+---+
+|     10 | F      |  0 |  0 |  0 |   0 | 0 | 1 |
+|     10 | M      |  0 |  0 |  0 |   0 | 0 | 1 |
+|     10 |        |  0 |  1 |  1 |   2 | 0 | 2 |
+|     20 | M      |  0 |  0 |  0 |   0 | 0 | 1 |
+|     20 |        |  0 |  1 |  1 |   2 | 0 | 1 |
+|     30 | F      |  0 |  0 |  0 |   0 | 0 | 2 |
+|     30 |        |  0 |  1 |  1 |   2 | 0 | 2 |
+|     50 | F      |  0 |  0 |  0 |   0 | 0 | 1 |
+|     50 | M      |  0 |  0 |  0 |   0 | 0 | 1 |
+|     50 |        |  0 |  1 |  1 |   2 | 0 | 2 |
+|     60 | F      |  0 |  0 |  0 |   0 | 0 | 1 |
+|     60 |        |  0 |  1 |  1 |   2 | 0 | 1 |
+|        | F      |  0 |  0 |  0 |   0 | 0 | 1 |
+|        | F      |  1 |  0 |  2 |   1 | 0 | 6 |
+|        | M      |  1 |  0 |  2 |   1 | 0 | 3 |
+|        |        |  0 |  1 |  1 |   2 | 0 | 1 |
+|        |        |  1 |  1 |  3 |   3 | 0 | 9 |
++--------+--------+----+----+----+-----+---+---+
 (17 rows)
 
 !ok

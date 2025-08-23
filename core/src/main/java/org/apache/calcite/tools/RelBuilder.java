@@ -2934,6 +2934,9 @@ public class RelBuilder {
     project(subProjects, fieldNames);
   }
 
+  /** This method is used to expand the SQL GROUPING operator
+   * into a set of expressions. For example, it expands GROUPING(a, b, c)
+   * into X * GROUPING(a) + Y * GROUPING(b) + Z * GROUPING(c). */
   private void splitGrouping(
       List<AggCallPlus> aggCalls,
       List<RexNode> projects,
