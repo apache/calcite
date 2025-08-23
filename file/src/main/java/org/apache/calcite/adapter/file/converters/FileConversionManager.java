@@ -87,42 +87,42 @@ public class FileConversionManager {
     try {
       // Excel files
       if (path.endsWith(".xlsx") || path.endsWith(".xls")) {
-        boolean converted = convertExcelFile(sourceFile, baseDirectory, tableNameCasing, columnNameCasing);
+        boolean converted = convertExcelFile(sourceFile, outputDir, baseDirectory, tableNameCasing, columnNameCasing);
         LOGGER.debug("Converted Excel file to JSON: {}", sourceFile.getName());
         return converted;
       }
       
       // HTML files
       if (path.endsWith(".html") || path.endsWith(".htm")) {
-        List<File> jsonFiles = HtmlToJsonConverter.convert(sourceFile, outputDir, columnNameCasing, tableNameCasing);
+        List<File> jsonFiles = HtmlToJsonConverter.convert(sourceFile, outputDir, columnNameCasing, tableNameCasing, baseDirectory);
         LOGGER.debug("Converted HTML file to {} JSON files: {}", jsonFiles.size(), sourceFile.getName());
         return true;
       }
       
       // XML files
       if (path.endsWith(".xml")) {
-        List<File> jsonFiles = XmlToJsonConverter.convert(sourceFile, outputDir, columnNameCasing);
+        List<File> jsonFiles = XmlToJsonConverter.convert(sourceFile, outputDir, columnNameCasing, baseDirectory);
         LOGGER.debug("Converted XML file to {} JSON files: {}", jsonFiles.size(), sourceFile.getName());
         return true;
       }
       
       // Markdown files
       if (path.endsWith(".md")) {
-        MarkdownTableScanner.scanAndConvertTables(sourceFile);
+        MarkdownTableScanner.scanAndConvertTables(sourceFile, outputDir);
         LOGGER.debug("Converted Markdown file to JSON: {}", sourceFile.getName());
         return true;
       }
       
       // DOCX files
       if (path.endsWith(".docx")) {
-        DocxTableScanner.scanAndConvertTables(sourceFile);
+        DocxTableScanner.scanAndConvertTables(sourceFile, outputDir);
         LOGGER.debug("Converted DOCX file to JSON: {}", sourceFile.getName());
         return true;
       }
       
       // PPTX files
       if (path.endsWith(".pptx")) {
-        PptxTableScanner.scanAndConvertTables(sourceFile);
+        PptxTableScanner.scanAndConvertTables(sourceFile, outputDir);
         LOGGER.debug("Converted PPTX file to JSON: {}", sourceFile.getName());
         return true;
       }
@@ -161,7 +161,7 @@ public class FileConversionManager {
         File originalJson = new File(record.getOriginalPath());
         
         if (originalJson.exists()) {
-          JsonPathConverter.extract(originalJson, jsonFile, jsonPath);
+          JsonPathConverter.extract(originalJson, jsonFile, jsonPath, baseDirectory);
           LOGGER.debug("Re-extracted JSON via JSONPath {} from {}", 
               jsonPath, originalJson.getName());
           return true;
@@ -190,7 +190,7 @@ public class FileConversionManager {
         File originalFile = new File(record.getOriginalPath());
         
         if (originalFile.exists()) {
-          YamlPathConverter.extract(originalFile, yamlFile, jsonPath);
+          YamlPathConverter.extract(originalFile, yamlFile, jsonPath, baseDirectory);
           LOGGER.debug("Re-extracted YAML via JSONPath {} from {}", 
               jsonPath, originalFile.getName());
           return true;
@@ -361,9 +361,10 @@ public class FileConversionManager {
   /**
    * Converts an Excel file and records metadata.
    */
-  private static boolean convertExcelFile(File sourceFile, File baseDirectory, String tableNameCasing, String columnNameCasing) {
+  private static boolean convertExcelFile(File sourceFile, File outputDir, File baseDirectory, String tableNameCasing, String columnNameCasing) {
     try {
-      MultiTableExcelToJsonConverter.convertFileToJson(sourceFile, true, tableNameCasing, columnNameCasing);
+      // Convert Excel file to the specified output directory
+      MultiTableExcelToJsonConverter.convertFileToJson(sourceFile, outputDir, true, tableNameCasing, columnNameCasing, baseDirectory);
       
       // Record conversion for each sheet that was converted
       // Excel converter creates files like "filename__sheetname.json"
@@ -371,8 +372,8 @@ public class FileConversionManager {
       final String baseName = fileName.contains(".") ? 
           fileName.substring(0, fileName.lastIndexOf('.')) : fileName;
       
-      // Find generated JSON files
-      File[] jsonFiles = sourceFile.getParentFile().listFiles((dir, name) -> 
+      // Find generated JSON files in the output directory
+      File[] jsonFiles = outputDir.listFiles((dir, name) -> 
           name.startsWith(baseName + "__") && name.endsWith(".json"));
       
       if (jsonFiles != null && baseDirectory != null) {

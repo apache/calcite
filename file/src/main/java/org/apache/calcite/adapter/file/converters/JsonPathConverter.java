@@ -46,7 +46,7 @@ public class JsonPathConverter {
    * @param path The path expression to apply (simplified JSONPath-like syntax)
    * @throws IOException if extraction fails
    */
-  public static void extract(File sourceJson, File outputFile, String path) throws IOException {
+  public static void extract(File sourceJson, File outputFile, String path, File baseDirectory) throws IOException {
     LOGGER.debug("Extracting from {} using path: {}", sourceJson.getName(), path);
     
     // Read JSON file into JsonNode
@@ -81,7 +81,7 @@ public class JsonPathConverter {
     
     // Record the conversion for refresh tracking
     ConversionRecorder.recordConversion(sourceJson, outputFile, 
-        "JSONPATH_EXTRACTION[" + path + "]");
+        "JSONPATH_EXTRACTION[" + path + "]", baseDirectory);
   }
   
   /**

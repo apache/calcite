@@ -53,7 +53,7 @@ public class YamlPathConverter {
    * @param path The path expression to apply (uses same syntax as JsonPathConverter)
    * @throws IOException if extraction fails
    */
-  public static void extract(File sourceYaml, File outputFile, String path) throws IOException {
+  public static void extract(File sourceYaml, File outputFile, String path, File baseDirectory) throws IOException {
     LOGGER.debug("Extracting from {} using path: {}", sourceYaml.getName(), path);
     
     // Read YAML file into JsonNode (YAML is JSON-compatible)
@@ -88,7 +88,7 @@ public class YamlPathConverter {
     
     // Record the conversion for refresh tracking
     ConversionRecorder.recordConversion(sourceYaml, outputFile, 
-        "JSONPATH_EXTRACTION[" + path + "]");
+        "JSONPATH_EXTRACTION[" + path + "]", baseDirectory);
   }
   
   /**
@@ -97,7 +97,7 @@ public class YamlPathConverter {
   public static File extractToJson(File sourceYaml, String jsonPath, String outputName) throws IOException {
     File outputDir = sourceYaml.getParentFile();
     File outputFile = new File(outputDir, outputName + ".json");
-    extract(sourceYaml, outputFile, jsonPath);
+    extract(sourceYaml, outputFile, jsonPath, outputDir.getParentFile());
     return outputFile;
   }
   
@@ -107,7 +107,7 @@ public class YamlPathConverter {
   public static File extractToYaml(File sourceYaml, String jsonPath, String outputName) throws IOException {
     File outputDir = sourceYaml.getParentFile();
     File outputFile = new File(outputDir, outputName + ".yaml");
-    extract(sourceYaml, outputFile, jsonPath);
+    extract(sourceYaml, outputFile, jsonPath, outputDir.getParentFile());
     return outputFile;
   }
 }

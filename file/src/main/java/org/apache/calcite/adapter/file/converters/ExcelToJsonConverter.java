@@ -54,11 +54,7 @@ public final class ExcelToJsonConverter {
     // Prevent instantiation
   }
 
-  public static void convertFileToJson(File inputFile) throws IOException {
-    convertFileToJson(inputFile, "SMART_CASING", "SMART_CASING");
-  }
-
-  public static void convertFileToJson(File inputFile, String tableNameCasing, String columnNameCasing) throws IOException {
+  public static void convertFileToJson(File inputFile, File outputDir, String tableNameCasing, String columnNameCasing, File baseDirectory) throws IOException {
     // Acquire read lock on source file
     SourceFileLockManager.LockHandle lockHandle = null;
     try {
@@ -128,14 +124,14 @@ public final class ExcelToJsonConverter {
       String rawSheetName = sheet.getSheetName();
       String sheetName = SmartCasing.applyCasing(rawSheetName, tableNameCasing);
       String jsonFileName = baseName + "__" + sheetName + ".json";
-      File jsonFile = new File(inputFile.getParent(), jsonFileName);
+      File jsonFile = new File(outputDir, jsonFileName);
       FileWriter fileWriter =
           new FileWriter(jsonFile, StandardCharsets.UTF_8);
       mapper.writerWithDefaultPrettyPrinter().writeValue(fileWriter, sheetData);
       fileWriter.close();
 
       // Record the conversion for refresh tracking
-      ConversionRecorder.recordExcelConversion(inputFile, jsonFile);
+      ConversionRecorder.recordExcelConversion(inputFile, jsonFile, baseDirectory);
     }
     workbook.close();
     file.close();

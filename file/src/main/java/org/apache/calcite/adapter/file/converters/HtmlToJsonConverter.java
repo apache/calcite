@@ -64,8 +64,8 @@ public class HtmlToJsonConverter {
    * @return List of generated JSON files
    * @throws IOException if conversion fails
    */
-  public static List<File> convert(File htmlFile, File outputDir) throws IOException {
-    return convert(htmlFile, outputDir, "UNCHANGED");
+  public static List<File> convert(File htmlFile, File outputDir, File baseDirectory) throws IOException {
+    return convert(htmlFile, outputDir, "UNCHANGED", baseDirectory);
   }
 
   /**
@@ -77,8 +77,8 @@ public class HtmlToJsonConverter {
    * @return List of generated JSON files
    * @throws IOException if conversion fails
    */
-  public static List<File> convert(File htmlFile, File outputDir, String columnNameCasing) throws IOException {
-    return convert(htmlFile, outputDir, columnNameCasing, "SMART_CASING");
+  public static List<File> convert(File htmlFile, File outputDir, String columnNameCasing, File baseDirectory) throws IOException {
+    return convert(htmlFile, outputDir, columnNameCasing, "SMART_CASING", baseDirectory);
   }
 
   /**
@@ -103,7 +103,7 @@ public class HtmlToJsonConverter {
    * @throws IOException if conversion fails
    */
   public static List<File> convert(File htmlFile, File outputDir, String columnNameCasing, 
-                                   String tableNameCasing, String explicitTableName) throws IOException {
+                                   String tableNameCasing, String explicitTableName, File baseDirectory) throws IOException {
     List<File> jsonFiles = new ArrayList<>();
     // Use HtmlTableScanner to find tables - make sure we re-scan each time
     Source source = Sources.of(htmlFile);
@@ -127,7 +127,7 @@ public class HtmlToJsonConverter {
       jsonFiles.add(jsonFile);
       
       // Record the conversion for refresh tracking
-      ConversionRecorder.recordConversion(htmlFile, jsonFile, "HTML_TO_JSON");
+      ConversionRecorder.recordConversion(htmlFile, jsonFile, "HTML_TO_JSON", baseDirectory);
       
       LOGGER.info("Wrote table to " + jsonFile.getAbsolutePath() + " with explicit name: " + explicitTableName);
     } else {
@@ -146,7 +146,7 @@ public class HtmlToJsonConverter {
         jsonFiles.add(jsonFile);
         
         // Record the conversion for refresh tracking
-        ConversionRecorder.recordConversion(htmlFile, jsonFile, "HTML_TO_JSON");
+        ConversionRecorder.recordConversion(htmlFile, jsonFile, "HTML_TO_JSON", baseDirectory);
         
         LOGGER.info("Wrote table to " + jsonFile.getAbsolutePath());
       }
@@ -155,81 +155,10 @@ public class HtmlToJsonConverter {
     return jsonFiles;
   }
   
-  public static List<File> convert(File htmlFile, File outputDir, String columnNameCasing, String tableNameCasing) throws IOException {
-    return convert(htmlFile, outputDir, columnNameCasing, tableNameCasing, null);
+  public static List<File> convert(File htmlFile, File outputDir, String columnNameCasing, String tableNameCasing, File baseDirectory) throws IOException {
+    return convert(htmlFile, outputDir, columnNameCasing, tableNameCasing, null, baseDirectory);
   }
   
-  // Original method implementation that was unreachable - remove it
-  private static List<File> convertOld(File htmlFile, File outputDir, String columnNameCasing, String tableNameCasing) throws IOException {
-    List<File> jsonFiles = new ArrayList<>();
-
-    // Use HtmlTableScanner to find tables - make sure we re-scan each time
-    Source source = Sources.of(htmlFile);
-    List<HtmlTableScanner.TableInfo> tableInfos = HtmlTableScanner.scanTables(source, tableNameCasing);
-
-    LOGGER.info("Found " + tableInfos.size() + " tables in " + htmlFile.getName());
-
-    // Ensure output directory exists
-    if (!outputDir.exists()) {
-      outputDir.mkdirs();
-    }
-
-    // Parse HTML to extract table data - ensure we re-read the file
-    // Force re-reading by not using any cached document
-    Document doc = Jsoup.parse(htmlFile, "UTF-8");
-    LOGGER.info("Parsed HTML file: " + htmlFile.getName() + " (size: " + htmlFile.length() + " bytes, lastModified: " + htmlFile.lastModified() + ")");
-    Elements tables = doc.select("table");
-    LOGGER.info("Found " + tables.size() + " table elements in DOM");
-
-    // Convert each table to a JSON file
-    for (int i = 0; i < tableInfos.size(); i++) {
-      HtmlTableScanner.TableInfo tableInfo = tableInfos.get(i);
-      String tableName = tableInfo.name;
-
-      // Create filename: original_tablename.json
-      String baseFileName = ConverterUtils.getBaseFileName(htmlFile.getName(), ".html", ".htm");
-
-      File jsonFile = new File(outputDir, baseFileName + "__" + tableName + ".json");
-
-      try {
-        // Get the actual table element using the selector or index
-        Element table = null;
-        if (tableInfo.selector.startsWith("table[index=")) {
-          // Handle index-based selection directly
-          if (tableInfo.index < tables.size()) {
-            table = tables.get(tableInfo.index);
-          }
-        } else {
-          // Use regular CSS selector
-          table = doc.selectFirst(tableInfo.selector);
-        }
-        
-        if (table != null) {
-          // Delete existing file to ensure fresh write
-          if (jsonFile.exists()) {
-            jsonFile.delete();
-            LOGGER.info("Deleted existing JSON file for refresh: " + jsonFile.getName());
-          }
-          
-          // Log table content to debug
-          LOGGER.info("Table HTML content: " + table.html().substring(0, Math.min(200, table.html().length())));
-          
-          writeTableAsJson(table, jsonFile, columnNameCasing);
-          jsonFiles.add(jsonFile);
-          
-          // Record the conversion for refresh tracking
-          ConversionRecorder.recordConversion(htmlFile, jsonFile, "HTML_TO_JSON");
-          
-          LOGGER.info("Wrote table to " + jsonFile.getAbsolutePath());
-        }
-      } catch (IOException e) {
-        LOGGER.log(Level.WARNING, "Failed to write table " + tableName + " to JSON", e);
-        // Continue with other tables
-      }
-    }
-
-    return jsonFiles;
-  }
 
 
   /**
@@ -375,7 +304,7 @@ public class HtmlToJsonConverter {
    */
   public static Map<String, List<File>> convertWithCrawling(String startUrl, File outputDir, 
                                                             CrawlerConfiguration config) throws IOException {
-    return convertWithCrawling(startUrl, outputDir, config, "UNCHANGED", "SMART_CASING");
+    return convertWithCrawling(startUrl, outputDir, config, "UNCHANGED", "SMART_CASING", outputDir.getParentFile());
   }
   
   /**
@@ -391,7 +320,7 @@ public class HtmlToJsonConverter {
   public static Map<String, List<File>> convertWithCrawling(String startUrl, File outputDir,
                                                             CrawlerConfiguration config,
                                                             String columnNameCasing) throws IOException {
-    return convertWithCrawling(startUrl, outputDir, config, columnNameCasing, "SMART_CASING");
+    return convertWithCrawling(startUrl, outputDir, config, columnNameCasing, "SMART_CASING", outputDir.getParentFile());
   }
 
   /**
@@ -408,7 +337,7 @@ public class HtmlToJsonConverter {
   public static Map<String, List<File>> convertWithCrawling(String startUrl, File outputDir,
                                                             CrawlerConfiguration config,
                                                             String columnNameCasing,
-                                                            String tableNameCasing) throws IOException {
+                                                            String tableNameCasing, File baseDirectory) throws IOException {
     Map<String, List<File>> allJsonFiles = new HashMap<>();
     
     // Ensure output directory exists
@@ -429,7 +358,7 @@ public class HtmlToJsonConverter {
         String url = entry.getKey();
         List<TableInfo> tables = entry.getValue();
         
-        List<File> jsonFiles = processHtmlTables(url, tables, outputDir, columnNameCasing, tableNameCasing);
+        List<File> jsonFiles = processHtmlTables(url, tables, outputDir, columnNameCasing, tableNameCasing, baseDirectory);
         if (!jsonFiles.isEmpty()) {
           allJsonFiles.put(url, jsonFiles);
         }
@@ -440,7 +369,7 @@ public class HtmlToJsonConverter {
         String url = entry.getKey();
         File dataFile = entry.getValue();
         
-        List<File> jsonFiles = processDataFile(url, dataFile, outputDir, columnNameCasing, tableNameCasing);
+        List<File> jsonFiles = processDataFile(url, dataFile, outputDir, columnNameCasing, tableNameCasing, baseDirectory);
         if (!jsonFiles.isEmpty()) {
           allJsonFiles.put(url, jsonFiles);
         }
@@ -459,7 +388,7 @@ public class HtmlToJsonConverter {
    * Processes HTML tables from a crawled page.
    */
   private static List<File> processHtmlTables(String url, List<TableInfo> tables, 
-                                             File outputDir, String columnNameCasing, String tableNameCasing) throws IOException {
+                                             File outputDir, String columnNameCasing, String tableNameCasing, File baseDirectory) throws IOException {
     List<File> jsonFiles = new ArrayList<>();
     
     // Create a safe filename from URL
@@ -488,7 +417,7 @@ public class HtmlToJsonConverter {
           
           // Record the conversion for refresh tracking (using URL as source identifier)
           File sourceFile = new File(url); // Pseudo-file for URL tracking
-          ConversionRecorder.recordConversion(sourceFile, jsonFile, "HTML_TO_JSON");
+          ConversionRecorder.recordConversion(sourceFile, jsonFile, "HTML_TO_JSON", baseDirectory);
           
           LOGGER.fine("Wrote table from " + url + " to " + jsonFile.getName());
         }
@@ -504,7 +433,7 @@ public class HtmlToJsonConverter {
    * Processes a downloaded data file (CSV, Excel, etc.).
    */
   private static List<File> processDataFile(String url, File dataFile, 
-                                           File outputDir, String columnNameCasing, String tableNameCasing) throws IOException {
+                                           File outputDir, String columnNameCasing, String tableNameCasing, File baseDirectory) throws IOException {
     List<File> jsonFiles = new ArrayList<>();
     String fileName = dataFile.getName().toLowerCase();
     
@@ -517,9 +446,9 @@ public class HtmlToJsonConverter {
         
       } else if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
         // Use Excel converter - convert to directory and find generated files
-        MultiTableExcelToJsonConverter.convertFileToJson(dataFile, true, "SMART_CASING", "SMART_CASING");
-        // Find the generated JSON files
         File parentDir = dataFile.getParentFile();
+        MultiTableExcelToJsonConverter.convertFileToJson(dataFile, parentDir, true, "SMART_CASING", "SMART_CASING", baseDirectory);
+        // Find the generated JSON files
         String baseName = dataFile.getName().replaceFirst("\\.[^.]+$", "");
         File[] generated = parentDir.listFiles((dir, name) -> 
             name.startsWith(baseName) && name.endsWith(".json"));

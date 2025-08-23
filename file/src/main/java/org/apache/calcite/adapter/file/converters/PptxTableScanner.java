@@ -63,8 +63,11 @@ public final class PptxTableScanner {
 
   /**
    * Scans a PPTX file and extracts all tables, converting them to JSON files.
+   * 
+   * @param inputFile The PPTX file to scan
+   * @param outputDir The directory to write JSON files to
    */
-  public static void scanAndConvertTables(File inputFile) throws IOException {
+  public static void scanAndConvertTables(File inputFile, File outputDir) throws IOException {
     LOGGER.debug("Scanning PPTX file for tables: {}", inputFile.getName());
 
     // Acquire read lock on source file
@@ -119,14 +122,14 @@ public final class PptxTableScanner {
           jsonFileName = baseFileName + ".json";
         }
 
-        File jsonFile = new File(inputFile.getParent(), jsonFileName);
+        File jsonFile = new File(outputDir, jsonFileName);
         LOGGER.debug("Writing JSON file: {}", jsonFileName);
 
         try (FileWriter writer = new FileWriter(jsonFile, StandardCharsets.UTF_8)) {
           mapper.writerWithDefaultPrettyPrinter().writeValue(writer, table.data);
           
-          // Record the conversion for refresh tracking
-          ConversionRecorder.recordConversion(inputFile, jsonFile, "PPTX_TO_JSON");
+          // Record the conversion for refresh tracking - use schema directory for metadata
+          ConversionRecorder.recordConversion(inputFile, jsonFile, "PPTX_TO_JSON", outputDir.getParentFile());
         }
       }
     } finally {

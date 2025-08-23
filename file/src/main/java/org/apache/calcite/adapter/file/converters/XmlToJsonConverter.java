@@ -81,8 +81,8 @@ public class XmlToJsonConverter {
    * @return List of generated JSON files
    * @throws IOException if conversion fails
    */
-  public static List<File> convert(File xmlFile, File outputDir) throws IOException {
-    return convert(xmlFile, outputDir, null);
+  public static List<File> convert(File xmlFile, File outputDir, File baseDirectory) throws IOException {
+    return convert(xmlFile, outputDir, null, baseDirectory);
   }
   
   /**
@@ -94,8 +94,8 @@ public class XmlToJsonConverter {
    * @return List of generated JSON files
    * @throws IOException if conversion fails
    */
-  public static List<File> convert(File xmlFile, File outputDir, String xpath) throws IOException {
-    return convert(xmlFile, outputDir, xpath, "UNCHANGED");
+  public static List<File> convert(File xmlFile, File outputDir, String xpath, File baseDirectory) throws IOException {
+    return convert(xmlFile, outputDir, xpath, "UNCHANGED", baseDirectory);
   }
   
   /**
@@ -108,7 +108,7 @@ public class XmlToJsonConverter {
    * @return List of generated JSON files
    * @throws IOException if conversion fails
    */
-  public static List<File> convert(File xmlFile, File outputDir, String xpath, String columnNameCasing) 
+  public static List<File> convert(File xmlFile, File outputDir, String xpath, String columnNameCasing, File baseDirectory) 
       throws IOException {
     List<File> jsonFiles = new ArrayList<>();
     
@@ -149,7 +149,7 @@ public class XmlToJsonConverter {
           jsonFiles.add(jsonFile);
           
           // Record the conversion for refresh tracking
-          ConversionRecorder.recordConversion(xmlFile, jsonFile, "XML_TO_JSON");
+          ConversionRecorder.recordConversion(xmlFile, jsonFile, "XML_TO_JSON", baseDirectory);
           
           LOGGER.fine("Wrote table '" + tableName + "' to " + jsonFile.getAbsolutePath());
           

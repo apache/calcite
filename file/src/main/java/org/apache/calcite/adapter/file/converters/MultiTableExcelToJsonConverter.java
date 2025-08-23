@@ -72,13 +72,14 @@ public final class MultiTableExcelToJsonConverter {
 
   /**
    * Converts an Excel file to JSON with multi-table detection and custom casing.
+   * Outputs files to the specified output directory.
    */
-  public static void convertFileToJson(File inputFile, boolean detectMultipleTables,
-      String tableNameCasing, String columnNameCasing)
+  public static void convertFileToJson(File inputFile, File outputDir, boolean detectMultipleTables,
+      String tableNameCasing, String columnNameCasing, File baseDirectory)
       throws IOException {
     if (!detectMultipleTables) {
       // Fall back to standard conversion
-      ExcelToJsonConverter.convertFileToJson(inputFile, tableNameCasing, columnNameCasing);
+      ExcelToJsonConverter.convertFileToJson(inputFile, outputDir, tableNameCasing, columnNameCasing, baseDirectory);
       return;
     }
 
@@ -168,7 +169,7 @@ public final class MultiTableExcelToJsonConverter {
           }
 
           LOGGER.trace("Writing JSON file: " + jsonFileName);
-          File jsonFile = new File(inputFile.getParent(), jsonFileName);
+          File jsonFile = new File(outputDir, jsonFileName);
           try (FileWriter fileWriter =
               new FileWriter(jsonFile, StandardCharsets.UTF_8)) {
             mapper.writerWithDefaultPrettyPrinter()
@@ -176,7 +177,7 @@ public final class MultiTableExcelToJsonConverter {
           }
 
           // Record the conversion for refresh tracking
-          ConversionRecorder.recordExcelConversion(inputFile, jsonFile);
+          ConversionRecorder.recordExcelConversion(inputFile, jsonFile, baseDirectory);
 
           tableIndex++;
         }
