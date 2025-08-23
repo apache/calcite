@@ -84,23 +84,6 @@ dependencies {
     testRuntimeOnly("org.apache.logging.log4j:log4j-core:2.23.1")
 }
 
-// Configure test logging
-tasks.test {
-    testLogging {
-        // Show standard out and standard error of the test JVM(s) on the console
-        showStandardStreams = true
-        
-        // Show logging output from tests
-        events("passed", "skipped", "failed", "standardOut", "standardError")
-        
-        // Show more detailed output
-        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
-        showExceptions = true
-        showCauses = true
-        showStackTraces = true
-    }
-}
-
 fun JavaCompile.configureAnnotationSet(sourceSet: SourceSet) {
     source = sourceSet.java
     classpath = sourceSet.compileClasspath
@@ -133,6 +116,23 @@ ide {
 }
 
 tasks.test {
+    // Set working directory to build directory for all tests
+    workingDir = layout.buildDirectory.get().asFile
+    
+    testLogging {
+        // Show standard out and standard error of the test JVM(s) on the console
+        showStandardStreams = true
+        
+        // Show logging output from tests
+        events("passed", "skipped", "failed", "standardOut", "standardError")
+        
+        // Show more detailed output
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        showExceptions = true
+        showCauses = true
+        showStackTraces = true
+    }
+    
     useJUnitPlatform {
         // By default, run only unit tests for faster feedback
         includeTags("unit")

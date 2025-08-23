@@ -76,7 +76,7 @@ cleanup() {
     echo -e "${YELLOW}Cleaning up caches...${NC}"
     rm -rf /tmp/.parquet_cache
     rm -rf "$CACHE_DIR"/*
-    rm -f /tmp/*.apericio_stats
+    rm -f /tmp/*.aperio_stats
     rm -f /tmp/*.hll
     rm -f /tmp/*.stats
 }
