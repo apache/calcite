@@ -109,7 +109,7 @@ public class JsonPathRefreshTest {
     
     // Extract users using JSONPath
     File usersFile = new File(schemaDir, "users.json");
-    JsonPathConverter.extract(sourceJsonFile, usersFile, "$.data.users");
+    JsonPathConverter.extract(sourceJsonFile, usersFile, "$.data.users", schemaDir);
     
     // Verify metadata was recorded
     ConversionMetadata metadata = new ConversionMetadata(schemaDir);
@@ -227,8 +227,8 @@ public class JsonPathRefreshTest {
     File employeesFile = new File(schemaDir, "employees.json");
     File departmentsFile = new File(schemaDir, "departments.json");
     
-    JsonPathConverter.extract(sourceJsonFile, employeesFile, "$.company.employees");
-    JsonPathConverter.extract(sourceJsonFile, departmentsFile, "$.company.departments");
+    JsonPathConverter.extract(sourceJsonFile, employeesFile, "$.company.employees", schemaDir);
+    JsonPathConverter.extract(sourceJsonFile, departmentsFile, "$.company.departments", schemaDir);
     
     
     // Create connection with refresh enabled

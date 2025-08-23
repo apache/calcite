@@ -34,6 +34,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.math.BigDecimal;
 import java.io.File;
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.Date;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -695,6 +696,47 @@ public class FileAdapterTest {
   }
 
   @Test void testBoolean() {
+    // Debug: Check table discovery before running the actual test
+    try {
+      Properties info = new Properties();
+      info.put("model", FileAdapterTests.jsonPath("smart"));
+      info.put("lex", "ORACLE");
+      info.put("unquotedCasing", "TO_LOWER");
+      
+      Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
+      DatabaseMetaData metaData = connection.getMetaData();
+      
+      System.out.println("=== DEBUG: Table Discovery for testBoolean ===");
+      System.out.println("Engine: " + System.getProperty("CALCITE_FILE_ENGINE_TYPE"));
+      
+      // List all schemas
+      System.out.println("Schemas:");
+      try (ResultSet schemas = metaData.getSchemas()) {
+        while (schemas.next()) {
+          String schemaName = schemas.getString("TABLE_SCHEM");
+          System.out.println("  - " + schemaName);
+        }
+      }
+      
+      // List all tables
+      System.out.println("All tables:");
+      try (ResultSet tables = metaData.getTables(null, null, null, null)) {
+        while (tables.next()) {
+          String schema = tables.getString("TABLE_SCHEM");
+          String table = tables.getString("TABLE_NAME");
+          String type = tables.getString("TABLE_TYPE");
+          System.out.println("  - " + schema + "." + table + " (" + type + ")");
+        }
+      }
+      
+      connection.close();
+      System.out.println("=== End Debug Info ===");
+      
+    } catch (Exception e) {
+      System.out.println("Debug failed: " + e.getMessage());
+      e.printStackTrace();
+    }
+    
     sql("smart", "select \"empno\", \"slacker\" from \"SALES\".emps where \"slacker\"")
         .returns("empno=100; slacker=true").ok();
   }

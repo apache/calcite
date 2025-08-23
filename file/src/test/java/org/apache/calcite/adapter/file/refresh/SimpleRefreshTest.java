@@ -75,7 +75,7 @@ public class SimpleRefreshTest {
     }
     
     // Convert to JSON
-    List<File> jsonFiles = HtmlToJsonConverter.convert(htmlFile, schemaDir);
+    List<File> jsonFiles = HtmlToJsonConverter.convert(htmlFile, schemaDir, schemaDir);
     assertEquals(1, jsonFiles.size());
     File jsonFile = jsonFiles.get(0);
     
@@ -102,7 +102,7 @@ public class SimpleRefreshTest {
     }
     
     // Re-convert to JSON
-    jsonFiles = HtmlToJsonConverter.convert(htmlFile, schemaDir);
+    jsonFiles = HtmlToJsonConverter.convert(htmlFile, schemaDir, schemaDir);
     assertEquals(1, jsonFiles.size());
     jsonFile = jsonFiles.get(0);
     

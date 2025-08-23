@@ -458,7 +458,7 @@ public class FileConversionEndToEndTest {
     }
     
     // Convert
-    List<File> jsonFiles = HtmlToJsonConverter.convert(htmlFile, schemaDir);
+    List<File> jsonFiles = HtmlToJsonConverter.convert(htmlFile, schemaDir, schemaDir);
     assertFalse(jsonFiles.isEmpty());
     File jsonFile = jsonFiles.get(0);
     

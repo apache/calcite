@@ -78,7 +78,7 @@ public class SimpleJsonPathRefreshTest {
     
     // Extract using JSONPath
     File extractedFile = new File(schemaDir, "users_extracted.json");
-    JsonPathConverter.extract(sourceJsonFile, extractedFile, "$.data.users");
+    JsonPathConverter.extract(sourceJsonFile, extractedFile, "$.data.users", schemaDir);
     
     // Verify extraction worked
     assertTrue(extractedFile.exists(), "Extracted file should exist");
@@ -122,11 +122,11 @@ public class SimpleJsonPathRefreshTest {
     
     // Extract users
     File usersFile = new File(schemaDir, "users_only.json");
-    JsonPathConverter.extract(sourceJsonFile, usersFile, "$.data.users");
+    JsonPathConverter.extract(sourceJsonFile, usersFile, "$.data.users", schemaDir);
     
     // Extract products  
     File productsFile = new File(schemaDir, "products_only.json");
-    JsonPathConverter.extract(sourceJsonFile, productsFile, "$.data.products");
+    JsonPathConverter.extract(sourceJsonFile, productsFile, "$.data.products", schemaDir);
     
     // Verify users extraction
     assertTrue(usersFile.exists(), "Users file should exist");

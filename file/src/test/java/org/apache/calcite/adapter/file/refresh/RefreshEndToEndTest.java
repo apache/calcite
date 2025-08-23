@@ -82,7 +82,7 @@ public class RefreshEndToEndTest {
     }
     
     // Convert HTML to JSON using the converter directly
-    List<File> jsonFiles = HtmlToJsonConverter.convert(htmlFile, schemaDir);
+    List<File> jsonFiles = HtmlToJsonConverter.convert(htmlFile, schemaDir, schemaDir);
     assertFalse(jsonFiles.isEmpty(), "Should create at least one JSON file");
     
     File jsonFile = jsonFiles.get(0);
@@ -193,7 +193,7 @@ public class RefreshEndToEndTest {
     }
     
     // Convert HTML to JSON
-    List<File> jsonFiles = HtmlToJsonConverter.convert(htmlFile, schemaDir);
+    List<File> jsonFiles = HtmlToJsonConverter.convert(htmlFile, schemaDir, schemaDir);
     assertFalse(jsonFiles.isEmpty(), "Should create at least one JSON file");
     File jsonFile = jsonFiles.get(0);
     System.out.println("Generated JSON file: " + jsonFile.getName());
