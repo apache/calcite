@@ -17,6 +17,8 @@
 package org.apache.calcite.adapter.file.converters;
 
 import org.apache.calcite.adapter.file.metadata.ConversionMetadata;
+import org.apache.calcite.adapter.file.storage.StorageProvider;
+import org.apache.calcite.adapter.file.storage.StorageProviderFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,19 +49,52 @@ public class FileConversionManager {
    * @return true if conversion was performed, false if no conversion needed
    */
   public static boolean convertIfNeeded(File sourceFile, File outputDir, String columnNameCasing) {
+    return convertIfNeeded(sourceFile, outputDir, columnNameCasing, "SMART_CASING");
+  }
+  
+  /**
+   * Identifies the source file type and runs the appropriate conversion if needed.
+   * 
+   * @param sourceFile The file to potentially convert
+   * @param outputDir The directory for output files
+   * @param columnNameCasing Column name casing strategy
+   * @param tableNameCasing Table name casing strategy
+   * @return true if conversion was performed, false if no conversion needed
+   */
+  public static boolean convertIfNeeded(File sourceFile, File outputDir, String columnNameCasing, String tableNameCasing) {
+    return convertIfNeeded(sourceFile, outputDir, columnNameCasing, tableNameCasing, null);
+  }
+  
+  /**
+   * Identifies the source file type and runs the appropriate conversion if needed.
+   * 
+   * @param sourceFile The file to potentially convert
+   * @param outputDir The directory for output files
+   * @param columnNameCasing Column name casing strategy
+   * @param tableNameCasing Table name casing strategy
+   * @param baseDirectory The base directory for metadata storage (if null, uses outputDir)
+   * @return true if conversion was performed, false if no conversion needed
+   */
+  public static boolean convertIfNeeded(File sourceFile, File outputDir, String columnNameCasing, String tableNameCasing, File baseDirectory) {
     String path = sourceFile.getPath().toLowerCase();
+    
+    // First check if conversion is needed using metadata-based change detection
+    if (baseDirectory != null && !isConversionNeeded(sourceFile, baseDirectory)) {
+      LOGGER.debug("File {} has not changed, skipping conversion", sourceFile.getName());
+      return false;
+    }
     
     try {
       // Excel files
       if (path.endsWith(".xlsx") || path.endsWith(".xls")) {
-        SafeExcelToJsonConverter.convertIfNeeded(sourceFile, true);
+        boolean converted = convertExcelFile(sourceFile, baseDirectory, tableNameCasing, columnNameCasing);
         LOGGER.debug("Converted Excel file to JSON: {}", sourceFile.getName());
-        return true;
+        return converted;
       }
       
       // HTML files
       if (path.endsWith(".html") || path.endsWith(".htm")) {
-        List<File> jsonFiles = HtmlToJsonConverter.convert(sourceFile, outputDir, columnNameCasing);
+        List<File> jsonFiles = HtmlToJsonConverter.convert(sourceFile, outputDir, columnNameCasing, tableNameCasing);
         LOGGER.debug("Converted HTML file to {} JSON files: {}", jsonFiles.size(), sourceFile.getName());
         return true;
       }
@@ -94,12 +129,12 @@ public class FileConversionManager {
       
       // JSON files - check if they're derived via JSONPath
       if (path.endsWith(".json") || path.endsWith(".json.gz")) {
-        return handleJsonFile(sourceFile, outputDir);
+        return handleJsonFile(sourceFile, outputDir, baseDirectory);
       }
       
       // YAML files - check if they're derived via JSONPath
       if (path.endsWith(".yaml") || path.endsWith(".yml")) {
-        return handleYamlFile(sourceFile, outputDir);
+        return handleYamlFile(sourceFile, outputDir, baseDirectory);
       }
       
       // CSV, Parquet, and other direct-use files don't need conversion
@@ -114,9 +149,10 @@ public class FileConversionManager {
   /**
    * Handles JSON files which might be derived via JSONPath extraction.
    */
-  private static boolean handleJsonFile(File jsonFile, File outputDir) {
+  private static boolean handleJsonFile(File jsonFile, File outputDir, File baseDirectory) {
     try {
-      ConversionMetadata metadata = new ConversionMetadata(jsonFile.getParentFile());
+      File metadataDir = baseDirectory != null ? baseDirectory : jsonFile.getParentFile();
+      ConversionMetadata metadata = new ConversionMetadata(metadataDir);
       ConversionMetadata.ConversionRecord record = metadata.getConversionRecord(jsonFile);
       
       if (record != null && record.getConversionType().startsWith("JSONPATH_EXTRACTION")) {
@@ -142,9 +178,10 @@ public class FileConversionManager {
    * Handles YAML files which might be derived via JSONPath extraction.
    * YAML is a superset of JSON, so JSONPath queries work with YAML data.
    */
-  private static boolean handleYamlFile(File yamlFile, File outputDir) {
+  private static boolean handleYamlFile(File yamlFile, File outputDir, File baseDirectory) {
     try {
-      ConversionMetadata metadata = new ConversionMetadata(yamlFile.getParentFile());
+      File metadataDir = baseDirectory != null ? baseDirectory : yamlFile.getParentFile();
+      ConversionMetadata metadata = new ConversionMetadata(metadataDir);
       ConversionMetadata.ConversionRecord record = metadata.getConversionRecord(yamlFile);
       
       if (record != null && record.getConversionType().startsWith("JSONPATH_EXTRACTION")) {
@@ -224,6 +261,140 @@ public class FileConversionManager {
            lower.endsWith(".tsv") || lower.endsWith(".tsv.gz") ||
            lower.endsWith(".json") || lower.endsWith(".json.gz") ||
            lower.endsWith(".parquet") ||
+           lower.endsWith(".arrow") ||
            lower.endsWith(".yaml") || lower.endsWith(".yml");
+  }
+  
+  /**
+   * Checks if conversion is needed by comparing current file state with stored metadata.
+   * Uses appropriate change detection (ETag for HTTP/S3, timestamp for local files).
+   */
+  private static boolean isConversionNeeded(File sourceFile, File baseDirectory) {
+    try {
+      ConversionMetadata metadata = new ConversionMetadata(baseDirectory);
+      ConversionMetadata.ConversionRecord record = metadata.getConversionRecord(sourceFile);
+      
+      if (record == null) {
+        LOGGER.debug("No conversion record found for {}, conversion needed", sourceFile.getName());
+        return true; // No record exists, need to convert
+      }
+      
+      // Check if source file has changed
+      boolean hasChanged = checkFileChanged(record, sourceFile);
+      LOGGER.debug("Change detection for {}: hasChanged={}", sourceFile.getName(), hasChanged);
+      return hasChanged;
+      
+    } catch (Exception e) {
+      LOGGER.warn("Failed to check conversion metadata for {}: {}", sourceFile.getName(), e.getMessage());
+      return true; // Conservative: convert if we can't check
+    }
+  }
+  
+  /**
+   * Checks if a file has changed using the appropriate detection method.
+   */
+  private static boolean checkFileChanged(ConversionMetadata.ConversionRecord record, File sourceFile) {
+    String filePath = sourceFile.getAbsolutePath();
+    
+    // For remote files (HTTP, S3, etc.), use StorageProvider metadata comparison
+    if (isRemoteFile(filePath)) {
+      try {
+        StorageProvider provider = StorageProviderFactory.createFromUrl(filePath);
+        StorageProvider.FileMetadata currentMetadata = provider.getMetadata(filePath);
+        return record.hasChangedViaMetadata(currentMetadata);
+      } catch (Exception e) {
+        LOGGER.warn("Failed to get metadata for remote file {}: {}", filePath, e.getMessage());
+        return true; // Conservative: assume changed if we can't check
+      }
+    } else {
+      // For local files, use built-in timestamp-based detection
+      return record.hasChanged();
+    }
+  }
+  
+  /**
+   * Records conversion metadata with appropriate metadata for change detection.
+   */
+  private static void recordConversion(File sourceFile, File convertedFile, String conversionType, File baseDirectory) {
+    try {
+      ConversionMetadata metadata = new ConversionMetadata(baseDirectory);
+      String filePath = sourceFile.getAbsolutePath();
+      
+      if (isRemoteFile(filePath)) {
+        // For remote files, capture StorageProvider metadata
+        try {
+          StorageProvider provider = StorageProviderFactory.createFromUrl(filePath);
+          StorageProvider.FileMetadata fileMetadata = provider.getMetadata(filePath);
+          
+          ConversionMetadata.ConversionRecord record = new ConversionMetadata.ConversionRecord(
+              filePath,
+              convertedFile.getAbsolutePath(),
+              conversionType,
+              null, // cachedFile
+              fileMetadata.getEtag(),
+              fileMetadata.getSize(),
+              fileMetadata.getContentType()
+          );
+          
+          metadata.recordConversion(convertedFile, record);
+          LOGGER.debug("Recorded conversion with remote metadata for {}: etag={}, size={}", 
+              sourceFile.getName(), fileMetadata.getEtag(), fileMetadata.getSize());
+          
+        } catch (Exception e) {
+          LOGGER.warn("Failed to get remote metadata for {}, using basic record: {}", filePath, e.getMessage());
+          // Fallback to basic record
+          metadata.recordConversion(convertedFile, new ConversionMetadata.ConversionRecord(
+              filePath, convertedFile.getAbsolutePath(), conversionType));
+        }
+      } else {
+        // For local files, use basic record (timestamp-based)
+        metadata.recordConversion(convertedFile, new ConversionMetadata.ConversionRecord(
+            filePath, convertedFile.getAbsolutePath(), conversionType));
+        LOGGER.debug("Recorded conversion with timestamp metadata for {}", sourceFile.getName());
+      }
+      
+    } catch (Exception e) {
+      LOGGER.warn("Failed to record conversion metadata for {}: {}", sourceFile.getName(), e.getMessage());
+    }
+  }
+  
+  /**
+   * Converts an Excel file and records metadata.
+   */
+  private static boolean convertExcelFile(File sourceFile, File baseDirectory, String tableNameCasing, String columnNameCasing) {
+    try {
+      MultiTableExcelToJsonConverter.convertFileToJson(sourceFile, true, tableNameCasing, columnNameCasing);
+      
+      // Record conversion for each sheet that was converted
+      // Excel converter creates files like "filename__sheetname.json"
+      String fileName = sourceFile.getName();
+      final String baseName = fileName.contains(".") ? 
+          fileName.substring(0, fileName.lastIndexOf('.')) : fileName;
+      
+      // Find generated JSON files
+      File[] jsonFiles = sourceFile.getParentFile().listFiles((dir, name) -> 
+          name.startsWith(baseName + "__") && name.endsWith(".json"));
+      
+      if (jsonFiles != null && baseDirectory != null) {
+        for (File jsonFile : jsonFiles) {
+          recordConversion(sourceFile, jsonFile, "EXCEL_TO_JSON", baseDirectory);
+        }
+      }
+      
+      return true;
+    } catch (Exception e) {
+      LOGGER.error("Failed to convert Excel file {}: {}", sourceFile.getName(), e.getMessage());
+      return false;
+    }
+  }
+  
+  /**
+   * Determines if a file path is a remote URL.
+   */
+  private static boolean isRemoteFile(String path) {
+    return path != null && (
+        path.startsWith("http://") || path.startsWith("https://") ||
+        path.startsWith("s3://") || path.startsWith("ftp://") || 
+        path.startsWith("sftp://"));
   }
 }
