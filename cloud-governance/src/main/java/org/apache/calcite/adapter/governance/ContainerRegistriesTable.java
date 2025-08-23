@@ -26,6 +26,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -137,7 +138,7 @@ public class ContainerRegistriesTable extends AbstractCloudGovernanceTable {
             registry.get("CleanupPoliciesCount") != null &&
                 ((Number) registry.get("CleanupPoliciesCount")).intValue() > 0 ?
                 "Enabled" : "Disabled",
-            registry.get("CreateTime")
+            CloudGovernanceDataConverter.convertValue(registry.get("CreateTime"), SqlTypeName.TIMESTAMP)
         });
       }
     } catch (Exception e) {
@@ -174,7 +175,7 @@ public class ContainerRegistriesTable extends AbstractCloudGovernanceTable {
             null, // quarantine policy not in ECR
             null, // trust policy not in ECR
             null, // retention policy configured per lifecycle rules
-            registry.get("CreatedAt")
+            CloudGovernanceDataConverter.convertValue(registry.get("CreatedAt"), SqlTypeName.TIMESTAMP)
         });
       }
     } catch (Exception e) {

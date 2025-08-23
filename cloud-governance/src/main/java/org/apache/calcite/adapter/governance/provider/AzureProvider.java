@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.adapter.governance.provider;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.calcite.adapter.governance.CloudGovernanceConfig;
 
 import com.azure.core.credential.TokenCredential;
@@ -30,6 +28,9 @@ import com.azure.resourcemanager.resourcegraph.models.QueryRequestOptions;
 import com.azure.resourcemanager.resourcegraph.models.QueryResponse;
 import com.azure.resourcemanager.resourcegraph.models.ResultFormat;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;

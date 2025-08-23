@@ -26,6 +26,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -196,7 +197,7 @@ public class KubernetesClustersTable extends AbstractCloudGovernanceTable {
             cluster.get("EncryptionProvider"),
             cluster.get("LoggingEnabled"),
             true, // EKS has CloudWatch monitoring by default
-            cluster.get("CreatedAt"),
+            CloudGovernanceDataConverter.convertValue(cluster.get("CreatedAt"), SqlTypeName.TIMESTAMP),
             null, // modified_date - not available
             null  // tags - would need to convert tag map to JSON
         });

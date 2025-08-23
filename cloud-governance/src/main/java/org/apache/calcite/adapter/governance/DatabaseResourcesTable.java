@@ -26,6 +26,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -144,7 +145,7 @@ public class DatabaseResourcesTable extends AbstractCloudGovernanceTable {
             db.get("RequireSSL") != null && (Boolean) db.get("RequireSSL") ? "1.2" : null,
             db.get("BackupEnabled") != null && (Boolean) db.get("BackupEnabled") ? 7 : 0,
             null, // backup window not exposed
-            db.get("CreateTime")
+            CloudGovernanceDataConverter.convertValue(db.get("CreateTime"), SqlTypeName.TIMESTAMP)
         });
       }
     } catch (Exception e) {
@@ -191,9 +192,10 @@ public class DatabaseResourcesTable extends AbstractCloudGovernanceTable {
                     ((Number) db.get("SnapshotRetentionLimit")).intValue() : null,
             db.get("PreferredBackupWindow") != null ? db.get("PreferredBackupWindow") :
                 db.get("SnapshotWindow"),
-            db.get("InstanceCreateTime") != null ? db.get("InstanceCreateTime") :
+            CloudGovernanceDataConverter.convertValue(
+                db.get("InstanceCreateTime") != null ? db.get("InstanceCreateTime") :
                 db.get("ClusterCreateTime") != null ? db.get("ClusterCreateTime") :
-                db.get("CreationDateTime")
+                db.get("CreationDateTime"), SqlTypeName.TIMESTAMP)
         });
       }
     } catch (Exception e) {

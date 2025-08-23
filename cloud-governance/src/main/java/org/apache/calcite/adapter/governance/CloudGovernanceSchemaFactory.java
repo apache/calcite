@@ -34,31 +34,41 @@ public class CloudGovernanceSchemaFactory implements SchemaFactory {
     try {
       // Extract Azure configuration
       CloudGovernanceConfig.AzureConfig azure = null;
-      if (operand.containsKey("azure.tenantId")) {
-        azure =
-            new CloudGovernanceConfig.AzureConfig((String) operand.get("azure.tenantId"),
-            (String) operand.get("azure.clientId"),
-            (String) operand.get("azure.clientSecret"),
-            parseList((String) operand.get("azure.subscriptionIds")));
+      String azureTenantId = getConfigValue(operand, "azure.tenantId", "AZURE_TENANT_ID");
+      if (azureTenantId != null) {
+        String azureClientId = getConfigValue(operand, "azure.clientId", "AZURE_CLIENT_ID");
+        String azureClientSecret = getConfigValue(operand, "azure.clientSecret", "AZURE_CLIENT_SECRET");
+        String azureSubscriptionIds = getConfigValue(operand, "azure.subscriptionIds", "AZURE_SUBSCRIPTION_IDS");
+        
+        if (azureClientId != null && azureClientSecret != null && azureSubscriptionIds != null) {
+          azure = new CloudGovernanceConfig.AzureConfig(azureTenantId, azureClientId, 
+              azureClientSecret, parseList(azureSubscriptionIds));
+        }
       }
 
       // Extract GCP configuration
       CloudGovernanceConfig.GCPConfig gcp = null;
-      if (operand.containsKey("gcp.credentialsPath")) {
-        gcp =
-            new CloudGovernanceConfig.GCPConfig(parseList((String) operand.get("gcp.projectIds")),
-            (String) operand.get("gcp.credentialsPath"));
+      String gcpCredentialsPath = getConfigValue(operand, "gcp.credentialsPath", "GCP_CREDENTIALS_PATH");
+      if (gcpCredentialsPath != null) {
+        String gcpProjectIds = getConfigValue(operand, "gcp.projectIds", "GCP_PROJECT_IDS");
+        if (gcpProjectIds != null) {
+          gcp = new CloudGovernanceConfig.GCPConfig(parseList(gcpProjectIds), gcpCredentialsPath);
+        }
       }
 
       // Extract AWS configuration
       CloudGovernanceConfig.AWSConfig aws = null;
-      if (operand.containsKey("aws.accessKeyId")) {
-        aws =
-            new CloudGovernanceConfig.AWSConfig(parseList((String) operand.get("aws.accountIds")),
-            (String) operand.get("aws.region"),
-            (String) operand.get("aws.accessKeyId"),
-            (String) operand.get("aws.secretAccessKey"),
-            (String) operand.get("aws.roleArn"));
+      String awsAccessKeyId = getConfigValue(operand, "aws.accessKeyId", "AWS_ACCESS_KEY_ID");
+      if (awsAccessKeyId != null) {
+        String awsAccountIds = getConfigValue(operand, "aws.accountIds", "AWS_ACCOUNT_IDS");
+        String awsRegion = getConfigValue(operand, "aws.region", "AWS_REGION");
+        String awsSecretAccessKey = getConfigValue(operand, "aws.secretAccessKey", "AWS_SECRET_ACCESS_KEY");
+        String awsRoleArn = getConfigValue(operand, "aws.roleArn", "AWS_ROLE_ARN");
+        
+        if (awsAccountIds != null && awsRegion != null && awsSecretAccessKey != null) {
+          aws = new CloudGovernanceConfig.AWSConfig(parseList(awsAccountIds), awsRegion, 
+              awsAccessKeyId, awsSecretAccessKey, awsRoleArn);
+        }
       }
 
       // Validate that at least one provider is configured
@@ -104,6 +114,30 @@ public class CloudGovernanceSchemaFactory implements SchemaFactory {
     } catch (Exception e) {
       throw new RuntimeException("Error creating Cloud Governance schema", e);
     }
+  }
+
+  /**
+   * Gets a configuration value from query parameters first, then falls back to environment variables.
+   * 
+   * @param operand The operand map containing query parameters
+   * @param paramKey The query parameter key (e.g., "azure.tenantId")
+   * @param envKey The environment variable key (e.g., "AZURE_TENANT_ID")
+   * @return The configuration value, or null if not found in either location
+   */
+  private String getConfigValue(Map<String, Object> operand, String paramKey, String envKey) {
+    // First check query parameters
+    String value = (String) operand.get(paramKey);
+    if (value != null && !value.trim().isEmpty()) {
+      return value.trim();
+    }
+    
+    // Fall back to environment variable
+    value = System.getenv(envKey);
+    if (value != null && !value.trim().isEmpty()) {
+      return value.trim();
+    }
+    
+    return null;
   }
 
   private List<String> parseList(String value) {

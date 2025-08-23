@@ -16,9 +16,10 @@
  */
 package org.apache.calcite.adapter.governance.provider;
 
+import org.apache.calcite.adapter.governance.CloudGovernanceConfig;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.apache.calcite.adapter.governance.CloudGovernanceConfig;
 
 import java.util.ArrayList;
 import java.util.HashMap;

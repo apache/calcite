@@ -151,7 +151,7 @@ public class ComputeResourcesTable extends AbstractCloudGovernanceTable {
             null, // security groups as JSON
             "Enabled".equals(vm.get("DiskEncryption")),
             false, // monitoring not in basic query
-            vm.get("CreationTimestamp")
+            CloudGovernanceDataConverter.convertValue(vm.get("CreationTimestamp"), SqlTypeName.TIMESTAMP)
         });
       }
     } catch (Exception e) {
@@ -192,7 +192,7 @@ public class ComputeResourcesTable extends AbstractCloudGovernanceTable {
             vm.get("SecurityGroups") != null ? vm.get("SecurityGroups").toString() : null,
             vm.get("EbsEncrypted"),
             vm.get("MonitoringEnabled"),
-            vm.get("LaunchTime")
+            CloudGovernanceDataConverter.convertValue(vm.get("LaunchTime"), SqlTypeName.TIMESTAMP)
         });
       }
     } catch (Exception e) {

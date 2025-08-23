@@ -26,6 +26,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -172,8 +173,8 @@ public class StorageResourcesTable extends AbstractCloudGovernanceTable {
             storage.get("LifecycleRuleCount"),
             null, // access_tier
             null, // last_access_time
-            storage.get("TimeCreated"),
-            storage.get("Updated"),
+            CloudGovernanceDataConverter.convertValue(storage.get("TimeCreated"), SqlTypeName.TIMESTAMP),
+            CloudGovernanceDataConverter.convertValue(storage.get("Updated"), SqlTypeName.TIMESTAMP),
             null  // tags - would need to convert labels map to JSON
         });
       }
@@ -219,7 +220,7 @@ public class StorageResourcesTable extends AbstractCloudGovernanceTable {
             storage.get("LifecycleRuleCount"),
             null, // access_tier - S3 doesn't have access tiers at bucket level
             null, // last_access_time - would need CloudWatch
-            storage.get("CreationDate"),
+            CloudGovernanceDataConverter.convertValue(storage.get("CreationDate"), SqlTypeName.TIMESTAMP),
             null, // modified_date - S3 doesn't track bucket modification
             null  // tags - would need to convert tag map to JSON
         });

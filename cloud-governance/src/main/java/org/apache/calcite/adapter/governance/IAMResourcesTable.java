@@ -26,6 +26,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -137,7 +138,7 @@ public class IAMResourcesTable extends AbstractCloudGovernanceTable {
             null, // MFA not tracked at resource level
             null, // access key count not applicable
             null, // active access keys not applicable
-            iam.get("CreateTime"),
+            CloudGovernanceDataConverter.convertValue(iam.get("CreateTime"), SqlTypeName.TIMESTAMP),
             null  // password last used not applicable
         });
       }
@@ -177,8 +178,8 @@ public class IAMResourcesTable extends AbstractCloudGovernanceTable {
             iam.get("AccessKeyCount") != null ? ((Number) iam.get("AccessKeyCount")).intValue() : null,
             iam.get("ActiveAccessKeys") != null ?
                 ((Number) iam.get("ActiveAccessKeys")).intValue() : null,
-            iam.get("CreateDate"),
-            iam.get("PasswordLastUsed")
+            CloudGovernanceDataConverter.convertValue(iam.get("CreateDate"), SqlTypeName.TIMESTAMP),
+            CloudGovernanceDataConverter.convertValue(iam.get("PasswordLastUsed"), SqlTypeName.TIMESTAMP)
         });
       }
     } catch (Exception e) {
