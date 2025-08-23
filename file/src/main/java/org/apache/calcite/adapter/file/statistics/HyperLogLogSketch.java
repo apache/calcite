@@ -27,7 +27,7 @@ import java.util.Arrays;
  * HyperLogLog implementation for cardinality estimation.
  * 
  * <p>This implementation provides approximate distinct count estimation
- * with configurable precision. Used by Apericio-db for intelligent
+ * with configurable precision. Used by Aperio-db for intelligent
  * query optimization and join ordering.
  * 
  * <p>Based on the HyperLogLog algorithm described in:

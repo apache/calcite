@@ -335,12 +335,26 @@ public class StatisticsBuilder {
   }
 
   private File getStatisticsFile(File sourceFile, File cacheDir) {
+    // Stats should go in .aperio/<schema>/.stats, not under .parquet_cache
+    // The cacheDir passed in is .aperio/<schema>/.parquet_cache, so we need to go up one level
+    File aperioSchemaDir = cacheDir.getParentFile(); // This gives us .aperio/<schema>/
+    if (aperioSchemaDir == null || !aperioSchemaDir.getPath().contains(".aperio")) {
+      // Fallback to putting stats in cache dir if structure is unexpected
+      aperioSchemaDir = cacheDir;
+    }
+    
+    // Create .stats subdirectory at the schema level
+    File statsDir = new File(aperioSchemaDir, ".stats");
+    if (!statsDir.exists()) {
+      statsDir.mkdirs();
+    }
+    
     String baseName = sourceFile.getName();
     int lastDot = baseName.lastIndexOf('.');
     if (lastDot > 0) {
       baseName = baseName.substring(0, lastDot);
     }
-    return new File(cacheDir, baseName + ".apericio_stats");
+    return new File(statsDir, baseName + ".aperio_stats");
   }
 
   /**

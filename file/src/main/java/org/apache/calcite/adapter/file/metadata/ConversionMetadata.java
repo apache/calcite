@@ -19,6 +19,8 @@ package org.apache.calcite.adapter.file.metadata;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
+import org.apache.calcite.adapter.file.FileSchema;
+import org.apache.calcite.adapter.file.converters.FileConversionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,24 +42,142 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class ConversionMetadata {
   private static final Logger LOGGER = LoggerFactory.getLogger(ConversionMetadata.class);
-  private static final String METADATA_FILE = ".calcite_conversions.json";
+  private static final String METADATA_FILE = ".conversions.json";
   private static final ObjectMapper MAPPER = new ObjectMapper()
       .enable(SerializationFeature.INDENT_OUTPUT);
-  
-  // Static field for central metadata directory - using volatile for thread safety
-  private static volatile File centralMetadataDirectory = null;
+
+  // Use FileConversionManager directly instead of static list
+
+  /**
+   * Generates the complete file extensions list by parsing FileConversionManager methods.
+   * This uses the actual source of truth and includes all compression variants.
+   */
+  private static java.util.List<java.util.Map.Entry<String, String>> generateFileExtensions() {
+    java.util.List<java.util.Map.Entry<String, String>> extensions = new java.util.ArrayList<>();
+    
+    // Generate test filenames dynamically from FileConversionManager
+    java.util.List<String> testExtensions = new java.util.ArrayList<>();
+    
+    // Test common file types to see which ones are recognized
+    String[] candidateExtensions = {
+        "csv", "csv.gz", "tsv", "tsv.gz", "json", "json.gz", "parquet",
+        "yaml", "yml", "arrow", "xlsx", "xls", "html", "htm", 
+        "xml", "md", "docx", "pptx", "gz", "gzip", "bz2", "xz", "zip"
+    };
+    
+    for (String ext : candidateExtensions) {
+      testExtensions.add("test." + ext);
+    }
+    
+    for (String testFile : testExtensions) {
+      String fileType = detectTypeFromTestFile(testFile);
+      if (!fileType.equals("unknown")) {
+        // Extract the extension part
+        String extension = extractExtension(testFile);
+        if (extension != null) {
+          extensions.add(java.util.Map.entry(extension, fileType));
+        }
+      }
+    }
+    
+    // Add compressed variants for directly usable types
+    String[] baseExtensions = {"csv", "tsv", "json", "yaml", "yml", "arrow"};
+    String[] compressionSuffixes = {"gz", "gzip", "bz2", "xz", "zip"};
+    
+    for (String base : baseExtensions) {
+      String baseType = detectTypeFromExtension(base);
+      if (!baseType.equals("unknown")) {
+        for (String compression : compressionSuffixes) {
+          extensions.add(java.util.Map.entry(base + "." + compression, baseType));
+        }
+      }
+    }
+    
+    return extensions;
+  }
+
+  /**
+   * Detects file type by using FileConversionManager methods.
+   */
+  private static String detectTypeFromTestFile(String filename) {
+    // Use FileConversionManager's actual logic
+    if (org.apache.calcite.adapter.file.converters.FileConversionManager.requiresConversion(filename)) {
+      return detectConvertibleType(filename);
+    } else if (org.apache.calcite.adapter.file.converters.FileConversionManager.isDirectlyUsable(filename)) {
+      return detectDirectType(filename);
+    }
+    return "unknown";
+  }
+
+  private static String detectConvertibleType(String filename) {
+    String lower = filename.toLowerCase();
+    if (lower.contains(".xlsx")) return "excel";
+    if (lower.contains(".xls")) return "excel";
+    if (lower.contains(".html")) return "html";
+    if (lower.contains(".htm")) return "html";
+    if (lower.contains(".xml")) return "xml";
+    if (lower.contains(".md")) return "markdown";
+    if (lower.contains(".docx")) return "docx";
+    if (lower.contains(".pptx")) return "pptx";
+    return "unknown";
+  }
+
+  private static String detectDirectType(String filename) {
+    String lower = filename.toLowerCase();
+    if (lower.contains(".csv")) return "csv";
+    if (lower.contains(".tsv")) return "tsv";
+    if (lower.contains(".json")) return "json";
+    if (lower.contains(".parquet")) return "parquet";
+    if (lower.contains(".yaml")) return "yaml";
+    if (lower.contains(".yml")) return "yaml";
+    if (lower.contains(".arrow")) return "arrow";
+    return "unknown";
+  }
+
+  private static String detectTypeFromExtension(String extension) {
+    return detectTypeFromTestFile("test." + extension);
+  }
+
+  private static String extractExtension(String filename) {
+    // Remove "test." prefix and return the extension part
+    if (filename.startsWith("test.")) {
+      return filename.substring(5);
+    }
+    return null;
+  }
   
   private final File metadataFile;
   private final Map<String, ConversionRecord> conversions = new ConcurrentHashMap<>();
   
   /**
-   * Record of a file conversion.
+   * Comprehensive record of a table in the schema, tracking everything from original source to final table.
+   * Despite the name "ConversionRecord", this now tracks ALL tables, not just converted ones.
    */
   public static class ConversionRecord {
-    public String originalFile;  // Original source (e.g., Excel file)
-    public String convertedFile; // Result of conversion (e.g., JSON file)
-    public String conversionType; // Type of conversion (EXCEL_TO_JSON, HTML_TO_JSON, etc.)
-    public long timestamp;        // When conversion happened
+    // === CORE IDENTIFICATION ===
+    public String tableName;              // Table name as it appears in schema
+    public String tableType;              // Table implementation class name (ParquetTranslatableTable, etc.)
+    public String sourceFile;            // Direct source file used by table
+    public String sourceType;            // File type: "csv", "json", "parquet", "excel", etc.
+    
+    // === LINEAGE CHAIN (for converted files) ===
+    public String originalFile;          // Ultimate original source (e.g., Excel file) 
+    public String convertedFile;         // Intermediate converted file (e.g., JSON from Excel)
+    public String conversionType;        // Conversion performed (EXCEL_TO_JSON, HTML_TO_JSON, DIRECT, etc.)
+    
+    // === CACHING AND PERFORMANCE ===
+    public String parquetCacheFile;      // Parquet cache file path (when using PARQUET engine)
+    public Boolean refreshEnabled;       // Whether table has refresh capability
+    public String refreshInterval;       // Refresh interval if applicable
+    
+    // === CHANGE DETECTION METADATA ===
+    public long timestamp;               // Last update timestamp
+    public String etag;                  // ETag for HTTP/S3 sources
+    public Long contentLength;           // File size for change detection
+    public String contentType;           // MIME type
+    
+    // === CONFIGURATION ===
+    public java.util.Map<String, Object> tableConfig; // Original table definition from model.json
     
     public ConversionRecord() {} // For Jackson
     
@@ -69,6 +189,56 @@ public class ConversionMetadata {
       this.timestamp = System.currentTimeMillis();
     }
     
+    public ConversionRecord(String originalFile, String convertedFile, 
+        String conversionType, String parquetCacheFile) {
+      this.originalFile = originalFile;
+      this.convertedFile = convertedFile;
+      this.conversionType = conversionType;
+      this.parquetCacheFile = parquetCacheFile;
+      this.timestamp = System.currentTimeMillis();
+    }
+    
+    /**
+     * Constructor with HTTP metadata for change detection.
+     */
+    public ConversionRecord(String originalFile, String convertedFile, 
+        String conversionType, String parquetCacheFile,
+        String etag, Long contentLength, String contentType) {
+      this.originalFile = originalFile;
+      this.convertedFile = convertedFile;
+      this.conversionType = conversionType;
+      this.parquetCacheFile = parquetCacheFile;
+      this.timestamp = System.currentTimeMillis();
+      this.etag = etag;
+      this.contentLength = contentLength;
+      this.contentType = contentType;
+    }
+    
+    /**
+     * Comprehensive constructor for table tracking.
+     */
+    public ConversionRecord(String tableName, String tableType, String sourceFile, String sourceType,
+        String originalFile, String convertedFile, String conversionType,
+        String parquetCacheFile, Boolean refreshEnabled, String refreshInterval,
+        String etag, Long contentLength, String contentType,
+        java.util.Map<String, Object> tableConfig) {
+      this.tableName = tableName;
+      this.tableType = tableType;
+      this.sourceFile = sourceFile;
+      this.sourceType = sourceType;
+      this.originalFile = originalFile;
+      this.convertedFile = convertedFile;
+      this.conversionType = conversionType;
+      this.parquetCacheFile = parquetCacheFile;
+      this.refreshEnabled = refreshEnabled;
+      this.refreshInterval = refreshInterval;
+      this.timestamp = System.currentTimeMillis();
+      this.etag = etag;
+      this.contentLength = contentLength;
+      this.contentType = contentType;
+      this.tableConfig = tableConfig;
+    }
+    
     @com.fasterxml.jackson.annotation.JsonIgnore
     public String getOriginalPath() {
       return originalFile;
@@ -77,71 +247,107 @@ public class ConversionMetadata {
     public String getConversionType() {
       return conversionType;
     }
-  }
-  
-  /**
-   * Sets the central metadata directory for all instances.
-   * This should be called once at startup if you want to use a shared location.
-   * Typically this would be set to parquetCacheDirectory/metadata/{storageType}.
-   * 
-   * @param directory The central directory for metadata storage
-   * @param storageType The storage type (e.g., "local", "http", "s3", "sharepoint") 
-   */
-  public static synchronized void setCentralMetadataDirectory(File directory, String storageType) {
-    if (directory != null) {
-      // Create storage-specific metadata subdirectory
-      String subdirName = storageType != null ? storageType : "local";
-      File metadataDir = new File(directory, "metadata/" + subdirName);
-      if (!metadataDir.exists()) {
-        metadataDir.mkdirs();
+    
+    /**
+     * Checks if the original file has changed since this conversion record was created.
+     * Uses appropriate change detection method based on file type (ETag vs timestamp).
+     */
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    public boolean hasChanged() {
+      // For local files, use timestamp-based detection
+      if (isLocalFile(originalFile)) {
+        return hasChangedViaTimestamp();
       }
-      centralMetadataDirectory = metadataDir;
-      LOGGER.info("Set central metadata directory to: {} for storage type: {}", 
-          metadataDir, subdirName);
+      
+      // For remote files, we need metadata comparison - this requires StorageProvider
+      // This method will be called from FileConversionManager with StorageProvider access
+      return true; // Conservative: assume changed if we can't check properly
+    }
+    
+    /**
+     * Checks if file has changed using StorageProvider metadata (HTTP ETags, S3 ETags, etc.).
+     */
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    public boolean hasChangedViaMetadata(org.apache.calcite.adapter.file.storage.StorageProvider.FileMetadata currentMetadata) {
+      if (currentMetadata == null) {
+        return true; // No current metadata, assume changed
+      }
+      
+      // Check ETags first (most reliable for HTTP, S3)
+      if (etag != null && currentMetadata.getEtag() != null) {
+        boolean etagChanged = !etag.equals(currentMetadata.getEtag());
+        LOGGER.debug("ETag comparison for {}: stored={}, current={}, changed={}", 
+            originalFile, etag, currentMetadata.getEtag(), etagChanged);
+        return etagChanged;
+      }
+      
+      // Fallback to size + timestamp comparison
+      if (contentLength != null && contentLength != currentMetadata.getSize()) {
+        LOGGER.debug("Size changed for {}: stored={}, current={}", 
+            originalFile, contentLength, currentMetadata.getSize());
+        return true;
+      }
+      
+      // Compare timestamps (allow small differences for filesystem precision)
+      long timeDiff = Math.abs(currentMetadata.getLastModified() - timestamp);
+      boolean timestampChanged = timeDiff > 1000; // 1 second tolerance
+      LOGGER.debug("Timestamp comparison for {}: stored={}, current={}, diff={}ms, changed={}", 
+          originalFile, timestamp, currentMetadata.getLastModified(), timeDiff, timestampChanged);
+      
+      return timestampChanged;
+    }
+    
+    /**
+     * Updates this record with fresh metadata from StorageProvider.
+     */
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    public void updateMetadata(org.apache.calcite.adapter.file.storage.StorageProvider.FileMetadata metadata) {
+      if (metadata != null) {
+        this.etag = metadata.getEtag();
+        this.contentLength = metadata.getSize();
+        this.contentType = metadata.getContentType();
+        this.timestamp = metadata.getLastModified();
+        LOGGER.debug("Updated metadata for {}: etag={}, size={}, timestamp={}", 
+            originalFile, etag, contentLength, timestamp);
+      }
+    }
+    
+    /**
+     * Timestamp-based change detection for local files.
+     */
+    private boolean hasChangedViaTimestamp() {
+      try {
+        File file = new File(originalFile);
+        if (!file.exists()) {
+          return false; // File doesn't exist, no change possible
+        }
+        long currentTimestamp = file.lastModified();
+        boolean changed = currentTimestamp > timestamp;
+        LOGGER.debug("Local file timestamp check for {}: stored={}, current={}, changed={}", 
+            originalFile, timestamp, currentTimestamp, changed);
+        return changed;
+      } catch (Exception e) {
+        LOGGER.warn("Failed to check timestamp for {}: {}", originalFile, e.getMessage());
+        return true; // Conservative: assume changed on error
+      }
+    }
+    
+    private boolean isLocalFile(String path) {
+      return path != null && !path.startsWith("http://") && !path.startsWith("https://") 
+          && !path.startsWith("s3://") && !path.startsWith("ftp://") && !path.startsWith("sftp://");
     }
   }
   
-  /**
-   * Sets the central metadata directory for local storage (backward compatibility).
-   * 
-   * @param directory The central directory for metadata storage
-   */
-  public static void setCentralMetadataDirectory(File directory) {
-    setCentralMetadataDirectory(directory, "local");
-  }
+  // Removed centralized metadata directory methods - metadata is now stored directly in baseDirectory
   
   /**
    * Creates a metadata tracker for the given directory.
-   * If a central metadata directory is configured, uses that instead.
+   * Always stores the .conversions.json file directly in the provided directory.
    */
   public ConversionMetadata(File directory) {
-    File metadataFile;
-    if (centralMetadataDirectory != null) {
-      try {
-        // Use canonical path to handle symlinks consistently (e.g., /var vs /private/var on macOS)
-        String canonicalPath = directory.getCanonicalPath();
-        String subdir = Integer.toHexString(canonicalPath.hashCode());
-        File metadataDir = new File(centralMetadataDirectory, subdir);
-        if (!metadataDir.exists()) {
-          metadataDir.mkdirs();
-        }
-        metadataFile = new File(metadataDir, METADATA_FILE);
-        LOGGER.debug("Using central metadata file: {}", metadataFile);
-      } catch (IOException e) {
-        // Fallback to absolute path if canonical path fails
-        String subdir = Integer.toHexString(directory.getAbsolutePath().hashCode());
-        File metadataDir = new File(centralMetadataDirectory, subdir);
-        if (!metadataDir.exists()) {
-          metadataDir.mkdirs();
-        }
-        metadataFile = new File(metadataDir, METADATA_FILE);
-        LOGGER.warn("Failed to get canonical path for {}, using absolute path", directory, e);
-      }
-    } else {
-      // Use local directory (backward compatibility)
-      metadataFile = new File(directory, METADATA_FILE);
-    }
-    this.metadataFile = metadataFile;
+    // Always store metadata directly in the provided directory
+    this.metadataFile = new File(directory, METADATA_FILE);
+    LOGGER.debug("Using metadata file: {}", metadataFile);
     loadMetadata();
   }
   
@@ -169,6 +375,399 @@ public class ConversionMetadata {
     } catch (IOException e) {
       LOGGER.error("Failed to record conversion metadata", e);
     }
+  }
+  
+  /**
+   * Records a file conversion with cached file information.
+   * 
+   * @param originalFile The source file (e.g., Excel)
+   * @param convertedFile The converted file (e.g., JSON)
+   * @param conversionType The type of conversion
+   * @param parquetCacheFile The cached file (e.g., Parquet)
+   */
+  public void recordConversion(File originalFile, File convertedFile, String conversionType, File parquetCacheFile) {
+    try {
+      String key = convertedFile.getCanonicalPath();
+      ConversionRecord record = new ConversionRecord(
+          originalFile.getCanonicalPath(),
+          convertedFile.getCanonicalPath(),
+          conversionType,
+          parquetCacheFile != null ? parquetCacheFile.getCanonicalPath() : null
+      );
+      
+      conversions.put(key, record);
+      saveMetadata();
+      
+      LOGGER.debug("Recorded conversion: {} -> {} -> {} ({})", 
+          originalFile.getName(), convertedFile.getName(), 
+          parquetCacheFile != null ? parquetCacheFile.getName() : "null", conversionType);
+    } catch (IOException e) {
+      LOGGER.error("Failed to record conversion metadata", e);
+    }
+  }
+  
+  /**
+   * Records a conversion using a pre-built ConversionRecord.
+   * This allows for storing HTTP metadata and other advanced information.
+   * 
+   * @param convertedFile The converted file (used as the key)
+   * @param record The complete conversion record with metadata
+   */
+  public void recordConversion(File convertedFile, ConversionRecord record) {
+    try {
+      String key = convertedFile.getCanonicalPath();
+      conversions.put(key, record);
+      saveMetadata();
+      
+      LOGGER.debug("Recorded conversion record: {} -> {} (type: {}, etag: {})", 
+          record.originalFile, record.convertedFile, record.conversionType, record.etag);
+    } catch (IOException e) {
+      LOGGER.error("Failed to record conversion record", e);
+    }
+  }
+  
+  /**
+   * Records a comprehensive table with all metadata.
+   * This is the main method for tracking ALL tables in the schema.
+   * 
+   * @param tableName Table name as it appears in the schema
+   * @param table The Table instance  
+   * @param source The Source used to create the table
+   * @param tableDef The table definition from model.json (can be null)
+   */
+  public void recordTable(String tableName, org.apache.calcite.schema.Table table, 
+      org.apache.calcite.util.Source source, java.util.Map<String, Object> tableDef) {
+    try {
+      // Extract metadata from table and source
+      TableMetadata metadata = extractTableMetadata(tableName, table, source, tableDef);
+      
+      // Create comprehensive record
+      ConversionRecord record = new ConversionRecord(
+          metadata.tableName,
+          metadata.tableType, 
+          metadata.sourceFile,
+          metadata.sourceType,
+          metadata.originalFile,
+          metadata.convertedFile,
+          metadata.conversionType,
+          metadata.parquetCacheFile,
+          metadata.refreshEnabled,
+          metadata.refreshInterval,
+          metadata.etag,
+          metadata.contentLength,
+          metadata.contentType,
+          metadata.tableConfig
+      );
+      
+      // Use table name as key for comprehensive table tracking
+      conversions.put(tableName, record);
+      saveMetadata();
+      
+      LOGGER.debug("Recorded table: {} (type: {}, source: {}, parquet: {})", 
+          tableName, metadata.tableType, metadata.sourceFile, metadata.parquetCacheFile);
+      
+    } catch (Exception e) {
+      LOGGER.warn("Failed to record table metadata for {}: {}", tableName, e.getMessage());
+      // Don't fail table creation just because metadata recording failed
+    }
+  }
+  
+  /**
+   * Helper class to hold extracted table metadata.
+   */
+  private static class TableMetadata {
+    String tableName;
+    String tableType;
+    String sourceFile;
+    String sourceType;
+    String originalFile;
+    String convertedFile;
+    String conversionType;
+    String parquetCacheFile;
+    Boolean refreshEnabled;
+    String refreshInterval;
+    String etag;
+    Long contentLength;
+    String contentType;
+    java.util.Map<String, Object> tableConfig;
+  }
+  
+  /**
+   * Extracts comprehensive metadata from a table instance.
+   */
+  private TableMetadata extractTableMetadata(String tableName, org.apache.calcite.schema.Table table,
+      org.apache.calcite.util.Source source, java.util.Map<String, Object> tableDef) {
+    
+    TableMetadata metadata = new TableMetadata();
+    metadata.tableName = tableName;
+    metadata.tableType = table.getClass().getSimpleName();
+    metadata.sourceFile = source.path();
+    metadata.sourceType = detectSourceType(source.path());
+    metadata.tableConfig = tableDef;
+    
+    // Default values - will be overridden for converted tables
+    metadata.originalFile = source.path();
+    metadata.conversionType = "DIRECT";
+    
+    // Detect refresh capability
+    metadata.refreshEnabled = table.getClass().getSimpleName().startsWith("Refreshable");
+    if (metadata.refreshEnabled && tableDef != null) {
+      metadata.refreshInterval = (String) tableDef.get("refreshInterval");
+    }
+    
+    // Extract parquet cache file using reflection for ParquetTranslatableTable
+    if (table.getClass().getSimpleName().equals("ParquetTranslatableTable")) {
+      try {
+        java.lang.reflect.Field fileField = table.getClass().getDeclaredField("parquetFile");
+        fileField.setAccessible(true);
+        java.io.File parquetFile = (java.io.File) fileField.get(table);
+        if (parquetFile != null) {
+          metadata.parquetCacheFile = parquetFile.getAbsolutePath();
+          metadata.sourceFile = parquetFile.getAbsolutePath(); // Table reads from parquet, not original
+          metadata.sourceType = "parquet";
+        }
+      } catch (Exception e) {
+        LOGGER.debug("Could not extract parquet file from ParquetTranslatableTable: {}", e.getMessage());
+      }
+    }
+    
+    // Extract refresh interval from RefreshableParquetCacheTable
+    if (table.getClass().getSimpleName().equals("RefreshableParquetCacheTable")) {
+      try {
+        java.lang.reflect.Method getRefreshIntervalMethod = table.getClass().getMethod("getRefreshInterval");
+        Object interval = getRefreshIntervalMethod.invoke(table);
+        if (interval != null) {
+          metadata.refreshInterval = interval.toString();
+        }
+      } catch (Exception e) {
+        LOGGER.debug("Could not extract refresh interval: {}", e.getMessage());
+      }
+    }
+    
+    // Try to get HTTP metadata for remote sources
+    if (isRemoteFile(source.path())) {
+      try {
+        org.apache.calcite.adapter.file.storage.StorageProvider provider = 
+            org.apache.calcite.adapter.file.storage.StorageProviderFactory.createFromUrl(source.path());
+        org.apache.calcite.adapter.file.storage.StorageProvider.FileMetadata fileMetadata = 
+            provider.getMetadata(source.path());
+        metadata.etag = fileMetadata.getEtag();
+        metadata.contentLength = fileMetadata.getSize();
+        metadata.contentType = fileMetadata.getContentType();
+      } catch (Exception e) {
+        LOGGER.debug("Could not get remote file metadata for {}: {}", source.path(), e.getMessage());
+      }
+    }
+    
+    // Check for existing conversion record to get original file and conversion info
+    ConversionRecord existingRecord = getConversionRecordBySourceFile(source.path());
+    if (existingRecord != null) {
+      metadata.originalFile = existingRecord.originalFile;
+      metadata.convertedFile = existingRecord.convertedFile;
+      metadata.conversionType = existingRecord.conversionType;
+      // Preserve existing HTTP metadata
+      if (metadata.etag == null) metadata.etag = existingRecord.etag;
+      if (metadata.contentLength == null) metadata.contentLength = existingRecord.contentLength;
+      if (metadata.contentType == null) metadata.contentType = existingRecord.contentType;
+    }
+    
+    return metadata;
+  }
+  
+  /**
+   * Detects source file type using FileConversionManager as single source of truth.
+   */
+  private String detectSourceType(String filePath) {
+    if (filePath == null) return "unknown";
+    
+    // Use FileConversionManager as the single source of truth
+    if (FileConversionManager.requiresConversion(filePath)) {
+      return detectConvertibleType(filePath);
+    } else if (FileConversionManager.isDirectlyUsable(filePath)) {
+      return detectDirectType(filePath);
+    }
+    
+    return "unknown";
+  }
+  
+  /**
+   * Gets conversion record by source file path (for tracking lineage).
+   */
+  private ConversionRecord getConversionRecordBySourceFile(String sourceFile) {
+    for (ConversionRecord record : conversions.values()) {
+      if (sourceFile.equals(record.convertedFile)) {
+        return record;
+      }
+    }
+    return null;
+  }
+  
+  /**
+   * Determines if a file path is a remote URL.
+   */
+  private boolean isRemoteFile(String path) {
+    return path != null && (
+        path.startsWith("http://") || path.startsWith("https://") ||
+        path.startsWith("s3://") || path.startsWith("ftp://") || 
+        path.startsWith("sftp://"));
+  }
+  
+  /**
+   * Updates an existing conversion record to add cached file information.
+   * 
+   * @param convertedFile The converted file that was cached
+   * @param parquetCacheFile The cached file (e.g., Parquet)
+   */
+  public void updateCachedFile(File convertedFile, File parquetCacheFile) {
+    try {
+      String key = convertedFile.getCanonicalPath();
+      ConversionRecord record = conversions.get(key);
+      
+      if (record != null) {
+        record.parquetCacheFile = parquetCacheFile != null ? parquetCacheFile.getCanonicalPath() : null;
+        saveMetadata();
+        
+        LOGGER.debug("Updated cached file for {}: {}", 
+            convertedFile.getName(), parquetCacheFile != null ? parquetCacheFile.getName() : "null");
+      }
+    } catch (IOException e) {
+      LOGGER.error("Failed to update cached file metadata", e);
+    }
+  }
+  
+  /**
+   * Builds a comprehensive mapping of all conversions across all schemas in a base directory.
+   * This scans all .aperio/<schema>/.conversions.json files and creates a unified view.
+   * 
+   * @param baseDirectory The base directory containing .aperio subdirectories
+   * @param htmlFileToTableName Map of HTML filenames to explicit table names from model definitions
+   * @return Map from generated file paths to explicit table names (where applicable)
+   */
+  public static Map<String, String> buildComprehensiveMapping(File baseDirectory, Map<String, String> htmlFileToTableName) {
+    Map<String, String> fileToTableName = new HashMap<>();
+    
+    if (baseDirectory == null || !baseDirectory.exists()) {
+      return fileToTableName;
+    }
+    
+    File aperioDir = new File(baseDirectory, "." + FileSchema.BRAND);
+    if (!aperioDir.exists() || !aperioDir.isDirectory()) {
+      return fileToTableName;
+    }
+    
+    LOGGER.info("Building comprehensive conversion mapping from: {}", aperioDir.getAbsolutePath());
+    
+    // Scan all schema directories under .aperio
+    File[] schemaDirs = aperioDir.listFiles(File::isDirectory);
+    LOGGER.info("Found {} schema directories under .{}", schemaDirs != null ? schemaDirs.length : 0, FileSchema.BRAND);
+    
+    if (schemaDirs != null) {
+      for (File schemaDir : schemaDirs) {
+        String schemaName = schemaDir.getName();
+        LOGGER.info("Scanning schema directory: {}", schemaName);
+        
+        // Load conversion metadata for this schema
+        ConversionMetadata metadata = new ConversionMetadata(schemaDir);
+        LOGGER.info("Loaded {} conversion records from schema directory: {}", metadata.conversions.size(), schemaName);
+        
+        // Process each conversion record
+        for (ConversionRecord record : metadata.conversions.values()) {
+          if ("HTML_TO_JSON".equals(record.conversionType)) {
+            // Extract table name from JSON file name pattern: htmlFileName__tableName.json
+            File convertedFile = new File(record.convertedFile);
+            String jsonFileName = convertedFile.getName();
+            
+            // First check if this JSON file name matches an explicit table name directly (like T1.json)
+            if (jsonFileName.endsWith(".json")) {
+              String jsonBaseName = jsonFileName.substring(0, jsonFileName.length() - 5); // remove .json
+              
+              // Check if this is an explicit table name from the HTML mapping
+              for (Map.Entry<String, String> htmlEntry : htmlFileToTableName.entrySet()) {
+                String explicitTableName = htmlEntry.getValue();
+                if (jsonBaseName.equals(explicitTableName)) {
+                  // This JSON file uses the explicit table name directly
+                  LOGGER.info("=== DIRECT TABLE NAME MATCH === JSON file '{}' matches explicit table name '{}'", 
+                             jsonFileName, explicitTableName);
+                  
+                  // Map the JSON file to explicit table name  
+                  fileToTableName.put(record.convertedFile, explicitTableName);
+                  
+                  // Map cached Parquet file if it exists
+                  if (record.parquetCacheFile != null) {
+                    fileToTableName.put(record.parquetCacheFile, explicitTableName);
+                    LOGGER.info("Mapped conversion files for explicit table '{}': JSON={}, Cached={}", 
+                               explicitTableName, record.convertedFile, record.parquetCacheFile);
+                  } else {
+                    // Map potential Parquet file
+                    File parquetCacheDir = new File(schemaDir, ".parquet_cache");
+                    File parquetFile = new File(parquetCacheDir, jsonBaseName + ".parquet");
+                    
+                    try {
+                      String parquetPath = parquetFile.getCanonicalPath();
+                      fileToTableName.put(parquetPath, explicitTableName);
+                      LOGGER.info("Mapped conversion files for explicit table '{}': JSON={}, Parquet={}", 
+                                 explicitTableName, record.convertedFile, parquetPath);
+                    } catch (IOException e) {
+                      LOGGER.warn("Failed to get canonical path for Parquet file: {}", parquetFile.getName(), e);
+                    }
+                  }
+                  break; // Found a match, no need to check other patterns
+                }
+              }
+            }
+            
+            // Also check for old pattern: htmlFileName__tableName.json
+            if (jsonFileName.contains("__")) {
+              String baseName = jsonFileName.substring(0, jsonFileName.length() - 5); // remove .json
+              int underscoreIndex = baseName.lastIndexOf("__");
+              if (underscoreIndex > 0) {
+                String htmlFileName = baseName.substring(0, underscoreIndex);
+                
+                // Check if this HTML file has an explicit table name
+                LOGGER.info("=== HTML MAPPING CHECK === Checking if htmlFileToTableName contains '{}' (size={})", 
+                           htmlFileName, htmlFileToTableName.size());
+                for (Map.Entry<String, String> entry : htmlFileToTableName.entrySet()) {
+                  LOGGER.info("=== HTML MAPPING ENTRY === '{}' -> '{}'", entry.getKey(), entry.getValue());
+                }
+                
+                if (htmlFileToTableName.containsKey(htmlFileName)) {
+                  String explicitTableName = htmlFileToTableName.get(htmlFileName);
+                  LOGGER.info("=== FOUND EXPLICIT MAPPING === '{}' -> '{}'", htmlFileName, explicitTableName);
+                  
+                  // Map the JSON file to explicit table name
+                  fileToTableName.put(record.convertedFile, explicitTableName);
+                  
+                  // Map cached Parquet file if it exists
+                  if (record.parquetCacheFile != null) {
+                    fileToTableName.put(record.parquetCacheFile, explicitTableName);
+                    LOGGER.info("Mapped conversion files for explicit table '{}': JSON={}, Cached={}", 
+                               explicitTableName, record.convertedFile, record.parquetCacheFile);
+                  } else {
+                    // Fallback: map potential Parquet files (they follow similar naming)
+                    // Parquet files are created with SMART_CASING which converts to snake_case
+                    // Convert camelCase to snake_case for the parquet file name
+                    String parquetName = baseName.replaceAll("([a-z])([A-Z]+)", "$1_$2").toLowerCase() + ".parquet";
+                    File parquetCacheDir = new File(schemaDir, ".parquet_cache");
+                    File parquetFile = new File(parquetCacheDir, parquetName);
+                    
+                    try {
+                      String parquetPath = parquetFile.getCanonicalPath();
+                      fileToTableName.put(parquetPath, explicitTableName);
+                      LOGGER.info("Mapped conversion files for explicit table '{}': JSON={}, Parquet={}", 
+                                 explicitTableName, record.convertedFile, parquetPath);
+                    } catch (IOException e) {
+                      LOGGER.warn("Failed to get canonical path for Parquet file: {}", parquetFile.getName(), e);
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    return fileToTableName;
   }
   
   /**

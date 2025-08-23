@@ -264,7 +264,17 @@ public class StatisticsCache {
       return;
     }
     
-    File[] statsFiles = cacheDir.listFiles((dir, name) -> name.endsWith(".apericio_stats"));
+    // Stats are in .aperio/<schema>/.stats, not under .parquet_cache
+    File aperioSchemaDir = cacheDir.getParentFile(); 
+    if (aperioSchemaDir == null || !aperioSchemaDir.getPath().contains(".aperio")) {
+      aperioSchemaDir = cacheDir;
+    }
+    
+    // Look for stats files in .stats subdirectory
+    File statsDir = new File(aperioSchemaDir, ".stats");
+    File[] statsFiles = statsDir.exists() 
+        ? statsDir.listFiles((dir, name) -> name.endsWith(".aperio_stats"))
+        : null;
     if (statsFiles == null) {
       return;
     }
@@ -296,7 +306,17 @@ public class StatisticsCache {
       return 0;
     }
     
-    File[] statsFiles = cacheDir.listFiles((dir, name) -> name.endsWith(".apericio_stats"));
+    // Stats are in .aperio/<schema>/.stats, not under .parquet_cache
+    File aperioSchemaDir = cacheDir.getParentFile(); 
+    if (aperioSchemaDir == null || !aperioSchemaDir.getPath().contains(".aperio")) {
+      aperioSchemaDir = cacheDir;
+    }
+    
+    // Look for stats files in .stats subdirectory
+    File statsDir = new File(aperioSchemaDir, ".stats");
+    File[] statsFiles = statsDir.exists() 
+        ? statsDir.listFiles((dir, name) -> name.endsWith(".aperio_stats"))
+        : null;
     if (statsFiles == null) {
       return 0;
     }

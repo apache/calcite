@@ -21,7 +21,7 @@ import java.util.HashMap;
 
 /**
  * Statistics for a table including row count, data size, and column statistics.
- * Used by Apericio-db's cost-based optimizer for intelligent query planning.
+ * Used by Aperio-db's cost-based optimizer for intelligent query planning.
  */
 public class TableStatistics {
   private final long rowCount;
