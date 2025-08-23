@@ -30,17 +30,6 @@ import java.io.File;
 public class ConversionRecorder {
   private static final Logger LOGGER = LoggerFactory.getLogger(ConversionRecorder.class);
   
-  /**
-   * Records a file conversion for refresh tracking.
-   * This should be called by all converters after successfully creating output files.
-   * 
-   * @param originalFile The source file (e.g., Excel, HTML, XML)
-   * @param convertedFile The output file (typically JSON)
-   * @param conversionType Type of conversion (e.g., "EXCEL_TO_JSON", "HTML_TO_JSON")
-   */
-  public static void recordConversion(File originalFile, File convertedFile, String conversionType) {
-    recordConversion(originalFile, convertedFile, conversionType, null);
-  }
   
   /**
    * Records a file conversion for refresh tracking.
@@ -66,12 +55,6 @@ public class ConversionRecorder {
     }
   }
   
-  /**
-   * Records an Excel to JSON conversion.
-   */
-  public static void recordExcelConversion(File excelFile, File jsonFile) {
-    recordConversion(excelFile, jsonFile, "EXCEL_TO_JSON");
-  }
   
   /**
    * Records an Excel to JSON conversion with specified base directory.
@@ -80,12 +63,6 @@ public class ConversionRecorder {
     recordConversion(excelFile, jsonFile, "EXCEL_TO_JSON", baseDirectory);
   }
   
-  /**
-   * Records an HTML to JSON conversion.
-   */
-  public static void recordHtmlConversion(File htmlFile, File jsonFile) {
-    recordConversion(htmlFile, jsonFile, "HTML_TO_JSON");
-  }
   
   /**
    * Records an HTML to JSON conversion with specified base directory.
@@ -94,12 +71,6 @@ public class ConversionRecorder {
     recordConversion(htmlFile, jsonFile, "HTML_TO_JSON", baseDirectory);
   }
   
-  /**
-   * Records an XML to JSON conversion.
-   */
-  public static void recordXmlConversion(File xmlFile, File jsonFile) {
-    recordConversion(xmlFile, jsonFile, "XML_TO_JSON");
-  }
   
   /**
    * Records an XML to JSON conversion with specified base directory.
@@ -108,12 +79,6 @@ public class ConversionRecorder {
     recordConversion(xmlFile, jsonFile, "XML_TO_JSON", baseDirectory);
   }
   
-  /**
-   * Records a JSONPath extraction (JSON to JSON).
-   */
-  public static void recordJsonPathExtraction(File sourceJson, File extractedJson, String jsonPath) {
-    recordConversion(sourceJson, extractedJson, "JSONPATH_EXTRACTION[" + jsonPath + "]");
-  }
   
   /**
    * Records a JSONPath extraction (JSON to JSON) with specified base directory.

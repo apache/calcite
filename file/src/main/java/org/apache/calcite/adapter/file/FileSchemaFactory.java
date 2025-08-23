@@ -69,15 +69,37 @@ public class FileSchemaFactory implements SchemaFactory {
     @SuppressWarnings("unchecked") List<Map<String, Object>> tables =
         (List) operand.get("tables");
     
-    // Global baseDirectory operand (for cache/conversions - defaults to ./.aperio/<schema>)
-    File baseDirectory =
+    // Model file location (automatically set by Calcite's ModelHandler)
+    File modelFileDirectory =
         (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
+    
+    // User-configurable baseDirectory for cache/conversions (optional)
+    // Handle both String and File types for baseDirectory
+    final Object baseDirObj = operand.get("baseDirectory");
+    final String baseDirConfig;
+    if (baseDirObj instanceof String) {
+      baseDirConfig = (String) baseDirObj;
+    } else if (baseDirObj instanceof File) {
+      baseDirConfig = ((File) baseDirObj).getPath();
+    } else {
+      baseDirConfig = null;
+    }
+    File baseDirectory = null;
+    if (baseDirConfig != null) {
+      baseDirectory = new File(baseDirConfig);
+      if (!baseDirectory.isAbsolute() && modelFileDirectory != null) {
+        // If relative path, resolve against model.json location
+        baseDirectory = new File(modelFileDirectory, baseDirConfig);
+      }
+      baseDirectory = baseDirectory.getAbsoluteFile();
+    }
     
     // Schema-specific sourceDirectory operand (for reading source files)
     final String directory = (String) operand.get("directory");
     File sourceDirectory = null;
     LOGGER.debug("[FileSchemaFactory] directory from operand: '{}'", directory);
-    LOGGER.debug("[FileSchemaFactory] baseDirectory: '{}'", baseDirectory);
+    LOGGER.debug("[FileSchemaFactory] modelFileDirectory: '{}'", modelFileDirectory);
+    LOGGER.debug("[FileSchemaFactory] baseDirectory config: '{}'", baseDirConfig);
 
     // Execution engine configuration
     // Priority: 1. Schema-specific operand, 2. Environment variable, 3. System property, 4. Default
@@ -182,18 +204,15 @@ public class FileSchemaFactory implements SchemaFactory {
     if (storageType == null || "local".equals(storageType)) {
       if (directory != null) {
         sourceDirectory = new File(directory);
-        // If sourceDirectory is relative and we have a baseDirectory context, resolve it
-        if (!sourceDirectory.isAbsolute() && baseDirectory != null) {
-          // For relative paths, resolve against the parent of baseDirectory or current dir
-          File contextDir = baseDirectory.getParentFile() != null ? baseDirectory.getParentFile() : new File(System.getProperty("user.dir"));
-          sourceDirectory = new File(contextDir, directory);
+        // If sourceDirectory is relative and we have a modelFileDirectory context, resolve it
+        if (!sourceDirectory.isAbsolute() && modelFileDirectory != null) {
+          // For relative paths, resolve against modelFileDirectory (which is the model file's parent directory)
+          // This ensures we find test resources at the correct location
+          sourceDirectory = new File(modelFileDirectory, directory);
         }
-      } else if (baseDirectory != null) {
-        // If no directory specified but baseDirectory exists, use parent of baseDirectory
-        sourceDirectory = baseDirectory.getParentFile();
-        if (sourceDirectory == null) {
-          sourceDirectory = new File(System.getProperty("user.dir"));
-        }
+      } else if (modelFileDirectory != null) {
+        // If no directory specified but modelFileDirectory exists, use modelFileDirectory itself
+        sourceDirectory = modelFileDirectory;
       } else {
         // Default to current working directory
         sourceDirectory = new File(System.getProperty("user.dir"));
@@ -285,8 +304,11 @@ public class FileSchemaFactory implements SchemaFactory {
     LOGGER.info("[FileSchemaFactory] ==> *** USING REGULAR FILESCHEMA FOR SCHEMA: {} ***", name);
     LOGGER.info("[FileSchemaFactory] ==> - Reason: isDuckDB={}, directoryFile != null={}, storageType='{}'", 
                isDuckDB, directoryFile != null, storageType);
+    // Pass baseDirectory if configured, otherwise modelFileDirectory for context
+    // FileSchema will use this to determine where to create .aperio directory
+    File baseDirForSchema = baseDirectory != null ? baseDirectory : modelFileDirectory;
     FileSchema fileSchema =
-        new FileSchema(parentSchema, name, directoryFile, baseDirectory, directoryPattern, tables, engineConfig, recursive,
+        new FileSchema(parentSchema, name, directoryFile, baseDirForSchema, directoryPattern, tables, engineConfig, recursive,
         materializations, views, partitionedTables, refreshInterval, tableNameCasing,
         columnNameCasing, storageType, storageConfig, flatten, csvTypeInference, primeCache);
 

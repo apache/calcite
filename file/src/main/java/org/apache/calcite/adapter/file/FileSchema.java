@@ -296,16 +296,19 @@ public class FileSchema extends AbstractSchema {
     }
 
     // Determine the root directory for .aperio/<schema>
-    // If modelBaseDirectory is provided (from model.json), use it as root
-    // Otherwise use current working directory
+    // According to developer guidelines:
+    // - Default: {working_directory}/.aperio
+    // - Can be overridden via model.json baseDirectory attribute + .aperio
     File aperioRoot;
     if (modelBaseDirectory != null) {
-      // modelBaseDirectory from model.json - use it directly
+      // If modelBaseDirectory provided (either user-configured baseDirectory or model file location)
+      // Use it as the root for .aperio
       aperioRoot = modelBaseDirectory.getAbsoluteFile();
     } else {
-      // No modelBaseDirectory provided - use current working directory
+      // Default to current working directory
       aperioRoot = new File(System.getProperty("user.dir")).getAbsoluteFile();
     }
+    
     // Always use fully qualified path for .aperio/<schema> as the baseDirectory for cache/conversion operations
     this.baseDirectory = new File(aperioRoot, "." + BRAND + "/" + name);
     // Ensure the aperio directory exists
@@ -545,46 +548,46 @@ public class FileSchema extends AbstractSchema {
   /**
    * Creates a file schema with execution engine support and recursive directory scanning.
    *
-   * @param parentSchema  Parent schema
-   * @param name          Schema name
-   * @param baseDirectory Base directory to look for relative files, or null
-   * @param tables        List containing table identifiers, or null
-   * @param engineConfig  Execution engine configuration
-   * @param recursive     Whether to recursively scan subdirectories
+   * @param parentSchema    Parent schema
+   * @param name            Schema name
+   * @param sourceDirectory Source directory to look for files, or null
+   * @param tables          List containing table identifiers, or null
+   * @param engineConfig    Execution engine configuration
+   * @param recursive       Whether to recursively scan subdirectories
    */
-  public FileSchema(SchemaPlus parentSchema, String name, @Nullable File baseDirectory,
+  public FileSchema(SchemaPlus parentSchema, String name, @Nullable File sourceDirectory,
       @Nullable List<Map<String, Object>> tables, ExecutionEngineConfig engineConfig,
       boolean recursive) {
-    this(parentSchema, name, baseDirectory, null, tables, engineConfig, recursive, null,
+    this(parentSchema, name, sourceDirectory, null, tables, engineConfig, recursive, null,
         null, null, null);
   }
 
   /**
    * Creates a file schema with execution engine support (non-recursive).
    *
-   * @param parentSchema  Parent schema
-   * @param name          Schema name
-   * @param baseDirectory Base directory to look for relative files, or null
-   * @param tables        List containing table identifiers, or null
-   * @param engineConfig  Execution engine configuration
+   * @param parentSchema    Parent schema
+   * @param name            Schema name
+   * @param sourceDirectory Source directory to look for files, or null
+   * @param tables          List containing table identifiers, or null
+   * @param engineConfig    Execution engine configuration
    */
-  public FileSchema(SchemaPlus parentSchema, String name, @Nullable File baseDirectory,
+  public FileSchema(SchemaPlus parentSchema, String name, @Nullable File sourceDirectory,
       @Nullable List<Map<String, Object>> tables, ExecutionEngineConfig engineConfig) {
-    this(parentSchema, name, baseDirectory, null, tables, engineConfig, false, null, null,
+    this(parentSchema, name, sourceDirectory, null, tables, engineConfig, false, null, null,
         null, null);
   }
 
   /**
    * Creates a file schema with default execution engine (for backward compatibility).
    *
-   * @param parentSchema  Parent schema
-   * @param name          Schema name
-   * @param baseDirectory Base directory to look for relative files, or null
-   * @param tables        List containing table identifiers, or null
+   * @param parentSchema    Parent schema
+   * @param name            Schema name
+   * @param sourceDirectory Source directory to look for files, or null
+   * @param tables          List containing table identifiers, or null
    */
-  public FileSchema(SchemaPlus parentSchema, String name, @Nullable File baseDirectory,
+  public FileSchema(SchemaPlus parentSchema, String name, @Nullable File sourceDirectory,
       @Nullable List<Map<String, Object>> tables) {
-    this(parentSchema, name, baseDirectory, null, tables, new ExecutionEngineConfig(), false,
+    this(parentSchema, name, sourceDirectory, null, tables, new ExecutionEngineConfig(), false,
         null, null, null, null);
   }
 
@@ -645,6 +648,17 @@ public class FileSchema extends AbstractSchema {
 
     // Find all matching files using the existing glob infrastructure
     List<String> matchingFiles = findMatchingFiles(pattern);
+    
+    // Determine output directory for converted files
+    File conversionDir = null;
+    if (baseDirectory != null) {
+      // Use baseDirectory/conversions/ for converted files
+      conversionDir = new File(baseDirectory, "conversions");
+      if (!conversionDir.exists()) {
+        conversionDir.mkdirs();
+        LOGGER.debug("Created conversions directory: {}", conversionDir.getAbsolutePath());
+      }
+    }
 
     // Convert each file using FileConversionManager
     for (String filePath : matchingFiles) {
@@ -657,12 +671,13 @@ public class FileSchema extends AbstractSchema {
 
       try {
         // Use FileConversionManager for centralized conversion logic
-        // The output directory is the file's parent directory
+        // Output to conversions directory if available, otherwise fallback to source directory
+        File outputDir = conversionDir != null ? conversionDir : file.getParentFile();
         // Pass baseDirectory for metadata storage
         boolean converted = FileConversionManager.convertIfNeeded(
-            file, file.getParentFile(), columnNameCasing, tableNameCasing, baseDirectory);
+            file, outputDir, columnNameCasing, tableNameCasing, baseDirectory);
         if (converted) {
-          LOGGER.debug("Converted file: {}", file.getName());
+          LOGGER.debug("Converted file: {} to directory: {}", file.getName(), outputDir.getAbsolutePath());
         }
       } catch (Exception e) {
         LOGGER.warn("Failed to convert file {}: {}", file.getName(), e.getMessage());
@@ -997,9 +1012,28 @@ public class FileSchema extends AbstractSchema {
           sourceSansJson = sourceSansGz.trimOrNull(".yml");
         }
         if (sourceSansJson != null) {
-          String rawName = WHITESPACE_PATTERN.matcher(sourceSansJson.relative(baseSource).path()
-              .replace(File.separator, "_"))
-              .replaceAll("_");
+          // For files in the conversions directory, use just the filename as the table name
+          String rawName;
+          if (baseDirectory != null && file.getAbsolutePath().startsWith(
+              new File(baseDirectory, "conversions").getAbsolutePath())) {
+            // This is a converted file - use just the filename without path
+            rawName = file.getName();
+            // Remove extension
+            if (rawName.endsWith(".json")) {
+              rawName = rawName.substring(0, rawName.lastIndexOf(".json"));
+            } else if (rawName.endsWith(".yaml")) {
+              rawName = rawName.substring(0, rawName.lastIndexOf(".yaml"));
+            } else if (rawName.endsWith(".yml")) {
+              rawName = rawName.substring(0, rawName.lastIndexOf(".yml"));
+            }
+            rawName = WHITESPACE_PATTERN.matcher(rawName.replace(File.separator, "_"))
+                .replaceAll("_");
+          } else {
+            // Regular file - use path relative to base source
+            rawName = WHITESPACE_PATTERN.matcher(sourceSansJson.relative(baseSource).path()
+                .replace(File.separator, "_"))
+                .replaceAll("_");
+          }
           String baseName = applyCasing(rawName, tableNameCasing);
           LOGGER.debug("Converting table name: '{}' -> '{}' (casing={})", rawName, baseName, tableNameCasing);
           // Handle duplicate table names by adding extension suffix
@@ -1762,16 +1796,8 @@ public class FileSchema extends AbstractSchema {
             + "Excel files contain multiple sheets (tables). "
             + "Use directory discovery mode or direct file URL instead.");
       }
-      // For directory/file discovery mode, convert Excel to JSON
-      try {
-        java.io.File file = new java.io.File(source.path());
-        // Always extract all sheets from Excel files
-        SafeExcelToJsonConverter.convertIfNeeded(file, true, tableNameCasing, columnNameCasing);
-        // Return false to let directory scanning pick up the converted JSON files
-        return false;
-      } catch (Exception e) {
-        LOGGER.warn("Warning: Failed to convert Excel file {}: {}", source.path(), e.getMessage());
-      }
+      // For directory/file discovery mode, return false to let convertSupportedFilesToJson handle it
+      return false;
     }
 
     // Check for HTML files
@@ -2274,11 +2300,48 @@ public class FileSchema extends AbstractSchema {
       pattern = "*";
     }
 
-    // Always use glob-based file discovery for consistency
+    // Collect files from source directory
     List<String> matchingFiles = findMatchingFiles(pattern);
-    File[] sortedFiles = matchingFiles.stream()
+    List<File> allFiles = new ArrayList<>();
+    
+    // Add files from source directory
+    matchingFiles.stream()
         .map(File::new)
         .filter(this::isFileTypeSupported)
+        .forEach(allFiles::add);
+    
+    // Also include converted files from base directory if it exists
+    if (baseDirectory != null) {
+      // Check for converted files in baseDirectory/conversions/
+      File conversionsDir = new File(baseDirectory, "conversions");
+      if (conversionsDir.exists() && conversionsDir.isDirectory()) {
+        LOGGER.debug("[FileSchema] Including converted files from: {}", conversionsDir.getAbsolutePath());
+        File[] convertedFiles = conversionsDir.listFiles(file -> isFileTypeSupported(file));
+        if (convertedFiles != null) {
+          for (File file : convertedFiles) {
+            allFiles.add(file);
+            LOGGER.debug("[FileSchema] Added converted file: {}", file.getName());
+          }
+        }
+      }
+      
+      // Check for converted files from storage providers in .download-cache/conversions/
+      File downloadCacheConversionsDir = new File(new File(baseDirectory, ".download-cache"), "conversions");
+      if (downloadCacheConversionsDir.exists() && downloadCacheConversionsDir.isDirectory()) {
+        LOGGER.debug("[FileSchema] Including storage provider converted files from: {}", 
+            downloadCacheConversionsDir.getAbsolutePath());
+        File[] storageConvertedFiles = downloadCacheConversionsDir.listFiles(file -> isFileTypeSupported(file));
+        if (storageConvertedFiles != null) {
+          for (File file : storageConvertedFiles) {
+            allFiles.add(file);
+            LOGGER.debug("[FileSchema] Added storage provider converted file: {}", file.getName());
+          }
+        }
+      }
+    }
+    
+    // Sort all files with the same logic
+    File[] sortedFiles = allFiles.stream()
         .sorted((f1, f2) -> {
           // Sort files to ensure CSV files are processed after HTML files
           // This ensures CSV tables take precedence over HTML tables when they have the same name
@@ -2297,6 +2360,8 @@ public class FileSchema extends AbstractSchema {
         })
         .toArray(File[]::new);
 
+    LOGGER.debug("[FileSchema] Total files for processing: {} (source: {}, converted: {})", 
+        sortedFiles.length, matchingFiles.size(), allFiles.size() - matchingFiles.size());
 
     return sortedFiles;
   }
