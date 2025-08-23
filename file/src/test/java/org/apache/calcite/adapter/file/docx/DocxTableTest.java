@@ -189,7 +189,7 @@ public class DocxTableTest {
 
   @Test public void testDocxTableExtraction() throws Exception {
     // Run the DOCX scanner
-    DocxTableScanner.scanAndConvertTables(simpleDocxFile);
+    DocxTableScanner.scanAndConvertTables(simpleDocxFile, tempDir.toFile());
 
     // Check that JSON file was created
     File jsonFile = new File(tempDir.toFile(), "products__current_products.json");
@@ -204,7 +204,7 @@ public class DocxTableTest {
 
   @Test public void testMultipleTablesInDocx() throws Exception {
     // Run the DOCX scanner
-    DocxTableScanner.scanAndConvertTables(complexDocxFile);
+    DocxTableScanner.scanAndConvertTables(complexDocxFile, tempDir.toFile());
 
     // Check that both JSON files were created
     File salesFile = new File(tempDir.toFile(), "quarterly_report__regional_sales_summary.json");
@@ -270,7 +270,7 @@ public class DocxTableTest {
       }
     }
 
-    DocxTableScanner.scanAndConvertTables(groupHeaderFile);
+    DocxTableScanner.scanAndConvertTables(groupHeaderFile, tempDir.toFile());
 
     File jsonFile = new File(tempDir.toFile(), "budget__department_budgets.json");
     assertTrue(jsonFile.exists(), "JSON file with group headers should be created");
@@ -289,8 +289,8 @@ public class DocxTableTest {
     FileSchema schema = new FileSchema(null, "TEST", tempDir.toFile(), null, null, new ExecutionEngineConfig(), false, null, null, null, null);
 
     // Convert DOCX files first
-    DocxTableScanner.scanAndConvertTables(simpleDocxFile);
-    DocxTableScanner.scanAndConvertTables(complexDocxFile);
+    DocxTableScanner.scanAndConvertTables(simpleDocxFile, tempDir.toFile());
+    DocxTableScanner.scanAndConvertTables(complexDocxFile, tempDir.toFile());
 
     // Check that tables are accessible
     Map<String, Table> tables = schema.getTableMap();
@@ -306,7 +306,7 @@ public class DocxTableTest {
 
   @Test public void testDocxTableQuery() throws Exception {
     // Run the scanner first
-    DocxTableScanner.scanAndConvertTables(simpleDocxFile);
+    DocxTableScanner.scanAndConvertTables(simpleDocxFile, tempDir.toFile());
 
     // Create schema and run query
     final Map<String, Object> operand = ImmutableMap.of("directory", tempDir.toFile());
@@ -331,7 +331,7 @@ public class DocxTableTest {
     }
 
     // Should not throw exception
-    DocxTableScanner.scanAndConvertTables(emptyFile);
+    DocxTableScanner.scanAndConvertTables(emptyFile, tempDir.toFile());
 
     // No JSON files should be created
     File[] jsonFiles = tempDir.toFile().listFiles((dir, name) ->
@@ -359,7 +359,7 @@ public class DocxTableTest {
       }
     }
 
-    DocxTableScanner.scanAndConvertTables(noTitleFile);
+    DocxTableScanner.scanAndConvertTables(noTitleFile, tempDir.toFile());
 
     // Should create file without Table suffix since there's only one table
     File jsonFile = new File(tempDir.toFile(), "no_title.json");

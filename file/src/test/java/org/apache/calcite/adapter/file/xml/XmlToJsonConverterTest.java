@@ -81,7 +81,7 @@ class XmlToJsonConverterTest {
     File xmlFile = createTempXmlFile("catalog.xml", xmlContent);
     
     // Convert
-    List<File> jsonFiles = XmlToJsonConverter.convert(xmlFile, outputDir);
+    List<File> jsonFiles = XmlToJsonConverter.convert(xmlFile, outputDir, outputDir);
     
     // Verify
     assertEquals(1, jsonFiles.size());
@@ -138,7 +138,7 @@ class XmlToJsonConverterTest {
     File xmlFile = createTempXmlFile("customers.xml", xmlContent);
     
     // Convert
-    List<File> jsonFiles = XmlToJsonConverter.convert(xmlFile, outputDir);
+    List<File> jsonFiles = XmlToJsonConverter.convert(xmlFile, outputDir, outputDir);
     
     // Verify
     assertEquals(1, jsonFiles.size());
@@ -198,7 +198,7 @@ class XmlToJsonConverterTest {
     File xmlFile = createTempXmlFile("company.xml", xmlContent);
     
     // Convert
-    List<File> jsonFiles = XmlToJsonConverter.convert(xmlFile, outputDir);
+    List<File> jsonFiles = XmlToJsonConverter.convert(xmlFile, outputDir, outputDir);
     
     // Verify - should create 2 tables
     assertEquals(2, jsonFiles.size());
@@ -261,7 +261,7 @@ class XmlToJsonConverterTest {
     File xmlFile = createTempXmlFile("data.xml", xmlContent);
     
     // Convert with XPath targeting only products
-    List<File> jsonFiles = XmlToJsonConverter.convert(xmlFile, outputDir, "//product");
+    List<File> jsonFiles = XmlToJsonConverter.convert(xmlFile, outputDir, "//product", outputDir);
     
     // Verify - should only create products table
     assertEquals(1, jsonFiles.size());
@@ -295,7 +295,7 @@ class XmlToJsonConverterTest {
     File xmlFile = createTempXmlFile("test.xml", xmlContent);
     
     // Convert with LOWER casing
-    List<File> jsonFiles = XmlToJsonConverter.convert(xmlFile, outputDir, null, "LOWER");
+    List<File> jsonFiles = XmlToJsonConverter.convert(xmlFile, outputDir, null, "LOWER", outputDir);
     
     assertEquals(1, jsonFiles.size());
     File jsonFile = jsonFiles.get(0);
@@ -341,7 +341,7 @@ class XmlToJsonConverterTest {
     File xmlFile = createTempXmlFile("library.xml", xmlContent);
     
     // Convert
-    List<File> jsonFiles = XmlToJsonConverter.convert(xmlFile, outputDir);
+    List<File> jsonFiles = XmlToJsonConverter.convert(xmlFile, outputDir, outputDir);
     
     assertEquals(1, jsonFiles.size());
     File jsonFile = jsonFiles.get(0);
@@ -384,7 +384,7 @@ class XmlToJsonConverterTest {
     File xmlFile = createTempXmlFile("records.xml", xmlContent);
     
     // Convert
-    List<File> jsonFiles = XmlToJsonConverter.convert(xmlFile, outputDir);
+    List<File> jsonFiles = XmlToJsonConverter.convert(xmlFile, outputDir, outputDir);
     
     assertEquals(1, jsonFiles.size());
     File jsonFile = jsonFiles.get(0);
@@ -425,7 +425,7 @@ class XmlToJsonConverterTest {
     assertFalse(XmlToJsonConverter.hasExtractedFiles(xmlFile, outputDir));
     
     // Convert
-    XmlToJsonConverter.convert(xmlFile, outputDir);
+    XmlToJsonConverter.convert(xmlFile, outputDir, outputDir);
     
     // Now should have extracted files
     assertTrue(XmlToJsonConverter.hasExtractedFiles(xmlFile, outputDir));
@@ -444,7 +444,7 @@ class XmlToJsonConverterTest {
     
     // Should throw IOException
     try {
-      XmlToJsonConverter.convert(xmlFile, outputDir);
+      XmlToJsonConverter.convert(xmlFile, outputDir, outputDir);
       // If we get here, the test failed
       assertTrue(false, "Expected IOException for invalid XML");
     } catch (IOException e) {

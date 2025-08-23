@@ -220,7 +220,7 @@ public class PptxTableTest {
 
   @Test public void testPptxTableExtraction() throws Exception {
     // Run the PPTX scanner
-    PptxTableScanner.scanAndConvertTables(simplePptxFile);
+    PptxTableScanner.scanAndConvertTables(simplePptxFile, tempDir.toFile());
 
     // Check that JSON file was created with slide context (now lowercase)
     File jsonFile = new File(tempDir.toFile(),
@@ -240,7 +240,7 @@ public class PptxTableTest {
 
   @Test public void testMultipleTablesInPptx() throws Exception {
     // Run the PPTX scanner
-    PptxTableScanner.scanAndConvertTables(complexPptxFile);
+    PptxTableScanner.scanAndConvertTables(complexPptxFile, tempDir.toFile());
 
     // Debug: List all JSON files created
     File[] jsonFiles = tempDir.toFile().listFiles((dir, name) -> name.endsWith(".json"));
@@ -308,7 +308,7 @@ public class PptxTableTest {
       }
     }
 
-    PptxTableScanner.scanAndConvertTables(noTitleFile);
+    PptxTableScanner.scanAndConvertTables(noTitleFile, tempDir.toFile());
 
     // Should create file with slide info but no table title - adds __table when no title
     File jsonFile = new File(tempDir.toFile(), "no_title__data_slide__table.json");
@@ -331,7 +331,7 @@ public class PptxTableTest {
     }
 
     // Should not throw exception
-    PptxTableScanner.scanAndConvertTables(emptyFile);
+    PptxTableScanner.scanAndConvertTables(emptyFile, tempDir.toFile());
 
     // No JSON files should be created
     File[] jsonFiles = tempDir.toFile().listFiles((dir, name) ->
@@ -348,8 +348,8 @@ public class PptxTableTest {
         new ExecutionEngineConfig(), false, null, null, null, null);
 
     // Convert PPTX files first
-    PptxTableScanner.scanAndConvertTables(simplePptxFile);
-    PptxTableScanner.scanAndConvertTables(complexPptxFile);
+    PptxTableScanner.scanAndConvertTables(simplePptxFile, tempDir.toFile());
+    PptxTableScanner.scanAndConvertTables(complexPptxFile, tempDir.toFile());
 
     // Check that tables are accessible
     Map<String, Table> tables = schema.getTableMap();
@@ -368,7 +368,7 @@ public class PptxTableTest {
 
   @Test public void testPptxTableQuery() throws Exception {
     // Run the scanner first
-    PptxTableScanner.scanAndConvertTables(simplePptxFile);
+    PptxTableScanner.scanAndConvertTables(simplePptxFile, tempDir.toFile());
 
     // Create schema and run query
     final Map<String, Object> operand = ImmutableMap.of("directory", tempDir.toFile());
@@ -384,7 +384,7 @@ public class PptxTableTest {
 
   @Test public void testPptxWithViewSimplification() throws Exception {
     // Run the scanner first to generate the complex named tables
-    PptxTableScanner.scanAndConvertTables(complexPptxFile);
+    PptxTableScanner.scanAndConvertTables(complexPptxFile, tempDir.toFile());
 
     // Create a model file with views that simplify the complex PPTX table names
     String modelContent = "{\n" +
@@ -460,7 +460,7 @@ public class PptxTableTest {
     // and shows how queries can work with these names
 
     // Run the scanner first to generate the complex named tables
-    PptxTableScanner.scanAndConvertTables(complexPptxFile);
+    PptxTableScanner.scanAndConvertTables(complexPptxFile, tempDir.toFile());
 
     // Create schema with the PPTX files
     FileSchema schema = new FileSchema(null, "TEST", tempDir.toFile(), null, null,

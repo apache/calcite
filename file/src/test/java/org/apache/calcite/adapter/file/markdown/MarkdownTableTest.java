@@ -93,7 +93,7 @@ public class MarkdownTableTest {
 
   @Test public void testMarkdownTableExtraction() throws Exception {
     // Run the Markdown scanner
-    MarkdownTableScanner.scanAndConvertTables(markdownFile);
+    MarkdownTableScanner.scanAndConvertTables(markdownFile, tempDir.toFile());
 
     // Check that JSON file was created
     File jsonFile = new File(tempDir.toFile(), "Products__Current_Products.json");
@@ -108,7 +108,7 @@ public class MarkdownTableTest {
 
   @Test public void testMultipleTablesInMarkdown() throws Exception {
     // Run the Markdown scanner
-    MarkdownTableScanner.scanAndConvertTables(complexMarkdownFile);
+    MarkdownTableScanner.scanAndConvertTables(complexMarkdownFile, tempDir.toFile());
 
     // Check that both JSON files were created
     File salesFile = new File(tempDir.toFile(), "QuarterlyReport__Sales_Summary.json");
@@ -140,7 +140,7 @@ public class MarkdownTableTest {
       writer.write("| Marketing  | 80000     | 78000     | 85000     | 40000     |\n");
     }
 
-    MarkdownTableScanner.scanAndConvertTables(groupHeaderFile);
+    MarkdownTableScanner.scanAndConvertTables(groupHeaderFile, tempDir.toFile());
 
     File jsonFile = new File(tempDir.toFile(), "Budget__Department_Budgets.json");
     assertTrue(jsonFile.exists(), "JSON file with group headers should be created");
@@ -159,8 +159,8 @@ public class MarkdownTableTest {
     FileSchema schema = new FileSchema(null, "TEST", tempDir.toFile(), null, null, new ExecutionEngineConfig(), false, null, null, null, null);
 
     // Convert Markdown files first
-    MarkdownTableScanner.scanAndConvertTables(markdownFile);
-    MarkdownTableScanner.scanAndConvertTables(complexMarkdownFile);
+    MarkdownTableScanner.scanAndConvertTables(markdownFile, tempDir.toFile());
+    MarkdownTableScanner.scanAndConvertTables(complexMarkdownFile, tempDir.toFile());
 
     // Check that tables are accessible
     Map<String, Table> tables = schema.getTableMap();
@@ -176,7 +176,7 @@ public class MarkdownTableTest {
 
   @Test public void testMarkdownTableQuery() throws Exception {
     // Run the scanner first
-    MarkdownTableScanner.scanAndConvertTables(markdownFile);
+    MarkdownTableScanner.scanAndConvertTables(markdownFile, tempDir.toFile());
 
     // Create schema and run query
     final Map<String, Object> operand = ImmutableMap.of("directory", tempDir.toFile());
@@ -200,7 +200,7 @@ public class MarkdownTableTest {
       writer.write("| Test_Under | 300 | Contains underscore |\n");
     }
 
-    MarkdownTableScanner.scanAndConvertTables(specialFile);
+    MarkdownTableScanner.scanAndConvertTables(specialFile, tempDir.toFile());
 
     File jsonFile = new File(tempDir.toFile(), "SpecialChars__Data_with_Special_Chars.json");
     assertTrue(jsonFile.exists(), "JSON file should handle special characters");
@@ -219,7 +219,7 @@ public class MarkdownTableTest {
     }
 
     // Should not throw exception
-    MarkdownTableScanner.scanAndConvertTables(emptyFile);
+    MarkdownTableScanner.scanAndConvertTables(emptyFile, tempDir.toFile());
 
     // No JSON files should be created
     File[] jsonFiles = tempDir.toFile().listFiles((dir, name) ->
@@ -236,7 +236,7 @@ public class MarkdownTableTest {
       writer.write("| Data1   | Data2  |\n");
     }
 
-    MarkdownTableScanner.scanAndConvertTables(noTitleFile);
+    MarkdownTableScanner.scanAndConvertTables(noTitleFile, tempDir.toFile());
 
     // Should create file without Table suffix since there's only one table
     File jsonFile = new File(tempDir.toFile(), "NoTitle.json");
