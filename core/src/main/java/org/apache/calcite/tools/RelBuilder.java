@@ -2934,9 +2934,30 @@ public class RelBuilder {
     project(subProjects, fieldNames);
   }
 
-  /** This method is used to expand the SQL GROUPING operator
-   * into a set of expressions. For example, it expands GROUPING(a, b, c)
-   * into X * GROUPING(a) + Y * GROUPING(b) + Z * GROUPING(c). */
+  /**
+   * Explains the relationship between the SQL GROUPING function and GROUPING SETS.
+   *
+   * <p>The GROUPING function returns a bitmask integer for each column, indicating whether
+   * it is aggregated (not present in the current grouping set) or grouped (present).
+   *
+   * <p>GROUPING SETS defines multiple grouping combinations for an aggregate query.
+   * For each output row, the GROUPING function uses the active grouping set to determine
+   * which columns are grouped and which are aggregated, encoding this as a bitmask.
+   *
+   * <p>The calculation 2^2 * GROUPING(x) + 2^1 * GROUPING(y) + 2^0 * GROUPING(z)
+   * shows how GROUPING encodes the grouping state of each column as a bitmask value.
+   *
+   * <p>For example, in "GROUP BY GROUPING SETS ((a, b), (a), (), (b))":
+   * In the grouping set (a, b), GROUPING(a) = 0, GROUPING(b) = 0,
+   * GROUPING(a, b) = 2^1 * 0 + 2^0 * 0 => 0.
+   * In the grouping set (a), GROUPING(a) = 0, GROUPING(b) = 1,
+   * GROUPING(a, b) = 2^1 * 0 + 2^0 * 1 => 1.
+   * In the grouping set (), GROUPING(a) = 1, GROUPING(b) = 1,
+   * GROUPING(a, b) = 2^1 * 1 + 2^0 * 1 = 3.
+   * In the grouping set (b), GROUPING(a) = 1, GROUPING(b) = 0,
+   * GROUPING(a, b) = 2^1 * 1 + 2^0 * 0 = 2.
+   * Thus, GROUPING(a, b) produces 0, 1, 3, and 2 for each grouping set respectively.
+   */
   private void splitGrouping(
       List<AggCallPlus> aggCalls,
       List<RexNode> projects,
@@ -2952,12 +2973,12 @@ public class RelBuilder {
             new RexInputRef(groupSet.cardinality() + aggCalls.size(), groupingType);
         splitOperands.add(
             call(SqlStdOperatorTable.MULTIPLY,
-                literal(1 << groupingArgs.size() - 1 - i),
+                literal(safeShift(groupingArgs.size() - 1 - i)),
                 groupingRef));
         aggCalls.add((AggCallPlus) aggregateCall(SqlStdOperatorTable.GROUPING, field(groupingArg)));
       } else {
         // Sets GROUPING function value to 1 for parameters not in GroupSet and calculates offset.
-        splitOperands.add(literal(1 << groupingArgs.size() - 1 - i));
+        splitOperands.add(literal(safeShift(groupingArgs.size() - 1 - i)));
       }
     }
 
@@ -2967,6 +2988,13 @@ public class RelBuilder {
       plus = call(SqlStdOperatorTable.PLUS, plus, splitOperands.get(i));
     }
     projects.add(plus);
+  }
+
+  private static int safeShift(int shift) {
+    if (shift < 0 || shift >= Integer.SIZE) {
+      throw new IllegalArgumentException("Invalid shift amount: " + shift);
+    }
+    return 1 << shift;
   }
 
   private static boolean isGroupId(AggCall c) {
