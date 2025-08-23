@@ -64,7 +64,7 @@ public class SpuriousTableComprehensiveTest {
     File excelFile = createTwoEmbeddedTablesExcel();
 
     // Convert to JSON and check for spurious tables
-    MultiTableExcelToJsonConverter.convertFileToJson(excelFile, true, "SMART_CASING", "SMART_CASING");
+    MultiTableExcelToJsonConverter.convertFileToJson(excelFile, tempDir, true, "SMART_CASING", "SMART_CASING", tempDir);
 
     // List all JSON files created
     File[] jsonFiles = tempDir.listFiles((dir, name) -> name.endsWith(".json"));
@@ -119,7 +119,7 @@ public class SpuriousTableComprehensiveTest {
     // Create Excel with table that has headers but no data
     File excelFile = createHeaderOnlyExcel();
 
-    MultiTableExcelToJsonConverter.convertFileToJson(excelFile, true, "SMART_CASING", "SMART_CASING");
+    MultiTableExcelToJsonConverter.convertFileToJson(excelFile, tempDir, true, "SMART_CASING", "SMART_CASING", tempDir);
 
     File[] jsonFiles = tempDir.listFiles((dir, name) -> name.endsWith(".json"));
     System.out.println("Header-only test: Created " + jsonFiles.length + " JSON files");
@@ -134,7 +134,7 @@ public class SpuriousTableComprehensiveTest {
     // Create Excel with empty rows that might be detected as tables
     File excelFile = createEmptyRowsExcel();
 
-    MultiTableExcelToJsonConverter.convertFileToJson(excelFile, true, "SMART_CASING", "SMART_CASING");
+    MultiTableExcelToJsonConverter.convertFileToJson(excelFile, tempDir, true, "SMART_CASING", "SMART_CASING", tempDir);
 
     File[] jsonFiles = tempDir.listFiles((dir, name) -> name.endsWith(".json"));
 
@@ -166,7 +166,7 @@ public class SpuriousTableComprehensiveTest {
     // Create Excel with formatting that might be mistaken for a table
     File excelFile = createFormattingArtifactExcel();
 
-    MultiTableExcelToJsonConverter.convertFileToJson(excelFile, true, "SMART_CASING", "SMART_CASING");
+    MultiTableExcelToJsonConverter.convertFileToJson(excelFile, tempDir, true, "SMART_CASING", "SMART_CASING", tempDir);
 
     String model = createModel(tempDir);
 
@@ -210,7 +210,7 @@ public class SpuriousTableComprehensiveTest {
     // Create Excel with merged cells that might create spurious table detection
     File excelFile = createMergedCellComplexExcel();
 
-    MultiTableExcelToJsonConverter.convertFileToJson(excelFile, true, "SMART_CASING", "SMART_CASING");
+    MultiTableExcelToJsonConverter.convertFileToJson(excelFile, tempDir, true, "SMART_CASING", "SMART_CASING", tempDir);
 
     String model = createModel(tempDir);
 

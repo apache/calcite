@@ -86,7 +86,7 @@ public class ExcelConversionTest {
 
     // Test that SafeExcelToJsonConverter would handle this correctly
     try {
-      SafeExcelToJsonConverter.convertIfNeeded(excelFile);
+      SafeExcelToJsonConverter.convertIfNeeded(excelFile, tempDir.toFile(), true, "SMART_CASING", "SMART_CASING", tempDir.toFile());
       // In real scenario with POI, this would convert because Excel is newer
     } catch (Exception e) {
       // Expected without POI dependencies
@@ -134,7 +134,7 @@ public class ExcelConversionTest {
 
     // First conversion attempt
     try {
-      SafeExcelToJsonConverter.convertIfNeeded(excelFile);
+      SafeExcelToJsonConverter.convertIfNeeded(excelFile, tempDir.toFile(), true, "SMART_CASING", "SMART_CASING", tempDir.toFile());
     } catch (Exception e) {
       // Expected without POI
     }
@@ -142,7 +142,7 @@ public class ExcelConversionTest {
     // Second conversion attempt - should be cached
     long startTime = System.currentTimeMillis();
     try {
-      SafeExcelToJsonConverter.convertIfNeeded(excelFile);
+      SafeExcelToJsonConverter.convertIfNeeded(excelFile, tempDir.toFile(), true, "SMART_CASING", "SMART_CASING", tempDir.toFile());
     } catch (Exception e) {
       // Expected without POI
     }
@@ -154,7 +154,7 @@ public class ExcelConversionTest {
     // Clear cache and try again
     SafeExcelToJsonConverter.clearCache();
     try {
-      SafeExcelToJsonConverter.convertIfNeeded(excelFile);
+      SafeExcelToJsonConverter.convertIfNeeded(excelFile, tempDir.toFile(), true, "SMART_CASING", "SMART_CASING", tempDir.toFile());
     } catch (Exception e) {
       // Expected without POI
     }
@@ -183,7 +183,7 @@ public class ExcelConversionTest {
 
     // SafeExcelToJsonConverter should detect that conversion is needed
     try {
-      SafeExcelToJsonConverter.convertIfNeeded(excelFile);
+      SafeExcelToJsonConverter.convertIfNeeded(excelFile, tempDir.toFile(), true, "SMART_CASING", "SMART_CASING", tempDir.toFile());
       // Would convert in real scenario because Excel is newer
     } catch (Exception e) {
       // Expected without POI
