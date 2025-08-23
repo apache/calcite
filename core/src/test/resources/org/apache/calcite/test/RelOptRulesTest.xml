@@ -17913,6 +17913,56 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testSortRemoveDuplicateKeys">
+    <Resource name="sql">
+      <![CDATA[select d1
+ from (select deptno as d1, deptno as d2 from dept) as tmp
+ order by d1, d2, d1 desc
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(D1=[$0])
+  LogicalSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])
+    LogicalProject(D1=[$0], D2=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(D1=[$0])
+  LogicalSort(sort0=[$0], dir0=[ASC])
+    LogicalProject(D1=[$0], D2=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSortRemoveDuplicateKeysJoin">
+    <Resource name="sql">
+      <![CDATA[select * from (select deptno as d1, deptno as d2 from emp) as t1
+ join emp t2 on t1.d1 = t2.deptno order by t1.d1, t1.d2, t1.d1 DESC NULLS FIRST]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])
+  LogicalProject(D1=[$0], D2=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO=[$9], SLACKER=[$10])
+    LogicalJoin(condition=[=($0, $9)], joinType=[inner])
+      LogicalProject(D1=[$7], D2=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalSort(sort0=[$0], dir0=[ASC])
+  LogicalProject(D1=[$0], D2=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO=[$9], SLACKER=[$10])
+    LogicalJoin(condition=[=($0, $9)], joinType=[inner])
+      LogicalProject(D1=[$7], D2=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testSortRemoveWhenAggregateMaxRowCntIsOne">
     <Resource name="sql">
       <![CDATA[select count(*) as c
