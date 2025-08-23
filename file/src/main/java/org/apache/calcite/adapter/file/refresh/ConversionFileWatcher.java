@@ -44,6 +44,8 @@ public class ConversionFileWatcher {
   private final ScheduledExecutorService executor;
   // Schema-aware watched files: schema -> file -> info
   private final Map<String, Map<File, FileInfo>> schemaWatchedFiles = new ConcurrentHashMap<>();
+  // Schema base directories for conversion output
+  private final Map<String, File> schemaBaseDirectories = new ConcurrentHashMap<>();
   
   private static class FileInfo {
     final FileType type;
@@ -79,6 +81,20 @@ public class ConversionFileWatcher {
       instance = new ConversionFileWatcher();
     }
     return instance;
+  }
+  
+  /**
+   * Registers the base directory for a schema.
+   * 
+   * @param schemaName The schema name
+   * @param baseDirectory The base directory for conversion output
+   */
+  public void registerSchemaBaseDirectory(String schemaName, File baseDirectory) {
+    if (schemaName != null && baseDirectory != null) {
+      schemaBaseDirectories.put(schemaName, baseDirectory);
+      LOGGER.debug("Registered base directory for schema '{}': {}", 
+                  schemaName, baseDirectory.getAbsolutePath());
+    }
   }
   
   /**
@@ -186,15 +202,41 @@ public class ConversionFileWatcher {
         // Re-run the appropriate conversion
         switch (info.type) {
         case EXCEL:
-          SafeExcelToJsonConverter.convertIfNeeded(file, true);
+          // Use conversions directory under base directory for this schema
+          File baseDirExcel = schemaBaseDirectories.get(schemaName);
+          File outputDirExcel;
+          if (baseDirExcel != null) {
+            outputDirExcel = new File(baseDirExcel, "conversions");
+            if (!outputDirExcel.exists()) {
+              outputDirExcel.mkdirs();
+            }
+          } else {
+            // Fallback to parent directory if no base directory registered
+            LOGGER.warn("No base directory registered for schema '{}', using source directory", schemaName);
+            outputDirExcel = file.getParentFile();
+          }
+          SafeExcelToJsonConverter.convertIfNeeded(
+              file, outputDirExcel, true, "SMART_CASING", "SMART_CASING", baseDirExcel != null ? baseDirExcel : outputDirExcel.getParentFile());
           LOGGER.info("Re-converted Excel file to JSON: {}", file.getName());
           break;
           
         case HTML:
           // HTML conversion
           try {
-            File outputDir = file.getParentFile();
-            HtmlToJsonConverter.convert(file, outputDir);
+            // Use conversions directory under base directory for this schema
+            File baseDir = schemaBaseDirectories.get(schemaName);
+            File outputDir;
+            if (baseDir != null) {
+              outputDir = new File(baseDir, "conversions");
+              if (!outputDir.exists()) {
+                outputDir.mkdirs();
+              }
+            } else {
+              // Fallback to parent directory if no base directory registered
+              LOGGER.warn("No base directory registered for schema '{}', using source directory", schemaName);
+              outputDir = file.getParentFile();
+            }
+            HtmlToJsonConverter.convert(file, outputDir, baseDir != null ? baseDir : file.getParentFile());
             LOGGER.info("Re-converted HTML file to JSON: {}", file.getName());
           } catch (Exception e) {
             LOGGER.error("Failed to re-convert HTML file: {}", file.getName(), e);
@@ -204,8 +246,20 @@ public class ConversionFileWatcher {
         case XML:
           // XML conversion  
           try {
-            File outputDir = file.getParentFile();
-            XmlToJsonConverter.convert(file, outputDir);
+            // Use conversions directory under base directory for this schema
+            File baseDirXml = schemaBaseDirectories.get(schemaName);
+            File outputDirXml;
+            if (baseDirXml != null) {
+              outputDirXml = new File(baseDirXml, "conversions");
+              if (!outputDirXml.exists()) {
+                outputDirXml.mkdirs();
+              }
+            } else {
+              // Fallback to parent directory if no base directory registered
+              LOGGER.warn("No base directory registered for schema '{}', using source directory", schemaName);
+              outputDirXml = file.getParentFile();
+            }
+            XmlToJsonConverter.convert(file, outputDirXml, baseDirXml != null ? baseDirXml : file.getParentFile());
             LOGGER.info("Re-converted XML file to JSON: {}", file.getName());
           } catch (Exception e) {
             LOGGER.error("Failed to re-convert XML file: {}", file.getName(), e);

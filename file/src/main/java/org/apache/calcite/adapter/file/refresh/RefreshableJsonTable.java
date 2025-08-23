@@ -143,21 +143,22 @@ public class RefreshableJsonTable extends AbstractRefreshableTable implements Sc
           
           // Re-run the JSONPath extraction
           org.apache.calcite.adapter.file.converters.JsonPathConverter.extract(
-              originalSource, jsonFile, jsonPath);
+              originalSource, jsonFile, jsonPath, outputDir.getParentFile());
           LOGGER.debug("Re-extracted JSONPath {} from {} to {}", 
               jsonPath, originalSource.getName(), jsonFile.getName());
         } else if (fileName.endsWith(".html") || fileName.endsWith(".htm")) {
           // Re-convert HTML to JSON
-          List<File> newJsonFiles = HtmlToJsonConverter.convert(originalSource, outputDir, columnNameCasing);
+          List<File> newJsonFiles = HtmlToJsonConverter.convert(originalSource, outputDir, columnNameCasing, outputDir.getParentFile());
           LOGGER.debug("Re-converted HTML file {} to {} JSON files", 
               originalSource.getName(), newJsonFiles.size());
         } else if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
           // Re-convert Excel to JSON
-          MultiTableExcelToJsonConverter.convertFileToJson(originalSource, true, "SMART_CASING", "SMART_CASING");
+          // Use the columnNameCasing configured for this table
+          MultiTableExcelToJsonConverter.convertFileToJson(originalSource, outputDir, true, columnNameCasing, columnNameCasing, outputDir.getParentFile());
           LOGGER.debug("Re-converted Excel file {}", originalSource.getName());
         } else if (fileName.endsWith(".xml")) {
           // Re-convert XML to JSON
-          List<File> newJsonFiles = XmlToJsonConverter.convert(originalSource, outputDir, columnNameCasing);
+          List<File> newJsonFiles = XmlToJsonConverter.convert(originalSource, outputDir, columnNameCasing, outputDir.getParentFile());
           LOGGER.debug("Re-converted XML file {} to {} JSON files", 
               originalSource.getName(), newJsonFiles.size());
         }

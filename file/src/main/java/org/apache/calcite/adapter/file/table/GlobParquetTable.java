@@ -313,8 +313,13 @@ public class GlobParquetTable extends AbstractTable
       } else if (fileName.endsWith(".html") || fileName.endsWith(".htm")) {
         // HTML files - use new converter
         LOGGER.fine("Preprocessing HTML file: " + file.getName());
+        // Use conversions subdirectory under cacheDir, not source directory
+        File conversionsDir = new File(cacheDir, "conversions");
+        if (!conversionsDir.exists()) {
+          conversionsDir.mkdirs();
+        }
         List<File> jsonFiles =
-            HtmlToJsonConverter.convert(file, file.getParentFile());
+            HtmlToJsonConverter.convert(file, conversionsDir, cacheDir);
         allFiles.addAll(jsonFiles);
       } else {
         // Other files (CSV, JSON, Parquet) - add directly

@@ -86,6 +86,15 @@ public class RefreshableConvertedTable extends AbstractRefreshableTable
   /** Parquet file if using Parquet engine */
   private volatile File parquetFile;
   
+  /** Column name casing configuration */
+  private final String columnNameCasing;
+  
+  /** Table name casing configuration */
+  private final String tableNameCasing;
+  
+  /** Output directory for conversions */
+  private final File outputDir;
+  
   /**
    * Creates a refreshable converted table.
    * 
@@ -97,6 +106,9 @@ public class RefreshableConvertedTable extends AbstractRefreshableTable
    * @param cacheDir Cache directory for conversions
    * @param schemaName Schema name
    * @param parentSchema Parent schema
+   * @param columnNameCasing Column name casing configuration
+   * @param tableNameCasing Table name casing configuration
+   * @param outputDir Output directory for conversions
    */
   public RefreshableConvertedTable(File sourceFile, 
       Function<File, File> conversionFunction,
@@ -105,7 +117,10 @@ public class RefreshableConvertedTable extends AbstractRefreshableTable
       boolean needsParquet,
       File cacheDir,
       String schemaName,
-      SchemaPlus parentSchema) {
+      SchemaPlus parentSchema,
+      String columnNameCasing,
+      String tableNameCasing,
+      File outputDir) {
     super(sourceFile.getAbsolutePath(), refreshInterval);
     this.sourceFile = sourceFile;
     this.conversionFunction = conversionFunction;
@@ -114,6 +129,9 @@ public class RefreshableConvertedTable extends AbstractRefreshableTable
     this.cacheDir = cacheDir;
     this.schemaName = schemaName;
     this.parentSchema = parentSchema;
+    this.columnNameCasing = columnNameCasing;
+    this.tableNameCasing = tableNameCasing;
+    this.outputDir = outputDir;
     
     // Initial conversion
     updateConvertedTable();
@@ -124,12 +142,14 @@ public class RefreshableConvertedTable extends AbstractRefreshableTable
    */
   public static RefreshableConvertedTable forExcel(File excelFile, String sheetName,
       Duration refreshInterval, boolean needsParquet, File cacheDir, 
-      String schemaName, SchemaPlus parentSchema) {
+      String schemaName, SchemaPlus parentSchema, String columnNameCasing,
+      String tableNameCasing, File outputDir) {
     
     Function<File, File> excelConverter = sourceFile -> {
       try {
-        // Convert Excel to JSON (this creates files like filename__sheetname.json)
-        SafeExcelToJsonConverter.convertIfNeeded(sourceFile, true);
+        // Convert Excel to JSON using configured output directory
+        SafeExcelToJsonConverter.convertIfNeeded(
+            sourceFile, outputDir, true, tableNameCasing, columnNameCasing, outputDir.getParentFile());
         
         // Find the generated JSON file for this sheet
         String baseName = sourceFile.getName();
@@ -137,10 +157,10 @@ public class RefreshableConvertedTable extends AbstractRefreshableTable
           baseName = baseName.substring(0, baseName.lastIndexOf('.'));
         }
         
-        File jsonFile = new File(sourceFile.getParentFile(), baseName + "__" + sheetName + ".json");
+        File jsonFile = new File(outputDir, baseName + "__" + sheetName + ".json");
         if (!jsonFile.exists()) {
           // Try without double underscore (some converters might use single)
-          jsonFile = new File(sourceFile.getParentFile(), baseName + "_" + sheetName + ".json");
+          jsonFile = new File(outputDir, baseName + "_" + sheetName + ".json");
         }
         
         return jsonFile;
@@ -150,7 +170,8 @@ public class RefreshableConvertedTable extends AbstractRefreshableTable
     };
     
     return new RefreshableConvertedTable(excelFile, excelConverter, sheetName,
-        refreshInterval, needsParquet, cacheDir, schemaName, parentSchema);
+        refreshInterval, needsParquet, cacheDir, schemaName, parentSchema,
+        columnNameCasing, tableNameCasing, outputDir);
   }
   
   /**
@@ -158,13 +179,13 @@ public class RefreshableConvertedTable extends AbstractRefreshableTable
    */
   public static RefreshableConvertedTable forHtml(File htmlFile, String tableName,
       Duration refreshInterval, boolean needsParquet, File cacheDir,
-      String schemaName, SchemaPlus parentSchema) {
+      String schemaName, SchemaPlus parentSchema, String columnNameCasing,
+      String tableNameCasing, File outputDir) {
     
     Function<File, File> htmlConverter = sourceFile -> {
       try {
-        // Convert HTML to JSON
-        File outputDir = sourceFile.getParentFile();
-        List<File> jsonFiles = HtmlToJsonConverter.convert(sourceFile, outputDir);
+        // Convert HTML to JSON using configured output directory
+        List<File> jsonFiles = HtmlToJsonConverter.convert(sourceFile, outputDir, columnNameCasing, outputDir.getParentFile());
         // Return the first file if any were created
         if (!jsonFiles.isEmpty()) {
           return jsonFiles.get(0);
@@ -177,7 +198,8 @@ public class RefreshableConvertedTable extends AbstractRefreshableTable
     };
     
     return new RefreshableConvertedTable(htmlFile, htmlConverter, tableName,
-        refreshInterval, needsParquet, cacheDir, schemaName, parentSchema);
+        refreshInterval, needsParquet, cacheDir, schemaName, parentSchema,
+        columnNameCasing, tableNameCasing, outputDir);
   }
   
   /**
@@ -185,13 +207,13 @@ public class RefreshableConvertedTable extends AbstractRefreshableTable
    */
   public static RefreshableConvertedTable forXml(File xmlFile, String tableName,
       Duration refreshInterval, boolean needsParquet, File cacheDir,
-      String schemaName, SchemaPlus parentSchema) {
+      String schemaName, SchemaPlus parentSchema, String columnNameCasing,
+      String tableNameCasing, File outputDir) {
     
     Function<File, File> xmlConverter = sourceFile -> {
       try {
-        // Convert XML to JSON
-        File outputDir = sourceFile.getParentFile();
-        List<File> jsonFiles = XmlToJsonConverter.convert(sourceFile, outputDir);
+        // Convert XML to JSON using configured output directory
+        List<File> jsonFiles = XmlToJsonConverter.convert(sourceFile, outputDir, columnNameCasing, outputDir.getParentFile());
         // Return the first file if any were created
         if (!jsonFiles.isEmpty()) {
           return jsonFiles.get(0);
@@ -204,7 +226,8 @@ public class RefreshableConvertedTable extends AbstractRefreshableTable
     };
     
     return new RefreshableConvertedTable(xmlFile, xmlConverter, tableName,
-        refreshInterval, needsParquet, cacheDir, schemaName, parentSchema);
+        refreshInterval, needsParquet, cacheDir, schemaName, parentSchema,
+        columnNameCasing, tableNameCasing, outputDir);
   }
   
   @Override

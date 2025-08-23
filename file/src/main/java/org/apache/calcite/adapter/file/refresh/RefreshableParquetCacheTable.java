@@ -259,7 +259,7 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
             
             // Re-run the JSONPath extraction
             org.apache.calcite.adapter.file.converters.JsonPathConverter.extract(
-                sourceFile, derivedFile, jsonPath);
+                sourceFile, derivedFile, jsonPath, metadataDir);
             
             LOGGER.info("Refreshed JSONPath extraction: {} -> {} (path: {})", 
                 sourceFile.getName(), derivedFile.getName(), jsonPath);
@@ -299,18 +299,13 @@ public class RefreshableParquetCacheTable extends AbstractRefreshableTable
       // Excel files need conversion to JSON first
       try {
         File excelFile = new File(source.path());
-        // Convert Excel to JSON
-        org.apache.calcite.adapter.file.converters.SafeExcelToJsonConverter.convertIfNeeded(excelFile, true);
+        // Get the proper output directory from the parent directory structure
+        File outputDir = cacheDir != null ? cacheDir : excelFile.getParentFile();
+        org.apache.calcite.adapter.file.converters.SafeExcelToJsonConverter.convertIfNeeded(
+            excelFile, outputDir, true, tableNameCasing, columnNameCasing, outputDir.getParentFile());
         
-        // Find the generated JSON file - this is tricky because Excel creates multiple JSON files
-        // We need to know which sheet/table this refreshable table is for
-        // For now, just re-convert and let the cache handle it
-        // The actual JSON file should already exist from initial conversion
-        
-        // This is a limitation - we're re-converting the whole Excel file
-        // but only one sheet's table is being refreshed
-        // TODO: Track which sheet this table represents
-        
+        // The source should already point to the correct JSON file
+        // as it was set up during initial table discovery
         return new JsonScannableTable(source);
       } catch (Exception e) {
         throw new RuntimeException("Failed to convert Excel file for refresh: " + source.path(), e);
