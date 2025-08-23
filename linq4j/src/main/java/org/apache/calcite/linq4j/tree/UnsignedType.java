@@ -278,7 +278,7 @@ public enum UnsignedType {
   private static ULong toULongNonNull(Number n, RoundingMode mode) {
     if (n instanceof BigDecimal) {
       BigDecimal d = ((BigDecimal) n).setScale(0, mode);
-      return Unsigned.ulong(d.longValueExact());
+      return Unsigned.ulong(d.toBigIntegerExact());
     } else if (n instanceof Byte || n instanceof Short || n instanceof Integer
         || n instanceof Long || n instanceof Float || n instanceof Double
         || n instanceof UByte || n instanceof UShort || n instanceof UInteger) {
