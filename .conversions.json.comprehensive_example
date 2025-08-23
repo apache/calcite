@@ -1,0 +1,25 @@
+{
+  "NESTED_FLAT" : {
+    "tableName" : "NESTED_FLAT",
+    "tableType" : "JsonScannableTable",
+    "sourceFile" : "/Users/kennethstott/ndc-calcite/calcite-rs-jni/calcite/file/build/resources/sales-json/NESTED.json",
+    "sourceType" : "json",
+    "originalFile" : "/Users/kennethstott/ndc-calcite/calcite-rs-jni/calcite/file/build/resources/sales-json/NESTED.json",
+    "convertedFile" : null,
+    "conversionType" : "DIRECT",
+    "parquetCacheFile" : null,
+    "refreshEnabled" : false,
+    "refreshInterval" : null,
+    "timestamp" : 1755961416092,
+    "etag" : null,
+    "contentLength" : null,
+    "contentType" : null,
+    "tableConfig" : {
+      "name" : "NESTED_FLAT",
+      "url" : "NESTED.json",
+      "format" : "json",
+      "flatten" : true,
+      "flattenSeparator" : "_"
+    }
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "/private/var/folders/3z/9k876p5x7xn2b7839l4hfv800000gn/T/junit8104737635261549086/naming_test___123numbers.json" : {
+    "tableName" : null,
+    "tableType" : null,
+    "sourceFile" : null,
+    "sourceType" : null,
+    "originalFile" : "/var/folders/3z/9k876p5x7xn2b7839l4hfv800000gn/T/junit8104737635261549086/naming_test.xlsx",
+    "convertedFile" : "/var/folders/3z/9k876p5x7xn2b7839l4hfv800000gn/T/junit8104737635261549086/naming_test___123numbers.json",
+    "conversionType" : "EXCEL_TO_JSON",
+    "parquetCacheFile" : null,
+    "refreshEnabled" : null,
+    "refreshInterval" : null,
+    "timestamp" : 1755961424426,
+    "etag" : null,
+    "contentLength" : null,
+    "contentType" : null,
+    "tableConfig" : null
+  },
+  "/private/var/folders/3z/9k876p5x7xn2b7839l4hfv800000gn/T/junit10969184122207696098/naming_test__camel_case.json" : {
+    "tableName" : null,
+    "tableType" : null,
+    "sourceFile" : null,
+    "sourceType" : null,
+    "originalFile" : "/var/folders/3z/9k876p5x7xn2b7839l4hfv800000gn/T/junit10969184122207696098/naming_test.xlsx",
+    "convertedFile" : "/var/folders/3z/9k876p5x7xn2b7839l4hfv800000gn/T/junit10969184122207696098/naming_test__camel_case.json",
+    "conversionType" : "EXCEL_TO_JSON",
+    "parquetCacheFile" : null,
+    "refreshEnabled" : null,
+    "refreshInterval" : null,
+    "timestamp" : 1755961424527,
+    "etag" : null,
+    "contentLength" : null,
+    "contentType" : null,
+    "tableConfig" : null
+  },
+  "/private/var/folders/3z/9k876p5x7xn2b7839l4hfv800000gn/T/junit1941388268827490345/large__sheet1.json" : {
+    "tableName" : null,
+    "tableType" : null,
+    "sourceFile" : null,
+    "sourceType" : null,
+    "originalFile" : "/var/folders/3z/9k876p5x7xn2b7839l4hfv800000gn/T/junit1941388268827490345/large.xlsx",
+    "convertedFile" : "/var/folders/3z/9k876p5x7xn2b7839l4hfv800000gn/T/junit1941388268827490345/large__sheet1.json",
+    "conversionType" : "EXCEL_TO_JSON",
+    "parquetCacheFile" : null,
+    "refreshEnabled" : null,
+    "refreshInterval" : null,
+    "timestamp" : 1755961425096,
+    "etag" : null,
+    "contentLength" : null,
+    "contentType" : null,
+    "tableConfig" : null
+  }
+}
